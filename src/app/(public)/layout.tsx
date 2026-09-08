@@ -17,11 +17,12 @@
 // remembers to call: a screen that forgot it would be the only way to break
 // the promise, and there is no screen that renders it.
 //
-// **The header's CTA is not drawn on the landing.** The master's ruling on
-// #266's mockup is one solid primary per screen; on `/` that primary is the
-// hero's own control, so this layout tells the header which route it is on
-// rather than letting the header read the pathname — a header that reads the
-// route would be a second place that rule lives.
+// **The header's CTA is drawn on every route, the landing included**
+// (ruling 2b, 2026-09-08). What changes between routes is what it does: on
+// `/` it is REQ-099 c3's control and brings the hero's own field into view;
+// off `/` it is a link to the landing. This layout tells the header which
+// route it is on rather than letting the header read the pathname — a
+// header that reads the route would be a second place that rule lives.
 //
 // **`(account)` and `(hosted)` get none of this.** §4.4's sidebar is the
 // app shell's own chrome, and a hosted page is the customer's site, not
@@ -42,7 +43,7 @@ export default function PublicLayout({
   const pathname = usePathname();
   return (
     <div className="rk-public-shell">
-      <Header showCta={pathname !== "/"} />
+      <Header onLanding={pathname === "/"} />
       {children}
       <Footer />
     </div>

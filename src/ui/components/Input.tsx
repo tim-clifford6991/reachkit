@@ -53,6 +53,19 @@ type InputBase = {
    *  before this prop existed, so a plain HTML form submission can carry
    *  this field. */
   name?: string;
+  /** The label is the field's accessible name and is **not drawn** (issue
+   *  #351). The approved screen set's landing field is
+   *  `<input placeholder="yourdomain.com" aria-label="Your website">`: the
+   *  hero says what to type in the placeholder, and a label printed above a
+   *  field in a hero is a second sentence competing with the tagline.
+   *
+   *  **It hides the label, it does not remove it.** `label` stays required,
+   *  the `<label for>` stays in the document, and the only thing that
+   *  changes is that sighted readers do not see it — a screen reader
+   *  announces the field exactly as before. There is no arm of this
+   *  component with no label at all, which is the property this must not
+   *  break. */
+  labelHidden?: boolean;
 };
 
 type InputValid = InputBase & { invalid?: false };
@@ -94,7 +107,7 @@ export function Input(p: InputProps): React.JSX.Element {
           `white-space:nowrap`, which are what kept the label on the field's
           line and would clip a long one at 320px (issue #241). */}
       <label
-        className="flex items-center gap-1.5 text-base-content/60"
+        className={p.labelHidden === true ? "sr-only" : "flex items-center gap-1.5 text-base-content/60"}
         htmlFor={id}
       >
         <span>{p.label}</span>

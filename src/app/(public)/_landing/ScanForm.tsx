@@ -17,7 +17,6 @@
 "use client";
 
 import { use, useState, type FormEvent } from "react";
-import { Search } from "lucide-react";
 import { Input } from "@/ui/components/Input";
 import { Btn } from "@/ui/components/Btn";
 import { copy } from "@/lib/presentation/copy";
@@ -112,7 +111,8 @@ export function ScanForm(props: {
       {problem ? (
         <Input
           label={copy("landing.field.label")}
-          placeholder={copy("landing.field.label")}
+          labelHidden
+          placeholder={copy("landing.field.placeholder")}
           name="value"
           value={value}
           onChange={setValue}
@@ -122,24 +122,23 @@ export function ScanForm(props: {
       ) : (
         <Input
           label={copy("landing.field.label")}
-          placeholder={copy("landing.field.label")}
+          labelHidden
+          placeholder={copy("landing.field.placeholder")}
           name="value"
           value={value}
           onChange={setValue}
         />
       )}
-      {/* The `Search` glyph is the idiom's own: `/idiom/landing` draws this
-          control as `IdiomBtn … icon={<Search size={16} strokeWidth={2} />}`
-          and the same glyph heads the specimen card beside it. It is
-          `aria-hidden` because the label already names the action — the
-          icon repeats it in a second medium, and a repeated name read
-          twice is the same claim twice (rule 2.4). */}
+      {/* The screen's one submit control, and the hero's own solid primary
+          (ruling 2b gives this page two — this one and the header's). The
+          approved set draws it beside the field on one row, on the page's
+          own `--bg`: the accent hero is gone with the set, and with it the
+          `on-accent` inversion this control used to take. */}
       <Btn
         type="submit"
         label={copy("landing.submit.label")}
-        variant="on-accent"
+        variant="primary"
         pill
-        icon={<Search size={16} strokeWidth={2} aria-hidden />}
         inFlight={submitting}
       />
     </form>

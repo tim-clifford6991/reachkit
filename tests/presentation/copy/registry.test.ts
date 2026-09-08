@@ -225,6 +225,18 @@ describe("REQ-093 c5 — the registry renders with every model unavailable", () 
     // arrive already written, S3's elapsed time and its waiting line among
     // them, and the offer's own cancel line. 202 + 45 = 247.
     expect(ruled.length).toBe(247);
+    //
+    // 2026-09-08, issue #351 — **the owner's approved screen set (11a)**.
+    // "The artifact's unbracketed strings are approved copy as written",
+    // so S1's own sentences are now values rather than markers. Eleven
+    // keys are filled from the marker — the header and footer's nine
+    // (`chrome.wordmark`, the two nav links, the two footer headings, the
+    // removal line and the three legal titles), the Overview's rising
+    // headline and the AI-answers card title — and twenty new keys land:
+    // thirteen written by the set and seven it brackets. 171 + 11 + 13 =
+    // 195 ruled; 296 + 7 − 11 = 292 awaiting; 598 + 20 = 618 total. Owner-
+    // owed (the empty value) is untouched at 131: this issue promoted no
+    // key to a throw and demoted none.
 
     // Only the ruled sentences carry their slots' `{name}` placeholders —
     // a `TODO(copy)` marker is one literal with no placeholder in it, so
@@ -1085,6 +1097,17 @@ describe("owner-owed and empty agree both ways", () => {
     expect(AWAITING_COPY.length).toBe(257);
     expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(247);
     expect(Object.keys(COPY).length).toBe(631);
+    // 2026-09-08, issue #351 — **the owner's approved screen set (11a)**.
+    // "The artifact's unbracketed strings are approved copy as written",
+    // so S1's own sentences are now values rather than markers. Eleven
+    // keys are filled from the marker — the header and footer's nine
+    // (`chrome.wordmark`, the two nav links, the two footer headings, the
+    // removal line and the three legal titles), the Overview's rising
+    // headline and the AI-answers card title — and twenty new keys land:
+    // thirteen written by the set and seven it brackets. 171 + 11 + 13 =
+    // 195 ruled; 296 + 7 − 11 = 292 awaiting; 598 + 20 = 618 total. Owner-
+    // owed (the empty value) is untouched at 131: this issue promoted no
+    // key to a throw and demoted none.
 
     // The two representations never overlap: an empty value and the marker
     // are different values, so no key can be on both lists.

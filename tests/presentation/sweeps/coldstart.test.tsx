@@ -444,16 +444,25 @@ const MORE_THAN_ONE_PRIMARY: Readonly<Record<string, string>> = Object.freeze({}
  *  entry that stops drawing two fails below as a stale exemption rather
  *  than sitting here.
  *
- *  **The report is the one entry, and it is a ruling, not a debt.** #291
- *  had settled its two down to one — Start solid, the giveaway outline —
- *  and ruling 2b of 2026-09-08 reverses that: "two solid primaries per
- *  screen are allowed **where the artifact draws them** … report: Email me
- *  + Start". The screen carries two trades and the owner's own drawing
- *  fills both controls. The ceiling is two, and
- *  `tests/app/scan-address/report-view.test.tsx` holds it there. */
+ *  **Both entries are rulings, not debts.** #290/#291 had settled each
+ *  screen down to one — the report's Start solid with the giveaway outline,
+ *  the landing's hero control alone — and ruling 2b of 2026-09-08 reverses
+ *  both: "two solid primaries per screen are allowed **where the artifact
+ *  draws them** (landing: header CTA + hero CTA; report: Email me +
+ *  Start)". Each screen's ceiling is held by its own test —
+ *  `tests/app/scan-address/report-view.test.tsx` for the report,
+ *  `tests/app/chrome/header.test.tsx` and `landing-s1.test.tsx` for the
+ *  landing. */
 const MORE_THAN_ONE_PRIMARY_PUBLIC: Readonly<Record<string, string>> = Object.freeze({
   "/scan/[domain]":
     "ruling 2b (2026-09-08): the giveaway's Email me and the pricing card's Start are both solid, as the approved set draws them; supersedes #291.",
+  "/":
+    "ruling 2b (2026-09-08), UI-SPEC S1. The landing's solids are one action " +
+    "stated three times: the header's CTA, the hero's own submit, and the " +
+    "closing CTA under the three Step cards — the set draws all three solid, " +
+    "and the two that are not the submit focus that same field (REQ-099 c3) " +
+    "rather than offering a second action. This sweep sees two of them: the " +
+    "header is the group layout's and does not render here.",
 });
 
 function primariesPerScreen(rendered: RenderedRoute[], group: string): Map<string, number> {
@@ -489,12 +498,11 @@ describe("§9.1 idiom — one solid primary per screen, across src/app/(account)
     expect(actions?.querySelectorAll(".rk-btn-tertiary")).toHaveLength(1);
   });
 
-  // The same rule over `src/app/(public)/**` (issue #290). The account audit
-  // came first because that is where #271 found it; the public side broke
-  // the moment #266 put a header on every route — a control that appears on
-  // every screen cannot be the rank that means "the thing to do on this
-  // screen", and on `/signin` and `/scan/{domain}` it stood beside the
-  // screen's own solid one. The header is the outline secondary now.
+  // The same rule over `src/app/(public)/**` (issue #290), as ruling 2b of
+  // 2026-09-08 leaves it: one solid per public screen, except where the
+  // owner's approved set draws more and `MORE_THAN_ONE_PRIMARY_PUBLIC` says
+  // which screen and why. The rule itself is unchanged and still fails
+  // closed — what changed is that the landing has a named exemption.
   //
   // The header does not appear in this sweep at all: the harness renders a
   // route's own `page.tsx` without its group layout, which is what makes

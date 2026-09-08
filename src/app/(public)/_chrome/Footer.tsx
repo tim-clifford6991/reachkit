@@ -33,7 +33,9 @@ export function Footer(): React.JSX.Element {
               can still find it. One line, not a column of its own: it is a
               sentence, and a heading over a single sentence says the same
               thing twice. */}
-          <p className="rk-chrome-fine">{copy("chrome.footer.opt-out")}</p>
+          <p className="rk-chrome-fine">
+            {copy("chrome.footer.opt-out", { address: copy("removal.address") })}
+          </p>
         </div>
 
         <nav aria-label={copy("chrome.footer.product")}>

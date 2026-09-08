@@ -112,12 +112,25 @@ async function renderPage(searchParams: { problem?: string; value?: string } = {
 function controlsOf(markup: string): {
   inputs: string[];
   buttons: string[];
+  submits: string[];
   selects: string[];
   textareas: string[];
 } {
+  const buttons = [...markup.matchAll(/<button\b[^>]*>/g)].map((m) => m[0]);
   return {
     inputs: [...markup.matchAll(/<input\b[^>]*>/g)].map((m) => m[0]),
-    buttons: [...markup.matchAll(/<button\b[^>]*>/g)].map((m) => m[0]),
+    buttons,
+    // **What c1 counts is a submit control**, and the distinction is the
+    // one the approved screen set made load-bearing (issue #351). The page
+    // now draws a second and a third `<button>` — the header's CTA and the
+    // closing CTA — and neither submits anything: REQ-099 c3 fixes them as
+    // controls that "bring that one field into view with the cursor in it,
+    // ready to type, without a page load and without adding a second input
+    // or a second submit control", and ruling 2b of 2026-09-08 says the
+    // same thing from the other side. So the count that has to stay at one
+    // is this one, and the assertion below that every other button is
+    // `type="button"` is what keeps the two readings from drifting apart.
+    submits: buttons.filter((b) => /type="submit"/.test(b)),
     selects: [...markup.matchAll(/<select\b[^>]*>/g)].map((m) => m[0]),
     textareas: [...markup.matchAll(/<textarea\b[^>]*>/g)].map((m) => m[0]),
   };
@@ -130,14 +143,21 @@ describe(
   () => {
     it("landing/controls · exactly one input and one submit, and nothing else", async () => {
       const markup = await renderPage();
-      const { inputs, buttons, selects, textareas } = controlsOf(markup);
+      const { inputs, buttons, submits, selects, textareas } = controlsOf(markup);
 
       expect(inputs).toHaveLength(1);
       expect(inputs[0]).toMatch(/type="text"/);
       expect(inputs[0]).not.toMatch(/type="(checkbox|radio|email|password|number|hidden)"/);
 
-      expect(buttons).toHaveLength(1);
-      expect(buttons[0]).toMatch(/type="submit"/);
+      // Exactly one submit control, and every other button on the page is
+      // REQ-099 c3's — a control that focuses this same field.
+      expect(submits).toHaveLength(1);
+      for (const button of buttons) {
+        if (submits.includes(button)) continue;
+        expect(button, "a second control that is not a submit must say so").toMatch(
+          /type="button"/
+        );
+      }
 
       expect(selects).toHaveLength(0);
       expect(textareas).toHaveLength(0);
@@ -191,12 +211,12 @@ describe(
       ["no_public_suffix", "localhost"],
     ] as const)("landing/error · the line names the problem and the value survives — %s", async (problem, value) => {
       const markup = await renderPage({ problem, value });
-      const { inputs, buttons } = controlsOf(markup);
+      const { inputs, submits } = controlsOf(markup);
 
       // Still exactly one input and one submit — the error state adds no
       // control (REQ-001 c1 continues to hold on the error render).
       expect(inputs).toHaveLength(1);
-      expect(buttons).toHaveLength(1);
+      expect(submits).toHaveLength(1);
 
       // The value survives, verbatim, in the input's value attribute.
       expect(markup).toContain(`value="${value}"`);
@@ -302,9 +322,9 @@ describe(
   () => {
     it("landing/no-ask · nothing is asked on the way in", async () => {
       const markup = await renderPage();
-      const { inputs, buttons, selects, textareas } = controlsOf(markup);
+      const { inputs, submits, selects, textareas } = controlsOf(markup);
       expect(inputs).toHaveLength(1);
-      expect(buttons).toHaveLength(1);
+      expect(submits).toHaveLength(1);
       expect(selects).toHaveLength(0);
       expect(textareas).toHaveLength(0);
 

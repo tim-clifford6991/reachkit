@@ -505,13 +505,34 @@
   gap: var(--s-5);
 }
 
-/* ── 7 · The landing ──────────────────────────────────────────────────── */
+/* The heading on the accent ground — the sign-in panel's (S9). **It sets no
+ * size**: `src/ui/type.css` gives every heading its own step of the ruled
+ * scale, and this class is the balance, the tighter leading a display line
+ * wants, and no margin. It stays here with the accent ground it belongs to;
+ * the landing that used to share it is on `--bg` since the approved set.
+ * `tests/ui/layout/heading-scale.test.ts` measures the rest. */
+.rk-on-accent-h1 {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+  line-height: 1.25;
+  margin: 0;
+}
+
+/* ── 7 · The landing (UI-SPEC S1, the approved set — issue #351) ──────
+ *
+ * The owner approved the complete screen set on 2026-09-08 and it
+ * supersedes the card idiom's drawing of this page: no accent ground, one
+ * `--bg` page with hairline rules between its sections, the hero component
+ * in a browser frame, and the video frame ruling 4c added. Every value
+ * below is a token; the two the set writes as literals and the ladder has
+ * no rung for — the display headline and the miniature's figure — are
+ * declared at the foot of `theme.css` and named there.
+ * ───────────────────────────────────────────────────────────────────── */
 
 /* Block padding only. The inline gutter is the `Surface`'s (issue #241),
  * and a hero that added its own would inset the tagline twice — at 320 that
- * is 64px off a 320px viewport, and the headline #258 just fixed goes back
- * to four lines. The same defect the app shell had, in the same place: a
- * surface that predates the layout law paying the gutter a second time. */
+ * is 64px off a 320px viewport. */
 .rk-hero {
   padding-block: var(--s-6);
 }
@@ -522,9 +543,10 @@
   }
 }
 
-.rk-hero-grid {
-  max-width: var(--w-wide);
-  margin: 0 auto;
+/* The two-column split the set draws three times: the hero, and sections
+ * 01 and 02. One column below --breakpoint-lg, two above it — the band
+ * boundary ADR-093 already names, and the set's own 1024. */
+.rk-split {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: var(--s-6);
@@ -532,7 +554,7 @@
 }
 
 @media (min-width: 1024px) {
-  .rk-hero-grid {
+  .rk-split {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: var(--s-7);
   }
@@ -545,11 +567,39 @@
   min-width: 0;
 }
 
+/* The display headline. It is the one size on this page above `--t-h1`,
+ * and it steps down to the h1 rung at the compact band — the same rule
+ * `type.css` applies to every h1 since #258. */
+.rk-hero-h {
+  font-size: var(--t-h1);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin: 0;
+  text-wrap: balance;
+}
+
+@media (min-width: 640px) {
+  .rk-hero-h {
+    font-size: var(--t-hero);
+  }
+}
+
+.rk-hero-s {
+  font-size: var(--t-h4);
+  color: var(--ink-2);
+  margin: 0;
+  max-width: var(--w-form);
+}
+
+/* The field and its control on one row. `--w-form` is the ruled measure a
+ * single form column takes; the row never wraps above the compact band. */
 .rk-hero-form {
   display: flex;
   gap: var(--s-2);
   flex-wrap: wrap;
   align-items: flex-end;
+  max-width: var(--w-read);
 }
 
 .rk-hero-form > :first-child {
@@ -557,88 +607,216 @@
   min-width: 0;
 }
 
-/* The hero's product component sits on `--surface`, floating on the accent
- * — shown in its own theme, exactly as a customer meets it after paying. */
-.rk-hero-specimen {
+/* "free · no account · permanent link" — mono, quiet, under the field. */
+.rk-prov-line {
+  font-family: var(--font-mono);
+  font-size: var(--t-explain);
+  color: var(--ink-3);
+  margin: 0;
+}
+
+/* ── The hero component's browser frame ─────────────────────────────── */
+
+.rk-shot {
   background: var(--surface);
-  color: var(--ink);
   border-radius: var(--r-box);
   box-shadow: var(--shadow-card);
+  overflow: hidden;
+  min-width: 0;
+}
+
+.rk-shot-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--s-1);
+  padding: var(--s-2) var(--s-4);
+  border-bottom: 1px solid var(--line);
+  background: var(--sunk);
+}
+
+.rk-shot-dot {
+  width: var(--s-2);
+  height: var(--s-2);
+  border-radius: var(--r-pill);
+  background: var(--line);
+  flex: 0 0 auto;
+}
+
+.rk-shot-url {
+  font-size: var(--t-eyebrow);
+  color: var(--ink-3);
+  margin-left: var(--s-3);
+  min-width: 0;
+}
+
+.rk-shot-body {
   padding: var(--s-4);
   display: flex;
   flex-direction: column;
   gap: var(--s-3);
-  min-width: 0;
+  background: var(--bg);
 }
 
-@media (min-width: 640px) {
-  .rk-hero-specimen {
-    padding: var(--s-5);
-  }
+.rk-shot-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  flex-wrap: wrap;
 }
 
-/* The specimen is an island of `--surface` inside the accent ground, so it
- * takes the ground's ink back off again. Without this the quiet-ink rule
- * above leaks into a white card and puts violet eyebrows on it — the exact
- * failure mode a scoped override has, stated where it happens. */
-.rk-accent-ground .rk-hero-specimen .eyebrow,
-.rk-accent-ground .rk-hero-specimen .rk-quiet {
-  color: var(--ink-3);
-}
-
-/* The heading on an accent ground. **It sets no size**, and that is the
- * port's one deliberate departure from the archive's `.ci-on-accent-h1`.
- *
- * That class pinned `--h2` below 640px and `--h1` above —
- * which is exactly what `src/ui/type.css`'s own `h1` rule already does
- * since issue #258, so on the landing's `h1` it was the same rule written
- * twice (rule 2.4). On the sign-in panel the archive puts the same class on
- * an `<h2>`, where it is not a duplicate but an **upsize**: an h2 rendering
- * at the h1 rung. `tests/ui/layout/heading-scale.test.ts` measures every
- * rendered heading against its own step of the ruled scale and reported it,
- * correctly, the first time this ran.
- *
- * So the size comes off and each element keeps its own step: the landing's
- * h1 is 31/25 by `type.css`, the panel's h2 is 25 at every width. What the
- * class carries is what the accent ground actually needs — the balance, the
- * tighter leading a display line wants, and no margin. */
-.rk-on-accent-h1 {
-  font-weight: 700;
+/* The Overview's own h1, at the size a miniature of it draws. It is a `<p>`
+ * and not an `<h2>`: the frame is a picture of another screen, and its
+ * headline is not a heading of this one — a document outline that walked
+ * into it would say the landing has a section it does not have. */
+.rk-shot-h {
+  font-size: var(--t-h3);
+  font-weight: 800;
   letter-spacing: -0.02em;
-  text-wrap: balance;
-  line-height: 1.25;
+  color: var(--ink);
   margin: 0;
 }
 
-/* Block padding only, for the reason `.rk-hero` states. */
-.rk-section {
-  padding-block: var(--s-6);
+.rk-shot-tiles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s-3);
 }
 
-@media (min-width: 640px) {
-  .rk-section {
-    padding-block: var(--s-7);
-  }
-}
-
-.rk-section-surface {
+.rk-shot-tile {
   background: var(--surface);
+  border-radius: var(--r-box);
+  box-shadow: var(--shadow-card);
+  padding: var(--s-4);
+  min-width: 0;
 }
 
-.rk-section-in {
-  max-width: var(--w-wide);
-  margin: 0 auto;
+.rk-shot-tile-l {
+  font-size: var(--t-xs);
+  font-weight: 600;
+  color: var(--ink-2);
+  margin: 0;
+}
+
+.rk-shot-tile-v {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+  font-size: var(--t-h1);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  color: var(--ink);
+  margin: var(--s-2) 0 0;
+}
+
+.rk-shot-of {
+  font-size: var(--t-body);
+  color: var(--ink-3);
+}
+
+/* ── The sections ───────────────────────────────────────────────────── */
+
+/* One ground and a hairline between sections — the set's own rhythm. The
+ * rule is the section's top border rather than a divider element: a rule
+ * that is a box is a box that can be empty. */
+.rk-sec {
+  padding-block: var(--s-6);
+  border-top: 1px solid var(--line);
   display: flex;
   flex-direction: column;
   gap: var(--s-5);
 }
 
-.rk-section-read {
+@media (min-width: 640px) {
+  .rk-sec {
+    padding-block: var(--s-7);
+  }
+}
+
+.rk-sec-read {
   max-width: var(--w-read);
+  min-width: 0;
+}
+
+.rk-sec-centred {
+  margin-inline: auto;
+}
+
+.rk-sec-n {
+  font-family: var(--font-mono);
+  font-size: var(--t-xs);
+  color: var(--accent);
+  margin: 0;
+}
+
+.rk-sec-h {
+  font-size: var(--t-h2);
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: var(--ink);
+  margin: var(--s-2) 0 var(--s-3);
+  text-wrap: balance;
+}
+
+.rk-sec-s {
+  font-size: var(--t-body);
+  color: var(--ink-2);
+  margin: 0;
+}
+
+.rk-center {
+  text-align: center;
+}
+
+.rk-close {
   display: flex;
   flex-direction: column;
-  gap: var(--s-3);
+  align-items: center;
+  gap: var(--s-2);
 }
+
+/* ── The demo video block (ruling 4c) ───────────────────────────────── */
+
+/* `aspect-ratio` is a proportion, not a length: the block reserves its own
+ * space before any asset exists, so nothing on the page moves the day one
+ * does. */
+.rk-video {
+  aspect-ratio: 16 / 9;
+  width: 100%;
+  border-radius: var(--r-box);
+  background: var(--sunk);
+  border: 1px solid var(--line);
+  display: grid;
+  place-items: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.rk-play {
+  width: calc(var(--s-6) * 2);
+  height: calc(var(--s-6) * 2);
+  border-radius: var(--r-pill);
+  background: var(--accent);
+  color: var(--on-accent);
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+
+/* The one written line 4c puts in the frame while no asset exists. */
+.rk-video-line {
+  position: absolute;
+  bottom: var(--s-4);
+  font-family: var(--font-mono);
+  font-size: var(--t-explain);
+  color: var(--ink-3);
+  padding-inline: var(--s-4);
+  text-align: center;
+}
+
+/* ── Section 03's three Step cards ──────────────────────────────────── */
 
 .rk-three {
   display: grid;
@@ -651,6 +829,20 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
     align-items: start;
   }
+}
+
+.rk-step-h {
+  font-size: var(--t-h4);
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0;
+}
+
+/* The dim line under a card's own answer — the set's `.explain`. */
+.rk-explain {
+  font-size: var(--t-explain);
+  color: var(--ink-3);
+  margin: 0;
 }
 
 .rk-quiet {
@@ -711,43 +903,14 @@
   flex: 0 0 auto;
 }
 
-/* The links sit in the bar at and above 1024px; below it the
- * collapse under the bar carries them. Exactly one of the two is displayed
- * at any width, so no link is ever in the document twice over. */
-.rk-chrome-nav {
-  display: none;
-  gap: var(--s-5);
-  align-items: center;
-}
-
-.rk-chrome-nav a,
-.rk-chrome-stack a {
-  color: var(--ink-2);
-  text-decoration: none;
-}
-
-.rk-chrome-compact {
-  display: block;
-  padding: 0 var(--s-4) var(--s-3);
-}
-
-.rk-chrome-stack {
+/* 3a's two controls, at the right of the bar. There is no link list and no
+ * compact collapse any more: the header is brand, Sign in and one CTA at
+ * every width, so nothing has to be folded away and every link that used to
+ * live here is in the footer, in the document, on every route. */
+.rk-chrome-controls {
   display: flex;
-  flex-direction: column;
+  align-items: center;
   gap: var(--s-2);
-}
-
-@media (min-width: 1024px) {
-  .rk-chrome-nav {
-    display: flex;
-  }
-
-  .rk-chrome-compact {
-    display: none;
-  }
-}
-
-.rk-chrome-cta {
   flex: 0 0 auto;
 }
 
