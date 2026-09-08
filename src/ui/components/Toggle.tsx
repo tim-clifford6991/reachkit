@@ -17,6 +17,21 @@ export function Toggle(p: {
   label: string;
   checked: boolean;
   disabled?: boolean;
+  /** Draw the switch alone, with `label` as its accessible name rather than
+   *  as text beside it (issue #353).
+   *
+   *  **Not a way to ship an unlabelled control.** `label` stays required
+   *  and still reaches the accessibility tree; what moves is where it is
+   *  drawn. The one caller is the sidebar's autopilot card, where the
+   *  card's own eyebrow already states the mode: the switch beside it drew
+   *  the same word a second time, which put "Autopilot" twice and a switch
+   *  into a 222px column and overflowed it — the layout sweep's containment
+   *  check is what caught it. The approved set draws that switch with no
+   *  text of its own for the same reason (UI-SPEC S12: `aria-label` only).
+   *
+   *  A prop rather than a second component: §2.2's set of fifteen is
+   *  closed, and this is the same widening `Progress` took for `onAccent`. */
+  labelHidden?: boolean;
   onChange?: (checked: boolean) => void;
 }): React.JSX.Element {
   return (
@@ -30,9 +45,14 @@ export function Toggle(p: {
         className="toggle"
         checked={p.checked}
         disabled={p.disabled}
+        // The accessible name, where the word is not drawn beside the
+        // switch. Never both: a control with visible text *and* an
+        // `aria-label` is a control a screen reader and a reader are told
+        // two different things about.
+        aria-label={p.labelHidden === true ? p.label : undefined}
         onChange={(e) => p.onChange?.(e.target.checked)}
       />
-      <span>{p.label}</span>
+      {p.labelHidden === true ? null : <span>{p.label}</span>}
     </label>
   );
 }

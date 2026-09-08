@@ -31,7 +31,14 @@ import {
   TRUNCATION_ALLOWLIST,
 } from "./checks";
 import { enumerateRoutes, headersFor, SEGMENT_FIXTURES, urlFor as routeUrl } from "./routes";
-import { LIVE_ACCOUNT, LIVE_DRAFT_ID, LIVE_PUBLISHING, WEEK_ZERO_ACCOUNT } from "./seed";
+import {
+  LIVE_ACCOUNT,
+  LIVE_DRAFT_ID,
+  LIVE_PUBLISHING,
+  RESERVED_ACCOUNT,
+  SETUP_ACCOUNT,
+  WEEK_ZERO_ACCOUNT,
+} from "./seed";
 import { FIXTURE_SETTINGS_FACTS } from "@/app/(account)/app/settings/fixture";
 import { widths } from "./widths";
 
@@ -241,7 +248,18 @@ describe(`week-0 sweep — UI-SPEC S13, ${weekZeroRoutes.length} route(s) × 5 w
 
   it("this account is not the reserved one either — the arm is drawn from its own rows", () => {
     expect(WEEK_ZERO_ACCOUNT.domain).not.toBe("example.com");
-    expect(WEEK_ZERO_ACCOUNT.domain).not.toBe(LIVE_ACCOUNT.domain);
+  });
+
+  it("the four seeded accounts are four distinct users, sites and domains", () => {
+    // Not pedantry: this account first shipped carrying `SETUP_ACCOUNT`'s
+    // own user id, site id *and* domain, and the way that surfaced was a
+    // duplicate-key error from inside `seedSite` at global setup — a
+    // failure that names Postgres rather than the mistake. Three sets of
+    // four say which field collided, before any suite runs.
+    const accounts = [RESERVED_ACCOUNT, LIVE_ACCOUNT, SETUP_ACCOUNT, WEEK_ZERO_ACCOUNT];
+    expect(new Set(accounts.map((a) => a.userId)).size).toBe(accounts.length);
+    expect(new Set(accounts.map((a) => a.siteId)).size).toBe(accounts.length);
+    expect(new Set(accounts.map((a) => a.domain)).size).toBe(accounts.length);
   });
 
   for (const route of weekZeroRoutes) {

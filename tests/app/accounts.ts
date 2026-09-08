@@ -41,9 +41,12 @@ export const LIVE_ACCOUNT: AppAccount = Object.freeze({
  *  been measured, not of which branch answers, and a fixture account could
  *  only ever show one of the two states. */
 export const WEEK_ZERO_ACCOUNT: AppAccount = Object.freeze({
-  userId: "00000000-0000-0000-0000-0000000000a3",
-  siteId: "00000000-0000-0000-0000-0000000000b3",
-  domain: "newco.test",
+  // `a3`/`b3` and `newco.test` are the setup founder's (`SETUP_ACCOUNT` in
+  // `tests/ui/layout/seed.ts`); this is the fourth account, not a second
+  // name for the third.
+  userId: "00000000-0000-0000-0000-0000000000a4",
+  siteId: "00000000-0000-0000-0000-0000000000b4",
+  domain: "firstweek.test",
   createdAt: new Date("2026-08-31T06:00:00.000Z"),
   timeZone: "America/New_York",
   mode: "autopilot",

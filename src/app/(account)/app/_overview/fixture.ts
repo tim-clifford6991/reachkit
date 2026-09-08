@@ -160,7 +160,13 @@ export const FIXTURE_OVERVIEW_FACTS: OverviewFacts = Object.freeze({
     {
       kind: "pending_veto" as const,
       title: "Onboarding checklists that actually get used",
-      since: new Date(Date.UTC(2026, 8, 3, 6, 0, 0)),
+      // The oldest veto item, so this is the one the cap shows — and its
+      // window is still open: `VETO.defaultHours` from here closes at
+      // 20:42 on the 4th, which is 6 h 12 m after `FIXTURE_TODAY`, the
+      // very duration UI-SPEC S12 prints. It used to start a full day
+      // earlier, so the panel stated `0 h 0 m` — true, but a picture of an
+      // expired window rather than of the screen the set draws.
+      since: new Date(Date.UTC(2026, 8, 3, 20, 42, 0)),
       href: "/app/draft/fixture-veto-2",
     },
   ]),

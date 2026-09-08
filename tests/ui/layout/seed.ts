@@ -153,6 +153,36 @@ const SEEDED_DRAFT_ID = "00000000-0000-0000-0000-0000000000d1";
  * the pair sentence the screen writes (`explainPair`) is a different one
  * from the reserved pass's and both arms get measured.
  */
+/** One site's §4.7 publishing row, as these seeds write it. Named rather
+ *  than `typeof LIVE_PUBLISHING`: the two accounts differ in mode, and a
+ *  type taken off one literal makes the other's mode a compile error. */
+interface PublishingRow {
+  mode: string;
+  vetoHours: number;
+  publishTime: string;
+  enabled: boolean;
+  voiceText: string;
+  doNotClaim: readonly string[];
+  category: string;
+  competitors: readonly string[];
+}
+
+/** UI-SPEC S13's sidebar draws the mode as **Autopilot** with the switch
+ *  on, so the week-0 account's row says so. `LIVE_PUBLISHING` is copilot —
+ *  which is the right arm for the live account's own screens, and the wrong
+ *  picture for this one. Everything else is shared: the two accounts differ
+ *  in what has been measured, not in how they are set up. */
+const WEEK_ZERO_PUBLISHING = Object.freeze({
+  mode: "autopilot",
+  vetoHours: 24,
+  publishTime: "07:00",
+  enabled: true,
+  voiceText: "Plain, specific, and never louder than the evidence.",
+  doNotClaim: ["the fastest onboarding on the market"],
+  category: "user onboarding software",
+  competitors: ["asana.com", "notion.so"],
+});
+
 const LIVE_PUBLISHING = Object.freeze({
   mode: "copilot",
   vetoHours: 36,
@@ -168,7 +198,7 @@ const LIVE_PUBLISHING = Object.freeze({
 export const LIVE_DRAFT_ID = LIVE_DRAFTS[0]?.id as string;
 
 /** UI-SPEC S13's one draft, the first page waiting on its customer. */
-export const WEEK_ZERO_DRAFT_ID = "00000000-0000-0000-0000-0000000000d3";
+export const WEEK_ZERO_DRAFT_ID = "00000000-0000-0000-0000-0000000000d4";
 /** The set's own first point: the deep pass read twelve searches. */
 export const WEEK_ZERO_OWN_RANKED = 12;
 /** The day the deep pass ran, as the card's chip states it. Fixed, so the
@@ -358,7 +388,7 @@ export function seedWeekZeroAccount(): void {
   const { siteId, domain } = WEEK_ZERO_ACCOUNT;
   seedSite(WEEK_ZERO_ACCOUNT, {
     drafts: [{ id: WEEK_ZERO_DRAFT_ID, state: "in_review", title: "How teams pick an onboarding tool" }],
-    publishing: LIVE_PUBLISHING,
+    publishing: WEEK_ZERO_PUBLISHING,
   });
 
   // The deep pass's own reading, on the deep scan `seedSite` wrote. Its
@@ -565,7 +595,7 @@ function seedSite(
     drafts: readonly { id: string; state: string; title: string; scheduledIn?: number }[];
     publish?: boolean;
     rivals?: readonly { domain: string; weekly: readonly number[] }[];
-    publishing?: typeof LIVE_PUBLISHING;
+    publishing?: PublishingRow;
   }
 ): void {
   const { userId, siteId, domain, timeZone } = account;

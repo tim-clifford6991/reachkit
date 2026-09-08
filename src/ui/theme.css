@@ -180,18 +180,24 @@
   --w-day-panel: 290px;
 }
 
-/* #353 — UI-SPEC ruling 10a's type ladder, the one rung `src/ui/**` had a
- * reference for and no declaration: "type 15 / 13 / 12 / 11.5 / 11
- * (`--t-body --t-sm --t-xs --t-explain --t-eyebrow`), nothing under 11 px".
+/* #353 — UI-SPEC ruling 10a's type ladder, the two rungs `src/ui/**` had
+ * references for and no declarations: "type 15 / 13 / 12 / 11.5 / 11
+ * (`--t-body --t-sm --t-xs --t-explain --t-eyebrow`), nothing under 11 px",
+ * and §2's own "Additions under 10a: `--t-body 15px`, `--t-sm 13px` …".
  *
- * `--t-explain` is 11.5px — the explain rung, the size the approved set
- * draws its `.srcchip` and its dim lines at (`tokens.css`: `--t-explain:
- * 11.5px`). It carries no theme: a type size is the same value on either
- * ground, so it is declared once here rather than three times across the
- * light, guarded-dark and explicit-dark blocks above.
+ * Both values are the approved `tokens.css`'s, transcribed. Neither carries
+ * a theme: a type size is the same value on either ground, so they are
+ * declared once here rather than three times across the light,
+ * guarded-dark and explicit-dark blocks above.
  *
- * Above the 11px floor ADR-093 d3 sets, and it is a ladder rung rather than
- * a value chosen for this card: `.rk-srcchip` is its second reader. */
+ * Both sit above the 11px floor ADR-093 d3 sets, and both are ladder rungs
+ * rather than values chosen for one card — which is the point of declaring
+ * them here instead of inlining a literal at each reader. */
 :root {
+  /* 13px — the `sm` rung. The sidebar's autopilot card states what the mode
+   * is doing at this size (`.rk-publishing-state`), which is heavier than
+   * the provenance line under it and lighter than a heading: the card's own
+   * answer, not the screen's. */
+  --t-sm: 13px;
   --t-explain: 11.5px;
 }

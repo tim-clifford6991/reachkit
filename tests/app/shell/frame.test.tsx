@@ -362,12 +362,27 @@ describe("REQ-040 c7 — a never-measured domain states no number", () => {
     );
   });
 
-  it("no calendar count, because nothing is planned yet (REQ-040 c2)", () => {
-    // Not a week-0 branch in the nav: c2's rule is that zero renders no
-    // count at all, and before the first pass nothing is waiting. The set
-    // draws the same sidebar for the same reason.
-    const root = render(<SidebarNav waiting={0} />);
-    expect(root.querySelectorAll("[data-testid='shell-calendar-count']")).toHaveLength(0);
+  it("the calendar count is the count, in week 0 as in any week (REQ-040 c2)", () => {
+    // **No week-0 branch in the nav, deliberately.** UI-SPEC S13 draws the
+    // sidebar with no count beside Calendar, and #353's Done-when repeats
+    // that — but the set's own S13 body draws the first page sitting in
+    // "Needs you", and `waiting` is §9's `in_review` and `needs_attention`
+    // drafts ("how many pages are waiting on this customer right now").
+    // A page in review is a page waiting, so a screen that showed it in one
+    // card and denied it in the nav would state two different facts.
+    //
+    // c2 is unambiguous and is the law: "the Calendar destination shows how
+    // many are waiting; when none are, it shows no count." So the count is
+    // suppressed at zero and nowhere else, and the set's S13 sidebar is a
+    // drawing to reconcile — flagged to the owner rather than implemented
+    // as a branch that hides a real number.
+    expect(
+      render(<SidebarNav waiting={0} />).querySelectorAll("[data-testid='shell-calendar-count']")
+    ).toHaveLength(0);
+    expect(
+      render(<SidebarNav waiting={1} />).querySelector("[data-testid='shell-calendar-count']")
+        ?.textContent
+    ).toBe("1");
   });
 });
 

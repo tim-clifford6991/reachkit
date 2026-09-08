@@ -119,7 +119,7 @@ export function PublishingCard(p: { shell: ShellModel }): React.JSX.Element {
         title={
           <span className="rk-publishing-row">
             <span className="eyebrow">{modeWord}</span>
-            <Toggle label={modeWord} checked={autopilot} />
+            <Toggle label={modeWord} checked={autopilot} labelHidden />
           </span>
         }
       >

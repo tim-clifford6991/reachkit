@@ -48,20 +48,29 @@ import { CARRY, CHART_BOX, STACK, TILES } from "./style";
 /** The one place a delta or a goal becomes a node. `Stat` takes exactly one
  *  of the two, so this returns the pair the caller spreads. */
 function statCarrier(carried: Carried): { delta: React.ReactNode } | { goal: React.ReactNode } {
+  // A badge, not bare text (UI-SPEC S12): the set draws every tile's
+  // carried value as a pill beside the number — the delta in the success
+  // tone, the goal in the neutral one — and §2.5 fixes which is which. A
+  // delta is the customer's own movement, so it is `ok`; a goal is a
+  // target, which is not a state at all.
   if (carried.kind === "delta") {
     return {
       delta: (
-        <span style={CARRY}>
-          <span className="num">{copy(carried.markKey)}</span>
-          <span className="num">{carried.text}</span>
-        </span>
+        <Badge tone={DELTA_TONE}>
+          <span style={CARRY}>
+            <span className="num">{copy(carried.markKey)}</span>
+            <span className="num">{carried.text}</span>
+          </span>
+        </Badge>
       ),
     };
   }
   return {
     goal: (
       <span style={CARRY}>
-        <span className="num">{carried.text}</span>
+        <Badge tone={GOAL_TONE}>
+          <span className="num">{carried.text}</span>
+        </Badge>
         {carried.means === null ? null : <span>{carried.means}</span>}
       </span>
     ),
@@ -279,3 +288,8 @@ export function TileRow(p: {
 /** §2.5: the badge beside the pages count reports the customer's own
  *  progress — pages that are working — so it is a success state. */
 const RANKING_TONE: Tone = "ok";
+/** The same rule for the carried values: movement the customer made is a
+ *  success state; a goal is a target and takes the neutral pill the set
+ *  draws it in. */
+const DELTA_TONE: Tone = "ok";
+const GOAL_TONE: Tone = "neutral";

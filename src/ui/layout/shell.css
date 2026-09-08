@@ -221,6 +221,15 @@
     align-items: center;
     justify-content: space-between;
     gap: var(--s-2);
+    /* The registered `Card` wraps its title in `.card-title`, which daisyUI
+     * makes a flex row of its own — so this row has to take that row whole
+     * or `space-between` has no width to push the switch across, and the
+     * switch overflows the shrink-to-fit span (the layout sweep's
+     * containment check, which is how this was caught). The same fix
+     * `idiom.css` makes for `.card-title > .rk-head` (#297), for the same
+     * reason. */
+    flex: 1 1 100%;
+    min-width: 0;
   }
 
   /* The state sentence. `--t-sm` and 600 are the set's own weight for it:
