@@ -235,13 +235,29 @@ describe('REQ-028 c1 and c2 — mode and destination', () => {
   });
 
   it("autopilot and the hosted blog are the selected pair on arrival", () => {
+    // Read off `aria-pressed`, not off a fill (issue #288). Selected was the
+    // solid accent rank until this screen drew six of them; it is the
+    // outline rank on the accent tint now, and the tint is keyed on this
+    // attribute — so what the customer sees and what a screen reader hears
+    // are the same fact, and this assertion reads the fact rather than one
+    // of its two renderings.
     const tree = screenFor();
     const modes = Array.from(tree.querySelectorAll('[data-testid="setup-mode"] button'));
-    expect(modes[0]?.className).toContain("btn-primary");
-    expect(modes[1]?.className).not.toContain("btn-primary");
+    expect(modes[0]?.getAttribute("aria-pressed")).toBe("true");
+    expect(modes[1]?.getAttribute("aria-pressed")).toBe("false");
     const destinations = Array.from(tree.querySelectorAll('[data-testid="setup-destination"] button'));
-    expect(destinations[0]?.className).toContain("btn-primary");
-    expect(destinations[1]?.className).not.toContain("btn-primary");
+    expect(destinations[0]?.getAttribute("aria-pressed")).toBe("true");
+    expect(destinations[1]?.getAttribute("aria-pressed")).toBe("false");
+  });
+
+  it("§9.1 — the screen draws exactly one solid primary, and it is the submit", () => {
+    // The defect this issue names, asserted on the screen itself rather
+    // than only in the cold-start sweep: four groups spent the solid accent
+    // as a *selected* state, so a founder with five rivals met six.
+    const tree = screenFor();
+    const solids = Array.from(tree.querySelectorAll(".btn-primary"));
+    expect(solids).toHaveLength(1);
+    expect(solids[0]?.getAttribute("type")).toBe("submit");
   });
 
   it("c2 — the CNAME record is shown once the address is known, in the numeral face", () => {

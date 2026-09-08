@@ -361,7 +361,8 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
                   key={domain}
                   label={domain}
                   size="sm"
-                  variant={selected.has(domain) ? "primary" : "ghost"}
+                  variant="secondary"
+                  pressed={selected.has(domain)}
                   disabled={full && !selected.has(domain)}
                   onClick={() => toggleSuggested(domain)}
                 />
@@ -374,7 +375,8 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
                   key={rival.domain}
                   label={rival.domain}
                   size="sm"
-                  variant="primary"
+                  variant="secondary"
+                  pressed
                   onClick={() => toggleSuggested(rival.domain)}
                 />
               ))}
@@ -434,7 +436,8 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
                   key={option.mode}
                   label={copy(option.name)}
                   size="sm"
-                  variant={mode === option.mode ? "primary" : "ghost"}
+                  variant="secondary"
+                  pressed={mode === option.mode}
                   onClick={() => setMode(option.mode)}
                 />
               ))}
@@ -453,7 +456,8 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
                   key={option.kind}
                   label={copy(option.name)}
                   size="sm"
-                  variant={destination === option.kind ? "primary" : "ghost"}
+                  variant="secondary"
+                  pressed={destination === option.kind}
                   onClick={() => setDestination(option.kind)}
                 />
               ))}
