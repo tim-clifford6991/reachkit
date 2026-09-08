@@ -74,6 +74,9 @@ describe("the assertion runs once at boot, on the Node.js runtime", () => {
     vendor.price = { ...MATCHING };
     await expect(register()).resolves.toBeUndefined();
     expect(logged.map((line) => JSON.parse(line))).toEqual([
+      // Issue #305's binding check is first: it is local, needs nobody, and
+      // decides whether this process may serve a frozen date at all.
+      { event: "boot_invariants", check: "clock", outcome: "checked" },
       { event: "boot_invariants", check: "access-gate", outcome: "checked" },
       { event: "boot_invariants", check: "stamp-place", outcome: "checked" },
       { event: "boot_invariants", check: "checkout", outcome: "checked" },
@@ -132,9 +135,10 @@ describe("a vendor that could not be read is not a mismatch, and does not take t
     expect(errored.map((line) => JSON.parse(line))).toEqual([
       { event: "boot_invariants", check: "checkout", outcome: "unchecked", reason: "Error" },
     ]);
-    // The gate and the place port are local and were established before
-    // the vendor was asked.
+    // The clock binding, the gate and the place port are local and were
+    // established before the vendor was asked.
     expect(logged.map((line) => JSON.parse(line))).toEqual([
+      { event: "boot_invariants", check: "clock", outcome: "checked" },
       { event: "boot_invariants", check: "access-gate", outcome: "checked" },
       { event: "boot_invariants", check: "stamp-place", outcome: "checked" },
     ]);
@@ -164,5 +168,42 @@ describe("a vendor that could not be read is not a mismatch, and does not take t
       "outcome",
       "reason",
     ]);
+  });
+});
+
+// ── the frozen clock a deployment may not carry (issue #305) ────────────
+
+describe("a real deployment carrying RK_FIXED_NOW does not start", () => {
+  const FIXED_NOW_BEFORE = process.env.RK_FIXED_NOW;
+
+  afterEach(() => {
+    if (FIXED_NOW_BEFORE === undefined) delete process.env.RK_FIXED_NOW;
+    else process.env.RK_FIXED_NOW = FIXED_NOW_BEFORE;
+  });
+
+  it("throws out of register(), before the gate or the vendor is reached", async () => {
+    // `applyEnvFixture` binds `NEXT_PUBLIC_APP_URL` to an https address that
+    // is not this machine, so this process looks exactly like a deployment a
+    // customer reaches — which is the case that must not boot. The date it
+    // would serve is not the date, on every screen, silently.
+    process.env.RK_FIXED_NOW = "2026-09-08T12:00:00.000Z";
+    vendor.price = { ...MATCHING };
+    await expect(register()).rejects.toThrow(/RK_FIXED_NOW is set on a real deployment/);
+    // Nothing after the refusal ran: no line was logged, so the gate was not
+    // registered and Stripe was not read.
+    expect(logged).toEqual([]);
+    expect(errored).toEqual([]);
+    expect(sitesWithActiveAccess).toBeDefined();
+  });
+
+  it("comes up normally once the binding is gone", async () => {
+    delete process.env.RK_FIXED_NOW;
+    vendor.price = { ...MATCHING };
+    await expect(register()).resolves.toBeUndefined();
+    expect(logged.map((line) => JSON.parse(line))[0]).toEqual({
+      event: "boot_invariants",
+      check: "clock",
+      outcome: "checked",
+    });
   });
 });

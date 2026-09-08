@@ -43,17 +43,54 @@ export const LIVE_DRAFTS: readonly {
   { id: "00000000-0000-0000-0000-0000000000e3", state: "planned", title: "What to measure after a rollout", scheduledIn: 3 },
 ]);
 
-/** A `scheduled_for` date, `days` from today, as the column stores it.
- *  Computed at midday UTC so a zone either side of it cannot land the date
- *  on the day before or after.
+/**
+ * The instant the whole sweep calls now — the seed's rows and the app's own
+ * render path both (issue #305).
+ *
+ * **Why the sweep needs one at all.** Two screens draw content that is a
+ * function of the date rather than of a row: `/app`'s growth chart labels its
+ * x-axis with the Mondays of a trailing window ending *this* week, and
+ * `/app/calendar` draws the month today falls in and marks today's cell. A
+ * baseline of either is a picture of the week it was taken in — the overview's
+ * three week labels moved every Monday (#305), and the calendar was dropped
+ * from the sweep altogether for it (#295, #299).
+ *
+ * **And why pinning the rows alone could not fix it.** `ACCESS_ENDS_ON` above
+ * works because nothing asks that day to be *recent* — `hasActiveAccess()`
+ * only asks that it is in the future. The measured weeks are the opposite:
+ * the overview reads a rolling twelve-week window, so weeks pinned to fixed
+ * Mondays fall out of it about twelve weeks later and the two measurement
+ * tiles go unmeasured. Freezing the rows without freezing the window trades a
+ * weekly wobble for a cliff.
+ *
+ * So this value is handed to the app as `RK_FIXED_NOW` (`browser.ts`) and read
+ * back by `src/lib/config/now.ts`, which every surface's clock read goes
+ * through. The seed and the screen then agree by construction.
+ *
+ * **Midday UTC**, for `ACCESS_ENDS_ON`'s reason: a day written in the site's
+ * own zone renders as the day before in every zone west of midnight UTC.
+ * A Tuesday, so the frozen week has a Monday behind it and the calendar's
+ * marked cell is not on a grid edge.
+ */
+export const SWEEP_NOW = "2026-09-08T12:00:00.000Z";
+
+/** `SWEEP_NOW` as a `Date`, for the arithmetic below. */
+export function sweepNow(): Date {
+  return new Date(SWEEP_NOW);
+}
+
+/** A `scheduled_for` date, `days` from the sweep's own today, as the column
+ *  stores it. Computed at midday UTC so a zone either side of it cannot land
+ *  the date on the day before or after.
  *
  *  **One clock read, not three** (issue #295). The year, month and day used
  *  to come from three separate `new Date()` calls, so a run that crossed
  *  UTC midnight between the first and the third composed a date out of two
  *  different days — the rarest possible flake, and one nothing would have
- *  explained afterwards. */
+ *  explained afterwards. Since #305 there is no clock read at all: the day
+ *  is `SWEEP_NOW`'s, which is the same day the app renders as today. */
 export function scheduledFor(days: number): string {
-  const now = new Date();
+  const now = sweepNow();
   const midday = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 12);
   return new Date(midday + days * 86_400_000).toISOString().slice(0, 10);
 }

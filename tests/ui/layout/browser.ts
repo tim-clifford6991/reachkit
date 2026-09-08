@@ -36,6 +36,7 @@ import {
   SETUP_ACCOUNT,
   waitForSchemaCache,
 } from "./seed";
+import { SWEEP_NOW } from "./seed-rows";
 
 const ROOT = path.resolve(__dirname, "../../..");
 
@@ -146,6 +147,19 @@ function chromiumMissingError(err: unknown): Error | undefined {
 let appProcess: ChildProcess | undefined;
 
 export default async function setup(): Promise<() => Promise<void>> {
+  // The sweep's frozen clock, before anything is seeded or built (issue
+  // #305). `next build` and `next start` are spawned below without an `env`
+  // of their own, so they inherit this — and `src/lib/config/now.ts` is what
+  // reads it back, on the one clock read each surface makes. Set here rather
+  // than in the CI workflow because the seed in this same function writes its
+  // measured weeks against the same instant: one value, one file, and no way
+  // for the rows and the render to be given different days.
+  //
+  // A real deployment that carried this binding would refuse to boot
+  // (`src/instrumentation.ts`), which is what keeps a frozen clock a test
+  // fixture rather than a switch.
+  process.env.RK_FIXED_NOW = SWEEP_NOW;
+
   // Preflight: launch-and-close once so a missing Chromium binary fails the
   // whole run before any test file executes, not just the first one that
   // happens to call `withPage`.

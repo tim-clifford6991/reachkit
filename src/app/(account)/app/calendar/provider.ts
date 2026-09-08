@@ -41,6 +41,7 @@
 // dates resolves through `accountFor`, which is exactly what the calendar
 // does for a real site whose supply has run out.
 import { cache } from "react";
+import { now as clock } from "@/lib/config/now";
 import { redirect } from "next/navigation";
 import type { SupplyNotice } from "@/lib/opportunities";
 import { isReservedFixtureAccount, requireAppAccount } from "../_session/account";
@@ -109,7 +110,7 @@ export async function currentMonth(): Promise<MonthKey> {
   if (site === null) {
     return monthOf(dayKeyOf(FIXTURE_CALENDAR_FACTS.now, FIXTURE_CALENDAR_FACTS.timeZone));
   }
-  return monthOf(dayKeyOf(new Date(), site.timeZone));
+  return monthOf(dayKeyOf(clock(), site.timeZone));
 }
 
 /** `YYYY-MM` or nothing. A query string is customer-supplied input and is
@@ -124,7 +125,7 @@ export const readMonth = cache(async function readMonth(month: MonthKey): Promis
   const site = await currentCalendarSite();
   if (site === null) return assembleMonth(FIXTURE_CALENDAR_FACTS, month);
   const { readCalendarFacts } = await import("./store");
-  return assembleMonth(await readCalendarFacts({ site, month, now: new Date() }), month);
+  return assembleMonth(await readCalendarFacts({ site, month, now: clock() }), month);
 });
 
 /**

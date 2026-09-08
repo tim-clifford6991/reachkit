@@ -28,6 +28,7 @@
 // ten sequential reads would be ten round trips deep on a database that is
 // slow.
 import type { DestinationView } from "@/lib/publish/types";
+import { now as clock } from "@/lib/config/now";
 import type { AppAccount } from "../_session/account";
 import type { AccountFacts, BillingFacts, SettingsFacts } from "./model";
 
@@ -210,7 +211,12 @@ export async function readLiveSettingsFacts(
   // dates — the change already saved and the one a change saved now would
   // take — are answers about the same moment, and reading the clock twice
   // is what would let them disagree.
-  const now = new Date();
+  //
+  // Through the seam since #305, so this screen's dates hold still under the
+  // sweep's frozen instant like every other surface's — the card states a
+  // date in words, and a wall clock here would move a baseline the day the
+  // sentence changed.
+  const now = clock();
   const [change] = pendingChanges({
     declared: answers,
     measured,

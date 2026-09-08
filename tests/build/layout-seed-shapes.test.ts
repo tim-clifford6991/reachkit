@@ -28,6 +28,7 @@ import {
   scheduledFor,
   seededVolume,
   SETUP_COMPLETED_ON,
+  SWEEP_NOW,
   writeEvidence,
 } from "../ui/layout/seed-rows";
 
@@ -93,14 +94,31 @@ describe("the layout seed's opportunity rows", () => {
     }
   });
 
-  it("reads the clock once when it dates a scheduled page", () => {
-    const today = new Date();
-    const midday = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate(), 12);
+  it("dates a scheduled page off the sweep's own instant, not off the clock", () => {
+    // Issue #305. It used to read `new Date()` — one read, which closed
+    // #295's cross-midnight flake — and that still left the seeded pages
+    // moving one calendar cell every midnight, which is why `/app/calendar`
+    // could not be photographed as the live account. The day is `SWEEP_NOW`'s
+    // now, and `SWEEP_NOW` is the same instant the app renders as today.
+    const frozen = new Date(SWEEP_NOW);
+    const midday = Date.UTC(frozen.getUTCFullYear(), frozen.getUTCMonth(), frozen.getUTCDate(), 12);
     for (const offset of [-2, 0, 1, 3]) {
       expect(scheduledFor(offset)).toBe(
         new Date(midday + offset * 86_400_000).toISOString().slice(0, 10)
       );
     }
+  });
+
+  it("answers the same dates whatever day it is asked", () => {
+    // The property the case above is for: two calls a midnight apart are the
+    // same string. Asserted by asking twice rather than by mocking a clock —
+    // there is no clock left in it to mock.
+    expect([scheduledFor(-2), scheduledFor(0), scheduledFor(3)]).toEqual([
+      scheduledFor(-2),
+      scheduledFor(0),
+      scheduledFor(3),
+    ]);
+    expect(scheduledFor(0)).toBe(SWEEP_NOW.slice(0, 10));
   });
 });
 
@@ -139,5 +157,60 @@ describe("the layout seed's clock reads", () => {
         "Move it further out — when it passes, hasActiveAccess() is false for every seeded " +
         "account and every /app address in the sweep answers with the sign-in prompt."
     ).toBeGreaterThan(yearAhead.getTime());
+  });
+});
+
+// ── the render path's clock reads (issue #305) ──────────────────────────
+
+/**
+ * The four surfaces that read a clock, and the one seam they read it
+ * through.
+ *
+ * Asserted over the source because that is where the property lives: every
+ * module under `src/lib/` takes its `now` as an argument, so a surface is
+ * the only place a wall-clock read can appear, and a new `new Date()` in one
+ * of these four would silently unfreeze the sweep — the baselines would go
+ * back to being pictures of the day they were taken, which is the defect
+ * this issue closed. A rendered assertion could not catch it: the picture is
+ * right on the day it is taken and wrong the next.
+ *
+ * The list is not a glob: these are the four that read a clock today, and a
+ * fifth surface that needs one is a deliberate addition to this list rather
+ * than an omission nobody notices.
+ */
+const CLOCK_READING_SURFACES = [
+  "src/app/(account)/app/_overview/store.ts",
+  "src/app/(account)/app/_shell/store.ts",
+  "src/app/(account)/app/settings/store.ts",
+  "src/app/(account)/app/calendar/provider.ts",
+] as const;
+
+describe("the render path's clock reads", () => {
+  const REPO_ROOT = path.join(import.meta.dirname, "../..");
+  const sourceOf = (rel: string): string => readFileSync(path.join(REPO_ROOT, rel), "utf8");
+
+  for (const rel of CLOCK_READING_SURFACES) {
+    it(`${rel} reads today through the seam, never the wall clock`, () => {
+      const source = sourceOf(rel);
+      expect(source).toContain('from "@/lib/config/now"');
+      // Comments quote `new Date()` when they explain what was there before,
+      // so the assertion is about code: the string with a following `;`, a
+      // `)` or a `,` is a call being used, and none is left.
+      const calls = source
+        .split("\n")
+        .filter((line) => !line.trimStart().startsWith("//") && !line.trimStart().startsWith("*"))
+        .filter((line) => /new Date\(\)/.test(line));
+      expect(calls, `${rel} still reads the wall clock: ${calls.join(" / ")}`).toEqual([]);
+    });
+  }
+
+  it("the seam refuses a frozen clock on a real deployment", () => {
+    // The whole reason a test binding may exist in the product at all. The
+    // behaviour is `tests/config/now.test.ts`'s; what is asserted here is
+    // that the boot path calls it, because a refusal nothing invokes is a
+    // comment.
+    const boot = sourceOf("src/instrumentation.ts");
+    expect(boot).toContain("assertClockBinding");
+    expect(boot).toContain('log("clock", "checked")');
   });
 });

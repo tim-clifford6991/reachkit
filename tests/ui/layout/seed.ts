@@ -58,6 +58,7 @@ import {
   scheduledFor,
   seededVolume,
   SETUP_COMPLETED_ON,
+  sweepNow,
   writeEvidence,
 } from "./seed-rows";
 
@@ -415,7 +416,11 @@ function seedMeasuredWeeks(account: AppAccount): void {
     // account it writes, so this is a contradiction rather than a state.
     throw new Error(`tests/ui/layout/seed.ts: the account ${siteId} states no time zone.`);
   }
-  const weeks: string[] = [weekStartFor({ at: new Date(), zone: timeZone })];
+  // The sweep's own instant, not the wall clock (issue #305): the overview's
+  // window ends at what the app calls today, and the app calls `SWEEP_NOW`
+  // today, so the weeks written here are the weeks that screen draws — on
+  // any day, including the Monday the wall clock would have moved them.
+  const weeks: string[] = [weekStartFor({ at: sweepNow(), zone: timeZone })];
   while (weeks.length < LIVE_MEASURED_WEEKS) weeks.unshift(previousWeekStart(weeks[0] as string));
 
   for (const [index, weekStart] of weeks.entries()) {
