@@ -52,6 +52,11 @@ const FIXTURE_BILLING: BillingFacts = Object.freeze({
 });
 
 export const FIXTURE_SETTINGS_FACTS: SettingsFacts = Object.freeze({
+  // A fixed instant, for the same reason `FIXTURE_BILLING.paidThrough` is
+  // one: this account's screen is photographed by the layout sweep, and a
+  // fixture that read the clock would make the picture a function of the
+  // day it was taken (issue #304).
+  now: new Date("2026-09-15T14:00:00.000Z"),
   domain: FIXTURE_DOMAIN,
   category: "user onboarding software",
   // REQ-071 c1 and c6 (issue #204): the ordinary state is that no market

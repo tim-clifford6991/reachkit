@@ -53,9 +53,11 @@ import {
 } from "../../db/substrate";
 import {
   acceptanceFor,
+  ACCESS_ENDS_ON,
   LIVE_DRAFTS,
   scheduledFor,
   seededVolume,
+  SETUP_COMPLETED_ON,
   writeEvidence,
 } from "./seed-rows";
 
@@ -350,7 +352,7 @@ export function seedSetupAccount(): void {
 
   sql(
     `insert into users (id, email, plan_status, paid_through) values ` +
-      `('${userId}', '${email}', 'active', now() + interval '365 days');`
+      `('${userId}', '${email}', 'active', '${ACCESS_ENDS_ON}');`
   );
   // No `setup_completed_at`, and that is the whole state: the gate reads
   // this column and nothing else to decide that this founder belongs on
@@ -502,11 +504,11 @@ function seedSite(
 
   sql(
     `insert into users (id, email, plan_status, paid_through) values ` +
-      `('${userId}', '${email}', 'active', now() + interval '365 days');`
+      `('${userId}', '${email}', 'active', '${ACCESS_ENDS_ON}');`
   );
   sql(
     `insert into sites (id, user_id, domain, timezone, setup_completed_at) values ` +
-      `('${siteId}', '${userId}', '${domain}', '${timeZone}', now());`
+      `('${siteId}', '${userId}', '${domain}', '${timeZone}', '${SETUP_COMPLETED_ON}');`
   );
 
   const chosen = opts.publishing;

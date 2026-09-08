@@ -58,6 +58,41 @@ export function scheduledFor(days: number): string {
   return new Date(midday + days * 86_400_000).toISOString().slice(0, 10);
 }
 
+/**
+ * The day every seeded account's access ends — `users.paid_through`.
+ *
+ * **A fixed date, not `now() + interval '365 days'`** (issue #304). The
+ * billing card states this day in words: "cancelling keeps everything
+ * running until Sep 8, 2027" is a sentence on `/app/settings`, inside the
+ * captured viewport, and a date computed from the clock at seed time made
+ * that sentence a different one every day. Two visual baselines taken on
+ * two days differed by 60-odd pixels in a 40x8 box — the day and the year
+ * of this date, and the shift the narrower glyph put on everything after
+ * it. Under `MAX_DIFFERING_RATIO`, so the check passed while the
+ * regeneration rewrote the file: a picture that changes on its own, hidden
+ * by the tolerance meant for rendering noise.
+ *
+ * `hasActiveAccess()` is `paid_through > now()` and nothing else (ADR-050),
+ * so the only thing this value has to be is in the future — and being a
+ * *fixed* future day is what makes the sentence the same on every run.
+ * `tests/build/layout-seed-shapes.test.ts` fails while there is still a
+ * year of headroom left, so it is moved deliberately rather than found
+ * expired by a red sweep.
+ *
+ * Midday UTC, the same reason `scheduledFor` uses it: the day is written in
+ * the site's own zone, and midnight UTC renders as the day before in every
+ * zone west of it — the first capture of this pin said "Dec 31, 2029" for a
+ * date named 2030-01-01.
+ */
+export const ACCESS_ENDS_ON = "2030-01-01T12:00:00.000Z";
+
+/** The day every seeded site finished setup — `sites.setup_completed_at`.
+ *  Fixed for the same reason, though no screen states it: the gate reads
+ *  only whether it is null, and a seed with one clock read left in it is a
+ *  seed somebody has to re-check the next time a column becomes a
+ *  sentence. */
+export const SETUP_COMPLETED_ON = "2026-08-17T09:00:00.000Z";
+
 /** The instant every seeded opportunity's evidence was measured at.
  *
  *  Fixed, and deliberately not read off the clock: the calendar's store

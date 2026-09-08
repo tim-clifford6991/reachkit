@@ -187,6 +187,25 @@ export interface AccountCardView {
 /** Everything Settings reads, before it is a model. One shape, so a fixture
  *  and the three queries that replace it answer the same question. */
 export interface SettingsFacts {
+  /**
+   * The instant this screen is being read at.
+   *
+   * A fact like every other, and a parameter rather than a clock read
+   * inside `assembleSettings` (issue #304). Two things follow from it. The
+   * function's own header says it is pure — facts in, model out — and a
+   * `new Date()` in the middle of it made that untrue: the same facts gave
+   * two different models on two different weeks. And the market card
+   * carries two dates that must mean the same moment, `pendingChange`'s and
+   * `wouldTakeEffectOn`'s; the store read the clock once for the first and
+   * the model read it again for the second, so a render that straddled the
+   * boundary between them would have stated two different weeks on one
+   * card.
+   *
+   * The reserved fixture account passes a fixed instant, the same way
+   * `FIXTURE_BILLING.paidThrough` is fixed and for the same reason — a
+   * fixture that moves makes the layout sweep non-deterministic.
+   */
+  now: Date;
   /** `sites` (§10). */
   domain: string;
   /** REQ-071's pending market change, or `null`. `pendingChanges()`'s own
@@ -285,7 +304,7 @@ export function assembleSettings(facts: SettingsFacts): SettingsModel {
     category: facts.category,
     change: savedChange(facts),
     wouldTakeEffectOn: formatDate(
-      effectiveOn({ savedAt: new Date(), timezone: facts.timeZone }),
+      effectiveOn({ savedAt: facts.now, timezone: facts.timeZone }),
       facts.timeZone
     ),
   };

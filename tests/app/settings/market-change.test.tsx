@@ -79,7 +79,15 @@ describe("REQ-071 c1 — the pending change, before the save", () => {
     // customer's own zone, written by the shell's one formatter. Compared
     // against the engine's own value rather than a date typed here, so a
     // screen that computed its own Monday fails.
-    expect(line).toContain(formatDate(effectiveOn({ savedAt: new Date(), timezone: ZONE }), ZONE));
+    //
+    // `savedAt` is the facts' own instant, not `new Date()` (issue #304).
+    // The model used to read the clock itself and this row read it a second
+    // time, so both moved together and the row could not tell a screen that
+    // took its moment from its facts from one that took it from the wall —
+    // which is the distinction the fixture's fixed `now` now makes.
+    expect(line).toContain(
+      formatDate(effectiveOn({ savedAt: facts().now, timezone: ZONE }), ZONE)
+    );
   });
 
   it("replaces the card's standing effect line rather than sitting beneath it", () => {

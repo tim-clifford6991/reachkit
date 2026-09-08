@@ -402,13 +402,38 @@ describe(`visual baselines — ${SHOTS.length} surface(s) × ${BANDS.length} ban
             const file = baselineFor(shot.name, width, theme);
             const actual = taken[theme];
 
-            if (UPDATING || !existsSync(file)) {
+            if (!existsSync(file)) {
               mkdirSync(BASELINE_DIR, { recursive: true });
               writeFileSync(file, actual);
               continue;
             }
 
             const verdict = compare(readFileSync(file), actual);
+
+            // Regenerating rewrites a baseline whose **pixels** moved, and
+            // leaves the rest byte-for-byte alone (issue #304).
+            //
+            // It used to write all 156 unconditionally, and Chromium's PNG
+            // writer does not emit the same bytes twice for the same image:
+            // a regeneration on an unchanged tree came back with a handful
+            // of files differing by 1-22 bytes and **zero** differing
+            // pixels, and which files those were changed from run to run.
+            // Nothing rendered differently, so there was nothing to review —
+            // and a diff nobody can read is a diff nobody reads, which is
+            // how a real change would have gone through in the same commit
+            // unnoticed.
+            //
+            // Any differing pixel at all is enough, deliberately stricter
+            // than `MAX_DIFFERING_RATIO` below: the tolerance exists to
+            // forgive rendering noise **between machines** when checking,
+            // and a regeneration is this machine against itself. A change
+            // that sits under the tolerance is still a change, and one that
+            // is never written down is one that accumulates until the day
+            // it crosses and fails a PR that did not cause it.
+            if (UPDATING) {
+              if ("sizeChanged" in verdict || verdict.differing > 0) writeFileSync(file, actual);
+              continue;
+            }
             if ("sizeChanged" in verdict) {
               const actualFile = evidencePath(`${shot.name}-${width}-${theme}.actual.png`);
               writeFileSync(actualFile, actual);

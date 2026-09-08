@@ -206,16 +206,22 @@ export async function readLiveSettingsFacts(
   // reports a rivals change, and #204 gave the market card two copy keys
   // (`CHANGE_COPY_KEY`) — a third kind here would be a line with no
   // sentence, which is a key this issue may not invent.
+  // One clock read for the whole screen (issue #304). The market card's two
+  // dates — the change already saved and the one a change saved now would
+  // take — are answers about the same moment, and reading the clock twice
+  // is what would let them disagree.
+  const now = new Date();
   const [change] = pendingChanges({
     declared: answers,
     measured,
-    now: new Date(),
+    now,
     timezone: account.timeZone,
   }).filter((entry): entry is typeof entry & { kind: "domain" | "category" } =>
     entry.kind === "domain" || entry.kind === "category"
   );
 
   return {
+    now,
     // The three answers the site is measured as (#42). The domain and the
     // zone come from the session's own row rather than a second read of it.
     domain: account.domain,
