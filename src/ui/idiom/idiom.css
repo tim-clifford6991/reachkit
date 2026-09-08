@@ -727,8 +727,14 @@
 .rk-figure-big {
   font-size: var(--t-h1);
   font-weight: 700;
-  line-height: 1.05;
   letter-spacing: -0.02em;
+  /* No tightened leading. The archive draws this at 1.05, and a mono
+   * numeral set at a heading size inside a line box shorter than the
+   * font's own ascent-plus-descent escapes that box — `src/ui/type.css`'s
+   * `.num` records the same finding from issue #13 and answers it with
+   * `line-height: normal`, which is what governs here once nothing
+   * overrides it. The layout suite reported the 62 on the sign-in panel
+   * clipping, which is exactly that. */
 }
 
 @media (min-width: 640px) {

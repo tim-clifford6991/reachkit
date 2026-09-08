@@ -48,11 +48,26 @@ function cellState(cell: AnswerCell, domain: string): AiDotMatrixCellState {
   return cell.citedDomains.some((cited) => cited === domain) || cell.namesCustomer ? "cited" : "not-cited";
 }
 
-/** The reserved fixture's AI-answers module, as the matrix draws it: the
- *  customer's own row and the three rivals', in that order. The customer's
- *  cells are the ones the report measured — where they are empty, the chart
- *  rings them, which is the whole argument the hero makes without a
- *  sentence. */
+/** The reserved fixture's AI-answers module, as the matrix draws it.
+ *
+ *  **One row — the customer's own — and not the rivals'.** The idiom's hero
+ *  draws four rows, the customer's empty and ringed against two filled
+ *  rivals', and that is the better argument. It does not fit the component
+ *  v3 actually has: `AiDotMatrixChart` reserves 66px for a row's name
+ *  (`NAME_X`), which is what Overview's single tile row needs, and a rival
+ *  domain like `rival-three.example.org` draws past the viewBox — three
+ *  `<g>` groups escaping their `<svg>`, which the layout suite's check 2
+ *  reported on the first run and the canary pins as a real defect.
+ *
+ *  The two ways to make four rows fit are both refused: shortening a domain
+ *  truncates a **value**, which §2.3 forbids and check 3 catches whether or
+ *  not it is allow-listed; and widening the name gutter is a change to a
+ *  registered chart's contract, which is not this issue's to make. The
+ *  multi-row matrix is the report's own module (issue #11) and is not built
+ *  in v3 yet — when it is, this specimen gets the rivals with it.
+ *
+ *  What renders is still a real measured module on real data: the fixture
+ *  account's own row, its empty cells ringed, and its count beside them. */
 function specimenRows(): readonly AiDotMatrixRow[] {
   const answers = FIXTURE_REPORT.aiAnswers;
   if (answers === null) return [];
@@ -62,18 +77,7 @@ function specimenRows(): readonly AiDotMatrixRow[] {
     cells: answers.rows.map((row) => cellState(row.cell, answers.ownDomain)),
     count: `${answers.customerCitations}/${answers.measuredSearches}`,
   };
-  const rivals: AiDotMatrixRow[] = answers.rivals.map((rival) => {
-    const cells = rival.cells.map((cell) => cellState(cell, rival.domain));
-    return {
-      name: rival.domain,
-      identity: "rival",
-      cells,
-      // The chart performs no arithmetic and cannot disagree with a card's
-      // own figure, so the count arrives already written.
-      count: `${cells.filter((cell) => cell === "cited").length}/${answers.measuredSearches}`,
-    };
-  });
-  return [you, ...rivals];
+  return [you];
 }
 
 export function HeroSpecimen(): React.JSX.Element {
