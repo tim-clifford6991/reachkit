@@ -161,6 +161,18 @@
   color: var(--ink);
 }
 
+/* The one tone a rank may carry (issue #271). tokens.md §9.1 spends warn
+ * where the customer is being asked to act — `ActionPanel` spends it on a
+ * ground — and a veto standing beside an approve is that case: opposite
+ * consequences, one of them destructive. It reaches the edge and the ink of
+ * the outline rank only; a warn *fill* would be a second solid button on a
+ * screen the idiom gives one. `Btn`'s union is what keeps it off the other
+ * ranks — this file could not. */
+.btn.rk-btn-outline[data-tone="warn"] {
+  border-color: var(--warn);
+  color: var(--warn);
+}
+
 .btn.rk-btn-tertiary {
   background: transparent;
   border: 0;

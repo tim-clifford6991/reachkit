@@ -398,3 +398,78 @@ describe("the sweep states its own coverage (rule 5.5)", () => {
     expect(Object.keys(PLACES).length).toBe(5);
   });
 });
+
+// ── §9.1's ranks: one solid primary per account screen ──────────────────
+
+// tokens.md §9.1, the owner-approved idiom #266 ported: "one solid accent
+// primary, an outline secondary, a quiet tertiary". The rank is a *screen's*
+// property, not a component's — two filled accent buttons on one screen are
+// two calls to action of equal weight, which is what the account audit found
+// on the draft view (issue #271: Approve and Veto both filled, for opposite
+// consequences).
+//
+// Asserted on the rendered document rather than over the source, because
+// what the rule is about is what the customer sees standing on one screen:
+// a screen composes panels from several files, and a source count could not
+// tell one screen's two panels from two screens' one each.
+//
+// The scope is `src/app/(account)/**`, by group and not by name, so a
+// screen added there later is in scope the day its `page.tsx` lands.
+
+/** The one class `Btn` gives the solid accent rank. The two quiet arms carry
+ *  `rk-btn-outline`/`rk-btn-tertiary` on a `btn-ghost` base, and the
+ *  inverted arm is `rk-btn-inverse` — none of them a second solid fill. */
+const SOLID_PRIMARY = ".btn-primary";
+
+/** The screens that draw more than one today, each with the reason and the
+ *  issue that settles it. Fail-closed: the test below also asserts every
+ *  entry is still over the limit, so a route that gets fixed fails here as a
+ *  stale exemption rather than sitting on the list forever. */
+const MORE_THAN_ONE_PRIMARY: Readonly<Record<string, string>> = Object.freeze({
+  "/setup": [
+    "`/setup` spends the solid accent as a *selected* state: every chosen",
+    "rival chip is a filled `Btn` and the submit is one too, so a founder",
+    "with five rivals sees six. That is a different question from this",
+    "one — what a selected chip should look like under the idiom is a",
+    "design decision the owner has not been asked, and #271 is the draft",
+    "view. Opened as issue #288 rather than fixed here.",
+  ].join(" "),
+});
+
+function primariesPerAccountScreen(rendered: RenderedRoute[]): Map<string, number> {
+  const out = new Map<string, number>();
+  for (const r of rendered) {
+    if (!r.route.groups.includes("(account)")) continue;
+    out.set(r.route.url, r.doc.querySelectorAll(SOLID_PRIMARY).length);
+  }
+  return out;
+}
+
+describe("§9.1 idiom — one solid primary per screen, across src/app/(account)/**", () => {
+  it("no account screen draws a second solid accent button", () => {
+    for (const sweep of [cold, warm]) {
+      const over = [...primariesPerAccountScreen(sweep)]
+        .filter(([url, n]) => n > 1 && !(url in MORE_THAN_ONE_PRIMARY))
+        .map(([url, n]) => `${url}: ${n}`);
+      expect(over, `screens with more than one ${SOLID_PRIMARY}: ${over.join(", ")}`).toEqual([]);
+    }
+  });
+
+  it("the draft view draws exactly one, and it is Approve", () => {
+    const draft = cold.find((r) => r.route.url.startsWith("/app/draft"));
+    const actions = draft?.doc.querySelector('[data-testid="draft-actions"]');
+    expect(actions?.querySelectorAll(SOLID_PRIMARY)).toHaveLength(1);
+    // The other two are the idiom's quiet ranks, and the veto carries the
+    // one tone a rank may take.
+    expect(actions?.querySelectorAll(".rk-btn-outline[data-tone='warn']")).toHaveLength(1);
+    expect(actions?.querySelectorAll(".rk-btn-tertiary")).toHaveLength(1);
+  });
+
+  it("every exempt screen is still over the limit — a fixed one fails here", () => {
+    const counts = primariesPerAccountScreen(warm);
+    for (const [url, why] of Object.entries(MORE_THAN_ONE_PRIMARY)) {
+      expect(counts.has(url), `${url} is exempt but is not an account route`).toBe(true);
+      expect(counts.get(url), `${url} no longer draws two — drop the exemption. ${why}`).toBeGreaterThan(1);
+    }
+  });
+});
