@@ -27,6 +27,8 @@ import "../scan/run/harness";
 // behaviour is decided.
 vi.mock("@/lib/scan/removal", () => ({ isDomainRemoved: async () => false }));
 
+import { readdirSync } from "node:fs";
+import path from "node:path";
 import { middleware, PUBLIC_PATHS, config } from "@/middleware";
 
 function requestTo(pathname: string, cookie?: string): NextRequest {
@@ -98,6 +100,12 @@ describe(
         // on one it does not serve.
         "/robots.txt": "/robots.txt",
         "/sitemap.xml": "/sitemap.xml",
+        // Issue #350 — the three legal pages the footer links to. Public
+        // by their own nature: a privacy notice nobody may read is not a
+        // notice, and each reaches no store.
+        "/privacy": "/privacy",
+        "/terms": "/terms",
+        "/imprint": "/imprint",
       };
       expect(Object.keys(instances).sort()).toEqual([...PUBLIC_PATHS].sort());
       for (const pattern of PUBLIC_PATHS) {
@@ -108,6 +116,79 @@ describe(
     });
   }
 );
+
+// ── The other direction: a (public) page middleware denies (#350) ─────────
+
+describe('BP-001 NFR budget, the other way round — "`src/app/(public)/**` explicitly declares itself public"', () => {
+  // The allow-list stops an *account* route leaking by omission, and the
+  // mutation check above holds every row on it reachable. Neither notices
+  // the opposite omission: a page that lives under `(public)`, is linked
+  // from the public chrome, and is denied because nobody added its row.
+  //
+  // That is what happened to `/privacy`, `/terms` and `/imprint` — three
+  // pages on disk, three footer links, and a 307 to `/signin` for each.
+  // So this walks the group rather than naming its members: a new
+  // `(public)` page is in scope the day it is written, which is ADR-010's
+  // idiom applied to the one list that must never fall behind the tree.
+  const PUBLIC_DIR = path.resolve(import.meta.dirname, "../../src/app/(public)");
+
+  /** One row per dynamic segment under `(public)`, keyed by its bracket
+   *  text. A segment with no row here fails, naming it, rather than being
+   *  skipped — the work that adds a dynamic public route adds its row. */
+  const SEGMENT_FIXTURES: Readonly<Record<string, string>> = {
+    "[domain]": "example.com",
+    "[token]": "abc123",
+  };
+
+  /** Every routable path under `(public)`, as a URL. Route groups are
+   *  parenthesised directories and contribute no segment; a `_private`
+   *  directory is not a route at all. */
+  function publicRoutes(dir: string, prefix = ""): string[] {
+    const found: string[] = [];
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if (entry.isFile() && /^(page|route)\.tsx?$/.test(entry.name)) {
+        found.push(prefix === "" ? "/" : prefix);
+        continue;
+      }
+      if (!entry.isDirectory()) continue;
+      if (entry.name.startsWith("_")) continue;
+      const segment = entry.name.startsWith("(") ? "" : `/${entry.name}`;
+      found.push(...publicRoutes(path.join(dir, entry.name), prefix + segment));
+    }
+    return found;
+  }
+
+  const routes = publicRoutes(PUBLIC_DIR);
+
+  it("the group is actually walked — a rule over nothing is not a rule", () => {
+    // The three legal pages, the landing page, pricing, sign-in and its
+    // link, the report, opt-out and veto: the count is not pinned, but an
+    // empty walk would pass every row below it.
+    expect(routes.length).toBeGreaterThan(6);
+    expect(routes).toContain("/privacy");
+  });
+
+  it("every dynamic segment under (public) has a fixture, named rather than skipped", () => {
+    const missing = routes
+      .flatMap((route) => route.split("/").filter((s) => s.startsWith("[")))
+      .filter((segment) => !(segment in SEGMENT_FIXTURES));
+    expect([...new Set(missing)]).toEqual([]);
+  });
+
+  it("no (public) route is denied with no session", async () => {
+    const denied: string[] = [];
+    for (const route of routes) {
+      const url = route
+        .split("/")
+        .map((segment) =>
+          segment.startsWith("[") ? (SEGMENT_FIXTURES[segment] ?? segment) : segment
+        )
+        .join("/");
+      if (await isDenied(url === "" ? "/" : url)) denied.push(`${url} (from ${route})`);
+    }
+    expect(denied).toEqual([]);
+  });
+});
 
 // ── BP-001 error behaviour — the address prompt reveals nothing ───────────
 

@@ -93,6 +93,20 @@ export const PUBLIC_PATHS: readonly string[] = [
   // not a `content.` host at all (ADR-002).
   "/robots.txt",
   "/sitemap.xml",
+  // Issue #350: the three legal pages the public footer links to. They
+  // were on disk under `(public)` and absent from this list, so every one
+  // of them answered a 307 to `/signin` — a footer link that asks a
+  // stranger to sign in to read an imprint, which is the one audience an
+  // imprint has. Public by their own nature, like the two documents above
+  // them: a privacy notice nobody may read is not a notice, and §14's
+  // compliance guardrails are built as features precisely so they are
+  // readable without an account.
+  //
+  // They read nothing: each page renders its own copy keys and reaches no
+  // store, so a row here grants access to no customer's data.
+  "/privacy",
+  "/terms",
+  "/imprint",
 ];
 
 /** BUILD §9's hosted edge: `content.{customer-domain}`, by CNAME.
