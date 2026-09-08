@@ -149,8 +149,13 @@ const HAND_WRITTEN: ReadonlyArray<{
 }> = [
   {
     file: "src/app/(account)/app/_overview/WeekModule.tsx",
-    classes: ["btn", "btn-sm"],
-    why: "a link that reads as a button (#15): `Btn` renders a `<button>` with an `onClick`, and this control navigates with no client runtime. daisyUI's own class pair for the case.",
+    classes: ["btn", "btn-sm", "btn-ghost"],
+    why: "a link that reads as a button (#15): `Btn` renders a `<button>` with an `onClick`, and this control navigates with no client runtime. daisyUI's own class pair for the case. `btn-ghost` is the third class since #353: the approved set puts \"Open calendar \u2192\" in the card head as the quiet tertiary, because the screen's one solid fill is spent on the veto panel's \"Read it\" (tokens.md \u00a79.1), and the tertiary rank is `btn-ghost` plus the idiom's own `rk-btn-tertiary`.",
+  },
+  {
+    file: "src/ui/idiom/ActionPanel.tsx",
+    classes: ["btn", "btn-sm", "btn-primary", "btn-ghost"],
+    why: "the same case a third time, one level down (#353). A panel's CTA may be a navigation \u2014 Overview's two Needs-you panels go to a draft and to the settings card \u2014 and `Btn` is a `<button>`, so the anchor arm carries the classes the rank would have put on the button. The four classes are the two ranks the set draws: the solid primary on the veto panel and the outline secondary on the reconnect panel. The panel is not in `src/ui/components/**` because \u00a72.2's set of fifteen is closed and `ActionPanel` is not a sixteenth member of it.",
   },
   {
     file: "src/app/(account)/app/_overview/RivalModule.tsx",

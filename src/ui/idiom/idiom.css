@@ -829,6 +829,24 @@
   color: var(--on-accent-quiet);
 }
 
+/* The card head's right-hand source chip (UI-SPEC S12, issue #353): the
+ * provenance idiom, on the sunk ground and at the pill radius, so a head
+ * can name where its reading came from without the sentence weight a
+ * paragraph under the chart would carry. Mono, because what it states is a
+ * date. */
+.rk-srcchip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: var(--t-explain);
+  color: var(--ink-3);
+  background: var(--sunk);
+  border-radius: var(--r-pill);
+  padding: 4px 10px;
+  white-space: nowrap;
+}
+
 /* The provenance line inside the glass card — quiet, mono, on the accent. */
 .rk-prov {
   margin: 0;

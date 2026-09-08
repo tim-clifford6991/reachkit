@@ -212,7 +212,9 @@ describe("REQ-093 c5 — the registry renders with every model unavailable", () 
     //
     // 2026-09-06, separately: issue #17 (the draft view, BUILD §4.6) adds
     // eight §4.6/§9 transcriptions. 160 + 8 = 168 ruled.
-    expect(ruled.length).toBe(171);
+    // 171 + 7 = 178, then + 5 = 183 (issue #353: the approved set's seven
+    // filled keys, then S12's own five; see the counts row below).
+    expect(ruled.length).toBe(183);
 
     // Only the ruled sentences carry their slots' `{name}` placeholders —
     // a `TODO(copy)` marker is one literal with no placeholder in it, so
@@ -313,7 +315,7 @@ describe("owner-owed and empty agree both ways", () => {
     expect(new Set(emptyKeys)).toEqual(new Set(OWNER_OWED));
   });
 
-  it("counts: 131 owner-owed, 258 awaiting copy, 168 ruled, 557 total (rule 5.5 — the index states its own coverage)", () => {
+  it("counts: 129 owner-owed, 292 awaiting copy, 183 ruled, 604 total (rule 5.5 — the index states its own coverage)", () => {
     // WO-070 added report.ts's eight landing keys (headline, field label,
     // submit label, five DomainProblem lines), all owner-owed: 30 + 8 = 38.
     // 2026-09-03: the owner ruled on three of them (headline, field label,
@@ -970,10 +972,42 @@ describe("owner-owed and empty agree both ways", () => {
     //
     // 131 owner-owed unchanged, 168 + 3 = 171 ruled, 258 + 37 + 1 = 296
     // awaiting copy, 557 + 41 = 598 total.
-    expect(OWNER_OWED.length).toBe(131);
-    expect(AWAITING_COPY.length).toBe(296);
-    expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(171);
-    expect(Object.keys(COPY).length).toBe(598);
+    //
+    // 2026-09-08, issue #353: the owner approved the complete screen set,
+    // and ruling 11a makes its unbracketed strings approved copy — so six
+    // keys stop being owed and take the words the set draws, and one new
+    // key is added already written:
+    //   filled from `TODO(copy)`     `overview.head.rising`
+    //                                `overview.head.badge`
+    //                                `overview.growth.footnote.start`
+    //                                `chrome.wordmark`
+    //   filled from the empty value  `shell.domain.measured-weeks`
+    //                                `shell.domain.not-measured`
+    //   new, written                 `shell.workspace`
+    //
+    // The two domain lines are the pair that moves `OWNER_OWED`: they were
+    // the empty representation, which `copy()` throws on, and the set
+    // draws both sentences whole. 131 − 2 = 129 owner-owed, 296 − 4 = 292
+    // awaiting copy, 171 + 7 = 178 ruled, 598 + 1 = 599 total.
+    //
+    // Then S12's own cards, in the same issue. Five keys are added and one
+    // more graduates:
+    //   new, written    `overview.growth.source.remeasured`  the head's chip
+    //                   `overview.needs-you.title`           the card's head
+    //                   `overview.alert.pending-veto.due`     the panel's line
+    //                   `overview.alert.pending-veto.left`    its duration
+    //   new, owed       `overview.alert.needs-you.cause`      bracketed in the set
+    //   filled          `overview.alert.needs-you.action`     "Reconnect"
+    //
+    // `AWAITING_COPY` does not move: the cause line arrives owed as the
+    // reconnect word leaves, which is one key each way. `OWNER_OWED` does
+    // not move at all — nothing here uses the empty representation.
+    // 129 owner-owed, 292 − 1 + 1 = 292 awaiting copy, 178 + 5 = 183 ruled,
+    // 599 + 5 = 604 total.
+    expect(OWNER_OWED.length).toBe(129);
+    expect(AWAITING_COPY.length).toBe(292);
+    expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(183);
+    expect(Object.keys(COPY).length).toBe(604);
 
     // The two representations never overlap: an empty value and the marker
     // are different values, so no key can be on both lists.

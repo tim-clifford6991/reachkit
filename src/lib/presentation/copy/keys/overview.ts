@@ -77,6 +77,13 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.head.badge": ["▲ every week since you started", { slots: {}, fixedBy: "UI-SPEC S12" }],
 
   // ── The growth module.
+  // The card head's right-hand chip (UI-SPEC S12: "re-measured Mon 1 Sep").
+  // The date is a slot — it is the measurement's own, read from the series,
+  // and the sidebar states the same one from the same `firstDueOn`/week.
+  "overview.growth.source.remeasured": [
+    "re-measured {on}",
+    { slots: { on: "date" }, fixedBy: "UI-SPEC S12" },
+  ],
   "overview.growth.footnote.start": ["started at {value}", { slots: { value: "text" }, fixedBy: "BUILD §4.5" }],
   "overview.growth.footnote.goal": [
     "At {goal} the big category terms unlock.",
@@ -155,10 +162,36 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.week.day.to-come": ["next", { slots: {}, fixedBy: "REQ-041 c6" }],
 
   // ── The alerts, and the one remainder line.
+  //
+  // Since #353 they are their own card, headed as the set heads it — §4.5
+  // put them under "This week", and the approved set draws two cards.
+  "overview.needs-you.title": ["Needs you", { slots: {}, fixedBy: "UI-SPEC S12" }],
   "overview.alert.pending-veto": ["TODO(copy)", { slots: { title: "text" }, fixedBy: "REQ-041 c5" }],
   "overview.alert.pending-veto.action": ["Read it", { slots: {}, fixedBy: "BUILD §4.5" }],
   "overview.alert.needs-you": ["TODO(copy)", { slots: { title: "text" }, fixedBy: "REQ-041 c5" }],
-  "overview.alert.needs-you.action": ["TODO(copy)", { slots: {}, fixedBy: "REQ-041 c5" }],
+  // "Reconnect" is unbracketed in the approved set (ruling 11a) — the word
+  // on the accent panel's outline pill. The alert's own title and the line
+  // saying what broke are bracketed there, and stay owed below.
+  "overview.alert.needs-you.action": ["Reconnect", { slots: {}, fixedBy: "UI-SPEC S12" }],
+  // The cause: "[cause line — owner's]" in the set, so owed. One short line
+  // under the title, never a paragraph (§2.5's dim line).
+  "overview.alert.needs-you.cause": ["TODO(copy)", { slots: {}, fixedBy: "REQ-041 c5" }],
+  // The veto panel's own line, unbracketed in the set and therefore
+  // approved. `left` is how long the window has to run, written by
+  // `formatHoursLeft` from the item's own `since` and `VETO.defaultHours` —
+  // never a number typed here.
+  // The duration that fills `left` above. Its own key, because the two
+  // numerals are slots and the units are the set's own characters — the
+  // same composition `overview.rivals.was` makes over
+  // `overview.rivals.ratio`, so no unit is written at a call site.
+  "overview.alert.pending-veto.left": [
+    "{hours} h {minutes} m",
+    { slots: { hours: "text", minutes: "text" }, fixedBy: "UI-SPEC S12" },
+  ],
+  "overview.alert.pending-veto.due": [
+    "publishes in {left} unless you say otherwise",
+    { slots: { left: "text" }, fixedBy: "UI-SPEC S12" },
+  ],
   "overview.alert.overflow": ["TODO(copy)", { slots: { remaining: "text" }, fixedBy: "REQ-041 c5" }],
   "overview.alerts.empty": ["TODO(copy)", { slots: {}, fixedBy: "REQ-041 c5" }],
 

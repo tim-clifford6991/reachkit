@@ -138,7 +138,7 @@ export function assembleOverview(facts: OverviewFacts): OverviewModel {
   const measuredPoints = facts.points.filter((p) => p.value.kind !== "unmeasured");
   const latest = measuredPoints.at(-1);
   const previous = measuredPoints.at(-2);
-  const { alerts, overflow } = readAlerts(facts.waiting);
+  const { alerts, overflow } = readAlerts(facts.waiting, facts.today);
   const supply = readSupplyStatement(facts.supply);
   const window = aiWindow(facts.points, facts.aiPresence, facts.changes);
 

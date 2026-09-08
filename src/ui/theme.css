@@ -179,3 +179,19 @@
   --w-sidebar: 222px;
   --w-day-panel: 290px;
 }
+
+/* #353 — UI-SPEC ruling 10a's type ladder, the one rung `src/ui/**` had a
+ * reference for and no declaration: "type 15 / 13 / 12 / 11.5 / 11
+ * (`--t-body --t-sm --t-xs --t-explain --t-eyebrow`), nothing under 11 px".
+ *
+ * `--t-explain` is 11.5px — the explain rung, the size the approved set
+ * draws its `.srcchip` and its dim lines at (`tokens.css`: `--t-explain:
+ * 11.5px`). It carries no theme: a type size is the same value on either
+ * ground, so it is declared once here rather than three times across the
+ * light, guarded-dark and explicit-dark blocks above.
+ *
+ * Above the 11px floor ADR-093 d3 sets, and it is a ladder rung rather than
+ * a value chosen for this card: `.rk-srcchip` is its second reader. */
+:root {
+  --t-explain: 11.5px;
+}

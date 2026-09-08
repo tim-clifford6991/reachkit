@@ -38,6 +38,7 @@ import { HeadModule } from "@/app/(account)/app/_overview/HeadModule";
 import { GrowthModule } from "@/app/(account)/app/_overview/GrowthModule";
 import { TileRow } from "@/app/(account)/app/_overview/TileRow";
 import { RivalModule } from "@/app/(account)/app/_overview/RivalModule";
+import { NeedsYouModule } from "@/app/(account)/app/_overview/NeedsYouModule";
 import { WeekModule } from "@/app/(account)/app/_overview/WeekModule";
 import type { WeeklyPoint } from "@/app/(account)/app/_overview/growth";
 
@@ -155,7 +156,15 @@ describe("the growth chart", () => {
   it("with nothing measured it renders no chart and one line with the first-due date", () => {
     const model = assembleOverview(facts({ points: [], aiPresence: [] }));
     const markup = html(<GrowthModule growth={model.growth} timeZone={ZONE} />);
-    expect(markup).not.toContain("<svg");
+    // The card head's chip carries a glyph since #353, and a glyph is an
+    // `<svg>`. What this asserts is the absence of the *chart*, which the
+    // inventory's charts all label as an image role — not the absence of
+    // every vector on the card.
+    expect(markup).not.toContain('role="img"');
+    expect(markup).not.toContain("<polyline");
+    // …and no source chip either: nothing was measured, so there is no date
+    // a reading came from to name.
+    expect(markup).not.toContain("rk-srcchip");
     expect(markup).toContain("place.overview.weekly-presence.chart");
     expect(markup).toContain("Sep 7, 2026");
   });
@@ -283,15 +292,7 @@ describe("how far ahead each rival is", () => {
 
 describe("this week", () => {
   const model = assembleOverview(facts());
-  const markup = html(
-    <WeekModule
-      week={model.week}
-      timeZone={ZONE}
-      alerts={model.alerts}
-      overflow={model.overflow}
-      supply={model.supply}
-    />
-  );
+  const markup = html(<WeekModule week={model.week} timeZone={ZONE} supply={model.supply} />);
 
   it("renders seven days, each with its own date", () => {
     // Monday 31 Aug through Sunday 6 Sep, in the site's zone. The label is
@@ -309,15 +310,13 @@ describe("this week", () => {
     expect(markup).toContain("overview.week.day.to-come");
   });
 
-  it("renders the calendar control", () => {
+  it("carries the card head, and the calendar control inside it as the quiet rank", () => {
+    // UI-SPEC S12: the control sits in the head, right-aligned, and it is
+    // the tertiary — the screen's one solid fill is the veto panel's.
+    expect(markup).toContain("overview.week.title");
     expect(markup).toContain('href="/app/calendar"');
     expect(markup).toContain("overview.week.calendar-link");
-  });
-
-  it("renders at most two alerts, each with one control, and the remainder as a count", () => {
-    expect(count(markup, 'role="alert"')).toBe(2);
-    expect(count(markup, 'class="btn btn-sm"')).toBe(2);
-    expect(markup).toContain("overview.alert.overflow(1)");
+    expect(markup).toContain("rk-btn-tertiary");
   });
 
   it("renders exactly one supply statement", () => {
@@ -326,12 +325,49 @@ describe("this week", () => {
     expect(markup).not.toContain("overview.supply.first-arrival");
   });
 
+  it("no longer carries the alerts — they are the Needs-you card since #353", () => {
+    expect(markup).not.toContain("overview.alert.");
+    expect(markup).not.toContain("overview.alerts.empty");
+  });
+});
+
+describe("needs you (UI-SPEC S12)", () => {
+  const model = assembleOverview(facts());
+  const markup = html(<NeedsYouModule alerts={model.alerts} overflow={model.overflow} />);
+
+  it("is its own card, headed as the set heads it", () => {
+    expect(markup).toContain("overview.needs-you.title");
+    expect(markup).toContain('data-testid="overview-needs-you"');
+  });
+
+  it("renders at most two panels, each with one control, and the remainder as a count", () => {
+    expect(count(markup, "rk-panel-title")).toBe(2);
+    expect(count(markup, "rk-panel-cta")).toBe(2);
+    expect(markup).toContain("overview.alert.overflow(1)");
+  });
+
+  it("gives the veto panel the warn ground and the solid pill, the reconnect panel the accent ground and the outline", () => {
+    // Two calls to act on one screen, and §9.1 gives the screen one solid
+    // fill: the page that publishes anyway takes it.
+    expect(markup).toContain('data-tone="warn"');
+    expect(markup).toContain("btn btn-sm btn-primary rk-pill");
+    expect(markup).toContain("rk-btn-outline");
+  });
+
+  it("each panel's control navigates to that item's own address", () => {
+    expect(markup).toContain('href="/app/draft/1"');
+    expect(markup).toContain('href="/app/settings"');
+  });
+
+  it("the veto panel states how much of the window is left", () => {
+    expect(markup).toContain("overview.alert.pending-veto.due");
+  });
+
   it("with nothing waiting it states the success line rather than leaving a blank", () => {
     const empty = assembleOverview(facts({ waiting: [] }));
-    const emptyMarkup = html(
-      <WeekModule week={empty.week} timeZone={ZONE} alerts={empty.alerts} supply={empty.supply} />
-    );
+    const emptyMarkup = html(<NeedsYouModule alerts={empty.alerts} />);
     expect(emptyMarkup).toContain("overview.alerts.empty");
     expect(count(emptyMarkup, 'role="alert"')).toBe(1);
+    expect(count(emptyMarkup, "rk-panel-title")).toBe(0);
   });
 });

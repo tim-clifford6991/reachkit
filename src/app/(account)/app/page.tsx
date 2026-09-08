@@ -1,8 +1,9 @@
 // BUILD §4.5 — Overview, the default view, at `/app`.
 //
-// The screen a signed-in customer lands on. §4.5's five modules, in §4.5's
-// order: the head and the chart that backs it, the three tiles, the rival
-// gaps, and this week with its alerts.
+// The screen a signed-in customer lands on. UI-SPEC S12's cards, in the
+// set's order: the head and the chart that backs it, the three tiles, the
+// rival gaps, this week, and what needs the customer. §4.5 wrote the last
+// two as one region; the approved set draws two cards, and #353 follows it.
 //
 // **One read, and the modules are pure over it.** `readOverview()` is the
 // one call this file makes; no module fetches for itself, so the render
@@ -26,6 +27,7 @@ import { GrowthModule } from "./_overview/GrowthModule";
 import { HeadModule } from "./_overview/HeadModule";
 import { RivalModule } from "./_overview/RivalModule";
 import { TileRow } from "./_overview/TileRow";
+import { NeedsYouModule } from "./_overview/NeedsYouModule";
 import { WeekModule } from "./_overview/WeekModule";
 import { SCREEN } from "./_overview/style";
 
@@ -47,13 +49,8 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
         timeZone={shell.timeZone}
       />
       <RivalModule rivals={overview.rivals} timeZone={shell.timeZone} />
-      <WeekModule
-        week={overview.week}
-        timeZone={shell.timeZone}
-        alerts={overview.alerts}
-        overflow={overview.overflow}
-        supply={overview.supply}
-      />
+      <WeekModule week={overview.week} timeZone={shell.timeZone} supply={overview.supply} />
+      <NeedsYouModule alerts={overview.alerts} overflow={overview.overflow} />
     </div>
   );
 }

@@ -22,6 +22,7 @@
 // from registry keys with the number in a slot, so no `×` character is
 // written at a call site and the chart never divides.
 import type React from "react";
+import { Users } from "lucide-react";
 import { RivalSparkline } from "@/ui/charts";
 import { Badge } from "@/ui/components";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
@@ -32,7 +33,8 @@ import { formatDate } from "../_shell/format";
 import { writtenLine } from "../_shell/written";
 import { renderValue } from "./present";
 import type { RatioRival, RivalGapModule } from "./rivals";
-import { CARRY, CHART_BOX, EYEBROW, OFFER, RIVAL_ENTRY, RIVAL_ROW, STACK } from "./style";
+import { CardHead } from "@/ui/idiom";
+import { CARRY, CHART_BOX, OFFER, RIVAL_ENTRY, RIVAL_ROW, STACK } from "./style";
 
 /** §2.5: the badge on a rival row reports the customer's own progress —
  *  the gap that used to be — so it is a success state, never an alarm. */
@@ -176,7 +178,10 @@ export function RivalModule(p: {
 
   return (
     <section className="rk-idiom-card" data-testid="overview-rivals">
-      <p className="eyebrow" style={EYEBROW}>{title}</p>
+      {/* Every idiom card carries the head (DECISIONS 2026-09-08, #302):
+          chip · eyebrow · optional right-aligned pill. This card's head has
+          no pill — the set gives it none, because the rows are the answer. */}
+      <CardHead icon={<Users aria-hidden size={ICON} />} eyebrow={title} />
       <div style={STACK}>{rows}</div>
       {p.rivals.kind === "absolute" ? (
         <p className="rk-prov" style={CARRY} data-testid="overview-rivals-own">
@@ -184,7 +189,7 @@ export function RivalModule(p: {
           <span className="num">{renderValue(p.rivals.own, RIVAL_LABEL).text}</span>
         </p>
       ) : null}
-      {line === null ? null : <p className="rk-prov">{line}</p>}
+      {line === null ? null : <p className="rk-quiet">{line}</p>}
       {windowLine === null ? null : (
         <p className="rk-prov" data-testid="overview-rivals-comparison-window">
           {windowLine}
@@ -228,3 +233,6 @@ function previousFigure(previous: RatioRival["previous"]): string | null {
     previous: copy("overview.rivals.ratio", { ratio: rendered.text }),
   });
 }
+
+/** The chip's glyph size — 14px inside `.rk-head-chip`'s 32px square. */
+const ICON = 14;

@@ -119,17 +119,26 @@ export const LAWS_COPY = Object.freeze({
   "unmeasured.undeterminable": ["{what} couldn’t be measured — nothing came back that could be read.", { law: "unmeasured", slots: { what: "text" }, fixedBy: "REQ-004 c6" }],
   "unmeasured.not-attempted": ["{what} wasn’t measured — the scan stopped early, before it got there.", { law: "unmeasured", slots: { what: "text" }, fixedBy: "REQ-004 c9" }],
   "unmeasured.dash": ["—", { law: "unmeasured", slots: {}, fixedBy: "REQ-004 c2" }],
+  // The label the screen set draws over the three nav rows, in the eyebrow
+  // role (S12, UI-SPEC §2's sidebar row). Approved as written (11a); the
+  // uppercase is the role's, not the string's.
+  "shell.workspace": ["Workspace", { slots: {}, fixedBy: "UI-SPEC S12" }],
   "shell.nav.overview": ["Overview", { slots: {}, fixedBy: "REQ-040 c1" }],
   "shell.nav.calendar": ["Calendar", { slots: {}, fixedBy: "REQ-040 c1" }],
   "shell.nav.settings": ["Settings", { slots: {}, fixedBy: "REQ-040 c1" }],
   "shell.publishing.mode.autopilot": ["Autopilot", { slots: {}, fixedBy: "REQ-040 c3" }],
   "shell.publishing.mode.copilot": ["Copilot", { slots: {}, fixedBy: "REQ-040 c3" }],
+  // Both approved as written by the screen set (ruling 11a): S12's domain
+  // block reads "Week 6 · re-measured Mon 1 Sep" and S13's — the week the
+  // first Monday has not come — reads "not measured yet · first due Mon 8
+  // Sep". Each slot the key already declared is spent by the sentence the
+  // owner drew, so neither shape moved to fit the words.
   "shell.domain.measured-weeks": [
-    "",
-    { slots: { weeks: "text", on: "date" }, fixedBy: "REQ-040 c6" },
+    "Week {weeks} · re-measured {on}",
+    { slots: { weeks: "text", on: "date" }, fixedBy: "REQ-040 c6 · UI-SPEC S12" },
   ],
   "shell.domain.not-measured": [
-    "",
-    { slots: { due: "date" }, fixedBy: "REQ-040 c7" },
+    "not measured yet · first due {due}",
+    { slots: { due: "date" }, fixedBy: "REQ-040 c7 · UI-SPEC S13" },
   ],
 }) satisfies CopyPartition;
