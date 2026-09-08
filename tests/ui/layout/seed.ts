@@ -435,6 +435,20 @@ function seedSite(
         // on the same target.
         `('${siteId}', '${scanId}', 'answer_page', 'write', 'onboarding tools ${index}', 'target-${index}', 'slug-${index}', 'Onboarding tools ${index}', 'winnable', 0.50, '{"family":"write"}'::jsonb, '{"check":"the page answers the question"}'::jsonb) returning id;`
     );
+    // **No `meta`, and that is the arm** (issue #268). Generation writes
+    // the grounded fact into `meta`; a draft seeded without one records no
+    // grounding, which is what the draft view used to render as an empty
+    // address beside `Dec 31, 1969`. Left empty deliberately so the live
+    // sweep photographs the omitted arm rather than only the fixture
+    // route's grounded one — the arm the finding was raised against is the
+    // arm the baselines hold.
+    //
+    // The *other* half of #268 — a record with no scan behind it — cannot
+    // be seeded at all: `opportunities.scan_id` is `not null references
+    // scans (id)`, so no row here can point at a scan that is not there.
+    // It is reachable in production through a deleted or unreadable
+    // opportunity, and `tests/publish/record/record.test.ts` holds it
+    // against the database double instead.
     sql(
       `insert into drafts (id, opportunity_id, site_id, state, title, body_md) values ` +
         `('${draft.id}', '${opportunityId}', '${siteId}', '${draft.state}', '${draft.title}', ` +

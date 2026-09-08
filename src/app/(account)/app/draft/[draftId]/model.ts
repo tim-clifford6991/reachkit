@@ -45,7 +45,9 @@ export type Authorship = { edited: false } | { edited: true; firstEditedAt: Date
 export interface Grounded {
   fact: string;
   url: string;
-  readAt: Date;
+  /** The day the source was read, or `null` on a draft that records no
+   *  grounding at all (issue #268) — never a stand-in date. */
+  readAt: Date | null;
   present: boolean;
 }
 
@@ -104,7 +106,7 @@ export interface DraftFacts {
   /** The fact and its source, as recorded at generation. `present` is
    *  **not** a fact — it is recomputed here against `bodyMd`, so a body and
    *  a highlight can never disagree. */
-  groundedFact: { fact: string; url: string; readAt: Date };
+  groundedFact: { fact: string; url: string; readAt: Date | null };
   claim: ClaimState;
   /** §9's publishing mode, read from the shell's one preference. */
   mode: PublishingMode;

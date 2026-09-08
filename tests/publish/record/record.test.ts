@@ -187,6 +187,54 @@ describe("pageRecordFor — REQ-056 c6's five facts", () => {
     expect((await pageRecordFor("d1", NOW))!.unpublishOutcome).toBe("already_gone");
   });
 
+  // Issue #268. `measuredAt` used to start at `new Date(0)` and stay there
+  // when the opportunity did not come back — the row is gone, or this
+  // reader may not see it. Epoch zero is a real instant, so every surface
+  // downstream formatted it and a customer read `Dec 31, 1969` as the day
+  // their page was measured. A missing date has to be a value that cannot
+  // be formatted by accident.
+  describe("the measurement date is the scan's or it is null — never a stand-in", () => {
+    it("no opportunity row: no date, and the record still comes back", async () => {
+      seed();
+      db.tables.set("opportunities", []);
+      const record = await pageRecordFor("d1", NOW);
+      expect(record).not.toBeNull();
+      expect(record!.measuredAt).toBeNull();
+      // The opportunity's other fact takes the same arm it always has.
+      expect(record!.targetQuery).toBe("");
+    });
+
+    it("an opportunity whose scan row does not come back: no date either", async () => {
+      seed();
+      db.tables.set("scans", []);
+      const record = await pageRecordFor("d1", NOW);
+      expect(record!.measuredAt).toBeNull();
+      expect(record!.targetQuery).toBe("how long does a roof last");
+    });
+
+    it("no 1970 value can reach the record by any arm", async () => {
+      // Every shape of missing row, checked against the whole record and
+      // not only the field the finding named: a date near epoch anywhere
+      // in it is a stand-in that escaped.
+      for (const missing of ["opportunities", "scans", "publications"] as const) {
+        seed();
+        db.tables.set(missing, []);
+        const record = await pageRecordFor("d1", NOW);
+        for (const [field, value] of Object.entries(record!)) {
+          if (value instanceof Date) {
+            expect(value.getTime(), `${missing} → ${field}`).toBeGreaterThan(0);
+          }
+        }
+        expect(JSON.stringify(record), missing).not.toMatch(/19(69|70)-/);
+      }
+    });
+
+    it("and a scan that does come back still supplies its own date", async () => {
+      seed();
+      expect((await pageRecordFor("d1", NOW))!.measuredAt).toEqual(MEASURED_AT);
+    });
+  });
+
   it("no field describes what is at that address today", async () => {
     // ReachKit never goes back to look, so the record carries no derived
     // liveness boolean and no field a surface could read as a fresher
