@@ -524,10 +524,16 @@
  * The owner approved the complete screen set on 2026-09-08 and it
  * supersedes the card idiom's drawing of this page: no accent ground, one
  * `--bg` page with hairline rules between its sections, the hero component
- * in a browser frame, and the video frame ruling 4c added. Every value
- * below is a token; the two the set writes as literals and the ladder has
- * no rung for — the display headline and the miniature's figure — are
- * declared at the foot of `theme.css` and named there.
+ * in a browser frame, and the video frame ruling 4c added.
+ *
+ * **Every value below is an approved token, and the three the set writes as
+ * bare literals resolve to the ladder** — ruling 10a's own instruction, and
+ * since #349 the gate that enforces it. The landing's 46px headline and the
+ * 16px Step title keep their elements' ruled steps (`type.css` binds the
+ * scale to the element); the miniature's 28px figure takes `--h1`, the rung
+ * above and below it being 31 and 25; and the video's 66px play control is
+ * `calc(var(--s-6) * 2)`, twice the chip rung — a construction over
+ * approved tokens rather than a fourth name for a size.
  * ───────────────────────────────────────────────────────────────────── */
 
 /* Block padding only. The inline gutter is the `Surface`'s (issue #241),
@@ -569,7 +575,7 @@
 
 /* The hero's headline. **It sets no size**, and that is ruling 10a applied
  * rather than ignored: the approved set writes this line at a bare 46px,
- * the ruled ladder's top rung is `--t-h1` 31px (25px below
+ * the ruled ladder's top rung is `--h1` 31px (25px below
  * `--breakpoint-sm`, #258), and 10a says "every literal in the artifact
  * resolves to the token ladder". So the element keeps its own step — which
  * `src/ui/type.css` already gives every `h1` — and this class carries what
@@ -587,7 +593,7 @@
 }
 
 .rk-hero-s {
-  font-size: var(--t-h4);
+  font-size: var(--h4);
   color: var(--ink-2);
   margin: 0;
   max-width: var(--w-form);
@@ -666,12 +672,12 @@
   flex-wrap: wrap;
 }
 
-/* The Overview's own h1, at the size a miniature of it draws. It is a `<p>`
+/* The Overview's own h1, at the rung a miniature of it lands on. It is a `<p>`
  * and not an `<h2>`: the frame is a picture of another screen, and its
  * headline is not a heading of this one — a document outline that walked
  * into it would say the landing has a section it does not have. */
 .rk-shot-h {
-  font-size: var(--t-h3);
+  font-size: var(--h3);
   font-weight: 800;
   letter-spacing: -0.02em;
   color: var(--ink);
@@ -714,7 +720,7 @@
   align-items: baseline;
   gap: var(--s-2);
   flex-wrap: wrap;
-  font-size: var(--t-h1);
+  font-size: var(--h1);
   font-weight: 600;
   letter-spacing: -0.03em;
   line-height: 1.05;
@@ -763,7 +769,7 @@
 }
 
 .rk-sec-h {
-  font-size: var(--t-h2);
+  font-size: var(--h2);
   font-weight: 800;
   letter-spacing: -0.025em;
   color: var(--ink);
