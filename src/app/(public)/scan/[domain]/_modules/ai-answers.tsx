@@ -46,6 +46,7 @@
 // came from (REQ-093 c3).
 import type React from "react";
 import { Badge, Card, Divider, Table } from "@/ui/components";
+import { CardHead } from "@/ui/idiom";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { renderQuestion } from "@/lib/presentation/generated";
 import type {
@@ -224,10 +225,10 @@ export function AiAnswersCard(p: {
     <Card
       state="default"
       title={
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <span>{copy("ai-answers.title")}</span>
-          <Badge tone="neutral">{copy("ai-answers.source", { date: p.measuredOn })}</Badge>
-        </div>
+        <CardHead
+          eyebrow={copy("ai-answers.title")}
+          pill={<Badge tone="neutral">{copy("ai-answers.source", { date: p.measuredOn })}</Badge>}
+        />
       }
     >
       <p>
@@ -287,5 +288,5 @@ export function AiAnswersCard(p: {
  *  absent in one written line, and the rest of the report stays usable —
  *  never an empty card, never a spinner. */
 export function AiAnswersAbsent(): React.JSX.Element {
-  return <Card state="degraded" title={copy("ai-answers.title")} degradedLine={copy("ai-answers.absent")} />;
+  return <Card state="degraded" title={<CardHead eyebrow={copy("ai-answers.title")} />} degradedLine={copy("ai-answers.absent")} />;
 }

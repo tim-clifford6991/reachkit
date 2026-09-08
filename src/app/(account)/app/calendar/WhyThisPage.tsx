@@ -38,6 +38,30 @@ function Row(p: {
   );
 }
 
+/** One label/**sentence** pair — the same row, without `.num`.
+ *
+ *  `.num` is `white-space: nowrap` since #297, because a value has no
+ *  boundaries and every place it could fold is a place it would be read as
+ *  a different string. A criterion is not a value: "Named in an AI answer
+ *  for the target question within 6 weeks" is a sentence, and §2.3's mono
+ *  list is numerals, dates, URLs, search queries and code-like strings —
+ *  none of which it is. It was carrying `.num` all the same, and the
+ *  nowrap rule is what made that visible: it pushed the calendar's day
+ *  panel sideways at 320 and 1280 and the sweep reported the document
+ *  scrolling (check 1) and the line clipped (check 3).
+ *
+ *  So the fix is not a wider box or an exemption — it is that this row
+ *  never held a value. The rows above it still do: a search query, the
+ *  question as asked, the engines that answered, a count. */
+function Sentence(p: { label: string; children: React.ReactNode }): React.JSX.Element {
+  return (
+    <p className="flex flex-wrap items-baseline gap-2">
+      <span>{p.label}</span>
+      <span className="min-w-0">{p.children}</span>
+    </p>
+  );
+}
+
 export function WhyThisPage(p: { why: WhyFacts }): React.JSX.Element {
   const { why } = p;
   const you = renderMeasured(why.youStand, {
@@ -59,7 +83,7 @@ export function WhyThisPage(p: { why: WhyFacts }): React.JSX.Element {
       </Row>
       <Row label={copy("calendar.why.you")}>{you.text}</Row>
       {you.line === undefined ? null : <p className="rk-prov">{you.line}</p>}
-      <Row label={copy("calendar.why.done-when")}>{why.doneWhen}</Row>
+      <Sentence label={copy("calendar.why.done-when")}>{why.doneWhen}</Sentence>
     </div>
   );
 }

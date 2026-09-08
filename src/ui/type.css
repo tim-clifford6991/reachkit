@@ -186,4 +186,30 @@ body {
    * sweep's own declared scroll container — rather than the value. */
   overflow-wrap: normal;
   word-break: normal;
+  /* **And not at a hyphen either** (issue #297). `overflow-wrap` and
+   * `word-break` ban breaking *inside* a word; a hyphen is not inside one,
+   * it is a soft wrap opportunity the line-breaking algorithm is entitled
+   * to take — so `rival-one.example.net` still came apart as `rival-` /
+   * `one.example.net` on the report at every width, which is the same
+   * defect one boundary further out. A value has no boundaries: it is one
+   * string, and every place it could break is a place it would be read as
+   * a different one.
+   *
+   * The cost is deliberate and is the point: a value that cannot fit now
+   * overflows its box instead of quietly rewriting itself, and an
+   * overflowing box with no scroll container is a check-3 offender the
+   * layout sweep reports by name. ADR-093's rule decides what happens
+   * next — the *box* changes, with the `overflow-x-auto` wrap the
+   * registered `Table` carries and the report's own value cells now carry
+   * too — and the sweep is what makes sure somebody does it.
+   *
+   * **It stops wrapping between words as well, and that is not a
+   * side effect to be worked around.** `.num` marks a value, and where it
+   * carries several words — a search phrase, a provenance line — those are
+   * still one value read as one string. Such a line now overflows a box it
+   * does not fit rather than folding, and the sweep reports it until the
+   * box is made a scroll container. If a line genuinely wants to wrap, it
+   * is prose and does not belong in `.num`: that is a call about what the
+   * text *is*, which is the call this class exists to make. */
+  white-space: nowrap;
 }

@@ -346,6 +346,24 @@ export function checkSurfaceContainer(opts: {
     resolvedWideArm(surface) === "columns:1" ? measurePx.read : measurePx.wide;
 
   const offenders: Offender[] = [];
+
+  // A surface that **declares** its own layout declares its own edges
+  // (issue #297). `Arm`'s third kind is the band whose behaviour is
+  // written down rather than drawn, and `surface.css` gives such a surface
+  // "the container and nothing else" — no measure and no gutter. The
+  // sign-in split is the screen that needs it: two full-height panels that
+  // run to the viewport's edges, which a gutter would frame.
+  //
+  // The exemption is the *arm's*, not a screen's: nothing here names a
+  // route or a class, so a second screen that declares its layout is held
+  // to the same rule and a screen that stops declaring one loses the
+  // exemption the moment its arm changes. What it does not exempt is the
+  // content inside — checks 1 to 4 still measure every box on the page,
+  // and a declared screen with no air of its own still has to fit.
+  const declaresOwnEdges = (surface.getAttribute("data-arm-compact") ?? "").startsWith(
+    "declared:"
+  );
+
   const box = surface.getBoundingClientRect();
   const style = getComputedStyle(surface);
   const padLeft = parseFloat(style.paddingLeft) || 0;
@@ -356,7 +374,7 @@ export function checkSurfaceContainer(opts: {
 
   const leftAir = box.left + padLeft;
   const rightAir = width - (box.right - padRight);
-  if (leftAir < gutter - EPS || rightAir < gutter - EPS) {
+  if (!declaresOwnEdges && (leftAir < gutter - EPS || rightAir < gutter - EPS)) {
     offenders.push({
       check: "surface-gutter",
       element: `${describe(surface)} — ${band} band wants ${gutter}px either side, has ${Math.round(leftAir)}/${Math.round(rightAir)}`,
@@ -398,8 +416,12 @@ export function checkSurfaceContainer(opts: {
     }
   }
 
+  // The measure is the other half of what a declared surface declares: it
+  // takes no `max-width`, because the sign-in split *is* the viewport's
+  // width by construction. Same exemption, same reason, same one line
+  // that turns it off the moment the arm stops saying `declared`.
   const content = box.width - padLeft - padRight;
-  if (content > measure + EPS) {
+  if (!declaresOwnEdges && content > measure + EPS) {
     offenders.push({
       check: "surface-measure",
       element: `${describe(surface)} — content ${Math.round(content)}px exceeds the ${measure}px measure`,

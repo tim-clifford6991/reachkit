@@ -23,6 +23,7 @@
 // name, so nothing this card claims depends on the drawing.
 import type React from "react";
 import { Badge, Card, Divider, Progress, Table } from "@/ui/components";
+import { CardHead } from "@/ui/idiom";
 import { copy } from "@/lib/presentation/copy";
 import type { PresenceSection } from "@/lib/scan/report";
 import { Num, ratio } from "../_address/measured";
@@ -89,10 +90,10 @@ export function GooglePresenceCard(p: {
     <Card
       state="default"
       title={
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <span>{copy("presence.title")}</span>
-          <Badge tone="neutral">{copy("presence.source")}</Badge>
-        </div>
+        <CardHead
+          eyebrow={copy("presence.title")}
+          pill={<Badge tone="neutral">{copy("presence.source")}</Badge>}
+        />
       }
     >
       <p>
@@ -149,5 +150,5 @@ export function GooglePresenceCard(p: {
 /** REQ-004 c10/c11: named as absent in one written line; the rest of the
  *  report stays usable. */
 export function GooglePresenceAbsent(): React.JSX.Element {
-  return <Card state="degraded" title={copy("presence.title")} degradedLine={copy("presence.absent")} />;
+  return <Card state="degraded" title={<CardHead eyebrow={copy("presence.title")} />} degradedLine={copy("presence.absent")} />;
 }
