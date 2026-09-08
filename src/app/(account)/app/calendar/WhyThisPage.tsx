@@ -13,6 +13,19 @@
 // one dim provenance line does, and it is rendered by `DayPanelView`
 // beside these rows rather than inside them.
 //
+// **It is a definition list on a hairline-separated block** (issue #354,
+// approved screen S15). Five keys and five values: `<dl>` is what a
+// key/value list is, and the approved `.why` draws it as a two-column grid
+// with the key at the near edge in the quiet ink and the value beside it.
+// The rows were `<p>`s with the label and the value inline before, which
+// read as five sentences rather than as the page's own record.
+//
+// Both columns are mono, and that is the approved sheet's own reading of
+// §2.3 rather than a widening of it: a search query, the question as asked,
+// the engines that answered and a count are all values, and the keys beside
+// them are fixed labels for values. `done when` is the exception the type
+// already knows about — see `Sentence` below.
+//
 // `youStand` is a `Measured<number>` and goes through `renderMeasured` —
 // the only way a measurement reaches a screen (BP-019). An outage renders
 // the dash and its own written line, never a zero, and a measured zero
@@ -31,10 +44,10 @@ function Row(p: {
   children: React.ReactNode;
 }): React.JSX.Element {
   return (
-    <p className="flex flex-wrap items-baseline gap-2">
-      <span>{p.label}</span>
-      <span className="num min-w-0">{p.children}</span>
-    </p>
+    <>
+      <dt>{p.label}</dt>
+      <dd className="num">{p.children}</dd>
+    </>
   );
 }
 
@@ -55,10 +68,10 @@ function Row(p: {
  *  question as asked, the engines that answered, a count. */
 function Sentence(p: { label: string; children: React.ReactNode }): React.JSX.Element {
   return (
-    <p className="flex flex-wrap items-baseline gap-2">
-      <span>{p.label}</span>
-      <span className="min-w-0">{p.children}</span>
-    </p>
+    <>
+      <dt>{p.label}</dt>
+      <dd>{p.children}</dd>
+    </>
   );
 }
 
@@ -74,16 +87,22 @@ export function WhyThisPage(p: { why: WhyFacts }): React.JSX.Element {
   });
 
   return (
-    <div className="flex flex-col gap-1" data-testid="why-this-page">
-      <p className="font-bold">{copy("calendar.why.title")}</p>
-      <Row label={copy("calendar.why.search")}>{why.search}</Row>
-      <Row label={copy("calendar.why.asked")}>{why.askedAs}</Row>
-      <Row label={copy("calendar.why.answered-today-by")}>
-        {why.answeredTodayBy.join(", ")}
-      </Row>
-      <Row label={copy("calendar.why.you")}>{you.text}</Row>
+    <div className="flex flex-col gap-3" data-testid="why-this-page">
+      <p className="eyebrow rk-daypanel-eyebrow">{copy("calendar.why.title")}</p>
+      <dl className="rk-daypanel-why">
+        <Row label={copy("calendar.why.search")}>{why.search}</Row>
+        <Row label={copy("calendar.why.asked")}>{why.askedAs}</Row>
+        <Row label={copy("calendar.why.answered-today-by")}>
+          {why.answeredTodayBy.join(", ")}
+        </Row>
+        <Row label={copy("calendar.why.you")}>{you.text}</Row>
+        <Sentence label={copy("calendar.why.done-when")}>{why.doneWhen}</Sentence>
+      </dl>
+      {/* An outage's own written line, under the list rather than in it: it
+          is a sentence about why a value is a dash, and a `<dd>` holding a
+          sentence beside four values is the defect #297 already found in
+          `done when`. */}
       {you.line === undefined ? null : <p className="rk-prov">{you.line}</p>}
-      <Sentence label={copy("calendar.why.done-when")}>{why.doneWhen}</Sentence>
     </div>
   );
 }

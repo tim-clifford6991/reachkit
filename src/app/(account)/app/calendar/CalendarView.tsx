@@ -24,7 +24,13 @@ import { copy } from "@/lib/presentation/copy";
 import { writtenLine } from "../_shell/written";
 import { StageFilter } from "./StageFilter";
 import { DayPanelView } from "./DayPanelView";
-import { EMPTY_COPY_KEY, isLawCause, stopForEmptyDay } from "./empty";
+import {
+  EMPTY_COPY_KEY,
+  isLawCause,
+  stopForEmptyDay,
+  type CalendarOwnCause,
+} from "./empty";
+import type { CopyKey } from "@/lib/presentation/copy";
 import { CHANGE_COPY_KEY } from "./change-line";
 import { stoppedWorkStatement, type WorkStop } from "@/lib/presentation/stopped";
 import { formatDate } from "../_shell/format";
@@ -98,18 +104,23 @@ export function emptyLineFor(
   day: string,
   stopped: WorkStop | null,
   timeZone: string,
+  /** Which of the two forms the caller is rendering — the cell's first
+   *  line, or the panel's whole account (#209, and issue #354's S14/S15).
+   *  The grid's is the default because the grid is the surface with the
+   *  smaller box; a caller that wants the account asks for it. */
+  keys: Record<CalendarOwnCause, CopyKey> = EMPTY_COPY_KEY,
 ): string | null {
   const cause = empty.cause;
   // REQ-071 c11's two slots. Both values are the engine's — the held answer
   // named through its own registry key, and the resumption date formatted
   // in the site's zone (issue #204).
   if (empty.cause === "change_holds_generation") {
-    return writtenLine(EMPTY_COPY_KEY[empty.cause], {
+    return writtenLine(keys[empty.cause], {
       change: copy(CHANGE_COPY_KEY[empty.because]),
       date: formatDate(empty.resumesOn, timeZone),
     });
   }
-  if (!isLawCause(cause)) return writtenLine(EMPTY_COPY_KEY[cause]);
+  if (!isLawCause(cause)) return writtenLine(keys[cause]);
   const stop = stopForEmptyDay({ cause, stop: stopped, since: dayMarker(day) });
   return stoppedWorkStatement(stop, { formatDate: (on) => formatDate(on, timeZone) }).line;
 }

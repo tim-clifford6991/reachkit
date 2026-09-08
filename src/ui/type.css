@@ -137,6 +137,20 @@ body {
   font-size: var(--t-eyebrow);
 }
 
+/* §2.5's explanatory step — the ladder's `--t-explain` rung (11.5px), in
+ * the quiet ink. The approved screen set draws every footnote and aside on
+ * it (`.explain`, issue #354), and `theme.css` names the size since ruling
+ * 10a of 2026-09-08 closed the ladder at "15 / 13 / 12 / 11.5 / 11".
+ *
+ * It is prose, so it is set in the UI face and never the mono one — that
+ * is the whole difference between this step and `.rk-prov` beside it,
+ * which carries values at the same weight of voice. */
+.explain {
+  font-family: var(--font-ui);
+  font-size: var(--t-explain);
+  color: var(--ink-3);
+}
+
 /* BP-018 error behaviour: "Every numeral, date, URL, search query and
  * code-like string renders in JetBrains Mono with tabular-nums; a numeral
  * in the UI font is a defect." `.num` is the *only* rule in this file that

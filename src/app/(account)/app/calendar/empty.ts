@@ -165,9 +165,10 @@ export function isLawCause(cause: EmptyCause): cause is "reachkit_stopped" | "un
   return cause === "reachkit_stopped" || cause === "unattributed";
 }
 
-/** The line each cause the **calendar** speaks is spoken from. The two law
- *  causes are absent by type, so this file cannot name their key again:
- *  adding one back is a compile error, not a review comment. */
+/** The line each cause the **calendar** speaks is spoken from **in a grid
+ *  cell**. The two law causes are absent by type, so this file cannot name
+ *  their key again: adding one back is a compile error, not a review
+ *  comment. */
 export const EMPTY_COPY_KEY: Record<CalendarOwnCause, CopyKey> = {
   instruction: "calendar.empty.instruction",
   page_cannot_go_live: "calendar.empty.page-cannot-go-live",
@@ -175,6 +176,31 @@ export const EMPTY_COPY_KEY: Record<CalendarOwnCause, CopyKey> = {
   change_holds_generation: "calendar.empty.change-holds-pages",
   page_held: "calendar.empty.page-held",
   supply_exhausted: "cause.supply-exhausted",
+};
+
+/**
+ * The same causes as the **day panel** speaks them: the whole account,
+ * where the cell states its first line alone.
+ *
+ * That split is DECISIONS 2026-09-07 (#209) — "the grid cell states the
+ * first line alone, the panel all three" — generalised from the law causes
+ * to the calendar's own, because the approved screen set draws exactly the
+ * same shape for supply (issue #354). S14's cell reads `nothing worth
+ * publishing`; S15's `empty` panel reads the whole of it: "Nothing worth
+ * publishing on this date — the supply of opportunities in your market is
+ * used up until Monday's re-measure finds more."
+ *
+ * **Total over the causes, and mostly the same map.** Only
+ * `supply_exhausted` has a fuller form drawn for it; every other cause has
+ * one sentence and states it in both places, so it names the same key
+ * twice rather than gaining a second, unwritten one. A cause that grows a
+ * panel form later changes one row here and nothing else — and a cause
+ * added to the union fails both maps on the day it is added, which is what
+ * `Record<CalendarOwnCause, …>` is for.
+ */
+export const EMPTY_ACCOUNT_COPY_KEY: Record<CalendarOwnCause, CopyKey> = {
+  ...EMPTY_COPY_KEY,
+  supply_exhausted: "calendar.empty.supply-exhausted",
 };
 
 /**

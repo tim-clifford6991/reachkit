@@ -69,41 +69,65 @@ export default async function CalendarPage({
 
   return (
     <div className="flex flex-col gap-4">
-      <h1>{copy("calendar.head")}</h1>
-      <nav className="join" data-testid="month-switcher">
-        <a
-          href={`/app/calendar?month=${previous}`}
-          className="join-item btn btn-sm num"
-          data-testid="month-previous"
-        >
-          {monthNameOnly(previous)}
-        </a>
-        {/* Not a link: this is where the customer already is. `aria-current`
-            is what a screen reader reads and `btn-active` is what an eye
-            reads — the mark is never tone alone (§2.5). */}
-        <span
-          className="join-item btn btn-sm btn-active num"
-          aria-current="page"
-          data-testid="month-current"
-        >
-          {monthLabel(month)}
-        </span>
-        <a
-          href={`/app/calendar?month=${next}`}
-          className="join-item btn btn-sm num"
-          data-testid="month-next"
-        >
-          {monthNameOnly(next)}
-        </a>
-      </nav>
+      {/* S14's head row: the head at the near edge and the month switcher at
+          the far one, on one line (issue #354). It stacked before, which
+          put a full-width row between the head and the filter and pushed
+          the month down a whole band. It wraps rather than shrinking — at
+          320 the switcher drops under the head, which is what ADR-093
+          decision 2 asks for. */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1>{copy("calendar.head")}</h1>
+        <nav className="join" data-testid="month-switcher">
+          <a
+            href={`/app/calendar?month=${previous}`}
+            className="join-item btn btn-sm num"
+            data-testid="month-previous"
+          >
+            {monthNameOnly(previous)}
+          </a>
+          {/* Not a link: this is where the customer already is. `aria-current`
+              is what a screen reader reads and `btn-active` is what an eye
+              reads — the mark is never tone alone (§2.5). */}
+          <span
+            className="join-item btn btn-sm btn-active num"
+            aria-current="page"
+            data-testid="month-current"
+          >
+            {monthLabel(month)}
+          </span>
+          <a
+            href={`/app/calendar?month=${next}`}
+            className="join-item btn btn-sm num"
+            data-testid="month-next"
+          >
+            {monthNameOnly(next)}
+          </a>
+        </nav>
+      </div>
 
       <CalendarView model={model} />
 
+      {/* S14's footnote — **one** line under the grid, and the calendar's
+          only one (issue #354). Its two halves are two sentences of one
+          footnote rather than two footnotes: "Planned pages are written the
+          evening before, from Monday's measurements. When opportunities run
+          out, future days are empty — the calendar is never padded." Each
+          is still its own registry key, so a half the owner has not written
+          renders as nothing and the other still reads as a sentence.
+
+          §7's supply statement is a separate paragraph because it is a
+          separate claim: the footnote states the rule, and the statement
+          states what supply is doing right now. At most one of the three
+          arms is ever returned (`supplyLine`), so this is never a second
+          footnote either. */}
       <footer className="flex flex-col gap-1" data-testid="calendar-footnote">
-        {plannedNote === null ? null : <p className="rk-prov">{plannedNote}</p>}
-        {supplyNote === null ? null : <p className="rk-prov">{supplyNote}</p>}
+        {plannedNote === null && supplyNote === null ? null : (
+          <p className="explain">
+            {[plannedNote, supplyNote].filter((line) => line !== null).join(" ")}
+          </p>
+        )}
         {supplyStatement === null ? null : (
-          <p className="rk-prov" data-testid="calendar-supply-statement">
+          <p className="explain" data-testid="calendar-supply-statement">
             {supplyStatement}
           </p>
         )}

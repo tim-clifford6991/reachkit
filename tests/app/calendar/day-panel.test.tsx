@@ -97,24 +97,27 @@ describe("REQ-043 c8 — the panel says why this page exists", () => {
 
   it("every value is mono, and the one criterion is not a value (§2.3; #297)", () => {
     const why = root.querySelector('[data-testid="why-this-page"]');
-    const rows = why?.querySelectorAll("p") ?? [];
-    // The block title is the first <p>; five rows follow. **Four** carry a
-    // `.num` value span — the search query, the question as asked, the
-    // engines that answered, and where the customer stands. The fifth,
-    // "done when", is a sentence: §2.3's mono list is numerals, dates,
-    // URLs, search queries and code-like strings, and a success criterion
-    // is none of them.
+    // Since #354 the block is S15's definition list: five `<dt>` keys and
+    // five `<dd>` values, on the hairline-separated block the approved
+    // panel draws. **Four** values carry `.num` — the search query, the
+    // question as asked, the engines that answered, and where the customer
+    // stands. The fifth, "done when", is a sentence: §2.3's mono list is
+    // numerals, dates, URLs, search queries and code-like strings, and a
+    // success criterion is none of them.
     //
     // It carried `.num` until #297 made `.num` `nowrap`, and that is how
     // the misuse became visible rather than merely wrong: an unfoldable
     // sentence pushed the day panel sideways at 320 and 1280 and the
     // layout sweep reported the document scrolling. The row that changed
     // is the row that never held a value.
-    const monoValues = why?.querySelectorAll("span.num") ?? [];
+    const keys = why?.querySelectorAll("dt") ?? [];
+    const values = why?.querySelectorAll("dd") ?? [];
+    expect(keys.length).toBe(5);
+    expect(values.length).toBe(5);
+    const monoValues = why?.querySelectorAll("dd.num") ?? [];
     expect(monoValues.length).toBe(4);
-    expect(rows.length).toBeGreaterThanOrEqual(6);
     // And the criterion is still stated — as prose, in its own row.
-    const texts = [...rows].map((r) => r.textContent ?? "");
+    const texts = [...keys].map((r) => r.textContent ?? "");
     expect(texts.some((t) => t.includes("calendar.why.done-when"))).toBe(true);
   });
 
@@ -138,7 +141,7 @@ describe("REQ-004 — an unmeasured value is a dash and a line, never a zero", (
   it("a page whose standing could not be measured renders the dash, not 0", () => {
     // The fixture's third specimen carries `unmeasured('undeterminable')`.
     const root = panel("2026-09-03");
-    const values = [...(root.querySelectorAll('[data-testid="why-this-page"] span.num') ?? [])].map(
+    const values = [...(root.querySelectorAll('[data-testid="why-this-page"] dd.num') ?? [])].map(
       (n) => n.textContent
     );
     expect(values).toContain(COPY["unmeasured.dash"]);
@@ -152,7 +155,7 @@ describe("REQ-004 — an unmeasured value is a dash and a line, never a zero", (
 
   it("a measured zero renders as 0, because 0 is a measurement", () => {
     const root = panel("2026-09-02");
-    const values = [...(root.querySelectorAll('[data-testid="why-this-page"] span.num') ?? [])].map(
+    const values = [...(root.querySelectorAll('[data-testid="why-this-page"] dd.num') ?? [])].map(
       (n) => n.textContent
     );
     expect(values).toContain("0");
@@ -160,9 +163,23 @@ describe("REQ-004 — an unmeasured value is a dash and a line, never a zero", (
 });
 
 describe("REQ-043 c10 — one provenance line, and no date repeated beside each value", () => {
-  it("the line is owner-owed today, so it renders as nothing rather than a placeholder", () => {
-    expect(COPY["calendar.provenance.measured"]).toBe("");
-    expect(panel("2026-09-15").querySelector('[data-testid="day-provenance"]')).toBeNull();
+  it("the line is the approved one, and it is the panel's last element (#354)", () => {
+    // Ruling 11a of 2026-09-08 made the approved set's unbracketed strings
+    // approved copy, and every one of S15's five arms ends on the same
+    // measured tail. It was owner-owed and empty until then, and the panel
+    // rendered nothing rather than a placeholder — which is the behaviour
+    // the row below still holds for the keys that are *still* owed.
+    expect(COPY["calendar.provenance.measured"]).toBe("measured {date}");
+    const rendered = panel("2026-09-15").querySelector('[data-testid="day-provenance"]');
+    expect(rendered).not.toBeNull();
+    expect(rendered?.textContent).toContain("measured");
+    // Quiet, mono, small — §2.5, through the one class that says so.
+    expect(rendered?.className).toContain("rk-prov");
+    // Last: after the controls, which is where the approved panel draws it.
+    // A line that has to be quiet (§2.5) cannot sit above the one control
+    // the panel is asking for.
+    const inner = panel("2026-09-15").querySelector(".rk-daypanel-inner");
+    expect(inner?.lastElementChild?.getAttribute("data-testid")).toBe("day-provenance");
   });
 
   it("and no 'Why this page' row carries a measurement date of its own", () => {
@@ -282,5 +299,83 @@ describe("a cell with a page whose stage has no action", () => {
     );
     expect(root.querySelector('[data-testid="day-title"]')).not.toBeNull();
     expect(root.querySelectorAll('[data-testid^="day-action-"]')).toHaveLength(0);
+  });
+});
+
+describe("issue #354 — S15, the approved panel arms", () => {
+  it("the head is the stage chip at the near edge and the date at the far one", () => {
+    const head = panel("2026-09-15").querySelector('[data-testid="day-head"]');
+    expect(head?.className).toContain("rk-daypanel-heading");
+    const children = [...(head?.children ?? [])];
+    expect(children[0]?.className).toContain("badge");
+    // The date is quiet and mono — it is the head's second half, not its
+    // subject (§2.5's provenance rule, and S15's own `.prov`).
+    expect(children[1]?.className).toContain("num");
+    expect(children[1]?.className).toContain("rk-prov");
+  });
+
+  it("**review offers a solid way in across the column, with Move and a warn-outline Veto under it**", () => {
+    const root = panel("2026-09-15");
+    const read = root.querySelector('[data-testid="day-action-calendar.action.read-full-page"]');
+    // The one way in: an anchor, because it navigates, and the solid rank,
+    // because it is what the panel is asking for (§9.1's one fill).
+    expect(read?.tagName.toLowerCase()).toBe("a");
+    expect(read?.className).toContain("btn-primary");
+    expect(read?.parentElement?.className).toContain("rk-daypanel-block");
+
+    const veto = root.querySelector('[data-testid="day-action-calendar.action.veto"] button');
+    // The outline rank on `warn` — issue #271's arm, for a control whose
+    // consequence is the opposite of the one above it.
+    expect(veto?.className).toContain("rk-btn-outline");
+    expect(veto?.getAttribute("data-tone")).toBe("warn");
+    expect(veto?.className).not.toContain("btn-primary");
+
+    const move = root.querySelector('[data-testid="day-action-calendar.action.move"] button');
+    expect(move?.className).toContain("rk-btn-tertiary");
+    // Move and Veto share one row, each taking half of it.
+    for (const key of ["calendar.action.move", "calendar.action.veto"]) {
+      expect(
+        root.querySelector(`[data-testid="day-action-${key}"]`)?.className,
+        key,
+      ).toContain("rk-daypanel-half");
+    }
+  });
+
+  it("live's way in is the OUTLINE rank — it leaves the product, so it is not the screen's fill", () => {
+    const live = panel("2026-09-01").querySelector(
+      '[data-testid="day-action-calendar.action.view-live-page"]',
+    );
+    expect(live?.tagName.toLowerCase()).toBe("a");
+    expect(live?.className).toContain("rk-btn-outline");
+    expect(live?.className).not.toContain("btn-primary");
+  });
+
+  it("**the empty arm names the day, states its whole account, and offers nothing**", () => {
+    // 2026-09-23 is emptied by proven-zero supply in the fixture.
+    const root = panel("2026-09-23");
+    const head = root.querySelector('[data-testid="day-head"]');
+    expect(head?.textContent).toContain("calendar.empty.day-badge");
+    // The panel states the FULL account where the cell states its first
+    // line alone (DECISIONS 2026-09-07, #209 — and S14/S15 draw the same
+    // split for supply). `copy()` is mocked to the key here, so what is
+    // asserted is which key the line came from.
+    const line = root.querySelector('[data-testid="day-empty-line"]');
+    expect(line?.textContent).toBe("calendar.empty.supply-exhausted");
+    expect(line?.textContent).not.toBe("cause.supply-exhausted");
+    // REQ-043 c11: no action at all.
+    expect(root.querySelectorAll('[data-testid^="day-action-"]')).toHaveLength(0);
+    // And no provenance: a date holding no page carries no measurement to
+    // name, and a month-level date printed here would measure something
+    // else.
+    expect(root.querySelector('[data-testid="day-provenance"]')).toBeNull();
+  });
+
+  it("the two supply lines are a short one and a long one, and the cell never gets the long one", () => {
+    // The property behind the split, at the registry rather than in the
+    // markup: two keys, two lengths, and the grid's map naming the short.
+    expect(COPY["cause.supply-exhausted"]).toBe("nothing worth publishing");
+    expect(COPY["calendar.empty.supply-exhausted"].length).toBeGreaterThan(
+      COPY["cause.supply-exhausted"].length * 3,
+    );
   });
 });

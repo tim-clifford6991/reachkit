@@ -44,7 +44,7 @@ import {
 import { formatDate, formatDateTime } from "../_shell/format";
 import { writtenLine } from "../_shell/written";
 import { actionsFor } from "./actions";
-import { isLawCause, stopForEmptyDay } from "./empty";
+import { EMPTY_ACCOUNT_COPY_KEY, isLawCause, stopForEmptyDay } from "./empty";
 import { emptyLineFor } from "./CalendarView";
 import { nextPublishStatement, stoppedWorkStatement, type WorkStop } from "@/lib/presentation/stopped";
 import { fullDate } from "./dates";
@@ -112,6 +112,90 @@ function dayMarker(day: string): Date {
   return new Date(`${day}T00:00:00.000Z`);
 }
 
+/**
+ * The panel's controls, in the ranks the approved S15 draws (issue #354).
+ *
+ * Each rank is read off what the action *is*, not off a second table
+ * beside `actions.ts`:
+ *
+ *  - **The day's one way in takes the full column** — the link its stage
+ *    earns. `actionsFor` offers at most one, so the block control cannot
+ *    become two. It is the SOLID rank where it leads further into the
+ *    customer's own work (read the page; reconnect the destination), and
+ *    the OUTLINE rank where it leaves the product for the live page: §9.1
+ *    gives a screen one filled button, and a control that navigates away
+ *    is not the thing the panel is asking for.
+ *  - **A stop is the outline rank on `warn`** — the arm issue #271 spent
+ *    that tone on, for exactly this pairing: a veto stands beside an
+ *    approve, the two are opposite consequences and one destroys the
+ *    draft. `skip` is the same §9 edge under §4.6's other word, so it
+ *    takes the same rank.
+ *  - **Move and a restart are quiet.** Move re-deadlines a page and asks
+ *    nothing of anyone; a restart stands beside a reconnect that already
+ *    holds the fill.
+ *
+ * The two half-width controls share one row under the block one, each
+ * taking half of it however long its word is (`day-panel.css`).
+ *
+ * The link is an anchor carrying the registered `btn` classes rather than
+ * a `Btn`, the way the month switcher's neighbours and the Overview's two
+ * links already are: it navigates, so it is an `<a>` with no client
+ * runtime, and `Btn` renders a `<button>` with an `onClick`. Declared in
+ * `tests/ui/design/component-registry.test.ts`'s exception list with that
+ * reason.
+ */
+function DayActions(p: { cell: DayCell }): React.JSX.Element {
+  return (
+    <>
+      {actionsFor(p.cell).map((action) => {
+        if (action.kind === "link") {
+          const leavesTheProduct = action.key === "calendar.action.view-live-page";
+          return (
+            <span key={action.key} className="rk-daypanel-block">
+              <a
+                href={action.href}
+                className={
+                  leavesTheProduct
+                    ? "btn btn-sm btn-ghost rk-btn-outline rk-daypanel-wide"
+                    : "btn btn-sm btn-primary rk-daypanel-wide"
+                }
+                data-testid={`day-action-${action.key}`}
+              >
+                {copy(action.key)}
+              </a>
+            </span>
+          );
+        }
+        const stop = action.command === "veto" || action.command === "skip";
+        return (
+          <span
+            key={action.key}
+            className="rk-daypanel-half"
+            data-testid={`day-action-${action.key}`}
+          >
+            {stop ? (
+              <Btn
+                label={copy(action.key)}
+                variant="secondary"
+                tone="warn"
+                size="sm"
+                onClick={() => run(action.command, action.draftId, p.cell.day)}
+              />
+            ) : (
+              <Btn
+                label={copy(action.key)}
+                variant="tertiary"
+                size="sm"
+                onClick={() => run(action.command, action.draftId, p.cell.day)}
+              />
+            )}
+          </span>
+        );
+      })}
+    </>
+  );
+}
+
 export function DayPanelView(p: {
   cell: DayCell;
   timeZone: string;
@@ -146,26 +230,53 @@ export function DayPanelView(p: {
             { formatDate: (on) => formatDate(on, p.timeZone) }
           )
         : null;
+    // The date's account **in full** — `EMPTY_ACCOUNT_COPY_KEY`, not the
+    // grid's map. DECISIONS 2026-09-07 (#209): the cell states the first
+    // line alone and the panel states all of it, and S14/S15 draw that same
+    // split for an exhausted supply.
     const account =
       cell.empty === null || law !== null
         ? null
-        : emptyLineFor(cell.empty, cell.day, p.stopped, p.timeZone);
+        : emptyLineFor(
+            cell.empty,
+            cell.day,
+            p.stopped,
+            p.timeZone,
+            EMPTY_ACCOUNT_COPY_KEY,
+          );
+    // S15's `empty` arm: the chip, the date, a rule, the one account — and
+    // no action. REQ-043 c11 ("it offers no action that would publish or
+    // approve a page") holds by construction: `actionsFor` returns nothing
+    // for a cell with no page, so there is no filter here to forget.
+    //
+    // No provenance line either, and that is the honest arm rather than a
+    // missing one: the set ends this state on "measured {date}", and a date
+    // holding no page carries no measurement to name. A month-level date
+    // printed here would be a measurement of something else.
     return (
       <DayPanel
-        heading={<span className="num">{date}</span>}
-        account={
-          <div data-testid="day-account">
-            {account === null ? null : (
-              <p data-testid="day-empty-line">{account}</p>
-            )}
-            {law === null ? null : (
-              <>
-                <p data-testid="day-empty-line">{law.line}</p>
-                <p data-testid="day-stopped-needs">{law.needsLine}</p>
-                <p data-testid="day-stopped-resumes">{law.resumesLine}</p>
-              </>
-            )}
+        heading={
+          <div className="rk-daypanel-heading" data-testid="day-head">
+            <Badge tone="neutral">{copy("calendar.empty.day-badge")}</Badge>
+            <span className="num rk-prov">{date}</span>
           </div>
+        }
+        account={
+          <>
+            <hr className="rk-daypanel-rule" />
+            <div className="flex flex-col gap-2" data-testid="day-account">
+              {account === null ? null : (
+                <p data-testid="day-empty-line">{account}</p>
+              )}
+              {law === null ? null : (
+                <>
+                  <p data-testid="day-empty-line">{law.line}</p>
+                  <p data-testid="day-stopped-needs">{law.needsLine}</p>
+                  <p data-testid="day-stopped-resumes">{law.resumesLine}</p>
+                </>
+              )}
+            </div>
+          </>
         }
       />
     );
@@ -212,14 +323,18 @@ export function DayPanelView(p: {
           <Badge tone={STAGE_TONE[page.stage]}>
             {copy(STAGE_FILTER_COPY_KEY[page.stage])}
           </Badge>
-          <span className="num">{date}</span>
+          <span className="num rk-prov">{date}</span>
         </div>
       }
       account={
-        <div className="flex flex-col gap-2" data-testid="day-account">
-          <p className="font-bold" data-testid="day-title">
+        <div className="flex flex-col gap-3" data-testid="day-account">
+          {/* S15's four parts, in its order: the page's own heading, then a
+              rule, then the status lines its stage earns, then "Why this
+              page", then the rule the controls sit under. */}
+          <p className="rk-daypanel-title" data-testid="day-title">
             {page.title}
           </p>
+          <hr className="rk-daypanel-rule" />
           {/* Status rows — one per fact this stage actually has. */}
           {publishLine === null ? null : (
             <p data-testid="day-publish-line">{publishLine}</p>
@@ -252,39 +367,21 @@ export function DayPanelView(p: {
             {copy(BAND_LABELS.winnability[page.why.winnability])}
           </Badge>
           <WhyThisPage why={page.why} />
-          {/* "one dim provenance line" — §2.5: "Provenance is always visible
-              but always quiet … mono, dim, small." */}
-          {provenance === null ? null : (
-            <p className="rk-prov" data-testid="day-provenance">
-              {provenance}
-            </p>
-          )}
+          <hr className="rk-daypanel-rule" />
         </div>
       }
-      actions={
-        <>
-          {actionsFor(cell).map((action) =>
-            action.kind === "link" ? (
-              <a
-                key={action.key}
-                href={action.href}
-                data-testid={`day-action-${action.key}`}
-              >
-                {copy(action.key)}
-              </a>
-            ) : (
-              <span key={action.key} data-testid={`day-action-${action.key}`}>
-                <Btn
-                  label={copy(action.key)}
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => run(action.command, action.draftId, cell.day)}
-                />
-              </span>
-            ),
-          )}
-        </>
+      provenance={
+        /* "one dim provenance line" — §2.5: "Provenance is always visible
+           but always quiet … mono, dim, small." It is the panel's last
+           element in every one of S15's arms, which is why it is the
+           component's own slot rather than the tail of the account. */
+        provenance === null ? undefined : (
+          <p className="rk-prov" data-testid="day-provenance">
+            {provenance}
+          </p>
+        )
       }
+      actions={<DayActions cell={cell} />}
     />
   );
 }
