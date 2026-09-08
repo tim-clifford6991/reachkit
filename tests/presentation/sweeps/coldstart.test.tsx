@@ -436,13 +436,32 @@ const MORE_THAN_ONE_PRIMARY: Readonly<Record<string, string>> = Object.freeze({
   ].join(" "),
 });
 
-function primariesPerAccountScreen(rendered: RenderedRoute[]): Map<string, number> {
+/** The public screens that draw more than one today. Same shape and same
+ *  fail-closed rule as the account list above — an entry that gets fixed
+ *  fails as a stale exemption rather than sitting here. */
+const MORE_THAN_ONE_PRIMARY_PUBLIC: Readonly<Record<string, string>> = Object.freeze({
+  "/scan/[domain]": [
+    "the report draws two solid primaries of its own, before the header is",
+    "counted: the free-page card's submit and the pricing card's Start.",
+    "They are calls to action for different things, and which of the two is",
+    "the screen's one primary is a design decision the owner has not been",
+    "asked — the same shape as #288's chips. #290's scope is the header's",
+    "rank and the on-accent contrast. Opened as issue #291 rather than",
+    "decided here.",
+  ].join(" "),
+});
+
+function primariesPerScreen(rendered: RenderedRoute[], group: string): Map<string, number> {
   const out = new Map<string, number>();
   for (const r of rendered) {
-    if (!r.route.groups.includes("(account)")) continue;
+    if (!r.route.groups.includes(group)) continue;
     out.set(r.route.url, r.doc.querySelectorAll(SOLID_PRIMARY).length);
   }
   return out;
+}
+
+function primariesPerAccountScreen(rendered: RenderedRoute[]): Map<string, number> {
+  return primariesPerScreen(rendered, "(account)");
 }
 
 describe("§9.1 idiom — one solid primary per screen, across src/app/(account)/**", () => {
@@ -463,6 +482,36 @@ describe("§9.1 idiom — one solid primary per screen, across src/app/(account)
     // one tone a rank may take.
     expect(actions?.querySelectorAll(".rk-btn-outline[data-tone='warn']")).toHaveLength(1);
     expect(actions?.querySelectorAll(".rk-btn-tertiary")).toHaveLength(1);
+  });
+
+  // The same rule over `src/app/(public)/**` (issue #290). The account audit
+  // came first because that is where #271 found it; the public side broke
+  // the moment #266 put a header on every route — a control that appears on
+  // every screen cannot be the rank that means "the thing to do on this
+  // screen", and on `/signin` and `/scan/{domain}` it stood beside the
+  // screen's own solid one. The header is the outline secondary now.
+  //
+  // The header does not appear in this sweep at all: the harness renders a
+  // route's own `page.tsx` without its group layout, which is what makes
+  // the counts below a *screen's* own. The header's rank is asserted where
+  // it renders, in `tests/app/chrome/header.test.tsx`.
+  it("no public screen draws a second solid accent button", () => {
+    for (const sweep of [cold, warm]) {
+      const over = [...primariesPerScreen(sweep, "(public)")]
+        .filter(([url, n]) => n > 1 && !(url in MORE_THAN_ONE_PRIMARY_PUBLIC))
+        .map(([url, n]) => `${url}: ${n}`);
+      expect(over, `public screens with more than one ${SOLID_PRIMARY}: ${over.join(", ")}`).toEqual(
+        []
+      );
+    }
+  });
+
+  it("every exempt public screen is still over the limit — a fixed one fails here", () => {
+    const counts = primariesPerScreen(warm, "(public)");
+    for (const [url, why] of Object.entries(MORE_THAN_ONE_PRIMARY_PUBLIC)) {
+      expect(counts.has(url), `${url} is exempt but is not a public route`).toBe(true);
+      expect(counts.get(url), `${url} no longer draws two — drop the exemption. ${why}`).toBeGreaterThan(1);
+    }
   });
 
   it("every exempt screen is still over the limit — a fixed one fails here", () => {

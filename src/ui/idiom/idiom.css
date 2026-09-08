@@ -42,8 +42,33 @@
    * sign-in panel's mono domain line had nothing to take. Mixed *toward the
    * ground*, not toward transparency, because that is the relationship
    * `--ink-3` has to `--ink`; a low alpha to transparent puts running text
-   * under any contrast floor. */
-  --on-accent-quiet: color-mix(in oklab, var(--on-accent) 28%, var(--accent));
+   * under any contrast floor.
+   *
+   * **85%, and the number is measured** (issue #290). The idiom's own
+   * drawing mixes 28%, and the master's screenshots of dev after #285
+   * showed why that cannot ship: at 28% the domain, the `/100` and the line
+   * under the bar are **1.82:1** in light and **1.89:1** in dark against
+   * the ground — under every threshold there is, and the archive drew it on
+   * a preview nobody measured.
+   *
+   * The ratios, computed against the *darkest* point of `--grad-accent` —
+   * which is flat `--accent`, where the radial highlight has fallen off —
+   * with WCAG 2.1 relative luminance, and the mix computed in oklab exactly
+   * as `color-mix` does it:
+   *
+   *     mix    light (#ffffff on #5b4be0)   dark (#0e1116 on #9bb4ff)
+   *      28%   1.82:1  ✗                    1.89:1  ✗
+   *      80%   4.46:1  ✗                    6.80:1  ✓
+   *      85%   4.79:1  ✓                    7.48:1  ✓
+   *     100%   5.95:1                       9.34:1
+   *
+   * 85 is the lowest step on the ladder that clears **AA 4.5:1 in both
+   * themes**, which is the binding threshold here: the smallest text this
+   * ink carries is the mono domain line, well under the 18px that would let
+   * 3:1 serve. It is still quieter than `--on-accent` itself — that is the
+   * token's whole job — and light is the tighter of the two, so a change to
+   * either accent must be re-measured against the light column. */
+  --on-accent-quiet: color-mix(in oklab, var(--on-accent) 85%, var(--accent));
 
   /* --grad-accent — derived, not minted. `design/` has no gradient and the
    * set has no second accent stop, so both stops are tokens that already
@@ -266,10 +291,28 @@
 }
 
 /* A control on the accent ground keeps its own surface — a field that took
- * the ground would have no edge and no contrast floor to stand on. */
+ * the ground would have no edge and no contrast floor to stand on. Its own
+ * text and placeholder therefore stay `--ink` on `--surface`: on-accent ink
+ * inside a white field would be white on white. */
 .rk-accent-ground .input {
   background: var(--surface);
   color: var(--ink);
+}
+
+/* The field's **label** is outside that surface — it sits on the ground —
+ * so it takes the ground's ink (issue #290). `Input` draws its label in
+ * `text-base-content/60`, which is body ink at 60% and was rendering as
+ * grey-on-violet in the hero; `--on-accent` is what a label standing on the
+ * accent has to be. The outline secondary on the ground takes it too, for
+ * the same reason: its border and label are `--line`/`--ink` off the ground
+ * and have nothing to stand on there. */
+.rk-accent-ground label {
+  color: var(--on-accent);
+}
+
+.rk-accent-ground .btn.rk-btn-outline {
+  border-color: color-mix(in oklab, var(--on-accent) 28%, transparent);
+  color: var(--on-accent);
 }
 
 /* ── 5 · The glass card ───────────────────────────────────────────────── */

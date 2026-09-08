@@ -8,12 +8,21 @@
 // approved idiom*, the master approved it under ship-then-steer, and this
 // is that mockup built. The owner strikes or keeps it on steering.
 //
-// **One solid primary per screen** (master's ruling on the mockup). On the
-// landing the hero's own control is that primary, so the header there shows
-// the sign-in link and no CTA; on every other public route the header's CTA
-// is the one primary. `showCta` is how the route says which it is — never
-// inferred from a pathname here, because a header that reads the route is a
-// second place the rule lives.
+// **The header never carries a solid primary** (issue #290; the ruling
+// after the master's screenshots of dev). Its scan control is the idiom's
+// **outline secondary** on every route, and on `/` it is absent, because the
+// hero's own field is that action.
+//
+// The first cut made it solid, and the screenshots showed the cost: on
+// `/signin` and `/scan/{domain}` the screen already carries its own solid
+// primary — Send my link, the report's Start — so the header put a second
+// one beside it and broke §9.1's one-primary rule on every public route but
+// the landing. A control that appears on every screen cannot be the rank
+// that means "the thing to do on this screen"; the screen's own action is.
+//
+// `showCta` is still the route's to say, never inferred from a pathname
+// here, because a header that reads the route is a second place the rule
+// lives.
 //
 // **The compact band is the registered `Collapse`, listing the links under
 // the header** (same ruling) — never a drawer and never a dropdown. That is
@@ -56,7 +65,7 @@ export function Header(p: { showCta: boolean }): React.JSX.Element {
 
         {p.showCta ? (
           <Link href="/" className="rk-chrome-cta">
-            <Btn label={copy("chrome.cta.scan")} variant="primary" pill />
+            <Btn label={copy("chrome.cta.scan")} variant="secondary" pill />
           </Link>
         ) : null}
       </div>
