@@ -130,6 +130,54 @@ async function wrappedValues(width: number): Promise<Wrapped[]> {
   );
 }
 
+describe("§4.1 — the report fits its cards from the medium band up (#307)", () => {
+  // Scrolling is the right answer where a card genuinely has less width
+  // than its content needs, which at 320 it does. It is the wrong answer
+  // at 1024 and 1280: a three-column table with one domain per row fits a
+  // half-width card there, and a wrap that scrolls anyway is a column
+  // clipped mid-value — `rival-one.example.n…` — with nothing on the
+  // screen saying so.
+  //
+  // Asserted over every declared scroll container on the route rather
+  // than over the two this issue fixed, so a third that starts scrolling
+  // at these widths is caught by the same row.
+  for (const width of widths().filter((w) => w >= 1024)) {
+    it(
+      `no scroll container on ${REPORT.path} scrolls at ${width}px`,
+      async () => {
+        const scrolling = await withPage(
+          width,
+          async (page) => {
+            await page.goto(url());
+            return page.evaluate(() =>
+              Array.from(document.querySelectorAll(".overflow-x-auto"))
+                // A code sample is what a scroll container is *for*: its
+                // lines are literal, a `robots.txt` directive means
+                // nothing folded, and no card width makes 941px of it fit.
+                // Exempted on the element rather than on a class, so a
+                // second code block is covered and a table that grew a
+                // `pre`-ish class is not.
+                .filter((el) => el.tagName.toLowerCase() !== "pre" && el.closest("pre") === null)
+                .filter((el) => el.scrollWidth > el.clientWidth + 1)
+                .map(
+                  (el) =>
+                    `${el.className} — ${el.scrollWidth}px of content in ${el.clientWidth}px: "${(
+                      el.textContent ?? ""
+                    )
+                      .trim()
+                      .slice(0, 40)}"`
+                )
+            );
+          },
+          headersFor(REPORT)
+        );
+        expect(scrolling).toEqual([]);
+      },
+      BROWSER_MS
+    );
+  }
+});
+
 describe(`§2.3 — no value on the presence card is broken across lines`, () => {
   it(
     "no value anywhere on the report has a break opportunity at all",
@@ -145,6 +193,12 @@ describe(`§2.3 — no value on the presence card is broken across lines`, () =>
           await page.goto(url());
           return page.evaluate(() =>
             Array.from(document.querySelectorAll(".num"))
+              // `.num-phrase` is the opted-in arm for a mono *phrase*
+              // (#307): several words that fold at their spaces, which is
+              // what §2.3's "search query" is. It still never breaks
+              // inside a word — that is `overflow-wrap`/`word-break`, not
+              // `white-space` — so the rule this row guards is intact.
+              .filter((el) => !el.classList.contains("num-phrase"))
               .filter((el) => getComputedStyle(el).whiteSpace !== "nowrap")
               .map((el) => `${el.className} "${(el.textContent ?? "").trim().slice(0, 30)}"`)
           );
