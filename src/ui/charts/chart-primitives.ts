@@ -51,6 +51,14 @@ export const CHART = {
    *  around its own text — there is no text metrics API in an SVG the
    *  server renders. */
   tipCharAdvance: 4.9,
+  /** The same advance at `labelSize`, for reserving a gutter wide enough
+   *  for the longest direct label a chart is given — the matrix's row
+   *  names are domains, and a domain is a value that is never shortened
+   *  to fit (§2.3). The ratio is `tipCharAdvance / tipTextSize`: one mono
+   *  face, one advance. It rounds **up**, because a gutter a hair too wide
+   *  costs a hair of plot and a gutter a hair too narrow puts a value
+   *  outside the viewBox. */
+  labelCharAdvance: 5.25,
 } as const;
 
 /** The non-series paint. Ink, line and surface only: no `--ok` and no

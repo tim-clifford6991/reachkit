@@ -7,8 +7,10 @@
 //
 // §4.1's own order, with the two 2026-09-03 amendments folded in:
 //   1. verdict strip — score, band, one written line. No driver bars.
-//   2. two equal cards, side by side — AI answers · Google search.
-//      No per-question volume, no market-total footnote.
+//   2. two equal cards, side by side — AI answers · Google search. Each
+//      one leads with its verdict and draws its own figure: §2.4's AI
+//      dot matrix on the left, its presence bars on the right (issue
+//      #352). No per-question volume, no market-total footnote.
 //   3. three problem cards.
 //   4. three DIY collapses.
 //   5. free page card.
@@ -141,13 +143,6 @@ export function ReportView(p: {
   };
   /** The canonical address this report lives at — REQ-001 c7's value. */
   canonicalUrl: string;
-  /** Sibling nodes' modules, absent-safe. `BUILD.md` §2.4's chart
-   *  inventory is closed and issue #11 owns it; an absent slot is an
-   *  absence, not a loading state and not an empty state. */
-  charts?: {
-    aiMatrix?: React.ReactNode;
-    presenceBars?: React.ReactNode;
-  };
 }): React.JSX.Element {
   const { report, notice, control } = p.state;
   const measuredOn = formatMeasuredOn(report.verdict.measuredAt);
@@ -217,19 +212,12 @@ export function ReportView(p: {
         {report.aiAnswers === null ? (
           <AiAnswersAbsent />
         ) : (
-          <AiAnswersCard
-            section={report.aiAnswers}
-            measuredOn={measuredOn}
-            matrix={p.charts?.aiMatrix}
-          />
+          <AiAnswersCard section={report.aiAnswers} measuredOn={measuredOn} />
         )}
         {report.presence === null ? (
           <GooglePresenceAbsent />
         ) : (
-          <GooglePresenceCard
-            section={report.presence}
-            bars={p.charts?.presenceBars}
-          />
+          <GooglePresenceCard section={report.presence} measuredOn={measuredOn} />
         )}
 
         <div className="col-span-full">

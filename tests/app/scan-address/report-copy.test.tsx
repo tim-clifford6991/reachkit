@@ -27,6 +27,16 @@ import { FIXTURE_DEGRADED_REPORT, FIXTURE_REPORT } from "@/app/(public)/scan/[do
 /** Every key this screen's own modules name. Transcribed here rather than
  *  read out of the source, so a key silently dropped from a module fails
  *  this list rather than shrinking it. */
+/**
+ *  **Five keys came off this list in #352**, deliberately, and the list is
+ *  shorter rather than the modules being wrong: the two cards' rival rows
+ *  are §2.4's own drawings now, not two hand-built listings, so
+ *  `ai-answers.matrix.column.domain` / `.cited` / `.empty` and
+ *  `presence.occupancy.column.domain` / `.count` are sentences this screen
+ *  no longer speaks. They stay declared in the registry — the owner may
+ *  still write them for a listing elsewhere, and deleting a key moves
+ *  `registry.test.ts`'s pinned totals — and they are named in that PR.
+ */
 const SCREEN_KEYS: readonly CopyKey[] = [
   // 1 · verdict strip
   "report.measured-at",
@@ -51,9 +61,6 @@ const SCREEN_KEYS: readonly CopyKey[] = [
   "ai-answers.customer-citations",
   "ai-answers.legend",
   "ai-answers.method",
-  "ai-answers.matrix.column.domain",
-  "ai-answers.matrix.column.cited",
-  "ai-answers.matrix.empty",
   "ai-answers.questions.title",
   "ai-answers.questions.show-all",
   "ai-answers.question.not-you",
@@ -75,8 +82,6 @@ const SCREEN_KEYS: readonly CopyKey[] = [
   "presence.occupancy",
   "presence.legend",
   "presence.no-rivals",
-  "presence.occupancy.column.domain",
-  "presence.occupancy.column.count",
   "presence.absent-from.title",
   "presence.absent-from.column.search",
   "presence.absent-from.column.volume",

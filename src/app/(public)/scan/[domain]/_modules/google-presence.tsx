@@ -16,81 +16,35 @@
 // `/mo` column of the absent-from table is each listed search's own
 // volume, which §4.1 states as a column of that table.
 //
-// The occupancy bars are the registered `Progress` component, not a chart
-// module: `BUILD.md` §2.4's closed inventory owns `PresenceBars` (issue
-// #11), which arrives here as a named, absent-safe `bars` slot. With the
-// slot empty the same figures are still stated in writing beside each
-// name, so nothing this card claims depends on the drawing.
+// **The occupancy is `PresenceBars`** (issue #352, the approved
+// `walk/report` drawing). §2.4's closed inventory owns this drawing, and
+// it arrived here as an absent-safe `bars` slot that nothing ever filled —
+// so the card drew the same rows by hand out of the registered `Progress`
+// instead, which carries **one** tone: every rival's bar was painted in
+// the customer's own accent, and §2.5's "rival strength is neutral gray,
+// never red — rivals are context, not alarms" held only because the third
+// colour it forbids was not the one being spent. `PresenceBars` reads its
+// colour from `SERIES_COLOR` by identity and by nothing else, so the
+// customer is `--chart-you` and every rival `--chart-rival` by
+// construction, and every bar still carries its own name and its own value
+// beside it (§2.4: "identity is never colour-alone").
+//
+// A zero is a measurement: the chart draws it as a hairline stub with the
+// `0` written beside it, never as an absent row (§6.6).
 import type React from "react";
-import { Badge, Card, Divider, Progress, Table } from "@/ui/components";
+import { Badge, Card, Divider, Table } from "@/ui/components";
+import { PresenceBars } from "@/ui/charts";
 import { CardHead } from "@/ui/idiom";
 import { copy } from "@/lib/presentation/copy";
 import type { PresenceSection } from "@/lib/scan/report";
-import { Num, ratio } from "../_address/measured";
-
-/** One direct-labelled bar: name, bar, value. The two-series colouring
- *  §2.4 fixes — `--chart-you` for the customer, `--chart-rival` for
- *  everyone else — belongs to `PresenceBars` (issue #11) and is not
- *  forced onto the registered `Progress`, which carries one tone. Until
- *  that slot is filled the identity is carried by the label, which is
- *  what §2.4 requires of it anyway. */
-function OccupancyRow(p: {
-  domain: string;
-  count: number;
-  measured: number;
-}): React.JSX.Element {
-  return (
-    // `minmax(0, …)` on the tracks that hold text is load-bearing, the same
-    // way `BUILD.md` §4.6 says it is for the calendar grid: an `auto` or
-    // `1fr` track refuses to narrow below its content, so one long domain
-    // pushes the whole document sideways at the compact band instead of
-    // wrapping inside its own column.
-    // At and above `--breakpoint-lg` the domain track is `max-content`:
-    // the card has the room there, and a capped track was clipping
-    // `rival-one.examp…` inside its own scroll wrap at 1024 and 1280
-    // (issue #307). Below it the cap and the wrap stay — that band has
-    // genuinely less width than the three columns need, and scrolling is
-    // the honest answer rather than a track that squeezes the bar to a
-    // sliver. The bar keeps a floor either way, because a bar whose whole
-    // job is a length cannot be allowed to collapse.
-    <div className="grid grid-cols-[minmax(3rem,8rem)_minmax(0,1fr)_auto] items-center gap-3 lg:grid-cols-[max-content_minmax(4rem,1fr)_auto]">
-      {/* The domain's track is capped at 8rem so one long name cannot push
-          the row's bar and ratio off the card — and a domain is a value, so
-          it is never broken mid-word to fit (`.num` in `src/ui/type.css`,
-          issue #256). Both hold at once because the cell is a declared
-          scroll container: ADR-093's "content fits its box **or the box
-          changes**", and `overflow-x-auto` is how this design system
-          changes it — the wrap every registered `Table` carries, and the
-          first row of the layout sweep's scroll-container allow-list.
-          `rival-three.example.org` needs 136px in a 128px track, which is
-          the eight pixels this reaches. */}
-      {/* `whitespace-nowrap` completes it (issue #244). `.num` bans
-          breaking *inside* a word, and a hyphen is not inside one: it is
-          a soft wrap opportunity the line-breaking algorithm is entitled
-          to take, so `rival-one.example.net` still came apart as `rival-`
-          / `one.example.net` — 168px of value on two lines in a 120px
-          box, at every width. Same defect, one boundary further out. It
-          is stated on this cell rather than on `.num` because `.num` also
-          carries mono *lines* that hold spaces — a provenance line, a
-          search phrase — and those must keep wrapping; a single-token
-          value is a property of this cell's content, and this cell is
-          already the declared scroll container that lets the box change
-          instead. Whether `.num` should ban hyphen breaks for every
-          single-token value is #256's question, not this card's. */}
-      <div className="min-w-0 overflow-x-auto whitespace-nowrap">
-        <Num>{p.domain}</Num>
-      </div>
-      <Progress value={p.count} max={p.measured} />
-      <Num>{ratio(p.count, p.measured)}</Num>
-    </div>
-  );
-}
+import { Num } from "../_address/measured";
 
 export function GooglePresenceCard(p: {
   section: PresenceSection;
-  /** Issue #11's `PresenceBars`. Absent is an absence — every value it
-   *  would draw is written beside its own name below. */
-  bars?: React.ReactNode;
+  /** The date the SERPs behind this card were read, already formatted by
+   *  the caller that owns the report's one date. The drawing puts it at
+   *  the foot of this card, where the left card puts its method line. */
+  measuredOn: string;
 }): React.JSX.Element {
   const { section } = p;
 
@@ -104,39 +58,44 @@ export function GooglePresenceCard(p: {
         />
       }
     >
-      <p>
+      {/* The card leads with its answer (§2.5), at the same `--t-h3` rung
+          its neighbour's verdict takes. */}
+      <h3>
         {copy("presence.occupancy", {
           you: String(section.you.top10Count),
           measured: String(section.measuredSearches),
         })}
-      </p>
+      </h3>
 
-      {p.bars}
-
+      {/* REQ-092: a domain with no rivals to draw says so in writing where
+          the bars would be, rather than drawing a chart of one bar and
+          calling it a comparison. The customer's own count is already the
+          line above. */}
       {section.framing === "suppressed_no_rivals" ? (
         <p>{copy("presence.no-rivals")}</p>
       ) : (
-        <div className="flex flex-col gap-2">
-          <OccupancyRow
-            domain={section.you.domain}
-            count={section.you.top10Count}
+        // A declared scroll container, for the same reason the matrix has
+        // one: the drawing fills the box it is given, and a box that
+        // cannot shrink below its content never scrolls.
+        <div className="min-w-0 overflow-x-auto">
+          <PresenceBars
+            you={{ name: section.you.domain, value: section.you.top10Count }}
+            rivals={section.rivals.map((rival) => ({
+              name: rival.domain,
+              value: rival.top10Count,
+            }))}
             measured={section.measuredSearches}
+            label={copy("presence.title")}
           />
-          {section.rivals.map((rival) => (
-            <OccupancyRow
-              key={rival.domain}
-              domain={rival.domain}
-              count={rival.top10Count}
-              measured={section.measuredSearches}
-            />
-          ))}
         </div>
       )}
       <p className="text-xs opacity-60">{copy("presence.legend")}</p>
 
       <Divider />
 
-      <h3>{copy("presence.absent-from.title")}</h3>
+      {/* The eyebrow rung, not `--t-h3`: a label for a list inside a card
+          is not a second card head (§2.3). */}
+      <h3 className="eyebrow">{copy("presence.absent-from.title")}</h3>
       {/* The three columns, sized rather than left to chance (issue #307).
           The card is half the report's width at 1024 and 1280, and three
           mono columns that could none of them fold added up to more than
@@ -179,6 +138,15 @@ export function GooglePresenceCard(p: {
         }))}
         emptyMessage={copy("presence.absent-from.empty")}
       />
+      {/* The drawing's last line on this card: when these SERPs were read.
+          The same key the verdict strip resolves it from — one fact, one
+          home — and no market-total footnote above it: the owner removed
+          that on 2026-09-03, both halves. */}
+      <p className="text-xs opacity-60">
+        <Num>
+          {copy("report.measured-at", { domain: section.you.domain, date: p.measuredOn })}
+        </Num>
+      </p>
     </Card>
   );
 }

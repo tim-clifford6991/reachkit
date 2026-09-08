@@ -58,6 +58,17 @@ function render(section: AiAnswersSection): string {
   );
 }
 
+/** The two counts the card writes beside a rival's row, read the same way
+ *  the card reads them, so this file asserts the drawing carries the
+ *  figure rather than transcribing a second copy of it. */
+function citedCount(cells: readonly AnswerCell[]): number {
+  return cells.filter((c) => c.kind === "answered" && c.citedDomains.length > 0).length;
+}
+
+function answeredCount(cells: readonly AnswerCell[]): number {
+  return cells.filter((c) => c.kind === "answered").length;
+}
+
 /** Counts non-overlapping occurrences — every needle here is a distinct key. */
 function count(haystack: string, needle: string): number {
   return haystack.split(needle).length - 1;
@@ -111,21 +122,29 @@ describe("§6.2 — the paid battery is drawn as three answer columns", () => {
     expect(html).not.toContain("ai-answers.engine.not-measured");
   });
 
-  it("adds no chart: the columns are §2.2's table, and §2.4's inventory stays closed at five", () => {
-    expect(html).not.toContain("<svg");
+  it("adds no chart of its own: the columns are §2.2's table, and §2.4's inventory stays closed at five", () => {
+    // The card draws exactly one chart — §4.1's own dot matrix, which is
+    // one of the five (issue #352) — and the answer columns are not a
+    // sixth: every engine state below is a cell of a `<table>`.
+    expect(count(html, "<svg")).toBe(1);
+    expect(html).toContain("<table");
+    expect(html.indexOf("<table")).toBeGreaterThan(html.indexOf("</svg>"));
   });
 });
 
-describe("§6.2 — the free report keeps one column, and never asked is never a miss", () => {
+describe("§6.2 — the free report has no second reading to draw, and never asked is never a miss", () => {
   const html = render(FREE_SECTION);
 
-  it("draws a column only for the engine something actually asked", () => {
-    expect(headers(html).slice(0, 2)).toEqual([
-      "ai-answers.engine.column.question",
-      "ai-answers.engine.ai-overview",
-    ]);
-    expect(headers(html)).not.toContain("ai-answers.engine.ai-mode");
-    expect(headers(html)).not.toContain("ai-answers.engine.chatgpt");
+  it("draws no engine table at all: the AI-Overview reading is already the matrix and the questions list", () => {
+    // #165 draws the battery engines "as a second reading **beside**" the
+    // AI-Overview one. The free path asks no battery engine (§6.2), so the
+    // only column there could be is the AI-Overview column — twelve rows
+    // restating, badge for badge, the twelve questions below the divider,
+    // and the bulk of why this card stood three times its neighbour's
+    // height (issue #352). Where a battery *did* run, the table above
+    // proves the columns are drawn.
+    expect(headers(html)).toEqual([]);
+    expect(html).not.toContain("<table");
   });
 
   it("names each engine it never asked once, beside the written line that says so", () => {
@@ -145,6 +164,14 @@ describe("§6.2 — the free report keeps one column, and never asked is never a
     // twenty-four places the customer lost. The two lines are the whole
     // statement.
     expect(count(html, "ai-answers.engine.not-measured")).toBe(2);
+  });
+
+  it("still draws §4.1's matrix over the reading it does have", () => {
+    // The AI-Overview reading has not gone anywhere — it is the chart, the
+    // three counts and the questions list. What went is a table that said
+    // it a fourth time.
+    expect(count(html, "<svg")).toBe(1);
+    expect(html).toContain(FREE_SECTION.ownDomain);
   });
 });
 
@@ -184,7 +211,15 @@ describe("what the columns deliberately do not move", () => {
   });
 
   it("leaves the rival rows as the AI-Overview reading", () => {
-    expect(html).toContain("ai-answers.matrix.column.domain");
-    for (const rival of FREE_SECTION.rivals) expect(html).toContain(rival.domain);
+    // They are §4.1's matrix rows now rather than a two-column table of
+    // ratios (issue #352), and they are still that reading: one row per
+    // rival, direct-labelled with its own name and its own count, drawn
+    // from `section.rivals` — which the battery never touches.
+    const matrix = html.slice(html.indexOf("<svg"), html.indexOf("</svg>"));
+    for (const rival of FREE_SECTION.rivals) {
+      expect(matrix).toContain(rival.domain);
+      expect(matrix).toContain(`${citedCount(rival.cells)}/${answeredCount(rival.cells)}`);
+    }
+    expect(matrix).toContain(FREE_SECTION.ownDomain);
   });
 });

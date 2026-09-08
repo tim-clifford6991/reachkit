@@ -318,21 +318,15 @@ describe("REQ-091/092 — cold start: a domain that ranks for nothing still read
 
   it("the AI matrix keeps the customer's own row and drops every rival row", () => {
     // The customer's row is not a rival row and never goes away — "you
-    // were named in none of them" is the card's answer, and a card with
-    // no rows at all would be that answer withheld. `Table`'s required
-    // `emptyMessage` therefore has no path on this card today, which is
-    // what a required prop with no default is for: it is supplied, and it
-    // is not reachable by accident.
+    // were named in none of them" is the card's answer, and a drawing with
+    // no rows at all would be that answer withheld.
     expect(html).toContain("ai-answers.customer-citations(0|9)");
-    const table = html.slice(
-      html.indexOf("ai-answers.matrix.column.domain"),
-      html.indexOf("ai-answers.legend")
-    );
-    expect(table).toContain("example.com");
-    // Scoped to the table: the answers themselves still named rivals, and
-    // the 12-questions list below says so. What a cold start empties is
-    // the *derived rival set*, which is the matrix's rows.
-    expect(table).not.toContain("rival-one.example.net");
+    const matrix = html.slice(html.indexOf("<svg"), html.indexOf("</svg>"));
+    expect(matrix).toContain("example.com");
+    // Scoped to the drawing: the answers themselves still named rivals,
+    // and the 12-questions list below says so. What a cold start empties
+    // is the *derived rival set*, which is the matrix's rows.
+    expect(matrix).not.toContain("rival-one.example.net");
   });
 
   it("names the empty absent-from table in one written line", () => {

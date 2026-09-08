@@ -5,14 +5,22 @@
 // the answer, not the metric; carries its source as one quiet chip; states
 // its method in one line.
 //
-// **Three things this card deliberately does not hold.** No per-question
-// `{vol}/mo` — the owner removed it on 2026-09-03 and `StoredQuestion` has
-// no volume member to render. No dot matrix of its own: the AI
-// dot-matrix is `BUILD.md` §2.4's closed chart inventory, owned by issue
-// #11, so it arrives here as a named, absent-safe `matrix` slot. The rows
-// are direct-labelled either way — name and value in writing — so the card
-// says everything it claims with the slot empty (§2.4: "identity is never
-// colour-alone").
+// **The rival rows are the dot matrix** (issue #352, the approved
+// `walk/report` drawing). §4.1 fixes this card's second element as "a dot
+// matrix over those m — rivals' cited rows filled grey, the customer's
+// row empty red-ringed, `n/{m}` per row", and `AiDotMatrixChart` is
+// §2.4's registered drawing of exactly that. It arrived as an absent-safe
+// `matrix` slot while issue #11 owned the inventory and nothing ever
+// filled the slot, so the card drew the same rows twice over as a
+// two-column table of ratios instead — nine rows of writing where the
+// drawing belongs, and the reason the left card stood three times the
+// right card's height. The chart direct-labels every row with its own
+// name and its own count (§2.4: "identity is never colour-alone"), and
+// takes its counts **already written** from this card, so the drawing and
+// the card's own figures cannot disagree.
+//
+// **No per-question `{vol}/mo`** — the owner removed it on 2026-09-03 and
+// `StoredQuestion` has no volume member to render.
 //
 // **§6.2's three answer columns are drawn here** (issue #157, design sheet
 // linked on the issue). §6.2 rules the paid battery "rendered as three
@@ -46,6 +54,7 @@
 // came from (REQ-093 c3).
 import type React from "react";
 import { Badge, Card, Divider, Table } from "@/ui/components";
+import { AiDotMatrixChart, type AiDotMatrixCellState, type AiDotMatrixRow } from "@/ui/charts";
 import { CardHead } from "@/ui/idiom";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { renderQuestion } from "@/lib/presentation/generated";
@@ -134,14 +143,57 @@ function AnswerState(p: { cell: AnswerCell }): React.JSX.Element {
   );
 }
 
-/** §6.2's three answer columns. Renders nothing where no engine was asked
- *  at all — the card's own denominator lines already state that, and an
- *  empty table under four headers would say it a second time and worse. */
+/** The engine whose reading this card already carries everywhere else —
+ *  the free report's one measured engine (ADR-094), the row's own `cell`,
+ *  and the matrix's cells. Named once so the two places that ask "is there
+ *  a second reading here?" cannot drift apart. */
+const AI_OVERVIEW: BatteryEngine = "ai_overview";
+
+/** An engine nothing asked, in one line: its name, and the written line
+ *  that says so. Neutral, never `bad` — §2.5 keeps red for the customer's
+ *  own problem being shown to them, and a question nobody asked is not
+ *  one. */
+function EngineNotAsked(p: { engine: BatteryEngine }): React.JSX.Element {
+  return (
+    <p className="flex flex-wrap items-center gap-2 text-xs">
+      <Badge tone="neutral">{copy(ENGINE_LABEL[p.engine])}</Badge>
+      <span className="opacity-60">{copy("ai-answers.engine.not-measured")}</span>
+    </p>
+  );
+}
+
+/** §6.2's three answer columns — the **second** reading, beside the
+ *  AI-Overview one the counts, the matrix and the questions list below all
+ *  carry (DECISIONS 2026-09-07, #165).
+ *
+ *  The table is drawn where a battery engine was actually asked, and the
+ *  engines nobody asked are named in one line each beneath it — never a
+ *  column of misses. Where the battery never ran, there is no second
+ *  reading to put beside the first: the AI-Overview column alone would be
+ *  twelve rows restating, badge for badge, the twelve rows of the
+ *  questions list under the divider, and on the free report that table was
+ *  most of why this card stood three times its neighbour's height (issue
+ *  #352). The two engines it never asked keep their written lines, which
+ *  is the whole of what the free report has to say here.
+ *
+ *  It is a fact of the **data**, never of the tier: `report-view.tsx` has
+ *  no payment, session or tier parameter and gains none (REQ-004 c5). A
+ *  free scan that had reached a battery engine would draw the table. */
 function AnswerColumns(p: { rows: AnswerRows }): React.JSX.Element | null {
   const engines = engineOrder(p.rows);
   const drawn = engines.filter((engine) => wasAsked(p.rows, engine));
   const neverAsked = engines.filter((engine) => !wasAsked(p.rows, engine));
-  if (drawn.length === 0) return null;
+  const secondReading = drawn.some((engine) => engine !== AI_OVERVIEW);
+
+  if (!secondReading) {
+    return (
+      <>
+        {neverAsked.map((engine) => (
+          <EngineNotAsked key={engine} engine={engine} />
+        ))}
+      </>
+    );
+  }
 
   return (
     <>
@@ -164,13 +216,57 @@ function AnswerColumns(p: { rows: AnswerRows }): React.JSX.Element | null {
         emptyMessage={copy("ai-answers.engine.not-measured")}
       />
       {neverAsked.map((engine) => (
-        <p key={engine} className="flex flex-wrap items-center gap-2 text-xs">
-          <Badge tone="neutral">{copy(ENGINE_LABEL[engine])}</Badge>
-          <span className="opacity-60">{copy("ai-answers.engine.not-measured")}</span>
-        </p>
+        <EngineNotAsked key={engine} engine={engine} />
       ))}
     </>
   );
+}
+
+/** One cell of the customer's own row. Three states and only three
+ *  (§2.4's contract): a question with no AI answer at all is **muted** and
+ *  never a miss (§6.2), an answer that named them is cited, and an answer
+ *  that did not is the not-cited cell the chart draws red-ringed on this
+ *  row alone (§4.1, §2.5). */
+function ownCellState(cell: AnswerCell): AiDotMatrixCellState {
+  if (cell.kind !== "answered") return "muted";
+  return cell.namesCustomer ? "cited" : "not-cited";
+}
+
+/** One cell of a rival's row, read the same way `citedCount` counts it —
+ *  the cells the chart fills and the count written beside them are the
+ *  same fact, so the drawing cannot disagree with the figure. A rival's
+ *  row is never red: §2.5 keeps red for the customer's own problem being
+ *  shown to them, and the chart has no prop a rival cell could reach it
+ *  with. */
+function rivalCellState(cell: AnswerCell): AiDotMatrixCellState {
+  if (cell.kind !== "answered") return "muted";
+  return cell.citedDomains.length > 0 ? "cited" : "not-cited";
+}
+
+/** §4.1's matrix rows: the rivals as context, the customer last and in
+ *  their own colour — the order the approved drawing puts them in.
+ *
+ *  A cold start has no derived rival set, and the customer's row is not a
+ *  rival row: it stays, because "you were named in none of them" is this
+ *  card's answer and a matrix with no rows at all would be that answer
+ *  withheld (REQ-091/092). Every `count` is written here and read by the
+ *  chart, which performs no arithmetic of its own. */
+function matrixRows(section: AiAnswersSection): readonly AiDotMatrixRow[] {
+  const rivals: AiDotMatrixRow[] = section.rivals.map((rival) => ({
+    name: rival.domain,
+    identity: "rival",
+    cells: rival.cells.map(rivalCellState),
+    count: ratio(citedCount(rival.cells), answeredCount(rival.cells)),
+  }));
+  return [
+    ...rivals,
+    {
+      name: section.ownDomain,
+      identity: "you",
+      cells: section.rows.map((row) => ownCellState(row.cell)),
+      count: ratio(section.customerCitations, section.answeredSearches),
+    },
+  ];
 }
 
 function QuestionRow(p: { row: { question: StoredQuestion; cell: AnswerCell } }): React.JSX.Element {
@@ -210,10 +306,6 @@ function QuestionRow(p: { row: { question: StoredQuestion; cell: AnswerCell } })
 
 export function AiAnswersCard(p: {
   section: AiAnswersSection;
-  /** Issue #11's `AiDotMatrixChart`. Absent is an absence, not a loading
-   *  state and not an empty state — the rows below still carry every
-   *  figure the chart would draw. */
-  matrix?: React.ReactNode;
   /** The date the SERPs behind this card were read, already formatted by
    *  the caller that owns the report's one date. */
   measuredOn: string;
@@ -231,44 +323,53 @@ export function AiAnswersCard(p: {
         />
       }
     >
-      <p>
+      {/* The card leads with its answer, not with its metric (§2.5), and
+          the drawing's verdict is a heading — `--t-h3`, the card-head rung
+          of the ruled scale (design/tokens.md §4). */}
+      <h3>
         {copy("ai-answers.denominator", {
           answered: String(section.answeredSearches),
           measured: String(section.measuredSearches),
         })}
-      </p>
+      </h3>
+
+      {/* A chart is drawn at `width: 100%` of the box it is given, and the
+          box is a declared scroll container so a matrix wider than the
+          card scrolls rather than shrinking its labels (ADR-093: content
+          fits its box or the box changes). */}
+      <div className="min-w-0 overflow-x-auto">
+        <AiDotMatrixChart
+          rows={matrixRows(section)}
+          // Each column is identified by its question's own **number**,
+          // never its wording: the wording is `GeneratedText` and carries
+          // its label with it (REQ-093 c3), and a number is a data
+          // identity that sets in the mono numeral face like every other
+          // numeral in the product (§2.3).
+          questions={section.rows.map((row) => String(row.question.n))}
+          label={copy("ai-answers.title")}
+        />
+      </div>
+      {/* The written count line the drawing hangs under — the archive's
+          own `countLine`, and the figure the matrix's own row counts add
+          up to. */}
       <p>
         {copy("ai-answers.customer-citations", {
           cited: String(section.customerCitations),
           answered: String(section.answeredSearches),
         })}
       </p>
-
-      {p.matrix}
-      <AnswerColumns rows={section.rows} />
-
-      <Table
-        columns={[
-          { key: "domain", header: copy("ai-answers.matrix.column.domain") },
-          { key: "cited", header: copy("ai-answers.matrix.column.cited") },
-        ]}
-        rows={[
-          {
-            domain: <Num>{section.ownDomain}</Num>,
-            cited: <Num>{ratio(section.customerCitations, section.answeredSearches)}</Num>,
-          },
-          ...section.rivals.map((rival) => ({
-            domain: <Num>{rival.domain}</Num>,
-            cited: <Num>{ratio(citedCount(rival.cells), answeredCount(rival.cells))}</Num>,
-          })),
-        ]}
-        emptyMessage={copy("ai-answers.matrix.empty")}
-      />
       <p className="text-xs opacity-60">{copy("ai-answers.legend")}</p>
+
+      <AnswerColumns rows={section.rows} />
 
       <Divider />
 
-      <h3>{copy("ai-answers.questions.title")}</h3>
+      {/* A section label inside a card is the eyebrow rung (§2.3's
+          "uppercase 10.5–11px eyebrows for section labels"), not a second
+          card head: `--t-h3` here put the list's label at the same weight
+          as the card's own verdict. It stays a heading, so the card keeps
+          its outline for a reader who navigates by one. */}
+      <h3 className="eyebrow">{copy("ai-answers.questions.title")}</h3>
       <ul className="list-none p-0">
         {shown.map((row) => (
           <QuestionRow key={row.question.n} row={row} />
