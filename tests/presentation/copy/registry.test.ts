@@ -223,8 +223,8 @@ describe("REQ-093 c5 — the registry renders with every model unavailable", () 
     // 2026-09-08, issue #352: the report screen's S2 and S3, under the same
     // ruling — thirty-five of its keys stop waiting and nine the set draws
     // arrive already written, S3's elapsed time and its waiting line among
-    // them. 202 + 44 = 246.
-    expect(ruled.length).toBe(246);
+    // them, and the offer's own cancel line. 202 + 45 = 247.
+    expect(ruled.length).toBe(247);
 
     // Only the ruled sentences carry their slots' `{name}` placeholders —
     // a `TODO(copy)` marker is one literal with no placeholder in it, so
@@ -1077,11 +1077,13 @@ describe("owner-owed and empty agree both ways", () => {
     // S3's elapsed time and waiting line.
     //
     // Owner-owed does not move — every bracketed string in the set is still
-    // the owner's. 127 owner-owed, 293 − 35 = 258 awaiting copy,
-    // 202 + 44 = 246 ruled, 622 + 9 = 631 total.
+    // the owner's, and the thirty-sixth key it fills is the offer's cancel
+    // line, which the set draws under Start on both surfaces that carry the
+    // card. 127 owner-owed, 293 − 36 = 257 awaiting copy,
+    // 202 + 45 = 247 ruled, 622 + 9 = 631 total.
     expect(OWNER_OWED.length).toBe(127);
-    expect(AWAITING_COPY.length).toBe(258);
-    expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(246);
+    expect(AWAITING_COPY.length).toBe(257);
+    expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(247);
     expect(Object.keys(COPY).length).toBe(631);
 
     // The two representations never overlap: an empty value and the marker
@@ -1169,19 +1171,22 @@ describe("the thirteen keys the owner ruled 2026-09-04 (WO-041 `## Log`, this da
     );
   });
 
-  it("the two keys this ruling did not cover still carry no owner sentence", () => {
+  it("the one key this ruling did not cover still carries no owner sentence", () => {
     // `price.vat_included` is unchanged: no surface renders it, so the
     // empty-value throw still guards it.
     expect(COPY["price.vat_included"]).toBe("");
     expect(() => copy("price.vat_included")).toThrow(/owner-owed/);
 
-    // `offer.cancel_self_service` moved to the `TODO(copy)` marker on
-    // 2026-09-05 (issue #13): `BUILD.md` §4.1 module 6 requires the
-    // pricing card to carry it, and an empty value would throw the whole
-    // report screen away rather than show the owner an unwritten line. It
-    // is still unwritten, and this asserts exactly that — the marker, not
-    // a sentence somebody supplied on the owner's behalf.
-    expect(COPY["offer.cancel_self_service"]).toBe(TODO_COPY_MARKER);
-    expect(AWAITING_COPY).toContain("offer.cancel_self_service");
+    // `offer.cancel_self_service` was the other one. It moved to the
+    // `TODO(copy)` marker on 2026-09-05 (issue #13) — §4.1 module 6
+    // requires the pricing card to carry it, and an empty value would have
+    // thrown the whole report screen away — and it is **written now**: the
+    // owner's approved screen set draws it under the Start control on both
+    // surfaces that carry the offer, unbracketed, which ruling 11a of
+    // 2026-09-08 makes approved copy as written (issue #352). Not a
+    // sentence supplied on the owner's behalf: their own.
+    expect(COPY["offer.cancel_self_service"]).toBe("Cancel in one click.");
+    expect(AWAITING_COPY).not.toContain("offer.cancel_self_service");
+    expect(OWNER_OWED).not.toContain("offer.cancel_self_service");
   });
 });
