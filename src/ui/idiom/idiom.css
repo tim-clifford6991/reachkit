@@ -837,13 +837,19 @@
 .rk-srcchip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
   font-family: var(--font-mono);
   font-size: var(--t-explain);
   color: var(--ink-3);
   background: var(--sunk);
   border-radius: var(--r-pill);
-  padding: 4px 10px;
+  /* On the ruled ladder, not the set's drawn 4/10: ruling 10a puts every
+   * spacing literal on a rung, and the ladder's own rule refuses a value
+   * between two (the `--s-6` note above says the same of 30). `--s-1` is
+   * the drawn 4 exactly; the drawn 10 rounds up to `--s-3`'s 12, which is
+   * a wider pill by 2px on each side and still the chip the set draws.
+   * No `gap`: this chip carries text and no glyph, so a gap between its
+   * one child and nothing is inert. */
+  padding: var(--s-1) var(--s-3);
   white-space: nowrap;
 }
 
