@@ -37,6 +37,7 @@ import type React from "react";
 import { useActionState, useState } from "react";
 import { Btn } from "@/ui/components/Btn";
 import { Card } from "@/ui/components/Card";
+import { CardHead } from "@/ui/idiom";
 import { Input } from "@/ui/components/Input";
 import { copy } from "@/lib/presentation/copy";
 import { writtenLine } from "../../_shell/written";
@@ -59,7 +60,7 @@ export function AccountPanel(p: { account: SettingsModel["account"] }): React.JS
   const pending = p.account.pending;
 
   return (
-    <Card state="default" title={<h2>{copy("settings.account.title")}</h2>}>
+    <Card state="default" title={<CardHead eyebrow={copy("settings.account.title")} />}>
       <div className="flex min-w-0 flex-col gap-3">
         <div className="flex min-w-0 flex-col gap-1" data-testid="setting-name">
           <span className="eyebrow opacity-60">{copy("settings.account.name")}</span>

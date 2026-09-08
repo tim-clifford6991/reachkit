@@ -48,6 +48,7 @@ import type React from "react";
 import { useState } from "react";
 import { Btn } from "@/ui/components/Btn";
 import { Card } from "@/ui/components/Card";
+import { CardHead } from "@/ui/idiom";
 import { Input } from "@/ui/components/Input";
 import { copy } from "@/lib/presentation/copy";
 import { BATTERY } from "@/lib/config/constants";
@@ -104,7 +105,7 @@ export function CompetitorsPanel(p: {
   const refusalLine = refusal === null ? null : writtenLine(refusal);
 
   return (
-    <Card state="default" title={<h2>{copy("settings.competitors.title")}</h2>}>
+    <Card state="default" title={<CardHead eyebrow={copy("settings.competitors.title")} />}>
       <div className="flex min-w-0 flex-col gap-3" data-testid="setting-competitors">
         {p.competitors.length > 0 ? null : (
           // REQ-071 c16. No slot: there is no date and no change to name,

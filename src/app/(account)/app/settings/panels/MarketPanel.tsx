@@ -36,6 +36,7 @@ import type React from "react";
 import { useState } from "react";
 import { Btn } from "@/ui/components/Btn";
 import { Card } from "@/ui/components/Card";
+import { CardHead } from "@/ui/idiom";
 import { Input } from "@/ui/components/Input";
 import { copy } from "@/lib/presentation/copy";
 import { formatDate } from "../../_shell/format";
@@ -191,7 +192,7 @@ export function MarketPanel(p: {
   }
 
   return (
-    <Card state="default" title={<h2>{copy("settings.market.title")}</h2>}>
+    <Card state="default" title={<CardHead eyebrow={copy("settings.market.title")} />}>
       <div className="flex min-w-0 flex-col gap-3">
         <div className="flex min-w-0 flex-col gap-1" data-testid="setting-category">
           <span className="eyebrow opacity-60">{copy("settings.market.category")}</span>

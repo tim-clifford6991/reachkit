@@ -36,6 +36,7 @@
 import type React from "react";
 import { Btn } from "@/ui/components/Btn";
 import { Card } from "@/ui/components/Card";
+import { CardHead } from "@/ui/idiom";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { writtenLine } from "../../_shell/written";
 import { useAction } from "./useAction";
@@ -68,7 +69,7 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
   const price = PRICE_KEYS.map((key) => writtenLine(key)).filter((line) => line !== null);
 
   return (
-    <Card state="default" title={<h2>{copy("settings.billing.title")}</h2>}>
+    <Card state="default" title={<CardHead eyebrow={copy("settings.billing.title")} />}>
       <div className="flex min-w-0 flex-col gap-3">
         <div className="flex min-w-0 flex-col gap-1">
           <span className="eyebrow opacity-60">{copy("settings.billing.plan")}</span>

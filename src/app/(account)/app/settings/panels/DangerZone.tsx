@@ -40,6 +40,7 @@ import type React from "react";
 import { useState } from "react";
 import { Btn } from "@/ui/components/Btn";
 import { Card } from "@/ui/components/Card";
+import { CardHead } from "@/ui/idiom";
 import { Input } from "@/ui/components/Input";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { writtenLine } from "../../_shell/written";
@@ -75,7 +76,7 @@ export function DangerZone(): React.JSX.Element {
   const exportFirst = writtenLine("danger.export-first");
 
   return (
-    <Card state="default" title={<h2>{copy("danger.zone.title")}</h2>}>
+    <Card state="default" title={<CardHead eyebrow={copy("danger.zone.title")} />}>
       {exportFirst === null ? null : <p className="text-xs opacity-60 wrap-anywhere">{exportFirst}</p>}
 
       <div className="flex min-w-0 flex-col gap-3">

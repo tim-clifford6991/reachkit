@@ -56,7 +56,7 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.cancel-edit": ["TODO(copy)", { slots: {}, fixedBy: "REQ-071 c1" }],
 
   // ── Your market ────────────────────────────────────────────────────────
-  "settings.market.title": ["Your market", { slots: {}, fixedBy: "BUILD §4.7" }],
+  "settings.market.title": ["Your site & market", { slots: {}, fixedBy: "BUILD §4.7" }],
   "settings.market.category": ["market category", { slots: {}, fixedBy: "REQ-070 c1" }],
   "settings.market.domain": ["domain", { slots: {}, fixedBy: "BUILD §10 (`sites.domain`), §4.4" }],
   // §4.7 verbatim, including its lower-case opening.
@@ -141,7 +141,7 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.publishing.veto.more": ["+", { slots: {}, fixedBy: 'BUILD §4.7 ("stepper")' }],
   "settings.publishing.publish-time": ["publish time", { slots: {}, fixedBy: "BUILD §4.7" }],
   "settings.publishing.time-zone": ["time zone", { slots: {}, fixedBy: "REQ-070 c1" }],
-  "settings.publishing.enabled": ["whether pages publish at all", { slots: {}, fixedBy: "REQ-070 c1" }],
+  "settings.publishing.enabled": ["Publishing", { slots: {}, fixedBy: "REQ-070 c1" }],
   "settings.publishing.destinations": ["destinations", { slots: {}, fixedBy: "BUILD §4.7" }],
   "settings.publishing.reconnect": ["Reconnect", { slots: {}, fixedBy: "BUILD §4.7" }],
   // Issue #240 — the control on a destination that has never held a
@@ -230,9 +230,9 @@ export const SETTINGS_COPY = Object.freeze({
   // stoppable kind arrives as a missing-key compile error rather than as a
   // mail a customer cannot stop.
   "settings.notifications.title": ["Notifications", { slots: {}, fixedBy: "BUILD §4.7" }],
-  "settings.notifications.draft-ready": ["draft-ready", { slots: {}, fixedBy: "BUILD §12" }],
-  "settings.notifications.published": ["published", { slots: {}, fixedBy: "BUILD §12" }],
-  "settings.notifications.weekly": ["weekly", { slots: {}, fixedBy: "BUILD §12" }],
+  "settings.notifications.draft-ready": ["Daily draft-ready mail", { slots: {}, fixedBy: "BUILD §12" }],
+  "settings.notifications.published": ["Published-page mail", { slots: {}, fixedBy: "BUILD §12" }],
+  "settings.notifications.weekly": ["Monday movement mail", { slots: {}, fixedBy: "BUILD §12" }],
 
   // ── Billing ────────────────────────────────────────────────────────────
   // Every word here names a value or a destination; not one of them is a
@@ -342,8 +342,53 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.account.cancel-change": ["TODO(copy)", { slots: {}, fixedBy: "REQ-077 c4" }],
 
   // ── Your content ───────────────────────────────────────────────────────
+  // 2026-09-08, issue #374 — the approved screen set's S18 gives the two
+  // content constraints a card of their own, "How your pages sound", and
+  // ruling 11a makes its unbracketed strings approved copy. Filled from the
+  // set, not written here (constitution rule 1.2 — copying a recorded owner
+  // ruling is not inventing one).
+  //
+  // `placeholder` is the exception and stays owed: the set brackets it
+  // ("[voice description — the customer writes this; one field, nothing is
+  // learned about them]"), which is the set's own way of saying the words
+  // are the owner's. It takes the marker rather than the empty value on the
+  // #93 ruling — the field renders on a screen the customer reaches, and a
+  // placeholder that throws would take the card down.
+  "settings.voice.title": ["How your pages sound", { slots: {}, fixedBy: "REQ-055" }],
+  "settings.voice.never-claim": ["Never claim", { slots: {}, fixedBy: "REQ-053" }],
+  "settings.voice.add-claim": [
+    "add a claim your pages must never make",
+    { slots: {}, fixedBy: "REQ-053" },
+  ],
+  "settings.voice.add": ["Add", { slots: {}, fixedBy: "REQ-053" }],
+  // REQ-053's own promise, in the set's words: the list is a filter and not
+  // a preference, and a draft that matches one is held and named back.
+  "settings.voice.filter-note": [
+    "A hard filter on every page. A draft that matches an entry is held and returned to you naming it.",
+    { slots: {}, fixedBy: "REQ-053" },
+  ],
+  "settings.voice.placeholder": ["TODO(copy)", { slots: {}, fixedBy: "REQ-055" }],
+
+  // REQ-075's own promise, and the reason the three switches above it are
+  // safe to offer: the mail a customer cannot lose is named, so turning all
+  // three off is a decision rather than a risk. Approved (11a).
+  "settings.notifications.always-on": [
+    "Sign-in and account mail cannot be switched off.",
+    { slots: {}, fixedBy: "REQ-075" },
+  ],
+
+  // REQ-073 c2's one line on what the mode pair does — both modes in one
+  // sentence, which is what makes it a choice rather than two labels.
+  // Approved (11a); the three `pair.*` keys beside it stay as they are,
+  // because they answer a different question (what happens to THIS page,
+  // stated where a page is).
+  "settings.publishing.pair.note": [
+    "Autopilot: a page publishes when its veto window ends unless you stop it. Copilot: nothing publishes without your approval.",
+    { slots: {}, fixedBy: "REQ-073 c2" },
+  ],
+
   "settings.content.title": ["Your content", { slots: {}, fixedBy: "BUILD §4.7" }],
-  "settings.content.pages": ["pages", { slots: {}, fixedBy: 'BUILD §4.7 ("pages count")' }],
+  "settings.content.pages": ["Pages", { slots: {}, fixedBy: 'BUILD §4.7 ("pages count")' }],
   "settings.content.export": ["Export everything", { slots: {}, fixedBy: "BUILD §4.7" }],
   // REQ-078 c5 (issue #52): "Given an export cannot be produced, when the
   // customer requests one, then they are told so in one written line and are

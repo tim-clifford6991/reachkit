@@ -4,6 +4,15 @@
 // **Publishing** … **Notifications**. Right: **Billing** … **Account** …
 // **Your content** … **Danger zone**."
 //
+// Since #374 the left column has a fifth card between Publishing and
+// Notifications — "How your pages sound", the approved S18's own — and the
+// two settings on it came off "Your content" on the right. §4.7 names eight
+// cards and the approved set draws nine; UI-SPEC's own precedence applies
+// ("where this document and BUILD.md §4 differ, this document wins until
+// the §4 amendment lands"). No setting is added or dropped by the move:
+// `SETTABLE` is unchanged, and `screen.test.tsx` reads every rendered
+// `setting-<key>` off the document and asserts the set against it.
+//
 // This file is the composition and nothing else. It makes one read
 // (`readSettings`, request-cached), hands each card the slice it states, and
 // holds no engine logic — ARCHITECTURE rule 1: "Route handlers and server
@@ -49,6 +58,7 @@ import { readSettings } from "./provider";
 import { MarketPanel } from "./panels/MarketPanel";
 import { CompetitorsPanel } from "./panels/CompetitorsPanel";
 import { PublishingPanel } from "./panels/PublishingPanel";
+import { VoicePanel } from "./panels/VoicePanel";
 import { NotificationsPanel } from "./panels/NotificationsPanel";
 import { BillingPanel } from "./panels/BillingPanel";
 import { AccountPanel } from "./panels/AccountPanel";
@@ -73,6 +83,7 @@ export default async function SettingsPage(): Promise<React.JSX.Element> {
           />
           <CompetitorsPanel competitors={settings.competitors} />
           <PublishingPanel settings={settings} />
+          <VoicePanel settings={settings} />
           <NotificationsPanel settings={settings} />
         </div>
 

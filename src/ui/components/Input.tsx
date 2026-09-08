@@ -40,12 +40,6 @@ type InputBase = {
    *  and requiring one there would have made a caller mint a sentence to
    *  satisfy a type. */
   placeholder?: string;
-  /** The native input type, and the only two this product has a use for
-   *  (#240). `password` is what keeps a WordPress application password off
-   *  the screen while it is typed — a credential rendered in clear text is
-   *  a credential in a screenshot. Text by default, exactly as before this
-   *  prop existed. */
-  type?: "text" | "password";
   value?: string;
   onChange?: (value: string) => void;
   disabled?: boolean;
@@ -72,10 +66,40 @@ type InputBase = {
    *  sweep's containment check, on a page that is otherwise clean. An
    *  accessible name carried by the attribute has no box at all. */
   labelHidden?: boolean;
+  /**
+   * Draw the field as a **multi-line** control (issue #374).
+   *
+   * §2.2's set of fifteen is closed and holds no multi-line control at
+   * all, so this is the same widening `Toggle` took for `labelHidden` and
+   * `Progress` for `onAccent` — a prop on a registered component rather
+   * than a sixteenth one, which is the only way a `<textarea>` can carry
+   * daisyUI's own class without a screen writing that class by hand.
+   *
+   * The approved S18 spends it once: "How your pages sound" is **one
+   * field** in which the customer writes how their pages should sound
+   * (REQ-055), and a single-line input for a paragraph is a box that
+   * cannot hold its content — which is the law, not a preference.
+   *
+   * `type` has no meaning here and the union below refuses the pair: a
+   * multi-line password field is not a thing, and a caller that asks for
+   * one should not compile.
+   */
 };
 
-type InputValid = InputBase & { invalid?: false };
-type InputInvalid = InputBase & {
+/** The two shapes a field takes, and they are exclusive by construction. */
+type SingleLine = {
+  multiline?: false;
+  /** The native input type, and the only two this product has a use for
+   *  (#240). `password` is what keeps a WordPress application password off
+   *  the screen while it is typed — a credential rendered in clear text is
+   *  a credential in a screenshot. Text by default. */
+  type?: "text" | "password";
+};
+type MultiLine = { multiline: true; type?: never };
+
+type InputValid = InputBase & (SingleLine | MultiLine) & { invalid?: false };
+
+type InputInvalid = InputBase & (SingleLine | MultiLine) & {
   invalid: true;
   /** Required whenever `invalid` is true — the one written line. */
   invalidMessage: string;
@@ -117,20 +141,49 @@ export function Input(p: InputProps): React.JSX.Element {
           <span>{p.label}</span>
         </label>
       )}
-      <input
-        id={id}
-        aria-label={p.labelHidden === true ? p.label : undefined}
-        type={p.type ?? "text"}
-        className={["input", p.invalid ? "input-error" : ""]
-          .filter(Boolean)
-          .join(" ")}
-        placeholder={placeholder}
-        value={p.value}
-        name={p.name}
-        disabled={p.disabled}
-        aria-invalid={p.invalid === true}
-        onChange={(e) => p.onChange?.(e.target.value)}
-      />
+      {p.multiline === true ? (
+        // A `<textarea>` wearing `input`'s own class — which is exactly
+        // what the approved set draws (`textarea.input`, S18). daisyUI's
+        // `textarea` is a SIXTEENTH component and §2.2's set is closed, so
+        // reaching for it would fail `component-registry.test.ts` rightly;
+        // `.input` is a class rather than an element selector and dresses
+        // this control in the same edge, radius and focus ring every other
+        // field on the screen wears.
+        //
+        // `rows` and `h-auto` are what make it multi-line: daisyUI's
+        // `.input` fixes a single line's height, and the element's own
+        // native attribute is a better answer than a second height value
+        // nobody named.
+        <textarea
+          id={id}
+          rows={4}
+          aria-label={p.labelHidden === true ? p.label : undefined}
+          className={["input", "h-auto", p.invalid ? "input-error" : ""]
+            .filter(Boolean)
+            .join(" ")}
+          placeholder={placeholder}
+          value={p.value}
+          name={p.name}
+          disabled={p.disabled}
+          aria-invalid={p.invalid === true}
+          onChange={(e) => p.onChange?.(e.target.value)}
+        />
+      ) : (
+        <input
+          id={id}
+          aria-label={p.labelHidden === true ? p.label : undefined}
+          type={p.type ?? "text"}
+          className={["input", p.invalid ? "input-error" : ""]
+            .filter(Boolean)
+            .join(" ")}
+          placeholder={placeholder}
+          value={p.value}
+          name={p.name}
+          disabled={p.disabled}
+          aria-invalid={p.invalid === true}
+          onChange={(e) => p.onChange?.(e.target.value)}
+        />
+      )}
       {p.invalid ? <p className="text-error">{p.invalidMessage}</p> : null}
     </div>
   );

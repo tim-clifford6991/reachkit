@@ -38,6 +38,16 @@ export const ATTRIBUTE_ALLOWLIST: readonly AllowlistedAttribute[] = Object.freez
   },
   {
     kind: "exact",
+    name: "testId",
+    reason:
+      "the same 'test ids' category, spelled as a component prop (issue " +
+      "#374). A row helper that takes the hook and writes `data-testid` " +
+      "itself is one place the attribute is spelled instead of five, and " +
+      "the value is the same test hook either way — never rendered to a " +
+      "reader.",
+  },
+  {
+    kind: "exact",
     name: "data-theme",
     reason: "a theme token name (e.g. 'light'), read by CSS, not composed as a sentence.",
   },
