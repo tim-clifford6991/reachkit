@@ -195,6 +195,31 @@
   color: var(--ink);
 }
 
+/* **Selected** — the outline rank on the accent tint (issue #288).
+ *
+ * `/setup` drew a chosen rival, a chosen publishing mode and a chosen
+ * destination as filled accent buttons, so a founder with five rivals met
+ * six solid primaries and could not tell which one submitted the form.
+ * tokens.md §9.1 gives a screen one solid rank, and BUILD §2.5 rules that
+ * the accent is not a state colour — and "selected" is exactly a state.
+ *
+ * The three tokens below are the ones the idiom's own card-head chip
+ * already spends, and none of them is a fill: `--accent-bg` for the ground,
+ * `--accent-line` for the edge, `--accent` for the label. No colour is
+ * minted and no rank is added.
+ *
+ * **Keyed on `aria-pressed`, deliberately.** The state was carried by the
+ * fill alone, which a screen reader cannot hear — the same defect the
+ * design system already refuses for `Badge` ("a tone alone may never carry
+ * meaning"). Styling the attribute rather than a class means the tint and
+ * the accessibility state are the same fact: a chip cannot look selected
+ * without being selected. */
+.btn.rk-btn-outline[aria-pressed="true"] {
+  background: var(--accent-bg);
+  border-color: var(--accent-line);
+  color: var(--accent);
+}
+
 /* The one tone a rank may carry (issue #271). tokens.md §9.1 spends warn
  * where the customer is being asked to act — `ActionPanel` spends it on a
  * ground — and a veto standing beside an approve is that case: opposite
