@@ -189,18 +189,44 @@ export function DraftScreen(p: {
 
       {/* c4: approve, edit and veto, all without leaving the view. Which of
           them is offered is projected from §9's transition table, so this
-          screen and the calendar's day panel cannot disagree for one state. */}
+          screen and the calendar's day panel cannot disagree for one state.
+
+          The three ranks are the idiom's, since issue #271: Approve is the
+          screen's one solid primary, Veto the outline secondary in warn,
+          Edit the quiet tertiary. Before this Approve and Veto were both
+          filled accent buttons — two primaries of equal weight for opposite
+          consequences, one of which destroys the draft, on a screen
+          tokens.md §9.1 gives one solid primary. Rank is read off the
+          action itself — its command, not its position in the row — so the
+          row cannot promote whatever happens to come first into the solid
+          rank. Today only `in_review` offers a control at all, and it
+          offers all three. */}
       <div className="flex flex-wrap gap-2" data-testid="draft-actions">
         {draftActionsFor(view.state).map((action) => (
           <span key={action.key} data-testid={`draft-action-${action.key}`}>
-            <Btn
-              label={copy(action.key)}
-              variant={action.kind === "edit" ? "ghost" : "primary"}
-              size="sm"
-              onClick={
-                action.kind === "edit" ? () => setEditing(true) : () => run(action.command, view.draftId)
-              }
-            />
+            {action.kind === "edit" ? (
+              <Btn
+                label={copy(action.key)}
+                variant="tertiary"
+                size="sm"
+                onClick={() => setEditing(true)}
+              />
+            ) : action.command === "veto" ? (
+              <Btn
+                label={copy(action.key)}
+                variant="secondary"
+                tone="warn"
+                size="sm"
+                onClick={() => run(action.command, view.draftId)}
+              />
+            ) : (
+              <Btn
+                label={copy(action.key)}
+                variant="primary"
+                size="sm"
+                onClick={() => run(action.command, view.draftId)}
+              />
+            )}
           </span>
         ))}
       </div>

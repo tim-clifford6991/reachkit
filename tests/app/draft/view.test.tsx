@@ -222,6 +222,33 @@ describe("REQ-045 c4 — told what happens if nothing is done, and able to appro
     expect(root.querySelectorAll('[data-testid="draft-actions"] button').length).toBe(3);
   });
 
+  // Issue #271, from the account audit: Approve and Veto were both filled
+  // accent buttons — two calls to action of equal weight for opposite
+  // consequences, one of which destroys the draft — on a screen tokens.md
+  // §9.1 gives one solid primary. The classes are the ranks: `btn-primary`
+  // is the solid fill, `rk-btn-outline` the outline secondary (carrying the
+  // one tone a rank may take), `rk-btn-tertiary` the quiet arm.
+  it("§9.1 — Approve is the one solid primary, Veto the warn outline, Edit the quiet arm", () => {
+    const root = markup();
+    const button = (key: string): Element | null =>
+      root.querySelector(`[data-testid="draft-action-${key}"] button`);
+
+    const approve = button("draft.action.approve");
+    expect(approve?.className).toContain("btn-primary");
+
+    const veto = button("draft.action.veto");
+    expect(veto?.className).toContain("rk-btn-outline");
+    expect(veto?.className).not.toContain("btn-primary");
+    expect(veto?.getAttribute("data-tone")).toBe("warn");
+
+    const edit = button("draft.action.edit");
+    expect(edit?.className).toContain("rk-btn-tertiary");
+    expect(edit?.className).not.toContain("btn-primary");
+
+    // One solid fill on the whole screen, not merely in this row.
+    expect(root.querySelectorAll(".btn-primary")).toHaveLength(1);
+  });
+
   it("the info box states what happens if you do nothing, with the time under autopilot", () => {
     const box = markup().querySelector('[data-testid="draft-do-nothing"]');
     expect(box?.textContent).toContain(copy("draft.do-nothing.title"));
