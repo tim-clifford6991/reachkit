@@ -900,3 +900,12 @@
   text-decoration: none;
   font-weight: 700;
 }
+
+/* The glass card's label row: a label on the left and, where one exists,
+ * the inverse pill on the right (issue #298). */
+.rk-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+}
