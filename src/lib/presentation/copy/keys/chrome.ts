@@ -28,7 +28,12 @@ import type { CopyPartition } from "../registry.ts";
 
 export const CHROME_COPY = Object.freeze({
   /* ── The header ──────────────────────────────────────────────────── */
-  "chrome.wordmark": ["TODO(copy)", { slots: {}, fixedBy: "issue 266" }],
+  // Approved as written (ruling 11a): the screen set draws "ReachKit" as
+  // the wordmark in the sidebar's brand row (S12) and in the public header
+  // (S1). `mail.shell.wordmark` keeps its own copy — a mail cannot read a
+  // stylesheet, so the two are different surfaces spending the same word,
+  // which is why this key exists rather than one being imported.
+  "chrome.wordmark": ["ReachKit", { slots: {}, fixedBy: "UI-SPEC S12 · S1" }],
   "chrome.nav.pricing": ["TODO(copy)", { slots: {}, fixedBy: "issue 266" }],
   "chrome.nav.signin": ["TODO(copy)", { slots: {}, fixedBy: "issue 266" }],
   /** The header's one pill CTA. **Not rendered on the landing**: the

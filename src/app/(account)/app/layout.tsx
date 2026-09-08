@@ -27,6 +27,7 @@
 // on one breakpoint only.
 import type React from "react";
 import { Surface } from "@/ui/layout";
+import { copy } from "@/lib/presentation/copy";
 import { DomainBlock } from "./_shell/DomainBlock";
 import { PublishingCard } from "./_shell/PublishingCard";
 import { SidebarNav } from "./_shell/SidebarNav";
@@ -64,8 +65,23 @@ export default async function AppLayout({
             {/* The column stretches so its rule runs the full height; the
                 inner block is what sticks. See `shell.css`. */}
             <div className="rk-sidebar-inner">
+              {/* The brand row the set draws at the top of the sidebar
+                  (S12, UI-SPEC §2). The same wordmark and chip markup the
+                  public header spends, from the same key — one word, one
+                  home — because the customer crosses between the two and a
+                  second spelling of the product's name would be visible. */}
+              <p className="rk-wordmark" data-testid="shell-brand">
+                <span className="rk-wordmark-chip" aria-hidden="true" />
+                <span>{copy("chrome.wordmark")}</span>
+              </p>
               <DomainBlock shell={shell} />
-              <SidebarNav waiting={shell.waiting} />
+              {/* The set labels the three destinations. The eyebrow role
+                  supplies the uppercase and the tracking; the string is
+                  "Workspace". */}
+              <div className="flex min-w-0 flex-col gap-1">
+                <span className="eyebrow">{copy("shell.workspace")}</span>
+                <SidebarNav waiting={shell.waiting} />
+              </div>
               <PublishingCard shell={shell} />
             </div>
           </aside>

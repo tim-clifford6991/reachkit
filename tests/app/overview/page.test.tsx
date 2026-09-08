@@ -85,7 +85,9 @@ describe("REQ-041 c1 — Overview is the screen a signed-in customer lands on", 
     expect(await markup()).not.toContain("data-surface");
   });
 
-  it("renders all five of §4.5's modules", async () => {
+  it("renders all six of UI-SPEC S12's cards", async () => {
+    // §4.5 wrote five modules and put the alerts under "This week"; the
+    // approved set draws six, splitting "Needs you" out (issue #353).
     const html = await markup();
     for (const region of [
       "overview-head",
@@ -93,17 +95,21 @@ describe("REQ-041 c1 — Overview is the screen a signed-in customer lands on", 
       "overview-tiles",
       "overview-rivals",
       "overview-week",
+      "overview-needs-you",
     ]) {
       expect(html, `missing ${region}`).toContain(`data-testid="${region}"`);
     }
   });
 
-  it("renders three tiles and no fourth", async () => {
+  it("renders three tiles and no fourth — the set's three (UI-SPEC S12)", async () => {
     const html = await markup();
     expect(html.split('class="stats"').length - 1).toBe(3);
-    expect(html).toContain('data-testid="overview-tile-searches"');
+    // The score leads since #353 (ruling 6a) and the searches reading has
+    // no tile at all — it is the growth card's, which draws the series.
+    expect(html).toContain('data-testid="overview-tile-score"');
     expect(html).toContain('data-testid="overview-tile-ai-answers"');
     expect(html).toContain('data-testid="overview-tile-pages"');
+    expect(html).not.toContain('data-testid="overview-tile-searches"');
   });
 });
 

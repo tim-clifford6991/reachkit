@@ -78,7 +78,10 @@ const DAYS: SevenDays = [
 ];
 
 const STORIES: Record<string, () => React.JSX.Element> = {
-  GrowthLine: () => <GrowthLine weeks={WEEKS} goal={{ value: 400, name: "goal 400" }} label="growth" />,
+  // No goal marker since #353: the approved set draws the goal as the
+  // card's right-hand footnote, never as a rule across the plot, and the
+  // prop is gone with the drawing (UI-SPEC §2's GrowthLine contract).
+  GrowthLine: () => <GrowthLine weeks={WEEKS} label="growth" />,
   PresenceBars: () => (
     <PresenceBars you={PRESENCE.you} rivals={PRESENCE.rivals} measured={PRESENCE.measured} label="presence" />
   ),

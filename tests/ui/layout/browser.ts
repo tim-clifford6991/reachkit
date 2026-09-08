@@ -29,10 +29,12 @@ import { enumerateRoutes } from "./routes";
 import {
   applyMigrations,
   LIVE_ACCOUNT,
+  WEEK_ZERO_ACCOUNT,
   seedAccount,
   seededSessionCookie,
   seedLiveAccount,
   seedSetupAccount,
+  seedWeekZeroAccount,
   SETUP_ACCOUNT,
   waitForSchemaCache,
 } from "./seed";
@@ -74,6 +76,12 @@ interface BrowserState {
    *  request answers with at all. `seed.ts`'s `SETUP_ACCOUNT` says why it
    *  cannot be either of the two above. */
   setupAccountCookie: string;
+  /** The same, for the customer in their first week (#353) — the deep pass
+   *  has read their market once and no weekly pass has run, so `/app`
+   *  answers with UI-SPEC S13's arm. A fourth account rather than a state
+   *  toggled on one of the others: the arm is a property of what has been
+   *  measured, and an account cannot have both a weekly week and none. */
+  weekZeroAccountCookie: string;
 }
 
 /** ADR-093 decision 6, amended 2026-09-03: "the viewport carries a height …
@@ -180,9 +188,11 @@ export default async function setup(): Promise<() => Promise<void>> {
   seedAccount();
   seedLiveAccount();
   seedSetupAccount();
+  seedWeekZeroAccount();
   const accountCookie = await seededSessionCookie();
   const liveAccountCookie = await seededSessionCookie(LIVE_ACCOUNT);
   const setupAccountCookie = await seededSessionCookie(SETUP_ACCOUNT);
+  const weekZeroAccountCookie = await seededSessionCookie(WEEK_ZERO_ACCOUNT);
 
   const routes = enumerateRoutes(path.join(ROOT, "src/app"), { accountCookie });
   let baseURL: string | null = null;
@@ -196,7 +206,13 @@ export default async function setup(): Promise<() => Promise<void>> {
     await waitForServer(baseURL, 30_000);
   }
 
-  const state: BrowserState = { baseURL, accountCookie, liveAccountCookie, setupAccountCookie };
+  const state: BrowserState = {
+    baseURL,
+    accountCookie,
+    liveAccountCookie,
+    setupAccountCookie,
+    weekZeroAccountCookie,
+  };
   const stateDir = mkdtempSync(path.join(os.tmpdir(), STATE_DIR_PREFIX));
   const stateFile = path.join(stateDir, "browser-state.json");
   writeFileSync(stateFile, JSON.stringify(state), "utf8");
@@ -260,6 +276,14 @@ export function getLiveAccountCookie(): string {
  *  ten minutes into the run. */
 export function getSetupAccountCookie(): string {
   return readState().setupAccountCookie;
+}
+
+/** The seeded session for the customer in their first week (#353). Signed
+ *  in as this account, `/app` is UI-SPEC S13: one point on the chart from
+ *  the deep pass, three tiles with no readings yet, and the rivals card
+ *  stating when sizing arrives. */
+export function getWeekZeroAccountCookie(): string {
+  return readState().weekZeroAccountCookie;
 }
 
 /** Launches its own Chromium (never a shared connection — see this file's

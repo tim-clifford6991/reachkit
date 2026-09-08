@@ -343,6 +343,47 @@ describe("REQ-040 c7 — a never-measured domain states no number", () => {
       "example.com"
     );
   });
+
+  it("the autopilot card states what the mode is doing before the first pass (UI-SPEC S13)", () => {
+    // "First page after the deep pass" — the set's own sentence, in place
+    // of the mode's ordinary state. The arm is the same `WeekCount` the
+    // domain block above reads, so the two lines in this column cannot
+    // disagree about whether a week has been measured.
+    const root = render(<PublishingCard shell={unmeasured} />);
+    expect(root.querySelector("[data-testid='shell-publishing-state']")?.textContent).toBe(
+      "shell.publishing.state.week-zero"
+    );
+  });
+
+  it("and once a week is counted it states the mode's own state instead", () => {
+    const root = render(<PublishingCard shell={SCHEDULED} />);
+    expect(root.querySelector("[data-testid='shell-publishing-state']")?.textContent).toBe(
+      "shell.publishing.state.autopilot"
+    );
+  });
+
+  it("the calendar count is the count, in week 0 as in any week (REQ-040 c2)", () => {
+    // **No week-0 branch in the nav, deliberately.** UI-SPEC S13 draws the
+    // sidebar with no count beside Calendar, and #353's Done-when repeats
+    // that — but the set's own S13 body draws the first page sitting in
+    // "Needs you", and `waiting` is §9's `in_review` and `needs_attention`
+    // drafts ("how many pages are waiting on this customer right now").
+    // A page in review is a page waiting, so a screen that showed it in one
+    // card and denied it in the nav would state two different facts.
+    //
+    // c2 is unambiguous and is the law: "the Calendar destination shows how
+    // many are waiting; when none are, it shows no count." So the count is
+    // suppressed at zero and nowhere else, and the set's S13 sidebar is a
+    // drawing to reconcile — flagged to the owner rather than implemented
+    // as a branch that hides a real number.
+    expect(
+      render(<SidebarNav waiting={0} />).querySelectorAll("[data-testid='shell-calendar-count']")
+    ).toHaveLength(0);
+    expect(
+      render(<SidebarNav waiting={1} />).querySelector("[data-testid='shell-calendar-count']")
+        ?.textContent
+    ).toBe("1");
+  });
 });
 
 // ── the frame itself ────────────────────────────────────────────────────

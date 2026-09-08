@@ -69,6 +69,10 @@ vi.mock("@/lib/scan/weekly", () => ({
 
 vi.mock("@/lib/opportunities", () => ({
   supplyDepth: async () => ({ unused: 0, exhaustedSince: null }),
+  // REQ-063's stored standings, which the pages tile's "already ranking"
+  // badge counts (#353). None here: this file is about a site with nothing
+  // measured, and the badge does not render.
+  readWeek: async () => [],
 }));
 
 const { readDraftRow } = await import("@/app/(account)/app/draft/[draftId]/store");

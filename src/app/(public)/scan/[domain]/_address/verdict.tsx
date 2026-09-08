@@ -16,10 +16,9 @@
 // not re-implemented here.
 import type React from "react";
 import { Badge, Card } from "@/ui/components";
-import type { Tone } from "@/ui/types";
+import { BAND_TONE } from "@/ui/bands";
 import { copy } from "@/lib/presentation/copy";
 import { LIMITING_LINES, SCORE_BANDS } from "@/lib/presentation/bands";
-import type { BandHandle } from "@/lib/measure/bands";
 import type { Verdict } from "@/lib/measure/verdict";
 import type { ScoreFactorName } from "@/lib/measure/score";
 import type { CopyKey } from "@/lib/presentation/copy";
@@ -34,16 +33,6 @@ const FACTOR_NAMES: Readonly<Record<ScoreFactorName, CopyKey>> = Object.freeze({
   foundations: "verdict.factor.foundations",
   answerability: "verdict.factor.answerability",
   presence: "verdict.factor.presence",
-});
-
-/** The band is a written word first; the tone only agrees with it. Red is
- *  the customer's own problem being shown to them (`BUILD.md` §2.5), which
- *  "Invisible" is. */
-const BAND_TONE: Readonly<Record<BandHandle, Tone>> = Object.freeze({
-  invisible: "bad",
-  "hard-to-find": "warn",
-  findable: "ok",
-  dominant: "ok",
 });
 
 /** REQ-004 c3: one line naming every factor that has no value, and for

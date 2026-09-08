@@ -19,7 +19,7 @@
 import type { CopyKey } from "@/lib/presentation/copy";
 import type { WeeklyPoint } from "./growth";
 
-export type HeadDirection = "rising" | "flat" | "falling" | "no_data";
+export type HeadDirection = "rising" | "flat" | "falling" | "no_data" | "week_zero";
 
 export const OVERVIEW_HEAD: Readonly<Record<HeadDirection, CopyKey>> = Object.freeze({
   rising: "overview.head.rising",
@@ -29,6 +29,13 @@ export const OVERVIEW_HEAD: Readonly<Record<HeadDirection, CopyKey>> = Object.fr
   // content of its own: with nothing measured there is no direction, and
   // this is the one head there has ever been for that state.
   no_data: "overview.head",
+  // UI-SPEC S13. Not a direction either — one reading is not a direction —
+  // but a different state from `no_data`: the deep pass *has* measured, and
+  // the first page it produced is the thing to say. `headDirection` cannot
+  // choose it, because the fact that separates the two is whether the first
+  // weekly pass is still due, which is not in the points; `assembleOverview`
+  // selects it (see `weekZeroOf`).
+  week_zero: "overview.head.week-zero",
 });
 
 /**

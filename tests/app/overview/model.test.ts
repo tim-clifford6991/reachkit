@@ -27,6 +27,10 @@ const facts = (over: Partial<OverviewFacts> = {}): OverviewFacts => ({
   // No answer has changed: the ordinary frame (issue #213).
   changes: [],
   pagesPublished: measured(11, AT(17)),
+  // UI-SPEC S12's score tile: 62 in "Hard to find", eight points up.
+  score: measured({ score: 62, band: "hard-to-find" as const }, AT(17)),
+  scorePrevious: measured({ score: 54, band: "hard-to-find" as const }, AT(17)),
+  pagesRanking: measured(6, AT(17)),
   rivals: { own: measuredZero(0, AT(17)), rivals: [] },
   supply: { exhausted: false, short: false, firstArrivalShortfall: false },
   waiting: [],
@@ -197,5 +201,76 @@ describe("the assembly is pure, and reads nothing", () => {
 
   it("carries no supply statement where the product has nothing to say", () => {
     expect(assembleOverview(facts()).supply).toBeUndefined();
+  });
+});
+
+describe("UI-SPEC S13 — the week-0 arm (REQ-040 c7)", () => {
+  /** The state the set draws: the deep pass has taken one reading, no
+   *  weekly week has been measured, and the first is still due. */
+  const weekZeroFacts = (over: Partial<OverviewFacts> = {}): OverviewFacts =>
+    facts({
+      points: [],
+      aiPresence: [],
+      score: unmeasured<{ score: number; band: "hard-to-find" }>("not_attempted", TODAY),
+      pagesPublished: measuredZero(0, TODAY),
+      pagesRanking: unmeasured<number>("not_attempted", TODAY),
+      deepPass: { value: measured(12, AT(31)), on: AT(31) },
+      ...over,
+    });
+
+  it("the chart is the deep pass's one point, and not a weekly series of one", () => {
+    const { growth } = assembleOverview(weekZeroFacts());
+    expect(growth.kind).toBe("week-zero");
+    if (growth.kind !== "week-zero") throw new Error("expected the week-zero arm");
+    expect(growth.value).toBe(12);
+    expect(growth.on).toEqual(AT(31));
+  });
+
+  it("the head is S13's own line with the neutral week badge, never a direction", () => {
+    // One reading is not a direction. The ordinary arm's badge is a claim
+    // about every measured week and has no business over a single point.
+    const { head } = assembleOverview(weekZeroFacts());
+    expect(head.direction).toBe("week_zero");
+    expect(head.key).toBe(OVERVIEW_HEAD.week_zero);
+    expect(head.badgeKey).toBe("overview.head.badge.week-zero");
+  });
+
+  it("the arm carries the same first-due date the shell's domain block states", () => {
+    const firstDueOn = new Date(Date.UTC(2026, 8, 7));
+    const model = assembleOverview(weekZeroFacts({ firstDueOn }));
+    expect(model.weekZero).toEqual({ firstDueOn });
+  });
+
+  it("the deep reading does not become a weekly measurement", () => {
+    // It is not in the week count, it makes no delta, and it is not a
+    // presence reading — `store.ts`'s "a free or deep scan is not a
+    // measured week", kept true by giving the reading its own arm.
+    const model = assembleOverview(weekZeroFacts());
+    expect(model.head.weeksMeasured).toBe(0);
+    expect(model.searches.headline.delta).toBeUndefined();
+    expect(model.aiAnswers.headline.value.kind).toBe("unmeasured");
+    expect(model.score.band).toBeNull();
+  });
+
+  it("with no deep reading either there is no chart and no week-0 arm", () => {
+    const model = assembleOverview(weekZeroFacts({ deepPass: undefined }));
+    expect(model.growth.kind).toBe("none");
+    expect(model.weekZero).toBeNull();
+    expect(model.head.direction).toBe("no_data");
+    expect(model.head.badgeKey).toBeUndefined();
+  });
+
+  it("a deep reading the pass could not take is not a point", () => {
+    const model = assembleOverview(
+      weekZeroFacts({ deepPass: { value: unmeasured<number>("undeterminable", AT(31)), on: AT(31) } })
+    );
+    expect(model.growth.kind).toBe("none");
+    expect(model.weekZero).toBeNull();
+  });
+
+  it("once a weekly week is measured the arm is gone, whatever the deep pass read", () => {
+    const model = assembleOverview(weekZeroFacts({ points: [week(31, 41)], aiPresence: [true] }));
+    expect(model.growth.kind).toBe("series");
+    expect(model.weekZero).toBeNull();
   });
 });
