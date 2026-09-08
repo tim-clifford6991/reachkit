@@ -16,6 +16,20 @@
 // `BAND_MIN`'s three; the boundary-minus-one widths the property sweep uses
 // are deliberately **not** here (see the cost note below).
 //
+// **And every account screen is photographed through its own door**
+// (issue #272). The enumeration carries a cookie that names no account, so
+// until now every `-app-*` and `-setup*` baseline was the sign-in prompt and
+// the live pass was the only signed-in capture in the suite — a visual suite
+// whose account screens were all one picture of the same door. There are now
+// four sets, and each is one door:
+//
+//   * signed out — every route, the prompt included, one capture each;
+//   * `reserved-*` — the four `/app` addresses drawn from their fixtures;
+//   * `unfinished-*` — §4.3's two setup screens, signed in as the founder
+//     who has paid and has not finished setup, which is the only state
+//     those screens are reachable in (`seed.ts`'s `SETUP_ACCOUNT`);
+//   * `live-*` — the same four `/app` addresses drawn from the database.
+//
 // **The theme is emulated, not stamped.** `page.emulateMedia` sets
 // `prefers-color-scheme`, which is the un-stamped state most viewers are
 // actually in — the product's own three-state theming makes that the
@@ -49,7 +63,7 @@ import pixelmatch from "pixelmatch";
 import { PNG } from "pngjs";
 import type { Page } from "playwright";
 import { BAND_MIN } from "@/ui/layout/bands";
-import { getBaseURL, getLiveAccountCookie, withPage } from "./browser";
+import { getAccountCookie, getBaseURL, getLiveAccountCookie, getSetupAccountCookie, withPage } from "./browser";
 import {
   enumerateRoutes,
   headersFor,
@@ -119,8 +133,49 @@ const PER_SHOT_BROWSER_MS = 90_000;
  */
 const NAVIGATION_MS = 45_000;
 
-/** The reserved-account and public routes — `layout.test.ts`'s own set. */
+/**
+ * Every route, signed **out** — one capture each.
+ *
+ * The cookie these carry is `routes.ts`'s `ACCOUNT_SESSION_COOKIE`, which
+ * names no account: it gets a request past `src/middleware.ts` and then
+ * fails the `users` check every `(account)` screen makes, so an `(account)`
+ * address here is photographed as the sign-in prompt. That is a real arm and
+ * it keeps its picture — what #272 found is that it was the **only** arm any
+ * of these addresses had.
+ */
 const FIXTURE_ROUTES = enumerateRoutes(APP_ROOT);
+
+/**
+ * The four §4.4–§4.7 addresses signed in as the **reserved** account
+ * (issue #272).
+ *
+ * This is the gap the account audit named: every `-app-*` baseline was the
+ * sign-in prompt, because this set passed no `accountCookie` and the live
+ * pass was the only signed-in capture in the suite. The reserved account is
+ * where each `/app` screen draws its fixture — the densest content each can
+ * hold, with no provider making a live read on the render path — so these are
+ * the pictures that change when a component moves and the live ones are the
+ * pictures that change when a *read* does.
+ */
+const RESERVED_ROUTES = enumerateRoutes(APP_ROOT, {
+  accountCookie: getAccountCookie(),
+}).filter((route) => route.path === "/app" || route.path.startsWith("/app/"));
+
+/**
+ * §4.3's two screens, signed in as the founder who is still in setup
+ * (issue #272).
+ *
+ * **Not the reserved account, and not the live one**, though the issue asks
+ * for both: `seed.ts`'s `SETUP_ACCOUNT` states the reason in full. Setup is
+ * a screen a founder passes through once, and both of the other accounts
+ * have already passed through it — REQ-025 c4 sends them from `/setup` to
+ * `/app`, so their capture would be a picture of the overview under a setup
+ * name. One account is in the state these screens exist in, and one capture
+ * each is what that yields.
+ */
+const SETUP_ROUTES = enumerateRoutes(APP_ROOT, {
+  accountCookie: getSetupAccountCookie(),
+}).filter((route) => route.path === "/setup" || route.path.startsWith("/setup/"));
 
 /** The four §4.4–§4.7 addresses again, signed in as the live account.
  *  Enumerated and filtered exactly as `live-account.test.ts` does it, so
@@ -137,8 +192,13 @@ interface Shot {
   readonly name: string;
 }
 
+/** The signed-out arm keeps the bare name it has always had; every
+ *  signed-in capture is prefixed with the account it is signed in as, so a
+ *  reviewer reads which door a picture came through off its filename. */
 const SHOTS: readonly Shot[] = [
   ...FIXTURE_ROUTES.map((route) => ({ route, name: slug(route.path) })),
+  ...RESERVED_ROUTES.map((route) => ({ route, name: `reserved${slug(route.path)}` })),
+  ...SETUP_ROUTES.map((route) => ({ route, name: `unfinished${slug(route.path)}` })),
   ...LIVE_ROUTES.map((route) => ({ route, name: `live${slug(route.path)}` })),
 ];
 
@@ -246,6 +306,29 @@ describe(`visual baselines — ${SHOTS.length} surface(s) × ${BANDS.length} ban
     // the failure mode #247 exists to close, one level up.
     expect(FIXTURE_ROUTES.length).toBeGreaterThan(0);
     expect(SHOTS.map((shot) => shot.name)).toEqual([...new Set(SHOTS.map((shot) => shot.name))]);
+  });
+
+  it("the reserved account's four addresses are photographed signed in, not only signed out", () => {
+    // The finding itself, as an assertion: before #272 this set did not
+    // exist and every `-app-*` picture was the sign-in prompt.
+    expect(RESERVED_ROUTES.map((route) => route.path).sort()).toEqual([
+      "/app",
+      "/app/calendar",
+      `/app/draft/${SEGMENT_FIXTURES["[draftId]"]}`,
+      "/app/settings",
+    ]);
+    expect(RESERVED_ROUTES.every((route) => route.cookie === getAccountCookie())).toBe(true);
+  });
+
+  it("both setup screens are photographed signed in, as the founder who is still in setup", () => {
+    expect(SETUP_ROUTES.map((route) => route.path).sort()).toEqual(["/setup", "/setup/waiting"]);
+    expect(SETUP_ROUTES.every((route) => route.cookie === getSetupAccountCookie())).toBe(true);
+    // The three signed-in sets are three different accounts, which is the
+    // only reason there are three: a picture signed in as an account that is
+    // redirected off the address is a picture of somewhere else.
+    expect(new Set([getAccountCookie(), getLiveAccountCookie(), getSetupAccountCookie()]).size).toBe(
+      3
+    );
   });
 
   it("the live account's four addresses are photographed as well as the fixture ones", () => {

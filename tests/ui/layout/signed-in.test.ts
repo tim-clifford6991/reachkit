@@ -18,7 +18,7 @@
 // redirect is `src/middleware.ts`'s and the verification is a server
 // component's, and neither is observable from a React render.
 import { describe, expect, it } from "vitest";
-import { getAccountCookie, getBaseURL, withPage } from "./browser";
+import { getAccountCookie, getBaseURL, getSetupAccountCookie, withPage } from "./browser";
 import { SIGNIN_PATH } from "@/lib/account/identity";
 import { widths } from "./widths";
 
@@ -69,6 +69,29 @@ describe("§4.3 — signed in with the seeded session, the /app addresses answer
     const draft = routes.find((route) => route.path.startsWith("/app/draft/"));
     expect(draft, "no /app/draft route was enumerated").toBeDefined();
     expect(await landsAt(draft?.path ?? "", getAccountCookie())).toBe(draft?.path);
+  }, 60_000);
+});
+
+describe("§4.3 — signed in as a founder still in setup, the setup screens answer themselves", () => {
+  // The premise the `unfinished-*` baselines rest on (issue #272). Both
+  // setup screens are one redirect away from being pictures of `/app`:
+  // REQ-025 c4 sends a founder who has finished setup from `/setup` to the
+  // app, and `waiting/release.ts` releases one whose deadline has passed off
+  // `/setup/waiting`. A baseline is a picture and a picture cannot say which
+  // address it came from, so if either redirect started applying to this
+  // account the sweep would keep passing against re-photographed pictures of
+  // the overview. This fails first, and says which screen moved.
+  it.each(["/setup", "/setup/waiting"])("%s is itself, not the app", async (path) => {
+    expect(await landsAt(path, getSetupAccountCookie())).toBe(path);
+  }, 60_000);
+
+  it("and an account that has finished setup is taken off /setup, not shown it", async () => {
+    // The other half of the same rule, asserted so that "use a third
+    // account" reads as the finding it is rather than as a preference. Where
+    // it lands is REQ-025 c4's business and not this file's — what matters
+    // here is that it is not the screen, so a baseline taken as this account
+    // would not be a picture of setup.
+    expect(await landsAt("/setup", getAccountCookie())).not.toBe("/setup");
   }, 60_000);
 });
 
