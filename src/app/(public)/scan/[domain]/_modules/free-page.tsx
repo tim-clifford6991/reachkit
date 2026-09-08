@@ -10,6 +10,15 @@
 // page the text belongs to and returns the label and the text together, so
 // the card cannot show the title and drop the "proposed" label
 // (REQ-093 c2).
+//
+// **The control is the outline secondary in accent, not the solid primary**
+// (owner's ruling on issue #291). The report offers two things to do — take
+// the free page, and start the subscription — and tokens.md §9.1 gives a
+// screen one solid accent fill. The subscription is the one that keeps it
+// (`pricing.tsx`), because it is what the screen is for; this card's control
+// keeps the accent in its edge and ink, so it still reads as a call to
+// action and not as an aside. It is the same `--accent`, spent as a border
+// rather than a ground.
 import type React from "react";
 import { Badge, Btn, Card } from "@/ui/components";
 import { copy } from "@/lib/presentation/copy";
@@ -78,7 +87,7 @@ export function FreePageCard(p: { section: FreePageSection }): React.JSX.Element
           <Num>{section.format}</Num>
         </Row>
       </dl>
-      <Btn label={copy("free-page.submit")} variant="primary" block />
+      <Btn label={copy("free-page.submit")} variant="secondary" tone="accent" block />
     </Card>
   );
 }

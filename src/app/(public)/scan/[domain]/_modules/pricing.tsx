@@ -16,6 +16,14 @@
 // issue #33). Until that lands it is a control with no destination rather
 // than an invented one.
 //
+// **It is the report's one solid primary** (owner's ruling on issue #291).
+// The screen had two filled accent buttons — this one and the free-page
+// card's submit — and §9.1 gives a screen one. Start keeps the fill because
+// it is what the screen is for; the free-page control takes the outline
+// rank in accent and says so in its own header. Nothing changes here: the
+// ruling is recorded on the control it kept, so the next reader of this
+// file does not re-open it.
+//
 // 2026-09-05, issue #19: `startAction` is how the *other* surface that
 // carries this offer — `/pricing`, the scanless one — gives that control
 // its destination. REQ-021 criterion 4 says that surface states the terms

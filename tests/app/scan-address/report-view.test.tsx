@@ -244,6 +244,41 @@ describe("BUILD §4.1 — the six modules, in order", () => {
   });
 });
 
+// tokens.md §9.1's ranks on the one public screen that has two calls to
+// action (issue #291). The report offers the free page and the
+// subscription; the idiom gives a screen one solid accent fill, and the
+// owner ruled Start keeps it. The classes are the ranks — `btn-primary` is
+// the fill, `rk-btn-outline` the outline — and the free-page control's tone
+// is what keeps it reading as a call to action rather than an aside.
+describe("§9.1 — one solid primary on the report, and it is Start", () => {
+  const html = render(FIXTURE_REPORT);
+
+  /** The opening tag of the `<button>` whose label is `key`. The markup is
+   *  server-rendered and the label is the last thing in the element, so the
+   *  tag is what precedes it — enough to read the classes and the tone, and
+   *  no DOM needed in a file that asserts strings. */
+  function buttonTag(key: string): string {
+    const match = new RegExp(`<button([^>]*)>${key}</button>`).exec(html);
+    expect(match, `no <button> labelled ${key} in the rendered report`).not.toBeNull();
+    return match?.[1] ?? "";
+  }
+
+  it("the screen draws exactly one solid accent button", () => {
+    expect(count(html, "btn-primary")).toBe(1);
+  });
+
+  it("the one it draws is the pricing card's Start", () => {
+    expect(buttonTag("offer.start")).toContain("btn-primary");
+  });
+
+  it("the free-page control is the outline rank in accent, not a second fill", () => {
+    const tag = buttonTag("free-page.submit");
+    expect(tag).toContain("rk-btn-outline");
+    expect(tag).not.toContain("btn-primary");
+    expect(tag).toContain('data-tone="accent"');
+  });
+});
+
 describe("REQ-004 c10/c11 — an absent section is named, and the rest stays usable", () => {
   const html = render(FIXTURE_DEGRADED_REPORT);
 

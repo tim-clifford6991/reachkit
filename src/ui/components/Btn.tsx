@@ -53,13 +53,23 @@ import type React from "react";
  *
  *  The rank, and the one tone that may accompany one, are two arms rather than
  *  an optional prop beside `variant`: `tone` is only ever readable on the
- *  outline rank (`idiom.css` styles `.rk-btn-outline[data-tone="warn"]` and
- *  nothing else), so a caller that asks for a warn primary should not
+ *  outline rank (`idiom.css` styles `.rk-btn-outline[data-tone="…"]` and
+ *  nothing else), so a caller that asks for a toned primary should not
  *  compile rather than render a button whose tone silently does nothing
- *  (issue #271). */
+ *  (issue #271).
+ *
+ *  Two tones and no third. `warn` is the veto case #271 spent it on. `accent`
+ *  (issue #291) is the *second* call to action on a screen that has two of
+ *  them for different things: the report offers the free page and the
+ *  subscription, §9.1 gives the screen one solid fill, and the one that
+ *  loses it is still a call to action rather than a quiet aside. It is the
+ *  accent as an **edge**, never a fill — a second filled accent button is
+ *  precisely what the rule forbids, and the ink and border are the same
+ *  `--accent` the primary fills with, so no new value is spent. `ok`/`bad`
+ *  stay out for `ActionPanel`'s reason: a button is not a state. */
 export type BtnRank =
   | { variant?: "primary" | "ghost" | "tertiary" | "on-accent"; tone?: undefined }
-  | { variant: "secondary"; tone?: "warn" };
+  | { variant: "secondary"; tone?: "warn" | "accent" };
 
 export type BtnProps = BtnRank & {
   /** Required — BP-018 decision 2. No fallback string exists. */
