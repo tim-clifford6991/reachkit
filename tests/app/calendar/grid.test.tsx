@@ -21,7 +21,7 @@ vi.mock("@/lib/presentation/copy", async (importOriginal) => {
   return { ...actual, copy: (key: string) => key };
 });
 
-import { COPY, TODO_COPY_MARKER } from "@/lib/presentation/copy";
+import { COPY } from "@/lib/presentation/copy";
 import { CalendarGrid } from "@/ui/components/custom";
 import { CalendarView } from "@/app/(account)/app/calendar/CalendarView";
 import { assembleMonth, type CalendarFacts } from "@/app/(account)/app/calendar/month";
@@ -127,12 +127,17 @@ describe("REQ-043 c3 and ADR-061 — the two grey lines are never swapped", () =
     expect(root.querySelectorAll(".rk-cal-empty").length).toBeGreaterThan(0);
   });
 
-  it("a date emptied by exhausted supply carries the marker while the owner has not written its line (#246)", () => {
-    // The honest behaviour of an owner-owed key on a *screen*: the marker,
-    // so the obligation is visible on a preview — never a blank, and never
-    // another cause's sentence. It was the empty value until #246 moved
-    // this family under the product-wide rule.
-    expect(COPY["cause.supply-exhausted"]).toBe(TODO_COPY_MARKER);
+  it("a date emptied by exhausted supply carries the approved line, and no other cause's (#354)", () => {
+    // It was owner-owed and carried the marker (#246) until ruling 11a of
+    // 2026-09-08 made the approved set's unbracketed strings approved copy.
+    // S14 draws this one on the grid cell — the first line alone — and S15
+    // draws the whole account in the panel, which is DECISIONS 2026-09-07
+    // (#209) applied to the calendar's own causes.
+    expect(COPY["cause.supply-exhausted"]).toBe("nothing worth publishing");
+    expect(COPY["calendar.empty.supply-exhausted"]).toContain("Nothing worth publishing");
+    expect(COPY["calendar.empty.supply-exhausted"].length).toBeGreaterThan(
+      COPY["cause.supply-exhausted"].length,
+    );
     const root = view();
     // 2026-09-23 is emptied by proven-zero supply in the fixture.
     const emptied = cellEl(root, "2026-09-23").querySelector(".rk-cal-empty");
@@ -205,5 +210,82 @@ describe("§4.6 — today is ringed, and the grid renders no sentence of its own
     // renders them, which is what "knows nothing of what a stage means"
     // means in code.
     expect(String(CalendarGrid)).not.toContain("copy(");
+  });
+});
+
+describe("issue #354 — S14, the approved calendar screen", () => {
+  it("**the filter is six option cards, one per stage, each with its count**", () => {
+    const root = view();
+    const cards = root.querySelectorAll('[data-testid^="stage-filter-"]');
+    expect(cards).toHaveLength(6);
+    for (const card of cards) {
+      const id = card.getAttribute("data-testid") ?? "";
+      // The approved `.opt`: the idiom's selectable box around a `Card`,
+      // not a chip and not a bare button.
+      expect(card.className, id).toContain("rk-opt");
+      expect(card.querySelector(".card"), id).not.toBeNull();
+      // The count is the card's headline figure, and it is mono (§2.3).
+      const count = card.querySelector(".rk-opt-count");
+      expect(count, id).not.toBeNull();
+      expect(count?.className, id).toContain("num");
+    }
+  });
+
+  it("the chosen card carries the accent state in the accessibility tree, not by tint alone", () => {
+    const root = view();
+    // `CalendarView` opens on `all`, so that is the chosen card. The tint
+    // is keyed off this attribute in `idiom.css`, so a card cannot look
+    // chosen without being chosen (§2.5).
+    expect(
+      root.querySelector('[data-testid="stage-filter-all"]')?.getAttribute("aria-pressed"),
+    ).toBe("true");
+    expect(
+      root.querySelector('[data-testid="stage-filter-live"]')?.getAttribute("aria-pressed"),
+    ).toBe("false");
+  });
+
+  it("a cell heads with its date and its stage chip on one row, and the title under them", () => {
+    const root = view();
+    // 2026-09-05 carries a live page in the fixture.
+    const cell = cellEl(root, "2026-09-05");
+    const head = cell.querySelector(".rk-cal-cell-head");
+    expect(head).not.toBeNull();
+    expect(head?.querySelector(".rk-cal-date")).not.toBeNull();
+    expect(head?.querySelector(".badge")).not.toBeNull();
+    // The title is the cell's own element, outside that row.
+    expect(cell.querySelector(".rk-cal-label")).not.toBeNull();
+    expect(head?.querySelector(".rk-cal-label")).toBeNull();
+  });
+
+  it("**a date with no page is an outline, and carries no stage chip**", () => {
+    const root = view();
+    // 2026-09-23 is emptied by proven-zero supply in the fixture.
+    const emptied = cellEl(root, "2026-09-23");
+    expect(emptied.className).toContain("rk-cal-empty-day");
+    expect(emptied.querySelector(".badge")).toBeNull();
+    // A cell holding a page is not an outline.
+    expect(cellEl(root, "2026-09-05").className).not.toContain("rk-cal-empty-day");
+  });
+
+  it("a cell's one string is recoverable in full from the cell itself", () => {
+    // The clamp is CSS; what the markup owes is the whole string, so a
+    // truncation is a truncation and not a loss. It is the caller's own
+    // string, composed of nothing.
+    const root = view();
+    const filled = cellEl(root, "2026-09-05");
+    expect(filled.getAttribute("title")).toBe(
+      filled.querySelector(".rk-cal-label")?.textContent,
+    );
+    const empty = cellEl(root, "2026-09-13");
+    expect(empty.getAttribute("title")).toBe(
+      empty.querySelector(".rk-cal-empty")?.textContent,
+    );
+  });
+
+  it("an out-of-month cell carries no title — it has no line to recover", () => {
+    const root = view();
+    for (const cell of root.querySelectorAll(".rk-cal-out")) {
+      expect(cell.getAttribute("title")).toBeNull();
+    }
   });
 });

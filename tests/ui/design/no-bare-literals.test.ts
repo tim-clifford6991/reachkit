@@ -94,6 +94,46 @@ const rel = (file: string): string =>
 const RULED_FOCUS_RING = "0 0 0 3px var(--accent-bg)";
 
 /**
+ * The same ring, **as one layer of a stacked shadow** (issue #354).
+ *
+ * `box-shadow` takes a comma-separated list, and a surface that already
+ * casts a shadow has to re-state it to add a ring: the calendar's cells are
+ * cards now, so today's cell is `var(--shadow-card), 0 0 0 3px
+ * var(--accent-bg)` — the card's own shadow, then the ruled ring over it.
+ * Dropping the card shadow to keep this rule happy would make one cell of
+ * the month flat, which is a worse answer than reading the value the way
+ * CSS does.
+ *
+ * Every layer still has to be a token reference or the ruled ring itself,
+ * so a second geometry literal cannot arrive quietly — which is the whole
+ * point of naming the ring rather than matching a pattern. A layer is split
+ * on top-level commas only, so a `var(--x, fallback)` inside one is not
+ * mistaken for two.
+ */
+function isRingOverTokens(value: string): boolean {
+  const layers: string[] = [];
+  let depth = 0;
+  let current = "";
+  for (const ch of value) {
+    if (ch === "(") depth++;
+    if (ch === ")") depth--;
+    if (ch === "," && depth === 0) {
+      layers.push(current.trim());
+      current = "";
+      continue;
+    }
+    current += ch;
+  }
+  layers.push(current.trim());
+  if (layers.length < 2) return false;
+  const ring = layers.filter((layer) => layer === RULED_FOCUS_RING);
+  if (ring.length !== 1) return false;
+  return layers.every(
+    (layer) => layer === RULED_FOCUS_RING || /^var\(\s*--[a-z0-9-]+\s*\)$/.test(layer)
+  );
+}
+
+/**
  * A value is bare when what is left of it, after every `var(--…)` reference
  * is removed, still carries a measurement or a colour.
  *
@@ -105,6 +145,7 @@ const RULED_FOCUS_RING = "0 0 0 3px var(--accent-bg)";
 function isBare(value: string): boolean {
   const trimmed = value.trim();
   if (trimmed === RULED_FOCUS_RING) return false;
+  if (isRingOverTokens(trimmed)) return false;
   if (ALLOWED_VALUE.test(trimmed)) return false;
   const withoutTokens = trimmed.replace(/var\(\s*--[a-z0-9-]+\s*(,[^)]*)?\)/g, "");
   return /\d+(\.\d+)?(px|rem|em)\b|#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(/.test(withoutTokens);

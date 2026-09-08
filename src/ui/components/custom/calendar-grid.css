@@ -58,19 +58,28 @@
 
 .rk-cal-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--s-1);
+  /* S14's narrow arm is TWO columns, not one (issue #354): a row of the
+   * list is then about half the viewport, which holds a date, a stage chip
+   * and a line of title without any of them folding. */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  /* S14's `.calgrid` gap. `--s-1` read as a hairline seam between seven
+   * bordered boxes; the approved grid separates cards. */
+  gap: var(--s-2);
   min-width: 0;
 }
 
+/* S14's `.caldow`. The approved sheet sets it at 10px; ruling 10a closes
+ * the ladder at 11 and refuses anything under it, so the size here is
+ * `--t-eyebrow` — the rung, not the drawing's literal. The weight, the
+ * tracking and the centring are the drawing's own. */
 .rk-cal-weekday {
-  /* §2.3's eyebrow role: "Uppercase 10.5–11px eyebrows for section
-   * labels." `--t-eyebrow` is the bottom rung and the bound (10a, ADR-093 d3). */
   font-size: var(--t-eyebrow);
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.1em;
   color: var(--ink-3);
-  padding: 0 var(--s-1);
+  text-align: center;
+  padding-bottom: var(--s-1);
   min-width: 0;
   overflow-wrap: anywhere;
 }
@@ -78,23 +87,70 @@
 .rk-cal-cell {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: var(--s-1);
+  align-items: stretch;
+  gap: var(--s-2);
   min-width: 0;
   /* No fixed height. A cell whose text does not fit gets more room — it is
    * never clipped and the type is never shrunk (ADR-093 decision 2: "content
-   * fits its box or the box changes; text is never shrunk to fit"). */
+   * fits its box or the box changes; text is never shrunk to fit").
+   *
+   * A **minimum** is a different thing, and S14 spends one: `min-height:
+   * 104px` on `.cd`, the one length in the approved calendar that
+   * `docs/design/approved/literals.md` records as unnamed. It is exactly
+   * two of the ladder's top rung plus one of its second — 48 + 48 + 8 — so
+   * it is spent as that sum rather than as the literal, and a week of
+   * one-line cells is an even row instead of seven boxes each cut to its
+   * own content. It is set on the grid arm below; a row of the narrow list
+   * is as wide as half the screen and needs one rung. */
+  min-height: var(--s-6);
+  /* S14's `.cd` padding is 10px, and the ladder names no such rung —
+   * `--s-2` 8px and `--s-3` 12px are its neighbours. `--s-2` is the one
+   * spent, and the tie is broken by what fits rather than by which is
+   * nearer: at `--s-3` a seven-across cell has about 64px of content and
+   * "Scheduled" — the widest stage word with no space to fold at — needs
+   * about 63px with its chip's own inset, so it drew as "Schedule / d". At
+   * `--s-2` every one of the five registered stage words fits whole. */
   padding: var(--s-2);
-  border: 1px solid var(--line);
-  border-radius: var(--r-field);
+  /* A card, not a bordered box (S14's `.cd`): the surface, the box radius
+   * and the card shadow, with the border kept at the same width in
+   * transparent so an empty cell can colour it without moving the grid by
+   * a pixel. */
+  border: 1px solid transparent;
+  border-radius: var(--r-box);
+  box-shadow: var(--shadow-card);
   background: var(--surface);
   color: var(--ink);
   text-align: left;
   font: inherit;
   cursor: pointer;
   /* The other half of the minmax: with the column floor removed, this is
-   * what stops a long token from overflowing its own cell. */
-  overflow-wrap: anywhere;
+   * what stops a long token from overflowing its own cell.
+   *
+   * `break-word` and not `anywhere` since #354. The two differ in one
+   * property: `anywhere`'s break opportunities count toward min-content, so
+   * a box that may break anywhere reports a min-content of one character
+   * and then shrinks to it — which is why a cell with room for
+   * "onboarding" still drew it as "onboardin / g", and why "Planned" came
+   * out as "Planne / d". `break-word` keeps the longest word as the
+   * min-content and breaks one only when it genuinely does not fit, which
+   * is what #256 asked for in the first place. Nothing is lost: the column
+   * is `minmax(0, 1fr)`, so its floor is already zero and `anywhere` was
+   * buying nothing here. */
+  overflow-wrap: break-word;
+}
+
+/* S14's `.cd` head: the date at the near edge and the stage badge at the
+ * far one, on one row. It wraps rather than clipping when the two do not
+ * fit — a cell at the medium band is about 90px wide and "Your review" is
+ * the widest chip the registry has (issue #243). */
+.rk-cal-cell-head {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--s-1);
+  min-width: 0;
 }
 
 /* `:not(.num)` is the whole of #256 in this file. A month grid at 320px has
@@ -111,7 +167,7 @@
 .rk-cal-cell > *:not(.num) {
   max-width: 100%;
   min-width: 0;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 .rk-cal-cell > .num {
@@ -151,6 +207,62 @@
 .rk-cal-cell .badge {
   display: inline-block;
   height: auto;
+  /* `break-word`, and the difference from the cell's own `anywhere` is the
+   * whole of this rule (issue #354).
+   *
+   * `overflow-wrap: anywhere` inherits from `.rk-cal-cell`, and its extra
+   * property over `break-word` is that its break opportunities count
+   * toward min-content — so a chip capped at `max-width: 100%` shrank to
+   * one character's width and then broke every stage word it held:
+   * "Planned" drew as "Planne / d" at the medium and wide bands.
+   *
+   * `break-word` keeps the longest word as the chip's min-content, so a
+   * word that fits is never broken and a chip with a space in it folds
+   * there first — "Your review" and "Needs you" onto two lines, which is
+   * the box changing, exactly as ADR-093 decision 2 asks. A single word
+   * too wide for a `--w-cell-min` cell still breaks, because the only
+   * alternatives left are smaller type, which decision 3 refuses, or an
+   * overflow, which check 2 reports. */
+  /* The chip is a flex item of the cell's head row, so its `min-width` is
+   * `auto` — the width of its longest word — and a floor beats the
+   * `max-width: 100%` below it. "Scheduled" therefore sized its own box
+   * past a `--w-cell-min` cell and escaped it (check 2, at 1024 and 1280),
+   * with no line ever needing to break because the box had already grown
+   * to fit. Zeroing the floor lets the cap apply, and the cell's own
+   * `break-word` then decides where a word folds. */
+  min-width: 0;
+  /* S14's `.cd .badge` sets its own inset — `padding: 2px 6px`, tighter
+   * than the theme's — and this is the rung that lands on. It is the one
+   * place issue #243's "the chip keeps every value the theme gives it"
+   * gives way, and to the approved design rather than to convenience:
+   * daisyUI's inline padding is derived from `--size-selector` and comes
+   * to about 11px a side, which is 22px of a cell that has about 62px to
+   * spend. With it, "Planned" does not fit and breaks; without it, every
+   * one of the five registered stage words fits its cell whole and only
+   * "Your review" and "Needs you" fold — at their spaces, which is where
+   * language folds. */
+  padding-inline: var(--s-1);
+  /* The stage chip at the eyebrow rung — the issue's own "stage badge
+   * (11px)", and S14's `.cd .badge`. A rung of the closed ladder, never a
+   * shrink to fit: `--t-eyebrow` is the smallest size the product has and
+   * ruling 10a refuses anything under it. */
+  font-size: var(--t-eyebrow);
+  /* The chip is a flex item of the cell's head row, so its `min-width` is
+   * `auto` — the width of its longest word — and a floor beats the
+   * `max-width: 100%` below it. "Scheduled" therefore sized its own box
+   * past a `--w-cell-min` cell and escaped it (check 2, at 1024 and 1280),
+   * with no line ever needing to break because the box had already grown
+   * to fit. Zeroing the floor lets the cap apply, and the cell's own
+   * `break-word` then decides where a word folds. */
+  min-width: 0;
+  /* S14's `.cd .badge` sets its own inset — `padding: 2px 6px`, tighter
+   * than the theme's — and this is the rung that lands on. It is the one
+   * place issue #243's "the chip keeps every value the theme gives it"
+   * gives way, and to the approved design rather than to convenience:
+   * daisyUI's inline padding is derived from `--size-selector` and comes to
+   * about 11px a side, which is 22px of a cell that has about 70px to
+   * spend. */
+  padding-inline: var(--s-1);
   /* The chip's height is now its content plus this padding, rather than
    * daisyUI's fixed `--size`. Not `min-height: var(--size)`: `--size` is
    * daisyUI's own internal, declared in `.badge` and nowhere under `src/`,
@@ -161,25 +273,73 @@
   text-align: center;
 }
 
+/* S14's `.cd-d`. */
 .rk-cal-date {
   font-size: var(--t-eyebrow);
-  color: var(--ink-2);
+  color: var(--ink-3);
 }
 
-.rk-cal-label,
+/* S14's `.cd-t`: the page's own title, three lines and then clamped, with
+ * the full value on the cell's `title` (`CalendarGrid.tsx`) so a truncation
+ * is recoverable rather than a loss. That is the trade the type floor
+ * leaves open — ADR-093 decision 3 refuses the other way out, which is a
+ * smaller step. */
+.rk-cal-label {
+  font-size: var(--t-xs);
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* The one line a date with no page states. S14 draws it on the one cell
+ * that has an account — `nothing worth publishing`, at the eyebrow rung in
+ * the quiet ink — and draws nothing at all on the rest.
+ *
+ * NOT the mono face, and that is a correction to the drawing rather than a
+ * preference: S14 reuses its `.prov` class here, and `.prov` is mono
+ * because provenance carries values. This line is prose, and §2.3's mono
+ * list is numerals, dates, URLs, search queries and code-like strings. The
+ * layout sweep reads the same rule mechanically — check 3 reports any
+ * clipped element set in the mono face, whatever an allow-list says,
+ * because a value must never be truncated. A sentence may be, and this one
+ * is (DECISIONS 2026-09-07, #209: the cell states the first line alone). */
 .rk-cal-empty {
   font-size: var(--t-eyebrow);
   line-height: 1.35;
+  color: var(--ink-3);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
-.rk-cal-empty {
-  color: var(--ink-3);
+/* A date with no page is an OUTLINE, not a card (S14's `.cd.empty`): no
+ * ground, no shadow, the edge in `--line`, the numeral quieter. It is
+ * emphatically not a lesser page — the calendar is never padded (DECISIONS
+ * 2026-08-28, ADR-061) — so a day with nothing on it has to *look* like
+ * one. */
+.rk-cal-cell.rk-cal-empty-day {
+  background: transparent;
+  box-shadow: none;
+  border-color: var(--line);
+}
+
+.rk-cal-cell.rk-cal-empty-day .rk-cal-date {
+  opacity: 0.55;
 }
 
 /* §4.6: "Today ringed accent." A ring, not a border — a border would move
  * the cell's own box and shift the grid by a pixel on whichever day it is. */
 .rk-cal-cell.rk-cal-today {
-  box-shadow: 0 0 0 3px var(--accent-bg);
+  /* Over the card's own shadow rather than in place of it, now that a cell
+   * is a card (issue #354). The ring's own value is #349's. */
+  box-shadow: var(--shadow-card), 0 0 0 3px var(--accent-bg);
   border-color: var(--accent-line);
 }
 
@@ -208,11 +368,22 @@
   .rk-cal-grid {
     display: grid;
     grid-template-columns: var(--grid-week);
+    gap: var(--s-2);
+  }
+
+  /* S14's own `min-height: 104px`, as two of the top rung plus one of the
+   * second — see the cell's own note. A seven-across column is narrower
+   * than a row of the two-column list, so it is here that a cell needs the
+   * height to hold a date, a chip and a line of title. */
+  .rk-cal-cell {
+    min-height: calc(2 * var(--s-7) + var(--s-2));
   }
 
   .rk-cal-out {
     display: block;
     border: 1px solid transparent;
+    box-shadow: none;
+    background: transparent;
     min-height: var(--s-3);
   }
 }

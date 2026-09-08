@@ -216,7 +216,10 @@ describe("REQ-093 c5 — the registry renders with every model unavailable", () 
     // (issue #353: the approved set's seven filled keys, then S12's cards,
     // its three tiles, the sidebar's autopilot state, and S13's whole
     // week-0 arm; see the counts row below).
-    expect(ruled.length).toBe(197);
+    //
+    // 2026-09-08, issue #354: the calendar's S14 and S15, under the same
+    // ruling — three keys move in and two arrive written. 197 + 5 = 202.
+    expect(ruled.length).toBe(202);
 
     // Only the ruled sentences carry their slots' `{name}` placeholders —
     // a `TODO(copy)` marker is one literal with no placeholder in it, so
@@ -317,7 +320,7 @@ describe("owner-owed and empty agree both ways", () => {
     expect(new Set(emptyKeys)).toEqual(new Set(OWNER_OWED));
   });
 
-  it("counts: 129 owner-owed, 294 awaiting copy, 197 ruled, 620 total (rule 5.5 — the index states its own coverage)", () => {
+  it("counts: 127 owner-owed, 293 awaiting copy, 202 ruled, 622 total (rule 5.5 — the index states its own coverage)", () => {
     // WO-070 added report.ts's eight landing keys (headline, field label,
     // submit label, five DomainProblem lines), all owner-owed: 30 + 8 = 38.
     // 2026-09-03: the owner ruled on three of them (headline, field label,
@@ -1036,10 +1039,31 @@ describe("owner-owed and empty agree both ways", () => {
     // Nothing is owed by the arm: `AWAITING_COPY` and `OWNER_OWED` both
     // stand. 129 owner-owed, 294 awaiting copy, 187 + 10 = 197 ruled,
     // 610 + 10 = 620 total.
-    expect(OWNER_OWED.length).toBe(129);
-    expect(AWAITING_COPY.length).toBe(294);
-    expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(197);
-    expect(Object.keys(COPY).length).toBe(620);
+    //
+    // 2026-09-08, issue #354 — the same ruling 11a, on the calendar's own
+    // screens S14 and S15. Five of its keys are filled from the set and two
+    // are added already written:
+    //
+    //  · `calendar.footnote.supply` and `calendar.provenance.measured`
+    //    leave OWNER_OWED — the supply half of §4.6's footnote and c10's
+    //    one measured line, both of which §4.6 stated to the *builder* and
+    //    never worded for the customer until the set drew them;
+    //  · `cause.supply-exhausted` leaves AWAITING_COPY: S14 draws it on
+    //    the grid cell as "nothing worth publishing";
+    //  · `calendar.footnote.planned` and `calendar.action.reconnect` were
+    //    already ruled and only change their wording (the set's comma, and
+    //    the destination the control names), so neither moves;
+    //  · two are new and ruled on arrival —
+    //    `calendar.empty.supply-exhausted`, the whole account S15's `empty`
+    //    arm states where the cell states its first line alone (#209), and
+    //    `calendar.empty.day-badge`, the word on that arm's chip.
+    //
+    // 129 − 2 = 127 owner-owed, 294 − 1 = 293 awaiting copy,
+    // 197 + 3 + 2 = 202 ruled, 620 + 2 = 622 total.
+    expect(OWNER_OWED.length).toBe(127);
+    expect(AWAITING_COPY.length).toBe(293);
+    expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(202);
+    expect(Object.keys(COPY).length).toBe(622);
 
     // The two representations never overlap: an empty value and the marker
     // are different values, so no key can be on both lists.

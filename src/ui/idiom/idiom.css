@@ -894,3 +894,71 @@
   justify-content: space-between;
   gap: var(--s-3);
 }
+
+/* ── 12 · The option card (issue #354) ───────────────────────────────── */
+
+/* The approved screen system registers a selectable box — `.opt`,
+ * "selected = accent ring + `--accent-bg`" — and spends it wherever the
+ * customer picks one of a set: `/setup`'s mode and destination, and S14's
+ * six stage filters.
+ *
+ * It is a **widening of `Card`**, on exactly the footing this file's other
+ * three widenings sit on: it adds no colour, no radius and no sixteenth
+ * component. `Card` already draws the box; what a chosen one needs is the
+ * accent edge and the accent tint, and those are the two tokens the
+ * idiom's own chip and its outline rank already spend.
+ *
+ * **Keyed on `aria-pressed`, deliberately**, for the reason the outline
+ * rank above gives in full: styling the attribute rather than a class means
+ * the tint and the accessibility state are one fact, so a card cannot look
+ * chosen without being chosen. The element carrying it is the button — a
+ * `Card` is a `<div>` and has no pressed state of its own — and the rule
+ * reaches the card through it.
+ *
+ * The button itself is the unstyled wrapper: a block, left-aligned, and
+ * able to shrink inside a grid column. Without `min-width: 0` a six-column
+ * row of them refuses to go below its widest word and pushes the document
+ * sideways, which is check 1 of ADR-093 decision 6's sweep. */
+.rk-opt {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+/* The card fills the box and shrinks with it. `min-width: 0` is the half
+ * that matters: `.card` is a flex container whose body has the usual
+ * `min-width: auto`, so without it the card refuses to go below its widest
+ * word and paints outside the button in a narrow grid column — check 1 of
+ * ADR-093 decision 6's sweep, reported on `html`. */
+.rk-opt > .card {
+  height: 100%;
+  min-width: 0;
+}
+
+.rk-opt > .card > .card-body {
+  min-width: 0;
+}
+
+.rk-opt[aria-pressed="true"] > .card {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+}
+
+/* The box's two lines, as S14 sets them: a small label in the quiet ink,
+ * and one headline figure under it. `--t-sm` is the label's rung in the
+ * approved ladder; the figure is `--h3`, which is the rung the approved set's own
+ * ladder names. Both are tokens — the option card mints no size. */
+.rk-opt-label {
+  font-size: var(--t-sm);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.rk-opt-count {
+  font-size: var(--h3);
+  color: var(--ink);
+}

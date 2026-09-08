@@ -56,6 +56,11 @@ export interface CalendarGridCell {
 function cellClass(cell: CalendarGridCell): string {
   return [
     "rk-cal-cell",
+    // A date with no page is an outline rather than a card (S14
+    // `.cd.empty`). It is a property of the cell's own content, so it is
+    // read off `entry` rather than passed as a second flag the caller could
+    // set inconsistently with it.
+    cell.entry === null ? "rk-cal-empty-day" : "",
     cell.today ? "rk-cal-today" : "",
     cell.selected ? "rk-cal-selected" : "",
   ]
@@ -92,18 +97,29 @@ export function CalendarGrid(p: {
               className={cellClass(cell)}
               data-testid={`calendar-cell-${cell.id}`}
               aria-pressed={cell.selected}
+              // The cell's one string in full, so the clamp in
+              // `calendar-grid.css` truncates a value that is still
+              // recoverable rather than losing one. Composed of nothing: it
+              // is whichever string the caller already supplied.
+              title={cell.entry?.label ?? cell.emptyLine ?? undefined}
               onClick={() => p.onSelect(cell.id)}
             >
-              <span className="num rk-cal-date">{cell.date}</span>
+              {/* S14's `.cd` head — the date at the near edge, the stage
+                  chip at the far one. A date with no page has no chip, and
+                  the row is still the row: nothing is invented to fill the
+                  far end. */}
+              <span className="rk-cal-cell-head">
+                <span className="num rk-cal-date">{cell.date}</span>
+                {cell.entry === null ? null : (
+                  <Badge tone={cell.entry.tone}>{cell.entry.stage}</Badge>
+                )}
+              </span>
               {cell.entry === null ? (
                 cell.emptyLine === null ? null : (
                   <span className="rk-cal-empty">{cell.emptyLine}</span>
                 )
               ) : (
-                <>
-                  <Badge tone={cell.entry.tone}>{cell.entry.stage}</Badge>
-                  <span className="rk-cal-label">{cell.entry.label}</span>
-                </>
+                <span className="rk-cal-label">{cell.entry.label}</span>
               )}
             </button>
           )

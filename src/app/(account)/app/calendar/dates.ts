@@ -144,6 +144,27 @@ export function monthNameOnly(month: MonthKey): string {
   }).format(utcOf(`${month}-01`));
 }
 
+/** The month the switcher **shows**, short — "Sep 2026" (issue #354).
+ *
+ *  The approved S14 draws the switcher as `← Sep 2026 →`: two arrows and
+ *  the month between them, so the row carries one label rather than three
+ *  and fits 320 with room to spare — which is the finding #269 recorded
+ *  and answered a different way. The year stays, because it is the month
+ *  you are looking at and the one place the year belongs; the name is
+ *  short, because nothing beside it needs the long form to be told apart
+ *  from it any more.
+ *
+ *  Its own function rather than an option on `monthLabel`, for that one's
+ *  own reason: a formatter whose output depends on a flag is a second
+ *  thing to get wrong at each of its callers. */
+export function monthShortLabel(month: MonthKey): string {
+  return new Intl.DateTimeFormat(SHELL_LOCALE, {
+    timeZone: "UTC",
+    month: "short",
+    year: "numeric",
+  }).format(utcOf(`${month}-01`));
+}
+
 /** The date the day panel heads with. */
 export function fullDate(day: DayKey): string {
   return new Intl.DateTimeFormat(SHELL_LOCALE, {

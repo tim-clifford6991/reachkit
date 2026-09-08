@@ -29,7 +29,7 @@ vi.mock("@/lib/presentation/copy", async (importOriginal) => {
   };
 });
 
-import { COPY, TODO_COPY_MARKER } from "@/lib/presentation/copy";
+import { COPY } from "@/lib/presentation/copy";
 import { CAUSE_PRECEDENCE } from "@/lib/presentation/place";
 import type { WorkStop } from "@/lib/presentation/stopped";
 import { DayPanelView } from "@/app/(account)/app/calendar/DayPanelView";
@@ -215,7 +215,10 @@ describe("REQ-092 c1, c2 and c4 — a stopped day carries all three lines", () =
     expect(root.textContent).not.toContain("stopped.work.line");
     expect(root.querySelector('[data-testid="day-stopped-needs"]')).toBeNull();
     expect(root.querySelector('[data-testid="day-stopped-resumes"]')).toBeNull();
-    expect(COPY[EMPTY_COPY_KEY.supply_exhausted]).toBe(TODO_COPY_MARKER);
+    // Approved copy since ruling 11a (#354): the cell's first line. What
+    // this row asserts is unchanged — whichever line the cell renders, it
+    // is the calendar's own and never one of the stop's.
+    expect(COPY[EMPTY_COPY_KEY.supply_exhausted]).toBe("nothing worth publishing");
   });
 
   it("the grid cell states c1's line and no more — the panel is where c2 and c4 are read", () => {

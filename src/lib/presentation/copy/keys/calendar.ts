@@ -76,8 +76,18 @@ export const CALENDAR_COPY = Object.freeze({
     "TODO(copy)",
     { law: "no-presence-yet", slots: {}, fixedBy: "REQ-043 c4" },
   ],
+  // 2026-09-08, issue #354. The approved screen set (S14) draws this line
+  // on the one grid cell that has it, and ruling 11a makes its unbracketed
+  // strings approved copy: "nothing worth publishing". Filled from the set,
+  // not written here (constitution rule 1.2 — copying a recorded owner
+  // ruling is not inventing one).
+  //
+  // It is the CELL's line. The panel states the whole account, under
+  // `calendar.empty.supply-exhausted` below — DECISIONS 2026-09-07 (#209)
+  // gives the cell the first line and the panel all of it, and S14/S15 draw
+  // exactly that split for supply.
   "cause.supply-exhausted": [
-    "TODO(copy)",
+    "nothing worth publishing",
     { law: "no-presence-yet", slots: {}, fixedBy: "REQ-043 c3" },
   ],
   "calendar.head": ["One page a day. Every day.", { slots: {}, fixedBy: "BUILD §4.6" }],
@@ -93,7 +103,11 @@ export const CALENDAR_COPY = Object.freeze({
   // §4.6's stage-appropriate actions.
   "calendar.action.read-full-page": ["Read the full page", { slots: {}, fixedBy: "BUILD §4.6" }],
   "calendar.action.view-live-page": ["View live page", { slots: {}, fixedBy: "BUILD §4.6" }],
-  "calendar.action.reconnect": ["Reconnect", { slots: {}, fixedBy: "BUILD §4.6" }],
+  // The approved S15 names the destination the control reconnects: a page
+  // that stalled because WordPress refused the connection is reconnected to
+  // WordPress, and "Reconnect" alone left the customer to guess which of
+  // their settings it meant (ruling 11a, issue #354).
+  "calendar.action.reconnect": ["Reconnect WordPress", { slots: {}, fixedBy: "BUILD §4.6" }],
   "calendar.action.move": ["Move", { slots: {}, fixedBy: "BUILD §4.6" }],
   "calendar.action.skip": ["Skip", { slots: {}, fixedBy: "BUILD §4.6" }],
   "calendar.action.veto": ["Veto", { slots: {}, fixedBy: "BUILD §4.6" }],
@@ -126,11 +140,19 @@ export const CALENDAR_COPY = Object.freeze({
   // §4.6's footnote. The first half is the section's own sentence; the
   // second is the supply rule stated to the builder, and the customer's
   // wording of it is the owner's.
+  // Both halves are the approved S14's own footnote, verbatim (ruling
+  // 11a): "Planned pages are written the evening before, from Monday's
+  // measurements. When opportunities run out, future days are empty — the
+  // calendar is never padded." The supply half was owner-owed and empty
+  // until the set worded it; the planned half gains the set's comma.
   "calendar.footnote.planned": [
-    "Planned pages are written the evening before from Monday's measurements.",
+    "Planned pages are written the evening before, from Monday's measurements.",
     { slots: {}, fixedBy: "BUILD §4.6" },
   ],
-  "calendar.footnote.supply": ["", { slots: {}, fixedBy: "BUILD §4.6" }],
+  "calendar.footnote.supply": [
+    "When opportunities run out, future days are empty — the calendar is never padded.",
+    { slots: {}, fixedBy: "BUILD §4.6" },
+  ],
 
   // REQ-043 criterion 4's remaining causes, and criterion 10's one
   // provenance line. Owner-owed: each is a written sentence and no artifact
@@ -139,6 +161,16 @@ export const CALENDAR_COPY = Object.freeze({
   "calendar.empty.page-cannot-go-live": ["", { slots: {}, fixedBy: "REQ-043 c4" }],
   "calendar.empty.customer-change-holds-pages": ["", { slots: {}, fixedBy: "REQ-043 c4" }],
   "calendar.empty.page-held": ["", { slots: {}, fixedBy: "REQ-092 c5" }],
+  // The day panel's whole account of an exhausted supply — S15's `empty`
+  // arm, verbatim (ruling 11a, issue #354). Its cell states the first line
+  // alone, from `cause.supply-exhausted` above (#209).
+  "calendar.empty.supply-exhausted": [
+    "Nothing worth publishing on this date — the supply of opportunities in your market is used up until Monday's re-measure finds more.",
+    { slots: {}, fixedBy: "REQ-043 c3" },
+  ],
+  // S15's `empty` arm leads with a chip carrying this word, so a date with
+  // no page is named rather than left as a bare numeral. Approved (11a).
+  "calendar.empty.day-badge": ["Empty day", { slots: {}, fixedBy: "REQ-043 c11" }],
   // REQ-071 c11 (issue #204). A market change holds generation until the
   // pass that adopts it, so the day names which change is holding pages and
   // the date they resume — both read from `generationHold()`, which has
@@ -149,7 +181,17 @@ export const CALENDAR_COPY = Object.freeze({
     "TODO(copy)",
     { slots: { date: "date", change: "text" }, fixedBy: "REQ-071 c11" },
   ],
-  "calendar.provenance.measured": ["", { slots: { date: "date" }, fixedBy: "REQ-043 c10" }],
+  // REQ-043 c10's one line. Every one of S15's five arms ends on the same
+  // measured tail — "measured Mon 8 Sep" — so that half is approved copy
+  // and is filled here (11a). The per-arm prefixes the set draws beside it
+  // ("written {ts}", "verified live {ts}", "last good delivery {date}")
+  // are not: two of the three name a fact the month model does not carry,
+  // and inventing a timestamp to print is the one thing this registry
+  // exists to prevent. Named in #354's PR as engine-owed.
+  "calendar.provenance.measured": [
+    "measured {date}",
+    { slots: { date: "date" }, fixedBy: "REQ-043 c10" },
+  ],
   "calendar.status.veto-deadline": ["", { slots: { at: "date" }, fixedBy: "BUILD §9" }],
 
   // §7's one statement of supply, as §4.6's calendar makes it: the three

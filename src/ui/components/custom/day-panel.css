@@ -37,18 +37,24 @@
   min-width: 0;
 }
 
+/* S15's `.panel`: a card — surface, box radius, card shadow — and no edge
+ * of its own. It carried a `--line` border before, which drew a second box
+ * inside the grid's own cards and made the panel read as a different kind
+ * of thing from the days it describes. */
 .rk-daypanel {
   min-width: 0;
-  border: 1px solid var(--line);
   border-radius: var(--r-box);
   background: var(--surface);
+  box-shadow: var(--shadow-card);
 }
 
 .rk-daypanel-inner {
   display: flex;
   flex-direction: column;
   gap: var(--s-3);
-  padding: var(--s-3);
+  /* S15's `.panel` padding. `--s-3` before, which is the rhythm *inside* a
+   * card rather than the card's own inset. */
+  padding: var(--s-5);
   min-width: 0;
 }
 
@@ -66,18 +72,62 @@
    * box makes the box scroll, never itself break. */
 }
 
+/* S15's control block: the day's one way in across the full column, and
+ * the quieter controls sharing the row under it, each taking half. */
 .rk-daypanel-actions {
   flex-direction: row;
   flex-wrap: wrap;
   align-items: center;
 }
 
+/* The block control — S15's `.pill-block`. `flex-basis: 100%` rather than a
+ * width, because it is the basis that puts the following controls on the
+ * next line; a `width: 100%` flex item is still shrunk to share one. */
+.rk-daypanel-actions > .rk-daypanel-block {
+  flex: 0 0 100%;
+}
+
+/* S15 gives Move and Veto `flex:1` each, so the pair splits the column
+ * evenly however long the two words are. */
+.rk-daypanel-actions > .rk-daypanel-half {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.rk-daypanel-actions > .rk-daypanel-half > .btn {
+  width: 100%;
+}
+
+/* A control that fills whatever slot it was given. Both the block link and
+ * the two halves take it; it is the one declaration that makes S15's
+ * `.pill-block` and `flex:1` read the same way on an `<a>` and a
+ * `<button>`. */
+.rk-daypanel-actions .rk-daypanel-wide {
+  width: 100%;
+}
+
+/* S15's page heading — `--h4`, the approved ladder's sub-head rung.
+ * A `<p>` and not an `<h3>`: the page's title is the panel's own subject,
+ * and the screen's heading is the calendar's above it. */
+.rk-daypanel-title {
+  font-size: var(--h4);
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0;
+}
+
 /* §4.6's "stage badge + date" — one row, and it wraps rather than clipping
- * when the two do not fit side by side in 290px (ADR-093 decision 2). */
+ * when the two do not fit side by side in 290px (ADR-093 decision 2).
+ *
+ * The date sits at the FAR end of that row (S15's own head): the chip is
+ * what the eye reads first and the date is the quiet half. `space-between`
+ * and not a margin, so the two still wrap onto two lines where 290px
+ * cannot hold both. */
 .rk-daypanel-heading {
   display: flex;
   flex-direction: row;
   align-items: center;
+  justify-content: space-between;
   flex-wrap: wrap;
   gap: var(--s-2);
   min-width: 0;
@@ -85,7 +135,61 @@
    * the date is a value. `flex-wrap` is what makes the two fit at 290px. */
 }
 
-/* 1280px = BAND_MIN.wide. "The day panel sits beside the
+/* S15's `.rule-sm` — the hairline that separates the panel's four parts.
+ * A rule, not a `Divider`: daisyUI's `divider` is a labelled separator with
+ * its own inline gap and 1rem of margin either side, and what the panel
+ * spends here is one line. */
+.rk-daypanel-rule {
+  height: 1px;
+  background: var(--line);
+  border: 0;
+  margin: 0;
+}
+
+/* S15's "WHY THIS PAGE" label. `type.css`'s `.eyebrow` already carries the
+ * rung and the case; the tracking, the ink and the weight are what §2 of
+ * the approved spec adds to it ("eyebrow 11, uppercase, .1em tracking,
+ * `--ink-3`, 700"), and they are set here rather than on `.eyebrow` itself
+ * so this PR moves the calendar and no other screen. */
+.rk-daypanel-eyebrow {
+  letter-spacing: 0.1em;
+  font-weight: 700;
+  color: var(--ink-3);
+  margin: 0;
+}
+
+/* S15's `.why`: a two-column definition list, the key at the near edge and
+ * the value beside it, both in the mono face because every one of these
+ * five rows is a value — a search, a volume, the engines that answered, a
+ * count. `auto 1fr` and not `1fr 1fr`: the keys are fixed strings and the
+ * values are not, so the column that must not be crushed is the one that
+ * gets `auto` (issue #256's finding, kept). */
+.rk-daypanel-why {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--s-2) var(--s-3);
+  font-family: var(--font-mono);
+  font-size: var(--t-xs);
+  margin: 0;
+  min-width: 0;
+}
+
+.rk-daypanel-why dt {
+  color: var(--ink-3);
+  /* A key is a fixed label and folding it would read as two rows. */
+  white-space: nowrap;
+}
+
+.rk-daypanel-why dd {
+  margin: 0;
+  color: var(--ink);
+  min-width: 0;
+  /* A value with no spaces — a domain, a query — makes its own box wrap
+   * rather than the grid's column. */
+  overflow-wrap: anywhere;
+}
+
+/* --breakpoint-xl (1280px) = BAND_MIN.wide. "The day panel sits beside the
  * grid." Pinned by tests/ui/calendar-css.test.ts. */
 @media (min-width: 1280px) {
   .rk-day-layout {

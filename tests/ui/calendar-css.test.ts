@@ -70,7 +70,15 @@ describe('BUILD §4.6 — "repeat(7,minmax(0,1fr)) — the minmax is load-bearin
 
   it("the cell wraps rather than clips, so the type is never shrunk to fit (ADR-093 d2)", () => {
     const cell = declarations(GRID_CSS).filter((d) => d.parent?.toString().includes(".rk-cal-cell"));
-    expect(cell.some((d) => d.prop === "overflow-wrap" && d.value === "anywhere")).toBe(true);
+    // `break-word` since #354, and the distinction is the point. Both let
+    // a word that does not fit its cell break rather than overflow it;
+    // `anywhere` additionally counts those break opportunities toward
+    // min-content, so the box shrinks to one character and words that DID
+    // fit were broken too ("Planne / d", "onboardin / g"). The column is
+    // `minmax(0, 1fr)` and its floor is already zero, so nothing else in
+    // this sheet depended on that second property.
+    expect(cell.some((d) => d.prop === "overflow-wrap" && d.value === "break-word")).toBe(true);
+    expect(cell.some((d) => d.prop === "overflow-wrap" && d.value === "anywhere")).toBe(false);
     // No *fixed* height anywhere under the cell. `height: auto` is the
     // same claim stated positively — issue #243 needs it on the stage
     // chip, whose own component sets one — so the assertion is on the
@@ -96,7 +104,12 @@ describe('BUILD §4.6 — "repeat(7,minmax(0,1fr)) — the minmax is load-bearin
     // The box changes; the type does not shrink and the chip is not clipped.
     expect(chip.some((d) => d.prop === "height" && d.value === "auto")).toBe(true);
     expect(chip.some((d) => d.prop === "display" && d.value === "inline-block")).toBe(true);
-    expect(chip.some((d) => d.prop === "font-size")).toBe(false);
+    // The chip's size is the ladder's bottom rung, never a value chosen to
+    // make it fit: ruling 10a of 2026-09-08 closes the ladder at 11px and
+    // refuses anything under it, and the approved S14 sets `.cd .badge` at
+    // exactly that rung (issue #354). A literal here, or a smaller rung,
+    // is the mutation this row catches.
+    expect(chip.some((d) => d.prop === "font-size" && d.value === "var(--t-eyebrow)")).toBe(true);
     expect(chip.some((d) => d.prop === "max-width")).toBe(false);
     // Every length it states is one of this tree's own tokens — never a
     // literal, and never a `var()` only a dependency declares
@@ -175,20 +188,34 @@ describe('§4.6 — the panel is "not a drawer", at any width', () => {
 });
 
 describe("ADR-093 decision 3 — nothing in either sheet is written below the type floor", () => {
-  // `src/ui/layout/layout.css` declares `--t-floor` and
-  // `tests/ui/layout-tokens.test.ts` pins its value; what is asserted here
-  // is that these two sheets obey it — "a box that cannot fit its text at
-  // the floor gets more room, wraps, or clamps", never a smaller step.
-  it("every font-size is the floor token itself, or a literal at or above it", () => {
+  // The bound is ruling 10a's own: the ladder is 31 / 25 / 20 / 16 /
+  // 15 / 13 / 12 / 11.5 / 11 and nothing renders under 11px. `--t-eyebrow`
+  // is the floor under its approved name — `--t-floor` is gone with
+  // `layout.css`'s token block (#349) — and every rung is named, so a
+  // font-size in these two sheets is one of those tokens and never a
+  // literal. "A box that cannot fit its text at the floor gets more room,
+  // wraps, or clamps", never a smaller step.
+  const LADDER = new Set([
+    "var(--h1)",
+    "var(--h2)",
+    "var(--h3)",
+    "var(--h4)",
+    "var(--t-body)",
+    "var(--t-sm)",
+    "var(--t-xs)",
+    "var(--t-explain)",
+    "var(--t-eyebrow)",
+  ]);
+
+  it("every font-size is a rung of the approved ladder, and no literal", () => {
     for (const [name, css] of [
       ["calendar-grid.css", GRID_CSS],
       ["day-panel.css", PANEL_CSS],
     ] as const) {
       const sizes = declarations(css).filter((d) => d.prop === "font-size");
+      expect(sizes.length, name).toBeGreaterThan(0);
       for (const decl of sizes) {
-        const px = /^(\d+(?:\.\d+)?)px$/.exec(decl.value);
-        if (px) expect(Number(px[1]), `${name}: ${decl.value}`).toBeGreaterThanOrEqual(11);
-        else expect(decl.value, name).toBe("var(--t-eyebrow)");
+        expect(LADDER.has(decl.value), `${name}: font-size: ${decl.value}`).toBe(true);
       }
     }
   });

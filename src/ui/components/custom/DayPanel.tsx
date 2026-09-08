@@ -26,6 +26,19 @@ export function DayPanel(p: {
   /** The stage-appropriate controls. Absent is a decision the caller makes
    *  (an empty day offers none), never a default set of this component's. */
   actions?: React.ReactNode;
+  /**
+   * §4.6's "one dim provenance line", **last** — after the controls, which
+   * is where every one of S15's five arms draws it (issue #354).
+   *
+   * It is a slot of this component rather than the tail of `account`
+   * because its position is part of what the panel is: §2.5 rules
+   * provenance "always visible but always quiet", and a line that has to
+   * be quiet cannot sit above the one control the panel is asking for.
+   * Optional — an arm with nothing measured behind it states nothing, and
+   * a placeholder date would be the invention the whole rule exists to
+   * refuse.
+   */
+  provenance?: React.ReactNode;
 }): React.JSX.Element {
   return (
     <aside className="rk-daypanel" data-testid="day-panel">
@@ -35,6 +48,7 @@ export function DayPanel(p: {
         {p.actions === undefined ? null : (
           <div className="rk-daypanel-actions">{p.actions}</div>
         )}
+        {p.provenance === undefined ? null : p.provenance}
       </div>
     </aside>
   );
