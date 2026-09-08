@@ -159,8 +159,16 @@ describe(`layout sweep — ${routes.length} route(s) × 5 widths`, () => {
   );
 
   it(
-    "every route's :root pins --breakpoint-lg/-xl and --t-floor against BAND_MIN",
+    "every route's :root declares the ladder's floor and the two measures the law reads",
     async () => {
+      // Issue #349: the two `--breakpoint-*` tokens this used to read are
+      // not in the approved set and never were read by anything — a media
+      // query cannot resolve a `var()`, so they were four declarations with
+      // no consumer. The band boundaries are pinned in
+      // `tests/ui/layout-tokens.test.ts` against the literals every
+      // stylesheet writes; what a *route* has to carry is the floor check 4
+      // reads, and it is now `--t-eyebrow`, the approved set's name for the
+      // same 11px rung.
       for (const route of routes) {
         const tokens = await withPage(
           BAND_MIN.compact,
@@ -169,28 +177,21 @@ describe(`layout sweep — ${routes.length} route(s) × 5 widths`, () => {
             return page.evaluate(() => {
               const style = getComputedStyle(document.documentElement);
               return {
-                breakpointLg: style.getPropertyValue("--breakpoint-lg").trim(),
-                breakpointXl: style.getPropertyValue("--breakpoint-xl").trim(),
-                tFloor: style.getPropertyValue("--t-floor").trim(),
+                floor: style.getPropertyValue("--t-eyebrow").trim(),
+                read: style.getPropertyValue("--w-read").trim(),
+                wide: style.getPropertyValue("--w-wide").trim(),
               };
             });
           },
           headersFor(route),
         );
         expect(
-          tokens.breakpointLg,
-          `${route.path}: --breakpoint-lg must be declared`,
+          tokens.floor,
+          `${route.path}: --t-eyebrow must be declared`,
         ).not.toBe("");
-        expect(
-          tokens.breakpointXl,
-          `${route.path}: --breakpoint-xl must be declared`,
-        ).not.toBe("");
-        expect(
-          tokens.tFloor,
-          `${route.path}: --t-floor must be declared`,
-        ).not.toBe("");
-        expect(parseFloat(tokens.breakpointLg)).toBe(BAND_MIN.medium);
-        expect(parseFloat(tokens.breakpointXl)).toBe(BAND_MIN.wide);
+        expect(parseFloat(tokens.floor)).toBe(11);
+        expect(parseFloat(tokens.read)).toBe(704);
+        expect(parseFloat(tokens.wide)).toBe(BAND_MIN.wide - 2 * 32);
       }
       if (routes.length === 0) {
         expect(routes).toEqual([]);

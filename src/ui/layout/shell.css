@@ -86,7 +86,8 @@
 }
 
 /* §2.5: "Provenance is always visible but always quiet … mono, dim, small."
- * `--t-floor` is the floor itself (11px), never below it (ADR-093 d3). */
+ * `--t-eyebrow` is the floor itself (11px), never below it (ADR-093 d3,
+ * ruling 10a). */
 .rk-prov {
   margin: 0;
   font-family: var(--font-mono);

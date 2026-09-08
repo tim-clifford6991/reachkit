@@ -30,10 +30,11 @@
 // the daisyUI theme mapping that reads them, and before `type.css`, whose
 // element rules are meant to win over the reset.
 //
-// Layout tokens: `src/ui/layout/layout.css` declares `--breakpoint-lg`,
-// `--breakpoint-xl` and `--t-floor` on `:root` (ADR-093; issue #62). The
-// conformance suite reads them off every route's document, so the one
-// stylesheet every route shares is where they are imported.
+// Layout tokens: `src/ui/theme.css` declares the approved set on `:root`,
+// including the ladder's floor `--t-eyebrow` that conformance check 4 reads
+// off every route's document (ADR-093; issues #62, #349). `layout.css` is
+// imported beside it and now declares nothing — its four tokens moved or
+// were resolved; see that file.
 //
 // The layout law itself: `src/ui/layout/surface.css` (issue #241) is what
 // renders `Surface`'s `data-surface` and `data-arm-<band>` attributes — the

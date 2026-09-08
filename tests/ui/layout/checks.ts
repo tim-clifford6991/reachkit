@@ -223,7 +223,7 @@ export function checkNoClippingOrTruncation(opts: {
   return offenders;
 }
 
-/** Check 4 — the type floor. Reads `--t-floor` from `:root`; never defaults. */
+/** Check 4 — the type floor. Reads `--t-eyebrow` from `:root`; never defaults. */
 export function checkTypeFloor(): Offender[] {
   function describe(el: Element): string {
     const tag = el.tagName.toLowerCase();
@@ -242,10 +242,10 @@ export function checkTypeFloor(): Offender[] {
   }
 
   const floorRaw = getComputedStyle(document.documentElement)
-    .getPropertyValue("--t-floor")
+    .getPropertyValue("--t-eyebrow")
     .trim();
   if (!floorRaw) {
-    return [{ check: "type-floor", element: ":root (no --t-floor declared)" }];
+    return [{ check: "type-floor", element: ":root (no --t-eyebrow declared)" }];
   }
   const floor = parseFloat(floorRaw);
   const offenders: Offender[] = [];
