@@ -213,3 +213,27 @@ body {
    * text *is*, which is the call this class exists to make. */
   white-space: nowrap;
 }
+
+/* A mono **phrase** — the face §2.3 requires, folding where language
+ * folds (issue #307).
+ *
+ * §2.3 puts "a search query" in the mono face, and a search query is
+ * several words: "best product analytics tool" is one value to compare
+ * against, and also a line of language with three places it can break
+ * that are *between* words rather than inside one. `.num`'s `nowrap`
+ * (#297) is right for a domain, a ratio, a date, a count — a single token
+ * with no boundary that is not a lie. It is wrong for a phrase, and the
+ * report's opportunities table is where that showed: three mono columns
+ * in a half-width card, none of them able to fold, so the card scrolled
+ * at 1024 and 1280 and clipped the rival beside it (#307).
+ *
+ * So this restores wrapping and nothing else. The face stays mono, and
+ * `overflow-wrap: normal` / `word-break: normal` above still ban breaking
+ * *inside* a word — a phrase folds at its spaces or not at all, and no
+ * single token in it is ever rewritten. It is opted into per value by
+ * `Num`'s `phrase` prop, never inferred: whether a string is one value or
+ * a line of language is a judgement about what the text is, and the
+ * caller is the only one that knows. */
+.num-phrase {
+  white-space: normal;
+}

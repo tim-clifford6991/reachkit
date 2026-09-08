@@ -44,8 +44,26 @@ export function Table(p: {
       <table className={classes.join(" ")}>
         <thead>
           <tr>
+            {/* The header may fold; a cell never does (issue #307).
+                A header is a label — the caller's word for what the column
+                holds — and a label that cannot fold sets the column's
+                minimum from its longest token. That is how a 32px column
+                of counts came to demand 119px and pushed the report's
+                three-column table to 455px inside a 430px card at 1024.
+
+                **Both properties, because daisyUI sets `white-space:
+                nowrap` on `thead th` itself.** `wrap-anywhere` alone
+                changed nothing and measured as if it had: `overflow-wrap`
+                has nothing to act on while the line cannot break at all,
+                so the column minimum stayed exactly where it was and the
+                first two attempts at this fix were invisible.
+
+                A value in a cell still never folds — that rule is
+                `.num`'s, and nothing here reaches it. */}
             {p.columns.map((col) => (
-              <th key={col.key}>{col.header}</th>
+              <th key={col.key} className="whitespace-normal wrap-anywhere">
+                {col.header}
+              </th>
             ))}
           </tr>
         </thead>
