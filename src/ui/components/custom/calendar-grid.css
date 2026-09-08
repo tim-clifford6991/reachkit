@@ -207,6 +207,41 @@
 .rk-cal-cell .badge {
   display: inline-block;
   height: auto;
+  /* `break-word`, and the difference from the cell's own `anywhere` is the
+   * whole of this rule (issue #354).
+   *
+   * `overflow-wrap: anywhere` inherits from `.rk-cal-cell`, and its extra
+   * property over `break-word` is that its break opportunities count
+   * toward min-content — so a chip capped at `max-width: 100%` shrank to
+   * one character's width and then broke every stage word it held:
+   * "Planned" drew as "Planne / d" at the medium and wide bands.
+   *
+   * `break-word` keeps the longest word as the chip's min-content, so a
+   * word that fits is never broken and a chip with a space in it folds
+   * there first — "Your review" and "Needs you" onto two lines, which is
+   * the box changing, exactly as ADR-093 decision 2 asks. A single word
+   * too wide for a `--w-cell-min` cell still breaks, because the only
+   * alternatives left are smaller type, which decision 3 refuses, or an
+   * overflow, which check 2 reports. */
+  /* The chip is a flex item of the cell's head row, so its `min-width` is
+   * `auto` — the width of its longest word — and a floor beats the
+   * `max-width: 100%` below it. "Scheduled" therefore sized its own box
+   * past a `--w-cell-min` cell and escaped it (check 2, at 1024 and 1280),
+   * with no line ever needing to break because the box had already grown
+   * to fit. Zeroing the floor lets the cap apply, and the cell's own
+   * `break-word` then decides where a word folds. */
+  min-width: 0;
+  /* S14's `.cd .badge` sets its own inset — `padding: 2px 6px`, tighter
+   * than the theme's — and this is the rung that lands on. It is the one
+   * place issue #243's "the chip keeps every value the theme gives it"
+   * gives way, and to the approved design rather than to convenience:
+   * daisyUI's inline padding is derived from `--size-selector` and comes
+   * to about 11px a side, which is 22px of a cell that has about 62px to
+   * spend. With it, "Planned" does not fit and breaks; without it, every
+   * one of the five registered stage words fits its cell whole and only
+   * "Your review" and "Needs you" fold — at their spaces, which is where
+   * language folds. */
+  padding-inline: var(--s-1);
   /* The stage chip at the eyebrow rung — the issue's own "stage badge
    * (11px)", and S14's `.cd .badge`. A rung of the closed ladder, never a
    * shrink to fit: `--t-eyebrow` is the smallest size the product has and

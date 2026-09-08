@@ -70,7 +70,15 @@ describe('BUILD §4.6 — "repeat(7,minmax(0,1fr)) — the minmax is load-bearin
 
   it("the cell wraps rather than clips, so the type is never shrunk to fit (ADR-093 d2)", () => {
     const cell = declarations(GRID_CSS).filter((d) => d.parent?.toString().includes(".rk-cal-cell"));
-    expect(cell.some((d) => d.prop === "overflow-wrap" && d.value === "anywhere")).toBe(true);
+    // `break-word` since #354, and the distinction is the point. Both let
+    // a word that does not fit its cell break rather than overflow it;
+    // `anywhere` additionally counts those break opportunities toward
+    // min-content, so the box shrinks to one character and words that DID
+    // fit were broken too ("Planne / d", "onboardin / g"). The column is
+    // `minmax(0, 1fr)` and its floor is already zero, so nothing else in
+    // this sheet depended on that second property.
+    expect(cell.some((d) => d.prop === "overflow-wrap" && d.value === "break-word")).toBe(true);
+    expect(cell.some((d) => d.prop === "overflow-wrap" && d.value === "anywhere")).toBe(false);
     // No *fixed* height anywhere under the cell. `height: auto` is the
     // same claim stated positively — issue #243 needs it on the stage
     // chip, whose own component sets one — so the assertion is on the

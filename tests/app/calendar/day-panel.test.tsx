@@ -116,6 +116,11 @@ describe("REQ-043 c8 — the panel says why this page exists", () => {
     expect(values.length).toBe(5);
     const monoValues = why?.querySelectorAll("dd.num") ?? [];
     expect(monoValues.length).toBe(4);
+    // Three of the four are values made of WORDS and fold where language
+    // folds (#307's `num-phrase`); the fourth is a count and does not.
+    // `.num`'s `nowrap` alone overflowed the 290px panel and took the
+    // document sideways with it (#354).
+    expect(why?.querySelectorAll("dd.num-phrase").length).toBe(3);
     // And the criterion is still stated — as prose, in its own row.
     const texts = [...keys].map((r) => r.textContent ?? "");
     expect(texts.some((t) => t.includes("calendar.why.done-when"))).toBe(true);

@@ -41,12 +41,25 @@ import type { WhyThisPage as WhyFacts } from "./month";
  *  value, and carries `.num` because §2.3 says every one of these is. */
 function Row(p: {
   label: string;
+  /** A value made of **words** — a search query, the question as asked, a
+   *  list of engines — folds where language folds (`num-phrase`, issue
+   *  #307); one made of a single token does not (`num`'s own `nowrap`,
+   *  #297). It is opted into per value and never inferred: whether a string
+   *  is one token or a line of language is a judgement about what the text
+   *  is, and only the caller knows.
+   *
+   *  It is load-bearing at 290px. Three of these five rows carry several
+   *  words, and a nowrap phrase beside a nowrap key in a two-column grid
+   *  overflows the panel and takes the document sideways with it — check 1
+   *  and check 3 of ADR-093 decision 6's sweep, both reported on this
+   *  screen the first time the rows were set as a grid. */
+  phrase?: boolean;
   children: React.ReactNode;
 }): React.JSX.Element {
   return (
     <>
       <dt>{p.label}</dt>
-      <dd className="num">{p.children}</dd>
+      <dd className={p.phrase === true ? "num num-phrase" : "num"}>{p.children}</dd>
     </>
   );
 }
@@ -90,11 +103,17 @@ export function WhyThisPage(p: { why: WhyFacts }): React.JSX.Element {
     <div className="flex flex-col gap-3" data-testid="why-this-page">
       <p className="eyebrow rk-daypanel-eyebrow">{copy("calendar.why.title")}</p>
       <dl className="rk-daypanel-why">
-        <Row label={copy("calendar.why.search")}>{why.search}</Row>
-        <Row label={copy("calendar.why.asked")}>{why.askedAs}</Row>
-        <Row label={copy("calendar.why.answered-today-by")}>
+        <Row label={copy("calendar.why.search")} phrase>
+          {why.search}
+        </Row>
+        <Row label={copy("calendar.why.asked")} phrase>
+          {why.askedAs}
+        </Row>
+        {/* A list of domains: it folds between them and never inside one. */}
+        <Row label={copy("calendar.why.answered-today-by")} phrase>
           {why.answeredTodayBy.join(", ")}
         </Row>
+        {/* A count, or the dash — one token, and it does not fold. */}
         <Row label={copy("calendar.why.you")}>{you.text}</Row>
         <Sentence label={copy("calendar.why.done-when")}>{why.doneWhen}</Sentence>
       </dl>

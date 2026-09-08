@@ -169,8 +169,8 @@ const HAND_WRITTEN: ReadonlyArray<{
   },
   {
     file: "src/app/(account)/app/calendar/page.tsx",
-    classes: ["join", "join-item", "btn", "btn-sm", "btn-active"],
-    why: "§4.6's month switcher (#269). `join` and `join-item` are two of §2.2's fifteen and the barrel has no component for them — a `Join` that took children would be a component whose whole body is a class name. The three items are two `<a>` and one `<span>`, not `Btn`'s `<button>`: the month lives in the address, so the neighbours navigate with no client runtime and the current month is not a control at all. `btn-active` is the mark on that current month, beside `aria-current` — a mark that is tone alone would be the one §2.5 forbids.",
+    classes: ["btn", "btn-sm", "btn-ghost"],
+    why: "§4.6's month switcher, as the approved S14 draws it (#354, and #269 before it): `\u2190 Sep 2026 \u2192`. The two arrows are `<a>` and not `Btn`'s `<button>` because the month lives in the address — they navigate with no client runtime, and the month between them is not a control at all. `btn-ghost` is the quiet pill the drawing gives them: a switcher is not the screen's call to action, and §9.1 gives the screen one fill.",
   },
 ];
 

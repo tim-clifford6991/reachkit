@@ -43,9 +43,26 @@ import type React from "react";
 import { copy } from "@/lib/presentation/copy";
 import { writtenLine } from "../_shell/written";
 import { CalendarView } from "./CalendarView";
-import { addMonths, monthLabel, monthNameOnly } from "./dates";
+import { addMonths, monthNameOnly, monthShortLabel } from "./dates";
 import { parseMonth, readMonth, readSupplyNotice } from "./provider";
 import { supplyLine } from "./supply";
+
+/**
+ * The switcher's two arrows.
+ *
+ * **Fixed glyphs marking a direction, not product sentences** — the same
+ * footing `Stat`'s em dash already stands on ("a fixed glyph marking
+ * 'nothing measured', not a product sentence; BP-018 decision 2 is about
+ * copy, not punctuation"). Neither needs a registry key and neither could
+ * usefully have one: an owner-owed key renders as nothing, and a control
+ * whose only content is nothing is a control nobody can see.
+ *
+ * The *name* of each control is a different question and is answered a
+ * different way — the month it goes to, in the markup below, where a
+ * screen reader reads it and an eye does not.
+ */
+const PREVIOUS_GLYPH = "\u2190";
+const NEXT_GLYPH = "\u2192";
 
 export default async function CalendarPage({
   searchParams,
@@ -77,30 +94,41 @@ export default async function CalendarPage({
           decision 2 asks for. */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1>{copy("calendar.head")}</h1>
-        <nav className="join" data-testid="month-switcher">
+        <nav className="flex items-center gap-2" data-testid="month-switcher">
           <a
             href={`/app/calendar?month=${previous}`}
-            className="join-item btn btn-sm num"
+            className="btn btn-sm btn-ghost"
+            // The arrow is the drawing; the month it goes to is the
+            // accessible name. A glyph with no name is a control nobody
+            // can hear — and the name needs no registry key, because a
+            // month is a value and not a sentence (§2.3). `aria-label` and
+            // not an off-screen span: `sr-only` is an absolutely
+            // positioned, clipped box, which the layout sweep reads as an
+            // element escaping its parent and as text cut off — both true
+            // of it, and both the reason it is the wrong mechanism here.
+            aria-label={monthNameOnly(previous)}
             data-testid="month-previous"
           >
-            {monthNameOnly(previous)}
+            {PREVIOUS_GLYPH}
           </a>
-          {/* Not a link: this is where the customer already is. `aria-current`
-              is what a screen reader reads and `btn-active` is what an eye
-              reads — the mark is never tone alone (§2.5). */}
+          {/* Not a link and not a control: this is where the customer
+              already is. `aria-current` is what a screen reader reads and
+              the emphasis is what an eye reads — the mark is never tone
+              alone (§2.5). */}
           <span
-            className="join-item btn btn-sm btn-active num"
+            className="num font-semibold"
             aria-current="page"
             data-testid="month-current"
           >
-            {monthLabel(month)}
+            {monthShortLabel(month)}
           </span>
           <a
             href={`/app/calendar?month=${next}`}
-            className="join-item btn btn-sm num"
+            className="btn btn-sm btn-ghost"
+            aria-label={monthNameOnly(next)}
             data-testid="month-next"
           >
-            {monthNameOnly(next)}
+            {NEXT_GLYPH}
           </a>
         </nav>
       </div>

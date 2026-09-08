@@ -929,8 +929,18 @@
   cursor: pointer;
 }
 
+/* The card fills the box and shrinks with it. `min-width: 0` is the half
+ * that matters: `.card` is a flex container whose body has the usual
+ * `min-width: auto`, so without it the card refuses to go below its widest
+ * word and paints outside the button in a narrow grid column — check 1 of
+ * ADR-093 decision 6's sweep, reported on `html`. */
 .rk-opt > .card {
   height: 100%;
+  min-width: 0;
+}
+
+.rk-opt > .card > .card-body {
+  min-width: 0;
 }
 
 .rk-opt[aria-pressed="true"] > .card {

@@ -50,7 +50,31 @@ export const SCROLL_CONTAINER_ALLOWLIST: readonly string[] = [
   ".overflow-x-auto",
   ".collapse",
 ];
-export const TRUNCATION_ALLOWLIST: readonly string[] = [];
+// 2026-09-08, issue #354: the calendar cell's own two strings, and the
+// first rows this list has ever carried.
+//
+// A month grid cell is `--w-cell-min` wide by construction (§4.6 fixes the
+// columns at `repeat(7, minmax(0, 1fr))`) and holds a string of unbounded
+// length — a page's title, or the one written line a date with no page
+// states. ADR-093 decision 2 offers a box that grows; here that box is one
+// of seven in a row, and every cell in the row grows with it, so one long
+// title re-cuts the whole month. Decision 3 refuses the other way out,
+// which is smaller type.
+//
+// So the approved S14 clamps: three lines, and the full value on the
+// cell's own `title` attribute (`CalendarGrid.tsx`), which is what makes
+// this a **registered truncation** rather than a loss — the string is
+// still in the document and still reachable. `tests/app/calendar` asserts
+// that the attribute carries the whole of whichever string the cell drew.
+//
+// Neither element is set in the mono face, and check 3 re-derives that
+// mechanically rather than trusting these rows: a clipped **value** is
+// reported whatever this list says, because a value cut in half is a
+// different value. Both of these are prose.
+export const TRUNCATION_ALLOWLIST: readonly string[] = [
+  ".rk-cal-label",
+  ".rk-cal-empty",
+];
 
 /** Check 1 — no horizontal document scroll. */
 export function checkNoHorizontalScroll(): Offender[] {
