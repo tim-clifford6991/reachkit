@@ -88,14 +88,16 @@
 
 /* ── 2 · The card head ────────────────────────────────────────────────── */
 
-/* The approved set's `.card-accent` (UI-SPEC §2): the ruled card shadow
- * with a 1.5px `--accent-line` ring drawn on top of it, which is how the
- * set marks the one card a screen is built around. A ring rather than a
- * border, so the card's own geometry does not move when it takes the
- * accent, and a *line* rather than a fill — the screen's one solid control
- * keeps the accent as a ground (issue #352). */
+/* The approved set's `.card-accent` (UI-SPEC §2): the one card a screen is
+ * built around, marked in `--accent-line`. The set draws it as a 1.5px
+ * ring outside the card's own shadow; here it is the **card's own edge**,
+ * recoloured — every edge in this product is the hairline plus a token
+ * (issue #349's rule, and the reason a compound shadow carrying its own
+ * length is refused). Same idiom, half a pixel thinner, and a *line*
+ * rather than a fill: the screen's solid controls keep the accent as a
+ * ground (issue #352). */
 .rk-accent-ring {
-  box-shadow: var(--shadow-card), 0 0 0 1.5px var(--accent-line);
+  border-color: var(--accent-line);
 }
 
 /* A rounded-square icon chip, an eyebrow, an optional pill on the right.
