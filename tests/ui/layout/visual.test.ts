@@ -177,46 +177,32 @@ const SETUP_ROUTES = enumerateRoutes(APP_ROOT, {
   accountCookie: getSetupAccountCookie(),
 }).filter((route) => route.path === "/setup" || route.path.startsWith("/setup/"));
 
-/** The one address whose content is a function of the wall clock rather than
- *  of a row. Named once, above the two places that read it, so the filter and
- *  the assertion that documents it cannot drift apart. */
-const CLOCK_DRIVEN_ROUTE = "/app/calendar";
-
 /**
- * The §4.4–§4.7 addresses again, signed in as the live account — **less the
- * calendar** (issue #295).
+ * The §4.4–§4.7 addresses again, signed in as the live account — **all of
+ * them, including the calendar again since issue #305.**
  *
  * Enumerated and filtered as `live-account.test.ts` does it, so the two
- * suites cannot disagree about which addresses those are; the one
- * subtraction is stated here rather than there, because it is a fact about
- * *photographing* a screen and not about sweeping one. `live-account.test.ts`
- * still measures the live calendar at all five widths, and checks 1-5 are
- * questions about boxes, which the clock does not move.
+ * suites cannot disagree about which addresses those are.
  *
- * **Why this one address cannot be photographed.** `/app/calendar` draws the
- * month *today* falls in, marks the cell today is, and plans supply onto the
- * dates from today forward. Signed in as the live account every one of those
- * is a live read, so the picture is a function of the day the sweep runs: the
- * three seeded pages move one cell every midnight, the month switcher's
- * label changes at every rollover, and the grid changes shape. A baseline of
- * it is a baseline that goes red tomorrow for no reason anybody changed,
- * which is the same disease as the flake this issue was raised for.
+ * **`/app/calendar` was subtracted here and is back.** It draws the month
+ * *today* falls in, marks the cell today is, and plans supply onto the dates
+ * from today forward; signed in as the live account every one of those was a
+ * live read, so the picture was a function of the day the sweep ran and its
+ * baseline went red at the next midnight for nothing anybody changed (#295,
+ * #299). The clock is now the sweep's own — `SWEEP_NOW`, seeded into the rows
+ * and handed to the app as `RK_FIXED_NOW` (`browser.ts`), read back through
+ * `src/lib/config/now.ts` — so today is a fixture like every other input, and
+ * the densest signed-in screen this product has is photographed rather than
+ * argued about.
  *
- * **What still holds the screen's appearance.** The *reserved* account's
- * `/app/calendar` is photographed at all three bands in both themes, and it
- * is the denser picture: its facts come from `fixture.ts`, whose `now` is
- * frozen, so it renders nineteen pages across a full grid beside a filled day
- * panel — every component this screen has, held still. What the live capture
- * would have added over it is the same components drawn from a database read,
- * and it is exactly that read which the clock moves.
+ * The same instant is what makes `/app` photographable at all: its growth
+ * chart labels three Mondays off the trailing window, and those labels moved
+ * every Monday while the window ended at the wall clock.
  */
 const LIVE_ROUTES = enumerateRoutes(APP_ROOT, {
   segmentFixtures: { ...SEGMENT_FIXTURES, "[draftId]": LIVE_DRAFT_ID },
   accountCookie: getLiveAccountCookie(),
-}).filter(
-  (route) =>
-    (route.path === "/app" || route.path.startsWith("/app/")) && route.path !== CLOCK_DRIVEN_ROUTE
-);
+}).filter((route) => route.path === "/app" || route.path.startsWith("/app/"));
 
 interface Shot {
   readonly route: EnumeratedRoute;
@@ -364,19 +350,19 @@ describe(`visual baselines — ${SHOTS.length} surface(s) × ${BANDS.length} ban
     );
   });
 
-  it("the live account's addresses are photographed as well as the fixture ones — bar the clock-driven one", () => {
+  it("the live account's addresses are photographed as well as the fixture ones — all of them", () => {
     expect(LIVE_ROUTES.map((route) => route.path).sort()).toEqual([
       "/app",
+      "/app/calendar",
       `/app/draft/${LIVE_DRAFT_ID}`,
       "/app/settings",
     ]);
-    // The subtraction, asserted rather than left to be inferred from a
-    // shorter list: `/app/calendar` is enumerated for the live account and
-    // is deliberately not photographed as one. `LIVE_ROUTES`' own note says
-    // why, and the reserved account's capture of the same address is what
-    // holds the screen's appearance.
-    expect(SHOTS.map((shot) => shot.name)).toContain(`reserved${slug(CLOCK_DRIVEN_ROUTE)}`);
-    expect(SHOTS.map((shot) => shot.name)).not.toContain(`live${slug(CLOCK_DRIVEN_ROUTE)}`);
+    // There is no subtraction left to state (issue #305): the clock-driven
+    // address is photographed through both doors, because the clock is the
+    // sweep's own. A list that lost the live capture again would fail here
+    // rather than quietly shrink.
+    expect(SHOTS.map((shot) => shot.name)).toContain(`reserved${slug("/app/calendar")}`);
+    expect(SHOTS.map((shot) => shot.name)).toContain(`live${slug("/app/calendar")}`);
   });
 
   for (const shot of SHOTS) {

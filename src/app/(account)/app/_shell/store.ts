@@ -28,6 +28,7 @@
 // `step-failed` rather than `spend-ceiling` — and both render a stop; when
 // a per-account cap-hit reader exists, this is the one call site to change.
 import { dbAdmin } from "@/lib/db";
+import { now as clock } from "@/lib/config/now";
 import { readStop } from "./stop";
 import { nextDueOn } from "@/lib/scan/weekly";
 import { measuredWeeksOf } from "./week-rows";
@@ -152,7 +153,10 @@ async function plannedCount(siteId: string): Promise<number> {
  */
 export async function readShellFacts(site: ShellSite): Promise<ShellFacts> {
   const { isPublishingOn } = await import("@/lib/publish/switch");
-  const now = new Date();
+  // The frame's one clock read, through the seam (issue #305). The shell
+  // draws on every `/app` screen, so a wall clock here would move every
+  // signed-in baseline whatever the screen under it did.
+  const now = clock();
 
   // The switch is read first: whether there is a next publish at all
   // depends on it (see `nextScheduled`), so it cannot be read beside it.

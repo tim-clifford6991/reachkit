@@ -68,6 +68,7 @@
 // claim (`measuredZero`) and this product does not make claims it has not
 // measured.
 import { OVERVIEW_TRAILING_WEEKS, RATIO_UNLOCK, SUPPLY_SHORT_BELOW } from "@/lib/config/constants";
+import { now as clock } from "@/lib/config/now";
 import { dbAdmin } from "@/lib/db";
 // Imported by file rather than through `@/lib/market/changes`: the barrel
 // also re-exports the declared answers and the pending-change computation,
@@ -371,7 +372,12 @@ async function rivalFacts(a: {
  * trips deep.
  */
 export async function readOverviewFacts(site: OverviewSite): Promise<OverviewFacts> {
-  const now = new Date();
+  // This surface's one clock read, through the seam every surface reads
+  // (issue #305). `windowWeeks` below ends the trailing window at this
+  // instant, so freezing it is what lets the sweep photograph this screen:
+  // the seed writes its measured weeks against the same value, and the two
+  // halves cannot drift apart on a Monday.
+  const now = clock();
   const { supplyDepth } = await import("@/lib/opportunities");
 
   const [firstDueOn, published, depth, waiting, series] = await Promise.all([

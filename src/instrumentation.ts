@@ -64,7 +64,7 @@
  *  is a name from a closed set — never a binding's value, never a vendor
  *  payload, never the price id. */
 function log(
-  check: "checkout" | "access-gate" | "stamp-place",
+  check: "checkout" | "access-gate" | "stamp-place" | "clock",
   outcome: "checked" | "unchecked",
   reason?: string
 ): void {
@@ -82,6 +82,16 @@ function log(
  */
 export async function register(): Promise<void> {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
+
+  // The clock binding, before anything else asserts anything (issue #305).
+  // `RK_FIXED_NOW` freezes what every surface calls today — it is what lets
+  // the layout sweep photograph screens whose content is a function of the
+  // date — and a real deployment carrying one would serve a date that is not
+  // the date. It is local and needs nobody, so it is asserted like `env`:
+  // the process does not start.
+  const { assertClockBinding } = await import("@/lib/config/now");
+  assertClockBinding();
+  log("clock", "checked");
 
   // ADR-050's gate, first: it is local, it needs nobody, and the vendor arm
   // below returns early on an unreadable Stripe. A registration after that
