@@ -3,7 +3,7 @@
 //
 // The closed partition list, written once (BP-020 decision 5). Every
 // sentence the product speaks in its own voice is composed here from the
-// thirteen `keys/*.ts` partitions — no fourteenth import, no re-export by
+// fourteen `keys/*.ts` partitions — no fifteenth import, no re-export by
 // name. (Twelve until issue #19 added `keys/signin.ts` for the sign-in
 // screen's sentences, on the footing `keys/offer.ts`'s own header records
 // for the twelfth: BP-020 decision 5 named eleven partitions before the
@@ -33,6 +33,7 @@ import { OFFER_COPY } from "./keys/offer.ts";
 import { BANDS_COPY } from "./keys/bands.ts";
 import { LAWS_COPY } from "./keys/laws.ts";
 import { SIGNIN_COPY } from "./keys/signin.ts";
+import { CHROME_COPY } from "./keys/chrome.ts";
 
 export interface CopyMeta {
   /** Which cross-cutting law, if any, governs this sentence. The conformance
@@ -75,6 +76,7 @@ const ENTRIES = {
   ...BANDS_COPY,
   ...LAWS_COPY,
   ...SIGNIN_COPY,
+  ...CHROME_COPY,
 } as const satisfies Record<string, readonly [string, CopyMeta]>;
 
 type Entries = typeof ENTRIES;

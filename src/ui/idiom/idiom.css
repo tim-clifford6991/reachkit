@@ -1,0 +1,782 @@
+/* src/ui/idiom/idiom.css — the owner-approved card idiom, 2026-09-02.
+ * BUILD §2.1–§2.3, design/tokens.md §9, design/components.md §7. Issue #266.
+ *
+ * The owner ruled, verbatim: "This is exactly what we need — 'A · Six
+ * boxes' is my preference and what we should proceed with", endorsing the
+ * idiom drawn as live code under
+ * `archive/…/design/previews/app/src/app/idiom/`. This file is that idiom
+ * ported into the product, rule for rule. **It is a port, not a design.**
+ * Where the archive's own stylesheet made a choice, that choice is kept and
+ * its comment travels with it; nothing here is re-decided.
+ *
+ * NOT a sixth §2.2 custom-CSS surface. §2.2 closes custom CSS at "the
+ * calendar grid, the day panel, the AI dot-matrix, chart SVGs, and the
+ * sidebar". This styles none of those: it declares four tokens and widens
+ * three registered components' arms (`Card`'s head, `Btn`'s ranks,
+ * `Progress`'s ground) plus the two public grounds the idiom introduced —
+ * the accent ground and the glass card. `tests/ui/design/component-
+ * registry.test.ts` carries its row and this reason.
+ *
+ * THE TWO VALUES THE OWNER DID NOT RULE ARE NOT TAKEN (tokens.md §9.2,
+ * whose own point this is):
+ *   · the card radius stays `--r-box` 14px. The idiom proposed `--r-card`
+ *     18px as a *second* variable precisely so a ruled value would not be
+ *     re-drawn; porting the 18 would be the ruling arriving by being drawn.
+ *   · numerals stay JetBrains Mono. `BUILD.md` §2.3 states it flatly and
+ *     `--t-num-headline-face` defaults to the mono face, which is the arm
+ *     that conforms. One declaration flips it the day the owner rules.
+ */
+
+:root {
+  /* design/tokens.md §9.3, all four transcribed with their derivations.
+   *
+   * --shadow-lift — the idiom's first rule is that cards are separated by
+   * shadow and never by a border, and `--shadow-card` is a 1px hairline
+   * that cannot carry an edge alone. The dark construction is §2.1's own
+   * pattern for the -bg/-line pairs: the same geometry re-inked at a
+   * second alpha. */
+  --shadow-lift: 0 1px 2px rgb(24 24 48 / 0.04), 0 6px 16px rgb(24 24 48 / 0.07);
+
+  /* --on-accent-quiet — the quiet ink on an accent ground. `--ink-3` is the
+   * quiet ink on `--bg` and the set had no on-accent equivalent, so the
+   * sign-in panel's mono domain line had nothing to take. Mixed *toward the
+   * ground*, not toward transparency, because that is the relationship
+   * `--ink-3` has to `--ink`; a low alpha to transparent puts running text
+   * under any contrast floor. */
+  --on-accent-quiet: color-mix(in oklab, var(--on-accent) 28%, var(--accent));
+
+  /* --grad-accent — derived, not minted. `design/` has no gradient and the
+   * set has no second accent stop, so both stops are tokens that already
+   * exist: the ground is `--accent` and the highlight is `--on-accent` at
+   * 28%, which is §2.1's own stated alpha ("+ matching -bg/-line at
+   * 12%/28% alpha"). The three position proportions are geometry inside the
+   * element's own box — the same class of value as an SVG coordinate. */
+  --grad-accent: radial-gradient(
+    circle at 78% 22%,
+    color-mix(in oklab, var(--on-accent) 28%, transparent) 0%,
+    transparent 62%
+  );
+
+  /* --w-form — a third content measure, 420px. Neither existing one fits a
+   * single form column: at the 15px body `--w-read` 704 runs to about 94
+   * characters, outside the 45–75 measure, and 420 runs to about 56, inside
+   * it. It is also the column the page the owner endorsed draws. */
+  --w-form: 420px;
+}
+
+:root:not([data-theme="light"]) {
+  @media (prefers-color-scheme: dark) {
+    --shadow-lift: 0 1px 2px rgb(0 0 0 / 0.3), 0 6px 16px rgb(0 0 0 / 0.45);
+  }
+}
+
+:root[data-theme="dark"] {
+  --shadow-lift: 0 1px 2px rgb(0 0 0 / 0.3), 0 6px 16px rgb(0 0 0 / 0.45);
+}
+
+/* ── 1 · The card: shadow, never a border ─────────────────────────────── */
+
+/* The idiom's first rule. The radius is the ruled `--r-box`, not the
+ * idiom's proposed 18 — see this file's header. */
+.rk-idiom-card {
+  border: 0;
+  border-radius: var(--r-box);
+  box-shadow: var(--shadow-lift);
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  padding: var(--s-4);
+  min-width: 0;
+}
+
+@media (min-width: 640px) {
+  .rk-idiom-card {
+    padding: var(--s-5);
+  }
+}
+
+/* "--s-5 for a card, --s-6 for a larger card." Which card is larger is a
+ * judgement no token holds, so it is the caller's opt-in and is never
+ * inferred from a column count. */
+@media (min-width: 1024px) {
+  .rk-idiom-card[data-pad="lg"] {
+    padding: var(--s-6);
+  }
+}
+
+/* ── 2 · The card head ────────────────────────────────────────────────── */
+
+/* A rounded-square icon chip, an eyebrow, an optional pill on the right.
+ * The chip is `--s-6` square: the ruled ladder is closed and 32 is the rung
+ * the idiom's drawn 30 lands on — a 30px token would be a value between two
+ * rungs, which the ladder's own rule refuses. */
+.rk-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+}
+
+.rk-head-l {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.rk-head-chip {
+  width: var(--s-6);
+  height: var(--s-6);
+  border-radius: var(--r-field);
+  background: var(--accent-bg);
+  color: var(--accent);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+/* ── 3 · Pill buttons, three ranks ────────────────────────────────────── */
+
+/* One solid accent primary, an outline secondary, a quiet tertiary. The
+ * radius is the registered `--r-pill`; the two quiet arms are the widening
+ * of `Btn` that `components.md` §7 records. */
+.rk-idiom .btn,
+.btn.rk-pill {
+  border-radius: var(--r-pill);
+}
+
+/* Named `outline`/`quiet`/`inverse` rather than after the ranks
+ * (`secondary`, `on-accent`): a class ending in a daisyUI family word —
+ * `-secondary`, `-accent`, `-neutral`, `-info` — is what
+ * `tests/ui/design/theme-slots.test.ts` sweeps for, because a modifier of a
+ * family with no declared slot renders a ground with no colour. These are
+ * not daisyUI modifiers, and the sweep should not have to know that. */
+.btn.rk-btn-outline {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--ink);
+}
+
+.btn.rk-btn-tertiary {
+  background: transparent;
+  border: 0;
+  color: var(--ink-2);
+}
+
+/* On an accent ground a solid primary cannot be the accent, so it inverts:
+ * `--on-accent` fill, `--accent` label. Two named tokens, no third value. */
+.btn.rk-btn-inverse {
+  background: var(--on-accent);
+  border: 0;
+  color: var(--accent);
+}
+
+/* ── 3b · The tinted panel — `ActionPanel` ────────────────────────────── */
+
+/* "Anything asking the customer to act is a tinted panel." Tone admits
+ * accent and warn only: `--ok`/`--warn`/`--bad` are state colours and a
+ * panel is not a state, so `ok` and `bad` have no position here. The
+ * component's own union is what refuses them; this file could not. */
+.rk-panel {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-4);
+  flex-wrap: wrap;
+  border-radius: var(--r-box);
+  padding: var(--s-4);
+  background: var(--accent-bg);
+}
+
+@media (min-width: 640px) {
+  .rk-panel {
+    padding: var(--s-5);
+    flex-wrap: nowrap;
+  }
+}
+
+.rk-panel[data-tone="warn"] {
+  background: var(--warn-bg);
+}
+
+.rk-panel-chip {
+  width: var(--s-6);
+  height: var(--s-6);
+  border-radius: var(--r-field);
+  background: var(--surface);
+  color: var(--accent);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.rk-panel[data-tone="warn"] .rk-panel-chip {
+  color: var(--warn);
+}
+
+.rk-panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.rk-panel-title {
+  font-size: var(--t-h4);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.rk-panel-cta {
+  flex: 0 0 auto;
+}
+
+/* ── 4 · The accent ground ────────────────────────────────────────────── */
+
+/* One surface used twice — the landing hero and the sign-in panel. Ground
+ * `--accent`, highlight `--grad-accent`, ink `--on-accent`, quiet ink
+ * `--on-accent-quiet`. */
+.rk-accent-ground {
+  background-color: var(--accent);
+  background-image: var(--grad-accent);
+  color: var(--on-accent);
+}
+
+.rk-accent-ground .eyebrow,
+.rk-accent-ground .rk-quiet {
+  color: var(--on-accent-quiet);
+}
+
+/* A control on the accent ground keeps its own surface — a field that took
+ * the ground would have no edge and no contrast floor to stand on. */
+.rk-accent-ground .input {
+  background: var(--surface);
+  color: var(--ink);
+}
+
+/* ── 5 · The glass card ───────────────────────────────────────────────── */
+
+/* `--on-accent` at 12% for the fill and 28% for the hairline — the pair
+ * §2.1 states verbatim, applied to `--on-accent` instead of to a state hue,
+ * which is the derivation the six dark -bg/-line values already take. No
+ * token is added: the names are the system's, the values are BUILD's. */
+.rk-glass {
+  /* Written inline rather than named: `design/tokens.md` §9.3 is explicit
+   * that these two are **not tokens** — "no token is added: the names are
+   * the system's and the values are BUILD's" — and a local custom property
+   * would be a token with one home and no ruling behind it. */
+  background: color-mix(in oklab, var(--on-accent) 12%, transparent);
+  border: 1px solid color-mix(in oklab, var(--on-accent) 28%, transparent);
+  border-radius: var(--r-box);
+  padding: var(--s-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+@media (min-width: 1024px) {
+  .rk-glass {
+    padding: var(--s-6);
+  }
+}
+
+/* A small dark pill on an accent ground: `--ink` on `--surface`, two named
+ * tokens that invert with the theme rather than pinning a light colour. */
+.rk-pill-inverse {
+  background: var(--ink);
+  color: var(--surface);
+  border-radius: var(--r-pill);
+  padding: var(--s-1) var(--s-2);
+  font-size: var(--t-xs, 12px);
+  white-space: normal;
+  max-width: 100%;
+}
+
+/* `Progress`'s track and fill in `--on-accent` instead of `--sunk`/
+ * `--chart-*` — a widening of the registered component, not a sixth chart
+ * form (§2.4's inventory is closed and this adds nothing to it). It skins
+ * the native `<progress>` the component already renders, so the bar keeps
+ * its element, its role and its accessible name. */
+.progress.rk-progress-inverse {
+  color: var(--on-accent);
+  background-color: color-mix(in oklab, var(--on-accent) 12%, transparent);
+  border-radius: var(--r-pill);
+}
+
+.progress.rk-progress-inverse::-webkit-progress-bar {
+  background-color: transparent;
+  border-radius: var(--r-pill);
+}
+
+.progress.rk-progress-inverse::-webkit-progress-value {
+  background-color: var(--on-accent);
+  border-radius: var(--r-pill);
+}
+
+.progress.rk-progress-inverse::-moz-progress-bar {
+  background-color: var(--on-accent);
+  border-radius: var(--r-pill);
+}
+
+/* ── 6 · The sign-in split ────────────────────────────────────────────── */
+
+/* Two panels, roughly 50/50, full viewport height at and above
+ * `--breakpoint-lg`. The width is derived rather than picked: two form
+ * columns (2 × --w-form = 840) plus a generous inset either side
+ * (2 × (--s-7 + --s-6) = 160) is 1000, and 1024 is the smallest named step
+ * that clears it.
+ *
+ * THE NARROW ARM IS DECIDED, NOT DEFERRED. Below `--breakpoint-lg` the
+ * panel is not beside the form, not above it, and not dropped: it follows
+ * the form in flow, full width, on the same ground. The screen has exactly
+ * one primary action and it must be the first thing on the screen at every
+ * width; the panel carries no action and no route, so following the form
+ * costs the customer nothing, while putting it above pushes an email field
+ * below the fold on a phone. */
+.rk-split {
+  display: flex;
+  flex-direction: column;
+  min-height: 100svh;
+}
+
+.rk-split > * {
+  min-height: 0;
+}
+
+@media (min-width: 1024px) {
+  .rk-split {
+    flex-direction: row;
+    align-items: stretch;
+  }
+
+  .rk-split > * {
+    flex: 1 1 50%;
+  }
+}
+
+.rk-split-form {
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: var(--s-6) var(--s-4);
+}
+
+@media (min-width: 640px) {
+  .rk-split-form {
+    padding: var(--s-7) var(--s-5);
+  }
+}
+
+@media (min-width: 1024px) {
+  .rk-split-form {
+    padding: var(--s-7);
+    padding-left: calc(var(--s-7) + var(--s-6));
+  }
+}
+
+.rk-form-col {
+  width: 100%;
+  max-width: var(--w-form);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+
+.rk-split-panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--s-5);
+  padding: var(--s-6) var(--s-4);
+}
+
+@media (min-width: 640px) {
+  .rk-split-panel {
+    padding: var(--s-7) var(--s-5);
+  }
+}
+
+@media (min-width: 1024px) {
+  .rk-split-panel {
+    padding: var(--s-7);
+  }
+}
+
+.rk-panel-col {
+  width: 100%;
+  max-width: var(--w-read);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+}
+
+/* ── 7 · The landing ──────────────────────────────────────────────────── */
+
+/* Block padding only. The inline gutter is the `Surface`'s (issue #241),
+ * and a hero that added its own would inset the tagline twice — at 320 that
+ * is 64px off a 320px viewport, and the headline #258 just fixed goes back
+ * to four lines. The same defect the app shell had, in the same place: a
+ * surface that predates the layout law paying the gutter a second time. */
+.rk-hero {
+  padding-block: var(--s-6);
+}
+
+@media (min-width: 640px) {
+  .rk-hero {
+    padding-block: var(--s-7);
+  }
+}
+
+.rk-hero-grid {
+  max-width: var(--w-wide);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--s-6);
+  align-items: center;
+}
+
+@media (min-width: 1024px) {
+  .rk-hero-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--s-7);
+  }
+}
+
+.rk-hero-copy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  min-width: 0;
+}
+
+.rk-hero-form {
+  display: flex;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+
+.rk-hero-form > :first-child {
+  flex: 1 1 var(--w-form);
+  min-width: 0;
+}
+
+/* The hero's product component sits on `--surface`, floating on the accent
+ * — shown in its own theme, exactly as a customer meets it after paying. */
+.rk-hero-specimen {
+  background: var(--surface);
+  color: var(--ink);
+  border-radius: var(--r-box);
+  box-shadow: var(--shadow-lift);
+  padding: var(--s-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  min-width: 0;
+}
+
+@media (min-width: 640px) {
+  .rk-hero-specimen {
+    padding: var(--s-5);
+  }
+}
+
+/* The specimen is an island of `--surface` inside the accent ground, so it
+ * takes the ground's ink back off again. Without this the quiet-ink rule
+ * above leaks into a white card and puts violet eyebrows on it — the exact
+ * failure mode a scoped override has, stated where it happens. */
+.rk-accent-ground .rk-hero-specimen .eyebrow,
+.rk-accent-ground .rk-hero-specimen .rk-quiet {
+  color: var(--ink-3);
+}
+
+/* The heading on an accent ground. **It sets no size**, and that is the
+ * port's one deliberate departure from the archive's `.ci-on-accent-h1`.
+ *
+ * That class pinned `--t-h2` below `--breakpoint-sm` and `--t-h1` above —
+ * which is exactly what `src/ui/type.css`'s own `h1` rule already does
+ * since issue #258, so on the landing's `h1` it was the same rule written
+ * twice (rule 2.4). On the sign-in panel the archive puts the same class on
+ * an `<h2>`, where it is not a duplicate but an **upsize**: an h2 rendering
+ * at the h1 rung. `tests/ui/layout/heading-scale.test.ts` measures every
+ * rendered heading against its own step of the ruled scale and reported it,
+ * correctly, the first time this ran.
+ *
+ * So the size comes off and each element keeps its own step: the landing's
+ * h1 is 31/25 by `type.css`, the panel's h2 is 25 at every width. What the
+ * class carries is what the accent ground actually needs — the balance, the
+ * tighter leading a display line wants, and no margin. */
+.rk-on-accent-h1 {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+  line-height: 1.25;
+  margin: 0;
+}
+
+/* Block padding only, for the reason `.rk-hero` states. */
+.rk-section {
+  padding-block: var(--s-6);
+}
+
+@media (min-width: 640px) {
+  .rk-section {
+    padding-block: var(--s-7);
+  }
+}
+
+.rk-section-surface {
+  background: var(--surface);
+}
+
+.rk-section-in {
+  max-width: var(--w-wide);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+}
+
+.rk-section-read {
+  max-width: var(--w-read);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.rk-three {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--s-4);
+}
+
+@media (min-width: 1024px) {
+  .rk-three {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: start;
+  }
+}
+
+.rk-quiet {
+  color: var(--ink-2);
+  margin: 0;
+}
+
+/* ── 8 · The public chrome — PROPOSED (issue #266) ────────────────────── */
+
+/* No approved artifact draws a public header or footer: the owner endorsed
+ * the card idiom, and that idiom draws the landing, the sign-in and the
+ * overview, not the chrome around them. The mockup linked on #266 carries
+ * the label *proposed — not in the approved idiom*, and these rules are
+ * that mockup. They spend the idiom's own vocabulary and mint nothing: the
+ * pill ranks, the `--s-6` square chip, `--shadow-lift` separation, and the
+ * eyebrow already declared above. */
+
+.rk-chrome-head {
+  background: var(--surface);
+  box-shadow: var(--shadow-lift);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.rk-chrome-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  max-width: var(--w-wide);
+  margin-inline: auto;
+  padding: var(--s-3) var(--s-4);
+}
+
+@media (min-width: 1024px) {
+  .rk-chrome-bar {
+    padding-inline: var(--s-5);
+  }
+}
+
+.rk-wordmark {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: inherit;
+  text-decoration: none;
+  margin-right: auto;
+  min-width: 0;
+}
+
+.rk-wordmark-chip {
+  width: var(--s-4);
+  height: var(--s-4);
+  border-radius: var(--r-pill);
+  background: var(--accent);
+  flex: 0 0 auto;
+}
+
+/* The links sit in the bar at and above --breakpoint-lg; below it the
+ * collapse under the bar carries them. Exactly one of the two is displayed
+ * at any width, so no link is ever in the document twice over. */
+.rk-chrome-nav {
+  display: none;
+  gap: var(--s-5);
+  align-items: center;
+}
+
+.rk-chrome-nav a,
+.rk-chrome-stack a {
+  color: var(--ink-2);
+  text-decoration: none;
+}
+
+.rk-chrome-compact {
+  display: block;
+  padding: 0 var(--s-4) var(--s-3);
+}
+
+.rk-chrome-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+@media (min-width: 1024px) {
+  .rk-chrome-nav {
+    display: flex;
+  }
+
+  .rk-chrome-compact {
+    display: none;
+  }
+}
+
+.rk-chrome-cta {
+  flex: 0 0 auto;
+}
+
+.rk-chrome-foot {
+  background: var(--surface);
+  box-shadow: var(--shadow-lift);
+  margin-top: auto;
+}
+
+.rk-chrome-foot-in {
+  max-width: var(--w-wide);
+  margin-inline: auto;
+  padding: var(--s-6) var(--s-4);
+  display: grid;
+  gap: var(--s-5);
+}
+
+@media (min-width: 1024px) {
+  .rk-chrome-foot-in {
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: var(--s-6);
+    padding-inline: var(--s-5);
+  }
+}
+
+.rk-chrome-foot-in nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+
+.rk-chrome-foot-in nav a {
+  color: var(--ink-2);
+  text-decoration: none;
+  padding-block: 3px;
+}
+
+.rk-chrome-fine {
+  color: var(--ink-3);
+  font-size: var(--t-xs, 12px);
+  margin: var(--s-2) 0 0;
+}
+
+/* The public shell is a column so the footer sits at the bottom of a short
+ * page rather than half-way up it. */
+.rk-public-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100svh;
+}
+
+/* ── 9 · The figure on an accent ground ───────────────────────────────── */
+
+/* The sign-in panel's score. `--t-num-big` at and above `--breakpoint-sm`,
+ * the h1 rung below it — and in the **mono** face, because BUILD §2.3 states
+ * it flatly and the owner has not ruled otherwise (tokens.md §9.2). */
+.rk-figure {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+  margin: 0;
+}
+
+.rk-figure-big {
+  font-size: var(--t-h1);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  /* No tightened leading. The archive draws this at 1.05, and a mono
+   * numeral set at a heading size inside a line box shorter than the
+   * font's own ascent-plus-descent escapes that box — `src/ui/type.css`'s
+   * `.num` records the same finding from issue #13 and answers it with
+   * `line-height: normal`, which is what governs here once nothing
+   * overrides it. The layout suite reported the 62 on the sign-in panel
+   * clipping, which is exactly that. */
+}
+
+@media (min-width: 640px) {
+  .rk-figure-big {
+    font-size: var(--t-num-big, 44px);
+  }
+}
+
+.rk-figure-of {
+  font-size: var(--t-h3);
+  color: var(--on-accent-quiet);
+}
+
+/* The provenance line inside the glass card — quiet, mono, on the accent. */
+.rk-prov {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  color: var(--on-accent-quiet);
+}
+
+/* ── 10 · The legal pages ─────────────────────────────────────────────── */
+
+/* A title and one body, at the reading measure. Nothing else is on them. */
+.rk-legal {
+  max-width: var(--w-read);
+  margin-inline: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  padding-block: var(--s-6);
+}
+
+/* The repeated call to the hero's own action: the idiom's outline rank,
+ * drawn on a link because the screen already has its one solid primary. */
+.rk-cta-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  padding: var(--s-2) var(--s-4);
+  color: var(--ink);
+  text-decoration: none;
+  font-weight: 700;
+}

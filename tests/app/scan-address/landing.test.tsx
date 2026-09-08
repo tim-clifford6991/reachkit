@@ -47,6 +47,18 @@ import type { NetworkKey } from "@/lib/scan/admission";
 
 const PAGE_PATH = path.resolve(import.meta.dirname, "../../../src/app/(public)/page.tsx");
 const PAGE_SOURCE = readFileSync(PAGE_PATH, "utf8");
+// 2026-09-07, issue #266: the page became a Server Component so the hero's
+// specimen could be the report's own component over the reserved fixture,
+// and the one interactive part — the field, its control and the two
+// transports — moved into `_landing/ScanForm.tsx` unchanged. The assertions
+// that read the *mechanism* read it there; the ones that read what the page
+// renders still render the page, which is the half that matters and the
+// half that did not move.
+const FORM_PATH = path.resolve(
+  import.meta.dirname,
+  "../../../src/app/(public)/_landing/ScanForm.tsx"
+);
+const FORM_SOURCE = readFileSync(FORM_PATH, "utf8");
 
 const NETWORK = "network-key-fixture" as NetworkKey;
 
@@ -135,16 +147,35 @@ describe(
       const markup = await renderPage();
 
       expect(markup).not.toMatch(/sign[- ]?in/i);
-      expect(markup).not.toMatch(/<a\b[^>]*href/i);
       expect(markup).not.toMatch(/type="email"/);
-      expect(markup).not.toMatch(/payment|card|checkout/i);
+      // Text only. The idiom's boxes carry a `card` class name (issue
+      // #266) and a class name is not something a visitor is asked for —
+      // what this refuses is the *word* on the screen.
+      const visible = markup.replace(/<[^>]*>/g, " ");
+      expect(visible).not.toMatch(/payment|card|checkout/i);
+
+      // 2026-09-07, issue #266: this read `not.toMatch(/<a href/)` — no
+      // anchor at all — and the page now carries one, the how-to-start
+      // section's CTA, which points at the page's own field. So the
+      // assertion says what it always meant: **no anchor that gates**.
+      // Every anchor on this page is an in-page one; a link that left for a
+      // sign-in, a price or a checkout is what c1 and c10 refuse, and the
+      // three assertions above already name those by their words.
+      const hrefs = [...markup.matchAll(/<a\b[^>]*href="([^"]*)"/gi)].map((m) => m[1]);
+      for (const href of hrefs) {
+        expect(href, `${href} leaves the page before the visitor has submitted`).toMatch(/^#/);
+      }
 
       // Source assertion: page.tsx imports no session, auth or account
       // module (WO-062's own convention for the same property on route.ts),
       // and never touches `document.cookie` — the only way a Client
       // Component could set one itself.
-      expect(PAGE_SOURCE).not.toMatch(/from\s+["'][^"']*\b(session|auth|account)\b[^"']*["']/i);
-      expect(PAGE_SOURCE).not.toMatch(/document\.cookie/);
+      // Both files: the promise is the *page's*, and half of it now lives
+      // in the form.
+      for (const source of [PAGE_SOURCE, FORM_SOURCE]) {
+        expect(source).not.toMatch(/from\s+["'][^"']*\b(session|auth|account)\b[^"']*["']/i);
+        expect(source).not.toMatch(/document\.cookie/);
+      }
     });
   }
 );
@@ -251,15 +282,15 @@ describe(
     });
 
     it("landing/no-js · the <form> itself is a plain post to /api/scan, with no JavaScript required to reach it", () => {
-      expect(PAGE_SOURCE).toMatch(/<form\s+action="\/api\/scan"\s+method="post"/);
+      expect(FORM_SOURCE).toMatch(/<form\s+action="\/api\/scan"\s+method="post"/);
       // The one field carries the native `name` a plain HTML submission
       // needs (`src/ui/components/Input.tsx`'s WO-070 addition).
-      expect(PAGE_SOURCE).toMatch(/name="value"/);
+      expect(FORM_SOURCE).toMatch(/name="value"/);
       // preventDefault() is what turns the native submission into the
       // JavaScript path — its presence does not remove the native
       // action/method above, which is what a client with no runtime
       // falls back to.
-      expect(PAGE_SOURCE).toMatch(/preventDefault\(\)/);
+      expect(FORM_SOURCE).toMatch(/preventDefault\(\)/);
     });
   }
 );
@@ -282,7 +313,7 @@ describe(
       // returns immediately — no state is set and nothing else renders in
       // between (source assertion: the `ok` branch's only statements are
       // the navigation and the return).
-      const okBranch = PAGE_SOURCE.match(/if \(body\.ok\) \{([\s\S]*?)\}/);
+      const okBranch = FORM_SOURCE.match(/if \(body\.ok\) \{([\s\S]*?)\}/);
       expect(okBranch, "no `if (body.ok)` branch found").toBeTruthy();
       expect(okBranch![1]).toMatch(/window\.location\.assign\(body\.location\)/);
       expect(okBranch![1]).toMatch(/return;/);
@@ -300,7 +331,7 @@ describe('REQ-093 c1 (BP-022: "This node contains no string literal a person rea
     expect(PAGE_SOURCE).not.toMatch(/\blabel=["'][^{]/);
     expect(PAGE_SOURCE).not.toMatch(/\bplaceholder=["'][^{]/);
     expect(PAGE_SOURCE).not.toMatch(/\binvalidMessage=["'][^{]/);
-    expect(PAGE_SOURCE).toMatch(/<h1>\{copy\(["']landing\.headline["']\)\}<\/h1>/);
+    expect(PAGE_SOURCE).toMatch(/<h1[^>]*>\{copy\(["']landing\.headline["']\)\}<\/h1>/);
 
     // No bare JSX text node outside a `{…}` expression, scoped to the
     // component's own returned JSX (the slice from `return (` to the
@@ -317,12 +348,16 @@ describe('REQ-093 c1 (BP-022: "This node contains no string literal a person rea
     // called through `PROBLEM_COPY_KEY[problem]` — a lookup, not a
     // literal — so each of those five is checked as a value in that map
     // instead, and the lookup call site is checked once.
+    // The headline is the page's; the field's two are the form's since
+    // #266 split them. Both files are read, so the property is the same one
+    // and neither half can quietly start writing a sentence.
+    const BOTH = `${PAGE_SOURCE}\n${FORM_SOURCE}`;
     for (const key of ["landing.headline", "landing.field.label", "landing.submit.label"]) {
-      expect(PAGE_SOURCE, `copy() never reaches "${key}"`).toMatch(
+      expect(BOTH, `copy() never reaches "${key}"`).toMatch(
         new RegExp(`copy\\(["']${key.replace(/[.-]/g, "\\$&")}["']`)
       );
     }
-    expect(PAGE_SOURCE).toMatch(/copy\(PROBLEM_COPY_KEY\[problem\]\)/);
+    expect(FORM_SOURCE).toMatch(/copy\(PROBLEM_COPY_KEY\[problem\]\)/);
     for (const key of [
       "landing.problem.empty",
       "landing.problem.not-a-hostname",
@@ -330,7 +365,7 @@ describe('REQ-093 c1 (BP-022: "This node contains no string literal a person rea
       "landing.problem.no-public-suffix",
       "landing.problem.too-long",
     ]) {
-      expect(PAGE_SOURCE, `"${key}" is not a value in PROBLEM_COPY_KEY`).toContain(`"${key}"`);
+      expect(FORM_SOURCE, `"${key}" is not a value in PROBLEM_COPY_KEY`).toContain(`"${key}"`);
     }
   });
 });
@@ -358,7 +393,7 @@ describe('ADR-093 decision 6 — "every screen root is a `Surface`" (issue #62)'
     expect(surfaces[0]).toMatch(/data-arm-compact="[^"]+"/);
     expect(surfaces[0]).toMatch(/data-arm-medium="[^"]+"/);
     expect(surfaces[0]).toMatch(/data-arm-wide="[^"]+"/);
-    expect(markup).toMatch(/^<div data-surface=""[^>]*><main>/);
+    expect(markup).toMatch(/^<div data-surface=""[^>]*><main[^>]*>/);
     expect(markup.endsWith("</main></div>")).toBe(true);
   });
 });

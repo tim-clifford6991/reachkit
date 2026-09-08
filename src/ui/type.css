@@ -56,6 +56,20 @@
   --t-h2: 25px;
   --t-h3: 20px;
   --t-h4: 16px;
+
+  /* `design/tokens.md` §4's two further ruled steps, declared here when the
+   * card idiom first spent them (issue #266). The type layer is their home
+   * for the same reason the four above are here.
+   *
+   *   --t-num-big  44px  §2.5's "big mono number": the score, a rival
+   *                      distance. Ruled with the heading scale on
+   *                      2026-09-02 ("Heading size scale — ratio 1.25 …
+   *                      `--t-num-big` 44px").
+   *   --t-xs       12px  §4's "Below body" table: "Badges, chips, dense
+   *                      metadata beside a value." Above `--t-floor` 11px,
+   *                      which is a bound and not a role. */
+  --t-num-big: 44px;
+  --t-xs: 12px;
 }
 
 /* Heading weight is a single value within BUILD.md's stated 700-800 range

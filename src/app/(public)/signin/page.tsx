@@ -54,8 +54,26 @@ import { Input } from "@/ui/components/Input";
 import { Surface } from "@/ui/layout";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { DEAD_LINK_MARKER, LINK_QUERY_KEY } from "@/lib/account/identity/addresses";
+import { Progress } from "@/ui/components/Progress";
 import { sendLink } from "./actions";
 import { EMAIL_FIELD, SIGN_IN_INITIAL, type SignInState } from "./state";
+
+/** The specimen the accent panel shows, and where every figure in it comes
+ *  from: the **reserved fixture account**, whose report `/scan/example.com`
+ *  renders. Not a placeholder and not a real visitor's domain — the two
+ *  things `design/tokens.md` §9.4 refuses. `signin.panel.specimen` is the
+ *  line that says so on the screen; these three are the data behind it.
+ *
+ *  Stated here as constants rather than read through the fixture module,
+ *  because this screen must render before there is a session, a scan or a
+ *  store to read, and a public page that reached the report's own fixture
+ *  loader to draw a decoration would be a read nobody needs. The score is
+ *  the fixture's own 62 (`_fixture/states.ts`), and `tests/app/signin/`
+ *  pins the two against each other so they cannot drift. */
+const SPECIMEN_DOMAIN = "example.com";
+const SPECIMEN_SCORE = 62;
+/** REQ-004's own denominator — the score is out of one hundred. */
+const SPECIMEN_MAX = 100;
 
 type SignInSearchParams = Partial<Record<typeof LINK_QUERY_KEY, string>>;
 
@@ -122,50 +140,89 @@ export default function SignInPage(props: {
   const answer = answerKey === undefined ? undefined : copy(answerKey);
 
   return (
+    // The card idiom's sign-in (issue #266): two panels, roughly 50/50, at
+    // and above `--breakpoint-lg`. Left, the one action. Right, the accent
+    // ground and the glass card. Ported from the endorsed preview code, not
+    // redesigned.
+    //
+    // **The narrow arm is decided, not deferred** (tokens.md §9.4): below
+    // `--breakpoint-lg` the panel does not sit beside the form, does not go
+    // above it, and is not dropped — it follows the form in flow, full
+    // width, on the same ground. The screen has exactly one primary action
+    // and it must be the first thing on the screen at every width; the
+    // panel carries no action and no route, so following the form costs the
+    // customer nothing, while putting it above pushes an email field below
+    // the fold on a phone.
     <Surface
       arms={{
         compact: { kind: "columns", count: 1 },
-        medium: { kind: "same-as-below" },
+        medium: { kind: "columns", count: 2 },
         wide: { kind: "same-as-below" },
       }}
     >
-      {/* The padding is load-bearing, not decoration. `<body>` carries the
-          UA's own margin and nothing else; without a padding edge here the
-          heading's top margin collapses straight through `<main>` and
-          `<body>`, moving `<body>`'s box down while Next's own
-          `<next-route-announcer>` — appended after the app tree — stays
-          where it was, i.e. below `<body>`'s bottom edge. The layout
-          sweep's containment check reads that, correctly, as an element
-          outside its containing block (ADR-093 decision 6 point 2). One
-          padding edge ends the collapse, and gives the screen a margin at
-          320px besides. */}
-      <main className="p-4">
-        {deadLink === undefined ? null : <Alert tone={DEAD_LINK_TONE} message={deadLink} />}
+      <main className="col-span-full rk-split">
+        <div className="rk-split-form">
+          <div className="rk-form-col">
+            {deadLink === undefined ? null : <Alert tone={DEAD_LINK_TONE} message={deadLink} />}
 
-        <h1>{copy("signin.heading")}</h1>
-        <p>{copy("signin.body")}</p>
+            <h1>{copy("signin.heading")}</h1>
+            <p className="rk-quiet">{copy("signin.body")}</p>
 
-        <form action={formAction}>
-          <Input
-            label={copy("signin.field.placeholder")}
-            placeholder={copy("signin.field.placeholder")}
-            name={EMAIL_FIELD}
-            value={value}
-            onChange={setTyped}
-          />
-          <Btn
-            type="submit"
-            label={copy("signin.submit.label")}
-            variant="primary"
-            inFlight={pending}
-          />
-        </form>
+            <form action={formAction}>
+              <Input
+                label={copy("signin.field.placeholder")}
+                placeholder={copy("signin.field.placeholder")}
+                name={EMAIL_FIELD}
+                value={value}
+                onChange={setTyped}
+              />
+              {/* The screen's one solid primary, full width — and the only
+                  solid button on it. */}
+              <Btn
+                type="submit"
+                label={copy("signin.submit.label")}
+                variant="primary"
+                pill
+                block
+                inFlight={pending}
+              />
+            </form>
 
-        <p aria-live="polite">{answer}</p>
+            <p aria-live="polite">{answer}</p>
 
-        <p>
-          {copy("signin.new.prompt")} <Link href="/">{copy("signin.new.link")}</Link>
-        </p>
+            <p>
+              {copy("signin.new.prompt")} <Link href="/">{copy("signin.new.link")}</Link>
+            </p>
+          </div>
+        </div>
+
+        {/* The accent ground and the glass card. Every figure in it is the
+            **reserved fixture account's** own — the same score
+            `/scan/example.com` renders — and `signin.panel.specimen` is the
+            line that says so. tokens.md §9.4 raised this and answered
+            neither surface; #266 answers it: a labelled specimen, never an
+            invented number, and never a stranger's real domain. */}
+        <div className="rk-split-panel rk-accent-ground" data-testid="signin-panel">
+          <div className="rk-panel-col">
+            <h2 className="rk-on-accent-h1">{copy("signin.panel.heading")}</h2>
+            <div className="rk-glass">
+              <p className="rk-prov num">{SPECIMEN_DOMAIN}</p>
+              <p>{copy("signin.panel.score-label")}</p>
+              <p className="rk-figure">
+                <span className="rk-figure-big num">{SPECIMEN_SCORE}</span>
+                <span className="rk-figure-of num">{`/${SPECIMEN_MAX}`}</span>
+              </p>
+              <Progress
+                value={SPECIMEN_SCORE}
+                max={SPECIMEN_MAX}
+                onAccent
+                label={copy("signin.panel.score-label")}
+              />
+              <p className="rk-quiet">{copy("signin.panel.line")}</p>
+              <p className="rk-quiet">{copy("signin.panel.specimen")}</p>
+            </div>
+          </div>
+        </div>
       </main>
     </Surface>
   );

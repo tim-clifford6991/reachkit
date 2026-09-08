@@ -241,4 +241,49 @@ export const REPORT_COPY = Object.freeze({
   "landing.problem.ip-literal": ["That’s a numeric address, not a website name. Type the name people visit, like example.com.", { slots: {}, fixedBy: "REQ-001 c3" }],
   "landing.problem.no-public-suffix": ["That address is missing its ending — try example.com rather than example.", { slots: {}, fixedBy: "REQ-001 c3" }],
   "landing.problem.too-long": ["That’s longer than any website address can be — check for extra text pasted in.", { slots: {}, fixedBy: "REQ-001 c3" }],
+  // ── The landing, composed (issue #266) ─────────────────────────────
+  //
+  // The owner ruled on 2026-09-02 that BUILD §3's landing is "much too
+  // light: above the fold there must be the tagline, a subline, the CTA and
+  // an enticing image/component giving them an immediate feel for what the
+  // app is and looks like, then a product demo video, then a walk through
+  // why-care / what-it-does / how-to-start." The card idiom drew that page
+  // (`previews/app/src/app/idiom/landing`) and enumerated its owed strings
+  // L1–L25 in `idiom/copy.ts` so they can be written in one pass; the keys
+  // below are those slots, in that order, with the numbering kept in the
+  // comments so the owner's list and this file cannot drift.
+  //
+  // `landing.headline` above is the tagline and is **approved** — BUILD §3
+  // verbatim, the one string on this page that is not owed. Every key here
+  // carries the marker: the shape of the argument renders and the argument
+  // itself stays the owner's.
+  //
+  // L7–L10 (the demo video block) are declared and **not rendered**: the
+  // video is *absent* until an asset exists, and tokens.md §9.4 decides
+  // that the absent block does not render at all — no placeholder, no
+  // "coming soon", no empty frame. They are here so the block has its
+  // sentences the day the asset lands, and `tests/app/landing/` asserts the
+  // section is not in the document until then.
+  "landing.subline": ["TODO(copy)", { slots: {}, fixedBy: "issue 266 · L1" }],
+  "landing.hero.specimen.label": ["TODO(copy)", { slots: {}, fixedBy: "issue 266 · L5" }],
+  "landing.hero.specimen.caption": ["TODO(copy)", { slots: {}, fixedBy: "issue 266 · L6" }],
+  "landing.video.eyebrow": ["TODO(copy)", { slots: {}, fixedBy: "issue 266 · L7" }],
+  "landing.video.heading": ["TODO(copy)", { slots: {}, fixedBy: "issue 266 · L8" }],
+  "landing.video.blocked": ["TODO(copy)", { slots: {}, fixedBy: "issue 266 · L9" }],
+  "landing.video.open": ["TODO(copy)", { slots: {}, fixedBy: "issue 266 · L10" }],
+  "landing.why.eyebrow": ["TODO(copy)", { slots: {}, fixedBy: "issue 266 · L11" }],
+  "landing.why.heading": ["TODO(copy)", { slots: {}, fixedBy: "issue 266 · L12" }],
+  "landing.why.body": ["TODO(copy)", { slots: {}, fixedBy: "issue 266 · L13" }],
+  "landing.does.eyebrow": ["TODO(copy)", { slots: {}, fixedBy: "issue 266 · L14" }],
+  "landing.does.heading": ["TODO(copy)", { slots: {}, fixedBy: "issue 266 · L15" }],
+  "landing.does.item-1.title": ["TODO(copy)", { slots: {}, fixedBy: "issue 266 · L16" }],
+  "landing.does.item-1.line": ["TODO(copy)", { slots: {}, fixedBy: "issue 266 · L17" }],
+  "landing.does.item-2.title": ["TODO(copy)", { slots: {}, fixedBy: "issue 266 · L18" }],
+  "landing.does.item-2.line": ["TODO(copy)", { slots: {}, fixedBy: "issue 266 · L19" }],
+  "landing.does.item-3.title": ["TODO(copy)", { slots: {}, fixedBy: "issue 266 · L20" }],
+  "landing.does.item-3.line": ["TODO(copy)", { slots: {}, fixedBy: "issue 266 · L21" }],
+  "landing.start.eyebrow": ["TODO(copy)", { slots: {}, fixedBy: "issue 266 · L22" }],
+  "landing.start.heading": ["TODO(copy)", { slots: {}, fixedBy: "issue 266 · L23" }],
+  "landing.start.body": ["TODO(copy)", { slots: {}, fixedBy: "issue 266 · L24" }],
+  "landing.start.cta": ["TODO(copy)", { slots: {}, fixedBy: "issue 266 · L25" }],
 }) satisfies CopyPartition;

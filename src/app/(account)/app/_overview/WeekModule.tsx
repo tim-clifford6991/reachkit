@@ -32,7 +32,7 @@ import { formatCount, formatDayOfMonth } from "./present";
 import type { Alert, Overflow } from "./alerts";
 import type { SupplyStatement } from "./supply";
 import { CALENDAR_DAY_ZONE, type WeekModule as WeekModuleModel } from "./week";
-import { ALERT_ROW, CHART_PLATE, EYEBROW, MODULE, STACK } from "./style";
+import { ALERT_ROW, CHART_PLATE, EYEBROW, STACK } from "./style";
 
 /** §2.5's third rule: an intended-empty state takes `neutral` or `ok`,
  *  never `bad`/`warn`. An item waiting on the customer is a fact, not an
@@ -110,7 +110,7 @@ export function WeekModule(p: {
   const supplyLine = p.supply === undefined ? null : writtenLine(p.supply.key, p.supply.vars);
 
   return (
-    <section style={MODULE} data-testid="overview-week">
+    <section className="rk-idiom-card" data-testid="overview-week">
       <p className="eyebrow" style={EYEBROW}>{copy("overview.week.title")}</p>
       {strip === null ? null : (
         <div style={CHART_PLATE}>

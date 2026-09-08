@@ -32,6 +32,12 @@ export const SCREEN: React.CSSProperties = {
 };
 
 /** One module: its eyebrow, then its body. */
+/** @deprecated Issue 266: the owner approved Take A on 2026-09-02 — "one
+ *  card per module, the three stat tiles broken out as three boxes — six
+ *  boxes" — so every module on this screen is now an idiom card
+ *  (`.rk-idiom-card`), which carries the column, the gap, the surface, the
+ *  radius and the shadow this object used to approximate with none of the
+ *  last three. Kept until nothing imports it; no caller remains. */
 export const MODULE: React.CSSProperties = {
   display: "flex",
   flexDirection: "column",

@@ -55,13 +55,27 @@ type StatUnmeasured = {
   reason: string;
 };
 
-export type StatProps = StatMeasured | StatUnmeasured;
+/** The card idiom's widening: where the caller draws the label as its card
+ *  head's eyebrow, the tile does not print it a second time. */
+type LabelPlacement = { labelInHead?: boolean };
+
+export type StatProps = (StatMeasured | StatUnmeasured) & LabelPlacement;
 
 export function Stat(p: StatProps): React.JSX.Element {
+  // The card idiom's widening (issue 266, `design/tokens.md` §9.1,
+  // `components.md` §7): the label is **placeable in the head**. The
+  // idiom's card head already carries an eyebrow, and a tile with two of
+  // them states the same claim twice. `labelInHead` moves it there — the
+  // caller renders it as the head's eyebrow — and the tile keeps its
+  // accessible name here, so the figure is never an unlabelled number to a
+  // screen reader just because the label moved.
+  //
+  // `label` stays required either way: it is the caller's, and there is no
+  // arm of this component that has no label at all.
   return (
-    <div className="stats">
+    <div className="stats" aria-label={p.labelInHead === true ? p.label : undefined}>
       <div className="stat">
-        <div className="stat-title">{p.label}</div>
+        {p.labelInHead === true ? null : <div className="stat-title">{p.label}</div>}
         <div className="stat-value num">{p.state === "unmeasured" ? "—" : p.value}</div>
         <div className="stat-desc whitespace-normal">
           {p.state === "unmeasured" ? p.reason : (p.delta ?? p.goal)}

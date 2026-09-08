@@ -59,6 +59,12 @@ export const ROUTE_HARNESS: Readonly<Record<string, HarnessRow>> = Object.freeze
   "(public)/page.tsx": { props: () => ({ searchParams: {}, async: false }), shell: false, async: false },
   "(public)/pricing/page.tsx": { props: () => ({}), shell: false, async: false },
   "(public)/signin/page.tsx": { props: () => ({ searchParams: {}, async: false }), shell: false, async: false },
+  // The three legal routes (issue #266). Each renders two owner-owed keys
+  // and reads nothing — no params, no store, no session — so the row is the
+  // simplest one this table has.
+  "(public)/privacy/page.tsx": { props: () => ({}), shell: false, async: false },
+  "(public)/terms/page.tsx": { props: () => ({}), shell: false, async: false },
+  "(public)/imprint/page.tsx": { props: () => ({}), shell: false, async: false },
   "(public)/opt-out/[token]/page.tsx": {
     // Deliberately a token that does not verify: the page renders its
     // invalid-link arm, which reaches no store, writes nothing and
