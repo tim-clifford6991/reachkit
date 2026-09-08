@@ -125,7 +125,20 @@ describe(
       expect(verdictOf.length).toBe(1);
       const v = verdictOf({ domain: DOMAIN, measuredAt: AT, drivers: fullDrivers(), inputs: allRead(), robots: robotsFixture() });
       expect(new Set(Object.keys(v))).toEqual(
-        new Set(["domain", "measuredAt", "scoreAndBand", "limiting", "missing", "unmeasuredElsewhere", "blockedReaders"])
+        // `factors` joined the seven on 2026-09-08 (ruling 1b): the header
+        // strip draws the three driver bars with their values, so the
+        // verdict keeps what `factorsOf` always computed. Nothing else
+        // moved, and no member here can hide anything.
+        new Set([
+          "domain",
+          "measuredAt",
+          "scoreAndBand",
+          "factors",
+          "limiting",
+          "missing",
+          "unmeasuredElsewhere",
+          "blockedReaders",
+        ])
       );
     });
   }
@@ -262,9 +275,13 @@ describe(
   }
 );
 
-// Type witness: Verdict carries no `factors` field (BP-024 decision 6).
-function _noFactorsField(v: Verdict): void {
-  // @ts-expect-error — `factors` is not a member of `Verdict`; decision 6 removed it.
-  void v.factors;
+// Type witness: the verdict carries the three factors, and the report
+// header is the one surface that may draw their values (ruling 1b of
+// 2026-09-08, which amends REQ-004 c2 and reverses BP-024 decision 6 for
+// that strip alone).
+function _factorsField(v: Verdict): void {
+  void v.factors.foundations;
+  void v.factors.answerability;
+  void v.factors.presence;
 }
-void _noFactorsField;
+void _factorsField;

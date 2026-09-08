@@ -130,12 +130,22 @@ describe("dates survive the round trip through jsonb", () => {
 // The upgrade is the migration path the issue asks to be stated, and it is
 // stated here, in the reader, because a stored blob has exactly one reader.
 
+/** The same blob as `asStoredJson`, wound back to what version 5 wrote:
+ *  a verdict with no `factors` — the three the score is composed of, which
+ *  version 6 keeps so the header strip can draw its bars (ruling 1b). */
+function asVersion5Json(): Record<string, unknown> {
+  const blob = asStoredJson() as Record<string, unknown>;
+  const { factors, ...verdict } = blob.verdict as Record<string, unknown>;
+  void factors;
+  return { ...blob, version: 5, verdict };
+}
+
 /** The same blob as `asStoredJson`, wound back to what version 4 wrote:
  *  the two facts that had a second home each (#103), and which version 5
  *  drops — `category` beside the verdict strip, and `namedBrands` on every
  *  stored question. */
 function asVersion4Json(): Record<string, unknown> {
-  const blob = asStoredJson() as Record<string, unknown>;
+  const blob = asVersion5Json();
   const answers = blob.aiAnswers as { rows: Record<string, unknown>[] };
   return {
     ...blob,
@@ -193,9 +203,15 @@ describe("a report written at version 3 is lifted, not refused", () => {
     const before = asVersion3Json();
     const lifted = readStoredReport(before) as unknown as Record<string, unknown>;
     for (const key of Object.keys(before)) {
-      // `category` is version 5's own removal (#103), asserted below.
-      if (key === "version" || key === "aiAnswers" || key === "category") continue;
+      // `category` is version 5's own removal (#103), asserted below;
+      // `verdict` is version 6's own addition (#352), asserted below too.
+      if (key === "version" || key === "aiAnswers" || key === "category" || key === "verdict") continue;
       expect(JSON.stringify(lifted[key])).toBe(JSON.stringify(before[key]));
+    }
+    const verdictBefore = before.verdict as Record<string, unknown>;
+    const verdictAfter = lifted.verdict as Record<string, unknown>;
+    for (const key of Object.keys(verdictBefore)) {
+      expect(JSON.stringify(verdictAfter[key]), key).toBe(JSON.stringify(verdictBefore[key]));
     }
     const answersBefore = before.aiAnswers as Record<string, unknown>;
     const answersAfter = lifted.aiAnswers as Record<string, unknown>;
@@ -268,8 +284,13 @@ describe("a report written at version 4 is lifted, not refused", () => {
     const before = asVersion4Json();
     const lifted = readStoredReport(before) as unknown as Record<string, unknown>;
     for (const key of Object.keys(before)) {
-      if (key === "version" || key === "aiAnswers" || key === "category") continue;
+      if (key === "version" || key === "aiAnswers" || key === "category" || key === "verdict") continue;
       expect(JSON.stringify(lifted[key]), key).toBe(JSON.stringify(before[key]));
+    }
+    const verdictBefore = before.verdict as Record<string, unknown>;
+    const verdictAfter = lifted.verdict as Record<string, unknown>;
+    for (const key of Object.keys(verdictBefore)) {
+      expect(JSON.stringify(verdictAfter[key]), key).toBe(JSON.stringify(verdictBefore[key]));
     }
   });
 
@@ -284,6 +305,53 @@ describe("a report written at version 4 is lifted, not refused", () => {
   it("still revives dates after the lift", () => {
     const report = readStoredReport(asVersion4Json());
     expect(report.verdict.measuredAt).toBeInstanceOf(Date);
+  });
+});
+
+// ── #352: version 5 → 6, the verdict keeps the factors it computed ──────
+//
+// Ruling 1b of 2026-09-08 keeps the report header's three driver bars with
+// their `n/10` values. `verdictOf` always computed the factors and dropped
+// them; from version 6 the verdict stores them. A report written before it
+// carries none, and none is invented: they arrive as unmeasured, and the
+// header draws a dash where such a bar would be.
+describe("a report written at version 5 is lifted, not refused", () => {
+  it("gains the three factors, saying honestly that this report does not carry them", () => {
+    const before = asVersion5Json();
+    expect((before.verdict as Record<string, unknown>).factors).toBeUndefined();
+
+    const report = readStoredReport(before);
+    expect(report.version).toBe(REPORT_VERSION);
+    for (const factor of ["foundations", "answerability", "presence"] as const) {
+      const value = report.verdict.factors[factor];
+      expect(value.kind).toBe("unmeasured");
+      expect(value.kind === "unmeasured" && value.reason).toBe("undeterminable");
+    }
+  });
+
+  it("leaves the score, the band and the limiting line exactly as they were", () => {
+    const before = asVersion5Json();
+    const report = readStoredReport(before) as unknown as Record<string, unknown>;
+    const verdictBefore = before.verdict as Record<string, unknown>;
+    const verdictAfter = report.verdict as Record<string, unknown>;
+    for (const key of Object.keys(verdictBefore)) {
+      expect(JSON.stringify(verdictAfter[key]), key).toBe(JSON.stringify(verdictBefore[key]));
+    }
+  });
+
+  it("changes nothing else about the blob", () => {
+    const before = asVersion5Json();
+    const lifted = readStoredReport(before) as unknown as Record<string, unknown>;
+    for (const key of Object.keys(before)) {
+      if (key === "version" || key === "verdict") continue;
+      expect(JSON.stringify(lifted[key]), key).toBe(JSON.stringify(before[key]));
+    }
+  });
+
+  it("still revives dates after the lift — the unmeasured factors carry the verdict's own instant", () => {
+    const report = readStoredReport(asVersion5Json());
+    expect(report.verdict.measuredAt).toBeInstanceOf(Date);
+    expect(report.verdict.factors.presence.at).toBeInstanceOf(Date);
   });
 });
 

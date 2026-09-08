@@ -85,6 +85,13 @@ export const VERDICT: Verdict = {
   domain: DOMAIN,
   measuredAt: AT,
   scoreAndBand: measured({ score: 31, band: "hard-to-find" }, AT),
+  // `∛(50 × 40 × 15)` is 31 — the score beside it — and presence is the
+  // smallest, which is the limiting factor named below (ruling 1b).
+  factors: {
+    foundations: measured(50, AT),
+    answerability: measured(40, AT),
+    presence: measured(15, AT),
+  },
   limiting: { kind: "factor", factor: "presence" },
   missing: [],
   unmeasuredElsewhere: [],

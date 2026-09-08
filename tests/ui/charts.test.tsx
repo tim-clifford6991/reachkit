@@ -206,10 +206,31 @@ describe('BUILD.md §2.4: "Two chart colors only: --chart-you (accent) and --cha
     const svg = svgOf(STORIES.PresenceBars?.() as React.JSX.Element);
     const fills = [...svg.querySelectorAll("rect")]
       .map((r) => r.getAttribute("fill"))
-      .filter((f) => f !== SVG.hitArea && f !== CHART_INK.tipFill);
+      // The hit area, the tooltip chip, and — since #352 — each row's own
+      // track, which is `--sunk`: the ground a bar is drawn against, the
+      // same one the dot matrix's muted cell stands on. It carries no
+      // identity, so it is not a series colour.
+      .filter((f) => f !== SVG.hitArea && f !== CHART_INK.tipFill && f !== CHART_INK.sunk);
     expect(fills.filter((f) => f === SERIES_COLOR.you)).toHaveLength(1);
     expect(fills.filter((f) => f === SERIES_COLOR.rival)).toHaveLength(PRESENCE.rivals.length);
     expect(new Set(fills)).toEqual(new Set([SERIES_COLOR.you, SERIES_COLOR.rival]));
+  });
+
+  it("every bar is drawn on a track of the same length, so a short bar reads against what it could have been", () => {
+    const svg = svgOf(STORIES.PresenceBars?.() as React.JSX.Element);
+    const tracks = [...svg.querySelectorAll("rect")].filter(
+      (r) => r.getAttribute("fill") === CHART_INK.sunk
+    );
+    expect(tracks).toHaveLength(PRESENCE.rivals.length + 1);
+    const widths = new Set(tracks.map((t) => t.getAttribute("width")));
+    expect(widths.size).toBe(1);
+  });
+
+  it("every bar carries its own denominator, not a bare count (§2.4)", () => {
+    const text = svgOf(STORIES.PresenceBars?.() as React.JSX.Element).textContent ?? "";
+    for (const bar of [PRESENCE.you, ...PRESENCE.rivals]) {
+      expect(text).toContain(`${bar.value}/${PRESENCE.measured}`);
+    }
   });
 
   it("a rival's sparkline is grey whatever it says; the accent is on the endpoint dot alone (§4.5, transcribed)", () => {
@@ -407,14 +428,35 @@ describe('BUILD.md §2.5: "Rival strength is neutral gray, never red — rivals 
     expect(svg.querySelectorAll("polyline")).toHaveLength(2);
   });
 
-  it("zero is a measurement: the customer's bar is drawn and labelled, not dropped", () => {
+  it("zero is a measurement: the customer's row is drawn, ringed and labelled, not dropped", () => {
+    // The approved set draws the customer's zero as their own track, empty
+    // and ringed in `--bad` (UI-SPEC §2), with `0/12` beside it. The row is
+    // there, the denominator is there, and the ring is §2.5's one admitted
+    // red — the customer's own problem shown to them.
     const svg = svgOf(
       <PresenceBars you={{ name: "acme.com", value: 0 }} rivals={PRESENCE.rivals} measured={12} label="presence" />,
     );
-    const you = [...svg.querySelectorAll("rect")].filter((r) => r.getAttribute("fill") === SERIES_COLOR.you);
-    expect(you).toHaveLength(1);
-    expect(Number(you[0]?.getAttribute("width"))).toBeGreaterThan(0);
-    expect(svg.textContent ?? "").toContain("0");
+    const ringed = [...svg.querySelectorAll("rect")].filter(
+      (r) => r.getAttribute("stroke") === CHART_INK.absentRing
+    );
+    expect(ringed).toHaveLength(1);
+    expect(Number(ringed[0]?.getAttribute("width"))).toBeGreaterThan(0);
+    expect(svg.textContent ?? "").toContain("0/12");
+  });
+
+  it("a rival at zero is never ringed — the red is the customer's own row and nothing else (§2.5)", () => {
+    const svg = svgOf(
+      <PresenceBars
+        you={{ name: "acme.com", value: 4 }}
+        rivals={[{ name: "one.com", value: 0 }]}
+        measured={12}
+        label="presence"
+      />,
+    );
+    const ringed = [...svg.querySelectorAll("rect")].filter(
+      (r) => r.getAttribute("stroke") === CHART_INK.absentRing
+    );
+    expect(ringed).toHaveLength(0);
   });
 });
 

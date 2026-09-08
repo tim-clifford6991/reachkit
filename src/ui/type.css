@@ -127,6 +127,35 @@ body {
   line-height: 1.55;
 }
 
+/* A code block keeps its own lines (issue #352). `.num` is
+ * `white-space: nowrap` — a *value* has no boundaries — and a block of
+ * `robots.txt` directives is not one value: REQ-009 c2 requires those
+ * lines verbatim, and lines joined into one are not verbatim. The
+ * descendant selector is what makes this win: `.num` is unlayered, so a
+ * Tailwind utility on the same element loses to it, and only a more
+ * specific rule here can say "inside a `pre`, the face is the same and the
+ * lines are the author's".
+ *
+ * Scoped to `pre` and nothing else: every other `.num` in the product is a
+ * value, and this rule cannot reach one. */
+pre .num {
+  white-space: pre;
+}
+
+/* The two rungs the report spends as utilities rather than as literals:
+ * `--t-sm` is each module-2 card's lead line and `--t-explain` its quiet
+ * metadata (issue #352). Both tokens are `theme.css`'s — ruling 10a's
+ * ladder has one home — and these classes are how a screen reaches them,
+ * because a size written as a literal in a component is what the token
+ * gate refuses. */
+.t-sm {
+  font-size: var(--t-sm);
+}
+
+.t-explain {
+  font-size: var(--t-explain);
+}
+
 /* Uppercase eyebrows for section labels. The 11 is no longer a rule 1.1
  * parameter inside §2.3's 10.5–11px range: ruling 10a fixes the ladder at
  * 15 / 13 / 12 / 11.5 / 11 with "nothing under 11px", and `--t-eyebrow` is

@@ -147,23 +147,22 @@ describe("§6.2 — the free report has no second reading to draw, and never ask
     expect(html).not.toContain("<table");
   });
 
-  it("names each engine it never asked once, beside the written line that says so", () => {
-    expect(count(html, "ai-answers.engine.ai-mode")).toBe(1);
-    expect(count(html, "ai-answers.engine.chatgpt")).toBe(1);
-    expect(count(html, "ai-answers.engine.not-measured")).toBe(2);
+  it("names no engine it never asked, because it draws no table for them to sit beneath", () => {
+    // #165 puts a never-asked engine on "one line **beneath the table**".
+    // With no second reading there is no table, and the approved free
+    // report draws neither line: twelve questions, their answers, and the
+    // one written line saying what was measured. An engine nobody asked is
+    // not a place the customer lost, and on this card it is not a sentence
+    // either.
+    expect(count(html, "ai-answers.engine.ai-mode")).toBe(0);
+    expect(count(html, "ai-answers.engine.chatgpt")).toBe(0);
+    expect(count(html, "ai-answers.engine.not-measured")).toBe(0);
   });
 
-  it("states it neutrally — a question nobody asked is never the customer's problem (§2.5)", () => {
-    const lines = [...html.matchAll(/<p class="flex flex-wrap items-center gap-2 text-xs">(.*?)<\/p>/g)];
-    expect(lines).toHaveLength(2);
-    for (const line of lines) expect(line[1]).not.toContain("badge-error");
-  });
-
-  it("counts the twelve rows' worth of cells once, not once per unasked engine", () => {
-    // Twelve rows of "not measured" down two columns would read as
-    // twenty-four places the customer lost. The two lines are the whole
-    // statement.
-    expect(count(html, "ai-answers.engine.not-measured")).toBe(2);
+  it("says nothing about a question in red that nobody asked (§2.5)", () => {
+    // The only `bad`-toned badge on the free card is the `not you` on a
+    // question that was answered and did not name the customer.
+    expect(count(html, "badge-error")).toBe(count(html, "ai-answers.question.not-you"));
   });
 
   it("still draws §4.1's matrix over the reading it does have", () => {
@@ -201,12 +200,16 @@ describe("the cell vocabulary — four states, two of which are not misses", () 
 describe("what the columns deliberately do not move", () => {
   const html = render(withBattery(() => ANSWERED_NAMING, () => ANSWERED_NAMING));
 
-  it("leaves the three counts as Google's AI answers alone", () => {
+  it("leaves the counts as Google's AI answers alone", () => {
+    // The denominator line is the card's own sentence; the customer's
+    // citation count is the matrix row beside their name, `0/9`, which is
+    // where REQ-008 c3's sibling rule puts it on this card too — once.
     expect(html).toContain(
       `ai-answers.denominator(${FREE_SECTION.answeredSearches}|${FREE_SECTION.measuredSearches})`
     );
-    expect(html).toContain(
-      `ai-answers.customer-citations(${FREE_SECTION.customerCitations}|${FREE_SECTION.answeredSearches})`
+    const matrix = html.slice(html.indexOf("<svg"), html.indexOf("</svg>"));
+    expect(matrix).toContain(
+      `${FREE_SECTION.customerCitations}/${FREE_SECTION.answeredSearches}`
     );
   });
 

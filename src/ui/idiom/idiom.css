@@ -88,6 +88,16 @@
 
 /* ── 2 · The card head ────────────────────────────────────────────────── */
 
+/* The approved set's `.card-accent` (UI-SPEC §2): the ruled card shadow
+ * with a 1.5px `--accent-line` ring drawn on top of it, which is how the
+ * set marks the one card a screen is built around. A ring rather than a
+ * border, so the card's own geometry does not move when it takes the
+ * accent, and a *line* rather than a fill — the screen's one solid control
+ * keeps the accent as a ground (issue #352). */
+.rk-accent-ring {
+  box-shadow: var(--shadow-card), 0 0 0 1.5px var(--accent-line);
+}
+
 /* A rounded-square icon chip, an eyebrow, an optional pill on the right.
  * The chip is `--s-6` square: the ruled ladder is closed and 32 is the rung
  * the idiom's drawn 30 lands on — a 30px token would be a value between two

@@ -28,6 +28,9 @@ export function MethodSections(p: {
 }): React.JSX.Element {
   return (
     <div className="flex flex-col gap-2">
+      {/* The module's own label (UI-SPEC S2: "The complete method, free"),
+          at the eyebrow rung — a label over a list, not a fourth card. */}
+      <p className="eyebrow opacity-60">{copy("method.title")}</p>
       {p.for.map((problem) => (
         <Collapse key={problem} summary={copy(METHOD_COPY[problem].title)}>
           <p>{copy(METHOD_COPY[problem].body)}</p>

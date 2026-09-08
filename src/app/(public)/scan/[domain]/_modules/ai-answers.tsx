@@ -53,7 +53,7 @@
 // `renderQuestion`, which will not yield the wording without the search it
 // came from (REQ-093 c3).
 import type React from "react";
-import { Badge, Card, Divider, Table } from "@/ui/components";
+import { Badge, Card, Collapse, Divider, Table } from "@/ui/components";
 import { AiDotMatrixChart, type AiDotMatrixCellState, type AiDotMatrixRow } from "@/ui/charts";
 import { CardHead } from "@/ui/idiom";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
@@ -185,15 +185,11 @@ function AnswerColumns(p: { rows: AnswerRows }): React.JSX.Element | null {
   const neverAsked = engines.filter((engine) => !wasAsked(p.rows, engine));
   const secondReading = drawn.some((engine) => engine !== AI_OVERVIEW);
 
-  if (!secondReading) {
-    return (
-      <>
-        {neverAsked.map((engine) => (
-          <EngineNotAsked key={engine} engine={engine} />
-        ))}
-      </>
-    );
-  }
+  // #165's own shape: the never-asked engines are "one line **beneath the
+  // table**". With no table there is nothing for them to sit beneath, and
+  // the approved free report draws neither — so the card says what it
+  // measured and stops.
+  if (!secondReading) return null;
 
   return (
     <>
@@ -297,7 +293,7 @@ function QuestionRow(p: { row: { question: StoredQuestion; cell: AnswerCell } })
           <Badge tone="bad">{copy("ai-answers.question.not-you")}</Badge>
         )}
       </div>
-      <p className="text-xs opacity-60">
+      <p className="t-explain opacity-60">
         <Num>{provenance.text}</Num>
       </p>
     </li>
@@ -312,6 +308,7 @@ export function AiAnswersCard(p: {
 }): React.JSX.Element {
   const { section } = p;
   const shown = section.rows.slice(0, QUESTIONS_SHOWN);
+  const rest = section.rows.slice(QUESTIONS_SHOWN);
 
   return (
     <Card
@@ -323,15 +320,16 @@ export function AiAnswersCard(p: {
         />
       }
     >
-      {/* The card leads with its answer, not with its metric (§2.5), and
-          the drawing's verdict is a heading — `--t-h3`, the card-head rung
-          of the ruled scale (design/tokens.md §4). */}
-      <h3>
+      {/* The card leads with its answer, not with its metric (§2.5). The
+          set sets this line at `--t-sm`, semibold — the ladder's 13 (10a)
+          — not at a heading step: the card's head is its eyebrow, and a
+          second heading under it would be a second head. */}
+      <p className="t-sm font-semibold">
         {copy("ai-answers.denominator", {
           answered: String(section.answeredSearches),
           measured: String(section.measuredSearches),
         })}
-      </h3>
+      </p>
 
       {/* A chart is drawn at `width: 100%` of the box it is given, and the
           box is a declared scroll container so a matrix wider than the
@@ -349,16 +347,14 @@ export function AiAnswersCard(p: {
           label={copy("ai-answers.title")}
         />
       </div>
-      {/* The written count line the drawing hangs under — the archive's
-          own `countLine`, and the figure the matrix's own row counts add
-          up to. */}
-      <p>
-        {copy("ai-answers.customer-citations", {
-          cited: String(section.customerCitations),
-          answered: String(section.answeredSearches),
-        })}
-      </p>
-      <p className="text-xs opacity-60">{copy("ai-answers.legend")}</p>
+      {/* **No second count line under the matrix.** The customer's own row
+          is drawn `n/m` beside their name, which is REQ-006 c1's citation
+          count against c1's own denominator and REQ-006 c4's measurement
+          of a customer cited on none; a sentence repeating it would be the
+          same claim twice, and the approved set draws one line here, not
+          three. `ai-answers.customer-citations` and `ai-answers.legend`
+          are no longer spoken by this card — §2.4 has no legend-only mode
+          because every mark is direct-labelled. */}
 
       <AnswerColumns rows={section.rows} />
 
@@ -366,7 +362,7 @@ export function AiAnswersCard(p: {
 
       {/* A section label inside a card is the eyebrow rung (§2.3's
           "uppercase 10.5–11px eyebrows for section labels"), not a second
-          card head: `--t-h3` here put the list's label at the same weight
+          card head: `--h3` here put the list's label at the same weight
           as the card's own verdict. It stays a heading, so the card keeps
           its outline for a reader who navigates by one. */}
       <h3 className="eyebrow">{copy("ai-answers.questions.title")}</h3>
@@ -375,12 +371,27 @@ export function AiAnswersCard(p: {
           <QuestionRow key={row.question.n} row={row} />
         ))}
       </ul>
-      {section.rows.length > shown.length ? (
-        <Badge tone="neutral">
-          {copy("ai-answers.questions.show-all", { total: String(section.rows.length) })}
-        </Badge>
-      ) : null}
-      <p className="text-xs opacity-60">{copy("ai-answers.method")}</p>
+      {/* REQ-006 c8: "the first four visible and the remainder one action
+          away". The action is the registered `Collapse` — `details` and
+          `summary`, so the remaining questions are in the document, are
+          reachable with no JavaScript, and stay in the accessibility tree.
+          The set draws a quiet pill labelled "Show all 12"; a pill with no
+          behaviour would be the label without the action, which is the
+          half c8 does not accept. */}
+      {rest.length === 0 ? null : (
+        <Collapse
+          summary={copy("ai-answers.questions.show-all", { total: String(section.rows.length) })}
+        >
+          <ul className="list-none p-0">
+            {rest.map((row) => (
+              <QuestionRow key={row.question.n} row={row} />
+            ))}
+          </ul>
+        </Collapse>
+      )}
+      {/* REQ-006 c6's one written line: what was measured, and no second
+          engine named anywhere on the card. */}
+      <p className="t-explain opacity-60">{copy("ai-answers.method")}</p>
     </Card>
   );
 }

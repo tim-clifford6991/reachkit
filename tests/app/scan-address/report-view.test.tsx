@@ -17,6 +17,7 @@
 // are `TODO(copy)` today; asserting against the key is what stays true when
 // the owner writes the sentence.
 import { readFileSync } from "node:fs";
+import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import React from "react";
@@ -76,7 +77,10 @@ describe("REQ-004 c1 — the verdict strip names the score, its band, the domain
   });
 
   it("renders the domain and the date beside it, so the score is never a bare specimen", () => {
-    expect(html).toContain("report.measured-at(example.com|");
+    // The domain is the card's own head now (UI-SPEC S2: a mono h3), and
+    // the date rides with the category on the line under it.
+    expect(html).toContain(">example.com<");
+    expect(html).toContain("report.measured-at(");
   });
 
   it("renders the one line naming the limiting factor", () => {
@@ -88,25 +92,46 @@ describe("REQ-004 c1 — the verdict strip names the score, its band, the domain
   });
 });
 
-describe("DECISIONS 2026-09-03 — no driver bars, no per-question volume, no market-total footnote", () => {
+describe("ruling 1b (2026-09-08) — the driver bars are back, on the header strip and nowhere else", () => {
   const html = render(FIXTURE_REPORT);
+  const strip = html.slice(0, html.indexOf("ai-answers.title"));
 
-  it("renders no progress element inside the verdict strip", () => {
-    // The presence card's occupancy bars are §4.1 module 2's and are a
-    // different thing; what the ruling removed is the three driver bars on
-    // the strip. `Verdict` carries no `factors` member at all, so the
-    // stronger statement is that no factor *value* appears anywhere.
-    const strip = html.slice(0, html.indexOf("ai-answers.title"));
-    expect(strip).not.toContain("<progress");
+  it("draws one determinate bar per factor, in the registered component", () => {
+    // `components.md` §1: the registered `Progress` "is also the three
+    // driver mini-bars of the report's header strip (§4.1); mini-bars are
+    // *not* a sixth chart".
+    expect(strip.split("<progress").length - 1).toBe(3);
   });
 
-  it("names no score factor's value anywhere on the page", () => {
-    // The three factor names appear only as `{what}` subjects of an
-    // unmeasured line; a *value* would have to be a number beside one, and
-    // `Verdict` has no member to read one from.
-    expect(html).not.toContain("verdict.factor.foundations(");
-    expect(html).not.toContain("verdict.factor.presence(");
+  it("writes each factor's value in tenths beside its own name, never colour-alone", () => {
+    // The fixture's three are 70 / 90 / 40, which is what the approved set
+    // draws as 7/10, 9/10 and 4/10.
+    for (const [name, tenths] of [
+      ["verdict.factor.foundations", "7/10"],
+      ["verdict.factor.answerability", "9/10"],
+      ["verdict.factor.presence", "4/10"],
+    ] as const) {
+      expect(strip).toContain(name);
+      expect(strip).toContain(`>${tenths}<`);
+    }
   });
+
+  it("the bar and the label are the same reading — one conversion, not two", () => {
+    // A bar drawn from the unrounded 46 under a label reading 5/10 would
+    // be two claims about one measurement.
+    expect(strip).toContain('value="7" max="10"');
+    expect(strip).toContain('value="9" max="10"');
+    expect(strip).toContain('value="4" max="10"');
+  });
+
+  it("no factor value reaches any other module — the ruling amends the header strip only", () => {
+    const below = html.slice(html.indexOf("ai-answers.title"));
+    expect(below).not.toContain("/10<");
+  });
+});
+
+describe("DECISIONS 2026-09-03 — no per-question volume, no market-total footnote", () => {
+  const html = render(FIXTURE_REPORT);
 
   it("the 12-questions list carries no per-question volume", () => {
     // `StoredQuestion` has no `volume` member; the provenance line's slots
@@ -250,7 +275,7 @@ describe("BUILD §4.1 — the six modules, in order", () => {
 // owner ruled Start keeps it. The classes are the ranks — `btn-primary` is
 // the fill, `rk-btn-outline` the outline — and the free-page control's tone
 // is what keeps it reading as a call to action rather than an aside.
-describe("§9.1 — one solid primary on the report, and it is Start", () => {
+describe("ruling 2b (2026-09-08) — this screen has two solids, and they are the two trades", () => {
   const html = render(FIXTURE_REPORT);
 
   /** The opening tag of the `<button>` whose label is `key`. The markup is
@@ -263,19 +288,24 @@ describe("§9.1 — one solid primary on the report, and it is Start", () => {
     return match?.[1] ?? "";
   }
 
-  it("the screen draws exactly one solid accent button", () => {
-    expect(count(html, "btn-primary")).toBe(1);
+  it("draws exactly two solid accent buttons — never a third", () => {
+    // Ruling 2b: "two solid primaries per screen are allowed **where the
+    // artifact draws them** … report: Email me + Start". Two, because the
+    // report carries two trades; the ceiling is what this row holds.
+    expect(count(html, "btn-primary")).toBe(2);
   });
 
-  it("the one it draws is the pricing card's Start", () => {
+  it("they are the giveaway's Email me and the pricing card's Start, and nothing else", () => {
+    expect(buttonTag("free-page.submit")).toContain("btn-primary");
     expect(buttonTag("offer.start")).toContain("btn-primary");
   });
 
-  it("the free-page control is the outline rank in accent, not a second fill", () => {
-    const tag = buttonTag("free-page.submit");
-    expect(tag).toContain("rk-btn-outline");
-    expect(tag).not.toContain("btn-primary");
-    expect(tag).toContain('data-tone="accent"');
+  it("every other control on the screen is a quieter rank", () => {
+    // The copy-link and the correction are tertiary; a third fill would
+    // make the two trades stop reading as the two trades.
+    for (const key of ["copy-link.label", "verdict.not-your-market"]) {
+      expect(buttonTag(key)).not.toContain("btn-primary");
+    }
   });
 });
 
@@ -320,8 +350,9 @@ describe("REQ-091/092 — cold start: a domain that ranks for nothing still read
     // The customer's row is not a rival row and never goes away — "you
     // were named in none of them" is the card's answer, and a drawing with
     // no rows at all would be that answer withheld.
-    expect(html).toContain("ai-answers.customer-citations(0|9)");
     const matrix = html.slice(html.indexOf("<svg"), html.indexOf("</svg>"));
+    // The count is on the row, not in a sentence beside it (#352).
+    expect(matrix).toContain("0/9");
     expect(matrix).toContain("example.com");
     // Scoped to the drawing: the answers themselves still named rivals,
     // and the 12-questions list below says so. What a cold start empties
@@ -345,6 +376,26 @@ describe("REQ-091/092 — cold start: a domain that ranks for nothing still read
   it("the rest of the report is still there — nothing is suppressed by the emptiness", () => {
     for (const key of ["problem.blocked-readers.title", "method.missing-pages.title", "price.amount"]) {
       expect(html).toContain(key);
+    }
+  });
+});
+
+describe("the fixture is the shape this build reads", () => {
+  it("is written at the current report version", () => {
+    // `_fixture/states.ts` cannot import the constant: it is reachable
+    // from `src/middleware.ts`, and a **runtime** import of the report
+    // leaf pulls the db and env chain into the Edge bundle and fails the
+    // build. Neither can this file — the same chain throws on a missing
+    // env binding under the node project. So the pin is read off the
+    // source, which is the one thing both sides can agree on (#352).
+    const source = readFileSync(
+      path.resolve(import.meta.dirname, "../../../src/lib/scan/report.ts"),
+      "utf8"
+    );
+    const declared = /export const REPORT_VERSION = (\d+);/.exec(source)?.[1];
+    expect(declared, "REPORT_VERSION is not declared as a literal any more").toBeDefined();
+    for (const report of [FIXTURE_REPORT, FIXTURE_DEGRADED_REPORT, FIXTURE_COLD_START_REPORT]) {
+      expect(String(report.version)).toBe(declared);
     }
   });
 });

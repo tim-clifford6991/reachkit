@@ -39,13 +39,7 @@ import { copy } from "@/lib/presentation/copy";
 import type { PresenceSection } from "@/lib/scan/report";
 import { Num } from "../_address/measured";
 
-export function GooglePresenceCard(p: {
-  section: PresenceSection;
-  /** The date the SERPs behind this card were read, already formatted by
-   *  the caller that owns the report's one date. The drawing puts it at
-   *  the foot of this card, where the left card puts its method line. */
-  measuredOn: string;
-}): React.JSX.Element {
+export function GooglePresenceCard(p: { section: PresenceSection }): React.JSX.Element {
   const { section } = p;
 
   return (
@@ -58,14 +52,14 @@ export function GooglePresenceCard(p: {
         />
       }
     >
-      {/* The card leads with its answer (§2.5), at the same `--t-h3` rung
-          its neighbour's verdict takes. */}
-      <h3>
-        {copy("presence.occupancy", {
-          you: String(section.you.top10Count),
-          measured: String(section.measuredSearches),
-        })}
-      </h3>
+      {/* **No written occupancy line above the bars.** REQ-008 c3: the
+          customer's presence "appears on the card exactly once — the
+          top-ten count of criterion 1, labelled on their own bar — with no
+          second, differently measured figure … and no restatement of that
+          count anywhere else on the card". The bar carries it, labelled
+          `n/12` in their own colour, and the approved set draws the card
+          the same way: head, then bars. `presence.occupancy` and
+          `presence.legend` are no longer spoken here. */}
 
       {/* REQ-092: a domain with no rivals to draw says so in writing where
           the bars would be, rather than drawing a chart of one bar and
@@ -89,11 +83,9 @@ export function GooglePresenceCard(p: {
           />
         </div>
       )}
-      <p className="text-xs opacity-60">{copy("presence.legend")}</p>
-
       <Divider />
 
-      {/* The eyebrow rung, not `--t-h3`: a label for a list inside a card
+      {/* The eyebrow rung, not `--h3`: a label for a list inside a card
           is not a second card head (§2.3). */}
       <h3 className="eyebrow">{copy("presence.absent-from.title")}</h3>
       {/* The three columns, sized rather than left to chance (issue #307).
@@ -138,15 +130,17 @@ export function GooglePresenceCard(p: {
         }))}
         emptyMessage={copy("presence.absent-from.empty")}
       />
-      {/* The drawing's last line on this card: when these SERPs were read.
-          The same key the verdict strip resolves it from — one fact, one
-          home — and no market-total footnote above it: the owner removed
-          that on 2026-09-03, both halves. */}
-      <p className="text-xs opacity-60">
-        <Num>
-          {copy("report.measured-at", { domain: section.you.domain, date: p.measuredOn })}
-        </Num>
-      </p>
+      {/* **Nothing follows the table.** UI-SPEC S2 draws a market-total
+          footnote here — "Your market's search set totals 12,400/mo — you
+          currently appear in 0." — and it is the one thing on this screen
+          the set draws that this card refuses: REQ-008 c3 is explicit
+          ("no total monthly search volume for the 12 searches is shown",
+          and no restatement of the customer's own count anywhere on the
+          card), and the owner removed the same footnote on 2026-09-03,
+          both halves. `PresenceSection` carries no total for it to render
+          and no sum over the listed volumes is taken anywhere in this
+          file. Named in the PR for the owner to re-rule if the set is
+          meant to win. */}
     </Card>
   );
 }

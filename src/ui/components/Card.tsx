@@ -19,6 +19,14 @@ type CardDefault = {
   state: "default";
   title: React.ReactNode;
   children: React.ReactNode;
+  /** The approved set's `.card-accent` (UI-SPEC §2's component row:
+   *  "`.card` (`.card-lg`, `.card-accent`)"): the same card, ringed in
+   *  `--accent-line` rather than edged in `--line`. It marks the one card
+   *  a screen is built around — on the report, the page it is giving away
+   *  — and it is a *state of the card*, never a second fill: the accent
+   *  stays in the edge, so the screen's one solid control keeps it.
+   *  Optional, and absent everywhere it is not asked for. */
+  accent?: boolean;
 };
 
 type CardDegraded = {
@@ -41,7 +49,12 @@ export function Card(p: CardProps): React.JSX.Element {
     // rather than a second set of values: with only `card`, every card in
     // the product renders as white-on-white and the design system's own
     // surfaces are invisible.
-    <div className="card bg-base-100 border-base-300 rounded-box border shadow-sm">
+    <div
+      className={[
+        "card bg-base-100 rounded-box border shadow-sm",
+        p.state === "default" && p.accent === true ? "rk-accent-ring border-transparent" : "border-base-300",
+      ].join(" ")}
+    >
       {/* `[&>p]:grow-0` (issue #244).
        *
        * daisyUI's own rule is `.card-body p { flex-grow: 1 }`, so every

@@ -439,13 +439,22 @@ const SOLID_PRIMARY = ".btn-primary";
  *  the same way and lives under the same rule. */
 const MORE_THAN_ONE_PRIMARY: Readonly<Record<string, string>> = Object.freeze({});
 
-/** The public screens that draw more than one today — **none**, since issue
- *  #291 settled the report's two. Kept rather than deleted: it is the pair
- *  of the account list above, and an empty list is the honest statement that
- *  no public screen is exempt, which is a different fact from the rule not
- *  being asked on this half of the tree. Same fail-closed rule — an entry
- *  that gets fixed fails as a stale exemption rather than sitting here. */
-const MORE_THAN_ONE_PRIMARY_PUBLIC: Readonly<Record<string, string>> = Object.freeze({});
+/** The public screens the owner has ruled may draw more than one, each with
+ *  the reason and the ruling that settles it. Same fail-closed rule — an
+ *  entry that stops drawing two fails below as a stale exemption rather
+ *  than sitting here.
+ *
+ *  **The report is the one entry, and it is a ruling, not a debt.** #291
+ *  had settled its two down to one — Start solid, the giveaway outline —
+ *  and ruling 2b of 2026-09-08 reverses that: "two solid primaries per
+ *  screen are allowed **where the artifact draws them** … report: Email me
+ *  + Start". The screen carries two trades and the owner's own drawing
+ *  fills both controls. The ceiling is two, and
+ *  `tests/app/scan-address/report-view.test.tsx` holds it there. */
+const MORE_THAN_ONE_PRIMARY_PUBLIC: Readonly<Record<string, string>> = Object.freeze({
+  "/scan/[domain]":
+    "ruling 2b (2026-09-08): the giveaway's Email me and the pricing card's Start are both solid, as the approved set draws them; supersedes #291.",
+});
 
 function primariesPerScreen(rendered: RenderedRoute[], group: string): Map<string, number> {
   const out = new Map<string, number>();

@@ -124,7 +124,15 @@ const QUESTIONS: readonly StoredQuestion[] = QUESTION_WORDING.map((wording, inde
  *  rather than written out twice. Invented, like every figure in this
  *  file, and it goes when the fixture does. */
 const FIXTURE_RECORD = {
-  version: 3,
+  // The version this file's shape actually is. Written as a literal and
+  // not as `REPORT_VERSION`: this file is reachable from
+  // `src/middleware.ts`, and a **runtime** import of `@/lib/scan/report`
+  // pulls the db and env chain into the Edge bundle and fails the build —
+  // the same edge its header records for `matrix.ts`. Pinned against the
+  // constant in `tests/app/scan-address/report-view.test.tsx`, which runs
+  // in node and may import it, so the two cannot drift (#352; the label
+  // had been left at 3 through two migrations).
+  version: 6,
   scanId: "fixture-scan-1",
   domain: OWN_DOMAIN as CanonicalDomain,
   tier: "free",
@@ -169,12 +177,50 @@ const FIXTURE_RECORD = {
 export const FIXTURE_REPORT: StoredReport = {
   // The record half of the blob (issue #25). Invented for the fixture like
   // everything else here: this file is still the stand-in, and the screen
-  // reads none of these members.
+  // reads none of these members — except the market, below.
   ...FIXTURE_RECORD,
+  // The one record member the screen *does* read: the category has one
+  // home (`market.profile.category`, #103) and the header strip names it
+  // beside the measured date (UI-SPEC S2). The record's own arm above is
+  // `unmeasured`, which draws a report with no category at all — a real
+  // state, kept for the degraded fixture, and the wrong one for the
+  // complete report the owner reviews.
+  //
+  // `totalVolume` is here because `MarketSet` declares it, and no surface
+  // renders it: REQ-008 c3 forbids a total monthly volume for the twelve
+  // searches anywhere on the presence card, and the owner removed that
+  // footnote on 2026-09-03.
+  market: measured(
+    {
+      profile: {
+        category: "product analytics",
+        job: "measure how people use the product",
+        offeringType: "software",
+        audienceTerms: ["product teams", "founders"],
+        namedRivals: [...RIVALS],
+        vocabulary: ["analytics", "funnel", "cohort"],
+        brandTokens: ["example"],
+      },
+      suggestions: SEARCHES.map((keyword, index) => ({ keyword, volume: 8100 - index * 600 })),
+      totalVolume: 12400,
+    },
+    MEASURED_AT
+  ),
   verdict: {
     domain: OWN_DOMAIN as CanonicalDomain,
     measuredAt: MEASURED_AT,
     scoreAndBand: measured({ score: 62, band: "findable" }, MEASURED_AT),
+    // The three the score is composed of (ruling 1b: the header strip
+    // draws them). Invented like every figure here, and invented
+    // *coherently*: `∛(70 × 90 × 40)` is 62, which is the score above, and
+    // presence is the smallest of the three, which is the factor the
+    // limiting line below names. The header draws them as 7/10, 9/10 and
+    // 4/10 — the set's own bars.
+    factors: {
+      foundations: measured(70, MEASURED_AT),
+      answerability: measured(90, MEASURED_AT),
+      presence: measured(40, MEASURED_AT),
+    },
     limiting: { kind: "factor", factor: "presence" },
     missing: [],
     unmeasuredElsewhere: [],
@@ -262,8 +308,72 @@ export const FIXTURE_DEGRADED_REPORT: StoredReport = {
  *  It is the case that catches an empty-state written as a blank: the
  *  presence card's `suppressed_no_rivals` framing, its empty absent-from
  *  table, an AI matrix nobody was cited in, and no first page to offer. */
+/** The cold-start fixture is a **different customer, in a different
+ *  market** — and its own measurement says so.
+ *
+ *  It used to share the complete fixture's twelve searches and the brands
+ *  its answers named, which made the report for a domain that ranks for
+ *  nothing carry another fixture's rivals and searches: REQ-091 c3's
+ *  "nothing stands in the place of what the customer does not have",
+ *  caught by `tests/presentation/sweeps/coldstart.test.tsx` the moment the
+ *  approved copy landed and those provenance lines started rendering
+ *  their slots (#352). Two customers, two markets, no borrowing possible.
+ *
+ *  Its AI answers name nobody at all: the answers appeared and cited no
+ *  brand, which is a measurement and not an absence — the same reading
+ *  `QuestionRow` gives it ("a question whose answer named nobody names
+ *  none"). */
+const COLD_SEARCHES = [
+  "invoicing software for freelancers",
+  "best invoicing tool",
+  "send an invoice online",
+  "recurring invoice software",
+  "invoice reminders automatic",
+  "quotes and invoices in one place",
+  "invoicing for small studios",
+  "vat invoice template",
+  "invoice in two currencies",
+  "time tracking to invoice",
+  "invoice approval workflow",
+  "invoicing software pricing",
+] as const;
+
+/** The deterministic fallback shape, which is code and not copy
+ *  (DECISIONS 2026-09-05, #82): a search becomes the question a buyer asks
+ *  about it. The complete fixture above carries model-worded questions;
+ *  this one carries the template form, which is the other of the two
+ *  shapes the product actually stores. */
+const COLD_QUESTIONS: readonly StoredQuestion[] = COLD_SEARCHES.map((search, index) => ({
+  n: index + 1,
+  wording: fromStored("questions.wording", `What's the best ${search}?`),
+  search,
+}));
+
+/** Three of the twelve returned no AI answer; the nine that did named no
+ *  brand at all. */
+function coldCellFor(index: number): AnswerCell {
+  if (index >= 9) return { kind: "no_answer" };
+  return { kind: "answered", citedDomains: [], namesCustomer: false };
+}
+
 export const FIXTURE_COLD_START_REPORT: StoredReport = {
   ...FIXTURE_REPORT,
+  market: measured(
+    {
+      profile: {
+        category: "invoicing software",
+        job: "get paid for work already done",
+        offeringType: "software",
+        audienceTerms: ["freelancers", "small studios"],
+        namedRivals: [],
+        vocabulary: ["invoice", "quote", "reminder"],
+        brandTokens: ["example"],
+      },
+      suggestions: COLD_SEARCHES.map((keyword, index) => ({ keyword, volume: 2400 - index * 150 })),
+      totalVolume: 9800,
+    },
+    MEASURED_AT
+  ),
   verdict: {
     ...FIXTURE_REPORT.verdict,
     scoreAndBand: measured({ score: 8, band: "invisible" }, MEASURED_AT),
@@ -278,7 +388,15 @@ export const FIXTURE_COLD_START_REPORT: StoredReport = {
     measuredAt: MEASURED_AT,
     ownDomain: OWN_DOMAIN,
     rivals: [],
-    rows: QUESTIONS.map((question, index) => ({ question, cell: cellFor(index), engines: enginesFor(index) })),
+    rows: COLD_QUESTIONS.map((question, index) => ({
+      question,
+      cell: coldCellFor(index),
+      engines: [
+        { engine: "ai_overview", cell: coldCellFor(index) },
+        { engine: "ai_mode", cell: NOT_ASKED },
+        { engine: "chatgpt", cell: NOT_ASKED },
+      ] as readonly EngineCell[],
+    })),
     coverage: "async_included",
   },
   presence: {

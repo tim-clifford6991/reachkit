@@ -41,6 +41,7 @@ import { ProblemCards } from "../_problems/cards";
 import { MethodSections } from "../_problems/method";
 import { cardsOf, PROBLEM_ORDER } from "../_problems/model";
 import { unblockLines } from "../_problems/unblock";
+import { CopyLink } from "./copy-link";
 import { RemovalAddressLine } from "./removal";
 import type { AddressControl, AddressNotice } from "./state";
 import { refusalLine } from "./refusal";
@@ -200,12 +201,22 @@ export function ReportView(p: {
           <ControlButton control={control} />
         </div>
 
+        {/* The copy-link control, at the top of the screen that owns the
+            address (REQ-001 c7). UI-SPEC S2 draws it in the public
+            header's bar; the header is shared chrome with no per-route
+            slot, and the canonical address is built in exactly one place
+            (`page.tsx`), so it is rendered here by the screen that has
+            it rather than composed a second time in the layout. Named in
+            the PR as the one place this screen departs from the set. */}
+        <div className="col-span-full flex justify-end">
+          <CopyLink canonicalUrl={p.canonicalUrl} />
+        </div>
+
         <div className="col-span-full">
           <VerdictStrip
             verdict={report.verdict}
             category={categoryOf(report.market)}
             measuredOn={measuredOn}
-            canonicalUrl={p.canonicalUrl}
           />
         </div>
 
@@ -217,7 +228,7 @@ export function ReportView(p: {
         {report.presence === null ? (
           <GooglePresenceAbsent />
         ) : (
-          <GooglePresenceCard section={report.presence} measuredOn={measuredOn} />
+          <GooglePresenceCard section={report.presence} />
         )}
 
         <div className="col-span-full">
