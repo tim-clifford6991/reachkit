@@ -9,6 +9,13 @@
 // somebody typed in a dashboard is the failure ADR-052 exists for, and the
 // only place it can be caught is a boot that refuses to come up.
 //
+// **The jobs bindings (issue #315).** `assertJobsBindings()` joins the same
+// hook, beside the clock check: both ask whether this process is a real
+// deployment and whether it is configured like one. The fixture's app URL is
+// an https address that is not this machine, so every case in this file boots
+// as a real deployment — which is what makes the refusal at the bottom the
+// case worth having.
+//
 // **Two invariants now (issue #180).** ADR-050's access gate is registered
 // here too, and asserted through the seam the weekly selection reads — so
 // these cases also hold that the gate is installed on *every* Node boot,
@@ -77,6 +84,9 @@ describe("the assertion runs once at boot, on the Node.js runtime", () => {
       // Issue #305's binding check is first: it is local, needs nobody, and
       // decides whether this process may serve a frozen date at all.
       { event: "boot_invariants", check: "clock", outcome: "checked" },
+      // #315's bindings, decided in the same breath and before anything
+      // registers or any vendor is asked.
+      { event: "boot_invariants", check: "jobs", outcome: "checked" },
       { event: "boot_invariants", check: "access-gate", outcome: "checked" },
       { event: "boot_invariants", check: "stamp-place", outcome: "checked" },
       { event: "boot_invariants", check: "checkout", outcome: "checked" },
@@ -135,10 +145,11 @@ describe("a vendor that could not be read is not a mismatch, and does not take t
     expect(errored.map((line) => JSON.parse(line))).toEqual([
       { event: "boot_invariants", check: "checkout", outcome: "unchecked", reason: "Error" },
     ]);
-    // The clock binding, the gate and the place port are local and were
-    // established before the vendor was asked.
+    // The clock binding, the jobs bindings, the gate and the place port are
+    // local and were established before the vendor was asked.
     expect(logged.map((line) => JSON.parse(line))).toEqual([
       { event: "boot_invariants", check: "clock", outcome: "checked" },
+      { event: "boot_invariants", check: "jobs", outcome: "checked" },
       { event: "boot_invariants", check: "access-gate", outcome: "checked" },
       { event: "boot_invariants", check: "stamp-place", outcome: "checked" },
     ]);
@@ -205,5 +216,51 @@ describe("a real deployment carrying RK_FIXED_NOW does not start", () => {
       check: "clock",
       outcome: "checked",
     });
+  });
+});
+
+// ── the jobs bindings a deployment must carry (issue #315) ───────────────
+//
+// **This block stays last in the file.** Its cases drop the module registry
+// so that `env` re-parses a `process.env` one binding short, and every
+// module `register()` imports after that is a fresh instance — the doubles
+// this file installs at the top (`setStripe`, the access gate) are bound to
+// the old ones. Nothing may follow that expects them.
+
+describe("a real deployment that cannot run a job does not start", () => {
+  const SIGNING_BEFORE = process.env.INNGEST_SIGNING_KEY;
+  const EVENT_BEFORE = process.env.INNGEST_EVENT_KEY;
+
+  afterEach(() => {
+    if (SIGNING_BEFORE === undefined) delete process.env.INNGEST_SIGNING_KEY;
+    else process.env.INNGEST_SIGNING_KEY = SIGNING_BEFORE;
+    if (EVENT_BEFORE === undefined) delete process.env.INNGEST_EVENT_KEY;
+    else process.env.INNGEST_EVENT_KEY = EVENT_BEFORE;
+    vi.resetModules();
+  });
+
+  it.each(["INNGEST_SIGNING_KEY", "INNGEST_EVENT_KEY"] as const)(
+    "throws out of register() when %s is missing, before the gate or the vendor is reached",
+    async (name) => {
+      delete process.env[name];
+      vendor.price = { ...MATCHING };
+      vi.resetModules();
+      const { register: freshRegister } = await import("@/instrumentation");
+      await expect(freshRegister()).rejects.toThrow(new RegExp(name));
+      // The clock check ran and logged; nothing after the refusal did.
+      expect(logged.map((line) => JSON.parse(line))).toEqual([
+        { event: "boot_invariants", check: "clock", outcome: "checked" },
+      ]);
+      expect(errored).toEqual([]);
+    }
+  );
+
+  it("names no binding value in the refusal", async () => {
+    delete process.env.INNGEST_SIGNING_KEY;
+    vi.resetModules();
+    const { register: freshRegister } = await import("@/instrumentation");
+    const thrown = await freshRegister().catch((error: unknown) => error);
+    expect(String(thrown)).not.toContain("event-key-fixture");
+    expect([...logged, ...errored].join("\n")).not.toContain("event-key-fixture");
   });
 });

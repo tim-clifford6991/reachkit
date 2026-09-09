@@ -24,9 +24,12 @@ const ENV_MODULE = "../../src/lib/config/env.ts";
 // plus `HOSTED_EDGE_CNAME_TARGET` (BP-005 `## Public interface`'s note),
 // moved onto BP-005 decision 6a and 6c: `SUPABASE_SERVICE_ROLE_KEY`
 // replaces `SUPABASE_SERVICE_ROLE`, one name end to end, no alias;
-// `DATABASE_URL` is gone — 16 names, `env`'s own key set (`NANO_API_KEY`
-// stays a member; 6b makes it optional at the *schema* level, not absent
-// from `Env`).
+// `DATABASE_URL` is gone. Issue #315 adds §15's two jobs bindings, which
+// the 2026-09-05 ruling had kept out of the schema — 18 names, `env`'s own
+// key set (`NANO_API_KEY` stays a member; 6b makes it optional at the
+// *schema* level, not absent from `Env`, and the two jobs bindings are
+// optional for their own reason: only a real deployment must carry them,
+// and `assertJobsBindings()` is what refuses one that does not).
 const BINDING_NAMES = [
   "SUPABASE_URL",
   "SUPABASE_ANON_KEY",
@@ -44,13 +47,24 @@ const BINDING_NAMES = [
   "OWNER_EMAILS",
   "NEXT_PUBLIC_APP_URL",
   "HOSTED_EDGE_CNAME_TARGET",
+  "INNGEST_SIGNING_KEY",
+  "INNGEST_EVENT_KEY",
 ] as const;
+
+/** Issue #315's pair, named once here. */
+const JOBS_BINDING_NAMES = ["INNGEST_SIGNING_KEY", "INNGEST_EVENT_KEY"] as const;
 
 // The missing-binding it.each below (BP-005 `## Error & edge behavior`,
 // "Every other binding keeps the no-default, no-fallback rule") excludes
 // `NANO_API_KEY` — decision 6b's whole point is that its absence resolves
 // rather than throws; that behaviour has its own suite further down.
-const NO_DEFAULT_BINDING_NAMES = BINDING_NAMES.filter((name) => name !== "NANO_API_KEY");
+// It also excludes the two jobs bindings (#315): a process that is not a
+// deployment runs no job, so their absence is not a boot failure there —
+// the suite further down holds what happens on a real deployment.
+const NO_DEFAULT_BINDING_NAMES = BINDING_NAMES.filter(
+  (name) =>
+    name !== "NANO_API_KEY" && !(JOBS_BINDING_NAMES as readonly string[]).includes(name)
+);
 
 // WO-005 file plan's closed set of server-only bindings, moved onto 6a.
 const SERVER_ONLY_NAMES = [
@@ -61,6 +75,8 @@ const SERVER_ONLY_NAMES = [
   "ANTHROPIC_API_KEY",
   "NANO_API_KEY",
   "IP_HASH_SALT",
+  "INNGEST_SIGNING_KEY",
+  "INNGEST_EVENT_KEY",
 ] as const;
 
 // A complete, validly-shaped set of bindings. Values are fixtures, never
@@ -83,11 +99,13 @@ const VALID_ENV: Record<(typeof BINDING_NAMES)[number], string> = {
   OWNER_EMAILS: "owner@example.com,second-owner@example.com",
   NEXT_PUBLIC_APP_URL: "https://app.example.com",
   HOSTED_EDGE_CNAME_TARGET: "content.reachkit-edge.example.com",
+  INNGEST_SIGNING_KEY: "signkey-fixture",
+  INNGEST_EVENT_KEY: "event-key-fixture",
 };
 
 const ORIGINAL_ENV = { ...process.env };
 
-/** Resets the 16 bindings to a complete, valid set, then applies overrides.
+/** Resets the 18 bindings to a complete, valid set, then applies overrides.
  * `undefined` deletes the key — `process.env[k] = undefined` would instead
  * coerce to the string `"undefined"`, which is not what "missing" means.
  * Also always clears `DATABASE_URL` and the retired `SUPABASE_SERVICE_ROLE`
@@ -97,6 +115,9 @@ const ORIGINAL_ENV = { ...process.env };
 function applyEnv(overrides: Partial<Record<string, string | undefined>>) {
   delete process.env.DATABASE_URL;
   delete process.env.SUPABASE_SERVICE_ROLE;
+  // `isRealDeployment()` reads this one, and the jobs suite below turns on
+  // the answer. A `VERCEL` inherited from somewhere else would decide it.
+  delete process.env.VERCEL;
   for (const name of BINDING_NAMES) delete process.env[name];
   for (const [key, value] of Object.entries(VALID_ENV)) {
     process.env[key] = value;
@@ -110,7 +131,11 @@ function applyEnv(overrides: Partial<Record<string, string | undefined>>) {
 /** `env.ts` parses at module load (BP-005), so observing a fresh parse
  * requires a fresh module instance — `vi.resetModules()` before every
  * import, per binding under test. */
-async function importEnvModule(): Promise<{ env: Record<string, unknown> }> {
+async function importEnvModule(): Promise<{
+  env: Record<string, unknown>;
+  assertJobsBindings: () => void;
+  MissingJobsBindings: new (missing: readonly string[]) => Error;
+}> {
   vi.resetModules();
   return import(ENV_MODULE);
 }
@@ -158,7 +183,7 @@ describe('BP-005 error behaviour — "`env` throws at boot on a missing or malfo
 });
 
 describe("`BUILD.md` §15's binding list, moved onto BP-005 decision 6", () => {
-  it("env's key set equals the new 16-name list — an extra binding fails; a missing one fails", async () => {
+  it("env's key set equals the new 18-name list — an extra binding fails; a missing one fails", async () => {
     applyEnv({});
     const { env } = await importEnvModule();
     expect(Object.keys(env).sort()).toEqual([...BINDING_NAMES].sort());
@@ -288,4 +313,99 @@ describe('BP-005 decision 6c — "**Out of `Env` entirely, not optional inside i
     const { env } = await importEnvModule();
     expect(Object.keys(env)).not.toContain("DATABASE_URL");
   });
+});
+
+describe('issue #315 — `BUILD.md` §15 names `INNGEST_SIGNING_KEY INNGEST_EVENT_KEY`, and §11: "the app registers at `/api/jobs/[[...slug]]` with `INNGEST_SIGNING_KEY` / `INNGEST_EVENT_KEY`". They are members of this schema, reversing the 2026-09-05 ruling that kept them out', () => {
+  it.each(JOBS_BINDING_NAMES)("%s is a member of env's key set", async (name) => {
+    applyEnv({});
+    const { env } = await importEnvModule();
+    expect(Object.keys(env)).toContain(name);
+  });
+
+  it.each(JOBS_BINDING_NAMES)("%s reads back the binding's value", async (name) => {
+    applyEnv({});
+    const { env } = await importEnvModule();
+    expect(env[name]).toBe(VALID_ENV[name]);
+  });
+
+  it("both are still keys of env when unset, so the server-only guard holds on every deployment and env's shape does not change with the environment", async () => {
+    applyEnv({ INNGEST_SIGNING_KEY: undefined, INNGEST_EVENT_KEY: undefined });
+    const { env } = await importEnvModule();
+    expect(Object.keys(env).sort()).toEqual([...BINDING_NAMES].sort());
+    for (const name of JOBS_BINDING_NAMES) expect(env[name]).toBeUndefined();
+  });
+
+  it.each(JOBS_BINDING_NAMES)("an empty %s is malformed, not absent, and fails the parse", async (name) => {
+    applyEnv({ [name]: "" });
+    await expect(importEnvModule()).rejects.toThrow();
+  });
+
+  it.each(JOBS_BINDING_NAMES)(
+    "a process that is not a deployment boots with %s missing — it runs no job",
+    async (name) => {
+      applyEnv({ [name]: undefined, NEXT_PUBLIC_APP_URL: "http://localhost:3000" });
+      await expect(importEnvModule()).resolves.toBeDefined();
+    }
+  );
+});
+
+describe("issue #315 — the boot invariant: a real deployment that cannot run a job does not start", () => {
+  it("is silent on a real deployment carrying both bindings", async () => {
+    applyEnv({});
+    const { assertJobsBindings } = await importEnvModule();
+    expect(() => assertJobsBindings()).not.toThrow();
+  });
+
+  it.each(JOBS_BINDING_NAMES)("throws on a real deployment missing %s, and names it", async (name) => {
+    applyEnv({ [name]: undefined });
+    const { assertJobsBindings, MissingJobsBindings } = await importEnvModule();
+    const thrown = (() => {
+      try {
+        assertJobsBindings();
+        return null;
+      } catch (error: unknown) {
+        return error;
+      }
+    })();
+    expect(thrown).toBeInstanceOf(MissingJobsBindings);
+    expect(String(thrown)).toContain(name);
+  });
+
+  it("names both when both are missing, and no value of either", async () => {
+    applyEnv({ INNGEST_SIGNING_KEY: undefined, INNGEST_EVENT_KEY: undefined });
+    const { assertJobsBindings } = await importEnvModule();
+    const message = String(
+      (() => {
+        try {
+          assertJobsBindings();
+          return null;
+        } catch (error: unknown) {
+          return error;
+        }
+      })()
+    );
+    for (const name of JOBS_BINDING_NAMES) expect(message).toContain(name);
+    expect(message).not.toContain(VALID_ENV.INNGEST_SIGNING_KEY);
+    expect(message).not.toContain(VALID_ENV.INNGEST_EVENT_KEY);
+  });
+
+  it("a Vercel deployment is real even on a loopback app URL — the platform binding decides first", async () => {
+    applyEnv({ INNGEST_EVENT_KEY: undefined, NEXT_PUBLIC_APP_URL: "http://localhost:3000" });
+    process.env.VERCEL = "1";
+    const { assertJobsBindings } = await importEnvModule();
+    expect(() => assertJobsBindings()).toThrow(/INNGEST_EVENT_KEY/);
+  });
+
+  it.each(["http://localhost:3000", "http://127.0.0.1:3000"])(
+    "is silent at %s with neither binding set — a local build and the layout suite's server run no job",
+    async (appUrl) => {
+      applyEnv({
+        INNGEST_SIGNING_KEY: undefined,
+        INNGEST_EVENT_KEY: undefined,
+        NEXT_PUBLIC_APP_URL: appUrl,
+      });
+      const { assertJobsBindings } = await importEnvModule();
+      expect(() => assertJobsBindings()).not.toThrow();
+    }
+  );
 });

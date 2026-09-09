@@ -14,7 +14,7 @@ record and the rollback path.
 | Preview | every PR gets a preview deployment (`*.vercel.app`); deployment protection is off (Hobby, and Vercel's standard protection does not exempt a branch-bound custom domain) |
 | Development host | `dev.reachkit.app` — bound to `main` on the same project. Since cutover `main` is production, so it serves the same deployment as `reachkit.app`; it stays as the URL the owner steers on until the owner rules it removed |
 | Supabase | project `reachkit` (`kleepxxddbcnfsfwudoe`, Postgres 17, us-east-1) — **v3's database since cutover**: v2's objects moved to schema `v2_archive`, v3's 38 migrations applied (owner ruling 2026-09-04: 1 user, 0 leads, 0 customers to keep). **Free plan since 2026-09-08** (two projects; a project pauses after seven idle days — the weekly tick keeps it awake once jobs run, #315). The org is Vercel-Marketplace-managed: uninstalling that integration would delete the org and the database; the exit path is a transfer to a Supabase-managed org |
-| Jobs | Inngest app registered at `https://reachkit.app/api/jobs` (keys below) — **pending #315**: keys not in `env.ts`, app not registered, crons do not tick |
+| Jobs | Inngest app registered at `https://reachkit.app/api/jobs` (keys below) — the keys are in `env.ts` and the boot refuses a deployment without them (#315); **still owed by the owner**: create the Inngest app, paste the two keys, sync the functions. Until then the app is not registered and the crons do not tick |
 | Mail | Resend, sending domain `reachkit.app` verified (SPF/DKIM/DMARC), `MAIL_FROM` bound — **pending #325, #81** |
 | Payments | Stripe live: one product `ReachKit`, one €49/month tax-inclusive price bound as `STRIPE_PRICE_ID` on production and preview (2026-09-08); v2's products and prices inactive; webhook endpoint `/api/stripe/webhook`; customer portal on |
 | Hosted CMS | customers CNAME to `HOSTED_EDGE_CNAME_TARGET` (`edge.reachkit.app`); per-customer domains added to the project through the Vercel Domains API (M11 #322) |
@@ -43,7 +43,7 @@ Sensitive bindings are write-only in Vercel (the API never returns them); the ow
 | `RESEND_API_KEY` · `MAIL_FROM` | prod, preview | owner | `MAIL_FROM` is #81 |
 | `DATAFORSEO_LOGIN` · `DATAFORSEO_PASSWORD` | prod, preview | owner | |
 | `ANTHROPIC_API_KEY` · `NANO_API_KEY` (optional) | prod, preview | owner | `NANO_API_KEY` defaults to `ANTHROPIC_API_KEY` |
-| `INNGEST_SIGNING_KEY` · `INNGEST_EVENT_KEY` | prod, preview | owner | present on `reachkit` already; add to `env.ts` (#315) |
+| `INNGEST_SIGNING_KEY` · `INNGEST_EVENT_KEY` | prod, preview | owner | present on `reachkit` already; members of `env.ts` since #315 — optional in the schema, and the boot invariant refuses a *real* deployment (on Vercel, or serving a non-loopback app URL) that is missing either, so both must exist on **preview** as well as production or no PR can build |
 | `IP_HASH_SALT` | prod (+ preview) | owner | a fresh random value per environment |
 | `KILL_SWITCH` | all | master | `false`; flipping it stops every paid stage (runbook) |
 | `OWNER_EMAILS` | all | master | |
