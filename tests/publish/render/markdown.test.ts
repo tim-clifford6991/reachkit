@@ -23,6 +23,7 @@ import {
   type HtmlClasses,
 } from "@/lib/publish/render/markdown";
 import { BODY_CLASSES } from "@/app/(account)/app/draft/[draftId]/present";
+import { codeOf } from "../../mail/leads/source";
 
 const CLASS_ATTR = / class="[^"]*"/g;
 
@@ -124,6 +125,44 @@ describe("BP-044 decision 3 — one renderer, so the copied HTML and the publish
 
   it("the class map's own values are escaped where they land", () => {
     expect(toHtml(parseMarkdown("a"), { p: 'x"y' })).toBe('<p class="x&quot;y">a</p>');
+  });
+});
+
+describe("issue #414 — the grounded mark is the mint the approved set draws", () => {
+  // The set draws one rule for it, on S16's body and S19's alike:
+  // `.mark{background:var(--ok-bg);box-shadow:0 0 0 1px var(--ok-line);…;
+  // color:var(--ink)}`. This block holds the three things that were wrong
+  // or could go wrong again: the family, the pair of tokens it is drawn
+  // from, and the fact that one map dresses both surfaces.
+  const DRAFT = "src/app/(account)/app/draft/[draftId]/RenderedBody.tsx";
+  const HOSTED = "src/app/(hosted)/hosted-page/[...slug]/page.tsx";
+
+  it("the tint is the ok family's own pair, and no warn value is left", () => {
+    expect(BODY_CLASSES.mark).toContain("var(--ok-bg)");
+    expect(BODY_CLASSES.mark).toContain("var(--ok-line)");
+    expect(BODY_CLASSES.mark).not.toContain("warning");
+  });
+
+  it("the tokens are read by name, never restated: no colour literal reaches the class", () => {
+    // `--ok-bg` and `--ok-line` reach no daisyUI slot (§2.1 maps `success`
+    // to `--ok` and stops), so the map names them — a reference, not a
+    // second copy of the value, which still lives once in `theme.css`.
+    expect(BODY_CLASSES.mark).not.toMatch(/#[0-9a-fA-F]{3,8}|rgba?\(|hsla?\(/);
+  });
+
+  it("the mark states its ink: nothing resets `mark`, so the UA's would stand", () => {
+    // Left to the UA a `<mark>` is near-black `MarkText` — legible on the
+    // light tint and not on the dark one. The set writes `color:var(--ink)`,
+    // which is §2.1's `base-content` slot.
+    expect(BODY_CLASSES.mark).toContain("text-base-content");
+  });
+
+  it("one class, both surfaces: neither consumer dresses the body its own way", () => {
+    for (const file of [DRAFT, HOSTED]) {
+      const code = codeOf(file);
+      expect(code, `${file} must render through the shared map`).toContain("BODY_CLASSES");
+      expect(code, `${file} must not carry a mark class of its own`).not.toMatch(/mark:\s*"/);
+    }
   });
 });
 
