@@ -93,4 +93,24 @@ export interface BillingCard {
    *  card, the invoices, the billing address, the VAT number and cancelling
    *  are all done. Every billing control on the screen leads here. */
   surfaceHref: string;
+  /**
+   * The last four digits of the card on file, or `null` (issue #374, on the
+   * master's review of #391).
+   *
+   * **This is the one value on this card that ReachKit does not own**, and
+   * it is carried honestly rather than invented: `billingSummary` reads
+   * `users`, and `users` has no card column, so the live path answers
+   * `null` and the row is not drawn at all. The reserved fixture answers
+   * `4242`, which is what the approved S18 draws and what the PR's
+   * side-by-side photographs.
+   *
+   * It is `null` and never a placeholder, for the reason this file's own
+   * header gives: "a billing figure ReachKit renders is a second copy of a
+   * fact Stripe holds, and a second copy is what goes stale in front of a
+   * paying customer." Four digits nobody read would be exactly that. Until
+   * a Stripe read exists — or REQ-097 c5 is amended to admit one — the
+   * honest live answer is no row, and `Update card` beside it still leads
+   * to the surface where the real card lives.
+   */
+  cardLast4: string | null;
 }

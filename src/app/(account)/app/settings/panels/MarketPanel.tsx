@@ -36,6 +36,7 @@ import type React from "react";
 import { useState } from "react";
 import { Btn } from "@/ui/components/Btn";
 import { Card } from "@/ui/components/Card";
+import { CardHead } from "@/ui/idiom";
 import { Input } from "@/ui/components/Input";
 import { copy } from "@/lib/presentation/copy";
 import { formatDate } from "../../_shell/format";
@@ -191,8 +192,26 @@ export function MarketPanel(p: {
   }
 
   return (
-    <Card state="default" title={<h2>{copy("settings.market.title")}</h2>}>
+    <Card state="default" title={<CardHead eyebrow={copy("settings.market.title")} />}>
       <div className="flex min-w-0 flex-col gap-3">
+        {/* S18's order: the SITE first and the market second — the card is
+            "Your site & market", and the domain is the thing the market is
+            derived for. A row is its name at the near edge with the stored
+            value and its control at the far one, hairline between; the
+            editing arm keeps its own column, because a field and its
+            refusal line do not fit on one line at 320. */}
+        <div className="flex min-w-0 flex-col gap-1" data-testid="setting-domain">
+          <span className="eyebrow opacity-60">{copy("settings.market.domain")}</span>
+          {editing === "domain" ? (
+            editingField("domain")
+          ) : (
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
+              <span className="num min-w-0 wrap-anywhere">{p.domain}</span>
+              <Btn label={copy("settings.edit")} size="sm" variant="tertiary" onClick={() => open("domain")} />
+            </div>
+          )}
+        </div>
+
         <div className="flex min-w-0 flex-col gap-1" data-testid="setting-category">
           <span className="eyebrow opacity-60">{copy("settings.market.category")}</span>
           {editing === "category" ? (
@@ -202,19 +221,7 @@ export function MarketPanel(p: {
               {/* §2.3: a search query and the buyer vocabulary it is written in
                   are code-like strings, so the chip is mono. */}
               <span className="num inline-flex min-w-0 items-center gap-2 wrap-anywhere">{p.market.category}</span>
-              <Btn label={copy("settings.edit")} size="sm" onClick={() => open("category")} />
-            </div>
-          )}
-        </div>
-
-        <div className="flex min-w-0 flex-col gap-1" data-testid="setting-domain">
-          <span className="eyebrow opacity-60">{copy("settings.market.domain")}</span>
-          {editing === "domain" ? (
-            editingField("domain")
-          ) : (
-            <div className="flex min-w-0 flex-wrap items-center gap-2">
-              <span className="num min-w-0 wrap-anywhere">{p.domain}</span>
-              <Btn label={copy("settings.edit")} size="sm" onClick={() => open("domain")} />
+              <Btn label={copy("settings.edit")} size="sm" variant="tertiary" onClick={() => open("category")} />
             </div>
           )}
         </div>

@@ -155,9 +155,38 @@ describe("REQ-097 — the model carries no billing value at all", () => {
   // the plan, the price and the control, and none of the next invoice, the
   // card or the invoice history. So the assertion is not "every value has
   // provenance" any more — it is that there is no such value on the model.
-  it("the billing slice is the plan state, the access-end day and the destination — and nothing else", () => {
+  it("the billing slice is the plan state, the access-end day, the destination and the card — and nothing else", () => {
+    // The card on file joined the slice on the master's review of #391
+    // (issue #374): the approved S18 draws a card row, and the row needs
+    // somewhere to read four digits from. Everything else on the slice is
+    // still ReachKit's own — the state from `users.cancelled_at`, the day
+    // from `users.paid_through`, the destination from REQ-097 c1 — and the
+    // closed list is what keeps a fifth billing value from arriving quietly.
     const billing = assembleSettings(FACTS).billing;
-    expect(Object.keys(billing).sort()).toEqual(["accessUntil", "readable", "state", "surfaceHref"]);
+    expect(Object.keys(billing).sort()).toEqual([
+      "accessUntil",
+      "cardLast4",
+      "readable",
+      "state",
+      "surfaceHref",
+    ]);
+  });
+
+  it("the card is null where nothing read one — never a placeholder", () => {
+    // `users` holds no card, so the live read answers `null` and the row is
+    // not drawn (`store.ts`, `billing.ts`). A figure nobody read would be
+    // the second copy REQ-097 exists to prevent.
+    const billing = assembleSettings({
+      ...FACTS,
+      billing: {
+        readable: true as const,
+        state: "active" as const,
+        paidThrough: new Date("2026-10-01T00:00:00.000Z"),
+        surfaceHref: "https://billing.example/session",
+        cardLast4: null,
+      },
+    }).billing;
+    expect(billing.readable && billing.cardLast4).toBeNull();
   });
 
   it("the plan and the price are copy keys, not values read back from a vendor", () => {

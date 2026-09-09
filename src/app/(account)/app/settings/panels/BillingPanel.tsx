@@ -35,11 +35,13 @@
 
 import type React from "react";
 import { Btn } from "@/ui/components/Btn";
+import { Badge } from "@/ui/components/Badge";
 import { Card } from "@/ui/components/Card";
+import { CardHead } from "@/ui/idiom";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { writtenLine } from "../../_shell/written";
 import { useAction } from "./useAction";
-import { PLAN_KEY, PRICE_KEYS, type BillingSummary } from "../billing";
+import { PRICE_KEYS, type BillingSummary } from "../billing";
 
 /** REQ-097 c6's three statements, in the order the criterion names them.
  *  One key each: a single key would let the second and third be lost by
@@ -50,6 +52,11 @@ const BILLING_UNREADABLE_KEYS: readonly CopyKey[] = [
   "settings.billing.try-again",
   "settings.billing.reach-a-person",
 ];
+
+/** The mask S18 draws in front of the last four. Four bullet glyphs are
+ *  punctuation standing in for digits nobody may see — not a sentence, and
+ *  the same footing `Stat`'s em dash stands on. */
+const CARD_MASK = "\u2022\u2022\u2022\u2022";
 
 export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element {
   const { billing } = p;
@@ -67,44 +74,110 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
   // with the owner-owed ones dropped rather than rendered as a gap.
   const price = PRICE_KEYS.map((key) => writtenLine(key)).filter((line) => line !== null);
 
+  // S18's "next invoice" row, and **neither half of it is a second copy of
+  // anything** (#374): the day is `users.paid_through` — the access gate
+  // this card already states in its cancelling line — and the amount is the
+  // same `price.amount` key every price surface speaks. One read, no vendor
+  // value, and the two cannot disagree with the line below them because
+  // they are the same date.
+  // The AMOUNT alone beside the day — `price.amount`, which is the figure
+  // the set draws on this row. The interval ("per month, VAT included") is
+  // a fact about the plan and belongs beside the headline, not on a row
+  // stating one invoice.
+  const amount = writtenLine(PRICE_KEYS[0] ?? "price.amount");
+  const nextInvoice = billing.readable
+    ? [billing.accessUntil, amount].filter((part) => part !== null).join(" · ")
+    : null;
+  // The card on file. Drawn only where something read one — see
+  // `billing.ts`: `users` holds no card, so this is the fixture's row and
+  // the live account has none until a Stripe read exists.
+  const cardOnFile =
+    billing.readable && billing.cardLast4 !== null
+      ? `${CARD_MASK} ${billing.cardLast4}`
+      : null;
+
   return (
-    <Card state="default" title={<h2>{copy("settings.billing.title")}</h2>}>
-      <div className="flex min-w-0 flex-col gap-3">
-        <div className="flex min-w-0 flex-col gap-1">
-          <span className="eyebrow opacity-60">{copy("settings.billing.plan")}</span>
-          <span className="min-w-0 wrap-anywhere" data-testid="billing-plan">
-            {writtenLine(PLAN_KEY)}
+    <Card state="default" title={<CardHead eyebrow={copy("settings.billing.title")} />}>
+      {/* S18 leads with the figure and its state, not with a plan row: the
+          price is the card's one headline number and the pill says whether
+          it is running. The plan *word* is the same fact the pill states —
+          there is one plan (REQ-022 c3) — so drawing both put "TODO(copy)"
+          above a figure that already said everything. */}
+      <div className="flex min-w-0 flex-wrap items-baseline justify-between gap-2">
+        {/* S18 leads with the amount alone at figure size; the interval is
+            the same fact stated quietly beside it, so the card still says
+            "per month, VAT included" without setting it at 44px. Both sit
+            inside one test id, because together they are the price. */}
+        <span
+          className="flex min-w-0 flex-wrap items-baseline gap-2"
+          data-testid="billing-price"
+        >
+          <span className="num rk-figure wrap-anywhere">{amount}</span>
+          <span className="num-phrase text-xs opacity-60 wrap-anywhere">
+            {price.slice(1).join(" ")}
           </span>
-          {/* §2.3: a price is numerals. */}
-          <span className="num min-w-0 wrap-anywhere" data-testid="billing-price">
-            {price.join(" ")}
+        </span>
+        {!billing.readable ? null : (
+          <span data-testid="billing-state">
+            <Badge tone={billing.state === "active" ? "ok" : "neutral"}>
+              {copy(billing.state === "active" ? "settings.billing.active" : "settings.billing.cancelled")}
+            </Badge>
           </span>
-        </div>
+        )}
       </div>
 
+      <hr className="border-base-300 min-w-0 border-t" />
+
+      {/* The two rows S18 draws, each a name at the near edge and a mono
+          value at the far one. A row with nothing behind it is not drawn. */}
+      <dl className="rk-daypanel-why min-w-0">
+        {nextInvoice === null ? null : (
+          <>
+            <dt>{copy("settings.billing.next-invoice")}</dt>
+            {/* A PHRASE of values — a day and an amount, joined by a
+                separator — so it folds where language folds (#307's
+                `num-phrase`). `.num`'s own nowrap is for a single token,
+                and a nowrap row here pushed the card past the document. */}
+            <dd className="num num-phrase" data-testid="billing-next-invoice">
+              {nextInvoice}
+            </dd>
+          </>
+        )}
+        {cardOnFile === null ? null : (
+          <>
+            <dt>{copy("settings.billing.card")}</dt>
+            <dd className="num" data-testid="billing-card">
+              {cardOnFile}
+            </dd>
+          </>
+        )}
+      </dl>
+
+      {/* Three quiet controls, all leading to REQ-097 c1's one surface. */}
       <div className="flex min-w-0 flex-wrap items-center gap-2">
-        <span data-testid="action-invoices">
-          <Btn
-            label={copy("settings.billing.invoices")}
-            size="sm"
-            variant="ghost"
-            onClick={() => action.run("invoices")}
-          />
-        </span>
         {/* The card is changed on the same surface the invoices live on, so
             this is a second way in and not a second action (REQ-097 c1). */}
         <Btn
           label={copy("settings.billing.update-card")}
           size="sm"
+          variant="tertiary"
           onClick={() => action.run("invoices")}
         />
+        <span data-testid="action-invoices">
+          <Btn
+            label={copy("settings.billing.invoices")}
+            size="sm"
+            variant="tertiary"
+            onClick={() => action.run("invoices")}
+          />
+        </span>
         {!billing.readable ? null : billing.state === "active" ? (
           <span data-testid="action-cancel">
-            <Btn label={copy("settings.billing.cancel")} size="sm" onClick={() => action.run("cancel")} />
+            <Btn label={copy("settings.billing.cancel")} size="sm" variant="tertiary" onClick={() => action.run("cancel")} />
           </span>
         ) : (
           <span data-testid="action-resume">
-            <Btn label={copy("settings.billing.resume")} size="sm" onClick={() => action.run("resume")} />
+            <Btn label={copy("settings.billing.resume")} size="sm" variant="tertiary" onClick={() => action.run("resume")} />
           </span>
         )}
       </div>

@@ -46,9 +46,17 @@ export const MONO_FONT_FAMILY = "JetBrains Mono";
 // with JavaScript off once opened) and hides it with `overflow: hidden`.
 // Its content box sitting outside the closed shell is the component
 // working, not text escaping its box.
+// `textarea` is the third row, and it is the plainest of them (issue #374):
+// a multi-line field IS a scroll container — that is what the element is —
+// and a customer typing a paragraph into a four-row box reaches every line
+// of it by scrolling, exactly as they do in any editor. Its content box
+// standing taller than its border box is the control working, not text
+// escaping. The row names the element rather than a class, so it holds for
+// any field that ever takes `Input`'s multi-line arm.
 export const SCROLL_CONTAINER_ALLOWLIST: readonly string[] = [
   ".overflow-x-auto",
   ".collapse",
+  "textarea",
 ];
 // 2026-09-08, issue #354: the calendar cell's own two strings, and the
 // first rows this list has ever carried.

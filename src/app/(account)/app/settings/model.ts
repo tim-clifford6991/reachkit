@@ -96,10 +96,15 @@ export type BillingFacts =
       readable: true;
       state: PlanState;
       /** `users.paid_through` — the access gate (ADR-050), and REQ-076
-       *  criterion 3's "the exact date their access ends". */
+       *  criterion 3's "the exact date their access ends". It is also the
+       *  day the next invoice falls, which is why S18's "next invoice" row
+       *  needs no second date and no second read (#374). */
       paidThrough: Date;
       /** REQ-097 c1's one destination. */
       surfaceHref: string;
+      /** The card on file's last four, or `null` where nothing read one —
+       *  see `billing.ts` for why it is never invented. */
+      cardLast4: string | null;
     }
   | { readable: false; surfaceHref: string };
 
@@ -347,6 +352,7 @@ export function assembleSettings(facts: SettingsFacts): SettingsModel {
           // of them was corrected.
           accessUntil: formatDate(facts.billing.paidThrough, facts.timeZone),
           surfaceHref: facts.billing.surfaceHref,
+          cardLast4: facts.billing.cardLast4,
         }
       : { readable: false, surfaceHref: facts.billing.surfaceHref },
     content: { pages: facts.publishedPages },

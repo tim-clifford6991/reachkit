@@ -46,8 +46,10 @@
 
 import type React from "react";
 import { useState } from "react";
+import { Badge } from "@/ui/components/Badge";
 import { Btn } from "@/ui/components/Btn";
 import { Card } from "@/ui/components/Card";
+import { CardHead } from "@/ui/idiom";
 import { Input } from "@/ui/components/Input";
 import { copy } from "@/lib/presentation/copy";
 import { BATTERY } from "@/lib/config/constants";
@@ -104,7 +106,30 @@ export function CompetitorsPanel(p: {
   const refusalLine = refusal === null ? null : writtenLine(refusal);
 
   return (
-    <Card state="default" title={<h2>{copy("settings.competitors.title")}</h2>}>
+    <Card
+      state="default"
+      title={
+        // S18's right-hand slot: how many of the five are taken, in the
+        // set's own words. A value, so it is mono and carries its
+        // denominator — §2.5's "never bare" applied to a count the customer
+        // can act on — and the cap is the one constant rather than a five
+        // typed here. `num-phrase` because "5 of 5" is a phrase: it folds
+        // at its spaces, which `.num`'s own nowrap would refuse.
+        <CardHead
+          eyebrow={copy("settings.competitors.title")}
+          pill={
+            <Badge tone="neutral">
+              <span className="num-phrase" data-testid="competitor-count">
+                {copy("settings.competitors.count", {
+                  taken: String(p.competitors.length),
+                  max: String(BATTERY.COMPETITORS_MAX),
+                })}
+              </span>
+            </Badge>
+          }
+        />
+      }
+    >
       <div className="flex min-w-0 flex-col gap-3" data-testid="setting-competitors">
         {p.competitors.length > 0 ? null : (
           // REQ-071 c16. No slot: there is no date and no change to name,
@@ -113,7 +138,18 @@ export function CompetitorsPanel(p: {
         )}
         <div className="flex min-w-0 flex-wrap gap-2">
           {p.competitors.map((domain) => (
-            <span className="inline-flex min-w-0 items-center gap-2 wrap-anywhere" key={domain} data-testid={`competitor-${domain}`}>
+            // S18 draws each rival as an accent-tinted pill carrying the
+            // domain and one way out — the `tag.on` chip. Here that is the
+            // registered outline rank in its pressed state, which is the
+            // idiom's own "selected chip" (accent edge, accent tint, accent
+            // ink, keyed off `aria-pressed`) and spends no new value. A
+            // domain is short and unbreakable, so a pill is the right box
+            // for it — unlike a never-claim entry, which is a sentence.
+            <span
+              className="rk-chip inline-flex min-w-0 items-center gap-1"
+              key={domain}
+              data-testid={`competitor-${domain}`}
+            >
               {/* §2.3: a domain is a URL-shaped value. */}
               <span className="num">{domain}</span>
               {/* The domain travels in the form rather than in a closure,
@@ -121,7 +157,12 @@ export function CompetitorsPanel(p: {
                   chip works the same way the field does. */}
               <form action={remove}>
                 <input type="hidden" name={RIVAL_FIELD} value={domain} readOnly />
-                <Btn label={copy("settings.competitors.remove")} size="sm" variant="ghost" type="submit" />
+                <Btn
+                  label={copy("settings.competitors.remove")}
+                  size="sm"
+                  variant="tertiary"
+                  type="submit"
+                />
               </form>
             </span>
           ))}

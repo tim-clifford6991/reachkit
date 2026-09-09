@@ -102,6 +102,10 @@ async function readBilling(userId: string): Promise<BillingFacts> {
     state: summary.value.summary.state,
     paidThrough: summary.value.summary.paidThrough,
     surfaceHref: BILLING_SURFACE,
+    // `users` holds no card, and this read reaches nothing else — so the
+    // card row is not drawn for a real account until a Stripe read exists
+    // (#374; `billing.ts` states why it is never invented in between).
+    cardLast4: null,
   };
 }
 

@@ -46,11 +46,12 @@ import type React from "react";
 import { Badge } from "@/ui/components/Badge";
 import { Btn } from "@/ui/components/Btn";
 import { Card } from "@/ui/components/Card";
+import { CardHead } from "@/ui/idiom";
 import { Toggle } from "@/ui/components/Toggle";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { writtenLine } from "../../_shell/written";
 import { ConnectDestination, type CredentialAction } from "./ConnectDestination";
-import { formatVetoWindow } from "../format";
+import { formatVetoWindow, vetoIsWholeDays, vetoWindowDays } from "../format";
 import type { DestinationAction, DestinationHealth, DestinationKind, SettingsModel } from "../model";
 import type { Tone } from "@/ui/types";
 
@@ -58,6 +59,52 @@ const MODE_COPY_KEY = {
   autopilot: "shell.publishing.mode.autopilot",
   copilot: "shell.publishing.mode.copilot",
 } as const;
+
+/**
+ * The stepper's value as a written line: the count in its own slot, and one
+ * of two keys chosen by that count. The choice is a choice between written
+ * lines, never a plural composed here — the registry interpolates and does
+ * not pluralise.
+ *
+ * **A window that is not whole days renders as the hours it is.** The
+ * stepper offers whole days and the writer refuses anything else, so such a
+ * value can only have been stored before that rule or around it — and
+ * `model.ts` is explicit that this screen states it as stored: "a read that
+ * 'corrects' a stored value would hide the very state the validator exists
+ * to prevent from ever being stored". "1.5 days" would read as a setting
+ * somebody chose. `36h` reads as what it is.
+ */
+function vetoWindowLabel(hours: number): string {
+  if (!vetoIsWholeDays(hours)) return formatVetoWindow(hours);
+  const days = vetoWindowDays(hours);
+  return copy(days === 1 ? "settings.publishing.veto.one-day" : "settings.publishing.veto.days", {
+    days: String(days),
+  });
+}
+
+/** The pair, in the order the approved set draws it. A tuple and not
+ *  `Object.keys`, so the order is stated rather than inherited from an
+ *  object literal's insertion order. */
+const MODES = ["autopilot", "copilot"] as const;
+
+/** One settable row: the name at the near edge, the value and its control at
+ *  the far one, a hairline above. It is the shape S18 gives every row on
+ *  this screen, written once here rather than five times below. */
+function SettingRow(p: {
+  name: string;
+  testId: string;
+  children: React.ReactNode;
+}): React.JSX.Element {
+  return (
+    <div
+      className="border-base-300 flex min-w-0 flex-wrap items-center justify-between gap-2 border-t py-2"
+      data-testid={p.testId}
+    >
+      <span className="min-w-0 text-sm wrap-anywhere">{p.name}</span>
+      <span className="flex min-w-0 flex-wrap items-center gap-2">{p.children}</span>
+    </div>
+  );
+}
 
 const KIND_COPY_KEY: Record<DestinationKind, CopyKey> = {
   hosted: "settings.destination.hosted",
@@ -96,55 +143,107 @@ function needsCredential(action: DestinationAction): action is CredentialAction 
 
 export function PublishingPanel(p: { settings: SettingsModel }): React.JSX.Element {
   const { publishing, destinations } = p.settings;
-  const modeWord = copy(MODE_COPY_KEY[publishing.mode]);
   const fixNote = writtenLine("settings.publishing.fix-note");
 
-  return (
-    <Card state="default" title={<h2>{copy("settings.publishing.title")}</h2>}>
-      <div className="flex min-w-0 flex-col gap-3">
-        <div data-testid="setting-mode">
-          <Toggle label={modeWord} checked={publishing.mode === "autopilot"} />
-        </div>
+  const pairNote = writtenLine("settings.publishing.pair.note");
 
-        <div className="flex min-w-0 flex-col gap-1" data-testid="setting-veto_hours">
-          <span className="eyebrow opacity-60">{copy("settings.publishing.veto")}</span>
+  return (
+    <Card state="default" title={<CardHead eyebrow={copy("settings.publishing.title")} />}>
+      <div className="flex min-w-0 flex-col gap-3">
+        {/* S18 draws the mode as a PAIR of option cards, not a switch: two
+            named choices side by side, the chosen one carrying the idiom's
+            accent edge and tint. A switch put one mode's word beside a
+            control whose off state was the other mode, unnamed — and REQ-073
+            c2 asks the screen to say what the pair does, which it can only
+            do once both are on it. `aria-pressed` is the state; the tint is
+            keyed off it (`idiom.css`), so a chosen card cannot look chosen
+            without being chosen. */}
+        <div
+          className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2"
+          data-testid="setting-mode"
+        >
+          {MODES.map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              className="rk-opt"
+              aria-pressed={publishing.mode === mode}
+              data-testid={`mode-${mode}`}
+            >
+              <Card
+                state="default"
+                title={<span className="rk-opt-label">{copy(MODE_COPY_KEY[mode])}</span>}
+              >
+                {null}
+              </Card>
+            </button>
+          ))}
+        </div>
+        {pairNote === null ? null : (
+          <p className="text-xs opacity-60 wrap-anywhere" data-testid="publishing-pair-note">
+            {pairNote}
+          </p>
+        )}
+
+        <hr className="border-base-300 min-w-0 border-t" />
+
+        <div className="flex min-w-0 flex-wrap items-center justify-between gap-2" data-testid="setting-veto_hours">
+          <span className="min-w-0 text-sm wrap-anywhere">{copy("settings.publishing.veto")}</span>
           {/* The stepper's two ends. §4.7's range (0–7d) is `VETO.minDays` and
               `VETO.maxDays`, enforced by the writer (issue #46) and never
               restated here — WO-178 step 4 puts that rule in one module and
               forbids a second copy, and a renderer that clamped would be one. */}
           <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <Btn label={copy("settings.publishing.veto.less")} size="sm" variant="ghost" />
-            <span className="num min-w-0 wrap-anywhere">{formatVetoWindow(publishing.vetoHours)}</span>
-            <Btn label={copy("settings.publishing.veto.more")} size="sm" variant="ghost" />
+            <Btn label={copy("settings.publishing.veto.less")} size="sm" variant="tertiary" />
+            <span className="num min-w-0 text-center wrap-anywhere">
+              {vetoWindowLabel(publishing.vetoHours)}
+            </span>
+            <Btn label={copy("settings.publishing.veto.more")} size="sm" variant="tertiary" />
           </div>
         </div>
 
-        <div className="flex min-w-0 flex-col gap-1" data-testid="setting-publish_time">
-          <span className="eyebrow opacity-60">{copy("settings.publishing.publish-time")}</span>
-          <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <span className="num min-w-0 wrap-anywhere">{publishing.publishTime}</span>
-            <Btn label={copy("settings.edit")} size="sm" />
-          </div>
-        </div>
+        {/* S18's rows: the name at the near edge, the stored value and its
+            control at the far one, hairline between. The value is mono
+            because each of these is one — a time, a zone name (§2.3). */}
+        <SettingRow name={copy("settings.publishing.publish-time")} testId="setting-publish_time">
+          <span className="num min-w-0 wrap-anywhere">{publishing.publishTime}</span>
+          <Btn label={copy("settings.edit")} size="sm" variant="tertiary" />
+        </SettingRow>
 
-        <div className="flex min-w-0 flex-col gap-1" data-testid="setting-time_zone">
-          <span className="eyebrow opacity-60">{copy("settings.publishing.time-zone")}</span>
-          <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <span className="num min-w-0 wrap-anywhere">{publishing.timeZone}</span>
-            <Btn label={copy("settings.edit")} size="sm" />
-          </div>
-        </div>
+        <SettingRow name={copy("settings.publishing.time-zone")} testId="setting-time_zone">
+          <span className="num min-w-0 wrap-anywhere">{publishing.timeZone}</span>
+          <Btn label={copy("settings.edit")} size="sm" variant="tertiary" />
+        </SettingRow>
 
-        <div data-testid="setting-publishing_enabled">
-          <Toggle label={copy("settings.publishing.enabled")} checked={publishing.enabled} />
-        </div>
+        {/* REQ-070 c1's "whether pages publish at all". The switch is the
+            state and carries the row's own name; the word beside it is the
+            value, which is what the approved row draws. */}
+        <SettingRow
+          name={copy("settings.publishing.enabled")}
+          testId="setting-publishing_enabled"
+        >
+          <Toggle
+            label={copy("settings.publishing.enabled")}
+            labelHidden
+            checked={publishing.enabled}
+          />
+        </SettingRow>
 
-        <div className="flex min-w-0 flex-col gap-1" data-testid="setting-destinations">
+        <hr className="border-base-300 min-w-0 border-t" />
+
+        <div className="flex min-w-0 flex-col gap-3" data-testid="setting-destinations">
+          {/* The group's own name. S18 draws none, because it always draws
+              two destinations and their names say what they are — but a site
+              with none must still say what the empty section is, which is
+              what `tests/app/settings/destinations.test.tsx` holds. */}
           <span className="eyebrow opacity-60">{copy("settings.publishing.destinations")}</span>
           {destinations.map((destination) => (
             <div className="flex min-w-0 flex-col gap-1" key={destination.id} data-testid={`destination-${destination.id}`}>
-              <div className="flex min-w-0 flex-wrap items-center gap-2">
-                <span className="min-w-0 wrap-anywhere">{copy(KIND_COPY_KEY[destination.kind])}</span>
+              <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
+                <span className="min-w-0 text-sm font-semibold wrap-anywhere">
+                  {copy(KIND_COPY_KEY[destination.kind])}
+                </span>
+                <span className="flex min-w-0 flex-wrap items-center gap-2">
                 <Badge tone={HEALTH_TONE[destination.health]}>
                   {copy(destination.copy.state)}
                 </Badge>
@@ -155,8 +254,9 @@ export function PublishingPanel(p: { settings: SettingsModel }): React.JSX.Eleme
                   // states asked for it.
                   <ConnectDestination action={destination.action} />
                 ) : destination.action === "none" ? null : (
-                  <Btn label={copy(ACTION_COPY_KEY[destination.action])} size="sm" />
+                  <Btn label={copy(ACTION_COPY_KEY[destination.action])} size="sm" variant="secondary" />
                 )}
+                </span>
               </div>
               {destination.copy.line === null ? null : (
                 <p className="text-xs opacity-60 wrap-anywhere">{copy(destination.copy.line)}</p>

@@ -29,6 +29,7 @@
 // The archived plans are WO-218 and WO-219.
 import { VETO } from "@/lib/config/constants";
 import { publishDb } from "../db";
+import { isWholeDays, vetoHoursFromDays } from "./veto";
 
 export type Mode = "autopilot" | "copilot";
 
@@ -54,18 +55,14 @@ export const SETTINGS_FIELDS: readonly SettingsField[] = Object.freeze([
   "timezone",
 ] as const);
 
-const HOURS_PER_DAY = 24;
 const HH_MM = /^([01][0-9]|2[0-3]):[0-5][0-9]$/;
 
-/** Days to hours, in the one place the conversion exists. */
-export function vetoHoursFromDays(days: number): number {
-  return days * HOURS_PER_DAY;
-}
-
-/** Hours back to the whole days the stepper shows. */
-export function vetoDaysFromHours(hours: number): number {
-  return hours / HOURS_PER_DAY;
-}
+/** The days-to-hours conversion, re-exported from the leaf that holds it
+ *  (`veto.ts`, issue #374). It is still one implementation and this is
+ *  still the module WO-178 step 4 names; what the leaf buys is that the
+ *  settings screen's own formatter can read it without evaluating this
+ *  file, which imports `publishDb` and so parses every binding. */
+export { vetoDaysFromHours, vetoHoursFromDays } from "./veto";
 
 /** Does the runtime resolve this as an IANA zone? The runtime's own zone
  *  database is the only source; there is no second list to fall out of
@@ -97,7 +94,7 @@ export function invalidFields(patch: Partial<PublishingSettings>): readonly Sett
 
   if (patch.vetoHours !== undefined) {
     const hours = patch.vetoHours;
-    const wholeDays = Number.isInteger(hours) && hours % HOURS_PER_DAY === 0;
+    const wholeDays = isWholeDays(hours);
     const inRange =
       hours >= vetoHoursFromDays(VETO.minDays) && hours <= vetoHoursFromDays(VETO.maxDays);
     // A 36-hour window is refused: the stepper offers whole days and a
