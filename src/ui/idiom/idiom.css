@@ -893,6 +893,11 @@
   display: flex;
   align-items: center;
   gap: var(--s-3);
+  /* The set's own `.pubbar` wraps, and at 320 it has to: the brand and 3a's
+   * two controls are wider than 288px of content box, and a row that cannot
+   * wrap puts its last control outside the bar — a containment offender on
+   * every public route (the layout sweep, issue #351). */
+  flex-wrap: wrap;
   max-width: var(--w-wide);
   margin-inline: auto;
   padding: var(--s-3) var(--s-4);
@@ -932,7 +937,8 @@
   display: flex;
   align-items: center;
   gap: var(--s-2);
-  flex: 0 0 auto;
+  flex-wrap: wrap;
+  flex: 0 1 auto;
 }
 
 .rk-chrome-foot {
