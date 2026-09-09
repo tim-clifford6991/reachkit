@@ -1,28 +1,53 @@
-// src/app/(public)/opt-out/[token]/page.tsx — BUILD §4.2
+// src/app/(public)/opt-out/[token]/page.tsx — UI-SPEC S7, REQ-010 c11,
+// BUILD §4.2 (issue #372)
 //
 // The page behind the link every lead-directed mail carries. It applies the
 // token on arrival and renders a total switch over the three things that
-// can have happened — nothing else is on it: no control, no form, no field,
-// no re-subscribe control, no navigation into the product, and the address
-// is never echoed back, because an opt-out link forwarded to someone else
-// must not disclose whose it was.
+// can have happened.
+//
+// **This is the approved screen set built** (`docs/design/approved/full-set/`,
+// UI-SPEC S7, owner 2026-09-08). S7 draws one card: a mail chip over
+// "Opted out", the two approved lines with the address inside the first, and
+// a quiet "Back to ReachKit". What stood here before was the registered
+// `Card` with an `Alert` block inside it — a tone-coloured banner the set
+// draws on no screen — and it deliberately showed neither the address nor a
+// way back.
+//
+// **Both of those are the set's own ruling and not an oversight of this
+// build.** The address was suppressed here on the reasoning that "an
+// opt-out link forwarded to someone else must not disclose whose it was";
+// the owner's approved drawing of this screen shows the address, and
+// UI-SPEC §S7 writes it out. Where UI-SPEC and BUILD §4 differ, UI-SPEC
+// wins until §4's amendment lands (UI-SPEC's own header), and REQ-010 c11 —
+// the criterion this page satisfies — asks for a working opt-out that stops
+// every sequence and says nothing about echoing the address. The quiet link
+// is the same ruling: "no navigation into the product" was this file's own
+// rule, and the set draws one control.
 //
 // Renders without a session, a cookie or a payment: `/opt-out/{token}` is
 // on `PUBLIC_PATHS` and this file sits under `(public)`, whose layout
-// declares nothing about sessions.
+// declares nothing about sessions but does draw ruling 3a's header and
+// footer around this card.
 //
-// Every sentence is a registry key. `optout.unavailable` is still owner-owed
-// and renders the visible `TODO(copy)` marker (issue #261): a screen shows
-// which line is waiting on the owner rather than going down over it, which
-// is the standing rule for every owner-owed key a screen reads. It used to
-// carry the empty value, whose `copy()` throw took this whole page with it
-// on the one arm a reader reaches when the store is unavailable.
+// **Three arms, and the head says which.** Only one of the three opted
+// anybody out, so only that one wears S7's "Opted out": a card that said it
+// over "that unsubscribe link isn't valid any more" would contradict itself
+// in its own head. The other two take `optout.head.unresolved`, which is
+// owner-owed and renders the `TODO(copy)` marker — the standing rule for a
+// screen (a mail keeps the throw; a screen shows which line is waiting and
+// keeps working), and the rule `optout.unavailable` below it already lives
+// by.
+//
+// Every sentence is a registry key.
 import type React from "react";
+import { Mail } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
+import type { CopyKey } from "@/lib/presentation/copy";
 import { applyOptOutToken } from "@/lib/mail/leads";
-import { Alert, Card } from "@/ui/components";
+import { Btn } from "@/ui/components/Btn";
+import { CardHead, IdiomCard } from "@/ui/idiom";
 import { Surface } from "@/ui/layout";
-import type { AlertTone } from "@/ui/components";
+import { AddressLine } from "@/app/_fallback/AddressLine";
 import type { Arm, Band } from "@/ui/layout";
 
 /** Next hands a dynamic segment as a promise; the suite calls this
@@ -38,33 +63,59 @@ const ARMS = {
   wide: { kind: "columns", count: 1 },
 } as const satisfies Record<Band, Arm>;
 
-/** `Card` requires a title and there is no sentence to put in one: the head
- *  of this card is the product's own name, which `mail.shell.wordmark`
- *  already holds — transcribed, not written, on the same footing as the
- *  em-dash another partition transcribes. Minting a second key for the same
- *  word would put an owner-owed blank at the head of the one page a reader
- *  reaches when they want mail to stop. */
-const WORDMARK = "mail.shell.wordmark";
+/** The set's own confirmation, with the address inside it. */
+const CONFIRMED: CopyKey = "optout.confirmed";
+
+/** A test hook, never a sentence (ADR-010 point 1). */
+const TEST_ID = "opt-out-card";
+
+/** The way back the set draws, and where it goes. */
+const HOME = "/";
+
+/** The head and the line for what applying the token did. Total over the
+ *  three arms — no default, and no fourth rendering. The confirmation's
+ *  line is composed rather than resolved, because the set writes the
+ *  address inside it in the mono face. */
+function arm(applied: Awaited<ReturnType<typeof applyOptOutToken>>): {
+  head: CopyKey;
+  line: React.ReactNode;
+} {
+  if ("email" in applied) {
+    return {
+      head: "optout.head",
+      line: <AddressLine copyKey={CONFIRMED} address={applied.email} />,
+    };
+  }
+  const line: CopyKey = applied.error === "invalid" ? "optout.invalid" : "optout.unavailable";
+  return { head: "optout.head.unresolved", line: <p>{copy(line)}</p> };
+}
 
 export default async function OptOutPage(p: {
   params: TokenParams | Promise<TokenParams>;
 }): Promise<React.JSX.Element> {
   const { token } = await p.params;
-  const applied = await applyOptOutToken(token);
-
-  // Three arms, three tones, no fourth rendering and no default arm.
-  const { tone, message }: { tone: AlertTone; message: string } =
-    "email" in applied
-      ? { tone: "ok", message: copy("optout.confirmed") }
-      : applied.error === "invalid"
-        ? { tone: "warn", message: copy("optout.invalid") }
-        : { tone: "neutral", message: copy("optout.unavailable") };
+  const { head, line } = arm(await applyOptOutToken(token));
 
   return (
     <Surface arms={ARMS}>
-      <Card state="default" title={copy(WORDMARK)}>
-        <Alert tone={tone} message={message} />
-      </Card>
+      <main className="rk-one-card">
+        <IdiomCard
+          head={
+            <CardHead
+              icon={<Mail size={15} strokeWidth={1.8} aria-hidden />}
+              eyebrow={copy(head)}
+            />
+          }
+          testId={TEST_ID}
+        >
+          {line}
+          {/* The set's one control, quiet: nothing on this page asks the
+              reader to do anything, and the way back is not an action. */}
+          <div>
+            <Btn href={HOME} label={copy("chrome.back-to-reachkit")} variant="tertiary" pill />
+          </div>
+        </IdiomCard>
+      </main>
     </Surface>
   );
 }

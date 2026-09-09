@@ -57,7 +57,7 @@ its own:
 
 | screen | S-id | UI-SPEC | REQ criteria | tests that cover it |
 |---|---|---|---|---|
-| Not found / error — any unmatched address, and `(hosted)/not-found.tsx` | S8 | §S8 | *(new in the set)* | `tests/hosted/container/not-found.test.tsx` · `tests/app/route-groups.test.ts` |
+| Not found / error — `(public)` and `(account)` `not-found.tsx` / `error.tsx`, `src/app/global-error.tsx`, and `(hosted)/not-found.tsx` | S8 | §S8 | *(new in the set)* | `tests/app/fallback/screens.test.tsx` · `tests/hosted/container/not-found.test.tsx` · `tests/app/route-groups.test.ts` |
 | The mails — one shell, ten kinds (BUILD §12) | S20 | §S20 | BUILD §12, REQ-064, REQ-075 | `tests/mail/shell/*` · `tests/mail/templates/*` (10 kinds) |
 
 ### Surfaces with no screen

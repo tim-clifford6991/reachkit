@@ -17,12 +17,16 @@
 // remembers to call: a screen that forgot it would be the only way to break
 // the promise, and there is no screen that renders it.
 //
-// **The header's CTA is drawn on every route, the landing included**
-// (ruling 2b, 2026-09-08). What changes between routes is what it does: on
-// `/` it is REQ-099 c3's control and brings the hero's own field into view;
-// off `/` it is a link to the landing. This layout tells the header which
-// route it is on rather than letting the header read the pathname — a
-// header that reads the route would be a second place that rule lives.
+// **The header's CTA is drawn on every route it belongs on, the landing
+// included** (ruling 2b, 2026-09-08). What changes between routes is what
+// it does: on `/` it is REQ-099 c3's control and brings the hero's own
+// field into view; off `/` it is a link to the landing. Three routes
+// replace it rather than change it — the report address, whose slot is
+// REQ-001 c7's copy control, and the two token pages, where the set draws
+// the page's own address and no control at all. This layout tells the header
+// which route
+// it is on rather than letting the header read the pathname — a header that
+// reads the route would be a second place that rule lives.
 //
 // **`(account)` and `(hosted)` get none of this.** §4.4's sidebar is the
 // app shell's own chrome, and a hosted page is the customer's site, not
@@ -38,22 +42,26 @@ import { canonicalUrl } from "./_chrome/canonical";
 
 /** The routes whose right slot is not ruling 3a's pair: the landing, whose
  *  CTA is its own field (REQ-099 c3); the report address, whose slot is
- *  REQ-001 c7's copy control; and the stop page, whose slot is its own
- *  address (UI-SPEC S6). */
+ *  REQ-001 c7's copy control; and the two token pages, whose slot is each
+ *  page's own address (UI-SPEC S6, S7). */
 const LANDING = "/";
 /** The one public route the header does not stand on (UI-SPEC S9). */
 const SIGN_IN = "/signin";
 const REPORT_PREFIX = "/scan/";
-/** UI-SPEC S6's bar: `/veto/{token}` quiet on the right, and neither half
- *  of 3a's pair. `/opt-out/{token}` is drawn the same way (S7) and is
- *  #372's to wire — this branch is S6 and moves S6's pixels only. */
+/** The bar on the two pages a mail's link lands on: the address quiet on
+ *  the right, and neither half of 3a's pair. #371 wired S6's; this is S7's,
+ *  drawn the same way in the set and taking the same arm — one rendering
+ *  for the two, because they are one drawing. */
 const VETO_PREFIX = "/veto/";
+const OPT_OUT_PREFIX = "/opt-out/";
 
 function actionFor(pathname: string): HeaderAction {
   if (pathname === LANDING) return { kind: "landing" };
   // The address as it stands, not a composed one: the bar states where the
   // reader is, and the token is already in the address bar above it.
-  if (pathname.startsWith(VETO_PREFIX)) return { kind: "address", address: pathname };
+  if (pathname.startsWith(VETO_PREFIX) || pathname.startsWith(OPT_OUT_PREFIX)) {
+    return { kind: "address", address: pathname };
+  }
   if (pathname.startsWith(REPORT_PREFIX)) {
     const url = canonicalUrl(pathname);
     // No origin bound at build time is no address to copy: the pair stands
