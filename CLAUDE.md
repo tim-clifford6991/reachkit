@@ -7,7 +7,7 @@ This is `tim-clifford6991/reachkit`, the v3 lineage of ReachKit (v1 and v2 are a
 ## How work flows
 - One GitHub issue = one branch = one PR. Never start without an issue. Branch `feat/<issue>-<slug>`, `fix/…`, `docs/…`.
 - Read, in order: the issue · the `BUILD.md` § it cites · `DECISIONS.md` (whole) · the `ARCHITECTURE.md` rows for the paths you touch · for a screen, `UI-SPEC.md` §1 and its `S<id>` · the REQ criteria the issue names.
-- `npm run typecheck && npm run lint && npm test` green locally before opening a PR. CI runs the same and will not pass otherwise.
+- Locally: `npm run typecheck && npm run lint` and the test files for the source you changed (`npx vitest run … <paths> --maxWorkers=1`). Never the full unit or layout suite on the box — CI runs those on GitHub's machines and will not pass otherwise (`docs/PROCESS.md` §2.4).
 - PR body: `Closes #N` · what changed · how you verified it · owner owes. A UI PR also carries the token table and the side-by-side render against the approved set. The `pr-hygiene` check fails without `Closes #N` and without every `Done when` box ticked.
 - Merge is done. Nothing else counts as done. The master lands PRs; the owner steers on dev.
 
