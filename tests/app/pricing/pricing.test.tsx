@@ -96,9 +96,23 @@ describe('REQ-021 c4 — "Given a surface that offers ReachKit away from any rep
   it("the terms are the report offer's terms — the same component, not a second list", () => {
     // The discriminating assertion for "on the same terms": both surfaces
     // render `PricingCard`, and this page states no term of its own.
+    //
+    // `offer.start` is **not** in the list since #369. It is no longer one
+    // of the card's terms — the control there carries the price now, and
+    // says so through `offer.start.priced` — so the two words are spoken
+    // exactly once on this page, as the eyebrow above the heading, which is
+    // where the approved set draws them (UI-SPEC S4). The rule the row
+    // holds is unchanged: no term the card states is restated here.
     expect(PAGE_BODY).toContain("PricingCard");
     expect(readFileSync(REPORT_VIEW_PATH, "utf8")).toContain("PricingCard");
-    for (const term of ["price.amount", "price.interval", "offer.cadence", "offer.veto", "offer.start"]) {
+    for (const term of [
+      "price.amount",
+      "price.interval",
+      "offer.cadence",
+      "offer.veto",
+      "offer.start.priced",
+      "offer.cancel",
+    ]) {
       expect(PAGE_BODY, `${term} is restated on this surface instead of coming from the card`).not.toContain(term);
     }
   });

@@ -266,7 +266,11 @@ describe("REQ-093 c5 — the registry renders with every model unavailable", () 
     // all are written — eleven for S10, the set's five stage names, and
     // the two forms a stage's time takes — and one stops being a marker.
     // The engine's six stage keys are retired: see the counts row below.)
-    expect(ruled.length).toBe(344);
+    //
+    // 2026-09-08, issue #369: S4's own page, under the same ruling — the
+    // control's priced label and the "no account before payment" footnote;
+    // its heading and subline are bracketed and stay owed. 344 + 2 = 346.
+    expect(ruled.length).toBe(346);
 
     // Only the ruled sentences carry their slots' `{name}` placeholders —
     // a `TODO(copy)` marker is one literal with no placeholder in it, so
@@ -367,7 +371,7 @@ describe("owner-owed and empty agree both ways", () => {
     expect(new Set(emptyKeys)).toEqual(new Set(OWNER_OWED));
   });
 
-  it("counts: 117 owner-owed, 238 awaiting copy, 344 ruled, 699 total (rule 5.5 — the index states its own coverage)", () => {
+  it("counts: 117 owner-owed, 240 awaiting copy, 346 ruled, 703 total (rule 5.5 — the index states its own coverage)", () => {
     // WO-070 added report.ts's eight landing keys (headline, field label,
     // submit label, five DomainProblem lines), all owner-owed: 30 + 8 = 38.
     // 2026-09-03: the owner ruled on three of them (headline, field label,
@@ -1193,10 +1197,13 @@ describe("owner-owed and empty agree both ways", () => {
     //
     // 117 owner-owed, 245 − 7 = 238 awaiting, 325 + 19 = 344 ruled,
     // 687 + 12 = 699 total.
+    // And S4's own page, issue #369: four keys, two written and two owed.
+    // 117 owner-owed, 238 + 2 = 240 awaiting copy, 344 + 2 = 346 ruled,
+    // 699 + 4 = 703 total.
     expect(OWNER_OWED.length).toBe(117);
-    expect(AWAITING_COPY.length).toBe(238);
-    expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(344);
-    expect(Object.keys(COPY).length).toBe(699);
+    expect(AWAITING_COPY.length).toBe(240);
+    expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(346);
+    expect(Object.keys(COPY).length).toBe(703);
 
     // The two representations never overlap: an empty value and the marker
     // are different values, so no key can be on both lists.

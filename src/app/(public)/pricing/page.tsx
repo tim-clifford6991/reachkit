@@ -24,8 +24,17 @@
 // non-goals leave "how the terms it states are laid out" to the blueprint
 // that owns the surface. A second column arrives with a decision, not a
 // media query.
+//
+// **The page around the offer is UI-SPEC S4** (issue #369): an eyebrow, a
+// heading and a subline above the card, and REQ-020 c1's promise under it
+// — "No account before payment. Your site is asked for after". All of it at
+// the reading measure and centred, which is how the set draws a page whose
+// whole content is one decision. The chrome above and below is the group
+// layout's (ruling 3a).
+import type React from "react";
 import { redirect } from "next/navigation";
 import { Surface } from "@/ui/layout";
+import { copy } from "@/lib/presentation/copy";
 import { env } from "@/lib/config/env";
 import { createCheckoutSession } from "@/lib/account/checkout/session";
 import { PricingCard } from "../scan/[domain]/_modules/pricing";
@@ -53,6 +62,10 @@ async function startCheckout(): Promise<void> {
   redirect(result.url);
 }
 
+/** One reading column (design tokens §2b): the page is one decision, and a
+ *  decision stretched across 1216px reads as a banner. */
+const READING_MEASURE: React.CSSProperties = { maxWidth: "var(--w-read)" };
+
 export default function PricingPage(): React.JSX.Element {
   return (
     <Surface
@@ -65,8 +78,26 @@ export default function PricingPage(): React.JSX.Element {
       {/* A padding edge, so a child's top margin does not collapse through
           `<body>` and so the card is not against the viewport edge at
           320px. */}
-      <main className="p-4">
-        <PricingCard startAction={startCheckout} />
+      <main className="flex flex-col gap-5 p-4">
+        <div className="mx-auto w-full text-center" style={READING_MEASURE}>
+          {/* The eyebrow is `offer.start` — the same two words, from the
+              key that owns them, rather than a second copy of them. */}
+          <p className="eyebrow opacity-60">{copy("offer.start")}</p>
+          <h1>{copy("pricing.heading")}</h1>
+          <p className="rk-quiet">{copy("pricing.subline")}</p>
+        </div>
+
+        {/* REQ-021 c4's "exactly one offer": one card, and it is the
+            report's own component with somewhere for Start to go. Nothing
+            about the terms is restated here, so the two surfaces cannot
+            drift. */}
+        <div className="mx-auto w-full" style={READING_MEASURE}>
+          <PricingCard startAction={startCheckout} />
+        </div>
+
+        <p className="t-explain mx-auto text-center opacity-60" style={READING_MEASURE}>
+          {copy("pricing.footnote")}
+        </p>
       </main>
     </Surface>
   );

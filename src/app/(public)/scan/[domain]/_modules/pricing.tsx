@@ -33,11 +33,15 @@
 // identical either way; only where Start goes differs, and the report
 // screen passes nothing and is unchanged.
 import type React from "react";
+import { Check } from "lucide-react";
 import { Btn, Card } from "@/ui/components";
-import { CardHead } from "@/ui/idiom";
 import { VETO } from "@/lib/config/constants";
 import { copy } from "@/lib/presentation/copy";
 import { Num } from "../_address/measured";
+
+/** The price, at the ladder's big-figure rung — the one headline number
+ *  this card carries. */
+const PRICE_SIZE: React.CSSProperties = { fontSize: "var(--t-num-big)", lineHeight: 1.05 };
 
 export function PricingCard(p: { startAction?: () => Promise<void> } = {}): React.JSX.Element {
   const specs = [
@@ -50,26 +54,46 @@ export function PricingCard(p: { startAction?: () => Promise<void> } = {}): Reac
   ];
 
   return (
-    <Card state="default" title={<CardHead eyebrow={copy("offer.start")} />}>
-      <div className="flex flex-wrap items-baseline gap-2">
-        <div className="text-4xl font-bold">
+    // No card head. The approved set draws this card headless on both
+    // surfaces that carry it (UI-SPEC S2 module 6, S4): it opens on the
+    // price, which is the answer §2.5 says a card leads with, and an
+    // eyebrow above it would name the card the button already names.
+    <Card state="default" title={null}>
+      {/* REQ-022 c1: "€49 per month and says that VAT is included". The
+          amount is the ladder's big figure and the terms sit on its
+          baseline beside it. Centred, as the set draws the whole card. */}
+      <div className="flex flex-wrap items-baseline justify-center gap-2 text-center">
+        <div className="font-semibold" style={PRICE_SIZE}>
           <Num>{copy("price.amount")}</Num>
         </div>
-        <span className="opacity-60">{copy("price.interval")}</span>
+        <span className="t-sm font-semibold opacity-60">{copy("price.interval")}</span>
       </div>
-      <ul className="flex list-none flex-col gap-2 p-0">
+
+      {/* The four the offer states, each with the set's own check mark in
+          `--ok` and a hairline between them — a list of what is included,
+          which is what a tick means and the one place `--ok` is not a
+          state on this screen. The glyph is decorative: every row says in
+          writing what it includes. */}
+      <ul className="flex list-none flex-col p-0 text-left">
         {specs.map((line) => (
-          <li key={line}>{line}</li>
+          <li
+            key={line}
+            className="border-base-300 t-sm flex items-center gap-3 border-t py-2 first:border-t-0"
+          >
+            <Check size={15} strokeWidth={2.4} className="text-success shrink-0" aria-hidden />
+            <span>{line}</span>
+          </li>
         ))}
       </ul>
+
       {p.startAction ? (
         <form action={p.startAction}>
-          <Btn label={copy("offer.start")} variant="primary" block type="submit" />
+          <Btn label={copy("offer.start.priced")} variant="primary" pill block type="submit" />
         </form>
       ) : (
-        <Btn label={copy("offer.start")} variant="primary" block />
+        <Btn label={copy("offer.start.priced")} variant="primary" pill block />
       )}
-      <p className="text-xs opacity-60">{copy("offer.cancel_self_service")}</p>
+      <p className="t-explain text-center opacity-60">{copy("offer.cancel_self_service")}</p>
     </Card>
   );
 }

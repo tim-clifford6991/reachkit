@@ -62,6 +62,21 @@ export const CHROME_COPY = Object.freeze({
   ],
   "chrome.footer.rights": ["TODO(copy)", { slots: {}, fixedBy: "issue 266" }],
 
+  /* ── S4, the pricing page (issue #369) ─────────────────────────────── */
+  //
+  // The page around the offer. Its eyebrow is `offer.start` — the same two
+  // words, from the key that owns them — so only three strings are new
+  // here: the heading and the subline the set brackets, and the footnote it
+  // spells out.
+  "pricing.heading": ["TODO(copy)", { slots: {}, fixedBy: "REQ-021 c4" }],
+  "pricing.subline": ["TODO(copy)", { slots: {}, fixedBy: "REQ-021 c4" }],
+  /** REQ-020 c1's promise, in the set's own words: nothing is asked for
+   *  before payment, and the site comes after. */
+  "pricing.footnote": [
+    "No account before payment. Your site is asked for after — or confirmed, if you came from a report.",
+    { slots: {}, fixedBy: "UI-SPEC S4 · REQ-020 c1" },
+  ],
+
   /* ── The three legal pages ───────────────────────────────────────────
      One title and one body each, and the body is the whole page. These
      are the owner's to write in the strongest sense in the product: a

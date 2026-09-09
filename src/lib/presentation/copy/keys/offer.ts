@@ -43,6 +43,14 @@ export const OFFER_COPY = Object.freeze({
   // written (ruling 11a, 2026-09-08; issue #352).
   "offer.cancel_self_service": ["Cancel in one click.", { slots: {}, fixedBy: "REQ-021 c2" }],
   "offer.start": ["Start ReachKit", { slots: {}, fixedBy: "REQ-021 c4" }],
+  /** The **control's** own label, and the one the approved set draws on it:
+   *  "Start ReachKit €49" (11a). `offer.start` stays exactly as the owner
+   *  ruled it on 2026-09-04 and is what the pricing page's eyebrow says;
+   *  this is the button, which carries the price because the set puts it
+   *  there — the amount is REQ-022 c1's €49, written into the words rather
+   *  than composed beside them, so the control cannot say one price while
+   *  the card above it says another. */
+  "offer.start.priced": ["Start ReachKit €49", { slots: {}, fixedBy: "UI-SPEC S4 · REQ-022 c1" }],
 
   // 2026-09-06, issue #34: the plan's own name, which §4.7's Billing card
   // states beside the price. One key, because there is one plan and no

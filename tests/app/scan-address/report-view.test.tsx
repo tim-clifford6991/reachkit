@@ -300,7 +300,10 @@ describe("ruling 2b (2026-09-08) — this screen has two solids, and they are th
 
   it("they are the giveaway's Email me and the pricing card's Start, and nothing else", () => {
     expect(buttonTag("free-page.submit")).toContain("btn-primary");
-    expect(buttonTag("offer.start")).toContain("btn-primary");
+    // The offer's control carries the price in its label since #369 — the
+    // set draws "Start ReachKit €49" on it, and `offer.start` stays the two
+    // words the owner ruled, which is what the pricing page's eyebrow says.
+    expect(buttonTag("offer.start.priced")).toContain("btn-primary");
   });
 
   it("every other control on the screen is a quieter rank", () => {

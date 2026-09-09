@@ -72,7 +72,15 @@ export function Card(p: CardProps): React.JSX.Element {
        * too, in `_address/report-view.tsx`, because a card that keeps its
        * own height is the better answer where the layout allows it. */}
       <div className="card-body [&>p]:grow-0">
-        <div className="card-title">{p.title}</div>
+        {/* A card may be **headless**, and says so by passing `null`
+            (issue #369). The approved set draws the offer card that way on
+            both surfaces that carry it: it opens on the price, which is the
+            answer §2.5 asks a card to lead with, and an eyebrow above it
+            would name what the control below already names. The slot is
+            still required — a caller opts out in writing rather than by
+            omission — and an empty `card-title` is never rendered, because
+            daisyUI gives it a margin and it would draw as a gap. */}
+        {p.title === null ? null : <div className="card-title">{p.title}</div>}
         {p.state === "degraded" ? <p>{p.degradedLine}</p> : p.children}
       </div>
     </div>
