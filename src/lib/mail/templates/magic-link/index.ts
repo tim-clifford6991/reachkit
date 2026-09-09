@@ -20,19 +20,38 @@ import type { CopyKey } from "@/lib/presentation/copy";
 import type { MailBlock } from "../../blocks/types";
 
 const SUBJECT = "mail.magicLink.subject" satisfies CopyKey;
+const HEADING = "mail.magicLink.heading" satisfies CopyKey;
 const BODY = "mail.magicLink.body" satisfies CopyKey;
 const ACTION = "mail.magicLink.action" satisfies CopyKey;
+const FACT_FOR = "mail.magicLink.fact.for" satisfies CopyKey;
+const REASON = "mail.reason.magicLink" satisfies CopyKey;
 
 export interface AccountMail {
   readonly subject: CopyKey;
   readonly blocks: readonly MailBlock[];
+  /** UI-SPEC S20's footer line: why this mail arrived. Absent only on the
+   *  kinds the approved set does not draw, whose line is not written yet —
+   *  `tests/mail/shell/footer.test.ts` names those three. */
+  readonly reason?: CopyKey;
 }
 
-export function buildMagicLink(a: { href: string }): AccountMail {
+/**
+ * S20's shape, in the order the set draws it: heading, one short line, the
+ * fact rows, one solid button.
+ *
+ * The address is a fact row and not a sentence. The set draws `for ·
+ * you@company.com`, and it earns its place: this mail is a credential, so a
+ * reader who was sent it at an address they do not recognise can see that
+ * before they click.
+ */
+export function buildMagicLink(a: { href: string; address: string }): AccountMail {
   return {
     subject: SUBJECT,
+    reason: REASON,
     blocks: [
+      { block: "heading", text: HEADING },
       { block: "paragraph", text: BODY },
+      { block: "facts", items: [{ label: FACT_FOR, value: a.address }] },
       { block: "action", label: ACTION, href: a.href },
     ],
   };

@@ -28,6 +28,12 @@ function isOmitted(block: MailBlock): boolean {
     case "list":
     case "verdicts":
       return block.items.kind === "unmeasured";
+    case "facts":
+      // The one arm dropped for being *empty*: a `list` states its empty
+      // result in a written line, and there is no such line for a fact
+      // table — an empty `dl` is a blank in the middle of the card, which
+      // is what §12's rule is against.
+      return block.items.length === 0;
     default:
       return false;
   }

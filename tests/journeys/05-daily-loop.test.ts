@@ -808,7 +808,12 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
       expect(mails[0]!.html).toContain("generated.page.written");
       expect(mails[0]!.html).toContain(written);
       expect(mails[0]!.subject.startsWith("mail.draftReady")).toBe(true);
-      expect(mails[0]!.subject).not.toContain(written);
+      // Since issue #376 the subject *does* name the page: UI-SPEC S20
+      // writes it "Tomorrow 07:00: [page title]", and the moment and the
+      // title are both slots the template already holds. What has not
+      // changed is that the subject is a key — the assertion above — so no
+      // sentence is composed at the call site.
+      expect(mails[0]!.subject).toContain(written);
 
       // And why §7 chose it: the search it targets and how often it is
       // searched, read from the evidence stored at creation. This journey

@@ -18,6 +18,7 @@
 // unrepresentable rather than merely untested.
 import type { Measured } from "@/lib/measure/measured";
 import type { CopyKey } from "@/lib/presentation/copy";
+import { formatStat } from "../../blocks/format";
 import type { MailBlock } from "../../blocks/types";
 import type { OptOutControl } from "../../shell/compose";
 import { optOutTokenFor } from "../../leads/optout";
@@ -29,13 +30,17 @@ import { optOutTokenFor } from "../../leads/optout";
 // sweep, from a sentence written there.
 const SUBJECT = "mail.firstPage.subject" satisfies CopyKey;
 const TARGET_SEARCH = "mail.firstPage.target_search" satisfies CopyKey;
-const VOLUME_LABEL = "mail.firstPage.volume_label" satisfies CopyKey;
-const VOLUME_NOTE = "mail.firstPage.volume_note" satisfies CopyKey;
 const FIRST_OF_N = "mail.firstPage.first_of_n" satisfies CopyKey;
+const HEADING = "mail.firstPage.heading" satisfies CopyKey;
+const REASON = "mail.reason.firstPage" satisfies CopyKey;
 
 export interface LeadMail {
   readonly subject: CopyKey;
+  /** The subject's own slots, where the set's subject names the page. */
+  readonly subjectVars?: Readonly<Record<string, string | number>>;
   readonly blocks: readonly MailBlock[];
+  /** UI-SPEC S20's footer line: why this mail arrived. */
+  readonly reason?: CopyKey;
   readonly optOut: OptOutControl;
 }
 
@@ -53,6 +58,13 @@ export function optOutControlFor(email: string): OptOutControl {
   return { href: optOutHref(email), mechanism: "opt-out" };
 }
 
+/** The set's own row: the search, and its monthly volume where one was
+ *  measured. `formatStat` writes the number, so this file formats none. */
+function searchValue(a: { targetQuery: string; volume: Measured<number> }): string {
+  if (a.volume.kind === "unmeasured") return a.targetQuery;
+  return `${a.targetQuery} · ${formatStat(a.volume, "perMonth")}`;
+}
+
 export function buildFirstPage(a: {
   email: string;
   pageTitle: string;
@@ -63,20 +75,26 @@ export function buildFirstPage(a: {
 }): LeadMail {
   return {
     subject: SUBJECT,
+    subjectVars: { title: a.pageTitle },
+    reason: REASON,
     blocks: [
+      // S20's heading is the page's own title — the reader came for the
+      // page, so the page is what the mail is called.
+      { block: "heading", text: HEADING, vars: { title: a.pageTitle } },
+      { block: "paragraph", text: FIRST_OF_N, vars: { pagesFound: a.pagesFound } },
       // The page arrives whole. `written: true` is what carries the
       // generated-text label with it — model text cannot reach a mail
       // without the label that identifies it.
       { block: "pageBody", pageTitle: a.pageTitle, written: true, markdown: a.markdown },
-      { block: "paragraph", text: TARGET_SEARCH, vars: { query: a.targetQuery } },
-      {
-        block: "stat",
-        label: VOLUME_LABEL,
-        value: a.volume,
-        format: "perMonth",
-        note: VOLUME_NOTE,
-      },
-      { block: "paragraph", text: FIRST_OF_N, vars: { pagesFound: a.pagesFound } },
+      // S20's fact row: `target search · [search] · 2,400/mo` — the search
+      // and its volume on one row, as the set writes them.
+      //
+      // The volume is `Measured` and can be absent, and a fact row cannot
+      // express "unmeasured" — so the omission happens here, where the
+      // measurement is known, exactly as `verdicts` rows already omit a
+      // page with no standing. An unmeasured volume leaves the search
+      // standing alone; it never prints a zero (§12).
+      { block: "facts", items: [{ label: TARGET_SEARCH, value: searchValue(a) }] },
     ],
     optOut: optOutControlFor(a.email),
   };

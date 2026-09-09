@@ -15,15 +15,29 @@ export interface TextFrameParts extends Omit<FrameParts, "rows"> {
   body: string;
 }
 
+/** The separator the imprint band's parts are set between, as `frame.ts`
+ *  sets them. Layout, not voice. */
+const BAND_SEPARATOR = " · ";
+
 export function frameText(parts: TextFrameParts): string {
   const bands: string[] = [parts.wordmark];
 
   const body = parts.wholeMailLine === null ? parts.body : [parts.body, parts.wholeMailLine].filter((s) => s !== "").join("\n\n");
   if (body !== "") bands.push(body);
 
-  if (parts.optOut !== null) {
-    bands.push([FOOTER_RULE, `${parts.optOut.label}: ${parts.optOut.href}`].join("\n"));
-  }
+  // S20's footer, the same three things in the same order as the HTML
+  // half: why it was sent, how to stop it where it can be stopped, and the
+  // imprint band. Under one rule, so a reader of the plain-text twin sees
+  // the same footer rather than a bare URL.
+  const footer: string[] = [FOOTER_RULE];
+  if (parts.reason !== null) footer.push(parts.reason);
+  if (parts.optOut !== null) footer.push(`${parts.optOut.label}: ${parts.optOut.href}`);
+  footer.push(
+    [parts.wordmark, parts.imprint, parts.plainTextNote]
+      .filter((piece): piece is string => piece !== null && piece !== "")
+      .join(BAND_SEPARATOR)
+  );
+  bands.push(footer.join("\n"));
 
   return bands.join("\n\n");
 }

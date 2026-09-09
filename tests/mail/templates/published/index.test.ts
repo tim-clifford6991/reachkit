@@ -76,12 +76,20 @@ function blocksOf(telling: PublishedTelling): readonly MailBlock[] {
 }
 
 describe("buildPublished — one message, all three arms", () => {
-  it("carries the live address as the mail's one action", () => {
-    const action = blocksOf(foundTelling()).find((b) => b.block === "action");
-    expect(action).toEqual({
+  it("carries the live address as a fact row, and one button to open it", () => {
+    // Issue #376, UI-SPEC S20: the set puts the address where it can be
+    // read and the button where it can be pressed, so the address is a
+    // fact row and the action carries the set's own label.
+    const blocks = blocksOf(foundTelling());
+    expect(blocks.find((b) => b.block === "action")).toEqual({
       block: "action",
-      label: "mail.published.address_label",
+      label: "mail.published.action",
       href: LIVE_URL,
+    });
+    const facts = blocks.find((b) => b.block === "facts");
+    expect(facts?.block === "facts" ? facts.items[0] : null).toEqual({
+      label: "mail.published.address_label",
+      value: LIVE_URL,
     });
   });
 
@@ -182,7 +190,16 @@ describe("buildPublished — one message, all three arms", () => {
         }
       }
     }
+    // `mail.published.action` is the exception, and 11a is why: S20 draws
+    // this mail's button as "View the page", unbracketed, so it is
+    // approved copy rather than the owner's debt (issue #376). Every other
+    // sentence this mail speaks is still owed — its subject included,
+    // which is why the mail still cannot be sent.
     for (const key of keys) {
+      if (key === "mail.published.action") {
+        expect(COPY[key]).toBe("View the page");
+        continue;
+      }
       expect(COPY[key as keyof typeof COPY], key).toBe("");
       expect(OWNER_OWED).toContain(key);
     }

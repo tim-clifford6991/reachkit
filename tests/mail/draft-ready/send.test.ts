@@ -293,7 +293,11 @@ describe("issue #183 — the mail names the page, and says why §7 chose it", ()
 
   it("the page block leads — the mail is about a page, and says which first", async () => {
     await sendDraftReadyMail({ draftId: "d1", destination: "wordpress", at: AT });
-    expect(blocksOf()[0]!.block).toBe("pageBody");
+    // Issue #376, UI-SPEC S20: the heading is the page's own title, and
+    // the page itself follows. The mail is still about a page and still
+    // says which first — it now says it twice, once as a title.
+    expect(blocksOf()[0]!.block).toBe("heading");
+    expect(blocksOf()[1]!.block).toBe("pageBody");
   });
 
   it("the why-data is §7's stored evidence: the search, and how often it is searched", async () => {

@@ -38,12 +38,13 @@ export async function sendSignInLink(a: {
     return { sent: false, because: "no_link" };
   }
 
-  const mail = buildMagicLink({ href: link.url });
+  const mail = buildMagicLink({ href: link.url, address: a.email });
   const result = await sendEmail({
     kind: "magic-link",
     to: a.email,
     subject: mail.subject,
     blocks: mail.blocks,
+    reason: mail.reason,
   });
   return result.sent ? { sent: true } : { sent: false, because: "mail" };
 }

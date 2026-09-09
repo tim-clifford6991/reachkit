@@ -26,9 +26,30 @@ function build(volume = measured(1900, AT)) {
 }
 
 describe('REQ-010 c4 — "it contains the complete page in a copy-ready form, the target search with its monthly volume, and a line stating this is the first of the pages found for that domain"', () => {
+  it("S20's shape: heading, one line, the page, the fact row", () => {
+    // Issue #376. The set heads this mail on the page's own title and puts
+    // the first-of-N line under it, before the page itself — the reader
+    // came for the page, so the page is what the mail is called.
+    const mail = build();
+    expect(mail.blocks.map((b) => b.block)).toEqual([
+      "heading",
+      "paragraph",
+      "pageBody",
+      "facts",
+    ]);
+    expect(mail.blocks[0]).toEqual({
+      block: "heading",
+      text: "mail.firstPage.heading",
+      vars: { title: "How Acme compares to Rival" },
+    });
+    expect(mail.subject).toBe("mail.firstPage.subject");
+    expect(mail.subjectVars).toEqual({ title: "How Acme compares to Rival" });
+    expect(mail.reason).toBe("mail.reason.firstPage");
+  });
+
   it("the page arrives whole as a pageBody block, markdown unaltered", () => {
     const mail = build();
-    expect(mail.blocks[0]).toEqual({
+    expect(mail.blocks[2]).toEqual({
       block: "pageBody",
       pageTitle: "How Acme compares to Rival",
       written: true,
@@ -46,47 +67,49 @@ describe('REQ-010 c4 — "it contains the complete page in a copy-ready form, th
       volume: measured(1, AT),
       pagesFound: 1,
     });
-    expect((mail.blocks[0] as { markdown: string }).markdown).toBe(long);
+    expect((mail.blocks[2] as { markdown: string }).markdown).toBe(long);
   });
 
   it("model text carries the label that identifies it: written is true on the page body", () => {
-    expect((build().blocks[0] as { written: boolean }).written).toBe(true);
+    expect((build().blocks[2] as { written: boolean }).written).toBe(true);
   });
 
-  it("the target search renders with its measured monthly volume", () => {
-    const mail = build();
-    expect(mail.blocks[1]).toEqual({
-      block: "paragraph",
-      text: "mail.firstPage.target_search",
-      vars: { query: "acme vs rival" },
-    });
-    expect(mail.blocks[2]).toEqual({
-      block: "stat",
-      label: "mail.firstPage.volume_label",
-      value: measured(1900, AT),
-      format: "perMonth",
-      note: "mail.firstPage.volume_note",
+  it("the target search renders with its measured monthly volume, on one fact row", () => {
+    // S20 writes the search and its volume as one row — `target search ·
+    // [search] · 2,400/mo` — so the two are one fact and not a sentence
+    // followed by a statistic (issue #376).
+    expect(build().blocks[3]).toEqual({
+      block: "facts",
+      items: [{ label: "mail.firstPage.target_search", value: "acme vs rival · 1900/mo" }],
     });
   });
 
   it("the first-of-N line renders with pagesFound as a var", () => {
-    expect(build().blocks[3]).toEqual({
+    expect(build().blocks[1]).toEqual({
       block: "paragraph",
       text: "mail.firstPage.first_of_n",
       vars: { pagesFound: 6 },
     });
   });
 
-  it("an unmeasured volume omits its block entirely rather than printing 0 — and takes its disclosure note with it", () => {
+  it("an unmeasured volume leaves the search standing alone, and never prints 0", () => {
+    // §12's omission rule, on the one template that carries a volume
+    // outside the report. The row cannot express "unmeasured", so the
+    // omission happens where the measurement is known — in the template,
+    // as `verdicts` rows already omit a page with no standing — and what
+    // is left is the search, which was never in doubt.
     const mail = build(unmeasured("undeterminable", AT));
-    // §12's omission rule, exercised on the one template that carries a
-    // volume outside the report. The template holds no conditional of its
-    // own: the block is declared and `omit.ts` drops it.
-    expect(omittedIndexes(mail.blocks)).toEqual([2]);
+    expect(mail.blocks[3]).toEqual({
+      block: "facts",
+      items: [{ label: "mail.firstPage.target_search", value: "acme vs rival" }],
+    });
+    expect(omittedIndexes(mail.blocks)).toEqual([]);
 
-    // A real zero is a value and is not omitted: the two are not the same
-    // fact.
-    expect(omittedIndexes(build(measuredZero(0, AT)).blocks)).toEqual([]);
+    // A real zero is a value and is written: the two are not the same fact.
+    expect(build(measuredZero(0, AT)).blocks[3]).toEqual({
+      block: "facts",
+      items: [{ label: "mail.firstPage.target_search", value: "acme vs rival · 0/mo" }],
+    });
   });
 
   it("the search itself still renders when its volume does not — the query is known, the number is not", () => {

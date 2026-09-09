@@ -50,14 +50,14 @@ function full() {
  *  measured one, is a failure of the template rather than something to
  *  read past. */
 function verdictRows(blocks: readonly MailBlock[]): readonly VerdictRow[] {
-  const block = blocks[2];
+  const block = blocks[4];
   if (block?.block !== "verdicts") throw new Error("block 2 is not the verdicts section");
   if (block.items.kind === "unmeasured") throw new Error("the verdicts section came back unmeasured");
   return block.items.value;
 }
 
 function nextRows(blocks: readonly MailBlock[]): readonly ListRow[] {
-  const block = blocks[3];
+  const block = blocks[5];
   if (block?.block !== "list") throw new Error("block 3 is not the next-three section");
   if (block.items.kind === "unmeasured") throw new Error("the next-three section came back unmeasured");
   return block.items.value;
@@ -65,11 +65,23 @@ function nextRows(blocks: readonly MailBlock[]): readonly ListRow[] {
 
 describe("§12's four sections, in §12's order", () => {
   it("score delta, AI answers delta, page verdicts, next 3", () => {
-    expect(full().blocks.map((block) => block.block)).toEqual(["stat", "stat", "verdicts", "list"]);
+    // Issue #376, UI-SPEC S20: the shell's heading and its one line come
+    // first — "Only what was measured. A number that was not measured is
+    // not here." — and one solid button closes it. §12's four sections
+    // keep their order between them.
+    expect(full().blocks.map((block) => block.block)).toEqual([
+      "heading",
+      "paragraph",
+      "stat",
+      "stat",
+      "verdicts",
+      "list",
+      "action",
+    ]);
   });
 
   it("the two deltas carry the delta format — a delta, not a level", () => {
-    const [score, ai] = full().blocks;
+    const [, , score, ai] = full().blocks;
     expect(score).toMatchObject({ block: "stat", label: "mail.weekly.score", format: "delta" });
     expect(ai).toMatchObject({ block: "stat", label: "mail.weekly.aiAnswers", format: "delta" });
   });
@@ -87,7 +99,7 @@ describe("REQ-064 c1/c2 — a missing number omits its section, a measured zero 
       pages: measured([{ liveUrl: URL_A, standing: standing() }], AT),
       next: measured([{ targetQuery: "q" }], AT),
     });
-    expect(omittedIndexes(mail.blocks)).toEqual([0]);
+    expect(omittedIndexes(mail.blocks)).toEqual([2]);
   });
 
   it("a measured zero delta is kept — no movement is a result", () => {
@@ -107,7 +119,7 @@ describe("REQ-064 c1/c2 — a missing number omits its section, a measured zero 
       pages: unmeasured("not_attempted", AT),
       next: measured([], AT),
     });
-    expect(omittedIndexes(unmeasuredPages.blocks)).toEqual([2]);
+    expect(omittedIndexes(unmeasuredPages.blocks)).toEqual([4]);
 
     const noPages = buildWeekly({
       scoreDelta: measured(1, AT),
@@ -116,8 +128,8 @@ describe("REQ-064 c1/c2 — a missing number omits its section, a measured zero 
       next: measured([], AT),
     });
     expect(omittedIndexes(noPages.blocks)).toEqual([]);
-    expect(isMeasuredEmpty(noPages.blocks[2] as MailBlock)).toBe(true);
-    expect(noPages.blocks[2]).toMatchObject({ emptyLine: "mail.weekly.verdicts.none" });
+    expect(isMeasuredEmpty(noPages.blocks[4] as MailBlock)).toBe(true);
+    expect(noPages.blocks[4]).toMatchObject({ emptyLine: "mail.weekly.verdicts.none" });
   });
 });
 
@@ -269,7 +281,7 @@ describe("the next three, named by the search each targets", () => {
       next: measured([], AT),
     });
     expect(nextRows(mail.blocks)).toEqual([]);
-    expect(mail.blocks[3]).toMatchObject({ emptyLine: "mail.weekly.next.none" });
+    expect(mail.blocks[5]).toMatchObject({ emptyLine: "mail.weekly.next.none" });
   });
 });
 
@@ -292,7 +304,25 @@ describe("no sentence is written here, and no model text reaches the mail", () =
         return [];
       }),
     ];
-    for (const key of keys) expect(OWNER_OWED).toContain(key);
+    // The four the approved set writes are the exception, and 11a is why:
+    // S20 draws this mail's heading, its one line, its button and the
+    // score's own label unbracketed, so each is approved copy rather than
+    // the owner's debt (issue #376). Everything else it speaks — its
+    // subject included, which is what still stops it being sent — is owed.
+    const WRITTEN_BY_THE_SET: readonly CopyKey[] = [
+      "mail.weekly.heading",
+      "mail.weekly.body",
+      "mail.weekly.action",
+      "mail.weekly.score",
+      "mail.weekly.aiAnswers",
+    ];
+    for (const key of keys) {
+      if (WRITTEN_BY_THE_SET.includes(key)) {
+        expect(OWNER_OWED, key).not.toContain(key);
+        continue;
+      }
+      expect(OWNER_OWED).toContain(key);
+    }
   });
 
   it("no page or opportunity is named by its title — a title is model-written and a mail does not speak it", () => {

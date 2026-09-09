@@ -526,11 +526,19 @@ async function measureTheWeek(now = MONDAY) {
   return weekly.runWeekly({ siteId: site.siteId, domain: site.domain, zone: site.zone, now });
 }
 
-/** §12's four weekly sections, every one of them owner-owed. */
+/**
+ * §12's four weekly sections, and the lines still owed on them.
+ *
+ * Two dropped off this list on 2026-09-08 (issue #376): `mail.weekly.score`
+ * and `mail.weekly.aiAnswers` are labels UI-SPEC S20 writes unbracketed —
+ * "Discoverability Score", "AI answers" — which ruling 11a makes approved
+ * copy, so they are filled by transcription. The mail still does not
+ * compose, and the assertions below still hold, because its *subject* is
+ * owed: S20 writes that too, but on a number §12 lets be unmeasured, and a
+ * subject has no omission arm (issue #388).
+ */
 const DIGEST_KEYS = [
   "mail.weekly.subject",
-  "mail.weekly.score",
-  "mail.weekly.aiAnswers",
   "mail.weekly.verdicts",
   "mail.weekly.verdicts.none",
   "mail.weekly.next",
@@ -733,7 +741,15 @@ describe("Monday: the week is re-measured, judged, and told (JN-005)", () => {
       next: measured([{ targetQuery: "agency capacity planning tool" }], MONDAY),
     });
     expect(whole.subject).toBe("mail.weekly.subject");
-    expect(whole.blocks.map((block) => block.block)).toEqual(["stat", "stat", "verdicts", "list"]);
+    expect(whole.blocks.map((block) => block.block)).toEqual([
+      "heading",
+      "paragraph",
+      "stat",
+      "stat",
+      "verdicts",
+      "list",
+      "action",
+    ]);
     expect(omittedIndexes(whole.blocks)).toEqual([]);
 
     // A week that reached neither the score nor the AI answers omits both
@@ -744,7 +760,10 @@ describe("Monday: the week is re-measured, judged, and told (JN-005)", () => {
       pages: unmeasured("not_attempted", MONDAY),
       next: unmeasured("not_attempted", MONDAY),
     });
-    expect(omittedIndexes(partial.blocks)).toEqual([0, 1, 2, 3]);
+    // Indexes 2–5 since #376: S20's heading and its one line lead, and
+    // neither is conditional — the four §12 sections that are still follow
+    // them and are still the four that drop.
+    expect(omittedIndexes(partial.blocks)).toEqual([2, 3, 4, 5]);
     // Every conditional section dropped: the mail carries the one line
     // that says so rather than standing empty.
     expect(chooseWholeMailLine({ blocks: partial.blocks })).toBe("mail.nothing_to_report");

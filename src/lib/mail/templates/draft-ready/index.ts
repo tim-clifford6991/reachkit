@@ -64,6 +64,8 @@ import type { Telling } from "@/lib/publish/publishable";
 import type { MailBlock } from "../../blocks/types";
 
 const SUBJECT = "mail.draftReady.subject" satisfies CopyKey;
+const HEADING = "mail.draftReady.heading" satisfies CopyKey;
+const REASON = "mail.reason.draftReady" satisfies CopyKey;
 const STOP_ACTION = "mail.draftReady.stopAction" satisfies CopyKey;
 const WHY_SEARCH = "mail.draftReady.why.search" satisfies CopyKey;
 const WHY_VOLUME = "mail.draftReady.why.volume" satisfies CopyKey;
@@ -87,7 +89,10 @@ export interface DraftReadyWhy {
 }
 
 export interface DraftReadyMail {
+  /** UI-SPEC S20's footer line: why this mail arrived. */
+  readonly reason?: CopyKey;
   readonly subject: CopyKey;
+  readonly subjectVars: Readonly<Record<string, string | number>>;
   readonly blocks: readonly MailBlock[];
 }
 
@@ -121,6 +126,12 @@ export function buildDraftReady(a: {
   why?: DraftReadyWhy;
 }): DraftReadyMail {
   const blocks: MailBlock[] = [];
+
+  // S20's heading: the page's own title, which this kind — unlike
+  // `published` — is handed.
+  if (a.page !== undefined) {
+    blocks.push({ block: "heading", text: HEADING, vars: { title: a.page.title } });
+  }
 
   // §12's "title" — first, because it is what the mail is about, and
   // through the one carrier that keeps the `GeneratedText` label attached
@@ -171,5 +182,13 @@ export function buildDraftReady(a: {
     blocks.push({ block: "action", label: STOP_ACTION, href: a.stopHref });
   }
 
-  return { subject: SUBJECT, blocks };
+  // The subject names the moment and the page. Both are already here —
+  // the same two values the telling's own line spends — so a mail that
+  // could be composed cannot fail on its subject.
+  return {
+    subject: SUBJECT,
+    subjectVars: { publishesAt: a.publishesAt ?? "", title: a.page?.title ?? "" },
+    reason: REASON,
+    blocks,
+  };
 }

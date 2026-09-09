@@ -156,6 +156,7 @@ export async function sendWeeklyDigest(a: {
     userId: recipient.userId,
     subject: mail.subject,
     blocks: mail.blocks,
+    reason: mail.reason,
     measurement: measurementStateOf(account),
   });
 

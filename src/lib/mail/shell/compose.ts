@@ -20,7 +20,7 @@
 // measurement exceptions never coexist with the nothing-to-report line.
 // `measurement` is required for `'weekly'` and rejected for every other
 // kind — a type error, not a runtime check.
-import { copy } from "@/lib/presentation/copy";
+import { copy, COPY } from "@/lib/presentation/copy";
 import type { CopyKey } from "@/lib/presentation/copy";
 import { renderBlocksHtml } from "../blocks/html";
 import { renderBlocksText } from "../blocks/text";
@@ -51,6 +51,19 @@ interface ComposeCommon {
   subject: CopyKey;
   subjectVars?: CopyVars;
   blocks: readonly MailBlock[];
+  /**
+   * UI-SPEC S20's footer line: why this mail arrived. One key per kind,
+   * supplied by the template, because the reason is a fact about the
+   * occasion and not about the shell.
+   *
+   * Optional only because three of the ten kinds are not in the approved
+   * set and have no written reason yet — `tests/mail/shell/footer.test.ts`
+   * names those three and fails if a fourth appears.
+   */
+  reason?: CopyKey;
+  /** The reason line's own slots, where its sentence takes one — the
+   *  report's removal address is the only such slot today. */
+  reasonVars?: CopyVars;
   optOut?: OptOutControl;
 }
 
@@ -74,6 +87,8 @@ const NOTHING_TO_REPORT = "mail.nothing_to_report" satisfies CopyKey;
 const WEEK_UNMEASURED = "mail.week_unmeasured" satisfies CopyKey;
 const WEEK_PARTLY_MEASURED = "mail.week_partly_measured" satisfies CopyKey;
 const WORDMARK = "mail.shell.wordmark" satisfies CopyKey;
+const IMPRINT = "mail.shell.imprint" satisfies CopyKey;
+const PLAIN_TEXT_NOTE = "mail.shell.plaintext_note" satisfies CopyKey;
 
 /** The two labels a stop control can carry, keyed by ADR-042's two
  *  mechanisms. Closed here so no template can name a third. */
@@ -136,10 +151,25 @@ export function composeMail(m: ComposeInput): ComposedMail {
   const line = renderWholeMailLine(wholeMailLine, m.measurement);
 
   const wordmark = copy(WORDMARK);
+  // The imprint is bracketed in the approved set — the owner's own line,
+  // not yet written. Read straight off the registry rather than through
+  // `copy()`, because `copy()` throws on an owner-owed key and every mail
+  // in the product would stop composing on a footer band. It appears the
+  // day it is written and not before, which is what a bracketed string in
+  // the set means.
+  const imprintText = COPY[IMPRINT];
+  const imprint = imprintText === "" ? null : imprintText;
   const optOut =
     m.optOut === undefined
       ? null
       : { href: m.optOut.href, label: copy(OPT_OUT_LABELS[m.optOut.mechanism]) };
+
+  const footer = {
+    wordmark,
+    reason: m.reason === undefined ? null : copy(m.reason, m.reasonVars),
+    imprint,
+    plainTextNote: copy(PLAIN_TEXT_NOTE),
+  };
 
   // The two renderers read one omission decision (`omit.ts`); this is the
   // assertion that they were not made to disagree by a local edit.
@@ -149,8 +179,8 @@ export function composeMail(m: ComposeInput): ComposedMail {
 
   return {
     subject: copy(m.subject, m.subjectVars),
-    html: frameHtml({ wordmark, rows: htmlBody.html, wholeMailLine: line, optOut }),
-    text: frameText({ wordmark, body: textBody.text, wholeMailLine: line, optOut }),
+    html: frameHtml({ ...footer, rows: htmlBody.html, wholeMailLine: line, optOut }),
+    text: frameText({ ...footer, body: textBody.text, wholeMailLine: line, optOut }),
     omitted: htmlBody.omitted,
     wholeMailLine,
   };

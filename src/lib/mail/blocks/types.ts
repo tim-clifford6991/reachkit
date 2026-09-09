@@ -28,6 +28,23 @@ export interface ListRow {
   readonly vars?: CopyVars;
 }
 
+/** One row of a `facts` block — the `dl` of mono fact rows the approved
+ *  shell draws between the short line and the button (UI-SPEC S20). Both
+ *  halves are keys: a fact row is a written label and a written value, and
+ *  a number reaches it through the value's own slot, already formatted by
+ *  `formatStat`, so this arm mints no second numeral formatter either. */
+export interface FactRow {
+  readonly label: CopyKey;
+  /**
+   * The value, already written by whoever built the row — a domain, an
+   * address, a number through `formatStat`, a band word through `copy()`.
+   * A datum and not a sentence, which is why it is the one field on this
+   * arm that is not a key: "you@company.com" and "62 · Hard to find" are
+   * facts about one mail, and a key per address is not a copy registry.
+   */
+  readonly value: string;
+}
+
 /** One row of a `verdicts` block: the subject of the verdict and the band
  *  word that is the verdict. Both are keys; the band words come from
  *  `BAND_LABELS` (ADR-001), never authored here. */
@@ -70,6 +87,22 @@ export type MailBlock =
       readonly items: Measured<readonly VerdictRow[]>;
       readonly emptyLine: CopyKey;
     }
+  | {
+      /**
+       * The `dl` the approved shell draws: label/value pairs, the value in
+       * mono. An empty list drops the whole block, because there is no
+       * sentence that says "no facts" — a mail with nothing to state states
+       * nothing (`omit.ts`).
+       *
+       * Not a `Measured`, unlike the three conditional arms. A fact row is
+       * what the mail is *about* — the address a link is for, the search a
+       * page targets — and none of them is a measurement with an `at`. A
+       * row that depends on one is left out by the template that knows the
+       * measurement, exactly as `verdicts` rows already are.
+       */
+      readonly block: "facts";
+      readonly items: readonly FactRow[];
+    }
   | { readonly block: "action"; readonly label: CopyKey; readonly href: string }
   | { readonly block: "notice"; readonly text: CopyKey; readonly vars?: CopyVars }
   | {
@@ -82,7 +115,12 @@ export type MailBlock =
 /** The three arms whose presence depends on a measurement. The whole-mail
  *  line (`shell/compose.ts`) counts over exactly these: a mail of headings
  *  and actions alone has nothing conditional in it and says nothing about
- *  having nothing to report. */
+ *  having nothing to report.
+ *
+ *  `facts` is deliberately **not** here, though `omit.ts` can drop it. The
+ *  fact rows restate what the heading and the one line already say — the
+ *  address a link is for, the search a page targets — so a mail that lost
+ *  them has not lost its point, and "nothing to report" would be false. */
 export const CONDITIONAL_BLOCKS = ["stat", "list", "verdicts"] as const;
 
 export type ConditionalBlock = (typeof CONDITIONAL_BLOCKS)[number];
