@@ -1,38 +1,76 @@
-// BUILD §9 — GET /veto/{token}: one line, four arms, and nothing else on
-// the page.
+// UI-SPEC S6 — /veto/{token}: two arms, and a write that needs an act.
 //
 // The component is called directly and its returned element tree is
 // inspected, the same direct-call convention `tests/app/opt-out/page.test.tsx`
-// uses — no DOM, so this suite runs in the `node` project beside the rest
-// of `tests/app/**`.
+// uses — no DOM, so this suite runs in the `node` project beside the rest of
+// `tests/app/**`.
 //
-// The redemption itself is `tests/publish/publishable/veto.test.ts`'s and is
-// not re-tested here: this suite asserts that the surface asks for it
-// exactly once per request and renders one arm per answer.
+// **What changed with #371, and what this file now holds.** The page used to
+// redeem on arrival: one GET, one transition, one line. The approved set
+// draws an *ask* and a *done*, so arriving reads and pressing stops — and
+// that is a correctness property, not only a fidelity one. A GET that writes
+// is a page a mail scanner or a link preview can stop for the customer
+// without a person seeing it. The first describe below is that property,
+// asserted as itself.
+//
+// The redemption and the read are `tests/publish/publishable/veto.test.ts`'s
+// and are not re-tested here: this suite asserts which seam the surface
+// reaches on which request, and which arm it renders for which answer.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type React from "react";
 import { applyEnvFixture } from "../../mail/env-fixture";
 import { codeOf } from "../../mail/leads/source";
-import type { RedeemResult } from "../../../src/lib/publish/publishable";
+import type { PreviewResult, RedeemResult } from "../../../src/lib/publish/publishable";
 
 applyEnvFixture();
 
-/** The redemption's answer for the test about to run, and the tokens it was
- *  asked about. A plain function rather than a `vi.fn`: one of the cases
- *  below is a redemption that *rejects*, and vitest's own tracking of a
- *  mock's settled results drops its handler on the rejected promise when
- *  the mock is cleared between tests — surfacing as an unhandled rejection
- *  against a test that passed. The record this file needs is one array. */
-let answer: (token: string) => Promise<RedeemResult> = async () => ({
-  ok: false,
-  reason: "unknown",
+/**
+ * The two seams' answers for the test about to run, and what each was asked.
+ *
+ * Plain functions rather than `vi.fn`s: one of the cases below is a read that
+ * *rejects*, and vitest's own tracking of a mock's settled results drops its
+ * handler on the rejected promise when the mock is cleared between tests —
+ * surfacing as an unhandled rejection against a test that passed. The record
+ * this file needs is three arrays.
+ */
+const LIVE: PreviewResult = {
+  ok: true,
+  preview: {
+    draftId: "draft-2026-09-15",
+    title: "How to choose onboarding software",
+    query: "best onboarding tools",
+    domain: "example.com",
+    publishesAt: new Date("2026-09-15T07:00:00.000Z"),
+  },
+};
+
+let previewAnswer: (token: string) => Promise<PreviewResult> = async () => LIVE;
+let redeemAnswer: (token: string) => Promise<RedeemResult> = async () => ({
+  ok: true,
+  draftId: "draft-2026-09-15",
 });
-const asked: string[] = [];
+const previewed: string[] = [];
+const redeemed: string[] = [];
+const redirected: string[] = [];
 
 vi.mock("@/lib/publish/publishable", () => ({
+  previewVetoLink: (token: string) => {
+    previewed.push(token);
+    return previewAnswer(token);
+  },
   redeemVetoLink: (token: string) => {
-    asked.push(token);
-    return answer(token);
+    redeemed.push(token);
+    return redeemAnswer(token);
+  },
+  vetoLinkPath: (token: string) => `/veto/${token}`,
+}));
+
+vi.mock("next/navigation", () => ({
+  redirect: (to: string) => {
+    redirected.push(to);
+    // Next's own `redirect` throws to unwind the render; this stand-in does
+    // the same, so a caller that kept working after redirecting fails here.
+    throw new Error("NEXT_REDIRECT");
   },
 }));
 
@@ -46,142 +84,236 @@ interface Node {
   props: Record<string, unknown>;
 }
 
-/** Every element in a returned tree, flattened. */
+/**
+ * Every element in a returned tree, flattened.
+ *
+ * The page's own two arms — `Ask` and `Told` — are expanded by calling them,
+ * because a server component that is not called renders nothing to inspect
+ * and this suite is about what they render. Nothing else is expanded: the
+ * registered components are `tests/ui/**`'s to render, and descending into
+ * them here would make every assertion about a `Btn` an assertion about
+ * daisyUI's markup instead.
+ */
+const OWN_ARMS = new Set(["Ask", "Told"]);
+
 function nodes(element: React.ReactNode): Node[] {
   if (element === null || typeof element !== "object") return [];
   const node = element as unknown as Node;
+  const name = (node.type as { name?: string })?.name;
+  const expanded =
+    typeof node.type === "function" && name !== undefined && OWN_ARMS.has(name)
+      ? nodes((node.type as (p: Record<string, unknown>) => React.ReactNode)(node.props))
+      : [];
   const children = (node.props?.children ?? null) as React.ReactNode;
   const list = Array.isArray(children) ? children : [children];
-  return [node, ...list.flatMap((child) => nodes(child))];
+  return [node, ...expanded, ...list.flatMap((child) => nodes(child))];
 }
 
 function named(tree: React.ReactNode, name: string): Node | undefined {
   return nodes(tree).find((node) => (node.type as { name?: string })?.name === name);
 }
 
-async function render(result: RedeemResult): Promise<Node | undefined> {
-  answer = async () => result;
-  return named(await VetoPage({ params: { token: "a-token" } }), "Alert");
+function allNamed(tree: React.ReactNode, name: string): Node[] {
+  return nodes(tree).filter((node) => (node.type as { name?: string })?.name === name);
+}
+
+/**
+ * Every string a reader would see, joined.
+ *
+ * Only *intrinsic* elements — the ones whose type is a tag name — because
+ * those are what reach the document. A component's props are arguments, not
+ * text: `<Ask token={…} it={…}>` carries the token and the draft's id, and
+ * counting those as rendered would make "the token is never echoed" pass or
+ * fail on how the page happens to be factored rather than on what it shows.
+ */
+function text(tree: React.ReactNode): string {
+  return JSON.stringify(
+    nodes(tree)
+      .filter((node) => typeof node.type === "string")
+      .map((node) => node.props)
+  );
+}
+
+async function ask(query: Record<string, string> = {}): Promise<React.ReactNode> {
+  return VetoPage({ params: { token: "a-token" }, searchParams: query });
 }
 
 beforeEach(() => {
-  asked.length = 0;
-  answer = async () => ({ ok: false, reason: "unknown" });
+  previewed.length = 0;
+  redeemed.length = 0;
+  redirected.length = 0;
+  previewAnswer = async () => LIVE;
+  redeemAnswer = async () => ({ ok: true, draftId: "draft-2026-09-15" });
 });
 
-describe("four arms, one written line, no fifth rendering and no default arm", () => {
-  it("a valid link is vetoed, and says so", async () => {
-    const alert = await render({ ok: true, draftId: "d1" });
-    expect(alert?.props.tone).toBe("ok");
-    expect(alert?.props.message).toBe(COPY["publish.veto.stopped"]);
+describe("issue #371 — arriving reads, and only pressing stops", () => {
+  it("a GET redeems nothing: the page reads the token and leaves it spendable", async () => {
+    await ask();
+    expect(previewed).toEqual(["a-token"]);
+    expect(redeemed, "arriving must not spend the token").toEqual([]);
   });
 
-  it("a link already used says it was already used, not that it is not a link", async () => {
-    const alert = await render({ ok: false, reason: "used" });
+  it("the stop control is a form action, so the write is behind a POST", async () => {
+    const forms = nodes(await ask()).filter((node) => node.type === "form");
+    expect(forms).toHaveLength(1);
+    expect(typeof forms[0]?.props.action, "the form posts to a server action").toBe("function");
+  });
+
+  it("pressing it redeems once, then sends the reader back to the same link", async () => {
+    const forms = nodes(await ask()).filter((node) => node.type === "form");
+    const action = forms[0]?.props.action as () => Promise<void>;
+    await expect(action()).rejects.toThrow("NEXT_REDIRECT");
+    expect(redeemed).toEqual(["a-token"]);
+    expect(redirected).toEqual(["/veto/a-token?done=1"]);
+  });
+});
+
+describe("the ask arm — what the set draws, in its own order", () => {
+  it("names the moment it publishes, the page, the search and the site", async () => {
+    const tree = await ask();
+    const rendered = text(tree);
+    expect(named(tree, "CardHead")?.props.eyebrow).toBe(
+      COPY["publish.veto.ask.head"].replace("{when}", "2026-09-15 07:00 UTC")
+    );
+    expect(rendered).toContain("How to choose onboarding software");
+    expect(rendered).toContain("best onboarding tools");
+    expect(rendered).toContain("example.com");
+  });
+
+  it("one solid control, labelled as the set labels it, and one quiet line under it", async () => {
+    const tree = await ask();
+    const buttons = allNamed(tree, "Btn");
+    expect(buttons).toHaveLength(1);
+    expect(buttons[0]?.props.label).toBe(COPY["publish.veto.ask.action"]);
+    expect(buttons[0]?.props.variant).toBe("primary");
+    expect(text(tree)).toContain(COPY["publish.veto.ask.do-nothing"]);
+  });
+
+  it("a page with no title, search or site still offers the control", async () => {
+    // Every one of the three is nullable at the seam, and none of them is a
+    // reason to withhold the stop: a reader who cannot see which page it is
+    // must still be able to stop it.
+    previewAnswer = async () => ({
+      ok: true,
+      preview: {
+        draftId: "d1",
+        title: null,
+        query: null,
+        domain: null,
+        publishesAt: null,
+      },
+    });
+    const tree = await ask();
+    expect(allNamed(tree, "Btn")).toHaveLength(1);
+    expect(allNamed(tree, "Btn")[0]?.props.label).toBe(COPY["publish.veto.ask.action"]);
+  });
+
+  it("the token is never echoed onto the page", async () => {
+    // The four facts the set draws are the four the `draft-ready` mail
+    // already put in this reader's inbox. The credential is not one of them.
+    const tree = await VetoPage({ params: { token: "a-secret-token" }, searchParams: {} });
+    expect(text(tree)).not.toContain("a-secret-token");
+  });
+});
+
+describe("the done arm, and the refusals that wear its shape", () => {
+  it("coming back from the control, on a token that now reads as spent, says it stopped", async () => {
+    previewAnswer = async () => ({ ok: false, reason: "used" });
+    const tree = await ask({ done: "1" });
+    expect(named(tree, "CardHead")?.props.eyebrow).toBe(COPY["publish.veto.done.head"]);
+    const alert = named(tree, "Alert");
+    expect(alert?.props.tone).toBe("ok");
+    expect(alert?.props.message).toBe(COPY["publish.veto.stopped"]);
+    expect(named(tree, "Btn")?.props.href).toBe("/app/calendar");
+    expect(named(tree, "Btn")?.props.label).toBe(COPY["publish.veto.calendar"]);
+  });
+
+  it("`?done=1` typed against a live link shows the ask, and stops nothing", async () => {
+    // The marker is not a claim on its own: the done arm needs the store to
+    // agree. Without this, anyone could be told their page was stopped.
+    const tree = await ask({ done: "1" });
+    expect(allNamed(tree, "Btn")[0]?.props.label).toBe(COPY["publish.veto.ask.action"]);
+    expect(redeemed).toEqual([]);
+  });
+
+  it("a spent link reached cold says it was already used, not that it stopped", async () => {
+    previewAnswer = async () => ({ ok: false, reason: "used" });
+    const alert = named(await ask(), "Alert");
     expect(alert?.props.tone).toBe("neutral");
     expect(alert?.props.message).toBe(COPY["publish.veto.alreadyUsed"]);
   });
 
   it("a link past its expiry says the moment to stop has passed", async () => {
-    const alert = await render({ ok: false, reason: "expired" });
+    previewAnswer = async () => ({ ok: false, reason: "expired" });
+    const alert = named(await ask(), "Alert");
     expect(alert?.props.tone).toBe("warn");
     expect(alert?.props.message).toBe(COPY["publish.veto.expired"]);
   });
 
-  it("a page that has already left review reads as the same fact, and names nothing about the page", async () => {
+  it("a page that has already left review reads as the same fact", async () => {
     // To the holder of the link, `expired` and `not_in_review` are one
-    // thing: there is no longer anything to stop. What became of the page
-    // is a fact this screen holds no session to be told.
-    const alert = await render({ ok: false, reason: "not_in_review" });
-    expect(alert?.props.message).toBe(COPY["publish.veto.expired"]);
+    // thing: there is no longer anything to stop. What became of the page is
+    // a fact this screen holds no session to be told.
+    previewAnswer = async () => ({ ok: false, reason: "not_in_review" });
+    expect(named(await ask(), "Alert")?.props.message).toBe(COPY["publish.veto.expired"]);
   });
 
   it("a link that is not one of ours says so, and no arm renders blank", async () => {
-    const alert = await render({ ok: false, reason: "unknown" });
+    previewAnswer = async () => ({ ok: false, reason: "unknown" });
+    const alert = named(await ask(), "Alert");
     expect(alert?.props.tone).toBe("warn");
     expect(alert?.props.message).toBe(COPY["publish.veto.unknown"]);
   });
 
-  it("every arm renders a line — the four keys are the marker, never an empty string", async () => {
-    const results: RedeemResult[] = [
-      { ok: true, draftId: "d1" },
-      { ok: false, reason: "used" },
-      { ok: false, reason: "expired" },
-      { ok: false, reason: "not_in_review" },
-      { ok: false, reason: "unknown" },
-    ];
-    for (const result of results) {
-      expect(String((await render(result))?.props.message).length).toBeGreaterThan(0);
+  it("every refusal renders a line — the three keys are the marker, never empty", async () => {
+    for (const reason of ["used", "expired", "not_in_review", "unknown"] as const) {
+      previewAnswer = async () => ({ ok: false, reason });
+      expect(String(named(await ask(), "Alert")?.props.message).length).toBeGreaterThan(0);
     }
   });
 
-  it("a redemption that fails outright is the unknown-link line, never an error screen", async () => {
-    answer = async () => {
+  it("a read that fails outright is the unknown-link line, never an error screen", async () => {
+    previewAnswer = async () => {
       throw new Error("the database is down");
     };
-    const alert = named(await VetoPage({ params: { token: "a-token" } }), "Alert");
-    expect(alert?.props.message).toBe(COPY["publish.veto.unknown"]);
+    expect(named(await ask(), "Alert")?.props.message).toBe(COPY["publish.veto.unknown"]);
   });
 
-  it("a redemption that never comes back is bounded, and answers the same way", async () => {
+  it("a read that never comes back is bounded, and answers the same way", async () => {
     // A `catch` alone does not cover this: a request that never settles
-    // never rejects. The reader gets the line that says this is not a link
-    // ReachKit can act on — which is what they are holding — rather than a
-    // page that never loads.
-    // A read that settles a little *after* the deadline, rather than one
-    // that never settles at all: the assertion is about what the page does
-    // with a slow read, and a promise left pending for the life of the
-    // process is a handle this file would leave behind for every later one.
-    answer = () =>
-      new Promise<RedeemResult>((resolve) => {
-        setTimeout(() => resolve({ ok: true, draftId: "d1" }), 3_000);
+    // never rejects. A read that settles a little *after* the deadline,
+    // rather than one that never settles at all — a promise left pending for
+    // the life of the process is a handle this file would leave behind.
+    previewAnswer = () =>
+      new Promise<PreviewResult>((resolve) => {
+        setTimeout(() => resolve(LIVE), 3_000);
       });
     const started = Date.now();
-    const alert = named(await VetoPage({ params: { token: "a-token" } }), "Alert");
-    expect(alert?.props.message).toBe(COPY["publish.veto.unknown"]);
+    expect(named(await ask(), "Alert")?.props.message).toBe(COPY["publish.veto.unknown"]);
     expect(Date.now() - started).toBeLessThan(4_000);
   });
 
-  it("Next's promised params and a resolved object are both accepted", async () => {
-    answer = async () => ({ ok: true, draftId: "d1" });
-    const tree = await VetoPage({ params: Promise.resolve({ token: "a-token" }) });
-    expect(named(tree, "Alert")?.props.tone).toBe("ok");
+  it("Next's promised params and search params are both accepted", async () => {
+    const tree = await VetoPage({
+      params: Promise.resolve({ token: "a-token" }),
+      searchParams: Promise.resolve({}),
+    });
+    expect(allNamed(tree, "Btn")[0]?.props.label).toBe(COPY["publish.veto.ask.action"]);
   });
 });
 
-describe("exactly one transition — the surface redeems once and owns no token knowledge", () => {
-  it("one render asks for one redemption, with the segment as given", async () => {
-    answer = async () => ({ ok: true, draftId: "d1" });
-    await VetoPage({ params: { token: "the-token" } });
-    expect(asked).toEqual(["the-token"]);
-  });
-
-  it("it calls redeemVetoLink and reaches neither the machine nor the token's own hashing", () => {
+describe("the surface owns no token knowledge", () => {
+  it("it reaches the two named seams and neither the machine nor the token's hashing", () => {
     const code = codeOf(PAGE);
+    expect(code).toMatch(/previewVetoLink/);
     expect(code).toMatch(/redeemVetoLink/);
     expect(code).not.toMatch(/transition\(|hashToken|redeem_veto_token|veto_token_hash|createHash/);
   });
-});
 
-describe("nothing else is on the page", () => {
-  it("no control, no form, no field, and no navigation into the product", async () => {
-    answer = async () => ({ ok: true, draftId: "d1" });
-    const tree = await VetoPage({ params: { token: "a-token" } });
-    const types = nodes(tree).map((node) => (node.type as { name?: string })?.name ?? node.type);
-
-    expect(types).not.toContain("Btn");
-    expect(types).not.toContain("Input");
-    expect(types).not.toContain("Toggle");
-    expect(types).not.toContain("form");
-    expect(types).not.toContain("a");
-  });
-
-  it("neither the token nor the draft it moved is echoed back onto the page", async () => {
-    answer = async () => ({ ok: true, draftId: "draft-2026-09-15" });
-    const tree = await VetoPage({ params: { token: "a-secret-token" } });
-    const rendered = JSON.stringify(nodes(tree).map((node) => node.props));
-    expect(rendered).not.toContain("a-secret-token");
-    expect(rendered).not.toContain("draft-2026-09-15");
+  it("the draft's id is never rendered, though its title now is", async () => {
+    // The set names the page so a person can tell which one they are
+    // stopping. An internal id is not that, and is still not shown.
+    expect(text(await ask())).not.toContain("draft-2026-09-15");
   });
 
   it("one Surface at the root, one Card, and it holds no string a person reads", () => {
@@ -214,7 +346,7 @@ describe("the address: public, and never indexed", () => {
     expect(config).toContain("noindex, nofollow");
   });
 
-  it("no response is shared: the redemption writes, so nothing is cached or revalidated", () => {
+  it("no response is shared: the ask must not outlive the page it offers", () => {
     const code = codeOf(PAGE);
     expect(code).toMatch(/export const dynamic = "force-dynamic"/);
     expect(code).toMatch(/export const revalidate = 0/);

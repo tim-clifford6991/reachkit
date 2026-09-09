@@ -1,50 +1,58 @@
-// BUILD §9 — GET /veto/{token}: the address the one veto link in the
-// `draft-ready` mail lands on.
+// BUILD §9 · UI-SPEC S6 — /veto/{token}: the address the one stop link in
+// the `draft-ready` mail lands on.
 //
-// §12 gives that mail "one veto link"; #142 built what the link redeems —
-// a hashed, single-use, draft-bound token that performs exactly one
-// transition. This file is the surface that redeems it for a reader who has
-// no session, because a mail's reader has none: the link is the whole of
-// the credential, and `/veto/:token` says so on `src/middleware.ts`'s one
-// public allow-list.
+// §12 gives that mail "one veto link"; #142 built what the link redeems — a
+// hashed, single-use, draft-bound token that performs exactly one
+// transition. This file is the surface that spends it for a reader who has
+// no session, because a mail's reader has none: the link is the whole of the
+// credential, and `/veto/:token` says so on `src/middleware.ts`'s one public
+// allow-list.
 //
-// **One transition, and the page does not own it.** The redemption is
-// `redeemVetoLink`'s, which marks the token used in the same statement that
-// reads it. This file passes a segment and renders an arm; it holds no
-// token knowledge, reads no state machine and writes nothing itself
-// (`ARCHITECTURE.md` rule 1 — a thin adapter).
+// **Two arms, because the approved set draws two** (S6, issue #371): an
+// *ask* — the page named, the search it targets, the site it goes to, the
+// moment it publishes, over one solid control — and a *done*. Arriving reads;
+// pressing stops.
 //
-// **Redeeming is the arrival**, as it is behind `/opt-out/{token}`: there
-// is no button to press. A reader who cannot press one must still be able
-// to stop their page, and the token is single-use, so a mail client's
-// prefetch costs at worst a page that does not publish — the direction
-// REQ-057 c1 wants to be safe in.
+// **That is a correctness fix, not only a fidelity one.** Until #371 this
+// page redeemed on arrival, which put a write behind a GET: a mail scanner, a
+// link preview or a prefetching client stops the customer's page without a
+// person ever seeing it. The old shape reasoned that a prefetch "costs at
+// worst a page that does not publish", and that is a real cost — the customer
+// asked for a page a day and silently got none. Reading on GET and stopping
+// on POST removes it, and the set is what settles the shape.
 //
-// **Four arms, one written line, no fifth rendering and no default arm.**
-// Nothing else is on the page: no control, no form, no field, no
-// navigation into the product, and no draft, title or address is echoed
-// back, because a stop link forwarded to someone else must disclose nothing
-// about the page it was issued for.
+// **The page does not own the transition.** `redeemVetoLink` marks the token
+// used in the same statement that reads it, and `previewVetoLink` reads
+// without spending. This file passes a segment, renders an arm, and holds no
+// token knowledge or state machine of its own (`ARCHITECTURE.md` rule 1).
 //
-// **Bounded, and it answers rather than hanging.** The page reads before it
-// can render at all, on a public, unauthenticated address, so a database
-// that is unreachable costs its reader the unknown-link line and not a page
-// that never loads — see `REDEEM_DEADLINE_MS` below.
+// **What it discloses is what the mail already did.** The title, the search,
+// the site and the moment reached this reader's inbox in the `draft-ready`
+// mail the token came from; the set puts the same four on the page so a
+// person can tell which page they are stopping. Nothing about the account,
+// and nothing about any other page.
 //
-// Every sentence is a registry key, all four owner-owed.
+// **Bounded, and it answers rather than hanging.** Both the read and the
+// redemption sit on a public, unauthenticated address, so a database that is
+// unreachable costs its reader a written line and not a page that never
+// loads — see `DEADLINE_MS`.
 import type React from "react";
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { Clock } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
-import { redeemVetoLink } from "@/lib/publish/publishable";
-import type { RedeemResult } from "@/lib/publish/publishable";
-import { Alert, Card } from "@/ui/components";
+import { previewVetoLink, redeemVetoLink, vetoLinkPath } from "@/lib/publish/publishable";
+import type { PreviewResult, RedeemResult, VetoPreview } from "@/lib/publish/publishable";
+import { Alert, Btn, Card } from "@/ui/components";
+import { CardHead } from "@/ui/idiom";
 import { Surface } from "@/ui/layout";
 import type { AlertTone } from "@/ui/components";
 import type { Arm, Band } from "@/ui/layout";
 
 /** The redemption writes, so no response is ever shared or replayed: a
  *  cached confirmation would tell the next reader their page is stopped on
- *  the strength of someone else's click. */
+ *  the strength of someone else's click. The ask arm is uncached for the
+ *  same reason in reverse — a stopped page must not still be offered. */
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
@@ -56,26 +64,20 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-// How long the redemption may take before the page answers anyway.
-//
-// Chosen here rather than pinned in `constants.ts` for the reason
-// `src/middleware.ts`'s `REMOVAL_READ_DEADLINE_MS` states of its own: it is
-// a property of this one request-path read, not a product bound anything
-// else reads, and a number in two files is wrong. Thirty times over a
-// healthy indexed statement on one row, and short against a person who has
-// just clicked a link in a mail — the same trade, and the same order of
-// magnitude, as that file's 800 ms in front of every report render.
-//
-// **This page reads before it can render at all**, and it is public and
-// unauthenticated, so an unreachable database must cost its reader an
-// answer rather than a page that never loads. A `catch` alone does not do
-// that: a request that never settles never rejects.
-//
-// The deadline bounds *this page's waiting*, not the statement: a
-// redemption that lands after it still stopped the page, and what the
-// reader lost is the line saying so, not the stop. Nothing is half-done —
-// the token is marked used in the same statement that moves the page.
-const REDEEM_DEADLINE_MS = 1_500;
+/**
+ * How long either seam may take before the page answers anyway.
+ *
+ * Chosen here rather than pinned in `constants.ts` for the reason
+ * `src/middleware.ts`'s `REMOVAL_READ_DEADLINE_MS` states of its own: it is a
+ * property of this one request-path read, not a product bound anything else
+ * reads, and a number in two files is wrong.
+ *
+ * A `catch` alone does not bound a hang: a request that never settles never
+ * rejects. The deadline bounds *this page's waiting*, not the statement — a
+ * redemption that lands after it still stopped the page, and what the reader
+ * lost is the line saying so, not the stop.
+ */
+const DEADLINE_MS = 1_500;
 
 /** Rejects when `work` has not settled inside the deadline, so the caller's
  *  own `catch` covers a hang the same way it covers a failure. The timer is
@@ -87,7 +89,7 @@ async function withDeadline<T>(work: Promise<T>): Promise<T> {
     return await Promise.race([
       work,
       new Promise<T>((_resolve, reject) => {
-        timer = setTimeout(() => reject(new Error("the redemption timed out")), REDEEM_DEADLINE_MS);
+        timer = setTimeout(() => reject(new Error("the veto seam timed out")), DEADLINE_MS);
       }),
     ]);
   } finally {
@@ -96,18 +98,20 @@ async function withDeadline<T>(work: Promise<T>): Promise<T> {
 }
 
 /**
- * What redeeming did, or `unknown` where this product could not find out.
+ * What the token is bound to, or why it cannot be shown.
  *
- * The unknown arm is the honest one for a redemption that failed or hung:
- * its line says this is not a link ReachKit can act on, and a link it could
- * not act on is exactly what the reader is holding. `redeemVeto` already
- * answers `unknown` for a read that errors — this adds the case where the
- * read does not come back at all, and keeps the two the same answer.
- *
- * Nothing was moved on this path, so nothing has to be undone: the token is
- * marked used in the same statement that reads it, and a statement that
- * never landed marked nothing.
+ * The unknown arm is the honest one for a read that failed or hung: its line
+ * says this is not a link ReachKit can act on, and a link it could not act on
+ * is exactly what the reader is holding.
  */
+async function preview(token: string): Promise<PreviewResult> {
+  try {
+    return await withDeadline(previewVetoLink(token));
+  } catch {
+    return { ok: false, reason: "unknown" };
+  }
+}
+
 async function redeem(token: string): Promise<RedeemResult> {
   try {
     return await withDeadline(redeemVetoLink(token));
@@ -116,10 +120,11 @@ async function redeem(token: string): Promise<RedeemResult> {
   }
 }
 
-/** Next hands a dynamic segment as a promise; the suite calls this
- *  component directly with a resolved object, the same direct-call
- *  convention `tests/app/opt-out/page.test.tsx` uses. */
+/** Next hands a dynamic segment as a promise; the suite calls this component
+ *  directly with a resolved object, the same direct-call convention
+ *  `tests/app/opt-out/page.test.tsx` uses. */
 type TokenParams = { token: string };
+type Query = { done?: string };
 
 /** One column at every band: the page is one card, and there is nothing to
  *  put beside it. */
@@ -129,25 +134,32 @@ const ARMS = {
   wide: { kind: "columns", count: 1 },
 } as const satisfies Record<Band, Arm>;
 
-/** `Card` requires a title and there is no sentence to put in one: the head
- *  of this card is the product's own name, which `mail.shell.wordmark`
- *  already holds — transcribed, not written, exactly as `/opt-out/{token}`
- *  does it. */
+/** `Card` requires a title and the set puts the product's own name nowhere
+ *  on this page — the head is the card's own eyebrow. The wordmark is what
+ *  the public chrome carries, so the card's accessible title is it,
+ *  transcribed and not written, exactly as `/opt-out/{token}` does it. */
 const WORDMARK = "mail.shell.wordmark";
 
+/** The marker the stop action redirects with. Not a claim on its own: the
+ *  done arm renders only where the token also reads back as spent, so a
+ *  hand-typed `?done=1` on a live link shows the ask arm and stops nothing. */
+const DONE = "done";
+
 /**
- * The line, from what redeeming did. Total over `RedeemResult` — a refusal
- * that grows a fifth member fails to compile here rather than falling
- * through to a blank page.
+ * The line for a link that cannot be spent. Total over `VetoRefusal` — a
+ * refusal that grows a fifth member fails to compile here rather than
+ * falling through to a blank page.
  *
- * `expired` and `not_in_review` share a line. To the person holding the
- * link they are one fact — the moment to stop this page has passed — and
- * the difference between them is a fact about the page that this screen
- * holds no session to be told.
+ * `expired` and `not_in_review` share a line. To the person holding the link
+ * they are one fact — the moment to stop this page has passed — and the
+ * difference between them is a fact about the page that this screen holds no
+ * session to be told.
  */
-function lineFor(result: RedeemResult): { tone: AlertTone; message: string } {
-  if (result.ok) return { tone: "ok", message: copy("publish.veto.stopped") };
-  switch (result.reason) {
+function refusalLine(reason: Exclude<PreviewResult, { ok: true }>["reason"]): {
+  tone: AlertTone;
+  message: string;
+} {
+  switch (reason) {
     case "used":
       return { tone: "neutral", message: copy("publish.veto.alreadyUsed") };
     case "expired":
@@ -158,17 +170,115 @@ function lineFor(result: RedeemResult): { tone: AlertTone; message: string } {
   }
 }
 
+/** How the moment is written. ISO calendar date and the time as the site
+ *  states it — the mail's own `writePublishesAt` owns the customer-facing
+ *  format for a *sent* moment; this page has no zone to read without a
+ *  session, so it writes the instant plainly rather than in a zone it would
+ *  be guessing at. */
+function writeMoment(at: Date): string {
+  return `${at.toISOString().slice(0, 10)} ${at.toISOString().slice(11, 16)} UTC`;
+}
+
+/** The ask arm: what the set draws, in its own order. */
+function Ask(p: { token: string; it: VetoPreview }): React.JSX.Element {
+  async function stop(): Promise<void> {
+    "use server";
+    // The write, behind an act. Its result is not read here: the page
+    // re-reads the token on the way back, so what the reader is told is what
+    // the store says now rather than what this call returned.
+    await redeem(p.token);
+    redirect(`${vetoLinkPath(p.token)}?${DONE}=1`);
+  }
+
+  const head =
+    p.it.publishesAt === null
+      ? copy("publish.veto.ask.action")
+      : copy("publish.veto.ask.head", { when: writeMoment(p.it.publishesAt) });
+
+  return (
+    <Card state="default" title={copy(WORDMARK)}>
+      <CardHead icon={<Clock size={15} aria-hidden />} eyebrow={head} />
+      {p.it.title === null ? null : <h1>{p.it.title}</h1>}
+      {/* The set's two why-rows. Utilities and the registered type classes,
+          not a class of this page's own: §2.2 closes custom CSS at five
+          surfaces and a stop page is none of them, so the rows are laid out
+          the way `WhyThisPage` lays its wrapper out and take their voice
+          from `eyebrow` and `.num`. */}
+      <dl className="flex flex-col gap-2">
+        {p.it.query === null ? null : (
+          <div className="flex justify-between gap-3">
+            <dt className="eyebrow">{copy("publish.veto.ask.row.search")}</dt>
+            <dd className="num">{p.it.query}</dd>
+          </div>
+        )}
+        {p.it.domain === null ? null : (
+          <div className="flex justify-between gap-3">
+            <dt className="eyebrow">{copy("publish.veto.ask.row.site")}</dt>
+            <dd className="num">{p.it.domain}</dd>
+          </div>
+        )}
+      </dl>
+      <form action={stop}>
+        <Btn
+          label={copy("publish.veto.ask.action")}
+          variant="primary"
+          type="submit"
+          pill
+          block
+        />
+      </form>
+      <p className="rk-explain">{copy("publish.veto.ask.do-nothing")}</p>
+    </Card>
+  );
+}
+
+/** The done arm, and the two refusals that wear its shape. */
+function Told(p: { head: string; tone: AlertTone; message: string }): React.JSX.Element {
+  return (
+    <Card state="default" title={copy(WORDMARK)}>
+      <CardHead eyebrow={p.head} />
+      <Alert tone={p.tone} message={p.message} />
+      <Btn label={copy("publish.veto.calendar")} variant="tertiary" href="/app/calendar" pill />
+    </Card>
+  );
+}
+
 export default async function VetoPage(p: {
   params: TokenParams | Promise<TokenParams>;
+  searchParams?: Query | Promise<Query>;
 }): Promise<React.JSX.Element> {
   const { token } = await p.params;
-  const { tone, message } = lineFor(await redeem(token));
+  const query = p.searchParams === undefined ? {} : await p.searchParams;
+  const result = await preview(token);
+
+  // The done arm is told by two things agreeing: the reader came back from
+  // the stop control, and the token now reads as spent. Either alone renders
+  // what is true instead — a spent token reached cold says so, and `?done=1`
+  // typed against a live one shows the ask.
+  if (query[DONE] !== undefined && !result.ok && result.reason === "used") {
+    return (
+      <Surface arms={ARMS}>
+        <Told
+          head={copy("publish.veto.done.head")}
+          tone="ok"
+          message={copy("publish.veto.stopped")}
+        />
+      </Surface>
+    );
+  }
+
+  if (!result.ok) {
+    const { tone, message } = refusalLine(result.reason);
+    return (
+      <Surface arms={ARMS}>
+        <Told head={copy("publish.veto.done.head")} tone={tone} message={message} />
+      </Surface>
+    );
+  }
 
   return (
     <Surface arms={ARMS}>
-      <Card state="default" title={copy(WORDMARK)}>
-        <Alert tone={tone} message={message} />
-      </Card>
+      <Ask token={token} it={result.preview} />
     </Surface>
   );
 }

@@ -31,7 +31,8 @@
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { VETO_TOKEN_BYTES } from "@/lib/config/constants";
 import { publishDb } from "../db";
-import { transition } from "../machine";
+import { machineDraftFor, transition } from "../machine";
+import { becomesPublishable } from "./predicate";
 import type { Actor, VetoLink } from "../types";
 
 export type VetoRefusal = "unknown" | "expired" | "used" | "not_in_review";
@@ -225,4 +226,103 @@ async function readDeadline(draftId: string): Promise<Date | null> {
     .single();
   if (error !== null || data === null || data.veto_deadline === null) return null;
   return new Date(data.veto_deadline);
+}
+
+/**
+ * What the stop page shows before it stops anything (UI-SPEC S6, issue #371).
+ *
+ * The screen the set draws **asks** — a card naming the page, the search it
+ * targets, the site it goes to and the moment it publishes, over one solid
+ * control. So the page needs to read what the token is bound to without
+ * spending it, and this is that read: no write, no transition, no token
+ * marked used. `redeemVeto` is still the only thing that stops a page.
+ *
+ * **This is what makes the stop a POST.** Redeeming on arrival — the shape
+ * this surface had until #371 — mutates on a GET, which a mail scanner, a
+ * link preview or a prefetching client performs without a person: the
+ * customer's page was stopped by a robot reading their inbox. Reading here
+ * and stopping on submit puts the write behind an act, which is the whole
+ * reason the set draws two arms.
+ *
+ * **It discloses what the set discloses, and no more.** The title, the
+ * target search, the site and the moment — the same four facts the
+ * `draft-ready` mail already put in that reader's inbox, since the token
+ * came from it. Nothing about the account, and nothing about any other page.
+ *
+ * The refusals are `redeemVeto`'s own, answered from the same two
+ * conditions in the same order, so a reader who is told "this link has been
+ * used" here would be told the same thing by pressing the control.
+ */
+export interface VetoPreview {
+  readonly draftId: string;
+  /** The page's own title, or `null` where the draft carries none yet. */
+  readonly title: string | null;
+  /** The search the page targets — `null` for a `fix` page, which targets
+   *  none (§7's third family). */
+  readonly query: string | null;
+  /** The site the page goes live on. */
+  readonly domain: string | null;
+  /** When it publishes unless the reader acts, or `null` where no moment
+   *  can be computed — a site with no stated zone, or a page whose window
+   *  has already run out. Never substituted. */
+  readonly publishesAt: Date | null;
+}
+
+export type PreviewResult =
+  | { ok: true; preview: VetoPreview }
+  | { ok: false; reason: VetoRefusal };
+
+interface PreviewRow {
+  id: string;
+  state: string;
+  title: string | null;
+  veto_token_used_at: string | null;
+  veto_token_expires_at: string | null;
+  opportunities?: { target_query?: string | null } | null;
+  sites?: { domain?: string | null } | null;
+}
+
+export async function previewVetoLink(
+  token: string,
+  at: Date = new Date()
+): Promise<PreviewResult> {
+  if (token.length === 0) return { ok: false, reason: "unknown" };
+
+  const { data, error } = await publishDb()
+    .from<PreviewRow>("drafts")
+    .select(
+      "id, state, title, veto_token_used_at, veto_token_expires_at, opportunities(target_query), sites(domain)"
+    )
+    .eq("veto_token_hash", hashToken(token))
+    .limit(1);
+  if (error !== null) return { ok: false, reason: "unknown" };
+
+  const row = data?.[0];
+  if (row === undefined) return { ok: false, reason: "unknown" };
+  if (row.veto_token_used_at !== null) return { ok: false, reason: "used" };
+  if (
+    row.veto_token_expires_at !== null &&
+    new Date(row.veto_token_expires_at).getTime() <= at.getTime()
+  ) {
+    return { ok: false, reason: "expired" };
+  }
+  if (row.state !== "in_review") return { ok: false, reason: "not_in_review" };
+
+  // The moment, from the one predicate that owns it (REQ-057 c2's rule),
+  // never recomputed here. A view that cannot be read leaves the moment
+  // null and the card states the rest — a missing date is not a reason to
+  // withhold the control that stops the page.
+  const view = await machineDraftFor(row.id);
+  const answer = view === null ? null : becomesPublishable(view);
+
+  return {
+    ok: true,
+    preview: {
+      draftId: row.id,
+      title: row.title === null || row.title === "" ? null : row.title,
+      query: row.opportunities?.target_query ?? null,
+      domain: row.sites?.domain ?? null,
+      publishesAt: answer !== null && answer.publishable ? answer.at : null,
+    },
+  };
 }
