@@ -32,8 +32,16 @@ if (rendered.length === 0) {
     "Name a route under `Renders:` in the PR body to have one composed anyway."
   );
 } else {
+  const moved = rendered.filter((row) => row.moved).length;
+  const asked = rendered.length - moved;
+  const counted = [
+    moved > 0 ? `${moved} surface(s) moved` : null,
+    asked > 0 ? `${asked} named under \`Renders:\`` : null,
+  ]
+    .filter(Boolean)
+    .join(", ");
   lines.push(
-    `${rendered.length} surface(s) moved. **Left is \`docs/design/approved/full-set/screens/\`; right is this branch.**`
+    `${counted}. **Left is \`docs/design/approved/full-set/screens/\`; right is this branch.**`
   );
   lines.push("");
   for (const row of rendered) {

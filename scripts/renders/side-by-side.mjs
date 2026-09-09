@@ -149,7 +149,11 @@ function main() {
       ...shot,
       file,
       approved: path.relative(process.cwd(), approved.file),
-      why: asked && !verdict.changed ? "named under `Renders:`" : verdict.why,
+      // Whether this screen is here because it moved or because the PR body
+      // asked for it. The comment says which, and the two are not the same
+      // news: one is a change to review, the other is a look you requested.
+      moved: verdict.changed,
+      why: verdict.changed ? verdict.why : "named under `Renders:`",
     });
   }
 
