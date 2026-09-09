@@ -17,6 +17,49 @@
 import type React from "react";
 import "./day-panel.css";
 
+/**
+ * The panel itself — the box, with nothing said about what is in it.
+ *
+ * §2.2 registers one panel ("Day panel · `.panel` · 290 sticky beside the
+ * grid, in flow below") and the approved set spends that one class on two
+ * screens: S15's day detail beside the calendar grid, and S16's Decide rail
+ * beside the draft. So there is one box here rather than a second one under
+ * another name in `idiom.css` — the surface, its width and its stickiness
+ * are stated once, and the two screens cannot drift apart on any of them.
+ *
+ * What differs between them is the *slots*, which is why `DayPanel` below
+ * is a shape over this rather than the only way in: S15's three required
+ * nodes are the calendar's contract and say nothing about a rail of
+ * controls and a list of check results.
+ */
+export function Panel(p: {
+  children: React.ReactNode;
+  testId: string;
+}): React.JSX.Element {
+  return (
+    <aside className="rk-daypanel" data-testid={p.testId}>
+      <div className="rk-daypanel-inner">{p.children}</div>
+    </aside>
+  );
+}
+
+/**
+ * The placement: one column below the wide band, two beside each other at
+ * and above it, the panel sticky only there. `DayPanelLayout` is this under
+ * the calendar's own names.
+ */
+export function PanelLayout(p: {
+  main: React.ReactNode;
+  panel: React.ReactNode;
+}): React.JSX.Element {
+  return (
+    <div className="rk-day-layout">
+      <div className="rk-day-layout-grid">{p.main}</div>
+      {p.panel}
+    </div>
+  );
+}
+
 export function DayPanel(p: {
   /** The day's own head — required. Typically a stage badge and the date. */
   heading: React.ReactNode;
@@ -41,16 +84,14 @@ export function DayPanel(p: {
   provenance?: React.ReactNode;
 }): React.JSX.Element {
   return (
-    <aside className="rk-daypanel" data-testid="day-panel">
-      <div className="rk-daypanel-inner">
-        <div className="rk-daypanel-head">{p.heading}</div>
-        <div className="rk-daypanel-account">{p.account}</div>
-        {p.actions === undefined ? null : (
-          <div className="rk-daypanel-actions">{p.actions}</div>
-        )}
-        {p.provenance === undefined ? null : p.provenance}
-      </div>
-    </aside>
+    <Panel testId="day-panel">
+      <div className="rk-daypanel-head">{p.heading}</div>
+      <div className="rk-daypanel-account">{p.account}</div>
+      {p.actions === undefined ? null : (
+        <div className="rk-daypanel-actions">{p.actions}</div>
+      )}
+      {p.provenance === undefined ? null : p.provenance}
+    </Panel>
   );
 }
 
@@ -66,10 +107,5 @@ export function DayPanelLayout(p: {
   grid: React.ReactNode;
   panel: React.ReactNode;
 }): React.JSX.Element {
-  return (
-    <div className="rk-day-layout">
-      <div className="rk-day-layout-grid">{p.grid}</div>
-      {p.panel}
-    </div>
-  );
+  return <PanelLayout main={p.grid} panel={p.panel} />;
 }

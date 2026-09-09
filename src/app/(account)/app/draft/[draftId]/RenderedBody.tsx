@@ -1,4 +1,5 @@
-// BUILD §4.6 — "full page render", and the grounded-fact highlight inside it.
+// BUILD §4.6, UI-SPEC S16 — "full page render", the grounded-fact highlight
+// inside it, and the source line under the paragraph that carries it.
 //
 // One component, two callers: the read view's body and the editor's live
 // preview pane. Both hand it the Markdown as it now stands and the passage
@@ -17,9 +18,24 @@
 // construction, not by review: `markdown.ts` escapes every text node and
 // every attribute value it emits and never passes source HTML through, so
 // the string handed here cannot carry markup a body contained.
+//
+// **The source line is placed, not floated** (issue #355). S16 draws
+// REQ-045 criterion 2's "URL it was read from and the date it was read"
+// directly beneath the paragraph holding the marked fact, because that is
+// the paragraph it is evidence for; a line at the foot of the screen is
+// evidence for the page in general, which is not what the criterion says.
+// The split is made with the renderer's own public calls — parse once, ask
+// `markPassage` block by block which block took the mark — so this file
+// still owns no parsing and `markdown.ts` gains no argument for a caller
+// that wanted a slice.
 import type React from "react";
-import { markPassage, parseMarkdown, toHtml } from "@/lib/publish/render/markdown";
-import { BODY_CLASSES } from "./present";
+import { markPassage, parseMarkdown, toHtml, type Block } from "@/lib/publish/render/markdown";
+import { DRAFT_BODY_CLASSES, demoteHeadings } from "./present";
+
+/** The index of the first block the passage was marked in, or `-1`. */
+function markedBlockIndex(blocks: readonly Block[], fact: string): number {
+  return blocks.findIndex((block) => markPassage([block], fact).marked);
+}
 
 export function RenderedBody(p: {
   bodyMd: string;
@@ -27,6 +43,12 @@ export function RenderedBody(p: {
    *  surviving grounding — the body then renders whole and unmarked, which
    *  is REQ-045 criterion 8's "no longer marked". */
   markFact: string | null;
+  /** Criterion 2's source line, placed under the marked paragraph. It is
+   *  the caller's node because the address and the date are values the
+   *  screen already holds, and it is drawn **only** where the mark landed:
+   *  a source line with no marked fact above it is a claim about a
+   *  paragraph that no longer stands on it. */
+  source?: React.ReactNode;
   /** Spelled as the attribute rather than as a `testId` prop: the
    *  copy sweep treats every JSX attribute as presumed voice and clears
    *  `data-testid` by name (ADR-010 point 1's "test ids"), so passing the
@@ -35,12 +57,30 @@ export function RenderedBody(p: {
   "data-testid": string;
 }): React.JSX.Element {
   const blocks = parseMarkdown(p.bodyMd);
-  const shown = p.markFact === null ? blocks : markPassage(blocks, p.markFact).blocks;
+  // The mark is placed against the parsed body and the levels are shifted
+  // after it: `markPassage` reads a heading's children, not its level, so
+  // the two are independent — but doing it in this order keeps the index
+  // below computed from the same blocks the mark was placed in.
+  const marked = demoteHeadings(
+    p.markFact === null ? blocks : markPassage(blocks, p.markFact).blocks
+  );
+  const at = p.markFact === null || p.source === undefined ? -1 : markedBlockIndex(blocks, p.markFact);
+
+  if (at === -1) {
+    return (
+      <div
+        className="rk-doc rk-doc-levelled"
+        data-testid={p["data-testid"]}
+        dangerouslySetInnerHTML={{ __html: toHtml(marked, DRAFT_BODY_CLASSES) }}
+      />
+    );
+  }
+
   return (
-    <div
-      className="min-w-0"
-      data-testid={p["data-testid"]}
-      dangerouslySetInnerHTML={{ __html: toHtml(shown, BODY_CLASSES) }}
-    />
+    <div className="rk-doc rk-doc-levelled" data-testid={p["data-testid"]}>
+      <div dangerouslySetInnerHTML={{ __html: toHtml(marked.slice(0, at + 1), DRAFT_BODY_CLASSES) }} />
+      {p.source}
+      <div dangerouslySetInnerHTML={{ __html: toHtml(marked.slice(at + 1), DRAFT_BODY_CLASSES) }} />
+    </div>
   );
 }

@@ -1557,6 +1557,7 @@
   color: var(--bad);
 }
 
+
 /* ── 15 · The hosted page (UI-SPEC S19, issue #375) ───────────────────── */
 
 /* §9: a published page renders "through **one** clean typographic template
@@ -1666,4 +1667,153 @@
   max-width: var(--w-wide);
   margin-inline: auto;
   padding: var(--s-5) var(--s-4);
+}
+
+
+/* ── 16 · The draft's document, levelled (issue #355) ────────────────── */
+
+/* S16 and S17 render the customer's page itself, and the body is `.rk-doc`
+ * — the document idiom #370 landed for S5, carried across from the approved
+ * set value for value. Two things are this screen's own.
+ *
+ * **The headings take the ladder, because the level does the work.** The
+ * set draws a body's `##` one rung under the screen's title, and `.rk-doc`
+ * reaches that by restyling `h2` to `--h3`. That is right for a legal page,
+ * whose document *is* the screen; it is wrong here, where the page has an
+ * `<h1>` of its own above the body and the layout suite's heading-scale
+ * sweep requires every `h1..h4` the product renders to compute its own step
+ * of the ladder. `RenderedBody` demotes the body's headings by one instead
+ * (`present.ts` says why), so a `##` arrives as an `<h3>` and *earns* the
+ * 20px the set draws. This modifier is what lets it: it restores the three
+ * ladder steps `.rk-doc` overrides, in the same tokens, and mints nothing.
+ * `h1` is not among them — the demotion floor is 2, so the body cannot
+ * render one — and `h5`/`h6` are not either, because `type.css` already
+ * gives them the body size and the ladder names no rung below `--h4`.
+ *
+ * The selector carries **both** classes so it outweighs `.rk-doc h2` by
+ * specificity rather than by source order: these rules sit after §10's in
+ * this file today, and a rule that only wins because of where it happens
+ * to be written is one reordering away from silently losing. */
+.rk-doc.rk-doc-levelled h2 {
+  font-size: var(--h2);
+}
+
+.rk-doc.rk-doc-levelled h3 {
+  font-size: var(--h3);
+}
+
+.rk-doc.rk-doc-levelled h4 {
+  font-size: var(--h4);
+}
+
+/* §8's grounded passage, marked inside the text (REQ-045 c2). The set draws
+ * it on `--ok-bg` with an `--ok-line` edge, and ruling 10a's own reading of
+ * §2.5 is what admits the tone: a grounded fact is a **state** of the page
+ * — the one sentence a reader can open a source for — and the source line
+ * under the paragraph says so in words, so the colour never carries the
+ * meaning alone.
+ *
+ * A border rather than the set's ring, because the ring is a `box-shadow`
+ * geometry literal and the token gate admits exactly one of those
+ * (`RULED_FOCUS_RING`). The hairline inside a `border` shorthand is the
+ * form every edge in this product is written in.
+ *
+ * Scoped to the levelled document: S19 marks the same passage on the
+ * customer's own page and dresses it from `BODY_CLASSES`, which this
+ * screen's change leaves exactly as it was. */
+.rk-doc.rk-doc-levelled mark {
+  background: var(--ok-bg);
+  border: 1px solid var(--ok-line);
+  border-radius: var(--s-1);
+  padding: 0 var(--s-1);
+  color: var(--ink);
+}
+
+/* The source line the marked fact stands on: tucked under the paragraph it
+ * belongs to rather than floated beside it (S16). The face, the size and
+ * the ink are `.rk-prov`'s — §2.5's one provenance idiom, spent here rather
+ * than restated — and all this adds is the room under it, so the next
+ * paragraph does not read as part of the source. */
+.rk-doc-source {
+  margin: 0 0 var(--s-4);
+  min-width: 0;
+}
+
+
+/* ── 17 · The draft's three small parts (issue #355) ─────────────────── */
+
+/* REQ-093 c2's label, as S16 wears it: a mono chip on the sunk ground at
+ * the eyebrow rung, at the far end of the card's own first row. It is the
+ * `.srcchip` idiom one rung quieter — a chip that names *who wrote this*
+ * rather than where a reading came from — and it spends the same three
+ * tokens, so no ground and no ink is minted for it. */
+.rk-gen {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: var(--t-eyebrow);
+  color: var(--ink-3);
+  background: var(--sunk);
+  border-radius: var(--r-pill);
+  padding: var(--s-1) var(--s-2);
+}
+
+/* §4.6's "what happens if you do nothing" box, on the accent tint the set
+ * gives it — a titled note, which is what `.rk-note` is named for rather
+ * than for the one screen that spends it (and `-info` is a suffix
+ * `theme-slots.test.ts` sweeps for: it is daisyUI's undeclared fifth alert
+ * family, and a class ending in it reads as one). Not `Alert`: daisyUI's alert is a one-line row with an icon
+ * slot and a tone family, and this is a titled block of three lines whose
+ * tint is not a state — nothing is wrong, and `--accent-bg` is the product
+ * speaking rather than a warning. */
+.rk-note {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  background: var(--accent-bg);
+  border-radius: var(--r-box);
+  padding: var(--s-4);
+  font-size: var(--t-sm);
+  color: var(--ink-2);
+  min-width: 0;
+}
+
+.rk-note-title {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+/* S16's Checks rows: a passed rule, said in words, with the tone beside it.
+ * The dot is `--ok` and is decoration in the strict sense §2.5 allows —
+ * every row states its outcome in its own sentence, so removing the colour
+ * removes nothing a reader needed. A row is only ever drawn for a pass
+ * (`checks.ts`), which is why there is one dot and not a family of them. */
+.rk-check {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-2);
+  font-size: var(--t-sm);
+  color: var(--ink-2);
+  min-width: 0;
+}
+
+.rk-check-dot {
+  flex: 0 0 auto;
+  width: var(--s-2);
+  height: var(--s-2);
+  margin-top: var(--s-1);
+  border-radius: var(--r-pill);
+  background: var(--ok);
+}
+
+/* S17's page title. The read arm draws the title as the screen's head at
+ * `--h1`; the edit arm draws it one rung down at `--h3`, because on that
+ * screen the subject is the two panes and the title is what says which page
+ * they belong to. It stays an `<h1>` — the document's heading order is not
+ * a styling choice — and only the rung moves, to a token the ladder already
+ * names. */
+.rk-edit-title {
+  font-size: var(--h3);
+  margin: 0;
+  min-width: 0;
 }

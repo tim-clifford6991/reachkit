@@ -45,3 +45,25 @@ export function formatDateTime(at: Date, timeZone: string): string {
     timeZoneName: "short",
   }).format(at);
 }
+
+/** A clock time in the site's zone, with no date beside it — S17's save
+ *  line ("saved 19:06"), where the date is the one the customer is looking
+ *  at and repeating it would push the line past the card's own head. The
+ *  zone is still the site's, so this and `formatDateTime` cannot disagree
+ *  about which clock a screen is reading. */
+export function formatTime(at: Date, timeZone: string): string {
+  return new Intl.DateTimeFormat(SHELL_LOCALE, {
+    timeZone,
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(at);
+}
+
+/** A count, grouped the way the one locale above groups it — S16's
+ *  "~1,240 words". A count is a value (§2.3) and renders in the mono face
+ *  where it stands alone; inside a sentence it is the sentence's, and the
+ *  grouping is still this file's single decision rather than each caller's
+ *  own `toLocaleString`. */
+export function formatCount(value: number): string {
+  return new Intl.NumberFormat(SHELL_LOCALE).format(value);
+}

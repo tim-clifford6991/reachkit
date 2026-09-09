@@ -19,6 +19,7 @@
 // that shortens a body, so none can be introduced by accident.
 import type { CopyKey } from "@/lib/presentation/copy";
 import type { PageRecord } from "@/lib/publish/record";
+import type { RailCheck } from "./checks";
 import type { PublishingMode } from "../../_shell/model";
 import type { State } from "../../calendar/stages";
 import { factPresentIn } from "./grounded";
@@ -63,6 +64,12 @@ export interface DoNothing {
 export interface DraftView {
   draftId: string;
   title: string;
+  /** UI-SPEC S16's provenance line: the day and time the page was written.
+   *  It is the `drafts` row's own `created_at` — the moment §8 wrote the
+   *  page — and never the last save, which is a different fact and is
+   *  stated in its own place (S17's save line). `null` only where the facts
+   *  carry none. */
+  writtenAt: Date | null;
   /** Every word that would publish. Never truncated, never summarised. */
   bodyMd: string;
   /** The text as generated, before any edit — what makes the authorship
@@ -88,6 +95,11 @@ export interface DraftView {
    * draft — a shape, not a placeholder, and the block is simply absent.
    */
   record: PageRecord | null;
+  /** S16's Checks list: the §8 rules generation recorded a pass for. Empty
+   *  where it recorded none — the rail then draws no row for them, rather
+   *  than deducing a pass from the fact that the draft reached review
+   *  (`checks.ts` states the argument). */
+  recordedChecks: readonly RailCheck[];
   /** The site-local zone every date this view states is expressed in. */
   timeZone: string;
 }
@@ -97,6 +109,8 @@ export interface DraftView {
 export interface DraftFacts {
   draftId: string;
   title: string;
+  /** The `drafts` row's `created_at` — when the page was written. */
+  writtenAt: Date | null;
   bodyMd: string;
   bodyMdGenerated: string;
   state: State;
@@ -116,6 +130,9 @@ export interface DraftFacts {
   lastSavedAt: Date | null;
   /** The page's own record, or `null` where none could be read (#217). */
   record: PageRecord | null;
+  /** §8's battery, as generation recorded it. Empty is the honest answer
+   *  for a draft it recorded nothing for. */
+  recordedChecks: readonly RailCheck[];
   timeZone: string;
 }
 
@@ -137,10 +154,27 @@ export function doNothingOf(facts: DraftFacts): DoNothing {
   };
 }
 
+/**
+ * S16's "~{n} words", counted the way a reader would count them: runs of
+ * non-space, over the Markdown as it stands.
+ *
+ * It counts the **source**, marks and all, because the source is what the
+ * customer edits and what the count has to move with as they type. The set
+ * writes the figure with a tilde in front of it for exactly this reason —
+ * it is the page's length, not a promise about a destination's rendering
+ * (REQ-045's own non-goal), and a count that pretended to be exact would be
+ * claiming to know what a theme will do with a heading.
+ */
+export function wordCount(bodyMd: string): number {
+  const trimmed = bodyMd.trim();
+  return trimmed === "" ? 0 : trimmed.split(/\s+/).length;
+}
+
 export function assembleDraft(facts: DraftFacts): DraftView {
   return {
     draftId: facts.draftId,
     title: facts.title,
+    writtenAt: facts.writtenAt,
     bodyMd: facts.bodyMd,
     bodyMdGenerated: facts.bodyMdGenerated,
     state: facts.state,
@@ -159,6 +193,7 @@ export function assembleDraft(facts: DraftFacts): DraftView {
     doNothing: doNothingOf(facts),
     lastSavedAt: facts.lastSavedAt,
     record: facts.record,
+    recordedChecks: facts.recordedChecks,
     timeZone: facts.timeZone,
   };
 }

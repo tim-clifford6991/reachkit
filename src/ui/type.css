@@ -127,6 +127,20 @@ body {
   line-height: 1.55;
 }
 
+/* A multi-line control keeps the mono face and its own wrapping (issue
+ * #355). `.num` is `white-space: nowrap` — a *value* has no boundaries —
+ * and the Markdown of a whole page is not one value: S17 draws the editor
+ * as `textarea.input` in the mono face, and a textarea that cannot fold
+ * scrolls its own text sideways out of the box the customer is typing in.
+ * `pre-wrap` and not `normal`: the author's own line breaks are part of
+ * Markdown's meaning, exactly as they are inside the `pre` below.
+ *
+ * Scoped to `textarea` and nothing else, on the same footing as that rule:
+ * every other `.num` in the product is a value, and this cannot reach one. */
+textarea.num {
+  white-space: pre-wrap;
+}
+
 /* A code block keeps its own lines (issue #352). `.num` is
  * `white-space: nowrap` — a *value* has no boundaries — and a block of
  * `robots.txt` directives is not one value: REQ-009 c2 requires those

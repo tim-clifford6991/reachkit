@@ -1,16 +1,18 @@
-// BUILD §4.6 — the draft view's one client component.
+// BUILD §4.6, UI-SPEC S16 and S17 — the draft view's one client component.
 //
 // "(full page render, grounded-fact highlight with its source line,
 // claim-check badge, Approve/Edit/Veto, and the 'what happens if you do
 // nothing' info box). Back link returns to the calendar."
 //
-// One component owns the three things that change on this screen — which
-// body is on display (read or edit), what the buffer holds, and whether it
-// has reached the store — because all three answer to the same edit. Split
-// across components they would need a shared store; here they are three
-// pieces of one state and a keystroke updates them together.
+// One component owns the four things that change on this screen — which
+// arm is on display (S16's read or S17's edit), what the buffer holds,
+// whether it has reached the store, and what the store last said — because
+// all four answer to the same edit. Split across components they would need
+// a shared store; here they are pieces of one state and a keystroke updates
+// them together. The two arms' *markup* is below; the rail is
+// `DecidePanel`, the two panes are `Editor`, and neither holds state.
 //
-// Four rules this component keeps, each of them a criterion rather than a
+// Five rules this component keeps, each of them a criterion rather than a
 // preference:
 //
 //  1. **The body is never truncated** (c1). `RenderedBody` places the whole
@@ -18,7 +20,9 @@
 //  2. **The grounding follows the text** (c8). `present` is recomputed
 //     against the buffer on every render, so the highlight survives an edit
 //     that spared the fact and is gone the moment the fact is not there.
-//     The fact itself is never rewritten to fit.
+//     The fact itself is never rewritten to fit. The Checks rail reads the
+//     same value, so a marked fact and a passed grounding row cannot
+//     disagree.
 //  3. **The badge drops the moment the text differs** (c9, §4.6's "drops
 //     the claim-check badge until the check re-runs on save"). The stored
 //     outcome is shown only while the buffer is byte-for-byte the text the
@@ -28,33 +32,42 @@
 //     stale check result attached to text the customer has since altered",
 //     and text altered but not yet saved is exactly that.
 //  4. **A save that does not land loses nothing** (c7). The buffer is this
-//     component's state and no code path here clears it; a refusal leaves
-//     the unsaved indicator standing and the next pause tries again.
+//     component's state and no code path here clears it except the
+//     customer's own "Discard changes", which returns it to the text the
+//     store last confirmed and never to something the store never saw.
 //     Today every save is refused — `save.ts` is the declared seam and its
 //     store is not built — so this screen shows the customer precisely
 //     what a real outage would show them, and tells them nothing false.
+//  5. **The save line states what happened, not what is intended.**
+//     "saving…" while a call is in flight, "saved {time}" only after the
+//     store answered and only while the buffer is that text, and the
+//     could-not-save sentence after a refusal. There is no fourth arm and
+//     no optimistic one.
 "use client";
 
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AUTOSAVE_DEBOUNCE_MS } from "@/lib/config/constants";
 import { copy } from "@/lib/presentation/copy";
-import { Alert } from "@/ui/components/Alert";
 import { Badge } from "@/ui/components/Badge";
 import { Btn } from "@/ui/components/Btn";
-import { formatDate, formatDateTime } from "../../_shell/format";
+import { PanelLayout } from "@/ui/components/custom";
+import { CardHead, IdiomCard } from "@/ui/idiom";
+import { formatCount, formatDate, formatDateTime, formatTime } from "../../_shell/format";
 import { writtenLine } from "../../_shell/written";
 import { publishing } from "../../calendar/publishing";
+import { STAGE_FILTER_COPY_KEY, STAGE_OF, STAGE_TONE } from "../../calendar/stages";
 import { CLAIM_COPY_KEY, CLAIM_TONE, claimAfterSave } from "./claim";
 import { CopyOut } from "./CopyOut";
-import { draftActionsFor, type DraftCommand } from "./actions";
+import { DecidePanel } from "./DecidePanel";
+import type { DraftCommand } from "./actions";
 import { draftStore } from "./save";
 import { Editor, type EditorPane } from "./Editor";
 import { PageRecordBlock } from "./PageRecordBlock";
 import { factPresentIn } from "./grounded";
 import { RenderedBody } from "./RenderedBody";
 import { useDebounced } from "./useDebounced";
-import type { DraftView } from "./model";
+import { wordCount, type DraftView } from "./model";
 
 /** The two writes this screen can ask for. Both are §9 edges and both go to
  *  the state machine through the seam; a refusal rejects with
@@ -82,6 +95,14 @@ export function DraftScreen(p: {
    *  only a successful save moves it — which is what makes the unsaved
    *  indicator honest. */
   const [savedBody, setSavedBody] = useState(view.bodyMd);
+  /** When the store last confirmed a save, and whether the last attempt was
+   *  refused. Both are set only from what the store answered — there is no
+   *  optimistic arm, and "in flight" is not stored at all: a buffer that
+   *  differs from the saved text with no refusal standing **is** a save on
+   *  its way, and deriving it is what keeps the line from claiming a call
+   *  that never went out. */
+  const [savedAt, setSavedAt] = useState<Date | null>(view.lastSavedAt);
+  const [refused, setRefused] = useState(false);
 
   const unsaved = bodyMd !== savedBody;
   const settled = useDebounced(bodyMd, AUTOSAVE_DEBOUNCE_MS);
@@ -93,9 +114,17 @@ export function DraftScreen(p: {
         .then((result) => {
           // Last write wins: what came back is the draft, and nothing is
           // merged into the buffer. A refusal moves nothing at all.
-          if (result.ok) setSavedBody(text);
+          if (result.ok) {
+            setSavedBody(text);
+            setSavedAt(result.savedAt);
+            setRefused(false);
+            return;
+          }
+          setRefused(true);
         })
-        .catch(() => undefined);
+        .catch(() => {
+          setRefused(true);
+        });
     },
     [view.draftId]
   );
@@ -133,12 +162,6 @@ export function DraftScreen(p: {
   const hasGrounding =
     view.grounded.fact !== "" || view.grounded.url !== "" || view.grounded.readAt !== null;
 
-  const doNothingLine =
-    view.doNothing.publishesAt === null
-      ? writtenLine(view.doNothing.key)
-      : writtenLine(view.doNothing.key, {
-          at: formatDateTime(view.doNothing.publishesAt, view.timeZone),
-        });
   const editedNote = view.authorship.edited
     ? writtenLine("draft.authorship.edited", {
         at: formatDate(view.authorship.firstEditedAt, view.timeZone),
@@ -147,187 +170,287 @@ export function DraftScreen(p: {
   const matchedLine =
     claim.state === "failed" ? writtenLine("draft.claim.matched", { entry: claim.matchedEntry }) : null;
 
-  return (
-    <div className="flex min-w-0 flex-col gap-4" data-testid="draft-view">
-      <nav>
-        <a href="/app/calendar" data-testid="draft-back">
-          {copy("draft.back")}
-        </a>
-      </nav>
+  /** §4.6's stage, spoken through the calendar's own projection so the two
+   *  surfaces cannot call one state by two names. `null` for a state that
+   *  occupies no date at all, which draws no chip rather than an unnamed
+   *  one. */
+  const stage = STAGE_OF[view.state];
 
-      <h1>{view.title}</h1>
+  /** The claim badge, in every one of its four states — including the empty
+   *  do-not-claim list, which states that there was nothing to check
+   *  against and is never a silent pass (c3). The state is on the element
+   *  as well as in the word, because two of the four words are the owner's
+   *  and are not written yet: a test that could only read the rendered text
+   *  could not tell two unwritten badges apart, and neither could a
+   *  screenshot. */
+  const claimBadge = (
+    <span data-testid={`draft-claim-${claim.state}`}>
+      <Badge tone={CLAIM_TONE[claim.state]}>{copy(CLAIM_COPY_KEY[claim.state])}</Badge>
+    </span>
+  );
 
-      {/* The claim-check badge, in every one of its four states — including
-          the empty do-not-claim list, which states that there was nothing
-          to check against and is never a silent pass (c3). */}
-      <div className="flex flex-wrap items-center gap-2" data-testid="draft-claim">
-        {/* The state is on the element as well as in the word, because the
-            four words are the owner's and are not written yet: a test that
-            could only read the rendered text could not tell four unwritten
-            badges apart, and neither could a screenshot. */}
-        <span data-testid={`draft-claim-${claim.state}`}>
-          <Badge tone={CLAIM_TONE[claim.state]}>{copy(CLAIM_COPY_KEY[claim.state])}</Badge>
-        </span>
-        {claim.state === "failed" ? (
-          // c11: the customer is told which entry held the draft. The
-          // entry is their own recorded text and renders as a value, so it
-          // is named whether or not the sentence beside it is written yet.
-          <span className="num" data-testid="draft-claim-entry">
-            {claim.matchedEntry}
+  const stageBadge =
+    stage === null ? null : (
+      <span data-testid={`draft-stage-${stage}`}>
+        <Badge tone={STAGE_TONE[stage]}>{copy(STAGE_FILTER_COPY_KEY[stage])}</Badge>
+      </span>
+    );
+
+  /** Criterion 2's source line: the address the fact was read from and the
+   *  date it was read. Both are values (§2.3), so they render in mono and
+   *  need no sentence to be readable — and **no part of it is drawn
+   *  without its fact** (issue #268): a draft generation recorded no
+   *  grounding for has no address to print and no day to state. */
+  const sourceLine =
+    view.grounded.url === "" && view.grounded.readAt === null ? null : (
+      <p className="rk-prov rk-doc-source flex flex-wrap gap-2" data-testid="draft-grounded">
+        {view.grounded.url === "" ? null : (
+          <a href={view.grounded.url} className="num" data-testid="draft-grounded-url">
+            {view.grounded.url}
+          </a>
+        )}
+        {view.grounded.readAt === null ? null : (
+          <span className="num" data-testid="draft-grounded-read-at">
+            {formatDate(view.grounded.readAt, view.timeZone)}
           </span>
-        ) : null}
-        {matchedLine === null ? null : <span>{matchedLine}</span>}
-      </div>
+        )}
+      </p>
+    );
 
-      {/* What became of this page (issue #217). Under the body and above
-          the actions: it is the page's own standing, so it reads before
-          anything the customer might do next — and it is absent, rather
-          than empty, for a draft whose record could not be read. */}
-      {view.record === null ? null : (
-        <PageRecordBlock record={view.record} timeZone={view.timeZone} />
-      )}
+  const body = (
+    <RenderedBody
+      bodyMd={bodyMd}
+      markFact={grounded ? view.grounded.fact : null}
+      source={sourceLine ?? undefined}
+      data-testid="draft-body"
+    />
+  );
 
-      {/* c4: approve, edit and veto, all without leaving the view. Which of
-          them is offered is projected from §9's transition table, so this
-          screen and the calendar's day panel cannot disagree for one state.
+  /** The fact, printed as prose, for the one case the marked passage cannot
+   *  carry it: an edit removed it from the body. A grounding the edit
+   *  removed is never invisible (c8), and the source line follows it here
+   *  rather than in the document, because there is no longer a paragraph in
+   *  the document it belongs under. */
+  const droppedGrounding =
+    hasGrounding && !grounded ? (
+      <section className="flex flex-col gap-1" data-testid="draft-grounded-dropped">
+        <p className="eyebrow rk-daypanel-eyebrow">{copy("draft.grounded.title")}</p>
+        <p className="min-w-0 break-words" data-testid="draft-grounded-fact">
+          {view.grounded.fact}
+        </p>
+        {sourceLine}
+      </section>
+    ) : null;
 
-          The three ranks are the idiom's, since issue #271: Approve is the
-          screen's one solid primary, Veto the outline secondary in warn,
-          Edit the quiet tertiary. Before this Approve and Veto were both
-          filled accent buttons — two primaries of equal weight for opposite
-          consequences, one of which destroys the draft, on a screen
-          tokens.md §9.1 gives one solid primary. Rank is read off the
-          action itself — its command, not its position in the row — so the
-          row cannot promote whatever happens to come first into the solid
-          rank. Today only `in_review` offers a control at all, and it
-          offers all three. */}
-      <div className="flex flex-wrap gap-2" data-testid="draft-actions">
-        {draftActionsFor(view.state).map((action) => (
-          <span key={action.key} data-testid={`draft-action-${action.key}`}>
-            {action.kind === "edit" ? (
-              <Btn
-                label={copy(action.key)}
-                variant="tertiary"
-                size="sm"
-                onClick={() => setEditing(true)}
-              />
-            ) : action.command === "veto" ? (
-              <Btn
-                label={copy(action.key)}
-                variant="secondary"
-                tone="warn"
-                size="sm"
-                onClick={() => run(action.command, view.draftId)}
-              />
-            ) : (
-              <Btn
-                label={copy(action.key)}
-                variant="primary"
-                size="sm"
-                onClick={() => run(action.command, view.draftId)}
-              />
-            )}
+  // ── S17, the edit arm ───────────────────────────────────────────────
+  if (editing) {
+    const stateBadge = refused ? (
+      <span data-testid="draft-edit-state-unsaved">
+        <Badge tone="bad">{copy("draft.edit.state.unsaved")}</Badge>
+      </span>
+    ) : unsaved ? (
+      <span data-testid="draft-edit-state-edited">
+        <Badge tone="neutral">{copy("draft.edit.state.edited")}</Badge>
+      </span>
+    ) : (
+      claimBadge
+    );
+
+    const saveLine = refused
+      ? copy("draft.unsaved")
+      : unsaved
+        ? copy("draft.edit.saving")
+        : savedAt === null
+          ? null
+          : copy("draft.edit.saved", { at: formatTime(savedAt, view.timeZone) });
+
+    return (
+      <div className="flex min-w-0 flex-col gap-4" data-testid="draft-view">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <nav data-testid="draft-edit-back">
+            <Btn
+              label={copy("draft.edit.back")}
+              variant="tertiary"
+              size="sm"
+              pill
+              onClick={() => setEditing(false)}
+            />
+          </nav>
+          <span className="flex flex-wrap items-center gap-2" data-testid="draft-claim">
+            {stageBadge}
+            {stateBadge}
           </span>
-        ))}
-      </div>
+        </div>
 
-      {/* §4.6's "what happens if you do nothing" info box. The time is a
-          value and renders whether or not the sentence around it has been
-          written; under copilot there is no time, because nothing happens. */}
-      <Alert
-        tone="neutral"
-        message={
-          <span className="flex flex-col gap-1" data-testid="draft-do-nothing">
-            <span className="font-bold">{copy("draft.do-nothing.title")}</span>
-            {view.doNothing.publishesAt === null ? null : (
-              <span className="num" data-testid="draft-do-nothing-at">
-                {formatDateTime(view.doNothing.publishesAt, view.timeZone)}
-              </span>
-            )}
-            {doNothingLine === null ? null : <span>{doNothingLine}</span>}
-          </span>
-        }
-      />
-
-      {/* c2: the source line — the address the fact was read from and the
-          date it was read. Both are values (§2.3), so they render in mono
-          and need no sentence to be readable. The fact itself is printed
-          here only when it is *not* marked in the body, so a grounding the
-          edit removed is never invisible.
-
-          **No part of it without its fact** (issue #268, #237's rule). A
-          draft generation recorded no grounding for has no address to
-          print and no day to state, and this section used to print an
-          empty link beside `Dec 31, 1969` — the date epoch zero formats
-          to, read by a customer as the day their page's source was read.
-          Each part is drawn from its own fact, and a heading with nothing
-          under it is not drawn at all. */}
-      {hasGrounding ? (
-        <section className="flex flex-col gap-1" data-testid="draft-grounded">
-          <p className="eyebrow">{copy("draft.grounded.title")}</p>
-          {grounded ? null : (
-            <p className="min-w-0 break-words" data-testid="draft-grounded-fact">
-              {view.grounded.fact}
-            </p>
-          )}
-          {view.grounded.url === "" && view.grounded.readAt === null ? null : (
-            <p className="rk-prov flex flex-wrap gap-2">
-              {view.grounded.url === "" ? null : (
-                <a href={view.grounded.url} className="num" data-testid="draft-grounded-url">
-                  {view.grounded.url}
-                </a>
-              )}
-              {view.grounded.readAt === null ? null : (
-                <span className="num" data-testid="draft-grounded-read-at">
-                  {formatDate(view.grounded.readAt, view.timeZone)}
+        <IdiomCard
+          pad="lg"
+          testId="draft-edit-card"
+          head={
+            <div className="rk-head">
+              <h1 className="rk-edit-title">{view.title}</h1>
+              {saveLine === null ? null : (
+                <span className="rk-prov" data-testid="draft-save-line">
+                  {saveLine}
                 </span>
               )}
-            </p>
-          )}
-        </section>
-      ) : null}
+            </div>
+          }
+        >
+          <hr className="rk-daypanel-rule" />
+          <Editor
+            bodyMd={bodyMd}
+            // A keystroke is a new attempt: the refusal standing against the
+            // *previous* text is no longer what the store said about this
+            // one, and leaving it up would keep "could not save" on screen
+            // over a save that is about to run.
+            onChange={(text) => {
+              setBodyMd(text);
+              setRefused(false);
+            }}
+            onFlush={() => {
+              // Read from this render's own state, not from the refs: a blur
+              // can follow a keystroke inside one tick, before the effect
+              // that updates them has run.
+              if (bodyMd !== savedBody) save(bodyMd);
+            }}
+            markFact={grounded ? view.grounded.fact : null}
+            pane={pane}
+            onPane={setPane}
+          />
+          <p className="explain" data-testid="draft-edit-footnote">
+            {copy("draft.edit.footnote")}
+          </p>
+        </IdiomCard>
 
-      {/* REQ-093 c2's label, and — where the customer has edited — the note
-          that keeps it from speaking for their words. */}
-      <p className="rk-prov" data-testid="draft-generated-label">
-        {p.generatedLabel}
-      </p>
-      {editedNote === null ? null : (
-        <p className="rk-prov" data-testid="draft-edited-note">
-          {editedNote}
-        </p>
-      )}
+        <div className="flex flex-wrap gap-2">
+          <span data-testid="draft-edit-done">
+            <Btn
+              label={copy("draft.edit.done")}
+              variant="primary"
+              size="sm"
+              pill
+              onClick={() => setEditing(false)}
+            />
+          </span>
+          <span data-testid="draft-edit-discard">
+            <Btn
+              label={copy("draft.edit.discard")}
+              variant="tertiary"
+              size="sm"
+              pill
+              // Back to the text the store last confirmed — never to
+              // something the store never saw, and never to a text the
+              // customer has not been shown.
+              onClick={() => setBodyMd(savedBody)}
+            />
+          </span>
+        </div>
+      </div>
+    );
+  }
 
-      {/* c7: the change is unsaved and the customer is told so, in the view,
-          while their words stay in the buffer. */}
-      {unsaved ? (
-        <p data-testid="draft-unsaved">{copy("draft.unsaved")}</p>
-      ) : null}
+  // ── S16, the read arm ───────────────────────────────────────────────
+  const written =
+    view.writtenAt === null
+      ? copy("draft.words", { words: formatCount(wordCount(bodyMd)) })
+      : copy("draft.written", {
+          at: formatDateTime(view.writtenAt, view.timeZone),
+          words: formatCount(wordCount(bodyMd)),
+        });
 
-      {editing ? (
-        <Editor
-          bodyMd={bodyMd}
-          onChange={setBodyMd}
-          onFlush={() => {
-            // Read from this render's own state, not from the refs: a blur
-            // can follow a keystroke inside one tick, before the effect
-            // that updates them has run.
-            if (bodyMd !== savedBody) save(bodyMd);
-          }}
-          markFact={grounded ? view.grounded.fact : null}
-          pane={pane}
-          onPane={setPane}
-        />
-      ) : (
-        <RenderedBody
-          bodyMd={bodyMd}
-          markFact={grounded ? view.grounded.fact : null}
-          data-testid="draft-body"
-        />
-      )}
+  return (
+    <div className="flex min-w-0 flex-col gap-4" data-testid="draft-view">
+      <nav data-testid="draft-back">
+        <Btn href="/app/calendar" label={copy("draft.back")} variant="tertiary" size="sm" pill />
+      </nav>
 
-      {/* §9: "always shown" — for a draft and for a published page alike. */}
-      <CopyOut bodyMd={bodyMd} />
+      <PanelLayout
+        main={
+          <div className="flex min-w-0 flex-col gap-5">
+            <IdiomCard
+              pad="lg"
+              testId="draft-card"
+              head={
+                <div className="rk-head">
+                  <span className="rk-head-l flex-wrap gap-2" data-testid="draft-claim">
+                    {stageBadge}
+                    {claimBadge}
+                    {claim.state === "failed" ? (
+                      // c11: the customer is told which entry held the
+                      // draft. The entry is their own recorded text and
+                      // renders as a value, so it is named whether or not
+                      // the sentence beside it is written yet.
+                      <span className="num" data-testid="draft-claim-entry">
+                        {claim.matchedEntry}
+                      </span>
+                    ) : null}
+                    {matchedLine === null ? null : <span>{matchedLine}</span>}
+                  </span>
+                  {/* REQ-093 c2's label, on the chip S16 draws for it. */}
+                  <span className="rk-gen" data-testid="draft-generated-label">
+                    {p.generatedLabel}
+                  </span>
+                </div>
+              }
+            >
+              <div className="flex min-w-0 flex-col gap-2">
+                <h1>{view.title}</h1>
+                <p className="rk-prov" data-testid="draft-written">
+                  {written}
+                </p>
+              </div>
+              <hr className="rk-daypanel-rule" />
+              {body}
+              {droppedGrounding}
+              {/* Where the customer has edited, the note that keeps the
+                  generated-content label from speaking for their words. */}
+              {editedNote === null ? null : (
+                <p className="rk-prov" data-testid="draft-edited-note">
+                  {editedNote}
+                </p>
+              )}
+              {/* c7: the change is unsaved and the customer is told so, in
+                  the view, while their words stay in the buffer. */}
+              {unsaved ? (
+                <p className="rk-prov" data-testid="draft-unsaved">
+                  {copy("draft.unsaved")}
+                </p>
+              ) : null}
+            </IdiomCard>
+
+            {/* What became of this page (issue #217) — the page's own
+                standing, under the page and outside the card the page is
+                in, and absent rather than empty for a draft whose record
+                could not be read. */}
+            {view.record === null ? null : (
+              <PageRecordBlock record={view.record} timeZone={view.timeZone} />
+            )}
+
+            {/* §9: "always shown" — for a draft and for a published page
+                alike (c12). */}
+            <IdiomCard
+              testId="draft-copy-card"
+              head={
+                <CardHead
+                  eyebrow={copy("draft.copy.title")}
+                  pill={<span className="rk-srcchip">{copy("draft.copy.note")}</span>}
+                />
+              }
+            >
+              <CopyOut bodyMd={bodyMd} />
+            </IdiomCard>
+          </div>
+        }
+        panel={
+          <DecidePanel
+            view={view}
+            grounded={grounded}
+            claim={claim}
+            onEdit={() => setEditing(true)}
+            onCommand={(command) => run(command, view.draftId)}
+          />
+        }
+      />
     </div>
   );
 }

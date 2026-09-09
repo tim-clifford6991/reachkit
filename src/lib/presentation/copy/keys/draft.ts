@@ -3,8 +3,16 @@
 // The draft view's sentences. Empty until 2026-09-06; issue #17 (BUILD
 // §4.6's draft view) fills it and touches no other partition.
 //
-// Twenty keys, in three standings — the same three the registry already
-// distinguishes, applied by one rule rather than by taste:
+// Twenty keys until issue #355, in three standings — the same three the
+// registry already distinguishes, applied by one rule rather than by taste.
+// #355 adds nineteen and corrects two, all of them ruled: the approved
+// screen set draws S16 and S17 in full and ruling 11a of 2026-09-08 makes
+// its unbracketed strings approved copy as written. Nothing in this
+// partition is bracketed in the set, so nothing #355 adds is owed —
+// the rail's two labels, the four check sentences, the written line's two
+// arms, and S17's nine. The two corrections are `draft.copy.markdown` and
+// `.html`, which said "Copy as Markdown"/"Copy as HTML" and now say the
+// two formats, under a card head that already says what the pair does.
 //
 //  - **Ruled (8).** Every one is a transcription of a word or a phrase
 //    `BUILD.md` §4.6 or §9 itself prints, on the same footing as the twenty
@@ -49,9 +57,18 @@ export const DRAFT_COPY = Object.freeze({
   "draft.action.edit": ["Edit", { slots: {}, fixedBy: "BUILD §4.6" }],
   "draft.action.veto": ["Veto", { slots: {}, fixedBy: "BUILD §4.6" }],
 
-  // §9's copy-out, "always shown".
-  "draft.copy.markdown": ["Copy as Markdown", { slots: {}, fixedBy: "BUILD §9" }],
-  "draft.copy.html": ["Copy as HTML", { slots: {}, fixedBy: "BUILD §9" }],
+  // §9's copy-out, "always shown" — the card the approved S16 draws it on,
+  // its two controls and the chip that says whose the words are. The two
+  // control words were "Copy as Markdown" / "Copy as HTML" until ruling 11a:
+  // the set writes them as the formats they produce, and the card head above
+  // them already says what the two buttons do.
+  "draft.copy.title": ["Copy it out", { slots: {}, fixedBy: "BUILD §9 · UI-SPEC S16 (11a)" }],
+  "draft.copy.note": [
+    "yours, for any destination",
+    { slots: {}, fixedBy: "REQ-045 c12 · UI-SPEC S16 (11a)" },
+  ],
+  "draft.copy.markdown": ["Markdown", { slots: {}, fixedBy: "BUILD §9 · UI-SPEC S16 (11a)" }],
+  "draft.copy.html": ["HTML", { slots: {}, fixedBy: "BUILD §9 · UI-SPEC S16 (11a)" }],
 
   // §4.6's info box, and its two arms.
   "draft.do-nothing.title": [
@@ -93,4 +110,77 @@ export const DRAFT_COPY = Object.freeze({
     { slots: {}, fixedBy: "REQ-045 c7 · UI-SPEC S17 (11a)" },
   ],
   "draft.not-found": ["TODO(copy)", { slots: {}, fixedBy: "REQ-045 c1" }],
+
+  // S16's provenance line, under the title: when the page was written and
+  // roughly how long it is. Two arms, because the first fact can be absent
+  // — a draft row carries its `created_at`, but a view assembled from facts
+  // that record none states the length alone rather than a stand-in date.
+  // The tilde is the set's own: a word count is a count of words, not of
+  // what a destination will render.
+  "draft.written": [
+    "draft written {at} · ~{words} words",
+    { slots: { at: "date", words: "text" }, fixedBy: "UI-SPEC S16 (11a)" },
+  ],
+  "draft.words": ["~{words} words", { slots: { words: "text" }, fixedBy: "UI-SPEC S16 (11a)" }],
+
+  // S16's right-hand rail: the two labels above its two blocks. The
+  // controls under "Decide" are `draft.action.*` above; the rows under
+  // "Checks" are the four below.
+  "draft.decide.title": ["Decide", { slots: {}, fixedBy: "REQ-045 c4 · UI-SPEC S16 (11a)" }],
+  "draft.checks.title": ["Checks", { slots: {}, fixedBy: "UI-SPEC S16 (11a)" }],
+
+  // The four §8 hard rules S16 names, each as the sentence the set writes
+  // for a rule that passed. A rule whose outcome this product has not
+  // recorded draws no row at all (`checks.ts`), so none of these ever
+  // stands for a check that did not run.
+  "draft.checks.grounded": [
+    "grounded — {facts} fact, {sources} source",
+    { slots: { facts: "text", sources: "text" }, fixedBy: "REQ-045 c2 · UI-SPEC S16 (11a)" },
+  ],
+  "draft.checks.do-not-claim": [
+    "no claim from your do-not-claim list",
+    { slots: {}, fixedBy: "REQ-045 c3 · UI-SPEC S16 (11a)" },
+  ],
+  "draft.checks.near-duplicate": [
+    "near-duplicate gate passed",
+    { slots: {}, fixedBy: "BUILD §8 · UI-SPEC S16 (11a)" },
+  ],
+  "draft.checks.no-invented-author": [
+    "no invented author",
+    { slots: {}, fixedBy: "BUILD §8 · UI-SPEC S16 (11a)" },
+  ],
+
+  // S17, the edit arm. The back link, the two state badges the read view's
+  // claim badge cannot say (`draft.claim.outstanding` is the third), the
+  // two save lines that are not `draft.unsaved`, the footnote under the two
+  // panes, and the two controls that leave the editor.
+  "draft.edit.back": [
+    "← Back to the draft",
+    { slots: {}, fixedBy: "REQ-045 c5 · UI-SPEC S17 (11a)" },
+  ],
+  "draft.edit.state.edited": [
+    "edited · re-check on save",
+    { slots: {}, fixedBy: "REQ-045 c9 · UI-SPEC S17 (11a)" },
+  ],
+  "draft.edit.state.unsaved": [
+    "unsaved",
+    { slots: {}, fixedBy: "REQ-045 c7 · UI-SPEC S17 (11a)" },
+  ],
+  "draft.edit.saving": ["saving…", { slots: {}, fixedBy: "REQ-045 c6 · UI-SPEC S17 (11a)" }],
+  "draft.edit.saved": [
+    "saved {at}",
+    { slots: { at: "date" }, fixedBy: "REQ-045 c6 · UI-SPEC S17 (11a)" },
+  ],
+  "draft.edit.footnote": [
+    // One literal, not a concatenation: `registry.test.ts` reads every value
+    // back out of this source verbatim, and `"a" + "b"` is not a string it
+    // can find there.
+    "Saves itself as you type. The grounded fact stays marked while it survives your edit; the claim check re-runs on every save and the page cannot publish until it passes.",
+    { slots: {}, fixedBy: "REQ-045 c6, c8, c9 · UI-SPEC S17 (11a)" },
+  ],
+  "draft.edit.done": ["Done editing", { slots: {}, fixedBy: "REQ-045 c5 · UI-SPEC S17 (11a)" }],
+  "draft.edit.discard": [
+    "Discard changes",
+    { slots: {}, fixedBy: "REQ-045 c5 · UI-SPEC S17 (11a)" },
+  ],
 }) satisfies CopyPartition;
