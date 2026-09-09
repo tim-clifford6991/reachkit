@@ -76,6 +76,59 @@ export const CHROME_COPY = Object.freeze({
     "No account before payment. Your site is asked for after — or confirmed, if you came from a report.",
     { slots: {}, fixedBy: "UI-SPEC S4 · REQ-020 c1" },
   ],
+  /* ── The two pages every route falls back to (UI-SPEC S8) ────────────
+     Not found and error. They are the *shell's* own pages rather than any
+     screen's — no route serves them, both route groups mount them, and the
+     public pair renders inside this partition's header and footer — which
+     is why their sentences live here beside the chrome's and not in a
+     fifteenth partition of their own.
+
+     The 404's four strings are the approved set's, unbracketed, so 11a
+     makes them approved copy as written. The error page's are not: S8 says
+     only "the error page is the same shape with one written line" and
+     draws none of it, so its heading and its line are the owner's and
+     carry the marker. Its eyebrow is the one string issue #372's own
+     Done-when fixes ("Something went wrong"), recorded here under
+     ship-then-steer with the issue named. */
+  "chrome.notfound.eyebrow": ["404", { slots: {}, fixedBy: "UI-SPEC S8 (11a)" }],
+  "chrome.notfound.heading": [
+    "There is no page at this address.",
+    { slots: {}, fixedBy: "UI-SPEC S8 (11a)" },
+  ],
+  /** The address is a slot and not part of the sentence: the set draws it
+   *  in mono inside the line (§2 — "numerals, dates, URLs … JetBrains
+   *  Mono"), and a face is not something a string can carry. */
+  "chrome.notfound.line": [
+    "Reports live at {address}.",
+    { slots: { address: "text" }, fixedBy: "UI-SPEC S8 (11a)" },
+  ],
+  /** The shape of a report address, as the set writes it. A specimen, not
+   *  a link: it names the form, and the field below it is how a reader
+   *  spends it. */
+  "chrome.notfound.address": [
+    "reachkit.app/scan/yourdomain.com",
+    { slots: {}, fixedBy: "UI-SPEC S8 (11a)" },
+  ],
+  "chrome.notfound.cta": ["Scan it", { slots: {}, fixedBy: "UI-SPEC S8 (11a)" }],
+  /** The same 404 inside the app, where the set's line does not belong: a
+   *  customer who is signed in is not being sent to a report address they
+   *  already have. S8 draws no account arm, so the line is the owner's
+   *  (12a — built in the set's idiom, written by the owner). */
+  "chrome.notfound.line.app": ["TODO(copy)", { slots: {}, fixedBy: "UI-SPEC S8 (12a)" }],
+  "chrome.error.eyebrow": [
+    "Something went wrong",
+    { slots: {}, fixedBy: "UI-SPEC S8 · issue 372" },
+  ],
+  "chrome.error.heading": ["TODO(copy)", { slots: {}, fixedBy: "UI-SPEC S8 (12a)" }],
+  "chrome.error.line": ["TODO(copy)", { slots: {}, fixedBy: "UI-SPEC S8 (12a)" }],
+
+  /* ── The two ways back ────────────────────────────────────────────────
+     One label each, and each has exactly one home even though two surfaces
+     spend it: `chrome.back-to-reachkit` is S7's quiet control and the one
+     way off `global-error`, which renders outside every group and so has
+     no chrome to offer a reader instead. */
+  "chrome.back-to-reachkit": ["Back to ReachKit", { slots: {}, fixedBy: "UI-SPEC S7 (11a)" }],
+  "chrome.back-to-overview": ["Back to Overview", { slots: {}, fixedBy: "UI-SPEC S8 · issue 372" }],
 
   /* ── The three legal pages ───────────────────────────────────────────
      One title and one body each, and the body is the whole page. These

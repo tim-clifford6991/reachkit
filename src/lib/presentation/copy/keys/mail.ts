@@ -13,8 +13,31 @@
 import type { CopyPartition } from "../registry.ts";
 
 export const MAIL_COPY = Object.freeze({
-  "optout.confirmed": ["You’re unsubscribed. ReachKit won’t email you again — about this site or any other.", { slots: {}, fixedBy: "REQ-011 c3" }],
+  // 2026-09-08, UI-SPEC S7 (ruling 11a). The approved set draws this page
+  // as one card — a mail chip over "Opted out", the address the link
+  // belonged to inside the line, and a quiet way back — and 11a makes its
+  // unbracketed strings approved copy as written. So this line is the
+  // set's, not the 2026-09-04 ruling's: that ruling wrote a sentence for a
+  // page nobody had drawn yet, and the drawing is the later word on the
+  // same line. It carries the `{address}` slot because the set writes the
+  // address inside the sentence, in mono, and a sentence with a value in
+  // it has a slot rather than two half-sentences.
+  "optout.confirmed": ["No more follow-up mail will reach {address} — for this domain or any other. The page you asked for stays yours.", { slots: { address: "text" }, fixedBy: "REQ-011 c3 · UI-SPEC S7 (11a)" }],
   "optout.invalid": ["That unsubscribe link isn’t valid any more. Reply to any ReachKit email with \"stop\" and we’ll stop by hand.", { slots: {}, fixedBy: "REQ-011 c3" }],
+
+  // The card's own head (UI-SPEC S7, 11a). The set draws one eyebrow over
+  // the mail chip and it states what happened: "Opted out".
+  "optout.head": ["Opted out", { slots: {}, fixedBy: "REQ-010 c11 · UI-SPEC S7 (11a)" }],
+  /** The same head on the two arms where nothing was opted out — an
+   *  invalid link, or a store this product could not reach.
+   *
+   *  **Owner-owed, and it has to be its own key.** The set draws only the
+   *  confirmation, so 11a writes no eyebrow for the other two arms, and
+   *  "Opted out" over "that link isn’t valid any more" would be the page
+   *  contradicting itself in its own head. The marker renders (the
+   *  standing screen rule), so the card keeps its shape and says out loud
+   *  which word is still the owner’s. */
+  "optout.head.unresolved": ["TODO(copy)", { slots: {}, fixedBy: "REQ-010 c11 · UI-SPEC S7 (12a)" }],
 
   // 2026-09-05, issue #30 (the mail seam, BUILD §12). Six keys the shell
   // and the whole-mail line need. Five are owner-owed and empty: every one

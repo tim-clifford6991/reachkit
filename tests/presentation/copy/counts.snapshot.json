@@ -37,6 +37,9 @@
       "chrome.footer.rights",
       "pricing.heading",
       "pricing.subline",
+      "chrome.notfound.line.app",
+      "chrome.error.heading",
+      "chrome.error.line",
       "legal.privacy.body",
       "legal.terms.body",
       "legal.imprint.body",
@@ -44,7 +47,7 @@
       "legal.terms.updated",
       "legal.imprint.updated"
     ],
-    "ruled": 12
+    "ruled": 20
   },
   "danger.ts": {
     "owed": [],
@@ -188,9 +191,10 @@
       "mail.shell.imprint"
     ],
     "awaiting": [
+      "optout.head.unresolved",
       "optout.unavailable"
     ],
-    "ruled": 44
+    "ruled": 45
   },
   "offer.ts": {
     "owed": [
