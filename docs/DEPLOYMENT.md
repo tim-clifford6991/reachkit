@@ -21,6 +21,17 @@ record and the rollback path.
 
 The interim project `reachkitv3` (`prj_Uy2SirnONaFoSxgCdOzcc0C295XE`) was deleted on 2026-09-08 (log).
 
+### Supabase security advisor — the standing dispositions
+
+The advisor is re-read after every schema change. What it reports on the `reachkit` project, and
+what each report means here:
+
+| Finding | Disposition |
+|---|---|
+| `function_search_path_mutable` — eight plpgsql functions | **Fixed** by `supabase/migrations/20260909130000_rls_functions_search_path.sql` (#384): each function pins `set search_path = ''` and names this schema's tables `public.<table>`. Re-applied to the project through the connector after the merge; the WARN count is then 0. A new function without the clause fails `tests/db/functions-search-path.test.ts` before it can reach the project |
+| `rls_enabled_no_policy` — `auth_links`, `domain_blocks`, `email_suppressions`, `fetches` in `public`, and two tables in `v2_archive` | **By design, and now said in place.** The four in `public` are `dbAdmin()`-only (BUILD §10 default-deny) and each carries a `comment on table` naming the rule, so the intent is where the advisor reads. The two in `v2_archive` are v2's frozen objects, kept as §3.6's rollback path; they are not v3's to change and go when the rollback path is retired |
+| `auth_leaked_password_protection` — HaveIBeenPwned check disabled | **Not applicable.** v3 has no passwords: sign-in is a one-time link and nothing else (REQ-098 — "no password field, no social sign-in"; `supabase/config.toml` sets `enable_password_signin = false`). There is no password for the check to read, so the setting stays off and this WARN is expected on every advisor run |
+
 ## 2. Bindings — where each lives and who sets it
 
 Sensitive bindings are write-only in Vercel (the API never returns them); the owner pastes them in the dashboard. Nothing below is ever logged or committed.
@@ -66,3 +77,4 @@ Executed by the master with the Vercel REST API (CLI token) and the Supabase con
 - 2026-09-08 (evening) — the production branch is **`main`** (`release` exists at 420bb48 and is not the production branch). Owner downgraded Vercel to **Hobby** and Supabase to **Free**. GitHub: `reachkitv3` renamed **`reachkit`** (repository id unchanged, old URLs redirect); the former `reachkit` renamed `reachkitv1` and archived; `reachkitv2` archived. The Vercel link follows the repository id, so deployments continue; the local checkout stays at `/root/projects/reachkitv3`.
 - 2026-09-09 — the Vercel CLI token on the agent box returns 403 on every endpoint and the CLI is no longer installed: env and deploy operations through the API wait for the owner to run `vercel login` there (or paste a fresh token). Until then deploy state is read from the GitHub `Vercel` commit status.
 - 2026-09-09 (morning) — owner reinstalled the CLI and logged in; `vercel whoami` refreshes the OAuth token in `~/.local/share/com.vercel.cli/auth.json` (a 403 with `invalidToken` means: run `vercel whoami` first, then retry). The Vercel MCP connector is attached to the master session (project and deployments readable; no env management). **v2 env leftovers still present** on `reachkit` (22 rows: `APP_URL`, `NEXT_PUBLIC_SITE_URL`, `REACHKIT_*`, `DATAFORSEO_BACKLINKS/LANGUAGE_CODE/LOCATION_CODE`, `POSTHOG_*`, `NEXT_PUBLIC_POSTHOG_*`, `PRODUCT_HUNT_TOKEN`, `TAVILY_API_KEY`, `VOYAGE_API_KEY`, `YOUTUBE_API_KEY`, `STRIPE_PRICE_GROWTH(_ANNUAL)`, `STRIPE_PRICE_SOLO(_ANNUAL)`, `STRIPE_PROMO_CODE_ID`): none is read by v3; the delete calls are blocked by the master session's classifier, so the owner runs `/root/ops/reachkit/bin/rm-v2-env.sh` or deletes them in the dashboard. Deleted rows are struck from §2 when that happens.
+- 2026-09-09 — **security advisor dispositions recorded** (§1): the eight `function_search_path_mutable` WARNs fixed in migration `20260909130000_rls_functions_search_path.sql` (#384, applied to the project after the merge); the four policy-less tables in `public` given a `comment on table` naming BUILD §10 default-deny; `auth_leaked_password_protection` recorded as not applicable — v3 has no passwords (REQ-098).
