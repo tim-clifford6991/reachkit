@@ -13,29 +13,45 @@
 // written line, never a stack trace or a vendor payload", which is why
 // both take the same `null` arm and the screen words one sentence.
 //
-// **What is honestly absent, and whose it is.** `drafts.meta` carries what
-// §8's generation recorded; the values below are read from it where
-// generation has written them and stand at their honest empty where it has
-// not — never at a fixture value:
+// **What is honestly absent, and whose it is.** The values below are read
+// where their writer has written them and stand at their honest empty
+// where it has not — never at a fixture value:
 //
+//   groundedFact      §8's recorded fact and its source — `grounded_fact`
+//   claim             the claim check's last verdict — `claim_check`
+//   recordedChecks    which §8 hard rules passed — `rule_failures`
 //   bodyMdGenerated   the body as generated, before the customer's edits
-//   claim             the claim check's last verdict (#43)
 //   firstEditedAt     the first save that changed the text (#17)
-//   recordedChecks    which §8 hard rules passed on this page (#43)
+//   lastSavedAt       the last save the customer made
 //
-// **The grounded fact is not among them, and that is issue #415.** It is
-// read from `drafts.grounded_fact`, the column §8 hard rule 1's trigger
-// freezes and the pipeline writes — through `readRecordedFact`, the one
-// reader the hosted page also calls. This file used to read a
-// `meta.grounded_fact` key of its own shape that nothing has ever written,
-// so every generated draft reached its customer with no highlight and no
-// source line while the fixture account's draft showed both.
+// **Every one of the recorded three is read from the column §8 writes, and
+// that is issues #415 and #424.** This file used to read `meta` keys of its
+// own spelling — `grounded_fact`, `claim`, `hard_rules_passed` — that no
+// code in `src/` has ever written, so every generated draft reached its
+// customer with no highlight, no claim outcome and an empty Checks list,
+// while the fixture account's hand-typed draft showed all three. The
+// readers are `@/lib/generate`'s own (`fact.ts`, `record.ts`): the writer
+// and the reader of one record are one module, so the two cannot be
+// spelled apart again.
+//
+// The three keys that remain in `meta` are the **save path's**, not
+// generation's: `body_md_generated`, `first_edited_at` and `last_saved_at`
+// are written by `PATCH /api/drafts/{id}`, which `save.ts` declares and no
+// code yet serves. Until it does they are absent — and absent is exactly
+// what an unedited draft should read as, which is why the generated body
+// falls back to the body as it stands and the screen states no edit and no
+// save. Whoever lands that route writes the keys this file reads.
 //
 // `writtenAt` is not among them: it is `drafts.created_at`, a column the
 // baseline declares `not null`, so the day the page was written is read
 // from the row rather than from what generation remembered to write down.
 import { dbAdmin } from "@/lib/db";
 import { readRecordedFact } from "@/lib/generate/fact";
+import {
+  checkedAgainstNothing,
+  readRecordedVerdict,
+  recordedRulesPassed,
+} from "@/lib/generate/record";
 import type { PublishingMode } from "../../_shell/model";
 import type { State } from "../../calendar/stages";
 import { pageRecordFor } from "@/lib/publish/record";
@@ -50,6 +66,8 @@ interface DraftRow {
   body_md: string | null;
   meta: Record<string, unknown> | null;
   grounded_fact: unknown;
+  claim_check: unknown;
+  rule_failures: unknown;
   veto_deadline: string | null;
   created_at: string;
 }
@@ -72,7 +90,8 @@ interface MinimalClient {
 /** The one select list. `drafts` carries no credential and this names no
  *  column of another account's. */
 const DRAFT_COLUMNS =
-  "id, site_id, state, title, body_md, meta, grounded_fact, veto_deadline, created_at";
+  "id, site_id, state, title, body_md, meta, grounded_fact, claim_check, rule_failures, " +
+  "veto_deadline, created_at";
 
 /** §9's ten states, as this screen reads them. A row carrying anything else
  *  is a row this screen cannot draw, and it takes the `null` arm rather
@@ -96,39 +115,44 @@ function stringAt(meta: Record<string, unknown> | null, key: string): string | n
 }
 
 /**
- * The claim check's last verdict, as §8 recorded it.
+ * The claim check's last verdict, as §8 recorded it in `drafts.claim_check`
+ * — the column the pipeline writes at generation and the re-check sweep
+ * rewrites whenever the customer changes their list. The badge therefore
+ * states the check the product last actually ran, not the one it ran the
+ * day the page was written.
  *
- * `outstanding` where the check has not run: a badge the screen leaves off,
- * never a pass it did not earn. `failed` carries the entry it matched,
- * because the arm is unrenderable without it — a do-not-claim failure names
- * what it matched or it says nothing useful — so a recorded failure with no
- * entry reads as outstanding rather than as a failure the screen cannot
- * word.
+ * `outstanding` where no verdict has been recorded and where one records
+ * that the check could not run: a badge the screen leaves without an
+ * outcome, never a pass it did not earn. `nothing_to_check` is a verdict
+ * reached against a list with nothing in it — criterion 3's fourth case,
+ * which `record.ts` reads out of the verdict's own hash so that an empty
+ * do-not-claim list is never stated as a silent pass. A `failed` verdict
+ * carries the entry it matched, because the arm is unrenderable without it.
  */
-function claimOf(meta: Record<string, unknown> | null): ClaimState {
-  const claim = meta?.claim;
-  if (typeof claim !== "object" || claim === null) return { state: "outstanding" };
-  const record = claim as Record<string, unknown>;
-  const at = typeof record.at === "string" ? new Date(record.at) : null;
-  if (record.state === "passed" && at !== null) return { state: "passed", at };
-  if (record.state === "failed" && at !== null && typeof record.matched_entry === "string") {
-    return { state: "failed", matchedEntry: record.matched_entry, at };
+function claimOf(row: DraftRow): ClaimState {
+  const verdict = readRecordedVerdict(row.claim_check);
+  if (verdict === null || verdict.state === "unrun") return { state: "outstanding" };
+  if (verdict.state === "failed") {
+    return { state: "failed", matchedEntry: verdict.matchedEntry, at: verdict.at };
   }
-  if (record.state === "nothing_to_check") return { state: "nothing_to_check" };
-  return { state: "outstanding" };
+  return checkedAgainstNothing(verdict)
+    ? { state: "nothing_to_check" }
+    : { state: "passed", at: verdict.at };
 }
 
 /**
- * The §8 rules generation recorded a pass for, filtered to the four S16
- * names. Anything else in the array — a rule this build does not have, a
- * value that is not a string — is dropped rather than rendered: the rail
- * speaks only for rules it can name, and an unknown handle has no sentence.
- * A draft whose `meta` carries nothing answers the empty list, which is the
- * arm `checks.ts` draws no row for.
+ * The §8 rules the last battery passed, filtered to the four S16 names.
+ *
+ * The record is `drafts.rule_failures` — the failure list the pipeline
+ * writes on every run — read through `record.ts`, which answers with the
+ * rules a recorded run did **not** fail. A rule outside the four is dropped
+ * rather than rendered: the rail speaks only for rules it can name, and an
+ * unknown handle has no sentence. A row no battery has recorded anything
+ * for answers the empty list, which is the arm `checks.ts` draws no row
+ * for — the screen declining to speak for a run it has no result from.
  */
-function recordedChecksOf(meta: Record<string, unknown> | null): readonly RailCheck[] {
-  const passed = meta?.hard_rules_passed;
-  if (!Array.isArray(passed)) return [];
+function recordedChecksOf(row: DraftRow): readonly RailCheck[] {
+  const passed = recordedRulesPassed(row.rule_failures);
   return RAIL_CHECKS.filter((rule) => passed.includes(rule));
 }
 
@@ -183,7 +207,7 @@ export async function readDraftRow(a: {
     // grounding: `assembleDraft` draws no highlight and no source line for
     // one, rather than an empty address beside a stand-in date (#268).
     groundedFact: readRecordedFact(row.grounded_fact),
-    claim: claimOf(row.meta),
+    claim: claimOf(row),
     mode: a.site.mode,
     // §9's veto window, and only where one is running: a page that is not
     // awaiting review has no time at which doing nothing publishes it.
@@ -198,7 +222,7 @@ export async function readDraftRow(a: {
     // is the one read behind every surface that states a page's standing;
     // nothing here re-derives liveness from a column.
     record: await pageRecordFor(a.draftId),
-    recordedChecks: recordedChecksOf(row.meta),
+    recordedChecks: recordedChecksOf(row),
     timeZone: a.site.timeZone,
   };
 }

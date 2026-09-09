@@ -91,8 +91,9 @@ export function checkRows(a: {
   grounded: boolean;
   groundedUrl: string;
   claim: ClaimState;
-  /** The §8 rules generation recorded a pass for. Empty where it recorded
-   *  nothing, which is every draft until the pipeline writes them. */
+  /** The §8 rules generation recorded a pass for — read from the battery's
+   *  own record, `drafts.rule_failures` (#424). Empty where no battery
+   *  recorded anything for this draft. */
   recorded: readonly RailCheck[];
 }): readonly CheckRow[] {
   const rows: CheckRow[] = [];
