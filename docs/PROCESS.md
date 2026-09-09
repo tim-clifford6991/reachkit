@@ -7,6 +7,12 @@ build exactly one issue each in their own worktree, in a **fresh session per iss
 2026-09-09): an implementer's whole context is the issue plus the documents this file names. If an
 issue cannot be built from that, the issue is under-specified — the fix is to the issue, never a
 briefing in chat. Session history is not a source of truth and is not carried between issues.
+Inside its session an implementer **may spawn subagents** for its own issue — reading, implementing,
+documenting, testing — as the work requires (owner ruling 2026-09-09); they share the session's
+limit and the box's memory, so they count against §5's capacity and never run heavy commands
+outside `heavy.sh`. **Only the master files issues and merges to `main`** (owner ruling 2026-09-09):
+an implementer that finds adjacent work records it under *Adjacent* in the PR body and builds
+nothing beyond its issue; the master files what deserves an issue and lands every PR.
 
 ## 1. Units of work
 
