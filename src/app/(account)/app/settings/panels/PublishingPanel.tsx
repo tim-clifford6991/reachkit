@@ -51,7 +51,7 @@ import { Toggle } from "@/ui/components/Toggle";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { writtenLine } from "../../_shell/written";
 import { ConnectDestination, type CredentialAction } from "./ConnectDestination";
-import { formatVetoWindow } from "../format";
+import { formatVetoWindow, vetoIsWholeDays, vetoWindowDays } from "../format";
 import type { DestinationAction, DestinationHealth, DestinationKind, SettingsModel } from "../model";
 import type { Tone } from "@/ui/types";
 
@@ -59,6 +59,28 @@ const MODE_COPY_KEY = {
   autopilot: "shell.publishing.mode.autopilot",
   copilot: "shell.publishing.mode.copilot",
 } as const;
+
+/**
+ * The stepper's value as a written line: the count in its own slot, and one
+ * of two keys chosen by that count. The choice is a choice between written
+ * lines, never a plural composed here — the registry interpolates and does
+ * not pluralise.
+ *
+ * **A window that is not whole days renders as the hours it is.** The
+ * stepper offers whole days and the writer refuses anything else, so such a
+ * value can only have been stored before that rule or around it — and
+ * `model.ts` is explicit that this screen states it as stored: "a read that
+ * 'corrects' a stored value would hide the very state the validator exists
+ * to prevent from ever being stored". "1.5 days" would read as a setting
+ * somebody chose. `36h` reads as what it is.
+ */
+function vetoWindowLabel(hours: number): string {
+  if (!vetoIsWholeDays(hours)) return formatVetoWindow(hours);
+  const days = vetoWindowDays(hours);
+  return copy(days === 1 ? "settings.publishing.veto.one-day" : "settings.publishing.veto.days", {
+    days: String(days),
+  });
+}
 
 /** The pair, in the order the approved set draws it. A tuple and not
  *  `Object.keys`, so the order is stated rather than inherited from an
@@ -174,7 +196,7 @@ export function PublishingPanel(p: { settings: SettingsModel }): React.JSX.Eleme
           <div className="flex min-w-0 flex-wrap items-center gap-2">
             <Btn label={copy("settings.publishing.veto.less")} size="sm" variant="tertiary" />
             <span className="num min-w-0 text-center wrap-anywhere">
-              {formatVetoWindow(publishing.vetoHours)}
+              {vetoWindowLabel(publishing.vetoHours)}
             </span>
             <Btn label={copy("settings.publishing.veto.more")} size="sm" variant="tertiary" />
           </div>

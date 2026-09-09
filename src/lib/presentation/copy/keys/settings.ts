@@ -137,6 +137,14 @@ export const SETTINGS_COPY = Object.freeze({
   // footing as the thirteen band words"). They are keys rather than JSX
   // literals so that an owner who wants words there ("shorter" / "longer")
   // changes two values and no code. Flagged in this issue's PR body.
+  // The stepper's value, in whole days — the unit the control offers and
+  // the approved S18 draws ("1 day"). A key rather than a symbol appended
+  // in code, because the word has a plural and a plural is the product
+  // speaking; the count is the slot. Two keys and not one with a rule: this
+  // registry interpolates, it does not pluralise, and a screen choosing
+  // between them is choosing a written line rather than composing one.
+  "settings.publishing.veto.one-day": ["{days} day", { slots: { days: "text" }, fixedBy: "BUILD §4.7" }],
+  "settings.publishing.veto.days": ["{days} days", { slots: { days: "text" }, fixedBy: "BUILD §4.7" }],
   "settings.publishing.veto.less": ["−", { slots: {}, fixedBy: 'BUILD §4.7 ("stepper")' }],
   "settings.publishing.veto.more": ["+", { slots: {}, fixedBy: 'BUILD §4.7 ("stepper")' }],
   "settings.publishing.publish-time": ["publish time", { slots: {}, fixedBy: "BUILD §4.7" }],

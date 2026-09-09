@@ -46,6 +46,7 @@
 
 import type React from "react";
 import { useState } from "react";
+import { Badge } from "@/ui/components/Badge";
 import { Btn } from "@/ui/components/Btn";
 import { Card } from "@/ui/components/Card";
 import { CardHead } from "@/ui/idiom";
@@ -105,7 +106,28 @@ export function CompetitorsPanel(p: {
   const refusalLine = refusal === null ? null : writtenLine(refusal);
 
   return (
-    <Card state="default" title={<CardHead eyebrow={copy("settings.competitors.title")} />}>
+    <Card
+      state="default"
+      title={
+        // S18's right-hand slot: how many of the five are taken. A value,
+        // so it is mono and carries its denominator — §2.5's "never bare"
+        // applied to a count the customer can act on, and the cap is the
+        // one constant rather than a five written here.
+        <CardHead
+          eyebrow={copy("settings.competitors.title")}
+          pill={
+            <Badge tone="neutral">
+              {/* One expression, not two with a slash between them: a bare
+                  "/" as a JSX child is a string literal on a surface, which
+                  the copy sweep flags and is right to. */}
+              <span className="num" data-testid="competitor-count">
+                {`${p.competitors.length}/${BATTERY.COMPETITORS_MAX}`}
+              </span>
+            </Badge>
+          }
+        />
+      }
+    >
       <div className="flex min-w-0 flex-col gap-3" data-testid="setting-competitors">
         {p.competitors.length > 0 ? null : (
           // REQ-071 c16. No slot: there is no date and no change to name,

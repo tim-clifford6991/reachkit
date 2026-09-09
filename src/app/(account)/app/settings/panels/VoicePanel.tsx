@@ -60,11 +60,24 @@ export function VoicePanel(p: { settings: SettingsModel }): React.JSX.Element {
         <div className="flex min-w-0 flex-col gap-3" data-testid="setting-do_not_claim">
           <p className="eyebrow opacity-60">{copy("settings.voice.never-claim")}</p>
           {/* Each entry with its own way out. A claim the customer can add
-              and cannot remove would be a filter they no longer control. */}
+              and cannot remove would be a filter they no longer control.
+              
+              The claim is **text beside a control**, not a `Btn`'s label:
+              a claim is a sentence the customer wrote ("the fastest
+              onboarding on the market"), `Btn` takes a `label: string` and
+              daisyUI's `.btn` does not fold, so a chip carrying one ran
+              past its card — the sweep's check 3 caught it. This is the
+              same shape `CompetitorsPanel` gives a removable value, and it
+              wraps because prose must. */}
           <div className="flex min-w-0 flex-wrap gap-2">
             {p.settings.doNotClaim.map((claim) => (
-              <span key={claim} data-testid={`claim-${claim}`}>
-                <Btn label={claim} size="sm" variant="secondary" pressed />
+              <span
+                className="inline-flex min-w-0 items-center gap-2 wrap-anywhere"
+                key={claim}
+                data-testid={`claim-${claim}`}
+              >
+                <span className="min-w-0 text-sm wrap-anywhere">{claim}</span>
+                <Btn label={copy("settings.competitors.remove")} size="sm" variant="ghost" />
               </span>
             ))}
           </div>
