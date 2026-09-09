@@ -46,31 +46,48 @@ describe("issue #298 — the card radius is the ruled --r-box, never the propose
   });
 });
 
-describe("issue #298 — the card-head chips carry the icons the archive names", () => {
-  it("the hero specimen takes `Search`, the archive's own choice", () => {
-    const specimen = read("app/(public)/_landing/HeroSpecimen.tsx");
-    expect(specimen).toMatch(/import \{ Search \} from "lucide-react"/);
-    expect(specimen).toMatch(/icon=\{<Search /);
+describe("UI-SPEC S1 — the landing's chips carry the icons the approved set draws", () => {
+  // The archive's drawings are superseded by the owner's approved screen set
+  // (2026-09-08, #364/#367), and with them the two-icon rule this block used
+  // to hold: the set draws a different landing, so it names different icons.
+  // What the rule *is* has not changed — a screen may draw the glyphs its
+  // own approved drawing names, and no others, because an icon that means
+  // something is a claim.
+  const LANDING_FILES = [
+    "app/(public)/page.tsx",
+    "app/(public)/_landing/HeroShot.tsx",
+    "app/(public)/_landing/MatrixCard.tsx",
+    "app/(public)/_landing/WeekCard.tsx",
+    "app/(public)/_landing/ScanForm.tsx",
+  ] as const;
+
+  /** Every lucide name the landing imports, deduplicated. */
+  function iconsImported(): string[] {
+    const source = LANDING_FILES.map((rel) => read(rel)).join("\n");
+    const names = [...source.matchAll(/import \{ ([^}]+) \} from "lucide-react"/g)].flatMap((m) =>
+      m[1]!.split(",").map((name) => name.trim())
+    );
+    return [...new Set(names)].sort();
+  }
+
+  it("the set's five glyphs, and no sixth", () => {
+    // S1 draws: the growth card's chip (trend), the matrix card's chip
+    // (bot), the This-week card's chip (cal) and its panel's (file), and
+    // the video block's play control.
+    expect(iconsImported()).toEqual(["Bot", "Calendar", "FileText", "Play", "TrendingUp"]);
   });
 
-  it("the three narrative cards take `ArrowRight`, and the same one on all three", () => {
-    // The archive's own reason, kept: "the icon is the SAME on all three on
-    // purpose — three different icons would assign meaning to three cards
-    // whose copy is not written yet, and an icon that means something is a
-    // claim."
-    const landing = read("app/(public)/page.tsx");
-    expect(landing).toMatch(/import \{ ArrowRight \} from "lucide-react"/);
-    expect([...landing.matchAll(/icon=\{<ArrowRight /g)]).toHaveLength(3);
+  it("each card head takes the chip the set draws on it", () => {
+    expect(read("app/(public)/_landing/HeroShot.tsx")).toMatch(/icon=\{<TrendingUp /);
+    expect(read("app/(public)/_landing/MatrixCard.tsx")).toMatch(/icon=\{<Bot /);
+    expect(read("app/(public)/_landing/WeekCard.tsx")).toMatch(/icon=\{<Calendar /);
+    expect(read("app/(public)/_landing/WeekCard.tsx")).toMatch(/icon=\{<FileText /);
   });
 
-  it("no icon is chosen that the archive does not name", () => {
-    // The two the idiom's own landing page draws, and nothing else. A
-    // fourth glyph is a claim about a card whose copy is still owed.
-    const landing = read("app/(public)/page.tsx");
-    const specimen = read("app/(public)/_landing/HeroSpecimen.tsx");
-    const imported = [...`${landing}\n${specimen}`.matchAll(/import \{ ([^}]+) \} from "lucide-react"/g)]
-      .flatMap((m) => m[1]!.split(",").map((name) => name.trim()))
-      .sort();
-    expect(imported).toEqual(["ArrowRight", "Search"]);
+  it("the hero's own control carries no glyph — the set draws none on it", () => {
+    // The card idiom's landing put `Search` in the hero CTA; the approved
+    // set draws the field and a plain solid pill. A glyph the drawing does
+    // not have is an addition, and additions are what this file catches.
+    expect(read("app/(public)/_landing/ScanForm.tsx")).not.toContain("lucide-react");
   });
 });

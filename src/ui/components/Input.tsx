@@ -53,6 +53,25 @@ type InputBase = {
    *  before this prop existed, so a plain HTML form submission can carry
    *  this field. */
   name?: string;
+  /** The label is the field's accessible name and is **not drawn** (issue
+   *  #351). The approved screen set's landing field is
+   *  `<input placeholder="yourdomain.com" aria-label="Your website">`: the
+   *  hero says what to type in the placeholder, and a label printed above a
+   *  field in a hero is a second sentence competing with the tagline.
+   *
+   *  **It moves the label onto the field, it does not remove it.** `label`
+   *  stays required and becomes the input's `aria-label`, so a screen
+   *  reader announces the field exactly as before. There is no arm of this
+   *  component with no label at all, which is the property this must not
+   *  break.
+   *
+   *  It is the *element* that goes, not the text, and that is deliberate:
+   *  the visually-hidden idiom (`sr-only`) clips a full-size box down to
+   *  one pixel with a negative margin, which puts the label and its own
+   *  child outside their parent's box — two offenders on the layout
+   *  sweep's containment check, on a page that is otherwise clean. An
+   *  accessible name carried by the attribute has no box at all. */
+  labelHidden?: boolean;
 };
 
 type InputValid = InputBase & { invalid?: false };
@@ -93,14 +112,14 @@ export function Input(p: InputProps): React.JSX.Element {
           own `.label` rule written out — minus `display:inline-flex` and
           `white-space:nowrap`, which are what kept the label on the field's
           line and would clip a long one at 320px (issue #241). */}
-      <label
-        className="flex items-center gap-1.5 text-base-content/60"
-        htmlFor={id}
-      >
-        <span>{p.label}</span>
-      </label>
+      {p.labelHidden === true ? null : (
+        <label className="flex items-center gap-1.5 text-base-content/60" htmlFor={id}>
+          <span>{p.label}</span>
+        </label>
+      )}
       <input
         id={id}
+        aria-label={p.labelHidden === true ? p.label : undefined}
         type={p.type ?? "text"}
         className={["input", p.invalid ? "input-error" : ""]
           .filter(Boolean)

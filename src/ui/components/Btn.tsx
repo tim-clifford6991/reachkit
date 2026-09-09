@@ -86,18 +86,71 @@ export type BtnProps = BtnRank & {
   label: string;
   size?: "default" | "sm";
   block?: boolean;
-  disabled?: boolean;
-  /** "a submit that is disabled while posting" — the label is unchanged; no
-   * spinner is added (`previews/WO-268.html` §1: "label unchanged, no
-   * spinner"). */
-  inFlight?: boolean;
   /** The idiom's pill radius, `--r-pill`. Opt-in rather than the default,
    *  so the surfaces the idiom has not reached yet keep the shape they were
    *  built and swept with, and this PR moves exactly the screens it names. */
   pill?: boolean;
-  onClick?: () => void;
-  type?: "button" | "submit";
-};
+  /** A glyph before the label (issue #351). The idiom's own button draws
+   *  one — `/idiom/landing`'s hero CTA is `IdiomBtn` with `Search` — and
+   *  `IdiomBtn` is not a component to port: `components.md` §7.3 rules that
+   *  the idiom's parts "are the drawings of the four widenings, not five
+   *  new components. Production UI code names `Card`, `Btn` and `Stat`."
+   *  So the slot lands on the registered button.
+   *
+   *  **It is a slot, never a string.** The caller passes the element, so no
+   *  glyph name lives here and this component still holds no copy; the
+   *  icons a screen may draw are the ones the archive's own pages name
+   *  (DECISIONS 2026-09-08, #303), which is a fact about the screen and is
+   *  checked there.
+   *
+   *  It is decoration and never the control's name: `label` stays required
+   *  and stays rendered, so an icon can never become the only thing a
+   *  button says. An icon-only button is unbuildable here, which is the
+   *  point of the slot being optional and the label not being. */
+  icon?: React.ReactNode;
+} & BtnElement;
+
+/** **What the control IS**, and the reason it is an arm rather than a prop
+ *  beside the others (issue #351).
+ *
+ *  A rank is a claim about *how important* an action is; it says nothing
+ *  about whether the action happens here or somewhere else. The landing's
+ *  how-to-start CTA is the archive's solid accent pill and its destination
+ *  is the hero's own field one screen up — and REQ-001 c1 gives that page
+ *  "exactly one text input and one submit control", which a second
+ *  `<button>` in the document breaks whatever it is styled as. So the same
+ *  rank has to be renderable as a link.
+ *
+ *  Three files already hand-wrote `class="btn …"` on an `<a>` for this
+ *  case, each with a row in `component-registry.test.ts` arguing for it.
+ *  This is that case answered once, inside the registry, where the daisyUI
+ *  markup is supposed to live.
+ *
+ *  The two arms are exclusive by type, and every member that has no meaning
+ *  on the other side is refused rather than ignored: a link has no `type`,
+ *  takes no `onClick`, and cannot be `disabled` or `inFlight` — an anchor
+ *  with no href is not a disabled control, it is an unreachable one, and
+ *  `aria-busy` on a link says a navigation is posting. A caller that wants
+ *  a control that can be disabled asks for a button, which is the arm that
+ *  has one. */
+type BtnElement =
+  | {
+      href?: undefined;
+      onClick?: () => void;
+      type?: "button" | "submit";
+      disabled?: boolean;
+      /** "a submit that is disabled while posting" — the label is
+       * unchanged; no spinner is added (`previews/WO-268.html` §1: "label
+       * unchanged, no spinner"). */
+      inFlight?: boolean;
+    }
+  | {
+      href: string;
+      onClick?: undefined;
+      type?: undefined;
+      disabled?: undefined;
+      inFlight?: undefined;
+    };
 
 export function Btn(p: BtnProps): React.JSX.Element {
   const classes = ["btn"];
@@ -114,6 +167,18 @@ export function Btn(p: BtnProps): React.JSX.Element {
   if (p.pill === true) classes.push("rk-pill");
   if (p.size === "sm") classes.push("btn-sm");
   if (p.block) classes.push("btn-block");
+
+  // The link arm. Everything above it is the rank and is shared; what
+  // differs below is only what a link cannot carry — no `type`, no
+  // `disabled`, no `aria-busy`, no `aria-pressed` (a link is not a toggle).
+  if (p.href !== undefined) {
+    return (
+      <a href={p.href} className={classes.join(" ")} data-tone={p.tone}>
+        {p.icon}
+        {p.label}
+      </a>
+    );
+  }
 
   return (
     <button
@@ -136,6 +201,7 @@ export function Btn(p: BtnProps): React.JSX.Element {
       aria-busy={p.inFlight === true ? "true" : undefined}
       onClick={p.onClick}
     >
+      {p.icon}
       {p.label}
     </button>
   );

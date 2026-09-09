@@ -1,56 +1,68 @@
-// BUILD §3 — the landing page, composed (issue #266).
+// BUILD §3, REQ-099, REQ-001 — the landing page (UI-SPEC S1, issue #351).
 //
-// **This is a port of the owner-approved card idiom, not a design.** The
-// owner ruled on 2026-09-02, verbatim: *"This is exactly what we need — 'A ·
-// Six boxes' is my preference and what we should proceed with"*, endorsing
-// the idiom drawn as live code at `/idiom/landing` in the archived corpus;
-// and, of BUILD §3's landing, that it is *"much too light: above the fold
-// there must be the tagline, a subline, the CTA and an enticing
-// image/component giving them an immediate feel for what the app is and
-// looks like, then a product demo video, then a walk through why-care /
-// what-it-does / how-to-start."* Neither reached `BUILD.md`; the amendment
-// is queued on #2. What is below is that page, section for section.
+// **This is the owner-approved screen set built, section for section.** The
+// owner approved the complete set on 2026-09-08
+// (`docs/design/approved/full-set/`, UI-SPEC S1) and it supersedes the card
+// idiom this page was ported from on #266/#285: the accent hero is gone,
+// the specimen card is gone, and the three narrative cards are gone. What
+// stands in their place is the set's own drawing — header (3a), hero with
+// the product component in a browser frame, the video frame (4c), sections
+// 01/02/03 with live components, and the footer (3a).
 //
-// **REQ-001 c1 is untouched**: "exactly one text input and one submit
-// control and no other input control of any kind". Everything this file
-// adds around `ScanForm` is prose, a link, or one rendered component — no
-// second field, no selector, no toggle. `tests/app/scan-address/landing.
-// test.tsx` asserts the count over the whole rendered page and still does.
+// **REQ-001 c1 still holds, and is what shapes the CTAs.** The page
+// presents "exactly one text input and one submit control": the hero's
+// field and its own solid CTA. The header's CTA and the closing CTA are
+// ruling 2b's second solid and REQ-099 c3's "every further call to action
+// brings that one field into view with the cursor in it" — they are
+// `type="button"` controls that focus the field (`FieldCta`), never a
+// second submit and never a second field.
 //
-// **The demo video block is declared and not rendered.** `design/tokens.md`
-// §9.4 decides the three states, and *absent* — no asset has been produced
-// — is "the block does not render. No placeholder box, no 'coming soon', no
-// empty frame with a play triangle over nothing. A section whose content
-// does not exist is not a section, and the three narrative sections close up
-// behind it." Its four sentences exist as keys (L7–L10) so the block has
-// them the day an asset lands.
+// **The video block renders, and that is ruling 4c**, which amended
+// REQ-099 c6: "the demo video block renders a 16:9 frame with a play
+// control and one written line before the asset exists". The old reading —
+// the block does not render at all until an asset exists — was tokens.md
+// §9.4's, and the ruling replaces it. The two strings are bracketed in the
+// set and stay owed.
 //
-// **A Server Component.** It reads no session and no cookie — the group's
-// own rule — and it renders the hero's specimen, which is the report's own
-// chart over the reserved fixture and therefore a server read. The one
-// interactive part, the field and its control, is `ScanForm` (a client
-// component, extracted here unchanged).
+// **A Server Component.** It reads no session and no cookie, and it renders
+// three live specimens — the hero component, the AI-answers matrix and the
+// This-week card — which are server reads over the reserved fixture. The
+// interactive parts are `ScanForm` and `FieldCta`, both client leaves.
 import type React from "react";
-import { ArrowRight } from "lucide-react";
+import { Play } from "lucide-react";
 import { Surface } from "@/ui/layout";
 import { CardHead, IdiomCard } from "@/ui/idiom";
 import { copy } from "@/lib/presentation/copy";
 import { ScanForm } from "./_landing/ScanForm";
-import { HeroSpecimen } from "./_landing/HeroSpecimen";
+import { HeroShot } from "./_landing/HeroShot";
+import { MatrixCard } from "./_landing/MatrixCard";
+import { WeekCard } from "./_landing/WeekCard";
+import { FieldCta, FIELD_SECTION_ID } from "./_landing/FieldCta";
 
 type LandingSearchParams = { problem?: string; value?: string };
+
+/** The three section numbers, as the set writes them — mono, accent, and a
+ *  data identity rather than a sentence. Bound to a name before they reach
+ *  JSX: the copy sweep reads every literal in a text position as product
+ *  voice, and it is right to. */
+const SECTION_NUMBER = ["01", "02", "03"] as const;
+
+/** The three Step cards of section 03. Titles approved (11a), bodies owed.
+ *  The step's own number rides the eyebrow's one slot. */
+const STEPS = [
+  { n: "1", title: "landing.step.1.title", body: "landing.step.1.body" },
+  { n: "2", title: "landing.step.2.title", body: "landing.step.2.body" },
+  { n: "3", title: "landing.step.3.title", body: "landing.step.3.body" },
+] as const;
 
 export default function LandingPage(props: {
   searchParams?: Promise<LandingSearchParams> | LandingSearchParams;
 }): React.JSX.Element {
   return (
-    // ADR-093 decision 6: the screen root is a `Surface`, and its arms are
-    // declared. The hero is two columns from `medium` — the field beside the
-    // specimen — which is what REQ-099 c1's own `compact` arm ("follows
-    // directly below, in normal flow") anticipated. The sections below it
-    // are full-bleed grounds and carry their own inner measure, so they take
-    // the surface's whole width and `.rk-section-in` centres their content
-    // at `--w-wide`.
+    // ADR-093 decision 6: the screen root is a `Surface` and its arms are
+    // declared. The hero is one column until `medium` — the set opens it
+    // into two at 1024, which is that band's own boundary — and the wide
+    // band is the same, so the surface reads at `--w-wide` throughout.
     <Surface
       arms={{
         compact: { kind: "columns", count: 1 },
@@ -59,110 +71,94 @@ export default function LandingPage(props: {
       }}
     >
       <main className="col-span-full grid grid-cols-subgrid">
-        {/* ══ HERO — on the accent ground ═══════════════════════════════
-            The owner's "much too light", answered with the one ground this
-            design system now has: the same `--grad-accent` the sign-in panel
-            spends, so the two first touchpoints are the same surface and not
-            two inventions. */}
-        <section id="landing-field" className="col-span-full rk-hero rk-accent-ground">
-          <div className="rk-hero-grid">
+        {/* ══ HERO ══════════════════════════════════════════════════════ */}
+        <section id={FIELD_SECTION_ID} className="col-span-full rk-hero">
+          <div className="rk-split rk-split-hero">
             <div className="rk-hero-copy">
-              {/* APPROVED — BUILD §3's tagline, verbatim, and the one
-                  written string on this page. */}
-              <h1 className="rk-on-accent-h1">{copy("landing.headline")}</h1>
-              <p className="rk-quiet">{copy("landing.subline")}</p>
+              {/* APPROVED — BUILD §3's tagline, verbatim, and REQ-099 c2. */}
+              <h1 className="rk-hero-h">{copy("landing.headline")}</h1>
+              <p className="rk-hero-s">{copy("landing.subline")}</p>
               <ScanForm searchParams={props.searchParams} />
+              <p className="rk-prov-line">{copy("landing.hero.assurance")}</p>
             </div>
-            <HeroSpecimen />
+            <HeroShot />
           </div>
         </section>
 
-        {/* ══ 1 · WHY SHOULD THEY CARE ═════════════════════════════════ */}
-        <section className="col-span-full rk-section rk-section-surface">
-          <div className="rk-section-in">
-            <div className="rk-section-read">
-              <p className="eyebrow">{copy("landing.why.eyebrow")}</p>
-              <h2>{copy("landing.why.heading")}</h2>
-              <p className="rk-quiet">{copy("landing.why.body")}</p>
+        {/* ══ THE DEMO VIDEO (4c) ═══════════════════════════════════════
+            The frame, the play control and one written line. The play
+            control is not a control yet — there is no asset for it to
+            start — so it is drawn and not focusable, which is why it is a
+            `<span>` and is `aria-hidden`: a button that does nothing is a
+            promise the page cannot keep, and REQ-001 c1 counts controls. */}
+        <section className="col-span-full rk-sec">
+          <div className="rk-video">
+            <span className="rk-play" aria-hidden>
+              <Play size={24} strokeWidth={1.8} />
+            </span>
+            <span className="rk-video-line">{copy("landing.video.line")}</span>
+          </div>
+          <p className="rk-explain rk-center">{copy("landing.video.caption")}</p>
+        </section>
+
+        {/* ══ 01 · WHY SHOULD THEY CARE ═════════════════════════════════ */}
+        <section className="col-span-full rk-sec">
+          <div className="rk-split">
+            <div className="rk-sec-read">
+              <p className="rk-sec-n">
+                <span className="num">{SECTION_NUMBER[0]}</span>
+              </p>
+              <h2 className="rk-sec-h">{copy("landing.why.heading")}</h2>
+              <p className="rk-sec-s">{copy("landing.why.body")}</p>
             </div>
+            <MatrixCard />
           </div>
         </section>
 
-        {/* ══ 2 · WHAT IT DOES FOR THEM ════════════════════════════════
-            Three cards, each leading with its own line — §2.5's "every card
-            leads with the answer", where the answer here is the sentence.
-            The chip glyph is the same on all three on purpose, and it is
-            the archive's own choice (issue #298): "the icon is the SAME on
-            all three on purpose — three different icons would assign
-            meaning to three cards whose copy is not written yet, and an
-            icon that means something is a claim. The three icons are owed
-            alongside L16–L21." So `ArrowRight` stands on all three until
-            the owner writes those cards and names their icons. */}
-        <section className="col-span-full rk-section">
-          <div className="rk-section-in">
-            <div className="rk-section-read">
-              <p className="eyebrow">{copy("landing.does.eyebrow")}</p>
-              <h2>{copy("landing.does.heading")}</h2>
-            </div>
-            <div className="rk-three">
-              <IdiomCard
-                head={
-                  <CardHead
-                    icon={<ArrowRight size={16} strokeWidth={2} aria-hidden />}
-                    eyebrow={copy("landing.does.item-1.title")}
-                  />
-                }
-              >
-                <p className="rk-quiet">{copy("landing.does.item-1.line")}</p>
-              </IdiomCard>
-              <IdiomCard
-                head={
-                  <CardHead
-                    icon={<ArrowRight size={16} strokeWidth={2} aria-hidden />}
-                    eyebrow={copy("landing.does.item-2.title")}
-                  />
-                }
-              >
-                <p className="rk-quiet">{copy("landing.does.item-2.line")}</p>
-              </IdiomCard>
-              <IdiomCard
-                head={
-                  <CardHead
-                    icon={<ArrowRight size={16} strokeWidth={2} aria-hidden />}
-                    eyebrow={copy("landing.does.item-3.title")}
-                  />
-                }
-              >
-                <p className="rk-quiet">{copy("landing.does.item-3.line")}</p>
-              </IdiomCard>
+        {/* ══ 02 · WHAT IT DOES FOR THEM ════════════════════════════════
+            The card leads in the source order, so it sits on the left at
+            the two-column band and the page alternates against 01. */}
+        <section className="col-span-full rk-sec">
+          <div className="rk-split">
+            <WeekCard />
+            <div className="rk-sec-read">
+              <p className="rk-sec-n">
+                <span className="num">{SECTION_NUMBER[1]}</span>
+              </p>
+              <h2 className="rk-sec-h">{copy("landing.does.heading")}</h2>
+              <p className="rk-sec-s">{copy("landing.does.body")}</p>
             </div>
           </div>
         </section>
 
-        {/* ══ 3 · WHAT THEY DO TO START TODAY ══════════════════════════
-            The control here is THE SAME ACTION as the hero's, repeated at
-            the bottom of the walk — one primary action stated twice, not two
-            primary actions. It is a link to the field rather than a second
-            solid button: the master's ruling on the #266 mockup is one solid
-            primary per screen, and the hero's is it. */}
-        <section className="col-span-full rk-section rk-section-surface">
-          <div className="rk-section-in">
-            <div className="rk-section-read">
-              <p className="eyebrow">{copy("landing.start.eyebrow")}</p>
-              <h2>{copy("landing.start.heading")}</h2>
-              <p className="rk-quiet">{copy("landing.start.body")}</p>
-              <div>
-                {/* A link, not a button — the master's ruling is one solid
-                    primary per screen and the hero's control is it, so this
-                    repeats that same action rather than adding a second.
-                    Styled by the idiom's own rule and not by a daisyUI
-                    class: those are written inside `src/ui/components/**`
-                    and nowhere else. */}
-                <a href="#landing-field" className="rk-cta-link">
-                  {copy("landing.start.cta")}
-                </a>
-              </div>
-            </div>
+        {/* ══ 03 · WHAT THEY DO TO START TODAY ══════════════════════════ */}
+        <section className="col-span-full rk-sec">
+          <div className="rk-sec-read rk-center rk-sec-centred">
+            <p className="rk-sec-n">
+              <span className="num">{SECTION_NUMBER[2]}</span>
+            </p>
+            <h2 className="rk-sec-h">{copy("landing.start.heading")}</h2>
+            <p className="rk-sec-s">{copy("landing.start.body")}</p>
+          </div>
+
+          <div className="rk-three">
+            {STEPS.map((step) => (
+              <IdiomCard
+                key={step.n}
+                head={<CardHead eyebrow={copy("landing.step.eyebrow", { n: step.n })} />}
+              >
+                <h3 className="rk-step-h">{copy(step.title)}</h3>
+                <p className="rk-explain">{copy(step.body)}</p>
+              </IdiomCard>
+            ))}
+          </div>
+
+          {/* The closing CTA: the hero's own action, stated a second time.
+              REQ-099 c3 — it brings the field into view with the cursor in
+              it, so it adds no second submit control. */}
+          <div className="rk-center rk-close">
+            <FieldCta label={copy("landing.start.cta")} />
+            <p className="rk-explain">{copy("landing.start.cancel")}</p>
           </div>
         </section>
       </main>

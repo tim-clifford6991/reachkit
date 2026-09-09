@@ -60,10 +60,18 @@ const NAME_X_MIN = 66;
 /** A cushion on top of the measured advance. At the compact band the
  *  whole drawing is scaled to about 0.7, and a glyph rounded up at that
  *  size put a 23-character domain one pixel outside the viewBox with three
- *  units of estimate still spare (issue #352). Three units is under two
+ *  units of estimate still spare (issue #352). A few units is under two
  *  pixels of plot at every band and is the difference between a value
- *  inside its box and a sweep finding. */
-const NAME_CUSHION = 3;
+ *  inside its box and a sweep finding.
+ *
+ *  **Six, not three, since the landing draws this chart too** (issue
+ *  #351). S1's section 01 renders the same matrix in a narrower card than
+ *  the report's, and at 320 the sweep found the row-name group one pixel
+ *  outside its `<svg>` again — the estimate is a per-character average and
+ *  a shorter box rounds it down further. Three more units cost nothing
+ *  visible: the gutter is what shrinks, and it is measured to be wider
+ *  than the name it holds either way. */
+const NAME_CUSHION = 6;
 const NAME_GAP = 6;
 /** Between the last cell and the row's written count. */
 const COUNT_GAP = 46;

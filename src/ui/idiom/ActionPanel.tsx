@@ -60,6 +60,26 @@ type ActionPanelBase = {
   line: string;
 };
 
+/** **`specimen` is a fourth arm and not a fourth state** (issue #351).
+ *
+ *  The three arms below are the panel *asking a customer to act*: the CTA
+ *  is offered, the CTA is posting, or the action cannot be taken and one
+ *  written line says why. The approved screen set draws the panel one more
+ *  way, and it is none of those three — inside the landing's This-week card
+ *  (UI-SPEC S1), where the panel is a **picture of the product** shown to a
+ *  stranger. It carries no CTA there (the set draws none, and a solid
+ *  accent CTA a visitor cannot use would be a third solid on a page ruling
+ *  2b gives two) and no withheld account either, because nothing is being
+ *  withheld from anyone: the panel is showing what the product does, not
+ *  refusing to do it.
+ *
+ *  `withheld` is deliberately not reused for it. That arm's whole guarantee
+ *  is "a disabled button with no account is unbuildable", which it keeps by
+ *  requiring the account — and making the account optional to fit this case
+ *  would give the guarantee away on the two screens that do ask for action.
+ *
+ *  Its title and line stay required and stay the owner's: a specimen of a
+ *  panel is a panel, and it says what the real one says. */
 export type ActionPanelProps = ActionPanelBase & {
   /** The CTA's rank. `primary` where a caller says nothing. */
   rank?: ActionPanelRank;
@@ -76,6 +96,7 @@ export type ActionPanelProps = ActionPanelBase & {
     | { state: "default"; cta: string; onAct?: () => void; href?: undefined }
     | { state: "in-flight"; cta: string; onAct?: undefined; href?: undefined }
     | { state: "withheld"; withheldAccount: string; cta?: undefined; onAct?: undefined; href?: undefined }
+    | { state: "specimen"; cta?: undefined; onAct?: undefined; href?: undefined; withheldAccount?: undefined }
   );
 
 export function ActionPanel(p: ActionPanelProps): React.JSX.Element {
@@ -88,40 +109,42 @@ export function ActionPanel(p: ActionPanelProps): React.JSX.Element {
         <p className="rk-panel-title">{p.title}</p>
         <p className="rk-quiet">{p.line}</p>
       </div>
-      <div className="rk-panel-cta">
-        {/* The registered `Btn`, not markup of its own: daisyUI component
-            classes are written inside `src/ui/components/**` and nowhere
-            else, and a panel that hand-wrote `btn` would be the sixteenth
-            component arriving by class name. */}
-        {p.state === "withheld" ? (
-          <span className="rk-quiet">{p.withheldAccount}</span>
-        ) : p.state === "default" && p.href !== undefined ? (
-          <a className={LINK_CLASS[p.rank ?? "primary"]} href={p.href} data-tone={toneOf(p.rank)}>
-            {p.cta}
-          </a>
-        ) : (p.rank ?? "primary") === "secondary" ? (
-          <Btn
-            label={p.cta}
-            variant="secondary"
-            tone="accent"
-            size="sm"
-            pill
-            disabled={p.state === "in-flight"}
-            inFlight={p.state === "in-flight"}
-            onClick={p.state === "default" ? p.onAct : undefined}
-          />
-        ) : (
-          <Btn
-            label={p.cta}
-            variant="primary"
-            size="sm"
-            pill
-            disabled={p.state === "in-flight"}
-            inFlight={p.state === "in-flight"}
-            onClick={p.state === "default" ? p.onAct : undefined}
-          />
-        )}
-      </div>
+      {p.state === "specimen" ? null : (
+        <div className="rk-panel-cta">
+          {/* The registered `Btn`, not markup of its own: daisyUI component
+              classes are written inside `src/ui/components/**` and nowhere
+              else, and a panel that hand-wrote `btn` would be the sixteenth
+              component arriving by class name. */}
+          {p.state === "withheld" ? (
+            <span className="rk-quiet">{p.withheldAccount}</span>
+          ) : p.state === "default" && p.href !== undefined ? (
+            <a className={LINK_CLASS[p.rank ?? "primary"]} href={p.href} data-tone={toneOf(p.rank)}>
+              {p.cta}
+            </a>
+          ) : (p.rank ?? "primary") === "secondary" ? (
+            <Btn
+              label={p.cta}
+              variant="secondary"
+              tone="accent"
+              size="sm"
+              pill
+              disabled={p.state === "in-flight"}
+              inFlight={p.state === "in-flight"}
+              onClick={p.state === "default" ? p.onAct : undefined}
+            />
+          ) : (
+            <Btn
+              label={p.cta}
+              variant="primary"
+              size="sm"
+              pill
+              disabled={p.state === "in-flight"}
+              inFlight={p.state === "in-flight"}
+              onClick={p.state === "default" ? p.onAct : undefined}
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 }

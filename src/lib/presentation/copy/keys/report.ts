@@ -323,4 +323,64 @@ export const REPORT_COPY = Object.freeze({
   "landing.start.heading": ["TODO(copy)", { slots: {}, fixedBy: "issue 266 · L23" }],
   "landing.start.body": ["TODO(copy)", { slots: {}, fixedBy: "issue 266 · L24" }],
   "landing.start.cta": ["TODO(copy)", { slots: {}, fixedBy: "issue 266 · L25" }],
+
+  // ── S1, the owner-approved screen set (2026-09-08) ────────────────────
+  //
+  // The set redraws this page and ruling 11a settles its copy: "the
+  // artifact's unbracketed strings are approved copy as written"; only its
+  // bracketed strings stay owner-owed. The keys below are the strings S1
+  // adds to the twenty-five above — filled where the set writes them,
+  // marked where it brackets them.
+  //
+  // The keys the new screen no longer renders (L5–L10, the two numbered
+  // eyebrows, L16–L21's three narrative cards, L22) are left in place: the
+  // set replaced the specimen card with the hero component, the three
+  // cards with three Step cards, and the eyebrows with 01 · 02 · 03. Issue
+  // #347 is the landing's copy pass and owns that reconciliation.
+
+  /** The field's placeholder. Approved (11a) — the set writes it. */
+  "landing.field.placeholder": ["yourdomain.com", { slots: {}, fixedBy: "approved set S1 · 11a" }],
+  /** The line under the field. Approved (11a). */
+  "landing.hero.assurance": ["free · no account · permanent link", { slots: {}, fixedBy: "approved set S1 · 11a" }],
+  /** The address in the hero component's browser frame — a value, not a
+   *  sentence: this product's own app address, in the mono face like every
+   *  other address (§2.3). */
+  "landing.shot.address": ["reachkit.app/app", { slots: {}, fixedBy: "approved set S1 · 11a" }],
+  /** The badge beside the hero component's headline. The Overview's own
+   *  badge reads "every week since you started"; the set's miniature shows
+   *  the short form, and it is the miniature that renders here. */
+  "landing.shot.badge": ["every week", { slots: {}, fixedBy: "approved set S1 · 11a" }],
+
+  /** The video block (ruling 4c): "renders a 16:9 frame with a play control
+   *  and one written line before the asset exists". Both strings are
+   *  bracketed in the set and stay owed; the block renders regardless,
+   *  which is what 4c changed about REQ-099 c6. */
+  "landing.video.line": ["TODO(copy)", { slots: {}, fixedBy: "approved set S1 · 4c" }],
+  "landing.video.caption": ["TODO(copy)", { slots: {}, fixedBy: "approved set S1 · 4c" }],
+
+  /** Section 01's own line, under the live AI-answers matrix. Approved
+   *  (11a) — it is the sentence that makes the matrix an argument. */
+  "landing.why.matrix.line": ["Every filled row is a rival being recommended. The empty one is you.", { slots: {}, fixedBy: "approved set S1 · 11a" }],
+  /** Section 02's body line beneath its heading. */
+  "landing.does.body": ["TODO(copy)", { slots: {}, fixedBy: "approved set S1" }],
+  /** Section 02's This-week card: the head badge, and the panel under the
+   *  week strip. The page's own title is data this specimen has none of, so
+   *  it is owed; the line is approved. */
+  "landing.week.badge": ["on schedule", { slots: {}, fixedBy: "approved set S1 · 11a" }],
+  "landing.week.page.title": ["TODO(copy)", { slots: {}, fixedBy: "approved set S1" }],
+  "landing.week.page.line": ["publishes in 6 h 12 m unless you say otherwise", { slots: {}, fixedBy: "approved set S1 · 11a" }],
+
+  /** Section 03's three Step cards. The eyebrow and the three titles are
+   *  approved (11a); the three bodies are bracketed and owed. */
+  "landing.step.eyebrow": ["Step {n}", { slots: { n: "text" }, fixedBy: "approved set S1 · 11a" }],
+  "landing.step.1.title": ["Scan your domain", { slots: {}, fixedBy: "approved set S1 · 11a" }],
+  "landing.step.1.body": ["TODO(copy)", { slots: {}, fixedBy: "approved set S1" }],
+  "landing.step.2.title": ["Pick your market and rivals", { slots: {}, fixedBy: "approved set S1 · 11a" }],
+  "landing.step.2.body": ["TODO(copy)", { slots: {}, fixedBy: "approved set S1" }],
+  "landing.step.3.title": ["One page goes live every day", { slots: {}, fixedBy: "approved set S1 · 11a" }],
+  "landing.step.3.body": ["TODO(copy)", { slots: {}, fixedBy: "approved set S1" }],
+  /** Under the closing CTA. Approved (11a). The pricing card carries the
+   *  same sentence through `offer.cancel-line`, which is still empty and is
+   *  #369's to fill — one key per screen, neither borrowed. */
+  "landing.start.cancel": ["Cancel in one click.", { slots: {}, fixedBy: "approved set S1 · 11a" }],
 }) satisfies CopyPartition;

@@ -120,6 +120,11 @@ export const SVG = {
   /** What a tooltip hangs on: present to the pointer, invisible to the
    *  reader. */
   hitArea: "transparent",
+  /** How a `textLength` is met: squeeze the glyphs with the gaps rather
+   *  than the gaps alone, which is what keeps a mono chip looking mono at
+   *  a tenth of a unit per character. Paint, not a sentence — named here
+   *  for the reason the anchors above are (issue #351). */
+  fitGlyphs: "spacingAndGlyphs",
   /** The goal rule (§4.5), the break rule (a domain changed), and a muted
    *  cell's edge (§6.2). */
   dashGoal: "3 4",

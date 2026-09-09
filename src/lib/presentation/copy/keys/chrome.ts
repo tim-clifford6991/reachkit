@@ -34,11 +34,14 @@ export const CHROME_COPY = Object.freeze({
   // stylesheet, so the two are different surfaces spending the same word,
   // which is why this key exists rather than one being imported.
   "chrome.wordmark": ["ReachKit", { slots: {}, fixedBy: "UI-SPEC S12 · S1" }],
-  "chrome.nav.pricing": ["TODO(copy)", { slots: {}, fixedBy: "issue 266" }],
-  "chrome.nav.signin": ["TODO(copy)", { slots: {}, fixedBy: "issue 266" }],
-  /** The header's one pill CTA. **Not rendered on the landing**: the
-   *  master's ruling on the #266 mockup is one solid primary per screen,
-   *  and on `/` that primary is the hero's own control. */
+  // The footer's two Product links (UI-SPEC 3a). Approved as written.
+  "chrome.nav.pricing": ["Pricing", { slots: {}, fixedBy: "UI-SPEC S1 · 3a" }],
+  "chrome.nav.signin": ["Sign in", { slots: {}, fixedBy: "UI-SPEC S1 · 3a" }],
+  /** The header's one solid CTA (UI-SPEC 3a). **It IS rendered on the
+   *  landing** since ruling 2b of 2026-09-08 — "two solid primaries per
+   *  screen are allowed where the artifact draws them (landing: header CTA
+   *  + hero CTA)" — which supersedes the one-primary reading #290 applied
+   *  here. Still owed: the set brackets the label. */
   "chrome.cta.scan": ["TODO(copy)", { slots: {}, fixedBy: "issue 266" }],
   /** The accessible name of the compact-band control that opens the
    *  links. It is the registered `Collapse`, listing them under the
@@ -46,11 +49,17 @@ export const CHROME_COPY = Object.freeze({
   "chrome.nav.menu": ["TODO(copy)", { slots: {}, fixedBy: "issue 266" }],
 
   /* ── The footer ──────────────────────────────────────────────────── */
-  "chrome.footer.product": ["TODO(copy)", { slots: {}, fixedBy: "issue 266" }],
-  "chrome.footer.legal": ["TODO(copy)", { slots: {}, fixedBy: "issue 266" }],
+  "chrome.footer.product": ["Product", { slots: {}, fixedBy: "the approved screen set · 3a" }],
+  "chrome.footer.legal": ["Legal", { slots: {}, fixedBy: "the approved screen set · 3a" }],
   /** §4.2's removal address, named from the footer so a person who never
    *  opened an email can still find it. */
-  "chrome.footer.opt-out": ["TODO(copy)", { slots: {}, fixedBy: "issue 266" }],
+  "chrome.footer.opt-out": [
+    // The address is a slot, not a literal: `removal.address` (REQ-002 c1)
+    // is its one home in the registry, and a second copy here would be a
+    // second place to change it. The sentence is the set's, as written.
+    "Own this site and want its report taken down? Write to {address}.",
+    { slots: { address: "text" }, fixedBy: "the approved screen set · 3a" },
+  ],
   "chrome.footer.rights": ["TODO(copy)", { slots: {}, fixedBy: "issue 266" }],
 
   /* ── The three legal pages ───────────────────────────────────────────
@@ -60,10 +69,10 @@ export const CHROME_COPY = Object.freeze({
      owner is a legal claim nobody made. The routes exist so the footer
      links reach a page rather than a 404, and each renders its marker
      until written. */
-  "legal.privacy.title": ["TODO(copy)", { slots: {}, fixedBy: "issue 266" }],
+  "legal.privacy.title": ["Privacy", { slots: {}, fixedBy: "the approved screen set · 3a" }],
   "legal.privacy.body": ["TODO(copy)", { slots: {}, fixedBy: "issue 266" }],
-  "legal.terms.title": ["TODO(copy)", { slots: {}, fixedBy: "issue 266" }],
+  "legal.terms.title": ["Terms", { slots: {}, fixedBy: "the approved screen set · 3a" }],
   "legal.terms.body": ["TODO(copy)", { slots: {}, fixedBy: "issue 266" }],
-  "legal.imprint.title": ["TODO(copy)", { slots: {}, fixedBy: "issue 266" }],
+  "legal.imprint.title": ["Imprint", { slots: {}, fixedBy: "the approved screen set · 3a" }],
   "legal.imprint.body": ["TODO(copy)", { slots: {}, fixedBy: "issue 266" }],
 }) satisfies CopyPartition;

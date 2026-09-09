@@ -224,7 +224,31 @@ describe("REQ-093 c5 — the registry renders with every model unavailable", () 
     // ruling — thirty-five of its keys stop waiting and nine the set draws
     // arrive already written, S3's elapsed time and its waiting line among
     // them, and the offer's own cancel line. 202 + 45 = 247.
-    expect(ruled.length).toBe(247);
+    //
+    // 2026-09-08, issue #351 — **S1, the landing** (UI-SPEC S1, ruling 11a).
+    // Nineteen keys land for the screen the approved set draws: thirteen
+    // written by the set (the field's placeholder, the assurance line, the
+    // frame's address and badge, section 01's matrix line, the This-week
+    // badge and its panel's line, the Step eyebrow and its three titles,
+    // the closing cancel line) and six it brackets (the video's line and
+    // caption, section 02's body, the panel's page title, the three Step
+    // bodies). 247 + 13 = 260 … the last seven are #385's and #362's own
+    // fills, which this branch rebased onto: 267 ruled, 256 awaiting,
+    // 650 total, and owner-owed untouched at 127 — this issue promoted no
+    // key to a throw and demoted none.
+    expect(ruled.length).toBe(267);
+    //
+    // 2026-09-08, issue #351 — **the owner's approved screen set (11a)**.
+    // "The artifact's unbracketed strings are approved copy as written",
+    // so S1's own sentences are now values rather than markers. Eleven
+    // keys are filled from the marker — the header and footer's nine
+    // (`chrome.wordmark`, the two nav links, the two footer headings, the
+    // removal line and the three legal titles), the Overview's rising
+    // headline and the AI-answers card title — and twenty new keys land:
+    // thirteen written by the set and seven it brackets. 171 + 11 + 13 =
+    // 195 ruled; 296 + 7 − 11 = 292 awaiting; 598 + 20 = 618 total. Owner-
+    // owed (the empty value) is untouched at 131: this issue promoted no
+    // key to a throw and demoted none.
 
     // Only the ruled sentences carry their slots' `{name}` placeholders —
     // a `TODO(copy)` marker is one literal with no placeholder in it, so
@@ -325,7 +349,7 @@ describe("owner-owed and empty agree both ways", () => {
     expect(new Set(emptyKeys)).toEqual(new Set(OWNER_OWED));
   });
 
-  it("counts: 127 owner-owed, 293 awaiting copy, 202 ruled, 622 total (rule 5.5 — the index states its own coverage)", () => {
+  it("counts: 127 owner-owed, 256 awaiting copy, 267 ruled, 650 total (rule 5.5 — the index states its own coverage)", () => {
     // WO-070 added report.ts's eight landing keys (headline, field label,
     // submit label, five DomainProblem lines), all owner-owed: 30 + 8 = 38.
     // 2026-09-03: the owner ruled on three of them (headline, field label,
@@ -1081,10 +1105,33 @@ describe("owner-owed and empty agree both ways", () => {
     // line, which the set draws under Start on both surfaces that carry the
     // card. 127 owner-owed, 293 − 36 = 257 awaiting copy,
     // 202 + 45 = 247 ruled, 622 + 9 = 631 total.
+    //
+    // 2026-09-08, issue #351 — **S1, the landing** (UI-SPEC S1, ruling 11a).
+    // Nineteen keys land for the screen the approved set draws: thirteen
+    // written by the set (the field's placeholder, the assurance line, the
+    // frame's address and badge, section 01's matrix line, the This-week
+    // badge and its panel's line, the Step eyebrow and its three titles,
+    // the closing cancel line) and six it brackets (the video's line and
+    // caption, section 02's body, the panel's page title, the three Step
+    // bodies). 247 + 13 = 260 … the last seven are #385's and #362's own
+    // fills, which this branch rebased onto: 267 ruled, 256 awaiting,
+    // 650 total, and owner-owed untouched at 127 — this issue promoted no
+    // key to a throw and demoted none.
     expect(OWNER_OWED.length).toBe(127);
-    expect(AWAITING_COPY.length).toBe(257);
-    expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(247);
-    expect(Object.keys(COPY).length).toBe(631);
+    expect(AWAITING_COPY.length).toBe(256);
+    expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(267);
+    expect(Object.keys(COPY).length).toBe(650);
+    // 2026-09-08, issue #351 — **the owner's approved screen set (11a)**.
+    // "The artifact's unbracketed strings are approved copy as written",
+    // so S1's own sentences are now values rather than markers. Eleven
+    // keys are filled from the marker — the header and footer's nine
+    // (`chrome.wordmark`, the two nav links, the two footer headings, the
+    // removal line and the three legal titles), the Overview's rising
+    // headline and the AI-answers card title — and twenty new keys land:
+    // thirteen written by the set and seven it brackets. 171 + 11 + 13 =
+    // 195 ruled; 296 + 7 − 11 = 292 awaiting; 598 + 20 = 618 total. Owner-
+    // owed (the empty value) is untouched at 131: this issue promoted no
+    // key to a throw and demoted none.
 
     // The two representations never overlap: an empty value and the marker
     // are different values, so no key can be on both lists.

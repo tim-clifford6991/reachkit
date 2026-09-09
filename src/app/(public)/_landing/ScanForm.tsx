@@ -111,7 +111,8 @@ export function ScanForm(props: {
       {problem ? (
         <Input
           label={copy("landing.field.label")}
-          placeholder={copy("landing.field.label")}
+          labelHidden
+          placeholder={copy("landing.field.placeholder")}
           name="value"
           value={value}
           onChange={setValue}
@@ -121,16 +122,22 @@ export function ScanForm(props: {
       ) : (
         <Input
           label={copy("landing.field.label")}
-          placeholder={copy("landing.field.label")}
+          labelHidden
+          placeholder={copy("landing.field.placeholder")}
           name="value"
           value={value}
           onChange={setValue}
         />
       )}
+      {/* The screen's one submit control, and the hero's own solid primary
+          (ruling 2b gives this page two — this one and the header's). The
+          approved set draws it beside the field on one row, on the page's
+          own `--bg`: the accent hero is gone with the set, and with it the
+          `on-accent` inversion this control used to take. */}
       <Btn
         type="submit"
         label={copy("landing.submit.label")}
-        variant="on-accent"
+        variant="primary"
         pill
         inFlight={submitting}
       />
