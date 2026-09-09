@@ -1,0 +1,52 @@
+# .github/actions/layout-suite/action.yml — everything the browser sweep needs
+#
+# Two jobs run the layout suite now (issue #404): `layout` in `ci.yml`, which
+# checks the baselines and leaves the captures the master reviews, and
+# `regen` in `baselines.yml`, which rewrites them on a label. Before this
+# action they would have carried the same node, the same `npm ci`, the same
+# Chromium and the same twelve fixture bindings in two places — which is how
+# the two come to disagree about what "the layout suite" is, and a
+# regeneration against a different environment than the check is a
+# regeneration that fails the next run.
+#
+# The `postgres:18` service block stays in each job: a composite action
+# cannot declare `services:`, which is a job-level key.
+name: Set up the layout suite
+description: >-
+  Node, dependencies, Chromium, the db substrate and the fixture
+  environment `src/lib/config/env.ts` parses at build — everything
+  `npm run test:layout` needs, and nothing that runs it.
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 22
+        cache: npm
+    - shell: bash
+      run: npm ci
+    - shell: bash
+      run: npx playwright install --with-deps chromium
+    - uses: ./.github/actions/db-substrate
+    - name: environment (src/lib/config/env.ts parses at build; the Supabase bindings are the substrate's, the rest are fixtures no vendor is reached with)
+      shell: bash
+      run: |
+        set -euo pipefail
+        # `up.sh` already appended SUPABASE_URL and the two real keys for
+        # this substrate to $GITHUB_ENV — the sweep signs in against them,
+        # so they must not be overwritten with fixtures here.
+        {
+          echo "STRIPE_SECRET_KEY=sk_test_fixture"
+          echo "STRIPE_WEBHOOK_SECRET=whsec_fixture"
+          echo "STRIPE_PRICE_ID=price_fixture"
+          echo "RESEND_API_KEY=re_fixture"
+          echo "DATAFORSEO_LOGIN=fixture"
+          echo "DATAFORSEO_PASSWORD=fixture"
+          echo "ANTHROPIC_API_KEY=sk-ant-fixture"
+          echo "IP_HASH_SALT=fixture"
+          echo "KILL_SWITCH=false"
+          echo "OWNER_EMAILS=owner@example.com"
+          echo "NEXT_PUBLIC_APP_URL=http://127.0.0.1:3000"
+          echo "HOSTED_EDGE_CNAME_TARGET=content.example.com"
+        } >> "$GITHUB_ENV"

@@ -28,6 +28,13 @@ jobs:
   layout:
     name: layout conformance (browser)
     runs-on: ubuntu-latest
+    # Renders come from here, not from the box (issue #404). The suite this
+    # job runs already photographs every screen at 1280; composing the
+    # approved screen beside that picture costs a step here and saves four
+    # implementers a `next build` each on four shared cores.
+    permissions:
+      contents: write
+      pull-requests: write
     # The sweep renders the real `(account)` screens, which since #192 verify
     # the session against the `users` row — so this job needs the same live
     # database the `db` job runs against (#193). `scripts/db-substrate/` is
@@ -49,34 +56,76 @@ jobs:
           --health-retries 20
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-      - run: npx playwright install --with-deps chromium
-      - uses: ./.github/actions/db-substrate
-      - name: environment (src/lib/config/env.ts parses at build; the Supabase bindings are the substrate's, the rest are fixtures no vendor is reached with)
+      - uses: ./.github/actions/layout-suite
+      - name: the sweep, capturing every 1280-light screen as it goes
+        env:
+          RENDER_CAPTURE_DIR: ${{ runner.temp }}/captures
+        run: npm run test:layout
+
+      # Everything below runs whether or not the suite passed. A baseline
+      # that went red is exactly the run whose renders the master wants.
+      - name: main's baselines, to see which screens this branch moved
+        if: ${{ always() && github.event_name == 'pull_request' }}
         run: |
           set -euo pipefail
-          # `up.sh` already appended SUPABASE_URL and the two real keys for
-          # this substrate to $GITHUB_ENV — the sweep signs in against them,
-          # so they must not be overwritten with fixtures here.
-          {
-            echo "STRIPE_SECRET_KEY=sk_test_fixture"
-            echo "STRIPE_WEBHOOK_SECRET=whsec_fixture"
-            echo "STRIPE_PRICE_ID=price_fixture"
-            echo "RESEND_API_KEY=re_fixture"
-            echo "DATAFORSEO_LOGIN=fixture"
-            echo "DATAFORSEO_PASSWORD=fixture"
-            echo "ANTHROPIC_API_KEY=sk-ant-fixture"
-            echo "IP_HASH_SALT=fixture"
-            echo "KILL_SWITCH=false"
-            echo "OWNER_EMAILS=owner@example.com"
-            echo "NEXT_PUBLIC_APP_URL=http://127.0.0.1:3000"
-            echo "HOSTED_EDGE_CNAME_TARGET=content.example.com"
-          } >> "$GITHUB_ENV"
-      - run: npm run test:layout
+          git fetch --depth=1 origin main
+          mkdir -p "${{ runner.temp }}/main"
+          git archive FETCH_HEAD tests/ui/layout/__screenshots__ | tar -x -C "${{ runner.temp }}/main"
+          ls -1 "${{ runner.temp }}/main/tests/ui/layout/__screenshots__" | wc -l
+
+      - name: the approved screen beside this branch, per moved route
+        if: ${{ always() && github.event_name == 'pull_request' }}
+        env:
+          # A PR body may ask for a screen it did not move:
+          #   Renders: /app/settings, /pricing
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          set -euo pipefail
+          also="$(printf '%s' "$PR_BODY" | tr -d '\r' | sed -n 's/^ *Renders: *//p' | tr '\n' ',' || true)"
+          echo "Renders: line asks for: ${also:-(nothing)}"
+          node scripts/renders/side-by-side.mjs \
+            --captures "${{ runner.temp }}/captures" \
+            --baselines "${{ runner.temp }}/main/tests/ui/layout/__screenshots__" \
+            --out "${{ runner.temp }}/side-by-side" \
+            --also "$also"
+
+      - name: the captures and the side-by-sides, as one artifact
+        if: ${{ always() && github.event_name == 'pull_request' }}
+        id: renders
+        uses: actions/upload-artifact@v4
+        with:
+          name: renders-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/captures
+            ${{ runner.temp }}/side-by-side
+          if-no-files-found: warn
+          retention-days: 14
+
+      # A fork's token cannot push or comment, and there is nothing to be
+      # done about that here; the artifact above is still uploaded.
+      - name: one comment per run, with the side-by-sides in it
+        if: ${{ always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          if [ ! -f "${{ runner.temp }}/side-by-side/renders.json" ]; then
+            echo "the sweep left no renders — the layout job failed before Chromium opened"
+            exit 0
+          fi
+          raw="$(scripts/renders/publish.sh \
+            "${{ github.event.pull_request.number }}" \
+            "${{ github.run_id }}" \
+            "${{ runner.temp }}/side-by-side")"
+          node scripts/renders/comment.mjs \
+            --renders "${{ runner.temp }}/side-by-side/renders.json" \
+            --raw "$raw" \
+            --artifact "${{ steps.renders.outputs.artifact-url }}" \
+            --run "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            > "${{ runner.temp }}/comment.md"
+          gh pr comment "${{ github.event.pull_request.number }}" \
+            --body-file "${{ runner.temp }}/comment.md"
 
   db:
     name: schema · RLS (live Postgres)
