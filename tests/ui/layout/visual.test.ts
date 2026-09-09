@@ -65,8 +65,10 @@ import type { Page } from "playwright";
 import { BAND_MIN } from "@/ui/layout/bands";
 import { getAccountCookie, getBaseURL, getLiveAccountCookie, getSetupAccountCookie, getWeekZeroAccountCookie, withPage } from "./browser";
 import {
+  ACCOUNT_SESSION_COOKIE,
   enumerateRoutes,
   headersFor,
+  ROUTE_REFERENCE,
   SEGMENT_FIXTURES,
   urlFor as routeUrl,
   type EnumeratedRoute,
@@ -242,6 +244,91 @@ console.log(
     ` = ${SHOTS.length * BANDS.length * THEMES.length} baseline(s)`
 );
 
+/**
+ * Where this run leaves the pictures the master reviews — CI only (issue
+ * #404).
+ *
+ * The side-by-side render used to be an implementer's job: a `next build`
+ * and a Chromium on a four-core box shared by four agents, three of which
+ * were doing the same thing, while GitHub ran the identical suite in
+ * parallel for free. The suite that already photographs every screen is the
+ * one place the picture is free, so when `RENDER_CAPTURE_DIR` is set this
+ * file drops two files per surface into it and `scripts/renders/` does the
+ * rest:
+ *
+ *   * `<name>-1280-light.png` — the **viewport** shot, byte-comparable with
+ *     the committed baseline of the same name, which is what tells the
+ *     composer which routes this branch actually moved;
+ *   * `<name>-full.png` — the same screen **full page**, which is what a
+ *     fidelity review needs: the approved screens are 1280×3400 and a
+ *     480-pixel crop beside one of those compares nothing.
+ *
+ * Unset — every local run — this costs a branch test and nothing else.
+ */
+const CAPTURE_DIR = process.env.RENDER_CAPTURE_DIR;
+
+/** The band the approved set is drawn at (`docs/design/approved/README.md`:
+ *  "twenty light and four dark, at 1280"), so it is the only band worth
+ *  capturing for a comparison against it. */
+const CAPTURE_WIDTH = BAND_MIN.wide;
+
+/** The theme the approved set has for every screen; four of them also have
+ *  a dark render, but light is the set that is complete. */
+const CAPTURE_THEME: Theme = "light";
+
+/**
+ * Which approved screen a capture is a picture of.
+ *
+ * `ROUTE_REFERENCE` is the repository's one answer to "which screen is this
+ * route?" (issue #358) and this reads it rather than keeping a second list.
+ * Three doors need a rule of their own, and each is stated where it is made:
+ *
+ *   * **week 0** is S13, not S12 — the same address, a different approved
+ *     screen (`overview0`);
+ *   * an **`(account)` address photographed signed out** is the sign-in
+ *     prompt, so its approved screen is S9. Pairing it with the Overview
+ *     would put a picture of a door beside a drawing of a room;
+ *   * the **live draft** carries a database id where the reference table
+ *     carries the fixture one, so the fixture path is what is looked up.
+ */
+function screenFor(shot: Shot): `S${number}` | undefined {
+  if (shot.name.startsWith("week0")) return "S13";
+  const signedOut = shot.route.cookie === undefined || shot.route.cookie === ACCOUNT_SESSION_COOKIE;
+  const isAccountAddress = shot.route.path === "/app" || shot.route.path.startsWith("/app/") || shot.route.path === "/setup" || shot.route.path.startsWith("/setup/");
+  if (signedOut && isAccountAddress) return "S9";
+  const fixturePath = shot.route.path.replace(
+    `/app/draft/${LIVE_DRAFT_ID}`,
+    `/app/draft/${SEGMENT_FIXTURES["[draftId]"]}`
+  );
+  return ROUTE_REFERENCE[fixturePath];
+}
+
+/** One row per capture this run will leave behind, so `scripts/renders/`
+ *  never has to re-derive a route or a screen id from a filename. */
+function captureManifest(): string {
+  return JSON.stringify(
+    {
+      width: CAPTURE_WIDTH,
+      theme: CAPTURE_THEME,
+      shots: SHOTS.map((shot) => ({
+        name: shot.name,
+        route: shot.route.path,
+        screen: screenFor(shot) ?? null,
+        viewport: `${shot.name}-${CAPTURE_WIDTH}-${CAPTURE_THEME}.png`,
+        full: `${shot.name}-full.png`,
+      })),
+    },
+    null,
+    2
+  );
+}
+
+if (CAPTURE_DIR) {
+  mkdirSync(CAPTURE_DIR, { recursive: true });
+  writeFileSync(path.join(CAPTURE_DIR, "manifest.json"), captureManifest());
+  console.log(`tests/ui/layout/visual.test.ts: capturing renders into ${CAPTURE_DIR}`);
+}
+
 /** A route path as a filename. Never a hash: a baseline a reviewer cannot
  *  match to an address by reading its name is a baseline nobody checks. */
 function slug(routePath: string): string {
@@ -405,18 +492,38 @@ describe(`visual baselines — ${SHOTS.length} surface(s) × ${BANDS.length} ban
       it(
         `${shot.name} @ ${width}px matches its baseline in both themes`,
         async () => {
-          const taken = await withPage(
+          const { taken, fullPage } = await withPage(
             width,
             async (page) => {
               const url = urlFor(shot.route);
               const shots: Record<Theme, Buffer> = {} as Record<Theme, Buffer>;
+              let full: Buffer | undefined;
               // One browser for both themes at this width: a launch costs
               // more than the two navigations put together.
-              for (const theme of THEMES) shots[theme] = await shoot(page, url, theme);
-              return shots;
+              for (const theme of THEMES) {
+                shots[theme] = await shoot(page, url, theme);
+                // The extra shutter for CI's side-by-side (issue #404),
+                // taken here and nowhere else: the page is already loaded,
+                // already still and already past `document.fonts.ready`, so
+                // the whole screen costs one screenshot and no navigation.
+                if (CAPTURE_DIR && width === CAPTURE_WIDTH && theme === CAPTURE_THEME) {
+                  full = await page.screenshot({ fullPage: true });
+                }
+              }
+              return { taken: shots, fullPage: full };
             },
             headersFor(shot.route)
           );
+
+          // Written before the comparison, deliberately: the run the master
+          // most wants to look at is the one where a baseline went red.
+          if (CAPTURE_DIR && width === CAPTURE_WIDTH) {
+            writeFileSync(
+              path.join(CAPTURE_DIR, `${shot.name}-${width}-${CAPTURE_THEME}.png`),
+              taken[CAPTURE_THEME]
+            );
+            if (fullPage) writeFileSync(path.join(CAPTURE_DIR, `${shot.name}-full.png`), fullPage);
+          }
 
           const failures: string[] = [];
           for (const theme of THEMES) {
