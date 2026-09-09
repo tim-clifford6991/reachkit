@@ -4,8 +4,8 @@
 // unchanged: a path-glob suite whose enumerator is the route tree, so a
 // surface added later is in scope by construction"). Walks
 // `src/app/**/page.tsx`, strips route groups from the URL it derives, and
-// fills a dynamic segment or a `(hosted)` page's `Host` header from the one
-// fixture map below — a segment or host with no row here fails, naming the
+// fills a dynamic segment or a `(hosted)` page's `Host` header from the
+// fixture maps below — a segment or host with no row here fails, naming the
 // route, rather than being silently skipped (rule 5.5).
 import { readdirSync } from "node:fs";
 import path from "node:path";
@@ -128,34 +128,70 @@ export const ROUTE_REFERENCE: Readonly<Record<string, `S${number}`>> = {
   /**
    * REFERENCE: S19 — Hosted page (§S19; REQ-059).
    *
-   * The sweep renders this route's 404 arm, which is S8's screen — see the
-   * `HOST_FIXTURES` note below. The reference is still S19, because the
-   * reference names what the route *is for*, not which arm a fixture
-   * environment happens to reach.
+   * The route is swept through **two** hosts (issue #418): the default
+   * below, whose site has published no page at this address, renders the
+   * 404 — S8's screen, which `visual.test.ts` pairs it with — and
+   * `PUBLISHED_HOST_FIXTURES` renders the page itself, which is S19. The
+   * reference here is S19 because it names what the route *is for*, not
+   * which arm a given host reaches.
    */
   "/hosted-page/best-onboarding-tools": "S19",
 };
 
+/** The one `(hosted)` page in the tree, keyed as the maps below key it:
+ *  the file's own path relative to the repo root, POSIX separators. Named
+ *  once so the two host maps cannot key it differently. */
+export const HOSTED_PAGE_FILE = "src/app/(hosted)/hosted-page/[...slug]/page.tsx";
+
 /**
- * One row per `(hosted)` page, keyed by the file's own path relative to the
- * repo root (POSIX separators), naming the `Host` header the suite sends
- * when rendering it. Empty today for the same reason as `SEGMENT_FIXTURES`.
+ * One row per `(hosted)` page, keyed by `HOSTED_PAGE_FILE`'s spelling,
+ * naming the `Host` header the suite sends when rendering it.
+ *
+ * **This map is the route's 404 arm, deliberately** (issue #418). Its host
+ * is the reserved account's domain, and that account publishes nothing —
+ * so the host resolves to a real site, the site has no page at this
+ * address, and the route answers `(hosted)/not-found.tsx`. That is a real
+ * surface of this product and the layout law applies to it exactly as to
+ * any other, so it keeps its baselines and its side-by-side (against S8,
+ * which is the screen it actually draws).
+ *
+ * Note what this comment used to say — that the sweep ran "against a
+ * fixture environment with no database behind it". It has had a seeded
+ * database since #193, and the 404 was coming from `visitorPath`'s
+ * rewrite instead. A reason that has stopped being true is worse than
+ * none: it is why the blank capture went eleven issues unexamined.
+ *
+ * It is **not** the whole of what this route is for, which is what #418
+ * found: swept through this host alone, S19 was the one approved screen
+ * the CI render path had no picture of. `PUBLISHED_HOST_FIXTURES` below is
+ * the other arm.
  */
 const HOST_FIXTURES: Readonly<Record<string, string>> = {
   /**
    * The hosted edge's page (issue #49, `BUILD.md` §9). `content.` plus the
    * fixture domain is the shape `resolveHost` matches, so the request
    * reaches the hosted group rather than the sign-in redirect.
-   *
-   * **The sweep measures this route's 404 arm, and that is the honest
-   * scope.** The layout suite runs `next build` against a fixture
-   * environment with no database behind it, so the Host resolves to no
-   * site and the route renders `(hosted)/not-found.tsx` — a real surface
-   * of this product, and one the layout law applies to exactly as it does
-   * to any other. The published template's own layout is asserted where it
-   * can be rendered with a page in hand, in `tests/hosted/`.
    */
-  "src/app/(hosted)/hosted-page/[...slug]/page.tsx": "content.example.com",
+  [HOSTED_PAGE_FILE]: "content.example.com",
+};
+
+/**
+ * The same page, asked of the customer who has actually published one
+ * (issue #418).
+ *
+ * `seed.ts`'s `seedHostedPublisher()` writes that customer: a site on
+ * `publisher.test` whose one live publication is at this route's
+ * `[...slug]` fixture. Sweeping the route through this host renders S19
+ * itself — the customer's bar, their eyebrow and byline, the body with
+ * §8's passage marked, the source line and their footer — which is the arm
+ * the approved set draws and the arm a fidelity review needs a picture of.
+ *
+ * A second map rather than a changed row, because both arms are wanted:
+ * `HOST_FIXTURES` is what the property sweep and the signed-out captures
+ * enumerate with, and this is what `visual.test.ts` adds one capture for.
+ */
+export const PUBLISHED_HOST_FIXTURES: Readonly<Record<string, string>> = {
+  [HOSTED_PAGE_FILE]: "content.publisher.test",
 };
 
 /**
@@ -190,12 +226,52 @@ export const ACCOUNT_SESSION_COOKIE = `${SESSION_COOKIE_NAME}=layout-sweep-fixtu
  * every name to loopback, so navigating to
  * `http://content.example.com:{port}` reaches the local server and the
  * browser sends that Host itself — the real header on the real request.
+ *
+ * **And its path is the visitor's, not the router's** (issue #418): see
+ * `visitorPath` below.
  */
 export function urlFor(baseURL: string, route: EnumeratedRoute): string {
   if (route.host === undefined) return baseURL + route.path;
-  const url = new URL(baseURL + route.path);
+  const url = new URL(baseURL + visitorPath(route.path));
   url.hostname = route.host;
   return url.toString();
+}
+
+/** The prefix `src/middleware.ts` rewrites a `content.` host's request
+ *  *into* — a destination, never an address.
+ *
+ *  Restated here rather than imported: the middleware's own constant is
+ *  module-private and that file is Edge-bundled, so importing it into a
+ *  test module is not free. `routes.test.ts` holds the two equal. */
+const HOSTED_REWRITE_PREFIX = "/hosted-page";
+
+/**
+ * A `(hosted)` route's address **as a visitor types it**, which is the
+ * only address it can be reached at (issue #418).
+ *
+ * On a `content.` Host the middleware rewrites every path into
+ * `/hosted-page{path}` — that is the authorisation boundary, not a
+ * convenience, and it applies to *every* path including this one. So the
+ * sweep driving the enumerator's own `/hosted-page/{slug}` had it
+ * prefixed a second time: `/hosted-page/hosted-page/{slug}`, a two-segment
+ * catch-all, which `oneSegment` refuses because
+ * `content.{domain}/a/b` is not a deeper page — it is not a page at all.
+ * Every capture of this route was therefore the 404, whichever Host was
+ * sent and whatever the database held, which is why S19 was the one
+ * approved screen the CI render path (#404) could not review, and why the
+ * blank frame survived a seeded publication (#418, first attempt).
+ *
+ * Navigating to the customer's own address instead lets the rewrite
+ * happen exactly once, which is what a visitor's request does.
+ *
+ * The route's *name* is unchanged — baselines, `ROUTE_REFERENCE` and the
+ * design index all key off `route.path`, which is still the router's
+ * address. Only the URL the browser is pointed at moves.
+ */
+export function visitorPath(routePath: string): string {
+  return routePath.startsWith(`${HOSTED_REWRITE_PREFIX}/`)
+    ? routePath.slice(HOSTED_REWRITE_PREFIX.length)
+    : routePath;
 }
 
 /** An `(account)` page's session `Cookie` — `src/middleware.ts` is

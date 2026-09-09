@@ -179,3 +179,76 @@ export function writeEvidence(index: number): string {
 export function acceptanceFor(index: number): string {
   return JSON.stringify({ form: "top20", query: `onboarding tools ${index}` }).replaceAll("'", "''");
 }
+
+/**
+ * The customer's published page the sweep photographs S19 against
+ * (issue #418).
+ *
+ * **Why there is a page here at all.** The hosted route resolves its
+ * customer from the `Host` header and then looks that host's site up for a
+ * page at the address in the URL. The sweep sent a host whose site had
+ * published nothing, so every capture of `/hosted-page/{slug}` was the 404
+ * — the one approved screen the CI render path (#404) could not review,
+ * because the picture it composed against S19 was an empty frame. These
+ * rows are the page that host now serves.
+ *
+ * **Every value is fixed, and the date is the set's own.** S19 draws
+ * "published 4 Sep 2026" and the byline is `publishedAt` written in the
+ * site's zone, so the instant is that day rather than `now()` — a baseline
+ * whose byline moved every midnight is a baseline that goes red for
+ * nobody's change.
+ *
+ * **The body is the shape the set draws**: an opening paragraph, a section
+ * heading, the paragraph §8's recorded passage sits inside, a second
+ * heading and a closing paragraph. The passage occurs verbatim in the body
+ * because `markPassage` marks what it finds and marks nothing otherwise —
+ * a fixture whose passage had drifted from its body would photograph the
+ * unmarked arm while claiming to photograph the marked one.
+ *
+ * The FAQ draws no pixel: `FAQPage` is emitted into the head from
+ * `meta.faq`. It is here so the arm the sweep renders is the whole page a
+ * customer gets, schema included, rather than the half of it that shows.
+ */
+export const PUBLISHER_PAGE = Object.freeze({
+  draftId: "00000000-0000-0000-0000-0000000000f1",
+  /** The address the page went live at — the last segment of `live_url`,
+   *  and the `[...slug]` fixture `routes.ts` already enumerates this route
+   *  with, so the sweep's URL and the published row name one page. */
+  slug: "best-onboarding-tools",
+  title: "Best onboarding tools",
+  /** The eyebrow, off `sites.category`. */
+  category: "employee onboarding software",
+  publishedAt: "2026-09-04T09:00:00.000Z",
+  bodyMd: [
+    "Picking an onboarding tool is mostly a question of who has to run it after the first week.",
+    "",
+    "## What the shortlist has in common",
+    "",
+    "Every tool here puts a name against each step, so a stalled account has an owner rather " +
+      "than a queue. Two thirds of new hires say a checklist they can see is what got them to " +
+      "their first real task. That is most of the difference between a tool and a folder of " +
+      "documents.",
+    "",
+    "## What to check before you buy",
+    "",
+    "Ask for the export. A tool that cannot hand back the checklists you wrote is a tool you " +
+      "cannot leave, and the leaving is the part nobody budgets for.",
+  ].join("\n"),
+  grounded: Object.freeze({
+    passage:
+      "Two thirds of new hires say a checklist they can see is what got them to their first real task.",
+    url: "https://research.example.org/onboarding-2026",
+    readAt: "2026-09-01T09:00:00.000Z",
+  }),
+  faq: Object.freeze([
+    Object.freeze({
+      question: "How long should onboarding take?",
+      answer:
+        "Long enough for a new hire to finish one real task on their own, which is usually the first week.",
+    }),
+    Object.freeze({
+      question: "Can we move our checklists to another tool later?",
+      answer: "Only where the tool exports them. Ask for the export before you buy, not after.",
+    }),
+  ]),
+});

@@ -55,6 +55,7 @@ import {
   acceptanceFor,
   ACCESS_ENDS_ON,
   LIVE_DRAFTS,
+  PUBLISHER_PAGE,
   scheduledFor,
   seededVolume,
   SETUP_COMPLETED_ON,
@@ -96,6 +97,34 @@ export const SETUP_ACCOUNT: AppAccount = Object.freeze({
   // (`_setup/provider.ts` says why — the domain is the thing being set).
   domain: "newco.test",
   createdAt: new Date("2026-09-05T06:00:00.000Z"),
+  timeZone: "America/New_York",
+  mode: "autopilot",
+});
+
+/**
+ * The fifth account: the customer whose page the hosted edge serves
+ * (issue #418).
+ *
+ * **A site of its own, and that is the point.** S19 is drawn from a
+ * *published page*, and the sweep's four other accounts each hold a
+ * different `/app` state that its baselines are the record of — adding a
+ * live publication to any of them would move pictures this issue is not
+ * about. This one exists only to be published from: nothing signs in as it,
+ * no `/app` address is photographed through it, and its every value is
+ * chosen so the hosted page draws its densest arm.
+ *
+ * `publisher.test` names the role rather than a brand, like `newco.test`
+ * and `firstweek.test` — and the domain **is** the brand on this surface
+ * (`HostedPublisher.name`: the one identity fact this product holds), so it
+ * is what the bar, the byline and the footer say.
+ */
+export const PUBLISHER_ACCOUNT: AppAccount = Object.freeze({
+  userId: "00000000-0000-0000-0000-0000000000a5",
+  siteId: "00000000-0000-0000-0000-0000000000b5",
+  domain: "publisher.test",
+  createdAt: new Date("2026-08-17T06:00:00.000Z"),
+  // A stated zone (REQ-073 c1), and the one the byline's date is written
+  // in: `2026-09-04T09:00:00Z` is 4 Sep here, which is the day S19 draws.
   timeZone: "America/New_York",
   mode: "autopilot",
 });
@@ -145,6 +174,7 @@ const EMAIL_OF: Readonly<Record<string, string>> = {
   [LIVE_ACCOUNT.userId]: "layout-sweep-live@example.com",
   [SETUP_ACCOUNT.userId]: "layout-sweep-setup@example.com",
   [WEEK_ZERO_ACCOUNT.userId]: "layout-sweep-week0@example.com",
+  [PUBLISHER_ACCOUNT.userId]: "layout-sweep-publisher@example.com",
 };
 
 /** Kept for the callers that named it before there were two accounts. */
@@ -201,6 +231,22 @@ const WEEK_ZERO_PUBLISHING = Object.freeze({
   doNotClaim: ["the fastest onboarding on the market"],
   category: "user onboarding software",
   competitors: ["asana.com", "notion.so"],
+});
+
+/** The publisher site's §4.7 row. Only `category` is drawn — it is S19's
+ *  eyebrow, off `sites.category` — and the rest is stated because a site
+ *  that has published a page has certainly answered setup. `competitors`
+ *  and `doNotClaim` are this customer's own, not the live account's, so no
+ *  reader can mistake the two sites for one. */
+const PUBLISHER_PUBLISHING = Object.freeze({
+  mode: "autopilot",
+  vetoHours: 24,
+  publishTime: "07:00",
+  enabled: true,
+  voiceText: "Plain, specific, and never louder than the evidence.",
+  doNotClaim: ["the only onboarding tool you will ever need"],
+  category: PUBLISHER_PAGE.category,
+  competitors: ["appcues.com", "userpilot.com"],
 });
 
 const LIVE_PUBLISHING = Object.freeze({
@@ -441,6 +487,47 @@ export function seedWeekZeroAccount(): void {
 }
 
 /**
+ * The customer whose page the hosted edge serves (issue #418).
+ *
+ * **What was broken.** `/hosted-page/{slug}` resolves its customer from the
+ * `Host` header, and the sweep sent `content.example.com` — the reserved
+ * account's domain, a site that has published nothing. The route did the
+ * right thing and answered 404, so every capture of S19 was the not-found
+ * screen and the CI render composed the approved hosted page beside an
+ * empty white frame (#416's run). This seeds the page that host was
+ * missing, on a site of its own so no other baseline moves.
+ *
+ * **Everything S19 draws comes from these rows**: the bar's name and the
+ * footer line are the domain, the eyebrow is `sites.category`, the byline's
+ * date is `publications.published_at` written in the site's zone, the body
+ * is `drafts.body_md` with `grounded_fact`'s passage marked inside it, the
+ * source line under it is that record's address and date, and the canonical
+ * note is composed from the domain and the slug. Nothing on the surface is
+ * a fixture branch: this is the same live read a visitor's request makes.
+ *
+ * The 404 arm keeps its own picture — `routes.ts`'s `HOST_FIXTURES` still
+ * sends `content.example.com`, which still resolves to a site that has
+ * published no page at this address.
+ */
+export function seedHostedPublisher(): void {
+  seedSite(PUBLISHER_ACCOUNT, {
+    drafts: [
+      {
+        id: PUBLISHER_PAGE.draftId,
+        state: "published",
+        title: PUBLISHER_PAGE.title,
+        bodyMd: PUBLISHER_PAGE.bodyMd,
+        meta: { faq: PUBLISHER_PAGE.faq },
+        groundedFact: PUBLISHER_PAGE.grounded,
+      },
+    ],
+    publish: true,
+    published: { slug: PUBLISHER_PAGE.slug, at: PUBLISHER_PAGE.publishedAt },
+    publishing: PUBLISHER_PUBLISHING,
+  });
+}
+
+/**
  * The founder who is still in setup (issue #272), and the report their
  * address already has behind it.
  *
@@ -613,8 +700,29 @@ function seedSite(
     /** `scheduledIn` is optional: the reserved account's single draft sits
      *  on no date (its screens are drawn from fixtures), and the live
      *  account's three carry one so the calendar has pages to draw. */
-    drafts: readonly { id: string; state: string; title: string; scheduledIn?: number }[];
+    drafts: readonly {
+      id: string;
+      state: string;
+      title: string;
+      scheduledIn?: number;
+      /** The page's own body, where the caller has one. The default is a
+       *  single line, which is all a `/app` screen ever renders of a draft;
+       *  the hosted page renders the whole document, so its fixture states
+       *  it (#418). */
+      bodyMd?: string;
+      /** `drafts.meta` and `drafts.grounded_fact` as the generator writes
+       *  them. Absent for every `/app` account deliberately — #268's
+       *  omitted arm is the one those baselines hold — and stated by the
+       *  publisher, whose page draws the marked passage and its source. */
+      meta?: Record<string, unknown>;
+      groundedFact?: Record<string, unknown>;
+    }[];
     publish?: boolean;
+    /** The address the published draft went live at, and when. Without one
+     *  the address is the draft's own id at the moment of seeding, which is
+     *  all `/app`'s live reads need — and is neither a page slug nor a
+     *  fixed date, so the hosted page states both (#418). */
+    published?: { slug: string; at: string };
     rivals?: readonly { domain: string; weekly: readonly number[] }[];
     publishing?: PublishingRow;
   }
@@ -689,10 +797,13 @@ function seedSite(
     // It is reachable in production through a deleted or unreadable
     // opportunity, and `tests/publish/record/record.test.ts` holds it
     // against the database double instead.
+    const bodyMd =
+      draft.bodyMd ??
+      "A paragraph of body copy, so the draft view renders a page rather than an empty one";
     sql(
-      `insert into drafts (id, opportunity_id, site_id, state, title, body_md, scheduled_for) values ` +
+      `insert into drafts (id, opportunity_id, site_id, state, title, body_md, meta, grounded_fact, scheduled_for) values ` +
         `('${draft.id}', '${opportunityId}', '${siteId}', '${draft.state}', '${draft.title}', ` +
-        `'A paragraph of body copy, so the draft view renders a page rather than an empty one', ` +
+        `'${quote(bodyMd)}', ${jsonbOrNull(draft.meta)}, ${jsonbOrNull(draft.groundedFact)}, ` +
         `${draft.scheduledIn === undefined ? "null" : `'${scheduledFor(draft.scheduledIn)}'`});`
     );
   }
@@ -708,11 +819,27 @@ function seedSite(
   );
   const published = opts.drafts.find((draft) => draft.state === "published");
   if (published !== undefined) {
+    const address = opts.published?.slug ?? published.id;
+    const at = opts.published === undefined ? "now()" : `'${opts.published.at}'`;
     sql(
       `insert into publications (draft_id, site_id, destination, mode, live_url, published_at, delivery_state) values ` +
-        `('${published.id}', '${siteId}', 'hosted', 'autopilot', 'https://content.${domain}/${published.id}', now(), 'delivered');`
+        `('${published.id}', '${siteId}', 'hosted', 'autopilot', 'https://content.${domain}/${address}', ${at}, 'delivered');`
     );
   }
+}
+
+/** A string as a SQL literal's body. One escape, used by every statement
+ *  above that writes prose a fixture wrote rather than an identifier this
+ *  file chose. */
+function quote(value: string): string {
+  return value.replaceAll("'", "''");
+}
+
+/** A jsonb column's value, or `null` where the caller stated none — never
+ *  `'{}'`, which is a blob the generator never writes and which every
+ *  reader downstream would have to tell apart from an absent one. */
+function jsonbOrNull(value: Record<string, unknown> | undefined): string {
+  return value === undefined ? "null" : `'${quote(JSON.stringify(value))}'::jsonb`;
 }
 
 function rows(statement: string): string[] {
@@ -767,6 +894,7 @@ export {
   LIVE_ACCOUNT,
   LIVE_DRAFTS,
   LIVE_PUBLISHING,
+  PUBLISHER_PAGE,
   RESERVED_ACCOUNT,
   SEEDED_DRAFT_ID,
   SEEDED_EMAIL,
