@@ -67,6 +67,25 @@ export const SIGNIN_COPY = Object.freeze({
   "signin.address.invalid": ["TODO(copy)", { slots: {}, fixedBy: "REQ-098 c6" }],
   "signin.link_dead": ["TODO(copy)", { slots: {}, fixedBy: "REQ-098 c7" }],
 
+  // ── The two answered arms (UI-SPEC S9, issue #373) ───────────────────
+  //
+  // The approved set draws the left panel three ways: the request form, a
+  // **sent** arm and an **expired** arm. Each answered arm is a chip, a
+  // head, the line the answer already had, and one control back to the
+  // form — so the five lines above keep their jobs and only the frame
+  // around them is new.
+  //
+  // The two heads and the two controls are bracketed in the set and stay
+  // the owner's; `signin.sent.to` is not, and is approved as written
+  // (ruling 11a). Its `{address}` is what the visitor typed, echoed back —
+  // never one this screen looked up, which is why it takes a slot rather
+  // than naming an account.
+  "signin.sent.head": ["TODO(copy)", { slots: {}, fixedBy: "REQ-098 c3" }],
+  "signin.sent.to": ["sent to {address}", { slots: { address: "text" }, fixedBy: "REQ-098 c3" }],
+  "signin.sent.resend": ["TODO(copy)", { slots: {}, fixedBy: "REQ-098 c3" }],
+  "signin.expired.head": ["TODO(copy)", { slots: {}, fixedBy: "REQ-098 c7" }],
+  "signin.expired.submit": ["TODO(copy)", { slots: {}, fixedBy: "REQ-098 c7" }],
+
   // ── The accent panel beside the form (issue #266) ────────────────────
   //
   // The card idiom's sign-in screen is two panels: the one action on the
@@ -89,13 +108,17 @@ export const SIGNIN_COPY = Object.freeze({
     { slots: {}, fixedBy: "owner-supplied, 2026-09-02" },
   ],
 
-  // The one owed string this screen adds, and it is owed for a reason
-  // `design/tokens.md` §9.4 states: the panel shows a score for a named
-  // domain to a stranger who has not signed in, and of the three things
-  // that could be — a real scan of *their* domain, a labelled specimen, or
-  // an invented number — only the second is honest here. So the figures are
-  // the reserved fixture account's own, and this line is what says so. It
-  // renders the marker until the owner writes it; what it must never do is
-  // go unsaid, which is how an invented measurement ships.
+  // The glass card's pill, drawn on the specimen (ruling 5c). Approved as
+  // written: it is one of the figures REQ-098 c4 quotes verbatim, and 5c
+  // settles what it is a figure *of* — the reserved domain's example, not a
+  // stranger's measurement.
+  "signin.panel.delta": ["+6 pts est.", { slots: {}, fixedBy: "REQ-098 c4" }],
+
+  // **No longer spoken by this screen** (ruling 5c, 2026-09-08): "the
+  // sign-in card … render[s] as drawn on `example.com`, without a source
+  // date or an example line", which amends REQ-098 c5 to admit a
+  // reserved-domain specimen without the written line #266 added here. The
+  // key stays declared — the owner may want the sentence somewhere — and
+  // the screen stops saying it.
   "signin.panel.specimen": ["TODO(copy)", { slots: {}, fixedBy: "issue 266 · tokens.md §9.4" }],
 }) satisfies CopyPartition;
