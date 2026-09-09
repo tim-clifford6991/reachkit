@@ -177,7 +177,7 @@ const UNEDITED: DraftFacts = {
   state: "in_review",
   firstEditedAt: null,
   groundedFact: {
-    fact: GROUNDED_FACT,
+    passage: GROUNDED_FACT,
     url: "https://www.hubspot.com/pricing/crm",
     readAt: READ_AT,
   },
