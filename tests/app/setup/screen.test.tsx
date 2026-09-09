@@ -250,7 +250,9 @@ describe('REQ-028 c1 and c2 — mode and destination', () => {
       "setup-destination-line-hosted",
       "setup-destination-line-wordpress",
     ]) {
-      expect(tree.querySelector(`[data-testid="${id}"]`), id).not.toBeNull();
+      const option = tree.querySelector(`[data-testid="${id}"]`);
+      expect(option, id).not.toBeNull();
+      expect(option?.querySelector(".rk-choice-d")?.textContent ?? "", id).not.toBe("");
     }
   });
 

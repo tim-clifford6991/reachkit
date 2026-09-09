@@ -7,6 +7,10 @@
 // card it belongs to. A chip row cannot hold the line or the record, which
 // is why the set draws a card.
 //
+// **`rk-choice`, not `rk-opt`.** #360's calendar stage filter already
+// owns `.rk-opt`; two shapes under one class is how one screen restyles
+// another, and the calendar's baselines caught exactly that.
+//
 // **Not a sixteenth daisyUI component.** BUILD §2.2's set of fifteen is
 // closed and this is a widening of the idiom the way `ActionPanel` is: the
 // idiom's own vocabulary (`--surface`, `--r-box`, the accent tint) on a
@@ -43,16 +47,16 @@ export function OptionCard(p: {
   return (
     <button
       type="button"
-      className="rk-opt"
+      className="rk-choice"
       aria-pressed={p.chosen}
       onClick={p.onChoose}
       data-testid={p.testId}
     >
-      <span className="rk-opt-t">
+      <span className="rk-choice-t">
         {p.title}
-        {p.badge === undefined ? null : <span className="rk-opt-badge">{p.badge}</span>}
+        {p.badge === undefined ? null : <span className="rk-choice-badge">{p.badge}</span>}
       </span>
-      <span className="rk-opt-d">{p.line}</span>
+      <span className="rk-choice-d">{p.line}</span>
       {p.children}
     </button>
   );

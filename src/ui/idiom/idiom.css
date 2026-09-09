@@ -1125,11 +1125,16 @@
   }
 }
 
-/* The card. The set draws a `1.5px` edge; the product's hairline is `1px`
+/* The card. **Named `rk-choice`, not `rk-opt`**: #360's calendar stage
+ * filter already owns `.rk-opt` — a chip wrapping a `Card` — and a second
+ * definition of that class restyled it, which the calendar's own
+ * baselines caught. One name, one shape.
+ *
+ * The set draws a `1.5px` edge; the product's hairline is `1px`
  * and that is the only width the no-bare-literals gate admits inside a
  * `border` shorthand — so the edge is the product's, half a pixel thinner
  * than drawn, and every other value here is a token. Named in the PR. */
-.rk-opt {
+.rk-choice {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--r-box);
@@ -1141,19 +1146,19 @@
   display: block;
 }
 
-.rk-opt:hover {
+.rk-choice:hover {
   border-color: var(--accent-line);
 }
 
 /* **Selected is the accent tint, keyed off `aria-pressed`** — the standing
  * ruling for `/setup`'s toggle groups (2026-09-08, #288). The attribute is
  * the whole state: there is no class for it to drift from. */
-.rk-opt[aria-pressed="true"] {
+.rk-choice[aria-pressed="true"] {
   border-color: var(--accent-line);
   background: var(--accent-bg);
 }
 
-.rk-opt-t {
+.rk-choice-t {
   font-size: var(--t-sm);
   font-weight: 700;
   color: var(--ink);
@@ -1162,7 +1167,7 @@
   gap: var(--s-2);
 }
 
-.rk-opt-d {
+.rk-choice-d {
   font-size: var(--t-explain);
   color: var(--ink-2);
   margin-top: var(--s-1);
@@ -1171,7 +1176,7 @@
 
 /* The `default` marker on a preselected option. The badge idiom's tint and
  * ink, at the eyebrow rung. */
-.rk-opt-badge {
+.rk-choice-badge {
   font-size: var(--t-eyebrow);
   font-weight: 700;
   border-radius: var(--r-pill);
