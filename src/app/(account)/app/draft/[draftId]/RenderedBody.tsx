@@ -30,7 +30,7 @@
 // that wanted a slice.
 import type React from "react";
 import { markPassage, parseMarkdown, toHtml, type Block } from "@/lib/publish/render/markdown";
-import { BODY_CLASSES, demoteHeadings } from "./present";
+import { DRAFT_BODY_CLASSES, demoteHeadings } from "./present";
 
 /** The index of the first block the passage was marked in, or `-1`. */
 function markedBlockIndex(blocks: readonly Block[], fact: string): number {
@@ -69,18 +69,18 @@ export function RenderedBody(p: {
   if (at === -1) {
     return (
       <div
-        className="rk-doc"
+        className="rk-doc rk-doc-levelled"
         data-testid={p["data-testid"]}
-        dangerouslySetInnerHTML={{ __html: toHtml(marked, BODY_CLASSES) }}
+        dangerouslySetInnerHTML={{ __html: toHtml(marked, DRAFT_BODY_CLASSES) }}
       />
     );
   }
 
   return (
-    <div className="rk-doc" data-testid={p["data-testid"]}>
-      <div dangerouslySetInnerHTML={{ __html: toHtml(marked.slice(0, at + 1), BODY_CLASSES) }} />
+    <div className="rk-doc rk-doc-levelled" data-testid={p["data-testid"]}>
+      <div dangerouslySetInnerHTML={{ __html: toHtml(marked.slice(0, at + 1), DRAFT_BODY_CLASSES) }} />
       {p.source}
-      <div dangerouslySetInnerHTML={{ __html: toHtml(marked.slice(at + 1), BODY_CLASSES) }} />
+      <div dangerouslySetInnerHTML={{ __html: toHtml(marked.slice(at + 1), DRAFT_BODY_CLASSES) }} />
     </div>
   );
 }

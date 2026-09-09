@@ -28,7 +28,62 @@
 //   sideways, and the declaration is the class, not the CSS property.
 import type { Block, HtmlClasses } from "@/lib/publish/render/markdown";
 
+/**
+ * The map the **hosted page** renders a published body with (S19,
+ * `src/app/(hosted)/hosted-page/[...slug]/page.tsx`). Untouched by #355:
+ * that screen has its own stylesheet (`.rk-hosted-doc`) and its own
+ * baselines, and the mark's class is pinned by its test.
+ *
+ * It stays exported from here because that is where its one other caller
+ * already imports it from; moving it is that screen's issue, not this one.
+ */
 export const BODY_CLASSES: HtmlClasses = Object.freeze({
+  h1: "mt-5 text-xl",
+  h2: "mt-5 text-lg",
+  h3: "mt-4 text-base",
+  h4: "mt-4 text-base",
+  h5: "mt-4 text-base",
+  h6: "mt-4 text-base",
+  p: "my-2",
+  ul: "my-2 list-disc pl-6",
+  ol: "my-2 list-decimal pl-6",
+  li: "my-1",
+  blockquote: "border-base-300 my-3 border-l-4 pl-4 italic",
+  pre: "bg-base-200 rounded-box my-3 overflow-x-auto p-3",
+  code: "num text-sm",
+  hr: "border-base-300 my-4",
+  a: "link",
+  // §2.5: the grounded passage is the customer's evidence, not their
+  // problem, so it is marked in the warn family and never in red — red
+  // "appears only for *the customer's problem being shown to them*".
+  mark: "bg-warning/25 rounded px-1",
+  strong: "font-bold",
+  em: "italic",
+});
+
+/**
+ * The map the **draft screen** renders with, and it is almost empty on
+ * purpose.
+ *
+ * The typography of a document is `.rk-doc`'s (`src/ui/idiom/idiom.css`,
+ * §10's document idiom, landed for S5) with this screen's `.rk-doc-levelled`
+ * modifier over it. A per-element Tailwind class list here would be a
+ * second type scale beside the approved ladder and a second rhythm beside
+ * the approved spacing steps, written in utilities whose values (18px,
+ * 14px) are rungs of neither.
+ *
+ * Two classes are left, and neither is typography:
+ *
+ *   `code` carries `.num` because §2.3 is "every numeral, date, URL, search
+ *   query and **code-like string** is JetBrains Mono", and `.num` is the one
+ *   mechanism that rule is applied through (`src/ui/type.css`).
+ *
+ *   `pre` carries `overflow-x-auto` because the layout conformance suite
+ *   names `.overflow-x-auto` as a **declared** scroll container: a long code
+ *   line has to scroll inside its own box rather than push the document
+ *   sideways, and the declaration is the class, not the CSS property.
+ */
+export const DRAFT_BODY_CLASSES: HtmlClasses = Object.freeze({
   pre: "overflow-x-auto",
   code: "num",
 });
