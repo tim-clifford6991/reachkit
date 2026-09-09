@@ -25,11 +25,14 @@ export {
 export {
   hashToken,
   issueVetoLink,
+  previewVetoLink,
   redeemVeto,
   redeemVetoLink,
   sameHash,
   vetoLinkPath,
+  type PreviewResult,
   type RedeemResult,
+  type VetoPreview,
   type VetoRefusal,
 } from "./veto";
 export {
