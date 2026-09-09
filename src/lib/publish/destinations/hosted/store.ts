@@ -17,6 +17,7 @@
 //
 // The archived plans are WO-229 (the host resolution this feeds) and
 // WO-230/WO-231 (the page and the sitemap).
+import { readRecordedFact, type RecordedFact } from "@/lib/generate/fact";
 import { publishDb } from "../../db";
 
 /** A site, as the edge sees it: an id and the domain that resolved to it.
@@ -87,15 +88,16 @@ export interface HostedPublisher {
  * — and never from anywhere else: a passage the page is not grounded in,
  * marked as though it were, is a claim about the evidence.
  *
+ * **The one shape, not this module's own** (issue #415): `RecordedFact` is
+ * what `src/lib/generate/fact.ts` writes and what the draft view reads, so
+ * what the customer approved and what a visitor is shown cannot be two
+ * different records. The name stays because this module speaks it.
+ *
  * `null` for a page generation recorded no grounding for; the body then
  * renders whole and unmarked and no source line is drawn, which is what a
  * page with no recorded source honestly is.
  */
-export interface HostedGrounding {
-  passage: string;
-  url: string;
-  readAt: Date | null;
-}
+export type HostedGrounding = RecordedFact;
 
 /** One live hosted page. `slug` is the last segment of the address the
  *  page was actually published at, so the address the customer's visitor
@@ -206,7 +208,7 @@ function toPage(row: PublicationRow): HostedPage | null {
     title: draft.title ?? "",
     bodyMd: draft.body_md ?? "",
     faq: readFaq(draft.meta),
-    grounded: readGrounded(draft.grounded_fact),
+    grounded: readRecordedFact(draft.grounded_fact),
     publisher: {
       name: domain,
       category: emptyToNull(row.sites?.category ?? null),
@@ -247,33 +249,6 @@ export function readFaq(meta: Record<string, unknown> | null): readonly FaqEntry
  *  zone, and a surface that drew one would draw an empty eyebrow. */
 function emptyToNull(value: string | null): string | null {
   return value === null || value.trim() === "" ? null : value;
-}
-
-/**
- * `drafts.grounded_fact`, read the way `readFaq` reads its own blob: it is
- * jsonb and nothing in the database constrains its shape.
- *
- * A record missing its passage is `null` rather than a grounding with
- * nothing to mark — the passage is the whole of what the page claims to be
- * grounded in (§8 hard rule 1, which the column's own trigger freezes), so
- * a record without one grounds nothing. The address and the date are each
- * allowed to be absent on their own: a source read but not recorded still
- * marks the passage, and the line simply states less.
- */
-export function readGrounded(value: Record<string, unknown> | null): HostedGrounding | null {
-  if (typeof value !== "object" || value === null) return null;
-  const { passage, url, readAt } = value as {
-    passage?: unknown;
-    url?: unknown;
-    readAt?: unknown;
-  };
-  if (typeof passage !== "string" || passage.trim() === "") return null;
-  const read = typeof readAt === "string" ? new Date(readAt) : null;
-  return {
-    passage,
-    url: typeof url === "string" ? url : "",
-    readAt: read === null || Number.isNaN(read.getTime()) ? null : read,
-  };
 }
 
 /**

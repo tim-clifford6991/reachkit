@@ -31,6 +31,7 @@
 import type { CostContext } from "@/lib/costs";
 import type { Opportunity } from "@/lib/opportunities";
 import { serialiseVerdict } from "../claims/sweep";
+import { recordedFactValue } from "../fact";
 import { recoveryOutcome, type Recovery } from "../claims/recovery";
 import { runHardRules } from "../rules";
 import { renderOf } from "../rules/text";
@@ -158,11 +159,9 @@ export async function generateDraft(
     state: GENERATING,
     title: body.title,
     body_md: body.bodyMarkdown,
-    grounded_fact: {
-      url: grounding.fact.url,
-      readAt: grounding.fact.readAt.toISOString(),
-      passage: grounding.fact.passage,
-    },
+    // The one shape (`../fact.ts`), so what is written here and what the
+    // draft view and the hosted page read cannot be spelled differently.
+    grounded_fact: recordedFactValue(grounding.fact),
     attribution: null,
     scheduled_for: a.scheduledFor,
     cost_cents: Math.round(c.spentCents()),

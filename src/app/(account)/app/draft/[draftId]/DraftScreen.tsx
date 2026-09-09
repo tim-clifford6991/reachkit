@@ -156,11 +156,11 @@ export function DraftScreen(p: {
   // ran against.
   const claim = bodyMd === view.bodyMd ? view.claim : claimAfterSave();
   // Rule 2: the highlight is a function of the buffer, never of a stored flag.
-  const grounded = factPresentIn(bodyMd, view.grounded.fact);
+  const grounded = factPresentIn(bodyMd, view.grounded.passage);
   // Whether generation recorded a grounding at all: three facts, and the
   // section below is drawn only where at least one of them exists (#268).
   const hasGrounding =
-    view.grounded.fact !== "" || view.grounded.url !== "" || view.grounded.readAt !== null;
+    view.grounded.passage !== "" || view.grounded.url !== "" || view.grounded.readAt !== null;
 
   const editedNote = view.authorship.edited
     ? writtenLine("draft.authorship.edited", {
@@ -220,7 +220,7 @@ export function DraftScreen(p: {
   const body = (
     <RenderedBody
       bodyMd={bodyMd}
-      markFact={grounded ? view.grounded.fact : null}
+      markFact={grounded ? view.grounded.passage : null}
       source={sourceLine ?? undefined}
       data-testid="draft-body"
     />
@@ -236,7 +236,7 @@ export function DraftScreen(p: {
       <section className="flex flex-col gap-1" data-testid="draft-grounded-dropped">
         <p className="eyebrow rk-daypanel-eyebrow">{copy("draft.grounded.title")}</p>
         <p className="min-w-0 break-words" data-testid="draft-grounded-fact">
-          {view.grounded.fact}
+          {view.grounded.passage}
         </p>
         {sourceLine}
       </section>
@@ -313,7 +313,7 @@ export function DraftScreen(p: {
               // that updates them has run.
               if (bodyMd !== savedBody) save(bodyMd);
             }}
-            markFact={grounded ? view.grounded.fact : null}
+            markFact={grounded ? view.grounded.passage : null}
             pane={pane}
             onPane={setPane}
           />
