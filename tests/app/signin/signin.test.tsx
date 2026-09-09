@@ -155,13 +155,31 @@ describe('REQ-098 c3 / REQ-020 c4 — "then they are answered in writing on the 
     ["sent", "signin.link_sent"],
     ["payment_held", "signin.payment_held"],
     ["no_account", "signin.no_account"],
-    ["invalid", "signin.address.invalid"],
   ] as const)("the %s answer speaks %s, on the same screen", async (answer, key) => {
     const html = await renderWithKeys({ state: { answer, value: "someone@example.com" } });
     expect(html).toContain(key);
-    // "without being sent anywhere": the screen is intact around the answer.
+    // "without being sent anywhere": still this screen, still this panel —
+    // the answered arm the approved set draws (UI-SPEC S9, issue #373). One
+    // shape for all three answers, so the frame reveals nothing the line
+    // does not, and one control back to the field.
+    expect(html).toContain("signin.sent.head");
+    // The mocked `copy()` here is the identity on the *key*, so the slot's
+    // value is not in this markup; the real-registry describe below is
+    // where the address itself is asserted.
+    expect(html).toContain("signin.sent.to");
+    expect(html).toContain("signin.sent.resend");
+    expect(html).toContain('href="/signin"');
+    // The form is not on this arm: the address was taken, and asking for it
+    // again beside the answer would say the answer had not landed.
+    expect(html.match(/<input/g)).toBeNull();
+  });
+
+  it("a refused *value* keeps the form and what was typed (c6's arm, not c3's)", async () => {
+    const html = await renderWithKeys({ state: { answer: "invalid", value: "nope" } });
+    expect(html).toContain("signin.address.invalid");
     expect(html).toContain("signin.heading");
     expect(html.match(/<input/g)).toHaveLength(1);
+    expect(html).not.toContain("signin.sent.head");
   });
 
   it("before a submission the screen answers nothing at all, and so reveals nothing about any address", async () => {
@@ -231,11 +249,21 @@ describe('REQ-098 c6 — "Given a person who submits an empty value or one that 
 });
 
 describe('REQ-098 c7 — "Given a person who opens a sign-in link that no longer works — expired; spent … or never issued by this product — when they open it, then they land on this screen and one written line tells them the link can no longer be used and that they may ask for another; that line and the time it takes are the same whatever the reason" — signin/dead-link', () => {
-  it("the arm speaks signin.link_dead, and the screen is otherwise unchanged", async () => {
+  it("the arm is the set's own: a head, the one line, and one control back to the field", async () => {
     const html = await renderWithKeys({ searchParams: { link: "dead" } });
+    expect(html).toContain("signin.expired.head");
     expect(html).toContain("signin.link_dead");
-    expect(html).toContain("signin.heading");
-    expect(html.match(/<input/g)).toHaveLength(1);
+    // "…and that they may ask for another": an anchor to this screen
+    // without the marker, so it needs no client runtime.
+    expect(html).toContain("signin.expired.submit");
+    expect(html).toContain('href="/signin"');
+    // No form on this arm — the way back to it is the control above.
+    expect(html.match(/<input/g)).toBeNull();
+  });
+
+  it("the arm is warn-toned, and it is the only tone this screen spends", async () => {
+    const html = await renderWithKeys({ searchParams: { link: "dead" } });
+    expect(html).toContain('data-tone="warn"');
   });
 
   it("no marker, no line", async () => {
@@ -250,14 +278,14 @@ describe('REQ-098 c7 — "Given a person who opens a sign-in link that no longer
   });
 });
 
-describe("against the real registry — every arm renders, and none of the five owed lines is invented", () => {
-  it.each([
-    { answer: "sent", value: "someone@example.com" },
-    { answer: "payment_held", value: "someone@example.com" },
-    { answer: "no_account", value: "someone@example.com" },
-    { answer: "invalid", value: "nope" },
-    { answer: "none", value: "" },
-  ] as SignInState[])("renders in the %j state without throwing", async (state) => {
+describe("against the real registry — every arm renders, and nothing is invented", () => {
+  /** Renders one state against the **real** registry, so what is asserted
+   *  is the owner's own words and the marker where a sentence is still
+   *  owed. */
+  async function renderReal(
+    state: SignInState,
+    searchParams: { link?: string } = {}
+  ): Promise<string> {
     vi.resetModules();
     vi.doMock(STATE_MODULE, async (importOriginal) => ({
       ...(await importOriginal<Record<string, unknown>>()),
@@ -266,47 +294,78 @@ describe("against the real registry — every arm renders, and none of the five 
     const { default: SignInPage } = (await import("@/app/(public)/signin/page.tsx")) as {
       default: (p: { searchParams?: { link?: string } }) => React.JSX.Element;
     };
-    const html = renderToStaticMarkup(<SignInPage searchParams={{ link: "dead" }} />);
+    const html = renderToStaticMarkup(<SignInPage searchParams={searchParams} />);
     vi.doUnmock(STATE_MODULE);
+    // React escapes on the way out; compare against the text a browser
+    // reconstructs, not the wire bytes.
+    return html.replaceAll("&#x27;", "'").replaceAll("&amp;", "&").replaceAll("&quot;", '"');
+  }
 
-    const { COPY, AWAITING_COPY, TODO_COPY_MARKER } = await import("@/lib/presentation/copy");
-    // Criterion 2's six strings are the owner's and are spoken byte for
-    // byte. React escapes `'` as `&#x27;` on the way out, so the comparison
-    // is against the text the browser reconstructs, not the wire bytes.
-    const text = html.replaceAll("&#x27;", "'").replaceAll("&amp;", "&").replaceAll("&quot;", '"');
+  it.each([
+    { answer: "sent", value: "someone@example.com" },
+    { answer: "payment_held", value: "someone@example.com" },
+    { answer: "no_account", value: "someone@example.com" },
+    { answer: "invalid", value: "nope" },
+    { answer: "none", value: "" },
+  ] as SignInState[])("renders in the %j state without throwing", async (state) => {
+    await expect(renderReal(state)).resolves.toContain("rk-glass");
+    await expect(renderReal(state, { link: "dead" })).resolves.toContain("rk-glass");
+  });
+
+  it("the request arm carries criterion 2's five strings, byte for byte", async () => {
+    const text = await renderReal({ answer: "none", value: "" });
+    const { COPY } = await import("@/lib/presentation/copy");
     expect(text).toContain(COPY["signin.heading"]);
     expect(text).toContain(COPY["signin.body"]);
     expect(text).toContain(COPY["signin.new.link"]);
+  });
 
-    // The five REQ-098's third open question records as written nowhere are
-    // still unwritten: each carries `CLAUDE.md`'s marker, which renders, so
-    // the arm is visible and reviewable and no sentence is invented. Derived
-    // from `AWAITING_COPY`, not from a list here, so the day the owner
-    // writes one this flips with no edit to this file or to the page.
+  it("the answered arm echoes the address they typed, and looks none up", async () => {
+    const text = await renderReal({ answer: "sent", value: "someone@example.com" });
+    // `signin.sent.to` is the set's own line, written: "sent to {address}".
+    expect(text).toContain("sent to someone@example.com");
+  });
+
+  it("every owed line on every arm is the marker, never a sentence somebody supplied", async () => {
+    const { COPY, AWAITING_COPY, TODO_COPY_MARKER } = await import("@/lib/presentation/copy");
     const owed = [
       "signin.link_sent",
       "signin.payment_held",
       "signin.no_account",
       "signin.address.invalid",
       "signin.link_dead",
+      "signin.sent.head",
+      "signin.sent.resend",
+      "signin.expired.head",
+      "signin.expired.submit",
     ] as const;
     for (const key of owed) {
       if (AWAITING_COPY.includes(key)) expect(COPY[key]).toBe(TODO_COPY_MARKER);
       expect(COPY[key]).not.toBe("");
     }
+  });
 
-    // The dead-link arm is showing (the query names it), and exactly one of
-    // the answer lines is — never two, and never none where the state has
-    // one to say.
-    expect(html).toContain('<div role="alert"');
-    const spoken = (html.match(new RegExp(TODO_COPY_MARKER.replace(/[()]/g, "\\$&"), "g")) ?? []).length;
-    // The dead-link line, the answer line where the state has one, and —
-    // since issue #266 — the accent panel's `signin.panel.specimen`, which
-    // is not an answer at all: it is the line that says the score beside it
-    // is the reserved fixture's specimen and not the visitor's own
-    // measurement. It is on the screen in every state, so it shifts the
-    // count by one and never by more.
-    const PANEL_SPECIMEN = 1;
-    expect(spoken).toBe((state.answer === "none" ? 1 : 2) + PANEL_SPECIMEN);
+  it("the expired arm speaks three owed lines and no answer of its own", async () => {
+    const { TODO_COPY_MARKER } = await import("@/lib/presentation/copy");
+    const text = await renderReal({ answer: "sent", value: "someone@example.com" }, { link: "dead" });
+    // Head, line, control — and *not* the answer line: someone holding a
+    // dead link learns nothing about the address it was issued for
+    // (REQ-098 c7), including whether one was answered on this screen.
+    const spoken = (text.match(new RegExp(TODO_COPY_MARKER.replace(/[()]/g, "\\$&"), "g")) ?? []).length;
+    expect(spoken).toBe(3);
+  });
+
+  it("the panel is a declared example on the reserved domain, with no line explaining it (5c)", async () => {
+    const { COPY } = await import("@/lib/presentation/copy");
+    const text = await renderReal({ answer: "none", value: "" });
+    expect(text).toContain("example.com");
+    expect(text).toContain(COPY["signin.panel.score-label"]);
+    expect(text).toContain(COPY["signin.panel.delta"]);
+    expect(text).toContain(COPY["signin.panel.line"]);
+    expect(text).toContain(">47<");
+    expect(text).toContain('value="47"');
+    // The example line #266 added is gone, and the marker it rendered with
+    // it: ruling 5c admits the specimen without one.
+    expect(text).not.toContain(COPY["signin.panel.specimen"]);
   });
 });

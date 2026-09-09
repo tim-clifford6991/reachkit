@@ -31,12 +31,23 @@
 // visible and reviewable and nothing here invents a sentence. What is built
 // and tested today is which key each arm reaches for.
 //
-// **Criteria 4 and 5 are not built** — the "Discoverability Score" card.
-// REQ-098's first two open questions are unruled: whether that is the
-// product's name for the score on every surface, and whether the card shows
-// a real customer's scan or a declared example on a reserved domain. Either
-// answer changes what the card is; neither is the implementer's to pick.
-// Named in the pull request.
+// **Criteria 4 and 5 are built, and the two open questions behind them are
+// ruled** (issue #96, answered by rulings 6a and 5c of 2026-09-08):
+// "Discoverability Score" is the number's name on every surface that labels
+// it, and this card is a **declared example on the reserved domain**, drawn
+// as the approved set draws it — "without a source date or an example
+// line", which is 5c amending REQ-098 c5. So the figures below are the
+// set's own specimen and the written line #266 added to explain them is
+// gone: the domain is reserved, the figures are its example, and no
+// visitor's measurement and no invented number is on this screen.
+//
+// **Three arms, one screen** (UI-SPEC S9). The left panel is the request
+// form, or the **sent** arm, or the **expired** arm; the accent panel never
+// changes. Which arm renders is decided from state this file already had —
+// the action's answer and the dead-link marker — so no arm costs a read, a
+// branch on identity, or a millisecond another does not: REQ-098 c7's "that
+// line and the time it takes are the same whatever the reason" holds
+// because there is nothing here that could make them differ.
 //
 // **The screen root is a `Surface`** (ADR-093; DECISIONS 2026-09-02). One
 // column at every band, which is what the screen is today: REQ-098's own
@@ -47,8 +58,8 @@
 "use client";
 
 import Link from "next/link";
+import { Lock, Mail } from "lucide-react";
 import { use, useActionState, useState } from "react";
-import { Alert } from "@/ui/components/Alert";
 import { Btn } from "@/ui/components/Btn";
 import { Input } from "@/ui/components/Input";
 import { Surface } from "@/ui/layout";
@@ -58,34 +69,28 @@ import { Progress } from "@/ui/components/Progress";
 import { sendLink } from "./actions";
 import { EMAIL_FIELD, SIGN_IN_INITIAL, type SignInState } from "./state";
 
-/** The specimen the accent panel shows, and where every figure in it comes
- *  from: the **reserved fixture account**, whose report `/scan/example.com`
- *  renders. Not a placeholder and not a real visitor's domain — the two
- *  things `design/tokens.md` §9.4 refuses. `signin.panel.specimen` is the
- *  line that says so on the screen; these three are the data behind it.
+/** The specimen the accent panel shows: the **reserved domain**, and the
+ *  figures the owner's approved screen set draws on it (ruling 5c, which
+ *  settles REQ-098's open question 2, and c5 with it). Not a placeholder,
+ *  not a visitor's own domain, and not a number this file computed — the
+ *  three things §9.4 refuses.
  *
- *  Stated here as constants rather than read through the fixture module,
- *  because this screen must render before there is a session, a scan or a
- *  store to read, and a public page that reached the report's own fixture
- *  loader to draw a decoration would be a read nobody needs. The score is
- *  the fixture's own 62 (`_fixture/states.ts`), and `tests/app/signin/`
- *  pins the two against each other so they cannot drift. */
+ *  They were the report fixture's own 62 until 5c; the ruling is "as
+ *  drawn", so they are the set's 47 now, and `tests/app/signin/` pins them
+ *  against the approved HTML rather than against a fixture that is free to
+ *  move for its own reasons. Constants, because this screen renders before
+ *  there is a session, a scan or a store to read. */
 const SPECIMEN_DOMAIN = "example.com";
-const SPECIMEN_SCORE = 62;
+const SPECIMEN_SCORE = 47;
 /** REQ-004's own denominator — the score is out of one hundred. */
 const SPECIMEN_MAX = 100;
 
-/** The glass card's inverse pill: the specimen's measured change since its
- *  last measurement, or `null` where there is none.
- *
- *  `null` today, and stated rather than left out: `FIXTURE_REPORT`'s verdict
- *  carries `scoreAndBand` and no previous score, so nothing has measured a
- *  delta for this domain. The pill is omitted rather than filled — a
- *  "+6 pts est." shown to a stranger who has not signed in would be a number
- *  the product invented, which is the very thing `design/tokens.md` §9.4
- *  raises about this panel. The day a measured delta exists, this constant
- *  reads it and the pill appears with no other change. */
-const SPECIMEN_DELTA: string | null = null;
+/** The glass card's inverse pill. #298 omitted it — "+6 pts est." shown to
+ *  a stranger would have been a number the product invented — and ruling 5c
+ *  draws it: the whole card is a declared example on the reserved domain,
+ *  so the pill is part of the example rather than a claim about anybody.
+ *  REQ-098 c4 quotes it verbatim among the strings this screen carries, and
+ *  it is a copy key like the rest. */
 
 type SignInSearchParams = Partial<Record<typeof LINK_QUERY_KEY, string>>;
 
@@ -109,9 +114,11 @@ const ANSWER_COPY_KEY = {
  *  `src/lib/account/identity/addresses.ts`, which is also where the route
  *  that redeems a link reads it from when it sends a visitor here. */
 
-/** `Alert`'s tone token for that line — a style token, like `Btn`'s
- *  `variant`, never a sentence. */
-const DEAD_LINK_TONE = "warn" as const;
+/** This screen's own address, for the two controls that lead back to its
+ *  form. Written once: a link to `/signin` with no query is what clears the
+ *  dead-link marker, and it is the same value `src/middleware.ts` redirects
+ *  to. */
+const SIGN_IN_PATH = "/signin";
 
 function isPromise<T>(value: Promise<T> | T | undefined): value is Promise<T> {
   return (
@@ -146,10 +153,17 @@ export default function SignInPage(props: {
   // runtime to have typed into.
   const value = typed ?? state.value;
 
-  const deadLink =
-    params[LINK_QUERY_KEY] === DEAD_LINK_MARKER ? copy("signin.link_dead") : undefined;
+  const deadLink = params[LINK_QUERY_KEY] === DEAD_LINK_MARKER;
   const answerKey = ANSWER_COPY_KEY[state.answer];
   const answer = answerKey === undefined ? undefined : copy(answerKey);
+  // Which of the three the left panel is. An address that was answered —
+  // whichever of REQ-020 c4's three answers it got — is the *sent* arm: one
+  // shape, one control, and the answer's own line inside it, so the frame
+  // says nothing the line does not (REQ-098 c3). A refusal of the value
+  // itself keeps the form, because criterion 6 says they stay on the screen
+  // with what they typed intact.
+  const answered =
+    state.answer === "sent" || state.answer === "payment_held" || state.answer === "no_account";
 
   return (
     // The card idiom's sign-in (issue #266): two panels, roughly 50/50, at
@@ -181,36 +195,90 @@ export default function SignInPage(props: {
       <main className="col-span-full rk-split">
         <div className="rk-split-form">
           <div className="rk-form-col">
-            {deadLink === undefined ? null : <Alert tone={DEAD_LINK_TONE} message={deadLink} />}
-
-            <h1>{copy("signin.heading")}</h1>
-            <p className="rk-quiet">{copy("signin.body")}</p>
-
-            <form action={formAction}>
-              <Input
-                label={copy("signin.field.placeholder")}
-                placeholder={copy("signin.field.placeholder")}
-                name={EMAIL_FIELD}
-                value={value}
-                onChange={setTyped}
-              />
-              {/* The screen's one solid primary, full width — and the only
-                  solid button on it. */}
-              <Btn
-                type="submit"
-                label={copy("signin.submit.label")}
-                variant="primary"
-                pill
-                block
-                inFlight={pending}
-              />
-            </form>
-
-            <p aria-live="polite">{answer}</p>
-
-            <p>
-              {copy("signin.new.prompt")} <Link href="/">{copy("signin.new.link")}</Link>
+            {/* The brand sits **inside the panel** on this route, and no
+                public header stands above it (UI-SPEC S9): the screen is
+                two full-height panels meeting the viewport's edges, and a
+                bar across the top would be a third band carrying a control
+                — on the one screen whose whole job is a single field. The
+                group layout drops the header here; the mark is drawn
+                here. */}
+            <p className="rk-wordmark" data-testid="signin-brand">
+              <span className="rk-wordmark-chip" aria-hidden />
+              <span>{copy("chrome.wordmark")}</span>
             </p>
+
+            {deadLink ? (
+              /* REQ-098 c7's arm. The chip carries the warn tone — the one
+                 thing that went wrong here is the link they are holding —
+                 and the line is the same one whatever the reason, read from
+                 a marker that carries none. */
+              <>
+                <span className="rk-head-chip" data-tone="warn" data-testid="signin-chip">
+                  <Lock size={16} strokeWidth={1.8} aria-hidden />
+                </span>
+                <h1>{copy("signin.expired.head")}</h1>
+                <p className="rk-quiet">{copy("signin.link_dead")}</p>
+                {/* "…and that they may ask for another": the control is the
+                    way back to the field — a plain link to this screen
+                    without the marker, so it works with no client runtime. */}
+                <Btn
+                  href={SIGN_IN_PATH}
+                  label={copy("signin.expired.submit")}
+                  variant="primary"
+                  pill
+                  block
+                />
+              </>
+            ) : answered ? (
+              /* The answered arm. The head and the resend word are the
+                 owner's; the line between them is the answer's own — one of
+                 REQ-020 c4's three — and the address is the one they typed,
+                 echoed back, never one this screen looked up. */
+              <>
+                <span className="rk-head-chip" data-testid="signin-chip">
+                  <Mail size={16} strokeWidth={1.8} aria-hidden />
+                </span>
+                <h1>{copy("signin.sent.head")}</h1>
+                <p className="rk-quiet" aria-live="polite">
+                  {answer}
+                </p>
+                <p className="rk-quiet num">{copy("signin.sent.to", { address: value })}</p>
+                <Btn href={SIGN_IN_PATH} label={copy("signin.sent.resend")} variant="tertiary" pill />
+              </>
+            ) : (
+              <>
+                <h1>{copy("signin.heading")}</h1>
+                <p className="rk-quiet">{copy("signin.body")}</p>
+
+                <form action={formAction}>
+                  <Input
+                    label={copy("signin.field.placeholder")}
+                    placeholder={copy("signin.field.placeholder")}
+                    name={EMAIL_FIELD}
+                    value={value}
+                    onChange={setTyped}
+                  />
+                  {/* The screen's one solid primary, full width — and the
+                      only solid button on it. */}
+                  <Btn
+                    type="submit"
+                    label={copy("signin.submit.label")}
+                    variant="primary"
+                    pill
+                    block
+                    inFlight={pending}
+                  />
+                </form>
+
+                {/* Criterion 6's one written line, where the *value* was
+                    refused. The answered arm above carries its own. */}
+                <p aria-live="polite">{answer}</p>
+
+                <p>
+                  {copy("signin.new.prompt")} <Link href="/">{copy("signin.new.link")}</Link>
+                </p>
+              </>
+            )}
           </div>
         </div>
 
@@ -235,11 +303,12 @@ export default function SignInPage(props: {
                   would be one the product invented and showed to a stranger,
                   which is what §9.4's whole question is about. The row keeps
                   its label alone until a measured delta exists. */}
+              {/* The label — ruling 6a's name for the number — and the
+                  pill, both quoted verbatim by REQ-098 c4 and both drawn by
+                  ruling 5c. */}
               <div className="rk-between">
                 <p>{copy("signin.panel.score-label")}</p>
-                {SPECIMEN_DELTA === null ? null : (
-                  <span className="rk-pill-inverse num">{SPECIMEN_DELTA}</span>
-                )}
+                <span className="rk-pill-inverse num">{copy("signin.panel.delta")}</span>
               </div>
               <p className="rk-figure">
                 <span className="rk-figure-big num">{SPECIMEN_SCORE}</span>
@@ -251,8 +320,10 @@ export default function SignInPage(props: {
                 onAccent
                 label={copy("signin.panel.score-label")}
               />
+              {/* One line under the bar, and no second one: 5c admits a
+                  reserved-domain specimen "without a source date or an
+                  example line". */}
               <p className="rk-quiet">{copy("signin.panel.line")}</p>
-              <p className="rk-quiet">{copy("signin.panel.specimen")}</p>
             </div>
           </div>
         </div>

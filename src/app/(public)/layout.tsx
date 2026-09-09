@@ -40,6 +40,8 @@ import { canonicalUrl } from "./_chrome/canonical";
  *  whose CTA is its own field (REQ-099 c3), and the report address, whose
  *  slot is REQ-001 c7's copy control. */
 const LANDING = "/";
+/** The one public route the header does not stand on (UI-SPEC S9). */
+const SIGN_IN = "/signin";
 const REPORT_PREFIX = "/scan/";
 
 function actionFor(pathname: string): HeaderAction {
@@ -59,9 +61,16 @@ export default function PublicLayout({
   children: React.ReactNode;
 }): React.JSX.Element {
   const pathname = usePathname();
+  // **The sign-in screen carries no header** (UI-SPEC S9, issue #373). It is
+  // drawn as two full-height panels meeting the viewport's edges, with the
+  // brand inside the left one; a bar across the top would be a third band,
+  // and it would put a control on the one screen whose whole job is a single
+  // field. Named here rather than read as a flag, because this file is
+  // already where the chrome's per-route decisions live.
+  const bare = pathname === SIGN_IN;
   return (
     <div className="rk-public-shell">
-      <Header action={actionFor(pathname)} />
+      {bare ? null : <Header action={actionFor(pathname)} />}
       {children}
       <Footer />
     </div>
