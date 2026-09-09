@@ -26,6 +26,16 @@
 //
 //  - A binding that does not parse throws out of `register()` — `env` is
 //    local, needs nobody, and is BP-005's own promise.
+//  - **A real deployment carrying no jobs bindings** throws out of
+//    `register()` (issue #315). `INNGEST_SIGNING_KEY` and
+//    `INNGEST_EVENT_KEY` are what let the platform verify a delivery to
+//    `/api/jobs` and let this process put work on the queue; without them
+//    the hourly ticks never run, and the failure is silent — every screen
+//    still renders, and nothing publishes. It is a fact this deployment can
+//    establish about itself, needing no vendor, so it is asserted like the
+//    clock binding and fails the boot. `assertJobsBindings()` is silent
+//    where the process is not a deployment (a local build, the layout
+//    suite's server), which is where no job is ever triggered.
 //  - **Billing's access gate not taking** throws out of `register()`
 //    (issue #180). ADR-050 puts "who has active access" in billing, and
 //    `src/lib/scan/weekly/access.ts` throws while nothing is registered
@@ -64,7 +74,7 @@
  *  is a name from a closed set — never a binding's value, never a vendor
  *  payload, never the price id. */
 function log(
-  check: "checkout" | "access-gate" | "stamp-place" | "clock",
+  check: "checkout" | "access-gate" | "stamp-place" | "clock" | "jobs",
   outcome: "checked" | "unchecked",
   reason?: string
 ): void {
@@ -92,6 +102,15 @@ export async function register(): Promise<void> {
   const { assertClockBinding } = await import("@/lib/config/now");
   assertClockBinding();
   log("clock", "checked");
+
+  // The jobs bindings, next and for the same reason (issue #315): local,
+  // needing nobody, and about whether this process may run at all rather
+  // than about anything a vendor answers. It sits beside the clock check
+  // because both ask the same question of the environment — is this a real
+  // deployment, and is it configured like one.
+  const { assertJobsBindings } = await import("@/lib/config/env");
+  assertJobsBindings();
+  log("jobs", "checked");
 
   // ADR-050's gate, first: it is local, it needs nobody, and the vendor arm
   // below returns early on an unreadable Stripe. A registration after that

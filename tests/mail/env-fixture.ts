@@ -19,6 +19,11 @@ export const ENV_FIXTURE: Readonly<Record<string, string>> = Object.freeze({
   OWNER_EMAILS: "owner@example.com",
   NEXT_PUBLIC_APP_URL: "https://reachkit.example",
   HOSTED_EDGE_CNAME_TARGET: "content.example.com",
+  // #315: this fixture's app URL is not a loopback name, so a process
+  // carrying it is a real deployment and `assertJobsBindings()` asks for
+  // both. Fixture values; no vendor is reached with them.
+  INNGEST_SIGNING_KEY: "signkey-fixture",
+  INNGEST_EVENT_KEY: "event-key-fixture",
 });
 
 export function applyEnvFixture(): void {

@@ -23,6 +23,11 @@ const BASE: Record<string, string> = {
   OWNER_EMAILS: "owner@example.com",
   NEXT_PUBLIC_APP_URL: "https://app.example.com",
   HOSTED_EDGE_CNAME_TARGET: "content.example.com",
+  // #315: schema members since the jobs bindings joined `env.ts`. The SDK
+  // reads them from `process.env` under these same names — which is what
+  // `client-bindings.test.ts` holds. Fixtures; no queue is reached.
+  INNGEST_SIGNING_KEY: "signkey-fixture",
+  INNGEST_EVENT_KEY: "event-key-fixture",
 };
 
 /** Stubs a complete environment with the kill switch in the given
