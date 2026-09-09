@@ -90,4 +90,27 @@ export const CHROME_COPY = Object.freeze({
   "legal.terms.body": ["TODO(copy)", { slots: {}, fixedBy: "issue 266" }],
   "legal.imprint.title": ["Imprint", { slots: {}, fixedBy: "the approved screen set · 3a" }],
   "legal.imprint.body": ["TODO(copy)", { slots: {}, fixedBy: "issue 266" }],
+
+  /* ── S5's own two lines, and the date each document owes ──────────────
+     2026-09-09, issue #370. The approved set draws the screen as "eyebrow
+     Legal · title · updated [date] · one card". Two of those are strings
+     the set writes unbracketed, and ruling 11a therefore approves as
+     written: the eyebrow's own word, and "updated" in front of the date.
+
+     The date itself is bracketed, so it is the owner's — and it is one
+     date per document, not one for the product: a privacy statement and a
+     set of terms are revised on their own days. So `legal.updated` is the
+     sentence, written once, and each document owes only the date that goes
+     in its slot. Until the owner writes one the line reads "updated
+     TODO(copy)", which is the marker doing its job — the line is visibly
+     present and visibly unwritten (rule 8) rather than a page with a blank
+     where a revision date belongs. */
+  "legal.eyebrow": ["Legal", { slots: {}, fixedBy: "UI-SPEC S5 (11a)" }],
+  "legal.updated": [
+    "updated {date}",
+    { slots: { date: "date" }, fixedBy: "UI-SPEC S5 (11a)" },
+  ],
+  "legal.privacy.updated": ["TODO(copy)", { slots: {}, fixedBy: "UI-SPEC S5" }],
+  "legal.terms.updated": ["TODO(copy)", { slots: {}, fixedBy: "UI-SPEC S5" }],
+  "legal.imprint.updated": ["TODO(copy)", { slots: {}, fixedBy: "UI-SPEC S5" }],
 }) satisfies CopyPartition;
