@@ -26,6 +26,7 @@ vi.mock("@/app/(account)/app/draft/[draftId]/save", async (importOriginal) => {
 
 import { AUTOSAVE_DEBOUNCE_MS, PREVIEW_DEBOUNCE_MS } from "@/lib/config/constants";
 import { copy } from "@/lib/presentation/copy";
+import { renderMarkdownHtml } from "@/lib/publish/render/markdown";
 import { DraftScreen } from "@/app/(account)/app/draft/[draftId]/DraftScreen";
 import { assembleDraft } from "@/app/(account)/app/draft/[draftId]/model";
 import { CLAIM_COPY_KEY, CLAIM_STATES } from "@/app/(account)/app/draft/[draftId]/claim";
@@ -93,10 +94,23 @@ describe("REQ-045 c1 — every word that would publish is rendered, with nothing
 
   it("the body's own structure survives: its headings, list and quote are elements, not flattened text", () => {
     const body = markup().querySelector('[data-testid="draft-body"]');
-    expect(body?.querySelectorAll("h1").length).toBe(1);
-    expect(body?.querySelectorAll("h2").length).toBeGreaterThanOrEqual(3);
+    // One level down, since #355: the page's title is the screen's `<h1>`
+    // and a body's `#` is a heading *within* the page, so the source's one
+    // `#` is an `<h2>` here and its three `##` are `<h3>`. Nothing is
+    // flattened and nothing is lost — `present.ts` says why the shift is on
+    // the level rather than on the size.
+    expect(body?.querySelectorAll("h1").length).toBe(0);
+    expect(body?.querySelectorAll("h2").length).toBe(1);
+    expect(body?.querySelectorAll("h3").length).toBeGreaterThanOrEqual(3);
     expect(body?.querySelectorAll("ul li").length).toBe(3);
     expect(body?.querySelectorAll("blockquote").length).toBe(1);
+  });
+
+  it("and the copy-out is not demoted — those are the bytes that publish", () => {
+    // The screen's own shift is the screen's. `renderMarkdownHtml` takes
+    // the body with no map and no shift, because on a published page the
+    // body's `#` *is* the title and no heading stands above it.
+    expect(renderMarkdownHtml(VIEW.bodyMd)).toContain("<h1>");
   });
 
   it("the generated-content label renders beside the body, and is the one the server resolved", () => {
@@ -448,7 +462,10 @@ describe("REQ-045 c5-c9 — the editor, its live preview, its autosave and its i
     type("# A new heading\n\nA new sentence.");
     await settle(PREVIEW_DEBOUNCE_MS);
     const preview = container.querySelector('[data-testid="draft-preview-body"]');
-    expect(preview?.querySelector("h1")?.textContent).toBe("A new heading");
+    // `# A new heading` renders as an `<h2>`: the preview is the same
+    // renderer the read view uses, demotion included, which is what makes
+    // it a preview rather than a second opinion.
+    expect(preview?.querySelector("h2")?.textContent).toBe("A new heading");
     expect(preview?.textContent).toContain("A new sentence.");
     expect(save).not.toHaveBeenCalled();
   });

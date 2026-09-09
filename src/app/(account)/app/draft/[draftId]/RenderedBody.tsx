@@ -30,7 +30,7 @@
 // that wanted a slice.
 import type React from "react";
 import { markPassage, parseMarkdown, toHtml, type Block } from "@/lib/publish/render/markdown";
-import { BODY_CLASSES } from "./present";
+import { BODY_CLASSES, demoteHeadings } from "./present";
 
 /** The index of the first block the passage was marked in, or `-1`. */
 function markedBlockIndex(blocks: readonly Block[], fact: string): number {
@@ -57,7 +57,13 @@ export function RenderedBody(p: {
   "data-testid": string;
 }): React.JSX.Element {
   const blocks = parseMarkdown(p.bodyMd);
-  const marked = p.markFact === null ? blocks : markPassage(blocks, p.markFact).blocks;
+  // The mark is placed against the parsed body and the levels are shifted
+  // after it: `markPassage` reads a heading's children, not its level, so
+  // the two are independent — but doing it in this order keeps the index
+  // below computed from the same blocks the mark was placed in.
+  const marked = demoteHeadings(
+    p.markFact === null ? blocks : markPassage(blocks, p.markFact).blocks
+  );
   const at = p.markFact === null || p.source === undefined ? -1 : markedBlockIndex(blocks, p.markFact);
 
   if (at === -1) {

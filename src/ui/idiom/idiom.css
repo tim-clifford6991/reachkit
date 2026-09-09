@@ -1583,10 +1583,27 @@
   margin-top: 0;
 }
 
+/* **No `font-size` here, deliberately** (issue #355). The approved set
+ * draws a body's `##` one rung under the screen's title, and the way to get
+ * there is the *level*, not a size: the layout suite's heading-scale sweep
+ * requires every `h1..h4` the product renders to compute its own step of
+ * the ladder, and a `.doc h2` set to `--h3` is an `h2` that is not 25px.
+ * `RenderedBody` demotes the body's headings by one level before rendering
+ * — a body's `#` is a heading *within* the page, and the page's own title
+ * is the screen's `h1` above it — so `##` arrives as an `<h3>` and takes
+ * the 20px the set draws, from the ladder, with nothing overridden. All
+ * that is left here is the ink and the room. */
+.rk-doc h1,
+.rk-doc h2,
+.rk-doc h3,
+.rk-doc h4,
+.rk-doc h5,
+.rk-doc h6 {
+  color: var(--ink);
+}
+
 .rk-doc h1,
 .rk-doc h2 {
-  font-size: var(--h3);
-  color: var(--ink);
   margin: var(--s-5) 0 var(--s-3);
 }
 
@@ -1594,8 +1611,6 @@
 .rk-doc h4,
 .rk-doc h5,
 .rk-doc h6 {
-  font-size: var(--h4);
-  color: var(--ink);
   margin: var(--s-4) 0 var(--s-2);
 }
 
