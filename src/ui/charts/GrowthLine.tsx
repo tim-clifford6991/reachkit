@@ -3,19 +3,28 @@
 // §4.5 module 2: "searches-you-appear-in, weekly points, area+line in
 // `--chart-you`, endpoint labelled, footnote pair … Hover tooltips."
 // §6.6: "Growth chart starts at 0 and that is the story: the line leaving
-// the floor" — a `0` is a measurement here, direct-labelled like every
-// other point, never an error and never a missing mark.
+// the floor" — a `0` is a measurement here, plotted on the floor and
+// carrying its own mark, never an error and never a missing point.
 //
-// **Every point is labelled, not only the endpoint.** §2.4 ("every bar and
-// point direct-labelled (name + value)") and §4.5 ("endpoint labelled")
-// disagree; this takes the stricter of the two, which is the general rule.
-// It is legible at the weekly points a quarter holds; a year of them is a
-// question for whoever draws the Overview surface, not a value to guess
-// here.
+// **Only the endpoint is labelled** (issue #386). §2.4's general rule
+// ("every bar and point direct-labelled (name + value)") and §4.5
+// ("endpoint labelled") disagree, and this is the one chart the approved
+// set draws for itself: UI-SPEC §2's contract is "area fill under an
+// accent line, endpoint dot with surface ring, footnote pair start ·
+// goal", and S12's card carries no numeral under any week. UI-SPEC wins
+// where the two differ (UI-SPEC §1). The build used to print a numeral and
+// a week name under every point; a row of six figures under a line whose
+// whole claim is its shape reads as a table someone drew a line over.
+//
+// The per-point reading is not lost, it moves: every week keeps its mark,
+// and a mark's tooltip is `name · value` — §2.4's own "hover tooltip on
+// every mark". The series' *first* value is the card's left-hand footnote
+// ("started at 12"), which is where S12 puts it, so the two ends of the
+// line are both stated in writing and the middle is the drawing.
 //
 // **An unmeasured week is a break, never an interpolation.** The line is
 // cut at that week, the week keeps its own place on the axis and its own
-// label, and the caller must hand over the account of why — a series with
+// mark, and the caller must hand over the account of why — a series with
 // a hole in it has no call shape without one. Nothing is carried forward:
 // joining the week before to the week after would state a measurement that
 // was never taken.
@@ -45,16 +54,15 @@ export interface GrowthUnmeasuredWeek {
 
 export type GrowthWeek = GrowthMeasuredWeek | GrowthUnmeasuredWeek;
 
-/** Hand-sized (§2.4). The two label rows under the axis are why it is
- *  taller than the plot: name and value, per point, in writing. */
-const BOX: Box = { width: 300, height: 112 };
+/** Hand-sized (§2.4), and about the set's own 560×150 plate: nothing is
+ *  written under the axis any more (#386), so the box ends just below it
+ *  and the line fills the card. */
+const BOX: Box = { width: 300, height: 90 };
 const PLOT_TOP = 24;
 const PLOT_BOTTOM = 76;
 const AXIS_Y = 84;
 const FIRST_X = 24;
 const LAST_X = 264;
-const VALUE_ROW_Y = 94;
-const NAME_ROW_Y = 104;
 /** The break rule's own width — one hairline, dashed, in the quiet ink.
  *  Never a series colour: a third stroke colour reads as a third series
  *  against §2.4's two. */
@@ -169,35 +177,9 @@ export function GrowthLine(p: {
 
       {last ? <EndpointDot cx={last.x} cy={last.y} fill={SERIES_COLOR.you} /> : null}
 
-      {/* Direct labels: the value on one row, the week's own name under
-          it. Identity is never colour-alone (§2.4). */}
-      {p.weeks.map((week, i) => (
-        <g key={`label-${week.name}`}>
-          <text
-            className="num"
-            x={xAt(i)}
-            y={VALUE_ROW_Y}
-            textAnchor={SVG.anchorMiddle}
-            fontSize={CHART.labelSize}
-            fill={isMeasured(week) ? CHART_INK.label : CHART_INK.quiet}
-          >
-            {isMeasured(week) ? String(week.value) : "—"}
-          </text>
-          <text
-            className="num"
-            x={xAt(i)}
-            y={NAME_ROW_Y}
-            textAnchor={SVG.anchorMiddle}
-            fontSize={CHART.nameSize}
-            fill={CHART_INK.quiet}
-          >
-            {week.name}
-          </text>
-        </g>
-      ))}
-
-      {/* The endpoint's value again, in the series colour, where §4.5 puts
-          it: above the last point. */}
+      {/* The one label: the endpoint's value, in the series colour, where
+          §4.5 puts it — above the last point. Every other week states its
+          name and its value in its mark's tooltip. */}
       {last ? (
         <text
           className="num"

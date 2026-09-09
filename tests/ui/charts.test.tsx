@@ -245,11 +245,38 @@ describe('BUILD.md §2.4: "Two chart colors only: --chart-you (accent) and --cha
 /* ── §2.4's labelling rule ───────────────────────────────────────────── */
 
 describe('BUILD.md §2.4: "Every bar/point is direct-labelled (name + value) — identity is never color-alone."', () => {
-  it("GrowthLine writes every week's name and every measured value", () => {
-    const text = svgOf(STORIES.GrowthLine?.() as React.JSX.Element).textContent ?? "";
-    for (const week of WEEKS) {
-      expect(text).toContain(week.name);
-      if (week.value !== null) expect(text).toContain(String(week.value));
+  // UI-SPEC §2's GrowthLine contract is the narrower rule for this one
+  // chart — "area fill under an accent line, endpoint dot with surface
+  // ring, footnote pair start · goal" — and UI-SPEC wins where it and
+  // BUILD differ (UI-SPEC §1). So the per-point reading lives in the
+  // marks, which §2.4 requires of every chart anyway, and the plot itself
+  // carries one numeral.
+  it("GrowthLine writes the endpoint's value on the plot and no other numeral (#386)", () => {
+    const svg = svgOf(STORIES.GrowthLine?.() as React.JSX.Element);
+    const drawn = [...svg.querySelectorAll("text")].filter((t) => t.closest(".rk-mark") === null);
+    const last = [...WEEKS].reverse().find((w) => w.value !== null);
+    expect(drawn.map((t) => t.textContent)).toEqual([String(last?.value)]);
+  });
+
+  it("GrowthLine states every week's name and value on its own mark — identity is never colour-alone", () => {
+    const svg = svgOf(STORIES.GrowthLine?.() as React.JSX.Element);
+    const tips = [...svg.querySelectorAll(".rk-mark title")].map((t) => t.textContent ?? "");
+    expect(tips).toHaveLength(WEEKS.length);
+    WEEKS.forEach((week, i) => {
+      const tip = tips[i] ?? "";
+      expect(tip).toContain(week.name);
+      expect(tip).toContain(week.value === null ? week.account : String(week.value));
+    });
+  });
+
+  it("no week's numeral is drawn under the axis — the start value is the card's footnote", () => {
+    const svg = svgOf(STORIES.GrowthLine?.() as React.JSX.Element);
+    const drawn = [...svg.querySelectorAll("text")]
+      .filter((t) => t.closest(".rk-mark") === null)
+      .map((t) => t.textContent);
+    for (const week of WEEKS.slice(0, -1)) {
+      expect(drawn).not.toContain(week.value === null ? "—" : String(week.value));
+      expect(drawn).not.toContain(week.name);
     }
   });
 

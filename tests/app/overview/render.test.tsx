@@ -148,13 +148,28 @@ describe("the growth chart", () => {
   it("draws the measured weeks and cuts the run at the week that was not measured", () => {
     const model = assembleOverview(facts());
     const markup = html(<GrowthModule growth={model.growth} timeZone={ZONE} />);
-    // Four weeks, three values and one em dash where the week did not run.
-    expect(markup).toContain(">0<");
-    expect(markup).toContain(">36<");
-    expect(markup).toContain(">81<");
-    expect(markup).toContain("—");
     // Two runs — before the gap and after it — never one polyline across it.
     expect(count(markup, "<polyline")).toBe(2);
+    // The week that did not run stands as the dashed break rule, in its
+    // own place on the axis.
+    expect(markup).toContain("stroke-dasharray");
+  });
+
+  it("labels the endpoint only — no numeral under any weekly point (#386)", () => {
+    const model = assembleOverview(facts());
+    const markup = html(<GrowthModule growth={model.growth} timeZone={ZONE} />);
+    // The last measured week's value, once, above its dot. The three
+    // earlier weeks and the em dash the unmeasured one used to print are
+    // gone from the plot; every one of them still states its name and its
+    // reading in its mark's tooltip.
+    expect(markup).toContain(">81<");
+    expect(markup).not.toContain(">0<");
+    expect(markup).not.toContain(">36<");
+    expect(markup).not.toContain("—");
+    expect(markup).toContain("<title>");
+    // …and the start value is the card's left-hand footnote, as S12 draws
+    // it, not a numeral on the plot.
+    expect(markup).toContain("overview.growth.footnote.start(0)");
   });
 
   it("with nothing measured it renders no chart and one line with the first-due date", () => {
