@@ -76,11 +76,16 @@ describe('REQ-025 c2 — "one action starts the product: no multi-page wizard, n
     expect(tree.querySelectorAll('button[type="submit"]')).toHaveLength(1);
   });
 
-  it("the submit carries §4.3's footer verb, without the duration the owner removed", () => {
+  it("the submit carries §4.3's footer control, estimate and all", () => {
+    // The duration came back on 2026-09-08. The approved set draws
+    // "Start — first page in ~3 minutes." and #378 resolved the conflict
+    // with REQ-025 c1 as C1: the approved string stands (11a, the newer
+    // owner approval) and c1 is amended to allow a stated estimate. BUILD
+    // §4.3 carries it, and so does the registry (issue #377).
     const tree = screenFor();
     const submit = tree.querySelector('button[type="submit"]');
     expect(submit?.textContent).toBe(COPY["setup.submit"]);
-    expect(COPY["setup.submit"]).toBe("Start");
+    expect(COPY["setup.submit"]).toBe("Start — first page in ~3 minutes.");
   });
 });
 
@@ -121,26 +126,42 @@ describe('REQ-025 c3 — "when they look for anything that tunes the engine ... 
   });
 });
 
-describe('REQ-025 c1 — "nothing on the screen states how long the deep pass, or the founder\'s first page, will take"', () => {
-  // The owner ruled on 2026-09-06 that c1 wins over §4.3's footer, which is
-  // amended under #2. So the scan covers the *whole* screen, the submit
-  // control included — there is no exempt corner.
+describe("REQ-025 c1 as amended (C1, 2026-09-08) — one estimate, on the control, and nowhere else", () => {
+  // c1 read "nothing on the screen states how long the deep pass, or the
+  // founder's first page, will take", and the owner's ruling of 2026-09-06
+  // made it win over §4.3's footer. The approved set of 2026-09-08 draws
+  // the footer control as "Start — first page in ~3 minutes." and #378
+  // resolved the two as C1: the approved string stands and c1 is amended to
+  // allow a *stated estimate* — on that control.
+  //
+  // So the rule this file enforces is no weaker, only narrower: the screen
+  // still states no duration anywhere except the one control the owner
+  // approved one on. A progress percentage, a countdown or an "about 3
+  // minutes" in a card body still fails.
   const TIME =
     /(\d+\s*(second|minute|hour|day|week)s?|~\s*\d|about\s+\d|%|remaining|elapsed|eta\b|countdown)/i;
 
-  it("no rendered string anywhere on the screen states a duration, an estimate or a time to first page", () => {
+  /** The screen's text with the submit control's own words removed. */
+  function textOutsideTheControl(facts: Parameters<typeof screenFor>[0] = {}): string {
+    const tree = screenFor(facts);
+    const submit = tree.querySelector('button[type="submit"]');
+    submit?.remove();
+    return tree.textContent ?? "";
+  }
+
+  it("no rendered string outside the submit control states a duration or an estimate", () => {
     for (const facts of [{}, SCANLESS, { suggestedRivals: [] }]) {
-      expect(screenFor(facts).textContent ?? "").not.toMatch(TIME);
+      expect(textOutsideTheControl(facts)).not.toMatch(TIME);
     }
   });
 
-  it("the submit control itself states none — it is not exempted, it simply does not say one", () => {
+  it("the submit control states exactly one, and it is the set's own", () => {
     const submit = screenFor().querySelector('button[type="submit"]');
-    expect(submit?.textContent ?? "").not.toMatch(TIME);
-    expect(COPY["setup.submit"]).not.toMatch(TIME);
+    expect(submit?.textContent ?? "").toMatch(TIME);
+    expect(submit?.textContent).toBe("Start — first page in ~3 minutes.");
   });
 
-  it("mutation check: the scan does catch the sentence §4.3 used to print, so it is still discriminating", () => {
+  it("mutation check: the scan still catches an estimate, so it is discriminating", () => {
     // Without this, a scan that had quietly stopped matching anything would
     // pass on a screen full of estimates.
     expect("Start — first page in ~3 minutes").toMatch(TIME);
@@ -148,14 +169,13 @@ describe('REQ-025 c1 — "nothing on the screen states how long the deep pass, o
     expect("40% done").toMatch(TIME);
   });
 
-  it("no copy key the screen resolves states one either — the absence is in the registry, not only in the render", () => {
+  it("`setup.submit` is the only setup key that states one", () => {
     const spoken = (Object.keys(COPY) as (keyof typeof COPY)[]).filter((key) =>
       key.startsWith("setup.")
     );
     expect(spoken.length).toBeGreaterThan(0);
-    for (const key of spoken) {
-      expect(COPY[key], key).not.toMatch(TIME);
-    }
+    const stating = spoken.filter((key) => TIME.test(COPY[key]));
+    expect(stating).toEqual(["setup.submit"]);
   });
 });
 

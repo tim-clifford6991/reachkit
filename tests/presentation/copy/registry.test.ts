@@ -253,7 +253,10 @@ describe("REQ-093 c5 — the registry renders with every model unavailable", () 
     // one screen that is not a screen). Twenty-one of the mail seam's lines
     // stop being owed and twenty of its thirty-one new keys arrive written:
     // 267 + 41 = 308.
-    expect(ruled.length).toBe(308);
+    //
+    // 2026-09-09, issue #377: the last of ruling 11a's own sweep — fifteen
+    // markers the approved set spells become values. 308 + 15 = 323.
+    expect(ruled.length).toBe(323);
 
     // Only the ruled sentences carry their slots' `{name}` placeholders —
     // a `TODO(copy)` marker is one literal with no placeholder in it, so
@@ -1148,9 +1151,17 @@ describe("owner-owed and empty agree both ways", () => {
     // OWNER_OWED; the other eleven are new and arrive written.
     // 127 − 10 = 117 owner-owed, 256 awaiting copy, 267 + 41 = 308 ruled,
     // 650 + 31 = 681 total.
+    // And issue #377, the sweep the screen PRs left behind: fifteen keys
+    // whose string the approved set spells unbracketed stop carrying the
+    // marker — S10's site card and competitor controls, S16/S17's two claim
+    // badges, the back link, the could-not-save line, and S16's own
+    // generated-text label. Nothing is added and nothing is promoted to a
+    // throw, so only the awaiting/ruled split moves.
+    // 117 owner-owed, 256 − 15 = 241 awaiting copy, 308 + 15 = 323 ruled,
+    // 681 total.
     expect(OWNER_OWED.length).toBe(117);
-    expect(AWAITING_COPY.length).toBe(256);
-    expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(308);
+    expect(AWAITING_COPY.length).toBe(241);
+    expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(323);
     expect(Object.keys(COPY).length).toBe(681);
 
     // The two representations never overlap: an empty value and the marker
