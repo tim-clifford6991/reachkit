@@ -1,4 +1,4 @@
-# Process — how work flows in reachkitv3
+# Process — how work flows in reachkit
 
 The lean process (owner ruling 2026-09-05; the sdlc-factory is retired and archived). Roles: the
 **owner** rules on the product and writes copy; the **master** orchestrates (files issues, briefs
@@ -24,11 +24,11 @@ build exactly one issue each in their own worktree.
 
 ## 3. Landing
 
-Required checks on `main`: `typecheck · lint · unit`, `closes one issue · done-when ticked` (fails on any unticked box), `audit`, `layout conformance (browser)`, `schema · RLS (live Postgres)`, `Vercel`. The master reviews body, boxes and renders, then lands with the chain (`land.sh`: update branch if behind → wait green → merge with `--delete-branch`). **Landing order matters**: `fix-first` and token/allow-list PRs land before screen PRs; screen PRs rebase.
+Required checks on `main`: `typecheck · lint · unit`, `closes one issue · done-when ticked` (fails on any unticked box), `audit`, `layout conformance (browser)`, `schema · RLS (live Postgres)`, `Vercel`. Branch protection on `main` requires those six checks and a code-owner review. The master reviews body, boxes and renders, then lands with the chain (`scripts/land.sh <pr…>`: update branch if behind → wait green → merge commit with `--delete-branch`; `--admin` because the owner's account cannot review its own PR — the checks are the gate). Run the chain in a foreground shell or a Herdr pane, never as a harness background job. **Landing order matters**: `fix-first` and token/allow-list PRs land before screen PRs; screen PRs rebase.
 
 ## 4. Rulings, copy, design
 
-- **Ship-then-steer.** Where BUILD is silent the master rules under the requirements and the approved set, records it in `pending-decisions`, and the owner steers on dev; a batch lands in `DECISIONS.md` as a docs PR.
+- **Ship-then-steer.** Where BUILD is silent the master rules under the requirements and the approved set, records it in `docs/pending-decisions.md`, and the owner steers on dev; a batch lands in `DECISIONS.md` as a docs PR.
 - **Owner rulings** are asked once, as a decision sheet with lettered options and a recommendation (`1a 2b …`), answered in one line, recorded the same day.
 - **Design approval gate.** No new or changed surface is built before its artifact is approved (BUILD §0.1). The approved set is `docs/design/approved/full-set/`; a new surface is drawn in its idiom, published as an artifact, approved, then landed into the set and UI-SPEC.md before code.
 - **Copy** is the owner's. The registry (`src/lib/presentation/copy/`) holds every sentence; the per-surface copy issues (M13) list what is owed; mail with an empty key does not send.
@@ -45,4 +45,4 @@ Required checks on `main`: `typecheck · lint · unit`, `closes one issue · don
 
 ## 6. Corpus maintenance (master)
 
-Every code PR that changes a documented fact carries the amendment (BUILD, ARCHITECTURE, UI-SPEC pointer, design-reference row). Rulings batch into `DECISIONS.md` within days. The drift audit is the check: an UNSPECCED route, a GAP section or an UNPINNED price-book name is a corpus defect and gets an issue. See `docs/README.md` for the authority order.
+A code PR never edits an owner file: it names the documented fact it changes under *Corpus* in its body (BUILD §, ARCHITECTURE row, UI-SPEC pointer, design-reference row), and the master lands the amendment in a docs PR the same day. Rulings wait in `docs/pending-decisions.md` and batch into `DECISIONS.md` within days. The drift audit is the check: an UNSPECCED route, a GAP section or an UNPINNED price-book name is a corpus defect and gets an issue. See `docs/README.md` for the authority order.

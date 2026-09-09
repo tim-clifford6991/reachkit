@@ -27,7 +27,7 @@ this table**, reads that section of `UI-SPEC.md` first, and cites the REQ
 criteria in the column beside it; the archive's `requirements/REQ-*.md` is
 where those criteria are written out.
 
-The table is not maintained by hand alone. `tests/ui/layout/reference.test.ts`
+The table is not maintained by hand alone. `tests/ui/design/reference.test.ts`
 walks the route tree, reads the `REFERENCE: S<id>` line each route carries in
 `tests/ui/layout/routes.ts`, and fails if a route is missing from this table,
 carries a different S-id here than there, or names a section `UI-SPEC.md` does
@@ -96,4 +96,4 @@ way.
 > and the check that keeps the table and the route tree in step.
 > A route added later adds three things in the same PR: its `page.tsx`, its
 > `REFERENCE: S<id>` row in `tests/ui/layout/routes.ts`, and its row here.
-> `tests/ui/layout/reference.test.ts` fails until all three exist.
+> `tests/ui/design/reference.test.ts` fails until all three exist.

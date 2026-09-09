@@ -1,5 +1,7 @@
-# Deterministic spec ↔ code ↔ tests audit. On PRs it reports into the check
-# summary; nightly it opens or updates one issue labelled `drift`.
+# Deterministic spec ↔ code ↔ tests audit. On PRs it runs --strict: any
+# finding fails the `audit` check (docs/README.md rule 6; the baseline is
+# clean). Nightly it reports without --strict and opens or updates one issue
+# labelled `drift`.
 name: Drift audit
 
 on:
@@ -23,7 +25,7 @@ jobs:
         id: audit
         run: |
           set +e
-          node scripts/drift-audit.mjs > drift.md
+          node scripts/drift-audit.mjs ${{ github.event_name == 'pull_request' && '--strict' || '' }} > drift.md
           echo "exit=$?" >> "$GITHUB_OUTPUT"
           cat drift.md >> "$GITHUB_STEP_SUMMARY"
       - name: fail on hard findings
