@@ -18,6 +18,7 @@
 // … with nothing withheld or summarised", and there is no code path here
 // that shortens a body, so none can be introduced by accident.
 import type { CopyKey } from "@/lib/presentation/copy";
+import type { RecordedFact } from "@/lib/generate/fact";
 import type { PageRecord } from "@/lib/publish/record";
 import type { RailCheck } from "./checks";
 import type { PublishingMode } from "../../_shell/model";
@@ -40,17 +41,29 @@ export type ClaimState =
  *  BP-044 decision 1 states the argument in full). */
 export type Authorship = { edited: false } | { edited: true; firstEditedAt: Date };
 
-/** Criteria 2 and 8. The fact, the address it was read from, the date it
- *  was read, and whether the recorded verbatim passage still occurs in the
- *  body as it now stands. The fact is never rewritten to match an edit. */
-export interface Grounded {
-  fact: string;
-  url: string;
-  /** The day the source was read, or `null` on a draft that records no
-   *  grounding at all (issue #268) — never a stand-in date. */
-  readAt: Date | null;
+/** Criteria 2 and 8. The recorded passage, the address it was read from,
+ *  the date it was read, and whether that verbatim passage still occurs in
+ *  the body as it now stands. The passage is never rewritten to match an
+ *  edit.
+ *
+ *  The three recorded members are `RecordedFact`'s own words (issue #415):
+ *  this view states what §8 wrote down, and calling it by a second name
+ *  here is how the screen came to read a shape nothing writes. `present`
+ *  is the one member that is not recorded — it is recomputed below. */
+export interface Grounded extends RecordedFact {
   present: boolean;
 }
+
+/** What `Grounded` reads as on a draft generation recorded no grounding
+ *  for: nothing to mark, no address to print and no day to state (#268).
+ *  The screen draws no highlight, no source line and no dropped-grounding
+ *  note for it. */
+const NO_GROUNDING: Grounded = Object.freeze({
+  passage: "",
+  url: "",
+  readAt: null,
+  present: false,
+});
 
 /** Criterion 4, "what will happen if you do nothing" — §9's two modes read
  *  as the two outcomes they produce. Autopilot auto-approves when the veto
@@ -117,10 +130,11 @@ export interface DraftFacts {
   /** Set on the first save that changed the text; `null` on a draft the
    *  customer has not edited. */
   firstEditedAt: Date | null;
-  /** The fact and its source, as recorded at generation. `present` is
-   *  **not** a fact — it is recomputed here against `bodyMd`, so a body and
-   *  a highlight can never disagree. */
-  groundedFact: { fact: string; url: string; readAt: Date | null };
+  /** The passage and its source, as recorded at generation — `null` where
+   *  generation recorded no grounding. `present` is **not** a recorded
+   *  value: it is recomputed in `assembleDraft` against `bodyMd`, so a body
+   *  and a highlight can never disagree. */
+  groundedFact: RecordedFact | null;
   claim: ClaimState;
   /** §9's publishing mode, read from the shell's one preference. */
   mode: PublishingMode;
@@ -182,13 +196,16 @@ export function assembleDraft(facts: DraftFacts): DraftView {
       facts.firstEditedAt === null
         ? { edited: false }
         : { edited: true, firstEditedAt: facts.firstEditedAt },
-    grounded: {
-      ...facts.groundedFact,
-      // Criterion 8, decided here rather than stored: the grounding is
-      // still marked if the fact survived the edit and is no longer marked
-      // if it was removed.
-      present: factPresentIn(facts.bodyMd, facts.groundedFact.fact),
-    },
+    grounded:
+      facts.groundedFact === null
+        ? NO_GROUNDING
+        : {
+            ...facts.groundedFact,
+            // Criterion 8, decided here rather than stored: the grounding
+            // is still marked if the passage survived the edit and is no
+            // longer marked if it was removed.
+            present: factPresentIn(facts.bodyMd, facts.groundedFact.passage),
+          },
     claim: facts.claim,
     doNothing: doNothingOf(facts),
     lastSavedAt: facts.lastSavedAt,

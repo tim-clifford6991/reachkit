@@ -122,7 +122,7 @@ describe("REQ-045 c2 and c8 — the grounded fact, marked, with its source line"
   it("the passage is marked within the text", () => {
     const marks = markup().querySelectorAll('[data-testid="draft-body"] mark');
     expect(marks.length).toBe(1);
-    expect(marks[0]?.textContent).toBe(VIEW.grounded.fact);
+    expect(marks[0]?.textContent).toBe(VIEW.grounded.passage);
   });
 
   it("the URL it was read from and the date it was read render beside it, both as values", () => {
@@ -139,9 +139,9 @@ describe("REQ-045 c2 and c8 — the grounded fact, marked, with its source line"
   it("a draft the edit removed the fact from renders no mark, and the fact is stated rather than lost", () => {
     const root = markup(EDITED_VIEW);
     expect(root.querySelectorAll('[data-testid="draft-body"] mark').length).toBe(0);
-    expect(textOf(root, "draft-grounded-fact")).toBe(EDITED_VIEW.grounded.fact);
-    // The fact was not rewritten to match the edit.
-    expect(EDITED_VIEW.grounded.fact).toBe(VIEW.grounded.fact);
+    expect(textOf(root, "draft-grounded-fact")).toBe(EDITED_VIEW.grounded.passage);
+    // The passage was not rewritten to match the edit.
+    expect(EDITED_VIEW.grounded.passage).toBe(VIEW.grounded.passage);
   });
 
   // Issue #268. Generation records the grounding; a draft it recorded none
@@ -152,7 +152,7 @@ describe("REQ-045 c2 and c8 — the grounded fact, marked, with its source line"
   describe("a draft with no recorded grounding states no source and no date", () => {
     const UNGROUNDED = assembleDraft({
       ...factsFor(FIXTURE_DRAFT_ID),
-      groundedFact: { fact: "", url: "", readAt: null },
+      groundedFact: null,
     });
 
     it("no date is stated, and no epoch date can be", () => {
@@ -623,7 +623,7 @@ describe("REQ-045 c5-c9 — the editor, its live preview, its autosave and its i
     expect(
       container.querySelectorAll('[data-testid="draft-preview-body"] mark').length
     ).toBe(1);
-    type(VIEW.bodyMd.replace(VIEW.grounded.fact, "A claim of the customer's own."));
+    type(VIEW.bodyMd.replace(VIEW.grounded.passage, "A claim of the customer's own."));
     await settle(PREVIEW_DEBOUNCE_MS);
     expect(
       container.querySelectorAll('[data-testid="draft-preview-body"] mark').length
@@ -633,7 +633,7 @@ describe("REQ-045 c5-c9 — the editor, its live preview, its autosave and its i
     click("draft-edit-done");
     expect(
       container.querySelector('[data-testid="draft-grounded-fact"]')?.textContent
-    ).toBe(VIEW.grounded.fact);
+    ).toBe(VIEW.grounded.passage);
     expect(container.querySelectorAll('[data-testid="draft-body"] mark').length).toBe(0);
   });
 

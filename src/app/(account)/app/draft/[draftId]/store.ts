@@ -14,20 +14,28 @@
 // both take the same `null` arm and the screen words one sentence.
 //
 // **What is honestly absent, and whose it is.** `drafts.meta` carries what
-// §8's generation recorded; the four values below are read from it where
+// §8's generation recorded; the values below are read from it where
 // generation has written them and stand at their honest empty where it has
 // not — never at a fixture value:
 //
 //   bodyMdGenerated   the body as generated, before the customer's edits
-//   groundedFact      §8's recorded fact and its source (#43)
 //   claim             the claim check's last verdict (#43)
 //   firstEditedAt     the first save that changed the text (#17)
 //   recordedChecks    which §8 hard rules passed on this page (#43)
+//
+// **The grounded fact is not among them, and that is issue #415.** It is
+// read from `drafts.grounded_fact`, the column §8 hard rule 1's trigger
+// freezes and the pipeline writes — through `readRecordedFact`, the one
+// reader the hosted page also calls. This file used to read a
+// `meta.grounded_fact` key of its own shape that nothing has ever written,
+// so every generated draft reached its customer with no highlight and no
+// source line while the fixture account's draft showed both.
 //
 // `writtenAt` is not among them: it is `drafts.created_at`, a column the
 // baseline declares `not null`, so the day the page was written is read
 // from the row rather than from what generation remembered to write down.
 import { dbAdmin } from "@/lib/db";
+import { readRecordedFact } from "@/lib/generate/fact";
 import type { PublishingMode } from "../../_shell/model";
 import type { State } from "../../calendar/stages";
 import { pageRecordFor } from "@/lib/publish/record";
@@ -41,6 +49,7 @@ interface DraftRow {
   title: string;
   body_md: string | null;
   meta: Record<string, unknown> | null;
+  grounded_fact: unknown;
   veto_deadline: string | null;
   created_at: string;
 }
@@ -62,7 +71,8 @@ interface MinimalClient {
 
 /** The one select list. `drafts` carries no credential and this names no
  *  column of another account's. */
-const DRAFT_COLUMNS = "id, site_id, state, title, body_md, meta, veto_deadline, created_at";
+const DRAFT_COLUMNS =
+  "id, site_id, state, title, body_md, meta, grounded_fact, veto_deadline, created_at";
 
 /** §9's ten states, as this screen reads them. A row carrying anything else
  *  is a row this screen cannot draw, and it takes the `null` arm rather
@@ -83,32 +93,6 @@ const DRAFT_STATES: readonly string[] = [
 function stringAt(meta: Record<string, unknown> | null, key: string): string | null {
   const value = meta?.[key];
   return typeof value === "string" && value.trim() !== "" ? value : null;
-}
-
-/** §8's grounded fact, as generation recorded it. A draft with none carries
- *  the empty shape rather than a fabricated fact — `assembleDraft`
- *  recomputes `present` against the body, so an empty fact is simply never
- *  found in it and no highlight is drawn.
- *
- *  **The empty shape's date is `null`, not epoch zero** (issue #268). It
- *  used to be `new Date(0)`, and the empty string it sits beside is why
- *  that was a different kind of value: an empty fact and an empty address
- *  render as nothing, while epoch zero renders as `Dec 31, 1969` — a date
- *  the screen stated as the day this page's source was read, on every
- *  draft generation has recorded no grounding for. A missing date has to
- *  be a value that cannot be formatted. */
-function groundedFactOf(meta: Record<string, unknown> | null): DraftFacts["groundedFact"] {
-  const grounded = meta?.grounded_fact;
-  if (typeof grounded !== "object" || grounded === null) {
-    return { fact: "", url: "", readAt: null };
-  }
-  const record = grounded as Record<string, unknown>;
-  const readAt = typeof record.read_at === "string" ? new Date(record.read_at) : null;
-  return {
-    fact: typeof record.fact === "string" ? record.fact : "",
-    url: typeof record.url === "string" ? record.url : "",
-    readAt,
-  };
 }
 
 /**
@@ -194,7 +178,11 @@ export async function readDraftRow(a: {
     bodyMdGenerated: generated,
     state: row.state as State,
     firstEditedAt: firstEdited === null ? null : new Date(firstEdited),
-    groundedFact: groundedFactOf(row.meta),
+    // §8's recorded fact, from its own column and through the one reader
+    // (`@/lib/generate/fact`). `null` where generation recorded no
+    // grounding: `assembleDraft` draws no highlight and no source line for
+    // one, rather than an empty address beside a stand-in date (#268).
+    groundedFact: readRecordedFact(row.grounded_fact),
     claim: claimOf(row.meta),
     mode: a.site.mode,
     // §9's veto window, and only where one is running: a page that is not
