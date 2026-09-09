@@ -38,6 +38,7 @@
       "pricing.heading",
       "pricing.subline",
       "chrome.notfound.line.app",
+      "chrome.error.eyebrow",
       "chrome.error.heading",
       "chrome.error.line",
       "legal.privacy.body",
@@ -47,7 +48,7 @@
       "legal.terms.updated",
       "legal.imprint.updated"
     ],
-    "ruled": 20
+    "ruled": 19
   },
   "danger.ts": {
     "owed": [],

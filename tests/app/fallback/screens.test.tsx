@@ -76,12 +76,16 @@ describe("S8 — one shape, and every mount wears it", () => {
     expect(markup).toContain('<p class="eyebrow num">404</p>');
   });
 
-  it.each(ERROR_SCREENS)("$name shows the error eyebrow, and its line is owed", ({ markup }) => {
-    expect(markup).toContain(`<p class="eyebrow">${COPY["chrome.error.eyebrow"]}</p>`);
-    expect(COPY["chrome.error.eyebrow"]).toBe("Something went wrong");
-    // S8 draws no heading and no line for the error page, so both render
-    // the marker until the owner writes them (12a, and the standing screen
-    // rule: a screen shows which line is waiting and keeps working).
+  it.each(ERROR_SCREENS)("$name keeps its shape, and all three of its strings are owed", ({ markup }) => {
+    // S8 draws nothing of the error page but its shape — "the same shape
+    // with one written line" — so its eyebrow, its heading and its line are
+    // all three the owner's, and all three render the marker (12a, and the
+    // standing screen rule: a screen shows which line is waiting and keeps
+    // working). The eyebrow was written from issue #372's own Done-when
+    // until the master's review of #407 owed it back: a Done-when is a
+    // brief, not the owner's pen, and no BUILD or REQ line writes it.
+    expect(COPY["chrome.error.eyebrow"]).toBe(TODO_COPY_MARKER);
+    expect(markup).toContain(`<p class="eyebrow">${TODO_COPY_MARKER}</p>`);
     expect(markup).toContain(`<h1 class="rk-hero-h">${TODO_COPY_MARKER}</h1>`);
     expect(markup).toContain(`<p>${TODO_COPY_MARKER}</p>`);
   });

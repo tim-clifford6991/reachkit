@@ -84,12 +84,17 @@ export const CHROME_COPY = Object.freeze({
      fifteenth partition of their own.
 
      The 404's four strings are the approved set's, unbracketed, so 11a
-     makes them approved copy as written. The error page's are not: S8 says
-     only "the error page is the same shape with one written line" and
-     draws none of it, so its heading and its line are the owner's and
-     carry the marker. Its eyebrow is the one string issue #372's own
-     Done-when fixes ("Something went wrong"), recorded here under
-     ship-then-steer with the issue named. */
+     makes them approved copy as written. **The error page's are not, all
+     three of them.** S8 says only "the error page is the same shape with
+     one written line" and draws none of it, so its eyebrow, its heading
+     and its line are the owner's and carry the marker.
+
+     The eyebrow was written here — "Something went wrong", issue #372's own
+     Done-when wording — and is owed again on the master's review of #407
+     (2026-09-09): a Done-when is the master's brief, not the owner's pen,
+     and rule 6 leaves exactly two footings for a rendered string, the set's
+     unbracketed word (11a) or a BUILD/REQ line quoted verbatim. It has
+     neither. Nothing in BUILD.md or the archived REQ set writes it. */
   "chrome.notfound.eyebrow": ["404", { slots: {}, fixedBy: "UI-SPEC S8 (11a)" }],
   "chrome.notfound.heading": [
     "There is no page at this address.",
@@ -115,10 +120,7 @@ export const CHROME_COPY = Object.freeze({
    *  already have. S8 draws no account arm, so the line is the owner's
    *  (12a — built in the set's idiom, written by the owner). */
   "chrome.notfound.line.app": ["TODO(copy)", { slots: {}, fixedBy: "UI-SPEC S8 (12a)" }],
-  "chrome.error.eyebrow": [
-    "Something went wrong",
-    { slots: {}, fixedBy: "UI-SPEC S8 · issue 372" },
-  ],
+  "chrome.error.eyebrow": ["TODO(copy)", { slots: {}, fixedBy: "UI-SPEC S8 (12a)" }],
   "chrome.error.heading": ["TODO(copy)", { slots: {}, fixedBy: "UI-SPEC S8 (12a)" }],
   "chrome.error.line": ["TODO(copy)", { slots: {}, fixedBy: "UI-SPEC S8 (12a)" }],
 
