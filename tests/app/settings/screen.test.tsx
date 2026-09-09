@@ -340,17 +340,56 @@ describe("REQ-079 c1 — each danger-zone action states its consequence before i
 
 // ── REQ-097 ────────────────────────────────────────────────────────────────
 describe("REQ-097 — the Billing card renders no number ReachKit computed", () => {
-  it("it states no next invoice, no card and no invoice history", async () => {
-    // REQ-097 c5, and the ruling on issue #34 that settled which of §4.7's
-    // four things survive it: the plan, the price and the control.
+  // **2026-09-09, on the master's review of #391 (issue #374).** REQ-097 c5
+  // reads "no ReachKit surface states any of those values", and the ruling
+  // on issue #34 settled §4.7's four things down to the plan, the price and
+  // the control. The approved screen set draws the next-invoice row and the
+  // card row, and the master — having been shown c5 and that ruling in the
+  // PR body — asked for both. So the two rows are drawn, and **c5 needs
+  // amending to say so**; that is named in #391 and is the owner's to do.
+  //
+  // What this file still holds is the half of c5 that no ruling touched:
+  // every figure on the card is one ReachKit itself owns. The next-invoice
+  // row is not a vendor read at all — the day is `users.paid_through`, this
+  // product's own access gate, and the amount is the same `price.amount`
+  // key every price surface speaks. The card row is the one exception and
+  // it is drawn only where something read one: `users` holds no card, so
+  // the live path answers `null` and the row is absent (`billing.ts`).
+  it("it states the next invoice and the card, from facts it owns", async () => {
     const root = await mountScreen();
-    expect(root.querySelector('[data-testid="billing-next-invoice"]')).toBeNull();
-    expect(root.querySelector('[data-testid="billing-card"]')).toBeNull();
-    expect(root.querySelector('[data-testid="billing-plan"]')).not.toBeNull();
+    expect(root.querySelector('[data-testid="billing-next-invoice"]')).not.toBeNull();
+    expect(root.querySelector('[data-testid="billing-card"]')).not.toBeNull();
     expect(root.querySelector('[data-testid="billing-price"]')).not.toBeNull();
+    // The plan ROW is gone: there is one plan (REQ-022 c3), the pill states
+    // whether it is running, and the figure states its price — a row
+    // repeating the plan's name said nothing the two had not.
+    expect(root.querySelector('[data-testid="billing-plan"]')).toBeNull();
+    expect(root.querySelector('[data-testid="billing-state"]')).not.toBeNull();
   });
 
-  it("every digit on the card comes from the price copy or the access-end day", async () => {
+  it("the next invoice is the access-end day and the price copy, not a second read", async () => {
+    // The discriminating property: the row's date is the model's own
+    // `accessUntil` — `users.paid_through`, this product's access gate —
+    // and not a second date from somewhere else. The cancelling line below
+    // it is fed the same value through its `{date}` slot (`BillingPanel`),
+    // so the two cannot drift; that slot is not interpolated in this suite,
+    // where `copy()` resolves to its key.
+    const root = await mountScreen();
+    const { accessUntil } = billingCard();
+    const row = root.querySelector('[data-testid="billing-next-invoice"]')?.textContent ?? "";
+    expect(row).toContain(accessUntil);
+    // And the amount beside it is the price copy, not a computed figure.
+    // `copy()` resolves to its key in this suite — the shell's convention,
+    // so an assertion names which key a value came from rather than the
+    // owner's wording — so what stands in the row is the key itself.
+    //
+    // The AMOUNT only: the interval ("per month, VAT included") is a fact
+    // about the plan and sits beside the headline figure, not on a row
+    // stating one invoice.
+    expect(row).toContain(PRICE_KEYS[0]);
+  });
+
+  it("every digit on the card comes from the price copy, the access-end day or the card on file", async () => {
     const root = await mountScreen();
     const card = root.querySelector('[data-testid="action-invoices"]')?.closest(".card");
     expect(card).not.toBeNull();
@@ -364,8 +403,12 @@ describe("REQ-097 — the Billing card renders no number ReachKit computed", () 
     }
     // The day access ends — `users.paid_through`, this product's own gate
     // (ADR-050) and the date REQ-076 c3 requires the customer be told.
-    const { accessUntil } = billingCard();
-    text = text.split(accessUntil).join("");
+    const summary = billingCard();
+    text = text.split(summary.accessUntil).join("");
+    // The one vendor-held value on the card, and the only one: it is drawn
+    // where something read it and nowhere else, so subtracting it here is
+    // subtracting a fact rather than excusing a computation.
+    if (summary.cardLast4 !== null) text = text.split(summary.cardLast4).join("");
 
     // Whatever is left is the card's words. If a figure survived this
     // subtraction, ReachKit rendered a billing number of its own.

@@ -1358,3 +1358,62 @@
   font-size: var(--h3);
   color: var(--ink);
 }
+
+
+/* ── 13 · The value chip (issue #374) ────────────────────────────────── */
+
+/* The approved set draws a removable value — a competitor's domain, a
+ * category, a claim — as a tinted pill with its own way out (`.tag.on`,
+ * S18). It is not a control and not a state: it is a value the customer put
+ * there, with the means to take it back.
+ *
+ * Three tokens, all already spent by the outline rank above it:
+ * `--accent-bg` for the ground, `--accent-line` for the edge, `--accent`
+ * for the ink. No colour is minted and no rank is added — a chip that looked
+ * like a button would read as something to press, and the thing to press is
+ * the × inside it.
+ *
+ * `--r-pill` because it is a pill; `--s-1`/`--s-2` are the ladder's own two
+ * smallest rungs, which is what a chip's inset is everywhere else. */
+.rk-chip {
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-line);
+  border-radius: var(--r-pill);
+  color: var(--accent);
+  padding: var(--s-1) var(--s-2);
+  max-width: 100%;
+  min-width: 0;
+}
+
+/* The way out sits inside the chip and takes the chip's own ink, so it
+ * reads as part of the value rather than as a control beside it. */
+.rk-chip > form > .btn {
+  color: inherit;
+}
+
+
+/* ── 14 · The danger card's edge (issue #374) ────────────────────────── */
+
+/* S18's Danger zone: the card keeps its own surface and shadow and takes a
+ * `--bad` hairline edge, and its eyebrow takes `--bad` ink. It is the one
+ * card whose controls destroy something, and §2.5 gives red to "the
+ * customer's problem being shown to them" — which is what a control that
+ * unpublishes every page is, before it is pressed rather than after.
+ *
+ * A wrapper and not an arm on `Card`: `Card`'s two states are `default` and
+ * `degraded`, a third for one caller would be a state nothing else could
+ * ever be in, and the edge is the caller's framing rather than the card's
+ * own condition. The chip beside the eyebrow takes the same tone, because a
+ * head whose ink is red and whose chip is accent reads as two claims. */
+.rk-danger > .card {
+  border-color: var(--bad-line);
+}
+
+.rk-danger .eyebrow {
+  color: var(--bad);
+}
+
+.rk-danger .rk-head-chip {
+  background: var(--bad-bg);
+  color: var(--bad);
+}

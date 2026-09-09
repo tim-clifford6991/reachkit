@@ -94,6 +94,14 @@ export const SETTINGS_COPY = Object.freeze({
 
   // ── Competitors ────────────────────────────────────────────────────────
   "settings.competitors.title": ["Competitors", { slots: {}, fixedBy: "BUILD §4.7" }],
+  // S18's head count, in the set's own words (11a): "5 of 5". A key and not
+  // a slash written in code — "of" is a word, and a word the product speaks
+  // is a key. Both numerals are slots, so the cap comes from
+  // `BATTERY.COMPETITORS_MAX` and never from a five typed twice.
+  "settings.competitors.count": [
+    "{taken} of {max}",
+    { slots: { taken: "text", max: "text" }, fixedBy: "REQ-071 c16" },
+  ],
   "settings.competitors.add": ["add", { slots: {}, fixedBy: 'BUILD §4.7 ("chips ×5, add/remove")' }],
   "settings.competitors.remove": [
     "remove",
@@ -248,6 +256,14 @@ export const SETTINGS_COPY = Object.freeze({
   // Stripe's own surface and carry that provenance in the model
   // (`billing.ts`); ReachKit computes none of them.
   "settings.billing.title": ["Billing", { slots: {}, fixedBy: "BUILD §4.7" }],
+  // The plan's state, as the approved S18 draws it: a pill beside the
+  // figure rather than a row of its own. "active" is the set's own word
+  // (11a); "cancelled" is its opposite and the only other state
+  // `PlanState` has, so the pair is closed. There is one plan (REQ-022 c3),
+  // which is why the pill states the STATE and the plan word beside it was
+  // saying nothing the figure had not.
+  "settings.billing.active": ["active", { slots: {}, fixedBy: "REQ-076 c3" }],
+  "settings.billing.cancelled": ["cancelled", { slots: {}, fixedBy: "REQ-076 c3" }],
   "settings.billing.plan": ["plan", { slots: {}, fixedBy: "BUILD §4.7" }],
   "settings.billing.next-invoice": ["next invoice", { slots: {}, fixedBy: "BUILD §4.7" }],
   "settings.billing.card": ["card", { slots: {}, fixedBy: "BUILD §4.7" }],

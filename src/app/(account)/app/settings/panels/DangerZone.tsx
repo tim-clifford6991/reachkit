@@ -76,7 +76,15 @@ export function DangerZone(): React.JSX.Element {
   const exportFirst = writtenLine("danger.export-first");
 
   return (
-    <Card state="default" title={<CardHead eyebrow={copy("danger.zone.title")} />}>
+    // S18 draws this card with a `--bad` hairline edge and its eyebrow in
+    // `--bad`: it is the one card on the screen whose controls destroy
+    // something, and §2.5 gives red to "the customer's problem being shown
+    // to them" — which a card that can unpublish everything qualifies as
+    // before it is pressed, not after. The ring is on the wrapper rather
+    // than on `Card`, which has no danger arm and should not grow one for
+    // one caller; `rk-danger` is the idiom's own, beside the value chip.
+    <div className="rk-danger min-w-0" data-testid="settings-danger">
+      <Card state="default" title={<CardHead eyebrow={copy("danger.zone.title")} />}>
       {exportFirst === null ? null : <p className="text-xs opacity-60 wrap-anywhere">{exportFirst}</p>}
 
       <div className="flex min-w-0 flex-col gap-3">
@@ -96,7 +104,8 @@ export function DangerZone(): React.JSX.Element {
       </div>
 
       {action.line === null ? null : <p className="text-xs opacity-60 wrap-anywhere">{action.line}</p>}
-    </Card>
+      </Card>
+    </div>
   );
 }
 
