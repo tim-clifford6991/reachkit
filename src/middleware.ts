@@ -3,11 +3,18 @@
 // "Authorisation: default-deny. `src/app/(account)/**` requires a session;
 // `src/app/(public)/**` explicitly declares itself public in one middleware
 // allow-list, so a new account route cannot leak by omission." This file is
-// the one allow-list. Every request is denied unless it matches
-// `PUBLIC_PATHS` (BP-001 `## Public interface`, "Routes (public)"), one of
-// the two transport-only adapters (`decision 1`: "every file under
-// `src/app/api/**` is BP-001's ... a transport-only adapter"), the sign-in
-// address prompt itself (below), or a Next.js internal.
+// the one allow-list. Every request under a segment this product serves is
+// denied unless it matches `PUBLIC_PATHS` (BP-001 `## Public interface`,
+// "Routes (public)"), one of the two transport-only adapters (`decision 1`:
+// "every file under `src/app/api/**` is BP-001's ... a transport-only
+// adapter"), the sign-in address prompt itself (below), or a Next.js
+// internal.
+//
+// **A path under no segment this product serves is not denied — it does not
+// exist** (#405). Denying it too meant a stranger who mistyped a ReachKit
+// address was asked to sign in rather than told there is no page there,
+// which is neither UI-SPEC S8 nor ruling 3a. `GUARDED_SEGMENTS` below is
+// where that line is drawn, and why the default-deny property survives it.
 //
 // The authorisation check reads no database (`## File plan`): it is a
 // cookie's presence, nothing about its contents. Session *identity* is
@@ -206,6 +213,62 @@ function matchesPublicPath(pathname: string): boolean {
   });
 }
 
+/** One row per top-level path segment `src/app/` serves that is **not** a
+ *  public route of its own — the account container's two, the hosted edge's
+ *  two internal rewrite targets, and the whole API surface.
+ *
+ *  **This list is what keeps default-deny meaning what it says, now that an
+ *  address this product does not have falls through** (#405). Before it,
+ *  every unmatched path was denied alongside every guarded one: `/nonsense`
+ *  answered `307 /signin`, and the S8 screen issue #372 built was
+ *  unreachable. After it, a request is denied when it stands under a
+ *  segment this product actually serves and is not public; anything else is
+ *  no address at all, and Next answers it from `src/app/not-found.tsx` with
+ *  the status a missing page carries.
+ *
+ *  **What the difference discloses, and why it is nothing.** BP-001's
+ *  promise (`## Error & edge behavior`, REQ-020 c5) is that a denial "says
+ *  nothing about whether an account or a payment exists", and it still says
+ *  nothing: every request to a guarded segment gets the same 307 to the
+ *  same address with no query string and no distinguishing header, whoever
+ *  is asking and whatever they typed. What a stranger can read off a 404
+ *  for `/nonsense` beside a 307 for `/app` is that this product has an
+ *  address called `/app` — the same fact for every visitor, nobody's
+ *  account, and already written on the sign-in screen, the footer and the
+ *  pricing page. No response varies with a customer, a domain or a payment.
+ *
+ *  **`api` is on the list for the opposite reason.** Nothing under it is a
+ *  screen, so a 404 there would buy a reader nothing but a map of which
+ *  endpoints exist; the API surface answers exactly as it did before this
+ *  list, and an unmatched `/api/...` is denied like any other.
+ *
+ *  **Nothing may leak by omission.** BP-001's own property — "a new account
+ *  route cannot leak by omission" — is now a checked invariant rather than
+ *  a side effect of the default: `tests/app/middleware.test.ts` walks
+ *  `src/app/**` and fails, naming the route, if any non-`(public)` route
+ *  stands under a segment named neither here nor in `PUBLIC_PATHS`. A new
+ *  account route whose row is missing fails CI; it does not ship open. */
+export const GUARDED_SEGMENTS: readonly string[] = [
+  // `src/app/api/**` — transport-only adapters (`decision 1`).
+  "api",
+  // `src/app/(account)/**` — the two segments §4.3 and §4.4 serve.
+  "app",
+  "setup",
+  // `src/app/(hosted)/**` — the two destinations `hostedRewrite` writes.
+  // Guarded rather than left to fall through: they are reachable by path on
+  // a ReachKit host as well as by rewrite on a `content.` one, and an
+  // address on `reachkit.app` that answered a customer's published page
+  // would be this product serving someone else's site.
+  "hosted-gone",
+  "hosted-page",
+];
+
+/** Whether this product serves anything at all under the path's own
+ *  top-level segment. `/` has none, and is public. */
+function isGuarded(pathname: string): boolean {
+  return GUARDED_SEGMENTS.includes(pathname.split("/")[1] ?? "");
+}
+
 function isPublic(pathname: string): boolean {
   return (
     isNextInternal(pathname) ||
@@ -333,6 +396,15 @@ export async function middleware(req: NextRequest): Promise<NextResponse> {
   if (removed !== null) return removed;
 
   if (isPublic(pathname)) return NextResponse.next();
+
+  // An address this product does not have (#405): not public, and under no
+  // segment `src/app/` serves. There is nothing here to guard, so the
+  // request falls through to Next, which matches no route and renders
+  // `src/app/not-found.tsx` — S8's screen, inside ruling 3a's header and
+  // footer, with the status a 404 carries. Decided **before** the session
+  // check rather than after it, so a stranger and a signed-in customer are
+  // told the same thing at the same address.
+  if (!isGuarded(pathname)) return NextResponse.next();
 
   if (hasSession(req)) {
     // BUILD §4.3's incomplete-setup gate is **not decided here** (#133).
