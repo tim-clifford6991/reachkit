@@ -1876,9 +1876,17 @@
 }
 
 /* The scan field on S8 is the landing's own form, centred and at the form
- * measure: the set draws it narrower than the reading column it sits in. */
+ * measure: the set draws it narrower than the reading column it sits in,
+ * with the field and the control on **one** row. The hero gives its own
+ * field a `--w-form` flex basis, which is the whole of this column — so the
+ * control would wrap under it here. `auto` is the field's own intrinsic
+ * width instead, and it still grows into whatever the control leaves. */
 .rk-fallback > .rk-hero-form {
   width: 100%;
   max-width: var(--w-form);
   justify-content: center;
+}
+
+.rk-fallback > .rk-hero-form > :first-child {
+  flex: 1 1 auto;
 }
