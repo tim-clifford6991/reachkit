@@ -273,14 +273,13 @@
       "publish.destination.line.unreachable",
       "publish.destination.line.destination-rejected",
       "publish.destination.line.cannot-publish",
-      "publish.veto.stopped",
       "publish.veto.alreadyUsed",
       "publish.veto.expired",
       "publish.veto.unknown",
       "publish.wordpress.noSeoPlugin",
       "publish.wordpress.namedForRemoval"
     ],
-    "ruled": 4
+    "ruled": 12
   },
   "report.ts": {
     "owed": [],
