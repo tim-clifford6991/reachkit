@@ -71,9 +71,6 @@ function Pane(p: { children: React.ReactNode }): React.JSX.Element {
 
 export function AddressView(p: {
   state: AddressState;
-  /** The canonical address of this report — REQ-001 c7's copy-link value,
-   *  built by the route and never composed inside a view. */
-  canonicalUrl: string;
 }): React.JSX.Element {
   const state = p.state;
   switch (state.kind) {
@@ -161,7 +158,7 @@ export function AddressView(p: {
       );
 
     case "report":
-      return <ReportView state={state} canonicalUrl={p.canonicalUrl} />;
+      return <ReportView state={state} />;
 
     default: {
       const exhaustive: never = state;

@@ -277,7 +277,6 @@ describe('"Email me the full page" → lead → first page → a follow-up that 
     const html = renderToStaticMarkup(
       AddressView({
         state: reportState(),
-        canonicalUrl: `https://app.example.com/scan/${DOMAIN}`,
       }) as never
     );
 

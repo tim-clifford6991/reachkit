@@ -38,7 +38,6 @@ import type { AddressControl, AddressNotice } from "@/app/(public)/scan/[domain]
 import type { CanonicalDomain } from "@/lib/scan/domain";
 import type { StoredReport } from "@/lib/scan/report";
 
-const CANONICAL = "https://reachkit.app/scan/example.com";
 
 function render(
   report: StoredReport,
@@ -46,7 +45,7 @@ function render(
   control: AddressControl = { kind: "none" }
 ): string {
   return renderToStaticMarkup(
-    React.createElement(ReportView, { state: { report, notice, control }, canonicalUrl: CANONICAL })
+    React.createElement(ReportView, { state: { report, notice, control } })
   );
 }
 
@@ -231,11 +230,15 @@ describe("REQ-001 c16 — exactly one measurement-starting control, or none", ()
     expect(CONTROL_KEYS.filter((key) => html.includes(key))).toEqual([]);
   });
 
-  it("the copy-link control is not one of the four and coexists with none of them", () => {
-    // REQ-001 c7's control starts no measurement, so it rides on every arm
-    // — including `none`, where the union renders nothing.
-    expect(render(FIXTURE_REPORT, null, { kind: "none" })).toContain("copy-link.label");
-    expect(render(FIXTURE_REPORT, null, { kind: "retry" })).toContain("copy-link.label");
+  it("the copy-link control is not one of the four, and is not on this tree at all", () => {
+    // REQ-001 c7's control starts no measurement, so it never was one of
+    // the four. Since #357 it is not in this component either: ruling 3a
+    // gave the public header a per-route right slot, and the report's slot
+    // is that control — on the screen once, in the bar. Asserted here so
+    // that the day it returns to the module tree, it returns deliberately.
+    for (const control of ["none", "retry"] as const) {
+      expect(render(FIXTURE_REPORT, null, { kind: control })).not.toContain("copy-link.label");
+    }
   });
 });
 
@@ -303,9 +306,9 @@ describe("ruling 2b (2026-09-08) — this screen has two solids, and they are th
   it("every other control on the screen is a quieter rank", () => {
     // The copy-link and the correction are tertiary; a third fill would
     // make the two trades stop reading as the two trades.
-    for (const key of ["copy-link.label", "verdict.not-your-market"]) {
-      expect(buttonTag(key)).not.toContain("btn-primary");
-    }
+    // (The copy control moved to the header's bar in #357, and its rank is
+    // asserted there.)
+    expect(buttonTag("verdict.not-your-market")).not.toContain("btn-primary");
   });
 });
 

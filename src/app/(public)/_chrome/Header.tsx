@@ -17,15 +17,51 @@
 // every other public route it is a link to the landing, which is where the
 // field is.
 //
-// `onLanding` is the route's to say, never inferred from a pathname here: a
+// **The right slot is the route's, and the route says so.** On the report
+// address the approved set draws REQ-001 c7's quiet *Copy link* there
+// instead of the pair — it is the one screen with an address to copy, and
+// the control had been standing inside the report's own tree because the
+// chrome had no slot for it (issue #352's own note). It has one now. The
+// arm is a value the layout passes, never a pathname this file reads: a
 // header that reads the route is a second place the rule lives.
 import type React from "react";
 import Link from "next/link";
 import { Btn } from "@/ui/components/Btn";
 import { copy } from "@/lib/presentation/copy";
+import { CopyLink } from "../scan/[domain]/_address/copy-link";
 import { FieldCta } from "../_landing/FieldCta";
 
-export function Header(p: { onLanding: boolean }): React.JSX.Element {
+/** What the bar's right slot holds. A closed union with a `never` default
+ *  below, so a fourth kind of chrome cannot arrive without a rendering —
+ *  and so the decision is a value the layout hands over rather than a
+ *  pathname read twice. */
+export type HeaderAction =
+  /** Ruling 3a's pair: quiet Sign in, then the one solid CTA. */
+  | { kind: "cta" }
+  /** The same pair, with REQ-099 c3's CTA — the hero's own field. */
+  | { kind: "landing" }
+  /** REQ-001 c7's control, on the one screen with an address to copy. */
+  | { kind: "copy-link"; canonicalUrl: string };
+
+function Action(p: { action: HeaderAction }): React.JSX.Element {
+  if (p.action.kind === "copy-link") {
+    return <CopyLink canonicalUrl={p.action.canonicalUrl} />;
+  }
+  return (
+    <>
+      {/* Quiet, on every route: signing in is what a customer does, and
+          it is never the thing a stranger came to do. */}
+      <Btn href="/signin" label={copy("chrome.nav.signin")} variant="tertiary" pill />
+      {p.action.kind === "landing" ? (
+        <FieldCta label={copy("chrome.cta.scan")} />
+      ) : (
+        <Btn href="/" label={copy("chrome.cta.scan")} variant="primary" pill />
+      )}
+    </>
+  );
+}
+
+export function Header(p: { action: HeaderAction }): React.JSX.Element {
   return (
     <header className="rk-chrome-head" data-testid="public-header">
       <div className="rk-chrome-bar">
@@ -35,14 +71,7 @@ export function Header(p: { onLanding: boolean }): React.JSX.Element {
         </Link>
 
         <div className="rk-chrome-controls">
-          {/* Quiet, on every route: signing in is what a customer does, and
-              it is never the thing a stranger came to do. */}
-          <Btn href="/signin" label={copy("chrome.nav.signin")} variant="secondary" pill />
-          {p.onLanding ? (
-            <FieldCta label={copy("chrome.cta.scan")} />
-          ) : (
-            <Btn href="/" label={copy("chrome.cta.scan")} variant="primary" pill />
-          )}
+          <Action action={p.action} />
         </div>
       </div>
     </header>

@@ -41,7 +41,6 @@ import { ProblemCards } from "../_problems/cards";
 import { MethodSections } from "../_problems/method";
 import { cardsOf, PROBLEM_ORDER } from "../_problems/model";
 import { unblockLines } from "../_problems/unblock";
-import { CopyLink } from "./copy-link";
 import { RemovalAddressLine } from "./removal";
 import type { AddressControl, AddressNotice } from "./state";
 import { refusalLine } from "./refusal";
@@ -148,8 +147,6 @@ export function ReportView(p: {
     notice: AddressNotice | null;
     control: AddressControl;
   };
-  /** The canonical address this report lives at — REQ-001 c7's value. */
-  canonicalUrl: string;
 }): React.JSX.Element {
   const { report, notice, control } = p.state;
   const measuredOn = formatMeasuredOn(report.verdict.measuredAt);
@@ -207,17 +204,12 @@ export function ReportView(p: {
           <ControlButton control={control} />
         </div>
 
-        {/* The copy-link control, at the top of the screen that owns the
-            address (REQ-001 c7). UI-SPEC S2 draws it in the public
-            header's bar; the header is shared chrome with no per-route
-            slot, and the canonical address is built in exactly one place
-            (`page.tsx`), so it is rendered here by the screen that has
-            it rather than composed a second time in the layout. Named in
-            the PR as the one place this screen departs from the set. */}
-        <div className="col-span-full flex justify-end">
-          <CopyLink canonicalUrl={p.canonicalUrl} />
-        </div>
-
+        {/* **The copy control is in the header's bar** (UI-SPEC S2, issue
+            #357). It stood here for one release because the shared chrome
+            had no per-route slot; ruling 3a gave it one, and the layout
+            hands the bar this address. REQ-001 c7 is unchanged — the
+            control is on the screen that owns the address — and it is on it
+            once. */}
         <div className="col-span-full">
           <VerdictStrip
             verdict={report.verdict}

@@ -44,7 +44,6 @@
 // produces, the 308 included. Neither half is enough alone.
 import { permanentRedirect } from "next/navigation";
 import type { Metadata } from "next";
-import { env } from "@/lib/config/env";
 import { parseDomain } from "@/lib/scan/domain";
 import { headers } from "next/headers";
 import { networkKeyOf } from "@/lib/scan/admission";
@@ -62,10 +61,6 @@ export const revalidate = 0;
 export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
-
-function canonicalUrlFor(domain: string): string {
-  return new URL(`/scan/${domain}`, env.NEXT_PUBLIC_APP_URL).toString();
-}
 
 /** REQ-001 c4: a segment that does not parse is answered with the
  *  `malformed` arm — one written line and the landing field — never a 404
@@ -107,5 +102,5 @@ export default async function ScanAddressPage({
   // that never do. `view.tsx` declares each arm's own arms, and the
   // `removed` arm brings its own from `_address/removal.tsx` (#28), so a
   // wrapper here would make two `[data-surface]` roots on that one arm.
-  return <AddressView state={state} canonicalUrl={canonicalUrlFor(raw)} />;
+  return <AddressView state={state} />;
 }

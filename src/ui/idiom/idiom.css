@@ -955,10 +955,18 @@
   gap: var(--s-5);
 }
 
-@media (min-width: 1024px) {
+/* Three columns from `--breakpoint-md`, one below it — where the approved
+ * set puts the footer's own fold (issue #357). The brand's column is wide
+ * and the two link columns are not, which is what `2fr 1fr 1fr` says. */
+@media (min-width: 768px) {
   .rk-chrome-foot-in {
     grid-template-columns: 2fr 1fr 1fr;
     gap: var(--s-6);
+  }
+}
+
+@media (min-width: 1024px) {
+  .rk-chrome-foot-in {
     padding-inline: var(--s-5);
   }
 }
