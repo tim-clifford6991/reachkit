@@ -65,6 +65,13 @@ function useLandingSearchParams(
 
 export function ScanForm(props: {
   searchParams?: Promise<LandingSearchParams> | LandingSearchParams;
+  /** The submit control's label, where the screen is not the landing.
+   *  Optional and defaulted to REQ-001 c1's own, so `/`'s call site is
+   *  unchanged: S8 draws the same field and the same action under a
+   *  different word ("Scan it"), and a second copy of this form would be a
+   *  second place the no-JavaScript path, the five refusal lines and the
+   *  one named field live. */
+  submitLabel?: string;
 }): React.JSX.Element {
   const initial = useLandingSearchParams(props.searchParams);
   const initialProblem = isDomainProblem(initial.problem) ? initial.problem : undefined;
@@ -136,7 +143,7 @@ export function ScanForm(props: {
           `on-accent` inversion this control used to take. */}
       <Btn
         type="submit"
-        label={copy("landing.submit.label")}
+        label={props.submitLabel ?? copy("landing.submit.label")}
         variant="primary"
         pill
         inFlight={submitting}
