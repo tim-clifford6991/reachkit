@@ -674,13 +674,14 @@ function seedSite(
         // without the other would be a row no scan could have produced.
         `('${siteId}', '${scanId}', 'answer_page', 'write', 'onboarding tools ${index}', 'target-${index}', 'slug-${index}', 'Onboarding tools ${index}', ${seededVolume(index)}, 'winnable', 0.50, '${writeEvidence(index)}'::jsonb, '${acceptanceFor(index)}'::jsonb) returning id;`
     );
-    // **No `meta`, and that is the arm** (issue #268). Generation writes
-    // the grounded fact into `meta`; a draft seeded without one records no
-    // grounding, which is what the draft view used to render as an empty
-    // address beside `Dec 31, 1969`. Left empty deliberately so the live
-    // sweep photographs the omitted arm rather than only the fixture
-    // route's grounded one — the arm the finding was raised against is the
-    // arm the baselines hold.
+    // **No `grounded_fact`, and that is the arm** (issue #268). Generation
+    // writes the recorded fact into the `grounded_fact` column (§8 hard
+    // rule 1, and issue #415 for where the draft view reads it); a draft
+    // seeded without one records no grounding, which is what the draft view
+    // used to render as an empty address beside `Dec 31, 1969`. Left empty
+    // deliberately so the live sweep photographs the omitted arm rather
+    // than only the fixture route's grounded one — the arm the finding was
+    // raised against is the arm the baselines hold.
     //
     // The *other* half of #268 — a record with no scan behind it — cannot
     // be seeded at all: `opportunities.scan_id` is `not null references

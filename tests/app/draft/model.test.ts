@@ -16,6 +16,7 @@ import {
   FIXTURE_EDITED_DRAFT_ID,
 } from "@/app/(account)/app/draft/[draftId]/fixture";
 import { readDraft } from "@/app/(account)/app/draft/[draftId]/provider";
+import type { RecordedFact } from "@/lib/generate/fact";
 
 // BUILD §4.4–§4.6, issue #169 — the surfaces under test now resolve who is
 // asking through `_session/account.ts`, which reads a signed cookie and a
@@ -32,6 +33,14 @@ function facts(): DraftFacts {
   const f = FIXTURE_DRAFTS[FIXTURE_DRAFT_ID];
   if (f === undefined) throw new Error("the fixture lost its own draft id");
   return f;
+}
+
+/** The recorded fact of a draft that has one. `groundedFact` is nullable
+ *  since #415 — a draft generation recorded no grounding for carries
+ *  `null` — so a case about the passage says which draft it means. */
+function grounding(f: DraftFacts): RecordedFact {
+  if (f.groundedFact === null) throw new Error("this fixture draft records no grounding");
+  return f.groundedFact;
 }
 
 describe("REQ-045 c1 — every word that would publish, with nothing withheld or summarised", () => {
@@ -76,21 +85,31 @@ describe("REQ-045 c1 — the authorship label never presents the customer's word
 });
 
 describe("REQ-045 c2 and c8 — the grounding follows the text and the fact is never rewritten", () => {
-  it("the fact, its URL and its read date come back exactly as recorded", () => {
+  it("the passage, its URL and its read date come back exactly as recorded", () => {
     const f = facts();
-    const { fact, url, readAt } = assembleDraft(f).grounded;
-    expect({ fact, url, readAt }).toEqual(f.groundedFact);
+    const { passage, url, readAt } = assembleDraft(f).grounded;
+    expect({ passage, url, readAt }).toEqual(f.groundedFact);
+  });
+
+  // Issue #415: the fixture used to be the only draft whose recorded shape
+  // matched the reader. `DraftFacts` now carries `RecordedFact | null` —
+  // the shape the pipeline writes — and a draft with no grounding is that
+  // `null`, not an empty object of a shape of the screen's own.
+  it("a draft with no recorded grounding assembles to nothing to mark and nothing to state", () => {
+    const grounded = assembleDraft({ ...facts(), groundedFact: null }).grounded;
+    expect(grounded).toEqual({ passage: "", url: "", readAt: null, present: false });
   });
 
   it("present is true while the recorded passage still occurs in the body", () => {
     expect(assembleDraft(facts()).grounded.present).toBe(true);
   });
 
-  it("present is false once the passage is removed, and the fact itself is unchanged", () => {
+  it("present is false once the passage is removed, and the passage itself is unchanged", () => {
     const f = facts();
-    const gone = assembleDraft({ ...f, bodyMd: f.bodyMd.replace(f.groundedFact.fact, "something else") });
+    const recorded = grounding(f);
+    const gone = assembleDraft({ ...f, bodyMd: f.bodyMd.replace(recorded.passage, "something else") });
     expect(gone.grounded.present).toBe(false);
-    expect(gone.grounded.fact).toBe(f.groundedFact.fact);
+    expect(gone.grounded.passage).toBe(recorded.passage);
   });
 
   it("present is recomputed, never read from the facts: a stored flag cannot contradict the body", () => {
@@ -99,13 +118,14 @@ describe("REQ-045 c2 and c8 — the grounding follows the text and the fact is n
     // longer contains the fact, and nothing in `DraftFacts` says so.
     const editedFacts = FIXTURE_DRAFTS[FIXTURE_EDITED_DRAFT_ID];
     if (editedFacts === undefined) throw new Error("the fixture lost its edited draft");
-    expect(editedFacts.groundedFact.fact).toBe(f.groundedFact.fact);
+    expect(grounding(editedFacts).passage).toBe(grounding(f).passage);
     expect(assembleDraft(editedFacts).grounded.present).toBe(false);
   });
 
   it("re-wrapped whitespace is the same passage; a changed word is not", () => {
     const f = facts();
-    const rewrapped = f.bodyMd.replace(f.groundedFact.fact, f.groundedFact.fact.replace(/ /g, "\n"));
+    const passage = grounding(f).passage;
+    const rewrapped = f.bodyMd.replace(passage, passage.replace(/ /g, "\n"));
     expect(assembleDraft({ ...f, bodyMd: rewrapped }).grounded.present).toBe(true);
     const reworded = f.bodyMd.replace("caps custom properties", "caps custom fields");
     expect(assembleDraft({ ...f, bodyMd: reworded }).grounded.present).toBe(false);
