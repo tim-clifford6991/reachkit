@@ -25,7 +25,7 @@ The approved prototype is `docs/design/approved/full-set/` (rendered set + `UI-S
 ## Don't
 - Add settings that tune the engine (caps, cadences, model choice are constants).
 - Add a dependency, a top-level directory, or a vendor call without asking.
-- Pad scope beyond the issue. If you find adjacent work, open an issue for it.
+- Pad scope beyond the issue. If you find adjacent work, record it under *Adjacent* in your PR body — only the master files issues and merges to `main` (owner ruling 2026-09-09).
 - Edit `BUILD.md`, `DECISIONS.md`, `ARCHITECTURE.md`, `.github/**`, `eslint.config.mjs`, `vitest.config.ts`, `scripts/**` or `src/lib/config/` in a feature PR. The corpus is maintained by the master in docs PRs (owner ruling 2026-09-08); a code PR that changes a documented fact names the amendment under *Owner owes* / *Corpus* in its body.
 - Touch `archive/` — it is the frozen 2026-08-30 → 2026-09-04 sdlc-factory corpus. Read it for requirements and decisions; never write to it.
 
