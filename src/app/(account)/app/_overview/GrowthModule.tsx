@@ -117,8 +117,9 @@ export function GrowthModule(p: {
 
   const goal = GOALS.searches_appeared_in;
   // No `overview.goal` chip here since #353: the goal was named twice on
-  // this card — once on the plot's dashed rule and once in the right-hand
-  // footnote — and the set keeps the footnote. One fact, one place.
+  // this card — once on a dashed rule across the plot and once in the
+  // right-hand footnote — and the set keeps the footnote. One fact, one
+  // place. (The plot draws no dashed rule of any kind now — #386.)
   const startPoint = p.growth.points.find((point) => point.value.kind !== "unmeasured");
   const startLine =
     startPoint === undefined || startPoint.value.kind === "unmeasured"

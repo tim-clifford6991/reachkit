@@ -150,9 +150,10 @@ describe("the growth chart", () => {
     const markup = html(<GrowthModule growth={model.growth} timeZone={ZONE} />);
     // Two runs — before the gap and after it — never one polyline across it.
     expect(count(markup, "<polyline")).toBe(2);
-    // The week that did not run stands as the dashed break rule, in its
-    // own place on the axis.
-    expect(markup).toContain("stroke-dasharray");
+    // The break is the gap itself: nothing is drawn in the week's place
+    // (#386), and the account of why is on its mark.
+    expect(markup).not.toContain("stroke-dasharray");
+    expect(markup).toContain("place.overview.weekly-presence.week");
   });
 
   it("labels the endpoint only — no numeral under any weekly point (#386)", () => {

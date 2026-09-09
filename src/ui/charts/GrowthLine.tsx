@@ -29,6 +29,13 @@
 // joining the week before to the week after would state a measurement that
 // was never taken.
 //
+// The break is the gap itself: **nothing is drawn in its place** (master
+// review of #386). A dashed rule up through the plot is not in the
+// approved set, and on a card whose whole drawing is one line it reads as
+// a second mark competing with it. The two runs ending short of each other
+// already say the series stops, and the week's mark says why — its tooltip
+// is `name · account`, the written line REQ-065 c3 asks for.
+//
 // **There is no empty frame.** `weeks` is a non-empty tuple, so "nothing
 // measured yet" cannot be drawn as axes over nothing — that reads as a
 // measurement of zero, which is a different claim. The caller renders its
@@ -63,10 +70,6 @@ const PLOT_BOTTOM = 76;
 const AXIS_Y = 84;
 const FIRST_X = 24;
 const LAST_X = 264;
-/** The break rule's own width — one hairline, dashed, in the quiet ink.
- *  Never a series colour: a third stroke colour reads as a third series
- *  against §2.4's two. */
-const BREAK_WIDTH = 1;
 
 function isMeasured(w: GrowthWeek): w is GrowthMeasuredWeek {
   return w.value !== null;
@@ -158,22 +161,6 @@ export function GrowthLine(p: {
           />
         </g>
       ))}
-
-      {/* The break: one dashed rule standing in the week's own place. */}
-      {p.weeks.map((week, i) =>
-        isMeasured(week) ? null : (
-          <line
-            key={`break-${week.name}`}
-            x1={xAt(i)}
-            y1={PLOT_TOP}
-            x2={xAt(i)}
-            y2={PLOT_BOTTOM}
-            stroke={CHART_INK.quiet}
-            strokeWidth={BREAK_WIDTH}
-            strokeDasharray={SVG.dashBreak}
-          />
-        ),
-      )}
 
       {last ? <EndpointDot cx={last.x} cy={last.y} fill={SERIES_COLOR.you} /> : null}
 

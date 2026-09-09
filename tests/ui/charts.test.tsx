@@ -269,6 +269,18 @@ describe('BUILD.md §2.4: "Every bar/point is direct-labelled (name + value) —
     });
   });
 
+  it("an unmeasured week is a gap, not a rule — nothing is drawn in its place (#386)", () => {
+    const svg = svgOf(STORIES.GrowthLine?.() as React.JSX.Element);
+    // The run is still cut: two polylines, one either side of the week
+    // that did not run, and never one across it.
+    expect(svg.querySelectorAll("polyline")).toHaveLength(2);
+    // And nothing stands in the gap — no dashed rule of any kind.
+    expect([...svg.querySelectorAll("[stroke-dasharray]")]).toEqual([]);
+    // The week keeps its mark, which is where its account is written.
+    const tips = [...svg.querySelectorAll(".rk-mark title")].map((t) => t.textContent ?? "");
+    expect(tips.some((t) => t.includes("domain changed"))).toBe(true);
+  });
+
   it("no week's numeral is drawn under the axis — the start value is the card's footnote", () => {
     const svg = svgOf(STORIES.GrowthLine?.() as React.JSX.Element);
     const drawn = [...svg.querySelectorAll("text")]
