@@ -49,11 +49,11 @@ function safeHref(href: string): string | null {
 }
 
 function mono(text: string): string {
-  return `<span style="font-family:${token("--font-mono")};font-variant-numeric:tabular-nums">${escapeHtml(text)}</span>`;
+  return `<span style="font-family:${token("--font-mono-mail")};font-variant-numeric:tabular-nums">${escapeHtml(text)}</span>`;
 }
 
 function row(inner: string): string {
-  return `<tr><td style="padding:0 0 16px 0;font-family:${token("--font-ui")};font-size:${token("--t-body")};line-height:1.55;color:${token("--ink")}">${inner}</td></tr>`;
+  return `<tr><td style="padding:0 0 16px 0;font-family:${token("--font-ui-mail")};font-size:${token("--t-body")};line-height:1.55;color:${token("--ink")}">${inner}</td></tr>`;
 }
 
 function label(text: string): string {
@@ -114,7 +114,7 @@ function renderFacts(rows: readonly { label: string; value: string }[]): string 
   const items = rows
     .map(
       (item) =>
-        `<tr><td style="padding:7px 0;border-bottom:1px solid ${token("--line")};font-size:${token("--t-sm")};color:${token("--ink-2")}">${escapeHtml(item.label)}</td>` +
+        `<tr><td style="padding:7px 0;border-bottom:1px solid ${token("--line")};font-family:${token("--font-mono-mail")};font-size:${token("--t-sm")};color:${token("--ink-2")}">${escapeHtml(item.label)}</td>` +
         `<td align="right" style="padding:7px 0;border-bottom:1px solid ${token("--line")};font-size:${token("--t-sm")};color:${token("--ink")}">${mono(item.value)}</td></tr>`
     )
     .join("");
@@ -129,7 +129,7 @@ function renderAction(labelText: string, href: string): string {
     return row(`<p style="margin:0">${escapeHtml(labelText)}</p>`);
   }
   return row(
-    `<a href="${escapeHtml(safe)}" style="display:inline-block;padding:11px 18px;border-radius:${token("--r-pill")};background:${token("--accent")};color:${token("--on-accent")};text-decoration:none;font-weight:700">${escapeHtml(labelText)}</a>`
+    `<a href="${escapeHtml(safe)}" style="display:inline-block;padding:11px 18px;border-radius:${token("--r-pill")};background:${token("--accent")};color:${token("--on-accent")};text-decoration:none;font-family:${token("--font-ui-mail")};font-size:${token("--t-body")};font-weight:700">${escapeHtml(labelText)}</a>`
   );
 }
 
@@ -141,7 +141,7 @@ function renderNotice(text: string): string {
 
 function renderPageBody(labelText: string, markdown: string): string {
   return row(
-    `${label(labelText)}<pre style="margin:0;padding:14px;border-radius:${token("--r-field")};background:${token("--sunk")};border:1px solid ${token("--line")};font-family:${token("--font-mono")};font-size:${token("--t-sm")};line-height:1.5;white-space:pre-wrap;color:${token("--ink")}">${escapeHtml(markdown)}</pre>`
+    `${label(labelText)}<pre style="margin:0;padding:14px;border-radius:${token("--r-field")};background:${token("--sunk")};border:1px solid ${token("--line")};font-family:${token("--font-mono-mail")};font-size:${token("--t-sm")};line-height:1.5;white-space:pre-wrap;color:${token("--ink")}">${escapeHtml(markdown)}</pre>`
   );
 }
 

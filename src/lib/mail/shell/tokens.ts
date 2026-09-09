@@ -49,6 +49,24 @@ export const MAIL_TOKENS = Object.freeze({
   "--t-eyebrow": "11px",
   "--font-ui": '"Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif',
   "--font-mono": '"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace',
+
+  // ── The two stacks a mail actually renders in ──────────────────────
+  //
+  // The two above are the product's, and a mail cannot have them: an inbox
+  // loads no webfont, and `ui-sans-serif` / `system-ui` — the generics the
+  // screens fall back through — are understood by almost no mail client.
+  // Outlook and several webmail readers skip the whole declaration and
+  // render the default, which is a **serif**: every numeral in the mail
+  // then loses ruling 7a (mono numerals) and the card stops looking like
+  // the product at all. Found on the owner's own render, 2026-09-09.
+  //
+  // So a mail names these instead — faces that are *installed*, in the
+  // order a reader is likeliest to have one. They are the only two values
+  // in this file with no counterpart in `theme.css`, and
+  // `tests/mail/shell/shell-tokens.test.ts` names them as the exception
+  // with this reason rather than widening its rule.
+  "--font-ui-mail": "-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+  "--font-mono-mail": "ui-monospace, 'SF Mono', Menlo, Consolas, monospace",
 } as const);
 
 export type MailToken = keyof typeof MAIL_TOKENS;

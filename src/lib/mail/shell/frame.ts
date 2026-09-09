@@ -60,18 +60,39 @@ function footerHtml(parts: FrameParts): string {
   return [
     reason,
     optOutHtml(parts.optOut),
-    `<p style="margin:0;padding-top:8px;font-family:${token("--font-mono")}">${escapeHtml(band)}</p>`,
+    `<p style="margin:0;padding-top:8px">${escapeHtml(band)}</p>`,
   ].join("");
 }
 
 function wholeMailLineHtml(line: string | null): string {
   if (line === null) return "";
-  return `<tr><td style="padding:0 0 16px 0;font-family:${token("--font-ui")};font-size:15px;line-height:1.55;color:${token("--ink-2")}">${escapeHtml(line)}</td></tr>`;
+  return `<tr><td style="padding:0 0 16px 0;font-family:${token("--font-ui-mail")};font-size:15px;line-height:1.55;color:${token("--ink-2")}">${escapeHtml(line)}</td></tr>`;
+}
+
+/**
+ * The card's own head: the brand mark and the wordmark, over a hairline.
+ *
+ * **Inside the card, not above it** — S20 draws it that way, and the owner's
+ * render caught this sitting outside on the page ground (2026-09-09). The
+ * mark is a filled square in the accent, drawn as a table cell rather than
+ * an image: an inbox blocks remote images by default, and a brand that
+ * depends on one is a brand most readers never see.
+ */
+function brandHeadHtml(wordmark: string): string {
+  const mark = `<td width="18" style="width:18px;padding:0 8px 0 0"><div style="width:14px;height:14px;border-radius:4px;background:${token("--accent")}"></div></td>`;
+  return [
+    `<tr><td style="padding:0 0 14px 0;border-bottom:1px solid ${token("--line")}">`,
+    `<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>`,
+    mark,
+    `<td style="font-family:${token("--font-ui-mail")};font-size:${token("--t-body")};font-weight:700;letter-spacing:-0.02em;color:${token("--ink")}">${escapeHtml(wordmark)}</td>`,
+    `</tr></table></td></tr>`,
+    `<tr><td style="height:18px;line-height:18px;font-size:0">&nbsp;</td></tr>`,
+  ].join("");
 }
 
 /** The frame. One 600px column on the page background, one card on the
- *  surface colour, the wordmark above it and the footer below — the same
- *  three bands `text-frame.ts` writes, in the same order. */
+ *  surface colour with the brand in its head, and the footer below — the
+ *  same bands `text-frame.ts` writes, in the same order. */
 export function frameHtml(parts: FrameParts): string {
   return [
     `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head>`,
@@ -79,14 +100,16 @@ export function frameHtml(parts: FrameParts): string {
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${token("--bg")};padding:24px 12px">`,
     `<tr><td align="center">`,
     `<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px;max-width:100%">`,
-    `<tr><td style="padding:0 0 14px 0;font-family:${token("--font-ui")};font-size:${token("--t-body")};font-weight:800;letter-spacing:-0.02em;color:${token("--ink")}">${escapeHtml(parts.wordmark)}</td></tr>`,
     `<tr><td style="background:${token("--surface")};border:1px solid ${token("--line")};border-radius:${token("--r-box")};padding:22px">`,
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">`,
+    brandHeadHtml(parts.wordmark),
     parts.rows,
     wholeMailLineHtml(parts.wholeMailLine),
     `</table>`,
     `</td></tr>`,
-    `<tr><td style="padding:14px 0 0 0;font-family:${token("--font-ui")};font-size:${token("--t-xs")};line-height:1.5;color:${token("--ink-3")}">`,
+    // The whole footer is mono, as S20 draws it — the reason line included,
+    // not only the imprint band.
+    `<tr><td style="padding:14px 0 0 0;font-family:${token("--font-mono-mail")};font-size:${token("--t-xs")};line-height:1.5;color:${token("--ink-3")}">`,
     footerHtml(parts),
     `</td></tr>`,
     `</table></td></tr></table></body></html>`,

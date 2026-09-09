@@ -88,7 +88,10 @@ describe("issue #376 — the shell renders S20, and every kind the set draws wea
     // a colon in it.
     const mail = await composePreview("report");
     expect(mail.html).toContain("<dl");
-    expect(mail.html).toContain("JetBrains Mono");
+    // The mail-safe mono stack, not the product's `JetBrains Mono`: an
+    // inbox loads no webfont, so the mail names faces a reader has
+    // installed (issue #376, the owner's render of 2026-09-09).
+    expect(mail.html).toContain("ui-monospace");
     expect(mail.html).toContain("Discoverability Score");
     // And the plain-text twin states the same facts, one to a line.
     expect(mail.text).toContain("Discoverability Score: 62 · Hard to find");
