@@ -1817,3 +1817,68 @@
   margin: 0;
   min-width: 0;
 }
+
+/* ── 18 · S7 and S8 — the one-card page and the two fallbacks (#372) ── */
+
+/* S7's column. The approved set draws the opt-out card at the form measure,
+ * centred on the page's own ground, with the public chrome above and below
+ * it — so this is a measure and a rhythm and nothing else: no ground, no
+ * edge, no shadow, all three of which are the card's own. `--w-form` is the
+ * ruled measure a single form column takes (ADR-093, ruling 10a), and the
+ * set's card is exactly that column with one card in it. */
+.rk-one-card {
+  width: 100%;
+  max-width: var(--w-form);
+  margin-inline: auto;
+  padding-block: var(--s-6);
+}
+
+@media (min-width: 640px) {
+  .rk-one-card {
+    padding-block: var(--s-7);
+  }
+}
+
+/* S8's screen: an eyebrow, one heading, one line and one control, centred
+ * on the reading measure. The set draws the whole of it on the middle of
+ * the page, which is what `text-align` and the two `center` values say
+ * here; the gap is the ladder's, so the eyebrow sits on its heading and the
+ * line under it without any element carrying a margin of its own. */
+.rk-fallback {
+  width: 100%;
+  max-width: var(--w-read);
+  margin-inline: auto;
+  padding-block: var(--s-6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-3);
+  text-align: center;
+  min-width: 0;
+}
+
+@media (min-width: 640px) {
+  .rk-fallback {
+    padding-block: var(--s-7);
+  }
+}
+
+/* The eyebrow sits directly on the heading — the set draws no space between
+ * the two — and the control stands away from the line it follows. Both are
+ * the flex gap adjusted at one place rather than a margin on an element
+ * that would carry it onto every other screen it appears on. */
+.rk-fallback > .eyebrow {
+  margin-bottom: calc(var(--s-3) * -1);
+}
+
+.rk-fallback > :last-child {
+  margin-top: var(--s-3);
+}
+
+/* The scan field on S8 is the landing's own form, centred and at the form
+ * measure: the set draws it narrower than the reading column it sits in. */
+.rk-fallback > .rk-hero-form {
+  width: 100%;
+  max-width: var(--w-form);
+  justify-content: center;
+}
