@@ -1272,14 +1272,149 @@
 
 /* ── 10 · The legal pages ─────────────────────────────────────────────── */
 
-/* A title and one body, at the reading measure. Nothing else is on them. */
+/* UI-SPEC S5: eyebrow, title, the updated line, one card.
+ *
+ * **It no longer carries its own measure** (issue #370). `.rk-legal` had
+ * `max-width: var(--w-read)` and `margin-inline: auto`, and the screen root
+ * above it is a one-column *grid* — where an inline `auto` margin makes the
+ * item size to its content and centre. So the whole page shrank to the
+ * width of the word "Terms": 172px of it at 1280, with the card a 140px
+ * box. `[data-surface]` already carries the reading measure, the gutters
+ * and the centring (`src/ui/layout/surface.css`), so the fix is to stop
+ * stating them a second time rather than to state them differently.
+ *
+ * The gap is `--s-3`: the set stacks the eyebrow, the title and the
+ * provenance line as one head block, the way S4 stacks its own. The card's
+ * distance from the head is the card's own, set below, so the head reads as
+ * a head and the document begins after it. */
 .rk-legal {
-  max-width: var(--w-read);
-  margin-inline: auto;
   display: flex;
   flex-direction: column;
-  gap: var(--s-4);
+  gap: var(--s-3);
   padding-block: var(--s-6);
+}
+
+/* The eyebrow's own colour — the quiet ink the set draws every eyebrow in.
+ * `.eyebrow` in `type.css` is the face, the case and the rung; the tone is
+ * the surface's, which is why it is here and not there. */
+.rk-legal-eyebrow {
+  color: var(--ink-3);
+}
+
+/* The document stands away from its head block, not with it. */
+.rk-legal > .card {
+  margin-top: var(--s-3);
+}
+
+/* The rendered document body — the approved set's `.doc`, carried across
+ * value for value: body size, 1.7 leading, the quiet ink, and h2 at `--h3`
+ * in the full ink with `--s-5` above and `--s-3` below.
+ *
+ * The set draws only a heading and paragraphs, because that is all its
+ * specimen contains. The rules below cover the **whole closed set of
+ * elements `src/lib/publish/render/markdown.ts` can emit** — the same
+ * closed list that module states — each on the ruled ladder and in tokens
+ * the set already spends. That is not a second design: an owner's privacy
+ * statement with a list in it would otherwise draw in the browser's own
+ * defaults, which are neither the ladder nor the face. */
+.rk-doc {
+  font-size: var(--t-body);
+  line-height: 1.7;
+  color: var(--ink-2);
+  min-width: 0;
+}
+
+.rk-doc h1,
+.rk-doc h2 {
+  font-size: var(--h3);
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.015em;
+  margin: var(--s-5) 0 var(--s-3);
+}
+
+.rk-doc h3,
+.rk-doc h4,
+.rk-doc h5,
+.rk-doc h6 {
+  font-size: var(--t-body);
+  font-weight: 700;
+  color: var(--ink);
+  margin: var(--s-4) 0 var(--s-2);
+}
+
+/* The document opens on its own first line, wherever that line is a
+ * heading or a paragraph. */
+.rk-doc > :first-child {
+  margin-top: 0;
+}
+
+.rk-doc p {
+  margin: 0 0 var(--s-3);
+}
+
+.rk-doc ul,
+.rk-doc ol {
+  margin: 0 0 var(--s-3);
+  padding-inline-start: var(--s-5);
+}
+
+.rk-doc ul {
+  list-style: disc;
+}
+
+.rk-doc ol {
+  list-style: decimal;
+}
+
+.rk-doc li {
+  margin-bottom: var(--s-1);
+}
+
+/* `border-left`, not `border-inline-start`: the hairline every edge in the
+ * product is drawn with is only spendable in a shorthand the no-bare-
+ * literals rule recognises, and that rule reads the physical property.
+ * Nothing here is direction-aware yet, so this costs nothing today and is
+ * one line to change on the day it does. */
+.rk-doc blockquote {
+  margin: 0 0 var(--s-3);
+  padding-inline-start: var(--s-4);
+  border-left: 1px solid var(--line);
+  color: var(--ink-3);
+}
+
+/* Code is a value, so it takes the mono face the numeral rule fixes. */
+.rk-doc code {
+  font-family: var(--font-mono);
+  font-size: var(--t-sm);
+}
+
+.rk-doc pre {
+  margin: 0 0 var(--s-3);
+  padding: var(--s-3);
+  background: var(--bg);
+  border-radius: var(--r-field);
+  overflow-x: auto;
+}
+
+.rk-doc hr {
+  margin: var(--s-5) 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+}
+
+.rk-doc a {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.rk-doc strong {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.rk-doc em {
+  font-style: italic;
 }
 
 /* The glass card's label row: a label on the left and, where one exists,

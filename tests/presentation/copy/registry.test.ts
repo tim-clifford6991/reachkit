@@ -284,7 +284,12 @@ describe("REQ-093 c5 — the registry renders with every model unavailable", () 
     // `settings.publishing.pair.note`, the veto stepper's two day-count
     // lines, the billing card's two plan-state words, and the competitors
     // head's "5 of 5". 350 + 12 = 362.
-    expect(ruled.length).toBe(362);
+    //
+    // 2026-09-09, issue #370 — UI-SPEC S5's legal screen, under the same
+    // ruling: the eyebrow's own word and "updated" in front of the date,
+    // both unbracketed in the set. The date itself is bracketed and is one
+    // per document, so the three date keys are owed. 362 + 2 = 364.
+    expect(ruled.length).toBe(364);
 
     // Only the ruled sentences carry their slots' `{name}` placeholders —
     // a `TODO(copy)` marker is one literal with no placeholder in it, so
@@ -385,7 +390,7 @@ describe("owner-owed and empty agree both ways", () => {
     expect(new Set(emptyKeys)).toEqual(new Set(OWNER_OWED));
   });
 
-  it("counts: 117 owner-owed, 241 awaiting copy, 362 ruled, 720 total (rule 5.5 — the index states its own coverage)", () => {
+  it("counts: 117 owner-owed, 244 awaiting copy, 364 ruled, 725 total (rule 5.5 — the index states its own coverage)", () => {
     // WO-070 added report.ts's eight landing keys (headline, field label,
     // submit label, five DomainProblem lines), all owner-owed: 30 + 8 = 38.
     // 2026-09-03: the owner ruled on three of them (headline, field label,
@@ -1228,9 +1233,17 @@ describe("owner-owed and empty agree both ways", () => {
     // down (#93). Nothing moves between the three representations — every
     // key S18 already had was already written. 240 + 1 = 241 awaiting copy,
     // 350 + 12 = 362 ruled, 707 + 13 = 720 total.
-    expect(AWAITING_COPY.length).toBe(241);
-    expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(362);
-    expect(Object.keys(COPY).length).toBe(720);
+    //
+    // And S5's legal screen, issue #370: five keys. Two are written — the
+    // eyebrow and "updated {date}", both unbracketed in the set — and three
+    // are the per-document dates, which the set brackets and each document
+    // owes on its own. `OWNER_OWED` is untouched: nothing was promoted to a
+    // throw and nothing demoted.
+    // 117 owner-owed, 241 + 3 = 244 awaiting copy, 362 + 2 = 364 ruled,
+    // 720 + 5 = 725 total.
+    expect(AWAITING_COPY.length).toBe(244);
+    expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(364);
+    expect(Object.keys(COPY).length).toBe(725);
 
     // The two representations never overlap: an empty value and the marker
     // are different values, so no key can be on both lists.
