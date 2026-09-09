@@ -141,6 +141,16 @@
   flex: 0 0 auto;
 }
 
+/* The chip carries a tone where the thing it marks went wrong — the sign-in
+ * screen's expired-link arm, which is the one state on that screen the
+ * customer did not choose (UI-SPEC S9, issue #373). `--warn` and its own
+ * ground, the pair §2.1 states; the accent stays the default, and no third
+ * tone is admitted, because a chip is not a status light. */
+.rk-head-chip[data-tone="warn"] {
+  background: var(--warn-bg);
+  color: var(--warn);
+}
+
 /* ── 3 · Pill buttons, three ranks ────────────────────────────────────── */
 
 /* One solid accent primary, an outline secondary, a quiet tertiary. The

@@ -43,6 +43,16 @@ export const ATTRIBUTE_ALLOWLIST: readonly AllowlistedAttribute[] = Object.freez
   },
   {
     kind: "exact",
+    name: "data-tone",
+    reason:
+      "a tone token — `warn`, `accent` — read by a stylesheet exactly as " +
+      "`data-theme` is, and the same category ADR-010 point 1 admits it " +
+      "under. `Btn` and `ActionPanel` already carry it as an expression; " +
+      "the sign-in screen's expired-link chip writes the one it always has " +
+      "(issue #373), and a tone is never a sentence.",
+  },
+  {
+    kind: "exact",
     name: "data-surface",
     reason: "BP-018's Surface writes this as a structural marker for tests/ui/layout to read; never rendered to a reader.",
   },
