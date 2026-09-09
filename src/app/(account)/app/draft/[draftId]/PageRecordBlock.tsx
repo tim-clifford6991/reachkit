@@ -32,6 +32,7 @@
 // omits a line nobody has written.
 import type React from "react";
 import { Badge } from "@/ui/components/Badge";
+import { CardHead, IdiomCard } from "@/ui/idiom";
 import type { Tone } from "@/ui/types";
 import {
   unpublishedLine,
@@ -94,10 +95,15 @@ export function PageRecordBlock(p: {
   const verification = verificationLine(record.verification);
   const title = writtenLine("record.title");
 
+  // UI-SPEC S16's idiom (issue #355): the page's own standing is a card
+  // like everything else on the screen, and its title is the card head's
+  // eyebrow rather than a heading floating on the grey ground. The record
+  // is still this component's — what changed is the box it stands in.
   return (
-    <section className="flex flex-col gap-3">
-      {title === null ? null : <h2 className="text-base font-bold">{title}</h2>}
-
+    <IdiomCard
+      testId="draft-record"
+      head={title === null ? null : <CardHead eyebrow={title} />}
+    >
       <Row label={writtenLine("record.label.address")}>
         {record.address.offered ? (
           <>
@@ -140,6 +146,6 @@ export function PageRecordBlock(p: {
       {record.seoNote === null ? null : (
         <p className="text-xs opacity-70">{writtenLine(record.seoNote)}</p>
       )}
-    </section>
+    </IdiomCard>
   );
 }

@@ -219,7 +219,15 @@ describe("no row without a fact", () => {
       address: { offered: false, because: "never_made_live", copy: "record.address.neverMadeLive" },
       verification: { kind: "due" },
     });
-    expect(html).not.toMatch(/<span[^>]*><\/span>/);
+    // `aria-hidden` is excluded, and only that (issue #355). The block is a
+    // card since S16 landed, and the idiom's card head draws an accent chip
+    // that carries no glyph — v3 ships no icon set, and `CardHead` says why
+    // an empty chip is still the chip the idiom draws. It is hidden from
+    // the accessibility tree, so it is not a place a value belongs; every
+    // element that *is* one is still swept by the line below.
+    expect(html.replace(/<span[^>]*aria-hidden[^>]*><\/span>/g, "")).not.toMatch(
+      /<span[^>]*><\/span>/
+    );
     expect(html).not.toContain("—");
   });
 });

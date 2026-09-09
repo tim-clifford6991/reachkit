@@ -1551,6 +1551,9 @@
 .rk-danger .rk-head-chip {
   background: var(--bad-bg);
   color: var(--bad);
+}
+
+
 /* ── 15 · The page document (issue #355) ─────────────────────────────── */
 
 /* S16 and S17 render the customer's page itself — the whole of it, marked
