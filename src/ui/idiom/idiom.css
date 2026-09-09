@@ -1073,6 +1073,196 @@
   white-space: nowrap;
 }
 
+/* ── The stage list (UI-SPEC S11, issue #356) ─────────────────────────── */
+
+/* The rows of the deep pass, as the set draws them: a state mark, the
+ * name, and a finished row's elapsed time pushed to the right.
+ *
+ * **Not the registered `Steps`.** daisyUI's `steps` numbers its bullets
+ * and has nowhere for a time; the set draws a green check for done, an
+ * accent dot for the row under way with its label in accent, and a quiet
+ * dot for a row not begun. Those are three different marks, and a numeral
+ * is none of them — so this is the idiom's own row, like `ActionPanel`,
+ * and BUILD §2.2's set of fifteen gains no sixteenth member. */
+.rk-stages {
+  display: grid;
+  gap: var(--s-3);
+}
+
+.rk-stage {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  font-size: var(--t-sm);
+  color: var(--ink-2);
+}
+
+/* The mark. A dot by default; the done arm carries a check drawn by the
+ * stylesheet, because the glyph is decoration on an element the markup
+ * already labels in words. */
+.rk-stage-b {
+  width: var(--s-5);
+  height: var(--s-5);
+  border-radius: var(--r-pill);
+  background: var(--line);
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  color: var(--on-accent);
+  font-size: var(--t-eyebrow);
+  line-height: 1;
+}
+
+.rk-stage[data-state="done"] {
+  color: var(--ink);
+}
+
+.rk-stage[data-state="done"] .rk-stage-b {
+  background: var(--ok);
+}
+
+.rk-stage[data-state="done"] .rk-stage-b::after {
+  content: "\2713";
+}
+
+/* The row under way: the accent, on the mark and on the label both, which
+ * is the one place this screen says "here" without colour alone — the
+ * row also states its own word. */
+.rk-stage[data-state="current"] {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.rk-stage[data-state="current"] .rk-stage-b {
+  background: var(--accent);
+}
+
+/* A row not begun keeps the quiet dot and the quiet ink. */
+.rk-stage[data-state="pending"] {
+  color: var(--ink-3);
+}
+
+/* The elapsed time, pushed right. Mono, because it is a numeral (§2.3). */
+.rk-stage-t {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: var(--t-explain);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── The removable tag (UI-SPEC S10, issue #356) ──────────────────────── */
+
+/* A rival the founder has chosen, and the × that takes it out again. On the
+ * accent tint because it is chosen; mono because what it holds is a domain,
+ * which §2.3 sets in the numeral face. */
+.rk-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-family: var(--font-mono);
+  font-size: var(--t-sm);
+  background: var(--accent-bg);
+  color: var(--accent);
+  border: 0;
+  border-radius: var(--r-pill);
+  padding: var(--s-1) var(--s-3);
+  cursor: pointer;
+}
+
+/* Quieter than the domain beside it: the × is the affordance, not the
+ * reading. `aria-hidden` in the markup, so this is decoration only — which
+ * is why the glyph is drawn here rather than written into the JSX, where
+ * the copy sweep would read it as product voice. */
+.rk-tag-x {
+  opacity: 0.6;
+}
+
+.rk-tag-x::after {
+  content: "\00d7";
+}
+
+/* ── The option pair (UI-SPEC S10, issue #356) ────────────────────────── */
+
+/* Two pressable cards side by side, one column at the narrow band. The set
+ * draws the mode and the destination this way rather than as chip rows,
+ * because each option carries a line — and the hosted destination carries
+ * its CNAME record — and a chip holds neither. */
+/* Narrow-first, as ruling 10a requires every query in the product to be:
+ * one column by default, two from `640px` — the ruled breakpoint — because
+ * two option cards side by side do not fit the 320px floor. */
+.rk-pick {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--s-3);
+}
+
+@media (min-width: 640px) {
+  .rk-pick {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* The card. **Named `rk-choice`, not `rk-opt`**: #360's calendar stage
+ * filter already owns `.rk-opt` — a chip wrapping a `Card` — and a second
+ * definition of that class restyled it, which the calendar's own
+ * baselines caught. One name, one shape.
+ *
+ * The set draws a `1.5px` edge; the product's hairline is `1px`
+ * and that is the only width the no-bare-literals gate admits inside a
+ * `border` shorthand — so the edge is the product's, half a pixel thinner
+ * than drawn, and every other value here is a token. Named in the PR. */
+.rk-choice {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-box);
+  padding: var(--s-4);
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  min-width: 0;
+  display: block;
+}
+
+.rk-choice:hover {
+  border-color: var(--accent-line);
+}
+
+/* **Selected is the accent tint, keyed off `aria-pressed`** — the standing
+ * ruling for `/setup`'s toggle groups (2026-09-08, #288). The attribute is
+ * the whole state: there is no class for it to drift from. */
+.rk-choice[aria-pressed="true"] {
+  border-color: var(--accent-line);
+  background: var(--accent-bg);
+}
+
+.rk-choice-t {
+  font-size: var(--t-sm);
+  font-weight: 700;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.rk-choice-d {
+  font-size: var(--t-explain);
+  color: var(--ink-2);
+  margin-top: var(--s-1);
+  display: block;
+}
+
+/* The `default` marker on a preselected option. The badge idiom's tint and
+ * ink, at the eyebrow rung. */
+.rk-choice-badge {
+  font-size: var(--t-eyebrow);
+  font-weight: 700;
+  border-radius: var(--r-pill);
+  padding: 0 var(--s-2);
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+
 /* The provenance line inside the glass card — quiet, mono, on the accent. */
 .rk-prov {
   margin: 0;

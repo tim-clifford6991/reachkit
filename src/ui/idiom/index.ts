@@ -21,4 +21,6 @@ export {
   type ActionPanelTone,
 } from "./ActionPanel";
 export { CardHead } from "./CardHead";
+export { OptionCard } from "./OptionCard";
+export { RemovableTag } from "./RemovableTag";
 export { IdiomCard } from "./IdiomCard";

@@ -58,12 +58,34 @@ export const FIXTURE_SETUP_FACTS: SetupFacts = Object.freeze({
   cnameTarget: "content.dev.reachkit.app",
 });
 
-/** The pass, mid-flight. `running: true` carries a stage and nothing else
- *  — no elapsed, estimate, countdown, clock or percentage exists to
- *  carry. */
+/** The instant this fixture's pass began. Fixed, so the durations it
+ *  states are a picture of one pass rather than of the minute the suite
+ *  ran in. */
+const PASS_BEGAN = Date.UTC(2026, 8, 5, 9, 31, 0);
+const at = (secondsIn: number): string => new Date(PASS_BEGAN + secondsIn * 1000).toISOString();
+
+/** The pass, mid-flight, on the drawn row UI-SPEC S11 draws it on: the
+ *  first two rows finished, the third under way.
+ *
+ *  The entries are what make the drawn durations true rather than typed.
+ *  S11 prints 41 s against "Measuring your market" and 18 s against
+ *  "Sizing your rivals", and a drawn row's elapsed time is the gap between
+ *  its own first stage and the next row's — so `checking_your_presence`
+ *  starts 41 s in (closing row one) and `scoring` 59 s in (closing row
+ *  two, 18 s later). The current row states a dash; nothing here ticks.
+ *
+ *  See `_setup/stages.ts` for which engine handles each drawn row holds. */
 export const FIXTURE_PASS: PassProgress = Object.freeze({
   running: true,
-  stage: "reading_your_market",
+  stage: "scoring",
+  enteredAt: Object.freeze({
+    reading_your_site: at(0),
+    reading_access_rules: at(9),
+    reading_your_market: at(17),
+    checking_your_presence: at(41),
+    asking_the_twelve: at(48),
+    scoring: at(59),
+  }),
 });
 
 export const FIXTURE_PAID_AT = new Date(Date.UTC(2026, 8, 5, 9, 30, 0));

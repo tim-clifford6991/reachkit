@@ -101,15 +101,35 @@ export const SETUP_ACCOUNT: AppAccount = Object.freeze({
 });
 
 /**
- * The step the setup account's pass is on.
+ * The step the setup account's pass is on, and when each step began.
  *
- * A middle stage rather than the first: `WAITING_STAGES` draws every step,
- * and only a stage with steps on both sides of it renders the finished arm
- * *and* the pending arm in one picture. `passProgressFor` falls back to the
- * first stage when the column is null, which would leave five pending rows
- * and nothing else to measure.
+ * `scoring` puts the pass on the **third** of UI-SPEC S11's five drawn rows
+ * (`_setup/stages.ts`), which is the state the set draws: two rows finished
+ * and timed, one under way, two still to come. A stage with rows on both
+ * sides of it is the only one that photographs the finished arm and the
+ * pending arm together; `passProgressFor` falls back to the first stage
+ * when the column is null, which would leave four pending rows and nothing
+ * to measure.
+ *
+ * The instants are what make the drawn durations real rather than typed: a
+ * row's elapsed time is the gap between its own first handle and the next
+ * row's, so `checking_your_presence` at 41 s closes row one and `scoring`
+ * at 59 s closes row two 18 s later — the two figures S11 prints. Fixed
+ * instants, so the picture is of one pass and not of the minute the sweep
+ * ran in (the same rule the seed's other dates follow).
  */
-const SETUP_STAGE = "asking_the_twelve";
+const SETUP_STAGE = "scoring";
+const SETUP_PASS_BEGAN = Date.UTC(2026, 8, 5, 9, 31, 0);
+const setupStageAt = (secondsIn: number): string =>
+  new Date(SETUP_PASS_BEGAN + secondsIn * 1000).toISOString();
+const SETUP_STAGE_TIMES = {
+  reading_your_site: setupStageAt(0),
+  reading_access_rules: setupStageAt(9),
+  reading_your_market: setupStageAt(17),
+  checking_your_presence: setupStageAt(41),
+  asking_the_twelve: setupStageAt(48),
+  scoring: setupStageAt(59),
+};
 
 /** The measured report behind the setup account's address, and the score
  *  its column and its blob both have to state (`scans_verdict_score_consistency`).
@@ -457,8 +477,9 @@ export function seedSetupAccount(): void {
   // `/setup`, and `isReleased` reads it to decide that no deadline has begun
   // to run.
   sql(
-    `insert into sites (id, user_id, domain, timezone, setup_stage) values ` +
-      `('${siteId}', '${userId}', '${domain}', '${timeZone}', '${SETUP_STAGE}');`
+    `insert into sites (id, user_id, domain, timezone, setup_stage, setup_stage_times) values ` +
+      `('${siteId}', '${userId}', '${domain}', '${timeZone}', '${SETUP_STAGE}', ` +
+      `'${JSON.stringify(SETUP_STAGE_TIMES)}'::jsonb);`
   );
 
   const measuredAt = new Date(SETUP_REPORT_AT);
