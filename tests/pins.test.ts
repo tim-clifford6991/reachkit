@@ -82,7 +82,7 @@ const B = {
   neverPull: "Never: SERP depth >10 · search operators (`site:` = 5×) · clickstream flags · `load_async_ai_overview`",
   freeBounds: "Bounds: 5 free scans/IP/h · 1 in-flight/IP · 200 free scans/day",
   freeSeconds: "Free ≈60s live; deep live; weekly standard",
-  weeklyUtc: "| `weekly/refresh` | Mon 06:00 UTC |",
+  weeklyUtc: "| `weekly/refresh` | hourly tick, gated on each site's local Monday (ADR-060) |",
   winnability:
     "**Winnability (right-sizing):** a Write target qualifies only if its top-10 contains at least one domain whose ranked count ≤ max(500, 5× customer's).",
   supplyCap: "**Supply is the cap:** never invent an opportunity to fill a day.",
@@ -122,7 +122,7 @@ const B = {
     "| `draft/generate` | daily, evening | Next opportunity → pipeline → `in_review`, veto clock starts, daily email |",
   publishVerify: "| `publish/verify` | +24h | Liveness checks |",
   weeklyRefreshRow:
-    "| `weekly/refresh` | Mon 06:00 UTC | Weekly scan per active site → re-derive → verdicts → movement email |",
+    "| `weekly/refresh` | hourly tick, gated on each site's local Monday (ADR-060) | Weekly scan per active site → re-derive → verdicts → movement email |",
   absentFrom: "\"5 biggest searches you're absent from\" table (search · /mo · holds #1)",
   hostedCname:
     "**Hosted CMS:** `content.{customer-domain}` by CNAME → our edge route serves static-rendered pages by Host header.",
@@ -546,7 +546,7 @@ describe("DECISIONS 2026-08-31 (ADR-060) — the weekly clock is site-local, and
     expect(pins.WEEKLY_DUE_HOUR_LOCAL).toBe(6);
   });
 
-  it(`§11's jobs table still says "${B.weeklyUtc}" in writing — the landmine ADR-060 defuses. No constant names a UTC hour, so the written words cannot become the trigger by being read as a pin`, () => {
+  it(`§11's jobs table now says "${B.weeklyUtc}" in writing — the "Mon 06:00 UTC" landmine ADR-060 defused was amended out on 2026-09-09 (#397). No constant names a UTC hour, so a UTC trigger cannot come back by being read as a pin`, () => {
     const names = Object.keys(pins);
     expect(names.filter((n) => /UTC/i.test(n))).toEqual([]);
     expect(pins.WEEKLY_DUE_HOUR_LOCAL).toBe(6);
@@ -578,7 +578,7 @@ describe("§11 jobs — the three pins the runner itself is sized by", () => {
     expect(pins.DRAFT_DUE_HOUR_LOCAL).toBeLessThan(24);
   });
 
-  it(`${B.weeklyRefreshRow} is the row ADR-060 defuses, and the draft hour is pinned the same way it is — the name ends LOCAL, no constant names a UTC hour, and the two due hours are separate pins that happen to differ`, () => {
+  it(`${B.weeklyRefreshRow} is the row ADR-060 governs, and the draft hour is pinned the same way it is — the name ends LOCAL, no constant names a UTC hour, and the two due hours are separate pins that happen to differ`, () => {
     expect(Object.keys(pins).filter((n) => /UTC/i.test(n))).toEqual([]);
     expect(Object.keys(pins).filter((n) => /_DUE_HOUR_/.test(n)).sort()).toEqual([
       "DRAFT_DUE_HOUR_LOCAL",

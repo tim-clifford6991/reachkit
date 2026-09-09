@@ -2,11 +2,11 @@
 id: BUILD
 type: implementation-specification
 title: "ReachKit — build specification"
-version: 1.1 — final pre-handoff
-date: 2026-08-28
-status: ready-to-build
-audience: Claude Code, building this in as few shots as possible
-sources: MVP.md v2.0 · DATA-COSTS.md v1.1 · the approved UI prototype (artifact "meaning-first MVP", 28 Aug)
+version: 1.2 — living specification, amended by docs PRs
+date: 2026-09-09 (first written 2026-08-28)
+status: governing — see docs/README.md for what wins where
+audience: the agents building it and the owner steering it
+sources: MVP.md v2.0 (2026-08-28, pre-repo) · DATA-COSTS.md · the approved screen set docs/design/approved/full-set/ (2026-09-08), which wins over §4 where they differ
 ---
 
 # ReachKit — build specification
@@ -28,7 +28,7 @@ veto window. Every Monday we re-measure and show what moved.
 
 1. **Design before code, in artifacts.** Any new or visually changed surface is
    first mocked as a Claude artifact (self-contained HTML on the §2 design
-   system), approved by Tim, then implemented to match. The approved prototype
+   system), approved by the owner, then implemented to match. The approved prototype
    artifact is the visual source of truth for every screen in §4; do not
    re-design what it already settles. The approved prototype is
    `docs/design/approved/full-set/` (UI-SPEC.md, its written form, wins over §4
@@ -73,8 +73,9 @@ opportunities, generate, publish, costs), `src/app/` the surfaces,
 `src/lib/config/constants.ts` **every** pinned number in this document,
 `tests/pins.test.ts` asserting them.
 
-**Greenfield (owner ruling, 28 Aug).** Build fresh in `ReachKitV2` exactly to
-this document. The shipped reachkit.app repo is *reference, not substrate* — its
+**Greenfield (owner ruling, 28 Aug).** Build fresh — this repository, now
+`tim-clifford6991/reachkit` (renamed from reachkitv3 on 2026-09-08; v1 and v2
+are archived) — exactly to this document. The shipped reachkit.app repo is *reference, not substrate* — its
 three-lane plan, day scheduler and score machinery would fight this shape at
 every step. Read it for proven patterns (SSRF fetcher, cost seam, Stripe webhook
 handling) and reimplement to this spec; copy no file wholesale.
@@ -391,7 +392,7 @@ the designed v1.1 upgrade and changes no other part of the pipeline.
 
 - Nothing is fetched that no rendered surface reads (a dataset ships only with its screen).
 - Cache windows: own domain 7d · rivals 30d · SERPs 30d (except the weekly target re-check, `serpWeeklyRecheck = 7`) · suggestions 30d. Cache is keyed source+key+policy-version; an empty payload is always a miss; **no negative cache**.
-- Never: SERP depth >10 · search operators (`site:` = 5×) · clickstream flags · `load_async_ai_overview` · Labs historical endpoints · per-rival `ranked_keywords` on the free path · a 4th engine · per-draft re-probing · AI Keyword Data (v1.1 candidate only).
+- Never: SERP depth >10 · search operators (`site:` = 5×) · clickstream flags · `load_async_ai_overview` except on the free report's first pass (ADR-094 sets it there; never on a market-correction re-run, 2026-09-03) · Labs historical endpoints · per-rival `ranked_keywords` on the free path · a 4th engine · per-draft re-probing · AI Keyword Data (v1.1 candidate only).
 - Live mode only where a human is waiting (free scan, onboarding pass). Everything scheduled = standard queue.
 - **A free re-scan of the same domain within 7 days serves the stored report** — no new spend. The report shows its measurement date; a "Re-scan" affordance appears only after the window. (Failure cooldown stays 24h as specced.)
 - **A free scan's data is reused by the paid deep pass** within its cache windows — the questions, market set, and 12 SERPs from a <7-day-old free scan carry over, so onboarding is faster and cheaper than the headline 30¢ when the customer converts promptly (the common case).
@@ -619,7 +620,7 @@ surface that reads it, specified first.
 | `draft/generate` | daily, evening | Next opportunity → pipeline → `in_review`, veto clock starts, daily email |
 | `publish/execute` | on approve/expiry | State machine → destination |
 | `publish/verify` | +24h | Liveness checks |
-| `weekly/refresh` | Mon 06:00 UTC | Weekly scan per active site → re-derive → verdicts → movement email |
+| `weekly/refresh` | hourly tick, gated on each site's local Monday (ADR-060) | Weekly scan per active site → re-derive → verdicts → movement email |
 | `lead/nurture` | hourly cron | advanceSequences(now) over next_touch_at |
 | `publish/retry` | hourly cron | inside the kill-switch scope, claims failed pages whose retry is due |
 

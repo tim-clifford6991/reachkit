@@ -1,6 +1,6 @@
-# reachkitv3
+# reachkit
 
-**Read `docs/README.md` first** — the corpus map: which document governs what, in which order, and what keeps each one honest. In one line: `DECISIONS.md` (rulings) → `BUILD.md` (the spec) → `docs/design/approved/full-set/UI-SPEC.md` (the UI spec of record; every screen is an `S<id>` there) → `ARCHITECTURE.md` (where code lives) → `DATA-COSTS.md` (the price book) → the archived requirements and decisions (`archive/sdlc-factory-2026-09-04/corpus/docs/{requirements,decisions}`, the detail behind BUILD; its *drawings* are superseded). Where BUILD is silent, read the archive's REQ before asking; ask the owner once; the answer lands in `DECISIONS.md`.
+This is `tim-clifford6991/reachkit`, the v3 lineage of ReachKit (v1 and v2 are archived repositories). The root `README.md` is the one-screen entry. **Read `docs/README.md` first** — the corpus map: which document governs what, in which order, and what keeps each one honest. In one line: `DECISIONS.md` (rulings) → `BUILD.md` (the spec) → `docs/design/approved/full-set/UI-SPEC.md` (the UI spec of record; every screen is an `S<id>` there) → `ARCHITECTURE.md` (where code lives) → `DATA-COSTS.md` (the price book) → the archived requirements and decisions (`archive/sdlc-factory-2026-09-04/corpus/docs/{requirements,decisions}`, the detail behind BUILD; its *drawings* are superseded). Where BUILD is silent, read the archive's REQ before asking; ask the owner once; the answer lands in `DECISIONS.md`.
 
 **CI is the process.** Every rule that matters is a check in `.github/workflows/`, a lint rule in `eslint.config.mjs`, or a test. If you care about a rule and no check enforces it, add the check — do not add a paragraph here. The full process is `docs/PROCESS.md`.
 
