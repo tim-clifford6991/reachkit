@@ -6,8 +6,13 @@
 // BP-005 `## Error & edge behavior`:
 //   "`env` throws at boot on a missing or malformed binding; there is no
 //   default and no fallback, so a deployment cannot start half-configured."
-// BP-005 "imports nothing" — this module imports only `zod`.
+// BP-005 "imports nothing" — this module imports `zod`, and (issue #315)
+// `./now` for `isRealDeployment()`: the corpus already owns one definition
+// of "a deployment customers reach", and the jobs invariant below asks the
+// same question the clock invariant asks. `./now` is a sibling that itself
+// imports nothing, so the module still sits at the bottom of the graph.
 import { z } from "zod";
+import { isRealDeployment } from "./now";
 
 // `BUILD.md` §15, verbatim:
 //   "DATABASE_URL SUPABASE_URL SUPABASE_ANON_KEY SUPABASE_SERVICE_ROLE
@@ -31,11 +36,31 @@ import { z } from "zod";
 // way. 6c: `DATABASE_URL` is not a member of this schema at all — no module
 // under `src/` reads it; it is the migration and test tooling's binding.
 //
+// **The jobs platform's two bindings** (issue #315). `BUILD.md` §15 names
+// `INNGEST_SIGNING_KEY` and `INNGEST_EVENT_KEY`; the 2026-09-05 ruling kept
+// them out of this schema as "the SDK's own bindings", and the cost of that
+// was a deployment that starts, serves every screen, and cannot run a single
+// job — the hourly crons never tick and nothing says so. They join the
+// schema here, server-only, and #315 reverses that ruling. The SDK still
+// reads them from `process.env` for itself: `src/jobs/client.ts` passes
+// neither, and says why. What this schema adds is the declaration, the
+// validation, and the refusal below.
+//
+// They are `.optional()` at the schema level for the reason `RK_FIXED_NOW`
+// is not a member at all: the required set is what *every* process must
+// carry, and the processes that are not deployments — a local `next dev`, a
+// local production build, the layout suite's build and server in CI — run
+// no jobs and reach no queue. Requiring the keys there would fail those
+// boots over a vendor they never call. What a real deployment must carry is
+// asserted instead by `assertJobsBindings()` below, which the one boot path
+// calls: on Vercel, a missing key does not start the process.
+//
 // No `.default(...)` and no other `.optional()` anywhere in this schema
 // (WO-005 step 2 / file plan: "No default, no fallback.") — a missing or
-// malformed binding fails `safeParse` and `parseEnv()` below throws.
-// `NANO_API_KEY` above is the decision 6b exception: optional at the schema
-// level only, resolved to a required member before any caller sees it.
+// malformed binding fails `safeParse` and `parseEnv()` below throws. Every
+// `.optional()` here is a named exception: `NANO_API_KEY` (decision 6b,
+// resolved to a required member before any caller sees it) and the two jobs
+// bindings above (required of a real deployment by the boot invariant).
 const schema = z.object({
   SUPABASE_URL: z.url(),
   SUPABASE_ANON_KEY: z.string().min(1),
@@ -48,6 +73,8 @@ const schema = z.object({
   DATAFORSEO_PASSWORD: z.string().min(1),
   ANTHROPIC_API_KEY: z.string().min(1),
   NANO_API_KEY: z.string().min(1).optional(),
+  INNGEST_SIGNING_KEY: z.string().min(1).optional(),
+  INNGEST_EVENT_KEY: z.string().min(1).optional(),
   IP_HASH_SALT: z.string().min(1),
   // "boolean-ish for KILL_SWITCH" (WO-005 step 1).
   KILL_SWITCH: z.stringbool(),
@@ -76,6 +103,11 @@ export type Env = Omit<ParsedEnv, "NANO_API_KEY"> & { NANO_API_KEY: string };
 // nothing outside it is guarded, and BP-002's `dbAdmin()` (WO-011) carries
 // the analogous build-time guard for its own secret. BP-005 decision 6a:
 // one name end to end, not an alias — this reader moves with the rename.
+//
+// Issue #315 adds the two jobs bindings to that set. A signing key is what
+// proves a request to `/api/jobs` came from the platform and an event key is
+// what lets this process put work on the queue; neither has any business in
+// a browser bundle, and they are the same kind of secret as the six above.
 const SERVER_ONLY_KEYS = [
   "SUPABASE_SERVICE_ROLE_KEY",
   "STRIPE_SECRET_KEY",
@@ -84,6 +116,8 @@ const SERVER_ONLY_KEYS = [
   "ANTHROPIC_API_KEY",
   "NANO_API_KEY",
   "IP_HASH_SALT",
+  "INNGEST_SIGNING_KEY",
+  "INNGEST_EVENT_KEY",
 ] as const satisfies readonly (keyof Env)[];
 
 const serverOnlyKeySet: ReadonlySet<string> = new Set(SERVER_ONLY_KEYS);
@@ -112,9 +146,16 @@ function parseEnv(): Env {
   };
 }
 
+/** Every name the schema declares, present or not. Iterating the *parsed*
+ *  object instead would leave an unset `.optional()` binding without a key
+ *  and therefore without its server-only guard — the guard would then hold
+ *  on the deployments that set the binding and not on the others, and
+ *  `Object.keys(env)` would change shape with the environment. */
+const BINDING_KEYS = Object.keys(schema.shape) as (keyof Env)[];
+
 function freezeWithGuards(parsed: Env): Readonly<Env> {
   const target = {} as Env;
-  for (const key of Object.keys(parsed) as (keyof Env)[]) {
+  for (const key of BINDING_KEYS) {
     const isServerOnly = serverOnlyKeySet.has(key);
     Object.defineProperty(target, key, {
       enumerable: true,
@@ -133,3 +174,35 @@ function freezeWithGuards(parsed: Env): Readonly<Env> {
 }
 
 export const env: Readonly<Env> = freezeWithGuards(parseEnv());
+
+/** A real deployment that carries no jobs bindings. Names the bindings that
+ *  are missing and never a value — nothing here reads one. */
+export class MissingJobsBindings extends Error {
+  constructor(readonly missing: readonly string[]) {
+    super(
+      `${missing.join(" and ")} ${missing.length === 1 ? "is" : "are"} not set. ` +
+        "This deployment serves /api/jobs, so without them the platform cannot " +
+        "verify a delivery and this process cannot put work on the queue: the " +
+        "hourly ticks never run and nothing says so. Set them on this environment."
+    );
+    this.name = "MissingJobsBindings";
+  }
+}
+
+/**
+ * The boot invariant (issue #315). Throws when a real deployment is missing
+ * either jobs binding; silent everywhere else.
+ *
+ * `src/instrumentation.ts` calls it — the one boot path, run once per server
+ * instance before that instance answers anything. Local and needing nobody,
+ * like the clock check it sits beside: a deployment that could not run a job
+ * is a deployment that has quietly stopped publishing, and it fails at boot
+ * rather than at the first tick nobody is watching.
+ */
+export function assertJobsBindings(): void {
+  if (!isRealDeployment()) return;
+  const missing = (["INNGEST_SIGNING_KEY", "INNGEST_EVENT_KEY"] as const).filter(
+    (name) => env[name] === undefined
+  );
+  if (missing.length > 0) throw new MissingJobsBindings(missing);
+}

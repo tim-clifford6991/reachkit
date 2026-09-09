@@ -4,9 +4,11 @@
 //   1. `serve()` exposes exactly GET, POST and PUT, over exactly the eight
 //      definitions in `jobs` — an unregistered job is unreachable.
 //   2. The `JobId` union is closed at eight; a ninth fails here.
-//   3. The platform is named in exactly one file under `src/jobs/`, and in
-//      no file under `src/lib/` — so the reversal is that file plus the one
-//      route.
+//   3. The platform is named in exactly one file under `src/jobs/`, and
+//      under `src/lib/` in exactly one: `src/lib/config/env.ts`, whose two
+//      rows are the platform's bindings (issue #315). So the reversal is
+//      that file, the one route, and two rows in the boot contract — named
+//      here rather than left to be discovered.
 //   4. No file under `src/jobs/` imports from `src/app/` (ARCHITECTURE:
 //      dependency direction is one-way).
 import { readFileSync, readdirSync, statSync } from "node:fs";
@@ -96,9 +98,20 @@ describe("the platform is named in exactly one file", () => {
     expect(naming).toEqual(["src/jobs/client.ts"]);
   });
 
-  it("no file under src/lib/ names it at all", () => {
+  // Issue #315 put `INNGEST_SIGNING_KEY` and `INNGEST_EVENT_KEY` into the
+  // env schema: `BUILD.md` §15 names them, and a boot contract that omitted
+  // them let a deployment start with no way to run a job and say nothing.
+  // Naming two bindings is not importing an SDK — the claim this suite
+  // protects is that swapping the platform is a bounded edit, and it stays
+  // bounded — but the file is listed, so a third naming site fails here.
+  it("only src/lib/config/env.ts names it under src/lib/, and only as its two bindings", () => {
     const naming = filesUnder("src/lib").filter((f) => PLATFORM.test(readFileSync(path.join(ROOT, f), "utf8")));
-    expect(naming).toEqual([]);
+    expect(naming).toEqual(["src/lib/config/env.ts"]);
+  });
+
+  it("env.ts names no import of the platform's SDK", () => {
+    const source = readFileSync(path.join(ROOT, "src/lib/config/env.ts"), "utf8");
+    expect(source).not.toMatch(/from\s+["']inngest/);
   });
 });
 

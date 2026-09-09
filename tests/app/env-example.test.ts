@@ -25,7 +25,10 @@ const ROOT = path.resolve(__dirname, "../..");
 // `Env` reads — the two lists are no longer identical, and this is the one
 // row where that is deliberate. `NANO_API_KEY` (6b, optional inside `Env`)
 // still names a required row here — `.env.example` documents every binding
-// a deployment may set, not `Env`'s narrower required-at-boot set.
+// a deployment may set, not `Env`'s narrower required-at-boot set. The two
+// Inngest rows (#315) are on this list for the same reason: optional inside
+// `Env`, required of a real deployment by `assertJobsBindings()`, and named
+// here because a deployment must set them.
 const REQUIRED_BINDINGS = [
   "DATABASE_URL",
   "SUPABASE_URL",
@@ -44,6 +47,8 @@ const REQUIRED_BINDINGS = [
   "OWNER_EMAILS",
   "NEXT_PUBLIC_APP_URL",
   "HOSTED_EDGE_CNAME_TARGET",
+  "INNGEST_SIGNING_KEY",
+  "INNGEST_EVENT_KEY",
 ] as const;
 
 function readEnvExampleBindings(): Record<string, string> {
