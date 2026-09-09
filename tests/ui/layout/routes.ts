@@ -155,6 +155,12 @@ export const HOSTED_PAGE_FILE = "src/app/(hosted)/hosted-page/[...slug]/page.tsx
  * any other, so it keeps its baselines and its side-by-side (against S8,
  * which is the screen it actually draws).
  *
+ * Note what this comment used to say — that the sweep ran "against a
+ * fixture environment with no database behind it". It has had a seeded
+ * database since #193, and the 404 was coming from `visitorPath`'s
+ * rewrite instead. A reason that has stopped being true is worse than
+ * none: it is why the blank capture went eleven issues unexamined.
+ *
  * It is **not** the whole of what this route is for, which is what #418
  * found: swept through this host alone, S19 was the one approved screen
  * the CI render path had no picture of. `PUBLISHED_HOST_FIXTURES` below is
@@ -220,12 +226,52 @@ export const ACCOUNT_SESSION_COOKIE = `${SESSION_COOKIE_NAME}=layout-sweep-fixtu
  * every name to loopback, so navigating to
  * `http://content.example.com:{port}` reaches the local server and the
  * browser sends that Host itself — the real header on the real request.
+ *
+ * **And its path is the visitor's, not the router's** (issue #418): see
+ * `visitorPath` below.
  */
 export function urlFor(baseURL: string, route: EnumeratedRoute): string {
   if (route.host === undefined) return baseURL + route.path;
-  const url = new URL(baseURL + route.path);
+  const url = new URL(baseURL + visitorPath(route.path));
   url.hostname = route.host;
   return url.toString();
+}
+
+/** The prefix `src/middleware.ts` rewrites a `content.` host's request
+ *  *into* — a destination, never an address.
+ *
+ *  Restated here rather than imported: the middleware's own constant is
+ *  module-private and that file is Edge-bundled, so importing it into a
+ *  test module is not free. `routes.test.ts` holds the two equal. */
+const HOSTED_REWRITE_PREFIX = "/hosted-page";
+
+/**
+ * A `(hosted)` route's address **as a visitor types it**, which is the
+ * only address it can be reached at (issue #418).
+ *
+ * On a `content.` Host the middleware rewrites every path into
+ * `/hosted-page{path}` — that is the authorisation boundary, not a
+ * convenience, and it applies to *every* path including this one. So the
+ * sweep driving the enumerator's own `/hosted-page/{slug}` had it
+ * prefixed a second time: `/hosted-page/hosted-page/{slug}`, a two-segment
+ * catch-all, which `oneSegment` refuses because
+ * `content.{domain}/a/b` is not a deeper page — it is not a page at all.
+ * Every capture of this route was therefore the 404, whichever Host was
+ * sent and whatever the database held, which is why S19 was the one
+ * approved screen the CI render path (#404) could not review, and why the
+ * blank frame survived a seeded publication (#418, first attempt).
+ *
+ * Navigating to the customer's own address instead lets the rewrite
+ * happen exactly once, which is what a visitor's request does.
+ *
+ * The route's *name* is unchanged — baselines, `ROUTE_REFERENCE` and the
+ * design index all key off `route.path`, which is still the router's
+ * address. Only the URL the browser is pointed at moves.
+ */
+export function visitorPath(routePath: string): string {
+  return routePath.startsWith(`${HOSTED_REWRITE_PREFIX}/`)
+    ? routePath.slice(HOSTED_REWRITE_PREFIX.length)
+    : routePath;
 }
 
 /** An `(account)` page's session `Cookie` — `src/middleware.ts` is

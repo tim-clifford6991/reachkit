@@ -227,17 +227,23 @@ const WEEK_ZERO_ROUTES = enumerateRoutes(APP_ROOT, {
 /**
  * UI-SPEC S19, photographed as the page it is (issue #418).
  *
- * `/hosted-page/{slug}` resolves its customer from the `Host` header, and
- * the enumeration's default host is a site that has published nothing — so
- * every capture of this address was the 404, and the CI render composed the
- * approved hosted page beside an empty white frame (#416's run). It was the
- * one approved screen the render path (#404) could not review.
+ * Every capture of this address was the 404, so the CI render composed the
+ * approved hosted page beside an empty white frame (#416's run) — the one
+ * approved screen the render path (#404) could not review. **Two things
+ * were wrong and both had to go**:
  *
- * The fix is one more host, not a changed one: `PUBLISHED_HOST_FIXTURES`
- * names the customer `seed.ts`'s `seedHostedPublisher()` writes, whose one
- * live publication is at this route's own `[...slug]` fixture. The bare
- * capture above stays exactly as it was and keeps the 404 arm's baselines;
- * this adds the live arm beside it.
+ *   * the sweep drove the *router's* path on a `content.` host, which the
+ *     middleware then prefixed a second time — `routes.ts`'s `visitorPath`
+ *     is that fix, and until it landed no Host and no seeded row could have
+ *     produced a page;
+ *   * and the host it drove is a site that has published nothing, which is
+ *     the 404's own honest arm and not S19.
+ *
+ * The second is fixed by one more host, not a changed one:
+ * `PUBLISHED_HOST_FIXTURES` names the customer `seed.ts`'s
+ * `seedHostedPublisher()` writes, whose one live publication is at this
+ * route's own `[...slug]` fixture. The bare capture above keeps the 404
+ * arm; this adds the live arm beside it.
  *
  * No cookie, and that is the surface's own promise: the hosted edge answers
  * a stranger on a stranger's domain with no session, no cookie and no

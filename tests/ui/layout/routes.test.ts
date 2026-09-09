@@ -12,7 +12,13 @@ import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { BAND_MIN } from "@/ui/layout/bands";
 import { SESSION_COOKIE_NAME } from "@/lib/account/identity/addresses";
-import { ACCOUNT_SESSION_COOKIE, enumerateRoutes, MissingRouteFixtureError } from "./routes";
+import {
+  ACCOUNT_SESSION_COOKIE,
+  enumerateRoutes,
+  MissingRouteFixtureError,
+  urlFor,
+  visitorPath,
+} from "./routes";
 import { widths } from "./widths";
 
 let tmpRoot: string | undefined;
@@ -124,6 +130,41 @@ describe("enumerateRoutes — a (hosted) page carries its Host", () => {
     makePage("(hosted)");
 
     expect(() => enumerateRoutes(tmpRoot!)).toThrow(MissingRouteFixtureError);
+  });
+});
+
+describe("visitorPath — a (hosted) route is swept at the address a visitor types (#418)", () => {
+  it("drops the prefix the middleware rewrites into, and leaves every other path alone", () => {
+    expect(visitorPath("/hosted-page/best-onboarding-tools")).toBe("/best-onboarding-tools");
+    expect(visitorPath("/app/settings")).toBe("/app/settings");
+    // Not a prefix match on the bare segment: `/hosted-pages/x` is somebody
+    // else's route and keeps its whole path.
+    expect(visitorPath("/hosted-pages/x")).toBe("/hosted-pages/x");
+  });
+
+  it("urlFor sends a (hosted) route to the customer's own address on the customer's own Host", () => {
+    expect(
+      urlFor("http://localhost:4321", {
+        path: "/hosted-page/best-onboarding-tools",
+        host: "content.publisher.test",
+      })
+    ).toBe("http://content.publisher.test:4321/best-onboarding-tools");
+    // Every other route is untouched: no host, no rewriting.
+    expect(urlFor("http://localhost:4321", { path: "/pricing" })).toBe(
+      "http://localhost:4321/pricing"
+    );
+  });
+
+  it("the prefix it drops is the one src/middleware.ts prepends", () => {
+    // `routes.ts` restates the middleware's module-private constant rather
+    // than importing an Edge-bundled module into a test. Restated is fine;
+    // drifted is a sweep that photographs 404s again and says nothing —
+    // which is exactly what #418 found, eleven issues after it started.
+    const middleware = readFileSync(path.resolve(__dirname, "../../../src/middleware.ts"), "utf8");
+    expect(middleware).toContain('const HOSTED_PAGE_PREFIX = "/hosted-page";');
+    expect(middleware).toContain("`${HOSTED_PAGE_PREFIX}${pathname}`");
+    const routes = readFileSync(path.resolve(__dirname, "routes.ts"), "utf8");
+    expect(routes).toContain('const HOSTED_REWRITE_PREFIX = "/hosted-page";');
   });
 });
 
