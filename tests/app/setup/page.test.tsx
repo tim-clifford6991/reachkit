@@ -61,10 +61,32 @@ describe("/setup", () => {
 
   it("renders the three decisions, the address and one submit", async () => {
     const tree = await renderPage(() => import("@/app/(account)/setup/page"));
-    for (const id of ["setup-address", "setup-market", "setup-competitors", "setup-publishing"]) {
+    // The fixture's report arm: UI-SPEC S10 merges the site and the market
+    // into one card, so the address's slot is that card.
+    for (const id of [
+      "setup-site-and-market",
+      "setup-market",
+      "setup-competitors",
+      "setup-publishing",
+    ]) {
       expect(tree.querySelector(`[data-testid="${id}"]`), id).not.toBeNull();
     }
     expect(tree.querySelectorAll('button[type="submit"]')).toHaveLength(1);
+  });
+
+  it("states where the founder is, in the set's three phases (UI-SPEC S10)", async () => {
+    const tree = await renderPage(() => import("@/app/(account)/setup/page"));
+    const strip = tree.querySelector('[data-testid="setup-progress"]');
+    expect(strip).not.toBeNull();
+    expect(strip?.getAttribute("data-current")).toBe("setup");
+    expect(strip?.querySelectorAll("li")).toHaveLength(3);
+  });
+
+  it("REQ-021 c10's own line sits under the one control", async () => {
+    const tree = await renderPage(() => import("@/app/(account)/setup/page"));
+    expect(tree.querySelector('[data-testid="setup-footer-line"]')?.textContent).toBe(
+      "You can reach Settings, cancel or export at any time — finishing setup is not required for that."
+    );
   });
 
   it("sits outside the /app shell — no sidebar, no tab bar, no publishing card", async () => {

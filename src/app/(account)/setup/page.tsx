@@ -28,6 +28,7 @@ import type React from "react";
 import { Surface } from "@/ui/layout";
 import { copy } from "@/lib/presentation/copy";
 import { readSetupScreen } from "./_setup/provider";
+import { ProgressStrip, type SetupPhase } from "./_setup/ProgressStrip";
 import { SetupForm } from "./SetupForm";
 
 export default async function SetupPage(): Promise<React.JSX.Element> {
@@ -42,9 +43,18 @@ export default async function SetupPage(): Promise<React.JSX.Element> {
       }}
     >
       <main className="grid content-start gap-4 p-4">
+        {/* UI-SPEC S10: the strip above the head, so the founder reads
+            where they are before what they are asked. */}
+        <ProgressStrip current={PHASE} />
         <h1>{copy("setup.head")}</h1>
         <SetupForm model={model} />
       </main>
     </Surface>
   );
 }
+
+/** Bound to a name before it reaches JSX: the copy sweep presumes any
+ *  string literal in a JSX attribute is product voice unless the attribute
+ *  is allow-listed, and it is right to — this is a phase handle, not a
+ *  word anyone reads. */
+const PHASE: SetupPhase = "setup";

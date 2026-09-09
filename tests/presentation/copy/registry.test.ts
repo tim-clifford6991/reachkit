@@ -362,7 +362,7 @@ describe("owner-owed and empty agree both ways", () => {
     expect(new Set(emptyKeys)).toEqual(new Set(OWNER_OWED));
   });
 
-  it("counts: 117 owner-owed, 245 awaiting copy, 325 ruled, 687 total (rule 5.5 — the index states its own coverage)", () => {
+  it("counts: 117 owner-owed, 238 awaiting copy, 344 ruled, 699 total (rule 5.5 — the index states its own coverage)", () => {
     // WO-070 added report.ts's eight landing keys (headline, field label,
     // submit label, five DomainProblem lines), all owner-owed: 30 + 8 = 38.
     // 2026-09-03: the owner ruled on three of them (headline, field label,

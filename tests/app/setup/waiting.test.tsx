@@ -16,6 +16,7 @@ vi.mock("next/navigation", () => ({
 import { Waiting } from "@/app/(account)/setup/waiting/Waiting";
 import { APP_PATH, destinationFor } from "@/app/(account)/setup/waiting/release";
 import { STAGE_COPY_KEY, WAITING_STAGES } from "@/app/(account)/setup/_setup/progress";
+import { ProgressStrip } from "@/app/(account)/setup/_setup/ProgressStrip";
 import { COPY } from "@/lib/presentation/copy";
 import { TIMING } from "@/lib/config/constants";
 import type { StageName } from "@/lib/scan/stages";
@@ -116,5 +117,50 @@ describe("the stage list is the pass's own, and the poll cadence is the pinned o
 
   it("the screen refreshes at the pinned heartbeat, so 'at least once every 30 seconds' is one number, not two", () => {
     expect(TIMING.progressHeartbeatS).toBe(30);
+  });
+});
+
+describe("UI-SPEC S11 — the strip, the card and the two approved lines (issue #356)", () => {
+  it("the progress strip is the same three phases, one on: First page is current", () => {
+    const strip = render(<ProgressStrip current="first-page" />);
+    expect(strip.querySelector('[data-testid="setup-progress"]')?.getAttribute("data-current")).toBe(
+      "first-page"
+    );
+    const steps = Array.from(strip.querySelectorAll("li")).map((li) => li.getAttribute("data-state"));
+    // Paid and Setup are behind them; the first page is what is running.
+    expect(steps).toEqual(["done", "done", "active"]);
+  });
+
+  it("the same component drives /setup, so the two screens cannot disagree about the phases", () => {
+    const onSetup = Array.from(
+      render(<ProgressStrip current="setup" />).querySelectorAll("li")
+    ).map((li) => li.textContent);
+    const onWaiting = Array.from(
+      render(<ProgressStrip current="first-page" />).querySelectorAll("li")
+    ).map((li) => li.textContent);
+    expect(onWaiting).toEqual(onSetup);
+    expect(onSetup).toEqual(["Paid", "Setup", "First page"]);
+  });
+
+  it("both of S11's lines are written, and the one that matters says what a fruitless pass does", () => {
+    // Ruling 11a: the set's unbracketed strings are approved as written.
+    // The first line is where the amended REQ-025 c1 spends its duration on
+    // this screen; it carries the promise that outlives the clock.
+    expect(COPY["setup.waiting.about"]).toContain("About three minutes");
+    expect(COPY["setup.waiting.about"]).toContain("it never invents a page");
+    expect(COPY["setup.waiting.close-tab"]).toBe(
+      "You can close this tab; the sign-in link in your mail brings you back."
+    );
+  });
+
+  it("no stage line states a duration — the set draws one per stage and the engine reports none", () => {
+    // `PassProgress`'s running arm carries `stage` alone. Until the engine
+    // records per-stage timing there is nothing to render, and a stage line
+    // that stated one would be composed rather than measured.
+    for (const name of WAITING_STAGES) {
+      expect(COPY[STAGE_COPY_KEY[name]], name).not.toMatch(
+        /(\d+\s*(second|minute|hour)s?|~\s*\d|%|elapsed)/i
+      );
+    }
   });
 });

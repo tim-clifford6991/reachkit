@@ -68,6 +68,34 @@ export const SETUP_COPY = Object.freeze({
     { slots: {}, fixedBy: "REQ-025 c1 (amended, C1) · UI-SPEC S10 (11a)" },
   ],
 
+  // ── The progress strip (UI-SPEC S10 · S11, issue #356) ──────────────
+  "setup.progress.paid": ["Paid", { slots: {}, fixedBy: "UI-SPEC S10 · 11a" }],
+  "setup.progress.setup": ["Setup", { slots: {}, fixedBy: "UI-SPEC S10 · 11a" }],
+  "setup.progress.first-page": ["First page", { slots: {}, fixedBy: "UI-SPEC S10 · 11a" }],
+
+  // ── The two arms' own lines (UI-SPEC S10, issue #356) ───────────────
+  "setup.address.assurance": [
+    "The site we measure and publish for. Nothing is taken from the address you paid with.",
+    { slots: {}, fixedBy: "UI-SPEC S10 · REQ-021 c7" },
+  ],
+  "setup.market.awaiting-site": [
+    "Suggested once your site is given.",
+    { slots: {}, fixedBy: "UI-SPEC S10 · REQ-026 c1" },
+  ],
+  "setup.site-and-market.title": [
+    "Your site & market",
+    { slots: {}, fixedBy: "UI-SPEC S10 · REQ-021 c6" },
+  ],
+  "setup.competitors.add.placeholder.first": [
+    "rival.com",
+    { slots: {}, fixedBy: "UI-SPEC S10 · REQ-026 c3" },
+  ],
+  "setup.mode.default": ["default", { slots: {}, fixedBy: "UI-SPEC S10 · 11a" }],
+  "setup.footer.line": [
+    "You can reach Settings, cancel or export at any time — finishing setup is not required for that.",
+    { slots: {}, fixedBy: "UI-SPEC S10 · REQ-021 c10" },
+  ],
+
   // ── The site address (REQ-021) ──────────────────────────────────────
   "setup.address.title": ["Your site", { slots: {}, fixedBy: "REQ-021 c6 · UI-SPEC S10 (11a)" }],
   "setup.address.label": ["Your website", { slots: {}, fixedBy: "REQ-021 c7 · UI-SPEC S10 (11a)" }],
@@ -106,11 +134,17 @@ export const SETUP_COPY = Object.freeze({
   ],
   /** REQ-026 c9: the limit is stated on screen rather than silently
    *  enforced. `{max}` is `BATTERY.COMPETITORS_MAX`. */
-  "setup.competitors.limit": [TODO, { slots: { max: "text" }, fixedBy: "REQ-026 c9" }],
+  /** The set draws "3 of 5": the count chosen and the limit, both slots. */
+  "setup.competitors.limit": [
+    "{chosen} of {max}",
+    { slots: { chosen: "text", max: "text" }, fixedBy: "UI-SPEC S10 · REQ-026 c9" },
+  ],
   "setup.competitors.add.label": ["Add a competitor", { slots: {}, fixedBy: "REQ-026 c8 · UI-SPEC S10 (11a)" }],
   "setup.competitors.add.placeholder": ["add another", { slots: {}, fixedBy: "REQ-026 c8 · UI-SPEC S10 (11a)" }],
   "setup.competitors.add.action": ["Add", { slots: {}, fixedBy: "REQ-026 c8 · UI-SPEC S10 (11a)" }],
-  "setup.competitors.remove": [TODO, { slots: {}, fixedBy: "REQ-026 c7" }],
+  /** The accessible name on a chosen tag's ×, naming the rival it takes
+   *  out. Owed: the set draws the glyph and no words. */
+  "setup.competitors.remove": [TODO, { slots: { rival: "text" }, fixedBy: "REQ-026 c7" }],
   "setup.competitors.refused.not-a-domain": [TODO, { slots: {}, fixedBy: "REQ-026 c8" }],
   "setup.competitors.refused.does-not-resolve": [TODO, { slots: {}, fixedBy: "REQ-026 c8" }],
   "setup.competitors.refused.own-domain": [TODO, { slots: {}, fixedBy: "REQ-026 c8" }],
@@ -150,6 +184,15 @@ export const SETUP_COPY = Object.freeze({
   /** A degraded pass still releases setup (§4.3); the founder is told so
    *  on the screen they arrive at, not only at the moment of release. */
   "setup.waiting.degraded": [TODO, { slots: {}, fixedBy: "REQ-029 c3" }],
+  /** S11's own two lines, both unbracketed in the set (11a). */
+  "setup.waiting.about": [
+    "About three minutes. When it finishes you land in the app with the first page already on the calendar. If it finds nothing worth writing, it says so — it never invents a page.",
+    { slots: {}, fixedBy: "UI-SPEC S11 · 11a" },
+  ],
+  "setup.waiting.close-tab": [
+    "You can close this tab; the sign-in link in your mail brings you back.",
+    { slots: {}, fixedBy: "UI-SPEC S11 · 11a" },
+  ],
 
   // ── The release notice (issue #36) ──────────────────────────────────
   //

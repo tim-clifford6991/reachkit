@@ -580,10 +580,11 @@ describe("three decisions → deep pass → the first page already on the calend
     const model = assembleSetup({ ...FIXTURE_SETUP_FACTS, cnameTarget: "content.example.com" });
     const html = renderToStaticMarkup(createElement(SetupForm, { model }));
 
-    // Three cards, one submit (§4.3): the market (with the address it is
-    // measured against), the publishing mode, and where pages go.
-    expect(html).toContain("setup.address.title");
-    expect(html).toContain("setup.market.title");
+    // Three cards, one submit (§4.3) — and since #356 that is literal: the
+    // approved set (UI-SPEC S10) merges the site and its inferred market
+    // into one card, "Your site & market", because both are known here and
+    // each needs only a Change. So this arm names three heads, not four.
+    expect(html).toContain("setup.site-and-market.title");
     expect(html).toContain("setup.competitors.title");
     expect(html).toContain("setup.publishing.title");
     expect(html).toContain('data-testid="setup-destination"');
