@@ -9,12 +9,35 @@
 // A body that throws is logged as `failed` and rethrown: the platform's
 // own retry and its dashboard are what a failure is for, and swallowing it
 // here would turn a broken engine into a silent success.
-import { stoppedByKillSwitch } from "./kill-switch";
+import { observeKillSwitchEngaged, stoppedByKillSwitch } from "./kill-switch";
 import { recordInvocation } from "./observability";
 import type { JobDefinition, JobInput, Outcome } from "./types";
 
+/** Never throws and never delays a job it has nothing to say about: an
+ *  alerting path that could fail an invocation would make the switch worse
+ *  to use than not having it. */
+async function reportFlip(): Promise<void> {
+  if (!observeKillSwitchEngaged()) return;
+  try {
+    const { reportKillSwitchEngaged } = await import("@/lib/mail/ops");
+    await reportKillSwitchEngaged();
+  } catch (error) {
+    console.warn(JSON.stringify({ event: "kill_switch_alert_failed", detail: String(error) }));
+  }
+}
+
 export async function runJob(definition: JobDefinition, input: JobInput): Promise<Outcome> {
   const started = Date.now();
+
+  // The switch, before the guard reads it (issue #329): every invocation
+  // passes here, stopped or not, so a job the switch stops still reports
+  // it — the news is the switch, not the job. At most once per process;
+  // see `observeKillSwitchEngaged` for what that can and cannot see (it
+  // reports an engagement and never a release). The mail module
+  // is imported at the call and only when there is something to say: it
+  // reaches `@/lib/db` behind `sendEmail`, and a static import would put a
+  // database client on the runner's own module graph.
+  await reportFlip();
 
   if (stoppedByKillSwitch(definition.id)) {
     const outcome: Outcome = { outcome: "stopped", subjectId: null, by: "kill-switch" };

@@ -42,10 +42,13 @@ describe("BUILD §4.7 — a switched-off mail is stopped, and nothing else is", 
   });
 
   it("every kind outside the three answers 'send' without reading the store at all", async () => {
+    // Eight since the owner's own `ops` alert joined the register (issue
+    // #329) — an alert nobody can switch off, for the same reason the
+    // sign-in mail cannot be.
     const outside = (Object.keys(MAIL_KINDS) as MailKind[]).filter(
       (kind) => !(TOGGLABLE_KINDS as readonly string[]).includes(kind)
     );
-    expect(outside).toHaveLength(7);
+    expect(outside).toHaveLength(8);
     for (const kind of outside) {
       state.reads = [];
       await expect(stoppedByPreference({ userId: "u1", kind }), kind).resolves.toBe("send");

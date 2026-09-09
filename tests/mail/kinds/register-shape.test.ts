@@ -17,12 +17,15 @@ const DECLARED = [
   "weekly",
   "setup-reminder",
   "account",
+  // The owner's own alert (issue #329) — the eleventh, and the only kind
+  // whose reader is not a customer.
+  "ops",
 ] as const;
 
 describe("BUILD §12 — the register of mail kinds", () => {
-  it("holds exactly the ten declared kinds", () => {
+  it("holds exactly the eleven declared kinds", () => {
     expect(Object.keys(MAIL_KINDS).sort()).toEqual([...DECLARED].sort());
-    expect(Object.keys(MAIL_KINDS)).toHaveLength(10);
+    expect(Object.keys(MAIL_KINDS)).toHaveLength(11);
   });
 
   it("every stoppability is one of the three admitted values", () => {
@@ -71,7 +74,7 @@ describe("BUILD §12 — the register of mail kinds", () => {
     expect(() => {
       (MAIL_KINDS as unknown as Record<string, unknown>).newsletter = { occasionsFrom: "§0", stoppable: false };
     }).toThrow(TypeError);
-    expect(Object.keys(MAIL_KINDS)).toHaveLength(10);
+    expect(Object.keys(MAIL_KINDS)).toHaveLength(11);
   });
 
   it("a mail on an unregistered occasion does not typecheck", () => {

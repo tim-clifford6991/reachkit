@@ -54,6 +54,14 @@ export const MAIL_KINDS = Object.freeze({
   weekly: { occasionsFrom: "§12", stoppable: "toggle" },
   "setup-reminder": { occasionsFrom: "§4.3", stoppable: false },
   account: { occasionsFrom: "§13", stoppable: false },
+  // The eleventh kind, and the only one whose reader is the owner rather
+  // than a customer (issue #329). §6.5 is its occasion: the cost seam's own
+  // ceilings are what it reports. `stoppable: false` for a reason no other
+  // kind has — there is no address to unsubscribe and no preference to
+  // read, because the recipient is `OWNER_EMAILS` and the mail exists to
+  // say the product is spending money nobody asked it to. A stoppable
+  // alarm is not an alarm.
+  ops: { occasionsFrom: "§6.5", stoppable: false },
 } as const satisfies Readonly<Record<string, KindRow>>);
 
 export type MailKind = keyof typeof MAIL_KINDS;

@@ -155,9 +155,22 @@ describe("a stop is recorded, never a silent skip", () => {
     const logged: string[] = [];
     vi.spyOn(console, "log").mockImplementation((line: string) => void logged.push(line));
     await invoke("scan/run", true);
-    expect(logged).toHaveLength(1);
-    const line = JSON.parse(logged[0] as string);
+    // The *job's* lines, of which there is exactly one. A process whose
+    // first invocation finds the switch engaged also tells the owner about
+    // it (issue #329), and that alert writes its own line from its own
+    // subsystem — a different event, on the same console.
+    const jobLines = logged.filter((line) => {
+      try {
+        return (JSON.parse(line) as { event?: string }).event === "job";
+      } catch {
+        return false;
+      }
+    });
+    expect(jobLines).toHaveLength(1);
+    const line = JSON.parse(jobLines[0] as string);
     expect(line).toMatchObject({ event: "job", jobId: "scan/run", outcome: "stopped" });
     expect(JSON.stringify(line)).not.toContain("example.com");
+    // Nothing any of them emits carries the subject either.
+    expect(logged.join("\n")).not.toContain("example.com");
   });
 });
