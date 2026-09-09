@@ -44,12 +44,27 @@ function screenFor(over: Partial<SetupFacts> = {}): Element {
 const SCANLESS: Partial<SetupFacts> = { measured: null, suggestedRivals: null };
 
 describe('REQ-025 c1 — "it asks for exactly three decisions ... and for nothing else, save the site address"', () => {
-  it("renders exactly three decision slots plus the address, and no fourth", () => {
+  it("the report arm is §4.3's three cards, because the set merges site and market", () => {
+    // UI-SPEC S10 draws one card — "Your site & market" — where both are
+    // already known and each needs only a Change. That is §4.3's own
+    // "three cards, one submit" literally, where this screen drew four.
     const tree = screenFor();
+    for (const id of [
+      "setup-site-and-market",
+      "setup-market",
+      "setup-competitors",
+      "setup-publishing",
+    ]) {
+      expect(tree.querySelector(`[data-testid="${id}"]`), id).not.toBeNull();
+    }
+    expect(tree.querySelectorAll("form section")).toHaveLength(3);
+  });
+
+  it("the no-report arm is four, because the site is asked for before the market is suggested", () => {
+    const tree = screenFor(SCANLESS);
     for (const id of ["setup-address", "setup-market", "setup-competitors", "setup-publishing"]) {
       expect(tree.querySelector(`[data-testid="${id}"]`), id).not.toBeNull();
     }
-    // Every `<section>` in the form is a slot; four is the whole screen.
     expect(tree.querySelectorAll("form section")).toHaveLength(4);
   });
 
@@ -58,7 +73,11 @@ describe('REQ-025 c1 — "it asks for exactly three decisions ... and for nothin
     expect(tree.querySelector('[data-testid="setup-address-value"]')?.textContent).toBe(
       "example.com"
     );
-    expect(tree.querySelector('[data-testid="setup-address-measured"]')).not.toBeNull();
+    // The set's merged card shows the address and a Change and no line
+    // under it: that line explained a field the founder did not type
+    // into, and the card no longer has one.
+    expect(tree.querySelector('[data-testid="setup-address-measured"]')).toBeNull();
+    expect(tree.querySelector('[data-testid="setup-site-and-market"]')).not.toBeNull();
   });
 
   it("REQ-021 c7 — a scanless purchase gets an empty address field, with nothing pre-filled", () => {
@@ -113,10 +132,13 @@ describe('REQ-025 c3 — "when they look for anything that tunes the engine ... 
     );
     expect(measured.sort()).toEqual(["competitor"]);
 
+    // The no-report arm asks for the site and a competitor. The market's
+    // own field arrives with the site (UI-SPEC S10: "Suggested once your
+    // site is given"), so it is not a field this arm can show.
     const scanless = Array.from(screenFor(SCANLESS).querySelectorAll("input")).map((i) =>
       i.getAttribute("name")
     );
-    expect(scanless.sort()).toEqual(["category", "competitor", "domain"]);
+    expect(scanless.sort()).toEqual(["competitor", "domain"]);
   });
 
   it("there is no select, checkbox or radio at all — the two card pairs are buttons", () => {
@@ -187,12 +209,18 @@ describe('REQ-026 c1 and c3 — the market card in each of its states', () => {
     );
   });
 
-  it("a scanless purchase renders the empty card and asks them to state it, with nothing pre-filled", () => {
+  it("a scanless purchase dims the market card and says when its suggestion arrives", () => {
+    // UI-SPEC S10's no-report arm: the site is asked for first, and the
+    // market card is dimmed with one line rather than an empty field for
+    // something the product has not sought yet.
     const tree = screenFor(SCANLESS);
     expect(tree.querySelector('[data-testid="setup-market-chip"]')).toBeNull();
-    expect(tree.querySelector('[data-testid="setup-market-state-it"]')).not.toBeNull();
+    expect(tree.querySelector('[data-testid="setup-market-awaiting-site"]')).not.toBeNull();
+    expect(tree.querySelector('[data-testid="setup-market"]')?.getAttribute("data-awaiting")).toBe(
+      "site"
+    );
     const field = tree.querySelector('input[name="category"]');
-    expect(field?.getAttribute("value") ?? "").toBe("");
+    expect(field).toBeNull();
   });
 });
 
@@ -244,11 +272,15 @@ describe('REQ-028 c1 and c2 — mode and destination', () => {
     const tree = screenFor();
     expect(tree.querySelectorAll('[data-testid="setup-mode"] button')).toHaveLength(2);
     expect(tree.querySelectorAll('[data-testid="setup-destination"] button')).toHaveLength(2);
+    // UI-SPEC S10 draws each option as a card carrying its own line, so
+    // the line is inside the option rather than in a paragraph under the
+    // group — which is what lets the hosted destination hold its CNAME
+    // record in the option it belongs to.
     for (const id of [
-      "setup-mode-line-autopilot",
-      "setup-mode-line-copilot",
-      "setup-destination-line-hosted",
-      "setup-destination-line-wordpress",
+      "setup-mode-autopilot",
+      "setup-mode-copilot",
+      "setup-destination-hosted",
+      "setup-destination-wordpress",
     ]) {
       const option = tree.querySelector(`[data-testid="${id}"]`);
       expect(option, id).not.toBeNull();

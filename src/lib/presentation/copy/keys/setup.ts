@@ -175,12 +175,47 @@ export const SETUP_COPY = Object.freeze({
   "setup.waiting.head": [TODO, { slots: {}, fixedBy: "REQ-029 c1" }],
   /** One line per stage of the pass. Which step is under way, in written
    *  words — never a bare spinner, and never how long. */
-  "setup.waiting.stage.reading_your_site": [TODO, { slots: {}, fixedBy: "REQ-029 c1" }],
-  "setup.waiting.stage.reading_access_rules": [TODO, { slots: {}, fixedBy: "REQ-029 c1" }],
-  "setup.waiting.stage.reading_your_market": [TODO, { slots: {}, fixedBy: "REQ-029 c1" }],
-  "setup.waiting.stage.checking_your_presence": [TODO, { slots: {}, fixedBy: "REQ-029 c1" }],
-  "setup.waiting.stage.asking_the_twelve": [TODO, { slots: {}, fixedBy: "REQ-029 c1" }],
-  "setup.waiting.stage.scoring": [TODO, { slots: {}, fixedBy: "REQ-029 c1" }],
+  //
+  // **Five keys, not the engine's six** (issue #356). These were one key
+  // per `StageName` — the scan's own dataset boundaries — and all six were
+  // owed, so the screen drew six unwritten rows. UI-SPEC S11 draws five
+  // named rows and names them, unbracketed, so ruling 11a makes these the
+  // words. `_setup/stages.ts` holds which engine handles each row covers,
+  // and a test asserts the mapping spans `STAGES` exactly.
+  //
+  // The last two rows name work after the scan — §8's writing and §9's
+  // checking — which the engine's handles do not reach, so they are drawn
+  // and never current. That is the set's own drawing, not an omission.
+  "setup.waiting.stage.measuring-your-market": [
+    "Measuring your market",
+    { slots: {}, fixedBy: "UI-SPEC S11 · 11a · REQ-029 c1" },
+  ],
+  "setup.waiting.stage.sizing-your-rivals": [
+    "Sizing your rivals",
+    { slots: {}, fixedBy: "UI-SPEC S11 · 11a · REQ-029 c1" },
+  ],
+  "setup.waiting.stage.finding-pages": [
+    "Finding pages worth writing",
+    { slots: {}, fixedBy: "UI-SPEC S11 · 11a · REQ-029 c1" },
+  ],
+  "setup.waiting.stage.writing-your-first-page": [
+    "Writing your first page",
+    { slots: {}, fixedBy: "UI-SPEC S11 · 11a · REQ-029 c1" },
+  ],
+  "setup.waiting.stage.checking-it": [
+    "Checking it",
+    { slots: {}, fixedBy: "UI-SPEC S11 · 11a · REQ-029 c1" },
+  ],
+  /** A finished row's elapsed time, in the numeral face. Whole seconds:
+   *  the set prints "41 s", and the pass records instants a second apart
+   *  at best. */
+  "setup.waiting.stage.elapsed": [
+    "{seconds} s",
+    { slots: { seconds: "text" }, fixedBy: "UI-SPEC S11 · 11a" },
+  ],
+  /** The running row's own time. The set draws a dash rather than a clock,
+   *  and nothing on this screen ticks. */
+  "setup.waiting.stage.running": ["–", { slots: {}, fixedBy: "UI-SPEC S11 · 11a" }],
   /** A degraded pass still releases setup (§4.3); the founder is told so
    *  on the screen they arrive at, not only at the moment of release. */
   "setup.waiting.degraded": [TODO, { slots: {}, fixedBy: "REQ-029 c3" }],

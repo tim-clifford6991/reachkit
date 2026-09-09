@@ -116,10 +116,11 @@ describe("the report projection is three facts and no more", () => {
 
 describe("the deep pass is the signed-in founder's own", () => {
   it("answers the pass for that account's site", async () => {
-    setupSession.pass = { running: true, stage: "reading_your_market" };
+    setupSession.pass = { running: true, stage: "reading_your_market", enteredAt: {} };
     await expect(provider.readPassProgress()).resolves.toEqual({
       running: true,
       stage: "reading_your_market",
+      enteredAt: {},
     });
   });
 

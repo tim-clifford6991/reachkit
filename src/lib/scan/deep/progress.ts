@@ -1,9 +1,16 @@
 // BUILD §4.3 — what the waiting screen is told, and what it is never told.
 //
-// Two arms and neither carries a time: no elapsed, no estimate, no
-// countdown, no clock, no percentage. That is the shape, not a rendering
-// convention — a screen cannot show a duration it was never given, and
-// there is no field here one could be added to without this file changing.
+// Two arms. The running one carries the instant each stage began, and
+// nothing more (issue #356): UI-SPEC S11 draws a finished stage's elapsed
+// time, and a duration the screen composed from its own clock would be how
+// long a tab was open rather than how long the work took. So this frame
+// passes recorded instants through, and the screen subtracts consecutive
+// entries — the arithmetic lives in `_setup/stages.ts` and nowhere else,
+// which is what keeps a duration from being invented in two places.
+//
+// What no arm carries is a forecast: nothing here estimates, counts down,
+// shows a clock or a percentage, and the row under way is drawn as a dash
+// rather than a number that grows.
 //
 // The running arm's `stage` is the step the pipeline last entered, read
 // from `sites.setup_stage` (written by `runDeepPass` — see its header for
@@ -16,11 +23,22 @@ import { STAGES, type StageName } from "../stages";
 import { isReleased } from "./release";
 
 export type DeepPassProgress =
-  | { running: true; stage: StageName }
+  | {
+      running: true;
+      stage: StageName;
+      /** When each stage of this pass began, keyed by handle
+       *  (`sites.setup_stage_times`, issue #356). A finished stage's
+       *  elapsed time is the difference between its own entry and the
+       *  next one's; the running stage has no end yet and UI-SPEC S11
+       *  draws it as a dash rather than a clock. Empty where the pass
+       *  recorded none. */
+      enteredAt: Readonly<Partial<Record<StageName, string>>>;
+    }
   | { running: false; degraded: boolean };
 
 interface StageRow {
   setup_stage: string | null;
+  setup_stage_times: Record<string, string> | null;
 }
 
 /** The generated `Database` type does not carry `sites.setup_stage` yet —
@@ -64,11 +82,31 @@ export async function passProgressFor(
 
   const { data, error } = await (dbAdmin() as unknown as MinimalClient)
     .from<StageRow>("sites")
-    .select("setup_stage")
+    .select("setup_stage, setup_stage_times")
     .eq("id", siteId)
     .limit(1);
   if (error) throw new Error(`passProgressFor: ${error.message}`);
 
   const recorded = data?.[0]?.setup_stage ?? null;
-  return { running: true, stage: isStage(recorded) ? recorded : STAGES[0]! };
+  return {
+    running: true,
+    stage: isStage(recorded) ? recorded : STAGES[0]!,
+    // Only the handles this engine knows: a key the column carries that
+    // `STAGES` does not name is a stage from an older shape, and a screen
+    // that timed it would draw a row it has no name for.
+    enteredAt: knownEntries(data?.[0]?.setup_stage_times ?? null),
+  };
+}
+
+/** The recorded entries, filtered to the stages this engine names. */
+function knownEntries(
+  raw: Record<string, string> | null
+): Readonly<Partial<Record<StageName, string>>> {
+  if (raw === null) return {};
+  const out: Partial<Record<StageName, string>> = {};
+  for (const stage of STAGES) {
+    const at = raw[stage];
+    if (typeof at === "string" && at.length > 0) out[stage] = at;
+  }
+  return out;
 }

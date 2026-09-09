@@ -799,7 +799,7 @@ describe("three decisions → deep pass → the first page already on the calend
       // kind, and a deadline that is a fact about their own submit.
       const midFlight = await passProgressFor(SITE_ID);
       expect(midFlight.running).toBe(true);
-      expect(Object.keys(midFlight)).toEqual(["running", "stage"]);
+      expect(Object.keys(midFlight)).toEqual(["running", "stage", "enteredAt"]);
       const before = await isReleased(SITE_ID, new Date(PAID_AT.getTime() + 60_000));
       expect(before.released).toBe(false);
 

@@ -110,9 +110,22 @@ describe("/setup/waiting", () => {
     const tree = await renderPage(() => import("@/app/(account)/setup/waiting/page"));
     expect(redirect).not.toHaveBeenCalled();
     expect(tree.querySelectorAll("[data-surface]")).toHaveLength(1);
+    // `data-stage` names the **drawn row** since #356, not the engine
+    // handle: UI-SPEC S11 draws five rows over the engine's six, and the
+    // pass's `reading_your_market` is one of the three on the first row.
     expect(tree.querySelector('[data-testid="setup-waiting"]')?.getAttribute("data-stage")).toBe(
-      "reading_your_market"
+      "measuring_your_market"
     );
+    // Five rows, one current. This pass recorded no instants, so no
+    // finished row states a time — a duration nobody measured is not a
+    // duration of none — and the current row states the dash.
+    expect(tree.querySelectorAll(".rk-stage")).toHaveLength(5);
+    expect(
+      Array.from(tree.querySelectorAll(".rk-stage")).map((row) => row.getAttribute("data-state"))
+    ).toEqual(["current", "pending", "pending", "pending", "pending"]);
+    expect(
+      Array.from(tree.querySelectorAll(".rk-stage-t")).map((node) => node.textContent)
+    ).toEqual(["–"]);
   });
 
   it("also sits outside the /app shell", async () => {

@@ -51,9 +51,32 @@ export function reasonFor(status: ScanStatus): ReleaseReason {
   return "failed";
 }
 
-/** One column, one value, no clock. See this file's header for why the
- *  event bus cannot serve this. */
-async function recordStage(siteId: string, stage: StageName | null): Promise<void> {
+/**
+ * The stage a founder is shown, and the instant it began.
+ *
+ * See this file's header for why the event bus cannot serve the first.
+ * The second is issue #356: UI-SPEC S11 draws an elapsed time beside
+ * every finished stage, and a duration the screen composed from its own
+ * clock would be how long a tab was open rather than how long the work
+ * took. So each entry is stamped as it happens and the screen subtracts
+ * consecutive entries — `sites.setup_stage_times`.
+ *
+ * **Accumulated, never rewritten.** The map is merged rather than
+ * replaced, so a stage's own instant survives the next five writes; the
+ * clearing write at the end of the pass (`stage = null`) leaves it
+ * standing, because a founder released into the app may still be shown
+ * what their pass did.
+ *
+ * **`reset` starts a pass.** The map belongs to one pass, so the run
+ * clears it before the first stage rather than adding to whatever a
+ * previous pass left — two passes' timings in one map would state a
+ * stage that ran twice as one that ran long.
+ */
+async function recordStage(
+  siteId: string,
+  stage: StageName | null,
+  opts: { reset?: boolean } = {}
+): Promise<void> {
   try {
     const client = dbAdmin() as unknown as {
       from(table: string): {
@@ -62,7 +85,17 @@ async function recordStage(siteId: string, stage: StageName | null): Promise<voi
         };
       };
     };
-    await client.from("sites").update({ setup_stage: stage }).eq("id", siteId);
+    // Read-modify-write on one row the pass owns: the alternative is a
+    // `jsonb_set` through the REST filter grammar, which this minimal
+    // client shape does not carry. The pass is the only writer, so there
+    // is no second hand to race with.
+    const times = opts.reset === true ? {} : await stageTimes(siteId);
+    const entered =
+      stage === null ? times : { ...times, [stage]: new Date().toISOString() };
+    await client
+      .from("sites")
+      .update({ setup_stage: stage, setup_stage_times: entered })
+      .eq("id", siteId);
   } catch (error) {
     console.warn(
       JSON.stringify({ event: "setup_stage_not_recorded", siteId, stage, detail: String(error) })
@@ -85,6 +118,14 @@ export async function runDeepPass(a: {
   siteId: string;
   domain: string;
 }): Promise<{ scanId: string; status: ScanStatus; reason: ReleaseReason }> {
+  // The timings belong to one pass, so the map is cleared before this one
+  // rather than added to whatever a previous pass left — two passes'
+  // instants in one map would state a stage that ran twice as one that ran
+  // long. Cleared here and not on the first stage, because deciding "is
+  // this the first" would mean naming the pipeline's stage order in this
+  // file, which `run.test.ts` holds it not to.
+  await recordStage(a.siteId, null, { reset: true });
+
   const result = await runScan({
     domain: a.domain,
     siteId: a.siteId,
@@ -112,3 +153,36 @@ export async function runDeepPass(a: {
 
   return { scanId: result.scanId, status: result.status, reason };
 }
+
+/** The row's recorded entries, or an empty map where the column has none
+ *  and where it could not be read — an unreadable map is not a claim that
+ *  a stage took no time, and the screen draws nothing for a stage it has
+ *  no instant for. */
+async function stageTimes(siteId: string): Promise<Record<string, string>> {
+  try {
+    const client = dbAdmin() as unknown as {
+      from(table: string): {
+        select(columns: string): {
+          eq(
+            column: string,
+            value: unknown
+          ): {
+            limit(n: number): PromiseLike<{
+              data: { setup_stage_times: Record<string, string> | null }[] | null;
+              error: { message: string } | null;
+            }>;
+          };
+        };
+      };
+    };
+    const { data } = await client
+      .from("sites")
+      .select("setup_stage_times")
+      .eq("id", siteId)
+      .limit(1);
+    return data?.[0]?.setup_stage_times ?? {};
+  } catch {
+    return {};
+  }
+}
+

@@ -261,7 +261,12 @@ describe("REQ-093 c5 — the registry renders with every model unavailable", () 
     // under the same ruling — "sent to {address}" and the card's own pill;
     // the two heads and the two controls are bracketed and stay owed.
     // 323 + 2 = 325.
-    expect(ruled.length).toBe(325);
+    //
+    // 325 + 19 = 344 (issue #356: S10 and S11. Eighteen keys are new and
+    // all are written — eleven for S10, the set's five stage names, and
+    // the two forms a stage's time takes — and one stops being a marker.
+    // The engine's six stage keys are retired: see the counts row below.)
+    expect(ruled.length).toBe(344);
 
     // Only the ruled sentences carry their slots' `{name}` placeholders —
     // a `TODO(copy)` marker is one literal with no placeholder in it, so
@@ -1169,10 +1174,29 @@ describe("owner-owed and empty agree both ways", () => {
     // set) and two written (the address echo and the glass card's pill).
     // 117 owner-owed, 241 + 4 = 245 awaiting copy, 323 + 2 = 325 ruled,
     // 681 + 6 = 687 total.
+    //
+    // 2026-09-09, issue #356 — S10 Setup and S11 Waiting. Eighteen keys
+    // arrive and all are written: eleven for S10 (the progress strip's
+    // three phases, the two arms' lines, the merged card's head, the
+    // degraded placeholder, the `default` marker, REQ-021 c10's footer and
+    // S11's two sentences), the set's **five** stage names, and the two
+    // forms a stage's time takes — `{seconds} s` and the running dash.
+    //
+    // Six go: one key per engine handle described a screen that drew six
+    // unwritten rows, and UI-SPEC S11 draws five named ones. The mapping
+    // from the engine's six to the drawn five is `_setup/stages.ts`, and a
+    // test asserts it spans `STAGES` exactly.
+    //
+    // `setup.competitors.limit` is the one promotion — "{chosen} of {max}",
+    // which the set draws as "3 of 5". `OWNER_OWED` is untouched: this
+    // issue promoted no key to a throw and demoted none.
+    //
+    // 117 owner-owed, 245 − 7 = 238 awaiting, 325 + 19 = 344 ruled,
+    // 687 + 12 = 699 total.
     expect(OWNER_OWED.length).toBe(117);
-    expect(AWAITING_COPY.length).toBe(245);
-    expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(325);
-    expect(Object.keys(COPY).length).toBe(687);
+    expect(AWAITING_COPY.length).toBe(238);
+    expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(344);
+    expect(Object.keys(COPY).length).toBe(699);
 
     // The two representations never overlap: an empty value and the marker
     // are different values, so no key can be on both lists.

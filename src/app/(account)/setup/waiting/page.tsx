@@ -32,7 +32,8 @@ import { Sparkles } from "lucide-react";
 import { CardHead, IdiomCard } from "@/ui/idiom";
 import { readPassProgress } from "../_setup/provider";
 import { ProgressStrip, type SetupPhase } from "../_setup/ProgressStrip";
-import { STAGE_COPY_KEY, WAITING_STAGES } from "../_setup/progress";
+import { STAGES } from "@/lib/scan/stages";
+import { drawnStages, ROW_COPY_KEY } from "../_setup/stages";
 import { destinationFor } from "./release";
 import { Waiting } from "./Waiting";
 
@@ -44,7 +45,24 @@ export default async function WaitingPage(): Promise<React.JSX.Element> {
 
   // Narrowed by `destinationFor`: a pass that is not running has already
   // redirected, so this arm is the running one.
-  const stage = progress.running ? progress.stage : WAITING_STAGES[0]!;
+  //
+  // The five rows S11 draws, each with its state and — where the pass
+  // recorded both ends of it — its elapsed time. Written here, on the
+  // server, so the client half resolves no registry key and holds no copy
+  // of the mapping (`Waiting.tsx`'s own rule).
+  const rows = drawnStages(
+    progress.running ? progress : { stage: FIRST_STAGE, enteredAt: {} }
+  ).map((drawn) => ({
+    id: drawn.row,
+    label: copy(ROW_COPY_KEY[drawn.row]),
+    state: drawn.state,
+    time:
+      drawn.state === "current"
+        ? copy("setup.waiting.stage.running")
+        : drawn.seconds === null
+          ? null
+          : copy("setup.waiting.stage.elapsed", { seconds: drawn.seconds }),
+  }));
 
   return (
     <Surface
@@ -71,10 +89,7 @@ export default async function WaitingPage(): Promise<React.JSX.Element> {
           }
           testId={WAITING_CARD_TEST_ID}
         >
-          <Waiting
-            stage={stage}
-            steps={WAITING_STAGES.map((name) => ({ id: name, label: copy(STAGE_COPY_KEY[name]) }))}
-          />
+          <Waiting rows={rows} />
           {/* REQ-025 c1 as the approved set amends it: one sentence, and
               the promise that matters more than the clock — a pass that
               finds nothing worth writing says so. */}
@@ -94,6 +109,12 @@ export default async function WaitingPage(): Promise<React.JSX.Element> {
 const ICON = 14;
 
 const CENTRED: React.CSSProperties = { textAlign: "center" };
+
+/** The stage a pass that recorded none stands at. `passProgressFor` makes
+ *  the same substitution for the same reason: "which step is under way"
+ *  has no honest empty value, and a bare spinner is what REQ-029 c1
+ *  forbids. */
+const FIRST_STAGE = STAGES[0]!;
 
 /** Bound to names before they reach JSX — the copy sweep's rule. Neither is
  *  a word anyone reads: one is a phase handle, one a test hook. */
