@@ -1,6 +1,9 @@
-# The owner's files. A PR touching these needs the owner's review; an agent may
-# not loosen a rule to make its own PR pass. (Enforced by GitHub once the repo
-# is on a plan with branch protection; until then, enforced by /ship refusing.)
+# The owner's files. Branch protection on main requires the six status checks
+# and a code-owner review. The master lands with the owner's account, which
+# cannot review its own PR, so scripts/land.sh merges with --admin once the
+# checks are green: the checks are the gate, the flag only bypasses the review
+# row. A feature PR that touches a file below is refused at review (CLAUDE.md
+# "Don't"); an agent may not loosen a rule to make its own PR pass.
 BUILD.md              @tim-clifford6991
 DECISIONS.md          @tim-clifford6991
 ARCHITECTURE.md       @tim-clifford6991
