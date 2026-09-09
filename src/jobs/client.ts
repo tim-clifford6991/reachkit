@@ -17,11 +17,23 @@
 // platform — `tests/jobs/registry.test.ts` asserts it. Swapping the
 // platform is therefore this file plus the one route that mounts it.
 //
-// The two bindings the SDK reads for itself — `INNGEST_EVENT_KEY` and
-// `INNGEST_SIGNING_KEY` — are deliberately not members of
-// `src/lib/config/env.ts`: that schema is `BUILD.md` §15's list, an owner
-// file, and its key set is asserted exactly. They are named in the PR under
-// "Owner owes" instead.
+// **The two bindings** — `INNGEST_EVENT_KEY` and `INNGEST_SIGNING_KEY` —
+// are members of `src/lib/config/env.ts` since issue #315, reversing the
+// 2026-09-05 ruling that kept them out as "the SDK's own bindings". They
+// still *are* the SDK's own bindings: it reads both from `process.env` by
+// those names, and nothing in this file passes them. What changed is that
+// the deployment contract now declares them — `BUILD.md` §15 always named
+// them — and `assertJobsBindings()` refuses the boot of a real deployment
+// that carries neither. Before that, such a deployment started, served
+// every screen, and ran no job at all, with nothing saying so.
+//
+// This file does not import `env`, deliberately. Both bindings are
+// server-only, so reading one at module load would throw wherever this
+// module is loaded in a browser-like environment — and it is: the setup
+// store imports `sendJobEvent`, and that store is reached from a rendered
+// screen. `tests/jobs/client-bindings.test.ts` is what keeps the two names
+// honest instead: it asserts the client resolves exactly the names the
+// schema declares, so a rename in one place cannot silently miss the other.
 import { Inngest } from "inngest";
 import { serve as serveFunctions } from "inngest/next";
 import { runJob } from "./run";
