@@ -20,7 +20,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type React from "react";
 import { applyEnvFixture } from "../../mail/env-fixture";
 import { codeOf } from "../../mail/leads/source";
-import type { PreviewResult, RedeemResult } from "../../../src/lib/publish/publishable";
+import type { PreviewResult, RedeemResult, VetoPreview } from "../../../src/lib/publish/publishable";
 
 applyEnvFixture();
 
@@ -33,16 +33,20 @@ applyEnvFixture();
  * surfacing as an unhandled rejection against a test that passed. The record
  * this file needs is three arrays.
  */
-const LIVE: PreviewResult = {
-  ok: true,
-  preview: {
-    draftId: "draft-2026-09-15",
-    title: "How to choose onboarding software",
-    query: "best onboarding tools",
-    domain: "example.com",
-    publishesAt: new Date("2026-09-15T07:00:00.000Z"),
-  },
+/** A live token, bound to a page that publishes at 07:00 on a Tuesday in
+ *  the zone the customer set. The instant is 05:00 UTC and the zone is
+ *  `Europe/Berlin`, deliberately: an eyebrow that read the instant instead
+ *  of applying the zone would say `05:00` and this fixture would catch it. */
+const LIVE_PREVIEW: VetoPreview = {
+  draftId: "draft-2026-09-15",
+  title: "How to choose onboarding software",
+  query: "best onboarding tools",
+  volume: 2400,
+  domain: "example.com",
+  publishes: { at: new Date("2026-09-15T05:00:00.000Z"), timeZone: "Europe/Berlin" },
 };
+
+const LIVE: PreviewResult = { ok: true, preview: LIVE_PREVIEW };
 
 let previewAnswer: (token: string) => Promise<PreviewResult> = async () => LIVE;
 let redeemAnswer: (token: string) => Promise<RedeemResult> = async () => ({
@@ -173,11 +177,58 @@ describe("the ask arm — what the set draws, in its own order", () => {
     const tree = await ask();
     const rendered = text(tree);
     expect(named(tree, "CardHead")?.props.eyebrow).toBe(
-      COPY["publish.veto.ask.head"].replace("{when}", "2026-09-15 07:00 UTC")
+      COPY["publish.veto.ask.head"].replace("{when}", "Tue 15 Sep 07:00")
     );
     expect(rendered).toContain("How to choose onboarding software");
     expect(rendered).toContain("best onboarding tools");
     expect(rendered).toContain("example.com");
+  });
+
+  it("the moment is the set's own: weekday, day, short month, time, no ISO and no zone suffix", async () => {
+    // The master's review of #399: `2026-09-15 07:00 UTC` is not what S6
+    // draws, and the difference is not cosmetic — the reader is deciding
+    // whether tomorrow morning is soon, in their own zone, and a suffixed
+    // instant makes them do the arithmetic themselves.
+    const eyebrow = String(named(await ask(), "CardHead")?.props.eyebrow);
+    expect(eyebrow).toContain("Tue 15 Sep 07:00");
+    expect(eyebrow).not.toContain("2026-09-15");
+    expect(eyebrow).not.toContain("UTC");
+  });
+
+  it("the search row carries its monthly volume, grouped, as the set draws it", async () => {
+    expect(text(await ask())).toContain("best onboarding tools · 2,400/mo");
+  });
+
+  it("a volume nobody measured leaves the search standing alone, and never prints a zero", async () => {
+    previewAnswer = async () => ({
+      ok: true,
+      preview: { ...LIVE_PREVIEW, volume: null },
+    });
+    const rendered = text(await ask());
+    expect(rendered).toContain("best onboarding tools");
+    expect(rendered).not.toContain("/mo");
+    expect(rendered).not.toContain("0/mo");
+  });
+
+  it("a measured zero is a result and prints as one", async () => {
+    previewAnswer = async () => ({
+      ok: true,
+      preview: { ...LIVE_PREVIEW, volume: 0 },
+    });
+    expect(text(await ask())).toContain("best onboarding tools · 0/mo");
+  });
+
+  it("a site that states no zone states no moment, rather than one in a zone nobody chose", async () => {
+    // REQ-073 c1: the product never picks a zone on the customer's behalf.
+    // The seam answers `publishes: null` there, and the head falls back to
+    // the control's own word rather than writing an instant in UTC.
+    previewAnswer = async () => ({
+      ok: true,
+      preview: { ...LIVE_PREVIEW, publishes: null },
+    });
+    const eyebrow = String(named(await ask(), "CardHead")?.props.eyebrow);
+    expect(eyebrow).toBe(COPY["publish.veto.ask.action"]);
+    expect(eyebrow).not.toContain("UTC");
   });
 
   it("one solid control, labelled as the set labels it, and one quiet line under it", async () => {
@@ -199,8 +250,9 @@ describe("the ask arm — what the set draws, in its own order", () => {
         draftId: "d1",
         title: null,
         query: null,
+        volume: null,
         domain: null,
-        publishesAt: null,
+        publishes: null,
       },
     });
     const tree = await ask();

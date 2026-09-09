@@ -26,10 +26,11 @@
 // without spending. This file passes a segment, renders an arm, and holds no
 // token knowledge or state machine of its own (`ARCHITECTURE.md` rule 1).
 //
-// **What it discloses is what the mail already did.** The title, the search,
-// the site and the moment reached this reader's inbox in the `draft-ready`
-// mail the token came from; the set puts the same four on the page so a
-// person can tell which page they are stopping. Nothing about the account,
+// **What it discloses is what the mail already did.** The title, the search
+// and its monthly volume, the site and the moment all reached this reader's
+// inbox in the `draft-ready` mail the token came from — that mail states the
+// volume on a why-row of its own; the set puts the same facts on the page so
+// a person can tell which page they are stopping. Nothing about the account,
 // and nothing about any other page.
 //
 // **Bounded, and it answers rather than hanging.** Both the read and the
@@ -170,13 +171,62 @@ function refusalLine(reason: Exclude<PreviewResult, { ok: true }>["reason"]): {
   }
 }
 
-/** How the moment is written. ISO calendar date and the time as the site
- *  states it — the mail's own `writePublishesAt` owns the customer-facing
- *  format for a *sent* moment; this page has no zone to read without a
- *  session, so it writes the instant plainly rather than in a zone it would
- *  be guessing at. */
-function writeMoment(at: Date): string {
-  return `${at.toISOString().slice(0, 10)} ${at.toISOString().slice(11, 16)} UTC`;
+/** The locale this page writes its moment and its volume in. DECISIONS
+ *  2026-08-28 — "MVP is US-English only: one `SERP_LOCATION` constant" —
+ *  spelled the way `Intl` spells it, the same derivation
+ *  `src/lib/mail/blocks/format.ts` and `_shell/format.ts` each make at
+ *  their own boundary. `src/lib` never imports `src/app` and this page is
+ *  neither of theirs, so the pin is named once more here rather than
+ *  reached for across a seam it may not cross. */
+const PAGE_LOCALE = "en-US";
+
+/**
+ * How the moment is written: `Tue 2 Sep 07:00`, as the set draws it —
+ * weekday, day, short month, time, in the zone the customer publishes in.
+ *
+ * **No ISO date and no zone suffix**, which is what this used to print. A
+ * stop link is read in a mail client by a person deciding whether tomorrow
+ * morning is soon; `2026-09-15 07:00 UTC` makes them do the arithmetic the
+ * product already did. The zone is not dropped, it is *applied*: the
+ * instant is rendered in `sites.timezone`, which is the same zone the
+ * `draft-ready` mail this token came from stated it in, so the two agree
+ * to the minute.
+ *
+ * Composed from parts rather than from a format string: every locale
+ * pattern for this shape inserts commas the set does not draw, and the
+ * order the set draws is fixed, not the locale's to choose.
+ */
+function writeMoment(publishes: { at: Date; timeZone: string }): string {
+  const parts = new Intl.DateTimeFormat(PAGE_LOCALE, {
+    timeZone: publishes.timeZone,
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(publishes.at);
+  const part = (type: Intl.DateTimeFormatPartTypes): string =>
+    parts.find((p) => p.type === type)?.value ?? "";
+  return `${part("weekday")} ${part("day")} ${part("month")} ${part("hour")}:${part("minute")}`;
+}
+
+/**
+ * The set's search row: `[search] · 2,400/mo`.
+ *
+ * The volume is grouped and carries its unit, and `/mo` is no copy key for
+ * the reason `src/lib/mail/blocks/format.ts` gives of its own: it is the
+ * number's dimension, not the product speaking, on the same footing as a
+ * currency symbol.
+ *
+ * A volume nobody measured leaves the search standing alone — never a
+ * zero, which is REQ-004's trichotomy on this one row. A measured zero is
+ * a result and prints as one, exactly as the `first-page` mail's own row
+ * does with the same pair.
+ */
+function writeSearch(query: string, volume: number | null): string {
+  if (volume === null) return query;
+  return `${query} · ${new Intl.NumberFormat(PAGE_LOCALE).format(volume)}/mo`;
 }
 
 /** The ask arm: what the set draws, in its own order. */
@@ -191,9 +241,9 @@ function Ask(p: { token: string; it: VetoPreview }): React.JSX.Element {
   }
 
   const head =
-    p.it.publishesAt === null
+    p.it.publishes === null
       ? copy("publish.veto.ask.action")
-      : copy("publish.veto.ask.head", { when: writeMoment(p.it.publishesAt) });
+      : copy("publish.veto.ask.head", { when: writeMoment(p.it.publishes) });
 
   return (
     <Card state="default" title={copy(WORDMARK)}>
@@ -208,7 +258,7 @@ function Ask(p: { token: string; it: VetoPreview }): React.JSX.Element {
         {p.it.query === null ? null : (
           <div className="flex justify-between gap-3">
             <dt className="eyebrow">{copy("publish.veto.ask.row.search")}</dt>
-            <dd className="num">{p.it.query}</dd>
+            <dd className="num">{writeSearch(p.it.query, p.it.volume)}</dd>
           </div>
         )}
         {p.it.domain === null ? null : (
