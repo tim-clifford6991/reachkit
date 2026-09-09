@@ -174,7 +174,30 @@ export const PUBLISH_COPY = Object.freeze({
   // has passed. Two keys would be two sentences for one thing, and the
   // second of them would have to name what became of the page — which this
   // screen does not know and, holding no session, must not guess at.
-  "publish.veto.stopped": ["TODO(copy)", { slots: {}, fixedBy: "REQ-057 c1" }],
+  // ── S6, the stop page (issue #371) ──────────────────────────────────
+  //
+  // The approved set draws two arms, and every string on both is
+  // unbracketed — approved copy as written under ruling 11a. The three
+  // refusal lines below it keeps as `TODO(copy)`: the set draws no line
+  // for a link that was already used, has run out, or names no page, and
+  // the marker renders, so each arm says something rather than nothing.
+  "publish.veto.ask.head": [
+    "Publishes {when}",
+    { slots: { when: "text" }, fixedBy: "REQ-057 c1 · UI-SPEC S6 (11a)" },
+  ],
+  "publish.veto.ask.row.search": ["search", { slots: {}, fixedBy: "UI-SPEC S6 (11a)" }],
+  "publish.veto.ask.row.site": ["site", { slots: {}, fixedBy: "UI-SPEC S6 (11a)" }],
+  "publish.veto.ask.action": ["Stop this page", { slots: {}, fixedBy: "REQ-057 c1 · UI-SPEC S6 (11a)" }],
+  "publish.veto.ask.do-nothing": [
+    "Or do nothing and it publishes as planned. You can read and edit it in the app.",
+    { slots: {}, fixedBy: "REQ-057 c1 · UI-SPEC S6 (11a)" },
+  ],
+  "publish.veto.done.head": ["Stopped", { slots: {}, fixedBy: "UI-SPEC S6 (11a)" }],
+  "publish.veto.calendar": ["Open the calendar", { slots: {}, fixedBy: "UI-SPEC S6 (11a)" }],
+  "publish.veto.stopped": [
+    "This page will not publish. Tomorrow’s page is unaffected.",
+    { slots: {}, fixedBy: "REQ-057 c1 · UI-SPEC S6 (11a)" },
+  ],
   "publish.veto.alreadyUsed": ["TODO(copy)", { slots: {}, fixedBy: "REQ-057 c1" }],
   "publish.veto.expired": ["TODO(copy)", { slots: {}, fixedBy: "REQ-057 c1" }],
   "publish.veto.unknown": ["TODO(copy)", { slots: {}, fixedBy: "REQ-057 c1" }],
