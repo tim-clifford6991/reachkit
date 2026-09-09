@@ -28,7 +28,9 @@
 //   * `unfinished-*` — §4.3's two setup screens, signed in as the founder
 //     who has paid and has not finished setup, which is the only state
 //     those screens are reachable in (`seed.ts`'s `SETUP_ACCOUNT`);
-//   * `live-*` — the same four `/app` addresses drawn from the database.
+//   * `live-*` — the same four `/app` addresses drawn from the database,
+//     and — since issue #418 — the hosted page drawn from a real
+//     publication, whose door is a `Host` rather than a session.
 //
 // **The theme is emulated, not stamped.** `page.emulateMedia` sets
 // `prefers-color-scheme`, which is the un-stamped state most viewers are
@@ -68,6 +70,7 @@ import {
   ACCOUNT_SESSION_COOKIE,
   enumerateRoutes,
   headersFor,
+  PUBLISHED_HOST_FIXTURES,
   ROUTE_REFERENCE,
   SEGMENT_FIXTURES,
   urlFor as routeUrl,
@@ -221,6 +224,34 @@ const WEEK_ZERO_ROUTES = enumerateRoutes(APP_ROOT, {
   accountCookie: getWeekZeroAccountCookie(),
 }).filter((route) => route.path === "/app");
 
+/**
+ * UI-SPEC S19, photographed as the page it is (issue #418).
+ *
+ * `/hosted-page/{slug}` resolves its customer from the `Host` header, and
+ * the enumeration's default host is a site that has published nothing — so
+ * every capture of this address was the 404, and the CI render composed the
+ * approved hosted page beside an empty white frame (#416's run). It was the
+ * one approved screen the render path (#404) could not review.
+ *
+ * The fix is one more host, not a changed one: `PUBLISHED_HOST_FIXTURES`
+ * names the customer `seed.ts`'s `seedHostedPublisher()` writes, whose one
+ * live publication is at this route's own `[...slug]` fixture. The bare
+ * capture above stays exactly as it was and keeps the 404 arm's baselines;
+ * this adds the live arm beside it.
+ *
+ * No cookie, and that is the surface's own promise: the hosted edge answers
+ * a stranger on a stranger's domain with no session, no cookie and no
+ * payment (`(hosted)/hosted-page/[...slug]/page.tsx`).
+ */
+const PUBLISHED_HOSTED_ROUTES = enumerateRoutes(APP_ROOT, {
+  hostFixtures: PUBLISHED_HOST_FIXTURES,
+}).filter((route) => route.host !== undefined);
+
+/** The one address `PUBLISHED_HOSTED_ROUTES` holds, as the sweep spells it
+ *  — read off the enumeration rather than typed, so a renamed slug fixture
+ *  cannot leave this file naming an address the sweep no longer visits. */
+const HOSTED_PAGE_PATH = `/hosted-page/${SEGMENT_FIXTURES["[...slug]"]}`;
+
 interface Shot {
   readonly route: EnumeratedRoute;
   /** What the baseline file is named after — the route's own path, plus
@@ -237,6 +268,11 @@ const SHOTS: readonly Shot[] = [
   ...SETUP_ROUTES.map((route) => ({ route, name: `unfinished${slug(route.path)}` })),
   ...LIVE_ROUTES.map((route) => ({ route, name: `live${slug(route.path)}` })),
   ...WEEK_ZERO_ROUTES.map((route) => ({ route, name: `week0${slug(route.path)}` })),
+  // `live` for the same reason the four `/app` addresses use it: this is
+  // the picture drawn from rows in the database rather than from a fixture
+  // arm. The door it names is a host rather than an account, which is the
+  // only door this surface has.
+  ...PUBLISHED_HOSTED_ROUTES.map((route) => ({ route, name: `live${slug(route.path)}` })),
 ];
 
 console.log(
@@ -293,6 +329,13 @@ const CAPTURE_THEME: Theme = "light";
  */
 function screenFor(shot: Shot): `S${number}` | undefined {
   if (shot.name.startsWith("week0")) return "S13";
+  // The **hosted route is two screens**, because it is swept through two
+  // hosts (issue #418): the default host's site has published no page at
+  // this address, so that capture is `(hosted)/not-found.tsx` — S8, which
+  // `docs/design-reference.md` already names it — and only the published
+  // host's capture is S19. Pairing the 404 with S19 is precisely what put
+  // an empty white frame beside the approved hosted page in #416's render.
+  if (shot.route.path === HOSTED_PAGE_PATH && !shot.name.startsWith("live")) return "S8";
   const signedOut = shot.route.cookie === undefined || shot.route.cookie === ACCOUNT_SESSION_COOKIE;
   const isAccountAddress = shot.route.path === "/app" || shot.route.path.startsWith("/app/") || shot.route.path === "/setup" || shot.route.path.startsWith("/setup/");
   if (signedOut && isAccountAddress) return "S9";
@@ -470,6 +513,27 @@ describe(`visual baselines — ${SHOTS.length} surface(s) × ${BANDS.length} ban
     expect(SHOTS.filter((shot) => shot.name.startsWith("week0")).map((shot) => shot.name)).toEqual([
       "week0-app",
     ]);
+  });
+
+  it("the hosted page is photographed as a published page, not only as its 404", () => {
+    // The finding itself, as an assertion (issue #418). Both arms, each
+    // through its own host, each paired with the screen it actually draws.
+    expect(PUBLISHED_HOSTED_ROUTES.map((route) => route.path)).toEqual([HOSTED_PAGE_PATH]);
+    expect(PUBLISHED_HOSTED_ROUTES.every((route) => route.host === "content.publisher.test")).toBe(
+      true
+    );
+    // No session reaches this surface, through either host.
+    expect(PUBLISHED_HOSTED_ROUTES.every((route) => route.cookie === undefined)).toBe(true);
+
+    const hosted = SHOTS.filter((shot) => shot.route.path === HOSTED_PAGE_PATH);
+    expect(hosted.map((shot) => shot.name).sort()).toEqual([
+      slug(HOSTED_PAGE_PATH),
+      `live${slug(HOSTED_PAGE_PATH)}`,
+    ]);
+    expect(hosted.map(screenFor).sort()).toEqual(["S19", "S8"]);
+    // And the two are different hosts, which is the whole of why they are
+    // different screens.
+    expect(new Set(hosted.map((shot) => shot.route.host)).size).toBe(2);
   });
 
   it("the live account's addresses are photographed as well as the fixture ones — all of them", () => {

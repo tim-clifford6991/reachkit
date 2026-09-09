@@ -4,8 +4,8 @@
 // unchanged: a path-glob suite whose enumerator is the route tree, so a
 // surface added later is in scope by construction"). Walks
 // `src/app/**/page.tsx`, strips route groups from the URL it derives, and
-// fills a dynamic segment or a `(hosted)` page's `Host` header from the one
-// fixture map below — a segment or host with no row here fails, naming the
+// fills a dynamic segment or a `(hosted)` page's `Host` header from the
+// fixture maps below — a segment or host with no row here fails, naming the
 // route, rather than being silently skipped (rule 5.5).
 import { readdirSync } from "node:fs";
 import path from "node:path";
@@ -128,34 +128,64 @@ export const ROUTE_REFERENCE: Readonly<Record<string, `S${number}`>> = {
   /**
    * REFERENCE: S19 — Hosted page (§S19; REQ-059).
    *
-   * The sweep renders this route's 404 arm, which is S8's screen — see the
-   * `HOST_FIXTURES` note below. The reference is still S19, because the
-   * reference names what the route *is for*, not which arm a fixture
-   * environment happens to reach.
+   * The route is swept through **two** hosts (issue #418): the default
+   * below, whose site has published no page at this address, renders the
+   * 404 — S8's screen, which `visual.test.ts` pairs it with — and
+   * `PUBLISHED_HOST_FIXTURES` renders the page itself, which is S19. The
+   * reference here is S19 because it names what the route *is for*, not
+   * which arm a given host reaches.
    */
   "/hosted-page/best-onboarding-tools": "S19",
 };
 
+/** The one `(hosted)` page in the tree, keyed as the maps below key it:
+ *  the file's own path relative to the repo root, POSIX separators. Named
+ *  once so the two host maps cannot key it differently. */
+export const HOSTED_PAGE_FILE = "src/app/(hosted)/hosted-page/[...slug]/page.tsx";
+
 /**
- * One row per `(hosted)` page, keyed by the file's own path relative to the
- * repo root (POSIX separators), naming the `Host` header the suite sends
- * when rendering it. Empty today for the same reason as `SEGMENT_FIXTURES`.
+ * One row per `(hosted)` page, keyed by `HOSTED_PAGE_FILE`'s spelling,
+ * naming the `Host` header the suite sends when rendering it.
+ *
+ * **This map is the route's 404 arm, deliberately** (issue #418). Its host
+ * is the reserved account's domain, and that account publishes nothing —
+ * so the host resolves to a real site, the site has no page at this
+ * address, and the route answers `(hosted)/not-found.tsx`. That is a real
+ * surface of this product and the layout law applies to it exactly as to
+ * any other, so it keeps its baselines and its side-by-side (against S8,
+ * which is the screen it actually draws).
+ *
+ * It is **not** the whole of what this route is for, which is what #418
+ * found: swept through this host alone, S19 was the one approved screen
+ * the CI render path had no picture of. `PUBLISHED_HOST_FIXTURES` below is
+ * the other arm.
  */
 const HOST_FIXTURES: Readonly<Record<string, string>> = {
   /**
    * The hosted edge's page (issue #49, `BUILD.md` §9). `content.` plus the
    * fixture domain is the shape `resolveHost` matches, so the request
    * reaches the hosted group rather than the sign-in redirect.
-   *
-   * **The sweep measures this route's 404 arm, and that is the honest
-   * scope.** The layout suite runs `next build` against a fixture
-   * environment with no database behind it, so the Host resolves to no
-   * site and the route renders `(hosted)/not-found.tsx` — a real surface
-   * of this product, and one the layout law applies to exactly as it does
-   * to any other. The published template's own layout is asserted where it
-   * can be rendered with a page in hand, in `tests/hosted/`.
    */
-  "src/app/(hosted)/hosted-page/[...slug]/page.tsx": "content.example.com",
+  [HOSTED_PAGE_FILE]: "content.example.com",
+};
+
+/**
+ * The same page, asked of the customer who has actually published one
+ * (issue #418).
+ *
+ * `seed.ts`'s `seedHostedPublisher()` writes that customer: a site on
+ * `publisher.test` whose one live publication is at this route's
+ * `[...slug]` fixture. Sweeping the route through this host renders S19
+ * itself — the customer's bar, their eyebrow and byline, the body with
+ * §8's passage marked, the source line and their footer — which is the arm
+ * the approved set draws and the arm a fidelity review needs a picture of.
+ *
+ * A second map rather than a changed row, because both arms are wanted:
+ * `HOST_FIXTURES` is what the property sweep and the signed-out captures
+ * enumerate with, and this is what `visual.test.ts` adds one capture for.
+ */
+export const PUBLISHED_HOST_FIXTURES: Readonly<Record<string, string>> = {
+  [HOSTED_PAGE_FILE]: "content.publisher.test",
 };
 
 /**

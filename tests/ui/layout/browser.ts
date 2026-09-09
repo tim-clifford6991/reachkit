@@ -32,6 +32,7 @@ import {
   WEEK_ZERO_ACCOUNT,
   seedAccount,
   seededSessionCookie,
+  seedHostedPublisher,
   seedLiveAccount,
   seedSetupAccount,
   seedWeekZeroAccount,
@@ -189,6 +190,11 @@ export default async function setup(): Promise<() => Promise<void>> {
   seedLiveAccount();
   seedSetupAccount();
   seedWeekZeroAccount();
+  // The customer the hosted edge serves (#418). No cookie is minted for it
+  // and none is wanted: `/hosted-page/{slug}` answers a stranger on a
+  // stranger's domain with no session at all, so the only thing this
+  // account needs to exist before the build is its published page.
+  seedHostedPublisher();
   const accountCookie = await seededSessionCookie();
   const liveAccountCookie = await seededSessionCookie(LIVE_ACCOUNT);
   const setupAccountCookie = await seededSessionCookie(SETUP_ACCOUNT);
