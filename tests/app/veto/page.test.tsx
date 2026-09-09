@@ -386,6 +386,25 @@ describe("the done arm, and the refusals that wear its shape", () => {
   });
 });
 
+describe("the card starts at its own head, and the brand is in the bar", () => {
+  // Master's third review of #399: S6's card opens on `cardHead('clock',
+  // 'PUBLISHES …')` and carries no wordmark — the brand is drawn once, in
+  // the public bar the group layout puts around this page. A card titled
+  // *ReachKit* under a bar saying *ReachKit* is the same word twice. The
+  // wordmark over a card belongs to the mail shell (S20), which has no bar.
+  it("both arms pass `Card` a headless title", async () => {
+    previewAnswer = async () => LIVE;
+    expect(named(await ask(), "Card")?.props.title).toBeNull();
+
+    previewAnswer = async () => ({ ok: false, reason: "used", title: "How teams pick an onboarding tool" });
+    expect(named(await ask({ done: "1" }), "Card")?.props.title).toBeNull();
+  });
+
+  it("the page spends no wordmark key at all", () => {
+    expect(codeOf(PAGE)).not.toMatch(/wordmark/i);
+  });
+});
+
 describe("the surface owns no token knowledge", () => {
   it("it reaches the two named seams and neither the machine nor the token's hashing", () => {
     const code = codeOf(PAGE);

@@ -624,7 +624,11 @@
   min-width: 0;
 }
 
-/* "free · no account · permanent link" — mono, quiet, under the field. */
+/* The set's own `.prov`: mono, quiet, no margin. It writes the landing's
+ * "free · no account · permanent link" under the field, and the address in
+ * the public bar's right slot on a token page (`pubBar('<span class="prov">
+ * /veto/{token}</span>')`, S6 and S7) — one class, because the set draws
+ * one. */
 .rk-prov-line {
   font-family: var(--font-mono);
   font-size: var(--t-explain);

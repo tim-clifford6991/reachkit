@@ -17,9 +17,10 @@
 // property that keeps REQ-001 c1 true on the landing: the CTA there is not
 // a submit control, it is the control that focuses the one field.
 //
-// **The right slot is a closed union since #357.** Three arms — the pair,
-// the landing's field CTA, and the report address's copy control — decided
-// by the layout and passed in, so this file renders each one directly.
+// **The right slot is a closed union since #357.** Four arms — the pair, the
+// landing's field CTA, the report address's copy control, and (since #371) a
+// token page's own address — decided by the layout and passed in, so this
+// file renders each one directly.
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { Header, type HeaderAction } from "@/app/(public)/_chrome/Header";
@@ -34,6 +35,7 @@ const REPORT: HeaderAction = {
   kind: "copy-link",
   canonicalUrl: "https://reachkit.app/scan/example.com",
 };
+const TOKEN_PAGE: HeaderAction = { kind: "address", address: "/veto/a-token" };
 
 describe("UI-SPEC S2 — on the report address the right slot is REQ-001 c7's control", () => {
   it("draws the copy control, and neither half of the pair", () => {
@@ -48,6 +50,23 @@ describe("UI-SPEC S2 — on the report address the right slot is REQ-001 c7's co
     // The URL reaches the clipboard through a handler, never the markup —
     // so what this holds is that the control took it and drew.
     expect(markup(REPORT)).not.toContain("https://reachkit.app");
+  });
+});
+
+describe("UI-SPEC S6 — on a token page the right slot is the address, quiet", () => {
+  it("draws the address in the set's own `.prov`, and neither half of the pair", () => {
+    const html = markup(TOKEN_PAGE);
+    expect(html).toContain("rk-wordmark");
+    expect(html).toContain("rk-prov-line");
+    expect(html).toContain("/veto/a-token");
+    // A reader of a stop link has no account to sign in to and did not come
+    // to scan a domain: the set draws no control on that side of the bar.
+    expect(html).not.toContain('href="/signin"');
+    expect(html).not.toContain("btn-primary");
+  });
+
+  it("it is text, not a link: the reader is standing on the address", () => {
+    expect(markup(TOKEN_PAGE)).not.toContain('href="/veto/a-token"');
   });
 });
 

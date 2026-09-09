@@ -24,6 +24,14 @@
 // chrome had no slot for it (issue #352's own note). It has one now. The
 // arm is a value the layout passes, never a pathname this file reads: a
 // header that reads the route is a second place the rule lives.
+//
+// **A token page's slot is its own address, quiet** (master's third review
+// of #399). S6 draws `pubBar('<span class="prov">/veto/{token}</span>')` —
+// the bar's right side is the address the mail's link landed on, in the
+// mono face, `--ink-3`, no control beside it. There is nothing for 3a's
+// pair to do there: the reader of a stop link has no account to sign in to
+// and did not come to scan a domain, and a solid CTA beside the one thing
+// the page asks would be a second primary the set does not draw.
 import type React from "react";
 import Link from "next/link";
 import { Btn } from "@/ui/components/Btn";
@@ -41,11 +49,19 @@ export type HeaderAction =
   /** The same pair, with REQ-099 c3's CTA — the hero's own field. */
   | { kind: "landing" }
   /** REQ-001 c7's control, on the one screen with an address to copy. */
-  | { kind: "copy-link"; canonicalUrl: string };
+  | { kind: "copy-link"; canonicalUrl: string }
+  /** A token page's own address, quiet — S6's `.prov` in the bar. */
+  | { kind: "address"; address: string };
 
 function Action(p: { action: HeaderAction }): React.JSX.Element {
   if (p.action.kind === "copy-link") {
     return <CopyLink canonicalUrl={p.action.canonicalUrl} />;
+  }
+  if (p.action.kind === "address") {
+    // The set's `.prov` exactly — mono, `--t-explain`, `--ink-3`, no
+    // margin — which this sheet already carries as `.rk-prov-line`. Not a
+    // link: the reader is standing on it.
+    return <span className="rk-prov-line">{p.action.address}</span>;
   }
   return (
     <>

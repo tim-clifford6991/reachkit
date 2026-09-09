@@ -36,16 +36,24 @@ import { Header, type HeaderAction } from "./_chrome/Header";
 import { Footer } from "./_chrome/Footer";
 import { canonicalUrl } from "./_chrome/canonical";
 
-/** The two routes whose right slot is not ruling 3a's pair: the landing,
- *  whose CTA is its own field (REQ-099 c3), and the report address, whose
- *  slot is REQ-001 c7's copy control. */
+/** The routes whose right slot is not ruling 3a's pair: the landing, whose
+ *  CTA is its own field (REQ-099 c3); the report address, whose slot is
+ *  REQ-001 c7's copy control; and the stop page, whose slot is its own
+ *  address (UI-SPEC S6). */
 const LANDING = "/";
 /** The one public route the header does not stand on (UI-SPEC S9). */
 const SIGN_IN = "/signin";
 const REPORT_PREFIX = "/scan/";
+/** UI-SPEC S6's bar: `/veto/{token}` quiet on the right, and neither half
+ *  of 3a's pair. `/opt-out/{token}` is drawn the same way (S7) and is
+ *  #372's to wire — this branch is S6 and moves S6's pixels only. */
+const VETO_PREFIX = "/veto/";
 
 function actionFor(pathname: string): HeaderAction {
   if (pathname === LANDING) return { kind: "landing" };
+  // The address as it stands, not a composed one: the bar states where the
+  // reader is, and the token is already in the address bar above it.
+  if (pathname.startsWith(VETO_PREFIX)) return { kind: "address", address: pathname };
   if (pathname.startsWith(REPORT_PREFIX)) {
     const url = canonicalUrl(pathname);
     // No origin bound at build time is no address to copy: the pair stands

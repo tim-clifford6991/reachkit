@@ -126,19 +126,20 @@ async function redeem(token: string): Promise<RedeemResult> {
 type TokenParams = { token: string };
 type Query = { done?: string };
 
-/** One column at every band: the page is one card, and there is nothing to
+/** The card is **headless** — `title={null}`, the opt-out `Card` takes since
+ *  #369 (master's third review of #399). It carried the wordmark, which put
+ *  a second *ReachKit* on the page once the chrome was around it: S6's card
+ *  starts at its own head (the clock over *Publishes …*), and the brand is
+ *  in the bar. The wordmark over a card belongs to the mail shell (S20),
+ *  which has no bar to carry it.
+ *
+ *  One column at every band: the page is one card, and there is nothing to
  *  put beside it. */
 const ARMS = {
   compact: { kind: "columns", count: 1 },
   medium: { kind: "columns", count: 1 },
   wide: { kind: "columns", count: 1 },
 } as const satisfies Record<Band, Arm>;
-
-/** `Card` requires a title and the set puts the product's own name nowhere
- *  on this page — the head is the card's own eyebrow. The wordmark is what
- *  the public chrome carries, so the card's accessible title is it,
- *  transcribed and not written, exactly as `/opt-out/{token}` does it. */
-const WORDMARK = "mail.shell.wordmark";
 
 /** The marker the stop action redirects with. Not a claim on its own: the
  *  done arm renders only where the token also reads back as spent, so a
@@ -242,7 +243,7 @@ function Ask(p: { token: string; it: VetoPreview }): React.JSX.Element {
       : copy("publish.veto.ask.head", { when: writeMoment(p.it.publishes) });
 
   return (
-    <Card state="default" title={copy(WORDMARK)}>
+    <Card state="default" title={null}>
       <CardHead icon={<Clock size={15} aria-hidden />} eyebrow={head} />
       {p.it.title === null ? null : <h1>{p.it.title}</h1>}
       {/* The set's two why-rows. Utilities and the registered type classes,
@@ -295,7 +296,7 @@ function Ask(p: { token: string; it: VetoPreview }): React.JSX.Element {
  */
 function Told(p: { head: string; title: string | null; message: string }): React.JSX.Element {
   return (
-    <Card state="default" title={copy(WORDMARK)}>
+    <Card state="default" title={null}>
       <CardHead eyebrow={p.head} />
       {p.title === null ? null : <h1>{p.title}</h1>}
       <p className="rk-quiet t-sm">{p.message}</p>
