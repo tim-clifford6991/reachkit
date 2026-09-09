@@ -138,6 +138,21 @@ function text(tree: React.ReactNode): string {
   );
 }
 
+/**
+ * The one written line the `Told` arm draws — the set's `.small`.
+ *
+ * Read off the paragraph rather than off an `Alert`'s props, because there
+ * is no longer an `Alert`: the set draws a line, not a tinted block, and a
+ * suite that kept asserting a tone would be pinning the shape the master's
+ * second review of #399 removed.
+ */
+function toldLine(tree: React.ReactNode): string {
+  const paragraph = nodes(tree).find(
+    (node) => node.type === "p" && String(node.props.className ?? "").includes("rk-quiet")
+  );
+  return String(paragraph?.props.children ?? "");
+}
+
 async function ask(query: Record<string, string> = {}): Promise<React.ReactNode> {
   return VetoPage({ params: { token: "a-token" }, searchParams: query });
 }
@@ -270,14 +285,35 @@ describe("the ask arm — what the set draws, in its own order", () => {
 
 describe("the done arm, and the refusals that wear its shape", () => {
   it("coming back from the control, on a token that now reads as spent, says it stopped", async () => {
-    previewAnswer = async () => ({ ok: false, reason: "used" });
+    previewAnswer = async () => ({ ok: false, reason: "used", title: "How teams pick an onboarding tool" });
     const tree = await ask({ done: "1" });
     expect(named(tree, "CardHead")?.props.eyebrow).toBe(COPY["publish.veto.done.head"]);
-    const alert = named(tree, "Alert");
-    expect(alert?.props.tone).toBe("ok");
-    expect(alert?.props.message).toBe(COPY["publish.veto.stopped"]);
+    expect(toldLine(tree)).toBe(COPY["publish.veto.stopped"]);
     expect(named(tree, "Btn")?.props.href).toBe("/app/calendar");
     expect(named(tree, "Btn")?.props.label).toBe(COPY["publish.veto.calendar"]);
+  });
+
+  it("the done arm draws the page's own title under the eyebrow, as the set does", async () => {
+    // S6's done arm is `Stopped` · the h1 · the line · the quiet control. A
+    // reader who has just stopped a page is told which page it was.
+    previewAnswer = async () => ({ ok: false, reason: "used", title: "How teams pick an onboarding tool" });
+    const headings = nodes(await ask({ done: "1" })).filter((node) => node.type === "h1");
+    expect(headings).toHaveLength(1);
+    expect(headings[0]?.props.children).toBe("How teams pick an onboarding tool");
+  });
+
+  it("no arm renders a tinted block: the sentence is a line, and warn is never a fill", async () => {
+    previewAnswer = async () => ({ ok: false, reason: "used", title: null });
+    expect(named(await ask({ done: "1" }), "Alert")).toBeUndefined();
+    previewAnswer = async () => ({ ok: false, reason: "unknown" });
+    expect(named(await ask(), "Alert")).toBeUndefined();
+  });
+
+  it("a refusal names no draft: `unknown` and `expired` draw no title", async () => {
+    for (const reason of ["expired", "not_in_review", "unknown"] as const) {
+      previewAnswer = async () => ({ ok: false, reason });
+      expect(nodes(await ask()).filter((node) => node.type === "h1")).toHaveLength(0);
+    }
   });
 
   it("`?done=1` typed against a live link shows the ask, and stops nothing", async () => {
@@ -289,17 +325,13 @@ describe("the done arm, and the refusals that wear its shape", () => {
   });
 
   it("a spent link reached cold says it was already used, not that it stopped", async () => {
-    previewAnswer = async () => ({ ok: false, reason: "used" });
-    const alert = named(await ask(), "Alert");
-    expect(alert?.props.tone).toBe("neutral");
-    expect(alert?.props.message).toBe(COPY["publish.veto.alreadyUsed"]);
+    previewAnswer = async () => ({ ok: false, reason: "used", title: "How teams pick an onboarding tool" });
+    expect(toldLine(await ask())).toBe(COPY["publish.veto.alreadyUsed"]);
   });
 
   it("a link past its expiry says the moment to stop has passed", async () => {
     previewAnswer = async () => ({ ok: false, reason: "expired" });
-    const alert = named(await ask(), "Alert");
-    expect(alert?.props.tone).toBe("warn");
-    expect(alert?.props.message).toBe(COPY["publish.veto.expired"]);
+    expect(toldLine(await ask())).toBe(COPY["publish.veto.expired"]);
   });
 
   it("a page that has already left review reads as the same fact", async () => {
@@ -307,20 +339,20 @@ describe("the done arm, and the refusals that wear its shape", () => {
     // thing: there is no longer anything to stop. What became of the page is
     // a fact this screen holds no session to be told.
     previewAnswer = async () => ({ ok: false, reason: "not_in_review" });
-    expect(named(await ask(), "Alert")?.props.message).toBe(COPY["publish.veto.expired"]);
+    expect(toldLine(await ask())).toBe(COPY["publish.veto.expired"]);
   });
 
   it("a link that is not one of ours says so, and no arm renders blank", async () => {
     previewAnswer = async () => ({ ok: false, reason: "unknown" });
-    const alert = named(await ask(), "Alert");
-    expect(alert?.props.tone).toBe("warn");
-    expect(alert?.props.message).toBe(COPY["publish.veto.unknown"]);
+    expect(toldLine(await ask())).toBe(COPY["publish.veto.unknown"]);
   });
 
   it("every refusal renders a line — the three keys are the marker, never empty", async () => {
-    for (const reason of ["used", "expired", "not_in_review", "unknown"] as const) {
+    previewAnswer = async () => ({ ok: false, reason: "used", title: null });
+    expect(toldLine(await ask()).length).toBeGreaterThan(0);
+    for (const reason of ["expired", "not_in_review", "unknown"] as const) {
       previewAnswer = async () => ({ ok: false, reason });
-      expect(String(named(await ask(), "Alert")?.props.message).length).toBeGreaterThan(0);
+      expect(toldLine(await ask()).length).toBeGreaterThan(0);
     }
   });
 
@@ -328,7 +360,7 @@ describe("the done arm, and the refusals that wear its shape", () => {
     previewAnswer = async () => {
       throw new Error("the database is down");
     };
-    expect(named(await ask(), "Alert")?.props.message).toBe(COPY["publish.veto.unknown"]);
+    expect(toldLine(await ask())).toBe(COPY["publish.veto.unknown"]);
   });
 
   it("a read that never comes back is bounded, and answers the same way", async () => {
@@ -341,7 +373,7 @@ describe("the done arm, and the refusals that wear its shape", () => {
         setTimeout(() => resolve(LIVE), 3_000);
       });
     const started = Date.now();
-    expect(named(await ask(), "Alert")?.props.message).toBe(COPY["publish.veto.unknown"]);
+    expect(toldLine(await ask())).toBe(COPY["publish.veto.unknown"]);
     expect(Date.now() - started).toBeLessThan(4_000);
   });
 

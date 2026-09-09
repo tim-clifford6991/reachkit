@@ -44,10 +44,9 @@ import { Clock } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import { previewVetoLink, redeemVetoLink, vetoLinkPath } from "@/lib/publish/publishable";
 import type { PreviewResult, RedeemResult, VetoPreview } from "@/lib/publish/publishable";
-import { Alert, Btn, Card } from "@/ui/components";
+import { Btn, Card } from "@/ui/components";
 import { CardHead } from "@/ui/idiom";
 import { Surface } from "@/ui/layout";
-import type { AlertTone } from "@/ui/components";
 import type { Arm, Band } from "@/ui/layout";
 
 /** The redemption writes, so no response is ever shared or replayed: a
@@ -156,18 +155,15 @@ const DONE = "done";
  * difference between them is a fact about the page that this screen holds no
  * session to be told.
  */
-function refusalLine(reason: Exclude<PreviewResult, { ok: true }>["reason"]): {
-  tone: AlertTone;
-  message: string;
-} {
+function refusalLine(reason: Exclude<PreviewResult, { ok: true }>["reason"]): string {
   switch (reason) {
     case "used":
-      return { tone: "neutral", message: copy("publish.veto.alreadyUsed") };
+      return copy("publish.veto.alreadyUsed");
     case "expired":
     case "not_in_review":
-      return { tone: "warn", message: copy("publish.veto.expired") };
+      return copy("publish.veto.expired");
     case "unknown":
-      return { tone: "warn", message: copy("publish.veto.unknown") };
+      return copy("publish.veto.unknown");
   }
 }
 
@@ -282,12 +278,27 @@ function Ask(p: { token: string; it: VetoPreview }): React.JSX.Element {
   );
 }
 
-/** The done arm, and the two refusals that wear its shape. */
-function Told(p: { head: string; tone: AlertTone; message: string }): React.JSX.Element {
+/**
+ * The done arm, and the refusals that wear its shape.
+ *
+ * **A line, not a tinted block** (master's second review of #399). The set
+ * draws `Stopped` over the page's own title over one `.small` sentence over
+ * the quiet control, and no fill of any colour behind it. An `Alert` here
+ * put the sentence in a filled panel — green on the done arm, warn on two
+ * of the refusals — and the warn fill also broke the standing rule that
+ * `--warn` is edge and ink and never a ground. `.rk-quiet` with `.t-sm` is
+ * the set's `.small` exactly: 13px in `--ink-2`, no margin, no box.
+ *
+ * **The title is drawn where there is one.** The done arm has it, because
+ * a spent token still says which page it was bound to; the refusals do not,
+ * because `unknown` and `expired` name no draft.
+ */
+function Told(p: { head: string; title: string | null; message: string }): React.JSX.Element {
   return (
     <Card state="default" title={copy(WORDMARK)}>
       <CardHead eyebrow={p.head} />
-      <Alert tone={p.tone} message={p.message} />
+      {p.title === null ? null : <h1>{p.title}</h1>}
+      <p className="rk-quiet t-sm">{p.message}</p>
       <Btn label={copy("publish.veto.calendar")} variant="tertiary" href="/app/calendar" pill />
     </Card>
   );
@@ -310,7 +321,7 @@ export default async function VetoPage(p: {
       <Surface arms={ARMS}>
         <Told
           head={copy("publish.veto.done.head")}
-          tone="ok"
+          title={result.title}
           message={copy("publish.veto.stopped")}
         />
       </Surface>
@@ -318,10 +329,13 @@ export default async function VetoPage(p: {
   }
 
   if (!result.ok) {
-    const { tone, message } = refusalLine(result.reason);
     return (
       <Surface arms={ARMS}>
-        <Told head={copy("publish.veto.done.head")} tone={tone} message={message} />
+        <Told
+          head={copy("publish.veto.done.head")}
+          title={null}
+          message={refusalLine(result.reason)}
+        />
       </Surface>
     );
   }
