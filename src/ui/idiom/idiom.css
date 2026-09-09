@@ -1552,3 +1552,114 @@
   background: var(--bad-bg);
   color: var(--bad);
 }
+
+/* ── 15 · The hosted page (UI-SPEC S19, issue #375) ───────────────────── */
+
+/* §9: a published page renders "through **one** clean typographic template
+ * (the §2 design system)". These rules are that template, and they are in
+ * this stylesheet for the reason `.rk-legal` is: they style no component
+ * and add no sixth custom surface — they place one article at the reading
+ * measure and set the four lines around it.
+ *
+ * **Nothing here is `--accent`.** The accent is the product's own colour
+ * and this page is served on a domain that is not ours: the customer's mark
+ * is `--ink`, which is what the approved set draws it in ("their name, dark
+ * mark"), and no rule below names the product's colour at all. */
+
+.rk-hosted-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+  /* `width: 100%` beside the measure, on this rule and on the footer's:
+   * the screen root places its children in a grid, and a grid item with no
+   * stated width is as wide as its content — which drew the customer's bar
+   * as a shrink-wrapped label in the middle of the page rather than as the
+   * rule across the top the set draws. */
+  width: 100%;
+  max-width: var(--w-wide);
+  margin-inline: auto;
+  padding: var(--s-3) var(--s-4);
+  border-bottom: 1px solid var(--line);
+}
+
+/* The customer's name, and their mark beside it. The weight and the
+ * tracking are the wordmark's own — the brand slot on this page is drawn
+ * the way the brand slot is drawn everywhere — and the colour is the ink,
+ * never the accent. */
+.rk-hosted-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  margin-right: auto;
+  min-width: 0;
+}
+
+.rk-hosted-mark {
+  width: var(--s-4);
+  height: var(--s-4);
+  border-radius: var(--r-pill);
+  background: var(--ink);
+  flex: 0 0 auto;
+}
+
+/* The article, at `--w-read`. The measure is the whole layout: a page a
+ * stranger reads on their phone and a page read at 1280 are the same column
+ * of text, and §2's reading measure is what fixes it. */
+.rk-hosted {
+  max-width: var(--w-read);
+  margin-inline: auto;
+  width: 100%;
+  padding: var(--s-7) var(--s-5);
+}
+
+/* The set's own `.hosted-h`: the h1 rung, heavier than a screen's because
+ * this is the top of a document rather than the head of a card. */
+.rk-hosted-h {
+  font-size: var(--h1);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  margin: var(--s-3) 0;
+  color: var(--ink);
+  text-wrap: balance;
+}
+
+/* The body, one rung above the interface's own body size: the set sets the
+ * published document at `--h4` with a reading line height, because it is
+ * read rather than scanned. */
+.rk-hosted-doc {
+  font-size: var(--h4);
+  line-height: 1.75;
+}
+
+/* The three quiet lines — the byline, the source and the canonical note.
+ * Mono, because every one of them is a date, an address or a domain
+ * (§2.3), and in the quiet ink because none of them is the page. */
+.rk-hosted-line {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--t-explain);
+  color: var(--ink-3);
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+/* The rules above and below the body — the set's own `.rule`. */
+.rk-hosted-rule {
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin: var(--s-5) 0;
+}
+
+/* The customer's own footer line, and the only thing under the article. */
+.rk-hosted-foot {
+  border-top: 1px solid var(--line);
+  width: 100%;
+  max-width: var(--w-wide);
+  margin-inline: auto;
+  padding: var(--s-5) var(--s-4);
+}

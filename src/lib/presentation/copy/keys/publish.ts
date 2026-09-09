@@ -202,6 +202,45 @@ export const PUBLISH_COPY = Object.freeze({
   // is theirs to do, the other that nothing is theirs to remove, and a
   // customer sent to delete a post that is not there was told the wrong
   // one.
+  // 2026-09-09, issue #375 (UI-SPEC S19 · REQ-059). The three lines the
+  // **hosted page** carries, and they live here rather than in a partition
+  // of their own because they are publishing's: a hosted page is what §9
+  // publishes, and the fifteenth `keys/*.ts` file would be a partition for
+  // one screen.
+  //
+  // **These are the only sentences on a surface that has had none**, and
+  // every one is structure around the customer's own data rather than the
+  // product speaking about itself. The set writes all three unbracketed, so
+  // ruling 11a makes them approved copy as written; what is bracketed there
+  // — the brand, the category, the imprint line — is the customer's data
+  // and not the owner's copy, so none of it is minted as a key.
+  //
+  // `hosted.canonical` is the one line that names `reachkit.app`. It is
+  // there in the set, and it is a statement about *our* preview host and
+  // not a byline: the guardrail §9 and §14 fix — customer content never
+  // ranks on our domain — written where a reader of the page can check it.
+  "hosted.published": [
+    "published {date} · by {publisher}",
+    { slots: { date: "date", publisher: "text" }, fixedBy: "UI-SPEC S19 (11a)" },
+  ],
+  "hosted.source": [
+    "source: {source} · retrieved {date}",
+    { slots: { source: "text", date: "date" }, fixedBy: "UI-SPEC S19 (11a)" },
+  ],
+  "hosted.canonical": [
+    "Written for {domain}. Canonical: {canonical} · noindex on *.reachkit.app",
+    { slots: { domain: "text", canonical: "text" }, fixedBy: "UI-SPEC S19 (11a)" },
+  ],
+  // The customer's own footer line. A key rather than a bare "©" in the
+  // markup, so this surface has no string outside the registry at all —
+  // and one slot rather than two, because the set's second half is an
+  // imprint line the customer states and no column carries yet (#375's PR
+  // body names it under owner owes).
+  "hosted.footer": [
+    "© {publisher}",
+    { slots: { publisher: "text" }, fixedBy: "UI-SPEC S19 (11a)" },
+  ],
+
   "publish.wordpress.noSeoPlugin": ["TODO(copy)", { slots: {}, fixedBy: "REQ-060 c4" }],
   "publish.wordpress.namedForRemoval": [
     "TODO(copy)",

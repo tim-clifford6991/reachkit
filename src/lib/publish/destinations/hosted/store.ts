@@ -54,6 +54,49 @@ export interface FaqEntry {
   answer: string;
 }
 
+/**
+ * Who the page is published by, as the edge can know it (UI-SPEC S19).
+ *
+ * §14.6: "Customer is publisher of record: their domain, their identity."
+ * The set draws a brand mark, a brand name, a category eyebrow and a
+ * byline on this surface, and this is every fact behind them.
+ *
+ * **`name` is the customer's domain, because that is the identity this
+ * product holds.** No column carries a trading name — setup asks for a
+ * domain, a category, competitors, a voice and a do-not-claim list, and
+ * none of those is a brand — and a name derived from anything else would
+ * be a name the customer never gave, printed as theirs on their own site.
+ * The domain is the one identity fact they did give.
+ *
+ * `category` and `timeZone` are nullable because both columns are: a site
+ * that stated no category draws no eyebrow, and one that stated no zone
+ * has its publication date written in UTC rather than in a zone this
+ * product picked for it (REQ-073 c1).
+ */
+export interface HostedPublisher {
+  name: string;
+  category: string | null;
+  timeZone: string | null;
+}
+
+/**
+ * §8's grounded fact, as generation recorded it on the page.
+ *
+ * The set marks the passage inside the body and states its source under
+ * it. Read from `drafts.grounded_fact` — the column §8 hard rule 1 freezes
+ * — and never from anywhere else: a passage the page is not grounded in,
+ * marked as though it were, is a claim about the evidence.
+ *
+ * `null` for a page generation recorded no grounding for; the body then
+ * renders whole and unmarked and no source line is drawn, which is what a
+ * page with no recorded source honestly is.
+ */
+export interface HostedGrounding {
+  passage: string;
+  url: string;
+  readAt: Date | null;
+}
+
 /** One live hosted page. `slug` is the last segment of the address the
  *  page was actually published at, so the address the customer's visitor
  *  typed and the address recorded on the row cannot drift apart. */
@@ -64,6 +107,11 @@ export interface HostedPage {
   title: string;
   bodyMd: string;
   faq: readonly FaqEntry[];
+  /** What the page is grounded in, or `null` where nothing was recorded. */
+  grounded: HostedGrounding | null;
+  /** Whose page it is — the header, the eyebrow, the byline and the
+   *  footer are drawn from this and from nothing else. */
+  publisher: HostedPublisher;
   publishedAt: Date;
   liveUrl: string;
   record: PublishedPageRecord;
@@ -80,10 +128,12 @@ interface PublicationRow {
   live_url: string | null;
   published_at: string | null;
   mode: "approved" | "autopilot";
+  sites: { domain: string | null; category: string | null; timezone: string | null } | null;
   drafts: {
     title: string | null;
     body_md: string | null;
     meta: Record<string, unknown> | null;
+    grounded_fact: Record<string, unknown> | null;
     opportunity_id: string;
     opportunities: {
       id: string;
@@ -97,7 +147,12 @@ interface PublicationRow {
  *  relationships §9's page record needs and no others. */
 const PAGE_COLUMNS =
   "id, site_id, live_url, published_at, mode, " +
-  "drafts!inner(title, body_md, meta, opportunity_id, " +
+  // The publisher's own three, and nothing else off `sites`: the domain is
+  // the name S19 draws, the category is its eyebrow, and the zone is what
+  // the byline's date is written in. `user_id` and every
+  // credential-adjacent column stay absent by construction.
+  "sites!inner(domain, category, timezone), " +
+  "drafts!inner(title, body_md, meta, grounded_fact, opportunity_id, " +
   "opportunities!inner(id, target_query, scans(created_at)))";
 
 /**
@@ -137,6 +192,13 @@ function toPage(row: PublicationRow): HostedPage | null {
   if (slug === null) return null;
 
   const measured = opportunity.scans?.created_at ?? null;
+  const domain = row.sites?.domain ?? null;
+  // A publication whose site has no domain has no publisher to name and no
+  // address it could have been served at. `null`, like every other row this
+  // function cannot compose a whole page from — never a page with a blank
+  // where the customer's own name goes.
+  if (domain === null || domain.trim() === "") return null;
+
   return {
     publicationId: row.id,
     siteId: row.site_id,
@@ -144,6 +206,12 @@ function toPage(row: PublicationRow): HostedPage | null {
     title: draft.title ?? "",
     bodyMd: draft.body_md ?? "",
     faq: readFaq(draft.meta),
+    grounded: readGrounded(draft.grounded_fact),
+    publisher: {
+      name: domain,
+      category: emptyToNull(row.sites?.category ?? null),
+      timeZone: emptyToNull(row.sites?.timezone ?? null),
+    },
     publishedAt: new Date(row.published_at),
     liveUrl: row.live_url,
     record: {
@@ -173,6 +241,39 @@ export function readFaq(meta: Record<string, unknown> | null): readonly FaqEntry
     entries.push({ question, answer });
   }
   return Object.freeze(entries);
+}
+
+/** A stated value, or `null` — an empty string is not a category and not a
+ *  zone, and a surface that drew one would draw an empty eyebrow. */
+function emptyToNull(value: string | null): string | null {
+  return value === null || value.trim() === "" ? null : value;
+}
+
+/**
+ * `drafts.grounded_fact`, read the way `readFaq` reads its own blob: it is
+ * jsonb and nothing in the database constrains its shape.
+ *
+ * A record missing its passage is `null` rather than a grounding with
+ * nothing to mark — the passage is the whole of what the page claims to be
+ * grounded in (§8 hard rule 1, which the column's own trigger freezes), so
+ * a record without one grounds nothing. The address and the date are each
+ * allowed to be absent on their own: a source read but not recorded still
+ * marks the passage, and the line simply states less.
+ */
+export function readGrounded(value: Record<string, unknown> | null): HostedGrounding | null {
+  if (typeof value !== "object" || value === null) return null;
+  const { passage, url, readAt } = value as {
+    passage?: unknown;
+    url?: unknown;
+    readAt?: unknown;
+  };
+  if (typeof passage !== "string" || passage.trim() === "") return null;
+  const read = typeof readAt === "string" ? new Date(readAt) : null;
+  return {
+    passage,
+    url: typeof url === "string" ? url : "",
+    readAt: read === null || Number.isNaN(read.getTime()) ? null : read,
+  };
 }
 
 /**

@@ -50,6 +50,12 @@ function livePage(faq: { question: string; answer: string }[]): unknown {
     title: "The best onboarding tools",
     bodyMd: "One paragraph.\n\n## A heading\n\nAnother paragraph.",
     faq,
+    grounded: {
+      passage: "One paragraph.",
+      url: "https://example.org/source",
+      readAt: new Date("2026-08-28T00:00:00.000Z"),
+    },
+    publisher: { name: "example.com", category: "onboarding software", timeZone: "UTC" },
     publishedAt: new Date("2026-09-01T09:00:00.000Z"),
     liveUrl: "https://content.example.com/a-page",
     record: {
@@ -154,24 +160,40 @@ describe("the render itself — the whole page at first byte, and no sentence of
   });
 
   it("no ReachKit name, link or navigation stands on a customer's own page", async () => {
+    // **The one mention is the set's own** (UI-SPEC S19, issue #375): the
+    // canonical note states where this page is canonical and that our
+    // preview host is noindex — the guardrail §9 and §14 fix, written
+    // where a reader can check it. It is not a byline and not a link, and
+    // it is the only place the word occurs.
     const html = await render();
-    expect(html.toLowerCase()).not.toContain("reachkit");
+    const mentions = html.toLowerCase().split("reachkit.app").length - 1;
+    expect(mentions).toBe(1);
+    expect(html).toContain("noindex on *.reachkit.app");
+    expect(html.toLowerCase().replaceAll("reachkit.app", "")).not.toContain("reachkit");
     expect(html).not.toContain("<nav");
+    expect(html).not.toContain('href="https://reachkit');
   });
 
   it("it declares its own band arms, as every screen root does (ADR-093)", async () => {
+    // `declared`, since #375: the surface's own single-column arm caps
+    // everything at `--w-read`, and this screen has three widths of its
+    // own — the customer's bar and footer at `--w-wide` and the article at
+    // `--w-read`. A screen that declares its narrowest layout has declared
+    // the whole of it, so `medium` and `wide` say `same-as-below`.
     const html = await render();
     expect(html).toContain("data-surface");
-    expect(html).toContain('data-arm-compact="columns:1"');
+    expect(html).toContain('data-arm-compact="declared:');
+    expect(html).toContain('data-arm-medium="same-as-below"');
   });
 
-  it("the publish date is a numeral in the mono face, with no line of ours around it", async () => {
+  it("the publish date is the set's byline, in a machine-readable time element", async () => {
+    // S19 draws "published 4 Sep 2026 · by [customer brand]". The `<time>`
+    // still carries the ISO day for a machine; what a reader sees is the
+    // set's own line, and the mono face comes from `.rk-hosted-line`,
+    // which is where §2.3's rule is applied on this surface.
     const html = await render();
-    // `.num` is §2.3's one mechanism for "every numeral, date, URL … is
-    // JetBrains Mono with tabular-nums". The attribute's spelling is the
-    // renderer's; the date, the class and the absence of a sentence around
-    // them are this file's.
-    expect(html).toMatch(/<time class="num" date[Tt]ime="2026-09-01">2026-09-01<\/time>/);
+    expect(html).toMatch(/date[Tt]ime="2026-09-01"/);
+    expect(html).toContain("published 1 Sep 2026 · by example.com");
   });
 
   it("an address the site never published at is a 404, never another page", async () => {
