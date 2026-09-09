@@ -1,0 +1,91 @@
+# .github/workflows/baselines.yml — the visual baselines, regenerated in CI
+#
+# Issue #404. Regenerating the layout baselines was the second reason an
+# implementer ran Chromium and a `next build` on a four-core box shared by
+# four agents: `UPDATE_BASELINES=1 npm run test:layout`, seven to ten minutes
+# of the whole machine, while GitHub ran the identical suite in parallel and
+# threw its pictures away.
+#
+# Label a PR `regen-baselines` and this rewrites the PNGs that actually moved
+# on that branch, commits them to it and takes the label off. The commit
+# re-triggers `ci.yml`, whose layout job is then the confirming run — the
+# "run it once more and check nothing changed" step of the old by-hand
+# procedure, done by the gate rather than by the person.
+#
+# `UPDATE_BASELINES=1` on the box is now the exception, not the rule
+# (`docs/PROCESS.md` §2.4).
+name: Baselines
+
+on:
+  pull_request:
+    types: [labeled]
+
+concurrency:
+  group: baselines-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  regen:
+    name: regenerate the layout baselines
+    if: >-
+      github.event.label.name == 'regen-baselines' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: reachkit
+          POSTGRES_PASSWORD: reachkit
+          POSTGRES_DB: reachkit_scratch
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U reachkit -d reachkit_scratch"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      # The branch itself, not the merge ref: this job pushes to it.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+      - uses: ./.github/actions/layout-suite
+
+      # `visual.test.ts` rewrites only the baselines whose **pixels** moved
+      # and leaves the rest byte-for-byte alone (issue #304), so `git status`
+      # below is the list of screens that actually changed.
+      - name: regenerate
+        env:
+          UPDATE_BASELINES: "1"
+        run: npm run test:layout
+
+      - name: commit what moved, back onto the PR's branch
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A tests/ui/layout/__screenshots__
+          if git diff --cached --quiet; then
+            echo "no baseline moved — nothing to commit"
+            exit 0
+          fi
+          git diff --cached --name-only
+          git commit -q -m "test(layout): baselines (ci)"
+          git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
+
+      # Always: a run that found nothing to regenerate, and a run that
+      # failed, both have to give the label back or the next request is a
+      # label that is already on.
+      - name: take the label off
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api -X DELETE \
+            "repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/labels/regen-baselines" \
+            || true

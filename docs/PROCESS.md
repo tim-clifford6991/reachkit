@@ -23,12 +23,23 @@ nothing beyond its issue; the master files what deserves an issue and lands ever
 
 ## 2. Building
 
-1. `git fetch`, worktree from `origin/main`, `flock /tmp/npm-ci.lock npm ci`.
+1. `git fetch`, worktree from `origin/main`, `bash /root/ops/reachkit/bin/heavy.sh npm ci` (§5: every heavy command goes through `heavy.sh`, never bare).
 2. Read, in order: `CLAUDE.md` → the issue → the BUILD § it cites → `DECISIONS.md` (whole) → the ARCHITECTURE rows for the paths touched → for a screen, UI-SPEC.md §1 and the screen section → the REQ criteria.
 3. Build to the Done-when. Never invent copy: the approved set's unbracketed strings are approved (ruling 11a); anything else is a key with `TODO(copy)`, listed in the PR.
-4. Verify **locally only what you touched; CI runs everything else.** `npm run typecheck && npm run lint`, then `npx vitest run --project node --project ui --maxWorkers=1 <the test files for the source you changed>`; the `db` project only when `supabase/` or `src/lib/db/` changed (substrate up for that run, down straight after — §5); the layout tests for the routes you changed (`npx vitest run --project layout -t "<route>"`, under the lock), regenerating only their baselines. **Never the full unit suite, the full layout suite or a full baseline regeneration on the box**: on four shared cores a full run takes 7–10 minutes per agent and three at once put the load at 7+, while CI runs the identical suites in parallel on GitHub's machines. Push when the targeted tests pass; fix what CI names.
+4. Verify **locally only what you touched; CI runs everything else.** `bash /root/ops/reachkit/bin/heavy.sh npm run typecheck && npm run lint`, then `npx vitest run --project node --project ui --maxWorkers=1 <the test files for the source you changed>`; the `db` project only when `supabase/` or `src/lib/db/` changed (substrate up for that run, down straight after — §5). Push when the targeted tests pass; fix what CI names.
+
+   **Three things are never run on the box at all (issue #404): `next build`, the layout suite, and a baseline regeneration.** They are the same suites CI runs in parallel on GitHub's machines, and running them here bought nothing: four implementers share four cores, a full pass costs 7–10 minutes of the whole machine, and three at once put the load at 7+ while the identical run was already green on GitHub. What each one was for now has a CI path:
+
+   | you want | you used to | you now |
+   |---|---|---|
+   | the render the master reviews | `next build`, `next start`, Chromium, push `assets/<n>-fidelity` | read the **Renders** comment CI leaves on the PR (`.github/workflows/ci.yml`, `scripts/renders/`) — the approved screen beside your branch, per moved route, one comment per run |
+   | a moved baseline, regenerated | `UPDATE_BASELINES=1 npm run test:layout` | label the PR **`regen-baselines`**; CI rewrites the PNGs that moved, pushes them as `test(layout): baselines (ci)` and takes the label off (`.github/workflows/baselines.yml`). The push re-runs `ci.yml`, which is the confirming run |
+   | to know a screen you did not move still looks right | render it locally | add a `Renders: /app/settings, /pricing` line to the PR body; CI composes those too |
+   | a layout failure explained | re-run the suite locally | the run's `renders-<id>` artifact carries every 1280-light capture and every side-by-side |
+
+   `UPDATE_BASELINES=1` locally is the exception, not the rule: it is for a change CI cannot reach, and it goes through `heavy.sh` like everything else. A layout-suite run on the box is a rule breach, and the guard reports it (§7).
 5. Tick the boxes you satisfied (never an owner-review box). Small conventional commits ending `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`.
-6. PR body: `Closes #n` · What changed · How I verified it · Owner owes (keys, owner-file needs, questions). For a UI PR: the **token table** (every value → token) and the **side-by-side render** (the approved set's screen beside the local build at 1280, every state touched).
+6. PR body: `Closes #n` · What changed · How I verified it · Owner owes (keys, owner-file needs, questions) · Adjacent (findings outside the issue — never a new issue; the master files those). For a UI PR: the **token table** (every value → token), and a **`Renders:`** line naming any screen the master should see that this branch did not move. The side-by-side render itself is **not** pasted into the body and is not built on the box — CI composes it from its own capture and comments it on the PR (§2.4), so what the master reviews is the run's render, not a picture an implementer chose.
 7. `gh pr checks --watch`; fix what you caused; a Vercel failure unrelated to the diff is named with its cause.
 8. **Review feedback arrives as PR comments, never in chat.** The master's findings are written on the PR; a fresh implementer acts on them from the PR alone. When the PR is open and green, report its URL in one line and stop — the next issue is a new session.
 
@@ -46,13 +57,13 @@ Required checks on `main`: `typecheck · lint · unit`, `closes one issue · don
 
 ## 5. The box (one 7.7 GB VPS, four implementers)
 
-- `npm ci` only under `flock /tmp/npm-ci.lock`. Never copy `node_modules` or builds into `/tmp` (a 3.8 GB RAM-backed tmpfs shared by every worktree); use `/root/tmp/` on disk.
-- One heavy job at a time: `next build` and the layout suite under `flock /tmp/layout.lock`, after `free -m` shows ≥ 2600 MB available; `--maxWorkers=1` under 2 GB. Run them in the **foreground**.
+- **Every heavy command runs as `bash /root/ops/reachkit/bin/heavy.sh <command>` and nothing else** — one at a time (`flock /tmp/heavy.lock`), `nice 15`, pinned to cores 0–1, so the sessions and the services keep cores 2–3. Heavy is: `npm ci`, `tsc` / `npm run typecheck`, and the three §2.4 forbids on the box. Never two at once, not in your own worktree, not in the background. Lint and targeted `node`/`ui` vitest runs are not heavy and stay as they are. Never copy `node_modules` or builds into `/tmp` (a 3.8 GB RAM-backed tmpfs shared by every worktree); use `/root/tmp/` on disk.
+- `next build`, the layout suite and baseline regeneration **do not run here** (§2.4). CI renders and CI regenerates; the box compiles and runs unit tests. Run what is left in the **foreground**, `--maxWorkers=1` under 2 GB.
 - Each worktree runs its own database substrate: `eval "$(scripts/db-substrate/up.sh --run)"` in its **own** command, before and outside the layout lock (daemons inherit a held lock); `POSTGREST_BIN=/root/projects/reachkitv3-wt/substrate/postgrest/postgrest`. **Up only while the RLS suite runs**: `down.sh` the moment it finishes, before you stop for the day or hit a session limit, and before `git worktree remove`; `reap.sh` for orphans. An idle trio is ~140 MB and swaps; three idle trios were once 400 MB of the box. `/tmp/reachkit-pgmeta` is a symlink to disk (`/root/tmp/reachkit-pgmeta`) — never recreate it under `/tmp`.
 - A `next start`/`next-server` you launched for a render is yours to stop the moment the PNG exists.
 - `/tmp` is RAM and swaps when cold: the guard (§7) prunes the compile cache, build temp dirs older than a day and scratchpads of ended sessions; nothing of yours may rely on surviving there.
-- Visual baselines: regenerate only pixels that changed (`UPDATE_BASELINES=1 npm run test:layout`), run once more to confirm zero changed bytes, list them in the PR.
-- Lock check: `flock -n /tmp/layout.lock true` (exit 0 = free). Phantom holder: `ino=$(stat -c %i /tmp/layout.lock); grep -i flock /proc/locks | grep $ino`.
+- Visual baselines: the `regen-baselines` label (§2.4). CI rewrites only the pixels that moved, names them in the commit, and the next `ci.yml` run is the confirmation.
+- Lock check: `flock -n /tmp/heavy.lock true` (exit 0 = free). Phantom holder: `ino=$(stat -c %i /tmp/heavy.lock); grep -i flock /proc/locks | grep $ino`.
 - Merged worktrees are removed after landing; the reference design server and other tooling live under `/root/tmp/`.
 
 ## 6. Corpus maintenance (master)
@@ -65,7 +76,7 @@ Monitoring and landing are **VPS services**, not tasks of the master's session, 
 
 | Unit | Does |
 |---|---|
-| `rk-guard` | kills servers whose worktree is gone; prunes `/tmp` (compile cache at 40 %, build temp dirs > 24 h, scratchpads of ended sessions idle 3 d); reports low memory, swap, load, idle substrate trios, concurrent layout runs, heavy work in the main checkout |
+| `rk-guard` | kills servers whose worktree is gone; prunes `/tmp` (compile cache at 40 %, build temp dirs > 24 h, scratchpads of ended sessions idle 3 d); reports low memory, swap, load, idle substrate trios, heavy work in the main checkout, and — since #404 — any `next build`, layout-suite or baseline-regeneration process on the box, and any heavy command not running under `heavy.sh`, each as a **rule breach** naming the worktree |
 | `rk-refresher` | when an implementer's pane shows "session limit · resets H:MM", re-prompts it once the time has passed (skip list `state/refresher-skip.txt`) |
 | `rk-lander` | merges every open, non-draft PR labelled `master-approved` once all checks pass (§3) |
 | `rk-digest` | writes `state/digest.md` every 2 min — open PRs with merge state, checks and labels; implementers and their state; box vitals; the lander's last lines. **A (re)started master reads this file first** instead of re-deriving state |
