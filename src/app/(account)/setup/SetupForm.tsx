@@ -276,8 +276,14 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
       ? { domain: state.address.domain, category: state.market.category }
       : null;
 
+  // The cards are separated by the frame, not by their own shadow:
+  // `--shadow-card` is a hairline, and two `--surface` cards flush against
+  // each other read as one box — which is how this screen first rendered
+  // once the `<section>` wrappers went. `gap-4` is `--s-4`, the rhythm the
+  // set draws, as a Tailwind utility because §2.2 allows this screen no
+  // stylesheet of its own.
   return (
-    <form onSubmit={handleSubmit} data-testid="setup-form">
+    <form onSubmit={handleSubmit} data-testid="setup-form" className="grid gap-4">
       {settled !== null ? (
         <IdiomCard
           head={
