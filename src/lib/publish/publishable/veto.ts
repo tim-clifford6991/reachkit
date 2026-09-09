@@ -31,7 +31,8 @@
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { VETO_TOKEN_BYTES } from "@/lib/config/constants";
 import { publishDb } from "../db";
-import { transition } from "../machine";
+import { machineDraftFor, transition } from "../machine";
+import { becomesPublishable } from "./predicate";
 import type { Actor, VetoLink } from "../types";
 
 export type VetoRefusal = "unknown" | "expired" | "used" | "not_in_review";
@@ -225,4 +226,145 @@ async function readDeadline(draftId: string): Promise<Date | null> {
     .single();
   if (error !== null || data === null || data.veto_deadline === null) return null;
   return new Date(data.veto_deadline);
+}
+
+/**
+ * What the stop page shows before it stops anything (UI-SPEC S6, issue #371).
+ *
+ * The screen the set draws **asks** — a card naming the page, the search it
+ * targets, the site it goes to and the moment it publishes, over one solid
+ * control. So the page needs to read what the token is bound to without
+ * spending it, and this is that read: no write, no transition, no token
+ * marked used. `redeemVeto` is still the only thing that stops a page.
+ *
+ * **This is what makes the stop a POST.** Redeeming on arrival — the shape
+ * this surface had until #371 — mutates on a GET, which a mail scanner, a
+ * link preview or a prefetching client performs without a person: the
+ * customer's page was stopped by a robot reading their inbox. Reading here
+ * and stopping on submit puts the write behind an act, which is the whole
+ * reason the set draws two arms.
+ *
+ * **It discloses what the set discloses, and no more.** The title, the
+ * target search and its monthly volume, the site and the moment — the same
+ * facts the `draft-ready` mail already put in that reader's inbox, since
+ * the token came from it and that mail's why-block states the volume on a
+ * row of its own. Nothing about the account, and nothing about any other
+ * page.
+ *
+ * The refusals are `redeemVeto`'s own, answered from the same two
+ * conditions in the same order, so a reader who is told "this link has been
+ * used" here would be told the same thing by pressing the control.
+ */
+export interface VetoPreview {
+  readonly draftId: string;
+  /** The page's own title, or `null` where the draft carries none yet. */
+  readonly title: string | null;
+  /** The search the page targets — `null` for a `fix` page, which targets
+   *  none (§7's third family). */
+  readonly query: string | null;
+  /** That search's monthly volume, as §7 measured it when the page was
+   *  chosen — the second half of the set's search row (`[search] ·
+   *  2,400/mo`). `null` is a volume nobody measured, never a zero: a
+   *  measured zero is a result and prints as one. Read, never re-measured. */
+  readonly volume: number | null;
+  /** The site the page goes live on. */
+  readonly domain: string | null;
+  /** When it publishes unless the reader acts, **and the zone that moment
+   *  is stated in** — one field, because they are one fact: a time with no
+   *  zone beside it is a time the reader has to guess about, and REQ-073 c1
+   *  forbids picking a zone on the customer's behalf. `null` where no
+   *  moment can be computed — a site with no stated zone, or a page whose
+   *  window has already run out. Never substituted. */
+  readonly publishes: { readonly at: Date; readonly timeZone: string } | null;
+}
+
+/**
+ * What a preview answers.
+ *
+ * **The `used` arm carries the page's title, and nothing else does.** The
+ * set's done arm draws the h1 under `Stopped` — the reader has just stopped
+ * a page and the card says which one — and a stopped page is exactly a
+ * token that now reads as spent. It is no new disclosure: the title reached
+ * this reader in the `draft-ready` mail, and was on the ask arm one click
+ * ago, and only the holder of 32 CSPRNG bytes can ask this question at all
+ * (`whyUnusable` argues the same point for `used` itself). The other three
+ * refusals carry nothing: `unknown` and `expired` name no draft, which is
+ * the promise this module opens with.
+ */
+export type PreviewResult =
+  | { ok: true; preview: VetoPreview }
+  | { ok: false; reason: "used"; title: string | null }
+  | { ok: false; reason: Exclude<VetoRefusal, "used"> };
+
+interface PreviewRow {
+  id: string;
+  state: string;
+  title: string | null;
+  veto_token_used_at: string | null;
+  veto_token_expires_at: string | null;
+  opportunities?: { target_query?: string | null; volume?: number | null } | null;
+  sites?: { domain?: string | null; timezone?: string | null } | null;
+}
+
+export async function previewVetoLink(
+  token: string,
+  at: Date = new Date()
+): Promise<PreviewResult> {
+  if (token.length === 0) return { ok: false, reason: "unknown" };
+
+  const { data, error } = await publishDb()
+    .from<PreviewRow>("drafts")
+    .select(
+      "id, state, title, veto_token_used_at, veto_token_expires_at, opportunities(target_query, volume), sites(domain, timezone)"
+    )
+    .eq("veto_token_hash", hashToken(token))
+    .limit(1);
+  if (error !== null) return { ok: false, reason: "unknown" };
+
+  const row = data?.[0];
+  if (row === undefined) return { ok: false, reason: "unknown" };
+  if (row.veto_token_used_at !== null) return { ok: false, reason: "used", title: titleOf(row) };
+  if (
+    row.veto_token_expires_at !== null &&
+    new Date(row.veto_token_expires_at).getTime() <= at.getTime()
+  ) {
+    return { ok: false, reason: "expired" };
+  }
+  if (row.state !== "in_review") return { ok: false, reason: "not_in_review" };
+
+  // The moment, from the one predicate that owns it (REQ-057 c2's rule),
+  // never recomputed here. A view that cannot be read leaves the moment
+  // null and the card states the rest — a missing date is not a reason to
+  // withhold the control that stops the page.
+  //
+  // The zone is read in the same statement as the domain and travels with
+  // the instant, because a site that states none leaves this reader no
+  // moment that can be written: `UTC` would be a zone the product picked
+  // for them (REQ-073 c1), and the mail this token came from writes the
+  // same moment in `sites.timezone` or does not send.
+  const view = await machineDraftFor(row.id);
+  const answer = view === null ? null : becomesPublishable(view);
+  const zone = row.sites?.timezone ?? null;
+
+  return {
+    ok: true,
+    preview: {
+      draftId: row.id,
+      title: titleOf(row),
+      query: row.opportunities?.target_query ?? null,
+      volume: row.opportunities?.volume ?? null,
+      domain: row.sites?.domain ?? null,
+      publishes:
+        answer !== null && answer.publishable && zone !== null
+          ? { at: answer.at, timeZone: zone }
+          : null,
+    },
+  };
+}
+
+/** The page's own title, or `null` where the draft carries none yet — an
+ *  empty string is not a title, and a card that drew one would draw an
+ *  empty heading. */
+function titleOf(row: PreviewRow): string | null {
+  return row.title === null || row.title === "" ? null : row.title;
 }
