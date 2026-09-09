@@ -11,4 +11,4 @@
 // property `tests/ui/components-2.test.tsx` asserts, and the reason an
 // unregistered widget has nowhere to be exported from (BP-018 decision 1).
 export { CalendarGrid, type CalendarGridCell } from "./CalendarGrid";
-export { DayPanel, DayPanelLayout } from "./DayPanel";
+export { DayPanel, DayPanelLayout, Panel, PanelLayout } from "./DayPanel";

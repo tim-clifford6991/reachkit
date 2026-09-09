@@ -33,6 +33,24 @@ export const ATTRIBUTE_ALLOWLIST: readonly AllowlistedAttribute[] = Object.freez
   },
   {
     kind: "exact",
+    name: "pad",
+    reason:
+      "`IdiomCard`'s padding token ('lg') — the same category as `size` and " +
+      "`variant`: it selects the card's inset, never what the card says.",
+  },
+  {
+    kind: "exact",
+    name: "testId",
+    reason:
+      "ADR-010 point 1's 'test ids' category again, reached through a prop " +
+      "rather than through the attribute: `IdiomCard` and `Panel` take the " +
+      "hook as `testId` and write it out as `data-testid`, so the string a " +
+      "screen spells is the same kind of string in both spellings and is " +
+      "never rendered to a reader. Named rather than matched by pattern, " +
+      "which is this list's own rule.",
+  },
+  {
+    kind: "exact",
     name: "data-testid",
     reason: "ADR-010 point 1's 'test ids' category — a test hook, never rendered to a reader.",
   },

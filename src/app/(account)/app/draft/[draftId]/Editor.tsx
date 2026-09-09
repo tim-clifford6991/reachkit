@@ -7,14 +7,23 @@
 // uses, so what the customer watches appear is what would publish.
 //
 // **The arrangement is one grid and two visibility rules, never two
-// component trees.** At the wide band both panes stand side by side and the
-// tab bar is not drawn; below it the tab bar chooses which pane is on
-// screen. `xl:` is that boundary — Tailwind's `xl` is 80rem, which is
-// `BAND_MIN.wide` and `--breakpoint-xl` (the same coincidence
-// `tests/ui/settings-columns.test.ts` pins for §4.7's two columns).
-// Switching tabs changes which pane is visible and nothing else: the
-// buffer, the autosave, the debounce and the badge drop are identical in
-// every band, and a tab switch is not a save boundary.
+// component trees.** At and above the boundary both panes stand side by
+// side and the tab bar is not drawn; below it the tab bar chooses which
+// pane is on screen. Switching tabs changes which pane is visible and
+// nothing else: the buffer, the autosave, the debounce and the badge drop
+// are identical in every band, and a tab switch is not a save boundary.
+//
+// **The boundary is 1024, not 1280** (issue #355). §4.6 says "two columns
+// on desktop, tabbed on mobile" and this build read that as `xl:` —
+// `BAND_MIN.wide`. UI-SPEC S17 is specific where §4.6 is not: "two columns
+// ≥1024, tabbed below", and §1 of that document rules that where it and
+// BUILD §4 differ, it wins until the §4 amendment lands. So the switch is
+// `lg:` — Tailwind's `lg` is 64rem, which is `BAND_MIN.medium` and
+// `--breakpoint-lg`. It is also where the sidebar returns, which is the
+// objection the old note recorded; the answer the set gives is that a
+// Markdown pane and its preview are each narrower than a card and read
+// perfectly well at half of a 1024 band, and that a customer editing at
+// 1024 should not have to tab between what they type and what it becomes.
 //
 // There is **no save control**, at any band. §4.6 says autosaved, and a
 // save button beside an autosave is an invitation to believe the autosave
@@ -60,7 +69,7 @@ export function Editor(p: {
 
   return (
     <div className="flex flex-col gap-3" data-testid="draft-editor">
-      <div className="xl:hidden" data-testid="draft-editor-tabs">
+      <div className="lg:hidden" data-testid="draft-editor-tabs">
         <Tabs
           tabs={[
             { id: "markdown", label: copy("draft.editor.tab.markdown") },
@@ -71,13 +80,16 @@ export function Editor(p: {
         />
       </div>
 
-      <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-2">
+      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
         <div
-          className={`min-w-0 ${p.pane === "markdown" ? "block" : "hidden xl:block"}`}
+          className={`min-w-0 ${p.pane === "markdown" ? "block" : "hidden lg:block"}`}
           data-testid="draft-editor-markdown"
         >
+          <p className="eyebrow rk-daypanel-eyebrow mb-2 hidden lg:block">
+            {copy("draft.editor.tab.markdown")}
+          </p>
           <textarea
-            className="num border-base-300 bg-base-100 rounded-box h-96 w-full border p-3"
+            className="num t-sm border-base-300 bg-base-100 rounded-box h-96 w-full border p-3"
             value={p.bodyMd}
             onChange={(e) => p.onChange(e.target.value)}
             onBlur={p.onFlush}
@@ -86,14 +98,19 @@ export function Editor(p: {
           />
         </div>
         <div
-          className={`min-w-0 ${p.pane === "preview" ? "block" : "hidden xl:block"}`}
+          className={`min-w-0 ${p.pane === "preview" ? "block" : "hidden lg:block"}`}
           data-testid="draft-editor-preview"
         >
-          <RenderedBody
-            bodyMd={previewBody}
-            markFact={p.markFact}
-            data-testid="draft-preview-body"
-          />
+          <p className="eyebrow rk-daypanel-eyebrow mb-2 hidden lg:block">
+            {copy("draft.editor.tab.preview")}
+          </p>
+          <div className="bg-base-200 rounded-box p-4">
+            <RenderedBody
+              bodyMd={previewBody}
+              markFact={p.markFact}
+              data-testid="draft-preview-body"
+            />
+          </div>
         </div>
       </div>
     </div>

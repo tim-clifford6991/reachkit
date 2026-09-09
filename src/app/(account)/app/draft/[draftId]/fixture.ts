@@ -104,6 +104,10 @@ const EDITED_BODY = BODY.replace(
 );
 
 const READ_AT = new Date(Date.UTC(2026, 8, 14, 6, 0, 0));
+/** The `drafts` row's own `created_at` on this fixture: the evening §8 wrote
+ *  the page, the day before its review date. S16's provenance line states
+ *  it, and nothing here moves with the clock. */
+const WRITTEN_AT = new Date(Date.UTC(2026, 8, 14, 17, 4, 0));
 const LAST_SAVED_AT = new Date(Date.UTC(2026, 8, 15, 11, 25, 0));
 /** §9's veto window on the calendar fixture's in-review page: 24 hours
  *  after it entered review, the same instant that fixture states. */
@@ -167,6 +171,7 @@ const DELIVERED: PageRecord = {
 const UNEDITED: DraftFacts = {
   draftId: FIXTURE_DRAFT_ID,
   title: "How to choose a CRM for a small team",
+  writtenAt: WRITTEN_AT,
   bodyMd: BODY,
   bodyMdGenerated: BODY,
   state: "in_review",
@@ -181,6 +186,11 @@ const UNEDITED: DraftFacts = {
   autoApprovesAt: AUTO_APPROVES_AT,
   lastSavedAt: null,
   record: NOT_DELIVERED,
+  // §8's battery as it ran on this page: the two rules the rail cannot
+  // compute for itself, recorded as passes. They are recorded rather than
+  // deduced for the reason `checks.ts` states — and this is the fixture
+  // account's own run, not a stand-in for a draft that has none.
+  recordedChecks: ["near_duplicate", "no_invented_people"],
   timeZone: FIXTURE_TIME_ZONE,
 };
 

@@ -12,7 +12,10 @@
 // differ (the archived BP-044 decision 3).
 //
 // They are `Btn`. No copy-out component is registered and none should be —
-// §2.2's set has `btn` and that is what this is.
+// §2.2's set has `btn` and that is what this is. The rank is the idiom's
+// quiet tertiary, which is what S16 draws them as: the card head above them
+// already names what the pair is for, and neither of them is the action the
+// screen is asking for.
 //
 // The clipboard is the browser's and may not be there (an insecure origin,
 // a browser that withholds it). Nothing is claimed either way: this
@@ -37,16 +40,18 @@ export function CopyOut(p: { bodyMd: string }): React.JSX.Element {
       <span data-testid="draft-copy-markdown">
         <Btn
           label={copy("draft.copy.markdown")}
-          variant="ghost"
+          variant="tertiary"
           size="sm"
+          pill
           onClick={() => writeClipboard(p.bodyMd)}
         />
       </span>
       <span data-testid="draft-copy-html">
         <Btn
           label={copy("draft.copy.html")}
-          variant="ghost"
+          variant="tertiary"
           size="sm"
+          pill
           onClick={() => writeClipboard(renderMarkdownHtml(p.bodyMd))}
         />
       </span>

@@ -270,7 +270,9 @@ describe("REQ-045 c4 — told what happens if nothing is done, and able to appro
 
 describe("BUILD §4.6 — the back link returns to the calendar", () => {
   it("it is a link to /app/calendar and carries the registry's word", () => {
-    const back = markup().querySelector('[data-testid="draft-back"]');
+    // The hook is on the `<nav>` and the control inside it is `Btn`'s link
+    // arm — S16 draws the back link as a quiet pill, not as a bare anchor.
+    const back = markup().querySelector('[data-testid="draft-back"] a');
     expect(back?.getAttribute("href")).toBe("/app/calendar");
     expect(back?.textContent).toBe(copy("draft.back"));
   });
@@ -287,6 +289,91 @@ describe("REQ-045 c12 — the Markdown and the HTML are always available to copy
     const root = markup({ ...VIEW, state: "published" });
     expect(root.querySelector('[data-testid="draft-copy-out"]')).not.toBeNull();
     expect(root.querySelectorAll('[data-testid="draft-copy-out"] button').length).toBe(2);
+  });
+});
+
+describe("UI-SPEC S16 — the card the approved set draws", () => {
+  it("the head carries the stage, the claim outcome and REQ-093 c2's label", () => {
+    const root = markup();
+    expect(root.querySelector('[data-testid="draft-stage-your_review"]')).not.toBeNull();
+    expect(root.querySelector('[data-testid="draft-claim-passed"]')).not.toBeNull();
+    expect(textOf(root, "draft-generated-label")).toBe(LABEL);
+  });
+
+  it("the provenance line states when the page was written and roughly how long it is", () => {
+    const written = textOf(markup(), "draft-written");
+    // The two facts, not the sentence: the date is formatted in the site's
+    // zone and the count is grouped by the shell's one locale, so what is
+    // asserted here is that both reached the line.
+    expect(written).toContain("2026");
+    expect(written).toContain(String(VIEW.bodyMd.trim().split(/\s+/).length));
+  });
+
+  it("a view with no written date states the length alone, never a stand-in date", () => {
+    const written = textOf(markup({ ...VIEW, writtenAt: null }), "draft-written");
+    expect(written).not.toContain("2026");
+    expect(written).toContain("words");
+  });
+
+  it("the source line sits inside the document, under the paragraph that carries the mark", () => {
+    const root = markup();
+    const body = root.querySelector('[data-testid="draft-body"]');
+    expect(body?.querySelector('[data-testid="draft-grounded"]')).not.toBeNull();
+    expect(textOf(root, "draft-grounded-url")).toBe(VIEW.grounded.url);
+    // And the dropped-fact block is not drawn beside it: the fact is in the
+    // body, marked.
+    expect(root.querySelector('[data-testid="draft-grounded-dropped"]')).toBeNull();
+  });
+
+  it("the copy-out card names itself and says whose the words are", () => {
+    const root = markup();
+    const card = root.querySelector('[data-testid="draft-copy-card"]');
+    expect(card?.textContent).toContain(copy("draft.copy.title"));
+    expect(card?.textContent).toContain(copy("draft.copy.note"));
+  });
+});
+
+describe("UI-SPEC S16 — the Decide rail", () => {
+  it("it is the registered panel, labelled, with the three controls and the checks", () => {
+    const root = markup();
+    const rail = root.querySelector('[data-testid="draft-decide"]');
+    expect(rail).not.toBeNull();
+    expect(rail?.textContent).toContain(copy("draft.decide.title"));
+    expect(rail?.textContent).toContain(copy("draft.checks.title"));
+    expect(rail?.querySelectorAll('[data-testid^="draft-action-"]').length).toBe(3);
+  });
+
+  it("Approve takes the whole column and the other two share the row under it", () => {
+    const root = markup();
+    expect(
+      root.querySelector('[data-testid="draft-action-draft.action.approve"]')?.className
+    ).toContain("rk-daypanel-block");
+    for (const key of ["draft.action.edit", "draft.action.veto"]) {
+      expect(root.querySelector(`[data-testid="draft-action-${key}"]`)?.className).toContain(
+        "rk-daypanel-half"
+      );
+    }
+  });
+
+  it("the four checks are drawn, each as its own sentence", () => {
+    const rows = markup().querySelectorAll('[data-testid^="draft-check-"]');
+    expect([...rows].map((row) => row.getAttribute("data-testid"))).toEqual([
+      "draft-check-grounding",
+      "draft-check-do_not_claim",
+      "draft-check-near_duplicate",
+      "draft-check-no_invented_people",
+    ]);
+  });
+
+  it("a page past review offers no control block at all, and still lists what was checked", () => {
+    const root = markup({ ...VIEW, state: "published" });
+    expect(root.querySelector('[data-testid="draft-actions"]')).toBeNull();
+    expect(root.querySelectorAll('[data-testid^="draft-check-"]').length).toBe(4);
+  });
+
+  it("a draft with no recorded battery lists only the two the view decides itself", () => {
+    const root = markup({ ...VIEW, recordedChecks: [] });
+    expect(root.querySelectorAll('[data-testid^="draft-check-"]').length).toBe(2);
   });
 });
 
@@ -366,18 +453,31 @@ describe("REQ-045 c5-c9 — the editor, its live preview, its autosave and its i
     expect(save).not.toHaveBeenCalled();
   });
 
-  it("there is no save control anywhere in the view", () => {
+  it("there is no save control anywhere in either arm", () => {
     mount();
-    click("draft-action-draft.action.edit");
-    const labels = [...container.querySelectorAll("button")].map((b) => b.textContent ?? "");
-    expect(labels).toEqual([
+    // S16: the copy-out's two, then the rail's three — the page column
+    // stands before the rail in the document, which is the order the
+    // approved set puts them in and the order they are read in. The back
+    // link is a link and not a button, so it is not in this list.
+    expect([...container.querySelectorAll("button")].map((b) => b.textContent ?? "")).toEqual([
+      copy("draft.copy.markdown"),
+      copy("draft.copy.html"),
       copy("draft.action.approve"),
       copy("draft.action.edit"),
       copy("draft.action.veto"),
+    ]);
+
+    click("draft-action-draft.action.edit");
+    // S17: back, the two panes' tabs, and the two controls that leave the
+    // editor. Nothing here saves — §4.6 says autosaved, and a save button
+    // beside an autosave is an invitation to believe the autosave is
+    // optional.
+    expect([...container.querySelectorAll("button")].map((b) => b.textContent ?? "")).toEqual([
+      copy("draft.edit.back"),
       copy("draft.editor.tab.markdown"),
       copy("draft.editor.tab.preview"),
-      copy("draft.copy.markdown"),
-      copy("draft.copy.html"),
+      copy("draft.edit.done"),
+      copy("draft.edit.discard"),
     ]);
   });
 
@@ -425,9 +525,12 @@ describe("REQ-045 c5-c9 — the editor, its live preview, its autosave and its i
     await settle(AUTOSAVE_DEBOUNCE_MS);
     expect(save).toHaveBeenCalledTimes(1);
     expect(textarea().value).toBe("the customer's own words");
-    expect(container.querySelector('[data-testid="draft-unsaved"]')?.textContent).toBe(
+    // S17 states it on the save line, in the sentence the set writes for a
+    // refusal, and the badge beside the title turns.
+    expect(container.querySelector('[data-testid="draft-save-line"]')?.textContent).toBe(
       copy("draft.unsaved")
     );
+    expect(container.querySelector('[data-testid="draft-edit-state-unsaved"]')).not.toBeNull();
     type("the customer's own words, more of them");
     await settle(AUTOSAVE_DEBOUNCE_MS);
     expect(save).toHaveBeenCalledTimes(2);
@@ -445,11 +548,17 @@ describe("REQ-045 c5-c9 — the editor, its live preview, its autosave and its i
     click("draft-action-draft.action.edit");
     type("saved text");
     await settle(AUTOSAVE_DEBOUNCE_MS);
+    // Nothing is outstanding: the line states when the store confirmed it,
+    // and the read arm behind it carries no unsaved indicator.
+    expect(container.querySelector('[data-testid="draft-edit-state-unsaved"]')).toBeNull();
+    expect(container.querySelector('[data-testid="draft-save-line"]')?.textContent).toContain(
+      "saved"
+    );
+    click("draft-edit-done");
     expect(container.querySelector('[data-testid="draft-unsaved"]')).toBeNull();
-    expect(textarea().value).toBe("saved text");
   });
 
-  it("the claim badge drops to outstanding the moment the text differs, and no earlier", () => {
+  it("the claim badge drops the moment the text differs, and no earlier", () => {
     mount();
     expect(container.querySelector('[data-testid="draft-claim-passed"]')).not.toBeNull();
     click("draft-action-draft.action.edit");
@@ -457,11 +566,35 @@ describe("REQ-045 c5-c9 — the editor, its live preview, its autosave and its i
     // check ran against.
     expect(container.querySelector('[data-testid="draft-claim-passed"]')).not.toBeNull();
     type(`${VIEW.bodyMd} and one more sentence.`);
-    expect(container.querySelector('[data-testid="draft-claim-outstanding"]')).not.toBeNull();
+    // S17's own word for the same fact: no outcome is shown, and the badge
+    // says a re-check is coming rather than that one is running.
+    expect(container.querySelector('[data-testid="draft-edit-state-edited"]')).not.toBeNull();
     expect(container.querySelector('[data-testid="draft-claim-passed"]')).toBeNull();
     // And typing it back restores it — the badge is a function of the text,
     // not a latch.
     type(VIEW.bodyMd);
+    expect(container.querySelector('[data-testid="draft-claim-passed"]')).not.toBeNull();
+  });
+
+  it("and the read arm carries the outstanding word once an edit stands unsaved", () => {
+    mount();
+    click("draft-action-draft.action.edit");
+    type(`${VIEW.bodyMd} and one more sentence.`);
+    click("draft-edit-done");
+    expect(container.querySelector('[data-testid="draft-claim-outstanding"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="draft-claim-passed"]')).toBeNull();
+    expect(container.querySelector('[data-testid="draft-unsaved"]')?.textContent).toBe(
+      copy("draft.unsaved")
+    );
+  });
+
+  it("Discard changes returns the buffer to the text the store last confirmed", () => {
+    mount();
+    click("draft-action-draft.action.edit");
+    type("words the customer decided against");
+    expect(textarea().value).toBe("words the customer decided against");
+    click("draft-edit-discard");
+    expect(textarea().value).toBe(VIEW.bodyMd);
     expect(container.querySelector('[data-testid="draft-claim-passed"]')).not.toBeNull();
   });
 
@@ -478,10 +611,59 @@ describe("REQ-045 c5-c9 — the editor, its live preview, its autosave and its i
     expect(
       container.querySelectorAll('[data-testid="draft-preview-body"] mark').length
     ).toBe(0);
-    // And the fact itself is stated rather than lost.
+    // And the fact itself is stated rather than lost — on the read arm,
+    // which is where a page's own account of itself is drawn.
+    click("draft-edit-done");
     expect(
       container.querySelector('[data-testid="draft-grounded-fact"]')?.textContent
     ).toBe(VIEW.grounded.fact);
+    expect(container.querySelectorAll('[data-testid="draft-body"] mark').length).toBe(0);
+  });
+
+  it("S17 — the back link, the footnote and the two controls the set draws", () => {
+    mount();
+    click("draft-action-draft.action.edit");
+    expect(
+      container.querySelector('[data-testid="draft-edit-back"] button')?.textContent
+    ).toBe(copy("draft.edit.back"));
+    expect(container.querySelector('[data-testid="draft-edit-footnote"]')?.textContent).toBe(
+      copy("draft.edit.footnote")
+    );
+    // And it goes back: the read arm is what "Back to the draft" returns to.
+    click("draft-edit-back");
+    expect(container.querySelector('[data-testid="draft-editor"]')).toBeNull();
+    expect(container.querySelector('[data-testid="draft-decide"]')).not.toBeNull();
+  });
+
+  it("S17 — the save line states saving while a save is on its way, and the time once one landed", async () => {
+    save.mockResolvedValue({
+      ok: true,
+      savedAt: new Date(Date.UTC(2026, 8, 15, 17, 6, 0)),
+      grounded: { present: true },
+      claim: { state: "outstanding" },
+    });
+    mount();
+    click("draft-action-draft.action.edit");
+    type("a sentence in flight");
+    expect(container.querySelector('[data-testid="draft-save-line"]')?.textContent).toBe(
+      copy("draft.edit.saving")
+    );
+    expect(container.querySelector('[data-testid="draft-edit-state-edited"]')).not.toBeNull();
+    await settle(AUTOSAVE_DEBOUNCE_MS);
+    const line = container.querySelector('[data-testid="draft-save-line"]')?.textContent ?? "";
+    expect(line).toContain("saved");
+    expect(line).not.toBe(copy("draft.edit.saving"));
+  });
+
+  it("S17 — a keystroke after a refusal clears the refusal, because a new save is coming", async () => {
+    mount();
+    click("draft-action-draft.action.edit");
+    type("refused once");
+    await settle(AUTOSAVE_DEBOUNCE_MS);
+    expect(container.querySelector('[data-testid="draft-edit-state-unsaved"]')).not.toBeNull();
+    type("refused once, and typed again");
+    expect(container.querySelector('[data-testid="draft-edit-state-unsaved"]')).toBeNull();
+    expect(container.querySelector('[data-testid="draft-edit-state-edited"]')).not.toBeNull();
   });
 
   it("switching panes is not a save boundary: it changes what is visible and nothing else", async () => {

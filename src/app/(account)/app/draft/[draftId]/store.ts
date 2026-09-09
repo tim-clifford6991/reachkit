@@ -22,10 +22,16 @@
 //   groundedFact      §8's recorded fact and its source (#43)
 //   claim             the claim check's last verdict (#43)
 //   firstEditedAt     the first save that changed the text (#17)
+//   recordedChecks    which §8 hard rules passed on this page (#43)
+//
+// `writtenAt` is not among them: it is `drafts.created_at`, a column the
+// baseline declares `not null`, so the day the page was written is read
+// from the row rather than from what generation remembered to write down.
 import { dbAdmin } from "@/lib/db";
 import type { PublishingMode } from "../../_shell/model";
 import type { State } from "../../calendar/stages";
 import { pageRecordFor } from "@/lib/publish/record";
+import { RAIL_CHECKS, type RailCheck } from "./checks";
 import type { ClaimState, DraftFacts } from "./model";
 
 interface DraftRow {
@@ -36,6 +42,7 @@ interface DraftRow {
   body_md: string | null;
   meta: Record<string, unknown> | null;
   veto_deadline: string | null;
+  created_at: string;
 }
 
 interface MinimalResult<T> {
@@ -55,7 +62,7 @@ interface MinimalClient {
 
 /** The one select list. `drafts` carries no credential and this names no
  *  column of another account's. */
-const DRAFT_COLUMNS = "id, site_id, state, title, body_md, meta, veto_deadline";
+const DRAFT_COLUMNS = "id, site_id, state, title, body_md, meta, veto_deadline, created_at";
 
 /** §9's ten states, as this screen reads them. A row carrying anything else
  *  is a row this screen cannot draw, and it takes the `null` arm rather
@@ -127,6 +134,20 @@ function claimOf(meta: Record<string, unknown> | null): ClaimState {
   return { state: "outstanding" };
 }
 
+/**
+ * The §8 rules generation recorded a pass for, filtered to the four S16
+ * names. Anything else in the array — a rule this build does not have, a
+ * value that is not a string — is dropped rather than rendered: the rail
+ * speaks only for rules it can name, and an unknown handle has no sentence.
+ * A draft whose `meta` carries nothing answers the empty list, which is the
+ * arm `checks.ts` draws no row for.
+ */
+function recordedChecksOf(meta: Record<string, unknown> | null): readonly RailCheck[] {
+  const passed = meta?.hard_rules_passed;
+  if (!Array.isArray(passed)) return [];
+  return RAIL_CHECKS.filter((rule) => passed.includes(rule));
+}
+
 export interface DraftSite {
   siteId: string;
   timeZone: string;
@@ -168,6 +189,7 @@ export async function readDraftRow(a: {
   return {
     draftId: row.id,
     title: row.title,
+    writtenAt: new Date(row.created_at),
     bodyMd,
     bodyMdGenerated: generated,
     state: row.state as State,
@@ -188,6 +210,7 @@ export async function readDraftRow(a: {
     // is the one read behind every surface that states a page's standing;
     // nothing here re-derives liveness from a column.
     record: await pageRecordFor(a.draftId),
+    recordedChecks: recordedChecksOf(row.meta),
     timeZone: a.site.timeZone,
   };
 }
