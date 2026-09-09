@@ -45,6 +45,7 @@ if (rendered.length === 0) {
     lines.push("");
   }
 }
+lines.push("");
 if (skipped.length > 0) {
   lines.push("<details><summary>Not composed</summary>");
   lines.push("");
