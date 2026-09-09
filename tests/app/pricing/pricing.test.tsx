@@ -96,9 +96,29 @@ describe('REQ-021 c4 — "Given a surface that offers ReachKit away from any rep
   it("the terms are the report offer's terms — the same component, not a second list", () => {
     // The discriminating assertion for "on the same terms": both surfaces
     // render `PricingCard`, and this page states no term of its own.
+    //
+    // Since the master's review of 2026-09-09 the card states S4's own
+    // wording of the four terms on this surface — `terms="pricing"`, the
+    // component's own discriminant, not a second list. The four *facts* are
+    // the same four either way, which is what criterion 4 asks; which of the
+    // two approved sentences states each is which screen is speaking.
+    //
+    // `offer.start` is **not** in the list since #369. It is no longer one
+    // of the card's terms — the control there carries the price now, and
+    // says so through `offer.start.priced` — so the two words are spoken
+    // exactly once on this page, as the eyebrow above the heading, which is
+    // where the approved set draws them (UI-SPEC S4). The rule the row
+    // holds is unchanged: no term the card states is restated here.
     expect(PAGE_BODY).toContain("PricingCard");
     expect(readFileSync(REPORT_VIEW_PATH, "utf8")).toContain("PricingCard");
-    for (const term of ["price.amount", "price.interval", "offer.cadence", "offer.veto", "offer.start"]) {
+    for (const term of [
+      "price.amount",
+      "price.interval",
+      "offer.cadence",
+      "offer.veto",
+      "offer.start.priced",
+      "offer.cancel",
+    ]) {
       expect(PAGE_BODY, `${term} is restated on this surface instead of coming from the card`).not.toContain(term);
     }
   });
@@ -110,7 +130,16 @@ describe('REQ-021 c4 — "Given a surface that offers ReachKit away from any rep
     expect(html).toContain(copy("price.amount"));
     expect(html).toContain(copy("price.interval"));
     expect(html).toContain(copy("offer.start"));
-    expect(html).toContain(
+    // The four spec rows, in S4's own words (ruling 11a — the approved set
+    // draws them unbracketed). Each is a registry key, not a literal here:
+    // the assertion is that this surface speaks the pricing wording and not
+    // the report's, and the veto line still carries the pin from
+    // `constants.ts` through its slot.
+    expect(html).toContain(copy("offer.pricing.page"));
+    expect(html).toContain(copy("offer.pricing.measure"));
+    expect(html).toContain(copy("offer.pricing.movement"));
+    expect(html).toContain(copy("offer.pricing.veto", { hours: String(VETO.defaultHours) }));
+    expect(html).not.toContain(
       copy("offer.veto.window", {
         value: copy("offer.veto.window.value", { hours: String(VETO.defaultHours) }),
       })

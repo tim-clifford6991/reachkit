@@ -43,6 +43,50 @@ export const OFFER_COPY = Object.freeze({
   // written (ruling 11a, 2026-09-08; issue #352).
   "offer.cancel_self_service": ["Cancel in one click.", { slots: {}, fixedBy: "REQ-021 c2" }],
   "offer.start": ["Start ReachKit", { slots: {}, fixedBy: "REQ-021 c4" }],
+  /** The **control's** own label, and the one the approved set draws on it:
+   *  "Start ReachKit €49" (11a). `offer.start` stays exactly as the owner
+   *  ruled it on 2026-09-04 and is what the pricing page's eyebrow says;
+   *  this is the button, which carries the price because the set puts it
+   *  there — the amount is REQ-022 c1's €49, written into the words rather
+   *  than composed beside them, so the control cannot say one price while
+   *  the card above it says another. */
+  "offer.start.priced": ["Start ReachKit €49", { slots: {}, fixedBy: "UI-SPEC S4 · REQ-022 c1" }],
+
+  // ── The same four terms, in S4's own words (issue #369) ──────────────
+  //
+  // The owner ruled the four `offer.cadence.*`/`offer.veto.*` lines above
+  // on 2026-09-04, and the approved screen set draws **four different
+  // sentences** for the same four facts on S4 — unbracketed, and so
+  // approved copy as written (ruling 11a). Two wordings of one offer, one
+  // per surface: the report's card keeps the ruling it was written for,
+  // the pricing page states the set's.
+  //
+  // Split rather than overwritten, on the master's own instruction: a
+  // ruling is not re-opened by a later drawing, and neither sentence is
+  // the other's draft. Nothing about *what is offered* differs — the four
+  // facts are the same four, which is what keeps REQ-021 c4's "on the same
+  // terms" true across the two screens.
+  //
+  // The veto line carries the pin through its slot exactly as the ruled one
+  // does: `VETO.defaultHours` renders "24" and the sentence reads as the
+  // set draws it, so the window is written down once, in
+  // `src/lib/config/constants.ts`, and never twice.
+  "offer.pricing.page": [
+    "1 page a day, written and published for you",
+    { slots: {}, fixedBy: "UI-SPEC S4 · REQ-021 c2" },
+  ],
+  "offer.pricing.measure": [
+    "Weekly re-measure of your whole market",
+    { slots: {}, fixedBy: "UI-SPEC S4 · REQ-021 c2" },
+  ],
+  "offer.pricing.movement": [
+    "Weekly movement email",
+    { slots: {}, fixedBy: "UI-SPEC S4 · REQ-021 c2" },
+  ],
+  "offer.pricing.veto": [
+    "{hours}-hour veto window on every page",
+    { slots: { hours: "text" }, fixedBy: "UI-SPEC S4 · REQ-021 c2" },
+  ],
 
   // 2026-09-06, issue #34: the plan's own name, which §4.7's Billing card
   // states beside the price. One key, because there is one plan and no

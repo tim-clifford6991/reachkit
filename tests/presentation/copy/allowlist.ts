@@ -199,6 +199,15 @@ export const ATTRIBUTE_ALLOWLIST: readonly AllowlistedAttribute[] = Object.freez
       "tone can never stand in for a caption — every sentence either component carries " +
       "arrives through a separate prop that this sweep still governs.",
   },
+  {
+    kind: "exact",
+    name: "terms",
+    reason:
+      "`PricingCard`'s own discriminant token ('report' | 'pricing', issue #369), the " +
+      "same category as `state` and `variant`: it selects which of the two approved " +
+      "wordings of the same four terms the card renders, and every sentence either arm " +
+      "carries arrives from the registry through copy().",
+  },
 ] as const);
 
 export function isAllowlistedAttribute(attributeName: string): boolean {
