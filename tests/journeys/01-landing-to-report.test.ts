@@ -459,7 +459,7 @@ describe("/ → /scan/{domain}: a stranger scans and reads a report (JN-001, JN-
       "../../src/app/(public)/scan/[domain]/_address/view"
     );
     const html = renderToStaticMarkup(
-      AddressView({ state, canonicalUrl: `https://app.example.com/scan/${DOMAIN}` }) as never
+      AddressView({ state }) as never
     );
 
     // The report screen, not a progress pane and not a blank page: the

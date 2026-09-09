@@ -204,7 +204,6 @@ describe("the report renders end to end against the real registry", () => {
       renderToStaticMarkup(
         React.createElement(ReportView, {
           state: { report, notice: null, control: { kind: "none" } },
-          canonicalUrl: "https://reachkit.app/scan/example.com",
         })
       )
     ).not.toThrow();
@@ -214,7 +213,6 @@ describe("the report renders end to end against the real registry", () => {
     const html = renderToStaticMarkup(
       React.createElement(ReportView, {
         state: { report: FIXTURE_REPORT, notice: null, control: { kind: "none" } },
-        canonicalUrl: "https://reachkit.app/scan/example.com",
       })
     );
     // The marker is on screen, which is the whole point of it: the owner

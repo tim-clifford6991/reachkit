@@ -32,8 +32,26 @@
 
 import type React from "react";
 import { usePathname } from "next/navigation";
-import { Header } from "./_chrome/Header";
+import { Header, type HeaderAction } from "./_chrome/Header";
 import { Footer } from "./_chrome/Footer";
+import { canonicalUrl } from "./_chrome/canonical";
+
+/** The two routes whose right slot is not ruling 3a's pair: the landing,
+ *  whose CTA is its own field (REQ-099 c3), and the report address, whose
+ *  slot is REQ-001 c7's copy control. */
+const LANDING = "/";
+const REPORT_PREFIX = "/scan/";
+
+function actionFor(pathname: string): HeaderAction {
+  if (pathname === LANDING) return { kind: "landing" };
+  if (pathname.startsWith(REPORT_PREFIX)) {
+    const url = canonicalUrl(pathname);
+    // No origin bound at build time is no address to copy: the pair stands
+    // in rather than a control that would copy a broken one.
+    return url === null ? { kind: "cta" } : { kind: "copy-link", canonicalUrl: url };
+  }
+  return { kind: "cta" };
+}
 
 export default function PublicLayout({
   children,
@@ -43,7 +61,7 @@ export default function PublicLayout({
   const pathname = usePathname();
   return (
     <div className="rk-public-shell">
-      <Header onLanding={pathname === "/"} />
+      <Header action={actionFor(pathname)} />
       {children}
       <Footer />
     </div>

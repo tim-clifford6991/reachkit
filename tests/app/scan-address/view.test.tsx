@@ -54,11 +54,10 @@ const STAGES = [
 ] as const;
 
 const DOMAIN = "example.com" as CanonicalDomain;
-const CANONICAL = "https://reachkit.app/scan/example.com";
 
 function render(state: AddressState): string {
   return renderToStaticMarkup(
-    React.createElement(AddressView, { state, canonicalUrl: CANONICAL })
+    React.createElement(AddressView, { state })
   );
 }
 
