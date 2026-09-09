@@ -17,6 +17,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { applyEnvFixture } from "../../mail/env-fixture";
+import { BODY_CLASSES } from "@/app/(account)/app/draft/[draftId]/present";
 
 applyEnvFixture();
 
@@ -142,7 +143,11 @@ describe("S19 — the customer is the publisher, and the page says so", () => {
 
   it("§8's recorded passage is marked in the body, and its source stated under it", async () => {
     const html = await render();
-    expect(html).toContain(`<mark class="bg-warning/25 rounded px-1">${PASSAGE}</mark>`);
+    // The map, not a second copy of its string: S16 and S19 draw the mark
+    // from one shared class, and a hosted page that dressed it its own way
+    // is what issue #414 found. Spelling the string here would let the two
+    // drift again and still pass.
+    expect(html).toContain(`<mark class="${BODY_CLASSES.mark}">${PASSAGE}</mark>`);
     // 00:00 UTC on the 28th is 20:00 on the 27th in New York: the source's
     // date is written in the customer's zone too, so the two dates on the
     // page are read the same way.
