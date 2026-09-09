@@ -43,15 +43,43 @@ import { Num } from "../_address/measured";
  *  this card carries. */
 const PRICE_SIZE: React.CSSProperties = { fontSize: "var(--t-num-big)", lineHeight: 1.05 };
 
-export function PricingCard(p: { startAction?: () => Promise<void> } = {}): React.JSX.Element {
-  const specs = [
+/** Which of the two approved wordings of the same four terms this card
+ *  states.
+ *
+ *  `report` is the owner's ruling of 2026-09-04 — the four slotted
+ *  `offer.cadence.*`/`offer.veto.*` lines, written for the end of a report.
+ *  `pricing` is UI-SPEC S4's, which the approved set spells out
+ *  unbracketed and ruling 11a therefore makes approved copy (issue #369).
+ *
+ *  **Same four facts, two sentences each.** Nothing about what is offered
+ *  differs, which is what keeps REQ-021 c4's "on the same terms" true
+ *  across the two screens; and neither wording is a draft of the other, so
+ *  a ruling is not re-opened by a later drawing. It is not a tier, a
+ *  parameter or a branch on identity: it is which screen is speaking. */
+export type OfferTerms = "report" | "pricing";
+
+const TERM_LINES: Readonly<Record<OfferTerms, () => readonly string[]>> = {
+  report: () => [
     copy("offer.cadence.page", { value: copy("offer.cadence.page.value") }),
     copy("offer.cadence.measure", { value: copy("offer.cadence.measure.value") }),
     copy("offer.cadence.movement", { value: copy("offer.cadence.movement.value") }),
     copy("offer.veto.window", {
       value: copy("offer.veto.window.value", { hours: String(VETO.defaultHours) }),
     }),
-  ];
+  ],
+  pricing: () => [
+    copy("offer.pricing.page"),
+    copy("offer.pricing.measure"),
+    copy("offer.pricing.movement"),
+    // The window is the pin's, in both wordings: one home, two sentences.
+    copy("offer.pricing.veto", { hours: String(VETO.defaultHours) }),
+  ],
+};
+
+export function PricingCard(
+  p: { startAction?: () => Promise<void>; terms?: OfferTerms } = {}
+): React.JSX.Element {
+  const specs = TERM_LINES[p.terms ?? "report"]();
 
   return (
     // No card head. The approved set draws this card headless on both

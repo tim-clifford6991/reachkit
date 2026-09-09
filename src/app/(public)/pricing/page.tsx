@@ -92,7 +92,11 @@ export default function PricingPage(): React.JSX.Element {
             about the terms is restated here, so the two surfaces cannot
             drift. */}
         <div className="mx-auto w-full" style={READING_MEASURE}>
-          <PricingCard startAction={startCheckout} />
+          {/* S4's own wording of the four terms (ruling 11a). The report's
+              card keeps the owner's 2026-09-04 ruling; the facts are the
+              same four either way, which is REQ-021 c4's "on the same
+              terms". */}
+          <PricingCard startAction={startCheckout} terms="pricing" />
         </div>
 
         <p className="t-explain mx-auto text-center opacity-60" style={READING_MEASURE}>
