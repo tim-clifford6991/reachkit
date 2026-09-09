@@ -21,7 +21,7 @@ import type { CostContext } from "@/lib/costs";
 import { generateStore } from "../store";
 import { claimCheck } from "./check";
 import { listHash } from "./hash";
-import { readClaimVerdict } from "./outstanding";
+import { readRecordedVerdict, recordedVerdictValue } from "../record";
 
 export interface SweepOutcome {
   checked: number;
@@ -58,12 +58,12 @@ export async function sweepOutstandingRechecks(
   let checked = 0;
   let failed = 0;
   for (const draft of candidates) {
-    const verdict = readClaimVerdict(draft.claim_check);
+    const verdict = readRecordedVerdict(draft.claim_check);
     // Already current: re-running it would spend money to learn what the
     // hash already says.
     if (verdict !== null && verdict.state !== "unrun" && verdict.listHash === currentHash) continue;
     const outcome = await claimCheck(c, { text: draft.body_md ?? "", list: site.doNotClaim });
-    await store.patchDraft(draft.id, { claim_check: serialiseVerdict(outcome) });
+    await store.patchDraft(draft.id, { claim_check: recordedVerdictValue(outcome) });
     // An unrun check is not a check: it leaves the draft outstanding, so
     // it is not counted as one this sweep completed.
     if (outcome.state === "unrun") continue;
@@ -78,20 +78,4 @@ export async function sweepOutstandingRechecks(
   };
   logSweep(siteId, currentHash, outcome);
   return outcome;
-}
-
-/** `jsonb` has no `Date`. One projection, used by the sweep and by the
- *  pipeline, so a verdict written by either reads back the same way. */
-export function serialiseVerdict(verdict: {
-  state: string;
-  at: Date;
-  listHash?: string;
-  matchedEntry?: string;
-  reason?: string;
-}): Record<string, unknown> {
-  const out: Record<string, unknown> = { state: verdict.state, at: verdict.at.toISOString() };
-  if (verdict.listHash !== undefined) out.listHash = verdict.listHash;
-  if (verdict.matchedEntry !== undefined) out.matchedEntry = verdict.matchedEntry;
-  if (verdict.reason !== undefined) out.reason = verdict.reason;
-  return out;
 }

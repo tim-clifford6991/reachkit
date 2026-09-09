@@ -731,7 +731,10 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
       expect((stored?.grounded_fact as { url: string } | null)?.url).toBe(
         `https://${SITE_DOMAIN}/pricing`
       );
-      expect(stored?.rule_failures).toBeNull();
+      // The battery's own record, written on every run: an empty list is
+      // "a battery ran and found nothing", which is what the draft view's
+      // Checks list draws its rows from (#424).
+      expect(stored?.rule_failures).toEqual([]);
       expect(row.hard_rules_passed).toBe(true);
 
       // Four model steps, each at its own call site, all ledgered against

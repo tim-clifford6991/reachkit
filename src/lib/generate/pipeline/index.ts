@@ -30,9 +30,9 @@
 // customer saves does not come through here.
 import type { CostContext } from "@/lib/costs";
 import type { Opportunity } from "@/lib/opportunities";
-import { serialiseVerdict } from "../claims/sweep";
 import { recordedFactValue } from "../fact";
 import { recoveryOutcome, type Recovery } from "../claims/recovery";
+import { recordedRulesValue, recordedVerdictValue } from "../record";
 import { runHardRules } from "../rules";
 import { renderOf } from "../rules/text";
 import type { GroundedFact, RuleFailure, SiteRuleInputs } from "../rules/types";
@@ -180,7 +180,12 @@ export async function generateDraft(
   });
 
   await store.patchDraft(draftId, {
-    claim_check: serialiseVerdict(outcome.claim),
+    claim_check: recordedVerdictValue(outcome.claim),
+    // The battery's own record, written on every run — the empty array on
+    // a run that found nothing, because "a battery ran and passed this
+    // page" and "no battery has touched this row" are different facts and
+    // the draft view's Checks list draws a row only for the first (#424).
+    rule_failures: recordedRulesValue(outcome),
     cost_cents: Math.round(c.spentCents()),
     // The publishing engine's guard on `generating → in_review`. Written
     // here and nowhere else: only the run that put the page through the
@@ -201,16 +206,15 @@ export async function generateDraft(
     return { ok: true, draftId, grounded: grounding.fact };
   }
 
-  // 6. A failing draft is never queued and takes no day. The failures are
-  //    written so the day's line has a cause, and the attempt is counted so
-  //    the recovery rule can say whether one more is allowed.
+  // 6. A failing draft is never queued and takes no day. The attempt is
+  //    counted so the recovery rule can say whether one more is allowed;
+  //    the cause the day's line carries was written with the record above.
   const before = await store.draftById(draftId);
   const attemptsBefore = before?.hard_rule_attempts ?? 0;
   const attempt = attemptsBefore + 1;
-  await store.patchDraft(draftId, {
-    rule_failures: outcome.failed as unknown,
-    hard_rule_attempts: attempt,
-  });
+  // The failures are already recorded — the patch above writes them on
+  // every run — so this one counts the attempt and nothing else.
+  await store.patchDraft(draftId, { hard_rule_attempts: attempt });
 
   // `automaticAttempts` is how many automatic attempts had **already** been
   // made when this one was authorised — the stored column before this run's

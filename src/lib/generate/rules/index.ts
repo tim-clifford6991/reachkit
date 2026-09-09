@@ -30,7 +30,7 @@ import { checkNearDuplicate } from "./nearduplicate";
 import { checkInventedPeople, checkUnsourcedTestimonial } from "./people";
 import { checkRivalSource } from "./rivals";
 import { HARD_RULES } from "./types";
-import type { ComparisonSet, GroundedFact, RuleFailure, SiteRuleInputs } from "./types";
+import type { ComparisonSet, GroundedFact, HardRule, RuleFailure, SiteRuleInputs } from "./types";
 
 export type BatteryOutcome =
   | { passed: true; claim: ClaimVerdict }
@@ -71,7 +71,13 @@ export async function runHardRules(
   // The nine deterministic arms, keyed by the rule they answer for, so the
   // battery is assembled in `HARD_RULES` order below rather than in
   // whatever order the calls happen to be written in.
-  const deterministic: Partial<Record<(typeof HARD_RULES)[number], RuleFailure | null>> = {
+  //
+  // **Total, not partial** (issue #424). A rule with no arm here would be
+  // read as one that failed nothing — by the loop below, which is how
+  // `passed` is decided, and by the record the draft view's Checks list is
+  // drawn from. Spelling the nine as a total record makes an undecided rule
+  // a compile error rather than a pass the product hands out for free.
+  const deterministic: Record<Exclude<HardRule, "do_not_claim">, RuleFailure | null> = {
     grounding: checkGrounding({ grounded: a.grounded, sourceText: a.sourceText }),
     rival_source: checkRivalSource({ markdown: a.markdown, rivals: a.site.rivals }),
     no_private_figure: checkPrivateFigure({ markdown: a.markdown, register }),
