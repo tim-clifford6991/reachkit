@@ -67,9 +67,12 @@ export const DRAFT_COPY = Object.freeze({
 
   // The four claim-check outcomes REQ-045 c3 requires to be stated in every
   // case, including the empty list. Each is a badge's word.
-  "draft.claim.passed": ["TODO(copy)", { slots: {}, fixedBy: "REQ-045 c3" }],
+  "draft.claim.passed": ["claim-checked", { slots: {}, fixedBy: "REQ-045 c3 · UI-SPEC S16 (11a)" }],
   "draft.claim.failed": ["TODO(copy)", { slots: {}, fixedBy: "REQ-045 c11" }],
-  "draft.claim.outstanding": ["TODO(copy)", { slots: {}, fixedBy: "REQ-045 c9" }],
+  "draft.claim.outstanding": [
+    "claim check running",
+    { slots: {}, fixedBy: "REQ-045 c9 · UI-SPEC S17 (11a)" },
+  ],
   "draft.claim.nothing-to-check": ["TODO(copy)", { slots: {}, fixedBy: "REQ-045 c3" }],
   // c11's own sentence. The entry itself renders beside it as a value, so
   // the customer is told which entry held the draft whether or not this
@@ -84,7 +87,10 @@ export const DRAFT_COPY = Object.freeze({
 
   // The back link §4.6 asks for, the unsaved indicator c7 asks for, and the
   // one written line an unknown draft id resolves to.
-  "draft.back": ["TODO(copy)", { slots: {}, fixedBy: "BUILD §4.6" }],
-  "draft.unsaved": ["TODO(copy)", { slots: {}, fixedBy: "REQ-045 c7" }],
+  "draft.back": ["← Back to calendar", { slots: {}, fixedBy: "BUILD §4.6 · UI-SPEC S16 (11a)" }],
+  "draft.unsaved": [
+    "could not save — your text is kept here; nothing unsaved publishes",
+    { slots: {}, fixedBy: "REQ-045 c7 · UI-SPEC S17 (11a)" },
+  ],
   "draft.not-found": ["TODO(copy)", { slots: {}, fixedBy: "REQ-045 c1" }],
 }) satisfies CopyPartition;

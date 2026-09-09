@@ -53,18 +53,29 @@ export const SETUP_COPY = Object.freeze({
    *  read is told so, and told they can still reach Settings, cancel and
    *  export with setup unfinished. */
   "setup.refused.no-access": [TODO, { slots: {}, fixedBy: "REQ-025 c5" }],
-  /** §4.3's footer verb, with the duration the owner removed on
-   *  2026-09-06 (REQ-025 c1 wins; §4.3's footer amended under #2). */
-  "setup.submit": ["Start", { slots: {}, fixedBy: "REQ-025 c1" }],
+  /**
+   * §4.3's footer control, with its estimate — the C1 resolution, applied.
+   *
+   * The duration was removed on 2026-09-06 under REQ-025 c1 ("the control
+   * reads 'Start'"), and the approved set of 2026-09-08 draws it back:
+   * "Start — first page in ~3 minutes." #378 resolved the two as C1 — the
+   * approved string stands (11a, and it is the newer owner approval), and
+   * REQ-025 c1 is amended to allow a stated estimate — and wrote it into
+   * BUILD §4.3, where this value now agrees with the spec again.
+   */
+  "setup.submit": [
+    "Start — first page in ~3 minutes.",
+    { slots: {}, fixedBy: "REQ-025 c1 (amended, C1) · UI-SPEC S10 (11a)" },
+  ],
 
   // ── The site address (REQ-021) ──────────────────────────────────────
-  "setup.address.title": [TODO, { slots: {}, fixedBy: "REQ-021 c6" }],
-  "setup.address.label": [TODO, { slots: {}, fixedBy: "REQ-021 c7" }],
-  "setup.address.placeholder": [TODO, { slots: {}, fixedBy: "REQ-021 c7" }],
+  "setup.address.title": ["Your site", { slots: {}, fixedBy: "REQ-021 c6 · UI-SPEC S10 (11a)" }],
+  "setup.address.label": ["Your website", { slots: {}, fixedBy: "REQ-021 c7 · UI-SPEC S10 (11a)" }],
+  "setup.address.placeholder": ["yourdomain.com", { slots: {}, fixedBy: "REQ-021 c7 · UI-SPEC S10 (11a)" }],
   /** The line beside an address a completed report measured — shown to
    *  confirm or change, never retyped (REQ-021 c6). */
   "setup.address.measured": [TODO, { slots: {}, fixedBy: "REQ-021 c6" }],
-  "setup.address.change": [TODO, { slots: {}, fixedBy: "REQ-021 c6" }],
+  "setup.address.change": ["Change", { slots: {}, fixedBy: "REQ-021 c6 · UI-SPEC S10 (11a)" }],
   "setup.address.refused.not-a-domain": [TODO, { slots: {}, fixedBy: "REQ-021 c9" }],
   /** REQ-021 c9 and c10 in one line: it says the address cannot be
    *  reached, names one way to reach a person, and tells the founder they
@@ -89,13 +100,16 @@ export const SETUP_COPY = Object.freeze({
   "setup.competitors.seeking": [TODO, { slots: {}, fixedBy: "REQ-026 c10" }],
   /** REQ-026 c10, second limb: a known market whose suggestions came back
    *  empty. */
-  "setup.competitors.none-found": [TODO, { slots: {}, fixedBy: "REQ-026 c10" }],
+  "setup.competitors.none-found": [
+    "No rivals could be suggested for this market yet. Add up to five, or continue without — ReachKit finds them as it measures.",
+    { slots: {}, fixedBy: "REQ-026 c10 · UI-SPEC S10 (11a)" },
+  ],
   /** REQ-026 c9: the limit is stated on screen rather than silently
    *  enforced. `{max}` is `BATTERY.COMPETITORS_MAX`. */
   "setup.competitors.limit": [TODO, { slots: { max: "text" }, fixedBy: "REQ-026 c9" }],
-  "setup.competitors.add.label": [TODO, { slots: {}, fixedBy: "REQ-026 c8" }],
-  "setup.competitors.add.placeholder": [TODO, { slots: {}, fixedBy: "REQ-026 c8" }],
-  "setup.competitors.add.action": [TODO, { slots: {}, fixedBy: "REQ-026 c8" }],
+  "setup.competitors.add.label": ["Add a competitor", { slots: {}, fixedBy: "REQ-026 c8 · UI-SPEC S10 (11a)" }],
+  "setup.competitors.add.placeholder": ["add another", { slots: {}, fixedBy: "REQ-026 c8 · UI-SPEC S10 (11a)" }],
+  "setup.competitors.add.action": ["Add", { slots: {}, fixedBy: "REQ-026 c8 · UI-SPEC S10 (11a)" }],
   "setup.competitors.remove": [TODO, { slots: {}, fixedBy: "REQ-026 c7" }],
   "setup.competitors.refused.not-a-domain": [TODO, { slots: {}, fixedBy: "REQ-026 c8" }],
   "setup.competitors.refused.does-not-resolve": [TODO, { slots: {}, fixedBy: "REQ-026 c8" }],
@@ -104,7 +118,7 @@ export const SETUP_COPY = Object.freeze({
   "setup.competitors.refused.set-full": [TODO, { slots: {}, fixedBy: "REQ-026 c9" }],
 
   // ── Mode + destination (REQ-028) ────────────────────────────────────
-  "setup.publishing.title": [TODO, { slots: {}, fixedBy: "REQ-028 c1" }],
+  "setup.publishing.title": ["Mode + destination", { slots: {}, fixedBy: "REQ-028 c1 · UI-SPEC S10 (11a)" }],
   /** REQ-028 c1: one written line each — pages publish after a review
    *  window they can stop, versus only when they approve. */
   "setup.mode.autopilot": [TODO, { slots: {}, fixedBy: "REQ-028 c1" }],
@@ -112,7 +126,10 @@ export const SETUP_COPY = Object.freeze({
   "setup.destination.hosted.name": ["Hosted blog", { slots: {}, fixedBy: "REQ-028 c2" }],
   "setup.destination.hosted": [TODO, { slots: {}, fixedBy: "REQ-028 c2" }],
   "setup.destination.wordpress.name": ["WordPress", { slots: {}, fixedBy: "REQ-028 c3" }],
-  "setup.destination.wordpress": [TODO, { slots: {}, fixedBy: "REQ-028 c3" }],
+  "setup.destination.wordpress": [
+    "connect later, ask me after the first page",
+    { slots: {}, fixedBy: "REQ-028 c3 · UI-SPEC S10 (11a)" },
+  ],
   /** The caption over the record itself. The record's three values are
    *  data and carry no key. */
   "setup.destination.dnsRecord": [TODO, { slots: {}, fixedBy: "REQ-028 c2" }],
