@@ -346,8 +346,14 @@ describe('BUILD.md §2.4: "Every bar/point is direct-labelled (name + value) —
 /* ── §2.4's geometry ─────────────────────────────────────────────────── */
 
 describe('BUILD.md §2.4: "One axis per chart, thin 2–2.5px lines, 3.5–5px endpoint dots with a surface-colored ring, faint gridlines at 2–3 values."', () => {
-  it.each(ALL_STORIES)("%s draws exactly one axis", (_name, story) => {
-    expect(svgOf(story()).querySelectorAll(".rk-axis")).toHaveLength(1);
+  // Four of the five. The growth line draws none since #386: UI-SPEC §2's
+  // contract for it is the fill, the line, the endpoint dot and the two
+  // footnotes, and the set's `areaChart()` draws no rule at all — which
+  // wins over §2.4's general geometry for this one chart (UI-SPEC §1). The
+  // count is still asserted, so an axis cannot appear or vanish unnoticed
+  // on any of them.
+  it.each(ALL_STORIES)("%s draws exactly one axis, or none where the set draws none", (name, story) => {
+    expect(svgOf(story()).querySelectorAll(".rk-axis")).toHaveLength(name === "GrowthLine" ? 0 : 1);
   });
 
   it("the pinned line weights sit inside 2–2.5px", () => {
@@ -383,11 +389,27 @@ describe('BUILD.md §2.4: "One axis per chart, thin 2–2.5px lines, 3.5–5px e
     }
   });
 
-  it("GrowthLine's gridlines are faint and at 2–3 values", () => {
-    const grid = svgOf(STORIES.GrowthLine?.() as React.JSX.Element).querySelectorAll(".rk-grid");
-    expect(grid.length).toBeGreaterThanOrEqual(2);
-    expect(grid.length).toBeLessThanOrEqual(3);
-    for (const g of grid) expect(Number(g.getAttribute("opacity"))).toBeLessThan(1);
+  it("GrowthLine draws no rule of any kind — no axis, no gridline, nothing dashed (#386)", () => {
+    const svg = svgOf(STORIES.GrowthLine?.() as React.JSX.Element);
+    expect(svg.querySelectorAll(".rk-axis")).toHaveLength(0);
+    expect(svg.querySelectorAll(".rk-grid")).toHaveLength(0);
+    // Not by class either: no <line> element at all is left in the drawing.
+    expect(svg.querySelectorAll("line")).toHaveLength(0);
+    expect([...svg.querySelectorAll("[stroke-dasharray]")]).toEqual([]);
+  });
+
+  it("GrowthLine's endpoint dot sits on the last measured point, never at the frame's edge", () => {
+    const svg = svgOf(STORIES.GrowthLine?.() as React.JSX.Element);
+    const dot = svg.querySelector("circle");
+    // The fixture's last week is measured, so the dot is the last mark of
+    // the last run — the same x the tooltip for that week is centred on,
+    // and the same y `plot()` gives its value. A dot at the viewBox edge
+    // would be a dot anchored to the frame rather than to a reading.
+    const runs = [...svg.querySelectorAll("polyline")];
+    const lastRun = runs.at(-1)?.getAttribute("points") ?? "";
+    const [x, y] = (lastRun.split(" ").at(-1) ?? "").split(",");
+    expect(dot?.getAttribute("cx")).toBe(x);
+    expect(dot?.getAttribute("cy")).toBe(y);
   });
 });
 

@@ -36,12 +36,22 @@
 // already say the series stops, and the week's mark says why — its tooltip
 // is `name · account`, the written line REQ-065 c3 asks for.
 //
+// **No rule of any kind: no axis, and no gridlines** (master review of
+// #386, second pass). §2.4 states "One axis per chart … faint gridlines at
+// 2–3 values" as the inventory's general geometry, and the other four
+// charts keep both. This one does not: UI-SPEC §2's contract for it is
+// "area fill under an accent line, endpoint dot with surface ring,
+// footnote pair start · goal", the set's `areaChart()` draws no rule at
+// all, and UI-SPEC wins where the two differ (UI-SPEC §1). Three
+// horizontals under one thin line was the set's card with a grid laid over
+// it. The BUILD §2.4 amendment is owed by the corpus, not by this file.
+//
 // **There is no empty frame.** `weeks` is a non-empty tuple, so "nothing
 // measured yet" cannot be drawn as axes over nothing — that reads as a
 // measurement of zero, which is a different claim. The caller renders its
 // own written line in place of the chart.
 import type React from "react";
-import { CHART, CHART_INK, type Box, gridlines, plot, round, spreadAt, SVG } from "./chart-primitives";
+import { CHART, type Box, plot, round, spreadAt, SVG } from "./chart-primitives";
 import { SERIES_COLOR } from "./series";
 import { ChartFrame, EndpointDot, Mark } from "./mark";
 
@@ -61,13 +71,15 @@ export interface GrowthUnmeasuredWeek {
 
 export type GrowthWeek = GrowthMeasuredWeek | GrowthUnmeasuredWeek;
 
-/** Hand-sized (§2.4), and about the set's own 560×150 plate: nothing is
- *  written under the axis any more (#386), so the box ends just below it
- *  and the line fills the card. */
-const BOX: Box = { width: 300, height: 90 };
+/** Hand-sized (§2.4), at about the set's own 560×150 plate's proportions.
+ *  Nothing is drawn outside the plot band any more (#386) — no label rows,
+ *  no axis, no gridlines — so the box is the band, the headroom its
+ *  endpoint label needs, and a hair of floor under the fill. */
+const BOX: Box = { width: 300, height: 80 };
+/** The headroom is the endpoint label's, which is drawn seven units above
+ *  the highest the line can reach. */
 const PLOT_TOP = 24;
 const PLOT_BOTTOM = 76;
-const AXIS_Y = 84;
 const FIRST_X = 24;
 const LAST_X = 264;
 
@@ -125,23 +137,6 @@ export function GrowthLine(p: {
 
   return (
     <ChartFrame box={BOX} label={p.label}>
-      {gridlines(PLOT_TOP, PLOT_BOTTOM).map((gy) => (
-        <line
-          key={gy}
-          className="rk-grid"
-          x1={14}
-          y1={gy}
-          x2={292}
-          y2={gy}
-          stroke={CHART_INK.grid}
-          strokeWidth={CHART.gridlineWidth}
-          opacity={CHART.gridlineOpacity}
-        />
-      ))}
-
-      {/* The one axis. */}
-      <line className="rk-axis" x1={14} y1={AXIS_Y} x2={292} y2={AXIS_Y} stroke={CHART_INK.axis} strokeWidth={CHART.axisWidth} />
-
       {drawn.map((r) => (
         <g key={`run-${r.first.x}`}>
           {r.points.length > 1 ? (
@@ -189,7 +184,7 @@ export function GrowthLine(p: {
             x={round(xAt(i) - 18)}
             y={PLOT_TOP}
             width={36}
-            height={AXIS_Y - PLOT_TOP}
+            height={PLOT_BOTTOM - PLOT_TOP}
           />
         ))}
       </g>
