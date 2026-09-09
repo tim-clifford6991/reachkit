@@ -40,10 +40,18 @@ export {
   livePageBySlug,
   livePagesForSite,
   readFaq,
+  readGrounded,
   siteForDraft,
   wasEverLive,
 } from "./store";
-export type { FaqEntry, HostedPage, HostedSite, PublishedPageRecord } from "./store";
+export type {
+  FaqEntry,
+  HostedGrounding,
+  HostedPage,
+  HostedPublisher,
+  HostedSite,
+  PublishedPageRecord,
+} from "./store";
 
 export const HOSTED_ADAPTER: DestinationAdapter = Object.freeze({
   kind: "hosted" as const,

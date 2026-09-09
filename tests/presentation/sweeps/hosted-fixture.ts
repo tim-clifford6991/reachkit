@@ -44,6 +44,22 @@ export const HOSTED_SWEEP_PAGE: HostedPage = Object.freeze({
       answer: "Under an hour on every tool measured here.",
     },
   ]),
+  // §8's recorded passage, and it occurs in the body above verbatim: the
+  // sweeps then read the arm that draws the mark **and** the source line
+  // under it, which is the arm with every string on it.
+  grounded: Object.freeze({
+    passage: "how long it takes to publish the first flow",
+    url: "https://example.org/onboarding-tools-compared",
+    readAt: new Date("2026-08-28T00:00:00.000Z"),
+  }),
+  // The publisher S19 draws: a name, a category eyebrow and the zone the
+  // byline's date is written in. A stated zone rather than `null`, because
+  // that is the arm the customer's own page is served in.
+  publisher: Object.freeze({
+    name: HOSTED_SWEEP_DOMAIN,
+    category: "user onboarding software",
+    timeZone: "America/New_York",
+  }),
   publishedAt: new Date("2026-09-01T09:00:00.000Z"),
   liveUrl: `https://${HOSTED_SWEEP_HOST}/${HOSTED_SWEEP_SLUG}`,
   record: Object.freeze({
