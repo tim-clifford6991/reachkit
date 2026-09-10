@@ -14,6 +14,13 @@ outside `heavy.sh`. **Only the master files issues and merges to `main`** (owner
 an implementer that finds adjacent work records it under *Adjacent* in the PR body and builds
 nothing beyond its issue; the master files what deserves an issue and lands every PR.
 
+**Since 2026-09-10 the implementers are subagents of one worker** (owner ruling): each project has one
+long-lived worker agent (`rk-worker`, Herdr w3) that never implements and never reads the repository — it
+spawns one fresh subagent per issue with the standard brief from `bin/issue-prompt.sh`, relays the
+dispatcher's `Fix:` / `Rebase:` messages to that subagent, and reports the PR URL. The subagent is the
+implementer in every rule above — fresh context, one issue, its own worktree — and may spawn subagents of
+its own; only the master files issues and merges.
+
 ## 1. Units of work
 
 - **One issue = one branch = one PR.** Branch `feat/<n>-<slug>` or `fix/<n>-<slug>` (`docs/` for corpus PRs).
@@ -83,6 +90,6 @@ Monitoring and landing are **VPS services**, not tasks of the master's session, 
 | `rk-refresher` | when an implementer's pane shows "session limit · resets H:MM", re-prompts it once the time has passed (skip list `state/refresher-skip.txt`) |
 | `rk-lander` | merges every open, non-draft PR labelled `master-approved` once all checks pass (§3) |
 | `rk-digest` | writes `state/digest.md` every 2 min — open PRs with merge state, checks and labels; implementers and their state; box vitals; the lander's last lines. **A (re)started master reads this file first** instead of re-deriving state |
-| `rk-dispatch` | feeds `state/queue.txt` — the master's issue queue, one number per line in landing order, written by nobody else — to implementers: an agent idle for three checks (≥ 6 min) whose own PR is approved or absent gets `/clear`, is renamed `rk-<issue>` and receives `bin/issue-prompt.sh <issue>`; the dispatch counts only if the session id changed (a `/clear` typed into a mid-turn pane is queued, not executed — 2026-09-09). An agent whose PR is DIRTY is asked once per head to rebase instead |
+| `rk-dispatch` | **dispatcher v3** (2026-09-10): feeds `state/queue.txt` — the master's issue queue, one number per line in landing order, written by nobody else — to the one worker. Every 2 min: in-flight = dispatched issues still open (`state/inflight.txt`; a closed issue leaves the set); for each in-flight PR, a red CI check sends the worker one `Fix: issue #n …` and a DIRTY merge state one `Rebase: issue #n …` per head, which the worker relays to the issue's subagent; if fewer than **3** are in flight and the queue has an open issue, the worker receives `Dispatch: issue #n. Brief: <bin/issue-prompt.sh n>` and the issue is popped (one dispatch per tick); when nothing is in flight and the queue is empty the worker is `/cleared` after three idle checks and re-sent its standing brief (`bin/worker-brief.sh`), so its context stays small. The 2026-09-09 rule stands: a dispatch or clear counts only if the session id changed |
 
-`bin/issue-prompt.sh <issue>` prints the one-issue prompt every implementer gets (the issue, `CLAUDE.md`, this file — nothing else; one line, Herdr rejects multi-line arguments); `bin/spawn.sh <issue> <pane>` starts a fresh Opus implementer with it in an empty pane; the dispatcher uses the same prompt on a cleared pane; `bin/retire.sh <name>` ends one after its PR merged (substrate down, session exited). Four implementers at a time on this box. The master's job every cycle is to ask what would make delivery faster, cheaper in tokens and closer to what the owner asked — and to change this process, not just the task.
+`bin/issue-prompt.sh <issue>` prints the one-issue prompt every implementer gets (the issue, `CLAUDE.md`, this file — nothing else; one line, Herdr rejects multi-line arguments); `bin/worker-brief.sh` prints the worker's standing brief (spawn one subagent per `Dispatch:`, relay `Fix:`/`Rebase:`, report `#n -> <PR URL>`, never issues, never merges, no repo reads of its own). `bin/spawn.sh <issue> <pane>` starts a fresh Opus implementer in an empty pane and `bin/retire.sh <name>` ends one after its PR merged (substrate down, session exited) — both kept for running an implementer by hand when the worker is down. One worker and at most three issues in flight on this box (`RK_MAX_INFLIGHT`). The master's job every cycle is to ask what would make delivery faster, cheaper in tokens and closer to what the owner asked — and to change this process, not just the task.
