@@ -28,7 +28,7 @@
 import { describe, expect, it } from "vitest";
 import type React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { COPY, copy, TODO_COPY_MARKER } from "../../../src/lib/presentation/copy";
+import { AWAITING_COPY, COPY, copy } from "../../../src/lib/presentation/copy";
 import { codeOf } from "../../mail/leads/source";
 import PublicNotFound from "../../../src/app/(public)/not-found";
 import PublicError from "../../../src/app/(public)/error";
@@ -93,18 +93,20 @@ describe("S8 — one shape, and every mount wears it", () => {
     expect(markup).toContain('<p class="eyebrow num">404</p>');
   });
 
-  it.each(ERROR_SCREENS)("$name keeps its shape, and all three of its strings are owed", ({ markup }) => {
+  it.each(ERROR_SCREENS)("$name keeps its shape, and speaks the owner's three strings", ({ markup }) => {
     // S8 draws nothing of the error page but its shape — "the same shape
     // with one written line" — so its eyebrow, its heading and its line are
-    // all three the owner's, and all three render the marker (12a, and the
-    // standing screen rule: a screen shows which line is waiting and keeps
-    // working). The eyebrow was written from issue #372's own Done-when
-    // until the master's review of #407 owed it back: a Done-when is a
-    // brief, not the owner's pen, and no BUILD or REQ line writes it.
-    expect(COPY["chrome.error.eyebrow"]).toBe(TODO_COPY_MARKER);
-    expect(markup).toContain(`<p class="eyebrow">${TODO_COPY_MARKER}</p>`);
-    expect(markup).toContain(`<h1 class="rk-hero-h">${TODO_COPY_MARKER}</h1>`);
-    expect(markup).toContain(`<p>${TODO_COPY_MARKER}</p>`);
+    // all three the owner's (12a). The eyebrow was written from issue
+    // #372's own Done-when until the master's review of #407 owed it back:
+    // a Done-when is a brief, not the owner's pen. The owner approved all
+    // three on 2026-09-10 (#459), and each lands in its own element.
+    for (const key of ["chrome.error.eyebrow", "chrome.error.heading", "chrome.error.line"] as const) {
+      expect(AWAITING_COPY).not.toContain(key);
+    }
+    expect(COPY["chrome.error.eyebrow"]).toBe("Error");
+    expect(markup).toContain(`<p class="eyebrow">${COPY["chrome.error.eyebrow"]}</p>`);
+    expect(markup).toContain(`<h1 class="rk-hero-h">${COPY["chrome.error.heading"]}</h1>`);
+    expect(markup).toContain(`<p>${COPY["chrome.error.line"]}</p>`);
   });
 });
 
@@ -134,9 +136,9 @@ describe("S8 — the line each screen writes", () => {
   it("the account 404 does not send a signed-in customer to a report address", () => {
     const markup = html(AccountNotFound);
 
-    // Its own line, owner-owed (12a) — and never the set's, which names
-    // where a stranger's report lives.
-    expect(markup).toContain(`<p>${TODO_COPY_MARKER}</p>`);
+    // Its own line, the owner's (12a; approved 2026-09-10, #459) — and
+    // never the set's, which names where a stranger's report lives.
+    expect(markup).toContain(`<p>${COPY["chrome.notfound.line.app"]}</p>`);
     expect(markup).not.toContain(COPY["chrome.notfound.address"]);
     expect(markup).not.toContain("Reports live at");
   });
