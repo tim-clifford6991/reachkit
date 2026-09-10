@@ -34,7 +34,9 @@ import { dbAdmin } from "@/lib/db";
 // everything inside.
 import { withRobotsMemo } from "@/lib/egress/robots-memo";
 import { CAPS } from "@/lib/config/constants";
+import { now } from "@/lib/config/now";
 import { readCache } from "./cache";
+import { openDayLedger } from "./daily";
 import { writeFetchRow } from "./ledger";
 
 export type CapName = "FREE" | "DEEP" | "WEEKLY" | "DRAFT";
@@ -45,6 +47,28 @@ const CAP_VALUES: Record<CapName, number> = {
   WEEKLY: CAPS.WEEKLY_C,
   DRAFT: CAPS.DRAFT_C,
 };
+
+/** Why a call was refused. The per-pass cap is the one BP-007 wrote; the
+ *  day's ceiling is the product-wide one (issue #329). Both refuse the same
+ *  way — `{ skipped: "cap" }`, degrade, never throw — and a stage that has
+ *  been told to stop spending has no use for the difference. It is recorded
+ *  rather than returned: what needs to know why is whoever reads the logs
+ *  after a day the product went quiet. */
+type CapReason = "scan_cap" | "daily_ceiling";
+
+/** The seam's own log channel, the shape `logClampedSettlement` already
+ *  uses. One line the first time a context refuses, naming which ceiling
+ *  did it — a second line per skipped call would say nothing new and would
+ *  bury the first under a twelve-SERP stage. */
+function logCapHit(a: {
+  reason: CapReason;
+  source: string;
+  cap: CapName;
+  spentCents: number;
+  ceilingCents: number;
+}): void {
+  console.warn(JSON.stringify({ event: "cap_hit", ...a }));
+}
 
 export interface CostContext {
   /** Which ceiling this context runs under. Read by the one call site that
@@ -82,7 +106,10 @@ export interface CostContext {
   // supplied, the reservation otherwise — one number, and it is the one
   // the row carries.
 
-  capHit(): boolean; // re-checked between calls in any multi-call step
+  /** True once *either* ceiling is reached — this pass's own cap, or the
+   *  product's daily one (issue #329). Re-checked between calls in any
+   *  multi-call step. */
+  capHit(): boolean;
   spentCents(): number;
   degraded(): boolean;
 }
@@ -131,6 +158,26 @@ export async function withCostContext<T>(
   let ledgeredCents = 0;
   let inFlightReserved = 0;
   let isDegraded = false;
+  // One read, when the context opens, of what the whole product has spent
+  // today (issue #329) — see `daily.ts` for why it is asked once a pass and
+  // not once a call, and for what an unreadable ledger means.
+  const day = await openDayLedger(now());
+  let capHitLogged = false;
+
+  function refuse(reason: CapReason, source: string, ceilingCents: number): { skipped: "cap" } {
+    isDegraded = true;
+    if (!capHitLogged) {
+      capHitLogged = true;
+      logCapHit({
+        reason,
+        source,
+        cap: ctx.cap,
+        spentCents: reason === "daily_ceiling" ? day.spentCents() : spentCents(),
+        ceilingCents,
+      });
+    }
+    return { skipped: "cap" };
+  }
 
   function spentCents(): number {
     return ledgeredCents + inFlightReserved;
@@ -160,11 +207,22 @@ export async function withCostContext<T>(
         return { payload: cached.payload as P, fresh: false, costCents: 0 };
       }
 
+      // The product-wide ceiling first: it is the one that outranks this
+      // pass's own budget. A pass with headroom of its own still stops when
+      // the day has none, which is the whole point of a ceiling above the
+      // caps — and it stops the way §6.5 says every cap stops, by skipping
+      // the remaining work and marking the pass `degraded`, never by
+      // throwing. A free scan never gets this far on a day that is already
+      // over: `admitFreeScan` refuses it at the door (`admission.ts`), so
+      // what this arm holds is the paid pass, which holds rather than fails.
+      if (day.ceilingReached()) {
+        return refuse("daily_ceiling", call.source, CAPS.DAILY_PRODUCT_C);
+      }
+
       // The cap is checked against the **reservation** — the settlement
       // does not exist yet (BP-007 `## Public interface`).
       if (spentCents() + call.costCents > capValue) {
-        isDegraded = true;
-        return { skipped: "cap" };
+        return refuse("scan_cap", call.source, capValue);
       }
 
       // Between the reservation and the settlement the context is
@@ -201,12 +259,20 @@ export async function withCostContext<T>(
         payload,
       });
       ledgeredCents += settledCents;
+      // The day's total moves by what was actually ledgered, and `add`
+      // publishes the crossing if this is the call that made one.
+      day.add(settledCents);
 
       return { payload, fresh: true, costCents: settledCents };
     },
 
     capHit(): boolean {
-      return spentCents() >= capValue;
+      // Either ceiling. A multi-call step re-checks this between calls and
+      // stops on it, so a step that would otherwise keep asking and keep
+      // being refused stops on the first refusal instead — and the pass
+      // ends `spend_ceiling` (`src/lib/scan/ceilings.ts`), which is where
+      // the reason reaches the stored report and the screen.
+      return spentCents() >= capValue || day.ceilingReached();
     },
 
     spentCents,

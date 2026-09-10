@@ -33,9 +33,40 @@ export const PRICE_BOOK = Object.freeze({
   CHATGPT_SCRAPE_STD_C: 0.12, AI_MODE_LIVE_C: 0.2, AI_MODE_STD_C: 0.06,
 } as const);
 
+/** The four per-scan/per-draft ceilings BUILD §6.1 pins, plus the
+ *  product-wide one BUILD §6.5 does not yet name (issue #329).
+ *
+ *  **`DAILY_PRODUCT_C` — the ceiling on everything, for one UTC day.** The
+ *  other four bound *one* pass; nothing bounded the sum, so the product's
+ *  whole exposure was the per-scan cap multiplied by however many passes
+ *  the day happened to bring. This is that missing number, in cents,
+ *  measured over the ledger (`fetches.cost_cents`) for the UTC day.
+ *
+ *  Its size is read off the two figures the corpus already states, and is
+ *  the master's under ship-then-steer — the owner's to rule:
+ *   - the free path's own worst case at BUILD §11's bounds is
+ *     `FREE_BOUNDS.scansPerDay * FREE_C` = 2400¢ (DATA-COSTS's own
+ *     "worst-case daily exposure at the existing bounds" line is smaller
+ *     again, being those same 200 scans at the ~6.3¢ a report actually
+ *     costs rather than at its 12¢ cap);
+ *   - 5000¢ leaves the free path the whole of that worst case and the same
+ *     again for the paid loop — a deep pass is 150¢, a weekly refresh 40¢,
+ *     a day of content 45¢ — so the ceiling is a guard against a runaway,
+ *     never a bound the ordinary day approaches.
+ *
+ *  A UTC day, not a site-local one: this is one figure for the whole
+ *  product, so there is no site whose clock it could keep (contrast
+ *  `WEEK_START` / `WEEKLY_DUE_HOUR_LOCAL`, which are each a customer's). */
 export const CAPS = Object.freeze({
   FREE_C: 12, DEEP_C: 150, WEEKLY_C: 40, DRAFT_C: 45,
+  DAILY_PRODUCT_C: 5000,
 } as const);
+
+/** The two crossings of `CAPS.DAILY_PRODUCT_C` the owner is told about
+ *  (issue #329), as fractions of it: four fifths of the day's ceiling, and
+ *  the ceiling itself. Fractions rather than two more cent figures, so the
+ *  warning cannot drift away from the ceiling it warns about. */
+export const SPEND_ALERT_AT = Object.freeze({ warn: 0.8, ceiling: 1 } as const);
 
 /** Per-token model prices, cents per million tokens — BP-005 `## Public
  *  interface`, transcribed verbatim (rule 1.2 — data, not a chosen

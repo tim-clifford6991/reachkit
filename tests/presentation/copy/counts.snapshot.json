@@ -189,7 +189,14 @@
       "mail.account.destinationBroken.body",
       "mail.account.destinationBroken.held",
       "mail.account.destinationBroken.action",
-      "mail.shell.imprint"
+      "mail.shell.imprint",
+      "mail.ops.spend-ceiling.subject",
+      "mail.ops.spend-ceiling.heading",
+      "mail.ops.spend-ceiling.warn",
+      "mail.ops.spend-ceiling.reached",
+      "mail.ops.spend-ceiling.kill-switch-engaged",
+      "mail.ops.spend-ceiling.fact.spent",
+      "mail.ops.spend-ceiling.fact.ceiling"
     ],
     "awaiting": [
       "optout.head.unresolved",

@@ -35,6 +35,7 @@ vi.mock("@/lib/db", () => ({
 }));
 
 import { dbAdmin } from "@/lib/db";
+import { CAPS } from "@/lib/config/constants";
 import type { CanonicalDomain } from "../../../src/lib/scan/domain.ts";
 import type { Admission, NetworkKey } from "../../../src/lib/scan/admission.ts";
 
@@ -176,8 +177,20 @@ function makeBuilder(table: string) {
   return builder;
 }
 
+/** What `fetches_spend_since` answers this scenario — the product's spend
+ *  for the UTC day, which the `daily` step now asks about before it counts
+ *  free scans (issue #329). `null` makes the read fail, which is the
+ *  fail-open case. */
+let daySpendCents: number | null = null;
+
 function fakeClient() {
-  return { from: (table: string) => makeBuilder(table) };
+  return {
+    from: (table: string) => makeBuilder(table),
+    rpc: async () =>
+      daySpendCents === null
+        ? { data: null, error: { message: "fetches_spend_since: stubbed read failure" } }
+        : { data: daySpendCents, error: null },
+  };
 }
 
 function installClient(dbAdminMock: typeof dbAdmin): void {
@@ -187,6 +200,9 @@ function installClient(dbAdminMock: typeof dbAdmin): void {
 beforeEach(() => {
   scenarios = {};
   writeCalls = [];
+  // Nothing spent today unless a scenario says otherwise, so every suite
+  // written before the daily ceiling existed reads exactly as it did.
+  daySpendCents = 0;
   installClient(dbAdmin);
 });
 
@@ -501,5 +517,67 @@ describe("networkKeyOf · a network key is opaque, salted and stable", () => {
     const garbage = networkKeyOf("not-an-address");
     const nullKey = networkKeyOf(null);
     expect(garbage).toBe(nullKey);
+  });
+});
+
+// ── The product-wide daily spend ceiling (issue #329, BUILD §6.5) ───────
+//
+// "Free scans refuse first, paid passes hold." A paid pass that meets the
+// ceiling mid-flight degrades and keeps its report — that half is
+// `tests/costs/spend-guard.test.ts`. This half is the door: on a day whose
+// ledger has reached `CAPS.DAILY_PRODUCT_C`, a free scan is not started at
+// all.
+//
+// It refuses under the existing `daily` arm rather than a seventh one.
+// REQ-003 c8's sentence — free scanning is paused, and how long until it
+// resumes — is already true for this cause, and the time it promises is
+// honest here in a way it is nowhere else: the day's ledger goes to zero at
+// the next UTC midnight whatever anyone does.
+describe("issue #329 — the day's spend ceiling refuses a free scan at the door", () => {
+  it("a day at the ceiling refuses `daily`, with a duration and not an instant", async () => {
+    daySpendCents = CAPS.DAILY_PRODUCT_C;
+    const result = await admitFreeScan({ domain: DOMAIN, network: NETWORK });
+    expect(result).toEqual({
+      refuse: "daily",
+      retryAfterSeconds: expect.any(Number) as unknown as number,
+    });
+    const seconds = (result as { retryAfterSeconds: number }).retryAfterSeconds;
+    expect(seconds).toBeGreaterThan(0);
+    expect(seconds).toBeLessThanOrEqual(86_400);
+  });
+
+  it("a day under the ceiling admits, and the free-scan count is still what bounds it", async () => {
+    daySpendCents = CAPS.DAILY_PRODUCT_C - 1;
+    expect(await admitFreeScan({ domain: DOMAIN, network: NETWORK })).toEqual({ admit: true });
+  });
+
+  it("it outranks the count: a day at the ceiling refuses before a single scan has been counted", async () => {
+    daySpendCents = CAPS.DAILY_PRODUCT_C;
+    scenarios.scans = scansScenario({ daily: [] });
+    const result = await admitFreeScan({ domain: DOMAIN, network: NETWORK });
+    expect(result).toMatchObject({ refuse: "daily" });
+  });
+
+  it("removal and cooldown still outrank it — the step keeps its place in the order", async () => {
+    daySpendCents = CAPS.DAILY_PRODUCT_C;
+    scenarios.domain_blocks = { rows: [{ domain: DOMAIN }] };
+    expect(await admitFreeScan({ domain: DOMAIN, network: NETWORK })).toEqual({ refuse: "removed" });
+
+    scenarios.domain_blocks = { rows: [] };
+    scenarios.scans = scansScenario({ daily: [], cooldown: [{ created_at: isoMinutesAgo(60) }] });
+    expect(await admitFreeScan({ domain: DOMAIN, network: NETWORK })).toMatchObject({
+      refuse: "cooldown",
+    });
+  });
+
+  it("an unreadable ledger admits — the same fail-open every other counting step has (REQ-003 c9)", async () => {
+    daySpendCents = null;
+    expect(await admitFreeScan({ domain: DOMAIN, network: NETWORK })).toEqual({ admit: true });
+  });
+
+  it("it consumes nothing: a refusal on spend writes no row, as every render of a report address must not", async () => {
+    daySpendCents = CAPS.DAILY_PRODUCT_C;
+    await admitFreeScan({ domain: DOMAIN, network: NETWORK });
+    expect(writeCalls).toEqual([]);
   });
 });
