@@ -89,7 +89,7 @@ export default function PricingPage(): React.JSX.Element {
         <div className="mx-auto w-full text-center" style={READING_MEASURE}>
           {/* The eyebrow is `offer.start` — the same two words, from the
               key that owns them, rather than a second copy of them. */}
-          <p className="eyebrow opacity-60">{copy("offer.start")}</p>
+          <p className="eyebrow text-[color:var(--ink-quiet)]">{copy("offer.start")}</p>
           <h1>{copy("pricing.heading")}</h1>
           <p className="rk-quiet">{copy("pricing.subline")}</p>
         </div>
@@ -106,7 +106,7 @@ export default function PricingPage(): React.JSX.Element {
           <PricingCard startAction={startCheckout} terms="pricing" />
         </div>
 
-        <p className="t-explain mx-auto text-center opacity-60" style={READING_MEASURE}>
+        <p className="t-explain mx-auto text-center text-[color:var(--ink-quiet)]" style={READING_MEASURE}>
           {copy("pricing.footnote")}
         </p>
       </main>

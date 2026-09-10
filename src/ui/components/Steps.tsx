@@ -65,7 +65,7 @@ export function Steps(p: {
             </span>
           ) : null}
           {step.label}
-          {step.note === undefined ? null : <span className="t-explain opacity-60">{step.note}</span>}
+          {step.note === undefined ? null : <span className="t-explain text-[color:var(--ink-quiet)]">{step.note}</span>}
         </li>
       ))}
     </ul>

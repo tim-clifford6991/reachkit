@@ -37,7 +37,7 @@ import { Num } from "../_address/measured";
 function Row(p: { label: string; children: React.ReactNode }): React.JSX.Element {
   return (
     <div className="border-base-300 grid grid-cols-[6rem_minmax(0,1fr)] gap-3 border-b py-2 last:border-b-0">
-      <dt className="text-xs opacity-60">{p.label}</dt>
+      <dt className="text-xs text-[color:var(--ink-quiet)]">{p.label}</dt>
       {/* The cell is a declared scroll container (issue #256, owner's ruling
           2026-09-07). A value is never broken mid-word — `.num` in
           `src/ui/type.css` — and the "beats" row's rival domain is one
@@ -76,7 +76,7 @@ export function FreePageCard(p: { section: FreePageSection }): React.JSX.Element
         />
       }
     >
-      <p className="t-explain opacity-60">{title.label}</p>
+      <p className="t-explain text-[color:var(--ink-quiet)]">{title.label}</p>
       {/* The page's own title, at the card-head rung of the ladder — the
           one headline this module carries (UI-SPEC S2). */}
       <h3>{title.text}</h3>
@@ -118,7 +118,7 @@ export function FreePageCard(p: { section: FreePageSection }): React.JSX.Element
           carries, in its own sentence rather than as a bare figure. */}
       {/* A mono phrase: a sentence with a count inside it, which wraps at
           its spaces like any other line. */}
-      <p className="t-explain opacity-60">
+      <p className="t-explain text-[color:var(--ink-quiet)]">
         <Num phrase>{copy("free-page.of", { total: String(section.totalPages) })}</Num>
       </p>
     </Card>

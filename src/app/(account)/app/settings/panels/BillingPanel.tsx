@@ -114,7 +114,7 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
           data-testid="billing-price"
         >
           <span className="num rk-figure wrap-anywhere">{amount}</span>
-          <span className="num-phrase text-xs opacity-60 wrap-anywhere">
+          <span className="num-phrase text-xs text-[color:var(--ink-quiet)] wrap-anywhere">
             {price.slice(1).join(" ")}
           </span>
         </span>
@@ -188,18 +188,18 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
           {BILLING_UNREADABLE_KEYS.map((key) => ({ key, line: writtenLine(key) }))
             .filter((written) => written.line !== null)
             .map((written) => (
-              <p className="text-xs opacity-60 wrap-anywhere" key={written.key}>
+              <p className="text-xs text-[color:var(--ink-quiet)] wrap-anywhere" key={written.key}>
                 {written.line}
               </p>
             ))}
         </div>
       )}
       {cancelling === null ? null : (
-        <p className="text-xs opacity-60 wrap-anywhere" data-testid="billing-cancelling">
+        <p className="text-xs text-[color:var(--ink-quiet)] wrap-anywhere" data-testid="billing-cancelling">
           {cancelling}
         </p>
       )}
-      {action.line === null ? null : <p className="text-xs opacity-60 wrap-anywhere">{action.line}</p>}
+      {action.line === null ? null : <p className="text-xs text-[color:var(--ink-quiet)] wrap-anywhere">{action.line}</p>}
     </Card>
   );
 }

@@ -202,7 +202,7 @@ export function MarketPanel(p: {
             editing arm keeps its own column, because a field and its
             refusal line do not fit on one line at 320. */}
         <div className="flex min-w-0 flex-col gap-1" data-testid="setting-domain">
-          <span className="eyebrow opacity-60">{copy("settings.market.domain")}</span>
+          <span className="eyebrow text-[color:var(--ink-quiet)]">{copy("settings.market.domain")}</span>
           {editing === "domain" ? (
             editingField("domain")
           ) : (
@@ -214,7 +214,7 @@ export function MarketPanel(p: {
         </div>
 
         <div className="flex min-w-0 flex-col gap-1" data-testid="setting-category">
-          <span className="eyebrow opacity-60">{copy("settings.market.category")}</span>
+          <span className="eyebrow text-[color:var(--ink-quiet)]">{copy("settings.market.category")}</span>
           {editing === "category" ? (
             editingField("category")
           ) : (
@@ -228,13 +228,13 @@ export function MarketPanel(p: {
         </div>
       </div>
 
-      {effect === null ? null : <p className="text-xs opacity-60 wrap-anywhere">{effect}</p>}
+      {effect === null ? null : <p className="text-xs text-[color:var(--ink-quiet)] wrap-anywhere">{effect}</p>}
       {dated === null ? null : (
         <p
           className={
             warned
-              ? "border-warning/40 bg-warning/10 text-[var(--warn-ink)] rounded-field border px-2.5 py-2 text-xs wrap-anywhere"
-              : "text-xs opacity-60 wrap-anywhere"
+              ? "border-warning/40 bg-warning/10 text-[color:var(--warn-ink)] rounded-field border px-2.5 py-2 text-xs wrap-anywhere"
+              : "text-xs text-[color:var(--ink-quiet)] wrap-anywhere"
           }
           data-testid="market-change-line"
         >

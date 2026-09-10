@@ -320,19 +320,24 @@
 }
 
 /* A date with no page is an OUTLINE, not a card (S14's `.cd.empty`): no
- * ground, no shadow, the edge in `--line`, the numeral quieter. It is
- * emphatically not a lesser page — the calendar is never padded (DECISIONS
- * 2026-08-28, ADR-061) — so a day with nothing on it has to *look* like
- * one. */
+ * ground, no shadow, the edge in `--line`. It is emphatically not a lesser
+ * page — the calendar is never padded (DECISIONS 2026-08-28, ADR-061) — so
+ * a day with nothing on it has to *look* like one. */
 .rk-cal-cell.rk-cal-empty-day {
   background: transparent;
   box-shadow: none;
   border-color: var(--line);
 }
 
-.rk-cal-cell.rk-cal-empty-day .rk-cal-date {
-  opacity: 0.55;
-}
+/* The numeral used to be dimmed a further `opacity: .55` here — "the
+ * numeral quieter", on top of `.rk-cal-date`'s own `--ink-quiet`. Measured,
+ * that composite is **2.21:1** against the page ground the transparent cell
+ * shows through, and axe reported all ten empty days of the swept month
+ * (issue #328). It is gone rather than re-tuned: the numeral is already on
+ * the ladder's quiet rung, and the three rules above — no ground, no
+ * shadow, a `--line` edge — are what say "nothing here", beside the cell's
+ * own written line. A fourth signal that cost the numeral its legibility
+ * was buying nothing. */
 
 /* §4.6: "Today ringed accent." A ring, not a border — a border would move
  * the cell's own box and shift the grid by a pixel on whichever day it is. */

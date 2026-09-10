@@ -181,7 +181,7 @@ export function PublishingPanel(p: { settings: SettingsModel }): React.JSX.Eleme
           ))}
         </div>
         {pairNote === null ? null : (
-          <p className="text-xs opacity-60 wrap-anywhere" data-testid="publishing-pair-note">
+          <p className="text-xs text-[color:var(--ink-quiet)] wrap-anywhere" data-testid="publishing-pair-note">
             {pairNote}
           </p>
         )}
@@ -237,7 +237,7 @@ export function PublishingPanel(p: { settings: SettingsModel }): React.JSX.Eleme
               two destinations and their names say what they are — but a site
               with none must still say what the empty section is, which is
               what `tests/app/settings/destinations.test.tsx` holds. */}
-          <span className="eyebrow opacity-60">{copy("settings.publishing.destinations")}</span>
+          <span className="eyebrow text-[color:var(--ink-quiet)]">{copy("settings.publishing.destinations")}</span>
           {destinations.map((destination) => (
             <div className="flex min-w-0 flex-col gap-1" key={destination.id} data-testid={`destination-${destination.id}`}>
               <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
@@ -260,14 +260,14 @@ export function PublishingPanel(p: { settings: SettingsModel }): React.JSX.Eleme
                 </span>
               </div>
               {destination.copy.line === null ? null : (
-                <p className="text-xs opacity-60 wrap-anywhere">{copy(destination.copy.line)}</p>
+                <p className="text-xs text-[color:var(--ink-quiet)] wrap-anywhere">{copy(destination.copy.line)}</p>
               )}
             </div>
           ))}
         </div>
       </div>
 
-      {fixNote === null ? null : <p className="text-xs opacity-60 wrap-anywhere">{fixNote}</p>}
+      {fixNote === null ? null : <p className="text-xs text-[color:var(--ink-quiet)] wrap-anywhere">{fixNote}</p>}
     </Card>
   );
 }

@@ -95,7 +95,7 @@ export function GooglePresenceCard(p: { section: PresenceSection }): React.JSX.E
       {/* The eyebrow rung, not `--h3`: a label for a list inside a card
           is not a second card head (§2.3), and not a heading element —
           every rendered heading owes its own step of the ruled scale. */}
-      <p className="eyebrow opacity-60">{copy("presence.absent-from.title")}</p>
+      <p className="eyebrow text-[color:var(--ink-quiet)]">{copy("presence.absent-from.title")}</p>
       {/* The three columns, sized rather than left to chance (issue #307).
           The card is half the report's width at 1024 and 1280, and three
           mono columns that could none of them fold added up to more than

@@ -4,7 +4,11 @@
 // document every ReachKit-addressed surface renders inside. It carries
 // BP-018's theme and fonts and holds no product copy of its own (BP-018
 // decision 2: "no component has a default string"): this file renders
-// `{children}` and nothing else — no navigation, no heading, no string.
+// `{children}` and nothing else — no navigation, no heading, no string of
+// its own. Since issue #328 it exports the document's `title`, which is not
+// a string of its own either: it is `chrome.wordmark`, read from the
+// registry, and the comment on `metadata` below says why the document needs
+// one at all.
 //
 // Theme: `src/ui/theme.css` (WO-029) declares its three states against the
 // bare `:root` selector — the browser's root element is `<html>`, so
@@ -50,8 +54,10 @@
 // (issue #266). It declares four tokens on `:root` and widens three
 // registered components' arms, so it ships wherever those components do —
 // which is every route.
+import type { Metadata } from "next";
 import type React from "react";
 
+import { copy } from "@/lib/presentation/copy";
 import "@/ui/theme.css";
 import "@/ui/tailwind.css";
 import "@/ui/type.css";
@@ -83,6 +89,30 @@ import { fontVariables } from "@/ui/fonts";
  * process for.
  */
 export const dynamic = "force-dynamic";
+
+/**
+ * The document's title (issue #328).
+ *
+ * Every one of the sixteen routes rendered `<title></title>` — axe reported
+ * `document-title`, serious, on all of them, which is WCAG 2.1 §2.4.2 at
+ * level A. A title is copy, so this is not one: it is `chrome.wordmark`,
+ * the registry's own key, whose value the owner approved as written under
+ * ruling 11a. That is why this file may carry it and still hold to
+ * BP-018 decision 2 — the string is read, never defaulted.
+ *
+ * Plain rather than a `template`, so a route that sets its own title
+ * *replaces* this one instead of being suffixed. The hosted page is why:
+ * `generateMetadata` there returns the customer's own page title, and a
+ * page on the customer's domain does not carry our wordmark in its title
+ * bar.
+ *
+ * **Per-screen titles are still owed.** §2.4.2 asks a title to describe the
+ * page's topic, and one wordmark across sixteen screens is the floor, not
+ * the answer; the sentences are the owner's (M13).
+ */
+export const metadata: Metadata = {
+  title: copy("chrome.wordmark"),
+};
 
 export default function RootLayout({
   children,

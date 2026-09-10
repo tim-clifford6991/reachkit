@@ -112,7 +112,7 @@ export function AddressView(p: {
         <Pane>
           <StateCard domain={state.domain}>
             <ScanProgress domain={state.domain} />
-            <p className="t-explain opacity-60">{copy("scan.waiting.line")}</p>
+            <p className="t-explain text-[color:var(--ink-quiet)]">{copy("scan.waiting.line")}</p>
           </StateCard>
         </Pane>
       );
@@ -124,7 +124,7 @@ export function AddressView(p: {
             {/* REQ-003 c1's own frame, and the set's line: what the wait is
                 worth, and that the address survives it. No countdown — the
                 stages carry the only figures on this screen. */}
-            <p className="t-explain opacity-60">{copy("scan.waiting.line")}</p>
+            <p className="t-explain text-[color:var(--ink-quiet)]">{copy("scan.waiting.line")}</p>
           </StateCard>
         </Pane>
       );

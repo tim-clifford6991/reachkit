@@ -64,7 +64,7 @@ export function AccountPanel(p: { account: SettingsModel["account"] }): React.JS
     <Card state="default" title={<CardHead icon={<Lock size={15} strokeWidth={1.8} aria-hidden />} eyebrow={copy("settings.account.title")} />}>
       <div className="flex min-w-0 flex-col gap-3">
         <div className="flex min-w-0 flex-col gap-1" data-testid="setting-name">
-          <span className="eyebrow opacity-60">{copy("settings.account.name")}</span>
+          <span className="eyebrow text-[color:var(--ink-quiet)]">{copy("settings.account.name")}</span>
           <div className="flex min-w-0 flex-wrap items-center gap-2">
             {/* `null` where the account has stated no name: the card shows an
                 empty value rather than inventing one, and the label still
@@ -75,7 +75,7 @@ export function AccountPanel(p: { account: SettingsModel["account"] }): React.JS
         </div>
 
         <div className="flex min-w-0 flex-col gap-1" data-testid="setting-email">
-          <span className="eyebrow opacity-60">{copy("settings.account.email")}</span>
+          <span className="eyebrow text-[color:var(--ink-quiet)]">{copy("settings.account.email")}</span>
           <div className="flex min-w-0 flex-wrap items-center gap-2">
             {/* §2.3: an address is a code-like string. The address the
                 account signs in with — never the one awaiting confirmation,
@@ -90,13 +90,13 @@ export function AccountPanel(p: { account: SettingsModel["account"] }): React.JS
             className="flex min-w-0 flex-col gap-2 rounded-field border border-warning/40 border-l-4 border-l-warning bg-warning/10 p-3"
             data-testid="email-pending"
           >
-            <span className="eyebrow opacity-60">{copy("settings.account.email-pending")}</span>
+            <span className="eyebrow text-[color:var(--ink-quiet)]">{copy("settings.account.email-pending")}</span>
             <span className="num min-w-0 wrap-anywhere" data-testid="email-pending-address">
               {pending.email}
             </span>
             {/* The moment, formatted once on the model in the customer's own
                 zone. This card states no date of its own. */}
-            <p className="text-xs opacity-60 wrap-anywhere">
+            <p className="text-xs text-[color:var(--ink-quiet)] wrap-anywhere">
               {copy("settings.account.email-pending-expires", { at: pending.expiresAt })}
             </p>
             <form action={cancelEmailChangeAction}>
@@ -142,7 +142,7 @@ export function AccountPanel(p: { account: SettingsModel["account"] }): React.JS
       {p.account.noteKeys.map((key) => {
         const note = writtenLine(key);
         return note === null ? null : (
-          <p key={key} className="text-xs opacity-60 wrap-anywhere">
+          <p key={key} className="text-xs text-[color:var(--ink-quiet)] wrap-anywhere">
             {note}
           </p>
         );
@@ -159,7 +159,7 @@ export function AccountPanel(p: { account: SettingsModel["account"] }): React.JS
         </span>
       </div>
 
-      {action.line === null ? null : <p className="text-xs opacity-60 wrap-anywhere">{action.line}</p>}
+      {action.line === null ? null : <p className="text-xs text-[color:var(--ink-quiet)] wrap-anywhere">{action.line}</p>}
     </Card>
   );
 }

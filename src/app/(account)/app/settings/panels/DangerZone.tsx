@@ -86,7 +86,7 @@ export function DangerZone(): React.JSX.Element {
     // one caller; `rk-danger` is the idiom's own, beside the value chip.
     <div className="rk-danger min-w-0" data-testid="settings-danger">
       <Card state="default" title={<CardHead icon={<Shield size={15} strokeWidth={1.8} aria-hidden />} eyebrow={copy("danger.zone.title")} />}>
-      {exportFirst === null ? null : <p className="text-xs opacity-60 wrap-anywhere">{exportFirst}</p>}
+      {exportFirst === null ? null : <p className="text-xs text-[color:var(--ink-quiet)] wrap-anywhere">{exportFirst}</p>}
 
       <div className="flex min-w-0 flex-col gap-3">
         {DANGER.map((row) => (
@@ -104,7 +104,7 @@ export function DangerZone(): React.JSX.Element {
         ))}
       </div>
 
-      {action.line === null ? null : <p className="text-xs opacity-60 wrap-anywhere">{action.line}</p>}
+      {action.line === null ? null : <p className="text-xs text-[color:var(--ink-quiet)] wrap-anywhere">{action.line}</p>}
       </Card>
     </div>
   );
@@ -137,14 +137,14 @@ function DangerStep(p: {
       className="flex min-w-0 flex-col gap-2 rounded-field border border-error/40 border-l-4 border-l-error bg-error/10 p-3"
       data-testid={`consequence-${p.row.action}`}
     >
-      {consequence === null ? null : <p className="text-xs opacity-60 wrap-anywhere">{consequence}</p>}
+      {consequence === null ? null : <p className="text-xs text-[color:var(--ink-quiet)] wrap-anywhere">{consequence}</p>}
 
       {/* Gate 1 — c3's export, before anything is destroyed. Pressing it
           hands the archive over through the action seam (an address, because
           a Server Function cannot stream a file); the state below is then
           re-read from the ticket rather than assumed from the press. */}
       <div className="flex min-w-0 flex-col gap-1" data-testid={`export-${p.row.action}`}>
-        <span className="eyebrow opacity-60">
+        <span className="eyebrow text-[color:var(--ink-quiet)]">
           {handover.taken ? copy("danger.export-taken") : copy("danger.export-take")}
         </span>
         {handover.taken ? null : (
@@ -205,17 +205,17 @@ function DangerLine(p: { outcome: RenderedOutcome }): React.JSX.Element {
   const line = writtenLine(p.outcome.lineKey);
   return (
     <div className="flex min-w-0 flex-col gap-1" data-testid="danger-outcome">
-      {line === null ? null : <p className="text-xs opacity-60 wrap-anywhere">{line}</p>}
+      {line === null ? null : <p className="text-xs text-[color:var(--ink-quiet)] wrap-anywhere">{line}</p>}
       {p.outcome.ran ? (
         <>
-          <p className="text-xs opacity-60 wrap-anywhere">
+          <p className="text-xs text-[color:var(--ink-quiet)] wrap-anywhere">
             {copy("danger.taken-down-count", { pages: String(p.outcome.takenDown) })}
           </p>
           {p.outcome.stillLive.length === 0 ? null : (
             <ul className="flex min-w-0 flex-col gap-1" data-testid="danger-still-live">
               {p.outcome.stillLive.flatMap((destination) =>
                 destination.liveUrls.map((url) => (
-                  <li key={url} className="num text-xs opacity-60 wrap-anywhere">
+                  <li key={url} className="num text-xs text-[color:var(--ink-quiet)] wrap-anywhere">
                     {url}
                   </li>
                 ))
@@ -224,7 +224,7 @@ function DangerLine(p: { outcome: RenderedOutcome }): React.JSX.Element {
           )}
         </>
       ) : (
-        <p className="text-xs opacity-60 wrap-anywhere">{copy("danger.nothing-changed")}</p>
+        <p className="text-xs text-[color:var(--ink-quiet)] wrap-anywhere">{copy("danger.nothing-changed")}</p>
       )}
     </div>
   );

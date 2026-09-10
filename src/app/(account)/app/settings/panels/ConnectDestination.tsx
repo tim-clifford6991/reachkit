@@ -119,7 +119,7 @@ export function ConnectDestination(p: { action: CredentialAction }): React.JSX.E
             value={applicationPassword}
             onChange={setApplicationPassword}
           />
-          {help === null ? null : <p className="text-xs opacity-60 wrap-anywhere">{help}</p>}
+          {help === null ? null : <p className="text-xs text-[color:var(--ink-quiet)] wrap-anywhere">{help}</p>}
           <Btn
             label={copy("settings.destination.submit")}
             size="sm"

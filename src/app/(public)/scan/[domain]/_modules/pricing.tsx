@@ -94,7 +94,7 @@ export function PricingCard(
         <div className="font-semibold" style={PRICE_SIZE}>
           <Num>{copy("price.amount")}</Num>
         </div>
-        <span className="t-sm font-semibold opacity-60">{copy("price.interval")}</span>
+        <span className="t-sm font-semibold text-[color:var(--ink-quiet)]">{copy("price.interval")}</span>
       </div>
 
       {/* The four the offer states, each with the set's own check mark in
@@ -121,7 +121,7 @@ export function PricingCard(
       ) : (
         <Btn label={copy("offer.start.priced")} variant="primary" pill block />
       )}
-      <p className="t-explain text-center opacity-60">{copy("offer.cancel_self_service")}</p>
+      <p className="t-explain text-center text-[color:var(--ink-quiet)]">{copy("offer.cancel_self_service")}</p>
     </Card>
   );
 }

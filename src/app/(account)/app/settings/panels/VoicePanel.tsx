@@ -59,7 +59,7 @@ export function VoicePanel(p: { settings: SettingsModel }): React.JSX.Element {
         <hr className="border-base-300 min-w-0 border-t" />
 
         <div className="flex min-w-0 flex-col gap-3" data-testid="setting-do_not_claim">
-          <p className="eyebrow opacity-60">{copy("settings.voice.never-claim")}</p>
+          <p className="eyebrow text-[color:var(--ink-quiet)]">{copy("settings.voice.never-claim")}</p>
           {/* Each entry with its own way out. A claim the customer can add
               and cannot remove would be a filter they no longer control.
               
@@ -95,7 +95,7 @@ export function VoicePanel(p: { settings: SettingsModel }): React.JSX.Element {
       </div>
 
       {filterNote === null ? null : (
-        <p className="text-xs opacity-60 wrap-anywhere">{filterNote}</p>
+        <p className="text-xs text-[color:var(--ink-quiet)] wrap-anywhere">{filterNote}</p>
       )}
     </Card>
   );

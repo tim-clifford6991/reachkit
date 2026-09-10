@@ -69,7 +69,7 @@ import type { SettingsModel } from "../model";
 function EmptyLine(): React.JSX.Element | null {
   const line = writtenLine("settings.competitors.none-yet");
   return line === null ? null : (
-    <p className="text-xs opacity-60 wrap-anywhere" data-testid="competitors-none-yet-line">
+    <p className="text-xs text-[color:var(--ink-quiet)] wrap-anywhere" data-testid="competitors-none-yet-line">
       {line}
     </p>
   );
