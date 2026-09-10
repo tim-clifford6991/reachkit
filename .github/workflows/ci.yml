@@ -177,6 +177,12 @@ jobs:
         with:
           name: review-gallery-${{ github.sha }}
           path: .review
+          # `.review` is dot-prefixed, and this action drops "files within
+          # folders beginning with `.`" unless asked otherwise — so the
+          # first run wrote 93 pictures and uploaded none of them. The
+          # directory holds PNGs and one index.html and nothing else; the
+          # issue names that path, so the flag moves rather than the path.
+          include-hidden-files: true
           # A gallery that uploaded nothing reads exactly like one nobody
           # opened. It is a failure and it says so.
           if-no-files-found: error
