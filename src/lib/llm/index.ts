@@ -49,15 +49,20 @@
 //   the one case BP-024 defines it for — the caller's own cost ceiling
 //   stopping the call before it was ever attempted (`recordFetch`'s
 //   `{ skipped: "cap" }`). Recorded as an open `rests-on` row on WO-026.
-import Anthropic from "@anthropic-ai/sdk";
+import Anthropic, { APIConnectionTimeoutError, APIError } from "@anthropic-ai/sdk";
 import { createHash } from "node:crypto";
 import type { ZodType } from "zod";
+import { INFERENCE_MAX_RETRIES } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
 import { costCentsFor, tierBinding, type Tier, type TierBinding } from "./tiers";
 
 /** BP-009 `## Error & edge behavior`: "retried at most once" — one retry,
- *  two attempts total. */
+ *  two attempts total. Both attempts spend the *same* budget
+ *  (`binding.timeoutMs`), which is why `runAttempts` below carries a
+ *  deadline rather than handing each attempt a fresh clock: the pin is a
+ *  bound on the call, and a retry that could double it would make the
+ *  pass's own arithmetic (`tests/llm/budget.test.ts`) untrue. */
 const MAX_ATTEMPTS = 2;
 
 /** Bounds both the request's own `max_tokens` and the cost reservation
@@ -68,12 +73,44 @@ const MAX_OUTPUT_TOKENS = 4096;
 
 type ParseOutcome = "success" | "unparseable" | "unavailable" | "not_attempted";
 
+/** Why a call did not come back with a conforming answer, in one word a
+ *  live run can be grepped for (issue #452). `parseOutcome` alone said
+ *  only `unavailable`, which is every transport failure there is — a
+ *  timeout, a 429, a 529, a bad credential and a DNS failure all read the
+ *  same, so the M3 live run of 2026-09-10 could say the profile never
+ *  arrived and not say why. Four classes, closed: the vendor's own HTTP
+ *  status where it gave one, `timeout` where the budget below ran out,
+ *  `parse` where responses came back and none conformed to the caller's
+ *  schema, and `vendor` for a transport failure of no other shape.
+ *
+ *  **Read off the error's *shape*, never its text.** A vendor SDK's error
+ *  object routinely echoes the request that produced it, credential
+ *  headers included (`tests/llm/seam.test.ts`'s third mutation probe is
+ *  exactly that scenario), so nothing here reads `message` and nothing
+ *  here reaches a log but the class word itself. */
+type FailureClass = "timeout" | "parse" | "vendor" | `http_${number}`;
+
 interface AttemptOutcome {
   parseOutcome: ParseOutcome;
   value: unknown;
   tokensIn: number;
   tokensOut: number;
   durationMs: number;
+  /** Absent on a success — BP-009's `## NFR budget` names six log fields
+   *  and a call that answered adds none of its own. */
+  failure?: FailureClass;
+}
+
+/** The vendor's error classes are the SDK's own (`APIError` carries the
+ *  response status; `APIConnectionTimeoutError` is the one it raises when
+ *  the client's `timeout` fires), so the classification is `instanceof`
+ *  against them rather than a guess at a message. */
+function failureClassOf(error: unknown): FailureClass {
+  if (error instanceof APIConnectionTimeoutError) return "timeout";
+  if (error instanceof APIError && typeof error.status === "number") {
+    return `http_${error.status}`;
+  }
+  return "vendor";
 }
 
 /** `~4 chars/token` — a standard, widely-used estimate (not vendor data,
@@ -109,15 +146,32 @@ function parseJson(text: string): { ok: true; value: unknown } | { ok: false } {
  *  not itself a raw `fetch` call in this tree). */
 async function callModel(
   binding: TierBinding,
-  inputText: string
+  inputText: string,
+  /** What is left of `binding.timeoutMs` when this attempt starts, carried
+   *  as the request's own bound. The client is still constructed with the
+   *  tier's whole pin — that is the budget, and the first attempt has all
+   *  of it — but a retry is handed the remainder, never a second full
+   *  one, so no `llm()` call can outlive the number `INFERENCE_TIMEOUT_MS`
+   *  states however many attempts it takes inside. */
+  remainingMs: number
 ): Promise<{ text: string; tokensIn: number; tokensOut: number }> {
-  const client = new Anthropic({ apiKey: binding.apiKey, timeout: binding.timeoutMs });
-  const message = await client.messages.create({
-    model: binding.modelId,
-    max_tokens: MAX_OUTPUT_TOKENS,
-    system: "Respond with JSON only. No prose, no markdown fences, no commentary.",
-    messages: [{ role: "user", content: inputText }],
+  const client = new Anthropic({
+    apiKey: binding.apiKey,
+    timeout: binding.timeoutMs,
+    // `INFERENCE_MAX_RETRIES`, passed rather than defaulted (issue #452):
+    // the SDK's own default is 2, which made every attempt three requests
+    // and the tier's timeout three times the wall clock it reads as.
+    maxRetries: INFERENCE_MAX_RETRIES,
   });
+  const message = await client.messages.create(
+    {
+      model: binding.modelId,
+      max_tokens: MAX_OUTPUT_TOKENS,
+      system: "Respond with JSON only. No prose, no markdown fences, no commentary.",
+      messages: [{ role: "user", content: inputText }],
+    },
+    { timeout: remainingMs }
+  );
   return {
     text: extractText(message),
     tokensIn: message.usage.input_tokens,
@@ -140,20 +194,36 @@ async function runAttempts<T>(
   inputText: string
 ): Promise<AttemptOutcome> {
   const startedAt = Date.now();
+  const deadline = startedAt + binding.timeoutMs;
   let tokensIn = 0;
   let tokensOut = 0;
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-    let response: { text: string; tokensIn: number; tokensOut: number };
-    try {
-      response = await callModel(binding, inputText);
-    } catch {
+    const remainingMs = deadline - Date.now();
+    // The budget, not the attempt, is what `binding.timeoutMs` bounds
+    // (`INFERENCE_TIMEOUT_MS`, issue #452): a retry that would start with
+    // nothing left is not started, and reads as the timeout it is.
+    if (remainingMs <= 0) {
       return {
         parseOutcome: "unavailable",
         value: undefined,
         tokensIn,
         tokensOut,
         durationMs: Date.now() - startedAt,
+        failure: "timeout",
+      };
+    }
+    let response: { text: string; tokensIn: number; tokensOut: number };
+    try {
+      response = await callModel(binding, inputText, remainingMs);
+    } catch (error: unknown) {
+      return {
+        parseOutcome: "unavailable",
+        value: undefined,
+        tokensIn,
+        tokensOut,
+        durationMs: Date.now() - startedAt,
+        failure: failureClassOf(error),
       };
     }
     tokensIn += response.tokensIn;
@@ -182,6 +252,7 @@ async function runAttempts<T>(
     tokensIn,
     tokensOut,
     durationMs: Date.now() - startedAt,
+    failure: "parse",
   };
 }
 
@@ -193,6 +264,11 @@ interface LogRecord {
   costCents: number;
   durationMs: number;
   parseOutcome: ParseOutcome;
+  /** Present only where the call failed (issue #452) — a successful call
+   *  logs exactly BP-009's six named fields and nothing else, so the
+   *  observability record it specifies is unchanged for every line a
+   *  healthy run writes. */
+  failure?: FailureClass;
 }
 
 /** BP-009 `## NFR budget`, verbatim: "call site, tier, tokens in and out,
@@ -200,7 +276,15 @@ interface LogRecord {
  *  log." This is the one place `llm()` writes to a log, and `LogRecord`
  *  is the whole field set — there is no path from `call.input` or a
  *  model's response text into this function, and none from
- *  `binding.apiKey` either. */
+ *  `binding.apiKey` either.
+ *
+ *  A seventh field, `failure`, is written only where the call failed
+ *  (issue #452): `parseOutcome: "unavailable"` is every transport failure
+ *  there is, so a live run could read that the profile never arrived and
+ *  not read why. It is one of `FailureClass`'s closed words — a class,
+ *  never a message — so the "never the prompt or the completion" half of
+ *  the clause is untouched, and a successful line still carries exactly
+ *  the six fields BP-009 names. */
 function logCall(record: LogRecord): void {
   console.log(JSON.stringify(record));
 }
@@ -266,6 +350,10 @@ export async function llm<T>(
     costCents: result.costCents,
     durationMs: outcome.durationMs,
     parseOutcome: outcome.parseOutcome,
+    // Spread, not a written `failure: outcome.failure` — an explicit
+    // `undefined` survives into the record's key set, and a successful
+    // call's line carries BP-009's six fields exactly.
+    ...(outcome.failure === undefined ? {} : { failure: outcome.failure }),
   });
 
   if (outcome.parseOutcome === "success") {

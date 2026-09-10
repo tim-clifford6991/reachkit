@@ -14,11 +14,15 @@
 // decision of its own — it reads the two already-resolved members and
 // nothing else authenticates a call.
 //
-// **Price and timeout — transcribed, not chosen (rule 1.2).**
+// **Price and timeout — pinned elsewhere, only read here (rule 2.4).**
 // `INFERENCE_PRICE_BOOK` is BP-005's `## Public interface`, verbatim.
-// `INFERENCE_TIMEOUT_MS` is BP-009's `## NFR budget`, verbatim: "p95
-// latency: nano ≤ 3 s, haiku ≤ 20 s." Both live in `constants.ts` and
-// nowhere else (rule 2.4) — this file only reads them.
+// `INFERENCE_TIMEOUT_MS` was BP-009's `## NFR budget` transcribed ("p95
+// latency: nano ≤ 3 s, haiku ≤ 20 s") until issue #452 measured that
+// budget against the vendor and found `nano`'s 3 s below the latency a
+// real call to `claude-haiku-4-5` has: it is now 15 s, and it bounds the
+// whole `llm()` call rather than one attempt inside it — the reasoning,
+// and the live run it rests on, are on the pin itself. Both live in
+// `constants.ts` and nowhere else — this file only reads them.
 //
 // **Model id — chosen, not transcribed (rule 1.1 — flagged once, here,
 // per constitution rule 4.2, and in this WO's return).** No approved

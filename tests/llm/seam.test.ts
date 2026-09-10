@@ -33,6 +33,7 @@
 //      passing because the credential was never used at all — it asserts
 //      the vendor client actually received the real, tier-correct key.
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { APIConnectionTimeoutError, APIError } from "@anthropic-ai/sdk";
 import { z } from "zod";
 import type { CostContext } from "../../src/lib/costs";
 import type { Tier } from "../../src/lib/llm/tiers.ts";
@@ -77,17 +78,25 @@ const NANO_API_KEY_B64 = Buffer.from(NANO_API_KEY).toString("base64");
 // including a plain `const` declared above them.
 const { createMock, constructedWith } = vi.hoisted(() => ({
   createMock: vi.fn(),
-  constructedWith: [] as { apiKey: string; timeout: number }[],
+  constructedWith: [] as { apiKey: string; timeout: number; maxRetries: number }[],
 }));
 
-vi.mock("@anthropic-ai/sdk", () => ({
-  default: class MockAnthropic {
-    constructor(opts: { apiKey: string; timeout: number }) {
-      constructedWith.push(opts);
-    }
-    messages = { create: createMock };
-  },
-}));
+// The default export is replaced; the module's own error classes are kept
+// (`importOriginal`), because `index.ts` classifies a failed call by
+// `instanceof` against them (issue #452) and a mock that omitted them
+// would make that classification vacuously unreachable here.
+vi.mock("@anthropic-ai/sdk", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@anthropic-ai/sdk")>();
+  return {
+    ...actual,
+    default: class MockAnthropic {
+      constructor(opts: { apiKey: string; timeout: number; maxRetries: number }) {
+        constructedWith.push(opts);
+      }
+      messages = { create: createMock };
+    },
+  };
+});
 
 let llm: typeof import("../../src/lib/llm/index.ts").llm;
 let tierBinding: typeof import("../../src/lib/llm/tiers.ts").tierBinding;
@@ -482,19 +491,120 @@ describe("llm() — observability record (BP-009 `## NFR budget`)", () => {
   });
 });
 
-describe("llm() — p95 latency budget (BP-009 `## NFR budget`)", () => {
-  it("each tier's configured timeout matches its stated budget: nano ≤ 3 s, haiku ≤ 20 s", () => {
-    expect(tierBinding("nano").timeoutMs).toBe(3000);
-    expect(tierBinding("haiku").timeoutMs).toBe(20000);
+describe("llm() — the call's time budget (BP-009 `## NFR budget`, as issue #452 moved it)", () => {
+  it("each tier's configured budget is its pin — nano 15 s (raised from BP-009's 3 s, #452), haiku 20 s", () => {
+    expect(tierBinding("nano").timeoutMs).toBe(15_000);
+    expect(tierBinding("haiku").timeoutMs).toBe(20_000);
+    // The defect itself, guarded: 3 s is below the latency a structured
+    // call to `claude-haiku-4-5` has from a cold function, and every
+    // production profile call made under it was cut off.
+    expect(tierBinding("nano").timeoutMs).toBeGreaterThan(3000);
   });
 
-  it("the configured timeout reaches the vendor client construction", async () => {
+  it("the configured budget reaches the vendor client construction", async () => {
     createMock.mockResolvedValueOnce(textMessage({ headline: "ok" }));
     await llm(fakeCostContext().ctx, { site: "profile", input: {}, schema: SCHEMA, tier: "haiku" });
-    expect(constructedWith[0]!.timeout).toBe(20000);
+    expect(constructedWith[0]!.timeout).toBe(20_000);
 
     createMock.mockResolvedValueOnce(textMessage({ headline: "ok" }));
     await llm(fakeCostContext().ctx, { site: "profile", input: {}, schema: SCHEMA, tier: "nano" });
-    expect(constructedWith[1]!.timeout).toBe(3000);
+    expect(constructedWith[1]!.timeout).toBe(15_000);
+  });
+
+  it(
+    "the vendor SDK's own retry layer is off, stated on every client this seam builds — its default of " +
+      "2 is what turned one attempt into three requests and the tier's budget into three times the wall " +
+      "clock it reads as (#452)",
+    async () => {
+      createMock.mockResolvedValueOnce(textMessage({ headline: "ok" }));
+      await llm(fakeCostContext().ctx, { site: "profile", input: {}, schema: SCHEMA, tier: "nano" });
+      expect(constructedWith[0]!.maxRetries).toBe(0);
+      expect(constructedWith[0]!.maxRetries).not.toBe(2); // the default, never inherited
+    }
+  );
+
+  it(
+    "the budget bounds the call, not the attempt: the parse retry is issued with what is left of it, " +
+      "never a second full one — so `MAX_ATTEMPTS` cannot double the pass's arithmetic",
+    async () => {
+      createMock.mockResolvedValueOnce(textMessage({ wrong: "shape" }));
+      createMock.mockResolvedValueOnce(textMessage({ headline: "ok" }));
+
+      await llm(fakeCostContext().ctx, { site: "profile", input: {}, schema: SCHEMA, tier: "nano" });
+
+      expect(createMock).toHaveBeenCalledTimes(2);
+      // Every attempt carries what is left of the one budget as its own
+      // request bound: the first has all of it, the retry no more than the
+      // first had.
+      const first = createMock.mock.calls[0]![1] as { timeout: number };
+      const retry = createMock.mock.calls[1]![1] as { timeout: number };
+      expect(first.timeout).toBeLessThanOrEqual(15_000);
+      expect(first.timeout).toBeGreaterThan(14_000);
+      expect(retry.timeout).toBeGreaterThan(0);
+      expect(retry.timeout).toBeLessThanOrEqual(first.timeout);
+      // Each attempt builds its client from the same pin — the budget is
+      // the tier's, not the attempt's — and it is the request bound above,
+      // never the constructor's, that shrinks across the two.
+      expect(constructedWith.map((c) => c.timeout)).toEqual([15_000, 15_000]);
+    }
+  );
+});
+
+describe("llm() — the failure class the log names (issue #452)", () => {
+  async function failWith(error: unknown): Promise<Record<string, unknown>> {
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    createMock.mockRejectedValueOnce(error);
+    await llm(fakeCostContext().ctx, { site: "profile", input: {}, schema: SCHEMA, tier: "nano" });
+    return JSON.parse(logSpy.mock.calls[0]![0] as string) as Record<string, unknown>;
+  }
+
+  it("a timeout is logged as `timeout`, not as the bare `unavailable` a live run cannot act on", async () => {
+    const logged = await failWith(new APIConnectionTimeoutError({ message: "timed out" }));
+    expect(logged.parseOutcome).toBe("unavailable");
+    expect(logged.failure).toBe("timeout");
+  });
+
+  it.each([429, 500, 529])("an HTTP %s is logged with the vendor's own status", async (status) => {
+    const logged = await failWith(new APIError(status, undefined, "vendor said no", undefined));
+    expect(logged.failure).toBe(`http_${status}`);
+  });
+
+  it("a transport failure of no other shape is logged as `vendor` — never as a message", async () => {
+    const logged = await failWith(new Error("connection refused to 10.0.0.1"));
+    expect(logged.failure).toBe("vendor");
+    expect(JSON.stringify(logged)).not.toContain("10.0.0.1");
+    expect(JSON.stringify(logged)).not.toContain("connection refused");
+  });
+
+  it("responses that never conform to the schema are logged as `parse`", async () => {
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    createMock.mockResolvedValueOnce(textMessage({ wrong: "shape" }));
+    createMock.mockResolvedValueOnce(textMessage({ wrong: "shape" }));
+
+    await llm(fakeCostContext().ctx, { site: "profile", input: {}, schema: SCHEMA, tier: "nano" });
+
+    const logged = JSON.parse(logSpy.mock.calls[0]![0] as string) as Record<string, unknown>;
+    expect(logged.parseOutcome).toBe("unparseable");
+    expect(logged.failure).toBe("parse");
+  });
+
+  it("a successful call carries no `failure` key at all — BP-009's six fields, unchanged", async () => {
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    createMock.mockResolvedValueOnce(textMessage({ headline: "ok" }));
+
+    await llm(fakeCostContext().ctx, { site: "profile", input: {}, schema: SCHEMA, tier: "nano" });
+
+    const logged = JSON.parse(logSpy.mock.calls[0]![0] as string) as Record<string, unknown>;
+    expect(Object.keys(logged)).not.toContain("failure");
+  });
+
+  it("the cap's own `not_attempted` is not a failure — nothing reached the vendor, so nothing is classified", async () => {
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+
+    await llm(cappedCostContext().ctx, { site: "profile", input: {}, schema: SCHEMA, tier: "nano" });
+
+    const logged = JSON.parse(logSpy.mock.calls[0]![0] as string) as Record<string, unknown>;
+    expect(logged.parseOutcome).toBe("not_attempted");
+    expect(Object.keys(logged)).not.toContain("failure");
   });
 });
