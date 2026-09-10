@@ -1,10 +1,10 @@
 // BUILD §12 — one Resend request, carrying both bodies, that never throws.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { applyEnvFixture } from "../env-fixture";
+import { ENV_FIXTURE, applyEnvFixture } from "../env-fixture";
 
 applyEnvFixture();
 
-const { __setVendorTransportForTesting, fromAddress, recipientDigest, sendViaVendor } = await import(
+const { __setVendorTransportForTesting, recipientDigest, sendViaVendor } = await import(
   "../../../src/lib/mail/vendor/resend"
 );
 
@@ -50,7 +50,7 @@ describe("BUILD §12 — the one request", () => {
     expect(request.text).toBe(SEND.text);
     expect(request.subject).toBe(SEND.subject);
     expect(request.to).toEqual([SEND.to]);
-    expect(request.from).toBe(fromAddress());
+    expect(request.from).toBe(ENV_FIXTURE.MAIL_FROM);
   });
 
   it("the plain-text alternative is a property of the request, not of a second send", async () => {
@@ -61,8 +61,15 @@ describe("BUILD §12 — the one request", () => {
     expect(captured).toHaveLength(1);
   });
 
-  it("the from-address is derived from the one deployment hostname", () => {
-    expect(fromAddress()).toBe("hello@reachkit.example");
+  // Issue #81: the From is `MAIL_FROM`, not `hello@{host of
+  // NEXT_PUBLIC_APP_URL}`. The fixture binds a mailbox at a host the app
+  // URL does not name, so a re-derivation would fail this.
+  it("the from-address is the MAIL_FROM binding, not the app URL's host", async () => {
+    respond(200, JSON.stringify({ id: "vendor-1" }));
+    await sendViaVendor(SEND);
+    const request = JSON.parse(captured[0] as string) as { from?: string };
+    expect(request.from).toBe("post@mailbox.example");
+    expect(request.from).not.toContain(new URL(ENV_FIXTURE.NEXT_PUBLIC_APP_URL as string).hostname);
   });
 });
 

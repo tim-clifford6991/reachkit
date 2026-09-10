@@ -25,6 +25,7 @@ export const ENV_FIXTURE: Record<string, string> = {
   STRIPE_WEBHOOK_SECRET: "whsec_fixture",
   STRIPE_PRICE_ID: "price_fixture",
   RESEND_API_KEY: "re_fixture",
+  MAIL_FROM: "hello@reachkit.example",
   DATAFORSEO_LOGIN: "dfs-login-fixture-do-not-leak",
   DATAFORSEO_PASSWORD: "dfs-password-fixture-do-not-leak",
   ANTHROPIC_API_KEY: "sk-ant-fixture",

@@ -88,7 +88,7 @@ Where each lives and who pastes it is `docs/DEPLOYMENT.md` §2 — sensitive row
 Vercel and the owner pastes them in the dashboard. **Every binding must exist on *both* the
 production and the preview target**, even with previews off: a target missing one cannot build.
 
-Eighteen names are in the schema. Two more sit outside it, for stated reasons.
+Nineteen names are in the schema. Two more sit outside it, for stated reasons.
 
 | Binding | What it is for | Server-only | Notes |
 |---|---|---|---|
@@ -99,6 +99,7 @@ Eighteen names are in the schema. Two more sit outside it, for stated reasons.
 | `STRIPE_WEBHOOK_SECRET` | verifies `/api/stripe/webhook` | | |
 | `STRIPE_PRICE_ID` | the one €49/month tax-inclusive price | | checked against the spec at boot — §7 |
 | `RESEND_API_KEY` | mail transport | ● | |
+| `MAIL_FROM` | the mailbox every ReachKit mail comes from | | must be an address, at a verified Resend sending domain, and read by somebody — §6 |
 | `DATAFORSEO_LOGIN` | vendor identity | | |
 | `DATAFORSEO_PASSWORD` | vendor secret | ● | |
 | `ANTHROPIC_API_KEY` | inference | ● | |
@@ -108,19 +109,13 @@ Eighteen names are in the schema. Two more sit outside it, for stated reasons.
 | `IP_HASH_SALT` | the free path's per-IP hashing | ● | a fresh random value per environment |
 | `KILL_SWITCH` | boolean-ish; §5 | | `false` in normal operation |
 | `OWNER_EMAILS` | comma-separated; the only recipient of ops mail | | each entry must be an address |
-| `NEXT_PUBLIC_APP_URL` | the app's own origin | | must parse; also decides the sending mailbox — §6 |
+| `NEXT_PUBLIC_APP_URL` | the app's own origin | | must parse |
 | `HOSTED_EDGE_CNAME_TARGET` | what a customer points `content.{their-domain}` at | | `edge.reachkit.app` |
 | `DATABASE_URL` | migration and test tooling only | — | no module under `src/` reads it; **never bound in Vercel** |
 | `RK_FIXED_NOW` | a test fixture | — | **never set in any Vercel environment**; a real deployment refuses to boot with it — §7 |
 
-`MAIL_FROM` is named by `BUILD.md` §15 and by `docs/DEPLOYMENT.md` §2 but is **not in the schema
-and is not read by any module**: the From address is derived instead as `hello@<host of
-NEXT_PUBLIC_APP_URL>` (`src/lib/mail/vendor/resend.ts`, `fromAddress()`). Binding it changes
-nothing until #81 lands the schema member and the reader. Whatever `NEXT_PUBLIC_APP_URL`'s host
-is must be a verified Resend sending domain, or mail does not leave.
-
 *(The issue that asked for this page said "the 17 bindings" — that was the count before #315 added
-the two Inngest keys. The table above is the current set.)*
+the two Inngest keys and #81 added `MAIL_FROM`. The table above is the current set.)*
 
 ### Rotating a secret
 
@@ -274,9 +269,11 @@ To release it, the same three steps with `false`.
 
 One transport (Resend), one shell, plain-text alternative, no generated prose — `BUILD.md` §12.
 
-The sending mailbox is `hello@<host of NEXT_PUBLIC_APP_URL>`, derived in
-`src/lib/mail/vendor/resend.ts`; there is no `MAIL_FROM` to set (§3). That host must be a verified
-Resend sending domain with SPF, DKIM and DMARC in place, or nothing leaves.
+The sending mailbox is `MAIL_FROM`, read at the send in `src/lib/mail/vendor/resend.ts` (#81);
+before that it was derived as `hello@<host of NEXT_PUBLIC_APP_URL>`, which was only ever the right
+address on production. Its domain must be a verified Resend sending domain with SPF, DKIM and
+DMARC in place, or nothing leaves — and the mailbox itself must be one somebody reads:
+`optout.invalid` tells a reader to reply to it and ask to be removed by hand.
 
 **A mail with an unwritten sentence does not send.** `copy()` refuses an empty key, `sendEmail`
 answers `not-composable`, and the attempt is logged. This is the ruling of 2026-09-05 — a mail

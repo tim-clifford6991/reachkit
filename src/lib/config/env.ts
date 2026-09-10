@@ -15,14 +15,17 @@ import { z } from "zod";
 import { isRealDeployment } from "./now";
 
 // `BUILD.md` §15, verbatim:
-//   "DATABASE_URL SUPABASE_URL SUPABASE_ANON_KEY SUPABASE_SERVICE_ROLE
+//   "SUPABASE_URL SUPABASE_ANON_KEY SUPABASE_SERVICE_ROLE_KEY
 //   STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET STRIPE_PRICE_ID RESEND_API_KEY
-//   DATAFORSEO_LOGIN DATAFORSEO_PASSWORD ANTHROPIC_API_KEY NANO_API_KEY
-//   IP_HASH_SALT KILL_SWITCH OWNER_EMAILS NEXT_PUBLIC_APP_URL"
-// plus `HOSTED_EDGE_CNAME_TARGET`, the one binding BP-005's `## Public
-// interface` adds and states the derivation for: "the hostname a customer
-// points `content.{their-domain}` at … It is one deployment-scoped
-// hostname, so it is a binding rather than a constant."
+//   MAIL_FROM DATAFORSEO_LOGIN DATAFORSEO_PASSWORD ANTHROPIC_API_KEY
+//   NANO_API_KEY (optional, defaults to ANTHROPIC_API_KEY)
+//   INNGEST_SIGNING_KEY INNGEST_EVENT_KEY IP_HASH_SALT KILL_SWITCH
+//   OWNER_EMAILS HOSTED_EDGE_CNAME_TARGET NEXT_PUBLIC_APP_URL";
+//   "`DATABASE_URL` is required only by migration tooling."
+// `HOSTED_EDGE_CNAME_TARGET` is the one binding BP-005's `## Public
+// interface` states the derivation for: "the hostname a customer points
+// `content.{their-domain}` at … It is one deployment-scoped hostname, so
+// it is a binding rather than a constant."
 //
 // BP-005 decision 6: three of §15's rows above are bound differently, because
 // the deployment target is the existing Vercel project `reachkit` and its
@@ -69,6 +72,24 @@ const schema = z.object({
   STRIPE_WEBHOOK_SECRET: z.string().min(1),
   STRIPE_PRICE_ID: z.string().min(1),
   RESEND_API_KEY: z.string().min(1),
+  // **The mailbox every ReachKit mail comes from** (issue #81). §15 names
+  // it; until this member existed the address was derived in the vendor
+  // seam as `hello@{host of NEXT_PUBLIC_APP_URL}`, which is right on
+  // production by luck and wrong everywhere else — a preview's app URL is
+  // a `*.vercel.app` host that is not a verified Resend sending domain, so
+  // the derived address could not send at all. It is bound instead.
+  //
+  // `z.email()` because a malformed From is a mail nobody receives and an
+  // error nobody sees until the vendor refuses it, one send at a time; the
+  // boot is where that is worth failing. Required with no fallback, like
+  // every member that is not a named exception above — `optout.invalid`
+  // tells a reader to *reply* to a ReachKit mail, so this must be a real
+  // mailbox somebody reads, and a deployment that cannot name one has no
+  // business sending.
+  //
+  // Not server-only: it is printed in the header of every mail we send,
+  // which is the opposite of a secret.
+  MAIL_FROM: z.email(),
   DATAFORSEO_LOGIN: z.string().min(1),
   DATAFORSEO_PASSWORD: z.string().min(1),
   ANTHROPIC_API_KEY: z.string().min(1),

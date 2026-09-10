@@ -15,6 +15,7 @@ const BASE: Record<string, string> = {
   STRIPE_WEBHOOK_SECRET: "whsec_fixture",
   STRIPE_PRICE_ID: "price_fixture",
   RESEND_API_KEY: "re_fixture",
+  MAIL_FROM: "hello@reachkit.example",
   DATAFORSEO_LOGIN: "dfs-login-fixture",
   DATAFORSEO_PASSWORD: "dfs-password-fixture",
   ANTHROPIC_API_KEY: "sk-ant-fixture",

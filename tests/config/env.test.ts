@@ -17,19 +17,22 @@ import type { Env } from "../../src/lib/config/env.ts";
 const ENV_MODULE = "../../src/lib/config/env.ts";
 
 // `BUILD.md` §15, verbatim:
-//   "DATABASE_URL SUPABASE_URL SUPABASE_ANON_KEY SUPABASE_SERVICE_ROLE
+//   "SUPABASE_URL SUPABASE_ANON_KEY SUPABASE_SERVICE_ROLE_KEY
 //   STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET STRIPE_PRICE_ID RESEND_API_KEY
-//   DATAFORSEO_LOGIN DATAFORSEO_PASSWORD ANTHROPIC_API_KEY NANO_API_KEY
-//   IP_HASH_SALT KILL_SWITCH OWNER_EMAILS NEXT_PUBLIC_APP_URL"
-// plus `HOSTED_EDGE_CNAME_TARGET` (BP-005 `## Public interface`'s note),
-// moved onto BP-005 decision 6a and 6c: `SUPABASE_SERVICE_ROLE_KEY`
+//   MAIL_FROM DATAFORSEO_LOGIN DATAFORSEO_PASSWORD ANTHROPIC_API_KEY
+//   NANO_API_KEY (optional, defaults to ANTHROPIC_API_KEY)
+//   INNGEST_SIGNING_KEY INNGEST_EVENT_KEY IP_HASH_SALT KILL_SWITCH
+//   OWNER_EMAILS HOSTED_EDGE_CNAME_TARGET NEXT_PUBLIC_APP_URL";
+//   "`DATABASE_URL` is required only by migration tooling."
+// BP-005 decision 6a and 6c are already in that text: `SUPABASE_SERVICE_ROLE_KEY`
 // replaces `SUPABASE_SERVICE_ROLE`, one name end to end, no alias;
-// `DATABASE_URL` is gone. Issue #315 adds §15's two jobs bindings, which
-// the 2026-09-05 ruling had kept out of the schema — 18 names, `env`'s own
-// key set (`NANO_API_KEY` stays a member; 6b makes it optional at the
-// *schema* level, not absent from `Env`, and the two jobs bindings are
-// optional for their own reason: only a real deployment must carry them,
-// and `assertJobsBindings()` is what refuses one that does not).
+// `DATABASE_URL` is not a member. Issue #315 added §15's two jobs bindings,
+// which the 2026-09-05 ruling had kept out of the schema, and issue #81
+// adds `MAIL_FROM` — 19 names, `env`'s own key set (`NANO_API_KEY` stays a
+// member; 6b makes it optional at the *schema* level, not absent from
+// `Env`, and the two jobs bindings are optional for their own reason: only
+// a real deployment must carry them, and `assertJobsBindings()` is what
+// refuses one that does not).
 const BINDING_NAMES = [
   "SUPABASE_URL",
   "SUPABASE_ANON_KEY",
@@ -38,6 +41,7 @@ const BINDING_NAMES = [
   "STRIPE_WEBHOOK_SECRET",
   "STRIPE_PRICE_ID",
   "RESEND_API_KEY",
+  "MAIL_FROM",
   "DATAFORSEO_LOGIN",
   "DATAFORSEO_PASSWORD",
   "ANTHROPIC_API_KEY",
@@ -90,6 +94,7 @@ const VALID_ENV: Record<(typeof BINDING_NAMES)[number], string> = {
   STRIPE_WEBHOOK_SECRET: "whsec_fixture",
   STRIPE_PRICE_ID: "price_fixture",
   RESEND_API_KEY: "re_fixture",
+  MAIL_FROM: "hello@reachkit.example",
   DATAFORSEO_LOGIN: "dfs-login-fixture",
   DATAFORSEO_PASSWORD: "dfs-password-fixture",
   ANTHROPIC_API_KEY: "sk-ant-fixture",
@@ -105,7 +110,7 @@ const VALID_ENV: Record<(typeof BINDING_NAMES)[number], string> = {
 
 const ORIGINAL_ENV = { ...process.env };
 
-/** Resets the 18 bindings to a complete, valid set, then applies overrides.
+/** Resets the 19 bindings to a complete, valid set, then applies overrides.
  * `undefined` deletes the key — `process.env[k] = undefined` would instead
  * coerce to the string `"undefined"`, which is not what "missing" means.
  * Also always clears `DATABASE_URL` and the retired `SUPABASE_SERVICE_ROLE`
@@ -183,10 +188,30 @@ describe('BP-005 error behaviour — "`env` throws at boot on a missing or malfo
 });
 
 describe("`BUILD.md` §15's binding list, moved onto BP-005 decision 6", () => {
-  it("env's key set equals the new 18-name list — an extra binding fails; a missing one fails", async () => {
+  it("env's key set equals the new 19-name list — an extra binding fails; a missing one fails", async () => {
     applyEnv({});
     const { env } = await importEnvModule();
     expect(Object.keys(env).sort()).toEqual([...BINDING_NAMES].sort());
+  });
+});
+
+describe("`BUILD.md` §15's `MAIL_FROM` — the mailbox every ReachKit mail comes from (issue #81)", () => {
+  it("throws at module load when it is not an address", async () => {
+    applyEnv({ MAIL_FROM: "reachkit.app" });
+    await expect(importEnvModule()).rejects.toThrow();
+  });
+
+  it("is read from env, not derived from NEXT_PUBLIC_APP_URL's host", async () => {
+    applyEnv({ MAIL_FROM: "post@another.example", NEXT_PUBLIC_APP_URL: "https://app.example.com" });
+    const { env } = await importEnvModule();
+    expect(env.MAIL_FROM).toBe("post@another.example");
+  });
+
+  it("is not server-only: it is printed in the header of every mail we send", async () => {
+    applyEnv({});
+    const { env } = await importEnvModule();
+    vi.stubGlobal("window", {});
+    expect(() => env.MAIL_FROM).not.toThrow();
   });
 });
 
