@@ -138,7 +138,7 @@ describe("issue #383 — a capture is paired with the screen it actually draws",
     // The hosted route is two screens, and which one is the host's answer.
     expect(screenFor("signedout", HOSTED_PAGE_PATH)).toBe("S8");
     expect(screenFor("published", HOSTED_PAGE_PATH)).toBe("S19");
-    expect(screenFor("mail", "/report")).toBe("S20");
+    expect(screenFor("mail", "report.html")).toBe("S20");
   });
 
   it("has a light reference render for every screen it photographs", () => {

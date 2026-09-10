@@ -426,7 +426,9 @@ export function mailShot(kind: string): GalleryShot {
     screen: "S20",
     door: "mail",
     label: `mail-${kind}`,
-    route: { path: `/${kind}` },
+    // The composed file, not an address: S20 has none, and a caption
+    // reading `/report` would name a route this product does not serve.
+    route: { path: `${kind}.html` },
     themes: ["light"],
     press: [],
   };
