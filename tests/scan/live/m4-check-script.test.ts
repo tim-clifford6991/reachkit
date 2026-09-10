@@ -261,9 +261,13 @@ describe("the owner-owed mail keys are the registry's, and they are the ones the
   });
 
   it("a partition whose shape has changed stops the run rather than reporting nothing owed", () => {
-    expect(() => owedMailKeys('export const MAIL_COPY = { "mail.a": ["written", {}] };')).toThrow(
-      /no owner-owed key/
+    expect(() => owedMailKeys('export const COPY = { "optout.confirmed": ["written", {}] };')).toThrow(
+      /no mail key/
     );
+  });
+
+  it("a partition whose every mail key is written reads as nothing owed — the state the check exists to reach (#458)", () => {
+    expect(owedMailKeys('export const MAIL_COPY = { "mail.a": ["written", {}], "mail.b": ["also", {}] };')).toEqual([]);
   });
 
   it("the keys named for `first-page` are the ones its template and the shell speak", () => {
