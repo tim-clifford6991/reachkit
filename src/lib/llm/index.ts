@@ -26,16 +26,11 @@
 // **Two gaps this file inherits, flagged once here (rule 4.2) rather than
 // blocking a WO-071-blocking, critical-path order:**
 //
-// - **`call.site` is typed `string`, not BP-009's `LlmCallSite`.** That
-//   union is WO-027's own file (`src/lib/llm/call-sites.ts`,
-//   `depends-on: [WO-026]` — it comes *after* this order, and its own
-//   file plan never lists `index.ts` as a modify row). Every member
-//   `LlmCallSite` will ever have is a string literal, so this widening is
-//   source-compatible with every caller WO-027 adds: nothing here needs
-//   to change when that union lands. Recorded as an open `rests-on` row
-//   on WO-026 for the architect: either this stays (no code changes were
-//   needed) or WO-027 gains a one-line modify row narrowing the
-//   parameter — cheap either way.
+// - **`call.site` is `LlmCallSite`, the key set of
+//   `INFERENCE_MAX_OUTPUT_TOKENS` (issue #462).** It was typed `string`
+//   while BP-009's union waited on a WO-027 file that never landed; the
+//   per-site output budget is what closed it, since a site with no
+//   budget pinned now does not compile.
 // - **The `unparseable` reason BP-009's `## Error & edge behavior` names
 //   does not exist on the shipped `Measured<T>`.** `UnmeasuredReason`
 //   (`src/lib/measure/measured.ts`, BP-024, WO-277 — outside this file
@@ -52,7 +47,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { createHash } from "node:crypto";
 import type { ZodType } from "zod";
-import { INFERENCE_MAX_RETRIES } from "@/lib/config/constants";
+import { INFERENCE_MAX_OUTPUT_TOKENS, INFERENCE_MAX_RETRIES } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
 import { costCentsFor, tierBinding, type Tier, type TierBinding } from "./tiers";
@@ -65,11 +60,12 @@ import { costCentsFor, tierBinding, type Tier, type TierBinding } from "./tiers"
  *  pass's own arithmetic (`tests/llm/budget.test.ts`) untrue. */
 const MAX_ATTEMPTS = 2;
 
-/** Bounds both the request's own `max_tokens` and the cost reservation
- *  below (rule 1.1 — parameter: no artifact pins an output-token ceiling
- *  for this seam; chosen generously for a nano/haiku-class prose call,
- *  reversal cost one number, this file only). */
-const MAX_OUTPUT_TOKENS = 4096;
+/** BP-009's closed call-site list: every site that has an output budget
+ *  pinned (`INFERENCE_MAX_OUTPUT_TOKENS`), and nothing else. That budget
+ *  bounds both the request's own `max_tokens` and the cost reservation
+ *  below — one seam-wide 4 096 let a seven-field profile spend its whole
+ *  15 s generating one answer (issue #462). */
+export type LlmCallSite = keyof typeof INFERENCE_MAX_OUTPUT_TOKENS;
 
 type ParseOutcome = "success" | "unparseable" | "unavailable" | "not_attempted";
 
@@ -90,6 +86,28 @@ type ParseOutcome = "success" | "unparseable" | "unavailable" | "not_attempted";
  *  here reaches a log but the class word itself. */
 type FailureClass = "timeout" | "parse" | "vendor" | `http_${number}`;
 
+/** Why an answer that came back did not parse (issue #462): `json` — the
+ *  text was not JSON at all (a code fence, prose, or an answer cut off at
+ *  `max_tokens`); `schema` — JSON that the caller's schema refused. */
+type ParseFailureKind = "json" | "schema";
+
+/** Why a `parse` failure got no further attempt: `attempts` — both were
+ *  spent; `budget` — an answer came back, did not parse, and the call's
+ *  time budget had nothing left to spend on the retry (issue #462: M3 run
+ *  4b logged exactly this as `timeout`, which it was not). */
+type RetryExhausted = "attempts" | "budget";
+
+/** The last unparseable answer's diagnosis. `schemaIssues` is where the
+ *  schema refused the answer and how — `path:code`, e.g.
+ *  `vocabulary[]:invalid_type` — built only from the schema's own field
+ *  names, array positions collapsed to `[]`, and Zod's closed issue codes.
+ *  Never a value, and never an unrecognised key's name (the model wrote
+ *  that): an extra field reads `(root):unrecognized_keys`. */
+interface ParseDiagnosis {
+  parseFailure: ParseFailureKind;
+  schemaIssues?: string[];
+}
+
 interface AttemptOutcome {
   parseOutcome: ParseOutcome;
   value: unknown;
@@ -99,6 +117,9 @@ interface AttemptOutcome {
   /** Absent on a success — BP-009's `## NFR budget` names six log fields
    *  and a call that answered adds none of its own. */
   failure?: FailureClass;
+  /** Present only with `failure: "parse"`. */
+  retryExhausted?: RetryExhausted;
+  diagnosis?: ParseDiagnosis;
 }
 
 /** Every error shape whose *name* says the request ran out of time —
@@ -171,6 +192,20 @@ function parseJson(text: string): { ok: true; value: unknown } | { ok: false } {
   }
 }
 
+/** One Zod issue as `path:code` — see `ParseDiagnosis`. Every path segment
+ *  a string is a key the schema itself declared (Zod descends only into
+ *  known keys, and no call site's schema is a `z.record`); numbers are
+ *  array positions and collapse to `[]`, so twelve bad entries in one list
+ *  read as one line. */
+function issueLabel(issue: { path: PropertyKey[]; code: string }): string {
+  let path = "";
+  for (const segment of issue.path) {
+    if (typeof segment === "number") path += "[]";
+    else if (typeof segment === "string") path += path === "" ? segment : `.${segment}`;
+  }
+  return `${path === "" ? "(root)" : path}:${issue.code}`;
+}
+
 /** The one place a vendor request is built and issued — `binding.apiKey`
  *  and `binding.modelId` are read here and nowhere else in this module.
  *  Anthropic's own SDK is the transport (`eslint.config.mjs`'s
@@ -181,6 +216,9 @@ function parseJson(text: string): { ok: true; value: unknown } | { ok: false } {
 async function callModel(
   binding: TierBinding,
   inputText: string,
+  /** The call site's pinned `INFERENCE_MAX_OUTPUT_TOKENS`, sent as the
+   *  request's own `max_tokens`. */
+  maxOutputTokens: number,
   /** What is left of `binding.timeoutMs` when this attempt starts, carried
    *  as the request's own bound. The client is still constructed with the
    *  tier's whole pin — that is the budget, and the first attempt has all
@@ -200,7 +238,7 @@ async function callModel(
   const message = await client.messages.create(
     {
       model: binding.modelId,
-      max_tokens: MAX_OUTPUT_TOKENS,
+      max_tokens: maxOutputTokens,
       system: "Respond with JSON only. No prose, no markdown fences, no commentary.",
       messages: [{ role: "user", content: inputText }],
     },
@@ -221,23 +259,44 @@ async function callModel(
  *  returns `unparseable`, and the raw payload is never coerced or
  *  returned in its place (the mutation this WO's `## Steps` names:
  *  falling back to the raw string here is exactly the bug the "never
- *  silently coerced" test exists to kill). */
+ *  silently coerced" test exists to kill).
+ *
+ *  An answer that came back unparseable with no budget left for the retry
+ *  is still `unparseable` / `parse` — with `retryExhausted: "budget"` —
+ *  never `timeout`: the vendor answered in time, the answer was wrong
+ *  (issue #462). */
 async function runAttempts<T>(
   binding: TierBinding,
   schema: ZodType<T>,
-  inputText: string
+  inputText: string,
+  maxOutputTokens: number
 ): Promise<AttemptOutcome> {
   const startedAt = Date.now();
   const deadline = startedAt + binding.timeoutMs;
   let tokensIn = 0;
   let tokensOut = 0;
+  let lastMiss: ParseDiagnosis | undefined;
+
+  const unparseable = (retryExhausted: RetryExhausted, diagnosis: ParseDiagnosis): AttemptOutcome => ({
+    parseOutcome: "unparseable",
+    value: undefined,
+    tokensIn,
+    tokensOut,
+    durationMs: Date.now() - startedAt,
+    failure: "parse",
+    retryExhausted,
+    diagnosis,
+  });
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     const remainingMs = deadline - Date.now();
     // The budget, not the attempt, is what `binding.timeoutMs` bounds
     // (`INFERENCE_TIMEOUT_MS`, issue #452): a retry that would start with
-    // nothing left is not started, and reads as the timeout it is.
+    // nothing left is not started. If an answer already came back and
+    // missed, that miss is the failure (#462); only a call that never got
+    // an answer at all reads as a timeout.
     if (remainingMs <= 0) {
+      if (lastMiss !== undefined) return unparseable("budget", lastMiss);
       return {
         parseOutcome: "unavailable",
         value: undefined,
@@ -249,7 +308,7 @@ async function runAttempts<T>(
     }
     let response: { text: string; tokensIn: number; tokensOut: number };
     try {
-      response = await callModel(binding, inputText, remainingMs);
+      response = await callModel(binding, inputText, maxOutputTokens, remainingMs);
     } catch (error: unknown) {
       return {
         parseOutcome: "unavailable",
@@ -264,34 +323,35 @@ async function runAttempts<T>(
     tokensOut += response.tokensOut;
 
     const asJson = parseJson(response.text);
-    if (asJson.ok) {
-      const parsed = schema.safeParse(asJson.value);
-      if (parsed.success) {
-        return {
-          parseOutcome: "success",
-          value: parsed.data,
-          tokensIn,
-          tokensOut,
-          durationMs: Date.now() - startedAt,
-        };
-      }
+    if (!asJson.ok) {
+      lastMiss = { parseFailure: "json" };
+      continue;
     }
+    const parsed = schema.safeParse(asJson.value);
+    if (parsed.success) {
+      return {
+        parseOutcome: "success",
+        value: parsed.data,
+        tokensIn,
+        tokensOut,
+        durationMs: Date.now() - startedAt,
+      };
+    }
+    lastMiss = {
+      parseFailure: "schema",
+      schemaIssues: [...new Set(parsed.error.issues.map(issueLabel))],
+    };
     // Falls through to the next attempt (if any is left) — never
     // returns `response.text` itself as the value.
   }
 
-  return {
-    parseOutcome: "unparseable",
-    value: undefined,
-    tokensIn,
-    tokensOut,
-    durationMs: Date.now() - startedAt,
-    failure: "parse",
-  };
+  // Every attempt returned (a transport failure returns above), so the
+  // last one's miss is always recorded here.
+  return unparseable("attempts", lastMiss ?? { parseFailure: "json" });
 }
 
 interface LogRecord {
-  site: string;
+  site: LlmCallSite;
   tier: Tier;
   tokensIn: number;
   tokensOut: number;
@@ -303,6 +363,11 @@ interface LogRecord {
    *  observability record it specifies is unchanged for every line a
    *  healthy run writes. */
   failure?: FailureClass;
+  /** Present only with `failure: "parse"` (issue #462) — see
+   *  `RetryExhausted` and `ParseDiagnosis`. */
+  retryExhausted?: RetryExhausted;
+  parseFailure?: ParseFailureKind;
+  schemaIssues?: string[];
 }
 
 /** BP-009 `## NFR budget`, verbatim: "call site, tier, tokens in and out,
@@ -318,7 +383,10 @@ interface LogRecord {
  *  not read why. It is one of `FailureClass`'s closed words — a class,
  *  never a message — so the "never the prompt or the completion" half of
  *  the clause is untouched, and a successful line still carries exactly
- *  the six fields BP-009 names. */
+ *  the six fields BP-009 names. A `parse` failure adds three more (issue
+ *  #462): whether a retry was still possible, whether the answer was not
+ *  JSON or not the schema, and — for a schema miss — the schema's own
+ *  field paths and Zod's issue codes. None of the three is ever a value. */
 function logCall(record: LogRecord): void {
   console.log(JSON.stringify(record));
 }
@@ -332,7 +400,7 @@ function logCall(record: LogRecord): void {
 export async function llm<T>(
   c: CostContext,
   call: {
-    site: string;
+    site: LlmCallSite;
     input: unknown;
     schema: ZodType<T>;
     tier: Tier;
@@ -341,11 +409,12 @@ export async function llm<T>(
   const at = new Date();
   const binding = tierBinding(call.tier);
   const inputText = JSON.stringify(call.input);
+  const maxOutputTokens = INFERENCE_MAX_OUTPUT_TOKENS[call.site];
   const cacheKey = createHash("sha256").update(`${call.site}:${call.tier}:${inputText}`).digest("hex");
   const reservedCents = costCentsFor(
     call.tier,
     estimateTokens(inputText) * MAX_ATTEMPTS,
-    MAX_OUTPUT_TOKENS * MAX_ATTEMPTS
+    maxOutputTokens * MAX_ATTEMPTS
   );
 
   const result = await c.recordFetch<AttemptOutcome>({
@@ -359,7 +428,7 @@ export async function llm<T>(
     freshnessDays: 0,
     costCents: reservedCents,
     settleCents: (outcome) => costCentsFor(call.tier, outcome.tokensIn, outcome.tokensOut),
-    run: () => runAttempts(binding, call.schema, inputText),
+    run: () => runAttempts(binding, call.schema, inputText, maxOutputTokens),
   });
 
   if ("skipped" in result) {
@@ -388,6 +457,8 @@ export async function llm<T>(
     // `undefined` survives into the record's key set, and a successful
     // call's line carries BP-009's six fields exactly.
     ...(outcome.failure === undefined ? {} : { failure: outcome.failure }),
+    ...(outcome.retryExhausted === undefined ? {} : { retryExhausted: outcome.retryExhausted }),
+    ...(outcome.diagnosis === undefined ? {} : outcome.diagnosis),
   });
 
   if (outcome.parseOutcome === "success") {
