@@ -518,6 +518,11 @@ function declarationBefore(source, index) {
  * table maps a state to a key, and both of those are where the sentence is
  * spoken from.
  */
+/** What makes two mentions the same place: the file, and the element or the
+ *  declaration the key is named in. Never the line. */
+const placeOf = (site) =>
+  [site.file, site.element ? `${site.element.tag}.${site.element.className}` : "", site.declaration ?? ""].join("|");
+
 export function readUsage(root, keys) {
   const wanted = new Set(keys);
   const sites = new Map();
@@ -529,16 +534,19 @@ export function readUsage(root, keys) {
     for (const m of source.matchAll(/"([A-Za-z0-9._-]*\.[A-Za-z0-9._-]+)"/g)) {
       if (!wanted.has(m[1])) continue;
       const chain = rel.endsWith(".tsx") ? ancestry(source, m.index) : [];
-      const line = source.slice(0, m.index).split("\n").length;
-      if (!sites.has(m[1])) sites.set(m[1], []);
-      sites.get(m[1]).push({
+      const site = {
         file: rel,
-        line,
         element: chain[0] ?? null,
         region: regionFor(chain),
         declaration: chain.length === 0 ? declarationBefore(source, m.index) : null,
         screen: screenForFile(rel),
-      });
+      };
+      if (!sites.has(m[1])) sites.set(m[1], []);
+      const places = sites.get(m[1]);
+      // One place, however many times the file names the key: a table that
+      // maps four states to one key is one place a reader has to look, and
+      // counting the mentions would move the sheet whenever the table grew.
+      if (!places.some((seen) => placeOf(seen) === placeOf(site))) places.push(site);
     }
   }
   return sites;
@@ -733,12 +741,13 @@ export function buildSheet(root = REPO_ROOT) {
       "`. Nothing else distinguishes them; both are owed."
   );
   out(
-    "- **where** — the part of the screen, the element, and the file and line of the component " +
-      "that reads the key. Read off the JSX the key sits in, so it says what the reader will see " +
+    "- **where** — the part of the screen, the element, and the file of the component that reads " +
+      "the key. Read off the JSX the key sits in, so it says what the reader will see " +
       "the sentence attached to. Three rows read differently: *composed in the engine* is a " +
       "sentence a module builds and a screen renders; *document head* is a `<title>` or a " +
       "`<meta>` description, spoken to a search result rather than to the page; and `—` is a key " +
-      "nothing reads yet, placed on the screen its neighbours are drawn on."
+      "nothing reads yet, placed on the screen its neighbours are drawn on. No line numbers: a " +
+      "line moves whenever an unrelated edit shifts a file, and this sheet is about sentences."
   );
   out(
     "- **the set says** — the approved set's bracketed hint for this slot, verbatim, where the " +
@@ -840,7 +849,7 @@ function renderRow(row, hint, html, byKey, unwritten, screens) {
     } else if (site.declaration) {
       parts.push(`\`${site.declaration}\``);
     }
-    parts.push(`\`${site.file.replace(/^src\//, "")}:${site.line}\``);
+    parts.push(`\`${site.file.replace(/^src\//, "")}\``);
     if (row.sites.length > 1) parts.push(`+${row.sites.length - 1} more`);
     where = parts.join(" · ");
     if (row.alsoOn.length > 0) {
