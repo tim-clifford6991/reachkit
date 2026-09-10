@@ -191,7 +191,7 @@ pre .num {
 .explain {
   font-family: var(--font-ui);
   font-size: var(--t-explain);
-  color: var(--ink-3);
+  color: var(--ink-quiet);
 }
 
 /* BP-018 error behaviour: "Every numeral, date, URL, search query and

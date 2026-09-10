@@ -87,7 +87,7 @@ export const CHART_INK = {
   label: "var(--ink-2)",
   /** Provenance and the break rule — §2.5: "always visible but always
    *  quiet". */
-  quiet: "var(--ink-3)",
+  quiet: "var(--ink-quiet)",
   /** The ring around every endpoint dot (§2.4). */
   surface: "var(--surface)",
   sunk: "var(--sunk)",

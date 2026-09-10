@@ -42,7 +42,9 @@ const ALLOWED_LITERALS: ReadonlyArray<{ readonly path: string; readonly why: str
       "own dark-shadow construction re-inked, `--grad-accent` and the glass " +
       "pair are `--on-accent` at the 12%/28% alphas §2.1 states verbatim, " +
       "and `--on-accent-quiet` is `--on-accent` mixed toward `--accent`. No " +
-      "colour is minted and no second accent stop exists",
+      "colour is minted and no second accent stop exists. Issue #328's four " +
+      "state inks are the same construction — each tone mixed toward `--ink` " +
+      "at the lowest step clearing WCAG AA on every ground it is drawn on",
   },
   {
     path: "src/lib/mail/shell/tokens.ts",
@@ -232,12 +234,28 @@ describe('§2.1 — every colour in src/** resolves to a token, "these exact val
  *  declaration may name that §2.1 does not state.
  *
  *  They are listed here by name rather than read from the file, so that a
- *  *sixth* one cannot appear by being written: adding to this list is a
+ *  *seventh* one cannot appear by being written: adding to this list is a
  *  decision someone makes on purpose, which is exactly the property the
  *  rule below is for. Each is derived from a token §2.1 already states —
  *  `design/tokens.md` §9.3 carries the derivations, and `idiom.css`'s own
- *  `:root` block repeats them where the values are. */
-const IDIOM_ROOT: ReadonlySet<string> = new Set(["--grad-accent", "--on-accent-quiet"]);
+ *  `:root` block repeats them where the values are.
+ *
+ *  The four inks are issue #328's, and they are the same construction as
+ *  `--on-accent-quiet`: the tone mixed toward `--ink` at the lowest 5% step
+ *  that clears WCAG AA 4.5:1 on every ground it is drawn on, in both
+ *  themes. No hue is minted and no tone is replaced — the tone still draws
+ *  every border, bar and chart line; only the *text* it carries moves.
+ *  `tests/ui/design/state-contrast.test.ts` recomputes all six ratios from
+ *  these declarations, so the allowance and the measurement cannot drift
+ *  apart. */
+const IDIOM_ROOT: ReadonlySet<string> = new Set([
+  "--grad-accent",
+  "--on-accent-quiet",
+  "--ink-quiet",
+  "--ok-ink",
+  "--warn-ink",
+  "--bad-ink",
+]);
 
 function nonThemeColourTokens(files: readonly string[]): string[] {
   const out: string[] = [];
@@ -260,7 +278,7 @@ describe("§2.1 — a colour-valued declaration names a §2.1 token and nothing 
     expect(nonThemeColourTokens(CSS_FILES)).toEqual([]);
   });
 
-  it("the idiom's two compositions are declared on :root, and are only two", () => {
+  it("the idiom's six compositions are declared on :root, and are only six", () => {
     // Rule 5.5, and the reason `IDIOM_ROOT` is a written list: the set is
     // closed until someone opens it. Each must actually be declared where
     // it says it is, so the allowance cannot outlive the declaration.
@@ -276,7 +294,14 @@ describe("§2.1 — a colour-valued declaration names a §2.1 token and nothing 
     for (const token of IDIOM_ROOT) {
       expect(declared, `${token} is allowed but not declared`).toContain(token);
     }
-    expect([...IDIOM_ROOT].sort()).toEqual(["--grad-accent", "--on-accent-quiet"]);
+    expect([...IDIOM_ROOT].sort()).toEqual([
+      "--bad-ink",
+      "--grad-accent",
+      "--ink-quiet",
+      "--ok-ink",
+      "--on-accent-quiet",
+      "--warn-ink",
+    ]);
     expect(read("src/ui/theme.css")).not.toContain("--shadow-lift");
   });
 

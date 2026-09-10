@@ -233,7 +233,7 @@ export function MarketPanel(p: {
         <p
           className={
             warned
-              ? "border-warning/40 bg-warning/10 text-warning rounded-field border px-2.5 py-2 text-xs wrap-anywhere"
+              ? "border-warning/40 bg-warning/10 text-[var(--warn-ink)] rounded-field border px-2.5 py-2 text-xs wrap-anywhere"
               : "text-xs opacity-60 wrap-anywhere"
           }
           data-testid="market-change-line"

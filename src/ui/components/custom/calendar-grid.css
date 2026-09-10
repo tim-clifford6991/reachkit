@@ -77,7 +77,7 @@
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: var(--ink-3);
+  color: var(--ink-quiet);
   text-align: center;
   padding-bottom: var(--s-1);
   min-width: 0;
@@ -276,7 +276,7 @@
 /* S14's `.cd-d`. */
 .rk-cal-date {
   font-size: var(--t-eyebrow);
-  color: var(--ink-3);
+  color: var(--ink-quiet);
 }
 
 /* S14's `.cd-t`: the page's own title, three lines and then clamped, with
@@ -311,7 +311,7 @@
 .rk-cal-empty {
   font-size: var(--t-eyebrow);
   line-height: 1.35;
-  color: var(--ink-3);
+  color: var(--ink-quiet);
   display: -webkit-box;
   -webkit-line-clamp: 3;
   line-clamp: 3;

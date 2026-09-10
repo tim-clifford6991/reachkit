@@ -149,7 +149,7 @@ export const CHART_PLATE: React.CSSProperties = {
  *  face. */
 export const EYEBROW: React.CSSProperties = {
   margin: 0,
-  color: "var(--ink-3)",
+  color: "var(--ink-quiet)",
   letterSpacing: "0.08em",
   fontWeight: 700,
 };

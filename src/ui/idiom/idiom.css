@@ -27,7 +27,7 @@
  *     product ships it un-flipped (§2.3).
  */
 
-/* The two compositions this sheet owns.
+/* The compositions this sheet owns.
  *
  * Neither is a token the owner approved, and neither is a value: each is a
  * *construction over* approved tokens, which is why it is declared here,
@@ -44,9 +44,51 @@
  * `--glass-fill`/`--glass-line` stay spent inline in `.rk-glass` below: they
  * are the 12%/28% alphas §2.1 states, applied to `--on-accent`, and the
  * idiom's own note says in as many words that they are not tokens.
+ *
+ * THE FOUR INKS BELOW ARE THE SAME CONSTRUCTION, FOR THE REST OF THE SET
+ * (issue #328). #290 measured one ink on one ground and fixed it. Nothing
+ * had measured the others, and axe-core run over every route at 1280
+ * (`tests/ui/layout/axe.test.ts`) reports each of them as a serious
+ * `color-contrast` violation in the light theme — as does the approved
+ * artifact itself, which is where the values come from:
+ *
+ *              ink on its worst ground              light     dark
+ *   --ink-3    on `--sunk` (the source chip)        2.56:1    3.85:1
+ *   --ok       on `--ok-bg` (the ok badge)          3.84:1    7.91:1
+ *   --warn     on `--warn-bg` (the warn badge)      3.51:1    7.30:1
+ *   --bad      on `--bad-bg` (the bad badge)        4.50:1    6.12:1
+ *
+ * `--bad`'s 4.50 is 4.4961 before rounding, which clears AA only because
+ * axe rounds to two places; a floor a value meets by rounding is not a
+ * floor. So all four take the same treatment `--on-accent-quiet` took: the
+ * tone mixed toward `--ink` in oklab, at the lowest 5% step that clears
+ * AA 4.5:1 against **every** ground it is drawn on, in both themes. Mixing
+ * toward `--ink` rather than toward black is what makes one percentage
+ * serve both themes: `--ink` is near-black in light and near-white in dark,
+ * so the same step darkens the light ink and lightens the dark one, and
+ * both move away from their own ground.
+ *
+ *                    step   light      dark     worst ground
+ *   --ink-quiet       65%   4.89:1    6.39:1    `--sunk`
+ *   --ok-ink          85%   4.79:1    8.27:1    `--ok-bg`
+ *   --warn-ink        80%   4.86:1    7.93:1    `--warn-bg`
+ *   --bad-ink         95%   4.79:1    6.31:1    `--bad-bg`
+ *
+ * `tests/ui/design/state-contrast.test.ts` recomputes every one of those
+ * ratios from these declarations and from `theme.css`, and asserts that the
+ * step below each is the one that fails — so a changed tone, or a rounder
+ * percentage, fails there with the number rather than on someone's screen.
+ * The tone itself is unchanged and still names the state: these are the
+ * same hue, one step toward the page's own ink, and they are spent only
+ * where the tone carries *text*. A border, a bar and a chart line keep the
+ * tone (WCAG 1.4.11's floor is 3:1 and every one of them clears it).
  */
 :root {
   --on-accent-quiet: color-mix(in oklab, var(--on-accent) 85%, var(--accent));
+  --ink-quiet: color-mix(in oklab, var(--ink-3) 65%, var(--ink));
+  --ok-ink: color-mix(in oklab, var(--ok) 85%, var(--ink));
+  --warn-ink: color-mix(in oklab, var(--warn) 80%, var(--ink));
+  --bad-ink: color-mix(in oklab, var(--bad) 95%, var(--ink));
   --grad-accent: radial-gradient(
     circle at 78% 22%,
     color-mix(in oklab, var(--on-accent) 28%, transparent) 0%,
@@ -148,7 +190,7 @@
  * tone is admitted, because a chip is not a status light. */
 .rk-head-chip[data-tone="warn"] {
   background: var(--warn-bg);
-  color: var(--warn);
+  color: var(--warn-ink);
 }
 
 /* ── 3 · Pill buttons, three ranks ────────────────────────────────────── */
@@ -207,7 +249,7 @@
  * ranks — this file could not. */
 .btn.rk-btn-outline[data-tone="warn"] {
   border-color: var(--warn);
-  color: var(--warn);
+  color: var(--warn-ink);
 }
 
 /* The accent as an edge (issue #291). A screen with two calls to action for
@@ -275,7 +317,7 @@
 }
 
 .rk-panel[data-tone="warn"] .rk-panel-chip {
-  color: var(--warn);
+  color: var(--warn-ink);
 }
 
 .rk-panel-body {
@@ -632,7 +674,7 @@
 .rk-prov-line {
   font-family: var(--font-mono);
   font-size: var(--t-explain);
-  color: var(--ink-3);
+  color: var(--ink-quiet);
   margin: 0;
 }
 
@@ -665,7 +707,7 @@
 
 .rk-shot-url {
   font-size: var(--t-eyebrow);
-  color: var(--ink-3);
+  color: var(--ink-quiet);
   margin-left: var(--s-3);
   min-width: 0;
 }
@@ -744,7 +786,7 @@
 
 .rk-shot-of {
   font-size: var(--t-body);
-  color: var(--ink-3);
+  color: var(--ink-quiet);
 }
 
 /* ── The sections ───────────────────────────────────────────────────── */
@@ -842,7 +884,7 @@
   bottom: var(--s-4);
   font-family: var(--font-mono);
   font-size: var(--t-explain);
-  color: var(--ink-3);
+  color: var(--ink-quiet);
   padding-inline: var(--s-4);
   text-align: center;
 }
@@ -876,7 +918,7 @@
 /* The dim line under a card's own answer — the set's `.explain`. */
 .rk-explain {
   font-size: var(--t-explain);
-  color: var(--ink-3);
+  color: var(--ink-quiet);
   margin: 0;
 }
 
@@ -1013,7 +1055,7 @@
 }
 
 .rk-chrome-fine {
-  color: var(--ink-3);
+  color: var(--ink-quiet);
   font-size: var(--t-xs);
   margin: var(--s-2) 0 0;
 }
@@ -1073,7 +1115,7 @@
   align-items: center;
   font-family: var(--font-mono);
   font-size: var(--t-explain);
-  color: var(--ink-3);
+  color: var(--ink-quiet);
   background: var(--sunk);
   border-radius: var(--r-pill);
   /* On the ruled ladder, not the set's drawn 4/10: ruling 10a puts every
@@ -1153,7 +1195,7 @@
 
 /* A row not begun keeps the quiet dot and the quiet ink. */
 .rk-stage[data-state="pending"] {
-  color: var(--ink-3);
+  color: var(--ink-quiet);
 }
 
 /* The elapsed time, pushed right. Mono, because it is a numeral (§2.3). */
@@ -1161,7 +1203,7 @@
   margin-left: auto;
   font-family: var(--font-mono);
   font-size: var(--t-explain);
-  color: var(--ink-3);
+  color: var(--ink-quiet);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1312,7 +1354,7 @@
  * `.eyebrow` in `type.css` is the face, the case and the rung; the tone is
  * the surface's, which is why it is here and not there. */
 .rk-legal-eyebrow {
-  color: var(--ink-3);
+  color: var(--ink-quiet);
 }
 
 /* The document stands away from its head block, not with it. */
@@ -1400,7 +1442,7 @@
   margin: 0 0 var(--s-3);
   padding-inline-start: var(--s-4);
   border-left: 1px solid var(--line);
-  color: var(--ink-3);
+  color: var(--ink-quiet);
 }
 
 /* Code is a value, so it takes the mono face the numeral rule fixes. */
@@ -1565,12 +1607,12 @@
 }
 
 .rk-danger .eyebrow {
-  color: var(--bad);
+  color: var(--bad-ink);
 }
 
 .rk-danger .rk-head-chip {
   background: var(--bad-bg);
-  color: var(--bad);
+  color: var(--bad-ink);
 }
 
 
@@ -1664,7 +1706,7 @@
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   font-size: var(--t-explain);
-  color: var(--ink-3);
+  color: var(--ink-quiet);
   margin: 0;
   overflow-wrap: anywhere;
 }
@@ -1773,7 +1815,7 @@
   align-items: center;
   font-family: var(--font-mono);
   font-size: var(--t-eyebrow);
-  color: var(--ink-3);
+  color: var(--ink-quiet);
   background: var(--sunk);
   border-radius: var(--r-pill);
   padding: var(--s-1) var(--s-2);
@@ -1942,4 +1984,69 @@
 
 .rk-fallback > .rk-hero-form > :first-child {
   flex: 1 1 auto;
+}
+
+/* ── 19 · The badge: a tone tint and a tone ink, never a solid (#328) ──── */
+
+/* UI-SPEC §2's component table gives the badge five tones and the approved
+ * set draws every one of them the same way — the tone's tint behind the
+ * tone's own ink:
+ *
+ *   .b-ok{background:var(--ok-bg);color:var(--ok)}
+ *   .b-warn{background:var(--warn-bg);color:var(--warn)}
+ *   .b-bad{background:var(--bad-bg);color:var(--bad)}
+ *   .b-neutral{background:var(--sunk);color:var(--ink-2)}
+ *   .b-accent{background:var(--accent-bg);color:var(--accent)}
+ *
+ * daisyUI's own `badge-success`/`badge-warning`/`badge-error`/
+ * `badge-primary` are **solid**: the tone as the ground, with
+ * `--color-*-content` as the ink. `Badge` maps `Tone` onto those four
+ * classes (BUILD §2.2 closes the class set, so the mapping stays), and
+ * nothing had ever restyled them — so every badge in the product shipped as
+ * a saturated fill the set does not draw, and `tailwind.config.ts`'s own
+ * header records the consequence: `--on-accent` measures 4.28:1 on `--ok`
+ * and 3.83:1 on `--warn`, both under AA, and a badge's label is 11px/700 —
+ * neither large text nor a non-text component, so neither exemption
+ * applies.
+ *
+ * Both facts have one fix: draw the badge the way the set draws it. These
+ * five rules are the artifact's five, with the state inks from this file's
+ * `:root` in place of the raw tone (see its header for the measurements) —
+ * so a badge is at once the approved skin and an AA-conforming one. The
+ * solid ink `--on-accent` is no longer spent on a state ground anywhere in
+ * the product, which is what `tests/ui/design/state-contrast.test.ts`
+ * records.
+ *
+ * The radius, the size and the border are daisyUI's and are untouched:
+ * `tests/ui/layout/theme-slots.test.ts` measures them off the theme's own
+ * slots and this sheet has no business restating them.
+ */
+.badge.badge-primary {
+  background: var(--accent-bg);
+  color: var(--accent);
+  border-color: transparent;
+}
+
+.badge.badge-success {
+  background: var(--ok-bg);
+  color: var(--ok-ink);
+  border-color: transparent;
+}
+
+.badge.badge-warning {
+  background: var(--warn-bg);
+  color: var(--warn-ink);
+  border-color: transparent;
+}
+
+.badge.badge-error {
+  background: var(--bad-bg);
+  color: var(--bad-ink);
+  border-color: transparent;
+}
+
+.badge.badge-ghost {
+  background: var(--sunk);
+  color: var(--ink-2);
+  border-color: transparent;
 }
