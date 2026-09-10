@@ -8,7 +8,9 @@ const { buildAddressMoved, buildChaseWithLink, buildChaseWithoutLink, buildSecon
   await import("../../../../src/lib/mail/templates/account");
 const { MAIL_KINDS } = await import("../../../../src/lib/mail/kinds");
 const { COPY } = await import("../../../../src/lib/presentation/copy");
-const { COPY_META } = await import("../../../../src/lib/presentation/copy/registry");
+const { COPY_META, OWNER_OWED } = await import("../../../../src/lib/presentation/copy/registry");
+const { composeMail } = await import("../../../../src/lib/mail/shell/compose");
+const { escapeHtml } = await import("../../../../src/lib/mail/blocks/html");
 
 const HREF = "https://reachkit.example/signin?t=tok";
 
@@ -106,7 +108,7 @@ describe('REQ-024 c3/c5, REQ-077 c3 — every account mail names one way to reac
   });
 });
 
-describe("the register row, and the sentences still owed", () => {
+describe("the register row, and the sentences it speaks", () => {
   it("account mail cannot be stopped: it is about money that left a bank", () => {
     expect(MAIL_KINDS.account.stoppable).toBe(false);
     expect(MAIL_KINDS.account.occasionsFrom).toBe("§13");
@@ -116,8 +118,30 @@ describe("the register row, and the sentences still owed", () => {
     for (const key of ACCOUNT_MAIL_KEYS) expect(Object.keys(COPY)).toContain(key);
   });
 
-  it("all eight are owner-owed and empty, so the seam refuses to compose rather than shipping a blank line", () => {
+  it("all eight are written (issue #458, the owner's 2026-09-10 approval), so every account mail composes and speaks them", () => {
     expect(ACCOUNT_MAIL_KEYS).toHaveLength(8);
-    for (const key of ACCOUNT_MAIL_KEYS) expect(COPY[key]).toBe("");
+    for (const key of ACCOUNT_MAIL_KEYS) {
+      expect(COPY[key], key).not.toBe("");
+      expect(OWNER_OWED, key).not.toContain(key);
+    }
+
+    const spoken = new Set<string>();
+    for (const mail of [
+      buildChaseWithLink({ href: HREF }),
+      buildChaseWithoutLink(),
+      buildSecondPurchase(),
+      buildAddressMoved(),
+    ]) {
+      const composed = composeMail({ kind: "account", subject: mail.subject, blocks: mail.blocks });
+      expect(composed.subject, mail.subject).toBe(COPY[mail.subject]);
+      spoken.add(mail.subject);
+      for (const block of mail.blocks) {
+        if (block.block !== "paragraph" && block.block !== "notice") continue;
+        expect(composed.text, block.text).toContain(COPY[block.text]);
+        expect(composed.html, block.text).toContain(escapeHtml(COPY[block.text]));
+        spoken.add(block.text);
+      }
+    }
+    expect([...spoken].sort()).toEqual([...ACCOUNT_MAIL_KEYS].sort());
   });
 });

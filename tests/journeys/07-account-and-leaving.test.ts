@@ -24,12 +24,14 @@
 // Four of those need a word.
 //
 // **The copy registry is not a fixture here**, for journey 06's reason:
-// this journey is partly about sentences the owner still owes — the
-// deletion mail's and the export's failure line — so it runs against the
-// real registry and asserts the debt rather than papering it over. That is
-// also why `deleteAccount` reports `mailSent: false` today: the seam
-// refuses to compose a mail whose lines are unwritten, which is the
-// intended blocking point and not a defect in this path.
+// this journey is partly about the sentences leaving speaks, so it runs
+// against the real registry and asserts their state rather than papering
+// it over. The deletion mail's were owner-owed until issue #458 filled
+// them on the owner's 2026-09-10 approval, so that mail now composes and
+// goes; the export's failure line and the danger zone's handshake still
+// carry the marker. `deleteAccount` reports `mailSent: false` in the
+// erasure below only because that erasure leaves nothing behind to tell
+// of — criterion 6 sends the mail only where something is left.
 //
 // **`hasActiveAccess` is the whole of the gate** (ADR-050), so every
 // "still theirs" and "no longer theirs" assertion below reads that one
@@ -147,6 +149,8 @@ const { AWAITING_COPY, COPY, OWNER_OWED, TODO_COPY_MARKER } = await import(
 );
 const { copy } = await import("../../src/lib/presentation/copy");
 const { __setVendorTransportForTesting } = await import("../../src/lib/mail/vendor/resend");
+const { sendEmail } = await import("../../src/lib/mail/send");
+const { buildAccountDeleted } = await import("../../src/lib/mail/templates/account");
 
 const billingDoubles = await import("../account/billing/memory-store");
 const exportDoubles = await import("../account/export/memory-store");
@@ -180,13 +184,16 @@ let lifecycleState: ReturnType<typeof lifecycleDoubles.newMemoryLifecycle>;
 let vendor: ReturnType<typeof stripeDoubles.newStripeDouble>;
 let mails: number;
 
-/** The sentences leaving still owes the owner, in the two shapes the
- *  registry keeps them in: the ones whose absence takes the surface down
- *  rather than render a blank line, and the ones that render the marker so
- *  a whole screen of finished modules is still reviewable. */
-/** The refusing kind: a *mail's*. `copy()` throws rather than shipping a
- *  placeholder to an inbox — the #93 ruling's other half. */
-const REFUSED_KEYS = ["mail.account.deleted.subject"] as const;
+/** The sentences leaving speaks that are, or were, the owner's to write,
+ *  in the two shapes the registry keeps an unwritten one in: the ones whose
+ *  absence takes the surface down rather than render a blank line, and the
+ *  ones that render the marker so a whole screen of finished modules is
+ *  still reviewable. */
+/** The refusing kind: a *mail's*. `copy()` throws on an unwritten one
+ *  rather than shipping a placeholder to an inbox — the #93 ruling's other
+ *  half. This one was owed until issue #458 filled it on the owner's
+ *  2026-09-10 approval; it is written now, and renders. */
+const MAIL_KEYS = ["mail.account.deleted.subject"] as const;
 
 /** The marked kind: a *screen's*. Renderable, so an unfinished sentence is
  *  visible on a preview rather than absent from it.
@@ -456,17 +463,20 @@ describe("settings → cancel → export → erasure, and the pages stop being s
       // purge, thirty days later, and not before.
       expect(lifecycleState.deleted).toEqual([]);
 
-      // Criterion 6's mail is owed and is not sent: its sentences are the
-      // owner's and none is written, so the seam refuses to compose it and
-      // says so rather than putting a blank line in front of somebody who
-      // has just erased their account. `mailSent: false` is that fact
-      // carried out to the caller, and the erasure stands either way — the
-      // telling is not a precondition of the take-down.
+      // Criterion 6's mail goes only where something of either kind is left
+      // behind, and this erasure leaves nothing: no page is live at any
+      // destination and nothing is left in a WordPress. So no mail is sent
+      // — not because it cannot compose (its sentences are written since
+      // issue #458; the last test composes it), but because it would have
+      // nothing to say. The erasure stands either way — the telling is not
+      // a precondition of the take-down.
       expect(deleted.result.mailSent).toBe(false);
       expect(mails).toBe(0);
       // What it would have said about the destinations is read off the
       // take-down's own outcomes rather than assumed.
       expect(Array.isArray(deleted.result.stillLive)).toBe(true);
+      expect(deleted.result.stillLive).toEqual([]);
+      expect(deleted.result.leftInWordPress).toEqual({});
     }
   );
 
@@ -607,14 +617,37 @@ describe("settings → cancel → export → erasure, and the pages stop being s
     }
   );
 
-  it("every sentence leaving speaks is the owner's, and none of them is written yet", () => {
-    // The refusing kind: `copy()` throws rather than putting a blank line
-    // in front of a customer about to erase their account.
-    for (const key of REFUSED_KEYS) {
+  it("every sentence leaving speaks is the owner's: the deletion mail's are written, the screens' still carry the marker", async () => {
+    // The refusing kind, written since issue #458: `copy()` renders it,
+    // so the seam composes the deletion mail rather than refusing it.
+    for (const key of MAIL_KEYS) {
       expect(Object.keys(COPY), key).toContain(key);
-      expect(OWNER_OWED, key).toContain(key);
-      expect(() => copy(key), key).toThrow(/owner-owed/);
+      expect(COPY[key], key).not.toBe("");
+      expect(OWNER_OWED, key).not.toContain(key);
+      expect(copy(key), key).toBe(COPY[key]);
     }
+
+    // And the mail itself goes: composed, handed to the vendor, and saying
+    // its sentences with their counts in place.
+    const payloads: string[] = [];
+    __setVendorTransportForTesting(async (payload) => {
+      mails += 1;
+      payloads.push(payload);
+      return { status: 200, headers: {}, body: JSON.stringify({ id: `resend-${mails}` }) };
+    });
+    const mail = buildAccountDeleted({ stillLive: 2, leftInWordPress: {} });
+    const sent = await sendEmail({
+      kind: "account",
+      to: EMAIL,
+      userId: USER_ID,
+      subject: mail.subject,
+      blocks: mail.blocks,
+    });
+    expect(sent).toEqual({ sent: true, id: "resend-1" });
+    expect(mails).toBe(1);
+    const delivered = JSON.parse(payloads[0] ?? "{}") as { subject?: string; text?: string };
+    expect(delivered.subject).toBe(COPY["mail.account.deleted.subject"]);
+    expect(delivered.text).toContain(copy("mail.account.deleted.still_live", { count: "2" }));
 
     // The marked kind: renderable, so a screen full of finished modules is
     // still reviewable, and listed so "what is still unwritten" stays one
@@ -629,6 +662,6 @@ describe("settings → cancel → export → erasure, and the pages stop being s
     // The two lists are disjoint: a key is in one shape or the other, and
     // never in both.
     for (const key of MARKED_KEYS) expect(OWNER_OWED).not.toContain(key);
-    for (const key of REFUSED_KEYS) expect(AWAITING_COPY).not.toContain(key);
+    for (const key of MAIL_KEYS) expect(AWAITING_COPY).not.toContain(key);
   });
 });
