@@ -1342,6 +1342,46 @@ describe("§4.6 the draft view — the two intervals the editor is built on (#17
   });
 });
 
+/**
+ * The Core Web Vitals budget — the pin no clause rules yet.
+ *
+ * Nothing in BUILD, DECISIONS or DATA-COSTS names a page-speed ceiling.
+ * BP-018's `## NFR budget` is the nearest the corpus comes and it budgets
+ * *what ships* ("no chart library, so no runtime dependency ships to the
+ * browser for a five-chart inventory"), never how fast it arrives. So this
+ * block quotes no clause: there is none, and a test name carrying an
+ * invented one would be worse than a test name saying so. What it asserts
+ * instead is what the three figures are — the two published "good"
+ * thresholds of the Core Web Vitals as issue #332 states them, and the one
+ * script weight it chose — each in the unit its name promises, so a budget
+ * cannot drift into a different unit and go on passing.
+ */
+describe("#332 — the Core Web Vitals budget, pinned ahead of the clause that will rule it", () => {
+  it('LCP_MS is 2500 — issue #332\'s "LCP ≤ 2.5 s", in the milliseconds a PerformanceObserver reports', () => {
+    expect(pins.WEB_VITALS_BUDGET.LCP_MS).toBe(2500);
+    expect(pins.WEB_VITALS_BUDGET.LCP_MS).toBe(2.5 * 1000);
+  });
+
+  it('CLS is 0.1 — issue #332\'s "CLS ≤ 0.1", the unitless session-window score, so a fraction and never a percentage', () => {
+    expect(pins.WEB_VITALS_BUDGET.CLS).toBe(0.1);
+    expect(pins.WEB_VITALS_BUDGET.CLS).toBeGreaterThan(0);
+    expect(pins.WEB_VITALS_BUDGET.CLS).toBeLessThan(1);
+  });
+
+  it('LANDING_SCRIPT_KB is 200 — issue #332\'s "JS ≤ 200 kB on `/`", a whole number of kilobytes and never bytes', () => {
+    expect(pins.WEB_VITALS_BUDGET.LANDING_SCRIPT_KB).toBe(200);
+    expect(Number.isInteger(pins.WEB_VITALS_BUDGET.LANDING_SCRIPT_KB)).toBe(true);
+  });
+
+  it("is the whole budget — three ceilings, and no fourth measured in silence", () => {
+    expect(Object.keys(pins.WEB_VITALS_BUDGET).sort()).toEqual([
+      "CLS",
+      "LANDING_SCRIPT_KB",
+      "LCP_MS",
+    ]);
+  });
+});
+
 describe("BP-005 error behaviour — every pin is asserted, by quotation and never by line number", () => {
   /**
    * The exhaustiveness gate. A pin appended to `constants.ts` without an
