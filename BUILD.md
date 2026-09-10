@@ -631,6 +631,15 @@ Bounds: 5 free scans/IP/h · 1 in-flight/IP · 200 free scans/day · kill switch
 var stops scan+generate+publish · scan limiter fails open, lead capture fails
 closed.
 
+The free pass runs inside the `POST /api/scan` invocation and has **two ceilings**
+(2026-09-10, #438/#443): its own, `TIMING.reportCeilingS` in `constants.ts`, and the
+platform's, `export const maxDuration` on the route (60 s on Hobby) — the pass is
+registered with `after()` so it outlives the response, and it is the platform bound
+that can still freeze it. A free scan left `running` past that bound is swept to
+`failed` by `account/maintenance` (its seventh obligation), so §6.4's in-flight bound
+never holds a network on a ghost. Every merged migration is applied to production by
+the master the same hour (PROCESS §3).
+
 ## 12. Emails (Resend, one shell, plain-text alt, no LLM prose)
 
 `magic-link` · `report` (free scan summary) · `first-page` (the giveaway draft)
@@ -694,7 +703,7 @@ starts.**
 |---|---|---|
 | 1 | Design system + app shell + all §4 screens on fixture data | Every screen pixel-matches the approved artifact, both themes |
 | 2 | Measurement engine: fetcher, parsers, drivers, score | Same HTML twice → byte-identical; fixture suite for every driver. **Verify against the live API**: whether Labs `ranked_keywords` on the root domain includes `content.{domain}` subdomain rows (it must, or hosted pages' wins would be invisible to the growth chart — if not, query with subdomain inclusion or add the subdomain as a second tracked target) |
-| 3 | Free scan pipeline + report + share + cooldown | Real domain → real report <60s, ≤12¢ ledgered |
+| 3 | Free scan pipeline + report + share + cooldown | Real domain → real report <60s, ≤12¢ ledgered. *Live 2026-09-10 (#317): 15.3 s and 1.8 ¢ on production after #443 and #450; the measured score waits on the nano timeout fix (#452).* |
 | 4 | Questions + AI-Overview matrix + giveaway email + lead capture | 12 SERPs stored with their `ai_overview` references; draft only after email |
 | 5 | Stripe + provisioning + setup | Pay → magic link → 3 decisions → deep pass queued |
 | 6 | Deep scan + opportunities + calendar (fixture-free) | Real supply fills the calendar; empty days honest |
