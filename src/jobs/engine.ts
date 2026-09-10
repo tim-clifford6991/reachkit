@@ -235,6 +235,43 @@ export async function runScan(a: {
   return deep.status === "degraded" ? { degraded: "deep-pass" } : { done: true };
 }
 
+// ── The free passes nobody is coming back for — issue #438. Built.
+//
+// The free tier runs inline on `POST /api/scan` (see the block above), so
+// the pass lives inside a request whose invocation the platform bounds by
+// `maxDuration`. A pass frozen at that bound emits no ending and stores no
+// report, and the row admission claimed stays `running` — which is not a
+// dead row but a live refusal: §6.4's in-flight bound reads exactly that
+// column, so the next visitor from that network is turned away for a scan
+// that will never finish.
+//
+// Two calls into `src/lib/scan/stuck.ts`, which owns the threshold, the
+// bound on the query and the guard that makes the write safe against a
+// pass finishing underneath it. This seam holds no predicate over a
+// timestamp; `now` is read here for the same reason the other due-work
+// queries read it here — the tick's own signature supplies none.
+//
+// Imported at the call, like every other wrapper below that reaches
+// `@/lib/db`: a static import would put a database client in every module
+// graph this seam appears in.
+
+/** Every free scan left `running` past the ceiling a free pass bounds
+ *  itself by. */
+export async function scansLeftRunning(): Promise<readonly string[]> {
+  const { scansLeftRunning: due } = await import("@/lib/scan/stuck");
+  return due(new Date());
+}
+
+/** Finishes one of them. Never a degradation: a row the sweep found and
+ *  finished is the sweep doing its whole job, and a row that finished
+ *  itself between the query and the write is the guard doing its — the
+ *  module's own log line records which of the two it was. */
+export async function finishScanLeftRunning(scanId: string): Promise<EngineResult> {
+  const { finishScanLeftRunning: finish } = await import("@/lib/scan/stuck");
+  await finish(scanId);
+  return { done: true };
+}
+
 // ── Generation — BUILD §8 (issue #44)
 // Built. `src/lib/generate/` owns the pipeline, the hard rules and the
 // recovery decision; the wrapper below passes the job's own `publishDate`
