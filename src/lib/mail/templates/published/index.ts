@@ -29,7 +29,7 @@ import type { MailBlock, VerdictRow } from "../../blocks/types";
 const SUBJECT = "mail.published.subject" satisfies CopyKey;
 const ADDRESS = "mail.published.address_label" satisfies CopyKey;
 const ACTION = "mail.published.action" satisfies CopyKey;
-const VERIFIED = "mail.published.verified" satisfies CopyKey;
+const VERIFIED_LABEL = "mail.published.verified_label" satisfies CopyKey;
 const REASON = "mail.reason.published" satisfies CopyKey;
 const CHECKS_LABEL = "mail.published.checks_label" satisfies CopyKey;
 const CHECKS_EMPTY = "mail.published.checks_empty" satisfies CopyKey;
@@ -126,11 +126,17 @@ export function buildPublished(a: {
     // it one is a query change with a schema test behind it, so it is
     // issue #388's rather than smuggled into a mail PR.
     { block: "paragraph", text: telling.copy, vars: { checkedAt } },
+    // The second row's label is its own key, never the arm's own line
+    // (issue #457). `telling.copy` — `mail.published.verified` on the
+    // found arm — is the paragraph above, and it carries `{checkedAt}`;
+    // a facts label is read with no vars (`blocks/html.ts`'s
+    // `factRowsOf`), so handing the slotted key to both places composes
+    // nothing at all once the owner's sentence lands.
     {
       block: "facts",
       items: [
         { label: ADDRESS, value: telling.liveUrl },
-        { label: VERIFIED, value: checkedAt },
+        { label: VERIFIED_LABEL, value: checkedAt },
       ],
     },
     { block: "action", label: ACTION, href: telling.liveUrl },
