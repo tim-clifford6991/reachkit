@@ -69,7 +69,10 @@ describe('BUILD.md §1 — "Repo shape: standard Next.js."', () => {
       ".github",
       ".claude",
     ]);
-    const toolingOnly = new Set(["node_modules", ".next", "coverage", ".git"]);
+    // `.review/` is the review gallery's output (issue #383) — a run's
+    // pictures, gitignored exactly as `.next/` and `coverage/` are, so rule
+    // 7's *committed* set is unchanged by its existing.
+    const toolingOnly = new Set(["node_modules", ".next", "coverage", ".git", ".review"]);
     const entries = readdirSync(ROOT, { withFileTypes: true }).filter((e) => e.isDirectory());
     const unexpected = entries
       .map((e) => e.name)

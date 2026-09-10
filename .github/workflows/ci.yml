@@ -127,6 +127,79 @@ jobs:
           gh pr comment "${{ github.event.pull_request.number }}" \
             --body-file "${{ runner.temp }}/comment.md"
 
+  review:
+    name: review gallery
+    runs-on: ubuntu-latest
+    # After the layout job, and only where the picture is wanted (issue
+    # #383). The owner reviews progress on dev.reachkit.app, where every
+    # `(account)` route needs a session and a v3 database the staged
+    # deployment has neither of until cutover — so the browser run that
+    # already builds the app, seeds four accounts and signs in is the only
+    # place those screens can be photographed at all.
+    #
+    # On `main` after every merge, because that is what the owner reviews.
+    # On a pull request only when it carries the `review-gallery` label:
+    # this is a twenty-minute browser run and no PR should pay for it
+    # twice, but the PR that *changes* the gallery has no other way to
+    # exercise it (PROCESS §2.4 forbids the layout suite on the box).
+    # A label added after the last push takes effect on the next one.
+    needs: layout
+    if: >-
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'pull_request' &&
+       contains(github.event.pull_request.labels.*.name, 'review-gallery'))
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: reachkit
+          POSTGRES_PASSWORD: reachkit
+          POSTGRES_DB: reachkit_scratch
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U reachkit -d reachkit_scratch"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/layout-suite
+      # The one line, so CI and a person run the same thing: the mails S20
+      # draws, then every route in every state it can be reached in, both
+      # themes, full page at 1280, into `.review/<sha>/`.
+      - name: every screen S1-S20, in every state, into .review/
+        run: npm run review:gallery
+
+      - name: the gallery, as one artifact
+        id: gallery
+        uses: actions/upload-artifact@v4
+        with:
+          name: review-gallery-${{ github.sha }}
+          path: .review
+          # `.review` is dot-prefixed, and this action drops "files within
+          # folders beginning with `.`" unless asked otherwise — so the
+          # first run wrote 93 pictures and uploaded none of them. The
+          # directory holds PNGs and one index.html and nothing else; the
+          # issue names that path, so the flag moves rather than the path.
+          include-hidden-files: true
+          # A gallery that uploaded nothing reads exactly like one nobody
+          # opened. It is a failure and it says so.
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: the run's summary links it
+        run: |
+          set -euo pipefail
+          {
+            echo "### Review gallery"
+            echo
+            echo "\`.review/${{ github.sha }}/index.html\` - every screen S1-S20, every state the"
+            echo "suite can reach, light and dark, the approved render beside the build."
+            echo
+            echo "[Download](${{ steps.gallery.outputs.artifact-url }}) - 14-day retention."
+          } >> "$GITHUB_STEP_SUMMARY"
+
   db:
     name: schema · RLS (live Postgres)
     runs-on: ubuntu-latest
