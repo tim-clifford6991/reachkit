@@ -1,0 +1,578 @@
+# Copy owed — every key the owner has still to write
+
+**Generated. Do not type into this file** — `npm run copy:owed` rewrites it and `tests/presentation/copy/owed-sheet.test.ts` fails when it is out of date. Write the sentences in your reply, or straight into `src/lib/presentation/copy/keys/*.ts`, and run the generator again: a key that gains a sentence leaves this sheet by itself.
+
+**393 keys**, across 795 in the registry — **124 empty** (`copy()` throws on these: a mail with one does not send, a screen with one does not render) and **269 `TODO(copy)`** (these render the marker, in public, until they are written).
+
+**How to read a row.**
+
+- **key** — the registry key, and the partition file it lives in. Both are where the sentence goes when you have written it.
+- **standing** — `empty` throws, `marker` renders `TODO(copy)`. Nothing else distinguishes them; both are owed.
+- **where** — the part of the screen, the element, and the file and line of the component that reads the key. Read off the JSX the key sits in, so it says what the reader will see the sentence attached to. Three rows read differently: *composed in the engine* is a sentence a module builds and a screen renders; *document head* is a `<title>` or a `<meta>` description, spoken to a search result rather than to the page; and `—` is a key nothing reads yet, placed on the screen its neighbours are drawn on.
+- **the set says** — the approved set's bracketed hint for this slot, verbatim, where the hint names this key and no other on the screen. Blank is not a licence to invent: the screen's whole hint list is above its table.
+- **fixed by** — the REQ criterion or BUILD § that fixes what the sentence must say.
+- **max** — a length the layout implies. `set` is the longest string the approved set draws in that same element anywhere; `sibling` is the longest sentence already written in the same group of keys. Blank where the layout implies nothing.
+
+A key with slots (`{value}`, `{date}`) carries them beside its name; the sentence has to spend every one.
+
+## The walk
+
+| screen | | owed | empty |
+|---|---|---:|---:|
+| S1 | [Landing](#s1-landing-public) | 35 | 0 |
+| S2 | [Free report](#s2-free-report-public) | 47 | 4 |
+| S3 | Report states | none | 0 |
+| S4 | [Pricing](#s4-pricing-public) | 4 | 0 |
+| S5 | [Legal](#s5-legal-public) | 12 | 0 |
+| S6 | [Veto page](#s6-veto-page-public) | 13 | 6 |
+| S7 | [Opt-out](#s7-opt-out-public) | 4 | 0 |
+| S8 | [Not found](#s8-not-found-public) | 5 | 0 |
+| S9 | [Sign in](#s9-sign-in-join) | 12 | 0 |
+| S10 | [Setup](#s10-setup-join) | 26 | 0 |
+| S11 | [Waiting](#s11-waiting-join) | 1 | 0 |
+| S12 | [Overview](#s12-overview-app) | 35 | 0 |
+| S13 | Overview · week 0 | none | 0 |
+| S14 | [Calendar](#s14-calendar-app) | 36 | 11 |
+| S15 | Day panel states | none | 0 |
+| S16 | [Draft](#s16-draft-app) | 14 | 4 |
+| S17 | Draft · edit | none | 0 |
+| S18 | [Settings](#s18-settings-app) | 58 | 8 |
+| S19 | Hosted page | none | 0 |
+| S20 | [Mails](#s20-mails-mail) | 88 | 88 |
+| — | [Not yet on a screen](#not-yet-on-a-screen) | 3 | 3 |
+
+## S1 · Landing — Public
+
+UI-SPEC `§S1` · the set draws it as `current="landing"` (`docs/design/approved/full-set/screens/landing-light.png`).
+
+Every bracketed hint the set draws on this screen: `[step 1 body — owner’s]` · `[step 2 body — owner’s]` · `[step 3 body — owner’s]` · `[subline — owner’s]` · `[CTA — owner’s]` · `[demo video — asset not yet produced]` · `[video caption — owner’s]` · `[why-care heading — owner’s]` · `[why-care body — owner’s]` · `[page title]` · `[what-it-does heading — owner’s]` · `[what-it-does body — owner’s]` · `[how-to-start heading — owner’s]` · `[how-to-start body — owner’s]` · `[closing CTA — owner’s]` · `[nav CTA — owner’s]` · `[rights line — owner’s]`
+
+| key | standing | where | the set says | fixed by | max |
+|---|---|---|---|---|---|
+| `chrome.cta.scan`<br>`chrome.ts` | marker | `Action` · `app/(public)/_chrome/Header.tsx:72` · +1 more |  | issue 266 |  |
+| `chrome.footer.rights`<br>`chrome.ts` | marker | `<p class="rk-chrome-fine">` · `app/(public)/_chrome/Footer.tsx:31` | `[rights line — owner’s]` | issue 266 | 75 — set, `<p class="fine">` |
+| `chrome.nav.menu`<br>`chrome.ts` | marker | — · placed with its group |  | issue 266 | 7 — sibling `chrome.nav.pricing` |
+| `landing.does.body`<br>`report.ts` | marker | `<p class="rk-sec-s">` · `app/(public)/page.tsx:138` |  | approved set S1 |  |
+| `landing.does.eyebrow`<br>`report.ts` | marker | — · placed with its group |  | issue 266 · L14 |  |
+| `landing.does.heading`<br>`report.ts` | marker | heading · `<h2 class="rk-sec-h">` · `app/(public)/page.tsx:137` |  | issue 266 · L15 |  |
+| `landing.does.item-1.line`<br>`report.ts` | marker | — · placed with its group |  | issue 266 · L17 | 68 — sibling `landing.why.matrix.line` |
+| `landing.does.item-1.title`<br>`report.ts` | marker | — · placed with its group |  | issue 266 · L16 | 28 — sibling `landing.step.3.title` |
+| `landing.does.item-2.line`<br>`report.ts` | marker | — · placed with its group |  | issue 266 · L19 | 68 — sibling `landing.why.matrix.line` |
+| `landing.does.item-2.title`<br>`report.ts` | marker | — · placed with its group |  | issue 266 · L18 | 28 — sibling `landing.step.3.title` |
+| `landing.does.item-3.line`<br>`report.ts` | marker | — · placed with its group |  | issue 266 · L21 | 68 — sibling `landing.why.matrix.line` |
+| `landing.does.item-3.title`<br>`report.ts` | marker | — · placed with its group |  | issue 266 · L20 | 28 — sibling `landing.step.3.title` |
+| `landing.hero.specimen.caption`<br>`report.ts` | marker | — · placed with its group |  | issue 266 · L6 |  |
+| `landing.hero.specimen.label`<br>`report.ts` | marker | — · placed with its group |  | issue 266 · L5 | 12 — sibling `landing.field.label` |
+| `landing.start.body`<br>`report.ts` | marker | `<p class="rk-sec-s">` · `app/(public)/page.tsx:150` |  | issue 266 · L24 | 20 — sibling `landing.start.cancel` |
+| `landing.start.cta`<br>`report.ts` | marker | `<div class="rk-center rk-close">` · `app/(public)/page.tsx:169` |  | issue 266 · L25 | 20 — sibling `landing.start.cancel` |
+| `landing.start.eyebrow`<br>`report.ts` | marker | — · placed with its group |  | issue 266 · L22 | 20 — sibling `landing.start.cancel` |
+| `landing.start.heading`<br>`report.ts` | marker | heading · `<h2 class="rk-sec-h">` · `app/(public)/page.tsx:149` |  | issue 266 · L23 | 20 — sibling `landing.start.cancel` |
+| `landing.step.1.body`<br>`report.ts` | marker | `STEPS` · `app/(public)/page.tsx:56` | `[step 1 body — owner’s]` | approved set S1 | 16 — sibling `landing.step.1.title` |
+| `landing.step.2.body`<br>`report.ts` | marker | `STEPS` · `app/(public)/page.tsx:57` | `[step 2 body — owner’s]` | approved set S1 | 27 — sibling `landing.step.2.title` |
+| `landing.step.3.body`<br>`report.ts` | marker | `STEPS` · `app/(public)/page.tsx:58` | `[step 3 body — owner’s]` | approved set S1 | 28 — sibling `landing.step.3.title` |
+| `landing.subline`<br>`report.ts` | marker | `<p class="rk-hero-s">` · `app/(public)/page.tsx:89` | `[subline — owner’s]` | issue 266 · L1 |  |
+| `landing.video.blocked`<br>`report.ts` | marker | — · placed with its group |  | issue 266 · L9 |  |
+| `landing.video.caption`<br>`report.ts` | marker | explain line · `<p class="rk-explain rk-center">` · `app/(public)/page.tsx:110` | `[video caption — owner’s]` | approved set S1 · 4c | 175 — set, `<p class="explain">` |
+| `landing.video.eyebrow`<br>`report.ts` | marker | — · placed with its group |  | issue 266 · L7 |  |
+| `landing.video.heading`<br>`report.ts` | marker | — · placed with its group |  | issue 266 · L8 |  |
+| `landing.video.line`<br>`report.ts` | marker | `<span class="rk-video-line">` · `app/(public)/page.tsx:108` |  | approved set S1 · 4c | 68 — sibling `landing.why.matrix.line` |
+| `landing.video.open`<br>`report.ts` | marker | — · placed with its group |  | issue 266 · L10 |  |
+| `landing.week.page.title`<br>`report.ts` | marker | `WeekCard` · `app/(public)/_landing/WeekCard.tsx:53` | `[page title]` | approved set S1 | 46 — sibling `landing.week.page.line` |
+| `landing.why.body`<br>`report.ts` | marker | `<p class="rk-sec-s">` · `app/(public)/page.tsx:121` |  | issue 266 · L13 |  |
+| `landing.why.eyebrow`<br>`report.ts` | marker | — · placed with its group |  | issue 266 · L11 |  |
+| `landing.why.heading`<br>`report.ts` | marker | heading · `<h2 class="rk-sec-h">` · `app/(public)/page.tsx:120` |  | issue 266 · L12 |  |
+| `meta.landing.description`<br>`meta.ts` | marker | `PUBLIC_ROUTE_SEO` · `app/(public)/_seo/routes.ts:53` · +1 more |  | issue 326 |  |
+| `meta.landing.title`<br>`meta.ts` | marker | document head · `/` · `PUBLIC_ROUTE_SEO` · `app/(public)/_seo/routes.ts:52` |  | issue 326 |  |
+| `meta.og.alt`<br>`meta.ts` | marker | `alt` · `app/(public)/opengraph-image.tsx:36` |  | issue 326 |  |
+
+## S2 · Free report — Public
+
+UI-SPEC `§S2` · the set draws it as `current="report"` (`docs/design/approved/full-set/screens/report-light.png`).
+
+Every bracketed hint the set draws on this screen: `[robots lines — verbatim, REQ-009 c2]` · `[DIY instructional body — owner’s]` · `[page 1 title]` · `[rights line — owner’s]`
+
+| key | standing | where | the set says | fixed by | max |
+|---|---|---|---|---|---|
+| `ai-answers.absent`<br>`report.ts` | marker | table · `<Table>` · `app/(public)/scan/[domain]/_modules/ai-answers.tsx:419` |  | REQ-004 c10 |  |
+| `ai-answers.customer-citations` `{cited} {answered}`<br>`report.ts` | marker | — · placed with its group |  | REQ-006 c1 |  |
+| `ai-answers.engine.ai-mode`<br>`report.ts` | marker | `ENGINE_LABEL` · `app/(public)/scan/[domain]/_modules/ai-answers.tsx:90` |  | BUILD §6.2 |  |
+| `ai-answers.engine.ai-overview`<br>`report.ts` | marker | `ENGINE_LABEL` · `app/(public)/scan/[domain]/_modules/ai-answers.tsx:89` |  | BUILD §6.2 |  |
+| `ai-answers.engine.cell.cited`<br>`report.ts` | marker | badge · `<Badge>` · `app/(public)/scan/[domain]/_modules/ai-answers.tsx:141` |  | BUILD §6.2 |  |
+| `ai-answers.engine.chatgpt`<br>`report.ts` | marker | `ENGINE_LABEL` · `app/(public)/scan/[domain]/_modules/ai-answers.tsx:91` |  | BUILD §6.2 |  |
+| `ai-answers.engine.column.question`<br>`report.ts` | marker | `AnswerColumns` · `app/(public)/scan/[domain]/_modules/ai-answers.tsx:199` |  | BUILD §6.2 |  |
+| `ai-answers.engine.not-measured`<br>`report.ts` | marker | badge · `<Badge>` · `app/(public)/scan/[domain]/_modules/ai-answers.tsx:135` · +2 more |  | BUILD §6.2 |  |
+| `ai-answers.legend`<br>`report.ts` | marker | — · placed with its group |  | REQ-006 c1 |  |
+| `ai-answers.matrix.column.cited`<br>`report.ts` | marker | — · placed with its group |  | REQ-006 c1 |  |
+| `ai-answers.matrix.column.domain`<br>`report.ts` | marker | — · placed with its group |  | REQ-006 c1 |  |
+| `ai-answers.matrix.empty`<br>`report.ts` | marker | — · placed with its group |  | REQ-006 c1 |  |
+| `ai-answers.question.no-answer`<br>`report.ts` | marker | badge · `<Badge>` · `app/(public)/scan/[domain]/_modules/ai-answers.tsx:138` · +1 more |  | REQ-006 c1 | 7 — sibling `ai-answers.question.not-you` |
+| `free-page.absent`<br>`report.ts` | marker | `FreePageAbsent` · `app/(public)/scan/[domain]/_modules/free-page.tsx:131` |  | REQ-004 c10 |  |
+| `free-page.target.value` `{keyword} {volume}`<br>`report.ts` | marker | `<Num>` · `app/(public)/scan/[domain]/_modules/free-page.tsx:86` |  | REQ-010 c1 |  |
+| `generated.page.proposed` `{pageTitle}`<br>`laws.ts` | marker | composed in the engine · `labelFor` · `lib/presentation/generated/text.ts:85`<br>also on S16, S20 |  | REQ-093 c2 | 32 — sibling `generated.page.written` |
+| `meta.report.description` `{domain}`<br>`meta.ts` | marker | document head · `/scan/{domain}` · `PUBLIC_ROUTE_SEO` · `app/(public)/_seo/routes.ts:89` |  | issue 326 |  |
+| `meta.report.og.alt`<br>`meta.ts` | marker | `alt` · `app/(public)/scan/[domain]/opengraph-image.tsx:48` |  | issue 326 |  |
+| `meta.report.title` `{domain}`<br>`meta.ts` | marker | document head · `/scan/{domain}` · `PUBLIC_ROUTE_SEO` · `app/(public)/_seo/routes.ts:88` |  | issue 326 |  |
+| `method.blocked-readers.body`<br>`report.ts` | marker | `METHOD_COPY` · `app/(public)/scan/[domain]/_problems/method.tsx:21` |  | REQ-009 c6 |  |
+| `method.blocked-readers.title`<br>`report.ts` | marker | `METHOD_COPY` · `app/(public)/scan/[domain]/_problems/method.tsx:21` |  | REQ-009 c6 | 25 — sibling `method.title` |
+| `method.missing-pages.body`<br>`report.ts` | marker | `METHOD_COPY` · `app/(public)/scan/[domain]/_problems/method.tsx:22` |  | REQ-009 c6 |  |
+| `method.missing-pages.title`<br>`report.ts` | marker | `METHOD_COPY` · `app/(public)/scan/[domain]/_problems/method.tsx:22` |  | REQ-009 c6 | 25 — sibling `method.title` |
+| `method.unquotable-pages.body`<br>`report.ts` | marker | `METHOD_COPY` · `app/(public)/scan/[domain]/_problems/method.tsx:23` |  | REQ-009 c6 |  |
+| `method.unquotable-pages.title`<br>`report.ts` | marker | `METHOD_COPY` · `app/(public)/scan/[domain]/_problems/method.tsx:23` |  | REQ-009 c6 | 25 — sibling `method.title` |
+| `notice.refused.stopped`<br>`report.ts` | marker | `REFUSAL_KEY` · `app/(public)/scan/[domain]/_address/refusal.ts:21` |  | REQ-003 c12 |  |
+| `offer.cadence.measure.value`<br>`offer.ts` | marker | `TERM_LINES` · `app/(public)/scan/[domain]/_modules/pricing.tsx:64` |  | REQ-021 c2 |  |
+| `offer.cadence.movement.value`<br>`offer.ts` | marker | `TERM_LINES` · `app/(public)/scan/[domain]/_modules/pricing.tsx:65` |  | REQ-021 c2 |  |
+| `offer.cadence.page.value`<br>`offer.ts` | marker | `TERM_LINES` · `app/(public)/scan/[domain]/_modules/pricing.tsx:63` |  | REQ-021 c2 |  |
+| `offer.veto.window.value` `{hours}`<br>`offer.ts` | marker | `TERM_LINES` · `app/(public)/scan/[domain]/_modules/pricing.tsx:67` |  | REQ-021 c2 |  |
+| `presence.absent`<br>`report.ts` | marker | `<div class="min-w-0 overflow-x-auto">` · `app/(public)/scan/[domain]/_modules/google-presence.tsx:159` |  | REQ-004 c10 |  |
+| `presence.absent-from.empty`<br>`report.ts` | marker | table · `<Table>` · `app/(public)/scan/[domain]/_modules/google-presence.tsx:139` |  | REQ-008 c4 | 37 — sibling `presence.absent-from.title` |
+| `presence.legend`<br>`report.ts` | marker | — · placed with its group |  | REQ-008 c2 |  |
+| `presence.no-rivals`<br>`report.ts` | marker | `<p>` · `app/(public)/scan/[domain]/_modules/google-presence.tsx:76` |  | REQ-008 c6 |  |
+| `presence.occupancy` `{you} {measured}`<br>`report.ts` | marker | — · placed with its group |  | REQ-008 c1 |  |
+| `presence.occupancy.column.count`<br>`report.ts` | marker | — · placed with its group |  | REQ-008 c1 |  |
+| `presence.occupancy.column.domain`<br>`report.ts` | marker | — · placed with its group |  | REQ-008 c1 |  |
+| `problem.paste.label`<br>`report.ts` | marker | `<div class="flex flex-col gap-2">` · `app/(public)/scan/[domain]/_problems/cards.tsx:84` |  | REQ-009 c2 |  |
+| `report.wait.minutes` `{minutes}`<br>`report.ts` | marker | `formatWait` · `app/(public)/scan/[domain]/_address/refusal.ts:30` |  | REQ-003 c6 |  |
+| `stage.reading_access_rules`<br>`report.ts` | marker | `STAGE_KEY` · `app/(public)/scan/[domain]/_address/progress.tsx:48` |  | REQ-003 c1 |  |
+| `verdict.factor.answerability`<br>`report.ts` | marker | `FACTOR_NAME_KEY` · `app/(public)/scan/[domain]/_address/report-view.tsx:70` · +1 more |  | REQ-004 c3 | 110 — sibling `verdict.limiting.answerability` |
+| `verdict.factor.foundations`<br>`report.ts` | marker | `FACTOR_NAME_KEY` · `app/(public)/scan/[domain]/_address/report-view.tsx:69` · +1 more |  | REQ-004 c3 | 104 — sibling `verdict.limiting.foundations` |
+| `verdict.factor.presence`<br>`report.ts` | marker | `FACTOR_NAME_KEY` · `app/(public)/scan/[domain]/_address/report-view.tsx:71` · +1 more |  | REQ-004 c3 | 112 — sibling `verdict.limiting.presence` |
+| `verdict.page.not_judgeable`<br>`publish.ts` | empty | composed in the engine · `PAGE_VERDICTS` · `lib/presentation/bands.ts:103`<br>also on S12, S14, S20 |  | REQ-063 c6 |  |
+| `verdict.page.not_working`<br>`publish.ts` | empty | composed in the engine · `PAGE_VERDICTS` · `lib/presentation/bands.ts:102`<br>also on S12, S14, S20 |  | REQ-063 c1 |  |
+| `verdict.page.too_early`<br>`publish.ts` | empty | composed in the engine · `PAGE_VERDICTS` · `lib/presentation/bands.ts:101`<br>also on S12, S14, S20 |  | REQ-063 c2 |  |
+| `verdict.page.working`<br>`publish.ts` | empty | composed in the engine · `PAGE_VERDICTS` · `lib/presentation/bands.ts:100`<br>also on S12, S14, S20 |  | REQ-063 c1 |  |
+
+## S4 · Pricing — Public
+
+UI-SPEC `§S4` · the set draws it as `current="pricing"` (`docs/design/approved/full-set/screens/pricing-light.png`).
+
+Every bracketed hint the set draws on this screen: `[pricing heading — owner’s]` · `[pricing subline — owner’s]` · `[nav CTA — owner’s]` · `[rights line — owner’s]`
+
+| key | standing | where | the set says | fixed by | max |
+|---|---|---|---|---|---|
+| `meta.pricing.description`<br>`meta.ts` | marker | document head · `/pricing` · `PUBLIC_ROUTE_SEO` · `app/(public)/_seo/routes.ts:59` |  | issue 326 |  |
+| `meta.pricing.title`<br>`meta.ts` | marker | document head · `/pricing` · `PUBLIC_ROUTE_SEO` · `app/(public)/_seo/routes.ts:58` |  | issue 326 |  |
+| `pricing.heading`<br>`chrome.ts` | marker | heading · `<h1>` · `app/(public)/pricing/page.tsx:93` | `[pricing heading — owner’s]` | REQ-021 c4 | 33 — set, `<h1 class="h1">` |
+| `pricing.subline`<br>`chrome.ts` | marker | `<p class="rk-quiet">` · `app/(public)/pricing/page.tsx:94` | `[pricing subline — owner’s]` | REQ-021 c4 | 135 — set, `<p class="body">` |
+
+## S5 · Legal — Public
+
+UI-SPEC `§S5` · the set draws it as `current="legal"` (`docs/design/approved/full-set/screens/legal-light.png`).
+
+Every bracketed hint the set draws on this screen: `[Privacy — owner’s title]` · `[legal body — owner’s, Markdown. One renderer for Privacy, Terms and Imprint; processors named: Supabase, Vercel, Stripe, Resend, DataForSEO, Anthropic.]` · `[nav CTA — owner’s]` · `[rights line — owner’s]`
+
+| key | standing | where | the set says | fixed by | max |
+|---|---|---|---|---|---|
+| `legal.imprint.body`<br>`chrome.ts` | marker | `IMPRINT` · `app/(public)/_legal/documents.ts:39` |  | issue 266 | 7 — sibling `legal.imprint.title` |
+| `legal.imprint.updated`<br>`chrome.ts` | marker | `IMPRINT` · `app/(public)/_legal/documents.ts:38` |  | UI-SPEC S5 | 7 — sibling `legal.imprint.title` |
+| `legal.privacy.body`<br>`chrome.ts` | marker | `PRIVACY` · `app/(public)/_legal/documents.ts:27` |  | issue 266 | 7 — sibling `legal.privacy.title` |
+| `legal.privacy.updated`<br>`chrome.ts` | marker | `PRIVACY` · `app/(public)/_legal/documents.ts:26` |  | UI-SPEC S5 | 7 — sibling `legal.privacy.title` |
+| `legal.terms.body`<br>`chrome.ts` | marker | `TERMS` · `app/(public)/_legal/documents.ts:33` |  | issue 266 | 5 — sibling `legal.terms.title` |
+| `legal.terms.updated`<br>`chrome.ts` | marker | `TERMS` · `app/(public)/_legal/documents.ts:32` |  | UI-SPEC S5 | 5 — sibling `legal.terms.title` |
+| `meta.imprint.description`<br>`meta.ts` | marker | document head · `/imprint` · `PUBLIC_ROUTE_SEO` · `app/(public)/_seo/routes.ts:77` |  | issue 326 |  |
+| `meta.imprint.title`<br>`meta.ts` | marker | document head · `/imprint` · `PUBLIC_ROUTE_SEO` · `app/(public)/_seo/routes.ts:76` |  | issue 326 |  |
+| `meta.privacy.description`<br>`meta.ts` | marker | document head · `/privacy` · `PUBLIC_ROUTE_SEO` · `app/(public)/_seo/routes.ts:65` |  | issue 326 |  |
+| `meta.privacy.title`<br>`meta.ts` | marker | document head · `/privacy` · `PUBLIC_ROUTE_SEO` · `app/(public)/_seo/routes.ts:64` |  | issue 326 |  |
+| `meta.terms.description`<br>`meta.ts` | marker | document head · `/terms` · `PUBLIC_ROUTE_SEO` · `app/(public)/_seo/routes.ts:71` |  | issue 326 |  |
+| `meta.terms.title`<br>`meta.ts` | marker | document head · `/terms` · `PUBLIC_ROUTE_SEO` · `app/(public)/_seo/routes.ts:70` |  | issue 326 |  |
+
+## S6 · Veto page — Public
+
+UI-SPEC `§S6` · the set draws it as `current="veto"` (`docs/design/approved/full-set/screens/veto-light.png`).
+
+Every bracketed hint the set draws on this screen: `[page title 15]` · `[rights line — owner’s]`
+
+| key | standing | where | the set says | fixed by | max |
+|---|---|---|---|---|---|
+| `mail.draftReady.autopilotZero` `{publishesAt}`<br>`mail.ts` | empty | composed in the engine · `lib/publish/publishable/telling.ts:78` · +1 more<br>also on S20 |  | REQ-057 c7 | 46 — sibling `mail.draftReady.body` |
+| `mail.draftReady.copilot`<br>`mail.ts` | empty | composed in the engine · `lib/publish/publishable/telling.ts:83` · +1 more<br>also on S20 |  | REQ-057 c1 | 46 — sibling `mail.draftReady.body` |
+| `mail.draftReady.dest.cannotPublish` `{site}`<br>`mail.ts` | empty | composed in the engine · `lib/publish/publishable/telling.ts:64` · +1 more<br>also on S20 |  | REQ-057 c9 |  |
+| `mail.draftReady.dest.goesLiveAtOnce` `{site}`<br>`mail.ts` | empty | composed in the engine · `lib/publish/publishable/telling.ts:54` · +1 more<br>also on S20 |  | REQ-057 c9 |  |
+| `mail.draftReady.dest.goesLiveOnApproval` `{site}`<br>`mail.ts` | empty | composed in the engine · `lib/publish/publishable/telling.ts:55` · +1 more<br>also on S20 |  | REQ-057 c9 |  |
+| `mail.draftReady.dest.goesLiveThen` `{site}`<br>`mail.ts` | empty | composed in the engine · `lib/publish/publishable/telling.ts:53` · +1 more<br>also on S20 |  | REQ-057 c9 |  |
+| `meta.veto.description`<br>`meta.ts` | marker | document head · `/veto/{token}` · `PUBLIC_ROUTE_SEO` · `app/(public)/_seo/routes.ts:95` |  | issue 326 |  |
+| `meta.veto.title`<br>`meta.ts` | marker | document head · `/veto/{token}` · `PUBLIC_ROUTE_SEO` · `app/(public)/_seo/routes.ts:94` |  | issue 326 |  |
+| `publish.action.refused.guard` `{state}`<br>`publish.ts` | marker | `draftAction` · `app/api/drafts/[id]/_action.ts:78` |  | REQ-056 c2 |  |
+| `publish.action.refused.notATransition` `{state}`<br>`publish.ts` | marker | `draftAction` · `app/api/drafts/[id]/_action.ts:79` |  | REQ-056 c2 |  |
+| `publish.veto.alreadyUsed`<br>`publish.ts` | marker | `refusalLine` · `app/(public)/veto/[token]/page.tsx:169` |  | REQ-057 c1 | 58 — sibling `publish.veto.stopped` |
+| `publish.veto.expired`<br>`publish.ts` | marker | `refusalLine` · `app/(public)/veto/[token]/page.tsx:172` |  | REQ-057 c1 | 58 — sibling `publish.veto.stopped` |
+| `publish.veto.unknown`<br>`publish.ts` | marker | `refusalLine` · `app/(public)/veto/[token]/page.tsx:174` |  | REQ-057 c1 | 58 — sibling `publish.veto.stopped` |
+
+## S7 · Opt-out — Public
+
+UI-SPEC `§S7` · the set draws it as `current="optout"` (`docs/design/approved/full-set/screens/optout-light.png`).
+
+Every bracketed hint the set draws on this screen: `[rights line — owner’s]`
+
+| key | standing | where | the set says | fixed by | max |
+|---|---|---|---|---|---|
+| `meta.optout.description`<br>`meta.ts` | marker | document head · `/opt-out/{token}` · `PUBLIC_ROUTE_SEO` · `app/(public)/_seo/routes.ts:101` |  | issue 326 |  |
+| `meta.optout.title`<br>`meta.ts` | marker | document head · `/opt-out/{token}` · `PUBLIC_ROUTE_SEO` · `app/(public)/_seo/routes.ts:100` |  | issue 326 |  |
+| `optout.head.unresolved`<br>`mail.ts` | marker | `arm` · `app/(public)/opt-out/[token]/page.tsx:93` |  | REQ-010 c11 · UI-SPEC S7 (12a) |  |
+| `optout.unavailable`<br>`mail.ts` | marker | `arm` · `app/(public)/opt-out/[token]/page.tsx:92` |  | REQ-010 c11 |  |
+
+## S8 · Not found — Public
+
+UI-SPEC `§S8` · the set draws it as `current="notfound"` (`docs/design/approved/full-set/screens/notfound-light.png`).
+
+Every bracketed hint the set draws on this screen: `[nav CTA — owner’s]` · `[rights line — owner’s]`
+
+| key | standing | where | the set says | fixed by | max |
+|---|---|---|---|---|---|
+| `chrome.error.eyebrow`<br>`chrome.ts` | marker | `HEAD` · `app/_fallback/Fallback.tsx:71` |  | UI-SPEC S8 (12a) | 3 — sibling `chrome.notfound.eyebrow` |
+| `chrome.error.heading`<br>`chrome.ts` | marker | `HEAD` · `app/_fallback/Fallback.tsx:72` · +1 more |  | UI-SPEC S8 (12a) | 33 — sibling `chrome.notfound.heading` |
+| `chrome.error.line`<br>`chrome.ts` | marker | `LINE` · `app/(account)/error.tsx:28` · +2 more |  | UI-SPEC S8 (12a) |  |
+| `chrome.loading.line`<br>`chrome.ts` | marker | `LINE` · `app/_fallback/Waiting.tsx:55` |  | UI-SPEC §4 rule 3 (12a) |  |
+| `chrome.notfound.line.app`<br>`chrome.ts` | marker | `LINE` · `app/(account)/not-found.tsx:31` |  | UI-SPEC S8 (12a) |  |
+
+## S9 · Sign in — Join
+
+UI-SPEC `§S9` · the set draws it as `current="auth"` (`docs/design/approved/full-set/screens/auth-light.png`).
+
+Every bracketed hint the set draws on this screen: `[link-sent head — owner’s]` · `[link-sent body — owner’s]` · `[resend — owner’s]` · `[link-expired head — owner’s]` · `[link-expired body — owner’s]` · `[send a new link — owner’s]`
+
+| key | standing | where | the set says | fixed by | max |
+|---|---|---|---|---|---|
+| `meta.signin.description`<br>`meta.ts` | marker | document head · `/signin` · `PUBLIC_ROUTE_SEO` · `app/(public)/_seo/routes.ts:83` |  | issue 326 |  |
+| `meta.signin.title`<br>`meta.ts` | marker | document head · `/signin` · `PUBLIC_ROUTE_SEO` · `app/(public)/_seo/routes.ts:82` |  | issue 326 |  |
+| `signin.address.invalid`<br>`signin.ts` | marker | `ANSWER_COPY_KEY` · `app/(public)/signin/page.tsx:102` |  | REQ-098 c6 |  |
+| `signin.expired.head`<br>`signin.ts` | marker | heading · `<h1>` · `app/(public)/signin/page.tsx:219` |  | REQ-098 c7 |  |
+| `signin.expired.submit`<br>`signin.ts` | marker | `<div class="rk-form-col">` · `app/(public)/signin/page.tsx:226` |  | REQ-098 c7 |  |
+| `signin.link_dead`<br>`signin.ts` | marker | `<p class="rk-quiet">` · `app/(public)/signin/page.tsx:220` · +1 more |  | REQ-098 c7 |  |
+| `signin.link_sent`<br>`signin.ts` | marker | `ANSWER_COPY_KEY` · `app/(public)/signin/page.tsx:103` |  | REQ-098 c3 |  |
+| `signin.no_account`<br>`signin.ts` | marker | `ANSWER_COPY_KEY` · `app/(public)/signin/page.tsx:105` · +2 more |  | REQ-020 c4 |  |
+| `signin.panel.specimen`<br>`signin.ts` | marker | — · placed with its group |  | issue 266 · tokens.md §9.4 | 57 — sibling `signin.panel.line` |
+| `signin.payment_held`<br>`signin.ts` | marker | `ANSWER_COPY_KEY` · `app/(public)/signin/page.tsx:104` · +2 more |  | REQ-020 c4 |  |
+| `signin.sent.head`<br>`signin.ts` | marker | heading · `<h1>` · `app/(public)/signin/page.tsx:241` |  | REQ-098 c3 |  |
+| `signin.sent.resend`<br>`signin.ts` | marker | `<div class="rk-form-col">` · `app/(public)/signin/page.tsx:246` | `[resend — owner’s]` | REQ-098 c3 | 19 — set, `<button class="pill pill-quiet">` |
+
+## S10 · Setup — Join
+
+UI-SPEC `§S10` · the set draws it as `current="setup"` (`docs/design/approved/full-set/screens/setup-light.png`).
+
+Every bracketed hint the set draws on this screen: `[competitor-picker line — owner’s]` · `[setup head — owner’s]` · `[autopilot description — owner’s]` · `[copilot description — owner’s]` · `[hosted-blog description — owner’s]`
+
+| key | standing | where | the set says | fixed by | max |
+|---|---|---|---|---|---|
+| `setup.address.measured`<br>`setup.ts` | marker | `<p>` · `app/(account)/setup/SetupForm.tsx:356` |  | REQ-021 c6 | 85 — sibling `setup.address.assurance` |
+| `setup.address.missing`<br>`setup.ts` | marker | `SUBMIT_REFUSAL_COPY` · `app/(account)/setup/SetupForm.tsx:90` |  | REQ-021 c7 | 85 — sibling `setup.address.assurance` |
+| `setup.address.refused.not-a-domain`<br>`setup.ts` | marker | `ADDRESS_REFUSAL_COPY` · `app/(account)/setup/SetupForm.tsx:73` |  | REQ-021 c9 |  |
+| `setup.address.refused.unreachable`<br>`setup.ts` | marker | `ADDRESS_REFUSAL_COPY` · `app/(account)/setup/SetupForm.tsx:74` · +1 more |  | REQ-021 c10 |  |
+| `setup.competitors.awaiting-market`<br>`setup.ts` | marker | control · `<p>` · `app/(account)/setup/SetupForm.tsx:514` |  | REQ-026 c10 | 123 — sibling `setup.competitors.none-found` |
+| `setup.competitors.refused.already-present`<br>`setup.ts` | marker | `RIVAL_REFUSAL_COPY` · `app/(account)/setup/SetupForm.tsx:81` |  | REQ-026 c8 |  |
+| `setup.competitors.refused.does-not-resolve`<br>`setup.ts` | marker | `RIVAL_REFUSAL_COPY` · `app/(account)/setup/SetupForm.tsx:79` |  | REQ-026 c8 |  |
+| `setup.competitors.refused.not-a-domain`<br>`setup.ts` | marker | `RIVAL_REFUSAL_COPY` · `app/(account)/setup/SetupForm.tsx:78` |  | REQ-026 c8 |  |
+| `setup.competitors.refused.own-domain`<br>`setup.ts` | marker | `RIVAL_REFUSAL_COPY` · `app/(account)/setup/SetupForm.tsx:80` |  | REQ-026 c8 |  |
+| `setup.competitors.refused.set-full`<br>`setup.ts` | marker | `RIVAL_REFUSAL_COPY` · `app/(account)/setup/SetupForm.tsx:82` · +1 more |  | REQ-026 c9 |  |
+| `setup.competitors.remove` `{rival}`<br>`setup.ts` | marker | control · `<div class="flex flex-wrap items-center gap-2">` · `app/(account)/setup/SetupForm.tsx:559` |  | REQ-026 c7 | 123 — sibling `setup.competitors.none-found` |
+| `setup.competitors.seeking`<br>`setup.ts` | marker | control · `<p>` · `app/(account)/setup/SetupForm.tsx:519` |  | REQ-026 c10 | 123 — sibling `setup.competitors.none-found` |
+| `setup.destination.dnsPending`<br>`setup.ts` | marker | composed in the engine · `lib/publish/setup/cards.ts:44` · +1 more |  | REQ-028 c2 | 42 — sibling `setup.destination.wordpress` |
+| `setup.destination.dnsRecord`<br>`setup.ts` | marker | control · `<p>` · `app/(account)/setup/SetupForm.tsx:731` |  | REQ-028 c2 | 42 — sibling `setup.destination.wordpress` |
+| `setup.destination.hosted`<br>`setup.ts` | marker | composed in the engine · `lib/publish/setup/cards.ts:63` · +1 more |  | REQ-028 c2 | 42 — sibling `setup.destination.wordpress` |
+| `setup.head`<br>`setup.ts` | marker | heading · `<h1>` · `app/(account)/setup/page.tsx:49` | `[setup head — owner’s]` | REQ-025 c1 | 33 — set, `<h1 class="h1">` |
+| `setup.market.label`<br>`setup.ts` | marker | control · `<div>` · `app/(account)/setup/SetupForm.tsx:442` |  | REQ-026 c3 | 34 — sibling `setup.market.awaiting-site` |
+| `setup.market.missing`<br>`setup.ts` | marker | `SUBMIT_REFUSAL_COPY` · `app/(account)/setup/SetupForm.tsx:91` |  | REQ-026 c5 | 34 — sibling `setup.market.awaiting-site` |
+| `setup.market.placeholder`<br>`setup.ts` | marker | control · `<div>` · `app/(account)/setup/SetupForm.tsx:443` |  | REQ-026 c3 | 34 — sibling `setup.market.awaiting-site` |
+| `setup.market.state-it`<br>`setup.ts` | marker | control · `<p>` · `app/(account)/setup/SetupForm.tsx:438` |  | REQ-026 c3 | 34 — sibling `setup.market.awaiting-site` |
+| `setup.mode.autopilot`<br>`setup.ts` | marker | composed in the engine · `lib/publish/setup/cards.ts:55` · +1 more |  | REQ-028 c1 | 7 — sibling `setup.mode.default` |
+| `setup.mode.copilot`<br>`setup.ts` | marker | composed in the engine · `lib/publish/setup/cards.ts:55` · +1 more |  | REQ-028 c1 | 7 — sibling `setup.mode.default` |
+| `setup.refused.no-access`<br>`setup.ts` | marker | `SUBMIT_REFUSAL_COPY` · `app/(account)/setup/SetupForm.tsx:93` |  | REQ-025 c5 |  |
+| `setup.release.incomplete`<br>`setup.ts` | marker | `releaseNotice` · `lib/scan/deep/notice.ts:77` |  | REQ-029 c5 |  |
+| `setup.release.unmeasured`<br>`setup.ts` | marker | `releaseNotice` · `lib/scan/deep/notice.ts:83` |  | REQ-029 c3 |  |
+| `setup.waiting.degraded`<br>`setup.ts` | marker | — · placed with its group |  | REQ-029 c3 | 175 — sibling `setup.waiting.about` |
+
+## S11 · Waiting — Join
+
+UI-SPEC `§S11` · the set draws it as `current="waiting"` (`docs/design/approved/full-set/screens/waiting-light.png`).
+
+Every bracketed hint the set draws on this screen: `[waiting head — owner’s]`
+
+| key | standing | where | the set says | fixed by | max |
+|---|---|---|---|---|---|
+| `setup.waiting.head`<br>`setup.ts` | marker | heading · `<h1>` · `app/(account)/setup/waiting/page.tsx:79` | `[waiting head — owner’s]` | REQ-029 c1 | 33 — set, `<h1 class="h1">` |
+
+## S12 · Overview — App
+
+UI-SPEC `§S12` · the set draws it as `current="overview"` (`docs/design/approved/full-set/screens/overview-light.png`).
+
+Every bracketed hint the set draws on this screen: `[veto-pending alert — owner’s]` · `[needs-you alert — owner’s]` · `[cause line — owner’s]`
+
+| key | standing | where | the set says | fixed by | max |
+|---|---|---|---|---|---|
+| `cause.unrecognised`<br>`calendar.ts` | marker | composed in the engine · `lineFor` · `lib/presentation/place/account.ts:80`<br>also on S14 |  | REQ-043 c4 |  |
+| `next-publish.none-planned`<br>`laws.ts` | marker | composed in the engine · `OTHERWISE_KEY` · `lib/presentation/stopped/statement.ts:60`<br>also on S14 |  | REQ-040 c4 |  |
+| `next-publish.nothing-approved`<br>`laws.ts` | marker | composed in the engine · `OTHERWISE_KEY` · `lib/presentation/stopped/statement.ts:59`<br>also on S14 |  | REQ-040 c4 |  |
+| `next-publish.paused`<br>`laws.ts` | marker | composed in the engine · `OTHERWISE_KEY` · `lib/presentation/stopped/statement.ts:58`<br>also on S14 |  | REQ-040 c4 |  |
+| `next-publish.stopped`<br>`laws.ts` | marker | composed in the engine · `nextPublishStatement` · `lib/presentation/stopped/statement.ts:82` · +1 more<br>also on S14 |  | REQ-092 c7 |  |
+| `overview.alert.needs-you` `{title}`<br>`overview.ts` | marker | `ALERT_COPY` · `app/(account)/app/_overview/alerts.ts:67` |  | REQ-041 c5 |  |
+| `overview.alert.needs-you.cause`<br>`overview.ts` | marker | `ALERT_COPY` · `app/(account)/app/_overview/alerts.ts:69` |  | REQ-041 c5 | 9 — sibling `overview.alert.needs-you.action` |
+| `overview.alert.overflow` `{remaining}`<br>`overview.ts` | marker | `OVERFLOW_WHERE_KEY` · `app/(account)/app/_overview/alerts.ts:80` |  | REQ-041 c5 |  |
+| `overview.alert.pending-veto` `{title}`<br>`overview.ts` | marker | `ALERT_COPY` · `app/(account)/app/_overview/alerts.ts:72` | `[veto-pending alert — owner’s]` | REQ-041 c5 |  |
+| `overview.alerts.empty`<br>`overview.ts` | marker | `NeedsYouModule` · `app/(account)/app/_overview/NeedsYouModule.tsx:120` · +1 more |  | REQ-041 c5 |  |
+| `overview.change.category`<br>`overview.ts` | marker | `CHANGE_ACCOUNT_KEY` · `app/(account)/app/_overview/changes.ts:32` |  | REQ-071 c12 |  |
+| `overview.change.domain`<br>`overview.ts` | marker | `CHANGE_ACCOUNT_KEY` · `app/(account)/app/_overview/changes.ts:31` |  | REQ-071 c12 |  |
+| `overview.change.rivals`<br>`overview.ts` | marker | `CHANGE_ACCOUNT_KEY` · `app/(account)/app/_overview/changes.ts:33` |  | REQ-071 c12 |  |
+| `overview.comparison.window` `{since}`<br>`overview.ts` | marker | `<div>` · `app/(account)/app/_overview/RivalModule.tsx:229` |  | REQ-071 c13 |  |
+| `overview.head`<br>`overview.ts` | marker | `OVERVIEW_HEAD` · `app/(account)/app/_overview/head.ts:31` |  | BUILD §4.5 |  |
+| `overview.head.falling`<br>`overview.ts` | marker | `OVERVIEW_HEAD` · `app/(account)/app/_overview/head.ts:27` |  | BUILD §4.5 | 33 — sibling `overview.head.week-zero` |
+| `overview.head.flat`<br>`overview.ts` | marker | `OVERVIEW_HEAD` · `app/(account)/app/_overview/head.ts:26` |  | BUILD §4.5 | 33 — sibling `overview.head.week-zero` |
+| `overview.rivals.far.line` `{rival}`<br>`overview.ts` | marker | `Offer` · `app/(account)/app/_overview/RivalModule.tsx:76` |  | REQ-096 c6 |  |
+| `overview.rivals.far.swap`<br>`overview.ts` | marker | `Offer` · `app/(account)/app/_overview/RivalModule.tsx:77` |  | REQ-096 c6 |  |
+| `overview.rivals.line.absolute`<br>`overview.ts` | marker | `ABSOLUTE_LINE_KEY` · `app/(account)/app/_overview/rivals.ts:115` |  | REQ-041 c9 | 46 — sibling `overview.rivals.line.shrinking` |
+| `overview.supply.exhausted`<br>`overview.ts` | marker | `SUPPLY_PRECEDENCE` · `app/(account)/app/_overview/supply.ts:44` |  | REQ-095 c3 |  |
+| `overview.supply.first-arrival`<br>`overview.ts` | marker | `SUPPLY_PRECEDENCE` · `app/(account)/app/_overview/supply.ts:46` |  | REQ-095 c6 |  |
+| `overview.supply.short`<br>`overview.ts` | marker | `SUPPLY_PRECEDENCE` · `app/(account)/app/_overview/supply.ts:45` |  | REQ-095 c5 |  |
+| `overview.tile.ai-answers.means`<br>`overview.ts` | marker | `GOALS` · `app/(account)/app/_overview/goals.ts:60` |  | REQ-041 c4 | 35 — sibling `overview.tile.ai-answers.first-pass` |
+| `overview.tile.ai-answers.window` `{weeks} {of}`<br>`overview.ts` | marker | `TileRow` · `app/(account)/app/_overview/TileRow.tsx:210` |  | REQ-041 c12 | 35 — sibling `overview.tile.ai-answers.first-pass` |
+| `overview.tile.pages.means`<br>`overview.ts` | marker | `GOALS` · `app/(account)/app/_overview/goals.ts:61` |  | REQ-041 c4 | 26 — sibling `overview.tile.pages.first-review` |
+| `overview.tile.score.means` `{goal}`<br>`overview.ts` | marker | `GOALS` · `app/(account)/app/_overview/goals.ts:53` |  | BUILD §4.5 | 21 — sibling `overview.tile.score.label` |
+| `place.calendar.date.page`<br>`calendar.ts` | marker | composed in the engine · `PLACES` · `lib/presentation/place/places.ts:56`<br>also on S14 |  | REQ-043 c5 |  |
+| `place.overview.weekly-presence.chart`<br>`overview.ts` | marker | `GrowthModule` · `app/(account)/app/_overview/GrowthModule.tsx:48` · +1 more |  | REQ-041 c3 |  |
+| `place.overview.weekly-presence.partial-week`<br>`overview.ts` | marker | composed in the engine · `PLACES` · `lib/presentation/place/places.ts:51`<br>also on S14 |  | REQ-065 c4 |  |
+| `place.overview.weekly-presence.week`<br>`overview.ts` | marker | `GrowthModule` · `app/(account)/app/_overview/GrowthModule.tsx:94` · +1 more |  | REQ-065 c3 |  |
+| `shell.publishing.state.copilot`<br>`laws.ts` | marker | `STATE_COPY_KEY` · `app/(account)/app/_shell/PublishingCard.tsx:66` |  | REQ-040 c3 | 30 — sibling `shell.publishing.state.week-zero` |
+| `stopped.work.no-time-promised`<br>`laws.ts` | marker | composed in the engine · `stoppedWorkStatement` · `lib/presentation/stopped/statement.ts:46`<br>also on S14 |  | REQ-092 c4 | 95 — sibling `stopped.work.line` |
+| `stopped.work.partial-pass`<br>`laws.ts` | marker | composed in the engine · `dayAccount` · `lib/presentation/stopped/statement.ts:115`<br>also on S14 |  | REQ-092 c6 | 95 — sibling `stopped.work.line` |
+| `stopped.work.resumes-on` `{date}`<br>`laws.ts` | marker | composed in the engine · `stoppedWorkStatement` · `lib/presentation/stopped/statement.ts:45`<br>also on S14 |  | REQ-092 c4 | 95 — sibling `stopped.work.line` |
+
+## S14 · Calendar — App
+
+UI-SPEC `§S14` · the set draws it as `current="calendar"` (`docs/design/approved/full-set/screens/calendar-light.png`).
+
+Every bracketed hint the set draws on this screen: `[page title 15]` · `[page title 4]` · `[page title 19]` · `[page title 6]`
+
+| key | standing | where | the set says | fixed by | max |
+|---|---|---|---|---|---|
+| `calendar.action.regenerate`<br>`calendar.ts` | marker | `RESTART_COPY_KEY` · `app/(account)/app/calendar/actions.ts:109` |  | BUILD §9 · REQ-043 c9 | 19 — sibling `calendar.action.reconnect` |
+| `calendar.done-when.gate-cleared`<br>`calendar.ts` | empty | `doneWhen` · `app/(account)/app/calendar/store.ts:111` |  | BUILD §7 |  |
+| `calendar.done-when.named-on` `{question}`<br>`calendar.ts` | empty | `doneWhen` · `app/(account)/app/calendar/store.ts:109` |  | BUILD §7 |  |
+| `calendar.done-when.top20` `{query}`<br>`calendar.ts` | empty | `doneWhen` · `app/(account)/app/calendar/store.ts:106` |  | BUILD §7 |  |
+| `calendar.empty.change-holds-pages` `{date} {change}`<br>`calendar.ts` | marker | `EMPTY_COPY_KEY` · `app/(account)/app/calendar/empty.ts:176` |  | REQ-071 c11 | 131 — sibling `calendar.empty.supply-exhausted` |
+| `calendar.empty.customer-change-holds-pages`<br>`calendar.ts` | empty | `EMPTY_COPY_KEY` · `app/(account)/app/calendar/empty.ts:175` |  | REQ-043 c4 | 131 — sibling `calendar.empty.supply-exhausted` |
+| `calendar.empty.instruction`<br>`calendar.ts` | empty | `EMPTY_COPY_KEY` · `app/(account)/app/calendar/empty.ts:173` |  | REQ-043 c5 | 131 — sibling `calendar.empty.supply-exhausted` |
+| `calendar.empty.page-cannot-go-live`<br>`calendar.ts` | empty | `EMPTY_COPY_KEY` · `app/(account)/app/calendar/empty.ts:174` |  | REQ-043 c4 | 131 — sibling `calendar.empty.supply-exhausted` |
+| `calendar.empty.page-held`<br>`calendar.ts` | empty | `EMPTY_COPY_KEY` · `app/(account)/app/calendar/empty.ts:177` |  | REQ-092 c5 | 131 — sibling `calendar.empty.supply-exhausted` |
+| `calendar.status.veto-deadline` `{at}`<br>`calendar.ts` | empty | control · `<Btn>` · `app/(account)/app/calendar/DayPanelView.tsx:293` |  | BUILD §9 |  |
+| `calendar.supply.exhausted` `{since}`<br>`calendar.ts` | empty | `supplyLine` · `app/(account)/app/calendar/supply.ts:25` |  | BUILD §4.6 |  |
+| `calendar.supply.first-arrival` `{days}`<br>`calendar.ts` | empty | `supplyLine` · `app/(account)/app/calendar/supply.ts:32` |  | BUILD §4.6 |  |
+| `calendar.supply.short` `{days}`<br>`calendar.ts` | empty | `supplyLine` · `app/(account)/app/calendar/supply.ts:30` |  | BUILD §4.6 |  |
+| `publish.wordpress.namedForRemoval`<br>`publish.ts` | marker | — · placed with its group |  | ADR-084 d4 · REQ-056 c16 |  |
+| `publish.wordpress.noSeoPlugin`<br>`publish.ts` | marker | composed in the engine · `NO_SEO_PLUGIN_LINE` · `lib/publish/destinations/wordpress/seo.ts:43` · +1 more<br>also on S16, S18 |  | REQ-060 c4 |  |
+| `record.address.wasPublishedAt`<br>`publish.ts` | marker | composed in the engine · `lib/publish/record/index.ts:70` · +1 more<br>also on S16 |  | REQ-056 c6 |  |
+| `record.unpublished.alreadyGone`<br>`publish.ts` | marker | composed in the engine · `UNPUBLISHED_COPY` · `lib/publish/record/lines.ts:89`<br>also on S16 |  | REQ-056 c15 |  |
+| `record.unpublished.namedForRemoval`<br>`publish.ts` | marker | composed in the engine · `UNPUBLISHED_COPY` · `lib/publish/record/lines.ts:88`<br>also on S16 |  | REQ-056 c16 |  |
+| `record.unpublished.removed`<br>`publish.ts` | marker | composed in the engine · `UNPUBLISHED_COPY` · `lib/publish/record/lines.ts:86`<br>also on S16 |  | REQ-056 c15 |  |
+| `record.unpublished.returnedToDraft`<br>`publish.ts` | marker | composed in the engine · `UNPUBLISHED_COPY` · `lib/publish/record/lines.ts:87`<br>also on S16 |  | REQ-056 c15 |  |
+| `record.unpublished.unreachable`<br>`publish.ts` | marker | composed in the engine · `UNPUBLISHED_COPY` · `lib/publish/record/lines.ts:90`<br>also on S16 |  | REQ-056 c15 |  |
+| `record.verification.couldNotConfirm`<br>`publish.ts` | marker | composed in the engine · `VERIFICATION_COPY` · `lib/publish/record/lines.ts:77`<br>also on S16 |  | REQ-062 c7 |  |
+| `record.verification.due`<br>`publish.ts` | marker | composed in the engine · `VERIFICATION_COPY` · `lib/publish/record/lines.ts:79`<br>also on S16 |  | REQ-062 c7 |  |
+| `record.verification.found`<br>`publish.ts` | marker | composed in the engine · `VERIFICATION_COPY` · `lib/publish/record/lines.ts:75`<br>also on S16 |  | REQ-062 c7 |  |
+| `record.verification.never.noLiveAddress`<br>`publish.ts` | marker | composed in the engine · `VERIFICATION_COPY` · `lib/publish/record/lines.ts:81`<br>also on S16 |  | REQ-062 c7 |  |
+| `record.verification.never.takenDownFirst`<br>`publish.ts` | marker | composed in the engine · `VERIFICATION_COPY` · `lib/publish/record/lines.ts:80`<br>also on S16 |  | REQ-062 c7 |  |
+| `record.verification.notYet`<br>`publish.ts` | marker | composed in the engine · `VERIFICATION_COPY` · `lib/publish/record/lines.ts:78`<br>also on S16 |  | REQ-062 c7 |  |
+| `record.verification.pageNotFound`<br>`publish.ts` | marker | composed in the engine · `VERIFICATION_COPY` · `lib/publish/record/lines.ts:76`<br>also on S16 |  | REQ-062 c7 |  |
+| `settings.market.change.category`<br>`settings.ts` | marker | `CHANGE_COPY_KEY` · `app/(account)/app/calendar/change-line.ts:20` |  | REQ-071 c1 | 15 — sibling `settings.market.category` |
+| `settings.market.change.domain`<br>`settings.ts` | marker | `CHANGE_COPY_KEY` · `app/(account)/app/calendar/change-line.ts:19` |  | REQ-071 c1 | 6 — sibling `settings.market.domain` |
+| `settings.publishing.pair.autopilotWindow`<br>`settings.ts` | marker | composed in the engine · `readPublishingSettings` · `lib/publish/settings/settings.ts:170` · +1 more<br>also on S18 |  | REQ-073 c2 | 123 — sibling `settings.publishing.pair.note` |
+| `settings.publishing.pair.autopilotZero`<br>`settings.ts` | marker | composed in the engine · `readPublishingSettings` · `lib/publish/settings/settings.ts:171` · +1 more<br>also on S18 |  | REQ-073 c2 | 123 — sibling `settings.publishing.pair.note` |
+| `settings.publishing.pair.copilot`<br>`settings.ts` | marker | composed in the engine · `readPublishingSettings` · `lib/publish/settings/settings.ts:172` · +1 more<br>also on S18 |  | REQ-073 c2 | 123 — sibling `settings.publishing.pair.note` |
+| `waythrough.no-admin-address`<br>`calendar.ts` | marker | `REFUSAL_COPY` · `app/(account)/app/calendar/ways.ts:53` |  | REQ-043 c12 |  |
+| `waythrough.page-not-found`<br>`calendar.ts` | marker | `REFUSAL_COPY` · `app/(account)/app/calendar/ways.ts:52` |  | REQ-043 c12 |  |
+| `waythrough.unpublished-by-us`<br>`calendar.ts` | marker | `REFUSAL_COPY` · `app/(account)/app/calendar/ways.ts:51` |  | REQ-043 c12 |  |
+
+## S16 · Draft — App
+
+UI-SPEC `§S16` · the set draws it as `current="draft"` (`docs/design/approved/full-set/screens/draft-light.png`).
+
+Every bracketed hint the set draws on this screen: `[page title 15]` · `[do-nothing explanation — owner’s]` · `[opening paragraph — generated, labelled below]` · `[section heading]` · `[body paragraph]` · `[grounded fact]` · `[body continues]` · `[source title]`
+
+| key | standing | where | the set says | fixed by | max |
+|---|---|---|---|---|---|
+| `draft.authorship.edited` `{at}`<br>`draft.ts` | empty | `DraftScreen` · `app/(account)/app/draft/[draftId]/DraftScreen.tsx:166` |  | REQ-045 c1 | 25 — sibling `draft.edit.state.edited` |
+| `draft.claim.failed`<br>`draft.ts` | marker | `CLAIM_COPY_KEY` · `app/(account)/app/draft/[draftId]/claim.ts:26` |  | REQ-045 c11 | 19 — sibling `draft.claim.outstanding` |
+| `draft.claim.matched` `{entry}`<br>`draft.ts` | empty | `DraftScreen` · `app/(account)/app/draft/[draftId]/DraftScreen.tsx:171` |  | REQ-045 c11 | 19 — sibling `draft.claim.outstanding` |
+| `draft.claim.nothing-to-check`<br>`draft.ts` | marker | `CLAIM_COPY_KEY` · `app/(account)/app/draft/[draftId]/claim.ts:28` |  | REQ-045 c3 | 19 — sibling `draft.claim.outstanding` |
+| `draft.do-nothing.autopilot` `{at}`<br>`draft.ts` | empty | `DO_NOTHING_COPY_KEY` · `app/(account)/app/draft/[draftId]/model.ts:156` |  | REQ-045 c4 | 30 — sibling `draft.do-nothing.title` |
+| `draft.do-nothing.copilot`<br>`draft.ts` | empty | `DO_NOTHING_COPY_KEY` · `app/(account)/app/draft/[draftId]/model.ts:157` |  | REQ-045 c4 | 30 — sibling `draft.do-nothing.title` |
+| `draft.grounded.title`<br>`draft.ts` | marker | eyebrow · `<p class="eyebrow rk-daypanel-eyebrow">` · `app/(account)/app/draft/[draftId]/DraftScreen.tsx:237` |  | REQ-045 c2 | 30 — sibling `draft.do-nothing.title` |
+| `draft.not-found`<br>`draft.ts` | marker | `app/(account)/app/draft/[draftId]/page.tsx:45` |  | REQ-045 c1 |  |
+| `record.address.neverMadeLive`<br>`publish.ts` | marker | `NOT_DELIVERED` · `app/(account)/app/draft/[draftId]/fixture.ts:132` · +2 more |  | REQ-056 c6 |  |
+| `record.address.publiclyReadableAt`<br>`publish.ts` | marker | `DELIVERED` · `app/(account)/app/draft/[draftId]/fixture.ts:148` · +2 more |  | REQ-056 c6 |  |
+| `record.label.address`<br>`publish.ts` | marker | `PageRecordBlock` · `app/(account)/app/draft/[draftId]/PageRecordBlock.tsx:107` |  | REQ-056 c6 |  |
+| `record.label.checked`<br>`publish.ts` | marker | `PageRecordBlock` · `app/(account)/app/draft/[draftId]/PageRecordBlock.tsx:130` |  | REQ-062 c7 |  |
+| `record.label.taken-down`<br>`publish.ts` | marker | `PageRecordBlock` · `app/(account)/app/draft/[draftId]/PageRecordBlock.tsx:123` |  | REQ-056 c15 |  |
+| `record.title`<br>`publish.ts` | marker | `PageRecordBlock` · `app/(account)/app/draft/[draftId]/PageRecordBlock.tsx:96` |  | REQ-056 c6 |  |
+
+## S18 · Settings — App
+
+UI-SPEC `§S18` · the set draws it as `current="settings"` (`docs/design/approved/full-set/screens/settings-light.png`).
+
+Every bracketed hint the set draws on this screen: `[voice description — the customer writes this; one field, nothing is learned about them]` · `[claim 1]` · `[claim 2]` · `[magic-link note — owner’s]`
+
+| key | standing | where | the set says | fixed by | max |
+|---|---|---|---|---|---|
+| `danger.all-taken-down`<br>`danger.ts` | marker | `matchesConfirmWord` · `app/(account)/app/settings/danger-state.ts:60` · +2 more |  | REQ-079 c4 |  |
+| `danger.confirm-word.delete-account`<br>`danger.ts` | marker | `CONFIRM_WORD_KEY` · `app/(account)/app/settings/danger-state.ts:28` |  | REQ-079 c2 | 14 — sibling `danger.delete-account` |
+| `danger.confirm-word.unpublish-all`<br>`danger.ts` | marker | `CONFIRM_WORD_KEY` · `app/(account)/app/settings/danger-state.ts:27` |  | REQ-079 c2 | 13 — sibling `danger.unpublish-all` |
+| `danger.delete-account.consequence`<br>`danger.ts` | marker | `DANGER` · `app/(account)/app/settings/panels/DangerZone.tsx:69` · +1 more |  | REQ-079 c1 |  |
+| `danger.export-failed`<br>`danger.ts` | marker | `runDangerAction` · `app/(account)/app/settings/danger-actions.ts:106` · +3 more |  | REQ-079 c3 |  |
+| `danger.export-take`<br>`danger.ts` | marker | eyebrow · `<span class="eyebrow opacity-60">` · `app/(account)/app/settings/panels/DangerZone.tsx:147` |  | REQ-079 c3 |  |
+| `danger.export-taken`<br>`danger.ts` | marker | eyebrow · `<span class="eyebrow opacity-60">` · `app/(account)/app/settings/panels/DangerZone.tsx:147` |  | REQ-079 c3 |  |
+| `danger.nothing-changed`<br>`danger.ts` | marker | field · `<p class="text-xs opacity-60 wrap-anywhere">` · `app/(account)/app/settings/panels/DangerZone.tsx:226` |  | REQ-079 c3 |  |
+| `danger.some-still-live`<br>`danger.ts` | marker | `matchesConfirmWord` · `app/(account)/app/settings/danger-state.ts:60` · +2 more |  | REQ-079 c4 |  |
+| `danger.taken-down-count` `{pages}`<br>`danger.ts` | marker | field · `<p class="text-xs opacity-60 wrap-anywhere">` · `app/(account)/app/settings/panels/DangerZone.tsx:211` |  | REQ-079 c4 · c5 |  |
+| `danger.type-to-confirm` `{word}`<br>`danger.ts` | marker | `runDangerAction` · `app/(account)/app/settings/danger-actions.ts:102` · +2 more |  | REQ-079 c2 |  |
+| `danger.unpublish-all.consequence`<br>`danger.ts` | marker | `DANGER` · `app/(account)/app/settings/panels/DangerZone.tsx:64` · +1 more |  | REQ-079 c1 |  |
+| `export.failed`<br>`settings.ts` | marker | composed in the engine · `lib/account/export/archive.ts:38` · +1 more |  | REQ-078 c5 |  |
+| `plan.single`<br>`offer.ts` | marker | `PLAN_KEY` · `app/(account)/app/settings/billing.ts:50` · +2 more |  | REQ-022 c1 |  |
+| `price.vat_included`<br>`offer.ts` | empty | composed in the engine · `PRICE_COPY_KEYS` · `lib/account/checkout/copy-keys.ts:11` |  | REQ-022 c1 |  |
+| `publish.destination.line.cannot-publish`<br>`publish.ts` | marker | composed in the engine · `LINE_KEY` · `lib/publish/destinations/view.ts:51` |  | ADR-086 · REQ-060 c7 |  |
+| `publish.destination.line.credentials-expired`<br>`publish.ts` | marker | composed in the engine · `LINE_KEY` · `lib/publish/destinations/view.ts:47` |  | §9 · REQ-074 c2 |  |
+| `publish.destination.line.credentials-invalid`<br>`publish.ts` | marker | composed in the engine · `LINE_KEY` · `lib/publish/destinations/view.ts:48` |  | §9 · REQ-074 c2 |  |
+| `publish.destination.line.destination-rejected`<br>`publish.ts` | marker | composed in the engine · `LINE_KEY` · `lib/publish/destinations/view.ts:50` |  | §9 · REQ-074 c2 |  |
+| `publish.destination.line.dns-elsewhere`<br>`publish.ts` | marker | composed in the engine · `LINE_KEY` · `lib/publish/destinations/view.ts:46` |  | §9 · REQ-059 c2 |  |
+| `publish.destination.line.dns-unset`<br>`publish.ts` | marker | composed in the engine · `LINE_KEY` · `lib/publish/destinations/view.ts:45` |  | §9 · REQ-059 c2 |  |
+| `publish.destination.line.never-connected`<br>`publish.ts` | marker | composed in the engine · `LINE_KEY` · `lib/publish/destinations/view.ts:44` |  | §9 · REQ-028 c5 |  |
+| `publish.destination.line.unreachable`<br>`publish.ts` | marker | composed in the engine · `LINE_KEY` · `lib/publish/destinations/view.ts:49` |  | §9 · REQ-074 c2 |  |
+| `settings.account.cancel-change`<br>`settings.ts` | marker | field · `<form>` · `app/(account)/app/settings/panels/AccountPanel.tsx:102` |  | REQ-077 c4 | 12 — sibling `settings.account.change-email` |
+| `settings.account.email-change-unavailable`<br>`settings.ts` | empty | `NEW_EMAIL_FIELD` · `app/(account)/app/settings/account-state.ts:23` · +5 more |  | REQ-077 c2 | 12 — sibling `settings.account.change-email` |
+| `settings.account.email-in-use`<br>`settings.ts` | empty | `NEW_EMAIL_FIELD` · `app/(account)/app/settings/account-state.ts:21` · +3 more |  | REQ-077 c2 | 12 — sibling `settings.account.change-email` |
+| `settings.account.email-invalid`<br>`settings.ts` | empty | `NEW_EMAIL_FIELD` · `app/(account)/app/settings/account-state.ts:22` · +2 more |  | REQ-077 c2 | 12 — sibling `settings.account.change-email` |
+| `settings.account.email-pending`<br>`settings.ts` | marker | eyebrow · `<span class="eyebrow opacity-60">` · `app/(account)/app/settings/panels/AccountPanel.tsx:92` |  | REQ-077 c4 | 12 — sibling `settings.account.change-email` |
+| `settings.account.email-pending-expires` `{at}`<br>`settings.ts` | marker | field · `<p class="text-xs opacity-60 wrap-anywhere">` · `app/(account)/app/settings/panels/AccountPanel.tsx:99` |  | REQ-077 c4 | 12 — sibling `settings.account.change-email` |
+| `settings.account.invoices-elsewhere`<br>`settings.ts` | empty | composed in the engine · `ACCOUNT_NOTE_KEYS` · `lib/account/identity/notes.ts:30` |  | REQ-077 c1 | 12 — sibling `settings.account.change-email` |
+| `settings.account.magic-link`<br>`settings.ts` | empty | composed in the engine · `ACCOUNT_NOTE_KEYS` · `lib/account/identity/notes.ts:29` |  | REQ-077 c1 | 12 — sibling `settings.account.change-email` |
+| `settings.account.new-email`<br>`settings.ts` | marker | `<form class="flex min-w-0 flex-col gap-1">` · `app/(account)/app/settings/panels/AccountPanel.tsx:119` · +3 more |  | REQ-077 c2 | 12 — sibling `settings.account.change-email` |
+| `settings.action.not-yet`<br>`settings.ts` | empty | — · placed with its group |  | BUILD §4.7 |  |
+| `settings.billing.reach-a-person`<br>`settings.ts` | marker | `UNREACHABLE_BILLING_KEYS` · `app/(account)/app/settings/billing.ts:70` · +1 more |  | REQ-097 c6 | 12 — sibling `settings.billing.next-invoice` |
+| `settings.billing.try-again`<br>`settings.ts` | marker | `UNREACHABLE_BILLING_KEYS` · `app/(account)/app/settings/billing.ts:69` · +1 more |  | REQ-097 c6 | 12 — sibling `settings.billing.next-invoice` |
+| `settings.billing.unreachable`<br>`settings.ts` | marker | `UNREACHABLE_BILLING_KEYS` · `app/(account)/app/settings/billing.ts:68` · +1 more |  | REQ-097 c6 | 12 — sibling `settings.billing.next-invoice` |
+| `settings.cancel-edit`<br>`settings.ts` | marker | `<div class="flex min-w-0 flex-wrap items-center gap-2">` · `app/(account)/app/settings/panels/MarketPanel.tsx:184` |  | REQ-071 c1 |  |
+| `settings.competitors.add-label`<br>`settings.ts` | marker | `<form class="flex min-w-0 flex-col gap-1">` · `app/(account)/app/settings/panels/CompetitorsPanel.tsx:177` · +3 more |  | BUILD §4.7 | 11 — sibling `settings.competitors.title` |
+| `settings.competitors.none-yet`<br>`settings.ts` | marker | `EmptyLine` · `app/(account)/app/settings/panels/CompetitorsPanel.tsx:69` |  | REQ-071 c16 | 11 — sibling `settings.competitors.title` |
+| `settings.competitors.refused.already-present`<br>`settings.ts` | marker | `RIVAL_REFUSAL_KEY` · `app/(account)/app/settings/market-state.ts:69` |  | REQ-071 c4 |  |
+| `settings.competitors.refused.does-not-resolve`<br>`settings.ts` | marker | `RIVAL_REFUSAL_KEY` · `app/(account)/app/settings/market-state.ts:67` |  | REQ-071 c4 |  |
+| `settings.competitors.refused.not-a-domain`<br>`settings.ts` | marker | `RIVAL_REFUSAL_KEY` · `app/(account)/app/settings/market-state.ts:66` |  | REQ-071 c4 |  |
+| `settings.competitors.refused.own-domain`<br>`settings.ts` | marker | `RIVAL_REFUSAL_KEY` · `app/(account)/app/settings/market-state.ts:68` |  | REQ-071 c4 |  |
+| `settings.competitors.refused.set-full`<br>`settings.ts` | marker | `RIVAL_REFUSAL_KEY` · `app/(account)/app/settings/market-state.ts:70` |  | REQ-071 c4 |  |
+| `settings.destination.app-password`<br>`settings.ts` | marker | control · `<div class="flex min-w-0 flex-col gap-2">` · `app/(account)/app/settings/panels/ConnectDestination.tsx:116` |  | REQ-060 | 9 — sibling `settings.destination.wordpress` |
+| `settings.destination.app-password.help`<br>`settings.ts` | marker | `ConnectDestination` · `app/(account)/app/settings/panels/ConnectDestination.tsx:74` |  | REQ-060 |  |
+| `settings.destination.site-url`<br>`settings.ts` | marker | control · `<div class="flex min-w-0 flex-col gap-2">` · `app/(account)/app/settings/panels/ConnectDestination.tsx:100` |  | REQ-060 | 9 — sibling `settings.destination.wordpress` |
+| `settings.destination.submit`<br>`settings.ts` | marker | control · `<div class="flex min-w-0 flex-col gap-2">` · `app/(account)/app/settings/panels/ConnectDestination.tsx:124` |  | REQ-060 | 9 — sibling `settings.destination.wordpress` |
+| `settings.destination.username`<br>`settings.ts` | marker | control · `<div class="flex min-w-0 flex-col gap-2">` · `app/(account)/app/settings/panels/ConnectDestination.tsx:106` |  | REQ-060 | 9 — sibling `settings.destination.wordpress` |
+| `settings.head`<br>`settings.ts` | empty | `app/(account)/app/settings/page.tsx:70` |  | BUILD §4.7 |  |
+| `settings.market.effectiveOn` `{date}`<br>`settings.ts` | marker | `MarketPanel` · `app/(account)/app/settings/panels/MarketPanel.tsx:132` |  | REQ-071 c6 | 70 — sibling `settings.market.effect` |
+| `settings.market.pending` `{date} {change}`<br>`settings.ts` | marker | `MarketPanel` · `app/(account)/app/settings/panels/MarketPanel.tsx:140` |  | REQ-071 c1 | 70 — sibling `settings.market.effect` |
+| `settings.market.refused.unreachable`<br>`settings.ts` | marker | `DOMAIN_REFUSAL_KEY` · `app/(account)/app/settings/market-state.ts:59` |  | REQ-071 c9 |  |
+| `settings.publishing.connect`<br>`settings.ts` | marker | `ACTION_COPY_KEY` · `app/(account)/app/settings/panels/ConnectDestination.tsx:63` |  | BUILD §4.7 · REQ-060 | 54 — sibling `settings.publishing.fix-note` |
+| `settings.publishing.reconnect-other-account`<br>`settings.ts` | marker | `ACTION_COPY_KEY` · `app/(account)/app/settings/panels/ConnectDestination.tsx:65` |  | ADR-086 · REQ-060 c7 | 54 — sibling `settings.publishing.fix-note` |
+| `settings.publishing.set-dns`<br>`settings.ts` | marker | `ACTION_COPY_KEY` · `app/(account)/app/settings/panels/PublishingPanel.tsx:134` |  | BUILD §9 · REQ-059 c2 | 54 — sibling `settings.publishing.fix-note` |
+| `settings.save`<br>`settings.ts` | marker | `<div class="flex min-w-0 flex-wrap items-center gap-2">` · `app/(account)/app/settings/panels/MarketPanel.tsx:182` |  | REQ-071 c1 |  |
+| `settings.voice.placeholder`<br>`settings.ts` | marker | `VoicePanel` · `app/(account)/app/settings/panels/VoicePanel.tsx:44` |  | REQ-055 | 97 — sibling `settings.voice.filter-note` |
+
+## S20 · Mails — Mail
+
+UI-SPEC `§S20` · the set draws it as `current="mail"` (`docs/design/approved/full-set/screens/mail-light.png`).
+
+Every bracketed hint the set draws on this screen: `[imprint line]`
+
+| key | standing | where | the set says | fixed by | max |
+|---|---|---|---|---|---|
+| `mail.account.address_moved`<br>`mail.ts` | empty | `ADDRESS_MOVED` · `lib/mail/templates/account/index.ts:35` |  | REQ-077 c3 |  |
+| `mail.account.address_moved.subject`<br>`mail.ts` | empty | `ADDRESS_MOVED_SUBJECT` · `lib/mail/templates/account/index.ts:34` |  | REQ-077 c3 | 17 — sibling `mail.magicLink.subject` |
+| `mail.account.chase.link_ready`<br>`mail.ts` | empty | `CHASE_LINK_READY` · `lib/mail/templates/account/index.ts:30` |  | REQ-024 c5 |  |
+| `mail.account.chase.not_open_yet`<br>`mail.ts` | empty | `CHASE_NOT_OPEN_YET` · `lib/mail/templates/account/index.ts:31` |  | REQ-024 c5 |  |
+| `mail.account.chase.subject`<br>`mail.ts` | empty | `CHASE_SUBJECT` · `lib/mail/templates/account/index.ts:29` |  | REQ-024 c5 | 17 — sibling `mail.magicLink.subject` |
+| `mail.account.deleted.still_live` `{count}`<br>`mail.ts` | empty | `DELETED_STILL_LIVE` · `lib/mail/templates/account/index.ts:39` |  | REQ-079 c6 |  |
+| `mail.account.deleted.subject`<br>`mail.ts` | empty | `DELETED_SUBJECT` · `lib/mail/templates/account/index.ts:38` |  | REQ-079 c6 | 17 — sibling `mail.magicLink.subject` |
+| `mail.account.deleted.theirs_to_keep`<br>`mail.ts` | empty | `DELETED_THEIRS_TO_KEEP` · `lib/mail/templates/account/index.ts:40` |  | REQ-079 c6 |  |
+| `mail.account.deleted.wordpress.already_gone` `{count}`<br>`mail.ts` | empty | `WORDPRESS_LINES` · `lib/mail/templates/account/index.ts:61` |  | REQ-079 c6 |  |
+| `mail.account.deleted.wordpress.named_for_removal` `{count} {place}`<br>`mail.ts` | empty | `WORDPRESS_LINES` · `lib/mail/templates/account/index.ts:56` |  | REQ-079 c6 |  |
+| `mail.account.deleted.wordpress.named_for_removal.no_place` `{count}`<br>`mail.ts` | empty | `WORDPRESS_LINES` · `lib/mail/templates/account/index.ts:57` |  | REQ-079 c6 |  |
+| `mail.account.deleted.wordpress.returned_to_draft` `{count} {place}`<br>`mail.ts` | empty | `WORDPRESS_LINES` · `lib/mail/templates/account/index.ts:52` |  | REQ-079 c6 |  |
+| `mail.account.deleted.wordpress.returned_to_draft.no_place` `{count}`<br>`mail.ts` | empty | `WORDPRESS_LINES` · `lib/mail/templates/account/index.ts:53` |  | REQ-079 c6 |  |
+| `mail.account.deleted.wordpress.unreachable` `{count} {place}`<br>`mail.ts` | empty | `WORDPRESS_LINES` · `lib/mail/templates/account/index.ts:64` |  | REQ-079 c6 |  |
+| `mail.account.deleted.wordpress.unreachable.no_place` `{count}`<br>`mail.ts` | empty | `WORDPRESS_LINES` · `lib/mail/templates/account/index.ts:65` |  | REQ-079 c6 |  |
+| `mail.account.destinationBroken.action`<br>`mail.ts` | empty | `BROKEN_ACTION` · `lib/mail/templates/account/index.ts:170` |  | BUILD §9 · REQ-074 c6 | 18 — sibling `mail.nurture.action` |
+| `mail.account.destinationBroken.body`<br>`mail.ts` | empty | `BROKEN_BODY` · `lib/mail/templates/account/index.ts:168` |  | BUILD §9 · REQ-074 c6 | 85 — sibling `mail.magicLink.body` |
+| `mail.account.destinationBroken.held`<br>`mail.ts` | empty | `BROKEN_HELD` · `lib/mail/templates/account/index.ts:169` |  | BUILD §9 · REQ-074 c6 |  |
+| `mail.account.destinationBroken.subject`<br>`mail.ts` | empty | `BROKEN_SUBJECT` · `lib/mail/templates/account/index.ts:167` · +2 more |  | BUILD §9 · REQ-074 c6 | 17 — sibling `mail.magicLink.subject` |
+| `mail.account.hosting_end.access_ended.subject`<br>`mail.ts` | empty | `HOSTING_END_SUBJECT` · `lib/mail/templates/account/index.ts:162` |  | REQ-076 c11 | 17 — sibling `mail.magicLink.subject` |
+| `mail.account.hosting_end.export_stays`<br>`mail.ts` | empty | `HOSTING_END_EXPORT_STAYS` · `lib/mail/templates/account/index.ts:166` |  | REQ-076 c11 |  |
+| `mail.account.hosting_end.seven_days.subject`<br>`mail.ts` | empty | `HOSTING_END_SUBJECT` · `lib/mail/templates/account/index.ts:163` |  | REQ-076 c11 | 17 — sibling `mail.magicLink.subject` |
+| `mail.account.hosting_end.stops_on` `{date}`<br>`mail.ts` | empty | `HOSTING_END_STOPS_ON` · `lib/mail/templates/account/index.ts:165` |  | REQ-076 c11 |  |
+| `mail.account.no_second_subscription`<br>`mail.ts` | empty | `NO_SECOND_SUBSCRIPTION` · `lib/mail/templates/account/index.ts:36` |  | REQ-024 c3 |  |
+| `mail.account.reach_a_person`<br>`mail.ts` | empty | `REACH_A_PERSON` · `lib/mail/templates/account/index.ts:37` |  | REQ-024 c5 |  |
+| `mail.account.second_purchase.subject`<br>`mail.ts` | empty | `SECOND_PURCHASE_SUBJECT` · `lib/mail/templates/account/index.ts:33` |  | REQ-024 c3 | 17 — sibling `mail.magicLink.subject` |
+| `mail.draftReady.why.search` `{query}`<br>`mail.ts` | empty | `WHY_SEARCH` · `lib/mail/templates/draft-ready/index.ts:70` |  | BUILD §12 · §7 | 6 — sibling `mail.draftReady.fact.search` |
+| `mail.draftReady.why.volume`<br>`mail.ts` | empty | `WHY_VOLUME` · `lib/mail/templates/draft-ready/index.ts:71` |  | BUILD §12 · §7 |  |
+| `mail.firstPage.volume_label`<br>`mail.ts` | empty | — · placed with its group |  | REQ-010 c4 | 13 — sibling `mail.firstPage.target_search` |
+| `mail.firstPage.volume_note`<br>`mail.ts` | empty | — · placed with its group |  | REQ-010 c4 | 13 — sibling `mail.firstPage.target_search` |
+| `mail.firstPageUnavailable.delivery-failed`<br>`mail.ts` | empty | `FIRST_PAGE_UNAVAILABLE_COPY` · `lib/mail/leads/giveaway.ts:60` |  | REQ-010 c7 |  |
+| `mail.firstPageUnavailable.no-page-to-write`<br>`mail.ts` | empty | `FIRST_PAGE_UNAVAILABLE_COPY` · `lib/mail/leads/giveaway.ts:57` |  | REQ-010 c7 |  |
+| `mail.firstPageUnavailable.subject`<br>`mail.ts` | empty | `SUBJECT` · `lib/mail/templates/first-page-unavailable/index.ts:27` |  | REQ-010 c7 | 17 — sibling `mail.magicLink.subject` |
+| `mail.firstPageUnavailable.writing-failed`<br>`mail.ts` | empty | `FIRST_PAGE_UNAVAILABLE_COPY` · `lib/mail/leads/giveaway.ts:58` |  | REQ-010 c7 |  |
+| `mail.firstPageUnavailable.writing-refused`<br>`mail.ts` | empty | `FIRST_PAGE_UNAVAILABLE_COPY` · `lib/mail/leads/giveaway.ts:59` |  | REQ-010 c7 |  |
+| `mail.nothing_to_report`<br>`mail.ts` | empty | `NOTHING_TO_REPORT` · `lib/mail/shell/compose.ts:86` |  | §12 |  |
+| `mail.nurture.body.1` `{domain}`<br>`mail.ts` | empty | `BODIES` · `lib/mail/templates/nurture/index.ts:38` |  | REQ-010 c9 |  |
+| `mail.nurture.body.2` `{domain}`<br>`mail.ts` | empty | `BODIES` · `lib/mail/templates/nurture/index.ts:39` |  | REQ-010 c9 |  |
+| `mail.nurture.body.3` `{domain}`<br>`mail.ts` | empty | `BODIES` · `lib/mail/templates/nurture/index.ts:40` |  | REQ-010 c9 |  |
+| `mail.nurture.subject.1`<br>`mail.ts` | empty | `SUBJECTS` · `lib/mail/templates/nurture/index.ts:32` |  | REQ-010 c9 |  |
+| `mail.nurture.subject.2`<br>`mail.ts` | empty | `SUBJECTS` · `lib/mail/templates/nurture/index.ts:33` |  | REQ-010 c9 |  |
+| `mail.nurture.subject.3`<br>`mail.ts` | empty | `SUBJECTS` · `lib/mail/templates/nurture/index.ts:34` |  | REQ-010 c9 |  |
+| `mail.ops.spend-ceiling.fact.ceiling`<br>`mail.ts` | empty | `FACT_CEILING` · `lib/mail/templates/ops/index.ts:28` |  | BUILD §6.5 · issue 329 |  |
+| `mail.ops.spend-ceiling.fact.spent`<br>`mail.ts` | empty | `FACT_SPENT` · `lib/mail/templates/ops/index.ts:27` |  | BUILD §6.5 · issue 329 |  |
+| `mail.ops.spend-ceiling.heading`<br>`mail.ts` | empty | `HEADING` · `lib/mail/templates/ops/index.ts:26` |  | BUILD §6.5 · issue 329 | 20 — sibling `mail.report.heading` |
+| `mail.ops.spend-ceiling.kill-switch-engaged`<br>`mail.ts` | empty | `BODY` · `lib/mail/templates/ops/index.ts:40` |  | BUILD §6.5 · issue 329 |  |
+| `mail.ops.spend-ceiling.reached`<br>`mail.ts` | empty | `BODY` · `lib/mail/templates/ops/index.ts:39` |  | BUILD §6.5 · issue 329 |  |
+| `mail.ops.spend-ceiling.subject`<br>`mail.ts` | empty | `SUBJECT` · `lib/mail/templates/ops/index.ts:25` |  | BUILD §6.5 · issue 329 | 17 — sibling `mail.magicLink.subject` |
+| `mail.ops.spend-ceiling.warn`<br>`mail.ts` | empty | `BODY` · `lib/mail/templates/ops/index.ts:38` |  | BUILD §6.5 · issue 329 |  |
+| `mail.optout.label`<br>`mail.ts` | empty | `OPT_OUT_LABELS` · `lib/mail/shell/compose.ts:96` |  | §12 |  |
+| `mail.published.address_label`<br>`mail.ts` | empty | `ADDRESS` · `lib/mail/templates/published/index.ts:30` |  | REQ-062 c5 | 39 — sibling `mail.published.body` |
+| `mail.published.check_failed`<br>`mail.ts` | empty | `CHECK_VERDICT` · `lib/mail/templates/published/index.ts:53` |  | REQ-062 c3 | 39 — sibling `mail.published.body` |
+| `mail.published.check_not_measured`<br>`mail.ts` | empty | `CHECK_VERDICT` · `lib/mail/templates/published/index.ts:54` |  | REQ-062 c6 | 39 — sibling `mail.published.body` |
+| `mail.published.check_passed`<br>`mail.ts` | empty | `CHECK_VERDICT` · `lib/mail/templates/published/index.ts:52` |  | REQ-062 c3 | 39 — sibling `mail.published.body` |
+| `mail.published.check.ai_readable`<br>`mail.ts` | empty | `CHECK_NAME` · `lib/mail/templates/published/index.ts:43` |  | REQ-062 c1 |  |
+| `mail.published.check.indexable`<br>`mail.ts` | empty | `CHECK_NAME` · `lib/mail/templates/published/index.ts:41` |  | REQ-062 c1 |  |
+| `mail.published.check.reachable`<br>`mail.ts` | empty | `CHECK_NAME` · `lib/mail/templates/published/index.ts:40` |  | REQ-062 c1 |  |
+| `mail.published.check.sitemap`<br>`mail.ts` | empty | `CHECK_NAME` · `lib/mail/templates/published/index.ts:42` |  | REQ-062 c1 |  |
+| `mail.published.checks_empty`<br>`mail.ts` | empty | `CHECKS_EMPTY` · `lib/mail/templates/published/index.ts:35` |  | REQ-062 c5 | 39 — sibling `mail.published.body` |
+| `mail.published.checks_label`<br>`mail.ts` | empty | `CHECKS_LABEL` · `lib/mail/templates/published/index.ts:34` |  | REQ-062 c5 | 39 — sibling `mail.published.body` |
+| `mail.published.not_confirmed` `{checkedAt}`<br>`mail.ts` | empty | composed in the engine · `TELLING_COPY` · `lib/publish/verify/telling.ts:48` |  | REQ-062 c4 | 39 — sibling `mail.published.body` |
+| `mail.published.not_found` `{checkedAt}`<br>`mail.ts` | empty | composed in the engine · `TELLING_COPY` · `lib/publish/verify/telling.ts:47` |  | REQ-062 c4 | 39 — sibling `mail.published.body` |
+| `mail.published.site_condition.publishes_no_sitemap` `{foundAt}`<br>`mail.ts` | empty | `SITE_CONDITION_LINE` · `lib/mail/templates/published/index.ts:58` |  | REQ-062 c6 |  |
+| `mail.published.site_condition.robots_blocks_site` `{foundAt}`<br>`mail.ts` | empty | `SITE_CONDITION_LINE` · `lib/mail/templates/published/index.ts:59` |  | REQ-062 c6 |  |
+| `mail.published.subject`<br>`mail.ts` | empty | `SUBJECT` · `lib/mail/templates/published/index.ts:29` |  | REQ-062 c5 | 39 — sibling `mail.published.body` |
+| `mail.published.verified` `{checkedAt}`<br>`mail.ts` | empty | `VERIFIED` · `lib/mail/templates/published/index.ts:32` · +1 more |  | REQ-062 c5 | 39 — sibling `mail.published.body` |
+| `mail.section.ai_answers`<br>`mail.ts` | empty | `SECTION_NAME` · `lib/mail/weekly/index.ts:65` |  | REQ-064 c4 |  |
+| `mail.section.market`<br>`mail.ts` | empty | `SECTION_NAME` · `lib/mail/weekly/index.ts:63` |  | REQ-064 c4 |  |
+| `mail.section.on_page`<br>`mail.ts` | empty | `SECTION_NAME` · `lib/mail/weekly/index.ts:62` |  | REQ-064 c4 |  |
+| `mail.section.rankings`<br>`mail.ts` | empty | `SECTION_NAME` · `lib/mail/weekly/index.ts:64` |  | REQ-064 c4 |  |
+| `mail.section.rivals`<br>`mail.ts` | empty | `SECTION_NAME` · `lib/mail/weekly/index.ts:66` |  | REQ-064 c4 |  |
+| `mail.section.score`<br>`mail.ts` | empty | `SECTION_NAME` · `lib/mail/weekly/index.ts:67` |  | REQ-064 c4 | 21 — sibling `mail.weekly.score` |
+| `mail.setupReminder.action`<br>`mail.ts` | empty | `ACTION` · `lib/mail/templates/setup-reminder/index.ts:28` |  | REQ-025 c6 | 18 — sibling `mail.nurture.action` |
+| `mail.setupReminder.body`<br>`mail.ts` | empty | `BODY` · `lib/mail/templates/setup-reminder/index.ts:27` |  | REQ-025 c6 | 85 — sibling `mail.magicLink.body` |
+| `mail.setupReminder.subject`<br>`mail.ts` | empty | `SUBJECT` · `lib/mail/templates/setup-reminder/index.ts:26` |  | REQ-025 c6 | 17 — sibling `mail.magicLink.subject` |
+| `mail.shell.imprint`<br>`mail.ts` | empty | `IMPRINT` · `lib/mail/shell/compose.ts:90` | `[imprint line]` | UI-SPEC S20 | 27 — sibling `mail.shell.plaintext_note` |
+| `mail.unsubscribe.label`<br>`mail.ts` | empty | `OPT_OUT_LABELS` · `lib/mail/shell/compose.ts:97` |  | §12 |  |
+| `mail.week_partly_measured` `{sections}`<br>`mail.ts` | empty | `WEEK_PARTLY_MEASURED` · `lib/mail/shell/compose.ts:88` |  | §12 |  |
+| `mail.week_unmeasured` `{nextDue}`<br>`mail.ts` | empty | `WEEK_UNMEASURED` · `lib/mail/shell/compose.ts:87` |  | §12 |  |
+| `mail.weekly.next`<br>`mail.ts` | empty | `NEXT` · `lib/mail/templates/weekly/index.ts:53` |  | §12 | 67 — sibling `mail.weekly.body` |
+| `mail.weekly.next.item` `{search}`<br>`mail.ts` | empty | `NEXT_ITEM` · `lib/mail/templates/weekly/index.ts:55` |  | §12 |  |
+| `mail.weekly.next.none`<br>`mail.ts` | empty | `NEXT_NONE` · `lib/mail/templates/weekly/index.ts:54` |  | REQ-064 c3 |  |
+| `mail.weekly.page` `{page}`<br>`mail.ts` | empty | `PAGE` · `lib/mail/templates/weekly/index.ts:56` |  | REQ-063 c4 | 67 — sibling `mail.weekly.body` |
+| `mail.weekly.page.moved` `{page} {from} {to} {measuredAt}`<br>`mail.ts` | empty | `PAGE_MOVED` · `lib/mail/templates/weekly/index.ts:57` |  | REQ-063 c3 |  |
+| `mail.weekly.page.moved_over` `{page} {from} {to} {measuredAt} {weeks}`<br>`mail.ts` | empty | `PAGE_MOVED_OVER` · `lib/mail/templates/weekly/index.ts:58` |  | REQ-063 c4 |  |
+| `mail.weekly.subject`<br>`mail.ts` | empty | `SUBJECT` · `lib/mail/templates/weekly/index.ts:37` |  | §12 | 67 — sibling `mail.weekly.body` |
+| `mail.weekly.verdicts`<br>`mail.ts` | empty | `VERDICTS` · `lib/mail/templates/weekly/index.ts:51` |  | REQ-063 c4 | 67 — sibling `mail.weekly.body` |
+| `mail.weekly.verdicts.none`<br>`mail.ts` | empty | `VERDICTS_NONE` · `lib/mail/templates/weekly/index.ts:52` |  | REQ-064 c3 |  |
+
+## Not yet on a screen
+
+Nothing on a screen reads these, no clause names one, and the keys drawn beside them are not read either: the surface that speaks them is unbuilt, or the sentence is an API route's answer rather than a thing on a screen. They are owed all the same.
+
+| key | standing | where | the set says | fixed by | max |
+|---|---|---|---|---|---|
+| `lead.accepted`<br>`mail.ts` | empty | composed in the engine · `RESPONSES` · `app/api/lead/route.ts:34` |  | REQ-010 c1 |  |
+| `lead.invalid_address`<br>`mail.ts` | empty | composed in the engine · `RESPONSES` · `app/api/lead/route.ts:35` |  | REQ-010 c1 |  |
+| `lead.unavailable`<br>`mail.ts` | empty | composed in the engine · `RESPONSES` · `app/api/lead/route.ts:36` |  | REQ-003 c10 |  |
+
