@@ -22,26 +22,19 @@ export type IssuedLink =
       issued: true;
       url: string;
       expiresAt: Date;
-      /** The SHA-256 the row was written under. Returned so a caller that
+      /** Supabase's `hashed_token` for this link. Returned so a caller that
        *  must remember *which* link it is waiting on —
-       *  `users.pending_email_token_hash` is the only one — can, without
-       *  the plaintext being handed anywhere but the mail. */
+       *  `users.pending_email_token_hash` is the only one — can. It is the
+       *  hash Supabase verifies, not a secret of ours. */
       tokenHash: string;
     }
   | { issued: false; reason: "vendor" };
-
-export interface SessionClaimsToWrite {
-  readonly userId: string;
-  readonly siteId: string | null;
-  readonly issuedAt: Date;
-}
 
 export type RedeemedLink =
   | {
       ok: true;
       purpose: LinkPurpose;
       userId: string;
-      session: SessionClaimsToWrite;
       /** Whether this redemption was the first time anybody signed in to
        *  this account — REQ-024 criterion 4's "setup if it is unfinished,
        *  otherwise onward into the product". Read from the stamp's own

@@ -4,9 +4,9 @@
 //
 // §13 ends "send magic link → `/setup`". Two halves make that sentence
 // true: a link (a token, a row, an expiry, a redemption) and a mail. The
-// token half is the identity module's — `auth_links`, `issueLink`,
-// `redeemLink`, `currentSession` — and it is issue #35's, under its own
-// migration sub-token. This module owns the *occasions* on which a link is
+// token half is the identity module's — Supabase Auth's `generateLink`
+// behind `issueLink`, `redeemLink`, `currentSession` (#35, moved onto
+// Supabase Auth by #468). This module owns the *occasions* on which a link is
 // sent, which is what §13 is about, and it holds no token.
 //
 // **It fails closed and says so.** With nothing registered, `issueSignInLink`
@@ -38,7 +38,7 @@ const notWiredYet: SignInLinkIssuer = async () => ({ issued: false, reason: "not
 
 let issuer: SignInLinkIssuer = notWiredYet;
 
-/** Wired by the module that owns `auth_links` (issue #35); `null` restores
+/** Wired by the identity module (issue #35, #468); `null` restores
  *  the fail-closed default. */
 export function registerSignInLinkIssuer(next: SignInLinkIssuer | null): void {
   issuer = next ?? notWiredYet;

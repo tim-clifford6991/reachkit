@@ -46,7 +46,7 @@ export const SETUP_LANDING_PATH = "/setup";
  * can be issued.
  *
  * **A port, and it answers `null` today.** §13's identity half — the
- * `auth_links` rows, `issueLink` and `redeemLink` — is issue #35, and
+ * Supabase Auth behind `issueLink` and `redeemLink` (#35, #468) — and
  * `src/lib/account/provisioning/magic-link.ts` is its declared seam:
  * `requestMagicLink()` *sends* the sign-in mail, which is a different
  * occasion from putting a link inside this one. Until #35 exports the

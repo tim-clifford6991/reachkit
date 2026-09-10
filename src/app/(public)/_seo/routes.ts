@@ -29,9 +29,9 @@
 //     reachable, linked from every header, and left out of the index
 //     deliberately.
 //
-// **`/signin/{token}` takes no row.** It is a route handler that redeems a
-// link and redirects; it renders no document, so it has no `<head>` to
-// fill. The 404 and error pages take no row either — they are not routes,
+// **`/auth/confirm` takes no row** (was `/signin/{token}` until #468). It
+// is a route handler that redeems a link and redirects; it renders no
+// document, so it has no `<head>` to fill. The 404 and error pages take no row either — they are not routes,
 // they have no address of their own, and Next reads no `metadata` export
 // from `not-found.tsx` or `error.tsx`.
 import type { CopyKey } from "@/lib/presentation/copy";

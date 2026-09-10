@@ -1,32 +1,24 @@
 // src/lib/account/identity/session.ts — BUILD §13
 //
-// Reading the session on an authenticated request, starting one on a
-// redemption, and ending one on sign-out.
+// Reading the session on an authenticated request, and ending one.
+//
+// **The session is Supabase Auth's** (#468). Its cookie is written by
+// `@supabase/ssr` on a redemption (`/auth/confirm`) and refreshed by the
+// middleware; this module never mints, signs or parses one. Who is asking
+// is `getUser()`'s answer — Supabase verifying the token, not this process
+// believing a cookie.
 //
 // **`signOut` ends this session only** (REQ-077 criterion 5, and BP-061's
 // note on it: "Other devices keep their sessions; REQ-077 states no global
-// sign-out and none is invented"). Deleting the cookie is the whole of it —
-// the browser that pressed the control has no session, and no other browser
-// is touched.
+// sign-out and none is invented").
 //
-// **The one exception is a completed email change** (BP-061 decision 4),
-// which does end every other session. That is not a second mechanism: the
-// cookie carries the moment it was issued, `users.sessions_valid_from`
-// carries the moment every earlier session ended, and the comparison below
-// is where they meet. One column, one comparison, and no list of devices
-// anywhere.
-//
-// **One indexed read** (BP-061's NFR budget: `currentSession` p95 ≤ 5 ms,
-// "Cookie-verified, one indexed read at most"). The signature and the
-// expiry are checked with no database at all; the read that follows is the
-// `users` row by primary key, and it is what makes the change stamp and the
-// tombstone effective. The site id rides in the signed cookie so it costs
-// no second read — an account whose site row did not exist when the session
-// began carries `null`, which is the truth rather than a fabricated id.
+// **`signOutEverywhere` is for a deleted account**, which ends every
+// session the account holds, the asking one included:
+// `auth.admin.signOut(token, "global")`. The other exception — a completed
+// email change — uses `others` from the redemption itself
+// (`email-change-complete.ts`).
 import { cookies } from "next/headers";
-import { env } from "@/lib/config/env";
-import { SESSION_COOKIE_NAME } from "./addresses";
-import { mintSessionCookie, readSessionCookie, SESSION_MAX_AGE_SECONDS } from "./cookie";
+import { identityAuth, type CookieIO } from "./auth";
 import { identityStore } from "./store";
 
 export interface Session {
@@ -38,79 +30,67 @@ export interface Session {
   readonly siteId: string | null;
 }
 
-/** `secure` follows the deployment's own origin rather than `NODE_ENV`: a
- *  preview on https gets a secure cookie, and a local http dev server gets
- *  a cookie a browser will actually store. */
-function cookieOptions(): {
-  httpOnly: true;
-  sameSite: "lax";
-  secure: boolean;
-  path: "/";
-  maxAge: number;
-} {
-  return {
-    httpOnly: true,
-    // `lax`, not `strict`: the sign-in link arrives from a mail client, and
-    // a `strict` cookie set on that navigation would not be sent on the
-    // redirect that follows it — the customer would sign in and land
-    // signed out.
-    sameSite: "lax",
-    secure: env.NEXT_PUBLIC_APP_URL.startsWith("https://"),
-    path: "/",
-    maxAge: SESSION_MAX_AGE_SECONDS,
-  };
-}
-
 /**
- * The session cookie to set, as a value rather than an act. Returned this
- * way because the one caller — the redemption route — answers with a
- * redirect, and a cookie belongs on the response that carries it:
- * "Alternatively, you can return a new `Response` using the `Set-Cookie`
- * header" (`next/dist/docs/01-app/03-api-reference/03-file-conventions/
- * route.md`). A pure descriptor is also what lets the suite assert what
- * gets set without a request.
+ * This request's cookie jar as the session client reads and writes it.
+ * A write from a Server Component throws (only a Server Function or a
+ * Route Handler may set a cookie); that is caught, because the middleware
+ * already wrote the refreshed session onto the response carrying this
+ * render.
  */
-export function sessionCookie(a: {
-  userId: string;
-  siteId: string | null;
-  issuedAt: Date;
-}): { name: string; value: string; options: ReturnType<typeof cookieOptions> } {
+export async function requestCookieIO(): Promise<CookieIO> {
+  const jar = await cookies();
   return {
-    name: SESSION_COOKIE_NAME,
-    value: mintSessionCookie(a),
-    options: cookieOptions(),
+    getAll: () => jar.getAll().map(({ name, value }) => ({ name, value })),
+    setAll: (list) => {
+      for (const cookie of list) {
+        try {
+          jar.set(cookie.name, cookie.value, cookie.options);
+        } catch {
+          // A Server Component render — see above.
+        }
+      }
+    },
   };
 }
 
 /**
- * Who is making this request, or `null`. Total: an absent cookie, a
- * malformed one, a forged one, one past its window, one issued before the
- * account's sessions were ended, and one belonging to a tombstoned account
- * are all `null`, and none of them says which.
+ * Who is making this request, or `null`. Total: no session, a session
+ * Supabase does not recognise, one it has revoked, one belonging to a
+ * tombstoned account and one whose account row cannot be read are all
+ * `null`, and none of them says which.
  */
 export async function currentSession(): Promise<Session | null> {
-  const jar = await cookies();
-  const raw = jar.get(SESSION_COOKIE_NAME)?.value;
-  if (raw === undefined || raw.length === 0) return null;
+  const user = await identityAuth().sessionUser(await requestCookieIO());
+  if (user === null) return null;
 
-  const claims = readSessionCookie(raw, new Date());
-  if (claims === null) return null;
-
-  const read = await identityStore().account(claims.userId);
+  const store = identityStore();
+  const read = await store.account(user.userId);
   // A store that cannot be read is not a session. Failing closed here costs
   // a customer one redirect to the sign-in screen; failing open would serve
   // an account's own pages on a claim nothing checked.
   if (!read.ok || read.account === null) return null;
   if (read.account.deleted_at !== null) return null;
 
-  const endedAt = read.account.sessions_valid_from;
-  if (endedAt !== null && claims.issuedAt.getTime() < new Date(endedAt).getTime()) return null;
+  const site = await store.siteForAccount(user.userId);
+  if (!site.ok) return null;
 
-  return { userId: claims.userId, siteId: claims.siteId };
+  return { userId: user.userId, siteId: site.siteId };
 }
 
 /** REQ-077 criterion 5. Ends this session only. */
 export async function signOut(): Promise<void> {
-  const jar = await cookies();
-  jar.delete(SESSION_COOKIE_NAME);
+  await identityAuth().endSession(await requestCookieIO());
+}
+
+/**
+ * Ends every session the asking account holds — this one included — with
+ * `auth.admin.signOut(token, "global")`. Refuses unless the request's own
+ * session is `userId`'s, so no caller can end an account it is not signed
+ * in as.
+ */
+export async function signOutEverywhere(userId: string): Promise<{ ok: boolean }> {
+  const auth = identityAuth();
+  const user = await auth.sessionUser(await requestCookieIO());
+  if (user === null || user.userId !== userId) return { ok: false };
+  return auth.signOutEverywhere(user.accessToken, "global");
 }

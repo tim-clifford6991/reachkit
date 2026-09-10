@@ -65,39 +65,23 @@ interface OwnerRow {
   first_signed_in_at: string | null;
 }
 
-interface SpentLink {
-  spent_at: string | null;
-}
-
-/** The newest redeemed sign-in link's moment, or `null` where none has
- *  been redeemed. `purpose = 'sign_in'` on purpose: an email-change link
- *  is redeemed from a mailbox and is not somebody arriving at the
- *  product. */
-async function lastLinkRedeemed(userId: string): Promise<Date | null> {
-  const { data, error } = await publishDb()
-    .from<SpentLink>("auth_links")
-    .select("spent_at")
-    .eq("user_id", userId)
-    .eq("purpose", "sign_in")
-    .not("spent_at", "is", null)
-    .order("spent_at", { ascending: false })
-    .limit(1);
-  if (error !== null || data === null) return null;
-  const stamp = data[0]?.spent_at;
-  return stamp === undefined || stamp === null ? null : new Date(stamp);
+/** The moment Supabase Auth last signed this customer in
+ *  (`auth.users.last_sign_in_at`, #468), or `null` where it never has.
+ *  Imported at the call: identity reaches the auth admin client, which this
+ *  module's other readers do not need. */
+async function lastSignedIn(userId: string): Promise<Date | null> {
+  const { identityAuth } = await import("@/lib/account/identity/auth");
+  return identityAuth().lastSignInAt(userId);
 }
 
 /**
  * The moment this customer last signed in, or `null` where they never
  * have.
  *
- * **The last sign-in is the newest spent sign-in link** (#35): a link is
- * the credential in a magic-link product, so the moment one was redeemed
- * *is* the moment somebody signed in, and the newest of them is the last
- * time anybody did. `users.first_signed_in_at` is read as the floor
- * beneath it — it is stamped by provisioning and survives a link row being
- * aged out — so a customer whose links have been cleaned up still counts
- * as having been here.
+ * **The last sign-in is Supabase Auth's own record of it** (#468):
+ * `auth.users.last_sign_in_at` moves on every redeemed link.
+ * `users.first_signed_in_at` is read as the floor beneath it, so a customer
+ * whose auth record cannot be read still counts as having been here.
  *
  * The criterion this answers is "has not signed in **since** it broke", so
  * the first sign-in alone would not do: a customer who signed in on the
@@ -122,7 +106,7 @@ async function ownerOf(siteId: string): Promise<{ email: string; lastSignInAt: D
 
   const firstStamp = owner.data.first_signed_in_at;
   const first = firstStamp === null ? null : new Date(firstStamp);
-  const latest = await lastLinkRedeemed(site.data.user_id);
+  const latest = await lastSignedIn(site.data.user_id);
   return {
     email: owner.data.email,
     lastSignInAt:
