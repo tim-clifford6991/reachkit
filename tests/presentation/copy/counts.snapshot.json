@@ -41,6 +41,7 @@
       "chrome.error.eyebrow",
       "chrome.error.heading",
       "chrome.error.line",
+      "chrome.loading.line",
       "legal.privacy.body",
       "legal.terms.body",
       "legal.imprint.body",

@@ -124,6 +124,20 @@ export const CHROME_COPY = Object.freeze({
   "chrome.error.heading": ["TODO(copy)", { slots: {}, fixedBy: "UI-SPEC S8 (12a)" }],
   "chrome.error.line": ["TODO(copy)", { slots: {}, fixedBy: "UI-SPEC S8 (12a)" }],
 
+  /* ── The waiting state every screen that reads shares (UI-SPEC §4 rule 3)
+     Issue #327. "Every empty, degraded or waiting state is one written
+     line; never a spinner, never a blank card" — so a route's `loading.tsx`
+     is one sentence and no furniture, and this is the sentence.
+
+     Owner-owed, and it can have no other footing: no approved artifact
+     draws a waiting screen, so 11a does not reach it, and neither BUILD.md
+     nor the archived REQ set writes the words. It is one key rather than
+     two because both mounts say the same thing — unlike the 404, whose
+     public line names a report address a signed-in customer is not being
+     sent to. If the owner wants the report's wait and the app's wait to
+     read differently, the split is theirs and it is a second key here. */
+  "chrome.loading.line": ["TODO(copy)", { slots: {}, fixedBy: "UI-SPEC §4 rule 3 (12a)" }],
+
   /* ── The two ways back ────────────────────────────────────────────────
      One label each, and each has exactly one home even though two surfaces
      spend it: `chrome.back-to-reachkit` is S7's quiet control and the one
