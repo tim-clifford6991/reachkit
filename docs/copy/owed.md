@@ -2,7 +2,7 @@
 
 **Generated. Do not type into this file** — `npm run copy:owed` rewrites it and `tests/presentation/copy/owed-sheet.test.ts` fails when it is out of date. Write the sentences in your reply, or straight into `src/lib/presentation/copy/keys/*.ts`, and run the generator again: a key that gains a sentence leaves this sheet by itself.
 
-**393 keys**, across 796 in the registry — **124 empty** (`copy()` throws on these: a mail with one does not send, a screen with one does not render) and **269 `TODO(copy)`** (these render the marker, in public, until they are written).
+**294 keys**, across 796 in the registry — **27 empty** (`copy()` throws on these: a mail with one does not send, a screen with one does not render) and **267 `TODO(copy)`** (these render the marker, in public, until they are written).
 
 **How to read a row.**
 
@@ -24,8 +24,8 @@ A key with slots (`{value}`, `{date}`) carries them beside its name; the sentenc
 | S3 | Report states | none | 0 |
 | S4 | [Pricing](#s4-pricing-public) | 4 | 0 |
 | S5 | [Legal](#s5-legal-public) | 12 | 0 |
-| S6 | [Veto page](#s6-veto-page-public) | 13 | 6 |
-| S7 | [Opt-out](#s7-opt-out-public) | 4 | 0 |
+| S6 | [Veto page](#s6-veto-page-public) | 7 | 0 |
+| S7 | [Opt-out](#s7-opt-out-public) | 2 | 0 |
 | S8 | [Not found](#s8-not-found-public) | 5 | 0 |
 | S9 | [Sign in](#s9-sign-in-join) | 12 | 0 |
 | S10 | [Setup](#s10-setup-join) | 26 | 0 |
@@ -38,8 +38,7 @@ A key with slots (`{value}`, `{date}`) carries them beside its name; the sentenc
 | S17 | Draft · edit | none | 0 |
 | S18 | [Settings](#s18-settings-app) | 58 | 8 |
 | S19 | Hosted page | none | 0 |
-| S20 | [Mails](#s20-mails-mail) | 88 | 88 |
-| — | [Not yet on a screen](#not-yet-on-a-screen) | 3 | 3 |
+| S20 | Mails | none | 0 |
 
 ## S1 · Landing — Public
 
@@ -183,12 +182,6 @@ Every bracketed hint the set draws on this screen: `[page title 15]` · `[rights
 
 | key | standing | where | the set says | fixed by | max |
 |---|---|---|---|---|---|
-| `mail.draftReady.autopilotZero` `{publishesAt}`<br>`mail.ts` | empty | composed in the engine · `lib/publish/publishable/telling.ts` · +1 more<br>also on S20 |  | REQ-057 c7 | 46 — sibling `mail.draftReady.body` |
-| `mail.draftReady.copilot`<br>`mail.ts` | empty | composed in the engine · `lib/publish/publishable/telling.ts` · +1 more<br>also on S20 |  | REQ-057 c1 | 46 — sibling `mail.draftReady.body` |
-| `mail.draftReady.dest.cannotPublish` `{site}`<br>`mail.ts` | empty | composed in the engine · `lib/publish/publishable/telling.ts` · +1 more<br>also on S20 |  | REQ-057 c9 |  |
-| `mail.draftReady.dest.goesLiveAtOnce` `{site}`<br>`mail.ts` | empty | composed in the engine · `lib/publish/publishable/telling.ts` · +1 more<br>also on S20 |  | REQ-057 c9 |  |
-| `mail.draftReady.dest.goesLiveOnApproval` `{site}`<br>`mail.ts` | empty | composed in the engine · `lib/publish/publishable/telling.ts` · +1 more<br>also on S20 |  | REQ-057 c9 |  |
-| `mail.draftReady.dest.goesLiveThen` `{site}`<br>`mail.ts` | empty | composed in the engine · `lib/publish/publishable/telling.ts` · +1 more<br>also on S20 |  | REQ-057 c9 |  |
 | `meta.veto.description`<br>`meta.ts` | marker | document head · `/veto/{token}` · `PUBLIC_ROUTE_SEO` · `app/(public)/_seo/routes.ts` |  | issue 326 |  |
 | `meta.veto.title`<br>`meta.ts` | marker | document head · `/veto/{token}` · `PUBLIC_ROUTE_SEO` · `app/(public)/_seo/routes.ts` |  | issue 326 |  |
 | `publish.action.refused.guard` `{state}`<br>`publish.ts` | marker | `draftAction` · `app/api/drafts/[id]/_action.ts` |  | REQ-056 c2 |  |
@@ -207,8 +200,6 @@ Every bracketed hint the set draws on this screen: `[rights line — owner’s]`
 |---|---|---|---|---|---|
 | `meta.optout.description`<br>`meta.ts` | marker | document head · `/opt-out/{token}` · `PUBLIC_ROUTE_SEO` · `app/(public)/_seo/routes.ts` |  | issue 326 |  |
 | `meta.optout.title`<br>`meta.ts` | marker | document head · `/opt-out/{token}` · `PUBLIC_ROUTE_SEO` · `app/(public)/_seo/routes.ts` |  | issue 326 |  |
-| `optout.head.unresolved`<br>`mail.ts` | marker | `arm` · `app/(public)/opt-out/[token]/page.tsx` |  | REQ-010 c11 · UI-SPEC S7 (12a) |  |
-| `optout.unavailable`<br>`mail.ts` | marker | `arm` · `app/(public)/opt-out/[token]/page.tsx` |  | REQ-010 c11 |  |
 
 ## S8 · Not found — Public
 
@@ -468,111 +459,4 @@ Every bracketed hint the set draws on this screen: `[voice description — the c
 | `settings.publishing.set-dns`<br>`settings.ts` | marker | `ACTION_COPY_KEY` · `app/(account)/app/settings/panels/PublishingPanel.tsx` |  | BUILD §9 · REQ-059 c2 | 54 — sibling `settings.publishing.fix-note` |
 | `settings.save`<br>`settings.ts` | marker | `<div class="flex min-w-0 flex-wrap items-center gap-2">` · `app/(account)/app/settings/panels/MarketPanel.tsx` |  | REQ-071 c1 |  |
 | `settings.voice.placeholder`<br>`settings.ts` | marker | `VoicePanel` · `app/(account)/app/settings/panels/VoicePanel.tsx` |  | REQ-055 | 97 — sibling `settings.voice.filter-note` |
-
-## S20 · Mails — Mail
-
-UI-SPEC `§S20` · the set draws it as `current="mail"` (`docs/design/approved/full-set/screens/mail-light.png`).
-
-Every bracketed hint the set draws on this screen: `[imprint line]`
-
-| key | standing | where | the set says | fixed by | max |
-|---|---|---|---|---|---|
-| `mail.account.address_moved`<br>`mail.ts` | empty | `ADDRESS_MOVED` · `lib/mail/templates/account/index.ts` |  | REQ-077 c3 |  |
-| `mail.account.address_moved.subject`<br>`mail.ts` | empty | `ADDRESS_MOVED_SUBJECT` · `lib/mail/templates/account/index.ts` |  | REQ-077 c3 | 17 — sibling `mail.magicLink.subject` |
-| `mail.account.chase.link_ready`<br>`mail.ts` | empty | `CHASE_LINK_READY` · `lib/mail/templates/account/index.ts` |  | REQ-024 c5 |  |
-| `mail.account.chase.not_open_yet`<br>`mail.ts` | empty | `CHASE_NOT_OPEN_YET` · `lib/mail/templates/account/index.ts` |  | REQ-024 c5 |  |
-| `mail.account.chase.subject`<br>`mail.ts` | empty | `CHASE_SUBJECT` · `lib/mail/templates/account/index.ts` |  | REQ-024 c5 | 17 — sibling `mail.magicLink.subject` |
-| `mail.account.deleted.still_live` `{count}`<br>`mail.ts` | empty | `DELETED_STILL_LIVE` · `lib/mail/templates/account/index.ts` |  | REQ-079 c6 |  |
-| `mail.account.deleted.subject`<br>`mail.ts` | empty | `DELETED_SUBJECT` · `lib/mail/templates/account/index.ts` |  | REQ-079 c6 | 17 — sibling `mail.magicLink.subject` |
-| `mail.account.deleted.theirs_to_keep`<br>`mail.ts` | empty | `DELETED_THEIRS_TO_KEEP` · `lib/mail/templates/account/index.ts` |  | REQ-079 c6 |  |
-| `mail.account.deleted.wordpress.already_gone` `{count}`<br>`mail.ts` | empty | `WORDPRESS_LINES` · `lib/mail/templates/account/index.ts` |  | REQ-079 c6 |  |
-| `mail.account.deleted.wordpress.named_for_removal` `{count} {place}`<br>`mail.ts` | empty | `WORDPRESS_LINES` · `lib/mail/templates/account/index.ts` |  | REQ-079 c6 |  |
-| `mail.account.deleted.wordpress.named_for_removal.no_place` `{count}`<br>`mail.ts` | empty | `WORDPRESS_LINES` · `lib/mail/templates/account/index.ts` |  | REQ-079 c6 |  |
-| `mail.account.deleted.wordpress.returned_to_draft` `{count} {place}`<br>`mail.ts` | empty | `WORDPRESS_LINES` · `lib/mail/templates/account/index.ts` |  | REQ-079 c6 |  |
-| `mail.account.deleted.wordpress.returned_to_draft.no_place` `{count}`<br>`mail.ts` | empty | `WORDPRESS_LINES` · `lib/mail/templates/account/index.ts` |  | REQ-079 c6 |  |
-| `mail.account.deleted.wordpress.unreachable` `{count} {place}`<br>`mail.ts` | empty | `WORDPRESS_LINES` · `lib/mail/templates/account/index.ts` |  | REQ-079 c6 |  |
-| `mail.account.deleted.wordpress.unreachable.no_place` `{count}`<br>`mail.ts` | empty | `WORDPRESS_LINES` · `lib/mail/templates/account/index.ts` |  | REQ-079 c6 |  |
-| `mail.account.destinationBroken.action`<br>`mail.ts` | empty | `BROKEN_ACTION` · `lib/mail/templates/account/index.ts` |  | BUILD §9 · REQ-074 c6 | 18 — sibling `mail.nurture.action` |
-| `mail.account.destinationBroken.body`<br>`mail.ts` | empty | `BROKEN_BODY` · `lib/mail/templates/account/index.ts` |  | BUILD §9 · REQ-074 c6 | 85 — sibling `mail.magicLink.body` |
-| `mail.account.destinationBroken.held`<br>`mail.ts` | empty | `BROKEN_HELD` · `lib/mail/templates/account/index.ts` |  | BUILD §9 · REQ-074 c6 |  |
-| `mail.account.destinationBroken.subject`<br>`mail.ts` | empty | `BROKEN_SUBJECT` · `lib/mail/templates/account/index.ts` · +2 more |  | BUILD §9 · REQ-074 c6 | 17 — sibling `mail.magicLink.subject` |
-| `mail.account.hosting_end.access_ended.subject`<br>`mail.ts` | empty | `HOSTING_END_SUBJECT` · `lib/mail/templates/account/index.ts` |  | REQ-076 c11 | 17 — sibling `mail.magicLink.subject` |
-| `mail.account.hosting_end.export_stays`<br>`mail.ts` | empty | `HOSTING_END_EXPORT_STAYS` · `lib/mail/templates/account/index.ts` |  | REQ-076 c11 |  |
-| `mail.account.hosting_end.seven_days.subject`<br>`mail.ts` | empty | `HOSTING_END_SUBJECT` · `lib/mail/templates/account/index.ts` |  | REQ-076 c11 | 17 — sibling `mail.magicLink.subject` |
-| `mail.account.hosting_end.stops_on` `{date}`<br>`mail.ts` | empty | `HOSTING_END_STOPS_ON` · `lib/mail/templates/account/index.ts` |  | REQ-076 c11 |  |
-| `mail.account.no_second_subscription`<br>`mail.ts` | empty | `NO_SECOND_SUBSCRIPTION` · `lib/mail/templates/account/index.ts` |  | REQ-024 c3 |  |
-| `mail.account.reach_a_person`<br>`mail.ts` | empty | `REACH_A_PERSON` · `lib/mail/templates/account/index.ts` |  | REQ-024 c5 |  |
-| `mail.account.second_purchase.subject`<br>`mail.ts` | empty | `SECOND_PURCHASE_SUBJECT` · `lib/mail/templates/account/index.ts` |  | REQ-024 c3 | 17 — sibling `mail.magicLink.subject` |
-| `mail.draftReady.why.search` `{query}`<br>`mail.ts` | empty | `WHY_SEARCH` · `lib/mail/templates/draft-ready/index.ts` |  | BUILD §12 · §7 | 6 — sibling `mail.draftReady.fact.search` |
-| `mail.draftReady.why.volume`<br>`mail.ts` | empty | `WHY_VOLUME` · `lib/mail/templates/draft-ready/index.ts` |  | BUILD §12 · §7 |  |
-| `mail.firstPage.volume_label`<br>`mail.ts` | empty | — · placed with its group |  | REQ-010 c4 | 13 — sibling `mail.firstPage.target_search` |
-| `mail.firstPage.volume_note`<br>`mail.ts` | empty | — · placed with its group |  | REQ-010 c4 | 13 — sibling `mail.firstPage.target_search` |
-| `mail.firstPageUnavailable.delivery-failed`<br>`mail.ts` | empty | `FIRST_PAGE_UNAVAILABLE_COPY` · `lib/mail/leads/giveaway.ts` |  | REQ-010 c7 |  |
-| `mail.firstPageUnavailable.no-page-to-write`<br>`mail.ts` | empty | `FIRST_PAGE_UNAVAILABLE_COPY` · `lib/mail/leads/giveaway.ts` |  | REQ-010 c7 |  |
-| `mail.firstPageUnavailable.subject`<br>`mail.ts` | empty | `SUBJECT` · `lib/mail/templates/first-page-unavailable/index.ts` |  | REQ-010 c7 | 17 — sibling `mail.magicLink.subject` |
-| `mail.firstPageUnavailable.writing-failed`<br>`mail.ts` | empty | `FIRST_PAGE_UNAVAILABLE_COPY` · `lib/mail/leads/giveaway.ts` |  | REQ-010 c7 |  |
-| `mail.firstPageUnavailable.writing-refused`<br>`mail.ts` | empty | `FIRST_PAGE_UNAVAILABLE_COPY` · `lib/mail/leads/giveaway.ts` |  | REQ-010 c7 |  |
-| `mail.nothing_to_report`<br>`mail.ts` | empty | `NOTHING_TO_REPORT` · `lib/mail/shell/compose.ts` |  | §12 |  |
-| `mail.nurture.body.1` `{domain}`<br>`mail.ts` | empty | `BODIES` · `lib/mail/templates/nurture/index.ts` |  | REQ-010 c9 |  |
-| `mail.nurture.body.2` `{domain}`<br>`mail.ts` | empty | `BODIES` · `lib/mail/templates/nurture/index.ts` |  | REQ-010 c9 |  |
-| `mail.nurture.body.3` `{domain}`<br>`mail.ts` | empty | `BODIES` · `lib/mail/templates/nurture/index.ts` |  | REQ-010 c9 |  |
-| `mail.nurture.subject.1`<br>`mail.ts` | empty | `SUBJECTS` · `lib/mail/templates/nurture/index.ts` |  | REQ-010 c9 |  |
-| `mail.nurture.subject.2`<br>`mail.ts` | empty | `SUBJECTS` · `lib/mail/templates/nurture/index.ts` |  | REQ-010 c9 |  |
-| `mail.nurture.subject.3`<br>`mail.ts` | empty | `SUBJECTS` · `lib/mail/templates/nurture/index.ts` |  | REQ-010 c9 |  |
-| `mail.ops.spend-ceiling.fact.ceiling`<br>`mail.ts` | empty | `FACT_CEILING` · `lib/mail/templates/ops/index.ts` |  | BUILD §6.5 · issue 329 |  |
-| `mail.ops.spend-ceiling.fact.spent`<br>`mail.ts` | empty | `FACT_SPENT` · `lib/mail/templates/ops/index.ts` |  | BUILD §6.5 · issue 329 |  |
-| `mail.ops.spend-ceiling.heading`<br>`mail.ts` | empty | `HEADING` · `lib/mail/templates/ops/index.ts` |  | BUILD §6.5 · issue 329 | 20 — sibling `mail.report.heading` |
-| `mail.ops.spend-ceiling.kill-switch-engaged`<br>`mail.ts` | empty | `BODY` · `lib/mail/templates/ops/index.ts` |  | BUILD §6.5 · issue 329 |  |
-| `mail.ops.spend-ceiling.reached`<br>`mail.ts` | empty | `BODY` · `lib/mail/templates/ops/index.ts` |  | BUILD §6.5 · issue 329 |  |
-| `mail.ops.spend-ceiling.subject`<br>`mail.ts` | empty | `SUBJECT` · `lib/mail/templates/ops/index.ts` |  | BUILD §6.5 · issue 329 | 17 — sibling `mail.magicLink.subject` |
-| `mail.ops.spend-ceiling.warn`<br>`mail.ts` | empty | `BODY` · `lib/mail/templates/ops/index.ts` |  | BUILD §6.5 · issue 329 |  |
-| `mail.optout.label`<br>`mail.ts` | empty | `OPT_OUT_LABELS` · `lib/mail/shell/compose.ts` |  | §12 |  |
-| `mail.published.address_label`<br>`mail.ts` | empty | `ADDRESS` · `lib/mail/templates/published/index.ts` |  | REQ-062 c5 | 39 — sibling `mail.published.body` |
-| `mail.published.check_failed`<br>`mail.ts` | empty | `CHECK_VERDICT` · `lib/mail/templates/published/index.ts` |  | REQ-062 c3 | 39 — sibling `mail.published.body` |
-| `mail.published.check_not_measured`<br>`mail.ts` | empty | `CHECK_VERDICT` · `lib/mail/templates/published/index.ts` |  | REQ-062 c6 | 39 — sibling `mail.published.body` |
-| `mail.published.check_passed`<br>`mail.ts` | empty | `CHECK_VERDICT` · `lib/mail/templates/published/index.ts` |  | REQ-062 c3 | 39 — sibling `mail.published.body` |
-| `mail.published.check.ai_readable`<br>`mail.ts` | empty | `CHECK_NAME` · `lib/mail/templates/published/index.ts` |  | REQ-062 c1 |  |
-| `mail.published.check.indexable`<br>`mail.ts` | empty | `CHECK_NAME` · `lib/mail/templates/published/index.ts` |  | REQ-062 c1 |  |
-| `mail.published.check.reachable`<br>`mail.ts` | empty | `CHECK_NAME` · `lib/mail/templates/published/index.ts` |  | REQ-062 c1 |  |
-| `mail.published.check.sitemap`<br>`mail.ts` | empty | `CHECK_NAME` · `lib/mail/templates/published/index.ts` |  | REQ-062 c1 |  |
-| `mail.published.checks_empty`<br>`mail.ts` | empty | `CHECKS_EMPTY` · `lib/mail/templates/published/index.ts` |  | REQ-062 c5 | 39 — sibling `mail.published.body` |
-| `mail.published.checks_label`<br>`mail.ts` | empty | `CHECKS_LABEL` · `lib/mail/templates/published/index.ts` |  | REQ-062 c5 | 39 — sibling `mail.published.body` |
-| `mail.published.not_confirmed` `{checkedAt}`<br>`mail.ts` | empty | composed in the engine · `TELLING_COPY` · `lib/publish/verify/telling.ts` |  | REQ-062 c4 | 39 — sibling `mail.published.body` |
-| `mail.published.not_found` `{checkedAt}`<br>`mail.ts` | empty | composed in the engine · `TELLING_COPY` · `lib/publish/verify/telling.ts` |  | REQ-062 c4 | 39 — sibling `mail.published.body` |
-| `mail.published.site_condition.publishes_no_sitemap` `{foundAt}`<br>`mail.ts` | empty | `SITE_CONDITION_LINE` · `lib/mail/templates/published/index.ts` |  | REQ-062 c6 |  |
-| `mail.published.site_condition.robots_blocks_site` `{foundAt}`<br>`mail.ts` | empty | `SITE_CONDITION_LINE` · `lib/mail/templates/published/index.ts` |  | REQ-062 c6 |  |
-| `mail.published.subject`<br>`mail.ts` | empty | `SUBJECT` · `lib/mail/templates/published/index.ts` |  | REQ-062 c5 | 39 — sibling `mail.published.body` |
-| `mail.published.verified` `{checkedAt}`<br>`mail.ts` | empty | composed in the engine · `TELLING_COPY` · `lib/publish/verify/telling.ts` |  | REQ-062 c5 | 39 — sibling `mail.published.body` |
-| `mail.section.ai_answers`<br>`mail.ts` | empty | `SECTION_NAME` · `lib/mail/weekly/index.ts` |  | REQ-064 c4 |  |
-| `mail.section.market`<br>`mail.ts` | empty | `SECTION_NAME` · `lib/mail/weekly/index.ts` |  | REQ-064 c4 |  |
-| `mail.section.on_page`<br>`mail.ts` | empty | `SECTION_NAME` · `lib/mail/weekly/index.ts` |  | REQ-064 c4 |  |
-| `mail.section.rankings`<br>`mail.ts` | empty | `SECTION_NAME` · `lib/mail/weekly/index.ts` |  | REQ-064 c4 |  |
-| `mail.section.rivals`<br>`mail.ts` | empty | `SECTION_NAME` · `lib/mail/weekly/index.ts` |  | REQ-064 c4 |  |
-| `mail.section.score`<br>`mail.ts` | empty | `SECTION_NAME` · `lib/mail/weekly/index.ts` |  | REQ-064 c4 | 21 — sibling `mail.weekly.score` |
-| `mail.setupReminder.action`<br>`mail.ts` | empty | `ACTION` · `lib/mail/templates/setup-reminder/index.ts` |  | REQ-025 c6 | 18 — sibling `mail.nurture.action` |
-| `mail.setupReminder.body`<br>`mail.ts` | empty | `BODY` · `lib/mail/templates/setup-reminder/index.ts` |  | REQ-025 c6 | 85 — sibling `mail.magicLink.body` |
-| `mail.setupReminder.subject`<br>`mail.ts` | empty | `SUBJECT` · `lib/mail/templates/setup-reminder/index.ts` |  | REQ-025 c6 | 17 — sibling `mail.magicLink.subject` |
-| `mail.shell.imprint`<br>`mail.ts` | empty | `IMPRINT` · `lib/mail/shell/compose.ts` | `[imprint line]` | UI-SPEC S20 | 27 — sibling `mail.shell.plaintext_note` |
-| `mail.unsubscribe.label`<br>`mail.ts` | empty | `OPT_OUT_LABELS` · `lib/mail/shell/compose.ts` |  | §12 |  |
-| `mail.week_partly_measured` `{sections}`<br>`mail.ts` | empty | `WEEK_PARTLY_MEASURED` · `lib/mail/shell/compose.ts` |  | §12 |  |
-| `mail.week_unmeasured` `{nextDue}`<br>`mail.ts` | empty | `WEEK_UNMEASURED` · `lib/mail/shell/compose.ts` |  | §12 |  |
-| `mail.weekly.next`<br>`mail.ts` | empty | `NEXT` · `lib/mail/templates/weekly/index.ts` |  | §12 | 67 — sibling `mail.weekly.body` |
-| `mail.weekly.next.item` `{search}`<br>`mail.ts` | empty | `NEXT_ITEM` · `lib/mail/templates/weekly/index.ts` |  | §12 |  |
-| `mail.weekly.next.none`<br>`mail.ts` | empty | `NEXT_NONE` · `lib/mail/templates/weekly/index.ts` |  | REQ-064 c3 |  |
-| `mail.weekly.page` `{page}`<br>`mail.ts` | empty | `PAGE` · `lib/mail/templates/weekly/index.ts` |  | REQ-063 c4 | 67 — sibling `mail.weekly.body` |
-| `mail.weekly.page.moved` `{page} {from} {to} {measuredAt}`<br>`mail.ts` | empty | `PAGE_MOVED` · `lib/mail/templates/weekly/index.ts` |  | REQ-063 c3 |  |
-| `mail.weekly.page.moved_over` `{page} {from} {to} {measuredAt} {weeks}`<br>`mail.ts` | empty | `PAGE_MOVED_OVER` · `lib/mail/templates/weekly/index.ts` |  | REQ-063 c4 |  |
-| `mail.weekly.subject`<br>`mail.ts` | empty | `SUBJECT` · `lib/mail/templates/weekly/index.ts` |  | §12 | 67 — sibling `mail.weekly.body` |
-| `mail.weekly.verdicts`<br>`mail.ts` | empty | `VERDICTS` · `lib/mail/templates/weekly/index.ts` |  | REQ-063 c4 | 67 — sibling `mail.weekly.body` |
-| `mail.weekly.verdicts.none`<br>`mail.ts` | empty | `VERDICTS_NONE` · `lib/mail/templates/weekly/index.ts` |  | REQ-064 c3 |  |
-
-## Not yet on a screen
-
-Nothing on a screen reads these, no clause names one, and the keys drawn beside them are not read either: the surface that speaks them is unbuilt, or the sentence is an API route's answer rather than a thing on a screen. They are owed all the same.
-
-| key | standing | where | the set says | fixed by | max |
-|---|---|---|---|---|---|
-| `lead.accepted`<br>`mail.ts` | empty | composed in the engine · `RESPONSES` · `app/api/lead/route.ts` |  | REQ-010 c1 |  |
-| `lead.invalid_address`<br>`mail.ts` | empty | composed in the engine · `RESPONSES` · `app/api/lead/route.ts` |  | REQ-010 c1 |  |
-| `lead.unavailable`<br>`mail.ts` | empty | composed in the engine · `RESPONSES` · `app/api/lead/route.ts` |  | REQ-003 c10 |  |
 

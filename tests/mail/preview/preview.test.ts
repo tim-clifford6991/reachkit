@@ -28,16 +28,15 @@ const OUT_DIR = process.env.MAIL_PREVIEW_OUT ?? null;
 const previewable = PREVIEW_KINDS.filter((kind) => !NOT_PREVIEWABLE.includes(kind));
 
 describe("issue #376 — the shell renders S20, and every kind the set draws wears it", () => {
-  it("the set draws seven kinds and four of them cannot compose, each for a stated reason", () => {
-    // Rule 5.5: the counts are stated, and they are the finding. Seven
-    // kinds; three compose; the four that do not are named in `kinds.ts`,
-    // each with the owner-owed line that stops it. That is a fact about the
-    // product and not about this file — those four mails cannot be *sent*
-    // today either, and `sendEmail` answers `not-composable` for them.
+  it("the set draws seven kinds, and the four lines that stopped four of them are written", async () => {
+    // Rule 5.5: the counts are stated. Seven kinds. Four were stopped, each
+    // by one owner-owed line — `copy()` threw and `sendEmail` answered
+    // `not-composable`. Issue #458 filled all four on the owner's
+    // 2026-09-10 approval, so none of them is owed now.
     //
-    // This list is the shortest it has ever been: before this issue, six of
-    // the seven were stopped, because magic-link, report and draft-ready
-    // were stopped too.
+    // `kinds.ts` still names the four as `NOT_PREVIEWABLE` — that list is
+    // the fixture's, not the product's, and it is pinned here so it cannot
+    // change without this file seeing it.
     expect(PREVIEW_KINDS).toHaveLength(7);
     expect([...NOT_PREVIEWABLE].sort()).toEqual([
       "first-page",
@@ -51,9 +50,23 @@ describe("issue #376 — the shell renders S20, and every kind the set draws wea
       "mail.nurture.body.1",
       "mail.optout.label",
     ] as const) {
-      expect(COPY[key], `${key} is written now — preview its kind`).toBe("");
+      expect(COPY[key], `${key} is owed again`).not.toBe("");
     }
     expect(previewable).toHaveLength(3);
+
+    // The two lead mails `kinds.ts` has a fixture for compose now, each
+    // carrying its now-written stop label in both bodies.
+    for (const kind of ["first-page", "nurture"] as const) {
+      const mail = await composePreview(kind);
+      expect(mail.subject.length, `${kind}: a subject that composed to nothing`).toBeGreaterThan(0);
+      for (const body of [mail.html, mail.text]) {
+        expect(body).toContain(COPY["mail.optout.label"]);
+        expect(body).toContain("plain-text version attached");
+      }
+    }
+    expect((await composePreview("nurture")).text).toContain(
+      COPY["mail.nurture.body.1"].replace("{domain}", "example.com")
+    );
   });
 
   for (const kind of previewable) {

@@ -10,11 +10,15 @@ import { applyEnvFixture } from "../../env-fixture";
 applyEnvFixture();
 
 const { buildAccountDeleted } = await import("../../../../src/lib/mail/templates/account");
-const { COPY } = await import("../../../../src/lib/presentation/copy");
+const { COPY, copy } = await import("../../../../src/lib/presentation/copy");
+const { OWNER_OWED } = await import("../../../../src/lib/presentation/copy/registry");
+const { composeMail } = await import("../../../../src/lib/mail/shell/compose");
+const { escapeHtml } = await import("../../../../src/lib/mail/blocks/html");
 
-/** The ten sentences this mail can speak. Every one is owner-owed and
- *  empty, so the send seam refuses to compose rather than shipping a blank
- *  line — a mail never ships a placeholder. */
+/** The ten sentences this mail can speak. Every one was owner-owed and
+ *  empty — the send seam refused to compose rather than ship a blank line —
+ *  until issue #458 filled them on the owner's 2026-09-10 approval. The
+ *  mail now composes from them. */
 const DELETED_MAIL_KEYS = [
   "mail.account.deleted.subject",
   "mail.account.deleted.still_live",
@@ -157,8 +161,50 @@ describe("REQ-093 — every sentence is a registry key, and all ten are the owne
     for (const key of DELETED_MAIL_KEYS) expect(Object.keys(COPY)).toContain(key);
   });
 
-  it("all ten are owner-owed and empty, so the seam refuses to compose rather than shipping a blank line", () => {
+  it("all ten are written (issue #458, the owner's 2026-09-10 approval), so the mail composes and speaks each one, slots filled", () => {
     expect(DELETED_MAIL_KEYS).toHaveLength(10);
-    for (const key of DELETED_MAIL_KEYS) expect(COPY[key]).toBe("");
+    for (const key of DELETED_MAIL_KEYS) {
+      expect(COPY[key], key).not.toBe("");
+      expect(OWNER_OWED, key).not.toContain(key);
+    }
+
+    // Two mails between them reach every one of the ten: one where each
+    // outcome has a place to name, one where none has.
+    const withPlace = buildAccountDeleted({
+      stillLive: 2,
+      leftInWordPress: {
+        returned_to_draft: { count: 4, place: PLACE },
+        named_for_removal: { count: 3, place: PLACE },
+        already_gone: { count: 5, place: null },
+        unreachable: { count: 7, place: PLACE },
+      },
+    });
+    const withoutPlace = buildAccountDeleted({
+      leftInWordPress: {
+        returned_to_draft: { count: 4, place: null },
+        named_for_removal: { count: 3, place: null },
+        unreachable: { count: 7, place: null },
+      },
+    });
+
+    const spoken = new Set<string>();
+    for (const mail of [withPlace, withoutPlace]) {
+      const composed = composeMail({ kind: "account", subject: mail.subject, blocks: mail.blocks });
+      expect(composed.subject).toBe(COPY["mail.account.deleted.subject"]);
+      spoken.add(mail.subject);
+      for (const block of mail.blocks) {
+        if (block.block !== "paragraph") continue;
+        const sentence = copy(block.text, block.vars);
+        // Every slot the sentence declares is filled: no marker survives.
+        expect(sentence, block.text).not.toMatch(/\{\w+\}/);
+        expect(composed.text, block.text).toContain(sentence);
+        expect(composed.html, block.text).toContain(escapeHtml(sentence));
+        spoken.add(block.text);
+      }
+    }
+    expect([...spoken].sort()).toEqual([...DELETED_MAIL_KEYS].sort());
+    // The place reached the rendered mail, not only the marker's absence.
+    const placed = composeMail({ kind: "account", subject: withPlace.subject, blocks: withPlace.blocks });
+    expect(placed.text).toContain("https://theirs.example/tag/reachkit");
   });
 });

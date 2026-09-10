@@ -20,9 +20,10 @@
 //     What no arm has is a second one, a form or a field: nothing on this
 //     page asks the reader to do anything.
 //
-// All three arms render (issue #261). The unavailable arm's sentence is
-// still the owner's and still unwritten; the page says so with the marker
-// instead of throwing, and since #372 its *head* does too.
+// All three arms render (issue #261). The unavailable arm's sentence and
+// the unresolved arms' head were the owner's and rendered the `TODO(copy)`
+// marker; since issue #458 (the owner's 2026-09-10 approval) both carry
+// their approved sentence, and no arm renders the marker.
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type React from "react";
 import { applyEnvFixture } from "../../mail/env-fixture";
@@ -120,21 +121,23 @@ describe("three arms, three heads, no fourth rendering and no default arm", () =
     expect(state.suppressions.size).toBe(0);
   });
 
-  it("our store being down is its own arm, and its owner-owed line renders as the marker rather than taking the page down", async () => {
+  it("our store being down is its own arm, and its own line renders rather than the page going down", async () => {
     state.failSuppressionWrite = true;
 
     // Issue #261. This arm is reached at the moment the store is
     // unavailable, which is the moment a reader can least afford a blank
-    // page — so the unwritten line shows the `TODO(copy)` marker and the
-    // page still renders, on the standing screen rule.
+    // page — so the page still renders, with the line written for this arm
+    // (filled by #458) and not the marker it carried before.
     const tree = await OptOutPage({
       params: { token: optOutTokenFor("anna@example.com") },
     });
     const texts = textsOf(tree);
 
-    expect(texts).toContain(TODO_COPY_MARKER);
+    expect(COPY["optout.unavailable"]).not.toBe("");
+    expect(texts).toContain(COPY["optout.unavailable"]);
+    expect(texts).not.toContain(TODO_COPY_MARKER);
     expect(texts).not.toContain(COPY["optout.invalid"]);
-    // It renders the marker without having suppressed anything: the arm
+    // It renders the line without having suppressed anything: the arm
     // says the write did not happen, and it did not.
     expect(state.suppressions.size).toBe(0);
   });
@@ -142,10 +145,11 @@ describe("three arms, three heads, no fourth rendering and no default arm", () =
   it("only the arm that opted somebody out wears S7's head", async () => {
     // "Opted out" over "that unsubscribe link isn't valid any more" would
     // be the card contradicting itself in its own head. The other two arms
-    // take the owner-owed head, which renders the marker.
+    // take their own head (filled by #458), never the marker.
     for (const token of ["not-a-token", ""]) {
       const tree = await OptOutPage({ params: { token } });
-      expect(eyebrowOf(tree)).toBe(TODO_COPY_MARKER);
+      expect(eyebrowOf(tree)).toBe(COPY["optout.head.unresolved"]);
+      expect(eyebrowOf(tree)).not.toBe(TODO_COPY_MARKER);
       expect(eyebrowOf(tree)).not.toBe(COPY["optout.head"]);
     }
   });

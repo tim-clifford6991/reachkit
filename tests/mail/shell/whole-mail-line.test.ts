@@ -5,14 +5,14 @@
 // measured, and here is what is missing; or every conditional section was
 // omitted or came out empty, so there was nothing to report.
 //
-// All three sentences are the owner's and are not written yet, so
-// `copy()` throws on them. That is the intended behaviour — an unwritten
-// line fails loudly at compose time instead of shipping an empty line to a
-// customer — and each case below asserts whichever half is true today, so
-// the suite keeps discriminating once the owner fills them.
+// All three sentences are the owner's. They were owner-owed (empty, and
+// `copy()` threw on them at compose time) until issue #458 filled them on
+// the owner's 2026-09-10 approval. Each case below now asserts the line is
+// written and renders into both bodies with its slot filled — the rendered
+// sentence, never the raw `{slot}` template.
 import { describe, expect, it } from "vitest";
 import { chooseWholeMailLine, composeMail, type MeasurementState } from "../../../src/lib/mail/shell/compose";
-import { COPY } from "../../../src/lib/presentation/copy";
+import { COPY, copy } from "../../../src/lib/presentation/copy";
 import type { CopyKey } from "../../../src/lib/presentation/copy";
 import { OWNER_OWED } from "../../../src/lib/presentation/copy/registry";
 import { measured, measuredZero } from "../../../src/lib/measure/measured";
@@ -29,22 +29,26 @@ const SILENT_BLOCKS = [
 ];
 const SPEAKING_BLOCKS = [f.HEADING, f.stat(f.num(0))];
 
-/** Composes and returns the two bodies, or — while the line is still
- *  owner-owed — the error `copy()` raised, so both halves are assertable
- *  with one helper. */
+/** Composes the silent weekly mail under the given measurement state. */
 function composeSilentWeekly(measurement: MeasurementState) {
   return () =>
     composeMail({ kind: "weekly", subject: f.HEADING_KEY, blocks: SILENT_BLOCKS, measurement });
 }
 
-function expectLine(compose: () => { html: string; text: string }, key: CopyKey): void {
-  if (OWNER_OWED.includes(key)) {
-    expect(compose).toThrow(new RegExp(key.replace(/\./g, "\\.")));
-    return;
-  }
+/** The line is written (not owner-owed), and both bodies carry `rendered`
+ *  — the sentence with its slots filled — and no unfilled `{slot}`. */
+function expectLine(
+  compose: () => { html: string; text: string },
+  key: CopyKey,
+  rendered: string
+): void {
+  expect(COPY[key], key).not.toBe("");
+  expect(OWNER_OWED, key).not.toContain(key);
   const mail = compose();
-  expect(mail.text).toContain(COPY[key]);
-  expect(mail.html).toContain(COPY[key]);
+  expect(mail.text).toContain(rendered);
+  expect(mail.html).toContain(rendered);
+  expect(mail.text).not.toMatch(/\{[A-Za-z]+\}/);
+  expect(mail.html).not.toMatch(/\{[A-Za-z]+\}/);
 }
 
 describe("BUILD §12 — the whole-mail line is chosen once, after the blocks", () => {
@@ -52,7 +56,8 @@ describe("BUILD §12 — the whole-mail line is chosen once, after the blocks", 
     expect(chooseWholeMailLine({ blocks: SILENT_BLOCKS })).toBe(NOTHING);
     expectLine(
       () => composeMail({ kind: "report", subject: f.HEADING_KEY, blocks: SILENT_BLOCKS }),
-      NOTHING
+      NOTHING,
+      COPY[NOTHING]
     );
   });
 
@@ -70,18 +75,30 @@ describe("BUILD §12 — the whole-mail line is chosen once, after the blocks", 
   it("an unmeasured week states so, with the next due date, and never the nothing-to-report line", () => {
     const measurement = { state: "none", nextDueOn: new Date("2026-09-14T06:00:00.000Z") } as const;
     expect(chooseWholeMailLine({ blocks: SILENT_BLOCKS, measurement })).toBe(UNMEASURED_WEEK);
-    expectLine(composeSilentWeekly(measurement), UNMEASURED_WEEK);
-    if (!OWNER_OWED.includes(UNMEASURED_WEEK)) {
-      const mail = composeSilentWeekly(measurement)();
-      expect(mail.text).toContain("2026-09-14");
-      expect(mail.text).not.toContain(COPY[NOTHING]);
-    }
+    // The due date reaches the slot as the mail's ISO calendar date.
+    expectLine(
+      composeSilentWeekly(measurement),
+      UNMEASURED_WEEK,
+      copy(UNMEASURED_WEEK, { nextDue: "2026-09-14" })
+    );
+    const mail = composeSilentWeekly(measurement)();
+    expect(mail.text).toContain("2026-09-14");
+    expect(mail.text).not.toContain(COPY[NOTHING]);
+    expect(mail.html).not.toContain(COPY[NOTHING]);
   });
 
   it("a partly measured week names its unmeasured sections, and never the nothing-to-report line", () => {
     const measurement = { state: "partial", unmeasured: [f.LABEL_KEY] } as const;
     expect(chooseWholeMailLine({ blocks: SILENT_BLOCKS, measurement })).toBe(PARTIAL_WEEK);
-    expectLine(composeSilentWeekly(measurement), PARTIAL_WEEK);
+    // The slot carries the unmeasured section's own name, as written.
+    expectLine(
+      composeSilentWeekly(measurement),
+      PARTIAL_WEEK,
+      copy(PARTIAL_WEEK, { sections: COPY[f.LABEL_KEY] })
+    );
+    const mail = composeSilentWeekly(measurement)();
+    expect(mail.text).not.toContain(COPY[NOTHING]);
+    expect(mail.html).not.toContain(COPY[NOTHING]);
 
     // The partial line stands even where the mail did have something to
     // say — dropping sections silently is what it exists to prevent.
