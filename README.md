@@ -20,14 +20,16 @@ and merge is the only definition of done.
 | 5 | `DATA-COSTS.md` | The price book behind BUILD §6. |
 | 6 | `docs/README.md` | **The authority map** — which document governs what, in what order they win, and what keeps each honest. Anything not in this table is there. |
 | 7 | `docs/PROCESS.md` · `docs/DEPLOYMENT.md` | How work flows · environments, bindings, cutover. |
-| 8 | `CLAUDE.md` | The working agreement for agents. |
-| 9 | `archive/sdlc-factory-2026-09-04/corpus/docs/{requirements,decisions}` | The acceptance criteria (`REQ-*`) and decision records (`ADR-*`) behind BUILD — the detail an issue cites. Read-only; the archive's design *drawings* are superseded by row 3. |
+| 8 | `docs/RUNBOOK.md` | **Operating it alone** — landing a change, the bindings and rotating one, the eight jobs and running one by hand, the kill switch, the cost ledger, when a deployment refuses to boot, the substrate, backups and the restore drill. |
+| 9 | `CLAUDE.md` | The working agreement for agents. |
+| 10 | `archive/sdlc-factory-2026-09-04/corpus/docs/{requirements,decisions}` | The acceptance criteria (`REQ-*`) and decision records (`ADR-*`) behind BUILD — the detail an issue cites. Read-only; the archive's design *drawings* are superseded by row 3. |
 
 ## How work happens
 
 One GitHub issue = one branch = one PR. The PR body says `Closes #N`; every *Done when* box on the
-issue is ticked; the required checks are green (`typecheck · lint · unit`, `layout conformance
-(browser)`, `schema · RLS (live Postgres)`, `audit`, `Vercel`); the master lands it. Owner files
+issue is ticked; the five required checks are green (`typecheck · lint · unit`, `layout
+conformance (browser)`, `schema · RLS (live Postgres)`, `closes one issue · done-when ticked`,
+`audit` — `Vercel` is not a gate since 2026-09-09); the master approves and the lander merges it. Owner files
 (`BUILD.md`, `DECISIONS.md`, `ARCHITECTURE.md`, `.github/**`, `scripts/**`, the lint and test
 configs) change only in their own docs PR. The whole process is `docs/PROCESS.md`.
 
@@ -44,3 +46,8 @@ node scripts/drift-audit.mjs                  # spec ↔ code ↔ tests
 Stack: Next.js (App Router) + TypeScript, Tailwind 4 + daisyUI 5, Supabase, Stripe, Resend,
 Inngest, DataForSEO, Anthropic — `BUILD.md` §1. Environments and where each binding lives:
 `docs/DEPLOYMENT.md`.
+
+## Operating it
+
+Landing a change, rotating a key, running a job by hand, flipping the kill switch, reading the
+cost ledger, a deployment that refuses to boot, backups and the restore drill — `docs/RUNBOOK.md`.
