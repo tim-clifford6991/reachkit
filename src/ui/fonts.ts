@@ -74,6 +74,15 @@
 // `src/ui/theme.css`'s `--font-ui` / `--font-mono`, and
 // `tests/ui/fonts.test.ts` holds every occurrence here equal to it.
 //
+// **The family names are quoted with `'`, not `"`.** A multi-word family
+// name has to be quoted in CSS, and Turbopack's font transform serialises
+// each call's options into a JSON query string without escaping what is
+// inside a declaration value — a `"` there ends the JSON string early and
+// the build fails resolving the loader's own module ("expected `,` or `}`",
+// pointing at `arguments[0].declarations[0]`). Single quotes carry the same
+// meaning to CSS and survive that trip. `tests/ui/fonts.test.ts` requires
+// the quotes and compares the names without them.
+//
 // The eleven handles are exported because `next/font`'s transform binds
 // each call to a name and an unread binding is a lint error; they are this
 // module's record of what it loaded and nothing imports them. The product
@@ -99,7 +108,7 @@ export const jakartaLatin = localFont({
   preload: true,
   adjustFontFallback: false,
   declarations: [
-    { prop: "font-family", value: '"Plus Jakarta Sans"' },
+    { prop: "font-family", value: "'Plus Jakarta Sans'" },
     {
       prop: "unicode-range",
       value:
@@ -124,7 +133,7 @@ export const jakartaLatinHeavy = localFont({
   preload: false,
   adjustFontFallback: false,
   declarations: [
-    { prop: "font-family", value: '"Plus Jakarta Sans"' },
+    { prop: "font-family", value: "'Plus Jakarta Sans'" },
     {
       prop: "unicode-range",
       value:
@@ -156,7 +165,7 @@ export const jakartaLatinExt = localFont({
   preload: false,
   adjustFontFallback: false,
   declarations: [
-    { prop: "font-family", value: '"Plus Jakarta Sans"' },
+    { prop: "font-family", value: "'Plus Jakarta Sans'" },
     {
       prop: "unicode-range",
       value:
@@ -188,7 +197,7 @@ export const jakartaVietnamese = localFont({
   preload: false,
   adjustFontFallback: false,
   declarations: [
-    { prop: "font-family", value: '"Plus Jakarta Sans"' },
+    { prop: "font-family", value: "'Plus Jakarta Sans'" },
     {
       prop: "unicode-range",
       value:
@@ -221,7 +230,7 @@ export const jakartaCyrillicExt = localFont({
   preload: false,
   adjustFontFallback: false,
   declarations: [
-    { prop: "font-family", value: '"Plus Jakarta Sans"' },
+    { prop: "font-family", value: "'Plus Jakarta Sans'" },
     {
       prop: "unicode-range",
       value: "U+0460-052F,U+1C80-1C8A,U+20B4,U+2DE0-2DFF,U+A640-A69F,U+FE2E-FE2F",
@@ -243,7 +252,7 @@ export const monoLatin = localFont({
   preload: true,
   adjustFontFallback: false,
   declarations: [
-    { prop: "font-family", value: '"JetBrains Mono"' },
+    { prop: "font-family", value: "'JetBrains Mono'" },
     {
       prop: "unicode-range",
       value:
@@ -265,7 +274,7 @@ export const monoLatinExt = localFont({
   preload: false,
   adjustFontFallback: false,
   declarations: [
-    { prop: "font-family", value: '"JetBrains Mono"' },
+    { prop: "font-family", value: "'JetBrains Mono'" },
     {
       prop: "unicode-range",
       value:
@@ -287,7 +296,7 @@ export const monoVietnamese = localFont({
   preload: false,
   adjustFontFallback: false,
   declarations: [
-    { prop: "font-family", value: '"JetBrains Mono"' },
+    { prop: "font-family", value: "'JetBrains Mono'" },
     {
       prop: "unicode-range",
       value:
@@ -309,7 +318,7 @@ export const monoGreek = localFont({
   preload: false,
   adjustFontFallback: false,
   declarations: [
-    { prop: "font-family", value: '"JetBrains Mono"' },
+    { prop: "font-family", value: "'JetBrains Mono'" },
     {
       prop: "unicode-range",
       value: "U+0370-0377,U+037A-037F,U+0384-038A,U+038C,U+038E-03A1,U+03A3-03FF",
@@ -330,7 +339,7 @@ export const monoCyrillic = localFont({
   preload: false,
   adjustFontFallback: false,
   declarations: [
-    { prop: "font-family", value: '"JetBrains Mono"' },
+    { prop: "font-family", value: "'JetBrains Mono'" },
     {
       prop: "unicode-range",
       value: "U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116",
@@ -351,7 +360,7 @@ export const monoCyrillicExt = localFont({
   preload: false,
   adjustFontFallback: false,
   declarations: [
-    { prop: "font-family", value: '"JetBrains Mono"' },
+    { prop: "font-family", value: "'JetBrains Mono'" },
     {
       prop: "unicode-range",
       value: "U+0460-052F,U+1C80-1C8A,U+20B4,U+2DE0-2DFF,U+A640-A69F,U+FE2E-FE2F",

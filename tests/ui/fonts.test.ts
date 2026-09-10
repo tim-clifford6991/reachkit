@@ -126,6 +126,14 @@ function localFontCalls(src: string): FontCall[] {
   return calls;
 }
 
+/** A CSS family name without its quotes. `fonts.ts` writes `'…'` (the only
+ *  quote Turbopack's font-options serialiser survives), @fontsource writes
+ *  `'…'` and `theme.css` writes `"…"`; all three name the same family, and
+ *  CSS agrees. */
+function unquoted(value: string): string {
+  return value.replace(/["']/g, "");
+}
+
 /** The four `@fontsource` stylesheets whose faces `fonts.ts` re-declares:
  *  one per weight of each family. They are what "the same faces as before"
  *  means, so they are read rather than restated. */
@@ -160,7 +168,7 @@ function vendorFaces(): Map<string, VendorFace> {
       const file = (body.match(/files\/([\w-]+\.woff2)/) ?? [])[1] ?? "";
       byFile.set(file, {
         file,
-        family: value("font-family").replace(/'/g, '"'),
+        family: value("font-family"),
         weight: value("font-weight"),
         style: value("font-style"),
         unicodeRange: value("unicode-range"),
@@ -201,8 +209,13 @@ describe("BUILD.md §1 / BP-018 NFR — self-hosted, no third-party font request
     const calls = localFontCalls(fontsSource());
     expect(calls.length).toBeGreaterThan(0);
 
-    const families = new Set(calls.map((c) => c.family));
-    expect(families).toEqual(new Set(['"Plus Jakarta Sans"', '"JetBrains Mono"']));
+    const families = new Set(calls.map((c) => unquoted(c.family)));
+    expect(families).toEqual(new Set(["Plus Jakarta Sans", "JetBrains Mono"]));
+    // A multi-word family name is quoted in CSS, and the quote has to be
+    // `'`: see `fonts.ts`'s header on Turbopack's serialiser.
+    for (const call of calls) {
+      expect(call.family, `${call.name} declares an unquoted family`).toMatch(/^'[^']+'$/);
+    }
 
     for (const call of calls) {
       expect(call.faces.length, `${call.name} loads no face`).toBeGreaterThan(0);
@@ -250,7 +263,7 @@ describe("BUILD.md §1 / BP-018 NFR — self-hosted, no third-party font request
     expect([...declared.keys()].sort()).toEqual([...vendor.keys()].sort());
     for (const [file, face] of declared) {
       const ships = vendor.get(file)!;
-      expect(face.family, `${file}: font-family`).toBe(ships.family);
+      expect(unquoted(face.family), `${file}: font-family`).toBe(unquoted(ships.family));
       expect(face.weight, `${file}: font-weight`).toBe(ships.weight);
       expect(face.style, `${file}: font-style`).toBe(ships.style);
       expect(face.unicodeRange, `${file}: unicode-range`).toBe(ships.unicodeRange);
@@ -263,17 +276,19 @@ describe("BUILD.md §1 / BP-018 NFR — self-hosted, no third-party font request
     // approved tokens (issue #349) and they name the families in words, so
     // every call declares its own `font-family` instead.
     const tokens = themeRootTokens();
-    const named = new Set(localFontCalls(fontsSource()).map((c) => c.family));
+    const named = new Set(localFontCalls(fontsSource()).map((c) => unquoted(c.family)));
     for (const [token, family] of [
-      ["--font-ui", '"Plus Jakarta Sans"'],
-      ["--font-mono", '"JetBrains Mono"'],
+      ["--font-ui", "Plus Jakarta Sans"],
+      ["--font-mono", "JetBrains Mono"],
     ] as const) {
       expect(named.has(family), `no face is declared as ${family}`).toBe(true);
       // `tokenSet` returns every value normalised (whitespace stripped,
       // lower-cased), so the family is put through the same function
-      // rather than compared against a second spelling of it.
+      // rather than compared against a second spelling of it — and through
+      // `unquoted`, because the token spells the name with `"` and
+      // `fonts.ts` with `'`.
       expect(
-        tokens.get(token)?.startsWith(normalise(family)),
+        unquoted(tokens.get(token) ?? "").startsWith(normalise(family)),
         `${token} no longer leads with ${family}`
       ).toBe(true);
     }
