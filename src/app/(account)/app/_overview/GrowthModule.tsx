@@ -5,20 +5,23 @@
 // big category terms unlock.'" The drawing is `GrowthLine`'s (§2.4's closed
 // inventory); what this file decides is what it is handed.
 //
-// **An unmeasured week arrives as a break with its own account.** The chart
+// **An unmeasured week arrives as a gap with its own account.** The chart
 // requires one — a `GrowthWeek` with a `null` value has no call shape
 // without an `account` string — so the week that did not run carries
-// REQ-065 c3's own line, and the chart cuts the run there rather than
-// joining across it. Where the owner has not written that line yet the week
-// still renders as a break; what it cannot do is borrow the week before's
-// value.
+// REQ-065 c3's own line on its mark. It does not cut the line (`cuts:
+// false`, #386): no reading is drawn for that week and none is borrowed
+// from the week before, but the market did not change, so the line joins
+// the measurements either side and reaches its last measured week — where
+// the set puts the end dot. Where the owner has not written that line yet
+// the week still holds its column and its mark.
 //
-// **A change marker is a break with a name** (REQ-071 c12, issue #205).
-// `readGrowth` hands over `entries`, which are the window's weeks with a
-// break standing wherever a change fell between two of them; the break
-// becomes a column with no value, which is the shape `GrowthLine` already
-// cuts its run at. So the series before and after a change are two runs,
-// never joined — and §2.4's inventory gains no sixth chart.
+// **A change marker is a break that does cut it** (REQ-071 c12, issue
+// #205). `readGrowth` hands over `entries`, which are the window's weeks
+// with a break standing wherever a change fell between two of them; that
+// break arrives as `cuts: true`, because the weeks either side were
+// measured against different markets. So the series before and after a
+// change are two runs, never joined — and §2.4's inventory gains no sixth
+// chart.
 //
 // **Where nothing has been measured there is no chart.** The `none` arm
 // renders one written line and the date the first measurement is due — the
@@ -96,15 +99,21 @@ export function GrowthModule(p: {
       // and its account is the written line naming which answer it was.
       const name = formatMonthDay(entry.marker.on, p.timeZone);
       const account = writtenLine(CHANGE_ACCOUNT_KEY[entry.marker.kind]);
-      return { name, value: null, account: account ?? name };
+      // This one cuts the line: the weeks either side were measured
+      // against different markets (REQ-071 c12).
+      return { name, value: null, account: account ?? name, cuts: true };
     }
     // The week's own name, in the room a weekly column leaves it (see
     // `formatMonthDay`). The full date the measurement carries is in the
     // mark's tooltip, and the chart's own footnotes state the rest.
     const point = entry.week;
     const name = formatMonthDay(point.weekStart, p.timeZone);
+    // A week that was not measured does **not** cut the line (#386, master
+    // review): the market did not change, there is only no reading for that
+    // week, so the line joins the measurements either side and draws no
+    // vertex over this column. The week keeps its place and its account.
     return point.value.kind === "unmeasured"
-      ? { name, value: null, account: unmeasuredAccount ?? name }
+      ? { name, value: null, account: unmeasuredAccount ?? name, cuts: false }
       : { name, value: point.value.value };
   });
 

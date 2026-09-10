@@ -33,10 +33,19 @@ const WEEKS: readonly [GrowthWeek, ...GrowthWeek[]] = [
   { name: "wk 1", value: 0 },
   { name: "wk 2", value: 14 },
   { name: "wk 3", value: 37 },
-  { name: "wk 4", value: null, account: "domain changed" },
+  { name: "wk 4", value: null, account: "domain changed", cuts: true },
   { name: "wk 5", value: 91 },
   { name: "wk 6", value: 122 },
   { name: "wk 7", value: 158 },
+];
+
+/** The reserved preview's own shape: measured weeks with one week that
+ *  nobody measured in the middle of them (`cuts: false`). */
+const GAP_WEEKS: readonly [GrowthWeek, ...GrowthWeek[]] = [
+  { name: "wk 1", value: 0 },
+  { name: "wk 2", value: 36 },
+  { name: "wk 3", value: null, account: "not measured", cuts: false },
+  { name: "wk 4", value: 81 },
 ];
 
 const PRESENCE = {
@@ -269,16 +278,41 @@ describe('BUILD.md §2.4: "Every bar/point is direct-labelled (name + value) —
     });
   });
 
-  it("an unmeasured week is a gap, not a rule — nothing is drawn in its place (#386)", () => {
+  it("a change is a gap, not a rule — nothing is drawn in its place (#386)", () => {
     const svg = svgOf(STORIES.GrowthLine?.() as React.JSX.Element);
-    // The run is still cut: two polylines, one either side of the week
-    // that did not run, and never one across it.
+    // The run is cut: two polylines, one either side of the change, and
+    // never one across it.
     expect(svg.querySelectorAll("polyline")).toHaveLength(2);
     // And nothing stands in the gap — no dashed rule of any kind.
     expect([...svg.querySelectorAll("[stroke-dasharray]")]).toEqual([]);
     // The week keeps its mark, which is where its account is written.
     const tips = [...svg.querySelectorAll(".rk-mark title")].map((t) => t.textContent ?? "");
     expect(tips.some((t) => t.includes("domain changed"))).toBe(true);
+  });
+
+  it("a week with no reading does not cut the line — it runs on to the last measured week (#386)", () => {
+    // The master's picture, and the set's: the line is the whole plot and
+    // the end dot sits on its last vertex. A week nobody measured is not a
+    // change of market, so the line joins the weeks either side of it —
+    // drawing no vertex over its column, so no reading is stated for it —
+    // and the week keeps its own mark and its account.
+    const svg = svgOf(<GrowthLine weeks={GAP_WEEKS} label="growth" />);
+    const runs = [...svg.querySelectorAll("polyline")];
+    expect(runs).toHaveLength(1);
+    const points = (runs[0]?.getAttribute("points") ?? "").split(" ");
+    // Three measured weeks in a four-week series: three vertices, not four.
+    expect(points).toHaveLength(3);
+    const dot = svg.querySelector("circle");
+    const [x, y] = (points.at(-1) ?? "").split(",");
+    expect(dot?.getAttribute("cx")).toBe(x);
+    expect(dot?.getAttribute("cy")).toBe(y);
+    // …and the numeral on the plot is that vertex's own value.
+    const drawn = [...svg.querySelectorAll("text")].filter((t) => t.closest(".rk-mark") === null);
+    expect(drawn.map((t) => t.textContent)).toEqual(["81"]);
+    // The unmeasured week is still a week: it holds its column and says why.
+    const tips = [...svg.querySelectorAll(".rk-mark title")].map((t) => t.textContent ?? "");
+    expect(tips).toHaveLength(GAP_WEEKS.length);
+    expect(tips.some((t) => t.includes("not measured"))).toBe(true);
   });
 
   it("no week's numeral is drawn under the axis — the start value is the card's footnote", () => {
@@ -483,9 +517,9 @@ describe('BUILD.md §2.5: "Rival strength is neutral gray, never red — rivals 
     }
   });
 
-  it("the growth line never joins a measurement to one taken after a break", () => {
+  it("the growth line never joins a measurement to one taken after a change", () => {
     const svg = svgOf(STORIES.GrowthLine?.() as React.JSX.Element);
-    // Three measured weeks, then a hole, then three: two runs, never one.
+    // Three measured weeks, then a change, then three: two runs, never one.
     expect(svg.querySelectorAll("polyline")).toHaveLength(2);
   });
 

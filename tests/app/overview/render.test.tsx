@@ -145,13 +145,19 @@ describe("the head, backed by the chart under it", () => {
 });
 
 describe("the growth chart", () => {
-  it("draws the measured weeks and cuts the run at the week that was not measured", () => {
+  it("runs one line to the last measured week, with no vertex over the week that was not measured", () => {
     const model = assembleOverview(facts());
     const markup = html(<GrowthModule growth={model.growth} timeZone={ZONE} />);
-    // Two runs — before the gap and after it — never one polyline across it.
-    expect(count(markup, "<polyline")).toBe(2);
-    // The break is the gap itself: nothing is drawn in the week's place
-    // (#386), and the account of why is on its mark.
+    // One run: the market did not change, so the line joins the weeks
+    // either side of the unmeasured one and reaches the last measured week
+    // — where the end dot sits (#386, master review).
+    expect(count(markup, "<polyline")).toBe(1);
+    // Three vertices for four weeks: no point is drawn over the week
+    // nobody measured, so no reading is stated for it.
+    const points = /<polyline points="([^"]+)"/.exec(markup)?.[1] ?? "";
+    expect(points.split(" ")).toHaveLength(3);
+    // Nothing is drawn in the week's place (#386), and the account of why
+    // is on its mark.
     expect(markup).not.toContain("stroke-dasharray");
     expect(markup).toContain("place.overview.weekly-presence.week");
   });

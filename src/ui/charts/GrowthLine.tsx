@@ -22,19 +22,28 @@
 // ("started at 12"), which is where S12 puts it, so the two ends of the
 // line are both stated in writing and the middle is the drawing.
 //
-// **An unmeasured week is a break, never an interpolation.** The line is
-// cut at that week, the week keeps its own place on the axis and its own
-// mark, and the caller must hand over the account of why — a series with
-// a hole in it has no call shape without one. Nothing is carried forward:
-// joining the week before to the week after would state a measurement that
-// was never taken.
+// **The line runs to its last measured week, and the end dot sits on that
+// vertex** (master review of #386, third pass). The set draws the line as
+// the whole plot with the dot on its end; a dot and a numeral standing far
+// to the right of where the line stops read as a drawing that has lost its
+// own series.
 //
-// The break is the gap itself: **nothing is drawn in its place** (master
-// review of #386). A dashed rule up through the plot is not in the
-// approved set, and on a card whose whole drawing is one line it reads as
-// a second mark competing with it. The two runs ending short of each other
-// already say the series stops, and the week's mark says why — its tooltip
-// is `name · account`, the written line REQ-065 c3 asks for.
+// So a week with **no reading of its own does not cut the line**. It keeps
+// its column and its mark — the mark's tooltip is `name · account`, the
+// written line REQ-065 c3 asks for — but the drawing puts no vertex over
+// it and the line joins the measurements either side. Nothing is stated
+// for that week: no point, no numeral, and (since this chart draws no rule
+// of any kind) no axis or gridline to read a height against. No figure is
+// produced for it and no earlier week's figure stands in its place, which
+// is what c3 forbids.
+//
+// **What does cut the line is a change** (REQ-071 c12): the weeks either
+// side were measured against different markets, so a segment joining them
+// would draw movement nobody measured. That is the one break, and the
+// caller says which kind of gap it is handing over — `cuts`. Nothing is
+// drawn in a cut's place either: a dashed rule up through the plot is not
+// in the approved set, and on a card whose whole drawing is one line it
+// reads as a second mark competing with it.
 //
 // **No rule of any kind: no axis, and no gridlines** (master review of
 // #386, second pass). §2.4 states "One axis per chart … faint gridlines at
@@ -67,6 +76,18 @@ export interface GrowthUnmeasuredWeek {
   readonly name: string;
   readonly value: null;
   readonly account: string;
+  /** Whether the line is cut here.
+   *
+   *  `false` — the ordinary week that simply was not measured. There is no
+   *  reading for it, but the weeks either side were measured against the
+   *  same market, so the line joins them and draws no vertex over this
+   *  column. The week still holds its place and its mark.
+   *
+   *  `true` — a change (REQ-071 c12). The weeks either side were measured
+   *  against different markets and a segment across them would draw
+   *  movement nobody measured, so the run ends here and the next begins
+   *  after. */
+  readonly cuts: boolean;
 }
 
 export type GrowthWeek = GrowthMeasuredWeek | GrowthUnmeasuredWeek;
@@ -109,8 +130,10 @@ export function GrowthLine(p: {
   const ceiling = Math.max(...measured.map((w) => w.value), 1);
   const y = (v: number): number => plot(v, ceiling, PLOT_TOP, PLOT_BOTTOM);
 
-  // One unbroken run per span of measured weeks. A run of a single week
-  // still draws its point; it just has no line to be part of.
+  // One unbroken run per span of weeks the line may cross. A week with no
+  // reading is skipped — no vertex, no cut — so the run reaches the last
+  // measured week; a change ends the run where it falls. A run of a single
+  // week still draws its point; it just has no line to be part of.
   interface Pt {
     x: number;
     y: number;
@@ -121,7 +144,7 @@ export function GrowthLine(p: {
   p.weeks.forEach((week, i) => {
     if (isMeasured(week)) {
       run.push({ x: xAt(i), y: y(week.value), week });
-    } else if (run.length > 0) {
+    } else if (week.cuts && run.length > 0) {
       runs.push(run);
       run = [];
     }
