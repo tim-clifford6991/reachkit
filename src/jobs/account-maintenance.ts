@@ -1,17 +1,18 @@
 // src/jobs/account-maintenance.ts — BUILD §11
 //
-// The seventh id. `BUILD.md` §11's table names six jobs; six obligations
+// The seventh id. `BUILD.md` §11's table names six jobs; seven obligations
 // in the rest of the spec fall due on a clock and no read path can serve
 // them — a payment awaiting sign-in, a payment with no account, a
-// hosting-end notice, a hosting stop, an account due for purge, and a
-// founder who paid and never finished setup (§4.3, issue #36). This tick
-// is their trigger and nothing more.
+// hosting-end notice, a hosting stop, an account due for purge, a founder
+// who paid and never finished setup (§4.3, issue #36), and a free scan
+// left `running` by an invocation the platform froze (§6.4, issue #438).
+// This tick is their trigger and nothing more.
 //
-// **No domain logic here.** One tick is five due-work queries and five
+// **No domain logic here.** One tick is seven due-work queries and seven
 // hand-offs: each returned subject goes straight back to the module that
 // owns its rule. This file holds no predicate over a timestamp, no
-// threshold and no ordering — a tick whose five queries return nothing is
-// five indexed reads and no writes.
+// threshold and no ordering — a tick whose seven queries return nothing is
+// seven indexed reads and no writes.
 //
 // Not in the kill switch's scope: halting it would hold a purge, withhold a
 // hosting notice and strand a paid customer waiting for a sign-in link,
@@ -20,12 +21,14 @@ import {
   accountsDueForPurge,
   backstopProvision,
   chaseSignIn,
+  finishScanLeftRunning,
   noticeHostingEnd,
   paymentsAwaitingSignIn,
   paymentsWithoutAccounts,
   EngineNotBuilt,
   purgeAccount,
   remindSetup,
+  scansLeftRunning,
   sitesDueHostingEndNotice,
   sitesDueHostingStop,
   sitesDueSetupReminder,
@@ -41,9 +44,9 @@ import type { JobDefinition, Outcome } from "./types";
  *  falls due. */
 export const MAINTENANCE_CRON = `*/${MAINTENANCE_TICK_MINUTES} * * * *`;
 
-/** The six obligations, each a query and the hand-off that owns its rule.
- *  Adding a seventh is an edit to this list — never a predicate in the
- *  body below. */
+/** The seven obligations, each a query and the hand-off that owns its
+ *  rule. Adding an eighth is an edit to this list — never a predicate in
+ *  the body below. */
 const DUE_WORK: readonly {
   readonly due: () => Promise<readonly string[]>;
   readonly handOff: (subjectId: string) => Promise<EngineResult>;
@@ -59,6 +62,15 @@ const DUE_WORK: readonly {
   // finishes at hour 71 is simply not returned by the query at hour 72,
   // and there is no queue entry anywhere to cancel.
   { due: sitesDueSetupReminder, handOff: remindSetup },
+  // §6.4's in-flight bound, kept honest (issue #438). A free pass runs
+  // inside the request that started it, and an invocation the platform
+  // froze at its own ceiling leaves the claimed row `running` — which is
+  // the column the in-flight refusal reads, so the frozen pass goes on
+  // refusing that network's next visitor until something finishes the row.
+  // The tick asks which rows those are rather than the route guessing on
+  // the way in: staleness is a fact about a clock, and the sweep is the
+  // one place in the product allowed to decide a pass is not coming back.
+  { due: scansLeftRunning, handOff: finishScanLeftRunning },
 ]);
 
 export const accountMaintenance: JobDefinition = {

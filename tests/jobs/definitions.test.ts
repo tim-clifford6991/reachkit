@@ -55,6 +55,9 @@ function engineDouble(): Record<string, unknown> {
     sitesDueSetupReminder: record("sitesDueSetupReminder", []),
     remindSetup: record("remindSetup", done),
     noticeBrokenDestination: record("noticeBrokenDestination", done),
+    // The tick's seventh obligation (issue #438).
+    scansLeftRunning: record("scansLeftRunning", []),
+    finishScanLeftRunning: record("finishScanLeftRunning", done),
   };
 }
 
@@ -347,16 +350,19 @@ describe("lead/nurture — an hourly tick over due work (#182)", () => {
   });
 });
 
-describe("account/maintenance — six due-work queries, six hand-offs, no domain logic", () => {
+describe("account/maintenance — seven due-work queries, seven hand-offs, no domain logic", () => {
   it("ticks every MAINTENANCE_TICK_MINUTES", async () => {
     const job = await definition("account/maintenance");
     expect(job.trigger).toEqual({ kind: "cron", cron: `*/${MAINTENANCE_TICK_MINUTES} * * * *` });
     expect(MAINTENANCE_TICK_MINUTES).toBe(15);
   });
 
-  it("a tick whose six queries return nothing is six reads and no hand-off", async () => {
+  it("a tick whose seven queries return nothing is seven reads and no hand-off", async () => {
     // The sixth is §4.3's setup reminders (issue #36): a founder who paid
-    // and has not answered the three questions.
+    // and has not answered the three questions. The seventh is §6.4's
+    // in-flight bound (issue #438): a free pass an invocation the platform
+    // froze left `running`, which goes on refusing that network until the
+    // row is finished.
     const job = await definition("account/maintenance");
     const outcome = await job.run({ data: {}, now: MONDAY_0600_UTC });
     expect(calls.map((c) => c.fn)).toEqual([
@@ -366,6 +372,7 @@ describe("account/maintenance — six due-work queries, six hand-offs, no domain
       "sitesDueHostingStop",
       "accountsDueForPurge",
       "sitesDueSetupReminder",
+      "scansLeftRunning",
     ]);
     expect(outcome).toEqual({ outcome: "skipped", subjectId: null, reason: "no-subject" });
   });
@@ -588,9 +595,10 @@ describe("nothing fakes work — an unbuilt engine fails loudly", () => {
 
   it("account/maintenance skips an unbuilt obligation rather than dying on it (issue #36), and every obligation behind it still runs", async () => {
     stubEnv(false);
-    // All six obligations are built today and read rows: the payment half
-    // (issue #33), the hosting pair (issue #34), the purge (issue #52) and
-    // §4.3's setup reminders (issue #36). Every one is stood in with
+    // All seven obligations are built today and read rows: the payment
+    // half (issue #33), the hosting pair (issue #34), the purge (issue
+    // #52), §4.3's setup reminders (issue #36) and §6.4's stuck free scans
+    // (issue #438). Every one is stood in with
     // nothing due — the ordinary case — so this suite reaches no database.
     // Doubling the whole engine instead would assert nothing.
     //
@@ -610,6 +618,13 @@ describe("nothing fakes work — an unbuilt engine fails loudly", () => {
     vi.doMock("@/lib/mail/setup/reminders", () => ({
       sitesDueSetupReminder: async () => [],
       sendSetupReminder: async () => ({ sent: false, reason: "not-due" }),
+    }));
+    // The seventh obligation (issue #438) reads `scans` rows, so it is
+    // stood in with nothing stuck — the ordinary case, and the one that
+    // keeps this suite off a database.
+    vi.doMock("@/lib/scan/stuck", () => ({
+      scansLeftRunning: async () => [],
+      finishScanLeftRunning: async () => ({ finished: false }),
     }));
     const { jobs } = await import("@/jobs");
     const { runJob } = await import("@/jobs/run");
@@ -650,6 +665,7 @@ describe("nothing fakes work — an unbuilt engine fails loudly", () => {
 
     setLifecycleStore(null);
     setBillingStore(null);
+    vi.doUnmock("@/lib/scan/stuck");
     vi.doUnmock("@/lib/mail/setup/reminders");
     vi.doUnmock("@/lib/account/provisioning/due-work");
   });

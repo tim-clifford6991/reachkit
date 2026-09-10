@@ -68,6 +68,10 @@ function engineDouble(): Record<string, unknown> {
     purgeAccount: ran,
     sitesDueSetupReminder: none,
     remindSetup: ran,
+    // The tick's seventh obligation (issue #438): the free passes an
+    // invocation the platform froze left `running`.
+    scansLeftRunning: none,
+    finishScanLeftRunning: ran,
   };
 }
 
