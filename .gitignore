@@ -3,6 +3,8 @@ node_modules/
 .next/
 .env*.local
 coverage/
+# The review gallery's pictures (issue #383): a run's output, never a commit.
+.review/
 tsconfig.tsbuildinfo
 next-env.d.ts
 .vercel
