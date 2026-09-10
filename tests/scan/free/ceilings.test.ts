@@ -16,12 +16,27 @@
 // the cache — another node's"). No live-DB suite is added by this file,
 // so it needs no `--no-file-parallelism` flag and does not join
 // `tests/scan/free/schema.test.ts`'s own racing group.
+//
+// **REQ-003 c5's own 90 s is superseded on the pin** (master ruling
+// 2026-09-10, issue #456): the invocation the free pass runs in is frozen
+// by the platform at 60 s, so a design ceiling above that could never fire
+// and the partial report ADR-021 promises could never be stored.
+// `TIMING.reportCeilingS` is now 50. The criteria below are still quoted
+// verbatim — they are a frozen document's words, and quoting them is not
+// asserting the figure — but every deadline this file exercises is read
+// from the pin rather than typed, so the ordering ruling moves the tests
+// with it. The order itself is `tests/scan/ceilings-pins.test.ts`.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/costs", () => ({ withCostContext: vi.fn() }));
 
+import { TIMING } from "@/lib/config/constants";
 import { withCostContext } from "@/lib/costs";
 import { withFreeBounds, type Bounds } from "@/lib/scan/ceilings";
+
+/** The deadline `withFreeBounds` races against, in milliseconds — the pin,
+ *  never a literal, so this suite follows the ruling that sets it. */
+const CEILING_MS = TIMING.reportCeilingS * 1000;
 
 interface CostStub {
   recordFetch: ReturnType<typeof vi.fn>;
@@ -69,7 +84,7 @@ afterEach(() => {
 });
 
 // A fresh "now" per use, not a fixed calendar date — this file's own
-// deadline arithmetic is `startedAt + 90 s`, and a stale fixed date would
+// deadline arithmetic is `startedAt + TIMING.reportCeilingS`, and a stale fixed date would
 // already read as expired by the time the real suite runs, well outside
 // any test that fakes its own clock.
 function startedNow(): Date {
@@ -85,17 +100,17 @@ function never<T>(): Promise<T> {
 describe(
   'REQ-003 c5 — "Given a scan still running past 60 seconds — including when the delay is the scanned domain\'s own server answering slowly — when it reaches 90 seconds, then measuring stops and the visitor is shown the report of everything measured by that point, with the rest reported as unmeasured (REQ-004). No visitor waits on a running scan beyond 90 seconds."',
   () => {
-    it("ceilings/time · the deadline fires at 90 s whatever is blocking", async () => {
+    it("ceilings/time · the deadline fires at the pinned ceiling whatever is blocking", async () => {
       vi.useFakeTimers();
       const promise = withFreeBounds({ scanId: "scan-1", startedAt: startedNow() }, async () => {
         return never<string>(); // a call that never resolves
       });
       const started = Date.now();
-      await vi.advanceTimersByTimeAsync(90_000);
+      await vi.advanceTimersByTimeAsync(CEILING_MS);
       const outcome = await promise;
       expect(outcome.ending).toEqual({ kind: "report", complete: false, stoppedReason: "time_ceiling" });
       expect(outcome.result).toBeNull();
-      expect(Date.now() - started).toBeLessThanOrEqual(90_000);
+      expect(Date.now() - started).toBeLessThanOrEqual(CEILING_MS);
     });
 
     it("ceilings/time · stopNow() is re-checked between calls inside a multi-call stage, not only between stages", async () => {
@@ -105,23 +120,26 @@ describe(
       const loopFinished = new Promise<void>((resolve) => {
         loopDone = resolve;
       });
-      // A body that keeps making calls 25 s apart — `withFreeBounds`'s own
-      // race settles at the 90 s deadline (after the 4th call), but this
-      // loop is not cancelled by that race: it keeps running underneath,
-      // exactly as a real multi-call stage's own loop would, and this
-      // test observes it directly rather than through the race's winner.
+      // A body that keeps making calls a quarter of the ceiling apart —
+      // `withFreeBounds`'s own race settles at the deadline (after the 4th
+      // call), but this loop is not cancelled by that race: it keeps
+      // running underneath, exactly as a real multi-call stage's own loop
+      // would, and this test observes it directly rather than through the
+      // race's winner. The step is derived from the pin, so the ceiling can
+      // move without this test's arithmetic being re-typed.
+      const stepMs = CEILING_MS / 4;
       void withFreeBounds({ scanId: "scan-2", startedAt: startedNow() }, async (bounds: Bounds) => {
         for (let i = 0; i < 5; i++) {
           observedAt.push(bounds.stopNow());
-          await new Promise((resolve) => setTimeout(resolve, 25_000));
+          await new Promise((resolve) => setTimeout(resolve, stepMs));
         }
         loopDone();
         return "done";
       });
-      await vi.advanceTimersByTimeAsync(130_000);
+      await vi.advanceTimersByTimeAsync(CEILING_MS + stepMs * 2);
       await loopFinished;
-      // Calls at t=0, 25s, 50s, 75s read null (before the 90 s deadline);
-      // the call at t=100s reads 'time_ceiling' — proving the check
+      // The first four calls land before the deadline and read null; the
+      // fifth lands on it and reads 'time_ceiling' — proving the check
       // happens on every call, not once per stage.
       expect(observedAt.slice(0, 4)).toEqual([null, null, null, null]);
       expect(observedAt[4]).toBe("time_ceiling");
@@ -132,11 +150,11 @@ describe(
       activeCost.setCapHit(true); // the spend ceiling has already fired too
       let observed: "time_ceiling" | "spend_ceiling" | null = null;
       void withFreeBounds({ scanId: "scan-both-ceilings", startedAt: startedNow() }, async (bounds: Bounds) => {
-        await new Promise((resolve) => setTimeout(resolve, 90_000));
+        await new Promise((resolve) => setTimeout(resolve, CEILING_MS));
         observed = bounds.stopNow();
         return "done";
       });
-      await vi.advanceTimersByTimeAsync(90_000);
+      await vi.advanceTimersByTimeAsync(CEILING_MS);
       expect(observed, "REQ-003 c5: TIMING.reportCeilingS is the bound stated absolutely").toBe("time_ceiling");
     });
   }
@@ -232,16 +250,16 @@ describe(
           // "failed means nothing was determined" suite covers that
           // case, where no ceiling is in play at all).
           body: async () => {
-            await new Promise((resolve) => setTimeout(resolve, 90_000));
+            await new Promise((resolve) => setTimeout(resolve, CEILING_MS));
             throw new Error("vendor call failed");
           },
-          advanceMs: 90_000,
+          advanceMs: CEILING_MS,
         },
         {
           label: "time ceiling, body hangs forever",
           arrange: () => {},
           body: () => never<unknown>(),
-          advanceMs: 90_000,
+          advanceMs: CEILING_MS,
         },
       ];
 
@@ -324,14 +342,14 @@ describe(
       // (this criterion's own 60 s p95 half is a claim about real vendor
       // latency and is not testable here; `BUILD.md` §16 milestone 3 is,
       // this WO's own first `rests-on` row).
-      const latenciesMs = Array.from({ length: 100 }, (_, i) => (i % 10) * 15_000);
+      const latenciesMs = Array.from({ length: 100 }, (_, i) => (i % 10) * (CEILING_MS / 5));
       const promises = latenciesMs.map((latency) =>
         withFreeBounds({ scanId: `batch-${latency}-${Math.random()}`, startedAt: start }, async () => {
           await delayFake(latency);
           return "measured";
         })
       );
-      await vi.advanceTimersByTimeAsync(90_001);
+      await vi.advanceTimersByTimeAsync(CEILING_MS + 1);
       const outcomes = await Promise.all(promises);
       expect(outcomes).toHaveLength(100);
       for (const { ending } of outcomes) {
@@ -340,7 +358,7 @@ describe(
           expect(ending.complete).toBe(false);
         } else {
           // Resolved inside the ceiling — never past it, by construction:
-          // `withFreeBounds` races every call against the same 90 s
+          // `withFreeBounds` races every call against the same pinned
           // deadline regardless of how long `body` itself takes.
           expect(ending.stoppedReason).toBe("complete");
         }

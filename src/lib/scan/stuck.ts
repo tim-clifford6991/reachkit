@@ -18,16 +18,25 @@
 // the cadence is the maintenance tick's (`MAINTENANCE_TICK_MINUTES`), and
 // it is not repeated here.
 //
-// **The threshold is the report ceiling, and not a second number.** A free
-// pass is bounded by `TIMING.reportCeilingS` (ADR-021), and a pass that
-// reaches that ceiling stores a report and leaves `running` in the same
-// breath. So a free row still `running` longer than the ceiling has not
-// been stopped by its own ceiling — nothing is going to stop it — and the
-// only remaining question is which write lands first. Both orders are
-// safe: `finishScanLeftRunning` updates only a row that is *still*
-// `running`, so a pass storing its report at the boundary either beats the
-// sweep (and the sweep finds nothing to write) or is beaten by it (and the
-// stored report overwrites the failure with the truth).
+// **The threshold is the platform's ceiling plus a margin, and never the
+// design one** (issue #456). The two are different kinds of fact and only
+// one of them describes a row nobody is coming back for. A free pass
+// bounds itself by `TIMING.reportCeilingS`, and a pass that reaches that
+// ceiling *stores a report* and leaves `running` in the same breath — so a
+// row sitting at the design ceiling is not stuck, it is finishing, and
+// sweeping it would race the partial report ADR-021 promises the reader.
+// What no pass survives is the platform's bound (`TIMING.platformCeilingS`,
+// the `maxDuration` the route declares): past it the invocation no longer
+// exists, so nothing is going to write that row ever again.
+// `TIMING.sweepMarginS` is the gap between the row's own clock and that
+// freeze — `created_at` is written at admission, before the response — plus
+// a report write still in flight when the process stopped.
+//
+// The sweep is still safe whichever write lands first:
+// `finishScanLeftRunning` updates only a row that is *still* `running`, so
+// a pass storing its report at the boundary either beats the sweep (and the
+// sweep finds nothing to write) or is beaten by it (and the stored report
+// overwrites the failure with the truth).
 //
 // **Free rows only.** The bound this protects is the free path's in-flight
 // bound, and the free tier is the only one that runs inside a request that
@@ -69,9 +78,10 @@ function untyped(client: ReturnType<typeof dbAdmin>): MinimalClient {
   return client as unknown as MinimalClient;
 }
 
-/** Every free scan whose row is still `running` longer than a free pass
- *  can possibly be — the ceiling it bounds itself by, read from the pin
- *  rather than written twice.
+/** Every free scan whose row is still `running` longer than the invocation
+ *  a free pass runs in can possibly exist — the platform's ceiling plus
+ *  `TIMING.sweepMarginS`, both read from the pins rather than written
+ *  twice, and never the design ceiling the pass finishes at (see above).
  *
  *  Bounded by the day's own ceiling on free scans (`FREE_BOUNDS.scansPerDay`),
  *  which is the most rows one day of freezing could possibly have left
@@ -79,7 +89,8 @@ function untyped(client: ReturnType<typeof dbAdmin>): MinimalClient {
  *  would be the second defect this one is here to prevent. Oldest first,
  *  so the visitor who has been refused longest is unblocked first. */
 export async function scansLeftRunning(now: Date): Promise<readonly string[]> {
-  const before = new Date(now.getTime() - TIMING.reportCeilingS * 1000).toISOString();
+  const staleAfterMs = (TIMING.platformCeilingS + TIMING.sweepMarginS) * 1000;
+  const before = new Date(now.getTime() - staleAfterMs).toISOString();
   const { data, error } = await untyped(dbAdmin())
     .from<{ id: string }>("scans")
     .select("id")

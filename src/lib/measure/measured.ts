@@ -13,8 +13,8 @@
 // more").
 
 /** 'undeterminable' = REQ-004 criterion 6 (nothing returned / unreadable /
- *  no answer). 'not_attempted' = REQ-004 criterion 9 (90s ceiling or spend
- *  ceiling). */
+ *  no answer). 'not_attempted' = REQ-004 criterion 9 (the time ceiling,
+ *  `TIMING.reportCeilingS`, or the spend ceiling). */
 export type UnmeasuredReason = "undeterminable" | "not_attempted";
 
 export type Measured<T> =

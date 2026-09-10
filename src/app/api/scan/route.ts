@@ -106,13 +106,21 @@ function landingRedirect(request: Request, problem: DomainProblem, value: string
  *  at it; on the plan this product deploys to that is 60.
  *
  *  **It is not the report ceiling, and the two are different kinds of
- *  fact.** `TIMING.reportCeilingS` (90) is the design figure the pass
- *  bounds itself by — ADR-021's, unraisable at runtime — and this is the
+ *  fact.** `TIMING.reportCeilingS` is the design figure the pass bounds
+ *  itself by — ADR-021's, unraisable at runtime — and this is the
  *  platform's bound on how long the process the pass runs in exists at
- *  all. Where they disagree the platform wins, so a pass that outlives
- *  this number is frozen mid-flight; the row it left `running` is finished
- *  by the maintenance tick's sweep (`src/lib/scan/stuck.ts`) rather than
- *  left to block the next visitor's admission for ever.
+ *  all. They no longer disagree: the master's ruling of 2026-09-10 (issue
+ *  #456) puts the design ceiling *below* this one, with margin to store
+ *  the partial report, because where they disagreed the platform won and
+ *  the design ceiling could never fire. A pass that still outlives this
+ *  number is frozen mid-flight; the row it left `running` is finished by
+ *  the maintenance tick's sweep (`src/lib/scan/stuck.ts`), which keys on
+ *  this bound and not on the design one, rather than left to block the
+ *  next visitor's admission for ever.
+ *
+ *  `TIMING.platformCeilingS` is this same number, pinned where the engine
+ *  can read it; `tests/scan/ceilings-pins.test.ts` reads this source and
+ *  fails if the two ever part.
  *
  *  **A literal, and it has to be one.** Next reads route segment config
  *  out of the source at build time

@@ -96,8 +96,14 @@ beforeEach(() => {
   vi.mocked(dbAdmin).mockReturnValue(fakeClient() as ReturnType<typeof dbAdmin>);
 });
 
+/** The row is a ghost only once the invocation it ran in cannot exist any
+ *  more: the platform's ceiling, plus the margin between the row's own
+ *  clock and that freeze (issue #456). Never `reportCeilingS` — a row at
+ *  the design ceiling is storing its partial report, not stuck. */
+const STALE_AFTER_MS = (TIMING.platformCeilingS + TIMING.sweepMarginS) * 1000;
+
 describe("scansLeftRunning — which free passes are not coming back", () => {
-  it("asks for free rows still running older than the ceiling a free pass bounds itself by", async () => {
+  it("asks for free rows still running older than the invocation a free pass runs in can be", async () => {
     answer = { data: [{ id: GHOST }], error: null };
     expect(await scansLeftRunning(NOW)).toEqual([GHOST]);
 
@@ -108,21 +114,30 @@ describe("scansLeftRunning — which free passes are not coming back", () => {
     expect(call.filters).toContainEqual(["status", "eq", "running"]);
   });
 
-  it("the threshold is the report ceiling itself, read from the pin and never written twice", async () => {
+  it("the threshold is the platform's ceiling plus the margin, read from the pins and never written twice", async () => {
     await scansLeftRunning(NOW);
     const cutoff = calls[0]!.filters.find(([column, op]) => column === "created_at" && op === "lt");
     expect(cutoff).toBeDefined();
-    expect(new Date(cutoff![2]).getTime()).toBe(NOW.getTime() - TIMING.reportCeilingS * 1000);
+    expect(new Date(cutoff![2]).getTime()).toBe(NOW.getTime() - STALE_AFTER_MS);
   });
 
-  it("a row inside the ceiling is not this sweep's business — the pass may still be running", async () => {
-    // The query is what decides it, so the assertion is on the boundary
-    // the query carries: a row created one second inside the cutoff is not
-    // matched by `created_at < cutoff`.
+  it("a row at the design ceiling is not this sweep's business — that pass is storing its partial report", async () => {
+    // The defect issue #456 closes: keyed on `reportCeilingS`, this sweep
+    // raced a pass that had just reached its own ceiling and was writing
+    // the partial report ADR-021 promises the reader. The query is what
+    // decides it, so the assertion is on the boundary the query carries —
+    // a row that old is not matched by `created_at < cutoff`.
     await scansLeftRunning(NOW);
     const cutoff = new Date(calls[0]!.filters.find(([c, op]) => c === "created_at" && op === "lt")![2]);
-    const stillRunning = new Date(NOW.getTime() - (TIMING.reportCeilingS - 1) * 1000);
-    expect(stillRunning.getTime()).toBeGreaterThan(cutoff.getTime());
+    const atDesignCeiling = new Date(NOW.getTime() - TIMING.reportCeilingS * 1000);
+    expect(atDesignCeiling.getTime()).toBeGreaterThan(cutoff.getTime());
+  });
+
+  it("a row one second inside the cutoff is left alone; one second past it is swept", async () => {
+    await scansLeftRunning(NOW);
+    const cutoff = new Date(calls[0]!.filters.find(([c, op]) => c === "created_at" && op === "lt")![2]);
+    expect(new Date(NOW.getTime() - (STALE_AFTER_MS - 1000)).getTime()).toBeGreaterThan(cutoff.getTime());
+    expect(new Date(NOW.getTime() - (STALE_AFTER_MS + 1000)).getTime()).toBeLessThan(cutoff.getTime());
   });
 
   it("is bounded and ordered — oldest first, and never an unbounded walk of the table", async () => {
