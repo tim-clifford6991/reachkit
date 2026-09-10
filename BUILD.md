@@ -406,6 +406,14 @@ raw store. Caps degrade (skip remaining optional work, mark scan `degraded`),
 never throw; money already spent is always ledgered. `capHit()` is re-checked
 between calls in any multi-call step.
 
+**Latency budget (2026-09-10, #452/#455).** `INFERENCE_TIMEOUT_MS` bounds one whole
+`llm()` call, attempts included — `nano` 15 s per call (pending the first live
+measurement of a completed call, #317), `haiku` 20 s. The vendor SDK's own retries are
+off (`INFERENCE_MAX_RETRIES = 0`): the seam's "retried at most once" is the only retry
+policy, so the wall clock a caller reads is the wall clock it gets. The free pass's two
+nano calls (§6.7 steps 1 and 4) are therefore 30 s of the 60 the platform allows the
+invocation (§11), and `tests/llm/budget.test.ts` is that arithmetic.
+
 ### 6.6 Rival derivation, and the cold-start law
 
 **The cold-start law: every derivation in the product must work for a domain that
@@ -494,7 +502,8 @@ informational query, because it is where buyers choose and where AI answers
 recommend lists. Volume enters log-scaled so it breaks ties inside an intent
 class rather than steamrolling across classes.
 
-**Step 4 — Phrase as questions (nano, same call as step 1).** Template-first
+**Step 4 — Phrase as questions (nano, a second call — `phrase.ts`, after step 1's
+`profile.ts`; the free pass issues exactly these two nano calls).** Template-first
 ("best X" → "What's the best X?"; "X vs Y" → "X or Y — which should I pick?");
 the LLM only words the question. **Phrasing never changes which searches were
 selected**, and each question renders with its source search + volume — the
@@ -632,13 +641,21 @@ var stops scan+generate+publish · scan limiter fails open, lead capture fails
 closed.
 
 The free pass runs inside the `POST /api/scan` invocation and has **two ceilings**
-(2026-09-10, #438/#443): its own, `TIMING.reportCeilingS` in `constants.ts`, and the
-platform's, `export const maxDuration` on the route (60 s on Hobby) — the pass is
-registered with `after()` so it outlives the response, and it is the platform bound
-that can still freeze it. A free scan left `running` past that bound is swept to
-`failed` by `account/maintenance` (its seventh obligation), so §6.4's in-flight bound
-never holds a network on a ghost. Every merged migration is applied to production by
-the master the same hour (PROCESS §3).
+(2026-09-10, #438/#443, ordered by #456): its own, `TIMING.reportCeilingS` in
+`constants.ts`, and the platform's, `export const maxDuration` on the route (60 s on
+Hobby, pinned beside it as `TIMING.platformCeilingS`). **The design ceiling is below
+the platform's by rule** — 50 s under 60 — so the pass always fires its own ending
+and stores the partial report ADR-021 promises before the platform can freeze it;
+`TIMING.reportTargetS` 40 s is the p95 it aims at, ten seconds under the ceiling as the
+ceiling is under the platform's. The row above's "Free ≈60s live" is the platform's
+outer bound the reader waits inside, not the pass's target. The pass is registered with
+`after()` so it outlives the response, and it is the platform bound that can still
+freeze it. A free scan left `running` past **the platform bound plus
+`TIMING.sweepMarginS`** (60 + 30 s — never the design ceiling, since a row at 50 s is
+storing its report, not stuck) is swept to `failed` by `account/maintenance` (its
+seventh obligation), so §6.4's in-flight bound never holds a network on a ghost.
+REQ-003 c5's 90 s is superseded on the pin; no plan upgrade. Every merged migration is
+applied to production by the master the same hour (PROCESS §3).
 
 ## 12. Emails (Resend, one shell, plain-text alt, no LLM prose)
 
@@ -703,7 +720,7 @@ starts.**
 |---|---|---|
 | 1 | Design system + app shell + all §4 screens on fixture data | Every screen pixel-matches the approved artifact, both themes |
 | 2 | Measurement engine: fetcher, parsers, drivers, score | Same HTML twice → byte-identical; fixture suite for every driver. **Verify against the live API**: whether Labs `ranked_keywords` on the root domain includes `content.{domain}` subdomain rows (it must, or hosted pages' wins would be invisible to the growth chart — if not, query with subdomain inclusion or add the subdomain as a second tracked target) |
-| 3 | Free scan pipeline + report + share + cooldown | Real domain → real report <60s, ≤12¢ ledgered. *Live 2026-09-10 (#317): 15.3 s and 1.8 ¢ on production after #443 and #450; the measured score waits on the nano timeout fix (#452).* |
+| 3 | Free scan pipeline + report + share + cooldown | Real domain → real report <60s, ≤12¢ ledgered. *Live 2026-09-10 (#317), runs 1–4b on production: run 1 never ran the pass (#443), run 2 ledgered nothing (#450), run 3 15.3 s / 1.8 ¢, run 4 served the stored report inside the §6.4 window, run 4b (hey.com) 17.0 s / 1.97 ¢ with presence measured — time and spend pass; **not complete** until the profile/market half returns a profile (the 888-token answer that misses the strict schema, #462) and the score is measured.* |
 | 4 | Questions + AI-Overview matrix + giveaway email + lead capture | 12 SERPs stored with their `ai_overview` references; draft only after email |
 | 5 | Stripe + provisioning + setup | Pay → magic link → 3 decisions → deep pass queued |
 | 6 | Deep scan + opportunities + calendar (fixture-free) | Real supply fills the calendar; empty days honest |
