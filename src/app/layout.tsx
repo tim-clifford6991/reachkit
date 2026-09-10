@@ -60,6 +60,30 @@ import "@/ui/layout/surface.css";
 import "@/ui/idiom/idiom.css";
 import { fontVariables } from "@/ui/fonts";
 
+/**
+ * **Every ReachKit render is a request's own** (issue #331).
+ *
+ * `src/middleware.ts` answers each request under a nonce-based
+ * `script-src`, and a nonce only works on a page that is rendered *after*
+ * the request exists: Next stamps it on the script tags it emits by reading
+ * the `Content-Security-Policy` header off the incoming request
+ * (`next/dist/server/app-render/app-render.js`, `parseRequestHeaders`). A
+ * statically prerendered page is built before any request, so its inline
+ * bootstrap carries no nonce, and the policy on the way out — correctly —
+ * refuses to run it. The screen would still draw and would never hydrate.
+ *
+ * Next's own guide states the consequence rather than hiding it: "When you
+ * use nonces in your CSP, **all pages must be dynamically rendered**"
+ * (`01-app/02-guides/content-security-policy.md`). One declaration on the
+ * root layout is the whole of that, and it costs this product almost
+ * nothing: every `(account)` screen already renders per request behind a
+ * session, `/scan/{domain}`, `/veto/{token}` and all four `(hosted)`
+ * addresses already declare `force-dynamic` for their own reasons, and what
+ * is left is six small surfaces the middleware was already waking a Node
+ * process for.
+ */
+export const dynamic = "force-dynamic";
+
 export default function RootLayout({
   children,
 }: {

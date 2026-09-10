@@ -113,14 +113,22 @@ describe("S8 — the line each screen writes", () => {
     const markup = html(PublicNotFound);
 
     expect(COPY["chrome.notfound.address"]).toBe("reachkit.app/scan/yourdomain.com");
+    // The line is a declared scroll container since #327 — the address is
+    // 297px at the body rung and the compact reading column is 288, and
+    // `.num` bans every break inside a value, so ADR-093's rule applies and
+    // the *box* changes. The classes are asserted here rather than only in
+    // the stylesheet: the layout sweep's own allow-list is keyed on
+    // `.overflow-x-auto`, so a line that lost the class would stop being a
+    // declared scroll container and start being a check-2 offender.
+    const LINE_BOX = '<p class="min-w-0 max-w-full overflow-x-auto text-start">';
     expect(markup).toContain(
-      `<p>Reports live at <span class="num">${COPY["chrome.notfound.address"]}</span>.</p>`
+      `${LINE_BOX}Reports live at <span class="num">${COPY["chrome.notfound.address"]}</span>.</p>`
     );
     // The whole sentence is still the owner's, in one piece and in order:
     // the only thing between its two halves is the one span.
     const address = COPY["chrome.notfound.address"];
     const [before, after] = copy("chrome.notfound.line", { address }).split(address);
-    expect(markup).toContain(`<p>${before}<span class="num">${address}</span>${after}</p>`);
+    expect(markup).toContain(`${LINE_BOX}${before}<span class="num">${address}</span>${after}</p>`);
   });
 
   it("the account 404 does not send a signed-in customer to a report address", () => {

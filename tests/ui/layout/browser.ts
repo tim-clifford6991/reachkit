@@ -292,6 +292,55 @@ export function getWeekZeroAccountCookie(): string {
   return readState().weekZeroAccountCookie;
 }
 
+/**
+ * The one attribute every waiting state carries
+ * (`src/app/_fallback/Waiting.tsx`, issue #327).
+ *
+ * Since this product has `loading.tsx` files, a navigation can land on a
+ * screen that has not finished answering: the shell is drawn, the content
+ * well holds one written line, and the content arrives after the `load`
+ * event this suite's navigations resolve on. Measuring, reading or
+ * photographing the document then is measuring the wait, not the screen —
+ * which is exactly what `/app/settings` did on the live account, reporting
+ * that a customer's chosen publish time was absent from a page that had not
+ * rendered yet.
+ *
+ * Keyed on the state rather than on a route or a test id, so a third
+ * `loading.tsx` is covered by writing none of it.
+ */
+const WAITING = "[data-waiting]";
+
+/**
+ * How long a screen may still be waiting before this suite calls it a hang.
+ *
+ * Generous on purpose and never the real bound: every caller already runs
+ * under its own per-test timeout, and this one exists so a screen that
+ * never settles fails saying *that* rather than timing out with nothing to
+ * say. `visual.test.ts`'s `NAVIGATION_MS` is the same idea for the same
+ * reason — a cold compile is not a hang.
+ */
+const SETTLE_MS = 45_000;
+
+/**
+ * Every navigation in this suite waits for the screen to settle.
+ *
+ * Done here, once, rather than at each of the twenty `page.goto` calls
+ * across nine files: a rule that has to be remembered at every call site is
+ * a rule the next suite over the route tree will be written without — the
+ * same reasoning `routes.ts`'s `urlFor` is written down under, one level
+ * up. A page whose document never held a waiting state resolves
+ * immediately, so this costs a `file://` canary fixture and a static public
+ * page nothing at all.
+ */
+function settleOnNavigation(page: Page): void {
+  const goto = page.goto.bind(page);
+  page.goto = async (url, gotoOptions) => {
+    const response = await goto(url, gotoOptions);
+    await page.waitForSelector(WAITING, { state: "detached", timeout: SETTLE_MS });
+    return response;
+  };
+}
+
 /** Launches its own Chromium (never a shared connection — see this file's
  *  header comment), opens a page in a fresh context sized at
  *  `width` × `VIEWPORT_HEIGHT_PX`, runs `fn`, and tears everything down
@@ -332,6 +381,7 @@ export async function withPage<T>(
     });
     try {
       const page = await context.newPage();
+      settleOnNavigation(page);
       return await fn(page);
     } finally {
       await context.close();
