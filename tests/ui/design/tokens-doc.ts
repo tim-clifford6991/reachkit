@@ -59,6 +59,24 @@ export function normalise(value: string): string {
 
 /** Every custom property a token file declares, by block, normalised. */
 export function tokenSet(file: string): TokenSet {
+  return readBlocks(file, normalise);
+}
+
+/**
+ * The same three blocks, **unnormalised** (issue #328).
+ *
+ * `normalise` strips every space so two files that spell one value
+ * differently still compare equal — which is what the three callers above
+ * want and is exactly wrong for a reader that has to *parse* the value:
+ * `rgb(155 180 255/.12)` normalises to `rgb(155180255/.12)`, three channels
+ * run into one number. The contrast measurements read colours, so they read
+ * them raw, through the same walker rather than a second copy of it.
+ */
+export function rawTokenSet(file: string): TokenSet {
+  return readBlocks(file, (value) => value.trim());
+}
+
+function readBlocks(file: string, shape: (value: string) => string): TokenSet {
   const out: Record<Block, Map<string, string>> = {
     light: new Map(),
     "dark-media": new Map(),
@@ -73,7 +91,7 @@ export function tokenSet(file: string): TokenSet {
         unplaced.push(`${rule.selector} { ${decl.prop} }`);
         return;
       }
-      out[block].set(decl.prop, normalise(decl.value));
+      out[block].set(decl.prop, shape(decl.value));
     });
   });
   if (unplaced.length > 0) {
