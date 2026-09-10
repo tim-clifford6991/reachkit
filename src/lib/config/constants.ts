@@ -80,14 +80,66 @@ export const INFERENCE_PRICE_BOOK = Object.freeze({
   haiku: Object.freeze({ inCentsPerM: 100, outCentsPerM: 500 } as const),
 } as const);
 
-/** BP-009 `## NFR budget`, verbatim: "p95 latency: nano ≤ 3 s, haiku ≤
- *  20 s." Not among the pins BP-005's own `## Public interface` lists —
- *  added here under the same "pins live in `constants.ts` and nowhere
- *  else" rule (rule 2.4, WO-026), transcribing the other approved
- *  artifact that states a number `tiers.ts` and its test must agree on. */
+/** The wall clock one `llm()` call may hold, per tier, in milliseconds —
+ *  the whole call, every attempt inside it included, never one attempt
+ *  each. Not among the pins BP-005's own `## Public interface` lists —
+ *  held here under the same "pins live in `constants.ts` and nowhere
+ *  else" rule (rule 2.4, WO-026).
+ *
+ *  **`nano` raised from 3 000, issue #452.** BP-009's `## NFR budget`
+ *  reads "p95 latency: nano ≤ 3 s, haiku ≤ 20 s", and 3 000 was
+ *  transcribed from it. That figure is a budget the product wanted, not a
+ *  latency the vendor offers: both tiers call `claude-haiku-4-5`
+ *  (`src/lib/llm/tiers.ts`, 2026-09-04 correction) and a structured call
+ *  to it from a cold serverless function does not answer inside 3 s. The
+ *  M3 live run of 2026-09-10 (production at 57b3c29) is the measurement
+ *  this pin moves on: every `profile` call it made was cut off — three
+ *  attempts, 10.3 s, `parseOutcome: "unavailable"` every time — so no
+ *  free scan on production has ever produced a market profile, and
+ *  without one the report has no rivals, no AI-answer cells and no score.
+ *  No p95 of a *completed* call exists to read yet, from that run or from
+ *  the vendor's own published figures; 15 000 is the working assumption
+ *  issue #452 states, and the next live run against production is what
+ *  confirms or moves it (#317).
+ *
+ *  **Why the budget is the call and not the attempt.** BP-009 states its
+ *  own budget over the pass rather than the attempt — "the free scan's
+ *  **two** nano calls — `profile` and `question-phrasing` (BP-025
+ *  decision 2) — sit inside the 60-second promise" — and how many
+ *  attempts `llm()` spends inside one call is its own retry policy, which
+ *  no caller can see. One budget per call is therefore the only figure
+ *  the pass's arithmetic can be written from: `FREE_PASS_INFERENCE_CALLS`
+ *  × `nano` = 30 s of the 60 the platform allows the invocation the
+ *  pass runs in (`maxDuration`, `src/app/api/scan/route.ts`), leaving the
+ *  other 30 to everything else that pass buys. `tests/llm/budget.test.ts`
+ *  is that arithmetic, asserted against these pins and against the
+ *  route's own literal. */
 export const INFERENCE_TIMEOUT_MS = Object.freeze({
-  nano: 3000, haiku: 20000,
+  nano: 15_000, haiku: 20_000,
 } as const);
+
+/** The vendor SDK's own retry layer, off — stated here rather than
+ *  inherited (issue #452). `@anthropic-ai/sdk` defaults `maxRetries` to 2,
+ *  so every `llm()` attempt was silently three requests and three times
+ *  the wall clock `INFERENCE_TIMEOUT_MS` reads as: at `nano`'s old 3 000
+ *  that is the 10.3 s the M3 live run spent reaching no profile at all.
+ *  `llm()` (`src/lib/llm/index.ts`) already owns one retry policy —
+ *  BP-009's "retried at most once" — and two stacked policies, one of
+ *  them invisible, is the whole of the defect. This pin is what says the
+ *  seam's is the only one, and it is passed to the vendor client
+ *  explicitly so the total attempt budget is a number a reader can add
+ *  up rather than a default they must know. */
+export const INFERENCE_MAX_RETRIES = 0 as const;
+
+/** How many `llm()` calls one free pass issues — BP-009 `## NFR budget`,
+ *  quoted: "the free scan's **two** nano calls — `profile` and
+ *  `question-phrasing` (BP-025 decision 2) — sit inside the 60-second
+ *  promise". Both are `nano`; they are
+ *  `src/lib/market/questions/profile.ts` and `…/phrase.ts`, issued one
+ *  after the other inside the `reading_your_market` stage. Pinned so the
+ *  budget arithmetic has a count to multiply the per-call budget by
+ *  instead of a literal 2 typed into a test (issue #452). */
+export const FREE_PASS_INFERENCE_CALLS = 2 as const;
 
 export const BATTERY = Object.freeze({
   QUESTIONS: 12, TARGET_SERPS_MAX: 13, MEASURED_PAGES_MAX: 25, COMPETITORS_MAX: 5,

@@ -1109,10 +1109,28 @@ describe("BUILD §6.3 / DATA-COSTS §1 — the inference price book, in cents pe
     expect(Object.keys(pins.INFERENCE_PRICE_BOOK).sort()).toEqual(["haiku", "nano"]);
   });
 
-  it('BP-009 NFR budget, quoted: "p95 latency: nano ≤ 3 s, haiku ≤ 20 s." — INFERENCE_TIMEOUT_MS, in milliseconds, one entry per tier the price book prices', () => {
-    expect(pins.INFERENCE_TIMEOUT_MS).toEqual({ nano: 3000, haiku: 20000 });
-    expect(Object.keys(pins.INFERENCE_TIMEOUT_MS).sort()).toEqual(Object.keys(pins.INFERENCE_PRICE_BOOK).sort());
+  it(
+    'BP-009 NFR budget, quoted: "p95 latency: nano ≤ 3 s, haiku ≤ 20 s." — INFERENCE_TIMEOUT_MS, in ' +
+      "milliseconds, one entry per tier the price book prices. `nano`'s 3 s is superseded by issue " +
+      "#452: the clause is a budget the product wanted, and the 2026-09-10 live run measured it against " +
+      "a vendor that does not answer a structured call inside it. `haiku` stands as written",
+    () => {
+      expect(pins.INFERENCE_TIMEOUT_MS).toEqual({ nano: 15_000, haiku: 20_000 });
+      expect(Object.keys(pins.INFERENCE_TIMEOUT_MS).sort()).toEqual(Object.keys(pins.INFERENCE_PRICE_BOOK).sort());
+    }
+  );
+
+  it("issue #452 — INFERENCE_MAX_RETRIES, the vendor SDK's own retry layer, stated rather than inherited from its default of 2", () => {
+    expect(pins.INFERENCE_MAX_RETRIES).toBe(0);
   });
+
+  it(
+    'BP-009 NFR budget, quoted: "the free scan\'s **two** nano calls — `profile` and `question-phrasing` ' +
+      '(BP-025 decision 2) — sit inside the 60-second promise" — FREE_PASS_INFERENCE_CALLS is that two',
+    () => {
+      expect(pins.FREE_PASS_INFERENCE_CALLS).toBe(2);
+    }
+  );
 });
 
 describe("BUILD §6.1 / DATA-COSTS §1 — VENDOR, the request shapes the price book prices", () => {
