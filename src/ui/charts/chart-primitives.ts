@@ -9,6 +9,13 @@
 // Every number below sits inside one of those bounds and every chart in
 // this directory reads it from here, so the bounds are asserted once
 // against the clause rather than five times against five transcriptions.
+//
+// **The clause's gridlines have no geometry here, and that is not an
+// omission** (#386). The growth line was the one chart that drew them, and
+// the approved set draws it with no rule of any kind — so the helper and
+// its three pins went with the drawing rather than sitting here unused,
+// waiting to be restored by someone reading the clause and not the set. A
+// chart that needs them again brings them back with its own approval.
 // These are the design system's own geometry, not product pins: they are
 // layout parameters of five components and live with them, the same way
 // the calendar grid's track rule lives with the calendar.
@@ -51,10 +58,6 @@ export const CHART = {
   /** "One axis per chart." Each chart draws exactly one line with this
    *  width; the count is asserted, not trusted. */
   axisWidth: 1,
-  /** "faint gridlines at 2–3 values" — two values, faint. */
-  gridlineWidth: 1,
-  gridlineOpacity: 0.7,
-  gridlineCount: 2,
   /** Direct labels: name and value, in the mono utility. */
   labelSize: 8.5,
   nameSize: 7.5,
@@ -168,12 +171,6 @@ export function plot(value: number, max: number, top: number, bottom: number): n
   if (max <= 0) return bottom;
   const clamped = Math.max(0, Math.min(value, max));
   return round(bottom - (clamped / max) * (bottom - top));
-}
-
-/** The 2 faint gridlines, as y coordinates inside the plot band. */
-export function gridlines(top: number, bottom: number): number[] {
-  const band = bottom - top;
-  return Array.from({ length: CHART.gridlineCount }, (_, i) => round(bottom - (band * (i + 1)) / (CHART.gridlineCount + 1)));
 }
 
 /** The fixed-position tooltip chip's geometry, sized around its own text

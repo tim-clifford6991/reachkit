@@ -8,10 +8,11 @@
 //
 // **A marker is not a sixth chart** (§2.4's inventory is closed). It is the
 // break the two week-spanning forms already draw: `GrowthLine` cuts its run
-// at a week with no value and stands a dashed rule in its place, and
-// `RivalSparkline` does the same on a `null`. A change marker takes exactly
-// that shape — a column of its own, carrying the account of why the run
-// stops — so nothing new is invented and no series is joined across one.
+// at a week with no value and leaves the gap standing (#386 — the set
+// draws nothing in it), and `RivalSparkline` does the same on a `null`. A
+// change marker takes exactly that shape — a column of its own, carrying
+// the account of why the run stops, in the mark's own tooltip — so nothing
+// new is invented and no series is joined across one.
 //
 // **The marker gets its own column rather than a flag on the week after
 // it.** A flag would put the break *inside* a week that was measured,

@@ -33,10 +33,19 @@ const WEEKS: readonly [GrowthWeek, ...GrowthWeek[]] = [
   { name: "wk 1", value: 0 },
   { name: "wk 2", value: 14 },
   { name: "wk 3", value: 37 },
-  { name: "wk 4", value: null, account: "domain changed" },
+  { name: "wk 4", value: null, account: "domain changed", cuts: true },
   { name: "wk 5", value: 91 },
   { name: "wk 6", value: 122 },
   { name: "wk 7", value: 158 },
+];
+
+/** The reserved preview's own shape: measured weeks with one week that
+ *  nobody measured in the middle of them (`cuts: false`). */
+const GAP_WEEKS: readonly [GrowthWeek, ...GrowthWeek[]] = [
+  { name: "wk 1", value: 0 },
+  { name: "wk 2", value: 36 },
+  { name: "wk 3", value: null, account: "not measured", cuts: false },
+  { name: "wk 4", value: 81 },
 ];
 
 const PRESENCE = {
@@ -245,11 +254,75 @@ describe('BUILD.md §2.4: "Two chart colors only: --chart-you (accent) and --cha
 /* ── §2.4's labelling rule ───────────────────────────────────────────── */
 
 describe('BUILD.md §2.4: "Every bar/point is direct-labelled (name + value) — identity is never color-alone."', () => {
-  it("GrowthLine writes every week's name and every measured value", () => {
-    const text = svgOf(STORIES.GrowthLine?.() as React.JSX.Element).textContent ?? "";
-    for (const week of WEEKS) {
-      expect(text).toContain(week.name);
-      if (week.value !== null) expect(text).toContain(String(week.value));
+  // UI-SPEC §2's GrowthLine contract is the narrower rule for this one
+  // chart — "area fill under an accent line, endpoint dot with surface
+  // ring, footnote pair start · goal" — and UI-SPEC wins where it and
+  // BUILD differ (UI-SPEC §1). So the per-point reading lives in the
+  // marks, which §2.4 requires of every chart anyway, and the plot itself
+  // carries one numeral.
+  it("GrowthLine writes the endpoint's value on the plot and no other numeral (#386)", () => {
+    const svg = svgOf(STORIES.GrowthLine?.() as React.JSX.Element);
+    const drawn = [...svg.querySelectorAll("text")].filter((t) => t.closest(".rk-mark") === null);
+    const last = [...WEEKS].reverse().find((w) => w.value !== null);
+    expect(drawn.map((t) => t.textContent)).toEqual([String(last?.value)]);
+  });
+
+  it("GrowthLine states every week's name and value on its own mark — identity is never colour-alone", () => {
+    const svg = svgOf(STORIES.GrowthLine?.() as React.JSX.Element);
+    const tips = [...svg.querySelectorAll(".rk-mark title")].map((t) => t.textContent ?? "");
+    expect(tips).toHaveLength(WEEKS.length);
+    WEEKS.forEach((week, i) => {
+      const tip = tips[i] ?? "";
+      expect(tip).toContain(week.name);
+      expect(tip).toContain(week.value === null ? week.account : String(week.value));
+    });
+  });
+
+  it("a change is a gap, not a rule — nothing is drawn in its place (#386)", () => {
+    const svg = svgOf(STORIES.GrowthLine?.() as React.JSX.Element);
+    // The run is cut: two polylines, one either side of the change, and
+    // never one across it.
+    expect(svg.querySelectorAll("polyline")).toHaveLength(2);
+    // And nothing stands in the gap — no dashed rule of any kind.
+    expect([...svg.querySelectorAll("[stroke-dasharray]")]).toEqual([]);
+    // The week keeps its mark, which is where its account is written.
+    const tips = [...svg.querySelectorAll(".rk-mark title")].map((t) => t.textContent ?? "");
+    expect(tips.some((t) => t.includes("domain changed"))).toBe(true);
+  });
+
+  it("a week with no reading does not cut the line — it runs on to the last measured week (#386)", () => {
+    // The master's picture, and the set's: the line is the whole plot and
+    // the end dot sits on its last vertex. A week nobody measured is not a
+    // change of market, so the line joins the weeks either side of it —
+    // drawing no vertex over its column, so no reading is stated for it —
+    // and the week keeps its own mark and its account.
+    const svg = svgOf(<GrowthLine weeks={GAP_WEEKS} label="growth" />);
+    const runs = [...svg.querySelectorAll("polyline")];
+    expect(runs).toHaveLength(1);
+    const points = (runs[0]?.getAttribute("points") ?? "").split(" ");
+    // Three measured weeks in a four-week series: three vertices, not four.
+    expect(points).toHaveLength(3);
+    const dot = svg.querySelector("circle");
+    const [x, y] = (points.at(-1) ?? "").split(",");
+    expect(dot?.getAttribute("cx")).toBe(x);
+    expect(dot?.getAttribute("cy")).toBe(y);
+    // …and the numeral on the plot is that vertex's own value.
+    const drawn = [...svg.querySelectorAll("text")].filter((t) => t.closest(".rk-mark") === null);
+    expect(drawn.map((t) => t.textContent)).toEqual(["81"]);
+    // The unmeasured week is still a week: it holds its column and says why.
+    const tips = [...svg.querySelectorAll(".rk-mark title")].map((t) => t.textContent ?? "");
+    expect(tips).toHaveLength(GAP_WEEKS.length);
+    expect(tips.some((t) => t.includes("not measured"))).toBe(true);
+  });
+
+  it("no week's numeral is drawn under the axis — the start value is the card's footnote", () => {
+    const svg = svgOf(STORIES.GrowthLine?.() as React.JSX.Element);
+    const drawn = [...svg.querySelectorAll("text")]
+      .filter((t) => t.closest(".rk-mark") === null)
+      .map((t) => t.textContent);
+    for (const week of WEEKS.slice(0, -1)) {
+      expect(drawn).not.toContain(week.value === null ? "—" : String(week.value));
+      expect(drawn).not.toContain(week.name);
     }
   });
 
@@ -307,8 +380,14 @@ describe('BUILD.md §2.4: "Every bar/point is direct-labelled (name + value) —
 /* ── §2.4's geometry ─────────────────────────────────────────────────── */
 
 describe('BUILD.md §2.4: "One axis per chart, thin 2–2.5px lines, 3.5–5px endpoint dots with a surface-colored ring, faint gridlines at 2–3 values."', () => {
-  it.each(ALL_STORIES)("%s draws exactly one axis", (_name, story) => {
-    expect(svgOf(story()).querySelectorAll(".rk-axis")).toHaveLength(1);
+  // Four of the five. The growth line draws none since #386: UI-SPEC §2's
+  // contract for it is the fill, the line, the endpoint dot and the two
+  // footnotes, and the set's `areaChart()` draws no rule at all — which
+  // wins over §2.4's general geometry for this one chart (UI-SPEC §1). The
+  // count is still asserted, so an axis cannot appear or vanish unnoticed
+  // on any of them.
+  it.each(ALL_STORIES)("%s draws exactly one axis, or none where the set draws none", (name, story) => {
+    expect(svgOf(story()).querySelectorAll(".rk-axis")).toHaveLength(name === "GrowthLine" ? 0 : 1);
   });
 
   it("the pinned line weights sit inside 2–2.5px", () => {
@@ -344,11 +423,27 @@ describe('BUILD.md §2.4: "One axis per chart, thin 2–2.5px lines, 3.5–5px e
     }
   });
 
-  it("GrowthLine's gridlines are faint and at 2–3 values", () => {
-    const grid = svgOf(STORIES.GrowthLine?.() as React.JSX.Element).querySelectorAll(".rk-grid");
-    expect(grid.length).toBeGreaterThanOrEqual(2);
-    expect(grid.length).toBeLessThanOrEqual(3);
-    for (const g of grid) expect(Number(g.getAttribute("opacity"))).toBeLessThan(1);
+  it("GrowthLine draws no rule of any kind — no axis, no gridline, nothing dashed (#386)", () => {
+    const svg = svgOf(STORIES.GrowthLine?.() as React.JSX.Element);
+    expect(svg.querySelectorAll(".rk-axis")).toHaveLength(0);
+    expect(svg.querySelectorAll(".rk-grid")).toHaveLength(0);
+    // Not by class either: no <line> element at all is left in the drawing.
+    expect(svg.querySelectorAll("line")).toHaveLength(0);
+    expect([...svg.querySelectorAll("[stroke-dasharray]")]).toEqual([]);
+  });
+
+  it("GrowthLine's endpoint dot sits on the last measured point, never at the frame's edge", () => {
+    const svg = svgOf(STORIES.GrowthLine?.() as React.JSX.Element);
+    const dot = svg.querySelector("circle");
+    // The fixture's last week is measured, so the dot is the last mark of
+    // the last run — the same x the tooltip for that week is centred on,
+    // and the same y `plot()` gives its value. A dot at the viewBox edge
+    // would be a dot anchored to the frame rather than to a reading.
+    const runs = [...svg.querySelectorAll("polyline")];
+    const lastRun = runs.at(-1)?.getAttribute("points") ?? "";
+    const [x, y] = (lastRun.split(" ").at(-1) ?? "").split(",");
+    expect(dot?.getAttribute("cx")).toBe(x);
+    expect(dot?.getAttribute("cy")).toBe(y);
   });
 });
 
@@ -422,9 +517,9 @@ describe('BUILD.md §2.5: "Rival strength is neutral gray, never red — rivals 
     }
   });
 
-  it("the growth line never joins a measurement to one taken after a break", () => {
+  it("the growth line never joins a measurement to one taken after a change", () => {
     const svg = svgOf(STORIES.GrowthLine?.() as React.JSX.Element);
-    // Three measured weeks, then a hole, then three: two runs, never one.
+    // Three measured weeks, then a change, then three: two runs, never one.
     expect(svg.querySelectorAll("polyline")).toHaveLength(2);
   });
 
