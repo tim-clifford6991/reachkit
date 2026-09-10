@@ -67,15 +67,19 @@ import type { Page } from "playwright";
 import { BAND_MIN } from "@/ui/layout/bands";
 import { getAccountCookie, getBaseURL, getLiveAccountCookie, getSetupAccountCookie, getWeekZeroAccountCookie, withPage } from "./browser";
 import {
-  ACCOUNT_SESSION_COOKIE,
   enumerateRoutes,
   headersFor,
   PUBLISHED_HOST_FIXTURES,
-  ROUTE_REFERENCE,
   SEGMENT_FIXTURES,
   urlFor as routeUrl,
   type EnumeratedRoute,
 } from "./routes";
+// Which screen a capture is, what a capture is called, and what has to be
+// still before the shutter — one home, shared with the review gallery
+// (issue #383). Two copies of `screenFor` would be two answers to "which
+// screen is this address?", which is the question `docs/design-reference.md`
+// exists to have exactly one of.
+import { HOSTED_PAGE_PATH, screenFor, slug, STILL, type Door } from "./gallery";
 import { LIVE_DRAFT_ID } from "./seed";
 import { standSurface, unenumeratedSurfaces, type UnenumeratedSurface } from "./surfaces";
 
@@ -254,11 +258,6 @@ const PUBLISHED_HOSTED_ROUTES = enumerateRoutes(APP_ROOT, {
   hostFixtures: PUBLISHED_HOST_FIXTURES,
 }).filter((route) => route.host !== undefined);
 
-/** The one address `PUBLISHED_HOSTED_ROUTES` holds, as the sweep spells it
- *  — read off the enumeration rather than typed, so a renamed slug fixture
- *  cannot leave this file naming an address the sweep no longer visits. */
-const HOSTED_PAGE_PATH = `/hosted-page/${SEGMENT_FIXTURES["[...slug]"]}`;
-
 /**
  * The six surfaces the `page.tsx` enumerator cannot see (issue #327):
  * `src/app/not-found.tsx`, `(public)/error.tsx`, `(account)`'s
@@ -281,12 +280,33 @@ const HOSTED_PAGE_PATH = `/hosted-page/${SEGMENT_FIXTURES["[...slug]"]}`;
  */
 const UNENUMERATED = unenumeratedSurfaces();
 
+/**
+ * Which door an unenumerated surface's own document was opened through.
+ *
+ * Read off the session the surface carries rather than typed beside it: the
+ * six stand on real documents, and a picture of one is a picture taken
+ * through the same door as the screen underneath it. It names the document
+ * and nothing more — the *screen* is the surface's own (`screenOf`), which
+ * is why no rule in `gallery.ts`'s table has to know these six exist.
+ */
+function doorOfSurface(surface: UnenumeratedSurface): Door {
+  const cookie = surface.route.cookie;
+  if (cookie === getSetupAccountCookie()) return "unfinished";
+  if (cookie === getAccountCookie()) return "reserved";
+  return "signedout";
+}
+
 interface Shot {
   readonly route: EnumeratedRoute;
   /** What the baseline file is named after — the route's own path, plus
    *  `live` where the same address is photographed twice, or the surface's
    *  own name where it has no address at all. */
   readonly name: string;
+  /** Which door this capture came through, said outright rather than
+   *  sniffed back out of `name` (issue #383). `screenOf` needs it — a
+   *  `/app` address is S12 through an account and S9 through none — and a
+   *  prefix test on a filename was the wrong place to keep that fact. */
+  readonly door: Door;
   /** Present only for a surface the route enumerator cannot see: which one
    *  it is, and — where its address does not render it — what to stand on
    *  the document once it has loaded. */
@@ -297,20 +317,31 @@ interface Shot {
  *  signed-in capture is prefixed with the account it is signed in as, so a
  *  reviewer reads which door a picture came through off its filename. */
 const SHOTS: readonly Shot[] = [
-  ...FIXTURE_ROUTES.map((route) => ({ route, name: slug(route.path) })),
-  ...RESERVED_ROUTES.map((route) => ({ route, name: `reserved${slug(route.path)}` })),
-  ...SETUP_ROUTES.map((route) => ({ route, name: `unfinished${slug(route.path)}` })),
-  ...LIVE_ROUTES.map((route) => ({ route, name: `live${slug(route.path)}` })),
-  ...WEEK_ZERO_ROUTES.map((route) => ({ route, name: `week0${slug(route.path)}` })),
+  ...FIXTURE_ROUTES.map((route) => ({ route, name: slug(route.path), door: "signedout" as const })),
+  ...RESERVED_ROUTES.map((route) => ({ route, name: `reserved${slug(route.path)}`, door: "reserved" as const })),
+  ...SETUP_ROUTES.map((route) => ({ route, name: `unfinished${slug(route.path)}`, door: "unfinished" as const })),
+  ...LIVE_ROUTES.map((route) => ({ route, name: `live${slug(route.path)}`, door: "live" as const })),
+  ...WEEK_ZERO_ROUTES.map((route) => ({ route, name: `week0${slug(route.path)}`, door: "week0" as const })),
   // `live` for the same reason the four `/app` addresses use it: this is
   // the picture drawn from rows in the database rather than from a fixture
   // arm. The door it names is a host rather than an account, which is the
   // only door this surface has.
-  ...PUBLISHED_HOSTED_ROUTES.map((route) => ({ route, name: `live${slug(route.path)}` })),
+  ...PUBLISHED_HOSTED_ROUTES.map((route) => ({
+    route,
+    name: `live${slug(route.path)}`,
+    door: "published" as const,
+  })),
   // The six the enumerator cannot see (issue #327). Their names are their
   // own — never a route slug, because five of them are at no address and a
-  // baseline that looked like one would be read as a picture of it.
-  ...UNENUMERATED.map((surface) => ({ route: surface.route, name: surface.name, surface })),
+  // baseline that looked like one would be read as a picture of it. The
+  // door each carries is the door of the document it stands on; its screen
+  // is its own, which is what `screenOf` reads.
+  ...UNENUMERATED.map((surface) => ({
+    route: surface.route,
+    name: surface.name,
+    door: doorOfSurface(surface),
+    surface,
+  })),
 ];
 
 console.log(
@@ -351,41 +382,19 @@ const CAPTURE_WIDTH = BAND_MIN.wide;
 const CAPTURE_THEME: Theme = "light";
 
 /**
- * Which approved screen a capture is a picture of.
+ * The screen a capture is a picture of.
  *
- * `ROUTE_REFERENCE` is the repository's one answer to "which screen is this
- * route?" (issue #358) and this reads it rather than keeping a second list.
- * Three doors need a rule of their own, and each is stated where it is made:
- *
- *   * **week 0** is S13, not S12 — the same address, a different approved
- *     screen (`overview0`);
- *   * an **`(account)` address photographed signed out** is the sign-in
- *     prompt, so its approved screen is S9. Pairing it with the Overview
- *     would put a picture of a door beside a drawing of a room;
- *   * the **live draft** carries a database id where the reference table
- *     carries the fixture one, so the fixture path is what is looked up.
+ * `gallery.ts`'s `screenFor` is the repository's one answer for anything at
+ * an address (issue #383), and this file asks it rather than keeping a
+ * second copy of the rules. What that table cannot answer for is a surface
+ * the route enumerator cannot see: those carry their own screen, and for
+ * the two waiting lines the honest answer is *none* — the approved set
+ * draws no waiting screen, so they are `new` under ruling 12a and there is
+ * nothing to compose them beside.
  */
-function screenFor(shot: Shot): `S${number}` | undefined {
-  // An unenumerated surface carries its own answer, and for two of the six
-  // the answer is *none*: the set draws no waiting screen, so those two are
-  // `new` under ruling 12a and there is nothing to compose them beside.
+function screenOf(shot: Shot): `S${number}` | undefined {
   if (shot.surface) return shot.surface.screen;
-  if (shot.name.startsWith("week0")) return "S13";
-  // The **hosted route is two screens**, because it is swept through two
-  // hosts (issue #418): the default host's site has published no page at
-  // this address, so that capture is `(hosted)/not-found.tsx` — S8, which
-  // `docs/design-reference.md` already names it — and only the published
-  // host's capture is S19. Pairing the 404 with S19 is precisely what put
-  // an empty white frame beside the approved hosted page in #416's render.
-  if (shot.route.path === HOSTED_PAGE_PATH && !shot.name.startsWith("live")) return "S8";
-  const signedOut = shot.route.cookie === undefined || shot.route.cookie === ACCOUNT_SESSION_COOKIE;
-  const isAccountAddress = shot.route.path === "/app" || shot.route.path.startsWith("/app/") || shot.route.path === "/setup" || shot.route.path.startsWith("/setup/");
-  if (signedOut && isAccountAddress) return "S9";
-  const fixturePath = shot.route.path.replace(
-    `/app/draft/${LIVE_DRAFT_ID}`,
-    `/app/draft/${SEGMENT_FIXTURES["[draftId]"]}`
-  );
-  return ROUTE_REFERENCE[fixturePath];
+  return screenFor(shot.door, shot.route.path);
 }
 
 /** One row per capture this run will leave behind, so `scripts/renders/`
@@ -398,7 +407,7 @@ function captureManifest(): string {
       shots: SHOTS.map((shot) => ({
         name: shot.name,
         route: shot.route.path,
-        screen: screenFor(shot) ?? null,
+        screen: screenOf(shot) ?? null,
         viewport: `${shot.name}-${CAPTURE_WIDTH}-${CAPTURE_THEME}.png`,
         full: `${shot.name}-full.png`,
       })),
@@ -412,13 +421,6 @@ if (CAPTURE_DIR) {
   mkdirSync(CAPTURE_DIR, { recursive: true });
   writeFileSync(path.join(CAPTURE_DIR, "manifest.json"), captureManifest());
   console.log(`tests/ui/layout/visual.test.ts: capturing renders into ${CAPTURE_DIR}`);
-}
-
-/** A route path as a filename. Never a hash: a baseline a reviewer cannot
- *  match to an address by reading its name is a baseline nobody checks. */
-function slug(routePath: string): string {
-  const cleaned = routePath.replace(/[^a-zA-Z0-9/-]/g, "-").replace(/\/+/g, "/");
-  return cleaned === "/" ? "-root" : cleaned.replaceAll("/", "-");
 }
 
 function baselineFor(name: string, width: number, theme: Theme): string {
@@ -474,27 +476,14 @@ function evidencePath(file: string): string {
 }
 
 /**
- * Everything that has to be still before the shutter opens.
- *
  * **The colour scheme is emulated before the navigation, never after.** A
  * theme switched on a loaded page repaints *through* the token transitions,
  * and a screenshot taken then catches whatever frame it lands on: the first
  * run of this suite photographed seven dark screens mid-transition and they
  * differed from each other by up to 1.3% on identical code. Navigating once
  * per theme costs a page load and buys a picture that is the same every
- * time.
- *
- * The stylesheet is the belt to that brace — it stops any transition,
- * animation or caret that a later screen might introduce, so this suite
- * does not start flaking again the day someone adds one. `reducedMotion`
- * alone would not: it only silences what asks it to.
+ * time. `STILL` (`gallery.ts`) is the belt to that brace.
  */
-const STILL = `*, *::before, *::after {
-  transition: none !important;
-  animation: none !important;
-  caret-color: transparent !important;
-}`;
-
 async function shoot(
   page: Page,
   url: string,
@@ -583,7 +572,7 @@ describe(`visual baselines — ${SHOTS.length} surface(s) × ${BANDS.length} ban
       slug(HOSTED_PAGE_PATH),
       `live${slug(HOSTED_PAGE_PATH)}`,
     ]);
-    expect(hosted.map(screenFor).sort()).toEqual(["S19", "S8"]);
+    expect(hosted.map(screenOf).sort()).toEqual(["S19", "S8"]);
     // And the two are different hosts, which is the whole of why they are
     // different screens.
     expect(new Set(hosted.map((shot) => shot.route.host)).size).toBe(2);
@@ -605,7 +594,7 @@ describe(`visual baselines — ${SHOTS.length} surface(s) × ${BANDS.length} ban
       "waiting-report",
     ]);
     expect(
-      SHOTS.filter((shot) => screenFor(shot) === "S8").map((shot) => shot.name).sort()
+      SHOTS.filter((shot) => screenOf(shot) === "S8").map((shot) => shot.name).sort()
     ).toEqual(
       [
         "fallback-account-error",
@@ -628,7 +617,7 @@ describe(`visual baselines — ${SHOTS.length} surface(s) × ${BANDS.length} ban
     // exactly what put an empty frame beside the hosted page in #416.
     expect(
       SHOTS.filter((shot) => shot.name.startsWith("waiting")).every(
-        (shot) => screenFor(shot) === undefined
+        (shot) => screenOf(shot) === undefined
       )
     ).toBe(true);
     // Each of the five that stands on a document stands on the document of
