@@ -168,7 +168,11 @@ export async function storeCurrentReport(a: {
     p_score: a.report.verdict.scoreAndBand.kind === "unmeasured" ? null : a.report.verdict.scoreAndBand.value.score,
     p_drivers: a.drivers,
     p_report: a.report,
-    p_cost_cents: Math.ceil(a.costCents),
+    // The figure the seam settled, not a cent it was rounded up to:
+    // `scans.cost_cents` and `store_current_report`'s parameter are
+    // `numeric(12,4)` since #449, so a free pass that spent 0.72¢
+    // records 0.72¢ rather than the 1¢ the `integer` column forced.
+    p_cost_cents: a.costCents,
     p_stopped_reason: a.report.stoppedReason,
     p_correction_state: a.report.correctionState,
     p_supersedes_scan_id: a.supersedesScanId ?? null,

@@ -42,6 +42,15 @@ import {
 const REPO_ROOT = path.resolve(import.meta.dirname, "../..");
 const BASELINE_MIGRATION = path.join(REPO_ROOT, "supabase/migrations/00000000000001_baseline.sql");
 const FETCHES_MIGRATION = path.join(REPO_ROOT, "supabase/migrations/20260903080000_fetches.sql");
+// Issue #449 — the money unit. `cost_cents`/`reserved_cents` were created
+// `integer` above, which rejected every sub-cent price in the book; this
+// file is where they become `numeric(12,4)`, so it is applied with the
+// table it corrects and the assertions below are about the live schema
+// the product actually runs on.
+const FETCHES_MONEY_MIGRATION = path.join(
+  REPO_ROOT,
+  "supabase/migrations/20260910090000_fetches_money.sql"
+);
 
 /** One tuple-only row per line, `|`-separated columns. */
 /** Runs `sql` and returns whether it raised (never throws itself). */
@@ -63,6 +72,7 @@ function resetAndApplySchema(): void {
   ]);
   psql(["-v", "ON_ERROR_STOP=1", "-f", BASELINE_MIGRATION]);
   psql(["-v", "ON_ERROR_STOP=1", "-f", FETCHES_MIGRATION]);
+  psql(["-v", "ON_ERROR_STOP=1", "-f", FETCHES_MONEY_MIGRATION]);
   psql(["-c", "NOTIFY pgrst, 'reload schema';"]);
   execFileSync("sleep", ["0.3"]); // PostgREST's schema-cache reload is async.
 }
@@ -142,11 +152,11 @@ describe(
       );
     });
 
-    it("`reserved_cents` is present, not-null integer — a missing column fails this test", () => {
+    it("`reserved_cents` is present and not null — a missing column fails this test", () => {
       const rows = psqlRows(
         `select data_type, is_nullable from information_schema.columns where table_schema = 'public' and table_name = 'fetches' and column_name = 'reserved_cents';`
       );
-      expect(rows).toEqual([["integer", "NO"]]);
+      expect(rows).toEqual([["numeric", "NO"]]);
     });
 
     it("`payload` is jsonb", () => {
@@ -298,6 +308,69 @@ describe(
       const { data, error } = await clientAs(SERVICE_ROLE_KEY).from("fetches").select("id");
       expect(error).toBeNull();
       expect((data ?? []).length).toBeGreaterThan(0);
+    });
+  }
+);
+
+describe(
+  "issue #449 — one unit for money in the ledger: cents to four decimal places",
+  () => {
+    it("`cost_cents` and `reserved_cents` are `numeric(12,4)`, the unit `CAPS` and the price book are written in", () => {
+      const rows = psqlRows(
+        `select column_name, data_type, numeric_precision, numeric_scale from information_schema.columns ` +
+          `where table_schema = 'public' and table_name = 'fetches' ` +
+          `and column_name in ('cost_cents', 'reserved_cents') order by column_name;`
+      );
+      expect(rows).toEqual([
+        ["cost_cents", "numeric", "12", "4"],
+        ["reserved_cents", "numeric", "12", "4"],
+      ]);
+    });
+
+    it("a sub-cent row inserts and reads back exactly — the insert that failed on production", () => {
+      // `SERP_STD_C` is 0.06¢ and an LLM settlement lands on figures like
+      // 1.12928: the literal string in the production log,
+      // `invalid input syntax for type integer: "1.12928"`.
+      const scanId = freshScanId();
+      insertFetch({
+        scanId,
+        source: "llm.haiku",
+        cacheKey: "sub-cent",
+        costCents: 1.12928,
+        reservedCents: 4,
+      });
+      const rows = psqlRows(
+        `select cost_cents, reserved_cents from fetches where scan_id = '${scanId}' and cache_key = 'sub-cent';`
+      );
+      expect(rows).toEqual([["1.1293", "4.0000"]]);
+    });
+
+    it("twelve standard SERPs at 0.06¢ sum to 0.72¢, not to 0¢", () => {
+      // The whole defect in one assertion: under `integer` each of these
+      // twelve rows failed to insert at all, and a day that did store them
+      // (rounded) would have read 0¢.
+      const scanId = freshScanId();
+      for (let i = 0; i < 12; i++) {
+        insertFetch({ scanId, source: "serpOrganic", cacheKey: `serp-${i}`, costCents: 0.06, reservedCents: 0.06 });
+      }
+      const rows = psqlRows(`select sum(cost_cents) from fetches where scan_id = '${scanId}';`);
+      expect(rows).toEqual([["0.7200"]]);
+    });
+
+    it("watch it fail first: the `integer` column this migration replaces rejects the same figure", () => {
+      // The regression guard, run against a throwaway column of the type
+      // `20260903080000_fetches.sql` created — so the assertion above is
+      // known to be discriminating and not merely true of any column.
+      psql([
+        "-v",
+        "ON_ERROR_STOP=1",
+        "-c",
+        "create table if not exists money_unit_probe (cost_cents integer not null);",
+      ]);
+      expect(raises("insert into money_unit_probe (cost_cents) values ('1.12928');")).toBe(true);
+      expect(raises("insert into fetches (scan_id, source, cache_key, policy_version, cost_cents, reserved_cents, payload) " +
+        `values ('${freshScanId()}', 'probe', 'probe', 1, '1.12928', '1.12928', '[]'::jsonb);`)).toBe(false);
+      psql(["-v", "ON_ERROR_STOP=1", "-c", "drop table money_unit_probe;"]);
     });
   }
 );

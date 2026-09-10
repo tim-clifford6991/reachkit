@@ -51,6 +51,26 @@ const DAILY_SPEND_MIGRATION = path.join(
   REPO_ROOT,
   "supabase/migrations/20260909200000_fetches_daily_spend.sql"
 );
+// Issue #449 — the money unit. The ledger's two columns become
+// `numeric(12,4)` and `fetches_spend_since()` sums into `numeric`; the
+// scan roll-up this context writes at close follows the same unit, and
+// `withCostContext` reaches `scans.cost_cents` straight through PostgREST,
+// so both files belong in the schema this suite runs against.
+const FETCHES_MONEY_MIGRATION = path.join(
+  REPO_ROOT,
+  "supabase/migrations/20260910090000_fetches_money.sql"
+);
+const SCANS_MONEY_MIGRATION = path.join(
+  REPO_ROOT,
+  "supabase/migrations/20260910090100_scans_money.sql"
+);
+// The seam's third write of the same figure: a draft's context spends with
+// the scan roll-up off (`rollUp: "none"`, `src/lib/generate/cost.ts`) and
+// its total lands on `drafts.cost_cents` instead. One unit or none.
+const DRAFTS_MONEY_MIGRATION = path.join(
+  REPO_ROOT,
+  "supabase/migrations/20260910090200_drafts_money.sql"
+);
 
 function resetAndApplySchema(): void {
   psql([
@@ -62,6 +82,9 @@ function resetAndApplySchema(): void {
   psql(["-v", "ON_ERROR_STOP=1", "-f", BASELINE_MIGRATION]);
   psql(["-v", "ON_ERROR_STOP=1", "-f", FETCHES_MIGRATION]);
   psql(["-v", "ON_ERROR_STOP=1", "-f", DAILY_SPEND_MIGRATION]);
+  psql(["-v", "ON_ERROR_STOP=1", "-f", FETCHES_MONEY_MIGRATION]);
+  psql(["-v", "ON_ERROR_STOP=1", "-f", SCANS_MONEY_MIGRATION]);
+  psql(["-v", "ON_ERROR_STOP=1", "-f", DRAFTS_MONEY_MIGRATION]);
   psql(["-c", "NOTIFY pgrst, 'reload schema';"]);
   execFileSync("sleep", ["0.3"]); // PostgREST's schema-cache reload is async.
 }
@@ -335,7 +358,7 @@ describe('BP-007 `## Error & edge behavior` — "Money already spent is always l
 
     const rows = fetchesRowsFor(scanId);
     expect(rows).toHaveLength(1);
-    expect(rows[0]?.cost_cents).toBe("4");
+    expect(rows[0]?.cost_cents).toBe("4.0000");
   });
 });
 
@@ -492,8 +515,55 @@ describe('BP-007 `## NFR budget` — "a per-scan roll-up (`spentCents`, `degrade
       await cost.recordFetch({ source: "rollup", cacheKey: "k1", freshnessDays: 7, costCents: 3, run: async () => 1 });
     });
     const row = scanRow(scanId);
-    expect(row.cost_cents).toBe("3");
+    // Four decimal places: the column is `numeric(12,4)` (issue #449), and
+    // 3¢ stored in it reads back as 3.0000¢, not as 3.
+    expect(row.cost_cents).toBe("3.0000");
     expect(row.status).toBe("done");
+  });
+
+  it("a free pass of twelve sub-cent SERPs rolls up 0.72¢ — the run that produced `cost_cents 0` on production", async () => {
+    // Issue #449, end to end through the real stack: twelve calls at
+    // `SERP_STD_C` 0.06¢. Under `integer` every one of these inserts
+    // failed with `invalid input syntax for type integer: "0.06"`, the
+    // stage that owned them was marked undeterminable, and the scan closed
+    // `degraded` with `cost_cents 0`.
+    const scanId = freshScanId("rollup-subcent");
+    await withCostContext({ scanId, cap: "FREE", policyVersion: 1 }, async (cost) => {
+      for (let i = 0; i < 12; i++) {
+        await cost.recordFetch({
+          source: "serpOrganic",
+          cacheKey: `subcent-${i}`,
+          freshnessDays: 7,
+          costCents: 0.06,
+          run: async () => ({ i }),
+        });
+      }
+    });
+    expect(fetchesRowsFor(scanId)).toHaveLength(12);
+    expect(fetchesRowsFor(scanId)[0]?.cost_cents).toBe("0.0600");
+    const row = scanRow(scanId);
+    expect(row.cost_cents).toBe("0.7200");
+    expect(row.status).toBe("done");
+  });
+
+  it("a settled figure of 1.12928¢ is ledgered and rolled up at the column's four places", async () => {
+    // The other literal from the production log. The reservation is a
+    // whole cent, the settlement is not, and both go into the row.
+    const scanId = freshScanId("rollup-settled-subcent");
+    await withCostContext({ scanId, cap: "DEEP", policyVersion: 1 }, async (cost) => {
+      await cost.recordFetch({
+        source: "llm.haiku",
+        cacheKey: "k1",
+        freshnessDays: 7,
+        costCents: 4,
+        settleCents: () => 1.12928,
+        run: async () => ({ ok: true }),
+      });
+    });
+    const [ledgered] = fetchesRowsFor(scanId);
+    expect(ledgered?.cost_cents).toBe("1.1293");
+    expect(ledgered?.reserved_cents).toBe("4.0000");
+    expect(scanRow(scanId).cost_cents).toBe("1.1293");
   });
 
   it("a degraded close is recorded as `status = 'degraded'`", async () => {
@@ -555,8 +625,8 @@ describe(
 
       const rows = fetchesRowsFor(scanId);
       expect(rows).toHaveLength(1);
-      expect(rows[0]?.reserved_cents).toBe("6");
-      expect(rows[0]?.cost_cents).toBe("6");
+      expect(rows[0]?.reserved_cents).toBe("6.0000");
+      expect(rows[0]?.cost_cents).toBe("6.0000");
     });
   }
 );
@@ -600,10 +670,10 @@ describe(
       const rows = fetchesRowsFor(scanId);
       const overRow = rows.find((r) => r.source === "clamp-over");
       const underRow = rows.find((r) => r.source === "clamp-under");
-      expect(overRow?.reserved_cents).toBe("10");
-      expect(overRow?.cost_cents).toBe("10"); // clamped, not 50
-      expect(underRow?.reserved_cents).toBe("10");
-      expect(underRow?.cost_cents).toBe("3");
+      expect(overRow?.reserved_cents).toBe("10.0000");
+      expect(overRow?.cost_cents).toBe("10.0000"); // clamped, not 50
+      expect(underRow?.reserved_cents).toBe("10.0000");
+      expect(underRow?.cost_cents).toBe("3.0000");
     });
   }
 );
@@ -670,8 +740,8 @@ describe(
       const row = rows[0];
       expect(row).toBeDefined();
       expect(row?.reserved_cents).not.toBe(row?.cost_cents);
-      expect(row?.reserved_cents).toBe("9");
-      expect(row?.cost_cents).toBe("4");
+      expect(row?.reserved_cents).toBe("9.0000");
+      expect(row?.cost_cents).toBe("4.0000");
     });
   }
 );
@@ -698,7 +768,7 @@ describe(
       const rows = fetchesRowsFor(scanId);
       expect(rows).toHaveLength(1);
       expect(rows[0]?.reserved_cents).toBe(rows[0]?.cost_cents);
-      expect(rows[0]?.reserved_cents).toBe("7");
+      expect(rows[0]?.reserved_cents).toBe("7.0000");
     });
   }
 );
@@ -711,6 +781,58 @@ describe(
 // unreachable without the service role. That is what this block asserts,
 // against the real schema; the arithmetic on top of it is
 // `tests/costs/daily.test.ts`'s.
+describe("issue #449 — every column this seam's money reaches carries one unit", () => {
+  it.each([
+    ["fetches", "cost_cents"],
+    ["fetches", "reserved_cents"],
+    ["scans", "cost_cents"],
+    ["drafts", "cost_cents"],
+  ])("`%s.%s` is numeric(12,4)", (table, column) => {
+    expect(
+      psqlRows(
+        `select data_type, numeric_precision, numeric_scale from information_schema.columns ` +
+          `where table_schema = 'public' and table_name = '${table}' and column_name = '${column}';`
+      )
+    ).toEqual([["numeric", "12", "4"]]);
+  });
+
+  it("`drafts.cost_cents` holds a day's page at the 6.5¢ it costs, not at a rounded whole cent", () => {
+    // BUILD §8: "One day of content: ~6.5¢". The draft's context writes no
+    // scan roll-up, so this column is the only record of that spend, and
+    // `integer` + `Math.round` turned every one of them into 6¢ or 7¢.
+    const [user] = psqlRows(
+      `insert into users (email, plan_status) values ('draft-money-${Math.random().toString(36).slice(2)}@example.com', 'active') returning id;`
+    );
+    const [site] = psqlRows(
+      `insert into sites (user_id, domain) values ('${user?.[0]}', 'draft-money.example.com') returning id;`
+    );
+    const [scan] = psqlRows(
+      `insert into scans (site_id, domain, tier, status) values ('${site?.[0]}', 'draft-money.example.com', 'deep', 'done') returning id;`
+    );
+    const [opportunity] = psqlRows(
+      `insert into opportunities (site_id, scan_id, type, family, target_query, proposed_slug, title) ` +
+        `values ('${site?.[0]}', '${scan?.[0]}', 'answer_page', 'write', 'a query', 'a-slug', 'A title') returning id;`
+    );
+    const [draft] = psqlRows(
+      `insert into drafts (opportunity_id, site_id, state, title, cost_cents) ` +
+        `values ('${opportunity?.[0]}', '${site?.[0]}', 'generating', 'A title', 6.5) returning id;`
+    );
+    expect(psqlRows(`select cost_cents from drafts where id = '${draft?.[0]}';`)).toEqual([["6.5000"]]);
+
+    // Torn down in reverse order of the foreign keys: the suite that runs
+    // after this one clears `fetches` and `scans` between cases, and an
+    // `opportunities` row still pointing at this scan would block it.
+    psql([
+      "-v",
+      "ON_ERROR_STOP=1",
+      "-c",
+      `delete from drafts where id = '${draft?.[0]}'; delete from opportunities where id = '${opportunity?.[0]}'; ` +
+        `delete from scans where id = '${scan?.[0]}'; delete from sites where id = '${site?.[0]}'; ` +
+        `delete from users where id = '${user?.[0]}';`,
+    ]);
+  });
+});
+
 describe("issue #329 — fetches_spend_since, the day's ledger read", () => {
   beforeEach(() => {
     psql(["-v", "ON_ERROR_STOP=1", "-c", "delete from fetches; delete from scans;"]);
@@ -751,6 +873,14 @@ describe("issue #329 — fetches_spend_since, the day's ledger read", () => {
     expect(spendSince("2026-09-09T00:00:00Z")).toBe(24);
     // And the day before, read on its own terms, sees all three.
     expect(spendSince("2026-09-08T00:00:00Z")).toBe(31);
+  });
+
+  it("sums sub-cent rows exactly — twelve standard SERPs are 0.72¢, never 0¢ (issue #449)", () => {
+    // `fetches_spend_since` returned `bigint` until #449, which truncated
+    // the whole of a sub-cent day back to zero however many scans ran.
+    const scanId = freshScanId("daily-subcent");
+    for (let i = 0; i < 12; i++) ledgerRow(0.06, new Date().toISOString(), scanId);
+    expect(spendSince("2000-01-01T00:00:00Z")).toBeCloseTo(0.72, 4);
   });
 
   it("sums the settled figure, which is what `cost_cents` holds", () => {

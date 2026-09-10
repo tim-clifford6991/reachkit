@@ -164,7 +164,11 @@ export async function generateDraft(
     grounded_fact: recordedFactValue(grounding.fact),
     attribution: null,
     scheduled_for: a.scheduledFor,
-    cost_cents: Math.round(c.spentCents()),
+    // The draft's own roll-up, in the unit the ledger holds
+    // (`drafts.cost_cents` is `numeric(12,4)` since #449). Not rounded:
+    // one day's page costs about 6.5¢ and rounding it to a whole cent
+    // made the draft disagree with the `fetches` rows it sums.
+    cost_cents: c.spentCents(),
   });
 
   // 5. The battery, over the finished text, against this customer's own
@@ -186,7 +190,7 @@ export async function generateDraft(
     // page" and "no battery has touched this row" are different facts and
     // the draft view's Checks list draws a row only for the first (#424).
     rule_failures: recordedRulesValue(outcome),
-    cost_cents: Math.round(c.spentCents()),
+    cost_cents: c.spentCents(),
     // The publishing engine's guard on `generating → in_review`. Written
     // here and nowhere else: only the run that put the page through the
     // battery may say the battery passed it. An unrun claim check leaves

@@ -61,6 +61,53 @@ describe("the close writes the scan's roll-up by default", () => {
     expect(updates).toEqual([{ table: "scans", values: { cost_cents: 2, status: "done" } }]);
   });
 
+  it("sub-cent calls roll up to the fraction of a cent they cost (issue #449)", async () => {
+    // The production shape of a free pass: twelve standard SERPs at
+    // `SERP_STD_C` 0.06¢ each. `fetches.cost_cents` and `scans.cost_cents`
+    // are `numeric(12,4)`, so the arithmetic this seam already did in
+    // floats is the arithmetic the column stores — no cent is rounded into
+    // existence and none is rounded away.
+    await withCostContext({ ...CTX, cap: "FREE" }, async (cost) => {
+      for (let i = 0; i < 12; i++) {
+        await cost.recordFetch({
+          source: "serpOrganic",
+          cacheKey: `k${i}`,
+          freshnessDays: 0,
+          costCents: 0.06,
+          run: async () => ({}),
+        });
+      }
+    });
+    const [update] = updates;
+    expect(update?.table).toBe("scans");
+    expect(update?.values.status).toBe("done");
+    expect(update?.values.cost_cents).toBeCloseTo(0.72, 4);
+    // Not zero, which is what the `integer` column recorded for every one
+    // of those twelve rows, and not 1¢ either.
+    expect(update?.values.cost_cents).not.toBe(0);
+  });
+
+  it("a settled figure of a fraction of a cent is ledgered at that fraction, never rounded to the reservation", async () => {
+    // `settleCents` is the LLM shape — a charge computed from the response,
+    // landing on figures like 1.12928, which is the literal string the
+    // `integer` column rejected on production.
+    await withCostContext({ ...CTX, cap: "DEEP" }, async (cost) => {
+      await cost.recordFetch({
+        source: "llm.haiku",
+        cacheKey: "k",
+        freshnessDays: 0,
+        costCents: 4,
+        settleCents: () => 1.12928,
+        run: async () => ({}),
+      });
+    });
+    expect(writeFetchRowMock.mock.calls[0]?.[0]).toMatchObject({
+      reservedCents: 4,
+      costCents: 1.12928,
+    });
+    expect(updates[0]?.values.cost_cents).toBe(1.12928);
+  });
+
   it("omitting the argument behaves exactly as it did before the argument existed", async () => {
     await withCostContext({ ...CTX, cap: "DEEP" }, async () => undefined);
     expect(updates).toHaveLength(1);
