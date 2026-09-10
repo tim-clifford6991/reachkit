@@ -33,7 +33,6 @@
 //      passing because the credential was never used at all — it asserts
 //      the vendor client actually received the real, tier-correct key.
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { APIConnectionTimeoutError, APIError } from "@anthropic-ai/sdk";
 import { z } from "zod";
 import type { CostContext } from "../../src/lib/costs";
 import type { Tier } from "../../src/lib/llm/tiers.ts";
@@ -81,22 +80,34 @@ const { createMock, constructedWith } = vi.hoisted(() => ({
   constructedWith: [] as { apiKey: string; timeout: number; maxRetries: number }[],
 }));
 
-// The default export is replaced; the module's own error classes are kept
-// (`importOriginal`), because `index.ts` classifies a failed call by
-// `instanceof` against them (issue #452) and a mock that omitted them
-// would make that classification vacuously unreachable here.
-vi.mock("@anthropic-ai/sdk", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@anthropic-ai/sdk")>();
-  return {
-    ...actual,
-    default: class MockAnthropic {
-      constructor(opts: { apiKey: string; timeout: number; maxRetries: number }) {
-        constructedWith.push(opts);
-      }
-      messages = { create: createMock };
-    },
-  };
-});
+vi.mock("@anthropic-ai/sdk", () => ({
+  default: class MockAnthropic {
+    constructor(opts: { apiKey: string; timeout: number; maxRetries: number }) {
+      constructedWith.push(opts);
+    }
+    messages = { create: createMock };
+  },
+}));
+
+/** The vendor SDK's own error shapes, rebuilt here rather than imported.
+ *  `index.ts` classifies a failed call by shape — a numeric `status`, a
+ *  timeout-shaped name — precisely so that it does not depend on a named
+ *  export nine mocking suites would each have to re-provide (issue #452),
+ *  and a test that imported the real classes would be asserting something
+ *  weaker than what ships. */
+class ApiConnectionTimeout extends Error {
+  constructor() {
+    super("Request timed out.");
+    // The real class reports the base `Error` here; the constructor name
+    // is the signal.
+    this.name = "Error";
+  }
+}
+Object.defineProperty(ApiConnectionTimeout, "name", { value: "APIConnectionTimeoutError" });
+
+function apiError(status: number): Error {
+  return Object.assign(new Error("vendor said no"), { status });
+}
 
 let llm: typeof import("../../src/lib/llm/index.ts").llm;
 let tierBinding: typeof import("../../src/lib/llm/tiers.ts").tierBinding;
@@ -559,13 +570,13 @@ describe("llm() — the failure class the log names (issue #452)", () => {
   }
 
   it("a timeout is logged as `timeout`, not as the bare `unavailable` a live run cannot act on", async () => {
-    const logged = await failWith(new APIConnectionTimeoutError({ message: "timed out" }));
+    const logged = await failWith(new ApiConnectionTimeout());
     expect(logged.parseOutcome).toBe("unavailable");
     expect(logged.failure).toBe("timeout");
   });
 
   it.each([429, 500, 529])("an HTTP %s is logged with the vendor's own status", async (status) => {
-    const logged = await failWith(new APIError(status, undefined, "vendor said no", undefined));
+    const logged = await failWith(apiError(status));
     expect(logged.failure).toBe(`http_${status}`);
   });
 

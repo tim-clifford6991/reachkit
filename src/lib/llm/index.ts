@@ -49,7 +49,7 @@
 //   the one case BP-024 defines it for — the caller's own cost ceiling
 //   stopping the call before it was ever attempted (`recordFetch`'s
 //   `{ skipped: "cap" }`). Recorded as an open `rests-on` row on WO-026.
-import Anthropic, { APIConnectionTimeoutError, APIError } from "@anthropic-ai/sdk";
+import Anthropic from "@anthropic-ai/sdk";
 import { createHash } from "node:crypto";
 import type { ZodType } from "zod";
 import { INFERENCE_MAX_RETRIES } from "@/lib/config/constants";
@@ -101,15 +101,49 @@ interface AttemptOutcome {
   failure?: FailureClass;
 }
 
-/** The vendor's error classes are the SDK's own (`APIError` carries the
- *  response status; `APIConnectionTimeoutError` is the one it raises when
- *  the client's `timeout` fires), so the classification is `instanceof`
- *  against them rather than a guess at a message. */
+/** Every error shape whose *name* says the request ran out of time —
+ *  `@anthropic-ai/sdk`'s own class, the two undici raises under it, and
+ *  the `AbortError` a fired `AbortSignal` produces. */
+const TIMEOUT_ERROR_NAMES: ReadonlySet<string> = new Set([
+  "APIConnectionTimeoutError",
+  "ConnectTimeoutError",
+  "HeadersTimeoutError",
+  "BodyTimeoutError",
+  "TimeoutError",
+  "AbortError",
+]);
+
+/** Classified by the error's **shape**, deliberately not by `instanceof`
+ *  against the SDK's exported classes. Nine test suites replace
+ *  `@anthropic-ai/sdk` with a mock of their own (the seam is the one door
+ *  to a vendor, so anything exercising a pipeline has to), and an
+ *  identity check against a named export would make this function's
+ *  answer depend on whether a given suite happened to re-export that
+ *  class. A status and a name are shapes every one of them can produce.
+ *
+ *  Order matters: `APIError` carries the response `status` and is the
+ *  most specific thing there is to say, so it is read first; the SDK's
+ *  own timeout class carries no status and reports `name` as the base
+ *  `Error`, so it is recognised by its constructor and, failing that, by
+ *  the one sentence it is constructed with ("Request timed out."). The
+ *  message is *read* and discarded — the class word is the only thing
+ *  that ever reaches a log (see `logCall`). */
 function failureClassOf(error: unknown): FailureClass {
-  if (error instanceof APIConnectionTimeoutError) return "timeout";
-  if (error instanceof APIError && typeof error.status === "number") {
-    return `http_${error.status}`;
+  const shape = error as
+    | { status?: unknown; name?: unknown; message?: unknown; constructor?: { name?: unknown } }
+    | null
+    | undefined;
+
+  const status = shape?.status;
+  if (typeof status === "number" && Number.isInteger(status) && status >= 100 && status <= 599) {
+    return `http_${status}`;
   }
+
+  for (const candidate of [shape?.name, shape?.constructor?.name]) {
+    if (typeof candidate === "string" && TIMEOUT_ERROR_NAMES.has(candidate)) return "timeout";
+  }
+  if (typeof shape?.message === "string" && /timed out|timeout/i.test(shape.message)) return "timeout";
+
   return "vendor";
 }
 
