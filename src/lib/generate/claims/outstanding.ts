@@ -23,28 +23,8 @@
 // which calls `claimRecheckOutstanding` before every transition into
 // `publishing`. Removing that call passes every test in this directory.
 import { generateStore } from "../store";
+import { readRecordedVerdict } from "../record";
 import { listHash } from "./hash";
-import type { ClaimVerdict } from "./check";
-
-/** Reads a stored `claim_check` blob back. A shape this build does not
- *  recognise is treated as no verdict at all — which makes the draft
- *  outstanding, the safe direction. */
-export function readClaimVerdict(payload: unknown): ClaimVerdict | null {
-  if (payload === null || typeof payload !== "object") return null;
-  const blob = payload as Record<string, unknown>;
-  const at = typeof blob.at === "string" ? new Date(blob.at) : blob.at instanceof Date ? blob.at : null;
-  if (at === null || Number.isNaN(at.getTime())) return null;
-  if (blob.state === "passed" && typeof blob.listHash === "string") {
-    return { state: "passed", listHash: blob.listHash, at };
-  }
-  if (blob.state === "failed" && typeof blob.listHash === "string" && typeof blob.matchedEntry === "string") {
-    return { state: "failed", listHash: blob.listHash, at, matchedEntry: blob.matchedEntry };
-  }
-  if (blob.state === "unrun" && (blob.reason === "llm_unavailable" || blob.reason === "cap_hit")) {
-    return { state: "unrun", reason: blob.reason, at };
-  }
-  return null;
-}
 
 /** True while this draft has no passing check, or its last passing check
  *  was reached against a different list than the site holds now. A draft
@@ -54,7 +34,7 @@ export async function claimRecheckOutstanding(draftId: string): Promise<boolean>
   const store = generateStore();
   const draft = await store.draftById(draftId);
   if (draft === null) return true;
-  const verdict = readClaimVerdict(draft.claim_check);
+  const verdict = readRecordedVerdict(draft.claim_check);
   if (verdict === null || verdict.state !== "passed") return true;
   const site = await store.siteFacts(draft.site_id);
   if (site === null) return true;
@@ -68,6 +48,6 @@ export async function claimRecheckOutstanding(draftId: string): Promise<boolean>
 export async function outstandingMatch(draftId: string): Promise<{ matchedEntry: string } | null> {
   const draft = await generateStore().draftById(draftId);
   if (draft === null) return null;
-  const verdict = readClaimVerdict(draft.claim_check);
+  const verdict = readRecordedVerdict(draft.claim_check);
   return verdict !== null && verdict.state === "failed" ? { matchedEntry: verdict.matchedEntry } : null;
 }
