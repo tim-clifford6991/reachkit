@@ -145,16 +145,38 @@ describe("the head, backed by the chart under it", () => {
 });
 
 describe("the growth chart", () => {
-  it("draws the measured weeks and cuts the run at the week that was not measured", () => {
+  it("runs one line to the last measured week, with no vertex over the week that was not measured", () => {
     const model = assembleOverview(facts());
     const markup = html(<GrowthModule growth={model.growth} timeZone={ZONE} />);
-    // Four weeks, three values and one em dash where the week did not run.
-    expect(markup).toContain(">0<");
-    expect(markup).toContain(">36<");
+    // One run: the market did not change, so the line joins the weeks
+    // either side of the unmeasured one and reaches the last measured week
+    // — where the end dot sits (#386, master review).
+    expect(count(markup, "<polyline")).toBe(1);
+    // Three vertices for four weeks: no point is drawn over the week
+    // nobody measured, so no reading is stated for it.
+    const points = /<polyline points="([^"]+)"/.exec(markup)?.[1] ?? "";
+    expect(points.split(" ")).toHaveLength(3);
+    // Nothing is drawn in the week's place (#386), and the account of why
+    // is on its mark.
+    expect(markup).not.toContain("stroke-dasharray");
+    expect(markup).toContain("place.overview.weekly-presence.week");
+  });
+
+  it("labels the endpoint only — no numeral under any weekly point (#386)", () => {
+    const model = assembleOverview(facts());
+    const markup = html(<GrowthModule growth={model.growth} timeZone={ZONE} />);
+    // The last measured week's value, once, above its dot. The three
+    // earlier weeks and the em dash the unmeasured one used to print are
+    // gone from the plot; every one of them still states its name and its
+    // reading in its mark's tooltip.
     expect(markup).toContain(">81<");
-    expect(markup).toContain("—");
-    // Two runs — before the gap and after it — never one polyline across it.
-    expect(count(markup, "<polyline")).toBe(2);
+    expect(markup).not.toContain(">0<");
+    expect(markup).not.toContain(">36<");
+    expect(markup).not.toContain("—");
+    expect(markup).toContain("<title>");
+    // …and the start value is the card's left-hand footnote, as S12 draws
+    // it, not a numeral on the plot.
+    expect(markup).toContain("overview.growth.footnote.start(0)");
   });
 
   it("with nothing measured it renders no chart and one line with the first-due date", () => {

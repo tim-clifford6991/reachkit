@@ -78,7 +78,8 @@ the route tree without an unexplained gap.
 | surface | what it is | tests |
 |---|---|---|
 | `/signin/{token}` | the magic link's redeem-and-redirect | `tests/app/signin/redeem-route.test.ts` |
-| `/robots.txt` · `/sitemap.xml` (hosted) | the indexing policy the hosted edge serves | `tests/hosted/indexing/robots.test.ts` · `sitemap.test.ts` |
+| `/robots.txt` · `/sitemap.xml` | the indexing policy each host is served — a customer's site, a preview address, and (since #326) ReachKit's own | `tests/hosted/indexing/robots.test.ts` · `sitemap.test.ts` · `tests/app/seo/metadata.test.tsx` |
+| `/icon` · `/apple-icon` · `/opengraph-image` · `/manifest.webmanifest` | the favicon set, the share card and the web manifest, drawn from tokens rather than committed as assets (#326) | `tests/app/seo/metadata.test.tsx` · `tests/app/middleware.test.ts` |
 | `/hosted-gone` | the 410 an unpublished page answers | `tests/hosted/container/edge.test.ts` |
 | `/api/**` (15 routes, BUILD §3) | thin HTTP adapters over the engine | `tests/app/api-adapter.test.ts` and each route's own suite |
 

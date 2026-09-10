@@ -145,15 +145,19 @@ describe("REQ-071 c12 — the growth series is two runs, never one line across a
   it("the chart is handed a column with no value at the change, which is where it cuts its run", () => {
     const growth = readGrowth({ points: POINTS, firstDueOn: AT(1), changes: [CHANGE] });
     const markup = html(<GrowthModule growth={growth} timeZone={ZONE} />);
-    // One break column and its account: the same shape an unmeasured week
-    // takes, so §2.4's inventory gains no sixth chart.
+    // One break column and its account: the same column an unmeasured week
+    // takes, so §2.4's inventory gains no sixth chart. What differs is that
+    // this one cuts the line and a week with no reading does not (#386) —
+    // two runs here, one there.
     expect(markup).toContain(CHANGE_ACCOUNT_KEY.domain);
+    expect(markup.split("<polyline").length - 1).toBe(2);
   });
 
   it("without a change the same weeks draw one run and no account", () => {
     const growth = readGrowth({ points: POINTS, firstDueOn: AT(1), changes: [] });
     const markup = html(<GrowthModule growth={growth} timeZone={ZONE} />);
     expect(markup).not.toContain(CHANGE_ACCOUNT_KEY.domain);
+    expect(markup.split("<polyline").length - 1).toBe(1);
   });
 });
 
