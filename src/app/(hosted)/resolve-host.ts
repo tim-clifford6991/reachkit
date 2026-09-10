@@ -77,6 +77,29 @@ function appHost(): string {
   }
 }
 
+/**
+ * Whether a Host header names this deployment itself (issue #326).
+ *
+ * `resolveHost` folds the app host into `unknown` along with every
+ * stranger, which is the right answer for a *page*: no ReachKit surface is
+ * ever served from the hosted disposition. It is not the right answer for
+ * `/robots.txt` and `/sitemap.xml`, which BUILD §3 lists among the public
+ * routes and which the app host must now answer with its own documents.
+ * So the distinction `resolveHost` deliberately does not draw is drawn
+ * here instead, by the same normalisation and the same `appHost()` — a
+ * second reader of `NEXT_PUBLIC_APP_URL` in this file would be a second
+ * place the deployment's own name could come from.
+ *
+ * An unbound or unparseable origin makes `appHost()` the empty string, and
+ * an empty name matches nothing: the two documents stay 404 rather than
+ * being served on every host at once.
+ */
+export function isAppHost(host: string): boolean {
+  const name = normaliseHost(host);
+  if (name === "") return false;
+  return name === appHost();
+}
+
 /** REQ-076 c10 and REQ-079 c6, through one predicate: a departed
  *  customer's pages stop being served, and both endings answer 410. The
  *  reason travels so an operator can tell which ending it was; it never

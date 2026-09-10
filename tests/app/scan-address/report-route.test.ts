@@ -53,8 +53,20 @@ describe("REQ-001 c2 — one address per domain, reached by a 308", () => {
 });
 
 describe("ADR-002 / REQ-001 c8 — noindex twice over, and in no sitemap", () => {
-  it("the route exports metadata that turns indexing and following off", () => {
-    expect(PAGE).toMatch(/robots:\s*\{\s*index:\s*false,\s*follow:\s*false\s*\}/);
+  it("the route's resolved metadata turns indexing and following off", async () => {
+    // Issue #326 moved the directive off this page and onto the route's
+    // row in `_seo/routes.ts` — the same row the app host's sitemap reads,
+    // so the page and the sitemap can no longer disagree about it. The
+    // assertion follows it: the promise is what the route *resolves to*,
+    // which is stronger than the spelling it used to be written in.
+    const { generateMetadata } = await import(
+      "../../../src/app/(public)/scan/[domain]/page.tsx"
+    );
+    const metadata = await generateMetadata({
+      params: Promise.resolve({ domain: "example.com" }),
+    });
+    expect(metadata.robots).toEqual({ index: false, follow: false });
+    expect(PAGE).not.toMatch(/robots:\s*\{/);
   });
 
   it("`next.config.ts` declares the X-Robots-Tag header for this path", () => {
@@ -63,12 +75,18 @@ describe("ADR-002 / REQ-001 c8 — noindex twice over, and in no sitemap", () =>
     expect(NEXT_CONFIG).toContain("noindex, nofollow");
   });
 
-  it("no sitemap route exists that could name a report address", () => {
-    // `src/app/` holds no `sitemap.ts`/`sitemap.xml` route at all today.
-    // When the hosted edge adds one (issue #49), this assertion is what
-    // makes adding a report address to it a deliberate act.
+  it("no sitemap the product publishes can name a report address", async () => {
+    // The hosted edge's `/sitemap.xml` (issue #49) is the one route that
+    // serves this path, and since issue #326 it answers ReachKit's own
+    // host as well as a customer's. Neither arm can name a report: the
+    // hosted arm emits only live hosted publications, and the app arm only
+    // the `indexable` rows of `_seo/routes.ts`, where the report's is not.
+    // The Next file conventions that would create a *second* sitemap at
+    // the same address are still absent, which is what keeps that true.
     expect(existsSync(path.join(ROOT, "src/app/sitemap.ts"))).toBe(false);
     expect(existsSync(path.join(ROOT, "src/app/(public)/sitemap.ts"))).toBe(false);
+    const { sitemapPaths } = await import("../../../src/app/(public)/_seo/routes.ts");
+    expect(sitemapPaths().some((route) => route.startsWith("/scan"))).toBe(false);
   });
 });
 
