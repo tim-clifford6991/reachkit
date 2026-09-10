@@ -11,12 +11,20 @@
 // `renderToStaticMarkup` is the same renderer `tests/presentation/sweeps/`
 // uses, and it runs in the `node` project with no DOM.
 //
+// **Six mounts since #405.** `src/app/not-found.tsx` is the one Next
+// actually reaches for an unmatched URL — a route group's `not-found.tsx`
+// is a `notFound()` boundary and nothing else — so it is the root file that
+// decides what a mistyped ReachKit address answers. It belongs to no group,
+// so it draws ruling 3a's header and footer itself, and it renders the
+// `(public)` arm rather than composing S8's three keys a second time.
+//
 // What is asserted is what the set fixes and what the issue's own Done-when
 // adds: the eyebrow, the heading and the line each screen shows, the one
 // control each carries, that `404` is set in the mono face (§2 — "a numeral
 // in the UI font is a defect"), that every screen is its own `Surface` root
-// (ADR-093 decision 6), and that `global-error` carries the document the
-// root layout would otherwise have carried.
+// (ADR-093 decision 6), that `global-error` carries the document the root
+// layout would otherwise have carried, and that the root 404 carries the
+// public chrome.
 import { describe, expect, it } from "vitest";
 import type React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -27,9 +35,17 @@ import PublicError from "../../../src/app/(public)/error";
 import AccountNotFound from "../../../src/app/(account)/not-found";
 import AccountError from "../../../src/app/(account)/error";
 import GlobalError from "../../../src/app/global-error";
+import RootNotFound from "../../../src/app/not-found";
 
 function html(screen: () => React.JSX.Element): string {
   return renderToStaticMarkup(screen());
+}
+
+/** React mints a fresh `useId` per render, so two renders of the same tree
+ *  differ in exactly those attributes and nowhere else. Blanking them is
+ *  what lets one screen's markup be compared with another's. */
+function stableIds(markup: string): string {
+  return markup.replace(/_R_[^"]*_/g, "_R_");
 }
 
 /** How many times a fragment occurs — used where "exactly one" is the
@@ -41,6 +57,7 @@ function occurrences(haystack: string, needle: string): number {
 const NOT_FOUND_SCREENS = [
   { name: "(public)/not-found.tsx", markup: html(PublicNotFound) },
   { name: "(account)/not-found.tsx", markup: html(AccountNotFound) },
+  { name: "not-found.tsx", markup: html(RootNotFound) },
 ];
 
 const ERROR_SCREENS = [
@@ -121,6 +138,10 @@ describe("S8 — one control per screen, and it is the route group's own", () =>
   it.each([
     { name: "(public)/not-found.tsx", markup: html(PublicNotFound) },
     { name: "(public)/error.tsx", markup: html(PublicError) },
+    // The root 404 is the public one with the chrome around it, so it
+    // carries the same one field and the same one submit — the header's and
+    // the footer's controls are links, and none of them is a `<button>`.
+    { name: "not-found.tsx", markup: html(RootNotFound) },
   ])("$name carries the scan field with the set's solid 'Scan it'", ({ markup }) => {
     expect(COPY["chrome.notfound.cta"]).toBe("Scan it");
     // The field is the landing's own form — the same POST, the same one
@@ -162,6 +183,47 @@ describe("S8 — one control per screen, and it is the route group's own", () =>
   });
 });
 
+describe("S8 — the root 404, the one an unmatched address reaches (#405)", () => {
+  const markup = html(RootNotFound);
+
+  it("wears ruling 3a's header and footer, which no group layout gives it", () => {
+    // It renders inside `src/app/layout.tsx` alone — above all three route
+    // groups — so the shell every other public screen inherits from
+    // `(public)/layout.tsx` is drawn here or nowhere.
+    expect(occurrences(markup, 'data-testid="public-header"')).toBe(1);
+    expect(occurrences(markup, 'data-testid="public-footer"')).toBe(1);
+    expect(occurrences(markup, 'class="rk-public-shell"')).toBe(1);
+  });
+
+  it("takes 3a's own right slot — quiet Sign in, one solid CTA — and no route's", () => {
+    // Not the landing's field CTA, not the report's copy control and not a
+    // token page's address: an address that matches no route is none of
+    // those three.
+    expect(markup).toContain(COPY["chrome.nav.signin"]);
+    expect(markup).toContain(COPY["chrome.cta.scan"]);
+    expect(markup).not.toContain("rk-prov-line");
+  });
+
+  it("is the (public) 404 itself, not a second composition of S8's keys", () => {
+    // The strongest form of "these two cannot drift": the public arm's
+    // whole markup stands inside the root one, unchanged.
+    expect(stableIds(markup)).toContain(stableIds(html(PublicNotFound)));
+  });
+
+  it("still has exactly one Surface, with the chrome outside it", () => {
+    // ADR-093 decision 6 counts documents, not screens: the header and the
+    // footer are siblings of the surface, as they are on every other public
+    // route.
+    expect(occurrences(markup, "data-surface")).toBe(1);
+    expect(markup.indexOf('data-testid="public-header"')).toBeLessThan(
+      markup.indexOf("data-surface")
+    );
+    expect(markup.indexOf('data-testid="public-footer"')).toBeGreaterThan(
+      markup.indexOf("data-surface")
+    );
+  });
+});
+
 describe("S8 — what each file is, on disk", () => {
   it.each([
     "src/app/(public)/error.tsx",
@@ -171,7 +233,11 @@ describe("S8 — what each file is, on disk", () => {
     expect(codeOf(file)).toMatch(/^"use client";$/m);
   });
 
-  it.each(["src/app/(public)/not-found.tsx", "src/app/(account)/not-found.tsx"])(
+  it.each([
+    "src/app/(public)/not-found.tsx",
+    "src/app/(account)/not-found.tsx",
+    "src/app/not-found.tsx",
+  ])(
     "%s is a Server Component that reads no session, cookie or store",
     (file) => {
       const code = codeOf(file);
@@ -206,6 +272,7 @@ describe("S8 — what each file is, on disk", () => {
       "src/app/(account)/not-found.tsx",
       "src/app/(account)/error.tsx",
       "src/app/global-error.tsx",
+      "src/app/not-found.tsx",
       "src/app/_fallback/Fallback.tsx",
       "src/app/_fallback/AddressLine.tsx",
     ]) {
