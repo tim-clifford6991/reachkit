@@ -49,6 +49,10 @@ export interface RawVitals {
   /** How many script resources those bytes came from, so a budget that
    *  passes because nothing loaded cannot read as a pass. */
   scriptCount: number;
+  /** What moved, worst first: one line per element the largest session
+   *  window's shifts name as a source, with the score it carried. A CLS
+   *  number with nothing attached to it is a number nobody can act on. */
+  shiftSources: string[];
   /** Every `<link rel="preload" as="font">` href the document carries. */
   fontPreloads: string[];
   /** Images the document renders with no way to reserve their box: no
@@ -74,7 +78,7 @@ export interface RawVitals {
  */
 export function measureVitals(settleMs: number): Promise<RawVitals> {
   return new Promise<RawVitals>((resolve) => {
-    const shifts: { value: number; startTime: number }[] = [];
+    const shifts: { value: number; startTime: number; sources: string[] }[] = [];
     let lcpMs: number | null = null;
 
     const lcpObserver = new PerformanceObserver((list) => {
@@ -88,7 +92,25 @@ export function measureVitals(settleMs: number): Promise<RawVitals> {
         // A shift the reader caused by interacting is not one the page owes
         // anyone; the metric excludes it and so does this.
         if (shift.hadRecentInput) continue;
-        shifts.push({ value: shift.value, startTime: shift.startTime });
+        // `sources` names the elements whose start position changed
+        // between the two frames. Described here, in the tab, because a
+        // DOM node cannot cross `page.evaluate`'s serialisation.
+        const withSources = shift as unknown as { sources?: { node?: Element | null }[] };
+        const sources: string[] = [];
+        for (const source of withSources.sources ?? []) {
+          const node = source.node;
+          if (!node) continue;
+          const testId = node.getAttribute("data-testid");
+          const className = typeof node.className === "string" ? node.className : "";
+          const first = className.trim().split(/\s+/).filter(Boolean).slice(0, 2).join(".");
+          sources.push(
+            node.tagName.toLowerCase() +
+              (node.id ? `#${node.id}` : "") +
+              (testId ? `[data-testid=${testId}]` : "") +
+              (first ? `.${first}` : "")
+          );
+        }
+        shifts.push({ value: shift.value, startTime: shift.startTime, sources });
       }
     });
     shiftObserver.observe({ type: "layout-shift", buffered: true });
@@ -100,23 +122,44 @@ export function measureVitals(settleMs: number): Promise<RawVitals> {
       const GAP_MS = 1000;
       const WINDOW_MS = 5000;
       let cls = 0;
+      let worst: typeof shifts = [];
       let windowSum = 0;
       let windowStart = 0;
       let previous = 0;
       let open = false;
+      let current: typeof shifts = [];
       for (const shift of shifts) {
         const startsNewWindow =
           !open || shift.startTime - previous > GAP_MS || shift.startTime - windowStart > WINDOW_MS;
         if (startsNewWindow) {
           windowSum = shift.value;
           windowStart = shift.startTime;
+          current = [shift];
           open = true;
         } else {
           windowSum += shift.value;
+          current.push(shift);
         }
         previous = shift.startTime;
-        if (windowSum > cls) cls = windowSum;
+        if (windowSum > cls) {
+          cls = windowSum;
+          worst = current.slice();
+        }
       }
+
+      // One line per element, worst first: the same element usually moves
+      // in several frames, and what a reader of the failure wants is which
+      // element cost the most, not how many times it twitched.
+      const byElement = new Map<string, number>();
+      for (const shift of worst) {
+        const named = shift.sources.length > 0 ? shift.sources : ["(no source reported)"];
+        for (const source of named) {
+          byElement.set(source, (byElement.get(source) ?? 0) + shift.value / named.length);
+        }
+      }
+      const shiftSources = [...byElement.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .map(([element, value]) => `${element} ${value.toFixed(4)}`);
 
       const resources = performance.getEntriesByType("resource") as PerformanceResourceTiming[];
       const scripts = resources.filter(
@@ -139,7 +182,15 @@ export function measureVitals(settleMs: number): Promise<RawVitals> {
         if (!hasAttributePair && !hasRatio) unsizedImages.push(img.getAttribute("src") ?? "(no src)");
       }
 
-      resolve({ lcpMs, cls, scriptBytes, scriptCount: scripts.length, fontPreloads, unsizedImages });
+      resolve({
+        lcpMs,
+        cls,
+        shiftSources,
+        scriptBytes,
+        scriptCount: scripts.length,
+        fontPreloads,
+        unsizedImages,
+      });
     }, settleMs);
   });
 }

@@ -181,9 +181,11 @@ describe(`#332 — Cumulative Layout Shift is within ${WEB_VITALS_BUDGET.CLS}`, 
     const m = measurementFor(path, viewport);
     expect(
       m.vitals.cls,
-      `${report(m)} — over the ${WEB_VITALS_BUDGET.CLS} budget. Something moved under the reader ` +
-        "after it was painted: an element that reserves no box (an image with no dimensions, a " +
-        "font swapping to different metrics) or content injected on hydration."
+      `${report(m)} — over the ${WEB_VITALS_BUDGET.CLS} budget. What moved, worst first: ` +
+        `${m.vitals.shiftSources.join(" · ") || "(nothing was reported as a source)"}. ` +
+        "Something moved under the reader after it was painted: an element that reserves no box " +
+        "(an image with no dimensions, a font swapping to different metrics), or a waiting state " +
+        "replaced by content taller than the box it stood in."
     ).toBeLessThanOrEqual(WEB_VITALS_BUDGET.CLS);
   });
 });
