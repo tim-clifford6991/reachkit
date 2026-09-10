@@ -10,8 +10,11 @@
 // found-arm published mail with it. The empty-key throw fired first, so
 // the registry's own emptiness was hiding the defect.
 //
-// The fixture below is exactly that future: every owner-owed key filled,
-// the paragraph filled with a **slotted** sentence. It is the one shape
+// Since issue #458 (the owner's 2026-09-10 approval) that future is the
+// registry itself: the paragraph carries its approved, slotted sentence,
+// so the mock below fills only keys still owed elsewhere, and the
+// paragraph assertion reads the real sentence. The mock stays: it is the
+// one shape
 // the suite beside it cannot express, which is why this file mocks the
 // registry and lives on its own — `index.test.ts` asserts the standing
 // where the keys are still owed, and both must stay true.
@@ -83,7 +86,10 @@ describe("issue #457 — the found arm composes once its paragraph is written", 
 
   it("the paragraph carries the date, and leaves no marker behind", () => {
     const { text } = renderBlocksText(mail().blocks);
-    expect(text).toContain(`It is live, and it answered every check on ${STAMP}.`);
+    const paragraph = COPY["mail.published.verified"];
+    expect(paragraph).toContain("{checkedAt}");
+    expect(paragraph).not.toBe(PARAGRAPH_SENTENCE);
+    expect(text).toContain(paragraph.replace("{checkedAt}", STAMP));
     expect(text).not.toContain("{checkedAt}");
   });
 
