@@ -61,6 +61,108 @@ import {
   SIGNIN_PATH,
 } from "@/lib/account/identity/addresses";
 
+// ── Issue #331: the Content-Security-Policy, and the nonce it turns on ──
+//
+// **Why this file and not `next.config.ts`.** A nonce is worth having only
+// if it is unpredictable and fresh per request; `headers()` in
+// `next.config.ts` is evaluated once, for every request alike, so a nonce
+// written there would be a published constant. Next's own guide mints it in
+// the proxy for exactly that reason, and the renderer reads it back off the
+// *request* header the proxy set — `parseRequestHeaders` in
+// `next/dist/server/app-render/app-render.js` looks for
+// `content-security-policy` among the incoming headers and extracts
+// `'nonce-…'` from it. So this file sets the policy twice on each request:
+// once onto the headers forwarded to the render (which is what makes Next
+// stamp `nonce` on every script tag it emits) and once onto the response
+// (which is what makes the browser enforce it). `next.config.ts` keeps the
+// four headers that are the same on every request and reach the static
+// bundles this file's `matcher` never sees.
+//
+// **Every response, including the ones that are not renders.** The sign-in
+// redirect, the `410 Gone` rewrite and the hosted rewrite all leave through
+// `sealed()` below, so there is no path out of this function that answers
+// without the policy — which is what "present on every route" has to mean
+// if it is to be worth asserting.
+//
+// Every string here is internal (rule 1.1): directive names and the origins
+// they name. None is a sentence anybody reads.
+
+/** The header the browser enforces and the renderer reads the nonce from. */
+const CSP_HEADER = "content-security-policy";
+
+/** Vercel's preview toolbar, which the platform injects into a preview
+ *  deployment's HTML rather than this repository doing it. These are the
+ *  origins it needs; on production it is not injected and they are simply
+ *  never reached. */
+const VERCEL_LIVE = "https://vercel.live";
+const VERCEL_LIVE_IMG = "https://vercel.com";
+const VERCEL_LIVE_FONTS = "https://assets.vercel.com";
+const VERCEL_LIVE_SOCKET = "wss://ws-us3.pusher.com";
+
+/** The two Stripe addresses a **form submission** can end up at.
+ *  `form-action` is enforced across the redirect that *follows* a POST, and
+ *  `/pricing`'s one control is a Server Function reached from a `<form>`
+ *  that answers with `redirect(session.url)` — so a policy of `'self'`
+ *  alone would block checkout for any customer whose browser had
+ *  JavaScript off, and block it silently. The billing portal hands its
+ *  address back to the client instead of redirecting, which `form-action`
+ *  does not govern; it is named here so that stays a free choice rather
+ *  than a load-bearing one. */
+const STRIPE_CHECKOUT = "https://checkout.stripe.com";
+const STRIPE_BILLING = "https://billing.stripe.com";
+
+/** 16 CSPRNG bytes, base64 — inside the character class Next's own
+ *  extractor accepts (`/^'nonce-([A-Za-z0-9+/_-]+={0,2})'$/`). Web Crypto
+ *  rather than `node:crypto` so this file keeps building on either runtime,
+ *  as it did before its `runtime` was pinned to Node. */
+const NONCE_BYTES = 16;
+
+function mintNonce(): string {
+  const bytes = new Uint8Array(NONCE_BYTES);
+  crypto.getRandomValues(bytes);
+  return btoa(String.fromCharCode(...bytes));
+}
+
+/**
+ * The policy this request is answered under.
+ *
+ * `script-src` carries the nonce and **no `'unsafe-inline'`**, which is the
+ * whole point of the exercise: the inline bootstrap Next emits runs because
+ * this server stamped it, and an injected one does not run at all.
+ * `'strict-dynamic'` is deliberately absent — it would make the `'self'`
+ * beside it inert, and with it the platform's own preview script, for no
+ * gain over a same-origin allowance on a host this product controls.
+ *
+ * `style-src` keeps `'unsafe-inline'`. A nonce cannot cover a `style="…"`
+ * attribute (those answer to `style-src-attr`, which no nonce reaches), and
+ * `src/ui/charts/**` sets six of them to place a mark against a token. The
+ * asymmetry is deliberate and is where the real risk is: injected CSS can
+ * restyle a page, injected script can act as the customer.
+ *
+ * `upgrade-insecure-requests` is deliberately absent. Its job here is done
+ * by `Strict-Transport-Security`, and its presence would break every
+ * `http://` render the layout sweep makes on a non-loopback hostname —
+ * a check that cannot run is worse than a header that is not set.
+ */
+export function contentSecurityPolicy(nonce: string, isDev: boolean): string {
+  return [
+    "default-src 'self'",
+    "base-uri 'self'",
+    "object-src 'none'",
+    "frame-ancestors 'none'",
+    `form-action 'self' ${STRIPE_CHECKOUT} ${STRIPE_BILLING}`,
+    // React reconstructs server stacks with `eval` in development and
+    // nowhere else, which is the one thing that differs between the two.
+    `script-src 'self' 'nonce-${nonce}' ${VERCEL_LIVE}${isDev ? " 'unsafe-eval'" : ""}`,
+    `style-src 'self' 'unsafe-inline' ${VERCEL_LIVE}`,
+    `img-src 'self' data: blob: ${VERCEL_LIVE} ${VERCEL_LIVE_IMG}`,
+    `font-src 'self' ${VERCEL_LIVE} ${VERCEL_LIVE_FONTS}`,
+    // The dev server's hot-reload socket, and nothing else new.
+    `connect-src 'self' ${VERCEL_LIVE} ${VERCEL_LIVE_SOCKET}${isDev ? " ws:" : ""}`,
+    `frame-src 'self' ${VERCEL_LIVE}`,
+  ].join("; ");
+}
+
 /** One entry per BP-001 `## Public interface` "Routes (public)" row
  *  (`## Steps` step 1). A leading `:` marks a single dynamic path segment —
  *  matched against exactly one non-empty segment, never across a `/`. */
@@ -163,7 +265,7 @@ function isHostedEdgeHost(req: NextRequest): boolean {
  * departed customer's address that missed this deadline answers 404 —
  * never their page.
  */
-async function hostedRewrite(req: NextRequest): Promise<NextResponse | null> {
+async function hostedRewrite(req: NextRequest, forwarded: Headers): Promise<NextResponse | null> {
   if (!isHostedEdgeHost(req)) return null;
   const { pathname } = req.nextUrl;
   if (isNextInternal(pathname)) return null;
@@ -179,7 +281,10 @@ async function hostedRewrite(req: NextRequest): Promise<NextResponse | null> {
 
   const destination = req.nextUrl.clone();
   destination.pathname = answer === "gone" ? HOSTED_GONE_PATH : `${HOSTED_PAGE_PREFIX}${pathname}`;
-  return NextResponse.rewrite(destination);
+  // `forwarded` carries this request's CSP and nonce (issue #331). A
+  // rewrite is still a render, and a render that never saw the nonce emits
+  // script tags the policy on the way out refuses.
+  return NextResponse.rewrite(destination, { request: { headers: forwarded } });
 }
 
 
@@ -342,7 +447,7 @@ export function reportSegmentOf(pathname: string): string | null {
  * the status a removed address serves and the refusal a removed domain's
  * scan gets can never disagree, because they are the same read.
  */
-async function removedRewrite(req: NextRequest): Promise<NextResponse | null> {
+async function removedRewrite(req: NextRequest, forwarded: Headers): Promise<NextResponse | null> {
   if (req.method !== "GET") return null;
   const segment = reportSegmentOf(req.nextUrl.pathname);
   if (segment === null) return null;
@@ -380,22 +485,49 @@ async function removedRewrite(req: NextRequest): Promise<NextResponse | null> {
 
   const destination = req.nextUrl.clone();
   destination.pathname = `/api/report/${domain}/removed`;
-  return NextResponse.rewrite(destination);
+  return NextResponse.rewrite(destination, { request: { headers: forwarded } });
 }
 
 export async function middleware(req: NextRequest): Promise<NextResponse> {
   const { pathname } = req.nextUrl;
 
+  // Issue #331. Minted before anything is decided, because every answer
+  // this function can give is a response a browser will enforce a policy
+  // against — the rewrites and the redirect included.
+  //
+  // `forwarded` is the header set the render sees: Next reads the nonce
+  // back out of `content-security-policy` there and stamps it on every
+  // script tag it emits. It is `set`, never appended, so a caller's claim
+  // about it is overwritten exactly as `GATE_PATH_HEADER`'s is below.
+  //
+  // Next's guide also suggests forwarding the bare value as `x-nonce`, for
+  // a page that writes an inline `<script>` of its own and has to stamp it
+  // by hand. This product writes exactly one — the hosted page's JSON-LD —
+  // and a JSON-LD block is a data block a browser never executes and
+  // `script-src` therefore never checks. So the header is not set: an
+  // unread header is a claim nothing holds true.
+  const nonce = mintNonce();
+  const policy = contentSecurityPolicy(nonce, process.env.NODE_ENV === "development");
+  const forwarded = new Headers(req.headers);
+  forwarded.set(CSP_HEADER, policy);
+
+  /** The one way out of this function: the policy on the response, whatever
+   *  the response turned out to be. */
+  const sealed = (res: NextResponse): NextResponse => {
+    res.headers.set(CSP_HEADER, policy);
+    return res;
+  };
+
   // BUILD §9's hosted edge comes first: a customer's own domain is not a
   // ReachKit surface, and its authorisation is the rewrite rather than this
   // file's allow-list and session check.
-  const hosted = await hostedRewrite(req);
-  if (hosted !== null) return hosted;
+  const hosted = await hostedRewrite(req, forwarded);
+  if (hosted !== null) return sealed(hosted);
 
-  const removed = await removedRewrite(req);
-  if (removed !== null) return removed;
+  const removed = await removedRewrite(req, forwarded);
+  if (removed !== null) return sealed(removed);
 
-  if (isPublic(pathname)) return NextResponse.next();
+  if (isPublic(pathname)) return sealed(NextResponse.next({ request: { headers: forwarded } }));
 
   // An address this product does not have (#405): not public, and under no
   // segment `src/app/` serves. There is nothing here to guard, so the
@@ -421,16 +553,15 @@ export async function middleware(req: NextRequest): Promise<NextResponse> {
     // incoming headers, which **overwrites** any value the caller sent, so
     // the path the gate sees is always the path being served and never a
     // client's claim about it.
-    const forwarded = new Headers(req.headers);
     forwarded.set(GATE_PATH_HEADER, pathname);
-    return NextResponse.next({ request: { headers: forwarded } });
+    return sealed(NextResponse.next({ request: { headers: forwarded } }));
   }
 
   // "asks for an address and says nothing about whether an account or a
   // payment exists" (BP-001 `## Error & edge behavior`, REQ-020 c5): one
   // fixed redirect, no query string, no distinguishing header, for every
   // denied path alike.
-  return NextResponse.redirect(new URL(SIGNIN_PATH, req.url));
+  return sealed(NextResponse.redirect(new URL(SIGNIN_PATH, req.url)));
 }
 
 export const config = {
