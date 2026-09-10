@@ -95,22 +95,36 @@ describe("REQ-045 c1 — every word that would publish is rendered, with nothing
   it("the body's own structure survives: its headings, list and quote are elements, not flattened text", () => {
     const body = markup().querySelector('[data-testid="draft-body"]');
     // One level down, since #355: the page's title is the screen's `<h1>`
-    // and a body's `#` is a heading *within* the page, so the source's one
-    // `#` is an `<h2>` here and its three `##` are `<h3>`. Nothing is
-    // flattened and nothing is lost — `present.ts` says why the shift is on
-    // the level rather than on the size.
+    // and a body's heading is a heading *within* the page, so the source's
+    // three `##` are `<h3>` here. Nothing is flattened and nothing is lost
+    // — `present.ts` says why the shift is on the level rather than on the
+    // size.
+    //
+    // **No `<h1>` and no `<h2>`, and both for the same reason** (issue
+    // #446): the body carries no `#` of its own, because the title is a
+    // column beside it and the screen already draws it above. The `#`
+    // → `h2` rung is exercised where a customer can actually type one —
+    // the editor's preview, below.
     expect(body?.querySelectorAll("h1").length).toBe(0);
-    expect(body?.querySelectorAll("h2").length).toBe(1);
-    expect(body?.querySelectorAll("h3").length).toBeGreaterThanOrEqual(3);
+    expect(body?.querySelectorAll("h2").length).toBe(0);
+    expect(body?.querySelectorAll("h3").length).toBe(3);
+    // **One list, three items** (issue #446). Three `li` was also what the
+    // hard-wrapped fixture rendered — as three lists of one, each followed
+    // by the stray half-sentence its continuation line became. The `ul`
+    // count is the assertion that says which of the two shapes this is.
+    expect(body?.querySelectorAll("ul").length).toBe(1);
     expect(body?.querySelectorAll("ul li").length).toBe(3);
     expect(body?.querySelectorAll("blockquote").length).toBe(1);
   });
 
   it("and the copy-out is not demoted — those are the bytes that publish", () => {
     // The screen's own shift is the screen's. `renderMarkdownHtml` takes
-    // the body with no map and no shift, because on a published page the
-    // body's `#` *is* the title and no heading stands above it.
-    expect(renderMarkdownHtml(VIEW.bodyMd)).toContain("<h1>");
+    // the body with no map and no shift, so the body's `##` is an `<h2>` in
+    // the bytes a customer copies out while the same heading is an `<h3>`
+    // on the screen above them: on the destination no heading of ours
+    // stands over the page.
+    expect(renderMarkdownHtml(VIEW.bodyMd)).toContain("<h2>");
+    expect(markup().querySelector('[data-testid="draft-body"] h2')).toBeNull();
   });
 
   it("the generated-content label renders beside the body, and is the one the server resolved", () => {
