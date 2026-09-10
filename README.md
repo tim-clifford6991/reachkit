@@ -27,8 +27,9 @@ and merge is the only definition of done.
 ## How work happens
 
 One GitHub issue = one branch = one PR. The PR body says `Closes #N`; every *Done when* box on the
-issue is ticked; the required checks are green (`typecheck · lint · unit`, `layout conformance
-(browser)`, `schema · RLS (live Postgres)`, `audit`, `Vercel`); the master lands it. Owner files
+issue is ticked; the five required checks are green (`typecheck · lint · unit`, `layout
+conformance (browser)`, `schema · RLS (live Postgres)`, `closes one issue · done-when ticked`,
+`audit` — `Vercel` is not a gate since 2026-09-09); the master approves and the lander merges it. Owner files
 (`BUILD.md`, `DECISIONS.md`, `ARCHITECTURE.md`, `.github/**`, `scripts/**`, the lint and test
 configs) change only in their own docs PR. The whole process is `docs/PROCESS.md`.
 

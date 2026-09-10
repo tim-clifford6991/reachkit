@@ -22,7 +22,8 @@ holds it. Read the file.
 One issue, one branch, one PR (`docs/PROCESS.md` §1). The PR body carries `Closes #N`, and every
 *Done when* box on the issue is ticked, or the hygiene check fails.
 
-**The required checks on `main`**, all from `.github/workflows/`:
+**Five required checks on `main`**, all from `.github/workflows/` (`docs/PROCESS.md` §3). Branch
+protection requires these five and a code-owner review:
 
 | Check | Workflow | What it runs |
 |---|---|---|
@@ -31,26 +32,27 @@ One issue, one branch, one PR (`docs/PROCESS.md` §1). The PR body carries `Clos
 | `schema · RLS (live Postgres)` | `ci.yml` | `npx vitest run --project db` against a migrated database |
 | `closes one issue · done-when ticked` | `pr-hygiene.yml` | fails on a missing `Closes #N` and on any `- [ ]` left in the issue body |
 | `audit` | `drift-audit.yml` | `npm audit --omit=dev --audit-level=high`, then `scripts/drift-audit.mjs --strict` (spec ↔ code ↔ tests) |
-| `Vercel` | Vercel | the production build. Since 2026-09-09 the ignored-build step builds `main` only, so a PR gets no preview — the renders comment is the review surface (`docs/DEPLOYMENT.md` §1) |
 
-**To land:** `scripts/land.sh <pr> [<pr> ...]`. For each PR in the order given it updates the
-branch if it is behind, waits for green, then merges with `--merge --delete-branch`. The chain
-stops at the first PR that cannot land, so dependent PRs never land out of order. `--admin` is
-deliberate: branch protection requires a code-owner review and an account cannot review its own
-PR — the checks are the gate, the flag only bypasses the review row. A conflicted PR is the
-author's to rebase; the chain waits four hours, then gives up.
+**`Vercel` is not one of them** (2026-09-09). Previews are off — the project's ignored-build step
+builds `main` only — so a PR's Vercel row reports the production build's own state, and once the
+day's Hobby quota is spent it fails with `build-rate-limit` on every open PR. That row is not a
+gate: branch protection does not require it and the lander ignores it. Production builds from
+`main` still deploy normally. The renders comment is the review surface in a preview's place.
 
-Run it in a foreground shell, never as a background job — the box reclaims those under memory
-pressure.
+**To land:** the master reviews the body, the boxes and the renders, records findings as a PR
+comment, and approves by adding the **`master-approved`** label. The lander service
+(`rk-lander.service`) does the rest — updates the branch when it is behind, waits while it is
+conflicted or a check is pending, then merges with a merge commit and `--delete-branch`. Nobody
+waits on a merge. `--admin` is deliberate: the owner's account cannot review its own PR, so the
+checks are the gate and the flag only bypasses the review row.
+
+`scripts/land.sh <pr> [<pr> ...]` is the same chain run by hand when the service is down. Run it
+in a foreground shell, never as a background job — the box reclaims those under memory pressure.
 
 **A merge to `main` is a production deployment.** There is one Vercel project and `main` is its
 production branch, so landing a PR ships it to `reachkit.app`. There is no staging step between
 the two. `dev.reachkit.app` is bound to the same branch on the same project and serves the same
 deployment (`docs/DEPLOYMENT.md` §1).
-
-**Vercel is on the Hobby plan: 100 builds a day, one at a time.** Exhausting it fails every
-subsequent `Vercel` check with `build-rate-limit` and nothing lands until the day rolls over.
-This is why previews were turned off.
 
 ---
 
@@ -570,7 +572,7 @@ recorded in `docs/DEPLOYMENT.md` §3.6.
 | a key leaked | §3 — rotate: mint, paste both targets, redeploy, verify, revoke |
 | a migration needs to reach production | §9 — by hand, through the SQL editor; `db-live` does not exist |
 | the database is gone | §9 — and read the plan warning first |
-| `Vercel` fails on every PR | §1 — the Hobby plan's 100 builds a day |
+| `Vercel` fails on every PR | §1 — the Hobby plan's 100 builds a day. It is not a required check; nothing is blocked |
 
 ---
 
