@@ -72,6 +72,15 @@ import {
   FREE_BOUNDS,
   HOURLY_WINDOW_H,
 } from "@/lib/config/constants";
+import { now } from "@/lib/config/now";
+// By file, not through `@/lib/costs`: the barrel is the spending seam and
+// drags the ledger write and the cache read behind it, where admission
+// only ever asks this one module a question.
+import {
+  ceilingReached,
+  readDaySpendCents,
+  secondsUntilDayRollsOver,
+} from "@/lib/costs/daily";
 import { dbAdmin } from "@/lib/db";
 import { isRemovedWith } from "./removal";
 import type { CanonicalDomain } from "./domain";
@@ -258,6 +267,35 @@ async function checkCooldown(client: Client, domain: CanonicalDomain): Promise<A
   return { refuse: "cooldown", retryAfterSeconds: Math.ceil((windowMs - elapsedMs) / 1000) };
 }
 
+/**
+ * The day's spend, as a refusal — the free path's half of the product-wide
+ * daily ceiling (issue #329, BUILD §6.5).
+ *
+ * "Free scans refuse first, paid passes hold": a paid pass that meets the
+ * ceiling mid-flight degrades and keeps its report (`src/lib/costs/`),
+ * because the customer has already paid for the pass. A free scan is the
+ * spend the product chooses to make, so on a day that has reached its
+ * ceiling it is not started at all — refusing at the door costs a visitor
+ * a wait, where admitting them would cost them a report that stops
+ * half-measured.
+ *
+ * It refuses under the **existing** `daily` arm rather than a new one.
+ * REQ-003 c8's sentence is already the true one for this cause — free
+ * scanning is paused for the day and resumes at a stated time — and the
+ * time it promises is honest here in a way it is nowhere else: the day's
+ * ledger goes to zero at the next UTC midnight whatever anyone does.
+ *
+ * Unreadable ledger admits, like every other step in this handler
+ * (REQ-003 c9): `readDaySpendCents` answers `null` rather than throwing,
+ * and a guard that cannot see is not a reason to stop the product.
+ */
+async function checkDailySpend(): Promise<Admission | null> {
+  const at = now();
+  const spentCents = await readDaySpendCents(at);
+  if (spentCents === null || !ceilingReached(spentCents)) return null;
+  return { refuse: "daily", retryAfterSeconds: secondsUntilDayRollsOver(at) };
+}
+
 async function checkDaily(client: Client): Promise<Admission | null> {
   const windowMs = DAILY_WINDOW_H * 3_600_000;
   const since = new Date(Date.now() - windowMs).toISOString();
@@ -376,7 +414,15 @@ async function evaluateAdmission(
     step = "switched_off";
     if (env.KILL_SWITCH) return { result: { refuse: "switched_off" }, step: "switched_off" };
 
+    // The `daily` step now asks two questions, in the order of what
+    // outranks what: the product's daily *spend* ceiling first (one figure
+    // for everyone, BUILD §6.5), then BUILD §11's count of free scans.
+    // Both settle on the same refusal — free scanning is paused for the
+    // day — so the visitor is told one thing and the step keeps its name.
     step = "daily";
+    const dailySpend = await checkDailySpend();
+    if (dailySpend) return { result: dailySpend, step: "daily" };
+
     const daily = await checkDaily(client);
     if (daily) return { result: daily, step: "daily" };
 

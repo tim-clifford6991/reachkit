@@ -284,6 +284,37 @@ describe("BUILD §6.1 caps — the four spend ceilings, in cents", () => {
   });
 });
 
+/**
+ * The fifth cap, and the only one no document rules yet.
+ *
+ * BUILD §6.1's table pins the four per-pass ceilings; nothing in BUILD,
+ * DECISIONS or DATA-COSTS names a ceiling on the *sum* of them for a day,
+ * which is what issue #329 asked for and what `CAPS.DAILY_PRODUCT_C` is.
+ * So this block quotes no clause: there is none to quote, and a test name
+ * carrying an invented one would be worse than a test name saying so.
+ * What it asserts instead is the arithmetic the figure was chosen by, off
+ * the two clauses that *are* ruled — so the pin cannot drift under the
+ * free path's own worst case without failing here, whatever the owner
+ * later rules the figure itself to be.
+ */
+describe("issue #329 — the product-wide daily ceiling, pinned ahead of the clause that will rule it", () => {
+  it("CAPS.DAILY_PRODUCT_C is 5000¢", () => {
+    expect(pins.CAPS.DAILY_PRODUCT_C).toBe(5000);
+  });
+
+  it(`${B.freeBounds} — the day's ceiling clears the free path's own worst case at those bounds`, () => {
+    const freeWorstCaseC = pins.FREE_BOUNDS.scansPerDay * pins.CAPS.FREE_C;
+    expect(freeWorstCaseC).toBe(2400);
+    expect(pins.CAPS.DAILY_PRODUCT_C).toBeGreaterThan(freeWorstCaseC);
+  });
+
+  it("SPEND_ALERT_AT — the two crossings, as fractions of the ceiling and never as a second pair of cent figures", () => {
+    expect(pins.SPEND_ALERT_AT).toEqual({ warn: 0.8, ceiling: 1 });
+    expect(pins.CAPS.DAILY_PRODUCT_C * pins.SPEND_ALERT_AT.warn).toBe(4000);
+    expect(pins.CAPS.DAILY_PRODUCT_C * pins.SPEND_ALERT_AT.ceiling).toBe(pins.CAPS.DAILY_PRODUCT_C);
+  });
+});
+
 describe("BUILD §6.1 — PLATFORM_DOMAINS, the closed partition list", () => {
   it(`${B.platformDomains} — the ten names §6.1 states, in its order`, () => {
     expect([...pins.PLATFORM_DOMAINS]).toEqual([

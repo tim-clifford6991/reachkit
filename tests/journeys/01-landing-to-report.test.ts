@@ -262,10 +262,18 @@ async function walkTheJourney(value: string): Promise<{ body: { ok: true; locati
   return { body, stages };
 }
 
-function storedReport(): Record<string, unknown> {
+/** The store call, found by name and never by position: the pass makes
+ *  other RPCs now — the cost seam reads the day's ledger through
+ *  `fetches_spend_since` before it spends (issue #329) — and a positional
+ *  read would be asserting against whichever happened to be first. */
+function storeCall(): { fn: string; args: Record<string, unknown> } {
   const call = db.rpcCalls.find((c) => c.fn === "store_current_report");
   if (!call) throw new Error("the pass stored no report");
-  return call.args.p_report as Record<string, unknown>;
+  return call;
+}
+
+function storedReport(): Record<string, unknown> {
+  return storeCall().args.p_report as Record<string, unknown>;
 }
 
 describe("/ → /scan/{domain}: a stranger scans and reads a report (JN-001, JN-006)", () => {
@@ -310,8 +318,8 @@ describe("/ → /scan/{domain}: a stranger scans and reads a report (JN-001, JN-
     expect(report.stoppedReason).toBe("complete");
     expect(report.scanId).toBe(scanId);
     expect(db.rpcCalls.filter((c) => c.fn === "store_current_report")).toHaveLength(1);
-    expect(db.rpcCalls[0]?.args.p_make_current).toBe(true);
-    expect(db.rpcCalls[0]?.args.p_status).toBe("done");
+    expect(storeCall().args.p_make_current).toBe(true);
+    expect(storeCall().args.p_status).toBe("done");
   }, JOURNEY_TIMEOUT_MS);
 
   it("the report it leaves carries every section §4.1 renders", async () => {
@@ -391,7 +399,7 @@ describe("/ → /scan/{domain}: a stranger scans and reads a report (JN-001, JN-
     // about 6.3¢ before ADR-094's AI-Overview surcharge.
     expect(spent).toBeGreaterThan(0);
     expect(spent).toBeLessThanOrEqual(CAPS.FREE_C);
-    expect(Number(db.rpcCalls[0]?.args.p_cost_cents)).toBeLessThanOrEqual(CAPS.FREE_C);
+    expect(Number(storeCall().args.p_cost_cents)).toBeLessThanOrEqual(CAPS.FREE_C);
 
     // The closed list, and nothing outside it (§6.3). The free path makes
     // zero AI Optimization API calls and buys no `competitors_domain`.

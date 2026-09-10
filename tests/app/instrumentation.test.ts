@@ -89,6 +89,8 @@ describe("the assertion runs once at boot, on the Node.js runtime", () => {
       { event: "boot_invariants", check: "jobs", outcome: "checked" },
       { event: "boot_invariants", check: "access-gate", outcome: "checked" },
       { event: "boot_invariants", check: "stamp-place", outcome: "checked" },
+      // The cost seam's alert sink, introduced to the mail side (issue #329).
+      { event: "boot_invariants", check: "spend-alerts", outcome: "checked" },
       { event: "boot_invariants", check: "checkout", outcome: "checked" },
     ]);
     expect(errored).toEqual([]);
@@ -145,13 +147,15 @@ describe("a vendor that could not be read is not a mismatch, and does not take t
     expect(errored.map((line) => JSON.parse(line))).toEqual([
       { event: "boot_invariants", check: "checkout", outcome: "unchecked", reason: "Error" },
     ]);
-    // The clock binding, the jobs bindings, the gate and the place port are
-    // local and were established before the vendor was asked.
+    // The clock binding, the jobs bindings, the gate, the place port and
+    // the spend-alert sink are local and were established before the
+    // vendor was asked.
     expect(logged.map((line) => JSON.parse(line))).toEqual([
       { event: "boot_invariants", check: "clock", outcome: "checked" },
       { event: "boot_invariants", check: "jobs", outcome: "checked" },
       { event: "boot_invariants", check: "access-gate", outcome: "checked" },
       { event: "boot_invariants", check: "stamp-place", outcome: "checked" },
+      { event: "boot_invariants", check: "spend-alerts", outcome: "checked" },
     ]);
   });
 
