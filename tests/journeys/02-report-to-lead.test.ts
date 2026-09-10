@@ -52,7 +52,7 @@
 // which is the promise §4.2 makes about the visitor's request.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { fakeDb } from "../scan/run/harness";
+import { ENV_FIXTURE, fakeDb } from "../scan/run/harness";
 import { memoryStore, newMemoryState, type MemoryState } from "../mail/leads/memory-store";
 import { memoryAccountStore, newMemoryAccounts, type MemoryAccounts } from "../account/memory-store";
 
@@ -523,8 +523,8 @@ describe('"Email me the full page" → lead → first page → a follow-up that 
     // The mails that did go out went through the one send seam to the one
     // vendor transport, and there were exactly four of them.
     expect(inbox).toHaveLength(1 + NURTURE_MAX_TOUCHES);
-    expect(new Set(inbox.map((mail) => mail.from))).toEqual(
-      new Set(["hello@app.example.com"])
-    );
+    // #81: the From is the `MAIL_FROM` binding, not a local part derived
+    // from the app URL's host.
+    expect(new Set(inbox.map((mail) => mail.from))).toEqual(new Set([ENV_FIXTURE.MAIL_FROM]));
   });
 });

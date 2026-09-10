@@ -33,20 +33,6 @@ const RESEND_PATH = "/emails";
  *  constant. */
 const SEND_TIMEOUT_MS = 10_000;
 
-/** The mailbox a ReachKit mail comes from.
- *
- *  **Owner-owed.** `BUILD.md` §15's binding list carries no `MAIL_FROM`,
- *  and `src/lib/config/env.ts` is the owner's file, so this seam derives
- *  the address from the one deployment hostname it does have rather than
- *  inventing a second brand string. The local part is a parameter (rule
- *  1.1) and the whole thing is one line to replace the day a `MAIL_FROM`
- *  binding exists. */
-const FROM_LOCAL_PART = "hello";
-
-export function fromAddress(): string {
-  return `${FROM_LOCAL_PART}@${new URL(env.NEXT_PUBLIC_APP_URL).hostname}`;
-}
-
 /** Enough of a recipient to correlate sends, never enough to reach one. */
 export function recipientDigest(address: string): string {
   return createHash("sha256").update(address.trim().toLowerCase()).digest("hex").slice(0, 12);
@@ -148,7 +134,10 @@ function logSend(a: {
 export async function sendViaVendor(v: VendorSend): Promise<VendorResult> {
   const recipient = recipientDigest(v.to);
   const { subject, html, text } = v;
-  const payload = JSON.stringify({ from: fromAddress(), to: [v.to], subject, html, text });
+  // §15's `MAIL_FROM` (issue #81), read at the send. Not derived from
+  // `NEXT_PUBLIC_APP_URL` any more: that address was only ever right on
+  // production, and the boot refuses a deployment that names no mailbox.
+  const payload = JSON.stringify({ from: env.MAIL_FROM, to: [v.to], subject, html, text });
 
   let response: TransportResponse;
   try {

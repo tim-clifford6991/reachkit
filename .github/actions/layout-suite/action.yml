@@ -41,6 +41,7 @@ runs:
           echo "STRIPE_WEBHOOK_SECRET=whsec_fixture"
           echo "STRIPE_PRICE_ID=price_fixture"
           echo "RESEND_API_KEY=re_fixture"
+          echo "MAIL_FROM=hello@reachkit.example"
           echo "DATAFORSEO_LOGIN=fixture"
           echo "DATAFORSEO_PASSWORD=fixture"
           echo "ANTHROPIC_API_KEY=sk-ant-fixture"

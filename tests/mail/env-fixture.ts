@@ -10,6 +10,9 @@ export const ENV_FIXTURE: Readonly<Record<string, string>> = Object.freeze({
   STRIPE_WEBHOOK_SECRET: "whsec_fixture",
   STRIPE_PRICE_ID: "price_fixture",
   RESEND_API_KEY: "re_fixture",
+  // #81: a mailbox at a host `NEXT_PUBLIC_APP_URL` does not name, so a
+  // re-derived From cannot pass `tests/mail/vendor/vendor.test.ts`.
+  MAIL_FROM: "post@mailbox.example",
   DATAFORSEO_LOGIN: "dfs-login-fixture",
   DATAFORSEO_PASSWORD: "dfs-password-fixture",
   ANTHROPIC_API_KEY: "sk-ant-fixture",
