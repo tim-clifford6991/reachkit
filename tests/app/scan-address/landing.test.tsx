@@ -36,6 +36,12 @@ import React from "react";
 
 vi.mock("@/lib/presentation/copy", () => ({ copy: (key: string) => key }));
 
+// Issue #438 — the route hands the free pass to `after()`, which throws
+// outside a request scope. Stood in here so the no-JavaScript suite below
+// can still call `POST` directly; the task is recorded and never run, so
+// no pipeline is started by a suite about a rendered page.
+vi.mock("next/server", () => ({ after: () => undefined }));
+
 import { POST } from "@/app/api/scan/route";
 
 vi.mock("@/lib/scan/admission", () => ({

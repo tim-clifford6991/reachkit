@@ -2,7 +2,9 @@
 //
 // The two places setup meets the queue: the deep pass, run by `scan/run`
 // with tier as a parameter, and the setup reminders, ticked by
-// `account/maintenance` as its sixth obligation.
+// `account/maintenance` as its sixth obligation — and, since issue #438,
+// the seventh obligation on the same tick, which is not setup's but rides
+// the harness this file already builds for that tick.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { applyEnvFixture } from "../mail/env-fixture";
 
@@ -11,6 +13,8 @@ applyEnvFixture();
 const deepPass = vi.fn();
 const dueReminders = vi.fn();
 const sendReminder = vi.fn();
+const dueStuckScans = vi.fn();
+const finishStuckScan = vi.fn();
 
 vi.mock("@/lib/scan/deep/run", () => ({ runDeepPass: (a: unknown) => deepPass(a) }));
 vi.mock("@/lib/mail/setup/reminders", () => ({
@@ -23,6 +27,12 @@ vi.mock("@/lib/mail/setup/reminders", () => ({
 vi.mock("@/lib/account/provisioning/due-work", () => ({
   paymentsAwaitingSignIn: async () => [],
   paymentsWithoutAccounts: async () => [],
+}));
+// The seventh obligation (issue #438) reads `scans` rows on every tick, so
+// it is stood in here for the same reason as the payment half.
+vi.mock("@/lib/scan/stuck", () => ({
+  scansLeftRunning: () => dueStuckScans(),
+  finishScanLeftRunning: (id: string) => finishStuckScan(id),
 }));
 
 const engine = await import("../../src/jobs/engine");
@@ -57,6 +67,10 @@ beforeEach(() => {
   deepPass.mockResolvedValue({ scanId: "scan-1", status: "done", reason: "completed" });
   dueReminders.mockResolvedValue([]);
   sendReminder.mockResolvedValue({ sent: true, index: 0 });
+  dueStuckScans.mockReset();
+  finishStuckScan.mockReset();
+  dueStuckScans.mockResolvedValue([]);
+  finishStuckScan.mockResolvedValue({ finished: true });
 });
 
 describe("§11 — the registry stays closed; setup adds no job of its own", () => {
@@ -158,5 +172,31 @@ describe("the engine seam holds no rule of its own", () => {
     expect(await engine.sitesDueSetupReminder()).toEqual(["site-1"]);
     expect(await engine.remindSetup("site-1")).toEqual({ done: true });
     expect(sendReminder).toHaveBeenCalledWith("site-1");
+  });
+});
+
+// ── Issue #438 — the seventh obligation ────────────────────────────────
+
+describe("§6.4 — a free pass a frozen invocation left `running` is finished by the tick", () => {
+  it("the row the sweep names is handed to the finisher, and the tick reports a run", async () => {
+    dueStuckScans.mockResolvedValue(["scan-ghost-1"]);
+    const outcome = await accountMaintenance.run({ data: {}, now: NOW });
+
+    expect(finishStuckScan).toHaveBeenCalledWith("scan-ghost-1");
+    expect(outcome).toEqual({ outcome: "ran", subjectId: null });
+  });
+
+  it("a tick with nothing stuck writes nothing — the ordinary hour", async () => {
+    await accountMaintenance.run({ data: {}, now: NOW });
+    expect(finishStuckScan).not.toHaveBeenCalled();
+  });
+
+  it("a row that finished itself between the query and the write is not a degradation", async () => {
+    dueStuckScans.mockResolvedValue(["scan-ghost-1"]);
+    finishStuckScan.mockResolvedValue({ finished: false });
+    expect(await accountMaintenance.run({ data: {}, now: NOW })).toEqual({
+      outcome: "ran",
+      subjectId: null,
+    });
   });
 });

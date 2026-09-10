@@ -28,10 +28,28 @@ vi.mock("@/lib/scan/admission", () => ({
   claimFreeScanSlot: vi.fn(),
 }));
 
+// Issue #438 — the keep-alive seam. The route hands the pass to `after()`
+// rather than dropping a promise on the floor, so what this file can
+// observe is the *registration*: the tasks the route handed over, and what
+// running one does. Standing in for `next/server` is also what makes the
+// route callable at all outside a request scope — the real `after` throws
+// there, by design.
+const { afterTasks } = vi.hoisted(() => ({ afterTasks: [] as (() => Promise<void>)[] }));
+vi.mock("next/server", () => ({
+  after: (task: () => Promise<void>) => {
+    afterTasks.push(task);
+  },
+}));
+// The pipeline itself, replaced wholesale so no engine — and no `@/lib/db`
+// — is loaded by this suite, exactly as the admission mock above does one
+// layer down.
+vi.mock("@/lib/scan/run", () => ({ runScan: vi.fn() }));
+
 import { networkKeyOf, claimFreeScanSlot } from "@/lib/scan/admission";
+import { runScan } from "@/lib/scan/run";
 import type { Admission, NetworkKey } from "@/lib/scan/admission";
 import type { CanonicalDomain } from "@/lib/scan/domain";
-import { POST } from "@/app/api/scan/route";
+import { POST, maxDuration } from "@/app/api/scan/route";
 
 const ROUTE_PATH = path.resolve(import.meta.dirname, "../../../src/app/api/scan/route.ts");
 const ROUTE_SOURCE = readFileSync(ROUTE_PATH, "utf8");
@@ -64,13 +82,17 @@ function postForm(fields: Record<string, string>, headers: Record<string, string
 }
 
 beforeEach(() => {
+  afterTasks.length = 0;
   vi.mocked(networkKeyOf).mockReturnValue(NETWORK);
   vi.mocked(claimFreeScanSlot).mockResolvedValue({ claimed: true, scanId: "claimed-scan-id" });
+  vi.mocked(runScan).mockResolvedValue({ scanId: "claimed-scan-id", status: "done" });
 });
 
 afterEach(() => {
   vi.mocked(networkKeyOf).mockReset();
   vi.mocked(claimFreeScanSlot).mockReset();
+  vi.mocked(runScan).mockReset();
+  vi.mocked(runScan).mockResolvedValue({ scanId: "claimed-scan-id", status: "done" });
 });
 
 // ── REQ-001 c2 ─────────────────────────────────────────────────────────
@@ -317,5 +339,61 @@ describe("Out of scope — this file exports POST only", () => {
   it("api/scan · route.ts declares no GET handler", () => {
     expect(ROUTE_SOURCE).not.toMatch(/export\s+(async\s+)?function\s+GET\b/);
     expect(ROUTE_SOURCE).not.toMatch(/export\s+const\s+GET\b/);
+  });
+});
+
+// ── Issue #438 — the pass outlives the response ────────────────────────
+
+describe("issue #438 — the pipeline is registered with the keep-alive seam, never left as a dangling promise", () => {
+  it("api/scan · a claim hands the pass to after(), and running that task runs the free pass", async () => {
+    const res = await POST(postJson("example.com"));
+    expect(res.status).toBe(200);
+
+    // The registration is the assertion: the route did not merely start a
+    // promise and return — it handed the work to the seam that keeps the
+    // invocation alive past the response.
+    expect(afterTasks).toHaveLength(1);
+    expect(runScan).not.toHaveBeenCalled();
+
+    await afterTasks[0]!();
+    expect(runScan).toHaveBeenCalledWith({ domain: "example.com", tier: "free" });
+  });
+
+  it("api/scan · a refusal registers no task at all — nothing is kept alive for a pass that never started", async () => {
+    vi.mocked(claimFreeScanSlot).mockResolvedValue({
+      claimed: false,
+      refusal: { refuse: "in_flight", sameDomain: true, runningScanId: "running-scan-id" },
+    });
+    const res = await POST(postJson("example.com"));
+    expect(res.status).toBe(200);
+    expect(afterTasks).toHaveLength(0);
+  });
+
+  it("api/scan · a pass that throws is logged and never reaches the response, which has already gone", async () => {
+    const logged: string[] = [];
+    const log = vi.spyOn(console, "log").mockImplementation((line: string) => void logged.push(line));
+    vi.mocked(runScan).mockRejectedValue(new Error("the engine fell over"));
+
+    await POST(postJson("example.com"));
+    await expect(afterTasks[0]!()).resolves.toBeUndefined();
+    expect(logged.map((line) => JSON.parse(line).event)).toContain("scan_start_failed");
+    log.mockRestore();
+  });
+
+  it("api/scan · route.ts registers through `after`, and drops no promise on the floor", () => {
+    expect(ROUTE_SOURCE).toMatch(/import\s+\{\s*after\s*\}\s+from\s+["']next\/server["']/);
+    expect(ROUTE_SOURCE).toMatch(/after\(/);
+    // The shape the live check found doing nothing on the deployment: a
+    // promise started and abandoned, which a frozen invocation never runs.
+    expect(ROUTE_SOURCE).not.toMatch(/void\s+import\(/);
+  });
+
+  it("api/scan · the route declares the platform's own ceiling, once, as a literal Next can read at build time", () => {
+    expect(maxDuration).toBe(60);
+    // Route segment config is extracted from the source, so an imported
+    // binding would be invisible to the build — and a number Next cannot
+    // see is a ceiling the platform never applies.
+    expect(ROUTE_SOURCE).toMatch(/export const maxDuration = \d+;/);
+    expect(ROUTE_SOURCE.match(/export const maxDuration/g)).toHaveLength(1);
   });
 });

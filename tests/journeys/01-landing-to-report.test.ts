@@ -6,7 +6,7 @@
 // End to end, at the seams and no further in. Everything the product owns
 // is real: the API route, admission, the pipeline, the cost seam and its
 // ledger, the measurement, the market chain, the two cards, the verdict,
-// the assembly and the store. Four things outside the process are doubled,
+// the assembly and the store. Five things outside the process are doubled,
 // each at the last line of our own code:
 //
 //   · the customer's own server        → `safeFetch` / `readRobots`
@@ -14,6 +14,8 @@
 //                                        transport issues
 //   · Anthropic                        → the SDK client `llm()` constructs
 //   · Postgres                         → a PostgREST-shaped double
+//   · the serverless platform          → `after()`, which the platform
+//                                        answers with `waitUntil`
 //
 // So the money is real money: every vendor and model call runs through
 // `recordFetch`, every one writes a `fetches` row, and the ledger this
@@ -40,6 +42,18 @@ let journey = 0;
 
 const db = fakeDb();
 vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
+
+// The platform, at the fifth seam (issue #438). The route no longer drops
+// the pass as an abandoned promise: it hands it to `after()`, which Next
+// gives to the platform's own `waitUntil` so the invocation outlives the
+// response. The double here is what `waitUntil` does — start the work and
+// do not wait for it — which is exactly the shape this journey walks: the
+// POST returns, and the progress stream below watches the pass it started.
+vi.mock("next/server", () => ({
+  after: (task: () => Promise<void>) => {
+    void task();
+  },
+}));
 
 // ── The customer's own server ───────────────────────────────────────────
 
