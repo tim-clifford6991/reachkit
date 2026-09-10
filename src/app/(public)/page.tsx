@@ -29,6 +29,7 @@
 // This-week card — which are server reads over the reserved fixture. The
 // interactive parts are `ScanForm` and `FieldCta`, both client leaves.
 import type React from "react";
+import type { Metadata } from "next";
 import { Play } from "lucide-react";
 import { Surface } from "@/ui/layout";
 import { CardHead, IdiomCard } from "@/ui/idiom";
@@ -38,6 +39,8 @@ import { HeroShot } from "./_landing/HeroShot";
 import { MatrixCard } from "./_landing/MatrixCard";
 import { WeekCard } from "./_landing/WeekCard";
 import { FieldCta, FIELD_SECTION_ID } from "./_landing/FieldCta";
+import { PUBLIC_ROUTE_SEO } from "./_seo/routes";
+import { staticMetadata } from "./_seo/metadata";
 
 type LandingSearchParams = { problem?: string; value?: string };
 
@@ -54,6 +57,12 @@ const STEPS = [
   { n: "2", title: "landing.step.2.title", body: "landing.step.2.body" },
   { n: "3", title: "landing.step.3.title", body: "landing.step.3.body" },
 ] as const;
+
+/** Issue #326: the one public route a stranger is meant to arrive at from
+ *  a search result, so the one whose `<head>` matters most. Indexable,
+ *  named in the app host's sitemap, and its share image is the group's
+ *  own — `opengraph-image.tsx` beside this file. */
+export const metadata: Metadata = staticMetadata(PUBLIC_ROUTE_SEO.landing);
 
 export default function LandingPage(props: {
   searchParams?: Promise<LandingSearchParams> | LandingSearchParams;

@@ -40,6 +40,7 @@
 //
 // Every sentence is a registry key.
 import type React from "react";
+import type { Metadata } from "next";
 import { Mail } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import type { CopyKey } from "@/lib/presentation/copy";
@@ -49,6 +50,8 @@ import { CardHead, IdiomCard } from "@/ui/idiom";
 import { Surface } from "@/ui/layout";
 import { AddressLine } from "@/app/_fallback/AddressLine";
 import type { Arm, Band } from "@/ui/layout";
+import { PUBLIC_ROUTE_SEO } from "../../_seo/routes";
+import { staticMetadata } from "../../_seo/metadata";
 
 /** Next hands a dynamic segment as a promise; the suite calls this
  *  component directly with a resolved object, the same direct-call
@@ -89,6 +92,15 @@ function arm(applied: Awaited<ReturnType<typeof applyOptOutToken>>): {
   const line: CopyKey = applied.error === "invalid" ? "optout.invalid" : "optout.unavailable";
   return { head: "optout.head.unresolved", line: <p>{copy(line)}</p> };
 }
+
+/** Issue #326: `noindex`, from this route's row in `_seo/routes.ts`. The
+ *  path is the credential — a mail's one-use removal link — so an indexed
+ *  `/opt-out/{token}` is that link published to everyone who can read a
+ *  search result, which is issue #144's reasoning for the veto page
+ *  holding identically here. The row's `{token}` spelling is passed as the
+ *  path on purpose: the composer emits no canonical for a pattern, and a
+ *  `<link rel="canonical">` would restate the token inside the document. */
+export const metadata: Metadata = staticMetadata(PUBLIC_ROUTE_SEO.optOut);
 
 export default async function OptOutPage(p: {
   params: TokenParams | Promise<TokenParams>;

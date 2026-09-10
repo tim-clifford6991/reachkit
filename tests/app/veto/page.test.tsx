@@ -438,8 +438,16 @@ describe("the address: public, and never indexed", () => {
     expect(PUBLIC_PATHS).toContain("/veto/:token");
   });
 
-  it("the route exports metadata that turns indexing and following off", () => {
-    expect(codeOf(PAGE)).toMatch(/robots:\s*\{\s*index:\s*false,\s*follow:\s*false\s*\}/);
+  it("the route's exported metadata turns indexing and following off", async () => {
+    // Issue #326 moved the directive off this page and onto the route's
+    // row in `_seo/routes.ts` — the same row the app host's sitemap reads.
+    // The assertion follows it, onto the object the route actually
+    // exports rather than the spelling it used to be written in.
+    const { metadata } = (await import(
+      "../../../src/app/(public)/veto/[token]/page.tsx"
+    )) as { metadata: { robots?: unknown } };
+    expect(metadata.robots).toEqual({ index: false, follow: false });
+    expect(codeOf(PAGE)).not.toMatch(/robots:\s*\{/);
   });
 
   it("`next.config.ts` declares the X-Robots-Tag header for this path", () => {

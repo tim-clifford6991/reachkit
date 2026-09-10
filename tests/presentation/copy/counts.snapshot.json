@@ -204,6 +204,32 @@
     ],
     "ruled": 45
   },
+  "meta.ts": {
+    "owed": [],
+    "awaiting": [
+      "meta.landing.title",
+      "meta.landing.description",
+      "meta.pricing.title",
+      "meta.pricing.description",
+      "meta.privacy.title",
+      "meta.privacy.description",
+      "meta.terms.title",
+      "meta.terms.description",
+      "meta.imprint.title",
+      "meta.imprint.description",
+      "meta.signin.title",
+      "meta.signin.description",
+      "meta.report.title",
+      "meta.report.description",
+      "meta.veto.title",
+      "meta.veto.description",
+      "meta.optout.title",
+      "meta.optout.description",
+      "meta.og.alt",
+      "meta.report.og.alt"
+    ],
+    "ruled": 0
+  },
   "offer.ts": {
     "owed": [
       "price.vat_included"

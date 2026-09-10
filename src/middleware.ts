@@ -216,7 +216,40 @@ export const PUBLIC_PATHS: readonly string[] = [
   "/privacy",
   "/terms",
   "/imprint",
+  // Issue #326: the web app manifest. It is a Next metadata route rather
+  // than a file of ours (`src/app/manifest.ts`), and Next will serve a
+  // manifest only from the top level of `app/` — so unlike the icons and
+  // the share images it has one fixed, unhashed address and takes an
+  // ordinary row. It reads nothing: the document is a copy key, two
+  // tokens and a start URL.
+  "/manifest.webmanifest",
 ];
+
+/** The addresses of Next's own generated metadata assets under `(public)`:
+ *  the tab icon, the apple-touch icon and the two share images (issue
+ *  #326).
+ *
+ *  **They are matched by shape because they have no fixed spelling.** A
+ *  metadata route inside a route group is given a six-character build-time
+ *  hash — `/icon-a1b2c3`, not `/icon`
+ *  (`next/dist/esm/lib/metadata/get-metadata-route.js`) — and the files
+ *  are inside `(public)` on purpose, so that ReachKit's mark and share
+ *  card are not put on `(account)` and `(hosted)` documents as well.
+ *
+ *  **The match is anchored to the two segments that own an image**, `/`
+ *  and `/scan/{domain}`, and not to a last segment anywhere. A bare
+ *  suffix rule would make `/app/draft/opengraph-image-a1b2c3` public, and
+ *  that path is not a missing asset — it is the draft screen with a
+ *  `draftId` that happens to look like one, rendered with no session. */
+const METADATA_ASSET = /^(icon|apple-icon|opengraph-image)\d?(-[a-z0-9]{6})?(\.[a-z0-9]+)?$/;
+
+export function isMetadataAsset(pathname: string): boolean {
+  const segments = pathname.split("/");
+  const last = segments[segments.length - 1] ?? "";
+  if (!METADATA_ASSET.test(last)) return false;
+  const parent = segments.slice(0, -1).join("/");
+  return parent === "" || /^\/scan\/[^/]+$/.test(parent);
+}
 
 /** BUILD §9's hosted edge: `content.{customer-domain}`, by CNAME.
  *
@@ -379,6 +412,7 @@ function isPublic(pathname: string): boolean {
     isNextInternal(pathname) ||
     pathname === SIGNIN_PATH ||
     isAdapterPath(pathname) ||
+    isMetadataAsset(pathname) ||
     matchesPublicPath(pathname)
   );
 }

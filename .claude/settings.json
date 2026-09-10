@@ -1,16 +1,31 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm run typecheck)",
       "Bash(npm run lint)",
-      "Bash(npm test)",
-      "Bash(npm run test:*)",
+      "Bash(npx vitest run:*)",
+      "Bash(bash /root/ops/reachkit/bin/heavy.sh:*)",
       "Bash(gh issue view:*)",
       "Bash(gh issue list:*)",
+      "Bash(gh issue edit:*)",
       "Bash(gh pr view:*)",
       "Bash(gh pr checks:*)",
       "Bash(gh pr list:*)",
+      "Bash(gh pr create:*)",
+      "Bash(gh pr edit:*)",
+      "Bash(gh pr comment:*)",
+      "Bash(gh run view:*)",
+      "Bash(gh run list:*)",
+      "Bash(git fetch:*)",
+      "Bash(git worktree add:*)",
+      "Bash(git push:*)",
       "Bash(node scripts/drift-audit.mjs*)"
+    ],
+    "deny": [
+      "Bash(gh pr merge:*)",
+      "Bash(gh issue create:*)",
+      "Bash(npm run build)",
+      "Bash(npx next build:*)",
+      "Bash(npm run test:layout*)"
     ]
   }
 }
