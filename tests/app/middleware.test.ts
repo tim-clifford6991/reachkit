@@ -20,7 +20,7 @@
 // `GUARDED_SEGMENTS` is the list that draws the line, and the walk of
 // `src/app/**` below fails — naming the route — the day a route arrives
 // under a segment neither that list nor `PUBLIC_PATHS` covers.
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 // #104 gave this function one narrow database read — the removal rewrite
 // for `GET /scan/{domain}` — so importing it now loads `@/lib/db` and
@@ -38,6 +38,23 @@ vi.mock("@/lib/scan/removal", () => ({ isDomainRemoved: async () => false }));
 import { existsSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { middleware, PUBLIC_PATHS, GUARDED_SEGMENTS, config, isMetadataAsset } from "@/middleware";
+import { setIdentityAuth, type IdentityAuth } from "@/lib/account/identity/auth";
+import {
+  addAuthUser,
+  FAKE_AUTH_COOKIE,
+  fakeIdentityAuth,
+  newFakeAuth,
+  signedInCookie,
+} from "../account/identity/fake-auth";
+
+/** #468: a session is Supabase Auth's, and the middleware asks `getUser()`
+ *  who it belongs to. This is the in-memory double of it, with one live
+ *  session, installed for every case in this file. */
+const AUTH = newFakeAuth();
+addAuthUser(AUTH, { id: "user-1", email: "founder@example.com" });
+const SIGNED_IN = signedInCookie(AUTH, "user-1");
+beforeEach(() => setIdentityAuth(fakeIdentityAuth(AUTH)));
+afterEach(() => setIdentityAuth(null));
 
 function requestTo(pathname: string, cookie?: string): NextRequest {
   const headers: Record<string, string> = {};
@@ -84,7 +101,7 @@ describe(
     );
 
     it("/setup with a session cookie is allowed", async () => {
-      const res = await middleware(requestTo("/setup", "rk_session=a-token"));
+      const res = await middleware(requestTo("/setup", SIGNED_IN));
       expect(res.status).not.toBeGreaterThanOrEqual(300);
     });
   }
@@ -116,10 +133,11 @@ describe(
         "/opt-out/:token": "/opt-out/abc123",
         "/pricing": "/pricing",
         "/signin": "/signin",
-        // Issue #35 — the route that redeems a sign-in link. It has to be
+        // Issue #468 (was `/signin/:token`, #35) — the route that redeems a
+        // sign-in link through Supabase's `verifyOtp`. It has to be
         // reachable with no session, because having no session is the whole
         // reason its holder is following it.
-        "/signin/:token": "/signin/abc123",
+        "/auth/confirm": "/auth/confirm",
         // Issue #144 — the address the `draft-ready` mail's one veto link
         // lands on. Reachable with no session for the same reason: its
         // holder is reading a mail, not the app.
@@ -293,7 +311,7 @@ describe("#405 — an unmatched address falls through to the root 404, signed ou
     // stranger and a customer are shown at the same address is the same
     // screen. Anything else would make a 404 a statement about the reader.
     const out = await middleware(requestTo(pathname));
-    const inn = await middleware(requestTo(pathname, "rk_session=a-token"));
+    const inn = await middleware(requestTo(pathname, SIGNED_IN));
     expect(out.status).toBe(inn.status);
     expect(out.status).toBeLessThan(300);
     expect(out.headers.get("location")).toBe(null);
@@ -418,5 +436,68 @@ describe("`## Interfaces` — the exported matcher", () => {
     expect(Array.isArray(config.matcher)).toBe(true);
     expect(config.matcher.length).toBeGreaterThan(0);
     for (const entry of config.matcher) expect(typeof entry).toBe("string");
+  });
+});
+
+// ── #468 — the session is Supabase Auth's, verified with `getUser()` ────
+
+describe("#468: a guarded request is signed in only when Supabase verifies its session", () => {
+  function withAuth(auth: IdentityAuth): void {
+    setIdentityAuth(auth);
+  }
+
+  it("a live Supabase session reaches /app", async () => {
+    expect(await isDenied("/app", SIGNED_IN)).toBe(false);
+  });
+
+  it("a forged Supabase cookie is denied — presence is not a session", async () => {
+    expect(await isDenied("/app", `${FAKE_AUTH_COOKIE}=forged-by-the-browser`)).toBe(true);
+  });
+
+  it("a revoked session is denied", async () => {
+    const auth = newFakeAuth();
+    addAuthUser(auth, { id: "user-9", email: "gone@example.com" });
+    const cookie = signedInCookie(auth, "user-9");
+    for (const s of auth.sessions) s.revoked = true;
+    withAuth(fakeIdentityAuth(auth));
+    expect(await isDenied("/app", cookie)).toBe(true);
+  });
+
+  it("the old home-made cookie is no session at all", async () => {
+    expect(await isDenied("/app", "rk_session=a-token")).toBe(true);
+  });
+
+  it("a request with no Supabase cookie never asks Supabase", async () => {
+    const asked = vi.fn(async () => ({ userId: "user-1", accessToken: "t" }));
+    withAuth({ ...fakeIdentityAuth(AUTH), sessionUser: asked });
+    expect(await isDenied("/app", "rk_session=a-token; other=1")).toBe(true);
+    expect(await isDenied("/app")).toBe(true);
+    expect(asked).not.toHaveBeenCalled();
+  });
+
+  it("a Supabase that fails answers signed-out, never signed-in", async () => {
+    withAuth({
+      ...fakeIdentityAuth(AUTH),
+      sessionUser: async () => {
+        throw new Error("auth server down");
+      },
+    });
+    expect(await isDenied("/app", SIGNED_IN)).toBe(true);
+  });
+
+  it("a session rotated on the way in lands on the response and on the request the render reads", async () => {
+    withAuth({
+      ...fakeIdentityAuth(AUTH),
+      sessionUser: async (io) => {
+        io.setAll([
+          { name: FAKE_AUTH_COOKIE, value: "rotated", options: { path: "/", httpOnly: true } },
+        ]);
+        return { userId: "user-1", accessToken: "rotated" };
+      },
+    });
+    const res = await middleware(requestTo("/app", SIGNED_IN));
+    expect(res.status).toBeLessThan(300);
+    expect(res.cookies.get(FAKE_AUTH_COOKIE)?.value).toBe("rotated");
+    expect(res.headers.get("x-middleware-request-cookie")).toContain(`${FAKE_AUTH_COOKIE}=rotated`);
   });
 });

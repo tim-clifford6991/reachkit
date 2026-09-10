@@ -106,8 +106,9 @@ function pendingOf(
 /**
  * REQ-077 criterion 2. Sends a link to the new address and changes nothing
  * else. A second call replaces the pending address rather than adding one:
- * `issueLink` spends the live `email_change` token first, and the three
- * columns are overwritten, so there is at most one change in flight.
+ * the three columns are overwritten, `pending_email_token_hash` with them,
+ * and redemption refuses any link whose hash is not the one standing there
+ * — so there is at most one change in flight, and it is the newest (#468).
  */
 export async function beginEmailChange(
   userId: string,
@@ -144,7 +145,6 @@ export async function beginEmailChange(
     sentAt: now,
   });
   if (!written.ok) {
-    await store.spendLive(userId, "email_change", now);
     return written.conflict === true
       ? { ok: false, reason: "in_use", lineKey: "settings.account.email-in-use" }
       : { ok: false, reason: "unavailable", lineKey: "settings.account.email-change-unavailable" };
@@ -163,7 +163,6 @@ export async function beginEmailChange(
     // rather than leave a customer looking at an address awaiting a link
     // that is not coming.
     await store.clearPending(userId);
-    await store.spendLive(userId, "email_change", now);
     logLink({
       event: "email_change_link_not_sent",
       userId,
@@ -183,13 +182,13 @@ export async function beginEmailChange(
 }
 
 /**
- * REQ-077 criterion 4. Clears all three pending columns and spends the live
- * token, so the link in the customer's inbox stops working the moment they
- * cancel. The account is unchanged — it never changed.
+ * REQ-077 criterion 4. Clears all three pending columns — the token hash
+ * among them — so the link in the customer's inbox stops working the moment
+ * they cancel: redemption looks the account up by that hash before it asks
+ * Supabase anything (#468). The account is unchanged — it never changed.
  */
-export async function cancelEmailChange(userId: string, now: Date = new Date()): Promise<void> {
+export async function cancelEmailChange(userId: string): Promise<void> {
   const store = identityStore();
-  await store.spendLive(userId, "email_change", now);
   await store.clearPending(userId);
   logLink({ event: "email_change_cancelled", userId, purpose: "email_change", outcome: "cleared" });
 }

@@ -4,7 +4,8 @@
 // the one property that matters about both: with nothing registered they
 // say so, and they never invent an answer.
 //
-// The sign-in link's issuer is issue #35's (`auth_links`, `issueLink`); the
+// The sign-in link's issuer is issue #35's (Supabase Auth's `generateLink`
+// behind `issueLink` since #468); the
 // deep pass's queue is `src/jobs/**`'s, which `src/lib/**` may not import
 // (ARCHITECTURE rule 2). Neither may be faked, because a fabricated link is
 // a dead link in a customer's inbox and a fabricated queue is a deep pass

@@ -25,6 +25,7 @@ import net from "node:net";
 import os from "node:os";
 import path from "node:path";
 import { chromium, type Page } from "playwright";
+import { startAuthStub, type AuthStub } from "./auth-stub";
 import { enumerateRoutes } from "./routes";
 import {
   applyMigrations,
@@ -61,8 +62,9 @@ const STATE_DIR_PREFIX = "reachkit-layout-";
 
 interface BrowserState {
   baseURL: string | null;
-  /** The `Cookie` header every `(account)` route is swept with — minted
-   *  through identity's own path against the seeded account (#193). Read
+  /** The `Cookie` header every `(account)` route is swept with — a
+   *  Supabase Auth session for the seeded account, verified by
+   *  `./auth-stub.ts` (#193, #468). Read
    *  by the worker processes, which enumerate the routes again for
    *  themselves and must not fall back to the fixture. */
   accountCookie: string;
@@ -154,6 +156,7 @@ function chromiumMissingError(err: unknown): Error | undefined {
 }
 
 let appProcess: ChildProcess | undefined;
+let authStub: AuthStub | undefined;
 
 export default async function setup(): Promise<() => Promise<void>> {
   // The sweep's frozen clock, before anything is seeded or built (issue
@@ -181,6 +184,20 @@ export default async function setup(): Promise<() => Promise<void>> {
     throw err;
   }
 
+  // Supabase Auth, as far as the built app needs it (#468): the substrate
+  // has no GoTrue, so `getUser()` is answered by a stub that forwards
+  // everything else to the substrate. `SUPABASE_URL` is pointed at it
+  // before anything is built, and `next build` / `next start` inherit it.
+  const upstream = process.env.SUPABASE_URL;
+  if (upstream === undefined) {
+    throw new Error(
+      "tests/ui/layout/browser.ts: SUPABASE_URL must name the substrate before the layout sweep " +
+        "runs — `scripts/db-substrate/up.sh` prints it."
+    );
+  }
+  authStub = await startAuthStub(upstream);
+  process.env.SUPABASE_URL = authStub.url;
+
   // The substrate, the account and the session, before anything is built:
   // `next build` collects page data, and an account route that redirected
   // during collection would bake the redirect in (#193).
@@ -195,10 +212,10 @@ export default async function setup(): Promise<() => Promise<void>> {
   // stranger's domain with no session at all, so the only thing this
   // account needs to exist before the build is its published page.
   seedHostedPublisher();
-  const accountCookie = await seededSessionCookie();
-  const liveAccountCookie = await seededSessionCookie(LIVE_ACCOUNT);
-  const setupAccountCookie = await seededSessionCookie(SETUP_ACCOUNT);
-  const weekZeroAccountCookie = await seededSessionCookie(WEEK_ZERO_ACCOUNT);
+  const accountCookie = seededSessionCookie(authStub);
+  const liveAccountCookie = seededSessionCookie(authStub, LIVE_ACCOUNT);
+  const setupAccountCookie = seededSessionCookie(authStub, SETUP_ACCOUNT);
+  const weekZeroAccountCookie = seededSessionCookie(authStub, WEEK_ZERO_ACCOUNT);
 
   const routes = enumerateRoutes(path.join(ROOT, "src/app"), { accountCookie });
   let baseURL: string | null = null;
@@ -226,6 +243,8 @@ export default async function setup(): Promise<() => Promise<void>> {
 
   return async function teardown(): Promise<void> {
     if (appProcess) appProcess.kill();
+    if (authStub) await authStub.close();
+    if (upstream !== undefined) process.env.SUPABASE_URL = upstream;
     delete process.env[STATE_FILE_ENV];
     rmSync(stateDir, { recursive: true, force: true });
   };

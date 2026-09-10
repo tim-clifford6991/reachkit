@@ -16,6 +16,7 @@
 // footing `leads/store.ts` reads `scans.domain`: the read is a fact this
 // path needs and no index can reach through a foreign key to supply.
 import { dbAdmin } from "@/lib/db";
+import { identityAuth } from "./identity/auth";
 
 /** The four statuses a scan row can carry. `running` is the row's own
  *  `status`; `failed` is not a stored status in this schema (the column's
@@ -150,8 +151,11 @@ const UNIQUE_VIOLATION = "23505";
 /** Maps a unique violation onto the constraint that raised it. The message
  *  carries the constraint name; matching on the name rather than on the
  *  column keeps the branch tied to the index that actually refused. */
-function conflictOf(error: { message: string; code?: string }): AccountConflict | undefined {
+function conflictOf(error: { message: string; code?: string }): AccountConflict | "id" | undefined {
   if (error.code !== UNIQUE_VIOLATION) return undefined;
+  // #468: `users.id` is the address's `auth.users.id`, so a second row for
+  // an address Supabase already knows collides here first.
+  if (error.message.includes("users_pkey")) return "id";
   if (error.message.includes("users_checkout_session_id_key")) return "checkout_session_id";
   if (error.message.includes("users_email_lower_key") || error.message.includes("users_email_key")) {
     return "email";
@@ -195,9 +199,18 @@ export function supabaseAccountStore(): AccountStore {
     },
 
     async insertAccount(a) {
+      // The account's `auth.users` row first (#468): `users.id` is its id,
+      // and the foreign key refuses a `users` row Supabase does not know.
+      // Created confirmed and mailed by nobody — the sign-in link is the
+      // product's own mail. An address Supabase already knows answers with
+      // that user's id, and the insert below then decides, as it always
+      // has, whether this is a replay or a second purchase.
+      const user = await identityAuth().ensureUser(a.email);
+      if (!user.ok) return { ok: false };
       const { data, error } = await untyped()
         .from<{ id: string }>("users")
         .insert({
+          id: user.userId,
           email: a.email,
           plan_status: "active",
           checkout_session_id: a.checkoutSessionId,
@@ -208,6 +221,13 @@ export function supabaseAccountStore(): AccountStore {
         .select("id");
       if (error) {
         const conflict = conflictOf(error);
+        if (conflict === "id") {
+          // The same person's row. Which of the two known cases it is, is
+          // whether this payment is the one that row was opened by.
+          const seen = await this.accountByCheckoutSession(a.checkoutSessionId);
+          if (!seen.ok) return { ok: false };
+          return { ok: false, conflict: seen.account === null ? "email" : "checkout_session_id" };
+        }
         return conflict === undefined ? { ok: false } : { ok: false, conflict };
       }
       const row = data?.[0];

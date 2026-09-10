@@ -20,8 +20,8 @@
 // **Which account is acting is the session's** (#134). `src/middleware.ts`
 // has already refused this request unless it carried a session cookie, so a
 // caller reaching here was signed in when the screen rendered; *which*
-// account it is, is identity's `currentSession()`, which verifies the MAC,
-// the signed expiry, the account's own session stamp and its tombstone.
+// account it is, is identity's `currentSession()`, which has Supabase verify
+// the session and checks the account's tombstone (#468).
 //
 // These three mint a portal session **against an account**, so a stand-in id
 // here would open somebody else's billing surface. There is no fallback:

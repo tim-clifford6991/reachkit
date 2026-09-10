@@ -1,4 +1,4 @@
-// tests/account/identity/wire.test.ts — BUILD §13, issue #35
+// tests/account/identity/wire.test.ts — BUILD §13, issues #35, #468
 //
 // Issue #33 shipped `issueSignInLink` as a port with a fail-closed default:
 // "With nothing registered, `issueSignInLink` answers `{ issued: false,
@@ -26,14 +26,25 @@ const { unwireSignInLinkIssuer, wireSignInLinkIssuer } = await import(
   "../../../src/lib/account/identity/wire"
 );
 const { setIdentityStore } = await import("../../../src/lib/account/identity/store");
-const { hashToken } = await import("../../../src/lib/account/identity/token");
-const { addAccount, memoryIdentityStore, newMemoryIdentity } = await import("./memory-store");
+const { setIdentityAuth } = await import("../../../src/lib/account/identity/auth");
+const { addAccount: addRow, memoryIdentityStore, newMemoryIdentity } = await import("./memory-store");
+const { addAuthUser, fakeIdentityAuth, newFakeAuth } = await import("./fake-auth");
 
 let state = newMemoryIdentity();
+let auth = newFakeAuth();
+
+/** An account and the `auth.users` row whose id it carries (#468). */
+function addAccount(s: typeof state, patch: { email: string }): ReturnType<typeof addRow> {
+  const user = addRow(s, patch);
+  addAuthUser(auth, { id: user.id, email: user.email });
+  return user;
+}
 
 beforeEach(() => {
   state = newMemoryIdentity();
+  auth = newFakeAuth();
   setIdentityStore(memoryIdentityStore(state));
+  setIdentityAuth(fakeIdentityAuth(auth));
   sendCalls.length = 0;
   sendOutcome.next = { sent: true, id: "vendor-1" };
   registerSignInLinkIssuer(null);
@@ -48,16 +59,15 @@ describe("the port issue #33 declared", () => {
     });
   });
 
-  it("once wired, it mints a real token and a URL on this deployment's origin", async () => {
+  it("once wired, it asks Supabase for a link and builds it on this deployment's origin", async () => {
     const user = addAccount(state, { email: "founder@example.com" });
     wireSignInLinkIssuer();
 
     const issued = await issueSignInLink({ userId: user.id, to: user.email });
     expect(issued.issued).toBe(true);
     if (!issued.issued) return;
-    expect(issued.url.startsWith("https://reachkit.example/signin/")).toBe(true);
-    expect(state.links).toHaveLength(1);
-    expect(state.links[0]?.purpose).toBe("sign_in");
+    expect(issued.url.startsWith("https://reachkit.example/auth/confirm?")).toBe(true);
+    expect(auth.generated).toEqual([{ kind: "sign_in", email: "founder@example.com" }]);
   });
 
   it("wiring twice registers once — it is idempotent", async () => {
@@ -82,15 +92,17 @@ describe('§13 — "send magic link → `/setup`", end to end', () => {
         (b): b is { href: string } => typeof b === "object" && b !== null && "href" in b
       )?.href ?? ""
     );
-    const segments = new URL(href).pathname.split("/");
-    const token = decodeURIComponent(segments[segments.length - 1] ?? "");
-    // The mail carries the plaintext; the row carries only its hash.
-    expect(state.links[0]?.token_hash).toBe(hashToken(token));
+    // The mail carries Supabase's hash on our own confirm route — the one
+    // link Supabase minted, and no link of Supabase's own mailer.
+    const url = new URL(href);
+    expect(url.pathname).toBe("/auth/confirm");
+    expect(url.searchParams.get("token_hash")).toBe(auth.tokens[0]?.hash);
+    expect(url.searchParams.get("type")).toBe("magiclink");
   });
 
   it("still refuses to compose a mail when no link can be issued", async () => {
     const user = addAccount(state, { email: "founder@example.com" });
-    state.failInsertLink = true;
+    auth.failGenerate = true;
 
     expect(await sendSignInLink({ userId: user.id, email: user.email })).toEqual({
       sent: false,

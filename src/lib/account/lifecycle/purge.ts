@@ -28,7 +28,7 @@
 // The schedule is not here. `src/jobs/account-maintenance.ts` ticks, and
 // this module takes an explicit `now`, so no test needs a scheduler and no
 // cadence is stated twice.
-import { lifecycleStore } from "./store";
+import { AUTH_USERS_TABLE, lifecycleStore } from "./store";
 
 /** Children first. Each row is one table, the column that reaches it, and
  *  which set of ids fills that column — so the order is a value a reader can
@@ -65,9 +65,11 @@ const PURGE_ORDER: readonly {
   // Destination credentials.
   { table: "destinations", column: "site_id", from: "siteIds" },
   { table: "sites", column: "user_id", from: "userIds" },
-  // The sign-in address it was reached at: the links, then the account.
-  { table: "auth_links", column: "user_id", from: "userIds" },
+  // The sign-in address it was reached at: the account, then the Supabase
+  // Auth user whose id it is (#468) — last, because `users.id` refers to
+  // it and carries no cascade.
   { table: "users", column: "id", from: "userIds" },
+  { table: AUTH_USERS_TABLE, column: "id", from: "userIds" },
 ]);
 
 export class PurgeIncomplete extends Error {

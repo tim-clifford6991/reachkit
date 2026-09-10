@@ -60,7 +60,7 @@ export type AppAccountResult =
   | { ok: true; account: AppAccount }
   | { ok: false; because: NoAccount };
 
-/** The seam. Answers who is asking, from the signed cookie and one site
+/** The seam. Answers who is asking, from Supabase's verified session and one site
  *  read. Replaceable in tests through `setAppAccountReader`, which is the
  *  only door: no surface reads the cookie itself. */
 export type AppAccountReader = () => Promise<AppAccountResult>;
@@ -85,7 +85,7 @@ const fromSession: AppAccountReader = async () => {
 
   const row = await readAppSite(session.siteId);
   // A site id the account does not own is not this account's site. The
-  // cookie is signed so the pair arrives together, but a row read by id is
+  // session names the account and the site beside it, but a row read by id is
   // still read by id.
   if (row === null || row.user_id !== session.userId) {
     return { ok: false, because: "no_site" };

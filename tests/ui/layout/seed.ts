@@ -23,12 +23,16 @@
 // provider's database read, and a read that hangs is indistinguishable
 // from a broken screen (the reason `gate-state.ts` bounds its own).
 //
-// **The session is minted through identity's own path**, not assembled
-// here: `issueLink` writes a row, `redeemLink` spends it and returns the
-// claims, and `sessionCookie` turns those claims into the cookie the
-// redemption route sets. A cookie this file signed itself would prove the
-// sweep can reach the screens and nothing about whether a real sign-in
-// can.
+// **The session is Supabase Auth's shape, served by a stub** (#468). The
+// built app asks Supabase who a request belongs to (`getUser()`), and the
+// substrate has no GoTrue to ask — so `./auth-stub.ts` answers that one
+// endpoint in front of it and mints the session cookie here, in the exact
+// form `@supabase/ssr` writes and reads. What that does **not** prove is
+// that a real sign-in works: `generateLink` → `/auth/confirm` →
+// `verifyOtp` has no server to run against here, and is the unit suites'
+// (`tests/account/identity/**`, `tests/app/signin/**`). What it does prove
+// is that a request carrying a verified session reaches every account
+// screen, and that one carrying nothing Supabase recognises does not.
 // **One run, one database** (#220). `applyMigrations` below drops and
 // rebuilds `public`, so two runs sharing a database delete each other's rows
 // mid-flight: this file's seeded account vanishes and every `/app` address
@@ -48,6 +52,7 @@ import type { CanonicalDomain } from "@/lib/scan/domain";
 import { assembleReport } from "@/lib/scan/store";
 import { previousWeekStart, weekStartFor } from "@/lib/scan/weekly";
 import type { AppAccount } from "@/app/(account)/app/_session/account";
+import type { AuthStub } from "./auth-stub";
 import {
   psql,
 } from "../../db/substrate";
@@ -167,8 +172,9 @@ const SETUP_STAGE_TIMES = {
 const SETUP_REPORT_AT = "2026-09-05T09:00:00.000Z";
 const SETUP_REPORT_SCORE = 44;
 
-/** Each account's own address. Never mailed: `issueLink` writes the row and
- *  this file redeems the token straight out of the returned URL. */
+/** Each account's own address. Never mailed: the session is minted
+ *  straight onto the stub (`seededSessionCookie`), and the address is the
+ *  one its user record carries. */
 const EMAIL_OF: Readonly<Record<string, string>> = {
   [RESERVED_ACCOUNT.userId]: "layout-sweep@example.com",
   [LIVE_ACCOUNT.userId]: "layout-sweep-live@example.com",
@@ -357,7 +363,7 @@ export async function waitForSchemaCache(timeoutMs = 30_000): Promise<void> {
     );
   }
   const deadline = Date.now() + timeoutMs;
-  const url = `${base}/rest/v1/auth_links?select=token_hash&limit=1`;
+  const url = `${base}/rest/v1/email_suppressions?select=email&limit=1`;
   for (;;) {
     const answered = await fetch(url, {
       headers: { apikey: key, Authorization: `Bearer ${key}` },
@@ -382,7 +388,7 @@ export async function waitForSchemaCache(timeoutMs = 30_000): Promise<void> {
  * It caches the schema at connect, and `up.sh` starts it **before** these
  * migrations run — so without this every table created above is invisible
  * over REST and the first write answers `PGRST205: Could not find the
- * table 'public.auth_links' in the schema cache`. That is not a substrate
+ * table 'public.email_suppressions' in the schema cache`. That is not a substrate
  * defect and not something a retry fixes: the vendor documents this
  * `NOTIFY` as the reload signal, and a schema that changed under a running
  * instance is exactly what it is for.
@@ -849,45 +855,16 @@ function rows(statement: string): string[] {
 }
 
 /**
- * The `Cookie` header the sweep sends, minted through identity's own
- * issue → redeem → `sessionCookie` path against the seeded row.
- *
- * Throws rather than falling back. A sweep that quietly used a fixture
- * cookie would measure the sign-in prompt at four addresses and report a
- * clean run, which is exactly the failure #192 had to leave a marker for.
+ * The `Cookie` header the sweep sends for one seeded account: a Supabase
+ * Auth session the stub will verify, carrying the account's own user id
+ * (#468). The `users` row it names is the one `seedSite` wrote, so
+ * `currentSession()` resolves it exactly as it would a real sign-in.
  */
-export async function seededSessionCookie(
-  account: AppAccount = RESERVED_ACCOUNT
-): Promise<string> {
-  const { issueLink, redeemLink, sessionCookie, SESSION_COOKIE_NAME } = await import(
-    "@/lib/account/identity"
-  );
-
-  const issued = await issueLink({
+export function seededSessionCookie(stub: AuthStub, account: AppAccount = RESERVED_ACCOUNT): string {
+  return stub.sessionCookieFor({
     userId: account.userId,
-    to: EMAIL_OF[account.userId] ?? SEEDED_EMAIL,
-    purpose: "sign_in",
+    email: EMAIL_OF[account.userId] ?? SEEDED_EMAIL,
   });
-  if (!issued.issued) {
-    throw new Error(
-      "tests/ui/layout/seed.ts: identity refused to issue a sign-in link against the seeded " +
-        "account. The substrate is up (the migrations applied) but `identityStore()` could not " +
-        "write — check SUPABASE_URL and the service-role key this process was given."
-    );
-  }
-
-  // The token is the link's last segment — the only place the plaintext
-  // ever exists, which is why `issueLink` hands back a URL and not a token.
-  const token = new URL(issued.url).pathname.split("/").filter(Boolean).pop() ?? "";
-  const redeemed = await redeemLink(token);
-  if (!redeemed.ok) {
-    throw new Error(
-      `tests/ui/layout/seed.ts: the sign-in link this run issued would not redeem (${redeemed.reason}).`
-    );
-  }
-
-  const cookie = sessionCookie(redeemed.session);
-  return `${SESSION_COOKIE_NAME}=${cookie.value}`;
 }
 
 export {

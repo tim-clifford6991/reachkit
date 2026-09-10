@@ -16,10 +16,13 @@
 // which is neither UI-SPEC S8 nor ruling 3a. `GUARDED_SEGMENTS` below is
 // where that line is drawn, and why the default-deny property survives it.
 //
-// The authorisation check reads no database (`## File plan`): it is a
-// cookie's presence, nothing about its contents. Session *identity* is
-// BP-061's `currentSession()`; the account container is not reachable
-// before that node ships (`## Interfaces`).
+// The authorisation check reads no database (`## File plan`). Since #468 it
+// is not a cookie's presence either: a guarded request that carries a
+// Supabase Auth session cookie is let through only once Supabase's
+// `getUser()` has verified the token (`sessionOf` below), and a request
+// with no such cookie is denied without any network at all. Session
+// *identity* — which account, and whether it is tombstoned — stays
+// `currentSession()`'s.
 //
 // **One database read was added here for one path (#104), and it is not
 // the authorisation check.** A removed domain's report address must answer
@@ -50,16 +53,11 @@ import { isDomainRemoved } from "@/lib/scan/removal";
 import { isFixtureDomain } from "@/app/(public)/scan/[domain]/_fixture/states";
 import { GATE_PATH_HEADER } from "@/app/(account)/setup/gate";
 // Three names, one home (issue #35). `src/lib/account/identity/addresses.ts`
-// imports nothing at all — precisely so this file can share the cookie's
-// wire name and the two routes with the module that mints them, instead of
-// holding a second copy of each. The two "parameter, chosen here" notes
-// this replaces both said the same thing: "at which point the two must
-// agree".
-import {
-  SESSION_COOKIE_NAME,
-  SIGNIN_LINK_PATH_PATTERN,
-  SIGNIN_PATH,
-} from "@/lib/account/identity/addresses";
+// imports nothing at all — precisely so this file can share the session
+// cookie's name and the two routes with the module that issues them,
+// instead of holding a second copy of each.
+import { CONFIRM_PATH, isAuthCookieName, SIGNIN_PATH } from "@/lib/account/identity/addresses";
+import type { CookieToSet } from "@/lib/account/identity/auth";
 
 // ── Issue #331: the Content-Security-Policy, and the nonce it turns on ──
 //
@@ -182,11 +180,12 @@ export const PUBLIC_PATHS: readonly string[] = [
   // would redirect a denied visitor to a denied page forever — a property
   // worth holding independently of any row on this list.
   SIGNIN_PATH,
-  // Issue #35: the route that redeems a sign-in link. Unauthenticated by
-  // necessity — the whole point of the link is that its holder has no
-  // session yet, so a denial here would send a working link to the screen
-  // that says links do not work.
-  SIGNIN_LINK_PATH_PATTERN,
+  // Issue #468 (was `/signin/:token`, #35): the route that redeems a
+  // sign-in or email-change link through Supabase's `verifyOtp`.
+  // Unauthenticated by necessity — the whole point of the link is that its
+  // holder has no session yet, so a denial here would send a working link
+  // to the screen that says links do not work.
+  CONFIRM_PATH,
   // Issue #144: the address the one veto link in the `draft-ready` mail
   // lands on. Unauthenticated by necessity, like `/opt-out/:token` above
   // it — a mail's reader has no session, and the token is the whole of the
@@ -417,18 +416,6 @@ function isPublic(pathname: string): boolean {
   );
 }
 
-/** Presence only, still (`## File plan`: "Reads no database: the check is a
- *  cookie's presence, nothing about its contents"). That stays safe because
- *  the value is a real signed session rather than a marker: a forged cookie
- *  gets past this function and past nothing else. `currentSession()`
- *  verifies the MAC, the signed expiry, the account's own session stamp and
- *  its tombstone, and every surface that reads who the customer *is* reads
- *  it from there. */
-function hasSession(req: NextRequest): boolean {
-  const cookie = req.cookies.get(SESSION_COOKIE_NAME);
-  return cookie !== undefined && cookie.value.length > 0;
-}
-
 // How long the removal read may take before the report renders anyway.
 // Chosen here rather than pinned in `constants.ts` (rule: a number in two
 // files is wrong; this one is in exactly one): it is a property of this
@@ -437,15 +424,48 @@ function hasSession(req: NextRequest): boolean {
 // visitor waiting for a page.
 const REMOVAL_READ_DEADLINE_MS = 800;
 
+// How long Supabase may take to verify a session (#468) before the request
+// is treated as signed out. Local for the same reason as the one above: it
+// bounds this one request-path call and nothing else reads it. Longer than
+// the removal read because it is a round trip to the auth server rather
+// than an indexed lookup, and it fails *closed* — a customer past it meets
+// the sign-in screen, never an account screen on a claim nothing checked.
+const SESSION_READ_DEADLINE_MS = 3000;
+
 /** Rejects when `work` has not settled inside the deadline, so the caller's
  *  own `catch` covers a hang the same way it covers a failure. */
-function withDeadline<T>(work: Promise<T>): Promise<T> {
+function withDeadline<T>(work: Promise<T>, ms: number = REMOVAL_READ_DEADLINE_MS): Promise<T> {
   return Promise.race([
     work,
     new Promise<T>((_resolve, reject) =>
-      setTimeout(() => reject(new Error("middleware read timed out")), REMOVAL_READ_DEADLINE_MS)
+      setTimeout(() => reject(new Error("middleware read timed out")), ms)
     ),
   ]);
+}
+
+/**
+ * Whether this request is signed in, verified with Supabase (#468).
+ *
+ * A request with no Supabase Auth cookie is answered with no network and
+ * no import: most requests to a guarded segment from a stranger are exactly
+ * that. One that carries the cookie is answered by `getUser()`, which sends
+ * the token to Supabase — never by `getSession()`, which would believe the
+ * cookie — so a forged value gets past nothing. Bounded, and fails closed.
+ *
+ * `refreshed` is the session `@supabase/ssr` rotated on the way, which the
+ * caller puts on both the forwarded request and the response.
+ */
+async function sessionOf(req: NextRequest): Promise<{ signedIn: boolean; refreshed: CookieToSet[] }> {
+  if (!req.cookies.getAll().some((c) => isAuthCookieName(c.name))) {
+    return { signedIn: false, refreshed: [] };
+  }
+  try {
+    const { requestUser } = await import("@/lib/account/identity/request-session");
+    const answer = await withDeadline(requestUser(req), SESSION_READ_DEADLINE_MS);
+    return { signedIn: answer.userId !== null, refreshed: answer.refreshed };
+  } catch {
+    return { signedIn: false, refreshed: [] };
+  }
 }
 
 /** `/scan/{domain}` and nothing else, with the segment as written. The one
@@ -573,12 +593,12 @@ export async function middleware(req: NextRequest): Promise<NextResponse> {
   // answer (#331): a 404 is a rendered screen and carries the same policy.
   if (!isGuarded(pathname)) return sealed(NextResponse.next({ request: { headers: forwarded } }));
 
-  if (hasSession(req)) {
+  const session = await sessionOf(req);
+  if (session.signedIn) {
     // BUILD §4.3's incomplete-setup gate is **not decided here** (#133).
     // Deciding it means naming the asking account, and `currentSession()`
-    // needs `next/headers`, a `node:crypto` HMAC and a database read —
-    // none of them reachable from this file, which is bundled for the Edge
-    // runtime. The gate is enforced in `src/app/(account)/layout.tsx`
+    // needs `next/headers` and a database read — neither of which this
+    // file reaches for on every request (#133). The gate is enforced in `src/app/(account)/layout.tsx`
     // instead, on Node, where all three work as written;
     // `src/app/(account)/setup/gate.ts`'s header records the three
     // candidate answers and why that is the one.
@@ -589,7 +609,12 @@ export async function middleware(req: NextRequest): Promise<NextResponse> {
     // the path the gate sees is always the path being served and never a
     // client's claim about it.
     forwarded.set(GATE_PATH_HEADER, pathname);
-    return sealed(NextResponse.next({ request: { headers: forwarded } }));
+    // A session rotated on the way in: the render reads the new one (a
+    // Server Component cannot write it), and the browser keeps it.
+    if (session.refreshed.length > 0) forwarded.set("cookie", req.cookies.toString());
+    const res = NextResponse.next({ request: { headers: forwarded } });
+    for (const cookie of session.refreshed) res.cookies.set(cookie.name, cookie.value, cookie.options);
+    return sealed(res);
   }
 
   // "asks for an address and says nothing about whether an account or a
