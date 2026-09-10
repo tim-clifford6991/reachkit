@@ -52,15 +52,43 @@ import { AddressView } from "./_address/view";
 import type { AddressState } from "./_address/state";
 import { resolveAddress } from "./_address/resolve";
 import { fixtureStateFor } from "./_fixture/states";
+import { PUBLIC_ROUTE_SEO } from "../../_seo/routes";
+import { publicMetadata } from "../../_seo/metadata";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-/** ADR-002: report pages are `noindex` forever and in no sitemap. The meta
- *  half of that promise; `src/middleware.ts` carries the header half. */
-export const metadata: Metadata = {
-  robots: { index: false, follow: false },
-};
+/**
+ * ADR-002: report pages are `noindex` forever and in no sitemap. The meta
+ * half of that promise; `next.config.ts` carries the header half.
+ *
+ * Since issue #326 the directive is no longer written here — it is the
+ * `indexable: false` on this route's row in `_seo/routes.ts`, the same row
+ * the app host's sitemap reads, so the page and the sitemap can no longer
+ * disagree about it. What this function adds is the rest of the `<head>`:
+ * a title and a description that name the domain (REQ-001 c7's copied
+ * address unfurls per-domain or it says nothing), and the canonical
+ * address, which is the *canonical* domain and not the segment as written
+ * — ADR-020's one parser, and the address this page 308s to anyway.
+ *
+ * A segment that does not parse has no canonical to name: REQ-001 c4's
+ * `malformed` arm is one written line, not a report, and the row's pattern
+ * is passed instead of a composed address.
+ */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ domain: string }>;
+}): Promise<Metadata> {
+  const { domain } = await params;
+  const raw = decodeURIComponent(domain);
+  const parsed = parseDomain(raw);
+  return publicMetadata({
+    seo: PUBLIC_ROUTE_SEO.report,
+    path: parsed.ok ? `/scan/${parsed.domain}` : PUBLIC_ROUTE_SEO.report.route,
+    vars: { domain: parsed.ok ? parsed.domain : raw },
+  });
+}
 
 /** REQ-001 c4: a segment that does not parse is answered with the
  *  `malformed` arm — one written line and the landing field — never a 404

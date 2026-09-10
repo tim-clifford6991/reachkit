@@ -37,7 +37,7 @@ vi.mock("@/lib/scan/removal", () => ({ isDomainRemoved: async () => false }));
 
 import { existsSync, readdirSync } from "node:fs";
 import path from "node:path";
-import { middleware, PUBLIC_PATHS, GUARDED_SEGMENTS, config } from "@/middleware";
+import { middleware, PUBLIC_PATHS, GUARDED_SEGMENTS, config, isMetadataAsset } from "@/middleware";
 
 function requestTo(pathname: string, cookie?: string): NextRequest {
   const headers: Record<string, string> = {};
@@ -135,6 +135,9 @@ describe(
         "/privacy": "/privacy",
         "/terms": "/terms",
         "/imprint": "/imprint",
+        // Issue #326: the web app manifest, a Next metadata route at the
+        // one address the convention allows.
+        "/manifest.webmanifest": "/manifest.webmanifest",
       };
       expect(Object.keys(instances).sort()).toEqual([...PUBLIC_PATHS].sort());
       for (const pattern of PUBLIC_PATHS) {
@@ -364,6 +367,51 @@ describe("#405 — an unmatched address falls through to the root 404, signed ou
 });
 
 // ── Interfaces — config.matcher is present and covers the app ─────────────
+
+describe("issue #326 — Next's generated metadata assets under (public) are reachable, and nothing else is", () => {
+  // The addresses carry a six-character build-time hash because the files
+  // sit inside a route group, so the allow-list matches them by shape. The
+  // shape is anchored to the two segments that own an image; the point of
+  // the anchor is the last case below.
+  const REACHABLE = [
+    "/icon",
+    "/icon-a1b2c3",
+    "/apple-icon-a1b2c3",
+    "/opengraph-image-a1b2c3",
+    "/opengraph-image-a1b2c3.png",
+    "/scan/example.com/opengraph-image-a1b2c3",
+  ];
+
+  for (const pathname of REACHABLE) {
+    it(`${pathname} is not denied with no session`, async () => {
+      expect(isMetadataAsset(pathname)).toBe(true);
+      expect(await isDenied(pathname)).toBe(false);
+    });
+  }
+
+  // A bare "last segment looks like an asset" rule would make the first of
+  // these public, and it is not a missing asset: it is the draft screen
+  // with a `draftId` that happens to look like one. Under a guarded
+  // segment, so the denial is this rule's to lose.
+  const DENIED = ["/app/draft/opengraph-image-a1b2c3", "/app/settings/icon", "/setup/apple-icon"];
+
+  for (const pathname of DENIED) {
+    it(`${pathname} is still denied with no session`, async () => {
+      expect(isMetadataAsset(pathname)).toBe(false);
+      expect(await isDenied(pathname)).toBe(true);
+    });
+  }
+
+  it("the shape is anchored to the two segments that own an image, not to any last segment", () => {
+    // Under an unguarded segment #405 lets a path this product does not
+    // serve fall through to the 404 rather than to `/signin`, so the
+    // discriminating assertion for those is the predicate itself.
+    expect(isMetadataAsset("/scan/example.com/deeper/opengraph-image-a1b2c3")).toBe(false);
+    expect(isMetadataAsset("/pricing/icon")).toBe(false);
+    expect(isMetadataAsset("/opengraph-image-a1b2c3d4")).toBe(false);
+    expect(isMetadataAsset("/iconoclast")).toBe(false);
+  });
+});
 
 describe("`## Interfaces` — the exported matcher", () => {
   it("config.matcher is a non-empty array of strings", async () => {

@@ -34,6 +34,7 @@ vi.mock("@/lib/account/billing", () => ({
 
 const { PREVIEW_HOST_SUFFIX } = await import("@/lib/config/constants");
 const { GET } = await import("@/app/(hosted)/sitemap.xml/route");
+const { PUBLIC_ROUTE_SEO_ROWS, sitemapPaths } = await import("@/app/(public)/_seo/routes");
 
 function page(slug: string, domain = "example.com"): unknown {
   return {
@@ -120,6 +121,41 @@ describe("what it may never contain", () => {
   });
 });
 
+describe("issue #326 — ReachKit's own address publishes its own sitemap", () => {
+  // The env fixture binds NEXT_PUBLIC_APP_URL to https://reachkit.example.
+  it("the app host is served a valid sitemap of its own public routes", async () => {
+    const response = await get("reachkit.example");
+    expect(response.status).toBe(200);
+    const body = await response.text();
+    expect(body).toContain("<urlset");
+    const locs = [...body.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
+    expect(locs).toEqual(
+      sitemapPaths().map((route) => new URL(route, "https://reachkit.example").toString())
+    );
+    expect(locs.length).toBeGreaterThan(0);
+  });
+
+  it("it names exactly the indexable rows of the route table, and no other", async () => {
+    const body = await (await get("reachkit.example")).text();
+    for (const row of PUBLIC_ROUTE_SEO_ROWS) {
+      const named = body.includes(`<loc>https://reachkit.example${row.route === "/" ? "/" : row.route}</loc>`);
+      expect(named, row.route).toBe(row.indexable && !row.route.includes("{"));
+    }
+  });
+
+  it("no report address, ever (ADR-002 · REQ-001 c8)", async () => {
+    expect(await (await get("reachkit.example")).text()).not.toContain("/scan/");
+  });
+
+  it("no account path and no hosted or preview address", async () => {
+    const body = await (await get("reachkit.example")).text();
+    expect(body).not.toContain("/app");
+    expect(body).not.toContain("/setup");
+    expect(body).not.toContain(PREVIEW_HOST_SUFFIX);
+    expect(body).not.toContain("content.");
+  });
+});
+
 describe("the states this document has to have", () => {
   it("a site with no live page yields a valid empty sitemap, never an error", async () => {
     pagesBySite.set("site-1", []);
@@ -136,7 +172,7 @@ describe("the states this document has to have", () => {
 
   it("an unknown host has none", async () => {
     expect((await get("content.stranger.example")).status).toBe(404);
-    expect((await get("reachkit.example")).status).toBe(404);
+    expect((await get("stranger.example")).status).toBe(404);
   });
 
   it("a site whose serving has stopped has none", async () => {

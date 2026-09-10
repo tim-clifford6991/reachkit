@@ -117,10 +117,50 @@ describe("ADR-002 — the preview host is served a different document that index
   });
 });
 
+describe("issue #326 — ReachKit's own address publishes its own policy", () => {
+  // The env fixture binds NEXT_PUBLIC_APP_URL to https://reachkit.example,
+  // so that host is this deployment. Before #326 it was answered 404 with
+  // every stranger; BUILD §3 lists `/robots.txt` among the public routes,
+  // and this is the one route file Next will let answer that path.
+  it("the app host is served the app policy, which allows the whole site", async () => {
+    const response = await get("reachkit.example");
+    expect(response.status).toBe(200);
+    expect(await response.text()).toContain("User-agent: *\nAllow: /");
+  });
+
+  it("it names this deployment's own sitemap, on this deployment's own host", async () => {
+    const body = await (await get("reachkit.example")).text();
+    expect(body).toContain("Sitemap: https://reachkit.example/sitemap.xml");
+  });
+
+  it("it carries no Disallow: a crawler forbidden to fetch a page never reads the noindex on it", async () => {
+    expect(await (await get("reachkit.example")).text()).not.toContain("Disallow");
+  });
+
+  it("it is not the customer document — the six pinned readers are named on their domain, not ours", async () => {
+    const body = await (await get("reachkit.example")).text();
+    for (const agent of AI_READER_AGENTS) expect(body, agent).not.toContain(agent);
+  });
+
+  it("the app document shares no callee with either hosted policy", () => {
+    // The same guard `policies.ts` carries for its own two, one file out:
+    // the app policy lives under `(public)`, away from both, so a tidy-up
+    // has nothing to merge it into.
+    const source = readFileSync(path.join(REPO_ROOT, "src/app/(public)/_seo/policies.ts"), "utf8");
+    // The code, not the header: this file's prose names both hosted
+    // documents and the pin, to say what it is *not*. The same slice the
+    // "six are the pin's six" test above takes of `(hosted)/policies.ts`.
+    const code = source.slice(source.indexOf("import {"));
+    expect(code).not.toContain("customerRobotsDocument");
+    expect(code).not.toContain("previewRobotsDocument");
+    expect(code).not.toContain("AI_READER_AGENTS");
+  });
+});
+
 describe("a host we do not serve publishes no policy of ours", () => {
   it("an unknown host is 404 — the same answer as before this route existed", async () => {
     expect((await get("content.stranger.example")).status).toBe(404);
-    expect((await get("reachkit.example")).status).toBe(404);
+    expect((await get("stranger.example")).status).toBe(404);
   });
 
   it("a site whose serving has stopped publishes none either", async () => {

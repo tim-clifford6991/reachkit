@@ -45,6 +45,8 @@ import { copy } from "@/lib/presentation/copy";
 import { previewVetoLink, redeemVetoLink, vetoLinkPath } from "@/lib/publish/publishable";
 import type { PreviewResult, RedeemResult, VetoPreview } from "@/lib/publish/publishable";
 import { Btn, Card } from "@/ui/components";
+import { PUBLIC_ROUTE_SEO } from "../../_seo/routes";
+import { staticMetadata } from "../../_seo/metadata";
 import { CardHead } from "@/ui/idiom";
 import { Surface } from "@/ui/layout";
 import type { Arm, Band } from "@/ui/layout";
@@ -59,10 +61,15 @@ export const revalidate = 0;
 /** ADR-002's reasoning holds here for a stricter reason than a report's: a
  *  token in an indexed URL is a stop link published to everyone. The meta
  *  half of the promise; `next.config.ts` carries the header half for this
- *  path, as it does for `/scan/:domain`. */
-export const metadata: Metadata = {
-  robots: { index: false, follow: false },
-};
+ *  path, as it does for `/scan/:domain`.
+ *
+ *  Since issue #326 the directive comes from this route's row in
+ *  `_seo/routes.ts` rather than being written here, so it cannot disagree
+ *  with the app host's sitemap; and the row's `{token}` spelling is passed
+ *  as the path deliberately — the composer emits no canonical for a
+ *  pattern, and a `<link rel="canonical">` on this page would publish the
+ *  stop link into the document itself. */
+export const metadata: Metadata = staticMetadata(PUBLIC_ROUTE_SEO.veto);
 
 /**
  * How long either seam may take before the page answers anyway.

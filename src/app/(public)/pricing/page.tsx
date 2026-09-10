@@ -32,12 +32,15 @@
 // whole content is one decision. The chrome above and below is the group
 // layout's (ruling 3a).
 import type React from "react";
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Surface } from "@/ui/layout";
 import { copy } from "@/lib/presentation/copy";
 import { env } from "@/lib/config/env";
 import { createCheckoutSession } from "@/lib/account/checkout/session";
 import { PricingCard } from "../scan/[domain]/_modules/pricing";
+import { PUBLIC_ROUTE_SEO } from "../_seo/routes";
+import { staticMetadata } from "../_seo/metadata";
 
 /** REQ-021 criterion 4's "one control … begins checkout with no account,
  *  sign-in, password or form asked first": a Server Function reached by the
@@ -65,6 +68,10 @@ async function startCheckout(): Promise<void> {
 /** One reading column (design tokens §2b): the page is one decision, and a
  *  decision stretched across 1216px reads as a banner. */
 const READING_MEASURE: React.CSSProperties = { maxWidth: "var(--w-read)" };
+
+/** Issue #326: the one offer page (REQ-021 c4), and the one public route
+ *  besides the landing a stranger may arrive at from a search result. */
+export const metadata: Metadata = staticMetadata(PUBLIC_ROUTE_SEO.pricing);
 
 export default function PricingPage(): React.JSX.Element {
   return (
