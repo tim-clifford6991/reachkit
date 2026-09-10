@@ -110,10 +110,12 @@ export const DRAFT_BODY_CLASSES: HtmlClasses = Object.freeze({
  * Every heading in the body, one level down.
  *
  * **A body's `#` is a heading *within* the page.** The page's own title is
- * the screen's `<h1>`, above the body, and a second `<h1>` inside it gives
- * the document two titles. The approved set draws it the same way: its
- * `.doc h2` — the body's `##` — sits at `--h3`, one rung under the screen's
- * head.
+ * a column of its own (§10 `drafts.title`) and the screen's `<h1>`, above
+ * the body; a heading inside the body is a heading inside the article. The
+ * approved set draws it the same way: its `.doc h2` — the body's `##` —
+ * sits at `--h3`, one rung under the screen's head. A body that carried a
+ * `#` of its own would be stating the title twice (issue #446), and the
+ * shift is what keeps it from also being a second `<h1>`.
  *
  * It is done here, on the *level*, and not in the stylesheet on the size.
  * That is the whole point: `heading-scale.test.ts` renders every route and
@@ -125,8 +127,9 @@ export const DRAFT_BODY_CLASSES: HtmlClasses = Object.freeze({
  * `h6` stays `h6`: the scale bottoms out and nothing below it exists.
  *
  * **The copy-out is not demoted.** `renderMarkdownHtml` takes the body with
- * no map and no shift — those are the bytes that publish, where the page's
- * own `#` is its title and there is no screen heading above it.
+ * no map and no shift — those are the bytes that publish, and on the
+ * destination the title is supplied beside them rather than by a heading of
+ * ours standing over them.
  */
 export function demoteHeadings(blocks: readonly Block[]): Block[] {
   return blocks.map((block) =>

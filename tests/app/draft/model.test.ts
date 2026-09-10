@@ -17,6 +17,7 @@ import {
 } from "@/app/(account)/app/draft/[draftId]/fixture";
 import { readDraft } from "@/app/(account)/app/draft/[draftId]/provider";
 import type { RecordedFact } from "@/lib/generate/fact";
+import { parseMarkdown } from "@/lib/publish/render/markdown";
 
 // BUILD §4.4–§4.6, issue #169 — the surfaces under test now resolve who is
 // asking through `_session/account.ts`, which reads a signed cookie and a
@@ -204,5 +205,43 @@ describe("the provider is the one read, and an unknown id is a value rather than
     // day panel links to `/app/draft/{draftId}`.
     expect(Object.keys(FIXTURE_DRAFTS)).toContain("draft-2026-09-15");
     for (const id of Object.keys(FIXTURE_DRAFTS)) expect(id).toMatch(/^draft-\d{4}-\d{2}-\d{2}$/);
+  });
+});
+
+/**
+ * Issue #446 — the fixture body is a page the pipeline could have written.
+ *
+ * Both defects here reached every S16 and S17 render for as long as the
+ * fixture existed, and neither was a layout defect: the body opened with a
+ * `# ` heading equal to `title`, so the screen — which draws the title as
+ * its own `<h1>` above the body — stated it twice; and its list items were
+ * hard-wrapped, which `parseMarkdown` (line-based, by design) reads as a
+ * one-item list followed by a paragraph made of the continuation.
+ *
+ * The assertions are on the *source Markdown* rather than on a render,
+ * because that is where the shape is decided: §8's pipeline returns a title
+ * and a body as two fields and §10 stores them in two columns, so a body
+ * repeating its title is a row no generation run could have produced.
+ */
+describe("the fixture body is the shape BUILD §8's pipeline writes", () => {
+  const bodies = Object.entries(FIXTURE_DRAFTS).map(
+    ([id, draft]) => [id, draft.bodyMd] as const
+  );
+
+  it.each(bodies)("%s carries no heading of its own title", (_id, body) => {
+    expect(body.split("\n").filter((line) => /^#\s/.test(line))).toEqual([]);
+  });
+
+  it.each(bodies)("%s wraps no block onto a continuation line", (_id, body) => {
+    // A continuation line is an indented one. It is what splits a list item
+    // into a bullet and a stray paragraph, and the file wraps with `+`
+    // instead so that every block is one logical line.
+    expect(body.split("\n").filter((line) => /^\s+\S/.test(line))).toEqual([]);
+  });
+
+  it.each(bodies)("%s parses to one whole list of three items", (_id, body) => {
+    const lists = parseMarkdown(body).filter((block) => block.kind === "list");
+    expect(lists.length).toBe(1);
+    expect(lists[0]?.kind === "list" ? lists[0].items.length : 0).toBe(3);
   });
 });
