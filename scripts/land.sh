@@ -4,7 +4,7 @@
 #   scripts/land.sh <pr> [<pr> ...]
 #
 # For each PR, in the order given: update its branch if it is behind main,
-# wait until every check is green (the Vercel preview included), then merge
+# wait until every required check is green (Vercel rows are ignored — PROCESS §3), then merge
 # with a merge commit and delete the branch. The chain stops at the first PR
 # that cannot land, so dependent PRs never land out of order.
 #
@@ -21,7 +21,7 @@ set -u
 R=$(gh repo view --json nameWithOwner -q .nameWithOwner) || exit 1
 
 land() {
-  local n=$1 t0 st ms checks pending hasv bad
+  local n=$1 t0 st ms checks pending hyg bad
   t0=$(date +%s)
   while :; do
     st=$(gh pr view "$n" -R "$R" --json state,mergeStateStatus -q '[.state,.mergeStateStatus]|join(" ")')
@@ -41,11 +41,15 @@ land() {
       [ $(( $(date +%s) - t0 )) -gt 14400 ] && { echo "#$n DIRTY for 4h — giving up"; return 1; }
       continue
     fi
+    # `gh pr checks` exits non-zero when ANY check failed — its exit code is not a signal here.
+    # Since 2026-09-09 no Vercel row is a gate (PROCESS §3: previews are off, the Hobby plan's
+    # build quota was spent on them, CI renders are the review surface); every Vercel row is ignored.
     checks=$(gh pr checks "$n" -R "$R" 2>/dev/null)
-    pending=$(echo "$checks" | awk -F'\t' '$2=="pending"' | wc -l)
-    hasv=$(echo "$checks" | awk -F'\t' '$1=="Vercel" && $2=="pass"' | wc -l)
-    bad=$(echo "$checks" | awk -F'\t' '$2!="pass" && $2!="skipping" && $2!="pending"' | grep -vE 'Vercel Agent|Vercel Preview' | wc -l)
-    if [ "$pending" -eq 0 ] && [ "$hasv" -eq 1 ]; then
+    [ -n "$checks" ] || { sleep 60; continue; }
+    pending=$(echo "$checks" | awk -F'\t' '$1 !~ /^Vercel/ && $2=="pending"' | wc -l)
+    hyg=$(echo "$checks" | awk -F'\t' '$1 ~ /done-when ticked/ && $2=="pass"' | wc -l)
+    bad=$(echo "$checks" | awk -F'\t' '$1 !~ /^Vercel/ && $2!="pass" && $2!="skipping" && $2!="pending"' | wc -l)
+    if [ "$pending" -eq 0 ] && [ "$hyg" -eq 1 ]; then
       if [ "$bad" -eq 0 ]; then
         gh pr merge "$n" -R "$R" --merge --admin --delete-branch >/dev/null 2>&1 && { echo "#$n MERGED"; return 0; }
         echo "#$n merge failed ($ms) — retrying"; sleep 60
