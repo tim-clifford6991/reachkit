@@ -2,8 +2,8 @@
 // (consolidates WO-059; see `archive/sdlc-factory-2026-09-04/corpus/docs/work-orders/WO-281.md`
 // `## Consolidation`)
 //
-// **Read `decisions/ADR-021.md` first.** Two ceilings — 90 seconds
-// (`TIMING.reportCeilingS`) and the free path's spend cap
+// **Read `decisions/ADR-021.md` first.** Two ceilings — the pinned
+// `TIMING.reportCeilingS` and the free path's spend cap
 // (`CAPS.FREE_C`, reached through BP-007's `CostContext.capHit()`) — and
 // exactly one `Ending` however a free scan stops. Raising either ceiling
 // at runtime, or computing a partial result from whatever a ceiling left
@@ -14,7 +14,7 @@
 // carries is satisfied by never spelling the four forbidden identifiers
 // that WO-281's own test-plan table names.
 //
-// **Time is preemptive; money is cooperative.** The 90-second deadline can
+// **Time is preemptive; money is cooperative.** The deadline can
 // fire while `body` is stuck inside a call that never resolves — REQ-003
 // criterion 5's "including when the delay is the scanned domain's own
 // server answering slowly" — so `withFreeBounds` races `body` against a
@@ -27,6 +27,15 @@
 // first when both apply in the same tick (WO-281 `## Steps` step 3),
 // because `TIMING.reportCeilingS` is the bound REQ-003 criterion 5 states
 // absolutely.
+//
+// **The pin, and only the pin.** REQ-003 c5 states that bound as 90
+// seconds and this file used to repeat the figure in prose. It is 50 now
+// (master ruling 2026-09-10, issue #456): the invocation this runs inside
+// is frozen by the platform at 60, so a design ceiling above that could
+// never fire and the partial report the criterion promises could never be
+// stored. Nothing here spells a number — the deadline is read from
+// `TIMING.reportCeilingS`, and the order of the two ceilings is held by
+// `tests/scan/ceilings-pins.test.ts`.
 //
 // **How `Bounds.capHit()` reaches a real `CostContext`.** BP-023's own
 // `## Public interface` locks `withFreeBounds` to two parameters — `a` and

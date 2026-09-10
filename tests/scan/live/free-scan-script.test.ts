@@ -124,7 +124,7 @@ afterEach(() => {
 });
 
 describe("scripts/live/free-scan — the bounds it measures against", () => {
-  it("reads the sixty-second target and the twelve-cent cap out of constants.ts", () => {
+  it("reads the target and the twelve-cent cap out of constants.ts, and never a figure of its own", () => {
     expect(pin("reportTargetS")).toBe(TIMING.reportTargetS);
     expect(pin("reportCeilingS")).toBe(TIMING.reportCeilingS);
     expect(pin("FREE_C")).toBe(CAPS.FREE_C);
@@ -143,7 +143,7 @@ describe("scripts/live/free-scan — a measurement", () => {
   it("prints the elapsed seconds and the ledgered cents, and exits within", async () => {
     const { code, out } = await run({ start: { ok: true, location: "/scan/example.com", scanId: scanRow().id }, scan: scanRow(), ledger: LEDGER });
     expect(code).toBe(EXIT.WITHIN);
-    expect(out).toMatch(/^elapsed +\d+\.\d s +target 60 s +ok$/m);
+    expect(out).toMatch(new RegExp(`^elapsed +\\d+\\.\\d s +target ${TIMING.reportTargetS} s +ok$`, "m"));
     expect(out).toMatch(/^ledgered +6 c +cap 12 c +ok$/m);
   });
 

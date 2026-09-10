@@ -154,6 +154,8 @@ const D = {
     "A ReachKit post in a customer's WordPress carries two marks: the invisible idempotency marker and a visible findability stamp; neither does the other's job. — ADR-083",
   adr084:
     'Every CMS publishes live in one call; "created" and "made live by us" are two booleans and never merge back.',
+  twoCeilings:
+    "The free pass has two ceilings — its own (`TIMING.reportCeilingS`) and the platform's (`maxDuration` on `/api/scan`); the pass is registered with `after()` so it outlives the response, and `account/maintenance` sweeps a free scan left `running` past the platform bound to `failed`.",
 } as const;
 
 const C = {
@@ -543,13 +545,22 @@ describe("§11 bounds — the free path's rate limits and the report's clock", (
     expect(pins.DAILY_WINDOW_H).toBe(24);
   });
 
-  it(`§11, quoted: "${B.freeSeconds}" — TIMING.reportTargetS`, () => {
-    expect(pins.TIMING.reportTargetS).toBe(60);
+  it(`§11, quoted: "${B.freeSeconds}" — the ≈60 s a reader waits inside is the platform's own bound on the invocation (TIMING.platformCeilingS); §11 fixes no figure for the p95 the pass aims at, so TIMING.reportTargetS is chosen under the ceiling that stops it (#456)`, () => {
+    expect(pins.TIMING.platformCeilingS).toBe(60);
+    expect(pins.TIMING.reportTargetS).toBe(40);
+    expect(pins.TIMING.reportTargetS).toBeLessThan(pins.TIMING.reportCeilingS);
   });
 
-  it("TIMING.reportCeilingS = 90 — BP-001's ceiling on the same run, and it is above the target it ceilings", () => {
-    expect(pins.TIMING.reportCeilingS).toBe(90);
+  it("TIMING.reportCeilingS = 50 — the design ceiling fires before the platform's, leaving room to store the partial report ADR-021 promises. REQ-003 c5's 90 s is superseded on the pin by the master's ruling of 2026-09-10 (#456): the platform, not the product, sets the outer bound, and no plan upgrade is ruled", () => {
+    expect(pins.TIMING.reportCeilingS).toBe(50);
     expect(pins.TIMING.reportCeilingS).toBeGreaterThan(pins.TIMING.reportTargetS);
+    expect(pins.TIMING.reportCeilingS).toBeLessThan(pins.TIMING.platformCeilingS);
+  });
+
+  it(`DECISIONS 2026-09-10, quoted: "${D.twoCeilings}" — TIMING.platformCeilingS is that platform bound, pinned where the engine can read it (the route must keep its own literal for the build to see it), and TIMING.sweepMarginS is what the sweep adds to it before calling a row a ghost (#456)`, () => {
+    expect(pins.TIMING.platformCeilingS).toBe(60);
+    expect(pins.TIMING.sweepMarginS).toBe(30);
+    expect(pins.TIMING.platformCeilingS + pins.TIMING.sweepMarginS).toBeGreaterThan(pins.TIMING.reportCeilingS);
   });
 
   it('REQ-029 c5, quoted: "a pass that fails outright, or that has not ended 10 minutes after setup was submitted … the founder is released into the app all the same" — TIMING.deepReleaseMin', () => {

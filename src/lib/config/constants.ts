@@ -142,7 +142,50 @@ export const FREE_BOUNDS = Object.freeze({
 } as const);
 
 export const TIMING = Object.freeze({
-  reportTargetS: 60, reportCeilingS: 90, deepReleaseMin: 10, progressHeartbeatS: 30,
+  // **The design ceiling fires before the platform's, with margin to write
+  // the partial report** (master ruling 2026-09-10, issue #456). The free
+  // pass runs inside the `POST /api/scan` invocation, and that invocation
+  // is frozen by the platform at `platformCeilingS` below. A design ceiling
+  // above it can never fire: the pass would be killed mid-flight, its row
+  // swept to `failed`, and the reader shown a failed scan instead of the
+  // partial report ADR-021 promises. So the two are ordered here, in one
+  // place, and `tests/scan/ceilings-pins.test.ts` holds them in that order.
+  //
+  // 50 leaves ten seconds under the platform bound for the ending to be
+  // decided and the partial report stored, and still clears the free
+  // pass's own inference arithmetic (two nano calls, #452/#455) with room.
+  // REQ-003 c5's 90 s is superseded on the pin: the platform, not the
+  // product, sets the outer bound, and the owner has ruled no plan upgrade.
+  //
+  // `reportTargetS` is the p95 the pass aims at, and a target above the
+  // ceiling that stops it is not a target. BUILD §11 fixes no figure for it
+  // — "Free ≈60s live" is the outer bound the reader waits inside, which is
+  // now the platform's — so 40 is chosen here (rule 1.1): ten seconds of
+  // headroom under the ceiling, the same margin the ceiling keeps under the
+  // platform's. Reversal cost: one pin.
+  reportTargetS: 40, reportCeilingS: 50, deepReleaseMin: 10, progressHeartbeatS: 30,
+  /** The platform's own ceiling on the `POST /api/scan` invocation, in
+   *  seconds — `export const maxDuration` on that route, which must stay a
+   *  literal there because Next reads route segment config out of the
+   *  source at build time. This is the same number, pinned where the engine
+   *  can read it; `tests/scan/ceilings-pins.test.ts` reads the route source
+   *  and fails if the two ever disagree. 60 is the plan this product
+   *  deploys to (Hobby). Issue #456. */
+  platformCeilingS: 60,
+  /** How long past the platform's ceiling a free row still `running` has to
+   *  be before the sweep (`src/lib/scan/stuck.ts`) calls it a ghost. The
+   *  sweep keys on the platform bound, not the design one: a row at 50 s
+   *  may be writing its partial report, while a row past the platform bound
+   *  is frozen and nothing is coming back for it.
+   *
+   *  The margin covers what sits between the row's own clock and that
+   *  freeze — `created_at` is written at admission, before the response and
+   *  before `after()` hands the pass over — plus a partial-report write in
+   *  flight at the moment of freezing. 30 s covers all of it, and costs
+   *  nothing: the sweep runs on the maintenance tick
+   *  (`MAINTENANCE_TICK_MINUTES`), so a wider margin never delays a row by
+   *  more than the tick it would have waited for anyway. Issue #456. */
+  sweepMarginS: 30,
   // BP-034 `## NFR budget` (archived corpus), verbatim: "a rival suggestion
   // call is bounded at 3 s and, on timeout, leaves `SuggestionState` at
   // `none_found` rather than holding the screen — **setup is never held on
