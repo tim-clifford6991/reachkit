@@ -24,10 +24,21 @@
 // their node counts, because the point of running this is to know, and a
 // number nobody prints is a number nobody reads.
 //
-// axe's own bundle is injected rather than imported into the page: `axe.source`
-// is the whole library as a string, which is what `addScriptTag` wants, and
-// it reaches the page over Playwright's pipe — `tests/setup.ts` refuses a real
-// network call and this makes none.
+// HOW AXE GETS INTO THE PAGE, and why it is not a `<script>` tag. `axe.source`
+// is the whole library as a string, and the obvious way to run it —
+// `page.addScriptTag({ content })` — appends an **inline** script to the
+// document. Since #331 every response carries a nonce-based
+// `script-src 'self' 'nonce-…'`, so the browser refuses it: "Executing inline
+// script violates the following Content Security Policy directive", on all
+// sixteen routes. That refusal is the policy working.
+//
+// `page.addInitScript` instead, before the navigation: Playwright installs it
+// through the debugger (`Page.addScriptToEvaluateOnNewDocument`), which is not
+// subject to the page's CSP, and it runs at document start — so `window.axe`
+// exists by the time the page has loaded. `page.evaluate` below arrives the
+// same way, which is why the keyboard walk beside this file never hit the
+// policy at all. Neither reaches the network: `tests/setup.ts` refuses a real
+// call and this makes none.
 import path from "node:path";
 import axe from "axe-core";
 import { describe, expect, it } from "vitest";
@@ -82,7 +93,7 @@ interface Finding {
  *
  * Closure-free and one serialisable argument, like every other function this
  * directory hands to `page.evaluate` (`checks.ts`'s header). `window.axe` is
- * the bundle `addScriptTag` put there a moment earlier.
+ * the bundle `addInitScript` defined before the document loaded.
  */
 async function runAxe(options: { tags: readonly string[] }): Promise<Finding[]> {
   interface AxeNode {
@@ -127,8 +138,10 @@ async function audit(route: EnumeratedRoute): Promise<Finding[]> {
   return withPage(
     WIDTH,
     async (page) => {
+      // Before the navigation, and through the debugger rather than as a
+      // `<script>` tag — see this file's header on #331's nonce CSP.
+      await page.addInitScript({ content: axe.source });
       await page.goto(urlFor(route));
-      await page.addScriptTag({ content: axe.source });
       return page.evaluate(runAxe, { tags: TAGS });
     },
     headersFor(route)
