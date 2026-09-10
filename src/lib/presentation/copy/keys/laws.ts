@@ -2,16 +2,14 @@
 //
 // The sentences the cross-cutting laws are made of, which no single surface
 // owns: the five stopped-work lines, the five next-publish lines and the
-// two generated-page lines (WO-041 step 3). Empty value, owner-owed — no
-// string is written here (constitution §1). BP-019 decision 6 adds a
+// two generated-page lines (WO-041 step 3). BP-019 decision 6 adds a
 // fourth law's three keys later (WO-249); this file seeds only these
 // twelve.
 //
 // 2026-09-04: the owner ruled on three of the twelve (WO-041 `## Log`,
 // this date's ruling) — `stopped.work.line`, `stopped.work.needs-nothing`
 // and `next-publish.scheduled` — filled verbatim, byte for byte, and no
-// longer owner-owed. The remaining nine were not part of this ruling and
-// stay owner-owed, empty.
+// longer owner-owed. The remaining nine were not part of this ruling.
 //
 // 2026-09-04, separately: WO-278 (BP-019 decision 6, WO-249's block) closes
 // the fourth cross-cutting law — `law: 'unmeasured'` — with the three keys
@@ -50,8 +48,15 @@
 // throw"), reached here by REQ-091 c2: a place holding nothing must carry
 // **one written line, never a blank**, so an empty value — which `copy()`
 // refuses to render — is the one thing these keys may not hold. Still the
-// owner's sentences; nothing is written here, and
-// `tests/presentation/sweeps/` reports which lines are still the marker.
+// owner's sentences; the owner's words replaced the marker on 2026-09-10
+// (below).
+//
+// 2026-09-10, issue #460: every sentence this partition still owed is now
+// written — the owner approved the master's drafted set ("copy proposal
+// approved", proposal sheet
+// https://claude.ai/code/artifact/546f45a0-a996-4d25-b85e-fb03fda7b102) and
+// the strings land here byte for byte. The values named in the approval
+// file are the owner's; nothing here is composed.
 import type { CopyPartition } from "../registry.ts";
 
 export const LAWS_COPY = Object.freeze({
@@ -61,29 +66,29 @@ export const LAWS_COPY = Object.freeze({
     { law: "stopped-work", slots: {}, fixedBy: "REQ-092 c2" },
   ],
   "stopped.work.resumes-on": [
-    "TODO(copy)",
+    "ReachKit expects to pick up again on {date}.",
     { law: "stopped-work", slots: { date: "date" }, fixedBy: "REQ-092 c4" },
   ],
   "stopped.work.no-time-promised": [
-    "TODO(copy)",
+    "No time is promised for the work to resume.",
     { law: "stopped-work", slots: {}, fixedBy: "REQ-092 c4" },
   ],
   "stopped.work.partial-pass": [
-    "TODO(copy)",
+    "This page was written from a pass cut short — part of the measurement behind it wasn’t done.",
     { law: "stopped-work", slots: {}, fixedBy: "REQ-092 c6" },
   ],
-  "next-publish.stopped": ["TODO(copy)", { law: "next-publish", slots: {}, fixedBy: "REQ-092 c7" }],
+  "next-publish.stopped": ["ReachKit stopped its own work, so no page is scheduled.", { law: "next-publish", slots: {}, fixedBy: "REQ-092 c7" }],
   "next-publish.scheduled": [
     "Next page goes live {at}",
     { law: "next-publish", slots: { at: "date" }, fixedBy: "REQ-040 c4" },
   ],
-  "next-publish.paused": ["TODO(copy)", { law: "next-publish", slots: {}, fixedBy: "REQ-040 c4" }],
+  "next-publish.paused": ["Publishing is off.", { law: "next-publish", slots: {}, fixedBy: "REQ-040 c4" }],
   "next-publish.nothing-approved": [
-    "TODO(copy)",
+    "Nothing approved yet.",
     { law: "next-publish", slots: {}, fixedBy: "REQ-040 c4" },
   ],
   "next-publish.none-planned": [
-    "TODO(copy)",
+    "No page planned yet.",
     { law: "next-publish", slots: {}, fixedBy: "REQ-040 c4" },
   ],
   // 2026-09-06, issue #17: value moved from "" to `TODO(copy)`, on exactly
@@ -118,12 +123,12 @@ export const LAWS_COPY = Object.freeze({
   // label that must ride with it. Left empty, `copy()` throws and the
   // whole report screen goes down; `TODO(copy)` renders as itself, so the
   // label is visibly present and visibly unwritten. Still the owner's
-  // sentence; no string is written here. `generated.page.written` is
+  // sentence, written on 2026-09-10 (#460). `generated.page.written` is
   // untouched — no surface renders it yet, and
   // `tests/presentation/generated/text.test.ts` asserts the owner-owed
   // throw against it.
   "generated.page.proposed": [
-    "TODO(copy)",
+    "proposed by ReachKit · not yet written · {pageTitle}",
     { slots: { pageTitle: "text" }, fixedBy: "REQ-093 c2" },
   ],
   "unmeasured.undeterminable": ["{what} couldn’t be measured — nothing came back that could be read.", { law: "unmeasured", slots: { what: "text" }, fixedBy: "REQ-004 c6" }],
@@ -141,10 +146,10 @@ export const LAWS_COPY = Object.freeze({
   // What the mode is doing, under the mode's own word (UI-SPEC S12's
   // autopilot card: the eyebrow, then "Publishing daily", then the next
   // line). The autopilot arm is unbracketed in the set and so approved
-  // (11a); the set draws no copilot sidebar, so its sentence is owed and
-  // the card states the mode word alone until it is written.
+  // (11a); the set draws no copilot sidebar, so its sentence is the
+  // owner's (#460).
   "shell.publishing.state.autopilot": ["Publishing daily", { slots: {}, fixedBy: "UI-SPEC S12" }],
-  "shell.publishing.state.copilot": ["TODO(copy)", { slots: {}, fixedBy: "REQ-040 c3" }],
+  "shell.publishing.state.copilot": ["Publishing on your approval", { slots: {}, fixedBy: "REQ-040 c3" }],
   // UI-SPEC S13: before the first weekly pass, what the mode is doing is
   // waiting on the deep pass. The *next* line beside it is still
   // `nextPublishStatement`'s — the set draws "deep pass running" there,

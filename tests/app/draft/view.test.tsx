@@ -284,9 +284,15 @@ describe("REQ-045 c4 — told what happens if nothing is done, and able to appro
   });
 
   it("under copilot it states no time, because nothing happens", () => {
-    const root = markup({ ...VIEW, doNothing: { ...VIEW.doNothing, publishesAt: null } });
+    // The pair `doNothingOf` answers under copilot: its own key, and no
+    // time. The key carries a sentence since #460, so it is read back too.
+    const root = markup({
+      ...VIEW,
+      doNothing: { key: "draft.do-nothing.copilot", publishesAt: null },
+    });
     expect(root.querySelector('[data-testid="draft-do-nothing-at"]')).toBeNull();
     expect(textOf(root, "draft-do-nothing")).toContain(copy("draft.do-nothing.title"));
+    expect(textOf(root, "draft-do-nothing")).toContain(copy("draft.do-nothing.copilot"));
   });
 
   it("a page past review offers no control at all, and still renders whole", () => {
