@@ -23,6 +23,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { BAND_MIN } from "@/ui/layout/bands";
 import { getAccountCookie, getBaseURL, withPage } from "./browser";
+import { SIGNIN_PATH } from "@/lib/account/identity/addresses";
 import { enumerateRoutes, headersFor, urlFor as routeUrl, type EnumeratedRoute } from "./routes";
 
 const APP_ROOT = path.resolve(__dirname, "../../../src/app");
@@ -49,17 +50,6 @@ const FIXED_HEADERS: Readonly<Record<string, string>> = {
   "x-frame-options": "DENY",
   "x-content-type-options": "nosniff",
 };
-
-/** The `Next-Action` id the CSRF probe sends: well-formed enough to be
- *  taken for a Server Action reference, and matching none. Which is the
- *  point — the origin check happens *before* the action is looked up, so
- *  the two answers are told apart by their status alone and no action of
- *  this product's is ever invoked by this suite. */
-const UNKNOWN_ACTION_ID = "0".repeat(40);
-
-/** Next's own answer for a Server Action it cannot find
- *  (`x-nextjs-action-not-found`, `app-router-headers.js`). */
-const ACTION_NOT_FOUND_HEADER = "x-nextjs-action-not-found";
 
 function urlFor(route: EnumeratedRoute): string {
   const baseURL = getBaseURL();
@@ -161,38 +151,66 @@ describe(`issue #331 — the security headers, on all ${routes.length} route(s)`
     PER_ROUTE_BROWSER_MS,
   );
 
-  it("a Server Function posted from another origin is refused before it is looked up", async () => {
-    const baseURL = getBaseURL();
-    if (baseURL === null) return;
+  it(
+    "a Server Function posted from another origin is refused before it is looked up",
+    async () => {
+      const baseURL = getBaseURL();
+      if (baseURL === null) return;
+      const target = `${baseURL}${SIGNIN_PATH}`;
 
-    const post = async (origin: string): Promise<{ status: number; notFound: boolean }> =>
-      withPage(WIDTH, async (page) => {
-        const response = await page.request.post(`${baseURL}/signin`, {
-          headers: {
-            origin,
-            "next-action": UNKNOWN_ACTION_ID,
-            "content-type": "text/plain;charset=UTF-8",
-          },
-          data: "[]",
-          failOnStatusCode: false,
+      /**
+       * One POST, made **by the browser** — not by an `APIRequestContext`,
+       * which Playwright serves in this process with `http.request` and
+       * `tests/setup.ts` therefore refuses (rightly: nothing in this corpus
+       * reaches the network from a test process).
+       *
+       * That constraint is what makes this the honest test rather than the
+       * convenient one. A page cannot forge an `Origin` header — it is a
+       * forbidden header name — so the only way to send a mismatched one is
+       * to actually be somewhere else, which is also the only way a CSRF
+       * attempt ever arises. `about:blank` is that somewhere: an opaque
+       * origin, exactly what a sandboxed frame or a `data:` document has,
+       * and the case Next's own comment beside this check is written for
+       * ("these contexts can still send along credentials like cookies").
+       *
+       * It is also the only page within reach that *can* stage the attempt.
+       * Every page this product serves carries `connect-src 'self'` and
+       * `form-action 'self'`, so none of them can post anywhere else — the
+       * policy from the first half of this issue working, which is why the
+       * attempt has to come from a document the product did not serve.
+       *
+       * `no-cors` so the request is sent rather than refused before it
+       * leaves; the response is unreadable from the page either way, and is
+       * read off the wire by `waitForResponse` instead. The body carries no
+       * action id at all, so nothing of this product's is ever invoked —
+       * the two answers differ on the origin and on nothing else.
+       */
+      const statusOfPostFrom = async (where: "elsewhere" | "its own origin"): Promise<number> =>
+        withPage(WIDTH, async (page) => {
+          if (where === "its own origin") {
+            await page.goto(target);
+          } else {
+            await page.setContent("<!doctype html><title>elsewhere</title>");
+          }
+
+          const [response] = await Promise.all([
+            page.waitForResponse((r) => r.url() === target && r.request().method() === "POST"),
+            page.evaluate(async (to) => {
+              const body = new FormData();
+              body.set("probe", "1");
+              await fetch(to, { method: "POST", mode: "no-cors", body }).catch(() => undefined);
+            }, target),
+          ]);
+          return response.status();
         });
-        return {
-          status: response.status(),
-          notFound: response.headers()[ACTION_NOT_FOUND_HEADER] === "1",
-        };
-      });
 
-    // A stranger's origin: aborted, and the action never looked up — which
-    // is why this answer is not the not-found one below.
-    const foreign = await post("https://attacker.example");
-    expect(foreign.status).toBe(500);
-    expect(foreign.notFound).toBe(false);
-
-    // The identical request from the app's own origin gets past the check
-    // and fails on the only thing left: there is no such action. The pair
-    // is the assertion — one request, one difference, two answers.
-    const own = await post(new URL(baseURL).origin);
-    expect(own.status).toBe(404);
-    expect(own.notFound).toBe(true);
-  }, PER_ROUTE_BROWSER_MS);
+      // Aborted, before the body is even decoded.
+      expect(await statusOfPostFrom("elsewhere")).toBe(500);
+      // The identical request from the app's own origin is not: it passes
+      // the check, decodes to no action, and the screen renders. One
+      // request, one difference, two answers.
+      expect(await statusOfPostFrom("its own origin")).toBe(200);
+    },
+    PER_ROUTE_BROWSER_MS,
+  );
 });
