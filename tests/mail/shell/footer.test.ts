@@ -26,12 +26,15 @@ const { MAIL_KINDS } = await import("../../../src/lib/mail/kinds");
  * reason line yet.
  *
  * `first-page-unavailable` is the four arms of "there is no page for you",
- * `setup-reminder` is the nudge to finish setup, and `account` is the
- * billing and identity mails. S20 draws none of them, so ruling 11a
+ * `setup-reminder` is the nudge to finish setup, `account` is the billing
+ * and identity mails, and `ops` is the owner's own spend alert (issue
+ * #329), which has no reason line for a reason no other kind has: its
+ * reader is the owner, and "why you are getting this" is a line for
+ * somebody who did not ask for it. S20 draws none of them, so ruling 11a
  * approves no sentence to fill their footer with, and inventing one is the
  * thing CLAUDE.md forbids. When the owner writes them, this list shrinks.
  */
-const NO_REASON_YET = ["first-page-unavailable", "setup-reminder", "account"] as const;
+const NO_REASON_YET = ["first-page-unavailable", "setup-reminder", "account", "ops"] as const;
 
 const BASE = {
   subject: "mail.shell.wordmark",
@@ -39,13 +42,13 @@ const BASE = {
 } as const;
 
 describe("issue #376 — S20's footer, in both bodies", () => {
-  it("the three kinds with no reason line are exactly the three the set does not draw", () => {
+  it("the four kinds with no reason line are exactly the four the set does not draw", () => {
     // Rule 5.5: the exception is a written list, and it is checked against
     // the register rather than against itself — a fourth kind added to
     // `MAIL_KINDS` without a footer line fails here, naming itself.
     const drawn = ["magic-link", "report", "first-page", "draft-ready", "published", "weekly", "nurture"];
     const registered = Object.keys(MAIL_KINDS);
-    expect(registered).toHaveLength(10);
+    expect(registered).toHaveLength(11);
     expect([...NO_REASON_YET].sort()).toEqual(registered.filter((k) => !drawn.includes(k)).sort());
   });
 

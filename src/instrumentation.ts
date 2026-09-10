@@ -45,6 +45,13 @@
 //    the price: it is done first, before the vendor read, because the
 //    vendor arm below may return early and a gate registered after that
 //    return would be a gate registered on some boots only.
+//  - **The spend seam's alert sink not being registered** is registered
+//    here and does not throw (issue #329). `src/lib/costs/daily.ts`
+//    publishes a crossing of the product's daily ceiling and cannot reach
+//    `src/lib/mail` itself (ARCHITECTURE rule 2 puts costs at the bottom
+//    of the dependency order), so boot is what introduces them. Nothing
+//    registered costs the owner an alert and costs the product nothing:
+//    the ceiling refuses and holds whether or not anybody is told.
 //  - **The deleted-account mail's WordPress place port not being wired**
 //    is registered here and does not throw (issue #160). The seam in
 //    `src/lib/account/lifecycle/left-in-wordpress.ts` answers "no place"
@@ -74,7 +81,7 @@
  *  is a name from a closed set — never a binding's value, never a vendor
  *  payload, never the price id. */
 function log(
-  check: "checkout" | "access-gate" | "stamp-place" | "clock" | "jobs",
+  check: "checkout" | "access-gate" | "stamp-place" | "clock" | "jobs" | "spend-alerts",
   outcome: "checked" | "unchecked",
   reason?: string
 ): void {
@@ -128,6 +135,16 @@ export async function register(): Promise<void> {
   );
   installStampCapability();
   log("stamp-place", "checked");
+
+  // The cost seam's crossings, introduced to the side that can mail them
+  // (issue #329). Same kind of fact as the two above: local, needing
+  // nobody, and ahead of the arm that may return early. It does not throw
+  // — an unregistered sink means the seam publishes into nothing, which
+  // costs an alert and never a refusal, and the ceiling itself holds
+  // either way.
+  const { installSpendAlerts } = await import("@/lib/mail/ops");
+  installSpendAlerts();
+  log("spend-alerts", "checked");
 
   const { assertCheckoutBootInvariants } = await import("@/lib/account/checkout/boot");
   const { PriceObjectMismatch } = await import("@/lib/account/checkout/price-object");

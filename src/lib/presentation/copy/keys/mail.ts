@@ -628,4 +628,39 @@ export const MAIL_COPY = Object.freeze({
   ],
   "mail.weekly.action": ["Open the overview", { slots: {}, fixedBy: "UI-SPEC S20 (11a)" }],
   "mail.nurture.action": ["Start ReachKit €49", { slots: {}, fixedBy: "UI-SPEC S20 (11a)" }],
+
+  // ── The one mail nobody outside this company ever receives (issue #329,
+  // BUILD §6.5): the owner, told that the product's daily spend crossed a
+  // line or that the kill switch moved.
+  //
+  // **Owner-owed as `''`, never `TODO(copy)`** — DECISIONS 2026-09-05,
+  // "mail keeps the throw (a mail never ships a placeholder)". Until the
+  // owner writes these, `copy()` refuses the key, `sendEmail` answers
+  // `not-composable`, and the alert does not go out. That is the designed
+  // standing and not a gap: the guard itself — the refusal at the door and
+  // the ceiling in the seam — is what stops the spend, and it works with
+  // no sentence written at all. The mail only tells someone about it.
+  //
+  // One subject over all three occasions, three bodies. The occasions are
+  // one event to the reader ("something about spending changed") and the
+  // subject line is where that reader decides whether to look now, so
+  // splitting it three ways would buy nothing and owe the owner two more
+  // sentences. The body is where they differ, and they differ completely.
+  "mail.ops.spend-ceiling.subject": ["", { slots: {}, fixedBy: "BUILD §6.5 · issue 329" }],
+  "mail.ops.spend-ceiling.heading": ["", { slots: {}, fixedBy: "BUILD §6.5 · issue 329" }],
+  /** Crossed `SPEND_ALERT_AT.warn` of the day's ceiling — nothing has been
+   *  refused yet; this is the hour to look. */
+  "mail.ops.spend-ceiling.warn": ["", { slots: {}, fixedBy: "BUILD §6.5 · issue 329" }],
+  /** Reached the ceiling: free scanning is refused for the rest of the UTC
+   *  day and paid passes are holding. */
+  "mail.ops.spend-ceiling.reached": ["", { slots: {}, fixedBy: "BUILD §6.5 · issue 329" }],
+  /** The switch, found engaged. There is no released twin: a release
+   *  cannot be told from an ordinary boot without durable state, so the
+   *  sentence is not owed until the telling exists. */
+  "mail.ops.spend-ceiling.kill-switch-engaged": ["", { slots: {}, fixedBy: "BUILD §6.5 · issue 329" }],
+  /** The two mono fact rows the S20 shell draws under the line. The
+   *  figures reach them as already-written values (cents, as integers);
+   *  these are their labels, and the unit is the owner's word to choose. */
+  "mail.ops.spend-ceiling.fact.spent": ["", { slots: {}, fixedBy: "BUILD §6.5 · issue 329" }],
+  "mail.ops.spend-ceiling.fact.ceiling": ["", { slots: {}, fixedBy: "BUILD §6.5 · issue 329" }],
 }) satisfies CopyPartition;

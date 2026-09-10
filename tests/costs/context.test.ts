@@ -27,7 +27,7 @@
 // already do.
 import { execFileSync } from "node:child_process";
 import path from "node:path";
-import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   ANON_KEY,
   DB_HOST,
@@ -42,10 +42,15 @@ import {
 } from "../db/substrate";
 
 let withCostContext: (typeof import("../../src/lib/costs/index"))["withCostContext"];
+let readDaySpendCents: (typeof import("../../src/lib/costs/daily"))["readDaySpendCents"];
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../..");
 const BASELINE_MIGRATION = path.join(REPO_ROOT, "supabase/migrations/00000000000001_baseline.sql");
 const FETCHES_MIGRATION = path.join(REPO_ROOT, "supabase/migrations/20260903080000_fetches.sql");
+const DAILY_SPEND_MIGRATION = path.join(
+  REPO_ROOT,
+  "supabase/migrations/20260909200000_fetches_daily_spend.sql"
+);
 
 function resetAndApplySchema(): void {
   psql([
@@ -56,6 +61,7 @@ function resetAndApplySchema(): void {
   ]);
   psql(["-v", "ON_ERROR_STOP=1", "-f", BASELINE_MIGRATION]);
   psql(["-v", "ON_ERROR_STOP=1", "-f", FETCHES_MIGRATION]);
+  psql(["-v", "ON_ERROR_STOP=1", "-f", DAILY_SPEND_MIGRATION]);
   psql(["-c", "NOTIFY pgrst, 'reload schema';"]);
   execFileSync("sleep", ["0.3"]); // PostgREST's schema-cache reload is async.
 }
@@ -131,6 +137,7 @@ const ENV_FIXTURE: Record<string, string> = {
 beforeAll(async () => {
   for (const [key, value] of Object.entries(ENV_FIXTURE)) process.env[key] = value;
   ({ withCostContext } = await import("../../src/lib/costs/index"));
+  ({ readDaySpendCents } = await import("../../src/lib/costs/daily"));
   resetAndApplySchema();
 });
 
@@ -695,3 +702,118 @@ describe(
     });
   }
 );
+
+// ── The product-wide daily ceiling's own read (issue #329, BUILD §6.5) ──
+//
+// `src/lib/costs/daily.ts` asks one question of the database —
+// `fetches_spend_since(since)` — and every claim it makes about the answer
+// rests on this function existing, summing the right rows, and being
+// unreachable without the service role. That is what this block asserts,
+// against the real schema; the arithmetic on top of it is
+// `tests/costs/daily.test.ts`'s.
+describe("issue #329 — fetches_spend_since, the day's ledger read", () => {
+  beforeEach(() => {
+    psql(["-v", "ON_ERROR_STOP=1", "-c", "delete from fetches; delete from scans;"]);
+  });
+
+  function spendSince(since: string): number {
+    return Number(
+      psql([
+        "-t",
+        "-A",
+        "-v",
+        "ON_ERROR_STOP=1",
+        "-c",
+        `select fetches_spend_since('${since}'::timestamptz);`,
+      ]).trim()
+    );
+  }
+
+  function ledgerRow(costCents: number, createdAt: string, scanId: string): void {
+    psql([
+      "-v",
+      "ON_ERROR_STOP=1",
+      "-c",
+      `insert into fetches (scan_id, source, cache_key, policy_version, cost_cents, reserved_cents, payload, created_at)
+       values ('${scanId}', 'vendor', 'k', 1, ${costCents}, ${costCents}, '{}'::jsonb, '${createdAt}'::timestamptz);`,
+    ]);
+  }
+
+  it("an empty day is 0¢, not null — 'no rows' and 'nothing spent' are the same fact to a ceiling", () => {
+    expect(spendSince("2026-09-09T00:00:00Z")).toBe(0);
+  });
+
+  it("sums what was ledgered on or after the boundary, and nothing before it", () => {
+    const scanId = freshScanId("daily-spend");
+    ledgerRow(7, "2026-09-08T23:59:59Z", scanId); // the day before
+    ledgerRow(11, "2026-09-09T00:00:00Z", scanId); // exactly midnight — counted
+    ledgerRow(13, "2026-09-09T12:00:00Z", scanId);
+    expect(spendSince("2026-09-09T00:00:00Z")).toBe(24);
+    // And the day before, read on its own terms, sees all three.
+    expect(spendSince("2026-09-08T00:00:00Z")).toBe(31);
+  });
+
+  it("sums the settled figure, which is what `cost_cents` holds", () => {
+    const scanId = freshScanId("daily-settled");
+    psql([
+      "-v",
+      "ON_ERROR_STOP=1",
+      "-c",
+      `insert into fetches (scan_id, source, cache_key, policy_version, cost_cents, reserved_cents, payload, created_at)
+       values ('${scanId}', 'vendor', 'k', 1, 2, 9, '{}'::jsonb, now());`,
+    ]);
+    expect(spendSince("2000-01-01T00:00:00Z")).toBe(2);
+  });
+
+  it("is unreachable by anon and by authenticated — no cost figure is ever rendered to a customer", () => {
+    for (const role of ["anon", "authenticated"]) {
+      let refused = false;
+      try {
+        psql([
+          "-v",
+          "ON_ERROR_STOP=1",
+          "-c",
+          `set local role ${role}; select fetches_spend_since(now());`,
+        ]);
+      } catch {
+        refused = true;
+      }
+      expect(refused, role).toBe(true);
+    }
+  });
+
+  it("carries a pinned, empty search path, so no caller can move what `fetches` resolves to", () => {
+    const config = psql([
+      "-t",
+      "-A",
+      "-v",
+      "ON_ERROR_STOP=1",
+      "-c",
+      "select coalesce(array_to_string(proconfig, ','), '') from pg_proc where proname = 'fetches_spend_since';",
+    ]).trim();
+    expect(config).toContain("search_path=");
+  });
+
+  it("the production path reaches it: `readDaySpendCents` over the real client and the real PostgREST", async () => {
+    // The psql cases above prove the function. This one proves the seam's
+    // own call — a service-role RPC through PostgREST's schema cache, with
+    // the argument named as the function declares it. A grant, a rename or
+    // a stale cache would pass every case above and fail here, which is
+    // the only place production could fail.
+    const scanId = freshScanId("daily-rpc");
+    ledgerRow(17, new Date().toISOString(), scanId);
+    expect(await readDaySpendCents(new Date())).toBe(17);
+  });
+
+  it("`fetches` carries an index on `created_at` alone — the day read is a range scan, not a table scan", () => {
+    const indexes = psql([
+      "-t",
+      "-A",
+      "-v",
+      "ON_ERROR_STOP=1",
+      "-c",
+      "select indexname from pg_indexes where tablename = 'fetches';",
+    ]);
+    expect(indexes).toContain("idx_fetches_created_at");
+  });
+});
