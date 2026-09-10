@@ -11,6 +11,7 @@
     "test": "vitest run --project node --project ui --project db",
     "test:layout": "vitest run --project layout",
     "review:gallery": "MAIL_PREVIEW_OUT=.review/mail vitest run --project node tests/mail/preview && REVIEW_GALLERY=1 MAIL_PREVIEW_OUT=.review/mail vitest run --project layout tests/ui/layout/review-gallery.test.ts",
+    "copy:owed": "node scripts/copy/owed.mjs",
     "typecheck": "tsc --noEmit",
     "db:types": "supabase gen types typescript --local > src/lib/db/types.generated.ts"
   },
