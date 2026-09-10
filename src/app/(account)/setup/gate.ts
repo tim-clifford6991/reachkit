@@ -11,18 +11,18 @@
 // **The runtime question #133 asks, answered: the gate is enforced in
 // `src/app/(account)/layout.tsx`, on the Node.js runtime, and no longer in
 // `src/middleware.ts`.** The gate has to name the asking account, which is
-// `currentSession()` — `next/headers`, a `node:crypto` HMAC and one
-// `dbAdmin()` read. `src/middleware.ts` is still bundled for the **Edge**
+// `currentSession()` — `next/headers`, a Supabase Auth round trip and
+// `dbAdmin()` reads. `src/middleware.ts` is still bundled for the **Edge**
 // runtime in this build (Next 16 gives the *new* `proxy.ts` convention the
 // Node default; the deprecated `middleware.ts` convention this repository
 // still uses lands in `server/edge/…`, checked in the build's own
 // middleware manifest), so none of those three is reachable from there.
 // The three ways out, and why this one:
 //
-//   * *Read the session some other way at the edge* — a second HMAC
-//     verifier written against Web Crypto beside the one in
-//     `identity/cookie.ts`. Two implementations of one trust boundary, and
-//     a database round trip in front of **every** request besides.
+//   * *Read the session some other way at the edge* — a second session
+//     reader beside identity's own. Two implementations of one trust
+//     boundary, and a database round trip in front of **every** request
+//     besides.
 //   * *Declare the Node.js runtime for middleware* — reachable only by
 //     migrating `middleware.ts` → `proxy.ts`, which `src/middleware.ts`'s
 //     own header defers to "a work order that touches BP-001's own `code:`

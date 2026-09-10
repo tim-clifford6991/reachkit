@@ -11,7 +11,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { BAND_MIN } from "@/ui/layout/bands";
-import { SESSION_COOKIE_NAME } from "@/lib/account/identity/addresses";
+import { isAuthCookieName } from "@/lib/account/identity/addresses";
 import {
   ACCOUNT_SESSION_COOKIE,
   enumerateRoutes,
@@ -92,25 +92,27 @@ describe("enumerateRoutes — an (account) page carries its session cookie", () 
     expect(enumerateRoutes(tmpRoot)).toEqual([{ path: "/pricing" }]);
   });
 
-  it("the cookie names the one cookie src/middleware.ts reads", () => {
-    // The middleware checks presence only, so the value is a fixture; the
-    // *name* is the contract, and a rename there without one here would
-    // silently sweep the sign-in redirect instead of the account screen.
+  it("the cookie is shaped like the one cookie src/middleware.ts looks for", () => {
+    // The middleware asks Supabase about a session cookie only when one is
+    // present, and "present" is `isAuthCookieName`'s answer (#468). A
+    // fixture the predicate refused would be swept as a stranger without
+    // anybody noticing.
     //
-    // Since issue #35 that name has exactly one home — the zero-import
-    // module both this file and `src/middleware.ts` read it from — so the
-    // assertion is that they are the same value, and that the middleware
-    // still takes it from there rather than re-spelling it.
+    // The shape has exactly one home — the zero-import module both this
+    // file and `src/middleware.ts` read it from — so the assertion is that
+    // the fixture passes it, and that the middleware still takes it from
+    // there rather than re-spelling it.
     const [name] = ACCOUNT_SESSION_COOKIE.split("=");
-    expect(name).toBe(SESSION_COOKIE_NAME);
+    expect(isAuthCookieName(name ?? "")).toBe(true);
 
     const middleware = readFileSync(
       path.resolve(__dirname, "../../../src/middleware.ts"),
       "utf8"
     );
-    expect(middleware).toContain("SESSION_COOKIE_NAME");
+    expect(middleware).toContain("isAuthCookieName");
     expect(middleware).toContain("@/lib/account/identity/addresses");
   });
+
 });
 
 describe("enumerateRoutes — a (hosted) page carries its Host", () => {

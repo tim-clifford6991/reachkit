@@ -144,8 +144,14 @@ describe('advisor `rls_enabled_no_policy` — the tables that are policy-less by
   const rlsOn = new Set<string>();
   const policied = new Set<string>();
   const commented = new Map<string, string>();
+  /** Tables a later migration drops (`auth_links`, #468): no longer in
+   *  `public`, so no longer the advisor's to name. */
+  const dropped = new Set<string>();
   for (const { sql } of MIGRATIONS) {
     const statements = statementsOf(sql);
+    for (const match of statements.matchAll(/drop\s+table\s+(?:if\s+exists\s+)?(?:public\.)?([a-z_][a-z0-9_]*)/gi)) {
+      if (match[1] !== undefined) dropped.add(match[1]);
+    }
     for (const match of statements.matchAll(/alter\s+table\s+(?:public\.)?([a-z_][a-z0-9_]*)\s+enable\s+row\s+level\s+security/gi)) {
       if (match[1] !== undefined) rlsOn.add(match[1]);
     }
@@ -160,13 +166,14 @@ describe('advisor `rls_enabled_no_policy` — the tables that are policy-less by
       if (match[1] !== undefined && match[2] !== undefined) commented.set(match[1], match[2]);
     }
   }
-  const policyLess = [...rlsOn].filter((table) => !policied.has(table)).sort();
+  const policyLess = [...rlsOn].filter((table) => !policied.has(table) && !dropped.has(table)).sort();
 
-  it("finds the four the advisor named in `public`", () => {
-    // The advisor names six; the other two are v2's, in schema
-    // `v2_archive` (the cutover's rollback path, `docs/DEPLOYMENT.md`
-    // §3.6) and not created by any migration here.
-    expect(policyLess).toEqual(["auth_links", "domain_blocks", "email_suppressions", "fetches"]);
+  it("finds the ones the advisor names in `public`", () => {
+    // The advisor named six; two are v2's, in schema `v2_archive` (the
+    // cutover's rollback path, `docs/DEPLOYMENT.md` §3.6) and not created
+    // by any migration here, and `auth_links` was dropped by #468 when
+    // identity moved onto Supabase Auth.
+    expect(policyLess).toEqual(["domain_blocks", "email_suppressions", "fetches"]);
   });
 
   it.each(policyLess)("%s carries a `comment on table` naming the rule", (table) => {

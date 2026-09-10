@@ -22,7 +22,7 @@
 // fixture is imported above the module under test, exactly as
 // `tests/app/middleware.test.ts` does, and the removal read is doubled
 // because a database answer is no part of any promise here.
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 import "../scan/run/harness";
 
@@ -30,7 +30,16 @@ vi.mock("@/lib/scan/removal", () => ({ isDomainRemoved: async () => false }));
 
 import nextConfig, { SECURITY_HEADERS } from "../../next.config";
 import { contentSecurityPolicy, middleware } from "@/middleware";
-import { sessionCookie } from "@/lib/account/identity/session";
+import { sessionCookieOptions, setIdentityAuth } from "@/lib/account/identity/auth";
+import { addAuthUser, fakeIdentityAuth, newFakeAuth, signedInCookie } from "../account/identity/fake-auth";
+
+/** #468: a signed-in request is one whose Supabase session `getUser()`
+ *  verifies — here the in-memory double, with one live session. */
+const AUTH = newFakeAuth();
+addAuthUser(AUTH, { id: "user-1", email: "founder@example.com" });
+const SIGNED_IN = signedInCookie(AUTH, "user-1");
+beforeEach(() => setIdentityAuth(fakeIdentityAuth(AUTH)));
+afterEach(() => setIdentityAuth(null));
 import { dangerTicketCookieOptions } from "@/app/(account)/app/settings/danger-ticket";
 
 const CSP = "content-security-policy";
@@ -164,7 +173,7 @@ describe("issue #331 — no path out of `src/middleware.ts` answers without the 
   it.each([
     ["a public page", "/pricing", {}],
     ["an api adapter", "/api/jobs", {}],
-    ["a signed-in account screen", "/app", { cookie: "rk_session=a-token" }],
+    ["a signed-in account screen", "/app", { cookie: SIGNED_IN }],
     ["the report address, whose rewrite is a render", "/scan/example.com", {}],
     ["a hosted customer's own domain", "/best-onboarding-tools", { host: "content.example.com" }],
     // #405's fallthrough: an address under no segment this product serves,
@@ -203,12 +212,8 @@ describe("issue #331 — no path out of `src/middleware.ts` answers without the 
 
 // ── 2. The two cookies, and the Server Functions' origin check ────────────
 
-describe("issue #331 — the session cookie's flags", () => {
-  const { options } = sessionCookie({
-    userId: "00000000-0000-4000-8000-000000000000",
-    siteId: "00000000-0000-4000-8000-000000000001",
-    issuedAt: new Date("2026-09-10T00:00:00.000Z"),
-  });
+describe("issue #331 — the session cookie's flags (Supabase Auth's cookie since #468)", () => {
+  const options = sessionCookieOptions();
 
   it("no script can read it", () => {
     expect(options.httpOnly).toBe(true);

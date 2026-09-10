@@ -53,6 +53,8 @@ beforeEach(() => resetSetupSession());
  *  those, and `store.test.ts` owns the rows. */
 let session: { userId: string; siteId: string | null } | null = { userId: "user-fixture", siteId: "site-fixture" };
 
+import { addAuthUser, fakeIdentityAuth, newFakeAuth, signedInCookie } from "../../account/identity/fake-auth";
+
 vi.mock("@/lib/account/identity", () => ({
   currentSession: async () => session,
 }));
@@ -111,7 +113,17 @@ describe("the boundary — every setup route is signed-in-only", () => {
   it.each(["/setup", "/setup/waiting", "/api/setup", "/api/setup/domain", "/api/setup/progress"])(
     "%s with a session is served",
     async (path) => {
-      expect((await middleware(requestTo(path, "rk_session=a-token"))).status).toBe(200);
+      // #468: a Supabase Auth session, verified by `getUser()` — here the
+      // in-memory double of it, with one live session.
+      const { setIdentityAuth } = await import("@/lib/account/identity/auth");
+      const auth = newFakeAuth();
+      addAuthUser(auth, { id: "user-fixture", email: "founder@example.com" });
+      setIdentityAuth(fakeIdentityAuth(auth));
+      try {
+        expect((await middleware(requestTo(path, signedInCookie(auth, "user-fixture")))).status).toBe(200);
+      } finally {
+        setIdentityAuth(null);
+      }
     }
   );
 });

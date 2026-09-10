@@ -9,12 +9,6 @@
 // route, rather than being silently skipped (rule 5.5).
 import { readdirSync } from "node:fs";
 import path from "node:path";
-// The cookie's wire name has one home since issue #35
-// (`src/lib/account/identity/addresses.ts`, a module that imports nothing so
-// `src/middleware.ts` can read it on the Edge runtime). Taking the name from
-// there rather than repeating it is what makes a rename impossible to get
-// half-done: the sweep, the middleware and the mint all move together.
-import { SESSION_COOKIE_NAME } from "@/lib/account/identity/addresses";
 
 export interface EnumeratedRoute {
   /** The URL path, route groups stripped and every dynamic segment filled. */
@@ -197,18 +191,17 @@ export const PUBLISHED_HOST_FIXTURES: Readonly<Record<string, string>> = {
 /**
  * The default `Cookie` header an `(account)` page is enumerated with.
  *
- * **It is no longer enough on its own** (issue #193). `src/middleware.ts`
- * checks a cookie's *presence only*, so this fixture gets a request past
- * the default-deny boundary — but since #192 the four `/app` screens
- * verify the session against the `users` row, and this value names no
- * account, so they answer `/signin`. The browser sweep passes
- * `accountCookie` instead: a cookie minted through identity's own path
- * against the seeded account (`seed.ts`). This stays the default because
- * `routes.test.ts` enumerates a fixture tree with no database behind it
- * and is asserting the *shape* of what enumeration produces, not what a
+ * **It is not enough on its own** (issues #193, #468). It is shaped like a
+ * Supabase Auth session cookie, but its value is no session: since #468
+ * `src/middleware.ts` asks Supabase (`getUser()`) about any such cookie,
+ * and this one names nobody, so a real app answers `/signin`. The browser
+ * sweep passes `accountCookie` instead — a session for the seeded account
+ * that `./auth-stub.ts` verifies (`seed.ts`). This stays the default
+ * because `routes.test.ts` enumerates a fixture tree with no server behind
+ * it and is asserting the *shape* of what enumeration produces, not what a
  * screen answers.
  */
-export const ACCOUNT_SESSION_COOKIE = `${SESSION_COOKIE_NAME}=layout-sweep-fixture`;
+export const ACCOUNT_SESSION_COOKIE = "sb-layout-sweep-auth-token=layout-sweep-fixture";
 
 /**
  * The URL a route is fetched at, and the headers it is fetched with.

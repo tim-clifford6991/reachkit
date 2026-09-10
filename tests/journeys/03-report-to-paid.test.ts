@@ -1,7 +1,7 @@
 // tests/journeys/03-report-to-paid.test.ts — BUILD §3, §13
 //
 // Journey: Start ReachKit → Stripe Checkout → the webhook → an account, a
-// site and a subscription → the magic-link mail → `/signin/{token}` →
+// site and a subscription → the magic-link mail → `/auth/confirm?token_hash=…` (#468) →
 // `/setup` (JN-002 steps 1–2).
 //
 // End to end, at the seams and no further in. Everything the product owns
@@ -49,7 +49,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createHmac } from "node:crypto";
 import { renderToStaticMarkup } from "react-dom/server";
+import { NextRequest } from "next/server";
 import { fakeDb } from "../scan/run/harness";
+import {
+  addAuthUser,
+  FAKE_AUTH_COOKIE,
+  fakeIdentityAuth,
+  newFakeAuth,
+  type FakeAuthState,
+} from "../account/identity/fake-auth";
 import { memoryAccountStore, newMemoryAccounts, type MemoryAccounts } from "../account/memory-store";
 import {
   addAccount,
@@ -97,10 +105,8 @@ const { setAccountStore } = await import("../../src/lib/account/store");
 const { setBillingStore } = await import("../../src/lib/account/billing/store");
 const { hasActiveAccess } = await import("../../src/lib/account/billing");
 const { setIdentityStore } = await import("../../src/lib/account/identity/store");
-const { readSessionCookie } = await import("../../src/lib/account/identity/cookie");
-const { SESSION_COOKIE_NAME, deadLinkPath } = await import(
-  "../../src/lib/account/identity/addresses"
-);
+const { setIdentityAuth } = await import("../../src/lib/account/identity/auth");
+const { deadLinkPath } = await import("../../src/lib/account/identity/addresses");
 const { unwireSignInLinkIssuer } = await import("../../src/lib/account/identity/wire");
 const { registerDeepPassQueue } = await import(
   "../../src/lib/account/provisioning/deep-pass"
@@ -112,7 +118,7 @@ const { SETUP_PATH, APP_PATH, setupRedirectFor } = await import(
   "../../src/app/(account)/setup/gate"
 );
 const { POST: webhookRoute } = await import("../../src/app/api/stripe/webhook/route");
-const { GET: redeemRoute } = await import("../../src/app/(public)/signin/[token]/route");
+const { GET: confirmRoute } = await import("../../src/app/(public)/auth/confirm/route");
 
 const SCAN_ID = "scan-journey-03";
 const DOMAIN = "acme.com";
@@ -127,6 +133,9 @@ const NEVER_PAID = new Date(0).toISOString();
 
 let accounts: MemoryAccounts;
 let identity: MemoryIdentity;
+/** Supabase Auth, in memory (#468): the user, the one live token, the
+ *  session `verifyOtp` writes. */
+let auth: FakeAuthState;
 let billing: MemoryBilling;
 let leads: MemoryState;
 let vendor: ReturnType<typeof newStripeDouble>;
@@ -149,6 +158,10 @@ function joinedAccountStore(): AccountStore {
     async insertAccount(a) {
       const result = await inner.insertAccount(a);
       if (result.ok) {
+        // #468: the real store creates the `auth.users` row first and
+        // inserts `users` under its id; the memory store mints the id, so
+        // the Supabase double is told about it here — one id, two tables.
+        addAuthUser(auth, { id: result.id, email: a.email });
         addAccount(identity, { id: result.id, email: a.email });
         billing.users.push(
           billingAccount({ id: result.id, email: a.email, paid_through: NEVER_PAID })
@@ -235,6 +248,7 @@ beforeEach(() => {
   // the feature that owns the sequence.
   accounts.leads.push({ email: NORMALISED, converted_at: null });
   identity = newMemoryIdentity();
+  auth = newFakeAuth();
   billing = newMemoryBilling();
 
   // The founder already traded their address for the free page (journey
@@ -255,6 +269,7 @@ beforeEach(() => {
 
   setAccountStore(joinedAccountStore());
   setIdentityStore(memoryIdentityStore(identity));
+  setIdentityAuth(fakeIdentityAuth(auth));
   setBillingStore(memoryBillingStore(billing));
   setLeadStore(memoryStore(leads));
 
@@ -272,6 +287,7 @@ beforeEach(() => {
 afterEach(() => {
   setAccountStore(null);
   setIdentityStore(null);
+  setIdentityAuth(null);
   setBillingStore(null);
   setLeadStore(null);
   setStripe(null);
@@ -326,18 +342,23 @@ async function untilTheAccountIsOpen(): Promise<{ sessionId: string }> {
   return { sessionId: started.sessionId };
 }
 
+/** The token hash the magic-link mail carries (#468): Supabase's own,
+ *  on this deployment's `/auth/confirm`, never Supabase's `action_link`. */
 function theMagicLink(): string {
   const mail = inbox.find((m) => m.subject === "mail.magicLink.subject");
   if (mail === undefined) throw new Error("no magic-link mail was sent");
-  const found = /https:\/\/app\.example\.com\/signin\/([A-Za-z0-9_-]+)/.exec(mail.html);
+  const found =
+    /https:\/\/app\.example\.com\/auth\/confirm\?token_hash=([A-Za-z0-9_-]+)&(?:amp;)?type=magiclink/.exec(
+      mail.html
+    );
   if (found === null) throw new Error("the magic-link mail carried no link");
   return found[1] as string;
 }
 
-async function followTheLink(token: string): ReturnType<typeof redeemRoute> {
-  return redeemRoute(new Request(`https://app.example.com/signin/${token}`), {
-    params: Promise.resolve({ token }),
-  });
+async function followTheLink(tokenHash: string): ReturnType<typeof confirmRoute> {
+  return confirmRoute(
+    new NextRequest(`https://app.example.com/auth/confirm?token_hash=${tokenHash}&type=magiclink`)
+  );
 }
 
 describe("Start → Checkout → webhook → magic link → /setup (JN-002 steps 1–2)", () => {
@@ -360,7 +381,7 @@ describe("Start → Checkout → webhook → magic link → /setup (JN-002 steps
     await startCheckout({ kind: "report", scanId: SCAN_ID });
     expect(accounts.users).toEqual([]);
     expect(accounts.sites).toEqual([]);
-    expect(identity.links).toEqual([]);
+    expect(auth.generated).toEqual([]);
     expect(inbox).toEqual([]);
   });
 
@@ -407,7 +428,7 @@ describe("Start → Checkout → webhook → magic link → /setup (JN-002 steps
     expect(tampered.status).toBe(400);
     expect(accounts.users).toEqual([]);
     expect(accounts.sites).toEqual([]);
-    expect(identity.links).toEqual([]);
+    expect(auth.generated).toEqual([]);
     expect(inbox).toEqual([]);
     expect(deepPasses).toEqual([]);
 
@@ -467,11 +488,12 @@ describe("Start → Checkout → webhook → magic link → /setup (JN-002 steps
     // The link points at this deployment's own sign-in route and at a
     // token that was written down as a hash and nowhere else.
     const token = theMagicLink();
-    expect(identity.links).toHaveLength(1);
-    expect(identity.links[0]?.purpose).toBe("sign_in");
-    expect(identity.links[0]?.sent_to).toBe(NORMALISED);
-    expect(identity.links[0]?.token_hash).not.toBe(token);
-    expect(JSON.stringify(identity.links[0])).not.toContain(token);
+    // One link, minted by Supabase for this account's own address and
+    // user; the mail carries its hash, and no table of ours holds it.
+    expect(auth.generated).toEqual([{ kind: "sign_in", email: NORMALISED }]);
+    expect(auth.tokens).toHaveLength(1);
+    expect(auth.tokens[0]?.hash).toBe(token);
+    expect(auth.tokens[0]?.userId).toBe(accounts.users[0]?.id);
 
     // ADR-042's point, as a register row: the mail that is a customer's way
     // in can never be suppressed by the store that stops the follow-up.
@@ -487,17 +509,18 @@ describe("Start → Checkout → webhook → magic link → /setup (JN-002 steps
 
     // The cookie rides on the redirect itself, so there is no version in
     // which the browser follows it and arrives signed out.
-    const cookie = response.cookies.get(SESSION_COOKIE_NAME);
+    // It is Supabase's session (#468), written by `verifyOtp`, for this
+    // account's user.
+    const cookie = response.cookies.get(FAKE_AUTH_COOKIE);
     expect(cookie).toBeDefined();
-    const claims = readSessionCookie(cookie?.value as string, new Date());
-    expect(claims?.userId).toBe(accounts.users[0]?.id);
-    expect(claims?.siteId).toBe(accounts.sites[0]?.id);
+    const session = auth.sessions.find((s) => s.accessToken === cookie?.value);
+    expect(session?.userId).toBe(accounts.users[0]?.id);
 
     // Single use: the second arrival is a dead link, and a dead link says
     // only that it is dead (REQ-098 c7).
     const second = await followTheLink(token);
     expect(second.headers.get("location")).toBe(`https://app.example.com${deadLinkPath()}`);
-    expect(second.cookies.get(SESSION_COOKIE_NAME)).toBeUndefined();
+    expect(second.cookies.get(FAKE_AUTH_COOKIE)).toBeUndefined();
     // A token nobody ever issued lands in exactly the same place.
     const invented = await followTheLink("not-a-token-anyone-issued");
     expect(invented.headers.get("location")).toBe(`https://app.example.com${deadLinkPath()}`);
@@ -535,7 +558,7 @@ describe("Start → Checkout → webhook → magic link → /setup (JN-002 steps
 
     expect(accounts.users).toHaveLength(1);
     expect(accounts.sites).toHaveLength(1);
-    expect(identity.links).toHaveLength(1);
+    expect(auth.generated).toHaveLength(1);
     expect(inbox).toHaveLength(mailsAfterFirst);
     expect(deepPasses).toHaveLength(1);
     // Nothing was charged by anything on this path, either time.

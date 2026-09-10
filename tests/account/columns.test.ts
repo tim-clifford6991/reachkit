@@ -18,7 +18,7 @@
 // **Run this file with `--no-file-parallelism`** alongside `tests/db/*`
 // (see `tests/db/baseline.test.ts`'s header for why): all reset and
 // rebuild the same physical `public` schema on the one scratch database.
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { topicOf } from "../../src/lib/db/topics";
@@ -76,6 +76,14 @@ const USERS_IDENTITY_LINKS_MIGRATION = path.join(
   REPO_ROOT,
   "supabase/migrations/20260906100100_users_identity_links.sql"
 );
+// Issue #468 — identity moves onto Supabase Auth: `auth_links` and
+// `users.sessions_valid_from` go, and `users.id` becomes `auth.users.id`
+// (a foreign key added only where `auth.users` exists — not on this
+// substrate, which has no GoTrue).
+const USERS_IDENTITY_SUPABASE_AUTH_MIGRATION = path.join(
+  REPO_ROOT,
+  "supabase/migrations/20260910120000_users_identity_supabase_auth.sql"
+);
 // BUILD §13 (issue #34) — the two subscription and hosting migrations, on
 // the same footing and for the same reason: `LIVE_SCHEMA_TESTS` is the
 // owner's list and already names this path.
@@ -117,6 +125,7 @@ beforeAll(() => {
   psql(["-v", "ON_ERROR_STOP=1", "-f", USERS_IDENTITY_LINKS_MIGRATION]);
   psql(["-v", "ON_ERROR_STOP=1", "-f", USERS_SUBSCRIPTION_MIGRATION]);
   psql(["-v", "ON_ERROR_STOP=1", "-f", SITES_HOSTING_MIGRATION]);
+  psql(["-v", "ON_ERROR_STOP=1", "-f", USERS_IDENTITY_SUPABASE_AUTH_MIGRATION]);
 });
 
 afterAll(() => {
@@ -431,7 +440,7 @@ describe(
   }
 );
 
-// ── BUILD §13 · §4.7 (issue #35) — the identity columns and `auth_links`
+// ── BUILD §13 · §4.7 (issue #35, #468) — the identity columns, and `auth_links` gone
 
 describe(
   'REQ-077 c2, quoted: "a sign-in link is sent to it and the old address keeps working until that link is used" — the pending state is three columns beside an untouched `users.email`',
@@ -502,115 +511,101 @@ describe(
 );
 
 describe(
-  'BP-061 decision 4, quoted: "A completed email change ends the account\'s other sessions"',
+  'BP-061 decision 4, quoted: "A completed email change ends the account\'s other sessions" — since #468 that is `auth.admin.signOut(token, "others")`, not a column',
   () => {
-    it("users.sessions_valid_from exists, is timestamptz and is nullable — null means every unexpired session stands", () => {
+    it("users.sessions_valid_from is gone — no session stamp lives in this schema any more", () => {
       const rows = psqlRows(
-        `select data_type, is_nullable, coalesce(column_default, '') from information_schema.columns where table_schema = 'public' and table_name = 'users' and column_name = 'sessions_valid_from';`
+        `select column_name from information_schema.columns where table_schema = 'public' and table_name = 'users' and column_name = 'sessions_valid_from';`
       );
-      expect(rows).toEqual([["timestamp with time zone", "YES", ""]]);
+      expect(rows).toEqual([]);
     });
   }
 );
 
 describe(
-  'BP-061 `## Data model delta`: "New table `auth_links`: `token_hash text primary key`, `user_id`, `purpose`, `sent_to`, `expires_at`, `spent_at`. Tokens are stored hashed ... the plaintext exists only in the mail."',
+  'Owner ruling 2026-09-10 (#468), quoted: "I don\'t buy or like that we have `auth_links` — this should be wrapped into the Supabase auth system"',
   () => {
-    it("the table carries exactly those six columns and no seventh", () => {
-      const rows = psqlRows(
-        `select column_name from information_schema.columns where table_schema = 'public' and table_name = 'auth_links' order by column_name;`
-      );
-      expect(rows.map((r) => r[0])).toEqual([
-        "expires_at",
-        "purpose",
-        "sent_to",
-        "spent_at",
-        "token_hash",
-        "user_id",
+    it("auth_links is gone — Supabase Auth holds the one-time token", () => {
+      expect(psqlRows(`select coalesce(to_regclass('public.auth_links')::text, '<none>');`)).toEqual([
+        ["<none>"],
       ]);
     });
 
-    it("no column could hold a plaintext token — the mutation this catches is a convenience column added later", () => {
+    it("no public column could hold a plaintext token — the mutation this catches is a token table brought back", () => {
       const rows = psqlRows(
-        `select column_name from information_schema.columns where table_schema = 'public' and table_name = 'auth_links' and column_name ~ '(^|_)(token|secret|plaintext)$';`
+        `select table_name || '.' || column_name from information_schema.columns where table_schema = 'public' and column_name ~ '(^|_)(token|secret|plaintext)$';`
       );
       expect(rows).toEqual([]);
     });
 
-    it("token_hash is the primary key", () => {
-      const rows = psqlRows(
-        `select a.attname from pg_index i join pg_attribute a on a.attrelid = i.indrelid and a.attnum = any(i.indkey) where i.indrelid = 'auth_links'::regclass and i.indisprimary;`
-      );
-      expect(rows).toEqual([["token_hash"]]);
-    });
-
-    it("purpose admits exactly the two occasions a link exists for", () => {
-      const userId = freshUserId();
-      const write = (purpose: string): boolean =>
-        raises(
-          `insert into auth_links (token_hash, user_id, purpose, sent_to, expires_at) values ('h-${purpose}-${Math.random().toString(36).slice(2)}', '${userId}', '${purpose}', 'a@example.com', now() + interval '1 hour');`
-        );
-      expect(write("sign_in")).toBe(false);
-      expect(write("password_reset")).toBe(true);
-    });
-
-    it("sent_to must be lowercased — a mixed-case row would be a second identity for one person", () => {
-      const userId = freshUserId();
+    it("its one-live index went with it", () => {
       expect(
-        raises(
-          `insert into auth_links (token_hash, user_id, purpose, sent_to, expires_at) values ('h-case', '${userId}', 'sign_in', 'Mixed@Example.com', now() + interval '1 hour');`
-        )
-      ).toBe(true);
+        psqlRows(`select indexname from pg_indexes where indexname = 'auth_links_one_live_idx';`)
+      ).toEqual([]);
     });
 
-    it("the foreign key to users carries no cascade (ADR-051 point 2)", () => {
-      const rows = psqlRows(
-        `select c.confdeltype from pg_constraint c join pg_class t on t.oid = c.conrelid where t.relname = 'auth_links' and c.contype = 'f';`
+    it("users.id is tied to auth.users.id by a constraint guarded on auth.users existing, not valid, with no on-delete action", () => {
+      const sql = readFileSync(USERS_IDENTITY_SUPABASE_AUTH_MIGRATION, "utf8").replace(/^\s*--.*$/gm, "");
+      expect(sql).toMatch(/to_regclass\('auth\.users'\)\s+is\s+not\s+null/i);
+      expect(sql).toMatch(
+        /add\s+constraint\s+users_id_auth_users_fkey\s+foreign\s+key\s+\(id\)\s+references\s+auth\.users\s+\(id\)\s+not\s+valid/i
       );
-      expect(rows).toEqual([["a"]]); // 'a' = NO ACTION; 'c' would be CASCADE
+      // ADR-051 point 2: the purge deletes `users` and then the auth user;
+      // a cascade nobody wrote must never do it instead.
+      expect(sql).not.toMatch(/on\s+delete/i);
     });
 
-    it("RLS is on with no policy — nobody holding an anon or authenticated key can read a link", () => {
+    it("where auth.users does not exist — this substrate — the guard skips the constraint and the migration still applies", () => {
+      expect(psqlRows(`select coalesce(to_regclass('auth.users')::text, '<none>');`)).toEqual([["<none>"]]);
       expect(
-        psqlRows(`select relrowsecurity::text from pg_class where relname = 'auth_links';`)
-      ).toEqual([["true"]]);
-      expect(psqlRows(`select count(*)::text from pg_policies where tablename = 'auth_links';`)).toEqual(
-        [["0"]]
+        psqlRows(`select conname from pg_constraint where conname = 'users_id_auth_users_fkey';`)
+      ).toEqual([]);
+    });
+
+    it("users.id says whose id it is", () => {
+      const rows = psqlRows(
+        `select col_description('public.users'::regclass, (select attnum from pg_attribute where attrelid = 'public.users'::regclass and attname = 'id'));`
       );
+      expect(rows[0]?.[0]).toMatch(/auth\.users\.id/);
+    });
+
+    it("applying it twice is a no-op — every statement is guarded", () => {
+      expect(raises(readFileSync(USERS_IDENTITY_SUPABASE_AUTH_MIGRATION, "utf8"))).toBe(false);
     });
   }
 );
 
 describe(
-  'BP-061 `## Error & edge behavior`: "Rate limiting: at most one live token per `(user_id, purpose)`. Issuing a new one spends the previous."',
+  'REQ-024 c4 — "never to a dead end": the newest link is the working one, and since #468 Supabase is what keeps it so',
   () => {
-    const live = (userId: string, hash: string, purpose = "sign_in"): boolean =>
-      raises(
-        `insert into auth_links (token_hash, user_id, purpose, sent_to, expires_at) values ('${hash}', '${userId}', '${purpose}', 'a@example.com', now() + interval '1 hour');`
+    const LATER = readdirSync(path.join(REPO_ROOT, "supabase/migrations"))
+      .filter((name) => name.endsWith(".sql") && name > path.basename(USERS_IDENTITY_SUPABASE_AUTH_MIGRATION))
+      // Comments stripped: a rollback note may *name* the old statement.
+      .map((name) =>
+        readFileSync(path.join(REPO_ROOT, "supabase/migrations", name), "utf8").replace(/^\s*--.*$/gm, "")
       );
 
-    it("a second unspent link for one (user, purpose) is refused by the index, not by a caller", () => {
-      const userId = freshUserId();
-      expect(live(userId, `h1-${userId}`)).toBe(false);
-      expect(live(userId, `h2-${userId}`)).toBe(true);
+    it("no later migration re-creates a table of one-time links", () => {
+      for (const sql of LATER) expect(sql).not.toMatch(/create\s+table\s+(public\.)?auth_links/i);
     });
 
-    it("spending the first makes room for the next — which is what `issueLink` relies on", () => {
+    it("the drop is `if exists`, so a replay on a database that never had the table is safe", () => {
+      const sql = readFileSync(USERS_IDENTITY_SUPABASE_AUTH_MIGRATION, "utf8");
+      expect(sql).toMatch(/drop\s+table\s+if\s+exists\s+auth_links/i);
+      expect(sql).toMatch(/drop\s+column\s+if\s+exists\s+sessions_valid_from/i);
+    });
+
+    it("the pending change still names its one link — pending_email_token_hash stays, now holding Supabase's hashed_token", () => {
       const userId = freshUserId();
-      live(userId, `h3-${userId}`);
       psql([
         "-v",
         "ON_ERROR_STOP=1",
         "-c",
-        `update auth_links set spent_at = now() where token_hash = 'h3-${userId}';`,
+        `update users set pending_email = 'next-${userId}@example.com', pending_email_token_hash = 'supabase-hash', pending_email_sent_at = now() where id = '${userId}';`,
       ]);
-      expect(live(userId, `h4-${userId}`)).toBe(false);
-    });
-
-    it("a sign-in link and an email-change link live side by side — the index is per purpose", () => {
-      const userId = freshUserId();
-      expect(live(userId, `h5-${userId}`, "sign_in")).toBe(false);
-      expect(live(userId, `h6-${userId}`, "email_change")).toBe(false);
+      expect(
+        psqlRows(`select id from users where pending_email_token_hash = 'supabase-hash' and id = '${userId}';`)
+      ).toEqual([[userId]]);
     });
   }
 );
@@ -618,12 +613,16 @@ describe(
 describe(
   '`structure.md` rule 3a — each identity migration carries exactly one sub-token, and resolves to the leaf that owns those columns',
   () => {
-    it("both filenames resolve to users_identity", () => {
+    it("every identity filename resolves to users_identity", () => {
       expect(topicOf("20260906100000_users_identity_columns.sql")).toEqual({
         token: "users_identity",
         owner: "BP-061",
       });
       expect(topicOf("20260906100100_users_identity_links.sql")).toEqual({
+        token: "users_identity",
+        owner: "BP-061",
+      });
+      expect(topicOf("20260910120000_users_identity_supabase_auth.sql")).toEqual({
         token: "users_identity",
         owner: "BP-061",
       });
@@ -637,7 +636,11 @@ describe(
     });
 
     it("neither identity migration introduces an on-delete cascade", () => {
-      for (const file of [USERS_IDENTITY_COLUMNS_MIGRATION, USERS_IDENTITY_LINKS_MIGRATION]) {
+      for (const file of [
+        USERS_IDENTITY_COLUMNS_MIGRATION,
+        USERS_IDENTITY_LINKS_MIGRATION,
+        USERS_IDENTITY_SUPABASE_AUTH_MIGRATION,
+      ]) {
         // Comments stripped: both files *name* ADR-051 point 2 in prose, and
         // a promise stated in a header must not fail the test that checks
         // the promise is kept — the same footing the TypeScript suites in

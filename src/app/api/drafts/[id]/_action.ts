@@ -14,8 +14,8 @@
 // Three sibling files calling one local helper is not logic in an adapter;
 // three copies of the same twelve lines would be.
 //
-// The session is `src/lib/account/identity`'s — one cookie-verified read,
-// and `siteId` rides in the signed cookie, so the ownership check below is
+// The session is `src/lib/account/identity`'s — verified by Supabase, with
+// the account's `siteId` read beside it, so the ownership check below is
 // the route's only extra read.
 //
 // The archived plan is WO-245.

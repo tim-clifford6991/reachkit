@@ -21,6 +21,11 @@
 // key in this schema carries a cascade that could do it by accident, and
 // `tests/account/lifecycle/schema.test.ts` holds that true.
 import { dbAdmin } from "@/lib/db";
+import { identityAuth } from "../identity/auth";
+
+/** The purge's last step: the account's Supabase Auth user (#468). Named
+ *  as a table so `PURGE_ORDER` stays one list a reader can check. */
+export const AUTH_USERS_TABLE = "auth.users";
 
 export interface LifecycleSiteRow {
   readonly id: string;
@@ -94,8 +99,9 @@ export interface LifecycleStore {
    *  writes two columns and issues no `DELETE` of any kind. */
   stampTombstone(userId: string, a: { deletedAt: Date; purgeDueAt: Date }): Promise<Ok>;
 
-  /** Ends every session the account holds, by moving the moment before
-   *  which an issued session is no longer valid. */
+  /** Ends every session the account holds — Supabase Auth's
+   *  `admin.signOut(token, "global")` with the asking session's own token
+   *  (#468). */
   endSessions(userId: string, at: Date): Promise<Ok>;
 
   /** Tombstoned accounts whose promised date has arrived. */
@@ -245,12 +251,12 @@ export function supabaseLifecycleStore(): LifecycleStore {
       return error === null ? { ok: true } : { ok: false };
     },
 
-    async endSessions(userId, at) {
-      const { error } = await untyped()
-        .from<LifecycleAccountRow>("users")
-        .update({ sessions_valid_from: at.toISOString() })
-        .eq("id", userId);
-      return error === null ? { ok: true } : { ok: false };
+    async endSessions(userId) {
+      // Imported at the call: it reaches `next/headers`, which only a
+      // request has, and this store is also the purge job's.
+      const { signOutEverywhere } = await import("../identity/session");
+      const ended = await signOutEverywhere(userId);
+      return ended.ok ? { ok: true } : { ok: false };
     },
 
     async accountsDueForPurge(now) {
@@ -266,6 +272,16 @@ export function supabaseLifecycleStore(): LifecycleStore {
 
     async purgeStep(a) {
       if (a.values.length === 0) return { ok: true };
+      // The account's `auth.users` row (#468): not a table this client can
+      // reach, so it goes through the admin API, one user at a time. A user
+      // already gone is done, which keeps the purge resumable.
+      if (a.table === AUTH_USERS_TABLE) {
+        for (const id of a.values) {
+          const gone = await identityAuth().deleteUser(id);
+          if (!gone.ok) return { ok: false, message: "the auth user could not be deleted" };
+        }
+        return { ok: true };
+      }
       const { error } = await untyped()
         .from<{ id: string }>(a.table)
         .delete()

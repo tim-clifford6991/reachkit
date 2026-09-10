@@ -1,91 +1,58 @@
-// tests/account/identity/cookie.test.ts — BUILD §13, issue #35
+// tests/account/identity/cookie.test.ts — BUILD §13, issues #35, #468
 //
-// The session cookie is a real signed session, not a marker. That claim is
-// what `src/middleware.ts` leans on when it checks presence and nothing
-// else, so the cases below are the ones that decide whether the lean is
-// safe: a forged payload, a tampered payload, a foreign signature and a
-// cookie kept past its window all read as no session at all.
+// The session cookie is Supabase Auth's, not a cookie of ours (#468). What
+// this product still decides about it is two things: which cookie names
+// *are* a session — `src/middleware.ts` asks Supabase only when one is
+// present — and the three attributes it pins on it. Both are asserted here.
 import { describe, expect, it } from "vitest";
 import { applyEnvFixture } from "../../mail/env-fixture";
 
 applyEnvFixture();
 
-const { mintSessionCookie, readSessionCookie, SESSION_MAX_AGE_SECONDS } = await import(
-  "../../../src/lib/account/identity/cookie"
-);
-const { SESSION_TTL_DAYS } = await import("../../../src/lib/config/constants");
+const { isAuthCookieName } = await import("../../../src/lib/account/identity/addresses");
+const { sessionCookieOptions } = await import("../../../src/lib/account/identity/auth");
+const { env } = await import("../../../src/lib/config/env");
 
-const NOW = new Date("2026-09-06T12:00:00.000Z");
-const CLAIMS = { userId: "user-1", siteId: "site-1", issuedAt: NOW };
+describe("which cookies are a Supabase Auth session", () => {
+  it.each(["sb-abcdefghijklmnop-auth-token", "sb-127-auth-token", "sb-fake-auth-token"])(
+    "%s is one",
+    (name) => {
+      expect(isAuthCookieName(name)).toBe(true);
+    }
+  );
 
-describe("a minted cookie reads back as what was signed", () => {
-  it("round-trips the user, the site and the moment it was issued", () => {
-    const read = readSessionCookie(mintSessionCookie(CLAIMS), NOW);
-    expect(read).toEqual({ userId: "user-1", siteId: "site-1", issuedAt: NOW });
+  it("its chunks are too — `@supabase/ssr` splits a large session across `.0`, `.1`, …", () => {
+    expect(isAuthCookieName("sb-abc-auth-token.0")).toBe(true);
+    expect(isAuthCookieName("sb-abc-auth-token.1")).toBe(true);
   });
 
-  it("carries a null site — an account can precede its site row (§13's scanless purchase)", () => {
-    const read = readSessionCookie(
-      mintSessionCookie({ ...CLAIMS, siteId: null }),
-      NOW
-    );
-    expect(read?.siteId).toBeNull();
-  });
-
-  it("the value carries no readable account id of its own beyond the signed payload", () => {
-    const value = mintSessionCookie(CLAIMS);
-    expect(value.split(".")).toHaveLength(2);
-  });
-});
-
-describe("anything that is not this product's signature is not a session", () => {
-  it("a value with no signature is refused", () => {
-    expect(readSessionCookie("nonsense", NOW)).toBeNull();
-    expect(readSessionCookie("", NOW)).toBeNull();
-  });
-
-  it("a payload edited by its holder is refused — the forgery this exists to stop", () => {
-    const forged = Buffer.from(
-      JSON.stringify({ u: "somebody-else", s: null, i: NOW.getTime() }),
-      "utf8"
-    ).toString("base64url");
-    const [, mac] = mintSessionCookie(CLAIMS).split(".") as [string, string];
-    expect(readSessionCookie(`${forged}.${mac}`, NOW)).toBeNull();
-  });
-
-  it("a truncated signature is refused rather than compared short", () => {
-    const [payload, mac] = mintSessionCookie(CLAIMS).split(".") as [string, string];
-    expect(readSessionCookie(`${payload}.${mac.slice(0, 8)}`, NOW)).toBeNull();
-  });
-
-  it("dropping the signature check would let the forged payload through — the mutation these guard", () => {
-    const forged = Buffer.from(
-      JSON.stringify({ u: "somebody-else", s: null, i: NOW.getTime() }),
-      "utf8"
-    ).toString("base64url");
-    // Read without a MAC at all: the payload decodes perfectly well, which
-    // is exactly why the MAC is what decides.
-    expect(JSON.parse(Buffer.from(forged, "base64url").toString("utf8"))).toEqual({
-      u: "somebody-else",
-      s: null,
-      i: NOW.getTime(),
-    });
-    expect(readSessionCookie(`${forged}.`, NOW)).toBeNull();
+  it.each([
+    "rk_session",
+    "sb-abc-auth-token-code-verifier",
+    "sb--auth-token",
+    "sb-abc-auth-token.x",
+    "xsb-abc-auth-token",
+    "rk_danger_ticket",
+  ])("%s is not", (name) => {
+    expect(isAuthCookieName(name)).toBe(false);
   });
 });
 
-describe("expiry is signed, not only advised to the browser", () => {
-  it("a cookie inside its window verifies", () => {
-    const almost = new Date(NOW.getTime() + (SESSION_TTL_DAYS * 24 - 1) * 60 * 60 * 1000);
-    expect(readSessionCookie(mintSessionCookie(CLAIMS), almost)).not.toBeNull();
+describe("the attributes this product pins on it", () => {
+  it("is http-only — there is no browser-side Supabase client to need it (#468 Not in scope)", () => {
+    expect(sessionCookieOptions().httpOnly).toBe(true);
   });
 
-  it("a cookie kept past the window is not a session, whatever the browser did", () => {
-    const after = new Date(NOW.getTime() + SESSION_TTL_DAYS * 24 * 60 * 60 * 1000);
-    expect(readSessionCookie(mintSessionCookie(CLAIMS), after)).toBeNull();
+  it("is lax, because the link arrives from a mail client and a strict cookie would land signed out", () => {
+    expect(sessionCookieOptions().sameSite).toBe("lax");
   });
 
-  it("the browser's max-age and the signed window are the same number", () => {
-    expect(SESSION_MAX_AGE_SECONDS).toBe(SESSION_TTL_DAYS * 24 * 60 * 60);
+  it("is path-wide", () => {
+    expect(sessionCookieOptions().path).toBe("/");
+  });
+
+  it("is secure exactly when the deployment's own origin is https — which the fixture's is", () => {
+    expect(env.NEXT_PUBLIC_APP_URL.startsWith("https://")).toBe(true);
+    expect(sessionCookieOptions().secure).toBe(true);
   });
 });
