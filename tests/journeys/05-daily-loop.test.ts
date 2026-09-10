@@ -753,8 +753,12 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
       // The draft's own spend stays the draft's: the context is opened with
       // the roll-up off, so nothing wrote to the scan at all.
       expect(db.queries.filter((q) => q.table === "scans" && q.verb === "update")).toEqual([]);
-      // It is on the draft instead, where §10 reads it.
-      expect(Number(generateStore.rows.get(draftId)?.cost_cents)).toBe(Math.round(spent));
+      // It is on the draft instead, where §10 reads it — to the fraction
+      // of a cent it cost. `drafts.cost_cents` is `numeric(12,4)` (issue
+      // #449) and the pipeline no longer rounds on the way in: a day's
+      // page costs well under a cent here, which the whole-cent column
+      // recorded as 1¢.
+      expect(Number(generateStore.rows.get(draftId)?.cost_cents)).toBeCloseTo(spent, 10);
     },
     JOURNEY_TIMEOUT_MS
   );

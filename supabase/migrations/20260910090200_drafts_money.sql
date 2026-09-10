@@ -1,0 +1,26 @@
+-- supabase/migrations/20260910090200_drafts_money.sql
+--
+-- §6.5 · §8, issue #449 — the draft's roll-up follows the ledger's unit.
+--
+-- A draft's cost context spends under `CAP_DRAFT` against the scan that
+-- grounds the day's page and writes **no** scan roll-up (`rollUp: "none"`,
+-- `src/lib/generate/cost.ts`): the spend is the draft's, and
+-- `drafts.cost_cents` is where it lands. That makes this column the third
+-- write of the same figure the ledger holds — and it was `integer`
+-- (`00000000000001_baseline.sql`) with `Math.round` in front of it
+-- (`src/lib/generate/pipeline/index.ts`), so a day's page costing 6.5¢ was
+-- stored as 7¢ and a cheap one as 6¢.
+--
+-- It is in this change rather than in a later one because "one unit for
+-- money in the ledger, written and read consistently" is the whole of what
+-- #449 asks for, and a roll-up that still rounds is a second unit. One
+-- statement, the same cast, the same idempotence as its two siblings:
+-- `alter column ... type numeric(12,4)` against a column already of that
+-- type rewrites nothing, and `integer` → `numeric` is implicit and
+-- lossless, so every stored total keeps its value.
+--
+-- `structure.md` rule 3: this file carries the `drafts` topic token
+-- (`src/lib/db/topics.ts`, owner BP-014); `money` narrows it and is not a
+-- second topic.
+
+alter table drafts alter column cost_cents type numeric(12,4);

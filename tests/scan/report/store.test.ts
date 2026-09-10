@@ -113,9 +113,28 @@ describe("the row the pass writes", () => {
     expect(argsOfLastCall().p_supersedes_scan_id).toBe("22222222-2222-4222-8222-222222222222");
   });
 
-  it("ledgers the money the pass spent, rounded up to the cent the column holds", async () => {
+  it("ledgers the money the pass spent, to the fraction of a cent it spent (issue #449)", async () => {
+    // `scans.cost_cents` and `store_current_report`'s parameter are
+    // `numeric(12,4)` (`20260910090100_scans_money.sql`), so the settled
+    // figure goes through whole. It used to be rounded **up** to the next
+    // integer cent, which made the roll-up disagree with the `fetches`
+    // rows it summarises — 6.3¢ spent, 7¢ recorded.
     await storeCurrentReport({ report: assembleReport(fullSections()), drivers: DRIVERS, degraded: false, costCents: 6.3 });
-    expect(argsOfLastCall().p_cost_cents).toBe(7);
+    expect(argsOfLastCall().p_cost_cents).toBe(6.3);
+  });
+
+  it("a free pass that spent less than a cent records what it spent, not a whole cent", async () => {
+    // The production shape: twelve standard SERPs at `SERP_STD_C` 0.06¢.
+    // Rounding up stored 1¢ for a pass that cost 0.72¢.
+    await storeCurrentReport({ report: assembleReport(fullSections()), drivers: DRIVERS, degraded: false, costCents: 0.72 });
+    expect(argsOfLastCall().p_cost_cents).toBe(0.72);
+  });
+
+  it("never rounds: no `Math.ceil`/`Math.round` stands between the seam's figure and the column", () => {
+    // Watch the rule fail first — restoring either call is what this
+    // guards against, and the assertion above alone would still pass on a
+    // `Math.round` (6.3 → 6 is wrong differently, not less).
+    expect(STORE_SOURCE).not.toMatch(/Math\.(?:ceil|round)\s*\(\s*a\.costCents/);
   });
 
   it("writes the domain and the date the report itself carries", async () => {

@@ -43,6 +43,14 @@ const FLIP_MIGRATION = path.join(
 // The constraint that ties `scans.score` to the blob's own verdict arm, so
 // the flip is exercised against the shape the row really has.
 const VERDICT_MIGRATION = path.join(REPO_ROOT, "supabase/migrations/20260904100000_scans_verdict.sql");
+// Issue #449 — `scans.cost_cents` becomes `numeric(12,4)` and
+// `store_current_report` takes its cost as `numeric`, so a pass that spent
+// a fraction of a cent stores what it spent. Applied last: it drops and
+// recreates the function `FLIP_MIGRATION` declares.
+const SCANS_MONEY_MIGRATION = path.join(
+  REPO_ROOT,
+  "supabase/migrations/20260910090100_scans_money.sql"
+);
 
 /** One tuple-only row per line, `|`-separated columns — easy to split. */
 /** Runs `sql` and returns whether it raised (never throws itself). */
@@ -71,6 +79,7 @@ beforeAll(() => {
   psql(["-v", "ON_ERROR_STOP=1", "-f", CURRENT_MIGRATION]);
   psql(["-v", "ON_ERROR_STOP=1", "-f", VERDICT_MIGRATION]);
   psql(["-v", "ON_ERROR_STOP=1", "-f", FLIP_MIGRATION]);
+  psql(["-v", "ON_ERROR_STOP=1", "-f", SCANS_MONEY_MIGRATION]);
 });
 
 afterAll(() => {
@@ -202,6 +211,7 @@ describe(
       stoppedReason?: string;
       makeCurrent: boolean;
       supersedes?: string | null;
+      costCents?: number;
     }): void {
       const {
         scanId,
@@ -211,6 +221,7 @@ describe(
         stoppedReason = "complete",
         makeCurrent,
         supersedes = null,
+        costCents = 6,
       } = opts;
       psql([
         "-v",
@@ -219,7 +230,7 @@ describe(
         `select store_current_report('${scanId}'::uuid, '${domain}', null, 'free', '${status}', ` +
           `${score === null ? "null" : score}, '{}'::jsonb, ` +
           `'{"verdict":{"scoreAndBand":{"kind":"${score === null ? "unmeasured" : "measured"}"}}}'::jsonb, ` +
-          `6, '${stoppedReason}', 'none', ${supersedes === null ? "null" : `'${supersedes}'::uuid`}, ${makeCurrent});`,
+          `${costCents}, '${stoppedReason}', 'none', ${supersedes === null ? "null" : `'${supersedes}'::uuid`}, ${makeCurrent});`,
       ]);
     }
 
@@ -235,7 +246,39 @@ describe(
       store({ scanId: FIRST, domain: "flip-first.example.com", makeCurrent: true });
       expect(currentIdsFor("flip-first.example.com")).toEqual([FIRST]);
       const row = psqlRows(`select tier, status, cost_cents, stopped_reason from scans where id = '${FIRST}';`);
-      expect(row).toEqual([["free", "done", "6", "complete"]]);
+      expect(row).toEqual([["free", "done", "6.0000", "complete"]]);
+    });
+
+    it("stores a sub-cent roll-up whole — the free pass that cost 0.72¢ (issue #449)", () => {
+      // `p_cost_cents` was `integer` and `storeCurrentReport` rounded the
+      // seam's figure **up** to feed it, so a pass that spent 0.72¢ stored
+      // 1¢ and one that spent 6.3¢ stored 7¢ — the roll-up disagreeing
+      // with the `fetches` rows it summarises. Both go through whole now.
+      const cheap = "cccccccc-0000-4000-8000-000000000001";
+      store({ scanId: cheap, domain: "money-subcent.example.com", makeCurrent: true, costCents: 0.72 });
+      expect(psqlRows(`select cost_cents from scans where id = '${cheap}';`)).toEqual([["0.7200"]]);
+
+      const settled = "cccccccc-0000-4000-8000-000000000002";
+      store({ scanId: settled, domain: "money-settled.example.com", makeCurrent: true, costCents: 1.12928 });
+      expect(psqlRows(`select cost_cents from scans where id = '${settled}';`)).toEqual([["1.1293"]]);
+    });
+
+    it("`scans.cost_cents` is `numeric(12,4)` and there is exactly one `store_current_report`", () => {
+      expect(
+        psqlRows(
+          `select data_type, numeric_precision, numeric_scale from information_schema.columns ` +
+            `where table_schema = 'public' and table_name = 'scans' and column_name = 'cost_cents';`
+        )
+      ).toEqual([["numeric", "12", "4"]]);
+      // The parameter's type cannot be changed in place: a second,
+      // overloaded definition is what PostgREST could not then resolve, so
+      // the migration drops the old signature rather than adding to it.
+      expect(
+        psqlRows(
+          `select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace ` +
+            `where n.nspname = 'public' and p.proname = 'store_current_report';`
+        )
+      ).toEqual([["1"]]);
     });
 
     it("adopts the row the free path already claimed rather than inserting a second", () => {

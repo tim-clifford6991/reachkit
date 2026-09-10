@@ -33,7 +33,18 @@ import { dbAdmin } from "@/lib/db";
  *  verbatim column order. `payload` is read back as `unknown`; the caller
  *  on either side of this seam knows its own shape by convention (`P` on
  *  `recordFetch`), the same way `Json` already carries no shape opinion in
- *  the generated client. */
+ *  the generated client.
+ *
+ *  **The money unit is cents, to four decimal places.** Both figures are
+ *  `numeric(12,4)` in the schema (issue #449,
+ *  `supabase/migrations/20260910090000_fetches_money.sql`) — the same unit
+ *  `CAPS` and the price book are written in, so what this module writes is
+ *  what the cap authorised, unrounded. They were `integer`, which rejected
+ *  every sub-cent price in the book (`SERP_STD_C` 0.06¢) with `invalid
+ *  input syntax for type integer`, took the whole stage down as
+ *  undeterminable, and is why no production scan ever measured a score.
+ *  A figure passes through here as a plain `number`; the column rounds it
+ *  at the fourth decimal and nothing in this process rounds it before. */
 export interface FetchesRow {
   id: string;
   scan_id: string;

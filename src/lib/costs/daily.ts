@@ -15,16 +15,15 @@
 //    the database by `fetches_spend_since()`, never row by row in this
 //    process (a busy day is thousands of rows and this is asked once a
 //    pass).
-//  - **what it reads is a floor, not an exact figure.** `fetches.cost_cents`
-//    is an `integer` column while the price book carries sub-cent prices
-//    (`SERP_STD_C` is 0.06¢), so a row for one of those rounds to 0¢ on the
-//    way in. The per-pass caps are unaffected — they check the exact float
-//    in memory — but a day's *stored* total under-records those calls, and
-//    so does this. It errs toward spending slightly more than the ceiling,
-//    never toward refusing early, and it is the ledger's own defect rather
-//    than this guard's (named under *Adjacent* on issue #329's PR). Twelve
-//    standard SERPs understate by well under a cent against a ceiling of
-//    thousands, so it does not change what this module decides today.
+//  - **what it reads is exact, in cents.** `fetches.cost_cents` is
+//    `numeric(12,4)` and `fetches_spend_since()` sums into `numeric`
+//    (issue #449), so a day of 0.06¢ SERPs totals 0.06¢ × n rather than
+//    the 0¢ an `integer` column recorded for every one of them. The unit
+//    is the one `CAPS.DAILY_PRODUCT_C` is written in, so the comparison
+//    below needs no conversion. Until #449 this paragraph said the
+//    opposite — the stored total was a floor, and the guard erred toward
+//    spending slightly over the ceiling; that was the ledger's own defect,
+//    named under *Adjacent* on issue #329's PR, and it is gone.
 //  - **it degrades, it never throws.** §6.5's own rule. A ceiling that is
 //    reached skips remaining work; a ledger that cannot be *read* refuses
 //    nothing at all, the same fail-open BUILD §11 gives the scan limiter —
