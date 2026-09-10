@@ -1863,6 +1863,38 @@
   }
 }
 
+/* A waiting state reserves the box its content will need (issue #332).
+ *
+ * `loading.tsx` is a Suspense fallback: the shell streams first with one
+ * written line where the screen will be, and the screen replaces it a
+ * moment later. Without this rule the line is a few rems tall, so ruling
+ * 3a's footer sits just under it, in view — and when the report arrives the
+ * footer is pushed a whole page down. That is a layout shift of everything
+ * below the fold line, and it is what #332's gate measured on
+ * `/scan/{domain}`: **CLS 0.62 at 320 and 0.40 at 1280**, against a 0.1
+ * budget, while `/` — which has no `loading.tsx` — sat at 0.003.
+ *
+ * Reserving the viewport is the whole fix. The footer starts *below* the
+ * fold instead of just above it, so when the content lands it moves from
+ * out of view to further out of view, and nothing the reader could see
+ * changes position. The line itself does not move either: `.rk-fallback` is
+ * a flex column that packs to the start, so the one sentence stays exactly
+ * where it was drawn.
+ *
+ * Keyed on `[data-waiting]`, not on a mount, for the reason
+ * `src/app/_fallback/Waiting.tsx` gives about the same attribute: a screen
+ * that is still waiting is a *state*, and a third `loading.tsx` is covered
+ * by writing none of it. It reaches the four S8 screens that share this
+ * class not at all — they are the settled screen, not a stand-in for one,
+ * and they carry no `data-waiting`.
+ *
+ * `100svh` is the viewport, which no token describes
+ * (`tests/ui/design/no-bare-literals.test.ts` names it as such); it is the
+ * same measure `.rk-public-shell` above already stands on. */
+.rk-fallback[data-waiting] {
+  min-height: 100svh;
+}
+
 /* The eyebrow sits directly on the heading — the set draws no space between
  * the two — and the control stands away from the line it follows. Both are
  * the flex gap adjusted at one place rather than a margin on an element

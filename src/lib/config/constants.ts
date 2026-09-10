@@ -715,3 +715,36 @@ export const MARKDOWN_LINK_SCHEMES = Object.freeze([
  *  pin rather than a literal in the sender because it is the size of a
  *  list a customer reads, and because §12 is where it changes. */
 export const WEEKLY_NEXT_COUNT = 3 as const;                  // BUILD §12
+
+// ── The Core Web Vitals budget (issue #332)
+/**
+ * The three ceilings the two surfaces a stranger meets are held to: the
+ * landing page (`/`) and the free report (`/scan/{domain}`).
+ *
+ * **Chosen, not transcribed (rule 1.2).** No clause in `BUILD.md`,
+ * `DECISIONS.md` or `DATA-COSTS.md` rules a page-speed number — BP-018's
+ * `## NFR budget` is the nearest thing the corpus has and it budgets *what
+ * ships* ("no chart library, so no runtime dependency ships to the browser
+ * for a five-chart inventory"), never how fast it arrives. Two of the three
+ * are the published "good" thresholds of the Core Web Vitals as issue #332
+ * states them; the third is the script weight that issue chose. They are
+ * pinned here rather than left in the suite that measures them because a
+ * budget nobody can find is a budget nobody raises on purpose.
+ *
+ * The unit of each is written into its name, because a budget read in the
+ * wrong unit is a budget that never fires:
+ *   - `LCP_MS` — Largest Contentful Paint, milliseconds from navigation.
+ *   - `CLS` — Cumulative Layout Shift, the unitless session-window score.
+ *   - `LANDING_SCRIPT_KB` — the script bytes `/` transfers over the wire,
+ *     in kilobytes of 1000. Only `/` carries it: the issue names one route
+ *     ("JS ≤ 200 kB on `/`"), the landing page is the one surface a
+ *     stranger loads cold, and the report's own weight is its data.
+ *
+ * `tests/ui/layout/vitals.test.ts` is what measures them, in the same real
+ * Chromium the layout sweep uses and against the same built-and-served app.
+ */
+export const WEB_VITALS_BUDGET = Object.freeze({              // #332 (chosen)
+  LCP_MS: 2500,
+  CLS: 0.1,
+  LANDING_SCRIPT_KB: 200,
+} as const);
