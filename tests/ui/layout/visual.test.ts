@@ -77,6 +77,7 @@ import {
   type EnumeratedRoute,
 } from "./routes";
 import { LIVE_DRAFT_ID } from "./seed";
+import { standSurface, unenumeratedSurfaces, type UnenumeratedSurface } from "./surfaces";
 
 const APP_ROOT = path.resolve(__dirname, "../../../src/app");
 const BASELINE_DIR = path.join(__dirname, "__screenshots__");
@@ -258,11 +259,38 @@ const PUBLISHED_HOSTED_ROUTES = enumerateRoutes(APP_ROOT, {
  *  cannot leave this file naming an address the sweep no longer visits. */
 const HOSTED_PAGE_PATH = `/hosted-page/${SEGMENT_FIXTURES["[...slug]"]}`;
 
+/**
+ * The six surfaces the `page.tsx` enumerator cannot see (issue #327):
+ * `src/app/not-found.tsx`, `(public)/error.tsx`, `(account)`'s
+ * `not-found.tsx` and `error.tsx`, and the two `loading.tsx` files the same
+ * issue adds.
+ *
+ * Until now none of them had a picture. The root 404 is at an address but
+ * not at a `page.tsx`; a route group's not-found file is a `notFound()`
+ * boundary and no page in either group calls one; an error boundary is
+ * reached by a throw; a Suspense fallback by a render that has not
+ * returned. So the one screen of the six that any capture in this suite had
+ * ever been of was `(hosted)/not-found.tsx`, photographed as the arm of a
+ * real address — S8 is a screen the owner approved and this product draws
+ * it five times, and it had one picture.
+ *
+ * `surfaces.ts` owns what each one is and how it reaches the page. Here it
+ * is one more kind of door: an address that matches no route for the first,
+ * and for the rest the real document of the group the screen mounts in,
+ * with that group's chrome around it.
+ */
+const UNENUMERATED = unenumeratedSurfaces();
+
 interface Shot {
   readonly route: EnumeratedRoute;
   /** What the baseline file is named after — the route's own path, plus
-   *  `live` where the same address is photographed twice. */
+   *  `live` where the same address is photographed twice, or the surface's
+   *  own name where it has no address at all. */
   readonly name: string;
+  /** Present only for a surface the route enumerator cannot see: which one
+   *  it is, and — where its address does not render it — what to stand on
+   *  the document once it has loaded. */
+  readonly surface?: UnenumeratedSurface;
 }
 
 /** The signed-out arm keeps the bare name it has always had; every
@@ -279,6 +307,10 @@ const SHOTS: readonly Shot[] = [
   // arm. The door it names is a host rather than an account, which is the
   // only door this surface has.
   ...PUBLISHED_HOSTED_ROUTES.map((route) => ({ route, name: `live${slug(route.path)}` })),
+  // The six the enumerator cannot see (issue #327). Their names are their
+  // own — never a route slug, because five of them are at no address and a
+  // baseline that looked like one would be read as a picture of it.
+  ...UNENUMERATED.map((surface) => ({ route: surface.route, name: surface.name, surface })),
 ];
 
 console.log(
@@ -334,6 +366,10 @@ const CAPTURE_THEME: Theme = "light";
  *     carries the fixture one, so the fixture path is what is looked up.
  */
 function screenFor(shot: Shot): `S${number}` | undefined {
+  // An unenumerated surface carries its own answer, and for two of the six
+  // the answer is *none*: the set draws no waiting screen, so those two are
+  // `new` under ruling 12a and there is nothing to compose them beside.
+  if (shot.surface) return shot.surface.screen;
   if (shot.name.startsWith("week0")) return "S13";
   // The **hosted route is two screens**, because it is swept through two
   // hosts (issue #418): the default host's site has published no page at
@@ -459,10 +495,21 @@ const STILL = `*, *::before, *::after {
   caret-color: transparent !important;
 }`;
 
-async function shoot(page: Page, url: string, theme: Theme): Promise<Buffer> {
+async function shoot(
+  page: Page,
+  url: string,
+  theme: Theme,
+  surface?: UnenumeratedSurface
+): Promise<Buffer> {
   await page.emulateMedia({ colorScheme: theme, reducedMotion: "reduce" });
   await page.goto(url, { timeout: NAVIGATION_MS });
   await page.addStyleTag({ content: STILL });
+  // A surface that stands on another document goes on **after** the
+  // navigation and the stillness sheet and **before** the font wait — the
+  // document under it is loaded and hydrated by now, and its own glyphs
+  // still have to be ready before the shutter opens like every other
+  // screen's. A surface at its own address passes straight through.
+  if (surface) await standSurface(page, surface);
   // The webfont, before the shutter: a run that races it photographs the
   // fallback face, which is the flake that gets a visual suite switched off.
   await page.evaluate(() => document.fonts.ready.then(() => undefined));
@@ -542,6 +589,63 @@ describe(`visual baselines — ${SHOTS.length} surface(s) × ${BANDS.length} ban
     expect(new Set(hosted.map((shot) => shot.route.host)).size).toBe(2);
   });
 
+  it("the six the enumerator cannot see are photographed, and S8 is no longer one picture", () => {
+    // The finding #327 names, as an assertion. Four of the six are S8 — the
+    // screen the owner approved — and until now the only capture of it in
+    // this suite was the hosted 404, which is a mount in a group of its
+    // own. A screen approved once and built five times had one picture.
+    expect(
+      SHOTS.filter((shot) => shot.surface !== undefined).map((shot) => shot.name).sort()
+    ).toEqual([
+      "fallback-account-error",
+      "fallback-account-not-found",
+      "fallback-public-error",
+      "root-not-found",
+      "waiting-app",
+      "waiting-report",
+    ]);
+    expect(
+      SHOTS.filter((shot) => screenFor(shot) === "S8").map((shot) => shot.name).sort()
+    ).toEqual(
+      [
+        "fallback-account-error",
+        "fallback-account-not-found",
+        "fallback-public-error",
+        "root-not-found",
+        slug(HOSTED_PAGE_PATH),
+      ].sort()
+    );
+    // The root 404 is driven as the address it is — no reconstruction —
+    // and `(public)/not-found.tsx` needs no capture of its own because
+    // that screen renders this component (issue #405).
+    const root = UNENUMERATED.find((surface) => surface.name === "root-not-found");
+    expect(root?.stand).toBeUndefined();
+    expect(root?.route.cookie).toBeUndefined();
+    // The two waiting lines pair with nothing, and that is the honest
+    // answer rather than a gap: the approved set draws no waiting screen,
+    // so they are `new` under ruling 12a and the CI render composes no
+    // side-by-side for them. Pairing them with a screen they are not is
+    // exactly what put an empty frame beside the hosted page in #416.
+    expect(
+      SHOTS.filter((shot) => shot.name.startsWith("waiting")).every(
+        (shot) => screenFor(shot) === undefined
+      )
+    ).toBe(true);
+    // Each of the five that stands on a document stands on the document of
+    // the group it really mounts in, so the chrome around it in a picture is
+    // the chrome around it in the product.
+    expect(
+      UNENUMERATED.filter((surface) => surface.name.startsWith("fallback-public")).every(
+        (surface) => surface.route.path === "/pricing" && surface.route.cookie === undefined
+      )
+    ).toBe(true);
+    expect(
+      UNENUMERATED.filter((surface) => surface.name.startsWith("fallback-account")).every(
+        (surface) => surface.route.cookie === getSetupAccountCookie()
+      )
+    ).toBe(true);
+  });
+
   it("the live account's addresses are photographed as well as the fixture ones — all of them", () => {
     expect(LIVE_ROUTES.map((route) => route.path).sort()).toEqual([
       "/app",
@@ -571,7 +675,7 @@ describe(`visual baselines — ${SHOTS.length} surface(s) × ${BANDS.length} ban
               // One browser for both themes at this width: a launch costs
               // more than the two navigations put together.
               for (const theme of THEMES) {
-                shots[theme] = await shoot(page, url, theme);
+                shots[theme] = await shoot(page, url, theme, shot.surface);
                 // The extra shutter for CI's side-by-side (issue #404),
                 // taken here and nowhere else: the page is already loaded,
                 // already still and already past `document.fonts.ready`, so

@@ -20,6 +20,7 @@
 // explicitly rather than read off an empty, silent report.
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import type { Page } from "playwright";
 import { BAND_MIN } from "@/ui/layout/bands";
 import { getAccountCookie, getBaseURL, withPage } from "./browser";
 import {
@@ -40,6 +41,7 @@ import {
   urlFor as routeUrl,
   type EnumeratedRoute,
 } from "./routes";
+import { standSurface, unenumeratedSurfaces } from "./surfaces";
 import { widths } from "./widths";
 
 const APP_ROOT = path.resolve(__dirname, "../../../src/app");
@@ -82,6 +84,40 @@ function urlFor(route: EnumeratedRoute): string {
   return routeUrl(baseURL, route);
 }
 
+/**
+ * Checks 1-5, on whatever document the page is currently showing.
+ *
+ * One home for the five, because there are now two sweeps over them: the
+ * route enumeration below, and the surfaces that have no address at all
+ * (`surfaces.ts`, issue #327). A second copy is how the second suite over
+ * one property comes to be written from the first's older shape — the
+ * defect `routes.ts`'s own `urlFor` exists to prevent, one level up.
+ */
+async function offendersOn(page: Page): Promise<unknown[]> {
+  const results = [
+    await page.evaluate(checkNoHorizontalScroll),
+    await page.evaluate(checkContainment, {
+      scrollContainerAllowlist: SCROLL_CONTAINER_ALLOWLIST,
+    }),
+    await page.evaluate(checkNoClippingOrTruncation, {
+      scrollContainerAllowlist: SCROLL_CONTAINER_ALLOWLIST,
+      truncationAllowlist: TRUNCATION_ALLOWLIST,
+      monoFontFamily: MONO_FONT_FAMILY,
+    }),
+    await page.evaluate(checkTypeFloor),
+    // Check 5 (issue #241) — the screen root renders its container. The
+    // numbers are `BAND_MIN`'s and `design/tokens.md`'s, passed in rather
+    // than read from the page, so a stylesheet that drifted from the ruled
+    // values fails here instead of redefining what "conformant" means.
+    await page.evaluate(checkSurfaceContainer, {
+      bandMin: { medium: BAND_MIN.medium, wide: BAND_MIN.wide },
+      gutterPx: SURFACE_GUTTER_PX,
+      measurePx: CONTENT_MEASURE_PX,
+    }),
+  ];
+  return results.flat();
+}
+
 describe(`layout sweep — ${routes.length} route(s) × 5 widths`, () => {
   it("states the route count it swept, explicitly, even at zero (rule 5.5)", () => {
     // The console line above is the report; this assertion pins the value
@@ -100,29 +136,7 @@ describe(`layout sweep — ${routes.length} route(s) × 5 widths`, () => {
           width,
           async (page) => {
             await page.goto(urlFor(route));
-            const results = [
-              await page.evaluate(checkNoHorizontalScroll),
-              await page.evaluate(checkContainment, {
-                scrollContainerAllowlist: SCROLL_CONTAINER_ALLOWLIST,
-              }),
-              await page.evaluate(checkNoClippingOrTruncation, {
-                scrollContainerAllowlist: SCROLL_CONTAINER_ALLOWLIST,
-                truncationAllowlist: TRUNCATION_ALLOWLIST,
-                monoFontFamily: MONO_FONT_FAMILY,
-              }),
-              await page.evaluate(checkTypeFloor),
-              // Check 5 (issue #241) — the screen root renders its
-              // container. The numbers are `BAND_MIN`'s and
-              // `design/tokens.md`'s, passed in rather than read from the
-              // page, so a stylesheet that drifted from the ruled values
-              // fails here instead of redefining what "conformant" means.
-              await page.evaluate(checkSurfaceContainer, {
-                bandMin: { medium: BAND_MIN.medium, wide: BAND_MIN.wide },
-                gutterPx: SURFACE_GUTTER_PX,
-                measurePx: CONTENT_MEASURE_PX,
-              }),
-            ];
-            return results.flat();
+            return offendersOn(page);
           },
           headersFor(route),
         );
@@ -195,6 +209,88 @@ describe(`layout sweep — ${routes.length} route(s) × 5 widths`, () => {
       }
       if (routes.length === 0) {
         expect(routes).toEqual([]);
+      }
+    },
+    PER_ROUTE_BROWSER_MS,
+  );
+});
+
+/**
+ * The six surfaces the `page.tsx` enumerator cannot see (issue #327).
+ *
+ * `surfaces.ts` states in full what these are, how each reaches the page
+ * and what this sweep does and does not claim about them. Here they are
+ * simply six more documents the layout law applies to, measured at the same
+ * five widths by the same five checks — because the law is about content
+ * fitting its box, and a 404 has boxes exactly like every other screen's.
+ */
+const surfaces = unenumeratedSurfaces();
+
+console.log(
+  `tests/ui/layout/layout.test.ts: ${surfaces.length} unenumerated surface(s) × 5 widths`,
+);
+
+describe(`layout sweep — ${surfaces.length} unenumerated surface(s) × 5 widths`, () => {
+  it("sweeps every surface `surfaces.ts` declares, and states the count (rule 5.5)", () => {
+    // The premise, as an assertion: a seventh surface added there is in
+    // scope here by construction and never by being listed twice.
+    expect(surfaces.length).toBeGreaterThan(0);
+    expect(surfaces.map((s) => s.name)).toEqual([
+      ...new Set(surfaces.map((s) => s.name)),
+    ]);
+    // And none of them is named like a route, so a baseline of one can
+    // never be read as a picture of an address.
+    expect(surfaces.every((s) => !s.name.startsWith("-"))).toBe(true);
+    // One of the six has an address of its own and is driven as one; the
+    // rest stand on a document. Stated so a row that quietly gained or lost
+    // its `stand` is caught here.
+    expect(surfaces.filter((s) => s.stand === undefined).map((s) => s.name)).toEqual([
+      "root-not-found",
+    ]);
+  });
+
+  for (const surface of surfaces) {
+    for (const width of widths()) {
+      it(`${surface.name} @ ${width}px reports no offender on checks 1-5`, async () => {
+        const offenders = await withPage(
+          width,
+          async (page) => {
+            await page.goto(urlFor(surface.route));
+            await standSurface(page, surface);
+            return offendersOn(page);
+          },
+          headersFor(surface.route),
+        );
+        expect(offenders).toEqual([]);
+      });
+    }
+  }
+
+  it(
+    "every unenumerated surface leaves the document exactly one [data-surface] root",
+    async () => {
+      // The root 404 renders its own; three replace a screen root with a
+      // screen root; the app's waiting line replaces the Overview's content
+      // well and leaves the shell's root where it was. Either way the
+      // document has one, which is the invariant the route sweep asserts
+      // above and the one standing a surface on a page is most able to
+      // break.
+      for (const surface of surfaces) {
+        const count = await withPage(
+          BAND_MIN.compact,
+          async (page) => {
+            await page.goto(urlFor(surface.route));
+            await standSurface(page, surface);
+            return page.evaluate(
+              () => document.querySelectorAll("[data-surface]").length,
+            );
+          },
+          headersFor(surface.route),
+        );
+        expect(
+          count,
+          `${surface.name} must leave exactly one [data-surface] root`,
+        ).toBe(1);
       }
     },
     PER_ROUTE_BROWSER_MS,
