@@ -24,6 +24,7 @@ import { describe, expect, it } from "vitest";
 import { BAND_MIN } from "@/ui/layout/bands";
 import { getAccountCookie, getBaseURL, withPage } from "./browser";
 import { SIGNIN_PATH } from "@/lib/account/identity/addresses";
+import { EMAIL_FIELD } from "@/app/(public)/signin/state";
 import { enumerateRoutes, headersFor, urlFor as routeUrl, type EnumeratedRoute } from "./routes";
 
 const APP_ROOT = path.resolve(__dirname, "../../../src/app");
@@ -159,10 +160,38 @@ describe(`issue #331 — the security headers, on all ${routes.length} route(s)`
       const target = `${baseURL}${SIGNIN_PATH}`;
 
       /**
+       * **The payload is read off the served build's own form, not invented.**
+       * A Server Action id is a property of one build, so an id this file
+       * spelled out would be unknown to whatever build the sweep started —
+       * and Next answers an unknown id `500` *before* it ever looks at the
+       * origin, which makes the two halves of this test indistinguishable.
+       * The form's hidden inputs are exactly what a browser with no
+       * JavaScript would send, so they are copied whole rather than picked
+       * over: whichever names React encodes the reference under, this posts
+       * the same ones.
+       */
+      const fields = await withPage(WIDTH, async (page) => {
+        await page.goto(target);
+        return page.evaluate(() => {
+          const form = document.querySelector("form");
+          if (form === null) return null;
+          return Array.from(form.querySelectorAll<HTMLInputElement>('input[type="hidden"]')).map(
+            (input): [string, string] => [input.name, input.value],
+          );
+        });
+      });
+
+      expect(fields, `${SIGNIN_PATH} rendered no form to read an action off`).not.toBeNull();
+      expect(
+        fields!.some(([name]) => name.startsWith("$ACTION")),
+        `${SIGNIN_PATH}'s form carries no $ACTION_… input, so this suite has no real action to post ` +
+          "and could only ever be asserting that Next rejects nonsense",
+      ).toBe(true);
+
+      /**
        * One POST, made **by the browser** — not by an `APIRequestContext`,
        * which Playwright serves in this process with `http.request` and
-       * `tests/setup.ts` therefore refuses (rightly: nothing in this corpus
-       * reaches the network from a test process).
+       * `tests/setup.ts` refuses, rightly.
        *
        * That constraint is what makes this the honest test rather than the
        * convenient one. A page cannot forge an `Origin` header — it is a
@@ -173,17 +202,21 @@ describe(`issue #331 — the security headers, on all ${routes.length} route(s)`
        * and the case Next's own comment beside this check is written for
        * ("these contexts can still send along credentials like cookies").
        *
-       * It is also the only page within reach that *can* stage the attempt.
-       * Every page this product serves carries `connect-src 'self'` and
-       * `form-action 'self'`, so none of them can post anywhere else — the
-       * policy from the first half of this issue working, which is why the
-       * attempt has to come from a document the product did not serve.
+       * It is also the only document within reach that *can* stage the
+       * attempt. Every page this product serves now carries
+       * `connect-src 'self'` and `form-action 'self'`, so none of them can
+       * post anywhere else — the first half of this issue working, and why
+       * the attempt has to come from a page the product did not serve.
        *
-       * `no-cors` so the request is sent rather than refused before it
-       * leaves; the response is unreadable from the page either way, and is
-       * read off the wire by `waitForResponse` instead. The body carries no
-       * action id at all, so nothing of this product's is ever invoked —
-       * the two answers differ on the origin and on nothing else.
+       * `no-cors` so the request is *sent* rather than refused before it
+       * leaves; a `FormData` body is `multipart/form-data`, a safelisted
+       * type, so it costs no preflight and needs no header this mode would
+       * strip. The response is unreadable from the page either way and is
+       * read off the wire by `waitForResponse` instead.
+       *
+       * The address submitted is empty, which `sendLink` refuses on
+       * REQ-098 c6's own path before it reaches any store or any mail. The
+       * two requests differ on their origin and on nothing else.
        */
       const statusOfPostFrom = async (where: "elsewhere" | "its own origin"): Promise<number> =>
         withPage(WIDTH, async (page) => {
@@ -195,20 +228,26 @@ describe(`issue #331 — the security headers, on all ${routes.length} route(s)`
 
           const [response] = await Promise.all([
             page.waitForResponse((r) => r.url() === target && r.request().method() === "POST"),
-            page.evaluate(async (to) => {
-              const body = new FormData();
-              body.set("probe", "1");
-              await fetch(to, { method: "POST", mode: "no-cors", body }).catch(() => undefined);
-            }, target),
+            page.evaluate(
+              async (post: { to: string; emailField: string; entries: [string, string][] }) => {
+                const body = new FormData();
+                for (const [name, value] of post.entries) body.set(name, value);
+                body.set(post.emailField, "");
+                await fetch(post.to, { method: "POST", mode: "no-cors", body }).catch(
+                  () => undefined,
+                );
+              },
+              { to: target, emailField: EMAIL_FIELD, entries: fields! },
+            ),
           ]);
           return response.status();
         });
 
-      // Aborted, before the body is even decoded.
+      // Aborted, and the action it names never runs.
       expect(await statusOfPostFrom("elsewhere")).toBe(500);
-      // The identical request from the app's own origin is not: it passes
-      // the check, decodes to no action, and the screen renders. One
-      // request, one difference, two answers.
+      // The identical body from the app's own origin passes the check,
+      // reaches the action, and comes back as the screen. One request, one
+      // difference, two answers.
       expect(await statusOfPostFrom("its own origin")).toBe(200);
     },
     PER_ROUTE_BROWSER_MS,
