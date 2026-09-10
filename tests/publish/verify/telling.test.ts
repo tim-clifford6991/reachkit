@@ -19,7 +19,7 @@
 // The archived plan is WO-235.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeDb, type Row } from "../harness";
-import { COPY } from "@/lib/presentation/copy";
+import { COPY, copy, TODO_COPY_MARKER } from "@/lib/presentation/copy";
 import { OWNER_OWED } from "@/lib/presentation/copy/registry";
 
 const db = fakeDb();
@@ -183,10 +183,19 @@ describe("tellingFor — the three keys, and the two that must stay two (ADR-085
     seed(found());
     const telling = await tellingFor("p1");
     expect(telling?.copy).toMatch(/^mail\.published\./);
-    // Every key it names is owner-owed: a mail never ships a placeholder.
+    // Every key it names is a written sentence — owner-owed until issue
+    // #458 filled them on the owner's 2026-09-10 approval — and it renders
+    // with the date in its slot. The payload carries the key, never the
+    // sentence: no worded fragment of any of the three appears in it.
+    const payload = JSON.stringify(telling);
     for (const key of Object.values(TELLING_COPY)) {
-      expect(COPY[key]).toBe("");
-      expect(OWNER_OWED).toContain(key);
+      expect(COPY[key].trim(), key).not.toBe("");
+      expect(COPY[key], key).not.toBe(TODO_COPY_MARKER);
+      expect(OWNER_OWED).not.toContain(key);
+      expect(copy(key, { checkedAt: "<checked-at>" }), key).toContain("<checked-at>");
+      for (const part of COPY[key].split(/\{[^}]*\}/)) {
+        if (/[a-z]{3,}/i.test(part)) expect(payload, key).not.toContain(part.trim());
+      }
     }
   });
 });

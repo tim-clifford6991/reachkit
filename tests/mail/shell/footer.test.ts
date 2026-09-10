@@ -20,6 +20,7 @@ applyEnvFixture();
 const { composeMail } = await import("../../../src/lib/mail/shell/compose");
 const { COPY } = await import("../../../src/lib/presentation/copy");
 const { MAIL_KINDS } = await import("../../../src/lib/mail/kinds");
+const { OWNER_OWED } = await import("../../../src/lib/presentation/copy/registry");
 
 /**
  * The kinds the approved set does not draw, and which therefore carry no
@@ -52,32 +53,40 @@ describe("issue #376 — S20's footer, in both bodies", () => {
     expect([...NO_REASON_YET].sort()).toEqual(registered.filter((k) => !drawn.includes(k)).sort());
   });
 
-  it("the reason and the imprint band render, in that order, in both bodies", () => {
-    // Without a stop control, because the control's own label is still
-    // owner-owed (`mail.optout.label`) and `copy()` throws on it — which
-    // is why the two lead mails cannot compose at all today. The link's
-    // place in the order is held by `frame.ts` itself, between these two,
-    // and is what this file will assert the day that line is written.
-    expect(COPY["mail.optout.label"]).toBe("");
+  it("the reason, the stop link and the imprint band render, in that order, in both bodies", () => {
+    // The stop control's own label (`mail.optout.label`) was owner-owed
+    // until issue #458 filled it on the owner's 2026-09-10 approval, so the
+    // link now renders — between the reason and the band, where `frame.ts`
+    // and `text-frame.ts` place it.
+    const label = COPY["mail.optout.label"];
+    expect(label).not.toBe("");
+    expect(OWNER_OWED).not.toContain("mail.optout.label");
 
+    const href = "https://reachkit.example/opt-out/token";
     const mail = composeMail({
       kind: "report",
       ...BASE,
       reason: "mail.reason.report",
       reasonVars: { address: "remove@example.com" },
+      optOut: { href, mechanism: "opt-out" },
     });
 
     const reason = mail.html.indexOf("Own this site");
+    const link = mail.html.indexOf(`>${label}</a>`);
     const band = mail.html.indexOf("plain-text version attached");
     expect(reason, "the reason line is missing").toBeGreaterThan(-1);
-    expect(band).toBeGreaterThan(reason);
+    expect(link, "the stop link is missing").toBeGreaterThan(reason);
+    expect(band).toBeGreaterThan(link);
+    expect(mail.html).toContain(`href="${href}"`);
 
-    // The plain-text twin says the same things in the same order.
+    // The plain-text twin says the same things in the same order, the
+    // link written out as a labelled URL.
     const text = mail.text;
-    expect(text.indexOf("Own this site")).toBeGreaterThan(-1);
-    expect(text.indexOf("plain-text version attached")).toBeGreaterThan(
-      text.indexOf("Own this site")
-    );
+    const textReason = text.indexOf("Own this site");
+    const textLink = text.indexOf(`${label}: ${href}`);
+    expect(textReason).toBeGreaterThan(-1);
+    expect(textLink).toBeGreaterThan(textReason);
+    expect(text.indexOf("plain-text version attached")).toBeGreaterThan(textLink);
   });
 
   it("a mail with no reason still composes, and its footer is the band alone", () => {
@@ -88,16 +97,20 @@ describe("issue #376 — S20's footer, in both bodies", () => {
     expect(mail.html).not.toContain("<p style=\"margin:0\"></p>");
   });
 
-  it("the imprint appears only once the owner has written it", () => {
-    // The set brackets the imprint, so it is owner-owed and empty. It is
-    // read off the registry rather than through `copy()`, which throws on
-    // an owner-owed key — a footer band is not a reason to stop every mail
-    // in the product from composing.
-    expect(COPY["mail.shell.imprint"]).toBe("");
+  it("the imprint, once written, sits between the wordmark and the plain-text note", () => {
+    // The set brackets the imprint, so it was owner-owed and empty, and the
+    // band read wordmark · plain-text note. Issue #458 filled it on the
+    // owner's 2026-09-10 approval, so the band now carries all three parts,
+    // in the set's order, in both bodies.
+    const imprint = COPY["mail.shell.imprint"];
+    expect(imprint).not.toBe("");
+    expect(OWNER_OWED).not.toContain("mail.shell.imprint");
     const mail = composeMail({ kind: "report", ...BASE, reason: "mail.reason.report", reasonVars: { address: "x@y.z" } });
-    // The band is wordmark · plain-text note, with no empty middle.
-    expect(mail.html).toContain("ReachKit · plain-text version attached");
-    expect(mail.text).toContain("ReachKit · plain-text version attached");
+    const band = [COPY["mail.shell.wordmark"], imprint, COPY["mail.shell.plaintext_note"]].join(" · ");
+    expect(mail.html).toContain(band);
+    expect(mail.text).toContain(band);
+    // And not the two-part band it replaced.
+    expect(mail.text).not.toContain("ReachKit · plain-text version attached");
   });
 
   it("the reason line is the one place a mail says why it arrived", () => {

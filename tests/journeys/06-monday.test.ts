@@ -23,10 +23,14 @@
 //
 // **The copy registry is NOT a fixture here, and that is the point of one
 // of these tests.** Journeys 02–05 resolve each key to itself so the path
-// can be walked; this journey is partly *about* the digest's own sentences,
-// every one of which is owner-owed. So it runs against the real registry
-// and asserts what that means: `copy()` refuses each of §12's weekly keys,
-// and the send seam reports `not-composable` and reaches no vendor. The
+// can be walked; this journey is partly *about* the digest's own sentences.
+// Every one of them was owner-owed until issue #458 filled them on the
+// owner's 2026-09-10 approval, so it runs against the real registry and
+// asserts what that means now: `copy()` renders each of §12's weekly keys,
+// and the send seam composes the digest and hands the vendor a mail that
+// carries them. What still stops the sender on a week that judged a page
+// is the verdict word that page is given (`verdict.page.*`, another
+// partition's), which is still owed, and that is asserted too. The
 // mail's shape — which four sections, in which order, and which of them the
 // omission rule drops — is asserted on the block list, which carries keys
 // and no sentences and so needs no registry at all.
@@ -434,7 +438,9 @@ const { chooseWholeMailLine } = await import("../../src/lib/mail/shell/compose")
 const { sendEmail } = await import("../../src/lib/mail/send");
 const { sendWeeklyDigest } = await import("../../src/lib/mail/weekly");
 const { copy } = await import("../../src/lib/presentation/copy");
-const { COPY, OWNER_OWED } = await import("../../src/lib/presentation/copy/registry");
+const { COPY, COPY_META, OWNER_OWED } = await import("../../src/lib/presentation/copy/registry");
+const { PAGE_VERDICTS } = await import("../../src/lib/presentation/bands");
+const { escapeHtml } = await import("../../src/lib/mail/blocks/html");
 const { readWeek: weekStrip, CALENDAR_HREF } = await import(
   "../../src/app/(account)/app/_overview/week"
 );
@@ -527,15 +533,14 @@ async function measureTheWeek(now = MONDAY) {
 }
 
 /**
- * §12's four weekly sections, and the lines still owed on them.
+ * §12's four weekly sections, and the lines that speak them.
  *
  * Two dropped off this list on 2026-09-08 (issue #376): `mail.weekly.score`
  * and `mail.weekly.aiAnswers` are labels UI-SPEC S20 writes unbracketed —
  * "Discoverability Score", "AI answers" — which ruling 11a makes approved
- * copy, so they are filled by transcription. The mail still does not
- * compose, and the assertions below still hold, because its *subject* is
- * owed: S20 writes that too, but on a number §12 lets be unmeasured, and a
- * subject has no omission arm (issue #388).
+ * copy, so they are filled by transcription. The nine below, subject
+ * included (issue #388), were filled by issue #458 on the owner's
+ * 2026-09-10 approval, so none of them is owed any more.
  */
 const DIGEST_KEYS = [
   "mail.weekly.subject",
@@ -782,28 +787,42 @@ describe("Monday: the week is re-measured, judged, and told (JN-005)", () => {
       digest_sent_at: null,
     });
 
-    // Every one of the eleven lines is owner-owed, so the mail does not
-    // compose — the seam says exactly that, no vendor request is made,
-    // and **the week is left unstamped**, so the Monday the owner writes
-    // them the digest goes. This keeps discriminating once they do.
+    // The digest's own lines are written (issue #458), but this week judged
+    // a page, and the word a judged page is given — `verdict.page.*`, the
+    // verdict partition's — is still owner-owed. So the mail still does not
+    // compose: the seam says exactly that, no vendor request is made, and
+    // **the week is left unstamped**, so the Monday the owner writes the
+    // verdict words the digest goes. This keeps discriminating once they do.
+    for (const key of DIGEST_KEYS) expect(OWNER_OWED, key).not.toContain(key);
+    for (const key of Object.values(PAGE_VERDICTS)) expect(OWNER_OWED, key).toContain(key);
     const told = await sendWeeklyDigest({ siteId: SITE_ID, weekStart: "2026-08-31", now: MONDAY });
     expect(told).toEqual({ sent: false, reason: "not-composable" });
     expect(vendorSends).toBe(0);
     expect(scans.find((scan) => scan.id === "scan-told")?.digest_sent_at ?? null).toBeNull();
   });
 
-  it("every sentence the digest speaks is the owner's, and none of them is written yet", async () => {
+  it("every sentence the digest speaks is the owner's, written by issue #458, so the digest composes and goes", async () => {
     for (const key of DIGEST_KEYS) {
       expect(Object.keys(COPY), key).toContain(key);
-      expect(COPY[key], key).toBe("");
-      expect(OWNER_OWED, key).toContain(key);
-      expect(() => copy(key), key).toThrow(/owner-owed/);
+      expect(COPY[key], key).not.toBe("");
+      expect(OWNER_OWED, key).not.toContain(key);
+      // `copy()` renders it, every declared slot filled with its value.
+      const slots = Object.keys(COPY_META[key].slots);
+      const said = copy(key, Object.fromEntries(slots.map((slot) => [slot, `${slot}-value`])));
+      expect(said, key).not.toBe("");
+      expect(said, key).not.toMatch(/\{\w+\}/);
+      for (const slot of slots) expect(said, key).toContain(`${slot}-value`);
     }
 
-    // So the mail does not compose, the seam says exactly that, and no
-    // vendor request is made. This is the blocking point, asserted rather
-    // than left implicit — and it keeps discriminating once the owner
-    // fills the keys in.
+    // So the mail composes, and the vendor is handed a mail that says the
+    // sentences. A week that judged no page and has nothing next needs no
+    // verdict word, so nothing still owed stands in the way.
+    const payloads: string[] = [];
+    __setVendorTransportForTesting(async (payload) => {
+      vendorSends += 1;
+      payloads.push(payload);
+      return { status: 200, headers: {}, body: JSON.stringify({ id: "resend-1" }) };
+    });
     const mail = buildWeekly({
       scoreDelta: measured(4, MONDAY),
       aiAnswersDelta: measuredZero(0, MONDAY),
@@ -813,13 +832,25 @@ describe("Monday: the week is re-measured, judged, and told (JN-005)", () => {
     const sent = await sendEmail({
       kind: "weekly",
       to: "founder@acme.com",
-      userId: "user-1",
+      // The journey's own customer: the weekly toggle is read off their row.
+      userId: USER_ID,
       subject: mail.subject,
       blocks: mail.blocks,
       measurement: { state: "complete" },
     });
-    expect(sent).toEqual({ sent: false, reason: "not-composable" });
-    expect(vendorSends).toBe(0);
+    expect(sent).toEqual({ sent: true, id: "resend-1" });
+    expect(vendorSends).toBe(1);
+    const delivered = JSON.parse(payloads[0] ?? "{}") as { subject?: string; text?: string; html?: string };
+    expect(delivered.subject).toBe(COPY["mail.weekly.subject"]);
+    for (const key of [
+      "mail.weekly.verdicts",
+      "mail.weekly.verdicts.none",
+      "mail.weekly.next",
+      "mail.weekly.next.none",
+    ] as const) {
+      expect(delivered.text, key).toContain(COPY[key]);
+      expect(delivered.html, key).toContain(escapeHtml(COPY[key]));
+    }
 
   });
 

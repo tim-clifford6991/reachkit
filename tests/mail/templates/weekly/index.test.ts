@@ -18,6 +18,8 @@ const { buildWeekly } = await import("../../../../src/lib/mail/templates/weekly"
 const { omittedIndexes, isMeasuredEmpty } = await import("../../../../src/lib/mail/blocks/omit");
 const { MAIL_KINDS } = await import("../../../../src/lib/mail/kinds");
 const { OWNER_OWED } = await import("../../../../src/lib/presentation/copy/registry");
+const { COPY } = await import("../../../../src/lib/presentation/copy");
+const { composeMail } = await import("../../../../src/lib/mail/shell/compose");
 const { measured, measuredZero, unmeasured } = await import("../../../../src/lib/measure/measured");
 const { PAGE_VERDICTS } = await import("../../../../src/lib/presentation/bands");
 
@@ -286,7 +288,7 @@ describe("the next three, named by the search each targets", () => {
 });
 
 describe("no sentence is written here, and no model text reaches the mail", () => {
-  it("every string the template speaks is a registry key, and each is owner-owed today", () => {
+  it("every string the template speaks is a registry key, every mail sentence is written, and only the verdict words still stop it", () => {
     const mail = full();
     const keys: CopyKey[] = [
       mail.subject,
@@ -304,25 +306,55 @@ describe("no sentence is written here, and no model text reaches the mail", () =
         return [];
       }),
     ];
-    // The four the approved set writes are the exception, and 11a is why:
-    // S20 draws this mail's heading, its one line, its button and the
-    // score's own label unbracketed, so each is approved copy rather than
-    // the owner's debt (issue #376). Everything else it speaks — its
-    // subject included, which is what still stops it being sent — is owed.
-    const WRITTEN_BY_THE_SET: readonly CopyKey[] = [
-      "mail.weekly.heading",
-      "mail.weekly.body",
-      "mail.weekly.action",
-      "mail.weekly.score",
-      "mail.weekly.aiAnswers",
-    ];
-    for (const key of keys) {
-      if (WRITTEN_BY_THE_SET.includes(key)) {
-        expect(OWNER_OWED, key).not.toContain(key);
-        continue;
-      }
-      expect(OWNER_OWED).toContain(key);
+    // S20 wrote the heading, the one line, the button and the two stat
+    // labels (ruling 11a, issue #376). Every other mail sentence it speaks
+    // — its subject included, which is what stopped it being sent — was
+    // owed until issue #458 filled the mail partition on the owner's
+    // 2026-09-10 approval. The verdict words are not mail copy: they are
+    // `keys/publish.ts`'s, #458 did not fill them, and they are still owed.
+    const VERDICT_WORDS: readonly CopyKey[] = Object.values(PAGE_VERDICTS);
+    const mailKeys = keys.filter((key) => !VERDICT_WORDS.includes(key));
+    expect(mailKeys.length).toBeGreaterThan(0);
+    for (const key of mailKeys) {
+      expect(key.startsWith("mail."), key).toBe(true);
+      expect(COPY[key], key).not.toBe("");
+      expect(OWNER_OWED, key).not.toContain(key);
     }
+    for (const key of VERDICT_WORDS) {
+      expect(OWNER_OWED, `${key} is written now — a judged page composes`).toContain(key);
+    }
+
+    // So a week with no page to judge composes, where it used to be
+    // refused on its subject…
+    const noPages = buildWeekly({
+      scoreDelta: measured(6, AT),
+      aiAnswersDelta: measured(2, AT),
+      pages: measured([], AT),
+      next: measured([{ targetQuery: "onboarding checklist" }], AT),
+    });
+    const composed = composeMail({
+      kind: "weekly",
+      subject: noPages.subject,
+      blocks: noPages.blocks,
+      reason: noPages.reason,
+      measurement: { state: "complete" },
+    });
+    expect(composed.subject).toBe(COPY["mail.weekly.subject"]);
+    for (const body of [composed.html, composed.text]) {
+      expect(body).toContain(COPY["mail.weekly.verdicts.none"]);
+      expect(body).toContain("onboarding checklist");
+    }
+
+    // …and a week with a judged page is still refused, on the verdict word.
+    expect(() =>
+      composeMail({
+        kind: "weekly",
+        subject: mail.subject,
+        blocks: mail.blocks,
+        reason: mail.reason,
+        measurement: { state: "complete" },
+      })
+    ).toThrow(/verdict\.page\.working/);
   });
 
   it("no page or opportunity is named by its title — a title is model-written and a mail does not speak it", () => {

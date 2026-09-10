@@ -16,7 +16,14 @@ const { registerDraftWriter, registerOfferReader } = await import(
   "../../../src/lib/mail/leads/ports"
 );
 const { setLeadStore } = await import("../../../src/lib/mail/leads/store");
-const { OWNER_OWED } = await import("../../../src/lib/presentation/copy/registry");
+const { COPY, OWNER_OWED, TODO_COPY_MARKER } = await import(
+  "../../../src/lib/presentation/copy/registry"
+);
+const { buildFirstPageUnavailable } = await import(
+  "../../../src/lib/mail/templates/first-page-unavailable"
+);
+const { composeMail } = await import("../../../src/lib/mail/shell/compose");
+const { escapeHtml } = await import("../../../src/lib/mail/blocks/html");
 
 let state: MemoryState;
 let draftCalls: number;
@@ -159,9 +166,30 @@ describe('REQ-010 c7 — "the founder is told the page is not coming and why, in
     ]);
   });
 
-  it("all four cause lines are owner-owed today, and the PR says so rather than inventing them", () => {
-    for (const key of Object.values(FIRST_PAGE_UNAVAILABLE_COPY)) {
-      expect(OWNER_OWED).toContain(key);
+  it("all four cause lines are the owner's written sentences (issue #458), and each mail composes with its own", () => {
+    // Owner-owed until issue #458 filled them on the owner's 2026-09-10
+    // approval, when the real seam refused this mail as `not-composable`.
+    // Each cause's mail is composed here and must carry its own line — and
+    // only its own, so a template that spoke one cause for all four fails.
+    const causes = Object.entries(FIRST_PAGE_UNAVAILABLE_COPY);
+    for (const [cause, key] of causes) {
+      expect(COPY[key].trim(), key).not.toBe("");
+      expect(COPY[key], key).not.toBe(TODO_COPY_MARKER);
+      expect(OWNER_OWED).not.toContain(key);
+
+      const mail = buildFirstPageUnavailable({ email: "anna@example.com", causeLine: key });
+      const composed = composeMail({
+        kind: "first-page-unavailable",
+        subject: mail.subject,
+        blocks: mail.blocks,
+        optOut: mail.optOut,
+      });
+      expect(composed.subject, cause).toBe(COPY[mail.subject]);
+      expect(composed.text, cause).toContain(COPY[key]);
+      expect(composed.html, cause).toContain(escapeHtml(COPY[key]));
+      for (const [other, otherKey] of causes) {
+        if (other !== cause) expect(composed.text, cause).not.toContain(COPY[otherKey]);
+      }
     }
   });
 

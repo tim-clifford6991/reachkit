@@ -10,6 +10,8 @@
 // been told anything.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeDb, type Row } from "../../publish/harness";
+import type { MailBlock } from "@/lib/mail/blocks/types";
+import type { CopyKey } from "@/lib/presentation/copy";
 
 const db = fakeDb();
 vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
@@ -19,6 +21,8 @@ interface SentMail {
   to: string;
   userId?: string;
   subject: string;
+  subjectVars?: Record<string, string>;
+  reason?: string;
   suppressible?: false;
   blocks: readonly { block: string; text?: string; label?: string; href?: string; vars?: Record<string, string> }[];
 }
@@ -63,6 +67,9 @@ vi.mock("@/lib/opportunities", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/opportunities")>();
   return { ...actual, explainChoice: async () => choice.answer };
 });
+/** The write-family evidence above, kept so a test that needs the why-lines
+ *  can restore it after an earlier test has swapped or purged it. */
+const WRITE_CHOICE = choice.answer;
 
 const { sendDraftReadyMail } = await import("@/lib/mail/draft-ready");
 
@@ -377,13 +384,37 @@ describe("issue #183 — the mail names the page, and says why §7 chose it", ()
   });
 
   it("every sentence it speaks is a registry key, and the title is not one of them", async () => {
-    const { COPY } = await import("@/lib/presentation/copy");
+    const { COPY, copy, TODO_COPY_MARKER } = await import("@/lib/presentation/copy");
+    const { OWNER_OWED } = await import("@/lib/presentation/copy/registry");
+    const { composeMail } = await import("@/lib/mail/shell/compose");
+    const { escapeHtml } = await import("@/lib/mail/blocks/html");
+    // The tests above swap and purge §7's evidence; this one needs the
+    // write-family evidence that carries both why-lines.
+    choice.answer = WRITE_CHOICE;
     await sendDraftReadyMail({ draftId: "d1", destination: "wordpress", at: AT });
 
-    for (const key of ["mail.draftReady.why.search", "mail.draftReady.why.volume"]) {
+    // Both why-lines were owner-owed until issue #458 filled them on the
+    // owner's 2026-09-10 approval; each now carries a written sentence.
+    for (const key of ["mail.draftReady.why.search", "mail.draftReady.why.volume"] as const) {
       expect(Object.keys(COPY)).toContain(key);
-      expect(COPY[key as keyof typeof COPY]).toBe("");
+      expect(COPY[key].trim(), key).not.toBe("");
+      expect(COPY[key], key).not.toBe(TODO_COPY_MARKER);
+      expect(OWNER_OWED).not.toContain(key);
     }
+    // So the mail that was sent composes, and speaks the search sentence
+    // with §7's stored query in its slot.
+    const m = sent[0]!;
+    const composed = composeMail({
+      kind: "draft-ready",
+      subject: m.subject as CopyKey,
+      subjectVars: m.subjectVars,
+      blocks: m.blocks as unknown as readonly MailBlock[],
+      reason: m.reason as CopyKey | undefined,
+    });
+    const why = copy("mail.draftReady.why.search", { query: "how long does a slate roof last" });
+    expect(composed.text).toContain(why);
+    expect(composed.html).toContain(escapeHtml(why));
+    expect(composed.text).toContain(COPY["mail.draftReady.why.volume"]);
     // The title has no key of its own: it is carried by the label, which
     // does (`generated.page.written`).
     expect(Object.keys(COPY)).not.toContain("mail.draftReady.title");
