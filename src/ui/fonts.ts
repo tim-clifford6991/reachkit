@@ -53,14 +53,21 @@
 // refuses anything that is not a literal.
 //
 // **What preloads (an internal parameter, rule 1.1 — reversal cost: one
-// boolean).** Only the latin faces the product certainly renders on every
-// screen: Jakarta 400 (body) and 700 (`type.css`'s one heading weight), and
-// JetBrains Mono 400 (every numeral). Jakarta 800 is loaded, because
-// `BUILD.md` §2.3 states the heading range as "Jakarta 700–800", and is not
-// preloaded, because no rule in `type.css` spends it — a preload for a face
-// no document uses is a warning in the console and 12 kB off the critical
-// path. Nothing outside latin preloads: a preload is a promise the byte is
-// needed now, and a cyrillic page title is fetched when it is matched.
+// boolean).** Only the latin faces the product renders above the fold:
+// Jakarta 400 (body) and 700 (`type.css`'s one heading weight), JetBrains
+// Mono 400 (every numeral), and Jakarta 800 — `BUILD.md` §2.3's "Jakarta
+// 700–800", which `src/ui/idiom/idiom.css` spends on the public header's
+// wordmark and the landing's headline, the first two things `/` paints.
+// Until issue #494 the 800 face did not preload, on the premise that no rule
+// spent it; the idiom sheet does, so the browser learned of the face only
+// once the first frame had been laid out in the fallback, then swapped it
+// in and re-wrapped the header and the hero under the reader — CLS 0.21 at
+// 320 px once the approved strings were long enough to wrap differently
+// in the two faces (`tests/ui/layout/vitals.test.ts`, budget 0.1). A
+// preloaded face is in flight before the stylesheet is parsed, so the first
+// frame is laid out in the face it keeps. Nothing outside latin preloads: a
+// preload is a promise the byte is needed now, and a cyrillic page title is
+// fetched when it is matched.
 //
 // Weights loaded (rule 1.1 again — one `src` row per weight, no call site
 // depends on the set): Jakarta 400 for body text, 700 and 800 for
@@ -117,10 +124,12 @@ export const jakartaLatin = localFont({
   ],
 });
 
-/** Plus Jakarta Sans 800, latin — the top of §2.3's heading range. Loaded,
- *  so a rule that reaches for it finds it; not preloaded, because none does
- *  today. Its own call rather than a third `src` row above precisely so the
- *  preload boolean can tell the two apart. */
+/** Plus Jakarta Sans 800, latin — the top of §2.3's heading range, and the
+ *  face of the public header's wordmark and the landing's headline. It
+ *  preloads for that reason (issue #494: discovered late, it swapped in
+ *  after first paint and moved the landing by CLS 0.21 at 320 px). Its own
+ *  call rather than a third `src` row above so the preload boolean stays a
+ *  per-face decision. */
 export const jakartaLatinHeavy = localFont({
   src: [
     {
@@ -130,7 +139,7 @@ export const jakartaLatinHeavy = localFont({
     },
   ],
   display: "swap",
-  preload: false,
+  preload: true,
   adjustFontFallback: false,
   declarations: [
     { prop: "font-family", value: "'Plus Jakarta Sans'" },
