@@ -131,6 +131,53 @@ export const INFERENCE_TIMEOUT_MS = Object.freeze({
  *  up rather than a default they must know. */
 export const INFERENCE_MAX_RETRIES = 0 as const;
 
+/** The most output one `llm()` call may generate, per call site, in tokens —
+ *  carried to the vendor as the request's own `max_tokens` and used for the
+ *  up-front cost reservation in its place (`src/lib/llm/index.ts`). Keyed by
+ *  call site because the site, not the tier, decides how long an answer can
+ *  honestly be: a two-field verdict and a whole page are both `nano`/`haiku`
+ *  calls. The key set *is* the closed call-site list — `llm()`'s `site` is
+ *  typed as these keys, so a call site with no budget does not compile.
+ *
+ *  **Issue #462.** The seam used one 4 096 for every site, and the M3 live
+ *  run 4b (2026-09-10) spent the whole 15 s `nano` budget generating one
+ *  888-token profile that then missed its schema — leaving no time for the
+ *  retry BP-009's policy promises. Each figure below is the smallest the
+ *  site's schema can need with headroom, at ~4 chars per token:
+ *  - `profile` — seven fields, three short strings and four lists capped
+ *    by `PROFILE_LIST_BOUNDS` (27 short strings at most): ~300 needed.
+ *  - `question-phrasing` — at most `BATTERY.QUESTIONS` `{ id, text }`
+ *    pairs of one question each: ~30 a pair, ~360 needed.
+ *  - `opportunity-typing` — `{ type, slug, title }`: ~60 needed.
+ *  - `generate.brief` — two sentences and a list of points: ~400 needed.
+ *  - `generate.outline` — one `{ heading, covers }` per point: ~600 needed.
+ *  - `generate.draft`, `generate.answerability` — a whole page of
+ *    Markdown; the seam's old ceiling, unchanged.
+ *  - `generate.claim_check` — `{ matches, matchedIndex }`: ~20 needed. */
+export const INFERENCE_MAX_OUTPUT_TOKENS = Object.freeze({
+  profile: 700,
+  "question-phrasing": 800,
+  "opportunity-typing": 256,
+  "generate.brief": 1024,
+  "generate.outline": 1536,
+  "generate.draft": 4096,
+  "generate.answerability": 4096,
+  "generate.claim_check": 128,
+} as const);
+
+/** How many entries each of the business profile's lists may carry (BUILD
+ *  §6.7 step 1). The schema the model's answer is parsed against and the
+ *  prompt that asks for it both read these, so the two cannot disagree
+ *  (`src/lib/market/questions/profile.ts`). `audienceTerms` is §6.7's own
+ *  "2–4 audience/use-case terms"; the other three are bounds issue #462
+ *  set so a profile cannot spend its budget on an unbounded list. */
+export const PROFILE_LIST_BOUNDS = Object.freeze({
+  audienceTerms: Object.freeze({ min: 2, max: 4 } as const),
+  namedRivals: Object.freeze({ min: 0, max: 5 } as const),
+  vocabulary: Object.freeze({ min: 0, max: 12 } as const),
+  brandTokens: Object.freeze({ min: 0, max: 6 } as const),
+} as const);
+
 /** How many `llm()` calls one free pass issues — BP-009 `## NFR budget`,
  *  quoted: "the free scan's **two** nano calls — `profile` and
  *  `question-phrasing` (BP-025 decision 2) — sit inside the 60-second
