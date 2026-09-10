@@ -1131,6 +1131,37 @@ describe("BUILD §6.3 / DATA-COSTS §1 — the inference price book, in cents pe
       expect(pins.FREE_PASS_INFERENCE_CALLS).toBe(2);
     }
   );
+
+  it(
+    "issue #462 — INFERENCE_MAX_OUTPUT_TOKENS, one output budget per `llm()` call site: the seam-wide 4 096 " +
+      "let a seven-field profile spend the whole 15 s nano budget on one answer (M3 run 4b). Its key set is " +
+      "the closed call-site list; only the two whole-page sites keep the old ceiling",
+    () => {
+      expect(pins.INFERENCE_MAX_OUTPUT_TOKENS).toEqual({
+        profile: 700,
+        "question-phrasing": 800,
+        "opportunity-typing": 256,
+        "generate.brief": 1024,
+        "generate.outline": 1536,
+        "generate.draft": 4096,
+        "generate.answerability": 4096,
+        "generate.claim_check": 128,
+      });
+    }
+  );
+
+  it(
+    'BUILD §6.7 step 1, "2–4 audience/use-case terms", and issue #462\'s caps on the other three lists — ' +
+      "PROFILE_LIST_BOUNDS, read by both the profile's schema and its prompt",
+    () => {
+      expect(pins.PROFILE_LIST_BOUNDS).toEqual({
+        audienceTerms: { min: 2, max: 4 },
+        namedRivals: { min: 0, max: 5 },
+        vocabulary: { min: 0, max: 12 },
+        brandTokens: { min: 0, max: 6 },
+      });
+    }
+  );
 });
 
 describe("BUILD §6.1 / DATA-COSTS §1 — VENDOR, the request shapes the price book prices", () => {

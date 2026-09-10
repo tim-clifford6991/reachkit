@@ -11,7 +11,8 @@
 // below (WO-071's own "Discrimination" note). No network: `@/lib/llm` is
 // stubbed entirely — this suite never reaches the vendor.
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ZodType } from "zod";
+import { z, type ZodType } from "zod";
+import { PROFILE_LIST_BOUNDS } from "../../../src/lib/config/constants.ts";
 import type { CostContext } from "../../../src/lib/costs/index.ts";
 import type { Measured } from "../../../src/lib/measure/measured.ts";
 import type { Profile } from "../../../src/lib/market/questions/profile.ts";
@@ -27,11 +28,17 @@ const { llmMock } = vi.hoisted(() => ({ llmMock: vi.fn() }));
 
 vi.mock("@/lib/llm", () => ({ llm: llmMock }));
 
-let deriveProfile: typeof import("../../../src/lib/market/questions/profile.ts").deriveProfile;
+type ProfileModule = typeof import("../../../src/lib/market/questions/profile.ts");
+let deriveProfile: ProfileModule["deriveProfile"];
+let PROFILE_SCHEMA: ProfileModule["PROFILE_SCHEMA"];
+let PROFILE_FIELDS: ProfileModule["PROFILE_FIELDS"];
+let PROFILE_TASK: ProfileModule["PROFILE_TASK"];
 
 beforeEach(async () => {
   llmMock.mockReset();
-  ({ deriveProfile } = await import("../../../src/lib/market/questions/profile.ts"));
+  ({ deriveProfile, PROFILE_SCHEMA, PROFILE_FIELDS, PROFILE_TASK } = await import(
+    "../../../src/lib/market/questions/profile.ts"
+  ));
 });
 
 /** `recordFetch` throws: `deriveProfile` must reach the vendor only through
@@ -80,7 +87,12 @@ describe("deriveProfile — the single 'profile' nano call site", () => {
     const call = llmMock.mock.calls[0]![1] as RecordedLlmCall;
     expect(call.site).toBe("profile");
     expect(call.tier).toBe("nano");
-    expect(call.input).toEqual({ home: "<html>home</html>", pricing: "<html>pricing</html>" });
+    expect(call.input).toEqual({
+      task: PROFILE_TASK,
+      fields: PROFILE_FIELDS,
+      home: "<html>home</html>",
+      pricing: "<html>pricing</html>",
+    });
     const inputJson = JSON.stringify(call.input);
     expect(inputJson).not.toContain("keyword");
     expect(inputJson).not.toContain("searchTerm");
@@ -95,14 +107,19 @@ describe("deriveProfile — the single 'profile' nano call site", () => {
     expect(llmMock.mock.calls[0]![0]).toBe(c);
   });
 
-  it("carries exactly { home, pricing } as handed in — no field added, no field dropped", async () => {
+  it("carries exactly { home, pricing } as handed in beside the fixed instruction — no field added, no field dropped", async () => {
     llmMock.mockResolvedValueOnce(measuredProfile());
     const c = fakeCostContext();
 
     await deriveProfile(c, { home: "home text only" });
 
     const call = llmMock.mock.calls[0]![1] as RecordedLlmCall;
-    expect(call.input).toEqual({ home: "home text only", pricing: undefined });
+    expect(call.input).toEqual({
+      task: PROFILE_TASK,
+      fields: PROFILE_FIELDS,
+      home: "home text only",
+      pricing: undefined,
+    });
   });
 });
 
@@ -216,5 +233,66 @@ describe("deriveProfile — observability (BP-025 `## NFR budget`: profile outco
     expect(logged.kind).toBe("unmeasured");
     expect(logged.reason).toBe("undeterminable");
     logSpy.mockRestore();
+  });
+});
+
+describe("deriveProfile — the prompt and the schema agree (issue #462)", () => {
+  // The schema as JSON Schema: the one reading of it both the key set and
+  // every list's bounds can be taken from, rather than restated here.
+  const jsonSchema = () =>
+    z.toJSONSchema(PROFILE_SCHEMA) as {
+      properties: Record<string, { type: string; minItems?: number; maxItems?: number }>;
+      required: string[];
+      additionalProperties: boolean;
+    };
+
+  it("the prompt names exactly the schema's fields, in the schema's order, and the schema admits no other", () => {
+    const schema = jsonSchema();
+    expect(Object.keys(PROFILE_FIELDS)).toEqual(Object.keys(schema.properties));
+    expect([...schema.required].sort()).toEqual(Object.keys(PROFILE_FIELDS).sort());
+    expect(schema.additionalProperties).toBe(false);
+  });
+
+  it("every list the schema bounds is described to the model with the same two numbers", () => {
+    const { properties } = jsonSchema();
+    const lists = Object.entries(properties).filter(([, property]) => property.type === "array");
+    expect(lists.map(([key]) => key).sort()).toEqual(Object.keys(PROFILE_LIST_BOUNDS).sort());
+    for (const [key, property] of lists) {
+      const min = property.minItems ?? 0;
+      expect(property.maxItems).toBeDefined();
+      const described = PROFILE_FIELDS[key as keyof typeof PROFILE_FIELDS];
+      expect(described.startsWith(min > 0 ? `${min} to ${property.maxItems} ` : `at most ${property.maxItems} `)).toBe(
+        true
+      );
+    }
+  });
+
+  it("the lists are capped — vocabulary 12, brandTokens 6, namedRivals 5 — and one past each cap does not parse", () => {
+    expect(PROFILE_LIST_BOUNDS.vocabulary.max).toBe(12);
+    expect(PROFILE_LIST_BOUNDS.brandTokens.max).toBe(6);
+    expect(PROFILE_LIST_BOUNDS.namedRivals.max).toBe(5);
+    const base = {
+      category: "c",
+      job: "j",
+      offeringType: "o",
+      audienceTerms: ["a", "b"],
+      namedRivals: [] as string[],
+      vocabulary: [] as string[],
+      brandTokens: [] as string[],
+    };
+    for (const key of ["vocabulary", "brandTokens", "namedRivals"] as const) {
+      const max = PROFILE_LIST_BOUNDS[key].max;
+      const at = Array.from({ length: max }, (_, i) => `t${i}`);
+      expect(PROFILE_SCHEMA.safeParse({ ...base, [key]: at }).success).toBe(true);
+      expect(PROFILE_SCHEMA.safeParse({ ...base, [key]: [...at, "one more"] }).success).toBe(false);
+    }
+  });
+
+  it("the instruction asks for JSON only — no prose, no code fence — and carries no keyword or search of its own", () => {
+    expect(PROFILE_TASK).toMatch(/JSON object and nothing else/);
+    expect(PROFILE_TASK).toMatch(/no prose/);
+    expect(PROFILE_TASK).toMatch(/no code fence/);
+    const instruction = JSON.stringify({ task: PROFILE_TASK, fields: PROFILE_FIELDS });
+    expect(instruction).not.toMatch(/keyword|searchTerm/i);
   });
 });

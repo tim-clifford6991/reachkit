@@ -22,7 +22,7 @@
 // reach a model.
 import { z } from "zod";
 import type { CostContext } from "@/lib/costs";
-import { llm } from "@/lib/llm";
+import { llm, type LlmCallSite } from "@/lib/llm";
 import { unmeasured, type Measured } from "@/lib/measure/measured";
 import type { DraftPromptInputs } from "../voice/inputs";
 
@@ -33,7 +33,7 @@ export type PipelineStep = "brief" | "outline" | "draft" | "answerability" | "cl
 
 /** The `llm()` call site each step ledgers under. One string per step, so a
  *  cost report reads by step without anyone joining a table. */
-export const STEP_CALL_SITES: Readonly<Record<Exclude<PipelineStep, "claim_check">, string>> =
+export const STEP_CALL_SITES: Readonly<Record<Exclude<PipelineStep, "claim_check">, LlmCallSite>> =
   Object.freeze({
     brief: "generate.brief",
     outline: "generate.outline",
@@ -110,7 +110,7 @@ const HOUSE_RULES = [
 
 async function step<T>(
   c: CostContext,
-  a: { site: string; tier: "nano" | "haiku"; schema: z.ZodType<T>; input: Record<string, unknown> }
+  a: { site: LlmCallSite; tier: "nano" | "haiku"; schema: z.ZodType<T>; input: Record<string, unknown> }
 ): Promise<Measured<T>> {
   // The ceiling, re-read between calls (BUILD §6.5). A step we cannot
   // afford is `not_attempted` — never a 0 and never an estimate.

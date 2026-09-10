@@ -36,6 +36,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 import { z } from "zod";
 import type { CostContext } from "../../src/lib/costs";
 import type { Tier } from "../../src/lib/llm/tiers.ts";
+import { INFERENCE_MAX_OUTPUT_TOKENS } from "../../src/lib/config/constants.ts";
 
 // `tiers.ts` reads `@/lib/config/env` at module load (BP-005) — the
 // module under test is therefore imported dynamically in `beforeAll`,
@@ -279,10 +280,10 @@ describe("llm() — ledgered through BP-007 (BP-009 `## Data model delta`)", () 
     arrange();
     const { ctx, calls } = fakeCostContext();
 
-    await llm(ctx, { site: "claim-check", input: {}, schema: SCHEMA, tier: "nano" });
+    await llm(ctx, { site: "generate.claim_check", input: {}, schema: SCHEMA, tier: "nano" });
 
     expect(calls).toHaveLength(1);
-    expect(calls[0]!.source).toBe("claim-check");
+    expect(calls[0]!.source).toBe("generate.claim_check");
   });
 });
 
@@ -291,7 +292,7 @@ describe("llm() — spend accounting seam (mutation probe 1)", () => {
     createMock.mockResolvedValueOnce(textMessage({ headline: "ok" }, 1000, 200));
     const { ctx, calls } = fakeCostContext();
 
-    const result = await llm(ctx, { site: "brief", input: {}, schema: SCHEMA, tier: "nano" });
+    const result = await llm(ctx, { site: "generate.brief", input: {}, schema: SCHEMA, tier: "nano" });
 
     expect(result.kind).toBe("measured");
     expect(calls).toHaveLength(1);
@@ -366,7 +367,7 @@ describe("llm() — tier -> model id (mutation probe 2)", () => {
     const { ctx } = fakeCostContext();
 
     const shadowingCall = {
-      site: "profile",
+      site: "profile" as const,
       input: {},
       schema: SCHEMA,
       tier: "haiku" as Tier,
@@ -388,7 +389,7 @@ describe("llm() — tier -> model id (mutation probe 2)", () => {
     const { ctx } = fakeCostContext();
 
     const shadowingCall = {
-      site: "profile",
+      site: "profile" as const,
       input: {},
       schema: SCHEMA,
       tier: "nano" as Tier,
@@ -479,7 +480,7 @@ describe("llm() — observability record (BP-009 `## NFR budget`)", () => {
 
     createMock.mockResolvedValueOnce(textMessage({ headline: completionMarker }, 42, 17));
     await llm(fakeCostContext().ctx, {
-      site: "answerability",
+      site: "generate.answerability",
       input: { text: promptMarker },
       schema: SCHEMA,
       tier: "haiku",
@@ -490,7 +491,7 @@ describe("llm() — observability record (BP-009 `## NFR budget`)", () => {
     expect(Object.keys(logged).sort()).toEqual(
       ["costCents", "durationMs", "parseOutcome", "site", "tier", "tokensIn", "tokensOut"].sort()
     );
-    expect(logged.site).toBe("answerability");
+    expect(logged.site).toBe("generate.answerability");
     expect(logged.tier).toBe("haiku");
     expect(logged.tokensIn).toBe(42);
     expect(logged.tokensOut).toBe(17);
@@ -617,5 +618,155 @@ describe("llm() — the failure class the log names (issue #452)", () => {
     const logged = JSON.parse(logSpy.mock.calls[0]![0] as string) as Record<string, unknown>;
     expect(logged.parseOutcome).toBe("not_attempted");
     expect(Object.keys(logged)).not.toContain("failure");
+  });
+});
+
+describe("llm() — the output budget is the call site's own (issue #462)", () => {
+  it("every call site's pinned budget is what the request carries as `max_tokens`", async () => {
+    for (const site of Object.keys(INFERENCE_MAX_OUTPUT_TOKENS) as (keyof typeof INFERENCE_MAX_OUTPUT_TOKENS)[]) {
+      createMock.mockReset();
+      createMock.mockResolvedValueOnce(textMessage({ headline: "ok" }));
+      await llm(fakeCostContext().ctx, { site, input: {}, schema: SCHEMA, tier: "nano" });
+      const sent = createMock.mock.calls[0]![0] as { max_tokens: number };
+      expect(sent.max_tokens).toBe(INFERENCE_MAX_OUTPUT_TOKENS[site]);
+    }
+  });
+
+  it("the profile's budget is far below the seam's old 4 096 — a seven-field answer cannot spend the whole call", () => {
+    expect(INFERENCE_MAX_OUTPUT_TOKENS.profile).toBeLessThanOrEqual(700);
+    expect(INFERENCE_MAX_OUTPUT_TOKENS.profile).toBeLessThan(4096);
+    for (const budget of Object.values(INFERENCE_MAX_OUTPUT_TOKENS)) {
+      expect(budget).toBeGreaterThan(0);
+      expect(budget).toBeLessThanOrEqual(4096);
+    }
+  });
+
+  it("the up-front reservation is sized from the site's budget, not a seam-wide ceiling", async () => {
+    createMock.mockResolvedValueOnce(textMessage({ headline: "ok" }));
+    const { ctx, calls } = fakeCostContext();
+
+    await llm(ctx, { site: "profile", input: {}, schema: SCHEMA, tier: "nano" });
+
+    // `{}` is two characters: one estimated input token, per attempt, two
+    // attempts; the output side is the site's pin, per attempt. BP-005's
+    // formula recomputed here rather than imported.
+    const expected = ((1 * 2) / 1_000_000) * 20 + ((INFERENCE_MAX_OUTPUT_TOKENS.profile * 2) / 1_000_000) * 125;
+    expect(calls[0]!.costCents).toBeCloseTo(expected, 9);
+    expect(calls[0]!.costCents).toBeLessThan(((4096 * 2) / 1_000_000) * 125);
+  });
+});
+
+describe("llm() — an answer that came back and missed is a `parse` failure, never a `timeout` (issue #462)", () => {
+  const PROFILE_LIKE = z.strictObject({
+    category: z.string(),
+    vocabulary: z.array(z.string()).max(2),
+  });
+
+  function loggedLine(logSpy: { mock: { calls: unknown[][] } }): Record<string, unknown> {
+    return JSON.parse(logSpy.mock.calls[0]![0] as string) as Record<string, unknown>;
+  }
+
+  it(
+    "M3 run 4b: attempt 1 returns after the whole budget, does not parse, and no retry is possible — " +
+      "logged `unparseable` / `parse` with `retryExhausted: \"budget\"`, the schema paths, and no value",
+    async () => {
+      const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+      let now = 1_000_000;
+      vi.spyOn(Date, "now").mockImplementation(() => now);
+      const valueMarker = "VOCABULARY-VALUE-MARKER-2b7e";
+      createMock.mockImplementationOnce(async () => {
+        now += 15_004; // the answer arrives as the 15 s budget runs out
+        return textMessage(
+          { category: "c", vocabulary: [valueMarker, "b", "c"], [valueMarker]: "extra field" },
+          3191,
+          888
+        );
+      });
+
+      const result = await llm(fakeCostContext().ctx, {
+        site: "profile",
+        input: {},
+        schema: PROFILE_LIKE,
+        tier: "nano",
+      });
+
+      expect(createMock).toHaveBeenCalledTimes(1); // no time for the retry
+      expect(result).toMatchObject({ kind: "unmeasured", reason: "undeterminable" });
+      const logged = loggedLine(logSpy);
+      expect(logged.parseOutcome).toBe("unparseable");
+      expect(logged.failure).toBe("parse");
+      expect(logged.failure).not.toBe("timeout");
+      expect(logged.retryExhausted).toBe("budget");
+      expect(logged.parseFailure).toBe("schema");
+      expect(logged.schemaIssues).toEqual(
+        expect.arrayContaining(["vocabulary:too_big", "(root):unrecognized_keys"])
+      );
+      expect(logged.tokensOut).toBe(888);
+      // Field names and Zod's codes only — never a value, and never the
+      // name of a key the model itself invented.
+      expect(JSON.stringify(logged)).not.toContain(valueMarker);
+      expect(JSON.stringify(logged)).not.toContain("extra field");
+    }
+  );
+
+  it("a call that never got an answer and ran out of budget is still a `timeout`", async () => {
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    createMock.mockRejectedValueOnce(new ApiConnectionTimeout());
+
+    await llm(fakeCostContext().ctx, { site: "profile", input: {}, schema: PROFILE_LIKE, tier: "nano" });
+
+    const logged = loggedLine(logSpy);
+    expect(logged.failure).toBe("timeout");
+    expect(Object.keys(logged)).not.toContain("retryExhausted");
+    expect(Object.keys(logged)).not.toContain("parseFailure");
+  });
+
+  it("two answers that both miss read `retryExhausted: \"attempts\"` — the retry was possible and was spent", async () => {
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    createMock.mockResolvedValueOnce(textMessage({ category: "c", vocabulary: ["a", "b", "c"] }));
+    createMock.mockResolvedValueOnce(textMessage({ category: 7, vocabulary: [1, "b"] }));
+
+    await llm(fakeCostContext().ctx, { site: "profile", input: {}, schema: PROFILE_LIKE, tier: "nano" });
+
+    expect(createMock).toHaveBeenCalledTimes(2);
+    const logged = loggedLine(logSpy);
+    expect(logged.failure).toBe("parse");
+    expect(logged.retryExhausted).toBe("attempts");
+    expect(logged.parseFailure).toBe("schema");
+    // The last miss is the one reported; array positions collapse to `[]`.
+    expect([...(logged.schemaIssues as string[])].sort()).toEqual(
+      ["category:invalid_type", "vocabulary[]:invalid_type"].sort()
+    );
+  });
+
+  it("an answer that is not JSON at all — a code fence, prose, a cut-off answer — reads `parseFailure: \"json\"`, with no schema paths", async () => {
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    const fenced = {
+      content: [{ type: "text", text: "```json\n{\"category\": \"c\"" }],
+      usage: { input_tokens: 10, output_tokens: 700 },
+    };
+    createMock.mockResolvedValueOnce(fenced);
+    createMock.mockResolvedValueOnce(fenced);
+
+    await llm(fakeCostContext().ctx, { site: "profile", input: {}, schema: PROFILE_LIKE, tier: "nano" });
+
+    const logged = loggedLine(logSpy);
+    expect(logged.failure).toBe("parse");
+    expect(logged.parseFailure).toBe("json");
+    expect(Object.keys(logged)).not.toContain("schemaIssues");
+  });
+
+  it("a miss followed by a conforming retry is a success, and its line carries none of the failure fields", async () => {
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    createMock.mockResolvedValueOnce(textMessage({ category: 7, vocabulary: [] }));
+    createMock.mockResolvedValueOnce(textMessage({ category: "c", vocabulary: [] }));
+
+    await llm(fakeCostContext().ctx, { site: "profile", input: {}, schema: PROFILE_LIKE, tier: "nano" });
+
+    const logged = loggedLine(logSpy);
+    expect(logged.parseOutcome).toBe("success");
+    expect(Object.keys(logged).sort()).toEqual(
+      ["costCents", "durationMs", "parseOutcome", "site", "tier", "tokensIn", "tokensOut"].sort()
+    );
   });
 });
