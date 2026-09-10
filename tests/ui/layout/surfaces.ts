@@ -169,12 +169,39 @@ export function unenumeratedSurfaces(): readonly UnenumeratedSurface[] {
 }
 
 /**
+ * Next.js's own screen-reader announcer, and the one signal in this
+ * repository that says the client runtime has hydrated.
+ *
+ * `checks.ts` already writes down what it is and when it appears — "the App
+ * Router's own screen-reader element, appended to `<body>` at hydration …
+ * It appears only once the client runtime has hydrated, so leaving it in
+ * makes every route's sweep a race with hydration rather than a measurement
+ * of the page" (issue #13). That is exactly the race this module has to
+ * lose: a document mutated *while* React is still reconciling the server's
+ * DOM is re-rendered from the payload, which is how `/scan/{domain}` came
+ * back with the report's own screen root beside the one standing in for it
+ * — two `[data-surface]` roots on one document.
+ *
+ * Waited for rather than assumed, and bounded: the heaviest screen in this
+ * product is the one that lost the race, and it is the one whose hydration
+ * takes longest.
+ */
+const HYDRATED = "next-route-announcer";
+
+/** Long enough for the report to hydrate on a cold CI runner, short enough
+ *  that a page which never hydrates fails saying so rather than timing out
+ *  the whole `it`. */
+const HYDRATION_MS = 30_000;
+
+/**
  * Puts one surface on the page in place of what it stands in for, or leaves
  * the document alone where the address renders the surface itself.
  *
- * Called after the navigation has settled, so React has hydrated and will
- * not draw over it: nothing on these documents re-renders without an
- * interaction, and there is none here.
+ * **Hydration first.** `browser.ts` has already waited for any waiting
+ * state to leave the document; this waits for React to have finished with
+ * the DOM it is about to be handed a different one of. After hydration
+ * nothing on these documents re-renders without an interaction, and there
+ * is none here.
  *
  * A selector that matches nothing **throws, naming itself** rather than
  * leaving the shot to photograph the document it was standing on — which is
@@ -184,6 +211,7 @@ export function unenumeratedSurfaces(): readonly UnenumeratedSurface[] {
 export async function standSurface(page: Page, surface: UnenumeratedSurface): Promise<void> {
   const stand = surface.stand;
   if (stand === undefined) return;
+  await page.waitForSelector(HYDRATED, { state: "attached", timeout: HYDRATION_MS });
   await page.evaluate(
     ({ selector, markup }: { selector: string; markup: string }) => {
       const host = document.querySelector(selector);

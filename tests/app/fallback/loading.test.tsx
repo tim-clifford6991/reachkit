@@ -59,6 +59,16 @@ describe("UI-SPEC §4 rule 3 — a waiting state is one written line", () => {
     expect(markup).not.toContain("skeleton");
   });
 
+  it.each(EVERY_SCREEN)("$name carries the hook the layout sweep waits on", ({ markup }) => {
+    // `browser.ts` waits for `[data-waiting]` to leave the document after
+    // every navigation, because a screen that is still waiting is not a
+    // screen to measure — the failure that found it was `/app/settings` on
+    // the live account, read while the content well still held this line.
+    // One attribute for both mounts, so a third `loading.tsx` is covered by
+    // writing none of it.
+    expect(markup).toContain("data-waiting");
+  });
+
   it.each(EVERY_SCREEN)("$name announces itself as a wait", ({ markup }) => {
     // A line that replaces a screen without a reload is one a screen reader
     // is otherwise never told about. Neither attribute is a sentence.

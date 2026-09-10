@@ -42,7 +42,26 @@ export function AddressLine(p: {
 }): React.JSX.Element {
   const [before = "", after = ""] = copy(p.copyKey, { [SLOT]: SENTINEL }).split(SENTINEL);
   return (
-    <p>
+    // **The line is a declared scroll container** (issue #327). `.num` bans
+    // every break inside a value — `overflow-wrap`, `word-break` and
+    // `white-space` all say so, and `src/ui/type.css` states why: "a value
+    // that cannot fit now overflows its box instead of quietly rewriting
+    // itself … ADR-093's rule decides what happens next — the *box*
+    // changes, with the `overflow-x-auto` wrap". S8's address is 32 mono
+    // characters and a full stop, which is 297px at the body rung; the
+    // compact band's reading column is 288. So the box changes here, in the
+    // same three classes the registered `Table` carries (`min-w-0` because
+    // a scroll container that cannot shrink never scrolls).
+    //
+    // `text-start` is the fourth and it is not decoration: S8 centres its
+    // column, and a line centred inside a box it overflows puts half the
+    // overflow to the **left**, where no scroll position in a left-to-right
+    // document can reach it — a value clipped, which is the one thing the
+    // ruling that allows this box refuses. Where the line fits, the box is
+    // shrink-to-fit and exactly as wide as its widest line, so starting and
+    // centring are the same pixels; it differs only at the width where the
+    // value would otherwise be cut.
+    <p className="min-w-0 max-w-full overflow-x-auto text-start">
       {before}
       <span className="num">{p.address}</span>
       {after}

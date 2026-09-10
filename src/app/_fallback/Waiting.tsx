@@ -40,6 +40,13 @@
 // `role="status"` and `aria-busy`: a line that appears without a reload is
 // one a screen reader is otherwise never told about. Neither is a sentence
 // and neither is copy.
+//
+// **`data-waiting` is the layout suite's hook, and it is one attribute for
+// both mounts on purpose.** A screen that is still waiting is not a screen
+// to measure: the sweep photographs and reads the settled document, so
+// `browser.ts` waits for this attribute to leave the DOM after every
+// navigation. Keyed on the state rather than on either mount's test id, so
+// a third `loading.tsx` is covered by writing none of it.
 import type React from "react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 
@@ -57,7 +64,13 @@ export function WaitingScreen(p: {
     // screen that is one written line is the shape that class draws, and a
     // second class carrying the same six declarations would be a second
     // place to change them.
-    <div className="rk-fallback" role="status" aria-busy="true" data-testid={p.testId}>
+    <div
+      className="rk-fallback"
+      role="status"
+      aria-busy="true"
+      data-waiting=""
+      data-testid={p.testId}
+    >
       <p className="rk-quiet">{copy(LINE)}</p>
     </div>
   );
