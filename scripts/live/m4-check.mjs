@@ -145,13 +145,15 @@ export function pinList(name, source = readFileSync(CONSTANTS, "utf8")) {
  */
 /** @param {string} [source] @returns {string[]} */
 export function owedMailKeys(source = readFileSync(MAIL_COPY, "utf8")) {
-  const owed = [...source.matchAll(/"(mail\.[^"]+)":\s*\[\s*""\s*,/g)].map((m) => m[1]);
-  if (owed.length === 0) {
+  // The shape guard is "the file still declares mail keys", not "some key is still owed": since the
+  // owner's 2026-09-10 set landed (#458) every mail key is written, and an empty owed set is the true
+  // reading — the state this check exists to reach.
+  if (!/"mail\.[^"]+":\s*\[/.test(source)) {
     throw new Error(
-      "scripts/live/m4-check.mjs: read no owner-owed key out of src/lib/presentation/copy/keys/mail.ts — the file's shape has changed and this reading is no longer the registry's."
+      "scripts/live/m4-check.mjs: read no mail key out of src/lib/presentation/copy/keys/mail.ts — the file's shape has changed and this reading is no longer the registry's."
     );
   }
-  return owed;
+  return [...source.matchAll(/"(mail\.[^"]+)":\s*\[\s*""\s*,/g)].map((m) => m[1]);
 }
 
 /** The keys every lead mail speaks through the shell (`mail/shell/compose.ts`),
