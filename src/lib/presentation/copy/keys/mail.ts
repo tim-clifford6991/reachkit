@@ -421,6 +421,20 @@ export const MAIL_COPY = Object.freeze({
   "mail.published.not_found": ["", { slots: { checkedAt: "date" }, fixedBy: "REQ-062 c4" }],
   "mail.published.not_confirmed": ["", { slots: { checkedAt: "date" }, fixedBy: "REQ-062 c4" }],
   "mail.published.address_label": ["", { slots: {}, fixedBy: "REQ-062 c5" }],
+  /** The second fact row's label, and it has to be its own key (issue
+   *  #457).
+   *
+   *  `mail.published.verified` is the found arm's **paragraph** — it
+   *  carries `{checkedAt}`, because criterion 5 makes the line state when
+   *  the check ran. A facts label is read with no vars at all
+   *  (`blocks/html.ts`'s `factRowsOf`), so the same key in both places
+   *  throws at compose time the moment the owner's sentence lands, and
+   *  every found-arm published mail with it. Two readings, two keys.
+   *
+   *  Written, not owed: S20 draws this row as "verified", unbracketed, so
+   *  ruling 11a makes it approved copy and it is transcribed byte for
+   *  byte. */
+  "mail.published.verified_label": ["verified", { slots: {}, fixedBy: "REQ-062 c5 · UI-SPEC S20" }],
 
   // The four outcomes, as the four subjects of a `verdicts` block, and the
   // three words one of them can carry. Split this way so the four names
