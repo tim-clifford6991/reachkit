@@ -57,8 +57,17 @@ its own:
 
 | screen | S-id | UI-SPEC | REQ criteria | tests that cover it |
 |---|---|---|---|---|
-| Not found / error — `src/app/not-found.tsx` (the root screen an unmatched address reaches, in the public chrome; #405), `(public)` and `(account)` `not-found.tsx` / `error.tsx`, `src/app/global-error.tsx`, and `(hosted)/not-found.tsx` | S8 | §S8 | *(new in the set)* | `tests/app/fallback/screens.test.tsx` · `tests/app/middleware.test.ts` · `tests/hosted/container/not-found.test.tsx` · `tests/app/route-groups.test.ts` |
+| Not found / error — `src/app/not-found.tsx` (the root screen an unmatched address reaches, in the public chrome; #405), `(public)` and `(account)` `not-found.tsx` / `error.tsx`, `src/app/global-error.tsx`, and `(hosted)/not-found.tsx` | S8 | §S8 | *(new in the set)* | `tests/app/fallback/screens.test.tsx` · `tests/app/middleware.test.ts` · `tests/hosted/container/not-found.test.tsx` · `tests/app/route-groups.test.ts` · `tests/ui/layout/surfaces.ts` (the layout sweep and the baselines, issue #327) |
 | The mails — one shell, ten kinds (BUILD §12) | S20 | §S20 | BUILD §12, REQ-064, REQ-075 | `tests/mail/shell/*` · `tests/mail/templates/*` (10 kinds) |
+
+And one state is drawn by no screen in the set at all. It is built under
+ruling 12a — required, omitted by the artifact, drawn in its idiom — so it
+has a row here and owes UI-SPEC §3 a **new** marking (issue #327, *Owner
+owes*):
+
+| state | drawn by | UI-SPEC | what fixes it | tests that cover it |
+|---|---|---|---|---|
+| Waiting — a route's Suspense fallback while a database read is in flight | `src/app/_fallback/Waiting.tsx`, mounted at `(public)/scan/[domain]/loading.tsx` and `(account)/app/loading.tsx` | §4 rule 3 (*"every empty, degraded or waiting state is one written line; never a spinner, never a blank card"*) | one owner-owed line, `chrome.loading.line` | `tests/app/fallback/loading.test.tsx` · `tests/ui/layout/surfaces.ts` |
 
 ### Surfaces with no screen
 
@@ -76,7 +85,11 @@ the route tree without an unexplained gap.
 
 Every screen row's baseline images are
 `tests/ui/layout/__screenshots__/<route>-<width>-<theme>.png`, three bands ×
-two themes, and they are what a PR that moves a pixel regenerates.
+two themes, and they are what a PR that moves a pixel regenerates. A surface
+with **no** address is named after itself rather than after a route —
+`fallback-public-not-found`, `waiting-app` — so a baseline can never be read
+as a picture of an address that does not serve it; `tests/ui/layout/surfaces.ts`
+holds the six and says how each is put on the page.
 
 ## What the archive is, and is not
 
