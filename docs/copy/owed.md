@@ -2,7 +2,7 @@
 
 **Generated. Do not type into this file** — `npm run copy:owed` rewrites it and `tests/presentation/copy/owed-sheet.test.ts` fails when it is out of date. Write the sentences in your reply, or straight into `src/lib/presentation/copy/keys/*.ts`, and run the generator again: a key that gains a sentence leaves this sheet by itself.
 
-**393 keys**, across 795 in the registry — **124 empty** (`copy()` throws on these: a mail with one does not send, a screen with one does not render) and **269 `TODO(copy)`** (these render the marker, in public, until they are written).
+**393 keys**, across 796 in the registry — **124 empty** (`copy()` throws on these: a mail with one does not send, a screen with one does not render) and **269 `TODO(copy)`** (these render the marker, in public, until they are written).
 
 **How to read a row.**
 
@@ -542,7 +542,7 @@ Every bracketed hint the set draws on this screen: `[imprint line]`
 | `mail.published.site_condition.publishes_no_sitemap` `{foundAt}`<br>`mail.ts` | empty | `SITE_CONDITION_LINE` · `lib/mail/templates/published/index.ts` |  | REQ-062 c6 |  |
 | `mail.published.site_condition.robots_blocks_site` `{foundAt}`<br>`mail.ts` | empty | `SITE_CONDITION_LINE` · `lib/mail/templates/published/index.ts` |  | REQ-062 c6 |  |
 | `mail.published.subject`<br>`mail.ts` | empty | `SUBJECT` · `lib/mail/templates/published/index.ts` |  | REQ-062 c5 | 39 — sibling `mail.published.body` |
-| `mail.published.verified` `{checkedAt}`<br>`mail.ts` | empty | `VERIFIED` · `lib/mail/templates/published/index.ts` · +1 more |  | REQ-062 c5 | 39 — sibling `mail.published.body` |
+| `mail.published.verified` `{checkedAt}`<br>`mail.ts` | empty | composed in the engine · `TELLING_COPY` · `lib/publish/verify/telling.ts` |  | REQ-062 c5 | 39 — sibling `mail.published.body` |
 | `mail.section.ai_answers`<br>`mail.ts` | empty | `SECTION_NAME` · `lib/mail/weekly/index.ts` |  | REQ-064 c4 |  |
 | `mail.section.market`<br>`mail.ts` | empty | `SECTION_NAME` · `lib/mail/weekly/index.ts` |  | REQ-064 c4 |  |
 | `mail.section.on_page`<br>`mail.ts` | empty | `SECTION_NAME` · `lib/mail/weekly/index.ts` |  | REQ-064 c4 |  |
