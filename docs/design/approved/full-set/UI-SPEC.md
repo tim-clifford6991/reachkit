@@ -11,6 +11,65 @@ Sources, in order of authority: (1) the owner's artifact "ReachKit Screen System
 (`../reachkit-screen-system.html`, tokens in `../tokens.css`); (2) the owner's twelve rulings of
 2026-09-08 (§1 below); (3) the approved full set (this directory); (4) REQ/ADR criteria cited per screen.
 
+**This document is complete on its own.** A detail found only in the artifact HTML or its JavaScript is
+written here before it is built; until it is written here it is not specified (owner, 2026-09-10; §2.7).
+
+## 0. Owner rulings required (2026-09-10)
+
+Every item below is a place where the approved artifacts draw nothing and this document
+therefore proposes rather than records. Nothing here is built until it is ruled. Line
+references are `docs/design/approved/full-set/reachkit-full-screen-set.html` unless the
+parent artifact (`docs/design/approved/reachkit-screen-system.html`) is named.
+
+1. **Btn `:active`.** No pressed feedback is drawn for any rank (`.pill` L153–162 carry
+   `:hover` only). Proposed: `:active` = the hover ground with `transform:none`, no shift.
+2. **Btn `[disabled]`.** Not drawn anywhere in either artifact. Proposed: `--ink-3` text on
+   `--sunk`, border `--line`, `cursor:default`, no hover change.
+3. **`.pill-warn:hover`.** L159 gives the warn outline a border and a colour and no hover
+   rule, so it alone among the four ranks does not answer the pointer. Proposed:
+   `background: var(--warn-bg)`, matching `.pill:hover`'s shape one tone over.
+4. **Input `[disabled]` and the dimmed card.** S10 dims a whole card with an inline
+   `opacity:.6` (L682) and no field-level disabled style exists. Proposed: a disabled field
+   is `--sunk` ground, `--ink-3` text, and the card is not dimmed as a whole.
+5. **Invalid field.** Only the written line is drawn (`.invalid` L204); the field itself does
+   not change. Proposed: `border-color: var(--bad)` on the field plus the existing line, and
+   `aria-invalid` as the hook, so the state is not colour-only (§2 colour meaning).
+6. **Switch hover, focus and disabled.** `.switch` L112–115 draws on and off and nothing else.
+   Proposed: hover leaves it alone, focus is the global ring, disabled is `--line` at
+   `opacity:.5` with the label greyed.
+7. **Option card `:active` and `[disabled]`.** L296–298 draw base, hover and pressed only.
+   Proposed: no active change; disabled = `--sunk` ground, `--line` border, `cursor:default`.
+8. **Tag hover, focus and remove affordance.** `.tag` L301–303 draw base, `.on` and a `.x` at
+   `opacity:.6`, with no pointer or keyboard state. Proposed: hover raises `.x` to full
+   opacity; the tag itself does not change ground.
+9. **Collapse summary hover and focus.** L282–285 draw the marker and its rotation only.
+   Proposed: hover = `--sunk` ground on the summary row; focus is the global ring.
+10. **Calendar cell focus and "open in the panel".** `.cd` draws hover and `today` (L326–327)
+    but nothing for the cell whose day the panel is showing. Proposed: the open cell carries
+    the hover ring permanently and `aria-current="date"`; focus is the global ring.
+11. **Sidebar nav `:active` and the collapsed band.** Under 1024 the whole Workspace group is
+    hidden (L90) and no replacement control is drawn, so Calendar and Settings are
+    unreachable in the compact band. Proposed: the three items become a horizontal row inside
+    `.side`, labels kept, counts kept.
+12. **Footer link hover.** `.linkish` has one (L371); the footer's own anchors (L526–527)
+    inherit `.foot nav` (L127) and draw none. Proposed: underline on hover, as `.linkish`.
+13. **A motion token.** The set draws exactly one transition — `transition:transform .18s` on
+    the collapse marker (L284). Proposed: `--motion-fast: .18s` as the one duration, spent on
+    colour, border, box-shadow and transform, and nothing else.
+14. **The 1024 boundary is off by one.** `bands.ts` places the compact|medium boundary at 1024
+    because "the sidebar returns" there, but the artifact's `@media (max-width:1024px)`
+    (L86, L90) collapses the sidebar **at** 1024. The same one-pixel disagreement affects
+    `.g2/.g3` (L179), `.filters` (L338), `.editor` (L348), `.split` (L354) and `.hero` (L375).
+    The day panel does not have it: L321 is `max-width:1279px`. Proposed: read every
+    `max-width:1024px` in the set as `max-width:1023.98px`, so 1024 is the first medium width.
+15. **S17's tabs.** §3 S17 says "two columns ≥1024, tabbed below"; the artifact stacks the two
+    columns (L348) and draws no tab control. Proposed: below 1024 the two panes stack in the
+    drawn order — Markdown, then Preview — and no tab strip is built.
+16. **640 and 768 are not photographed.** Seven rules step at 640 (L123, L134, L145, L212,
+    L295, L377) and two at 768 (L126, L323), all inside the compact band, and `widths()`
+    renders 320 · 1023 · 1024 · 1279 · 1280 — none of them. Proposed: add 640 and 768 to the
+    sweep, or rule that the compact band is asserted at 320 alone.
+
 ## 1. Rulings of 2026-09-08 (owner, decision sheet v3, #357)
 
 | # | Ruling | Consequence |
@@ -75,6 +134,194 @@ in words, never by colour alone.
 | Public header / footer | `.pubbar` / `.foot` | §1 rule 3a |
 | Glass card | `.glass` on `.rightp` | sign-in specimen (5c) |
 | Mail shell | `.mail` | brand head · one heading · mono fact rows · one button · mono footer |
+
+## 2.4 Interaction states
+
+Read with §2's component table. Each cell is the token change the artifact's CSS draws, with
+its line in the approved set; "not drawn" cells are numbered in the rulings list above and are
+not built until ruled. `--pg-*` rules (the preview page's own nav and toggle, L75–L81) are
+furniture, not the product, and nothing below derives from them.
+
+**Focus is global and it is one rule.** `:focus-visible{outline:2px solid var(--accent);
+outline-offset:2px;border-radius:6px}` (L62; parent artifact ss.html:L73). It is not per
+component, it is never removed, and it is the only focus treatment in the set. The one place a
+component overrides the browser's own outline is `.input:focus`, which replaces it with a ring
+of its own (L202) — that is a `:focus` rule, so it fires on pointer focus too, and the global
+`:focus-visible` outline still lands on the same element for keyboard focus.
+
+| Component (artifact class) | hover | focus-visible | active | disabled | selected / pressed | invalid |
+|---|---|---|---|---|---|---|
+| Btn · outline `.pill` | `--accent-bg` ground, border and text unchanged (L154) | global ring (L62) | not drawn — ruling 1 | not drawn — ruling 2 | n/a | n/a |
+| Btn · solid `.pill-solid` | `filter:brightness(1.08)` (L156) | global ring (L62) | not drawn — ruling 1 | not drawn — ruling 2 | n/a | n/a |
+| Btn · quiet `.pill-quiet` | `--sunk` ground, text `--ink-2`→`--ink` (L158) | global ring (L62) | not drawn — ruling 1 | not drawn — ruling 2 | n/a | n/a |
+| Btn · warn `.pill-warn` | not drawn — ruling 3 | global ring (L62) | not drawn — ruling 1 | not drawn — ruling 2 | n/a | n/a |
+| Input `.input` | not drawn | `outline:none`; border `--line`→`--accent`; `box-shadow:0 0 0 3px var(--accent-bg)` (L202) | n/a | not drawn — ruling 4 | n/a | field unchanged; one line below in `--t-sm`/`--bad` (`.invalid`, L204) — ruling 5 |
+| Switch `.switch` | not drawn — ruling 6 | global ring (L62) | n/a | not drawn — ruling 6 | on = `--accent` ground, knob right (L112–113); off = `--line` ground, knob left (L114–115) | n/a |
+| Option card `.opt` | border `--line`→`--accent-line` (L297) | global ring (L62) | not drawn — ruling 7 | not drawn — ruling 7 | `[aria-pressed="true"]` = border `--accent` + `--accent-bg` ground (L298) | n/a |
+| Tag `.tag` | not drawn — ruling 8 | global ring (L62) | n/a | not drawn — ruling 8 | `.on` = `--accent-bg` ground, `--accent` text (L302) | n/a |
+| Collapse `details.col > summary` | not drawn — ruling 9 | global ring (L62) | n/a | n/a | `[open]` rotates the marker 45°→−135° (L285) | n/a |
+| Calendar cell `.cd` | `--shadow-card` + `0 0 0 1.5px var(--accent-line)` ring (L326) | not drawn — ruling 10 | not drawn | `.empty` = no ground, `inset 0 0 0 1px var(--line)`, `cursor:default`, date at `opacity:.55` (L330–331) | today = `0 0 0 2px var(--accent)` (L327); open-in-panel not drawn — ruling 10 | n/a |
+| Sidebar nav `.nav` | `--sunk` ground, text `--ink-2`→`--ink` (L103) | global ring (L62) | not drawn — ruling 11 | n/a | `[aria-current="page"]` = `--accent-bg` ground, `--accent` text, count also `--accent` (L104, L107) | n/a |
+| Link `.linkish` | underline (L371) | global ring (L62) | not drawn | n/a | n/a | n/a |
+| Link · footer `.foot nav a` | not drawn — ruling 12 | global ring (L62) | not drawn | n/a | n/a | n/a |
+
+**Selected is never colour alone.** Every selected form above changes two things — ground and
+text on `.opt`, `.tag` and `.nav`; ring width and colour on `.cd` — and each carries
+`aria-pressed` or `aria-current` in the markup that draws it (`.opt` L753, L809; `.switch`
+L803; `.nav` L514). The attribute is the state; the tokens are its picture.
+
+**Transition.** The approved set draws exactly one: `transition:transform .18s` on the collapse
+marker (L284). Nothing else in either artifact transitions — every hover, focus and pressed
+change above is instantaneous as drawn. (The parent artifact's `transition:background .15s,
+color .15s` at ss.html:L86 is on `.navbtn`, the preview page's own screen switcher, and is
+furniture.) One duration for the product is proposed as ruling 13; until it is ruled, `.18s`
+on `transform` is the only motion this document specifies.
+
+**Reduced motion.** `@media (prefers-reduced-motion:reduce){*{animation:none!important;
+transition:none!important}}` (L63; parent ss.html:L74). It is universal, it uses
+`!important`, and it kills animation as well as transition. Any motion added under ruling 13
+inherits this stance without a further rule; nothing in `src/**` may opt out of it.
+
+
+## 2.5 Responsive behaviour per band
+
+**The three bands** are `BANDS` in `src/ui/layout/bands.ts`, and their floors are `BAND_MIN`:
+**compact** 320 · **medium** 1024 · **wide** 1280. `tests/ui/layout/widths.ts` renders every
+route at five widths built from those floors — 320 · 1023 · 1024 · 1279 · 1280 — the floor of
+each band and each boundary minus one pixel, "which is where the off-by-one lives"
+(ADR-093 decision 6). Two of the boundary facts are the bands' own definitions: 1024 is where
+the sidebar returns, 1280 is where the day panel sits beside the grid.
+
+The artifact steps at four widths: 640, 768, 1024 and 1279. Only two of those are band
+boundaries; 640 and 768 subdivide the compact band and are not among the five widths
+(ruling 16). Every `max-width:1024px` rule below fires **at** 1024, one pixel later than the
+band it is meant to open (ruling 14).
+
+| Surface | wide ≥1280 | medium 1024–1279 | compact 320–1023 | drawn at |
+|---|---|---|---|---|
+| Sidebar `.side` / `.frame.app` | grid `var(--w-sidebar) 1fr` — 222 beside the content (L85) | same as wide | one column (L86); `.side` becomes a horizontal flex row, loses its right border for a bottom one, `.side-foot` un-pins, and `.side-group` — the whole Workspace nav — is `display:none` (L90) | L86, L90 |
+| Day panel `.panel` / `.calwrap` | grid `1fr var(--w-day-panel)` — 290 beside the grid, `position:sticky; top:var(--s-4)` (L320, L333) | one column: the panel drops below the grid, still sticky (L321) | same as medium | L321 |
+| Report module 2, two equal cards `.g2` (and `.g3`) | `repeat(2,minmax(0,1fr))` / `repeat(3,…)` (L177–178) | same as wide | one column (L179) | L179 |
+| Calendar grid `.calgrid` | `repeat(7,minmax(0,1fr))`, gap `--s-2` (L322) | same as wide | 7 columns down to 769; at ≤768 `repeat(2,minmax(0,1fr))` and the `.caldow` day-name row is `display:none` (L323) | L323 |
+| Calendar filter cards `.filters` | `repeat(6,minmax(0,1fr))` (L337) | same as wide | `repeat(3,minmax(0,1fr))` (L338) | L338 |
+| Landing hero `.hero` | `1fr 1fr`, gap `--s-7`, vertically centred (L374) | same as wide | one column, gap `--s-6`, `padding-top:var(--s-6)`; at ≤640 `.hero-h` drops 46px→`--h1` (L375, L377) | L375, L377 |
+| Browser frame `.shot` | full width of its hero column; bar + body, no width rule of its own (L379–383) | same as wide | same — it inherits the hero's single column; **no `@media` of its own is drawn** | L379–383 |
+| Public header `.pubbar` | one row: brand left, right slot right, `flex-wrap:wrap`, gap `--s-4` (L120) | same as wide | same — it wraps intrinsically; **no `@media` is drawn** (ruling: none proposed; the wrap is the behaviour) | L120 |
+| Public footer `.foot-in` | `2fr 1fr 1fr` (L125) | same as wide | 3 columns down to 769; at ≤768 one column (L126) | L126 |
+| Content well `.main` | padding `--s-6` (L121) | same as wide | `--s-6` down to 641; at ≤640 padding `--s-4` (L123) | L123 |
+| Card `.card` / `.card-lg` | padding `--s-5` / `--s-6` (L132–133) | same as wide | at ≤640 both `--s-4` (L134) | L134 |
+| `.h1` | `--h1` (L141) | same as wide | at ≤640 `--h2` (L145) | L145 |
+| Tables `table.t` in `.wrapx` | `width:100%`, `min-width:360px`; the wrap is `overflow-x:auto` (L262–263) | same as wide | same — below ~360 the table scrolls **inside its wrap**, the page does not (L262) | L262–263 |
+| AI dot-matrix `.mx` | rows `minmax(64px,84px) 1fr auto`, `min-width:320px`, `overflow-x:auto` on `.mx` (L241–242) | same as wide | same — scrolls inside itself, never the page (L241) | L241–242 |
+| Rival rows `.rival` | `minmax(64px,1fr) minmax(110px,2.2fr) auto` (L210) | same as wide | at ≤640 `1fr auto` and the sparkline moves to its own full-width row, `order:3` (L212) | L212 |
+| Sign-in split `.split` | `1fr 1fr` (L353); `.leftp-in` gets `margin-right:var(--s-7)` at ≥1024 (L357) | same as wide | one column and `.rightp` — the gradient panel with the glass specimen — is `display:none`, so the form is what remains (L354) | L354, L357 |
+| Draft editor `.editor` | `1fr 1fr` (L347) | same as wide | one column (L348); no tab strip is drawn — ruling 15 | L348 |
+| Setup option pair `.pick` | `repeat(2,minmax(0,1fr))` (L294) | same as wide | at ≤640 one column (L295) | L295 |
+| ActionPanels `.acts` | `repeat(auto-fit,minmax(280px,1fr))` (L180) | same as wide | same — intrinsic, no `@media`; falls to one column below ~576 | L180 |
+
+Two rules of the set are worth stating as behaviour rather than geometry. First, **nothing
+scrolls the page sideways**: the two surfaces that can exceed their column — the report's one
+table and the dot-matrix — each carry their own `overflow-x:auto` (L262, L241) and their own
+`min-width` (L263, L242). Second, **no surface is deleted to fit except one**: the sign-in
+gradient panel at ≤1024 (L354), which is a specimen and not a control, and the sidebar's
+Workspace group (L90), which is a control and is ruling 11.
+
+
+## 2.6 Icon vocabulary
+
+Every icon in the set comes from one map — `I` at L466–489 — rendered by
+`ico(k,w)` (L490), which emits `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+stroke-width="(w||1.8)" stroke-linecap="round" stroke-linejoin="round">`. Default stroke is
+**1.8**; `w` overrides it. Colour is always inherited, never set on the glyph.
+
+| Artifact name | lucide-react | Where it is spent (screen · element) | Size · stroke |
+|---|---|---|---|
+| `trend` | `TrendingUp` ✓ | brand mark, every screen (L512) · sidebar Overview item (L518) · card head "Searches you appear in" S1 L543, S12 L714, S13 L728 | 15 in brand mark (L93) and nav (L105), 15 in chip (L138) · stroke 2 in the mark (L512), else 1.8 |
+| `spark` | `Sparkles` ✓ | S10 card head "Mode + destination" (L691) · S18 card head "Publishing" (L809) | 15 · 1.8 |
+| `users` | `Users` ✓ | S10/S18 card head "Competitors" (L685, L686, L808) · S12/S13 card head "How far ahead each rival is" (L716, L730) | 15 · 1.8 |
+| `cal` | `Calendar` ✓ | sidebar Calendar item (L518) · card head "This week" S1 L557, S12 L717 | 15 · 1.8 |
+| `file` | `FileText` ✓ | ActionPanel icon on the veto-pending panel S1 L558, S12 L718, S13 L731 · card head "Your first page" S2 L590 · card head "Your content" S18 L820 | 14 in `.act-ico` (L185), 15 in chip (L138) · 1.8 |
+| `bell` | `Bell` ✓ | card head "Needs you" S12 L718, S13 L731 · card head "Notifications" S18 L816 | 15 · 1.8 |
+| `plug` | `Plug` ✓ | ActionPanel icon on the reconnect panel S12 L719 | 14 (L185) · 1.8 |
+| `check` | `Check` ✓ | pricing spec rows S4 (L535) · completed `.step` bead S10 L689, S11 L700 | 15 in `.spec`, coloured `--ok` (L291); 9 in `.step .b` (L307) · stroke 2.4 in specs (L535), 3 in beads (L689, L700) |
+| `mail` | `Mail` ✓ | S9 sign-in, link-sent state, 44px chip (L666) | 15 · 1.8 |
+| `search` | `Search` ✓ | card head "Google search" S2 L582, S3 degraded L609 | 15 · 1.8 |
+| `bot` | `Bot` ✓ | card head "AI answers" S1 L556, S2 L578, S3 L608 | 15 · 1.8 |
+| `lock` | `Lock` ✓ | S9 link-expired state, 44px warn chip (L668) · card head "Account" S18 L819 | 15 · 1.8 |
+| `card` | `CreditCard` — not yet used in `src` | card head "Billing" S18 L817 | 15 · 1.8 |
+| `gear` | `Settings` — not yet used in `src` | sidebar Settings item (L518) | 15 (L105) · 1.8 |
+| `globe` | `Globe` ✓ | card head "Your site" / "Your site & market" S10 L681–683, S18 L807 · S19 the customer's own brand mark, tinted `--ink` (L826) | 15 · 1.8, and 2 in the S19 mark (L826) |
+| `shield` | `Shield` — not yet used in `src` | S18 "Danger zone" chip, `--bad-bg`/`--bad` (L821) | 15 · 1.8 |
+| `pen` | `PenLine` — not yet used in `src` | card head "How your pages sound" S18 L814 | 15 · 1.8 |
+| `ban` | `Ban` — not yet used in `src` | S6 veto card head "Stopped" (L641) | 15 · 1.8 |
+| `clock` | `Clock` ✓ | S6 veto card head "Publishes {date time}" (L639) | 15 · 1.8 |
+| `play` | `Play` ✓ | S1 demo-video control inside `.play` (L554) | 24 (L386) · **filled, not stroked** — the glyph declares `fill="currentColor" stroke="none"` (L486), so its stroke width is inert |
+| `copy` | `Copy` — not yet used in `src` | "Copy link" pill S2 L577, S3 L620 · card head "Copy it out" S16 L780 · the Markdown and HTML pills S16 L780 | 14 in pills (L162), 15 in chip (L138) · 1.8 |
+| `ext` | `ExternalLink` — not yet used in `src` | S15 day panel, live state, "View live page" pill (L743) | 14 (L162) · 1.8 |
+
+✓ = already imported somewhere under `src/**`. The fifteen ticked names are exactly the
+lucide-react imports the product writes today; the seven unticked are the icons the set spends
+that no built screen has reached yet.
+
+**The brand mark.** It is the `trend` glyph at stroke 2 inside a 26px `--r-field` square with
+an `--accent` ground and `--on-accent` ink, beside the word ReachKit at `--t-body`/800
+(`.brand` L91–94, `brand()` L512). There is no separate logo asset. S19 reuses the same mark
+shape for the **customer's** brand with the `globe` glyph on an `--ink` ground (L826) —
+ReachKit's own mark never appears on a hosted page.
+
+**The rule.**
+
+1. A stroke icon inside an `--s-6` chip renders at **15px** (`.chip svg` L138), and so does one
+   in a sidebar nav item (`.nav svg` L105) and a pricing spec row (`.spec svg` L291).
+2. An icon **inline in a pill** renders at **14px** (`.pill svg` L162), and so does one in an
+   ActionPanel's 28px icon square (`.act-ico svg` L185).
+3. The bead icons are smaller because their beads are: 9px in a 16px `.step` bead (L306–307),
+   10px in an 18px `.stage` bead (L313–314).
+4. Stroke is 1.8 unless the set says otherwise, and it says otherwise four times: 2 for the two
+   brand marks (L512, L826), 2.4 for the pricing check (L535), 3 for the step bead check
+   (L689, L700).
+5. **Names come only from this table.** An icon the product needs that is not here is an
+   artifact gap, and it is ruled by the owner before it is imported — the same bar §2.7 sets
+   for a component.
+
+
+## 2.7 Admitting a component or surface
+
+The registry is closed, in three places at once, and `tests/ui/design/component-registry.test.ts`
+is what closes it. The **fifteen** daisyUI registers are BUILD §2.2's own backticked list and
+the barrel's exports, pinned against each other in both directions — "every class name §2.2
+backticks is registered" and "every registered name is one §2.2 backticks", with "the barrel
+exports exactly the fifteen §2.2 registers" as the third pin — and a sixteenth daisyUI
+component reached by writing its class by hand fails
+`unregisteredDaisyClasses`. The **idiom** (`src/ui/idiom/idiom.css`) is not a sixteenth
+component: it is the owner's 2026-09-02 card idiom, and it widens `Card`'s head, `Btn`'s ranks
+and `Progress`'s ground rather than adding a widget. The **five** custom-CSS surfaces are
+§2.2's — the calendar grid, the day panel, the AI dot-matrix, chart SVGs and the sidebar — and
+they are asserted by path glob over the whole tree, not against a list of known files, so a
+stylesheet nobody declared still fails. Everything else in this document is drawn from those
+sets and nothing else.
+
+A sixteenth component, or a sixth custom surface, is admitted only by all four of:
+
+1. **An artifact element that no registered component renders.** Not a convenience, not a
+   variant: an element the owner's approved set draws that the fifteen plus the idiom cannot
+   produce. Where a registered component's markup is needed outside `src/ui/components/**`,
+   the answer is a `HAND_WRITTEN` row in the registry test — which is still one of the fifteen,
+   and is friction on purpose — not a new component.
+2. **A row in the §2 table above**, with its artifact class and its contract written in the
+   same voice as the rows beside it, and its interaction states in §2.4 and its band behaviour
+   in §2.5 written at the same time.
+3. **Registration in `tests/ui/design/component-registry.test.ts`** — a `REGISTERED` entry
+   naming the daisyUI stylesheet that defines its class, or an `ALLOWED_CSS` entry with the
+   clause that admits it. An entry with no clause fails the test that reads the clauses.
+4. **An owner ruling recorded in `DECISIONS.md`**, dated, in the form §1's twelve rulings take.
+   The §2.2 paragraph in BUILD.md is amended in the same change, because the test asserts that
+   paragraph verbatim and the fifteen are read out of it.
+
+**The completeness rule.**
+
+> This document is complete on its own. A detail found only in the artifact HTML or its
+> JavaScript is written here before it is built; until it is written here it is not specified.
 
 ## 3. Screens
 
