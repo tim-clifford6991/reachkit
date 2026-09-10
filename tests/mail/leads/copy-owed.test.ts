@@ -1,20 +1,21 @@
 // BUILD §4.2 — every sentence this feature speaks is the owner's, and
-// today none of them is written.
+// the owner has now written every one of them.
 //
-// This is the blocking point, asserted rather than left implicit. `copy()`
-// throws on an owner-owed key, so a mail that would carry one of these
-// lines fails at compose time (`sendEmail` reports `not-composable`)
-// instead of a founder receiving a blank line. It is the intended
-// behaviour, and this suite is written so it keeps discriminating once the
-// owner fills them.
+// Until issue #458 these lines were owner-owed: `copy()` throws on an
+// owner-owed key, so a mail that would carry one failed at compose time
+// (`sendEmail` reported `not-composable`) instead of a founder receiving a
+// blank line. Issue #458 filled the whole mail partition on the owner's
+// 2026-09-10 approval, so this suite now asserts the filled state: each
+// key carries a sentence, none is owed, none is the marker, and `copy()`
+// renders each with its slots filled.
 //
-// **The twentieth key is not one of those** (issue #261). A mail is sent
-// once and cannot be corrected, so an unwritten line stops it; a screen is
-// looked at, so an unwritten line shows the `TODO(copy)` marker and the
-// rest of the page still works. `optout.unavailable` is the one key on
-// this feature's list a screen reads, and it is asserted here on the
-// screen's terms — separately and by name, so that neither rule can be
-// widened over the other by someone adding a key to the array above.
+// **The twentieth key is asserted separately** (issue #261). A mail is
+// sent once and cannot be corrected, so an unwritten line stopped it; a
+// screen is looked at, so an unwritten line showed the `TODO(copy)`
+// marker instead. `optout.unavailable` is the one key on this feature's
+// list a screen reads, and it is still asserted by name, so that neither
+// rule can be widened over the other by someone adding a key to the
+// array above.
 import { describe, expect, it } from "vitest";
 import {
   AWAITING_COPY,
@@ -56,8 +57,9 @@ const KEYS_INTRODUCED = [
  * copy as written", and UI-SPEC S20 draws this mail with its subject, its
  * one line and its target-search row unbracketed. They are filled from the
  * set, byte for byte, and are no longer owner-owed. Everything else this
- * feature introduced still is — S20 brackets every nurture string, and the
- * unavailable arms it does not draw at all.
+ * feature introduced — S20 brackets every nurture string, and does not
+ * draw the unavailable arms at all — was written by the owner and filled
+ * by issue #458 on the owner's 2026-09-10 approval.
  */
 const WRITTEN_BY_THE_SET = [
   "mail.firstPage.subject",
@@ -65,24 +67,28 @@ const WRITTEN_BY_THE_SET = [
   "mail.firstPage.first_of_n",
 ] as const satisfies readonly CopyKey[];
 
-/** The mail keys still owned by the owner — every key above but the
+/** The mail keys the owner wrote (issue #458) — every key above but the
  *  screen's, and but the three the set wrote. */
 const MAIL_KEYS = KEYS_INTRODUCED.filter(
   (k): k is Exclude<(typeof KEYS_INTRODUCED)[number], "optout.unavailable"> =>
     k !== "optout.unavailable" && !(WRITTEN_BY_THE_SET as readonly string[]).includes(k),
 );
 
-describe("every new sentence is a registry key, and none of them was written here", () => {
+describe("every new sentence is a registry key, and every one of them is the owner's own", () => {
   it("all twenty keys resolve in the registry", () => {
     for (const key of KEYS_INTRODUCED) {
       expect(Object.keys(COPY), key).toContain(key);
     }
   });
 
-  it("the sixteen still the owner's are owner-owed and empty — no copy was invented", () => {
+  it("the sixteen the owner wrote are filled (issue #458) — none is owed, none is the marker", () => {
+    // Filled on the owner's 2026-09-10 approval. Asserted against the
+    // registry rather than retyped, so this suite invents no copy of its own.
     for (const key of MAIL_KEYS) {
-      expect(COPY[key], key).toBe("");
-      expect(OWNER_OWED, key).toContain(key);
+      expect(COPY[key].trim(), key).not.toBe("");
+      expect(COPY[key], key).not.toBe(TODO_COPY_MARKER);
+      expect(OWNER_OWED, key).not.toContain(key);
+      expect(AWAITING_COPY, key).not.toContain(key);
     }
     expect(MAIL_KEYS).toHaveLength(16);
   });
@@ -98,11 +104,12 @@ describe("every new sentence is a registry key, and none of them was written her
     for (const key of WRITTEN_BY_THE_SET) expect(OWNER_OWED, key).not.toContain(key);
   });
 
-  it("the twentieth is the screen's, and carries the marker instead of the empty value", () => {
-    // Owner-owed either way: nothing here was written, and the marker is
-    // how a screen says so out loud.
-    expect(COPY["optout.unavailable"]).toBe(TODO_COPY_MARKER);
-    expect(AWAITING_COPY).toContain("optout.unavailable");
+  it("the twentieth is the screen's, and carries the owner's sentence instead of the marker", () => {
+    // It carried the marker until issue #458 filled it on the owner's
+    // 2026-09-10 approval; the screen now says the owner's line.
+    expect(COPY["optout.unavailable"].trim()).not.toBe("");
+    expect(COPY["optout.unavailable"]).not.toBe(TODO_COPY_MARKER);
+    expect(AWAITING_COPY).not.toContain("optout.unavailable");
     expect(OWNER_OWED).not.toContain("optout.unavailable");
   });
 
@@ -130,13 +137,24 @@ describe("every new sentence is a registry key, and none of them was written her
     }
   });
 
-  it("copy() refuses an owner-owed key rather than rendering a blank line", async () => {
+  it("copy() renders every one of them, with its slots filled, rather than refusing it", async () => {
+    // Until issue #458 each of these threw as owner-owed. Each slot is
+    // filled with a value of its own, so a sentence that dropped a slot, or
+    // kept one unsubstituted, fails here.
     const { copy } = await import("../../../src/lib/presentation/copy");
     for (const key of MAIL_KEYS) {
-      expect(() => copy(key), key).toThrow(/owner-owed/);
+      const slots = Object.keys(COPY_META[key].slots);
+      const vars = Object.fromEntries(slots.map((slot) => [slot, `<${slot}-value>`]));
+      const rendered = copy(key, vars);
+      expect(rendered.trim(), key).not.toBe("");
+      for (const slot of slots) {
+        expect(rendered, key).toContain(`<${slot}-value>`);
+        expect(rendered, key).not.toContain(`{${slot}}`);
+      }
+      if (slots.length === 0) expect(rendered, key).toBe(COPY[key]);
     }
-    // And renders the screen's key, because a page that cannot render is
-    // not a stricter version of a page with an unwritten line on it.
-    expect(copy("optout.unavailable")).toBe(TODO_COPY_MARKER);
+    // And the screen's key renders the owner's sentence, not the marker.
+    expect(copy("optout.unavailable")).toBe(COPY["optout.unavailable"]);
+    expect(copy("optout.unavailable")).not.toBe(TODO_COPY_MARKER);
   });
 });

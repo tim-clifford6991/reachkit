@@ -2,13 +2,11 @@
 // #329): §6.5's ceilings and §11's switch, told to `OWNER_EMAILS`.
 //
 // Two things are asserted that no other mail suite asserts. First, that
-// the mail **does not send today** — every sentence it speaks is
-// owner-owed, `copy()` refuses an unwritten key and `sendEmail` answers
-// `not-composable` (DECISIONS 2026-09-05, "a mail never ships a
-// placeholder"). That is the designed standing, and the assertion is
-// written against `OWNER_OWED` rather than against the outcome, so the day
-// the owner writes the lines this suite starts asserting that it *does*
-// send instead of failing.
+// the mail **composes** — every sentence it speaks was owner-owed (so
+// `copy()` refused it and `sendEmail` answered `not-composable`) until
+// issue #458 filled them on the owner's 2026-09-10 approval. The suite
+// asserts each is written, none is a placeholder, and each occasion
+// composes into both bodies with its own line.
 //
 // Second, that nothing here can fail a scan. An alert is a report about a
 // system under strain; a report that throws would make the strain worse.
@@ -20,7 +18,8 @@ applyEnvFixture();
 const { buildSpendCeilingAlert } = await import("../../../src/lib/mail/templates/ops");
 const { MAIL_KINDS } = await import("../../../src/lib/mail/kinds");
 const { COPY } = await import("../../../src/lib/presentation/copy");
-const { OWNER_OWED } = await import("../../../src/lib/presentation/copy/registry");
+const { OWNER_OWED, TODO_COPY_MARKER } = await import("../../../src/lib/presentation/copy/registry");
+const { composeMail } = await import("../../../src/lib/mail/shell/compose");
 
 /** Every sentence this kind speaks. */
 const OPS_MAIL_KEYS = [
@@ -82,10 +81,21 @@ describe("the template — three occasions, one shape", () => {
     }
   });
 
-  it("all seven sentences are owner-owed and none is a `TODO(copy)` placeholder", () => {
+  it("all seven sentences are written, none is a `TODO(copy)` placeholder, and each occasion composes", () => {
     for (const key of OPS_MAIL_KEYS) {
-      expect(COPY[key], key).toBe("");
-      expect(OWNER_OWED as readonly string[], key).toContain(key);
+      expect(COPY[key], key).not.toBe("");
+      expect(COPY[key], key).not.toBe(TODO_COPY_MARKER);
+      expect(OWNER_OWED as readonly string[], key).not.toContain(key);
+    }
+    for (const occasion of OCCASIONS) {
+      const alert = buildSpendCeilingAlert({ occasion, spentCents: 4000, ceilingCents: 5000 });
+      const mail = composeMail({ kind: "ops", subject: alert.subject, blocks: alert.blocks });
+      expect(mail.subject, occasion).toBe(COPY["mail.ops.spend-ceiling.subject"]);
+      for (const body of [mail.html, mail.text]) {
+        expect(body, occasion).toContain(COPY[`mail.ops.spend-ceiling.${occasion}`]);
+        expect(body, occasion).toContain(COPY["mail.ops.spend-ceiling.fact.spent"]);
+        expect(body, occasion).toContain(COPY["mail.ops.spend-ceiling.fact.ceiling"]);
+      }
     }
   });
 });
@@ -123,7 +133,9 @@ describe("sending — one send per owner address, and nothing that can fail a sc
     expect(sendEmailMock.mock.calls.every((c) => (c[0] as { kind: string }).kind === "ops")).toBe(true);
   });
 
-  it("does not send while the sentences are unwritten — it reports, and does not throw", async () => {
+  it("a send the seam refuses is reported, and does not throw", async () => {
+    // The sentences are written (issue #458), so the real seam composes;
+    // the mock still answers `not-composable` to hold the refusal arm.
     process.env.OWNER_EMAILS = "owner@example.com";
     const ops = await loadOps();
     await expect(

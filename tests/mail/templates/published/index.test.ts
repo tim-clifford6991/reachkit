@@ -10,7 +10,7 @@
 //     `page_not_found` and `could_not_confirm` there is no `verdicts` block
 //     at all, so a template cannot render both.
 import { describe, expect, it } from "vitest";
-import { COPY } from "@/lib/presentation/copy";
+import { COPY, copy, TODO_COPY_MARKER } from "@/lib/presentation/copy";
 import { OWNER_OWED } from "@/lib/presentation/copy/registry";
 import type { PublishedTelling } from "@/lib/publish/verify";
 import { buildPublished, formatCheckedAt } from "@/lib/mail/templates/published";
@@ -170,7 +170,7 @@ describe("buildPublished — one message, all three arms", () => {
     expect(blocksOf(foundTelling()).some((b) => b.block === "notice")).toBe(false);
   });
 
-  it("every string in the mail is a copy key, and every one of them is owner-owed", () => {
+  it("every string in the mail is a copy key, and every one of them is a written sentence", () => {
     const telling = foundTelling({
       siteCondition: { kind: "robots_blocks_site", foundAt: CHECKED_AT },
     });
@@ -190,18 +190,30 @@ describe("buildPublished — one message, all three arms", () => {
         }
       }
     }
-    // `mail.published.action` is the exception, and 11a is why: S20 draws
+    // `mail.published.action` was filled first, and 11a is why: S20 draws
     // this mail's button as "View the page", unbracketed, so it is
-    // approved copy rather than the owner's debt (issue #376). Every other
-    // sentence this mail speaks is still owed — its subject included,
-    // which is why the mail still cannot be sent.
+    // approved copy (issue #376). Every other sentence this mail speaks —
+    // its subject included — was owner-owed until issue #458 filled it on
+    // the owner's 2026-09-10 approval.
+    expect(COPY["mail.published.action"]).toBe("View the page");
     for (const key of keys) {
-      if (key === "mail.published.action") {
-        expect(COPY[key]).toBe("View the page");
-        continue;
+      const text = COPY[key as keyof typeof COPY];
+      expect(text.trim(), key).not.toBe("");
+      expect(text, key).not.toBe(TODO_COPY_MARKER);
+      expect(OWNER_OWED).not.toContain(key);
+    }
+
+    // And every line renders: the subject is the owner's, and each line
+    // with a slot is spoken with the slot filled from the vars it carries.
+    expect(copy(mail.subject)).toBe(COPY[mail.subject]);
+    for (const block of mail.blocks) {
+      if (!("text" in block)) continue;
+      const line = copy(block.text, "vars" in block ? block.vars : undefined);
+      expect(line.trim(), block.text).not.toBe("");
+      expect(line, block.text).not.toMatch(/\{[a-zA-Z]+\}/);
+      if ("vars" in block && block.vars !== undefined) {
+        for (const value of Object.values(block.vars)) expect(line, block.text).toContain(String(value));
       }
-      expect(COPY[key as keyof typeof COPY], key).toBe("");
-      expect(OWNER_OWED).toContain(key);
     }
   });
 });
