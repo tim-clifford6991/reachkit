@@ -535,8 +535,9 @@ export async function middleware(req: NextRequest): Promise<NextResponse> {
   // `src/app/not-found.tsx` — S8's screen, inside ruling 3a's header and
   // footer, with the status a 404 carries. Decided **before** the session
   // check rather than after it, so a stranger and a signed-in customer are
-  // told the same thing at the same address.
-  if (!isGuarded(pathname)) return NextResponse.next();
+  // told the same thing at the same address. Sealed like every other
+  // answer (#331): a 404 is a rendered screen and carries the same policy.
+  if (!isGuarded(pathname)) return sealed(NextResponse.next({ request: { headers: forwarded } }));
 
   if (hasSession(req)) {
     // BUILD §4.3's incomplete-setup gate is **not decided here** (#133).
