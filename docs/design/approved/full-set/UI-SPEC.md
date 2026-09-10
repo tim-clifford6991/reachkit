@@ -217,7 +217,8 @@ Invoices / Cancel plan · cancel line) · Account (name · email · owed note ·
 Your content (Pages n · outline "Export everything") · Danger zone (bad ring · Unpublish all · Delete
 account · "pages are exported to you first, never silently destroyed"). Nothing that tunes the engine.
 
-### S19 Hosted page `blog.{domain}/{slug}` — REQ-059 **new**
+### S19 Hosted page `content.{domain}/{slug}` — REQ-059 **new**
+*(Host amended 2026-09-10: the set's specimen drew `blog.example.com` as a placeholder; the product's hosted subdomain is `content.` — BUILD §9, `HOSTED_SUBDOMAIN_LABEL`. Found by #413.)*
 Customer brand header (their name, dark mark) · category eyebrow · title · "published {date} · by
 [customer brand]" · the page body · "Written for {domain}. Canonical … · noindex on *.reachkit.app"
 · customer footer line. ReachKit's name appears nowhere the customer did not put it.
