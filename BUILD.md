@@ -230,7 +230,10 @@ Three cards, one submit. (1) **Your market** — inferred category chip, Change.
 (3) **Mode + destination** — Autopilot (default, selected) vs Copilot card pair;
 destination: *Hosted blog* (chosen, shows the CNAME record) vs *WordPress —
 connect later, ask me after the first page*. Footer: "Start — first page in ~3
-minutes." No other configuration exists at setup.
+minutes." No other configuration exists at setup. (**2026-09-10:** the mode pair
+is retired — Autopilot is the product and setup offers only the destination; see
+§9. S10's drawing of the pair is superseded on that point until the UI-SPEC
+amendment lands. — brief §2, §1.1.)
 
 While the deep pass runs: progress screen; on completion straight to the app with
 the first draft already in the calendar. A degraded pass still releases setup
@@ -265,17 +268,17 @@ its goal, never bare.
 
 ### 4.6 Calendar (with day panel)
 
-- Head: "One page a day. Every day." + month switcher.
+- Head: "One page a day. Every day." + month switcher. **Headline note (2026-09-10):** the string is owner-owed for rewriting (`calendar.head`, S14) to a key that does not promise a filled grid — the service publishes when something passes readiness (§7), at most once a day. The grid is filled only by readiness; an empty day means the system looked and nothing passed readiness or supply, and the copy says so as competence, never as an outage or a stop unless an account-level stop is true (ADR-011 precedence holds). The "if you do nothing" line states that the draft publishes when the veto window ends and that veto is available until then. Owner writes the words; `TODO(copy)` until then. — brief `docs/briefs/autopilot-quality-2026-09-10.md` §8, §1.9.
 - **Stage filter cards** (All/Live/Your review/Scheduled/Planned/Needs you) with counts; clicking filters the grid.
-- **Grid**: Mon–Sun columns (`repeat(7,minmax(0,1fr))` — the minmax is load-bearing), one event per day, every day filled while supply lasts, weekends included. Stage = chip color. Today ringed accent.
+- **Grid**: Mon–Sun columns (`repeat(7,minmax(0,1fr))` — the minmax is load-bearing), one event per day, every day filled while *ready* supply lasts (§7 readiness — 2026-09-10), weekends included. Stage = chip color. Today ringed accent.
 - **Day panel** (`--w-day-panel` 290, sticky, beside the grid — not a drawer): **today selected on open**. Stage-appropriate actions (S15): review → solid *Read the full page* + Move · Veto; live → *View live page* + verified line; planned → Move · Skip; needs you → one cause + solid *Reconnect*; empty → the date's one account, no action.
 - "Read the full page" opens the **draft view** (full page render, grounded-fact highlight with its source line, claim-check badge, Approve/Edit/Veto, and the "what happens if you do nothing" info box). Back link returns to the calendar.
 - **Edit = Markdown textarea with a live preview pane** (owner ruling, 28 Aug) — two columns on desktop, tabbed on mobile, autosaved, no rich-text editor. An edited draft keeps its grounding highlight if the fact survives the edit and drops the claim-check badge until the check re-runs (one nano call) on save. Edit (S17) = Markdown textarea + live preview, two columns ≥1024 and tabbed below, autosaved (saving… / saved {time} / could-not-save line — nothing unsaved publishes); the claim check re-runs on save. Every draft offers Markdown and HTML copy-out (REQ-045 c12). The Decide panel carries Approve (solid) · Edit · Veto (warn outline) · *If you do nothing* · Checks.
-- Footnote: planned pages are written the evening before from Monday's measurements. **Supply rule:** when opportunities run out, future days are empty and the empty state says so — the calendar is never padded.
+- Footnote: planned pages are written the evening before from Monday's measurements. **Supply rule:** when opportunities run out, future days are empty and the empty state says so — the calendar is never padded. Supply means *ready* supply: an opportunity that fails `opportunityReady()` (§7) is not fillable, and a week is never filled by lowering a gate. — brief §3.5 (2026-09-10).
 
 ### 4.7 Settings
 
-Two-column cards (S18). Left: **Your site & market** (domain + Change · category + Edit · rebuild line) · **Competitors** (5 removable tags) · **Publishing** (Autopilot/Copilot pair + one line on what the pair does · veto window stepper 0–7 days, default 1 day · publish time · time zone · publishing on/off · destinations with health + Reconnect · "Fix-type tasks are never automated, whatever the mode.") · **How your pages sound** (voice field · *Never claim* list + add) · **Notifications** (Daily draft-ready mail · Published-page mail · Monday movement mail). Right: **Billing** · **Account** · **Your content** · **Danger zone** as before.
+Two-column cards (S18). Left: **Your site & market** (domain + Change · category + Edit · rebuild line) · **Competitors** (5 removable tags) · **Publishing** (Autopilot/Copilot pair + one line on what the pair does — **2026-09-10:** the pair is not a customer choice any more and the stepper is 1–7 days, see §9 · veto window stepper 0–7 days, default 1 day · publish time · time zone · publishing on/off · destinations with health + Reconnect · "Fix-type tasks are never automated, whatever the mode.") · **How your pages sound** (voice field · *Never claim* list + add) · **Notifications** (Daily draft-ready mail · Published-page mail · Monday movement mail). Right: **Billing** · **Account** · **Your content** · **Danger zone** as before.
 
 C2 — the #2 body (2026-09-06, #34) drops "next invoice" and "card" per REQ-097; the approved set (S18) shows plan · price · active · next invoice date and amount · card •••• 4242 · Update card / Invoices / Cancel plan, and REQ-076 c1 requires exactly those values. Resolution: the approved set stands; REQ-097 is read as "ReachKit edits no billing value and sends no billing mail — it displays Stripe's values read-only". Owner may strike.
 
@@ -528,12 +531,13 @@ labels/classifies). Types, closed enum:
 | Family | Type | Trigger |
 |---|---|---|
 | **Write** | `answer_page` | AI answer for a question names rivals, not customer |
-| | `keyword_page` | Rival top-20 for a query ≥10/mo; customer absent |
+| | `keyword_page` | Rival top-20 for a query ≥10/mo; customer absent — **residual** (2026-09-10): the ≥10/mo trigger is discovery input only; the type is *ready* only when the six gates below all pass, volume ≥ `KEYWORD_PAGE_MIN_VOLUME` (50) among them |
 | | `comparison_page` | Gap query names a rival or contains vs/alternative |
-| | `format_page` | Rivals have a page type customer lacks entirely |
+| | `format_page` | Rivals have a page type customer lacks entirely — **narrowed** (2026-09-10) to the closed demand-bearing formats `FORMAT_PAGE_ALLOWED`: comparison, alternative, integration, template. Glossary, changelog, "blog" and "resources hub" never qualify |
 | **Improve** | `expand_page` | Customer ranks 4–30, page thin |
 | | `answerable_page` | Page has search value, low answerability |
 | | `refresh_page` | Ranking page stale vs rivals' |
+| **Earn** (2026-09-10) | `listed_page` | A `PLATFORM_DOMAINS` host or a measured citing domain names a rival on a market-set query and does not name the customer. Evidence: citing URL, rival named, query, the first-party asset to write (usually a comparison table, integration page or original-data page). Acceptance: "named on question P or customer URL cited on the same host within 8 weeks" — one stable string. The action is first-party only: a citable asset on the customer's domain. **Autopilot never sends outreach mail** |
 | **Fix** | `unblock` | Any access gate fails — **instruction only, never generated, never automated** |
 
 Every opportunity: trigger · evidence (query, volume, rival, URL, position) ·
@@ -545,6 +549,67 @@ contains at least one domain whose ranked count ≤ max(500, 5× customer's). Ba
 (Winnable/Reach/Not-yet) power the report's "picked because" line and the
 Standing scope module. Ranking: `demand × intent × (1−effort) × fit`, one list.
 **Supply is the cap:** never invent an opportunity to fill a day.
+
+**Parent-topic clustering (2026-09-10).** Opportunities are clustered before
+ranking; the calendar unit is one cluster-day, not one keyword-day. `clusterKey(opportunity) → string`
+is mechanical, no LLM: (1) an opportunity with a target URL on the customer's domain →
+the canonical customer URL; (2) else a query containing vs / versus / alternative or a
+confirmed rival hostname or brand from `deriveRivals()` → `compare:{customer}|{rival}`
+(one cluster per rival); (3) else the query that sends the most estimated traffic to
+the current #1 URL for that query among the measured SERPs (the parent-topic
+approximation) — if that #1 is a `PLATFORM_DOMAINS` host, fall through to the
+highest-volume non-platform URL; if none, the normalized query string. After
+derivation one opportunity survives per `clusterKey`: the highest rank after the
+precedence sort below. The losers are stored on the survivor as `absorbed_queries[]`
+(read by the outline and by Monday's tests) and get no calendar day of their own.
+The only pinned number here is `CLUSTER_SUPPRESS_WEEKS` (4). — brief §3.2, §1.4.
+
+**Precedence — Improve outranks Write (2026-09-10).** The one list keeps the
+formula above; a stable sort key is applied before the score: (1) family order
+Fix (shown, never scheduled) → Improve → Earn → Write; (2) inside Write
+`comparison_page` → `answer_page` → `format_page` → `keyword_page`; (3) the
+numeric formula; (4) the cluster collapse. So, after clustering, an
+`expand_page` / `answerable_page` / `refresh_page` on an owned URL in the
+cluster always beats a new `keyword_page` or `format_page` for that cluster.
+`fit` rises when the brief can attach ≥1 live-page fact from measure or the
+fetched customer HTML; with no fact attachable, readiness fails. Winnability
+bands are unchanged; Not-yet never fills a day. — brief §3.4, §1.3.
+
+**`keyword_page` gates (2026-09-10).** Ready only when all six hold: (1) the
+winnability bar above; (2) the customer has no owned URL in this `clusterKey`
+(otherwise emit Improve on that URL, not Write); (3) volume ≥
+`KEYWORD_PAGE_MIN_VOLUME` (50); (4) intent is comparison, alternative,
+commercial-investigational, or a how-to the customer's live pages already
+evidence — informational commodity ("what is {category}", "{category} in 2026",
+"{category} tips") fails; (5) the current #1 is not a thin listicle we would
+only clone: #1 under `THIN_RIVAL_WORDS` (400) words with no table or FAQ in the
+fetched HTML fails; (6) the proposed slug/title would pass the 85% near-duplicate
+gate against the published set. A row that fails may stay in the table as
+rejected/unready for debugging, but `supplyDepth()` and `next.ts` never count it
+as fillable supply. — brief §3.3, §1.5.
+
+**Readiness — `opportunityReady()` (2026-09-10).** One exported predicate in
+`src/lib/opportunities/`; `next.ts` may only return an opportunity where it is
+true, and an unready opportunity never enters `planned`. All must pass: (1) the
+type-specific gates; (2) Winnable or Reach, never Not-yet; (3) evidence fields
+present — query, rival or citing URL, target slug+title or target URL; (4) at
+least one grounding candidate: a fact extracted from the customer's fetched HTML
+(price, limit, integration name, feature string, dated claim already on their
+site); (5) for `comparison_page`, a table skeleton with ≥3 rows whose cells can
+be filled from the customer's and the rival's fetched HTML — a cell that would
+need invention fails readiness and the day stays empty; (6) not in a cluster
+suppressed by a Monday Not working (`CLUSTER_SUPPRESS_WEEKS`); (7) not a
+near-duplicate of a published or in-flight draft; (8) `unblock` is never ready
+for generate. When ready supply is zero, `supplyDepth()` reports zero and the
+calendar shows the empty-competence line (§4.6). Gates are never lowered to fill
+a week. — brief §3.5, §1.2.
+
+**Cadence (2026-09-10).** The hard ceilings stay §9's `RATE_LIMITS`
+(≤1 publish/day, ≤8/week). Beside them one operating preference, pinned:
+`AUTOPILOT_WRITE_MAX_PER_WEEK` (4) — Autopilot schedules at most four
+Write-family publishes in a site-local week; the remaining slots may be Improve
+or Earn. Weekends stay eligible, Saturday is not special-cased; emptiness handles
+rest. The day's page is still generated the evening before (§8). — brief §3.6.
 
 ---
 
@@ -561,6 +626,38 @@ code, not prompts:
 5. **Near-duplicate gate**: ≥85% similarity vs the customer's published set = never queued.
 6. No rival metrics invented; every rival claim links its public source.
 7. Brand voice = one free-text field appended to the draft prompt. Nothing learned.
+8. **No invented tests** ("we tried 14 tools", "our team used X for 6 months") unless that sentence already exists on a customer live URL in the brief facts. (2026-09-10)
+9. **No fake author, no `datePublished` of experience, no stock case study.** (2026-09-10)
+10. **The answerability pass adds no question-shaped headings**: its output may not raise the count of question-shaped headings by more than `ANSWERABILITY_MAX_NEW_QUESTIONS` (pin 0) — reordering only. It may shorten a first block into 40–320 chars where a question heading already exists and insert customer-sourced evidence already present in the brief; numeral stuffing to lift `evidenceDensity` is a hard-rule failure. (2026-09-10)
+11. **Evidence added in the pass is traceable to brief facts**: a numeral not present in the brief facts is a claim-check failure. (2026-09-10)
+12. **The first 40–320 character block after the first heading answers the target question.** Rule 3 still holds — no brand in the first 300 chars. (2026-09-10)
+
+Rules 8–11 are enforced by extending `claimCheck()` and `runHardRules()`, never
+by a second model judge. — brief `docs/briefs/autopilot-quality-2026-09-10.md` §4.2, §1.11.
+
+**What the brief may carry (2026-09-10).** The brief (nano) contains only:
+`clusterKey`, type, target query + `absorbed_queries`; rival evidence URLs;
+extracted facts from the customer's HTML (and the rival's, for comparisons), each
+with source URL + read date; the do-not-claim list; the brand-voice free text;
+the acceptance-test string. If extracted facts are empty, Haiku is not called:
+the opportunity is marked unready, the day is skipped, and nothing is ledgered
+toward `CAP_DRAFT` except the nano brief if it already ran. Fail before Haiku.
+— brief §4.1.
+
+**Type skeletons at the outline stage (2026-09-10).** The outline (nano) follows
+a closed skeleton per type; Haiku never picks a blog-post shape:
+`comparison_page` — H1 question → 40–80 word answer → comparison table (≥3 rows
+from the brief) → "who should pick whom" → source lines, no "what is {category}"
+preamble · `answer_page` — H1 = the question the AI answer ranked → direct answer
+→ evidence from customer pages → the one section the rivals were cited for,
+answered with customer facts · `expand_page` / `answerable_page` / `refresh_page`
+— operate on the existing URL's outline, add or replace sections, never a new
+slug · `keyword_page` (rare) — as `answer_page`, plus absorbed queries as H2s only
+where each can be answered from brief facts · `format_page` — only the
+comparison / alternative / integration / template skeletons · `listed_page` — one
+citable object (table, numbered spec, dated stat with methodology), a short page;
+the object is the point. Customer identity or none; never "ReachKit editorial".
+— brief §4.3.
 
 Timing: the day's page is generated the evening before its publish date from the
 freshest scan. `CAP_DRAFT` enforced before the pipeline runs.
@@ -578,11 +675,13 @@ planned → generating → in_review → approved → publishing → published
 published → unpublished (always available)
 ```
 
-- **Draft-by-default everywhere.** Autopilot = auto-approve when the veto window (default 24h, settable 0–7d) expires without a veto. Copilot = explicit approve only.
-- Autopilot hard limits regardless of settings: ≤1 publish/day, ≤8/week; **Fix never automates**; pause is one click and instant.
+- **Draft-by-default everywhere.** Autopilot = auto-approve when the veto window (default 24h, settable 1–7d) expires without a veto. **Autopilot is the product (2026-09-10):** setup offers no Autopilot-vs-Copilot choice, and no setup radio, pricing bullet or mail subject says Copilot. Copilot (explicit approve) remains an *internal* transition in the state machine, used only when a draft is in `needs_attention` or when the customer sets the veto window to 7 days and acts; where a control must remain for a `needs_attention` draft its verb is "Publish now" / "Veto", never "switch to Copilot". `in_review → approved` on veto expiry is the set-and-forget path and is unchanged. — brief §2, §1.1.
+- **Veto window (2026-09-10):** 1–7 days, default 24h, pinned `VETO_WINDOW_MIN_DAYS` 1 · `VETO_WINDOW_MAX_DAYS` 7 · `VETO_WINDOW_DEFAULT_HOURS` 24 (house names may differ; the pins test asserts them). **0 days is removed** so a draft always has a veto path; a stored value below one day is clamped to one in one place (constants + the publish settings parser). Pause stays one click and instant. — brief §2, §1.8.
+- Autopilot hard limits regardless of settings: ≤1 publish/day, ≤8/week; the Write-family preference `AUTOPILOT_WRITE_MAX_PER_WEEK` (4) sits beside them (§7 cadence); **Fix never automates**; pause is one click and instant.
 - Publishing idempotent by `(draft_id, destination)` — a retry can never create a second post.
 - Failed publish: back in the queue with a written reason; expired credential is a **state** (reconnect prompt, queue holds), not an error loop.
-- Every published page records: opportunity id, target query, measurement date, approved-vs-autopilot, live URL.
+- Every published page records: opportunity id, target query, measurement date, approved-vs-autopilot, live URL, and (2026-09-10) its `clusterKey` — read by Monday's suppression below. — brief §6.
+- **Monday consequences (2026-09-10).** A Not working verdict on a cluster suppresses new Write opportunities in that cluster for `CLUSTER_SUPPRESS_WEEKS` (4); Improve of the live URL in that cluster stays allowed. Two consecutive Not working verdicts on an Improve of the same URL stop scheduling that URL, surfaced as one Settings line through the existing `HealthReason` / needs-you patterns — not a new health state. The digest never counts pages published as success; movement copy names the score band, the acceptance tests that moved, and empty days as planned when supply was zero. — brief §6, §1.10.
 
 **Hosted CMS:** `content.{customer-domain}` by CNAME → our edge route serves
 static-rendered pages by Host header. Sitemap, canonical, `FAQPage` schema where
@@ -609,9 +708,9 @@ test. A regression is shown, never hidden.
 | `users` | id, email, plan_status(active/past_due/canceled), stripe_customer_id, created_at |
 | `sites` | id, user_id, domain, category, competitors jsonb[≤5], mode(autopilot/copilot), veto_hours, publish_time, voice_text, do_not_claim jsonb, created_at |
 | `scans` | id, site_id(null for free), domain, tier(free/deep/weekly), status(running/done/degraded), score, drivers jsonb, report jsonb(versioned blob: measurements, questions, answers, market set), cost_cents, created_at |
-| `opportunities` | id, site_id, scan_id, type, family, target_query, volume, evidence jsonb, proposed_slug, title, effort, fit_band, acceptance jsonb, status(open/queued/done/dismissed), created_at |
+| `opportunities` | id, site_id, scan_id, type, family, target_query, volume, evidence jsonb, proposed_slug, title, effort, fit_band, acceptance jsonb, status(open/queued/done/dismissed), created_at · **amended 2026-09-10 (migrated by the deriver issues):** `cluster_key` text, `absorbed_queries` jsonb[] (the collapsed losers), and the readiness fields `opportunityReady()` records — ready boolean plus the failing gate(s), so an unready row can stay for debugging and never count as supply (§7) |
 | `drafts` | id, opportunity_id, site_id, state(§9 enum), title, body_md, meta jsonb, grounded_fact jsonb, cost_cents, scheduled_for date, veto_deadline, created_at |
-| `publications` | id, draft_id, site_id, destination, live_url, published_at, mode(approved/autopilot), verify jsonb(reachable/indexable/sitemap/ai_readable/checked_at), verdict(working/too_early/not_working), unpublished_at |
+| `publications` | id, draft_id, site_id, destination, live_url, published_at, mode(approved/autopilot), verify jsonb(reachable/indexable/sitemap/ai_readable/checked_at), verdict(working/too_early/not_working), unpublished_at · **amended 2026-09-10 (migrated by the verdicts issue):** `cluster_key` text, persisted at publish so Monday's suppression (§9) reads the publication, not the opportunity |
 | `destinations` | id, site_id, kind(hosted/wordpress), config jsonb(encrypted creds), health(ok/expired/error), created_at |
 | `fetches` | id, scan_id, source, cache_key, policy_version, cost_cents, payload jsonb, created_at — **ledger + cache + raw store in one** |
 | `leads` | id, scan_id, email(lowercased), consented_at, converted_at, draft_sent_at |
