@@ -4,8 +4,12 @@
 //
 //   1. `BUILD.md` §1: "**Plus Jakarta Sans** (UI) + **JetBrains Mono** (all
 //      numerals/data) | `@fontsource`, self-hosted" — both families load
-//      from `@fontsource` and no `@font-face` src / stylesheet import
-//      points at a third-party origin.
+//      from `@fontsource` and no face `fonts.ts` declares points at a
+//      third-party origin. Since issue #332 the faces are declared to
+//      `next/font/local` rather than imported as stylesheets, so what is
+//      read is the `src` paths and the `declarations` of each call; the
+//      bytes behind them are still @fontsource's, and this file is what
+//      holds that true.
 //   2. BP-018 NFR budget: "Fonts self-hosted via `@fontsource`; no
 //      third-party font request from a customer's own domain (BP-004
 //      renders with the same fonts)." `fonts.ts` is BP-018's one font
@@ -28,10 +32,11 @@
 // are parsed by jsdom's own CSSOM (a `<style>` element holding `type.css`'s
 // real file content), not by regex — the same parser a browser tab uses to
 // read the file this WO ships.
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
+import ts from "typescript";
 import { describe, expect, it } from "vitest";
-import { THEME_CSS, tokenSet } from "./design/tokens-doc";
+import { normalise, THEME_CSS, tokenSet } from "./design/tokens-doc";
 
 const FONTS_TS = path.resolve(import.meta.dirname, "../../src/ui/fonts.ts");
 const TYPE_CSS = path.resolve(import.meta.dirname, "../../src/ui/type.css");
@@ -46,13 +51,123 @@ function typeCssSource(): string {
   return readFileSync(TYPE_CSS, "utf8");
 }
 
-/** Every `@fontsource/...` import specifier `fonts.ts` declares. */
-function fontImportSpecifiers(src: string): string[] {
-  const specifiers: string[] = [];
-  const re = /import\s+["']([^"']+)["']\s*;/g;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(src))) specifiers.push(m[1]!);
-  return specifiers;
+/** One `localFont({ … })` call as `fonts.ts` writes it: the faces it loads,
+ *  the family it declares them under, the range it declares them for, and
+ *  whether it preloads. */
+interface FontCall {
+  /** The `const` the call is assigned to — `next/font` requires one, and it
+   *  is what a failure message can name. */
+  name: string;
+  preload: boolean;
+  family: string;
+  unicodeRange: string;
+  faces: { path: string; weight: string; style: string }[];
+}
+
+/** Reads every `localFont` call out of `fonts.ts` with the TypeScript
+ *  compiler API — the same parser the build reads it with, rather than a
+ *  regex approximation of one. */
+function localFontCalls(src: string): FontCall[] {
+  const sf = ts.createSourceFile(FONTS_TS, src, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+  const calls: FontCall[] = [];
+
+  const text = (node: ts.Node | undefined): string =>
+    node && (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) ? node.text : "";
+
+  const prop = (obj: ts.ObjectLiteralExpression, key: string): ts.Expression | undefined =>
+    obj.properties.find(
+      (p): p is ts.PropertyAssignment =>
+        ts.isPropertyAssignment(p) && ts.isIdentifier(p.name) && p.name.text === key
+    )?.initializer;
+
+  const visit = (node: ts.Node): void => {
+    if (
+      ts.isVariableDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      node.initializer &&
+      ts.isCallExpression(node.initializer) &&
+      ts.isIdentifier(node.initializer.expression) &&
+      node.initializer.expression.text === "localFont"
+    ) {
+      const arg = node.initializer.arguments[0];
+      if (arg && ts.isObjectLiteralExpression(arg)) {
+        const srcProp = prop(arg, "src");
+        const faces: FontCall["faces"] = [];
+        if (srcProp && ts.isArrayLiteralExpression(srcProp)) {
+          for (const entry of srcProp.elements) {
+            if (!ts.isObjectLiteralExpression(entry)) continue;
+            faces.push({
+              path: text(prop(entry, "path")),
+              weight: text(prop(entry, "weight")),
+              style: text(prop(entry, "style")),
+            });
+          }
+        }
+        const declarations = new Map<string, string>();
+        const declProp = prop(arg, "declarations");
+        if (declProp && ts.isArrayLiteralExpression(declProp)) {
+          for (const entry of declProp.elements) {
+            if (!ts.isObjectLiteralExpression(entry)) continue;
+            declarations.set(text(prop(entry, "prop")), text(prop(entry, "value")));
+          }
+        }
+        calls.push({
+          name: node.name.text,
+          preload: prop(arg, "preload")?.kind === ts.SyntaxKind.TrueKeyword,
+          family: declarations.get("font-family") ?? "",
+          unicodeRange: declarations.get("unicode-range") ?? "",
+          faces,
+        });
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sf);
+  return calls;
+}
+
+/** The four `@fontsource` stylesheets whose faces `fonts.ts` re-declares:
+ *  one per weight of each family. They are what "the same faces as before"
+ *  means, so they are read rather than restated. */
+const VENDOR_STYLESHEETS = [
+  "@fontsource/plus-jakarta-sans/400.css",
+  "@fontsource/plus-jakarta-sans/700.css",
+  "@fontsource/plus-jakarta-sans/800.css",
+  "@fontsource/jetbrains-mono/400.css",
+] as const;
+
+/** One `@font-face` block of a vendor stylesheet, keyed by the `.woff2` it
+ *  names. Parsed off the block text rather than through jsdom's CSSOM,
+ *  which exposes no `@font-face` rule to read `unicode-range` from; these
+ *  files are generated and uniform, so the block is unambiguous. */
+interface VendorFace {
+  file: string;
+  family: string;
+  weight: string;
+  style: string;
+  unicodeRange: string;
+}
+
+function vendorFaces(): Map<string, VendorFace> {
+  const byFile = new Map<string, VendorFace>();
+  for (const specifier of VENDOR_STYLESHEETS) {
+    const resolved = require.resolve(specifier, { paths: [path.dirname(FONTS_TS)] });
+    const css = readFileSync(resolved, "utf8");
+    for (const block of css.split("@font-face").slice(1)) {
+      const body = block.slice(0, block.indexOf("}"));
+      const value = (prop: string): string =>
+        (body.match(new RegExp(`${prop}:\\s*([^;]+);`)) ?? [])[1]?.trim() ?? "";
+      const file = (body.match(/files\/([\w-]+\.woff2)/) ?? [])[1] ?? "";
+      byFile.set(file, {
+        file,
+        family: value("font-family").replace(/'/g, '"'),
+        weight: value("font-weight"),
+        style: value("font-style"),
+        unicodeRange: value("unicode-range"),
+      });
+    }
+  }
+  return byFile;
 }
 
 /**
@@ -82,41 +197,103 @@ function themeRootTokens(): ReadonlyMap<string, string> {
 }
 
 describe("BUILD.md §1 / BP-018 NFR — self-hosted, no third-party font request", () => {
-  it("fonts.ts imports both families from @fontsource, not a hosted CDN", () => {
-    const specifiers = fontImportSpecifiers(fontsSource());
-    expect(specifiers.length).toBeGreaterThan(0);
+  it("every face fonts.ts loads is a file inside node_modules/@fontsource, never a hosted CDN", () => {
+    const calls = localFontCalls(fontsSource());
+    expect(calls.length).toBeGreaterThan(0);
 
-    const jakarta = specifiers.filter((s) => s.startsWith("@fontsource/plus-jakarta-sans/"));
-    const mono = specifiers.filter((s) => s.startsWith("@fontsource/jetbrains-mono/"));
-    expect(jakarta.length).toBeGreaterThan(0);
-    expect(mono.length).toBeGreaterThan(0);
+    const families = new Set(calls.map((c) => c.family));
+    expect(families).toEqual(new Set(['"Plus Jakarta Sans"', '"JetBrains Mono"']));
 
-    for (const specifier of specifiers) {
-      expect(specifier.startsWith("@fontsource/")).toBe(true);
-      for (const pattern of THIRD_PARTY_PATTERNS) {
-        expect(specifier).not.toMatch(pattern);
+    for (const call of calls) {
+      expect(call.faces.length, `${call.name} loads no face`).toBeGreaterThan(0);
+      for (const face of call.faces) {
+        expect(face.path, `${call.name}: ${face.path}`).toMatch(
+          /^\.\.\/\.\.\/node_modules\/@fontsource\/(plus-jakarta-sans|jetbrains-mono)\/files\/[\w-]+\.woff2$/
+        );
+        for (const pattern of THIRD_PARTY_PATTERNS) {
+          expect(face.path, `${call.name}: ${face.path}`).not.toMatch(pattern);
+        }
+        // The path is resolved rather than pattern-matched: a face that
+        // does not exist is a `@font-face` pointing at nothing, which the
+        // build reports and no reader ever sees.
+        expect(
+          existsSync(path.resolve(path.dirname(FONTS_TS), face.path)),
+          `${call.name}: ${face.path} resolves to no file`
+        ).toBe(true);
       }
     }
   });
 
-  it("every @font-face src the imported stylesheets ship is a local relative path, never a third-party origin", () => {
-    const specifiers = fontImportSpecifiers(fontsSource());
-    expect(specifiers.length).toBeGreaterThan(0);
+  it("declares exactly the faces @fontsource's own stylesheets ship — same weights, same ranges, nothing dropped", () => {
+    // The promise `src/ui/fonts.ts` makes when it stops importing those
+    // four stylesheets: the loader changed and the *coverage* did not, so
+    // no codepoint that rendered in one of these families falls through to
+    // the system stack. Held as set equality in both directions, so a
+    // subset silently dropped fails here and so does one invented.
+    const vendor = vendorFaces();
+    expect(vendor.size).toBeGreaterThan(0);
 
-    for (const specifier of specifiers) {
-      const resolved = require.resolve(specifier, { paths: [path.dirname(FONTS_TS)] });
-      const css = readFileSync(resolved, "utf8");
-      expect(css).toMatch(/@font-face/);
-      for (const pattern of THIRD_PARTY_PATTERNS) {
-        expect(css).not.toMatch(pattern);
-      }
-      // Every url() in a @fontsource stylesheet is a relative ./files/... path.
-      const urls = [...css.matchAll(/url\(([^)]+)\)/g)].map((m) => m[1]!);
-      expect(urls.length).toBeGreaterThan(0);
-      for (const url of urls) {
-        expect(url.replace(/["']/g, "")).toMatch(/^\.\/files\//);
+    const declared = new Map<string, { family: string; weight: string; style: string; unicodeRange: string }>();
+    for (const call of localFontCalls(fontsSource())) {
+      for (const face of call.faces) {
+        const file = face.path.slice(face.path.lastIndexOf("/") + 1);
+        expect(declared.has(file), `${file} is declared twice`).toBe(false);
+        declared.set(file, {
+          family: call.family,
+          weight: face.weight,
+          style: face.style,
+          unicodeRange: call.unicodeRange,
+        });
       }
     }
+
+    expect([...declared.keys()].sort()).toEqual([...vendor.keys()].sort());
+    for (const [file, face] of declared) {
+      const ships = vendor.get(file)!;
+      expect(face.family, `${file}: font-family`).toBe(ships.family);
+      expect(face.weight, `${file}: font-weight`).toBe(ships.weight);
+      expect(face.style, `${file}: font-style`).toBe(ships.style);
+      expect(face.unicodeRange, `${file}: unicode-range`).toBe(ships.unicodeRange);
+    }
+  });
+
+  it("declares the two families under the names the approved tokens spend, so no rule has to change", () => {
+    // `next/font` would otherwise mint a hashed family name reachable only
+    // through the class it hands back. `--font-ui` and `--font-mono` are
+    // approved tokens (issue #349) and they name the families in words, so
+    // every call declares its own `font-family` instead.
+    const tokens = themeRootTokens();
+    const named = new Set(localFontCalls(fontsSource()).map((c) => c.family));
+    for (const [token, family] of [
+      ["--font-ui", '"Plus Jakarta Sans"'],
+      ["--font-mono", '"JetBrains Mono"'],
+    ] as const) {
+      expect(named.has(family), `no face is declared as ${family}`).toBe(true);
+      // `tokenSet` returns every value normalised (whitespace stripped,
+      // lower-cased), so the family is put through the same function
+      // rather than compared against a second spelling of it.
+      expect(
+        tokens.get(token)?.startsWith(normalise(family)),
+        `${token} no longer leads with ${family}`
+      ).toBe(true);
+    }
+  });
+
+  it("preloads the latin faces the product renders on every screen, and nothing else", () => {
+    // A preload is a promise the byte is needed now. Jakarta 400 is the
+    // body and 700 is `type.css`'s one heading weight; JetBrains Mono 400
+    // is every numeral. Jakarta 800 is loaded for §2.3's heading range and
+    // no rule spends it, and no non-latin subset is on any screen's
+    // critical path — so neither preloads.
+    const preloaded = localFontCalls(fontsSource())
+      .filter((call) => call.preload)
+      .flatMap((call) => call.faces.map((f) => f.path.slice(f.path.lastIndexOf("/") + 1)))
+      .sort();
+    expect(preloaded).toEqual([
+      "jetbrains-mono-latin-400-normal.woff2",
+      "plus-jakarta-sans-latin-400-normal.woff2",
+      "plus-jakarta-sans-latin-700-normal.woff2",
+    ]);
   });
 
   it("exports the class name the root layout puts on <html>", async () => {
