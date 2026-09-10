@@ -104,14 +104,16 @@ vi.mock("@/lib/presentation/copy", async (importOriginal) => {
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 
-/** The founder's own cookie jar (#133). `beforeEach` mints a real signed
- *  session into it through `sessionCookie()`, so `currentSession()` runs
- *  its whole verification against it — this file supplies the transport a
- *  server request would, and nothing else. */
+/** The founder's own cookie jar (#133). `beforeEach` signs the founder in
+ *  to Supabase Auth's double and puts its session cookie here, so
+ *  `currentSession()` runs its whole verification against it — `getUser()`
+ *  on the cookie, then the `users` row (#468). This file supplies the
+ *  transport a server request would, and nothing else. */
 const cookieJar = new Map<string, string>();
 
 vi.mock("next/headers", () => ({
   cookies: async () => ({
+    getAll: () => [...cookieJar].map(([name, value]) => ({ name, value })),
     get: (name: string) => {
       const value = cookieJar.get(name);
       return value === undefined ? undefined : { name, value };
@@ -327,10 +329,9 @@ function vendorAnswer(url: string): unknown {
 const USER_ID = "user-journey-04";
 const SITE_ID = "site-journey-04";
 
-/** The `users` row behind this journey's session. `deleted_at` and
- *  `sessions_valid_from` are null on purpose: those are the two columns
- *  that turn a verified cookie into "not a session", and this founder is
- *  neither deleted nor signed out. */
+/** The `users` row behind this journey's session. `deleted_at` is null on
+ *  purpose: it is the column that turns a verified Supabase session into
+ *  "not a session", and this founder is not deleted. */
 const ACCOUNT_ROW = {
   id: USER_ID,
   email: "founder@acme.com",
@@ -338,7 +339,6 @@ const ACCOUNT_ROW = {
   pending_email: null,
   pending_email_token_hash: null,
   pending_email_sent_at: null,
-  sessions_valid_from: null,
   first_signed_in_at: null,
   deleted_at: null,
 };
@@ -436,7 +436,10 @@ const { setActiveAccessReader, resetActiveAccessReader } = await import(
   "../../src/app/(account)/setup/_setup/store"
 );
 const { POST: setupRoute } = await import("../../src/app/api/setup/route");
-const { sessionCookie } = await import("../../src/lib/account/identity");
+const { setIdentityAuth } = await import("../../src/lib/account/identity/auth");
+const { addAuthUser, fakeIdentityAuth, newFakeAuth, signedInCookie } = await import(
+  "../account/identity/fake-auth"
+);
 const { runDeepPass } = await import("../../src/lib/scan/deep/run");
 const { passProgressFor } = await import("../../src/lib/scan/deep/progress");
 const { isReleased, deadlineFrom } = await import("../../src/lib/scan/deep/release");
@@ -490,12 +493,15 @@ beforeEach(() => {
   setActiveAccessReader(async () => true);
 
   // Step 2's own outcome, as a value: the founder followed their sign-in
-  // link and the redemption set this. Minted by identity, verified by
-  // identity — the journey asserts the submit is *theirs*, which is what
-  // #133 wired and what a stand-in user id could never have shown.
+  // link and Supabase's `verifyOtp` set this (#468). Verified by identity
+  // through `getUser()` — the journey asserts the submit is *theirs*, which
+  // is what #133 wired and what a stand-in user id could never have shown.
   cookieJar.clear();
-  const minted = sessionCookie({ userId: USER_ID, siteId: SITE_ID, issuedAt: PAID_AT });
-  cookieJar.set(minted.name, minted.value);
+  const auth = newFakeAuth();
+  addAuthUser(auth, { id: USER_ID, email: ACCOUNT_ROW.email });
+  setIdentityAuth(fakeIdentityAuth(auth));
+  const [name, value] = signedInCookie(auth, USER_ID).split("=") as [string, string];
+  cookieJar.set(name, value);
 
   vi.stubGlobal(
     "fetch",
@@ -515,6 +521,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  setIdentityAuth(null);
   vi.stubGlobal("setTimeout", realSetTimeout);
   vi.unstubAllGlobals();
   setOpportunityStore(null);

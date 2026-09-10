@@ -46,8 +46,9 @@ function tables(): string[] {
 describe("REQ-079 c7 — the enumerated sweep, one case per named class", () => {
   it("the account and the sign-in address it was reached at are gone", async () => {
     await purgeAccount("u-1");
-    expect(tables()).toContain("auth_links");
     expect(tables()).toContain("users");
+    // #468: the Supabase Auth user the account row's id names.
+    expect(tables()).toContain("auth.users");
     expect(state.accounts).toEqual([]);
   });
 
@@ -102,7 +103,7 @@ describe("REQ-079 c7 — the enumerated sweep, one case per named class", () => 
     before("destinations", "sites");
     before("danger_tickets", "sites");
     before("sites", "users");
-    before("auth_links", "users");
+    before("users", "auth.users");
   });
 
   it("an address-wide suppression is not purged — it is a person's opt-out, not an account's row", () => {
@@ -122,7 +123,7 @@ describe("REQ-079 c7 — idempotent, resumable, and loud when it cannot finish",
     // issues no delete at all. What is left is the three steps keyed on the
     // user id, each of which matches nothing and removes nothing.
     expect(first).toContain("drafts");
-    expect(tables()).toEqual(["sites", "auth_links", "users"]);
+    expect(tables()).toEqual(["sites", "users", "auth.users"]);
     expect(state.accounts).toEqual([]);
     expect(state.sites).toEqual([]);
   });

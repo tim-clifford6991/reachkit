@@ -30,6 +30,16 @@ import {
 } from "@/app/(account)/setup/gate";
 import type { SetupProgressState } from "@/app/(account)/setup/submit";
 import { middleware } from "@/middleware";
+import { setIdentityAuth } from "@/lib/account/identity/auth";
+import { addAuthUser, fakeIdentityAuth, newFakeAuth, signedInCookie } from "../../account/identity/fake-auth";
+
+/** #468: the middleware asks Supabase (`getUser()`) who a session cookie
+ *  belongs to; this is the in-memory double, with one live session. */
+const AUTH = newFakeAuth();
+addAuthUser(AUTH, { id: "user-1", email: "founder@example.com" });
+const SIGNED_IN = signedInCookie(AUTH, "user-1");
+beforeEach(() => setIdentityAuth(fakeIdentityAuth(AUTH)));
+afterEach(() => setIdentityAuth(null));
 
 /** The request headers the layout reads its path out of. */
 const requestHeaders = new Map<string, string>();
@@ -227,7 +237,7 @@ describe("src/app/(account)/layout.tsx applies the gate, and holds no setup know
 });
 
 function requestTo(path: string, extra?: Record<string, string>): NextRequest {
-  const headers = new Headers({ cookie: "rk_session=a-token", ...extra });
+  const headers = new Headers({ cookie: SIGNED_IN, ...extra });
   return new NextRequest(new Request(`https://reachkit.example${path}`, { headers }));
 }
 
