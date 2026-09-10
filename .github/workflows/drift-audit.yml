@@ -21,6 +21,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      # Issue #331: the dependency audit lands in the check whose name already says what this is.
+      # Runtime deps only, high and above; resolves from package-lock.json, no npm ci needed.
+      - name: dependency audit (runtime deps, high and above)
+        run: npm audit --omit=dev --audit-level=high
       - name: run audit
         id: audit
         run: |
