@@ -61,38 +61,49 @@ export const FIXTURE_PUBLISHED_DRAFT_ID = "draft-2026-09-14";
 const GROUNDED_FACT =
   "HubSpot's free tier caps custom properties at ten per object, which a five-person sales team reaches inside a quarter.";
 
+// **No `#` of its own** (issue #446). The pipeline returns a title and a
+// body as two fields (`DRAFT_SCHEMA`), the row stores them in two columns
+// (§10: `drafts.title`, `drafts.body_md`), and every surface that draws
+// this page draws the title as its own `<h1>` above the body — S16's card
+// head and S19's article head alike. A body opening with its own title
+// therefore stated the title twice on every render of this fixture, which
+// is not a page §8 could have written.
+//
+// **One logical line per block.** `parseMarkdown` is line-based: a list
+// item hard-wrapped onto a second line matches no list rule, so the
+// continuation ends the list and lands in a paragraph of its own — three
+// one-item lists and three stray half-sentences where the fixture meant one
+// list of three. The wrapping below is the *source file's*, made with `+`,
+// so the Markdown a reader of this fixture sees is the Markdown the screen
+// parses.
 const BODY = [
-  "# How to choose a CRM for a small team",
-  "",
-  "Most comparison pages rank tools by feature count. A five-person team does not",
-  "run out of features; it runs out of the two or three limits its own way of",
-  "working pushes against first. Those limits are what to compare.",
+  "Most comparison pages rank tools by feature count. A five-person team does not run out of " +
+    "features; it runs out of the two or three limits its own way of working pushes against " +
+    "first. Those limits are what to compare.",
   "",
   "## Start from the limit you will hit first",
   "",
-  GROUNDED_FACT,
-  "That is the shape of the question: not whether a tier is free, but which",
-  "ceiling it puts in front of the way you already work.",
+  `${GROUNDED_FACT} That is the shape of the question: not whether a tier is free, but which ` +
+    "ceiling it puts in front of the way you already work.",
   "",
   "## Three limits worth checking before anything else",
   "",
-  "- **Custom fields per object.** The number that decides whether your pipeline",
-  "  fits the tool or the tool reshapes your pipeline.",
-  "- **Seats included at the tier you would actually buy.** Per-seat pricing is",
-  "  the line item that grows with the team, and it grows first.",
-  "- **What leaves with you.** A full export in an open format, on demand, with",
-  "  no support ticket in the way.",
+  "- **Custom fields per object.** The number that decides whether your pipeline fits the tool " +
+    "or the tool reshapes your pipeline.",
+  "- **Seats included at the tier you would actually buy.** Per-seat pricing is the line item " +
+    "that grows with the team, and it grows first.",
+  "- **What leaves with you.** A full export in an open format, on demand, with no support " +
+    "ticket in the way.",
   "",
   "## What this means for a team of five",
   "",
-  "Pick the tier whose first ceiling is furthest from your next twelve months,",
-  "not the one with the longest feature list. The list is the same everywhere;",
-  "the ceilings are not.",
+  "Pick the tier whose first ceiling is furthest from your next twelve months, not the one with " +
+    "the longest feature list. The list is the same everywhere; the ceilings are not.",
   "",
   "> A CRM you outgrow in a quarter costs more than the one you paid for.",
   "",
-  "Set the fields you need on day one, export once to confirm you can, and",
-  "revisit the choice when the team doubles.",
+  "Set the fields you need on day one, export once to confirm you can, and revisit the choice " +
+    "when the team doubles.",
 ].join("\n");
 
 /** The same page after the customer rewrote its opening — the grounded fact
