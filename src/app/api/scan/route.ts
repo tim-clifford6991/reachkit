@@ -36,6 +36,7 @@
 // carries the submitted text, verbatim, both as query params on `/`. Any
 // value found here should be renamed together with WO-070's own reader,
 // never redefined independently in that WO.
+import { after } from "next/server";
 import { parseDomain, type DomainProblem } from "@/lib/scan/domain";
 import { networkKeyOf, claimFreeScanSlot } from "@/lib/scan/admission";
 
@@ -100,20 +101,55 @@ function landingRedirect(request: Request, problem: DomainProblem, value: string
   return Response.redirect(url.toString(), 303);
 }
 
-/** Starts the free pass and returns immediately. The engine is reached
- *  through a dynamic import so that the three responses that start no scan
- *  — a malformed value, a malformed body, a refusal — load none of it;
- *  this route stays a canonicaliser and a starter, and only the starting
- *  half pays for the pipeline.
+/** The platform's own ceiling on this invocation, in seconds (issue
+ *  #438). Vercel reads it out of the build output and freezes the function
+ *  at it; on the plan this product deploys to that is 60.
+ *
+ *  **It is not the report ceiling, and the two are different kinds of
+ *  fact.** `TIMING.reportCeilingS` (90) is the design figure the pass
+ *  bounds itself by — ADR-021's, unraisable at runtime — and this is the
+ *  platform's bound on how long the process the pass runs in exists at
+ *  all. Where they disagree the platform wins, so a pass that outlives
+ *  this number is frozen mid-flight; the row it left `running` is finished
+ *  by the maintenance tick's sweep (`src/lib/scan/stuck.ts`) rather than
+ *  left to block the next visitor's admission for ever.
+ *
+ *  **A literal, and it has to be one.** Next reads route segment config
+ *  out of the source at build time
+ *  (`next/dist/build/analysis/get-page-static-info`), so an imported
+ *  binding is not a value it can see — this number cannot be reached from
+ *  `constants.ts` the way every other pin is. It is spelled once, here:
+ *  nothing else in the product carries the platform's ceiling. */
+export const maxDuration = 60;
+
+/** Starts the free pass and keeps it alive past the response.
+ *
+ *  **`after()`, never a dangling promise** (issue #438). This used to
+ *  start the pass as an abandoned promise — a dynamic import whose
+ *  `.then(runScan)` nobody held — which works on a long-lived server and
+ *  does nothing at all on a serverless one: the invocation is frozen
+ *  the moment the response is returned, so the pass never ran, the row
+ *  stayed `running` at zero cents with no `fetches` rows, and every later
+ *  visitor to that domain was refused for a scan in flight that would
+ *  never finish. `after` is the seam that says "this work belongs to the
+ *  request even though the response has gone" — Next hands it to the
+ *  platform's `waitUntil`, which extends the invocation until it settles,
+ *  up to `maxDuration` above.
+ *
+ *  The engine is still reached through a dynamic import, for the reason it
+ *  always was: the three responses that start no scan — a malformed value,
+ *  a malformed body, a refusal — load none of it.
  *
  *  `runScan` never rejects for a domain it cannot measure — every such
  *  ending is a stored report or a `failed` status — so the `catch` here is
- *  for the unforeseen only, and it logs rather than failing the request
- *  that started the pass. */
+ *  for the unforeseen only, and it logs rather than failing a response
+ *  that has already gone out. */
 function startPipeline(domain: string, scanId: string): void {
-  void import("@/lib/scan/run")
-    .then(({ runScan }) => runScan({ domain, tier: "free" }))
-    .catch((error: unknown) => {
+  after(async () => {
+    try {
+      const { runScan } = await import("@/lib/scan/run");
+      await runScan({ domain, tier: "free" });
+    } catch (error: unknown) {
       console.log(
         JSON.stringify({
           event: "scan_start_failed",
@@ -121,7 +157,8 @@ function startPipeline(domain: string, scanId: string): void {
           because: error instanceof Error ? error.message : String(error),
         })
       );
-    });
+    }
+  });
 }
 
 export async function POST(request: Request): Promise<Response> {
@@ -164,8 +201,8 @@ export async function POST(request: Request): Promise<Response> {
   // already running rather than starting a second. The pipeline is not
   // awaited: the visitor's next request is the progress stream
   // (`GET /api/scan/{scanId}/progress`), which replays the stages this
-  // pass publishes as it runs. Its own two ceilings bound it; nothing
-  // here does.
+  // pass publishes as it runs. Its own two ceilings bound the pass and
+  // `maxDuration` bounds the invocation it runs in; nothing here does.
   if (claim.claimed) startPipeline(parsed.domain, claim.scanId);
 
   if (isForm) return Response.redirect(new URL(location, request.url).toString(), 303);
