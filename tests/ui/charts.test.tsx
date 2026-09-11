@@ -14,7 +14,7 @@ import path from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import * as barrel from "@/ui/charts";
-import { CHART, CHART_INK, SVG } from "@/ui/charts/chart-primitives";
+import { CHART, CHART_INK, SVG, tooltipBox } from "@/ui/charts/chart-primitives";
 import { SERIES_COLOR } from "@/ui/charts/series";
 import { GrowthLine, type GrowthWeek } from "@/ui/charts/GrowthLine";
 import { PresenceBars } from "@/ui/charts/PresenceBars";
@@ -579,5 +579,134 @@ describe("BP-018: the props refuse what §2.4 and §2.5 forbid", () => {
 
   it("compiles only because those four shapes are refused", () => {
     expect(typeof refused).toBe("function");
+  });
+});
+
+/* ── every group inside its own box (issue #490) ─────────────────────── */
+
+// The layout sweep's check 2 asks that every element's box sit inside its
+// parent's, and an `<svg>` is the parent of every group a chart draws. The
+// browser is not here, so these read the drawing's own coordinates, and
+// every width a chart reserves for its text is estimated the way the
+// charts estimate it: `CHART.labelCharAdvance` is the mono advance at
+// `CHART.labelSize`, so the advance at any size is that share of the size.
+// Approved copy is never shortened to fit, so the cases carry it at full
+// length: the growth line's unmeasured-week account, the sentence that
+// broke the sweep on #480.
+const APPROVED_ACCOUNT = "This week hasn’t been measured. The next pass is due Monday.";
+const ADVANCE_PER_UNIT = CHART.labelCharAdvance / CHART.labelSize;
+/** `round()`'s own precision: every coordinate is written to two decimals,
+ *  so a sum of rounded widths may land a hundredth past an edge. That is
+ *  about a fiftieth of a pixel at any band — the sweep's tolerance is half
+ *  a pixel — and is not a mark outside its box. */
+const ROUNDING = 0.01;
+
+function viewBoxOf(svg: Element): { width: number; height: number } {
+  const [, , width, height] = (svg.getAttribute("viewBox") ?? "").split(" ").map(Number);
+  return { width: width ?? 0, height: height ?? 0 };
+}
+
+function num(el: Element, attr: string): number {
+  return Number(el.getAttribute(attr) ?? 0);
+}
+
+/** Every rect and every text of a drawing, as the horizontal span it
+ *  takes — a text's from its anchor and its estimated advance. */
+function spans(svg: Element): { what: string; left: number; right: number; top: number; bottom: number }[] {
+  const out: { what: string; left: number; right: number; top: number; bottom: number }[] = [];
+  for (const rect of svg.querySelectorAll("rect")) {
+    const x = num(rect, "x");
+    const y = num(rect, "y");
+    out.push({ what: `rect@${x}`, left: x, right: x + num(rect, "width"), top: y, bottom: y + num(rect, "height") });
+  }
+  for (const text of svg.querySelectorAll("text")) {
+    const x = num(text, "x");
+    const size = num(text, "font-size");
+    const fitted = text.getAttribute("textLength");
+    const width =
+      fitted === null ? (text.textContent ?? "").length * size * ADVANCE_PER_UNIT : Number(fitted);
+    const anchor = text.getAttribute("text-anchor");
+    const left = anchor === "end" ? x - width : anchor === "middle" ? x - width / 2 : x;
+    const y = num(text, "y");
+    out.push({ what: `text "${text.textContent ?? ""}"`, left, right: left + width, top: y - size, bottom: y });
+  }
+  return out;
+}
+
+function escapees(el: React.JSX.Element): string[] {
+  const svg = svgOf(el);
+  const box = viewBoxOf(svg);
+  return spans(svg)
+    .filter(
+      (s) =>
+        s.left < -ROUNDING ||
+        s.right > box.width + ROUNDING ||
+        s.top < -ROUNDING ||
+        s.bottom > box.height + ROUNDING,
+    )
+    .map((s) => `${s.what} [${s.left.toFixed(2)}, ${s.right.toFixed(2)}] in 0..${box.width}`);
+}
+
+describe("issue #490: a chart's groups stay inside its own box, at every length the copy can take", () => {
+  it("a tooltip chip wraps a long tip inside the box, and never shortens it", () => {
+    const boxes = [
+      { width: 300, height: 80 },
+      { width: 300, height: 64 },
+      { width: 132, height: 44 },
+      { width: 300, height: 42 },
+    ];
+    for (const box of boxes) {
+      for (let n = 1; n <= APPROVED_ACCOUNT.length * 3; n += 1) {
+        const text = `Aug 24 · ${APPROVED_ACCOUNT} ${APPROVED_ACCOUNT} ${APPROVED_ACCOUNT}`.slice(0, n);
+        const chip = tooltipBox(text, box);
+        const where = `${n} chars in ${box.width}×${box.height}`;
+        expect(chip.x, where).toBeGreaterThanOrEqual(0);
+        expect(chip.x + chip.width, where).toBeLessThanOrEqual(box.width);
+        expect(chip.y + chip.height, where).toBeLessThanOrEqual(box.height);
+        for (const line of chip.lines) {
+          expect(line.x + line.length, where).toBeLessThanOrEqual(chip.x + chip.width);
+        }
+        expect(chip.lines.map((l) => l.text).join(" "), where).toBe(text);
+      }
+    }
+  });
+
+  it("the growth line carries the approved unmeasured-week account inside its box", () => {
+    const weeks: readonly [GrowthWeek, ...GrowthWeek[]] = [
+      { name: "Aug 10", value: 0 },
+      { name: "Aug 17", value: 36 },
+      { name: "Aug 24", value: null, account: APPROVED_ACCOUNT, cuts: false },
+      { name: "Aug 31", value: 81 },
+    ];
+    const el = <GrowthLine weeks={weeks} label="growth" />;
+    expect(escapees(el)).toEqual([]);
+    // The whole sentence is in the chip, across its lines.
+    const tip = [...svgOf(el).querySelectorAll(".rk-tip")].find((t) => (t.textContent ?? "").includes("Aug 24"));
+    const lines = [...(tip?.querySelectorAll("text") ?? [])].map((t) => t.textContent ?? "");
+    expect(lines.length).toBeGreaterThan(1);
+    expect(lines.join(" ")).toBe(`Aug 24 · ${APPROVED_ACCOUNT}`);
+  });
+
+  it("the AI dot matrix keeps every rect and text inside its viewBox for one to four rows and names up to the approved sentence", () => {
+    const weeks = ["15", "22", "29", "6", "13", "20", "27", "3", "10", "17", "24", "31"];
+    const cells = weeks.map((_, i): AiDotMatrixRow["cells"][number] => (i % 3 === 0 ? "cited" : i % 3 === 1 ? "not-cited" : "muted"));
+    for (let rows = 1; rows <= 4; rows += 1) {
+      for (let n = 1; n <= APPROVED_ACCOUNT.length; n += 1) {
+        const matrix: AiDotMatrixRow[] = Array.from({ length: rows }, (_, r) => ({
+          name: `${r}${APPROVED_ACCOUNT}`.slice(0, n),
+          identity: r === 0 ? "you" : "rival",
+          cells,
+          count: "12/12",
+        }));
+        const found = escapees(
+          <AiDotMatrixChart rows={matrix} questions={weeks} goal={{ count: 6, name: "goal: 6" }} label="matrix" />,
+        );
+        expect(found, `${rows} row(s), names of ${n}`).toEqual([]);
+      }
+    }
+  });
+
+  it.each(ALL_STORIES)("%s draws nothing outside its viewBox", (_name, story) => {
+    expect(escapees(story())).toEqual([]);
   });
 });
