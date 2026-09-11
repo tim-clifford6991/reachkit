@@ -358,12 +358,10 @@ export async function measureDomain(
           endpoint: heard.failure.endpoint,
         });
       }
-      // Two readings of one answer: §5's score is over the rows bought,
-      // and §6.6's own count is the vendor's total (#117).
-      searchPresence = searchPresenceOf({
-        ranked: ranked.kind === "unmeasured" ? ranked : { ...ranked, value: ranked.value.rows },
-        at,
-      });
+      // One answer, both readings: §5's reach and §6.6's own count are the
+      // vendor's total (#117, #529); §5's top-10 share is over the rows
+      // bought. `searchPresenceOf` takes the whole answer for that reason.
+      searchPresence = searchPresenceOf({ ranked, at });
       ownRanked = ownRankedOf({ ranked, at });
     } catch (error) {
       logDriver("driver_undeterminable", {
