@@ -159,8 +159,10 @@ describe("wayAsVisitor — the page as a visitor sees it (REQ-043 c12)", () => {
 
   it("every refusal carries a key, and no returned value carries a sentence", () => {
     for (const key of Object.values(REFUSAL_COPY)) {
-      expect(COPY[key]).toBe(TODO_COPY_MARKER);
-      expect(AWAITING_COPY).toContain(key);
+      // Written since #460 (the owner's approved set of 2026-09-10).
+      expect(COPY[key]).not.toBe(TODO_COPY_MARKER);
+      expect(COPY[key]).not.toBe("");
+      expect(AWAITING_COPY).not.toContain(key);
     }
     const refusal = wayAsVisitor(record({ verification: PAGE_NOT_FOUND }));
     expect(refusal).toMatchObject({ copy: expect.stringMatching(/^waythrough\./) as unknown as string });
