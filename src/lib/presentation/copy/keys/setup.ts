@@ -4,16 +4,7 @@
 // Setup's sentences. Seeded empty by WO-041; filled by issue #14, the block
 // that owns §4.3.
 //
-// **Two mechanisms, both live, and this file uses only one of them.** A key
-// whose value is `''` lands in `OWNER_OWED` and `copy()` throws for it —
-// right for a key nothing renders yet, wrong for a screen where every line
-// is unwritten, because one throw takes the whole screen down and hides the
-// finished modules from the review the owner needs in order to write the
-// missing sentences. So every unwritten key here carries `TODO(copy)`, the
-// marker `CLAUDE.md` names: it renders as itself, visibly unwritten in
-// place, and stays countable.
-//
-// **Six keys carry a real value, and every one is a transcription of a word
+// **The first six values filled were each a transcription of a word
 // `BUILD.md` §4.3 itself prints** — on the same footing as the thirteen
 // band words and the five `shell.*` keys issue #9 filled: "**Your market**
 // — inferred category chip, Change", "**Competitors**", "*Hosted blog*",
@@ -35,24 +26,22 @@
 // The two publishing *mode* names are not here: §4.3's "Autopilot" and
 // "Copilot" are already `shell.publishing.mode.*` in `laws.ts`, which the
 // app shell renders on every screen. One word, one key, both surfaces.
+//
+// 2026-09-10, issue #460: every sentence this partition still owed is now
+// written — the owner approved the master's drafted set ("copy proposal
+// approved", proposal sheet
+// https://claude.ai/code/artifact/546f45a0-a996-4d25-b85e-fb03fda7b102) and
+// the strings land here byte for byte. The values named in the approval
+// file are the owner's; nothing here is composed.
 import type { CopyPartition } from "../registry.ts";
-
-// The marker `CLAUDE.md` fixes for a key whose sentence the owner has not
-// written yet. Deliberately a local `const` and **not** exported: this file
-// is a partition, and `registry.test.ts` reads a partition module's single
-// export as the partition itself. `TODO_COPY_MARKER` is declared once in
-// `registry.ts` — which is where `AWAITING_COPY` is derived from it — and
-// the two literals are asserted equal there rather than imported across the
-// value cycle a partition importing `registry.ts` for a value would close.
-const TODO = "TODO(copy)";
 
 export const SETUP_COPY = Object.freeze({
   // ── The screen ──────────────────────────────────────────────────────
-  "setup.head": [TODO, { slots: {}, fixedBy: "REQ-025 c1" }],
+  "setup.head": ["Three decisions, then we start.", { slots: {}, fixedBy: "REQ-025 c1" }],
   /** REQ-025 c5's exception in one line: a founder whose account cannot be
    *  read is told so, and told they can still reach Settings, cancel and
    *  export with setup unfinished. */
-  "setup.refused.no-access": [TODO, { slots: {}, fixedBy: "REQ-025 c5" }],
+  "setup.refused.no-access": ["We couldn’t find an active plan for this account, so setup can’t start. Settings is still open to you — cancel or export your content there at any time.", { slots: {}, fixedBy: "REQ-025 c5" }],
   /**
    * §4.3's footer control, with its estimate — the C1 resolution, applied.
    *
@@ -102,30 +91,30 @@ export const SETUP_COPY = Object.freeze({
   "setup.address.placeholder": ["yourdomain.com", { slots: {}, fixedBy: "REQ-021 c7 · UI-SPEC S10 (11a)" }],
   /** The line beside an address a completed report measured — shown to
    *  confirm or change, never retyped (REQ-021 c6). */
-  "setup.address.measured": [TODO, { slots: {}, fixedBy: "REQ-021 c6" }],
+  "setup.address.measured": ["The site your report measured. Keep it, or change it.", { slots: {}, fixedBy: "REQ-021 c6" }],
   "setup.address.change": ["Change", { slots: {}, fixedBy: "REQ-021 c6 · UI-SPEC S10 (11a)" }],
-  "setup.address.refused.not-a-domain": [TODO, { slots: {}, fixedBy: "REQ-021 c9" }],
+  "setup.address.refused.not-a-domain": ["That isn’t a domain. Enter one like yourdomain.com.", { slots: {}, fixedBy: "REQ-021 c9" }],
   /** REQ-021 c9 and c10 in one line: it says the address cannot be
    *  reached, names one way to reach a person, and tells the founder they
    *  can cancel without finishing setup. */
-  "setup.address.refused.unreachable": [TODO, { slots: {}, fixedBy: "REQ-021 c10" }],
-  "setup.address.missing": [TODO, { slots: {}, fixedBy: "REQ-021 c7" }],
+  "setup.address.refused.unreachable": ["We can’t reach that domain. Check the spelling, or write to hello@reachkit.app and a person will help. You can cancel from Settings without finishing setup.", { slots: {}, fixedBy: "REQ-021 c10" }],
+  "setup.address.missing": ["Your site address is needed before setup can start.", { slots: {}, fixedBy: "REQ-021 c7" }],
 
   // ── Your market (REQ-026) ───────────────────────────────────────────
   "setup.market.title": ["Your market", { slots: {}, fixedBy: "REQ-026 c1" }],
   "setup.market.change": ["Change", { slots: {}, fixedBy: "REQ-026 c1" }],
   /** REQ-026 c3: the empty card asks them to state their market in their
    *  own words, with nothing pre-filled and nothing presented as inferred. */
-  "setup.market.state-it": [TODO, { slots: {}, fixedBy: "REQ-026 c3" }],
-  "setup.market.label": [TODO, { slots: {}, fixedBy: "REQ-026 c3" }],
-  "setup.market.placeholder": [TODO, { slots: {}, fixedBy: "REQ-026 c3" }],
-  "setup.market.missing": [TODO, { slots: {}, fixedBy: "REQ-026 c5" }],
+  "setup.market.state-it": ["State your market in a few words.", { slots: {}, fixedBy: "REQ-026 c3" }],
+  "setup.market.label": ["Your market, in your words", { slots: {}, fixedBy: "REQ-026 c3" }],
+  "setup.market.placeholder": ["payroll software for small teams", { slots: {}, fixedBy: "REQ-026 c3" }],
+  "setup.market.missing": ["Your market is needed to start.", { slots: {}, fixedBy: "REQ-026 c5" }],
 
   // ── Competitors (REQ-026) ───────────────────────────────────────────
   "setup.competitors.title": ["Competitors", { slots: {}, fixedBy: "REQ-026 c7" }],
   /** REQ-026 c10, first limb: waiting on the market, never "none found". */
-  "setup.competitors.awaiting-market": [TODO, { slots: {}, fixedBy: "REQ-026 c10" }],
-  "setup.competitors.seeking": [TODO, { slots: {}, fixedBy: "REQ-026 c10" }],
+  "setup.competitors.awaiting-market": ["Suggested once your market is stated.", { slots: {}, fixedBy: "REQ-026 c10" }],
+  "setup.competitors.seeking": ["Looking for rivals in your market…", { slots: {}, fixedBy: "REQ-026 c10" }],
   /** REQ-026 c10, second limb: a known market whose suggestions came back
    *  empty. */
   "setup.competitors.none-found": [
@@ -143,22 +132,22 @@ export const SETUP_COPY = Object.freeze({
   "setup.competitors.add.placeholder": ["add another", { slots: {}, fixedBy: "REQ-026 c8 · UI-SPEC S10 (11a)" }],
   "setup.competitors.add.action": ["Add", { slots: {}, fixedBy: "REQ-026 c8 · UI-SPEC S10 (11a)" }],
   /** The accessible name on a chosen tag's ×, naming the rival it takes
-   *  out. Owed: the set draws the glyph and no words. */
-  "setup.competitors.remove": [TODO, { slots: { rival: "text" }, fixedBy: "REQ-026 c7" }],
-  "setup.competitors.refused.not-a-domain": [TODO, { slots: {}, fixedBy: "REQ-026 c8" }],
-  "setup.competitors.refused.does-not-resolve": [TODO, { slots: {}, fixedBy: "REQ-026 c8" }],
-  "setup.competitors.refused.own-domain": [TODO, { slots: {}, fixedBy: "REQ-026 c8" }],
-  "setup.competitors.refused.already-present": [TODO, { slots: {}, fixedBy: "REQ-026 c8" }],
-  "setup.competitors.refused.set-full": [TODO, { slots: {}, fixedBy: "REQ-026 c9" }],
+   *  out. The set draws the glyph and no words. */
+  "setup.competitors.remove": ["Remove {rival}", { slots: { rival: "text" }, fixedBy: "REQ-026 c7" }],
+  "setup.competitors.refused.not-a-domain": ["That isn’t a domain. Enter one like rival.com.", { slots: {}, fixedBy: "REQ-026 c8" }],
+  "setup.competitors.refused.does-not-resolve": ["That domain doesn’t resolve. Check the spelling.", { slots: {}, fixedBy: "REQ-026 c8" }],
+  "setup.competitors.refused.own-domain": ["That’s your own site, not a rival.", { slots: {}, fixedBy: "REQ-026 c8" }],
+  "setup.competitors.refused.already-present": ["That domain is already in your set.", { slots: {}, fixedBy: "REQ-026 c8" }],
+  "setup.competitors.refused.set-full": ["Your set is full. Remove a rival to add another.", { slots: {}, fixedBy: "REQ-026 c9" }],
 
   // ── Mode + destination (REQ-028) ────────────────────────────────────
   "setup.publishing.title": ["Mode + destination", { slots: {}, fixedBy: "REQ-028 c1 · UI-SPEC S10 (11a)" }],
   /** REQ-028 c1: one written line each — pages publish after a review
    *  window they can stop, versus only when they approve. */
-  "setup.mode.autopilot": [TODO, { slots: {}, fixedBy: "REQ-028 c1" }],
-  "setup.mode.copilot": [TODO, { slots: {}, fixedBy: "REQ-028 c1" }],
+  "setup.mode.autopilot": ["Each page publishes when its veto window ends, unless you stop it.", { slots: {}, fixedBy: "REQ-028 c1" }],
+  "setup.mode.copilot": ["Nothing publishes until you approve it.", { slots: {}, fixedBy: "REQ-028 c1" }],
   "setup.destination.hosted.name": ["Hosted blog", { slots: {}, fixedBy: "REQ-028 c2" }],
-  "setup.destination.hosted": [TODO, { slots: {}, fixedBy: "REQ-028 c2" }],
+  "setup.destination.hosted": ["a blog on your own domain, served by us", { slots: {}, fixedBy: "REQ-028 c2" }],
   "setup.destination.wordpress.name": ["WordPress", { slots: {}, fixedBy: "REQ-028 c3" }],
   "setup.destination.wordpress": [
     "connect later, ask me after the first page",
@@ -166,13 +155,13 @@ export const SETUP_COPY = Object.freeze({
   ],
   /** The caption over the record itself. The record's three values are
    *  data and carry no key. */
-  "setup.destination.dnsRecord": [TODO, { slots: {}, fixedBy: "REQ-028 c2" }],
+  "setup.destination.dnsRecord": ["Add this record at your DNS provider", { slots: {}, fixedBy: "REQ-028 c2" }],
   /** REQ-028 c2: the written line that stands where the record will sit
    *  until a site address is given — never a blank, dash or placeholder. */
-  "setup.destination.dnsPending": [TODO, { slots: {}, fixedBy: "REQ-028 c2" }],
+  "setup.destination.dnsPending": ["DNS record shown once your site is given.", { slots: {}, fixedBy: "REQ-028 c2" }],
 
   // ── The waiting screen (REQ-029) ────────────────────────────────────
-  "setup.waiting.head": [TODO, { slots: {}, fixedBy: "REQ-029 c1" }],
+  "setup.waiting.head": ["Your first page is on its way.", { slots: {}, fixedBy: "REQ-029 c1" }],
   /** One line per stage of the pass. Which step is under way, in written
    *  words — never a bare spinner, and never how long. */
   //
@@ -218,7 +207,7 @@ export const SETUP_COPY = Object.freeze({
   "setup.waiting.stage.running": ["–", { slots: {}, fixedBy: "UI-SPEC S11 · 11a" }],
   /** A degraded pass still releases setup (§4.3); the founder is told so
    *  on the screen they arrive at, not only at the moment of release. */
-  "setup.waiting.degraded": [TODO, { slots: {}, fixedBy: "REQ-029 c3" }],
+  "setup.waiting.degraded": ["The pass couldn’t measure everything. You’re going into the app all the same — what was measured is shown, and the rest is marked as not measured.", { slots: {}, fixedBy: "REQ-029 c3" }],
   /** S11's own two lines, both unbracketed in the set (11a). */
   "setup.waiting.about": [
     "About three minutes. When it finishes you land in the app with the first page already on the calendar. If it finds nothing worth writing, it says so — it never invents a page.",
@@ -245,10 +234,10 @@ export const SETUP_COPY = Object.freeze({
 
   /** REQ-029 c3: the pass measured some of it. One sentence saying what
    *  could not be measured. */
-  "setup.release.unmeasured": [TODO, { slots: {}, fixedBy: "REQ-029 c3" }],
+  "setup.release.unmeasured": ["Your first measurement fell short in places. What was measured is shown with its date; the rest is marked as not measured until the next pass fills it in.", { slots: {}, fixedBy: "REQ-029 c3" }],
   /** REQ-029 c5: the pass failed outright, or had not ended when the
    *  founder was released anyway. One sentence saying the measurement did
    *  not complete — never that it found nothing, which is a different
    *  fact with its own line (§7). */
-  "setup.release.incomplete": [TODO, { slots: {}, fixedBy: "REQ-029 c5" }],
+  "setup.release.incomplete": ["Your first measurement didn’t complete. Nothing is needed from you — the next measurement fills it in.", { slots: {}, fixedBy: "REQ-029 c5" }],
 }) satisfies CopyPartition;
