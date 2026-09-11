@@ -13,6 +13,7 @@ import { measured } from "../../../src/lib/measure/measured";
 import type { Candidate } from "../../../src/lib/opportunities/derive/candidate";
 import { fakeCost, cappedCost } from "../cost";
 import { AT, SCAN_ID, SITE_ID } from "../fixtures";
+import { toolUseMessage } from "../../llm/fixtures";
 
 const { createMock } = vi.hoisted(() => ({ createMock: vi.fn() }));
 
@@ -80,6 +81,22 @@ describe("the model labels, and the label goes through the cost seam", () => {
     expect(refined.targetRef).toBe("appcues-vs-us");
     expect(refined.title).toBe("Appcues or us");
     // The effort weight follows the refined type, never the old one.
+    expect(refined.effort).toBe(EFFORT_BY_TYPE.comparison_page);
+  });
+
+  it("the label read off the forced tool's input (issue #512) refines the candidate the same way", async () => {
+    createMock.mockResolvedValue(
+      toolUseMessage({ type: "comparison_page", slug: "appcues-vs-us", title: "Appcues or us" }, 100, 20, TYPING_CALL_SITE)
+    );
+    const { ctx, sources } = fakeCost();
+
+    const refined = await refineType(ctx, writeCandidate());
+
+    const sent = createMock.mock.calls[0]![0] as { tool_choice: { type: string; name: string } };
+    expect(sent.tool_choice).toEqual({ type: "tool", name: TYPING_CALL_SITE });
+    expect(sources).toEqual([TYPING_CALL_SITE]);
+    expect(refined.type).toBe("comparison_page");
+    expect(refined.targetRef).toBe("appcues-vs-us");
     expect(refined.effort).toBe(EFFORT_BY_TYPE.comparison_page);
   });
 
