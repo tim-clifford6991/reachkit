@@ -128,5 +128,5 @@ export function FreePageCard(p: { section: FreePageSection }): React.JSX.Element
 /** REQ-004 c10/c11: a scan that found no opportunity says so in one
  *  written line rather than showing an empty card. */
 export function FreePageAbsent(): React.JSX.Element {
-  return <Card state="degraded" title={<CardHead eyebrow={copy("free-page.title")} />} degradedLine={copy("free-page.absent")} />;
+  return <Card state="degraded" title={<CardHead icon={<FileText size={15} strokeWidth={1.8} aria-hidden />} eyebrow={copy("free-page.title")} />} degradedLine={copy("free-page.absent")} />;
 }

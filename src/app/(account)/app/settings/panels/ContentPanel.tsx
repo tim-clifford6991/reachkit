@@ -29,6 +29,7 @@
 "use client";
 
 import type React from "react";
+import { FileText } from "lucide-react";
 import { Btn } from "@/ui/components/Btn";
 import { Card } from "@/ui/components/Card";
 import { CardHead } from "@/ui/idiom";
@@ -40,7 +41,7 @@ export function ContentPanel(p: { settings: SettingsModel }): React.JSX.Element 
   const action = useAction();
 
   return (
-    <Card state="default" title={<CardHead eyebrow={copy("settings.content.title")} />}>
+    <Card state="default" title={<CardHead icon={<FileText size={15} strokeWidth={1.8} aria-hidden />} eyebrow={copy("settings.content.title")} />}>
       {/* S18: the label at the near edge and the figure at the far one, the
           card's one headline number (§2.5: one per module). */}
       <div className="flex min-w-0 flex-col gap-3">

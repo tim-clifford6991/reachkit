@@ -935,11 +935,21 @@
   min-width: 0;
 }
 
+/* The brand mark (UI-SPEC §2.6, artifact `.brand-mark` L92–93, `brand()`
+ * L512): the `trend` glyph at stroke 2 in an `--accent` square with
+ * `--r-field` corners and `--on-accent` ink (issue #486). The set draws it
+ * 26px; the spacing ladder is closed and has no rung there, so it lands on
+ * the nearest, `--s-5` — the same rule that took the chip's drawn 30 to
+ * `--s-6`. The glyph keeps the set's 15px. */
 .rk-wordmark-chip {
-  width: var(--s-4);
-  height: var(--s-4);
-  border-radius: var(--r-pill);
+  width: var(--s-5);
+  height: var(--s-5);
+  border-radius: var(--r-field);
   background: var(--accent);
+  color: var(--on-accent);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex: 0 0 auto;
 }
 
