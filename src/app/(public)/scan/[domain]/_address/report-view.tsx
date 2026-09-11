@@ -98,6 +98,8 @@ function NoticeLine(p: {
           })}
         />
       );
+    case "site_unreadable":
+      return <Alert tone="warn" message={copy("notice.site-unreadable")} />;
     case "measurement_failed":
       return <Alert tone="warn" message={copy("notice.measurement-failed")} />;
     case "correction_failed":
