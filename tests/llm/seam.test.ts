@@ -37,6 +37,7 @@ import { z } from "zod";
 import type { CostContext } from "../../src/lib/costs";
 import type { Tier } from "../../src/lib/llm/tiers.ts";
 import { INFERENCE_MAX_OUTPUT_TOKENS } from "../../src/lib/config/constants.ts";
+import { rawTextMessage, textMessage, toolUseMessage } from "./fixtures";
 
 // `tiers.ts` reads `@/lib/config/env` at module load (BP-005) — the
 // module under test is therefore imported dynamically in `beforeAll`,
@@ -193,13 +194,6 @@ function cappedCostContext(): { ctx: CostContext; calls: RecordedCall[] } {
 }
 
 const SCHEMA = z.object({ headline: z.string() });
-
-function textMessage(value: unknown, tokensIn = 100, tokensOut = 50) {
-  return {
-    content: [{ type: "text", text: JSON.stringify(value) }],
-    usage: { input_tokens: tokensIn, output_tokens: tokensOut },
-  };
-}
 
 function assertNever(x: never): never {
   throw new Error(`unreachable tier: ${String(x)}`);
@@ -754,6 +748,9 @@ describe("llm() — an answer that came back and missed is a `parse` failure, ne
     expect(logged.failure).toBe("parse");
     expect(logged.parseFailure).toBe("json");
     expect(Object.keys(logged)).not.toContain("schemaIssues");
+    // Its shape, never its text (issue #512).
+    expect(logged.textStart).toBe("fence");
+    expect(logged.textLength).toBe(fenced.content[0]!.text.length);
   });
 
   it("a miss followed by a conforming retry is a success, and its line carries none of the failure fields", async () => {
@@ -767,6 +764,208 @@ describe("llm() — an answer that came back and missed is a `parse` failure, ne
     expect(logged.parseOutcome).toBe("success");
     expect(Object.keys(logged).sort()).toEqual(
       ["costCents", "durationMs", "parseOutcome", "site", "tier", "tokensIn", "tokensOut"].sort()
+    );
+  });
+});
+
+describe("llm() — structured output: the call site's schema as one forced tool (issue #512)", () => {
+  /** What the vendor's `tool_use.name` may carry. */
+  const TOOL_NAME = /^[a-zA-Z0-9_-]{1,128}$/;
+
+  function sentRequest(index = 0): Record<string, unknown> {
+    return createMock.mock.calls[index]![0] as Record<string, unknown>;
+  }
+
+  it("every call site's request carries exactly one tool — its schema as JSON Schema — and forces it", async () => {
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    for (const site of Object.keys(INFERENCE_MAX_OUTPUT_TOKENS) as (keyof typeof INFERENCE_MAX_OUTPUT_TOKENS)[]) {
+      createMock.mockReset();
+      createMock.mockResolvedValueOnce(toolUseMessage({ headline: "ok" }));
+      await llm(fakeCostContext().ctx, { site, input: {}, schema: SCHEMA, tier: "nano" });
+
+      const sent = sentRequest();
+      const name = site.replace(/[^a-zA-Z0-9_-]/g, "_");
+      expect(name).toMatch(TOOL_NAME);
+      expect(sent.tools).toEqual([
+        {
+          name,
+          input_schema: {
+            type: "object",
+            properties: { headline: { type: "string" } },
+            required: ["headline"],
+            additionalProperties: false,
+          },
+        },
+      ]);
+      expect(sent.tool_choice).toEqual({ type: "tool", name });
+    }
+  });
+
+  it("a dotted call site is named with `_` — `generate.brief` is not a tool name the vendor accepts", async () => {
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    createMock.mockResolvedValueOnce(toolUseMessage({ headline: "ok" }));
+    await llm(fakeCostContext().ctx, { site: "generate.brief", input: {}, schema: SCHEMA, tier: "nano" });
+    expect((sentRequest().tool_choice as { name: string }).name).toBe("generate_brief");
+  });
+
+  it("the `tool_use` block's input is the value — measured on the first attempt, with no text parsed", async () => {
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    const message = toolUseMessage({ headline: "from the tool" });
+    // A preamble the model may still write beside the call is not read.
+    message.content.unshift({ type: "text", text: "Sure, here it is:" } as never);
+    createMock.mockResolvedValueOnce(message);
+
+    const result = await llm(fakeCostContext().ctx, { site: "profile", input: {}, schema: SCHEMA, tier: "nano" });
+
+    expect(createMock).toHaveBeenCalledTimes(1);
+    expect(result).toMatchObject({ kind: "measured", value: { headline: "from the tool" } });
+  });
+
+  it("the Zod schema stays the gate on the tool path — a non-conforming input is a `schema` miss, retried once, never returned", async () => {
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    createMock.mockResolvedValueOnce(toolUseMessage({ wrong: "shape" }));
+    createMock.mockResolvedValueOnce(toolUseMessage({ headline: 7 }));
+
+    const result = await llm(fakeCostContext().ctx, { site: "profile", input: {}, schema: SCHEMA, tier: "nano" });
+
+    expect(createMock).toHaveBeenCalledTimes(2);
+    expect(result).toMatchObject({ kind: "unmeasured", reason: "undeterminable" });
+    const logged = JSON.parse(logSpy.mock.calls[0]![0] as string) as Record<string, unknown>;
+    expect(logged.parseFailure).toBe("schema");
+    expect(logged.schemaIssues).toEqual(["headline:invalid_type"]);
+    expect(Object.keys(logged)).not.toContain("textStart");
+  });
+
+  it("`question-phrasing` rides the same path: its list wrapped in `questions`, sent as a forced tool, unwrapped after parsing", async () => {
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    const { phraseQuestions } = await import("../../src/lib/market/questions/phrase.ts");
+    createMock.mockResolvedValueOnce(
+      toolUseMessage({ questions: [{ id: "q1", text: "Which onboarding tool is best?" }] }, 100, 50, "question-phrasing")
+    );
+
+    const result = await phraseQuestions(fakeCostContext().ctx, {
+      selected: [
+        { keyword: "best user onboarding software", volume: 2400, intent: "decision", score: 10.1, rank: 1 },
+      ] as never,
+    });
+
+    const sent = sentRequest();
+    expect(sent.tool_choice).toEqual({ type: "tool", name: "question-phrasing" });
+    const tool = (sent.tools as { input_schema: { type: string; properties: Record<string, unknown> } }[])[0]!;
+    expect(tool.input_schema.type).toBe("object");
+    expect(Object.keys(tool.input_schema.properties)).toEqual(["questions"]);
+    expect(JSON.stringify(result)).toContain("Which onboarding tool is best?");
+  });
+
+  it("a schema whose JSON Schema is not an object goes out as plain text, with no tool, and the text is read", async () => {
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    createMock.mockResolvedValueOnce(textMessage(["a", "b"]));
+
+    const result = await llm(fakeCostContext().ctx, {
+      site: "profile",
+      input: {},
+      schema: z.array(z.string()),
+      tier: "nano",
+    });
+
+    expect(Object.keys(sentRequest())).not.toContain("tools");
+    expect(Object.keys(sentRequest())).not.toContain("tool_choice");
+    expect(result).toMatchObject({ kind: "measured", value: ["a", "b"] });
+  });
+});
+
+describe("llm() — the text path tolerates a fence and prose around the object (issue #512)", () => {
+  async function readText(text: string) {
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    createMock.mockResolvedValueOnce(rawTextMessage(text));
+    createMock.mockResolvedValueOnce(rawTextMessage(text));
+    return llm(fakeCostContext().ctx, { site: "profile", input: {}, schema: SCHEMA, tier: "nano" });
+  }
+
+  it("a fenced answer parses — the fence is stripped, on the first attempt", async () => {
+    const result = await readText('```json\n{"headline": "fenced"}\n```');
+    expect(createMock).toHaveBeenCalledTimes(1);
+    expect(result).toMatchObject({ kind: "measured", value: { headline: "fenced" } });
+  });
+
+  it("a fence with no language tag parses too", async () => {
+    const result = await readText('```\n{"headline": "bare fence"}\n```\n');
+    expect(result).toMatchObject({ kind: "measured", value: { headline: "bare fence" } });
+  });
+
+  it("a sentence before the object parses — the first balanced object is read", async () => {
+    const result = await readText('Here is the JSON you asked for: {"headline": "after a sentence"}');
+    expect(createMock).toHaveBeenCalledTimes(1);
+    expect(result).toMatchObject({ kind: "measured", value: { headline: "after a sentence" } });
+  });
+
+  it("trailing prose after the object parses", async () => {
+    const result = await readText('{"headline": "before prose"}\n\nLet me know if you need anything else.');
+    expect(createMock).toHaveBeenCalledTimes(1);
+    expect(result).toMatchObject({ kind: "measured", value: { headline: "before prose" } });
+  });
+
+  it("a bracketed aside before the object, and a brace inside a string, do not throw the count", async () => {
+    const result = await readText('The answer [draft]: {"headline": "a } inside \\"quotes\\""} — that\'s all.');
+    expect(result).toMatchObject({ kind: "measured", value: { headline: 'a } inside "quotes"' } });
+  });
+
+  it("nothing is coerced: a balanced object the schema refuses is still a `schema` miss", async () => {
+    const result = await readText('Sure: {"wrong": "shape"} and that is it.');
+    expect(createMock).toHaveBeenCalledTimes(2);
+    expect(result).toMatchObject({ kind: "unmeasured", reason: "undeterminable" });
+  });
+});
+
+describe("llm() — a `json` miss logs the text's shape, never the text (issue #512)", () => {
+  it.each([
+    ["", "empty"],
+    ["   \n ", "empty"],
+    ['```json\n{"headline": "cut', "fence"],
+    ['{"headline": "cut off at max_tok', "brace"],
+    ['[{"headline": ', "bracket"],
+    ["I could not read that page, sorry.", "letter"],
+    ["  Écrit en prose.", "letter"],
+    ["42 is not an object", "other"],
+  ])("%j reads textStart %s and its length", async (text, textStart) => {
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    createMock.mockResolvedValueOnce(rawTextMessage(text));
+    createMock.mockResolvedValueOnce(rawTextMessage(text));
+
+    await llm(fakeCostContext().ctx, { site: "profile", input: {}, schema: SCHEMA, tier: "nano" });
+
+    const logged = JSON.parse(logSpy.mock.calls[0]![0] as string) as Record<string, unknown>;
+    expect(logged.failure).toBe("parse");
+    expect(logged.parseFailure).toBe("json");
+    expect(logged.textStart).toBe(textStart);
+    expect(logged.textLength).toBe(text.length);
+  });
+
+  it("no character of the text reaches the log", async () => {
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    const marker = "COMPLETION-TEXT-MARKER-9c1d";
+    createMock.mockResolvedValueOnce(rawTextMessage(`${marker} is what I found.`));
+    createMock.mockResolvedValueOnce(rawTextMessage(`${marker} is what I found.`));
+
+    await llm(fakeCostContext().ctx, { site: "profile", input: {}, schema: SCHEMA, tier: "nano" });
+
+    for (const call of logSpy.mock.calls) expect(JSON.stringify(call)).not.toContain(marker);
+    const logged = JSON.parse(logSpy.mock.calls[0]![0] as string) as Record<string, unknown>;
+    expect(Object.keys(logged).sort()).toEqual(
+      [
+        "costCents",
+        "durationMs",
+        "failure",
+        "parseFailure",
+        "parseOutcome",
+        "retryExhausted",
+        "site",
+        "textLength",
+        "textStart",
+        "tier",
+        "tokensIn",
+        "tokensOut",
+      ].sort()
     );
   });
 });

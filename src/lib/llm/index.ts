@@ -46,7 +46,7 @@
 //   `{ skipped: "cap" }`). Recorded as an open `rests-on` row on WO-026.
 import Anthropic from "@anthropic-ai/sdk";
 import { createHash } from "node:crypto";
-import type { ZodType } from "zod";
+import { z, type ZodType } from "zod";
 import { INFERENCE_MAX_OUTPUT_TOKENS, INFERENCE_MAX_RETRIES } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
@@ -87,9 +87,17 @@ type ParseOutcome = "success" | "unparseable" | "unavailable" | "not_attempted";
 type FailureClass = "timeout" | "parse" | "vendor" | `http_${number}`;
 
 /** Why an answer that came back did not parse (issue #462): `json` — the
- *  text was not JSON at all (a code fence, prose, or an answer cut off at
- *  `max_tokens`); `schema` — JSON that the caller's schema refused. */
+ *  text was not JSON at all, even after `parseJson` below stripped a fence
+ *  and looked for the first balanced object (prose with no object in it, or
+ *  an answer cut off at `max_tokens`); `schema` — JSON that the caller's
+ *  schema refused. */
 type ParseFailureKind = "json" | "schema";
+
+/** What a `json` miss's text began with (issue #512), after any leading
+ *  whitespace: a Markdown fence, an object, an array, a word, nothing at
+ *  all, or anything else. A closed word, so the log can say *what kind* of
+ *  text came back without carrying one character of it. */
+type TextStart = "fence" | "brace" | "bracket" | "letter" | "empty" | "other";
 
 /** Why a `parse` failure got no further attempt: `attempts` — both were
  *  spent; `budget` — an answer came back, did not parse, and the call's
@@ -106,6 +114,11 @@ type RetryExhausted = "attempts" | "budget";
 interface ParseDiagnosis {
   parseFailure: ParseFailureKind;
   schemaIssues?: string[];
+  /** Present only with `parseFailure: "json"` (issue #512): the shape of
+   *  the text that would not parse — its first character's class and its
+   *  length — and never the text. */
+  textStart?: TextStart;
+  textLength?: number;
 }
 
 interface AttemptOutcome {
@@ -177,19 +190,150 @@ function estimateTokens(text: string): number {
   return Math.max(1, Math.ceil(text.length / 4));
 }
 
-function extractText(message: Anthropic.Message): string {
+/** A tool name the vendor accepts is `[a-zA-Z0-9_-]{1,128}`; a call site
+ *  such as `generate.brief` carries a dot, so every other character is
+ *  written as `_`. The name is a label for the one tool offered — nothing
+ *  reads it back but `tool_choice`. */
+const TOOL_NAME_UNSAFE = /[^a-zA-Z0-9_-]/g;
+
+/** The one tool a call offers, and forces (issue #512). */
+interface ForcedTool {
+  name: string;
+  input_schema: Anthropic.Tool.InputSchema;
+}
+
+/** The call site's schema as one forced tool: the model answers by calling
+ *  it, and the vendor returns the answer as a `tool_use` block's `input` —
+ *  an already-parsed value, never text a fence or a sentence can wrap. A
+ *  system line asking for "JSON only" is a request; this is the shape of
+ *  the response (M3 live run 6: two profile answers inside budget, neither
+ *  JSON).
+ *
+ *  `null` — the call goes out as plain text, read by `parseJson` — for a
+ *  schema whose JSON Schema is not an object (the vendor's `input_schema`
+ *  must be one; a top-level-array site wraps its array at the call site,
+ *  as `question-phrasing` does) or that Zod cannot express as JSON Schema
+ *  at all. Building the request never throws: `llm()` does not. The Zod
+ *  `safeParse` below stays the gate on either path. */
+function forcedToolFor(site: LlmCallSite, schema: ZodType<unknown>): ForcedTool | null {
+  let jsonSchema: Record<string, unknown>;
+  try {
+    jsonSchema = { ...(z.toJSONSchema(schema) as Record<string, unknown>) };
+  } catch {
+    return null;
+  }
+  if (jsonSchema.type !== "object") return null;
+  // The dialect marker is the document's, not the tool input's shape.
+  delete jsonSchema.$schema;
+  return {
+    name: site.replace(TOOL_NAME_UNSAFE, "_"),
+    input_schema: jsonSchema as Anthropic.Tool.InputSchema,
+  };
+}
+
+/** What one response carried: the forced tool's `input` where the model
+ *  called it, and otherwise its text. */
+type Answer = { kind: "tool"; value: unknown } | { kind: "text"; text: string };
+
+function readAnswer(message: Anthropic.Message, tool: ForcedTool | null): Answer {
+  if (tool !== null) {
+    // One tool is offered and it is forced, so any `tool_use` block is it.
+    const called = message.content.find(
+      (candidate): candidate is Anthropic.ToolUseBlock => candidate.type === "tool_use"
+    );
+    if (called !== undefined) return { kind: "tool", value: called.input };
+  }
   const block = message.content.find(
     (candidate): candidate is Anthropic.TextBlock => candidate.type === "text"
   );
-  return block?.text ?? "";
+  return { kind: "text", text: block?.text ?? "" };
 }
 
-function parseJson(text: string): { ok: true; value: unknown } | { ok: false } {
+type JsonRead = { ok: true; value: unknown } | { ok: false };
+
+function parseWhole(text: string): JsonRead {
   try {
     return { ok: true, value: JSON.parse(text) };
   } catch {
     return { ok: false };
   }
+}
+
+/** A whole answer inside one Markdown fence, with or without a language
+ *  tag: the fence is stripped and what it held is parsed. */
+const SURROUNDING_FENCE = /^\s*```[\w-]*[ \t]*\r?\n?([\s\S]*?)\r?\n?[ \t]*```\s*$/;
+
+/** The first balanced top-level `{…}` or `[…]` in `text` that parses. One
+ *  pass: brackets are counted only inside a candidate (an apostrophe in the
+ *  prose around it is not a string), strings inside a candidate are skipped
+ *  with their escapes, and a candidate whose brackets do not match, or that
+ *  balances and still does not parse, is dropped and the scan goes on. */
+function firstBalancedValue(text: string): JsonRead {
+  let start = -1;
+  const closers: string[] = [];
+  let inString = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (start === -1) {
+      if (ch === "{" || ch === "[") {
+        start = i;
+        closers.push(ch === "{" ? "}" : "]");
+      }
+      continue;
+    }
+    if (inString) {
+      if (ch === "\\") i++;
+      else if (ch === '"') inString = false;
+      continue;
+    }
+    if (ch === '"') inString = true;
+    else if (ch === "{") closers.push("}");
+    else if (ch === "[") closers.push("]");
+    else if (ch === "}" || ch === "]") {
+      if (closers.pop() !== ch) {
+        start = -1;
+        closers.length = 0;
+        continue;
+      }
+      if (closers.length === 0) {
+        const read = parseWhole(text.slice(start, i + 1));
+        if (read.ok) return read;
+        start = -1;
+      }
+    }
+  }
+  return { ok: false };
+}
+
+/** The text path's reader (issue #512) — a response that carried text
+ *  rather than the forced tool's `input`. The whole text first; then the
+ *  inside of a surrounding fence; then the first balanced object or array,
+ *  which is what an answer with a sentence before it or prose after it
+ *  holds. It never coerces: a value comes back only where `JSON.parse`
+ *  accepted a span of the text as written, and the schema still decides. */
+function parseJson(text: string): JsonRead {
+  const whole = parseWhole(text);
+  if (whole.ok) return whole;
+  const fenced = SURROUNDING_FENCE.exec(text);
+  if (fenced !== null) {
+    const inner = parseWhole(fenced[1] ?? "");
+    if (inner.ok) return inner;
+  }
+  return firstBalancedValue(text);
+}
+
+/** The shape of a text that would not parse — see `TextStart`. Its class
+ *  and its length are all that is ever read off it for a log. */
+function textShape(text: string): { textStart: TextStart; textLength: number } {
+  const lead = text.trimStart();
+  let textStart: TextStart;
+  if (lead === "") textStart = "empty";
+  else if (lead.startsWith("```")) textStart = "fence";
+  else if (lead.startsWith("{")) textStart = "brace";
+  else if (lead.startsWith("[")) textStart = "bracket";
+  else if (/^\p{L}/u.test(lead)) textStart = "letter";
+  else textStart = "other";
+  return { textStart, textLength: text.length };
 }
 
 /** One Zod issue as `path:code` — see `ParseDiagnosis`. Every path segment
@@ -225,8 +369,11 @@ async function callModel(
    *  of it — but a retry is handed the remainder, never a second full
    *  one, so no `llm()` call can outlive the number `INFERENCE_TIMEOUT_MS`
    *  states however many attempts it takes inside. */
-  remainingMs: number
-): Promise<{ text: string; tokensIn: number; tokensOut: number }> {
+  remainingMs: number,
+  /** The call site's schema as one forced tool, or `null` for plain text
+   *  (see `forcedToolFor`). */
+  tool: ForcedTool | null
+): Promise<{ answer: Answer; tokensIn: number; tokensOut: number }> {
   const client = new Anthropic({
     apiKey: binding.apiKey,
     timeout: binding.timeoutMs,
@@ -241,11 +388,14 @@ async function callModel(
       max_tokens: maxOutputTokens,
       system: "Respond with JSON only. No prose, no markdown fences, no commentary.",
       messages: [{ role: "user", content: inputText }],
+      ...(tool === null
+        ? {}
+        : { tools: [tool], tool_choice: { type: "tool" as const, name: tool.name } }),
     },
     { timeout: remainingMs }
   );
   return {
-    text: extractText(message),
+    answer: readAnswer(message, tool),
     tokensIn: message.usage.input_tokens,
     tokensOut: message.usage.output_tokens,
   };
@@ -269,7 +419,8 @@ async function runAttempts<T>(
   binding: TierBinding,
   schema: ZodType<T>,
   inputText: string,
-  maxOutputTokens: number
+  maxOutputTokens: number,
+  tool: ForcedTool | null
 ): Promise<AttemptOutcome> {
   const startedAt = Date.now();
   const deadline = startedAt + binding.timeoutMs;
@@ -306,9 +457,9 @@ async function runAttempts<T>(
         failure: "timeout",
       };
     }
-    let response: { text: string; tokensIn: number; tokensOut: number };
+    let response: { answer: Answer; tokensIn: number; tokensOut: number };
     try {
-      response = await callModel(binding, inputText, maxOutputTokens, remainingMs);
+      response = await callModel(binding, inputText, maxOutputTokens, remainingMs, tool);
     } catch (error: unknown) {
       return {
         parseOutcome: "unavailable",
@@ -322,12 +473,18 @@ async function runAttempts<T>(
     tokensIn += response.tokensIn;
     tokensOut += response.tokensOut;
 
-    const asJson = parseJson(response.text);
-    if (!asJson.ok) {
-      lastMiss = { parseFailure: "json" };
-      continue;
+    let candidate: unknown;
+    if (response.answer.kind === "tool") {
+      candidate = response.answer.value;
+    } else {
+      const asJson = parseJson(response.answer.text);
+      if (!asJson.ok) {
+        lastMiss = { parseFailure: "json", ...textShape(response.answer.text) };
+        continue;
+      }
+      candidate = asJson.value;
     }
-    const parsed = schema.safeParse(asJson.value);
+    const parsed = schema.safeParse(candidate);
     if (parsed.success) {
       return {
         parseOutcome: "success",
@@ -342,7 +499,7 @@ async function runAttempts<T>(
       schemaIssues: [...new Set(parsed.error.issues.map(issueLabel))],
     };
     // Falls through to the next attempt (if any is left) — never
-    // returns `response.text` itself as the value.
+    // returns the response's text or its tool input as the value.
   }
 
   // Every attempt returned (a transport failure returns above), so the
@@ -368,6 +525,9 @@ interface LogRecord {
   retryExhausted?: RetryExhausted;
   parseFailure?: ParseFailureKind;
   schemaIssues?: string[];
+  /** Present only with `parseFailure: "json"` (issue #512). */
+  textStart?: TextStart;
+  textLength?: number;
 }
 
 /** BP-009 `## NFR budget`, verbatim: "call site, tier, tokens in and out,
@@ -386,7 +546,9 @@ interface LogRecord {
  *  the six fields BP-009 names. A `parse` failure adds three more (issue
  *  #462): whether a retry was still possible, whether the answer was not
  *  JSON or not the schema, and — for a schema miss — the schema's own
- *  field paths and Zod's issue codes. None of the three is ever a value. */
+ *  field paths and Zod's issue codes. None of the three is ever a value. A
+ *  `json` miss adds the text's shape instead (issue #512): its first
+ *  character's class and its length — never a character of it. */
 function logCall(record: LogRecord): void {
   console.log(JSON.stringify(record));
 }
@@ -410,6 +572,7 @@ export async function llm<T>(
   const binding = tierBinding(call.tier);
   const inputText = JSON.stringify(call.input);
   const maxOutputTokens = INFERENCE_MAX_OUTPUT_TOKENS[call.site];
+  const tool = forcedToolFor(call.site, call.schema);
   const cacheKey = createHash("sha256").update(`${call.site}:${call.tier}:${inputText}`).digest("hex");
   const reservedCents = costCentsFor(
     call.tier,
@@ -428,7 +591,7 @@ export async function llm<T>(
     freshnessDays: 0,
     costCents: reservedCents,
     settleCents: (outcome) => costCentsFor(call.tier, outcome.tokensIn, outcome.tokensOut),
-    run: () => runAttempts(binding, call.schema, inputText, maxOutputTokens),
+    run: () => runAttempts(binding, call.schema, inputText, maxOutputTokens, tool),
   });
 
   if ("skipped" in result) {
