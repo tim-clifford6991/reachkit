@@ -41,7 +41,7 @@ describe("issue #404 — every screen id the sweep reports has an approved rende
     const missing = [...keys.keys()].filter((screen) => approvedRender(screen, keys) === null);
     expect(
       missing,
-      `no docs/design/approved/full-set/screens/<key>-light.png for: ${missing.join(", ")}`
+      `no docs/archive/2026-09-11/approved/full-set/screens/<key>-light.png for: ${missing.join(", ")}`
     ).toEqual([]);
   });
 

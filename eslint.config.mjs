@@ -154,6 +154,6 @@ export default tseslint.config(
     rules: { "local/no-fetch-outside-egress": "error" },
   },
   {
-    ignores: [".next/**", "node_modules/**", "coverage/**", "archive/**", "src/**/*.generated.ts"],
+    ignores: [".next/**", "node_modules/**", "coverage/**", "archive/**", "docs/archive/**", "src/**/*.generated.ts"],
   }
 );

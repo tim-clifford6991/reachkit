@@ -1,0 +1,84 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+* { box-sizing: border-box; }
+body { margin: 0; background: #f6f6f9; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #191925; }
+a { color: #5b4be0; text-decoration: none; }
+a:hover { color: #4a3bc7; text-decoration: underline; }
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+</helmet>
+
+<div style="box-sizing:border-box; width:600px; padding:24px 20px 32px; background:#f6f6f9; font-family:'Plus Jakarta Sans',-apple-system,'Segoe UI',sans-serif; color:#191925;">
+
+  <div style="box-sizing:border-box; width:560px; background:#ffffff; border:1px solid #eaeaf1; border-radius:14px; box-shadow:0 1px 3px rgb(24 24 48/.045); padding:32px; display:flex; flex-direction:column; gap:18px;">
+
+    <div style="display:flex; align-items:center; gap:10px;">
+      <svg width="24" height="24" viewBox="0 0 28 28" fill="none" style="display: block; flex: none;"><rect width="28" height="28" rx="9" fill="#5b4be0"></rect><circle cx="14" cy="14" r="1.7" fill="#ffffff"></circle><path d="M14 19 A5 5 0 1 1 19 14" stroke="#ffffff" stroke-width="1.7" fill="none" stroke-linecap="round"></path><path d="M14 23 A9 9 0 1 1 23 14" stroke="#c3b2ff" stroke-width="1.7" fill="none" stroke-linecap="round"></path></svg>
+      <span style="font-size:17px; font-weight:700; letter-spacing:-0.01em; color:#191925;">ReachKit</span>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:10px;">
+      <div style="font-size:11px; text-transform:uppercase; font-weight:700; letter-spacing:.1em; color:#9695a8;">ONBOARDING &middot; 1 OF 4</div>
+      <div style="font-size:25px; line-height:1.2; font-weight:700; color:#191925;">[COPY: welcome heading &mdash; the subscription is live and this is what happens next]</div>
+      <div style="font-size:15px; line-height:1.6; color:#5e5e73;">[COPY: one line &mdash; setup is three decisions, then the first scan runs and the first page is written]</div>
+    </div>
+
+    <div style="box-sizing:border-box; background:#eeecfd; border:1px solid #ddd8fa; border-radius:14px; padding:16px; display:flex; flex-direction:column; gap:10px;">
+      <div style="display:flex; align-items:flex-start; gap:12px;">
+        <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:12px; font-weight:600; color:#9695a8; width:20px; padding-top:2px;">01</span>
+        <div style="display:flex; flex-direction:column; gap:2px; flex:1;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:15px; font-weight:600; color:#191925;">Paid</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1f8a6b" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex; align-items:flex-start; gap:12px;">
+        <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:12px; font-weight:600; color:#9695a8; width:20px; padding-top:2px;">02</span>
+        <div style="display:flex; flex-direction:column; gap:2px; flex:1;">
+          <div style="font-size:15px; font-weight:600; color:#191925;">Setup</div>
+          <div style="font-size:13px; line-height:1.5; color:#5e5e73;">Three decisions, then we start.</div>
+        </div>
+      </div>
+      <div style="display:flex; align-items:flex-start; gap:12px;">
+        <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:12px; font-weight:600; color:#9695a8; width:20px; padding-top:2px;">03</span>
+        <div style="display:flex; flex-direction:column; gap:2px; flex:1;">
+          <div style="font-size:15px; font-weight:600; color:#191925;">[COPY: step label &mdash; the first scan of your market]</div>
+          <div style="font-size:13px; line-height:1.5; color:#5e5e73;">[COPY: line &mdash; the scan measures your site, your market and your rivals]</div>
+        </div>
+      </div>
+      <div style="display:flex; align-items:flex-start; gap:12px;">
+        <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:12px; font-weight:600; color:#9695a8; width:20px; padding-top:2px;">04</span>
+        <div style="display:flex; flex-direction:column; gap:2px; flex:1;">
+          <div style="font-size:15px; font-weight:600; color:#191925;">First page</div>
+          <div style="font-size:13px; line-height:1.5; color:#5e5e73;">Start &mdash; first page in ~3 minutes.</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:12px;">
+      <a href="https://reachkit.app/setup" style="display:inline-flex; align-items:center; height:40px; padding:0 18px; border-radius:999px; background:#5b4be0; color:#ffffff; font-size:14px; font-weight:600; text-decoration:none;">Finish setup</a>
+      <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:13px; color:#9695a8;">reachkit.app/setup</span>
+    </div>
+
+    <div style="height:1px; background:#eaeaf1;"></div>
+
+    <div style="display:flex; flex-direction:column; gap:6px;">
+      <div style="font-size:12px; line-height:1.5; color:#9695a8;">[COPY: why you got this &mdash; it follows your payment, and this mail cannot be switched off]</div>
+      <div style="font-size:12px; line-height:1.5; color:#9695a8;">To reach a person, reply to this mail.</div>
+      <div style="font-size:12px; line-height:1.5; color:#9695a8;">ReachKit &middot; [[imprint: owner fills legal entity, city]] &middot; plain-text version attached</div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

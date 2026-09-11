@@ -1,0 +1,90 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+* { box-sizing: border-box; }
+body { margin: 0; background: #f6f6f9; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #191925; }
+a { color: #5b4be0; text-decoration: none; }
+a:hover { color: #4a3bc7; text-decoration: underline; }
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+</helmet>
+
+<div style="box-sizing:border-box; width:600px; padding:24px 20px 32px; background:#f6f6f9; font-family:'Plus Jakarta Sans',-apple-system,'Segoe UI',sans-serif; color:#191925;">
+
+  <div style="box-sizing:border-box; width:560px; background:#ffffff; border:1px solid #eaeaf1; border-radius:14px; box-shadow:0 1px 3px rgb(24 24 48/.045); padding:32px; display:flex; flex-direction:column; gap:20px;">
+
+    <div style="display:flex; align-items:center; gap:10px;">
+      <svg width="24" height="24" viewBox="0 0 28 28" fill="none" style="display: block; flex: none;"><rect width="28" height="28" rx="9" fill="#5b4be0"></rect><circle cx="14" cy="14" r="1.7" fill="#ffffff"></circle><path d="M14 19 A5 5 0 1 1 19 14" stroke="#ffffff" stroke-width="1.7" fill="none" stroke-linecap="round"></path><path d="M14 23 A9 9 0 1 1 23 14" stroke="#c3b2ff" stroke-width="1.7" fill="none" stroke-linecap="round"></path></svg>
+      <span style="font-size:17px; font-weight:700; letter-spacing:-0.01em; color:#191925;">ReachKit</span>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:10px;">
+      <div style="font-size:11px; text-transform:uppercase; font-weight:700; letter-spacing:.1em; color:#9695a8;">LEAD NURTURE &middot; 1 OF 3</div>
+      <div style="font-size:25px; line-height:1.2; font-weight:700; color:#191925;">Your report is ready</div>
+      <div style="font-size:15px; line-height:1.6; color:#5e5e73;">The whole verdict is on the report, free and permanent.</div>
+    </div>
+
+    <div style="box-sizing:border-box; background:#ffffff; border:1px solid #eaeaf1; border-radius:14px; padding:20px; display:flex; flex-direction:column; gap:0;">
+      <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:16px;">
+        <div style="display:flex; flex-direction:column; gap:4px;">
+          <div style="font-size:11px; text-transform:uppercase; font-weight:700; letter-spacing:.1em; color:#9695a8;">Discoverability Score</div>
+          <div style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:44px; font-weight:600; line-height:1; color:#191925;">38</div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:6px; align-items:flex-end;">
+          <span style="display:inline-flex; align-items:center; border-radius:999px; background:#fff3e6; border:1px solid #fbe1c6; color:#b8722a; font-size:12px; font-weight:600; padding:2px 10px;">Hard to find</span>
+          <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:13px; color:#9695a8;">example.com</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap:12px;">
+      <div style="box-sizing:border-box; background:#ffffff; border:1px solid #eaeaf1; border-radius:9px; padding:12px; display:flex; flex-direction:column; gap:6px;">
+        <div style="font-size:11px; text-transform:uppercase; font-weight:700; letter-spacing:.1em; color:#9695a8;">Foundations</div>
+        <div style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:20px; font-weight:600; color:#191925;">61</div>
+        <div style="height:4px; border-radius:999px; background:#efeff4;">
+          <div style="width:61%; height:4px; border-radius:999px; background:#5b4be0;"></div>
+        </div>
+      </div>
+      <div style="box-sizing:border-box; background:#ffffff; border:1px solid #eaeaf1; border-radius:9px; padding:12px; display:flex; flex-direction:column; gap:6px;">
+        <div style="font-size:11px; text-transform:uppercase; font-weight:700; letter-spacing:.1em; color:#9695a8;">Answerability</div>
+        <div style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:20px; font-weight:600; color:#191925;">34</div>
+        <div style="height:4px; border-radius:999px; background:#efeff4;">
+          <div style="width:34%; height:4px; border-radius:999px; background:#5b4be0;"></div>
+        </div>
+      </div>
+      <div style="box-sizing:border-box; background:#ffffff; border:1px solid #eaeaf1; border-radius:9px; padding:12px; display:flex; flex-direction:column; gap:6px;">
+        <div style="font-size:11px; text-transform:uppercase; font-weight:700; letter-spacing:.1em; color:#9695a8;">Presence</div>
+        <div style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:20px; font-weight:600; color:#191925;">22</div>
+        <div style="height:4px; border-radius:999px; background:#efeff4;">
+          <div style="width:22%; height:4px; border-radius:999px; background:#5b4be0;"></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:12px;">
+      <a href="https://reachkit.app/r/example-com" style="display:inline-flex; align-items:center; height:40px; padding:0 18px; border-radius:999px; background:#5b4be0; color:#ffffff; font-size:14px; font-weight:600; text-decoration:none;">Open the report</a>
+      <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:13px; color:#9695a8;">reachkit.app/r/example-com</span>
+    </div>
+
+    <div style="font-size:13px; line-height:1.5; color:#5e5e73;">[COPY: 13px line &mdash; this is the first of three mails about this report, and the third is the last]</div>
+
+    <div style="height:1px; background:#eaeaf1;"></div>
+
+    <div style="display:flex; flex-direction:column; gap:6px;">
+      <div style="font-size:12px; line-height:1.5; color:#9695a8;">Opt out of all follow-up: one link, every domain, for good. &mdash; <a href="https://reachkit.app/optout" style="font-size:12px;">Opt out of all follow-up mail</a></div>
+      <div style="font-size:12px; line-height:1.5; color:#9695a8;">Own this site and want the report taken down? Write to <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:12px; color:#9695a8;">remove@reachkit.app</span>.</div>
+      <div style="font-size:12px; line-height:1.5; color:#9695a8;">ReachKit &middot; [[imprint: owner fills legal entity, city]] &middot; plain-text version attached</div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

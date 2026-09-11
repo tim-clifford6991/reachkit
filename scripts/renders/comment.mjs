@@ -41,7 +41,7 @@ if (rendered.length === 0) {
     .filter(Boolean)
     .join(", ");
   lines.push(
-    `${counted}. **Left is \`docs/design/approved/full-set/screens/\`; right is this branch.**`
+    `${counted}. **Left is \`docs/archive/2026-09-11/approved/full-set/screens/\`; right is this branch.**`
   );
   lines.push("");
   for (const row of rendered) {

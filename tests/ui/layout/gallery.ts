@@ -36,7 +36,7 @@ import {
 
 const REPO = path.resolve(__dirname, "../../..");
 const APP_ROOT = path.join(REPO, "src/app");
-const SCREENS_DIR = path.join(REPO, "docs/design/approved/full-set/screens");
+const SCREENS_DIR = path.join(REPO, "docs/archive/2026-09-11/approved/full-set/screens");
 
 /** Where a gallery run leaves its pictures. Never committed — `.gitignore`
  *  and `tests/app/toolchain.test.ts` both name it, on the same grounds

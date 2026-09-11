@@ -1,0 +1,110 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+* { box-sizing: border-box; }
+body { margin: 0; background: #f6f6f9; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #191925; }
+a { color: #5b4be0; text-decoration: none; }
+a:hover { color: #4a3bc7; text-decoration: underline; }
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+</helmet>
+
+<div style="box-sizing:border-box; width:600px; padding:24px 20px 32px; background:#f6f6f9; font-family:'Plus Jakarta Sans',-apple-system,'Segoe UI',sans-serif; color:#191925;">
+
+  <div style="box-sizing:border-box; width:560px; background:#ffffff; border:1px solid #eaeaf1; border-radius:14px; box-shadow:0 1px 3px rgb(24 24 48/.045); padding:32px; display:flex; flex-direction:column; gap:18px;">
+
+    <div style="display:flex; align-items:center; gap:10px;">
+      <svg width="24" height="24" viewBox="0 0 28 28" fill="none" style="display: block; flex: none;"><rect width="28" height="28" rx="9" fill="#5b4be0"></rect><circle cx="14" cy="14" r="1.7" fill="#ffffff"></circle><path d="M14 19 A5 5 0 1 1 19 14" stroke="#ffffff" stroke-width="1.7" fill="none" stroke-linecap="round"></path><path d="M14 23 A9 9 0 1 1 23 14" stroke="#c3b2ff" stroke-width="1.7" fill="none" stroke-linecap="round"></path></svg>
+      <span style="font-size:17px; font-weight:700; letter-spacing:-0.01em; color:#191925;">ReachKit</span>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:10px;">
+      <div style="font-size:11px; text-transform:uppercase; font-weight:700; letter-spacing:.1em; color:#9695a8;">WEEKLY DIGEST &middot; MONDAY</div>
+      <div style="font-size:25px; line-height:1.2; font-weight:700; color:#191925;">What moved this week</div>
+      <div style="font-size:15px; line-height:1.6; color:#5e5e73;">Only what was measured. A number that was not measured is not here.</div>
+    </div>
+
+    <div style="display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap:12px;">
+      <div style="box-sizing:border-box; background:#ffffff; border:1px solid #eaeaf1; border-radius:9px; padding:14px; display:flex; flex-direction:column; gap:6px;">
+        <div style="font-size:11px; text-transform:uppercase; font-weight:700; letter-spacing:.1em; color:#9695a8;">Discoverability Score</div>
+        <div style="display:flex; align-items:baseline; gap:8px;">
+          <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:28px; font-weight:600; line-height:1; color:#191925;">46</span>
+          <span style="display:inline-flex; align-items:center; border-radius:999px; background:#e7f6f0; border:1px solid #d2ede3; color:#1f8a6b; font-size:12px; font-weight:600; padding:2px 10px; font-family:'JetBrains Mono',ui-monospace,monospace;">&#9650; 8</span>
+        </div>
+      </div>
+      <div style="box-sizing:border-box; background:#ffffff; border:1px solid #eaeaf1; border-radius:9px; padding:14px; display:flex; flex-direction:column; gap:6px;">
+        <div style="font-size:11px; text-transform:uppercase; font-weight:700; letter-spacing:.1em; color:#9695a8;">AI answers</div>
+        <div style="display:flex; align-items:baseline; gap:8px;">
+          <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:28px; font-weight:600; line-height:1; color:#191925;">3</span>
+          <span style="display:inline-flex; align-items:center; border-radius:999px; background:#e7f6f0; border:1px solid #d2ede3; color:#1f8a6b; font-size:12px; font-weight:600; padding:2px 10px; font-family:'JetBrains Mono',ui-monospace,monospace;">&#9650; 1</span>
+        </div>
+      </div>
+      <div style="box-sizing:border-box; background:#ffffff; border:1px solid #eaeaf1; border-radius:9px; padding:14px; display:flex; flex-direction:column; gap:6px;">
+        <div style="font-size:11px; text-transform:uppercase; font-weight:700; letter-spacing:.1em; color:#9695a8;">pages judged</div>
+        <div style="display:flex; align-items:baseline; gap:8px;">
+          <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:28px; font-weight:600; line-height:1; color:#191925;">6</span>
+          <span style="display:inline-flex; align-items:center; border-radius:999px; background:#e7f6f0; border:1px solid #d2ede3; color:#1f8a6b; font-size:12px; font-weight:600; padding:2px 10px;">Working</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="box-sizing:border-box; background:#efeff4; border-radius:9px; padding:14px; display:flex; flex-direction:column; gap:8px;">
+      <div style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:13px; line-height:1.5; color:#191925;">example.com/holiday-pay &middot; was 31, now 18 &middot; measured 8 Sep</div>
+      <div style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:13px; line-height:1.5; color:#191925;">example.com/payroll-for-five</div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:10px;">
+      <div style="font-size:11px; text-transform:uppercase; font-weight:700; letter-spacing:.1em; color:#9695a8;">next three</div>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:13px; color:#9695a8; width:88px; white-space:nowrap;">Mon 14 Sep</span>
+          <span style="font-size:15px; line-height:1.4; color:#191925; flex:1;">payroll software for five people</span>
+          <span style="display:inline-flex; align-items:center; border-radius:999px; background:#eeecfd; border:1px solid #ddd8fa; color:#5b4be0; font-size:12px; font-weight:600; padding:2px 10px;">Scheduled</span>
+        </div>
+        <div style="height:1px; background:#eaeaf1;"></div>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:13px; color:#9695a8; width:88px; white-space:nowrap;">Tue 15 Sep</span>
+          <span style="font-size:15px; line-height:1.4; color:#191925; flex:1;">holiday pay rules for part-time staff</span>
+          <span style="display:inline-flex; align-items:center; border-radius:999px; background:#fff3e6; border:1px solid #fbe1c6; color:#b8722a; font-size:12px; font-weight:600; padding:2px 10px;">Your review</span>
+        </div>
+        <div style="height:1px; background:#eaeaf1;"></div>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:13px; color:#9695a8; width:88px; white-space:nowrap;">Wed 16 Sep</span>
+          <span style="font-size:15px; line-height:1.4; color:#191925; flex:1;">how to run payroll without an accountant</span>
+          <span style="display:inline-flex; align-items:center; border-radius:999px; background:#efeff4; border:1px solid #eaeaf1; color:#5e5e73; font-size:12px; font-weight:600; padding:2px 10px;">Planned</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="box-sizing:border-box; background:#fff3e6; border:1px solid #fbe1c6; border-radius:14px; padding:16px; display:flex; align-items:flex-start; gap:12px;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#b8722a" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex:none; margin-top:2px;"><path d="M12 9v4"></path><path d="M12 17h.01"></path><path d="M10.3 3.9 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"></path></svg>
+      <div style="display:flex; flex-direction:column; gap:4px; flex:1;">
+        <div style="font-size:13px; line-height:1.5; color:#191925;"><span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:13px; font-weight:600; color:#191925;">3</span> [COPY: technical issues line &mdash; how many issues this week&rsquo;s pass found on your site, and that they are yours to fix]</div>
+        <a href="https://reachkit.app/app/issues" style="font-size:13px;">[COPY: link label &mdash; opens the technical issues list]</a>
+      </div>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:12px;">
+      <a href="https://reachkit.app/app" style="display:inline-flex; align-items:center; height:40px; padding:0 18px; border-radius:999px; background:#5b4be0; color:#ffffff; font-size:14px; font-weight:600; text-decoration:none;">Open the overview</a>
+      <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:13px; color:#9695a8;">reachkit.app/app</span>
+    </div>
+
+    <div style="height:1px; background:#eaeaf1;"></div>
+
+    <div style="display:flex; flex-direction:column; gap:6px;">
+      <div style="font-size:12px; line-height:1.5; color:#9695a8;">Monday movement mail &middot; switch off in Settings &rsaquo; Notifications. &mdash; <a href="https://reachkit.app/app/settings/notifications" style="font-size:12px;">Switch off this mail</a></div>
+      <div style="font-size:12px; line-height:1.5; color:#9695a8;">ReachKit &middot; [[imprint: owner fills legal entity, city]] &middot; plain-text version attached</div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

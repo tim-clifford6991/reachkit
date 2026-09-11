@@ -1,0 +1,373 @@
+<!doctype html><html><head><meta charset="utf-8"><script src="./support.js"></script></head><body><x-dc><helmet><style>
+* { box-sizing: border-box; }
+body { margin: 0; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #191925; }
+a { color: #5b4be0; text-decoration: none; }
+a:hover { color: #4a3bc7; text-decoration: underline; }
+</style><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap"></helmet>
+
+<div style="width: 1280px; background: #f6f6f9; display: flex; flex-direction: column; gap: 0; font-size: 15px; line-height: 1.55; color: #191925;">
+
+  <div style="height: 56px; background: #ffffff; border-bottom: 1px solid #eaeaf1; padding: 0 32px; display: flex; align-items: center; justify-content: space-between;">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <svg width="26" height="26" viewBox="0 0 28 28" fill="none" style="display: block; flex: none;"><rect width="28" height="28" rx="9" fill="#5b4be0"></rect><circle cx="14" cy="14" r="1.7" fill="#ffffff"></circle><path d="M14 19 A5 5 0 1 1 19 14" stroke="#ffffff" stroke-width="1.7" fill="none" stroke-linecap="round"></path><path d="M14 23 A9 9 0 1 1 23 14" stroke="#c3b2ff" stroke-width="1.7" fill="none" stroke-linecap="round"></path></svg>
+      <div style="font-size: 17px; font-weight: 700; letter-spacing: -0.01em;">ReachKit</div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 24px;">
+      <a href="#" style="font-size: 14.5px; font-weight: 500; color: #5e5e73;">Copy link</a>
+      <a href="#" style="font-size: 14.5px; font-weight: 500; color: #5e5e73;">Sign in</a>
+      <div style="height: 40px; padding: 0 18px; border-radius: 999px; background: #5b4be0; color: #ffffff; font-size: 14px; font-weight: 600; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 2px rgb(91 75 224 / 0.25);">Free scan</div>
+    </div>
+  </div>
+
+  <div style="padding: 40px 32px 48px 32px;">
+    <div style="width: 1216px; display: flex; flex-direction: column; gap: 24px;">
+
+      <!-- module 1 · ScoreHero (gauge + band chip + driver bars, then the tinted verdict panel) -->
+      <div style="background: #ffffff; border: 1px solid #eaeaf1; border-radius: 18px; box-shadow: 0 1px 2px rgb(24 24 48 / 0.03); padding: 22px; display: flex; flex-direction: column; gap: 18px;">
+        <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 16px;">
+          <div style="font-size: 15px; font-weight: 700; color: #191925;">Discoverability Score</div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #5e5e73;">example.com · measured 28 Aug</div>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 32px;">
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+            <svg width="170" height="170" viewBox="0 0 200 200" fill="none" style="display: block;">
+              <g transform="rotate(135 100 100)" fill="none" stroke-width="15" stroke-linecap="round">
+                <circle cx="100" cy="100" r="88.5" stroke="#efeff4" stroke-dasharray="417.1 556.1"></circle>
+                <circle cx="100" cy="100" r="88.5" stroke="#b8722a" stroke-dasharray="258.6 556.1"></circle>
+              </g>
+              <text x="100" y="106" text-anchor="middle" style="font: 700 40px 'JetBrains Mono', monospace; fill: #191925;">62</text>
+              <text x="100" y="126" text-anchor="middle" style="font: 600 11px 'JetBrains Mono', monospace; fill: #9695a8; letter-spacing: 1px;">/100</text>
+            </svg>
+            <span style="border-radius: 12px; padding: 5px 13px; background: #fff3e6; color: #b8722a; font-size: 13px; font-weight: 700;">Hard to find</span>
+            </div>
+            <a href="#" style="font-size: 13px;">Not your market?</a>
+          </div>
+          <div style="flex: 1 1 0%; min-width: 260px; display: flex; flex-direction: column; gap: 11px;">
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 10.5px; letter-spacing: 0.03em; text-transform: uppercase; color: #5e5e73;">What drives it</div>
+            <div style="display: flex; flex-direction: column; gap: 13px;">
+              <div style="display: flex; flex-direction: column; gap: 5px;">
+                <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 8px;">
+                  <span style="font-size: 13.5px; font-weight: 600; color: #191925;">Foundations</span>
+                  <span style="font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 700; color: #5b4be0;">7<span style="font-size: 11px; font-weight: 500; color: #5e5e73;">/10</span></span>
+                </div>
+                <div style="height: 8px; border-radius: 5px; background: #efeff4; overflow: hidden; display: flex;"><div style="width: 70%; height: 8px; border-radius: 5px; background: #5b4be0;"></div></div>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 5px;">
+                <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 8px;">
+                  <span style="font-size: 13.5px; font-weight: 600; color: #191925;">Answerability</span>
+                  <span style="font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 700; color: #5b4be0;">4<span style="font-size: 11px; font-weight: 500; color: #5e5e73;">/10</span></span>
+                </div>
+                <div style="height: 8px; border-radius: 5px; background: #efeff4; overflow: hidden; display: flex;"><div style="width: 40%; height: 8px; border-radius: 5px; background: #5b4be0;"></div></div>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 5px;">
+                <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 8px;">
+                  <span style="font-size: 13.5px; font-weight: 600; color: #191925;">Presence</span>
+                  <span style="font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 700; color: #5b4be0;">3<span style="font-size: 11px; font-weight: 500; color: #5e5e73;">/10</span></span>
+                </div>
+                <div style="height: 8px; border-radius: 5px; background: #efeff4; overflow: hidden; display: flex;"><div style="width: 30%; height: 8px; border-radius: 5px; background: #5b4be0;"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="border-radius: 18px; border: 1px solid #ddd8fa; background: linear-gradient(120deg, #f7f5ff, #eeecfd); padding: 18px; display: flex; flex-direction: column; gap: 8px;">
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #5b4be0;">[COPY: eyebrow over the line naming what holds the score down]</div>
+          <div style="font-size: 14px; line-height: 1.5; color: #191925;">What holds your score down most: presence — how often you appear where buyers look, in Google and in AI answers.</div>
+        </div>
+      </div>
+
+      <!-- module 2 · two cards -->
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; align-items: start;">
+
+        <div style="background: #ffffff; border: 1px solid #eaeaf1; border-radius: 18px; box-shadow: 0 1px 2px rgb(24 24 48 / 0.03); padding: 22px; display: flex; flex-direction: column; gap: 12px;">
+          <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 16px;">
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #191925;">AI answers</div>
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #5e5e73;">Google AI answers · 28 Aug</div>
+          </div>
+          <div style="font-size: 12.5px; color: #5e5e73;">AI answers appear on 9 of your 12 biggest searches</div>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="width: 170px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #5e5e73; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">rival-one.example.net</div>
+              <div style="flex: 1; display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 4px;"><div style="height: 14px; border-radius: 3px; background: #787790;"></div><div style="height: 14px; border-radius: 3px; background: #efeff4;"></div><div style="height: 14px; border-radius: 3px; background: #787790;"></div><div style="height: 14px; border-radius: 3px; background: #787790;"></div><div style="height: 14px; border-radius: 3px; background: #efeff4;"></div><div style="height: 14px; border-radius: 3px; background: #787790;"></div><div style="height: 14px; border-radius: 3px; background: #ffffff; border: 1px solid #eaeaf1;"></div><div style="height: 14px; border-radius: 3px; background: #787790;"></div><div style="height: 14px; border-radius: 3px; background: #787790;"></div><div style="height: 14px; border-radius: 3px; background: #efeff4;"></div><div style="height: 14px; border-radius: 3px; background: #787790;"></div><div style="height: 14px; border-radius: 3px; background: #ffffff; border: 1px solid #eaeaf1;"></div></div>
+              <div style="width: 40px; text-align: right; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #5e5e73;">7/9</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="width: 170px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #5e5e73; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">rival-two.example.net</div>
+              <div style="flex: 1; display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 4px;"><div style="height: 14px; border-radius: 3px; background: #787790;"></div><div style="height: 14px; border-radius: 3px; background: #efeff4;"></div><div style="height: 14px; border-radius: 3px; background: #ffffff; border: 1px solid #eaeaf1;"></div><div style="height: 14px; border-radius: 3px; background: #787790;"></div><div style="height: 14px; border-radius: 3px; background: #efeff4;"></div><div style="height: 14px; border-radius: 3px; background: #787790;"></div><div style="height: 14px; border-radius: 3px; background: #ffffff; border: 1px solid #eaeaf1;"></div><div style="height: 14px; border-radius: 3px; background: #787790;"></div><div style="height: 14px; border-radius: 3px; background: #ffffff; border: 1px solid #eaeaf1;"></div><div style="height: 14px; border-radius: 3px; background: #efeff4;"></div><div style="height: 14px; border-radius: 3px; background: #787790;"></div><div style="height: 14px; border-radius: 3px; background: #ffffff; border: 1px solid #eaeaf1;"></div></div>
+              <div style="width: 40px; text-align: right; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #5e5e73;">5/9</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="width: 170px; font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; color: #191925; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">example.com</div>
+              <div style="flex: 1; display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 4px;"><div style="height: 14px; border-radius: 3px; background: #ffffff; border: 1px solid #f8d5cd;"></div><div style="height: 14px; border-radius: 3px; background: #efeff4;"></div><div style="height: 14px; border-radius: 3px; background: #ffffff; border: 1px solid #f8d5cd;"></div><div style="height: 14px; border-radius: 3px; background: #ffffff; border: 1px solid #f8d5cd;"></div><div style="height: 14px; border-radius: 3px; background: #efeff4;"></div><div style="height: 14px; border-radius: 3px; background: #ffffff; border: 1px solid #f8d5cd;"></div><div style="height: 14px; border-radius: 3px; background: #ffffff; border: 1px solid #f8d5cd;"></div><div style="height: 14px; border-radius: 3px; background: #ffffff; border: 1px solid #f8d5cd;"></div><div style="height: 14px; border-radius: 3px; background: #ffffff; border: 1px solid #f8d5cd;"></div><div style="height: 14px; border-radius: 3px; background: #efeff4;"></div><div style="height: 14px; border-radius: 3px; background: #ffffff; border: 1px solid #f8d5cd;"></div><div style="height: 14px; border-radius: 3px; background: #ffffff; border: 1px solid #f8d5cd;"></div></div>
+              <div style="width: 40px; text-align: right; font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; color: #c0432b;">0/9</div>
+            </div>
+          </div>
+          <div style="font-size: 13px; color: #5e5e73;">You’re named in 0 of the 9 AI answers that appeared.</div>
+          <div style="font-size: 11.5px; color: #9695a8;">Filled: named in that answer · Empty: not named · Muted: no AI answer appeared</div>
+          <div style="display: flex; flex-direction: column; gap: 12px; border-top: 1px solid #eaeaf1; padding-top: 16px;">
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #191925;">The 12 questions</div>
+            <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;">
+              <div style="min-width: 0; border: 1px solid #eaeaf1; border-radius: 12px; background: #efeff4; padding: 14px; display: flex; flex-direction: column; gap: 8px;">
+                <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 8px;">
+                  <span style="font-size: 12.5px; font-weight: 600; line-height: 1.25; color: #191925;">1 · [question]</span>
+                  <span style="flex: none; font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700; color: #c0432b;">not you</span>
+                </div>
+                <div style="height: 6px; border-radius: 3px; background: #ffffff; overflow: hidden; display: flex;"></div>
+                <div style="font-family: 'JetBrains Mono', monospace; font-size: 10.5px; line-height: 1.5; color: #5e5e73;">from: [search] · named: [brands]</div>
+              </div>
+              <div style="min-width: 0; border: 1px solid #eaeaf1; border-radius: 12px; background: #efeff4; padding: 14px; display: flex; flex-direction: column; gap: 8px;">
+                <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 8px;">
+                  <span style="font-size: 12.5px; font-weight: 600; line-height: 1.25; color: #191925;">2 · [question]</span>
+                  <span style="flex: none; font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700; color: #c0432b;">not you</span>
+                </div>
+                <div style="height: 6px; border-radius: 3px; background: #ffffff; overflow: hidden; display: flex;"></div>
+                <div style="font-family: 'JetBrains Mono', monospace; font-size: 10.5px; line-height: 1.5; color: #5e5e73;">from: [search] · named: [brands]</div>
+              </div>
+              <div style="min-width: 0; border: 1px solid #eaeaf1; border-radius: 12px; background: #efeff4; padding: 14px; display: flex; flex-direction: column; gap: 8px;">
+                <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 8px;">
+                  <span style="font-size: 12.5px; font-weight: 600; line-height: 1.25; color: #191925;">3 · [question]</span>
+                  <span style="flex: none; font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700; color: #5e5e73;">no answer</span>
+                </div>
+                <div style="height: 6px; border-radius: 3px; background: #ffffff; overflow: hidden; display: flex;"></div>
+                <div style="font-family: 'JetBrains Mono', monospace; font-size: 10.5px; line-height: 1.5; color: #5e5e73;">from: [search] · named: [brands]</div>
+              </div>
+              <div style="min-width: 0; border: 1px solid #eaeaf1; border-radius: 12px; background: #efeff4; padding: 14px; display: flex; flex-direction: column; gap: 8px;">
+                <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 8px;">
+                  <span style="font-size: 12.5px; font-weight: 600; line-height: 1.25; color: #191925;">4 · [question]</span>
+                  <span style="flex: none; font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700; color: #c0432b;">not you</span>
+                </div>
+                <div style="height: 6px; border-radius: 3px; background: #ffffff; overflow: hidden; display: flex;"></div>
+                <div style="font-family: 'JetBrains Mono', monospace; font-size: 10.5px; line-height: 1.5; color: #5e5e73;">from: [search] · named: [brands]</div>
+              </div>
+            </div>
+            <div style="height: 40px; padding: 0 18px; border-radius: 999px; background: transparent; border: 1px solid #ddd8fa; color: #5b4be0; font-size: 14px; font-weight: 600; display: flex; align-items: center; justify-content: center; width: 160px;">Show all 12</div>
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: #9695a8;">= your market’s 12 biggest searches, asked as a buyer asks AI.</div>
+          </div>
+        </div>
+
+        <div style="background: #ffffff; border: 1px solid #eaeaf1; border-radius: 18px; box-shadow: 0 1px 2px rgb(24 24 48 / 0.03); padding: 22px; display: flex; flex-direction: column; gap: 12px;">
+          <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 16px;">
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #191925;">Google search</div>
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #5e5e73;">your market’s 12 biggest searches</div>
+          </div>
+          <div style="font-size: 12.5px; color: #5e5e73;">You’re in the top ten on 0 of 12 searches.</div>
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="width: 170px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #5e5e73;">rival-one.example.net</div>
+              <div style="flex: 1; height: 10px; border-radius: 999px; background: #efeff4; display: flex; gap: 0;"><div style="width: 75%; height: 10px; border-radius: 999px; background: #787790;"></div></div>
+              <div style="width: 44px; text-align: right; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #5e5e73;">9/12</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="width: 170px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #5e5e73;">rival-two.example.net</div>
+              <div style="flex: 1; height: 10px; border-radius: 999px; background: #efeff4; display: flex; gap: 0;"><div style="width: 58%; height: 10px; border-radius: 999px; background: #787790;"></div></div>
+              <div style="width: 44px; text-align: right; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #5e5e73;">7/12</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="width: 170px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #5e5e73;">example.org</div>
+              <div style="flex: 1; height: 10px; border-radius: 999px; background: #efeff4; display: flex; gap: 0;"><div style="width: 42%; height: 10px; border-radius: 999px; background: #787790;"></div></div>
+              <div style="width: 44px; text-align: right; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #5e5e73;">5/12</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="width: 170px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #5e5e73;">example.net</div>
+              <div style="flex: 1; height: 10px; border-radius: 999px; background: #efeff4; display: flex; gap: 0;"><div style="width: 25%; height: 10px; border-radius: 999px; background: #787790;"></div></div>
+              <div style="width: 44px; text-align: right; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #5e5e73;">3/12</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="width: 170px; font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; color: #191925;">example.com</div>
+              <div style="flex: 1; height: 10px; border-radius: 999px; background: #ffffff; border: 1px solid #f8d5cd;"></div>
+              <div style="width: 44px; text-align: right; font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; color: #c0432b;">0/12</div>
+            </div>
+          </div>
+          <div style="font-size: 11.5px; color: #9695a8;">Your bar in colour, rivals in grey · n/12 = searches where the domain is in the top ten</div>
+          <div style="display: flex; flex-direction: column; gap: 12px; border-top: 1px solid #eaeaf1; padding-top: 16px;">
+            <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #9695a8;">5 biggest searches you’re absent from</div>
+            <div style="display: flex; flex-direction: column; gap: 0; font-size: 14px;">
+              <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding: 8px 0; border-bottom: 1px solid #eaeaf1;">
+                <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #9695a8;">Search</span>
+                <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #9695a8; text-align: right;">Volume</span>
+                <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #9695a8;">Holds #1</span>
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding: 10px 0; border-bottom: 1px solid #eaeaf1;"><span style="font-family: 'JetBrains Mono', monospace; font-size: 13px;">[search]</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; text-align: right;">2,400/mo</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #5e5e73;">rival-one.example.net</span></div>
+              <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding: 10px 0; border-bottom: 1px solid #eaeaf1;"><span style="font-family: 'JetBrains Mono', monospace; font-size: 13px;">[search]</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; text-align: right;">1,600/mo</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #5e5e73;">rival-two.example.net</span></div>
+              <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding: 10px 0; border-bottom: 1px solid #eaeaf1;"><span style="font-family: 'JetBrains Mono', monospace; font-size: 13px;">[search]</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; text-align: right;">1,300/mo</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #5e5e73;">example.org</span></div>
+              <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding: 10px 0; border-bottom: 1px solid #eaeaf1;"><span style="font-family: 'JetBrains Mono', monospace; font-size: 13px;">[search]</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; text-align: right;">890/mo</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #5e5e73;">example.net</span></div>
+              <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding: 10px 0; border-bottom: 1px solid #eaeaf1;"><span style="font-family: 'JetBrains Mono', monospace; font-size: 13px;">[search]</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; text-align: right;">540/mo</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #5e5e73;">rival-one.example.net</span></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- module 3 · the three counts as Kpi tiles (mono uppercase label, mono numeral, no stripe) -->
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; align-items: start;">
+        <div style="min-width: 0; background: #ffffff; border: 1px solid #eaeaf1; border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 8px;">
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #5e5e73;">AI readers blocked</div>
+          <div style="display: flex; align-items: baseline; gap: 8px;">
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 24px; font-weight: 700; color: #191925;">4</span>
+            <span style="border-radius: 999px; font-size: 12px; font-weight: 600; padding: 2px 10px; background: #fdece8; border: 1px solid #f8d5cd; color: #c0432b;">Critical</span>
+          </div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <span style="border-radius: 999px; font-size: 12px; font-weight: 600; padding: 2px 10px; background: #eeecfd; border: 1px solid #ddd8fa; color: #5b4be0;">Free fix · 10 min</span>
+          </div>
+          <div style="background: #efeff4; border: 1px solid #eaeaf1; border-radius: 9px; padding: 12px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #5e5e73; display: flex; flex-direction: column; gap: 2px;">
+            <span>User-agent: GPTBot</span>
+            <span>Allow: /</span>
+          </div>
+          <div style="font-size: 13px; color: #5b4be0; font-weight: 600;">Copy the lines</div>
+        </div>
+        <div style="min-width: 0; background: #ffffff; border: 1px solid #eaeaf1; border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 8px;">
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #5e5e73;">Missing pages</div>
+          <div style="display: flex; align-items: baseline; gap: 8px;">
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 24px; font-weight: 700; color: #191925;">14</span>
+            <span style="border-radius: 999px; font-size: 12px; font-weight: 600; padding: 2px 10px; background: #fff3e6; border: 1px solid #fbe1c6; color: #b8722a;">Worth fixing</span>
+          </div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <span style="border-radius: 999px; font-size: 12px; font-weight: 600; padding: 2px 10px; background: #eeecfd; border: 1px solid #ddd8fa; color: #5b4be0;">ReachKit writes</span>
+          </div>
+        </div>
+        <div style="min-width: 0; background: #ffffff; border: 1px solid #eaeaf1; border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 8px;">
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #5e5e73;">Unquotable pages</div>
+          <div style="display: flex; align-items: baseline; gap: 8px;">
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 24px; font-weight: 700; color: #191925;">6</span>
+            <span style="border-radius: 999px; font-size: 12px; font-weight: 600; padding: 2px 10px; background: #fdece8; border: 1px solid #f8d5cd; color: #c0432b;">Critical</span>
+          </div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <span style="border-radius: 999px; font-size: 12px; font-weight: 600; padding: 2px 10px; background: #eeecfd; border: 1px solid #ddd8fa; color: #5b4be0;">ReachKit rewrites</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- module · technical issues (MVP feature 9, no registry copy yet) -->
+      <div style="background: #ffffff; border: 1px solid #eaeaf1; border-radius: 14px; box-shadow: 0 1px 3px rgb(24 24 48 / 0.045); padding: 24px; display: flex; flex-direction: column; gap: 16px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="width: 24px; height: 24px; border-radius: 9px; background: #eeecfd; color: #5b4be0; display: flex; align-items: center; justify-content: center;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4.5 a4 4 0 0 0 -5.3 5.3 L4 15 v5 h5 l5.2 -5.2 a4 4 0 0 0 5.3 -5.3 L16 13 l-3 -3 Z"></path></svg></div>
+            <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #9695a8;">[COPY: heading of the technical issues module]</div>
+          </div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: #5e5e73; background: #efeff4; border-radius: 9px; padding: 3px 8px;">28 Aug</div>
+        </div>
+        <div style="font-size: 15px; color: #191925;">[COPY: the one line that says what this module counts and why it matters]</div>
+        <div style="display: flex; flex-direction: column; gap: 0; font-size: 14px;">
+          <div style="display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 2fr); gap: 16px; padding: 8px 0; border-bottom: 1px solid #eaeaf1;">
+            <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #9695a8;">[COPY: issue column header]</span>
+            <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #9695a8;">[COPY: severity column header]</span>
+            <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #9695a8;">[COPY: page column header]</span>
+          </div>
+          <div style="display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 2fr); gap: 16px; padding: 10px 0; border-bottom: 1px solid #eaeaf1; align-items: center;">
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px;">missing title tag</span>
+            <span><span style="border-radius: 999px; font-size: 12px; font-weight: 600; padding: 2px 10px; background: #fdece8; border: 1px solid #f8d5cd; color: #c0432b;">Critical</span></span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #5e5e73;">example.com/</span>
+          </div>
+          <div style="display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 2fr); gap: 16px; padding: 10px 0; border-bottom: 1px solid #eaeaf1; align-items: center;">
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px;">duplicate meta description</span>
+            <span><span style="border-radius: 999px; font-size: 12px; font-weight: 600; padding: 2px 10px; background: #efeff4; border: 1px solid #eaeaf1; color: #5e5e73;">Minor</span></span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #5e5e73;">example.com/blog</span>
+          </div>
+          <div style="display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 2fr); gap: 16px; padding: 10px 0; border-bottom: 1px solid #eaeaf1; align-items: center;">
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px;">noindex on 3 pages</span>
+            <span><span style="border-radius: 999px; font-size: 12px; font-weight: 600; padding: 2px 10px; background: #fdece8; border: 1px solid #f8d5cd; color: #c0432b;">Critical</span></span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #5e5e73;">example.com/features</span>
+          </div>
+          <div style="display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 2fr); gap: 16px; padding: 10px 0; border-bottom: 1px solid #eaeaf1; align-items: center;">
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px;">no sitemap.xml</span>
+            <span><span style="border-radius: 999px; font-size: 12px; font-weight: 600; padding: 2px 10px; background: #fff3e6; border: 1px solid #fbe1c6; color: #b8722a;">Worth fixing</span></span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #5e5e73;">example.com/sitemap.xml</span>
+          </div>
+          <div style="display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 2fr); gap: 16px; padding: 10px 0; border-bottom: 1px solid #eaeaf1; align-items: center;">
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px;">2 broken internal links</span>
+            <span><span style="border-radius: 999px; font-size: 12px; font-weight: 600; padding: 2px 10px; background: #fff3e6; border: 1px solid #fbe1c6; color: #b8722a;">Worth fixing</span></span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #5e5e73;">example.com/docs</span>
+          </div>
+          <div style="display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 2fr); gap: 16px; padding: 10px 0; border-bottom: 1px solid #eaeaf1; align-items: center;">
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px;">LCP 4.8 s</span>
+            <span><span style="border-radius: 999px; font-size: 12px; font-weight: 600; padding: 2px 10px; background: #fff3e6; border: 1px solid #fbe1c6; color: #b8722a;">Worth fixing</span></span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #5e5e73;">example.com/pricing</span>
+          </div>
+          <div style="display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 2fr); gap: 16px; padding: 10px 0; border-bottom: 1px solid #eaeaf1; align-items: center;">
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px;">no structured data</span>
+            <span><span style="border-radius: 999px; font-size: 12px; font-weight: 600; padding: 2px 10px; background: #efeff4; border: 1px solid #eaeaf1; color: #5e5e73;">Minor</span></span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #5e5e73;">example.com/</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- module 4 · the complete method -->
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #9695a8;">The complete method, free</div>
+        <div style="background: #ffffff; border: 1px solid #eaeaf1; border-radius: 14px; box-shadow: 0 1px 3px rgb(24 24 48 / 0.045); padding: 24px; display: flex; flex-direction: column; gap: 16px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+            <div style="font-size: 16px; font-weight: 600;">Unblock the AI readers</div>
+            <span style="color: #9695a8; display: flex;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 15 12 9 18 15"></polyline></svg></span>
+          </div>
+          <div style="font-size: 15px; line-height: 1.55; color: #5e5e73;">Open the robots.txt file at the root of your site — your host or CMS usually has a setting for it. Find the rules that block the AI readers named on the card and add the lines shown there, so each reader is allowed. Save and publish; the readers pick up the change on their next visit. If your home page carries a noindex rule in its head, remove that too — it tells every reader, Google included, to ignore the page. Nothing else in the file needs to change, and no other reader gains access.</div>
+        </div>
+        <div style="background: #ffffff; border: 1px solid #eaeaf1; border-radius: 14px; box-shadow: 0 1px 3px rgb(24 24 48 / 0.045); padding: 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+          <div style="font-size: 16px; font-weight: 600;">Write the missing pages</div>
+          <span style="color: #9695a8; display: flex;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+        </div>
+        <div style="background: #ffffff; border: 1px solid #eaeaf1; border-radius: 14px; box-shadow: 0 1px 3px rgb(24 24 48 / 0.045); padding: 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+          <div style="font-size: 16px; font-weight: 600;">Make your pages quotable</div>
+          <span style="color: #9695a8; display: flex;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+        </div>
+        <div style="background: #ffffff; border: 1px solid #eaeaf1; border-radius: 14px; box-shadow: 0 1px 3px rgb(24 24 48 / 0.045); padding: 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+          <div style="font-size: 16px; font-weight: 600;">[COPY: collapse title — how to fix the technical issues yourself]</div>
+          <span style="color: #9695a8; display: flex;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+        </div>
+      </div>
+
+      <!-- module 5 · first page -->
+      <div style="background: #ffffff; border: 1px solid #ddd8fa; border-radius: 14px; box-shadow: 0 1px 3px rgb(24 24 48 / 0.045); padding: 24px; display: flex; flex-direction: column; gap: 16px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="width: 24px; height: 24px; border-radius: 9px; background: #eeecfd; color: #5b4be0; display: flex; align-items: center; justify-content: center;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3 H7 a2 2 0 0 0 -2 2 v14 a2 2 0 0 0 2 2 h10 a2 2 0 0 0 2 -2 V8 Z"></path><polyline points="14 3 14 8 19 8"></polyline></svg></div>
+            <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #9695a8;">Your first page</div>
+          </div>
+          <span style="border-radius: 999px; font-size: 12px; font-weight: 600; padding: 2px 10px; background: #eeecfd; border: 1px solid #ddd8fa; color: #5b4be0;">free</span>
+        </div>
+        <div style="font-size: 20px; font-weight: 700; letter-spacing: -0.015em;">What buyers ask before they switch, answered</div>
+        <div style="display: flex; flex-direction: column; gap: 0;">
+          <div style="display: flex; gap: 16px; padding: 8px 0; border-top: 1px solid #eaeaf1;"><span style="width: 80px; font-size: 13px; color: #9695a8;">target</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 13px;">[search] · 2,400/mo</span></div>
+          <div style="display: flex; gap: 16px; padding: 8px 0; border-top: 1px solid #eaeaf1;"><span style="width: 80px; font-size: 13px; color: #9695a8;">beats</span><span style="font-size: 13px;">No rival holds this ground yet</span></div>
+          <div style="display: flex; gap: 16px; padding: 8px 0; border-top: 1px solid #eaeaf1; border-bottom: 1px solid #eaeaf1;"><span style="width: 80px; font-size: 13px; color: #9695a8;">format</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 13px;">[format]</span></div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="font-size: 13px; color: #5e5e73;">Your email</div>
+          <div style="display: flex; gap: 12px; align-items: center;">
+            <div style="flex: 1; height: 40px; border: 1px solid #eaeaf1; border-radius: 9px; background: #ffffff; padding: 0 12px; display: flex; align-items: center;"><span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #9695a8;">you@company.com</span></div>
+            <div style="height: 40px; padding: 0 18px; border-radius: 999px; background: #5b4be0; color: #ffffff; font-size: 14px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex: none;">Email me the full page</div>
+          </div>
+        </div>
+        <div style="font-size: 13px; color: #9695a8;">That’s page 1 of 14 we found for you.</div>
+      </div>
+
+      <div style="font-size: 13px; color: #9695a8; text-align: center;">Own this site and want this report taken down? Write to <a href="#">remove@reachkit.app</a>.</div>
+
+    </div>
+  </div>
+
+  <div style="padding: 32px; background: #ffffff; border-top: 1px solid #eaeaf1;">
+    <div style="width: 1216px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px;">
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <svg width="26" height="26" viewBox="0 0 28 28" fill="none" style="display: block; flex: none;"><rect width="28" height="28" rx="9" fill="#5b4be0"></rect><circle cx="14" cy="14" r="1.7" fill="#ffffff"></circle><path d="M14 19 A5 5 0 1 1 19 14" stroke="#ffffff" stroke-width="1.7" fill="none" stroke-linecap="round"></path><path d="M14 23 A9 9 0 1 1 23 14" stroke="#c3b2ff" stroke-width="1.7" fill="none" stroke-linecap="round"></path></svg>
+          <div style="font-size: 17px; font-weight: 700; letter-spacing: -0.01em;">ReachKit</div>
+        </div>
+        <div style="font-size: 13px; color: #9695a8;">© 2026 ReachKit. All rights reserved.</div>
+        <div style="font-size: 13px; color: #5e5e73; max-width: 320px;">Own this site and want its report taken down? Write to <a href="#">remove@reachkit.app</a>.</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #9695a8;">Product</div>
+        <a href="#" style="font-size: 13px;">Pricing</a>
+        <a href="#" style="font-size: 13px;">Sign in</a>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #9695a8;">Legal</div>
+        <a href="#" style="font-size: 13px;">Privacy</a>
+        <a href="#" style="font-size: 13px;">Terms</a>
+        <a href="#" style="font-size: 13px;">Imprint</a>
+      </div>
+    </div>
+  </div>
+
+</div>
+</x-dc></body></html>

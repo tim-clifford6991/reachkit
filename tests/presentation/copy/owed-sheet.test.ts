@@ -75,7 +75,7 @@ describe("docs/copy/owed.md — the owner's copy sheet", () => {
   });
 
   it("walks the product in the approved set's own order, mails last", () => {
-    const screens = readScreens(fs.readFileSync(path.join(ROOT, "docs/design/approved/full-set/reachkit-full-screen-set.html"), "utf8"));
+    const screens = readScreens(fs.readFileSync(path.join(ROOT, "docs/archive/2026-09-11/approved/full-set/reachkit-full-screen-set.html"), "utf8"));
     expect(screens.at(-1)?.id).toBe("S20");
     expect(screens.at(-1)?.group).toBe("Mail");
 
@@ -85,7 +85,7 @@ describe("docs/copy/owed.md — the owner's copy sheet", () => {
   });
 
   it("names only screens the approved set draws", () => {
-    const screens = readScreens(fs.readFileSync(path.join(ROOT, "docs/design/approved/full-set/reachkit-full-screen-set.html"), "utf8"));
+    const screens = readScreens(fs.readFileSync(path.join(ROOT, "docs/archive/2026-09-11/approved/full-set/reachkit-full-screen-set.html"), "utf8"));
     const known = new Set(screens.map((s) => s.key));
     for (const key of MAPPED_SCREEN_KEYS) expect(known, `SCREEN_PATHS names "${key}"`).toContain(key);
   });
@@ -94,9 +94,9 @@ describe("docs/copy/owed.md — the owner's copy sheet", () => {
   // is the corpus's route→screen index, itself held to the route tree by
   // `tests/ui/design/reference.test.ts` — so pointing the map at each route's
   // own `page.tsx` and comparing is what keeps the two from parting.
-  it("agrees with docs/design-reference.md on every route it serves", () => {
+  it("agrees with docs/archive/2026-09-11/design-reference.md on every route it serves", () => {
     const routeScreens = readRouteScreens(ROOT);
-    const screens = readScreens(fs.readFileSync(path.join(ROOT, "docs/design/approved/full-set/reachkit-full-screen-set.html"), "utf8"));
+    const screens = readScreens(fs.readFileSync(path.join(ROOT, "docs/archive/2026-09-11/approved/full-set/reachkit-full-screen-set.html"), "utf8"));
     const idOf = new Map(screens.map((s) => [s.key, s.id]));
 
     for (const [file, route] of routePages(path.join(ROOT, "src/app"), ROOT)) {

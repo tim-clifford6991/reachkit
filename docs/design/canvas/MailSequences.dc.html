@@ -1,0 +1,157 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+* { box-sizing: border-box; }
+body { margin: 0; background: #f6f6f9; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #191925; }
+a { color: #5b4be0; text-decoration: none; }
+a:hover { color: #4a3bc7; text-decoration: underline; }
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+</helmet>
+
+<div style="box-sizing:border-box; width:1280px; padding:32px; background:#f6f6f9; font-family:'Plus Jakarta Sans',-apple-system,'Segoe UI',sans-serif; color:#191925;">
+
+  <div style="box-sizing:border-box; width:1216px; background:#ffffff; border:1px solid #eaeaf1; border-radius:14px; box-shadow:0 1px 3px rgb(24 24 48/.045); padding:24px; display:flex; flex-direction:column; gap:20px;">
+
+    <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:24px;">
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <div style="font-size:11px; text-transform:uppercase; font-weight:700; letter-spacing:.1em; color:#9695a8;">MVP FEATURE 8 &middot; EMAIL SYSTEM</div>
+        <div style="font-size:25px; line-height:1.2; font-weight:700; color:#191925;">Mail sequences</div>
+        <div style="font-size:13px; line-height:1.5; color:#5e5e73;">Four ruled sequences. Kind names are <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:13px;">kinds.ts</span> rows; <span style="display:inline-flex; align-items:center; border-radius:999px; background:#eeecfd; border:1px solid #ddd8fa; color:#5b4be0; font-size:12px; font-weight:600; padding:1px 8px;">new</span> marks a mail that has none yet.</div>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <svg width="24" height="24" viewBox="0 0 28 28" fill="none" style="display: block; flex: none;"><rect width="28" height="28" rx="9" fill="#5b4be0"></rect><circle cx="14" cy="14" r="1.7" fill="#ffffff"></circle><path d="M14 19 A5 5 0 1 1 19 14" stroke="#ffffff" stroke-width="1.7" fill="none" stroke-linecap="round"></path><path d="M14 23 A9 9 0 1 1 23 14" stroke="#c3b2ff" stroke-width="1.7" fill="none" stroke-linecap="round"></path></svg>
+        <span style="font-size:17px; font-weight:700; letter-spacing:-0.01em; color:#191925;">ReachKit</span>
+      </div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:0;">
+
+      <div style="display:grid; grid-template-columns: 170px 250px 400px minmax(0,1fr); gap:20px; padding:0 0 10px 0; border-bottom:1px solid #eaeaf1;">
+        <div style="font-size:11px; text-transform:uppercase; font-weight:700; letter-spacing:.1em; color:#9695a8;">Sequence</div>
+        <div style="font-size:11px; text-transform:uppercase; font-weight:700; letter-spacing:.1em; color:#9695a8;">Trigger</div>
+        <div style="font-size:11px; text-transform:uppercase; font-weight:700; letter-spacing:.1em; color:#9695a8;">Mails in order &middot; timing</div>
+        <div style="font-size:11px; text-transform:uppercase; font-weight:700; letter-spacing:.1em; color:#9695a8;">Stops when</div>
+      </div>
+
+      <div style="display:grid; grid-template-columns: 170px 250px 400px minmax(0,1fr); gap:20px; padding:18px 0; border-bottom:1px solid #eaeaf1;">
+        <div style="font-size:14px; font-weight:600; color:#191925;">Onboarding</div>
+        <div style="font-size:14px; line-height:1.5; color:#5e5e73;">Payment completed at checkout (<span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:13px;">&sect;13</span>), account provisioned.</div>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <div style="display:flex; align-items:baseline; gap:10px;">
+            <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:13px; color:#9695a8; width:128px; text-align:right; white-space:nowrap; flex:none;">t+0</span>
+            <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:13px; font-weight:600; color:#191925;">welcome</span>
+            <span style="display:inline-flex; align-items:center; border-radius:999px; background:#eeecfd; border:1px solid #ddd8fa; color:#5b4be0; font-size:12px; font-weight:600; padding:1px 8px;">new</span>
+          </div>
+          <div style="display:flex; align-items:baseline; gap:10px;">
+            <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:13px; color:#9695a8; width:128px; text-align:right; white-space:nowrap; flex:none;">+24 / 72 / 168 h</span>
+            <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:13px; font-weight:600; color:#191925;">setup-reminder</span>
+          </div>
+          <div style="display:flex; align-items:baseline; gap:10px;">
+            <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:13px; color:#9695a8; width:128px; text-align:right; white-space:nowrap; flex:none;">page written</span>
+            <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:13px; font-weight:600; color:#191925;">first-page</span>
+          </div>
+          <div style="display:flex; align-items:baseline; gap:10px;">
+            <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:13px; color:#9695a8; width:128px; text-align:right; white-space:nowrap; flex:none;">+24 h live</span>
+            <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:13px; font-weight:600; color:#191925;">published</span>
+          </div>
+        </div>
+        <div style="font-size:14px; line-height:1.5; color:#5e5e73;">Setup finishes &mdash; the reminders stop and the sequence ends at the first published page. Only <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:13px;">published</span> is stoppable (Settings toggle); the other three are not.</div>
+      </div>
+
+      <div style="display:grid; grid-template-columns: 170px 250px 400px minmax(0,1fr); gap:20px; padding:18px 0; border-bottom:1px solid #eaeaf1;">
+        <div style="font-size:14px; font-weight:600; color:#191925;">Free-scan lead nurture</div>
+        <div style="font-size:14px; line-height:1.5; color:#5e5e73;">An address given on a free report (lead capture, <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:13px;">&sect;4.2</span>).</div>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <div style="display:flex; align-items:baseline; gap:10px;">
+            <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:13px; color:#9695a8; width:128px; text-align:right; white-space:nowrap; flex:none;">scan done</span>
+            <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:13px; font-weight:600; color:#191925;">report</span>
+          </div>
+          <div style="display:flex; align-items:baseline; gap:10px;">
+            <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:13px; color:#9695a8; width:128px; text-align:right; white-space:nowrap; flex:none;">page written</span>
+            <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:13px; font-weight:600; color:#191925;">first-page</span>
+          </div>
+          <div style="display:flex; align-items:baseline; gap:10px;">
+            <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:13px; color:#9695a8; width:128px; text-align:right; white-space:nowrap; flex:none;">+24 h</span>
+            <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:13px; font-weight:600; color:#191925;">nurture 1</span>
+          </div>
+          <div style="display:flex; align-items:baseline; gap:10px;">
+            <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:13px; color:#9695a8; width:128px; text-align:right; white-space:nowrap; flex:none;">+72 h</span>
+            <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:13px; font-weight:600; color:#191925;">nurture 2</span>
+          </div>
+          <div style="display:flex; align-items:baseline; gap:10px;">
+            <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:13px; color:#9695a8; width:128px; text-align:right; white-space:nowrap; flex:none;">+168 h</span>
+            <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:13px; font-weight:600; color:#191925;">nurture 3</span>
+          </div>
+        </div>
+        <div style="font-size:14px; line-height:1.5; color:#5e5e73;">Opt-out (address-wide store), the lead subscribes, three touches are spent (<span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:13px;">NURTURE_MAX_TOUCHES = 3</span>), or the sequence is dropped <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:13px;">7</span> days past delivery &mdash; nothing reaches an address later than <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:13px;">14</span> days after its page.</div>
+      </div>
+
+      <div style="display:grid; grid-template-columns: 170px 250px 400px minmax(0,1fr); gap:20px; padding:18px 0; border-bottom:1px solid #eaeaf1;">
+        <div style="font-size:14px; font-weight:600; color:#191925;">Weekly digest</div>
+        <div style="font-size:14px; line-height:1.5; color:#5e5e73;">The Monday pass finishes (<span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:13px;">WEEK_START = monday</span>, due <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:13px;">06:00</span> site-local).</div>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <div style="display:flex; align-items:baseline; gap:10px;">
+            <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:13px; color:#9695a8; width:128px; text-align:right; white-space:nowrap; flex:none;">every Monday</span>
+            <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:13px; font-weight:600; color:#191925;">weekly</span>
+          </div>
+          <div style="display:flex; align-items:baseline; gap:10px;">
+            <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:13px; color:#9695a8; width:128px; text-align:right; white-space:nowrap; flex:none;">same send</span>
+            <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:13px; font-weight:600; color:#191925;">weekly</span>
+            <span style="font-size:13px; color:#5e5e73;">unmeasured / partial arm</span>
+          </div>
+          <div style="display:flex; align-items:baseline; gap:10px;">
+            <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:13px; color:#9695a8; width:128px; text-align:right; white-space:nowrap; flex:none;">same send</span>
+            <span style="font-size:13px; color:#5e5e73;">technical issues line</span>
+            <span style="display:inline-flex; align-items:center; border-radius:999px; background:#eeecfd; border:1px solid #ddd8fa; color:#5b4be0; font-size:12px; font-weight:600; padding:1px 8px;">new</span>
+          </div>
+        </div>
+        <div style="font-size:14px; line-height:1.5; color:#5e5e73;">Switched off in Settings &rsaquo; Notifications (<span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:13px;">weekly</span> is <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:13px;">stoppable: 'toggle'</span>). A week with nothing in it still sends: &ldquo;There is nothing to report this week.&rdquo;</div>
+      </div>
+
+      <div style="display:grid; grid-template-columns: 170px 250px 400px minmax(0,1fr); gap:20px; padding:18px 0;">
+        <div style="font-size:14px; font-weight:600; color:#191925;">Retention / win-back</div>
+        <div style="font-size:14px; line-height:1.5; color:#5e5e73;">A page nears its veto deadline, a charge fails, or access ends.</div>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <div style="display:flex; align-items:baseline; gap:10px;">
+            <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:13px; color:#9695a8; width:128px; text-align:right; white-space:nowrap; flex:none;">draft written</span>
+            <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:13px; font-weight:600; color:#191925;">draft-ready</span>
+          </div>
+          <div style="display:flex; align-items:baseline; gap:10px;">
+            <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:13px; color:#9695a8; width:128px; text-align:right; white-space:nowrap; flex:none;">&minus;6 h</span>
+            <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:13px; font-weight:600; color:#191925;">veto-reminder</span>
+            <span style="display:inline-flex; align-items:center; border-radius:999px; background:#eeecfd; border:1px solid #ddd8fa; color:#5b4be0; font-size:12px; font-weight:600; padding:1px 8px;">new</span>
+          </div>
+          <div style="display:flex; align-items:baseline; gap:10px;">
+            <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:13px; color:#9695a8; width:128px; text-align:right; white-space:nowrap; flex:none;">charge failed</span>
+            <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:13px; font-weight:600; color:#191925;">account</span>
+            <span style="font-size:13px; color:#5e5e73;">failed-payment arm, copy owed</span>
+          </div>
+          <div style="display:flex; align-items:baseline; gap:10px;">
+            <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:13px; color:#9695a8; width:128px; text-align:right; white-space:nowrap; flex:none;">[cadence owed]</span>
+            <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:13px; font-weight:600; color:#191925;">win-back</span>
+            <span style="display:inline-flex; align-items:center; border-radius:999px; background:#eeecfd; border:1px solid #ddd8fa; color:#5b4be0; font-size:12px; font-weight:600; padding:1px 8px;">new</span>
+          </div>
+        </div>
+        <div style="font-size:14px; line-height:1.5; color:#5e5e73;"><span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:13px;">draft-ready</span> is a toggle, sent anyway at a veto window of zero. <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:13px;">account</span> is never stoppable &mdash; no address to unsubscribe. Win-back cadence and stop rule: [OWNER: ruling pending].</div>
+      </div>
+
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:6px; border-top:1px solid #eaeaf1; padding-top:16px;">
+      <div style="font-size:11.5px; line-height:1.5; color:#9695a8;">In no sequence &mdash; each sent on its own occasion: <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:11.5px;">magic-link</span>, <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:11.5px;">first-page-unavailable</span>, <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:11.5px;">account</span> (chase, second payment, address moved, hosting end, deleted), <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:11.5px;">ops</span> (owner only).</div>
+      <div style="font-size:11.5px; line-height:1.5; color:#9695a8;">Eleven kinds are registered in <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:11.5px;">src/lib/mail/kinds.ts</span>; three mails above have no row there yet.</div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

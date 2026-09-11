@@ -1,6 +1,6 @@
 // scripts/renders/screens.mjs — which approved picture a screen id is (issue #404)
 //
-// `docs/design/approved/README.md` carries the one table that says S12 is
+// `docs/archive/2026-09-11/approved/README.md` carries the one table that says S12 is
 // `overview`, and the twenty renders sit beside it as
 // `full-set/screens/<key>-light.png`. This reads that table rather than
 // keeping a second copy of it: the day an artifact is re-lifted and a key
@@ -10,8 +10,8 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
 export const REPO = path.resolve(import.meta.dirname, "../..");
-const INDEX_MD = path.join(REPO, "docs/design/approved/README.md");
-const SCREENS_DIR = path.join(REPO, "docs/design/approved/full-set/screens");
+const INDEX_MD = path.join(REPO, "docs/archive/2026-09-11/approved/README.md");
+const SCREENS_DIR = path.join(REPO, "docs/archive/2026-09-11/approved/full-set/screens");
 
 /**
  * Every `| S<id> | \`key\` |` row of the approved set's own index, as a map

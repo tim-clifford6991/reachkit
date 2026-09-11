@@ -1,53 +1,58 @@
 # ReachKit
 
-A founder gives us a URL. We measure how findable the site is — in Google and in AI answers —
-against the rivals they confirm, derive the pages worth publishing, write one a day and publish
-it to a blog on their own domain after a veto window. Every Monday we re-measure and show what
-moved. Live at https://reachkit.app.
+For a founder who owns a small company website and knows nothing about SEO. They give us one domain;
+the product says the rest in its own approved words: "See what AI tells buyers about your market —
+and write your way in." and "A free scan shows where AI answers and Google search send buyers to
+your rivals instead of you. Then ReachKit writes one page a day to change that." One plan, "€49" "per month, VAT included".
 
-This repository is the whole product and its specification: `tim-clifford6991/reachkit`, the v3
-lineage (v1 and v2 are archived repositories). The specification is versioned beside the code,
-and merge is the only definition of done.
+Production <https://reachkit.app> · dev <https://dev.reachkit.app> · repo `tim-clifford6991/reachkit`.
+
+## The nine MVP features (status 2026-09-11)
+
+| # | Feature | What the user gets | Status |
+|---|---|---|---|
+| 1 | Landing / marketing | Reads what ReachKit does and types in a domain | **Live** — approved copy renders. |
+| 2 | Free scan for any URL | A real, permanent findability report without an account | **Broken** — 0 of 17 scans have ever completed and the progress stream is dead on production. |
+| 3 | Payment + magic-link auth | Pays €49 with no account first, then signs in from the mailed link | **Blocked** — Resend sending domain unverified (#325); payment code done but never exercised live (#319). |
+| 4 | Protected dashboard | One signed-in place showing the market, the rivals and the week | **Inert** — the screens exist; Inngest jobs are not registered against production (#422), so nothing ticks. |
+| 5 | Onboarding | Confirms rivals and category and connects where pages publish: a hosted subdomain, or their WordPress | **Partial** — setup, hosted + WordPress connect and rival/category confirm all exist in `src/app`; unproven end to end. |
+| 6 | Weekly deep scan and targeting | Every Monday the market is re-measured and the next pages are picked | **Built, never run live.** |
+| 7 | Content calendar, daily actions | A new post, new page or update each day, cross-linked to their own pages and earlier assets | **Built, never run live.** |
+| 8 | Email | Onboarding, free-scan nurture, weekly digest, retention / win-back | **Not deliverable** — 11 mail kinds registered, 5 without copy (#388), none sends until #325. |
+| 9 | Technical site issues | Told what is broken on their own site and what to do about it | **Not built.** |
+
+## What "delivered" means
+
+> Live on production, with real copy, and a stranger completes landing → free scan → pays →
+> onboards → sees a page published on their own domain, unaided.
+
+Real copy means no `TODO(copy)` renders on that path. Merged is not delivered, green is not
+delivered, working on dev is not delivered.
+
+## Build order
+
+Build along the value chain — landing → free scan → auth and payment → dashboard and onboarding →
+weekly scan → calendar → email → technical issues — but all nine are MVP: none is deferred for being late in the chain.
 
 ## Read in this order
 
-| | Document | What it is |
+| # | Document | What it holds |
 |---|---|---|
-| 1 | `DECISIONS.md` | Every ruling, dated, one line each, newest last. A ruling here is not re-opened. |
-| 2 | `BUILD.md` | The specification: stack, journey, screens, scoring, data, jobs, mail, payments, guardrails, env, build order. |
-| 3 | `docs/design/approved/full-set/UI-SPEC.md` | **The UI specification of record** — twenty screens `S1`–`S20` with their states, the twelve owner rulings of 2026-09-08, the design system. Rendered beside it as `reachkit-full-screen-set.html`; its parent is the owner's artifact `docs/design/approved/reachkit-screen-system.html`; tokens in `docs/design/approved/tokens.css`. |
-| 4 | `ARCHITECTURE.md` | Where code lives: the module table and the twelve structural rules, each with the check that enforces it. |
-| 5 | `DATA-COSTS.md` | The price book behind BUILD §6. |
-| 6 | `docs/README.md` | **The authority map** — which document governs what, in what order they win, and what keeps each honest. Anything not in this table is there. |
-| 7 | `docs/PROCESS.md` · `docs/DEPLOYMENT.md` | How work flows · environments, bindings, cutover. |
-| 8 | `docs/RUNBOOK.md` | **Operating it alone** — landing a change, the bindings and rotating one, the eight jobs and running one by hand, the kill switch, the cost ledger, when a deployment refuses to boot, the substrate, backups and the restore drill. |
-| 9 | `CLAUDE.md` | The working agreement for agents. |
-| 10 | `archive/sdlc-factory-2026-09-04/corpus/docs/{requirements,decisions}` | The acceptance criteria (`REQ-*`) and decision records (`ADR-*`) behind BUILD — the detail an issue cites. Read-only; the archive's design *drawings* are superseded by row 3. |
+| 1 | `README.md` | This page: what ReachKit is, the nine features and where each stands, what delivered means. |
+| 2 | `docs/SPEC.md` | One section per feature: what the user gets, screens, rules and rulings (dated, in place), mail, done-when. MVP only. |
+| 3 | `docs/DESIGN.md` | The daisyUI theme, the UI rules, and the Claude Design canvas the screens come from. |
+| 4 | `docs/PROCESS.md` | Issue to production: roles, the ten steps, the gates, the decision flow. |
+| 5 | `CLAUDE.md` | What an agent reads first, and the nine things it never does. |
 
-## How work happens
+These five files are the corpus; there is no sixth. Renders live in `docs/design/`. Everything not needed for the nine features is archived under `docs/archive/<date>/`; the old
+sdlc-factory corpus is frozen at `docs/archive/2026-09-04/` — never edited, never deleted. A difference between the code and `SPEC.md` or `DESIGN.md` is a defect in the code, filed as an issue.
 
-One GitHub issue = one branch = one PR. The PR body says `Closes #N`; every *Done when* box on the
-issue is ticked; the five required checks are green (`typecheck · lint · unit`, `layout
-conformance (browser)`, `schema · RLS (live Postgres)`, `closes one issue · done-when ticked`,
-`audit` — `Vercel` is not a gate since 2026-09-09); the master approves and the lander merges it. Owner files
-(`BUILD.md`, `DECISIONS.md`, `ARCHITECTURE.md`, `.github/**`, `scripts/**`, the lint and test
-configs) change only in their own docs PR. The whole process is `docs/PROCESS.md`.
+## Where work is tracked
 
-## Running it
+| Where | What it carries |
+|---|---|
+| [The Project board](https://github.com/users/tim-clifford6991/projects/1) | Every open issue in one flat list with its `Phase`. The board **is** the priority — no queue file, no milestone. |
+| Issues | Three fields — outcome, evidence, done-when — plus one link to the `SPEC.md` section they implement. |
+| Pull requests | One issue = one PR, body carrying `Closes #n`. |
 
-```sh
-npm ci
-npm run dev                                   # http://localhost:3000, bindings from .env.local (.env.example lists them)
-npm run typecheck && npm run lint && npm test # the db project needs the substrate: scripts/db-substrate/README.md
-npm run test:layout                           # the browser sweep against the approved set
-node scripts/drift-audit.mjs                  # spec ↔ code ↔ tests
-```
-
-Stack: Next.js (App Router) + TypeScript, Tailwind 4 + daisyUI 5, Supabase, Stripe, Resend,
-Inngest, DataForSEO, Anthropic — `BUILD.md` §1. Environments and where each binding lives:
-`docs/DEPLOYMENT.md`.
-
-## Operating it
-
-Landing a change, rotating a key, running a job by hand, flipping the kill switch, reading the
-cost ledger, a deployment that refuses to boot, backups and the restore drill — `docs/RUNBOOK.md`.
+How work flows is `docs/PROCESS.md`; this page carries no process detail.

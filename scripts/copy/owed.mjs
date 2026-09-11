@@ -33,8 +33,8 @@ import { fileURLToPath } from "node:url";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 export const REPO_ROOT = path.resolve(HERE, "../..");
 export const SHEET_PATH = "docs/copy/owed.md";
-const SET_HTML = "docs/design/approved/full-set/reachkit-full-screen-set.html";
-const DESIGN_REFERENCE = "docs/design-reference.md";
+const SET_HTML = "docs/archive/2026-09-11/approved/full-set/reachkit-full-screen-set.html";
+const DESIGN_REFERENCE = "docs/archive/2026-09-11/design-reference.md";
 const KEYS_DIR = "src/lib/presentation/copy/keys";
 
 /** The marker `registry.ts` renders for a sentence still owed. Read from the
@@ -133,7 +133,7 @@ export function readRouteScreens(root) {
       if (route[1].startsWith("/")) routes.set(route[1], `S${id[1]}`);
     }
   }
-  if (routes.size === 0) throw new Error("docs/design-reference.md's index parsed to no routes");
+  if (routes.size === 0) throw new Error("docs/archive/2026-09-11/design-reference.md's index parsed to no routes");
   return routes;
 }
 
@@ -790,7 +790,7 @@ export function buildSheet(root = REPO_ROOT) {
     out();
     out(
       `UI-SPEC \`§${screen.id}\` · the set draws it as \`current="${screen.key}"\` ` +
-        `(\`docs/design/approved/full-set/screens/${screen.key}-light.png\`).`
+        `(\`docs/archive/2026-09-11/approved/full-set/screens/${screen.key}-light.png\`).`
     );
     out();
     if (hints.length > 0) {

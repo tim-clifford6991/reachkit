@@ -1,33 +1,18 @@
 # reachkit
 
-This is `tim-clifford6991/reachkit`, the v3 lineage of ReachKit (v1 and v2 are archived repositories). The root `README.md` is the one-screen entry. **Read `docs/README.md` first** — the corpus map: which document governs what, in which order, and what keeps each one honest. In one line: `DECISIONS.md` (rulings) → `BUILD.md` (the spec) → `docs/design/approved/full-set/UI-SPEC.md` (the UI spec of record; every screen is an `S<id>` there) → `ARCHITECTURE.md` (where code lives) → `DATA-COSTS.md` (the price book) → the archived requirements and decisions (`archive/sdlc-factory-2026-09-04/corpus/docs/{requirements,decisions}`, the detail behind BUILD; its *drawings* are superseded). Where BUILD is silent, read the archive's REQ before asking; ask the owner once; the answer lands in `DECISIONS.md`.
-
-**CI is the process.** Every rule that matters is a check in `.github/workflows/`, a lint rule in `eslint.config.mjs`, or a test. If you care about a rule and no check enforces it, add the check — do not add a paragraph here. The full process is `docs/PROCESS.md`.
-
-## How work flows
-- One GitHub issue = one branch = one PR. Never start without an issue. Branch `feat/<issue>-<slug>`, `fix/…`, `docs/…`.
-- Read, in order: the issue · the `BUILD.md` § it cites · `DECISIONS.md` (whole) · the `ARCHITECTURE.md` rows for the paths you touch · for a screen, `UI-SPEC.md` §1 and its `S<id>` · the REQ criteria the issue names.
-- Locally: `npm run typecheck && npm run lint` and the test files for the source you changed (`npx vitest run … <paths> --maxWorkers=1`). Never the full unit or layout suite on the box — CI runs those on GitHub's machines and will not pass otherwise (`docs/PROCESS.md` §2.4).
-- PR body: `Closes #N` · what changed · how you verified it · owner owes. A UI PR also carries the token table and the side-by-side render against the approved set. The `pr-hygiene` check fails without `Closes #N` and without every `Done when` box ticked.
-- Merge is done. Nothing else counts as done. The master lands PRs; the owner steers on dev.
-
-## Rules the code already enforces (don't work around them)
-- Every pinned number lives in `src/lib/config/constants.ts`; nothing is inlined twice.
-- Every byte leaving the process toward a customer URL goes through `src/lib/egress/safeFetch()`. Every vendor or LLM call goes through the cost seam in `src/lib/costs/`. Nothing outside `BUILD.md` §6.3's closed list ships.
-- `src/lib/**` never imports from `src/app/**`. Only `@/lib/db` is imported from outside `src/lib/db`. Only `hasActiveAccess()` is imported from outside `src/lib/account/billing`.
-- Every sentence the product speaks is a key in `src/lib/presentation/copy/`. Copy is the owner's: the approved set's unbracketed strings are approved (ruling 11a); anything else is a key with `TODO(copy)`, flagged in the PR. Never invent a sentence.
-- No generated prose anywhere except draft page content, always labelled (`GeneratedText`).
-- No emoji in the product. Every numeral is JetBrains Mono. No bare literal for a colour, radius, shadow, spacing, type size, measure or breakpoint — tokens only (`docs/design/approved/tokens.css` is the source; `src/ui/theme.css` carries exactly it).
-
-## Design
-The approved prototype is `docs/design/approved/full-set/` (rendered set + `UI-SPEC.md`), derived from the owner's artifact `docs/design/approved/reachkit-screen-system.html`. Match it screen by screen; a new or changed surface is drawn in its idiom, approved by the owner as an artifact, landed into the set and UI-SPEC.md, and only then built. The chart inventory (§2.4) and the component set (§2.2) are closed. Never design from v2 or from the archive's drawings.
+Read `README.md` first — the nine features, where each stands, and what *delivered* means. Then read the one `docs/SPEC.md` section the issue links, and only that one; add `docs/DESIGN.md` if a screen changes. How work flows — the ten steps, the gates, the decision flow, the roles — is `docs/PROCESS.md`. If a rule matters and no check enforces it, add the check; never add a paragraph here.
 
 ## Don't
-- Add settings that tune the engine (caps, cadences, model choice are constants).
-- Add a dependency, a top-level directory, or a vendor call without asking.
-- Pad scope beyond the issue. If you find adjacent work, record it under *Adjacent* in your PR body — only the master files issues and merges to `main` (owner ruling 2026-09-09).
-- Edit `BUILD.md`, `DECISIONS.md`, `ARCHITECTURE.md`, `.github/**`, `eslint.config.mjs`, `vitest.config.ts`, `scripts/**` or `src/lib/config/` in a feature PR. The corpus is maintained by the master in docs PRs (owner ruling 2026-09-08); a code PR that changes a documented fact names the amendment under *Owner owes* / *Corpus* in its body.
-- Touch `archive/` — it is the frozen 2026-08-30 → 2026-09-04 sdlc-factory corpus. Read it for requirements and decisions; never write to it.
+
+- Never invent a user-facing sentence. Every sentence the product speaks is a key in `src/lib/presentation/copy/keys/`; copy is owner-owed. An unwritten one stays `TODO(copy)` and is named under *Owner owes* in the PR body.
+- Never add a custom component, CSS sheet or token vocabulary where daisyUI already has one. The UI is the daisyUI theme plus Recharts 3 plus the Claude Design canvas (`docs/DESIGN.md`). A custom design system is forbidden.
+- Never write a test that transcribes a document. A test proves behaviour a customer can observe, and tests are at most one third of a chain PR's lines.
+- One issue = one PR. The body carries `Closes #n`, and every *Done when* box on the issue is ticked. Adjacent work you find goes under *Adjacent* in the PR body — nothing else.
+- Never work in `/root/projects/reachkitv3` itself. Always your own worktree.
+- Never run a heavy command bare — `bash /root/ops/reachkit/bin/heavy.sh <command>`. Heavy means typecheck, `next build`, `npm ci`, the layout suite and baseline regeneration.
+- Never merge, never label, never edit the Project board, never file the issue. The master does all four.
+- Never edit or delete anything under `docs/archive/`. Read it; it is frozen.
+- Never guess an owner decision. Raise it as an issue labelled `needs-owner-ruling`; the master asks the owner and records the answer as a dated line in `docs/SPEC.md`.
 
 <!-- BEGIN:nextjs-agent-rules -->
 
