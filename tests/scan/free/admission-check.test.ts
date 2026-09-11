@@ -281,6 +281,24 @@ describe(
       expect(result).toEqual({ refuse: "in_flight", sameDomain: true, runningScanId: "running-scan-id" });
     });
 
+    it("admission/in_flight · the refusal carries the running row's created_at as runningSince (#510)", async () => {
+      const createdAt = isoMinutesAgo(1);
+      for (const domain of [DOMAIN, OTHER_DOMAIN]) {
+        scenarios.scans = scansScenario({ in_flight: [{ id: "running-scan-id", domain, created_at: createdAt }] });
+        const result = await admitFreeScan({ domain: DOMAIN, network: NETWORK });
+        expect(result).toMatchObject({ refuse: "in_flight", sameDomain: domain === DOMAIN });
+        if (!("refuse" in result) || result.refuse !== "in_flight") throw new Error("unreachable");
+        expect(result.runningSince).toEqual(new Date(createdAt));
+      }
+    });
+
+    it("admission/in_flight · a clock that does not parse is left off rather than guessed at (#510)", async () => {
+      scenarios.scans = scansScenario({ in_flight: [{ id: "running-scan-id", domain: OTHER_DOMAIN, created_at: "not a date" }] });
+      const result = await admitFreeScan({ domain: DOMAIN, network: NETWORK });
+      expect(result).toEqual({ refuse: "in_flight", sameDomain: false });
+      expect(result).not.toHaveProperty("runningSince");
+    });
+
     it("admission/in_flight · a different domain refuses with sameDomain false and carries no domain or report", async () => {
       scenarios.scans = scansScenario({ in_flight: [{ id: "running-scan-id", domain: OTHER_DOMAIN }] });
       const result = await admitFreeScan({ domain: DOMAIN, network: NETWORK });

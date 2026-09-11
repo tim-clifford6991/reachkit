@@ -10,8 +10,10 @@
 //      recordFetch`, BP-009/BP-007). This file makes no call of its own
 //      outside `llm()` and opens no `fetch`.
 //   2. **What crosses the boundary** — of the customer's, `input` carries
-//      exactly `{ home, pricing }` as the caller supplied it, beside the
-//      fixed `PROFILE_TASK` / `PROFILE_FIELDS` instruction: no keyword,
+//      exactly `{ home, pricing }` as the caller supplied it, bounded
+//      together to `PROFILE_INPUT_MAX_CHARS` (issue #523, `boundPageText`
+//      below), beside the fixed `PROFILE_TASK` / `PROFILE_FIELDS`
+//      instruction: no keyword,
 //      no search term, no selection state, nothing else in this module's
 //      future siblings is read here. `deriveProfile` synthesises nothing: an `unmeasured`
 //      `llm()` result is returned unaltered, with no default `Profile`
@@ -21,7 +23,7 @@
 import { z } from "zod";
 import type { CostContext } from "@/lib/costs";
 import type { Measured } from "@/lib/measure/measured";
-import { PROFILE_LIST_BOUNDS } from "@/lib/config/constants";
+import { PROFILE_INPUT_MAX_CHARS, PROFILE_LIST_BOUNDS } from "@/lib/config/constants";
 import { llm } from "@/lib/llm";
 
 /** BP-025 `## Public interface`, verbatim. */
@@ -90,6 +92,54 @@ export const PROFILE_TASK =
   "Answer with one JSON object and nothing else: no prose, no code fence. It has exactly the fields " +
   "listed under `fields` and no other; each entry says what goes in that field.";
 
+/** How many characters `text` becomes inside the JSON `llm()` serialises
+ *  its input into, quotes excluded. The bound is on this, not on
+ *  `text.length`: the cost reservation is estimated from the serialised
+ *  prompt (`src/lib/llm/index.ts`), and an escaped character (a quote, a
+ *  backslash, a control character) is two to six characters there. */
+function serialisedLength(text: string): number {
+  return JSON.stringify(text).length - 2;
+}
+
+const WHITESPACE_RE = /\s/;
+const LAST_WHITESPACE_RE = /\s\S*$/;
+
+/** The longest prefix of `text` whose serialised length fits `budget`, cut
+ *  at a whitespace boundary — never mid-word, and never through a
+ *  surrogate pair — with the whitespace it was cut at dropped. A text that
+ *  fits is returned whole. */
+function cutAtWord(text: string, budget: number): { text: string; spent: number } {
+  let spent = 0;
+  let end = 0;
+  for (const char of text) {
+    const cost = serialisedLength(char);
+    if (spent + cost > budget) break;
+    spent += cost;
+    end += char.length;
+  }
+  if (end === text.length) return { text, spent };
+  const prefix = text.slice(0, end);
+  const cut = WHITESPACE_RE.test(text.charAt(end)) ? end : Math.max(0, prefix.search(LAST_WHITESPACE_RE));
+  const kept = text.slice(0, cut).trimEnd();
+  return { text: kept, spent: serialisedLength(kept) };
+}
+
+/** The customer's two pages as one `profile` prompt may carry them (issue
+ *  #523): the home text first, the pricing text in whatever of `maxChars`
+ *  the home text left, each cut at a word boundary, their serialised
+ *  lengths together at most `maxChars`. A pricing page with no room left
+ *  is not sent. Only the prompt is bounded — the caller's text, and the
+ *  measurement it came from, are untouched. */
+export function boundPageText(
+  a: { home: string; pricing?: string },
+  maxChars: number
+): { home: string; pricing?: string } {
+  const home = cutAtWord(a.home, maxChars);
+  if (a.pricing === undefined) return { home: home.text };
+  const pricing = cutAtWord(a.pricing, maxChars - home.spent);
+  return pricing.text === "" ? { home: home.text } : { home: home.text, pricing: pricing.text };
+}
+
 /** BP-025 `## Public interface`, verbatim signature. One `llm()` call,
  *  `site: 'profile'`, `tier: 'nano'`; the `CostContext` passed straight
  *  through and the `Measured<Profile>` `llm()` returns handed back
@@ -100,11 +150,12 @@ export function deriveProfile(
   c: CostContext,
   a: { home: string; pricing?: string }
 ): Promise<Measured<Profile>> {
+  const pages = boundPageText(a, PROFILE_INPUT_MAX_CHARS);
   return llm(c, {
     site: "profile",
     // The fixed instruction, then the customer's own two pages and nothing
     // else of theirs: no keyword, no search term, no selection state.
-    input: { task: PROFILE_TASK, fields: PROFILE_FIELDS, home: a.home, pricing: a.pricing },
+    input: { task: PROFILE_TASK, fields: PROFILE_FIELDS, home: pages.home, pricing: pages.pricing },
     schema: PROFILE_SCHEMA,
     tier: "nano",
   }).then((result) => {
