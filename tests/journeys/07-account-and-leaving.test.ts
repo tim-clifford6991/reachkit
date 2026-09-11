@@ -617,7 +617,7 @@ describe("settings → cancel → export → erasure, and the pages stop being s
     }
   );
 
-  it("every sentence leaving speaks is the owner's: the deletion mail's are written, the screens' still carry the marker", async () => {
+  it("every sentence leaving speaks is the owner's: the deletion mail's written (#458), the screens' written (#460)", async () => {
     // The refusing kind, written since issue #458: `copy()` renders it,
     // so the seam composes the deletion mail rather than refusing it.
     for (const key of MAIL_KEYS) {
@@ -649,14 +649,15 @@ describe("settings → cancel → export → erasure, and the pages stop being s
     expect(delivered.subject).toBe(COPY["mail.account.deleted.subject"]);
     expect(delivered.text).toContain(copy("mail.account.deleted.still_live", { count: "2" }));
 
-    // The marked kind: renderable, so a screen full of finished modules is
-    // still reviewable, and listed so "what is still unwritten" stays one
-    // question with one answer.
+    // The marked kind — a screen's — is written since #460: the owner's
+    // approved set of 2026-09-10. Each renders its sentence, off both
+    // standing lists, and the two that interpolate leave no bare slot.
     for (const key of MARKED_KEYS) {
-      expect(AWAITING_COPY, key).toContain(key);
-      // Two of them interpolate: the marker is the whole value, so the
-      // filled slots leave it unchanged and the assertion still discriminates.
-      expect(copy(key, { word: "w", pages: "0" }), key).toBe(TODO_COPY_MARKER);
+      expect(AWAITING_COPY, key).not.toContain(key);
+      const line = copy(key, { word: "w", pages: "0" });
+      expect(line, key).not.toBe(TODO_COPY_MARKER);
+      expect(line, key).not.toBe("");
+      expect(line, key).not.toContain("{");
     }
 
     // The two lists are disjoint: a key is in one shape or the other, and

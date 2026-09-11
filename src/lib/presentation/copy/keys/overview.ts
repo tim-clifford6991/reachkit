@@ -2,13 +2,12 @@
 //
 // Overview's sentences. Three keys seeded (WO-041 step 3): the
 // no-presence-yet lines for the weekly-presence chart, week and
-// partial-week states. Empty value, owner-owed — no string is written here
-// (constitution §1). The block that owns Overview fills every other
+// partial-week states. The block that owns Overview fills every other
 // sentence this surface needs.
 //
 // 2026-09-05: issue #9 (BUILD §4.4) adds `overview.head` — the one written
 // line this screen states inside the app shell until its own content lands
-// (issue #15, §4.5). Owner-owed and empty: it is a customer-visible sentence
+// (issue #15, §4.5). It is a customer-visible sentence, and so the owner's
 // (constitution §1).
 //
 // 2026-09-05, separately: issue #15 (BUILD §4.5, as amended by DECISIONS
@@ -16,10 +15,11 @@
 // speak. Two categories, and the line between them is the one issue #9's own
 // keys already drew:
 //
-//   **Owner-owed and empty** — every composed sentence: the three further
+//   **The owner's** — every composed sentence: the three further
 //   head lines and the badge, the two goal-meaning lines this screen says in
 //   its own words, the AI-answers window reading, the cold-start rival line,
-//   the four alert lines and the three supply lines. Nothing invents one.
+//   the four alert lines and the three supply lines. Nothing here invents
+//   one; each was owed until the owner approved it (#460).
 //   `overview.head` stays and is not orphaned: it is the head of the screen
 //   where no week has been measured (`OVERVIEW_HEAD.no_data`), which is the
 //   only state it was ever written for.
@@ -40,35 +40,39 @@
 // §4.5's own "▲delta" mark, transcribed once so no arrow character is
 // written at a call site.
 // 2026-09-06, issue #20 (REQ-091 c2): the three `place.overview.*` keys are
-// the ones `src/lib/presentation/place/` registers as places. They stay
-// owner-owed and empty on this screen's own rule, above — a marker is the
-// right standing for a key a screen must render something for, and Overview
-// reads these through `writtenLine`. `account()` therefore throws naming the
-// key rather than handing a place a blank.
+// the ones `src/lib/presentation/place/` registers as places, and Overview
+// reads these through `writtenLine`.
+//
+// 2026-09-10, issue #460: every sentence this partition still owed is now
+// written — the owner approved the master's drafted set ("copy proposal
+// approved", proposal sheet
+// https://claude.ai/code/artifact/546f45a0-a996-4d25-b85e-fb03fda7b102) and
+// the strings land here byte for byte. The values named in the approval
+// file are the owner's; nothing here is composed.
 import type { CopyPartition } from "../registry.ts";
 
 export const OVERVIEW_COPY = Object.freeze({
   "place.overview.weekly-presence.chart": [
-    "TODO(copy)",
+    "No weekly measurement yet. The line begins with the first Monday pass.",
     { law: "no-presence-yet", slots: {}, fixedBy: "REQ-041 c3" },
   ],
   "place.overview.weekly-presence.week": [
-    "TODO(copy)",
+    "This week hasn’t been measured. The next pass is due Monday.",
     { law: "no-presence-yet", slots: {}, fixedBy: "REQ-065 c3" },
   ],
   "place.overview.weekly-presence.partial-week": [
-    "TODO(copy)",
+    "Not measured this week. What was measured is shown with its date.",
     { law: "no-presence-yet", slots: {}, fixedBy: "REQ-065 c4" },
   ],
-  "overview.head": ["TODO(copy)", { slots: {}, fixedBy: "BUILD §4.5" }],
+  "overview.head": ["Too early to call a direction.", { slots: {}, fixedBy: "BUILD §4.5" }],
 
   // ── The head: one line per direction the stored series shows, and the
   // badge §4.5 puts beside it. Four lines, not one: §4.5's "The gap is
   // closing." is a claim about the chart directly under it, and a screen
   // that states it over a widening gap has said something untrue.
   "overview.head.rising": ["The gap is closing.", { slots: {}, fixedBy: "BUILD §4.5" }],
-  "overview.head.flat": ["TODO(copy)", { slots: {}, fixedBy: "BUILD §4.5" }],
-  "overview.head.falling": ["TODO(copy)", { slots: {}, fixedBy: "BUILD §4.5" }],
+  "overview.head.flat": ["The gap hasn’t moved yet.", { slots: {}, fixedBy: "BUILD §4.5" }],
+  "overview.head.falling": ["The gap has widened.", { slots: {}, fixedBy: "BUILD §4.5" }],
   // Approved as written (ruling 11a): the set's badge claims every week
   // and names no number, so the `weeks` slot goes with the wording rather
   // than staying declared and unfilled — a slot the value never spends is
@@ -146,18 +150,18 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.tile.score.label": ["Discoverability Score", { slots: {}, fixedBy: "UI-SPEC 6a" }],
   // What reaching `GOAL_VALUES.score` means, in the product's own words.
   // The set prints no such line beside the score — it prints the band —
-  // so this stays owed, and the tile carries the goal's number without it.
-  "overview.tile.score.means": ["TODO(copy)", { slots: { goal: "text" }, fixedBy: "BUILD §4.5" }],
+  // so the words are the owner's (#460).
+  "overview.tile.score.means": ["At {goal} you’re Findable", { slots: { goal: "text" }, fixedBy: "BUILD §4.5" }],
   // The card head of the growth chart still names the searches reading:
   // the set moved that number off the tiles and onto its own card, and
   // this key is the card's eyebrow now rather than a tile label.
   "overview.tile.searches.label": ["Searches you appear in", { slots: {}, fixedBy: "BUILD §4.5" }],
   "overview.tile.ai-answers.label": ["AI answers", { slots: {}, fixedBy: "BUILD §4.5" }],
   "overview.tile.ai-answers.window": [
-    "TODO(copy)",
+    "named in {weeks} of the last {of} weeks",
     { slots: { weeks: "text", of: "text" }, fixedBy: "REQ-041 c12" },
   ],
-  "overview.tile.ai-answers.means": ["TODO(copy)", { slots: {}, fixedBy: "REQ-041 c4" }],
+  "overview.tile.ai-answers.means": ["Named by AI in half the weeks.", { slots: {}, fixedBy: "REQ-041 c4" }],
   "overview.tile.pages.label": ["Pages published", { slots: {}, fixedBy: "BUILD §4.5" }],
   // The set's own two lines on the pages tile, both unbracketed and so
   // approved (11a): the badge beside the count, and the dim line under it.
@@ -171,7 +175,7 @@ export const OVERVIEW_COPY = Object.freeze({
     "rest under {weeks} weeks — too early to judge",
     { slots: { weeks: "text" }, fixedBy: "UI-SPEC S12 · REQ-063 c2" },
   ],
-  "overview.tile.pages.means": ["TODO(copy)", { slots: {}, fixedBy: "REQ-041 c4" }],
+  "overview.tile.pages.means": ["A month of daily pages.", { slots: {}, fixedBy: "REQ-041 c4" }],
 
   // §4.5's "goal: 6", with the number left to `GOAL_VALUES`.
   "overview.goal": ["goal: {value}", { slots: { value: "text" }, fixedBy: "BUILD §4.5" }],
@@ -196,7 +200,7 @@ export const OVERVIEW_COPY = Object.freeze({
   // The cold-start arm's line, and the one key on this screen whose value is
   // constrained by what it must **not** say: nothing is shrinking yet, so it
   // can never be `overview.rivals.line.shrinking` (REQ-041 c9).
-  "overview.rivals.line.absolute": ["TODO(copy)", { slots: {}, fixedBy: "REQ-041 c9" }],
+  "overview.rivals.line.absolute": ["Each line is a rival’s own count beside yours.", { slots: {}, fixedBy: "REQ-041 c9" }],
   // The week-0 arm's one line, in place of the rows: nothing has been
   // sized yet, and the card says when it will be rather than drawing three
   // empty plots.
@@ -207,30 +211,15 @@ export const OVERVIEW_COPY = Object.freeze({
 
   // ── REQ-096 c6: a rival banded `far`, and the two sentences it needs.
   //
-  // **The empty value, not the marker.** The general rule for a screen is
-  // the renderable `TODO(copy)` (the 2026-09-05 ruling on #93), but this
-  // screen took the stricter one and asserts it: `tests/app/overview/
-  // page.test.tsx` — "no owner-owed key renders anything at all — not a
-  // placeholder, not a TODO". Overview reads every line through
-  // `writtenLine`, which answers `null` for an owed key, and the module
-  // omits what it has no words for. `overview.rivals.line.absolute` above
-  // has been owed on those terms since #15.
-  //
-  // So until these two are written, a `far` rival's row is exactly the row
-  // it is today: its plot, its figure and its badge, with no line and no
-  // control under it. That is the honest state — a control whose label
-  // nobody has written cannot be rendered — and it is visible rather than
-  // silent, because the registry's own count reports both keys as owed.
-  //
   // **What the line must not say.** It says the rival is far beyond what
   // this customer could catch and why the distance to it will not move. It
   // does not name a replacement, does not suggest removing the rival, and
   // is not a verdict on the customer — REQ-096 c7 keeps the rival in the
   // set until the customer takes it out themselves.
-  "overview.rivals.far.line": ["TODO(copy)", { slots: { rival: "text" }, fixedBy: "REQ-096 c6" }],
+  "overview.rivals.far.line": ["{rival} is far beyond your reach for now. Its lead is so large that this distance won’t move week to week.", { slots: { rival: "text" }, fixedBy: "REQ-096 c6" }],
   // The one control c6 allows, and the whole of it: a word for "go to
   // where you can change who you are measured against". Never "remove".
-  "overview.rivals.far.swap": ["TODO(copy)", { slots: {}, fixedBy: "REQ-096 c6" }],
+  "overview.rivals.far.swap": ["Change who you’re measured against", { slots: {}, fixedBy: "REQ-096 c6" }],
 
   // ── This week.
   "overview.week.title": ["This week", { slots: {}, fixedBy: "BUILD §4.5" }],
@@ -244,16 +233,18 @@ export const OVERVIEW_COPY = Object.freeze({
   // Since #353 they are their own card, headed as the set heads it — §4.5
   // put them under "This week", and the approved set draws two cards.
   "overview.needs-you.title": ["Needs you", { slots: {}, fixedBy: "UI-SPEC S12" }],
-  "overview.alert.pending-veto": ["TODO(copy)", { slots: { title: "text" }, fixedBy: "REQ-041 c5" }],
+  "overview.alert.pending-veto": ["{title} is ready to read", { slots: { title: "text" }, fixedBy: "REQ-041 c5" }],
   "overview.alert.pending-veto.action": ["Read it", { slots: {}, fixedBy: "BUILD §4.5" }],
-  "overview.alert.needs-you": ["TODO(copy)", { slots: { title: "text" }, fixedBy: "REQ-041 c5" }],
+  "overview.alert.needs-you": ["{title} needs you before it can go out", { slots: { title: "text" }, fixedBy: "REQ-041 c5" }],
   // "Reconnect" is unbracketed in the approved set (ruling 11a) — the word
   // on the accent panel's outline pill. The alert's own title and the line
-  // saying what broke are bracketed there, and stay owed below.
+  // saying what broke are bracketed there; their words below are the
+  // owner's (#460).
   "overview.alert.needs-you.action": ["Reconnect", { slots: {}, fixedBy: "UI-SPEC S12" }],
-  // The cause: "[cause line — owner's]" in the set, so owed. One short line
+  // The cause: "[cause line — owner's]" in the set, written by the owner
+  // (#460). One short line
   // under the title, never a paragraph (§2.5's dim line).
-  "overview.alert.needs-you.cause": ["TODO(copy)", { slots: {}, fixedBy: "REQ-041 c5" }],
+  "overview.alert.needs-you.cause": ["The page couldn’t be delivered to your site.", { slots: {}, fixedBy: "REQ-041 c5" }],
   // The veto panel's own line, unbracketed in the set and therefore
   // approved. `left` is how long the window has to run, written by
   // `formatHoursLeft` from the item's own `since` and `VETO.defaultHours` —
@@ -270,13 +261,13 @@ export const OVERVIEW_COPY = Object.freeze({
     "publishes in {left} unless you say otherwise",
     { slots: { left: "text" }, fixedBy: "UI-SPEC S12" },
   ],
-  "overview.alert.overflow": ["TODO(copy)", { slots: { remaining: "text" }, fixedBy: "REQ-041 c5" }],
-  "overview.alerts.empty": ["TODO(copy)", { slots: {}, fixedBy: "REQ-041 c5" }],
+  "overview.alert.overflow": ["{remaining} more in the calendar.", { slots: { remaining: "text" }, fixedBy: "REQ-041 c5" }],
+  "overview.alerts.empty": ["Nothing needs you today.", { slots: {}, fixedBy: "REQ-041 c5" }],
 
   // ── The one supply statement Overview may make, resolved in this order.
-  "overview.supply.exhausted": ["TODO(copy)", { slots: {}, fixedBy: "REQ-095 c3" }],
-  "overview.supply.short": ["TODO(copy)", { slots: {}, fixedBy: "REQ-095 c5" }],
-  "overview.supply.first-arrival": ["TODO(copy)", { slots: {}, fixedBy: "REQ-095 c6" }],
+  "overview.supply.exhausted": ["No pages are left worth writing. Monday’s re-measure looks for more.", { slots: {}, fixedBy: "REQ-095 c3" }],
+  "overview.supply.short": ["Fewer than a week of pages is left. Monday’s re-measure looks for more.", { slots: {}, fixedBy: "REQ-095 c5" }],
+  "overview.supply.first-arrival": ["Your first pass found less than a month of pages. We look for more every Monday.", { slots: {}, fixedBy: "REQ-095 c6" }],
 
   // 2026-09-07, issue #205 — the account a broken series puts on its own
   // break. REQ-071 c12/c13 forbid drawing a difference across a date the
@@ -289,14 +280,14 @@ export const OVERVIEW_COPY = Object.freeze({
   // category), and the value itself renders beside the line as a value
   // rather than as voice — §2.3's rule, the same one the draft screen's
   // matched-entry line follows.
-  "overview.change.domain": ["TODO(copy)", { slots: {}, fixedBy: "REQ-071 c12" }],
-  "overview.change.category": ["TODO(copy)", { slots: {}, fixedBy: "REQ-071 c12" }],
-  "overview.change.rivals": ["TODO(copy)", { slots: {}, fixedBy: "REQ-071 c12" }],
+  "overview.change.domain": ["Domain changed. Measurement starts again from here.", { slots: {}, fixedBy: "REQ-071 c12" }],
+  "overview.change.category": ["Market changed. The 12 questions were rebuilt from here.", { slots: {}, fixedBy: "REQ-071 c12" }],
+  "overview.change.rivals": ["Rivals changed. Comparison starts again from here.", { slots: {}, fixedBy: "REQ-071 c12" }],
   // REQ-071 c13's other half: a card that compares two readings has to say
   // which span it compared over when a change falls inside it, rather than
   // quietly comparing across one.
   "overview.comparison.window": [
-    "TODO(copy)",
+    "Compared from {since}, when your settings changed — earlier readings aren’t joined to these.",
     { slots: { since: "date" }, fixedBy: "REQ-071 c13" },
   ],
 }) satisfies CopyPartition;

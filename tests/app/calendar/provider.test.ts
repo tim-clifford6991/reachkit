@@ -12,6 +12,7 @@ applyEnvFixture();
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { supplyLine } from "@/app/(account)/app/calendar/supply";
 import type { SupplyNotice } from "@/lib/opportunities";
+import { COPY, TODO_COPY_MARKER, type CopyKey } from "@/lib/presentation/copy";
 
 const readCalendarFacts = vi.fn();
 const supplyNotice = vi.fn();
@@ -139,15 +140,28 @@ describe("parseMonth — a query string is never trusted into a date parser", ()
 describe("supplyLine — at most one statement of supply, and never a composed one", () => {
   const zone = "America/New_York";
 
-  it("renders nothing for every arm while the owner has not written the line", () => {
-    const arms: (SupplyNotice | null)[] = [
-      null,
-      { kind: "exhausted", days: 0, since: null },
-      { kind: "exhausted", days: 0, since: new Date(Date.UTC(2026, 8, 1, 12, 0, 0)) },
-      { kind: "short", days: 3 },
-      { kind: "arrival_shortfall", days: 12 },
+  it("speaks the owner's written line for every arm (#460), each from its own key", () => {
+    // The three sentences were owed until 2026-09-10 and every arm rendered
+    // nothing. They are written now, so each arm is read back against its
+    // own key's words with the slots filled — never the marker, never a
+    // bare `{slot}`.
+    const since = new Date(Date.UTC(2026, 8, 1, 12, 0, 0));
+    const arms: [SupplyNotice, CopyKey][] = [
+      [{ kind: "exhausted", days: 0, since }, "calendar.supply.exhausted"],
+      [{ kind: "short", days: 3 }, "calendar.supply.short"],
+      [{ kind: "arrival_shortfall", days: 12 }, "calendar.supply.first-arrival"],
     ];
-    for (const arm of arms) expect(supplyLine(arm, zone)).toBeNull();
+    for (const [arm, key] of arms) {
+      const line = supplyLine(arm, zone);
+      expect(line, key).not.toBeNull();
+      expect(line, key).not.toBe(TODO_COPY_MARKER);
+      expect(line, key).not.toContain("{");
+      expect(line?.startsWith(COPY[key].split("{")[0] ?? ""), key).toBe(true);
+    }
+    expect(supplyLine({ kind: "short", days: 3 }, zone)).toContain("3");
+    expect(supplyLine({ kind: "arrival_shortfall", days: 12 }, zone)).toContain("12");
+    // An exhausted notice with no recorded date still speaks its line.
+    expect(supplyLine({ kind: "exhausted", days: 0, since: null }, zone)).not.toBeNull();
   });
 
   it("no notice is no line — a customer with supply reads nothing about it", () => {
