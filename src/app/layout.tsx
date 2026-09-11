@@ -25,8 +25,8 @@
 //
 // Design system: `src/ui/tailwind.css` is what actually emits Tailwind's
 // utilities and daisyUI's component classes (Tailwind 4 has no implicit
-// entry point, and loads `tailwind.config.ts` only when a stylesheet names
-// it). It is imported after `theme.css` so `:root`'s tokens exist before
+// entry point), and it declares the one daisyUI theme, `reachkit`. It is
+// imported after `theme.css` so `:root`'s tokens exist before
 // the daisyUI theme mapping that reads them, and before `type.css`, whose
 // element rules are meant to win over the reset.
 //

@@ -16,6 +16,7 @@ import { Collapse } from "@/ui/components/Collapse";
 import { Input } from "@/ui/components/Input";
 import { Divider } from "@/ui/components/Divider";
 import { Kbd } from "@/ui/components/Kbd";
+import { daisyTheme } from "./design/tokens-doc";
 
 const COMPONENTS_DIR = path.resolve(__dirname, "../../src/ui/components");
 
@@ -354,8 +355,8 @@ describe("issue #509 — a done step is --ok, the one under way is the accent (s
   });
 
   it("the two slots are the two tokens the set names", () => {
-    const config = readFileSync(path.resolve(__dirname, "../../tailwind.config.ts"), "utf8");
-    expect(config).toContain('"--color-success": "var(--ok)"');
-    expect(config).toContain('"--color-primary": "var(--accent)"');
+    const theme = daisyTheme();
+    expect(theme.get("--color-success")).toBe("var(--ok)");
+    expect(theme.get("--color-primary")).toBe("var(--accent)");
   });
 });

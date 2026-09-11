@@ -15,7 +15,7 @@
 // of this issue did, and the owner ruled that file is not the approved set.
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import postcss, { type Declaration, type Rule } from "postcss";
+import postcss, { type AtRule, type Declaration, type Rule } from "postcss";
 
 const REPO = path.resolve(import.meta.dirname, "../../..");
 
@@ -94,4 +94,28 @@ export function approvedTokens(): ReadonlySet<string> {
  *  literal kept the value it had. */
 export function approvedLightValue(token: string): string | undefined {
   return tokenSet(APPROVED_TOKENS_CSS).light.get(token);
+}
+
+export const TAILWIND_CSS = path.join(REPO, "src/ui/tailwind.css");
+
+/**
+ * The one daisyUI theme: every custom property the `@plugin "daisyui/theme"`
+ * block in `src/ui/tailwind.css` declares, by name, value as written.
+ * `docs/DESIGN.md` ("Tokens") rules the theme is declared there and nowhere
+ * else, so a second block, or none, throws rather than reading as an empty
+ * theme. `source` lets a mutation check parse an edited copy.
+ */
+export function daisyTheme(source: string = readFileSync(TAILWIND_CSS, "utf8")): ReadonlyMap<string, string> {
+  const blocks: AtRule[] = [];
+  postcss.parse(source).walkAtRules("plugin", (rule: AtRule) => {
+    if (rule.params.replace(/["']/g, "") === "daisyui/theme") blocks.push(rule);
+  });
+  if (blocks.length !== 1) {
+    throw new Error(`src/ui/tailwind.css declares ${blocks.length} daisyUI theme blocks, not one`);
+  }
+  const out = new Map<string, string>();
+  blocks[0]!.walkDecls((decl: Declaration) => {
+    if (decl.prop.startsWith("--")) out.set(decl.prop, decl.value.trim());
+  });
+  return out;
 }

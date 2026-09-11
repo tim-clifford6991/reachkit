@@ -17,7 +17,15 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { approvedTokens, APPROVED_TOKENS_CSS, type Block, THEME_CSS, tokenSet } from "./tokens-doc";
+import {
+  approvedTokens,
+  APPROVED_TOKENS_CSS,
+  type Block,
+  daisyTheme,
+  TAILWIND_CSS,
+  THEME_CSS,
+  tokenSet,
+} from "./tokens-doc";
 
 const SRC = path.resolve(import.meta.dirname, "../../../src");
 
@@ -104,6 +112,28 @@ describe("issue #349 — theme.css is the approved token file", () => {
       }
     }
     expect(offenders, `a second home for an approved token:\n${offenders.join("\n")}`).toEqual([]);
+  });
+
+  it("the daisyUI theme block restates no approved token, and its own names have one home", () => {
+    // `docs/DESIGN.md`: one theme, declared once in `src/ui/tailwind.css`. It
+    // maps daisyUI's slots onto the approved set by `var()` and adds the four
+    // v2 colours; it never redeclares an approved token, or `theme.css` stops
+    // being the one home of the 54. And nothing else declares a name the
+    // theme block owns, or a sheet could re-colour a v2 token or a slot unseen.
+    const theme = daisyTheme();
+    const approved = approvedTokens();
+    const restated = [...theme.keys()].filter((token) => approved.has(token));
+    expect(restated, `approved tokens restated in the theme block: ${restated.join(" ")}`).toEqual([]);
+
+    const offenders: string[] = [];
+    for (const file of cssFiles()) {
+      if (path.resolve(file) === path.resolve(TAILWIND_CSS)) continue;
+      const source = readFileSync(file, "utf8");
+      for (const [, token] of source.matchAll(/^\s*(--[a-z0-9-]+)\s*:/gm)) {
+        if (theme.has(token!)) offenders.push(`${path.relative(path.resolve(SRC, ".."), file)}: ${token}`);
+      }
+    }
+    expect(offenders, `a second home for a theme-block name:\n${offenders.join("\n")}`).toEqual([]);
   });
 
   it("no token is defined only in a dark block", () => {
