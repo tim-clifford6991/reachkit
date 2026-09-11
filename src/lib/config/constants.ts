@@ -178,6 +178,21 @@ export const PROFILE_LIST_BOUNDS = Object.freeze({
   brandTokens: Object.freeze({ min: 0, max: 6 } as const),
 } as const);
 
+/** The most of the customer's own page text one `profile` call may carry,
+ *  in characters of the prompt it is serialised into — home first, the
+ *  pricing page in what remains, cut at a word boundary
+ *  (`src/lib/market/questions/profile.ts`). Issue #523: since #479 an own
+ *  document may be up to `OWN_DOCUMENT_MAX_BYTES`, and its visible text went
+ *  into the prompt whole, so a large marketing site's reservation alone
+ *  could pass `CAPS.FREE_C` (or the model's context window) and leave the
+ *  profile, the market, the twelve and the AI answers unmeasured. 20 000 is
+ *  the figure #517's worst-case arithmetic assumed (~5.3k tokens with the
+ *  fixed instruction, at ~4 chars a token); `tests/scan/free/cost-bound.
+ *  test.ts` adds the free pass up from the pins with it and holds the sum
+ *  under `CAPS.FREE_C`. Only the prompt is bounded — the measurement reads
+ *  the whole document. */
+export const PROFILE_INPUT_MAX_CHARS = 20_000 as const;
+
 /** How many `llm()` calls one free pass issues — BP-009 `## NFR budget`,
  *  quoted: "the free scan's **two** nano calls — `profile` and
  *  `question-phrasing` (BP-025 decision 2) — sit inside the 60-second
