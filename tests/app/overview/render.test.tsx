@@ -379,8 +379,10 @@ describe("this week", () => {
     // word the set does not draw.
     expect(count(markup, "rk-week-rule")).toBe(7);
     expect(markup).toContain('data-state="today"');
-    // No chart frame: the card head's glyph is the only svg left.
-    expect(markup).not.toContain('role="img"');
+    // No chart frame and no SVG marks: the card head's glyph is the only
+    // svg left.
+    expect(markup).not.toContain("rk-mark");
+    expect(markup).not.toContain('viewBox="0 0 300');
     expect(markup).not.toContain("max-width:560px");
   });
 

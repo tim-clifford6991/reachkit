@@ -356,12 +356,15 @@ describe('BUILD.md §2.4: "Every bar/point is direct-labelled (name + value) —
   });
 
   it("WeekStrip labels all seven days, the unmeasured one included — a labelled empty mark, never a gap", () => {
-    const text = rootOf(STORIES.WeekStrip?.() as React.JSX.Element).textContent ?? "";
-    for (const day of DAYS) {
-      expect(text).toContain(day.date);
-      expect(text).toContain(day.mark);
-    }
-    expect(text).toContain("nothing measured");
+    // The date is drawn; the word is each date's accessible name (#521).
+    const names = [...rootOf(STORIES.WeekStrip?.() as React.JSX.Element).querySelectorAll(".rk-week-n")].map(
+      (n) => n.getAttribute("aria-label") ?? ""
+    );
+    DAYS.forEach((day, i) => {
+      expect(names[i]).toContain(day.date);
+      expect(names[i]).toContain(day.mark);
+    });
+    expect(names.join(" ")).toContain("nothing measured");
   });
 
   it("every numeral a chart writes is in the mono utility (§2.3)", () => {
@@ -756,7 +759,12 @@ describe("UI-SPEC §2 WeekStrip: \"seven cells, states done / today / unmeasured
   it("names each state to a screen reader and on hover — identity is never colour alone (§2.4)", () => {
     cells.forEach((cell, i) => {
       const day = DAYS[i];
-      expect(cell.querySelector(".sr-only")?.textContent).toBe(day?.mark);
+      // An attribute, never an `sr-only` span: the layout sweep's check 3
+      // reads that clipped box as text cut off.
+      const n = cell.querySelector(".rk-week-n");
+      expect(n?.getAttribute("role")).toBe("img");
+      expect(n?.getAttribute("aria-label")).toBe(`${day?.date} · ${day?.mark}`);
+      expect(cell.querySelector(".sr-only")).toBeNull();
       expect(cell.getAttribute("title")).toBe(`${day?.date} · ${day?.mark}`);
     });
   });

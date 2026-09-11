@@ -17,9 +17,13 @@
 // `CalendarGrid` imports its own.
 //
 // **Identity is never colour alone (§2.4).** The set draws no word in the
-// cell, and neither does this: each day's written word for its state is its
-// accessible text (`sr-only`), read with its date, and the pair is the cell's
-// hover title. With the colours removed a reader still hears "31 done".
+// cell, and neither does this: each day's date and its written word for its
+// state are the date's accessible name (`aria-label`, read as one image the
+// way every SVG chart is) and the cell's hover title. With the colours
+// removed a reader still hears "31 · done". An attribute, not an `sr-only`
+// span: that idiom is a clipped one-pixel box, which the layout sweep's
+// check 3 reads as text cut off — the reason `Input` and the calendar's
+// month switcher carry their hidden names the same way.
 //
 // The colours are §2.4's own exception — "status colors (ok/warn/bad) are for
 // state, never for series" — and a day's state is exactly a state. No series
@@ -56,8 +60,9 @@ export function WeekStrip(p: { days: SevenDays; label: string }): React.JSX.Elem
           data-state={day.state}
           title={`${day.date} · ${day.mark}`}
         >
-          <span className="rk-week-n num">{day.date}</span>
-          <span className="sr-only">{day.mark}</span>
+          <span className="rk-week-n num" role="img" aria-label={`${day.date} · ${day.mark}`}>
+            {day.date}
+          </span>
           <span className="rk-week-rule" aria-hidden />
         </li>
       ))}
