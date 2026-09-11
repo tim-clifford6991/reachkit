@@ -45,8 +45,7 @@ weekly scan → calendar → email → technical issues — but all nine are MVP
 | 5 | `CLAUDE.md` | What an agent reads first, and the nine things it never does. |
 
 These five files are the corpus; there is no sixth. Renders live in `docs/design/`. Everything not needed for the nine features is archived under `docs/archive/<date>/`; the old
-sdlc-factory corpus is frozen at `docs/archive/2026-09-04/` — never edited, never deleted — and the old
-root paths stay one-line pointers for a week. A difference between the code and `SPEC.md` or `DESIGN.md` is a defect in the code, filed as an issue.
+sdlc-factory corpus is frozen at `docs/archive/2026-09-04/` — never edited, never deleted. A difference between the code and `SPEC.md` or `DESIGN.md` is a defect in the code, filed as an issue.
 
 ## Where work is tracked
 
