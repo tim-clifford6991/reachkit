@@ -129,7 +129,7 @@ Every bracketed hint the set draws on this screen: `[robots lines — verbatim, 
 | `presence.occupancy` `{you} {measured}`<br>`report.ts` | marker | — · placed with its group |  | REQ-008 c1 |  |
 | `presence.occupancy.column.count`<br>`report.ts` | marker | — · placed with its group |  | REQ-008 c1 |  |
 | `presence.occupancy.column.domain`<br>`report.ts` | marker | — · placed with its group |  | REQ-008 c1 |  |
-| `problem.paste.label`<br>`report.ts` | marker | `<div class="flex flex-col gap-2">` · `app/(public)/scan/[domain]/_problems/cards.tsx` |  | REQ-009 c2 |  |
+| `problem.paste.label`<br>`report.ts` | marker | `FixBody` · `app/(public)/scan/[domain]/_problems/cards.tsx` |  | REQ-009 c2 |  |
 | `report.wait.minutes` `{minutes}`<br>`report.ts` | marker | `formatWait` · `app/(public)/scan/[domain]/_address/refusal.ts` |  | REQ-003 c6 |  |
 | `stage.reading_access_rules`<br>`report.ts` | marker | `STAGE_KEY` · `app/(public)/scan/[domain]/_address/progress.tsx` |  | REQ-003 c1 |  |
 | `verdict.factor.answerability`<br>`report.ts` | marker | `FACTOR_NAME_KEY` · `app/(public)/scan/[domain]/_address/report-view.tsx` · +1 more |  | REQ-004 c3 | 110 — sibling `verdict.limiting.answerability` |

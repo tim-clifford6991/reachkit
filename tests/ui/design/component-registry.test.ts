@@ -373,3 +373,110 @@ describe('§2.2 — "Custom CSS is allowed only for … nothing else"', () => {
     ).toEqual([]);
   });
 });
+
+/* ── the idiom's report components: one renderer each (#487) ──────────── */
+
+/** UI-SPEC §2's three report rows that are not daisyUI components — each an
+ *  idiom widening with one home in `src/ui/idiom/`, registered here the way
+ *  the fifteen are: its §2 row, its barrel export, and the classes only it
+ *  may write. A screen that draws one of these by hand writes none of the
+ *  classes, so the second half of the pin reads the three screens that used
+ *  to, for the shape they used to write. */
+const IDIOM_REGISTERED: ReadonlyArray<{
+  readonly exported: string;
+  readonly file: string;
+  readonly specRow: string;
+  readonly classes: readonly string[];
+}> = [
+  {
+    exported: "SourceChip",
+    file: "src/ui/idiom/SourceChip.tsx",
+    specRow: "| Source chip | `.srcchip` |",
+    classes: ["rk-srcchip"],
+  },
+  {
+    exported: "ProblemCard",
+    file: "src/ui/idiom/ProblemCard.tsx",
+    specRow: "| Problem card | `.prob .sev-*` |",
+    classes: ["rk-prob", "rk-prob-code", "rk-prob-count"],
+  },
+  {
+    exported: "QuestionList",
+    file: "src/ui/idiom/QuestionList.tsx",
+    specRow: "| Question list | `.q` |",
+    classes: ["rk-q-list", "rk-q", "rk-q-p"],
+  },
+];
+
+/** Every idiom class above written by a file other than its component's. */
+function idiomClassesOutsideTheirHome(
+  written: ReadonlyMap<string, Set<string>> = WRITTEN,
+): string[] {
+  const out: string[] = [];
+  for (const row of IDIOM_REGISTERED) {
+    for (const cls of row.classes) {
+      for (const file of written.get(cls) ?? []) {
+        if (file !== row.file) out.push(`${cls} in ${file}`);
+      }
+    }
+  }
+  return out.sort();
+}
+
+const SCAN = "src/app/(public)/scan/[domain]";
+
+describe("UI-SPEC §2 — Source chip, Problem card and Question list have one renderer each (#487)", () => {
+  it("each is a UI-SPEC §2 row", () => {
+    const spec = read("docs/design/approved/full-set/UI-SPEC.md");
+    for (const row of IDIOM_REGISTERED) {
+      expect(spec, row.exported).toContain(row.specRow);
+    }
+  });
+
+  it("each is exported by the idiom's barrel, not the fifteen's", () => {
+    const idiom = read("src/ui/idiom/index.ts");
+    const components = read("src/ui/components/index.ts");
+    for (const row of IDIOM_REGISTERED) {
+      expect(idiom).toMatch(new RegExp(`export \\{ ${row.exported}\\b`));
+      expect(components).not.toContain(row.exported);
+    }
+  });
+
+  it("each writes its own classes, and nothing else writes them", () => {
+    for (const row of IDIOM_REGISTERED) {
+      for (const cls of row.classes) {
+        expect([...(WRITTEN.get(cls) ?? [])], cls).toContain(row.file);
+      }
+    }
+    expect(idiomClassesOutsideTheirHome()).toEqual([]);
+  });
+
+  it("mutation: a screen writing `rk-srcchip` inline is caught", () => {
+    const mutated = new Map(WRITTEN);
+    mutated.set(
+      "rk-srcchip",
+      new Set(["src/ui/idiom/SourceChip.tsx", "src/app/(account)/app/_overview/GrowthModule.tsx"]),
+    );
+    expect(idiomClassesOutsideTheirHome(mutated)).toEqual([
+      "rk-srcchip in src/app/(account)/app/_overview/GrowthModule.tsx",
+    ]);
+  });
+
+  it("the report's source lines are source chips, never a Badge", () => {
+    for (const [file, key] of [
+      [`${SCAN}/_modules/ai-answers.tsx`, "ai-answers.source"],
+      [`${SCAN}/_modules/google-presence.tsx`, "presence.source"],
+    ] as const) {
+      const source = read(file);
+      expect(source, file).toMatch(new RegExp(`<SourceChip[^>]*>\\{copy\\("${key.replace(".", "\\.")}"`));
+      expect(source, file).not.toMatch(/<Badge[^>]*\bwrap\b/);
+    }
+  });
+
+  it("the report draws no question list and no problem card by hand", () => {
+    expect(read(`${SCAN}/_modules/ai-answers.tsx`)).not.toMatch(/<(ul|li)\b/);
+    const cards = read(`${SCAN}/_problems/cards.tsx`);
+    expect(cards).not.toMatch(/<(Card|pre)\b/);
+    expect(cards).not.toMatch(/border-l-/);
+  });
+});
