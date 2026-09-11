@@ -370,3 +370,46 @@ describe(
 function delayFake(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+
+// ── Issue #479 — a pass that read nothing of the site is never `complete` ──
+
+describe("issue #479 — `siteUnreadable` ends the pass with its cause, not `complete`", () => {
+  it("ceilings/site · a body that could not read the site ends `site_unreadable`, carrying the refusal", async () => {
+    const outcome = await withFreeBounds({ scanId: "scan-479", startedAt: startedNow() }, async (bounds: Bounds) => {
+      bounds.siteUnreadable("too_large");
+      return "stopped after the first stage";
+    });
+    expect(outcome.ending).toEqual({
+      kind: "report",
+      complete: false,
+      stoppedReason: "site_unreadable",
+      refusal: "too_large",
+    });
+    expect(outcome.result).toBe("stopped after the first stage");
+  });
+
+  it("ceilings/site · a ceiling that fired outranks it — a ceiling always produces its own ending (ADR-021)", async () => {
+    const outcome = await withFreeBounds({ scanId: "scan-479b", startedAt: startedNow() }, async (bounds: Bounds) => {
+      bounds.siteUnreadable("timeout");
+      activeCost.setCapHit(true);
+      return null;
+    });
+    expect(outcome.ending).toEqual({ kind: "report", complete: false, stoppedReason: "spend_ceiling" });
+  });
+
+  it("ceilings/site · the one ending line names it, with the refusal beside the reason", async () => {
+    const lines: unknown[] = [];
+    const spy = vi.spyOn(console, "log").mockImplementation((line: unknown) => {
+      lines.push(line);
+    });
+    try {
+      await withFreeBounds({ scanId: "scan-479c", startedAt: startedNow() }, async (bounds: Bounds) => {
+        bounds.siteUnreadable(null);
+      });
+    } finally {
+      spy.mockRestore();
+    }
+    const ending = lines.map((l) => JSON.parse(String(l)) as Record<string, unknown>).find((l) => l.event === "scan_ending");
+    expect(ending).toMatchObject({ stoppedReason: "site_unreadable", refusal: null });
+  });
+});

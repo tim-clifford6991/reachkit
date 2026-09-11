@@ -106,6 +106,7 @@ const MEASUREMENT: DomainMeasurement = {
   pricing: null,
   robots: measured(ROBOTS, AT),
   ownRanked: measuredZero(0, AT),
+  homeRefusal: null,
 };
 
 /** §6.1's `QUESTIONS` pin: the twelve a real pass asks. Written from the
