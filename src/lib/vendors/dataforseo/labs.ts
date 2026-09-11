@@ -15,7 +15,7 @@
 import type { CostContext } from "@/lib/costs";
 import { CACHE_WINDOWS_D, PRICE_BOOK, SERP_LOCATION, VENDOR } from "@/lib/config/constants";
 import type { Measured } from "@/lib/measure/measured";
-import { asArray, asNumber, asString, callEndpoint, isRecord, ledgered, ledgeredWithTotal } from "./envelope";
+import { asArray, asNumber, asString, callEndpoint, isRecord, ledgered, ledgeredWithTotal, type OnVendorFailure } from "./envelope";
 import type { CompetitorRow, RankedResult, RankedRow, SuggestionRow } from "./types";
 
 const LABS = "/v3/dataforseo_labs/google";
@@ -116,9 +116,16 @@ function parseCompetitors(target: string, result: unknown): CompetitorRow[] | un
 
 export async function rankedKeywords(
   c: CostContext,
-  a: { domain: string; rows: RankedRows }
+  a: {
+    domain: string;
+    rows: RankedRows;
+    /** The stage that asked, told why the call failed where it did (issue
+     *  #504) — so its own reason is the vendor's, never a ledger error. */
+    onFailure?: OnVendorFailure;
+  }
 ): Promise<Measured<RankedResult>> {
   return ledgeredWithTotal<RankedRow>(c, {
+    ...(a.onFailure ? { onFailure: a.onFailure } : {}),
     source: "dataforseo_labs/google/ranked_keywords",
     // `VENDOR.rankedPayloadVersion` is part of the key because the cached
     // payload's *shape* changed with #117, not its meaning: an entry

@@ -18,7 +18,8 @@
 // lines to paste — a founder is never shown a robots directive derived
 // from a measurement that did not happen.
 import type React from "react";
-import { Badge, Btn, Card } from "@/ui/components";
+import { Badge, Btn } from "@/ui/components";
+import { ProblemCard as ProblemCardShell, type ProblemCardEdge } from "@/ui/idiom";
 import type { Tone } from "@/ui/types";
 import { copy } from "@/lib/presentation/copy";
 import { SEVERITY } from "@/lib/presentation/bands";
@@ -38,12 +39,12 @@ const SEVERITY_TONE: Readonly<Record<Severity, Tone>> = Object.freeze({
  *  beside it, always — so this is a second reading of the same fact, which
  *  is what §2.5 asks a colour to be. An unmeasured severity gets the
  *  neutral edge, because a dash is not a level. */
-const SEVERITY_EDGE: Readonly<Record<Severity, string>> = Object.freeze({
-  low: "border-l-success",
-  mid: "border-l-warning",
-  high: "border-l-error",
+const SEVERITY_EDGE: Readonly<Record<Severity, ProblemCardEdge>> = Object.freeze({
+  low: "ok",
+  mid: "warn",
+  high: "bad",
 });
-const UNMEASURED_EDGE = "border-l-base-300";
+const UNMEASURED_EDGE: ProblemCardEdge = "neutral";
 
 function SeverityBadge(p: { card: ProblemCard }): React.JSX.Element {
   const { severity } = p.card;
@@ -59,8 +60,9 @@ function SeverityBadge(p: { card: ProblemCard }): React.JSX.Element {
 }
 
 /** A total switch over `Fix`, so a new arm fails the build until it has a
- *  rendering. The `paste` arm is the only one that carries lines, and the
- *  copy control is the only control on any fix. */
+ *  rendering. The `paste` arm is the only one that carries lines — they are
+ *  the card's code block, handed to `ProblemCard` below — and the copy
+ *  control is the only control on any fix. */
 function FixBody(p: { card: ProblemCard }): React.JSX.Element | null {
   const { fix } = p.card;
   switch (fix.kind) {
@@ -71,19 +73,7 @@ function FixBody(p: { card: ProblemCard }): React.JSX.Element | null {
       return rendered.line === undefined ? null : <p>{rendered.line}</p>;
     }
     case "paste":
-      return (
-        <div className="flex flex-col gap-2">
-          {/* REQ-009 c2's lines, verbatim and on their own lines. `.num`
-              is `white-space: nowrap` since #297 and beat every utility
-              written here, so the robots block was drawn as one long
-              scrolled line; `pre .num` in `src/ui/type.css` is the rule
-              that gives a code block its own lines back (issue #352). */}
-          <pre className="bg-base-200 border-base-300 overflow-x-auto rounded border p-3 text-xs">
-            <code className="num">{fix.lines.join("\n")}</code>
-          </pre>
-          <Btn label={copy("problem.paste.label")} size="sm" />
-        </div>
-      );
+      return <Btn label={copy("problem.paste.label")} size="sm" />;
     case "we_write":
     case "we_rewrite":
       return null;
@@ -94,46 +84,31 @@ function FixBody(p: { card: ProblemCard }): React.JSX.Element | null {
   }
 }
 
-/** The count, at the ladder's `--h1` — the one headline number of this
- *  module, which is the size the approved set draws it at. */
-const COUNT_SIZE: React.CSSProperties = { fontSize: "var(--h1)", lineHeight: 1.1 };
-
 function ProblemCardView(p: { card: ProblemCard }): React.JSX.Element {
+  const { card } = p;
   const edge =
-    p.card.severity.kind === "unmeasured"
-      ? UNMEASURED_EDGE
-      : SEVERITY_EDGE[p.card.severity.value];
+    card.severity.kind === "unmeasured" ? UNMEASURED_EDGE : SEVERITY_EDGE[card.severity.value];
+  // UI-SPEC §2's own row for this component: "title · severity badge ·
+  // who-does-it badge · count · optional code block" — the idiom's
+  // `ProblemCard` (#487), whose edge and code block are token-driven. The
+  // two badges are ruling 9a's pair: the severity word **and** the
+  // who-does-it badge together. The count is the ladder's `--h1`, the one
+  // headline number of this module.
   return (
-    // `[&>*]:h-full` makes the card fill the wrapper the grid stretched to
-    // the row's height. Without it the coloured edge runs the full row
-    // while the card it belongs to stops short, and the severity reads as
-    // a rule beside empty space rather than as this card's own edge.
-    <div className={`rounded-box overflow-hidden border-l-4 [&>*]:h-full ${edge}`}>
-      <Card
-        state="default"
-        // UI-SPEC §2's own row for this component: "title · severity badge
-        // · who-does-it badge · count · optional code block". The title is
-        // the ladder's `--h4` sub-head and not an eyebrow with a chip:
-        // the problem card is its own component in the approved set, drawn
-        // beside `Card` rather than as one of its heads, and the two
-        // badges are the head's right-hand slot — ruling 9a, which asks
-        // for the severity word **and** the who-does-it badge together.
-        title={
-          <div className="flex w-full flex-wrap items-start justify-between gap-2">
-            <h4>{copy(p.card.title)}</h4>
-            <div className="flex flex-wrap items-center gap-2">
-              <SeverityBadge card={p.card} />
-              <Badge tone="accent">{copy(p.card.doer)}</Badge>
-            </div>
-          </div>
-        }
-      >
-        <div className="font-semibold" style={COUNT_SIZE}>
-          <MeasuredNum value={p.card.count} what={copy(p.card.title)} />
-        </div>
-        <FixBody card={p.card} />
-      </Card>
-    </div>
+    <ProblemCardShell
+      title={copy(card.title)}
+      edge={edge}
+      badges={
+        <>
+          <SeverityBadge card={card} />
+          <Badge tone="accent">{copy(card.doer)}</Badge>
+        </>
+      }
+      count={<MeasuredNum value={card.count} what={copy(card.title)} />}
+      code={card.fix.kind === "paste" ? card.fix.lines : undefined}
+    >
+      <FixBody card={card} />
+    </ProblemCardShell>
   );
 }
 
@@ -145,7 +120,7 @@ export function ProblemCards(p: {
   cards: readonly [ProblemCard, ProblemCard, ProblemCard];
 }): React.JSX.Element {
   return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+    <div className="grid grid-cols-1 gap-[var(--s-4)] lg:grid-cols-3">
       {p.cards.map((card) => (
         <ProblemCardView key={card.problem} card={card} />
       ))}
