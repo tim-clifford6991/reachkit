@@ -13,15 +13,27 @@
 
 import type React from "react";
 import { usePathname } from "next/navigation";
+import { Calendar, Settings, TrendingUp, type LucideIcon } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import { DESTINATIONS, DESTINATION_COPY_KEY, DESTINATION_HREF, destinationOf } from "./destinations";
+
+/** Each destination's glyph, from UI-SPEC §2.6's table: `trend`, `cal` and
+ *  `gear` — the set's `sideNav()` (L518). A `Record` over the one tuple, so
+ *  a fourth destination without a glyph is a compile error (issue #506). */
+const DESTINATION_ICON: Record<(typeof DESTINATIONS)[number], LucideIcon> = {
+  overview: TrendingUp,
+  calendar: Calendar,
+  settings: Settings,
+};
 
 export function SidebarNav(p: { waiting: number }): React.JSX.Element {
   const current = destinationOf(usePathname());
 
   return (
     <nav className="rk-nav" data-testid="shell-sidebar-nav">
-      {DESTINATIONS.map((destination) => (
+      {DESTINATIONS.map((destination) => {
+        const Icon = DESTINATION_ICON[destination];
+        return (
         <a
           key={destination}
           href={DESTINATION_HREF[destination]}
@@ -29,6 +41,8 @@ export function SidebarNav(p: { waiting: number }): React.JSX.Element {
           data-testid={`shell-navlink-${destination}`}
           aria-current={destination === current ? "page" : undefined}
         >
+          {/* Decoration: the word beside it is the link's name. */}
+          <Icon size={15} strokeWidth={1.8} aria-hidden />
           <span>{copy(DESTINATION_COPY_KEY[destination])}</span>
           {destination === "calendar" && p.waiting > 0 ? (
             <span className="num rk-count" data-testid="shell-calendar-count">
@@ -36,7 +50,8 @@ export function SidebarNav(p: { waiting: number }): React.JSX.Element {
             </span>
           ) : null}
         </a>
-      ))}
+        );
+      })}
     </nav>
   );
 }
