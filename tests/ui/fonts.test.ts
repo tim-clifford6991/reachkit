@@ -294,12 +294,14 @@ describe("BUILD.md §1 / BP-018 NFR — self-hosted, no third-party font request
     }
   });
 
-  it("preloads the latin faces the product renders on every screen, and nothing else", () => {
+  it("preloads the latin faces the product renders above the fold, and nothing else", () => {
     // A preload is a promise the byte is needed now. Jakarta 400 is the
     // body and 700 is `type.css`'s one heading weight; JetBrains Mono 400
-    // is every numeral. Jakarta 800 is loaded for §2.3's heading range and
-    // no rule spends it, and no non-latin subset is on any screen's
-    // critical path — so neither preloads.
+    // is every numeral; Jakarta 800 is the public header's wordmark and the
+    // landing's headline (`idiom.css`), and a face discovered after first
+    // paint swaps in and moves the page (issue #494, CLS 0.21 at 320 px).
+    // No non-latin subset is on any screen's critical path, so none
+    // preloads.
     const preloaded = localFontCalls(fontsSource())
       .filter((call) => call.preload)
       .flatMap((call) => call.faces.map((f) => f.path.slice(f.path.lastIndexOf("/") + 1)))
@@ -308,6 +310,7 @@ describe("BUILD.md §1 / BP-018 NFR — self-hosted, no third-party font request
       "jetbrains-mono-latin-400-normal.woff2",
       "plus-jakarta-sans-latin-400-normal.woff2",
       "plus-jakarta-sans-latin-700-normal.woff2",
+      "plus-jakarta-sans-latin-800-normal.woff2",
     ]);
   });
 
