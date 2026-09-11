@@ -243,7 +243,7 @@ describe("the customer's own ranked count — the vendor's total, not the sub-me
     expect(ownRankedOf({ ranked: measured(answer(rows, 4200), AT), at: AT })).toEqual(measured(4200, AT));
     // The same rows read as SearchPresence are a 0–100 quantity, which is
     // why the count cannot be recovered from `scans.drivers`.
-    expect(valueOf(searchPresenceOf({ ranked: measured(rows, AT), at: AT }))).not.toBe(3);
+    expect(valueOf(searchPresenceOf({ ranked: measured(answer(rows, 4200), AT), at: AT }))).not.toBe(4200);
   });
 
   it("falls back to the rows where the vendor reported no total — never worse than before #117", () => {
@@ -278,19 +278,23 @@ describe("the customer's own ranked count — the vendor's total, not the sub-me
 });
 
 describe('`BUILD.md` §5: "SearchPresence = min(100, 25 × log10(ranked + 1)) × (0.55 + 0.45 × min(1, top10share × 4))"', () => {
-  function presence(rows: readonly RankedRow[]): Measured<number> {
-    return searchPresenceOf({ ranked: measured(rows, AT), at: AT });
+  /** One `ranked_keywords` answer read as SearchPresence. `total`
+   *  defaults to absent, so reach falls back to the rows. */
+  function presence(rows: readonly RankedRow[], total: number | null = null): Measured<number> {
+    return searchPresenceOf({ ranked: measured<RankedResult>({ rows, total }, AT), at: AT });
   }
+  /** The fifty rows the free tier buys, a quarter of them in the top 10. */
+  const FIFTY = Array.from({ length: 50 }, (_, i) => rankedRow(i % 4 === 0 ? 3 : 30));
 
   it('zero ranked rows is a measured presence of zero — "0 rows is a legal result"', () => {
-    const m = searchPresenceOf({ ranked: measuredZero<readonly RankedRow[]>([], AT), at: AT });
+    const m = searchPresenceOf({ ranked: measuredZero<RankedResult>({ rows: [], total: null }, AT), at: AT });
     expect(m.kind).toBe("zero");
     expect(valueOf(m)).toBe(0);
     expectAt(m);
   });
 
   it("an unmeasured row set stays unmeasured and carries the same reason", () => {
-    const m = searchPresenceOf({ ranked: unmeasured<readonly RankedRow[]>("not_attempted", AT), at: AT });
+    const m = searchPresenceOf({ ranked: unmeasured<RankedResult>("not_attempted", AT), at: AT });
     expect(m).toEqual({ kind: "unmeasured", reason: "not_attempted", at: AT });
   });
 
@@ -317,12 +321,60 @@ describe('`BUILD.md` §5: "SearchPresence = min(100, 25 × log10(ranked + 1)) ×
     // Ten rows, all in the top 10: reach = 25 × log10(11), multiplier 1.
     const ten = Array.from({ length: 10 }, (_, i) => rankedRow(i + 1));
     expect(valueOf(presence(ten))).toBeCloseTo(25 * Math.log10(11), 10);
-    // 10,000 rows, every one of them in the top 10: 25 × log10(10001) > 100,
-    // so the `min(100, …)` holds it at the top of the scale. Dropping that
+  });
+
+  it("reach reads the vendor's total, not the rows bought — equal rows, different totals, different presence (#529)", () => {
+    // Production, 2026-09-10/11: notion.so (822 ranked) and hey.com (7 412)
+    // both scored 25 × log10(51) = 42.69 off the same 50 rows.
+    const notion = valueOf(presence(FIFTY, 822));
+    const hey = valueOf(presence(FIFTY, 7_412));
+    expect(notion).toBeCloseTo(25 * Math.log10(823), 10);
+    expect(hey).toBeCloseTo(25 * Math.log10(7_413), 10);
+    expect(hey).toBeGreaterThan(notion);
+    expect(notion).not.toBeCloseTo(25 * Math.log10(51), 5);
+  });
+
+  it("top10share stays the share of the rows bought — never a top-10 count over the total", () => {
+    // 50 rows, 5 in the top 10 → share 0.1 → multiplier 0.55 + 0.45 × 0.4.
+    // Over the total (5 / 7 412) it would read as the base 0.55.
+    const tenth = Array.from({ length: 50 }, (_, i) => rankedRow(i < 5 ? 1 : 40));
+    const reach = 25 * Math.log10(7_413);
+    expect(valueOf(presence(tenth, 7_412))).toBeCloseTo(reach * (0.55 + 0.45 * Math.min(1, 0.1 * 4)), 10);
+  });
+
+  it("where the vendor reports no total, reach is the rows — 30 rows read as 30", () => {
+    const thirty = Array.from({ length: 30 }, (_, i) => rankedRow(i < 10 ? i + 1 : 50));
+    expect(valueOf(presence(thirty))).toBeCloseTo(25 * Math.log10(31), 10);
+  });
+
+  it("a total of 10 000 or more saturates reach at the top of the scale", () => {
+    // 25 × log10(10001) > 100, so `min(100, …)` holds it at 100; the
+    // multiplier is 1 (a quarter of the rows in the top 10). Dropping that
     // `min` fails here.
-    const many = Array.from({ length: 10_000 }, (_, i) => rankedRow((i % 10) + 1));
     expect(25 * Math.log10(10_001)).toBeGreaterThan(100);
-    expect(valueOf(presence(many))).toBeCloseTo(100, 10);
+    expect(valueOf(presence(FIFTY, 10_000))).toBeCloseTo(100, 10);
+    expect(valueOf(presence(FIFTY, 250_000))).toBeCloseTo(100, 10);
+  });
+
+  it("a total of zero with no rows is a measured 0 — the total is read, not swallowed", () => {
+    const m = presence([], 0);
+    expect(m.kind).toBe("zero");
+    expect(valueOf(m)).toBe(0);
+  });
+
+  it("the formula's coefficients are §5's, unchanged — only reach's input moved", () => {
+    for (const line of [
+      "const SEARCH_LOG_COEFFICIENT = 25;",
+      "const SEARCH_BASE_SHARE = 0.55;",
+      "const SEARCH_TOP10_WEIGHT = 0.45;",
+      "const SEARCH_TOP10_SATURATION = 4;",
+      "const TOP10_LAST_POSITION = 10;",
+    ]) {
+      expect(SOURCE).toContain(line);
+    }
+    // One worked value through the whole formula: 822 ranked, share 0.1.
+    const tenth = Array.from({ length: 50 }, (_, i) => rankedRow(i < 5 ? 1 : 40));
+    expect(valueOf(presence(tenth, 822))).toBeCloseTo(Math.min(100, 25 * Math.log10(823)) * (0.55 + 0.45 * 0.4), 10);
   });
 });
 

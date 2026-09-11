@@ -14,7 +14,7 @@
 // list is `AI_READER_AGENTS`. Nothing here is customer-visible.
 import { AI_READER_AGENTS, SCORING } from "@/lib/config/constants";
 import type { RobotsPolicy } from "@/lib/egress/types";
-import type { RankedResult, RankedRow, SerpResult } from "@/lib/vendors/dataforseo/types";
+import type { RankedResult, SerpResult } from "@/lib/vendors/dataforseo/types";
 import { measured, measuredZero, unmeasured, worseReason, type Measured, type UnmeasuredReason } from "./measured";
 import { asciiLowerCase, type OnPageFacts } from "./parse";
 
@@ -202,6 +202,16 @@ const SEARCH_TOP10_SATURATION = 4;
 /** "top10share" — the share of ranked rows at positions 1–10. */
 const TOP10_LAST_POSITION = 10;
 
+/** How many searches a domain ranks for, read off one `ranked_keywords`
+ *  answer: the vendor's own total, which is what the rival bands are
+ *  multiples of (#117) and what §5's reach term counts (#529). `null`
+ *  means the vendor reported none, and the fallback is the row count — the
+ *  capped figure, so the fallback never reads a domain as bigger than it
+ *  was measured. A total of 0 is the total, not an absence. */
+function rankedCountOf(result: RankedResult): number {
+  return result.total ?? result.rows.length;
+}
+
 /**
  * The customer's own ranked count — the number of rows, not a score.
  *
@@ -225,27 +235,35 @@ const TOP10_LAST_POSITION = 10;
  */
 export function ownRankedOf(a: { ranked: Measured<RankedResult>; at: Date }): Measured<number> {
   if (a.ranked.kind === "unmeasured") return unmeasured(a.ranked.reason, a.at);
-  // The vendor's own total, which is what the rival bands are multiples of
-  // (#117). `null` means the vendor reported none, and the fallback is the
-  // row count — the same capped figure this returned before #117, so this
-  // change never makes the banding worse than it already was.
-  return ofValue(a.ranked.value.total ?? a.ranked.value.rows.length, a.at);
+  return ofValue(rankedCountOf(a.ranked.value), a.at);
 }
 
-/** BUILD §5's SearchPresence over the customer's own ranked rows — the
- *  **rows**, not the total (#117). §5's formula is a score over the page
- *  of results this pass bought, and its top-10 share is a share *of those
- *  rows*; feeding it a total the rows are a sample of would divide one
- *  measurement by another. Zero
- *  rows is a legal result and a measured 0 (BUILD §6.3: "0 rows is a legal
- *  result") — the `zero` arm, never `unmeasured`. An `unmeasured` row set
- *  is `unmeasured` with the reason it carried. */
-export function searchPresenceOf(a: { ranked: Measured<readonly RankedRow[]>; at: Date }): Measured<number> {
+/** BUILD §5's SearchPresence over one `ranked_keywords` answer. The two
+ *  terms take two different readings of it (#529):
+ *
+ *  - **reach** reads the vendor's **total** — how many searches the domain
+ *    ranks for. §5's `min(100, 25 × log10(ranked + 1))` saturates at
+ *    10 000 ranked keywords, so it measures the domain's whole footprint;
+ *    fed the rows the pass bought (50 on the free tier) it was the constant
+ *    `25 × log10(51)` for every site at or above the cap, and could not
+ *    tell a site ranking for 50 searches from one ranking for 7 412. Where
+ *    the vendor reports no total, the rows are the count — the same rule
+ *    `ownRankedOf` applies (`rankedCountOf`).
+ *  - **top10share** reads the **rows bought** — the share of them at
+ *    positions 1–10. A share must be a fraction of the rows it counts;
+ *    dividing a count from the sample by the total would divide one
+ *    measurement by another (#117's reasoning, which holds for the share).
+ *
+ *  §5's coefficients and shape are unchanged; only reach's input is. Zero
+ *  rows and no total is a legal result and a measured 0 (BUILD §6.3: "0
+ *  rows is a legal result") — the `zero` arm, never `unmeasured`. An
+ *  `unmeasured` answer is `unmeasured` with the reason it carried. */
+export function searchPresenceOf(a: { ranked: Measured<RankedResult>; at: Date }): Measured<number> {
   if (a.ranked.kind === "unmeasured") return unmeasured(a.ranked.reason, a.at);
-  const rows = a.ranked.value;
-  const ranked = rows.length;
+  const rows = a.ranked.value.rows;
+  const ranked = rankedCountOf(a.ranked.value);
   const top10 = rows.filter((row) => row.position >= 1 && row.position <= TOP10_LAST_POSITION).length;
-  const top10share = ranked === 0 ? 0 : top10 / ranked;
+  const top10share = rows.length === 0 ? 0 : top10 / rows.length;
   const reach = Math.min(SCALE, SEARCH_LOG_COEFFICIENT * Math.log10(ranked + 1));
   const quality = SEARCH_BASE_SHARE + SEARCH_TOP10_WEIGHT * Math.min(1, top10share * SEARCH_TOP10_SATURATION);
   return ofValue(reach * quality, a.at);
