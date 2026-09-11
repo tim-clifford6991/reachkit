@@ -24,3 +24,6 @@ export { CardHead } from "./CardHead";
 export { OptionCard } from "./OptionCard";
 export { RemovableTag } from "./RemovableTag";
 export { IdiomCard } from "./IdiomCard";
+export { ProblemCard, type ProblemCardEdge } from "./ProblemCard";
+export { QuestionList, type QuestionItem } from "./QuestionList";
+export { SourceChip } from "./SourceChip";

@@ -49,6 +49,7 @@
 import type React from "react";
 import { copy } from "@/lib/presentation/copy";
 import { token } from "@/lib/mail/shell/tokens";
+import { SVG } from "@/ui/charts/chart-primitives";
 
 /** The Open Graph canvas. Exported for the two `size` exports beside it,
  *  so the number is written once. */
@@ -99,11 +100,11 @@ export function BrandMark(p: { size: number }): React.JSX.Element {
         width={glyph}
         height={glyph}
         viewBox={`0 0 ${GLYPH_BOX} ${GLYPH_BOX}`}
-        fill="none"
+        fill={SVG.unfilled}
         stroke={token("--on-accent")}
         strokeWidth={GLYPH_STROKE}
-        strokeLinecap="round"
-        strokeLinejoin="round"
+        strokeLinecap={SVG.capRound}
+        strokeLinejoin={SVG.capRound}
       >
         {TREND_PATHS.map((d) => (
           <path key={d} d={d} />

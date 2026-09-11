@@ -113,12 +113,22 @@ describe('REQ-025 c3 — "when they look for anything that tunes the engine ... 
 
   it("no control on the screen names an engine parameter", () => {
     const tree = screenFor();
+    // The mode controls carry the owner's sentence for what each mode does
+    // (#460) — autopilot's names §9's veto window, which is a law the mode
+    // obeys, not a parameter the control sets. Those approved sentences are
+    // lifted out of the surface before the scan, so the scan still reads
+    // every name, id, test id and every other word a control carries.
+    const MODE_SENTENCES = [COPY["setup.mode.autopilot"], COPY["setup.mode.copilot"]];
     for (const control of Array.from(tree.querySelectorAll("input, select, textarea, button"))) {
+      const said = MODE_SENTENCES.reduce(
+        (rest, sentence) => rest.split(sentence).join(" "),
+        control.textContent ?? ""
+      );
       const surface = [
         control.getAttribute("name") ?? "",
         control.getAttribute("id") ?? "",
         control.getAttribute("data-testid") ?? "",
-        control.textContent ?? "",
+        said,
       ].join(" ");
       expect(surface, `control offers an engine parameter: ${surface}`).not.toMatch(ENGINE);
     }

@@ -56,7 +56,7 @@ import type React from "react";
 import { Bot } from "lucide-react";
 import { Badge, Card, Collapse, Divider, Table } from "@/ui/components";
 import { AiDotMatrixChart, type AiDotMatrixCellState, type AiDotMatrixRow } from "@/ui/charts";
-import { CardHead } from "@/ui/idiom";
+import { CardHead, QuestionList, SourceChip, type QuestionItem } from "@/ui/idiom";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { renderQuestion } from "@/lib/presentation/generated";
 import type {
@@ -266,8 +266,11 @@ function matrixRows(section: AiAnswersSection): readonly AiDotMatrixRow[] {
   ];
 }
 
-function QuestionRow(p: { row: { question: StoredQuestion; cell: AnswerCell } }): React.JSX.Element {
-  const { question, cell } = p.row;
+/** One row of the idiom's `QuestionList` (#487): the wording through
+ *  `renderQuestion`, the `not you` badge where the answer did not name the
+ *  customer, and the mono provenance line. */
+function questionItem(row: { question: StoredQuestion; cell: AnswerCell }): QuestionItem {
+  const { question, cell } = row;
   const namesCustomer = cell.kind === "answered" && cell.namesCustomer;
   // The brands the AI answer named, from the cell that measured them
   // (#103). They rode on the question until then, which put a fact about
@@ -283,26 +286,21 @@ function QuestionRow(p: { row: { question: StoredQuestion; cell: AnswerCell } })
     }),
   });
 
-  return (
-    <li className="flex flex-col gap-1 py-2">
-      <div className="flex items-baseline gap-2">
-        <Num>{question.n}</Num>
-        <span className="flex-1">{wording.text}</span>
-        {cell.kind === "no_answer" ? (
-          <Badge tone="neutral">{copy("ai-answers.question.no-answer")}</Badge>
-        ) : namesCustomer ? null : (
-          <Badge tone="bad">{copy("ai-answers.question.not-you")}</Badge>
-        )}
-      </div>
-      {/* A mono **phrase**, not a single value: it is a line of language
-          with a search inside it, and `.num`'s "never break a value" rule
-          would otherwise hold the whole line on one unbreakable run
-          (§2.3, issue #307's own `phrase` arm). */}
-      <p className="t-explain opacity-60">
-        <Num phrase>{provenance.text}</Num>
-      </p>
-    </li>
-  );
+  return {
+    n: String(question.n),
+    wording: wording.text,
+    badge:
+      cell.kind === "no_answer" ? (
+        <Badge tone="neutral">{copy("ai-answers.question.no-answer")}</Badge>
+      ) : namesCustomer ? undefined : (
+        <Badge tone="bad">{copy("ai-answers.question.not-you")}</Badge>
+      ),
+    // A mono **phrase**, not a single value: it is a line of language with
+    // a search inside it, and `.num`'s "never break a value" rule would
+    // otherwise hold the whole line on one unbreakable run (§2.3, issue
+    // #307's own `phrase` arm).
+    provenance: <Num phrase>{provenance.text}</Num>,
+  };
 }
 
 export function AiAnswersCard(p: {
@@ -325,11 +323,7 @@ export function AiAnswersCard(p: {
           // decorative — the eyebrow beside it is the label.
           icon={<Bot size={15} strokeWidth={1.8} aria-hidden />}
           eyebrow={copy("ai-answers.title")}
-          pill={
-            <Badge tone="neutral" wrap>
-              {copy("ai-answers.source", { date: p.measuredOn })}
-            </Badge>
-          }
+          pill={<SourceChip wrap>{copy("ai-answers.source", { date: p.measuredOn })}</SourceChip>}
         />
       }
     >
@@ -382,11 +376,7 @@ export function AiAnswersCard(p: {
           which an 11px `h3` is not — a label is a label, and the landing's
           own section labels are `p.eyebrow` for the same reason. */}
       <p className="eyebrow opacity-60">{copy("ai-answers.questions.title")}</p>
-      <ul className="list-none p-0">
-        {shown.map((row) => (
-          <QuestionRow key={row.question.n} row={row} />
-        ))}
-      </ul>
+      <QuestionList items={shown.map(questionItem)} />
       {/* REQ-006 c8: "the first four visible and the remainder one action
           away". The action is the registered `Collapse` — `details` and
           `summary`, so the remaining questions are in the document, are
@@ -398,11 +388,7 @@ export function AiAnswersCard(p: {
         <Collapse
           summary={copy("ai-answers.questions.show-all", { total: String(section.rows.length) })}
         >
-          <ul className="list-none p-0">
-            {rest.map((row) => (
-              <QuestionRow key={row.question.n} row={row} />
-            ))}
-          </ul>
+          <QuestionList items={rest.map(questionItem)} />
         </Collapse>
       )}
       {/* REQ-006 c6's one written line: what was measured, and no second

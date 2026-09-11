@@ -2,14 +2,14 @@
 //
 // The calendar's sentences. Three keys seeded (WO-041 step 3): the
 // no-presence-yet line for a date carrying no page, and the two cause
-// lines. Empty value, owner-owed — no string is written here (constitution
-// §1). The block that owns the calendar fills every other sentence this
-// surface needs.
+// lines. Seeded with the empty value, owner-owed (constitution §1), and
+// written since #460. The block that owns the calendar fills every other
+// sentence this surface needs.
 //
 // 2026-09-05: issue #9 (BUILD §4.4) adds `calendar.head` — the one written
 // line this screen states inside the app shell until its own content lands
-// (issue #16, §4.6). Owner-owed and empty: it is a customer-visible sentence
-// (constitution §1).
+// (issue #16, §4.6). Owner-owed and empty at first — it is a customer-
+// visible sentence (constitution §1) — until issue #16 filled it below.
 //
 // 2026-09-05, separately: issue #16 (BUILD §4.6) fills the calendar itself.
 // Twenty keys carry a value and **every one of them is a transcription of a
@@ -40,7 +40,8 @@
 //                                    are written the evening before from
 //                                    Monday's measurements", sentence-cased.
 //
-// Six are owner-owed and empty, because no sentence exists to transcribe:
+// Six were owner-owed and empty until #460, because no sentence existed to
+// transcribe:
 // the three empty-date causes REQ-043 criterion 4 names but §4.6 does not
 // word, the provenance line criterion 10 asks for, the veto-deadline line,
 // and the supply half of the footnote — §4.6 states the supply *rule* to the
@@ -50,30 +51,33 @@
 // 2026-09-06, issue #20 (REQ-091 c2): these three keys are the ones the
 // arbiter `src/lib/presentation/place/account.ts` resolves — the baseline
 // cold-start line for a date carrying no page, and the two cause lines. They
-// stay **owner-owed and empty**, deliberately: this screen reads every line
-// through the shell's `writtenLine`, which renders an owner-owed key as
-// nothing, and `copy()` refuses one outright. So `account()` throws naming
-// the key rather than handing a place a blank — the outstanding obligation
-// is recorded the moment a place is registered, and no screen can render an
-// unwritten account by accident.
+// were registered **owner-owed and empty**, deliberately, so `account()`
+// threw naming the key rather than handing a place a blank; #246 moved them
+// to the marker, and #460 wrote them.
 // 2026-09-06, separately again: issue #116 (REQ-092 c5) adds one —
 // `calendar.empty.page-held`, the account a date carries when a page was
 // planned for it and did not go live on it because a ReachKit stop held it.
-// Owner-owed and **empty**, like the three empty-date causes beside it and
-// for the same reason: this screen reads every line through the shell's
-// `writtenLine`, and `account()` throws naming an unwritten key rather than
-// handing a date a blank. It is a seventh cause, not a rewording of
+// Registered owner-owed and **empty**, like the three empty-date causes
+// beside it and for the same reason, and written since #460. It is a
+// seventh cause, not a rewording of
 // `calendar.empty.page-cannot-go-live` — that line says a page can no longer
 // go live, and a held page still publishes.
+//
+// 2026-09-10, issue #460: every sentence this partition still owed is now
+// written — the owner approved the master's drafted set ("copy proposal
+// approved", proposal sheet
+// https://claude.ai/code/artifact/546f45a0-a996-4d25-b85e-fb03fda7b102)
+// and the strings land here byte for byte. The values that approval names
+// are the owner's; nothing here is composed.
 import type { CopyPartition } from "../registry.ts";
 
 export const CALENDAR_COPY = Object.freeze({
   "place.calendar.date.page": [
-    "TODO(copy)",
+    "No page on this date yet. Dates fill in as your measurement finds pages worth writing.",
     { law: "no-presence-yet", slots: {}, fixedBy: "REQ-043 c5" },
   ],
   "cause.unrecognised": [
-    "TODO(copy)",
+    "Nothing is shown here yet, for a reason on our side we haven’t named. It isn’t that your market had nothing to offer.",
     { law: "no-presence-yet", slots: {}, fixedBy: "REQ-043 c4" },
   ],
   // 2026-09-08, issue #354. The approved screen set (S14) draws this line
@@ -115,19 +119,16 @@ export const CALENDAR_COPY = Object.freeze({
   // `needs_attention → generating` for them and for no one else, and no
   // surface offered it.
   //
-  // **A word the product does not yet speak.** §4.6's control list for
-  // needs-you is *Reconnect* and nothing more, so unlike the five above
-  // this key is not transcribed from the spec — it is owner-owed, and it
-  // carries the marker rather than the empty value on the #93 ruling: the
-  // day panel reads its controls through `copy()`, and a screen the
-  // customer reaches must stay reviewable on a preview.
+  // **Not a spec word.** §4.6's control list for needs-you is *Reconnect*
+  // and nothing more, so unlike the five above this key is not transcribed
+  // from the spec — its word is the owner's.
   //
   // What it has to say is what happens: ReachKit writes the page again,
   // from the same opportunity, and it returns to the queue as a fresh
   // draft. What it must not say is that anything is being retried
   // automatically — nothing is, which is the whole reason the control
   // exists.
-  "calendar.action.regenerate": ["TODO(copy)", { slots: {}, fixedBy: "BUILD §9 · REQ-043 c9" }],
+  "calendar.action.regenerate": ["Write it again", { slots: {}, fixedBy: "BUILD §9 · REQ-043 c9" }],
 
   // §4.6's "Why this page" block and its five rows.
   "calendar.why.title": ["Why this page", { slots: {}, fixedBy: "REQ-043 c8" }],
@@ -155,12 +156,12 @@ export const CALENDAR_COPY = Object.freeze({
   ],
 
   // REQ-043 criterion 4's remaining causes, and criterion 10's one
-  // provenance line. Owner-owed: each is a written sentence and no artifact
-  // states it.
-  "calendar.empty.instruction": ["", { slots: {}, fixedBy: "REQ-043 c5" }],
-  "calendar.empty.page-cannot-go-live": ["", { slots: {}, fixedBy: "REQ-043 c4" }],
-  "calendar.empty.customer-change-holds-pages": ["", { slots: {}, fixedBy: "REQ-043 c4" }],
-  "calendar.empty.page-held": ["", { slots: {}, fixedBy: "REQ-092 c5" }],
+  // provenance line. Each is a written sentence no artifact states, so the
+  // words are the owner's.
+  "calendar.empty.instruction": ["This date holds a fix for you to make. Fixes are never written or automated — they’re yours to do.", { slots: {}, fixedBy: "REQ-043 c5" }],
+  "calendar.empty.page-cannot-go-live": ["The page for this date was stopped or taken down, so it won’t go live. No page replaces it.", { slots: {}, fixedBy: "REQ-043 c4" }],
+  "calendar.empty.customer-change-holds-pages": ["Held by your settings: publishing is off or your destination isn’t connected. Pages resume when that changes.", { slots: {}, fixedBy: "REQ-043 c4" }],
+  "calendar.empty.page-held": ["The page for this date was held while ReachKit’s own work was stopped. It still publishes, in turn, once work resumes.", { slots: {}, fixedBy: "REQ-092 c5" }],
   // The day panel's whole account of an exhausted supply — S15's `empty`
   // arm, verbatim (ruling 11a, issue #354). Its cell states the first line
   // alone, from `cause.supply-exhausted` above (#209).
@@ -174,11 +175,9 @@ export const CALENDAR_COPY = Object.freeze({
   // REQ-071 c11 (issue #204). A market change holds generation until the
   // pass that adopts it, so the day names which change is holding pages and
   // the date they resume — both read from `generationHold()`, which has
-  // already chosen one reason where two answers changed. `TODO(copy)`
-  // rather than the empty value, per DECISIONS 2026-09-05: a day with an
-  // account is never a blank cell while the owner writes the sentence.
+  // already chosen one reason where two answers changed.
   "calendar.empty.change-holds-pages": [
-    "TODO(copy)",
+    "No new page until the change to {change} takes effect. Pages resume on {date}.",
     { slots: { date: "date", change: "text" }, fixedBy: "REQ-071 c11" },
   ],
   // REQ-043 c10's one line. Every one of S15's five arms ends on the same
@@ -192,35 +191,35 @@ export const CALENDAR_COPY = Object.freeze({
     "measured {date}",
     { slots: { date: "date" }, fixedBy: "REQ-043 c10" },
   ],
-  "calendar.status.veto-deadline": ["", { slots: { at: "date" }, fixedBy: "BUILD §9" }],
+  "calendar.status.veto-deadline": ["You can veto this page until {at}.", { slots: { at: "date" }, fixedBy: "BUILD §9" }],
 
   // §7's one statement of supply, as §4.6's calendar makes it: the three
   // arms of `supplyNotice`, in the engine's own precedence (exhausted >
   // short > arrival shortfall). Three keys and not one, because they are
   // three different claims — supply is gone / supply is running out /
   // this month stops before the month does — and a customer reads exactly
-  // one of them. Owner-owed: §4.6 states the supply *rule* to the builder
-  // and never words it for the customer, and `overview.supply.*` is the
+  // one of them. The words are the owner's: §4.6 states the supply *rule*
+  // to the builder and never words it for the customer, and
+  // `overview.supply.*` is the
   // same three claims on a different screen, so neither is the other's
   // string. `days` counts days of pages, so it is a text slot carrying a
   // numeral, exactly as `overview.supply.*` declares it.
-  "calendar.supply.exhausted": ["", { slots: { since: "date" }, fixedBy: "BUILD §4.6" }],
-  "calendar.supply.short": ["", { slots: { days: "text" }, fixedBy: "BUILD §4.6" }],
-  "calendar.supply.first-arrival": ["", { slots: { days: "text" }, fixedBy: "BUILD §4.6" }],
+  "calendar.supply.exhausted": ["Nothing worth publishing is left in your market, since {since}. Monday’s re-measure looks for more.", { slots: { since: "date" }, fixedBy: "BUILD §4.6" }],
+  "calendar.supply.short": ["Supply is running short. Pages left: {days}. Monday’s re-measure looks for more.", { slots: { days: "text" }, fixedBy: "BUILD §4.6" }],
+  "calendar.supply.first-arrival": ["Your first pass found less than a month of pages — {days} so far. We look for more every Monday.", { slots: { days: "text" }, fixedBy: "BUILD §4.6" }],
 
   // §4.6's `done-when` row, from the acceptance test recorded when the
   // opportunity was created (§7: "top 20 for Q" / "named on question P" /
   // "gate passes"). Three forms, three keys: the test a page is judged
   // against is never rewritten, so the row must say which of the three it
-  // is rather than a single line that fits none of them. Owner-owed.
-  "calendar.done-when.top20": ["", { slots: { query: "text" }, fixedBy: "BUILD §7" }],
-  "calendar.done-when.named-on": ["", { slots: { question: "text" }, fixedBy: "BUILD §7" }],
-  "calendar.done-when.gate-cleared": ["", { slots: {}, fixedBy: "BUILD §7" }],
+  // is rather than a single line that fits none of them.
+  "calendar.done-when.top20": ["you rank in the top 20 for “{query}”", { slots: { query: "text" }, fixedBy: "BUILD §7" }],
+  "calendar.done-when.named-on": ["AI names you on “{question}”", { slots: { question: "text" }, fixedBy: "BUILD §7" }],
+  "calendar.done-when.gate-cleared": ["the access check passes", { slots: {}, fixedBy: "BUILD §7" }],
 
   // 2026-09-06, issue #50 (REQ-043 c12). The three grounds on which the
   // day panel says a way through leads nowhere **in place of** offering
-  // it. Three keys, three sentences, all the owner's; `TODO(copy)` rather
-  // than the empty value's throw, because these render on a screen (#93).
+  // it. Three keys, three sentences, all the owner's.
   //
   // There is no fourth ground, and in particular **there is no ground for
   // "the check could not be confirmed"**: that outcome's whole content is
@@ -228,7 +227,7 @@ export const CALENDAR_COPY = Object.freeze({
   // page the record says nothing against and tell the customer the way
   // leads nowhere (ADR-085). The offered way claims only that this is
   // where the page was put, never that it is there now.
-  "waythrough.unpublished-by-us": ["TODO(copy)", { slots: {}, fixedBy: "REQ-043 c12" }],
-  "waythrough.page-not-found": ["TODO(copy)", { slots: {}, fixedBy: "REQ-043 c12" }],
-  "waythrough.no-admin-address": ["TODO(copy)", { slots: {}, fixedBy: "REQ-043 c12" }],
+  "waythrough.unpublished-by-us": ["This page was taken down through ReachKit, so its address isn’t offered.", { slots: {}, fixedBy: "REQ-043 c12" }],
+  "waythrough.page-not-found": ["Our one check found no page at its address, so there’s nothing to open there.", { slots: {}, fixedBy: "REQ-043 c12" }],
+  "waythrough.no-admin-address": ["No address inside your WordPress could be formed for this post.", { slots: {}, fixedBy: "REQ-043 c12" }],
 }) satisfies CopyPartition;

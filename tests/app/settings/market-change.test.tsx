@@ -137,8 +137,8 @@ describe("REQ-071 c16 — no rival comparison until one is added", () => {
   });
 });
 
-describe("no copy invented — the four lines are the owner's, marked and reviewable", () => {
-  it("every key this issue added carries the TODO(copy) marker, not the empty value", () => {
+describe("no copy invented — the four lines are the owner's, approved and written", () => {
+  it("every key this issue added carries the owner's approved sentence (#460), neither the marker nor the empty value", () => {
     // DECISIONS 2026-09-05: a screen key left empty takes the card down
     // with it through `copy()`'s throw, which hides the finished controls
     // the owner has to review to write the sentence. The marker renders
@@ -151,8 +151,9 @@ describe("no copy invented — the four lines are the owner's, marked and review
       "settings.competitors.none-yet",
       "calendar.empty.change-holds-pages",
     ] as const) {
-      expect(COPY[key], key).toBe(TODO_COPY_MARKER);
-      expect(AWAITING_COPY, key).toContain(key);
+      expect(COPY[key], key).not.toBe(TODO_COPY_MARKER);
+      expect(COPY[key], key).not.toBe("");
+      expect(AWAITING_COPY, key).not.toContain(key);
     }
   });
 

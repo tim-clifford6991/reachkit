@@ -5,29 +5,9 @@
     "ruled": 13
   },
   "calendar.ts": {
-    "owed": [
-      "calendar.empty.instruction",
-      "calendar.empty.page-cannot-go-live",
-      "calendar.empty.customer-change-holds-pages",
-      "calendar.empty.page-held",
-      "calendar.status.veto-deadline",
-      "calendar.supply.exhausted",
-      "calendar.supply.short",
-      "calendar.supply.first-arrival",
-      "calendar.done-when.top20",
-      "calendar.done-when.named-on",
-      "calendar.done-when.gate-cleared"
-    ],
-    "awaiting": [
-      "place.calendar.date.page",
-      "cause.unrecognised",
-      "calendar.action.regenerate",
-      "calendar.empty.change-holds-pages",
-      "waythrough.unpublished-by-us",
-      "waythrough.page-not-found",
-      "waythrough.no-admin-address"
-    ],
-    "ruled": 25
+    "owed": [],
+    "awaiting": [],
+    "ruled": 43
   },
   "chrome.ts": {
     "owed": [],
@@ -53,51 +33,18 @@
   },
   "danger.ts": {
     "owed": [],
-    "awaiting": [
-      "danger.unpublish-all.consequence",
-      "danger.delete-account.consequence",
-      "danger.export-failed",
-      "danger.some-still-live",
-      "danger.all-taken-down",
-      "danger.export-take",
-      "danger.export-taken",
-      "danger.type-to-confirm",
-      "danger.confirm-word.unpublish-all",
-      "danger.confirm-word.delete-account",
-      "danger.nothing-changed",
-      "danger.taken-down-count"
-    ],
-    "ruled": 4
+    "awaiting": [],
+    "ruled": 16
   },
   "draft.ts": {
-    "owed": [
-      "draft.do-nothing.autopilot",
-      "draft.do-nothing.copilot",
-      "draft.claim.matched",
-      "draft.authorship.edited"
-    ],
-    "awaiting": [
-      "draft.claim.failed",
-      "draft.claim.nothing-to-check",
-      "draft.grounded.title",
-      "draft.not-found"
-    ],
-    "ruled": 30
+    "owed": [],
+    "awaiting": [],
+    "ruled": 38
   },
   "laws.ts": {
     "owed": [],
-    "awaiting": [
-      "stopped.work.resumes-on",
-      "stopped.work.no-time-promised",
-      "stopped.work.partial-pass",
-      "next-publish.stopped",
-      "next-publish.paused",
-      "next-publish.nothing-approved",
-      "next-publish.none-planned",
-      "generated.page.proposed",
-      "shell.publishing.state.copilot"
-    ],
-    "ruled": 17
+    "awaiting": [],
+    "ruled": 26
   },
   "mail.ts": {
     "owed": [],
@@ -145,34 +92,8 @@
   },
   "overview.ts": {
     "owed": [],
-    "awaiting": [
-      "place.overview.weekly-presence.chart",
-      "place.overview.weekly-presence.week",
-      "place.overview.weekly-presence.partial-week",
-      "overview.head",
-      "overview.head.flat",
-      "overview.head.falling",
-      "overview.tile.score.means",
-      "overview.tile.ai-answers.window",
-      "overview.tile.ai-answers.means",
-      "overview.tile.pages.means",
-      "overview.rivals.line.absolute",
-      "overview.rivals.far.line",
-      "overview.rivals.far.swap",
-      "overview.alert.pending-veto",
-      "overview.alert.needs-you",
-      "overview.alert.needs-you.cause",
-      "overview.alert.overflow",
-      "overview.alerts.empty",
-      "overview.supply.exhausted",
-      "overview.supply.short",
-      "overview.supply.first-arrival",
-      "overview.change.domain",
-      "overview.change.category",
-      "overview.change.rivals",
-      "overview.comparison.window"
-    ],
-    "ruled": 39
+    "awaiting": [],
+    "ruled": 64
   },
   "publish.ts": {
     "owed": [
@@ -291,85 +212,14 @@
     "ruled": 81
   },
   "settings.ts": {
-    "owed": [
-      "settings.head",
-      "settings.account.magic-link",
-      "settings.account.invoices-elsewhere",
-      "settings.account.email-in-use",
-      "settings.account.email-invalid",
-      "settings.account.email-change-unavailable",
-      "settings.action.not-yet"
-    ],
-    "awaiting": [
-      "settings.save",
-      "settings.cancel-edit",
-      "settings.market.pending",
-      "settings.market.effectiveOn",
-      "settings.market.change.domain",
-      "settings.market.change.category",
-      "settings.market.refused.unreachable",
-      "settings.competitors.add-label",
-      "settings.competitors.none-yet",
-      "settings.competitors.refused.not-a-domain",
-      "settings.competitors.refused.does-not-resolve",
-      "settings.competitors.refused.own-domain",
-      "settings.competitors.refused.already-present",
-      "settings.competitors.refused.set-full",
-      "settings.publishing.connect",
-      "settings.publishing.pair.autopilotWindow",
-      "settings.publishing.pair.autopilotZero",
-      "settings.publishing.pair.copilot",
-      "settings.destination.site-url",
-      "settings.destination.username",
-      "settings.destination.app-password",
-      "settings.destination.app-password.help",
-      "settings.destination.submit",
-      "settings.publishing.reconnect-other-account",
-      "settings.publishing.set-dns",
-      "settings.billing.unreachable",
-      "settings.billing.try-again",
-      "settings.billing.reach-a-person",
-      "settings.account.new-email",
-      "settings.account.email-pending",
-      "settings.account.email-pending-expires",
-      "settings.account.cancel-change",
-      "settings.voice.placeholder",
-      "export.failed"
-    ],
-    "ruled": 58
+    "owed": [],
+    "awaiting": [],
+    "ruled": 99
   },
   "setup.ts": {
     "owed": [],
-    "awaiting": [
-      "setup.head",
-      "setup.refused.no-access",
-      "setup.address.measured",
-      "setup.address.refused.not-a-domain",
-      "setup.address.refused.unreachable",
-      "setup.address.missing",
-      "setup.market.state-it",
-      "setup.market.label",
-      "setup.market.placeholder",
-      "setup.market.missing",
-      "setup.competitors.awaiting-market",
-      "setup.competitors.seeking",
-      "setup.competitors.remove",
-      "setup.competitors.refused.not-a-domain",
-      "setup.competitors.refused.does-not-resolve",
-      "setup.competitors.refused.own-domain",
-      "setup.competitors.refused.already-present",
-      "setup.competitors.refused.set-full",
-      "setup.mode.autopilot",
-      "setup.mode.copilot",
-      "setup.destination.hosted",
-      "setup.destination.dnsRecord",
-      "setup.destination.dnsPending",
-      "setup.waiting.head",
-      "setup.waiting.degraded",
-      "setup.release.unmeasured",
-      "setup.release.incomplete"
-    ],
-    "ruled": 35
+    "awaiting": [],
+    "ruled": 62
   },
   "signin.ts": {
     "owed": [],

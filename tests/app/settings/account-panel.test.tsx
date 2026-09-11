@@ -10,14 +10,12 @@
 // **`copy()` resolves to its key and `COPY` is real**, the convention the
 // shell's suites set: the assertions are about which key a line comes from,
 // never the owner's wording, and a real `COPY` is what lets `writtenLine`'s
-// owner-owed branch behave here exactly as it does in production — which is
-// the branch both note lines are on today.
+// owner-owed branch behave here exactly as it does in production.
 //
-// That last fact is why the notes are asserted twice. Both of
-// `ACCOUNT_NOTE_KEYS` are owner-owed, so a card that read the prop and a
-// card that ignored it render the same nothing; the discriminating test
-// hands the card two keys that *are* written and reads back what it drew,
-// in the order it was given them.
+// The notes are asserted twice. Both of `ACCOUNT_NOTE_KEYS` are written
+// since #460, so the card at rest draws both; the discriminating test still
+// hands the card two other written keys and reads back what it drew, in the
+// order it was given them, so a card with the pair hardcoded cannot pass.
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -123,13 +121,14 @@ describe("REQ-077 c1 — what the card shows at rest", () => {
     expect(source).toContain("noteKeys.map");
   });
 
-  it("a note the owner has not written renders as nothing, never as a placeholder", async () => {
-    // Both of `ACCOUNT_NOTE_KEYS` are owner-owed today, so the card draws
-    // neither line — and draws no stand-in for them either.
+  it("a note the owner has written renders as its line, one per key, and nothing else (#460)", async () => {
+    // Both of `ACCOUNT_NOTE_KEYS` were owner-owed and drew nothing; the
+    // owner's approved set of 2026-09-10 wrote them, so the card at rest
+    // draws exactly the two lines, in identity's order — no stand-in, no
+    // extra paragraph.
     const root = await mount(AT_REST);
-    const body = text(root);
-    for (const key of ACCOUNT_NOTE_KEYS) expect(body).not.toContain(key);
-    expect(root.querySelectorAll("p")).toHaveLength(0);
+    const notes = [...root.querySelectorAll("p")].map((el) => el.textContent);
+    expect(notes).toEqual([...ACCOUNT_NOTE_KEYS]);
   });
 });
 
