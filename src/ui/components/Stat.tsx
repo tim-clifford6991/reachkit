@@ -55,11 +55,47 @@ type StatUnmeasured = {
   reason: string;
 };
 
+/** The S1 frame's arm (issue #488): the Overview's tile as the landing's
+ *  browser frame draws it — a picture of the Overview at a third of its
+ *  size, not the Overview. The approved set prints its figure at the
+ *  frame's rung (`--h1`, not `--t-num-big`) and draws the score's delta
+ *  beside its figure and no carrier at all on the other two tiles, so the
+ *  carrier is optional here and nowhere else. The figures are ruling 5c's
+ *  specimen, never a measurement, which is why "never bare" does not bind
+ *  them: there is no delta or goal to state about a drawing. */
+type StatSpecimen = {
+  state: "specimen";
+  label: string;
+  value: React.ReactNode;
+  /** Beside the figure, where the set draws one. */
+  delta?: React.ReactNode;
+  goal?: never;
+};
+
 /** The card idiom's widening: where the caller draws the label as its card
  *  head's eyebrow, the tile does not print it a second time. */
 type LabelPlacement = { labelInHead?: boolean };
 
-export type StatProps = (StatMeasured | StatUnmeasured) & LabelPlacement;
+export type StatProps = (StatMeasured | StatUnmeasured | StatSpecimen) & LabelPlacement;
+
+// The set's own miniature (artifact L578-584): `.stat-l`, then `.stat-row`
+// holding `.stat-v` and its badge on one baseline. The rung it is drawn at
+// — the figure at `--h1`, no inset — is the frame's to set, from
+// `.rk-shot-tile` in `idiom.css`: this file renders no inline style
+// (BP-018 decision 1), and a size is the frame's fact, not the tile's.
+function SpecimenStat(p: StatSpecimen): React.JSX.Element {
+  return (
+    <div className="stats">
+      <div className="stat">
+        <div className="stat-title whitespace-normal">{p.label}</div>
+        <div className="mt-2 flex min-w-0 flex-wrap items-baseline gap-2">
+          <div className="stat-value num">{p.value}</div>
+          {p.delta}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function Stat(p: StatProps): React.JSX.Element {
   // The card idiom's widening (issue 266, `design/tokens.md` §9.1,
@@ -72,6 +108,7 @@ export function Stat(p: StatProps): React.JSX.Element {
   //
   // `label` stays required either way: it is the caller's, and there is no
   // arm of this component that has no label at all.
+  if (p.state === "specimen") return <SpecimenStat {...p} />;
   return (
     <div className="stats" aria-label={p.labelInHead === true ? p.label : undefined}>
       <div className="stat">

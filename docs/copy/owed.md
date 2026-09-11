@@ -2,7 +2,7 @@
 
 **Generated. Do not type into this file** — `npm run copy:owed` rewrites it and `tests/presentation/copy/owed-sheet.test.ts` fails when it is out of date. Write the sentences in your reply, or straight into `src/lib/presentation/copy/keys/*.ts`, and run the generator again: a key that gains a sentence leaves this sheet by itself.
 
-**2 keys**, across 798 in the registry — **0 empty** (`copy()` throws on these: a mail with one does not send, a screen with one does not render) and **2 `TODO(copy)`** (these render the marker, in public, until they are written).
+**3 keys**, across 799 in the registry — **0 empty** (`copy()` throws on these: a mail with one does not send, a screen with one does not render) and **3 `TODO(copy)`** (these render the marker, in public, until they are written).
 
 **How to read a row.**
 
@@ -36,7 +36,7 @@ A key with slots (`{value}`, `{date}`) carries them beside its name; the sentenc
 | S15 | Day panel states | none | 0 |
 | S16 | Draft | none | 0 |
 | S17 | Draft · edit | none | 0 |
-| S18 | Settings | none | 0 |
+| S18 | [Settings](#s18-settings-app) | 1 | 0 |
 | S19 | Hosted page | none | 0 |
 | S20 | Mails | none | 0 |
 
@@ -59,4 +59,14 @@ Every bracketed hint the set draws on this screen: `[page title 15]` · `[page t
 | key | standing | where | the set says | fixed by | max |
 |---|---|---|---|---|---|
 | `record.verification.never.noLiveAddress`<br>`publish.ts` | marker | composed in the engine · `VERIFICATION_COPY` · `lib/publish/record/lines.ts`<br>also on S16 |  | REQ-062 c7 | 27 — sibling `record.verification.never.takenDownFirst` |
+
+## S18 · Settings — App
+
+UI-SPEC `§S18` · the set draws it as `current="settings"` (`docs/design/approved/full-set/screens/settings-light.png`).
+
+Every bracketed hint the set draws on this screen: `[voice description — the customer writes this; one field, nothing is learned about them]` · `[claim 1]` · `[claim 2]` · `[magic-link note — owner’s]`
+
+| key | standing | where | the set says | fixed by | max |
+|---|---|---|---|---|---|
+| `settings.voice.remove-claim` `{claim}`<br>`settings.ts` | marker | `<span class="min-w-0 max-w-full">` · `app/(account)/app/settings/panels/VoicePanel.tsx` |  | REQ-053 | 97 — sibling `settings.voice.filter-note` |
 
