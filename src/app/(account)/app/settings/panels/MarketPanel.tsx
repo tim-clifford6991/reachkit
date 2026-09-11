@@ -43,6 +43,7 @@ import { copy } from "@/lib/presentation/copy";
 import { formatDate } from "../../_shell/format";
 import { writtenLine } from "../../_shell/written";
 import { saveCategoryAction, saveDomainAction } from "../change-actions";
+import { SettingRow } from "./SettingRow";
 import {
   MARKET_CATEGORY_FIELD,
   MARKET_CHANGE_INITIAL,
@@ -194,38 +195,40 @@ export function MarketPanel(p: {
 
   return (
     <Card state="default" title={<CardHead icon={<Globe size={15} strokeWidth={1.8} aria-hidden />} eyebrow={copy("settings.market.title")} />}>
-      <div className="flex min-w-0 flex-col gap-3">
-        {/* S18's order: the SITE first and the market second — the card is
-            "Your site & market", and the domain is the thing the market is
-            derived for. A row is its name at the near edge with the stored
-            value and its control at the far one, hairline between; the
-            editing arm keeps its own column, because a field and its
-            refusal line do not fit on one line at 320. */}
-        <div className="flex min-w-0 flex-col gap-1" data-testid="setting-domain">
-          <span className="eyebrow opacity-60">{copy("settings.market.domain")}</span>
-          {editing === "domain" ? (
-            editingField("domain")
-          ) : (
-            <div className="flex min-w-0 flex-wrap items-center gap-2">
+      {/* S18's order: the SITE first and the market second — the card is
+          "Your site & market", and the domain is the thing the market is
+          derived for. Each is the set's row (issue #506): the name at the
+          near edge, the mono value and its outlined pill at the far one —
+          "Change" beside the domain, "Edit" beside the market, the set's
+          two words. An open field sits under its row. */}
+      <div className="flex min-w-0 flex-col">
+        <SettingRow
+          name={copy("settings.market.domain")}
+          testId="setting-domain"
+          below={editing === "domain" ? editingField("domain") : null}
+        >
+          {editing === "domain" ? null : (
+            <>
               <span className="num min-w-0 wrap-anywhere">{p.domain}</span>
-              <Btn label={copy("settings.edit")} size="sm" variant="tertiary" onClick={() => open("domain")} />
-            </div>
+              <Btn label={copy("settings.change")} size="sm" variant="secondary" pill onClick={() => open("domain")} />
+            </>
           )}
-        </div>
+        </SettingRow>
 
-        <div className="flex min-w-0 flex-col gap-1" data-testid="setting-category">
-          <span className="eyebrow opacity-60">{copy("settings.market.category")}</span>
-          {editing === "category" ? (
-            editingField("category")
-          ) : (
-            <div className="flex min-w-0 flex-wrap items-center gap-2">
-              {/* §2.3: a search query and the buyer vocabulary it is written in
-                  are code-like strings, so the chip is mono. */}
-              <span className="num inline-flex min-w-0 items-center gap-2 wrap-anywhere">{p.market.category}</span>
-              <Btn label={copy("settings.edit")} size="sm" variant="tertiary" onClick={() => open("category")} />
-            </div>
+        <SettingRow
+          name={copy("settings.market.category")}
+          testId="setting-category"
+          below={editing === "category" ? editingField("category") : null}
+        >
+          {editing === "category" ? null : (
+            <>
+              {/* §2.3: a search query and the buyer vocabulary it is written
+                  in are code-like strings, so the value is mono. */}
+              <span className="num min-w-0 wrap-anywhere">{p.market.category}</span>
+              <Btn label={copy("settings.edit")} size="sm" variant="secondary" pill onClick={() => open("category")} />
+            </>
           )}
-        </div>
+        </SettingRow>
       </div>
 
       {effect === null ? null : <p className="text-xs opacity-60 wrap-anywhere">{effect}</p>}

@@ -141,8 +141,12 @@ function within(root: HTMLElement, testid: string): Element {
   return el;
 }
 
+/** The set's two words for the act (S18 L804, issue #506): "Change" beside
+ *  the domain, "Edit" beside the market. Scoped to each row as before. */
+const EDIT_WORD = { "setting-domain": "settings.change", "setting-category": "settings.edit" } as const;
+
 const edit = (root: HTMLElement, control: "setting-domain" | "setting-category"): Element | null =>
-  button(within(root, control), "settings.edit");
+  button(within(root, control), EDIT_WORD[control]);
 
 const line = (root: HTMLElement): string =>
   root.querySelector('[data-testid="market-change-line"]')?.textContent ?? "";

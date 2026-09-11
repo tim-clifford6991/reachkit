@@ -42,7 +42,13 @@ export function Toggle(p: {
     <label className="inline-flex cursor-pointer items-center gap-2 whitespace-nowrap text-base-content/60">
       <input
         type="checkbox"
-        className="toggle"
+        // `rk-switch` is the approved set's `.switch` (UI-SPEC §2.4, set
+        // L112–115; issue #506): on = the `--accent` ground, off = `--line`,
+        // the knob `--on-accent` either way. daisyUI's own checked toggle
+        // is `base-content` — black — which the set never draws. The
+        // colours are `idiom.css`'s, keyed off `:checked`, so a switch that
+        // looks on is on.
+        className="toggle rk-switch"
         checked={p.checked}
         disabled={p.disabled}
         // The accessible name, where the word is not drawn beside the
