@@ -369,6 +369,12 @@ export const SETTINGS_COPY = Object.freeze({
     { slots: {}, fixedBy: "REQ-053" },
   ],
   "settings.voice.add": ["Add", { slots: {}, fixedBy: "REQ-053" }],
+  // The accessible name on a never-claim tag's × (issue #488), naming the
+  // claim it takes out. Owed: the set draws the glyph and no words — the
+  // footing `setup.competitors.remove` is on. The marker, not the empty
+  // value, on the #93 ruling: the tag renders on a screen the customer
+  // reaches.
+  "settings.voice.remove-claim": ["TODO(copy)", { slots: { claim: "text" }, fixedBy: "REQ-053" }],
   // REQ-053's own promise, in the set's words: the list is a filter and not
   // a preference, and a draft that matches one is held and named back.
   "settings.voice.filter-note": [

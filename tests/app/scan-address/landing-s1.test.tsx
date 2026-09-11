@@ -12,6 +12,8 @@
 // server`'s `renderToStaticMarkup`, and `copy()` mocked to `(key) => key`
 // so the assertions read the rendered *tree* and the key each line resolves
 // from, never the owner's wording.
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import React from "react";
@@ -62,6 +64,31 @@ describe("S1 hero — the product component in a browser frame (REQ-099 c4, ruli
     for (const figure of ["62", "8", "2", "/12", "17"]) {
       expect(markup).toContain(figure);
     }
+  });
+
+  // Issue #488: the set draws the tiles with `.stat-l` + `.stat-v` +
+  // `.stat-row` — UI-SPEC §2's Stat — so they are the registered `Stat`,
+  // and the landing's own second stat vocabulary is struck.
+  it("the three tiles are the registered Stat, and rk-shot-tile-* is gone", async () => {
+    const markup = await renderPage();
+    const shot = markup.slice(markup.indexOf('data-testid="landing-shot"'));
+    expect(shot.match(/class="stats"/g)).toHaveLength(3);
+    expect(shot).toMatch(/class="stat-value num"/);
+    const sheet = readFileSync(path.resolve(import.meta.dirname, "../../../src/ui/idiom/idiom.css"), "utf8");
+    expect(markup).not.toContain("rk-shot-tile-");
+    expect(sheet).not.toContain("rk-shot-tile-");
+  });
+
+  // The frame's figure is `--h1`, and S12's `.stat-value.num` rule (issue
+  // #509) prints `--t-num-big` on the same element. Both are 0,2,0 unless
+  // the frame's carries `.num` too, and the S12 rule lands later in the
+  // sheet — so at equal weight the miniature would be drawn at the size of
+  // the screen it is a picture of. This asserts the weight, not the order.
+  it("the miniature's figure out-ranks S12's, so the frame keeps --h1", () => {
+    const sheet = readFileSync(path.resolve(import.meta.dirname, "../../../src/ui/idiom/idiom.css"), "utf8");
+    const rule = sheet.slice(sheet.indexOf(".rk-shot-tile .stat-value"));
+    expect(rule.slice(0, rule.indexOf("{"))).toContain(".stat-value.num");
+    expect(rule.slice(0, rule.indexOf("}"))).toContain("font-size: var(--h1)");
   });
 
   it("no source date and no example line ride with it (5c amends REQ-099 c8)", async () => {

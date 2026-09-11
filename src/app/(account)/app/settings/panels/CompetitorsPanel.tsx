@@ -50,7 +50,7 @@ import { useState } from "react";
 import { Badge } from "@/ui/components/Badge";
 import { Btn } from "@/ui/components/Btn";
 import { Card } from "@/ui/components/Card";
-import { CardHead } from "@/ui/idiom";
+import { CardHead, RemovableTag } from "@/ui/idiom";
 import { Input } from "@/ui/components/Input";
 import { copy } from "@/lib/presentation/copy";
 import { BATTERY } from "@/lib/config/constants";
@@ -140,33 +140,25 @@ export function CompetitorsPanel(p: {
         )}
         <div className="flex min-w-0 flex-wrap gap-2">
           {p.competitors.map((domain) => (
-            // S18 draws each rival as an accent-tinted pill carrying the
-            // domain and one way out — the `tag.on` chip. Here that is the
-            // registered outline rank in its pressed state, which is the
-            // idiom's own "selected chip" (accent edge, accent tint, accent
-            // ink, keyed off `aria-pressed`) and spends no new value. A
-            // domain is short and unbreakable, so a pill is the right box
-            // for it — unlike a never-claim entry, which is a sentence.
-            <span
-              className="rk-chip inline-flex min-w-0 items-center gap-1"
-              key={domain}
-              data-testid={`competitor-${domain}`}
-            >
-              {/* §2.3: a domain is a URL-shaped value. */}
-              <span className="num">{domain}</span>
-              {/* The domain travels in the form rather than in a closure,
-                  so the press carries exactly one named value and the
-                  chip works the same way the field does. */}
-              <form action={remove}>
+            // S18 draws each rival as the set's `.tag.on` — the domain in
+            // mono on the accent tint with its × — which is `RemovableTag`,
+            // the same tag `/setup` gives a chosen rival (issue #488). Its
+            // accessible name is setup's own removal key: it is the same
+            // act on the same set (REQ-071 c4, "the same rules").
+            //
+            // The domain travels in the form rather than in a closure, so
+            // the press carries exactly one named value and the tag works
+            // the same way the field does; the tag is the form's submit.
+            <div className="min-w-0 max-w-full" key={domain} data-testid={`competitor-${domain}`}>
+              <form action={remove} className="min-w-0 max-w-full">
                 <input type="hidden" name={RIVAL_FIELD} value={domain} readOnly />
-                <Btn
-                  label={copy("settings.competitors.remove")}
-                  size="sm"
-                  variant="tertiary"
-                  type="submit"
+                <RemovableTag
+                  value={domain}
+                  removeLabel={copy("setup.competitors.remove", { rival: domain })}
+                  submits
                 />
               </form>
-            </span>
+            </div>
           ))}
         </div>
 

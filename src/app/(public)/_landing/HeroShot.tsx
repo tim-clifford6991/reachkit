@@ -17,34 +17,24 @@
 // without a source date or an example line". Nothing here is measured about
 // the visitor, and nothing is invented at the call site.
 //
-// **The tiles are not the registered `Stat`, and that is deliberate.**
-// `Stat` prints its figure at `--t-num-big` (44px) and requires a delta or
-// a goal beside every value. The set's miniature prints them at the
-// browser-frame rung and draws neither on two of the three tiles — because
-// this is a picture of the Overview at a third of its size, not the
-// Overview. Rendering `Stat` here would either blow the frame apart or
-// force a delta the set does not draw onto a tile that has none, and a
-// figure invented to satisfy a component's type is exactly what rule 1.2
-// refuses. The label, the value and the mono face are all still the
-// product's own.
+// **The tiles are the registered `Stat`** (issue #488), in its `specimen`
+// arm: UI-SPEC §2 draws a tile as `.stat-l` + `.stat-v` + `.stat-row`, and
+// the set's miniature spends exactly those classes (artifact L578-584), so
+// a second stat vocabulary on the landing was a twin of the component. The
+// arm is the Overview's tile at the frame's rung — the figure at `--h1`,
+// not `--t-num-big` — with the carrier optional, because the set draws the
+// score's delta and nothing beside the other two, and a figure invented to
+// satisfy a component's type is exactly what rule 1.2 refuses. The box
+// around each is the frame's own (`.rk-shot-tile`).
 import type React from "react";
 import { TrendingUp } from "lucide-react";
 import { GrowthLine } from "@/ui/charts";
 import { Badge } from "@/ui/components/Badge";
+import { Stat } from "@/ui/components/Stat";
 import { CardHead, IdiomCard } from "@/ui/idiom";
 import { copy } from "@/lib/presentation/copy";
 import { Num } from "../scan/[domain]/_address/measured";
 import { SPECIMEN_TILES, SPECIMEN_WEEKS } from "./specimen";
-
-/** One tile of the miniature: the Overview's own label, and its figure. */
-function ShotTile(p: { label: string; children: React.ReactNode }): React.JSX.Element {
-  return (
-    <div className="rk-shot-tile">
-      <p className="rk-shot-tile-l">{p.label}</p>
-      <p className="rk-shot-tile-v">{p.children}</p>
-    </div>
-  );
-}
 
 export function HeroShot(): React.JSX.Element {
   return (
@@ -83,22 +73,40 @@ export function HeroShot(): React.JSX.Element {
         </IdiomCard>
 
         <div className="rk-shot-tiles">
-          <ShotTile label={copy("overview.tile.score.label")}>
-            <Num>{SPECIMEN_TILES.score}</Num>
-            <Badge tone="ok">
-              <Num>{copy("overview.delta.up")}</Num>
-              <Num>{SPECIMEN_TILES.scoreDelta}</Num>
-            </Badge>
-          </ShotTile>
-          <ShotTile label={copy("overview.tile.ai-answers.label")}>
-            <Num>{SPECIMEN_TILES.aiAnswers}</Num>
-            <span className="rk-shot-of">
-              <Num>{`/${SPECIMEN_TILES.aiAnswersOf}`}</Num>
-            </span>
-          </ShotTile>
-          <ShotTile label={copy("overview.tile.pages.label")}>
-            <Num>{SPECIMEN_TILES.published}</Num>
-          </ShotTile>
+          <div className="rk-shot-tile">
+            <Stat
+              state="specimen"
+              label={copy("overview.tile.score.label")}
+              value={<Num>{SPECIMEN_TILES.score}</Num>}
+              delta={
+                <Badge tone="ok">
+                  <Num>{copy("overview.delta.up")}</Num>
+                  <Num>{SPECIMEN_TILES.scoreDelta}</Num>
+                </Badge>
+              }
+            />
+          </div>
+          <div className="rk-shot-tile">
+            <Stat
+              state="specimen"
+              label={copy("overview.tile.ai-answers.label")}
+              value={
+                <>
+                  <Num>{SPECIMEN_TILES.aiAnswers}</Num>
+                  <span className="rk-shot-of">
+                    <Num>{`/${SPECIMEN_TILES.aiAnswersOf}`}</Num>
+                  </span>
+                </>
+              }
+            />
+          </div>
+          <div className="rk-shot-tile">
+            <Stat
+              state="specimen"
+              label={copy("overview.tile.pages.label")}
+              value={<Num>{SPECIMEN_TILES.published}</Num>}
+            />
+          </div>
         </div>
       </div>
     </div>
