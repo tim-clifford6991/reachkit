@@ -744,7 +744,11 @@
   color: var(--ink-2);
 }
 
-.rk-shot-tile .stat-value {
+/* `.num` is carried so this out-ranks the S12 rule below — `.stat-value.num`
+ * at `--t-num-big` (issue #509), which is the Overview's own rung and lands
+ * later in this sheet. Equal specificity would hand the frame the 44 and
+ * draw the miniature at the size of the thing it is a picture of. */
+.rk-shot-tile .stat-value.num {
   font-size: var(--h1);
   font-weight: var(--num-weight);
   letter-spacing: -0.03em;
@@ -1111,8 +1115,10 @@
  * daisyUI's own `stat-value` is 2rem at 800 — a display face's weight on a
  * mono numeral — and this widens it the way `Progress`'s ground is widened
  * above, rather than minting a class. `Stat` is spent only by S12's three
- * tiles; the S1 miniature draws its own figures (`.rk-shot-tile-v`) at the
- * frame's rung and is not this element. The tracking is the set's own. */
+ * tiles; the S1 miniature spends the same `Stat` in its `specimen` arm
+ * (issue #488) and is drawn at the frame's own rung by `.rk-shot-tile`
+ * above, which carries `.num` to out-rank this. The tracking is the set's
+ * own. */
 .stat-value.num {
   font-size: var(--t-num-big);
   font-weight: var(--num-weight);

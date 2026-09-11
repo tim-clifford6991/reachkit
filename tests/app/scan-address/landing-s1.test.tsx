@@ -79,6 +79,18 @@ describe("S1 hero — the product component in a browser frame (REQ-099 c4, ruli
     expect(sheet).not.toContain("rk-shot-tile-");
   });
 
+  // The frame's figure is `--h1`, and S12's `.stat-value.num` rule (issue
+  // #509) prints `--t-num-big` on the same element. Both are 0,2,0 unless
+  // the frame's carries `.num` too, and the S12 rule lands later in the
+  // sheet — so at equal weight the miniature would be drawn at the size of
+  // the screen it is a picture of. This asserts the weight, not the order.
+  it("the miniature's figure out-ranks S12's, so the frame keeps --h1", () => {
+    const sheet = readFileSync(path.resolve(import.meta.dirname, "../../../src/ui/idiom/idiom.css"), "utf8");
+    const rule = sheet.slice(sheet.indexOf(".rk-shot-tile .stat-value"));
+    expect(rule.slice(0, rule.indexOf("{"))).toContain(".stat-value.num");
+    expect(rule.slice(0, rule.indexOf("}"))).toContain("font-size: var(--h1)");
+  });
+
   it("no source date and no example line ride with it (5c amends REQ-099 c8)", async () => {
     const markup = await renderPage();
     expect(markup).not.toContain("landing.hero.specimen.caption");
