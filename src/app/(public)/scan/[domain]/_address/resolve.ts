@@ -31,9 +31,10 @@
 // arm and `ScanProgress` posts `/api/scan` from the browser on first
 // frame — REQ-001 c9's "never during server render", which is what keeps
 // a crawler, a prefetch or a refresh from spending money.
-import { FREE_RESCAN_WINDOW_D, TIMING } from "@/lib/config/constants";
+import { FREE_RESCAN_WINDOW_D } from "@/lib/config/constants";
 import { admitFreeScan, type Admission, type NetworkKey } from "@/lib/scan/admission";
 import { isDomainRemoved } from "@/lib/scan/removal";
+import { RUNNING_ROW_BOUND_S } from "@/lib/scan/stuck";
 import { parseDomain, type CanonicalDomain } from "@/lib/scan/domain";
 import { readCurrentReport, type StoredReport } from "@/lib/scan/report";
 import { correctionOffer } from "@/lib/market/coherence/offer";
@@ -53,18 +54,13 @@ function wholeDaysBetween(from: Date, to: Date): number {
  *  in its own line (ADR-011: our own stop outranks every other cause that
  *  is also true, and is never dressed as one). `removed` and `cooldown`
  *  never reach here — they are rows 2 and 5, with screens of their own. */
-function refusalOf(admission: Exclude<Admission, { admit: true }>): AddressRefusal | null {
+function refusalOf(admission: Exclude<Admission, { admit: true }>, now: Date): AddressRefusal | null {
   switch (admission.refuse) {
     case "hourly":
     case "daily":
       return { reason: "network-limit", retryAfterSeconds: admission.retryAfterSeconds };
     case "in_flight":
-      // Admission knows a scan is running on this network but not when it
-      // started, so no remaining time can be measured. The wait is the one
-      // bound the product guarantees instead — `TIMING.reportCeilingS`,
-      // after which every free pass has ended one way or another. An upper
-      // bound the pipeline enforces, never an estimate dressed as one.
-      return { reason: "scan-running", retryAfterSeconds: TIMING.reportCeilingS };
+      return { reason: "scan-running", retryAfterSeconds: inFlightWaitSeconds(admission.runningSince, now) };
     case "switched_off":
       return { reason: "stopped" };
     case "removed":
@@ -79,6 +75,22 @@ function refusalOf(admission: Exclude<Admission, { admit: true }>): AddressRefus
     case "cooldown":
       return null;
   }
+}
+
+/** How long until the network holding a scan in flight is certainly free
+ *  (issue #510). Not the pass's own ceiling: a pass the platform froze
+ *  leaves its row `running` until the sweep clears it, and the sweep keys
+ *  on `RUNNING_ROW_BOUND_S` (platform ceiling + sweep margin) from the
+ *  row's `created_at`. A wait shorter than that would send the visitor
+ *  back to be refused again. So the wait is the time left until that
+ *  bound, floored at 0 — past it the row is the sweep's, not the visitor's
+ *  to wait on. A refusal whose running row could not be re-read carries no
+ *  clock, and the whole bound is the only figure that is still an upper
+ *  bound. Whole seconds, rounded up, like admission's own waits. */
+function inFlightWaitSeconds(runningSince: Date | undefined, now: Date): number {
+  if (runningSince === undefined) return RUNNING_ROW_BOUND_S;
+  const clearsAtMs = runningSince.getTime() + RUNNING_ROW_BOUND_S * 1000;
+  return Math.max(0, Math.ceil((clearsAtMs - now.getTime()) / 1000));
 }
 
 /** REQ-001 c16: exactly one control that starts a new measurement, or
@@ -175,7 +187,7 @@ export async function resolveAddress(a: {
   if (await removedForCertain(domain)) return { kind: "removed", domain };
 
   const admission = await admitFreeScan({ domain, network: a.network });
-  const refusal = "admit" in admission ? null : refusalOf(admission);
+  const refusal = "admit" in admission ? null : refusalOf(admission, now);
 
   // 3. A current report is a thing to read; a refusal or a cooldown beside
   //    it is a notice, never a screen that hides it.
