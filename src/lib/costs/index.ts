@@ -37,8 +37,9 @@ import { CAPS } from "@/lib/config/constants";
 import { now } from "@/lib/config/now";
 import { readCache } from "./cache";
 import { openDayLedger } from "./daily";
-import { isFetchRefusal, writeFetchRow } from "./ledger";
-export { isFetchRefusal, refusalOf, type FetchRefusal, type FetchRefusalReason } from "./ledger";
+import { writeFetchRow } from "./ledger";
+import { isFetchRefusal } from "./refusal";
+export { isFetchRefusal, refusalOf, type FetchRefusal, type FetchRefusalReason } from "./refusal";
 
 export type CapName = "FREE" | "DEEP" | "WEEKLY" | "DRAFT";
 

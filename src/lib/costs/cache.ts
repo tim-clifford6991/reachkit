@@ -24,7 +24,8 @@
 // stays at the call site (BP-007 decision 4). Reversal cost: change one
 // function (`isEmptyPayload`, below); no schema or interface change.
 import { dbAdmin } from "@/lib/db";
-import { isFetchRefusal, untypedFetches, type FetchesRow } from "./ledger";
+import { untypedFetches, type FetchesRow } from "./ledger";
+import { isFetchRefusal } from "./refusal";
 
 /** How many of the newest rows on one key, inside the freshness window,
  *  this read is willing to scan past before giving up and calling it a
