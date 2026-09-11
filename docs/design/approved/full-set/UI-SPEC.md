@@ -14,61 +14,30 @@ Sources, in order of authority: (1) the owner's artifact "ReachKit Screen System
 **This document is complete on its own.** A detail found only in the artifact HTML or its JavaScript is
 written here before it is built; until it is written here it is not specified (owner, 2026-09-10; §2.7).
 
-## 0. Owner rulings required (2026-09-10)
+## 0. Rulings of 2026-09-11 (owner, #489)
 
-Every item below is a place where the approved artifacts draw nothing and this document
-therefore proposes rather than records. Nothing here is built until it is ruled. Line
-references are `docs/design/approved/full-set/reachkit-full-screen-set.html` unless the
-parent artifact (`docs/design/approved/reachkit-screen-system.html`) is named.
+The sixteen places where the approved artifacts draw nothing, ruled by the owner on 2026-09-11
+from the master's proposals (every recommendation taken). Each is specification now and is cited
+in §2.4–§2.5 as **§0 n**. Line references are to `reachkit-full-screen-set.html`.
 
-1. **Btn `:active`.** No pressed feedback is drawn for any rank (`.pill` L153–162 carry
-   `:hover` only). Proposed: `:active` = the hover ground with `transform:none`, no shift.
-2. **Btn `[disabled]`.** Not drawn anywhere in either artifact. Proposed: `--ink-3` text on
-   `--sunk`, border `--line`, `cursor:default`, no hover change.
-3. **`.pill-warn:hover`.** L159 gives the warn outline a border and a colour and no hover
-   rule, so it alone among the four ranks does not answer the pointer. Proposed:
-   `background: var(--warn-bg)`, matching `.pill:hover`'s shape one tone over.
-4. **Input `[disabled]` and the dimmed card.** S10 dims a whole card with an inline
-   `opacity:.6` (L682) and no field-level disabled style exists. Proposed: a disabled field
-   is `--sunk` ground, `--ink-3` text, and the card is not dimmed as a whole.
-5. **Invalid field.** Only the written line is drawn (`.invalid` L204); the field itself does
-   not change. Proposed: `border-color: var(--bad)` on the field plus the existing line, and
-   `aria-invalid` as the hook, so the state is not colour-only (§2 colour meaning).
-6. **Switch hover, focus and disabled.** `.switch` L112–115 draws on and off and nothing else.
-   Proposed: hover leaves it alone, focus is the global ring, disabled is `--line` at
-   `opacity:.5` with the label greyed.
-7. **Option card `:active` and `[disabled]`.** L296–298 draw base, hover and pressed only.
-   Proposed: no active change; disabled = `--sunk` ground, `--line` border, `cursor:default`.
-8. **Tag hover, focus and remove affordance.** `.tag` L301–303 draw base, `.on` and a `.x` at
-   `opacity:.6`, with no pointer or keyboard state. Proposed: hover raises `.x` to full
-   opacity; the tag itself does not change ground.
-9. **Collapse summary hover and focus.** L282–285 draw the marker and its rotation only.
-   Proposed: hover = `--sunk` ground on the summary row; focus is the global ring.
-10. **Calendar cell focus and "open in the panel".** `.cd` draws hover and `today` (L326–327)
-    but nothing for the cell whose day the panel is showing. Proposed: the open cell carries
-    the hover ring permanently and `aria-current="date"`; focus is the global ring.
-11. **Sidebar nav `:active` and the collapsed band.** Under 1024 the whole Workspace group is
-    hidden (L90) and no replacement control is drawn, so Calendar and Settings are
-    unreachable in the compact band. Proposed: the three items become a horizontal row inside
-    `.side`, labels kept, counts kept.
-12. **Footer link hover.** `.linkish` has one (L371); the footer's own anchors (L526–527)
-    inherit `.foot nav` (L127) and draw none. Proposed: underline on hover, as `.linkish`.
-13. **A motion token.** The set draws exactly one transition — `transition:transform .18s` on
-    the collapse marker (L284). Proposed: `--motion-fast: .18s` as the one duration, spent on
-    colour, border, box-shadow and transform, and nothing else.
-14. **The 1024 boundary is off by one.** `bands.ts` places the compact|medium boundary at 1024
-    because "the sidebar returns" there, but the artifact's `@media (max-width:1024px)`
-    (L86, L90) collapses the sidebar **at** 1024. The same one-pixel disagreement affects
-    `.g2/.g3` (L179), `.filters` (L338), `.editor` (L348), `.split` (L354) and `.hero` (L375).
-    The day panel does not have it: L321 is `max-width:1279px`. Proposed: read every
-    `max-width:1024px` in the set as `max-width:1023.98px`, so 1024 is the first medium width.
-15. **S17's tabs.** §3 S17 says "two columns ≥1024, tabbed below"; the artifact stacks the two
-    columns (L348) and draws no tab control. Proposed: below 1024 the two panes stack in the
-    drawn order — Markdown, then Preview — and no tab strip is built.
-16. **640 and 768 are not photographed.** Seven rules step at 640 (L123, L134, L145, L212,
-    L295, L377) and two at 768 (L126, L323), all inside the compact band, and `widths()`
-    renders 320 · 1023 · 1024 · 1279 · 1280 — none of them. Proposed: add 640 and 768 to the
-    sweep, or rule that the compact band is asserted at 320 alone.
+| # | Ruling |
+|---|---|
+| 1 | Btn `:active` is the rank's own hover ground; nothing moves. |
+| 2 | Btn `[disabled]`, all four ranks: `--ink-3` text on `--sunk`, `--line` border, `cursor:default`, no hover change. |
+| 3 | `.pill-warn:hover` fills with `--warn-bg`, the outline rank's hover one tone over. |
+| 4 | A disabled field is `--sunk` ground with `--ink-3` text; the card around it is not dimmed (S10's inline `opacity:.6`, L682, is not built). |
+| 5 | An invalid field carries `border-color: var(--bad)` and `aria-invalid="true"` as well as its written line (`.invalid`, L204); the state is never colour alone. |
+| 6 | Switch: no hover change; focus is the global ring; disabled is the `--line` track at `opacity:.5` with its label in `--ink-3`. |
+| 7 | Option card: no pressed change; disabled is `--sunk` ground, `--line` border, `cursor:default`. |
+| 8 | Tag: hover raises the `.x` to full opacity; the tag's own ground does not change, so hover never reads as `.on`. |
+| 9 | Collapse: the summary row takes `--sunk` ground on hover. |
+| 10 | Calendar: the cell open in the day panel keeps the hover ring (L326) and carries `aria-current="date"`; today keeps its 2px ring (L327), so both show when they differ. |
+| 11 | Below 1024 the three Workspace items (Overview · Calendar · Settings) stay as one horizontal row inside the collapsed sidebar, labels and counts kept; the artifact's `.side-group{display:none}` (L90) is not built. No drawer and no bottom bar. |
+| 12 | Footer links underline on hover, as `.linkish` (L371). |
+| 13 | One motion token, `--motion-fast: .18s`, spent only on `color`, `background-color`, `border-color`, `box-shadow` and `transform`; the reduced-motion rule (L63) removes it. It is added to `tokens.css` and `theme.css` together. |
+| 14 | Every `max-width:1024px` rule in the set is built as `max-width:1023.98px`: 1024 is the first medium width, as `BAND_MIN.medium` says. |
+| 15 | S17 below 1024 is tabbed (Markdown · Preview), as §3 S17 says and as built; the artifact's stacked panes (L348) are not built. |
+| 16 | 768 joins the layout sweep: six widths, 320 · 768 · 1023 · 1024 · 1279 · 1280. 640 is not photographed. |
 
 ## 1. Rulings of 2026-09-08 (owner, decision sheet v3, #357)
 
@@ -91,7 +60,7 @@ parent artifact (`docs/design/approved/reachkit-screen-system.html`) is named.
 
 **Tokens.** `../tokens.css` is the source of truth for `src/ui/theme.css` (48 product tokens, three
 blocks: light `:root`, guarded dark, explicit dark). Additions under 10a: `--t-body 15px`,
-`--t-sm 13px`, `--t-xs 12px`, `--w-form 420px`, `--w-sidebar 222px`, `--w-day-panel 290px`.
+`--t-sm 13px`, `--t-xs 12px`, `--w-form 420px`, `--w-sidebar 222px`, `--w-day-panel 290px`; under §0 13 (2026-09-11): `--motion-fast .18s`.
 Removed: `--r-card`, `--num-weight` stays at 600. No colour, radius, shadow, spacing, type size,
 measure or breakpoint may be written as a literal in `src/ui/**` or `src/app/**` (test: #349).
 
@@ -138,8 +107,7 @@ in words, never by colour alone.
 ## 2.4 Interaction states
 
 Read with §2's component table. Each cell is the token change the artifact's CSS draws, with
-its line in the approved set; "not drawn" cells are numbered in the rulings list above and are
-not built until ruled. `--pg-*` rules (the preview page's own nav and toggle, L75–L81) are
+its line in the approved set; a cell marked **§0 n** carries the owner's ruling of 2026-09-11; a plain "not drawn" cell has no rule, and nothing changes in that state. `--pg-*` rules (the preview page's own nav and toggle, L75–L81) are
 furniture, not the product, and nothing below derives from them.
 
 **Focus is global and it is one rule.** `:focus-visible{outline:2px solid var(--accent);
@@ -151,19 +119,19 @@ of its own (L202) — that is a `:focus` rule, so it fires on pointer focus too,
 
 | Component (artifact class) | hover | focus-visible | active | disabled | selected / pressed | invalid |
 |---|---|---|---|---|---|---|
-| Btn · outline `.pill` | `--accent-bg` ground, border and text unchanged (L154) | global ring (L62) | not drawn — ruling 1 | not drawn — ruling 2 | n/a | n/a |
-| Btn · solid `.pill-solid` | `filter:brightness(1.08)` (L156) | global ring (L62) | not drawn — ruling 1 | not drawn — ruling 2 | n/a | n/a |
-| Btn · quiet `.pill-quiet` | `--sunk` ground, text `--ink-2`→`--ink` (L158) | global ring (L62) | not drawn — ruling 1 | not drawn — ruling 2 | n/a | n/a |
-| Btn · warn `.pill-warn` | not drawn — ruling 3 | global ring (L62) | not drawn — ruling 1 | not drawn — ruling 2 | n/a | n/a |
-| Input `.input` | not drawn | `outline:none`; border `--line`→`--accent`; `box-shadow:0 0 0 3px var(--accent-bg)` (L202) | n/a | not drawn — ruling 4 | n/a | field unchanged; one line below in `--t-sm`/`--bad` (`.invalid`, L204) — ruling 5 |
-| Switch `.switch` | not drawn — ruling 6 | global ring (L62) | n/a | not drawn — ruling 6 | on = `--accent` ground, knob right (L112–113); off = `--line` ground, knob left (L114–115) | n/a |
-| Option card `.opt` | border `--line`→`--accent-line` (L297) | global ring (L62) | not drawn — ruling 7 | not drawn — ruling 7 | `[aria-pressed="true"]` = border `--accent` + `--accent-bg` ground (L298) | n/a |
-| Tag `.tag` | not drawn — ruling 8 | global ring (L62) | n/a | not drawn — ruling 8 | `.on` = `--accent-bg` ground, `--accent` text (L302) | n/a |
-| Collapse `details.col > summary` | not drawn — ruling 9 | global ring (L62) | n/a | n/a | `[open]` rotates the marker 45°→−135° (L285) | n/a |
-| Calendar cell `.cd` | `--shadow-card` + `0 0 0 1.5px var(--accent-line)` ring (L326) | not drawn — ruling 10 | not drawn | `.empty` = no ground, `inset 0 0 0 1px var(--line)`, `cursor:default`, date at `opacity:.55` (L330–331) | today = `0 0 0 2px var(--accent)` (L327); open-in-panel not drawn — ruling 10 | n/a |
-| Sidebar nav `.nav` | `--sunk` ground, text `--ink-2`→`--ink` (L103) | global ring (L62) | not drawn — ruling 11 | n/a | `[aria-current="page"]` = `--accent-bg` ground, `--accent` text, count also `--accent` (L104, L107) | n/a |
+| Btn · outline `.pill` | `--accent-bg` ground, border and text unchanged (L154) | global ring (L62) | **§0 1**: the rank's hover ground, nothing moves | **§0 2**: `--ink-3` on `--sunk`, `--line` border, `cursor:default`, no hover | n/a | n/a |
+| Btn · solid `.pill-solid` | `filter:brightness(1.08)` (L156) | global ring (L62) | **§0 1**: the rank's hover ground, nothing moves | **§0 2**: `--ink-3` on `--sunk`, `--line` border, `cursor:default`, no hover | n/a | n/a |
+| Btn · quiet `.pill-quiet` | `--sunk` ground, text `--ink-2`→`--ink` (L158) | global ring (L62) | **§0 1**: the rank's hover ground, nothing moves | **§0 2**: `--ink-3` on `--sunk`, `--line` border, `cursor:default`, no hover | n/a | n/a |
+| Btn · warn `.pill-warn` | **§0 3**: `--warn-bg` ground | global ring (L62) | **§0 1**: the rank's hover ground, nothing moves | **§0 2**: `--ink-3` on `--sunk`, `--line` border, `cursor:default`, no hover | n/a | n/a |
+| Input `.input` | not drawn | `outline:none`; border `--line`→`--accent`; `box-shadow:0 0 0 3px var(--accent-bg)` (L202) | n/a | **§0 4**: `--sunk` ground, `--ink-3` text; card not dimmed | n/a | border `--bad` + `aria-invalid` + one line below in `--t-sm`/`--bad` (`.invalid`, L204) — **§0 5**
+| Switch `.switch` | **§0 6**: no change | global ring (L62) | n/a | **§0 6**: `--line` track at `opacity:.5`, label `--ink-3` | on = `--accent` ground, knob right (L112–113); off = `--line` ground, knob left (L114–115) | n/a |
+| Option card `.opt` | border `--line`→`--accent-line` (L297) | global ring (L62) | **§0 7**: no change | **§0 7**: `--sunk` ground, `--line` border, `cursor:default` | `[aria-pressed="true"]` = border `--accent` + `--accent-bg` ground (L298) | n/a |
+| Tag `.tag` | **§0 8**: the `.x` rises to full opacity; ground unchanged | global ring (L62) | n/a | **§0 8**: none — a tag is removed, never disabled | `.on` = `--accent-bg` ground, `--accent` text (L302) | n/a |
+| Collapse `details.col > summary` | **§0 9**: `--sunk` ground on the summary row | global ring (L62) | n/a | n/a | `[open]` rotates the marker 45°→−135° (L285) | n/a |
+| Calendar cell `.cd` | `--shadow-card` + `0 0 0 1.5px var(--accent-line)` ring (L326) | **§0 10**: global ring (L62) | not drawn | `.empty` = no ground, `inset 0 0 0 1px var(--line)`, `cursor:default`, date at `opacity:.55` (L330–331) | today = `0 0 0 2px var(--accent)` (L327); open-in-panel keeps the hover ring and carries `aria-current="date"` — **§0 10** | n/a |
+| Sidebar nav `.nav` | `--sunk` ground, text `--ink-2`→`--ink` (L103) | global ring (L62) | **§0 11**: no change | n/a | `[aria-current="page"]` = `--accent-bg` ground, `--accent` text, count also `--accent` (L104, L107) | n/a |
 | Link `.linkish` | underline (L371) | global ring (L62) | not drawn | n/a | n/a | n/a |
-| Link · footer `.foot nav a` | not drawn — ruling 12 | global ring (L62) | not drawn | n/a | n/a | n/a |
+| Link · footer `.foot nav a` | **§0 12**: underline, as `.linkish` | global ring (L62) | not drawn | n/a | n/a | n/a |
 
 **Selected is never colour alone.** Every selected form above changes two things — ground and
 text on `.opt`, `.tag` and `.nav`; ring width and colour on `.cd` — and each carries
@@ -174,13 +142,11 @@ L803; `.nav` L514). The attribute is the state; the tokens are its picture.
 marker (L284). Nothing else in either artifact transitions — every hover, focus and pressed
 change above is instantaneous as drawn. (The parent artifact's `transition:background .15s,
 color .15s` at ss.html:L86 is on `.navbtn`, the preview page's own screen switcher, and is
-furniture.) One duration for the product is proposed as ruling 13; until it is ruled, `.18s`
-on `transform` is the only motion this document specifies.
+furniture.) By **§0 13** the product has one duration, `--motion-fast` (.18s), spent only on colour, background, border, box-shadow and transform; nothing else moves.
 
 **Reduced motion.** `@media (prefers-reduced-motion:reduce){*{animation:none!important;
 transition:none!important}}` (L63; parent ss.html:L74). It is universal, it uses
-`!important`, and it kills animation as well as transition. Any motion added under ruling 13
-inherits this stance without a further rule; nothing in `src/**` may opt out of it.
+`!important`, and it kills animation as well as transition. `--motion-fast` inherits this stance without a further rule; nothing in `src/**` may opt out of it.
 
 
 ## 2.5 Responsive behaviour per band
@@ -193,13 +159,11 @@ each band and each boundary minus one pixel, "which is where the off-by-one live
 the sidebar returns, 1280 is where the day panel sits beside the grid.
 
 The artifact steps at four widths: 640, 768, 1024 and 1279. Only two of those are band
-boundaries; 640 and 768 subdivide the compact band and are not among the five widths
-(ruling 16). Every `max-width:1024px` rule below fires **at** 1024, one pixel later than the
-band it is meant to open (ruling 14).
+boundaries; 640 and 768 subdivide the compact band; by **§0 16** 768 joins the sweep (320 · 768 · 1023 · 1024 · 1279 · 1280) and 640 is not photographed. The set writes its 1024 rules as `max-width:1024px`; by **§0 14** each is built as `max-width:1023.98px`, so 1024 is the first medium width and the set, the bands and the sweep agree.
 
 | Surface | wide ≥1280 | medium 1024–1279 | compact 320–1023 | drawn at |
 |---|---|---|---|---|
-| Sidebar `.side` / `.frame.app` | grid `var(--w-sidebar) 1fr` — 222 beside the content (L85) | same as wide | one column (L86); `.side` becomes a horizontal flex row, loses its right border for a bottom one, `.side-foot` un-pins, and `.side-group` — the whole Workspace nav — is `display:none` (L90) | L86, L90 |
+| Sidebar `.side` / `.frame.app` | grid `var(--w-sidebar) 1fr` — 222 beside the content (L85) | same as wide | one column (L86); `.side` becomes a horizontal flex row, loses its right border for a bottom one, `.side-foot` un-pins, and the artifact hides `.side-group` — the whole Workspace nav (L90); by **§0 11** it is built as one horizontal row of the three items, labels and counts kept | L86, L90 |
 | Day panel `.panel` / `.calwrap` | grid `1fr var(--w-day-panel)` — 290 beside the grid, `position:sticky; top:var(--s-4)` (L320, L333) | one column: the panel drops below the grid, still sticky (L321) | same as medium | L321 |
 | Report module 2, two equal cards `.g2` (and `.g3`) | `repeat(2,minmax(0,1fr))` / `repeat(3,…)` (L177–178) | same as wide | one column (L179) | L179 |
 | Calendar grid `.calgrid` | `repeat(7,minmax(0,1fr))`, gap `--s-2` (L322) | same as wide | 7 columns down to 769; at ≤768 `repeat(2,minmax(0,1fr))` and the `.caldow` day-name row is `display:none` (L323) | L323 |
@@ -215,7 +179,7 @@ band it is meant to open (ruling 14).
 | AI dot-matrix `.mx` | rows `minmax(64px,84px) 1fr auto`, `min-width:320px`, `overflow-x:auto` on `.mx` (L241–242) | same as wide | same — scrolls inside itself, never the page (L241) | L241–242 |
 | Rival rows `.rival` | `minmax(64px,1fr) minmax(110px,2.2fr) auto` (L210) | same as wide | at ≤640 `1fr auto` and the sparkline moves to its own full-width row, `order:3` (L212) | L212 |
 | Sign-in split `.split` | `1fr 1fr` (L353); `.leftp-in` gets `margin-right:var(--s-7)` at ≥1024 (L357) | same as wide | one column and `.rightp` — the gradient panel with the glass specimen — is `display:none`, so the form is what remains (L354) | L354, L357 |
-| Draft editor `.editor` | `1fr 1fr` (L347) | same as wide | one column (L348); no tab strip is drawn — ruling 15 | L348 |
+| Draft editor `.editor` | `1fr 1fr` (L347) | same as wide | tabbed, Markdown · Preview (**§0 15**; the artifact stacks the panes at L348) | L348 |
 | Setup option pair `.pick` | `repeat(2,minmax(0,1fr))` (L294) | same as wide | at ≤640 one column (L295) | L295 |
 | ActionPanels `.acts` | `repeat(auto-fit,minmax(280px,1fr))` (L180) | same as wide | same — intrinsic, no `@media`; falls to one column below ~576 | L180 |
 
@@ -223,8 +187,7 @@ Two rules of the set are worth stating as behaviour rather than geometry. First,
 scrolls the page sideways**: the two surfaces that can exceed their column — the report's one
 table and the dot-matrix — each carry their own `overflow-x:auto` (L262, L241) and their own
 `min-width` (L263, L242). Second, **no surface is deleted to fit except one**: the sign-in
-gradient panel at ≤1024 (L354), which is a specimen and not a control, and the sidebar's
-Workspace group (L90), which is a control and is ruling 11.
+gradient panel at ≤1024 (L354), which is a specimen and not a control, and the sidebar's Workspace group (L90), which is a control and which **§0 11** keeps as a row.
 
 
 ## 2.6 Icon vocabulary
