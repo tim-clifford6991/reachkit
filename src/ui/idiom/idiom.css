@@ -1927,3 +1927,126 @@
 .rk-fallback > .rk-hero-form > :first-child {
   flex: 1 1 auto;
 }
+
+/* ── The report's three (UI-SPEC §2, issue #487) ──────────────────────── */
+
+/* `SourceChip`'s wrap arm: a source that is a phrase folds at its spaces
+ * inside a half-width card instead of pushing past it. It stays on the
+ * chip's pill radius — two lines of it read as one chip, which is what the
+ * set draws. */
+.rk-srcchip[data-wrap] {
+  white-space: normal;
+  min-width: 0;
+}
+
+/* `.prob`: `IdiomCard`'s skin, with the severity as a left edge. The edge
+ * is 4px as drawn, which is `--s-1` on the ruled ladder. */
+.rk-prob {
+  background: var(--surface);
+  border-radius: var(--r-box);
+  box-shadow: var(--shadow-card);
+  border-left: var(--s-1) solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  padding: var(--s-4);
+  min-width: 0;
+}
+
+@media (min-width: 640px) {
+  .rk-prob {
+    padding: var(--s-5);
+  }
+}
+
+.rk-prob[data-edge="ok"] {
+  border-left-color: var(--ok);
+}
+
+.rk-prob[data-edge="warn"] {
+  border-left-color: var(--warn);
+}
+
+.rk-prob[data-edge="bad"] {
+  border-left-color: var(--bad);
+}
+
+.rk-prob-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s-2);
+}
+
+.rk-prob-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.rk-prob-count {
+  font-size: var(--h1);
+  font-weight: var(--num-weight);
+  line-height: 1.1;
+}
+
+/* `pre.code`: mono on the sunk ground at the field radius. */
+.rk-prob-code {
+  font-family: var(--font-mono);
+  font-size: var(--t-explain);
+  line-height: 1.7;
+  color: var(--ink-2);
+  background: var(--sunk);
+  border-radius: var(--r-field);
+  padding: var(--s-3);
+  margin: 0;
+  overflow-x: auto;
+}
+
+/* `.q`: one row per question, a hairline between rows and none above the
+ * first. The set's drawn 12.5 / 13.5 / 26 take their rungs (10a): the
+ * number `--t-xs`, the wording `--t-sm`, the provenance indent `--s-5`. */
+.rk-q-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.rk-q {
+  padding: var(--s-3) 0;
+  border-top: 1px solid var(--line);
+}
+
+.rk-q:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.rk-q-h {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-3);
+}
+
+.rk-q-n {
+  flex: none;
+  font-size: var(--t-xs);
+  color: var(--ink-3);
+}
+
+.rk-q-t {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--t-sm);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.rk-q-p {
+  font-family: var(--font-mono);
+  font-size: var(--t-explain);
+  color: var(--ink-3);
+  margin: var(--s-1) 0 0 var(--s-5);
+}

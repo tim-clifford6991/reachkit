@@ -101,9 +101,16 @@ export function buildRequest(spec: DataForSeoRequestSpec): DataForSeoRequest {
   };
 }
 
+/** Why a request came back without a body to read (issue #504), closed:
+ *  the vendor answered a non-2xx status (`http_<n>`); `fetch` rejected
+ *  on a timeout signal (`timeout`) or on anything else — a refused
+ *  connection, a reset (`transport`); or a 2xx body that was not JSON
+ *  (`unparseable`). */
+export type TransportFailure = `http_${number}` | "timeout" | "transport" | "unparseable";
+
 export type DataForSeoOutcome<T> =
   | { ok: true; payload: T }
-  | { ok: false; reason: string };
+  | { ok: false; failure: TransportFailure; reason: string };
 
 /** Issues one `buildRequest`-built request through the platform's global
  *  `fetch` (the vendor host is one we authored, not a customer- or
@@ -137,17 +144,33 @@ export async function sendGet<T>(path: string): Promise<DataForSeoOutcome<T>> {
 }
 
 async function issue<T>(url: string, init: RequestInit): Promise<DataForSeoOutcome<T>> {
+  let response: Response;
   try {
-    const response = await fetch(url, init);
-    if (!response.ok) {
-      return { ok: false, reason: `dataforseo: ${response.status} ${response.statusText}` };
-    }
+    response = await fetch(url, init);
+  } catch (error) {
+    return {
+      ok: false,
+      failure: isTimeout(error) ? "timeout" : "transport",
+      reason: `dataforseo: request failed: ${error instanceof Error ? error.message : "unknown error"}`,
+    };
+  }
+  if (!response.ok) {
+    return { ok: false, failure: `http_${response.status}`, reason: `dataforseo: ${response.status} ${response.statusText}` };
+  }
+  try {
     const payload = (await response.json()) as T;
     return { ok: true, payload };
   } catch (error) {
     return {
       ok: false,
-      reason: `dataforseo: request failed: ${error instanceof Error ? error.message : "unknown error"}`,
+      failure: "unparseable",
+      reason: `dataforseo: unparseable body: ${error instanceof Error ? error.message : "unknown error"}`,
     };
   }
+}
+
+/** `AbortSignal.timeout()` rejects with a `TimeoutError`; an aborted
+ *  signal with an `AbortError`. Either is the clock, not the network. */
+function isTimeout(error: unknown): boolean {
+  return error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError");
 }

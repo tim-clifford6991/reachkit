@@ -1,4 +1,5 @@
-// BUILD §6.5 — what a refused fetch writes to the ledger (issue #479).
+// BUILD §6.5 — what a refused fetch, or a failed vendor call, writes to the
+// ledger (issues #479, #504).
 // src/lib/costs/refusal.ts
 //
 // Its own module, not `ledger.ts`: this is a pure shape and a classifier
@@ -61,5 +62,35 @@ export function isFetchRefusal(payload: unknown): payload is FetchRefusal {
     (p.status === null || typeof p.status === "number") &&
     p.bytes === 0 &&
     typeof p.host === "string"
+  );
+}
+
+/** **A failed vendor call is a row, never a null** (issue #504) — the same
+ *  defect as a refused fetch, on the vendor path: a DataForSEO 5xx, a
+ *  timeout or a result the parser did not recognise was handed to the
+ *  ledger as `null`, the insert threw, and the throw became the stage's
+ *  reason. The row says what failed and where: `vendorFailure` is the call
+ *  site's own closed kind (for DataForSEO, `src/lib/vendors/dataforseo/
+ *  envelope.ts`'s `VendorFailureKind`), `endpoint` is the ledger `source`,
+ *  and `billed` is the call site's statement of whether the vendor charges
+ *  for a call that failed this way. This seam learns no vendor's rule: it
+ *  settles an unbilled failure at 0 cents and a billed one like any other
+ *  call, and the cache never serves either (BUILD §6.4, "no negative
+ *  cache"). */
+export interface VendorFailure {
+  vendorFailure: string;
+  endpoint: string;
+  billed: boolean;
+}
+
+/** Structural check over an `unknown` payload read back from `fetches`. */
+export function isVendorFailure(payload: unknown): payload is VendorFailure {
+  if (payload === null || typeof payload !== "object") return false;
+  const p = payload as Record<string, unknown>;
+  return (
+    typeof p.vendorFailure === "string" &&
+    p.vendorFailure.length > 0 &&
+    typeof p.endpoint === "string" &&
+    typeof p.billed === "boolean"
   );
 }

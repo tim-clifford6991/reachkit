@@ -38,8 +38,15 @@ import { now } from "@/lib/config/now";
 import { readCache } from "./cache";
 import { openDayLedger } from "./daily";
 import { writeFetchRow } from "./ledger";
-import { isFetchRefusal } from "./refusal";
-export { isFetchRefusal, refusalOf, type FetchRefusal, type FetchRefusalReason } from "./refusal";
+import { isFetchRefusal, isVendorFailure } from "./refusal";
+export {
+  isFetchRefusal,
+  isVendorFailure,
+  refusalOf,
+  type FetchRefusal,
+  type FetchRefusalReason,
+  type VendorFailure,
+} from "./refusal";
 
 export type CapName = "FREE" | "DEEP" | "WEEKLY" | "DRAFT";
 
@@ -242,6 +249,10 @@ export async function withCostContext<T>(
       if (isFetchRefusal(payload)) {
         // A refused fetch bought nothing: its row is ledgered at 0 cents
         // (issue #479), whatever was reserved for it.
+        settledCents = 0;
+      } else if (isVendorFailure(payload) && !payload.billed) {
+        // A vendor call that failed in a way the vendor does not charge for
+        // (the call site says which — issue #504) is ledgered at 0 cents.
         settledCents = 0;
       } else if (call.settleCents) {
         const proposedCents = call.settleCents(payload);
