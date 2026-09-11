@@ -112,7 +112,7 @@ in words, never by colour alone.
 | Btn | `.pill` `.pill-solid` `.pill-quiet` `.pill-warn` `.pill-lg` `.pill-block` | pill radius; solid = the action; outline (accent) = secondary; quiet = tertiary; warn outline = veto/stop |
 | Badge | `.badge .b-ok/.b-warn/.b-bad/.b-neutral/.b-accent` | 11px 700, text required, tone by state |
 | Source chip | `.srcchip` | mono 11.5 on `--sunk`, names a source and date |
-| Stat | `.stat-l` + `.stat-v` + `.stat-row` | label 13/600, value 44 mono; every value carries its delta or its goal, never bare |
+| Stat | `.stat-l` + `.stat-v` + `.stat-row` | label 13/600, value 44 mono; every value carries its delta or its goal, never bare — **one exception, the `specimen` arm** (2026-09-11, #488 / PR 500): S1's browser frame is the Overview in miniature and draws two of its three tiles bare (AI answers 2/12, Published 17; L545–547), so the carrier is optional in that arm and nowhere else |
 | GrowthLine | `areaChart()` | area fill under an accent line, endpoint dot with surface ring, footnote pair start · goal |
 | RivalSparkline | `spark()` in `.rival` rows | name · falling gray line with accent endpoint · `78×` · `was 276×` badge |
 | WeekStrip | `.week .day` | seven cells, states done / today / unmeasured / to-come |
@@ -248,20 +248,21 @@ stroke-width="(w||1.8)" stroke-linecap="round" stroke-linejoin="round">`. Defaul
 | `search` | `Search` ✓ | card head "Google search" S2 L582, S3 degraded L609 | 15 · 1.8 |
 | `bot` | `Bot` ✓ | card head "AI answers" S1 L556, S2 L578, S3 L608 | 15 · 1.8 |
 | `lock` | `Lock` ✓ | S9 link-expired state, 44px warn chip (L668) · card head "Account" S18 L819 | 15 · 1.8 |
-| `card` | `CreditCard` — not yet used in `src` | card head "Billing" S18 L817 | 15 · 1.8 |
+| `card` | `CreditCard` ✓ | card head "Billing" S18 L817 | 15 · 1.8 |
 | `gear` | `Settings` — not yet used in `src` | sidebar Settings item (L518) | 15 (L105) · 1.8 |
 | `globe` | `Globe` ✓ | card head "Your site" / "Your site & market" S10 L681–683, S18 L807 · S19 the customer's own brand mark, tinted `--ink` (L826) | 15 · 1.8, and 2 in the S19 mark (L826) |
-| `shield` | `Shield` — not yet used in `src` | S18 "Danger zone" chip, `--bad-bg`/`--bad` (L821) | 15 · 1.8 |
-| `pen` | `PenLine` — not yet used in `src` | card head "How your pages sound" S18 L814 | 15 · 1.8 |
+| `shield` | `Shield` ✓ | S18 "Danger zone" chip, `--bad-bg`/`--bad` (L821) | 15 · 1.8 |
+| `pen` | `PenLine` ✓ | card head "How your pages sound" S18 L814 | 15 · 1.8 |
 | `ban` | `Ban` — not yet used in `src` | S6 veto card head "Stopped" (L641) | 15 · 1.8 |
 | `clock` | `Clock` ✓ | S6 veto card head "Publishes {date time}" (L639) | 15 · 1.8 |
 | `play` | `Play` ✓ | S1 demo-video control inside `.play` (L554) | 24 (L386) · **filled, not stroked** — the glyph declares `fill="currentColor" stroke="none"` (L486), so its stroke width is inert |
-| `copy` | `Copy` — not yet used in `src` | "Copy link" pill S2 L577, S3 L620 · card head "Copy it out" S16 L780 · the Markdown and HTML pills S16 L780 | 14 in pills (L162), 15 in chip (L138) · 1.8 |
+| `copy` | `Copy` ✓ | "Copy link" pill S2 L577, S3 L620 · card head "Copy it out" S16 L780 · the Markdown and HTML pills S16 L780 | 14 in pills (L162), 15 in chip (L138) · 1.8 |
 | `ext` | `ExternalLink` — not yet used in `src` | S15 day panel, live state, "View live page" pill (L743) | 14 (L162) · 1.8 |
 
-✓ = already imported somewhere under `src/**`. The fifteen ticked names are exactly the
-lucide-react imports the product writes today; the seven unticked are the icons the set spends
-that no built screen has reached yet.
+✓ = already imported somewhere under `src/**`. The nineteen ticked names are exactly the
+lucide-react imports the product writes today (`CreditCard`, `Shield`, `PenLine` and `Copy`
+ticked 2026-09-11 by #486, PR 498); the three unticked are the icons the set spends that no
+built screen has reached yet.
 
 **The brand mark.** It is the `trend` glyph at stroke 2 inside a 26px `--r-field` square with
 an `--accent` ground and `--on-accent` ink, beside the word ReachKit at `--t-body`/800
