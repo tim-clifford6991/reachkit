@@ -420,8 +420,8 @@ function idiomClassesOutsideTheirHome(
 
 const SCAN = "src/app/(public)/scan/[domain]";
 
-describe("UI-SPEC §2 — Source chip, Problem card and Question list have one renderer each (#487)", () => {
-  it("each is a UI-SPEC §2 row", () => {
+describe("set §2 — Source chip, Problem card and Question list have one renderer each (#487)", () => {
+  it("each is a set §2 row", () => {
     const spec = read("docs/archive/2026-09-11/approved/full-set/UI-SPEC.md");
     for (const row of IDIOM_REGISTERED) {
       expect(spec, row.exported).toContain(row.specRow);
