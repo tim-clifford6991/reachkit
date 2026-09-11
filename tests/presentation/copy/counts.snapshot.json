@@ -51,24 +51,18 @@
   },
   "publish.ts": {
     "owed": [],
-    "awaiting": [
-      "record.verification.never.noLiveAddress"
-    ],
-    "ruled": 49
+    "awaiting": [],
+    "ruled": 50
   },
   "report.ts": {
     "owed": [],
-    "awaiting": [
-      "notice.site-unreadable"
-    ],
-    "ruled": 145
+    "awaiting": [],
+    "ruled": 146
   },
   "settings.ts": {
     "owed": [],
-    "awaiting": [
-      "settings.voice.remove-claim"
-    ],
-    "ruled": 100
+    "awaiting": [],
+    "ruled": 101
   },
   "setup.ts": {
     "owed": [],
