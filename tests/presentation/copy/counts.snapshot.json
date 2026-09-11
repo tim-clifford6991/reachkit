@@ -137,7 +137,9 @@
   },
   "report.ts": {
     "owed": [],
-    "awaiting": [],
+    "awaiting": [
+      "notice.site-unreadable"
+    ],
     "ruled": 145
   },
   "settings.ts": {

@@ -54,12 +54,17 @@
 // that lives in exactly one file, which this stays as long as no second
 // caller repeats the literal rather than importing it.
 import { TIMING } from "@/lib/config/constants";
-import { withCostContext, type CapName, type CostContext } from "@/lib/costs";
+import { withCostContext, type CapName, type CostContext, type FetchRefusalReason } from "@/lib/costs";
 
 /** REQ-003's "bounded moment", made total. A free scan reaches exactly one. */
 export type Ending =
   | { kind: "report"; complete: true; stoppedReason: "complete" }
   | { kind: "report"; complete: false; stoppedReason: "time_ceiling" | "spend_ceiling" }
+  /** The body read nothing of the customer's own site and stopped there
+   *  (issue #479): `refusal` is the fetcher's reason, or `null` where the
+   *  read raised rather than being refused (its reason is then the
+   *  `stage_undeterminable` line). Never called `complete`. */
+  | { kind: "report"; complete: false; stoppedReason: "site_unreadable"; refusal: FetchRefusalReason | null }
   | { kind: "no_report"; stoppedReason: "failed" };
 
 /** The deadline every stage and every multi-call step re-checks, exactly as
@@ -69,6 +74,12 @@ export interface Bounds {
   remainingMs(): number;
   capHit(): boolean; // delegates to the CostContext, CAP_FREE
   stopNow(): "time_ceiling" | "spend_ceiling" | null;
+  /** Called by the body when its first stage could not read the site's own
+   *  home document, before it stops (issue #479). Not a ceiling: the pass
+   *  ends `site_unreadable` where no ceiling fired first. */
+  siteUnreadable(refusal: FetchRefusalReason | null): void;
+  /** What `siteUnreadable` recorded, or `undefined` where it was never called. */
+  unreadable(): { refusal: FetchRefusalReason | null } | undefined;
 }
 
 // Rule 1.1 parameter: the generation `withCostContext`'s own cache reads
@@ -101,6 +112,7 @@ interface CapReader {
  *  declares. */
 function makeBounds(a: { startedAt: Date; clock: () => Date; cost: CapReader }): Bounds {
   const deadlineMs = a.startedAt.getTime() + TIMING.reportCeilingS * 1000;
+  let unreadable: { refusal: FetchRefusalReason | null } | undefined;
   const bounds: Bounds = {
     expired(): boolean {
       return a.clock().getTime() >= deadlineMs;
@@ -115,6 +127,12 @@ function makeBounds(a: { startedAt: Date; clock: () => Date; cost: CapReader }):
       if (bounds.expired()) return "time_ceiling";
       if (bounds.capHit()) return "spend_ceiling";
       return null;
+    },
+    siteUnreadable(refusal: FetchRefusalReason | null): void {
+      unreadable = { refusal };
+    },
+    unreadable() {
+      return unreadable;
     },
   };
   return bounds;
@@ -134,6 +152,10 @@ function delay(ms: number): Promise<void> {
  *     race settles) → always `{ kind: 'report', complete: false,
  *     stoppedReason }`, whatever `body` itself did — ADR-021's "a ceiling
  *     always produces a report".
+ *   - no ceiling fired, `body` resolved and called `siteUnreadable` →
+ *     `{ kind: 'report', complete: false, stoppedReason: 'site_unreadable',
+ *     refusal }` (issue #479 — a pass that read nothing is never
+ *     `complete`).
  *   - no ceiling fired and `body` resolved → `{ kind: 'report', complete:
  *     true, stoppedReason: 'complete' }`.
  *   - no ceiling fired and `body` threw → `{ kind: 'no_report',
@@ -150,8 +172,18 @@ async function runBounded<T>(
     try {
       const result = await body(bounds, a.cost);
       const stopped = bounds.stopNow();
-      return stopped
-        ? { result, ending: { kind: "report" as const, complete: false as const, stoppedReason: stopped } }
+      if (stopped) return { result, ending: { kind: "report" as const, complete: false as const, stoppedReason: stopped } };
+      const unread = bounds.unreadable();
+      return unread
+        ? {
+            result,
+            ending: {
+              kind: "report" as const,
+              complete: false as const,
+              stoppedReason: "site_unreadable" as const,
+              refusal: unread.refusal,
+            },
+          }
         : { result, ending: { kind: "report" as const, complete: true as const, stoppedReason: "complete" as const } };
     } catch {
       const stopped = bounds.stopNow();
@@ -189,6 +221,7 @@ function logEnding(a: { scanId: string; ending: Ending; elapsedMs: number; cost:
       event: "scan_ending",
       scanId: a.scanId,
       stoppedReason: a.ending.stoppedReason,
+      ...(a.ending.stoppedReason === "site_unreadable" ? { refusal: a.ending.refusal } : {}),
       elapsedMs: a.elapsedMs,
       costCents: a.cost.spentCents(),
       degraded: a.cost.degraded(),

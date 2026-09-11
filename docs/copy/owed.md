@@ -2,7 +2,7 @@
 
 **Generated. Do not type into this file** — `npm run copy:owed` rewrites it and `tests/presentation/copy/owed-sheet.test.ts` fails when it is out of date. Write the sentences in your reply, or straight into `src/lib/presentation/copy/keys/*.ts`, and run the generator again: a key that gains a sentence leaves this sheet by itself.
 
-**141 keys**, across 796 in the registry — **22 empty** (`copy()` throws on these: a mail with one does not send, a screen with one does not render) and **119 `TODO(copy)`** (these render the marker, in public, until they are written).
+**142 keys**, across 797 in the registry — **22 empty** (`copy()` throws on these: a mail with one does not send, a screen with one does not render) and **120 `TODO(copy)`** (these render the marker, in public, until they are written).
 
 **How to read a row.**
 
@@ -20,7 +20,7 @@ A key with slots (`{value}`, `{date}`) carries them beside its name; the sentenc
 | screen | | owed | empty |
 |---|---|---:|---:|
 | S1 | Landing | none | 0 |
-| S2 | [Free report](#s2-free-report-public) | 1 | 0 |
+| S2 | [Free report](#s2-free-report-public) | 2 | 0 |
 | S3 | Report states | none | 0 |
 | S4 | Pricing | none | 0 |
 | S5 | Legal | none | 0 |
@@ -49,6 +49,7 @@ Every bracketed hint the set draws on this screen: `[robots lines — verbatim, 
 | key | standing | where | the set says | fixed by | max |
 |---|---|---|---|---|---|
 | `generated.page.proposed` `{pageTitle}`<br>`laws.ts` | marker | composed in the engine · `labelFor` · `lib/presentation/generated/text.ts`<br>also on S16, S20 |  | REQ-093 c2 | 32 — sibling `generated.page.written` |
+| `notice.site-unreadable`<br>`report.ts` | marker | component · `<Alert>` · `app/(public)/scan/[domain]/_address/report-view.tsx` |  | REQ-004 c6 |  |
 
 ## S10 · Setup — Join
 

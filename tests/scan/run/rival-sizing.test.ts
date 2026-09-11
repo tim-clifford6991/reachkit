@@ -116,6 +116,7 @@ const MEASUREMENT: DomainMeasurement = {
   pricing: null,
   robots: measured(ROBOTS, AT),
   ownRanked: measured(120, AT),
+  homeRefusal: null,
 };
 
 let stages: { lines: string[]; restore: () => void };
