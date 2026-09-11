@@ -4,7 +4,7 @@
 and the screens it describes are `docs/design/approved/full-set/reachkit-full-screen-set.html`.**
 Every UI issue and PR cites it.
 
-Its **parent** is the owner's artifact `docs/design/approved/reachkit-screen-system.html`
+Its **parent** is the owner's artifact `docs/archive/2026-09-08-parent-artifact/reachkit-screen-system.html`
 (eight screens, approved 2026-09-08): the full set is derived from that
 artifact's own code with the twelve rulings of 2026-09-08 applied. The idiom
 and the palette are the artifact's; the set adds the screens it did not draw,
@@ -16,8 +16,8 @@ the states, and the rulings' consequences.
 | what a screen looks like | `full-set/reachkit-full-screen-set.html` — open it; `current="<key>"; render()` |
 | a screen at a glance | `full-set/screens/<key>-{light,dark}.png` |
 | what a token is | `docs/design/approved/tokens.css` — the source of truth for `src/ui/theme.css` |
-| the eight-screen parent artifact | `docs/design/approved/reachkit-screen-system.html` |
-| whether a value has a name yet | `docs/design/approved/literals.md` |
+| the eight-screen parent artifact | `docs/archive/2026-09-08-parent-artifact/reachkit-screen-system.html` |
+| whether a value has a name yet | `docs/archive/2026-09-08-parent-artifact/literals.md` |
 | provenance, and what was changed to land any of it | `docs/design/approved/README.md` |
 
 ## The index — every route, its screen, and what holds it

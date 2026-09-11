@@ -60,8 +60,16 @@ Required checks on `main`: `typecheck · lint · unit`, `closes one issue · don
 
 ## 4. Rulings, copy, design
 
-- **Ship-then-steer.** Where BUILD is silent the master rules under the requirements and the approved set, records it in `docs/pending-decisions.md`, and the owner steers on dev; a batch lands in `DECISIONS.md` as a docs PR.
-- **Owner rulings** are asked once, as a decision sheet with lettered options and a recommendation (`1a 2b …`), answered in one line, recorded the same day.
+**There is one decision flow, and it has no queue file** (owner ruling 2026-09-11; `docs/pending-decisions.md` is deleted — a queue of decisions nobody took is how a decision goes stale in private):
+
+1. A question the documents do not answer becomes a **GitHub issue labelled `needs-owner-ruling`**, one question per issue, with the options lettered and the master's recommendation first. The issue is the queue; there is no second list.
+2. The master **asks it inline** in the master session, as a selector, recommendation first (2026-09-11). Not in a batch, not in a file, not next week.
+3. The answer is recorded the same day as a **`DECISIONS.md` row** — a product ruling — or as a `// DECISIONS <date>:` comment at its module if it is about how a module does its work. The issue is closed by that PR.
+
+Nothing is binding until it is one of those two. A ruling that exists only in a session is not a ruling.
+
+- **Ship-then-steer.** Where the spec is silent the master may rule under the requirements and the approved set and build on it, provided step 1 happens in the same hour: the issue exists, labelled, so the owner can overturn it. The owner steers on production.
+- **Owner rulings** are asked once, with lettered options and a recommendation (`1a 2b …`), answered in one line, recorded the same day.
 - **Design approval gate.** No new or changed surface is built before its artifact is approved (BUILD §0.1). The approved set is `docs/design/approved/full-set/`; a new surface is drawn in its idiom, published as an artifact, approved, then landed into the set and UI-SPEC.md before code.
 - **Copy** is the owner's. The registry (`src/lib/presentation/copy/`) holds every sentence; the per-surface copy issues (M13) list what is owed; mail with an empty key does not send.
 - **Owner-owed environment**: the twelve sensitive bindings are pasted by the owner into Vercel; agents never see or log them; `RK_FIXED_NOW` is never set in any Vercel environment.
@@ -79,7 +87,7 @@ Required checks on `main`: `typecheck · lint · unit`, `closes one issue · don
 
 ## 6. Corpus maintenance (master)
 
-A code PR never edits an owner file: it names the documented fact it changes under *Corpus* in its body (BUILD §, ARCHITECTURE row, UI-SPEC pointer, design-reference row), and the master lands the amendment in a docs PR the same day. Rulings wait in `docs/pending-decisions.md` and batch into `DECISIONS.md` within days. The drift audit is the check: an UNSPECCED route, a GAP section or an UNPINNED price-book name is a corpus defect and gets an issue. The authority table is `README.md`.
+A code PR never edits an owner file: it names the documented fact it changes under *Corpus* in its body (BUILD §, ARCHITECTURE row, UI-SPEC pointer, design-reference row), and the master lands the amendment in a docs PR the same day. A ruling reaches `DECISIONS.md` the day it is made (§4); nothing waits in a file. The drift audit is the check: an UNSPECCED route, a GAP section or an UNPINNED price-book name is a corpus defect and gets an issue. The authority table is `README.md`.
 
 **The root corpus is six files and one deferral list** (owner ruling 2026-09-11): `README.md` ·
 `BUILD.md` (the single WHAT, renamed `SPEC.md`) · `DECISIONS.md` · `ARCHITECTURE.md` ·

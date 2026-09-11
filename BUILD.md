@@ -33,7 +33,7 @@ veto window. Every Monday we re-measure and show what moved.
    re-design what it already settles. The approved prototype is
    `docs/design/approved/full-set/` (UI-SPEC.md, its written form, wins over §4
    where they differ); its parent is the owner's artifact
-   `docs/design/approved/reachkit-screen-system.html`. The corpus map is
+   `docs/archive/2026-09-08-parent-artifact/reachkit-screen-system.html`. The corpus map is
    `README.md`.
 2. **Simplicity is the product.** A person with zero SEO knowledge must
    understand every screen at first glance. If a module needs explaining, it is

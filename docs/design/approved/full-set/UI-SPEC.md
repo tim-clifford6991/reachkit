@@ -8,7 +8,7 @@ requirements (`archive/sdlc-factory-2026-09-04/corpus/docs/requirements/REQ-*.md
 (`decisions/ADR-*.md`) are the detail; the archive's *drawings* are superseded.
 
 Sources, in order of authority: (1) the owner's artifact "ReachKit Screen System"
-(`../reachkit-screen-system.html`, tokens in `../tokens.css`); (2) the owner's twelve rulings of
+(`docs/archive/2026-09-08-parent-artifact/reachkit-screen-system.html`, tokens in `../tokens.css`); (2) the owner's twelve rulings of
 2026-09-08 (§1 below); (3) the approved full set (this directory); (4) REQ/ADR criteria cited per screen.
 
 **This document is complete on its own.** A detail found only in the artifact HTML or its JavaScript is

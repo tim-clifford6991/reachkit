@@ -19,7 +19,7 @@
 - **A test proves behaviour a customer can observe.** No test transcribes a document; tests are at most a third of a chain PR's lines until the first paying user (`ARCHITECTURE.md` rule 5).
 
 ## Design
-The approved set is `docs/design/approved/full-set/` (rendered set + `UI-SPEC.md`), derived from the owner's artifact `reachkit-screen-system.html`. Match it screen by screen; a new or changed surface is drawn in its idiom, approved by the owner, landed into the set, and only then built. The chart inventory and the component set are closed. Never design from v2 or from the archive's drawings.
+The approved set is `docs/design/approved/full-set/` (rendered set + `UI-SPEC.md`), derived from the owner's artifact `docs/archive/2026-09-08-parent-artifact/reachkit-screen-system.html`. Match it screen by screen; a new or changed surface is drawn in its idiom, approved by the owner, landed into the set, and only then built. The chart inventory and the component set are closed. Never design from v2 or from the archive's drawings.
 
 ## Don't
 - Add settings that tune the engine (caps, cadences, model choice are constants).

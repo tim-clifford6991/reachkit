@@ -96,7 +96,7 @@
    *
    * A **minimum** is a different thing, and S14 spends one: `min-height:
    * 104px` on `.cd`, the one length in the approved calendar that
-   * `docs/design/approved/literals.md` records as unnamed. It is exactly
+   * `docs/archive/2026-09-08-parent-artifact/literals.md` records as unnamed. It is exactly
    * two of the ladder's top rung plus one of its second — 48 + 48 + 8 — so
    * it is spent as that sum rather than as the literal, and a week of
    * one-line cells is an even row instead of seven boxes each cut to its

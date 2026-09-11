@@ -63,12 +63,12 @@ Beside them, not above them — nothing under `docs/` is read by the running pro
 - `docs/design/approved/**` — the approved screen set: `full-set/UI-SPEC.md` (the UI
   specification of record, folded into the spec's §4 by the second docs PR) and its render
   `full-set/reachkit-full-screen-set.html`, the owner's parent artifact
-  `reachkit-screen-system.html`, `tokens.css` (the source `src/ui/theme.css` carries exactly),
-  `literals.md` (which values still have no token name) and the directory's own
+  `docs/archive/2026-09-08-parent-artifact/reachkit-screen-system.html`, `tokens.css` (the source `src/ui/theme.css` carries exactly),
+  `docs/archive/2026-09-08-parent-artifact/literals.md` (which values still have no token name) and the directory's own
   `design/approved/README.md`.
 - `docs/DEPLOYMENT.md` — environments, the one Vercel project, bindings and cutover.
 - `docs/RUNBOOK.md` — operating it alone: jobs, keys, the kill switch, the cost ledger, restore.
-- `docs/pending-decisions.md` — the master's ruling queue, emptied into `DECISIONS.md` each batch.
+- `docs/archive/` — dated, read-only, superseded: the 2026-09-08 parent artifact and its renders, the 2026-09-10 brief, the pre-split decision record. One line each in `docs/archive/README.md`. **There is no pending-decisions file**: an open question is a GitHub issue labelled `needs-owner-ruling`, asked inline and answered as a `DECISIONS.md` row the same day (`PROCESS.md` §4).
 - `docs/design-reference.md` — route → screen id → requirement → tests; read by
   `scripts/copy/owed.mjs`, which generates `docs/copy/owed.md`, the sheet of copy keys still owed.
 - `docs/briefs/autopilot-quality-2026-09-10.md` — the owner's brief of 2026-09-10, already folded

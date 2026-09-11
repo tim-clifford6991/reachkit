@@ -2,7 +2,7 @@
  *
  * **This file is the source of truth for `src/ui/theme.css`.** It is the
  * artifact's own three token blocks, verbatim, lifted from
- * `reachkit-screen-system.html` beside it: the light `:root`, the
+ * `docs/archive/2026-09-08-parent-artifact/reachkit-screen-system.html` beside it: the light `:root`, the
  * media-guarded dark state, and the explicit dark toggle. Nothing is
  * reformatted, renamed or reordered — a value here is what the owner
  * approved, and a difference between this file and `theme.css` is a defect
