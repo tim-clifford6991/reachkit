@@ -331,3 +331,31 @@ describe("issue #486 — Steps draws the set's check in a done cell (UI-SPEC §2
     expect(cells.map((li) => li.textContent)).toEqual(["Paid", "Setup", "First page"]);
   });
 });
+
+describe("issue #509 — a done step is --ok, the one under way is the accent (set L308–309)", () => {
+  const steps = [
+    { id: "a", label: "a", state: "done" as const },
+    { id: "b", label: "b", state: "active" as const },
+    { id: "c", label: "c", state: "pending" as const },
+  ];
+  const cells = (): Element[] => Array.from(renderRoot(<Steps steps={steps} />).querySelectorAll("li"));
+
+  it("done takes daisyUI's success slot (--ok), never the primary one", () => {
+    const [done] = cells();
+    expect(done!.classList.contains("step-success")).toBe(true);
+    expect(done!.classList.contains("step-primary")).toBe(false);
+  });
+
+  it("active keeps the primary slot (--accent); pending takes neither", () => {
+    const [, active, pending] = cells();
+    expect(active!.classList.contains("step-primary")).toBe(true);
+    expect(active!.classList.contains("step-success")).toBe(false);
+    expect(pending!.className).toBe("step");
+  });
+
+  it("the two slots are the two tokens the set names", () => {
+    const config = readFileSync(path.resolve(__dirname, "../../tailwind.config.ts"), "utf8");
+    expect(config).toContain('"--color-success": "var(--ok)"');
+    expect(config).toContain('"--color-primary": "var(--accent)"');
+  });
+});

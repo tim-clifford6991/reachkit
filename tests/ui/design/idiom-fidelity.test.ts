@@ -7,7 +7,12 @@
 // idiom's proposed 18px. These are the pins for what that settled.
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { TrendingUp } from "lucide-react";
 import { describe, expect, it } from "vitest";
+import { BrandMark, TREND_PATHS } from "@/app/(public)/_seo/og-card";
+import { token } from "@/lib/mail/shell/tokens";
 
 const SRC = path.resolve(import.meta.dirname, "../../../src");
 const read = (rel: string): string => readFileSync(path.join(SRC, rel), "utf8");
@@ -149,5 +154,61 @@ describe("issue #486 — every chip the approved set draws carries its glyph", (
   it("a card head with no glyph draws no chip — the set never draws an empty one", () => {
     const head = read("ui/idiom/CardHead.tsx");
     expect(head).toMatch(/p\.icon == null \? null : \(\s*<span className="rk-head-chip"/);
+  });
+});
+
+describe("issue #509 — the generated mark, the S12 figure and the tag hover, as the set draws them", () => {
+  const idiom = withoutComments(read("ui/idiom/idiom.css"));
+  const ruleBody = (selector: string): string => {
+    const at = idiom.indexOf(`${selector} {`);
+    expect(at, `${selector} is declared`).toBeGreaterThanOrEqual(0);
+    const block = idiom.slice(at);
+    return block.slice(0, block.indexOf("}"));
+  };
+
+  it("the tab icon and the share cards draw BrandMark, and no pill is left in either", () => {
+    const icon = read("app/(public)/icon.tsx");
+    const card = read("app/(public)/_seo/og-card.tsx");
+    expect(icon).toMatch(/<BrandMark size=\{size\.width\} \/>/);
+    expect(card).toMatch(/<BrandMark size=\{\d+\} \/>/);
+    for (const [rel, source] of [["icon.tsx", icon], ["og-card.tsx", card]] as const) {
+      expect(source, rel).not.toContain('token("--r-pill")');
+    }
+  });
+
+  it("BrandMark is the set's square: --r-field corners, --accent ground, --on-accent glyph", () => {
+    const html = renderToStaticMarkup(createElement(BrandMark, { size: 32 }));
+    expect(html).toContain(`border-radius:${token("--r-field")}`);
+    expect(html).toContain(`background:${token("--accent")}`);
+    expect(html).toContain(`stroke="${token("--on-accent")}"`);
+    expect(html).toContain('stroke-width="2"');
+  });
+
+  it("the glyph keeps the set's 15-in-26 proportion", () => {
+    const html = renderToStaticMarkup(createElement(BrandMark, { size: 52 }));
+    expect(html).toMatch(/<svg[^>]* width="30" height="30"/);
+  });
+
+  it("its strokes are lucide's TrendingUp, the glyph every screen's mark renders", () => {
+    const lucide = renderToStaticMarkup(createElement(TrendingUp));
+    const drawn = [...lucide.matchAll(/ d="([^"]+)"/g)].map((m) => m[1]);
+    expect(drawn).toEqual([...TREND_PATHS]);
+  });
+
+  it("S12's figure computes --t-num-big at --num-weight (set `.stat-v` L192)", () => {
+    const body = ruleBody(".stat-value.num");
+    expect(body).toContain("font-size: var(--t-num-big)");
+    expect(body).toContain("font-weight: var(--num-weight)");
+  });
+
+  it("Stat's value is the element that rule reaches", () => {
+    expect(read("ui/components/Stat.tsx")).toContain('className="stat-value num"');
+  });
+
+  it("ruling 8: hover raises the tag's × to full opacity and leaves the ground alone", () => {
+    expect(ruleBody(".rk-tag-x")).toContain("opacity: 0.6");
+    const hover = ruleBody(".rk-tag:hover .rk-tag-x");
+    expect(hover).toContain("opacity: 1");
+    expect(idiom).not.toMatch(/\.rk-tag:hover\s*\{/);
   });
 });
