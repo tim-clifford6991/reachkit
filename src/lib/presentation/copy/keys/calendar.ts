@@ -20,6 +20,8 @@
 //
 //   `calendar.head`                — §4.6 `Head: "One page a day. Every day."`,
 //                                    the sentence the section prints in quotes.
+//                                    Superseded: the owner replaced it on
+//                                    2026-09-11 (#516) — see the note below.
 //   `calendar.stage.*`             — §4.6's filter cards, named there:
 //                                    "All/Live/Your review/Scheduled/Planned/
 //                                    Needs you" (and REQ-043 c2's same five).
@@ -69,6 +71,15 @@
 // https://claude.ai/code/artifact/546f45a0-a996-4d25-b85e-fb03fda7b102)
 // and the strings land here byte for byte. The values that approval names
 // are the owner's; nothing here is composed.
+//
+// 2026-09-11, issue #516: `calendar.head` is rewritten. It was the last
+// sentence in the product that promised a page every day, and the owner's
+// Autopilot brief (DECISIONS 2026-09-10) rules that promise out: a day is
+// filled only by an opportunity that passes readiness, so the grid is not
+// guaranteed full and an empty day is competence, not an outage. The owner
+// approved the replacement string (DECISIONS 2026-09-11), and it lands here
+// byte for byte. BUILD §4.6's and UI-SPEC S14's printed headline are the
+// master's to amend — named under Corpus in this issue's PR body.
 import type { CopyPartition } from "../registry.ts";
 
 export const CALENDAR_COPY = Object.freeze({
@@ -94,7 +105,11 @@ export const CALENDAR_COPY = Object.freeze({
     "nothing worth publishing",
     { law: "no-presence-yet", slots: {}, fixedBy: "REQ-043 c3" },
   ],
-  "calendar.head": ["One page a day. Every day.", { slots: {}, fixedBy: "BUILD §4.6" }],
+  // 2026-09-11 (#516): the owner replaces §4.6's headline. "One page a day.
+  // Every day." promised a filled grid, which the Autopilot brief rules out
+  // (DECISIONS 2026-09-10 §1.9 / §8) — a day is filled only by an
+  // opportunity that passes readiness, so the head states the rule instead.
+  "calendar.head": ["Pages go live when one is ready — at most one a day.", { slots: {}, fixedBy: "BUILD §4.6" }],
 
   // §4.6's stage filter cards. `all` is a filter, not a stage.
   "calendar.stage.all": ["All", { slots: {}, fixedBy: "BUILD §4.6" }],
