@@ -1,0 +1,85 @@
+<!doctype html><html><head><meta charset="utf-8"><script src="./support.js"></script></head><body><x-dc><helmet><style>
+* { box-sizing: border-box; }
+body { margin: 0; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #191925; }
+a { color: #5b4be0; text-decoration: none; }
+a:hover { color: #4a3bc7; text-decoration: underline; }
+</style><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap"></helmet>
+
+<div style="width: 1280px; background: #f6f6f9; display: flex; flex-direction: column; gap: 0; font-size: 15px; line-height: 1.55; color: #191925;">
+
+  <!-- Auth Login Page · the full-bleed split: form column left, violet score field right (no nav, by design) -->
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; align-items: stretch; background: #ffffff;">
+
+    <div style="padding: 80px 24px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+      <div style="width: 384px; display: flex; flex-direction: column; gap: 28px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <svg width="26" height="26" viewBox="0 0 28 28" fill="none" style="display: block; flex: none;"><rect width="28" height="28" rx="9" fill="#5b4be0"></rect><circle cx="14" cy="14" r="1.7" fill="#ffffff"></circle><path d="M14 19 A5 5 0 1 1 19 14" stroke="#ffffff" stroke-width="1.7" fill="none" stroke-linecap="round"></path><path d="M14 23 A9 9 0 1 1 23 14" stroke="#c3b2ff" stroke-width="1.7" fill="none" stroke-linecap="round"></path></svg>
+          <div style="font-size: 17px; font-weight: 700; letter-spacing: -0.01em;">ReachKit</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+        <h1 style="margin: 0; font-size: 30px; line-height: 1.2; font-weight: 700; letter-spacing: -0.02em; color: #191925;">Welcome back</h1>
+        <div style="font-size: 15.5px; line-height: 1.6; color: #5e5e73;">Enter the email you paid with and we'll send you a sign-in link. No password — accounts are created by payment, never by a signup form.</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="height: 46px; border: 1px solid #eaeaf1; border-radius: 12px; background: #ffffff; padding: 0 16px; display: flex; align-items: center;"><span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #9695a8;">you@company.com</span></div>
+          <div style="border-radius: 12px; background: #5b4be0; color: #ffffff; padding: 12px 20px; text-align: center; font-size: 15px; font-weight: 600;">Send my link</div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px; font-size: 14px; color: #5e5e73;">
+          <span>New to ReachKit?</span><a href="#" style="font-weight: 600;">Start a free scan →</a>
+        </div>
+      </div>
+    </div>
+
+    <div style="position: relative; overflow: hidden; background: linear-gradient(150deg, #7056e4 0%, #4e3fba 100%); padding: 80px 40px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0;">
+      <div style="position: absolute; top: 0; right: 0; bottom: 0; left: 0; background: radial-gradient(40% 40% at 78% 18%, rgb(255 255 255 / 0.18) 0%, rgb(255 255 255 / 0) 70%), radial-gradient(50% 45% at 15% 88%, rgb(0 0 0 / 0.18) 0%, rgb(0 0 0 / 0) 70%);"></div>
+      <div style="position: relative; width: 384px; display: flex; flex-direction: column; gap: 32px;">
+        <div style="font-size: 30px; line-height: 1.2; font-weight: 700; letter-spacing: -0.02em; color: #ffffff;">One number tells you how findable you are.</div>
+        <div style="border-radius: 18px; background: rgb(255 255 255 / 0.12); border: 1px solid rgb(255 255 255 / 0.22); box-shadow: 0 24px 60px -22px rgb(24 24 48 / 0.6); padding: 24px; display: flex; flex-direction: column; gap: 12px;">
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.08em; color: #b7b4c4;">example.com</div>
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+            <span style="font-size: 14px; font-weight: 500; color: rgb(255 255 255 / 0.85);">Discoverability Score</span>
+            <span style="border-radius: 999px; background: rgb(31 138 107 / 0.3); color: #ffffff; padding: 2px 8px; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; white-space: nowrap;">+6 pts est.</span>
+          </div>
+          </div>
+          <div style="display: flex; align-items: baseline; gap: 2px;">
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 48px; font-weight: 400; line-height: 1; color: #ffffff;">47</span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 20px; color: rgb(255 255 255 / 0.55);">/100</span>
+          </div>
+          <div style="width: 100%; height: 8px; border-radius: 999px; background: rgb(255 255 255 / 0.18); overflow: hidden; display: flex;">
+            <div style="width: 47%; height: 8px; border-radius: 999px; background: rgb(255 255 255 / 0.9);"></div>
+          </div>
+          <div style="font-size: 12px; color: rgb(255 255 255 / 0.7);">Hard to find — and we'll show you the fixes that move it.</div>
+        </div>
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: #b7b4c4;">Example figures on example.com — not a measurement.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="padding: 32px; background: #ffffff; border-top: 1px solid #eaeaf1;">
+    <div style="width: 1216px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px;">
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <svg width="26" height="26" viewBox="0 0 28 28" fill="none" style="display: block; flex: none;"><rect width="28" height="28" rx="9" fill="#5b4be0"></rect><circle cx="14" cy="14" r="1.7" fill="#ffffff"></circle><path d="M14 19 A5 5 0 1 1 19 14" stroke="#ffffff" stroke-width="1.7" fill="none" stroke-linecap="round"></path><path d="M14 23 A9 9 0 1 1 23 14" stroke="#c3b2ff" stroke-width="1.7" fill="none" stroke-linecap="round"></path></svg>
+          <div style="font-size: 17px; font-weight: 700; letter-spacing: -0.01em;">ReachKit</div>
+        </div>
+        <div style="font-size: 13px; color: #9695a8;">© 2026 ReachKit. All rights reserved.</div>
+        <div style="font-size: 13px; color: #5e5e73; max-width: 320px;">Own this site and want its report taken down? Write to <a href="#">remove@reachkit.app</a>.</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #9695a8;">Product</div>
+        <a href="#" style="font-size: 13px;">Pricing</a>
+        <a href="#" style="font-size: 13px;">Sign in</a>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #9695a8;">Legal</div>
+        <a href="#" style="font-size: 13px;">Privacy</a>
+        <a href="#" style="font-size: 13px;">Terms</a>
+        <a href="#" style="font-size: 13px;">Imprint</a>
+      </div>
+    </div>
+  </div>
+
+</div>
+</x-dc></body></html>

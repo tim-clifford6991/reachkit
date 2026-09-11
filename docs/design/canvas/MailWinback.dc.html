@@ -1,0 +1,88 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+* { box-sizing: border-box; }
+body { margin: 0; background: #f6f6f9; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #191925; }
+a { color: #5b4be0; text-decoration: none; }
+a:hover { color: #4a3bc7; text-decoration: underline; }
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+</helmet>
+
+<div style="box-sizing:border-box; width:600px; padding:24px 20px 32px; background:#f6f6f9; font-family:'Plus Jakarta Sans',-apple-system,'Segoe UI',sans-serif; color:#191925;">
+
+  <div style="box-sizing:border-box; width:560px; background:#ffffff; border:1px solid #eaeaf1; border-radius:14px; box-shadow:0 1px 3px rgb(24 24 48/.045); padding:32px; display:flex; flex-direction:column; gap:20px;">
+
+    <div style="display:flex; align-items:center; gap:10px;">
+      <svg width="24" height="24" viewBox="0 0 28 28" fill="none" style="display: block; flex: none;"><rect width="28" height="28" rx="9" fill="#5b4be0"></rect><circle cx="14" cy="14" r="1.7" fill="#ffffff"></circle><path d="M14 19 A5 5 0 1 1 19 14" stroke="#ffffff" stroke-width="1.7" fill="none" stroke-linecap="round"></path><path d="M14 23 A9 9 0 1 1 23 14" stroke="#c3b2ff" stroke-width="1.7" fill="none" stroke-linecap="round"></path></svg>
+      <span style="font-size:17px; font-weight:700; letter-spacing:-0.01em; color:#191925;">ReachKit</span>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:10px;">
+      <div style="font-size:11px; text-transform:uppercase; font-weight:700; letter-spacing:.1em; color:#9695a8;">RETENTION &middot; VETO REMINDER</div>
+      <div style="font-size:25px; line-height:1.2; font-weight:700; color:#191925;">Holiday pay rules for part-time staff</div>
+      <div style="font-size:15px; line-height:1.6; color:#191925;">Publishes in 6 h unless you say no.</div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:10px;">
+      <div style="font-size:13px; line-height:1.5; color:#5e5e73;">Written for the search &ldquo;holiday pay for part-time staff&rdquo;.</div>
+      <div style="box-sizing:border-box; background:#efeff4; border-radius:9px; padding:16px; display:flex; flex-direction:column; gap:8px;">
+        <div style="display:flex; align-items:baseline; justify-content:space-between; gap:12px;">
+          <span style="font-size:13px; color:#5e5e73;">asked</span>
+          <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:13px; font-weight:600; color:#191925;">1,900</span>
+        </div>
+        <div style="display:flex; align-items:baseline; justify-content:space-between; gap:12px;">
+          <span style="font-size:13px; color:#5e5e73;">answered today by</span>
+          <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:13px; font-weight:600; color:#191925;">rival-one.example.net</span>
+        </div>
+        <div style="display:flex; align-items:baseline; justify-content:space-between; gap:12px;">
+          <span style="font-size:13px; color:#5e5e73;">site</span>
+          <span style="font-family:'JetBrains Mono',ui-monospace,monospace; font-size:13px; font-weight:600; color:#191925;">example.com</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:8px;">
+      <div style="font-size:13px; line-height:1.5; color:#5e5e73;">It goes live on example.com at that moment, readable by anyone. It does not wait there as a draft.</div>
+      <div style="font-size:13px; line-height:1.5; color:#5e5e73;">Or do nothing and it publishes as planned. You can read and edit it in the app.</div>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:12px;">
+      <a href="https://reachkit.app/stop/sample-token" style="display:inline-flex; align-items:center; height:40px; padding:0 18px; border-radius:999px; background:#5b4be0; color:#ffffff; font-size:14px; font-weight:600; text-decoration:none;">Stop this page</a>
+      <a href="https://reachkit.app/app/calendar" style="display:inline-flex; align-items:center; height:40px; padding:0 18px; border-radius:999px; background:transparent; color:#5e5e73; font-size:14px; font-weight:600; text-decoration:none;">Open the calendar</a>
+    </div>
+
+    <div style="font-size:12px; line-height:1.5; color:#9695a8;">Daily draft-ready mail &middot; switch off in Settings &rsaquo; Notifications. &mdash; <a href="https://reachkit.app/app/settings/notifications" style="font-size:12px;">Switch off this mail</a></div>
+
+    <div style="height:1px; background:#eaeaf1;"></div>
+
+    <div style="display:flex; flex-direction:column; gap:10px;">
+      <div style="font-size:11px; text-transform:uppercase; font-weight:700; letter-spacing:.1em; color:#9695a8;">RETENTION &middot; FAILED PAYMENT</div>
+      <div style="font-size:20px; line-height:1.25; font-weight:700; color:#191925;">[COPY: failed-payment heading &mdash; the card on this subscription was declined]</div>
+      <div style="font-size:15px; line-height:1.6; color:#5e5e73;">[COPY: first line &mdash; when the next attempt is made, and what happens to publishing until it succeeds]</div>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:12px;">
+      <a href="https://reachkit.app/app/settings/billing" style="display:inline-flex; align-items:center; height:40px; padding:0 18px; border-radius:999px; background:#5b4be0; color:#ffffff; font-size:14px; font-weight:600; text-decoration:none;">[COPY: button label &mdash; update your card]</a>
+    </div>
+
+    <div style="font-size:13px; line-height:1.5; color:#5e5e73;">To reach a person, reply to this mail.</div>
+
+    <div style="font-size:12px; line-height:1.5; color:#9695a8;">[COPY: why you got this &mdash; a payment on your subscription failed, and this mail cannot be switched off]</div>
+
+    <div style="height:1px; background:#eaeaf1;"></div>
+
+    <div style="font-size:12px; line-height:1.5; color:#9695a8;">ReachKit &middot; [[imprint: owner fills legal entity, city]] &middot; plain-text version attached</div>
+
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

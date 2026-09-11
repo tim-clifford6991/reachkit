@@ -1,0 +1,178 @@
+{
+ "artboards": [
+  {
+   "file": "Main.dc.html",
+   "x": 0,
+   "y": 0,
+   "w": 1280,
+   "h": 2950,
+   "title": "Landing"
+  },
+  {
+   "file": "LandingMobile.dc.html",
+   "x": 1400,
+   "y": 0,
+   "w": 390,
+   "h": 4000
+  },
+  {
+   "file": "Pricing.dc.html",
+   "x": 1910,
+   "y": 0,
+   "w": 1280,
+   "h": 950
+  },
+  {
+   "file": "ScanProgress.dc.html",
+   "x": 3310,
+   "y": 0,
+   "w": 1280,
+   "h": 750
+  },
+  {
+   "file": "Report.dc.html",
+   "x": 4710,
+   "y": 0,
+   "w": 1280,
+   "h": 3150
+  },
+  {
+   "file": "ReportDegraded.dc.html",
+   "x": 6110,
+   "y": 0,
+   "w": 1280,
+   "h": 900
+  },
+  {
+   "file": "SignIn.dc.html",
+   "x": 7510,
+   "y": 0,
+   "w": 1280,
+   "h": 800
+  },
+  {
+   "file": "Pay.dc.html",
+   "x": 8910,
+   "y": 0,
+   "w": 1280,
+   "h": 950
+  },
+  {
+   "file": "OnboardingCompetitors.dc.html",
+   "x": 0,
+   "y": 4300,
+   "w": 1280,
+   "h": 850
+  },
+  {
+   "file": "OnboardingMarket.dc.html",
+   "x": 1400,
+   "y": 4300,
+   "w": 1280,
+   "h": 900
+  },
+  {
+   "file": "OnboardingPublishing.dc.html",
+   "x": 2800,
+   "y": 4300,
+   "w": 1280,
+   "h": 950
+  },
+  {
+   "file": "Dashboard.dc.html",
+   "x": 4200,
+   "y": 4300,
+   "w": 1280,
+   "h": 1350
+  },
+  {
+   "file": "WeeklyScan.dc.html",
+   "x": 5600,
+   "y": 4300,
+   "w": 1280,
+   "h": 1450
+  },
+  {
+   "file": "Calendar.dc.html",
+   "x": 7000,
+   "y": 4300,
+   "w": 1280,
+   "h": 1150
+  },
+  {
+   "file": "DailyAction.dc.html",
+   "x": 8400,
+   "y": 4300,
+   "w": 1280,
+   "h": 1550
+  },
+  {
+   "file": "Settings.dc.html",
+   "x": 9800,
+   "y": 4300,
+   "w": 1280,
+   "h": 1250
+  },
+  {
+   "file": "MailWelcome.dc.html",
+   "x": 0,
+   "y": 6150,
+   "w": 600,
+   "h": 760
+  },
+  {
+   "file": "MailReport.dc.html",
+   "x": 720,
+   "y": 6150,
+   "w": 600,
+   "h": 800
+  },
+  {
+   "file": "MailDigest.dc.html",
+   "x": 1440,
+   "y": 6150,
+   "w": 600,
+   "h": 950
+  },
+  {
+   "file": "MailWinback.dc.html",
+   "x": 2160,
+   "y": 6150,
+   "w": 600,
+   "h": 1050
+  },
+  {
+   "file": "MailSequences.dc.html",
+   "x": 2880,
+   "y": 6150,
+   "w": 1280,
+   "h": 950
+  }
+ ],
+ "annotations": [
+  {
+   "id": "row-1",
+   "x": 0,
+   "y": -150,
+   "w": 520,
+   "text": "PUBLIC \u2014 landing (desktop, mobile), pricing, scan, report, degraded report, sign-in, pay"
+  },
+  {
+   "id": "row-2",
+   "x": 0,
+   "y": 4150,
+   "w": 520,
+   "text": "APP \u2014 onboarding (3 steps), dashboard, weekly scan, calendar, daily action, settings"
+  },
+  {
+   "id": "row-3",
+   "x": 0,
+   "y": 6000,
+   "w": 520,
+   "text": "EMAIL \u2014 welcome, report, weekly digest, retention, and the sequences sheet"
+  }
+ ],
+ "launch": {
+  "view": "canvas"
+ }
+}
