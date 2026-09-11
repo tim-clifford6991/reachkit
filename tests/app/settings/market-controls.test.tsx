@@ -350,6 +350,20 @@ describe("REQ-071 c2 and c4 — the competitors control", () => {
     expect(pressed).toEqual([{ action: "remove", value: "asana.com" }]);
   });
 
+  // Issue #488: S18 draws a rival as the set's `.tag.on`, the tag `/setup`
+  // already renders — so the chip is `RemovableTag`, the form's submit,
+  // named by setup's removal key with the domain in it, and the second
+  // chip shape (`.rk-chip` + a `Btn`) is gone.
+  it("each rival is the registered RemovableTag, submitting its own form", async () => {
+    const root = await competitors(TWO);
+    const chip = within(root, "competitor-asana.com");
+    const tag = chip.querySelector("form > button.rk-tag");
+    expect(tag?.getAttribute("type")).toBe("submit");
+    expect(tag?.getAttribute("aria-label")).toBe("setup.competitors.remove(asana.com)");
+    expect(tag?.querySelector(".num")?.textContent).toBe("asana.com");
+    expect(root.querySelector(".rk-chip")).toBeNull();
+  });
+
   it("§6.1 — a full set offers no way to add a sixth", async () => {
     const five = Array.from({ length: BATTERY.COMPETITORS_MAX }, (_, i) => `rival-${i}.com`);
     const root = await competitors(five);

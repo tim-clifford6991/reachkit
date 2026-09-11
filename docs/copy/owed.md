@@ -2,7 +2,7 @@
 
 **Generated. Do not type into this file** — `npm run copy:owed` rewrites it and `tests/presentation/copy/owed-sheet.test.ts` fails when it is out of date. Write the sentences in your reply, or straight into `src/lib/presentation/copy/keys/*.ts`, and run the generator again: a key that gains a sentence leaves this sheet by itself.
 
-**294 keys**, across 796 in the registry — **27 empty** (`copy()` throws on these: a mail with one does not send, a screen with one does not render) and **267 `TODO(copy)`** (these render the marker, in public, until they are written).
+**295 keys**, across 797 in the registry — **27 empty** (`copy()` throws on these: a mail with one does not send, a screen with one does not render) and **268 `TODO(copy)`** (these render the marker, in public, until they are written).
 
 **How to read a row.**
 
@@ -36,7 +36,7 @@ A key with slots (`{value}`, `{date}`) carries them beside its name; the sentenc
 | S15 | Day panel states | none | 0 |
 | S16 | [Draft](#s16-draft-app) | 14 | 4 |
 | S17 | Draft · edit | none | 0 |
-| S18 | [Settings](#s18-settings-app) | 58 | 8 |
+| S18 | [Settings](#s18-settings-app) | 59 | 8 |
 | S19 | Hosted page | none | 0 |
 | S20 | Mails | none | 0 |
 
@@ -254,7 +254,7 @@ Every bracketed hint the set draws on this screen: `[competitor-picker line — 
 | `setup.competitors.refused.not-a-domain`<br>`setup.ts` | marker | `RIVAL_REFUSAL_COPY` · `app/(account)/setup/SetupForm.tsx` |  | REQ-026 c8 |  |
 | `setup.competitors.refused.own-domain`<br>`setup.ts` | marker | `RIVAL_REFUSAL_COPY` · `app/(account)/setup/SetupForm.tsx` |  | REQ-026 c8 |  |
 | `setup.competitors.refused.set-full`<br>`setup.ts` | marker | `RIVAL_REFUSAL_COPY` · `app/(account)/setup/SetupForm.tsx` · +1 more |  | REQ-026 c9 |  |
-| `setup.competitors.remove` `{rival}`<br>`setup.ts` | marker | control · `<div class="flex flex-wrap items-center gap-2">` · `app/(account)/setup/SetupForm.tsx` |  | REQ-026 c7 | 123 — sibling `setup.competitors.none-found` |
+| `setup.competitors.remove` `{rival}`<br>`setup.ts` | marker | `<form class="min-w-0 max-w-full">` · `app/(account)/app/settings/panels/CompetitorsPanel.tsx` · +1 more<br>also on S18 |  | REQ-026 c7 | 123 — sibling `setup.competitors.none-found` |
 | `setup.competitors.seeking`<br>`setup.ts` | marker | control · `<p>` · `app/(account)/setup/SetupForm.tsx` |  | REQ-026 c10 | 123 — sibling `setup.competitors.none-found` |
 | `setup.destination.dnsPending`<br>`setup.ts` | marker | composed in the engine · `lib/publish/setup/cards.ts` · +1 more |  | REQ-028 c2 | 42 — sibling `setup.destination.wordpress` |
 | `setup.destination.dnsRecord`<br>`setup.ts` | marker | control · `<p>` · `app/(account)/setup/SetupForm.tsx` |  | REQ-028 c2 | 42 — sibling `setup.destination.wordpress` |
@@ -459,4 +459,5 @@ Every bracketed hint the set draws on this screen: `[voice description — the c
 | `settings.publishing.set-dns`<br>`settings.ts` | marker | `ACTION_COPY_KEY` · `app/(account)/app/settings/panels/PublishingPanel.tsx` |  | BUILD §9 · REQ-059 c2 | 54 — sibling `settings.publishing.fix-note` |
 | `settings.save`<br>`settings.ts` | marker | `<div class="flex min-w-0 flex-wrap items-center gap-2">` · `app/(account)/app/settings/panels/MarketPanel.tsx` |  | REQ-071 c1 |  |
 | `settings.voice.placeholder`<br>`settings.ts` | marker | `VoicePanel` · `app/(account)/app/settings/panels/VoicePanel.tsx` |  | REQ-055 | 97 — sibling `settings.voice.filter-note` |
+| `settings.voice.remove-claim` `{claim}`<br>`settings.ts` | marker | `<span class="min-w-0 max-w-full">` · `app/(account)/app/settings/panels/VoicePanel.tsx` |  | REQ-053 | 97 — sibling `settings.voice.filter-note` |
 

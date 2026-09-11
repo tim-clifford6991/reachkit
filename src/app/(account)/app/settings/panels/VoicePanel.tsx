@@ -35,7 +35,7 @@ import { PenLine } from "lucide-react";
 import { Btn } from "@/ui/components/Btn";
 import { Card } from "@/ui/components/Card";
 import { Input } from "@/ui/components/Input";
-import { CardHead } from "@/ui/idiom";
+import { CardHead, RemovableTag } from "@/ui/idiom";
 import { copy } from "@/lib/presentation/copy";
 import { writtenLine } from "../../_shell/written";
 import type { SettingsModel } from "../model";
@@ -62,23 +62,21 @@ export function VoicePanel(p: { settings: SettingsModel }): React.JSX.Element {
           <p className="eyebrow opacity-60">{copy("settings.voice.never-claim")}</p>
           {/* Each entry with its own way out. A claim the customer can add
               and cannot remove would be a filter they no longer control.
-              
-              The claim is **text beside a control**, not a `Btn`'s label:
-              a claim is a sentence the customer wrote ("the fastest
-              onboarding on the market"), `Btn` takes a `label: string` and
-              daisyUI's `.btn` does not fold, so a chip carrying one ran
-              past its card — the sweep's check 3 caught it. This is the
-              same shape `CompetitorsPanel` gives a removable value, and it
-              wraps because prose must. */}
+
+              S18 draws the entries as tags, the same `.tag.on` the rivals
+              above take, so they are `RemovableTag` (issue #488) — with its
+              `phrase` arm, because a claim is a sentence the customer wrote
+              ("the fastest onboarding on the market") and must fold inside
+              its card rather than run past it, which the sweep's check 3
+              caught when this was a `Btn` label. */}
           <div className="flex min-w-0 flex-wrap gap-2">
             {p.settings.doNotClaim.map((claim) => (
-              <span
-                className="inline-flex min-w-0 items-center gap-2 wrap-anywhere"
-                key={claim}
-                data-testid={`claim-${claim}`}
-              >
-                <span className="min-w-0 text-sm wrap-anywhere">{claim}</span>
-                <Btn label={copy("settings.competitors.remove")} size="sm" variant="ghost" />
+              <span className="min-w-0 max-w-full" key={claim} data-testid={`claim-${claim}`}>
+                <RemovableTag
+                  value={claim}
+                  phrase
+                  removeLabel={copy("settings.voice.remove-claim", { claim })}
+                />
               </span>
             ))}
           </div>

@@ -332,6 +332,7 @@
       "settings.account.email-pending",
       "settings.account.email-pending-expires",
       "settings.account.cancel-change",
+      "settings.voice.remove-claim",
       "settings.voice.placeholder",
       "export.failed"
     ],
