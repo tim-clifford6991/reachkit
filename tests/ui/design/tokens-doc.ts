@@ -1,4 +1,4 @@
-// The approved token set, read from `docs/design/approved/tokens.css`.
+// The approved token set, read from `docs/design/tokens.css`.
 // tests/ui/design/tokens-doc.ts
 //
 // One reader, three tests: `token-set.test.ts` holds `src/ui/theme.css`
@@ -19,7 +19,7 @@ import postcss, { type Declaration, type Rule } from "postcss";
 
 const REPO = path.resolve(import.meta.dirname, "../../..");
 
-export const APPROVED_TOKENS_CSS = path.join(REPO, "docs/design/approved/tokens.css");
+export const APPROVED_TOKENS_CSS = path.join(REPO, "docs/design/tokens.css");
 export const THEME_CSS = path.join(REPO, "src/ui/theme.css");
 
 /** The three states a token can be declared in. Two files carry the same

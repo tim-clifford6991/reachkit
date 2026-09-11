@@ -1,5 +1,13 @@
 #!/usr/bin/env node
-// Deterministic drift audit: BUILD.md ↔ src ↔ tests ↔ DECISIONS.md.
+// Deterministic drift audit: the spec ↔ src ↔ tests ↔ the rulings.
+//
+// 2026-09-11: the corpus is five files and the spec is `docs/SPEC.md`, whose
+// sections are `§0`–`§12`. Every `// BUILD §x.y` marker in src and tests
+// cites the *previous* numbering, and the owner ruled those markers are left
+// alone — they resolve through the root pointer into
+// `docs/archive/2026-09-11/`. So this audit keeps reading the two frozen
+// documents its own rules are written against; re-baselining it onto
+// `docs/SPEC.md`'s numbering is its own change, with its own issue.
 // Same input, same output. It reads files; it has no opinions.
 //
 // Exit 1 only on HARD findings (a malformed DECISIONS.md, or anything when run
@@ -35,7 +43,7 @@ const add = (area, status, subject, detail, isHard = false) => {
 };
 
 // ---------------------------------------------------------------- BUILD.md
-const build = read("BUILD.md");
+const build = read("docs/archive/2026-09-11/BUILD.md");
 const sections = [...build.matchAll(/^(#{2,3}) (\d+(?:\.\d+)?[a-z]?)\.? (.+)$/gm)].map((m) => ({
   level: m[1].length,
   id: m[2],
@@ -114,7 +122,7 @@ for (const [name, what] of JOURNEYS) {
 }
 
 // ------------------------------------------------------------- DECISIONS.md
-const dec = read("DECISIONS.md").split("\n");
+const dec = read("docs/archive/2026-09-11/DECISIONS.md").split("\n");
 let lastDate = "";
 let n = 0;
 for (const [i, line] of dec.entries()) {

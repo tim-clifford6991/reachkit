@@ -10,11 +10,11 @@
 // This file runs first (`vitest.config.ts`'s `PinsFirstSequencer`) and under
 // a second, so a drifted constant fails before anything expensive runs.
 //
-// Where the ruling clause lives in the frozen corpus (`archive/`, frozen
-// 2026-09-04 and never written to) it is quoted by id and text without a
-// drift check: a frozen document cannot drift. Where it lives in `BUILD.md`,
-// `DECISIONS.md` or `DATA-COSTS.md` — the three that can — the quote is
-// checked.
+// Every ruling clause is quoted by id and text. The owner ruled on
+// 2026-09-11 that no test transcribes a document, so the quotes are no longer
+// checked back against the document that rules them: the corpus moved to
+// `docs/SPEC.md` and the documents these clauses came from are frozen under
+// `docs/archive/2026-09-11/`.
 //
 // Companion file: `tests/config/constants.test.ts` is structural (frozen,
 // imports nothing, carries no band word). Values live here.
@@ -28,11 +28,6 @@ import { copy } from "../src/lib/presentation/copy/index.ts";
 const SUITE_START = Date.now();
 const ROOT = path.resolve(import.meta.dirname, "..");
 const norm = (s: string) => s.replace(/\s+/g, " ").trim();
-const doc = (name: string) => norm(readFileSync(path.join(ROOT, name), "utf8"));
-
-const BUILD = doc("BUILD.md");
-const DECISIONS = doc("DECISIONS.md");
-const DATA_COSTS = doc("DATA-COSTS.md");
 const PINS_SOURCE = readFileSync(path.join(ROOT, "tests/pins.test.ts"), "utf8");
 
 /**
@@ -864,7 +859,6 @@ describe("§9 publishing and autopilot — the veto window, the hard limits, the
   it(`§9, quoted: "${B.previewNoindex.replace(/\n/g, " ")}" — PREVIEW_HOST_SUFFIX is the parent of every preview host, and the clause is in BUILD.md verbatim`, () => {
     expect(pins.PREVIEW_HOST_SUFFIX).toBe("reachkit.app");
     expect(B.previewNoindex).toContain(`{slug}.${pins.PREVIEW_HOST_SUFFIX}`);
-    expect(readFileSync(path.join(ROOT, "BUILD.md"), "utf8")).toContain(B.previewNoindex);
   });
 
   it("PREVIEW_HOST_SUFFIX is not derived from NEXT_PUBLIC_APP_URL — the deployment's own address is a binding and this suffix is the product's name", () => {
@@ -1493,13 +1487,6 @@ describe("BP-005 error behaviour — every pin is asserted, by quotation and nev
     expect(PINS_SOURCE).not.toMatch(/^\s*export\s+const\s/m);
   });
 
-  it("every clause this file quotes is still, verbatim, in the document that rules it", () => {
-    const missing: string[] = [];
-    for (const [key, clause] of Object.entries(B)) if (!BUILD.includes(norm(clause))) missing.push(`BUILD.md: B.${key}`);
-    for (const [key, clause] of Object.entries(D)) if (!DECISIONS.includes(norm(clause))) missing.push(`DECISIONS.md: D.${key}`);
-    for (const [key, clause] of Object.entries(C)) if (!DATA_COSTS.includes(norm(clause))) missing.push(`DATA-COSTS.md: C.${key}`);
-    expect(missing, `${missing.join(" · ")} — the clause moved or was reworded; re-read the pin against the new words rather than re-typing the quote`).toEqual([]);
-  });
 
   it("runs in under a second, so a drifted constant fails before anything expensive runs", () => {
     expect(Date.now() - SUITE_START).toBeLessThan(1000);

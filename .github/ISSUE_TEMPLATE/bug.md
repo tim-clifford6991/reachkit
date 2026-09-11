@@ -8,7 +8,7 @@ labels: bug
 <!-- Steps, URL, what you saw. -->
 
 ## What should happen
-<!-- Cite BUILD.md / DECISIONS.md if it's specced. -->
+<!-- Cite docs/SPEC.md if it is specced. -->
 
 ## Done when
 - [ ] a test reproduces it and passes

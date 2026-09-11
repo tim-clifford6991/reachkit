@@ -12,5 +12,5 @@ Closes #
 <!-- TODO(copy) keys, rulings needed, owner-side steps, or "nothing" -->
 
 ## Corpus
-<!-- a documented fact this PR changes (BUILD §, ARCHITECTURE row, UI-SPEC pointer,
-     design-reference row): named here, landed by the master in a docs PR — or "nothing" -->
+<!-- a documented fact this PR changes (SPEC §, DESIGN row,
+     PROCESS rule): named here, landed by the master in a docs PR — or "nothing" -->
