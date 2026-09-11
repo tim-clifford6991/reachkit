@@ -23,6 +23,15 @@
 // previous measurement exists and produced one, the goal otherwise. The goal
 // always exists, which is why "never bare" is reachable in every state.
 //
+// **The pages tile is the one tile that carries neither** (issue #536). §4.5
+// item 3 lists its contents — "Pages published (n + 'm already ranking' +
+// 'rest under 3 weeks — too early to judge')" — and the set draws exactly
+// those and no chip for a goal or a delta (S12, set L711: `17` beside
+// `6 already ranking`; S13, L726: `0` alone). What its figure carries is the
+// standing beside it, which is a measured value and not a target, so the tile
+// is not bare either: `carries="beside-only"` is that rule, and `goal: 30` is
+// not drawn on this screen at all.
+//
 // **The AI tile shows one reading and no movement.** No delta is passed to
 // it, and none can be: `model.aiAnswers.headline` has no `delta` field set
 // by the assembly. What sits under it is the window itself, drawn as the dot
@@ -96,6 +105,20 @@ function statCarrier(
   };
 }
 
+/** The pages tile's row: the standing beside the figure and nothing else
+ *  (issue #536). The set draws no goal chip and no delta chip on that tile —
+ *  S12's row is `17` beside `6 already ranking` (L711) and S13's is `0` alone
+ *  (L726) — so `beside` is the whole of the row here, and where no standing
+ *  was measured the figure carries nothing, which is S13 as drawn.
+ *
+ *  It rides in `Stat`'s `goal` slot because that slot is the set's
+ *  `.stat-row` position — `Stat` renders `delta ?? goal` there and names no
+ *  third carrier — and never as a goal: this arm is precisely the absence of
+ *  one. */
+function besideOnly(beside: React.ReactNode): { goal: React.ReactNode } {
+  return { goal: beside };
+}
+
 /** What reaching the goal means, as the set's `.explain` line under the row
  *  (S12 L711's "rest under 3 weeks — too early to judge" sits the same way).
  *  A delta carries no such sentence, and where the owner has not written the
@@ -113,10 +136,17 @@ function Tile(p: {
   outOf?: number;
   /** A badge the set draws on the value's own row (see `statCarrier`). */
   beside?: React.ReactNode;
+  /** Which chips the set draws on this tile's row. Every tile but the pages
+   *  tile draws the module's delta or its goal beside the figure, with what
+   *  reaching the goal means on the line under it; the pages tile draws
+   *  `beside` alone, and so no means sentence either — there is no goal on
+   *  that tile for a sentence to explain (issue #536). */
+  carries?: "delta-or-goal" | "beside-only";
   children?: React.ReactNode;
 }): React.JSX.Element {
   const label = copy(p.labelKey);
   const value = renderValue(p.module.headline.value, p.labelKey);
+  const besideAlone = p.carries === BESIDE_ONLY;
   const carried = carriedBy(p.module.headline, p.labelKey);
 
   return (
@@ -147,9 +177,9 @@ function Tile(p: {
                 <span className="num">{`${value.text}/${formatCount(p.outOf)}`}</span>
               )
             }
-            {...statCarrier(carried, p.beside)}
+            {...(besideAlone ? besideOnly(p.beside) : statCarrier(carried, p.beside))}
           />
-          {meansLine(carried)}
+          {besideAlone ? null : meansLine(carried)}
         </>
       )}
       {p.children}
@@ -189,6 +219,9 @@ const PAGES_LABEL = "overview.tile.pages.label" satisfies CopyKey;
 const SCORE_TEST_ID = "overview-tile-score";
 const AI_TEST_ID = "overview-tile-ai-answers";
 const PAGES_TEST_ID = "overview-tile-pages";
+/** The pages tile's arm, bound to a name for the same reason the keys and
+ *  test ids above are: it is a structural choice, not product voice. */
+const BESIDE_ONLY = "beside-only" as const;
 
 /** The score's own tile: the number, its delta, and the band it stands in.
  *
@@ -319,6 +352,7 @@ export function TileRow(p: {
         labelKey={PAGES_LABEL}
         testId={PAGES_TEST_ID}
         beside={ranking === null ? null : <Badge tone={RANKING_TONE}>{ranking}</Badge>}
+        carries={BESIDE_ONLY}
       >
         {tooEarly === null ? null : <p className="rk-quiet">{tooEarly}</p>}
         {firstReview === null ? null : <p className="rk-quiet">{firstReview}</p>}
