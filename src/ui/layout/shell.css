@@ -1,7 +1,7 @@
 /* src/ui/layout/shell.css — BUILD §4.4, §2.2
  *
  * The app shell's stylesheet: the sidebar, the frame it sits in, and the
- * narrow-viewport switch to top tabs. `BUILD.md` §2.2 closes custom CSS at
+ * narrow-viewport switch to the Workspace nav as one row (UI-SPEC §0 11). `BUILD.md` §2.2 closes custom CSS at
  * five surfaces — "the calendar grid, the day panel, the AI dot-matrix,
  * chart SVGs, and **the sidebar** — nothing else" — and this file is the
  * sidebar's. Everything else the shell renders is a registered daisyUI
@@ -137,6 +137,40 @@
   flex: 0 0 auto;
   margin-left: auto;
   color: var(--ink-3);
+}
+
+/* UI-SPEC §0 11 (2026-09-11): below 1024 the three Workspace items stay as
+ * one horizontal row in the collapsed header, labels and counts kept — the
+ * artifact's `.side-group{display:none}` (L90) is not built. The row lives
+ * only in `.rk-shell-top`, which the one media query below hides at 1024, so
+ * it needs no query of its own.
+ *
+ * `--t-sm` and 600 are the set's `.nav` (L102). Each item is as wide as the
+ * word it carries — not an equal share, which at the 320 floor is narrower
+ * than "Calendar" and its count and would cut one of them (checks 2 and 3)
+ * — and the three sit apart across the row. `--s-2` either side is the
+ * ladder's rung that keeps three words and a count inside 320 less the
+ * band's gutters. */
+.rk-nav-row {
+  flex-direction: row;
+  justify-content: space-between;
+}
+
+.rk-nav-row .rk-navlink {
+  flex: 0 1 auto;
+  justify-content: center;
+  padding-inline: var(--s-2);
+  font-size: var(--t-sm);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* The glyph is decoration — `aria-hidden`, the word beside it is the link's
+ * name — and §0 11 keeps the labels and the counts, not the glyphs. At 320
+ * the three words and Calendar's count fit the row only without them, so
+ * the row drops the glyph rather than cut a word. */
+.rk-nav-row .rk-navlink > svg {
+  display: none;
 }
 
 /* ── The frame ────────────────────────────────────────────────────────── */

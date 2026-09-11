@@ -158,9 +158,7 @@ export function Input(p: InputProps): React.JSX.Element {
           id={id}
           rows={4}
           aria-label={p.labelHidden === true ? p.label : undefined}
-          className={["input", "h-auto", p.invalid ? "input-error" : ""]
-            .filter(Boolean)
-            .join(" ")}
+          className="input h-auto"
           placeholder={placeholder}
           value={p.value}
           name={p.name}
@@ -173,9 +171,7 @@ export function Input(p: InputProps): React.JSX.Element {
           id={id}
           aria-label={p.labelHidden === true ? p.label : undefined}
           type={p.type ?? "text"}
-          className={["input", p.invalid ? "input-error" : ""]
-            .filter(Boolean)
-            .join(" ")}
+          className="input"
           placeholder={placeholder}
           value={p.value}
           name={p.name}

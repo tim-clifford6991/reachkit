@@ -5,6 +5,10 @@
 // item count) · footer autopilot card (state + next publish time + toggle).
 // Mobile: sidebar hidden, top tabs. No other navigation."
 //
+// Below 1024 the "top tabs" are the Workspace nav itself, as one row (UI-SPEC
+// §0 11, 2026-09-11, which UI-SPEC wins over §4 on): labels and counts kept,
+// nothing hidden, no drawer and no bottom bar.
+//
 // REQ-040's promise is that the publishing state is visible from *every*
 // screen, which is why it lives in this layout and in no screen: a screen
 // that forgot to render it would be the only way to break the promise, and
@@ -21,10 +25,10 @@
 // to the frame.
 //
 // The shell is read once, here (`readShell`, request-cached), and passed
-// down. `SidebarNav` and `TabBar` are the two client components — each
-// needs the current pathname to mark the current destination — and they map
-// over the same `DESTINATIONS` tuple, so a fourth destination cannot appear
-// on one breakpoint only.
+// down. `SidebarNav` is the one client component — it needs the current
+// pathname to mark the current destination — and both bands render it, the
+// compact one with `row`, so a fourth destination cannot appear on one
+// breakpoint only.
 import type React from "react";
 import { TrendingUp } from "lucide-react";
 import { Surface } from "@/ui/layout";
@@ -33,7 +37,6 @@ import { DomainBlock } from "./_shell/DomainBlock";
 import { PublishingCard } from "./_shell/PublishingCard";
 import { SidebarNav } from "./_shell/SidebarNav";
 import { StoppedNotice } from "./_shell/StoppedNotice";
-import { TabBar } from "./_shell/TabBar";
 import { readShell } from "./_shell/provider";
 import "@/ui/layout/shell.css";
 
@@ -54,10 +57,11 @@ export default async function AppLayout({
     >
       <div className="rk-shell">
         {/* Below --breakpoint-lg: the sidebar is hidden and its three parts
-            collapse into this header (REQ-040 c5). */}
+            collapse into this header (REQ-040 c5); the Workspace nav is the
+            same nav as one row, counts kept (UI-SPEC §0 11). */}
         <header className="rk-shell-top" data-testid="shell-top">
           <DomainBlock shell={shell} />
-          <TabBar />
+          <SidebarNav waiting={shell.waiting} row />
           <PublishingCard shell={shell} />
         </header>
 

@@ -96,3 +96,25 @@
   --t-body:15px; --t-sm:13px; --t-xs:12px;
   --w-form:420px; --w-sidebar:222px; --w-day-panel:290px;
 }
+
+/* ── Addition under UI-SPEC §0 13 (owner, 2026-09-11) ─────────────────────
+ *
+ * "One motion token, `--motion-fast: .18s`, spent only on `color`,
+ * `background-color`, `border-color`, `box-shadow` and `transform`; the
+ * reduced-motion rule (L63) removes it. It is added to `tokens.css` and
+ * `theme.css` together." The value is the one duration the set draws — the
+ * collapse marker's `transition:transform .18s` (L284).
+ *
+ * Declared in all three blocks, each as a block of its own below the
+ * artifact's, so the blocks above stay the owner's artifact verbatim. A
+ * duration does not change with the ground; it is stated in the dark blocks
+ * too so each of the three is complete on its own.
+ */
+
+:root{ --motion-fast:.18s; }
+
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){ --motion-fast:.18s; }
+}
+
+:root[data-theme="dark"]{ --motion-fast:.18s; }

@@ -1,9 +1,17 @@
 // BUILD §4.4 — "nav **Overview / Calendar / Settings** (Calendar shows item
 // count)".
 //
-// Maps over `DESTINATIONS` — the one tuple, shared with `TabBar` — so a
-// fourth destination cannot appear on one breakpoint only (WO-155 decision
-// 3). Renders `<a href>`: navigation that works without a client runtime.
+// Maps over `DESTINATIONS` — the one tuple — so a fourth destination
+// cannot appear on one breakpoint only (WO-155 decision 3). Renders
+// `<a href>`: navigation that works without a client runtime.
+//
+// **One component at both bands** (UI-SPEC §0 11, 2026-09-11): "Below 1024
+// the three Workspace items (Overview · Calendar · Settings) stay as one
+// horizontal row inside the collapsed sidebar, labels and counts kept … No
+// drawer and no bottom bar." The compact header renders this same nav with
+// `row`, so the row and the column cannot disagree about a destination, its
+// word, its count or which one is current — they are one renderer. The
+// `TabBar` that stood in the compact band dropped the count and is gone.
 //
 // REQ-040 c2: "the Calendar destination shows how many are waiting; when
 // none are, it shows no count." Zero renders no count at all — not a `0`,
@@ -26,11 +34,18 @@ const DESTINATION_ICON: Record<(typeof DESTINATIONS)[number], LucideIcon> = {
   settings: Settings,
 };
 
-export function SidebarNav(p: { waiting: number }): React.JSX.Element {
+export function SidebarNav(p: {
+  waiting: number;
+  /** The compact band's arm: the same three items as one horizontal row. */
+  row?: boolean;
+}): React.JSX.Element {
   const current = destinationOf(usePathname());
 
   return (
-    <nav className="rk-nav" data-testid="shell-sidebar-nav">
+    <nav
+      className={p.row === true ? "rk-nav rk-nav-row" : "rk-nav"}
+      data-testid={p.row === true ? "shell-compact-nav" : "shell-sidebar-nav"}
+    >
       {DESTINATIONS.map((destination) => {
         const Icon = DESTINATION_ICON[destination];
         return (
