@@ -72,9 +72,15 @@
 // 2026-09-10, issue #459: the owner approved the master's drafted copy for
 // every key this partition still owed ("copy proposal approved"; proposal
 // sheet artifact 546f45a0-a996-4d25-b85e-fb03fda7b102), and the 64 approved
-// strings are applied here byte for byte. No key in this partition is
-// owner-owed or `TODO(copy)` any more; where a note above or below says a
-// key ships owed, that was its standing before this date.
+// strings are applied here byte for byte. Where a note above or below says
+// a key ships owed, that was its standing before this date.
+//
+// 2026-09-11, issue #516: the two keys #459 left — `notice.site-unreadable`,
+// which #479 minted after that approval, and `landing.step.3.title`, whose
+// approved-set string promised a page a day the Autopilot brief rules out
+// (DECISIONS 2026-09-10) — carry the owner's strings of that date
+// (DECISIONS 2026-09-11), byte for byte. No key in this partition is
+// owner-owed or `TODO(copy)` any more.
 import type { CopyPartition } from "../registry.ts";
 
 export const REPORT_COPY = Object.freeze({
@@ -87,11 +93,11 @@ export const REPORT_COPY = Object.freeze({
   "notice.incomplete": ["This report is incomplete — {what} wasn’t measured.", { slots: { what: "text" }, fixedBy: "REQ-001 c14" }],
   "notice.measurement-failed": ["The last measurement didn’t finish, so nothing new was stored.", { slots: {}, fixedBy: "REQ-001 c16" }],
   "notice.correction-failed": ["The correction didn’t finish — this is the report from before it.", { slots: {}, fixedBy: "REQ-094 c7" }],
-  // Owner-owed (#479). The pass could not read the site's own home page —
-  // the fetcher refused it (too large, no answer, blocked) — so nothing
-  // after it was attempted and the report stops there. No approved line
-  // exists; ships as `TODO(copy)`, which renders as itself (2026-09-07).
-  "notice.site-unreadable": ["TODO(copy)", { slots: {}, fixedBy: "REQ-004 c6" }],
+  // #479. The pass could not read the site's own home page — the fetcher
+  // refused it (too large, no answer, blocked) — so nothing after it was
+  // attempted and the report stops there. Owner-owed until 2026-09-11, when
+  // the owner approved this sentence (#516).
+  "notice.site-unreadable": ["We couldn’t read this site’s home page, so nothing here could be measured. Check the address and scan again.", { slots: {}, fixedBy: "REQ-004 c6" }],
   "notice.refused.network-limit": ["That’s five scans from your network in the last hour — you can scan again in {wait}.", { slots: { wait: "text" }, fixedBy: "REQ-003 c6" }],
   "notice.refused.scan-running": ["A scan is already running from your network. It finishes in about {wait}, then this one can start.", { slots: { wait: "text" }, fixedBy: "REQ-003 c7" }],
   // #104. ReachKit's own stop, in writing — the one refusal the visitor
@@ -382,7 +388,11 @@ export const REPORT_COPY = Object.freeze({
   "landing.step.1.body": ["Free, no account", { slots: {}, fixedBy: "approved set S1" }],
   "landing.step.2.title": ["Pick your market and rivals", { slots: {}, fixedBy: "approved set S1 · 11a" }],
   "landing.step.2.body": ["We suggest, you confirm.", { slots: {}, fixedBy: "approved set S1" }],
-  "landing.step.3.title": ["One page goes live every day", { slots: {}, fixedBy: "approved set S1 · 11a" }],
+  // Step 3's title is the one approved-set string on this screen the owner
+  // has since replaced: the set promised a page a day, and the Autopilot
+  // brief (DECISIONS 2026-09-10) rules that out — a page goes live when one
+  // is ready, at most one a day. Approved 2026-09-11 (#516).
+  "landing.step.3.title": ["Pages go live on your domain", { slots: {}, fixedBy: "approved set S1 · 11a" }],
   "landing.step.3.body": ["You get 24 hours to stop it.", { slots: {}, fixedBy: "approved set S1" }],
   /** Under the closing CTA. Approved (11a). The pricing card carries the
    *  same sentence through `offer.cancel-line`, which is still empty and is

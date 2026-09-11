@@ -348,3 +348,43 @@ describe("the thirteen keys the owner ruled 2026-09-04 (WO-041 `## Log`, this da
     expect(OWNER_OWED).not.toContain("offer.cancel_self_service");
   });
 });
+
+describe("the five keys the owner ruled 2026-09-11 (DECISIONS 2026-09-11, #516)", () => {
+  // The registry's last five owed sentences. Three had stood at the
+  // `TODO(copy)` marker — the record's never-checked badge (#459 held it:
+  // its drafted sentence clipped the badge at 320 px), the unreadable-site
+  // notice #479 minted, and the never-claim tag's remove label #488 minted
+  // — and two were approved-set strings (ruling 11a) the owner has since
+  // replaced, because both promised a page every day and the Autopilot
+  // brief (DECISIONS 2026-09-10) rules that promise out: a day is filled
+  // only by an opportunity that passes readiness.
+  //
+  // Asserted byte for byte, curly apostrophes and em dash as approved, so
+  // no later edit can quietly reword an owner's sentence.
+  it("the three that stood at the marker carry the owner's sentences", () => {
+    expect(COPY["record.verification.never.noLiveAddress"]).toBe("not checked");
+    expect(COPY["notice.site-unreadable"]).toBe(
+      "We couldn’t read this site’s home page, so nothing here could be measured. Check the address and scan again."
+    );
+    expect(COPY["settings.voice.remove-claim"]).toBe("Remove {claim}");
+    expect(copy("settings.voice.remove-claim", { claim: "cheapest" })).toBe("Remove cheapest");
+  });
+
+  it("the two approved-set strings that promised a page a day are replaced", () => {
+    expect(COPY["calendar.head"]).toBe("Pages go live when one is ready — at most one a day.");
+    expect(COPY["landing.step.3.title"]).toBe("Pages go live on your domain");
+    for (const key of ["calendar.head", "landing.step.3.title"] satisfies CopyKey[]) {
+      expect(COPY[key], key).not.toContain("every day");
+      expect(COPY[key], key).not.toContain("One page a day");
+    }
+  });
+
+  it("nothing in the registry is owed or awaiting any more, and no key renders the marker", () => {
+    expect(OWNER_OWED).toEqual([]);
+    expect(AWAITING_COPY).toEqual([]);
+    for (const [key, value] of Object.entries(COPY)) {
+      expect(value, key).not.toBe(TODO_COPY_MARKER);
+      expect(value, key).not.toBe("");
+    }
+  });
+});
