@@ -223,20 +223,42 @@ describe("three tiles, and no fourth", () => {
     expect(markup).toContain("band.score.hard-to-find");
   });
 
+  // The row is the last child of `.stat`, which is the only child of
+  // `.stats`, and everything inside the row is a `span` — so the three
+  // consecutive `</div>`s are the row's own end and nothing else's. Slicing
+  // to `</section>` would swallow the lines *under* the row, which is
+  // exactly what these tests have to tell apart.
+  const rowOf = (testId: string): string => {
+    const tile = markup.slice(markup.indexOf(`data-testid="${testId}"`));
+    const row = tile.slice(tile.indexOf('data-carry="beside"'));
+    return row.slice(0, row.indexOf("</div></div></div>"));
+  };
+
   it("draws each tile's carried value and badge beside the figure, on one row (#521)", () => {
     // The set's `62 ▲8 Hard to find` and `2/12 goal: 6`: one row per tile.
     expect(count(markup, 'data-carry="beside"')).toBe(3);
-    const rowOf = (testId: string): string => {
-      const tile = markup.slice(markup.indexOf(`data-testid="${testId}"`));
-      const row = tile.slice(tile.indexOf('data-carry="beside"'));
-      return row.slice(0, row.indexOf("</section>"));
-    };
     const score = rowOf("overview-tile-score");
     expect(score).toContain(">62<");
     expect(score).toContain("overview.delta.up");
     expect(score).toContain("band.score.hard-to-find");
     expect(rowOf("overview-tile-ai-answers")).toContain("overview.goal(6)");
+    expect(rowOf("overview-tile-pages")).toContain("overview.goal(30)");
     expect(rowOf("overview-tile-pages")).toContain("overview.tile.pages.ranking(6)");
+  });
+
+  it("keeps the goal's sentence under the row, never inside it (#521)", () => {
+    // The set's `.stat-row` (S12 L709–711) holds the figure and its pills
+    // and nothing else; what reaching a goal means is the `.explain` line
+    // beneath. Inside the row that sentence sets the min-content width, the
+    // chip wraps, and the goal lands back under the figure — which is what
+    // the master read in CI's render of this branch.
+    for (const [testId, key] of [
+      ["overview-tile-ai-answers", "overview.tile.ai-answers.means"],
+      ["overview-tile-pages", "overview.tile.pages.means"],
+    ] as const) {
+      expect(rowOf(testId)).not.toContain(key);
+      expect(markup).toContain(`<p class="rk-quiet">${key}`);
+    }
   });
 
   it("the searches reading has no tile — the growth card is its home now", () => {

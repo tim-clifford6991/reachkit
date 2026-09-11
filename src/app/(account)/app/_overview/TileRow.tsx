@@ -51,7 +51,15 @@ import { CARRY, CHART_BOX, STACK, TILES } from "./style";
  *  `beside` is what the set draws on the same row after the carried value —
  *  the score's band, the pages' "already ranking" (UI-SPEC S12, set
  *  L709–711; issue #521): `62 ▲8 Hard to find`, `17 6 already ranking`. It
- *  rides in the carrier so `Stat`'s one row holds all of it. */
+ *  rides in the carrier so `Stat`'s one row holds all of it.
+ *
+ *  **Only badges ride here.** The set's `.stat-row` (L709–711) holds the
+ *  figure and its pills and nothing else; the sentence that says what a goal
+ *  means is a `.explain` line under the row. A whole sentence inside the row
+ *  sets the row's min-content width, which wraps the pill onto the next line
+ *  and puts the goal chip back under the figure — the defect the master read
+ *  in CI's S12 render of this branch. `meansLine` draws that sentence where
+ *  the set draws it. */
 function statCarrier(
   carried: Carried,
   beside: React.ReactNode = null
@@ -82,11 +90,19 @@ function statCarrier(
         <Badge tone={GOAL_TONE}>
           <span className="num">{carried.text}</span>
         </Badge>
-        {carried.means === null ? null : <span>{carried.means}</span>}
         {beside}
       </span>
     ),
   };
+}
+
+/** What reaching the goal means, as the set's `.explain` line under the row
+ *  (S12 L711's "rest under 3 weeks — too early to judge" sits the same way).
+ *  A delta carries no such sentence, and where the owner has not written the
+ *  goal's, `writtenLine` has already returned `null` and nothing is drawn. */
+function meansLine(carried: Carried): React.JSX.Element | null {
+  if (carried.kind !== "goal" || carried.means === null) return null;
+  return <p className="rk-quiet">{carried.means}</p>;
 }
 
 function Tile(p: {
@@ -101,6 +117,7 @@ function Tile(p: {
 }): React.JSX.Element {
   const label = copy(p.labelKey);
   const value = renderValue(p.module.headline.value, p.labelKey);
+  const carried = carriedBy(p.module.headline, p.labelKey);
 
   return (
     // Take A, the take the owner approved on 2026-09-02: "one card per
@@ -117,20 +134,23 @@ function Tile(p: {
           {p.beside === undefined || p.beside === null ? null : <span style={CARRY}>{p.beside}</span>}
         </>
       ) : (
-        <Stat
-          state={p.module.headline.value.kind === "zero" ? "measured-zero" : "measured"}
-          label={label}
-          labelInHead
-          carryBeside
-          value={
-            p.outOf === undefined ? (
-              value.text
-            ) : (
-              <span className="num">{`${value.text}/${formatCount(p.outOf)}`}</span>
-            )
-          }
-          {...statCarrier(carriedBy(p.module.headline, p.labelKey), p.beside)}
-        />
+        <>
+          <Stat
+            state={p.module.headline.value.kind === "zero" ? "measured-zero" : "measured"}
+            label={label}
+            labelInHead
+            carryBeside
+            value={
+              p.outOf === undefined ? (
+                value.text
+              ) : (
+                <span className="num">{`${value.text}/${formatCount(p.outOf)}`}</span>
+              )
+            }
+            {...statCarrier(carried, p.beside)}
+          />
+          {meansLine(carried)}
+        </>
       )}
       {p.children}
       </div>
@@ -187,6 +207,7 @@ function ScoreTile(p: { score: ScoreModule; firstDue: string | null }): React.JS
   // date the shell's domain block states from the same `firstDueOn`.
   const firstDue =
     p.firstDue === null ? null : writtenLine("overview.tile.score.first-due", { due: p.firstDue });
+  const scoreCarried = carriedBy(p.score.headline, SCORE_LABEL);
   const band =
     p.score.band === null ? null : (
       <Badge tone={BAND_TONE[p.score.band]}>{copy(SCORE_BANDS[p.score.band])}</Badge>
@@ -198,14 +219,17 @@ function ScoreTile(p: { score: ScoreModule; firstDue: string | null }): React.JS
         {value.isDash ? (
           <Stat state="unmeasured" label={label} labelInHead reason={value.line ?? label} />
         ) : (
-          <Stat
-            state={p.score.headline.value.kind === "zero" ? "measured-zero" : "measured"}
-            label={label}
-            labelInHead
-            carryBeside
-            value={value.text}
-            {...statCarrier(carriedBy(p.score.headline, SCORE_LABEL), band)}
-          />
+          <>
+            <Stat
+              state={p.score.headline.value.kind === "zero" ? "measured-zero" : "measured"}
+              label={label}
+              labelInHead
+              carryBeside
+              value={value.text}
+              {...statCarrier(scoreCarried, band)}
+            />
+            {meansLine(scoreCarried)}
+          </>
         )}
         {firstDue === null ? null : <p className="rk-quiet">{firstDue}</p>}
       </div>
