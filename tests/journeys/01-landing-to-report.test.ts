@@ -124,7 +124,7 @@ vi.mock("@anthropic-ai/sdk", () => {
         const answer = input.includes('"home"')
           ? PROFILE_ANSWER
           : {
-              questions: (JSON.parse(input) as { id: string; keyword: string }[]).map((row) => ({
+              questions: (JSON.parse(input) as { keywords: { id: string; keyword: string }[] }).keywords.map((row) => ({
                 id: row.id,
                 text: `What's the best ${row.keyword}?`,
               })),
