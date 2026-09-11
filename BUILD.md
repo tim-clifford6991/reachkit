@@ -277,7 +277,7 @@ its goal, never bare.
 
 ### 4.7 Settings
 
-Two-column cards (S18). Left: **Your site & market** (domain + Change · category + Edit · rebuild line) · **Competitors** (5 removable tags) · **Publishing** (no mode control — Autopilot is the product (2026-09-10, brief §1.1); veto window stepper 1–7 days, default 1 day (0 is removed by the setup/settings issue #476, and the pin and this sentence move together when it lands) · publish time · time zone · publishing on/off · destinations with health + Reconnect · "Fix-type tasks are never automated, whatever the mode.") · **How your pages sound** (voice field · *Never claim* list + add) · **Notifications** (Daily draft-ready mail · Published-page mail · Monday movement mail). Right: **Billing** · **Account** · **Your content** · **Danger zone** as before.
+Two-column cards (S18). Left: **Your site & market** (domain + Change · category + Edit · rebuild line) · **Competitors** (5 removable tags) · **Publishing** (no mode control — Autopilot is the product (2026-09-10, brief §1.1) · veto window stepper 0–7 days, default 1 day — **2026-09-10 (brief §1.8):** becomes 1–7 days; 0 is removed by the setup/settings issue (#476), and the pin and this sentence move together when it lands · publish time · time zone · publishing on/off · destinations with health + Reconnect · "Fix-type tasks are never automated, whatever the mode.") · **How your pages sound** (voice field · *Never claim* list + add) · **Notifications** (Daily draft-ready mail · Published-page mail · Monday movement mail). Right: **Billing** · **Account** · **Your content** · **Danger zone** as before.
 
 C2 — the #2 body (2026-09-06, #34) drops "next invoice" and "card" per REQ-097; the approved set (S18) shows plan · price · active · next invoice date and amount · card •••• 4242 · Update card / Invoices / Cancel plan, and REQ-076 c1 requires exactly those values. Resolution: the approved set stands; REQ-097 is read as "ReachKit edits no billing value and sends no billing mail — it displays Stripe's values read-only". Owner may strike.
 
@@ -357,7 +357,9 @@ An AI Overview does not appear on every query: state the denominator
 ("AI answers appear on 9 of your 12 biggest searches — you are cited in none"),
 and render a no-AI-answer question as a muted cell, never as a miss.
 Paid weekly battery: **ChatGPT std + AI Mode std + AI-Overview piggyback =
-2.2¢/week**, rendered as three answer columns.
+2.9¢/week** (12 × 0.12¢ + 12 × 0.12¢ = 2.88¢ at §6.1's prices; was 2.2¢ while
+AI Mode was mis-pinned at 0.06¢ — corrected 2026-09-11, #381), rendered as three
+answer columns.
 
 ### 6.3 Datasets — the closed list
 
@@ -370,7 +372,8 @@ those terms → market set + denominator + the 12 questions ·
 rivals themselves** (§6.6). No `competitors_domain` on the free path. Brand
 mentions/citations = string match over references.
 
-**Paid deep scan** (~30¢ live at onboarding; **weekly refresh ~8¢** standard):
+**Paid deep scan** (~31¢ live at onboarding; **weekly refresh ~8.5¢** standard —
+both 0.7¢ higher since #381 corrected AI Mode std to 0.12¢):
 adds `ranked_keywords`@300 (user) · @100 ×rivals (**monthly**) ·
 `competitors_domain` (**monthly**) · `suggestions` ×2 (**monthly**) · ≤13 target
 SERPs (weekly, std) · own fetches of ≤25 ranking pages + rival home/robots ·

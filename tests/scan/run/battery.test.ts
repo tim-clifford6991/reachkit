@@ -1,7 +1,7 @@
 // tests/scan/run/battery.test.ts — issue #128, BUILD §6.2 / §6.3 / §6.5.
 //
 // §6.2: "Paid weekly battery: **ChatGPT std + AI Mode std + AI-Overview
-// piggyback = 2.2¢/week**", and, two paragraphs above it, "The free path
+// piggyback = 2.9¢/week**", and, two paragraphs above it, "The free path
 // makes **zero** AI Optimization API calls."
 //
 // The mutations this suite exists to kill:
@@ -341,9 +341,11 @@ describe("§6.3 — a weekly pass's ledgered cost is the ~8¢ the dataset list s
     const ranked = PRICE_BOOK.RANKED_PAID_COST_C;
 
     // §6.2's own figure for the battery: "ChatGPT std + AI Mode std +
-    // AI-Overview piggyback = 2.2¢/week". The piggyback is the third
+    // AI-Overview piggyback = 2.9¢/week". The piggyback is the third
     // column and costs nothing extra — it rides the SERPs above.
-    expect(battery).toBeCloseTo(2.16, 2);
+    // 12 × CHATGPT_SCRAPE_STD_C + 12 × AI_MODE_STD_C = 12 × 0.12 + 12 × 0.12.
+    // It was 2.16 while AI Mode std was mis-pinned at 0.06 (#381).
+    expect(battery).toBeCloseTo(2.88, 2);
 
     // §6.3: "**weekly refresh ~8¢** standard".
     const weekly = ranked + serps + battery;

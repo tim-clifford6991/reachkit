@@ -128,16 +128,16 @@ rival items.
 | P5 | Top-10 for each target search (≤13 SERPs) | Winnability test (weakest-site-in-top-10), "answered today by", done-when tests | SERP advanced ×13 | 2.6¢ |
 | P6 | Customer's measured pages (home + up to 25 ranking URLs) | Improve-family opportunities, per-page answerability | Own fetches | 0¢ |
 | P7 | Rival home + robots.txt (2 docs × 3 rivals) | Directive comparison, citation pairings | Own fetches | 0¢ |
-| P8 | **12 questions × 2 engines + AI Overviews**, stored verbatim | AI matrix, share of voice, substitution, weekly movement | ChatGPT scraper (std) + Google AI Mode SERP (std) + `ai_overview` **free** inside P5's SERPs | 2.2¢ |
+| P8 | **12 questions × 2 engines + AI Overviews**, stored verbatim | AI matrix, share of voice, substitution, weekly movement | ChatGPT scraper (std) + Google AI Mode SERP (std) + `ai_overview` **free** inside P5's SERPs | 2.9¢ |
 | P9 | Opportunity typing + classification labels | The calendar's supply, Write/Improve/Fix split | Haiku ×~4 | 3.6¢ |
 
-### One paid deep scan: **~30¢** (cap 150¢) · one weekly refresh: **~8¢**
+### One paid deep scan: **~31¢** (cap 150¢) · one weekly refresh: **~8.5¢**
 
 | | Deep (onboarding, live) | Weekly (scheduled, standard) |
 |---|---|---|
-| DataForSEO | 26.9¢ | 7.7¢ |
+| DataForSEO | 27.6¢ | 8.4¢ |
 | Inference | 3.6¢ | ~0.5¢ |
-| **Total** | **~30¢** | **~8¢** |
+| **Total** | **~31¢** | **~8.5¢** |
 
 The onboarding pass runs live (the customer is waiting); every scheduled run uses
 the standard queue at a third to a seventh of live prices, and the suggestions
@@ -147,7 +147,8 @@ draw moves to a monthly cadence — the market's search set does not change week
 per answer, 70% of the old battery cost) are **deferred**. The MVP battery is
 ChatGPT (scraper, real product answers) + Google AI Mode (SERP endpoint, Google's
 real AI answer surface) + AI Overviews read **free** out of the target SERPs the
-scan already buys — three AI answer columns for 2.2¢ a week instead of 9.6¢.
+scan already buys — three AI answer columns for 2.9¢ a week instead of 9.6¢
+(2.2¢ until #381 corrected AI Mode std from 0.06¢ to its price-book 0.12¢).
 
 ---
 
@@ -190,7 +191,7 @@ of magnitude at today's prices.
 | | Cost | Cap |
 |---|---|---|
 | **1 free report** | **~6¢** | 12¢ |
-| **1 paid deep scan** | **~30¢** (weekly refresh ~8¢) | 150¢ |
+| **1 paid deep scan** | **~31¢** (weekly refresh ~8.5¢) | 150¢ |
 | **1 day of content** | **~7¢** | 45¢ |
 
 ---

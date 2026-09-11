@@ -254,7 +254,7 @@ describe('REQ-006 c7 — the card reports what was measured and nothing more', (
 // ── §6.2's three answer columns (issue #128) ─────────────────────────────
 //
 // "Paid weekly battery: ChatGPT std + AI Mode std + AI-Overview piggyback
-// = 2.2¢/week, rendered as three answer columns." The mutations this block
+// = 2.9¢/week, rendered as three answer columns." The mutations this block
 // exists to kill: reordering the columns (a renderer indexes by position);
 // re-deriving the AI-Overview column instead of reading the row's own
 // cell (two readings of one measurement, free to drift); collapsing an
