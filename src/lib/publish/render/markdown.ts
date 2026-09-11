@@ -362,3 +362,34 @@ export function toHtml(blocks: readonly Block[], classes: HtmlClasses = {}): str
 export function renderMarkdownHtml(md: string): string {
   return toHtml(parseMarkdown(md));
 }
+
+/**
+ * Every heading in a body, one level down — for a screen that already has
+ * its own `<h1>` above the body it renders.
+ *
+ * **A body's heading is a heading *within* the screen.** The draft screen
+ * (S16) and the legal screen (S5) both print their own title as the page's
+ * `<h1>`, and both render a Markdown body under it. The approved set draws
+ * that body's `##` one rung under the screen's head — its `.doc h2` sits at
+ * `--h3` — so a `##` that stayed an `<h2>` would have to be *restyled* to a
+ * size that is not its step. `heading-scale.test.ts` renders every route and
+ * requires each `h1..h4` to compute its own step of the ladder, so the shift
+ * is made on the level instead: a `##` arrives as an `<h3>` and earns the
+ * 20px the set draws (issues #355, #493). The container carries
+ * `.rk-doc-levelled` (`src/ui/idiom/idiom.css`), which gives those levels
+ * back their ladder steps.
+ *
+ * `h6` stays `h6`: the scale bottoms out and nothing below it exists.
+ *
+ * It is a transform over parsed blocks, not an argument to the serialiser:
+ * `renderMarkdownHtml` and the copy-out stay unshifted — those are the bytes
+ * that publish, and on a destination the title is supplied beside them
+ * rather than by a heading of ours standing over them.
+ */
+export function demoteHeadings(blocks: readonly Block[]): Block[] {
+  return blocks.map((block) =>
+    block.kind === "heading" && block.level < 6
+      ? { ...block, level: (block.level + 1) as 2 | 3 | 4 | 5 | 6 }
+      : block
+  );
+}
