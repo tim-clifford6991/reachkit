@@ -70,11 +70,18 @@ describe("UI-SPEC S1 — the landing's chips carry the icons the approved set dr
     return [...new Set(names)].sort();
   }
 
-  it("the set's five glyphs, and no sixth", () => {
+  it("the set's seven glyphs, and no eighth", () => {
     // S1 draws: the growth card's chip (trend), the matrix card's chip
-    // (bot), the This-week card's chip (cal) and its panel's (file), and
-    // the video block's play control.
-    expect(iconsImported()).toEqual(["Bot", "Calendar", "FileText", "Play", "TrendingUp"]);
+    // (bot), the This-week card's chip (cal) and its panel's (file), the
+    // video block's play control, and the three step cards' chips
+    // (search · users · cal, L549 — issue #486).
+    expect(iconsImported()).toEqual(["Bot", "Calendar", "FileText", "Play", "Search", "TrendingUp", "Users"]);
+  });
+
+  it("the three step cards take search, users and cal, in that order (L549)", () => {
+    const page = read("app/(public)/page.tsx");
+    const order = [...page.matchAll(/landing\.step\.\d\.body", Icon: (\w+)/g)].map((m) => m[1]);
+    expect(order).toEqual(["Search", "Users", "Calendar"]);
   });
 
   it("each card head takes the chip the set draws on it", () => {
@@ -89,5 +96,58 @@ describe("UI-SPEC S1 — the landing's chips carry the icons the approved set dr
     // set draws the field and a plain solid pill. A glyph the drawing does
     // not have is an addition, and additions are what this file catches.
     expect(read("app/(public)/_landing/ScanForm.tsx")).not.toContain("lucide-react");
+  });
+});
+
+describe("issue #486 — every chip the approved set draws carries its glyph", () => {
+  const CHIP = (name: string): RegExp => new RegExp(`icon=\\{<${name} size=\\{15\\}`);
+
+  it("the brand mark is the trend glyph at stroke 2, on all four spends", () => {
+    for (const rel of [
+      "app/(public)/_chrome/Header.tsx",
+      "app/(public)/_chrome/Footer.tsx",
+      "app/(public)/signin/page.tsx",
+      "app/(account)/app/layout.tsx",
+    ]) {
+      const source = read(rel);
+      expect(source, rel).toMatch(/className="rk-wordmark-chip"[^>]*>\s*<TrendingUp size=\{15\} strokeWidth=\{2\}/);
+      expect(source, rel).not.toMatch(/className="rk-wordmark-chip"[^>]*\/>/);
+    }
+  });
+
+  it("the mark is the set's square: --r-field corners, --accent ground, --on-accent ink", () => {
+    const css = withoutComments(read("ui/idiom/idiom.css"));
+    const block = css.slice(css.indexOf(".rk-wordmark-chip {"));
+    const body = block.slice(0, block.indexOf("}"));
+    expect(body).toContain("border-radius: var(--r-field)");
+    expect(body).toContain("background: var(--accent)");
+    expect(body).toContain("color: var(--on-accent)");
+  });
+
+  it("S18's nine card heads take the set's nine glyphs (L807–821)", () => {
+    const panels: Record<string, string> = {
+      MarketPanel: "Globe",
+      CompetitorsPanel: "Users",
+      PublishingPanel: "Sparkles",
+      VoicePanel: "PenLine",
+      NotificationsPanel: "Bell",
+      BillingPanel: "CreditCard",
+      AccountPanel: "Lock",
+      ContentPanel: "FileText",
+      DangerZone: "Shield",
+    };
+    for (const [file, icon] of Object.entries(panels)) {
+      expect(read(`app/(account)/app/settings/panels/${file}.tsx`), file).toMatch(CHIP(icon));
+    }
+  });
+
+  it("S16's Copy-it-out head and S2's Copy link pill carry copy (L780, L577)", () => {
+    expect(read("app/(account)/app/draft/[draftId]/DraftScreen.tsx")).toMatch(CHIP("Copy"));
+    expect(read("app/(public)/scan/[domain]/_address/copy-link.tsx")).toMatch(/icon=\{<Copy size=\{14\}/);
+  });
+
+  it("a card head with no glyph draws no chip — the set never draws an empty one", () => {
+    const head = read("ui/idiom/CardHead.tsx");
+    expect(head).toMatch(/p\.icon == null \? null : \(\s*<span className="rk-head-chip"/);
   });
 });

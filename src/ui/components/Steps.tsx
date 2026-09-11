@@ -10,6 +10,7 @@
 // shape `Tabs`' `TabItem` takes), so a stage with no name has no way into
 // this component.
 import type React from "react";
+import { Check } from "lucide-react";
 
 export interface StepItem {
   id: string;
@@ -26,6 +27,12 @@ export interface StepItem {
    *  number this component formats. */
   note?: string;
 }
+
+/** The done check's glyph size and stroke — the chip rule's 15px (the
+ *  bead here is daisyUI's, a chip's size, not the set's 16px dot) and the
+ *  set's stroke 3 for this glyph. */
+const CHECK_SIZE = 15;
+const CHECK_STROKE = 3;
 
 export function Steps(p: {
   steps: StepItem[];
@@ -47,6 +54,16 @@ export function Steps(p: {
           className={`step${step.state === "done" || step.state === "active" ? " step-primary" : ""}`}
           data-state={step.state}
         >
+          {/* A finished step carries the set's check in its bead (UI-SPEC
+              §2.6: `ico('check',3)` in every done `.step .b`, S10 L689,
+              S11 L700; issue #486). daisyUI's own `step-icon` is the bead
+              when present, so the number it would otherwise count in is
+              replaced, not overlaid. Pending and active beads keep theirs. */}
+          {step.state === "done" ? (
+            <span className="step-icon" aria-hidden>
+              <Check size={CHECK_SIZE} strokeWidth={CHECK_STROKE} aria-hidden />
+            </span>
+          ) : null}
           {step.label}
           {step.note === undefined ? null : <span className="t-explain opacity-60">{step.note}</span>}
         </li>

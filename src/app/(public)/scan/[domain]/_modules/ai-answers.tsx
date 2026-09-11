@@ -416,5 +416,5 @@ export function AiAnswersCard(p: {
  *  absent in one written line, and the rest of the report stays usable —
  *  never an empty card, never a spinner. */
 export function AiAnswersAbsent(): React.JSX.Element {
-  return <Card state="degraded" title={<CardHead eyebrow={copy("ai-answers.title")} />} degradedLine={copy("ai-answers.absent")} />;
+  return <Card state="degraded" title={<CardHead icon={<Bot size={15} strokeWidth={1.8} aria-hidden />} eyebrow={copy("ai-answers.title")} />} degradedLine={copy("ai-answers.absent")} />;
 }

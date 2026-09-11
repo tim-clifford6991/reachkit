@@ -10,6 +10,7 @@
 // support column names §4.2's removal address, so a person who never opened
 // an email can still find the way out.
 import type React from "react";
+import { TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { copy } from "@/lib/presentation/copy";
 
@@ -25,7 +26,9 @@ export function Footer(): React.JSX.Element {
       <div className="rk-chrome-foot-in">
         <div>
           <Link href="/" className="rk-wordmark">
-            <span className="rk-wordmark-chip" aria-hidden />
+            <span className="rk-wordmark-chip" aria-hidden>
+            <TrendingUp size={15} strokeWidth={2} aria-hidden />
+          </span>
             <span>{copy("chrome.wordmark")}</span>
           </Link>
           <p className="rk-chrome-fine">{copy("chrome.footer.rights")}</p>

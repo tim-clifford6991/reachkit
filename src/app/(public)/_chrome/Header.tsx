@@ -33,6 +33,7 @@
 // and did not come to scan a domain, and a solid CTA beside the one thing
 // the page asks would be a second primary the set does not draw.
 import type React from "react";
+import { TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { Btn } from "@/ui/components/Btn";
 import { copy } from "@/lib/presentation/copy";
@@ -82,7 +83,9 @@ export function Header(p: { action: HeaderAction }): React.JSX.Element {
     <header className="rk-chrome-head" data-testid="public-header">
       <div className="rk-chrome-bar">
         <Link href="/" className="rk-wordmark">
-          <span className="rk-wordmark-chip" aria-hidden />
+          <span className="rk-wordmark-chip" aria-hidden>
+            <TrendingUp size={15} strokeWidth={2} aria-hidden />
+          </span>
           <span>{copy("chrome.wordmark")}</span>
         </Link>
 

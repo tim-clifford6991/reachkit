@@ -58,7 +58,7 @@
 "use client";
 
 import Link from "next/link";
-import { Lock, Mail } from "lucide-react";
+import { Lock, Mail, TrendingUp } from "lucide-react";
 import { use, useActionState, useState } from "react";
 import { Btn } from "@/ui/components/Btn";
 import { Input } from "@/ui/components/Input";
@@ -203,7 +203,9 @@ export default function SignInPage(props: {
                 group layout drops the header here; the mark is drawn
                 here. */}
             <p className="rk-wordmark" data-testid="signin-brand">
-              <span className="rk-wordmark-chip" aria-hidden />
+              <span className="rk-wordmark-chip" aria-hidden>
+            <TrendingUp size={15} strokeWidth={2} aria-hidden />
+          </span>
               <span>{copy("chrome.wordmark")}</span>
             </p>
 
