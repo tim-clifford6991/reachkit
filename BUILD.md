@@ -189,7 +189,7 @@ Stripe Checkout       No account, no form before payment
 
 **Public chrome (ruling 3a).** Header = brand · Sign in (quiet) · one solid CTA (on `/scan/{domain}` the right slot is *Copy link*). Footer on every public page = brand · rights line · removal address · Product (Pricing · Sign in) · Legal (Privacy · Terms · Imprint). Two solid primaries are allowed where the approved set draws them (2b). Public routes: `/` · `/scan/{domain}` · `/pricing` · `/signin` · `/signin/{token}` · `/privacy` · `/terms` · `/imprint` · `/veto/{token}` · `/opt-out/{token}` · `/robots.txt` · `/sitemap.xml` · the 404 and error pages. API routes: `/api/scan` · `/api/scan/{scanId}/progress` · `/api/report/{domain}/correct` · `/api/lead` · `/api/setup` · `/api/setup/domain` · `/api/setup/progress` · `/api/stripe/webhook` · `/api/jobs/{...slug}` · `/api/drafts/{id}/approve` · `/api/drafts/{id}/skip` · `/api/drafts/{id}/veto` · `/api/report/{domain}/removed` · `/api/export` · `/api/danger/{action}`. Account routes: `/setup` · `/setup/waiting` · `/app` · `/app/calendar` · `/app/draft/{draftId}` · `/app/settings`. Hosted: `/hosted-page/{...slug}` · `/hosted-gone`.
 
-The `/scan/{domain}` path and the report → checkout → magic-link → setup order are kept from v2.
+The `/scan/{domain}` path and the report → checkout → magic-link → setup order are kept from v2. **Sign-in is Supabase Auth (owner ruling 2026-09-10, #468):** the product mints the link with the admin `generateLink` call and mails it through its own shell (§12); the link lands on `/auth/confirm`, which verifies the one-time token (`verifyOtp`) and sets the Supabase session; account routes are gated by a server-verified `getUser()`. There is no `/signin/{token}` route and no product-minted secret.
 
 ---
 
@@ -716,7 +716,7 @@ test. A regression is shown, never hidden.
 | `leads` | id, scan_id, email(lowercased), consented_at, converted_at, draft_sent_at |
 
 One report blob per scan, no per-section tables. A 10th table needs a rendered
-surface that reads it, specified first.
+surface that reads it, specified first. **Identity (2026-09-10, #468):** `users.id` **is** `auth.users.id` (FK); sign-in and email-change tokens are Supabase Auth's, so there is no `auth_links` table and no `users.sessions_valid_from` — sign-out everywhere is the admin global sign-out, erasure deletes the `auth.users` row last.
 
 ---
 

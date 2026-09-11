@@ -6,64 +6,75 @@
 // to the old address saying the account now signs in at a different address
 // and this one no longer can."
 //
-// Four things happen, in this order and for these reasons:
+// By the time this runs Supabase has verified the link and moved
+// `auth.users.email` — it moves it on that token and on no other, which is
+// what keeps criterion 2's "the old address keeps working until that link
+// is used" (#468). Three things follow, in this order:
 //
-// 1. **The address moves, the pending columns clear and every session
-//    issued before now ends — in one statement.** One `update` of one row,
-//    so there is no interval in which the address has moved but the pending
-//    change is still standing, or in which the new address signs in and an
-//    old device still holds a session. BP-061 decision 4 is why the last of
-//    those is in the same statement as the first two: "The likeliest reason
-//    to move an address is that the old one is no longer the customer's."
-// 2. **Every unspent link for the account is spent.** After the move they
-//    are links to an address that no longer signs in; a live one is a key
-//    to a door that has been rehung. This follows the move rather than
-//    preceding it — spending first and failing second would leave a
-//    customer with no link and no change.
-// 3. **A session is issued at the new address.** The customer proved it;
-//    making them ask for a second link would be the dead end REQ-024 c4
-//    forbids.
-// 4. **One `account` mail goes to the old address.** If it fails, the
+// 1. **The address is mirrored into `users.email` and the pending columns
+//    clear — in one statement.** Every mail ReachKit sends reads
+//    `users.email`, so the mirror is what makes "every mail goes to it"
+//    true.
+// 2. **Every other session ends** (BP-061 decision 4: "The likeliest reason
+//    to move an address is that the old one is no longer the customer's").
+//    `signOut(…, "others")` with the session this redemption just issued,
+//    so the customer who proved the address stays signed in and nobody
+//    else does. A sign-in link still live from before the move is spent the
+//    same way: one is minted and sent to nobody, which Supabase's
+//    one-token-per-type rule makes the end of the old one.
+// 3. **One `account` mail goes to the old address.** If it fails, the
 //    change still stands and the failure is recorded loudly and carried
 //    back in the outcome — BP-061, verbatim: "reverting an address the
 //    customer has already proved would lock them out of the account they
-//    just moved." It is recorded rather than thrown for the same reason:
-//    a throw here would answer the redemption with an error and leave the
-//    customer holding a spent link and no session, on an account whose
-//    address has already changed.
+//    just moved."
 import { sendEmail } from "@/lib/mail/send";
 import { buildAddressMoved } from "@/lib/mail/templates/account";
+import { identityAuth } from "./auth";
 import { deadLink, logLink, type RedeemedLink } from "./outcomes";
-import { identityStore, type AuthLinkRow } from "./store";
+import { identityStore, type IdentityAccountRow } from "./store";
 
 export async function completeEmailChange(a: {
-  link: AuthLinkRow;
+  account: IdentityAccountRow;
+  verified: { userId: string; email: string | null; accessToken: string };
   now: Date;
 }): Promise<RedeemedLink> {
-  const store = identityStore();
-  const { link, now } = a;
+  const { account, verified } = a;
+  const purpose = "email_change" as const;
+  const newEmail = account.pending_email;
+  const oldAddress = account.email;
 
-  // Read before the write, for one reason only: the old address, which is
-  // about to stop being `users.email` and is the one address criterion 3's
-  // mail must reach.
-  const before = await store.account(link.user_id);
-  if (!before.ok || before.account === null) {
-    return deadLink("unknown", { userId: link.user_id, purpose: link.purpose });
+  // Supabase answered, but did not move the address to the one this
+  // account was waiting on — a project with "Secure email change" still on
+  // wants a second link to the old address first. Nothing is mirrored,
+  // because nothing moved.
+  if (newEmail === null || (verified.email ?? "").toLowerCase() !== newEmail.toLowerCase()) {
+    logLink({ event: "email_change_not_moved", userId: account.id, purpose, outcome: "unknown" });
+    return deadLink("unknown", { userId: account.id, purpose });
   }
-  const oldAddress = before.account.email;
 
-  const moved = await store.completeChange({
-    userId: link.user_id,
-    newEmail: link.sent_to,
-    at: now,
-  });
-  // `conflict` is another account having taken the address between the
-  // request and this click. The link is already spent, and there is nothing
-  // truthful to do but ask for another change.
-  if (!moved.ok) return deadLink("unknown", { userId: link.user_id, purpose: link.purpose });
+  const moved = await identityStore().completeChange({ userId: account.id, newEmail });
+  if (!moved.ok) {
+    // Supabase moved the address and the mirror did not land: the two
+    // tables disagree about where this account signs in. Loud, because a
+    // person has to reconcile it.
+    logLink({ event: "email_change_mirror_failed", userId: account.id, purpose, outcome: "store" });
+    return deadLink("unknown", { userId: account.id, purpose });
+  }
 
-  await store.spendAll(link.user_id, now);
-  const site = await store.siteForAccount(link.user_id);
+  const ended = await identityAuth().signOutEverywhere(verified.accessToken, "others");
+  if (!ended.ok) {
+    logLink({ event: "email_change_other_sessions_kept", userId: account.id, purpose, outcome: "vendor" });
+  }
+
+  // A sign-in link still live from before the move was mailed to the old
+  // address, and must not sign it in (REQ-077 c3: "only the new address can
+  // sign in"). Supabase keeps one live sign-in token per user and replaces
+  // it on every `generateLink`, so minting one — sent to nobody — is what
+  // spends it.
+  const superseded = await identityAuth().generateLink({ kind: "sign_in", email: newEmail });
+  if (!superseded.ok) {
+    logLink({ event: "email_change_old_links_kept", userId: account.id, purpose, outcome: "vendor" });
+  }
 
   const mail = buildAddressMoved();
   const notice = await sendEmail({
@@ -75,27 +86,18 @@ export async function completeEmailChange(a: {
   if (!notice.sent) {
     logLink({
       event: "email_change_notice_not_sent",
-      userId: link.user_id,
-      purpose: link.purpose,
+      userId: account.id,
+      purpose,
       outcome: notice.reason,
     });
   }
 
-  logLink({
-    event: "auth_link_redeemed",
-    userId: link.user_id,
-    purpose: link.purpose,
-    outcome: "address_changed",
-  });
+  logLink({ event: "auth_link_redeemed", userId: account.id, purpose, outcome: "address_changed" });
 
   return {
     ok: true,
-    purpose: link.purpose,
-    userId: link.user_id,
-    // The session is issued at the same instant the statement above ended
-    // every earlier one, and `currentSession` compares with `<`, so this
-    // session is not ended by the stamp that ended the others.
-    session: { userId: link.user_id, siteId: site.ok ? site.siteId : null, issuedAt: now },
+    purpose,
+    userId: account.id,
     // Never a first sign-in: an account cannot begin an email change from a
     // screen it has not signed in to reach.
     firstSignIn: false,

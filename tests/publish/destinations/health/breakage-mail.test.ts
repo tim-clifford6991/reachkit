@@ -28,6 +28,8 @@ vi.mock("@/lib/mail/send", () => ({
 }));
 
 import { DESTINATION_BREAKAGE_MAIL_DELAY_H } from "@/lib/config/constants";
+import { setIdentityAuth } from "@/lib/account/identity/auth";
+import { addAuthUser, fakeIdentityAuth, newFakeAuth, type FakeAuthState } from "../../../account/identity/fake-auth";
 import { breakageMailDue, sendBreakageMail } from "@/lib/publish/destinations/health";
 
 const HOUR_MS = 3_600_000;
@@ -35,6 +37,8 @@ const HOUR_MS = 3_600_000;
 const NOW = new Date("2026-09-06T12:00:00.000Z");
 /** Exactly 24 hours before `NOW`. */
 const BROKE_AT = new Date(NOW.getTime() - DESTINATION_BREAKAGE_MAIL_DELAY_H * HOUR_MS);
+
+let auth: FakeAuthState = newFakeAuth();
 
 function seed(destination: Row = {}, user: Row = {}, links: Row[] = []): void {
   db.seed("sites", [{ id: "site-1", user_id: "user-1", domain: "example.com", publishing_enabled: true }]);
@@ -58,7 +62,18 @@ function seed(destination: Row = {}, user: Row = {}, links: Row[] = []): void {
       ...destination,
     },
   ]);
-  db.seed("auth_links", links);
+  // #468: the last sign-in is Supabase Auth's `last_sign_in_at`. The cases
+  // below still speak in redeemed sign-in links — the event that moves it —
+  // so each seeds the newest of *this* customer's redeemed `sign_in` links
+  // as the auth user's stamp, and every other row stays what it was: not a
+  // sign-in at all.
+  auth = newFakeAuth();
+  const authUser = addAuthUser(auth, { id: "user-1", email: "dana@example.com" });
+  const redeemed = links
+    .filter((l) => l["user_id"] === "user-1" && l["purpose"] === "sign_in" && typeof l["spent_at"] === "string")
+    .map((l) => Date.parse(l["spent_at"] as string));
+  authUser.lastSignInAt = redeemed.length === 0 ? null : new Date(Math.max(...redeemed));
+  setIdentityAuth(fakeIdentityAuth(auth));
   db.seed("drafts", [
     { id: "d1", site_id: "site-1", state: "approved", publishable_since: "2026-09-02T00:00:00.000Z" },
     { id: "d2", site_id: "site-1", state: "approved", publishable_since: "2026-09-03T00:00:00.000Z" },
@@ -68,6 +83,7 @@ function seed(destination: Row = {}, user: Row = {}, links: Row[] = []): void {
 
 beforeEach(() => {
   db.reset();
+  setIdentityAuth(fakeIdentityAuth(newFakeAuth()));
   mail.sent.length = 0;
   mail.result = { sent: true, id: "mail-1" };
 });
@@ -122,7 +138,7 @@ describe("each of the four conjuncts, falsified alone, makes it not due", () => 
   });
 });
 
-describe("the last sign-in is the newest redeemed sign-in link (#35)", () => {
+describe("the last sign-in is the newest redeemed sign-in link — Supabase Auth's `last_sign_in_at` (#35, #468)", () => {
   /** One redeemed link, `offsetH` hours from the moment it broke. */
   function link(offsetH: number, over: Row = {}): Row {
     return {

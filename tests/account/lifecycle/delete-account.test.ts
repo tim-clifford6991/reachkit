@@ -82,7 +82,7 @@ describe("REQ-079 c6 — the fixed order, each step a precondition of the next",
   it("the customer is signed out — every session, not this one alone", async () => {
     const run = await deleteAccount({ siteId: "site-1", now: NOW });
     expect(run.ok && run.result.signedOut).toBe(true);
-    expect(state.accounts[0]?.sessions_valid_from).toBe(NOW.toISOString());
+    expect(state.signedOutEverywhere).toEqual([state.accounts[0]?.id]);
   });
 
   it("the subscription's end comes back on the result", async () => {

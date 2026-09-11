@@ -1,9 +1,9 @@
-// tests/app/settings/account-actions.test.ts — BUILD §4.7 · §13, issue #134
+// tests/app/settings/account-actions.test.ts — BUILD §4.7 · §13, issues #134, #468
 //
 // The three Server Functions behind the account card, against the **real**
-// identity seam: the memory store the identity suites drive, the mail seam
-// doubled at its own boundary, and a cookie jar standing in for the
-// request's. Nothing about what an address change *is* is re-asserted here
+// identity seam: the memory store and the Supabase Auth double the identity
+// suites drive, the mail seam doubled at its own boundary, and a cookie jar
+// standing in for the request's. Nothing about what an address change *is* is re-asserted here
 // (`tests/account/identity/email-change.test.ts` owns that) — what this
 // file holds is that the surface reaches it, hands it the **session's** own
 // account and not a stand-in, and reports back exactly what it answered.
@@ -26,12 +26,16 @@ const jar = new Map<string, string>();
 
 vi.mock("next/headers", () => ({
   cookies: async () => ({
+    getAll: () => [...jar].map(([name, value]) => ({ name, value })),
     get: (name: string) => {
       const value = jar.get(name);
       return value === undefined ? undefined : { name, value };
     },
-    set: (name: string, value: string) => {
-      jar.set(name, value);
+    // A cookie written empty or with `maxAge: 0` is a cleared one, as a
+    // browser treats it.
+    set: (name: string, value: string, options?: { maxAge?: number }) => {
+      if (value === "" || options?.maxAge === 0) jar.delete(name);
+      else jar.set(name, value);
     },
     delete: (name: string) => {
       jar.delete(name);
@@ -62,9 +66,16 @@ vi.mock("next/navigation", () => ({
   },
 }));
 
-const { SESSION_COOKIE_NAME, SIGNIN_PATH } = await import("@/lib/account/identity/addresses");
-const { mintSessionCookie } = await import("@/lib/account/identity/cookie");
+const { SIGNIN_PATH } = await import("@/lib/account/identity/addresses");
 const { setIdentityStore } = await import("@/lib/account/identity/store");
+const { setIdentityAuth } = await import("@/lib/account/identity/auth");
+const {
+  FAKE_AUTH_COOKIE: SESSION_COOKIE_NAME,
+  addAuthUser,
+  fakeIdentityAuth,
+  newFakeAuth,
+  signedInCookie,
+} = await import("../../account/identity/fake-auth");
 const { accountCard } = await import("@/lib/account/identity/email-change");
 const { addAccount, memoryIdentityStore, newMemoryIdentity } = await import(
   "../../account/identity/memory-store"
@@ -77,18 +88,28 @@ const { beginEmailChangeAction, cancelEmailChangeAction, signOutAction } = await
 );
 
 let state = newMemoryIdentity();
+let auth = newFakeAuth();
 
 beforeEach(() => {
   jar.clear();
   revalidated.length = 0;
   state = newMemoryIdentity();
+  auth = newFakeAuth();
   setIdentityStore(memoryIdentityStore(state));
+  setIdentityAuth(fakeIdentityAuth(auth));
   sendCalls.length = 0;
   sendOutcome.next = { sent: true, id: "vendor-1" };
 });
 
-function signIn(userId: string, siteId: string | null = "site-1"): void {
-  jar.set(SESSION_COOKIE_NAME, mintSessionCookie({ userId, siteId, issuedAt: new Date() }));
+/** This browser signed in as `userId`: a Supabase session in the jar, for
+ *  an `auth.users` row whose id the account carries (#468). */
+function signIn(userId: string): void {
+  const row = state.users.find((u) => u.id === userId);
+  if (row !== undefined && !auth.users.some((u) => u.id === userId)) {
+    addAuthUser(auth, { id: userId, email: row.email });
+  }
+  const [, token] = signedInCookie(auth, userId).split("=") as [string, string];
+  jar.set(SESSION_COOKIE_NAME, token);
 }
 
 function submit(address: string): FormData {
@@ -105,9 +126,11 @@ describe('REQ-077 c5 — "that session ends and returning requires a fresh sign-
     signIn(user.id);
 
     expect(await signOutAction()).toEqual({ done: "elsewhere", href: SIGNIN_PATH });
-    // The cookie is gone, which is the whole of ending a session — not a
-    // flag, not a list of devices.
+    // The cookie is gone and Supabase has revoked the session behind it —
+    // this one, and no other device's.
     expect(jar.has(SESSION_COOKIE_NAME)).toBe(false);
+    expect(auth.sessions.every((s) => s.revoked)).toBe(true);
+    expect(auth.signOuts).toEqual([]);
   });
 
   it("takes the `elsewhere` arm, because a client-side route change would not do", async () => {

@@ -7,8 +7,8 @@
 // their `sites.setup_completed_at` is set.
 //
 // **This file is Node-only, and that is the point of it being a separate
-// file.** `currentSession()` pulls `next/headers` and a `node:crypto`
-// HMAC, and the store below pulls `dbAdmin()`. `src/middleware.ts` is
+// file.** `currentSession()` pulls `next/headers` and the Supabase Auth
+// client, and the store below pulls `dbAdmin()`. `src/middleware.ts` is
 // bundled for the Edge runtime and imports `gate.ts` for one header name;
 // keeping the reads here means that import can never drag any of them into
 // the Edge bundle. The enforcement point that does import this file is

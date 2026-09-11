@@ -16,7 +16,9 @@ import type {
 
 export interface MemoryLifecycle {
   sites: LifecycleSiteRow[];
-  accounts: (LifecycleAccountRow & { sessions_valid_from: string | null })[];
+  accounts: LifecycleAccountRow[];
+  /** The accounts `endSessions` ended every session of (#468). */
+  signedOutEverywhere: string[];
   tickets: DangerTicketRow[];
   publications: LivePublicationRow[];
   destinations: DestinationIdRow[];
@@ -38,6 +40,7 @@ export function newMemoryLifecycle(): MemoryLifecycle {
     destinations: [],
     deleted: [],
     writes: [],
+    signedOutEverywhere: [],
     unreadable: false,
     refuseDelete: null,
   };
@@ -112,11 +115,11 @@ export function memoryLifecycleStore(state: MemoryLifecycle): LifecycleStore {
       );
       return { ok: true };
     },
-    async endSessions(userId, at) {
+    async endSessions(userId) {
+      // #468: Supabase Auth's `admin.signOut(token, "global")` — recorded
+      // as the call it is, since no `users` column carries it any more.
       state.writes.push("endSessions");
-      state.accounts = state.accounts.map((row) =>
-        row.id === userId ? { ...row, sessions_valid_from: at.toISOString() } : row
-      );
+      state.signedOutEverywhere.push(userId);
       return { ok: true };
     },
     async accountsDueForPurge(now) {
@@ -161,12 +164,11 @@ export function memoryLifecycleStore(state: MemoryLifecycle): LifecycleStore {
 
 export function account(
   a: Partial<LifecycleAccountRow> & { id: string }
-): LifecycleAccountRow & { sessions_valid_from: string | null } {
+): LifecycleAccountRow {
   return {
     id: a.id,
     email: a.email ?? `${a.id}@example.com`,
     deleted_at: a.deleted_at ?? null,
     purge_due_at: a.purge_due_at ?? null,
-    sessions_valid_from: null,
   };
 }

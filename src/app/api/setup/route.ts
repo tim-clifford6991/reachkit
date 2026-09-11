@@ -11,9 +11,9 @@
 // another founder's site by editing a payload.
 //
 // **The account is the session's, since #133.** `currentSession()`
-// (BP-061, #35) is the whole of it: the cookie's MAC, its signed expiry,
-// the account's own session stamp and its tombstone are all checked there,
-// and this file adds no claim of its own. `src/middleware.ts` has already
+// (BP-061, #35, on Supabase Auth since #468) is the whole of it: Supabase
+// verifies the session and the account's tombstone is checked there, and
+// this file adds no claim of its own. `src/middleware.ts` has already
 // refused a request that carries no cookie at all, so the `null` arm below
 // is the forged, expired or ended one — answered the way every other
 // account endpoint answers it, with a status and no sentence.
