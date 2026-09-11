@@ -1178,6 +1178,15 @@ describe("BUILD §6.3 / DATA-COSTS §1 — the inference price book, in cents pe
       });
     }
   );
+
+  it(
+    "issue #523 — PROFILE_INPUT_MAX_CHARS, the bound on the page text one profile prompt carries: the 20 000 " +
+      "characters #517's free-pass worst case assumed and nothing enforced, while an own document may be 6 MB",
+    () => {
+      expect(pins.PROFILE_INPUT_MAX_CHARS).toBe(20_000);
+      expect(pins.PROFILE_INPUT_MAX_CHARS).toBeLessThan(pins.OWN_DOCUMENT_MAX_BYTES);
+    }
+  );
 });
 
 describe("BUILD §6.1 / DATA-COSTS §1 — VENDOR, the request shapes the price book prices", () => {
