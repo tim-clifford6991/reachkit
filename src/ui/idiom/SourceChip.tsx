@@ -1,4 +1,4 @@
-// UI-SPEC §2 `Source chip | .srcchip` — the card head's provenance chip (#487).
+// BUILD §2.2, UI-SPEC §2 `Source chip | .srcchip` — the card head's provenance chip (#487).
 // src/ui/idiom/SourceChip.tsx
 //
 // "mono 11.5 on `--sunk`, names a source and date." One renderer for every
@@ -16,7 +16,7 @@
 // half-width card, and at the compact band a phrase that cannot fold is
 // wider than the card. Opted in, never inferred — whether a source is one
 // value or a line of language is the caller's call, as with `Num`'s
-// `phrase`.
+// `phrase`, and it spends the same class.
 import type React from "react";
 
 export function SourceChip(p: {
@@ -25,7 +25,12 @@ export function SourceChip(p: {
   wrap?: boolean;
 }): React.JSX.Element {
   return (
-    <span className="rk-srcchip" data-wrap={p.wrap === true ? "" : undefined}>
+    // The wrap arm is `.num-phrase` — §2.3's ruled opt-in for a mono line
+    // of language that folds at its spaces and never inside a word (#307).
+    <span
+      className={p.wrap === true ? "rk-srcchip num-phrase" : "rk-srcchip"}
+      data-wrap={p.wrap === true ? "" : undefined}
+    >
       {p.children}
     </span>
   );

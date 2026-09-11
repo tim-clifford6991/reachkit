@@ -1,4 +1,4 @@
-// UI-SPEC §2 `Question list | .q` — the report's "The 12 questions" (#487).
+// BUILD §2.2, UI-SPEC §2 `Question list | .q` — the report's "The 12 questions" (#487).
 // src/ui/idiom/QuestionList.tsx
 //
 // "`n · "question"` · `not you` badge · mono provenance line." One renderer

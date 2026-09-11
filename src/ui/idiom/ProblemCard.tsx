@@ -1,4 +1,4 @@
-// UI-SPEC §2 `Problem card | .prob .sev-*` — the report's module 3 card (#487).
+// BUILD §2.2, UI-SPEC §2 `Problem card | .prob .sev-*` — the report's module 3 card (#487).
 // src/ui/idiom/ProblemCard.tsx
 //
 // "left border = severity colour; title · severity badge · who-does-it
