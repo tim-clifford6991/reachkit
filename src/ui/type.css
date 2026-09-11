@@ -102,8 +102,34 @@ h1, h2, h3, h4, h5, h6 {
  * they are their own work, not this line's. */
 h1 { font-size: var(--h2); }
 
+/* S1's hero headline at 46px (owner ruling 2026-09-11 on #534); a class and
+ * not a utility because the unlayered `h1` rule above out-ranks `@layer
+ * utilities`. Below 640 it keeps the element's narrow step (#258). */
+:root {
+  --t-hero: 46px;
+}
+
+/* Leading 1.25: at 1.1 the glyph box overflows its line box and the layout
+ * suite's clipping check reports the h1 at every width. */
+.t-hero {
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.25;
+  margin: 0;
+  text-wrap: balance;
+}
+
+/* The canvas's section heading: display weight and tracking on the
+ * element's own `--h2` step. A class for `.t-hero`'s reason. */
+.t-section {
+  font-weight: 800;
+  letter-spacing: -0.025em;
+}
+
 @media (min-width: 640px) {
   h1 { font-size: var(--h1); }
+
+  .t-hero { font-size: var(--t-hero); }
 }
 
 h2 { font-size: var(--h2); }

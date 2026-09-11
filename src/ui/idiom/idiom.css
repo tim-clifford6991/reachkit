@@ -453,9 +453,14 @@
  * width; the panel carries no action and no route, so following the form
  * costs the customer nothing, while putting it above pushes an email field
  * below the fold on a phone. */
+/* One declaration, and it is /signin's (#534): the class was declared twice
+ * and the later grid won, so what this screen actually computed is folded
+ * here. The inert flex-only declarations are dropped. */
 .rk-split {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--s-6);
+  align-items: center;
   min-height: 100svh;
 }
 
@@ -470,27 +475,14 @@
   min-height: 0;
 }
 
-/* The two panels divide what the split has, rather than each taking only
- * its own content and leaving the tail on the ground. At the narrow band
- * that tail was a band of `--bg` below the accent panel; the panels are
- * what the screen is made of, so they are what fills it. */
-.rk-split > .rk-split-form,
-.rk-split > .rk-split-panel {
-  flex: 1 1 auto;
-}
-
 .rk-split > * {
   min-height: 0;
 }
 
 @media (min-width: 1024px) {
   .rk-split {
-    flex-direction: row;
-    align-items: stretch;
-  }
-
-  .rk-split > * {
-    flex: 1 1 50%;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--s-7);
   }
 }
 
@@ -565,59 +557,12 @@
   margin: 0;
 }
 
-/* ── 7 · The landing (UI-SPEC S1, the approved set — issue #351) ──────
+/* ── 7 · What other screens still spend (issue #351, reduced by #534) ──
  *
- * The owner approved the complete screen set on 2026-09-08 and it
- * supersedes the card idiom's drawing of this page: no accent ground, one
- * `--bg` page with hairline rules between its sections, the hero component
- * in a browser frame, and the video frame ruling 4c added.
- *
- * **Every value below is an approved token, and the three the set writes as
- * bare literals resolve to the ladder** — ruling 10a's own instruction, and
- * since #349 the gate that enforces it. The landing's 46px headline and the
- * 16px Step title keep their elements' ruled steps (`type.css` binds the
- * scale to the element); the miniature's 28px figure takes `--h1`, the rung
- * above and below it being 31 and 25; and the video's 66px play control is
- * `calc(var(--s-6) * 2)`, twice the chip rung — a construction over
- * approved tokens rather than a fourth name for a size.
+ * The landing's own layout is not here any more — it is token utilities in
+ * `src/app/(public)/page.tsx`. What stays is what S8's fallbacks, the public
+ * header, the legal pages and `HeroShot`'s browser frame still use.
  * ───────────────────────────────────────────────────────────────────── */
-
-/* Block padding only. The inline gutter is the `Surface`'s (issue #241),
- * and a hero that added its own would inset the tagline twice — at 320 that
- * is 64px off a 320px viewport. */
-.rk-hero {
-  padding-block: var(--s-6);
-}
-
-@media (min-width: 640px) {
-  .rk-hero {
-    padding-block: var(--s-7);
-  }
-}
-
-/* The two-column split the set draws three times: the hero, and sections
- * 01 and 02. One column below --breakpoint-lg, two above it — the band
- * boundary ADR-093 already names, and the set's own 1024. */
-.rk-split {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--s-6);
-  align-items: center;
-}
-
-@media (min-width: 1024px) {
-  .rk-split {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: var(--s-7);
-  }
-}
-
-.rk-hero-copy {
-  display: flex;
-  flex-direction: column;
-  gap: var(--s-4);
-  min-width: 0;
-}
 
 /* The hero's headline. **It sets no size**, and that is ruling 10a applied
  * rather than ignored: the approved set writes this line at a bare 46px,
@@ -636,28 +581,6 @@
   line-height: 1.25;
   margin: 0;
   text-wrap: balance;
-}
-
-.rk-hero-s {
-  font-size: var(--h4);
-  color: var(--ink-2);
-  margin: 0;
-  max-width: var(--w-form);
-}
-
-/* The field and its control on one row. `--w-form` is the ruled measure a
- * single form column takes; the row never wraps above the compact band. */
-.rk-hero-form {
-  display: flex;
-  gap: var(--s-2);
-  flex-wrap: wrap;
-  align-items: flex-end;
-  max-width: var(--w-read);
-}
-
-.rk-hero-form > :first-child {
-  flex: 1 1 var(--w-form);
-  min-width: 0;
 }
 
 /* The set's own `.prov`: mono, quiet, no margin. It writes the landing's
@@ -795,132 +718,6 @@
 .rk-shot-of {
   font-size: var(--t-body);
   color: var(--ink-3);
-}
-
-/* ── The sections ───────────────────────────────────────────────────── */
-
-/* One ground and a hairline between sections — the set's own rhythm. The
- * rule is the section's top border rather than a divider element: a rule
- * that is a box is a box that can be empty. */
-.rk-sec {
-  padding-block: var(--s-6);
-  border-top: 1px solid var(--line);
-  display: flex;
-  flex-direction: column;
-  gap: var(--s-5);
-}
-
-@media (min-width: 640px) {
-  .rk-sec {
-    padding-block: var(--s-7);
-  }
-}
-
-.rk-sec-read {
-  max-width: var(--w-read);
-  min-width: 0;
-}
-
-.rk-sec-centred {
-  margin-inline: auto;
-}
-
-.rk-sec-n {
-  font-family: var(--font-mono);
-  font-size: var(--t-xs);
-  color: var(--accent);
-  margin: 0;
-}
-
-.rk-sec-h {
-  font-size: var(--h2);
-  font-weight: 800;
-  letter-spacing: -0.025em;
-  color: var(--ink);
-  margin: var(--s-2) 0 var(--s-3);
-  text-wrap: balance;
-}
-
-.rk-sec-s {
-  font-size: var(--t-body);
-  color: var(--ink-2);
-  margin: 0;
-}
-
-.rk-center {
-  text-align: center;
-}
-
-.rk-close {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--s-2);
-}
-
-/* ── The demo video block (ruling 4c) ───────────────────────────────── */
-
-/* `aspect-ratio` is a proportion, not a length: the block reserves its own
- * space before any asset exists, so nothing on the page moves the day one
- * does. */
-.rk-video {
-  aspect-ratio: 16 / 9;
-  width: 100%;
-  border-radius: var(--r-box);
-  background: var(--sunk);
-  border: 1px solid var(--line);
-  display: grid;
-  place-items: center;
-  position: relative;
-  overflow: hidden;
-}
-
-.rk-play {
-  width: calc(var(--s-6) * 2);
-  height: calc(var(--s-6) * 2);
-  border-radius: var(--r-pill);
-  background: var(--accent);
-  color: var(--on-accent);
-  display: grid;
-  place-items: center;
-  flex: 0 0 auto;
-}
-
-/* The one written line 4c puts in the frame while no asset exists. */
-.rk-video-line {
-  position: absolute;
-  bottom: var(--s-4);
-  font-family: var(--font-mono);
-  font-size: var(--t-explain);
-  color: var(--ink-3);
-  padding-inline: var(--s-4);
-  text-align: center;
-}
-
-/* ── Section 03's three Step cards ──────────────────────────────────── */
-
-.rk-three {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--s-4);
-}
-
-@media (min-width: 1024px) {
-  .rk-three {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    align-items: start;
-  }
-}
-
-/* The Step card's title. **It sets no size**, for `.rk-hero-h`'s reason:
- * the set draws it as an `<h3>` at the h4 rung, and in this product the
- * ruled scale is bound to the element (#258) and measured by
- * `tests/ui/layout/heading-scale.test.ts`. The element keeps its own step;
- * what this carries is the weight and the margin. */
-.rk-step-h {
-  font-weight: 700;
-  color: var(--ink);
-  margin: 0;
 }
 
 /* The dim line under a card's own answer — the set's `.explain`. */
@@ -1990,20 +1787,14 @@
   margin-top: var(--s-3);
 }
 
-/* The scan field on S8 is the landing's own form, centred and at the form
- * measure: the set draws it narrower than the reading column it sits in,
- * with the field and the control on **one** row. The hero gives its own
- * field a `--w-form` flex basis, which is the whole of this column — so the
- * control would wrap under it here. `auto` is the field's own intrinsic
- * width instead, and it still grows into whatever the control leaves. */
-.rk-fallback > .rk-hero-form {
-  width: 100%;
-  max-width: var(--w-form);
+/* The scan field on S8 is the landing's own form, centred: the set draws it
+ * narrower than the reading column it sits in, with the field and the
+ * control on **one** row. Since #534 the form's own utilities give it the
+ * `--w-form` measure and let the field grow into what the control leaves
+ * (`ScanForm.tsx`), on both screens; what S8 adds is only the centring of
+ * a control that wraps under the field at 320. */
+.rk-fallback > form {
   justify-content: center;
-}
-
-.rk-fallback > .rk-hero-form > :first-child {
-  flex: 1 1 auto;
 }
 
 /* ── The report's three (UI-SPEC §2, issue #487) ──────────────────────── */
