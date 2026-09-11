@@ -19,7 +19,7 @@
 import { describe, expect, it } from "vitest";
 import type React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { COPY, TODO_COPY_MARKER } from "../../../src/lib/presentation/copy";
+import { AWAITING_COPY, COPY } from "../../../src/lib/presentation/copy";
 import ReportLoading from "../../../src/app/(public)/scan/[domain]/loading";
 import AppLoading from "../../../src/app/(account)/app/loading";
 
@@ -42,7 +42,7 @@ const EVERY_SCREEN = [
 describe("UI-SPEC §4 rule 3 — a waiting state is one written line", () => {
   it.each(EVERY_SCREEN)("$name draws exactly one sentence", ({ markup }) => {
     expect(occurrences(markup, "<p")).toBe(1);
-    expect(occurrences(markup, `<p class="rk-quiet">${TODO_COPY_MARKER}</p>`)).toBe(1);
+    expect(occurrences(markup, `<p class="rk-quiet">${COPY["chrome.loading.line"]}</p>`)).toBe(1);
   });
 
   it.each(EVERY_SCREEN)("$name draws no bar and no spinner", ({ markup }) => {
@@ -76,12 +76,13 @@ describe("UI-SPEC §4 rule 3 — a waiting state is one written line", () => {
     expect(markup).toContain('aria-busy="true"');
   });
 
-  it("both mounts spend the one key, and it is owner-owed", () => {
+  it("both mounts spend the one key, and it is the owner's approved line (2026-09-10, #459)", () => {
     // One sentence, one home. The 404's line is split public/app because
     // the two say different things; a waiting line does not.
-    expect(COPY["chrome.loading.line"]).toBe(TODO_COPY_MARKER);
-    expect(occurrences(REPORT, TODO_COPY_MARKER)).toBe(1);
-    expect(occurrences(APP, TODO_COPY_MARKER)).toBe(1);
+    expect(COPY["chrome.loading.line"]).toBe("Loading…");
+    expect(AWAITING_COPY).not.toContain("chrome.loading.line");
+    expect(occurrences(REPORT, COPY["chrome.loading.line"])).toBe(1);
+    expect(occurrences(APP, COPY["chrome.loading.line"])).toBe(1);
   });
 
   it("the report's arm is its own Surface root; the app's is not", () => {

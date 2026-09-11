@@ -23,7 +23,10 @@ async function freshCopyWith(entries: Record<string, readonly [string, { slots: 
   vi.resetModules();
   const COPY = Object.freeze(Object.fromEntries(Object.entries(entries).map(([k, v]) => [k, v[0]])));
   const COPY_META = Object.freeze(Object.fromEntries(Object.entries(entries).map(([k, v]) => [k, v[1]])));
-  vi.doMock(REGISTRY_PATH, () => ({ COPY, COPY_META, OWNER_OWED: Object.freeze([]) }));
+  // Derived exactly as registry.ts derives it: a key is owner-owed when its
+  // value is the empty string.
+  const OWNER_OWED = Object.freeze(Object.entries(entries).filter(([, v]) => v[0] === "").map(([k]) => k));
+  vi.doMock(REGISTRY_PATH, () => ({ COPY, COPY_META, OWNER_OWED }));
   const mod = await import("../../../src/lib/presentation/copy/copy.ts");
   return mod.copy;
 }
@@ -86,12 +89,28 @@ describe("copy() implementation order (WO-041 step 6)", () => {
 });
 
 describe("an owner-owed key throws rather than rendering blank", () => {
+  // With every owed sentence written, the real OWNER_OWED is empty — the
+  // goal, not a failure — so this holds vacuously on the true state and
+  // bites again the moment an empty value lands.
   it("copy() throws on every OWNER_OWED key, and the message names the key", () => {
-    expect(OWNER_OWED.length).toBeGreaterThan(0);
     for (const key of OWNER_OWED) {
       expect(() => copy(key)).toThrow(key);
       expect(() => copy(key)).toThrow("owner-owed");
     }
+  });
+
+  // The throw itself, proven on a synthetic empty-value key through the
+  // same registry override the tests above use, so it stays exercised
+  // however many real keys are owed.
+  it("an empty-value key is owner-owed, and copy() throws naming it", async () => {
+    const copyFn = await freshCopyWith({
+      "fixture.owed": ["", { slots: {}, fixedBy: "TEST" }],
+      "fixture.written": ["Written.", { slots: {}, fixedBy: "TEST" }],
+    });
+    expect(() => copyFn("fixture.owed" as CopyKey)).toThrow("fixture.owed");
+    expect(() => copyFn("fixture.owed" as CopyKey)).toThrow("owner-owed");
+    expect(copyFn("fixture.written" as CopyKey)).toBe("Written.");
+    vi.doUnmock(REGISTRY_PATH);
   });
 });
 

@@ -158,11 +158,14 @@ function hashSeed(seed: string): NetworkKey {
 // ── Admission — BP-012's declared union, reproduced verbatim ────────────
 
 /** Verbatim BP-012's declared union — the refusal reasons and their fields are
- *  that node's contract and are not restated differently here. */
+ *  that node's contract and are not restated differently here — plus one
+ *  field it lacked: `in_flight`'s `runningSince`, the running row's
+ *  `created_at`, so a refusal can say how long the network stays held
+ *  (issue #510). Absent only when no running row could be re-read. */
 export type Admission =
   | { admit: true }
   | { refuse: "hourly"; retryAfterSeconds: number }
-  | { refuse: "in_flight"; sameDomain: boolean; runningScanId?: string }
+  | { refuse: "in_flight"; sameDomain: boolean; runningScanId?: string; runningSince?: Date }
   | { refuse: "daily"; retryAfterSeconds: number }
   | { refuse: "switched_off" }
   | { refuse: "cooldown"; retryAfterSeconds: number }
@@ -217,6 +220,7 @@ function untyped(client: ReturnType<typeof dbAdmin>): MinimalClient {
 interface ScanNetworkRow {
   id: string;
   domain: string;
+  created_at: string;
 }
 
 /** The row `claimFreeScanSlot` inserts — BP-023 `## Data model delta`'s
@@ -323,7 +327,7 @@ async function checkInFlight(
 ): Promise<Admission | null> {
   const { data, error } = await untyped(client)
     .from<ScanNetworkRow>("scans")
-    .select("id, domain")
+    .select("id, domain, created_at")
     .eq("network_hash", network)
     .eq("status", "running")
     .order("created_at", { ascending: false })
@@ -331,9 +335,13 @@ async function checkInFlight(
   if (error) throw new Error(error.message);
   const running = data?.[0];
   if (!running) return null;
+  // A clock that does not parse is left off rather than guessed at: the
+  // reader of `runningSince` then falls back to the whole bound.
+  const since = new Date(running.created_at);
+  const runningSince = Number.isNaN(since.getTime()) ? {} : { runningSince: since };
   return running.domain === domain
-    ? { refuse: "in_flight", sameDomain: true, runningScanId: running.id }
-    : { refuse: "in_flight", sameDomain: false };
+    ? { refuse: "in_flight", sameDomain: true, runningScanId: running.id, ...runningSince }
+    : { refuse: "in_flight", sameDomain: false, ...runningSince };
 }
 
 async function checkHourly(client: Client, network: NetworkKey): Promise<Admission | null> {

@@ -418,6 +418,18 @@ policy, so the wall clock a caller reads is the wall clock it gets. The free pas
 nano calls (§6.7 steps 1 and 4) are therefore 30 s of the 60 the platform allows the
 invocation (§11), and `tests/llm/budget.test.ts` is that arithmetic.
 
+**Structured output (2026-09-11, #512, PR 518).** `llm()` asks for structured output:
+every object-shaped call site sends its schema as one forced tool (`input_schema` from
+Zod's `z.toJSONSchema`, `tool_choice` naming it, the tool name being the site with `.` →
+`_`, e.g. `generate.brief` → `generate_brief`) and reads the `tool_use` block's `input` as
+the value; Zod's `safeParse` stays the gate. `question-phrasing`, the one array-shaped
+site, is wrapped as `{questions:[…]}` and unwrapped after parsing, so every site takes the
+one path. A text answer (a schema with no object form goes out without a tool) is read
+tolerantly: the whole text, then the inside of a surrounding fence, then the first
+balanced top-level object or array that parses; nothing is coerced. A `json` miss logs
+`textStart` (the first character's class) and `textLength` only, never the text. Found by
+M3 run 6 (§16 row 3).
+
 ### 6.6 Rival derivation, and the cold-start law
 
 **The cold-start law: every derivation in the product must work for a domain that
@@ -825,7 +837,7 @@ starts.**
 |---|---|---|
 | 1 | Design system + app shell + all §4 screens on fixture data | Every screen pixel-matches the approved artifact, both themes |
 | 2 | Measurement engine: fetcher, parsers, drivers, score | Same HTML twice → byte-identical; fixture suite for every driver. **Verify against the live API**: whether Labs `ranked_keywords` on the root domain includes `content.{domain}` subdomain rows (it must, or hosted pages' wins would be invisible to the growth chart — if not, query with subdomain inclusion or add the subdomain as a second tracked target) |
-| 3 | Free scan pipeline + report + share + cooldown | Real domain → real report <60s, ≤12¢ ledgered. *Live 2026-09-10 (#317), runs 1–5 on production: run 1 never ran the pass (#443), run 2 ledgered nothing (#450), run 3 15.3 s / 1.8 ¢, run 4 served the stored report inside the §6.4 window, run 4b (hey.com) 17.0 s / 1.97 ¢ with presence measured, run 5 (cal.com) 0.6 s with nothing measured — the 2.16 MB home was refused `too_large` under the 2 MB cap, the refusal was ledgered as a null payload, and the pass ended `complete` (#479: the own-document cap and the `site_unreadable` ending, §6.4). Time and spend pass; **not complete** until the profile/market half returns a profile (the 888-token answer that misses the strict schema, #462), the score is measured, and run 6 re-reads cal.com after #479.* |
+| 3 | Free scan pipeline + report + share + cooldown | Real domain → real report <60s, ≤12¢ ledgered. *Live 2026-09-10 (#317), runs 1–6 on production: run 1 never ran the pass (#443), run 2 ledgered nothing (#450), run 3 15.3 s / 1.8 ¢, run 4 served the stored report inside the §6.4 window, run 4b (hey.com) 17.0 s / 1.97 ¢ with presence measured, run 5 (cal.com) 0.6 s with nothing measured — the 2.16 MB home was refused `too_large` under the 2 MB cap, the refusal was ledgered as a null payload, and the pass ended `complete` (#479: the own-document cap and the `site_unreadable` ending, §6.4), run 6 (2026-09-11) plausible.io 7.6 s / 1.96 ¢ and cal.com 10.0 s / 2.30 ¢ with the 2.16 MB home read, both sites measured and both profiles unparseable on every attempt (#512, PR 518: structured output, §6.5). Time and spend pass; **not complete** until the profile/market half returns a profile (#462, then #512) and the score is measured.* |
 | 4 | Questions + AI-Overview matrix + giveaway email + lead capture | 12 SERPs stored with their `ai_overview` references; draft only after email |
 | 5 | Stripe + provisioning + setup | Pay → magic link → 3 decisions → deep pass queued |
 | 6 | Deep scan + opportunities + calendar (fixture-free) | Real supply fills the calendar; empty days honest |
