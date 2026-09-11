@@ -518,8 +518,6 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
       }
     }
   );
-  emitEnding(scanId, ending);
-
   // 5. Assemble from whatever the stages reached, and store.
   const stoppedReason: StoppedReason = ending.stoppedReason;
   const correctionState = correctionStateAfter(correctionBefore, stoppedReason);
@@ -534,14 +532,28 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
     correctionState,
   });
 
-  const stored = await storeCurrentReport({
-    report: composed.report,
-    ...(a.siteId === undefined ? {} : { siteId: a.siteId }),
-    ...(a.correctionOf === undefined ? {} : { supersedesScanId: a.correctionOf }),
-    drivers: composed.drivers,
-    degraded: spend.degraded || composed.sectionMissing,
-    costCents: spend.cents,
-  });
+  // **The ending is published after the row is stored, never before**
+  // (issue #540). REQ-003 c3 is "the report replaces the progress view
+  // without the visitor reloading", and the ending event is what makes the
+  // browser ask the server to resolve the address again
+  // (`_address/progress.tsx`). Published before the store, that ask races
+  // the write it is waiting for and the visitor is re-shown a scan still
+  // running. The `finally` is the other half of the promise: a store that
+  // raises must still end the stream, or the visitor waits on a pass that
+  // is over.
+  let stored: { scanId: string; status: ScanStatus };
+  try {
+    stored = await storeCurrentReport({
+      report: composed.report,
+      ...(a.siteId === undefined ? {} : { siteId: a.siteId }),
+      ...(a.correctionOf === undefined ? {} : { supersedesScanId: a.correctionOf }),
+      drivers: composed.drivers,
+      degraded: spend.degraded || composed.sectionMissing,
+      costCents: spend.cents,
+    });
+  } finally {
+    await emitEnding(scanId, ending);
+  }
 
   // 6. A correction that produced no report leaves the previous report
   //    current, so that row's own state has to move with it.
@@ -625,10 +637,10 @@ interface StageArgs {
 async function runStages(a: StageArgs): Promise<void> {
   const { scanId, bounds, cost, domain, sections } = a;
 
-  /** Entry, reported to the in-process bus and to the optional durable
-   *  hook, in that order and never one without the other. */
+  /** Entry, recorded on the scan's own log and reported to the optional
+   *  durable hook, in that order and never one without the other. */
   const enter = async (stage: StageName): Promise<void> => {
-    enterStage(scanId, stage);
+    await enterStage(scanId, stage);
     await a.onStage?.(stage);
   };
 
@@ -636,7 +648,7 @@ async function runStages(a: StageArgs): Promise<void> {
   await enter("reading_your_site");
   const measurement = await attempt("reading_your_site", () => measureDomain(cost, { domain, tier: a.tier }));
   if (!failed(measurement)) sections.measurement = measurement;
-  exitStage(scanId, "reading_your_site");
+  await exitStage(scanId, "reading_your_site");
 
   // A site whose own home document could not be read — refused by the
   // fetcher, or a read that raised — is not measured by anything after it,
@@ -649,27 +661,27 @@ async function runStages(a: StageArgs): Promise<void> {
 
   if (bounds.stopNow() !== null) return;
   await enter("reading_access_rules");
-  exitStage(scanId, "reading_access_rules");
+  await exitStage(scanId, "reading_access_rules");
 
   if (bounds.stopNow() !== null) return;
   await enter("reading_your_market");
   await readMarket(a);
-  exitStage(scanId, "reading_your_market");
+  await exitStage(scanId, "reading_your_market");
 
   if (bounds.stopNow() !== null) return;
   await enter("checking_your_presence");
   await sizeTrackedRivals(a);
-  exitStage(scanId, "checking_your_presence");
+  await exitStage(scanId, "checking_your_presence");
 
   if (bounds.stopNow() !== null) return;
   await enter("asking_the_twelve");
   await askTheTwelve(a);
-  exitStage(scanId, "asking_the_twelve");
+  await exitStage(scanId, "asking_the_twelve");
 
   if (bounds.stopNow() !== null) return;
   await enter("scoring");
   score(a);
-  exitStage(scanId, "scoring");
+  await exitStage(scanId, "scoring");
 }
 
 /**
