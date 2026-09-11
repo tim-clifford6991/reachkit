@@ -31,6 +31,7 @@
 // step 4's own "best X" / "X vs Y" shapes — not sentences the product speaks
 // in its own voice, so no copy key is minted here (BP-025 decision 3).
 import { z } from "zod";
+import { SERP_LOCATION } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import { llm } from "@/lib/llm";
 import { measured, measuredZero, type Measured } from "@/lib/measure/measured";
@@ -75,14 +76,45 @@ export function templateQuestion(keyword: string): string {
   return `${sentenceCase(text)}?`;
 }
 
+/** The fixed instruction the phrasing call carries ahead of the keywords
+ *  (issue #519), the way `profile.ts` carries `PROFILE_TASK`: the
+ *  schema says what shape an answer takes, this says what a question is.
+ *  Every clause is traceable:
+ *
+ *   - one question per keyword, standing for that search and no other —
+ *     §6.7 step 4 ("the LLM only words the question"); REQ-006 c13 /
+ *     REQ-007 c6 (the wording never changes which search it stands for);
+ *   - in a buyer's own words, as asked of an AI assistant — §6.7 step 1's
+ *     "buyer vocabulary"; REQ-006's "what AI tells buyers";
+ *   - no brand, product or company the keyword does not itself name, and no
+ *     "best" / "top" it does not carry — either would make it a different
+ *     search (§6.7 step 3's own-brand drop and intent shapes; step 4,
+ *     "phrasing never changes which searches were selected"). A keyword that
+ *     names brands ("X vs Y") keeps them, as step 4's own template does;
+ *   - one sentence ending in a question mark — step 4's template forms;
+ *   - the market's language — `SERP_LOCATION` (§6.3a, US English today).
+ *
+ *  No REQ fixes the question mark, so `PHRASING_SCHEMA` does not enforce it:
+ *  a wording without one is still the same measured search. */
+export const PHRASE_TASK =
+  "Each entry under `keywords` is a search buyers type into Google. For each one, write the question " +
+  "a buyer in this market would ask an AI assistant instead: one question per keyword, in the buyer's " +
+  "own words, standing for that search and no other. " +
+  'Name no brand, product or company the keyword does not itself name, and add no "best" or "top" ' +
+  "the keyword does not carry. " +
+  "Each question is one sentence and ends with a question mark, in the market's language: " +
+  `${SERP_LOCATION.language}, as searched on Google in ${SERP_LOCATION.location}. ` +
+  "Answer with one entry per keyword: its `id`, unchanged, and the question as `text`; no other field.";
+
 /**
  * One question per selected search, in the selection's own order, each
  * carrying the search it stands for.
  *
  * Exactly one `llm()` call is issued, and only for a non-empty selection. Its
- * input is the ids and keywords of the selected searches and nothing else —
- * no volume, no intent, no rank, no unselected row of the market — so the
- * model cannot see, and therefore cannot influence, what selection decided.
+ * input is the fixed `PHRASE_TASK`, then the ids and keywords of the selected
+ * searches and nothing else of them — no volume, no intent, no rank, no
+ * unselected row of the market — so the model cannot see, and therefore
+ * cannot influence, what selection decided.
  */
 export async function phraseQuestions(
   c: CostContext,
@@ -96,7 +128,10 @@ export async function phraseQuestions(
   const ids = a.selected.map((search) => `q${search.rank}`);
   const worded = await llm(c, {
     site: "question-phrasing",
-    input: a.selected.map((search, index) => ({ id: ids[index], keyword: search.keyword })),
+    input: {
+      task: PHRASE_TASK,
+      keywords: a.selected.map((search, index) => ({ id: ids[index], keyword: search.keyword })),
+    },
     schema: PHRASING_SCHEMA,
     tier: "nano",
   });

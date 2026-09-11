@@ -7,6 +7,7 @@
 // are each written so that deleting the behaviour fails a named test.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ZodType } from "zod";
+import { SERP_LOCATION } from "../../../src/lib/config/constants.ts";
 import type { CostContext } from "../../../src/lib/costs/index.ts";
 import type { SelectedSearch } from "../../../src/lib/market/questions/select.ts";
 import type { Question } from "../../../src/lib/market/questions/phrase.ts";
@@ -23,11 +24,12 @@ vi.mock("@/lib/llm", () => ({ llm: llmMock }));
 
 let phraseQuestions: typeof import("../../../src/lib/market/questions/phrase.ts").phraseQuestions;
 let templateQuestion: typeof import("../../../src/lib/market/questions/phrase.ts").templateQuestion;
+let PHRASE_TASK: string;
 
 beforeEach(async () => {
   llmMock.mockReset();
   vi.spyOn(console, "log").mockImplementation(() => {});
-  ({ phraseQuestions, templateQuestion } = await import("../../../src/lib/market/questions/phrase.ts"));
+  ({ phraseQuestions, templateQuestion, PHRASE_TASK } = await import("../../../src/lib/market/questions/phrase.ts"));
 });
 
 const AT = new Date("2026-09-05T00:00:00.000Z");
@@ -74,13 +76,16 @@ describe("phraseQuestions — the one nano call it issues", () => {
     expect(call.tier).toBe("nano");
   });
 
-  it("the model sees the ids and the keywords and nothing else — no volume, no intent, no rank, no score", async () => {
+  it("phraseQuestions/sends-the-task-and-the-keywords — the model sees the fixed task, then the ids and the keywords and nothing else — no volume, no intent, no rank, no score", async () => {
     llmMock.mockResolvedValueOnce(modelWordings({}));
 
     await phraseQuestions(fakeCostContext(), { selected: selection() });
 
     const call = llmMock.mock.calls[0]![1] as RecordedLlmCall;
-    expect(call.input).toEqual([
+    const input = call.input as { task: unknown; keywords: unknown };
+    expect(Object.keys(input)).toEqual(["task", "keywords"]);
+    expect(input.task).toBe(PHRASE_TASK);
+    expect(input.keywords).toEqual([
       { id: "q1", keyword: "best user onboarding software" },
       { id: "q2", keyword: "appcues vs userpilot" },
       { id: "q3", keyword: "user onboarding software" },
@@ -88,6 +93,20 @@ describe("phraseQuestions — the one nano call it issues", () => {
     const json = JSON.stringify(call.input);
     for (const leaked of ["volume", "intent", "score", "rank", "2400"]) {
       expect(json).not.toContain(leaked);
+    }
+  });
+
+  it("phraseQuestions/task-says-what-a-question-is — one per keyword, a buyer's words, no brand or superlative the keyword lacks, one sentence with a question mark, the market's language (issue #519)", () => {
+    for (const clause of [
+      "one question per keyword",
+      "in the buyer's own words",
+      "standing for that search and no other",
+      "Name no brand, product or company the keyword does not itself name",
+      'add no "best" or "top" the keyword does not carry',
+      "one sentence and ends with a question mark",
+      `${SERP_LOCATION.language}, as searched on Google in ${SERP_LOCATION.location}`,
+    ]) {
+      expect(PHRASE_TASK).toContain(clause);
     }
   });
 

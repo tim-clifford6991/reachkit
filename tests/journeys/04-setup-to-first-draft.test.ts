@@ -213,7 +213,7 @@ vi.mock("@anthropic-ai/sdk", () => {
           ? typingAnswerFor(input)
           : input.includes('"home"')
             ? PROFILE_ANSWER
-            : (JSON.parse(input) as { id: string; keyword: string }[]).map((row) => ({
+            : (JSON.parse(input) as { keywords: { id: string; keyword: string }[] }).keywords.map((row) => ({
                 id: row.id,
                 text: `What's the best ${row.keyword}?`,
               }));
