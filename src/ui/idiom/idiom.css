@@ -2078,6 +2078,7 @@
   font-size: var(--t-explain);
   color: var(--ink-3);
   margin: var(--s-1) 0 0 var(--s-5);
+}
 
 
 /* ── 16 · The switch (UI-SPEC §2.4, set L112–115; issue #506) ─────────── */
