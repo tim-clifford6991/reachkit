@@ -49,14 +49,15 @@ export function ContentPanel(p: { settings: SettingsModel }): React.JSX.Element 
           <span className="text-sm font-semibold opacity-70">
             {copy("settings.content.pages")}
           </span>
-          <span className="num rk-figure min-w-0 wrap-anywhere" data-testid="content-pages">
+          <span className="num rk-card-figure min-w-0 wrap-anywhere" data-testid="content-pages">
             {p.settings.content.pages}
           </span>
         </div>
 
       </div>
 
-      {/* S18 draws it as the card's own full-width control — outline, not a
+      {/* S18 draws it as the card's own full-width accent-outline pill
+          (L820, issue #506) — outline, not a
           fill: §9.1 gives the screen one solid primary and this is not it,
           and REQ-078's "always available" is kept by there being no branch
           around the control at all. */}
@@ -64,6 +65,8 @@ export function ContentPanel(p: { settings: SettingsModel }): React.JSX.Element 
         <Btn
           label={copy("settings.content.export")}
           variant="secondary"
+          tone="accent"
+          pill
           block
           onClick={() => action.run("export")}
         />

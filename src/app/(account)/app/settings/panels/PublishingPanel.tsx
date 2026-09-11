@@ -52,6 +52,7 @@ import { Toggle } from "@/ui/components/Toggle";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { writtenLine } from "../../_shell/written";
 import { ConnectDestination, type CredentialAction } from "./ConnectDestination";
+import { SettingRow } from "./SettingRow";
 import { formatVetoWindow, vetoIsWholeDays, vetoWindowDays } from "../format";
 import type { DestinationAction, DestinationHealth, DestinationKind, SettingsModel } from "../model";
 import type { Tone } from "@/ui/types";
@@ -87,25 +88,6 @@ function vetoWindowLabel(hours: number): string {
  *  `Object.keys`, so the order is stated rather than inherited from an
  *  object literal's insertion order. */
 const MODES = ["autopilot", "copilot"] as const;
-
-/** One settable row: the name at the near edge, the value and its control at
- *  the far one, a hairline above. It is the shape S18 gives every row on
- *  this screen, written once here rather than five times below. */
-function SettingRow(p: {
-  name: string;
-  testId: string;
-  children: React.ReactNode;
-}): React.JSX.Element {
-  return (
-    <div
-      className="border-base-300 flex min-w-0 flex-wrap items-center justify-between gap-2 border-t py-2"
-      data-testid={p.testId}
-    >
-      <span className="min-w-0 text-sm wrap-anywhere">{p.name}</span>
-      <span className="flex min-w-0 flex-wrap items-center gap-2">{p.children}</span>
-    </div>
-  );
-}
 
 const KIND_COPY_KEY: Record<DestinationKind, CopyKey> = {
   hosted: "settings.destination.hosted",
@@ -189,31 +171,32 @@ export function PublishingPanel(p: { settings: SettingsModel }): React.JSX.Eleme
         <hr className="border-base-300 min-w-0 border-t" />
 
         <div className="flex min-w-0 flex-wrap items-center justify-between gap-2" data-testid="setting-veto_hours">
-          <span className="min-w-0 text-sm wrap-anywhere">{copy("settings.publishing.veto")}</span>
+          <span className="min-w-0 text-sm text-[color:var(--ink-2)] wrap-anywhere">{copy("settings.publishing.veto")}</span>
           {/* The stepper's two ends. §4.7's range (0–7d) is `VETO.minDays` and
               `VETO.maxDays`, enforced by the writer (issue #46) and never
               restated here — WO-178 step 4 puts that rule in one module and
               forbids a second copy, and a renderer that clamped would be one. */}
           <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <Btn label={copy("settings.publishing.veto.less")} size="sm" variant="tertiary" />
+            <Btn label={copy("settings.publishing.veto.less")} size="sm" variant="secondary" pill />
             <span className="num min-w-0 text-center wrap-anywhere">
               {vetoWindowLabel(publishing.vetoHours)}
             </span>
-            <Btn label={copy("settings.publishing.veto.more")} size="sm" variant="tertiary" />
+            <Btn label={copy("settings.publishing.veto.more")} size="sm" variant="secondary" pill />
           </div>
         </div>
 
         {/* S18's rows: the name at the near edge, the stored value and its
             control at the far one, hairline between. The value is mono
-            because each of these is one — a time, a zone name (§2.3). */}
+            because each of these is one — a time, a zone name (§2.3). The
+            control is the set's outlined "Change" pill (L806, issue #506). */}
         <SettingRow name={copy("settings.publishing.publish-time")} testId="setting-publish_time">
           <span className="num min-w-0 wrap-anywhere">{publishing.publishTime}</span>
-          <Btn label={copy("settings.edit")} size="sm" variant="tertiary" />
+          <Btn label={copy("settings.change")} size="sm" variant="secondary" pill />
         </SettingRow>
 
         <SettingRow name={copy("settings.publishing.time-zone")} testId="setting-time_zone">
           <span className="num min-w-0 wrap-anywhere">{publishing.timeZone}</span>
-          <Btn label={copy("settings.edit")} size="sm" variant="tertiary" />
+          <Btn label={copy("settings.change")} size="sm" variant="secondary" pill />
         </SettingRow>
 
         {/* REQ-070 c1's "whether pages publish at all". The switch is the
@@ -255,7 +238,7 @@ export function PublishingPanel(p: { settings: SettingsModel }): React.JSX.Eleme
                   // states asked for it.
                   <ConnectDestination action={destination.action} />
                 ) : destination.action === "none" ? null : (
-                  <Btn label={copy(ACTION_COPY_KEY[destination.action])} size="sm" variant="secondary" />
+                  <Btn label={copy(ACTION_COPY_KEY[destination.action])} size="sm" variant="secondary" pill />
                 )}
                 </span>
               </div>

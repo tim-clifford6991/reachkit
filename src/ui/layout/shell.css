@@ -109,10 +109,13 @@
   min-width: 0;
 }
 
+/* S12's nav item (set L102–107, UI-SPEC §2.6; issue #506): the glyph, the
+ * word beside it, and Calendar's count pushed to the far edge. The glyph is
+ * sized by its own props (15px, stroke 1.8) and never shrinks. */
 .rk-navlink {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: var(--s-2);
   min-width: 0;
   padding: var(--s-2) var(--s-3);
@@ -126,8 +129,13 @@
   color: var(--accent);
 }
 
+.rk-navlink > svg {
+  flex: 0 0 auto;
+}
+
 .rk-count {
   flex: 0 0 auto;
+  margin-left: auto;
   color: var(--ink-3);
 }
 

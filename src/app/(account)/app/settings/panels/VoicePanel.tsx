@@ -89,7 +89,7 @@ export function VoicePanel(p: { settings: SettingsModel }): React.JSX.Element {
                 placeholder={copy("settings.voice.add-claim")}
               />
             </span>
-            <Btn label={copy("settings.voice.add")} size="sm" variant="secondary" />
+            <Btn label={copy("settings.voice.add")} size="sm" variant="secondary" pill />
           </div>
         </div>
       </div>
