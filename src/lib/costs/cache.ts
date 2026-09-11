@@ -25,7 +25,7 @@
 // function (`isEmptyPayload`, below); no schema or interface change.
 import { dbAdmin } from "@/lib/db";
 import { untypedFetches, type FetchesRow } from "./ledger";
-import { isFetchRefusal } from "./refusal";
+import { isFetchRefusal, isVendorFailure } from "./refusal";
 
 /** How many of the newest rows on one key, inside the freshness window,
  *  this read is willing to scan past before giving up and calling it a
@@ -46,6 +46,9 @@ export function isEmptyPayload(payload: unknown): boolean {
   // A refused fetch is ledgered as a row (issue #479) and is never served
   // back: "no negative cache" (BUILD §6.4).
   if (isFetchRefusal(payload)) return true;
+  // So is a failed vendor call (issue #504): a 5xx today is re-bought on
+  // the next scan, never served back for the rest of the window.
+  if (isVendorFailure(payload)) return true;
   return false;
 }
 
