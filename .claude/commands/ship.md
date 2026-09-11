@@ -4,7 +4,7 @@ argument-hint: <pr number>
 allowed-tools: Bash
 ---
 
-Land PR #$ARGUMENTS (docs/PROCESS.md §3).
+Land PR #$ARGUMENTS (PROCESS.md §3).
 
 1. `gh pr view $ARGUMENTS --json state,mergeable,statusCheckRollup,body,files` — the PR must be open and mergeable, the body must contain exactly one `Closes #N`, and the `closes one issue · done-when ticked` check must be green. A PR touching an owner file must be a docs PR by the master; otherwise stop and report.
 2. For a UI PR, confirm the body carries the token table and the side-by-side render against the approved set, and that the master has compared them — never land a screen unseen.

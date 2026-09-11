@@ -1,7 +1,8 @@
-// Every file under docs/ is named in docs/README.md (issue #378).
+// Every file under docs/ is named in the root README.md (issue #378; the map
+// moved to the root README and `docs/README.md` was deleted, 2026-09-11).
 // tests/docs/corpus-index.test.ts
 //
-// `docs/README.md` is the authority map: it says which document governs what,
+// `README.md` is the authority map: it says which document governs what,
 // and in what order they win. A corpus file the map does not name is a
 // document nobody was told to read — which is how a second, unread source of
 // truth starts. This walks `docs/` and holds the map total.
@@ -14,7 +15,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const DOCS = path.resolve(import.meta.dirname, "../../docs");
-const README = path.join(DOCS, "README.md");
+const README = path.resolve(import.meta.dirname, "../../README.md");
 
 /** Every file under `docs/`, repo-relative, excluding the screen renders. */
 function corpusFiles(dir: string = DOCS, out: string[] = []): string[] {
@@ -31,7 +32,7 @@ function corpusFiles(dir: string = DOCS, out: string[] = []): string[] {
   return out;
 }
 
-describe("issue #378 — docs/README.md names every file in the corpus", () => {
+describe("issue #378 — README.md names every file in the corpus", () => {
   const readme = readFileSync(README, "utf8");
   const files = corpusFiles();
 
@@ -39,18 +40,16 @@ describe("issue #378 — docs/README.md names every file in the corpus", () => {
     // A file is named if the map mentions its path or its basename — the map
     // writes some paths in full and some as a filename inside a sentence
     // about its directory, and both are a reader being told it exists.
-    const missing = files.filter((rel) => {
-      if (rel === "README.md") return false;
-      return !readme.includes(rel) && !readme.includes(path.basename(rel));
-    });
-    expect(missing, `named nowhere in docs/README.md: ${missing.join(", ")}`).toEqual([]);
+    const missing = files.filter(
+      (rel) => !readme.includes(rel) && !readme.includes(path.basename(rel))
+    );
+    expect(missing, `named nowhere in README.md: ${missing.join(", ")}`).toEqual([]);
   });
 
   it("the walk reaches the corpus — a rule over nothing is not a rule", () => {
     expect(files.length).toBeGreaterThan(4);
-    expect(files).toContain("README.md");
-    expect(files).toContain("PROCESS.md");
     expect(files).toContain("DEPLOYMENT.md");
+    expect(files).toContain("RUNBOOK.md");
   });
 
   it("the screen renders are excluded, and there are some to exclude", () => {

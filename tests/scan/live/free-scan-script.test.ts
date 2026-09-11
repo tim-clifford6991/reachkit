@@ -9,7 +9,8 @@
 //
 //  1. **The bounds are the product's own.** The script reads
 //     `reportTargetS` and `FREE_C` out of `src/lib/config/constants.ts` at
-//     run time rather than carrying its own copies (ARCHITECTURE rule 5).
+//     run time rather than carrying its own copies (`ARCHITECTURE.md`: every pinned
+//     number is in `constants.ts`).
 //     A rename or a second definition must stop the script, not silently
 //     measure against a number nobody pinned.
 //  2. **A run that measured nothing says so.** The three ways a free scan

@@ -4,7 +4,7 @@ argument-hint: <issue number>
 allowed-tools: Bash, Read, Edit, Write, Grep, Glob
 ---
 
-Build issue #$ARGUMENTS. Follow `docs/PROCESS.md` §2 exactly; do not skip a step or add scope.
+Build issue #$ARGUMENTS. Follow `PROCESS.md` §2 exactly; do not skip a step or add scope.
 
 1. `gh issue view $ARGUMENTS`. It must have a `## Done when` checklist and a milestone; a screen issue must name its `S<id>` in `docs/design/approved/full-set/UI-SPEC.md`. If any is missing, stop and say so. If the issue adds or changes a surface that is not in the approved set, stop: the design approval gate (PROCESS §4) comes first.
 2. Read, in order: `CLAUDE.md` → the issue → the `BUILD.md` §§ it cites → `DECISIONS.md` (whole) → the `ARCHITECTURE.md` rows for the paths you will touch → for a screen, UI-SPEC.md §1 and the `S<id>` section → the REQ criteria the issue names (`archive/sdlc-factory-2026-09-04/corpus/docs/requirements/`).

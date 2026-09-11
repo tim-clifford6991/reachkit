@@ -4,7 +4,7 @@ type: implementation-specification
 title: "ReachKit — build specification"
 version: 1.2 — living specification, amended by docs PRs
 date: 2026-09-09 (first written 2026-08-28)
-status: governing — see docs/README.md for what wins where
+status: governing — see README.md for what wins where
 audience: the agents building it and the owner steering it
 sources: MVP.md v2.0 (2026-08-28, pre-repo) · DATA-COSTS.md · the approved screen set docs/design/approved/full-set/ (2026-09-08), which wins over §4 where they differ
 ---
@@ -34,7 +34,7 @@ veto window. Every Monday we re-measure and show what moved.
    `docs/design/approved/full-set/` (UI-SPEC.md, its written form, wins over §4
    where they differ); its parent is the owner's artifact
    `docs/design/approved/reachkit-screen-system.html`. The corpus map is
-   `docs/README.md`.
+   `README.md`.
 2. **Simplicity is the product.** A person with zero SEO knowledge must
    understand every screen at first glance. If a module needs explaining, it is
    wrong. Meaning over data: every number on screen answers a question the
@@ -227,13 +227,12 @@ The report ends with the removal line (§14) and the public footer.
 
 Three cards, one submit. (1) **Your market** — inferred category chip, Change.
 (2) **Competitors** — suggested chips from `competitors_domain`, up to 5 selected.
-(3) **Mode + destination** — Autopilot (default, selected) vs Copilot card pair;
-destination: *Hosted blog* (chosen, shows the CNAME record) vs *WordPress —
-connect later, ask me after the first page*. Footer: "Start — first page in ~3
-minutes." No other configuration exists at setup. (**2026-09-10:** the mode pair
-is retired — Autopilot is the product and setup offers only the destination; see
-§9. S10's drawing of the pair is superseded on that point until the UI-SPEC
-amendment lands. — brief §2, §1.1.)
+(3) **Destination** — *Hosted blog* (chosen, shows the CNAME record) vs *WordPress —
+connect later, ask me after the first page*. **There is no mode pair**: Autopilot is
+the product, setup offers no Autopilot-vs-Copilot choice, and no setup radio, pricing
+bullet or mail subject says Copilot (2026-09-10, brief §1.1; see §9 for the internal
+transition that keeps the name). Footer: "Start — first page in ~3 minutes." No other
+configuration exists at setup.
 
 While the deep pass runs: progress screen; on completion straight to the app with
 the first draft already in the calendar. A degraded pass still releases setup
@@ -278,7 +277,7 @@ its goal, never bare.
 
 ### 4.7 Settings
 
-Two-column cards (S18). Left: **Your site & market** (domain + Change · category + Edit · rebuild line) · **Competitors** (5 removable tags) · **Publishing** (Autopilot/Copilot pair + one line on what the pair does · veto window stepper 0–7 days, default 1 day — **2026-09-10 (brief §1.8, §1.1):** becomes 1–7 days and the pair is no longer a customer choice, see §9; 0 is removed by the setup/settings issue (#476), and the pin and this sentence move together when it lands · publish time · time zone · publishing on/off · destinations with health + Reconnect · "Fix-type tasks are never automated, whatever the mode.") · **How your pages sound** (voice field · *Never claim* list + add) · **Notifications** (Daily draft-ready mail · Published-page mail · Monday movement mail). Right: **Billing** · **Account** · **Your content** · **Danger zone** as before.
+Two-column cards (S18). Left: **Your site & market** (domain + Change · category + Edit · rebuild line) · **Competitors** (5 removable tags) · **Publishing** (no mode control — Autopilot is the product (2026-09-10, brief §1.1); veto window stepper 1–7 days, default 1 day (0 is removed by the setup/settings issue #476, and the pin and this sentence move together when it lands) · publish time · time zone · publishing on/off · destinations with health + Reconnect · "Fix-type tasks are never automated, whatever the mode.") · **How your pages sound** (voice field · *Never claim* list + add) · **Notifications** (Daily draft-ready mail · Published-page mail · Monday movement mail). Right: **Billing** · **Account** · **Your content** · **Danger zone** as before.
 
 C2 — the #2 body (2026-09-06, #34) drops "next invoice" and "card" per REQ-097; the approved set (S18) shows plan · price · active · next invoice date and amount · card •••• 4242 · Update card / Invoices / Cancel plan, and REQ-076 c1 requires exactly those values. Resolution: the approved set stands; REQ-097 is read as "ReachKit edits no billing value and sends no billing mail — it displays Stripe's values read-only". Owner may strike.
 
@@ -346,7 +345,7 @@ data, three tiers, and the MVP uses the cheap two plus a free one:
 | Tier | What it is | Cost | MVP use |
 |---|---|---|---|
 | **AI Overviews** | `ai_overview` item + per-domain `references`, returned **inside** organic SERPs we already buy | **0¢ extra** | **The free report's AI matrix** (12 question-SERPs) and every paid target SERP. Never set `load_async_ai_overview` |
-| **Google AI Mode** | Google's AI answer surface, own SERP endpoint, cited sources | 0.06¢ std / 0.2¢ live | Paid battery, engine 2 |
+| **Google AI Mode** | Google's AI answer surface, own SERP endpoint, cited sources | 0.12¢ std / 0.4¢ live | Paid battery, engine 2 |
 | **ChatGPT (LLM Scraper)** | The actual ChatGPT product's answer, scraped | 0.12¢ std / 0.4¢ live | **Paid only** — battery engine 1 (std) |
 | Perplexity (LLM Responses) | API answer, model cost dominates | ~0.56¢ | **Deferred to v1.1** — 70% of the old battery cost for a duplicate verdict |
 

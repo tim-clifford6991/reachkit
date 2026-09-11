@@ -13,7 +13,7 @@
 # procedure, done by the gate rather than by the person.
 #
 # `UPDATE_BASELINES=1` on the box is now the exception, not the rule
-# (`docs/PROCESS.md` §2.4).
+# (`PROCESS.md` §5).
 name: Baselines
 
 on:

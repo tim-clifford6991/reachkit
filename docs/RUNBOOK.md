@@ -7,7 +7,7 @@ have the accounts.
 
 It is the **operational** half of the corpus. Its neighbours own the facts it references and win
 where they disagree: `docs/DEPLOYMENT.md` owns the environments, the one Vercel project and where
-each binding lives; `docs/PROCESS.md` owns how work is organised; `BUILD.md` §11 owns what the
+each binding lives; `PROCESS.md` owns how work is organised; `BUILD.md` §11 owns what the
 jobs are; `DATA-COSTS.md` owns the price book. Nothing under `docs/` is read by the running
 product, so nothing here can change behaviour — every procedure below acts through a dashboard, a
 shell or a merge.
@@ -19,10 +19,10 @@ holds it. Read the file.
 
 ## 1. Landing a change
 
-One issue, one branch, one PR (`docs/PROCESS.md` §1). The PR body carries `Closes #N`, and every
+One issue, one branch, one PR (`PROCESS.md` §1). The PR body carries `Closes #N`, and every
 *Done when* box on the issue is ticked, or the hygiene check fails.
 
-**Five required checks on `main`**, all from `.github/workflows/` (`docs/PROCESS.md` §3). Branch
+**Five required checks on `main`**, all from `.github/workflows/` (`PROCESS.md` §3). Branch
 protection requires these five and a code-owner review:
 
 | Check | Workflow | What it runs |

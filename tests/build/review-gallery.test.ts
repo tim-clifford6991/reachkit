@@ -2,7 +2,7 @@
 // tests/build/review-gallery.test.ts
 //
 // The gallery itself runs in a browser, on a built app, against a live
-// Postgres — twenty minutes in CI and, per PROCESS §2.4, never on the box at
+// Postgres — twenty minutes in CI and, per PROCESS §5, never on the box at
 // all. So every part of it that *can* be decided without a browser is
 // decided in `tests/ui/layout/gallery.ts`, and this file is what holds that
 // part honest. Four things can go wrong there and nothing downstream would

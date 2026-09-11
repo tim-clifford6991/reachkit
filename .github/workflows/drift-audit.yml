@@ -1,5 +1,5 @@
 # Deterministic spec ↔ code ↔ tests audit. On PRs it runs --strict: any
-# finding fails the `audit` check (docs/README.md rule 6; the baseline is
+# finding fails the `audit` check (README.md rule 6; the baseline is
 # clean). Nightly it reports without --strict and opens or updates one issue
 # labelled `drift`.
 name: Drift audit

@@ -153,7 +153,7 @@ jobs:
     # On a pull request only when it carries the `review-gallery` label:
     # this is a twenty-minute browser run and no PR should pay for it
     # twice, but the PR that *changes* the gallery has no other way to
-    # exercise it (PROCESS §2.4 forbids the layout suite on the box).
+    # exercise it (PROCESS §5 forbids the layout suite on the box).
     # A label added after the last push takes effect on the next one.
     needs: layout
     if: >-

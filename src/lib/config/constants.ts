@@ -30,7 +30,7 @@ export const PRICE_BOOK = Object.freeze({
   RANKED_RIVAL_ROWS: 100, RANKED_RIVAL_COST_C: 2.4,
   COMPETITORS_DOMAIN_COST_C: 1.5, SUGGESTIONS_COST_C: 1.8,
   SERP_LIVE_C: 0.2, SERP_STD_C: 0.06,
-  CHATGPT_SCRAPE_STD_C: 0.12, AI_MODE_LIVE_C: 0.2, AI_MODE_STD_C: 0.06,
+  CHATGPT_SCRAPE_STD_C: 0.12, AI_MODE_LIVE_C: 0.4, AI_MODE_STD_C: 0.12,
 } as const);
 
 /** The four per-scan/per-draft ceilings BUILD §6.1 pins, plus the

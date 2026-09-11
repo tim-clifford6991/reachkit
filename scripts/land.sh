@@ -1,5 +1,5 @@
 #!/bin/bash
-# scripts/land.sh — the master's landing chain (docs/PROCESS.md §3).
+# scripts/land.sh — the master's landing chain (PROCESS.md §3).
 #
 #   scripts/land.sh <pr> [<pr> ...]
 #

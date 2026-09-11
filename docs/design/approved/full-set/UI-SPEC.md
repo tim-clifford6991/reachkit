@@ -363,7 +363,7 @@ Progress Paid · Setup · First page. Head (owed). report: card "Your site & mar
 category tag + Change). noreport: card "Your site" with an empty input first ("Nothing is taken from
 the address you paid with"), market card dimmed until given. Competitors card: tags (chosen on,
 removable) · add field · "n of 5" · owed line; degraded: "No rivals could be suggested…" + add field.
-Mode + destination card: Autopilot (default) / Copilot option pair · Hosted blog (CNAME code) /
+Destination card (no mode pair — Autopilot is the product, 2026-09-10 brief §1.1): Hosted blog (CNAME code) /
 WordPress ("connect later, ask me after the first page"). Solid "Start — first page in ~3 minutes." ·
 "You can reach Settings, cancel or export at any time — finishing setup is not required for that."
 
@@ -390,7 +390,7 @@ measurement due {date}" · "—" goal: 6 · Pages 0 "first page in review today"
 you: the first page's ActionPanel.
 
 ### S14 Calendar `/app/calendar` — REQ-043
-Head "One page a day. Every day." · ← Sep 2026 →. Six filter cards with counts (All · Live · Your
+Head `calendar.head` = "Pages go live when one is ready — at most one a day." (owner, 2026-09-11; supersedes the set's "One page a day. Every day.", which promised a filled grid — brief §8) · ← Sep 2026 →. Six filter cards with counts (All · Live · Your
 review · Scheduled · Planned · Needs you). Grid Mon–Sun, `repeat(7,minmax(0,1fr))`, cell = date ·
 stage badge · title; today ringed; future empty days outline-only, an exhausted-supply day carries
 "nothing worth publishing". Footnote (spec). Panel beside the grid (S15).
@@ -418,7 +418,7 @@ on autosave, grounding and re-check. Solid "Done editing" · quiet "Discard chan
 
 ### S18 Settings `/app/settings` — REQ-070…079 (**new** rows marked)
 Left: Your site & market (domain + Change **new** · market + Edit · rebuild line) · Competitors (5 tags,
-removable) · Publishing (Autopilot/Copilot pair + one line on what the pair does · Veto window stepper
+removable) · Publishing (no mode control — Autopilot is the product, 2026-09-10 brief §1.1 · Veto window stepper
 in days · Publish time **new** · Time zone **new** · Publishing on/off **new** · destinations with health
 and Reconnect · "Fix-type tasks are never automated, whatever the mode.") · How your pages sound
 (voice textarea **new** · Never claim tags + add **new** · one line on the hard filter) · Notifications

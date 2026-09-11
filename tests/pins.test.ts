@@ -63,7 +63,7 @@ const B = {
   serpLocation: "| `SERP_LOCATION` | Google US · en (MVP; §6.3a) |",
   locale:
     "Every SERP, suggestion and volume uses Google US / `en` — one location constant (`SERP_LOCATION`), never per-customer derivation.",
-  aiModeRow: "| **Google AI Mode** | Google's AI answer surface, own SERP endpoint, cited sources | 0.06¢ std / 0.2¢ live |",
+  aiModeRow: "| **Google AI Mode** | Google's AI answer surface, own SERP endpoint, cited sources | 0.12¢ std / 0.4¢ live |",
   chatgptRow: "| **ChatGPT (LLM Scraper)** | The actual ChatGPT product's answer, scraped | 0.12¢ std / 0.4¢ live |",
   weeklyDigest:
     "`weekly` (score delta, AI answers delta, pages verdicts, next 3 — all values conditional: a missing number omits its section, never prints 0).",
@@ -202,29 +202,18 @@ describe("BUILD §6.1 price book — the vendor unit prices, quoted row by row",
     expect(pins.PRICE_BOOK.CHATGPT_SCRAPE_STD_C).toBe(0.12);
   });
 
-  // This pair is the one place BUILD.md now disagrees with itself. Until
-  // 2026-09-08 both §6.1 and §6.2 said 0.2 / 0.06, consistent with AI Mode
-  // being a SERP endpoint priced at the SERP row, and constants.ts followed.
-  // #378 applied #2's queue, and DECISIONS 2026-09-05 (#87) rules that §6.1
-  // takes DATA-COSTS §1's LLM-Scraper row instead — 0.4 / 0.12 — so §6.1 was
-  // amended and §6.2's tier table, which the amendment did not name, was not.
-  // Doubling a live price moves real spend and the cap headroom sized against
-  // it, so the pins are #381's to change, not a docs PR's. Both rows are
-  // quoted here: the code is asserted as it is, and the disagreement is named
-  // rather than resolved by whichever assertion was written last.
-  it(`${B.aiMode} — PRICE_BOOK.AI_MODE_LIVE_C / AI_MODE_STD_C still hold §6.2's pair, pending #381`, () => {
-    expect(pins.PRICE_BOOK.AI_MODE_LIVE_C).toBe(0.2);
-    expect(pins.PRICE_BOOK.AI_MODE_STD_C).toBe(0.06);
-    // The integrity block at the foot holds both quotations in their
-    // documents; these two lines hold them against each other, so closing
-    // #381 by editing one row without the other fails here.
+  // Resolved 2026-09-11 (closes #381). The ruling of record is DECISIONS
+  // 2026-09-05 (#87): §6.1 takes DATA-COSTS §1's LLM-Scraper row, 0.4¢ live /
+  // 0.12¢ std. §6.2's tier table and constants.ts, which the 2026-09-08
+  // amendment did not name, now say the same. One price, quoted from both
+  // rows, asserted once.
+  it(`${B.aiMode} — PRICE_BOOK.AI_MODE_LIVE_C / AI_MODE_STD_C`, () => {
+    expect(pins.PRICE_BOOK.AI_MODE_LIVE_C).toBe(0.4);
+    expect(pins.PRICE_BOOK.AI_MODE_STD_C).toBe(0.12);
+    // Both rows in their own words, held against each other, so a future
+    // edit to one without the other fails here.
     expect(B.aiMode).toContain("0.4¢ · 0.12¢");
-    expect(B.aiModeRow).toContain("0.06¢ std / 0.2¢ live");
-  });
-
-  it(`${B.aiModeRow} — §6.2's tier table, the row the pins still match`, () => {
-    expect(pins.PRICE_BOOK.AI_MODE_STD_C).toBe(0.06);
-    expect(pins.PRICE_BOOK.AI_MODE_LIVE_C).toBe(0.2);
+    expect(B.aiModeRow).toContain("0.12¢ std / 0.4¢ live");
   });
 
   it("every price-book member is a positive finite number of cents, and the group is frozen", () => {
@@ -391,8 +380,8 @@ describe("BUILD §6.1 names that constants.ts pins under another identifier — 
 
   it("`AI_MODE_LIVE` / `AI_MODE_STD` → PRICE_BOOK.AI_MODE_LIVE_C / AI_MODE_STD_C", () => {
     expect({ AI_MODE_LIVE: pins.PRICE_BOOK.AI_MODE_LIVE_C, AI_MODE_STD: pins.PRICE_BOOK.AI_MODE_STD_C }).toEqual({
-      AI_MODE_LIVE: 0.2,
-      AI_MODE_STD: 0.06,
+      AI_MODE_LIVE: 0.4,
+      AI_MODE_STD: 0.12,
     });
   });
 

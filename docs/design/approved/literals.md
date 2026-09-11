@@ -45,7 +45,7 @@ cannot spend it by name either.
 | `03em` | length | — | 3 | `letter-spacing` | `.glass-n`, `.hero-h`, `.stat-v` |
 | `11.5px` | length | `--t-explain` | 3 | `font-size` | `.glass-d`, `.glass-x`, `pre.code` |
 | `16px` | length | `--h4` | 3 | `font-size`, `height`, `width` | `.rival-v`, `.step .b` |
-| `18px` | length | `--r-card` | 3 | `box-shadow`, `height`, `padding-left` | `.cell`, `.glass`, `.note ul` |
+| `18px` | length | ~~`--r-card`~~ → `--r-box` (14px) | 3 | `box-shadow`, `height`, `padding-left` | `.cell`, `.glass`, `.note ul` |
 | `1em` | length | — | 3 | `letter-spacing` | `.caldow`, `.eyebrow`, `.navgrp-l` |
 | `24px` | length | `--s-5` | 3 | `box-shadow`, `height`, `width` | `.play svg`, `/* ── frame ───────────────────────────────────────────────────────────── */ .frame` |
 | `26px` | length | — | 3 | `height`, `margin`, `width` | `.brand-mark`, `.q-p` |

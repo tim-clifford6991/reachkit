@@ -11,7 +11,8 @@
 //     `NURTURE_H`, `NURTURE_MAX_TOUCHES`, `SEQUENCE_START_DEADLINE_DAYS`
 //     and `FIRST_PAGE_RETRY_WINDOW_H` are read out of
 //     `src/lib/config/constants.ts` at run time rather than copied
-//     (ARCHITECTURE rule 5). A rename or a second definition must stop the
+//     (`ARCHITECTURE.md`: every pinned number is in
+//     `constants.ts`). A rename or a second definition must stop the
 //     script, not silently measure against a number nobody pinned.
 //  2. **The owed copy is the registry's own answer.** The script reads the
 //     mail partition as text; that reading is asserted equal to
