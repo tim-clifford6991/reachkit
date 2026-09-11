@@ -68,7 +68,7 @@ import type {
 import { Num, ratio } from "../_address/measured";
 
 /** How many of the twelve the list shows before "Show all 12"
- *  (`BUILD.md` §4.1: "First 4 shown"). A layout parameter of this one
+ *  (`SPEC.md` §4.1: "First 4 shown"). A layout parameter of this one
  *  card, not a pin any other module reads. */
 const QUESTIONS_SHOWN = 4;
 

@@ -3,7 +3,7 @@
 // BP-018 `## Public interface`, quoted in WO-269 `## Test plan`:
 //   - "`arms` is required and has no default, so a screen that declares no
 //     band behaviour fails to compile — not a test."
-//   - "`Surface` renders no chrome and is not a widget: BUILD.md §2.2's
+//   - "`Surface` renders no chrome and is not a widget: SPEC.md §2.2's
 //     closed set of five custom components is untouched by it."
 //
 // The two `@ts-expect-error` fixtures below are discharged by `npm run

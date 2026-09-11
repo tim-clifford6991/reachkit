@@ -35,7 +35,9 @@ const ROOT = path.resolve(import.meta.dirname, "../..");
 /** The audit's own regex, transcribed. If it changes there, these rows
  *  measure something the audit does not, and that is what makes copying it
  *  worth stating rather than hiding behind a looser pattern. */
-const MARKER = /BUILD(?:\.md)? §(\d+(?:\.\d+)?[a-z]?)/g;
+// `SPEC.md` became `SPEC.md` on 2026-09-11 with its § numbers unchanged, so
+// both spellings of the marker are the same marker.
+const MARKER = /(?<![-\w])(?:BUILD|SPEC)(?:\.md)? §(\d+(?:\.\d+)?[a-z]?)/g;  // the lookbehind keeps `UI-SPEC §2.6` out
 
 function walk(dir: string): string[] {
   const out: string[] = [];
@@ -93,7 +95,7 @@ describe("every module under the trees #3 covered carries a marker the audit can
 
 /** §14's seven, each with the module that implements it. The list is the
  *  spec's own order, and the titles are quoted from it — so a guardrail
- *  renamed in BUILD.md fails here rather than drifting into a row nobody
+ *  renamed in SPEC.md fails here rather than drifting into a row nobody
  *  reads. */
 const GUARDRAILS: readonly { readonly n: number; readonly quoted: string; readonly file: string }[] =
   [
@@ -119,7 +121,7 @@ const GUARDRAILS: readonly { readonly n: number; readonly quoted: string; readon
   ];
 
 describe("BUILD §14 — every guardrail is built, and says which one it is", () => {
-  const build = readFileSync(path.join(ROOT, "BUILD.md"), "utf8");
+  const build = readFileSync(path.join(ROOT, "SPEC.md"), "utf8");
   const section = build.slice(build.indexOf("## 14."), build.indexOf("## 15."));
   /** The spec wraps its prose, so a quoted sentence is compared with its
    *  line breaks collapsed — never with a shortened quote, which is how a

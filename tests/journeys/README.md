@@ -1,6 +1,6 @@
 # Journey tests — the user journey map, as code
 
-One file per arrow in `BUILD.md` §3. Each runs the whole path end to end with
+One file per arrow in `SPEC.md` §3. Each runs the whole path end to end with
 vendor calls mocked at the cost seam (`tests/setup.ts` refuses real network).
 A hole in a journey is a **red or missing file here**, visible on every PR;
 `scripts/drift-audit.mjs` lists a stub (`describe.todo`) as `TODO` and a

@@ -8,14 +8,14 @@
 // so no code path can confirm a capture that did not commit: a store that
 // will not take the row means the submission is refused in writing and
 // nothing is confirmed (REQ-003 c10). This is the opposite of the scan
-// limiter, which fails **open** — `BUILD.md` §11's asymmetry, deliberate in
+// limiter, which fails **open** — `SPEC.md` §11's asymmetry, deliberate in
 // both directions: letting an extra stranger scan costs a few cents, while
 // telling a founder their address was taken when it was not costs them the
 // page they traded it for.
 //
 // **Nothing else happens on the visitor's request.** No model call, no
 // vendor round trip, no queue. Writing the page costs ~7¢ and is spent in
-// the job, on identified leads only (`BUILD.md` §4.2), which is also why
+// the job, on identified leads only (`SPEC.md` §4.2), which is also why
 // the confirmation can only ever state that the address was accepted —
 // the one thing true at that moment.
 //

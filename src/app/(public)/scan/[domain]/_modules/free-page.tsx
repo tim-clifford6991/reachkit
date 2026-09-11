@@ -12,7 +12,7 @@
 // (REQ-093 c2).
 //
 // **The control is solid, and so is the pricing card's** — ruling 2b of
-// 2026-09-08 (`docs/design/approved/full-set/UI-SPEC.md` §1): "two solid
+// 2026-09-08 (`SPEC.md` §4.8 §1): "two solid
 // primaries per screen are allowed where the artifact draws them (…
 // report: Email me + Start)", which supersedes the master's rulings #290
 // and #291. The report is the one screen with two trades on it — the page

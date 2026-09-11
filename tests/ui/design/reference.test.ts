@@ -23,7 +23,7 @@ import { enumerateRoutes, ROUTE_REFERENCE } from "../layout/routes";
 const REPO = path.resolve(import.meta.dirname, "../../..");
 const APP_DIR = path.join(REPO, "src/app");
 const INDEX_MD = path.join(REPO, "docs/design-reference.md");
-const UI_SPEC = path.join(REPO, "docs/design/approved/full-set/UI-SPEC.md");
+const UI_SPEC = path.join(REPO, "SPEC.md");
 
 const index = readFileSync(INDEX_MD, "utf8");
 const spec = readFileSync(UI_SPEC, "utf8");
@@ -35,7 +35,7 @@ function specScreens(): ReadonlySet<string> {
 
 /**
  * The screen ids `docs/design-reference.md` gives a route, keyed by the
- * route as the index writes it — BUILD.md's `{param}` spelling, which is not
+ * route as the index writes it — SPEC.md's `{param}` spelling, which is not
  * the enumerator's filled-in fixture path. `routeInIndex` below bridges the
  * two rather than a second table doing it.
  */

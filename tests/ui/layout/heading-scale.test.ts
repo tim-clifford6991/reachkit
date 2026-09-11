@@ -51,7 +51,7 @@ const BREAKPOINT_SM_PX = 640;
  *  size is the *cause* and the wrap is the thing the reader sees. */
 const LANDING_MAX_LINES = 3;
 
-/** `BUILD.md` §2.3, verbatim: "Body 15px/1.55." */
+/** `SPEC.md` §2.3, verbatim: "Body 15px/1.55." */
 const BODY_PX = 15;
 
 /** Browser startup dominates: one Chromium per route, as `browser.ts`'s

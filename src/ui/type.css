@@ -1,6 +1,6 @@
 /* src/ui/type.css
  *
- * `BUILD.md` §2.3, verbatim: "Headings: Jakarta 700–800, tight
+ * `SPEC.md` §2.3, verbatim: "Headings: Jakarta 700–800, tight
  * letter-spacing (−0.02em), text-wrap:balance. Body 15px/1.55. Every
  * numeral, date, URL, search query and code-like string is JetBrains Mono
  * with tabular-nums. Uppercase 10.5–11px eyebrows for section labels."
@@ -25,7 +25,7 @@
 
 /* The heading scale — ruled, not transcribed (issue #110).
  *
- * `BUILD.md` §2.3 fixes heading weight, tracking and wrapping and fixes the
+ * `SPEC.md` §2.3 fixes heading weight, tracking and wrapping and fixes the
  * body at 15px; it names **no heading size**. So these four are not read
  * off the spec: they are the owner's 2026-09-02 ruling, transcribed from
  * `design/tokens.md` §4 "Heading sizes — ruled, not transcribed", frozen
@@ -64,7 +64,7 @@
  * The rules below read it; nothing about what they draw changes.
  */
 
-/* Heading weight is a single value within BUILD.md's stated 700-800 range
+/* Heading weight is a single value within SPEC.md's stated 700-800 range
  * (an internal parameter, rule 1.1 — reversal cost: one line, no h1..h6
  * differentiation is asked for by this WO's test plan). */
 h1, h2, h3, h4, h5, h6 {

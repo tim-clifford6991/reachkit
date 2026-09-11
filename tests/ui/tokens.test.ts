@@ -1,10 +1,10 @@
 // tests/ui/tokens.test.ts
 //
-// WO-029 `## Test plan` — criteria quoted from BP-018 and `BUILD.md` §2.1;
+// WO-029 `## Test plan` — criteria quoted from BP-018 and `SPEC.md` §2.1;
 // see that section's header note: BP-018 has no requirement ancestor at
 // all, so nothing here is inherited from a REQ.
 //
-// `BUILD.md` §2.1's own colour block is embedded verbatim below (rule 5.3:
+// `SPEC.md` §2.1's own colour block is embedded verbatim below (rule 5.3:
 // path + verbatim quote, never a line number) and parsed with the same
 // custom-property regex used against the built `theme.css`, so a value that
 // drifts from the source fails structurally rather than by a second,
@@ -21,7 +21,7 @@ const TAILWIND_CONFIG_PATH = path.resolve(__dirname, "../../tailwind.config.ts")
 const THEME_CSS = readFileSync(THEME_CSS_PATH, "utf8");
 const TAILWIND_CONFIG_SOURCE = readFileSync(TAILWIND_CONFIG_PATH, "utf8");
 
-// `BUILD.md` §2.1's code fence, verbatim (path: BUILD.md).
+// `SPEC.md` §2.1's code fence, verbatim (path: SPEC.md).
 const BUILD_MD_LIGHT_BLOCK = `
   --bg:#f6f6f9; --surface:#ffffff; --sunk:#efeff4; --line:#eaeaf1;
   --ink:#191925; --ink-2:#5e5e73; --ink-3:#9695a8;
@@ -35,7 +35,7 @@ const BUILD_MD_LIGHT_BLOCK = `
   --ring-accent:0 0 0 3px rgb(91 75 224/.18);
 `;
 
-// `BUILD.md` §2.1's dark code fence, verbatim (path: BUILD.md). The three
+// `SPEC.md` §2.1's dark code fence, verbatim (path: SPEC.md). The three
 // hues plus the clause the six derived `-bg`/`-line` values cite are on one
 // line, exactly as printed there.
 const BUILD_MD_DARK_BLOCK = `
@@ -47,7 +47,7 @@ const BUILD_MD_DARK_BLOCK = `
   --chart-you:#5f7ff2; --chart-rival:#5c6579; --chart-goal:#e6b45a;
 `;
 
-// The six dark `-bg`/`-line` values `BUILD.md` §2.1 does not state and this
+// The six dark `-bg`/`-line` values `SPEC.md` §2.1 does not state and this
 // work order's `rests-on` row 3 derives at 12%/28% alpha from the three
 // stated hues above (`--ok`/`--warn`/`--bad`), per the clause quoted in
 // `BUILD_MD_DARK_BLOCK`.
@@ -62,7 +62,7 @@ const DERIVED_DARK_BG_LINE: Record<string, string> = {
 
 /** Every `--custom-property: value;` pair in a plain declarations blob,
  * keyed without the leading `--`. Used identically against the embedded
- * `BUILD.md` quotes and against parsed `theme.css` rule bodies, so the two
+ * `SPEC.md` quotes and against parsed `theme.css` rule bodies, so the two
  * are compared through one code path. */
 function extractCustomProps(blob: string): Map<string, string> {
   const out = new Map<string, string>();
@@ -191,12 +191,12 @@ describe(
 );
 
 describe(
-  'BUILD.md §2.1: "These exact values — they are lifted from timclifford.dev so the ' +
+  'SPEC.md §2.1: "These exact values — they are lifted from timclifford.dev so the ' +
     'products share a visual family."',
   () => {
     const { light, darkMedia, darkExplicit } = parseThemeStates(THEME_CSS);
 
-    it("every light token in theme.css:root matches BUILD.md §2.1's stated value", () => {
+    it("every light token in theme.css:root matches SPEC.md §2.1's stated value", () => {
       for (const [name, value] of BUILD_LIGHT) {
         if (name === "ring-accent") continue;
         expect(light.get(name), `--${name} in :root`).toBe(value);
@@ -216,7 +216,7 @@ describe(
       expect(light.has("ring-accent")).toBe(false);
     });
 
-    it("theme.css:root carries no light token BUILD.md §2.1 or tokens.md names", () => {
+    it("theme.css:root carries no light token SPEC.md §2.1 or tokens.md names", () => {
       // Until issue #349 this read "no token §2.1 does not state", and that
       // is what kept the spacing ladder, the type rungs, the measures and
       // the breakpoints out of this file — scattered across four other
@@ -235,10 +235,10 @@ describe(
         // reader keys with it.
         (name) => !BUILD_LIGHT.has(name) && !approved.has(`--${name}`)
       );
-      expect(extra, `named by neither BUILD.md §2.1 nor tokens.md: ${extra.join(" ")}`).toEqual([]);
+      expect(extra, `named by neither SPEC.md §2.1 nor tokens.md: ${extra.join(" ")}`).toEqual([]);
     });
 
-    it("every BUILD.md-stated dark token matches in both the media block and the explicit toggle", () => {
+    it("every SPEC.md-stated dark token matches in both the media block and the explicit toggle", () => {
       for (const [name, value] of BUILD_DARK_STATED) {
         expect(darkMedia.get(name), `--${name} in the dark media block`).toBe(value);
         expect(darkExplicit.get(name), `--${name} in :root[data-theme="dark"]`).toBe(value);
@@ -283,7 +283,7 @@ describe(
 );
 
 describe(
-  "BUILD.md §2.1: \"Map these onto daisyUI's theme slots (`base-100`←surface, " +
+  "SPEC.md §2.1: \"Map these onto daisyUI's theme slots (`base-100`←surface, " +
     "`base-200`←sunk, `base-300`←line, `base-content`←ink, `primary`←accent, " +
     '`success/warning/error`←ok/warn/bad)"',
   () => {
@@ -327,10 +327,10 @@ describe(
 );
 
 describe(
-  'BP-018 NFR budget: "the token pairs are the CVD-checked ones from `BUILD.md` §2.4 ' +
+  'BP-018 NFR budget: "the token pairs are the CVD-checked ones from `SPEC.md` §2.4 ' +
     'and are not re-derived"',
   () => {
-    it("--chart-you and --chart-rival are exactly BUILD.md §2.1's stated values", () => {
+    it("--chart-you and --chart-rival are exactly SPEC.md §2.1's stated values", () => {
       const { light } = parseThemeStates(THEME_CSS);
       expect(light.get("chart-you")).toBe(BUILD_LIGHT.get("chart-you"));
       expect(light.get("chart-rival")).toBe(BUILD_LIGHT.get("chart-rival"));

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Deterministic drift audit: BUILD.md ↔ src ↔ tests ↔ DECISIONS.md.
+// Deterministic drift audit: SPEC.md ↔ src ↔ tests ↔ DECISIONS.md.
 // Same input, same output. It reads files; it has no opinions.
 //
 // Exit 1 only on HARD findings (a malformed DECISIONS.md, or anything when run
@@ -34,8 +34,8 @@ const add = (area, status, subject, detail, isHard = false) => {
   if (isHard || (strict && status !== "OK")) hard++;
 };
 
-// ---------------------------------------------------------------- BUILD.md
-const build = read("BUILD.md");
+// ---------------------------------------------------------------- SPEC.md
+const build = read("SPEC.md");
 const sections = [...build.matchAll(/^(#{2,3}) (\d+(?:\.\d+)?[a-z]?)\.? (.+)$/gm)].map((m) => ({
   level: m[1].length,
   id: m[2],
@@ -47,7 +47,9 @@ const sections = [...build.matchAll(/^(#{2,3}) (\d+(?:\.\d+)?[a-z]?)\.? (.+)$/gm
 const BUILDABLE = /^(4\.[1-7]|5|6\.[4-7]|7|8|9|11|12|13|14)$/;
 const srcFiles = walk("src", (f) => /\.(ts|tsx)$/.test(f) && !f.endsWith(".generated.ts") && !f.endsWith(".d.ts"));
 const testFiles = walk("tests", (f) => /\.test\.(ts|tsx)$/.test(f));
-const markerRe = /BUILD(?:\.md)? §(\d+(?:\.\d+)?[a-z]?)/g;
+// `SPEC.md` became `SPEC.md` on 2026-09-11 with its § numbers unchanged, so a
+// module may spell its marker either way and mean the same section.
+const markerRe = /(?<![-\w])(?:BUILD|SPEC)(?:\.md)? §(\d+(?:\.\d+)?[a-z]?)/g;  // the lookbehind keeps `UI-SPEC §2.6` out
 const markersIn = (files) => {
   const map = new Map();
   for (const f of files) {
@@ -71,10 +73,10 @@ for (const s of sections.filter((s) => BUILDABLE.test(s.id))) {
   else add("spec→code", "OK", `§${s.id} ${s.title}`, `${inSrc} src · ${inTests} tests`);
 }
 
-// Markers that cite a section BUILD.md does not have.
+// Markers that cite a section SPEC.md does not have.
 const known = new Set(sections.map((s) => s.id));
 for (const [id, files] of [...srcMarkers, ...testMarkers]) {
-  if (!known.has(id)) add("code→spec", "DANGLING", `§${id}`, `cited by ${[...files][0]} but BUILD.md has no such section`);
+  if (!known.has(id)) add("code→spec", "DANGLING", `§${id}`, `cited by ${[...files][0]} but SPEC.md has no such section`);
 }
 
 // ------------------------------------------------------------------- routes
@@ -83,7 +85,7 @@ for (const f of routeFiles) {
   let r = f.replace(/^src\/app/, "").replace(/\/(page|route)\.tsx?$/, "") || "/";
   // A catch-all segment is `[[...slug]]` on disk. The single-bracket rewrite
   // below turns that into `{[...slug}]` — a string no document can contain, so
-  // the route could never be found however BUILD.md spelled it (issue #378).
+  // the route could never be found however SPEC.md spelled it (issue #378).
   // Optional catch-alls collapse first, then catch-alls, then plain segments.
   r = r
     .replace(/\/\([^)]+\)/g, "")
@@ -91,7 +93,7 @@ for (const f of routeFiles) {
     .replace(/\[\.\.\.([^\]]+)\]/g, "{...$1}")
     .replace(/\[([^\]]+)\]/g, "{$1}") || "/";
   const specced = build.includes("`" + r + "`") || build.includes(r + " ") || build.includes(r + "\n") || build.includes(r + "`");
-  add("routes", specced ? "OK" : "UNSPECCED", r, specced ? f : `${f} — route not named anywhere in BUILD.md`);
+  add("routes", specced ? "OK" : "UNSPECCED", r, specced ? f : `${f} — route not named anywhere in SPEC.md`);
 }
 
 // --------------------------------------------------------------- journeys
@@ -163,5 +165,5 @@ const findings = rows.filter((r) => r.status !== "OK");
 console.log(`## Drift audit — ${findings.length} finding(s), ${rows.length - findings.length} OK${strict ? " (strict)" : ""}\n`);
 console.log("| Area | Status | Subject | Detail |\n|---|---|---|---|");
 for (const r of rows) console.log(`| ${r.area} | ${r.status} | ${r.subject.replace(/\|/g, "\\|")} | ${r.detail.replace(/\|/g, "\\|")} |`);
-console.log(`\n_Hard failures: ${hard}. A GAP is a BUILD section with no code marker — open an issue or add \`// BUILD §x.y\` to the module that implements it. UNSPECCED is code BUILD.md never mentions — spec it or delete it._`);
+console.log(`\n_Hard failures: ${hard}. A GAP is a BUILD section with no code marker — open an issue or add \`// BUILD §x.y\` to the module that implements it. UNSPECCED is code SPEC.md never mentions — spec it or delete it._`);
 process.exit(hard > 0 ? 1 : 0);

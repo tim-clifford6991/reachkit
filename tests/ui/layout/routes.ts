@@ -32,7 +32,7 @@ export interface EnumeratedRoute {
  */
 export const SEGMENT_FIXTURES: Readonly<Record<string, string>> = {
   /**
-   * `GET /opt-out/{token}` (issue #31, `BUILD.md` §4.2). Deliberately a
+   * `GET /opt-out/{token}` (issue #31, `SPEC.md` §4.2). Deliberately a
    * value that does not verify: the page then renders its invalid-link
    * arm, which is a written line inside the same one card as the
    * confirmation, so the sweep measures the layout it is here to measure
@@ -57,7 +57,7 @@ export const SEGMENT_FIXTURES: Readonly<Record<string, string>> = {
    */
   "[...slug]": "best-onboarding-tools",
   /**
-   * The draft view's address (issue #17, `BUILD.md` §4.6). The value is the
+   * The draft view's address (issue #17, `SPEC.md` §4.6). The value is the
    * one draft the fixture holds in `in_review` — the stage §4.6 gives this
    * view a way in from, and the densest arm it can render: the whole body,
    * the grounded block with its source line, the claim badge, all three
@@ -162,7 +162,7 @@ export const HOSTED_PAGE_FILE = "src/app/(hosted)/hosted-page/[...slug]/page.tsx
  */
 const HOST_FIXTURES: Readonly<Record<string, string>> = {
   /**
-   * The hosted edge's page (issue #49, `BUILD.md` §9). `content.` plus the
+   * The hosted edge's page (issue #49, `SPEC.md` §9). `content.` plus the
    * fixture domain is the shape `resolveHost` matches, so the request
    * reaches the hosted group rather than the sign-in redirect.
    */

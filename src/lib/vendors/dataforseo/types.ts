@@ -99,7 +99,7 @@ export interface RankedResult {
  * many customers track it — while a key carrying the site buys them once
  * per customer.
  *
- * `DATA-COSTS.md` §5's roll-up is stated "Monthly **per customer**", so it
+ * `SPEC.md` §6.8 §5's roll-up is stated "Monthly **per customer**", so it
  * already assumes the second, and the shared key silently made the
  * published cost model wrong in the product's favour. The frozen corpus
  * ruled the same way (BP-008 decision 5): the paid battery's key carries

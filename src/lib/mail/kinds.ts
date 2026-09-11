@@ -27,7 +27,7 @@
 // `tests/mail/kinds/template-directories.test.ts` holds them to it. This
 // module holds no template, no shell and no vendor knowledge.
 
-/** What a row says. `occasionsFrom` cites the BUILD.md section(s) that
+/** What a row says. `occasionsFrom` cites the SPEC.md section(s) that
  *  state the occasion — asserted to resolve in
  *  `tests/mail/kinds/register-legality.test.ts`, so a kind cannot outlive
  *  the spec that justifies it. */

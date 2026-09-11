@@ -4,7 +4,7 @@
 //
 // The screen contract: exactly three decisions plus the address, one
 // submit, no engine control, and no duration anywhere but the one footer
-// `BUILD.md` §4.3 fixes verbatim.
+// `SPEC.md` §4.3 fixes verbatim.
 //
 // **Rendering convention.** `tests/app/**` runs under Vitest's "node"
 // project, whose environment has no `document`; this file declares `jsdom`

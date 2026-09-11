@@ -264,7 +264,7 @@ describe(
       expect(names.sort()).toEqual(
         ["destinations", "drafts", "leads", "opportunities", "publications", "scans", "sites", "users"].sort()
       );
-      // Named explicitly, per BP-023 decision 1 / `BUILD.md` §10's bar:
+      // Named explicitly, per BP-023 decision 1 / `SPEC.md` §10's bar:
       // no `rate_limits` table and no counter table.
       expect(names).not.toContain("rate_limits");
     });

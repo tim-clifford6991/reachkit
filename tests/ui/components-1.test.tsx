@@ -3,7 +3,7 @@
 // WO-268 `## Test plan` — the five rows carried verbatim from WO-031 for
 // the first eight of the fifteen registered components: Btn, Card, Badge,
 // Alert, Stat, Tabs, Table, Progress. Criterion source: BP-018 and
-// `BUILD.md`, not a requirement — BP-018 has no requirement ancestor.
+// `SPEC.md`, not a requirement — BP-018 has no requirement ancestor.
 //
 // Each component is required-props-only by construction (BP-018 decision
 // 2). Two halves, the same shape `tests/ui/surface.test.tsx` established:
@@ -49,7 +49,7 @@ function sourceOf(file: string): string {
 
 /** Strips `//` line comments and `/* … *‍/` block comments so the prose scan
  * below reads only what actually ships, not this file plan's own citations
- * of `BUILD.md`/`components.md` prose inside header comments. */
+ * of `SPEC.md`/`components.md` prose inside header comments. */
 function stripComments(src: string): string {
   return src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
 }
@@ -350,7 +350,7 @@ describe('BP-018 decision 1: "daisyUI components only — no bespoke widgets"', 
 });
 
 describe(
-  '`BUILD.md` §2.2: "`table` (+zebra, always inside an `overflow-x-auto` wrap)"',
+  '`SPEC.md` §2.2: "`table` (+zebra, always inside an `overflow-x-auto` wrap)"',
   () => {
     it("Table always renders the overflow-x-auto wrap as its root, with no prop to omit it", () => {
       const root = renderRoot(

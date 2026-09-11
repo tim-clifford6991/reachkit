@@ -11,7 +11,7 @@
  * dev. Check 5 (`tests/ui/layout/checks.ts`) is the half that was missing.
  *
  * This is the layout module's own sheet, beside `layout.css`, and it is
- * not one of `BUILD.md` §2.2's five custom-CSS surfaces: it styles no
+ * not one of `SPEC.md` §2.2's five custom-CSS surfaces: it styles no
  * component and draws no chrome. It places the screen root, which is the
  * one element §2.2's set does not cover and no daisyUI class names.
  *
@@ -20,7 +20,7 @@
  * `tests/ui/layout-tokens.test.ts`. They are declared on `:root` because
  * this sheet ships on every route and its rules read them there;
  * `src/ui/theme.css` cannot hold them (`tests/ui/tokens.test.ts` refuses
- * any token `BUILD.md` §2.1 does not state) and `shell.css` scopes its own
+ * any token `SPEC.md` §2.1 does not state) and `shell.css` scopes its own
  * copies to `.rk-shell`, which is the sidebar's subtree and not a screen
  * root. Only the steps this sheet spends are declared; the rest of the
  * seven-step scale keeps its present home until the design system's own

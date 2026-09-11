@@ -30,7 +30,7 @@
 // per constitution rule 4.2, and in this WO's return).** No approved
 // artifact states a machine-readable model id for either tier: BP-009's
 // `## Public interface` declares only the abstract `tier` union, and the
-// charter's own stack row (`00-project.md` / `BUILD.md` §1) reads "
+// charter's own stack row (`00-project.md` / `SPEC.md` §1) reads "
 // **Anthropic Haiku 4.5** (prose) + a nano-class model (scaffolding)" —
 // a *class*, deliberately not a name, for the second tier. `haiku`'s id
 // below transcribes the charter's own family name, unversioned (no

@@ -10,10 +10,10 @@
 // one of exactly two things, and the distinction is the whole rule this
 // file is written under:
 //
-//   **A transcription.** A word or a sentence `BUILD.md` itself prints,
+//   **A transcription.** A word or a sentence `SPEC.md` itself prints,
 //   filled verbatim, byte for byte — the footing `laws.ts` records for the
 //   thirteen band words and the five `shell.*` words ("every one of them is
-//   a **transcription** of a word `BUILD.md` itself prints … Nothing here is
+//   a **transcription** of a word `SPEC.md` itself prints … Nothing here is
 //   composed"). §4.7 prints the seven card names, the control words (`Edit`,
 //   `add`, `remove`, `Reconnect`, `Update card`, `Cancel plan`, `change
 //   email`, `sign out`, `Export everything`) and three of the screen's

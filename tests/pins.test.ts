@@ -12,8 +12,8 @@
 //
 // Where the ruling clause lives in the frozen corpus (`archive/`, frozen
 // 2026-09-04 and never written to) it is quoted by id and text without a
-// drift check: a frozen document cannot drift. Where it lives in `BUILD.md`,
-// `DECISIONS.md` or `DATA-COSTS.md` — the three that can — the quote is
+// drift check: a frozen document cannot drift. Where it lives in `SPEC.md`,
+// `DECISIONS.md` or `SPEC.md` §6.8 — the three that can — the quote is
 // checked.
 //
 // Companion file: `tests/config/constants.test.ts` is structural (frozen,
@@ -30,14 +30,18 @@ const ROOT = path.resolve(import.meta.dirname, "..");
 const norm = (s: string) => s.replace(/\s+/g, " ").trim();
 const doc = (name: string) => norm(readFileSync(path.join(ROOT, name), "utf8"));
 
-const BUILD = doc("BUILD.md");
+// `SPEC.md` is the one WHAT since 2026-09-11: the former `SPEC.md`, with
+// `SPEC.md` §6.8 folded in as §6.8. The three quote groups below still read
+// as three documents because that is what they quote; two of them now resolve
+// to the same file.
+const BUILD = doc("SPEC.md");
 const DECISIONS = doc("DECISIONS.md");
-const DATA_COSTS = doc("DATA-COSTS.md");
+const DATA_COSTS = BUILD;
 const PINS_SOURCE = readFileSync(path.join(ROOT, "tests/pins.test.ts"), "utf8");
 
 /**
  * Every clause this file quotes from a document that can still change.
- * `B` = BUILD.md, `D` = DECISIONS.md, `C` = DATA-COSTS.md. The integrity
+ * `B` = SPEC.md, `D` = DECISIONS.md, `C` = SPEC.md §6.8 (formerly SPEC.md §6.8). The integrity
  * block at the foot asserts each one is still in its document, so a
  * reworded spec fails here rather than leaving a test name quietly lying.
  */
@@ -202,7 +206,7 @@ describe("BUILD §6.1 price book — the vendor unit prices, quoted row by row",
     expect(pins.PRICE_BOOK.CHATGPT_SCRAPE_STD_C).toBe(0.12);
   });
 
-  // This pair is the one place BUILD.md now disagrees with itself. Until
+  // This pair is the one place SPEC.md now disagrees with itself. Until
   // 2026-09-08 both §6.1 and §6.2 said 0.2 / 0.06, consistent with AI Mode
   // being a SERP endpoint priced at the SERP row, and constants.ts followed.
   // #378 applied #2's queue, and DECISIONS 2026-09-05 (#87) rules that §6.1
@@ -861,10 +865,10 @@ describe("§9 publishing and autopilot — the veto window, the hard limits, the
     expect(pins.HOSTED_SUBDOMAIN_LABEL).not.toContain(".");
   });
 
-  it(`§9, quoted: "${B.previewNoindex.replace(/\n/g, " ")}" — PREVIEW_HOST_SUFFIX is the parent of every preview host, and the clause is in BUILD.md verbatim`, () => {
+  it(`§9, quoted: "${B.previewNoindex.replace(/\n/g, " ")}" — PREVIEW_HOST_SUFFIX is the parent of every preview host, and the clause is in SPEC.md verbatim`, () => {
     expect(pins.PREVIEW_HOST_SUFFIX).toBe("reachkit.app");
     expect(B.previewNoindex).toContain(`{slug}.${pins.PREVIEW_HOST_SUFFIX}`);
-    expect(readFileSync(path.join(ROOT, "BUILD.md"), "utf8")).toContain(B.previewNoindex);
+    expect(readFileSync(path.join(ROOT, "SPEC.md"), "utf8")).toContain(B.previewNoindex);
   });
 
   it("PREVIEW_HOST_SUFFIX is not derived from NEXT_PUBLIC_APP_URL — the deployment's own address is a binding and this suffix is the product's name", () => {
@@ -1478,7 +1482,7 @@ describe("BP-005 error behaviour — every pin is asserted, by quotation and nev
     const unasserted = Object.keys(pins).filter((name) => !PINS_SOURCE.includes(name));
     expect(
       unasserted,
-      `${unasserted.join(", ")} — pinned in constants.ts and asserted by no clause here. Add a block quoting the BUILD.md / DECISIONS.md line that rules it.`
+      `${unasserted.join(", ")} — pinned in constants.ts and asserted by no clause here. Add a block quoting the SPEC.md / DECISIONS.md line that rules it.`
     ).toEqual([]);
   });
 
@@ -1495,9 +1499,9 @@ describe("BP-005 error behaviour — every pin is asserted, by quotation and nev
 
   it("every clause this file quotes is still, verbatim, in the document that rules it", () => {
     const missing: string[] = [];
-    for (const [key, clause] of Object.entries(B)) if (!BUILD.includes(norm(clause))) missing.push(`BUILD.md: B.${key}`);
+    for (const [key, clause] of Object.entries(B)) if (!BUILD.includes(norm(clause))) missing.push(`SPEC.md: B.${key}`);
     for (const [key, clause] of Object.entries(D)) if (!DECISIONS.includes(norm(clause))) missing.push(`DECISIONS.md: D.${key}`);
-    for (const [key, clause] of Object.entries(C)) if (!DATA_COSTS.includes(norm(clause))) missing.push(`DATA-COSTS.md: C.${key}`);
+    for (const [key, clause] of Object.entries(C)) if (!DATA_COSTS.includes(norm(clause))) missing.push(`SPEC.md §6.8: C.${key}`);
     expect(missing, `${missing.join(" · ")} — the clause moved or was reworded; re-read the pin against the new words rather than re-typing the quote`).toEqual([]);
   });
 

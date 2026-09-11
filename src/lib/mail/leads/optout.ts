@@ -24,7 +24,7 @@
 // direction, and REQ-010 c11 says using the link stops the mail, not that
 // pressing a second control does.
 //
-// **Signing key.** `BUILD.md` §15's binding list carries no opt-out secret
+// **Signing key.** `SPEC.md` §15's binding list carries no opt-out secret
 // and `src/lib/config/env.ts` is the owner's file, so the key is derived
 // from an existing server-only secret through HKDF with a fixed, unique
 // label — domain-separated, so it is neither the salt itself nor

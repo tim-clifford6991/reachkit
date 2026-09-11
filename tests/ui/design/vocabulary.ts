@@ -4,7 +4,7 @@
 // Four test files beside this one decide their rules from three sources,
 // read here once:
 //
-//  1. `BUILD.md` §2.2's closed component list, embedded verbatim below
+//  1. `SPEC.md` §2.2's closed component list, embedded verbatim below
 //     (path + verbatim quote, never a line number) — the registry every
 //     daisyUI class the product writes has to come from.
 //  2. daisyUI 5's own shipped vocabulary, read out of the installed
@@ -61,9 +61,9 @@ export function walkFiles(dir: string, keep: (rel: string) => boolean): string[]
 
 export const read = (rel: string): string => readFileSync(path.join(REPO_ROOT, rel), "utf8");
 
-/* ── 1. `BUILD.md` §2.2, verbatim ─────────────────────────────────────── */
+/* ── 1. `SPEC.md` §2.2, verbatim ─────────────────────────────────────── */
 
-/** `BUILD.md` §2.2's component paragraph, verbatim (path: BUILD.md). Every
+/** `SPEC.md` §2.2's component paragraph, verbatim (path: SPEC.md). Every
  *  registered class below is checked back against this text, so a row that
  *  names a component §2.2 does not is a failure here rather than a widened
  *  registry nobody notices. */

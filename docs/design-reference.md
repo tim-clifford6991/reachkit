@@ -1,6 +1,6 @@
 # Design reference
 
-**The UI specification of record is `docs/design/approved/full-set/UI-SPEC.md`,
+**The UI specification of record is `SPEC.md` §4.8,
 and the screens it describes are `docs/design/approved/full-set/reachkit-full-screen-set.html`.**
 Every UI issue and PR cites it.
 
@@ -101,7 +101,7 @@ built from, and `tokens.md` is **not** the approved token set (issue #364).
 
 Everything else in the archive is still authoritative and is still read
 first for specifics — `requirements/REQ-*.md`, `decisions/ADR-*.md`, the
-journeys and the work-orders are the detail behind `BUILD.md`, which is why
+journeys and the work-orders are the detail behind `SPEC.md`, which is why
 every UI issue cites its REQ criteria. The archive stays read-only either
 way.
 

@@ -4,7 +4,7 @@
 // the date and time of the next scheduled publish, **in the customer's
 // timezone**." WO-155 step 4: "Render every date and time in
 // `sites.time_zone`; the domain block renders the measurement **date**, not
-// BUILD.md §4.4's specimen weekday word." §4.4's "`re-measured Mon`" is a
+// SPEC.md §4.4's specimen weekday word." §4.4's "`re-measured Mon`" is a
 // specimen of the line's shape, not an instruction to print a weekday: a
 // weekday alone cannot say *which* Monday, and REQ-040 c7's sibling line
 // names a date.

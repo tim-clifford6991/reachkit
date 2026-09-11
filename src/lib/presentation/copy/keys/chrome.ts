@@ -1,7 +1,7 @@
 // BUILD §3 — the public shell's sentences, and the three legal pages.
 // src/lib/presentation/copy/keys/chrome.ts — issue #266
 //
-// The fourteenth partition. `BUILD.md` names no public chrome at all —
+// The fourteenth partition. `SPEC.md` names no public chrome at all —
 // §3 says v3 "follows the shipped reachkit.app journey" and fixes the
 // landing as "one field, one button", and no section of §4 describes a
 // header, a footer or a legal page. The owner's 2026-09-07 review
@@ -89,7 +89,7 @@ export const CHROME_COPY = Object.freeze({
      review of #407 (2026-09-09): a Done-when is the master's brief, not
      the owner's pen, and rule 6 leaves exactly two footings for a rendered
      string, the set's unbracketed word (11a) or a BUILD/REQ line quoted
-     verbatim. It had neither. Nothing in BUILD.md or the archived REQ set writes it. */
+     verbatim. It had neither. Nothing in SPEC.md or the archived REQ set writes it. */
   "chrome.notfound.eyebrow": ["404", { slots: {}, fixedBy: "UI-SPEC S8 (11a)" }],
   "chrome.notfound.heading": [
     "There is no page at this address.",
@@ -125,7 +125,7 @@ export const CHROME_COPY = Object.freeze({
      is one sentence and no furniture, and this is the sentence.
 
      The owner's, and it can have no other footing: no approved artifact
-     draws a waiting screen, so 11a does not reach it, and neither BUILD.md
+     draws a waiting screen, so 11a does not reach it, and neither SPEC.md
      nor the archived REQ set writes the words. It is one key rather than
      two because both mounts say the same thing — unlike the 404, whose
      public line names a report address a signed-in customer is not being

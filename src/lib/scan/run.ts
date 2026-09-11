@@ -805,7 +805,7 @@ function seedsOf(profile: Profile): string[] {
  *
  * A paid pass has a site and buys for that site; the free path has no
  * account and buys for the domain — "the same shape, since a free scan has
- * no account". The two are never shared: `DATA-COSTS.md` §5's roll-up is
+ * no account". The two are never shared: `SPEC.md` §6.8 §5's roll-up is
  * stated per customer, and a key without this segment bought a market's
  * SERPs once however many customers tracked it, which made the published
  * cost model wrong in the product's favour.

@@ -1,7 +1,7 @@
 // BUILD §5 — the 0–100 composite and its drivers.
 // src/lib/measure/score.ts — WO-277 (consolidates WO-054), BP-024
 //
-// `BUILD.md` §5's arithmetic over `Measured` values. The report shows none
+// `SPEC.md` §5's arithmetic over `Measured` values. The report shows none
 // of the three factors as a number (owner ruling 2026-09-03, BP-024
 // decision 6): the verdict is the score, its band word, and one written
 // line naming the factor holding it down.
@@ -39,7 +39,7 @@ export type ScoreFactors = Readonly<Record<ScoreFactorName, Measured<number>>>;
 
 // `PRESENCE_FLOOR` stays local and is not pointed at `SCORING`
 // (WO-251 file plan / out of scope). It equals `SCORING.answerabilityFloor`
-// today by coincidence of value, not by derivation — `BUILD.md` §5 states
+// today by coincidence of value, not by derivation — `SPEC.md` §5 states
 // the two floors independently (BP-005's `SCORING` comment) — so folding
 // this into the pin would make a later edit to Answerability's floor
 // silently move Presence's too. Leave it a local literal.
@@ -49,7 +49,7 @@ function floorAt(m: Measured<number>, floor: number): Measured<number> {
   return mapMeasured(m, (value) => Math.max(floor, value));
 }
 
-/** `Presence = max(1, √(SearchPresence × AIPresence))` (`BUILD.md` §5). The
+/** `Presence = max(1, √(SearchPresence × AIPresence))` (`SPEC.md` §5). The
  *  floor is applied inside the combining function, so it can only ever
  *  apply to a value that exists — `combine` never calls `f` when either
  *  sub-measure is `unmeasured`. */
@@ -71,7 +71,7 @@ export function factorsOf(d: Drivers): ScoreFactors {
   };
 }
 
-/** `Score = round( ∛(Foundations × Answerability × Presence) )` (`BUILD.md`
+/** `Score = round( ∛(Foundations × Answerability × Presence) )` (`SPEC.md`
  *  §5). `combine` returns `unmeasured` if any of the three factors is
  *  `unmeasured` (ADR-021 decision 3) — no band, no estimate, no
  *  interpolation from the factors that were measured. Exactly one
@@ -95,7 +95,7 @@ export type LimitingFactor =
 // fixed there — a parameter, rule 1.1, not re-derived here).
 const TIE_BREAK_ORDER: readonly ScoreFactorName[] = ["foundations", "answerability", "presence"];
 
-// The top of the 0-100 scale (`BUILD.md` §5) — not a separate pin: every
+// The top of the 0-100 scale (`SPEC.md` §5) — not a separate pin: every
 // factor is itself already bounded to this range, so "at the ceiling"
 // means "at the top of the scale it is already expressed in".
 const SCALE_CEILING = 100;

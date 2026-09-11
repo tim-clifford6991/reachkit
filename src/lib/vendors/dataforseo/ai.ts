@@ -21,7 +21,7 @@
 //
 // **The key carries whose purchase it is** (#75). Query and locale alone
 // are shared across every customer whose market contains that search,
-// which `DATA-COSTS.md` §5's "monthly per customer" roll-up already
+// which `SPEC.md` §6.8 §5's "monthly per customer" roll-up already
 // assumed they were not — see `CacheScope`.
 //
 // An engine that gave no answer is the vendor's own zero-result — `[]`,

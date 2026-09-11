@@ -45,7 +45,7 @@ export const BAND_LABELS: {
 };
 
 /** REQ-004 criterion 1's own four words, transcribed, never chosen — the
- *  order `BUILD.md` §5 states: invisible, hard-to-find, findable,
+ *  order `SPEC.md` §5 states: invisible, hard-to-find, findable,
  *  dominant. No boundary and no number here: BP-005's `SCORE_BAND_BOUNDS`
  *  holds the four boundaries, this map holds the four words. */
 export const SCORE_BANDS: Record<"invisible" | "hard-to-find" | "findable" | "dominant", CopyKey> = {

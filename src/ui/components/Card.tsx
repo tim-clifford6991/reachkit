@@ -44,7 +44,7 @@ export function Card(p: CardProps): React.JSX.Element {
   return (
     // 2026-09-05, issue #13: `card` alone is a radius and a layout in
     // daisyUI 5 — it paints no surface, draws no edge and casts no shadow.
-    // `BUILD.md` §2.1 states the card idiom's own tokens (`--surface`,
+    // `SPEC.md` §2.1 states the card idiom's own tokens (`--surface`,
     // `--line`, `--r-box`, `--shadow-card`) and §2.1's mapping puts them on
     // `base-100`/`base-300`, so the classes below are that mapping applied
     // rather than a second set of values: with only `card`, every card in

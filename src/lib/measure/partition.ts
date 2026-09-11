@@ -57,7 +57,7 @@ export type SectionName = "verdict" | "ai_answers" | "google_presence" | "proble
 /** Which `ScanInput`s each report section is made of — internal to this
  *  file (rule 1.1 parameter: an internal module boundary, not a customer
  *  promise; `structure.md` rule 5 and rendering itself are BP-019's, out
- *  of this WO's scope entirely). Derived from `BUILD.md` §4.1's screen
+ *  of this WO's scope entirely). Derived from `SPEC.md` §4.1's screen
  *  order: the header strip (`verdict`) rests on everything that feeds a
  *  factor; the AI-answers card and the Google-search card both need the
  *  twelve SERPs and the rival derivation's own inputs; the three problem

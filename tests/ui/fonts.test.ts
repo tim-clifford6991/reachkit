@@ -2,7 +2,7 @@
 //
 // WO-030 `## Test plan` — four rows, each quoted verbatim from its source:
 //
-//   1. `BUILD.md` §1: "**Plus Jakarta Sans** (UI) + **JetBrains Mono** (all
+//   1. `SPEC.md` §1: "**Plus Jakarta Sans** (UI) + **JetBrains Mono** (all
 //      numerals/data) | `@fontsource`, self-hosted" — both families load
 //      from `@fontsource` and no face `fonts.ts` declares points at a
 //      third-party origin. Since issue #332 the faces are declared to
@@ -22,7 +22,7 @@
 //      numeral in the UI font is a defect." — `.num` is the *only* rule in
 //      `type.css` that sets `font-variant-numeric`, and that rule also sets
 //      `font-family: var(--font-mono)`; a component cannot apply one half.
-//   4. `BUILD.md` §2.3, full clause (`tokens.md` §4 quotes the same text
+//   4. `SPEC.md` §2.3, full clause (`tokens.md` §4 quotes the same text
 //      with the same values — no disagreement to report): "Headings:
 //      Jakarta 700–800, tight letter-spacing (−0.02em), `text-wrap:balance`.
 //      Body 15px/1.55. ... Uppercase 10.5–11px eyebrows for section
@@ -204,7 +204,7 @@ function themeRootTokens(): ReadonlyMap<string, string> {
   return tokenSet(THEME_CSS).light;
 }
 
-describe("BUILD.md §1 / BP-018 NFR — self-hosted, no third-party font request", () => {
+describe("SPEC.md §1 / BP-018 NFR — self-hosted, no third-party font request", () => {
   it("every face fonts.ts loads is a file inside node_modules/@fontsource, never a hosted CDN", () => {
     const calls = localFontCalls(fontsSource());
     expect(calls.length).toBeGreaterThan(0);
@@ -346,7 +346,7 @@ describe("BP-018 error behaviour — `.num` is the sole enforcement point of the
   });
 });
 
-describe("BUILD.md §2.3 — the type scale, asserted against the clause", () => {
+describe("SPEC.md §2.3 — the type scale, asserted against the clause", () => {
   it("headings: Jakarta weight in 700-800, letter-spacing -0.02em, text-wrap: balance", () => {
     const rules = Array.from(parseCss(typeCssSource())) as CSSStyleRule[];
     const heading = rules.find((r) => /(^|,\s*)h1(,|\s|$)/.test(r.selectorText ?? ""));

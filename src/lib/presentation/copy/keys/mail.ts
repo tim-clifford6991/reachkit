@@ -82,7 +82,7 @@ export const MAIL_COPY = Object.freeze({
   "mail.optout.label": ["Opt out of all follow-up mail", { slots: {}, fixedBy: "§12" }],
 
   // 2026-09-05, issue #31 (lead capture, the giveaway page and the nurture
-  // sequence, `BUILD.md` §4.2). Twenty-one keys.
+  // sequence, `SPEC.md` §4.2). Twenty-one keys.
   //
   // The four `mail.firstPageUnavailable.<cause>` keys are named for the
   // four `FirstPageFailure` members verbatim: `FIRST_PAGE_UNAVAILABLE_COPY`
@@ -141,7 +141,7 @@ export const MAIL_COPY = Object.freeze({
   "optout.unavailable": ["That opt-out couldn’t be applied just now, so nothing has changed. Try the link again in a few minutes, or reply to any ReachKit email with \"stop\" and we’ll stop by hand.", { slots: {}, fixedBy: "REQ-010 c11" }],
 
   // 2026-09-06, issue #33 (Stripe, provisioning and the two backstops,
-  // `BUILD.md` §13). Nine keys.
+  // `SPEC.md` §13). Nine keys.
   //
   // Two of the nine (`mail.account.reach_a_person`,
   // `mail.account.no_second_subscription`) carry obligations REQ-024

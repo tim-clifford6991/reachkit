@@ -4,7 +4,7 @@
  *
  * It used to be the one home of four tokens — `--breakpoint-sm`,
  * `--breakpoint-lg`, `--breakpoint-xl` and `--t-floor` — because
- * `src/ui/theme.css` was `BUILD.md` §2.1's colour block verbatim and a test
+ * `src/ui/theme.css` was `SPEC.md` §2.1's colour block verbatim and a test
  * refused anything §2.1 did not state. The owner approved a token file on
  * 2026-09-08 and ruled it the source of truth for `theme.css`, so that
  * exception has nowhere left to stand: every token the product spends is in

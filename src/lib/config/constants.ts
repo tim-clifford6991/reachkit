@@ -23,7 +23,7 @@
 // not here and never will be: this file holds counts and boundaries, never
 // the customer-visible word.
 
-// ── Price book, caps, battery, location — BUILD.md §6.1
+// ── Price book, caps, battery, location — SPEC.md §6.1
 export const PRICE_BOOK = Object.freeze({
   RANKED_FREE_ROWS: 50, RANKED_FREE_COST_C: 1.8,
   RANKED_PAID_ROWS: 300, RANKED_PAID_COST_C: 4.8,
@@ -223,7 +223,7 @@ export const SERP_LOCATION = Object.freeze({
   location: "United States", language: "en",
 } as const);
 
-/** `BUILD.md` §6.1's price-book row: "`PLATFORM_DOMAINS` | reddit, quora,
+/** `SPEC.md` §6.1's price-book row: "`PLATFORM_DOMAINS` | reddit, quora,
  *  youtube, wikipedia, g2, capterra, medium, linkedin, producthunt,
  *  stackoverflow, … (closed list)". The row ends in an ellipsis, so the ten
  *  names below are what §6.1 states, not a complete list on its face — the
@@ -236,7 +236,7 @@ export const PLATFORM_DOMAINS = Object.freeze([
 
 export const CACHE_WINDOWS_D = Object.freeze({
   own: 7, rival: 30, serp: 30, suggestions: 30,
-  /** `BUILD.md` §6.4's stated exception — "SERPs 30d (**except the weekly
+  /** `SPEC.md` §6.4's stated exception — "SERPs 30d (**except the weekly
    *  target re-check**)" — which had a clause and no pin (#75). The weekly
    *  target-SERP battery passes this instead of `serp`, so a re-check run
    *  to detect movement can never be served from a month-old cache wearing
@@ -327,7 +327,7 @@ export const RIVAL_SIZE_BANDS = Object.freeze({
   nearFloor: 100, nearMultiple: 2, middleFloor: 500, middleMultiple: 5,
 } as const);
 
-/** `BUILD.md` §5's four score bands, as lower bounds on a 0–100 score:
+/** `SPEC.md` §5's four score bands, as lower bounds on a 0–100 score:
  *  "Bands: 0–24 Invisible · 25–49 Hard to find · 50–74 Findable · 75–100
  *  Dominant". BP-024's `bandOf(score)` says "thresholds are BP-005 pins" and
  *  had none to read; this is that pin. Boundaries only — the four *words* are
@@ -341,13 +341,13 @@ export const SCORE_BAND_BOUNDS = Object.freeze({ // BP-024 · REQ-004 c1 · BUIL
  *  coefficients that are numbers (band thresholds, the answerability floor,
  *  the direct-answer character window) are pins in BP-005" — transcribed
  *  verbatim from BP-005's `## Public interface` (2026-09-04, `2fe462e`),
- *  which is itself `BUILD.md` §5, transcribed (rule 1.2 — nothing chosen):
+ *  which is itself `SPEC.md` §5, transcribed (rule 1.2 — nothing chosen):
  *  "Answerability = shape of the home + measured pages, 0–100, floored at
  *  1" and "`directAnswers` = question headings whose first block is
  *  40–320 visible chars ÷ all headings × 100". The window is closed at
  *  both ends. `PRESENCE_FLOOR` (`src/lib/measure/score.ts`) is
  *  deliberately not a fourth member here — equal to `answerabilityFloor`
- *  today by coincidence of value, not by derivation; `BUILD.md` §5 states
+ *  today by coincidence of value, not by derivation; `SPEC.md` §5 states
  *  the two floors independently. */
 export const SCORING = Object.freeze({                    // BP-010 d2 · BUILD §5
   directAnswerCharsMin: 40,   // inclusive
@@ -525,11 +525,11 @@ export const FIRST_PAGE_RETRY_MINUTES = Object.freeze([5, 30, 120, 360, 720, 144
  *  pairs each with its copy key and is the one home of the pairing, so this file
  *  stays free of `CopyKey` and keeps importing nothing.
  *  BP-038 decision 2's derivation, verbatim:
- *  - `searches_appeared_in = 400` — `BUILD.md` §4.5's footnote pair, "start
+ *  - `searches_appeared_in = 400` — `SPEC.md` §4.5's footnote pair, "start
  *    value · At 400 the big category terms unlock."
- *  - `ai_answers = 6` — `BUILD.md` §4.5's AI-answers tile, "dashed goal dots
+ *  - `ai_answers = 6` — `SPEC.md` §4.5's AI-answers tile, "dashed goal dots
  *    + goal: 6", out of the twelve tracked questions.
- *  - `score = 50` — `BUILD.md` §5's band boundaries; 50 is the first score at
+ *  - `score = 50` — `SPEC.md` §5's band boundaries; 50 is the first score at
  *    which the product's own verdict changes from not-findable to findable.
  *  - `pages_published = 30` — **not derivable; ruled by the owner on
  *    2026-08-31**: a month of daily pages, the product's own promise of one
@@ -627,7 +627,7 @@ export const DRAFT_DUE_HOUR_LOCAL = 18 as const;              // BP-003 · BUILD
 export const PUBLISH_VERIFY_DELAY_H = 24 as const;            // BP-049 · BUILD §11
 
 // ── Rival derivation and the presence card (issue #27) — BUILD §6.6
-/** `BUILD.md` §6.1's own price-book row, transcribed (rule 1.2 — nothing
+/** `SPEC.md` §6.1's own price-book row, transcribed (rule 1.2 — nothing
  *  chosen): "`RIVAL_SCORE` | top10Appearances + 2×aiCitations (§6.6)". The
  *  two weights, never the formula, which is
  *  `src/lib/market/rivals/derive.ts`'s (rule 2.5). §6.6 states the reason
@@ -690,7 +690,7 @@ export const AUTOSAVE_DEBOUNCE_MS = 1200 as const;             // BP-044 · BUIL
 export const PREVIEW_DEBOUNCE_MS = 100 as const;               // BP-044 · BUILD §4.6
 
 // ── Payments (issues #33, #91) — BUILD §13
-/** The price, in minor units of its currency. `BUILD.md` §13 states the
+/** The price, in minor units of its currency. `SPEC.md` §13 states the
  *  amount ("49/mo flat", written there with its currency sign) and
  *  `DECISIONS.md`'s ADR-052 line names these three as the pins the Stripe
  *  Price object is built from and checked against. Minor units because
@@ -900,8 +900,8 @@ export const WEEKLY_NEXT_COUNT = 3 as const;                  // BUILD §12
  * The three ceilings the two surfaces a stranger meets are held to: the
  * landing page (`/`) and the free report (`/scan/{domain}`).
  *
- * **Chosen, not transcribed (rule 1.2).** No clause in `BUILD.md`,
- * `DECISIONS.md` or `DATA-COSTS.md` rules a page-speed number — BP-018's
+ * **Chosen, not transcribed (rule 1.2).** No clause in `SPEC.md`,
+ * `DECISIONS.md` or `SPEC.md` §6.8 rules a page-speed number — BP-018's
  * `## NFR budget` is the nearest thing the corpus has and it budgets *what
  * ships* ("no chart library, so no runtime dependency ships to the browser
  * for a five-chart inventory"), never how fast it arrives. Two of the three

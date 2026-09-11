@@ -2,7 +2,7 @@
 //
 // The complete method, free, on the same page: three collapsed sections,
 // one per problem, in the cards' own order. Instructional text is allowed
-// here and nowhere else on this screen (`BUILD.md` §4.1), and it is still
+// here and nowhere else on this screen (`SPEC.md` §4.1), and it is still
 // the owner's — every sentence is a `CopyKey`.
 //
 // Collapsed markup, never a lazy fetch: the whole method is in the first

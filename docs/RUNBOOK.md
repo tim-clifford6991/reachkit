@@ -7,8 +7,8 @@ have the accounts.
 
 It is the **operational** half of the corpus. Its neighbours own the facts it references and win
 where they disagree: `docs/DEPLOYMENT.md` owns the environments, the one Vercel project and where
-each binding lives; `docs/PROCESS.md` owns how work is organised; `BUILD.md` §11 owns what the
-jobs are; `DATA-COSTS.md` owns the price book. Nothing under `docs/` is read by the running
+each binding lives; `docs/PROCESS.md` owns how work is organised; `SPEC.md` §11 owns what the
+jobs are; `SPEC.md` §6.8 owns the price book. Nothing under `docs/` is read by the running
 product, so nothing here can change behaviour — every procedure below acts through a dashboard, a
 shell or a merge.
 
@@ -267,7 +267,7 @@ To release it, the same three steps with `false`.
 
 ## 6. Mail
 
-One transport (Resend), one shell, plain-text alternative, no generated prose — `BUILD.md` §12.
+One transport (Resend), one shell, plain-text alternative, no generated prose — `SPEC.md` §12.
 
 The sending mailbox is `MAIL_FROM`, read at the send in `src/lib/mail/vendor/resend.ts` (#81);
 before that it was derived as `hello@<host of NEXT_PUBLIC_APP_URL>`, which was only ever the right
@@ -346,7 +346,7 @@ figure is ever rendered to a customer**, and there is no `site_id`: a site is re
 `src/lib/config/constants.ts`, `CAPS`, in cents. Per pass: free `12` · deep `150` · weekly `40` ·
 draft `45`. Product-wide: `DAILY_PRODUCT_C = 5000` for one **UTC** day, measured over
 `fetches.cost_cents`. The unit prices behind them are `PRICE_BOOK`, transcribed from
-`DATA-COSTS.md` and held to it by `tests/pins.test.ts`.
+`SPEC.md` §6.8 and held to it by `tests/pins.test.ts`.
 
 **A cap degrades, it never throws.** Hitting one skips the remaining optional work and marks the
 scan `degraded`; the run finishes with a smaller report rather than an error. Hitting the daily

@@ -5,7 +5,7 @@
 // that owns §4.3.
 //
 // **The first six values filled were each a transcription of a word
-// `BUILD.md` §4.3 itself prints** — on the same footing as the thirteen
+// `SPEC.md` §4.3 itself prints** — on the same footing as the thirteen
 // band words and the five `shell.*` keys issue #9 filled: "**Your market**
 // — inferred category chip, Change", "**Competitors**", "*Hosted blog*",
 // "*WordPress*", and the footer's own verb, "Start". Nothing here is

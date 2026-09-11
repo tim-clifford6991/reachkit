@@ -15,7 +15,7 @@
 // two formats, under a card head that already says what the pair does.
 //
 //  - **Ruled (8).** Every one is a transcription of a word or a phrase
-//    `BUILD.md` §4.6 or §9 itself prints, on the same footing as the twenty
+//    `SPEC.md` §4.6 or §9 itself prints, on the same footing as the twenty
 //    `calendar.*` values issue #16 transcribed (constitution rule 1.2:
 //    copying a recorded owner ruling is not inventing one). Nothing here is
 //    composed:

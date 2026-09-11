@@ -1,6 +1,6 @@
 // BUILD §4.6 — "Stage = chip color", and REQ-043 criterion 2's five stages.
 //
-// The ten publish states BUILD.md §9 draws as one state machine, mapped
+// The ten publish states SPEC.md §9 draws as one state machine, mapped
 // onto the five stages §4.6's filter cards name, by one total table. The
 // mapping is REQ-043's own non-goal handed here ("which publish state is
 // shown as which of criterion 2's stages — the exhaustive mapping is the
@@ -62,7 +62,7 @@ export const STAGE_OF: Readonly<Record<State, Stage | null>> = Object.freeze({
 });
 
 /** The word each filter is spoken from. Every one is a transcription of a
- *  word BUILD.md §4.6 itself prints — no renderer writes a stage's name. */
+ *  word SPEC.md §4.6 itself prints — no renderer writes a stage's name. */
 export const STAGE_FILTER_COPY_KEY: Record<StageFilter, CopyKey> = {
   all: "calendar.stage.all",
   live: "calendar.stage.live",

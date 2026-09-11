@@ -37,7 +37,7 @@
 import type { CopyKey } from "@/lib/presentation/copy";
 
 export interface PublicRouteSeo {
-  /** The route as `BUILD.md` §3 spells it — `{param}`, not `[param]`. */
+  /** The route as `SPEC.md` §3 spells it — `{param}`, not `[param]`. */
   readonly route: string;
   readonly title: CopyKey;
   readonly description: CopyKey;

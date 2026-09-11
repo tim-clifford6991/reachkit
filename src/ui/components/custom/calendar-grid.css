@@ -16,7 +16,7 @@
  * cell's own `overflow-wrap` is then what keeps the text inside it.
  *
  * SPACING AND THE CELL FLOOR. The spacing steps used to be transcribed here,
- * scoped to `.rk-cal`, because `src/ui/theme.css` was `BUILD.md` §2.1
+ * scoped to `.rk-cal`, because `src/ui/theme.css` was `SPEC.md` §2.1
  * verbatim and a test refused any token §2.1 did not state. Issue #349
  * removed that exception — the approved set is the whole ladder and
  * `theme.css` carries it — so the second copies are gone. `--w-cell-min`

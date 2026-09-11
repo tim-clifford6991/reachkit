@@ -29,7 +29,7 @@ export interface Verdict {
   /** The three factors the score is composed of.
    *
    *  **They reach exactly one surface, and the owner named it**: ruling 1b
-   *  of 2026-09-08 (`docs/design/approved/full-set/UI-SPEC.md` §1) keeps
+   *  of 2026-09-08 (`SPEC.md` §4.8 §1) keeps
    *  the report header's three driver mini-bars with their `n/10` values,
    *  and amends REQ-004 c2 and BUILD §4.1 to allow the values "on the
    *  header strip only". That reverses BP-024 decision 6 and the

@@ -27,14 +27,14 @@ import { dash, MeasuredNum, measuredText } from "../_address/measured";
 import { SEVERITY_INDEX, type ProblemCard, type Severity } from "./model";
 
 /** Red appears only for the customer's own problem being shown to them
- *  (`BUILD.md` §2.5) — which is exactly what a `high` severity is. */
+ *  (`SPEC.md` §2.5) — which is exactly what a `high` severity is. */
 const SEVERITY_TONE: Readonly<Record<Severity, Tone>> = Object.freeze({
   low: "ok",
   mid: "warn",
   high: "bad",
 });
 
-/** `BUILD.md` §4.1 module 3: "Left border color = severity." The border is
+/** `SPEC.md` §4.1 module 3: "Left border color = severity." The border is
  *  never the only carrier of the level — `SeverityBadge` renders the word
  *  beside it, always — so this is a second reading of the same fact, which
  *  is what §2.5 asks a colour to be. An unmeasured severity gets the

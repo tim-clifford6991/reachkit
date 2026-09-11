@@ -1,7 +1,7 @@
 // tests/ui/shell-css.test.ts — BUILD §4.4, §2.2; ADR-093
 //
 // `src/ui/layout/shell.css` is the sidebar's stylesheet — one of the five
-// surfaces `BUILD.md` §2.2 admits custom CSS for. Two numbers in it are the
+// surfaces `SPEC.md` §2.2 admits custom CSS for. Two numbers in it are the
 // spec's, not the author's, and a media query prelude cannot read a `var()`
 // (see `layout.css`'s own header), so both are written literally there and
 // pinned back here — the `tests/pins.test.ts` shape `layout-tokens.test.ts`
@@ -15,7 +15,7 @@ import postcss, { type AtRule, type Root, type Rule } from "postcss";
 import { describe, expect, it } from "vitest";
 import { BAND_MIN } from "@/ui/layout/bands";
 
-/** `BUILD.md` §4.4, verbatim: "Left sidebar (222px, sticky)". */
+/** `SPEC.md` §4.4, verbatim: "Left sidebar (222px, sticky)". */
 const SIDEBAR_WIDTH_PX = 222;
 
 const SHELL_CSS_PATH = path.resolve(import.meta.dirname, "../../src/ui/layout/shell.css");

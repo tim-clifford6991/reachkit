@@ -1,7 +1,7 @@
 // tailwind.config.ts
 //
 // BP-018 `## Module / boundary`: "tailwind.config.ts (the token-to-daisyUI
-// mapping)". `BUILD.md` §2.1, verbatim: "Map these onto daisyUI's theme
+// mapping)". `SPEC.md` §2.1, verbatim: "Map these onto daisyUI's theme
 // slots (`base-100`←surface, `base-200`←sunk, `base-300`←line,
 // `base-content`←ink, `primary`←accent, `success/warning/error`←ok/warn/bad)
 // in the Tailwind config so stock daisyUI classes just work."
@@ -78,7 +78,7 @@ export default {
     // Registers daisyUI's base reset, components and utilities only —
     // `themes: false` means it emits none of its own bundled palettes.
     (daisyui as (options?: Record<string, unknown>) => unknown)({ themes: false }),
-    // The one named theme BUILD.md §2.1 maps — default, so it applies at
+    // The one named theme SPEC.md §2.1 maps — default, so it applies at
     // bare `:root` with no `data-theme` attribute required.
     (daisyuiTheme as (options: Record<string, unknown>) => unknown)({
       name: "reachkit",

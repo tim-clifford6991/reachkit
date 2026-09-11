@@ -340,7 +340,7 @@ describe(
       // 100 simulated vendor latencies, spread from instant to well past
       // the ceiling — a fixture distribution, not a live measurement
       // (this criterion's own 60 s p95 half is a claim about real vendor
-      // latency and is not testable here; `BUILD.md` §16 milestone 3 is,
+      // latency and is not testable here; `SPEC.md` §16 milestone 3 is,
       // this WO's own first `rests-on` row).
       const latenciesMs = Array.from({ length: 100 }, (_, i) => (i % 10) * (CEILING_MS / 5));
       const promises = latenciesMs.map((latency) =>

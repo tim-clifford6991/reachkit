@@ -35,7 +35,7 @@
 // `next-publish.*` family the same shell renders. Two are owner-owed and
 // empty (REQ-040 c6's week line and c7's not-measured line are written
 // sentences and therefore the owner's, constitution §1). Five carry a
-// value, and every one of them is a **transcription** of a word `BUILD.md`
+// value, and every one of them is a **transcription** of a word `SPEC.md`
 // itself prints, on the same footing as the thirteen band words: §4.4's
 // "nav **Overview / Calendar / Settings**" and §4.3's "Autopilot (default,
 // selected) vs Copilot". Nothing here is composed.
@@ -117,7 +117,7 @@ export const LAWS_COPY = Object.freeze({
   ],
   // 2026-09-05, issue #13: value moved from "" to `TODO(copy)` per
   // `CLAUDE.md`'s standing rule. The free report's free-page card
-  // (`BUILD.md` §4.1 module 5) renders a proposed page's title, which is
+  // (`SPEC.md` §4.1 module 5) renders a proposed page's title, which is
   // model text and therefore reaches the screen only through
   // `renderGenerated` — and `renderGenerated` resolves this key for the
   // label that must ride with it. Left empty, `copy()` throws and the

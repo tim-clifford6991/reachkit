@@ -63,7 +63,7 @@
 // Its `AnswerRow` carries the question as a plain `text: string`, which
 // would reach the screen without passing `renderQuestion` — the gate
 // REQ-093 c3 exists to hold — so this keeps a `GeneratedText`. It carries
-// no `rivals`, and the dot matrix `BUILD.md` §4.1 draws is one row per
+// no `rivals`, and the dot matrix `SPEC.md` §4.1 draws is one row per
 // rival. And it carries no `measuredAt`, which the card's source chip
 // shows. Reconciling the two is `assembleReport`'s job (#25) and the
 // first of the three is the owner's call; flagged there rather than

@@ -99,7 +99,7 @@ describe("the platform is named in exactly one file", () => {
   });
 
   // Issue #315 put `INNGEST_SIGNING_KEY` and `INNGEST_EVENT_KEY` into the
-  // env schema: `BUILD.md` §15 names them, and a boot contract that omitted
+  // env schema: `SPEC.md` §15 names them, and a boot contract that omitted
   // them let a deployment start with no way to run a job and say nothing.
   // Naming two bindings is not importing an SDK — the claim this suite
   // protects is that swapping the platform is a bounded edit, and it stays

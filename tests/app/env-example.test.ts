@@ -1,6 +1,6 @@
 // tests/app/env-example.test.ts
 //
-// WO-001 test plan criterion: `BUILD.md` §15's binding list — asserts
+// WO-001 test plan criterion: `SPEC.md` §15's binding list — asserts
 // `.env.example` names every binding in §15 plus `HOSTED_EDGE_CNAME_TARGET`
 // (BP-005's `Env` note), and that every value is empty. Deleting a name
 // fails it.
@@ -10,7 +10,7 @@ import { describe, expect, it } from "vitest";
 
 const ROOT = path.resolve(__dirname, "../..");
 
-// Quoted verbatim from BUILD.md §15:
+// Quoted verbatim from SPEC.md §15:
 //   "SUPABASE_URL SUPABASE_ANON_KEY SUPABASE_SERVICE_ROLE_KEY
 //    STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET STRIPE_PRICE_ID RESEND_API_KEY
 //    MAIL_FROM DATAFORSEO_LOGIN DATAFORSEO_PASSWORD ANTHROPIC_API_KEY
@@ -69,7 +69,7 @@ function readEnvExampleBindings(): Record<string, string> {
   return bindings;
 }
 
-describe("BUILD.md §15 — .env.example binding list", () => {
+describe("SPEC.md §15 — .env.example binding list", () => {
   it.each(REQUIRED_BINDINGS)("names %s", (name) => {
     const bindings = readEnvExampleBindings();
     expect(bindings).toHaveProperty(name);

@@ -111,7 +111,7 @@ function insertScan(opts: { domain: string; isCurrent?: boolean; status?: string
 }
 
 describe(
-  'BP-012 `## Data model delta` — "scans — as BUILD.md §10, plus is_current … supersedes_scan_id, correction_state, and stopped_reason"',
+  'BP-012 `## Data model delta` — "scans — as SPEC.md §10, plus is_current … supersedes_scan_id, correction_state, and stopped_reason"',
   () => {
     it("`is_current` is boolean, not null, default false", () => {
       const rows = psqlRows(

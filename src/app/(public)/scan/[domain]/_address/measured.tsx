@@ -1,6 +1,6 @@
 // BUILD §4.1 — one measured number on this screen, rendered once
 //
-// A screen composition, not a registry row (`BUILD.md` §2.2's component
+// A screen composition, not a registry row (`SPEC.md` §2.2's component
 // set is closed and this adds nothing to it): every measured figure the
 // report shows goes through here, so the dash rule, the reason-specific
 // line and the mono numeral cannot be half-applied by one module and not
@@ -34,7 +34,7 @@ export function measuredText(
 }
 
 /** Every numeral, date, URL and search query on this screen is JetBrains
- *  Mono with tabular numerals (`BUILD.md` §2.3). `.num` in
+ *  Mono with tabular numerals (`SPEC.md` §2.3). `.num` in
  *  `src/ui/type.css` is the one rule that binds it; this is the one
  *  element on this screen that carries the class, so a numeral in the UI
  *  font is a defect with one place to look. */

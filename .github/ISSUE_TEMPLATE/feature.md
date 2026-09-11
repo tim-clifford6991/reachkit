@@ -14,7 +14,7 @@ labels: feature
 - [ ]
 
 ## Design
-<!-- For a screen: its S<id> and section in docs/design/approved/full-set/UI-SPEC.md ("S16 · §S16").
+<!-- For a screen: its S<id> and section in SPEC.md §4.8 ("S16 · §S16").
      A new or changed surface needs an approved artifact landed in the set first (PROCESS §4). Otherwise "no UI". -->
 
 ## Notes

@@ -1,7 +1,7 @@
 // tests/ui/charts.test.tsx
 //
 // §2.4's rules, each asserted against the clause it comes from, over a
-// fixture story per chart. Criterion source: `BUILD.md` and the archived
+// fixture story per chart. Criterion source: `SPEC.md` and the archived
 // WO-035/WO-036 test plans, not a requirement — the design system has no
 // requirement ancestor.
 //
@@ -142,7 +142,7 @@ const SVG_STORIES = ALL_STORIES.filter(([name]) => name !== "WeekStrip");
 
 /* ── the closed inventory ────────────────────────────────────────────── */
 
-describe('BUILD.md §2.4: "The chart inventory is closed … A new chart form is a design-artifact approval first."', () => {
+describe('SPEC.md §2.4: "The chart inventory is closed … A new chart form is a design-artifact approval first."', () => {
   it("the inventory names exactly the five §2.4 lists, in its order", () => {
     expect([...CHART_INVENTORY]).toEqual([
       "GrowthLine",
@@ -177,7 +177,7 @@ describe('BUILD.md §2.4: "The chart inventory is closed … A new chart form is
 
 /* ── §2.4's implementation rule ──────────────────────────────────────── */
 
-describe('BUILD.md §2.4: "Inline SVG, hand-sized viewBoxes — no chart library."', () => {
+describe('SPEC.md §2.4: "Inline SVG, hand-sized viewBoxes — no chart library."', () => {
   it.each(SVG_STORIES)("%s renders an inline <svg> with a literal viewBox", (_name, story) => {
     const svg = svgOf(story());
     expect(svg.tagName.toLowerCase()).toBe("svg");
@@ -198,7 +198,7 @@ describe('BUILD.md §2.4: "Inline SVG, hand-sized viewBoxes — no chart library
 
 /* ── §2.4's colour rule ──────────────────────────────────────────────── */
 
-describe('BUILD.md §2.4: "Two chart colors only: --chart-you (accent) and --chart-rival (neutral gray) … Status colors (ok/warn/bad) are for state, never for series."', () => {
+describe('SPEC.md §2.4: "Two chart colors only: --chart-you (accent) and --chart-rival (neutral gray) … Status colors (ok/warn/bad) are for state, never for series."', () => {
   it("the series map holds those two colours and nothing else", () => {
     expect(SERIES_COLOR).toEqual({ you: "var(--chart-you)", rival: "var(--chart-rival)" });
   });
@@ -259,7 +259,7 @@ describe('BUILD.md §2.4: "Two chart colors only: --chart-you (accent) and --cha
 
 /* ── §2.4's labelling rule ───────────────────────────────────────────── */
 
-describe('BUILD.md §2.4: "Every bar/point is direct-labelled (name + value) — identity is never color-alone."', () => {
+describe('SPEC.md §2.4: "Every bar/point is direct-labelled (name + value) — identity is never color-alone."', () => {
   // UI-SPEC §2's GrowthLine contract is the narrower rule for this one
   // chart — "area fill under an accent line, endpoint dot with surface
   // ring, footnote pair start · goal" — and UI-SPEC wins where it and
@@ -387,7 +387,7 @@ describe('BUILD.md §2.4: "Every bar/point is direct-labelled (name + value) —
 
 /* ── §2.4's geometry ─────────────────────────────────────────────────── */
 
-describe('BUILD.md §2.4: "One axis per chart, thin 2–2.5px lines, 3.5–5px endpoint dots with a surface-colored ring, faint gridlines at 2–3 values."', () => {
+describe('SPEC.md §2.4: "One axis per chart, thin 2–2.5px lines, 3.5–5px endpoint dots with a surface-colored ring, faint gridlines at 2–3 values."', () => {
   // Four of the five. The growth line draws none since #386: UI-SPEC §2's
   // contract for it is the fill, the line, the endpoint dot and the two
   // footnotes, and the set's `areaChart()` draws no rule at all — which
@@ -457,7 +457,7 @@ describe('BUILD.md §2.4: "One axis per chart, thin 2–2.5px lines, 3.5–5px e
 
 /* ── §2.4's tooltip ──────────────────────────────────────────────────── */
 
-describe('BUILD.md §2.4: "hover tooltip on every mark (fixed-position, ink-on-bg, mono)."', () => {
+describe('SPEC.md §2.4: "hover tooltip on every mark (fixed-position, ink-on-bg, mono)."', () => {
   const MARKS: Record<string, number> = {
     GrowthLine: WEEKS.length,
     PresenceBars: PRESENCE.rivals.length + 1,
@@ -491,7 +491,7 @@ describe('BUILD.md §2.4: "hover tooltip on every mark (fixed-position, ink-on-b
 
 /* ── the two shapes that carry a meaning rule ────────────────────────── */
 
-describe('BUILD.md §6.2: "render a no-AI-answer question as a muted cell, never as a miss."', () => {
+describe('SPEC.md §6.2: "render a no-AI-answer question as a muted cell, never as a miss."', () => {
   it("a muted cell is drawn differently from a not-cited one", () => {
     const svg = svgOf(STORIES.AiDotMatrixChart?.() as React.JSX.Element);
     const cells = [...svg.querySelectorAll("rect")].filter((r) => r.getAttribute("rx") === "3");
@@ -513,7 +513,7 @@ describe('BUILD.md §6.2: "render a no-AI-answer question as a muted cell, never
   });
 });
 
-describe('BUILD.md §2.5: "Rival strength is neutral gray, never red — rivals are context, not alarms."', () => {
+describe('SPEC.md §2.5: "Rival strength is neutral gray, never red — rivals are context, not alarms."', () => {
   it("no rival mark in any story reaches a status colour", () => {
     for (const [name, story] of SVG_STORIES) {
       const svg = svgOf(story());

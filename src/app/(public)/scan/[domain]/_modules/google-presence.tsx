@@ -5,7 +5,7 @@
 // name and its value — and beneath a divider, the five biggest searches
 // the customer is absent from.
 //
-// **Rivals are context, never alarms** (`BUILD.md` §2.5): no rival bar is
+// **Rivals are context, never alarms** (`SPEC.md` §2.5): no rival bar is
 // ever red, and `PresenceSection` has no member a size, a forecast or a
 // severity could travel in, so the promise holds by there being nowhere to
 // put a violation.

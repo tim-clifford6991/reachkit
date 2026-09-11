@@ -33,7 +33,7 @@ export const MONO_FONT_FAMILY = "JetBrains Mono";
 // A surface that declares its own scroll container, or its own registered
 // truncation, adds its own row — never a default.
 //
-// 2026-09-05, issue #13: `.overflow-x-auto` is the first row. `BUILD.md`
+// 2026-09-05, issue #13: `.overflow-x-auto` is the first row. `SPEC.md`
 // §2.2 requires every `table` to sit "always inside an `overflow-x-auto`
 // wrap", and `src/ui/components/Table.tsx` is built that way — so a wide
 // table overflowing that wrapper is the design system working as

@@ -43,7 +43,7 @@ export function registrableDomain(hostOrUrl: string): string | null {
  *  from it is a product domain by default (BP-026 `## Error & edge
  *  behavior`: "the open-world side is the rival side").
  *
- *  `PLATFORM_DOMAINS` (`src/lib/config/constants.ts`, BP-005/BUILD.md §6.1)
+ *  `PLATFORM_DOMAINS` (`src/lib/config/constants.ts`, BP-005/SPEC.md §6.1)
  *  is a closed list of bare names — `"reddit"`, not `"reddit.com"` — with no
  *  TLD recorded, so membership cannot be a full eTLD+1 comparison. Matching
  *  is against the registrable domain's second-level label (`psl`'s `sld`:

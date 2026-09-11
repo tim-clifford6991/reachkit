@@ -1,6 +1,6 @@
 // src/jobs/account-maintenance.ts — BUILD §11
 //
-// The seventh id. `BUILD.md` §11's table names six jobs; seven obligations
+// The seventh id. `SPEC.md` §11's table names six jobs; seven obligations
 // in the rest of the spec fall due on a clock and no read path can serve
 // them — a payment awaiting sign-in, a payment with no account, a
 // hosting-end notice, a hosting stop, an account due for purge, a founder

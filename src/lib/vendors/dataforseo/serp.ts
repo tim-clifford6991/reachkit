@@ -24,7 +24,7 @@
 // **The scope is in the key, and the window is the caller's** (#75).
 // Neither was expressible before, and §6.4 states both. A key of query and
 // locale alone is shared across every customer whose market contains that
-// search, which `DATA-COSTS.md` §5's "monthly per customer" roll-up already
+// search, which `SPEC.md` §6.8 §5's "monthly per customer" roll-up already
 // assumed it was not — see `CacheScope`. And §6.4's window is "SERPs 30d
 // (**except the weekly target re-check**)"; that exception had no way to be
 // asked for, so three weeks in four the weekly re-check would serve a

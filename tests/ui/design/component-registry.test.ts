@@ -44,9 +44,9 @@ const WRITTEN = classTokensAcrossSurfaces();
 /* ── the registry is §2.2's, and the barrel's ─────────────────────────── */
 
 describe("§2.2 — the registry is the spec's own list, both ways", () => {
-  it("the paragraph this file decides from is in BUILD.md, verbatim", () => {
+  it("the paragraph this file decides from is in SPEC.md, verbatim", () => {
     const flat = (s: string): string => s.replace(/\s+/g, " ").trim();
-    expect(flat(read("BUILD.md"))).toContain(flat(BUILD_MD_2_2));
+    expect(flat(read("SPEC.md"))).toContain(flat(BUILD_MD_2_2));
   });
 
   it("every class name §2.2 backticks is registered (no component quietly dropped)", () => {
@@ -427,7 +427,7 @@ const SCAN = "src/app/(public)/scan/[domain]";
 
 describe("UI-SPEC §2 — Source chip, Problem card and Question list have one renderer each (#487)", () => {
   it("each is a UI-SPEC §2 row", () => {
-    const spec = read("docs/design/approved/full-set/UI-SPEC.md");
+    const spec = read("SPEC.md");
     for (const row of IDIOM_REGISTERED) {
       expect(spec, row.exported).toContain(row.specRow);
     }

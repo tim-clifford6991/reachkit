@@ -107,7 +107,7 @@ describe("issue #349 — theme.css is the approved token file", () => {
   });
 
   it("no token is defined only in a dark block", () => {
-    // `BUILD.md` §2.1: "Never define a color only inside a dark block." A
+    // `SPEC.md` §2.1: "Never define a color only inside a dark block." A
     // token the light block never declares renders as nothing in light.
     const orphans = [...declared["dark-media"].keys(), ...declared["dark-toggle"].keys()]
       .filter((token) => !declared.light.has(token))

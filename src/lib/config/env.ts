@@ -14,7 +14,7 @@
 import { z } from "zod";
 import { isRealDeployment } from "./now";
 
-// `BUILD.md` §15, verbatim:
+// `SPEC.md` §15, verbatim:
 //   "SUPABASE_URL SUPABASE_ANON_KEY SUPABASE_SERVICE_ROLE_KEY
 //   STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET STRIPE_PRICE_ID RESEND_API_KEY
 //   MAIL_FROM DATAFORSEO_LOGIN DATAFORSEO_PASSWORD ANTHROPIC_API_KEY
@@ -39,7 +39,7 @@ import { isRealDeployment } from "./now";
 // way. 6c: `DATABASE_URL` is not a member of this schema at all — no module
 // under `src/` reads it; it is the migration and test tooling's binding.
 //
-// **The jobs platform's two bindings** (issue #315). `BUILD.md` §15 names
+// **The jobs platform's two bindings** (issue #315). `SPEC.md` §15 names
 // `INNGEST_SIGNING_KEY` and `INNGEST_EVENT_KEY`; the 2026-09-05 ruling kept
 // them out of this schema as "the SDK's own bindings", and the cost of that
 // was a deployment that starts, serves every screen, and cannot run a single

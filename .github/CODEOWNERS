@@ -4,10 +4,10 @@
 # checks are green: the checks are the gate, the flag only bypasses the review
 # row. A feature PR that touches a file below is refused at review (CLAUDE.md
 # "Don't"); an agent may not loosen a rule to make its own PR pass.
-BUILD.md              @tim-clifford6991
+SPEC.md               @tim-clifford6991
+LATER.md              @tim-clifford6991
 DECISIONS.md          @tim-clifford6991
 ARCHITECTURE.md       @tim-clifford6991
-DATA-COSTS.md         @tim-clifford6991
 CLAUDE.md             @tim-clifford6991
 /.github/             @tim-clifford6991
 /scripts/             @tim-clifford6991

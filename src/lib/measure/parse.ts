@@ -25,7 +25,7 @@ import { SCORING } from "@/lib/config/constants";
  *  band. Empty denominators read 0, never null. */
 export interface OnPageFacts {
   url: string;
-  /** `BUILD.md` §5: "question-shaped headings ÷ all headings". */
+  /** `SPEC.md` §5: "question-shaped headings ÷ all headings". */
   headings: number;
   /** §5: "question-shaped = ends `?` or opens with how/what/why/when/
    *  where/which/who/can/do/does/is/are". */
@@ -198,7 +198,7 @@ function firstBlockAfter(html: string, fromIndex: number): string | null {
   return null;
 }
 
-// The twelve openers `BUILD.md` §5 names, and no other token — order kept
+// The twelve openers `SPEC.md` §5 names, and no other token — order kept
 // as written there.
 const QUESTION_OPENERS: readonly string[] = [
   "how",

@@ -68,7 +68,7 @@ const EIGHT_TABLES = [
   "leads",
 ] as const;
 
-describe("`BUILD.md` §10's nine-row table — the baseline creates eight, and `fetches` is absent", () => {
+describe("`SPEC.md` §10's nine-row table — the baseline creates eight, and `fetches` is absent", () => {
   it("creates exactly the eight table names (not the ninth, `fetches`)", () => {
     const rows = psqlRows(
       `select table_name from information_schema.tables where table_schema = 'public' order by table_name;`
@@ -84,7 +84,7 @@ describe("`BUILD.md` §10's nine-row table — the baseline creates eight, and `
     expect(rows).toHaveLength(0);
   });
 
-  // `BUILD.md` §10, quoted per table (key columns only).
+  // `SPEC.md` §10, quoted per table (key columns only).
   const KEY_COLUMNS: Record<(typeof EIGHT_TABLES)[number], string[]> = {
     users: ["id", "email", "plan_status", "stripe_customer_id", "created_at"],
     sites: [
@@ -158,7 +158,7 @@ describe("`BUILD.md` §10's nine-row table — the baseline creates eight, and `
     leads: ["id", "scan_id", "email", "consented_at", "converted_at", "draft_sent_at"],
   };
 
-  it.each(EIGHT_TABLES)("%s carries every key column `BUILD.md` §10 lists", (table) => {
+  it.each(EIGHT_TABLES)("%s carries every key column `SPEC.md` §10 lists", (table) => {
     const rows = psqlRows(
       `select column_name from information_schema.columns where table_schema = 'public' and table_name = '${table}';`
     );

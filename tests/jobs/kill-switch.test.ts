@@ -1,6 +1,6 @@
 // tests/jobs/kill-switch.test.ts — BUILD §11 bounds
 //
-// `BUILD.md` §11: "kill switch env var stops scan+generate+publish".
+// `SPEC.md` §11: "kill switch env var stops scan+generate+publish".
 //
 // The three the switch stops must stop **before any spend and before any
 // write** — asserted here by giving each job an engine that would record

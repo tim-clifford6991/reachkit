@@ -2,7 +2,7 @@
 //
 // **The platform choice, and the only file that names it.**
 //
-// `BUILD.md` §1's stack table: "Jobs | **Inngest** (or Vercel cron +
+// `SPEC.md` §1's stack table: "Jobs | **Inngest** (or Vercel cron +
 // queue)". Inngest is taken, on §1's own bolding and on what the seven jobs
 // need that a bare cron does not: at-least-once delivery with durable
 // retry, an idempotency key per delivery, a per-function concurrency bound,
@@ -22,7 +22,7 @@
 // 2026-09-05 ruling that kept them out as "the SDK's own bindings". They
 // still *are* the SDK's own bindings: it reads both from `process.env` by
 // those names, and nothing in this file passes them. What changed is that
-// the deployment contract now declares them — `BUILD.md` §15 always named
+// the deployment contract now declares them — `SPEC.md` §15 always named
 // them — and `assertJobsBindings()` refuses the boot of a real deployment
 // that carries neither. Before that, such a deployment started, served
 // every screen, and ran no job at all, with nothing saying so.

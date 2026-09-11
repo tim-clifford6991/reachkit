@@ -25,7 +25,7 @@
 //   only state it was ever written for.
 //
 //   **Filled, and every one a transcription** of a word or sentence
-//   `BUILD.md` §4.5 itself prints — the same footing as the thirteen band
+//   `SPEC.md` §4.5 itself prints — the same footing as the thirteen band
 //   words and the five `shell.*` words. §4.5 prints the module headings
 //   ("How far ahead each rival is", "This week"), two tile names ("AI
 //   answers", "Pages published"), the strip's three day words

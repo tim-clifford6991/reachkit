@@ -32,7 +32,7 @@ export type CoherenceVerdict =
   | { verdict: "unjudgeable"; measuredCount: number };
 
 /** max(2, ceil(n / 4)) — a share of what was measured, never an absolute
- *  count. Rescales with the denominator: 3 at n = 12 (BUILD.md §6.7 step
+ *  count. Rescales with the denominator: 3 at n = 12 (SPEC.md §6.7 step
  *  5's literal, at that one denominator), 2 at n = 4, never the whole
  *  number measured (REQ-094 criterion 2; REQ-006 criterion 1's variable
  *  denominator). */

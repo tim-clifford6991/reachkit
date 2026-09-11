@@ -6,7 +6,7 @@
 //   - `structure.md` rule 3a: "A sub-token is not a new topic and needs no
 //     entry in the closed list above."
 //   - `structure.md` rule 2: "the narrower glob owns the file."
-//   - `BUILD.md` §1: "Supabase (Postgres, RLS default-deny, magic-link
+//   - `SPEC.md` §1: "Supabase (Postgres, RLS default-deny, magic-link
 //     auth)" — companion assertion against `supabase/config.toml`.
 //
 // `structure.md` rule 4: tests live beside the module they exercise —
@@ -81,7 +81,7 @@ describe("supabase/migrations/ — every applied migration file names exactly on
   });
 });
 
-describe('`BUILD.md` §1 — "Supabase (Postgres, RLS default-deny, magic-link auth)" — companion assertion', () => {
+describe('`SPEC.md` §1 — "Supabase (Postgres, RLS default-deny, magic-link auth)" — companion assertion', () => {
   const config = readFileSync(CONFIG_TOML, "utf8");
 
   it("enables email OTP (magic-link) sign-in", () => {

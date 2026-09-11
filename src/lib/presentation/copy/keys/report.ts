@@ -17,7 +17,7 @@
 // WO-051) sit beside the one key this surface already owned.
 //
 // 2026-09-03: the owner ruled on the headline, field label and submit
-// label (WO-070 `## Log`, "landing copy approved"; strings per `BUILD.md`
+// label (WO-070 `## Log`, "landing copy approved"; strings per `SPEC.md`
 // §3) — those three are filled verbatim, byte for byte, and no longer
 // owner-owed.
 //
@@ -55,7 +55,7 @@
 // 2026-09-05, issue #13: the free report screen's own modules — the verdict
 // strip's provenance line, the AI-answers card, the Google-presence card,
 // the three problem cards, the three DIY sections and the free-page card
-// (`BUILD.md` §4.1 modules 1 to 5, as amended by DECISIONS 2026-09-03 —
+// (`SPEC.md` §4.1 modules 1 to 5, as amended by DECISIONS 2026-09-03 —
 // no driver bars, no per-question volume, no market-total footnote). They
 // land in this partition for the reason WO-070, WO-249 and WO-287 already
 // landed theirs here: BP-022 owns the report address and `report.ts` is

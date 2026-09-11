@@ -3,7 +3,7 @@
 //
 // WO-179 decision 4 and its step 3, verbatim: project the rows over the
 // stoppable subset of `MAIL_KINDS` — "**not** the three hard-coded toggles of
-// `BUILD.md` §4.7 … a second copy of the register is the copy that goes
+// `SPEC.md` §4.7 … a second copy of the register is the copy that goes
 // stale, and a stoppable mail with no toggle is a customer who cannot stop a
 // mail the product says they can."
 //

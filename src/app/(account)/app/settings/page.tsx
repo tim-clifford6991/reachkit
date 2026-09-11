@@ -8,7 +8,7 @@
 // Notifications — "How your pages sound", the approved S18's own — and the
 // two settings on it came off "Your content" on the right. §4.7 names eight
 // cards and the approved set draws nine; UI-SPEC's own precedence applies
-// ("where this document and BUILD.md §4 differ, this document wins until
+// ("where this document and SPEC.md §4 differ, this document wins until
 // the §4 amendment lands"). No setting is added or dropped by the move:
 // `SETTABLE` is unchanged, and `screen.test.tsx` reads every rendered
 // `setting-<key>` off the document and asserts the set against it.
@@ -19,7 +19,7 @@
 // components are thin adapters over a module's exported interface."
 //
 // The order of the eight cards is §4.7's order, and the two columns are §4.7's
-// two. **This screen ships no stylesheet.** `BUILD.md` §2.2 closes custom CSS
+// two. **This screen ships no stylesheet.** `SPEC.md` §2.2 closes custom CSS
 // at five surfaces — "the calendar grid, the day panel, the AI dot-matrix,
 // chart SVGs, and the sidebar — nothing else" — and Settings is on none of
 // them, so every rule this screen needs is a stock Tailwind utility or one of

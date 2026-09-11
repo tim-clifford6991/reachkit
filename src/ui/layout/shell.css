@@ -1,7 +1,7 @@
 /* src/ui/layout/shell.css — BUILD §4.4, §2.2
  *
  * The app shell's stylesheet: the sidebar, the frame it sits in, and the
- * narrow-viewport switch to the Workspace nav as one row (UI-SPEC §0 11). `BUILD.md` §2.2 closes custom CSS at
+ * narrow-viewport switch to the Workspace nav as one row (UI-SPEC §0 11). `SPEC.md` §2.2 closes custom CSS at
  * five surfaces — "the calendar grid, the day panel, the AI dot-matrix,
  * chart SVGs, and **the sidebar** — nothing else" — and this file is the
  * sidebar's. Everything else the shell renders is a registered daisyUI
@@ -20,7 +20,7 @@
  *
  * SPACING. `design/tokens.md` §1's spacing scale was ruled by the owner on
  * 2026-09-02 (4px base, seven steps) but has no home in this repository
- * yet: `src/ui/theme.css`'s `:root` is `BUILD.md` §2.1 verbatim and
+ * yet: `src/ui/theme.css`'s `:root` is `SPEC.md` §2.1 verbatim and
  * `tests/ui/tokens.test.ts` refuses any token §2.1 does not state. The four
  * steps this sheet needs are therefore transcribed here, scoped to
  * `.rk-shell` rather than `:root`, so they are one shell-local declaration

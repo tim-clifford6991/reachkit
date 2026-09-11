@@ -2,7 +2,7 @@
 // (consolidates WO-060; see `archive/sdlc-factory-2026-09-04/corpus/docs/work-orders/WO-281.md`
 // `## Consolidation`)
 //
-// Six named handles, one per dataset boundary of `BUILD.md` §6.3's
+// Six named handles, one per dataset boundary of `SPEC.md` §6.3's
 // free-scan list (BP-023 decision 7), and the stream that carries their
 // transitions — plus a heartbeat and exactly one `ending` — to whoever
 // calls `progress(scanId)`. No word a visitor reads appears in this file:

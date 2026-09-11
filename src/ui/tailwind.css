@@ -1,6 +1,6 @@
 /* src/ui/tailwind.css
  *
- * The line that makes `BUILD.md` §2.2's component set real. Tailwind 4 has
+ * The line that makes `SPEC.md` §2.2's component set real. Tailwind 4 has
  * no implicit entry point: a stylesheet must `@import "tailwindcss"` for
  * any utility or plugin class to be emitted at all, and until this file
  * existed none did — so every `card`, `badge`, `btn`, `grid` and `flex`
@@ -8,7 +8,7 @@
  * in the layout conformance sweep alike.
  *
  * `@config` points at `tailwind.config.ts`, which is where BP-018 already
- * put the content globs and the six-slot daisyUI theme mapping (`BUILD.md`
+ * put the content globs and the six-slot daisyUI theme mapping (`SPEC.md`
  * §2.1: "Map these onto daisyUI's theme slots ... so stock daisyUI classes
  * just work"). Tailwind 4 loads a JavaScript config only when a stylesheet
  * names it, which is the other half of the same gap.
@@ -38,7 +38,7 @@ body {
  *
  * Here rather than in `src/ui/theme.css` for the reason
  * `src/ui/layout/layout.css` gives for its three: that file's `:root` is
- * `BUILD.md` §2.1's block verbatim and `tests/ui/tokens.test.ts` refuses any
+ * `SPEC.md` §2.1's block verbatim and `tests/ui/tokens.test.ts` refuses any
  * token §2.1 does not state. It belongs beside this entry because this is
  * the file that makes §2.2's component set real, and the width is what
  * `tailwind.config.ts` hands daisyUI as `--border` — the one slot its

@@ -1,7 +1,7 @@
 // Every route in the app is named in BUILD §3 (issue #378).
 // tests/docs/routes-specced.test.ts
 //
-// `scripts/drift-audit.mjs` already reports a route BUILD.md never mentions,
+// `scripts/drift-audit.mjs` already reports a route SPEC.md never mentions,
 // but it accepts a mention anywhere in the file — a route named only inside a
 // §4 screen paragraph passes it. §3 is where the journey and the three route
 // lists (public · API · account, plus hosted) live, so a route that is not in
@@ -16,7 +16,7 @@ const APP = path.join(ROOT, "src/app");
 
 /** BUILD §3, from its heading to the next top-level section. */
 function section3(): string {
-  const build = readFileSync(path.join(ROOT, "BUILD.md"), "utf8");
+  const build = readFileSync(path.join(ROOT, "SPEC.md"), "utf8");
   const start = build.indexOf("## 3. User journey");
   const end = build.indexOf("\n## 4.", start);
   return build.slice(start, end);
@@ -24,7 +24,7 @@ function section3(): string {
 
 /**
  * Every `page`/`route` file under `src/app`, as the URL it serves: route
- * groups drop out, and dynamic segments take the `{param}` spelling BUILD.md
+ * groups drop out, and dynamic segments take the `{param}` spelling SPEC.md
  * writes (optional catch-alls first, so `[[...slug]]` becomes `{...slug}`
  * rather than an unmatchable `{[...slug}]` — the drift audit's own rule).
  */

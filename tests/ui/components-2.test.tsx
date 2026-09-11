@@ -3,7 +3,7 @@
 // WO-268 `## Test plan` — the five rows carried verbatim from WO-032 for
 // the remaining seven of the fifteen registered components (Toggle, Steps,
 // Join, Collapse, Input, Divider, Kbd) plus the closed barrel itself.
-// Criterion source: BP-018 and `BUILD.md`, not a requirement.
+// Criterion source: BP-018 and `SPEC.md`, not a requirement.
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -218,7 +218,7 @@ describe(
 );
 
 describe(
-  'BP-003 / `BUILD.md` §2.5 empty-and-degraded rule as BP-018 states it: "Every label, empty state and tooltip is a required prop" — applied to Steps',
+  'BP-003 / `SPEC.md` §2.5 empty-and-degraded rule as BP-018 states it: "Every label, empty state and tooltip is a required prop" — applied to Steps',
   () => {
     it("Steps requires a label per step, so an unlabelled stage cannot render (compile-time)", () => {
       const steps: Array<{ id: string; label: string; state: "pending" | "active" | "done" }> = [

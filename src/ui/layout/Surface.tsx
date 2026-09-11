@@ -4,7 +4,7 @@
 // BP-018 `## Public interface`: "Every screen root is a `Surface`. `arms` is
 // required and has no default, so a screen that declares no band behaviour
 // fails to compile — not a test." It renders no chrome and is not a widget
-// (BUILD.md §2.2's closed set of five custom components is untouched by it):
+// (SPEC.md §2.2's closed set of five custom components is untouched by it):
 // one element carrying `data-surface` and one `data-arm-<band>` attribute
 // per band naming the arm's `kind` (plus `count`/`note` where the kind
 // carries one) — no class, no style, no string of its own.

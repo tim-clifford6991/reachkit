@@ -31,7 +31,7 @@ export type TokenSet = Readonly<Record<Block, ReadonlyMap<string, string>>>;
 /**
  * Which of the three blocks a rule belongs to.
  *
- * `BUILD.md` §2.1 fixes the three selectors, so they are matched rather than
+ * `SPEC.md` §2.1 fixes the three selectors, so they are matched rather than
  * guessed: a bare `:root`, the media-guarded `:root:not([data-theme=
  * "light"])`, and the explicit `:root[data-theme="dark"]`. A rule that is
  * none of them is a mistake in whichever file carries it, and `tokenSet`

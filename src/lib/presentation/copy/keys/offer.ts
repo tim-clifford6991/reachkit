@@ -38,7 +38,7 @@ export const OFFER_COPY = Object.freeze({
   "offer.cadence.movement": ["What moved, in your inbox {value}", { slots: { value: "text" }, fixedBy: "REQ-021 c2" }],
   "offer.veto.window": ["Every page waits {value} for you to stop it before it goes live — and you can cancel any time, yourself", { slots: { value: "text" }, fixedBy: "REQ-021 c2" }],
   // 2026-09-05, issue #13: value moved from "" to `TODO(copy)` per
-  // `CLAUDE.md`'s standing rule. `BUILD.md` §4.1 module 6 requires the
+  // `CLAUDE.md`'s standing rule. `SPEC.md` §4.1 module 6 requires the
   // pricing card to carry "Cancel in one click"; left empty, `copy()`
   // throws and the report screen goes down rather than showing the owner
   // an unwritten line. `price.vat_included` was left untouched then: no
@@ -105,7 +105,7 @@ export const OFFER_COPY = Object.freeze({
 
   // 2026-09-05, issue #13: the four values the four slotted lines above
   // take. BP-031's `offerTerms()` was to supply them and does not exist;
-  // the free report's pricing card (`BUILD.md` §4.1 module 6) needs them
+  // the free report's pricing card (`SPEC.md` §4.1 module 6) needs them
   // now. Three are pure owner words with no number in them. The fourth
   // carries the number from its pin — `VETO.defaultHours`
   // (`src/lib/config/constants.ts`) — through an `{hours}` slot, so the

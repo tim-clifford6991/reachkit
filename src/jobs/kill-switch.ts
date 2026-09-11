@@ -1,6 +1,6 @@
 // src/jobs/kill-switch.ts — BUILD §11 bounds
 //
-// `BUILD.md` §11: "kill switch env var stops scan+generate+publish". The
+// `SPEC.md` §11: "kill switch env var stops scan+generate+publish". The
 // scope is those ids and no others — a stop that also held
 // `publish/verify` would leave a published page unchecked, and a stop that
 // held `account/maintenance` would hold a purge, withhold a hosting notice

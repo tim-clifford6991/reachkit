@@ -2,7 +2,7 @@
 // src/ui/fonts.ts
 //
 // BP-018 `## Module / boundary`: "src/ui/fonts.ts" — the one font-loading
-// module. `BUILD.md` §1: "**Plus Jakarta Sans** (UI) + **JetBrains Mono**
+// module. `SPEC.md` §1: "**Plus Jakarta Sans** (UI) + **JetBrains Mono**
 // (all numerals/data) | `@fontsource`, self-hosted." Self-hosted: every
 // `path` below resolves to a `.woff2` inside `node_modules/@fontsource`,
 // never a `<link>` to fonts.googleapis.com/fonts.gstatic.com — so no
@@ -55,7 +55,7 @@
 // **What preloads (an internal parameter, rule 1.1 — reversal cost: one
 // boolean).** Only the latin faces the product renders above the fold:
 // Jakarta 400 (body) and 700 (`type.css`'s one heading weight), JetBrains
-// Mono 400 (every numeral), and Jakarta 800 — `BUILD.md` §2.3's "Jakarta
+// Mono 400 (every numeral), and Jakarta 800 — `SPEC.md` §2.3's "Jakarta
 // 700–800", which `src/ui/idiom/idiom.css` spends on the public header's
 // wordmark and the landing's headline, the first two things `/` paints.
 // Until issue #494 the 800 face did not preload, on the premise that no rule
@@ -71,8 +71,8 @@
 //
 // Weights loaded (rule 1.1 again — one `src` row per weight, no call site
 // depends on the set): Jakarta 400 for body text, 700 and 800 for
-// `BUILD.md` §2.3's heading range; JetBrains Mono 400, the only weight
-// `BUILD.md` §2.3 or `.num` (type.css) asks for.
+// `SPEC.md` §2.3's heading range; JetBrains Mono 400, the only weight
+// `SPEC.md` §2.3 or `.num` (type.css) asks for.
 //
 // **Every value below is written out, never referenced.** `next/font`'s
 // transform reads its arguments at build and refuses anything that is not

@@ -7,10 +7,10 @@
 // distinguishing header, so nothing about the redirect says whether an
 // account exists (REQ-020 criterion 5).
 //
-// **No section marker.** `BUILD.md` has no §4 row for this screen — §1 names
+// **No section marker.** `SPEC.md` has no §4 row for this screen — §1 names
 // "magic-link auth" and §4 lists six screens, none of them this one — so
 // there is no section for this file to mark and none is invented. Named in
-// the pull request as something `BUILD.md` owes a row for.
+// the pull request as something `SPEC.md` owes a row for.
 //
 // **Criterion 1, structurally:** one email input and one submit control and
 // nothing else to fill in. No password field, no social sign-in, no control

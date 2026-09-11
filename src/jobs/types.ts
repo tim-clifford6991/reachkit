@@ -5,7 +5,7 @@
 // change to this file and to `tests/jobs/registry.test.ts`, which asserts
 // the set — a ninth id cannot arrive by accident.
 //
-// `BUILD.md` §11's table names six jobs. `account/maintenance` is the
+// `SPEC.md` §11's table names six jobs. `account/maintenance` is the
 // seventh: the clock-triggered obligations no read path can serve (a
 // payment awaiting sign-in, a payment with no account, a hosting-end
 // notice, a hosting stop, an account due for purge) have no other trigger,

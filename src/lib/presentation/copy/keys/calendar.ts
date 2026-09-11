@@ -13,7 +13,7 @@
 //
 // 2026-09-05, separately: issue #16 (BUILD §4.6) fills the calendar itself.
 // Twenty keys carry a value and **every one of them is a transcription of a
-// word or a sentence `BUILD.md` §4.6 itself prints**, on the same footing as
+// word or a sentence `SPEC.md` §4.6 itself prints**, on the same footing as
 // the thirteen band words in `bands.ts` and the five `shell.*` words issue
 // #9 filled (constitution rule 1.2: copying a recorded owner ruling is not
 // inventing one). Nothing here is composed:

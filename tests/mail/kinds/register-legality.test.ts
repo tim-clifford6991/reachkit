@@ -1,7 +1,7 @@
 // BUILD §12 — every kind cites a section of the spec that still exists.
 //
 // The register is the closed list of occasions the product may mail on.
-// A row whose `occasionsFrom` names a section BUILD.md no longer has is a
+// A row whose `occasionsFrom` names a section SPEC.md no longer has is a
 // mail with no justification left — this suite fails before a customer
 // finds out.
 import { readFileSync } from "node:fs";
@@ -9,9 +9,9 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { MAIL_KINDS, type MailKind } from "../../../src/lib/mail/kinds";
 
-const BUILD = readFileSync(path.resolve(__dirname, "../../../BUILD.md"), "utf8");
+const BUILD = readFileSync(path.resolve(__dirname, "../../../SPEC.md"), "utf8");
 
-/** Every numbered heading BUILD.md carries, e.g. `4.2`, `12`, `6.3a`. */
+/** Every numbered heading SPEC.md carries, e.g. `4.2`, `12`, `6.3a`. */
 const SECTIONS = new Set(
   [...BUILD.matchAll(/^#{2,3} (\d+(?:\.\d+)?[a-z]?)\.? /gm)].map((m) => m[1] as string)
 );
@@ -19,7 +19,7 @@ const SECTIONS = new Set(
 const CITED = /§(\d+(?:\.\d+)?[a-z]?)/g;
 
 describe("BUILD §12 — every register row cites a live section", () => {
-  it("BUILD.md was read and holds numbered sections", () => {
+  it("SPEC.md was read and holds numbered sections", () => {
     expect(SECTIONS.size).toBeGreaterThan(10);
     expect(SECTIONS.has("12")).toBe(true);
   });
@@ -36,7 +36,7 @@ describe("BUILD §12 — every register row cites a live section", () => {
     expect(dangling).toEqual([]);
   });
 
-  it("discriminates: a row citing a section BUILD.md does not have is caught", () => {
+  it("discriminates: a row citing a section SPEC.md does not have is caught", () => {
     const invented = [...("§99.9".matchAll(CITED))].map((m) => m[1] as string);
     expect(invented).toEqual(["99.9"]);
     expect(SECTIONS.has("99.9")).toBe(false);

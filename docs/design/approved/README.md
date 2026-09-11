@@ -7,7 +7,7 @@ It is the Claude artifact *ReachKit Screen System*, approved by the owner on
 `tokens.md`'s values under
 `archive/sdlc-factory-2026-09-04/corpus/docs/design/` — and nothing else:
 the archive's `requirements/REQ-*.md`, `decisions/ADR-*.md`, journeys and
-work-orders remain the authoritative detail behind `BUILD.md` and are still
+work-orders remain the authoritative detail behind `SPEC.md` and are still
 read first for specifics, which is why every UI issue cites its REQ criteria
 (issue #364).
 

@@ -9,10 +9,10 @@
  *
  * That is the whole rule, and it is why this file no longer explains each
  * value: the explanation belongs in `docs/design/approved/tokens.css` and in
- * `docs/design/approved/full-set/UI-SPEC.md` §1, which is where a reader
+ * `SPEC.md` §4.8 §1, which is where a reader
  * should be sent. What lives here is the transcription.
  *
- * Three-state theming, `BUILD.md` §2.1 verbatim: "bare `:root` = light;
+ * Three-state theming, `SPEC.md` §2.1 verbatim: "bare `:root` = light;
  * `@media (prefers-color-scheme: dark)` guarded with
  * `:root:not([data-theme="light"])`; `:root[data-theme="dark"]` for the
  * explicit toggle. Never define a color only inside a dark block." Every

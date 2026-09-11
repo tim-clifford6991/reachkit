@@ -1,10 +1,10 @@
 // tests/app/toolchain.test.ts
 //
-// WO-001 test plan — criteria quoted from BP-001 (satisfies: []) and BUILD.md,
+// WO-001 test plan — criteria quoted from BP-001 (satisfies: []) and SPEC.md,
 // not from a requirement (see WO-001 `## Test plan` header note).
 //
-//   - BUILD.md §1: "Next.js (App Router) + TypeScript"
-//   - BUILD.md §1: "Repo shape: standard Next.js."
+//   - SPEC.md §1: "Next.js (App Router) + TypeScript"
+//   - SPEC.md §1: "Repo shape: standard Next.js."
 //   - BP-005 NFR budget: "The pins test runs in under a second and is the
 //     first check in CI."
 //
@@ -21,7 +21,7 @@ function readJson(relPath: string): unknown {
   return JSON.parse(readFileSync(path.join(ROOT, relPath), "utf8"));
 }
 
-describe("BUILD.md §1 — Next.js (App Router) + TypeScript", () => {
+describe("SPEC.md §1 — Next.js (App Router) + TypeScript", () => {
   it("package.json declares next and typescript", () => {
     const pkg = readJson("package.json") as {
       dependencies?: Record<string, string>;
@@ -40,7 +40,7 @@ describe("BUILD.md §1 — Next.js (App Router) + TypeScript", () => {
   });
 });
 
-describe('BUILD.md §1 — "Repo shape: standard Next.js."', () => {
+describe('SPEC.md §1 — "Repo shape: standard Next.js."', () => {
   const requiredDirs = ["src/app", "src/lib", "src/jobs", "src/ui", "supabase", "tests"];
 
   it.each(requiredDirs)("%s exists", (rel) => {

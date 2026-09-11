@@ -5,7 +5,7 @@
 // factor holding it down; and the three driver mini-bars.
 //
 // **The driver bars are back, with their values** (ruling 1b of
-// 2026-09-08, `docs/design/approved/full-set/UI-SPEC.md` §1). They were
+// 2026-09-08, `SPEC.md` §4.8 §1). They were
 // removed on 2026-09-03 and the ruling restores them, amending REQ-004 c2
 // and BUILD §4.1 to allow a factor's value "on the header strip only":
 // this file is that one strip, `Verdict.factors` is where the values now
@@ -53,7 +53,7 @@ const FACTOR_NAMES: Readonly<Record<ScoreFactorName, CopyKey>> = Object.freeze({
  *  today, their own wording next, the market's answer last. */
 const FACTOR_ORDER: readonly ScoreFactorName[] = ["foundations", "answerability", "presence"];
 
-/** The scale the header speaks in. The factors are 0–100 (`BUILD.md` §5);
+/** The scale the header speaks in. The factors are 0–100 (`SPEC.md` §5);
  *  the approved set draws `7/10`. Both the label and the bar read this one
  *  number, so they cannot disagree. */
 const TENTHS = 10;
