@@ -145,21 +145,32 @@
  * only in `.rk-shell-top`, which the one media query below hides at 1024, so
  * it needs no query of its own.
  *
- * `--t-sm` and 600 are the set's `.nav` (L102). Each item takes an equal
- * share and may shrink below its word's width rather than push the header
- * sideways at the 320 floor; `--s-2` either side is the ladder's rung that
- * keeps three words and a count inside 320 less the band's gutters. */
+ * `--t-sm` and 600 are the set's `.nav` (L102). Each item is as wide as the
+ * word it carries — not an equal share, which at the 320 floor is narrower
+ * than "Calendar" and its count and would cut one of them (checks 2 and 3)
+ * — and the three sit apart across the row. `--s-2` either side is the
+ * ladder's rung that keeps three words and a count inside 320 less the
+ * band's gutters. */
 .rk-nav-row {
   flex-direction: row;
+  justify-content: space-between;
 }
 
 .rk-nav-row .rk-navlink {
-  flex: 1 1 0;
+  flex: 0 1 auto;
   justify-content: center;
   padding-inline: var(--s-2);
   font-size: var(--t-sm);
   font-weight: 600;
   white-space: nowrap;
+}
+
+/* The glyph is decoration — `aria-hidden`, the word beside it is the link's
+ * name — and §0 11 keeps the labels and the counts, not the glyphs. At 320
+ * the three words and Calendar's count fit the row only without them, so
+ * the row drops the glyph rather than cut a word. */
+.rk-nav-row .rk-navlink > svg {
+  display: none;
 }
 
 /* ── The frame ────────────────────────────────────────────────────────── */
