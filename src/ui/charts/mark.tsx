@@ -59,25 +59,29 @@ export function Mark(p: {
       <g className="rk-tip">
         <rect x={chip.x} y={chip.y} width={chip.width} height={chip.height} rx={3} fill={CHART_INK.tipFill} />
         {/* `textLength` is the fit, not the estimate: the chip is sized
-            from `CHART.tipCharAdvance` and the text is then drawn to
-            exactly the width that leaves, so a face wider than the estimate
-            cannot push a tooltip past the edge of its own viewBox (issue
-            #351 — that is a `<g>` escaping its `<svg>`, which the layout
-            sweep's check 2 reports). `spacingAndGlyphs` rather than the
-            default `spacing`: at a tenth of a unit per character, squeezing
-            the glyphs with the gaps is what keeps a mono chip looking
-            mono. */}
-        <text
-          className="num"
-          x={chip.textX}
-          y={chip.textY}
-          fontSize={CHART.tipTextSize}
-          fill={CHART_INK.tipText}
-          textLength={chip.width - CHART.tipPadX * 2}
-          lengthAdjust={SVG.fitGlyphs}
-        >
-          {p.tip}
-        </text>
+            from `CHART.tipCharAdvance` and each line is then drawn to
+            exactly the width it was given, so a face wider than the
+            estimate cannot push a tooltip past the edge of its own viewBox
+            (issue #351 — that is a `<g>` escaping its `<svg>`, which the
+            layout sweep's check 2 reports). A tip too long for one line is
+            wrapped by `tooltipBox`, never cut (issue #490). `spacingAndGlyphs`
+            rather than the default `spacing`: at a tenth of a unit per
+            character, squeezing the glyphs with the gaps is what keeps a
+            mono chip looking mono. */}
+        {chip.lines.map((line, i) => (
+          <text
+            key={`line-${i}`}
+            className="num"
+            x={line.x}
+            y={line.y}
+            fontSize={CHART.tipTextSize}
+            fill={CHART_INK.tipText}
+            textLength={line.length}
+            lengthAdjust={SVG.fitGlyphs}
+          >
+            {line.text}
+          </text>
+        ))}
       </g>
     </g>
   );
