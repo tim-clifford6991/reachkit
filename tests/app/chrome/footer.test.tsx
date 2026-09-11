@@ -19,7 +19,7 @@ const LAYOUT = readFileSync(
   "utf8"
 );
 
-describe("UI-SPEC 3a — brand · rights · removal address · Product · Legal", () => {
+describe("ruling 3a — brand · rights · removal address · Product · Legal", () => {
   const html = renderToStaticMarkup(<Footer />);
 
   it("the brand and the two column headings render", () => {

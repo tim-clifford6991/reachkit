@@ -178,20 +178,20 @@ export const PUBLISH_COPY = Object.freeze({
   // sentences of 2026-09-10 (#459).
   "publish.veto.ask.head": [
     "Publishes {when}",
-    { slots: { when: "text" }, fixedBy: "REQ-057 c1 · UI-SPEC S6 (11a)" },
+    { slots: { when: "text" }, fixedBy: "REQ-057 c1 · S6 (11a)" },
   ],
-  "publish.veto.ask.row.search": ["search", { slots: {}, fixedBy: "UI-SPEC S6 (11a)" }],
-  "publish.veto.ask.row.site": ["site", { slots: {}, fixedBy: "UI-SPEC S6 (11a)" }],
-  "publish.veto.ask.action": ["Stop this page", { slots: {}, fixedBy: "REQ-057 c1 · UI-SPEC S6 (11a)" }],
+  "publish.veto.ask.row.search": ["search", { slots: {}, fixedBy: "S6 (11a)" }],
+  "publish.veto.ask.row.site": ["site", { slots: {}, fixedBy: "S6 (11a)" }],
+  "publish.veto.ask.action": ["Stop this page", { slots: {}, fixedBy: "REQ-057 c1 · S6 (11a)" }],
   "publish.veto.ask.do-nothing": [
     "Or do nothing and it publishes as planned. You can read and edit it in the app.",
-    { slots: {}, fixedBy: "REQ-057 c1 · UI-SPEC S6 (11a)" },
+    { slots: {}, fixedBy: "REQ-057 c1 · S6 (11a)" },
   ],
-  "publish.veto.done.head": ["Stopped", { slots: {}, fixedBy: "UI-SPEC S6 (11a)" }],
-  "publish.veto.calendar": ["Open the calendar", { slots: {}, fixedBy: "UI-SPEC S6 (11a)" }],
+  "publish.veto.done.head": ["Stopped", { slots: {}, fixedBy: "S6 (11a)" }],
+  "publish.veto.calendar": ["Open the calendar", { slots: {}, fixedBy: "S6 (11a)" }],
   "publish.veto.stopped": [
     "This page will not publish. Tomorrow’s page is unaffected.",
-    { slots: {}, fixedBy: "REQ-057 c1 · UI-SPEC S6 (11a)" },
+    { slots: {}, fixedBy: "REQ-057 c1 · S6 (11a)" },
   ],
   "publish.veto.alreadyUsed": ["This link was already used. The page is stopped.", { slots: {}, fixedBy: "REQ-057 c1" }],
   "publish.veto.expired": ["The moment to stop this page has passed.", { slots: {}, fixedBy: "REQ-057 c1" }],
@@ -239,15 +239,15 @@ export const PUBLISH_COPY = Object.freeze({
   // ranks on our domain — written where a reader of the page can check it.
   "hosted.published": [
     "published {date} · by {publisher}",
-    { slots: { date: "date", publisher: "text" }, fixedBy: "UI-SPEC S19 (11a)" },
+    { slots: { date: "date", publisher: "text" }, fixedBy: "S19 (11a)" },
   ],
   "hosted.source": [
     "source: {source} · retrieved {date}",
-    { slots: { source: "text", date: "date" }, fixedBy: "UI-SPEC S19 (11a)" },
+    { slots: { source: "text", date: "date" }, fixedBy: "S19 (11a)" },
   ],
   "hosted.canonical": [
     "Written for {domain}. Canonical: {canonical} · noindex on *.reachkit.app",
-    { slots: { domain: "text", canonical: "text" }, fixedBy: "UI-SPEC S19 (11a)" },
+    { slots: { domain: "text", canonical: "text" }, fixedBy: "S19 (11a)" },
   ],
   // The customer's own footer line. A key rather than a bare "©" in the
   // markup, so this surface has no string outside the registry at all —
@@ -256,7 +256,7 @@ export const PUBLISH_COPY = Object.freeze({
   // body names it under owner owes).
   "hosted.footer": [
     "© {publisher}",
-    { slots: { publisher: "text" }, fixedBy: "UI-SPEC S19 (11a)" },
+    { slots: { publisher: "text" }, fixedBy: "S19 (11a)" },
   ],
 
   "publish.wordpress.noSeoPlugin": ["No SEO plugin was found on your site, so the title and description weren’t written into one. The page is live all the same.", { slots: {}, fixedBy: "REQ-060 c4" }],

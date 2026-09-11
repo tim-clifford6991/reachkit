@@ -190,12 +190,12 @@ describe(
 );
 
 describe(
-  'BUILD.md §2.1: "These exact values — they are lifted from timclifford.dev so the ' +
+  'BUILD §2.1: "These exact values — they are lifted from timclifford.dev so the ' +
     'products share a visual family."',
   () => {
     const { light, darkMedia, darkExplicit } = parseThemeStates(THEME_CSS);
 
-    it("every light token in theme.css:root matches BUILD.md §2.1's stated value", () => {
+    it("every light token in theme.css:root matches BUILD §2.1's stated value", () => {
       for (const [name, value] of BUILD_LIGHT) {
         if (name === "ring-accent") continue;
         expect(light.get(name), `--${name} in :root`).toBe(value);
@@ -215,7 +215,7 @@ describe(
       expect(light.has("ring-accent")).toBe(false);
     });
 
-    it("theme.css:root carries no light token BUILD.md §2.1 or tokens.md names", () => {
+    it("theme.css:root carries no light token BUILD §2.1 or tokens.md names", () => {
       // Until issue #349 this read "no token §2.1 does not state", and that
       // is what kept the spacing ladder, the type rungs, the measures and
       // the breakpoints out of this file — scattered across four other
@@ -234,10 +234,10 @@ describe(
         // reader keys with it.
         (name) => !BUILD_LIGHT.has(name) && !approved.has(`--${name}`)
       );
-      expect(extra, `named by neither BUILD.md §2.1 nor tokens.md: ${extra.join(" ")}`).toEqual([]);
+      expect(extra, `named by neither BUILD §2.1 nor tokens.md: ${extra.join(" ")}`).toEqual([]);
     });
 
-    it("every BUILD.md-stated dark token matches in both the media block and the explicit toggle", () => {
+    it("every BUILD-stated dark token matches in both the media block and the explicit toggle", () => {
       for (const [name, value] of BUILD_DARK_STATED) {
         expect(darkMedia.get(name), `--${name} in the dark media block`).toBe(value);
         expect(darkExplicit.get(name), `--${name} in :root[data-theme="dark"]`).toBe(value);
@@ -282,7 +282,7 @@ describe(
 );
 
 describe(
-  "BUILD.md §2.1: \"Map these onto daisyUI's theme slots (`base-100`←surface, " +
+  "BUILD §2.1: \"Map these onto daisyUI's theme slots (`base-100`←surface, " +
     "`base-200`←sunk, `base-300`←line, `base-content`←ink, `primary`←accent, " +
     '`success/warning/error`←ok/warn/bad)"',
   () => {
@@ -321,10 +321,10 @@ describe(
 );
 
 describe(
-  'BP-018 NFR budget: "the token pairs are the CVD-checked ones from `BUILD.md` §2.4 ' +
+  'BP-018 NFR budget: "the token pairs are the CVD-checked ones from BUILD §2.4 ' +
     'and are not re-derived"',
   () => {
-    it("--chart-you and --chart-rival are exactly BUILD.md §2.1's stated values", () => {
+    it("--chart-you and --chart-rival are exactly BUILD §2.1's stated values", () => {
       const { light } = parseThemeStates(THEME_CSS);
       expect(light.get("chart-you")).toBe(BUILD_LIGHT.get("chart-you"));
       expect(light.get("chart-rival")).toBe(BUILD_LIGHT.get("chart-rival"));

@@ -88,10 +88,10 @@ export const OVERVIEW_COPY = Object.freeze({
   // `headDirection` answers `no_data` under two points.
   "overview.head.week-zero": [
     "Your first page is ready to read.",
-    { slots: {}, fixedBy: "UI-SPEC S13" },
+    { slots: {}, fixedBy: "S13" },
   ],
-  "overview.head.badge.week-zero": ["week 0", { slots: {}, fixedBy: "UI-SPEC S13" }],
-  "overview.head.badge": ["▲ every week since you started", { slots: {}, fixedBy: "UI-SPEC S12" }],
+  "overview.head.badge.week-zero": ["week 0", { slots: {}, fixedBy: "S13" }],
+  "overview.head.badge": ["▲ every week since you started", { slots: {}, fixedBy: "S12" }],
 
   // ── The growth module.
   // The card head's right-hand chip (UI-SPEC S12: "re-measured Mon 1 Sep").
@@ -99,7 +99,7 @@ export const OVERVIEW_COPY = Object.freeze({
   // and the sidebar states the same one from the same `firstDueOn`/week.
   "overview.growth.source.remeasured": [
     "re-measured {on}",
-    { slots: { on: "date" }, fixedBy: "UI-SPEC S12" },
+    { slots: { on: "date" }, fixedBy: "S12" },
   ],
   // The week-0 chart's own chip and footnote pair. The chip names the pass
   // the single reading came from — the set is explicit that it is the deep
@@ -108,15 +108,15 @@ export const OVERVIEW_COPY = Object.freeze({
   // arm carries.
   "overview.growth.source.deep-pass": [
     "from the deep pass · {on}",
-    { slots: { on: "date" }, fixedBy: "UI-SPEC S13" },
+    { slots: { on: "date" }, fixedBy: "S13" },
   ],
   "overview.growth.footnote.starting": [
     "starting at {value}",
-    { slots: { value: "text" }, fixedBy: "UI-SPEC S13" },
+    { slots: { value: "text" }, fixedBy: "S13" },
   ],
   "overview.growth.footnote.first-monday": [
     "the line begins with the first Monday",
-    { slots: {}, fixedBy: "UI-SPEC S13" },
+    { slots: {}, fixedBy: "S13" },
   ],
   "overview.growth.footnote.start": ["started at {value}", { slots: { value: "text" }, fixedBy: "BUILD §4.5" }],
   "overview.growth.footnote.goal": [
@@ -131,15 +131,15 @@ export const OVERVIEW_COPY = Object.freeze({
   // a zero, which REQ-004 forbids as a reading that was not taken.
   "overview.tile.score.first-due": [
     "first measurement due {due}",
-    { slots: { due: "date" }, fixedBy: "UI-SPEC S13 · REQ-040 c7" },
+    { slots: { due: "date" }, fixedBy: "S13 · REQ-040 c7" },
   ],
   "overview.tile.ai-answers.first-pass": [
     "measured with the first weekly pass",
-    { slots: {}, fixedBy: "UI-SPEC S13" },
+    { slots: {}, fixedBy: "S13" },
   ],
   "overview.tile.pages.first-review": [
     "first page in review today",
-    { slots: {}, fixedBy: "UI-SPEC S13" },
+    { slots: {}, fixedBy: "S13" },
   ],
 
   // ── The score tile (UI-SPEC S12, ruling 6a).
@@ -147,7 +147,7 @@ export const OVERVIEW_COPY = Object.freeze({
   // Ruling 6a fixes the name on every surface that labels the number:
   // "Discoverability Score" — the report head's eyebrow, this tile, the
   // landing component tile and the two mails. Transcribed, not chosen.
-  "overview.tile.score.label": ["Discoverability Score", { slots: {}, fixedBy: "UI-SPEC 6a" }],
+  "overview.tile.score.label": ["Discoverability Score", { slots: {}, fixedBy: "ruling 6a" }],
   // What reaching `GOAL_VALUES.score` means, in the product's own words.
   // The set prints no such line beside the score — it prints the band —
   // so the words are the owner's (#460).
@@ -169,11 +169,11 @@ export const OVERVIEW_COPY = Object.freeze({
   // weeks are `TOO_EARLY_WEEKS`, which is a pin and is never re-written.
   "overview.tile.pages.ranking": [
     "{count} already ranking",
-    { slots: { count: "text" }, fixedBy: "UI-SPEC S12" },
+    { slots: { count: "text" }, fixedBy: "S12" },
   ],
   "overview.tile.pages.too-early": [
     "rest under {weeks} weeks — too early to judge",
-    { slots: { weeks: "text" }, fixedBy: "UI-SPEC S12 · REQ-063 c2" },
+    { slots: { weeks: "text" }, fixedBy: "S12 · REQ-063 c2" },
   ],
   "overview.tile.pages.means": ["A month of daily pages.", { slots: {}, fixedBy: "REQ-041 c4" }],
 
@@ -206,7 +206,7 @@ export const OVERVIEW_COPY = Object.freeze({
   // empty plots.
   "overview.rivals.line.week-zero": [
     "Sized with the first weekly measurement, {due}.",
-    { slots: { due: "date" }, fixedBy: "UI-SPEC S13" },
+    { slots: { due: "date" }, fixedBy: "S13" },
   ],
 
   // ── REQ-096 c6: a rival banded `far`, and the two sentences it needs.
@@ -232,7 +232,7 @@ export const OVERVIEW_COPY = Object.freeze({
   //
   // Since #353 they are their own card, headed as the set heads it — §4.5
   // put them under "This week", and the approved set draws two cards.
-  "overview.needs-you.title": ["Needs you", { slots: {}, fixedBy: "UI-SPEC S12" }],
+  "overview.needs-you.title": ["Needs you", { slots: {}, fixedBy: "S12" }],
   "overview.alert.pending-veto": ["{title} is ready to read", { slots: { title: "text" }, fixedBy: "REQ-041 c5" }],
   "overview.alert.pending-veto.action": ["Read it", { slots: {}, fixedBy: "BUILD §4.5" }],
   "overview.alert.needs-you": ["{title} needs you before it can go out", { slots: { title: "text" }, fixedBy: "REQ-041 c5" }],
@@ -240,7 +240,7 @@ export const OVERVIEW_COPY = Object.freeze({
   // on the accent panel's outline pill. The alert's own title and the line
   // saying what broke are bracketed there; their words below are the
   // owner's (#460).
-  "overview.alert.needs-you.action": ["Reconnect", { slots: {}, fixedBy: "UI-SPEC S12" }],
+  "overview.alert.needs-you.action": ["Reconnect", { slots: {}, fixedBy: "S12" }],
   // The cause: "[cause line — owner's]" in the set, written by the owner
   // (#460). One short line
   // under the title, never a paragraph (§2.5's dim line).
@@ -255,11 +255,11 @@ export const OVERVIEW_COPY = Object.freeze({
   // `overview.rivals.ratio`, so no unit is written at a call site.
   "overview.alert.pending-veto.left": [
     "{hours} h {minutes} m",
-    { slots: { hours: "text", minutes: "text" }, fixedBy: "UI-SPEC S12" },
+    { slots: { hours: "text", minutes: "text" }, fixedBy: "S12" },
   ],
   "overview.alert.pending-veto.due": [
     "publishes in {left} unless you say otherwise",
-    { slots: { left: "text" }, fixedBy: "UI-SPEC S12" },
+    { slots: { left: "text" }, fixedBy: "S12" },
   ],
   "overview.alert.overflow": ["{remaining} more in the calendar.", { slots: { remaining: "text" }, fixedBy: "REQ-041 c5" }],
   "overview.alerts.empty": ["Nothing needs you today.", { slots: {}, fixedBy: "REQ-041 c5" }],

@@ -104,7 +104,7 @@ describe("nothing waiting", () => {
   });
 });
 
-describe("the veto window the panel's line states (UI-SPEC S12)", () => {
+describe("the veto window the panel's line states (S12)", () => {
   it("a page that started waiting 17 h 48 m ago has 6 h 12 m of window left", () => {
     // `VETO.defaultHours` is 24, so a window opened at 18:12 the day before
     // closes at 18:12 today, and at noon 6 h 12 m of it are left — the very

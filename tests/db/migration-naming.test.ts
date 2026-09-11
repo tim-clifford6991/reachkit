@@ -81,7 +81,7 @@ describe("supabase/migrations/ — every applied migration file names exactly on
   });
 });
 
-describe('`BUILD.md` §1 — "Supabase (Postgres, RLS default-deny, magic-link auth)" — companion assertion', () => {
+describe('BUILD §1 — "Supabase (Postgres, RLS default-deny, magic-link auth)" — companion assertion', () => {
   const config = readFileSync(CONFIG_TOML, "utf8");
 
   it("enables email OTP (magic-link) sign-in", () => {

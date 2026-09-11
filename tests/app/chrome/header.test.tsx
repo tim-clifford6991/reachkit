@@ -37,7 +37,7 @@ const REPORT: HeaderAction = {
 };
 const TOKEN_PAGE: HeaderAction = { kind: "address", address: "/veto/a-token" };
 
-describe("UI-SPEC S2 — on the report address the right slot is REQ-001 c7's control", () => {
+describe("S2 — on the report address the right slot is REQ-001 c7's control", () => {
   it("draws the copy control, and neither half of the pair", () => {
     const html = markup(REPORT);
     expect(html).toContain("rk-wordmark");
@@ -53,7 +53,7 @@ describe("UI-SPEC S2 — on the report address the right slot is REQ-001 c7's co
   });
 });
 
-describe("UI-SPEC S6 — on a token page the right slot is the address, quiet", () => {
+describe("S6 — on a token page the right slot is the address, quiet", () => {
   it("draws the address in the set's own `.prov`, and neither half of the pair", () => {
     const html = markup(TOKEN_PAGE);
     expect(html).toContain("rk-wordmark");
@@ -70,7 +70,7 @@ describe("UI-SPEC S6 — on a token page the right slot is the address, quiet", 
   });
 });
 
-describe("UI-SPEC 3a — brand · Sign in (quiet) · one solid CTA", () => {
+describe("ruling 3a — brand · Sign in (quiet) · one solid CTA", () => {
   it("both arms carry the wordmark and the quiet Sign in, and nothing else links out", () => {
     // The hrefs, not the keys: this renders against the real registry, so
     // an owed sentence resolves to its `TODO(copy)` marker and a key name

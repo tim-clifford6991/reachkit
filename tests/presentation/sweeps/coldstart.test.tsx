@@ -457,7 +457,7 @@ const MORE_THAN_ONE_PRIMARY_PUBLIC: Readonly<Record<string, string>> = Object.fr
   "/scan/[domain]":
     "ruling 2b (2026-09-08): the giveaway's Email me and the pricing card's Start are both solid, as the approved set draws them; supersedes #291.",
   "/":
-    "ruling 2b (2026-09-08), UI-SPEC S1. The landing's solids are one action " +
+    "ruling 2b (2026-09-08), S1. The landing's solids are one action " +
     "stated three times: the header's CTA, the hero's own submit, and the " +
     "closing CTA under the three Step cards — the set draws all three solid, " +
     "and the two that are not the submit focus that same field (REQ-099 c3) " +

@@ -223,7 +223,7 @@ describe("the drawn rows span the engine's stages exactly, and the poll cadence 
   });
 });
 
-describe("UI-SPEC S11 — the strip, the card and the two approved lines (issue #356)", () => {
+describe("S11 — the strip, the card and the two approved lines (issue #356)", () => {
   it("the progress strip is the same three phases, one on: First page is current", () => {
     const strip = render(<ProgressStrip current="first-page" />);
     expect(strip.querySelector('[data-testid="setup-progress"]')?.getAttribute("data-current")).toBe(

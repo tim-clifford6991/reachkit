@@ -241,7 +241,7 @@ describe(`live-branch sweep — ${routes.length} route(s) × 5 widths`, () => {
   );
 });
 
-describe(`week-0 sweep — UI-SPEC S13, ${weekZeroRoutes.length} route(s) × 5 widths`, () => {
+describe(`week-0 sweep — S13, ${weekZeroRoutes.length} route(s) × 5 widths`, () => {
   it("Overview is what is swept, and it is enumerated not listed", () => {
     expect(weekZeroRoutes.map((route) => route.path)).toEqual(["/app"]);
   });

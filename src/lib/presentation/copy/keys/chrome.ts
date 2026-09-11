@@ -27,10 +27,10 @@ export const CHROME_COPY = Object.freeze({
   // (S1). `mail.shell.wordmark` keeps its own copy — a mail cannot read a
   // stylesheet, so the two are different surfaces spending the same word,
   // which is why this key exists rather than one being imported.
-  "chrome.wordmark": ["ReachKit", { slots: {}, fixedBy: "UI-SPEC S12 · S1" }],
+  "chrome.wordmark": ["ReachKit", { slots: {}, fixedBy: "S12 · S1" }],
   // The footer's two Product links (UI-SPEC 3a). Approved as written.
-  "chrome.nav.pricing": ["Pricing", { slots: {}, fixedBy: "UI-SPEC S1 · 3a" }],
-  "chrome.nav.signin": ["Sign in", { slots: {}, fixedBy: "UI-SPEC S1 · 3a" }],
+  "chrome.nav.pricing": ["Pricing", { slots: {}, fixedBy: "S1 · 3a" }],
+  "chrome.nav.signin": ["Sign in", { slots: {}, fixedBy: "S1 · 3a" }],
   /** The header's one solid CTA (UI-SPEC 3a). **It IS rendered on the
    *  landing** since ruling 2b of 2026-09-08 — "two solid primaries per
    *  screen are allowed where the artifact draws them (landing: header CTA
@@ -69,7 +69,7 @@ export const CHROME_COPY = Object.freeze({
    *  before payment, and the site comes after. */
   "pricing.footnote": [
     "No account before payment. Your site is asked for after — or confirmed, if you came from a report.",
-    { slots: {}, fixedBy: "UI-SPEC S4 · REQ-020 c1" },
+    { slots: {}, fixedBy: "S4 · REQ-020 c1" },
   ],
   /* ── The two pages every route falls back to (UI-SPEC S8) ────────────
      Not found and error. They are the *shell's* own pages rather than any
@@ -89,35 +89,35 @@ export const CHROME_COPY = Object.freeze({
      review of #407 (2026-09-09): a Done-when is the master's brief, not
      the owner's pen, and rule 6 leaves exactly two footings for a rendered
      string, the set's unbracketed word (11a) or a BUILD/REQ line quoted
-     verbatim. It had neither. Nothing in BUILD.md or the archived REQ set writes it. */
-  "chrome.notfound.eyebrow": ["404", { slots: {}, fixedBy: "UI-SPEC S8 (11a)" }],
+     verbatim. It had neither. Nothing in BUILD or the archived REQ set writes it. */
+  "chrome.notfound.eyebrow": ["404", { slots: {}, fixedBy: "S8 (11a)" }],
   "chrome.notfound.heading": [
     "There is no page at this address.",
-    { slots: {}, fixedBy: "UI-SPEC S8 (11a)" },
+    { slots: {}, fixedBy: "S8 (11a)" },
   ],
   /** The address is a slot and not part of the sentence: the set draws it
    *  in mono inside the line (§2 — "numerals, dates, URLs … JetBrains
    *  Mono"), and a face is not something a string can carry. */
   "chrome.notfound.line": [
     "Reports live at {address}.",
-    { slots: { address: "text" }, fixedBy: "UI-SPEC S8 (11a)" },
+    { slots: { address: "text" }, fixedBy: "S8 (11a)" },
   ],
   /** The shape of a report address, as the set writes it. A specimen, not
    *  a link: it names the form, and the field below it is how a reader
    *  spends it. */
   "chrome.notfound.address": [
     "reachkit.app/scan/yourdomain.com",
-    { slots: {}, fixedBy: "UI-SPEC S8 (11a)" },
+    { slots: {}, fixedBy: "S8 (11a)" },
   ],
-  "chrome.notfound.cta": ["Scan it", { slots: {}, fixedBy: "UI-SPEC S8 (11a)" }],
+  "chrome.notfound.cta": ["Scan it", { slots: {}, fixedBy: "S8 (11a)" }],
   /** The same 404 inside the app, where the set's line does not belong: a
    *  customer who is signed in is not being sent to a report address they
    *  already have. S8 draws no account arm, so the line is the owner's
    *  (12a — built in the set's idiom, written by the owner). */
-  "chrome.notfound.line.app": ["Nothing in the app lives at this address. The Overview is one step back.", { slots: {}, fixedBy: "UI-SPEC S8 (12a)" }],
-  "chrome.error.eyebrow": ["Error", { slots: {}, fixedBy: "UI-SPEC S8 (12a)" }],
-  "chrome.error.heading": ["This page didn’t load.", { slots: {}, fixedBy: "UI-SPEC S8 (12a)" }],
-  "chrome.error.line": ["Something went wrong on our side while it was loading. We can’t tell what from here — try again in a moment.", { slots: {}, fixedBy: "UI-SPEC S8 (12a)" }],
+  "chrome.notfound.line.app": ["Nothing in the app lives at this address. The Overview is one step back.", { slots: {}, fixedBy: "S8 (12a)" }],
+  "chrome.error.eyebrow": ["Error", { slots: {}, fixedBy: "S8 (12a)" }],
+  "chrome.error.heading": ["This page didn’t load.", { slots: {}, fixedBy: "S8 (12a)" }],
+  "chrome.error.line": ["Something went wrong on our side while it was loading. We can’t tell what from here — try again in a moment.", { slots: {}, fixedBy: "S8 (12a)" }],
 
   /* ── The waiting state every screen that reads shares (UI-SPEC §4 rule 3)
      Issue #327. "Every empty, degraded or waiting state is one written
@@ -125,21 +125,21 @@ export const CHROME_COPY = Object.freeze({
      is one sentence and no furniture, and this is the sentence.
 
      The owner's, and it can have no other footing: no approved artifact
-     draws a waiting screen, so 11a does not reach it, and neither BUILD.md
+     draws a waiting screen, so 11a does not reach it, and neither BUILD
      nor the archived REQ set writes the words. It is one key rather than
      two because both mounts say the same thing — unlike the 404, whose
      public line names a report address a signed-in customer is not being
      sent to. If the owner wants the report's wait and the app's wait to
      read differently, the split is theirs and it is a second key here. */
-  "chrome.loading.line": ["Loading…", { slots: {}, fixedBy: "UI-SPEC §4 rule 3 (12a)" }],
+  "chrome.loading.line": ["Loading…", { slots: {}, fixedBy: "set §4 rule 3 (12a)" }],
 
   /* ── The two ways back ────────────────────────────────────────────────
      One label each, and each has exactly one home even though two surfaces
      spend it: `chrome.back-to-reachkit` is S7's quiet control and the one
      way off `global-error`, which renders outside every group and so has
      no chrome to offer a reader instead. */
-  "chrome.back-to-reachkit": ["Back to ReachKit", { slots: {}, fixedBy: "UI-SPEC S7 (11a)" }],
-  "chrome.back-to-overview": ["Back to Overview", { slots: {}, fixedBy: "UI-SPEC S8 · issue 372" }],
+  "chrome.back-to-reachkit": ["Back to ReachKit", { slots: {}, fixedBy: "S7 (11a)" }],
+  "chrome.back-to-overview": ["Back to Overview", { slots: {}, fixedBy: "S8 · issue 372" }],
 
   /* ── The three legal pages ───────────────────────────────────────────
      One title and one body each, and the body is the whole page. These
@@ -165,12 +165,12 @@ export const CHROME_COPY = Object.freeze({
      set of terms are revised on their own days. So `legal.updated` is the
      sentence, written once, and each document carries only the date that
      goes in its slot. */
-  "legal.eyebrow": ["Legal", { slots: {}, fixedBy: "UI-SPEC S5 (11a)" }],
+  "legal.eyebrow": ["Legal", { slots: {}, fixedBy: "S5 (11a)" }],
   "legal.updated": [
     "updated {date}",
-    { slots: { date: "date" }, fixedBy: "UI-SPEC S5 (11a)" },
+    { slots: { date: "date" }, fixedBy: "S5 (11a)" },
   ],
-  "legal.privacy.updated": ["10 Sep 2026", { slots: {}, fixedBy: "UI-SPEC S5" }],
-  "legal.terms.updated": ["10 Sep 2026", { slots: {}, fixedBy: "UI-SPEC S5" }],
-  "legal.imprint.updated": ["10 Sep 2026", { slots: {}, fixedBy: "UI-SPEC S5" }],
+  "legal.privacy.updated": ["10 Sep 2026", { slots: {}, fixedBy: "S5" }],
+  "legal.terms.updated": ["10 Sep 2026", { slots: {}, fixedBy: "S5" }],
+  "legal.imprint.updated": ["10 Sep 2026", { slots: {}, fixedBy: "S5" }],
 }) satisfies CopyPartition;

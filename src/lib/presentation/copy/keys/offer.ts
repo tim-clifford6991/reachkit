@@ -56,7 +56,7 @@ export const OFFER_COPY = Object.freeze({
    *  there — the amount is REQ-022 c1's €49, written into the words rather
    *  than composed beside them, so the control cannot say one price while
    *  the card above it says another. */
-  "offer.start.priced": ["Start ReachKit €49", { slots: {}, fixedBy: "UI-SPEC S4 · REQ-022 c1" }],
+  "offer.start.priced": ["Start ReachKit €49", { slots: {}, fixedBy: "S4 · REQ-022 c1" }],
 
   // ── The same four terms, in S4's own words (issue #369) ──────────────
   //
@@ -79,19 +79,19 @@ export const OFFER_COPY = Object.freeze({
   // `src/lib/config/constants.ts`, and never twice.
   "offer.pricing.page": [
     "1 page a day, written and published for you",
-    { slots: {}, fixedBy: "UI-SPEC S4 · REQ-021 c2" },
+    { slots: {}, fixedBy: "S4 · REQ-021 c2" },
   ],
   "offer.pricing.measure": [
     "Weekly re-measure of your whole market",
-    { slots: {}, fixedBy: "UI-SPEC S4 · REQ-021 c2" },
+    { slots: {}, fixedBy: "S4 · REQ-021 c2" },
   ],
   "offer.pricing.movement": [
     "Weekly movement email",
-    { slots: {}, fixedBy: "UI-SPEC S4 · REQ-021 c2" },
+    { slots: {}, fixedBy: "S4 · REQ-021 c2" },
   ],
   "offer.pricing.veto": [
     "{hours}-hour veto window on every page",
-    { slots: { hours: "text" }, fixedBy: "UI-SPEC S4 · REQ-021 c2" },
+    { slots: { hours: "text" }, fixedBy: "S4 · REQ-021 c2" },
   ],
 
   // 2026-09-06, issue #34: the plan's own name, which §4.7's Billing card

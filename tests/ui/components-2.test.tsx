@@ -219,7 +219,7 @@ describe(
 );
 
 describe(
-  'BP-003 / `BUILD.md` §2.5 empty-and-degraded rule as BP-018 states it: "Every label, empty state and tooltip is a required prop" — applied to Steps',
+  'BP-003 / BUILD §2.5 empty-and-degraded rule as BP-018 states it: "Every label, empty state and tooltip is a required prop" — applied to Steps',
   () => {
     it("Steps requires a label per step, so an unlabelled stage cannot render (compile-time)", () => {
       const steps: Array<{ id: string; label: string; state: "pending" | "active" | "done" }> = [
@@ -316,7 +316,7 @@ function stripComments(src: string): string {
   return src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
 }
 
-describe("issue #486 — Steps draws the set's check in a done cell (UI-SPEC §2.6, S10 L689)", () => {
+describe("issue #486 — Steps draws the set's check in a done cell (set §2.6, S10 L689)", () => {
   it("a done step carries daisyUI's step-icon with a check glyph; pending and active carry none", () => {
     const root = renderRoot(
       <Steps

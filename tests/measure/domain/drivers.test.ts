@@ -87,7 +87,7 @@ function valueOf(m: Measured<number>): number {
   return m.value;
 }
 
-describe('`BUILD.md` §5: "Foundations = access gates + clarity signals, 0–100 (generic noindex on the home document ⇒ 0, and score ⇒ 0)"', () => {
+describe('BUILD §5: "Foundations = access gates + clarity signals, 0–100 (generic noindex on the home document ⇒ 0, and score ⇒ 0)"', () => {
   it("a read document with a generic noindex is a measured 0, not an unmeasured", () => {
     const m = foundationsOf({
       onPage: measured(facts({ noindex: true, noindexAppliesToEveryReader: true, headings: 9, visibleChars: 4000 }), AT),
@@ -171,7 +171,7 @@ describe('`BUILD.md` §5: "Foundations = access gates + clarity signals, 0–100
   });
 });
 
-describe('`BUILD.md` §5: "Answerability = shape of the home + measured pages, 0–100, floored at 1 · shape = (questionShaped + directAnswers + evidenceDensity) / 3"', () => {
+describe('BUILD §5: "Answerability = shape of the home + measured pages, 0–100, floored at 1 · shape = (questionShaped + directAnswers + evidenceDensity) / 3"', () => {
   const THIRD = 100 / 3;
 
   it("the shape is the mean of exactly three sub-measures", () => {
@@ -277,7 +277,7 @@ describe("the customer's own ranked count — the vendor's total, not the sub-me
   });
 });
 
-describe('`BUILD.md` §5: "SearchPresence = min(100, 25 × log10(ranked + 1)) × (0.55 + 0.45 × min(1, top10share × 4))"', () => {
+describe('BUILD §5: "SearchPresence = min(100, 25 × log10(ranked + 1)) × (0.55 + 0.45 × min(1, top10share × 4))"', () => {
   /** One `ranked_keywords` answer read as SearchPresence. `total`
    *  defaults to absent, so reach falls back to the rows. */
   function presence(rows: readonly RankedRow[], total: number | null = null): Measured<number> {
@@ -378,7 +378,7 @@ describe('`BUILD.md` §5: "SearchPresence = min(100, 25 × log10(ranked + 1)) ×
   });
 });
 
-describe('`BUILD.md` §5: "AIPresence = max(1, (0.4 × mentionRate + 0.6 × citationRate) × 100)"', () => {
+describe('BUILD §5: "AIPresence = max(1, (0.4 × mentionRate + 0.6 × citationRate) × 100)"', () => {
   it("AIPresence weights citations above mentions", () => {
     const mentionsOnly = aiPresenceOf({ serps: [measured(serp(["g2.com/reachkit"]), AT)], ownDomain: OWN, at: AT });
     expect(valueOf(mentionsOnly)).toBeCloseTo(40, 10);

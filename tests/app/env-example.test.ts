@@ -69,7 +69,7 @@ function readEnvExampleBindings(): Record<string, string> {
   return bindings;
 }
 
-describe("BUILD.md §15 — .env.example binding list", () => {
+describe("BUILD §15 — .env.example binding list", () => {
   it.each(REQUIRED_BINDINGS)("names %s", (name) => {
     const bindings = readEnvExampleBindings();
     expect(bindings).toHaveProperty(name);

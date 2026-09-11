@@ -74,7 +74,7 @@ describe("/setup", () => {
     expect(tree.querySelectorAll('button[type="submit"]')).toHaveLength(1);
   });
 
-  it("states where the founder is, in the set's three phases (UI-SPEC S10)", async () => {
+  it("states where the founder is, in the set's three phases (S10)", async () => {
     const tree = await renderPage(() => import("@/app/(account)/setup/page"));
     const strip = tree.querySelector('[data-testid="setup-progress"]');
     expect(strip).not.toBeNull();

@@ -118,10 +118,10 @@ describe("every new sentence is a registry key, and every one of them is the own
     // that filled them, so a reader can see both what the line must say and
     // who wrote it.
     for (const key of KEYS_INTRODUCED) {
-      expect(COPY_META[key].fixedBy, key).toMatch(/^REQ-0(03|10) c\d+( · UI-SPEC S20 \(11a\))?$/);
+      expect(COPY_META[key].fixedBy, key).toMatch(/^REQ-0(03|10) c\d+( · S20 \(11a\))?$/);
     }
     for (const key of WRITTEN_BY_THE_SET) {
-      expect(COPY_META[key].fixedBy, key).toContain("UI-SPEC S20 (11a)");
+      expect(COPY_META[key].fixedBy, key).toContain("S20 (11a)");
     }
   });
 

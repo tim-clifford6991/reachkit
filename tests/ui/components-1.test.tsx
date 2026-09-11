@@ -350,7 +350,7 @@ describe('BP-018 decision 1: "daisyUI components only — no bespoke widgets"', 
 });
 
 describe(
-  '`BUILD.md` §2.2: "`table` (+zebra, always inside an `overflow-x-auto` wrap)"',
+  'BUILD §2.2: "`table` (+zebra, always inside an `overflow-x-auto` wrap)"',
   () => {
     it("Table always renders the overflow-x-auto wrap as its root, with no prop to omit it", () => {
       const root = renderRoot(

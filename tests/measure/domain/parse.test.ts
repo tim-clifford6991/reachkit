@@ -24,7 +24,7 @@ function heading(level: number, text: string): string {
 }
 
 describe(
-  'BP-010 `## Error & edge behavior` — "Determinism is a test, not an aspiration: the same HTML measured twice produces byte-identical output (`BUILD.md` §16 milestone 2). No JS execution, no clock in the parse, no locale-dependent collation."',
+  'BP-010 `## Error & edge behavior` — "Determinism is a test, not an aspiration: the same HTML measured twice produces byte-identical output (BUILD §16 milestone 2). No JS execution, no clock in the parse, no locale-dependent collation."',
   () => {
     const fixture = `
       <html><head>
@@ -68,7 +68,7 @@ describe(
 );
 
 describe(
-  'BP-010 `## Error & edge behavior` — "Empty denominators read 0, never null (`BUILD.md` §5): a page with no headings scores `zero`, not `unmeasured`."',
+  'BP-010 `## Error & edge behavior` — "Empty denominators read 0, never null (BUILD §5): a page with no headings scores `zero`, not `unmeasured`."',
   () => {
     it("a document with no headings yields every count at 0, not null", () => {
       const result = parseOnPage({ url: URL, html: "<html><body><p>Nothing to see here.</p></body></html>" });
@@ -88,7 +88,7 @@ describe(
 );
 
 describe(
-  'BUILD.md §5 — "question-shaped = ends `?` or opens with how/what/why/when/where/which/who/can/do/does/is/are"',
+  'BUILD §5 — "question-shaped = ends `?` or opens with how/what/why/when/where/which/who/can/do/does/is/are"',
   () => {
     const OPENERS = ["how", "what", "why", "when", "where", "which", "who", "can", "do", "does", "is", "are"];
 
@@ -132,7 +132,7 @@ describe(
 );
 
 describe(
-  'BUILD.md §5 — "`directAnswers` = question headings whose first block is 40–320 visible chars ÷ all headings × 100"',
+  'BUILD §5 — "`directAnswers` = question headings whose first block is 40–320 visible chars ÷ all headings × 100"',
   () => {
     it("the direct-answer window is inclusive at both bounds and read from the pin", () => {
       const lengths = [39, 40, 320, 321];
@@ -164,7 +164,7 @@ describe(
 );
 
 describe(
-  'BUILD.md §5 — "`evidenceDensity` = saturating log curve over (numerals + dates + outbound citations per 1k chars)" — the counts only; the curve is WO-252\'s',
+  'BUILD §5 — "`evidenceDensity` = saturating log curve over (numerals + dates + outbound citations per 1k chars)" — the counts only; the curve is WO-252\'s',
   () => {
     it("evidence tokens are counted over rendered text, never over markup", () => {
       const html = `<html><body>

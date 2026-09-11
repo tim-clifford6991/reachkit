@@ -21,7 +21,7 @@ function readJson(relPath: string): unknown {
   return JSON.parse(readFileSync(path.join(ROOT, relPath), "utf8"));
 }
 
-describe("BUILD.md §1 — Next.js (App Router) + TypeScript", () => {
+describe("BUILD §1 — Next.js (App Router) + TypeScript", () => {
   it("package.json declares next and typescript", () => {
     const pkg = readJson("package.json") as {
       dependencies?: Record<string, string>;
@@ -40,7 +40,7 @@ describe("BUILD.md §1 — Next.js (App Router) + TypeScript", () => {
   });
 });
 
-describe('BUILD.md §1 — "Repo shape: standard Next.js."', () => {
+describe('BUILD §1 — "Repo shape: standard Next.js."', () => {
   const requiredDirs = ["src/app", "src/lib", "src/jobs", "src/ui", "supabase", "tests"];
 
   it.each(requiredDirs)("%s exists", (rel) => {

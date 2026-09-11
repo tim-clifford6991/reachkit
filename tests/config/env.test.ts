@@ -187,7 +187,7 @@ describe('BP-005 error behaviour — "`env` throws at boot on a missing or malfo
   });
 });
 
-describe("`BUILD.md` §15's binding list, moved onto BP-005 decision 6", () => {
+describe("BUILD §15's binding list, moved onto BP-005 decision 6", () => {
   it("env's key set equals the new 19-name list — an extra binding fails; a missing one fails", async () => {
     applyEnv({});
     const { env } = await importEnvModule();
@@ -195,7 +195,7 @@ describe("`BUILD.md` §15's binding list, moved onto BP-005 decision 6", () => {
   });
 });
 
-describe("`BUILD.md` §15's `MAIL_FROM` — the mailbox every ReachKit mail comes from (issue #81)", () => {
+describe("BUILD §15's `MAIL_FROM` — the mailbox every ReachKit mail comes from (issue #81)", () => {
   it("throws at module load when it is not an address", async () => {
     applyEnv({ MAIL_FROM: "reachkit.app" });
     await expect(importEnvModule()).rejects.toThrow();
@@ -340,7 +340,7 @@ describe('BP-005 decision 6c — "**Out of `Env` entirely, not optional inside i
   });
 });
 
-describe('issue #315 — `BUILD.md` §15 names `INNGEST_SIGNING_KEY INNGEST_EVENT_KEY`, and §11: "the app registers at `/api/jobs/[[...slug]]` with `INNGEST_SIGNING_KEY` / `INNGEST_EVENT_KEY`". They are members of this schema, reversing the 2026-09-05 ruling that kept them out', () => {
+describe('issue #315 — BUILD §15 names `INNGEST_SIGNING_KEY INNGEST_EVENT_KEY`, and §11: "the app registers at `/api/jobs/[[...slug]]` with `INNGEST_SIGNING_KEY` / `INNGEST_EVENT_KEY`". They are members of this schema, reversing the 2026-09-05 ruling that kept them out', () => {
   it.each(JOBS_BINDING_NAMES)("%s is a member of env's key set", async (name) => {
     applyEnv({});
     const { env } = await importEnvModule();

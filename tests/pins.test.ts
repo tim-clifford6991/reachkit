@@ -856,7 +856,7 @@ describe("§9 publishing and autopilot — the veto window, the hard limits, the
     expect(pins.HOSTED_SUBDOMAIN_LABEL).not.toContain(".");
   });
 
-  it(`§9, quoted: "${B.previewNoindex.replace(/\n/g, " ")}" — PREVIEW_HOST_SUFFIX is the parent of every preview host, and the clause is in BUILD.md verbatim`, () => {
+  it(`§9, quoted: "${B.previewNoindex.replace(/\n/g, " ")}" — PREVIEW_HOST_SUFFIX is the parent of every preview host, and the clause is in BUILD verbatim`, () => {
     expect(pins.PREVIEW_HOST_SUFFIX).toBe("reachkit.app");
     expect(B.previewNoindex).toContain(`{slug}.${pins.PREVIEW_HOST_SUFFIX}`);
   });
@@ -1472,7 +1472,7 @@ describe("BP-005 error behaviour — every pin is asserted, by quotation and nev
     const unasserted = Object.keys(pins).filter((name) => !PINS_SOURCE.includes(name));
     expect(
       unasserted,
-      `${unasserted.join(", ")} — pinned in constants.ts and asserted by no clause here. Add a block quoting the BUILD.md / DECISIONS.md line that rules it.`
+      `${unasserted.join(", ")} — pinned in constants.ts and asserted by no clause here. Add a block quoting the BUILD / DECISIONS line that rules it.`
     ).toEqual([]);
   });
 

@@ -37,7 +37,7 @@ describe("the three goals, and their values", () => {
   });
 });
 
-describe("UI-SPEC ruling 6a — the score's tile came back to Overview", () => {
+describe("ruling 6a — the score's tile came back to Overview", () => {
   // DECISIONS 2026-09-03 read "The composite score has no tile on
   // Overview", and this block asserted exactly that. The owner's approved
   // screen set (2026-09-08) reverses it: ruling 6a names "Overview tile"

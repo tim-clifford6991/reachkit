@@ -85,7 +85,7 @@ describe("REQ-041 c1 — Overview is the screen a signed-in customer lands on", 
     expect(await markup()).not.toContain("data-surface");
   });
 
-  it("renders all six of UI-SPEC S12's cards", async () => {
+  it("renders all six of S12's cards", async () => {
     // §4.5 wrote five modules and put the alerts under "This week"; the
     // approved set draws six, splitting "Needs you" out (issue #353).
     const html = await markup();
@@ -101,7 +101,7 @@ describe("REQ-041 c1 — Overview is the screen a signed-in customer lands on", 
     }
   });
 
-  it("renders three tiles and no fourth — the set's three (UI-SPEC S12)", async () => {
+  it("renders three tiles and no fourth — the set's three (S12)", async () => {
     const html = await markup();
     expect(html.split('class="stats"').length - 1).toBe(3);
     // The score leads since #353 (ruling 6a) and the searches reading has

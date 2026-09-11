@@ -58,7 +58,7 @@ describe("ADR-042 — the mail that is the credential carries no opt-out", () =>
 });
 
 describe("the sentences are the approved set's, word for word", () => {
-  it("all three are filled from UI-SPEC S20 under ruling 11a", () => {
+  it("all three are filled from S20 under ruling 11a", () => {
     // They were owner-owed and empty until 2026-09-08, when the owner
     // approved the screen set and ruled (11a) that its unbracketed strings
     // are approved copy as written. S20 draws this mail with all three

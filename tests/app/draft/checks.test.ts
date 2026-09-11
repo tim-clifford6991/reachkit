@@ -21,7 +21,7 @@ const GROUNDED = {
   recorded: RECORDED_CHECKS,
 } as const;
 
-describe("UI-SPEC S16 — the four rules the rail names are §8's own", () => {
+describe("S16 — the four rules the rail names are §8's own", () => {
   it("every rail check is a member of §8's closed hard-rule list", () => {
     for (const rule of RAIL_CHECKS) expect(HARD_RULES).toContain(rule);
   });
