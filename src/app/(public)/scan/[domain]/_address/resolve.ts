@@ -122,6 +122,7 @@ function noticeFor(a: {
 }): AddressNotice | null {
   if (a.refusal !== null) return { kind: "refused", refusal: a.refusal };
   if (a.correctionFailed) return { kind: "correction_failed" };
+  if (a.report.stoppedReason === "site_unreadable") return { kind: "site_unreadable" };
   if (!a.report.complete) {
     return { kind: "incomplete", unmeasured: a.report.verdict.missing.map((m) => m.factor) };
   }

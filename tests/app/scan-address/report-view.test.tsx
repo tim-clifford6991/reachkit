@@ -179,6 +179,7 @@ describe("REQ-004 c3 — the unmeasured verdict is a dash, no band, and one line
 describe("REQ-001 c14/c16, REQ-003 c12 — at most one notice, ever", () => {
   const notices: AddressNotice[] = [
     { kind: "incomplete", unmeasured: ["foundations"] },
+    { kind: "site_unreadable" },
     { kind: "measurement_failed", failedAt: new Date("2026-09-05T00:00:00.000Z") },
     { kind: "correction_failed" },
     { kind: "refused", refusal: { reason: "network-limit", retryAfterSeconds: 2220 } },
@@ -187,6 +188,12 @@ describe("REQ-001 c14/c16, REQ-003 c12 — at most one notice, ever", () => {
   it.each(notices.map((n) => [n.kind, n] as const))("%s renders exactly one alert", (_kind, notice) => {
     const html = render(FIXTURE_REPORT, notice);
     expect(count(html, 'role="alert"')).toBe(1);
+  });
+
+  it("a pass that could not read the site renders its own line (#479), and no factor list", () => {
+    const html = render(FIXTURE_REPORT, { kind: "site_unreadable" });
+    expect(count(html, "notice.site-unreadable")).toBe(1);
+    expect(html).not.toContain("notice.incomplete");
   });
 
   it("null renders no alert at all", () => {

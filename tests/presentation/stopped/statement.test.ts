@@ -81,14 +81,16 @@ describe("REQ-092 c2 — whether anything is needed, on both arms", () => {
 describe("REQ-092 c4 — the resumption date, or that no time is promised, never neither", () => {
   it("the on arm reaches resumes-on, and carries the caller's formatted date once written", () => {
     const statement = stoppedWorkStatement({ ...BASE, resumes: { on: RESUMES_ON } }, FORMAT);
-    expect(statement.resumesLine).toBe(COPY["stopped.work.resumes-on"]);
-    // The sentence is still the owner's and holds no `{date}` placeholder
-    // yet, so the substitution assertion is armed the day it is written
-    // rather than skipped (rule 5.5). Which key the arm reaches is decided
-    // in `keys.test.ts`, where `copy()` is the identity.
-    if (COPY["stopped.work.resumes-on"].includes("{date}")) {
-      expect(statement.resumesLine).toContain(formatDate(RESUMES_ON));
-    }
+    // Written since #460 and holding its `{date}` slot, so the substitution
+    // assertion is armed: the line is the owner's sentence with the
+    // caller's formatted date in it, and no bare placeholder is left.
+    // Which key the arm reaches is decided in `keys.test.ts`, where
+    // `copy()` is the identity.
+    expect(COPY["stopped.work.resumes-on"]).toContain("{date}");
+    expect(statement.resumesLine).toBe(
+      COPY["stopped.work.resumes-on"].split("{date}").join(formatDate(RESUMES_ON))
+    );
+    expect(statement.resumesLine).toContain(formatDate(RESUMES_ON));
   });
 
   it("the promised:false arm reaches no-time-promised", () => {

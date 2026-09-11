@@ -72,14 +72,17 @@ describe("REQ-091 c2 — null, [] and unmeasured are accounted, never empty", ()
     expect(p.line).not.toBe("");
   });
 
-  it("and with no cause at all it reaches the place's own line, which the owner still owes", () => {
-    // Never a blank. The unwritten baseline used to throw naming the key;
-    // since #246 this family carries the `TODO(copy)` marker and renders
-    // it, so the obligation is visible on the screen itself rather than
-    // only in a stack trace — and a blank is still what cannot happen.
+  it("and with no cause at all it reaches the place's own line, which the owner has written", () => {
+    // Never a blank. The unwritten baseline used to throw naming the key,
+    // then (#246) render the `TODO(copy)` marker; since #460 the line is
+    // the owner's approved sentence, and a blank is still what cannot
+    // happen.
     const accounted = renderPlace(SERIES_PLACE, []);
     expect(accounted.state).toBe("accounted");
-    expect(accounted.state === "accounted" && accounted.line).toBe(TODO_COPY_MARKER);
+    expect(accounted.state === "accounted" && accounted.line).toBe(
+      COPY["place.overview.weekly-presence.chart"]
+    );
+    expect(accounted.state === "accounted" && accounted.line).not.toBe(TODO_COPY_MARKER);
   });
 
   it("an unmeasured measurement is accounted, and says so through its own cause", () => {

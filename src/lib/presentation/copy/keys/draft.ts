@@ -30,15 +30,16 @@
 //      `draft.editor.tab.*`    — §4.6's two panes, named there: "Edit =
 //                                Markdown textarea with a live preview pane".
 //
-//  - **Awaiting copy (8), value `TODO(copy)`.** `CLAUDE.md`'s standing rule,
+//  - **Awaiting copy (8), value `TODO(copy)` until filled.** `CLAUDE.md`'s
+//    standing rule,
 //    and the standing DECISIONS 2026-09-05 gives a key "a screen must render
 //    something for": a badge with no word, a link with no label and an
 //    indicator that says nothing are each worse than a visibly unwritten
 //    one. The four claim words, the grounded block's heading, the back
-//    link, the unsaved indicator and the not-found line are all of that
-//    kind.
+//    link, the unsaved indicator and the not-found line were all of that
+//    kind; #355 (ruling 11a) and #460 have written every one.
 //
-//  - **Owner-owed and empty (4).** Every *composed sentence* this screen
+//  - **Owner-owed and empty (4) until #460.** Every *composed sentence* this screen
 //    speaks: the two "if you do nothing" outcomes, the edited-since note,
 //    and the line naming the do-not-claim entry that held the draft. Each
 //    is read through the shell's `writtenLine`, which renders an owner-owed
@@ -49,6 +50,13 @@
 // The values customer-facing here that are *not* keys are values, not
 // voice: the source URL, the date it was read, the matched entry's own
 // text and the body itself. §2.3 covers them (mono), the registry does not.
+//
+// 2026-09-10, issue #460: every sentence this partition still owed is now
+// written — the owner approved the master's drafted set ("copy proposal
+// approved", proposal sheet
+// https://claude.ai/code/artifact/546f45a0-a996-4d25-b85e-fb03fda7b102) and
+// the strings land here byte for byte. The values named in the approval
+// file are the owner's; nothing here is composed.
 import type { CopyPartition } from "../registry.ts";
 
 export const DRAFT_COPY = Object.freeze({
@@ -75,8 +83,8 @@ export const DRAFT_COPY = Object.freeze({
     "What happens if you do nothing",
     { slots: {}, fixedBy: "BUILD §4.6" },
   ],
-  "draft.do-nothing.autopilot": ["", { slots: { at: "date" }, fixedBy: "REQ-045 c4" }],
-  "draft.do-nothing.copilot": ["", { slots: {}, fixedBy: "REQ-045 c4" }],
+  "draft.do-nothing.autopilot": ["It publishes at {at} unless you veto it.", { slots: { at: "date" }, fixedBy: "REQ-045 c4" }],
+  "draft.do-nothing.copilot": ["Nothing publishes on its own.", { slots: {}, fixedBy: "REQ-045 c4" }],
 
   // §4.6's two editor panes.
   "draft.editor.tab.markdown": ["Markdown", { slots: {}, fixedBy: "BUILD §4.6" }],
@@ -85,22 +93,22 @@ export const DRAFT_COPY = Object.freeze({
   // The four claim-check outcomes REQ-045 c3 requires to be stated in every
   // case, including the empty list. Each is a badge's word.
   "draft.claim.passed": ["claim-checked", { slots: {}, fixedBy: "REQ-045 c3 · UI-SPEC S16 (11a)" }],
-  "draft.claim.failed": ["TODO(copy)", { slots: {}, fixedBy: "REQ-045 c11" }],
+  "draft.claim.failed": ["claim check failed", { slots: {}, fixedBy: "REQ-045 c11" }],
   "draft.claim.outstanding": [
     "claim check running",
     { slots: {}, fixedBy: "REQ-045 c9 · UI-SPEC S17 (11a)" },
   ],
-  "draft.claim.nothing-to-check": ["TODO(copy)", { slots: {}, fixedBy: "REQ-045 c3" }],
+  "draft.claim.nothing-to-check": ["no never-claim list", { slots: {}, fixedBy: "REQ-045 c3" }],
   // c11's own sentence. The entry itself renders beside it as a value, so
   // the customer is told which entry held the draft whether or not this
   // sentence has been written.
-  "draft.claim.matched": ["", { slots: { entry: "text" }, fixedBy: "REQ-045 c11" }],
+  "draft.claim.matched": ["This draft matches “{entry}” on your never-claim list, so it’s held until the text changes.", { slots: { entry: "text" }, fixedBy: "REQ-045 c11" }],
 
   // §4.6's grounded-fact block, its heading and — where the customer has
   // edited — the note that keeps the generated-content label from claiming
   // their words (REQ-093 c2's non-goal).
-  "draft.grounded.title": ["TODO(copy)", { slots: {}, fixedBy: "REQ-045 c2" }],
-  "draft.authorship.edited": ["", { slots: { at: "date" }, fixedBy: "REQ-045 c1" }],
+  "draft.grounded.title": ["Grounded fact", { slots: {}, fixedBy: "REQ-045 c2" }],
+  "draft.authorship.edited": ["edited by you since {at}", { slots: { at: "date" }, fixedBy: "REQ-045 c1" }],
 
   // The back link §4.6 asks for, the unsaved indicator c7 asks for, and the
   // one written line an unknown draft id resolves to.
@@ -109,7 +117,7 @@ export const DRAFT_COPY = Object.freeze({
     "could not save — your text is kept here; nothing unsaved publishes",
     { slots: {}, fixedBy: "REQ-045 c7 · UI-SPEC S17 (11a)" },
   ],
-  "draft.not-found": ["TODO(copy)", { slots: {}, fixedBy: "REQ-045 c1" }],
+  "draft.not-found": ["There is no draft at this address.", { slots: {}, fixedBy: "REQ-045 c1" }],
 
   // S16's provenance line, under the title: when the page was written and
   // roughly how long it is. Two arms, because the first fact can be absent

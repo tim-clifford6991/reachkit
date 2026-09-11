@@ -196,6 +196,57 @@ describe("safeFetch · size cap (BP-006 NFR: 2 MB, `too_large` not a truncated p
   });
 });
 
+// Issue #479, master ruling 2026-09-10: the customer's own documents are
+// read with their own cap (`OWN_DOCUMENT_MAX_BYTES`, passed by
+// `own-fetch.ts`'s `OWN_FETCH_OPTS`); every other read keeps the default.
+describe("safeFetch · the own-document cap (issue #479 — one pin, OWN_DOCUMENT_MAX_BYTES)", () => {
+  function chunked(size: number): Buffer[] {
+    const body = Buffer.alloc(size, "a");
+    const chunks: Buffer[] = [];
+    for (let at = 0; at < size; at += 1_000_000) chunks.push(body.subarray(at, Math.min(size, at + 1_000_000)));
+    return chunks;
+  }
+
+  it("an own-document read accepts a 2.5 MB home page — over the fetcher's default, under the own cap", async () => {
+    const { safeFetch } = await import("../../src/lib/egress/safe-fetch");
+    const { OWN_FETCH_OPTS } = await import("../../src/lib/measure/own-fetch");
+    vi.spyOn(dns.promises, "lookup").mockResolvedValue({ address: "93.184.216.34", family: 4 });
+    installTransport([{ type: "response", statusCode: 200, bodyChunks: chunked(2_500_000) }]);
+
+    const outcome = await safeFetch("https://example.com/", OWN_FETCH_OPTS);
+
+    expect(outcome).toMatchObject({ ok: true, bytes: 2_500_000 });
+  });
+
+  it("an own-document read refuses a 6.5 MB home page as too_large — refused, never truncated", async () => {
+    const { safeFetch } = await import("../../src/lib/egress/safe-fetch");
+    const { OWN_FETCH_OPTS } = await import("../../src/lib/measure/own-fetch");
+    vi.spyOn(dns.promises, "lookup").mockResolvedValue({ address: "93.184.216.34", family: 4 });
+    installTransport([{ type: "response", statusCode: 200, bodyChunks: chunked(6_500_000) }]);
+
+    const outcome = await safeFetch("https://example.com/", OWN_FETCH_OPTS);
+
+    expect(outcome).toMatchObject({ ok: false, reason: "too_large" });
+    expect(outcome).not.toHaveProperty("html");
+  });
+
+  it("the cap it passes is the pin, not a number of its own", async () => {
+    const { OWN_FETCH_OPTS } = await import("../../src/lib/measure/own-fetch");
+    const { OWN_DOCUMENT_MAX_BYTES } = await import("../../src/lib/config/constants");
+    expect(OWN_FETCH_OPTS.maxBytes).toBe(OWN_DOCUMENT_MAX_BYTES);
+  });
+
+  it("every other read keeps the default: the same 2.5 MB without the own options is too_large", async () => {
+    const { safeFetch } = await import("../../src/lib/egress/safe-fetch");
+    vi.spyOn(dns.promises, "lookup").mockResolvedValue({ address: "93.184.216.34", family: 4 });
+    installTransport([{ type: "response", statusCode: 200, bodyChunks: chunked(2_500_000) }]);
+
+    const outcome = await safeFetch("https://example.com/");
+
+    expect(outcome).toMatchObject({ ok: false, reason: "too_large" });
+  });
+});
+
 describe("safeFetch · timeout (BP-006 NFR: default 8000 ms, hard max 15000 ms)", () => {
   it("yields timeout when the server hangs past the configured bound", async () => {
     const { safeFetch } = await import("../../src/lib/egress/safe-fetch");

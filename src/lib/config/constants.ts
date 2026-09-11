@@ -523,6 +523,16 @@ export const GOAL_VALUES = Object.freeze({
  *  short enough that a hanging resolver never holds the form longer than
  *  a fetch would. Reversal cost: one number, no customer-visible string. */
 export const DNS_TIMEOUT_MS = 5000 as const;                  // BP-006 · BUILD §6.4 (chosen)
+/** The size cap on one read of the customer's **own** documents — the home
+ *  page, its pricing page and the tier's extra pages (`src/lib/measure/
+ *  own-fetch.ts` passes it as `safeFetch`'s `maxBytes`). Master ruling
+ *  2026-09-10 (issue #479): modern marketing home pages routinely carry
+ *  more than 2 MB of HTML (inline scripts and styles — cal.com's was
+ *  2 157 610 bytes), and the fetcher's own 2 MB default refused it, so a
+ *  scan measured nothing. Vendor and rival reads keep that default. Above
+ *  this cap the read is still refused, never truncated: a truncated
+ *  document would mis-measure answerability. */
+export const OWN_DOCUMENT_MAX_BYTES = 6_000_000 as const;     // master ruling 2026-09-10 · #479 · BUILD §6.4
 
 // ── Vendor client (issue #23) — BUILD §6.1–§6.4, ADR-094
 /** The one endpoint whose vendor charge is data-dependent (ADR-094 d3, d3a;

@@ -153,15 +153,17 @@ describe("ADR-011 point 2 — unrecognised outranks supply-exhausted", () => {
 });
 
 describe("REQ-091 c2 — an unwritten line is an owner obligation, never a blank", () => {
-  it("a place whose line the owner still owes renders the marker (#246)", () => {
-    // It used to throw: the keys were empty and `copy()` refuses an empty
-    // value. #246 moved this family to the marker on the product-wide rule
-    // that an owed sentence *renders* wherever it is owed — so the
-    // obligation is now visible on the screen and on a preview, rather than
-    // only in a stack trace. Criterion 2's blank is still forbidden and
-    // still impossible: what comes back is the marker, never `''`.
-    expect(account("calendar.date.page", []).line).toBe(TODO_COPY_MARKER);
-    expect(account("overview.weekly-presence.chart", []).line).toBe(TODO_COPY_MARKER);
+  it("a place whose line the owner has written renders that line (#246, #460)", () => {
+    // It used to throw (the keys were empty), then render the marker
+    // (#246). The owner's approved set of 2026-09-10 wrote both lines, so
+    // what comes back is the place's own sentence — still never `''`, and
+    // no longer the marker.
+    expect(account("calendar.date.page", []).line).toBe(COPY["place.calendar.date.page"]);
+    expect(account("overview.weekly-presence.chart", []).line).toBe(
+      COPY["place.overview.weekly-presence.chart"]
+    );
+    expect(account("calendar.date.page", []).line).not.toBe(TODO_COPY_MARKER);
+    expect(account("overview.weekly-presence.chart", []).line).not.toBe(TODO_COPY_MARKER);
   });
 
   it("and the arbiter never returns an empty line for any place at all", () => {
