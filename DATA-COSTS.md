@@ -37,6 +37,16 @@ test, as the existing price-book discipline requires.
 | AI Optimization: **LLM Responses** | Perplexity (and API-side Claude/Gemini) answers | **0.06¢ + the model's own cost ≈ 0.5–0.6¢** | Model cost dominates |
 | AI Optimization: AI Keyword Data | How queries are phrased inside AI tools, with volumes | 1¢/task + 0.01¢/kw | **Not in MVP** — nice-to-have for question derivation later |
 
+**A failed call is still a ledger row (2026-09-11, #504, PR 514).** Every DataForSEO
+failure is ledgered as a typed row (`{vendorFailure, endpoint, billed}`), never a null
+payload. A request the vendor refused (`http_<n>`, `task_<code>`, or a `task_post` the
+standard queue did not accept) is settled at **0 ¢**. So is `no_surface`, a request
+that was never sent. Every other failure (`timeout`, `transport`, `unparseable`,
+`deadline`, and any failure after an accepted `task_post`) is settled at its reservation,
+because the money may have been spent. Failures are never cached (BUILD §6.4, no negative
+cache). The 0 ¢ side follows DataForSEO's documented behaviour (an errored task is not
+charged); it has not been checked against an invoice.
+
 ### Inference
 
 | Model tier | $/M in · out | Used for |
