@@ -6,9 +6,14 @@
 // 2026-09-10, issue #459: the owner approved the master's drafted copy for
 // every key this partition still owed ("copy proposal approved"; proposal
 // sheet artifact 546f45a0-a996-4d25-b85e-fb03fda7b102), and the 38 approved
-// strings are applied here byte for byte. No key in this partition is
-// owner-owed or `TODO(copy)` any more; where a note below says how a key
-// stood before, that was its standing before this date.
+// strings are applied here byte for byte. Where a note below says how a
+// key stood before, that was its standing before this date.
+//
+// 2026-09-11, issue #516: `record.verification.never.noLiveAddress` was the
+// one key #459 held — its drafted sentence clipped the record's badge at
+// 320 px — and the owner approved a badge-length string for it (DECISIONS
+// 2026-09-11), applied byte for byte. No key in this partition is
+// owner-owed or `TODO(copy)` any more.
 //
 // 2026-09-06, issue #47 (REQ-063): the four words a published page's
 // weekly standing is spoken as. They live here, and not in `keys/mail.ts`,
@@ -101,8 +106,7 @@ export const PUBLISH_COPY = Object.freeze({
   "record.verification.notYet": ["first check at", { slots: {}, fixedBy: "REQ-062 c7" }],
   "record.verification.due": ["check due now", { slots: {}, fixedBy: "REQ-062 c7" }],
   "record.verification.never.takenDownFirst": ["taken down before its check", { slots: {}, fixedBy: "REQ-062 c7" }],
-  // held 2026-09-11: the approved sentence truncates in the ghost badge at 320 px (layout sweep no-clipping); owner rules a badge-length word (proposed "not checked").
-  "record.verification.never.noLiveAddress": ["TODO(copy)", { slots: {}, fixedBy: "REQ-062 c7" }],
+  "record.verification.never.noLiveAddress": ["not checked", { slots: {}, fixedBy: "REQ-062 c7" }],
   "record.unpublished.removed": ["removed from your hosted blog", { slots: {}, fixedBy: "REQ-056 c15" }],
   "record.unpublished.returnedToDraft": ["returned to draft in your WordPress", { slots: {}, fixedBy: "REQ-056 c15" }],
   "record.unpublished.namedForRemoval": ["never live there — yours to remove", { slots: {}, fixedBy: "REQ-056 c16" }],

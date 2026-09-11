@@ -195,8 +195,9 @@ function plannedOn(day: DayKey, choice: Choice, now: Date): DraftOnDay {
 /**
  * The dates this month that supply may fill, in order.
  *
- * "One page a day. Every day." — so every site-local date from today
- * forward, weekends included. Dates already past are not filled: supply
+ * At most one page a day, and only where one is ready (`calendar.head`,
+ * owner 2026-09-11) — so every site-local date from today forward,
+ * weekends included, is a date supply *may* fill. Dates already past are not filled: supply
  * that was never used on them was never scheduled for them, and a calendar
  * that back-filled yesterday would be claiming work nobody did.
  *
