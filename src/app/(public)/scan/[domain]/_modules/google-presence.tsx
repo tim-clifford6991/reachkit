@@ -33,9 +33,9 @@
 // `0` written beside it, never as an absent row (§6.6).
 import type React from "react";
 import { Search } from "lucide-react";
-import { Badge, Card, Divider, Table } from "@/ui/components";
+import { Card, Divider, Table } from "@/ui/components";
 import { PresenceBars } from "@/ui/charts";
-import { CardHead } from "@/ui/idiom";
+import { CardHead, SourceChip } from "@/ui/idiom";
 import { copy } from "@/lib/presentation/copy";
 import type { PresenceSection } from "@/lib/scan/report";
 import { Num } from "../_address/measured";
@@ -51,11 +51,7 @@ export function GooglePresenceCard(p: { section: PresenceSection }): React.JSX.E
           // `cardHead('search', 'Google search', …)` — the set's own glyph.
           icon={<Search size={15} strokeWidth={1.8} aria-hidden />}
           eyebrow={copy("presence.title")}
-          pill={
-            <Badge tone="neutral" wrap>
-              {copy("presence.source")}
-            </Badge>
-          }
+          pill={<SourceChip wrap>{copy("presence.source")}</SourceChip>}
         />
       }
     >

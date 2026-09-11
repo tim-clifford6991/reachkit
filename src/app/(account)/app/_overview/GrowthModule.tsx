@@ -37,7 +37,7 @@ import { writtenLine } from "../_shell/written";
 import { GOALS } from "./goals";
 import { formatCount, formatMonthDay } from "./present";
 import type { GrowthModule as GrowthModuleModel } from "./growth";
-import { CardHead } from "@/ui/idiom";
+import { CardHead, SourceChip } from "@/ui/idiom";
 import { CHART_PLATE, STACK } from "./style";
 
 export function GrowthModule(p: {
@@ -181,7 +181,7 @@ function Head(p: { source?: string | null }): React.JSX.Element {
       eyebrow={copy("overview.tile.searches.label")}
       pill={
         p.source === null || p.source === undefined ? null : (
-          <span className="rk-srcchip">{p.source}</span>
+          <SourceChip>{p.source}</SourceChip>
         )
       }
     />
