@@ -30,7 +30,7 @@
 // interactive parts are `ScanForm` and `FieldCta`, both client leaves.
 import type React from "react";
 import type { Metadata } from "next";
-import { Play } from "lucide-react";
+import { Calendar, Play, Search, Users } from "lucide-react";
 import { Surface } from "@/ui/layout";
 import { CardHead, IdiomCard } from "@/ui/idiom";
 import { copy } from "@/lib/presentation/copy";
@@ -53,9 +53,9 @@ const SECTION_NUMBER = ["01", "02", "03"] as const;
 /** The three Step cards of section 03. Titles approved (11a), bodies owed.
  *  The step's own number rides the eyebrow's one slot. */
 const STEPS = [
-  { n: "1", title: "landing.step.1.title", body: "landing.step.1.body" },
-  { n: "2", title: "landing.step.2.title", body: "landing.step.2.body" },
-  { n: "3", title: "landing.step.3.title", body: "landing.step.3.body" },
+  { n: "1", title: "landing.step.1.title", body: "landing.step.1.body", Icon: Search },
+  { n: "2", title: "landing.step.2.title", body: "landing.step.2.body", Icon: Users },
+  { n: "3", title: "landing.step.3.title", body: "landing.step.3.body", Icon: Calendar },
 ] as const;
 
 /** Issue #326: the one public route a stranger is meant to arrive at from
@@ -154,7 +154,12 @@ export default function LandingPage(props: {
             {STEPS.map((step) => (
               <IdiomCard
                 key={step.n}
-                head={<CardHead eyebrow={copy("landing.step.eyebrow", { n: step.n })} />}
+                head={
+                  <CardHead
+                    icon={<step.Icon size={15} strokeWidth={1.8} aria-hidden />}
+                    eyebrow={copy("landing.step.eyebrow", { n: step.n })}
+                  />
+                }
               >
                 <h3 className="rk-step-h">{copy(step.title)}</h3>
                 <p className="rk-explain">{copy(step.body)}</p>

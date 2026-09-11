@@ -31,6 +31,7 @@
 "use client";
 
 import type React from "react";
+import { PenLine } from "lucide-react";
 import { Btn } from "@/ui/components/Btn";
 import { Card } from "@/ui/components/Card";
 import { Input } from "@/ui/components/Input";
@@ -44,7 +45,7 @@ export function VoicePanel(p: { settings: SettingsModel }): React.JSX.Element {
   const placeholder = writtenLine("settings.voice.placeholder");
 
   return (
-    <Card state="default" title={<CardHead eyebrow={copy("settings.voice.title")} />}>
+    <Card state="default" title={<CardHead icon={<PenLine size={15} strokeWidth={1.8} aria-hidden />} eyebrow={copy("settings.voice.title")} />}>
       <div className="flex min-w-0 flex-col gap-4">
         <div className="min-w-0" data-testid="setting-voice_text">
           <Input

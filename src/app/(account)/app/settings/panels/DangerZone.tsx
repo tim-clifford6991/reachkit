@@ -37,6 +37,7 @@
 "use client";
 
 import type React from "react";
+import { Shield } from "lucide-react";
 import { useState } from "react";
 import { Btn } from "@/ui/components/Btn";
 import { Card } from "@/ui/components/Card";
@@ -84,7 +85,7 @@ export function DangerZone(): React.JSX.Element {
     // than on `Card`, which has no danger arm and should not grow one for
     // one caller; `rk-danger` is the idiom's own, beside the value chip.
     <div className="rk-danger min-w-0" data-testid="settings-danger">
-      <Card state="default" title={<CardHead eyebrow={copy("danger.zone.title")} />}>
+      <Card state="default" title={<CardHead icon={<Shield size={15} strokeWidth={1.8} aria-hidden />} eyebrow={copy("danger.zone.title")} />}>
       {exportFirst === null ? null : <p className="text-xs opacity-60 wrap-anywhere">{exportFirst}</p>}
 
       <div className="flex min-w-0 flex-col gap-3">

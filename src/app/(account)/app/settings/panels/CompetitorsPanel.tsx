@@ -45,6 +45,7 @@
 "use client";
 
 import type React from "react";
+import { Users } from "lucide-react";
 import { useState } from "react";
 import { Badge } from "@/ui/components/Badge";
 import { Btn } from "@/ui/components/Btn";
@@ -116,6 +117,7 @@ export function CompetitorsPanel(p: {
         // typed here. `num-phrase` because "5 of 5" is a phrase: it folds
         // at its spaces, which `.num`'s own nowrap would refuse.
         <CardHead
+          icon={<Users size={15} strokeWidth={1.8} aria-hidden />}
           eyebrow={copy("settings.competitors.title")}
           pill={
             <Badge tone="neutral">

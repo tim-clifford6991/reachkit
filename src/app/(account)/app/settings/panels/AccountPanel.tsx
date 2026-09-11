@@ -34,6 +34,7 @@
 "use client";
 
 import type React from "react";
+import { Lock } from "lucide-react";
 import { useActionState, useState } from "react";
 import { Btn } from "@/ui/components/Btn";
 import { Card } from "@/ui/components/Card";
@@ -60,7 +61,7 @@ export function AccountPanel(p: { account: SettingsModel["account"] }): React.JS
   const pending = p.account.pending;
 
   return (
-    <Card state="default" title={<CardHead eyebrow={copy("settings.account.title")} />}>
+    <Card state="default" title={<CardHead icon={<Lock size={15} strokeWidth={1.8} aria-hidden />} eyebrow={copy("settings.account.title")} />}>
       <div className="flex min-w-0 flex-col gap-3">
         <div className="flex min-w-0 flex-col gap-1" data-testid="setting-name">
           <span className="eyebrow opacity-60">{copy("settings.account.name")}</span>

@@ -34,6 +34,7 @@
 "use client";
 
 import type React from "react";
+import { CreditCard } from "lucide-react";
 import { Btn } from "@/ui/components/Btn";
 import { Badge } from "@/ui/components/Badge";
 import { Card } from "@/ui/components/Card";
@@ -97,7 +98,7 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
       : null;
 
   return (
-    <Card state="default" title={<CardHead eyebrow={copy("settings.billing.title")} />}>
+    <Card state="default" title={<CardHead icon={<CreditCard size={15} strokeWidth={1.8} aria-hidden />} eyebrow={copy("settings.billing.title")} />}>
       {/* S18 leads with the figure and its state, not with a plan row: the
           price is the card's one headline number and the pill says whether
           it is running. The plan *word* is the same fact the pill states —
