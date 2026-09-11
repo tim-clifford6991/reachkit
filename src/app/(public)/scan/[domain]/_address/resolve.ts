@@ -31,7 +31,7 @@
 // arm and `ScanProgress` posts `/api/scan` from the browser on first
 // frame — REQ-001 c9's "never during server render", which is what keeps
 // a crawler, a prefetch or a refresh from spending money.
-import { FREE_RESCAN_WINDOW_D } from "@/lib/config/constants";
+import { FREE_RESCAN_WINDOW_D, MAINTENANCE_TICK_MINUTES } from "@/lib/config/constants";
 import { admitFreeScan, type Admission, type NetworkKey } from "@/lib/scan/admission";
 import { isDomainRemoved } from "@/lib/scan/removal";
 import { RUNNING_ROW_BOUND_S } from "@/lib/scan/stuck";
@@ -42,6 +42,7 @@ import type { AddressControl, AddressNotice, AddressRefusal, AddressState } from
 import { categoryOf } from "@/lib/scan/sections";
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
+const SECONDS_PER_MINUTE = 60;
 
 function wholeDaysBetween(from: Date, to: Date): number {
   return Math.floor((to.getTime() - from.getTime()) / MS_PER_DAY);
@@ -83,14 +84,17 @@ function refusalOf(admission: Exclude<Admission, { admit: true }>, now: Date): A
  *  on `RUNNING_ROW_BOUND_S` (platform ceiling + sweep margin) from the
  *  row's `created_at`. A wait shorter than that would send the visitor
  *  back to be refused again. So the wait is the time left until that
- *  bound, floored at 0 — past it the row is the sweep's, not the visitor's
- *  to wait on. A refusal whose running row could not be re-read carries no
- *  clock, and the whole bound is the only figure that is still an upper
- *  bound. Whole seconds, rounded up, like admission's own waits. */
+ *  bound. At or past it the row is waiting on the next maintenance sweep,
+ *  which runs every `MAINTENANCE_TICK_MINUTES`, so the wait is that
+ *  interval, never 0 (master review on PR #520). A refusal whose running
+ *  row could not be re-read carries no clock, and the whole bound is the
+ *  only figure that is still an upper bound. Whole seconds, rounded up,
+ *  like admission's own waits. */
 function inFlightWaitSeconds(runningSince: Date | undefined, now: Date): number {
   if (runningSince === undefined) return RUNNING_ROW_BOUND_S;
   const clearsAtMs = runningSince.getTime() + RUNNING_ROW_BOUND_S * 1000;
-  return Math.max(0, Math.ceil((clearsAtMs - now.getTime()) / 1000));
+  const leftS = Math.ceil((clearsAtMs - now.getTime()) / 1000);
+  return leftS > 0 ? leftS : MAINTENANCE_TICK_MINUTES * SECONDS_PER_MINUTE;
 }
 
 /** REQ-001 c16: exactly one control that starts a new measurement, or

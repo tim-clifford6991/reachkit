@@ -5,11 +5,13 @@
 // platform froze leaves its row `running` until the sweep clears it, and
 // the sweep keys on `TIMING.platformCeilingS + TIMING.sweepMarginS` from the
 // row's `created_at`. So the wait is the time left until that bound, from
-// the running scan's own age, floored at 0 — never the pass's design
-// ceiling, which would send the visitor back to be refused a second time.
+// the running scan's own age — never the pass's design ceiling, which would
+// send the visitor back to be refused a second time. At or past the bound the
+// row waits on the next maintenance sweep, so the wait is the tick interval,
+// never 0 (master review on PR #520).
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import "../../scan/run/harness";
-import { TIMING } from "@/lib/config/constants";
+import { MAINTENANCE_TICK_MINUTES, TIMING } from "@/lib/config/constants";
 import type { Admission } from "@/lib/scan/admission";
 import type { CanonicalDomain } from "@/lib/scan/domain";
 import type { StoredReport } from "@/lib/scan/report";
@@ -40,6 +42,7 @@ const NETWORK = "network-key-fixture" as never;
 const DOMAIN = "acme.com" as CanonicalDomain;
 const NOW = new Date("2026-09-06T12:00:00.000Z");
 const BOUND_S = TIMING.platformCeilingS + TIMING.sweepMarginS;
+const TICK_S = MAINTENANCE_TICK_MINUTES * 60;
 
 function secondsAgo(s: number): Date {
   return new Date(NOW.getTime() - s * 1000);
@@ -86,12 +89,19 @@ describe("#510 — the in-flight refusal's wait is the platform bound plus the s
     expect((await refusalFor(inFlightElsewhere(since))).retryAfterSeconds).toBe(80);
   });
 
-  it("a scan exactly at the bound leaves 0", async () => {
-    expect((await refusalFor(inFlightElsewhere(secondsAgo(BOUND_S)))).retryAfterSeconds).toBe(0);
+  it("a scan exactly at the bound waits for the next sweep: the tick interval, never 0", async () => {
+    expect((await refusalFor(inFlightElsewhere(secondsAgo(BOUND_S)))).retryAfterSeconds).toBe(TICK_S);
   });
 
-  it("a scan 95 s old is past the bound: the wait is floored at 0 — the row is the sweep's", async () => {
-    expect((await refusalFor(inFlightElsewhere(secondsAgo(95)))).retryAfterSeconds).toBe(0);
+  it("a row 95 s old is past the bound: it reads the tick interval, never 0 — the row is the sweep's", async () => {
+    const r = await refusalFor(inFlightElsewhere(secondsAgo(95)));
+    expect(r.retryAfterSeconds).toBe(TICK_S);
+    expect(r.retryAfterSeconds).not.toBe(0);
+    expect(TICK_S).toBe(900);
+  });
+
+  it("one second inside the bound still reads the time left, not the tick", async () => {
+    expect((await refusalFor(inFlightElsewhere(secondsAgo(BOUND_S - 1)))).retryAfterSeconds).toBe(1);
   });
 
   it("a refusal with no running row to read a clock from waits the whole bound", async () => {
@@ -122,7 +132,7 @@ describe("#510 — the wait the refusal carries and the {wait} the line shows ar
     ["young", 10, 80, "2"],
     ["just started", 0, 90, "2"],
     ["old", 45, 45, "1"],
-    ["past the bound", 95, 0, "0"],
+    ["past the bound", 95, 900, "15"],
   ] as const)("%s scan (%i s): retryAfterSeconds %i, the slot says %s minute(s)", async (_label, age, wait, minutes) => {
     const refusal = await refusalFor(inFlightElsewhere(secondsAgo(age)));
     expect(refusal.retryAfterSeconds).toBe(wait);
