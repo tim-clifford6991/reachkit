@@ -49,7 +49,7 @@ set -euo pipefail
 CALLER_DIR="$(basename "$PWD")"
 # The same directory in full, for the state file: it is what lets `up.sh`
 # refuse a second stack for a worktree that already has one, and what lets
-# `reap.sh` tell a live worktree from a deleted one (issue #273).
+# `down.sh --orphans` tell a live worktree from a deleted one (issue #273).
 CALLER_PATH="$PWD"
 cd "$(dirname "$0")"
 
@@ -133,7 +133,7 @@ ADMIN_URL="postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/postgres
 #
 # One file per run, holding the ports, the database and the pids. It is what
 # makes the lifecycle a lifecycle: `down.sh` reads it to stop exactly what
-# this run started, and `reap.sh` reads all of them to find stacks whose
+# this run started, and `down.sh --orphans` reads all of them to find stacks whose
 # worktree is gone.
 #
 # **It also fixes what "already answering" meant.** Until #273 this script
@@ -231,7 +231,7 @@ refuse_if_held() {
 #
 # Issue #296: `up.sh` used to exit non-zero having already started PostgREST
 # and the proxy, with the state file written last and so naming neither.
-# `down.sh` and `reap.sh` could not see them and a human had to `kill` by pid.
+# `down.sh` could not see them and a human had to `kill` by pid.
 # Everything started is remembered here and stopped by the exit trap unless
 # the script reaches its end.
 STARTED_PIDS=()
@@ -440,7 +440,7 @@ wait_for_http "http://127.0.0.1:${PGMETA_PORT}/health" 60 || {
 #
 # Written last, when every service is up, so a state file's existence means
 # a stack that answered rather than one that was attempted. `down.sh` and
-# `reap.sh` read exactly this, which is why the pids are recorded rather
+# `down.sh --orphans` read exactly this, which is why the pids are recorded rather
 # than re-derived from a port: a port says something is listening, and only
 # a pid says it is ours.
 #
