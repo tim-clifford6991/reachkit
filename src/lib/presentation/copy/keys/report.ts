@@ -85,6 +85,11 @@ export const REPORT_COPY = Object.freeze({
   "notice.incomplete": ["This report is incomplete — {what} wasn’t measured.", { slots: { what: "text" }, fixedBy: "REQ-001 c14" }],
   "notice.measurement-failed": ["The last measurement didn’t finish, so nothing new was stored.", { slots: {}, fixedBy: "REQ-001 c16" }],
   "notice.correction-failed": ["The correction didn’t finish — this is the report from before it.", { slots: {}, fixedBy: "REQ-094 c7" }],
+  // Owner-owed (#479). The pass could not read the site's own home page —
+  // the fetcher refused it (too large, no answer, blocked) — so nothing
+  // after it was attempted and the report stops there. No approved line
+  // exists; ships as `TODO(copy)`, which renders as itself (2026-09-07).
+  "notice.site-unreadable": ["TODO(copy)", { slots: {}, fixedBy: "REQ-004 c6" }],
   "notice.refused.network-limit": ["That’s five scans from your network in the last hour — you can scan again in {wait}.", { slots: { wait: "text" }, fixedBy: "REQ-003 c6" }],
   "notice.refused.scan-running": ["A scan is already running from your network. It finishes in about {wait}, then this one can start.", { slots: { wait: "text" }, fixedBy: "REQ-003 c7" }],
   // Owner-owed (#104). ReachKit's own stop, in writing — the one refusal

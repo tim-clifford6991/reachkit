@@ -169,9 +169,13 @@ import type { CanonicalDomain } from "./domain";
 
 export type Tier = "free" | "deep" | "weekly";
 
-/** How a pass ended — the four values `scans.stopped_reason` is
- *  constrained to by the migration that added the column. */
-export type StoppedReason = "complete" | "time_ceiling" | "spend_ceiling" | "failed";
+/** How a pass ended — the values `scans.stopped_reason` is constrained to
+ *  (`20260904110000_scans_current.sql`, widened by
+ *  `20260911090000_scans_stopped_reason.sql`). `site_unreadable` (issue
+ *  #479) is a pass whose first stage could not read the customer's own
+ *  home document: nothing after it is attempted, and the ending says so
+ *  rather than calling an empty pass `complete`. */
+export type StoppedReason = "complete" | "time_ceiling" | "spend_ceiling" | "site_unreadable" | "failed";
 
 /** The one blob version this build writes. A reader that meets a version
  *  it does not know throws rather than returning a partially-populated
