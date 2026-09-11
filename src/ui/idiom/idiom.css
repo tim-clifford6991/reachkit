@@ -1068,6 +1068,13 @@
   }
 }
 
+/* A card's one headline figure (UI-SPEC S18 L817, L820; issue #506): the
+ * set draws Billing's price and Your content's page count as `.num` at the
+ * h2 rung. Mono comes from `.num` (ruling 7a); this sets the rung only. */
+.rk-card-figure {
+  font-size: var(--h2);
+}
+
 .rk-figure-of {
   font-size: var(--h3);
   color: var(--on-accent-quiet);
@@ -1568,7 +1575,13 @@
  * own condition. The chip beside the eyebrow takes the same tone, because a
  * head whose ink is red and whose chip is accent reads as two claims. */
 .rk-danger > .card {
-  border-color: var(--bad-line);
+  /* The red-tinted edge S18 draws (L821), as the master ruled on #513: the
+   * `--bad` token on the card's own border. `--bad-line` at the hairline
+   * read as a plain card beside its neighbours. The set's 1.5px width is
+   * kept, drawn as the card's own edge for `.rk-accent-ring`'s reason: a
+   * compound shadow carrying its own length is refused (#349). */
+  border-color: var(--bad);
+  border-width: 1.5px;
 }
 
 .rk-danger .eyebrow {
@@ -2072,4 +2085,26 @@
   font-size: var(--t-explain);
   color: var(--ink-3);
   margin: var(--s-1) 0 0 var(--s-5);
+}
+
+
+/* ── 16 · The switch (UI-SPEC §2.4, set L112–115; issue #506) ─────────── */
+
+/* The registered `Toggle` drawn as the set's `.switch`: on = `--accent`
+ * ground with the knob right, off = `--line` ground with the knob left,
+ * the knob `--on-accent` in both. daisyUI's toggle paints its knob and
+ * edge in `currentColor` from `--input-color`, and its checked arm is
+ * `base-content` — the black switch the set never draws. A widening of a
+ * registered component's ground, as `.progress.rk-progress-inverse` is,
+ * and keyed off `:checked`, so the colour and the state are one fact. */
+.toggle.rk-switch {
+  background-color: var(--line);
+  border-color: var(--line);
+  --input-color: var(--on-accent);
+}
+
+.toggle.rk-switch:checked {
+  background-color: var(--accent);
+  border-color: var(--accent);
+  --input-color: var(--on-accent);
 }

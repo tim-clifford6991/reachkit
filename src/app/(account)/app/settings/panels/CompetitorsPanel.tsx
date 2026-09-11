@@ -186,7 +186,7 @@ export function CompetitorsPanel(p: {
               />
             )}
             <div className="flex min-w-0 flex-wrap items-center gap-2">
-              <Btn label={copy("settings.competitors.add")} size="sm" type="submit" />
+              <Btn label={copy("settings.competitors.add")} size="sm" variant="secondary" pill type="submit" />
             </div>
           </form>
         )}

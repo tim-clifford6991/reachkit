@@ -68,7 +68,7 @@
     "awaiting": [
       "settings.voice.remove-claim"
     ],
-    "ruled": 99
+    "ruled": 100
   },
   "setup.ts": {
     "owed": [],

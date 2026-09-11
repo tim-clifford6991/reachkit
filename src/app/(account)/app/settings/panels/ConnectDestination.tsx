@@ -88,9 +88,14 @@ export function ConnectDestination(p: { action: CredentialAction }): React.JSX.E
 
   return (
     <div className="flex min-w-0 flex-col gap-2" data-testid="wp-credential">
+      {/* S18 draws Reconnect as the accent outline pill (L811, issue
+          #506): the one control on the card asking the customer to act. */}
       <Btn
         label={copy(ACTION_COPY_KEY[p.action])}
         size="sm"
+        variant="secondary"
+        tone="accent"
+        pill
         onClick={() => setOpen((was) => !was)}
       />
 

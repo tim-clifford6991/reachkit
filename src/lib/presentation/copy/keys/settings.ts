@@ -51,6 +51,11 @@ export const SETTINGS_COPY = Object.freeze({
   // rule 1.1) — naming a control by what it does, rather than minting a
   // second, third and fourth word for the same act.
   "settings.edit": ["Edit", { slots: {}, fixedBy: 'BUILD §4.7 ("chip + Edit")' }],
+  // S18 draws two words for the act, and both are approved (ruling 11a):
+  // "Edit" beside the market, "Change" beside the domain, the publish time
+  // and the time zone (issue #506). One key per drawn word, each serving
+  // every position the set gives it.
+  "settings.change": ["Change", { slots: {}, fixedBy: "UI-SPEC S18 (11a)" }],
   // The other two words the field Edit opens needs (issue #231), and the
   // same one-key-serving-several-positions rule: what the button does is
   // the same act on the domain and on the category, so it is one word each
