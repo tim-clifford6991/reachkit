@@ -32,7 +32,14 @@
 // hands the completed `Drivers` to `verdictOf`. Buying a SERP here would
 // spend the free path's ceiling twice on the same rows (§6.4).
 import { BATTERY, CACHE_WINDOWS_D, PRICE_BOOK } from "@/lib/config/constants";
-import { isFetchRefusal, refusalOf, type CostContext, type FetchRefusal, type FetchRefusalReason } from "@/lib/costs";
+import {
+  isFetchRefusal,
+  refusalOf,
+  type CostContext,
+  type FetchRefusal,
+  type FetchRefusalReason,
+  type VendorFailure,
+} from "@/lib/costs";
 import { safeFetch, type SafeFetchOpts } from "@/lib/egress/safe-fetch";
 import { readRobots } from "@/lib/egress/robots";
 import type { FetchOutcome, RobotsPolicy } from "@/lib/egress/types";
@@ -77,7 +84,10 @@ const EXTRA_PAGES_BY_TIER: Readonly<Record<Tier, number>> = Object.freeze({
 export interface MeasurePorts {
   fetchDocument: (url: string, opts?: SafeFetchOpts) => Promise<FetchOutcome>;
   readRobots: (origin: string) => Promise<RobotsPolicy | { ok: false; reason: string }>;
-  rankedKeywords: (c: CostContext, a: { domain: string; rows: 50 | 100 | 300 }) => Promise<Measured<RankedResult>>;
+  rankedKeywords: (
+    c: CostContext,
+    a: { domain: string; rows: 50 | 100 | 300; onFailure?: (failure: VendorFailure) => void }
+  ) => Promise<Measured<RankedResult>>;
 }
 
 const DEFAULT_PORTS: MeasurePorts = Object.freeze({
@@ -328,8 +338,26 @@ export async function measureDomain(
     searchPresence = unmeasured("not_attempted", at);
     ownRanked = unmeasured("not_attempted", at);
   } else {
+    // A failed call is ledgered as the failure and answers `unmeasured`
+    // (issue #504); this is where the stage hears which failure it was, so
+    // the reason it logs is the vendor's and never a ledger insert's.
+    const heard: { failure: VendorFailure | null } = { failure: null };
     try {
-      const ranked = await ports.rankedKeywords(c, { domain: a.domain, rows: RANKED_ROWS_BY_TIER[a.tier] });
+      const ranked = await ports.rankedKeywords(c, {
+        domain: a.domain,
+        rows: RANKED_ROWS_BY_TIER[a.tier],
+        onFailure: (failure) => {
+          heard.failure = failure;
+        },
+      });
+      if (heard.failure !== null) {
+        logDriver("driver_undeterminable", {
+          driver: "searchPresence",
+          domain: a.domain,
+          because: heard.failure.vendorFailure,
+          endpoint: heard.failure.endpoint,
+        });
+      }
       // Two readings of one answer: §5's score is over the rows bought,
       // and §6.6's own count is the vendor's total (#117).
       searchPresence = searchPresenceOf({
