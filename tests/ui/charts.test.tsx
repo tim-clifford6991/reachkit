@@ -687,24 +687,30 @@ describe("issue #490: a chart's groups stay inside its own box, at every length 
     expect(lines.join(" ")).toBe(`Aug 24 · ${APPROVED_ACCOUNT}`);
   });
 
-  it("the AI dot matrix keeps every rect and text inside its viewBox for one to four rows and names up to the approved sentence", () => {
-    const weeks = ["15", "22", "29", "6", "13", "20", "27", "3", "10", "17", "24", "31"];
-    const cells = weeks.map((_, i): AiDotMatrixRow["cells"][number] => (i % 3 === 0 ? "cited" : i % 3 === 1 ? "not-cited" : "muted"));
-    for (let rows = 1; rows <= 4; rows += 1) {
+  // One test per row count, so no single test renders more than the
+  // sentence's length in charts and each stays well inside the runner's
+  // timeout (#497 review) — the same coverage as one sweep over all four.
+  const MATRIX_WEEKS = ["15", "22", "29", "6", "13", "20", "27", "3", "10", "17", "24", "31"];
+  const MATRIX_CELLS = MATRIX_WEEKS.map((_, i): AiDotMatrixRow["cells"][number] =>
+    i % 3 === 0 ? "cited" : i % 3 === 1 ? "not-cited" : "muted",
+  );
+  it.each([1, 2, 3, 4])(
+    "the AI dot matrix at %i row(s) keeps every rect and text inside its viewBox for names up to the approved sentence",
+    (rows) => {
       for (let n = 1; n <= APPROVED_ACCOUNT.length; n += 1) {
         const matrix: AiDotMatrixRow[] = Array.from({ length: rows }, (_, r) => ({
           name: `${r}${APPROVED_ACCOUNT}`.slice(0, n),
           identity: r === 0 ? "you" : "rival",
-          cells,
+          cells: MATRIX_CELLS,
           count: "12/12",
         }));
         const found = escapees(
-          <AiDotMatrixChart rows={matrix} questions={weeks} goal={{ count: 6, name: "goal: 6" }} label="matrix" />,
+          <AiDotMatrixChart rows={matrix} questions={MATRIX_WEEKS} goal={{ count: 6, name: "goal: 6" }} label="matrix" />,
         );
         expect(found, `${rows} row(s), names of ${n}`).toEqual([]);
       }
-    }
-  });
+    },
+  );
 
   it.each(ALL_STORIES)("%s draws nothing outside its viewBox", (_name, story) => {
     expect(escapees(story())).toEqual([]);
