@@ -62,6 +62,18 @@ jobs:
           RENDER_CAPTURE_DIR: ${{ runner.temp }}/captures
         run: npm run test:layout
 
+      # A visual baseline that moved writes its diff and actual PNGs under the
+      # runner's tmp (visual.test.ts `evidenceDir`); keep them, so the master
+      # reviews what moved instead of a pixel count (2026-09-11, PR 499).
+      - name: visual evidence (diff and actual PNGs) when a baseline moved
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-evidence-${{ github.sha }}
+          path: /tmp/reachkit-visual-*/
+          if-no-files-found: ignore
+          retention-days: 7
+
       # Everything below runs whether or not the suite passed. A baseline
       # that went red is exactly the run whose renders the master wants.
       - name: main's baselines, to see which screens this branch moved
