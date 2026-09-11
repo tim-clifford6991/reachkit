@@ -1568,11 +1568,12 @@
  * own condition. The chip beside the eyebrow takes the same tone, because a
  * head whose ink is red and whose chip is accent reads as two claims. */
 .rk-danger > .card {
-  border-color: var(--bad-line);
-  /* The set's ring is 1.5px of `--bad-line` (S18 L821, issue #506); at the
-   * hairline the edge read as a plain card beside its neighbours. Drawn as
-   * the card's own edge at the set's width, for `.rk-accent-ring`'s reason:
-   * a compound shadow carrying its own length is refused (#349). */
+  /* The red-tinted edge S18 draws (L821), as the master ruled on #513: the
+   * `--bad` token on the card's own border. `--bad-line` at the hairline
+   * read as a plain card beside its neighbours. The set's 1.5px width is
+   * kept, drawn as the card's own edge for `.rk-accent-ring`'s reason: a
+   * compound shadow carrying its own length is refused (#349). */
+  border-color: var(--bad);
   border-width: 1.5px;
 }
 
