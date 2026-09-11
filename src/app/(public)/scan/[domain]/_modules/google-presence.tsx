@@ -156,5 +156,5 @@ export function GooglePresenceCard(p: { section: PresenceSection }): React.JSX.E
 /** REQ-004 c10/c11: named as absent in one written line; the rest of the
  *  report stays usable. */
 export function GooglePresenceAbsent(): React.JSX.Element {
-  return <Card state="degraded" title={<CardHead eyebrow={copy("presence.title")} />} degradedLine={copy("presence.absent")} />;
+  return <Card state="degraded" title={<CardHead icon={<Search size={15} strokeWidth={1.8} aria-hidden />} eyebrow={copy("presence.title")} />} degradedLine={copy("presence.absent")} />;
 }

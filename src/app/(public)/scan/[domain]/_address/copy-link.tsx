@@ -16,6 +16,7 @@
 "use client";
 
 import type React from "react";
+import { Copy } from "lucide-react";
 import { Btn } from "@/ui/components";
 import { copy } from "@/lib/presentation/copy";
 
@@ -23,6 +24,7 @@ export function CopyLink(p: { canonicalUrl: string }): React.JSX.Element {
   return (
     <Btn
       label={copy("copy-link.label")}
+      icon={<Copy size={14} strokeWidth={1.8} aria-hidden />}
       variant="ghost"
       size="sm"
       onClick={() => {

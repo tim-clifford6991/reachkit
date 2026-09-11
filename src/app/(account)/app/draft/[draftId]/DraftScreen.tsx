@@ -52,6 +52,7 @@ import { copy } from "@/lib/presentation/copy";
 import { Badge } from "@/ui/components/Badge";
 import { Btn } from "@/ui/components/Btn";
 import { PanelLayout } from "@/ui/components/custom";
+import { Copy } from "lucide-react";
 import { CardHead, IdiomCard } from "@/ui/idiom";
 import { formatCount, formatDate, formatDateTime, formatTime } from "../../_shell/format";
 import { writtenLine } from "../../_shell/written";
@@ -432,6 +433,7 @@ export function DraftScreen(p: {
               testId="draft-copy-card"
               head={
                 <CardHead
+                  icon={<Copy size={15} strokeWidth={1.8} aria-hidden />}
                   eyebrow={copy("draft.copy.title")}
                   pill={<span className="rk-srcchip">{copy("draft.copy.note")}</span>}
                 />

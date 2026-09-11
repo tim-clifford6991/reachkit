@@ -25,6 +25,7 @@
 // than a risk, and it is why the line belongs here and not in a footnote
 // somewhere else.
 import type React from "react";
+import { Bell } from "lucide-react";
 import { Card } from "@/ui/components/Card";
 import { Toggle } from "@/ui/components/Toggle";
 import { CardHead } from "@/ui/idiom";
@@ -36,7 +37,7 @@ export function NotificationsPanel(p: { settings: SettingsModel }): React.JSX.El
   const alwaysOn = writtenLine("settings.notifications.always-on");
 
   return (
-    <Card state="default" title={<CardHead eyebrow={copy("settings.notifications.title")} />}>
+    <Card state="default" title={<CardHead icon={<Bell size={15} strokeWidth={1.8} aria-hidden />} eyebrow={copy("settings.notifications.title")} />}>
       <div className="flex min-w-0 flex-col" data-testid="setting-notifications">
         {p.settings.notifications.map((row) => (
           <div

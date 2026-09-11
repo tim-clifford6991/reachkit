@@ -309,3 +309,20 @@ describe("Collapse — server-rendered body, not a lazy fetch", () => {
 function stripComments(src: string): string {
   return src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
 }
+
+describe("issue #486 — Steps draws the set's check in a done cell (UI-SPEC §2.6, S10 L689)", () => {
+  it("a done step carries daisyUI's step-icon with a check glyph; pending and active carry none", () => {
+    const root = renderRoot(
+      <Steps
+        steps={[
+          { id: "a", label: "Paid", state: "done" },
+          { id: "b", label: "Setup", state: "active" },
+          { id: "c", label: "First page", state: "pending" },
+        ]}
+      />
+    );
+    const cells = Array.from(root.querySelectorAll("li"));
+    expect(cells.map((li) => li.querySelector(".step-icon svg") !== null)).toEqual([true, false, false]);
+    expect(cells.map((li) => li.textContent)).toEqual(["Paid", "Setup", "First page"]);
+  });
+});

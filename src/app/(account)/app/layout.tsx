@@ -26,6 +26,7 @@
 // over the same `DESTINATIONS` tuple, so a fourth destination cannot appear
 // on one breakpoint only.
 import type React from "react";
+import { TrendingUp } from "lucide-react";
 import { Surface } from "@/ui/layout";
 import { copy } from "@/lib/presentation/copy";
 import { DomainBlock } from "./_shell/DomainBlock";
@@ -71,7 +72,9 @@ export default async function AppLayout({
                   home — because the customer crosses between the two and a
                   second spelling of the product's name would be visible. */}
               <p className="rk-wordmark" data-testid="shell-brand">
-                <span className="rk-wordmark-chip" aria-hidden="true" />
+                <span className="rk-wordmark-chip" aria-hidden="true">
+                  <TrendingUp size={15} strokeWidth={2} aria-hidden />
+                </span>
                 <span>{copy("chrome.wordmark")}</span>
               </p>
               <DomainBlock shell={shell} />
