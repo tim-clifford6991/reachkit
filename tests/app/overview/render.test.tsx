@@ -242,8 +242,22 @@ describe("three tiles, and no fourth", () => {
     expect(score).toContain("overview.delta.up");
     expect(score).toContain("band.score.hard-to-find");
     expect(rowOf("overview-tile-ai-answers")).toContain("overview.goal(6)");
-    expect(rowOf("overview-tile-pages")).toContain("overview.goal(30)");
     expect(rowOf("overview-tile-pages")).toContain("overview.tile.pages.ranking(6)");
+  });
+
+  it("the pages row is the set's two chips in the set's order, and no goal chip (#536)", () => {
+    // The set's S12 pages tile (L711) draws `17` beside `6 already ranking`
+    // and nothing else on the row: no `goal: 30`, no delta chip. A third
+    // chip is what set the row's min-content width and stacked all of them
+    // under the figure — the defect the master read in CI's S12 render.
+    const pages = rowOf("overview-tile-pages");
+    expect(pages).not.toContain("overview.goal(");
+    expect(pages).not.toContain("overview.delta.");
+    // The figure first, its standing second — the set's order.
+    expect(pages.indexOf(">11<")).toBeLessThan(pages.indexOf("overview.tile.pages.ranking(6)"));
+    // And the whole screen states no pages goal anywhere: the tile was the
+    // only surface that drew it.
+    expect(markup).not.toContain("overview.goal(30)");
   });
 
   it("keeps the goal's sentence under the row, never inside it (#521)", () => {
@@ -252,13 +266,11 @@ describe("three tiles, and no fourth", () => {
     // beneath. Inside the row that sentence sets the min-content width, the
     // chip wraps, and the goal lands back under the figure — which is what
     // the master read in CI's render of this branch.
-    for (const [testId, key] of [
-      ["overview-tile-ai-answers", "overview.tile.ai-answers.means"],
-      ["overview-tile-pages", "overview.tile.pages.means"],
-    ] as const) {
-      expect(rowOf(testId)).not.toContain(key);
-      expect(markup).toContain(`<p class="rk-quiet">${key}`);
-    }
+    expect(rowOf("overview-tile-ai-answers")).not.toContain("overview.tile.ai-answers.means");
+    expect(markup).toContain('<p class="rk-quiet">overview.tile.ai-answers.means');
+    // The pages tile carries no goal, so it states no goal sentence either —
+    // the line under its row is the set's own "rest under 3 weeks" (#536).
+    expect(markup).not.toContain("overview.tile.pages.means");
   });
 
   it("the searches reading has no tile — the growth card is its home now", () => {
@@ -270,8 +282,12 @@ describe("three tiles, and no fourth", () => {
     expect(markup).toContain("overview.tile.pages.too-early(3)");
   });
 
-  it("the pages headline has no delta, so it carries its goal of 30", () => {
-    expect(markup).toContain("overview.goal(30)");
+  it("the pages headline carries its standing, which is neither a delta nor a goal (#536)", () => {
+    // §4.5 item 3 lists the tile's contents and no goal is among them; the
+    // standing beside the figure is a measured value, so the figure is not
+    // bare. `GOALS.pages_published` stays pinned at 30 — nothing draws it.
+    expect(markup).toContain("overview.tile.pages.ranking(6)");
+    expect(markup).not.toContain("overview.goal(30)");
   });
 
   it("the AI tile carries its goal and its one window reading, and no movement", () => {
@@ -519,6 +535,9 @@ describe("UI-SPEC S13 — the week-0 arm, drawn", () => {
     expect(markup).not.toContain("band.score.");
     // …and no ranking badge, because no count was taken.
     expect(markup).not.toContain("overview.tile.pages.ranking");
+    // S13 draws that tile's figure alone (set L726): no standing to carry,
+    // and no goal chip in its place (#536).
+    expect(markup).not.toContain("overview.goal(30)");
   });
 
   it("the rivals card states when sizing arrives rather than drawing empty rows", () => {
