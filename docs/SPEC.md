@@ -2,7 +2,7 @@
 
 Rulings live here, in the section they change, dated.
 A new ruling is added as one dated line the day it is made; the superseded line is struck in place.
-The pre-2026-09-11 log is archived at `docs/archive/2026-09-11/DECISIONS.md`.
+The pre-2026-09-11 log is archived at `docs/archive/2026-09-11/`.
 
 One document. The MVP is exactly the nine features below, expanded into the specifics they require;
 anything not needed by one of the nine is out of scope (§11). Screens are named as `Canvas: <Screen>`
