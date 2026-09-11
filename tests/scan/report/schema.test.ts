@@ -51,6 +51,12 @@ const SCANS_MONEY_MIGRATION = path.join(
   REPO_ROOT,
   "supabase/migrations/20260910090100_scans_money.sql"
 );
+// Issue #479 — `stopped_reason` gains `site_unreadable`: a pass whose home
+// document was refused ends saying so, never `complete`.
+const STOPPED_REASON_MIGRATION = path.join(
+  REPO_ROOT,
+  "supabase/migrations/20260911090000_scans_stopped_reason.sql"
+);
 
 /** One tuple-only row per line, `|`-separated columns — easy to split. */
 /** Runs `sql` and returns whether it raised (never throws itself). */
@@ -80,6 +86,7 @@ beforeAll(() => {
   psql(["-v", "ON_ERROR_STOP=1", "-f", VERDICT_MIGRATION]);
   psql(["-v", "ON_ERROR_STOP=1", "-f", FLIP_MIGRATION]);
   psql(["-v", "ON_ERROR_STOP=1", "-f", SCANS_MONEY_MIGRATION]);
+  psql(["-v", "ON_ERROR_STOP=1", "-f", STOPPED_REASON_MIGRATION]);
 });
 
 afterAll(() => {
@@ -141,13 +148,13 @@ describe(
       expect(value).toEqual([["none"]]);
     });
 
-    it("`stopped_reason` is text, not null, default 'complete', constrained to the four named values", () => {
+    it("`stopped_reason` is text, not null, default 'complete', constrained to the five named values", () => {
       const rows = psqlRows(
         `select data_type, is_nullable, column_default from information_schema.columns where table_schema = 'public' and table_name = 'scans' and column_name = 'stopped_reason';`
       );
       expect(rows).toEqual([["text", "NO", "'complete'::text"]]);
 
-      for (const reason of ["complete", "time_ceiling", "spend_ceiling", "failed"]) {
+      for (const reason of ["complete", "time_ceiling", "spend_ceiling", "site_unreadable", "failed"]) {
         expect(
           raises(
             `insert into scans (domain, tier, status, stopped_reason) values ('reason-${reason}.example.com', 'free', 'done', '${reason}');`

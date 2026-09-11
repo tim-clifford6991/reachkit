@@ -34,6 +34,11 @@ export type AddressRefusal =
  *  is an arm of the switch, not a missing value. */
 export type AddressNotice =
   | { kind: "incomplete"; unmeasured: readonly ScoreFactorName[] }
+  /** The pass could not read the site's own home document and stopped
+   *  there (`stoppedReason: "site_unreadable"`, #479). Outranks
+   *  `incomplete`: every factor is missing, and the one true cause is the
+   *  line, not a list of the factors it took with it. */
+  | { kind: "site_unreadable" }
   | { kind: "measurement_failed"; failedAt: Date }
   | { kind: "correction_failed" }
   | { kind: "refused"; refusal: AddressRefusal };

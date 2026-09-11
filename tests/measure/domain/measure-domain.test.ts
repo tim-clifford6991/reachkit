@@ -52,7 +52,8 @@ import {
   type Tier,
 } from "../../../src/lib/measure/index.ts";
 import { measured, type Measured } from "../../../src/lib/measure/measured.ts";
-import { OWN_FETCH_SOURCE } from "../../../src/lib/measure/own-fetch.ts";
+import { OWN_FETCH_OPTS, OWN_FETCH_SOURCE } from "../../../src/lib/measure/own-fetch.ts";
+import { OWN_DOCUMENT_MAX_BYTES } from "../../../src/lib/config/constants.ts";
 
 const DOMAIN = "reachkit.app";
 const HOME = "https://reachkit.app/";
@@ -266,6 +267,43 @@ describe('BP-010 `## Error & edge behavior` — "Determinism is a test, not an a
     const ownReads = cost.calls.filter((call) => call.source === OWN_FETCH_SOURCE);
     expect(ownReads.map((call) => call.cacheKey)).toEqual([HOME, "https://reachkit.app/pricing"]);
   });
+});
+
+describe("issue #479 — the own-site read's cap, and a refused home document", () => {
+  it("every own-document read passes the own-document cap, from the one pin", async () => {
+    const seen: unknown[] = [];
+    const ports = fakePorts(FULL_SITE);
+    const inner = ports.fetchDocument;
+    ports.fetchDocument = async (url, opts) => {
+      seen.push(opts);
+      return inner(url, opts);
+    };
+    await measureDomain(fakeCost(), { domain: DOMAIN, tier: "free" }, ports);
+    expect(seen).toHaveLength(2);
+    for (const opts of seen) expect(opts).toEqual(OWN_FETCH_OPTS);
+    expect(OWN_FETCH_OPTS.maxBytes).toBe(OWN_DOCUMENT_MAX_BYTES);
+  });
+
+  it("a readable home reports no refusal", async () => {
+    const { result } = await measure(FULL_SITE);
+    expect(result.homeRefusal).toBeNull();
+  });
+
+  it.each(["dns", "refused", "timeout", "too_large", "blocked_by_policy"] as const)(
+    "a `%s` home is ledgered as its refusal — never a null payload — and nothing after it is read or bought",
+    async (reason) => {
+      const { result, cost, ports } = await measure({ [HOME]: failOutcome(HOME, reason) });
+      expect(cost.calls).toHaveLength(1);
+      expect(cost.calls[0]!.payload).toEqual({ refusal: reason, status: null, bytes: 0, host: "reachkit.app" });
+      expect(result.homeRefusal).toBe(reason);
+      expect(ports.log.fetched).toEqual([HOME]);
+      expect(ports.log.robots).toEqual([]);
+      expect(ports.log.ranked).toEqual([]);
+      expect(result.robots).toEqual({ kind: "unmeasured", reason: "not_attempted", at: READ_AT });
+      expect(result.drivers.searchPresence).toEqual({ kind: "unmeasured", reason: "not_attempted", at: READ_AT });
+      expect(result.text).toEqual({ home: null, pricing: null });
+    }
+  );
 });
 
 describe('BP-012 `## Error & edge behavior`, governing its callee — "The pipeline never branches on tier; only its parameters change"', () => {
