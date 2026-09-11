@@ -24,7 +24,7 @@
 // stays at the call site (BP-007 decision 4). Reversal cost: change one
 // function (`isEmptyPayload`, below); no schema or interface change.
 import { dbAdmin } from "@/lib/db";
-import { untypedFetches, type FetchesRow } from "./ledger";
+import { isFetchRefusal, untypedFetches, type FetchesRow } from "./ledger";
 
 /** How many of the newest rows on one key, inside the freshness window,
  *  this read is willing to scan past before giving up and calling it a
@@ -42,6 +42,9 @@ const CACHE_READ_SCAN_LIMIT = 50;
 export function isEmptyPayload(payload: unknown): boolean {
   if (payload === null || payload === undefined) return true;
   if (Array.isArray(payload) && payload.length === 0) return true;
+  // A refused fetch is ledgered as a row (issue #479) and is never served
+  // back: "no negative cache" (BUILD §6.4).
+  if (isFetchRefusal(payload)) return true;
   return false;
 }
 
