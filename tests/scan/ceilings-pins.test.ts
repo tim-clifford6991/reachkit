@@ -93,10 +93,16 @@ describe("the free pass's two ceilings — issue #456", () => {
   });
 
   it("the sweep reads both pins and never the design ceiling", () => {
+    // #510 named the sum `RUNNING_ROW_BOUND_S` so the in-flight refusal reads
+    // the same bound; the sweep's threshold follows that name, and the name's
+    // definition is where the two pins are read.
     const sweep = read("src/lib/scan/stuck.ts");
+    const bound = sweep.match(/export const RUNNING_ROW_BOUND_S = .+;/);
+    expect(bound?.[0]).toContain("TIMING.platformCeilingS");
+    expect(bound?.[0]).toContain("TIMING.sweepMarginS");
+    expect(bound?.[0]).not.toContain("reportCeilingS");
     const arithmetic = sweep.match(/const staleAfterMs = .+;/);
-    expect(arithmetic?.[0]).toContain("TIMING.platformCeilingS");
-    expect(arithmetic?.[0]).toContain("TIMING.sweepMarginS");
+    expect(arithmetic?.[0]).toContain("RUNNING_ROW_BOUND_S");
     expect(arithmetic?.[0]).not.toContain("reportCeilingS");
     expect(sweep).not.toMatch(/TIMING\.reportCeilingS\s*\*/);
   });
