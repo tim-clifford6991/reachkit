@@ -19,7 +19,7 @@ import {
   urlFor,
   visitorPath,
 } from "./routes";
-import { widths } from "./widths";
+import { BREAKPOINT_MD_PX, widths } from "./widths";
 
 let tmpRoot: string | undefined;
 
@@ -170,15 +170,23 @@ describe("visitorPath — a (hosted) route is swept at the address a visitor typ
   });
 });
 
-describe("widths() — ADR-093 decision 6's five widths", () => {
-  it("returns exactly [320, medium-1, medium, wide-1, wide]", () => {
+// UI-SPEC §0 16 (owner, 2026-09-11) adds 768 to ADR-093 decision 6's five
+// widths, so the sweep is six wide: the floor, `--breakpoint-md`, each band
+// and each boundary minus one pixel.
+describe("widths() — ADR-093 decision 6's widths, plus §0 16's 768", () => {
+  it("returns exactly [320, breakpoint-md, medium-1, medium, wide-1, wide]", () => {
     expect(widths()).toEqual([
       320,
+      BREAKPOINT_MD_PX,
       BAND_MIN.medium - 1,
       BAND_MIN.medium,
       BAND_MIN.wide - 1,
       BAND_MIN.wide,
     ]);
+  });
+
+  it("BREAKPOINT_MD_PX is 768 (§0 16, ruling 10a's `--breakpoint-md`)", () => {
+    expect(BREAKPOINT_MD_PX).toBe(768);
   });
 
   it("BAND_MIN.compact is 320 (ADR-093 decision 2)", () => {
