@@ -135,12 +135,14 @@ describe("REQ-093 c1 — the screen invents no sentence", () => {
     }
   });
 
-  it("the screen renders the marker where a line is owed, and no empty element in its place", async () => {
+  it("the screen renders every line written — no marker left (#460) — and no empty element in its place", async () => {
     const html = await markup();
-    // Visible, which is the whole point: a control whose label rendered as
-    // nothing could not be reviewed and could not be measured at five
-    // widths.
-    expect(html).toContain("TODO(copy)");
+    // Every `overview.*` line the screen speaks is the owner's approved
+    // sentence since 2026-09-10, so the marker that stood in for them is
+    // gone — and a line is still never replaced by an empty element: a
+    // control whose label rendered as nothing could not be reviewed and
+    // could not be measured at five widths.
+    expect(html).not.toContain("TODO(copy)");
     expect(html).not.toContain("<p></p>");
     expect(html).not.toContain("<span></span>");
   });
