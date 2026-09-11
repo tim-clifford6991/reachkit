@@ -46,7 +46,7 @@ function modelWordings(texts: Record<string, string>) {
   return {
     kind: "measured" as const,
     at: AT,
-    value: Object.entries(texts).map(([id, text]) => ({ id, text })),
+    value: { questions: Object.entries(texts).map(([id, text]) => ({ id, text })) },
   };
 }
 
@@ -115,12 +115,16 @@ describe("phraseQuestions — the one nano call it issues", () => {
     await phraseQuestions(fakeCostContext(), { selected: selection() });
     const { schema } = llmMock.mock.calls[0]![1] as RecordedLlmCall;
 
-    expect(schema.safeParse([{ id: "q1", text: "What's the best?" }]).success).toBe(true);
+    // The list rides inside `questions` (issue #512): a forced tool's input
+    // is an object, so the bare array itself no longer parses.
+    expect(schema.safeParse({ questions: [{ id: "q1", text: "What's the best?" }] }).success).toBe(true);
+    expect(schema.safeParse([{ id: "q1", text: "What's the best?" }]).success).toBe(false);
     expect(
-      schema.safeParse([{ id: "q1", text: "What's the best?", keyword: "something else" }]).success
+      schema.safeParse({ questions: [{ id: "q1", text: "What's the best?", keyword: "something else" }] })
+        .success
     ).toBe(false);
-    expect(schema.safeParse([{ id: "q1", text: "x", volume: 900 }]).success).toBe(false);
-    expect(schema.safeParse([{ id: "q1" }]).success).toBe(false);
+    expect(schema.safeParse({ questions: [{ id: "q1", text: "x", volume: 900 }] }).success).toBe(false);
+    expect(schema.safeParse({ questions: [{ id: "q1" }] }).success).toBe(false);
   });
 
   it("spends nothing on an empty selection — zero, and no model call", async () => {

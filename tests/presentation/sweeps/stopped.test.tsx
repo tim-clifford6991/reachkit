@@ -232,8 +232,23 @@ describe("REQ-092 c8 — no internal cause, anywhere the statement renders", () 
   });
 
   it("no route rendered under a stop leaks one anywhere on the screen", () => {
+    // The legal documents are the one exemption, and only their body: the
+    // owner's approved privacy notice and terms (2026-09-10, #459) name the
+    // service providers ReachKit uses, because a privacy notice has to. That
+    // is a disclosure the owner wrote, not a cause of a stop, so the
+    // document card is taken out before matching, and everything else on
+    // those screens is still swept like every other route.
+    const LEGAL_ROUTES = new Set(["/privacy", "/terms", "/imprint"]);
+    const swept = (r: (typeof stopped)[number]): ParentNode => {
+      if (!LEGAL_ROUTES.has(r.route.url)) return r.doc.body;
+      const body = r.doc.body.cloneNode(true) as HTMLElement;
+      const documents = body.querySelectorAll(".rk-doc");
+      expect(documents, `${r.route.url} renders its legal document`).toHaveLength(1);
+      documents.forEach((el) => el.remove());
+      return body;
+    };
     const findings = stopped.flatMap((r) =>
-      rules.noInternalCause(r.doc.body, "everywhere").map((f) => `${r.route.url} [${f.rule}] ${f.detail}`)
+      rules.noInternalCause(swept(r), "everywhere").map((f) => `${r.route.url} [${f.rule}] ${f.detail}`)
     );
     expect(findings).toEqual([]);
   });

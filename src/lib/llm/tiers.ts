@@ -15,7 +15,9 @@
 // nothing else authenticates a call.
 //
 // **Price and timeout — pinned elsewhere, only read here (rule 2.4).**
-// `INFERENCE_PRICE_BOOK` is BP-005's `## Public interface`, verbatim.
+// `INFERENCE_PRICE_BOOK` is BP-005's `## Public interface`, except that
+// `nano` is priced at Haiku's row since the owner's 2026-09-11 ruling
+// (issue #517) — see the note that closes the header below.
 // `INFERENCE_TIMEOUT_MS` was BP-009's `## NFR budget` transcribed ("p95
 // latency: nano ≤ 3 s, haiku ≤ 20 s") until issue #452 measured that
 // budget against the vendor and found `nano`'s 3 s below the latency a
@@ -58,6 +60,13 @@
 // prices at 20/125 ¢/MTok, so `CAPS.FREE_C`'s ceiling is still computed
 // from a price the product cannot actually buy at, at any nano id. That
 // is the architect's and the owner's to resolve, not a code change here.
+//
+// **Resolved 2026-09-11, owner ruling (issue #517).** The owner ruled the
+// `nano` row priced at Haiku's rate: `INFERENCE_PRICE_BOOK.nano` is now
+// the same frozen object as `.haiku` in `constants.ts`, so a nano call is
+// ledgered at what `claude-haiku-4-5` actually costs and `CAPS.FREE_C` is
+// checked against a real price. The two tiers still differ in timeout and
+// credential; a genuinely cheaper nano model is a new ruling and a new row.
 import { env } from "@/lib/config/env";
 import { INFERENCE_PRICE_BOOK, INFERENCE_TIMEOUT_MS } from "@/lib/config/constants";
 
@@ -72,10 +81,10 @@ export type Tier = "nano" | "haiku";
  *
  *  `nano` and `haiku` deliberately share one id today (see the file
  *  header's 2026-09-04 correction) — there is no cheaper *real* model to
- *  point `nano` at, so the two tiers are priced and timed differently
- *  (`INFERENCE_PRICE_BOOK`, `INFERENCE_TIMEOUT_MS`) but call the same
- *  vendor model until a genuinely cheaper one exists or the pin is
- *  revisited. */
+ *  point `nano` at, so the two tiers are priced identically
+ *  (`INFERENCE_PRICE_BOOK`, owner ruling of issue #517) and timed
+ *  differently (`INFERENCE_TIMEOUT_MS`), and call the same vendor model
+ *  until a genuinely cheaper one exists. */
 const TIER_MODEL_IDS: Readonly<Record<Tier, string>> = Object.freeze({
   nano: "claude-haiku-4-5",
   haiku: "claude-haiku-4-5",

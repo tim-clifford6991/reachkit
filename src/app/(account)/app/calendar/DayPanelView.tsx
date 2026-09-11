@@ -355,7 +355,7 @@ export function DayPanelView(p: {
               draft view is that surface. */}
           {recordLine === null ? null : (
             <p className="flex flex-wrap items-baseline gap-2" data-testid="day-record-line">
-              <Badge tone={recordLine.tone}>{recordLine.text}</Badge>
+              <Badge tone={recordLine.tone} wrap>{recordLine.text}</Badge>
               {recordLine.at === null ? null : (
                 <span className="num rk-prov">{formatDate(recordLine.at, p.timeZone)}</span>
               )}

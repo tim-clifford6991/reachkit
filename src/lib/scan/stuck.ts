@@ -78,6 +78,13 @@ function untyped(client: ReturnType<typeof dbAdmin>): MinimalClient {
   return client as unknown as MinimalClient;
 }
 
+/** How long a free row can stay `running` before the sweep calls it a
+ *  ghost: the platform's ceiling plus `TIMING.sweepMarginS`, from the pins.
+ *  Exported because it is also the honest upper bound on how long a
+ *  network is held by a scan in flight — the in-flight refusal's wait
+ *  (`resolve.ts`, issue #510) reads this one sum rather than restating it. */
+export const RUNNING_ROW_BOUND_S = TIMING.platformCeilingS + TIMING.sweepMarginS;
+
 /** Every free scan whose row is still `running` longer than the invocation
  *  a free pass runs in can possibly exist — the platform's ceiling plus
  *  `TIMING.sweepMarginS`, both read from the pins rather than written
@@ -89,7 +96,7 @@ function untyped(client: ReturnType<typeof dbAdmin>): MinimalClient {
  *  would be the second defect this one is here to prevent. Oldest first,
  *  so the visitor who has been refused longest is unblocked first. */
 export async function scansLeftRunning(now: Date): Promise<readonly string[]> {
-  const staleAfterMs = (TIMING.platformCeilingS + TIMING.sweepMarginS) * 1000;
+  const staleAfterMs = RUNNING_ROW_BOUND_S * 1000;
   const before = new Date(now.getTime() - staleAfterMs).toISOString();
   const { data, error } = await untyped(dbAdmin())
     .from<{ id: string }>("scans")

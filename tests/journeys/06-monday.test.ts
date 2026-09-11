@@ -70,6 +70,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeDb, type DbQuery } from "../scan/run/harness";
 import type { FetchOutcome, RobotsPolicy } from "../../src/lib/egress/types";
+import { toolUseMessage } from "../llm/fixtures";
 
 const db = fakeDb();
 
@@ -211,10 +212,15 @@ vi.mock("@anthropic-ai/sdk", () => {
           ? typingAnswerFor(input)
           : input.includes('"home"')
             ? PROFILE_ANSWER
-            : (JSON.parse(input) as { keywords: { id: string; keyword: string }[] }).keywords.map((row) => ({
-                id: row.id,
-                text: `What's the best ${row.keyword}?`,
-              }));
+            : {
+                questions: (JSON.parse(input) as { keywords: { id: string; keyword: string }[] }).keywords.map((row) => ({
+                  id: row.id,
+                  text: `What's the best ${row.keyword}?`,
+                })),
+              };
+        // The phrasing answers the way the vendor does under a forced tool
+        // (issue #512); every other answer keeps the text path.
+        if ("questions" in answer) return toolUseMessage(answer, 900, 220, "question-phrasing");
         return {
           content: [{ type: "text", text: JSON.stringify(answer) }],
           usage: { input_tokens: 900, output_tokens: 220 },
@@ -787,18 +793,17 @@ describe("Monday: the week is re-measured, judged, and told (JN-005)", () => {
       digest_sent_at: null,
     });
 
-    // The digest's own lines are written (issue #458), but this week judged
-    // a page, and the word a judged page is given — `verdict.page.*`, the
-    // verdict partition's — is still owner-owed. So the mail still does not
-    // compose: the seam says exactly that, no vendor request is made, and
-    // **the week is left unstamped**, so the Monday the owner writes the
-    // verdict words the digest goes. This keeps discriminating once they do.
+    // The digest's own lines are written (issue #458), and this week judged
+    // a page: the word a judged page is given — `verdict.page.*`, the
+    // verdict partition's — is written too, the owner's approved words of
+    // 2026-09-10 (#459). So the mail composes: the vendor is handed it once,
+    // and **the week is stamped**, so the next tick does not tell it again.
     for (const key of DIGEST_KEYS) expect(OWNER_OWED, key).not.toContain(key);
-    for (const key of Object.values(PAGE_VERDICTS)) expect(OWNER_OWED, key).toContain(key);
+    for (const key of Object.values(PAGE_VERDICTS)) expect(OWNER_OWED, key).not.toContain(key);
     const told = await sendWeeklyDigest({ siteId: SITE_ID, weekStart: "2026-08-31", now: MONDAY });
-    expect(told).toEqual({ sent: false, reason: "not-composable" });
-    expect(vendorSends).toBe(0);
-    expect(scans.find((scan) => scan.id === "scan-told")?.digest_sent_at ?? null).toBeNull();
+    expect(told).toEqual({ sent: true, id: "resend-1" });
+    expect(vendorSends).toBe(1);
+    expect(scans.find((scan) => scan.id === "scan-told")?.digest_sent_at ?? null).not.toBeNull();
   });
 
   it("every sentence the digest speaks is the owner's, written by issue #458, so the digest composes and goes", async () => {

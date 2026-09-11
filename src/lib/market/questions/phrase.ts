@@ -46,8 +46,14 @@ export interface Question {
 }
 
 /** `.strictObject` per element: a response carrying a `keyword`, a `volume`
- *  or a `rank` does not parse, so the model has no field to re-select in. */
-const PHRASING_SCHEMA = z.array(z.strictObject({ id: z.string(), text: z.string() }));
+ *  or a `rank` does not parse, so the model has no field to re-select in.
+ *
+ *  The list rides inside one `questions` field (issue #512): `llm()` asks
+ *  for every answer as a forced tool call, and a tool's input is an object,
+ *  so a top-level array is wrapped here and unwrapped below. */
+const PHRASING_SCHEMA = z.strictObject({
+  questions: z.array(z.strictObject({ id: z.string(), text: z.string() })),
+});
 
 /** The keyword shapes BUILD §6.7 step 4 names, plus the bare fallback that
  *  makes the template form total — every keyword has one, which is why a
@@ -138,7 +144,7 @@ export async function phraseQuestions(
 
   const wordings = new Map<string, string>();
   if (worded.kind !== "unmeasured") {
-    for (const item of worded.value) {
+    for (const item of worded.value.questions) {
       if (!wordings.has(item.id)) wordings.set(item.id, item.text);
     }
   }

@@ -25,6 +25,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { fakeDb, type DbQuery } from "../scan/run/harness";
 import { CAPS } from "../../src/lib/config/constants";
+import { toolUseMessage } from "../llm/fixtures";
 import type { FetchOutcome, RobotsPolicy } from "../../src/lib/egress/types";
 import { categoryOf } from "@/lib/scan/sections";
 
@@ -122,10 +123,15 @@ vi.mock("@anthropic-ai/sdk", () => {
         modelCalls.push(input);
         const answer = input.includes('"home"')
           ? PROFILE_ANSWER
-          : (JSON.parse(input) as { keywords: { id: string; keyword: string }[] }).keywords.map((row) => ({
-              id: row.id,
-              text: `What's the best ${row.keyword}?`,
-            }));
+          : {
+              questions: (JSON.parse(input) as { keywords: { id: string; keyword: string }[] }).keywords.map((row) => ({
+                id: row.id,
+                text: `What's the best ${row.keyword}?`,
+              })),
+            };
+        // The phrasing answers the way the vendor does under a forced tool
+        // (issue #512); every other answer keeps the text path.
+        if ("questions" in answer) return toolUseMessage(answer, 900, 220, "question-phrasing");
         return {
           content: [{ type: "text", text: JSON.stringify(answer) }],
           usage: { input_tokens: 900, output_tokens: 220 },
