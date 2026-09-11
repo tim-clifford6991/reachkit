@@ -391,19 +391,19 @@ const IDIOM_REGISTERED: ReadonlyArray<{
   {
     exported: "SourceChip",
     file: "src/ui/idiom/SourceChip.tsx",
-    specRow: "| Source chip | `.srcchip` |",
+    specRow: "| Source chip |",
     classes: ["rk-srcchip"],
   },
   {
     exported: "ProblemCard",
     file: "src/ui/idiom/ProblemCard.tsx",
-    specRow: "| Problem card | `.prob .sev-*` |",
+    specRow: "| Problem card |",
     classes: ["rk-prob", "rk-prob-code", "rk-prob-count"],
   },
   {
     exported: "QuestionList",
     file: "src/ui/idiom/QuestionList.tsx",
-    specRow: "| Question list | `.q` |",
+    specRow: "| Question list |",
     classes: ["rk-q-list", "rk-q", "rk-q-p"],
   },
 ];
@@ -426,6 +426,10 @@ function idiomClassesOutsideTheirHome(
 const SCAN = "src/app/(public)/scan/[domain]";
 
 describe("UI-SPEC §2 — Source chip, Problem card and Question list have one renderer each (#487)", () => {
+  // The row's second cell was the artifact's class name until 2026-09-11, when
+  // the owner ruled the design system is daisyUI and those class names became
+  // provenance rather than a requirement (SPEC §4.8's head note). What the row
+  // still has to carry is the component's own name, so that is what is quoted.
   it("each is a UI-SPEC §2 row", () => {
     const spec = read("SPEC.md");
     for (const row of IDIOM_REGISTERED) {

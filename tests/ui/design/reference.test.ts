@@ -30,7 +30,10 @@ const spec = readFileSync(UI_SPEC, "utf8");
 
 /** Every `S<id>` `UI-SPEC.md` actually has a section for. */
 function specScreens(): ReadonlySet<string> {
-  return new Set([...spec.matchAll(/^### (S\d+)\b/gm)].map((m) => m[1]!));
+  // The screen sections moved into `SPEC.md` §4.8 on 2026-09-11 and were
+  // demoted one level with the rest of UI-SPEC, so the heading depth is a
+  // range rather than a level.
+  return new Set([...spec.matchAll(/^#{3,5} (S\d+)\b/gm)].map((m) => m[1]!));
 }
 
 /**
