@@ -11,25 +11,8 @@
   },
   "chrome.ts": {
     "owed": [],
-    "awaiting": [
-      "chrome.cta.scan",
-      "chrome.nav.menu",
-      "chrome.footer.rights",
-      "pricing.heading",
-      "pricing.subline",
-      "chrome.notfound.line.app",
-      "chrome.error.eyebrow",
-      "chrome.error.heading",
-      "chrome.error.line",
-      "chrome.loading.line",
-      "legal.privacy.body",
-      "legal.terms.body",
-      "legal.imprint.body",
-      "legal.privacy.updated",
-      "legal.terms.updated",
-      "legal.imprint.updated"
-    ],
-    "ruled": 19
+    "awaiting": [],
+    "ruled": 35
   },
   "danger.ts": {
     "owed": [],
@@ -53,42 +36,13 @@
   },
   "meta.ts": {
     "owed": [],
-    "awaiting": [
-      "meta.landing.title",
-      "meta.landing.description",
-      "meta.pricing.title",
-      "meta.pricing.description",
-      "meta.privacy.title",
-      "meta.privacy.description",
-      "meta.terms.title",
-      "meta.terms.description",
-      "meta.imprint.title",
-      "meta.imprint.description",
-      "meta.signin.title",
-      "meta.signin.description",
-      "meta.report.title",
-      "meta.report.description",
-      "meta.veto.title",
-      "meta.veto.description",
-      "meta.optout.title",
-      "meta.optout.description",
-      "meta.og.alt",
-      "meta.report.og.alt"
-    ],
-    "ruled": 0
+    "awaiting": [],
+    "ruled": 20
   },
   "offer.ts": {
-    "owed": [
-      "price.vat_included"
-    ],
-    "awaiting": [
-      "plan.single",
-      "offer.cadence.page.value",
-      "offer.cadence.measure.value",
-      "offer.cadence.movement.value",
-      "offer.veto.window.value"
-    ],
-    "ruled": 13
+    "owed": [],
+    "awaiting": [],
+    "ruled": 19
   },
   "overview.ts": {
     "owed": [],
@@ -96,120 +50,18 @@
     "ruled": 64
   },
   "publish.ts": {
-    "owed": [
-      "verdict.page.working",
-      "verdict.page.too_early",
-      "verdict.page.not_working",
-      "verdict.page.not_judgeable"
-    ],
+    "owed": [],
     "awaiting": [
-      "publish.action.refused.notATransition",
-      "publish.action.refused.guard",
-      "record.address.publiclyReadableAt",
-      "record.address.wasPublishedAt",
-      "record.address.neverMadeLive",
-      "record.title",
-      "record.label.address",
-      "record.label.checked",
-      "record.label.taken-down",
-      "record.verification.found",
-      "record.verification.pageNotFound",
-      "record.verification.couldNotConfirm",
-      "record.verification.notYet",
-      "record.verification.due",
-      "record.verification.never.takenDownFirst",
-      "record.verification.never.noLiveAddress",
-      "record.unpublished.removed",
-      "record.unpublished.returnedToDraft",
-      "record.unpublished.namedForRemoval",
-      "record.unpublished.alreadyGone",
-      "record.unpublished.unreachable",
-      "publish.destination.line.never-connected",
-      "publish.destination.line.dns-unset",
-      "publish.destination.line.dns-elsewhere",
-      "publish.destination.line.credentials-expired",
-      "publish.destination.line.credentials-invalid",
-      "publish.destination.line.unreachable",
-      "publish.destination.line.destination-rejected",
-      "publish.destination.line.cannot-publish",
-      "publish.veto.alreadyUsed",
-      "publish.veto.expired",
-      "publish.veto.unknown",
-      "publish.wordpress.noSeoPlugin",
-      "publish.wordpress.namedForRemoval"
+      "record.verification.never.noLiveAddress"
     ],
-    "ruled": 12
+    "ruled": 49
   },
   "report.ts": {
     "owed": [],
     "awaiting": [
-      "notice.site-unreadable",
-      "notice.refused.stopped",
-      "verdict.factor.foundations",
-      "verdict.factor.answerability",
-      "verdict.factor.presence",
-      "report.wait.minutes",
-      "stage.reading_access_rules",
-      "ai-answers.customer-citations",
-      "ai-answers.legend",
-      "ai-answers.question.no-answer",
-      "ai-answers.engine.ai-overview",
-      "ai-answers.engine.ai-mode",
-      "ai-answers.engine.chatgpt",
-      "ai-answers.engine.column.question",
-      "ai-answers.engine.cell.cited",
-      "ai-answers.engine.not-measured",
-      "ai-answers.matrix.column.domain",
-      "ai-answers.matrix.column.cited",
-      "ai-answers.matrix.empty",
-      "ai-answers.absent",
-      "presence.occupancy",
-      "presence.legend",
-      "presence.no-rivals",
-      "presence.occupancy.column.domain",
-      "presence.occupancy.column.count",
-      "presence.absent-from.empty",
-      "presence.absent",
-      "problem.paste.label",
-      "method.blocked-readers.title",
-      "method.blocked-readers.body",
-      "method.missing-pages.title",
-      "method.missing-pages.body",
-      "method.unquotable-pages.title",
-      "method.unquotable-pages.body",
-      "free-page.target.value",
-      "free-page.absent",
-      "landing.subline",
-      "landing.hero.specimen.label",
-      "landing.hero.specimen.caption",
-      "landing.video.eyebrow",
-      "landing.video.heading",
-      "landing.video.blocked",
-      "landing.video.open",
-      "landing.why.eyebrow",
-      "landing.why.heading",
-      "landing.why.body",
-      "landing.does.eyebrow",
-      "landing.does.heading",
-      "landing.does.item-1.title",
-      "landing.does.item-1.line",
-      "landing.does.item-2.title",
-      "landing.does.item-2.line",
-      "landing.does.item-3.title",
-      "landing.does.item-3.line",
-      "landing.start.eyebrow",
-      "landing.start.heading",
-      "landing.start.body",
-      "landing.start.cta",
-      "landing.video.line",
-      "landing.video.caption",
-      "landing.does.body",
-      "landing.week.page.title",
-      "landing.step.1.body",
-      "landing.step.2.body",
-      "landing.step.3.body"
+      "notice.site-unreadable"
     ],
-    "ruled": 81
+    "ruled": 145
   },
   "settings.ts": {
     "owed": [],
@@ -223,18 +75,7 @@
   },
   "signin.ts": {
     "owed": [],
-    "awaiting": [
-      "signin.link_sent",
-      "signin.payment_held",
-      "signin.no_account",
-      "signin.address.invalid",
-      "signin.link_dead",
-      "signin.sent.head",
-      "signin.sent.resend",
-      "signin.expired.head",
-      "signin.expired.submit",
-      "signin.panel.specimen"
-    ],
-    "ruled": 11
+    "awaiting": [],
+    "ruled": 21
   }
 }

@@ -128,8 +128,9 @@ describe("REQ-093 c1 — the screen invents no sentence", () => {
     // control — rendered as nothing: invisible on dev and unswept by the
     // layout suite. An empty value is the *mail* standing (a mail never
     // ships a placeholder); a screen's is the marker.
+    // The list may be empty: #516 writes the last owed keys, and the rule
+    // holds vacuously for a screen that owes nothing.
     const owed = (Object.keys(COPY) as CopyKey[]).filter((key) => key.startsWith("overview."));
-    expect(owed.length).toBeGreaterThan(0);
     for (const key of owed) {
       expect(COPY[key], `${key} is empty; a screen's owed key takes the marker`).not.toBe("");
     }

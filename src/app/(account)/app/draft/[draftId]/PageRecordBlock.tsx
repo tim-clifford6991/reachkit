@@ -122,14 +122,14 @@ export function PageRecordBlock(p: {
       {record.unpublishOutcome === null ? null : (
         <Row label={writtenLine("record.label.taken-down")}>
           <span>
-            <Badge tone="neutral">{writtenLine(unpublishedLine(record.unpublishOutcome))}</Badge>
+            <Badge tone="neutral" wrap>{writtenLine(unpublishedLine(record.unpublishOutcome))}</Badge>
           </span>
         </Row>
       )}
 
       <Row label={writtenLine("record.label.checked")}>
         <span className="flex flex-wrap items-baseline gap-2">
-          <Badge tone={VERIFICATION_TONE[verification.kind]}>{writtenLine(verification.copy)}</Badge>
+          <Badge tone={VERIFICATION_TONE[verification.kind]} wrap>{writtenLine(verification.copy)}</Badge>
           {verification.at === null ? null : (
             <span className="num text-[length:var(--t-eyebrow)] opacity-60">
               {formatDateTime(verification.at, p.timeZone)}

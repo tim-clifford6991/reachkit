@@ -251,18 +251,22 @@ describe("every sentence in a public <head> is a key, and the owner is told whic
     }
   });
 
-  it("all of them are owner-owed and carry the marker, none is drafted", () => {
+  it("all of them carry the owner's approved sentence, none the marker", () => {
     // Rule 5.5: stated and counted. No approved artifact writes a document
-    // title, so ruling 11a fills none of these — every one is awaiting the
-    // owner's pen and renders the marker rather than a suggestion.
+    // title, so ruling 11a filled none of these; the owner approved every
+    // one on 2026-09-10 (#459).
     const keys = PUBLIC_ROUTE_SEO_ROWS.flatMap((row) => [row.title, row.description]);
     expect(keys).toHaveLength(18);
-    for (const key of keys) expect(AWAITING_COPY, key).toContain(key);
+    for (const key of keys) {
+      expect(AWAITING_COPY, key).not.toContain(key);
+      expect(COPY[key], key).not.toBe("");
+    }
   });
 
-  it("the share images' alt text is owed the same way, and the site name is not owed at all", () => {
+  it("the share images' alt text is the owner's the same way, and the site name is the wordmark", () => {
     for (const key of ["meta.og.alt", "meta.report.og.alt"] as const) {
-      expect(AWAITING_COPY, key).toContain(key);
+      expect(AWAITING_COPY, key).not.toContain(key);
+      expect(COPY[key], key).not.toBe("");
     }
     // `og:site_name` and the manifest's name are `chrome.wordmark`, which
     // ruling 11a approved as written — one home for one word.

@@ -10,22 +10,28 @@
 // registry.ts keeps exactly one author.
 //
 // Nine keys seeded (WO-041 step 4): BP-030's PRICE_COPY_KEYS (price.*) and
-// BP-031's offer.* keys. Empty value, owner-owed — no string is written
-// here (constitution §1). The four offer.cadence.*/offer.veto.* keys carry
-// a `value` slot: the values are BP-005 pins supplied by BP-031's
+// BP-031's offer.* keys. Seeded as empty values, owner-owed — no string
+// was written here (constitution §1). The four offer.cadence.*/offer.veto.*
+// keys carry a `value` slot: the values are BP-005 pins supplied by BP-031's
 // offerTerms(), never written into the sentence here.
 //
 // 2026-09-04: the owner ruled on seven of the nine (WO-041 `## Log`, this
 // date's ruling) — `price.amount`, `price.interval`, `offer.start` and the
 // four `offer.cadence.*`/`offer.veto.*` slotted lines — filled verbatim,
 // byte for byte, and no longer owner-owed. `price.vat_included` and
-// `offer.cancel_self_service` were not part of this ruling and remain
-// owner-owed, empty.
+// `offer.cancel_self_service` were not part of this ruling.
+//
+// 2026-09-10, issue #459: the owner approved the master's drafted copy for
+// every key this partition still owed ("copy proposal approved"; proposal
+// sheet artifact 546f45a0-a996-4d25-b85e-fb03fda7b102), and the 6 approved
+// strings — `price.vat_included`, `plan.single` and the four `*.value`
+// lines — are applied here byte for byte. No key in this partition is
+// owner-owed or `TODO(copy)` any more.
 import type { CopyPartition } from "../registry.ts";
 
 export const OFFER_COPY = Object.freeze({
   "price.amount": ["€49", { slots: {}, fixedBy: "REQ-022 c1" }],
-  "price.vat_included": ["", { slots: {}, fixedBy: "REQ-022 c1" }],
+  "price.vat_included": ["VAT included", { slots: {}, fixedBy: "REQ-022 c1" }],
   "price.interval": ["per month, VAT included", { slots: {}, fixedBy: "REQ-022 c1" }],
   "offer.cadence.page": ["One new page written for your site {value}", { slots: { value: "text" }, fixedBy: "REQ-021 c2" }],
   "offer.cadence.measure": ["Your findability re-measured {value}", { slots: { value: "text" }, fixedBy: "REQ-021 c2" }],
@@ -35,9 +41,9 @@ export const OFFER_COPY = Object.freeze({
   // `CLAUDE.md`'s standing rule. `BUILD.md` §4.1 module 6 requires the
   // pricing card to carry "Cancel in one click"; left empty, `copy()`
   // throws and the report screen goes down rather than showing the owner
-  // an unwritten line. Still the owner's sentence. `price.vat_included`
-  // is untouched: no module renders it — `price.interval`'s own ruled
-  // string already says "per month, VAT included".
+  // an unwritten line. `price.vat_included` was left untouched then: no
+  // module rendered it — `price.interval`'s own ruled string already says
+  // "per month, VAT included".
   // The approved screen set draws this line under the Start control on
   // both surfaces that carry the offer, unbracketed — approved copy as
   // written (ruling 11a, 2026-09-08; issue #352).
@@ -94,10 +100,8 @@ export const OFFER_COPY = Object.freeze({
   // (REQ-022 c3, REQ-076's non-goal). It sits in this partition rather than
   // in `settings.*` because it is the same public product fact the price
   // surfaces state, not a sentence about one customer's account —
-  // REQ-097's own non-goal draws that line. `TODO(copy)` per `CLAUDE.md`:
-  // the Billing card must render something for the plan, so the marker
-  // rather than the empty value.
-  "plan.single": ["TODO(copy)", { slots: {}, fixedBy: "REQ-022 c1" }],
+  // REQ-097's own non-goal draws that line.
+  "plan.single": ["One page a day", { slots: {}, fixedBy: "REQ-022 c1" }],
 
   // 2026-09-05, issue #13: the four values the four slotted lines above
   // take. BP-031's `offerTerms()` was to supply them and does not exist;
@@ -106,9 +110,9 @@ export const OFFER_COPY = Object.freeze({
   // carries the number from its pin — `VETO.defaultHours`
   // (`src/lib/config/constants.ts`) — through an `{hours}` slot, so the
   // veto window is written down once, in the pin, and the owner supplies
-  // only the unit around it. `TODO(copy)` per `CLAUDE.md`.
-  "offer.cadence.page.value": ["TODO(copy)", { slots: {}, fixedBy: "REQ-021 c2" }],
-  "offer.cadence.measure.value": ["TODO(copy)", { slots: {}, fixedBy: "REQ-021 c2" }],
-  "offer.cadence.movement.value": ["TODO(copy)", { slots: {}, fixedBy: "REQ-021 c2" }],
-  "offer.veto.window.value": ["TODO(copy)", { slots: { hours: "text" }, fixedBy: "REQ-021 c2" }],
+  // only the unit around it.
+  "offer.cadence.page.value": ["every day", { slots: {}, fixedBy: "REQ-021 c2" }],
+  "offer.cadence.measure.value": ["every week", { slots: {}, fixedBy: "REQ-021 c2" }],
+  "offer.cadence.movement.value": ["every Monday", { slots: {}, fixedBy: "REQ-021 c2" }],
+  "offer.veto.window.value": ["{hours} hours", { slots: { hours: "text" }, fixedBy: "REQ-021 c2" }],
 }) satisfies CopyPartition;

@@ -1103,11 +1103,17 @@ describe("DECISIONS 2026-08-31 (ADR-002) and the owner's 2026-09-05 ruling on #2
 // ──────────────────────────────────────────── inference prices and the vendor seam
 
 describe("BUILD §6.3 / DATA-COSTS §1 — the inference price book, in cents per million tokens", () => {
-  it(`${C.nano} — INFERENCE_PRICE_BOOK.nano, dollars per million read as cents per million`, () => {
-    expect(pins.INFERENCE_PRICE_BOOK.nano).toEqual({ inCentsPerM: 20, outCentsPerM: 125 });
-    expect(pins.INFERENCE_PRICE_BOOK.nano.inCentsPerM).toBe(0.2 * 100);
-    expect(pins.INFERENCE_PRICE_BOOK.nano.outCentsPerM).toBe(1.25 * 100);
-  });
+  it(
+    `${C.nano} — superseded: BP-005 and BP-009 priced the nano tier at these 20 / 125 ¢ per MTok, a ` +
+      "nano-class model the product never bought (both tiers call `claude-haiku-4-5`, `src/lib/llm/tiers.ts`). " +
+      "Owner ruling 2026-09-11 (issue #517): INFERENCE_PRICE_BOOK.nano is Haiku's row, derived from it — " +
+      "one source, never a retyped literal",
+    () => {
+      expect(pins.INFERENCE_PRICE_BOOK.nano).toBe(pins.INFERENCE_PRICE_BOOK.haiku);
+      expect(pins.INFERENCE_PRICE_BOOK.nano).toEqual({ inCentsPerM: 1.0 * 100, outCentsPerM: 5.0 * 100 });
+      expect(pins.INFERENCE_PRICE_BOOK.nano).not.toEqual({ inCentsPerM: 0.2 * 100, outCentsPerM: 1.25 * 100 });
+    }
+  );
 
   it(`${C.haiku} — INFERENCE_PRICE_BOOK.haiku`, () => {
     expect(pins.INFERENCE_PRICE_BOOK.haiku).toEqual({ inCentsPerM: 100, outCentsPerM: 500 });
@@ -1170,6 +1176,15 @@ describe("BUILD §6.3 / DATA-COSTS §1 — the inference price book, in cents pe
         vocabulary: { min: 0, max: 12 },
         brandTokens: { min: 0, max: 6 },
       });
+    }
+  );
+
+  it(
+    "issue #523 — PROFILE_INPUT_MAX_CHARS, the bound on the page text one profile prompt carries: the 20 000 " +
+      "characters #517's free-pass worst case assumed and nothing enforced, while an own document may be 6 MB",
+    () => {
+      expect(pins.PROFILE_INPUT_MAX_CHARS).toBe(20_000);
+      expect(pins.PROFILE_INPUT_MAX_CHARS).toBeLessThan(pins.OWN_DOCUMENT_MAX_BYTES);
     }
   );
 });

@@ -3,17 +3,21 @@
 // Publishing's sentences. Seeded empty by WO-041; the block that owns
 // publishing fills this file and touches no other partition.
 //
+// 2026-09-10, issue #459: the owner approved the master's drafted copy for
+// every key this partition still owed ("copy proposal approved"; proposal
+// sheet artifact 546f45a0-a996-4d25-b85e-fb03fda7b102), and the 38 approved
+// strings are applied here byte for byte. No key in this partition is
+// owner-owed or `TODO(copy)` any more; where a note below says how a key
+// stood before, that was its standing before this date.
+//
 // 2026-09-06, issue #47 (REQ-063): the four words a published page's
 // weekly standing is spoken as. They live here, and not in `keys/mail.ts`,
 // because they are not the mail's: §4.5's Overview and §4.6's calendar
 // speak the same four, and one home is what stops a screen and a mail
-// wording the same verdict differently. Every one is owner-owed and
-// **empty** rather than carrying the `TODO(copy)` marker — the owner's
-// 2026-09-05 ruling on #93 divides the two representations by destination,
-// and the first surface to read these is the Monday mail, where "a mail
-// never ships a placeholder": `copy()` throws on the key and the send is
-// logged `not-composable` rather than a customer receiving a blank verdict
-// on their own page.
+// wording the same verdict differently. The first surface to read these is
+// the Monday mail, where "a mail never ships a placeholder" (the owner's
+// 2026-09-05 ruling on #93); they stood empty until the owner approved
+// them on 2026-09-10 (#459).
 //
 // The fourth is not a fourth verdict: REQ-063 c6's page carries it "in
 // place of the three", and the line naming *which* of the five causes
@@ -23,10 +27,10 @@
 import type { CopyPartition } from "../registry.ts";
 
 export const PUBLISH_COPY = Object.freeze({
-  "verdict.page.working": ["", { slots: {}, fixedBy: "REQ-063 c1" }],
-  "verdict.page.too_early": ["", { slots: {}, fixedBy: "REQ-063 c2" }],
-  "verdict.page.not_working": ["", { slots: {}, fixedBy: "REQ-063 c1" }],
-  "verdict.page.not_judgeable": ["", { slots: {}, fixedBy: "REQ-063 c6" }],
+  "verdict.page.working": ["Working", { slots: {}, fixedBy: "REQ-063 c1" }],
+  "verdict.page.too_early": ["Too early to judge", { slots: {}, fixedBy: "REQ-063 c2" }],
+  "verdict.page.not_working": ["Not working", { slots: {}, fixedBy: "REQ-063 c1" }],
+  "verdict.page.not_judgeable": ["No longer judgeable", { slots: {}, fixedBy: "REQ-063 c6" }],
 
   // 2026-09-06, issue #46 (BUILD §9, REQ-045 c4). The two things the three
   // draft actions can answer when the state machine refuses.
@@ -41,11 +45,11 @@ export const PUBLISH_COPY = Object.freeze({
   // The `{state}` slot is the state the page still holds — the refusal
   // never leaves it somewhere else.
   "publish.action.refused.notATransition": [
-    "TODO(copy)",
+    "Nothing changed — this page is {state}, and that action isn’t open from there.",
     { slots: { state: "text" }, fixedBy: "REQ-056 c2" },
   ],
   "publish.action.refused.guard": [
-    "TODO(copy)",
+    "Nothing changed — this page stays {state} until what is holding it clears.",
     { slots: { state: "text" }, fixedBy: "REQ-056 c2" },
   ],
 
@@ -66,14 +70,9 @@ export const PUBLISH_COPY = Object.freeze({
   // never made live at its destination: that arm of `RecordedAddress`
   // carries no `url` field at all, so this line is the whole of what the
   // record offers there.
-  //
-  // `TODO(copy)` rather than the empty value's throw, on the same #93
-  // ruling the four verdicts above cite from the other side: these three
-  // render on *screens* — the day panel, the draft view and Overview —
-  // and the throw would take a whole screen down over one unwritten line.
-  "record.address.publiclyReadableAt": ["TODO(copy)", { slots: {}, fixedBy: "REQ-056 c6" }],
-  "record.address.wasPublishedAt": ["TODO(copy)", { slots: {}, fixedBy: "REQ-056 c6" }],
-  "record.address.neverMadeLive": ["TODO(copy)", { slots: {}, fixedBy: "REQ-056 c6" }],
+  "record.address.publiclyReadableAt": ["Publicly readable at", { slots: {}, fixedBy: "REQ-056 c6" }],
+  "record.address.wasPublishedAt": ["Was published at", { slots: {}, fixedBy: "REQ-056 c6" }],
+  "record.address.neverMadeLive": ["This page hasn’t been made live, so it has no address yet.", { slots: {}, fixedBy: "REQ-056 c6" }],
 
   // The record as a customer reads it (issue #217): the block's heading,
   // its three row labels, the seven verification lines and the five
@@ -92,22 +91,23 @@ export const PUBLISH_COPY = Object.freeze({
   // date printed beside it would read as an observation ReachKit has not
   // made. The two `never` arms state none either: no check will run, so
   // there is nothing to date.
-  "record.title": ["TODO(copy)", { slots: {}, fixedBy: "REQ-056 c6" }],
-  "record.label.address": ["TODO(copy)", { slots: {}, fixedBy: "REQ-056 c6" }],
-  "record.label.checked": ["TODO(copy)", { slots: {}, fixedBy: "REQ-062 c7" }],
-  "record.label.taken-down": ["TODO(copy)", { slots: {}, fixedBy: "REQ-056 c15" }],
-  "record.verification.found": ["TODO(copy)", { slots: {}, fixedBy: "REQ-062 c7" }],
-  "record.verification.pageNotFound": ["TODO(copy)", { slots: {}, fixedBy: "REQ-062 c7" }],
-  "record.verification.couldNotConfirm": ["TODO(copy)", { slots: {}, fixedBy: "REQ-062 c7" }],
-  "record.verification.notYet": ["TODO(copy)", { slots: {}, fixedBy: "REQ-062 c7" }],
-  "record.verification.due": ["TODO(copy)", { slots: {}, fixedBy: "REQ-062 c7" }],
-  "record.verification.never.takenDownFirst": ["TODO(copy)", { slots: {}, fixedBy: "REQ-062 c7" }],
+  "record.title": ["Page record", { slots: {}, fixedBy: "REQ-056 c6" }],
+  "record.label.address": ["Address", { slots: {}, fixedBy: "REQ-056 c6" }],
+  "record.label.checked": ["Checked", { slots: {}, fixedBy: "REQ-062 c7" }],
+  "record.label.taken-down": ["Taken down", { slots: {}, fixedBy: "REQ-056 c15" }],
+  "record.verification.found": ["found live", { slots: {}, fixedBy: "REQ-062 c7" }],
+  "record.verification.pageNotFound": ["no page found at this address", { slots: {}, fixedBy: "REQ-062 c7" }],
+  "record.verification.couldNotConfirm": ["check not confirmed", { slots: {}, fixedBy: "REQ-062 c7" }],
+  "record.verification.notYet": ["first check at", { slots: {}, fixedBy: "REQ-062 c7" }],
+  "record.verification.due": ["check due now", { slots: {}, fixedBy: "REQ-062 c7" }],
+  "record.verification.never.takenDownFirst": ["taken down before its check", { slots: {}, fixedBy: "REQ-062 c7" }],
+  // held 2026-09-11: the approved sentence truncates in the ghost badge at 320 px (layout sweep no-clipping); owner rules a badge-length word (proposed "not checked").
   "record.verification.never.noLiveAddress": ["TODO(copy)", { slots: {}, fixedBy: "REQ-062 c7" }],
-  "record.unpublished.removed": ["TODO(copy)", { slots: {}, fixedBy: "REQ-056 c15" }],
-  "record.unpublished.returnedToDraft": ["TODO(copy)", { slots: {}, fixedBy: "REQ-056 c15" }],
-  "record.unpublished.namedForRemoval": ["TODO(copy)", { slots: {}, fixedBy: "REQ-056 c16" }],
-  "record.unpublished.alreadyGone": ["TODO(copy)", { slots: {}, fixedBy: "REQ-056 c15" }],
-  "record.unpublished.unreachable": ["TODO(copy)", { slots: {}, fixedBy: "REQ-056 c15" }],
+  "record.unpublished.removed": ["removed from your hosted blog", { slots: {}, fixedBy: "REQ-056 c15" }],
+  "record.unpublished.returnedToDraft": ["returned to draft in your WordPress", { slots: {}, fixedBy: "REQ-056 c15" }],
+  "record.unpublished.namedForRemoval": ["never live there — yours to remove", { slots: {}, fixedBy: "REQ-056 c16" }],
+  "record.unpublished.alreadyGone": ["already gone from your site", { slots: {}, fixedBy: "REQ-056 c15" }],
+  "record.unpublished.unreachable": ["your site couldn’t be reached — the post may still be live", { slots: {}, fixedBy: "REQ-056 c15" }],
 
   // The eight below are the destination lines (§9, issue #48): one written
   // line per `HealthReason`, which is what a broken destination says under
@@ -123,50 +123,41 @@ export const PUBLISH_COPY = Object.freeze({
   // or credential fragment can reach one: the view these hang off carries
   // only a state, a reason token, a count and these keys.
   //
-  // Every value is the **marker**, not the empty string: the first surface
-  // to read one is a screen (§4.7's destinations list), and the owner's
-  // 2026-09-05 ruling on #93 gives a fixture screen the marker where the
-  // four verdict words above take the throw.
-  //
-  // `publish.destination.line.cannot-publish` is owner-owed for a second,
-  // stated reason (ADR-086 decision 3): its sentence must **not** say pages
+  // `publish.destination.line.cannot-publish` carries a second, stated
+  // constraint (ADR-086 decision 3): its sentence must **not** say pages
   // are being held and nothing has been lost, because in that state the
   // credential is valid and the page has already failed rather than been
   // held. Wording that distinction is the owner's.
   "publish.destination.line.never-connected": [
-    "TODO(copy)",
+    "Not connected yet. Your pages are held as drafts you can read until it is.",
     { slots: {}, fixedBy: "§9 · REQ-028 c5" },
   ],
-  "publish.destination.line.dns-unset": ["TODO(copy)", { slots: {}, fixedBy: "§9 · REQ-059 c2" }],
+  "publish.destination.line.dns-unset": ["Waiting on your DNS record. Pages are held until it’s set — nothing is lost.", { slots: {}, fixedBy: "§9 · REQ-059 c2" }],
   "publish.destination.line.dns-elsewhere": [
-    "TODO(copy)",
+    "The DNS record points elsewhere, so pages are waiting. Point it at us and they go out.",
     { slots: {}, fixedBy: "§9 · REQ-059 c2" },
   ],
   "publish.destination.line.credentials-expired": [
-    "TODO(copy)",
+    "The connection has expired. Your pages are being held — nothing is lost — and reconnecting releases them.",
     { slots: {}, fixedBy: "§9 · REQ-074 c2" },
   ],
   "publish.destination.line.credentials-invalid": [
-    "TODO(copy)",
+    "Your site refused the credential. Pages are being held, nothing is lost — reconnect with a working application password.",
     { slots: {}, fixedBy: "§9 · REQ-074 c2" },
   ],
-  "publish.destination.line.unreachable": ["TODO(copy)", { slots: {}, fixedBy: "§9 · REQ-074 c2" }],
+  "publish.destination.line.unreachable": ["Your site couldn’t be reached. Pages are being held — nothing is lost — and go out once it answers again.", { slots: {}, fixedBy: "§9 · REQ-074 c2" }],
   "publish.destination.line.destination-rejected": [
-    "TODO(copy)",
+    "Your site rejected the page. Pages are being held and nothing is lost; reconnect to try again.",
     { slots: {}, fixedBy: "§9 · REQ-074 c2" },
   ],
   "publish.destination.line.cannot-publish": [
-    "TODO(copy)",
+    "Connected, but the WordPress account ReachKit uses there isn’t allowed to publish. Give it an account that can — re-entering this one changes nothing.",
     { slots: {}, fixedBy: "ADR-086 · REQ-060 c7" },
   ],
 
   // 2026-09-06, issue #144 (§9, §12's `draft-ready` "one veto link"). The
   // four lines `GET /veto/{token}` can speak — one per arm of the closed
-  // switch over what redeeming a stop link did, and no fifth. They are
-  // screen sentences, so they carry the `TODO(copy)` marker rather than the
-  // empty string: the arm renders and is reviewable on a preview, which is
-  // what a screen owes (DECISIONS 2026-09-05, issue #93), where a mail owes
-  // the opposite.
+  // switch over what redeeming a stop link did, and no fifth.
   //
   // `expired` covers two refusals on purpose. A token past its expiry and a
   // token still good for a page that has already left review are, to the
@@ -177,10 +168,10 @@ export const PUBLISH_COPY = Object.freeze({
   // ── S6, the stop page (issue #371) ──────────────────────────────────
   //
   // The approved set draws two arms, and every string on both is
-  // unbracketed — approved copy as written under ruling 11a. The three
-  // refusal lines below it keeps as `TODO(copy)`: the set draws no line
-  // for a link that was already used, has run out, or names no page, and
-  // the marker renders, so each arm says something rather than nothing.
+  // unbracketed — approved copy as written under ruling 11a. The set draws
+  // no line for the three refusals below — a link that was already used,
+  // has run out, or names no page; those are the owner's approved
+  // sentences of 2026-09-10 (#459).
   "publish.veto.ask.head": [
     "Publishes {when}",
     { slots: { when: "text" }, fixedBy: "REQ-057 c1 · UI-SPEC S6 (11a)" },
@@ -198,9 +189,9 @@ export const PUBLISH_COPY = Object.freeze({
     "This page will not publish. Tomorrow’s page is unaffected.",
     { slots: {}, fixedBy: "REQ-057 c1 · UI-SPEC S6 (11a)" },
   ],
-  "publish.veto.alreadyUsed": ["TODO(copy)", { slots: {}, fixedBy: "REQ-057 c1" }],
-  "publish.veto.expired": ["TODO(copy)", { slots: {}, fixedBy: "REQ-057 c1" }],
-  "publish.veto.unknown": ["TODO(copy)", { slots: {}, fixedBy: "REQ-057 c1" }],
+  "publish.veto.alreadyUsed": ["This link was already used. The page is stopped.", { slots: {}, fixedBy: "REQ-057 c1" }],
+  "publish.veto.expired": ["The moment to stop this page has passed.", { slots: {}, fixedBy: "REQ-057 c1" }],
+  "publish.veto.unknown": ["This isn’t a link ReachKit can act on.", { slots: {}, fixedBy: "REQ-057 c1" }],
 
   // 2026-09-06, issue #54 (BUILD §9 · REQ-060). The two sentences the
   // WordPress destination speaks, and they are the only two: everything
@@ -264,9 +255,9 @@ export const PUBLISH_COPY = Object.freeze({
     { slots: { publisher: "text" }, fixedBy: "UI-SPEC S19 (11a)" },
   ],
 
-  "publish.wordpress.noSeoPlugin": ["TODO(copy)", { slots: {}, fixedBy: "REQ-060 c4" }],
+  "publish.wordpress.noSeoPlugin": ["No SEO plugin was found on your site, so the title and description weren’t written into one. The page is live all the same.", { slots: {}, fixedBy: "REQ-060 c4" }],
   "publish.wordpress.namedForRemoval": [
-    "TODO(copy)",
+    "ReachKit never made this post live, so nothing in your site was changed. Removing the draft there is yours to do.",
     { slots: {}, fixedBy: "ADR-084 d4 · REQ-056 c16" },
   ],
 }) satisfies CopyPartition;
