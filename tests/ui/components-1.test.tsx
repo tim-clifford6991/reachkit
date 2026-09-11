@@ -275,6 +275,19 @@ describe('BP-018 decision 1: "daisyUI components only — no bespoke widgets"', 
     expect(root.classList.contains("alert")).toBe(true);
   });
 
+  it("Stat's carryBeside puts the value and its carrier on one row, and leaves unmeasured stacked (#521)", () => {
+    const beside = renderRoot(<Stat state="measured" label="l" value={62} delta="+8" carryBeside />);
+    const row = beside.querySelector('[data-carry="beside"]');
+    expect(row?.querySelector(".stat-value")?.textContent).toBe("62");
+    expect(row?.querySelector(".stat-desc")?.textContent).toBe("+8");
+    expect(row?.className).toContain("flex-wrap");
+    const stacked = renderRoot(<Stat state="measured" label="l" value={62} delta="+8" />);
+    expect(stacked.querySelector('[data-carry="beside"]')).toBeNull();
+    const unmeasured = renderRoot(<Stat state="unmeasured" label="l" reason="not yet" carryBeside />);
+    expect(unmeasured.querySelector('[data-carry="beside"]')).toBeNull();
+    expect(unmeasured.querySelector(".stat-desc")?.textContent).toBe("not yet");
+  });
+
   it("Stat's root carries the stats class, with a stat element inside", () => {
     const root = renderRoot(
       <Stat state="measured" label="l" value={1} delta="+1" />

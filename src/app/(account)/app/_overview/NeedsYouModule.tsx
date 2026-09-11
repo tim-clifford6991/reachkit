@@ -123,7 +123,14 @@ export function NeedsYouModule(p: {
     <section className="rk-idiom-card" data-testid="overview-needs-you">
       <CardHead icon={<Bell aria-hidden size={ICON} />} eyebrow={copy("overview.needs-you.title")} />
       <div style={STACK} data-testid="overview-alerts">
-        {panels}
+        {/* The set's pair (UI-SPEC S12, set L718–719; issue #521): the two
+            panels side by side from the medium band up, stacked below it —
+            `.rk-panel-pair` in `idiom.css`. */}
+        {panels.length === 0 ? null : (
+          <div className="rk-panel-pair" data-testid="overview-alert-panels">
+            {panels}
+          </div>
+        )}
         {emptyLine === null ? null : <AlertBox tone={NOTHING_WAITING_TONE} message={emptyLine} />}
         {overflowLine === null ? null : (
           <p className="rk-quiet" data-testid="overview-overflow">

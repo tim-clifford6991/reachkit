@@ -1,0 +1,62 @@
+/* UI-SPEC §2 WeekStrip — the approved set's `.week .day` (set L216–225;
+ * issue #521). Every value is a token; where the set's literal sits between
+ * two rungs the nearer one is named beside it. */
+
+.rk-week {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: var(--s-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.rk-week-day {
+  min-width: 0;
+  text-align: center;
+  background: var(--sunk);
+  border-radius: var(--r-field);
+  /* set 10px 6px */
+  padding: var(--s-2) var(--s-1);
+}
+
+.rk-week-n {
+  display: block;
+  font-size: var(--t-sm);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.rk-week-rule {
+  display: block;
+  width: 100%;
+  /* set 3px, radius 2px, margin-top 7px */
+  height: var(--s-1);
+  border-radius: var(--r-pill);
+  margin-top: var(--s-2);
+  background: var(--line);
+}
+
+.rk-week-day[data-state="done"] .rk-week-rule {
+  background: var(--ok);
+}
+
+.rk-week-day[data-state="nothing-measured"] .rk-week-rule {
+  background: var(--warn);
+}
+
+.rk-week-day[data-state="today"] {
+  background: var(--accent-bg);
+}
+
+.rk-week-day[data-state="today"] .rk-week-n {
+  color: var(--accent);
+}
+
+.rk-week-day[data-state="today"] .rk-week-rule {
+  background: var(--accent);
+}
+
+.rk-week-day[data-state="to-come"] {
+  opacity: 0.55;
+}

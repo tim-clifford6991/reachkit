@@ -134,6 +134,12 @@ function count(haystack: string, needle: string): number {
 
 const ALL_STORIES = Object.entries(STORIES);
 
+/** The four SVG charts. `WeekStrip` is HTML cells since #521 — a
+ *  hand-sized viewBox cannot be the full width of its card and keep the
+ *  ladder's type size at every band (see its header) — so every assertion
+ *  that reads an `<svg>` reads these, and the strip has its own block. */
+const SVG_STORIES = ALL_STORIES.filter(([name]) => name !== "WeekStrip");
+
 /* ── the closed inventory ────────────────────────────────────────────── */
 
 describe('BUILD.md §2.4: "The chart inventory is closed … A new chart form is a design-artifact approval first."', () => {
@@ -164,7 +170,7 @@ describe('BUILD.md §2.4: "The chart inventory is closed … A new chart form is
   it("a story exists for each of the five, and each renders", () => {
     expect(Object.keys(STORIES).sort()).toEqual([...CHART_INVENTORY].sort());
     for (const [name, story] of ALL_STORIES) {
-      expect(markupOf(story()), name).toContain("<svg");
+      expect(markupOf(story()), name).toContain(name === "WeekStrip" ? "<ol" : "<svg");
     }
   });
 });
@@ -172,7 +178,7 @@ describe('BUILD.md §2.4: "The chart inventory is closed … A new chart form is
 /* ── §2.4's implementation rule ──────────────────────────────────────── */
 
 describe('BUILD.md §2.4: "Inline SVG, hand-sized viewBoxes — no chart library."', () => {
-  it.each(ALL_STORIES)("%s renders an inline <svg> with a literal viewBox", (_name, story) => {
+  it.each(SVG_STORIES)("%s renders an inline <svg> with a literal viewBox", (_name, story) => {
     const svg = svgOf(story());
     expect(svg.tagName.toLowerCase()).toBe("svg");
     expect(svg.getAttribute("viewBox")).toMatch(/^0 0 \d+(\.\d+)? \d+(\.\d+)?$/);
@@ -350,8 +356,7 @@ describe('BUILD.md §2.4: "Every bar/point is direct-labelled (name + value) —
   });
 
   it("WeekStrip labels all seven days, the unmeasured one included — a labelled empty mark, never a gap", () => {
-    const svg = svgOf(STORIES.WeekStrip?.() as React.JSX.Element);
-    const text = svg.textContent ?? "";
+    const text = rootOf(STORIES.WeekStrip?.() as React.JSX.Element).textContent ?? "";
     for (const day of DAYS) {
       expect(text).toContain(day.date);
       expect(text).toContain(day.mark);
@@ -360,7 +365,7 @@ describe('BUILD.md §2.4: "Every bar/point is direct-labelled (name + value) —
   });
 
   it("every numeral a chart writes is in the mono utility (§2.3)", () => {
-    for (const [name, story] of ALL_STORIES) {
+    for (const [name, story] of SVG_STORIES) {
       const svg = svgOf(story());
       for (const t of svg.querySelectorAll("text")) {
         expect(t.getAttribute("class"), `${name}: ${t.textContent ?? ""}`).toBe("num");
@@ -386,7 +391,7 @@ describe('BUILD.md §2.4: "One axis per chart, thin 2–2.5px lines, 3.5–5px e
   // wins over §2.4's general geometry for this one chart (UI-SPEC §1). The
   // count is still asserted, so an axis cannot appear or vanish unnoticed
   // on any of them.
-  it.each(ALL_STORIES)("%s draws exactly one axis, or none where the set draws none", (name, story) => {
+  it.each(SVG_STORIES)("%s draws exactly one axis, or none where the set draws none", (name, story) => {
     expect(svgOf(story()).querySelectorAll(".rk-axis")).toHaveLength(name === "GrowthLine" ? 0 : 1);
   });
 
@@ -398,7 +403,7 @@ describe('BUILD.md §2.4: "One axis per chart, thin 2–2.5px lines, 3.5–5px e
   });
 
   it("every series line drawn is inside that band", () => {
-    for (const [name, story] of ALL_STORIES) {
+    for (const [name, story] of SVG_STORIES) {
       const svg = svgOf(story());
       for (const line of svg.querySelectorAll("polyline, path")) {
         const w = line.getAttribute("stroke-width");
@@ -455,10 +460,9 @@ describe('BUILD.md §2.4: "hover tooltip on every mark (fixed-position, ink-on-b
     PresenceBars: PRESENCE.rivals.length + 1,
     AiDotMatrixChart: MATRIX_ROWS.length * QUESTIONS.length,
     RivalSparkline: 5,
-    WeekStrip: DAYS.length,
   };
 
-  it.each(ALL_STORIES)("%s carries one tooltip per mark", (name, story) => {
+  it.each(SVG_STORIES)("%s carries one tooltip per mark", (name, story) => {
     const svg = svgOf(story());
     const marks = svg.querySelectorAll(".rk-mark");
     expect(marks).toHaveLength(MARKS[name] ?? -1);
@@ -468,12 +472,12 @@ describe('BUILD.md §2.4: "hover tooltip on every mark (fixed-position, ink-on-b
     }
   });
 
-  it.each(ALL_STORIES)("%s anchors every chip at the same place — it does not travel with the pointer", (_name, story) => {
+  it.each(SVG_STORIES)("%s anchors every chip at the same place — it does not travel with the pointer", (_name, story) => {
     const ys = [...svgOf(story()).querySelectorAll(".rk-tip rect")].map((r) => r.getAttribute("y"));
     expect(new Set(ys).size).toBe(1);
   });
 
-  it.each(ALL_STORIES)("%s draws the chip ink-on-bg, in mono", (_name, story) => {
+  it.each(SVG_STORIES)("%s draws the chip ink-on-bg, in mono", (_name, story) => {
     const tip = svgOf(story()).querySelector(".rk-tip");
     expect(tip?.querySelector("rect")?.getAttribute("fill")).toBe(CHART_INK.tipFill);
     const label = tip?.querySelector("text");
@@ -508,7 +512,7 @@ describe('BUILD.md §6.2: "render a no-AI-answer question as a muted cell, never
 
 describe('BUILD.md §2.5: "Rival strength is neutral gray, never red — rivals are context, not alarms."', () => {
   it("no rival mark in any story reaches a status colour", () => {
-    for (const [name, story] of ALL_STORIES) {
+    for (const [name, story] of SVG_STORIES) {
       const svg = svgOf(story());
       const painted = [...svg.querySelectorAll("rect, polyline, path, circle")]
         .flatMap((n) => [n.getAttribute("fill"), n.getAttribute("stroke")])
@@ -721,7 +725,50 @@ describe("issue #490: a chart's groups stay inside its own box, at every length 
     },
   );
 
-  it.each(ALL_STORIES)("%s draws nothing outside its viewBox", (_name, story) => {
+  it.each(SVG_STORIES)("%s draws nothing outside its viewBox", (_name, story) => {
     expect(escapees(story())).toEqual([]);
+  });
+});
+
+/* ── the week strip, as the set draws it (#521) ──────────────────────── */
+
+describe("UI-SPEC §2 WeekStrip: \"seven cells, states done / today / unmeasured / to-come\" (set `.week .day`)", () => {
+  const root = rootOf(STORIES.WeekStrip?.() as React.JSX.Element);
+  const cells = [...root.querySelectorAll("li.rk-week-day")];
+  const css = readFileSync(path.join(CHARTS_DIR, "week-strip.css"), "utf8");
+
+  it("is one named list of seven cells, each carrying its state", () => {
+    expect(root.tagName.toLowerCase()).toBe("ol");
+    expect(root.getAttribute("aria-label")).toBe("week");
+    expect(cells).toHaveLength(7);
+    expect(cells.map((c) => c.getAttribute("data-state"))).toEqual(DAYS.map((d) => d.state));
+  });
+
+  it("draws the date in mono and a rule under it, and no visible word", () => {
+    cells.forEach((cell, i) => {
+      const n = cell.querySelector(".rk-week-n");
+      expect(n?.classList.contains("num")).toBe(true);
+      expect(n?.textContent).toBe(DAYS[i]?.date);
+      expect(cell.querySelector(".rk-week-rule")?.getAttribute("aria-hidden")).toBe("true");
+    });
+  });
+
+  it("names each state to a screen reader and on hover — identity is never colour alone (§2.4)", () => {
+    cells.forEach((cell, i) => {
+      const day = DAYS[i];
+      expect(cell.querySelector(".sr-only")?.textContent).toBe(day?.mark);
+      expect(cell.getAttribute("title")).toBe(`${day?.date} · ${day?.mark}`);
+    });
+  });
+
+  it("paints the set's rule colours — states, never a series (§2.4)", () => {
+    const rule = (state: string, part: string): string =>
+      new RegExp(`\\.rk-week-day\\[data-state="${state}"\\]${part}\\s*\\{[^}]*\\}`).exec(css)?.[0] ?? "";
+    expect(rule("done", " \\.rk-week-rule")).toContain("var(--ok)");
+    expect(rule("nothing-measured", " \\.rk-week-rule")).toContain("var(--warn)");
+    expect(rule("today", " \\.rk-week-rule")).toContain("var(--accent)");
+    expect(rule("today", "")).toContain("var(--accent-bg)");
+    expect(rule("to-come", "")).toContain("opacity");
+    expect(css).not.toMatch(/--chart-(you|rival)|var\(--bad\)/);
   });
 });

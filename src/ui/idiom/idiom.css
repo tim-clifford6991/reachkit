@@ -297,6 +297,42 @@
   flex: 0 0 auto;
 }
 
+/* Two panels as one pair (UI-SPEC S12 "Needs you", set `.acts`/`.act`
+ * L180–189; issue #521). Side by side from the medium band's floor (1024,
+ * `BAND_MIN`), one column below it; a lone panel takes the whole row. Inside
+ * the pair a panel is the set's `.act`: the pill sits under the line,
+ * aligned with the title (chip width plus the panel's gap), at the set's
+ * `--s-4` padding — beside the text it would squeeze a half-width body. */
+.rk-panel-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--s-3);
+}
+
+@media (min-width: 1024px) {
+  .rk-panel-pair {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.rk-panel-pair > :only-child {
+  grid-column: 1 / -1;
+}
+
+.rk-panel-pair .rk-panel {
+  flex-wrap: wrap;
+  padding: var(--s-4);
+}
+
+.rk-panel-pair .rk-panel-body {
+  flex: 1 1 0;
+}
+
+.rk-panel-pair .rk-panel-cta {
+  flex-basis: 100%;
+  padding-inline-start: calc(var(--s-6) + var(--s-4));
+}
+
 /* ── 4 · The accent ground ────────────────────────────────────────────── */
 
 /* One surface used twice — the landing hero and the sign-in panel. Ground

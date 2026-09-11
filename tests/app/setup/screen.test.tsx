@@ -80,6 +80,16 @@ describe('REQ-025 c1 — "it asks for exactly three decisions ... and for nothin
     expect(tree.querySelector('[data-testid="setup-site-and-market"]')).not.toBeNull();
   });
 
+  it("UI-SPEC S10 — each Change is the set's outlined pill, not bare text (#521)", () => {
+    const changes = [...screenFor().querySelectorAll('[data-testid="setup-site-and-market"] button')];
+    expect(changes).toHaveLength(2);
+    for (const change of changes) {
+      expect(change.classList.contains("rk-btn-outline"), change.outerHTML).toBe(true);
+      expect(change.classList.contains("rk-pill"), change.outerHTML).toBe(true);
+      expect(change.classList.contains("rk-btn-tertiary"), change.outerHTML).toBe(false);
+    }
+  });
+
   it("REQ-021 c7 — a scanless purchase gets an empty address field, with nothing pre-filled", () => {
     const tree = screenFor(SCANLESS);
     const field = tree.querySelector('input[name="domain"]');

@@ -300,7 +300,7 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
             </p>
             <Btn
               label={copy("setup.address.change")}
-              variant="tertiary"
+              variant="secondary"
               size="sm"
               pill
               onClick={() => setEditingAddress(true)}
@@ -326,7 +326,7 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
             </div>
             <Btn
               label={copy("setup.market.change")}
-              variant="tertiary"
+              variant="secondary"
               size="sm"
               pill
               onClick={() => {
@@ -357,7 +357,7 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
                 </p>
                 <Btn
                   label={copy("setup.address.change")}
-                  variant="tertiary"
+                  variant="secondary"
                   size="sm"
                   pill
                   onClick={() => setEditingAddress(true)}
@@ -386,7 +386,7 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
                 )}
                 <Btn
                   label={copy("setup.address.change")}
-                  variant="tertiary"
+                  variant="secondary"
                   size="sm"
                   pill
                   onClick={() => {
@@ -447,7 +447,7 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
                     />
                     <Btn
                       label={copy("setup.market.change")}
-                      variant="tertiary"
+                      variant="secondary"
                       size="sm"
                       pill
                       onClick={commitMarket}
@@ -467,7 +467,7 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
                     </div>
                     <Btn
                       label={copy("setup.market.change")}
-                      variant="tertiary"
+                      variant="secondary"
                       size="sm"
                       pill
                       onClick={() => {
