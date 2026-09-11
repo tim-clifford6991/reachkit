@@ -48,3 +48,58 @@ body {
 :root {
   --border-hair: 1px;
 }
+
+/* The two globals the approved set declares and the product had not
+ * (issue #328).
+ *
+ * `docs/design/approved/full-set/reachkit-full-screen-set.html`, its own
+ * document-wide block, verbatim:
+ *
+ *   :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+ *   @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+ *
+ * Here rather than in `theme.css` for the reason `--border-hair` above is
+ * here: that file's `:root` is `BUILD.md` §2.1's block verbatim and
+ * `tests/ui/tokens.test.ts` refuses anything §2.1 does not state. And here
+ * rather than in `idiom.css` because neither rule belongs to the idiom —
+ * they apply to the document, every route, every component, including the
+ * three custom-CSS surfaces `idiom.css` never reaches.
+ *
+ * FOCUS. Nothing in `src/ui/**` had ever written a `:focus-visible` rule,
+ * so a keyboard user got whatever the element's own origin gave them:
+ * daisyUI rings its `.btn` and `.input`, and every link, `summary` and
+ * `[tabindex]` fell back to the UA's own ring — which Chromium draws and
+ * other engines draw differently, and which no part of this product had
+ * chosen. The set chose one, and this is it. `border-radius: 6px` is
+ * **dropped**: a focus ring may not restate a radius the token ladder owns
+ * (ruling 10a), and an `outline` already follows the element's own radius
+ * in every engine that ships `:focus-visible`. daisyUI's own
+ * `.btn:focus-visible` and `.input:focus` are two class selectors each and
+ * so still win where they apply: this is the floor under everything else,
+ * not a replacement for them. `tests/ui/layout/keyboard.test.ts` walks
+ * journeys 01, 03 and 05 with nothing but the Tab key and fails on a
+ * control whose computed style does not change when it takes focus.
+ *
+ * MOTION. No stylesheet under `src/ui/**` animates anything, but daisyUI's
+ * components do — 62 `transition-duration` declarations, on background,
+ * border, outline, opacity, translate, scale, rotate, width, height and
+ * box-shadow — and daisyUI guards only three of them behind
+ * `prefers-reduced-motion`. So the product moved for a reader who had asked
+ * it not to. `*, *::before, *::after` rather than the set's bare `*`: the
+ * transitions daisyUI declares on pseudo-elements are the same promise, and
+ * `visual.test.ts` already writes the three-selector form for its own
+ * screenshots.
+ */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

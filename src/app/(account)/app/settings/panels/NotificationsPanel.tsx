@@ -52,7 +52,7 @@ export function NotificationsPanel(p: { settings: SettingsModel }): React.JSX.El
       </div>
 
       {alwaysOn === null ? null : (
-        <p className="text-xs opacity-60 wrap-anywhere" data-testid="notifications-always-on">
+        <p className="text-xs text-[color:var(--ink-quiet)] wrap-anywhere" data-testid="notifications-always-on">
           {alwaysOn}
         </p>
       )}

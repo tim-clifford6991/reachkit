@@ -69,7 +69,7 @@ export function ContentPanel(p: { settings: SettingsModel }): React.JSX.Element 
         />
       </div>
 
-      {action.line === null ? null : <p className="text-xs opacity-60 wrap-anywhere">{action.line}</p>}
+      {action.line === null ? null : <p className="text-xs text-[color:var(--ink-quiet)] wrap-anywhere">{action.line}</p>}
     </Card>
   );
 }

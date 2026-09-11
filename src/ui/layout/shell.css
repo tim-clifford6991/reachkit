@@ -93,7 +93,7 @@
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   font-size: var(--t-eyebrow);
-  color: var(--ink-3);
+  color: var(--ink-quiet);
   /* No `overflow-wrap: anywhere` (issue #256). A provenance line is set in
    * the mono face because it carries values — an address, a date — and a
    * value broken mid-word is a different string from the one it came from.
@@ -128,7 +128,7 @@
 
 .rk-count {
   flex: 0 0 auto;
-  color: var(--ink-3);
+  color: var(--ink-quiet);
 }
 
 /* ── The frame ────────────────────────────────────────────────────────── */

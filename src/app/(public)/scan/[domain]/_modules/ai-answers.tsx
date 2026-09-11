@@ -158,7 +158,7 @@ function EngineNotAsked(p: { engine: BatteryEngine }): React.JSX.Element {
   return (
     <p className="flex flex-wrap items-center gap-2 text-xs">
       <Badge tone="neutral">{copy(ENGINE_LABEL[p.engine])}</Badge>
-      <span className="opacity-60">{copy("ai-answers.engine.not-measured")}</span>
+      <span className="text-[color:var(--ink-quiet)]">{copy("ai-answers.engine.not-measured")}</span>
     </p>
   );
 }
@@ -298,7 +298,7 @@ function QuestionRow(p: { row: { question: StoredQuestion; cell: AnswerCell } })
           with a search inside it, and `.num`'s "never break a value" rule
           would otherwise hold the whole line on one unbreakable run
           (§2.3, issue #307's own `phrase` arm). */}
-      <p className="t-explain opacity-60">
+      <p className="t-explain text-[color:var(--ink-quiet)]">
         <Num phrase>{provenance.text}</Num>
       </p>
     </li>
@@ -381,7 +381,7 @@ export function AiAnswersCard(p: {
           holds every rendered heading to its own step of the ruled scale,
           which an 11px `h3` is not — a label is a label, and the landing's
           own section labels are `p.eyebrow` for the same reason. */}
-      <p className="eyebrow opacity-60">{copy("ai-answers.questions.title")}</p>
+      <p className="eyebrow text-[color:var(--ink-quiet)]">{copy("ai-answers.questions.title")}</p>
       <ul className="list-none p-0">
         {shown.map((row) => (
           <QuestionRow key={row.question.n} row={row} />
@@ -407,7 +407,7 @@ export function AiAnswersCard(p: {
       )}
       {/* REQ-006 c6's one written line: what was measured, and no second
           engine named anywhere on the card. */}
-      <p className="t-explain opacity-60">{copy("ai-answers.method")}</p>
+      <p className="t-explain text-[color:var(--ink-quiet)]">{copy("ai-answers.method")}</p>
     </Card>
   );
 }

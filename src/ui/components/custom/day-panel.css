@@ -154,7 +154,7 @@
 .rk-daypanel-eyebrow {
   letter-spacing: 0.1em;
   font-weight: 700;
-  color: var(--ink-3);
+  color: var(--ink-quiet);
   margin: 0;
 }
 
@@ -175,7 +175,7 @@
 }
 
 .rk-daypanel-why dt {
-  color: var(--ink-3);
+  color: var(--ink-quiet);
   /* A key is a fixed label and folding it would read as two rows. */
   white-space: nowrap;
 }

@@ -87,7 +87,7 @@ function DriverBar(p: { factor: ScoreFactorName; value: Measured<number> }): Rea
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-1">
       {tenths === null ? null : <Progress value={tenths} max={TENTHS} label={name} />}
-      <p className="text-xs opacity-60">
+      <p className="text-xs text-[color:var(--ink-quiet)]">
         {name} <Num unmeasured={tenths === null}>{tenths === null ? dash() : ratioOfTen(tenths)}</Num>
       </p>
     </div>
@@ -134,7 +134,7 @@ export function VerdictStrip(p: {
             <h3 className="min-w-0 overflow-x-auto">
               <Num>{verdict.domain}</Num>
             </h3>
-            <div className="flex flex-wrap items-baseline gap-2 text-xs font-normal opacity-60">
+            <div className="flex flex-wrap items-baseline gap-2 text-xs font-normal text-[color:var(--ink-quiet)]">
               {/* A mono phrase — a date and a category with a separator
                   between them — and not one unbreakable value. */}
               <Num phrase>
@@ -154,7 +154,7 @@ export function VerdictStrip(p: {
           <div className="flex flex-col items-end gap-1 text-right">
             {/* 6a: "Discoverability Score" is the number's name on every
                 surface that labels it. */}
-            <p className="eyebrow opacity-60">{copy("verdict.score.label")}</p>
+            <p className="eyebrow text-[color:var(--ink-quiet)]">{copy("verdict.score.label")}</p>
             {/* A block, not an inline `span`: an inline box is sized from
                 its own font's metrics, and JetBrains Mono is taller at the
                 same size than the UI face, so a mono child inside an
