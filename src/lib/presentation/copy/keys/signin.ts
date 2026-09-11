@@ -8,7 +8,7 @@
 // Declared here, where the partition list is written once anyway, so
 // `registry.ts` keeps exactly one author.
 //
-// **Six values are filled; five are owner-owed and empty.** The six are not
+// **Six values are REQ-098 c2's own strings.** The six are not
 // this file's invention: REQ-098 criterion 2 states them *verbatim* — "then
 // it carries these strings verbatim: the heading …; the body …; the email
 // input's placeholder …; the submit control's label …; and beneath that
@@ -27,12 +27,8 @@
 // answers (already booked against `signin.payment_held` and
 // `signin.no_account` by BP-032's `requestMagicLink`), the malformed-address
 // line (c6) and the dead-link line (c7, BP-061's `redeemLink` lineKey). Each
-// carries `CLAUDE.md`'s `TODO(copy)` marker rather than the empty value, on
-// exactly the ground issue #13 records for `offer.cancel_self_service`: an
-// empty value makes `copy()` throw, which takes the whole screen down and
-// hides the four arms that *are* finished from the review the owner has to
-// do to write the fifth. Renderable is not invisible — `AWAITING_COPY`
-// counts them, and none is a sentence anyone wrote.
+// carried `CLAUDE.md`'s `TODO(copy)` marker until the owner approved its
+// sentence on 2026-09-10 (#459).
 //
 // The line the field's visible *label* renders is not among criterion 2's
 // six: the requirement fixes the placeholder and says nothing about a
@@ -40,6 +36,12 @@
 // surface reuses `signin.field.placeholder` for both, exactly as
 // `src/app/(public)/page.tsx` reuses `landing.field.label` for both, and no
 // seventh key is minted here to hold a sentence nobody has written.
+//
+// 2026-09-10, issue #459: the owner approved the master's drafted copy for
+// every key this partition still owed ("copy proposal approved"; proposal
+// sheet artifact 546f45a0-a996-4d25-b85e-fb03fda7b102), and the 10 approved
+// strings are applied here byte for byte. No key in this partition is
+// owner-owed or `TODO(copy)` any more.
 import type { CopyPartition } from "../registry.ts";
 
 export const SIGNIN_COPY = Object.freeze({
@@ -58,14 +60,13 @@ export const SIGNIN_COPY = Object.freeze({
   "signin.new.prompt": ["New to ReachKit?", { slots: {}, fixedBy: "REQ-098 c2" }],
   "signin.new.link": ["Start a free scan →", { slots: {}, fixedBy: "REQ-098 c2" }],
 
-  // Awaiting copy (REQ-098 open question 3): the marker renders, so the arm
-  // that speaks each line is visible and reviewable, and the sentence is
-  // still the owner's to write.
-  "signin.link_sent": ["TODO(copy)", { slots: {}, fixedBy: "REQ-098 c3" }],
-  "signin.payment_held": ["TODO(copy)", { slots: {}, fixedBy: "REQ-020 c4" }],
-  "signin.no_account": ["TODO(copy)", { slots: {}, fixedBy: "REQ-020 c4" }],
-  "signin.address.invalid": ["TODO(copy)", { slots: {}, fixedBy: "REQ-098 c6" }],
-  "signin.link_dead": ["TODO(copy)", { slots: {}, fixedBy: "REQ-098 c7" }],
+  // REQ-098 open question 3's five lines — the owner's approved sentences
+  // (2026-09-10, #459).
+  "signin.link_sent": ["Your sign-in link is on its way. It works once — if nothing arrives, check your spam folder or send another.", { slots: {}, fixedBy: "REQ-098 c3" }],
+  "signin.payment_held": ["Your payment was received and your account is being opened. The sign-in link follows as soon as it’s ready — there is nothing more to buy.", { slots: {}, fixedBy: "REQ-020 c4" }],
+  "signin.no_account": ["There’s no ReachKit account for that address. Scan your site for free and start ReachKit from the report, or from the pricing page.", { slots: {}, fixedBy: "REQ-020 c4" }],
+  "signin.address.invalid": ["That doesn’t look like an email address. Check it and try again.", { slots: {}, fixedBy: "REQ-098 c6" }],
+  "signin.link_dead": ["This sign-in link can’t be used any more. Ask for a new one below — it goes to the email you paid with.", { slots: {}, fixedBy: "REQ-098 c7" }],
 
   // ── The two answered arms (UI-SPEC S9, issue #373) ───────────────────
   //
@@ -75,16 +76,16 @@ export const SIGNIN_COPY = Object.freeze({
   // form — so the five lines above keep their jobs and only the frame
   // around them is new.
   //
-  // The two heads and the two controls are bracketed in the set and stay
-  // the owner's; `signin.sent.to` is not, and is approved as written
+  // The two heads and the two controls are bracketed in the set and are
+  // the owner's approved sentences (2026-09-10, #459); `signin.sent.to` is not, and is approved as written
   // (ruling 11a). Its `{address}` is what the visitor typed, echoed back —
   // never one this screen looked up, which is why it takes a slot rather
   // than naming an account.
-  "signin.sent.head": ["TODO(copy)", { slots: {}, fixedBy: "REQ-098 c3" }],
+  "signin.sent.head": ["Check your inbox", { slots: {}, fixedBy: "REQ-098 c3" }],
   "signin.sent.to": ["sent to {address}", { slots: { address: "text" }, fixedBy: "REQ-098 c3" }],
-  "signin.sent.resend": ["TODO(copy)", { slots: {}, fixedBy: "REQ-098 c3" }],
-  "signin.expired.head": ["TODO(copy)", { slots: {}, fixedBy: "REQ-098 c7" }],
-  "signin.expired.submit": ["TODO(copy)", { slots: {}, fixedBy: "REQ-098 c7" }],
+  "signin.sent.resend": ["Send another link", { slots: {}, fixedBy: "REQ-098 c3" }],
+  "signin.expired.head": ["This link no longer works", { slots: {}, fixedBy: "REQ-098 c7" }],
+  "signin.expired.submit": ["Send a new link", { slots: {}, fixedBy: "REQ-098 c7" }],
 
   // ── The accent panel beside the form (issue #266) ────────────────────
   //
@@ -120,5 +121,5 @@ export const SIGNIN_COPY = Object.freeze({
   // reserved-domain specimen without the written line #266 added here. The
   // key stays declared — the owner may want the sentence somewhere — and
   // the screen stops saying it.
-  "signin.panel.specimen": ["TODO(copy)", { slots: {}, fixedBy: "issue 266 · tokens.md §9.4" }],
+  "signin.panel.specimen": ["Example figures on example.com — not a measurement.", { slots: {}, fixedBy: "issue 266 · tokens.md §9.4" }],
 }) satisfies CopyPartition;

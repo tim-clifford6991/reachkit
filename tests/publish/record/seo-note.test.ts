@@ -76,10 +76,14 @@ describe("the line is carried where the delivery found no SEO plugin", () => {
     expect(SEO_COPY.noSeoPlugin).toBe(NO_SEO_PLUGIN_LINE);
   });
 
-  it("the sentence is the owner's: the key is registered and owner-owed", () => {
+  it("the sentence is the owner's: the key is registered and carries the approved line", () => {
+    // Approved 2026-09-10 (#459).
     expect(Object.keys(COPY)).toContain(SEO_COPY.noSeoPlugin);
-    expect(AWAITING_COPY).toContain(SEO_COPY.noSeoPlugin);
-    expect(COPY[SEO_COPY.noSeoPlugin]).toBe(TODO_COPY_MARKER);
+    expect(AWAITING_COPY).not.toContain(SEO_COPY.noSeoPlugin);
+    expect(COPY[SEO_COPY.noSeoPlugin]).not.toBe(TODO_COPY_MARKER);
+    expect(COPY[SEO_COPY.noSeoPlugin]).toBe(
+      "No SEO plugin was found on your site, so the title and description weren’t written into one. The page is live all the same."
+    );
   });
 });
 

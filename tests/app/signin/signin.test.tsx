@@ -345,14 +345,18 @@ describe("against the real registry — every arm renders, and nothing is invent
     }
   });
 
-  it("the expired arm speaks three owed lines and no answer of its own", async () => {
-    const { TODO_COPY_MARKER } = await import("@/lib/presentation/copy");
+  it("the expired arm speaks its three lines and no answer of its own", async () => {
+    const { COPY } = await import("@/lib/presentation/copy");
     const text = await renderReal({ answer: "sent", value: "someone@example.com" }, { link: "dead" });
     // Head, line, control — and *not* the answer line: someone holding a
     // dead link learns nothing about the address it was issued for
     // (REQ-098 c7), including whether one was answered on this screen.
-    const spoken = (text.match(new RegExp(TODO_COPY_MARKER.replace(/[()]/g, "\\$&"), "g")) ?? []).length;
-    expect(spoken).toBe(3);
+    // The three are the owner's approved sentences (2026-09-10, #459).
+    expect(text).toContain(`<h1>${COPY["signin.expired.head"]}</h1>`);
+    expect(text).toContain(`<p class="rk-quiet">${COPY["signin.link_dead"]}</p>`);
+    expect(text).toContain(COPY["signin.expired.submit"]);
+    expect(text).not.toContain(COPY["signin.link_sent"]);
+    expect(text).not.toContain("someone@example.com");
   });
 
   it("the panel is a declared example on the reserved domain, with no line explaining it (5c)", async () => {

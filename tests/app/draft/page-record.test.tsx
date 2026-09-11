@@ -171,6 +171,14 @@ describe("REQ-062 c7 — the standing carries what ReachKit saw and when", () =>
   ] as const)("a check that will never run says which of the two reasons (%s)", (because, key) => {
     expect(render({ verification: { kind: "never", because } })).toContain(key);
   });
+
+  it("the check's badge wraps — an approved sentence at the compact band is never cut off", () => {
+    // "not checked — never made live" is wider than a 320px record row:
+    // daisyUI's one-line badge clipped it (layout check 3). `Badge wrap`
+    // says the same words on two lines instead.
+    const html = render({ verification: { kind: "never", because: "no_live_address" } });
+    expect(html).toMatch(/class="badge [^"]*whitespace-normal[^"]*"/);
+  });
 });
 
 describe("REQ-060 c4 — the line renders exactly where the record put it", () => {

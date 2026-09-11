@@ -288,7 +288,7 @@ describe("the next three, named by the search each targets", () => {
 });
 
 describe("no sentence is written here, and no model text reaches the mail", () => {
-  it("every string the template speaks is a registry key, every mail sentence is written, and only the verdict words still stop it", () => {
+  it("every string the template speaks is a registry key, every mail sentence is written, and so are the verdict words", () => {
     const mail = full();
     const keys: CopyKey[] = [
       mail.subject,
@@ -311,7 +311,7 @@ describe("no sentence is written here, and no model text reaches the mail", () =
     // — its subject included, which is what stopped it being sent — was
     // owed until issue #458 filled the mail partition on the owner's
     // 2026-09-10 approval. The verdict words are not mail copy: they are
-    // `keys/publish.ts`'s, #458 did not fill them, and they are still owed.
+    // `keys/publish.ts`'s, which #459 filled on the same approval.
     const VERDICT_WORDS: readonly CopyKey[] = Object.values(PAGE_VERDICTS);
     const mailKeys = keys.filter((key) => !VERDICT_WORDS.includes(key));
     expect(mailKeys.length).toBeGreaterThan(0);
@@ -321,7 +321,7 @@ describe("no sentence is written here, and no model text reaches the mail", () =
       expect(OWNER_OWED, key).not.toContain(key);
     }
     for (const key of VERDICT_WORDS) {
-      expect(OWNER_OWED, `${key} is written now — a judged page composes`).toContain(key);
+      expect(OWNER_OWED, `${key} is written now — a judged page composes`).not.toContain(key);
     }
 
     // So a week with no page to judge composes, where it used to be
@@ -345,16 +345,18 @@ describe("no sentence is written here, and no model text reaches the mail", () =
       expect(body).toContain("onboarding checklist");
     }
 
-    // …and a week with a judged page is still refused, on the verdict word.
-    expect(() =>
-      composeMail({
-        kind: "weekly",
-        subject: mail.subject,
-        blocks: mail.blocks,
-        reason: mail.reason,
-        measurement: { state: "complete" },
-      })
-    ).toThrow(/verdict\.page\.working/);
+    // …and a week with a judged page composes too, and says the verdict
+    // word it was refused on while the word was owed.
+    const judged = composeMail({
+      kind: "weekly",
+      subject: mail.subject,
+      blocks: mail.blocks,
+      reason: mail.reason,
+      measurement: { state: "complete" },
+    });
+    for (const body of [judged.html, judged.text]) {
+      expect(body).toContain(COPY["verdict.page.working"]);
+    }
   });
 
   it("no page or opportunity is named by its title — a title is model-written and a mail does not speak it", () => {

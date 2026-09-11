@@ -12,7 +12,7 @@
 // stubbed entirely — this suite never reaches the vendor.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { z, type ZodType } from "zod";
-import { PROFILE_LIST_BOUNDS } from "../../../src/lib/config/constants.ts";
+import { PROFILE_INPUT_MAX_CHARS, PROFILE_LIST_BOUNDS } from "../../../src/lib/config/constants.ts";
 import type { CostContext } from "../../../src/lib/costs/index.ts";
 import type { Measured } from "../../../src/lib/measure/measured.ts";
 import type { Profile } from "../../../src/lib/market/questions/profile.ts";
@@ -33,10 +33,11 @@ let deriveProfile: ProfileModule["deriveProfile"];
 let PROFILE_SCHEMA: ProfileModule["PROFILE_SCHEMA"];
 let PROFILE_FIELDS: ProfileModule["PROFILE_FIELDS"];
 let PROFILE_TASK: ProfileModule["PROFILE_TASK"];
+let boundPageText: ProfileModule["boundPageText"];
 
 beforeEach(async () => {
   llmMock.mockReset();
-  ({ deriveProfile, PROFILE_SCHEMA, PROFILE_FIELDS, PROFILE_TASK } = await import(
+  ({ deriveProfile, PROFILE_SCHEMA, PROFILE_FIELDS, PROFILE_TASK, boundPageText } = await import(
     "../../../src/lib/market/questions/profile.ts"
   ));
 });
@@ -294,5 +295,68 @@ describe("deriveProfile — the prompt and the schema agree (issue #462)", () =>
     expect(PROFILE_TASK).toMatch(/no code fence/);
     const instruction = JSON.stringify({ task: PROFILE_TASK, fields: PROFILE_FIELDS });
     expect(instruction).not.toMatch(/keyword|searchTerm/i);
+  });
+});
+
+/** The page text's length inside the serialised prompt, quotes excluded. */
+const serialised = (text: string | undefined) => (text === undefined ? 0 : JSON.stringify(text).length - 2);
+
+describe("deriveProfile — the page text is bounded by one pin, home first, at a word boundary (issue #523)", () => {
+  it("text that fits is sent whole — both pages, unaltered", () => {
+    expect(boundPageText({ home: "alpha beta", pricing: "gamma delta" }, 100)).toEqual({
+      home: "alpha beta",
+      pricing: "gamma delta",
+    });
+  });
+
+  it("is cut at a whitespace boundary, never mid-word, and drops the whitespace it was cut at", () => {
+    expect(boundPageText({ home: "alpha beta gamma" }, 13)).toEqual({ home: "alpha beta" });
+    expect(boundPageText({ home: "alpha beta gamma" }, 11)).toEqual({ home: "alpha beta" });
+    expect(boundPageText({ home: "alpha beta gamma" }, 10)).toEqual({ home: "alpha beta" });
+    expect(boundPageText({ home: "alpha beta gamma" }, 9)).toEqual({ home: "alpha" });
+  });
+
+  it("a first word longer than the whole bound is not sent in part", () => {
+    expect(boundPageText({ home: "x".repeat(50) + " tail" }, 20)).toEqual({ home: "" });
+  });
+
+  it("home first: a home page that takes the whole bound leaves no room, and the pricing page is not sent", () => {
+    const bounded = boundPageText({ home: "word ".repeat(100), pricing: "price text" }, 40);
+    expect(bounded.pricing).toBeUndefined();
+    expect(serialised(bounded.home)).toBeLessThanOrEqual(40);
+    expect(bounded.home.startsWith("word word")).toBe(true);
+  });
+
+  it("the pricing page takes what the home page left, cut the same way", () => {
+    const bounded = boundPageText({ home: "home page", pricing: "one two three four" }, 20);
+    expect(bounded).toEqual({ home: "home page", pricing: "one two" });
+    expect(serialised(bounded.home) + serialised(bounded.pricing)).toBeLessThanOrEqual(20);
+  });
+
+  it("the bound is on the serialised prompt — an escaped character counts as what it costs there", () => {
+    const quoted = '"a" '.repeat(50); // each `"` is two characters once serialised
+    const bounded = boundPageText({ home: quoted, pricing: quoted }, 60);
+    expect(serialised(bounded.home) + serialised(bounded.pricing)).toBeLessThanOrEqual(60);
+    expect(bounded.home.length).toBeLessThan(60);
+  });
+
+  it("never splits a surrogate pair", () => {
+    const bounded = boundPageText({ home: "😀".repeat(30) }, 21);
+    expect(bounded.home).toBe("");
+    const spaced = boundPageText({ home: "😀 ".repeat(30) }, 21);
+    expect(spaced.home).toBe("😀 ".repeat(7).trimEnd());
+    expect(JSON.stringify(spaced.home)).not.toMatch(/\\ud[89ab]/i);
+  });
+
+  it("deriveProfile sends the bounded text: a home page three times the pin reaches llm() at most the pin, home first", async () => {
+    llmMock.mockResolvedValueOnce(measuredProfile());
+    const home = "buyer words ".repeat(Math.ceil((PROFILE_INPUT_MAX_CHARS * 3) / 12));
+    await deriveProfile(fakeCostContext(), { home, pricing: "twelve pounds a month" });
+
+    const input = (llmMock.mock.calls[0]![1] as RecordedLlmCall).input as { home: string; pricing?: string };
+    expect(serialised(input.home) + serialised(input.pricing)).toBeLessThanOrEqual(PROFILE_INPUT_MAX_CHARS);
+    expect(serialised(input.home)).toBeGreaterThan(PROFILE_INPUT_MAX_CHARS - "buyer words ".length);
+    expect(home.startsWith(input.home)).toBe(true);
+    expect(input.pricing).toBeUndefined();
   });
 });
