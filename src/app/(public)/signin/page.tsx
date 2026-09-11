@@ -192,7 +192,7 @@ export default function SignInPage(props: {
         wide: { kind: "same-as-below" },
       }}
     >
-      <main className="col-span-full rk-split">
+      <main className="col-span-full rk-signin-split">
         <div className="rk-split-form">
           <div className="rk-form-col">
             {/* The brand sits **inside the panel** on this route, and no

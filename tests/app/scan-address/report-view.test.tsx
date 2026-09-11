@@ -461,3 +461,35 @@ describe("REQ-002 c1/c3 — one removal address, two surfaces", () => {
     expect(foot).toContain("removal.address");
   });
 });
+
+describe("issue #505 — UI-SPEC S2's page-level layout, as the approved set draws it", () => {
+  const html = render(FIXTURE_REPORT);
+  const CARDS_SOURCE = readFileSync(
+    path.resolve(import.meta.dirname, "../../../src/app/(public)/scan/[domain]/_problems/cards.tsx"),
+    "utf8"
+  );
+
+  it("the problem-card row aligns its cards to the start, and no card is stretched to fill it", () => {
+    expect(html).toContain('class="grid grid-cols-1 items-start gap-4 lg:grid-cols-3"');
+    expect(CARDS_SOURCE).not.toContain("h-full");
+  });
+
+  it("every module row is spaced by the set's section rhythm, --s-5", () => {
+    expect(html).toMatch(/<main class="[^"]*grid-cols-subgrid[^"]*" style="row-gap:var\(--s-5\)"/);
+  });
+
+  it("with no notice and no control there is no empty row to take a gap above the verdict strip", () => {
+    expect(html).not.toContain('class="col-span-full flex flex-col gap-3"');
+    const withNotice = render(
+      FIXTURE_REPORT,
+      { kind: "measurement_failed", failedAt: new Date("2026-09-05T00:00:00.000Z") },
+      { kind: "retry" }
+    );
+    expect(withNotice).toContain('class="col-span-full flex flex-col gap-3"');
+  });
+
+  it("the removal line is the set's quiet mono provenance line, centred", () => {
+    const foot = renderToStaticMarkup(React.createElement(RemovalAddressLine));
+    expect(foot).toMatch(/^<p class="rk-prov-line rk-center">/);
+  });
+});

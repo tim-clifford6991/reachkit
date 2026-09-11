@@ -77,18 +77,21 @@ export default function PublicLayout({
   children: React.ReactNode;
 }): React.JSX.Element {
   const pathname = usePathname();
-  // **The sign-in screen carries no header** (UI-SPEC S9, issue #373). It is
-  // drawn as two full-height panels meeting the viewport's edges, with the
-  // brand inside the left one; a bar across the top would be a third band,
-  // and it would put a control on the one screen whose whole job is a single
-  // field. Named here rather than read as a flag, because this file is
-  // already where the chrome's per-route decisions live.
+  // **The sign-in screen carries no header and no footer** (UI-SPEC S9,
+  // issues #373 and #505). It is drawn as two full-height panels meeting the
+  // viewport's edges, with the brand inside the left one, and the set's S9
+  // renders no `pubFoot()` under them; a bar across the top or a footer
+  // below would be a third band, and would put controls on the one screen
+  // whose whole job is a single field. S9 is the one public screen UI-SPEC
+  // draws without the footer; every other public page carries it (3a).
+  // Named here rather than read as a flag, because this file is already
+  // where the chrome's per-route decisions live.
   const bare = pathname === SIGN_IN;
   return (
     <div className="rk-public-shell">
       {bare ? null : <Header action={actionFor(pathname)} />}
       {children}
-      <Footer />
+      {bare ? null : <Footer />}
     </div>
   );
 }

@@ -56,6 +56,13 @@ import { categoryOf } from "@/lib/scan/sections";
  *  as a banner rather than as a decision. */
 const OFFER_MEASURE: React.CSSProperties = { maxWidth: "var(--w-read)" };
 
+/** The set's section rhythm: `.main{gap:var(--s-5)}` between every module
+ *  of S2 (issue #505). `<main>` is a subgrid in its columns only, so it
+ *  inherits the surface's column gap and takes no row gap of its own — and
+ *  without this the rows sat on each other, "The complete method, free"
+ *  directly on the problem-card row. */
+const SECTION_RHYTHM: React.CSSProperties = { rowGap: "var(--s-5)" };
+
 /** BUILD §6.3a / DECISIONS 2026-08-28: MVP is US-English only, one
  *  location constant, so the date a report was measured is formatted once,
  *  here, in that one locale. */
@@ -195,14 +202,20 @@ export function ReportView(p: {
         * the bars stranded in between. A shorter card keeps its own
         * height; `Card` itself stops the distribution for the cases a
         * layout does stretch one. */}
-      <main className="col-span-full grid grid-cols-subgrid items-start">
+      <main
+        className="col-span-full grid grid-cols-subgrid items-start"
+        style={SECTION_RHYTHM}
+      >
         {/* REQ-001 c14: the notice and the one control that answers it sit
           together, so a visitor reads what happened and what they can do
-          about it in one place. */}
-        <div className="col-span-full flex flex-col gap-3">
-          <NoticeLine notice={notice} />
-          <ControlButton control={control} />
-        </div>
+          about it in one place. With neither, there is no row: an empty
+          one would still take a section gap above the verdict strip. */}
+        {notice === null && control.kind === "none" ? null : (
+          <div className="col-span-full flex flex-col gap-3">
+            <NoticeLine notice={notice} />
+            <ControlButton control={control} />
+          </div>
+        )}
 
         {/* **The copy control is in the header's bar** (UI-SPEC S2, issue
             #357). It stood here for one release because the shared chrome

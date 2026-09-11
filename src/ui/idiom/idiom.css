@@ -417,7 +417,11 @@
  * width; the panel carries no action and no route, so following the form
  * costs the customer nothing, while putting it above pushes an email field
  * below the fold on a phone. */
-.rk-split {
+/* The class is the sign-in's own (issue #505). Section 7's `.rk-split` is
+ * the landing's two-column grid, and while the two shared one name the later
+ * rule won here: a centred grid with a gap, the accent panel stopping at its
+ * content instead of meeting the form panel at one height. */
+.rk-signin-split {
   display: flex;
   flex-direction: column;
   min-height: 100svh;
@@ -427,7 +431,7 @@
  * surface's — which the shell has already made "the viewport less the
  * chrome" (issue #297). `100svh` would be the viewport *plus* the header
  * and push the page into a scroll it has no content for. */
-[data-surface][data-arm-compact^="declared:"] .rk-split {
+[data-surface][data-arm-compact^="declared:"] .rk-signin-split {
   /* The surface is a flex column and gives its child the height (see
    * `surface.css`), so the split needs no measure of its own here — and
    * `100svh` would be the viewport *plus* the chrome above it. */
@@ -438,22 +442,22 @@
  * its own content and leaving the tail on the ground. At the narrow band
  * that tail was a band of `--bg` below the accent panel; the panels are
  * what the screen is made of, so they are what fills it. */
-.rk-split > .rk-split-form,
-.rk-split > .rk-split-panel {
+.rk-signin-split > .rk-split-form,
+.rk-signin-split > .rk-split-panel {
   flex: 1 1 auto;
 }
 
-.rk-split > * {
+.rk-signin-split > * {
   min-height: 0;
 }
 
 @media (min-width: 1024px) {
-  .rk-split {
+  .rk-signin-split {
     flex-direction: row;
     align-items: stretch;
   }
 
-  .rk-split > * {
+  .rk-signin-split > * {
     flex: 1 1 50%;
   }
 }

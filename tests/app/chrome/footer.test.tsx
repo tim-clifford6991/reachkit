@@ -46,10 +46,16 @@ describe("UI-SPEC 3a — brand · rights · removal address · Product · Legal"
     expect(COPY["chrome.footer.rights"]).toBe("TODO(copy)");
   });
 
-  it("the group layout renders it on every public route, with nothing to decide", () => {
-    // No prop, no pathname, no condition: a route that could turn the
-    // footer off is a route that could drop the removal address.
-    expect(LAYOUT).toContain("<Footer />");
+  it("the group layout renders it on every public route but the sign-in split, and decides nothing else", () => {
+    // No prop and no second condition: a route that could turn the footer
+    // off is a route that could drop the removal address. The one exception
+    // is UI-SPEC S9 — the set draws the sign-in split with no `pubFoot()`
+    // under it (issue #505) — and it is the same named route the header
+    // already leaves, decided by the same one comparison.
+    expect(LAYOUT).toContain("{bare ? null : <Footer />}");
+    expect(LAYOUT).toContain("const bare = pathname === SIGN_IN;");
+    expect(LAYOUT).toContain('const SIGN_IN = "/signin";');
+    expect(LAYOUT.match(/<Footer \/>/g) ?? []).toHaveLength(1);
     expect(LAYOUT).not.toMatch(/\{[^}]*&&\s*<Footer/);
   });
 });

@@ -369,3 +369,25 @@ describe("against the real registry — every arm renders, and nothing is invent
     expect(text).not.toContain(COPY["signin.panel.specimen"]);
   });
 });
+
+describe("issue #505 — UI-SPEC S9: the split's two panels are one height at 1024 and above", () => {
+  const CSS = readFileSync(
+    path.resolve(import.meta.dirname, "../../../src/ui/idiom/idiom.css"),
+    "utf8"
+  );
+
+  it("the split carries a class of its own, so the landing's two-column grid cannot restyle it", () => {
+    // Section 7's `.rk-split` is the landing's centred grid; while the two
+    // screens shared the name, its `align-items: center` and gap won here.
+    expect(PAGE_SOURCE).toContain('className="col-span-full rk-signin-split"');
+    expect(PAGE_SOURCE).not.toMatch(/\brk-split(?![-\w])/);
+  });
+
+  it("at 1024 and above the split is a row whose panels stretch to one height", () => {
+    const at = CSS.indexOf("@media (min-width: 1024px) {\n  .rk-signin-split {");
+    expect(at).toBeGreaterThan(-1);
+    const block = CSS.slice(at, CSS.indexOf("}", at));
+    expect(block).toContain("flex-direction: row");
+    expect(block).toContain("align-items: stretch");
+  });
+});

@@ -104,11 +104,11 @@ function ProblemCardView(p: { card: ProblemCard }): React.JSX.Element {
       ? UNMEASURED_EDGE
       : SEVERITY_EDGE[p.card.severity.value];
   return (
-    // `[&>*]:h-full` makes the card fill the wrapper the grid stretched to
-    // the row's height. Without it the coloured edge runs the full row
-    // while the card it belongs to stops short, and the severity reads as
-    // a rule beside empty space rather than as this card's own edge.
-    <div className={`rounded-box overflow-hidden border-l-4 [&>*]:h-full ${edge}`}>
+    // The wrapper is the card's own height (issue #505): the row aligns its
+    // cards to the start, so the coloured edge and the card it belongs to
+    // stop together at the card's last line, and a short card is not
+    // stretched to the height of the one carrying the robots block.
+    <div className={`rounded-box overflow-hidden border-l-4 ${edge}`}>
       <Card
         state="default"
         // UI-SPEC §2's own row for this component: "title · severity badge
@@ -145,7 +145,10 @@ export function ProblemCards(p: {
   cards: readonly [ProblemCard, ProblemCard, ProblemCard];
 }): React.JSX.Element {
   return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+    // `items-start`: the set draws content-height problem cards (issue
+    // #505). The default `stretch` grew the two short cards to the robots
+    // card's height and left empty ground under their figure.
+    <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-3">
       {p.cards.map((card) => (
         <ProblemCardView key={card.problem} card={card} />
       ))}

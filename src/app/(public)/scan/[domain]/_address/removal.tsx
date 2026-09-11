@@ -64,7 +64,13 @@ function removalAddress(): string {
  *  domain is sent". Sits at the foot of every report; takes no props,
  *  because the address does not vary by domain, visitor or tier. */
 export function RemovalAddressLine(): React.JSX.Element {
-  return <p>{copy("removal.line.on-report", { address: removalAddress() })}</p>;
+  // The set's `.prov`, centred under the pricing card (S2, issue #505):
+  // mono, `--t-explain`, the quiet ink.
+  return (
+    <p className="rk-prov-line rk-center">
+      {copy("removal.line.on-report", { address: removalAddress() })}
+    </p>
+  );
 }
 
 /** REQ-002 c3 — the entire body a removed domain's report address serves:
