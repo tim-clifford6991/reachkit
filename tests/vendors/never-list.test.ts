@@ -248,7 +248,7 @@ describe('BP-008 error behaviour — "Credentials come from BP-005\'s env and ne
     for (const call of logCalls) assertNoSecretIn(call);
 
     // And the failure is legible as a failure — never silently swallowed.
-    expect(outcome).toEqual({ ok: false, reason: expect.stringContaining("dataforseo") });
+    expect(outcome).toEqual({ ok: false, failure: "transport", reason: expect.stringContaining("dataforseo") });
   });
 
   it("a non-2xx vendor response produces an outcome and console record that never contain the credential", async () => {
