@@ -2150,3 +2150,191 @@
   border-color: var(--accent);
   --input-color: var(--on-accent);
 }
+
+/* ── 19 · Interaction states — UI-SPEC §0, rulings of 2026-09-11 (#530) ──
+ *
+ * The places the approved set draws nothing, as the owner ruled them. Each
+ * rule cites its **§0 n**; the table they fill is UI-SPEC §2.4. They live
+ * here, on the registered components' own classes, and never per screen.
+ */
+
+/* Focus is global and it is one rule (§2.4, L62): the accent outline, two
+ * pixels off the edge. The set's `border-radius:6px` is not carried — it
+ * would square every pill and card for as long as it had focus, and a
+ * radius the ladder does not name is not admitted (§2, ruling 10a). */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Reduced motion (§2.4, L63): universal, `!important`, animation as well as
+ * transition. `--motion-fast` inherits it without a further rule (§0 13). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* §0 13 — one duration, `--motion-fast`, spent only on colour, background,
+ * border, box-shadow and transform. daisyUI's own components declare their
+ * own (`.btn` .2s, the collapse's and the switch's .1–.4s over height,
+ * grid tracks and `translate`); each registered one the product renders is
+ * brought to the one token here, or to none where what it moved is not a
+ * property the ruling admits. */
+.btn {
+  transition-property: color, background-color, border-color, box-shadow, transform;
+  transition-duration: var(--motion-fast);
+}
+
+.collapse,
+.collapse > .collapse-content {
+  transition: none;
+}
+
+.collapse > .collapse-title {
+  transition: background-color var(--motion-fast);
+}
+
+.collapse-arrow > .collapse-title::after {
+  transition: transform var(--motion-fast);
+}
+
+.toggle {
+  transition: color var(--motion-fast), background-color var(--motion-fast);
+}
+
+.toggle::before {
+  transition: background-color var(--motion-fast);
+}
+
+.tab::before {
+  transition: background-color var(--motion-fast);
+}
+
+.card,
+.progress {
+  transition: none;
+}
+
+.rk-choice,
+.rk-opt > .card {
+  transition: border-color var(--motion-fast), background-color var(--motion-fast);
+}
+
+/* §0 1 — Btn `:active` is the rank's own hover ground; nothing moves. The
+ * hover grounds are the set's (L154, L156, L158), written here beside the
+ * pressed state that repeats them, because a pressed ground that names a
+ * hover the product never drew would name nothing. daisyUI's own `:active`
+ * nudges the button half a pixel down and darkens it; both are undone. */
+.btn:active {
+  translate: none;
+  transform: none;
+}
+
+.btn.rk-btn-outline:is(:hover, :active) {
+  background: var(--accent-bg);
+}
+
+.btn.btn-primary:is(:hover, :active) {
+  --btn-bg: var(--accent);
+  filter: brightness(1.08);
+}
+
+.btn.rk-btn-tertiary:is(:hover, :active) {
+  background: var(--sunk);
+  color: var(--ink);
+}
+
+/* §0 3 — the warn outline answers the pointer: `--warn-bg`, the outline
+ * rank's hover one tone over. */
+.btn.rk-btn-outline[data-tone="warn"]:is(:hover, :active) {
+  background: var(--warn-bg);
+}
+
+/* §0 2 — Btn `[disabled]`, all four ranks: `--ink-3` on `--sunk`, a
+ * `--line` edge, the default cursor, and no hover change. Listed rank by
+ * rank so it outranks every tone and pressed rule above it by specificity
+ * rather than by `!important`. */
+.btn:disabled,
+.btn.btn-primary:disabled,
+.btn.rk-btn-outline:disabled,
+.btn.rk-btn-tertiary:disabled,
+.btn.rk-btn-inverse:disabled,
+.btn.rk-btn-outline[data-tone]:disabled,
+.btn.rk-btn-outline[aria-pressed="true"]:disabled {
+  background: var(--sunk);
+  border: 1px solid var(--line);
+  color: var(--ink-3);
+  cursor: default;
+  filter: none;
+  box-shadow: none;
+}
+
+/* §0 4 — a disabled field is `--sunk` ground with `--ink-3` text. The card
+ * around it is never dimmed (S10's inline `opacity:.6` is not built). */
+.input:disabled {
+  background: var(--sunk);
+  color: var(--ink-3);
+  cursor: default;
+}
+
+/* §0 5 — an invalid field carries a `--bad` edge as well as its written
+ * line, keyed on `aria-invalid` so the state is never colour alone. */
+.input[aria-invalid="true"] {
+  border-color: var(--bad);
+}
+
+/* §0 6 — Switch: no hover change, focus is the global ring, and disabled is
+ * the `--line` track at half strength with its label in `--ink-3`. */
+.toggle:disabled,
+.toggle:disabled:checked {
+  color: var(--line);
+  border-color: var(--line);
+  background: var(--line);
+  opacity: 0.5;
+  cursor: default;
+}
+
+label:has(> .toggle:disabled) {
+  color: var(--ink-3);
+  cursor: default;
+}
+
+/* §0 7 — Option card: no pressed change; disabled is `--sunk` ground, a
+ * `--line` edge and the default cursor, over hover and selected alike. */
+.rk-choice:disabled,
+.rk-choice:disabled:hover,
+.rk-choice[aria-pressed="true"]:disabled {
+  background: var(--sunk);
+  border-color: var(--line);
+  cursor: default;
+}
+
+.rk-opt:disabled {
+  cursor: default;
+}
+
+.rk-opt:disabled > .card,
+.rk-opt[aria-pressed="true"]:disabled > .card {
+  background: var(--sunk);
+  border-color: var(--line);
+}
+
+/* §0 8 — Tag: hover raises the × to full opacity; the tag keeps its ground,
+ * so hover never reads as chosen. */
+.rk-tag:hover .rk-tag-x {
+  opacity: 1;
+}
+
+/* §0 9 — Collapse: the summary row takes `--sunk` on hover. */
+.collapse > .collapse-title:hover {
+  background: var(--sunk);
+}
+
+/* §0 12 — the footer's links underline on hover, as `.linkish` (L371). */
+.rk-chrome-foot-in nav a:hover {
+  text-decoration: underline;
+}

@@ -44,7 +44,6 @@ import AppLayout from "@/app/(account)/app/layout";
 import { DomainBlock } from "@/app/(account)/app/_shell/DomainBlock";
 import { PublishingCard } from "@/app/(account)/app/_shell/PublishingCard";
 import { SidebarNav } from "@/app/(account)/app/_shell/SidebarNav";
-import { TabBar } from "@/app/(account)/app/_shell/TabBar";
 import { DESTINATIONS, DESTINATION_HREF } from "@/app/(account)/app/_shell/destinations";
 import { formatDate, formatDateTime } from "@/app/(account)/app/_shell/format";
 import type { ShellModel } from "@/app/(account)/app/_shell/model";
@@ -221,34 +220,39 @@ describe("REQ-040 c4 — with no publish scheduled, one line for the resolved re
 
 // ── criterion 5 ─────────────────────────────────────────────────────────
 describe("REQ-040 c5 — a viewport too narrow for the sidebar keeps all three", () => {
-  it("the tab bar renders the same three destinations, from the same tuple", () => {
-    const root = render(<TabBar />);
-    const tabs = root.querySelectorAll("[role='tab']");
-    expect(tabs).toHaveLength(3);
-    expect([...tabs].map((t) => t.textContent)).toEqual([
+  // UI-SPEC §0 11 (2026-09-11): below 1024 the three Workspace items stay as
+  // one horizontal row — labels and counts kept, nothing hidden. The compact
+  // row is the sidebar's own nav rendered with `row`, so the two bands have
+  // one renderer and cannot offer different navigation.
+  const compactNav = (el: Element | null): Element | null =>
+    el?.querySelector("[data-testid='shell-compact-nav']") ?? null;
+
+  it("the compact row renders the same three destinations, labelled, in order", () => {
+    const row = render(<SidebarNav waiting={0} row />);
+    const nav = row.matches("nav") ? row : row.querySelector("nav");
+    expect(nav?.className).toContain("rk-nav-row");
+    const links = [...row.querySelectorAll("a")];
+    expect(links.map((a) => a.textContent)).toEqual([
       "shell.nav.overview",
       "shell.nav.calendar",
       "shell.nav.settings",
     ]);
+    expect(links.map((a) => a.getAttribute("href"))).toEqual(
+      DESTINATIONS.map((d) => DESTINATION_HREF[d])
+    );
   });
 
-  it("mutation: the two renderers cannot offer different navigation", async () => {
-    // Both map over DESTINATIONS, so the tab bar's labels and the sidebar's
-    // addresses are the same three in the same order. A fourth entry added
-    // to one renderer alone has nowhere to come from.
-    const tabs = [...render(<TabBar />).querySelectorAll("[role='tab']")].map((t) => t.textContent);
-    const links = [...render(<SidebarNav waiting={0} />).querySelectorAll("a")].map(
-      (a) => a.getAttribute("href")
-    );
-    expect(tabs).toHaveLength(links.length);
-    expect(links).toEqual(DESTINATIONS.map((d) => DESTINATION_HREF[d]));
+  it("the compact row keeps Calendar's count — the tab bar it replaced dropped it", () => {
+    const row = render(<SidebarNav waiting={7} row />);
+    expect(row.querySelector("[data-testid='shell-calendar-count']")?.textContent).toBe("7");
+    const none = render(<SidebarNav waiting={0} row />);
+    expect(none.querySelector("[data-testid='shell-calendar-count']")).toBeNull();
   });
 
   // ── Issue #267 ────────────────────────────────────────────────────
   //
-  // The tab bar took `current ?? DESTINATIONS[0]`, so on a route that is on
-  // no destination it marked **Overview** current while the sidebar, which
-  // reads the same `destinationOf`, marked nothing. The pair below is what
+  // The old tab bar took `current ?? DESTINATIONS[0]`, so on a route that is
+  // on no destination it marked **Overview** current. The pair below is what
   // discriminates: an implementation that falls back to the first
   // destination passes the first row and fails the second.
   it("each of the three destinations marks itself current at its own address", () => {
@@ -258,41 +262,41 @@ describe("REQ-040 c5 — a viewport too narrow for the sidebar keeps all three",
       ["/app/settings", "shell.nav.settings"],
     ] as const) {
       at.pathname = pathname;
-      const selected = [...render(<TabBar />).querySelectorAll("[role='tab']")].filter(
-        (tab) => tab.getAttribute("aria-selected") === "true"
+      const current = [...render(<SidebarNav waiting={0} row />).querySelectorAll("a")].filter(
+        (a) => a.getAttribute("aria-current") === "page"
       );
-      expect(selected.map((tab) => tab.textContent), pathname).toEqual([label]);
+      expect(current.map((a) => a.textContent), pathname).toEqual([label]);
     }
+    at.pathname = "/app";
   });
 
   it("**a route on no destination marks none** — the draft view", () => {
     at.pathname = "/app/draft/draft-1";
-    const tabs = [...render(<TabBar />).querySelectorAll("[role='tab']")];
-    expect(tabs).toHaveLength(3);
-    expect(tabs.filter((tab) => tab.getAttribute("aria-selected") === "true")).toEqual([]);
-    expect(tabs.filter((tab) => tab.className.includes("tab-active"))).toEqual([]);
+    const links = [...render(<SidebarNav waiting={0} row />).querySelectorAll("a")];
+    expect(links).toHaveLength(3);
+    expect(links.filter((a) => a.getAttribute("aria-current") === "page")).toEqual([]);
     at.pathname = "/app";
   });
 
-  it("the two renderers agree about what is current, at every address", () => {
+  it("the row and the column agree about what is current, at every address", () => {
     for (const pathname of ["/app", "/app/calendar", "/app/settings", "/app/draft/d1"] as const) {
       at.pathname = pathname;
-      const tabSelected = [...render(<TabBar />).querySelectorAll("[role='tab']")]
-        .filter((tab) => tab.getAttribute("aria-selected") === "true")
-        .map((tab) => tab.textContent);
-      const navCurrent = [...render(<SidebarNav waiting={0} />).querySelectorAll("a")]
-        .filter((a) => a.getAttribute("aria-current") === "page")
-        .map((a) => a.textContent);
-      expect(tabSelected, pathname).toEqual(navCurrent);
+      const mark = (row: boolean): (string | null)[] =>
+        [...render(<SidebarNav waiting={0} row={row} />).querySelectorAll("a")]
+          .filter((a) => a.getAttribute("aria-current") === "page")
+          .map((a) => a.textContent);
+      expect(mark(true), pathname).toEqual(mark(false));
     }
     at.pathname = "/app";
   });
 
-  it("the domain block and the publishing state collapse into the tab bar's header, not away", async () => {
+  it("the domain block, the row and the publishing state collapse into the header, not away", async () => {
     const root = await renderLayout();
     const top = root.querySelector("[data-testid='shell-top']");
     expect(top).not.toBeNull();
-    expect(top?.querySelector("[data-testid='shell-tabbar']")).not.toBeNull();
+    expect(compactNav(top)?.querySelectorAll("a")).toHaveLength(3);
+    expect(top?.querySelector("[data-testid='shell-tabbar']")).toBeNull();
+    expect(top?.querySelector("[role='tab']")).toBeNull();
     expect(top?.querySelector(".rk-domain")).not.toBeNull();
     expect(top?.querySelector("[data-testid='shell-publishing']")).not.toBeNull();
   });
@@ -302,6 +306,7 @@ describe("REQ-040 c5 — a viewport too narrow for the sidebar keeps all three",
     const sidebar = root.querySelector("[data-testid='shell-sidebar']");
     expect(sidebar?.querySelector(".rk-domain")).not.toBeNull();
     expect(sidebar?.querySelector("[data-testid='shell-sidebar-nav']")).not.toBeNull();
+    expect(compactNav(sidebar)).toBeNull();
     expect(sidebar?.querySelector("[data-testid='shell-publishing']")).not.toBeNull();
   });
 });

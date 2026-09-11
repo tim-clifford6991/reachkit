@@ -343,9 +343,27 @@
   border-color: var(--accent-line);
 }
 
-.rk-cal-cell.rk-cal-selected {
-  background: var(--accent-bg);
+/* S14's hover ring (L326) — `--accent-line` round the card. Drawn on the
+ * cell's own transparent hairline rather than as a 1.5px shadow layer: the
+ * edge is already there at the same width, so the ring moves nothing, and
+ * the product's hairline is the one width the token gate admits (the same
+ * half-pixel `.rk-choice` gives up against the set's 1.5px). */
+.rk-cal-cell:hover {
   border-color: var(--accent-line);
+}
+
+/* UI-SPEC §0 10: the cell open in the day panel keeps the hover ring
+ * permanently, and carries `aria-current="date"` in the markup — the
+ * attribute is the state, this is its picture. Today keeps its own ring
+ * above, so both show on the day they differ. */
+.rk-cal-cell.rk-cal-selected {
+  border-color: var(--accent-line);
+}
+
+/* §0 13: the ring's arrival is the one motion token, and only on the two
+ * properties it changes. */
+.rk-cal-cell {
+  transition: border-color var(--motion-fast), box-shadow var(--motion-fast);
 }
 
 /* A cell holding a column position and nothing else. It is not a date the
