@@ -32,7 +32,7 @@
 // hands the completed `Drivers` to `verdictOf`. Buying a SERP here would
 // spend the free path's ceiling twice on the same rows (§6.4).
 import { BATTERY, CACHE_WINDOWS_D, PRICE_BOOK } from "@/lib/config/constants";
-import type { CostContext } from "@/lib/costs";
+import { isFetchRefusal, refusalOf, type CostContext, type FetchRefusal, type FetchRefusalReason } from "@/lib/costs";
 import { safeFetch, type SafeFetchOpts } from "@/lib/egress/safe-fetch";
 import { readRobots } from "@/lib/egress/robots";
 import type { FetchOutcome, RobotsPolicy } from "@/lib/egress/types";
@@ -40,7 +40,7 @@ import { rankedKeywords } from "@/lib/vendors/dataforseo";
 import type { RankedResult } from "@/lib/vendors/dataforseo/types";
 import { answerabilityOf, foundationsOf, ownRankedOf, searchPresenceOf } from "./drivers";
 import { measured, measuredZero, unmeasured, type Measured } from "./measured";
-import { OWN_FETCH_SOURCE, isStoredDocument, toStoredDocument, type StoredDocument } from "./own-fetch";
+import { OWN_FETCH_OPTS, OWN_FETCH_SOURCE, isStoredDocument, toStoredDocument, type StoredDocument } from "./own-fetch";
 import { parseOnPage, visibleText, type OnPageFacts } from "./parse";
 import type { Drivers } from "./score";
 
@@ -108,6 +108,9 @@ interface DocumentRead {
    *  long enough to detect the pricing link. */
   html: string | null;
   at: Date;
+  /** Why the fetcher refused the document, where it did; `null` where it
+   *  was read, served from the cache, or never attempted. */
+  refusal: FetchRefusalReason | null;
 }
 
 /** One own-document read, through `recordFetch` at zero cents so the bytes
@@ -117,29 +120,33 @@ interface DocumentRead {
  *  document → `measured`, or `zero` when it parsed to nothing (no headings,
  *  no visible text — REQ-004 c7's "read it; it contained none"). */
 async function readDocument(c: CostContext, ports: MeasurePorts, url: string): Promise<DocumentRead> {
-  // The failed outcome is kept beside the ledgered `null` so its `readAt`
-  // can date the `unmeasured` arm — the row itself stores no failure.
+  // The failed outcome is kept beside the ledgered refusal so its `readAt`
+  // can date the `unmeasured` arm — the row stores the refusal, not a date.
   const stash: { failure: Extract<FetchOutcome, { ok: false }> | null } = { failure: null };
-  const result = await c.recordFetch<StoredDocument | null>({
+  const result = await c.recordFetch<StoredDocument | FetchRefusal>({
     source: OWN_FETCH_SOURCE,
     cacheKey: url,
     freshnessDays: CACHE_WINDOWS_D.own,
     costCents: 0,
     run: async () => {
-      const outcome = await ports.fetchDocument(url, { userAgent: "reachkit-measure" });
+      const outcome = await ports.fetchDocument(url, OWN_FETCH_OPTS);
       if (outcome.ok) return toStoredDocument(outcome);
       stash.failure = outcome;
-      return null;
+      // A refusal is a row, never a `null` — `fetches.payload` is `not
+      // null`, and the insert's throw used to become the stage's reason
+      // in place of the refusal itself (issue #479).
+      return refusalOf(outcome);
     },
   });
 
   if ("skipped" in result) {
-    return { url, facts: unmeasured("not_attempted", EPOCH), html: null, at: EPOCH };
+    return { url, facts: unmeasured("not_attempted", EPOCH), html: null, at: EPOCH, refusal: null };
   }
   const stored = result.payload;
-  if (stored === null || !isStoredDocument(stored)) {
+  if (!isStoredDocument(stored)) {
     const at = stash.failure === null ? EPOCH : stash.failure.readAt;
-    return { url, facts: unmeasured("undeterminable", at), html: null, at };
+    const refusal = isFetchRefusal(stored) ? stored.refusal : null;
+    return { url, facts: unmeasured("undeterminable", at), html: null, at, refusal };
   }
   const at = new Date(stored.readAt);
   const facts = parseOnPage({ url: stored.url, html: stored.html });
@@ -149,6 +156,7 @@ async function readDocument(c: CostContext, ports: MeasurePorts, url: string): P
     facts: isEmpty ? measuredZero(facts, at) : measured(facts, at),
     html: stored.html,
     at,
+    refusal: null,
   };
 }
 
@@ -223,6 +231,12 @@ export interface DomainMeasurement {
    *  bought a second time. `unmeasured` carries the same reason
    *  `searchPresence` carries; the two are the same read. */
   ownRanked: Measured<number>;
+  /** Why the fetcher refused the home document, where it did (issue #479);
+   *  `null` where it was read. A refused home is the whole site unread:
+   *  nothing after it is attempted — no pricing page, no robots read, no
+   *  priced call — and the pass ends `site_unreadable` (`src/lib/scan/
+   *  run.ts`) rather than `complete`. */
+  homeRefusal: FetchRefusalReason | null;
 }
 
 /** Reads a domain — home document, detected pricing page, up to the tier's
@@ -242,6 +256,27 @@ export async function measureDomain(
   const home = await readDocument(c, ports, homeUrl);
   const at = home.at;
   const onPage = home.facts;
+
+  // 1a. A refused home document is an unread site. Nothing else is read or
+  //     bought for it: the pass stops here and says why (issue #479).
+  if (home.refusal !== null) {
+    logDriver("home_refused", { domain: a.domain, refusal: home.refusal });
+    const robots = unmeasured<RobotsPolicy>("not_attempted", at);
+    return {
+      drivers: {
+        foundations: foundationsOf({ onPage, robots, at }),
+        answerability: answerabilityOf({ pages: [onPage], at }),
+        searchPresence: unmeasured("not_attempted", at),
+        aiPresence: unmeasured("not_attempted", at),
+      },
+      text: { home: null, pricing: null },
+      onPage,
+      pricing: null,
+      robots,
+      ownRanked: unmeasured("not_attempted", at),
+      homeRefusal: home.refusal,
+    };
+  }
 
   // 2. The pricing page, from the home document's own links.
   const pricingUrl = home.html === null ? null : detectPricingUrl(home.html, homeUrl);
@@ -339,5 +374,6 @@ export async function measureDomain(
     pricing,
     robots,
     ownRanked,
+    homeRefusal: null,
   };
 }

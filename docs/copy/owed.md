@@ -20,7 +20,7 @@ A key with slots (`{value}`, `{date}`) carries them beside its name; the sentenc
 | screen | | owed | empty |
 |---|---|---:|---:|
 | S1 | [Landing](#s1-landing-public) | 35 | 0 |
-| S2 | [Free report](#s2-free-report-public) | 47 | 4 |
+| S2 | [Free report](#s2-free-report-public) | 48 | 4 |
 | S3 | Report states | none | 0 |
 | S4 | [Pricing](#s4-pricing-public) | 4 | 0 |
 | S5 | [Legal](#s5-legal-public) | 12 | 0 |
@@ -118,6 +118,7 @@ Every bracketed hint the set draws on this screen: `[robots lines — verbatim, 
 | `method.unquotable-pages.body`<br>`report.ts` | marker | `METHOD_COPY` · `app/(public)/scan/[domain]/_problems/method.tsx` |  | REQ-009 c6 |  |
 | `method.unquotable-pages.title`<br>`report.ts` | marker | `METHOD_COPY` · `app/(public)/scan/[domain]/_problems/method.tsx` |  | REQ-009 c6 | 25 — sibling `method.title` |
 | `notice.refused.stopped`<br>`report.ts` | marker | `REFUSAL_KEY` · `app/(public)/scan/[domain]/_address/refusal.ts` |  | REQ-003 c12 |  |
+| `notice.site-unreadable`<br>`report.ts` | marker | component · `<Alert>` · `app/(public)/scan/[domain]/_address/report-view.tsx` |  | REQ-004 c6 |  |
 | `offer.cadence.measure.value`<br>`offer.ts` | marker | `TERM_LINES` · `app/(public)/scan/[domain]/_modules/pricing.tsx` |  | REQ-021 c2 |  |
 | `offer.cadence.movement.value`<br>`offer.ts` | marker | `TERM_LINES` · `app/(public)/scan/[domain]/_modules/pricing.tsx` |  | REQ-021 c2 |  |
 | `offer.cadence.page.value`<br>`offer.ts` | marker | `TERM_LINES` · `app/(public)/scan/[domain]/_modules/pricing.tsx` |  | REQ-021 c2 |  |

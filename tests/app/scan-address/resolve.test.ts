@@ -41,6 +41,7 @@ function resolve(rawSegment = DOMAIN as string) {
  *  `tests/scan/report/**`'s to decide; this suite is about the order. */
 function storedReport(over: Partial<{
   complete: boolean;
+  stoppedReason: StoredReport["stoppedReason"];
   fromIncompleteRescan: boolean;
   measuredAt: Date;
   correctionState: StoredReport["correctionState"];
@@ -50,6 +51,7 @@ function storedReport(over: Partial<{
   return {
     scanId: "scan-1",
     complete: over.complete ?? true,
+    stoppedReason: over.stoppedReason ?? (over.complete === false ? "time_ceiling" : "complete"),
     fromIncompleteRescan: over.fromIncompleteRescan ?? false,
     // #103: the category has one home — the market the profile inferred.
     // `resolve.ts` derives it with `categoryOf`, so the double carries the
@@ -165,6 +167,25 @@ describe("row 3 — a current report is a thing to read", () => {
     const state = await resolve();
     if (state.kind !== "report") throw new Error("unreachable");
     expect(state.notice).toEqual({ kind: "incomplete", unmeasured: ["presence"] });
+    expect(state.control).toEqual({ kind: "rescan", because: "incomplete" });
+  });
+
+  it("a pass that could not read the site says so, in place of the list of factors it took with it (#479)", async () => {
+    readCurrentReport.mockResolvedValue(
+      storedReport({
+        complete: false,
+        stoppedReason: "site_unreadable",
+        missing: [
+          { factor: "foundations", reason: "undeterminable" },
+          { factor: "answerability", reason: "undeterminable" },
+          { factor: "presence", reason: "not_attempted" },
+        ],
+      })
+    );
+    const state = await resolve();
+    if (state.kind !== "report") throw new Error("unreachable");
+    expect(state.notice).toEqual({ kind: "site_unreadable" });
+    // Incomplete, so the one offer REQ-001 c14 makes still stands.
     expect(state.control).toEqual({ kind: "rescan", because: "incomplete" });
   });
 

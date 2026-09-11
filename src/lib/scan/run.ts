@@ -567,7 +567,14 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
     }
   }
 
-  logPass({ scanId, tier: a.tier, stoppedReason, status: stored.status, because: "pass_ended" });
+  logPass({
+    scanId,
+    tier: a.tier,
+    stoppedReason,
+    status: stored.status,
+    because:
+      ending.stoppedReason === "site_unreadable" ? (ending.refusal ?? "stage_undeterminable") : "pass_ended",
+  });
   return stored;
 }
 
@@ -630,6 +637,15 @@ async function runStages(a: StageArgs): Promise<void> {
   const measurement = await attempt("reading_your_site", () => measureDomain(cost, { domain, tier: a.tier }));
   if (!failed(measurement)) sections.measurement = measurement;
   exitStage(scanId, "reading_your_site");
+
+  // A site whose own home document could not be read — refused by the
+  // fetcher, or a read that raised — is not measured by anything after it,
+  // and the pass does not pretend otherwise: it stops here, and the ending
+  // is `site_unreadable` with the refusal, never `complete` (issue #479).
+  if (failed(measurement) || measurement.homeRefusal !== null) {
+    bounds.siteUnreadable(failed(measurement) ? null : measurement.homeRefusal);
+    return;
+  }
 
   if (bounds.stopNow() !== null) return;
   await enter("reading_access_rules");

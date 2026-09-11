@@ -38,6 +38,8 @@ import { now } from "@/lib/config/now";
 import { readCache } from "./cache";
 import { openDayLedger } from "./daily";
 import { writeFetchRow } from "./ledger";
+import { isFetchRefusal } from "./refusal";
+export { isFetchRefusal, refusalOf, type FetchRefusal, type FetchRefusalReason } from "./refusal";
 
 export type CapName = "FREE" | "DEEP" | "WEEKLY" | "DRAFT";
 
@@ -237,7 +239,11 @@ export async function withCostContext<T>(
       }
 
       let settledCents = call.costCents;
-      if (call.settleCents) {
+      if (isFetchRefusal(payload)) {
+        // A refused fetch bought nothing: its row is ledgered at 0 cents
+        // (issue #479), whatever was reserved for it.
+        settledCents = 0;
+      } else if (call.settleCents) {
         const proposedCents = call.settleCents(payload);
         if (proposedCents > call.costCents) {
           // A settlement never raises a charge (BP-007 `## Error & edge

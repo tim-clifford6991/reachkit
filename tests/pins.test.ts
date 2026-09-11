@@ -520,6 +520,16 @@ describe("BUILD §6.4 — cache windows, the free path's own bounds, and the DNS
     expect(Number.isFinite(pins.DNS_TIMEOUT_MS)).toBe(true);
     expect(pins.DNS_TIMEOUT_MS).toBeGreaterThan(0);
   });
+
+  // Master ruling 2026-09-10 (issue #479): the customer's own documents are
+  // read with their own cap, passed by `src/lib/measure/own-fetch.ts`;
+  // vendor and rival reads keep the fetcher's 2 MB default, which is
+  // module-local to `safe-fetch.ts` and quoted here, not imported. Above
+  // the cap a read is refused, never truncated.
+  it(`${B.fetcher} — OWN_DOCUMENT_MAX_BYTES, the own-document size cap, is 6 MB and above the fetcher's 2 MB default`, () => {
+    expect(pins.OWN_DOCUMENT_MAX_BYTES).toBe(6_000_000);
+    expect(pins.OWN_DOCUMENT_MAX_BYTES).toBeGreaterThan(2_000_000);
+  });
 });
 
 describe("DECISIONS 2026-09-03 (ADR-094) — the async AI-Overview reservation multiplier", () => {
