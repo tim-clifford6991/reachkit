@@ -1097,6 +1097,21 @@
   white-space: nowrap;
 }
 
+/* ── The headline figure (UI-SPEC S12, issue #509) ────────────────────── */
+
+/* `Stat`'s value at the set's `.stat-v` (L192): `--t-num-big` at
+ * `--num-weight`, in the numeral face `.num` already sets (ruling 7a).
+ * daisyUI's own `stat-value` is 2rem at 800 — a display face's weight on a
+ * mono numeral — and this widens it the way `Progress`'s ground is widened
+ * above, rather than minting a class. `Stat` is spent only by S12's three
+ * tiles; the S1 miniature draws its own figures (`.rk-shot-tile-v`) at the
+ * frame's rung and is not this element. The tracking is the set's own. */
+.stat-value.num {
+  font-size: var(--t-num-big);
+  font-weight: var(--num-weight);
+  letter-spacing: -0.03em;
+}
+
 /* ── The stage list (UI-SPEC S11, issue #356) ─────────────────────────── */
 
 /* The rows of the deep pass, as the set draws them: a state mark, the
@@ -1210,6 +1225,14 @@
 
 .rk-tag-x::after {
   content: "\00d7";
+}
+
+/* Ruling 8 (UI-SPEC §0 item 8, table row "Tag `.tag`"): on hover the ×
+ * rises to full opacity and the tag keeps its ground — the affordance
+ * answers the pointer, the chosen domain does not change colour. Focus is
+ * the global ring, so nothing is written for it here (issue #509). */
+.rk-tag:hover .rk-tag-x {
+  opacity: 1;
 }
 
 /* ── The option pair (UI-SPEC S10, issue #356) ────────────────────────── */
