@@ -34,6 +34,18 @@ export interface StepItem {
 const CHECK_SIZE = 15;
 const CHECK_STROKE = 3;
 
+/** The bead's colour per state, through daisyUI's own modifiers. The set
+ *  draws a finished step `--ok` (`.step.done .b` L308) and the one under way
+ *  in the accent (`.step.now .b` L309); `tailwind.config.ts` maps daisyUI's
+ *  `success` slot to `--ok` and `primary` to `--accent`, so each modifier is
+ *  the token and nothing is minted (issue #509). A pending step keeps the
+ *  quiet ground. */
+const STATE_CLASS: Record<StepItem["state"], string | null> = {
+  pending: null,
+  active: "step-primary",
+  done: "step-success",
+};
+
 export function Steps(p: {
   steps: StepItem[];
   /** Optional, added by issue #14 (constitution rule 1.1: an internal,
@@ -51,7 +63,7 @@ export function Steps(p: {
       {p.steps.map((step) => (
         <li
           key={step.id}
-          className={`step${step.state === "done" || step.state === "active" ? " step-primary" : ""}`}
+          className={STATE_CLASS[step.state] === null ? "step" : `step ${STATE_CLASS[step.state]}`}
           data-state={step.state}
         >
           {/* A finished step carries the set's check in its bead (UI-SPEC
