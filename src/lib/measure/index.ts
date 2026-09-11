@@ -225,6 +225,8 @@ export interface DomainMeasurement {
    *  the fetched home + pricing pages", and this call is the one that
    *  fetched them — a second read of the customer's own server for text
    *  already in hand is exactly what §6.4's never-pull list forbids.
+   *  Whole, as the measurement read it: the profile prompt bounds its own
+   *  copy (`PROFILE_INPUT_MAX_CHARS`, issue #523), never this.
    *  `null` where the document was not read. */
   text: { home: string | null; pricing: string | null };
   /** The home document's facts — `unmeasured` when it could not be read,

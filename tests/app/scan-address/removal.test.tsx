@@ -37,6 +37,7 @@ const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
 const SRC = path.join(REPO_ROOT, "src");
 const REMOVAL_MODULE = "src/app/(public)/scan/[domain]/_address/removal.tsx";
 const COPY_PARTITION = "src/lib/presentation/copy/keys/report.ts";
+const COPY_PARTITIONS = "src/lib/presentation/copy/keys/";
 
 const DOMAIN = "example.com" as CanonicalDomain;
 
@@ -126,8 +127,11 @@ describe("one address, from one key", () => {
   });
 
   it("the address appears as a literal nowhere in `src/` outside the copy registry", () => {
+    // Inside the registry it is also spoken by the owner's legal bodies
+    // (approved 2026-09-10, #459), which name it in their own sentences;
+    // outside the registry's partitions it is never written.
     const address = COPY["removal.address"];
-    const literals = SOURCES.filter((s) => s.file !== COPY_PARTITION && s.text.includes(address)).map(
+    const literals = SOURCES.filter((s) => !s.file.startsWith(COPY_PARTITIONS) && s.text.includes(address)).map(
       (s) => s.file
     );
     expect(literals).toEqual([]);

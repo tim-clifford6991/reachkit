@@ -82,7 +82,7 @@ describe("UI-SPEC S5 — the screen: eyebrow, title, updated line, one card", ()
         expect(html).toContain(copy("legal.eyebrow"));
         expect(html).toContain(copy(route.title));
         expect(html).toContain(copy("legal.updated", { date: copy(route.updated) }));
-        expect(html).toContain(copy(route.document));
+        expect(html).toContain(legalBodyHtml(copy(route.document)));
       });
 
       it("the eyebrow is the eyebrow role, and the title is the page's one h1", () => {
@@ -117,11 +117,15 @@ describe("UI-SPEC S5 — the Markdown body goes through the product's one render
   });
 
   it("the body is rendered as Markdown, not printed as a string", () => {
-    // The marker is one paragraph of Markdown, so the renderer's own
-    // paragraph tag around it is the observable difference between a body
-    // that went through the renderer and a body that was printed.
+    // The owner's notice (approved 2026-09-10, #459) opens with a `##`
+    // heading: a body that went through the renderer carries a heading for
+    // it (an h3, one level under the page's h1 — #493) and no hash marks; a
+    // body that was printed carries the hash marks.
     const html = renderToStaticMarkup(<PrivacyPage />);
-    expect(html).toContain(`<p>${copy("legal.privacy.body")}</p>`);
+    expect(copy("legal.privacy.body")).toMatch(/^## Who we are\n/);
+    expect(html).toContain(legalBodyHtml(copy("legal.privacy.body")));
+    expect(html).toMatch(/<h3[^>]*>Who we are<\/h3>/);
+    expect(html).not.toContain("## Who we are");
   });
 
   it("the card carries no head — the page's h1 already names the document", () => {

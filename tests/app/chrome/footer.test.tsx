@@ -42,8 +42,8 @@ describe("UI-SPEC 3a — brand · rights · removal address · Product · Legal"
     expect(COPY["chrome.footer.opt-out"]).toContain("{address}");
   });
 
-  it("the rights line is the owner's and still owed", () => {
-    expect(COPY["chrome.footer.rights"]).toBe("TODO(copy)");
+  it("the rights line is the owner's approved sentence (2026-09-10, #459)", () => {
+    expect(COPY["chrome.footer.rights"]).toBe("© 2026 ReachKit. All rights reserved.");
   });
 
   it("the group layout renders it on every public route, with nothing to decide", () => {

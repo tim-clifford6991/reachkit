@@ -337,9 +337,14 @@ describe("pageRecordFor — REQ-062 c7's inseparability (ADR-085 Decision 5)", (
 
 describe("the record's own shape", () => {
   it("names three copy keys and writes no sentence", async () => {
+    // The three sentences are the registry's — the owner's, approved
+    // 2026-09-10 (#459) — and the record carries only their keys.
+    expect(Object.values(ADDRESS_COPY)).toHaveLength(3);
     for (const key of Object.values(ADDRESS_COPY)) {
-      expect(COPY[key]).toBe(TODO_COPY_MARKER);
-      expect(AWAITING_COPY).toContain(key);
+      expect(Object.keys(COPY)).toContain(key);
+      expect(COPY[key]).not.toBe(TODO_COPY_MARKER);
+      expect(COPY[key]).not.toBe("");
+      expect(AWAITING_COPY).not.toContain(key);
     }
   });
 

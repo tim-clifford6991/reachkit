@@ -68,16 +68,28 @@ export const CAPS = Object.freeze({
  *  warning cannot drift away from the ceiling it warns about. */
 export const SPEND_ALERT_AT = Object.freeze({ warn: 0.8, ceiling: 1 } as const);
 
-/** Per-token model prices, cents per million tokens — BP-005 `## Public
- *  interface`, transcribed verbatim (rule 1.2 — data, not a chosen
- *  parameter): `nano: { inCentsPerM: 20; outCentsPerM: 125 }`,
- *  `haiku: { inCentsPerM: 100; outCentsPerM: 500 }`. `costCents` for one
- *  call is `tokensIn/1e6 * inCentsPerM + tokensOut/1e6 * outCentsPerM`,
- *  computed at BP-009's own call site (`src/lib/llm/tiers.ts`), never
- *  here — this file holds the price, never the formula (rule 2.5). */
+/** Per-token model prices, cents per million tokens. `haiku` is BP-005
+ *  `## Public interface`, transcribed verbatim (rule 1.2 — data, not a
+ *  chosen parameter): `haiku: { inCentsPerM: 100; outCentsPerM: 500 }`.
+ *  `costCents` for one call is `tokensIn/1e6 * inCentsPerM + tokensOut/1e6
+ *  * outCentsPerM`, computed at BP-009's own call site
+ *  (`src/lib/llm/tiers.ts`), never here — this file holds the price, never
+ *  the formula (rule 2.5).
+ *
+ *  **`nano` is Haiku's row, owner ruling 2026-09-11 (issue #517).** BP-005
+ *  and BP-009 priced `nano` at 20 / 125 ¢ per MTok, a nano-class model the
+ *  product never bought: both tiers call `claude-haiku-4-5`
+ *  (`src/lib/llm/tiers.ts`), so every nano call was ledgered at a fifth of
+ *  its cost and `CAPS.FREE_C` was checked against a price that does not
+ *  exist. The owner ruled the row priced at Haiku's rate. It is the same
+ *  frozen object as `haiku`'s, not a retyped copy, so the two tiers cannot
+ *  drift apart; a genuinely cheaper nano model is a new ruling and a new
+ *  row. */
+const HAIKU_INFERENCE_PRICE = Object.freeze({ inCentsPerM: 100, outCentsPerM: 500 } as const);
+
 export const INFERENCE_PRICE_BOOK = Object.freeze({
-  nano: Object.freeze({ inCentsPerM: 20, outCentsPerM: 125 } as const),
-  haiku: Object.freeze({ inCentsPerM: 100, outCentsPerM: 500 } as const),
+  nano: HAIKU_INFERENCE_PRICE,
+  haiku: HAIKU_INFERENCE_PRICE,
 } as const);
 
 /** The wall clock one `llm()` call may hold, per tier, in milliseconds —
@@ -177,6 +189,21 @@ export const PROFILE_LIST_BOUNDS = Object.freeze({
   vocabulary: Object.freeze({ min: 0, max: 12 } as const),
   brandTokens: Object.freeze({ min: 0, max: 6 } as const),
 } as const);
+
+/** The most of the customer's own page text one `profile` call may carry,
+ *  in characters of the prompt it is serialised into — home first, the
+ *  pricing page in what remains, cut at a word boundary
+ *  (`src/lib/market/questions/profile.ts`). Issue #523: since #479 an own
+ *  document may be up to `OWN_DOCUMENT_MAX_BYTES`, and its visible text went
+ *  into the prompt whole, so a large marketing site's reservation alone
+ *  could pass `CAPS.FREE_C` (or the model's context window) and leave the
+ *  profile, the market, the twelve and the AI answers unmeasured. 20 000 is
+ *  the figure #517's worst-case arithmetic assumed (~5.3k tokens with the
+ *  fixed instruction, at ~4 chars a token); `tests/scan/free/cost-bound.
+ *  test.ts` adds the free pass up from the pins with it and holds the sum
+ *  under `CAPS.FREE_C`. Only the prompt is bounded — the measurement reads
+ *  the whole document. */
+export const PROFILE_INPUT_MAX_CHARS = 20_000 as const;
 
 /** How many `llm()` calls one free pass issues — BP-009 `## NFR budget`,
  *  quoted: "the free scan's **two** nano calls — `profile` and

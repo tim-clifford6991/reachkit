@@ -9,7 +9,7 @@
 //
 // It asserts the key, never the sentence (WO-249's rule): the owner may
 // write any of these strings tomorrow and nothing here changes.
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import React from "react";
 import {
@@ -209,25 +209,64 @@ describe("the report renders end to end against the real registry", () => {
     ).not.toThrow();
   });
 
-  it("no rendered line is blank: an unwritten sentence shows its marker instead", () => {
+  it("no rendered line is blank: every sentence the report speaks renders as text", () => {
     const html = renderToStaticMarkup(
       React.createElement(ReportView, {
         state: { report: FIXTURE_REPORT, notice: null, control: { kind: "none" } },
       })
     );
-    // The marker is on screen, which is the whole point of it: the owner
-    // sees which sentence each module is waiting for, in place.
-    expect(html).toContain(TODO_COPY_MARKER);
-    // And nothing renders as an empty element where a sentence belongs.
+    // Nothing renders as an empty element where a sentence belongs. The
+    // default render may carry no marker at all (#459 wrote the public
+    // strings; the one owed report key left, `notice.site-unreadable`,
+    // speaks only in the site-unreadable state), so the marker path is
+    // proven below on a synthetic owed key rather than on this render.
     expect(html).not.toMatch(/<p[^>]*><\/p>/);
+    expect(html).not.toMatch(/<span[^>]*><\/span>/);
+  });
+
+  it("an unwritten sentence shows its marker in place, proven on a synthetic owed key", async () => {
+    // The registry's test override (the convention `copy.test.ts` uses):
+    // the real registry with one key the default render speaks put back
+    // on the marker, so the path stays exercised however many real keys
+    // are owed — including none.
+    const owedKey: CopyKey = "ai-answers.title";
+    vi.resetModules();
+    vi.doMock("@/lib/presentation/copy/registry", async (importOriginal) => {
+      const actual = await importOriginal<typeof import("@/lib/presentation/copy/registry")>();
+      return {
+        ...actual,
+        COPY: Object.freeze({ ...actual.COPY, [owedKey]: actual.TODO_COPY_MARKER }),
+        AWAITING_COPY: Object.freeze([...actual.AWAITING_COPY, owedKey]),
+      };
+    });
+    try {
+      const freshReact = (await import("react")).default;
+      const { renderToStaticMarkup: freshRender } = await import("react-dom/server");
+      const { ReportView: FreshReportView } = await import(
+        "@/app/(public)/scan/[domain]/_address/report-view"
+      );
+      const html = freshRender(
+        freshReact.createElement(FreshReportView, {
+          state: { report: FIXTURE_REPORT, notice: null, control: { kind: "none" } },
+        })
+      );
+      // The marker is on screen, which is the whole point of it: the owner
+      // sees which sentence each module is waiting for, in place.
+      expect(html).toContain(TODO_COPY_MARKER);
+      expect(html).not.toMatch(/<p[^>]*><\/p>/);
+    } finally {
+      vi.doUnmock("@/lib/presentation/copy/registry");
+      vi.resetModules();
+    }
   });
 });
 
 describe("what the owner is owed, stated rather than discovered", () => {
   it("every key this screen still waits on carries the marker, and is listed", () => {
     const waiting = SCREEN_KEYS.filter((key) => AWAITING_COPY.includes(key));
-    // Rule 5.5: the count is reported, not left implicit.
-    expect(waiting.length).toBeGreaterThan(0);
+    // Rule 5.5: the list is stated, not left implicit — and it may be
+    // empty: since #459 wrote the public strings, the default report
+    // waits on no sentence. Every key that is listed carries the marker.
     for (const key of waiting) expect(COPY[key]).toBe(TODO_COPY_MARKER);
   });
 
