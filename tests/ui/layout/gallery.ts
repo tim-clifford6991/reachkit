@@ -370,7 +370,7 @@ export function galleryShots(cookies: GalleryCookies): GalleryShot[] {
           press: [
             {
               click: `[data-testid="calendar-cell-${date}"]`,
-              wait: `[data-testid="calendar-cell-${date}"][aria-pressed="true"]`,
+              wait: `[data-testid="calendar-cell-${date}"][aria-current="date"]`,
             },
           ],
         }

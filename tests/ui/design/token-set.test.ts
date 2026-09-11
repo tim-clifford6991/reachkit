@@ -74,8 +74,8 @@ describe("issue #349 — theme.css is the approved token file", () => {
     // the artifact's 47 plus 10a's six. The two dark blocks are one palette
     // reached two ways (§2.1), so they must be identical — an override in
     // one and not the other is how the toggle and the OS setting come apart.
-    expect(approved.light.size).toBe(53);
-    expect(declared.light.size).toBe(53);
+    expect(approved.light.size).toBe(54);
+    expect(declared.light.size).toBe(54);
     expect([...declared["dark-media"]].sort()).toEqual([...declared["dark-toggle"]].sort());
   });
 

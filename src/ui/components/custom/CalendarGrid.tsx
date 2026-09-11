@@ -96,7 +96,10 @@ export function CalendarGrid(p: {
               type="button"
               className={cellClass(cell)}
               data-testid={`calendar-cell-${cell.id}`}
-              aria-pressed={cell.selected}
+              // UI-SPEC §0 10: the cell whose day the panel is showing
+              // carries `aria-current="date"` — the attribute is the state,
+              // the ring in `calendar-grid.css` is its picture.
+              aria-current={cell.selected ? "date" : undefined}
               // The cell's one string in full, so the clamp in
               // `calendar-grid.css` truncates a value that is still
               // recoverable rather than losing one. Composed of nothing: it

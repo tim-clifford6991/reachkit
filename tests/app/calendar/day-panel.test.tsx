@@ -48,8 +48,8 @@ describe("REQ-043 c7 — today is the selected day when the calendar opens", () 
     expect(title).toBe(todayCell?.page?.title);
     // And the grid marks the same day as the selected one.
     expect(
-      root.querySelector(`[data-testid="calendar-cell-${MODEL.today}"]`)?.getAttribute("aria-pressed")
-    ).toBe("true");
+      root.querySelector(`[data-testid="calendar-cell-${MODEL.today}"]`)?.getAttribute("aria-current")
+    ).toBe("date");
   });
 
   it("a site in a zone where it is already tomorrow opens on its own today", () => {
@@ -61,15 +61,15 @@ describe("REQ-043 c7 — today is the selected day when the calendar opens", () 
     expect(nz.today).toBe("2026-09-16");
     const root = render(<CalendarView model={nz} />);
     expect(
-      root.querySelector('[data-testid="calendar-cell-2026-09-16"]')?.getAttribute("aria-pressed")
-    ).toBe("true");
+      root.querySelector('[data-testid="calendar-cell-2026-09-16"]')?.getAttribute("aria-current")
+    ).toBe("date");
   });
 
   it("a month that does not hold today still opens on a day — never on none", () => {
     const november = assembleMonth(FIXTURE_CALENDAR_FACTS, "2026-11");
     const root = render(<CalendarView model={november} />);
     const pressed = [...root.querySelectorAll('[data-testid^="calendar-cell-"]')].filter(
-      (c) => c.getAttribute("aria-pressed") === "true"
+      (c) => c.getAttribute("aria-current") === "date"
     );
     expect(pressed).toHaveLength(1);
     expect(pressed[0]?.getAttribute("data-testid")).toBe("calendar-cell-2026-11-01");

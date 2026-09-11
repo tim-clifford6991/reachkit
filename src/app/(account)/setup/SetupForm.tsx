@@ -405,16 +405,17 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
           </IdiomCard>
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            {/* The market card, dimmed until the site is given — the set
-                draws it at reduced emphasis with one line saying when its
-                suggestion arrives, rather than an empty field for
-                something the product has not sought yet. */}
+            {/* The market card before the site is given: one line saying
+                when its suggestion arrives, rather than an empty field for
+                something the product has not sought yet. Not dimmed as a
+                whole — UI-SPEC §0 4 strikes the set's inline `opacity:.6`
+                (L682); a field that cannot be used yet is the field's own
+                disabled state, never a faded card. */}
             <div
               data-testid="setup-market"
               data-awaiting={
                 state.address.state === "measured" ? undefined : "site"
               }
-              style={state.address.state === "measured" ? undefined : DIMMED}
             >
               <IdiomCard
                 head={
@@ -690,10 +691,6 @@ const ROW: React.CSSProperties = {
   gap: "0.75rem",
   minWidth: 0,
 };
-
-/** The market card before the site is given. Reduced emphasis, never
- *  `disabled`: nothing here is a control the founder is being refused. */
-const DIMMED: React.CSSProperties = { opacity: 0.6 };
 
 const CENTRED: React.CSSProperties = { textAlign: "center" };
 

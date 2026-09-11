@@ -42,6 +42,10 @@ export function OptionCard(p: {
    *  record, and nothing else so far. */
   children?: React.ReactNode;
   onChoose?: () => void;
+  /** UI-SPEC §0 7: an option that cannot be chosen now. `--sunk` ground, a
+   *  `--line` edge and the default cursor (`idiom.css` §14); the native
+   *  attribute is the state, so it is refused by keyboard and pointer alike. */
+  disabled?: boolean;
   testId?: string;
 }): React.JSX.Element {
   return (
@@ -49,6 +53,7 @@ export function OptionCard(p: {
       type="button"
       className="rk-choice"
       aria-pressed={p.chosen}
+      disabled={p.disabled}
       onClick={p.onChoose}
       data-testid={p.testId}
     >
