@@ -2,6 +2,8 @@
 
 Maintained by the master in docs PRs (owner ruling 2026-09-08). Condensed from the factory's structure map (frozen at `archive/sdlc-factory-2026-09-04/corpus/docs/registry/structure.md`). A new top-level directory or a new `src/lib/` module is a PR to this file first. The documentation corpus and its authority order are `docs/README.md`.
 
+**This table is also where a ruling lands.** `DECISIONS.md` holds product rulings only (owner ruling 2026-09-11); a ruling about how a module does its work is a `// DECISIONS <date>:` comment at the module named in the row below, where the person changing the code will read it. The `BUILD · DECISIONS` column says which section and which rulings a row answers to; the rulings themselves are in the files. The record as it stood before the split is `docs/archive/DECISIONS-full-2026-09-11.md`.
+
 Standard Next.js (App Router) + TypeScript. `src/lib/` is the engine, `src/app/` the surfaces, `src/jobs/` the scheduled work, `src/ui/` the design system, `supabase/` the schema. Every pinned number is in `src/lib/config/constants.ts`.
 
 ## Modules

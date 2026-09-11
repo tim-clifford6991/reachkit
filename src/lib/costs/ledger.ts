@@ -27,6 +27,17 @@
 // `src/lib/scan/admission.ts` uses for its own two schema gaps — rather
 // than widening the generated `Database` type or losing typing on every
 // other table `dbAdmin()` reaches.
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-10: Money in the ledger is cents to four decimal places, `numeric(12,4)`,
+//   on `fetches`, `scans` and `drafts` (and the roll-up function); the unit stays cents so the
+//   caps compare unchanged; nothing is rounded on the way in. — master, #449/#450 (production
+//   applied 07:3xZ)
+
 import { dbAdmin } from "@/lib/db";
 
 /** The row shape `fetches` carries — BP-007 `## Data model delta`,

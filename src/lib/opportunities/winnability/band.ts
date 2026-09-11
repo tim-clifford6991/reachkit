@@ -9,6 +9,19 @@
 // must be able to tell that case from a top ten of large rivals, because
 // the two mean different things: one is a market we could not read, the
 // other a market we read and found too hard. `assess()` returns which.
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-06: Opportunities: the qualifying bar is BUILD §7's `max(500, 5× the
+//   customer's ranked count)`; Winnable is one notch tighter at `max(100, 2×)`, with
+//   `winnableBar < qualifyingBar` held as a property over the whole range; rank = demand ×
+//   intent × (1−effort) × fit computed on read and never stored; `format_page` and
+//   `refresh_page` are typed but not derived until a page-format signal and a last-changed
+//   measurement exist. — #125
+
 import type { Measured } from "@/lib/measure/measured";
 import type { Winnability } from "../types";
 import { qualifyingBar, winnableBar } from "./bars";

@@ -5,6 +5,15 @@
 // of the three factors as a number (owner ruling 2026-09-03, BP-024
 // decision 6): the verdict is the score, its band word, and one written
 // line naming the factor holding it down.
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-08-31: The spend ceiling outranks the verdict: a cut-off factor nulls the
+//   score; no partial score is ever computed. — ADR-021
+
 import { combine, mapMeasured, type Measured } from "./measured";
 import { bandOf, type BandHandle } from "./bands";
 import { SCORING } from "@/lib/config/constants";

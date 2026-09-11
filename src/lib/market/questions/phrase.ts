@@ -30,6 +30,16 @@
 // The template forms are mechanical transforms of the keyword — BUILD §6.7
 // step 4's own "best X" / "X vs Y" shapes — not sentences the product speaks
 // in its own voice, so no copy key is minted here (BP-025 decision 3).
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-05: Template question forms ("best X" → "What's the best X?") are code,
+//   not copy — the deterministic fallback shape; model-worded questions carry `phrasing:
+//   'model'`, not the GeneratedText brand. — #82
+
 import { z } from "zod";
 import { SERP_LOCATION } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";

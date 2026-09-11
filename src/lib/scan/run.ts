@@ -39,6 +39,18 @@
 // the next visitor is not refused for an in-flight scan that is not
 // running. A correction is not a re-scan: it re-measures inside the scan
 // it corrects and always runs.
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-06: The paid battery is a tier parameter (`battery: false` free, `true`
+//   deep/weekly), never a branch; three engine calls per question — AI Overview piggyback, AI
+//   Mode std, ChatGPT std — each re-reading the cap and deadline first (§6.5); an engine the
+//   ceiling stops is stored as not measured for that question, never as a miss; rendering the
+//   three columns is #157's design gate. — #159
+
 import { CACHE_WINDOWS_D, FREE_RESCAN_WINDOW_D } from "@/lib/config/constants";
 import type { CapName, CostContext } from "@/lib/costs";
 import { dbAdmin } from "@/lib/db";

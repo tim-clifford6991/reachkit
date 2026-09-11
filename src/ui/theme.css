@@ -1,3 +1,34 @@
+/*
+ * ── The record for this file ─────────────────────────────────────────────
+ * Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+ * (owner ruling: the record holds product rulings only; an implementation ruling
+ * belongs where the code is). Verbatim. The whole original record is
+ * `docs/archive/DECISIONS-full-2026-09-11.md`.
+ *
+ * DECISIONS 2026-09-06: Custom CSS stays inside BUILD §2.2's allowance (sidebar, calendar
+ *   grid, day panel, AI dot-matrix, chart SVGs); screen-level stylesheets (settings.css,
+ *   setup.css) are replaced by utilities; #12 asserts it by path glob. — #107/#111
+ *
+ * DECISIONS 2026-09-07: The daisyUI theme declares every slot daisyUI 5 reads — colour and
+ *   non-colour — each by var() reference to a ruled token (radius-box ← --r-box, radius-field
+ *   ← --r-field, radius-selector ← --r-pill, primary-content ← --on-accent, border 1px, depth
+ *   and noise 0); a slot carrying a literal is refused by a test. — #243
+ *
+ * DECISIONS 2026-09-07: The daisyUI theme declares the eight non-colour slots daisyUI 5 reads
+ *   without fallback (radius-box/field/selector ← --r-box/--r-field/--r-pill; --border ←
+ *   --border-hair, the §2b hairline declared in tailwind.css; depth 0, noise 0;
+ *   size-field/selector .25rem written down) and the four state -content colours ← --on-accent
+ *   (contrast measured and stated; --ink refused); neutral, info, secondary and accent stay
+ *   undeclared because §2.1 names no value and no modifier of those families is used — a sweep
+ *   test keeps it so. — #248
+ *
+ * DECISIONS 2026-09-08: --on-accent-quiet is the on-accent ink mixed 85% toward on-accent
+ *   (oklab, as color-mix does), the lowest step clearing WCAG AA 4.5:1 in both themes against
+ *   the darkest point of the accent gradient (light 4.79:1, dark 7.48:1); the ladder and
+ *   method live in the token's header; an on-accent field keeps body ink on its white surface.
+ *   — #292
+ */
+
 /* src/ui/theme.css — the approved token set, and nothing else.
  *
  * **This file carries `docs/design/approved/tokens.css` exactly**: the same

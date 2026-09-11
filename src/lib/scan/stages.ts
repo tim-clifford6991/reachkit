@@ -46,6 +46,16 @@
 // whatever it publishes live; an unknown one yields nothing at all, which
 // `route.ts` (WO-063's half of this WO) reads as "respond 404" without
 // itself touching a database.
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-09: S11 Waiting shows the five approved stage rows with the set's names;
+//   the deep pass keeps its six internal stages and `progress.ts` maps six onto five (two
+//   share a row). No engine change. — master ruling, #393 / #396
+
 import { dbAdmin } from "@/lib/db";
 import { TIMING } from "@/lib/config/constants";
 import type { Ending } from "./ceilings";

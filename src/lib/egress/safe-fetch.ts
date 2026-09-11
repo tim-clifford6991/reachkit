@@ -15,6 +15,24 @@
 // Never throws: every failure is a typed `FetchOutcome` with `ok: false`
 // (BP-006 decision 1) so a caller can tell "could not determine" apart from
 // "read it and it was empty" (REQ-004 criteria 6 and 7).
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-07: safeFetch carries verb, headers and body (GET, no body remains the
+//   default); a caller can never displace `Host` (the DNS pin rests on it) and a request
+//   carrying caller state is refused, not followed, when a redirect leaves the origin the
+//   caller named. Adapters receive a decrypted config only through `withConfig`; the select
+//   never names the sealed column. — #161
+//
+// DECISIONS 2026-09-10: The customer's own documents are read with their own size cap,
+//   `OWN_DOCUMENT_MAX_BYTES` 6 MB; vendor and rival reads keep the fetcher's 2 MB default;
+//   above a cap a read is refused, never truncated. A refusal is ledgered as a row (0 ¢),
+//   never a null payload, and a pass whose home read was refused ends `site_unreadable`, never
+//   `complete`. — master, #479 (M3 run 5, cal.com; BUILD §6.4)
+
 import http from "node:http";
 import https from "node:https";
 import dns from "node:dns";

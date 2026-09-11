@@ -27,6 +27,15 @@
 // publishing — all *spend money* on a `true`, and spending a departed
 // customer's money because a read failed is the worse of the two errors.
 // The failure is loud in its own way: the tick reports a degraded run.
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-08-31: Active access is `users.paid_through > now()` alone; `plan_status` is
+//   recorded and never read by the gate. — ADR-050
+
 import { billingStore } from "./store";
 
 /** REQ-076 criterion 8 — THE access gate. See ADR-050 before changing this.

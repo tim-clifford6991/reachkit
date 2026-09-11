@@ -14,6 +14,17 @@
 // precedence is data (`NO_PUBLISH_PRECEDENCE`) and the resolver is a
 // first-match over it — not a chain of `if`s whose order is whichever one a
 // later editor happens to leave on top.
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-06: `nextPublishStatement(stopped: boolean)` rather than BP-054's `stop:
+//   WorkStop | null`: the shell states that ReachKit stopped, never why; ADR-061's
+//   unattributed empty day belongs to the calendar's empty-date resolver, not to the shell's
+//   next-publish line. — #115
+
 import type { NextPublishCause } from "@/lib/presentation/stopped";
 
 export type NoPublishReason =

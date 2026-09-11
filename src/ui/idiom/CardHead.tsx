@@ -21,6 +21,34 @@
 // (`design/tokens.md` §2) and 32 is the rung the idiom's drawn 30 lands on;
 // a 30px token would be a value between two rungs, which the ladder's own
 // rule refuses.
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-08: Idiom fidelity: every idiom card carries the card head (chip · eyebrow
+//   · optional right-aligned pill); the sign-in split is full-bleed below the public header
+//   (min-height calc(100svh − header)), its Surface declares and applies no gutter; a value
+//   never wraps at all (.num white-space: nowrap — hyphens included) and a value with no
+//   scroll container is a check-3 offender; lucide-react is part of the approved stack (the
+//   preview app's own README) and a chip takes only an icon the idiom's pages name; the hero
+//   specimen's pill and the glass card's inverse pill render from the specimen's data and are
+//   omitted when unmeasured. — #297 #298
+//
+// DECISIONS 2026-09-08: The card-head chips carry the archive's own icons (Search on the hero
+//   specimen, ArrowRight on the three narrative cards — the same on purpose), wired from the
+//   lucide-react already in the stack; the hero specimen's pill is the fixture's absent-from
+//   count rendered from data; the glass card's inverse pill is omitted while no measured delta
+//   exists — the archive's "+6 pts est." to a stranger would be the invented number §9.4 warns
+//   of; the ruled radius is pinned by test. — #303
+//
+// DECISIONS 2026-09-11: A card head the set draws without a glyph has no chip: `CardHead`'s
+//   icon is optional and an absent one renders the eyebrow alone (the Overview's stat tiles,
+//   S12 L709). Narrows the 2026-09-08 idiom-fidelity line's "every idiom card carries the card
+//   head (chip · eyebrow · optional pill)": the head stays, the chip is drawn only where the
+//   set draws a glyph. — master, #486 (PR 498)
+
 import type React from "react";
 
 export function CardHead(p: {

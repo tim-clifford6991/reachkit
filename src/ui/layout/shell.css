@@ -1,3 +1,17 @@
+/*
+ * ── The record for this file ─────────────────────────────────────────────
+ * Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+ * (owner ruling: the record holds product rulings only; an implementation ruling
+ * belongs where the code is). Verbatim. The whole original record is
+ * `docs/archive/DECISIONS-full-2026-09-11.md`.
+ *
+ * DECISIONS 2026-09-07: The app shell's content column carries the band gutter between the
+ *   sidebar and the content (padding-inline-start from surface.css's own --rk-gutter, start
+ *   edge only, above 1024px); Tabs.selectedId may be null so a route on no destination marks
+ *   nothing, as the sidebar already did; check 5 gains a third assertion that a column drawn
+ *   beside the content is clear of it. — #278
+ */
+
 /* src/ui/layout/shell.css — BUILD §4.4, §2.2
  *
  * The app shell's stylesheet: the sidebar, the frame it sits in, and the

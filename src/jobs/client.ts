@@ -34,6 +34,16 @@
 // screen. `tests/jobs/client-bindings.test.ts` is what keeps the two names
 // honest instead: it asserts the client resolves exactly the names the
 // schema declares, so a rename in one place cannot silently miss the other.
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-05: The job platform is Inngest (BUILD §1), named in exactly one file,
+//   `src/jobs/client.ts`; `INNGEST_EVENT_KEY` / `INNGEST_SIGNING_KEY` are the SDK's own
+//   bindings, not members of env.ts. — #86
+
 import { Inngest } from "inngest";
 import { serve as serveFunctions } from "inngest/next";
 import { runJob } from "./run";

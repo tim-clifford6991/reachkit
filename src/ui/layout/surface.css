@@ -1,3 +1,19 @@
+/*
+ * ── The record for this file ─────────────────────────────────────────────
+ * Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+ * (owner ruling: the record holds product rulings only; an implementation ruling
+ * belongs where the code is). Verbatim. The whole original record is
+ * `docs/archive/DECISIONS-full-2026-09-11.md`.
+ *
+ * DECISIONS 2026-09-07: ADR-093's rendering half: Surface carries a stylesheet — a centred
+ *   column with per-band gutters from the spacing scale and max-width from the two ruled
+ *   measures (--w-read 704 where the wide arm is one column, --w-wide 1216 otherwise);
+ *   columns:N arms render as a grid inside their band's media query; the layout sweep gains a
+ *   fifth check (content edge ≥ gutter, width ≤ measure) because checks 1–4 pass an unstyled
+ *   page. A field's label stacks above it and the placeholder is omitted when it equals the
+ *   label — one string, once. — #241
+ */
+
 /* src/ui/layout/surface.css — BUILD §2.2–§2.3, ADR-093 (DECISIONS
  * 2026-09-02, 2026-09-05 #65/#83). Issue #241.
  *

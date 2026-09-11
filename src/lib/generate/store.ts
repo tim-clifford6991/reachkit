@@ -17,6 +17,17 @@
 // **The voice text is read and never written.** `sites.voice_text` is the
 // customer's field; nothing here copies it onto a draft, caches it, or
 // carries an earlier version of it. See `voice/inputs.ts`.
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-10: BUILD §8 names the recorded shapes a screen reads:
+//   `drafts.grounded_fact` `{passage, url, readAt}`, `drafts.claim_check` (verdict),
+//   `drafts.rule_failures` (battery; empty = ran and passed); `drafts.meta` carries only the
+//   save path's keys; nothing is inferred from `meta`. — master, #415 / #424
+
 import { dbAdmin } from "@/lib/db";
 import { readStoredReport, type StoredReport } from "@/lib/scan/report";
 

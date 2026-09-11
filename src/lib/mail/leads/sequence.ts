@@ -29,6 +29,16 @@
 // that could drift from them. Every cadence below comes from
 // `src/lib/config/constants.ts`; a literal 24, 72, 168, 3 or 7 in this file
 // would be a defect.
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-08-31: A nurture sequence that missed its window is dropped forever; a
+//   re-delivery starts nothing; an opted-out address still receives the page it asked for. —
+//   ADR-041
+
 import {
   NURTURE_H,
   NURTURE_MAX_TOUCHES,

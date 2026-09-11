@@ -19,6 +19,21 @@
 // which serialises a function's own source text and re-runs it inside a
 // real Chromium tab, where a reference to a sibling function declared
 // elsewhere in this module would be a `ReferenceError`.
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-05: Layout containment (check 2) considers only elements that generate a
+//   box; hidden placeholders and `<script>` tags are skipped. Clarifies ADR-093. — #65
+//
+// DECISIONS 2026-09-07: Check 3 (truncation) treats text inside a declared scroll container as
+//   fitting when the container scrolls to hold it — a scroll container is ADR-093's "the box
+//   changes" — so a value scrolls, never clips, ellipsises or breaks mid-word; outside a
+//   scroll container a value is still never allow-listed (TRUNCATION_ALLOWLIST stays empty);
+//   Num drops break-words. — #256
+
 export interface Offender {
   check: string;
   element: string;

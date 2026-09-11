@@ -35,6 +35,19 @@
 // would put a database client in the settings screen's own module graph.
 "use server";
 
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-07: Settings' last three actions: export is a streamed GET response from
+//   the session's own site (a Server Function cannot return a file and a pre-signed link would
+//   outlive the press); unpublish-all and delete-account are offered as their export hand-off
+//   through a danger ticket in an HttpOnly cookie that authorises nothing on its own, then run
+//   only after the customer types the registry word (compared trimmed, case-insensitive,
+//   client and server) — the at-rest screen is byte-identical, so no baseline moves. — #280
+
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { copy } from "@/lib/presentation/copy";

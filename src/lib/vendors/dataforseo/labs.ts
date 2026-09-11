@@ -12,6 +12,18 @@
 // Per-rival `ranked_keywords` on the free path is on the never-list (§6.4);
 // that is the caller's tier logic — this module offers exactly the three
 // row counts the price book prices and nothing else.
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-07: A rival's ranked count is the vendor's total_count carried beside the
+//   rows (RankedResult), cached with them under VENDOR.rankedPayloadVersion = 2; items_count
+//   is never a fallback (it is the capped figure under another name); no total reported → the
+//   row count, which bands a rival nearer (fewer far rivals, never more); SearchPresence keeps
+//   reading the rows, the bands read the total; REPORT_VERSION does not move. — #195
+
 import type { CostContext } from "@/lib/costs";
 import { CACHE_WINDOWS_D, PRICE_BOOK, SERP_LOCATION, VENDOR } from "@/lib/config/constants";
 import type { Measured } from "@/lib/measure/measured";

@@ -44,6 +44,17 @@
 //   the one case BP-024 defines it for — the caller's own cost ceiling
 //   stopping the call before it was ever attempted (`recordFetch`'s
 //   `{ skipped: "cap" }`). Recorded as an open `rests-on` row on WO-026.
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-10: `INFERENCE_TIMEOUT_MS` bounds one whole `llm()` call, attempts
+//   included; `nano` is 15 s pending the first live measurement of a completed call, `haiku`
+//   20 s; the vendor SDK's own retries are off (`INFERENCE_MAX_RETRIES = 0`), so the seam's
+//   "retried at most once" is the only retry policy. — master, #452/#455 (#317; BUILD §6.5)
+
 import Anthropic from "@anthropic-ai/sdk";
 import { createHash } from "node:crypto";
 import { z, type ZodType } from "zod";

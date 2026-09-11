@@ -31,6 +31,18 @@
  *  state the occasion — asserted to resolve in
  *  `tests/mail/kinds/register-legality.test.ts`, so a kind cannot outlive
  *  the spec that justifies it. */
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-08-31: One directory per mail kind under `src/lib/mail/templates/<kind>/`. —
+//   ADR-040
+//
+// DECISIONS 2026-08-31: Address-wide suppression and per-kind notification toggles are two
+//   mechanisms and never merge. — ADR-042
+
 export interface KindRow {
   readonly occasionsFrom: string;
   readonly stoppable: false | "toggle" | "opt-out";

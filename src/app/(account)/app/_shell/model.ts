@@ -10,6 +10,17 @@
 // shell on fixture data; the queries arrive with §11's weekly measurement
 // (#41) and §9's publishing (#45)). Keeping the assembly pure is what lets
 // every REQ-040 criterion be decided by a test with no database at all.
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-05: The app shell's model (measured weeks, the no-publish precedence
+//   resolver) lives in `src/app/(account)/app/_shell/` as presentation-side derivation;
+//   ARCHITECTURE rule 1 reads: no measurement, no vendor call, no persistence in src/app —
+//   pure derivation for rendering is allowed there. — #83
+
 import type { WorkStop } from "@/lib/presentation/stopped";
 import { resolveNoPublish, type NoPublishCauses, type NoPublishReason } from "./nopublish";
 import { weeksMeasured, type MeasuredWeek, type WeekCount } from "./weeks";

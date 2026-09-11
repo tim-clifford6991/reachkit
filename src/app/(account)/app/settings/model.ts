@@ -24,6 +24,44 @@
 // would hide the very state [the] validator exists to prevent from ever being
 // stored", so this module validates nothing and the screen renders what is
 // there.
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-08-31: Declared answer and measured answer are two facts; a pending change is
+//   computed as their difference, never stored as a state. — ADR-030
+//
+// DECISIONS 2026-09-07: A pending settings change is the computed difference between the
+//   declared answer on sites and the measured answer on the current scan (ADR-030): no queue,
+//   no pending column, no change log; it clears when a pass completes. effectiveOn asks the
+//   weekly clock (nextDueAfter), never +7 days. generationHold holds on a domain or category
+//   change and not on a rival edit (REQ-071 c11). Change markers are derived from the scans
+//   and sit on the later scan of a changed pair. do_not_claim has one writer, which sweeps
+//   outstanding rechecks in the same function after the write lands. No settings Server
+//   Function takes a site id. — #202
+//
+// DECISIONS 2026-09-07: REQ-071 lines: c1 and c6 are one statement on the market card chosen
+//   in the model (the unsaved change outranks the saved one) and replace the standing §4.7
+//   line; c16 sits where the rival chips would be; c11 is the calendar's eighth precedence
+//   arm, change_holds_generation, between customer_change_holds_pages and page_held; {change}
+//   is spoken through a key per change kind, never the discriminant; written lines live
+//   outside the setting-* control namespace. — #227
+//
+// DECISIONS 2026-09-07: Settings refusal sentences are the Settings screen's own keys, not
+//   setup's (a refusal to a founder mid-setup and to a customer editing an answer are two
+//   voices); the rival set is read on the server and never sent from the browser — the two
+//   rival actions take one typed domain. — #239
+//
+// DECISIONS 2026-09-07: Every §4.7 settings fact is read live for a non-reserved account
+//   through the module that owns it (ten bounded concurrent reads); only billing and
+//   destinations have a designed degraded arm (REQ-097 c5/c6) — every other unread fact
+//   propagates to the error boundary rather than defaulting; a fixture binding may be passed
+//   whole behind the reserved branch and never spread (rule in the no-fixture test); a
+//   server-side read of users.notify goes through the admin client scoped by user id, because
+//   the anon client carries no JWT and RLS answered absent for every user. — #245
+
 import type { CopyKey } from "@/lib/presentation/copy";
 // Imported by file and not through `@/lib/market/changes`'s barrel: the
 // barrel re-exports `declared.ts`, which reaches `@/lib/db` and parses

@@ -19,6 +19,18 @@
  *  shell needs to count it. `measured` is REQ-065 c3's own distinction: a
  *  week that ran and produced something, versus one that "has not been
  *  measured". A partially measured week is `true` — it produced something. */
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-07: Overview reads the measured weeks in one query (readWeekScans): a week
+//   with no row is unmeasured, never zero; the window starts at the first measured week; false
+//   and null are different AI-answer weeks (measured-and-not-named vs never measured);
+//   weeksMeasured counts from the last change by week; the series carries changeMarkers for
+//   #205 to draw; the rival set stays unmeasured until its own gated change. — #222
+
 export interface MeasuredWeek {
   /** The domain the week was measured for. A week measured for a domain the
    *  customer has since changed away from is not this domain's week. */

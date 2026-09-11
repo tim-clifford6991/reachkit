@@ -27,6 +27,20 @@
 // about the name rather than a flag somebody has to remember to unset. Each
 // surface asks `isReservedFixtureAccount()` and branches once; no surface
 // re-derives the rule.
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-07: Every (account) surface resolves the account through one
+//   request-cached seam over currentSession() plus one sites row: no session → /signin, a
+//   session with no site → /setup, a site with no stated zone or a foreign user_id is refused,
+//   not drawn. The paused-site guard stays in the shell store until a second feeder needs it,
+//   then moves into publishingOf. The layout sweep now measures the sign-in prompt at the four
+//   /app addresses until the layout job has a substrate and a seeded account (own issue). —
+//   #192
+
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import { FIXTURE_DOMAIN } from "../_shell/fixture";

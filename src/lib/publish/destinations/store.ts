@@ -11,6 +11,18 @@
 // published pages stay live and their publications point at it (ADR-080) —
 // so every read a surface or a publish attempt makes filters on it, and
 // the partial unique index means a site has at most one such row.
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-06: Destinations: one live destination per site is a partial unique index;
+//   `withConfig` is the only door to a plaintext credential and never returns it; the seal key
+//   derives from IP_HASH_SALT by HKDF under its own label (a dedicated binding is an owner
+//   option, not a requirement); `DESTINATION_HEALTH_DEBOUNCE_S = 60` and the breakage window
+//   are pinned. — #152
+
 import { publishDb } from "../db";
 import type { DestinationHealth, DestinationKind, HealthReason } from "../types";
 

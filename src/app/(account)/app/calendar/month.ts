@@ -17,6 +17,20 @@
 // draft, and there must not be: §4.6's supply rule and DECISIONS 2026-08-28
 // ("Supply is the cap: never invent an opportunity to fill a day; the
 // calendar is never padded") are kept by a read that cannot pad.
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-08: The calendar month switcher is the registered join of three links with
+//   the current month marked by tone, weight and placement (aria-current) and never a link to
+//   itself; the neighbours carry the month name only (the year sits on the month in view) so
+//   the row holds at 320; a month name is a value, not copy. The audit's "filters read 0" and
+//   "cells repeat three sentences" lines were misreadings — the counts derive from the drawn
+//   cells and the cell carries one line — and the real defect was the live seed's drafts
+//   lacking scheduled_for, so the populated calendar arm had never been swept. — #293
+
 import type { Measured } from "@/lib/measure/measured";
 import type { UnpublishOutcome, VerifyDisposition } from "@/lib/publish/types";
 import { accountFor, type EmptyAccount, type EmptyFacts } from "./empty";

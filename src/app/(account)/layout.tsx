@@ -30,6 +30,26 @@
 // `GATE_PATH_HEADER`, which the authorisation boundary sets on the
 // forwarded request. It is read before the account is: a request that
 // carries no path costs no session read and no database round trip.
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-07: The setup gate is enforced in the (account) server layout on Node, not
+//   in middleware.ts (still Edge-bundled under the deprecated convention; migrating to
+//   proxy.ts is an owner-file change); middleware only forwards the request path on a cloned
+//   header the client cannot spoof. Unreadable state (no session, no site row, no answer) is
+//   null, never "incomplete". API routes sit outside the layout and authenticate on their own
+//   (401 unauthenticated); the SETUP_INCOMPLETE_ALLOWLIST api rows stay as the recorded
+//   promise. Per-account screens are dynamic, not prerendered. — #171
+//
+// DECISIONS 2026-09-07: Every (account) screen is dynamic once the layout reads a request
+//   header, so any render-time read of its own (settings billingSummary from #170) must be
+//   bounded: an unsettled read falls into the fixture fallback within a deadline rather than
+//   hanging the screen — the same shape middleware states for its one request-path read; the
+//   gate read itself is bounded and answers null. — #171
+
 import type React from "react";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";

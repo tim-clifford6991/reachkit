@@ -52,6 +52,18 @@
 // Question wording is model text and reaches this file only through
 // `renderQuestion`, which will not yield the wording without the search it
 // came from (REQ-093 c3).
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-07: The three AI-answers counts and the rival rows stay the AI-Overview
+//   reading; the battery engines are drawn as a second reading beside them — one column per
+//   engine that at least one question asked, built from the stored data so nothing branches on
+//   tier; a never-asked engine is one line beneath the table, not a column of misses; a cited
+//   cell states itself. — #165
+
 import type React from "react";
 import { Bot } from "lucide-react";
 import { Badge, Card, Collapse, Divider, Table } from "@/ui/components";

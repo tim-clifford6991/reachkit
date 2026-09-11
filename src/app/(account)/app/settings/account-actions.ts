@@ -45,6 +45,16 @@
 // with it.
 "use server";
 
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-07: Sign-out lands on /signin like every other session-less settings
+//   outcome (one rule, no exception); the three billing controls and the two email-change
+//   actions answer the same way when no session names the customer. — #134
+
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { SIGNIN_PATH } from "@/lib/account/identity/addresses";

@@ -16,6 +16,15 @@
 // shape as the shell's `NO_PUBLISH_PRECEDENCE` (`../_shell/nopublish.ts`),
 // and ADR-061 point 4 requires the two orders to agree: ReachKit's own stop
 // outranks every cause that is also true.
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-08-31: "Nothing worth publishing" is a proven arm, never the fallback; an
+//   unattributed empty day is ReachKit's own stop. — ADR-061
+
 import type { CopyKey } from "@/lib/presentation/copy";
 import type { WorkStop } from "@/lib/presentation/stopped";
 

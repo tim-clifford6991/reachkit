@@ -13,6 +13,20 @@
 // thing that moves a page along it.
 //
 // The archived plan is WO-207.
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-06: §9's transition table has one home,
+//   `src/lib/publish/machine/table.ts`; the calendar projects its actions from it and never
+//   transcribes it. Reconciled against the deleted copy: `generating → skipped` was invented
+//   and is gone (a generating page offers no Move/Skip); `needs_attention → skipped` exists
+//   (§9 c3: no page is left without a way out — Stop appears beside Reconnect); `generating →
+//   needs_attention` and `needs_attention → generating` exist (the latter deferred to #143). —
+//   #146
+
 import type { State } from "../types";
 
 /** The ten states, in the order §9 draws them. */

@@ -17,6 +17,20 @@
 // The SDK is constructed lazily and memoised: importing this module must
 // not read `env.STRIPE_SECRET_KEY`, so a client bundle that reaches a file
 // which merely *type*-imports from here does not throw at load.
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-06: Stripe: `PRICE_OBJECT_SPEC` is checked in and built from the three
+//   price pins (4900 · eur · month, tax_behavior inclusive, automatic_tax off — ADR-052);
+//   CHECKOUT_PARAMS has exactly its declared key set; checkout facts (country, VAT number) are
+//   recorded exactly as Stripe reported/the buyer typed; the webhook adapter verifies nothing
+//   itself — signature verification is the whole trust boundary inside handleStripeWebhook;
+//   two idempotency keys mean two different things (replayed payment vs second purchase).
+//   `users.paid_through` is written by #34, not by provisioning. — #123
+
 import Stripe from "stripe";
 import { env } from "@/lib/config/env";
 

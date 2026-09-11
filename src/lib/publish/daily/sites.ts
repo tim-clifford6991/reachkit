@@ -62,6 +62,23 @@
 // tick asks again. The pages a site already holds stay exactly where they
 // are, which is `switch/index.ts`'s property and not this file's to
 // change.
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-07: Recommended, owner to confirm: the daily list asks the registered
+//   access gate like the weekly one; a lapsed site is not prepared a page and its held pages
+//   stay; §13 grace lives inside hasActiveAccess(); an unreadable gate holds the tick for that
+//   site. — #201
+//
+// DECISIONS 2026-09-07: The daily list asks the registered access gate after the three row
+//   predicates (one gate call per tick, imported by file); §13 grace lives only inside
+//   hasActiveAccess(), asserted by a test that the selection code names neither paid_through
+//   nor plan_status; an unreadable gate is a loud hold (degraded · held:access-unreadable),
+//   never a skip and never everyone; a hold moves nothing and the next tick asks again. — #218
+
 import { sitesWithActiveAccess } from "@/lib/scan/weekly/access";
 import { publishDb } from "../db";
 

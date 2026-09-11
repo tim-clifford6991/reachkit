@@ -15,6 +15,15 @@
 //     there is none: supply is the cap, and the calendar is never padded;
 //   * the pipeline runs, and ADR-070's one automatic regeneration is
 //     performed here — once, and never for a draft that has entered review.
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-08-31: One automatic regeneration; a draft that has entered review is never
+//   regenerated. — ADR-070
+
 import { nextForDay } from "@/lib/opportunities";
 import { withDraftCost } from "./cost";
 import { recoveryOutcome } from "./claims/recovery";

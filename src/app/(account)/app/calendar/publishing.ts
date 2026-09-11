@@ -21,6 +21,17 @@
 // word for why, and the panel goes on telling the customer nothing — there
 // is no registry sentence for a refused write, and inventing one is what
 // the copy law forbids.
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-05: Calendar actions are projected from the publishing transition table,
+//   never listed per stage; Move/Skip/Veto call a declared publishing interface whose stub
+//   rejects with `PublishingNotBuiltError` — a control never appears to work before its engine
+//   exists. — #99
+
 import type { DayKey } from "./dates";
 import { approveDraft, regenerateDraft, skipDraft, vetoDraft } from "./publishing-actions";
 

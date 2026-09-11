@@ -16,6 +16,16 @@
 // served from cache ledgered no row of its own (a cache hit spends
 // nothing, so there is nothing to ledger), and so contributes no text here
 // — the bytes it read are the row the earlier scan wrote.
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-05: A citation is a reference whose host is the customer's domain or a
+//   subdomain; a mention is any other reference carrying the brand token whole (the domain's
+//   first label, tokenised on non-alphanumerics). — #74
+
 import { dbAdmin } from "@/lib/db";
 import { OWN_FETCH_SOURCE, isStoredDocument } from "./own-fetch";
 import { visibleText } from "./parse";

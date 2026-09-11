@@ -15,6 +15,24 @@
 //
 // The cost is that a read path can make a network call, which is why it is
 // debounced and why at most one live destination per site exists to check.
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-01: A credential that cannot publish is its own occasion (a
+//   `HealthReason`, not a fourth health state) with a distinct line and an action leading to a
+//   different account. — ADR-086
+//
+// DECISIONS 2026-09-07: canStamp is a read beside canPublish sharing no implementation
+//   (manage_categories on /users/me?context=edit); destinations.stamp_capable is nullable with
+//   no default (null = hosted, never probed, or unreadable), written by its own writer;
+//   checkHealth records it and it never changes health; the adapter looks the term up first
+//   and treats an unreadable probe as no permission to write a term, the page still publishing
+//   with stampApplied false; the lifecycle wire is registered from the publishing side at boot
+//   (ADR-050 shape). — #208
+
 import { DESTINATION_HEALTH_DEBOUNCE_S, DESTINATION_HEALTH_MAX_AGE_H } from "@/lib/config/constants";
 import type { DestinationView } from "../../types";
 import { heldPages } from "../../switch";

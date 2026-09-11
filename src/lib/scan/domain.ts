@@ -28,6 +28,15 @@
 // how packages missing an `exports`-`types` condition are conventionally
 // typed rather than by widening `tsconfig.json`'s resolution mode for the
 // whole repo.
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-03: One canonical domain key from one parser (`parseDomain` →
+//   `CanonicalDomain`) used by every domain-keyed row, URL and counter. — ADR-020
+
 import { isIP } from "node:net";
 import { parse as pslParse } from "psl";
 

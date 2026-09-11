@@ -48,6 +48,28 @@
 // database, the same way `change-actions.ts` does.
 "use server";
 
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-07: WordPress connect: DestinationAction gains a connect member for a
+//   never-connected WordPress destination; the credential form lives in the Publishing card
+//   (no route, no modal), takes site URL and application password only, the account from the
+//   session; the password is never echoed, cleared on every outcome, and exists only sealed
+//   inside storeConfig/withConfig; the credential is validated by the health check, never by
+//   the act of connecting, so a refusal is a state with a control, not a bounced form;
+//   disconnect stays in the Danger zone's unpublish-all step; setup's hand-off is one line on
+//   the waiting screen pointing at the card. — #240
+//
+// DECISIONS 2026-09-07: The WordPress connect form asks for three fields — site address,
+//   WordPress username, application password — because an application password authenticates
+//   as username:password; the credential travels one way into storeConfig and ConnectOutcome
+//   has no member a credential, URL or vendor string could ride in; a refusal is the health
+//   check's state redrawn on the card, never a form-shaped sentence; setup's hand-off is the
+//   destination row itself (the waiting screen redirects the moment the pass ends). — #252
+
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { SIGNIN_PATH } from "@/lib/account/identity/addresses";

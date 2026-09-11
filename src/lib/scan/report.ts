@@ -149,6 +149,38 @@
 // produced is `null`, which the screen renders as a named absent section
 // with one written line (REQ-004 c10/c11), never as an empty card and
 // never as a spinner.
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-05: `StoredReport` (src/lib/scan/report.ts) carries `presence:
+//   PresenceCard` beside the AI-answers card and no `rivalSizes` member until the rival-sizing
+//   module (#37) declares `RivalSize`; a section a stage never produced is a compile error,
+//   never a missing key. — #100
+//
+// DECISIONS 2026-09-05: ADR-095's "coherence is a member of it": *it* is the report blob —
+//   `coherence` sits on `StoredReport`, not inside `MarketSet`. — #100
+//
+// DECISIONS 2026-09-06: `StoredReport` carries the twelve questions twice by decision, not
+//   drift: `questions: Measured<Question[]>` is the record (keyword, volume, intent, score,
+//   rank — read by ranking and the paid pass's frozen set); `aiAnswers.rows[].question:
+//   StoredQuestion` is the screen's, numbered and GeneratedText-gated (REQ-093 c3). Two
+//   promises, two shapes; `report.ts` states this. — #103
+//
+// DECISIONS 2026-09-06: The category has ONE home: `market.profile.category` (ADR-095). The
+//   top-level `category` member is removed; the verdict strip reads through `sections.ts`.
+//   Blob version bumped; `readStoredReport` guards the old version. — #103
+//
+// DECISIONS 2026-09-07: StoredReport: the category has one home (market.profile.category; the
+//   top-level member is gone); the twelve questions keep two shapes by ruling — the Measured
+//   record for ranking and the paid pass, and a numbered GeneratedText-gated projection for
+//   the screen with one writer (storedQuestionOf) — and namedBrands, a third copy of
+//   cell.citedDomains, is gone; ADR-095's "it" is the report blob, not MarketSet (coherence
+//   stays unwrapped on StoredReport); REPORT_VERSION is 5 and upgrades chain one version at a
+//   time. — #214
+
 import type { AI_READER_AGENTS } from "@/lib/config/constants";
 import { dbAdmin } from "@/lib/db";
 import type { RobotsPolicy } from "@/lib/egress/types";

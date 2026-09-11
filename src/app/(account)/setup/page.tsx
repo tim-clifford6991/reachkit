@@ -24,6 +24,22 @@
 // Tailwind utility written where it applies. `lg:` is Tailwind's 1024px
 // breakpoint, which is `--breakpoint-lg` — the same boundary the `medium`
 // arm declares, so the declaration and the query cannot drift.
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-08: Selected is a state, not a primary: a selected chip is the outline
+//   rank on the accent tint (accent-bg · accent-line · accent label) with aria-pressed, an
+//   unselected chip the quiet outline rank, and the submit the screen's one solid; the accent
+//   is never spent as a state fill; the rule covers every toggle group on /setup. — #288
+//
+// DECISIONS 2026-09-08: On /setup every toggle group (chosen rivals, suggested rivals, mode,
+//   destination) draws selected as the outline rank on the accent tint keyed on aria-pressed —
+//   the tint and the accessibility state are one fact; the submit is the one solid; the market
+//   chip stays a Badge (a statement of the chosen market, not a button rank). — #301
+
 import type React from "react";
 import { Surface } from "@/ui/layout";
 import { copy } from "@/lib/presentation/copy";

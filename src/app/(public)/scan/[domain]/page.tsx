@@ -42,6 +42,27 @@
 // `metadata` export below, and the `X-Robots-Tag` header is declared for
 // this path in `next.config.ts` so it rides on every response the path
 // produces, the 308 included. Neither half is enough alone.
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-06: The report page resolves its arm from the store in fixed precedence —
+//   malformed → removed → report → scanning → cooldown → refused → starting; a stored report
+//   outranks refusal and cooldown (a report is a thing to read; the refusal travels as the one
+//   notice beside it); a removed domain is rewritten in middleware to a route handler that
+//   answers 410 (page.tsx cannot); `*.example.com` fixtures answer only for reserved names. —
+//   #109
+//
+// DECISIONS 2026-09-07: The report screen is the --w-wide surface (the archive's "public
+//   report's six modules"): it declares medium: columns:2 and the Surface renders the grid; no
+//   page owns a grid of its own. Surface grids align items to the start. — #241
+//
+// DECISIONS 2026-09-08: The report's opportunities table and occupancy list fit their card at
+//   1024/1280 — the prose column takes the slack, the value columns are max-content — and
+//   scroll only at 320; the layout assertion that no wrap scrolls at ≥1024 guards it. — #311
+
 import { permanentRedirect } from "next/navigation";
 import type { Metadata } from "next";
 import { parseDomain } from "@/lib/scan/domain";

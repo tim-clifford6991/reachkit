@@ -58,6 +58,18 @@
 // refuses the term is working.
 //
 // The archived plans are WO-237, WO-264.
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-07: WordPress publishes live in one REST create carrying status, SEO
+//   fields and both marks; the idempotency search reads the marker only; a create that returns
+//   unpublished is `credentials_invalid`, never `credentials_expired`; `canPublish` is one
+//   authenticated read and a failed read rejects rather than answering false; robots checking
+//   is off for credentialed API calls to the customer's own site. — #161
+
 import type {
   DeliveryResult,
   DestinationAdapter,

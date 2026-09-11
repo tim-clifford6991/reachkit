@@ -9,6 +9,19 @@
 // A body that throws is logged as `failed` and rethrown: the platform's
 // own retry and its dashboard are what a failure is for, and swallowing it
 // here would turn a broken engine into a silent success.
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-07: scan/run is the deep tier's job and nothing else: the free scan runs
+//   inline on the request (a human is waiting) and the weekly measurement has its own hourly
+//   tick and its own (site_id, week_start) claim; the other two arms throw NotAJobPath —
+//   distinct from EngineNotBuilt because "this event should never have been sent" and "this
+//   engine is missing" are different facts; the last TODO(engine) is gone and an empty
+//   UNBUILT_JOB_IDS is itself the assertion. — #250
+
 import { observeKillSwitchEngaged, stoppedByKillSwitch } from "./kill-switch";
 import { recordInvocation } from "./observability";
 import type { JobDefinition, JobInput, Outcome } from "./types";

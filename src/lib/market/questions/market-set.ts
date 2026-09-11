@@ -19,6 +19,16 @@
 // Cache-first is the seam's, not this file's: `keywordSuggestions` runs inside
 // `CostContext.recordFetch` (§6.5), which serves the 30-day suggestions
 // window from `fetches` before it spends (§6.4).
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-04: `MarketSet` is a declared type owned by the questions leaf
+//   (`src/lib/market/questions/market-set.ts`); the report blob's market section takes the
+//   leaf's shape, and coherence is a member of it. — ADR-095
+
 import type { CostContext } from "@/lib/costs";
 import { VENDOR } from "@/lib/config/constants";
 import {

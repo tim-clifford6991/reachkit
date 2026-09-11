@@ -18,6 +18,19 @@
 // somewhere else: `state` in the refusal is the state the page still holds.
 //
 // The archived plan is WO-209.
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-07: The customer's restart (needs_attention → generating) is offered
+//   against the guard, never the state: only a page that never entered review carries the
+//   control; the projection is a subset of the edge's tails because planned → generating is
+//   §8's own move; a second press is the machine's not_a_transition and the screen says
+//   nothing. Ship-then-steer: plain ghost style beside Move and Skip, order Reconnect →
+//   restart → Move → Skip; the word is owner-owed (calendar.action.regenerate). — #177
+
 import { VETO } from "@/lib/config/constants";
 import { publishDb } from "../db";
 import type { Actor, DraftView, State, ToldRecord, TransitionRecord } from "../types";

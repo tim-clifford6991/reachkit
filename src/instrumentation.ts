@@ -97,6 +97,17 @@ function log(
  * inside the guard for the same reason — the guide's own recommendation,
  * and here it is load-bearing rather than tidy.
  */
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-06: Boot invariants run in Next's instrumentation `register()` — once per
+//   server instance, before the first request, guarded on NEXT_RUNTIME === "nodejs", and never
+//   during `next build`; the jobs serve() route is not a separate process and is not the boot
+//   path. — #153
+
 export async function register(): Promise<void> {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
 

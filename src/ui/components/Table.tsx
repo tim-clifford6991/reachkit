@@ -12,6 +12,16 @@
 // not built for a caller to reach. `emptyMessage` is required (no fallback)
 // even when `rows` is non-empty, so the string can never be a silent
 // default supplied only when needed.
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-07: A two-column data listing on a screen is the registered Table inside
+//   its overflow-x-auto wrap, never a hand-built grid; module grids align cards to the start;
+//   a domain is a value and is never wrapped mid-word. — #244
+
 import type React from "react";
 
 export interface TableColumn {

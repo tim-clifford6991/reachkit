@@ -54,6 +54,16 @@
 // derivation is its own function.
 //
 // The archived plan is WO-263.
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-07: A missing measurement is null, never epoch zero: PageRecord.measuredAt
+//   and the draft's grounded readAt are Date | null, a surface omits the row when null (no row
+//   without a fact), and a test asserts no Date in the record lands at or before epoch. — #279
+
 import type { CopyKey } from "@/lib/presentation/copy";
 import { publishDb } from "../db";
 import type { State, UnpublishOutcome, VerifyDisposition } from "../types";

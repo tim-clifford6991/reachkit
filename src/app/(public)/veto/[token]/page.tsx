@@ -37,6 +37,16 @@
 // redemption sit on a public, unauthenticated address, so a database that is
 // unreachable costs its reader a written line and not a page that never
 // loads — see `DEADLINE_MS`.
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-06: The public veto route has four arms in one Surface → Card → Alert;
+//   expired and not_in_review share one line (to the link holder they are one fact: nothing
+//   left to stop); redemption happens on GET once, idempotently. — #154
+
 import type React from "react";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";

@@ -15,6 +15,16 @@
 /** 'undeterminable' = REQ-004 criterion 6 (nothing returned / unreadable /
  *  no answer). 'not_attempted' = REQ-004 criterion 9 (the time ceiling,
  *  `TIMING.reportCeilingS`, or the spend ceiling). */
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-05: Measured inputs are `Measured<T>` end to end —
+//   `foundationsOf`/`answerabilityOf` take `Measured<OnPageFacts>`, never `null`: a null
+//   cannot say why (REQ-004). — #74
+
 export type UnmeasuredReason = "undeterminable" | "not_attempted";
 
 export type Measured<T> =

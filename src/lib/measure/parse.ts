@@ -16,6 +16,15 @@
 // file reads is the direct-answer character window and the (unused-here)
 // answerability floor, both transcribed to `SCORING` by WO-251's own first
 // file-plan row — never written as a literal here (`structure.md` rule 5).
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-05: The evidence-density curve saturates at 20 evidence tokens per 1k
+//   visible characters. — #74
+
 import { SCORING } from "@/lib/config/constants";
 
 /** The counted facts of one fetched document. Named by BP-010's

@@ -28,6 +28,15 @@
 // three live specimens — the hero component, the AI-answers matrix and the
 // This-week card — which are server reads over the reserved fixture. The
 // interactive parts are `ScanForm` and `FieldCta`, both client leaves.
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-05: The landing's medium and wide arms are one column (`same-as-below`)
+//   until REQ-099's demo component lands; that build re-declares them. — #65
+
 import type React from "react";
 import type { Metadata } from "next";
 import { Calendar, Play, Search, Users } from "lucide-react";

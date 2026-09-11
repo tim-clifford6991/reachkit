@@ -29,6 +29,15 @@
 // pathname to mark the current destination — and both bands render it, the
 // compact one with `row`, so a fourth destination cannot appear on one
 // breakpoint only.
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-05: Under `/app` the layout owns the route's `Surface` root; pages under
+//   it declare none. — #83
+
 import type React from "react";
 import { TrendingUp } from "lucide-react";
 import { Surface } from "@/ui/layout";

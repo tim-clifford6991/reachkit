@@ -39,6 +39,15 @@
 // is produced by the page route rather than here, because whether a *page*
 // was taken down is not a fact about a *host* — the disposition is shared
 // so that all three reasons still yield one `gone` response and not three.
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-10: UI-SPEC S19's host is `content.{domain}` (BUILD §9,
+//   `HOSTED_SUBDOMAIN_LABEL`); the set's `blog.` was a specimen placeholder. — master, #413
+
 import { PREVIEW_HOST_SUFFIX, HOSTED_SUBDOMAIN_LABEL } from "@/lib/config/constants";
 import { env } from "@/lib/config/env";
 import { hostedServingState } from "@/lib/account/billing";

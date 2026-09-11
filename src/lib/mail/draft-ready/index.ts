@@ -36,6 +36,18 @@
 // for the reason the `published` mail's does: the leaf decides and stops,
 // and putting the send inside it would make the publishing subsystem
 // import the mail seam for one occasion.
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-07: The draft-ready mail names its page in the body block that carries the
+//   GeneratedText label (generated.page.written), never in the subject, which stays a CopyKey
+//   by type; the page block leads the mail; the why-data is §7's stored evidence (the target
+//   search and its measured volume via explainChoice), never re-measured; a fix page or a
+//   vanished opportunity states nothing. — #194
+
 import { dbAdmin } from "@/lib/db";
 import { env } from "@/lib/config/env";
 import { explainChoice } from "@/lib/opportunities";

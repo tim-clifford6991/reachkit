@@ -33,6 +33,18 @@
 // which `hasActiveAccess()` puts on the import graph of surfaces all over
 // the product, so dragging a database client behind it would be paid for
 // everywhere and needed nowhere.
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-07: The billing access gate is installed at boot from billing's own
+//   module, first in instrumentation register() and before the vendor read, and the install
+//   throws (not logs) if a reader on the module graph gets no answer; the gate asks
+//   hasActiveAccess() once per site (never a second paid_through > now()); a sites row with no
+//   joined owner or date fails closed to no access. — #188
+
 import { registerActiveAccessGate, sitesWithActiveAccess } from "@/lib/scan/weekly/access";
 import { hasActiveAccess } from "./gate";
 

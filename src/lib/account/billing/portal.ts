@@ -33,6 +33,19 @@
 // SDK is named: BP-006's guard is for URLs a customer or a dataset
 // supplied, and the cost seam ledgers what a scan spends. A portal session
 // is neither.
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-07: Billing controls mint a Stripe portal session at the press (never on
+//   render), return_url /app/settings; invoices, card and cancel share the one portal
+//   destination (cancel is at_period_end there, no control of our own); resume branches on the
+//   paid-through date read at the press — portal before it, resumeSubscription() after; every
+//   refusal is one written `unreachable` arm carrying no reason, spoken as three keys
+//   (unreachable · try again · reach a person). — #170
+
 import { checkReturnTo } from "../checkout/return-to";
 import { stripe } from "../stripe/client";
 import { billingStore } from "./store";

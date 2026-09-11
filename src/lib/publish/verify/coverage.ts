@@ -22,6 +22,19 @@
 // proposing the second floor meets the evidence before the temptation.
 //
 // The archived plan is WO-233.
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-06: Verification (+24h): "returns its whole page content" = multiset
+//   containment of the draft's words in the live document with script/style stripped
+//   (visibleText reused); the status whitelist is exactly two (404/410 → page_not_found;
+//   everything else falls through to could_not_confirm, which asserts nothing and makes no
+//   further fetch); a site's condition is recorded only from an answer the site gave — a
+//   timed-out or unparseable sitemap records nothing. — #145
+
 import { renderOf } from "@/lib/generate/rules/text";
 import { visibleText } from "@/lib/measure/parse";
 

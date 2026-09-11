@@ -35,6 +35,20 @@
 // with the draft (#44). Its `askedAs` is `templateQuestion`, the
 // deterministic question form, which is code and not copy (DECISIONS
 // 2026-09-05, #82).
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-07: The calendar renders the two cross-cutting law lines from their
+//   owners: the day panel through nextPublishStatement() (a stop ignores, not prefers, the
+//   scheduled time), the empty day through stoppedWorkStatement() with all three lines for
+//   reachkit_stopped and for unattributed (needs nothing · no time promised); the grid cell
+//   states the first line alone, the panel all three; §11 stop reading has one home
+//   (_shell/stop.ts); the two precedences (why a place is empty vs why a date is empty) stay
+//   separate and say why. — #209
+
 import { templateQuestion } from "@/lib/market/questions/phrase";
 import { unmeasured, type Measured } from "@/lib/measure/measured";
 import {

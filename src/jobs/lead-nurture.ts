@@ -34,6 +34,22 @@
 // makes a re-run exact, and it reads `touch_count` from the row.
 //
 // Not in the kill switch's scope: §11 stops scan, generate and publish.
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-07: The nurture sequence advances on a clock, not a chained event:
+//   lead/nurture is an hourly cron job running advanceSequences(now) over next_touch_at;
+//   advanceOneTouch is the one body; no eighth job id, no per-event delay; the position check
+//   keeps a re-run exact. — #182
+//
+// DECISIONS 2026-09-07: lead/nurture is an hourly cron job whose body is advanceSequences(now)
+//   — no sequence logic, no clock of its own, an hour that moved nothing is skipped/not-due;
+//   advanceSequence (per touch) stays as the one-line-away event shape. BUILD §11's "event +
+//   delays" row is a stated discrepancy owed to the owner (#2). — #196
+
 import { advanceDueSequences } from "@/jobs/engine";
 import type { JobDefinition, Outcome } from "./types";
 

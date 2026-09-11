@@ -35,6 +35,18 @@
 // closed: `safeFetch` treats `{ ok: false }` as no policy known and never
 // fabricates a disallow (`safe-fetch.ts`'s robots port), so a memoised
 // failure withholds nothing from the fetch that follows it.
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-07: robots.txt is memoised per origin for the lifetime of a cost context
+//   (AsyncLocalStorage opened by withCostContext, so a scan is the scope and nothing outlives
+//   it); the memo sits inside readRobots so both the safeFetch port and the measure home read
+//   share it; the promise is memoised (concurrent reads wait on one fetch); an undeterminable
+//   read is held and fails open; outside a scope the module does nothing. — #225
+
 import { AsyncLocalStorage } from "node:async_hooks";
 import type { RobotsPolicy } from "./types";
 

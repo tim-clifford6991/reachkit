@@ -14,6 +14,18 @@
 // capital has confirmed exactly as clearly as one who did not — and the
 // pause REQ-079 c2 asks for is that they typed the word at all, never that
 // they typed it precisely.
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-07: Danger-zone typed confirmation: the customer types the words §4.7
+//   prints, sourced from a registry key per action (owner-owed), compared trimmed and
+//   case-insensitive on the client and re-read server-side; the engine's confirmationFor tag
+//   is never shown to or asked of a customer. Export is offered first (REQ-079 c3) and the
+//   confirming control stays disabled until both gates are satisfied. — #259
+
 import type { CopyKey } from "@/lib/presentation/copy";
 
 /** The two §4.7 prints, as the settings screen's own action keys. */

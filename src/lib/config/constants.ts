@@ -24,6 +24,38 @@
 // the customer-visible word.
 
 // ── Price book, caps, battery, location — BUILD.md §6.1
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-05: `DRAFT_DUE_HOUR_LOCAL = 18` (site-local, ADR-060) and
+//   `JOB_FAN_OUT_CONCURRENCY = 10` are pinned; revisit with the first weekly cost report. —
+//   #86
+//
+// DECISIONS 2026-09-05: `RIVAL_SCORE` is pinned as its two weights (1 per top-10 appearance, 2
+//   per AI citation), never as the formula; `constants.ts` holds prices and boundaries, not
+//   formula shape. — #87/#88
+//
+// DECISIONS 2026-09-07: Vendor cache: the weekly target-SERP re-check has its own window
+//   (CACHE_WINDOWS_D.serpWeeklyRecheck = 7d, the archive ruling transcribed); the SERP/AI
+//   cache key carries the site id so a purchase is per customer as DATA-COSTS §5 states
+//   (BP-008 d5), old shared entries are simply never asked for again; the paid battery has its
+//   own window aiBattery = 6d, one day under the weekly cadence because the Monday trigger
+//   lands hourly and two runs can be slightly under 168h apart. Owner may unify the two at 6d
+//   — one pin. — #207
+//
+// DECISIONS 2026-09-10: The free pass's design ceiling is below the platform's by rule:
+//   `TIMING.reportCeilingS` 50 s under `platformCeilingS` 60 (pinned to the route's
+//   `maxDuration`), `reportTargetS` 40 s; the sweep keys on `platformCeilingS + sweepMarginS`
+//   (30), never on the design ceiling. REQ-003 c5's 90 s is superseded on the pin; no plan
+//   upgrade. — master, #456 (PR 461; BUILD §11)
+//
+// DECISIONS 2026-09-11: `INFERENCE_PRICE_BOOK.nano` is priced at Haiku's rate — both tiers
+//   call `claude-haiku-4-5` — from one source; supersedes the 2026-09-10 "Pending, owner" nano
+//   line. — owner, 2026-09-11 (master session, selector; #517)
+
 export const PRICE_BOOK = Object.freeze({
   RANKED_FREE_ROWS: 50, RANKED_FREE_COST_C: 1.8,
   RANKED_PAID_ROWS: 300, RANKED_PAID_COST_C: 4.8,

@@ -31,6 +31,16 @@
 // Verdicts are at the origin root (`/`), which is all `RobotsPolicy`
 // declares; longest-match wins, `Allow` wins a tie, `*` and `$` are the only
 // pattern characters (RFC 9309 §2.2.2–2.2.3).
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-05: robots.txt `disallowedAgents` is keyed by the pinned AI_READER_AGENTS
+//   spelling for named readers (matched case-insensitively), other tokens lowercased; the
+//   named group's verdict outranks the wildcard (RFC 9309 §2.2.1). — #72
+
 import { AI_READER_AGENTS } from "@/lib/config/constants";
 import { memoiseRobots } from "./robots-memo";
 import { safeFetch } from "./safe-fetch";

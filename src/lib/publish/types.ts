@@ -14,6 +14,26 @@
 // anything from here, so neither adds a cycle.
 //
 // The archived plan is WO-206.
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-08-31: The `publications` row (written before the destination call) plus the
+//   destination-side marker are the at-most-once guarantee; neither may be tidied away. —
+//   ADR-080
+//
+// DECISIONS 2026-09-02: The publishing subsystem's six leaves are one strongly connected
+//   component at node level and acyclic at file level; the cycle is broken at file
+//   granularity, never by deleting a true dependency. — ADR-092
+//
+// DECISIONS 2026-09-06: Publishing: the `(draft_id, destination)` unique index on
+//   `publications` IS the at-most-once guarantee; `transition()` is the only writer of
+//   `drafts.state`; the switch is one boolean read inside the claim and `held` is derived from
+//   `publishable_since`; ceilings are ≤1/day, ≤8/week on the customer's own Monday-start week,
+//   read from RATE_LIMITS only. `PUBLISH_DELIVER_TIMEOUT_MS = 20000` is pinned in #46. — #131
+
 import type { Measured } from "@/lib/measure/measured";
 import type { CopyKey } from "@/lib/presentation/copy";
 

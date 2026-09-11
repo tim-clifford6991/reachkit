@@ -1,3 +1,26 @@
+/*
+ * ── The record for this file ─────────────────────────────────────────────
+ * Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+ * (owner ruling: the record holds product rulings only; an implementation ruling
+ * belongs where the code is). Verbatim. The whole original record is
+ * `docs/archive/DECISIONS-full-2026-09-11.md`.
+ *
+ * DECISIONS 2026-09-05: The type floor is 11px — the bottom of BUILD §2.3's 10.5–11px eyebrow
+ *   range and what `type.css` already draws; no type step below it is minted. — #65 (ADR-093
+ *   decision 3)
+ *
+ * DECISIONS 2026-09-07: ADR-093 rendering half is live (#251); the narrow-viewport h1 step (h1
+ *   takes h2's size below 640px, tokens.md §4) is ruled in on the master's 320px look at dev,
+ *   closing the deferral #166 left open. — #258
+ *
+ * DECISIONS 2026-09-07: The no-mid-word-break rule for values is stated once on .num
+ *   (overflow-wrap normal; word-break normal) in type.css; the three custom stylesheets that
+ *   overrode it (shell, day-panel, calendar-grid) defer to it, the grid via :not(.num); a
+ *   values test walks every route at three bands and fails any .num whose computed style would
+ *   permit a break; the boxes that hold a value that can outgrow them are the registered
+ *   min-w-0 overflow-x-auto wrap. — #275
+ */
+
 /* src/ui/type.css
  *
  * `BUILD.md` §2.3, verbatim: "Headings: Jakarta 700–800, tight

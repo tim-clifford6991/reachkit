@@ -13,6 +13,19 @@
 // `degraded` carries `degradedLine` (the one written line) and no
 // `children`; `default` carries `children` (the card body) and no
 // `degradedLine`. Neither arm has a fallback string.
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-07: A card's paragraphs never grow into stretched slack: card-body p is
+//   grow-0 at the component (daisyUI's flex-grow: 1 default is overridden once in Card.tsx)
+//   and module grids align items to the start; a value wrapped mid-word is caught by measuring
+//   its line boxes (a whitespace-free mono run on two lines is a broken value), since the four
+//   geometric checks cannot see it; the audit's "320px tables clip with no scroll container"
+//   line was wrong — the registered Table's wrap was doing its job. — #277
+
 import type React from "react";
 
 type CardDefault = {

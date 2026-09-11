@@ -31,6 +31,20 @@
 // Nothing here writes a sentence, reads a clock, or decides whether the
 // customer has paid: `hasActiveAccess` is the caller's answer, exactly as
 // `topUp`'s own header requires.
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-06: Opportunity derivation runs inside the pass's own cost context via
+//   runScan's afterReport hook, under the deep/weekly cap (BUILD §6.3's "Haiku ×~4 for typing"
+//   belongs to those budgets); a paid pass claims its own `running` scans row before it
+//   spends, so every fetch is ledgered against a real scan; `StoredReport.rivalSizes:
+//   Measured<RivalSize[]>` is on the blob and REPORT_VERSION is 2; the calendar reads §7's
+//   rows for a real site and the fixture only for the reserved fixture account; a planned date
+//   carries no draft until §8 generates one. — #141
+
 import type { CostContext } from "@/lib/costs";
 import type { StoredReport } from "@/lib/scan/report";
 import type { DeriveInput } from "./derive";

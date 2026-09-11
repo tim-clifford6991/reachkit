@@ -12,6 +12,17 @@
 // they transcribe. The two that are pins — the direct-answer window and
 // the answerability floor — are read from `SCORING`; the closed reader
 // list is `AI_READER_AGENTS`. Nothing here is customer-visible.
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-05: Foundations = (gates + clarity) / 2: gates = share of AI_READER_AGENTS
+//   the robots policy lets through (halved by a targeted noindex; a generic noindex on the
+//   home document is a measured 0 decided before robots); clarity = a quarter of the scale per
+//   signal present (structured data, Open Graph, ≥1 heading, visible text). — #74
+
 import { AI_READER_AGENTS, SCORING } from "@/lib/config/constants";
 import type { RobotsPolicy } from "@/lib/egress/types";
 import type { RankedResult, SerpResult } from "@/lib/vendors/dataforseo/types";

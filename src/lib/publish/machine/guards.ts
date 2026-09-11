@@ -12,6 +12,24 @@
 // counting a week of publications first.
 //
 // The archived plan is WO-209.
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-06: A ReachKit stop holds prepared pages: guard `reachkit_not_stopped` is
+//   first on all three edges into publishing; `page_held` ranks fifth of seven in the
+//   calendar's empty-date precedence (below ADR-061's four, above the unattributed fallback).
+//   — #151
+//
+// DECISIONS 2026-09-07: claimRecheckOutstanding is resolved inside transition() on every edge
+//   into publishing and only there; no_outstanding_claim_recheck is the tenth guard, second on
+//   all three routes (under the deployment stop, above switch, ceilings and destination); the
+//   refusal carries the customer's own matched entry to the screen and never to the log. The
+//   do_not_claim write does not exist yet (#42); a no-writer sweep holds the box until it
+//   does. — #178
+
 import type { Actor, DraftView, TransitionRecord } from "../types";
 import { isPublishingOn, reachKitStopped } from "../switch";
 import { ceilingRoom } from "../ceilings";

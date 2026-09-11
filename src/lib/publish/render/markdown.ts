@@ -42,6 +42,19 @@
 // attributes it writes are `href` (scheme-vetted) and `class` (the caller's
 // own table).
 
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-07: One Markdown renderer at src/lib/publish/render/markdown.ts serves the
+//   draft preview, the copy-out, the hosted page and the WordPress post; safety is by
+//   construction (every text node and attribute escaped, a closed element set, href/class the
+//   only attributes) rather than by a sanitiser; link schemes are an allowlist pinned as
+//   MARKDOWN_LINK_SCHEMES (http, https, mailto, /); bodyCoverage compares the rendered text a
+//   reader sees, so a page is never charged for its own link addresses. — #167
+
 import { MARKDOWN_LINK_SCHEMES } from "@/lib/config/constants";
 
 export type Inline =

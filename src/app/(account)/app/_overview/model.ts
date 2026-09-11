@@ -19,6 +19,29 @@
 // §11's weekly measurement (#41), §9's publishing (#45) and the rival sizing
 // (#27)). Keeping the assembly pure is what lets every rule above be decided
 // by a test with no database and no browser at all.
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-07: Overview series stop at a change marker in the shape the week-spanning
+//   forms already draw for a break (a valueless column with its account; a dashed rule), so
+//   §2.4 gains no sixth chart; weekOf is one function for the break and the count;
+//   changeWithin stays on instants for two readings; the rivals card withholds the was badge
+//   across a change and states the window it compares over; the change words are their own
+//   family (overview.change.*) distinct from the Settings pending-change words. There is no
+//   verdicts card on Overview — the absence is pinned so a future card must break at markers.
+//   — #233
+//
+// DECISIONS 2026-09-07: Overview rival rows are the rivals tracked now, in their order, filled
+//   from the stored weekly rivalSizes; a rival a pass did not size is unmeasured and
+//   contributes no point; the series carries the units of the arm the row will take and a week
+//   measured on one side only is left out, never null; the band rides through whole so
+//   swapOffer stays the one place far is decided; REQ-096 c6 renders under the far rival's own
+//   row as one ghost link to the competitors card, on both arms; no band chip on the row. —
+//   #234
+
 import type { BandHandle } from "@/lib/measure/bands";
 import type { ChangeMarker } from "@/lib/market/changes/markers";
 import { weekOf, withBreaks, type SeriesEntry } from "./changes";

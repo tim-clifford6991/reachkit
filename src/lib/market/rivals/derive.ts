@@ -16,6 +16,25 @@
 //
 // Domain normalisation, the platform partition and the own-domain test are
 // all `./domains`' — one implementation in the product, not two.
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-06: Rival suggestion has two sources by path: a market inferred from a
+//   report → that report's deriveRivals (0¢); a market the founder stated → competitors_domain
+//   (its own empty answer for a domain without presence stands in for §6.6's presence clause);
+//   no market → nothing sought. RivalSize is declared in src/lib/market/rivals and joins
+//   StoredReport under #103. — #118
+//
+// DECISIONS 2026-09-06: The paid pass sizes the customer's tracked rivals inside the
+//   checking_your_presence stage, gated by the `sizesRivals` tier parameter (never a branch),
+//   monthly via the rivals cache window; `ownRanked` joins the blob and REPORT_VERSION is 3
+//   (supersedes the version-2 line). Row caps (100 rival rows, 300 own rows) understate counts
+//   and so tighten both winnability bars — the error runs toward fewer opportunities until
+//   #117 lands a total. — #149
+
 import { BATTERY, RIVAL_SCORE } from "@/lib/config/constants";
 import type { MarketSerp } from "../views";
 import { isOwnDomain, isPlatformDomain, registrableDomain } from "./domains";

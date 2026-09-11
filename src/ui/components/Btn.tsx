@@ -34,6 +34,23 @@
 // reason: a button is not a state.
 "use client";
 
+// ── The record for this file ─────────────────────────────────────────────
+// Rulings of record for this module, moved out of `DECISIONS.md` on 2026-09-11
+// (owner ruling: the record holds product rulings only; an implementation ruling
+// belongs where the code is). Verbatim. The whole original record is
+// `docs/archive/DECISIONS-full-2026-09-11.md`.
+//
+// DECISIONS 2026-09-08: A Btn rank may carry one tone: the outline secondary in warn, for a
+//   request to act that destroys something; tone is only accepted with the secondary rank (a
+//   warn primary does not compile); the rank is read off the action's command, never its
+//   position in the row. The draft view reads Approve (solid) · Edit (quiet) · Veto (outline,
+//   warn). — #289
+//
+// DECISIONS 2026-09-08: The outline rank may carry two tones — warn (a destructive request)
+//   and accent (a call to action that is not the screen's one solid) — edge and ink only,
+//   never a fill; ok and bad stay off buttons; no public screen is exempt from the one-primary
+//   rule (the public exemption list is kept empty as a stated fact). — #294
+
 import type React from "react";
 
 /** The three ranks the owner-approved card idiom draws, plus the two
