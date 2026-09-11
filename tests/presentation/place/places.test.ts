@@ -76,14 +76,14 @@ describe("REQ-091 c2 — a fixed line is asserted, not assumed", () => {
       expect(Object.keys(COPY), key).toContain(line);
     }
     // Rule 5.5 — the suite states its own coverage rather than passing
-    // quietly. Five places today: one line written, four still the owner's.
+    // quietly. Five places today, and since #460 all five lines written.
     console.log(
       `tests/presentation/place: ${KEYS.length} place(s) seeded — ` +
         `${written.length} line(s) written, ${awaiting.length} awaiting copy, ${owed.length} owner-owed`
     );
     expect(KEYS.length).toBe(5);
-    expect(written.length).toBe(1);
-    expect(owed.length + awaiting.length).toBe(4);
+    expect(written.length).toBe(5);
+    expect(owed.length + awaiting.length).toBe(0);
   });
 
   it("every place's line is tagged with the law it serves, or with the clause that fixes it", () => {
