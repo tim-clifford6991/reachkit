@@ -130,8 +130,10 @@
   },
   "publish.ts": {
     "owed": [],
-    "awaiting": [],
-    "ruled": 50
+    "awaiting": [
+      "record.verification.never.noLiveAddress"
+    ],
+    "ruled": 49
   },
   "report.ts": {
     "owed": [],

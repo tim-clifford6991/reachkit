@@ -2,7 +2,7 @@
 
 **Generated. Do not type into this file** — `npm run copy:owed` rewrites it and `tests/presentation/copy/owed-sheet.test.ts` fails when it is out of date. Write the sentences in your reply, or straight into `src/lib/presentation/copy/keys/*.ts`, and run the generator again: a key that gains a sentence leaves this sheet by itself.
 
-**140 keys**, across 796 in the registry — **22 empty** (`copy()` throws on these: a mail with one does not send, a screen with one does not render) and **118 `TODO(copy)`** (these render the marker, in public, until they are written).
+**141 keys**, across 796 in the registry — **22 empty** (`copy()` throws on these: a mail with one does not send, a screen with one does not render) and **119 `TODO(copy)`** (these render the marker, in public, until they are written).
 
 **How to read a row.**
 
@@ -32,7 +32,7 @@ A key with slots (`{value}`, `{date}`) carries them beside its name; the sentenc
 | S11 | [Waiting](#s11-waiting-join) | 1 | 0 |
 | S12 | [Overview](#s12-overview-app) | 35 | 0 |
 | S13 | Overview · week 0 | none | 0 |
-| S14 | [Calendar](#s14-calendar-app) | 21 | 11 |
+| S14 | [Calendar](#s14-calendar-app) | 22 | 11 |
 | S15 | Day panel states | none | 0 |
 | S16 | [Draft](#s16-draft-app) | 8 | 4 |
 | S17 | Draft · edit | none | 0 |
@@ -160,6 +160,7 @@ Every bracketed hint the set draws on this screen: `[page title 15]` · `[page t
 | `calendar.supply.exhausted` `{since}`<br>`calendar.ts` | empty | `supplyLine` · `app/(account)/app/calendar/supply.ts` |  | BUILD §4.6 |  |
 | `calendar.supply.first-arrival` `{days}`<br>`calendar.ts` | empty | `supplyLine` · `app/(account)/app/calendar/supply.ts` |  | BUILD §4.6 |  |
 | `calendar.supply.short` `{days}`<br>`calendar.ts` | empty | `supplyLine` · `app/(account)/app/calendar/supply.ts` |  | BUILD §4.6 |  |
+| `record.verification.never.noLiveAddress`<br>`publish.ts` | marker | composed in the engine · `VERIFICATION_COPY` · `lib/publish/record/lines.ts`<br>also on S16 |  | REQ-062 c7 | 27 — sibling `record.verification.never.takenDownFirst` |
 | `settings.market.change.category`<br>`settings.ts` | marker | `CHANGE_COPY_KEY` · `app/(account)/app/calendar/change-line.ts` |  | REQ-071 c1 | 15 — sibling `settings.market.category` |
 | `settings.market.change.domain`<br>`settings.ts` | marker | `CHANGE_COPY_KEY` · `app/(account)/app/calendar/change-line.ts` |  | REQ-071 c1 | 6 — sibling `settings.market.domain` |
 | `settings.publishing.pair.autopilotWindow`<br>`settings.ts` | marker | composed in the engine · `readPublishingSettings` · `lib/publish/settings/settings.ts` · +1 more<br>also on S18 |  | REQ-073 c2 | 123 — sibling `settings.publishing.pair.note` |

@@ -101,7 +101,8 @@ export const PUBLISH_COPY = Object.freeze({
   "record.verification.notYet": ["first check at", { slots: {}, fixedBy: "REQ-062 c7" }],
   "record.verification.due": ["check due now", { slots: {}, fixedBy: "REQ-062 c7" }],
   "record.verification.never.takenDownFirst": ["taken down before its check", { slots: {}, fixedBy: "REQ-062 c7" }],
-  "record.verification.never.noLiveAddress": ["not checked — never made live", { slots: {}, fixedBy: "REQ-062 c7" }],
+  // held 2026-09-11: the approved sentence truncates in the ghost badge at 320 px (layout sweep no-clipping); owner rules a badge-length word (proposed "not checked").
+  "record.verification.never.noLiveAddress": ["TODO(copy)", { slots: {}, fixedBy: "REQ-062 c7" }],
   "record.unpublished.removed": ["removed from your hosted blog", { slots: {}, fixedBy: "REQ-056 c15" }],
   "record.unpublished.returnedToDraft": ["returned to draft in your WordPress", { slots: {}, fixedBy: "REQ-056 c15" }],
   "record.unpublished.namedForRemoval": ["never live there — yours to remove", { slots: {}, fixedBy: "REQ-056 c16" }],
