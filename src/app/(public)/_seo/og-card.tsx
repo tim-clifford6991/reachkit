@@ -58,18 +58,58 @@ export const OG_SIZE = { width: 1200, height: 630 } as const;
  *  exports for the same reason. */
 export const OG_CONTENT_TYPE = "image/png" as const;
 
-/** The header's own mark — `.rk-wordmark-chip`: a pill in `--accent`,
- *  scaled to the canvas. */
-function Chip(): React.JSX.Element {
+/** The trend glyph's two strokes, as lucide's `TrendingUp` draws them on
+ *  its 24-unit box. Satori renders a plain `<svg>` and nothing else — the
+ *  lucide component is a `forwardRef`, which it does not call — so the
+ *  geometry is written here once, and `tests/app/seo/metadata.test.tsx`
+ *  holds it equal to the component the screens render. */
+export const TREND_PATHS = ["M16 7h6v6", "m22 7-8.5 8.5-5-5L2 17"] as const;
+
+/** The set draws the mark 26px with a 15px glyph (`.brand-mark` L92–93);
+ *  the glyph keeps that proportion at whatever size a canvas asks for. */
+const MARK_DRAWN = 26;
+const GLYPH_DRAWN = 15;
+/** Lucide's own box and the set's stroke for this glyph in the mark
+ *  (`brand()` L512: stroke 2). */
+const GLYPH_BOX = 24;
+const GLYPH_STROKE = 2;
+
+/**
+ * The brand mark — `.rk-wordmark-chip`, the set's `.brand-mark`: the trend
+ * glyph in `--on-accent` on an `--accent` square with `--r-field` corners
+ * (issue #509, after #486 squared it on screen). Drawn here once for every
+ * generated picture: the share cards beside it and the tab icon, which
+ * imports it, so the tab and the timeline cannot show two marks.
+ */
+export function BrandMark(p: { size: number }): React.JSX.Element {
+  const glyph = Math.round((p.size * GLYPH_DRAWN) / MARK_DRAWN);
   return (
     <div
       style={{
-        width: 44,
-        height: 44,
-        borderRadius: token("--r-pill"),
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: p.size,
+        height: p.size,
+        borderRadius: token("--r-field"),
         background: token("--accent"),
       }}
-    />
+    >
+      <svg
+        width={glyph}
+        height={glyph}
+        viewBox={`0 0 ${GLYPH_BOX} ${GLYPH_BOX}`}
+        fill="none"
+        stroke={token("--on-accent")}
+        strokeWidth={GLYPH_STROKE}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        {TREND_PATHS.map((d) => (
+          <path key={d} d={d} />
+        ))}
+      </svg>
+    </div>
   );
 }
 
@@ -78,7 +118,7 @@ function Chip(): React.JSX.Element {
 function Brand(): React.JSX.Element {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-      <Chip />
+      <BrandMark size={44} />
       <div style={{ display: "flex", fontSize: 40, fontWeight: 800, color: token("--ink") }}>
         {copy("chrome.wordmark")}
       </div>

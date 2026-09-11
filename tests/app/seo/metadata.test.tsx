@@ -287,7 +287,7 @@ describe("the favicon set and the manifest ship, and no file is owed to the owne
 
   it("every one of them is drawn from code, so no owner-supplied asset is needed", () => {
     // The Done-when's "no owner files": the mark is the wordmark chip —
-    // `--accent` in a pill — and it is rendered rather than committed, so
+    // the trend glyph on an `--accent` square (#509) — rendered rather than committed, so
     // the colour has one home (`src/ui/theme.css`, through the resolved
     // table) instead of being baked into bytes no check can read.
     expect(existsSync(path.join(REPO_ROOT, "public"))).toBe(false);
