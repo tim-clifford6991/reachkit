@@ -13,6 +13,7 @@
 //    own DB-backed suite in `tests/costs/context.test.ts`.
 import { vi } from "vitest";
 import type { CapName, CostContext } from "../../src/lib/costs/index.ts";
+import { isVendorFailure } from "../../src/lib/costs/refusal.ts";
 
 /** A complete, validly-shaped set of the bindings `env.ts` requires — the
  *  same fixture shape `tests/vendors/never-list.test.ts` uses. */
@@ -122,7 +123,8 @@ export interface FakeContext {
 
 /** `recordFetch` as `withCostContext` implements it, minus the database:
  *  always a cache miss, reserve then settle, `settled` clamped to
- *  `reserved` (BUILD §6.5). */
+ *  `reserved` (BUILD §6.5), and a vendor failure the call site marks
+ *  unbilled settled at 0 (issue #504). */
 export function fakeCostContext(cap: CapName = "DEEP"): FakeContext {
   const calls: RecordedCall[] = [];
   const ledgered: number[] = [];
@@ -138,7 +140,8 @@ export function fakeCostContext(cap: CapName = "DEEP"): FakeContext {
     }) {
       calls.push(call as unknown as RecordedCall);
       const payload = await call.run();
-      const proposed = call.settleCents ? call.settleCents(payload) : call.costCents;
+      const unbilled = isVendorFailure(payload) && !payload.billed;
+      const proposed = unbilled ? 0 : call.settleCents ? call.settleCents(payload) : call.costCents;
       const costCents = proposed > call.costCents ? call.costCents : proposed;
       ledgered.push(costCents);
       return { payload, fresh: true, costCents };
