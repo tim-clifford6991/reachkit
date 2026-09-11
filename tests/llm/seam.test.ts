@@ -300,8 +300,9 @@ describe("llm() — spend accounting seam (mutation probe 1)", () => {
     // BP-005's own formula, transcribed at `tiers.ts`'s `costCentsFor` —
     // recomputed here independently rather than importing that function,
     // so a bug in the formula itself cannot cancel out against this
-    // assertion.
-    const expectedCents = (1000 / 1_000_000) * 20 + (200 / 1_000_000) * 125;
+    // assertion. The rates are Haiku's: the nano tier is priced at
+    // Haiku's row since the owner's ruling of issue #517.
+    const expectedCents = (1000 / 1_000_000) * 100 + (200 / 1_000_000) * 500;
     expect(calls[0]!.settleCents!({ tokensIn: 1000, tokensOut: 200 })).toBeCloseTo(expectedCents, 6);
     expect(calls[0]!.costCents).toBeGreaterThan(0); // the up-front reservation is never zero
   });
@@ -338,8 +339,8 @@ describe("llm() — tier -> model id (mutation probe 2)", () => {
       "today (2026-09-04 coordinator finding: `claude-fable-5` was real but Anthropic's most " +
       "expensive tier, wired into the cheapest lane — a 50×/40× spend-ledger under-count that " +
       "no test could see because the price book and the id agreed with each other and were " +
-      "both wrong together; `INFERENCE_PRICE_BOOK`, untouched, still prices and times the two " +
-      "tiers differently, so a swap between *those* two still fails — see the next test)",
+      "both wrong together; `INFERENCE_PRICE_BOOK` now prices the two tiers identically by " +
+      "owner ruling (#517) and `INFERENCE_TIMEOUT_MS` still times them differently — see the next test)",
     () => {
       const nano = tierBinding("nano");
       const haiku = tierBinding("haiku");
@@ -351,14 +352,17 @@ describe("llm() — tier -> model id (mutation probe 2)", () => {
     }
   );
 
-  it("nano and haiku stay priced and timed differently even while they share a model id — a swap of `INFERENCE_PRICE_BOOK`'s two tiers (BP-005's own pin, untouched by this file) still fails here", () => {
+  it("nano and haiku share a model id and so share a price (owner ruling, #517: nano is priced at Haiku's row) — while their timeouts stay apart, so a swap of `INFERENCE_TIMEOUT_MS`'s two tiers still fails here", () => {
     const nano = tierBinding("nano");
     const haiku = tierBinding("haiku");
-    expect(nano.inCentsPerM).toBe(20);
-    expect(nano.outCentsPerM).toBe(125);
+    // Independent literals — Haiku 4.5's $1.00 · $5.00 per MTok in cents —
+    // so a nano row that drifted back to the old 20 / 125 fails here even
+    // though a comparison of the two bindings to each other could not see
+    // a haiku row that drifted with it.
+    expect(nano.inCentsPerM).toBe(100);
+    expect(nano.outCentsPerM).toBe(500);
     expect(haiku.inCentsPerM).toBe(100);
     expect(haiku.outCentsPerM).toBe(500);
-    expect(nano.inCentsPerM).not.toBe(haiku.inCentsPerM);
     expect(nano.timeoutMs).not.toBe(haiku.timeoutMs);
   });
 
@@ -649,10 +653,11 @@ describe("llm() — the output budget is the call site's own (issue #462)", () =
 
     // `{}` is two characters: one estimated input token, per attempt, two
     // attempts; the output side is the site's pin, per attempt. BP-005's
-    // formula recomputed here rather than imported.
-    const expected = ((1 * 2) / 1_000_000) * 20 + ((INFERENCE_MAX_OUTPUT_TOKENS.profile * 2) / 1_000_000) * 125;
+    // formula recomputed here rather than imported, at Haiku's rates — the
+    // nano tier is priced at Haiku's row since the owner's ruling (#517).
+    const expected = ((1 * 2) / 1_000_000) * 100 + ((INFERENCE_MAX_OUTPUT_TOKENS.profile * 2) / 1_000_000) * 500;
     expect(calls[0]!.costCents).toBeCloseTo(expected, 9);
-    expect(calls[0]!.costCents).toBeLessThan(((4096 * 2) / 1_000_000) * 125);
+    expect(calls[0]!.costCents).toBeLessThan(((4096 * 2) / 1_000_000) * 500);
   });
 });
 
