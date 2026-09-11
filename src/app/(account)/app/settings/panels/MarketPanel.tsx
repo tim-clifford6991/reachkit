@@ -33,6 +33,7 @@
 "use client";
 
 import type React from "react";
+import { Globe } from "lucide-react";
 import { useState } from "react";
 import { Btn } from "@/ui/components/Btn";
 import { Card } from "@/ui/components/Card";
@@ -192,7 +193,7 @@ export function MarketPanel(p: {
   }
 
   return (
-    <Card state="default" title={<CardHead eyebrow={copy("settings.market.title")} />}>
+    <Card state="default" title={<CardHead icon={<Globe size={15} strokeWidth={1.8} aria-hidden />} eyebrow={copy("settings.market.title")} />}>
       <div className="flex min-w-0 flex-col gap-3">
         {/* S18's order: the SITE first and the market second — the card is
             "Your site & market", and the domain is the thing the market is

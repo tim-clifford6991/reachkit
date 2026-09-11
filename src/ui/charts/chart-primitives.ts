@@ -65,6 +65,9 @@ export const CHART = {
   tipTextSize: 8,
   tipHeight: 13,
   tipPadX: 4,
+  /** The pitch between two lines of one chip, when its text is wrapped to
+   *  stay inside the chart's own box (issue #490). */
+  tipLineStep: 10,
   /** One mono character's advance at `tipTextSize`, for sizing the chip
    *  around its own text. */
   tipCharAdvance: 8 * MONO_ADVANCE_RATIO,
@@ -173,26 +176,74 @@ export function plot(value: number, max: number, top: number, bottom: number): n
   return round(bottom - (clamped / max) * (bottom - top));
 }
 
+/** Where a chip sits from the viewBox's edge. */
+const TIP_INSET = 2;
+/** From a line's box to its baseline. */
+const TIP_BASELINE_TRIM = 0.5;
+
+/** One line of a chip: its text, where it is drawn, and the width it is
+ *  fitted to (`textLength`). */
+export interface TipLine {
+  readonly text: string;
+  readonly x: number;
+  readonly y: number;
+  readonly length: number;
+}
+
 /** The fixed-position tooltip chip's geometry, sized around its own text
- *  and clamped inside the viewBox so a long label cannot leave the box. */
+ *  and kept inside the viewBox so a long label cannot leave the box.
+ *
+ *  **Wrapped, never shortened** (issue #490). A tip is `name · value`, and
+ *  where a week was not measured the value is the week's written account
+ *  — an approved sentence of sixty-odd characters, which sized as one line
+ *  put the chip some fifty units past the right edge of a 300-unit growth
+ *  line: the marks `<g>` outside its own `<svg>`, which the layout sweep's
+ *  containment check reports. Approved copy is never cut to fit, so the
+ *  text breaks at its spaces into as many lines as the box's width needs,
+ *  and the chip grows down. Should the box be too short for every line,
+ *  the rest joins the last one, and that line's `textLength` fits it to
+ *  the width there is — squeezed, still whole, still inside. */
 export function tooltipBox(text: string, box: Box): {
   x: number;
   y: number;
   width: number;
   height: number;
-  textX: number;
-  textY: number;
+  lines: readonly TipLine[];
 } {
-  const width = round(text.length * CHART.tipCharAdvance + CHART.tipPadX * 2);
-  const x = round(Math.max(2, box.width - width - 2));
-  const y = 2;
+  const inner = box.width - TIP_INSET * 2 - CHART.tipPadX * 2;
+  const perLine = Math.max(1, Math.floor(inner / CHART.tipCharAdvance));
+  const most = Math.max(
+    1,
+    Math.floor((box.height - TIP_INSET * 2 - CHART.tipHeight) / CHART.tipLineStep) + 1,
+  );
+
+  const rows: string[] = [];
+  for (const word of text.split(" ")) {
+    const last = rows.at(-1);
+    if (last !== undefined && (last + " " + word).length <= perLine) {
+      rows[rows.length - 1] = last + " " + word;
+    } else {
+      rows.push(word);
+    }
+  }
+  const kept = rows.length > most ? [...rows.slice(0, most - 1), rows.slice(most - 1).join(" ")] : rows;
+
+  const lengths = kept.map((line) => round(Math.min(inner, line.length * CHART.tipCharAdvance)));
+  const width = round(Math.max(...lengths, 0) + CHART.tipPadX * 2);
+  const height = round(CHART.tipHeight + (kept.length - 1) * CHART.tipLineStep);
+  const x = round(Math.max(TIP_INSET, box.width - width - TIP_INSET));
+  const y = TIP_INSET;
   return {
     x,
     y,
     width,
-    height: CHART.tipHeight,
-    textX: round(x + CHART.tipPadX),
-    textY: round(y + CHART.tipHeight - CHART.tipPadX - 0.5),
+    height,
+    lines: kept.map((line, i) => ({
+      text: line,
+      x: round(x + CHART.tipPadX),
+      y: round(y + CHART.tipHeight - CHART.tipPadX - TIP_BASELINE_TRIM + i * CHART.tipLineStep),
+      length: lengths[i] ?? 0,
+    })),
   };
 }
 

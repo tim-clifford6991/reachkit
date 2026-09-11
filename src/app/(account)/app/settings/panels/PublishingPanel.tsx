@@ -43,6 +43,7 @@
 // read from the one pair of keys in `laws.ts`, so the sidebar and this card
 // cannot end up calling the same mode two different things.
 import type React from "react";
+import { Sparkles } from "lucide-react";
 import { Badge } from "@/ui/components/Badge";
 import { Btn } from "@/ui/components/Btn";
 import { Card } from "@/ui/components/Card";
@@ -148,7 +149,7 @@ export function PublishingPanel(p: { settings: SettingsModel }): React.JSX.Eleme
   const pairNote = writtenLine("settings.publishing.pair.note");
 
   return (
-    <Card state="default" title={<CardHead eyebrow={copy("settings.publishing.title")} />}>
+    <Card state="default" title={<CardHead icon={<Sparkles size={15} strokeWidth={1.8} aria-hidden />} eyebrow={copy("settings.publishing.title")} />}>
       <div className="flex min-w-0 flex-col gap-3">
         {/* S18 draws the mode as a PAIR of option cards, not a switch: two
             named choices side by side, the chosen one carrying the idiom's
