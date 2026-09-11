@@ -6,7 +6,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { measured, unmeasured, type Measured } from "../../../src/lib/measure/measured.ts";
+import { measured, measuredZero, unmeasured, type Measured } from "../../../src/lib/measure/measured.ts";
 import type { InputOutcome, ScanInput } from "../../../src/lib/measure/partition.ts";
 import type { Drivers } from "../../../src/lib/measure/score.ts";
 import { verdictOf, type Verdict } from "../../../src/lib/measure/verdict.ts";
@@ -93,6 +93,20 @@ describe(
       expect(v.missing).toEqual([{ factor, reason }]);
       expect(v.domain).toBe(DOMAIN);
       expect(v.measuredAt).toBe(AT);
+    });
+
+    it("a measured zero is a value, never a missing driver — REQ-004 c7, and so it can never feed the incomplete notice (#541)", () => {
+      const drivers: Drivers = {
+        foundations: measuredZero(0, AT),
+        answerability: measuredZero(0, AT),
+        searchPresence: measuredZero(0, AT),
+        aiPresence: measuredZero(0, AT),
+      };
+      const v = verdictOf({ domain: DOMAIN, measuredAt: AT, drivers, inputs: allRead(), robots: robotsFixture() });
+      expect(v.missing).toEqual([]);
+      // The score still stands: nothing was withheld, the drivers are
+      // simply all at zero.
+      expect(v.scoreAndBand.kind).not.toBe("unmeasured");
     });
 
     it("is over factors, never over the four quantities — only aiPresence failed reports presence in missing, never aiPresence", () => {

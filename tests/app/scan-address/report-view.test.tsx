@@ -196,6 +196,44 @@ describe("REQ-001 c14/c16, REQ-003 c12 — at most one notice, ever", () => {
     expect(html).not.toContain("notice.incomplete");
   });
 
+  it("the incomplete line names the one factor that has no value (#541)", () => {
+    const html = render(FIXTURE_REPORT, { kind: "incomplete", unmeasured: ["foundations"] });
+    expect(html).toContain("notice.incomplete(verdict.factor.foundations)");
+  });
+
+  it("with two or more, it names all of them (#541)", () => {
+    const html = render(FIXTURE_REPORT, {
+      kind: "incomplete",
+      unmeasured: ["foundations", "answerability", "presence"],
+    });
+    expect(html).toContain(
+      "notice.incomplete(verdict.factor.foundations, verdict.factor.answerability, verdict.factor.presence)"
+    );
+  });
+
+  it("the slot is never filled with the empty string — the sentence production served on 2026-09-11 (#541)", () => {
+    // `AddressNotice`'s `incomplete` arm carries `UnmeasuredFactors`, a
+    // non-empty list, so there is no notice this component can be handed
+    // that renders the slot blank. The degraded fixture is the report the
+    // owner reviews this screen on, and the notice beside it is the same
+    // arm, so both are checked.
+    for (const html of [
+      render(FIXTURE_REPORT, { kind: "incomplete", unmeasured: ["presence"] }),
+      render(FIXTURE_DEGRADED_REPORT, {
+        kind: "incomplete",
+        unmeasured: ["foundations", "presence"],
+      }),
+    ]) {
+      expect(html).not.toContain("notice.incomplete()");
+    }
+  });
+
+  it("a report with nothing unmeasured renders no incomplete line and no alert — `resolve.ts` hands it `null` (#541)", () => {
+    const html = render(FIXTURE_REPORT, null);
+    expect(html).not.toContain("notice.incomplete");
+    expect(count(html, 'role="alert"')).toBe(0);
+  });
+
   it("null renders no alert at all", () => {
     expect(count(render(FIXTURE_REPORT, null), 'role="alert"')).toBe(0);
   });

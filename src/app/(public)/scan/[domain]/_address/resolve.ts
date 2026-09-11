@@ -38,7 +38,14 @@ import { RUNNING_ROW_BOUND_S } from "@/lib/scan/stuck";
 import { parseDomain, type CanonicalDomain } from "@/lib/scan/domain";
 import { readCurrentReport, type StoredReport } from "@/lib/scan/report";
 import { correctionOffer } from "@/lib/market/coherence/offer";
-import type { AddressControl, AddressNotice, AddressRefusal, AddressState } from "./state";
+import type { ScoreFactorName } from "@/lib/measure/score";
+import type {
+  AddressControl,
+  AddressNotice,
+  AddressRefusal,
+  AddressState,
+  UnmeasuredFactors,
+} from "./state";
 import { categoryOf } from "@/lib/scan/sections";
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -140,9 +147,36 @@ function noticeFor(a: {
   if (a.correctionFailed) return { kind: "correction_failed" };
   if (a.report.stoppedReason === "site_unreadable") return { kind: "site_unreadable" };
   if (!a.report.complete) {
-    return { kind: "incomplete", unmeasured: a.report.verdict.missing.map((m) => m.factor) };
+    // REQ-001 c14's line names what was not measured, and `Verdict.missing`
+    // is that list — the factors with no value, each with the reason that
+    // applies (REQ-004 c3/c6/c9). It can be empty while the report is
+    // incomplete, because `complete` is `stoppedReason === "complete"` and
+    // nothing else (`assembleReport`): a pass the 90-second ceiling or the
+    // spend ceiling ended *after* all three factors were computed is
+    // incomplete with every driver measured. Rendering the sentence then
+    // filled its one slot with the empty string, and production served
+    // "This report is incomplete — wasn’t measured." on 2026-09-11 (#541).
+    //
+    // Nothing to name, no notice. The re-scan offer REQ-001 c14 makes
+    // beside that line is `controlFor`'s and is untouched by this: an
+    // incomplete report still offers it.
+    //
+    // A measured zero never reaches here (REQ-004 c7): `verdictOf` puts a
+    // factor in `missing` only where its `Measured` is `unmeasured`, and a
+    // zero is a value.
+    const unmeasured = unmeasuredFactorsOf(a.report);
+    return unmeasured === null ? null : { kind: "incomplete", unmeasured };
   }
   return null;
+}
+
+/** The factors with no value, narrowed to the notice's own non-empty list,
+ *  or `null` where there are none. One place decides it, so `{what}` has
+ *  no call site that could be handed an empty list. */
+function unmeasuredFactorsOf(report: StoredReport): UnmeasuredFactors | null {
+  const factors: readonly ScoreFactorName[] = report.verdict.missing.map((m) => m.factor);
+  const [first, ...rest] = factors;
+  return first === undefined ? null : [first, ...rest];
 }
 
 /** A correction that ran and produced no report leaves its subject current

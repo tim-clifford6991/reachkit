@@ -30,10 +30,28 @@ export type AddressRefusal =
    *  cause that is also true, and is never dressed as one of them. */
   | { reason: "stopped" };
 
+/** The drivers an `incomplete` notice names, **and at least one of them**.
+ *
+ *  REQ-001 c14's line "names what was not measured", and REQ-004 c3 makes
+ *  the naming the point of it. A notice with nothing to name is therefore
+ *  not a notice: its `{what}` slot renders the empty string and the
+ *  sentence comes out as "This report is incomplete — wasn’t measured.",
+ *  which is what production served on 2026-09-11 (issue #541). It says the
+ *  report is incomplete and gives the visitor no idea which part, at the
+ *  top of the only artefact the free funnel produces.
+ *
+ *  The empty case is removed from the type rather than guarded at the call
+ *  site, so the ungrammatical render is *unrepresentable* rather than
+ *  merely unreached: `report-view.tsx` fills the slot from this list and
+ *  has no branch in which it could be empty. Narrowing to it is
+ *  `resolve.ts`'s one job (`unmeasuredFactorsOf`), and a report with no
+ *  factor to name carries no `incomplete` notice at all. */
+export type UnmeasuredFactors = readonly [ScoreFactorName, ...ScoreFactorName[]];
+
 /** At most one line ever renders (REQ-001 c14/c16, REQ-003 c12). `null`
  *  is an arm of the switch, not a missing value. */
 export type AddressNotice =
-  | { kind: "incomplete"; unmeasured: readonly ScoreFactorName[] }
+  | { kind: "incomplete"; unmeasured: UnmeasuredFactors }
   /** The pass could not read the site's own home document and stopped
    *  there (`stoppedReason: "site_unreadable"`, #479). Outranks
    *  `incomplete`: every factor is missing, and the one true cause is the

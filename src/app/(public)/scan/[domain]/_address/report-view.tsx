@@ -71,6 +71,11 @@ const FACTOR_NAME_KEY: Readonly<Record<ScoreFactorName, CopyKey>> =
     presence: "verdict.factor.presence",
   });
 
+/** Between two factor names in the one line that lists them. A list
+ *  separator, not a sentence — the same footing the brands list on the
+ *  AI-answers card and the calendar's own lists already stand on. */
+const FACTOR_LIST_SEPARATOR = ", ";
+
 function formatMeasuredOn(at: Date): string {
   return at.toLocaleDateString(REPORT_LOCALE, {
     year: "numeric",
@@ -88,13 +93,20 @@ function NoticeLine(p: {
   if (notice === null) return null;
   switch (notice.kind) {
     case "incomplete":
+      // REQ-001 c14: the line names what was not measured. `unmeasured` is
+      // `UnmeasuredFactors` — non-empty by its type — so the slot cannot
+      // be filled with the empty string here (issue #541: production
+      // served "This report is incomplete — wasn’t measured." with the
+      // slot blank). There is deliberately no fallback branch: a report
+      // with no factor to name carries no `incomplete` notice at all, and
+      // `resolve.ts` is the one place that decides it.
       return (
         <Alert
           tone="warn"
           message={copy("notice.incomplete", {
             what: notice.unmeasured
               .map((factor) => copy(FACTOR_NAME_KEY[factor]))
-              .join(", "),
+              .join(FACTOR_LIST_SEPARATOR),
           })}
         />
       );
