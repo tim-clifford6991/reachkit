@@ -25,7 +25,7 @@
 // **Calendar left the shared table on 2026-09-05 (issue #16).** Its screen is
 // built, so it no longer heads itself with the destination's nav word and it
 // no longer renders `calendar.head` as a subordinate line — §4.6 gives it a
-// head of its own ("One page a day. Every day.") and a `searchParams` prop
+// head of its own (`calendar.head`) and a `searchParams` prop
 // for the month switcher, so it can neither be rendered nor asserted by the
 // same three rows as the two placeholders. The contract it inherits is
 // unchanged and is asserted for it below, in its own block.

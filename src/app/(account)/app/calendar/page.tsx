@@ -1,6 +1,6 @@
 // BUILD §4.6 — Calendar (with day panel), at `/app/calendar`.
 //
-// "Head: 'One page a day. Every day.' + month switcher." Then §4.6's four
+// "Head: … + month switcher." Then §4.6's four
 // parts: the stage filter cards, the Mon–Sun grid, the 290px day panel
 // beside it, and the footnote.
 //

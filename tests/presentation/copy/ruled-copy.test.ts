@@ -238,7 +238,8 @@ describe('REQ-001 c16 — "… then one written line says what happened and a ma
         // visitor at all (ADR-011).
         "notice.refused.stopped",
         // #479: a pass that could not read the site's own home document.
-        // Owner-owed (`TODO(copy)`); no approved line exists.
+        // Owner-owed until 2026-09-11, when the owner approved its line
+        // (#516); asserted byte for byte in registry.test.ts.
         "notice.site-unreadable",
       ].sort()
     );
