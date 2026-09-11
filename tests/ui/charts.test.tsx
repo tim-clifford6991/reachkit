@@ -687,17 +687,26 @@ describe("issue #490: a chart's groups stay inside its own box, at every length 
     expect(lines.join(" ")).toBe(`Aug 24 · ${APPROVED_ACCOUNT}`);
   });
 
-  // One test per row count, so no single test renders more than the
-  // sentence's length in charts and each stays well inside the runner's
-  // timeout (#497 review) — the same coverage as one sweep over all four.
+  // One test per row count and length band, so no single test renders
+  // more than a third of the sentence's lengths and each stays well inside
+  // the runner's timeout (#497 review) — the same cases as one sweep over
+  // all four row counts and every length.
   const MATRIX_WEEKS = ["15", "22", "29", "6", "13", "20", "27", "3", "10", "17", "24", "31"];
   const MATRIX_CELLS = MATRIX_WEEKS.map((_, i): AiDotMatrixRow["cells"][number] =>
     i % 3 === 0 ? "cited" : i % 3 === 1 ? "not-cited" : "muted",
   );
-  it.each([1, 2, 3, 4])(
-    "the AI dot matrix at %i row(s) keeps every rect and text inside its viewBox for names up to the approved sentence",
-    (rows) => {
-      for (let n = 1; n <= APPROVED_ACCOUNT.length; n += 1) {
+  const BAND = Math.ceil(APPROVED_ACCOUNT.length / 3);
+  const MATRIX_CASES = [1, 2, 3, 4].flatMap((rows) =>
+    [0, 1, 2].map((band) => ({
+      rows,
+      from: band * BAND + 1,
+      to: Math.min(APPROVED_ACCOUNT.length, (band + 1) * BAND),
+    })),
+  );
+  it.each(MATRIX_CASES)(
+    "the AI dot matrix at $rows row(s) keeps every rect and text inside its viewBox for names of $from to $to characters",
+    ({ rows, from, to }) => {
+      for (let n = from; n <= to; n += 1) {
         const matrix: AiDotMatrixRow[] = Array.from({ length: rows }, (_, r) => ({
           name: `${r}${APPROVED_ACCOUNT}`.slice(0, n),
           identity: r === 0 ? "you" : "rival",
