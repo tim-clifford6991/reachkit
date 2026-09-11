@@ -328,11 +328,12 @@ describe("the thirteen keys the owner ruled 2026-09-04 (WO-041 `## Log`, this da
     );
   });
 
-  it("the one key this ruling did not cover still carries no owner sentence", () => {
-    // `price.vat_included` is unchanged: no surface renders it, so the
-    // empty-value throw still guards it.
-    expect(COPY["price.vat_included"]).toBe("");
-    expect(() => copy("price.vat_included")).toThrow(/owner-owed/);
+  it("the one key this ruling did not cover carries the owner's later sentence", () => {
+    // `price.vat_included` stood empty, guarded by the empty-value throw,
+    // until the owner approved its sentence on 2026-09-10 (#459).
+    expect(COPY["price.vat_included"]).toBe("VAT included");
+    expect(copy("price.vat_included")).toBe("VAT included");
+    expect(OWNER_OWED).not.toContain("price.vat_included");
 
     // `offer.cancel_self_service` was the other one. It moved to the
     // `TODO(copy)` marker on 2026-09-05 (issue #13) — §4.1 module 6
