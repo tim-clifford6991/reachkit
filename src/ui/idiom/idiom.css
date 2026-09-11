@@ -1314,6 +1314,12 @@
  * value for value: body size, 1.7 leading, the quiet ink, and h2 at `--h3`
  * in the full ink with `--s-5` above and `--s-3` below.
  *
+ * Those two literal sizes are the set's picture, not the rule every screen
+ * reaches it by: a screen with its own `<h1>` above the body (S5, S16)
+ * shifts the body's headings down a level and wears `.rk-doc-levelled`
+ * (§16), so its `##` is an `<h3>` at `--h3` rather than an `<h2>` restyled
+ * off its own step (issue #493).
+ *
  * The set draws only a heading and paragraphs, because that is all its
  * specimen contains. The rules below cover the **whole closed set of
  * elements `src/lib/publish/render/markdown.ts` can emit** — the same
@@ -1670,7 +1676,7 @@
 }
 
 
-/* ── 16 · The draft's document, levelled (issue #355) ────────────────── */
+/* ── 16 · A document under the screen's own h1, levelled (#355, #493) ── */
 
 /* S16 and S17 render the customer's page itself, and the body is `.rk-doc`
  * — the document idiom #370 landed for S5, carried across from the approved
@@ -1683,12 +1689,17 @@
  * `<h1>` of its own above the body and the layout suite's heading-scale
  * sweep requires every `h1..h4` the product renders to compute its own step
  * of the ladder. `RenderedBody` demotes the body's headings by one instead
- * (`present.ts` says why), so a `##` arrives as an `<h3>` and *earns* the
+ * (`demoteHeadings` in `markdown.ts` says why), so a `##` arrives as an
+ * `<h3>` and *earns* the
  * 20px the set draws. This modifier is what lets it: it restores the three
  * ladder steps `.rk-doc` overrides, in the same tokens, and mints nothing.
  * `h1` is not among them — the demotion floor is 2, so the body cannot
  * render one — and `h5`/`h6` are not either, because `type.css` already
  * gives them the body size and the ladder names no rung below `--h4`.
+ *
+ * The legal screen is the same shape and wears the same modifier (issue
+ * #493): its title is the page's `<h1>` too, and the "right for a legal
+ * page" reading above held only while its bodies had no heading to measure.
  *
  * The selector carries **both** classes so it outweighs `.rk-doc h2` by
  * specificity rather than by source order: these rules sit after §10's in

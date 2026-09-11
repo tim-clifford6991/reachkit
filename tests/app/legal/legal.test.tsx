@@ -17,6 +17,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { copy } from "@/lib/presentation/copy";
+import { legalBodyHtml } from "@/app/(public)/_legal/LegalPage.tsx";
 import PrivacyPage from "@/app/(public)/privacy/page.tsx";
 import TermsPage from "@/app/(public)/terms/page.tsx";
 import ImprintPage from "@/app/(public)/imprint/page.tsx";
@@ -34,6 +35,7 @@ const body = (file: string): string =>
     .replace(/^[ \t]*\/\/.*$/gm, "");
 
 const RENDERER = "_legal/LegalPage.tsx";
+const IDIOM_CSS = path.resolve(import.meta.dirname, "../../../src/ui/idiom/idiom.css");
 
 /** The three routes, each with the document it reads. */
 const ROUTES = [
@@ -90,7 +92,7 @@ describe("UI-SPEC S5 — the screen: eyebrow, title, updated line, one card", ()
 
       it("one card, and the document is inside it", () => {
         expect(html.match(/class="card[ "]/g)).toHaveLength(1);
-        expect(html).toContain('class="rk-doc"');
+        expect(html).toContain('class="rk-doc rk-doc-levelled"');
       });
 
       it("no control, no field: a legal page asks for nothing", () => {
@@ -103,9 +105,10 @@ describe("UI-SPEC S5 — the screen: eyebrow, title, updated line, one card", ()
 });
 
 describe("UI-SPEC S5 — the Markdown body goes through the product's one renderer", () => {
-  it("the screen calls `renderMarkdownHtml` and defines no second renderer", () => {
+  it("the screen spends the one renderer's parse and serialiser and defines no second renderer", () => {
     const src = body(RENDERER);
-    expect(src).toContain("renderMarkdownHtml");
+    expect(src).toContain("parseMarkdown");
+    expect(src).toContain("toHtml");
     expect(src).toContain("@/lib/publish/render/markdown");
     // No parsing of its own: the one renderer is the whole rule (DECISIONS
     // 2026-09-06, #119), and a screen that split a body on newlines would
@@ -123,6 +126,34 @@ describe("UI-SPEC S5 — the Markdown body goes through the product's one render
 
   it("the card carries no head — the page's h1 already names the document", () => {
     expect(body(RENDERER)).toContain("title={null}");
+  });
+});
+
+describe("UI-SPEC S5 — the body's headings take the ladder (issue #493)", () => {
+  // The page's title is its one `<h1>`, so a body heading sits one level
+  // under it: a `##` renders as an `<h3>`, which is the `--h3` the set's
+  // `.doc h2` draws, reached by the ladder's own step rather than by an
+  // `<h2>` restyled to 20px (which the heading-scale sweep refuses).
+  const md = "# Heading one\n\nText.\n\n## Heading two\n\nText.\n\n### Heading three";
+
+  it("every heading the renderer emits is one level under the page's h1", () => {
+    const html = legalBodyHtml(md);
+    expect(html).toContain("<h2>Heading one</h2>");
+    expect(html).toContain("<h3>Heading two</h3>");
+    expect(html).toContain("<h4>Heading three</h4>");
+    // Never a second h1, and no `##` left at the level it would have to be
+    // restyled off.
+    expect(html).not.toContain("<h1");
+    expect(html.match(/<h2/g)).toHaveLength(1);
+  });
+
+  it("the levelled document gives each level its own step, in tokens", () => {
+    const css = readFileSync(IDIOM_CSS, "utf8");
+    for (const [tag, token] of [["h2", "--h2"], ["h3", "--h3"], ["h4", "--h4"]] as const) {
+      expect(css, `.rk-doc.rk-doc-levelled ${tag}`).toMatch(
+        new RegExp(`\\.rk-doc\\.rk-doc-levelled ${tag} \\{\\s*font-size: var\\(${token}\\);`)
+      );
+    }
   });
 });
 
