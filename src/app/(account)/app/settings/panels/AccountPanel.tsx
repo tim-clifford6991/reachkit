@@ -70,7 +70,7 @@ export function AccountPanel(p: { account: SettingsModel["account"] }): React.JS
                 empty value rather than inventing one, and the label still
                 names what is missing. */}
             <span className="min-w-0 wrap-anywhere">{p.account.name ?? ""}</span>
-            <Btn label={copy("settings.edit")} size="sm" />
+            <Btn label={copy("settings.edit")} size="sm" variant="secondary" pill />
           </div>
         </div>
 
@@ -100,7 +100,7 @@ export function AccountPanel(p: { account: SettingsModel["account"] }): React.JS
               {copy("settings.account.email-pending-expires", { at: pending.expiresAt })}
             </p>
             <form action={cancelEmailChangeAction}>
-              <Btn label={copy("settings.account.cancel-change")} size="sm" type="submit" />
+              <Btn label={copy("settings.account.cancel-change")} size="sm" variant="secondary" pill type="submit" />
             </form>
           </div>
         )}
@@ -134,7 +134,8 @@ export function AccountPanel(p: { account: SettingsModel["account"] }): React.JS
             />
           )}
           <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <Btn label={copy("settings.account.change-email")} size="sm" type="submit" />
+            {/* S18's outlined pills (L819, issue #506). */}
+            <Btn label={copy("settings.account.change-email")} size="sm" variant="secondary" pill type="submit" />
           </div>
         </form>
       </div>
@@ -153,7 +154,8 @@ export function AccountPanel(p: { account: SettingsModel["account"] }): React.JS
           <Btn
             label={copy("settings.account.sign-out")}
             size="sm"
-            variant="ghost"
+            variant="secondary"
+            pill
             onClick={() => action.run("sign_out")}
           />
         </span>

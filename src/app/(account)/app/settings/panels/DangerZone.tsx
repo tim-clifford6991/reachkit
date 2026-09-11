@@ -96,7 +96,8 @@ export function DangerZone(): React.JSX.Element {
                 offer of seven actions is counted from. */}
             <div className="flex min-w-0 flex-wrap items-center gap-2">
               <span data-testid={`action-${row.action}`}>
-                <Btn label={copy(row.label)} size="sm" onClick={() => setOpened(row.action)} />
+                {/* S18's outlined pill (L821, issue #506). */}
+                <Btn label={copy(row.label)} size="sm" variant="secondary" pill onClick={() => setOpened(row.action)} />
               </span>
             </div>
             {opened === row.action ? <DangerStep row={row} action={action} /> : null}

@@ -113,7 +113,7 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
           className="flex min-w-0 flex-wrap items-baseline gap-2"
           data-testid="billing-price"
         >
-          <span className="num rk-figure wrap-anywhere">{amount}</span>
+          <span className="num rk-card-figure wrap-anywhere">{amount}</span>
           <span className="num-phrase text-xs opacity-60 wrap-anywhere">
             {price.slice(1).join(" ")}
           </span>
@@ -154,31 +154,34 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
         )}
       </dl>
 
-      {/* Three quiet controls, all leading to REQ-097 c1's one surface. */}
+      {/* Three outlined pills (S18 L818, issue #506), all leading to
+          REQ-097 c1's one surface. */}
       <div className="flex min-w-0 flex-wrap items-center gap-2">
         {/* The card is changed on the same surface the invoices live on, so
             this is a second way in and not a second action (REQ-097 c1). */}
         <Btn
           label={copy("settings.billing.update-card")}
           size="sm"
-          variant="tertiary"
+          variant="secondary"
+          pill
           onClick={() => action.run("invoices")}
         />
         <span data-testid="action-invoices">
           <Btn
             label={copy("settings.billing.invoices")}
             size="sm"
-            variant="tertiary"
+            variant="secondary"
+            pill
             onClick={() => action.run("invoices")}
           />
         </span>
         {!billing.readable ? null : billing.state === "active" ? (
           <span data-testid="action-cancel">
-            <Btn label={copy("settings.billing.cancel")} size="sm" variant="tertiary" onClick={() => action.run("cancel")} />
+            <Btn label={copy("settings.billing.cancel")} size="sm" variant="secondary" pill onClick={() => action.run("cancel")} />
           </span>
         ) : (
           <span data-testid="action-resume">
-            <Btn label={copy("settings.billing.resume")} size="sm" variant="tertiary" onClick={() => action.run("resume")} />
+            <Btn label={copy("settings.billing.resume")} size="sm" variant="secondary" pill onClick={() => action.run("resume")} />
           </span>
         )}
       </div>

@@ -120,6 +120,17 @@ describe("REQ-040 c2 — the Calendar destination's waiting count", () => {
     expect(root.querySelector("[data-testid='shell-navlink-overview']")?.textContent).not.toMatch(/\d/);
   });
 
+  it("every destination carries its UI-SPEC §2.6 glyph before its word, hidden from the tree (issue #506)", () => {
+    const root = render(<SidebarNav waiting={7} />);
+    for (const destination of DESTINATIONS) {
+      const link = root.querySelector(`[data-testid='shell-navlink-${destination}']`);
+      const svgs = link?.querySelectorAll("svg") ?? [];
+      expect(svgs, destination).toHaveLength(1);
+      expect(svgs[0]?.getAttribute("aria-hidden"), destination).toBe("true");
+      expect(link?.firstElementChild?.tagName.toLowerCase(), destination).toBe("svg");
+    }
+  });
+
   it("renders no count at all at zero — not a 0, not an empty element", () => {
     const root = render(<SidebarNav waiting={0} />);
     expect(root.querySelectorAll("[data-testid='shell-calendar-count']")).toHaveLength(0);

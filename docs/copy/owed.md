@@ -2,7 +2,7 @@
 
 **Generated. Do not type into this file** — `npm run copy:owed` rewrites it and `tests/presentation/copy/owed-sheet.test.ts` fails when it is out of date. Write the sentences in your reply, or straight into `src/lib/presentation/copy/keys/*.ts`, and run the generator again: a key that gains a sentence leaves this sheet by itself.
 
-**155 keys**, across 797 in the registry — **5 empty** (`copy()` throws on these: a mail with one does not send, a screen with one does not render) and **150 `TODO(copy)`** (these render the marker, in public, until they are written).
+**155 keys**, across 798 in the registry — **5 empty** (`copy()` throws on these: a mail with one does not send, a screen with one does not render) and **150 `TODO(copy)`** (these render the marker, in public, until they are written).
 
 **How to read a row.**
 

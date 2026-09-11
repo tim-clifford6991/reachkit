@@ -253,6 +253,11 @@ describe('BP-018 decision 1: "daisyUI components only — no bespoke widgets" (t
     expect(root.querySelector(".toggle")).not.toBeNull();
   });
 
+  it("Toggle's control is the set's switch — `rk-switch`, accent when on (issue #506)", () => {
+    const root = renderRoot(<Toggle label="x" checked />);
+    expect(root.querySelector(".toggle.rk-switch")).not.toBeNull();
+  });
+
   it("Steps' root carries the steps class", () => {
     const root = renderRoot(<Steps steps={[{ id: "a", label: "A", state: "done" }]} />);
     expect(root.classList.contains("steps")).toBe(true);
