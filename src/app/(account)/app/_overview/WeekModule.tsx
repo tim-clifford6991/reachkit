@@ -15,9 +15,10 @@
 // waiting on the customer.
 //
 // **Identity is never colour alone.** Every day carries its own date and the
-// written word for its state, so the strip says what it means with the
-// colours removed (§2.4). The three words are §4.5's own; the model picks
-// which, and this file only reads them.
+// written word for its state — the set draws no word in the cell, so the
+// word is the cell's accessible text (`WeekStrip`, issue #521) and the strip
+// still says what it means with the colours removed (§2.4). The three words
+// are §4.5's own; the model picks which, and this file only reads them.
 //
 // **One supply statement, never two.** `readSupplyStatement` returns at most
 // one key even where all three conditions hold; this file renders the one it
@@ -31,18 +32,15 @@ import { writtenLine } from "../_shell/written";
 import { formatDayOfMonth } from "./present";
 import type { SupplyStatement } from "./supply";
 import { CALENDAR_DAY_ZONE, type WeekModule as WeekModuleModel } from "./week";
-import { CHART_PLATE } from "./style";
 
 /** A day cell. Its date is a calendar-day marker the site's zone was
  *  already applied to (`readWeek`), so it is read back in
  *  `CALENDAR_DAY_ZONE` — formatting it in the site's zone a second time
  *  would shift every cell back across midnight.
  *
- *  A cell is a seventh of a 300-unit viewBox and the strip is one named
- *  week, so the label is the day of the month: a full date drawn there is
- *  wider than its own cell and is clipped by the `<svg>`, which prints a
- *  date the reader cannot finish. The month is the module's own heading's
- *  to carry. */
+ *  The label is the day of the month, as the set draws it: a cell is a
+ *  seventh of the card, 30px wide at the compact floor, and the strip is one
+ *  named week. The month is the module's own heading's to carry. */
 function dayOf(day: WeekModuleModel["days"][number]): WeekDay {
   return {
     date: formatDayOfMonth(day.date, CALENDAR_DAY_ZONE),
@@ -85,11 +83,9 @@ export function WeekModule(p: {
           </a>
         }
       />
-      {strip === null ? null : (
-        <div style={CHART_PLATE}>
-          <WeekStrip days={strip} label={title} />
-        </div>
-      )}
+      {/* The full width of the card, as the set draws it — the strip is
+          HTML cells, so it takes no plate cap (issue #521). */}
+      {strip === null ? null : <WeekStrip days={strip} label={title} />}
       {supplyLine === null ? null : (
         <p className="rk-quiet" data-testid="overview-supply">
           {supplyLine}

@@ -73,8 +73,16 @@ type StatSpecimen = {
 };
 
 /** The card idiom's widening: where the caller draws the label as its card
- *  head's eyebrow, the tile does not print it a second time. */
-type LabelPlacement = { labelInHead?: boolean };
+ *  head's eyebrow, the tile does not print it a second time.
+ *
+ *  `carryBeside` is the approved set's `.stat-row` (UI-SPEC §2's Stat row,
+ *  set L193; issue #521): the value and what it carries — its delta or its
+ *  goal, and any badge the caller puts beside them — on one baseline-aligned
+ *  row that wraps rather than shrinks, where daisyUI stacks the description
+ *  under the value. It applies to the measured arms only: `unmeasured`'s
+ *  `reason` is a written sentence, and a sentence beside an em dash is not
+ *  the row the set draws. */
+type LabelPlacement = { labelInHead?: boolean; carryBeside?: boolean };
 
 export type StatProps = (StatMeasured | StatUnmeasured | StatSpecimen) & LabelPlacement;
 
@@ -97,6 +105,10 @@ function SpecimenStat(p: StatSpecimen): React.JSX.Element {
   );
 }
 
+/** The row arm's hook, bound to a name so the copy sweep does not read a
+ *  structural attribute value as product voice. */
+const CARRY_BESIDE = "beside";
+
 export function Stat(p: StatProps): React.JSX.Element {
   // The card idiom's widening (issue 266, `design/tokens.md` §9.1,
   // `components.md` §7): the label is **placeable in the head**. The
@@ -113,10 +125,20 @@ export function Stat(p: StatProps): React.JSX.Element {
     <div className="stats" aria-label={p.labelInHead === true ? p.label : undefined}>
       <div className="stat">
         {p.labelInHead === true ? null : <div className="stat-title">{p.label}</div>}
-        <div className="stat-value num">{p.state === "unmeasured" ? "—" : p.value}</div>
-        <div className="stat-desc whitespace-normal">
-          {p.state === "unmeasured" ? p.reason : (p.delta ?? p.goal)}
-        </div>
+        {p.carryBeside === true && p.state !== "unmeasured" ? (
+          // `gap-2` is `--s-2`, the rung nearest the set's 10px gap.
+          <div className="flex flex-wrap items-baseline gap-2" data-carry={CARRY_BESIDE}>
+            <div className="stat-value num">{p.value}</div>
+            <div className="stat-desc whitespace-normal">{p.delta ?? p.goal}</div>
+          </div>
+        ) : (
+          <>
+            <div className="stat-value num">{p.state === "unmeasured" ? "—" : p.value}</div>
+            <div className="stat-desc whitespace-normal">
+              {p.state === "unmeasured" ? p.reason : (p.delta ?? p.goal)}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

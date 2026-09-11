@@ -46,8 +46,24 @@ import { CardHead, IdiomCard } from "@/ui/idiom";
 import { CARRY, CHART_BOX, STACK, TILES } from "./style";
 
 /** The one place a delta or a goal becomes a node. `Stat` takes exactly one
- *  of the two, so this returns the pair the caller spreads. */
-function statCarrier(carried: Carried): { delta: React.ReactNode } | { goal: React.ReactNode } {
+ *  of the two, so this returns the pair the caller spreads.
+ *
+ *  `beside` is what the set draws on the same row after the carried value —
+ *  the score's band, the pages' "already ranking" (UI-SPEC S12, set
+ *  L709–711; issue #521): `62 ▲8 Hard to find`, `17 6 already ranking`. It
+ *  rides in the carrier so `Stat`'s one row holds all of it.
+ *
+ *  **Only badges ride here.** The set's `.stat-row` (L709–711) holds the
+ *  figure and its pills and nothing else; the sentence that says what a goal
+ *  means is a `.explain` line under the row. A whole sentence inside the row
+ *  sets the row's min-content width, which wraps the pill onto the next line
+ *  and puts the goal chip back under the figure — the defect the master read
+ *  in CI's S12 render of this branch. `meansLine` draws that sentence where
+ *  the set draws it. */
+function statCarrier(
+  carried: Carried,
+  beside: React.ReactNode = null
+): { delta: React.ReactNode } | { goal: React.ReactNode } {
   // A badge, not bare text (UI-SPEC S12): the set draws every tile's
   // carried value as a pill beside the number — the delta in the success
   // tone, the goal in the neutral one — and §2.5 fixes which is which. A
@@ -56,12 +72,15 @@ function statCarrier(carried: Carried): { delta: React.ReactNode } | { goal: Rea
   if (carried.kind === "delta") {
     return {
       delta: (
-        <Badge tone={DELTA_TONE}>
-          <span style={CARRY}>
-            <span className="num">{copy(carried.markKey)}</span>
-            <span className="num">{carried.text}</span>
-          </span>
-        </Badge>
+        <span style={CARRY}>
+          <Badge tone={DELTA_TONE}>
+            <span style={CARRY}>
+              <span className="num">{copy(carried.markKey)}</span>
+              <span className="num">{carried.text}</span>
+            </span>
+          </Badge>
+          {beside}
+        </span>
       ),
     };
   }
@@ -71,10 +90,19 @@ function statCarrier(carried: Carried): { delta: React.ReactNode } | { goal: Rea
         <Badge tone={GOAL_TONE}>
           <span className="num">{carried.text}</span>
         </Badge>
-        {carried.means === null ? null : <span>{carried.means}</span>}
+        {beside}
       </span>
     ),
   };
+}
+
+/** What reaching the goal means, as the set's `.explain` line under the row
+ *  (S12 L711's "rest under 3 weeks — too early to judge" sits the same way).
+ *  A delta carries no such sentence, and where the owner has not written the
+ *  goal's, `writtenLine` has already returned `null` and nothing is drawn. */
+function meansLine(carried: Carried): React.JSX.Element | null {
+  if (carried.kind !== "goal" || carried.means === null) return null;
+  return <p className="rk-quiet">{carried.means}</p>;
 }
 
 function Tile(p: {
@@ -83,10 +111,13 @@ function Tile(p: {
   testId: string;
   /** What the headline is out of, where it is a count within a fixed set. */
   outOf?: number;
+  /** A badge the set draws on the value's own row (see `statCarrier`). */
+  beside?: React.ReactNode;
   children?: React.ReactNode;
 }): React.JSX.Element {
   const label = copy(p.labelKey);
   const value = renderValue(p.module.headline.value, p.labelKey);
+  const carried = carriedBy(p.module.headline, p.labelKey);
 
   return (
     // Take A, the take the owner approved on 2026-09-02: "one card per
@@ -98,21 +129,28 @@ function Tile(p: {
     <IdiomCard head={<CardHead eyebrow={label} />} testId={p.testId}>
       <div style={STACK}>
       {value.isDash ? (
-        <Stat state="unmeasured" label={label} labelInHead reason={value.line ?? label} />
+        <>
+          <Stat state="unmeasured" label={label} labelInHead reason={value.line ?? label} />
+          {p.beside === undefined || p.beside === null ? null : <span style={CARRY}>{p.beside}</span>}
+        </>
       ) : (
-        <Stat
-          state={p.module.headline.value.kind === "zero" ? "measured-zero" : "measured"}
-          label={label}
-          labelInHead
-          value={
-            p.outOf === undefined ? (
-              value.text
-            ) : (
-              <span className="num">{`${value.text}/${formatCount(p.outOf)}`}</span>
-            )
-          }
-          {...statCarrier(carriedBy(p.module.headline, p.labelKey))}
-        />
+        <>
+          <Stat
+            state={p.module.headline.value.kind === "zero" ? "measured-zero" : "measured"}
+            label={label}
+            labelInHead
+            carryBeside
+            value={
+              p.outOf === undefined ? (
+                value.text
+              ) : (
+                <span className="num">{`${value.text}/${formatCount(p.outOf)}`}</span>
+              )
+            }
+            {...statCarrier(carried, p.beside)}
+          />
+          {meansLine(carried)}
+        </>
       )}
       {p.children}
       </div>
@@ -154,7 +192,7 @@ const PAGES_TEST_ID = "overview-tile-pages";
 
 /** The score's own tile: the number, its delta, and the band it stands in.
  *
- *  The band is a `Badge` beside the value rather than a second headline —
+ *  The band is a `Badge` on the value's own row rather than a second headline —
  *  it is a word for where the score is, not a number — and its tone is
  *  `BAND_TONE`'s, the one map the report's verdict head reads too, so one
  *  band is never drawn two colours on two screens.
@@ -169,6 +207,11 @@ function ScoreTile(p: { score: ScoreModule; firstDue: string | null }): React.JS
   // date the shell's domain block states from the same `firstDueOn`.
   const firstDue =
     p.firstDue === null ? null : writtenLine("overview.tile.score.first-due", { due: p.firstDue });
+  const scoreCarried = carriedBy(p.score.headline, SCORE_LABEL);
+  const band =
+    p.score.band === null ? null : (
+      <Badge tone={BAND_TONE[p.score.band]}>{copy(SCORE_BANDS[p.score.band])}</Badge>
+    );
 
   return (
     <IdiomCard head={<CardHead eyebrow={label} />} testId={SCORE_TEST_ID}>
@@ -176,18 +219,17 @@ function ScoreTile(p: { score: ScoreModule; firstDue: string | null }): React.JS
         {value.isDash ? (
           <Stat state="unmeasured" label={label} labelInHead reason={value.line ?? label} />
         ) : (
-          <Stat
-            state={p.score.headline.value.kind === "zero" ? "measured-zero" : "measured"}
-            label={label}
-            labelInHead
-            value={value.text}
-            {...statCarrier(carriedBy(p.score.headline, SCORE_LABEL))}
-          />
-        )}
-        {p.score.band === null ? null : (
-          <span style={CARRY}>
-            <Badge tone={BAND_TONE[p.score.band]}>{copy(SCORE_BANDS[p.score.band])}</Badge>
-          </span>
+          <>
+            <Stat
+              state={p.score.headline.value.kind === "zero" ? "measured-zero" : "measured"}
+              label={label}
+              labelInHead
+              carryBeside
+              value={value.text}
+              {...statCarrier(scoreCarried, band)}
+            />
+            {meansLine(scoreCarried)}
+          </>
         )}
         {firstDue === null ? null : <p className="rk-quiet">{firstDue}</p>}
       </div>
@@ -272,12 +314,12 @@ export function TileRow(p: {
           />
         </div>
       </Tile>
-      <Tile module={p.pagesPublished} labelKey={PAGES_LABEL} testId={PAGES_TEST_ID}>
-        {ranking === null ? null : (
-          <span style={CARRY}>
-            <Badge tone={RANKING_TONE}>{ranking}</Badge>
-          </span>
-        )}
+      <Tile
+        module={p.pagesPublished}
+        labelKey={PAGES_LABEL}
+        testId={PAGES_TEST_ID}
+        beside={ranking === null ? null : <Badge tone={RANKING_TONE}>{ranking}</Badge>}
+      >
         {tooEarly === null ? null : <p className="rk-quiet">{tooEarly}</p>}
         {firstReview === null ? null : <p className="rk-quiet">{firstReview}</p>}
       </Tile>

@@ -20,12 +20,13 @@
 // layout parameters of five components and live with them, the same way
 // the calendar grid's track rule lives with the calendar.
 //
-// **No CSS file, and that is deliberate.** §2.2 admits custom CSS for
-// "chart SVGs", but a stylesheet has to be imported by the one root
-// document, which is a shared file three in-flight branches are editing.
-// The marks paint through SVG presentation attributes instead, and the one
-// rule that cannot be an attribute — `:hover` — ships as a `<style>`
-// element inside each `<svg>`.
+// **No CSS file for the SVG charts, and that is deliberate.** §2.2 admits
+// custom CSS for "chart SVGs", but the four SVG charts paint through SVG
+// presentation attributes, and the one rule that cannot be an attribute —
+// `:hover` — ships as a `<style>` element inside each `<svg>`. The one
+// stylesheet in this directory is `week-strip.css`, imported by
+// `WeekStrip.tsx` itself: the strip is HTML cells (issue #521), and cells
+// have no presentation attributes to paint through.
 
 /** One mono character's advance, as a share of the font size. There is no
  *  text metrics API in an SVG the server renders, so every width a chart

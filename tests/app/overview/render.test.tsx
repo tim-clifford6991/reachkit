@@ -223,6 +223,44 @@ describe("three tiles, and no fourth", () => {
     expect(markup).toContain("band.score.hard-to-find");
   });
 
+  // The row is the last child of `.stat`, which is the only child of
+  // `.stats`, and everything inside the row is a `span` — so the three
+  // consecutive `</div>`s are the row's own end and nothing else's. Slicing
+  // to `</section>` would swallow the lines *under* the row, which is
+  // exactly what these tests have to tell apart.
+  const rowOf = (testId: string): string => {
+    const tile = markup.slice(markup.indexOf(`data-testid="${testId}"`));
+    const row = tile.slice(tile.indexOf('data-carry="beside"'));
+    return row.slice(0, row.indexOf("</div></div></div>"));
+  };
+
+  it("draws each tile's carried value and badge beside the figure, on one row (#521)", () => {
+    // The set's `62 ▲8 Hard to find` and `2/12 goal: 6`: one row per tile.
+    expect(count(markup, 'data-carry="beside"')).toBe(3);
+    const score = rowOf("overview-tile-score");
+    expect(score).toContain(">62<");
+    expect(score).toContain("overview.delta.up");
+    expect(score).toContain("band.score.hard-to-find");
+    expect(rowOf("overview-tile-ai-answers")).toContain("overview.goal(6)");
+    expect(rowOf("overview-tile-pages")).toContain("overview.goal(30)");
+    expect(rowOf("overview-tile-pages")).toContain("overview.tile.pages.ranking(6)");
+  });
+
+  it("keeps the goal's sentence under the row, never inside it (#521)", () => {
+    // The set's `.stat-row` (S12 L709–711) holds the figure and its pills
+    // and nothing else; what reaching a goal means is the `.explain` line
+    // beneath. Inside the row that sentence sets the min-content width, the
+    // chip wraps, and the goal lands back under the figure — which is what
+    // the master read in CI's render of this branch.
+    for (const [testId, key] of [
+      ["overview-tile-ai-answers", "overview.tile.ai-answers.means"],
+      ["overview-tile-pages", "overview.tile.pages.means"],
+    ] as const) {
+      expect(rowOf(testId)).not.toContain(key);
+      expect(markup).toContain(`<p class="rk-quiet">${key}`);
+    }
+  });
+
   it("the searches reading has no tile — the growth card is its home now", () => {
     expect(markup).not.toContain("overview.tile.searches.label");
   });
@@ -334,12 +372,12 @@ describe("this week", () => {
 
   it("renders seven days, each with its own date", () => {
     // Monday 31 Aug through Sunday 6 Sep, in the site's zone. The label is
-    // the day of the month: a cell is a seventh of a 300-unit viewBox, and
-    // a full date drawn there is wider than its own cell and is clipped by
-    // the `<svg>` (see `dayOf`). The month is the module's heading's.
+    // the day of the month, as the set draws it (see `dayOf`). The month
+    // is the module's heading's.
     for (const day of ["31", "1", "2", "3", "4", "5", "6"]) {
-      expect(markup, `missing day ${day}`).toContain(`>${day}</text>`);
+      expect(markup, `missing day ${day}`).toContain(`>${day}</span>`);
     }
+    expect(count(markup, 'class="rk-week-day"')).toBe(7);
   });
 
   it("gives every day the written word for its state — identity is never colour alone", () => {
@@ -355,6 +393,19 @@ describe("this week", () => {
     expect(markup).toContain('href="/app/calendar"');
     expect(markup).toContain("overview.week.calendar-link");
     expect(markup).toContain("rk-btn-tertiary");
+  });
+
+  it("draws the set's flat cells and coloured rule, and no word the set does not draw (#521)", () => {
+    // UI-SPEC S12: a quiet cell per day with a rule under the date. The
+    // state is the cell's data and its accessible text — never a visible
+    // word the set does not draw.
+    expect(count(markup, "rk-week-rule")).toBe(7);
+    expect(markup).toContain('data-state="today"');
+    // No chart frame and no SVG marks: the card head's glyph is the only
+    // svg left.
+    expect(markup).not.toContain("rk-mark");
+    expect(markup).not.toContain('viewBox="0 0 300');
+    expect(markup).not.toContain("max-width:560px");
   });
 
   it("renders exactly one supply statement", () => {
@@ -381,6 +432,11 @@ describe("needs you (UI-SPEC S12)", () => {
   it("renders at most two panels, each with one control, and the remainder as a count", () => {
     expect(count(markup, "rk-panel-title")).toBe(2);
     expect(count(markup, "rk-panel-cta")).toBe(2);
+    // The set draws the two as one pair (#521): both panels sit in the one
+    // pair container, and the count stays outside it.
+    const pair = markup.slice(markup.indexOf('class="rk-panel-pair"'));
+    expect(markup).toContain('data-testid="overview-alert-panels"');
+    expect(count(pair.slice(0, pair.indexOf('data-testid="overview-overflow"')), 'class="rk-panel"')).toBe(2);
     expect(markup).toContain("overview.alert.overflow(1)");
   });
 

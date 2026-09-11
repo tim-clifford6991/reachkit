@@ -131,10 +131,12 @@ export const CHART_BOX: React.CSSProperties = { minWidth: 0, overflowX: "auto" }
  *  worth of weight instead of the page's.
  *
  *  It is a bound, not a width: below it the chart still fills its column,
- *  which is what keeps the compact band working. The two charts that are
- *  the width of the screen — the growth line and the week strip — take it;
- *  the dot matrix sits inside a tile that is already narrower, and the
- *  sparkline carries its own `--w-spark-min` floor. */
+ *  which is what keeps the compact band working. The chart that is the
+ *  width of the screen — the growth line — takes it; the dot matrix sits
+ *  inside a tile that is already narrower, and the sparkline carries its
+ *  own `--w-spark-min` floor. The week strip no longer takes it: it is HTML
+ *  cells at the ladder's own type size, and the set draws it the full width
+ *  of its card (issue #521). */
 export const CHART_PLATE: React.CSSProperties = {
   minWidth: 0,
   overflowX: "auto",
