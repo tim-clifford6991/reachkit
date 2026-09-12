@@ -96,7 +96,13 @@ describe("the boundary — every setup route is signed-in-only", () => {
     return new NextRequest(new Request(`https://reachkit.example${path}`, { headers }));
   }
 
-  it.each(["/setup", "/setup/waiting", "/api/setup", "/api/setup/domain", "/api/setup/progress"])(
+  it.each([
+    "/setup",
+    "/setup/waiting",
+    "/api/setup",
+    "/api/setup/domain",
+    "/api/setup/progress",
+  ])(
     "%s without a session is redirected to the sign-in prompt",
     async (path) => {
       // `middleware` became async with #104's removal rewrite; every other
@@ -110,7 +116,13 @@ describe("the boundary — every setup route is signed-in-only", () => {
     }
   );
 
-  it.each(["/setup", "/setup/waiting", "/api/setup", "/api/setup/domain", "/api/setup/progress"])(
+  it.each([
+    "/setup",
+    "/setup/waiting",
+    "/api/setup",
+    "/api/setup/domain",
+    "/api/setup/progress",
+  ])(
     "%s with a session is served",
     async (path) => {
       // #468: a Supabase Auth session, verified by `getUser()` — here the
@@ -259,6 +271,21 @@ describe("POST /api/setup/domain — does this address resolve", () => {
       scanId: "scan-fixture",
       category: "project management software for agencies",
       rivals: ["asana.com", "monday.com", "clickup.com"],
+      // The twelve that address's own scan derived travel with it, so the
+      // screen shows the new address's questions and not the old one's —
+      // and beside them the market a corrected category re-derives over.
+      questions: [
+        {
+          wording: "What's the best project management software for agencies?",
+          search: "best project management software for agencies",
+        },
+      ],
+      derivable: {
+        profile: expect.objectContaining({
+          category: "project management software for agencies",
+        }) as unknown,
+        market: expect.any(Array) as unknown,
+      },
     });
   });
 

@@ -49,6 +49,44 @@ export const FIXTURE_SETUP_FACTS: SetupFacts = Object.freeze({
       scanId: FIXTURE_SCAN_ID,
       category: "project management software for agencies",
       rivals: Object.freeze(["asana.com", "monday.com", "clickup.com"]),
+      // The twelve that market derived, as the pass phrased them. Shown
+      // read-only (§12 ruling 4); four of them, because a fixture states a
+      // shape and the count is the engine's.
+      questions: Object.freeze([
+        {
+          wording: "What's the best project management software for agencies?",
+          search: "best project management software for agencies",
+        },
+        { wording: "Asana or monday.com — which should I pick?", search: "asana vs monday.com" },
+        {
+          wording: "What are the alternatives to clickup?",
+          search: "clickup alternatives",
+        },
+        {
+          wording: "How do I bill a client for project work?",
+          search: "how to bill a client for project work",
+        },
+      ]),
+      // What a corrected category re-derives over: the market this scan
+      // already bought, and the profile it read from the site.
+      derivable: Object.freeze({
+        profile: Object.freeze({
+          category: "project management software for agencies",
+          job: "run client projects",
+          offeringType: "saas",
+          audienceTerms: Object.freeze(["agencies", "studios"]),
+          namedRivals: Object.freeze(["asana.com", "monday.com", "clickup.com"]),
+          vocabulary: Object.freeze(["project", "agency", "client", "time", "tracking"]),
+          brandTokens: Object.freeze(["example"]),
+        }),
+        market: Object.freeze([
+          { keyword: "best project management software for agencies", volume: 1900 },
+          { keyword: "project management software for agencies", volume: 880 },
+          { keyword: "asana vs monday.com", volume: 720 },
+          { keyword: "clickup alternatives", volume: 590 },
+          { keyword: "best agency time tracking software", volume: 320 },
+        ]),
+      }),
     }),
   }),
   suggestedRivals: Object.freeze(["asana.com", "monday.com", "clickup.com", "notion.so"]),

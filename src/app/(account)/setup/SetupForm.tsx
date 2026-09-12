@@ -39,18 +39,30 @@ import { Btn } from "@/ui/components/Btn";
 import { Badge } from "@/ui/components/Badge";
 import { Input } from "@/ui/components/Input";
 import { Divider } from "@/ui/components/Divider";
-import { Globe, Sparkles, Users } from "lucide-react";
-import { CardHead, IdiomCard, OptionCard, RemovableTag } from "@/ui/idiom";
+import { Bot, Globe, Sparkles, Users } from "lucide-react";
+import {
+  CardHead,
+  IdiomCard,
+  OptionCard,
+  QuestionList,
+  RemovableTag,
+  type QuestionItem,
+} from "@/ui/idiom";
+import { fromStored } from "@/lib/presentation/generated/text";
+import { renderQuestion } from "@/lib/presentation/generated/question";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import {
   onDomainChanged,
   onMarketStated,
+  onQuestionsRederived,
   settledCategory,
   validateAddress,
   validateSetup,
   type AddressRefusal,
+  type SetupQuestion,
   type SetupState,
 } from "@/lib/market/setup/state";
+import { rederiveQuestions } from "@/lib/market/questions/rederive";
 import {
   addRival,
   isFull,
@@ -112,6 +124,17 @@ async function resolveDomain(host: string): Promise<ResolveDomainResponse> {
   return (await response.json()) as ResolveDomainResponse;
 }
 
+/** One row of the read-only twelve. The wording is model text and reaches a
+ *  screen only beside the search it was phrased from (REQ-093 c3), which is
+ *  what `renderQuestion` returns as one pair. */
+function questionItem(question: SetupQuestion, index: number): QuestionItem {
+  const [wording, provenance] = renderQuestion({
+    wording: fromStored("questions.wording", question.wording),
+    provenance: question.search,
+  });
+  return { n: String(index + 1), wording: wording.text, provenance: provenance.text };
+}
+
 export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
   const router = useRouter();
   const defaults = preselected(p.model.cards);
@@ -157,18 +180,26 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
     // inferred market where a completed report exists for it, the empty
     // card where none does. A market they typed themselves is kept, which
     // is `onDomainChanged`'s rule, not this component's.
-    setState((current) =>
-      onDomainChanged(current, {
-        domain: checked.domain,
-        report: answer.report,
-      }),
+    setState(
+      withQuestions(onDomainChanged(state, { domain: checked.domain, report: answer.report })),
     );
+  }
+
+  /** §12 ruling 4: the twelve always stand for the settled category, so a
+   *  state holding none for it re-derives them here — over the market that
+   *  scan already bought, buying nothing and reading nothing fresh. */
+  function withQuestions(next: SetupState): SetupState {
+    const category = settledCategory(next);
+    if (category === null || next.questions.length > 0 || next.derivable === null) {
+      return next;
+    }
+    return onQuestionsRederived(next, rederiveQuestions({ ...next.derivable, category }));
   }
 
   function commitMarket(): void {
     const category = marketDraft.trim();
     if (category === "") return;
-    setState((current) => onMarketStated(current, category));
+    setState(withQuestions(onMarketStated(state, category)));
     setEditingMarket(false);
   }
 
@@ -488,6 +519,27 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
         </>
       )}
 
+      {/* §12 ruling 4: the twelve the market derives, shown and not edited.
+          The card holds no control — there is nothing here to remove,
+          reorder or add a thirteenth with. It stands only where the product
+          has derived them; a market it has never measured draws no card. */}
+      {state.questions.length === 0 ? null : (
+        <IdiomCard
+          head={
+            <CardHead
+              icon={<Bot aria-hidden size={ICON} />}
+              eyebrow={copy("ai-answers.questions.title")}
+            />
+          }
+          testId={QUESTIONS_TEST_ID}
+        >
+          <p className="rk-quiet" data-testid="setup-questions-line">
+            {copy("ai-answers.method")}
+          </p>
+          <QuestionList items={state.questions.map(questionItem)} />
+        </IdiomCard>
+      )}
+
       <IdiomCard
         head={
           <CardHead
@@ -679,6 +731,7 @@ const ICON = 14;
 /** A test hook, bound to a name for the copy sweep's reason. */
 const SITE_AND_MARKET_TEST_ID = "setup-site-and-market";
 const ADDRESS_TEST_ID = "setup-address";
+const QUESTIONS_TEST_ID = "setup-questions";
 const COMPETITORS_TEST_ID = "setup-competitors";
 const PUBLISHING_TEST_ID = "setup-publishing";
 

@@ -57,7 +57,9 @@ describe('REQ-025 c1 — "it asks for exactly three decisions ... and for nothin
     ]) {
       expect(tree.querySelector(`[data-testid="${id}"]`), id).not.toBeNull();
     }
-    expect(tree.querySelectorAll("form section")).toHaveLength(3);
+    // The twelve stand beside those three, and are not a fourth decision:
+    // §12 ruling 4 shows them, and the founder answers nothing on them.
+    expect(tree.querySelectorAll("form section")).toHaveLength(4);
   });
 
   it("the no-report arm is four, because the site is asked for before the market is suggested", () => {
@@ -352,6 +354,51 @@ describe('REQ-028 c1 and c2 — mode and destination', () => {
     const text = (pending?.textContent ?? "").trim();
     expect(text.length).toBeGreaterThan(0);
     expect(["—", "-", "n/a", "TBD", ""]).not.toContain(text);
+  });
+});
+
+describe("§12 ruling 4 — the twelve are shown read-only, and the category is not", () => {
+  it("every question the report derived renders, numbered, beside the search it came from", () => {
+    const tree = screenFor();
+    const card = tree.querySelector('[data-testid="setup-questions"]');
+    expect(card).not.toBeNull();
+
+    const derived = FIXTURE_SETUP_FACTS.measured?.report.questions ?? [];
+    expect(derived.length).toBeGreaterThan(0);
+    const rows = Array.from(card?.querySelectorAll("li") ?? []);
+    expect(rows).toHaveLength(derived.length);
+    rows.forEach((row, index) => {
+      const question = derived[index]!;
+      expect(row.textContent).toContain(question.wording);
+      expect(row.textContent).toContain(question.search);
+    });
+  });
+
+  it("the card offers no way to remove, reorder or add one — it holds no control at all", () => {
+    const card = screenFor().querySelector('[data-testid="setup-questions"]');
+    expect(card?.querySelectorAll("button, input, select, textarea, [contenteditable]")).toHaveLength(
+      0
+    );
+    // The discriminating half: the competitors card, which *is* editable,
+    // is full of them — so this scan is reading the difference, not a
+    // selector that matches nothing anywhere.
+    const rivals = screenFor().querySelector('[data-testid="setup-competitors"]');
+    expect((rivals?.querySelectorAll("button, input").length ?? 0) > 0).toBe(true);
+  });
+
+  it("the category stays a value the founder can change, beside them", () => {
+    const tree = screenFor();
+    expect(tree.querySelector('[data-testid="setup-market-chip"]')?.textContent).toBe(
+      FIXTURE_SETUP_FACTS.measured?.report.category
+    );
+    const changes = Array.from(
+      tree.querySelectorAll('[data-testid="setup-site-and-market"] button')
+    ).map((button) => button.textContent);
+    expect(changes).toContain(COPY["setup.market.change"]);
+  });
+
+  it("a purchase with no report behind it draws no question card — none has been derived", () => {
+    expect(screenFor(SCANLESS).querySelector('[data-testid="setup-questions"]')).toBeNull();
   });
 });
 

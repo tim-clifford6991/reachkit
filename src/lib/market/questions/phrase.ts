@@ -36,6 +36,11 @@ import type { CostContext } from "@/lib/costs";
 import { llm } from "@/lib/llm";
 import { measured, measuredZero, type Measured } from "@/lib/measure/measured";
 import type { SelectedSearch } from "./select";
+import { templateQuestion } from "./template";
+
+// The mechanical forms live beside this call rather than inside it, so a
+// caller that words a search without buying one reaches no model seam.
+export { templateQuestion } from "./template";
 
 /** BP-025 `## Public interface`. */
 export interface Question {
@@ -54,33 +59,6 @@ export interface Question {
 const PHRASING_SCHEMA = z.strictObject({
   questions: z.array(z.strictObject({ id: z.string(), text: z.string() })),
 });
-
-/** The keyword shapes BUILD §6.7 step 4 names, plus the bare fallback that
- *  makes the template form total — every keyword has one, which is why a
- *  phrasing failure can never remove a question. */
-const TEMPLATES: ReadonlyArray<readonly [RegExp, (m: RegExpMatchArray) => string]> = Object.freeze([
-  [/^best (.+)$/, (m) => `What's the best ${m[1]}?`],
-  [/^(.+?) (?:vs|versus) (.+)$/, (m) => `${sentenceCase(m[1] ?? "")} or ${m[2]} — which should I pick?`],
-  [/^(.+?) alternatives?$/, (m) => `What are the alternatives to ${m[1]}?`],
-  [/^top (?:\d+ )?(.+)$/, (m) => `What are the top ${m[1]}?`],
-  [/^how (?:to|do i|can i) (.+)$/, (m) => `How do I ${m[1]}?`],
-  [/^what (is|are) (.+)$/, (m) => `What ${m[1]} ${m[2]}?`],
-]);
-
-function sentenceCase(text: string): string {
-  return text.charAt(0).toUpperCase() + text.slice(1);
-}
-
-/** Total over every keyword: the shapes above where one matches, otherwise
- *  the search itself as a question. */
-export function templateQuestion(keyword: string): string {
-  const text = keyword.toLowerCase().trim().replace(/\s+/g, " ");
-  for (const [pattern, build] of TEMPLATES) {
-    const match = text.match(pattern);
-    if (match) return build(match);
-  }
-  return `${sentenceCase(text)}?`;
-}
 
 /** The fixed instruction the phrasing call carries ahead of the keywords
  *  (issue #519), the way `profile.ts` carries `PROFILE_TASK`: the

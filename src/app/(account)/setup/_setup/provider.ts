@@ -186,5 +186,21 @@ export async function readReportFor(domain: string): Promise<ReportFacts | null>
     scanId: report.scanId,
     category,
     rivals: (report.presence?.rivals ?? []).map((rival) => rival.domain),
+    // The twelve this pass measured, projected to what a screen may hold:
+    // the wording and the search it was phrased from (REQ-093 c3).
+    questions:
+      report.questions.kind === "unmeasured"
+        ? []
+        : report.questions.value.map((question) => ({
+            wording: question.text,
+            search: question.search.keyword,
+          })),
+    // §12 ruling 4's re-derivation reads this and nothing else: the market
+    // this scan already bought. A correction therefore costs no vendor
+    // call, no model call and no second measurement.
+    derivable:
+      report.market.kind === "unmeasured"
+        ? null
+        : { profile: report.market.value.profile, market: report.market.value.suggestions },
   };
 }

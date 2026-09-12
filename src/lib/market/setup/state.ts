@@ -30,6 +30,8 @@
 // (REQ-021 c11, REQ-026 c1): none of these functions takes a purchase, a
 // plan or a checkout argument.
 import { clearSuggested, type RivalSet } from "./rivals";
+import type { Profile } from "../questions/profile";
+import type { SuggestionRow } from "../questions/market-set";
 
 /** REQ-026 c1 and c3. The `empty` arm carries no category and no scan id,
  *  so nothing can be pre-filled from it and nothing on it can be labelled
@@ -50,6 +52,28 @@ export interface ReportFacts {
   scanId: string;
   category: string | null;
   rivals: readonly string[];
+  /** The twelve the stored report holds, in its own order. Shown read-only
+   *  at setup — §12 ruling 4 — and re-derived, never edited. */
+  questions: readonly SetupQuestion[];
+  /** What a corrected category re-derives its twelve from: the market this
+   *  scan already bought, and the profile it read. `null` where the scan
+   *  measured no market, which derives nothing rather than guessing. */
+  derivable: DerivableMarket | null;
+}
+
+/** The measured market a re-derivation selects over. Carried whole so the
+ *  screen re-derives without a second read and without a second purchase. */
+export interface DerivableMarket {
+  profile: Profile;
+  market: readonly SuggestionRow[];
+}
+
+/** One of the twelve, as a screen holds it: the wording, and the search it
+ *  was derived from. Both are carried together — REQ-093 c3 admits a
+ *  wording only beside its search. */
+export interface SetupQuestion {
+  wording: string;
+  search: string;
 }
 
 /** REQ-021 c6 versus c7 — the one thing on this screen that is identity
@@ -82,6 +106,12 @@ export interface SetupState {
   market: MarketCard;
   suggestions: { state: SuggestionState; candidates: readonly string[] };
   rivals: RivalSet;
+  /** The twelve the settled category derives, or empty while none has been
+   *  derived for it yet. Never edited: §12 ruling 4 shows them read-only. */
+  questions: readonly SetupQuestion[];
+  /** What a corrected category re-derives over — this address's own
+   *  measured market, or `null` where the product has measured none. */
+  derivable: DerivableMarket | null;
 }
 
 /** REQ-026 c1 and c3. A non-null report with a non-null category is an
@@ -123,6 +153,8 @@ export function initialSetupState(
       market,
       suggestions: suggestionsFor(market),
       rivals: Object.freeze([]),
+      questions: Object.freeze([]),
+      derivable: null,
     };
   }
 
@@ -133,6 +165,8 @@ export function initialSetupState(
     market,
     suggestions: suggestionsFor(market),
     rivals: Object.freeze([]),
+    questions: measured.report.questions,
+    derivable: measured.report.derivable,
   };
 }
 
@@ -181,6 +215,11 @@ export function onDomainChanged(
     market,
     suggestions: suggestionsFor(market),
     rivals: clearSuggested(s.rivals),
+    // A market the founder stated survives the address change, so the new
+    // address's stored twelve are not its twelve: they are re-derived for
+    // the stated category, and stand empty until they have been.
+    questions: s.market.state === "stated" ? Object.freeze([]) : (a.report?.questions ?? Object.freeze([])),
+    derivable: a.report?.derivable ?? null,
   };
 }
 
@@ -192,7 +231,20 @@ export function onMarketStated(s: SetupState, category: string): SetupState {
     ...s,
     market: { state: "stated", category },
     suggestions: { state: "seeking", candidates: Object.freeze([]) },
+    // The twelve were the old category's; a corrected category has none
+    // until `onQuestionsRederived` carries its own back.
+    questions: Object.freeze([]),
   };
+}
+
+/** REQ-026 c4 and §12 ruling 4: the twelve the settled category derives,
+ *  carried back from the one re-derivation seam. It re-selects over the
+ *  stored market and buys nothing, which is `rederiveQuestions`' promise. */
+export function onQuestionsRederived(
+  s: SetupState,
+  questions: readonly SetupQuestion[]
+): SetupState {
+  return { ...s, questions };
 }
 
 /** REQ-026 c7 and c10, second limb: suggestions sought for a known market

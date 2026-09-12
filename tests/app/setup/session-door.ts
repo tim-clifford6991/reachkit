@@ -18,8 +18,19 @@ export interface SetupSessionState {
   session: { userId: string; siteId: string } | null;
   /** `null` is a founder whose provisioning has not run. */
   address: { siteId: string; domain: string } | null;
-  /** Keyed by domain: what `readCurrentReport` answers. */
-  reports: Map<string, { scanId: string; category: string | null; rivals: string[] }>;
+  /** Keyed by domain: what `readCurrentReport` answers. `questions` are the
+   *  twelve the pass phrased; `suggestions` the market they were selected
+   *  from, which a corrected category is re-selected over. */
+  reports: Map<
+    string,
+    {
+      scanId: string;
+      category: string | null;
+      rivals: string[];
+      questions: { wording: string; search: string }[];
+      suggestions: { keyword: string; volume: number }[];
+    }
+  >;
   pass: PassProgress;
 }
 
@@ -47,6 +58,19 @@ export function resetSetupSession(): void {
         scanId: "scan-fixture",
         category: "project management software for agencies",
         rivals: ["asana.com", "monday.com", "clickup.com"],
+        questions: [
+          {
+            wording: "What's the best project management software for agencies?",
+            search: "best project management software for agencies",
+          },
+        ],
+        suggestions: [
+          { keyword: "best project management software for agencies", volume: 1900 },
+          { keyword: "project management software for agencies", volume: 880 },
+          { keyword: "best agency time tracking software", volume: 720 },
+          { keyword: "agency time tracking software", volume: 590 },
+          { keyword: "how to track agency time", volume: 210 },
+        ],
       },
     ],
   ]);
@@ -90,8 +114,36 @@ export function reportFactory(actual: Record<string, unknown>): Record<string, u
                 : {
                     kind: "measured",
                     at: new Date(0),
-                    value: { profile: { category: report.category } },
+                    value: {
+                      profile: {
+                        category: report.category,
+                        job: "run client projects",
+                        offeringType: "saas",
+                        audienceTerms: ["agencies"],
+                        namedRivals: report.rivals,
+                        vocabulary: ["project", "agency", "time", "tracking", "client"],
+                        brandTokens: ["example"],
+                      },
+                      suggestions: report.suggestions,
+                      totalVolume: report.suggestions.reduce((sum, row) => sum + row.volume, 0),
+                    },
                   },
+            questions: {
+              kind: "measured",
+              at: new Date(0),
+              value: report.questions.map((question, index) => ({
+                id: `q${String(index + 1)}`,
+                text: question.wording,
+                search: {
+                  keyword: question.search,
+                  volume: 1900,
+                  intent: "decision",
+                  score: 1,
+                  rank: index + 1,
+                },
+                phrasing: "template",
+              })),
+            },
             presence: { rivals: report.rivals.map((domainName) => ({ domain: domainName })) },
           };
     },
