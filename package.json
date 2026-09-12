@@ -13,6 +13,8 @@
     "review:gallery": "MAIL_PREVIEW_OUT=.review/mail vitest run --project node tests/mail/preview && REVIEW_GALLERY=1 MAIL_PREVIEW_OUT=.review/mail vitest run --project layout tests/ui/layout/review-gallery.test.ts",
     "copy:owed": "node scripts/copy/owed.mjs",
     "orphans": "node scripts/orphans.mjs",
+    "smoke": "bash scripts/smoke.sh",
+    "land": "bash scripts/land.sh",
     "typecheck": "tsc --noEmit",
     "db:types": "bash scripts/db-substrate/gen-types.sh > src/lib/db/types.generated.ts"
   },
