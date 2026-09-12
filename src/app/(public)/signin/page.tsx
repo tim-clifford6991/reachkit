@@ -22,7 +22,10 @@ import { EMAIL_FIELD, SIGN_IN_INITIAL, type SignInState } from "./state";
  *  flush, each half stretched to the other's height by the grid row. */
 const CARD =
   "grid grid-cols-1 overflow-hidden rounded-(--r-box) border border-base-300 bg-base-100 shadow-sm lg:grid-cols-2";
-const HALF = "flex items-center justify-center p-(--s-6) lg:p-(--s-7)";
+/** The band's own air inside each half: the inline step the screen had
+ *  before the card, so a 320 viewport keeps its content in its box. */
+const HALF =
+  "flex items-center justify-center px-(--s-4) py-(--s-6) sm:px-(--s-5) sm:py-(--s-7) lg:p-(--s-7)";
 const PANEL = `${HALF} bg-primary bg-(image:--grad-accent) text-primary-content`;
 /** A half's own column: the set's form measure, its groups `--s-5` apart. */
 const COLUMN = "flex w-full max-w-(--w-form) flex-col gap-(--s-5)";
@@ -46,7 +49,10 @@ const ON_ACCENT_QUIET = "text-(color:--on-accent-quiet)";
 const PANEL_H = "font-bold leading-[1.25] tracking-[-0.02em] text-balance";
 const GLASS =
   "flex flex-col gap-(--s-3) rounded-(--r-box) border border-primary-content/28 bg-primary-content/12 p-(--s-5) lg:p-(--s-6)";
-const BETWEEN = "flex items-center justify-between gap-(--s-3)";
+/** The row wraps, because the pill cannot: `num` is unlayered (`type.css`)
+ *  and its `nowrap` outranks any utility, so at 320 the pill takes its own
+ *  line rather than leaving the glass card. */
+const BETWEEN = "flex flex-wrap items-center justify-between gap-(--s-3)";
 const PILL =
   "num max-w-full rounded-(--r-pill) bg-base-content px-(--s-2) py-(--s-1) text-(length:--t-xs) text-base-100";
 const FIGURE = "flex flex-wrap items-baseline gap-(--s-2)";
