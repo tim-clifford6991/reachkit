@@ -49,6 +49,24 @@ export const FIXTURE_SETUP_FACTS: SetupFacts = Object.freeze({
       scanId: FIXTURE_SCAN_ID,
       category: "project management software for agencies",
       rivals: Object.freeze(["asana.com", "monday.com", "clickup.com"]),
+      // The twelve that market derived, as the pass phrased them. Shown
+      // read-only (§12 ruling 4); four of them, because a fixture states a
+      // shape and the count is the engine's.
+      questions: Object.freeze([
+        {
+          wording: "What's the best project management software for agencies?",
+          search: "best project management software for agencies",
+        },
+        { wording: "Asana or monday.com — which should I pick?", search: "asana vs monday.com" },
+        {
+          wording: "What are the alternatives to clickup?",
+          search: "clickup alternatives",
+        },
+        {
+          wording: "How do I bill a client for project work?",
+          search: "how to bill a client for project work",
+        },
+      ]),
     }),
   }),
   suggestedRivals: Object.freeze(["asana.com", "monday.com", "clickup.com", "notion.so"]),

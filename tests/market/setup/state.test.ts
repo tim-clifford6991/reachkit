@@ -11,6 +11,7 @@ import {
   marketCardFor,
   onDomainChanged,
   onMarketStated,
+  onQuestionsRederived,
   onSuggestionsSettled,
   settledCategory,
   validateAddress,
@@ -20,8 +21,19 @@ import {
 } from "@/lib/market/setup/state";
 import { addRival } from "@/lib/market/setup/rivals";
 
-const REPORT: ReportFacts = { scanId: "scan-1", category: "agency CRM", rivals: ["a.com"] };
-const OTHER: ReportFacts = { scanId: "scan-2", category: "law firm SEO", rivals: ["b.com"] };
+const TWELVE = [{ wording: "What's the best agency CRM?", search: "best agency crm" }];
+const REPORT: ReportFacts = {
+  scanId: "scan-1",
+  category: "agency CRM",
+  rivals: ["a.com"],
+  questions: TWELVE,
+};
+const OTHER: ReportFacts = {
+  scanId: "scan-2",
+  category: "law firm SEO",
+  rivals: ["b.com"],
+  questions: [{ wording: "What's the best law firm SEO agency?", search: "best law firm seo" }],
+};
 
 function measured(domain = "example.com", report: ReportFacts = REPORT): SetupState {
   return initialSetupState({ domain, report });
@@ -234,6 +246,25 @@ describe('REQ-026 c4 — "it is the market they confirmed or stated ... never by
     expect(settledCategory(measured())).toBe("agency CRM");
     expect(settledCategory(onMarketStated(measured(), "mine"))).toBe("mine");
     expect(settledCategory(initialSetupState(null))).toBeNull();
+  });
+});
+
+describe("§12 ruling 4 — the twelve follow the category, and are never edited", () => {
+  it("a measured purchase opens with the twelve that report derived", () => {
+    expect(initialSetupState({ domain: "example.com", report: REPORT }).questions).toEqual(TWELVE);
+  });
+
+  it("correcting the category drops them — they were the old market's — until new ones arrive", () => {
+    const corrected = onMarketStated(measured(), "law firm SEO");
+    expect(corrected.questions).toEqual([]);
+    expect(onQuestionsRederived(corrected, OTHER.questions).questions).toEqual(OTHER.questions);
+  });
+
+  it("the state offers no way to edit one: carrying them back is the only transition that sets them", () => {
+    const state = measured();
+    const changed = onQuestionsRederived(state, OTHER.questions);
+    expect(state.questions).toEqual(TWELVE);
+    expect(changed.questions).toEqual(OTHER.questions);
   });
 });
 

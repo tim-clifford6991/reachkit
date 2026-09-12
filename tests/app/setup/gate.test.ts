@@ -95,7 +95,14 @@ describe("REQ-025 c5 — an incomplete founder is returned to /setup from every 
   });
 
   it("setup's own screens and endpoints are never gated — a gate on the submit would be a loop", () => {
-    for (const path of ["/setup", "/setup/waiting", "/api/setup", "/api/setup/domain", "/api/setup/progress"]) {
+    for (const path of [
+      "/setup",
+      "/setup/waiting",
+      "/api/setup",
+      "/api/setup/domain",
+      "/api/setup/questions",
+      "/api/setup/progress",
+    ]) {
       expect(setupRedirectFor({ setup: INCOMPLETE, path })).toBeNull();
     }
   });

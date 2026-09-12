@@ -30,6 +30,7 @@ function report(a: { rivals?: readonly string[]; category?: string | null } = {}
     scanId: "scan-1",
     category: a.category === undefined ? "project management software" : a.category,
     rivals: a.rivals ?? ["one.com", "two.com"],
+    questions: [],
   };
 }
 

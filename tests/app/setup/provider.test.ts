@@ -84,12 +84,18 @@ describe("§4.3's screen is drawn for the founder who is signed in", () => {
   });
 });
 
-describe("the report projection is three facts and no more", () => {
-  it("scan id, category and the rival names off the presence card", async () => {
+describe("the report projection is the four facts the market card needs", () => {
+  it("scan id, category, the rival names off the presence card, and the twelve", async () => {
     await expect(provider.readReportFor("example.com")).resolves.toEqual({
       scanId: "scan-fixture",
       category: "project management software for agencies",
       rivals: ["asana.com", "monday.com", "clickup.com"],
+      questions: [
+        {
+          wording: "What's the best project management software for agencies?",
+          search: "best project management software for agencies",
+        },
+      ],
     });
   });
 
@@ -102,6 +108,8 @@ describe("the report projection is three facts and no more", () => {
       scanId: "scan-2",
       category: null,
       rivals: [],
+      questions: [],
+      suggestions: [],
     });
     await expect(provider.readReportFor("uncategorised.test")).resolves.toBeNull();
   });
