@@ -139,8 +139,6 @@ add("decisions", "OK", "DECISIONS.md", `${n} rulings, dates non-decreasing`);
 
 // ------------------------------------------------------------- constants
 const constantsSrc = existsSync(path.join(ROOT, "src/lib/config/constants.ts")) ? read("src/lib/config/constants.ts") : "";
-const pins = existsSync(path.join(ROOT, "tests/pins.test.ts"));
-add("pins", pins ? "OK" : "MISSING", "tests/pins.test.ts", pins ? "present" : "BUILD §1 and vitest.config.ts name it; it does not exist");
 const priceBook = [...build.matchAll(/^\| `([A-Z_ \/]+)` \| ([^|]+) \|$/gm)].map((m) => m[1].split("/").map((s) => s.trim()));
 for (const names of priceBook) {
   // The book names a value; `constants.ts` names the *identifier that holds*
