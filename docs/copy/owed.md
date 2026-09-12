@@ -2,7 +2,7 @@
 
 **Generated. Do not type into this file** — `npm run copy:owed` rewrites it and `tests/presentation/copy/owed-sheet.test.ts` fails when it is out of date. Write the sentences in your reply, or straight into `src/lib/presentation/copy/keys/*.ts`, and run the generator again: a key that gains a sentence leaves this sheet by itself.
 
-**18 keys**, across 819 in the registry — **0 empty** (`copy()` throws on these: a mail with one does not send, a screen with one does not render) and **18 `TODO(copy)`** (these render the marker, in public, until they are written).
+**19 keys**, across 820 in the registry — **0 empty** (`copy()` throws on these: a mail with one does not send, a screen with one does not render) and **19 `TODO(copy)`** (these render the marker, in public, until they are written).
 
 **How to read a row.**
 
@@ -32,7 +32,7 @@ A key with slots (`{value}`, `{date}`) carries them beside its name; the sentenc
 | S11 | Waiting | none | 0 |
 | S12 | Overview | none | 0 |
 | S13 | Overview · week 0 | none | 0 |
-| S14 | Calendar | none | 0 |
+| S14 | [Calendar](#s14-calendar-app) | 1 | 0 |
 | S15 | Day panel states | none | 0 |
 | S16 | Draft | none | 0 |
 | S17 | Draft · edit | none | 0 |
@@ -65,6 +65,16 @@ Every bracketed hint the set draws on this screen: `[competitor-picker line — 
 | `setup.profile.title`<br>`setup.ts` | marker | control · `<div class="flex flex-wrap items-center gap-2">` · `app/(account)/setup/SetupForm.tsx` |  | SPEC.md §5 (2026-09-12) | 18 — sibling `setup.site-and-market.title` |
 | `setup.profile.voice.label`<br>`setup.ts` | marker | control · `<div class="flex flex-wrap items-center gap-2">` · `app/(account)/setup/SetupForm.tsx` |  | SPEC.md §5 (2026-09-12) | 26 — sibling `setup.market.label` |
 | `setup.profile.voice.later`<br>`setup.ts` | marker | control · `<p class="rk-quiet">` · `app/(account)/setup/SetupForm.tsx` |  | SPEC.md §5 (2026-09-12) |  |
+
+## S14 · Calendar — App
+
+Screen `S14` · the set draws it as `current="calendar"` (`docs/archive/2026-09-11/approved/full-set/screens/calendar-light.png`).
+
+Every bracketed hint the set draws on this screen: `[page title 15]` · `[page title 4]` · `[page title 19]` · `[page title 6]`
+
+| key | standing | where | the set says | fixed by | max |
+|---|---|---|---|---|---|
+| `publish.links.heading`<br>`publish.ts` | marker | composed in the engine · `writtenHeading` · `lib/generate/links.ts`<br>also on S20 |  | SPEC §7 (2026-09-12) |  |
 
 ## S18 · Settings — App
 

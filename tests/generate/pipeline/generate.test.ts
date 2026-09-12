@@ -118,6 +118,38 @@ describe("a draft that clears every rule", () => {
     expect(row?.veto_deadline).toBeNull();
   });
 
+  it("carries links to the site's own pages and to the earlier asset in its cluster", async () => {
+    store.profile = {
+      domain: "example.com",
+      siteName: "Acme",
+      products: [],
+      claims: [],
+      voice: null,
+      inventory: [
+        { url: "https://example.com/plans", title: "Plans and pricing", h1: "", purpose: "pricing" },
+        { url: "https://example.com/about", title: "About Acme", h1: "", purpose: "about" },
+      ],
+      pagesRead: 2,
+      refreshedAt: AT,
+    };
+    store.assets = [
+      {
+        liveUrl: "https://example.com/counting-seats",
+        title: "Counting seats",
+        targetQuery: "project management seats",
+        publishedAt: AT,
+        unpublishedAt: null,
+        knownMissing: false,
+      },
+    ];
+    primeSteps(CLEAN_MARKDOWN);
+    const outcome = await run();
+    const stored = outcome.ok === true ? (store.rows.get(outcome.draftId)?.body_md ?? "") : "";
+    expect(stored).toContain("[Plans and pricing](https://example.com/plans)");
+    expect(stored).toContain("[About Acme](https://example.com/about)");
+    expect(stored).toContain("[Counting seats](https://example.com/counting-seats)");
+  });
+
   it("asserts `hard_rules_passed` — the publishing engine's guard on the edge into review", async () => {
     primeSteps(CLEAN_MARKDOWN);
     const outcome = await run();
