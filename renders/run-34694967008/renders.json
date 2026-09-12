@@ -1,0 +1,49 @@
+{
+  "rendered": [
+    {
+      "name": "-setup",
+      "route": "/setup",
+      "screen": "S9",
+      "viewport": "-setup-1280-light.png",
+      "full": "-setup-full.png",
+      "file": "side--setup.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/auth-light.png",
+      "moved": false,
+      "why": "named under `Renders:`"
+    },
+    {
+      "name": "unfinished-setup",
+      "route": "/setup",
+      "screen": "S10",
+      "viewport": "unfinished-setup-1280-light.png",
+      "full": "unfinished-setup-full.png",
+      "file": "side-unfinished-setup.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/setup-light.png",
+      "moved": false,
+      "why": "named under `Renders:`"
+    },
+    {
+      "name": "fallback-account-not-found",
+      "route": "/setup",
+      "screen": "S8",
+      "viewport": "fallback-account-not-found-1280-light.png",
+      "full": "fallback-account-not-found-full.png",
+      "file": "side-fallback-account-not-found.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/notfound-light.png",
+      "moved": false,
+      "why": "named under `Renders:`"
+    },
+    {
+      "name": "fallback-account-error",
+      "route": "/setup",
+      "screen": "S8",
+      "viewport": "fallback-account-error-1280-light.png",
+      "full": "fallback-account-error-full.png",
+      "file": "side-fallback-account-error.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/notfound-light.png",
+      "moved": false,
+      "why": "named under `Renders:`"
+    }
+  ],
+  "skipped": []
+}
