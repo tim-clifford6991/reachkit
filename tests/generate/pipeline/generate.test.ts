@@ -50,6 +50,14 @@ function body(markdown: string) {
   };
 }
 
+/** A live asset of this site's, for §7's cluster links. */
+function asset(liveUrl: string, title: string) {
+  return {
+    liveUrl, title, targetQuery: "project management seats",
+    publishedAt: AT, unpublishedAt: null, knownMissing: false,
+  };
+}
+
 function measured(value: unknown) {
   return { kind: "measured", value, at: AT };
 }
@@ -120,28 +128,14 @@ describe("a draft that clears every rule", () => {
 
   it("carries links to the site's own pages and to the earlier asset in its cluster", async () => {
     store.profile = {
-      domain: "example.com",
-      siteName: "Acme",
-      products: [],
-      claims: [],
-      voice: null,
+      domain: "example.com", siteName: "Acme", products: [], claims: [], voice: null,
+      pagesRead: 2, refreshedAt: AT,
       inventory: [
         { url: "https://example.com/plans", title: "Plans and pricing", h1: "", purpose: "pricing" },
         { url: "https://example.com/about", title: "About Acme", h1: "", purpose: "about" },
       ],
-      pagesRead: 2,
-      refreshedAt: AT,
     };
-    store.assets = [
-      {
-        liveUrl: "https://example.com/counting-seats",
-        title: "Counting seats",
-        targetQuery: "project management seats",
-        publishedAt: AT,
-        unpublishedAt: null,
-        knownMissing: false,
-      },
-    ];
+    store.assets = [asset("https://example.com/counting-seats", "Counting seats")];
     primeSteps(CLEAN_MARKDOWN);
     const outcome = await run();
     const stored = outcome.ok === true ? (store.rows.get(outcome.draftId)?.body_md ?? "") : "";
