@@ -200,6 +200,21 @@ function vendorAnswer(url: string): unknown {
 
 // ── The database ────────────────────────────────────────────────────────
 
+/** `append_scan_stage_event`, as Postgres applies it
+ *  (`supabase/migrations/20260911120000_scans_stage_events.sql`): every
+ *  append in call order, and nothing after the first ending. The harness
+ *  records RPCs without applying them; this is the one this journey's
+ *  progress stream reads back, so it is applied here, from the record. */
+function recordedLog(): unknown[] {
+  const log: unknown[] = [];
+  for (const call of db.rpcCalls) {
+    if (call.fn !== "append_scan_stage_event" || call.args.p_scan_id !== scanId) continue;
+    if (log.some((event) => typeof event === "object" && event !== null && "ending" in event)) break;
+    log.push(call.args.p_event);
+  }
+  return log;
+}
+
 /** One table serves several different reads; the filters say which. */
 function answerQuery(query: DbQuery): unknown[] | null {
   if (query.verb !== "select") return null;
@@ -208,8 +223,10 @@ function answerQuery(query: DbQuery): unknown[] | null {
   if (query.table !== "scans") return null;
 
   const columns = new Map(query.filters);
-  // The progress stream asking whether this scan exists at all.
-  if (columns.has("id")) return [{ id: scanId }];
+  // The progress stream reading the scan's own recorded log (issue #540):
+  // the row, still running, carrying every transition the pass has
+  // appended so far.
+  if (columns.has("id")) return [{ id: scanId, status: "running", stopped_reason: null, stage_events: recordedLog() }];
   // The pipeline adopting the row admission claimed.
   if (columns.get("status") === "running" && columns.get("tier") === "free" && columns.has("domain")) {
     return [{ id: scanId, fromIncompleteRescan: false }];

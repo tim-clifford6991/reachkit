@@ -22,6 +22,9 @@ No queue files, no milestones, no `pending-decisions` file. Implementation notes
 
 Operations — envs, bindings, the kill switch, restore — are `docs/RUNBOOK.md`, the one operational file.
 
+## Skills per stage
+An implementer loads the repository skill for the issue's feature before writing code (`.claude/skills/`): any screen → `design-system` + `daisyui`; React/Next code → `vercel-react-best-practices`; database, RLS, migrations → `supabase` + `supabase-postgres-best-practices`; payment → `stripe-best-practices`; mail → `resend`; technical site issues and targeting → `seo-audit`; deploys and domains → `deploy-to-vercel`. A new screen is drawn on the canvas first (`docs/DESIGN.md`).
+
 ## Ten steps
 1. **Owner** names an outcome: one sentence about what a user can do afterwards.
 2. **Master** writes the issue — outcome, evidence, done-when — with one link to its `SPEC.md` section.
