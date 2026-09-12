@@ -1,0 +1,157 @@
+{
+  "rendered": [
+    {
+      "name": "-app",
+      "route": "/app",
+      "screen": "S9",
+      "viewport": "-app-1280-light.png",
+      "full": "-app-full.png",
+      "file": "side--app.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/auth-light.png",
+      "moved": false,
+      "why": "named under `Renders:`"
+    },
+    {
+      "name": "-app-settings",
+      "route": "/app/settings",
+      "screen": "S9",
+      "viewport": "-app-settings-1280-light.png",
+      "full": "-app-settings-full.png",
+      "file": "side--app-settings.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/auth-light.png",
+      "moved": false,
+      "why": "named under `Renders:`"
+    },
+    {
+      "name": "-setup",
+      "route": "/setup",
+      "screen": "S9",
+      "viewport": "-setup-1280-light.png",
+      "full": "-setup-full.png",
+      "file": "side--setup.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/auth-light.png",
+      "moved": false,
+      "why": "named under `Renders:`"
+    },
+    {
+      "name": "reserved-app",
+      "route": "/app",
+      "screen": "S12",
+      "viewport": "reserved-app-1280-light.png",
+      "full": "reserved-app-full.png",
+      "file": "side-reserved-app.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/overview-light.png",
+      "moved": false,
+      "why": "named under `Renders:`"
+    },
+    {
+      "name": "reserved-app-settings",
+      "route": "/app/settings",
+      "screen": "S18",
+      "viewport": "reserved-app-settings-1280-light.png",
+      "full": "reserved-app-settings-full.png",
+      "file": "side-reserved-app-settings.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/settings-light.png",
+      "moved": false,
+      "why": "named under `Renders:`"
+    },
+    {
+      "name": "unfinished-setup",
+      "route": "/setup",
+      "screen": "S10",
+      "viewport": "unfinished-setup-1280-light.png",
+      "full": "unfinished-setup-full.png",
+      "file": "side-unfinished-setup.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/setup-light.png",
+      "moved": false,
+      "why": "named under `Renders:`"
+    },
+    {
+      "name": "live-app-calendar",
+      "route": "/app/calendar",
+      "screen": "S14",
+      "viewport": "live-app-calendar-1280-light.png",
+      "full": "live-app-calendar-full.png",
+      "file": "side-live-app-calendar.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/calendar-light.png",
+      "moved": true,
+      "why": "1602 of 614400 pixels differ (0.261%)"
+    },
+    {
+      "name": "live-app-draft-00000000-0000-0000-0000-0000000000e1",
+      "route": "/app/draft/00000000-0000-0000-0000-0000000000e1",
+      "screen": "S16",
+      "viewport": "live-app-draft-00000000-0000-0000-0000-0000000000e1-1280-light.png",
+      "full": "live-app-draft-00000000-0000-0000-0000-0000000000e1-full.png",
+      "file": "side-live-app-draft-00000000-0000-0000-0000-0000000000e1.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/draft-light.png",
+      "moved": true,
+      "why": "24235 of 614400 pixels differ (3.944%)"
+    },
+    {
+      "name": "live-app",
+      "route": "/app",
+      "screen": "S12",
+      "viewport": "live-app-1280-light.png",
+      "full": "live-app-full.png",
+      "file": "side-live-app.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/overview-light.png",
+      "moved": true,
+      "why": "1602 of 614400 pixels differ (0.261%)"
+    },
+    {
+      "name": "live-app-settings",
+      "route": "/app/settings",
+      "screen": "S18",
+      "viewport": "live-app-settings-1280-light.png",
+      "full": "live-app-settings-full.png",
+      "file": "side-live-app-settings.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/settings-light.png",
+      "moved": true,
+      "why": "1602 of 614400 pixels differ (0.261%)"
+    },
+    {
+      "name": "week0-app",
+      "route": "/app",
+      "screen": "S13",
+      "viewport": "week0-app-1280-light.png",
+      "full": "week0-app-full.png",
+      "file": "side-week0-app.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/overview0-light.png",
+      "moved": false,
+      "why": "named under `Renders:`"
+    },
+    {
+      "name": "fallback-account-not-found",
+      "route": "/setup",
+      "screen": "S8",
+      "viewport": "fallback-account-not-found-1280-light.png",
+      "full": "fallback-account-not-found-full.png",
+      "file": "side-fallback-account-not-found.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/notfound-light.png",
+      "moved": false,
+      "why": "named under `Renders:`"
+    },
+    {
+      "name": "fallback-account-error",
+      "route": "/setup",
+      "screen": "S8",
+      "viewport": "fallback-account-error-1280-light.png",
+      "full": "fallback-account-error-full.png",
+      "file": "side-fallback-account-error.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/notfound-light.png",
+      "moved": false,
+      "why": "named under `Renders:`"
+    }
+  ],
+  "skipped": [
+    {
+      "name": "waiting-app",
+      "route": "/app",
+      "screen": null,
+      "viewport": "waiting-app-1280-light.png",
+      "full": "waiting-app-full.png",
+      "reason": "no approved render for an unreferenced route"
+    }
+  ]
+}
