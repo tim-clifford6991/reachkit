@@ -632,6 +632,10 @@ describe("three decisions → deep pass → the first page already on the calend
       p_site_id: SITE_ID,
       p_mode: "autopilot",
       p_kind: "hosted",
+      // SPEC §5 (2026-09-12): the host the founder chose commits in the
+      // same transaction as the mode and the destination — `content` is
+      // the default label they were shown, over the domain they gave.
+      p_hostname: `content.${DOMAIN}`,
     });
 
     // The stamp is written last, and it is what the gate, the reminders

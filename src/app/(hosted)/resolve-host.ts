@@ -154,11 +154,16 @@ export async function resolveHost(host: string): Promise<HostDisposition> {
   // First, because a stored host is the exact and authoritative answer;
   // the lookup below it is what still serves a site whose destination row
   // predates the ruling.
-  let chosen: Awaited<ReturnType<typeof hostedSiteForHostname>>;
+  let chosen: Awaited<ReturnType<typeof hostedSiteForHostname>> = null;
   try {
     chosen = await hostedSiteForHostname(name);
   } catch {
-    return { kind: "unknown" };
+    // **A throw here is "no answer from this lookup", not "no site".** The
+    // default-label lookup below has its own read and its own guard, and a
+    // host it *can* resolve must not be refused because the lookup in
+    // front of it failed. Failing closed is still what happens overall: a
+    // host neither lookup confirms is `unknown`, which is the 404.
+    chosen = null;
   }
   if (chosen !== null) return dispositionFor(chosen);
 
