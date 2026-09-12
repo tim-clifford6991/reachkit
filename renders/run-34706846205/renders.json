@@ -1,0 +1,93 @@
+{
+  "rendered": [
+    {
+      "name": "-app-calendar",
+      "route": "/app/calendar",
+      "screen": "S9",
+      "viewport": "-app-calendar-1280-light.png",
+      "full": "-app-calendar-full.png",
+      "file": "side--app-calendar.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/auth-light.png",
+      "moved": true,
+      "why": "103884 of 614400 pixels differ (16.908%)"
+    },
+    {
+      "name": "-app-draft-draft-2026-09-15",
+      "route": "/app/draft/draft-2026-09-15",
+      "screen": "S9",
+      "viewport": "-app-draft-draft-2026-09-15-1280-light.png",
+      "full": "-app-draft-draft-2026-09-15-full.png",
+      "file": "side--app-draft-draft-2026-09-15.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/auth-light.png",
+      "moved": true,
+      "why": "103884 of 614400 pixels differ (16.908%)"
+    },
+    {
+      "name": "-app",
+      "route": "/app",
+      "screen": "S9",
+      "viewport": "-app-1280-light.png",
+      "full": "-app-full.png",
+      "file": "side--app.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/auth-light.png",
+      "moved": true,
+      "why": "103884 of 614400 pixels differ (16.908%)"
+    },
+    {
+      "name": "-app-settings",
+      "route": "/app/settings",
+      "screen": "S9",
+      "viewport": "-app-settings-1280-light.png",
+      "full": "-app-settings-full.png",
+      "file": "side--app-settings.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/auth-light.png",
+      "moved": true,
+      "why": "103884 of 614400 pixels differ (16.908%)"
+    },
+    {
+      "name": "-setup",
+      "route": "/setup",
+      "screen": "S9",
+      "viewport": "-setup-1280-light.png",
+      "full": "-setup-full.png",
+      "file": "side--setup.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/auth-light.png",
+      "moved": true,
+      "why": "103884 of 614400 pixels differ (16.908%)"
+    },
+    {
+      "name": "-setup-waiting",
+      "route": "/setup/waiting",
+      "screen": "S9",
+      "viewport": "-setup-waiting-1280-light.png",
+      "full": "-setup-waiting-full.png",
+      "file": "side--setup-waiting.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/auth-light.png",
+      "moved": true,
+      "why": "103884 of 614400 pixels differ (16.908%)"
+    },
+    {
+      "name": "-root",
+      "route": "/",
+      "screen": "S1",
+      "viewport": "-root-1280-light.png",
+      "full": "-root-full.png",
+      "file": "side--root.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/landing-light.png",
+      "moved": true,
+      "why": "27461 of 614400 pixels differ (4.470%)"
+    },
+    {
+      "name": "-signin",
+      "route": "/signin",
+      "screen": "S9",
+      "viewport": "-signin-1280-light.png",
+      "full": "-signin-full.png",
+      "file": "side--signin.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/auth-light.png",
+      "moved": true,
+      "why": "103884 of 614400 pixels differ (16.908%)"
+    }
+  ],
+  "skipped": []
+}
