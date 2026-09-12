@@ -107,6 +107,26 @@ const schema = z.object({
     .pipe(z.array(z.email()).min(1)),
   NEXT_PUBLIC_APP_URL: z.url(),
   HOSTED_EDGE_CNAME_TARGET: z.string().min(1),
+  // **The two bindings the customer's own subdomain needs** (issue #322).
+  // SPEC §5's ruling of 2026-09-12: on save the app "adds the hostname to
+  // the project's domain list through the Vercel Domains API with our
+  // server-only token". A hostname that is never added is a customer CNAME
+  // answered by the platform's own 404, so these are what stand between a
+  // pointed record and a served page.
+  //
+  // `.optional()` for the reason the two jobs bindings are, and it is a
+  // named exception on the same footing: the required set is what *every*
+  // process must carry, and the processes that are not deployments — a
+  // local `next dev`, a local production build, the layout suite's build
+  // and server in CI — add no domain to any project. A deployment that
+  // carries neither attaches nothing, and the destination stays "waiting
+  // for DNS", which is what it honestly is; nothing here fabricates a live
+  // one. `src/lib/vendors/vercel/domains.ts` is the one reader.
+  VERCEL_API_TOKEN: z.string().min(1).optional(),
+  // The project the customer's hostname is added to. An identifier rather
+  // than a secret — it names a project, it does not open one — so it is
+  // not in the server-only set below.
+  VERCEL_PROJECT_ID: z.string().min(1).optional(),
 });
 
 // BP-005 decision 6b: "the member's type is a required `string` either
@@ -139,6 +159,9 @@ const SERVER_ONLY_KEYS = [
   "IP_HASH_SALT",
   "INNGEST_SIGNING_KEY",
   "INNGEST_EVENT_KEY",
+  // Issue #322: a token that can add a domain to our project has no
+  // business in a browser bundle. Same kind of secret as the nine above.
+  "VERCEL_API_TOKEN",
 ] as const satisfies readonly (keyof Env)[];
 
 const serverOnlyKeySet: ReadonlySet<string> = new Set(SERVER_ONLY_KEYS);

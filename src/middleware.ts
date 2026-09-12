@@ -48,7 +48,8 @@
 // a work order that touches BP-001's own `code:` list.
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { HOSTED_SUBDOMAIN_LABEL } from "@/lib/config/constants";
+import { PREVIEW_HOST_SUFFIX } from "@/lib/config/constants";
+import { env } from "@/lib/config/env";
 import { isDomainRemoved } from "@/lib/scan/removal";
 import { isFixtureDomain } from "@/app/(public)/scan/[domain]/_fixture/states";
 import { GATE_PATH_HEADER } from "@/app/(account)/setup/gate";
@@ -250,7 +251,7 @@ export function isMetadataAsset(pathname: string): boolean {
   return parent === "" || /^\/scan\/[^/]+$/.test(parent);
 }
 
-/** BUILD §9's hosted edge: `content.{customer-domain}`, by CNAME.
+/** SPEC §5's hosted edge: `<label>.{customer-domain}`, by CNAME.
  *
  *  **Every other request on such a host is rewritten into
  *  `src/app/(hosted)/`, and that is an authorisation boundary rather than a
@@ -264,7 +265,56 @@ export function isMetadataAsset(pathname: string): boolean {
  *  A rewrite, never a redirect (§9): the visitor stays at
  *  `content.{their domain}/{slug}`, which is the address the canonical
  *  link, the sitemap entry and `publications.live_url` all name. */
-const HOSTED_HOST_PREFIX = `${HOSTED_SUBDOMAIN_LABEL}.`;
+/** This product's own names, and the only hosts that are **not** a
+ *  customer's.
+ *
+ *  **The test is subtraction, not a prefix, since SPEC §5's ruling of
+ *  2026-09-12.** The label is the customer's now, so `content.` is one
+ *  choice among many and a prefix test would serve `content.example.com`
+ *  and 404 `blog.example.com` — the same customer, the same record, one of
+ *  them broken. A Host that is not one of ours arrived here because
+ *  somebody pointed a record at us, which is exactly what a hosted edge
+ *  host is; `resolveHost` then decides for real, and an unclaimed host
+ *  falls through to the hosted group's own 404 rather than to a ReachKit
+ *  screen.
+ *
+ *  Four things are ours. `NEXT_PUBLIC_APP_URL`'s own host is the
+ *  deployment's address and is read from the binding rather than assumed —
+ *  it is `dev.reachkit.app` today, the apex at go-live, and neither a
+ *  preview nor a test fixture is under `reachkit.app` at all, so a
+ *  subtraction that only knew the product's own suffix would rewrite the
+ *  app's own screens. `PREVIEW_HOST_SUFFIX` covers the apex and every
+ *  `*.reachkit.app` address beside it; the platform's preview hosts and
+ *  the loopback names a local build and the layout suite answer on
+ *  complete the set. */
+const OURS_SUFFIX = `.${PREVIEW_HOST_SUFFIX}`;
+const PLATFORM_SUFFIX = ".vercel.app";
+const LOCAL_HOSTS: ReadonlySet<string> = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
+
+/** The Host header as a hostname: lower-cased, port and trailing dot
+ *  removed. `@/app/(hosted)/resolve-host` normalises the same way and is
+ *  the module that then decides; it is not imported here because this file
+ *  runs before routing on every request and that module reaches the
+ *  database. Four lines, and the suite pins the pair. */
+/** This deployment's own address, from the one binding that carries it.
+ *  Computed per call rather than memoised: the suites that drive this file
+ *  rebind the environment between cases, and the parse is one `URL`. An
+ *  unparseable binding yields the empty string, which matches nothing —
+ *  and a Host that matches nothing is decided by `resolveHost`, which
+ *  answers `unknown` for every address that is not a customer's. */
+function appHost(): string {
+  try {
+    return new URL(env.NEXT_PUBLIC_APP_URL).hostname.toLowerCase();
+  } catch {
+    return "";
+  }
+}
+
+function hostnameOf(req: NextRequest): string {
+  const raw = (req.headers.get("host") ?? "").trim().toLowerCase();
+  const withoutPort = raw.startsWith("[") ? raw : (raw.split(":")[0] ?? "");
+  return withoutPort.endsWith(".") ? withoutPort.slice(0, -1) : withoutPort;
+}
 
 /** The two destinations a hosted request is rewritten to, and no third: the
  *  page (200 or 404) and the `410 Gone` document. */
@@ -276,18 +326,23 @@ const HOSTED_GONE_PATH = "/hosted-gone";
 const HOSTED_DOCUMENT_PATHS: readonly string[] = ["/robots.txt", "/sitemap.xml"];
 
 function isHostedEdgeHost(req: NextRequest): boolean {
-  return (req.headers.get("host") ?? "").trim().toLowerCase().startsWith(HOSTED_HOST_PREFIX);
+  const name = hostnameOf(req);
+  if (name === "") return false;
+  if (name === appHost()) return false;
+  if (name === PREVIEW_HOST_SUFFIX || name.endsWith(OURS_SUFFIX)) return false;
+  if (name.endsWith(PLATFORM_SUFFIX)) return false;
+  return !LOCAL_HOSTS.has(name);
 }
 
 /**
- * The hosted edge's own rewrite, on a `content.` host and nowhere else.
+ * The hosted edge's own rewrite, on a customer's own host and nowhere else.
  *
  * **The second database read in this file, and narrow for the same reason
  * the first one is** (`removedRewrite` above): a Next `page.tsx` cannot set
  * a status, so whether this address answers `410 Gone` has to be settled
- * before routing. It happens only on a `content.` host — every ReachKit
- * address is decided from the allow-list and the cookie with no await on
- * the way, exactly as before.
+ * before routing. It happens only on a host that is not one of ours — every
+ * ReachKit address is decided from the allow-list and the cookie with no
+ * await on the way, exactly as before.
  *
  * **Bounded, and fails towards rendering.** A read that is slow or that
  * throws rewrites to the page, which answers 404 when it finds none. A 410

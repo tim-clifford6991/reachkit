@@ -27,8 +27,8 @@ const ENV_MODULE = "../../src/lib/config/env.ts";
 // BP-005 decision 6a and 6c are already in that text: `SUPABASE_SERVICE_ROLE_KEY`
 // replaces `SUPABASE_SERVICE_ROLE`, one name end to end, no alias;
 // `DATABASE_URL` is not a member. Issue #315 added §15's two jobs bindings,
-// which the 2026-09-05 ruling had kept out of the schema, and issue #81
-// adds `MAIL_FROM` — 19 names, `env`'s own key set (`NANO_API_KEY` stays a
+// which the 2026-09-05 ruling had kept out of the schema, issue #81
+// adds `MAIL_FROM` and issue #322 the two Vercel bindings — 21 names, `env`'s own key set (`NANO_API_KEY` stays a
 // member; 6b makes it optional at the *schema* level, not absent from
 // `Env`, and the two jobs bindings are optional for their own reason: only
 // a real deployment must carry them, and `assertJobsBindings()` is what
@@ -53,10 +53,22 @@ const BINDING_NAMES = [
   "HOSTED_EDGE_CNAME_TARGET",
   "INNGEST_SIGNING_KEY",
   "INNGEST_EVENT_KEY",
+  // Issue #322 — SPEC §5's ruling of 2026-09-12: the customer's subdomain
+  // is added to the project's domain list "through the Vercel Domains API
+  // with our server-only token". Optional at the schema level for the same
+  // reason the jobs pair is: a local build and the layout suite add no
+  // domain to any project, and a deployment that carries neither attaches
+  // nothing rather than failing to boot.
+  "VERCEL_API_TOKEN",
+  "VERCEL_PROJECT_ID",
 ] as const;
 
 /** Issue #315's pair, named once here. */
 const JOBS_BINDING_NAMES = ["INNGEST_SIGNING_KEY", "INNGEST_EVENT_KEY"] as const;
+
+/** Issue #322's pair. Optional for their own reason (see above), so they
+ *  are out of the no-default set exactly as the jobs pair is. */
+const DOMAIN_BINDING_NAMES = ["VERCEL_API_TOKEN", "VERCEL_PROJECT_ID"] as const;
 
 // The missing-binding it.each below (BP-005 `## Error & edge behavior`,
 // "Every other binding keeps the no-default, no-fallback rule") excludes
@@ -67,7 +79,9 @@ const JOBS_BINDING_NAMES = ["INNGEST_SIGNING_KEY", "INNGEST_EVENT_KEY"] as const
 // the suite further down holds what happens on a real deployment.
 const NO_DEFAULT_BINDING_NAMES = BINDING_NAMES.filter(
   (name) =>
-    name !== "NANO_API_KEY" && !(JOBS_BINDING_NAMES as readonly string[]).includes(name)
+    name !== "NANO_API_KEY" &&
+    !(JOBS_BINDING_NAMES as readonly string[]).includes(name) &&
+    !(DOMAIN_BINDING_NAMES as readonly string[]).includes(name)
 );
 
 // WO-005 file plan's closed set of server-only bindings, moved onto 6a.
@@ -81,6 +95,10 @@ const SERVER_ONLY_NAMES = [
   "IP_HASH_SALT",
   "INNGEST_SIGNING_KEY",
   "INNGEST_EVENT_KEY",
+  // Issue #322: a token that can add a domain to our project is the same
+  // kind of secret as the nine above. `VERCEL_PROJECT_ID` is not — it
+  // names a project, it does not open one.
+  "VERCEL_API_TOKEN",
 ] as const;
 
 // A complete, validly-shaped set of bindings. Values are fixtures, never
@@ -106,11 +124,13 @@ const VALID_ENV: Record<(typeof BINDING_NAMES)[number], string> = {
   HOSTED_EDGE_CNAME_TARGET: "content.reachkit-edge.example.com",
   INNGEST_SIGNING_KEY: "signkey-fixture",
   INNGEST_EVENT_KEY: "event-key-fixture",
+  VERCEL_API_TOKEN: "vercel-token-fixture-do-not-leak",
+  VERCEL_PROJECT_ID: "prj_fixture",
 };
 
 const ORIGINAL_ENV = { ...process.env };
 
-/** Resets the 19 bindings to a complete, valid set, then applies overrides.
+/** Resets the 21 bindings to a complete, valid set, then applies overrides.
  * `undefined` deletes the key — `process.env[k] = undefined` would instead
  * coerce to the string `"undefined"`, which is not what "missing" means.
  * Also always clears `DATABASE_URL` and the retired `SUPABASE_SERVICE_ROLE`

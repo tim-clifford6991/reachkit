@@ -23,6 +23,9 @@ const SQL = readFileSync(path.join(MIGRATIONS, FILE), "utf8");
  *  later file, and asserted here for the same reason: `vitest.config.ts`'s
  *  `db` project list is the owner's. */
 const STAMP_FILE = "20260907113000_destinations_stamp.sql";
+/** SPEC §5's ruling of 2026-09-12 (issue #322): the customer's own host
+ *  and what the project's domain list says about it. */
+const HOSTNAME_FILE = "20260912120000_destinations_hostname.sql";
 const STAMP_SQL = readFileSync(path.join(MIGRATIONS, STAMP_FILE), "utf8");
 
 /** The eight `HealthReason` members, as the type declares them. */
@@ -41,13 +44,14 @@ describe("the migration is on the destinations topic", () => {
   it("its name carries exactly one assigned topic token", () => {
     expect(topicOf(FILE)).toEqual({ token: "destinations", owner: "BP-058" });
     expect(topicOf(STAMP_FILE)).toEqual({ token: "destinations", owner: "BP-058" });
+    expect(topicOf(HOSTNAME_FILE)).toEqual({ token: "destinations", owner: "BP-058" });
   });
 
   it("these are the only migrations on that topic beyond the baseline", () => {
     const onTopic = readdirSync(MIGRATIONS)
       .filter((name) => name.endsWith(".sql"))
       .filter((name) => topicOf(name)?.token === "destinations");
-    expect(onTopic).toEqual([FILE, STAMP_FILE]);
+    expect(onTopic).toEqual([FILE, STAMP_FILE, HOSTNAME_FILE]);
   });
 });
 

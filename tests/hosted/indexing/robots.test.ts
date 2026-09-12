@@ -23,11 +23,17 @@ vi.mock("@/lib/publish/destinations/hosted", async () => {
   return {
     hostedHostFor: address.hostedHostFor,
     liveUrlFor: address.liveUrlFor,
+    liveUrlOnHost: address.liveUrlOnHost,
     tags: { site: (s: string) => `hosted:site:${s}`, page: (p: string) => `hosted:page:${p}` },
     hostedSiteForDomain: async (domain: string) => {
       const id = sites.get(domain);
-      return id === undefined ? null : { siteId: id, domain };
+      return id === undefined ? null : { siteId: id, domain, host: `content.${domain}` };
     },
+    // SPEC §5 (2026-09-12): a Host is matched whole against the host on
+    // the destination row first. These suites describe a site whose row
+    // predates the label being a choice, so that lookup finds nothing and
+    // the default-label lookup beside it is what serves them.
+    hostedSiteForHostname: async () => null,
     livePagesForSite: async () => [],
     livePageBySlug: async () => null,
     wasEverLive: async () => false,

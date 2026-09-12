@@ -12,8 +12,9 @@
 // **It writes `health_changed_at` only when the state actually changed.**
 // That column is when the destination broke, not when it was last looked
 // at, and one breakage mail is counted from it (`breakage-mail.ts`).
-import { HOSTED_SUBDOMAIN_LABEL } from "@/lib/config/constants";
 import { resolvesInDns } from "@/lib/egress";
+import { hostFor } from "../hosted/label";
+import { syncHostname } from "../hosted/hostname";
 import { publishDb } from "../../db";
 import type { DestinationHealth, HealthReason } from "../../types";
 import { NoConfigError, withConfig } from "../config";
@@ -50,6 +51,19 @@ async function siteDomain(siteId: string): Promise<string | null> {
  * record that was never set, and until it is, no page is delivered there
  * and none is recorded as live at that address.
  *
+ * **The name it resolves is the one the customer chose** (SPEC §5,
+ * 2026-09-12), read off the destination row. A row written before the
+ * label became a choice carries none, and the default label is what it has
+ * always been served at — so nothing here resolves a host with an empty
+ * first label.
+ *
+ * **The hostname is attached to the project here too, and that is where
+ * "idempotently" lives.** The submit attaches it once; this check attaches
+ * it again on every pass, so a founder whose save happened while the vendor
+ * was unreachable is not left with a record pointing at a project that has
+ * never heard of them. The word the customer reads — "waiting for DNS" or
+ * "live" — is written from the resolution below and from nothing else.
+ *
  * A name that *does* resolve raises the one question resolution cannot
  * answer — whether it points at our edge or at somebody else's server —
  * and the adapter is asked, because the adapter is the end that would
@@ -64,7 +78,13 @@ async function hostedHealth(row: DestinationRecord): Promise<{ health: Destinati
   if (domain === null || domain.trim() === "") {
     return { health: "expired", reason: "never_connected" };
   }
-  if (!(await resolvesInDns(`${HOSTED_SUBDOMAIN_LABEL}.${domain}`))) {
+  const host = row.hostname ?? hostFor({ label: null, domain });
+  const resolves = await resolvesInDns(host);
+  // Idempotent, and made whether or not the record resolves: the hostname
+  // has to be on the project *before* the record resolves, because that is
+  // when the certificate is issued.
+  await syncHostname({ destinationId: row.id, hostname: host, resolves });
+  if (!resolves) {
     return { health: "expired", reason: "dns_unset" };
   }
   const adapter = adapterFor("hosted");

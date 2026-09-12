@@ -21,7 +21,9 @@ const SUBMISSION: SetupSubmission = {
   category: "agency CRM",
   competitors: ["asana.com"],
   mode: "autopilot",
-  destination: { kind: "hosted" },
+  // SPEC §5 (2026-09-12): the hosted arm carries the subdomain label the
+  // founder chose. `content` is the default they are shown.
+  destination: { kind: "hosted", label: "content" },
 };
 
 interface Recorder {
@@ -36,6 +38,7 @@ function storeOf(
   const store: SetupStore = {
     hasActiveAccess: async () => true,
     resolvesInDns: async () => true,
+    hostnameTaken: async () => false,
     readProgress: async (): Promise<SetupProgressState> => ({
       complete: false,
       siteId: SITE,

@@ -224,10 +224,34 @@ export function PublishingPanel(p: { settings: SettingsModel }): React.JSX.Eleme
           {destinations.map((destination) => (
             <div className="flex min-w-0 flex-col gap-1" key={destination.id} data-testid={`destination-${destination.id}`}>
               <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
-                <span className="min-w-0 text-sm font-semibold wrap-anywhere">
-                  {copy(KIND_COPY_KEY[destination.kind])}
+                <span className="flex min-w-0 flex-wrap items-baseline gap-2">
+                  <span className="min-w-0 text-sm font-semibold wrap-anywhere">
+                    {copy(KIND_COPY_KEY[destination.kind])}
+                  </span>
+                  {/* SPEC §5 (2026-09-12): the address their pages are
+                      served at, on their own domain. A host is a numeral
+                      in §2.3's sense — mono, like every domain this
+                      product prints — and it is the customer's own, which
+                      is why the card may state it. */}
+                  {destination.hostname === null ? null : (
+                    <span
+                      className="num min-w-0 text-xs wrap-anywhere opacity-60"
+                      data-testid={`hostname-${destination.id}`}
+                    >
+                      {destination.hostname}
+                    </span>
+                  )}
                 </span>
                 <span className="flex min-w-0 flex-wrap items-center gap-2">
+                {/* §5's two ruled words. Beside the health band and never
+                    instead of it: a destination can be perfectly healthy
+                    with a record nobody has pointed yet, and the customer
+                    needs to read both facts. */}
+                {destination.copy.hostname === null ? null : (
+                  <Badge tone={destination.hostnameState === "live" ? "ok" : "warn"}>
+                    {copy(destination.copy.hostname)}
+                  </Badge>
+                )}
                 <Badge tone={HEALTH_TONE[destination.health]}>
                   {copy(destination.copy.state)}
                 </Badge>

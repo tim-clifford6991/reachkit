@@ -32,6 +32,15 @@ export interface SetupFacts {
 export interface SetupScreenModel {
   state: SetupState;
   cards: SetupCards;
+  /** §9's edge hostname, carried onto the model (SPEC §5, 2026-09-12).
+   *
+   *  The record is no longer a fact the server can settle alone: its name
+   *  is `<label>.<domain>` and both halves move while the founder is on
+   *  the screen — they type their address, and they choose their label. So
+   *  the screen composes it, and the one thing it cannot derive is the
+   *  target the record points at. It is a deployment binding, not a
+   *  sentence and not a secret. */
+  cnameTarget: string;
   /** REQ-026 c9: the limit is stated on screen, so the screen is given it
    *  rather than spelling the number itself. */
   competitorsMax: number;
@@ -45,6 +54,7 @@ export function assembleSetup(facts: SetupFacts): SetupScreenModel {
   return {
     state,
     cards: setupCards({ siteDomain: state.siteDomain, cnameTarget: facts.cnameTarget }),
+    cnameTarget: facts.cnameTarget,
     competitorsMax: BATTERY.COMPETITORS_MAX,
   };
 }

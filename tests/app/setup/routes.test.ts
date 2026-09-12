@@ -24,6 +24,7 @@ vi.mock("@/lib/egress", () => ({
   // The one network fact these routes need, stubbed at the seam:
   // `tests/setup.ts` refuses a real resolver to every test in this corpus.
   resolvesInDns: vi.fn(async (host: string) => host !== "unreachable-site.com"),
+  hostnameTaken: vi.fn(async () => false),
 }));
 
 
@@ -86,7 +87,7 @@ const SUBMISSION = {
   category: "agency CRM",
   competitors: ["asana.com"],
   mode: "autopilot" as const,
-  destination: { kind: "hosted" as const },
+  destination: { kind: "hosted" as const, label: "content" },
 };
 
 describe("the boundary — every setup route is signed-in-only", () => {
@@ -96,7 +97,13 @@ describe("the boundary — every setup route is signed-in-only", () => {
     return new NextRequest(new Request(`https://reachkit.example${path}`, { headers }));
   }
 
-  it.each(["/setup", "/setup/waiting", "/api/setup", "/api/setup/domain", "/api/setup/progress"])(
+  it.each([
+    "/setup",
+    "/setup/waiting",
+    "/api/setup",
+    "/api/setup/domain",
+    "/api/setup/progress",
+  ])(
     "%s without a session is redirected to the sign-in prompt",
     async (path) => {
       // `middleware` became async with #104's removal rewrite; every other
@@ -110,7 +117,13 @@ describe("the boundary — every setup route is signed-in-only", () => {
     }
   );
 
-  it.each(["/setup", "/setup/waiting", "/api/setup", "/api/setup/domain", "/api/setup/progress"])(
+  it.each([
+    "/setup",
+    "/setup/waiting",
+    "/api/setup",
+    "/api/setup/domain",
+    "/api/setup/progress",
+  ])(
     "%s with a session is served",
     async (path) => {
       // #468: a Supabase Auth session, verified by `getUser()` — here the

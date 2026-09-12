@@ -28,7 +28,6 @@
 // **Never cached**: a customer who leaves stops being served immediately,
 // and a robots document held in a proxy would outlive them.
 import { env } from "@/lib/config/env";
-import { hostedHostFor } from "@/lib/publish/destinations/hosted";
 import { appRobotsDocument } from "@/app/(public)/_seo/policies";
 import { customerRobotsDocument, previewRobotsDocument } from "../policies";
 import { isAppHost, resolveHost } from "../resolve-host";
@@ -58,7 +57,7 @@ export async function GET(request: Request): Promise<Response> {
     // The sitemap the document names is this site's own, on the customer's
     // own domain — composed from the Host that resolved, never from ours
     // and never from `request.url`, which a proxy may have rewritten.
-    const sitemapUrl = `https://${hostedHostFor(disposition.domain)}/sitemap.xml`;
+    const sitemapUrl = `https://${disposition.host}/sitemap.xml`;
     return new Response(customerRobotsDocument(sitemapUrl), {
       status: 200,
       headers: { "Cache-Control": "no-store", "Content-Type": TEXT },

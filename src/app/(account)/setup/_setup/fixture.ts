@@ -116,6 +116,10 @@ export function fixtureSetupStore(): SetupStore & {
     // §6.4's `resolvesInDns` (#22). Not called through here in the
     // fixture: no test in this corpus may reach a resolver.
     resolvesInDns: async () => true,
+    // SPEC §5's "already-taken label" (2026-09-12). Nobody holds the
+    // fixture founder's host: this store reads no rows, and answering
+    // `true` would refuse a label nothing has claimed.
+    hostnameTaken: async () => false,
     // `sites.setup_completed_at` (#42). Always incomplete: this store is
     // never handed a completed account, and `completeSetup`'s
     // `already_complete` arm is driven by its own store in the tests.

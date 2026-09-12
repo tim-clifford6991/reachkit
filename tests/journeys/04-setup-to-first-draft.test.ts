@@ -188,6 +188,7 @@ vi.mock("@/lib/egress/robots", () => ({
 const resolving = new Set<string>();
 vi.mock("@/lib/egress/dns", () => ({
   resolvesInDns: async (host: string) => resolving.has(host),
+  hostnameTaken: async () => false,
 }));
 
 // ── Anthropic ───────────────────────────────────────────────────────────
@@ -465,7 +466,7 @@ const THE_THREE_DECISIONS = {
   category: "project management software for agencies",
   competitors: [...RIVALS],
   mode: "autopilot" as const,
-  destination: { kind: "hosted" as const },
+  destination: { kind: "hosted" as const, label: "content" },
 };
 
 let realSetTimeout: typeof setTimeout;
@@ -631,6 +632,10 @@ describe("three decisions → deep pass → the first page already on the calend
       p_site_id: SITE_ID,
       p_mode: "autopilot",
       p_kind: "hosted",
+      // SPEC §5 (2026-09-12): the host the founder chose commits in the
+      // same transaction as the mode and the destination — `content` is
+      // the default label they were shown, over the domain they gave.
+      p_hostname: `content.${DOMAIN}`,
     });
 
     // The stamp is written last, and it is what the gate, the reminders

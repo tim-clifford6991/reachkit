@@ -144,13 +144,21 @@ describe('REQ-025 c3 — "when they look for anything that tunes the engine ... 
     }
   });
 
-  it("the only fields the screen can ever show are the address, the market and one competitor box", () => {
+  it("the only fields the screen can ever show are the address, the market, one competitor box and the subdomain label", () => {
     // Two arms, because a measured address and an inferred market render
     // as values to confirm rather than as fields (REQ-021 c6, REQ-026 c1).
+    //
+    // **`label` is the third decision's own field, not a fourth decision**
+    // (SPEC §5's ruling of 2026-09-12): the destination is chosen on this
+    // screen and the customer's pages are served at `<label>.<their
+    // domain>`, so the label is part of choosing it — like the CNAME
+    // record drawn beside it, and unlike anything that tunes the engine.
+    // The list stays exact: a field arriving here without a name in it
+    // fails, which is what this row is for.
     const measured = Array.from(screenFor().querySelectorAll("input")).map((i) =>
       i.getAttribute("name")
     );
-    expect(measured.sort()).toEqual(["competitor"]);
+    expect(measured.sort()).toEqual(["competitor", "label"]);
 
     // The no-report arm asks for the site and a competitor. The market's
     // own field arrives with the site (UI-SPEC S10: "Suggested once your
@@ -158,7 +166,7 @@ describe('REQ-025 c3 — "when they look for anything that tunes the engine ... 
     const scanless = Array.from(screenFor(SCANLESS).querySelectorAll("input")).map((i) =>
       i.getAttribute("name")
     );
-    expect(scanless.sort()).toEqual(["competitor", "domain"]);
+    expect(scanless.sort()).toEqual(["competitor", "domain", "label"]);
   });
 
   it("there is no select, checkbox or radio at all — the two card pairs are buttons", () => {

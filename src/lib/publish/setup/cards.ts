@@ -24,8 +24,8 @@
 // record points at is an env binding and is passed in by the adapter —
 // never a string in a card, and never a read this module makes, which is
 // what keeps its whole contract decidable in a unit test.
-import { HOSTED_SUBDOMAIN_LABEL } from "@/lib/config/constants";
 import type { CopyKey } from "@/lib/presentation/copy";
+import { DEFAULT_HOSTED_LABEL, hostFor } from "../destinations/hosted/label";
 
 export type PublishingMode = "autopilot" | "copilot";
 export type DestinationKind = "hosted" | "wordpress";
@@ -63,6 +63,10 @@ export interface DestinationOption {
   copy: "setup.destination.hosted" | "setup.destination.wordpress";
   /** Present only for `hosted`. Two shapes, never a blank (REQ-028 c2). */
   dns?: DnsRecord | DnsPending;
+  /** The subdomain label the record above is composed with — the
+   *  customer's own choice, or the default they have not changed (SPEC §5,
+   *  2026-09-12). Present only for `hosted`, like the record itself. */
+  label?: string;
 }
 
 export interface SetupCards {
@@ -70,25 +74,38 @@ export interface SetupCards {
   destination: readonly DestinationOption[];
 }
 
-/** §9's `content.{customer-domain}` CNAME, or the stated pending shape
- *  where no site address has been given yet. */
+/** The `<label>.{customer-domain}` CNAME (SPEC §5, 2026-09-12), or the
+ *  stated pending shape where no site address has been given yet.
+ *
+ *  **The label travels with the field the customer is typing in**, so the
+ *  record under the card always names the host they have chosen rather
+ *  than the one they started on. `null` is the default label, which is
+ *  what the card is drawn with before they touch it. */
 export function dnsRecordFor(a: {
   siteDomain: string | null;
   cnameTarget: string;
+  label?: string | null;
 }): DnsRecord | DnsPending {
   if (a.siteDomain === null) {
     return { pending: "no_domain_yet", copy: "setup.destination.dnsPending" };
   }
   return {
     type: "CNAME",
-    name: `${HOSTED_SUBDOMAIN_LABEL}.${a.siteDomain}`,
+    name: hostFor({ label: a.label ?? null, domain: a.siteDomain }),
     value: a.cnameTarget,
   };
 }
 
 /** Both mode options and both destination options, every time, with the
  *  pre-selection carried as data on the option. */
-export function setupCards(a: { siteDomain: string | null; cnameTarget: string }): SetupCards {
+export function setupCards(a: {
+  siteDomain: string | null;
+  cnameTarget: string;
+  /** The label the founder has chosen, or absent for the default they are
+   *  shown before they choose one (SPEC §5: "default `content`"). */
+  label?: string | null;
+}): SetupCards {
+  const label = a.label ?? DEFAULT_HOSTED_LABEL;
   return {
     mode: Object.freeze([
       Object.freeze({
@@ -110,7 +127,8 @@ export function setupCards(a: { siteDomain: string | null; cnameTarget: string }
         preselected: true,
         name: "setup.destination.hosted.name" as const,
         copy: "setup.destination.hosted" as const,
-        dns: dnsRecordFor(a),
+        dns: dnsRecordFor({ ...a, label }),
+        label,
       }),
       Object.freeze({
         kind: "wordpress" as const,
