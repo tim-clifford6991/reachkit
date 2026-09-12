@@ -54,6 +54,7 @@ Closes #n
 ## Evidence       the command run, the route looked at, what it showed
 ## Corpus         the documented fact this PR changes — named here, landed by the master — or "nothing"
 ```
+Length (2026-09-12): a PR body is at most 40 lines; a code comment says what and why in at most three lines, never history and never a quoted document; a migration file carries at most five comment lines. Over that, the review asks for the cut before reading anything else.
 A token table (every value → its token) only if tokens changed; a `Renders:` line naming routes only if a screen changed; adjacent findings under *Adjacent*, and the master decides whether they become issues.
 
 ## Gates
