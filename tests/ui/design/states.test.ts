@@ -17,6 +17,10 @@ const SRC = path.join(REPO, "src");
 const read = (rel: string): string => readFileSync(path.join(REPO, rel), "utf8");
 
 const IDIOM = "src/ui/idiom/idiom.css";
+// The states that fall on a daisyUI component class live with the one
+// daisyUI theme since issue #548; the idiom keeps its own (§0 7, 8, 12) and
+// the two global rules. The values are unchanged — only their home is.
+const THEME = "src/ui/tailwind.css";
 const CALENDAR = "src/ui/components/custom/calendar-grid.css";
 const SHELL = "src/ui/layout/shell.css";
 
@@ -47,16 +51,16 @@ function decls(file: string, selector: string): Map<string, string> {
 
 describe("§0 1–3 — Btn pressed, disabled and the warn hover", () => {
   it("§0 1: each rank's :active is its own hover ground, and nothing moves", () => {
-    expect(decls(IDIOM, ".btn.rk-btn-outline:is(:hover, :active)").get("background")).toBe(
+    expect(decls(THEME, ".btn.rk-btn-outline:is(:hover, :active)").get("background")).toBe(
       "var(--accent-bg)"
     );
-    expect(decls(IDIOM, ".btn.rk-btn-tertiary:is(:hover, :active)").get("background")).toBe(
+    expect(decls(THEME, ".btn.rk-btn-tertiary:is(:hover, :active)").get("background")).toBe(
       "var(--sunk)"
     );
-    expect(decls(IDIOM, ".btn.btn-primary:is(:hover, :active)").get("filter")).toBe(
+    expect(decls(THEME, ".btn.btn-primary:is(:hover, :active)").get("filter")).toBe(
       "brightness(1.08)"
     );
-    const active = decls(IDIOM, ".btn:active");
+    const active = decls(THEME, ".btn:active");
     expect(active.get("translate")).toBe("none");
     expect(active.get("transform")).toBe("none");
   });
@@ -69,7 +73,7 @@ describe("§0 1–3 — Btn pressed, disabled and the warn hover", () => {
       ".btn.rk-btn-tertiary:disabled",
       ".btn.rk-btn-outline[data-tone]:disabled",
     ]) {
-      const d = decls(IDIOM, selector);
+      const d = decls(THEME, selector);
       expect(d.get("background"), selector).toBe("var(--sunk)");
       expect(d.get("color"), selector).toBe("var(--ink-3)");
       expect(d.get("border"), selector).toBe("1px solid var(--line)");
@@ -80,14 +84,14 @@ describe("§0 1–3 — Btn pressed, disabled and the warn hover", () => {
 
   it("§0 3: the warn outline fills with --warn-bg on hover", () => {
     expect(
-      decls(IDIOM, '.btn.rk-btn-outline[data-tone="warn"]:is(:hover, :active)').get("background")
+      decls(THEME, '.btn.rk-btn-outline[data-tone="warn"]:is(:hover, :active)').get("background")
     ).toBe("var(--warn-bg)");
   });
 });
 
 describe("§0 4–5 — the field's disabled and invalid states", () => {
   it("§0 4: a disabled field is --sunk ground with --ink-3 text", () => {
-    const d = decls(IDIOM, ".input:disabled");
+    const d = decls(THEME, ".input:disabled");
     expect(d.get("background")).toBe("var(--sunk)");
     expect(d.get("color")).toBe("var(--ink-3)");
   });
@@ -99,7 +103,7 @@ describe("§0 4–5 — the field's disabled and invalid states", () => {
   });
 
   it("§0 5: an invalid field's edge is --bad, keyed on aria-invalid, never a class", () => {
-    expect(decls(IDIOM, '.input[aria-invalid="true"]').get("border-color")).toBe("var(--bad)");
+    expect(decls(THEME, '.input[aria-invalid="true"]').get("border-color")).toBe("var(--bad)");
     const input = read("src/ui/components/Input.tsx");
     expect(input).toContain("aria-invalid={p.invalid === true}");
     expect(input).not.toContain("input-error");
@@ -108,10 +112,10 @@ describe("§0 4–5 — the field's disabled and invalid states", () => {
 
 describe("§0 6–9 — switch, option card, tag and collapse", () => {
   it("§0 6: a disabled switch is the --line track at half strength, its label --ink-3", () => {
-    const d = decls(IDIOM, ".toggle:disabled");
+    const d = decls(THEME, ".toggle:disabled");
     expect(d.get("background")).toBe("var(--line)");
     expect(d.get("opacity")).toBe("0.5");
-    expect(decls(IDIOM, "label:has(> .toggle:disabled)").get("color")).toBe("var(--ink-3)");
+    expect(decls(THEME, "label:has(> .toggle:disabled)").get("color")).toBe("var(--ink-3)");
   });
 
   it("§0 7: a disabled option card is --sunk, --line, default cursor, over hover too", () => {
@@ -130,7 +134,7 @@ describe("§0 6–9 — switch, option card, tag and collapse", () => {
   });
 
   it("§0 9: the collapse summary takes --sunk on hover", () => {
-    expect(decls(IDIOM, ".collapse > .collapse-title:hover").get("background")).toBe(
+    expect(decls(THEME, ".collapse > .collapse-title:hover").get("background")).toBe(
       "var(--sunk)"
     );
   });

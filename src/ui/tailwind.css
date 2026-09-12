@@ -103,3 +103,280 @@ body {
 :root {
   --border-hair: 1px;
 }
+
+/* ── daisyUI's components, at the theme's values (issue #548) ─────────────
+ *
+ * Every rule below styles a daisyUI component class, so it belongs with the
+ * theme rather than in the card idiom. daisyUI 5 declares no theme slot for
+ * any of them: a rank's ground is `--btn-color`/`--btn-bg`, set by a
+ * modifier class; the switch's knob is `--input-color`; and motion, the
+ * disabled ink and the stat's rung have no slot at all. Every value is a
+ * token this file's theme already maps.
+ */
+
+/* The idiom's pill, opt-in per control: `--radius-field` is the field's 9px
+ * and daisyUI gives the button no radius slot of its own. */
+.btn.rk-pill {
+  border-radius: var(--r-pill);
+}
+
+/* The three ranks over daisyUI's `btn-ghost` base — an outline secondary, a
+ * quiet tertiary, the inverse an accent ground needs. Named for the rank and
+ * never a daisyUI family word, which `theme-slots.test.ts` sweeps for. */
+.btn.rk-btn-outline {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--ink);
+}
+
+/* Selected is the outline rank on the accent tint, keyed on `aria-pressed`
+ * so the tint and the accessibility state are one fact (issue #288). */
+.btn.rk-btn-outline[aria-pressed="true"] {
+  background: var(--accent-bg);
+  border-color: var(--accent-line);
+  color: var(--accent);
+}
+
+/* The one tone a rank may carry (issue #271): warn reaches the outline
+ * rank's edge and ink only — a warn fill would be a second solid button. */
+.btn.rk-btn-outline[data-tone="warn"] {
+  border-color: var(--warn);
+  color: var(--warn);
+}
+
+/* The accent as an edge (issue #291): the second call to action on a screen
+ * whose one solid fill is already spent. */
+.btn.rk-btn-outline[data-tone="accent"] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.btn.rk-btn-tertiary {
+  background: transparent;
+  border: 0;
+  color: var(--ink-2);
+}
+
+/* On an accent ground a solid primary inverts: `--on-accent` fill with an
+ * `--accent` label. */
+.btn.rk-btn-inverse {
+  background: var(--on-accent);
+  border: 0;
+  color: var(--accent);
+}
+
+/* A field on the accent ground keeps its own surface: on-accent ink inside a
+ * white field would be white on white. */
+.rk-accent-ground .input {
+  background: var(--surface);
+  color: var(--ink);
+}
+
+/* The outline rank standing on that ground: its `--line` edge and `--ink`
+ * label have nothing to stand on there (issue #290). */
+.rk-accent-ground .btn.rk-btn-outline {
+  border-color: color-mix(in oklab, var(--on-accent) 28%, transparent);
+  color: var(--on-accent);
+}
+
+/* `Progress` on an accent ground, where `--sunk` has no contrast to stand
+ * on: the track is `--on-accent` at 12%, the fill `--on-accent` itself. It
+ * skins the native `<progress>`, so the bar keeps its element and its role. */
+.progress.rk-progress-inverse {
+  color: var(--on-accent);
+  background-color: color-mix(in oklab, var(--on-accent) 12%, transparent);
+  border-radius: var(--r-pill);
+}
+
+.progress.rk-progress-inverse::-webkit-progress-bar {
+  background-color: transparent;
+  border-radius: var(--r-pill);
+}
+
+.progress.rk-progress-inverse::-webkit-progress-value {
+  background-color: var(--on-accent);
+  border-radius: var(--r-pill);
+}
+
+.progress.rk-progress-inverse::-moz-progress-bar {
+  background-color: var(--on-accent);
+  border-radius: var(--r-pill);
+}
+
+/* The switch the approved set draws (issue #506): on = `--accent`, off =
+ * `--line`, the knob `--on-accent` either way. daisyUI's checked arm is
+ * `base-content` — the black switch the set never draws. */
+.toggle.rk-switch {
+  background-color: var(--line);
+  border-color: var(--line);
+  --input-color: var(--on-accent);
+}
+
+.toggle.rk-switch:checked {
+  background-color: var(--accent);
+  border-color: var(--accent);
+  --input-color: var(--on-accent);
+}
+
+/* S12's headline figure (issue #509): `--t-num-big` at `--num-weight`, in
+ * the numeral face `.num` sets. daisyUI's own `stat-value` is 2rem at 800 —
+ * a display face's weight on a mono numeral. */
+.stat-value.num {
+  font-size: var(--t-num-big);
+  font-weight: var(--num-weight);
+  letter-spacing: -0.03em;
+}
+
+/* The landing frame's miniature (issue #488): the same `Stat` at the frame's
+ * own rung, a picture of the Overview rather than the Overview. The tile's
+ * box is the inset, so the stat takes none of its own. */
+.rk-shot-tile .stats {
+  display: grid;
+  min-width: 0;
+}
+
+.rk-shot-tile .stat {
+  padding: 0;
+  min-width: 0;
+}
+
+.rk-shot-tile .stat-title {
+  font-size: var(--t-xs);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.rk-shot-tile .stat-value.num {
+  font-size: var(--h1);
+  font-weight: var(--num-weight);
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  color: var(--ink);
+}
+
+/* ── UI-SPEC §0, the owner's rulings of 2026-09-11 (#530) ─────────────────
+ *
+ * The states that fall on a daisyUI component class. They live with the
+ * theme since issue #548; the idiom keeps the global focus ring, reduced
+ * motion, and its own option card and tag.
+ */
+
+/* §0 13 — one duration, `--motion-fast`, spent only on colour, background,
+ * border, box-shadow and transform. daisyUI's components declare their own
+ * (.2s, and .1–.4s over height); each is brought to the one token, or to
+ * none where what it moved is not a property the ruling admits. */
+.btn {
+  transition-property: color, background-color, border-color, box-shadow, transform;
+  transition-duration: var(--motion-fast);
+}
+
+.collapse,
+.collapse > .collapse-content {
+  transition: none;
+}
+
+.collapse > .collapse-title {
+  transition: background-color var(--motion-fast);
+}
+
+.collapse-arrow > .collapse-title::after {
+  transition: transform var(--motion-fast);
+}
+
+.toggle {
+  transition: color var(--motion-fast), background-color var(--motion-fast);
+}
+
+.toggle::before {
+  transition: background-color var(--motion-fast);
+}
+
+.tab::before {
+  transition: background-color var(--motion-fast);
+}
+
+.card,
+.progress {
+  transition: none;
+}
+
+/* §0 1 — `:active` is the rank's own hover ground; nothing moves. daisyUI's
+ * own nudges the button half a pixel down and darkens it, and both are
+ * undone here beside the hover grounds the pressed state repeats. */
+.btn:active {
+  translate: none;
+  transform: none;
+}
+
+.btn.rk-btn-outline:is(:hover, :active) {
+  background: var(--accent-bg);
+}
+
+.btn.btn-primary:is(:hover, :active) {
+  --btn-bg: var(--accent);
+  filter: brightness(1.08);
+}
+
+.btn.rk-btn-tertiary:is(:hover, :active) {
+  background: var(--sunk);
+  color: var(--ink);
+}
+
+/* §0 3 — the warn outline answers the pointer: `--warn-bg`, the outline
+ * rank's hover one tone over. */
+.btn.rk-btn-outline[data-tone="warn"]:is(:hover, :active) {
+  background: var(--warn-bg);
+}
+
+/* §0 2 — Btn `[disabled]`, all four ranks: `--ink-3` on `--sunk`, a `--line`
+ * edge, the default cursor and no hover change. Listed rank by rank so it
+ * outranks every tone and pressed rule by specificity, never `!important`. */
+.btn:disabled,
+.btn.btn-primary:disabled,
+.btn.rk-btn-outline:disabled,
+.btn.rk-btn-tertiary:disabled,
+.btn.rk-btn-inverse:disabled,
+.btn.rk-btn-outline[data-tone]:disabled,
+.btn.rk-btn-outline[aria-pressed="true"]:disabled {
+  background: var(--sunk);
+  border: 1px solid var(--line);
+  color: var(--ink-3);
+  cursor: default;
+  filter: none;
+  box-shadow: none;
+}
+
+/* §0 4 — a disabled field is `--sunk` ground with `--ink-3` text. The card
+ * around it is never dimmed. */
+.input:disabled {
+  background: var(--sunk);
+  color: var(--ink-3);
+  cursor: default;
+}
+
+/* §0 5 — an invalid field carries a `--bad` edge as well as its written
+ * line, keyed on `aria-invalid` so the state is never colour alone. */
+.input[aria-invalid="true"] {
+  border-color: var(--bad);
+}
+
+/* §0 6 — Switch: no hover change, focus is the global ring, and disabled is
+ * the `--line` track at half strength with its label in `--ink-3`. */
+.toggle:disabled,
+.toggle:disabled:checked {
+  color: var(--line);
+  border-color: var(--line);
+  background: var(--line);
+  opacity: 0.5;
+  cursor: default;
+}
+
+label:has(> .toggle:disabled) {
+  color: var(--ink-3);
+  cursor: default;
+}
+
+/* §0 9 — Collapse: the summary row takes `--sunk` on hover. */
+.collapse > .collapse-title:hover {
+  background: var(--sunk);
+}
