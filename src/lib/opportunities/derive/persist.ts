@@ -28,7 +28,8 @@ export function insertFor(candidate: Candidate): OpportunityInsert {
     // already has a url and a Fix target has no page, so neither proposes
     // one — a check constraint holds that, so the column cannot quietly
     // acquire a second meaning.
-    proposed_slug: candidate.family === "write" ? candidate.targetRef : null,
+    proposed_slug:
+      candidate.family === "write" || candidate.family === "earn" ? candidate.targetRef : null,
     title: candidate.title,
     // §10's integer column: the number, denormalised for the surfaces and
     // sorts that read one. The measurement itself — arm, value and date —

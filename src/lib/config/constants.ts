@@ -363,8 +363,11 @@ export const SUPPLY = Object.freeze({
   deepTarget: 30, shortThreshold: 7,
 } as const);
 
+/** SPEC §0 and §7: "Default 24 h; range 1-7 days; there is no zero window."
+ *  `minDays` read 0 until 2026-09-12, which is a draft with no veto path at
+ *  all — the one window the ruling forbids. */
 export const VETO = Object.freeze({
-  defaultHours: 24, minDays: 0, maxDays: 7,
+  defaultHours: 24, minDays: 1, maxDays: 7,
 } as const);
 
 export const RATE_LIMITS = Object.freeze({
@@ -428,6 +431,9 @@ export const DEEP_HEARTBEAT_S = 15 as const;                 // BP-036 d5 · REQ
 export const EFFORT_BY_TYPE = Object.freeze({                // BP-040 d3
   answerable_page: 0.2, expand_page: 0.3, refresh_page: 0.3,
   answer_page: 0.5, keyword_page: 0.5, comparison_page: 0.6, format_page: 0.7,
+  // SPEC §0's Earn answer is "a first-party citable asset on the customer's
+  // own domain" — the most work of any page the engine proposes.
+  listed_page: 0.7,
 } as const);                                                 // `unblock` is unranked
 
 export const FIT_WEIGHT = Object.freeze({ winnable: 1.0, reach: 0.5, "not-yet": 0 } as const); // BP-040 d3
@@ -734,6 +740,28 @@ export const DEMAND_LOG_DIVISOR = 5 as const;                 // §7 ranking
  *  §6.7's floor for admitting a search into the *twelve* — two floors,
  *  stated independently by the spec, and neither derived from the other. */
 export const WRITE_VOLUME_FLOOR_PER_MONTH = 10 as const;      // §7
+
+/** SPEC §6: "A Monday verdict of 'not working' on a cluster suppresses new
+ *  Write opportunities in that cluster for four weeks; Improve of the live
+ *  URL in it stays allowed." */
+export const CLUSTER_SUPPRESS_WEEKS = 4 as const;             // §6
+
+/** SPEC §6: "A residual keyword page fires only when every extra gate
+ *  passes; volume >= 10/mo alone is never sufficient." The readiness floor a
+ *  gate is checked against, never `WRITE_VOLUME_FLOOR_PER_MONTH`'s discovery
+ *  one: two clauses of the spec, so two pins. */
+export const KEYWORD_PAGE_MIN_VOLUME = 10 as const;           // §6
+
+/** SPEC §6: "A format page fires only for a missing comparison, alternative,
+ *  integration or template; glossary, changelog, blog and resources hub
+ *  never qualify." The list is the gate: a format outside it never fires. */
+export const FORMAT_PAGE_ALLOWED = Object.freeze([
+  "comparison", "alternative", "integration", "template",
+] as const);                                                  // §6
+
+/** SPEC §7: an answerability pass "adds no question-shaped headings", so the
+ *  number of new questions it may add is zero — a bound, never a budget. */
+export const ANSWERABILITY_MAX_NEW_QUESTIONS = 0 as const;    // §7
 
 /** §7's Improve trigger, transcribed: "Customer ranks 4–30, page thin".
  *  The band is inclusive at both ends. The bought SERP is a top ten

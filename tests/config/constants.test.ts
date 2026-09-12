@@ -296,3 +296,58 @@ describe("BUILD §13 payment backstops — two clocks, in different units, each 
     expect(constants.PAYMENT_BACKSTOP_H).not.toBe(constants.PUBLISH_VERIFY_DELAY_H * 2);
   });
 });
+
+// SPEC §0 and §7 (issue #473) — the veto window's floor. The pin read 0
+// against a ruling that forbids a zero window, and a zero window is a draft
+// that publishes with no veto path at all.
+describe("SPEC §0 `VETO` — default 24 h, range 1-7 days, no zero window", () => {
+  it("the floor is one whole day, and the other two ends are unmoved", () => {
+    expect(constants.VETO.minDays).toBe(1);
+    expect(constants.VETO.minDays).not.toBe(0);
+    expect(constants.VETO.defaultHours).toBe(24);
+    expect(constants.VETO.maxDays).toBe(7);
+  });
+});
+
+// SPEC §6 and §7 (issue #473) — the readiness and suppression pins the
+// clustering, suppression and generation issues all read, so none of them
+// carries a literal of its own.
+describe("SPEC §6 `CLUSTER_SUPPRESS_WEEKS` — a not-working cluster is suppressed for four weeks", () => {
+  it("is four, and is not the too-early window under a second name", () => {
+    expect(constants.CLUSTER_SUPPRESS_WEEKS).toBe(4);
+    expect(constants.CLUSTER_SUPPRESS_WEEKS).not.toBe(constants.TOO_EARLY_WEEKS);
+  });
+});
+
+describe("SPEC §6 `KEYWORD_PAGE_MIN_VOLUME` — the residual keyword gate's floor", () => {
+  it("is 10 a month, and the discovery floor and the readiness floor are two clauses", () => {
+    expect(constants.KEYWORD_PAGE_MIN_VOLUME).toBe(10);
+    // §6.7 admits a search into the twelve at 50/mo; §7 derives a Write
+    // target at 10/mo; §6 gates a residual keyword page at 10/mo *and every
+    // other gate*. Three clauses, three pins — unifying any two would make a
+    // change to one silently change the others.
+    expect(constants.SELECTION.volumeFloorPerMonth).toBe(50);
+    expect(constants.WRITE_VOLUME_FLOOR_PER_MONTH).toBe(10);
+    expect(constants.KEYWORD_PAGE_MIN_VOLUME).not.toBe(constants.SELECTION.volumeFloorPerMonth);
+  });
+});
+
+describe("SPEC §6 `FORMAT_PAGE_ALLOWED` — the four formats a format page may fire for", () => {
+  it("is exactly the four, and none of the four §6 says never qualify", () => {
+    expect([...constants.FORMAT_PAGE_ALLOWED]).toEqual([
+      "comparison",
+      "alternative",
+      "integration",
+      "template",
+    ]);
+    for (const never of ["glossary", "changelog", "blog", "resources"]) {
+      expect(constants.FORMAT_PAGE_ALLOWED).not.toContain(never);
+    }
+  });
+});
+
+describe("SPEC §7 `ANSWERABILITY_MAX_NEW_QUESTIONS` — the pass adds no question-shaped heading", () => {
+  it("is zero: a bound, not a budget", () => {
+    expect(constants.ANSWERABILITY_MAX_NEW_QUESTIONS).toBe(0);
+  });
+});
