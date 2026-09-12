@@ -340,6 +340,8 @@ Authority: this document; within it, the newest dated line wins. Pinned numbers 
 | AI Keyword Data; a larger model on the draft step | A nicer question derivation and prose nobody has complained about, at real cost. |
 | LLM-written UI text or mail prose | Every ReachKit sentence is an owner-approved registry key. |
 
+- Replacing Inngest with Supabase's built-in scheduling (pg_cron + pg_net) or Vercel cron: one fewer service, two days of rewrite that ships no feature — after the first paying customers (2026-09-12).
+
 ## §12 Choices made
 
 1. **What targeting chooses each Monday.** *Ruled*: it chooses **clusters**, not keywords — one cluster-day per publishing day, at most one Write target per cluster, and Improve of an owned URL in the cluster preferred over a new page. The alternative — choosing per keyword — publishes several near-identical pages for one topic and is a materially worse product. (2026-09-11)
