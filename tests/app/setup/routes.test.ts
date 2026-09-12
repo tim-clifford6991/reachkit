@@ -102,10 +102,6 @@ describe("the boundary — every setup route is signed-in-only", () => {
     "/setup/waiting",
     "/api/setup",
     "/api/setup/domain",
-    // SPEC §5 (2026-09-12): the label availability question is about one
-    // account's own site, so it is signed-in-only like every other setup
-    // route — by omission from the allow-list, not by a check of its own.
-    "/api/setup/label",
     "/api/setup/progress",
   ])(
     "%s without a session is redirected to the sign-in prompt",
@@ -126,10 +122,6 @@ describe("the boundary — every setup route is signed-in-only", () => {
     "/setup/waiting",
     "/api/setup",
     "/api/setup/domain",
-    // SPEC §5 (2026-09-12): the label availability question is about one
-    // account's own site, so it is signed-in-only like every other setup
-    // route — by omission from the allow-list, not by a check of its own.
-    "/api/setup/label",
     "/api/setup/progress",
   ])(
     "%s with a session is served",

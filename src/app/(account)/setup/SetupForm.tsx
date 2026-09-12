@@ -66,10 +66,10 @@ import {
   type PublishingMode,
 } from "@/lib/publish/setup/cards";
 import { checkLabel, type LabelRefusal } from "@/lib/publish/destinations/hosted/label";
+import { checkSubdomainLabel } from "./label-actions";
 import type { SetupScreenModel } from "./_setup/facts";
 import type { SetupRefusal, SetupSubmission } from "./submit";
 import type { ResolveDomainResponse } from "@/app/api/setup/domain/route";
-import type { CheckLabelResponse } from "@/app/api/setup/label/route";
 import type { SetupResult } from "./submit";
 
 const ADDRESS_REFUSAL_COPY = {
@@ -119,31 +119,6 @@ const SUBMIT_REFUSAL_COPY = {
 /** Where the one submit leads (§4.3). An internal route name, not a
  *  customer-visible string. */
 const WAITING_PATH = "/setup/waiting";
-
-/**
- * SPEC §5's second question about a label: does anybody else already serve
- * at the host it would compose? A row, so a round trip — the shape of the
- * label is decided in the browser by `checkLabel` and costs none.
- *
- * A call that does not complete refuses nothing: the submit asks the same
- * question against the canonical domain and is what actually decides, so a
- * blip here must not stand between a founder and a label nobody holds.
- */
-async function checkHostedLabel(
-  label: string,
-  domain: string | null,
-): Promise<CheckLabelResponse> {
-  try {
-    const response = await fetch("/api/setup/label", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ label, domain }),
-    });
-    return (await response.json()) as CheckLabelResponse;
-  } catch {
-    return { label: null, hostname: null, refusal: null };
-  }
-}
 
 async function resolveDomain(host: string): Promise<ResolveDomainResponse> {
   const response = await fetch("/api/setup/domain", {
@@ -221,9 +196,20 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
     setLabelRefusal(null);
     labelAsked.current += 1;
     const asked = labelAsked.current;
-    const answer = await checkHostedLabel(next, state.siteDomain);
+    // SPEC §5's second question — whether anybody else already serves at
+    // the host this label composes — is a row, so it is the Server
+    // Function's. A call that does not complete refuses nothing: the
+    // submit asks the same question against the canonical domain and is
+    // what actually decides, so a blip here must not stand between a
+    // founder and a label nobody holds.
+    let refusal: LabelRefusal | null = null;
+    try {
+      refusal = (await checkSubdomainLabel({ label: next, domain: state.siteDomain })).refusal;
+    } catch {
+      refusal = null;
+    }
     if (asked !== labelAsked.current) return;
-    setLabelRefusal(answer.refusal);
+    setLabelRefusal(refusal);
   }
 
   async function commitAddress(): Promise<void> {
