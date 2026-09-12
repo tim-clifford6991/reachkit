@@ -1,0 +1,27 @@
+{
+  "rendered": [
+    {
+      "name": "-root",
+      "route": "/",
+      "screen": "S1",
+      "viewport": "-root-1280-light.png",
+      "full": "-root-full.png",
+      "file": "side--root.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/landing-light.png",
+      "moved": true,
+      "why": "35839 of 614400 pixels differ (5.833%)"
+    },
+    {
+      "name": "-signin",
+      "route": "/signin",
+      "screen": "S9",
+      "viewport": "-signin-1280-light.png",
+      "full": "-signin-full.png",
+      "file": "side--signin.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/auth-light.png",
+      "moved": false,
+      "why": "named under `Renders:`"
+    }
+  ],
+  "skipped": []
+}
