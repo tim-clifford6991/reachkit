@@ -13,7 +13,7 @@
 # procedure, done by the gate rather than by the person.
 #
 # `UPDATE_BASELINES=1` on the box is now the exception, not the rule
-# (`docs/PROCESS.md` §2.4).
+# (`docs/PROCESS.md`, Test budget).
 name: Baselines
 
 on:
@@ -59,10 +59,13 @@ jobs:
       # `visual.test.ts` rewrites only the baselines whose **pixels** moved
       # and leaves the rest byte-for-byte alone (issue #304), so `git status`
       # below is the list of screens that actually changed.
+      # The full matrix, always: the default sweep is one band × one theme
+      # (issue #545), and regenerating through it would leave every other
+      # baseline stale while reporting success.
       - name: regenerate
         env:
           UPDATE_BASELINES: "1"
-        run: npm run test:layout
+        run: npm run test:layout:full
 
       - name: commit what moved, back onto the PR's branch
         run: |

@@ -4,7 +4,7 @@
 // surfaces `BUILD.md` §2.2 admits custom CSS for. Two numbers in it are the
 // spec's, not the author's, and a media query prelude cannot read a `var()`
 // (see `layout.css`'s own header), so both are written literally there and
-// pinned back here — the `tests/pins.test.ts` shape `layout-tokens.test.ts`
+// pinned back here — the pinned-value shape `layout-tokens.test.ts`
 // already uses for `layout.css`.
 //
 // Runs under the jsdom `ui` project: nothing here needs a layout engine, it

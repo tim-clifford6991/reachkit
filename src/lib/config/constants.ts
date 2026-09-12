@@ -409,9 +409,8 @@ export const SEVERITY_THRESHOLDS = Object.freeze({          // BP-027 · REQ-009
  *  REQ-059 criterion 4 states the membership verbatim: "it blocks no general
  *  search engine crawler and permits by name GPTBot, ClaudeBot,
  *  OAI-SearchBot, Claude-SearchBot, PerplexityBot and Google-Extended."
- *  Nothing is populated here from memory (rule 1.2); `tests/pins.test.ts`
- *  asserts the value against that clause, quoted. An empty list fails the
- *  pins test. */
+ *  Nothing is populated here from memory (rule 1.2). An empty list fails
+ *  `tests/config/constants.test.ts`'s non-empty row. */
 export const AI_READER_AGENTS = Object.freeze([              // ADR-022, ADR-090
   "GPTBot", "ClaudeBot", "OAI-SearchBot",
   "Claude-SearchBot", "PerplexityBot", "Google-Extended",

@@ -39,7 +39,7 @@
  *                 the two are indistinguishable"
  *
  * A frozen document cannot drift, so these are pinned by quotation and not
- * re-checked against a moving source (`tests/pins.test.ts`'s convention).
+ * re-checked against a moving source (the pinned-value convention).
  *
  * **They live here and not in `theme.css` or `layout/layout.css`.**
  * `theme.css`'s `:root` is §2.1's colour block verbatim and

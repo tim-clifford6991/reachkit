@@ -8,7 +8,7 @@
 // below transcribe it and ADR-093 decision 2 (WO-269 rests-on row 3), and
 // the conformance suite (`tests/ui/layout/layout.test.ts`) pins them back
 // against `:root`'s declared custom properties so the transcription and the
-// CSS declaration cannot silently diverge (the `tests/pins.test.ts` shape,
+// CSS declaration cannot silently diverge (the pinned-value shape,
 // structure.md rule 5).
 
 // ── Layout (ADR-093). Three bands, closed; a fourth is an ADR, not a query. ──
