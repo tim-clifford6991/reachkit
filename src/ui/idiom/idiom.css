@@ -151,90 +151,6 @@
   color: var(--warn);
 }
 
-/* ── 3 · Pill buttons, three ranks ────────────────────────────────────── */
-
-/* One solid accent primary, an outline secondary, a quiet tertiary. The
- * radius is the registered `--r-pill`; the two quiet arms are the widening
- * of `Btn` that `components.md` §7 records. */
-.rk-idiom .btn,
-.btn.rk-pill {
-  border-radius: var(--r-pill);
-}
-
-/* Named `outline`/`quiet`/`inverse` rather than after the ranks
- * (`secondary`, `on-accent`): a class ending in a daisyUI family word —
- * `-secondary`, `-accent`, `-neutral`, `-info` — is what
- * `tests/ui/design/theme-slots.test.ts` sweeps for, because a modifier of a
- * family with no declared slot renders a ground with no colour. These are
- * not daisyUI modifiers, and the sweep should not have to know that. */
-.btn.rk-btn-outline {
-  background: transparent;
-  border: 1px solid var(--line);
-  color: var(--ink);
-}
-
-/* **Selected** — the outline rank on the accent tint (issue #288).
- *
- * `/setup` drew a chosen rival, a chosen publishing mode and a chosen
- * destination as filled accent buttons, so a founder with five rivals met
- * six solid primaries and could not tell which one submitted the form.
- * tokens.md §9.1 gives a screen one solid rank, and BUILD §2.5 rules that
- * the accent is not a state colour — and "selected" is exactly a state.
- *
- * The three tokens below are the ones the idiom's own card-head chip
- * already spends, and none of them is a fill: `--accent-bg` for the ground,
- * `--accent-line` for the edge, `--accent` for the label. No colour is
- * minted and no rank is added.
- *
- * **Keyed on `aria-pressed`, deliberately.** The state was carried by the
- * fill alone, which a screen reader cannot hear — the same defect the
- * design system already refuses for `Badge` ("a tone alone may never carry
- * meaning"). Styling the attribute rather than a class means the tint and
- * the accessibility state are the same fact: a chip cannot look selected
- * without being selected. */
-.btn.rk-btn-outline[aria-pressed="true"] {
-  background: var(--accent-bg);
-  border-color: var(--accent-line);
-  color: var(--accent);
-}
-
-/* The one tone a rank may carry (issue #271). tokens.md §9.1 spends warn
- * where the customer is being asked to act — `ActionPanel` spends it on a
- * ground — and a veto standing beside an approve is that case: opposite
- * consequences, one of them destructive. It reaches the edge and the ink of
- * the outline rank only; a warn *fill* would be a second solid button on a
- * screen the idiom gives one. `Btn`'s union is what keeps it off the other
- * ranks — this file could not. */
-.btn.rk-btn-outline[data-tone="warn"] {
-  border-color: var(--warn);
-  color: var(--warn);
-}
-
-/* The accent as an edge (issue #291). A screen with two calls to action for
- * different things — the report's free page and its subscription — gives the
- * solid fill to one of them; the other keeps the accent in its border and
- * ink so it still reads as a call to action rather than an aside. No new
- * value: it is the same `--accent` the primary fills with, and a fill here
- * would be the second solid button §9.1 forbids. */
-.btn.rk-btn-outline[data-tone="accent"] {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.btn.rk-btn-tertiary {
-  background: transparent;
-  border: 0;
-  color: var(--ink-2);
-}
-
-/* On an accent ground a solid primary cannot be the accent, so it inverts:
- * `--on-accent` fill, `--accent` label. Two named tokens, no third value. */
-.btn.rk-btn-inverse {
-  background: var(--on-accent);
-  border: 0;
-  color: var(--accent);
-}
-
 /* ── 3b · The tinted panel — `ActionPanel` ────────────────────────────── */
 
 /* "Anything asking the customer to act is a tinted panel." Tone admits
@@ -349,28 +265,10 @@
   color: var(--on-accent-quiet);
 }
 
-/* A control on the accent ground keeps its own surface — a field that took
- * the ground would have no edge and no contrast floor to stand on. Its own
- * text and placeholder therefore stay `--ink` on `--surface`: on-accent ink
- * inside a white field would be white on white. */
-.rk-accent-ground .input {
-  background: var(--surface);
-  color: var(--ink);
-}
-
-/* The field's **label** is outside that surface — it sits on the ground —
- * so it takes the ground's ink (issue #290). `Input` draws its label in
- * `text-base-content/60`, which is body ink at 60% and was rendering as
- * grey-on-violet in the hero; `--on-accent` is what a label standing on the
- * accent has to be. The outline secondary on the ground takes it too, for
- * the same reason: its border and label are `--line`/`--ink` off the ground
- * and have nothing to stand on there. */
+/* The field's label sits on the ground rather than on the field's own
+ * surface, so it takes the ground's ink (issue #290): `Input` draws it in
+ * body ink at 60%, which rendered as grey-on-violet in the hero. */
 .rk-accent-ground label {
-  color: var(--on-accent);
-}
-
-.rk-accent-ground .btn.rk-btn-outline {
-  border-color: color-mix(in oklab, var(--on-accent) 28%, transparent);
   color: var(--on-accent);
 }
 
@@ -410,32 +308,6 @@
   font-size: var(--t-xs);
   white-space: normal;
   max-width: 100%;
-}
-
-/* `Progress`'s track and fill in `--on-accent` instead of `--sunk`/
- * `--chart-*` — a widening of the registered component, not a sixth chart
- * form (§2.4's inventory is closed and this adds nothing to it). It skins
- * the native `<progress>` the component already renders, so the bar keeps
- * its element, its role and its accessible name. */
-.progress.rk-progress-inverse {
-  color: var(--on-accent);
-  background-color: color-mix(in oklab, var(--on-accent) 12%, transparent);
-  border-radius: var(--r-pill);
-}
-
-.progress.rk-progress-inverse::-webkit-progress-bar {
-  background-color: transparent;
-  border-radius: var(--r-pill);
-}
-
-.progress.rk-progress-inverse::-webkit-progress-value {
-  background-color: var(--on-accent);
-  border-radius: var(--r-pill);
-}
-
-.progress.rk-progress-inverse::-moz-progress-bar {
-  background-color: var(--on-accent);
-  border-radius: var(--r-pill);
 }
 
 /* ── 6 · The sign-in split ────────────────────────────────────────────── */
@@ -756,40 +628,6 @@
   box-shadow: var(--shadow-card);
   padding: var(--s-4);
   min-width: 0;
-}
-
-/* Each tile is the registered `Stat` in its `specimen` arm (issue #488);
- * the frame sets the rung the set draws it at. The tile's box above is the
- * inset, so the stat takes none of its own; the label is the set's
- * `.stat-l` at 12, and the figure its `.stat-v` at the frame's `--h1`
- * rather than the Overview's `--t-num-big` — a picture of the Overview at
- * a third of its size, not the Overview. */
-.rk-shot-tile .stats {
-  display: grid;
-  min-width: 0;
-}
-
-.rk-shot-tile .stat {
-  padding: 0;
-  min-width: 0;
-}
-
-.rk-shot-tile .stat-title {
-  font-size: var(--t-xs);
-  font-weight: 600;
-  color: var(--ink-2);
-}
-
-/* `.num` is carried so this out-ranks the S12 rule below — `.stat-value.num`
- * at `--t-num-big` (issue #509), which is the Overview's own rung and lands
- * later in this sheet. Equal specificity would hand the frame the 44 and
- * draw the miniature at the size of the thing it is a picture of. */
-.rk-shot-tile .stat-value.num {
-  font-size: var(--h1);
-  font-weight: var(--num-weight);
-  letter-spacing: -0.03em;
-  line-height: 1.05;
-  color: var(--ink);
 }
 
 .rk-shot-of {
@@ -1142,23 +980,6 @@
    * one child and nothing is inert. */
   padding: var(--s-1) var(--s-3);
   white-space: nowrap;
-}
-
-/* ── The headline figure (UI-SPEC S12, issue #509) ────────────────────── */
-
-/* `Stat`'s value at the set's `.stat-v` (L192): `--t-num-big` at
- * `--num-weight`, in the numeral face `.num` already sets (ruling 7a).
- * daisyUI's own `stat-value` is 2rem at 800 — a display face's weight on a
- * mono numeral — and this widens it the way `Progress`'s ground is widened
- * above, rather than minting a class. `Stat` is spent only by S12's three
- * tiles; the S1 miniature spends the same `Stat` in its `specimen` arm
- * (issue #488) and is drawn at the frame's own rung by `.rk-shot-tile`
- * above, which carries `.num` to out-rank this. The tracking is the set's
- * own. */
-.stat-value.num {
-  font-size: var(--t-num-big);
-  font-weight: var(--num-weight);
-  letter-spacing: -0.03em;
 }
 
 /* ── The stage list (UI-SPEC S11, issue #356) ─────────────────────────── */
@@ -2130,32 +1951,11 @@
 }
 
 
-/* ── 16 · The switch (UI-SPEC §2.4, set L112–115; issue #506) ─────────── */
-
-/* The registered `Toggle` drawn as the set's `.switch`: on = `--accent`
- * ground with the knob right, off = `--line` ground with the knob left,
- * the knob `--on-accent` in both. daisyUI's toggle paints its knob and
- * edge in `currentColor` from `--input-color`, and its checked arm is
- * `base-content` — the black switch the set never draws. A widening of a
- * registered component's ground, as `.progress.rk-progress-inverse` is,
- * and keyed off `:checked`, so the colour and the state are one fact. */
-.toggle.rk-switch {
-  background-color: var(--line);
-  border-color: var(--line);
-  --input-color: var(--on-accent);
-}
-
-.toggle.rk-switch:checked {
-  background-color: var(--accent);
-  border-color: var(--accent);
-  --input-color: var(--on-accent);
-}
-
 /* ── 19 · Interaction states — UI-SPEC §0, rulings of 2026-09-11 (#530) ──
  *
- * The places the approved set draws nothing, as the owner ruled them. Each
- * rule cites its **§0 n**; the table they fill is UI-SPEC §2.4. They live
- * here, on the registered components' own classes, and never per screen.
+ * What is left here is the idiom's own: the global focus ring, reduced
+ * motion, the option card and the tag. Every state on a daisyUI component
+ * class moved to the theme (`src/ui/tailwind.css`, issue #548).
  */
 
 /* Focus is global and it is one rule (§2.4, L62): the accent outline, two
@@ -2178,129 +1978,9 @@
   }
 }
 
-/* §0 13 — one duration, `--motion-fast`, spent only on colour, background,
- * border, box-shadow and transform. daisyUI's own components declare their
- * own (`.btn` .2s, the collapse's and the switch's .1–.4s over height,
- * grid tracks and `translate`); each registered one the product renders is
- * brought to the one token here, or to none where what it moved is not a
- * property the ruling admits. */
-.btn {
-  transition-property: color, background-color, border-color, box-shadow, transform;
-  transition-duration: var(--motion-fast);
-}
-
-.collapse,
-.collapse > .collapse-content {
-  transition: none;
-}
-
-.collapse > .collapse-title {
-  transition: background-color var(--motion-fast);
-}
-
-.collapse-arrow > .collapse-title::after {
-  transition: transform var(--motion-fast);
-}
-
-.toggle {
-  transition: color var(--motion-fast), background-color var(--motion-fast);
-}
-
-.toggle::before {
-  transition: background-color var(--motion-fast);
-}
-
-.tab::before {
-  transition: background-color var(--motion-fast);
-}
-
-.card,
-.progress {
-  transition: none;
-}
-
 .rk-choice,
 .rk-opt > .card {
   transition: border-color var(--motion-fast), background-color var(--motion-fast);
-}
-
-/* §0 1 — Btn `:active` is the rank's own hover ground; nothing moves. The
- * hover grounds are the set's (L154, L156, L158), written here beside the
- * pressed state that repeats them, because a pressed ground that names a
- * hover the product never drew would name nothing. daisyUI's own `:active`
- * nudges the button half a pixel down and darkens it; both are undone. */
-.btn:active {
-  translate: none;
-  transform: none;
-}
-
-.btn.rk-btn-outline:is(:hover, :active) {
-  background: var(--accent-bg);
-}
-
-.btn.btn-primary:is(:hover, :active) {
-  --btn-bg: var(--accent);
-  filter: brightness(1.08);
-}
-
-.btn.rk-btn-tertiary:is(:hover, :active) {
-  background: var(--sunk);
-  color: var(--ink);
-}
-
-/* §0 3 — the warn outline answers the pointer: `--warn-bg`, the outline
- * rank's hover one tone over. */
-.btn.rk-btn-outline[data-tone="warn"]:is(:hover, :active) {
-  background: var(--warn-bg);
-}
-
-/* §0 2 — Btn `[disabled]`, all four ranks: `--ink-3` on `--sunk`, a
- * `--line` edge, the default cursor, and no hover change. Listed rank by
- * rank so it outranks every tone and pressed rule above it by specificity
- * rather than by `!important`. */
-.btn:disabled,
-.btn.btn-primary:disabled,
-.btn.rk-btn-outline:disabled,
-.btn.rk-btn-tertiary:disabled,
-.btn.rk-btn-inverse:disabled,
-.btn.rk-btn-outline[data-tone]:disabled,
-.btn.rk-btn-outline[aria-pressed="true"]:disabled {
-  background: var(--sunk);
-  border: 1px solid var(--line);
-  color: var(--ink-3);
-  cursor: default;
-  filter: none;
-  box-shadow: none;
-}
-
-/* §0 4 — a disabled field is `--sunk` ground with `--ink-3` text. The card
- * around it is never dimmed (S10's inline `opacity:.6` is not built). */
-.input:disabled {
-  background: var(--sunk);
-  color: var(--ink-3);
-  cursor: default;
-}
-
-/* §0 5 — an invalid field carries a `--bad` edge as well as its written
- * line, keyed on `aria-invalid` so the state is never colour alone. */
-.input[aria-invalid="true"] {
-  border-color: var(--bad);
-}
-
-/* §0 6 — Switch: no hover change, focus is the global ring, and disabled is
- * the `--line` track at half strength with its label in `--ink-3`. */
-.toggle:disabled,
-.toggle:disabled:checked {
-  color: var(--line);
-  border-color: var(--line);
-  background: var(--line);
-  opacity: 0.5;
-  cursor: default;
-}
-
-label:has(> .toggle:disabled) {
-  color: var(--ink-3);
-  cursor: default;
 }
 
 /* §0 7 — Option card: no pressed change; disabled is `--sunk` ground, a
@@ -2327,11 +2007,6 @@ label:has(> .toggle:disabled) {
  * so hover never reads as chosen. */
 .rk-tag:hover .rk-tag-x {
   opacity: 1;
-}
-
-/* §0 9 — Collapse: the summary row takes `--sunk` on hover. */
-.collapse > .collapse-title:hover {
-  background: var(--sunk);
 }
 
 /* §0 12 — the footer's links underline on hover, as `.linkish` (L371). */

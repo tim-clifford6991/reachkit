@@ -159,14 +159,17 @@ describe("issue #486 — every chip the approved set draws carries its glyph", (
 
 describe("issue #509 — the generated mark, the S12 figure and the tag hover, as the set draws them", () => {
   const idiom = withoutComments(read("ui/idiom/idiom.css"));
-  const ruleBody = (selector: string): string => {
+  // The stat's rung moved to the one daisyUI theme with the other component
+  // re-skins (issue #548); the tag is still the idiom's own.
+  const theme = withoutComments(read("ui/tailwind.css"));
+  const ruleBody = (selector: string, css: string = idiom): string => {
     // Anchored at the line start, so a descendant rule whose selector ends
     // in the same text is not read as this one: `.rk-shot-tile
     // .stat-value.num` (the S1 miniature, issue #488) ends in
     // `.stat-value.num {` and is not the S12 rule this reads.
-    const at = idiom.indexOf(`\n${selector} {`);
+    const at = css.indexOf(`\n${selector} {`);
     expect(at, `${selector} is declared`).toBeGreaterThanOrEqual(0);
-    const block = idiom.slice(at + 1);
+    const block = css.slice(at + 1);
     return block.slice(0, block.indexOf("}"));
   };
 
@@ -200,7 +203,7 @@ describe("issue #509 — the generated mark, the S12 figure and the tag hover, a
   });
 
   it("S12's figure computes --t-num-big at --num-weight (set `.stat-v` L192)", () => {
-    const body = ruleBody(".stat-value.num");
+    const body = ruleBody(".stat-value.num", theme);
     expect(body).toContain("font-size: var(--t-num-big)");
     expect(body).toContain("font-weight: var(--num-weight)");
   });

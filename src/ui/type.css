@@ -173,11 +173,19 @@ pre .num {
 /* Uppercase eyebrows for section labels. The 11 is no longer a rule 1.1
  * parameter inside §2.3's 10.5–11px range: ruling 10a fixes the ladder at
  * 15 / 13 / 12 / 11.5 / 11 with "nothing under 11px", and `--t-eyebrow` is
- * that bottom rung (issue #349). */
+ * that bottom rung (issue #349).
+ *
+ * `docs/DESIGN.md` states the rung as one value — "eyebrow 11 uppercase 700
+ * `.1em` ink-3" — so the weight, the tracking and the ink are declared here
+ * with the size rather than re-added per surface (issue #548). A surface
+ * that draws a different ink overrides that one property. */
 .eyebrow {
   font-family: var(--font-ui);
   text-transform: uppercase;
   font-size: var(--t-eyebrow);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--ink-3);
 }
 
 /* §2.5's explanatory step — the ladder's `--t-explain` rung (11.5px), in

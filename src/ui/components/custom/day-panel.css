@@ -146,15 +146,10 @@
   margin: 0;
 }
 
-/* S15's "WHY THIS PAGE" label. `type.css`'s `.eyebrow` already carries the
- * rung and the case; the tracking, the ink and the weight are what §2 of
- * the approved spec adds to it ("eyebrow 11, uppercase, .1em tracking,
- * `--ink-3`, 700"), and they are set here rather than on `.eyebrow` itself
- * so this PR moves the calendar and no other screen. */
+/* S15's "WHY THIS PAGE" label. `type.css`'s `.eyebrow` carries the whole
+ * rung since issue #548 — size, case, weight, tracking and ink — so what is
+ * left here is the panel's own margin. */
 .rk-daypanel-eyebrow {
-  letter-spacing: 0.1em;
-  font-weight: 700;
-  color: var(--ink-3);
   margin: 0;
 }
 
