@@ -85,7 +85,6 @@ const SUBMISSION = {
   domain: "example.com",
   category: "agency CRM",
   competitors: ["asana.com"],
-  mode: "autopilot" as const,
   destination: { kind: "hosted" as const },
 };
 
@@ -138,11 +137,20 @@ describe("POST /api/setup — the one write path", () => {
 
   it("a body that is not a submission is a 400 with no refusal handle — it is not a founder's answer", async () => {
     const { POST } = await import("@/app/api/setup/route");
-    for (const body of [null, 42, {}, { ...SUBMISSION, mode: "autopilot-plus" }]) {
+    for (const body of [null, 42, {}, { ...SUBMISSION, competitors: "asana.com" }]) {
       const response = await POST(post("/api/setup", body), undefined);
       expect(response.status).toBe(400);
       await expect(response.json()).resolves.toEqual({ error: "malformed_body" });
     }
+  });
+
+  it("§7 — a `mode` in the body is dropped, not honoured: the mode is not a founder's answer", async () => {
+    const { POST } = await import("@/app/api/setup/route");
+    const response = await POST(
+      post("/api/setup", { ...SUBMISSION, mode: "copilot" }),
+      undefined
+    );
+    expect(response.status).toBe(200);
   });
 
   it("unparseable JSON is a 400, not a crash", async () => {

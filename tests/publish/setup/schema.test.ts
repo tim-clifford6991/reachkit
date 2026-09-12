@@ -137,8 +137,8 @@ describe("§4.3 — the mode and the destination are two writes in one transacti
 
   it("both writes land, from one call", () => {
     const site = makeSite();
-    const [returned] = psqlRows(`select apply_setup_choice('${site}'::uuid, 'copilot', 'hosted');`);
-    expect(psqlRows(`select mode from sites where id = '${site}';`)).toEqual([["copilot"]]);
+    const [returned] = psqlRows(`select apply_setup_choice('${site}'::uuid, 'autopilot', 'hosted');`);
+    expect(psqlRows(`select mode from sites where id = '${site}';`)).toEqual([["autopilot"]]);
     expect(psqlRows(`select site_id, kind from destinations where id = '${returned?.[0]}';`)).toEqual([
       [site, "hosted"],
     ]);

@@ -1,20 +1,18 @@
-// BUILD §4.7 — "**Publishing** (mode toggle, veto window stepper 0–7d default
-// 24h, publish time, destinations list with health + Reconnect; footnote:
+// BUILD §4.7 — "**Publishing** (veto window stepper 1–7d default 24h,
+// publish time, destinations list with health + Reconnect; footnote:
 // *'Fix-type tasks are never automated, whatever the mode.'*)".
 //
-// Six of the fourteen settable keys: `mode`, `veto_hours`, `publish_time`,
-// `time_zone`, `publishing_enabled` and `destinations`. §4.7 draws four of
-// them; the other two are REQ-070 criterion 1's — "the time zone those times
-// are stated in" and "whether pages publish at all" — and they belong on this
-// card because every time on it is expressed in the first and nothing on it
-// happens without the second.
+// Five of the thirteen settable keys: `veto_hours`, `publish_time`,
+// `time_zone`, `publishing_enabled` and `destinations`. The mode toggle that
+// stood first went with SPEC §7 (2026-09-11): Autopilot is the only mode, so
+// there is nothing here to choose between.
 //
 // **The footnote is not decoration.** §9's autopilot limits are stated as
 // holding "regardless of settings: ≤1 publish/day, ≤8/week; **Fix never
 // automates**", and §7 marks the `unblock` type "instruction only, never
-// generated, never automated". A customer who reads a mode toggle as "the
-// product now does everything" has been misled by the control, so the
-// sentence sits under the control that would mislead them.
+// generated, never automated". A customer who reads a running product as
+// "it now does everything" has been misled, so the sentence sits under the
+// card that would mislead them.
 //
 // **Health is a state, not an error** (ADR-086, WO-179 step 4). `expired`
 // carries Reconnect and the queue holds; `error` is a third state, not a
@@ -37,11 +35,6 @@
 // relabelled button, so a card that offered the wrong one here would fail
 // to compile.
 //
-// The mode toggle is labelled with the mode word, the same choice the shell's
-// own publishing card makes and for the same reason: naming a control by what
-// it controls, rather than minting a second sentence to sit beside it. Both
-// read from the one pair of keys in `laws.ts`, so the sidebar and this card
-// cannot end up calling the same mode two different things.
 import type React from "react";
 import { Sparkles } from "lucide-react";
 import { Badge } from "@/ui/components/Badge";
@@ -56,11 +49,6 @@ import { SettingRow } from "./SettingRow";
 import { formatVetoWindow, vetoIsWholeDays, vetoWindowDays } from "../format";
 import type { DestinationAction, DestinationHealth, DestinationKind, SettingsModel } from "../model";
 import type { Tone } from "@/ui/types";
-
-const MODE_COPY_KEY = {
-  autopilot: "shell.publishing.mode.autopilot",
-  copilot: "shell.publishing.mode.copilot",
-} as const;
 
 /**
  * The stepper's value as a written line: the count in its own slot, and one
@@ -83,11 +71,6 @@ function vetoWindowLabel(hours: number): string {
     days: String(days),
   });
 }
-
-/** The pair, in the order the approved set draws it. A tuple and not
- *  `Object.keys`, so the order is stated rather than inherited from an
- *  object literal's insertion order. */
-const MODES = ["autopilot", "copilot"] as const;
 
 const KIND_COPY_KEY: Record<DestinationKind, CopyKey> = {
   hosted: "settings.destination.hosted",
@@ -128,48 +111,14 @@ export function PublishingPanel(p: { settings: SettingsModel }): React.JSX.Eleme
   const { publishing, destinations } = p.settings;
   const fixNote = writtenLine("settings.publishing.fix-note");
 
-  const pairNote = writtenLine("settings.publishing.pair.note");
+  // REQ-073 c2's one line: what happens to a draft the customer never acts
+  // on. One line now, because one mode and a window that can never be zero
+  // leave one thing to say.
+  const pairNote = writtenLine("settings.publishing.pair.autopilotWindow");
 
   return (
     <Card state="default" title={<CardHead icon={<Sparkles size={15} strokeWidth={1.8} aria-hidden />} eyebrow={copy("settings.publishing.title")} />}>
       <div className="flex min-w-0 flex-col gap-3">
-        {/* S18 draws the mode as a PAIR of option cards, not a switch: two
-            named choices side by side, the chosen one carrying the idiom's
-            accent edge and tint. A switch put one mode's word beside a
-            control whose off state was the other mode, unnamed — and REQ-073
-            c2 asks the screen to say what the pair does, which it can only
-            do once both are on it. `aria-pressed` is the state; the tint is
-            keyed off it (`idiom.css`), so a chosen card cannot look chosen
-            without being chosen. */}
-        <div
-          className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2"
-          data-testid="setting-mode"
-        >
-          {MODES.map((mode) => (
-            <button
-              key={mode}
-              type="button"
-              className="rk-opt"
-              aria-pressed={publishing.mode === mode}
-              data-testid={`mode-${mode}`}
-            >
-              <Card
-                state="default"
-                title={<span className="rk-opt-label">{copy(MODE_COPY_KEY[mode])}</span>}
-              >
-                {null}
-              </Card>
-            </button>
-          ))}
-        </div>
-        {pairNote === null ? null : (
-          <p className="text-xs opacity-60 wrap-anywhere" data-testid="publishing-pair-note">
-            {pairNote}
-          </p>
-        )}
-
-        <hr className="border-base-300 min-w-0 border-t" />
-
         <div className="flex min-w-0 flex-wrap items-center justify-between gap-2" data-testid="setting-veto_hours">
           <span className="min-w-0 text-sm text-[color:var(--ink-2)] wrap-anywhere">{copy("settings.publishing.veto")}</span>
           {/* The stepper's two ends. §4.7's range (0–7d) is `VETO.minDays` and
@@ -184,6 +133,11 @@ export function PublishingPanel(p: { settings: SettingsModel }): React.JSX.Eleme
             <Btn label={copy("settings.publishing.veto.more")} size="sm" variant="secondary" pill />
           </div>
         </div>
+        {pairNote === null ? null : (
+          <p className="text-xs opacity-60 wrap-anywhere" data-testid="publishing-pair-note">
+            {pairNote}
+          </p>
+        )}
 
         {/* S18's rows: the name at the near edge, the stored value and its
             control at the far one, hairline between. The value is mono

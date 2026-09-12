@@ -172,20 +172,13 @@ export const SETTINGS_COPY = Object.freeze({
   // chose WordPress at setup has a destination row and has never connected
   // it, and "Reconnect" tells them they did something they did not.
   "settings.publishing.connect": ["Connect WordPress", { slots: {}, fixedBy: "BUILD §4.7 · REQ-060" }],
-  // 2026-09-06, issue #46 (REQ-073 c2). One written line per selected pair,
-  // stating what that pair does to a draft the customer never acts on.
-  // Three keys, one per pair, and a fourth pair is a type error. The
-  // sentences are the owner's.
+  // REQ-073 c2's one written line: what happens to a draft the customer
+  // never acts on. One key since §7 (2026-09-11) — one mode, and a window
+  // that can never be zero, leave one thing to say.
   "settings.publishing.pair.autopilotWindow": [
     "A draft you don’t touch publishes at the first publish time after its veto window ends.",
     { slots: {}, fixedBy: "REQ-073 c2" },
   ],
-  "settings.publishing.pair.autopilotZero": [
-    "With no veto window, a draft you don’t touch publishes at your next publish time — there is no interval in which to stop it.",
-    { slots: {}, fixedBy: "REQ-073 c2" },
-  ],
-  "settings.publishing.pair.copilot": ["A draft you don’t touch stays in review and never publishes on its own.", { slots: {}, fixedBy: "REQ-073 c2" }],
-
   // §4.7's own footnote, verbatim and complete, including its full stop.
   "settings.publishing.fix-note": [
     "Fix-type tasks are never automated, whatever the mode.",
@@ -388,16 +381,6 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.notifications.always-on": [
     "Sign-in and account mail cannot be switched off.",
     { slots: {}, fixedBy: "REQ-075" },
-  ],
-
-  // REQ-073 c2's one line on what the mode pair does — both modes in one
-  // sentence, which is what makes it a choice rather than two labels.
-  // Approved (11a); the three `pair.*` keys beside it stay as they are,
-  // because they answer a different question (what happens to THIS page,
-  // stated where a page is).
-  "settings.publishing.pair.note": [
-    "Autopilot: a page publishes when its veto window ends unless you stop it. Copilot: nothing publishes without your approval.",
-    { slots: {}, fixedBy: "REQ-073 c2" },
   ],
 
   "settings.content.title": ["Your content", { slots: {}, fixedBy: "BUILD §4.7" }],

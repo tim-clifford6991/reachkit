@@ -49,7 +49,6 @@ export const readShell = cache(async function readShell(): Promise<ShellModel> {
       siteId: account.siteId,
       domain: account.domain,
       timeZone: account.timeZone,
-      mode: account.mode,
       createdAt: account.createdAt,
     })
   );

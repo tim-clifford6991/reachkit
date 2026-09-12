@@ -13,7 +13,7 @@
 // written.
 //
 // **The days-to-hours conversion exists here and nowhere else.** The screen
-// offers whole days 0–7 (`VETO.minDays`/`VETO.maxDays`); the column stores
+// offers whole days 1–7 (`VETO.minDays`/`VETO.maxDays`); the column stores
 // hours because BUILD §10 names it `veto_hours`. Two conversions would be
 // two chances to disagree about what "1 day" is.
 //
@@ -29,7 +29,7 @@
 // The archived plans are WO-218 and WO-219.
 import { VETO } from "@/lib/config/constants";
 import { publishDb } from "../db";
-import { isWholeDays, vetoHoursFromDays } from "./veto";
+import { isWholeDays, storedVetoHours, vetoHoursFromDays } from "./veto";
 
 export type Mode = "autopilot" | "copilot";
 
@@ -62,7 +62,7 @@ const HH_MM = /^([01][0-9]|2[0-3]):[0-5][0-9]$/;
  *  still the module WO-178 step 4 names; what the leaf buys is that the
  *  settings screen's own formatter can read it without evaluating this
  *  file, which imports `publishDb` and so parses every binding. */
-export { vetoDaysFromHours, vetoHoursFromDays } from "./veto";
+export { storedVetoHours, vetoDaysFromHours, vetoHoursFromDays } from "./veto";
 
 /** Does the runtime resolve this as an IANA zone? The runtime's own zone
  *  database is the only source; there is no second list to fall out of
@@ -137,7 +137,9 @@ const DEFAULT_PUBLISH_TIME = "09:00";
 export function toPublishingSettings(row: SiteSettingsRow): PublishingSettings {
   return {
     mode: row.mode === "copilot" ? "copilot" : "autopilot",
-    vetoHours: typeof row.veto_hours === "number" ? row.veto_hours : VETO.defaultHours,
+    // §7: there is no zero window. A stored value below the floor reads as
+    // the floor, through the one clamp every reader of the pair comes by.
+    vetoHours: storedVetoHours(row.veto_hours),
     publishTime: toHhMm(row.publish_time),
     // Never a fallback. A null zone travels as null.
     timezone: row.timezone,
@@ -163,26 +165,6 @@ export async function readPublishingSettings(siteId: string): Promise<Publishing
     throw new Error(`src/lib/publish/settings: could not read the site's publishing settings`);
   }
   return toPublishingSettings(data);
-}
-
-/** REQ-073 c2's one written line — the key, never the sentence. */
-export type PairCopyKey =
-  | "settings.publishing.pair.autopilotWindow"
-  | "settings.publishing.pair.autopilotZero"
-  | "settings.publishing.pair.copilot";
-
-/**
- * The one place in the product where a mode-and-window pair becomes a
- * statement: what the selected pair does to a draft the customer never acts
- * on. Three pairs, three keys, and a fourth is a type error.
- *
- * It returns a key and writes no string — the sentences are the owner's.
- */
-export function explainPair(s: Pick<PublishingSettings, "mode" | "vetoHours">): PairCopyKey {
-  if (s.mode === "copilot") return "settings.publishing.pair.copilot";
-  return s.vetoHours === 0
-    ? "settings.publishing.pair.autopilotZero"
-    : "settings.publishing.pair.autopilotWindow";
 }
 
 export type AdoptResult =

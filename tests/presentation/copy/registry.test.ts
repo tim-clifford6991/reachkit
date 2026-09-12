@@ -379,12 +379,18 @@ describe("the five keys the owner ruled 2026-09-11 (DECISIONS 2026-09-11, #516)"
     }
   });
 
-  it("nothing in the registry is owed or awaiting any more, and no key renders the marker", () => {
-    expect(OWNER_OWED).toEqual([]);
+  /** SPEC §7 (2026-09-11) withdrew the sentences for the two arms it made
+   *  unreachable: each speaks for a mode no customer can be in, and each is
+   *  still minted because the machine's types still carry the arm. Named,
+   *  not counted, so a third empty key fails this test. */
+  const WITHDRAWN = ["draft.do-nothing.copilot", "mail.draftReady.copilot"] satisfies CopyKey[];
+
+  it("the only owed keys are the two arms §7 made unreachable, and no key renders the marker", () => {
+    expect([...OWNER_OWED].sort()).toEqual([...WITHDRAWN].sort());
     expect(AWAITING_COPY).toEqual([]);
     for (const [key, value] of Object.entries(COPY)) {
       expect(value, key).not.toBe(TODO_COPY_MARKER);
-      expect(value, key).not.toBe("");
+      if (!(WITHDRAWN as readonly string[]).includes(key)) expect(value, key).not.toBe("");
     }
   });
 });

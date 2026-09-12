@@ -84,7 +84,10 @@ export const DRAFT_COPY = Object.freeze({
     { slots: {}, fixedBy: "BUILD §4.6" },
   ],
   "draft.do-nothing.autopilot": ["It publishes at {at} unless you veto it.", { slots: { at: "date" }, fixedBy: "REQ-045 c4" }],
-  "draft.do-nothing.copilot": ["Nothing publishes on its own.", { slots: {}, fixedBy: "REQ-045 c4" }],
+  // Minted and empty since §7 (2026-09-11): the mode it speaks for is one
+  // no customer can be in, so the arm survives in the machine's types and
+  // the sentence is withdrawn from the product.
+  "draft.do-nothing.copilot": ["", { slots: {}, fixedBy: "REQ-045 c4 · §7" }],
 
   // §4.6's two editor panes.
   "draft.editor.tab.markdown": ["Markdown", { slots: {}, fixedBy: "BUILD §4.6" }],

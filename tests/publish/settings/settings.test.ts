@@ -14,13 +14,11 @@ vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
 import { VETO } from "@/lib/config/constants";
 import {
   adoptBrowserTimezone,
-  explainPair,
   invalidFields,
   isResolvableZone,
   readPublishingSettings,
   vetoDaysFromHours,
   vetoHoursFromDays,
-  type PublishingSettings,
 } from "@/lib/publish/settings";
 import * as settingsModule from "@/lib/publish/settings/settings";
 
@@ -40,7 +38,7 @@ function seedSite(over: Record<string, unknown> = {}): void {
 
 beforeEach(() => seedSite());
 
-describe('REQ-073 c1 — "they can set the publishing mode … the veto window to any whole number of days from 0 to 7 … the time of day … and the time zone"', () => {
+describe('REQ-073 c1 · §7 — "the veto window defaults to 24 h with a range of 1–7 days; there is no zero window"', () => {
   it("the four values are settable within their stated ranges and nothing else is", () => {
     expect(invalidFields({ mode: "autopilot" })).toEqual([]);
     expect(invalidFields({ mode: "copilot" })).toEqual([]);
@@ -51,6 +49,8 @@ describe('REQ-073 c1 — "they can set the publishing mode … the veto window t
     }
     expect(invalidFields({ vetoHours: vetoHoursFromDays(VETO.maxDays + 1) })).toEqual(["vetoHours"]);
     expect(invalidFields({ vetoHours: -24 })).toEqual(["vetoHours"]);
+    // §7: there is no zero window, so a draft always has a veto path.
+    expect(invalidFields({ vetoHours: 0 })).toEqual(["vetoHours"]);
 
     expect(invalidFields({ publishTime: "09:00" })).toEqual([]);
     expect(invalidFields({ publishTime: "23:59" })).toEqual([]);
@@ -75,7 +75,7 @@ describe('REQ-073 c1 — "they can set the publishing mode … the veto window t
   });
 
   it("the days-to-hours conversion has one home and round-trips", () => {
-    expect(vetoHoursFromDays(0)).toBe(0);
+    expect(vetoHoursFromDays(1)).toBe(24);
     expect(vetoHoursFromDays(7)).toBe(168);
     expect(vetoDaysFromHours(VETO.defaultHours)).toBe(1);
   });
@@ -84,6 +84,15 @@ describe('REQ-073 c1 — "they can set the publishing mode … the veto window t
     seedSite({ veto_hours: null });
     const s = await readPublishingSettings("s1");
     expect(s.vetoHours).toBe(VETO.defaultHours);
+  });
+
+  it("§7 — a window stored below the floor reads as one day, so every draft keeps a veto path", async () => {
+    for (const stored of [0, 6, 23]) {
+      seedSite({ veto_hours: stored });
+      expect((await readPublishingSettings("s1")).vetoHours).toBe(VETO.defaultHours);
+    }
+    seedSite({ veto_hours: 48 });
+    expect((await readPublishingSettings("s1")).vetoHours).toBe(48);
   });
 
   it("a site with no stated zone reads null — never the server's zone", async () => {
@@ -130,50 +139,6 @@ describe('REQ-073 c1 — "they can set the publishing mode … the veto window t
     expect(isResolvableZone("UTC")).toBe(true);
     expect(isResolvableZone("")).toBe(false);
     expect(isResolvableZone(null)).toBe(false);
-  });
-});
-
-describe('REQ-073 c2 — "one written line states what that selected pair does to a draft the customer never acts on"', () => {
-  const base: PublishingSettings = {
-    mode: "autopilot",
-    vetoHours: 24,
-    publishTime: "09:00",
-    timezone: "UTC",
-  };
-
-  it("autopilot above zero, autopilot at zero and copilot each get their own key", () => {
-    expect(explainPair({ ...base, mode: "autopilot", vetoHours: 24 })).toBe(
-      "settings.publishing.pair.autopilotWindow"
-    );
-    expect(explainPair({ ...base, mode: "autopilot", vetoHours: 0 })).toBe(
-      "settings.publishing.pair.autopilotZero"
-    );
-    expect(explainPair({ ...base, mode: "copilot", vetoHours: 0 })).toBe(
-      "settings.publishing.pair.copilot"
-    );
-    expect(explainPair({ ...base, mode: "copilot", vetoHours: 168 })).toBe(
-      "settings.publishing.pair.copilot"
-    );
-  });
-
-  it("the three keys are distinct, so the line discriminates the three pairs", () => {
-    const keys = new Set([
-      explainPair({ ...base, vetoHours: 24 }),
-      explainPair({ ...base, vetoHours: 0 }),
-      explainPair({ ...base, mode: "copilot" }),
-    ]);
-    expect(keys.size).toBe(3);
-  });
-
-  it("it returns a key and never a sentence — no fixture in this module contains one", () => {
-    for (const key of [
-      explainPair({ ...base, vetoHours: 24 }),
-      explainPair({ ...base, vetoHours: 0 }),
-      explainPair({ ...base, mode: "copilot" }),
-    ]) {
-      expect(key.startsWith("settings.publishing.pair.")).toBe(true);
-      expect(key).not.toMatch(/\s/);
-    }
   });
 });
 

@@ -205,9 +205,8 @@ const SEEDED_DRAFT_ID = "00000000-0000-0000-0000-0000000000d1";
  * settings a customer never chose are what this seed exists to stop being
  * indistinguishable from settings they did.
  *
- * `copilot` rather than `autopilot`, and a window that is not 24 hours, so
- * the pair sentence the screen writes (`explainPair`) is a different one
- * from the reserved pass's and both arms get measured.
+ * A window that is not 24 hours, so the live pass renders a stored value
+ * rather than the column's default.
  */
 /** One site's §4.7 publishing row, as these seeds write it. Named rather
  *  than `typeof LIVE_PUBLISHING`: the two accounts differ in mode, and a
@@ -223,11 +222,9 @@ interface PublishingRow {
   competitors: readonly string[];
 }
 
-/** UI-SPEC S13's sidebar draws the mode as **Autopilot** with the switch
- *  on, so the week-0 account's row says so. `LIVE_PUBLISHING` is copilot —
- *  which is the right arm for the live account's own screens, and the wrong
- *  picture for this one. Everything else is shared: the two accounts differ
- *  in what has been measured, not in how they are set up. */
+/** UI-SPEC S13's sidebar draws **Autopilot** with the switch on, so the
+ *  week-0 account's row says so. Everything else is shared: the two accounts
+ *  differ in what has been measured, not in how they are set up. */
 const WEEK_ZERO_PUBLISHING = Object.freeze({
   mode: "autopilot",
   vetoHours: 24,
@@ -256,8 +253,8 @@ const PUBLISHER_PUBLISHING = Object.freeze({
 });
 
 const LIVE_PUBLISHING = Object.freeze({
-  mode: "copilot",
-  vetoHours: 36,
+  mode: "autopilot",
+  vetoHours: 48,
   publishTime: "07:30",
   enabled: true,
   voiceText: "Plain, specific, and never louder than the evidence.",

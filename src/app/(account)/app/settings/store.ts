@@ -254,8 +254,7 @@ export async function readLiveSettingsFacts(
     category: answers.category ?? "",
     competitors: answers.rivals,
 
-    // §9's four publishing settings, and the switch.
-    mode: publishing.mode,
+    // §9's publishing settings, and the switch.
     vetoHours: publishing.vetoHours,
     publishTime: publishing.publishTime,
     timeZone: account.timeZone,

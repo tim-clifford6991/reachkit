@@ -450,6 +450,11 @@ export interface DestinationAdapter {
 
 // ── The draft, as the machine sees it ───────────────────────────────────
 
+/** The publishing mode. §7 (2026-09-11): Autopilot is the only mode a
+ *  customer can be in — this is data the state machine writes and no screen
+ *  or mail names. */
+export type PublishingMode = "autopilot" | "copilot";
+
 /** The pair of publishing mode and veto window governing a draft. §9:
  *  "Autopilot = auto-approve when the veto window … expires without a
  *  veto. Copilot = explicit approve only."
@@ -468,7 +473,7 @@ export interface DestinationAdapter {
  *  precondition c8 never names, and what holds a page against a destination
  *  that cannot publish is the `destination_working` guard. */
 export interface GoverningPair {
-  mode: "autopilot" | "copilot";
+  mode: PublishingMode;
   vetoHours: number;
   /** `HH:mm`, 24-hour, read in `timezone`. */
   publishTime: string;

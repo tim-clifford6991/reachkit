@@ -464,7 +464,6 @@ const THE_THREE_DECISIONS = {
   domain: DOMAIN,
   category: "project management software for agencies",
   competitors: [...RIVALS],
-  mode: "autopilot" as const,
   destination: { kind: "hosted" as const },
 };
 

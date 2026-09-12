@@ -6,16 +6,15 @@
 export {
   SETTINGS_FIELDS,
   adoptBrowserTimezone,
-  explainPair,
   invalidFields,
   isResolvableZone,
   readPublishingSettings,
+  storedVetoHours,
   toPublishingSettings,
   vetoDaysFromHours,
   vetoHoursFromDays,
   type AdoptResult,
   type Mode,
-  type PairCopyKey,
   type PublishingSettings,
   type SettingsField,
 } from "./settings";

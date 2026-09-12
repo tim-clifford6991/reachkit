@@ -1,8 +1,9 @@
-// BUILD §4.3 — the mode and destination cards' data.
+// BUILD §4.3 · SPEC §7 — the destination cards' data.
 //
-// "(3) **Mode + destination** — Autopilot (default, selected) vs Copilot
-// card pair; destination: *Hosted blog* (chosen, shows the CNAME record) vs
-// *WordPress — connect later, ask me after the first page*." (§4.3)
+// "destination: *Hosted blog* (chosen, shows the CNAME record) vs
+// *WordPress — connect later, ask me after the first page*." (§4.3). The
+// mode pair that stood beside it went with §7 (2026-09-11): Autopilot is
+// the only mode, so setup offers no choice of one.
 //
 // The archived plan is WO-221. Three properties this module exists to make
 // structural rather than reviewable:
@@ -16,9 +17,8 @@
 //     placeholder, so no surface can render a blank where a value would
 //     sit (REQ-028 c2).
 //  3. **Every option carries a copy key and this module writes no
-//     sentence.** The mode and destination *names* are §4.3's own words,
-//     already in the registry; the one written line each option states is
-//     its own key.
+//     sentence.** The destination *names* are §4.3's own words, already in
+//     the registry; the one written line each option states is its own key.
 //
 // Pure: no network call, no health check, no clock. The edge hostname the
 // record points at is an env binding and is passed in by the adapter —
@@ -27,7 +27,6 @@
 import { HOSTED_SUBDOMAIN_LABEL } from "@/lib/config/constants";
 import type { CopyKey } from "@/lib/presentation/copy";
 
-export type PublishingMode = "autopilot" | "copilot";
 export type DestinationKind = "hosted" | "wordpress";
 
 /** The one record a founder points at the hosted blog. `name` is the host
@@ -44,17 +43,6 @@ export interface DnsPending {
   copy: "setup.destination.dnsPending";
 }
 
-export interface ModeOption {
-  mode: PublishingMode;
-  /** Autopilot true, copilot false — §4.3's "(default, selected)". */
-  preselected: boolean;
-  /** The mode's own name, already ruled: §4.3 prints "Autopilot" and
-   *  "Copilot". */
-  name: CopyKey;
-  /** The one written line saying what it means for them (REQ-028 c1). */
-  copy: "setup.mode.autopilot" | "setup.mode.copilot";
-}
-
 export interface DestinationOption {
   kind: DestinationKind;
   /** Hosted true, wordpress false — §4.3's "*Hosted blog* (chosen…)". */
@@ -66,7 +54,6 @@ export interface DestinationOption {
 }
 
 export interface SetupCards {
-  mode: readonly ModeOption[];
   destination: readonly DestinationOption[];
 }
 
@@ -86,24 +73,10 @@ export function dnsRecordFor(a: {
   };
 }
 
-/** Both mode options and both destination options, every time, with the
- *  pre-selection carried as data on the option. */
+/** Both destination options, every time, with the pre-selection carried as
+ *  data on the option. */
 export function setupCards(a: { siteDomain: string | null; cnameTarget: string }): SetupCards {
   return {
-    mode: Object.freeze([
-      Object.freeze({
-        mode: "autopilot" as const,
-        preselected: true,
-        name: "shell.publishing.mode.autopilot" as const,
-        copy: "setup.mode.autopilot" as const,
-      }),
-      Object.freeze({
-        mode: "copilot" as const,
-        preselected: false,
-        name: "shell.publishing.mode.copilot" as const,
-        copy: "setup.mode.copilot" as const,
-      }),
-    ]),
     destination: Object.freeze([
       Object.freeze({
         kind: "hosted" as const,
@@ -122,17 +95,13 @@ export function setupCards(a: { siteDomain: string | null; cnameTarget: string }
   };
 }
 
-/** The mode and destination a founder who touched neither card submits —
- *  read off the cards themselves, so "the value the founder was shown" and
- *  "the value recorded" are the same fact read twice, never two constants. */
-export function preselected(cards: SetupCards): {
-  mode: PublishingMode;
-  destination: DestinationKind;
-} {
-  const mode = cards.mode.find((option) => option.preselected);
+/** The destination a founder who touched no card submits — read off the
+ *  cards themselves, so "the value the founder was shown" and "the value
+ *  recorded" are the same fact read twice, never two constants. */
+export function preselected(cards: SetupCards): { destination: DestinationKind } {
   const destination = cards.destination.find((option) => option.preselected);
-  if (!mode || !destination) {
+  if (!destination) {
     throw new Error("src/lib/publish/setup/cards.ts: every card pair must carry one pre-selection.");
   }
-  return { mode: mode.mode, destination: destination.kind };
+  return { destination: destination.kind };
 }

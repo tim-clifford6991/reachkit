@@ -136,12 +136,11 @@ describe("the destinations half is wired to the registry", () => {
 });
 
 describe("every settings fact is read for the account that owns it (#228)", () => {
-  it("the nine facts that were the fixture's are the site's own", async () => {
+  it("the facts that were the fixture's are the site's own", async () => {
     seed();
     const facts = await readLiveSettingsFacts(ACCOUNT);
     // The fixture's values, for comparison: none of them may appear here
     // by having been spread rather than read.
-    expect(facts.mode).toBe("copilot");
     expect(facts.vetoHours).toBe(48);
     expect(facts.publishTime).toBe("07:30");
     expect(facts.publishingEnabled).toBe(false);
@@ -154,7 +153,6 @@ describe("every settings fact is read for the account that owns it (#228)", () =
   it("and none of them equals the fixture's, which is what the spread used to give them", async () => {
     seed();
     const facts = await readLiveSettingsFacts(ACCOUNT);
-    expect(facts.mode).not.toBe(FIXTURE_SETTINGS_FACTS.mode);
     expect(facts.vetoHours).not.toBe(FIXTURE_SETTINGS_FACTS.vetoHours);
     expect(facts.publishTime).not.toBe(FIXTURE_SETTINGS_FACTS.publishTime);
     expect(facts.publishingEnabled).not.toBe(FIXTURE_SETTINGS_FACTS.publishingEnabled);

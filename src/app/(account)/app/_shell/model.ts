@@ -14,15 +14,14 @@ import type { WorkStop } from "@/lib/presentation/stopped";
 import { resolveNoPublish, type NoPublishCauses, type NoPublishReason } from "./nopublish";
 import { weeksMeasured, type MeasuredWeek, type WeekCount } from "./weeks";
 
-/** BUILD §4.3's two modes, named by the spec and never by a renderer. */
-export type PublishingMode = "autopilot" | "copilot";
-
 /** REQ-040 c3 and c4 as one closed union: either a time, or a reason there
  *  is none. There is no third arm and no `next?: Date` — an optional field
- *  would let a renderer read "no time" as "not loaded yet". */
+ *  would let a renderer read "no time" as "not loaded yet". `enabled` is
+ *  §9's switch: §7 leaves one mode, so the footer's control switches
+ *  whether pages publish at all. */
 export type PublishingState =
-  | { mode: PublishingMode; next: Date }
-  | { mode: PublishingMode; next: null; because: NoPublishReason };
+  | { enabled: boolean; next: Date }
+  | { enabled: boolean; next: null; because: NoPublishReason };
 
 export interface ShellModel {
   domain: string;
@@ -46,7 +45,8 @@ export interface ShellModel {
 export interface ShellFacts {
   domain: string;
   timeZone: string;
-  mode: PublishingMode;
+  /** §9's switch — `sites.publishing_enabled`, read by `switch/`. */
+  publishingEnabled: boolean;
   weeks: readonly MeasuredWeek[];
   /** REQ-065's own clock (#41): when this domain's first weekly measurement
    *  is due. Read, never computed here. */
@@ -96,8 +96,10 @@ function publishingOf(facts: ShellFacts): PublishingState {
   // adapter also set the boolean, and it outranks a `next` that is still on
   // the row (ADR-011).
   const stopped = facts.stopped !== null || facts.noPublishCauses.reachkit_stopped;
-  if (!stopped && facts.next !== null) return { mode: facts.mode, next: facts.next };
+  if (!stopped && facts.next !== null) {
+    return { enabled: facts.publishingEnabled, next: facts.next };
+  }
   const causes: NoPublishCauses = { ...facts.noPublishCauses, reachkit_stopped: stopped };
   const because = resolveNoPublish(causes) ?? "reachkit_stopped";
-  return { mode: facts.mode, next: null, because };
+  return { enabled: facts.publishingEnabled, next: null, because };
 }

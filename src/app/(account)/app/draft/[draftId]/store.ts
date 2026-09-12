@@ -52,7 +52,7 @@ import {
   readRecordedVerdict,
   recordedRulesPassed,
 } from "@/lib/generate/record";
-import type { PublishingMode } from "../../_shell/model";
+import type { PublishingMode } from "@/lib/publish/types";
 import type { State } from "../../calendar/stages";
 import { pageRecordFor } from "@/lib/publish/record";
 import { RAIL_CHECKS, type RailCheck } from "./checks";

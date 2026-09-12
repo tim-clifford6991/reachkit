@@ -33,11 +33,15 @@
 // unconditionally and by type: nothing is connected at setup, so no caller
 // can be written that waits on one.
 import { dbAdmin } from "@/lib/db";
-import type { DestinationKind, PublishingMode } from "./cards";
+import type { PublishingMode } from "@/lib/publish/types";
+import type { DestinationKind } from "./cards";
+
+/** §7: Autopilot is the only mode, so the mode is not a choice travelling
+ *  from the screen — it is the value this write states. */
+const AUTOPILOT: PublishingMode = "autopilot";
 
 export interface SetupChoice {
   siteId: string;
-  mode: PublishingMode;
   destinationKind: DestinationKind;
 }
 
@@ -69,7 +73,7 @@ export async function applySetupChoice(a: SetupChoice): Promise<SetupChoiceAppli
     "apply_setup_choice",
     {
       p_site_id: a.siteId,
-      p_mode: a.mode,
+      p_mode: AUTOPILOT,
       p_kind: a.destinationKind,
     }
   );

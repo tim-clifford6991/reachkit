@@ -1,7 +1,8 @@
 // tests/publish/setup/cards.test.ts — BUILD §4.3, REQ-028 criteria 1, 2, 3, 4
 //
-// The mode and destination cards' data. The archived test plan is WO-221's;
-// each criterion is quoted from REQ-028 as it stands on disk.
+// The destination cards' data. The archived test plan is WO-221's; each
+// criterion is quoted from REQ-028 as it stands on disk. The mode pair it
+// also carried went with SPEC §7 (2026-09-11).
 import { describe, expect, it } from "vitest";
 import { dnsRecordFor, preselected, setupCards } from "@/lib/publish/setup/cards";
 import { COPY, type CopyKey } from "@/lib/presentation/copy";
@@ -9,29 +10,10 @@ import { HOSTED_SUBDOMAIN_LABEL } from "@/lib/config/constants";
 
 const TARGET = "content.dev.reachkit.app";
 
-describe('c1 — "autopilot is pre-selected, copilot is one click away, and each states in one written line what it means for them"', () => {
-  const cards = setupCards({ siteDomain: "example.com", cnameTarget: TARGET });
-
-  it("both modes are present in the same card pair, autopilot pre-selected and copilot not", () => {
-    expect(cards.mode.map((o) => [o.mode, o.preselected])).toEqual([
-      ["autopilot", true],
-      ["copilot", false],
-    ]);
-  });
-
-  it("each mode carries its own distinct written line, as a key — this module writes no sentence", () => {
-    const keys = cards.mode.map((o) => o.copy);
-    expect(new Set(keys).size).toBe(2);
-    for (const key of keys) {
-      expect(Object.prototype.hasOwnProperty.call(COPY, key)).toBe(true);
-    }
-  });
-
-  it("the mode names are the registry's, shared with the shell — one word, one key", () => {
-    expect(cards.mode.map((o) => o.name)).toEqual([
-      "shell.publishing.mode.autopilot",
-      "shell.publishing.mode.copilot",
-    ]);
+describe("§7 — setup offers no mode: the cards are the destination and nothing else", () => {
+  it("the card data carries no mode member a screen could render a choice from", () => {
+    const cards = setupCards({ siteDomain: "example.com", cnameTarget: TARGET });
+    expect(Object.keys(cards)).toEqual(["destination"]);
   });
 });
 
@@ -101,7 +83,6 @@ describe('c3 and c4 — "they can defer connecting it and setup still completes"
 
   it("both cards render fully with no site address at all — nothing here waits on DNS", () => {
     const cards = setupCards({ siteDomain: null, cnameTarget: TARGET });
-    expect(cards.mode).toHaveLength(2);
     expect(cards.destination).toHaveLength(2);
   });
 });
@@ -109,14 +90,12 @@ describe('c3 and c4 — "they can defer connecting it and setup still completes"
 describe("the defaults are data on the option, not a fallback", () => {
   it("preselected() reads the pair itself, so what was shown and what is recorded are one fact", () => {
     expect(preselected(setupCards({ siteDomain: null, cnameTarget: TARGET }))).toEqual({
-      mode: "autopilot",
       destination: "hosted",
     });
   });
 
-  it("exactly one option in each pair is pre-selected", () => {
+  it("exactly one option in the pair is pre-selected", () => {
     const cards = setupCards({ siteDomain: "example.com", cnameTarget: TARGET });
-    expect(cards.mode.filter((o) => o.preselected)).toHaveLength(1);
     expect(cards.destination.filter((o) => o.preselected)).toHaveLength(1);
   });
 });
@@ -124,10 +103,7 @@ describe("the defaults are data on the option, not a fallback", () => {
 describe("no sentence, and no network call", () => {
   it("every string this module produces is either a copy key or a hostname — never a sentence", () => {
     const cards = setupCards({ siteDomain: "example.com", cnameTarget: TARGET });
-    const keys: CopyKey[] = [
-      ...cards.mode.flatMap((o) => [o.name, o.copy] as CopyKey[]),
-      ...cards.destination.flatMap((o) => [o.name, o.copy] as CopyKey[]),
-    ];
+    const keys: CopyKey[] = cards.destination.flatMap((o) => [o.name, o.copy] as CopyKey[]);
     for (const key of keys) {
       expect(Object.prototype.hasOwnProperty.call(COPY, key)).toBe(true);
     }

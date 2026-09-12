@@ -216,7 +216,7 @@ describe("the settings save is one statement", () => {
   function save(opts: { siteId?: string; drafts: string }): string {
     const { siteId = SITE_ID, drafts } = opts;
     const [row] = psqlRows(
-      `select save_publishing_settings('${siteId}'::uuid, 'copilot', 6, '07:30'::time, 'Europe/London', '${drafts}'::jsonb);`
+      `select save_publishing_settings('${siteId}'::uuid, 'autopilot', 48, '07:30'::time, 'Europe/London', '${drafts}'::jsonb);`
     );
     return row?.[0] ?? "";
   }
@@ -228,7 +228,7 @@ describe("the settings save is one statement", () => {
     });
     expect(touched).toBe("1");
     expect(psqlRows(`select mode, veto_hours, publish_time, timezone from sites where id = '${SITE_ID}';`)).toEqual([
-      ["copilot", "6", "07:30:00", "Europe/London"],
+      ["autopilot", "48", "07:30:00", "Europe/London"],
     ]);
     expect(psqlRows(`select veto_deadline at time zone 'UTC' from drafts where id = '${id}';`)).toEqual([
       ["2026-10-01 09:00:00"],

@@ -20,19 +20,23 @@
     "ruled": 16
   },
   "draft.ts": {
-    "owed": [],
+    "owed": [
+      "draft.do-nothing.copilot"
+    ],
     "awaiting": [],
-    "ruled": 38
+    "ruled": 37
   },
   "laws.ts": {
     "owed": [],
     "awaiting": [],
-    "ruled": 26
+    "ruled": 24
   },
   "mail.ts": {
-    "owed": [],
+    "owed": [
+      "mail.draftReady.copilot"
+    ],
     "awaiting": [],
-    "ruled": 145
+    "ruled": 144
   },
   "meta.ts": {
     "owed": [],
@@ -62,12 +66,12 @@
   "settings.ts": {
     "owed": [],
     "awaiting": [],
-    "ruled": 101
+    "ruled": 98
   },
   "setup.ts": {
     "owed": [],
     "awaiting": [],
-    "ruled": 62
+    "ruled": 61
   },
   "signin.ts": {
     "owed": [],
