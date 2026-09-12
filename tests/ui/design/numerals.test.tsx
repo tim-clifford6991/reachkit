@@ -14,7 +14,7 @@
 // A component holds numerals in one of two ways, and the two are checked
 // differently because they are different promises:
 //
-//   * **The component owns the numeral.** `Stat`'s value, `Kbd`'s key and
+//   * **The component owns the numeral.** `Stat`'s value and
 //     `CalendarGrid`'s date are rendered by the component into an element
 //     it puts `.num` on, so the caller passes a bare number and the mono
 //     face is not the caller's to forget.
@@ -43,7 +43,6 @@ import { Collapse } from "@/ui/components/Collapse";
 import { Divider } from "@/ui/components/Divider";
 import { Input } from "@/ui/components/Input";
 import { Join } from "@/ui/components/Join";
-import { Kbd } from "@/ui/components/Kbd";
 import { Progress } from "@/ui/components/Progress";
 import { Stat } from "@/ui/components/Stat";
 import { Steps } from "@/ui/components/Steps";
@@ -101,7 +100,6 @@ const CELL: CalendarGridCell = {
 const FIXTURES: Record<string, () => React.JSX.Element> = {
   // The component owns the numeral.
   Stat: () => <Stat state="measured" label="AI answers" value={12} delta={N("+3")} />,
-  Kbd: () => <Kbd>12</Kbd>,
   CalendarGrid: () => (
     <CalendarGrid weekdays={["Mon", "Tue"]} cells={[CELL]} onSelect={() => undefined} />
   ),
@@ -177,12 +175,6 @@ describe("the components that supply the mono carrier themselves", () => {
     const value = root.querySelector(".stat-value");
     expect(value?.classList.contains("num")).toBe(true);
     expect(value?.textContent).toBe("12");
-  });
-
-  it("Kbd's key is mono without the caller asking", () => {
-    const root = parse(<Kbd>12</Kbd>);
-    const kbd = root.querySelector("kbd");
-    expect(kbd?.classList.contains("num")).toBe(true);
   });
 
   it("CalendarGrid's date is mono without the caller asking", () => {

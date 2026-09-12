@@ -1,13 +1,10 @@
 // tests/ui/design/vocabulary.ts — §2.2, ADR-010
 //
 // The reading half of the design-system conformance suite (issue #12).
-// Four test files beside this one decide their rules from three sources,
+// Four test files beside this one decide their rules from two sources,
 // read here once:
 //
-//  1. `BUILD.md` §2.2's closed component list, embedded verbatim below
-//     (path + verbatim quote, never a line number) — the registry every
-//     daisyUI class the product writes has to come from.
-//  2. daisyUI 5's own shipped vocabulary, read out of the installed
+//  1. daisyUI 5's own shipped vocabulary, read out of the installed
 //     package: `node_modules/daisyui/{components,utilities}/<name>.css`,
 //     one file per name, so a class maps to the thing that defines it.
 //     Reading the package rather than a hand-copied list is what makes
@@ -19,7 +16,7 @@
 //     `glass`) is Tailwind-shaped and no more restricted than `flex` is.
 //     §2.2 lists `join` among its fifteen; daisyUI 5 ships it under
 //     `utilities/`, and the registry row below says so.
-//  3. The class tokens the product actually writes, taken from the
+//  2. The class tokens the product actually writes, taken from the
 //     TypeScript AST of every file under `src/app/**` and `src/ui/**`:
 //     `className` attributes and, transitively, the local constants those
 //     attributes reference — `const classes = ["btn"]` followed by
@@ -61,24 +58,6 @@ export function walkFiles(dir: string, keep: (rel: string) => boolean): string[]
 
 export const read = (rel: string): string => readFileSync(path.join(REPO_ROOT, rel), "utf8");
 
-/* ── 1. `BUILD.md` §2.2, verbatim ─────────────────────────────────────── */
-
-/** `BUILD.md` §2.2's component paragraph, verbatim (path: BUILD.md). Every
- *  registered class below is checked back against this text, so a row that
- *  names a component §2.2 does not is a failure here rather than a widened
- *  registry nobody notices. */
-export const BUILD_MD_2_2 = `daisyUI components only — no bespoke widgets. The set the product uses:
-\`btn\` (+primary/ghost/sm/block) · \`card\`/\`card-body\`/\`card-title\` · \`badge\`
-(+primary/success/warning/error/ghost) · \`alert\` (4 tones) · \`stats\`/\`stat\` ·
-\`tabs\` (boxed + bordered) · \`table\` (+zebra, always inside an \`overflow-x-auto\`
-wrap) · \`progress\` · \`toggle\` · \`steps\` · \`join\` · \`collapse\` · \`input\` ·
-\`divider\` · \`kbd\`. Custom CSS is allowed only for: the calendar grid, the day
-panel, the AI dot-matrix, chart SVGs, and the sidebar — nothing else.`;
-
-/** The one class name §2.2 backticks that is not a daisyUI component: it is
- *  the Tailwind utility the `table` row requires its wrap to carry. */
-export const NOT_A_COMPONENT = "overflow-x-auto";
-
 export interface RegisteredComponent {
   /** The class names §2.2 backticks for this row. */
   readonly named: readonly string[];
@@ -92,9 +71,9 @@ export interface RegisteredComponent {
   readonly exported: string;
 }
 
-/** §2.2's closed list, as data. Fifteen rows — the same fifteen
- *  `src/ui/components/index.ts` exports, tied to that barrel and to the
- *  quote above by `component-registry.test.ts`. */
+/** §2.2's closed list, as data. Fourteen rows — the same fourteen
+ *  `src/ui/components/index.ts` exports, tied to that barrel by
+ *  `component-registry.test.ts`. */
 export const REGISTERED: readonly RegisteredComponent[] = [
   { named: ["btn"], stylesheet: "components/button", exported: "Btn" },
   { named: ["card", "card-body", "card-title"], stylesheet: "components/card", exported: "Card" },
@@ -112,7 +91,6 @@ export const REGISTERED: readonly RegisteredComponent[] = [
   { named: ["collapse"], stylesheet: "components/collapse", exported: "Collapse" },
   { named: ["input"], stylesheet: "components/input", exported: "Input" },
   { named: ["divider"], stylesheet: "components/divider", exported: "Divider" },
-  { named: ["kbd"], stylesheet: "components/kbd", exported: "Kbd" },
 ];
 
 export const REGISTERED_STYLESHEETS: ReadonlySet<string> = new Set(

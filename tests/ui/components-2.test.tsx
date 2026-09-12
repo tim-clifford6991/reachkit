@@ -1,8 +1,8 @@
 // tests/ui/components-2.test.tsx
 //
 // WO-268 `## Test plan` — the five rows carried verbatim from WO-032 for
-// the remaining seven of the fifteen registered components (Toggle, Steps,
-// Join, Collapse, Input, Divider, Kbd) plus the closed barrel itself.
+// the remaining six of the fourteen registered components (Toggle, Steps,
+// Join, Collapse, Input, Divider) plus the closed barrel itself.
 // Criterion source: BP-018 and `BUILD.md`, not a requirement.
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
@@ -15,12 +15,11 @@ import { Join } from "@/ui/components/Join";
 import { Collapse } from "@/ui/components/Collapse";
 import { Input } from "@/ui/components/Input";
 import { Divider } from "@/ui/components/Divider";
-import { Kbd } from "@/ui/components/Kbd";
 import { daisyTheme } from "./design/tokens-doc";
 
 const COMPONENTS_DIR = path.resolve(__dirname, "../../src/ui/components");
 
-const THE_FIFTEEN = [
+const THE_FOURTEEN = [
   "Btn",
   "Card",
   "Badge",
@@ -35,7 +34,6 @@ const THE_FIFTEEN = [
   "Collapse",
   "Input",
   "Divider",
-  "Kbd",
 ];
 
 function renderRoot(el: React.ReactElement): Element {
@@ -54,23 +52,23 @@ function sourceOf(file: string): string {
 describe(
   "BP-018 public interface: \"Registered components only — daisyUI primitives plus the five allowed customs.\"",
   () => {
-    it("the barrel exports exactly the fifteen BP-018 names, no more, no fewer", () => {
+    it("the barrel exports exactly the fourteen BP-018 names, no more, no fewer", () => {
       const exported = Object.keys(barrel).filter((k) => typeof (barrel as Record<string, unknown>)[k] === "function");
-      expect(exported.sort()).toEqual([...THE_FIFTEEN].sort());
+      expect(exported.sort()).toEqual([...THE_FOURTEEN].sort());
     });
 
-    it("a sixteenth name has no slot: index.ts's own source names exactly fifteen `export {` component statements", () => {
+    it("a fifteenth name has no slot: index.ts's own source names exactly fourteen `export {` component statements", () => {
       const src = readFileSync(path.join(COMPONENTS_DIR, "index.ts"), "utf8");
       const componentExportLines = src.match(/^export \{ [A-Z][a-zA-Z]* \} from "\.\//gm) ?? [];
-      expect(componentExportLines.length).toBe(15);
+      expect(componentExportLines.length).toBe(14);
     });
 
-    it("mutation: a sixteenth export added to the barrel is caught", () => {
+    it("mutation: a fifteenth export added to the barrel is caught", () => {
       const src = readFileSync(path.join(COMPONENTS_DIR, "index.ts"), "utf8");
-      const mutated = `${src}\nexport { SixteenthWidget } from "./SixteenthWidget";\n`;
+      const mutated = `${src}\nexport { FifteenthWidget } from "./FifteenthWidget";\n`;
       const componentExportLines = mutated.match(/^export \{ [A-Z][a-zA-Z]* \} from "\.\//gm) ?? [];
-      expect(componentExportLines.length).not.toBe(15);
-      expect(componentExportLines.length).toBe(16);
+      expect(componentExportLines.length).not.toBe(14);
+      expect(componentExportLines.length).toBe(15);
     });
   }
 );
@@ -88,9 +86,9 @@ describe(
         expect(exported, `${file}.tsx exported from the barrel`).toContain(file);
       }
       // And nothing outside src/ui/components/custom/ exists yet that the
-      // barrel doesn't also name — the fifteen files above are the whole
+      // barrel doesn't also name — the fourteen files above are the whole
       // directory (custom/, charts/ and layout/ are separate modules/WOs).
-      expect(componentFiles.sort()).toEqual([...THE_FIFTEEN].sort());
+      expect(componentFiles.sort()).toEqual([...THE_FOURTEEN].sort());
     });
 
     it("mutation: an unregistered .tsx dropped into the directory is caught", () => {
@@ -141,16 +139,10 @@ describe(
       const el = <Input label="l" placeholder="p" invalid />;
       expect(el).toBeTruthy();
     });
-
-    it("Kbd without children is a type error", () => {
-      // @ts-expect-error — `children` is required.
-      const el = <Kbd />;
-      expect(el).toBeTruthy();
-    });
   }
 );
 
-describe('BP-018 decision 2: "no component has a default string" (the seven)', () => {
+describe('BP-018 decision 2: "no component has a default string" (the six)', () => {
   it("Toggle renders no text when label is omitted", () => {
     const root = renderRoot(<Toggle {...({ checked: false } as { checked: boolean; label: string })} />);
     expect(root.textContent).toBe("");
@@ -180,11 +172,6 @@ describe('BP-018 decision 2: "no component has a default string" (the seven)', (
     expect(inputEl!.getAttribute("placeholder")).toBeFalsy();
   });
 
-  it("Kbd renders no text when children is omitted", () => {
-    const root = renderRoot(<Kbd {...({} as { children: React.ReactNode })} />);
-    expect(root.textContent).toBe("");
-  });
-
   it("Divider renders no text when label is omitted (optional, no fallback substituted)", () => {
     const root = renderRoot(<Divider />);
     expect(root.textContent).toBe("");
@@ -200,23 +187,6 @@ describe('BP-018 decision 2: "no component has a default string" (the seven)', (
     }
   });
 });
-
-describe(
-  'BP-018 error behaviour: "Every … code-like string renders in JetBrains Mono with `tabular-nums`."',
-  () => {
-    it("Kbd renders through the .num class", () => {
-      const root = renderRoot(<Kbd>Ctrl</Kbd>);
-      expect(root.classList.contains("num")).toBe(true);
-      expect(root.tagName.toLowerCase()).toBe("kbd");
-    });
-
-    it("mutation: removing .num from Kbd's className is caught", () => {
-      const withoutNum = sourceOf("Kbd").replace('className="kbd num"', 'className="kbd"');
-      expect(withoutNum).not.toContain('className="kbd num"');
-      expect(sourceOf("Kbd")).toContain('className="kbd num"');
-    });
-  }
-);
 
 describe(
   'BP-003 / BUILD §2.5 empty-and-degraded rule as BP-018 states it: "Every label, empty state and tooltip is a required prop" — applied to Steps',
@@ -286,13 +256,8 @@ describe('BP-018 decision 1: "daisyUI components only — no bespoke widgets" (t
     expect(root.classList.contains("divider")).toBe(true);
   });
 
-  it("Kbd's root carries the kbd class", () => {
-    const root = renderRoot(<Kbd>K</Kbd>);
-    expect(root.classList.contains("kbd")).toBe(true);
-  });
-
-  it("none of the seven components renders an inline style attribute", () => {
-    for (const file of ["Toggle", "Steps", "Join", "Collapse", "Input", "Divider", "Kbd"]) {
+  it("none of the six components renders an inline style attribute", () => {
+    for (const file of ["Toggle", "Steps", "Join", "Collapse", "Input", "Divider"]) {
       expect(sourceOf(file), file).not.toMatch(/\bstyle=/);
     }
   });

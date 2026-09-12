@@ -1,7 +1,7 @@
 // tests/ui/components-1.test.tsx
 //
 // WO-268 `## Test plan` — the five rows carried verbatim from WO-031 for
-// the first eight of the fifteen registered components: Btn, Card, Badge,
+// the first eight of the fourteen registered components: Btn, Card, Badge,
 // Alert, Stat, Tabs, Table, Progress. Criterion source: BP-018 and
 // `BUILD.md`, not a requirement — BP-018 has no requirement ancestor.
 //
@@ -87,7 +87,6 @@ const ALL_COMPONENT_FILES = [
   "Collapse",
   "Input",
   "Divider",
-  "Kbd",
 ];
 
 describe(
