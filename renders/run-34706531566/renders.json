@@ -1,0 +1,181 @@
+{
+  "rendered": [
+    {
+      "name": "-app-calendar",
+      "route": "/app/calendar",
+      "screen": "S9",
+      "viewport": "-app-calendar-1280-light.png",
+      "full": "-app-calendar-full.png",
+      "file": "side--app-calendar.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/auth-light.png",
+      "moved": false,
+      "why": "named under `Renders:`"
+    },
+    {
+      "name": "-app-settings",
+      "route": "/app/settings",
+      "screen": "S9",
+      "viewport": "-app-settings-1280-light.png",
+      "full": "-app-settings-full.png",
+      "file": "side--app-settings.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/auth-light.png",
+      "moved": false,
+      "why": "named under `Renders:`"
+    },
+    {
+      "name": "-opt-out-layout-sweep-fixture",
+      "route": "/opt-out/layout-sweep-fixture",
+      "screen": "S7",
+      "viewport": "-opt-out-layout-sweep-fixture-1280-light.png",
+      "full": "-opt-out-layout-sweep-fixture-full.png",
+      "file": "side--opt-out-layout-sweep-fixture.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/optout-light.png",
+      "moved": true,
+      "why": "665 of 614400 pixels differ (0.108%)"
+    },
+    {
+      "name": "-root",
+      "route": "/",
+      "screen": "S1",
+      "viewport": "-root-1280-light.png",
+      "full": "-root-full.png",
+      "file": "side--root.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/landing-light.png",
+      "moved": false,
+      "why": "named under `Renders:`"
+    },
+    {
+      "name": "-pricing",
+      "route": "/pricing",
+      "screen": "S4",
+      "viewport": "-pricing-1280-light.png",
+      "full": "-pricing-full.png",
+      "file": "side--pricing.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/pricing-light.png",
+      "moved": false,
+      "why": "named under `Renders:`"
+    },
+    {
+      "name": "-scan-example-com",
+      "route": "/scan/example.com",
+      "screen": "S2",
+      "viewport": "-scan-example-com-1280-light.png",
+      "full": "-scan-example-com-full.png",
+      "file": "side--scan-example-com.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/report-light.png",
+      "moved": true,
+      "why": "1302 of 614400 pixels differ (0.212%)"
+    },
+    {
+      "name": "reserved-app-calendar",
+      "route": "/app/calendar",
+      "screen": "S14",
+      "viewport": "reserved-app-calendar-1280-light.png",
+      "full": "reserved-app-calendar-full.png",
+      "file": "side-reserved-app-calendar.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/calendar-light.png",
+      "moved": false,
+      "why": "named under `Renders:`"
+    },
+    {
+      "name": "reserved-app",
+      "route": "/app",
+      "screen": "S12",
+      "viewport": "reserved-app-1280-light.png",
+      "full": "reserved-app-full.png",
+      "file": "side-reserved-app.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/overview-light.png",
+      "moved": true,
+      "why": "2284 of 614400 pixels differ (0.372%)"
+    },
+    {
+      "name": "reserved-app-settings",
+      "route": "/app/settings",
+      "screen": "S18",
+      "viewport": "reserved-app-settings-1280-light.png",
+      "full": "reserved-app-settings-full.png",
+      "file": "side-reserved-app-settings.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/settings-light.png",
+      "moved": true,
+      "why": "1543 of 614400 pixels differ (0.251%)"
+    },
+    {
+      "name": "live-app-calendar",
+      "route": "/app/calendar",
+      "screen": "S14",
+      "viewport": "live-app-calendar-1280-light.png",
+      "full": "live-app-calendar-full.png",
+      "file": "side-live-app-calendar.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/calendar-light.png",
+      "moved": false,
+      "why": "named under `Renders:`"
+    },
+    {
+      "name": "live-app-draft-00000000-0000-0000-0000-0000000000e1",
+      "route": "/app/draft/00000000-0000-0000-0000-0000000000e1",
+      "screen": "S16",
+      "viewport": "live-app-draft-00000000-0000-0000-0000-0000000000e1-1280-light.png",
+      "full": "live-app-draft-00000000-0000-0000-0000-0000000000e1-full.png",
+      "file": "side-live-app-draft-00000000-0000-0000-0000-0000000000e1.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/draft-light.png",
+      "moved": true,
+      "why": "878 of 614400 pixels differ (0.143%)"
+    },
+    {
+      "name": "live-app",
+      "route": "/app",
+      "screen": "S12",
+      "viewport": "live-app-1280-light.png",
+      "full": "live-app-full.png",
+      "file": "side-live-app.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/overview-light.png",
+      "moved": true,
+      "why": "2207 of 614400 pixels differ (0.359%)"
+    },
+    {
+      "name": "live-app-settings",
+      "route": "/app/settings",
+      "screen": "S18",
+      "viewport": "live-app-settings-1280-light.png",
+      "full": "live-app-settings-full.png",
+      "file": "side-live-app-settings.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/settings-light.png",
+      "moved": true,
+      "why": "1551 of 614400 pixels differ (0.252%)"
+    },
+    {
+      "name": "week0-app",
+      "route": "/app",
+      "screen": "S13",
+      "viewport": "week0-app-1280-light.png",
+      "full": "week0-app-full.png",
+      "file": "side-week0-app.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/overview0-light.png",
+      "moved": true,
+      "why": "2284 of 614400 pixels differ (0.372%)"
+    },
+    {
+      "name": "live-hosted-page-best-onboarding-tools",
+      "route": "/hosted-page/best-onboarding-tools",
+      "screen": "S19",
+      "viewport": "live-hosted-page-best-onboarding-tools-1280-light.png",
+      "full": "live-hosted-page-best-onboarding-tools-full.png",
+      "file": "side-live-hosted-page-best-onboarding-tools.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/hosted-light.png",
+      "moved": true,
+      "why": "834 of 614400 pixels differ (0.136%)"
+    },
+    {
+      "name": "fallback-public-error",
+      "route": "/pricing",
+      "screen": "S8",
+      "viewport": "fallback-public-error-1280-light.png",
+      "full": "fallback-public-error-full.png",
+      "file": "side-fallback-public-error.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/notfound-light.png",
+      "moved": false,
+      "why": "named under `Renders:`"
+    }
+  ],
+  "skipped": []
+}
