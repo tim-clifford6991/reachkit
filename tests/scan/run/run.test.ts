@@ -222,6 +222,105 @@ describe("the six stages", () => {
     expect(serpOrganic).toHaveBeenCalledTimes(12);
     expect(storedReport().serps).toHaveLength(12);
   });
+
+  // Issue #539: the twelve were bought one after another, which is most of
+  // the pass's own time target on its own. They are independent queries, so
+  // the stage now has several in flight at once.
+  it("buys the twelve concurrently, several in flight at once, and still exactly twelve", async () => {
+    const { SERP_FANOUT } = await import("../../../src/lib/scan/budgets");
+    let inFlight = 0;
+    let mostAtOnce = 0;
+    serpOrganic.mockImplementation(async () => {
+      inFlight += 1;
+      mostAtOnce = Math.max(mostAtOnce, inFlight);
+      await new Promise((resolve) => setTimeout(resolve, 1));
+      inFlight -= 1;
+      return measured(SERP, AT);
+    });
+
+    await runScan({ domain: DOMAIN, tier: "free" });
+
+    expect(mostAtOnce).toBe(SERP_FANOUT);
+    expect(serpOrganic).toHaveBeenCalledTimes(12);
+    expect(storedReport().serps).toHaveLength(12);
+  });
+
+  it("pairs every answer with the question that asked it, whatever order the answers come back in", async () => {
+    // The fourth question answers last and the eighth fails. If the records
+    // were pushed in completion order rather than written by index, the
+    // card would pair a question with another question's answer.
+    const slow = TWELVE_QUESTIONS[3]!.search.keyword;
+    const broken = TWELVE_QUESTIONS[7]!.search.keyword;
+    serpOrganic.mockImplementation(async (_c: unknown, call: { query: string }) => {
+      if (call.query === broken) throw new Error("vendor said nothing");
+      if (call.query === slow) await new Promise((resolve) => setTimeout(resolve, 5));
+      return measured({ ...SERP, query: call.query }, AT);
+    });
+
+    await runScan({ domain: DOMAIN, tier: "free" });
+
+    const serps = storedReport().serps;
+    expect(serps).toHaveLength(12);
+    expect(serps[7]).toMatchObject({ kind: "unmeasured", reason: "undeterminable" });
+    for (const i of [0, 3, 11]) {
+      expect(serps[i]).toMatchObject({ kind: "measured", value: { query: TWELVE_QUESTIONS[i]!.search.keyword } });
+    }
+  });
+});
+
+describe("a stage that spends its own budget (issue #539)", () => {
+  it("a stage one that ran out of budget ends the pass unreadable, never `complete`", async () => {
+    vi.useFakeTimers();
+    try {
+      const { STAGE_BUDGETS } = await import("../../../src/lib/scan/budgets");
+      // The site read never answers, so the stage's own budget is the only
+      // thing that can end it — the pass's 50 s ceiling is nowhere near.
+      measureDomain.mockImplementation(() => new Promise(() => undefined));
+
+      const pass = runScan({ domain: DOMAIN, tier: "free" });
+      await vi.advanceTimersByTimeAsync(STAGE_BUDGETS.reading_your_site.seconds * 1000);
+      await pass;
+
+      // Nothing was measured. The one thing such a pass must never claim is
+      // that its report is whole.
+      expect(storedReport().complete).toBe(false);
+      expect(stages.lines).toEqual(["reading_your_site:enter"]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("a SERP that answers after its stage was abandoned never reaches the report", async () => {
+    vi.useFakeTimers();
+    try {
+      const { STAGE_BUDGETS } = await import("../../../src/lib/scan/budgets");
+      let answer: () => void = () => undefined;
+      const held = new Promise<void>((resolve) => {
+        answer = resolve;
+      });
+      serpOrganic.mockImplementation(async () => {
+        await held;
+        return measured(SERP, AT);
+      });
+
+      const pass = runScan({ domain: DOMAIN, tier: "free" });
+      await vi.advanceTimersByTimeAsync(STAGE_BUDGETS.asking_the_twelve.seconds * 1000);
+      await pass;
+
+      const report = storedReport();
+      expect(report.serps).toHaveLength(12);
+      expect(report.serps.every((serp) => serp.kind === "unmeasured")).toBe(true);
+
+      // The vendor answers now, with the stage long over and the report
+      // already composed and stored: the answer is dropped, never written
+      // back into a report the customer has already been given.
+      answer();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(report.serps.every((serp) => serp.kind === "unmeasured")).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
 
 describe("a ceiling gives back what was measured", () => {

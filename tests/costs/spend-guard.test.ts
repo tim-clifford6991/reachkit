@@ -228,3 +228,38 @@ describe("a ledger nobody can read refuses nothing", () => {
     expect(updates).toEqual([{ table: "scans", values: { cost_cents: 3, status: "done" } }]);
   });
 });
+
+describe("the cap holds when several calls are in flight at once (issue #539)", () => {
+  it("money that is spent but not yet ledgered is still counted against the cap", async () => {
+    ledgerHolds(0);
+    // The first call's ledger write is held open — exactly the window the
+    // fan-out made the ordinary case: its vendor call has already returned,
+    // its row has not landed yet.
+    let releaseLedger: () => void = () => undefined;
+    const ledgerHeld = new Promise<void>((resolve) => {
+      releaseLedger = resolve;
+    });
+    let writes = 0;
+    writeFetchRowMock.mockImplementation(async () => {
+      writes += 1;
+      if (writes === 1) await ledgerHeld;
+    });
+
+    const ran: string[] = [];
+    let second: unknown;
+    await withCostContext({ ...CTX, cap: "FREE" }, async (cost) => {
+      const first = call(cost, CAPS.FREE_C, ran);
+      // Let the first call get past its vendor call and into the held write.
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      second = await call(cost, 1, ran);
+      releaseLedger();
+      await first;
+    });
+
+    // The whole cap is already spoken for, so the concurrent call never
+    // reaches the vendor: the cap is checked against the money in flight,
+    // not only against the money already written down.
+    expect(second).toEqual({ skipped: "cap" });
+    expect(ran).toEqual(["vendor"]);
+  });
+});

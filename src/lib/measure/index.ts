@@ -255,8 +255,11 @@ export interface DomainMeasurement {
  *  page allowance of `pages?`, robots policy, the customer's own ranked
  *  rows — and returns BUILD §5's four measured quantities with the facts
  *  the verdict rests on. Never throws for a domain that cannot be read:
- *  every failure is an `unmeasured` arm with its reason. Calls are made
- *  one at a time (`recordFetch`'s own sequential contract). */
+ *  every failure is an `unmeasured` arm with its reason.
+ *
+ *  The home document is read first and alone — everything else depends on
+ *  whether it could be read at all — and the reads that do not depend on
+ *  each other then run concurrently (issue #539, see the body). */
 export async function measureDomain(
   c: CostContext,
   a: { domain: string; tier: Tier; pages?: readonly string[] },
@@ -290,14 +293,10 @@ export async function measureDomain(
     };
   }
 
-  // 2. The pricing page, from the home document's own links.
+  // 2. The pricing page is named by the home document's own links, so its
+  //    URL is decided here — synchronously, from bytes already in hand —
+  //    before anything else is read.
   const pricingUrl = home.html === null ? null : detectPricingUrl(home.html, homeUrl);
-  const pricingRead = pricingUrl === null ? null : await readDocument(c, ports, pricingUrl);
-  const pricingHtml = pricingRead === null ? null : pricingRead.html;
-  const pricing =
-    pricingUrl === null || pricingRead === null
-      ? null
-      : { url: pricingUrl, facts: stampedAt(pricingRead.facts, at) };
 
   // 3. The caller's pages, capped by the tier's allowance, deduplicated
   //    against what was already read, in the order given.
@@ -309,72 +308,107 @@ export async function measureDomain(
     seen.add(url);
     extra.push(url);
   }
-  const extraFacts: Measured<OnPageFacts>[] = [];
-  for (const url of extra) {
-    extraFacts.push(stampedAt((await readDocument(c, ports, url)).facts, at));
-  }
 
-  // 4. The robots policy at the origin. `absent` is a read with nothing in
-  //    it (the `zero` arm); a reader that cannot determine is `undeterminable`.
-  let robots: Measured<RobotsPolicy>;
-  try {
-    const policy = await ports.readRobots(new URL(homeUrl).origin);
-    robots = !policy.ok
-      ? unmeasured("undeterminable", at)
-      : policy.absent
-        ? measuredZero(policy, at)
-        : measured(policy, at);
-  } catch {
-    robots = unmeasured("undeterminable", at);
-  }
+  // 4–5. The reads that do not depend on each other, concurrently (issue
+  //      #539).
+  //
+  // Nothing below the home document depends on anything else below it: the
+  // pricing page and the caller's extra pages are other documents, the
+  // robots policy is a different URL at the same origin, and
+  // `ranked_keywords` is a vendor call about the domain that reads no
+  // document at all. They were awaited one after another, so a slow robots
+  // read delayed a priced call that had nothing to do with it, and
+  // `reading_your_site` spent far more of the pass's ceiling than its work
+  // needed — the serialised shape issue #539 names.
+  //
+  // **Concurrency here buys time and never money.** `recordFetch` sums the
+  // reservations of every call in flight (`src/lib/costs/index.ts`), so the
+  // cap is checked against all of them together; and the only priced call
+  // of the four is the ranked rows, the other three being own-document
+  // reads ledgered at zero cents, which cannot move a cap whatever order
+  // they run in. That is also why `capHit()` read once at the start of the
+  // ranked task below decides exactly what it decided when this was
+  // sequential.
+  //
+  // The customer's own extra pages stay sequential *within* their own task:
+  // they are one server, and asking it for twenty-five pages at once is a
+  // load this product has no business putting on it.
+  const [pricingRead, extraFacts, robots, presence] = await Promise.all([
+    pricingUrl === null ? Promise.resolve(null) : readDocument(c, ports, pricingUrl),
 
-  // 5. The one priced call. `capHit()` first — the ceiling names itself in
-  //    the log and the call is not made (BUILD §6.5, BP-010 NFR budget).
-  let searchPresence: Measured<number>;
-  // The same rows, read a second way: the count itself, which §6.6's
-  // banding and §7's bars are expressed in multiples of. Never a second
-  // call — it is assigned in every arm below, beside the driver.
-  let ownRanked: Measured<number>;
-  if (c.capHit()) {
-    logDriver("driver_not_attempted", { driver: "searchPresence", ceiling: "spend_cap", domain: a.domain });
-    searchPresence = unmeasured("not_attempted", at);
-    ownRanked = unmeasured("not_attempted", at);
-  } else {
-    // A failed call is ledgered as the failure and answers `unmeasured`
-    // (issue #504); this is where the stage hears which failure it was, so
-    // the reason it logs is the vendor's and never a ledger insert's.
-    const heard: { failure: VendorFailure | null } = { failure: null };
-    try {
-      const ranked = await ports.rankedKeywords(c, {
-        domain: a.domain,
-        rows: RANKED_ROWS_BY_TIER[a.tier],
-        onFailure: (failure) => {
-          heard.failure = failure;
-        },
-      });
-      if (heard.failure !== null) {
+    (async (): Promise<Measured<OnPageFacts>[]> => {
+      const facts: Measured<OnPageFacts>[] = [];
+      for (const url of extra) facts.push(stampedAt((await readDocument(c, ports, url)).facts, at));
+      return facts;
+    })(),
+
+    // The robots policy at the origin. `absent` is a read with nothing in
+    // it (the `zero` arm); a reader that cannot determine is
+    // `undeterminable`.
+    (async (): Promise<Measured<RobotsPolicy>> => {
+      try {
+        const policy = await ports.readRobots(new URL(homeUrl).origin);
+        return !policy.ok
+          ? unmeasured("undeterminable", at)
+          : policy.absent
+            ? measuredZero(policy, at)
+            : measured(policy, at);
+      } catch {
+        return unmeasured("undeterminable", at);
+      }
+    })(),
+
+    // The one priced call. `capHit()` first — the ceiling names itself in
+    // the log and the call is not made (BUILD §6.5, BP-010 NFR budget).
+    // The same rows are read two ways: the driver, and the count itself,
+    // which §6.6's banding and §7's bars are expressed in multiples of.
+    // Never a second call — both are returned from this one answer.
+    (async (): Promise<{ searchPresence: Measured<number>; ownRanked: Measured<number> }> => {
+      if (c.capHit()) {
+        logDriver("driver_not_attempted", { driver: "searchPresence", ceiling: "spend_cap", domain: a.domain });
+        return { searchPresence: unmeasured("not_attempted", at), ownRanked: unmeasured("not_attempted", at) };
+      }
+      // A failed call is ledgered as the failure and answers `unmeasured`
+      // (issue #504); this is where the stage hears which failure it was, so
+      // the reason it logs is the vendor's and never a ledger insert's.
+      const heard: { failure: VendorFailure | null } = { failure: null };
+      try {
+        const ranked = await ports.rankedKeywords(c, {
+          domain: a.domain,
+          rows: RANKED_ROWS_BY_TIER[a.tier],
+          onFailure: (failure) => {
+            heard.failure = failure;
+          },
+        });
+        if (heard.failure !== null) {
+          logDriver("driver_undeterminable", {
+            driver: "searchPresence",
+            domain: a.domain,
+            because: heard.failure.vendorFailure,
+            endpoint: heard.failure.endpoint,
+          });
+        }
+        // One answer, both readings: §5's reach and §6.6's own count are the
+        // vendor's total (#117, #529); §5's top-10 share is over the rows
+        // bought. `searchPresenceOf` takes the whole answer for that reason.
+        return { searchPresence: searchPresenceOf({ ranked, at }), ownRanked: ownRankedOf({ ranked, at }) };
+      } catch (error) {
         logDriver("driver_undeterminable", {
           driver: "searchPresence",
           domain: a.domain,
-          because: heard.failure.vendorFailure,
-          endpoint: heard.failure.endpoint,
+          because: error instanceof Error ? error.message : String(error),
         });
+        return { searchPresence: unmeasured("undeterminable", at), ownRanked: unmeasured("undeterminable", at) };
       }
-      // One answer, both readings: §5's reach and §6.6's own count are the
-      // vendor's total (#117, #529); §5's top-10 share is over the rows
-      // bought. `searchPresenceOf` takes the whole answer for that reason.
-      searchPresence = searchPresenceOf({ ranked, at });
-      ownRanked = ownRankedOf({ ranked, at });
-    } catch (error) {
-      logDriver("driver_undeterminable", {
-        driver: "searchPresence",
-        domain: a.domain,
-        because: error instanceof Error ? error.message : String(error),
-      });
-      searchPresence = unmeasured("undeterminable", at);
-      ownRanked = unmeasured("undeterminable", at);
-    }
-  }
+    })(),
+  ]);
+
+  const pricingHtml = pricingRead === null ? null : pricingRead.html;
+  const pricing =
+    pricingUrl === null || pricingRead === null
+      ? null
+      : { url: pricingUrl, facts: stampedAt(pricingRead.facts, at) };
+  const { searchPresence, ownRanked } = presence;
 
   // 6. The four measured quantities.
   const pages: Measured<OnPageFacts>[] = [onPage, ...(pricing === null ? [] : [pricing.facts]), ...extraFacts];

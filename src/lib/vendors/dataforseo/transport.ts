@@ -143,10 +143,28 @@ export async function sendGet<T>(path: string): Promise<DataForSeoOutcome<T>> {
   });
 }
 
+/** The wall clock one vendor request may hold, in milliseconds.
+ *
+ *  **There was no bound at all** (issue #539). `fetch` was called with no
+ *  signal, so a vendor that accepted the connection and then said nothing
+ *  held the request open until the platform froze the whole invocation —
+ *  and `isTimeout` below, which exists to classify precisely that, could
+ *  only ever have seen a timeout somebody else set. A free pass's stage
+ *  budget (`src/lib/scan/budgets.ts`) bounds the *stage* around such a
+ *  call, but the request itself is this module's to bound, and the two
+ *  passes with no report deadline at all have nothing else that would.
+ *
+ *  10 s is under every per-stage budget in `STAGE_BUDGETS`, so a single
+ *  unanswered request comes back as this module's own `timeout` failure —
+ *  ledgered, and `undeterminable` for the one driver that asked — rather
+ *  than being the thing that spends the whole stage. Reversal cost: one
+ *  constant, this file only. */
+const REQUEST_TIMEOUT_MS = 10_000;
+
 async function issue<T>(url: string, init: RequestInit): Promise<DataForSeoOutcome<T>> {
   let response: Response;
   try {
-    response = await fetch(url, init);
+    response = await fetch(url, { ...init, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
   } catch (error) {
     return {
       ok: false,
