@@ -28,17 +28,15 @@ import type { PageRecord } from "@/lib/publish/record";
 // and this fixture is on the reserved account's path, which reaches no
 // database at all (`provider.ts` says why).
 import { SEO_COPY } from "@/lib/publish/record/lines";
+import type { PublishingMode } from "@/lib/publish/types";
 import { FIXTURE_SHELL_FACTS } from "../../_shell/fixture";
 import type { DraftFacts } from "./model";
 
-// The zone and the publishing mode are the *site's*, not this screen's, so
-// they are read from the one fixture that already declares them rather
-// than declared a second time: the shell states the mode on every screen
-// (REQ-040 c3), and a draft view that disagreed with the sidebar about
-// whether autopilot is on would be stating two different futures for the
-// same page.
+// The zone is the *site's*, not this screen's, so it is read from the one
+// fixture that already declares it rather than declared a second time. The
+// mode is the machine's own datum and §7 leaves one value for it.
 export const FIXTURE_TIME_ZONE = FIXTURE_SHELL_FACTS.timeZone;
-export const FIXTURE_MODE = FIXTURE_SHELL_FACTS.mode;
+export const FIXTURE_MODE: PublishingMode = "autopilot";
 /** The draft the calendar's day panel opens on today, and the id
  *  `tests/ui/layout/routes.ts` fills `[draftId]` with. */
 export const FIXTURE_DRAFT_ID = "draft-2026-09-15";

@@ -17,7 +17,6 @@
 // `_setup/fixture.ts` remains, recording what it was asked to do, for the
 // suites that drive `completeSetup` without a database. This file holds
 // neither, and nothing here pretends a row was written.
-import type { PublishingMode } from "@/lib/publish/setup/cards";
 import { BATTERY } from "@/lib/config/constants";
 import { registrableDomain } from "@/lib/market/rivals/domains";
 
@@ -29,7 +28,6 @@ export interface SetupSubmission {
   category: string;
   /** At most `BATTERY.COMPETITORS_MAX`; an empty set is legal (REQ-026 c11). */
   competitors: readonly string[];
-  mode: PublishingMode;
   /** REQ-028 c3: WordPress can be deferred and setup still completes. */
   destination: { kind: "hosted" } | { kind: "wordpress"; connectLater: true };
 }

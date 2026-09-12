@@ -19,9 +19,28 @@
 // The column stores hours (`sites.veto_hours`, §10) and the stepper offers
 // whole days (`VETO.minDays`…`VETO.maxDays`); these two functions are the
 // whole of the difference between those facts.
+import { VETO } from "@/lib/config/constants";
 
 /** §4.7's own unit relationship, and the only place it is written. */
 const HOURS_PER_DAY = 24;
+
+/** The floor, as one number: §7's "range of 1-7 days; there is no zero
+ *  window". Stated from `VETO.minDays` so the range and the floor cannot
+ *  disagree. */
+function floorHours(): number {
+  return vetoHoursFromDays(VETO.minDays);
+}
+
+/**
+ * A stored `sites.veto_hours`, as every reader of the governing pair sees
+ * it: §7 gives every draft a veto path, so a window below the floor reads
+ * as the floor and an unreadable one as the default. The one clamp — the
+ * settings parser and the machine's pair both come through here.
+ */
+export function storedVetoHours(value: unknown): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) return VETO.defaultHours;
+  return Math.max(value, floorHours());
+}
 
 /** Days to hours, in the one place the conversion exists. */
 export function vetoHoursFromDays(days: number): number {

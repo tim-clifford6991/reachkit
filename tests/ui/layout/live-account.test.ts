@@ -40,6 +40,9 @@ import {
   WEEK_ZERO_ACCOUNT,
 } from "./seed";
 import { FIXTURE_SETTINGS_FACTS } from "@/app/(account)/app/settings/fixture";
+import { copy } from "@/lib/presentation/copy";
+// The pure leaf, not the settings barrel: that one resolves `publishDb()`.
+import { vetoDaysFromHours } from "@/lib/publish/settings/veto";
 import { widths } from "./widths";
 
 const APP_ROOT = path.resolve(__dirname, "../../../src/app");
@@ -212,7 +215,7 @@ describe(`live-branch sweep — ${routes.length} route(s) × 5 widths`, () => {
       // Until #228 `readSettings` opened with `{ ...FIXTURE_SETTINGS_FACTS,
       // ...four live overrides }`, so `/app/settings` rendered, passed
       // every check above, and told a real customer their pages publish at
-      // 09:00 under a mode they never chose. What distinguishes the two is
+      // 09:00 on a window they never chose. What distinguishes the two is
       // the *values on the page*, so those are what this reads.
       const text = await withPage(
         widths()[0],
@@ -224,9 +227,14 @@ describe(`live-branch sweep — ${routes.length} route(s) × 5 widths`, () => {
       );
 
       // Chosen, and seeded as such: the publish time, the veto window and
-      // the domain this account owns.
+      // the domain this account owns. The window is read in the words the
+      // screen states it in — whole days, never the hours the column holds.
       expect(text).toContain(LIVE_PUBLISHING.publishTime);
-      expect(text).toContain(String(LIVE_PUBLISHING.vetoHours));
+      expect(text).toContain(
+        copy("settings.publishing.veto.days", {
+          days: String(vetoDaysFromHours(LIVE_PUBLISHING.vetoHours)),
+        })
+      );
       expect(text).toContain(LIVE_ACCOUNT.domain);
 
       // And not the fixture's, which is the same screen's other arm. The

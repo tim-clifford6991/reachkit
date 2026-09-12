@@ -278,7 +278,9 @@ export const MAIL_COPY = Object.freeze({
     "Publishes {publishesAt}. No veto window set.",
     { slots: { publishesAt: "date" }, fixedBy: "REQ-057 c7" },
   ],
-  "mail.draftReady.copilot": ["It will not publish until you approve it.", { slots: {}, fixedBy: "REQ-057 c1" }],
+  // Minted and empty since §7 (2026-09-11): no site can be in the mode this
+  // arm tells, so the mail it belongs to can no longer be composed.
+  "mail.draftReady.copilot": ["", { slots: {}, fixedBy: "REQ-057 c1 · §7" }],
 
   // Four for REQ-057 c9's destination clause — what the telling says about
   // a page bound for the customer's own site. `{site}` is the address the
@@ -286,9 +288,9 @@ export const MAIL_COPY = Object.freeze({
   //
   // Three of them differ only in what they say about *when*, which is
   // exactly the distinction c9 draws: "it says the page goes live there
-  // then" (an interval), "goes live there only once they approve"
-  // (copilot), and the zero-window case where it goes live at the stated
-  // moment with no interval at all.
+  // then" (an interval), "goes live there only once they approve" (the
+  // approval arm), and the case where it goes live at the stated moment
+  // with no interval at all.
   "mail.draftReady.dest.goesLiveThen": ["It goes live on {site} at that moment, readable by anyone. It does not wait there as a draft.", { slots: { site: "text" }, fixedBy: "REQ-057 c9" }],
   "mail.draftReady.dest.goesLiveAtOnce": ["It goes live on {site} the moment it publishes, readable by anyone. It does not wait there as a draft.", { slots: { site: "text" }, fixedBy: "REQ-057 c9" }],
   "mail.draftReady.dest.goesLiveOnApproval": [

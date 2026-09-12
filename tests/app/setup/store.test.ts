@@ -52,7 +52,6 @@ const SUBMISSION = {
   domain: "example.com",
   category: "project management software for agencies",
   competitors: ["asana.com", "monday.com"],
-  mode: "copilot" as const,
   destination: { kind: "wordpress" as const, connectLater: true as const },
 };
 
@@ -105,14 +104,14 @@ describe("readProgress — the one predicate every account route consults", () =
 });
 
 describe("commitSetup — the three answers, the transaction, then the stamp", () => {
-  it("writes the answers, applies the mode-and-destination pair, and stamps completion", async () => {
+  it("writes the answers, applies the destination transaction, and stamps completion", async () => {
     await liveSetupStore().commitSetup({ siteId: SITE, submission: SUBMISSION });
 
     const row = db.tables.sites![0]!;
     expect(row.domain).toBe("example.com");
     expect(row.category).toBe(SUBMISSION.category);
     expect(row.competitors).toEqual(["asana.com", "monday.com"]);
-    expect(row.mode).toBe("copilot");
+    expect(row.mode).toBe("autopilot");
     expect(row.setup_completed_at).not.toBeNull();
 
     expect(db.tables.destinations).toHaveLength(1);

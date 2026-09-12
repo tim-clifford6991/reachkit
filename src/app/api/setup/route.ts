@@ -37,7 +37,6 @@ function parseSubmission(body: unknown): SetupSubmission | null {
   if (typeof b.domain !== "string") return null;
   if (typeof b.category !== "string") return null;
   if (!Array.isArray(b.competitors) || b.competitors.some((c) => typeof c !== "string")) return null;
-  if (b.mode !== "autopilot" && b.mode !== "copilot") return null;
 
   const destination = b.destination;
   if (typeof destination !== "object" || destination === null) return null;
@@ -48,7 +47,6 @@ function parseSubmission(body: unknown): SetupSubmission | null {
     domain: b.domain,
     category: b.category,
     competitors: b.competitors as string[],
-    mode: b.mode,
     destination: kind === "hosted" ? { kind: "hosted" } : { kind: "wordpress", connectLater: true },
   };
 }

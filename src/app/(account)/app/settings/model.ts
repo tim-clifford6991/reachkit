@@ -10,7 +10,7 @@
 // the shell. Keeping the assembly pure is what lets every criterion be
 // decided by a test with no database at all.
 //
-// The model carries a value for each of the fourteen `SETTABLE` keys and
+// The model carries a value for each `SETTABLE` key and
 // nothing a control could bind to besides. It carries no measurement, no
 // derived number and no billing figure at all: REQ-097 keeps the next
 // invoice, the card and the invoice history off every ReachKit surface
@@ -35,7 +35,6 @@ import { effectiveOn } from "@/lib/market/changes/pending";
 import { CHANGE_COPY_KEY } from "../calendar/change-line";
 import type { DestinationView } from "@/lib/publish/types";
 import type { ACCOUNT_NOTE_KEYS } from "@/lib/account/identity/notes";
-import type { PublishingMode } from "../_shell/model";
 import { formatDate, formatDateTime } from "../_shell/format";
 import type { BillingSummary, PlanState } from "./billing";
 import { notificationRows, type NotificationRow, type NotifyKind } from "./notifications";
@@ -62,8 +61,7 @@ export type {
 } from "@/lib/publish/types";
 
 export interface PublishingSettings {
-  mode: PublishingMode;
-  /** A whole multiple of 24 in [0, 168] — the screen's whole days 0 to 7
+  /** A whole multiple of 24 in [24, 168] — the screen's whole days 1 to 7
    *  (`VETO.minDays` / `VETO.maxDays`). The value the validator produced,
    *  not a value this module checked. */
   vetoHours: number;
@@ -222,7 +220,6 @@ export interface SettingsFacts {
   editing: "domain" | "category" | null;
   category: string;
   competitors: readonly string[];
-  mode: PublishingMode;
   vetoHours: number;
   publishTime: string;
   timeZone: string;
@@ -320,7 +317,6 @@ export function assembleSettings(facts: SettingsFacts): SettingsModel {
     competitors: facts.competitors,
     domain: facts.domain,
     publishing: {
-      mode: facts.mode,
       vetoHours: facts.vetoHours,
       publishTime: facts.publishTime,
       timeZone: facts.timeZone,

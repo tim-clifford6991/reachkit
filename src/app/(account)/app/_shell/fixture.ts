@@ -33,7 +33,7 @@ export const FIXTURE_SHELL_FACTS: ShellFacts = Object.freeze({
   // US-English (DECISIONS 2026-08-28), so the fixture's site sits in a US
   // zone rather than the machine's.
   timeZone: "America/New_York",
-  mode: "autopilot",
+  publishingEnabled: true,
   weeks: Object.freeze([
     { domain: FIXTURE_DOMAIN, weekStart: MONDAY(17), measured: true },
     { domain: FIXTURE_DOMAIN, weekStart: MONDAY(24), measured: true },

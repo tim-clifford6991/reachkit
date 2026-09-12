@@ -21,7 +21,7 @@ import type { CopyKey } from "@/lib/presentation/copy";
 import type { RecordedFact } from "@/lib/generate/fact";
 import type { PageRecord } from "@/lib/publish/record";
 import type { RailCheck } from "./checks";
-import type { PublishingMode } from "../../_shell/model";
+import type { PublishingMode } from "@/lib/publish/types";
 import type { State } from "../../calendar/stages";
 import { factPresentIn } from "./grounded";
 

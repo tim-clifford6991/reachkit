@@ -48,7 +48,7 @@ const MONDAY = (day: number): Date => new Date(Date.UTC(2026, 8, day, 6, 0, 0));
 export const COLD_START_SHELL_FACTS: ShellFacts = Object.freeze({
   domain: COLD_START_DOMAIN,
   timeZone: "America/New_York",
-  mode: "autopilot",
+  publishingEnabled: true,
   weeks: Object.freeze([]),
   firstDueOn: MONDAY(14),
   waiting: 0,

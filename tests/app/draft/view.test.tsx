@@ -283,16 +283,15 @@ describe("REQ-045 c4 — told what happens if nothing is done, and able to appro
     expect(textOf(markup(), "draft-do-nothing-at")).toContain("Sep 16, 2026");
   });
 
-  it("under copilot it states no time, because nothing happens", () => {
-    // The pair `doNothingOf` answers under copilot: its own key, and no
-    // time. The key carries a sentence since #460, so it is read back too.
+  it("the arm §7 left behind states no time and no sentence, and the box still renders", () => {
+    // `draft.do-nothing.copilot` is minted and empty since §7 abolished the
+    // mode it speaks for: the box keeps its title and says nothing else.
     const root = markup({
       ...VIEW,
       doNothing: { key: "draft.do-nothing.copilot", publishesAt: null },
     });
     expect(root.querySelector('[data-testid="draft-do-nothing-at"]')).toBeNull();
-    expect(textOf(root, "draft-do-nothing")).toContain(copy("draft.do-nothing.title"));
-    expect(textOf(root, "draft-do-nothing")).toContain(copy("draft.do-nothing.copilot"));
+    expect(textOf(root, "draft-do-nothing")).toBe(copy("draft.do-nothing.title"));
   });
 
   it("a page past review offers no control at all, and still renders whole", () => {

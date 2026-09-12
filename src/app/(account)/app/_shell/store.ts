@@ -41,7 +41,6 @@ export interface ShellSite {
   siteId: string;
   domain: string;
   timeZone: string;
-  mode: "autopilot" | "copilot";
   createdAt: Date;
 }
 
@@ -174,7 +173,7 @@ export async function readShellFacts(site: ShellSite): Promise<ShellFacts> {
   return {
     domain: site.domain,
     timeZone: site.timeZone,
-    mode: site.mode,
+    publishingEnabled: publishingOn,
     weeks,
     firstDueOn,
     waiting,

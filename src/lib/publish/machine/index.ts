@@ -18,7 +18,7 @@
 // somewhere else: `state` in the refusal is the state the page still holds.
 //
 // The archived plan is WO-209.
-import { VETO } from "@/lib/config/constants";
+import { storedVetoHours } from "../settings/veto";
 import { publishDb } from "../db";
 import type { Actor, DraftView, State, ToldRecord, TransitionRecord } from "../types";
 import {
@@ -269,7 +269,7 @@ export function toMachineDraft(row: DraftRow): MachineDraft {
     told: toldOf(row.told),
     governing: {
       mode: row.sites?.mode === "copilot" ? "copilot" : "autopilot",
-      vetoHours: typeof row.sites?.veto_hours === "number" ? row.sites.veto_hours : VETO.defaultHours,
+      vetoHours: storedVetoHours(row.sites?.veto_hours),
       publishTime: publishTimeOf(row.sites?.publish_time ?? null),
       timezone: typeof row.sites?.timezone === "string" ? row.sites.timezone : null,
     },

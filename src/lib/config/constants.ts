@@ -364,7 +364,7 @@ export const SUPPLY = Object.freeze({
 } as const);
 
 export const VETO = Object.freeze({
-  defaultHours: 24, minDays: 0, maxDays: 7,
+  defaultHours: 24, minDays: 1, maxDays: 7,
 } as const);
 
 export const RATE_LIMITS = Object.freeze({

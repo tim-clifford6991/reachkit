@@ -234,40 +234,21 @@ describe("it refuses to speak about a page this occasion has not arisen for", ()
   });
 });
 
-describe("REQ-057 c7 — the zero-window mail is the whole of the telling", () => {
+describe("§7 — there is no zero window, so every draft is mailed a veto path", () => {
   beforeEach(() => {
+    // A window stored below the floor — the state the migration's constraint
+    // now refuses and the parser's clamp still answers for.
     seed({ site: { veto_hours: 0 } });
   });
 
-  it("it says there is no interval, offers no stop link, and is sent anyway", async () => {
+  it("the mail names the moment it publishes and offers the stop link", async () => {
     const outcome = await sendDraftReadyMail({ draftId: "d1", destination: "wordpress", at: AT });
 
     expect(outcome.sent).toBe(true);
     expect(sent[0]!.blocks.find((b) => b.block === "paragraph")?.text).toBe(
-      "mail.draftReady.autopilotZero"
+      "mail.draftReady.autopilotWindow"
     );
-    // No link, because no link would stop it — an offer the product could
-    // not keep.
-    expect(sent[0]!.blocks.find((b) => b.block === "action")).toBeUndefined();
-    // The one occasion the customer's own switch is not asked.
-    expect(sent[0]!.suppressible).toBe(false);
-  });
-});
-
-describe("copilot — nothing happens until they approve", () => {
-  beforeEach(() => {
-    seed({ site: { mode: "copilot" } });
-  });
-
-  it("it names no moment and offers no stop link, and the switch is asked as usual", async () => {
-    const outcome = await sendDraftReadyMail({ draftId: "d1", destination: "wordpress", at: AT });
-
-    expect(outcome.sent).toBe(true);
-    const paragraph = sent[0]!.blocks.find((b) => b.block === "paragraph");
-    expect(paragraph?.text).toBe("mail.draftReady.copilot");
-    expect(paragraph?.vars).toBeUndefined();
-    expect(sent[0]!.blocks.find((b) => b.block === "action")).toBeUndefined();
-    expect(sent[0]!.suppressible).toBeUndefined();
+    expect(sent[0]!.blocks.find((b) => b.block === "action")).toBeDefined();
   });
 });
 

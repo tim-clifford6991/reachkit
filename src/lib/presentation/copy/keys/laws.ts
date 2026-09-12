@@ -38,7 +38,7 @@
 // value, and every one of them is a **transcription** of a word `BUILD.md`
 // itself prints, on the same footing as the thirteen band words: §4.4's
 // "nav **Overview / Calendar / Settings**" and §4.3's "Autopilot (default,
-// selected) vs Copilot". Nothing here is composed.
+// selected)". Nothing here is composed.
 //
 // 2026-09-06, issue #20 (REQ-091/REQ-092): seven values moved from `""` to
 // `TODO(copy)` — `stopped.work.resumes-on`, `stopped.work.no-time-promised`,
@@ -141,15 +141,14 @@ export const LAWS_COPY = Object.freeze({
   "shell.nav.overview": ["Overview", { slots: {}, fixedBy: "REQ-040 c1" }],
   "shell.nav.calendar": ["Calendar", { slots: {}, fixedBy: "REQ-040 c1" }],
   "shell.nav.settings": ["Settings", { slots: {}, fixedBy: "REQ-040 c1" }],
-  "shell.publishing.mode.autopilot": ["Autopilot", { slots: {}, fixedBy: "REQ-040 c3" }],
-  "shell.publishing.mode.copilot": ["Copilot", { slots: {}, fixedBy: "REQ-040 c3" }],
-  // What the mode is doing, under the mode's own word (UI-SPEC S12's
-  // autopilot card: the eyebrow, then "Publishing daily", then the next
-  // line). The autopilot arm is unbracketed in the set and so approved
-  // (11a); the set draws no copilot sidebar, so its sentence is the
-  // owner's (#460).
+  // The one word the sidebar card carries, as every app artboard draws it.
+  // §7 (2026-09-11) abolished the second: there is no mode to choose, so
+  // there is no second word and no key for one.
+  "shell.publishing.mode.autopilot": ["Autopilot", { slots: {}, fixedBy: "REQ-040 c3 · §7" }],
+  // What publishing is doing, under that word (UI-SPEC S12's card: the
+  // eyebrow, then "Publishing daily", then the next line). Unbracketed in
+  // the set and so approved (11a).
   "shell.publishing.state.autopilot": ["Publishing daily", { slots: {}, fixedBy: "S12" }],
-  "shell.publishing.state.copilot": ["Publishing on your approval", { slots: {}, fixedBy: "REQ-040 c3" }],
   // UI-SPEC S13: before the first weekly pass, what the mode is doing is
   // waiting on the deep pass. The *next* line beside it is still
   // `nextPublishStatement`'s — the set draws "deep pass running" there,

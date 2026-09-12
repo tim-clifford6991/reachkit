@@ -209,11 +209,11 @@ describe("what waits on the customer", () => {
 });
 
 describe("the site's own facts are carried through, never a fixture's", () => {
-  it("domain, zone and mode are the account's", async () => {
+  it("domain, zone and the publishing switch are the account's", async () => {
     const facts = await readShellFacts(SITE);
     expect(facts.domain).toBe("acme.test");
     expect(facts.timeZone).toBe("America/New_York");
-    expect(facts.mode).toBe("autopilot");
+    expect(facts.publishingEnabled).toBe(true);
   });
 
   it("the weeks come from §11's own rows, asked for this site", async () => {

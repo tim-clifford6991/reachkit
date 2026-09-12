@@ -23,9 +23,9 @@
 // estimate, a countdown, a clock or a percentage, and each carries a
 // mutation check proving the scan still catches one.
 //
-// The two publishing *mode* names are not here: §4.3's "Autopilot" and
-// "Copilot" are already `shell.publishing.mode.*` in `laws.ts`, which the
-// app shell renders on every screen. One word, one key, both surfaces.
+// The publishing mode's own word is not here: "Autopilot" is already
+// `shell.publishing.mode.autopilot` in `laws.ts`, which the app shell
+// renders on every screen. One word, one key, both surfaces.
 //
 // 2026-09-10, issue #460: every sentence this partition still owed is now
 // written — the owner approved the master's drafted set ("copy proposal
@@ -140,12 +140,14 @@ export const SETUP_COPY = Object.freeze({
   "setup.competitors.refused.already-present": ["That domain is already in your set.", { slots: {}, fixedBy: "REQ-026 c8" }],
   "setup.competitors.refused.set-full": ["Your set is full. Remove a rival to add another.", { slots: {}, fixedBy: "REQ-026 c9" }],
 
-  // ── Mode + destination (REQ-028) ────────────────────────────────────
-  "setup.publishing.title": ["Mode + destination", { slots: {}, fixedBy: "REQ-028 c1 · S10 (11a)" }],
-  /** REQ-028 c1: one written line each — pages publish after a review
-   *  window they can stop, versus only when they approve. */
+  // ── Publishing: the destination, and what will happen (REQ-028) ─────
+  // The card's own eyebrow, as the approved artboard draws it
+  // (`Canvas: OnboardingPublishing`). It named a mode choice until §7
+  // (2026-09-11) abolished the choice.
+  "setup.publishing.title": ["Publishing", { slots: {}, fixedBy: "REQ-028 c1 · S10 (11a)" }],
+  /** The one written line saying what will happen to every page — the
+   *  sentence the artboard draws beside the veto window. */
   "setup.mode.autopilot": ["Each page publishes when its veto window ends, unless you stop it.", { slots: {}, fixedBy: "REQ-028 c1" }],
-  "setup.mode.copilot": ["Nothing publishes until you approve it.", { slots: {}, fixedBy: "REQ-028 c1" }],
   "setup.destination.hosted.name": ["Hosted blog", { slots: {}, fixedBy: "REQ-028 c2" }],
   "setup.destination.hosted": ["a blog on your own domain, served by us", { slots: {}, fixedBy: "REQ-028 c2" }],
   "setup.destination.wordpress.name": ["WordPress", { slots: {}, fixedBy: "REQ-028 c3" }],

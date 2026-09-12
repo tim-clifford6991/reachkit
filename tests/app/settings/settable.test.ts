@@ -17,13 +17,12 @@ import { describe, expect, it } from "vitest";
 import { ACTIONS, SETTABLE } from "@/app/(account)/app/settings/settable";
 import * as constants from "@/lib/config/constants";
 
-describe("REQ-070 c1 — SETTABLE is the fourteen keys, closed", () => {
+describe("REQ-070 c1 — SETTABLE is the thirteen keys, closed", () => {
   it("is exactly criterion 1's list, in the order WO-178 declares it", () => {
     expect([...SETTABLE]).toEqual([
       "category",
       "competitors",
       "domain",
-      "mode",
       "veto_hours",
       "publish_time",
       "time_zone",
@@ -37,9 +36,13 @@ describe("REQ-070 c1 — SETTABLE is the fourteen keys, closed", () => {
     ]);
   });
 
-  it("holds fourteen keys and no duplicate", () => {
-    expect(SETTABLE).toHaveLength(14);
-    expect(new Set(SETTABLE).size).toBe(14);
+  it("holds thirteen keys and no duplicate", () => {
+    expect(SETTABLE).toHaveLength(13);
+    expect(new Set(SETTABLE).size).toBe(13);
+  });
+
+  it("the publishing mode is not among them — §7 leaves one mode, so it is not a setting", () => {
+    expect([...SETTABLE]).not.toContain("mode");
   });
 });
 

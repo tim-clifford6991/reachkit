@@ -28,7 +28,7 @@ const MONDAY = (day: number): Date => new Date(Date.UTC(2026, 8, day, 6, 0, 0));
 const BASE: ShellFacts = {
   domain: "example.com",
   timeZone: "America/New_York",
-  mode: "autopilot",
+  publishingEnabled: true,
   weeks: [
     { domain: "example.com", weekStart: MONDAY(7), measured: true },
     { domain: "example.com", weekStart: MONDAY(14), measured: true },
@@ -76,10 +76,10 @@ describe("REQ-040 c2 — the waiting count", () => {
   });
 });
 
-describe("REQ-040 c3 — the mode and the next scheduled publish", () => {
-  it("a scheduled publish carries the mode and the time, and no reason", () => {
-    const shell = assembleShell(facts({ mode: "copilot" }));
-    expect(shell.publishing.mode).toBe("copilot");
+describe("REQ-040 c3 — the publishing switch and the next scheduled publish", () => {
+  it("a scheduled publish carries the switch and the time, and no reason", () => {
+    const shell = assembleShell(facts({ publishingEnabled: false }));
+    expect(shell.publishing.enabled).toBe(false);
     expect(shell.publishing.next).toEqual(new Date(Date.UTC(2026, 8, 16, 13, 0, 0)));
     expect(shell.publishing).not.toHaveProperty("because");
   });
@@ -108,7 +108,7 @@ describe("REQ-040 c4 — no publish scheduled carries exactly one resolved reaso
         },
       })
     );
-    expect(shell.publishing).toEqual({ mode: "autopilot", next: null, because: "reachkit_stopped" });
+    expect(shell.publishing).toEqual({ enabled: true, next: null, because: "reachkit_stopped" });
   });
 
   it("nothing approved, alone, is the reason stated", () => {
@@ -118,14 +118,14 @@ describe("REQ-040 c4 — no publish scheduled carries exactly one resolved reaso
         noPublishCauses: { ...BASE.noPublishCauses, nothing_approved: true },
       })
     );
-    expect(shell.publishing).toEqual({ mode: "autopilot", next: null, because: "nothing_approved" });
+    expect(shell.publishing).toEqual({ enabled: true, next: null, because: "nothing_approved" });
   });
 
   it("no time and no cause at all is ReachKit's own stop (ADR-061), never a blank", () => {
     // "An unattributed empty day is ReachKit's own stop." There is no arm of
     // PublishingState with neither a time nor a reason.
     const shell = assembleShell(facts({ next: null }));
-    expect(shell.publishing).toEqual({ mode: "autopilot", next: null, because: "reachkit_stopped" });
+    expect(shell.publishing).toEqual({ enabled: true, next: null, because: "reachkit_stopped" });
   });
 });
 
@@ -151,7 +151,7 @@ describe("REQ-092 — a stop is carried, and no publish is scheduled while it st
     // The row says a publish is due on the 16th and ReachKit has stopped.
     // Carrying that time over would tell the customer the work is coming.
     const shell = assembleShell(facts({ stopped: STOP }));
-    expect(shell.publishing).toEqual({ mode: "autopilot", next: null, because: "reachkit_stopped" });
+    expect(shell.publishing).toEqual({ enabled: true, next: null, because: "reachkit_stopped" });
   });
 
   it("a stop outranks every other cause that is also true (ADR-011)", () => {
@@ -162,7 +162,7 @@ describe("REQ-092 — a stop is carried, and no publish is scheduled while it st
         noPublishCauses: { ...BASE.noPublishCauses, publishing_paused: true },
       })
     );
-    expect(shell.publishing).toEqual({ mode: "autopilot", next: null, because: "reachkit_stopped" });
+    expect(shell.publishing).toEqual({ enabled: true, next: null, because: "reachkit_stopped" });
   });
 });
 

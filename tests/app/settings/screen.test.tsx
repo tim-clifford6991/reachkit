@@ -163,7 +163,7 @@ async function click(el: Element): Promise<void> {
 }
 
 // ── REQ-070 criterion 1 ────────────────────────────────────────────────────
-describe("REQ-070 c1 — the rendered control set is exactly the fourteen SETTABLE keys", () => {
+describe("REQ-070 c1 — the rendered control set is exactly the thirteen SETTABLE keys", () => {
   it("every settable key has a control, and no control names a key outside the tuple", async () => {
     const root = await mountScreen();
     expect(testIds(root, "setting-")).toEqual([...SETTABLE].sort());
@@ -287,8 +287,8 @@ describe("REQ-070 c3 — no control over an engine or spend parameter renders", 
   it("and none is hidden behind a flag or a disclosure — a hidden control is still an offered one", async () => {
     const root = await mountScreen();
     // Nothing on the screen is withheld from the count: no collapsed section
-    // and no `hidden` subtree, so the fourteen counted above are the fourteen
-    // that exist, not the fourteen that happened to be open.
+    // and no `hidden` subtree, so the thirteen counted above are the thirteen
+    // that exist, not the thirteen that happened to be open.
     expect(root.querySelectorAll("details")).toHaveLength(0);
     expect(root.querySelectorAll("[hidden]")).toHaveLength(0);
     expect(root.querySelectorAll('[data-testid^="setting-"]')).toHaveLength(SETTABLE.length);

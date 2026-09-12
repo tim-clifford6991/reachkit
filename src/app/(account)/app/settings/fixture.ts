@@ -80,7 +80,6 @@ export const FIXTURE_SETTINGS_FACTS: SettingsFacts = Object.freeze({
     "whatfix.com",
     "chameleon.io",
   ]),
-  mode: "autopilot",
   // `VETO.defaultHours`. Written as the stored value rather than imported,
   // because a fixture states what this site happens to hold, not what the
   // default is — a fixture that tracked the constant would stop being a

@@ -67,7 +67,7 @@ const SCHEDULED: ShellModel = {
   timeZone: ZONE,
   weeks: { kind: "counted", weeks: 3, lastMeasuredOn: MONDAY(14) },
   waiting: 2,
-  publishing: { mode: "autopilot", next: new Date(Date.UTC(2026, 8, 16, 13, 0, 0)) },
+  publishing: { enabled: true, next: new Date(Date.UTC(2026, 8, 16, 13, 0, 0)) },
   stopped: null,
 };
 
@@ -143,8 +143,8 @@ describe("REQ-040 c2 — the Calendar destination's waiting count", () => {
 });
 
 // ── criterion 3 ─────────────────────────────────────────────────────────
-describe("REQ-040 c3 — the mode with the next publish time, in the customer's zone", () => {
-  it("renders the mode's own key and the scheduled-publish line's key", () => {
+describe("REQ-040 c3 — the publishing word with the next publish time, in the customer's zone", () => {
+  it("renders the one publishing word and the scheduled-publish line's key", () => {
     const root = render(<PublishingCard shell={SCHEDULED} />);
     expect(root.textContent).toContain("shell.publishing.mode.autopilot");
     expect(root.querySelector("[data-testid='shell-publishing-line']")?.textContent).toBe(
@@ -152,13 +152,13 @@ describe("REQ-040 c3 — the mode with the next publish time, in the customer's 
     );
   });
 
-  it("copilot renders the copilot word, and the toggle reports the mode it is in", () => {
-    const copilot: ShellModel = { ...SCHEDULED, publishing: { mode: "copilot", next: MONDAY(16) } };
-    const root = render(<PublishingCard shell={copilot} />);
-    expect(root.textContent).toContain("shell.publishing.mode.copilot");
+  it("§7 — the toggle reports the publishing switch, and no second mode is ever named", () => {
+    const paused: ShellModel = { ...SCHEDULED, publishing: { enabled: false, next: MONDAY(16) } };
+    const root = render(<PublishingCard shell={paused} />);
     expect(root.querySelector("input[type='checkbox']")?.hasAttribute("checked")).toBe(false);
-    const auto = render(<PublishingCard shell={SCHEDULED} />);
-    expect(auto.querySelector("input[type='checkbox']")?.hasAttribute("checked")).toBe(true);
+    const on = render(<PublishingCard shell={SCHEDULED} />);
+    expect(on.querySelector("input[type='checkbox']")?.hasAttribute("checked")).toBe(true);
+    expect(root.textContent?.toLowerCase()).not.toContain("copilot");
   });
 
   it("the time is formatted in the site's zone, not the machine's", () => {
@@ -178,7 +178,7 @@ describe("REQ-040 c3 — the mode with the next publish time, in the customer's 
 describe("REQ-040 c4 — with no publish scheduled, one line for the resolved reason", () => {
   const withReason = (because: "reachkit_stopped" | "publishing_paused" | "nothing_approved" | "nothing_planned"): ShellModel => ({
     ...SCHEDULED,
-    publishing: { mode: "autopilot", next: null, because },
+    publishing: { enabled: true, next: null, because },
   });
 
   it("the stopped arm resolves from next-publish.stopped — REQ-092 c7's own line", () => {
@@ -424,7 +424,6 @@ describe("the frame is the route's one screen root, and it invents no sentence",
       "shell.nav.calendar",
       "shell.nav.settings",
       "shell.publishing.mode.autopilot",
-      "shell.publishing.mode.copilot",
       "shell.domain.measured-weeks",
       "shell.domain.not-measured",
       "next-publish.scheduled",

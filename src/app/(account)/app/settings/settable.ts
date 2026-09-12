@@ -22,12 +22,12 @@
 // screen and the writer cannot disagree about what the offer is.
 
 /** REQ-070 criterion 1's list, as a closed tuple. A key absent from it cannot
- *  be written, because `SettableKey` is derived from it. */
+ *  be written, because `SettableKey` is derived from it. `mode` left it with
+ *  §7 (2026-09-11): Autopilot is the only mode, so it is not a setting. */
 export const SETTABLE = [
   "category",
   "competitors",
   "domain",
-  "mode",
   "veto_hours",
   "publish_time",
   "time_zone",
