@@ -29,7 +29,7 @@ import { assembleSetup, type SetupScreenModel } from "./facts";
 import { liveSetupStore, siteAddressFor } from "./store";
 import type { PassProgress } from "./progress";
 import type { SetupStore } from "../submit";
-import type { ReportFacts, SetupQuestion } from "@/lib/market/setup/state";
+import type { ReportFacts } from "@/lib/market/setup/state";
 
 /** The signed-in founder, or §4.3's refusal. `src/middleware.ts` has
  *  already refused a request carrying no cookie at all, so the `null` arm
@@ -195,34 +195,12 @@ export async function readReportFor(domain: string): Promise<ReportFacts | null>
             wording: question.text,
             search: question.search.keyword,
           })),
+    // §12 ruling 4's re-derivation reads this and nothing else: the market
+    // this scan already bought. A correction therefore costs no vendor
+    // call, no model call and no second measurement.
+    derivable:
+      report.market.kind === "unmeasured"
+        ? null
+        : { profile: report.market.value.profile, market: report.market.value.suggestions },
   };
-}
-
-/**
- * The twelve for a category the founder corrected — §12 ruling 4's
- * re-derivation, and the one seam that performs it.
- *
- * It re-selects over the market this account's stored report already holds
- * and words the result mechanically, so a correction costs no vendor call,
- * no model call and no second measurement. A market nobody measured, and a
- * read that fails, both yield none rather than a stale twelve.
- */
-export async function readQuestionsFor(
-  domain: string,
-  category: string
-): Promise<readonly SetupQuestion[]> {
-  let report: Awaited<ReturnType<typeof import("@/lib/scan/report").readCurrentReport>>;
-  try {
-    const { readCurrentReport } = await import("@/lib/scan/report");
-    report = await readCurrentReport(domain);
-  } catch {
-    return [];
-  }
-  if (report === null || report.market.kind === "unmeasured") return [];
-  const { rederiveQuestions } = await import("@/lib/market/questions/rederive");
-  return rederiveQuestions({
-    profile: report.market.value.profile,
-    market: report.market.value.suggestions,
-    category,
-  });
 }

@@ -67,6 +67,26 @@ export const FIXTURE_SETUP_FACTS: SetupFacts = Object.freeze({
           search: "how to bill a client for project work",
         },
       ]),
+      // What a corrected category re-derives over: the market this scan
+      // already bought, and the profile it read from the site.
+      derivable: Object.freeze({
+        profile: Object.freeze({
+          category: "project management software for agencies",
+          job: "run client projects",
+          offeringType: "saas",
+          audienceTerms: Object.freeze(["agencies", "studios"]),
+          namedRivals: Object.freeze(["asana.com", "monday.com", "clickup.com"]),
+          vocabulary: Object.freeze(["project", "agency", "client", "time", "tracking"]),
+          brandTokens: Object.freeze(["example"]),
+        }),
+        market: Object.freeze([
+          { keyword: "best project management software for agencies", volume: 1900 },
+          { keyword: "project management software for agencies", volume: 880 },
+          { keyword: "asana vs monday.com", volume: 720 },
+          { keyword: "clickup alternatives", volume: 590 },
+          { keyword: "best agency time tracking software", volume: 320 },
+        ]),
+      }),
     }),
   }),
   suggestedRivals: Object.freeze(["asana.com", "monday.com", "clickup.com", "notion.so"]),

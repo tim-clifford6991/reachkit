@@ -100,7 +100,6 @@ describe("REQ-025 c5 — an incomplete founder is returned to /setup from every 
       "/setup/waiting",
       "/api/setup",
       "/api/setup/domain",
-      "/api/setup/questions",
       "/api/setup/progress",
     ]) {
       expect(setupRedirectFor({ setup: INCOMPLETE, path })).toBeNull();

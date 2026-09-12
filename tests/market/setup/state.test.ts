@@ -20,19 +20,33 @@ import {
   type SetupState,
 } from "@/lib/market/setup/state";
 import { addRival } from "@/lib/market/setup/rivals";
+import { runtimeImportClosure } from "../questions/import-graph.ts";
 
+/** The profile that scan read. A correction replaces its category and
+ *  keeps the rest, which is `rederiveQuestions`' own rule. */
+const PROFILE = {
+  category: "agency CRM",
+  job: "run an agency",
+  offeringType: "saas",
+  audienceTerms: ["agencies"],
+  namedRivals: ["a.com"],
+  vocabulary: ["agency", "crm"],
+  brandTokens: ["example"],
+};
 const TWELVE = [{ wording: "What's the best agency CRM?", search: "best agency crm" }];
 const REPORT: ReportFacts = {
   scanId: "scan-1",
   category: "agency CRM",
   rivals: ["a.com"],
   questions: TWELVE,
+  derivable: { profile: PROFILE, market: [{ keyword: "best agency crm", volume: 1900 }] },
 };
 const OTHER: ReportFacts = {
   scanId: "scan-2",
   category: "law firm SEO",
   rivals: ["b.com"],
   questions: [{ wording: "What's the best law firm SEO agency?", search: "best law firm seo" }],
+  derivable: null,
 };
 
 function measured(domain = "example.com", report: ReportFacts = REPORT): SetupState {
@@ -289,41 +303,35 @@ describe("the module is pure, and closes no cycle into src/lib/scan", () => {
     }
   });
 
-  it("neither this module nor rivals.ts reaches a Node built-in, transitively — the client bundle carries them", () => {
+  it("nothing the client bundle carries reaches a Node built-in, transitively", () => {
     // The failure this guards is not hypothetical: importing
     // `registrableDomain` here once put `node:net` (via `parseDomain`'s
     // IP-literal rejection) into `/setup`'s client bundle, and Turbopack
     // refused the build outright — "the chunking context does not support
     // external modules (request: node:net)". `npm run test:layout` caught
     // it; this catches it a minute earlier, and names why.
+    //
+    // `runtimeImportClosure` walks the *runtime* graph: an `import type`
+    // is erased before a bundler sees it and cannot reach a built-in, so
+    // counting one would fail this on a type this module legitimately
+    // names. §12 ruling 4's re-derivation runs in the browser beside
+    // these two, so it is walked with them.
     const ROOT = path.resolve(__dirname, "../../..");
-    const seen = new Set<string>();
-    const external: string[] = [];
-    const queue = [
-      path.join(ROOT, "src/lib/market/setup/state.ts"),
-      path.join(ROOT, "src/lib/market/setup/rivals.ts"),
+    const entries = [
+      "src/lib/market/setup/state.ts",
+      "src/lib/market/setup/rivals.ts",
+      "src/lib/market/questions/rederive.ts",
     ];
 
-    while (queue.length > 0) {
-      const file = queue.shift();
-      if (!file || seen.has(file)) continue;
-      seen.add(file);
-      const source = readFileSync(file, "utf8");
-      for (const match of source.matchAll(/\bfrom\s+["']([^"']+)["']/g)) {
-        const specifier = match[1]!;
-        if (specifier.startsWith(".")) {
-          queue.push(path.resolve(path.dirname(file), `${specifier}.ts`));
-        } else if (specifier.startsWith("@/")) {
-          queue.push(path.join(ROOT, "src", `${specifier.slice(2)}.ts`));
-        } else {
-          external.push(specifier);
-        }
-      }
+    const reached = new Set<string>();
+    for (const entry of entries) {
+      for (const file of runtimeImportClosure(path.join(ROOT, entry))) reached.add(file);
     }
 
-    expect(seen.size).toBeGreaterThan(1);
-    for (const specifier of external) {
-      expect(specifier.startsWith("node:"), `reaches the Node built-in "${specifier}"`).toBe(false);
+    expect(reached.size).toBeGreaterThan(entries.length);
+    for (const file of reached) {
+      const source = readFileSync(path.join(ROOT, "src", file), "utf8");
+      expect(source, `${file} reaches a Node built-in`).not.toMatch(/from\s+["']node:/);
     }
   });
 

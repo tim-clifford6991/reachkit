@@ -31,6 +31,7 @@ function report(a: { rivals?: readonly string[]; category?: string | null } = {}
     category: a.category === undefined ? "project management software" : a.category,
     rivals: a.rivals ?? ["one.com", "two.com"],
     questions: [],
+    derivable: null,
   };
 }
 

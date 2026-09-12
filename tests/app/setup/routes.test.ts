@@ -101,7 +101,6 @@ describe("the boundary — every setup route is signed-in-only", () => {
     "/setup/waiting",
     "/api/setup",
     "/api/setup/domain",
-    "/api/setup/questions",
     "/api/setup/progress",
   ])(
     "%s without a session is redirected to the sign-in prompt",
@@ -122,7 +121,6 @@ describe("the boundary — every setup route is signed-in-only", () => {
     "/setup/waiting",
     "/api/setup",
     "/api/setup/domain",
-    "/api/setup/questions",
     "/api/setup/progress",
   ])(
     "%s with a session is served",
@@ -274,53 +272,26 @@ describe("POST /api/setup/domain — does this address resolve", () => {
       category: "project management software for agencies",
       rivals: ["asana.com", "monday.com", "clickup.com"],
       // The twelve that address's own scan derived travel with it, so the
-      // screen shows the new address's questions and not the old one's.
+      // screen shows the new address's questions and not the old one's —
+      // and beside them the market a corrected category re-derives over.
       questions: [
         {
           wording: "What's the best project management software for agencies?",
           search: "best project management software for agencies",
         },
       ],
+      derivable: {
+        profile: expect.objectContaining({
+          category: "project management software for agencies",
+        }) as unknown,
+        market: expect.any(Array) as unknown,
+      },
     });
   });
 
   it("a body with no host is a 400", async () => {
     const { POST } = await import("@/app/api/setup/domain/route");
     expect((await POST(post("/api/setup/domain", {}), undefined)).status).toBe(400);
-  });
-});
-
-describe("POST /api/setup/questions — a corrected category re-derives the twelve", () => {
-  it("re-selects over the market the stored report already holds", async () => {
-    const { POST } = await import("@/app/api/setup/questions/route");
-    const response = await POST(
-      post("/api/setup/questions", { domain: "example.com", category: "agency time tracking" }),
-      undefined
-    );
-    const body = (await response.json()) as { questions: { wording: string; search: string }[] };
-    const searches = body.questions.map((question) => question.search);
-
-    // What the founder corrected away from is gone, and what they
-    // corrected to is chosen — from rows that scan had already bought.
-    expect(searches).toContain("best agency time tracking software");
-    expect(searches).not.toContain("best project management software for agencies");
-    for (const question of body.questions) expect(question.wording.endsWith("?")).toBe(true);
-  });
-
-  it("an address nobody measured, and an unstated market, each answer with none", async () => {
-    const { POST } = await import("@/app/api/setup/questions/route");
-    for (const asked of [
-      { domain: "unmeasured-site.com", category: "agency time tracking" },
-      { domain: "example.com", category: "   " },
-    ]) {
-      const response = await POST(post("/api/setup/questions", asked), undefined);
-      await expect(response.json()).resolves.toEqual({ questions: [] });
-    }
-  });
-
-  it("a body that names no domain and category is a 400", async () => {
-    const { POST } = await import("@/app/api/setup/questions/route");
-    expect((await POST(post("/api/setup/questions", {}), undefined)).status).toBe(400);
   });
 });
 

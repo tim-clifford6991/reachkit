@@ -84,8 +84,8 @@ describe("§4.3's screen is drawn for the founder who is signed in", () => {
   });
 });
 
-describe("the report projection is the four facts the market card needs", () => {
-  it("scan id, category, the rival names off the presence card, and the twelve", async () => {
+describe("the report projection is the facts the market card needs", () => {
+  it("scan id, category, the rivals, the twelve, and the market they re-derive over", async () => {
     await expect(provider.readReportFor("example.com")).resolves.toEqual({
       scanId: "scan-fixture",
       category: "project management software for agencies",
@@ -96,6 +96,12 @@ describe("the report projection is the four facts the market card needs", () => 
           search: "best project management software for agencies",
         },
       ],
+      derivable: {
+        profile: expect.objectContaining({
+          category: "project management software for agencies",
+        }) as unknown,
+        market: expect.any(Array) as unknown,
+      },
     });
   });
 

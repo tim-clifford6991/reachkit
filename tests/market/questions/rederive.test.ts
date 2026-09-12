@@ -67,4 +67,17 @@ describe("it buys nothing fresh", () => {
       expect(file, file).not.toMatch(/^lib[\/\\](vendors|llm|costs|db|egress)[\/\\]/);
     }
   });
+
+  it("and reaches no Node built-in, so the setup screen can run it in the browser", () => {
+    // The failure this guards is not hypothetical: a `node:` import inside
+    // `/setup`'s client bundle fails the build outright, and only the
+    // layout suite would otherwise say so.
+    const root = path.resolve(__dirname, "../../..");
+    for (const file of runtimeImportClosure(
+      path.resolve(root, "src/lib/market/questions/rederive.ts")
+    )) {
+      const source = readFileSync(path.join(root, "src", file), "utf8");
+      expect(source, file).not.toMatch(/from\s+["']node:/);
+    }
+  });
 });

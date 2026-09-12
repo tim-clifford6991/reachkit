@@ -62,6 +62,7 @@ import {
   type SetupQuestion,
   type SetupState,
 } from "@/lib/market/setup/state";
+import { rederiveQuestions } from "@/lib/market/questions/rederive";
 import {
   addRival,
   isFull,
@@ -78,7 +79,6 @@ import {
 import type { SetupScreenModel } from "./_setup/facts";
 import type { SetupRefusal, SetupSubmission } from "./submit";
 import type { ResolveDomainResponse } from "@/app/api/setup/domain/route";
-import type { SetupQuestionsResponse } from "@/app/api/setup/questions/route";
 import type { SetupResult } from "./submit";
 
 const ADDRESS_REFUSAL_COPY = {
@@ -122,21 +122,6 @@ async function resolveDomain(host: string): Promise<ResolveDomainResponse> {
     body: JSON.stringify({ host }),
   });
   return (await response.json()) as ResolveDomainResponse;
-}
-
-/** §12 ruling 4's re-derivation, at the one seam that performs it: the
- *  twelve are re-selected over the market the stored report already holds.
- *  It buys nothing — the route it calls reaches no vendor and no model. */
-async function resolveQuestions(
-  domain: string,
-  category: string
-): Promise<readonly SetupQuestion[]> {
-  const response = await fetch("/api/setup/questions", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ domain, category }),
-  });
-  return ((await response.json()) as SetupQuestionsResponse).questions;
 }
 
 /** One row of the read-only twelve. The wording is model text and reaches a
@@ -196,27 +181,25 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
     // card where none does. A market they typed themselves is kept, which
     // is `onDomainChanged`'s rule, not this component's.
     setState(
-      await withQuestions(
-        onDomainChanged(state, { domain: checked.domain, report: answer.report }),
-      ),
+      withQuestions(onDomainChanged(state, { domain: checked.domain, report: answer.report })),
     );
   }
 
-  /** The twelve always stand for the settled category, so a state that has
-   *  none for it fetches them before it is shown — one swap, never a card
-   *  that empties and refills. */
-  async function withQuestions(next: SetupState): Promise<SetupState> {
+  /** §12 ruling 4: the twelve always stand for the settled category, so a
+   *  state holding none for it re-derives them here — over the market that
+   *  scan already bought, buying nothing and reading nothing fresh. */
+  function withQuestions(next: SetupState): SetupState {
     const category = settledCategory(next);
-    if (next.siteDomain === null || category === null || next.questions.length > 0) {
+    if (category === null || next.questions.length > 0 || next.derivable === null) {
       return next;
     }
-    return onQuestionsRederived(next, await resolveQuestions(next.siteDomain, category));
+    return onQuestionsRederived(next, rederiveQuestions({ ...next.derivable, category }));
   }
 
-  async function commitMarket(): Promise<void> {
+  function commitMarket(): void {
     const category = marketDraft.trim();
     if (category === "") return;
-    setState(await withQuestions(onMarketStated(state, category)));
+    setState(withQuestions(onMarketStated(state, category)));
     setEditingMarket(false);
   }
 
@@ -499,9 +482,7 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
                       variant="secondary"
                       size="sm"
                       pill
-                      onClick={() => {
-                        void commitMarket();
-                      }}
+                      onClick={commitMarket}
                     />
                   </>
                 ) : (
