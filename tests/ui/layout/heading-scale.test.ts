@@ -51,6 +51,21 @@ const BREAKPOINT_SM_PX = 640;
  *  size is the *cause* and the wrap is the thing the reader sees. */
 const LANDING_MAX_LINES = 3;
 
+/** S1's hero headline, and the one h1 above `--breakpoint-sm` that is not
+ *  `SCALE_PX.h1`. The owner's ruling of 2026-09-11 on #534: "The hero `h1`
+ *  follows the approved set at 46 px. Ruling 10a is struck for S1 on this
+ *  point, and the heading-scale test is retargeted in the same PR" —
+ *  retargeted for the landing's h1 alone, so every other route's h1 is
+ *  still asserted at 31. Below the boundary the landing's h1 keeps the
+ *  narrow step like every other (`NARROW_PX`), and `LANDING_MAX_LINES`
+ *  still bounds its wrap at 320. */
+const LANDING_HERO_PX = 46;
+
+/** The landing route: `/` on the app host. */
+function isLanding(route: EnumeratedRoute): boolean {
+  return route.path === "/" && route.host === undefined;
+}
+
 /** `BUILD.md` §2.3, verbatim: "Body 15px/1.55." */
 const BODY_PX = 15;
 
@@ -149,12 +164,18 @@ describe(`the heading scale survives preflight — ${routes.length} route(s)`, (
   );
 
   it(
-    `at and above --breakpoint-sm every h1 is the full ${SCALE_PX.h1}px step`,
+    `at and above --breakpoint-sm every h1 is the full ${SCALE_PX.h1}px step, and S1's hero is ${LANDING_HERO_PX}px`,
     async () => {
       // The other half of the ruling: the step is a narrow-viewport rule,
       // not a shrink. Measured at both bands above the boundary, because a
       // `max-width` written by mistake would pass at one of them.
+      //
+      // The landing's h1 is the one exception, and it is asserted rather
+      // than skipped (#534): at each band it must compute the set's 46, so
+      // a hero that fell back to 31 fails here as surely as any other h1
+      // that left 31.
       let seenH1 = false;
+      const heroSeenAt: number[] = [];
       for (const width of [BAND_MIN.medium, BAND_MIN.wide]) {
         for (const route of routes) {
           const headings = await withPage(
@@ -167,14 +188,23 @@ describe(`the heading scale survives preflight — ${routes.length} route(s)`, (
           );
           for (const heading of headings) {
             const where = `${route.path}: <${heading.tag}> "${heading.text}" @ ${width}px`;
-            expect(heading.px, `${where} must compute its own step of the scale`).toBe(
-              SCALE_PX[heading.tag]
-            );
+            const hero = heading.tag === "h1" && isLanding(route);
+            expect(
+              heading.px,
+              hero
+                ? `${where} is S1's hero and must compute the set's ${LANDING_HERO_PX}px (#534)`
+                : `${where} must compute its own step of the scale`
+            ).toBe(hero ? LANDING_HERO_PX : SCALE_PX[heading.tag]);
             if (heading.tag === "h1") seenH1 = true;
+            if (hero) heroSeenAt.push(width);
           }
         }
       }
       expect(seenH1, "no route rendered an h1 above the boundary").toBe(true);
+      expect(heroSeenAt, "the landing's hero h1 was not measured at both bands").toEqual([
+        BAND_MIN.medium,
+        BAND_MIN.wide,
+      ]);
     },
     PER_ROUTE_BROWSER_MS
   );
@@ -187,7 +217,7 @@ describe(`the heading scale survives preflight — ${routes.length} route(s)`, (
       // fold. This asserts what the reader sees, so a future change that
       // restored the size — or lengthened the line — fails here and not
       // only on the token pin.
-      const landing = routes.find((route) => route.path === "/" && route.host === undefined);
+      const landing = routes.find(isLanding);
       expect(landing, "the landing route is not in the tree").toBeDefined();
 
       const narrow = await withPage(

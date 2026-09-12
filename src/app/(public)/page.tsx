@@ -58,6 +58,27 @@ const STEPS = [
   { n: "3", title: "landing.step.3.title", body: "landing.step.3.body", Icon: Calendar },
 ] as const;
 
+/** The five things the layout repeats, each named once so a rung is changed
+ *  in one place: token utilities over `Canvas: Landing`'s own values. */
+/** A hairline above, and the canvas's own block padding: 24 for the two
+ *  narrative sections, 32 for the paired one, 48 around the video block. */
+const SECTION_BASE = "col-span-full border-t border-base-300";
+const SECTION = `${SECTION_BASE} py-(--s-5)`;
+const SECTION_PAIRED = `${SECTION_BASE} py-(--s-6)`;
+const SECTION_VIDEO = `${SECTION_BASE} py-(--s-7)`;
+const PAIR = "grid grid-cols-1 items-center gap-(--s-6) lg:grid-cols-2 lg:gap-(--s-7)";
+const READ = "min-w-0 max-w-(--w-read)";
+const SECTION_N = "font-mono text-(length:--t-xs) text-primary";
+/** `t-section` is the set's `.sec-h` weight and tracking; the size is the
+ *  element's own `--h2` step (`src/ui/type.css`). */
+const SECTION_H = "t-section mt-(--s-2) mb-(--s-3)";
+const SECTION_S = "text-(color:--ink-2)";
+
+/** Bound to a name before it reaches JSX, as the landing's other test ids
+ *  are: the copy sweep reads a JSX attribute as product voice unless it is
+ *  allow-listed. */
+const VIDEO_TEST_ID = "landing-video";
+
 /** Issue #326: the one public route a stranger is meant to arrive at from
  *  a search result, so the one whose `<head>` matters most. Indexable,
  *  named in the app host's sitemap, and its share image is the group's
@@ -67,11 +88,10 @@ export const metadata: Metadata = staticMetadata(PUBLIC_ROUTE_SEO.landing);
 export default function LandingPage(props: {
   searchParams?: Promise<LandingSearchParams> | LandingSearchParams;
 }): React.JSX.Element {
+  // The screen root is a `Surface` with declared arms: one column until
+  // 1024, two above it — `Canvas: Landing`'s own boundary. Every value below
+  // is a token utility (#534); no idiom class and no viewport-height band.
   return (
-    // ADR-093 decision 6: the screen root is a `Surface` and its arms are
-    // declared. The hero is one column until `medium` — the set opens it
-    // into two at 1024, which is that band's own boundary — and the wide
-    // band is the same, so the surface reads at `--w-wide` throughout.
     <Surface
       arms={{
         compact: { kind: "columns", count: 1 },
@@ -81,44 +101,62 @@ export default function LandingPage(props: {
     >
       <main className="col-span-full grid grid-cols-subgrid">
         {/* ══ HERO ══════════════════════════════════════════════════════ */}
-        <section id={FIELD_SECTION_ID} className="col-span-full rk-hero">
-          <div className="rk-split rk-split-hero">
-            <div className="rk-hero-copy">
-              {/* APPROVED — BUILD §3's tagline, verbatim, and REQ-099 c2. */}
-              <h1 className="rk-hero-h">{copy("landing.headline")}</h1>
-              <p className="rk-hero-s">{copy("landing.subline")}</p>
-              <ScanForm searchParams={props.searchParams} />
-              <p className="rk-prov-line">{copy("landing.hero.assurance")}</p>
+        <section id={FIELD_SECTION_ID} className="col-span-full pt-(--s-6) pb-(--s-7) lg:pt-(--s-7)">
+          <div className={PAIR}>
+            <div className="min-w-0">
+              {/* `t-hero` is the canvas's 46 px display line (owner ruling
+                  2026-09-11 on #534); `src/ui/type.css` says why a class. */}
+              <h1 className="t-hero">{copy("landing.headline")}</h1>
+              <p className="mt-(--s-4) max-w-(--w-form) text-(length:--h4) text-(color:--ink-2)">
+                {copy("landing.subline")}
+              </p>
+              {/* The set's `.field` row: the field and its control on one
+                  row at the form measure (its 460 px resolves to
+                  `--w-form`, 10a). */}
+              <div className="mt-(--s-5)">
+                <ScanForm searchParams={props.searchParams} />
+              </div>
+              <p className="mt-(--s-3) font-mono text-(length:--t-explain) text-(color:--ink-3)">
+                {copy("landing.hero.assurance")}
+              </p>
             </div>
             <HeroShot />
           </div>
         </section>
 
         {/* ══ THE DEMO VIDEO (4c) ═══════════════════════════════════════
-            The frame, the play control and one written line. The play
-            control is not a control yet — there is no asset for it to
-            start — so it is drawn and not focusable, which is why it is a
-            `<span>` and is `aria-hidden`: a button that does nothing is a
-            promise the page cannot keep, and REQ-001 c1 counts controls. */}
-        <section className="col-span-full rk-sec">
-          <div className="rk-video">
-            <span className="rk-play" aria-hidden>
+            The frame, the play control and one written line; kept whether or
+            not the asset exists, which is why `aspect-video` reserves the
+            space and the play disc is a `<span>` (REQ-001 c1 counts
+            controls). The frame is the canvas's own 16:9 at the read
+            measure, centred — full width made it 288 px taller than drawn. */}
+        <section className={SECTION_VIDEO}>
+          <div
+            data-testid={VIDEO_TEST_ID}
+            className="relative mx-auto grid aspect-video w-full max-w-(--w-read) place-items-center overflow-hidden rounded-(--r-box) border border-base-300 bg-base-200"
+          >
+            <span
+              className="grid size-[calc(var(--s-6)*2)] place-items-center rounded-(--r-pill) bg-primary text-primary-content"
+              aria-hidden
+            >
               <Play size={24} strokeWidth={1.8} />
             </span>
-            <span className="rk-video-line">{copy("landing.video.line")}</span>
+            <span className="absolute bottom-(--s-4) px-(--s-4) text-center font-mono text-(length:--t-explain) text-(color:--ink-3)">
+              {copy("landing.video.line")}
+            </span>
           </div>
-          <p className="rk-explain rk-center">{copy("landing.video.caption")}</p>
+          <p className="explain mt-(--s-3) text-center">{copy("landing.video.caption")}</p>
         </section>
 
         {/* ══ 01 · WHY SHOULD THEY CARE ═════════════════════════════════ */}
-        <section className="col-span-full rk-sec">
-          <div className="rk-split">
-            <div className="rk-sec-read">
-              <p className="rk-sec-n">
+        <section className={SECTION}>
+          <div className={PAIR}>
+            <div className={READ}>
+              <p className={SECTION_N}>
                 <span className="num">{SECTION_NUMBER[0]}</span>
               </p>
-              <h2 className="rk-sec-h">{copy("landing.why.heading")}</h2>
-              <p className="rk-sec-s">{copy("landing.why.body")}</p>
+              <h2 className={SECTION_H}>{copy("landing.why.heading")}</h2>
+              <p className={SECTION_S}>{copy("landing.why.body")}</p>
             </div>
             <MatrixCard />
           </div>
@@ -127,30 +165,31 @@ export default function LandingPage(props: {
         {/* ══ 02 · WHAT IT DOES FOR THEM ════════════════════════════════
             The card leads in the source order, so it sits on the left at
             the two-column band and the page alternates against 01. */}
-        <section className="col-span-full rk-sec">
-          <div className="rk-split">
+        <section className={SECTION_PAIRED}>
+          <div className={PAIR}>
             <WeekCard />
-            <div className="rk-sec-read">
-              <p className="rk-sec-n">
+            <div className={READ}>
+              <p className={SECTION_N}>
                 <span className="num">{SECTION_NUMBER[1]}</span>
               </p>
-              <h2 className="rk-sec-h">{copy("landing.does.heading")}</h2>
-              <p className="rk-sec-s">{copy("landing.does.body")}</p>
+              <h2 className={SECTION_H}>{copy("landing.does.heading")}</h2>
+              <p className={SECTION_S}>{copy("landing.does.body")}</p>
             </div>
           </div>
         </section>
 
         {/* ══ 03 · WHAT THEY DO TO START TODAY ══════════════════════════ */}
-        <section className="col-span-full rk-sec">
-          <div className="rk-sec-read rk-center rk-sec-centred">
-            <p className="rk-sec-n">
+        <section className={SECTION}>
+          <div className={`${READ} mx-auto text-center`}>
+            <p className={SECTION_N}>
               <span className="num">{SECTION_NUMBER[2]}</span>
             </p>
-            <h2 className="rk-sec-h">{copy("landing.start.heading")}</h2>
-            <p className="rk-sec-s">{copy("landing.start.body")}</p>
+            <h2 className={SECTION_H}>{copy("landing.start.heading")}</h2>
+            <p className={SECTION_S}>{copy("landing.start.body")}</p>
           </div>
 
-          <div className="rk-three">
+          {/* The set's `.g3`: three across, one column below 1024. */}
+          <div className="mt-(--s-6) grid grid-cols-1 gap-(--s-4) lg:grid-cols-3 lg:items-start">
             {STEPS.map((step) => (
               <IdiomCard
                 key={step.n}
@@ -161,8 +200,8 @@ export default function LandingPage(props: {
                   />
                 }
               >
-                <h3 className="rk-step-h">{copy(step.title)}</h3>
-                <p className="rk-explain">{copy(step.body)}</p>
+                <h3>{copy(step.title)}</h3>
+                <p className="explain">{copy(step.body)}</p>
               </IdiomCard>
             ))}
           </div>
@@ -170,9 +209,9 @@ export default function LandingPage(props: {
           {/* The closing CTA: the hero's own action, stated a second time.
               REQ-099 c3 — it brings the field into view with the cursor in
               it, so it adds no second submit control. */}
-          <div className="rk-center rk-close">
+          <div className="mt-(--s-6) flex flex-col items-center gap-(--s-2) text-center">
             <FieldCta label={copy("landing.start.cta")} />
-            <p className="rk-explain">{copy("landing.start.cancel")}</p>
+            <p className="explain">{copy("landing.start.cancel")}</p>
           </div>
         </section>
       </main>

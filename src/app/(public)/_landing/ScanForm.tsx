@@ -38,6 +38,10 @@ const PROBLEM_COPY_KEY = {
   too_long: "landing.problem.too-long",
 } as const satisfies Record<DomainProblem, string>;
 
+/** The field row's layout, named once — see the comment at the `<form>`. */
+const FIELD_ROW =
+  "flex w-full max-w-(--w-form) flex-wrap items-end gap-(--s-2) [&>:first-child]:min-w-0 [&>:first-child]:flex-auto [&_input]:w-full";
+
 function isDomainProblem(value: string | undefined): value is DomainProblem {
   return value !== undefined && Object.prototype.hasOwnProperty.call(PROBLEM_COPY_KEY, value);
 }
@@ -107,14 +111,10 @@ export function ScanForm(props: {
   }
 
   return (
-    // The idiom's hero form: the field and the control on one row, the field
-    // taking `--w-form` and the control sitting at its foot. On the accent
-    // ground the solid primary inverts — `--on-accent` fill, `--accent`
-    // label — because a solid accent button on an accent ground has no edge
-    // (tokens.md §9.1). It is still the screen's ONE solid primary: the
-    // master's ruling on the #266 mockup is one per screen, and on `/` this
-    // is it, which is why the header shows only the sign-in link here.
-    <form action="/api/scan" method="post" onSubmit={handleSubmit} className="rk-hero-form">
+    // The field and its control on one 8 px row at the form measure. The
+    // field grows into what the control leaves and the input fills it:
+    // daisyUI's `.input` caps itself at 20rem, which left a 145 px hole.
+    <form action="/api/scan" method="post" onSubmit={handleSubmit} className={FIELD_ROW}>
       {problem ? (
         <Input
           label={copy("landing.field.label")}

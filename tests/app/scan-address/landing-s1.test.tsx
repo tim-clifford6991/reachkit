@@ -105,8 +105,7 @@ describe("S1 hero — the product component in a browser frame (REQ-099 c4, ruli
 describe("S1 video block — ruling 4c: a frame, a play control and one written line", () => {
   it("the block renders before any asset exists", async () => {
     const markup = await renderPage();
-    expect(markup).toContain("rk-video");
-    expect(markup).toContain("rk-play");
+    expect(markup).toContain('data-testid="landing-video"');
     expect(markup).toContain("landing.video.line");
     expect(markup).toContain("landing.video.caption");
   });
@@ -115,8 +114,12 @@ describe("S1 video block — ruling 4c: a frame, a play control and one written 
     // A `<button>` here would be a control that does nothing, and REQ-001
     // c1 counts controls. The glyph is `aria-hidden` for the same reason.
     const markup = await renderPage();
-    const video = markup.slice(markup.indexOf("rk-video"));
-    expect(video.slice(0, video.indexOf("</section>"))).not.toContain("<button");
+    const at = markup.indexOf('data-testid="landing-video"');
+    expect(at, "the video block did not render").toBeGreaterThan(-1);
+    const block = markup.slice(at, markup.indexOf("</section>", at));
+    expect(block).not.toContain("<button");
+    // The play glyph is drawn inside a hidden disc, not offered.
+    expect(block).toMatch(/<span[^>]*aria-hidden="true"[^>]*><svg/);
   });
 });
 
@@ -168,5 +171,32 @@ describe("S1 sections — 01 why-care, 02 what-it-does, 03 how-to-start", () => 
 
   it("the hero section carries the id every CTA on the page names (REQ-099 c3)", async () => {
     expect(await renderPage()).toContain('id="landing-field"');
+  });
+});
+
+// Issue #534: the page's layout is Tailwind utilities over the approved
+// tokens. The defect it fixes was a class shared by name with the sign-in
+// screen, whose `100svh` floor the landing inherited three times — so what
+// is pinned here is the source (no idiom class, no viewport-height band)
+// and the one declaration left for the screen that still needs it.
+describe("S1 layout — Tailwind utilities, no idiom class, no viewport band (#534)", () => {
+  const read = (rel: string): string => readFileSync(path.resolve(import.meta.dirname, "../../..", rel), "utf8");
+
+  it("page.tsx names no rk-* class", () => {
+    expect(read("src/app/(public)/page.tsx")).not.toContain("rk-");
+  });
+
+  it("page.tsx draws no min-height or viewport-height band", () => {
+    const source = read("src/app/(public)/page.tsx");
+    expect(source).not.toMatch(/\bmin-h-|svh|\bh-screen|\d+vh\b/);
+  });
+
+  it("the hero h1 carries the set's display class", async () => {
+    expect(await renderPage()).toMatch(/<h1 class="t-hero">landing\.headline<\/h1>/);
+  });
+
+  it("the sign-in split is declared once, in the sign-in's own section", () => {
+    const sheet = read("src/ui/idiom/idiom.css");
+    expect(sheet.match(/^\.rk-split \{/gm)).toHaveLength(1);
   });
 });
