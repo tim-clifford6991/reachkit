@@ -41,6 +41,15 @@ vi.mock("@/lib/scan/report", async (importOriginal) =>
   reportFactory(await importOriginal<Record<string, unknown>>())
 );
 vi.mock("@/lib/scan/deep/progress", () => passFactory());
+// SPEC.md §5 (2026-09-12): the screen read now asks the site-profile leaf
+// what was read of this founder's site. The leaf reaches Postgres, and
+// these rows are about which account the screen is drawn for — so it is
+// doubled here, exactly as the report and pass reads above are. A screen
+// whose profile read is doubled still proves the thing this file proves.
+vi.mock("@/lib/site-profile", () => ({
+  readSiteProfile: async () => null,
+  saveVoiceText: async () => undefined,
+}));
 
 const provider = await import("@/app/(account)/setup/_setup/provider");
 

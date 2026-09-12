@@ -483,9 +483,19 @@ describe("/ → /scan/{domain}: a stranger scans and reads a report (JN-001, JN-
     );
     const { networkKeyOf } = await import("../../src/lib/scan/admission");
 
+    // The journey's own clock, not the wall clock (issue #577, adjacent).
+    // `resolveAddress` defaults `now` to `new Date()`, and this fixture's
+    // documents are read at `READ_AT`; once the real calendar reached
+    // `READ_AT + FREE_RESCAN_WINDOW_D` the stored report the step is about
+    // started reading as stale, and the visitor was offered a re-scan
+    // control the step asserts is absent. The step is about the moment the
+    // pass ends — "the visitor lands on the report their scan produced" —
+    // so the instant it resolves at is the one the scan measured at, and
+    // the assertion stops depending on the day the suite happens to run.
     const state = await resolveAddress({
       rawSegment: DOMAIN,
       network: networkKeyOf("203.0.113.99"),
+      now: READ_AT,
     });
 
     // Step 8 — the visitor lands on the report their scan produced, with

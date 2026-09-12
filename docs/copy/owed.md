@@ -2,7 +2,7 @@
 
 **Generated. Do not type into this file** — `npm run copy:owed` rewrites it and `tests/presentation/copy/owed-sheet.test.ts` fails when it is out of date. Write the sentences in your reply, or straight into `src/lib/presentation/copy/keys/*.ts`, and run the generator again: a key that gains a sentence leaves this sheet by itself.
 
-**0 keys**, across 799 in the registry — **0 empty** (`copy()` throws on these: a mail with one does not send, a screen with one does not render) and **0 `TODO(copy)`** (these render the marker, in public, until they are written).
+**15 keys**, across 814 in the registry — **0 empty** (`copy()` throws on these: a mail with one does not send, a screen with one does not render) and **15 `TODO(copy)`** (these render the marker, in public, until they are written).
 
 **How to read a row.**
 
@@ -28,7 +28,7 @@ A key with slots (`{value}`, `{date}`) carries them beside its name; the sentenc
 | S7 | Opt-out | none | 0 |
 | S8 | Not found | none | 0 |
 | S9 | Sign in | none | 0 |
-| S10 | Setup | none | 0 |
+| S10 | [Setup](#s10-setup-join) | 14 | 0 |
 | S11 | Waiting | none | 0 |
 | S12 | Overview | none | 0 |
 | S13 | Overview · week 0 | none | 0 |
@@ -36,7 +36,40 @@ A key with slots (`{value}`, `{date}`) carries them beside its name; the sentenc
 | S15 | Day panel states | none | 0 |
 | S16 | Draft | none | 0 |
 | S17 | Draft · edit | none | 0 |
-| S18 | Settings | none | 0 |
+| S18 | [Settings](#s18-settings-app) | 1 | 0 |
 | S19 | Hosted page | none | 0 |
 | S20 | Mails | none | 0 |
+
+## S10 · Setup — Join
+
+Screen `S10` · the set draws it as `current="setup"` (`docs/archive/2026-09-11/approved/full-set/screens/setup-light.png`).
+
+Every bracketed hint the set draws on this screen: `[competitor-picker line — owner’s]` · `[setup head — owner’s]` · `[autopilot description — owner’s]` · `[copilot description — owner’s]` · `[hosted-blog description — owner’s]`
+
+| key | standing | where | the set says | fixed by | max |
+|---|---|---|---|---|---|
+| `setup.profile.pages-read` `{pages}`<br>`setup.ts` | marker | badge · `<span class="num">` · `app/(account)/setup/SetupForm.tsx` |  | SPEC.md §5 (2026-09-12) |  |
+| `setup.profile.purpose.about`<br>`setup.ts` | marker | `<div class="flex flex-wrap items-center gap-2">` · `app/(account)/setup/SetupForm.tsx` |  | SPEC.md §2 (2026-09-12) | 175 — sibling `setup.waiting.about` |
+| `setup.profile.purpose.blog`<br>`setup.ts` | marker | `<div class="flex flex-wrap items-center gap-2">` · `app/(account)/setup/SetupForm.tsx` |  | SPEC.md §2 (2026-09-12) |  |
+| `setup.profile.purpose.contact`<br>`setup.ts` | marker | `<div class="flex flex-wrap items-center gap-2">` · `app/(account)/setup/SetupForm.tsx` |  | SPEC.md §2 (2026-09-12) |  |
+| `setup.profile.purpose.features`<br>`setup.ts` | marker | `<div class="flex flex-wrap items-center gap-2">` · `app/(account)/setup/SetupForm.tsx` |  | SPEC.md §2 (2026-09-12) |  |
+| `setup.profile.purpose.legal`<br>`setup.ts` | marker | `<div class="flex flex-wrap items-center gap-2">` · `app/(account)/setup/SetupForm.tsx` |  | SPEC.md §2 (2026-09-12) |  |
+| `setup.profile.purpose.other`<br>`setup.ts` | marker | `<div class="flex flex-wrap items-center gap-2">` · `app/(account)/setup/SetupForm.tsx` |  | SPEC.md §2 (2026-09-12) |  |
+| `setup.profile.purpose.pricing`<br>`setup.ts` | marker | `<div class="flex flex-wrap items-center gap-2">` · `app/(account)/setup/SetupForm.tsx` |  | SPEC.md §2 (2026-09-12) |  |
+| `setup.profile.purpose.product`<br>`setup.ts` | marker | `<div class="flex flex-wrap items-center gap-2">` · `app/(account)/setup/SetupForm.tsx` |  | SPEC.md §2 (2026-09-12) |  |
+| `setup.profile.purposes`<br>`setup.ts` | marker | control · `<p class="rk-quiet">` · `app/(account)/setup/SetupForm.tsx` |  | SPEC.md §5 (2026-09-12) |  |
+| `setup.profile.site-name`<br>`setup.ts` | marker | — · placed with its group |  | SPEC.md §5 (2026-09-12) |  |
+| `setup.profile.title`<br>`setup.ts` | marker | control · `<Btn>` · `app/(account)/setup/SetupForm.tsx` |  | SPEC.md §5 (2026-09-12) | 18 — sibling `setup.site-and-market.title` |
+| `setup.profile.voice.label`<br>`setup.ts` | marker | control · `<Btn>` · `app/(account)/setup/SetupForm.tsx` |  | SPEC.md §5 (2026-09-12) | 26 — sibling `setup.market.label` |
+| `setup.profile.voice.later`<br>`setup.ts` | marker | control · `<p class="rk-quiet">` · `app/(account)/setup/SetupForm.tsx` |  | SPEC.md §5 (2026-09-12) |  |
+
+## S18 · Settings — App
+
+Screen `S18` · the set draws it as `current="settings"` (`docs/archive/2026-09-11/approved/full-set/screens/settings-light.png`).
+
+Every bracketed hint the set draws on this screen: `[voice description — the customer writes this; one field, nothing is learned about them]` · `[claim 1]` · `[claim 2]` · `[magic-link note — owner’s]`
+
+| key | standing | where | the set says | fixed by | max |
+|---|---|---|---|---|---|
+| `settings.voice.save`<br>`settings.ts` | marker | `<span>` · `app/(account)/app/settings/panels/VoicePanel.tsx` |  | SPEC.md §5 (2026-09-12) | 97 — sibling `settings.voice.filter-note` |
 

@@ -39,7 +39,7 @@ import { Btn } from "@/ui/components/Btn";
 import { Badge } from "@/ui/components/Badge";
 import { Input } from "@/ui/components/Input";
 import { Divider } from "@/ui/components/Divider";
-import { Globe, Sparkles, Users } from "lucide-react";
+import { BookOpen, Globe, Sparkles, Users } from "lucide-react";
 import { CardHead, IdiomCard, OptionCard, RemovableTag } from "@/ui/idiom";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import {
@@ -64,6 +64,7 @@ import {
   type DnsRecord,
   type PublishingMode,
 } from "@/lib/publish/setup/cards";
+import { purposeCounts, type PagePurpose } from "@/lib/site-profile/types";
 import type { SetupScreenModel } from "./_setup/facts";
 import type { SetupRefusal, SetupSubmission } from "./submit";
 import type { ResolveDomainResponse } from "@/app/api/setup/domain/route";
@@ -129,6 +130,13 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
   const [marketDraft, setMarketDraft] = useState("");
   const [editingMarket, setEditingMarket] = useState(
     p.model.state.market.state === "empty",
+  );
+  // SPEC.md §5 (2026-09-12): the voice as the founder will leave it —
+  // what the scan read, until they type over it. Held here with the other
+  // drafts because it is the same kind of thing: text a founder is
+  // part-way through, which only the one submit stores.
+  const [voiceDraft, setVoiceDraft] = useState(
+    p.model.profile?.voice?.text ?? "",
   );
   const [rivalDraft, setRivalDraft] = useState("");
   const [rivalRefusal, setRivalRefusal] = useState<RivalRefusal | null>(null);
@@ -239,6 +247,7 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
         destination === "hosted"
           ? { kind: "hosted" }
           : { kind: "wordpress", connectLater: true },
+      voiceText: voiceDraft,
     };
 
     setSubmitting(true);
@@ -488,6 +497,83 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
         </>
       )}
 
+      {/* SPEC.md §5 (2026-09-12) — "Your site, as we read it". The
+          inventory and the site name are shown **as read**: there is no
+          control to correct them here, because they are a reading, not a
+          decision. The one thing the founder may change is the voice,
+          which is what everything written for them will sound like.
+
+          No profile, no card. A scan has built one for every founder who
+          arrived from a report; one who bought with no report behind them
+          has nothing read yet, and an empty card claiming to have read
+          their site would be a lie the screen tells on its own. */}
+      {p.model.profile === null ? null : (
+        <IdiomCard
+          head={
+            <CardHead
+              icon={<BookOpen aria-hidden size={ICON} />}
+              eyebrow={copy("setup.profile.title")}
+              pill={
+                <Badge tone="accent">
+                  <span className="num" data-testid="setup-profile-pages">
+                    {copy("setup.profile.pages-read", {
+                      pages: p.model.profile.pagesRead,
+                    })}
+                  </span>
+                </Badge>
+              }
+            />
+          }
+          testId={PROFILE_TEST_ID}
+        >
+          <div style={ROW}>
+            {p.model.profile.siteName === null ? null : (
+              <p data-testid="setup-profile-site-name">
+                {p.model.profile.siteName}
+              </p>
+            )}
+            <p className="num" data-testid="setup-profile-domain">
+              {p.model.profile.domain}
+            </p>
+          </div>
+
+          <p className="rk-quiet">{copy("setup.profile.purposes")}</p>
+          {/* One chip per purpose that actually occurs, with its count.
+              `purposeCounts` drops the purposes with no pages — an empty
+              count is not a fact worth a chip. */}
+          <div
+            className="flex flex-wrap items-center gap-2"
+            data-testid="setup-profile-purposes"
+          >
+            {purposeCounts(p.model.profile.inventory).map((entry) => (
+              <Badge key={entry.purpose} tone="accent">
+                {/* The word and its count are two elements with a gap
+                    between them, never a space typed as a JSX child: a
+                    string literal on a surface is a product sentence to
+                    the copy sweep, and it is right to say so. */}
+                <span className="flex items-center gap-2">
+                  <span data-testid={`setup-profile-purpose-${entry.purpose}`}>
+                    {copy(PURPOSE_COPY[entry.purpose])}
+                  </span>
+                  <span className="num">{entry.count}</span>
+                </span>
+              </Badge>
+            ))}
+          </div>
+
+          <Input
+            multiline
+            label={copy("setup.profile.voice.label")}
+            name="voice_text"
+            value={voiceDraft}
+            onChange={setVoiceDraft}
+          />
+          <p className="rk-quiet" data-testid="setup-profile-voice-later">
+            {copy("setup.profile.voice.later")}
+          </p>
+        </IdiomCard>
+      )}
+
       <IdiomCard
         head={
           <CardHead
@@ -680,6 +766,7 @@ const ICON = 14;
 const SITE_AND_MARKET_TEST_ID = "setup-site-and-market";
 const ADDRESS_TEST_ID = "setup-address";
 const COMPETITORS_TEST_ID = "setup-competitors";
+const PROFILE_TEST_ID = "setup-profile";
 const PUBLISHING_TEST_ID = "setup-publishing";
 
 /** A settled row: the value, and the one control that changes it. */
@@ -701,6 +788,21 @@ const ADD_PLACEHOLDER = {
   first: "setup.competitors.add.placeholder.first",
   another: "setup.competitors.add.placeholder",
 } as const satisfies Record<string, CopyKey>;
+
+/** SPEC.md §2's eight purposes, each as the key whose word a customer
+ *  reads. A record rather than a template so the key is a `CopyKey` the
+ *  registry checks, and so an engine token can never reach a screen as
+ *  itself — the same reason `ADD_PLACEHOLDER` above is a record. */
+const PURPOSE_COPY = {
+  pricing: "setup.profile.purpose.pricing",
+  about: "setup.profile.purpose.about",
+  features: "setup.profile.purpose.features",
+  product: "setup.profile.purpose.product",
+  blog: "setup.profile.purpose.blog",
+  contact: "setup.profile.purpose.contact",
+  legal: "setup.profile.purpose.legal",
+  other: "setup.profile.purpose.other",
+} as const satisfies Record<PagePurpose, CopyKey>;
 
 /** The hosted option's `dns`, which the card type guarantees is present
  *  for `hosted` and one of exactly two shapes. */

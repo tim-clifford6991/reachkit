@@ -380,6 +380,11 @@ export const SETTINGS_COPY = Object.freeze({
     "A hard filter on every page. A draft that matches an entry is held and returned to you naming it.",
     { slots: {}, fixedBy: "REQ-053" },
   ],
+  /** The voice card's save control (SPEC.md §5, 2026-09-12: "the same
+   *  voice summary is editable in settings"). The field itself is
+   *  `settings.content.voice`, which the owner has already written; this
+   *  is the press that stores it, and it is owner-owed. */
+  "settings.voice.save": ["TODO(copy)", { slots: {}, fixedBy: "SPEC.md §5 (2026-09-12)" }],
   "settings.voice.placeholder": ["Plain and direct. Short sentences. We say “customers”, never “users”.", { slots: {}, fixedBy: "REQ-055" }],
 
   // REQ-075's own promise, and the reason the three switches above it are

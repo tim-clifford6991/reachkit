@@ -218,6 +218,40 @@ export const SETUP_COPY = Object.freeze({
     { slots: {}, fixedBy: "S11 · 11a" },
   ],
 
+  // ── Your site, as we read it (SPEC.md §5, 2026-09-12) ───────────────
+  //
+  // §5's "The site profile is confirmed here": the page inventory and the
+  // site name are shown as read, and the brand-voice summary is shown and
+  // editable before anything is written. Every sentence below is the
+  // owner's and unwritten today, so each lands as the renderable
+  // `TODO(copy)` marker rather than a sentence composed here — the
+  // artboard (`docs/design/canvas/OnboardingMarket.dc.html`) carries the
+  // same lines as bracketed placeholders.
+  //
+  // The eight purpose words are keys and not raw tokens for the same
+  // reason the band words are: `pricing` is an identifier the engine
+  // classifies by, and what a customer reads beside a count is a word the
+  // owner chooses.
+  "setup.profile.title": ["TODO(copy)", { slots: {}, fixedBy: "SPEC.md §5 (2026-09-12)" }],
+  /** The head's pill. `{pages}` is the inventory's own row count — what
+   *  was read, never a target or a promise. */
+  "setup.profile.pages-read": ["TODO(copy)", { slots: { pages: "text" }, fixedBy: "SPEC.md §5 (2026-09-12)" }],
+  "setup.profile.site-name": ["TODO(copy)", { slots: {}, fixedBy: "SPEC.md §5 (2026-09-12)" }],
+  /** The line above the purpose chips — what each page is for. */
+  "setup.profile.purposes": ["TODO(copy)", { slots: {}, fixedBy: "SPEC.md §5 (2026-09-12)" }],
+  "setup.profile.voice.label": ["TODO(copy)", { slots: {}, fixedBy: "SPEC.md §5 (2026-09-12)" }],
+  /** The note under the voice box: the same text is editable in Settings
+   *  afterwards (§5's done-when, 2026-09-12). */
+  "setup.profile.voice.later": ["TODO(copy)", { slots: {}, fixedBy: "SPEC.md §5 (2026-09-12)" }],
+  "setup.profile.purpose.pricing": ["TODO(copy)", { slots: {}, fixedBy: "SPEC.md §2 (2026-09-12)" }],
+  "setup.profile.purpose.about": ["TODO(copy)", { slots: {}, fixedBy: "SPEC.md §2 (2026-09-12)" }],
+  "setup.profile.purpose.features": ["TODO(copy)", { slots: {}, fixedBy: "SPEC.md §2 (2026-09-12)" }],
+  "setup.profile.purpose.product": ["TODO(copy)", { slots: {}, fixedBy: "SPEC.md §2 (2026-09-12)" }],
+  "setup.profile.purpose.blog": ["TODO(copy)", { slots: {}, fixedBy: "SPEC.md §2 (2026-09-12)" }],
+  "setup.profile.purpose.contact": ["TODO(copy)", { slots: {}, fixedBy: "SPEC.md §2 (2026-09-12)" }],
+  "setup.profile.purpose.legal": ["TODO(copy)", { slots: {}, fixedBy: "SPEC.md §2 (2026-09-12)" }],
+  "setup.profile.purpose.other": ["TODO(copy)", { slots: {}, fixedBy: "SPEC.md §2 (2026-09-12)" }],
+
   // ── The release notice (issue #36) ──────────────────────────────────
   //
   // The one written sentence that travels with a founder into the app

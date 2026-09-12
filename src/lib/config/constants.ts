@@ -175,6 +175,22 @@ export const INFERENCE_MAX_OUTPUT_TOKENS = Object.freeze({
   "generate.draft": 4096,
   "generate.answerability": 4096,
   "generate.claim_check": 128,
+  /** The site profile's one call (issue #577, SPEC.md §2 "The scan builds
+   *  the site profile"): the site name, its products and claims, and the
+   *  five-member brand-voice summary with the paragraph the customer
+   *  reads. Larger than `profile`'s 700 because it answers with prose the
+   *  customer edits, not a set of tokens. */
+  /** **400, and the free cap is why.** §2 rules that "one free scan spends
+   *  at most 12¢ … it is a lead magnet, and waste on it is not
+   *  permitted", and the pass already reserves ~11.08¢ before this call
+   *  exists (`tests/scan/free/cost-bound.test.ts` adds it up from the
+   *  pins). `llm()` reserves `MAX_ATTEMPTS` × (estimated input + this
+   *  pin), so the whole of what the profile may reserve has to sit under a
+   *  penny: 400 output tokens with `SITE_PROFILE.VOICE_INPUT_MAX_CHARS` of
+   *  input puts the pass's worst case at ~11.76¢ and keeps it under the
+   *  cap. A voice summary is five short members and one paragraph; it does
+   *  not need a draft's room. */
+  "site-profile": 400,
 } as const);
 
 /** How many entries each of the business profile's lists may carry (BUILD
@@ -205,6 +221,40 @@ export const PROFILE_LIST_BOUNDS = Object.freeze({
  *  the whole document. */
 export const PROFILE_INPUT_MAX_CHARS = 20_000 as const;
 
+/** The site profile's bounds — `SPEC.md` §2, verbatim: "Bounded: 100
+ *  pages, one run per scan, inside the existing egress caps and the 12¢
+ *  ceiling", and §12 ruling 8's "up to 100 pages read from the sitemap and
+ *  internal links" (2026-09-12, issue #577).
+ *
+ *  `MAX_PAGES` is the ruling's own number and the only place it is
+ *  written. `CRAWL_MS` is the crawl's share of the pass: the free pass
+ *  runs under `TIMING.reportCeilingS`, and a crawl that spent the whole of
+ *  it would leave the market, the twelve and the score unmeasured — so the
+ *  crawl stops at its budget and records what it has, which is what §2's
+ *  "a site of fewer than 100 pages records what it has" already asks of
+ *  it. `CONCURRENCY` is what makes 100 documents fit that budget at all
+ *  (one at a time at the fetcher's own 8 s timeout could not); it is small
+ *  enough that the crawl is never the reason a customer's own server is
+ *  slow. `PAGE_SAMPLE_CHARS` bounds what each page contributes to the
+ *  voice prompt, the way `PROFILE_INPUT_MAX_CHARS` bounds the profile's:
+ *  the prompt is bounded, the inventory reads every page it fetched.
+ *
+ *  `VOICE_INPUT_MAX_CHARS` is 4 000 and not the profile call's 20 000 for
+ *  one reason only — §2's 12¢ ceiling. The pass reserves ~11.08¢ before
+ *  this call, and `llm()` reserves twice the estimated input plus the
+ *  output pin, so a 20 000-character prompt alone would put the free pass
+ *  at ~13.06¢ and break the promise the lead magnet is built on. Four
+ *  thousand characters is several pages of the customer's own prose,
+ *  which is what reading a voice takes; the crawl still reads every page
+ *  it fetched into the inventory. */
+export const SITE_PROFILE = Object.freeze({
+  MAX_PAGES: 100,
+  CRAWL_MS: 12_000,
+  CONCURRENCY: 6,
+  PAGE_SAMPLE_CHARS: 600,
+  VOICE_INPUT_MAX_CHARS: 4_000,
+} as const);
+
 /** How many `llm()` calls one free pass issues — BP-009 `## NFR budget`,
  *  quoted: "the free scan's **two** nano calls — `profile` and
  *  `question-phrasing` (BP-025 decision 2) — sit inside the 60-second
@@ -212,7 +262,24 @@ export const PROFILE_INPUT_MAX_CHARS = 20_000 as const;
  *  `src/lib/market/questions/profile.ts` and `…/phrase.ts`, issued one
  *  after the other inside the `reading_your_market` stage. Pinned so the
  *  budget arithmetic has a count to multiply the per-call budget by
- *  instead of a literal 2 typed into a test (issue #452). */
+ *  instead of a literal 2 typed into a test (issue #452).
+ *
+ *  **Still two after the site profile landed** (2026-09-12, issue #577).
+ *  `SPEC.md` §12 ruling 8 puts the profile in the free scan, and it is
+ *  there: the free pass crawls up to `SITE_PROFILE.MAX_PAGES` pages, gives
+ *  each one a purpose, reads the site's name off its own home document and
+ *  stores the inventory. What it does not do there is *infer* — the voice
+ *  summary, the products and the claims need one `site-profile` model
+ *  call, and a third nano call does not fit the time this pin is part of:
+ *  two calls already hold 30 s of the 60 the platform allows the
+ *  invocation (`INFERENCE_TIMEOUT_MS` above), and `tests/llm/budget.test.
+ *  ts` holds the pass to leaving half the invocation for the fetches, the
+ *  SERPs and the battery that are not this seam's. So the inference half
+ *  of the profile derives on the first *paid* pass — the deep pass runs at
+ *  setup, before the onboarding market step renders its card — and
+ *  refreshes weekly, which is the cadence §5 and ruling 8 ask for. Nothing
+ *  about the free scan's own promise changes: the crawl, the purposes and
+ *  the inventory that cross-linking needs are all stored by it. */
 export const FREE_PASS_INFERENCE_CALLS = 2 as const;
 
 export const BATTERY = Object.freeze({

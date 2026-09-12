@@ -54,6 +54,10 @@ const SUBMISSION = {
   competitors: ["asana.com", "monday.com"],
   mode: "copilot" as const,
   destination: { kind: "wordpress" as const, connectLater: true as const },
+  // SPEC.md §5 (2026-09-12): the voice the founder confirmed or edited.
+  // A value the stored profile does not already carry, so these rows
+  // exercise the arm that actually writes one.
+  voiceText: "Plain and direct, second person. Short sentences.",
 };
 
 function site(overrides: Record<string, unknown> = {}) {
@@ -134,7 +138,20 @@ describe("commitSetup — the three answers, the transaction, then the stamp", (
     }) as typeof db.rpc;
 
     await liveSetupStore().commitSetup({ siteId: SITE, submission: SUBMISSION });
-    expect(order).toEqual(["sites", "rpc:apply_setup_choice", "sites"]);
+    // The three answers, the mode-and-destination transaction, the voice
+    // (read from the profile first, so an unchanged summary writes
+    // nothing — SPEC.md §5, 2026-09-12), and the stamp last. The stamp
+    // being last is what this row is for: a crash anywhere above it
+    // leaves a founder who is asked again, never one whose choices are
+    // half-written.
+    expect(order).toEqual([
+      "sites",
+      "rpc:apply_setup_choice",
+      "site_profiles",
+      "sites",
+      "sites",
+    ]);
+    expect(order.at(-1)).toBe("sites");
   });
 });
 

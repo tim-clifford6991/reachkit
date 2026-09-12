@@ -31,6 +31,7 @@
 "use client";
 
 import type React from "react";
+import { useState } from "react";
 import { PenLine } from "lucide-react";
 import { Btn } from "@/ui/components/Btn";
 import { Card } from "@/ui/components/Card";
@@ -38,23 +39,46 @@ import { Input } from "@/ui/components/Input";
 import { CardHead, RemovableTag } from "@/ui/idiom";
 import { copy } from "@/lib/presentation/copy";
 import { writtenLine } from "../../_shell/written";
+import { saveVoiceAction } from "../change-actions";
+import { VOICE_FIELD } from "../voice-state";
 import type { SettingsModel } from "../model";
 
 export function VoicePanel(p: { settings: SettingsModel }): React.JSX.Element {
   const filterNote = writtenLine("settings.voice.filter-note");
   const placeholder = writtenLine("settings.voice.placeholder");
+  // The stored voice, and the customer's edit of it in flight. Controlled
+  // for `MarketPanel`'s reason: React resets a form after its action, and
+  // a box that emptied itself the moment it saved would look like the save
+  // had thrown the text away.
+  const [text, setText] = useState(p.settings.voice.text);
 
   return (
     <Card state="default" title={<CardHead icon={<PenLine size={15} strokeWidth={1.8} aria-hidden />} eyebrow={copy("settings.voice.title")} />}>
       <div className="flex min-w-0 flex-col gap-4">
-        <div className="min-w-0" data-testid="setting-voice_text">
-          <Input
-            multiline
-            label={copy("settings.content.voice")}
-            {...(placeholder === null ? {} : { placeholder })}
-            value={p.settings.voice.text}
-          />
-        </div>
+        {/* SPEC.md §5 (2026-09-12): the same summary setup showed, stored
+            where drafting reads it. One field and one press — the form is
+            the write path, exactly as the market card's field is. */}
+        <form action={saveVoiceAction} className="flex min-w-0 flex-col gap-3">
+          <div className="min-w-0" data-testid="setting-voice_text">
+            <Input
+              multiline
+              label={copy("settings.content.voice")}
+              {...(placeholder === null ? {} : { placeholder })}
+              name={VOICE_FIELD}
+              value={text}
+              onChange={setText}
+            />
+          </div>
+          <span>
+            <Btn
+              type="submit"
+              label={copy("settings.voice.save")}
+              size="sm"
+              variant="secondary"
+              pill
+            />
+          </span>
+        </form>
 
         <hr className="border-base-300 min-w-0 border-t" />
 

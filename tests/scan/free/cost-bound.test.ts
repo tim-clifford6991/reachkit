@@ -142,6 +142,14 @@ const PROFILE_SITE = "src/lib/market/questions/profile.ts";
 const PHRASING_SITE = "src/lib/market/questions/phrase.ts";
 
 describe("the free pass's worst case, from the pins, is at most CAPS.FREE_C (issue #523)", () => {
+  // Two, not three: the site profile's own `site-profile` call is a paid
+  // call (issue #577). SPEC.md §12 ruling 8 puts the profile in the free
+  // scan and the crawl is there, but the model half of it would be a third
+  // nano call and `tests/llm/budget.test.ts` holds the free pass to
+  // leaving half its invocation to everything that is not inference — so
+  // the voice, the products and the claims derive on the first paid pass
+  // and refresh weekly. Nothing this sum prices runs on the free path
+  // without being counted here.
   it("the free pass makes the two inference calls this sum prices, and no third", () => {
     expect(FREE_PASS_INFERENCE_CALLS).toBe(2);
   });
