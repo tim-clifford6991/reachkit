@@ -170,6 +170,45 @@ describe("row 3 — a current report is a thing to read", () => {
     expect(state.control).toEqual({ kind: "rescan", because: "incomplete" });
   });
 
+  it("names every driver it could not measure, not only the first (#541)", async () => {
+    readCurrentReport.mockResolvedValue(
+      storedReport({
+        complete: false,
+        missing: [
+          { factor: "foundations", reason: "undeterminable" },
+          { factor: "presence", reason: "not_attempted" },
+        ],
+      })
+    );
+    const state = await resolve();
+    if (state.kind !== "report") throw new Error("unreachable");
+    expect(state.notice).toEqual({ kind: "incomplete", unmeasured: ["foundations", "presence"] });
+  });
+
+  // The other branch of #541. `complete` follows `stoppedReason` and
+  // `missing` follows the three factors, so a ceiling that lands after all
+  // three were measured is incomplete with nothing to name. The notice is
+  // absent rather than a sentence naming nothing; the offer still stands,
+  // because the sections the ceiling cut are still worth re-measuring.
+  it("a report cut short with no driver to name shows no notice at all (#541)", async () => {
+    readCurrentReport.mockResolvedValue(storedReport({ complete: false, missing: [] }));
+    const state = await resolve();
+    if (state.kind !== "report") throw new Error("unreachable");
+    expect(state.notice).toBeNull();
+    expect(state.control).toEqual({ kind: "rescan", because: "incomplete" });
+  });
+
+  // A zero is a measurement, so it never enters `verdict.missing`
+  // (`verdictOf`, proved in tests/measure/verdict/verdict.test.ts) and the
+  // report stays complete — which must leave the notice absent rather than
+  // name a driver that was in fact measured, at zero (#541).
+  it("a measured zero produces no notice (#541)", async () => {
+    readCurrentReport.mockResolvedValue(storedReport({ complete: true, missing: [] }));
+    const state = await resolve();
+    if (state.kind !== "report") throw new Error("unreachable");
+    expect(state.notice).toBeNull();
+  });
+
   it("a pass that could not read the site says so, in place of the list of factors it took with it (#479)", async () => {
     readCurrentReport.mockResolvedValue(
       storedReport({
@@ -190,7 +229,13 @@ describe("row 3 — a current report is a thing to read", () => {
   });
 
   it("that offer is made once and does not chain — a report that is itself the product of one offers no control", async () => {
-    readCurrentReport.mockResolvedValue(storedReport({ complete: false, fromIncompleteRescan: true }));
+    readCurrentReport.mockResolvedValue(
+      storedReport({
+        complete: false,
+        fromIncompleteRescan: true,
+        missing: [{ factor: "presence", reason: "not_attempted" }],
+      })
+    );
     const state = await resolve();
     if (state.kind !== "report") throw new Error("unreachable");
     expect(state.control).toEqual({ kind: "none" });

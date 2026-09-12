@@ -130,7 +130,11 @@ function controlFor(a: {
 
 /** At most one line beside the report, in the order the most specific true
  *  thing comes first. A refusal in force is what just happened to *this*
- *  visitor and outranks the report's own history. */
+ *  visitor and outranks the report's own history.
+ *
+ *  An incomplete report either names every driver it could not measure or
+ *  shows no notice at all (#541) — there is no third state in which the
+ *  sentence renders naming nothing. */
 function noticeFor(a: {
   report: StoredReport;
   refusal: AddressRefusal | null;
@@ -140,7 +144,13 @@ function noticeFor(a: {
   if (a.correctionFailed) return { kind: "correction_failed" };
   if (a.report.stoppedReason === "site_unreadable") return { kind: "site_unreadable" };
   if (!a.report.complete) {
-    return { kind: "incomplete", unmeasured: a.report.verdict.missing.map((m) => m.factor) };
+    // The head is destructured rather than asserted, so the notice's
+    // non-empty tuple is *proved* here and the empty case cannot reach the
+    // sentence's slot. A ceiling that lands after all three factors were
+    // measured leaves nothing to name: no notice, and the absent sections
+    // carry their own lines (#541).
+    const [first, ...rest] = a.report.verdict.missing.map((m) => m.factor);
+    if (first !== undefined) return { kind: "incomplete", unmeasured: [first, ...rest] };
   }
   return null;
 }

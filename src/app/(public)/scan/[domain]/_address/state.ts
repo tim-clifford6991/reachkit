@@ -33,7 +33,19 @@ export type AddressRefusal =
 /** At most one line ever renders (REQ-001 c14/c16, REQ-003 c12). `null`
  *  is an arm of the switch, not a missing value. */
 export type AddressNotice =
-  | { kind: "incomplete"; unmeasured: readonly ScoreFactorName[] }
+  /** #541: the list is non-empty **by type**. `notice.incomplete` names
+   *  what was not measured in a slot — "This report is incomplete —
+   *  {what} wasn't measured." — and an empty list filled that slot with
+   *  the empty string, so the top line of the only artefact the free
+   *  funnel produces read "This report is incomplete — wasn't measured."
+   *  `complete` is a function of `stoppedReason` (`scan/store.ts`) and
+   *  `missing` a function of the three factors (`measure/verdict.ts`), so
+   *  the two part company whenever a ceiling lands *after* all three were
+   *  measured: that report is incomplete with no driver to name, and it
+   *  takes the `null` notice instead — its absent sections already say so
+   *  in their own written lines (REQ-004 c10/c11). A tuple head makes the
+   *  empty list unrepresentable rather than merely unbuilt. */
+  | { kind: "incomplete"; unmeasured: readonly [ScoreFactorName, ...ScoreFactorName[]] }
   /** The pass could not read the site's own home document and stopped
    *  there (`stoppedReason: "site_unreadable"`, #479). Outranks
    *  `incomplete`: every factor is missing, and the one true cause is the
