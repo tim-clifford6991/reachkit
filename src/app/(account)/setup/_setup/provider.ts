@@ -30,6 +30,7 @@ import { liveSetupStore, siteAddressFor } from "./store";
 import type { PassProgress } from "./progress";
 import type { SetupStore } from "../submit";
 import type { ReportFacts } from "@/lib/market/setup/state";
+import type { SiteProfile } from "@/lib/site-profile/types";
 
 /** The signed-in founder, or §4.3's refusal. `src/middleware.ts` has
  *  already refused a request carrying no cookie at all, so the `null` arm
@@ -87,11 +88,36 @@ export const readSetupScreen = cache(async function readSetupScreen(): Promise<S
   return assembleSetup({
     measured,
     suggestedRivals: null,
+    // SPEC.md §5 (2026-09-12): what the scan read of this site. Keyed by
+    // the domain, because the free scan that built it had no account
+    // behind it to key it by.
+    profile: founder.domain === "" ? null : await readProfileFor(founder.domain),
     // §9's edge hostname is a deployment binding, never a string in a
     // card and never a fixture value in production.
     cnameTarget: env.HOSTED_EDGE_CNAME_TARGET,
   });
 });
+
+/**
+ * The stored site profile for one domain, or `null`.
+ *
+ * **Imported at the call**, like every other read this file makes: the
+ * store reaches `@/lib/db`, which parses every environment binding the
+ * moment it is evaluated, and merely rendering `/setup` must not need a
+ * database to be reachable.
+ *
+ * A read that fails is `null` — the card simply does not render — never a
+ * screen the founder cannot get past. The profile is a thing the product
+ * read *about* them; nothing they must answer.
+ */
+async function readProfileFor(domain: string): Promise<SiteProfile | null> {
+  try {
+    const { readSiteProfile } = await import("@/lib/site-profile");
+    return await readSiteProfile(domain);
+  } catch {
+    return null;
+  }
+}
 
 /**
  * The deep pass's current state. One arm carries which step is running;

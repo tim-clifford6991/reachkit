@@ -37,11 +37,19 @@ function render(el: React.ReactElement): Element {
 }
 
 function screenFor(over: Partial<SetupFacts> = {}): Element {
-  const model = assembleSetup({ ...FIXTURE_SETUP_FACTS, ...over });
-  return render(<SetupForm model={model} />);
+  return render(<SetupForm model={assembleSetup({ ...FIXTURE_SETUP_FACTS, ...over })} />);
 }
 
-const SCANLESS: Partial<SetupFacts> = { measured: null, suggestedRivals: null };
+/** The same model the screen was drawn from, for the rows that assert a
+ *  value the owner has not yet written a sentence around. */
+function model(over: Partial<SetupFacts> = {}) {
+  return assembleSetup({ ...FIXTURE_SETUP_FACTS, ...over });
+}
+
+// A founder who bought with no report behind them: nothing was measured,
+// and nothing was read of their site either, so there is no profile card
+// (SPEC.md §5, 2026-09-12).
+const SCANLESS: Partial<SetupFacts> = { measured: null, suggestedRivals: null, profile: null };
 
 describe('REQ-025 c1 — "it asks for exactly three decisions ... and for nothing else, save the site address"', () => {
   it("the report arm is §4.3's three cards, because the set merges site and market", () => {
@@ -57,7 +65,11 @@ describe('REQ-025 c1 — "it asks for exactly three decisions ... and for nothin
     ]) {
       expect(tree.querySelector(`[data-testid="${id}"]`), id).not.toBeNull();
     }
-    expect(tree.querySelectorAll("form section")).toHaveLength(3);
+    // Four boxes, not three, since 2026-09-12: §5's "The site profile is
+    // confirmed here" adds the card that shows what was read of their
+    // site. It is a reading shown back, not a fourth decision — the three
+    // decisions are still the three, and the submit is still one.
+    expect(tree.querySelectorAll("form section")).toHaveLength(4);
   });
 
   it("the no-report arm is four, because the site is asked for before the market is suggested", () => {
@@ -359,5 +371,60 @@ describe("no emoji anywhere on the screen", () => {
   it("the rendered text carries no pictographic character", () => {
     const tree = screenFor();
     expect(tree.textContent ?? "").not.toMatch(/\p{Extended_Pictographic}/u);
+  });
+});
+
+describe('SPEC.md §5 (2026-09-12) — "The site profile is confirmed here"', () => {
+  it("shows the site name, what was read and the domain it was read from", () => {
+    const tree = screenFor();
+    const card = tree.querySelector('[data-testid="setup-profile"]');
+    expect(card).not.toBeNull();
+    expect(card?.querySelector('[data-testid="setup-profile-site-name"]')?.textContent).toBe(
+      "Example Projects"
+    );
+    expect(card?.querySelector('[data-testid="setup-profile-domain"]')?.textContent).toBe(
+      "example.com"
+    );
+    // The count is the inventory's own, never a target — five rows, five
+    // pages read — and it reaches the badge through the key's `{pages}`
+    // slot. The owner has not written that sentence yet, so what renders
+    // today is the marker; the badge is asserted to be there, and what it
+    // says is the owner's to write.
+    expect(card?.querySelector('[data-testid="setup-profile-pages"]')).not.toBeNull();
+    expect(model().profile?.pagesRead).toBe(5);
+  });
+
+  it("one purpose chip per purpose that occurs, with its count, and none for a purpose with no pages", () => {
+    const chips = screenFor().querySelector('[data-testid="setup-profile-purposes"]');
+    for (const purpose of ["pricing", "about", "features", "blog"]) {
+      const chip = chips?.querySelector(`[data-testid="setup-profile-purpose-${purpose}"]`);
+      expect(chip, purpose).not.toBeNull();
+    }
+    // The fixture site has no contact, legal or product page, and the card
+    // states nothing about pages nobody read.
+    for (const purpose of ["contact", "legal", "product"]) {
+      expect(
+        chips?.querySelector(`[data-testid="setup-profile-purpose-${purpose}"]`),
+        purpose
+      ).toBeNull();
+    }
+    // Two feature pages, one pricing page — the count beside the word.
+    expect(chips?.textContent).toContain("2");
+  });
+
+  it("the voice summary is editable, in the field the one submit carries", () => {
+    const card = screenFor().querySelector('[data-testid="setup-profile"]');
+    const voice = card?.querySelector('textarea[name="voice_text"]');
+    expect(voice).not.toBeNull();
+    // What the scan read, in the box, for the founder to keep or type over.
+    expect(voice?.textContent).toContain("Plain and direct");
+    // No second save control: §5 allows this screen one submit.
+    expect(card?.querySelectorAll("button")).toHaveLength(0);
+  });
+
+  it("a founder whose site was never read gets no card, rather than an empty one", () => {
+    const tree = screenFor(SCANLESS);
+    expect(tree.querySelector('[data-testid="setup-profile"]')).toBeNull();
+    expect(tree.querySelectorAll("form section")).toHaveLength(4);
   });
 });

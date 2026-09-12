@@ -28,6 +28,7 @@
 // One exported constant each, not a generator: a fixture that varied per
 // call would make the layout conformance sweep non-deterministic.
 import type { SetupFacts } from "./facts";
+import type { SiteProfile } from "@/lib/site-profile/types";
 import type { PassProgress } from "./progress";
 import type { SetupProgressState, SetupStore, SetupSubmission } from "../submit";
 
@@ -35,6 +36,35 @@ export const FIXTURE_DOMAIN = "example.com";
 export const FIXTURE_SITE_ID = "site-fixture";
 export const FIXTURE_USER_ID = "user-fixture";
 export const FIXTURE_SCAN_ID = "scan-fixture";
+
+/** SPEC.md §5 (2026-09-12) — what the free scan read of the fixture
+ *  founder's site. Sample data, in the sweeps' one reserved domain: a
+ *  handful of pages across four purposes, a site name, and the voice
+ *  summary the model composed from them. The voice text is the *model's*
+ *  reading of a sample site, never a sentence the product speaks. */
+export const FIXTURE_SITE_PROFILE: SiteProfile = Object.freeze({
+  domain: FIXTURE_DOMAIN,
+  siteName: "Example Projects",
+  products: Object.freeze(["project management", "agency time tracking"]),
+  claims: Object.freeze(["used by 400 agencies", "set up in an afternoon"]),
+  voice: Object.freeze({
+    text: "Plain and direct, second person, short sentences. Says “projects”, not “engagements”. Keep: used by 400 agencies. Avoid: “the leading”, “world-class”.",
+    tone: "plain and direct",
+    person: "second person",
+    vocabulary: Object.freeze(["projects", "agencies", "time tracking"]),
+    claimsToKeep: Object.freeze(["used by 400 agencies"]),
+    claimsToAvoid: Object.freeze(["the leading", "world-class"]),
+  }),
+  inventory: Object.freeze([
+    Object.freeze({ url: "https://example.com/pricing", title: "Pricing", h1: "Pricing", purpose: "pricing" as const }),
+    Object.freeze({ url: "https://example.com/about", title: "About", h1: "About us", purpose: "about" as const }),
+    Object.freeze({ url: "https://example.com/features/time", title: "Time tracking", h1: "Time tracking", purpose: "features" as const }),
+    Object.freeze({ url: "https://example.com/features/boards", title: "Boards", h1: "Boards", purpose: "features" as const }),
+    Object.freeze({ url: "https://example.com/blog/agency-onboarding", title: "Agency onboarding", h1: "Agency onboarding", purpose: "blog" as const }),
+  ]),
+  pagesRead: 5,
+  refreshedAt: new Date(Date.UTC(2026, 8, 12, 6, 0, 0)),
+});
 
 /** A founder who bought from a report: the address was measured, so the
  *  market card is `inferred` and the address is shown to confirm or change
@@ -52,6 +82,7 @@ export const FIXTURE_SETUP_FACTS: SetupFacts = Object.freeze({
     }),
   }),
   suggestedRivals: Object.freeze(["asana.com", "monday.com", "clickup.com", "notion.so"]),
+  profile: FIXTURE_SITE_PROFILE,
   // Overwritten by `provider.ts` with `env.HOSTED_EDGE_CNAME_TARGET`; the
   // value here is only what a test that drives `assembleSetup` directly
   // sees, and it is a hostname, never a sentence.

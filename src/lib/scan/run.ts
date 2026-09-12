@@ -659,6 +659,58 @@ async function runStages(a: StageArgs): Promise<void> {
     return;
   }
 
+  // SPEC.md §2: "The scan builds the site profile" — up to 100 pages from
+  // the sitemap and internal links, one run per scan, inside the existing
+  // caps (§12 ruling 8, 2026-09-12). It belongs to this stage because this
+  // is the stage that reads the customer's own site, and it runs at every
+  // tier for the same reason every other stage does: the weekly pass is
+  // this pipeline, so §5's "the weekly pass refreshes the profile" is this
+  // call under the weekly cap rather than a second scheduler.
+  //
+  // **What this call does at which tier.** Every tier crawls, classifies
+  // and stores the inventory, the page count and the site name — the site
+  // name off the home document itself, with no model call. The voice
+  // summary, the products and the claims are the profile's inference half
+  // and derive at the paid tiers only: `tests/llm/budget.test.ts` pins the
+  // free pass at two nano calls, which is 30 s of the 60 the platform
+  // allows this invocation, and a third would not fit. The deep pass runs
+  // at setup, before the onboarding card that shows the voice renders, and
+  // the weekly pass refreshes it after that.
+  //
+  // **Its failure is not this stage's verdict.** `attempt` exists to turn a
+  // raised stage into `stage_undeterminable` — a statement about what the
+  // *measurement* could not determine, which the report then carries. The
+  // profile contributes nothing to the report, so a profile that could not
+  // be built says nothing about the measurement and must not wear that
+  // word: `tests/scan/free/vendor-failure.test.ts` reads exactly this, and
+  // a pass whose ranked-keywords call failed at the vendor would otherwise
+  // report a second, unrelated undeterminable stage. Its own event says
+  // what actually happened, and the pass continues either way.
+  if (bounds.stopNow() === null) {
+    try {
+      const { buildSiteProfile } = await import("@/lib/site-profile");
+      await buildSiteProfile(cost, {
+        domain,
+        // `CanonicalDomain` is the branded string itself, and the home
+        // address the measurement read is `https://<domain>/` — the same
+        // one `measureDomain` builds, whose own helper is private to that
+        // module. The crawl re-reads nothing: this address is row one of
+        // the inventory and is already in the `fetches` cache.
+        homeUrl: `https://${domain}/`,
+        homeHtml: null,
+        sitemaps: measurement.robots.kind === "unmeasured" ? [] : measurement.robots.value.sitemaps,
+        tier: a.tier,
+      });
+    } catch (error) {
+      console.log(
+        JSON.stringify({
+          event: "site_profile_undeterminable",
+          because: error instanceof Error ? error.message : String(error),
+        })
+      );
+    }
+  }
+
   if (bounds.stopNow() !== null) return;
   await enter("reading_access_rules");
   await exitStage(scanId, "reading_access_rules");

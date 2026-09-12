@@ -379,12 +379,43 @@ describe("the five keys the owner ruled 2026-09-11 (DECISIONS 2026-09-11, #516)"
     }
   });
 
-  it("nothing in the registry is owed or awaiting any more, and no key renders the marker", () => {
+  // 2026-09-12, issue #577: the registry stood at "nothing is owed or
+  // awaiting" until a new surface arrived. SPEC.md §5 ("The site profile is
+  // confirmed here") adds a card whose sentences are the owner's and are
+  // not written yet, and `CLAUDE.md`'s standing rule for exactly that is
+  // "add the key, leave the value `TODO(copy)`, flag it in the PR".
+  //
+  // So the assertion is not relaxed into silence — it is made a **closed
+  // list**. Every key still awaiting an owner sentence is named here, and
+  // a sixteenth that appeared without being named would fail this row the
+  // way the sweeping version did. Nothing may be owner-owed (`''`), which
+  // is the arm that takes a screen down; the marker renders as itself.
+  const AWAITING_THE_OWNER = [
+    "setup.profile.title",
+    "setup.profile.pages-read",
+    "setup.profile.site-name",
+    "setup.profile.purposes",
+    "setup.profile.voice.label",
+    "setup.profile.voice.later",
+    "setup.profile.purpose.pricing",
+    "setup.profile.purpose.about",
+    "setup.profile.purpose.features",
+    "setup.profile.purpose.product",
+    "setup.profile.purpose.blog",
+    "setup.profile.purpose.contact",
+    "setup.profile.purpose.legal",
+    "setup.profile.purpose.other",
+    "settings.voice.save",
+  ] satisfies CopyKey[];
+
+  it("nothing is owner-owed, and exactly the named keys await the owner's sentence", () => {
     expect(OWNER_OWED).toEqual([]);
-    expect(AWAITING_COPY).toEqual([]);
+    expect([...AWAITING_COPY].sort()).toEqual([...AWAITING_THE_OWNER].sort());
     for (const [key, value] of Object.entries(COPY)) {
-      expect(value, key).not.toBe(TODO_COPY_MARKER);
       expect(value, key).not.toBe("");
+      if (!(AWAITING_THE_OWNER as string[]).includes(key)) {
+        expect(value, key).not.toBe(TODO_COPY_MARKER);
+      }
     }
   });
 });

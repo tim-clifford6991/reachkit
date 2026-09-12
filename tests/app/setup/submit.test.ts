@@ -22,6 +22,7 @@ const SUBMISSION: SetupSubmission = {
   competitors: ["asana.com"],
   mode: "autopilot",
   destination: { kind: "hosted" },
+  voiceText: "Plain and direct, second person.",
 };
 
 interface Recorder {
@@ -63,16 +64,23 @@ describe('REQ-025 c2 — "one action starts the product: no multi-page wizard, n
 });
 
 describe('REQ-025 c1 — "it asks for exactly three decisions ... and for nothing else, save the site address"', () => {
-  it("the submission shape has exactly five members, and none of them can carry a duration", () => {
+  it("the submission shape has exactly six members, and none of them can carry a duration", () => {
     // A field absent from the type cannot be sent. The literal list here
-    // is the assertion: adding a sixth decision means editing this line,
-    // which is the review the requirement asks for.
+    // is the assertion: adding a decision means editing this line, which
+    // is the review the requirement asks for.
+    //
+    // `voiceText` is the sixth since 2026-09-12 (SPEC.md §5, "The site
+    // profile is confirmed here"): the brand-voice summary the founder
+    // confirmed or edited. It is not an engine parameter — the row below
+    // is what holds it to that — and §5 allows this screen one submit, so
+    // the voice travels on it rather than on a second save control.
     expect(Object.keys(SUBMISSION).sort()).toEqual([
       "category",
       "competitors",
       "destination",
       "domain",
       "mode",
+      "voiceText",
     ]);
   });
 

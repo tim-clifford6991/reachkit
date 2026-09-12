@@ -92,6 +92,11 @@ export const MIGRATION_SUBTOKENS: readonly MigrationSubtoken[] = [
   // drafts they re-deadline, in one statement. Adds no column; it carries
   // the function that makes the save atomic across drafts.
   { token: "sites_settings", parent: "sites", owner: "BP-057" },
+  // The site profile's own table (issue #577) — `SPEC.md` §2's "The scan
+  // builds the site profile" and §12 ruling 8 (2026-09-12). A sub-token of
+  // `sites` under rule 3a: the profile is a fact about one site, narrows
+  // that topic, and owns its own file by rule 2's precedence.
+  { token: "sites_profile", parent: "sites", owner: "SPEC.md §12 ruling 8" },
 ];
 
 /**

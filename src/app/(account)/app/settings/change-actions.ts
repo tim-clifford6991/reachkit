@@ -52,6 +52,7 @@ import { redirect } from "next/navigation";
 import { SIGNIN_PATH } from "@/lib/account/identity/addresses";
 import type { RivalSet } from "@/lib/market/setup/rivals";
 import { DESTINATION_HREF } from "../_shell/destinations";
+import { VOICE_FIELD } from "./voice-state";
 import {
   DOMAIN_REFUSAL_KEY,
   MARKET_CATEGORY_FIELD,
@@ -112,6 +113,30 @@ export async function saveCategoryAction(form: FormData): Promise<MarketChangeSt
     category: typed(form, MARKET_CATEGORY_FIELD),
   });
   return saved(result.effectiveOn);
+}
+
+/**
+ * SPEC.md §5 (2026-09-12) — "the same voice summary is editable in
+ * settings, and the stored text is what drafting reads".
+ *
+ * It writes `sites.voice_text`, which is already `DraftPromptInputs`'s
+ * `voiceText` — so there is one stored voice, one field, and no second
+ * source of truth for a draft to disagree with. The leaf's writer stamps
+ * the edit, which is what keeps a weekly refresh from overwriting it.
+ *
+ * **No refusal, and none is invented**: any words a customer uses for how
+ * their own pages should sound are words they may use. It answers nothing
+ * for the card to state beyond the revalidated read — the same posture
+ * `saveCategoryAction` takes towards a market nobody may refuse.
+ *
+ * The leaf is imported at the call, like every engine this module
+ * reaches: it touches `@/lib/db`, and merely rendering Settings must not
+ * need a database.
+ */
+export async function saveVoiceAction(form: FormData): Promise<void> {
+  const { saveVoiceText } = await import("@/lib/site-profile");
+  await saveVoiceText({ siteId: await siteId(), text: typed(form, VOICE_FIELD) });
+  revalidatePath(DESTINATION_HREF.settings);
 }
 
 /** The stored set, as the editing type. Every domain reads back `typed`:
