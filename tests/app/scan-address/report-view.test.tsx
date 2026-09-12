@@ -196,8 +196,27 @@ describe("REQ-001 c14/c16, REQ-003 c12 — at most one notice, ever", () => {
     expect(html).not.toContain("notice.incomplete");
   });
 
+  // #541: the drivers reach the sentence's own `{what}` slot, all of them.
+  // `copy` is mocked to `key(vars)` here, so the slot's contents are
+  // readable in the markup: one driver names one, two name both.
+  it("the incomplete line names every driver it could not measure (#541)", () => {
+    const one = render(FIXTURE_REPORT, { kind: "incomplete", unmeasured: ["presence"] });
+    expect(one).toContain("notice.incomplete(verdict.factor.presence)");
+    const both = render(FIXTURE_REPORT, {
+      kind: "incomplete",
+      unmeasured: ["foundations", "presence"],
+    });
+    expect(both).toContain(
+      "notice.incomplete(verdict.factor.foundations, verdict.factor.presence)"
+    );
+  });
+
   it("null renders no alert at all", () => {
-    expect(count(render(FIXTURE_REPORT, null), 'role="alert"')).toBe(0);
+    const html = render(FIXTURE_REPORT, null);
+    expect(count(html, 'role="alert"')).toBe(0);
+    // #541: nothing unmeasured, so the sentence is absent — not rendered
+    // with an empty slot.
+    expect(html).not.toContain("notice.incomplete");
   });
 
   it("the refusal's wait is whole minutes, from one place", () => {

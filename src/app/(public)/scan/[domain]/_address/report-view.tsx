@@ -87,6 +87,10 @@ function NoticeLine(p: {
   const notice = p.notice;
   if (notice === null) return null;
   switch (notice.kind) {
+    // The list is a non-empty tuple (`state.ts`), so `{what}` is never
+    // filled with the empty string: `resolve.ts` sends `null` instead of
+    // an empty `incomplete` (#541). The separator is `", "` and is not a
+    // sentence — the artboard draws "and", which is the owner's to say.
     case "incomplete":
       return (
         <Alert
