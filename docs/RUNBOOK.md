@@ -321,7 +321,7 @@ figure is ever rendered to a customer**, and there is no `site_id`: a site is re
 `src/lib/config/constants.ts`, `CAPS`, in cents. Per pass: free `12` · deep `150` · weekly `40` ·
 draft `45`. Product-wide: `DAILY_PRODUCT_C = 5000` for one **UTC** day, measured over
 `fetches.cost_cents`. The unit prices behind them are `PRICE_BOOK`, transcribed from
-the price book archived at `docs/archive/2026-09-11/DATA-COSTS.md` and held to it by `tests/pins.test.ts`.
+the price book archived at `docs/archive/2026-09-11/DATA-COSTS.md`.
 
 **A cap degrades, it never throws.** Hitting one skips the remaining optional work and marks the
 scan `degraded`; the run finishes with a smaller report rather than an error. Hitting the daily

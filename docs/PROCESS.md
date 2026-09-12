@@ -20,6 +20,8 @@ Priority is the [project board](https://github.com/users/tim-clifford6991/projec
 
 No queue files, no milestones, no `pending-decisions` file. Implementation notes live in code comments at the seam they govern, never in a document.
 
+Operations — envs, bindings, the kill switch, restore — are `docs/RUNBOOK.md`, the one operational file.
+
 ## Ten steps
 1. **Owner** names an outcome: one sentence about what a user can do afterwards.
 2. **Master** writes the issue — outcome, evidence, done-when — with one link to its `SPEC.md` section.
