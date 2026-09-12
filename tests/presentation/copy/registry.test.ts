@@ -14,14 +14,29 @@ import { COPY, COPY_META, copy, type CopyKey, type CopyPartition } from "../../.
 // registry.ts, not re-exported through the public barrel, so it is
 // imported from its declaring file here.
 import { OWNER_OWED, AWAITING_COPY, TODO_COPY_MARKER } from "../../../src/lib/presentation/copy/registry.ts";
-// Issue #402 — the registry's coverage is recorded per partition in
-// `counts.snapshot.json` and summed, never written down as a total.
-// `counts.ts` carries why, and reads the partitions off disk for both.
-import { ACTUAL_LEDGER, KEY_FILES, LEDGER_TOTALS, RECORDED_LEDGER, UPDATE_COMMAND, loadPartitions } from "./counts.ts";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const COPY_DIR = path.resolve(HERE, "../../../src/lib/presentation/copy");
 const KEYS_DIR = path.join(COPY_DIR, "keys");
+
+/** The partition files, by name, in sorted order. */
+const KEY_FILES: readonly string[] = fs.readdirSync(KEYS_DIR).filter((f) => f.endsWith(".ts")).sort();
+
+/** Each partition's exported const, read on its own — the closure and
+ *  "traces to exactly one partition" checks below need each partition
+ *  before the spread in registry.ts merges them. */
+async function loadPartitions(): Promise<Map<string, CopyPartition>> {
+  const out = new Map<string, CopyPartition>();
+  for (const file of KEY_FILES) {
+    const mod: Record<string, CopyPartition> = await import(
+      /* @vite-ignore */ `../../../src/lib/presentation/copy/keys/${file}`
+    );
+    const [exported] = Object.values(mod);
+    if (!exported) throw new Error(`${file} exports nothing`);
+    out.set(file, exported);
+  }
+  return out;
+}
 
 const KEY_SOURCES = new Map(KEY_FILES.map((f) => [f, fs.readFileSync(path.join(KEYS_DIR, f), "utf8")]));
 const REGISTRY_SOURCE = fs.readFileSync(path.join(COPY_DIR, "registry.ts"), "utf8");
@@ -96,15 +111,8 @@ describe("REQ-093 c5 — the registry renders with every model unavailable", () 
   // without the vacuous mocking apparatus.
   it("every non-owner-owed key returns its literal through copy(), with zero import path to a language model", () => {
     const nonOwnerOwed = (Object.keys(COPY) as CopyKey[]).filter((key) => !OWNER_OWED.includes(key));
-    // Count assertion (rule 5.5): how many of the registry's keys carry an
-    // owner sentence is summed from `counts.snapshot.json`, one block per
-    // partition, rather than restated here as a literal a screen PR has to
-    // rewrite. The block below — every one of them renders through `copy()`
-    // with nothing to fetch — is what the count is *about*; the count only
-    // says the set it ranges over has not silently shrunk.
     const awaiting = new Set<CopyKey>(AWAITING_COPY);
     const ruled = nonOwnerOwed.filter((key) => !awaiting.has(key));
-    expect(ruled.length).toBe(LEDGER_TOTALS.ruled);
 
     // Only the ruled sentences carry their slots' `{name}` placeholders —
     // a `TODO(copy)` marker is one literal with no placeholder in it, so
@@ -206,42 +214,19 @@ describe("owner-owed and empty agree both ways", () => {
     expect(new Set(emptyKeys)).toEqual(new Set(OWNER_OWED));
   });
 
-  it("the ledger is the registry's own, per partition, and the four totals derive from it (rule 5.5)", () => {
-    // Issue #402. This assertion used to be four hand-maintained literals
-    // ("117 owner-owed, 244 awaiting copy, 364 ruled, 725 total") under
-    // eight hundred lines of running arithmetic, both rewritten by every PR
-    // that added a key — so any two open screen PRs conflicted the moment
-    // one landed. The per-issue arithmetic that stood here is in this
-    // file's git history; the per-key provenance is in the partition files'
-    // own comments and in each key's `fixedBy`, which is where it belongs.
-    //
-    // One assertion per partition. A PR that adds keys in one domain
-    // rewrites that domain's block and no other, so two PRs adding keys in
-    // different domains edit non-adjacent regions and merge clean — which
-    // is the whole point of recording it this way.
-    expect(Object.keys(ACTUAL_LEDGER)).toEqual(Object.keys(RECORDED_LEDGER));
-    for (const [file, counts] of Object.entries(ACTUAL_LEDGER)) {
-      expect(counts, `${file}: the copy ledger is stale. Regenerate it with\n  ${UPDATE_COMMAND}`).toEqual(
-        RECORDED_LEDGER[file]
-      );
-    }
-
-    // The `TODO(copy)` guarantee, unchanged in force: the two unwritten
-    // standings are recorded by *name*, so a key that stops being owed or
-    // stops being TODO leaves the diff naming itself, and the recount the
-    // #340–#348 issues need is still possible from the registry alone.
-    expect(OWNER_OWED.length).toBe(LEDGER_TOTALS.owed);
-    expect(AWAITING_COPY.length).toBe(LEDGER_TOTALS.awaiting);
-    expect(Object.keys(COPY).length - OWNER_OWED.length - AWAITING_COPY.length).toBe(LEDGER_TOTALS.ruled);
-    // Summing the partitions and reading `COPY` must agree: they disagree
-    // exactly when the spread in registry.ts dropped a key or two
-    // partitions declared the same one.
-    expect(Object.keys(COPY).length).toBe(LEDGER_TOTALS.total);
+  it("every key still unwritten is accounted for, both ways (rule 5.5)", () => {
+    // Issue #545: the per-partition ledger `counts.snapshot.json` is gone. It
+    // recorded counts nothing but CI read and made every key-adding PR
+    // regenerate it; what it guaranteed is asserted from the registry itself.
+    const awaiting = (Object.keys(COPY) as CopyKey[]).filter((key) => COPY[key] === TODO_COPY_MARKER);
+    expect(new Set(AWAITING_COPY)).toEqual(new Set(awaiting));
 
     // The two representations never overlap: an empty value and the marker
     // are different values, so no key can be on both lists.
-    for (const key of AWAITING_COPY) expect(OWNER_OWED).not.toContain(key);
-    for (const key of AWAITING_COPY) expect(COPY[key]).toBe(TODO_COPY_MARKER);
+    for (const key of AWAITING_COPY) {
+      expect(OWNER_OWED).not.toContain(key);
+      expect(COPY[key]).toBe(TODO_COPY_MARKER);
+    }
   });
 });
 

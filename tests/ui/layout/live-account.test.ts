@@ -1,6 +1,6 @@
 // tests/ui/layout/live-account.test.ts — BUILD §2, §4.4–§4.7 (issue #206)
 //
-// The four `/app` addresses, swept at five widths signed in as an account
+// The four `/app` addresses, swept at the sweep's widths signed in as an account
 // **no fixture answers for** — so every provider takes its database read
 // and the layout law is applied to what a real customer's screen actually
 // draws.
@@ -15,7 +15,7 @@
 //
 // **Every read here is bounded, and that is asserted rather than assumed**
 // (DECISIONS 2026-09-07). A provider that hangs is indistinguishable from
-// a broken screen at five widths; the navigation deadline below is what
+// a broken screen at every width; the navigation deadline below is what
 // tells the two apart, and it is deliberately far tighter than the
 // per-test timeout so a slow read fails as a slow read.
 import path from "node:path";
@@ -41,6 +41,7 @@ import {
 } from "./seed";
 import { FIXTURE_SETTINGS_FACTS } from "@/app/(account)/app/settings/fixture";
 import { widths } from "./widths";
+import { sweepWidths } from "./matrix";
 
 const APP_ROOT = path.resolve(__dirname, "../../../src/app");
 
@@ -71,7 +72,7 @@ const weekZeroRoutes = enumerateRoutes(APP_ROOT, {
 }).filter((route) => route.path === "/app");
 
 console.log(
-  `tests/ui/layout/live-account.test.ts: ${routes.length} live-branch route(s) × 5 widths`
+  `tests/ui/layout/live-account.test.ts: ${routes.length} live-branch route(s) × ${sweepWidths().length} width(s)`
 );
 
 /**
@@ -100,7 +101,7 @@ function urlFor(route: { path: string; host?: string }): string {
   return routeUrl(baseURL, route);
 }
 
-describe(`live-branch sweep — ${routes.length} route(s) × 5 widths`, () => {
+describe(`live-branch sweep — ${routes.length} route(s) × ${sweepWidths().length} width(s)`, () => {
   it("the four §4.4–§4.7 addresses are what is swept, and they are enumerated not listed", () => {
     expect(routes.map((route) => route.path).sort()).toEqual([
       "/app",
@@ -119,7 +120,7 @@ describe(`live-branch sweep — ${routes.length} route(s) × 5 widths`, () => {
   });
 
   for (const route of routes) {
-    for (const width of widths()) {
+    for (const width of sweepWidths()) {
       it(
         `${route.path} @ ${width}px reports no offender on checks 1-4, signed in live`,
         async () => {
@@ -241,7 +242,7 @@ describe(`live-branch sweep — ${routes.length} route(s) × 5 widths`, () => {
   );
 });
 
-describe(`week-0 sweep — S13, ${weekZeroRoutes.length} route(s) × 5 widths`, () => {
+describe(`week-0 sweep — S13, ${weekZeroRoutes.length} route(s) × ${sweepWidths().length} width(s)`, () => {
   it("Overview is what is swept, and it is enumerated not listed", () => {
     expect(weekZeroRoutes.map((route) => route.path)).toEqual(["/app"]);
   });
@@ -263,7 +264,7 @@ describe(`week-0 sweep — S13, ${weekZeroRoutes.length} route(s) × 5 widths`, 
   });
 
   for (const route of weekZeroRoutes) {
-    for (const width of widths()) {
+    for (const width of sweepWidths()) {
       it(
         `${route.path} @ ${width}px reports no offender on checks 1-4, in week 0`,
         async () => {

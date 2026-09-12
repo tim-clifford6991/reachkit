@@ -8,7 +8,8 @@
 // horizontal scroll either. This file is the other half, and it is the one
 // the milestone audit marked PARTIAL.
 //
-// **Every route, three bands, both themes.** The routes are
+// **Every route, one band × one theme by default; three bands and both
+// themes under `RK_LAYOUT_FULL=1` (`matrix.ts`, issue #545).** The routes are
 // `routes.ts`'s enumeration — the same one `layout.test.ts` sweeps, so a
 // surface added later is in scope by construction and never by being listed
 // here — plus the four live-account addresses `live-account.test.ts` owns,
@@ -65,6 +66,7 @@ import pixelmatch from "pixelmatch";
 import { PNG } from "pngjs";
 import type { Page } from "playwright";
 import { BAND_MIN } from "@/ui/layout/bands";
+import { bands, themes, type LayoutTheme } from "./matrix";
 import { getAccountCookie, getBaseURL, getLiveAccountCookie, getSetupAccountCookie, getWeekZeroAccountCookie, withPage } from "./browser";
 import {
   enumerateRoutes,
@@ -86,18 +88,14 @@ import { standSurface, unenumeratedSurfaces, type UnenumeratedSurface } from "./
 const APP_ROOT = path.resolve(__dirname, "../../../src/app");
 const BASELINE_DIR = path.join(__dirname, "__screenshots__");
 
-/** ADR-093 decision 1's three bands, and only those.
- *
- *  The property sweep renders five widths because the two boundary-minus-one
- *  values are where an off-by-one in a media query lives — a *property*
- *  question. A picture at 1023px and one at 1024px differ by design, so
- *  baselining both would double the cost of this suite to re-photograph the
- *  same decision. The issue's own lever, if the run outgrows its budget, is
- *  fewer bands for the live account and never fewer routes. */
-const BANDS = [BAND_MIN.compact, BAND_MIN.medium, BAND_MIN.wide] as const;
+/** The bands this suite photographs — one by default, three under the
+ *  full matrix (`matrix.ts`, issue #545). The property sweep's
+ *  boundary-minus-one widths are deliberately not baselined here. */
+const BANDS = bands();
 
-const THEMES = ["light", "dark"] as const;
-type Theme = (typeof THEMES)[number];
+/** Both themes under the full matrix, light alone by default. */
+const THEMES = themes();
+type Theme = LayoutTheme;
 
 /**
  * How different two pictures of one screen may be and still be the same
@@ -653,7 +651,7 @@ describe(`visual baselines — ${SHOTS.length} surface(s) × ${BANDS.length} ban
   for (const shot of SHOTS) {
     for (const width of BANDS) {
       it(
-        `${shot.name} @ ${width}px matches its baseline in both themes`,
+        `${shot.name} @ ${width}px matches its baseline in ${THEMES.join(" and ")}`,
         async () => {
           const { taken, fullPage } = await withPage(
             width,
@@ -661,7 +659,7 @@ describe(`visual baselines — ${SHOTS.length} surface(s) × ${BANDS.length} ban
               const url = urlFor(shot.route);
               const shots: Record<Theme, Buffer> = {} as Record<Theme, Buffer>;
               let full: Buffer | undefined;
-              // One browser for both themes at this width: a launch costs
+              // One browser for every theme at this width: a launch costs
               // more than the two navigations put together.
               for (const theme of THEMES) {
                 shots[theme] = await shoot(page, url, theme, shot.surface);

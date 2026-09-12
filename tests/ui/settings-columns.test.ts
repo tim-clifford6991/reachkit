@@ -16,7 +16,7 @@
 //    is `BAND_MIN.wide` and `--breakpoint-xl`. That coincidence is load-bearing
 //    (it is why a utility can express a design-token boundary at all), so it is
 //    pinned here against both `BAND_MIN` and Tailwind's own theme file, in the
-//    `tests/pins.test.ts` shape. If a future Tailwind moved `xl`, this fails
+//    pinned-value shape. If a future Tailwind moved `xl`, this fails
 //    rather than the screen silently reflowing at a width nothing specified.
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";

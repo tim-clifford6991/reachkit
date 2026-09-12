@@ -160,8 +160,8 @@ describe(
     });
 
     // "The disjointness clause is NOT tested here" (REQ-096 c9 row) — that
-    // is ADR-001 point 3's single assertion in tests/pins.test.ts (BP-005,
-    // WO-007), out of this WO's scope. What is asserted structurally here
+    // is ADR-001 point 3's clause (BP-005, WO-007), out of this WO's scope.
+    // What is asserted structurally here
     // is that this map is the only source of a rival-size term anywhere in
     // the corpus, so "the same term on every surface" reduces to "every
     // surface reaches this map".

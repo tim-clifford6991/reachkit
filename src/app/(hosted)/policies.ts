@@ -21,8 +21,7 @@
 //
 // **The six agents are a pin, never a literal here** (ADR-022, ADR-090):
 // `AI_READER_AGENTS` is one closed list that the blocked-readers count, the
-// unblock lines and this policy all read, and `tests/pins.test.ts` asserts
-// its membership against §9's clause, quoted. Typing the names here would
+// unblock lines and this policy all read. Typing the names here would
 // be a second copy, and adding or removing an agent would stop being a
 // pins-test change.
 //

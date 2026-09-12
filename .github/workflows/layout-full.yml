@@ -1,0 +1,47 @@
+# The full layout matrix — six widths, three bands, both themes.
+#
+# A PR runs one band × one theme (issue #545); this is where the rest of the
+# matrix is still walked, nightly, so a band or theme the default no longer
+# photographs cannot drift unseen. Not a merge gate: it reports.
+name: Layout (full matrix)
+
+on:
+  schedule:
+    - cron: "41 3 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: layout-full
+  cancel-in-progress: false
+
+jobs:
+  full:
+    name: layout conformance — full matrix
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: reachkit
+          POSTGRES_PASSWORD: reachkit
+          POSTGRES_DB: reachkit_scratch
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U reachkit -d reachkit_scratch"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/layout-suite
+      - run: npm run test:layout:full
+
+      - name: visual evidence (diff and actual PNGs) when a baseline moved
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-evidence-full-${{ github.sha }}
+          path: /tmp/reachkit-visual-*/
+          if-no-files-found: ignore
+          retention-days: 7

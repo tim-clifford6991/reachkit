@@ -83,8 +83,7 @@ describe("REQ-059 c4 — it permits by name the six pinned AI readers", () => {
 
   it("the six are the pin's six — this file names none of them itself", () => {
     // ADR-022/ADR-090: one closed list, read here and by the blocked-readers
-    // count. `tests/pins.test.ts` asserts its membership against §9's
-    // clause, quoted; a literal here would be a second copy.
+    // count; a literal here would be a second copy.
     const source = readFileSync(path.join(REPO_ROOT, "src/app/(hosted)/policies.ts"), "utf8");
     for (const agent of ["GPTBot", "ClaudeBot", "OAI-SearchBot", "PerplexityBot"]) {
       // The names appear in this file's header comment, quoting §9. Not in

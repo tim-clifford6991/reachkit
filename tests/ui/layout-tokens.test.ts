@@ -5,7 +5,7 @@
 // `--t-floor`, so check 4 of the conformance suite could not run on any
 // route. `src/ui/layout/layout.css` is now the one home of the three
 // layout tokens; this file pins its declarations against `BAND_MIN`
-// (`src/ui/layout/bands.ts`) in-process — the `tests/pins.test.ts` shape —
+// (`src/ui/layout/bands.ts`) in-process — the pinned-value shape —
 // so the transcription and the CSS cannot silently diverge without a
 // browser run, and asserts the root layout imports the sheet, so every
 // route's document carries them (the browser-side twin is

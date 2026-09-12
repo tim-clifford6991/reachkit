@@ -15,7 +15,7 @@
 // stylesheet rule reached dev with every screen flush to the top-left.
 //
 // Enumerates the real `src/app` tree — never a fixture — and prints
-// `n routes × 5 widths` unconditionally (rule 5.5): today `src/app/` holds
+// `n routes × n widths` unconditionally (rule 5.5): today `src/app/` holds
 // no route (WO-269 rests-on row 5), so `n` is `0`, and that is stated
 // explicitly rather than read off an empty, silent report.
 import path from "node:path";
@@ -42,7 +42,7 @@ import {
   type EnumeratedRoute,
 } from "./routes";
 import { standSurface, unenumeratedSurfaces } from "./surfaces";
-import { widths } from "./widths";
+import { sweepWidths as widths } from "./matrix";
 
 const APP_ROOT = path.resolve(__dirname, "../../../src/app");
 // The seeded session (#193): every `(account)` route is swept signed in
@@ -51,7 +51,7 @@ const APP_ROOT = path.resolve(__dirname, "../../../src/app");
 const routes = enumerateRoutes(APP_ROOT, { accountCookie: getAccountCookie() });
 
 console.log(
-  `tests/ui/layout/layout.test.ts: ${routes.length} route(s) × 5 widths` +
+  `tests/ui/layout/layout.test.ts: ${routes.length} route(s) × ${widths().length} width(s)` +
     (routes.length === 0
       ? " — src/app/ holds no route yet (WO-269 rests-on row 5)"
       : ""),
@@ -118,7 +118,7 @@ async function offendersOn(page: Page): Promise<unknown[]> {
   return results.flat();
 }
 
-describe(`layout sweep — ${routes.length} route(s) × 5 widths`, () => {
+describe(`layout sweep — ${routes.length} route(s) × ${widths().length} width(s)`, () => {
   it("states the route count it swept, explicitly, even at zero (rule 5.5)", () => {
     // The console line above is the report; this assertion pins the value
     // it reports so a change in what `enumerateRoutes` returns is caught
@@ -221,16 +221,16 @@ describe(`layout sweep — ${routes.length} route(s) × 5 widths`, () => {
  * `surfaces.ts` states in full what these are, how each reaches the page
  * and what this sweep does and does not claim about them. Here they are
  * simply six more documents the layout law applies to, measured at the same
- * five widths by the same five checks — because the law is about content
+ * the sweep's widths by the same five checks — because the law is about content
  * fitting its box, and a 404 has boxes exactly like every other screen's.
  */
 const surfaces = unenumeratedSurfaces();
 
 console.log(
-  `tests/ui/layout/layout.test.ts: ${surfaces.length} unenumerated surface(s) × 5 widths`,
+  `tests/ui/layout/layout.test.ts: ${surfaces.length} unenumerated surface(s) × ${widths().length} width(s)`,
 );
 
-describe(`layout sweep — ${surfaces.length} unenumerated surface(s) × 5 widths`, () => {
+describe(`layout sweep — ${surfaces.length} unenumerated surface(s) × ${widths().length} width(s)`, () => {
   it("sweeps every surface `surfaces.ts` declares, and states the count (rule 5.5)", () => {
     // The premise, as an assertion: a seventh surface added there is in
     // scope here by construction and never by being listed twice.
