@@ -19,8 +19,22 @@ import { describe, expect, it } from "vitest";
 
 const SRC = path.resolve(import.meta.dirname, "../../../src");
 
-/** The token file itself, and the framework entry point. */
-const EXEMPT_FILES: readonly string[] = ["src/ui/theme.css", "src/ui/tailwind.css"];
+/** The token file itself. `tailwind.css` is not exempt as a whole since
+ *  issue #548 — only its `@plugin` theme block is (see `inThemeBlock`),
+ *  because the daisyUI component rules that now sit beside it must name a
+ *  token like every other rule in `src/`. */
+const EXEMPT_FILES: readonly string[] = ["src/ui/theme.css"];
+
+/** The one daisyUI theme's own block, which maps tokens onto daisyUI's slot
+ *  names and carries the four v2 colours `docs/DESIGN.md` adds to it. */
+const THEME_BLOCK_FILE = "src/ui/tailwind.css";
+
+function inThemeBlock(decl: Declaration): boolean {
+  for (let node = decl.parent; node != null; node = node.parent as typeof node) {
+    if (node.type === "atrule" && (node as { name?: string }).name === "plugin") return true;
+  }
+  return false;
+}
 
 /** The properties the approved set covers. A property outside this list —
  *  `display`, `flex`, `overflow`, `grid-template-columns` — carries no
@@ -167,6 +181,7 @@ describe("issue #349 — no stylesheet under src/ spends a bare literal", () => 
       if (EXEMPT_FILES.includes(name)) continue;
       const allowedHere = unconvertedByFile.get(name) ?? new Set<string>();
       postcss.parse(readFileSync(file, "utf8")).walkDecls((decl: Declaration) => {
+        if (name === THEME_BLOCK_FILE && inThemeBlock(decl)) return;
         if (!GOVERNED.test(decl.prop)) return;
         if (!isBare(decl.value)) return;
         // A border shorthand whose colour is a token may keep the hairline.

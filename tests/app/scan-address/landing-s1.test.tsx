@@ -74,7 +74,9 @@ describe("S1 hero — the product component in a browser frame (REQ-099 c4, ruli
     const shot = markup.slice(markup.indexOf('data-testid="landing-shot"'));
     expect(shot.match(/class="stats"/g)).toHaveLength(3);
     expect(shot).toMatch(/class="stat-value num"/);
-    const sheet = readFileSync(path.resolve(import.meta.dirname, "../../../src/ui/idiom/idiom.css"), "utf8");
+    // The frame's tile rules moved to the one daisyUI theme with the other
+    // component re-skins (issue #548).
+    const sheet = readFileSync(path.resolve(import.meta.dirname, "../../../src/ui/tailwind.css"), "utf8");
     expect(markup).not.toContain("rk-shot-tile-");
     expect(sheet).not.toContain("rk-shot-tile-");
   });
@@ -85,7 +87,7 @@ describe("S1 hero — the product component in a browser frame (REQ-099 c4, ruli
   // sheet — so at equal weight the miniature would be drawn at the size of
   // the screen it is a picture of. This asserts the weight, not the order.
   it("the miniature's figure out-ranks S12's, so the frame keeps --h1", () => {
-    const sheet = readFileSync(path.resolve(import.meta.dirname, "../../../src/ui/idiom/idiom.css"), "utf8");
+    const sheet = readFileSync(path.resolve(import.meta.dirname, "../../../src/ui/tailwind.css"), "utf8");
     const rule = sheet.slice(sheet.indexOf(".rk-shot-tile .stat-value"));
     expect(rule.slice(0, rule.indexOf("{"))).toContain(".stat-value.num");
     expect(rule.slice(0, rule.indexOf("}"))).toContain("font-size: var(--h1)");
