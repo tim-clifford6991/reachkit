@@ -57,9 +57,15 @@
             <span style="padding: 2px 10px; border-radius: 999px; background: #ffffff; border: 1px solid #ddd8fa; color: #5b4be0; font-size: 12px; font-weight: 600;">default</span>
           </div>
           <p style="margin: 0; font-size: 13px; color: #5e5e73;">a blog on your own domain, served by us</p>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <span style="font-size: 13px; color: #5e5e73;">[COPY: choose the subdomain, e.g. blog or content]</span>
+            <div style="display: flex; align-items: center; gap: 2px; height: 40px; box-sizing: border-box; border: 1px solid #5b4be0; border-radius: 9px; background: #ffffff; padding: 0 12px; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 13px;"><span style="color: #191925; font-weight: 600;">content</span><span style="color: #9695a8;">.example.com</span></div>
+          </div>
           <p style="margin: 0; font-size: 13px; color: #5e5e73;">Add this record at your DNS provider</p>
-          <div style="display: flex; align-items: center; gap: 16px; padding: 12px; border-radius: 9px; background: #ffffff; border: 1px solid #ddd8fa; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 13px;"><span>CNAME</span><span>content</span><span style="color: #9695a8;">→</span><span>cname.reachkit.app</span></div>
-          <span style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12px; color: #9695a8;">content.example.com</span>
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px; border-radius: 9px; background: #ffffff; border: 1px solid #ddd8fa;">
+            <span style="display: flex; align-items: center; gap: 10px; min-width: 0; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 13px;"><span>content.example.com</span><span style="color: #9695a8;">→</span><span>CNAME</span><span style="color: #9695a8;">→</span><span>cname.reachkit.app</span></span>
+            <span style="flex: none; padding: 2px 10px; border-radius: 999px; background: #fff3e6; border: 1px solid #fbe1c6; color: #b8722a; font-size: 12px; font-weight: 600;">waiting for DNS</span>
+          </div>
         </div>
 
         <div role="button" aria-pressed="false" style="box-sizing: border-box; padding: 16px; border-radius: 14px; background: #ffffff; border: 1px solid #eaeaf1; display: flex; flex-direction: column; gap: 12px;">

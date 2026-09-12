@@ -10,7 +10,7 @@ and live on the Claude Design canvas; artboard links are filled in by the master
 standard libraries — no custom design system. Every customer-visible sentence is an owner-approved
 copy-registry key; a string in quotes below is a registry value, never a proposal.
 
-Authority: this document; within it, the newest dated line wins. Pinned numbers live in `src/lib/config/constants.ts` and are stated once. Today: 2026-09-11.
+Authority: this document; within it, the newest dated line wins. Pinned numbers live in `src/lib/config/constants.ts` and are stated once. Today: 2026-09-12.
 
 ## §0 Definitions
 
@@ -20,6 +20,7 @@ Authority: this document; within it, the newest dated line wins. Pinned numbers 
 | **GEO** | Generative-engine findability: whether ChatGPT, Google AI Mode and Google AI Overviews name the customer, rather than a rival, when a buyer asks the market's questions. |
 | **Discoverability Score** | The one 0–100 number combining both. `Score = round(∛(Foundations × Answerability × Presence))`, where `Presence = max(1, √(SearchPresence × AIPresence))` — SearchPresence is the SEO half, AIPresence the GEO half, and each factor is 0–100. Foundations is technical health (access gates open × clarity signals present); Answerability is how directly pages answer the market's questions, floored at 1. Four bands by lower bound: invisible 0 · hard-to-find 25 · findable 50 · dominant 75. One factor that could not be measured nulls the whole score — no partial score is ever computed. |
 | **Market** | The category the scan measures for a domain, correctable by the customer; it fixes the questions, the rivals and the volumes. |
+| **Site profile** | What ReachKit has read of the customer's own site: the page inventory (URL, title, h1, purpose), the site name, its products and claims, and a brand-voice summary. Built during the free scan from up to 100 pages and refreshed weekly; it grounds every draft, every link and the technical scan (2026-09-12). |
 | **Rival** | A domain that answers the market's questions in Google's top ten or is named in an AI answer; at most five are tracked per site. |
 | **Question** | One buyer search from the market's twelve biggest, phrased as a buyer asks it — the unit both SEO and GEO are measured over. |
 | **Opportunity** | One evidenced work item with a type and a family. **Write** — a page that does not exist (answer, comparison, format, residual keyword). **Improve** — an owned URL that under-performs (expand, make answerable, refresh). **Fix** — an access gate or technical fault (§9). **Earn** — a source names a rival and not the customer; the answer is a first-party citable asset on the customer's own domain, never outreach (2026-09-10). |
@@ -76,6 +77,7 @@ Authority: this document; within it, the newest dated line wins. Pinned numbers 
 - The report header strip carries the three driver mini-bars with their `n/10` values; driver values are shown nowhere else (2026-09-08).
 - The twelve questions list the search text only — no per-question volume and no market-total footnote (2026-09-03).
 - A market correction re-runs on cached AI answers, buys no fresh ones, and says so on the card (2026-09-03).
+- **The scan builds the site profile**: it reads up to 100 pages of the customer's site, found from the sitemap and internal links, and stores the page inventory (URL, title, h1, purpose ∈ pricing / about / features / product / blog / contact / legal / other), the site name, its products and claims, and a brand-voice summary (tone, person, vocabulary, claims to keep, claims to avoid). Bounded: 100 pages, one run per scan, inside the existing egress caps and the 12¢ ceiling; refreshed on the weekly pass (2026-09-12).
 
 **Mail** Free-scan lead nurture sequence (§10): `report`, `first-page` / `first-page-unavailable`, `nurture` ×3.
 
@@ -153,7 +155,8 @@ Authority: this document; within it, the newest dated line wins. Pinned numbers 
 - Three decisions, once, after payment, on one screen with one submit.
 - The competitors the scan found, pre-filled and each removable, up to five, with a field to add their own.
 - The market category the scan measured, editable, and the twelve buyer questions it derives.
-- A publishing destination: their own hosted subdomain `content.{domain}` with the DNS record to set, or their WordPress.
+- A publishing destination: their own site under a subdomain label they choose (`blog`, `content`, …), served white-label by ReachKit after one CNAME — or their WordPress.
+- The voice ReachKit read from their site, shown and editable before anything is written.
 - A named-stage wait of about three minutes, then their first page.
 
 **Screens** `Canvas: Setup` · `Canvas: Setup — no report` · `Canvas: Setup waiting` · `Canvas: Settings — Publishing` (WordPress connect)
@@ -164,7 +167,9 @@ Authority: this document; within it, the newest dated line wins. Pinned numbers 
 - Submitting with no market is refused in one written line.
 - Both destinations are required product: hosted is the default because it needs no third-party credential; WordPress sits beside it and may be connected later.
 - WordPress connect asks three fields — site address, WordPress username, application password — and never echoes the password; a refusal is the destination's own health state redrawn on the card, never a vendor error or a form-shaped sentence.
-- Hosted serves nothing until `content.{domain}` points at the CNAME target shown; the record appears as soon as the site address is known.
+- ~~Hosted serves nothing until `content.{domain}` points at the CNAME target shown; the record appears as soon as the site address is known.~~ (superseded 2026-09-12)
+- **Own CMS is white-label on the customer's subdomain** (2026-09-12): the content is stored on ReachKit and served at `<label>.<customer-domain>` once the customer adds one CNAME — exactly like a Webflow or Ghost custom domain. Nothing of ReachKit is visible to a visitor or a crawler on those pages. The customer chooses the label in step 3 of onboarding; on save the app adds the hostname to the project's domain list through the Vercel Domains API with our server-only token, the certificate is automatic once the CNAME resolves, and settings shows "live" or "waiting for DNS". Host-based routing serves that customer's pages. Our deployment shape does not change.
+- **The site profile is confirmed here** (2026-09-12): the brand-voice summary read from their site is shown and editable at setup and afterwards in settings; the page inventory and site name are shown as read.
 - No duration is promised on the waiting screen — it names the step, shows liveness at least every 30 s, and never shows a percentage.
 - A degraded pass still releases the customer with one sentence naming what could not be measured; ten minutes releases them regardless, and they never return to the waiting screen.
 - The waiting screen shows five named stage rows; the deep pass's six internal stages map onto those five (2026-09-09).
@@ -174,7 +179,9 @@ Authority: this document; within it, the newest dated line wins. Pinned numbers 
 **Done when**
 - A paid account finishing setup reaches the app with a first draft and takes no further action.
 - A sixth competitor is refused with the limit named; a removed suggestion stays removed.
-- The DNS record is shown once the site address is known, and hosted publishing reports "not live" until it resolves.
+- ~~The DNS record is shown once the site address is known, and hosted publishing reports "not live" until it resolves.~~ (superseded 2026-09-12)
+- The CNAME for the chosen label is shown once the site address is known; saving adds the hostname to the project, the destination reads "waiting for DNS" until it resolves and "live" after, and the served page carries no ReachKit mark (2026-09-12).
+- The brand-voice summary is shown at setup, an edit to it persists, and settings shows the same text (2026-09-12).
 - A WordPress connect with a wrong application password shows the destination's health state and no vendor text.
 - Leaving setup unfinished produces the reminder mail at 24 h.
 
@@ -225,6 +232,7 @@ Authority: this document; within it, the newest dated line wins. Pinned numbers 
 - The veto window defaults to 24 h with a range of 1–7 days; there is no zero window, so every draft has a veto path. `mail.draftReady.autopilotWindow` = "Publishes {publishesAt} unless you say no."
 - At most one publish a day and eight a week. The day's asset is one of three kinds: a new post, a new page, or an update to an existing page.
 - **Cross-asset and site linking**: every published asset links out to the site's own pages — pricing, about, features — where those exist, and to the earlier published assets in its cluster; a link known to lead nowhere is not written.
+- **Drafting and linking use the site profile** (2026-09-12): every asset links to the relevant real pages from the inventory — pricing, about, features, product pages — and to the earlier ReachKit pages in its cluster; drafts follow the stored brand-voice summary; no fact that is not on their site or in the profile is written.
 - The draft is Markdown from a declared subset; no raw HTML is passed through, every href is vetted, and one serialiser produces the screen, the copy-as-HTML and the copy-as-Markdown so the three cannot disagree.
 - One automatic regeneration before review; a draft that has entered review is never regenerated. Edits save with no save action, and nothing unsaved publishes.
 - Publication is one call to the destination, idempotent per draft and destination, on the customer's own domain; at +24 h it is verified reachable, indexable, in a sitemap and AI-readable.
@@ -284,6 +292,7 @@ Authority: this document; within it, the newest dated line wins. Pinned numbers 
 **Screens** `Canvas: Free report — technical issues` · `Canvas: Overview — needs you` · `Canvas: Mail shell`
 
 **Rules**
+- **Scope: the crawled pages** (2026-09-12) — the checks run across the pages the site profile crawled (up to 100, §2), not only the pages the pass already holds; duplicate titles, broken internal links and slow pages are counted over that set and the count names it. This supersedes §12 ruling 5.
 - The checked set: missing or duplicate page title · missing or duplicate meta description · `noindex` on a page that should be indexed · no sitemap · slow pages · broken internal links · a layout not usable on a phone · missing structured data · AI readers blocked in `robots.txt`.
 - Each issue states a count, one severity word from the closed set (Critical · Worth fixing · Nothing to fix) **and** a who-does-it badge ("Free fix · 10 min" / "ReachKit writes" / "ReachKit rewrites") — the two are one card's two facts, not alternatives.
 - The robots fix lines are copyable verbatim and name only the pinned AI-reader list (GPTBot, ClaudeBot, OAI-SearchBot, Claude-SearchBot, PerplexityBot, Google-Extended); they block no general search crawler.
@@ -319,7 +328,8 @@ Authority: this document; within it, the newest dated line wins. Pinned numbers 
 | Locale derivation (site `lang` + TLD → country) | US Google in English is one constant; deriving locale changes measurement, volumes and rivals. |
 | CMS destinations beyond hosted + WordPress (Webflow, Shopify, Ghost, Framer, Notion) | A stranger reaches week-one value on their own domain with these two alone. |
 | Multi-site, seats, approval workflows, comments | Shape, not sequence — none is on the value chain of the nine. |
-| Settings that tune the engine, feature flags, a crawler or sitemap reader | Caps, cadences, question counts and model choices are code constants, not customer controls. |
+| Settings that tune the engine, feature flags, ~~a crawler or sitemap reader~~ (superseded 2026-09-12: the site profile reads up to 100 pages from the sitemap and internal links, §2) | Caps, cadences, question counts and model choices are code constants, not customer controls. |
+| A purpose-built custom-hostname service (multi-tenant TLS at scale) | Custom hostnames go on our own project through the Vercel Domains API; a purpose-built custom-hostname service is the answer when the domain count nears the plan cap (2026-09-12). |
 | Accessibility certification pass to WCAG 2.1 AA (axe gate, keyboard walk) | Parked, not closed; the ruled contrast tokens are separate and already approved. |
 | Copilot mode | Abolished, not deferred: Autopilot is the product; no screen, mail or price list may say Copilot. |
 | Stripe Tax | Accepted compliance debt: €49 is tax-inclusive and country + VAT ID are collected so the records exist. |
@@ -330,14 +340,17 @@ Authority: this document; within it, the newest dated line wins. Pinned numbers 
 | AI Keyword Data; a larger model on the draft step | A nicer question derivation and prose nobody has complained about, at real cost. |
 | LLM-written UI text or mail prose | Every ReachKit sentence is an owner-approved registry key. |
 
-## §12 Choices made 2026-09-11
+## §12 Choices made
 
 1. **What targeting chooses each Monday.** *Ruled*: it chooses **clusters**, not keywords — one cluster-day per publishing day, at most one Write target per cluster, and Improve of an owned URL in the cluster preferred over a new page. The alternative — choosing per keyword — publishes several near-identical pages for one topic and is a materially worse product. (2026-09-11)
 2. **How many daily actions.** *Ruled*: exactly **one asset a day**, at most eight a week, and an honest empty day when nothing passes readiness. The alternative is relaxing readiness to fill every date, which pads the calendar with work the measurement did not justify. (2026-09-11)
 3. **Do updates to existing pages publish automatically, or only after veto?** *Ruled*: the **same 24 h veto window as a new page** — one rule, one mail, one veto link, and the customer's live page never changes unannounced. The alternative (updates publish at once) is faster but silently edits pages they already have. (2026-09-11)
 4. **Does onboarding let the customer edit the twelve questions, or only the market category?** *Ruled*: **category editable, the twelve shown read-only** — they are derived from the category and real volumes, and editing them breaks week-over-week comparability. The alternative is letting up to three be removed, which needs a re-derivation and a second measurement baseline. (2026-09-11)
-5. **How far does the technical-issues scan look?** *Ruled*: **only pages already held** — home, pricing, and the pages the deep pass measured. Duplicate titles, broken internal links and slow pages need more than one document, and a crawler is explicitly out of scope, so the free report reports these across the pages it read and says so. The alternative is ruling a bounded crawl in, which is a scope addition. (2026-09-11)
+5. ~~**How far does the technical-issues scan look?** *Ruled*: **only pages already held** — home, pricing, and the pages the deep pass measured. Duplicate titles, broken internal links and slow pages need more than one document, and a crawler is explicitly out of scope, so the free report reports these across the pages it read and says so. The alternative is ruling a bounded crawl in, which is a scope addition. (2026-09-11)~~ (superseded 2026-09-12, ruling 9)
 6. **Retention / win-back copy does not exist.** *Ruled*: the master drafts the sheet (inactivity, veto reminder, payment failed, cancellation, hosting end, win-back) from the approved copy plus this document, the owner approves it, implementers apply it byte for byte. Until then those mails cannot send at all. (2026-09-11)
+7. **What is our own CMS, exactly?** *Ruled*: **content stored on ReachKit, served white-label at `<label>.<customer-domain>` after one customer CNAME** — the Webflow/Ghost custom-domain shape. The customer chooses the label in onboarding step 3; the app adds the hostname through the Vercel Domains API on save, the certificate is automatic, settings reads "live" / "waiting for DNS", and host-based routing serves that tenant. Nothing of ReachKit is visible to visitors or crawlers on those pages. The alternative — a shared ReachKit-branded host — publishes on our domain, not theirs, and the MVP ends at a page on the customer's own domain (§7). (2026-09-12)
+8. **What does ReachKit know about the customer's site?** *Ruled*: a **site profile** — up to 100 pages read from the sitemap and internal links on the free scan and refreshed weekly, storing the page inventory with a purpose per page, the site name, products and claims, and a brand-voice summary; confirmed at onboarding with the voice editable, and editable in settings. The alternative — reading only the pages the measurement pass held — cannot link to a real pricing page or write in the customer's voice. (2026-09-12)
+9. **How far does the technical-issues scan look?** *Ruled*: **across the crawled pages, up to 100** — not only the pages already held; ruling 5 of 2026-09-11 is superseded. Duplicate titles, broken internal links and slow pages need more than one document, and the site profile's crawl (ruling 8) already reads them inside the free scan's cap. (2026-09-12)
 
 <!--
 Sources.
