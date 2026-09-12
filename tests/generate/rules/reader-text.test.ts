@@ -1,6 +1,6 @@
 // tests/generate/rules/reader-text.test.ts — BUILD §8 hard rule 3 (not a
-// doorway), and the two rules about what reaches the destination that a
-// reader would never see.
+// doorway), and BUILD §14's two rules about what reaches the destination
+// that a reader would never see.
 //
 // Which text each rule runs over is the point, and it is asserted here:
 // the doorway rule and the machine-address rule read the words the page
