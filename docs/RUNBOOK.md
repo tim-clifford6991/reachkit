@@ -39,7 +39,7 @@ after the merge. `Vercel` is not a check: Git deployments are off (`vercel.json`
 | Database | one Supabase project, `reachkit` (`kleepxxddbcnfsfwudoe`), Postgres 17, us-east-1, **Free plan**. v2's objects sit in schema `v2_archive`, the rollback path (§9). The org is Vercel-Marketplace-managed: uninstalling that integration would delete the org and the database; the exit path is a transfer to a Supabase-managed org |
 | Jobs | Inngest app `reachkit`, registered at `https://reachkit.app/api/jobs` — owed by the owner: create the app, paste the two keys, sync the functions (#315, §4) |
 | Mail | Resend, sending domain `reachkit.app` (SPF, DKIM, DMARC) — pending #325; `MAIL_FROM` is `hello@reachkit.app` (§6) |
-| Payments | Stripe live: one product `ReachKit`, one €49/month tax-inclusive price bound as `STRIPE_PRICE_ID`; v2's products and prices inactive; webhook `/api/stripe/webhook`; customer portal on |
+| Payments | Stripe live: one product `ReachKit`, one €49/month tax-inclusive price bound as `STRIPE_PRICE_ID`; v2's products and prices inactive; webhook `/api/stripe/webhook`; customer portal on. The dashboard steps, and the test-mode walk that proves them, are `docs/stripe-setup.md` |
 | Hosted CMS | customers point `content.{their-domain}` at `HOSTED_EDGE_CNAME_TARGET` (`edge.reachkit.app`); per-customer domains are added to the project through the Vercel Domains API (#322) |
 | Local | `npm run dev` on `http://localhost:3000`, bindings from `.env.local` (names in `.env.example`) |
 
