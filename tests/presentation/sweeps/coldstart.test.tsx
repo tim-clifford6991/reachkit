@@ -416,9 +416,9 @@ describe("the sweep states its own coverage (rule 5.5)", () => {
 // The scope is `src/app/(account)/**`, by group and not by name, so a
 // screen added there later is in scope the day its `page.tsx` lands.
 
-/** The one class `Btn` gives the solid accent rank. The two quiet arms carry
- *  `rk-btn-outline`/`rk-btn-tertiary` on a `btn-ghost` base, and the
- *  inverted arm is `rk-btn-inverse` — none of them a second solid fill. */
+/** The one class `Btn` gives the solid accent rank. The quiet arms are
+ *  daisyUI's own `btn-outline` and `btn-ghost`, and the inverted arm sets
+ *  `--btn-color` — none of them a second solid fill. */
 const SOLID_PRIMARY = ".btn-primary";
 
 /** The screens that draw more than one today, each with the reason and the
@@ -494,8 +494,8 @@ describe("§9.1 idiom — one solid primary per screen, across src/app/(account)
     expect(actions?.querySelectorAll(SOLID_PRIMARY)).toHaveLength(1);
     // The other two are the idiom's quiet ranks, and the veto carries the
     // one tone a rank may take.
-    expect(actions?.querySelectorAll(".rk-btn-outline[data-tone='warn']")).toHaveLength(1);
-    expect(actions?.querySelectorAll(".rk-btn-tertiary")).toHaveLength(1);
+    expect(actions?.querySelectorAll(".btn-outline[data-tone='warn']")).toHaveLength(1);
+    expect(actions?.querySelectorAll(".btn-ghost")).toHaveLength(1);
   });
 
   // The same rule over `src/app/(public)/**` (issue #290), as ruling 2b of

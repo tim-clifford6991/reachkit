@@ -80,8 +80,8 @@ describe("ruling 3a — brand · Sign in (quiet) · one solid CTA", () => {
       expect(html).toContain('href="/signin"');
       // Quiet, which is ruling 3a's own word for it (`pill-quiet` in the
       // set): the tertiary rank, not the outline secondary (issue #357).
-      expect(html).toContain("rk-btn-tertiary");
-      expect(html).not.toContain("rk-btn-outline");
+      expect(html).toContain("btn-ghost");
+      expect(html).not.toContain("btn-outline");
       // 3a moves Pricing to the footer's Product column; the header is
       // three things and a fourth link is not one of them.
       expect(html).not.toContain('href="/pricing"');
@@ -91,7 +91,7 @@ describe("ruling 3a — brand · Sign in (quiet) · one solid CTA", () => {
   it("every arm carries exactly one solid CTA, at the pill radius (2b)", () => {
     for (const html of [markup(LANDING), markup(ELSEWHERE)]) {
       expect(html.split("btn-primary").length - 1).toBe(1);
-      expect(html).toContain("rk-pill");
+      expect(html).toContain("rounded-(--r-pill)");
     }
   });
 

@@ -12,9 +12,10 @@
  * NOT a sixth §2.2 custom-CSS surface. §2.2 closes custom CSS at "the
  * calendar grid, the day panel, the AI dot-matrix, chart SVGs, and the
  * sidebar". This styles none of those: it declares four tokens and widens
- * three registered components' arms (`Card`'s head, `Btn`'s ranks,
- * `Progress`'s ground). `tests/ui/design/component-registry.test.ts`
- * carries its row and this reason.
+ * `Card`'s head. It styles no daisyUI component class at all since issue
+ * #548 — a component takes every value from the theme — and
+ * `tests/ui/design/component-registry.test.ts` carries its row and this
+ * reason.
  *
  * THE TWO VALUES THE OWNER LEFT OPEN ARE NOW RULED (2026-09-08, UI-SPEC §1):
  *   · the card radius is `--r-box` 14px, and 8a strikes `--r-card`

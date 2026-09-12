@@ -72,25 +72,20 @@ describe("S1 hero — the product component in a browser frame (REQ-099 c4, ruli
   it("the three tiles are the registered Stat, and rk-shot-tile-* is gone", async () => {
     const markup = await renderPage();
     const shot = markup.slice(markup.indexOf('data-testid="landing-shot"'));
-    expect(shot.match(/class="stats"/g)).toHaveLength(3);
-    expect(shot).toMatch(/class="stat-value num"/);
-    // The frame's tile rules moved to the one daisyUI theme with the other
-    // component re-skins (issue #548).
-    const sheet = readFileSync(path.resolve(import.meta.dirname, "../../../src/ui/tailwind.css"), "utf8");
+    expect(shot.match(/class="stats /g)).toHaveLength(3);
+    expect(shot).toMatch(/class="stat-value num /);
+    const sheet = readFileSync(path.resolve(import.meta.dirname, "../../../src/ui/idiom/idiom.css"), "utf8");
     expect(markup).not.toContain("rk-shot-tile-");
     expect(sheet).not.toContain("rk-shot-tile-");
   });
 
-  // The frame's figure is `--h1`, and S12's `.stat-value.num` rule (issue
-  // #509) prints `--t-num-big` on the same element. Both are 0,2,0 unless
-  // the frame's carries `.num` too, and the S12 rule lands later in the
-  // sheet — so at equal weight the miniature would be drawn at the size of
-  // the screen it is a picture of. This asserts the weight, not the order.
-  it("the miniature's figure out-ranks S12's, so the frame keeps --h1", () => {
-    const sheet = readFileSync(path.resolve(import.meta.dirname, "../../../src/ui/tailwind.css"), "utf8");
-    const rule = sheet.slice(sheet.indexOf(".rk-shot-tile .stat-value"));
-    expect(rule.slice(0, rule.indexOf("{"))).toContain(".stat-value.num");
-    expect(rule.slice(0, rule.indexOf("}"))).toContain("font-size: var(--h1)");
+  // The frame's figure is `--h1` and S12's is `--t-num-big`. Since issue #548
+  // neither is a rule the frame's sheet writes over daisyUI's part: the
+  // miniature is `Stat`'s own specimen arm, and the rung rides on it.
+  it("the miniature's figure is the frame's --h1, never S12's --t-num-big", async () => {
+    const shot = (await renderPage()).slice(0);
+    expect(shot).toContain("text-(length:--h1)");
+    expect(shot).not.toContain("--t-num-big");
   });
 
   it("no source date and no example line ride with it (5c amends REQ-099 c8)", async () => {

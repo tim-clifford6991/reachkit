@@ -78,7 +78,7 @@ export function WeekModule(p: {
         // `Btn`, because it navigates with no client runtime — the same
         // case `component-registry.test.ts` carries this file's row for.
         pill={
-          <a className="btn btn-sm btn-ghost rk-btn-tertiary rk-pill" href={p.week.calendarHref}>
+          <a className="btn btn-sm btn-ghost rounded-(--r-pill)" href={p.week.calendarHref}>
             {copy("overview.week.calendar-link")}
           </a>
         }

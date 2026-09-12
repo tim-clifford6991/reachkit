@@ -302,7 +302,7 @@ describe("BUILD §4.1 — the six modules, in order", () => {
 // action (issue #291). The report offers the free page and the
 // subscription; the idiom gives a screen one solid accent fill, and the
 // owner ruled Start keeps it. The classes are the ranks — `btn-primary` is
-// the fill, `rk-btn-outline` the outline — and the free-page control's tone
+// the fill, `btn-outline` the outline — and the free-page control's tone
 // is what keeps it reading as a call to action rather than an aside.
 describe("ruling 2b (2026-09-08) — this screen has two solids, and they are the two trades", () => {
   const html = render(FIXTURE_REPORT);

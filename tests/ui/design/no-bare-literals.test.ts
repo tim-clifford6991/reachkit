@@ -20,9 +20,9 @@ import { describe, expect, it } from "vitest";
 const SRC = path.resolve(import.meta.dirname, "../../../src");
 
 /** The token file itself. `tailwind.css` is not exempt as a whole since
- *  issue #548 — only its `@plugin` theme block is (see `inThemeBlock`),
- *  because the daisyUI component rules that now sit beside it must name a
- *  token like every other rule in `src/`. */
+ *  issue #548 — only its `@plugin` theme block is (see `inThemeBlock`), so
+ *  any rule that is ever written beside the theme must name a token like
+ *  every other rule in `src/`. */
 const EXEMPT_FILES: readonly string[] = ["src/ui/theme.css"];
 
 /** The one daisyUI theme's own block, which maps tokens onto daisyUI's slot

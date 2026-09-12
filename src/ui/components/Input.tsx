@@ -138,7 +138,11 @@ export function Input(p: InputProps): React.JSX.Element {
   // field (issue #549).
   const placeholder =
     p.placeholder === p.label && p.labelHidden !== true ? undefined : p.placeholder;
-  const control = p.mono === true ? "input num t-sm" : "input";
+  // `input-error` is daisyUI's own `--bad` edge (issue #548): the one prop
+  // that draws it also sets `aria-invalid` and renders the written line, so
+  // the refusal is never the colour by itself.
+  const base = p.mono === true ? "input num t-sm" : "input";
+  const control = p.invalid === true ? [base, "input-error"].join(" ") : base;
   return (
     // The field is a column: label, control, then the one written line a
     // refusal adds. Before this the label was `inline-flex` and sat beside
