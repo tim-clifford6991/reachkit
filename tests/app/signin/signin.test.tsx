@@ -308,8 +308,11 @@ describe("against the real registry — every arm renders, and nothing is invent
     { answer: "invalid", value: "nope" },
     { answer: "none", value: "" },
   ] as SignInState[])("renders in the %j state without throwing", async (state) => {
-    await expect(renderReal(state)).resolves.toContain("rk-glass");
-    await expect(renderReal(state, { link: "dead" })).resolves.toContain("rk-glass");
+    // The accent half is on every arm — it is the half that never changes.
+    await expect(renderReal(state)).resolves.toContain('data-testid="signin-panel"');
+    await expect(renderReal(state, { link: "dead" })).resolves.toContain(
+      'data-testid="signin-panel"'
+    );
   });
 
   it("the request arm carries criterion 2's five strings, byte for byte", async () => {
@@ -353,7 +356,7 @@ describe("against the real registry — every arm renders, and nothing is invent
     // (REQ-098 c7), including whether one was answered on this screen.
     // The three are the owner's approved sentences (2026-09-10, #459).
     expect(text).toContain(`<h1>${COPY["signin.expired.head"]}</h1>`);
-    expect(text).toContain(`<p class="rk-quiet">${COPY["signin.link_dead"]}</p>`);
+    expect(text).toContain(COPY["signin.link_dead"]);
     expect(text).toContain(COPY["signin.expired.submit"]);
     expect(text).not.toContain(COPY["signin.link_sent"]);
     expect(text).not.toContain("someone@example.com");
@@ -371,5 +374,42 @@ describe("against the real registry — every arm renders, and nothing is invent
     // The example line #266 added is gone, and the marker it rendered with
     // it: ruling 5c admits the specimen without one.
     expect(text).not.toContain(COPY["signin.panel.specimen"]);
+  });
+});
+
+describe("issue #549 — one rounded card, and the address is the field's own placeholder", () => {
+  it("the screen draws its layout in Tailwind utilities: no rk-* class is left on it", () => {
+    expect(PAGE_SOURCE).not.toMatch(/rk-/);
+  });
+
+  it("no viewport-height band: the card is as tall as its content", () => {
+    expect(PAGE_SOURCE).not.toMatch(/svh|100vh|min-h-/);
+  });
+
+  it("the two halves are one card's flush grid tracks, clipped to its radius", () => {
+    // Flush: the grid that holds them declares no gap, and the card clips
+    // its children to `--r-box`, so the accent half's corners are the
+    // card's corners.
+    expect(PAGE_SOURCE).toMatch(/overflow-hidden rounded-\(--r-box\)/);
+    expect(PAGE_SOURCE).toMatch(/grid grid-cols-1 [^"`]*lg:grid-cols-2/);
+    expect(PAGE_SOURCE).not.toMatch(/\bgap-\(--s-\d\)[^"`]*lg:grid-cols-2/);
+  });
+
+  it("the address is the input's placeholder, in the mono face, and still names the field", async () => {
+    vi.resetModules();
+    const { copy } = await import("@/lib/presentation/copy");
+    const { default: SignInPage } = (await import("@/app/(public)/signin/page.tsx")) as {
+      default: (p: { searchParams?: { link?: string } }) => React.JSX.Element;
+    };
+    const html = renderToStaticMarkup(<SignInPage searchParams={{}} />);
+    const address = copy("signin.field.placeholder");
+    // The one approved string reaches the screen once, as the field's own
+    // placeholder — and the accessible name is that same string, carried by
+    // `aria-label` rather than by a label element standing above the field.
+    expect(html).toContain(`placeholder="${address}"`);
+    expect(html).toContain(`aria-label="${address}"`);
+    expect(html).not.toContain(`<span>${address}</span>`);
+    // `num` is the mono face and `t-sm` the 13px rung (`src/ui/type.css`).
+    expect(html).toMatch(/<input[^>]*class="input num t-sm"/);
   });
 });

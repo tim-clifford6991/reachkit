@@ -13,9 +13,8 @@
  * calendar grid, the day panel, the AI dot-matrix, chart SVGs, and the
  * sidebar". This styles none of those: it declares four tokens and widens
  * three registered components' arms (`Card`'s head, `Btn`'s ranks,
- * `Progress`'s ground) plus the two public grounds the idiom introduced —
- * the accent ground and the glass card. `tests/ui/design/component-
- * registry.test.ts` carries its row and this reason.
+ * `Progress`'s ground). `tests/ui/design/component-registry.test.ts`
+ * carries its row and this reason.
  *
  * THE TWO VALUES THE OWNER LEFT OPEN ARE NOW RULED (2026-09-08, UI-SPEC §1):
  *   · the card radius is `--r-box` 14px, and 8a strikes `--r-card`
@@ -41,9 +40,9 @@
  * `tests/ui/design/on-accent-contrast.test.ts` recomputes it from this
  * declaration rather than trusting the number (issue #290).
  *
- * `--glass-fill`/`--glass-line` stay spent inline in `.rk-glass` below: they
- * are the 12%/28% alphas §2.1 states, applied to `--on-accent`, and the
- * idiom's own note says in as many words that they are not tokens.
+ * `--grad-accent` is the accent ground's highlight. The ground itself, and
+ * the glass card's 12%/28% alphas over `--on-accent`, left this sheet with
+ * the sign-in screen (issue #549): the page draws both in utilities.
  */
 :root {
   --on-accent-quiet: color-mix(in oklab, var(--on-accent) 85%, var(--accent));
@@ -333,84 +332,7 @@
   padding-inline-start: calc(var(--s-6) + var(--s-4));
 }
 
-/* ── 4 · The accent ground ────────────────────────────────────────────── */
-
-/* One surface used twice — the landing hero and the sign-in panel. Ground
- * `--accent`, highlight `--grad-accent`, ink `--on-accent`, quiet ink
- * `--on-accent-quiet`. */
-.rk-accent-ground {
-  background-color: var(--accent);
-  background-image: var(--grad-accent);
-  color: var(--on-accent);
-}
-
-.rk-accent-ground .eyebrow,
-.rk-accent-ground .rk-quiet {
-  color: var(--on-accent-quiet);
-}
-
-/* A control on the accent ground keeps its own surface — a field that took
- * the ground would have no edge and no contrast floor to stand on. Its own
- * text and placeholder therefore stay `--ink` on `--surface`: on-accent ink
- * inside a white field would be white on white. */
-.rk-accent-ground .input {
-  background: var(--surface);
-  color: var(--ink);
-}
-
-/* The field's **label** is outside that surface — it sits on the ground —
- * so it takes the ground's ink (issue #290). `Input` draws its label in
- * `text-base-content/60`, which is body ink at 60% and was rendering as
- * grey-on-violet in the hero; `--on-accent` is what a label standing on the
- * accent has to be. The outline secondary on the ground takes it too, for
- * the same reason: its border and label are `--line`/`--ink` off the ground
- * and have nothing to stand on there. */
-.rk-accent-ground label {
-  color: var(--on-accent);
-}
-
-.rk-accent-ground .btn.rk-btn-outline {
-  border-color: color-mix(in oklab, var(--on-accent) 28%, transparent);
-  color: var(--on-accent);
-}
-
-/* ── 5 · The glass card ───────────────────────────────────────────────── */
-
-/* `--on-accent` at 12% for the fill and 28% for the hairline — the pair
- * §2.1 states verbatim, applied to `--on-accent` instead of to a state hue,
- * which is the derivation the six dark -bg/-line values already take. No
- * token is added: the names are the system's, the values are BUILD's. */
-.rk-glass {
-  /* Written inline rather than named: `design/tokens.md` §9.3 is explicit
-   * that these two are **not tokens** — "no token is added: the names are
-   * the system's and the values are BUILD's" — and a local custom property
-   * would be a token with one home and no ruling behind it. */
-  background: color-mix(in oklab, var(--on-accent) 12%, transparent);
-  border: 1px solid color-mix(in oklab, var(--on-accent) 28%, transparent);
-  border-radius: var(--r-box);
-  padding: var(--s-5);
-  display: flex;
-  flex-direction: column;
-  gap: var(--s-3);
-}
-
-@media (min-width: 1024px) {
-  .rk-glass {
-    padding: var(--s-6);
-  }
-}
-
-/* A small dark pill on an accent ground: `--ink` on `--surface`, two named
- * tokens that invert with the theme rather than pinning a light colour. */
-.rk-pill-inverse {
-  background: var(--ink);
-  color: var(--surface);
-  border-radius: var(--r-pill);
-  padding: var(--s-1) var(--s-2);
-  font-size: var(--t-xs);
-  white-space: normal;
-  max-width: 100%;
-}
+/* ── 4 · Progress on an accent ground ─────────────────────────────────── */
 
 /* `Progress`'s track and fill in `--on-accent` instead of `--sunk`/
  * `--chart-*` — a widening of the registered component, not a sixth chart
@@ -436,133 +358,6 @@
 .progress.rk-progress-inverse::-moz-progress-bar {
   background-color: var(--on-accent);
   border-radius: var(--r-pill);
-}
-
-/* ── 6 · The sign-in split ────────────────────────────────────────────── */
-
-/* Two panels, roughly 50/50, full viewport height at and above
- * 1024px. The width is derived rather than picked: two form
- * columns (2 × --w-form = 840) plus a generous inset either side
- * (2 × (--s-7 + --s-6) = 160) is 1000, and 1024 is the smallest named step
- * that clears it.
- *
- * THE NARROW ARM IS DECIDED, NOT DEFERRED. Below 1024px the
- * panel is not beside the form, not above it, and not dropped: it follows
- * the form in flow, full width, on the same ground. The screen has exactly
- * one primary action and it must be the first thing on the screen at every
- * width; the panel carries no action and no route, so following the form
- * costs the customer nothing, while putting it above pushes an email field
- * below the fold on a phone. */
-.rk-split {
-  display: flex;
-  flex-direction: column;
-  min-height: 100svh;
-}
-
-/* Inside a surface that declares its own layout, the split's height is the
- * surface's — which the shell has already made "the viewport less the
- * chrome" (issue #297). `100svh` would be the viewport *plus* the header
- * and push the page into a scroll it has no content for. */
-[data-surface][data-arm-compact^="declared:"] .rk-split {
-  /* The surface is a flex column and gives its child the height (see
-   * `surface.css`), so the split needs no measure of its own here — and
-   * `100svh` would be the viewport *plus* the chrome above it. */
-  min-height: 0;
-}
-
-/* The two panels divide what the split has, rather than each taking only
- * its own content and leaving the tail on the ground. At the narrow band
- * that tail was a band of `--bg` below the accent panel; the panels are
- * what the screen is made of, so they are what fills it. */
-.rk-split > .rk-split-form,
-.rk-split > .rk-split-panel {
-  flex: 1 1 auto;
-}
-
-.rk-split > * {
-  min-height: 0;
-}
-
-@media (min-width: 1024px) {
-  .rk-split {
-    flex-direction: row;
-    align-items: stretch;
-  }
-
-  .rk-split > * {
-    flex: 1 1 50%;
-  }
-}
-
-.rk-split-form {
-  background: var(--surface);
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  padding: var(--s-6) var(--s-4);
-}
-
-@media (min-width: 640px) {
-  .rk-split-form {
-    padding: var(--s-7) var(--s-5);
-  }
-}
-
-@media (min-width: 1024px) {
-  .rk-split-form {
-    padding: var(--s-7);
-    padding-left: calc(var(--s-7) + var(--s-6));
-  }
-}
-
-.rk-form-col {
-  width: 100%;
-  max-width: var(--w-form);
-  display: flex;
-  flex-direction: column;
-  gap: var(--s-4);
-}
-
-.rk-split-panel {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: var(--s-5);
-  padding: var(--s-6) var(--s-4);
-}
-
-@media (min-width: 640px) {
-  .rk-split-panel {
-    padding: var(--s-7) var(--s-5);
-  }
-}
-
-@media (min-width: 1024px) {
-  .rk-split-panel {
-    padding: var(--s-7);
-  }
-}
-
-.rk-panel-col {
-  width: 100%;
-  max-width: var(--w-read);
-  display: flex;
-  flex-direction: column;
-  gap: var(--s-5);
-}
-
-/* The heading on the accent ground — the sign-in panel's (S9). **It sets no
- * size**: `src/ui/type.css` gives every heading its own step of the ruled
- * scale, and this class is the balance, the tighter leading a display line
- * wants, and no margin. It stays here with the accent ground it belongs to;
- * the landing that used to share it is on `--bg` since the approved set.
- * `tests/ui/layout/heading-scale.test.ts` measures the rest. */
-.rk-on-accent-h1 {
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  text-wrap: balance;
-  line-height: 1.25;
-  margin: 0;
 }
 
 /* ── 7 · The landing (UI-SPEC S1, the approved set — issue #351) ──────
@@ -597,7 +392,9 @@
 
 /* The two-column split the set draws three times: the hero, and sections
  * 01 and 02. One column below --breakpoint-lg, two above it — the band
- * boundary ADR-093 already names, and the set's own 1024. */
+ * boundary ADR-093 already names, and the set's own 1024. Since #549 this
+ * is the only `.rk-split`: the sign-in screen, which declared a second one
+ * with a `100svh` floor, draws its own card in utilities. */
 .rk-split {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -1076,48 +873,13 @@
   min-height: 100svh;
 }
 
-/* ── 9 · The figure on an accent ground ───────────────────────────────── */
-
-/* The sign-in panel's score. `--t-num-big` at and above 640px,
- * the h1 rung below it — and in the **mono** face, because BUILD §2.3 states
- * it flatly and the owner has not ruled otherwise (tokens.md §9.2). */
-.rk-figure {
-  display: flex;
-  align-items: baseline;
-  gap: var(--s-2);
-  flex-wrap: wrap;
-  margin: 0;
-}
-
-.rk-figure-big {
-  font-size: var(--h1);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  /* No tightened leading. The archive draws this at 1.05, and a mono
-   * numeral set at a heading size inside a line box shorter than the
-   * font's own ascent-plus-descent escapes that box — `src/ui/type.css`'s
-   * `.num` records the same finding from issue #13 and answers it with
-   * `line-height: normal`, which is what governs here once nothing
-   * overrides it. The layout suite reported the 62 on the sign-in panel
-   * clipping, which is exactly that. */
-}
-
-@media (min-width: 640px) {
-  .rk-figure-big {
-    font-size: var(--t-num-big);
-  }
-}
+/* ── 9 · A card's figure and its source chip ──────────────────────────── */
 
 /* A card's one headline figure (UI-SPEC S18 L817, L820; issue #506): the
  * set draws Billing's price and Your content's page count as `.num` at the
  * h2 rung. Mono comes from `.num` (ruling 7a); this sets the rung only. */
 .rk-card-figure {
   font-size: var(--h2);
-}
-
-.rk-figure-of {
-  font-size: var(--h3);
-  color: var(--on-accent-quiet);
 }
 
 /* The card head's right-hand source chip (UI-SPEC S12, issue #353): the
@@ -1523,15 +1285,6 @@
 
 .rk-doc em {
   font-style: italic;
-}
-
-/* The glass card's label row: a label on the left and, where one exists,
- * the inverse pill on the right (issue #298). */
-.rk-between {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--s-3);
 }
 
 /* ── 12 · The option card (issue #354) ───────────────────────────────── */

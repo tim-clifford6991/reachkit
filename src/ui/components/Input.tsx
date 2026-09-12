@@ -67,6 +67,20 @@ type InputBase = {
    *  accessible name carried by the attribute has no box at all. */
   labelHidden?: boolean;
   /**
+   * The control's own text — value and placeholder — in the mono face at
+   * the `--t-sm` rung (issue #549).
+   *
+   * `docs/design/canvas/RECIPE.md` gives a field that holds an address its
+   * anatomy: "mono 13 placeholder". S9 is where it is spent — the sign-in
+   * field's one written string is the address itself, drawn in the field
+   * rather than above it — and it is a prop on the registered component
+   * for the reason `multiline` and `onAccent` are: a screen may not write
+   * a class of its own. `num` and `t-sm` are `src/ui/type.css`'s, and
+   * being unlayered they out-rank daisyUI's own `.input` font rule.
+   */
+  mono?: boolean;
+
+  /**
    * Draw the field as a **multi-line** control (issue #374).
    *
    * §2.2's set of fifteen is closed and holds no multi-line control at
@@ -119,7 +133,12 @@ export function Input(p: InputProps): React.JSX.Element {
   // key twice — which rendered the same two words side by side once the
   // label stacked above the field. The prop contract is unchanged; what
   // changes is that a placeholder repeating the label is not drawn.
-  const placeholder = p.placeholder === p.label ? undefined : p.placeholder;
+  // A hidden label is not drawn, so there is nothing for the placeholder to
+  // repeat: the rule below only ever guarded a label standing above the
+  // field (issue #549).
+  const placeholder =
+    p.placeholder === p.label && p.labelHidden !== true ? undefined : p.placeholder;
+  const control = p.mono === true ? "input num t-sm" : "input";
   return (
     // The field is a column: label, control, then the one written line a
     // refusal adds. Before this the label was `inline-flex` and sat beside
@@ -158,7 +177,7 @@ export function Input(p: InputProps): React.JSX.Element {
           id={id}
           rows={4}
           aria-label={p.labelHidden === true ? p.label : undefined}
-          className="input h-auto"
+          className={`${control} h-auto`}
           placeholder={placeholder}
           value={p.value}
           name={p.name}
@@ -171,7 +190,7 @@ export function Input(p: InputProps): React.JSX.Element {
           id={id}
           aria-label={p.labelHidden === true ? p.label : undefined}
           type={p.type ?? "text"}
-          className="input"
+          className={control}
           placeholder={placeholder}
           value={p.value}
           name={p.name}

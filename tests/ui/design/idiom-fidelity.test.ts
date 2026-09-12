@@ -36,8 +36,11 @@ describe("issue #298 — the card radius is the ruled --r-box, never the propose
     expect(idiom).not.toMatch(/border-radius:\s*18px/);
   });
 
-  it("the card, the glass card and the panel all take --r-box", () => {
-    for (const rule of [".rk-idiom-card", ".rk-glass", ".rk-panel"]) {
+  it("the card and the panel take --r-box", () => {
+    // The glass card left this sheet with the sign-in screen (issue #549):
+    // it is drawn on the page in `rounded-(--r-box)`, the same radius read
+    // from the same token, and there is no rule here to measure.
+    for (const rule of [".rk-idiom-card", ".rk-panel"]) {
       const block = idiom.slice(idiom.indexOf(`${rule} {`));
       const radius = /border-radius:\s*([^;]+);/.exec(block.slice(0, block.indexOf("}")));
       expect(radius?.[1], `${rule} must take the ruled radius`).toBe("var(--r-box)");
@@ -111,13 +114,17 @@ describe("issue #486 — every chip the approved set draws carries its glyph", (
     for (const rel of [
       "app/(public)/_chrome/Header.tsx",
       "app/(public)/_chrome/Footer.tsx",
-      "app/(public)/signin/page.tsx",
       "app/(account)/app/layout.tsx",
     ]) {
       const source = read(rel);
       expect(source, rel).toMatch(/className="rk-wordmark-chip"[^>]*>\s*<TrendingUp size=\{15\} strokeWidth=\{2\}/);
       expect(source, rel).not.toMatch(/className="rk-wordmark-chip"[^>]*\/>/);
     }
+    // S9 draws the same mark in Tailwind utilities over the same tokens
+    // (issue #549): the class is gone from that screen, the glyph is not.
+    const signin = read("app/(public)/signin/page.tsx");
+    expect(signin).toMatch(/rounded-\(--r-field\) bg-primary text-primary-content/);
+    expect(signin).toMatch(/<TrendingUp size=\{15\} strokeWidth=\{2\}/);
   });
 
   it("the mark is the set's square: --r-field corners, --accent ground, --on-accent ink", () => {
