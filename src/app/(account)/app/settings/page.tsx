@@ -26,8 +26,8 @@
 // the two type roles `src/ui/type.css` already registers (`.eyebrow` for §2.3's
 // uppercase 11px section labels, `.num` for its numerals). §2.1 is explicit
 // that this is how it is meant to work: the tokens are mapped onto daisyUI's
-// theme slots in `tailwind.config.ts` "so stock daisyUI classes just work", and
-// `src/ui/tailwind.css` is what makes them emit.
+// theme slots "so stock daisyUI classes just work", and the one theme block in
+// `src/ui/tailwind.css` is where they are mapped and what makes them emit.
 //
 // The column switch is `xl:`, which Tailwind sets at 80rem = 1280px =
 // `BAND_MIN.wide` = `--breakpoint-xl` (pinned by

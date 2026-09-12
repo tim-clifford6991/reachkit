@@ -1,50 +1,105 @@
-/* src/ui/tailwind.css
+/* src/ui/tailwind.css — the entry point, and the one daisyUI theme.
  *
- * The line that makes `BUILD.md` §2.2's component set real. Tailwind 4 has
- * no implicit entry point: a stylesheet must `@import "tailwindcss"` for
- * any utility or plugin class to be emitted at all, and until this file
- * existed none did — so every `card`, `badge`, `btn`, `grid` and `flex`
- * class the design system writes resolved to nothing, in the product and
- * in the layout conformance sweep alike.
+ * Tailwind 4 has no implicit entry point: a stylesheet has to
+ * `@import "tailwindcss"` before any utility or daisyUI class is emitted.
+ * This is that stylesheet, and it is where the theme lives: `docs/DESIGN.md`
+ * ("Tokens") — one theme, `reachkit`, declared once here as a
+ * `@plugin "daisyui/theme"` block. `tailwind.config.ts` and its `@config`
+ * bridge are gone (#560); nothing else configures Tailwind.
  *
- * `@config` points at `tailwind.config.ts`, which is where BP-018 already
- * put the content globs and the six-slot daisyUI theme mapping (`BUILD.md`
- * §2.1: "Map these onto daisyUI's theme slots ... so stock daisyUI classes
- * just work"). Tailwind 4 loads a JavaScript config only when a stylesheet
- * names it, which is the other half of the same gap.
- *
- * Imported by the root layout after `theme.css`, so `:root`'s tokens are
- * declared before the theme mapping that reads them through `var()`.
+ * Imported by the root layout after `theme.css`, so the tokens this theme
+ * reads through `var()` are declared before it.
  */
-@import "tailwindcss";
-@config "../../tailwind.config.ts";
+@import "tailwindcss" source(none);
 
-/* The page's own ground and ink. `theme.css` declares `--bg` and `--ink`;
- * until something paints them, Tailwind's preflight leaves the document
- * white in both themes and the dark palette never appears at all. One
- * rule, reading the tokens by name — no second value is stated here.
- */
+/* What Tailwind scans for class names: the product's own TSX and TS, the
+ * globs the old config's `content` named. `source(none)` above turns
+ * automatic detection off, so the docs, the canvas and the tests are never
+ * scanned for candidates. */
+@source "../**/*.{ts,tsx}";
+
+/* daisyUI's base reset, components and utilities, with none of its bundled
+ * themes: `themes: false` emits no palette, so no second copy of any value
+ * `theme.css` states. */
+@plugin "daisyui" {
+  themes: false;
+}
+
+/* The theme. `default: true` applies it at bare `:root` with no
+ * `data-theme` needed. Every slot is `var(--token)` on a token `theme.css`
+ * declares, never a value, so the same slots serve all three of that file's
+ * states — light, the guarded dark media query and the explicit
+ * `[data-theme="dark"]` toggle — with no dark variant of the theme.
+ *
+ * `tests/ui/design/theme-slots.test.ts` checks the slot set against
+ * daisyUI's own light theme: every slot daisyUI reads is declared here or
+ * named there with the reason it is not. */
+@plugin "daisyui/theme" {
+  name: "reachkit";
+  default: true;
+
+  /* The colour slots. */
+  --color-base-100: var(--surface);
+  --color-base-200: var(--sunk);
+  --color-base-300: var(--line);
+  --color-base-content: var(--ink);
+  --color-primary: var(--accent);
+  --color-success: var(--ok);
+  --color-warning: var(--warn);
+  --color-error: var(--bad);
+
+  /* The ink on a saturated ground: `--on-accent` is the one token named for
+   * that job, and the one that flips with the theme (white in light,
+   * near-black in dark). `tests/ui/design/on-accent-contrast.test.ts`
+   * measures it on all four grounds. */
+  --color-primary-content: var(--on-accent);
+  --color-success-content: var(--on-accent);
+  --color-warning-content: var(--on-accent);
+  --color-error-content: var(--on-accent);
+
+  /* Shape: cards and panels `--r-box`, inputs and buttons `--r-field`,
+   * badges `--r-pill`. */
+  --radius-box: var(--r-box);
+  --radius-field: var(--r-field);
+  --radius-selector: var(--r-pill);
+
+  /* The hairline every edge is drawn with (declared below). daisyUI reads
+   * `--border`, `--radius-*`, `--depth` and `--noise` with no fallback, so
+   * an undeclared slot drops the whole declaration (#243). */
+  --border: var(--border-hair);
+
+  /* daisyUI's depth gradient and noise texture, off: the product has one
+   * shadow, `--shadow-card`, and no second elevation language. */
+  --depth: 0;
+  --noise: 0;
+
+  /* daisyUI's unit for control heights, its own number written down so no
+   * component depends on a fallback a later release may drop. */
+  --size-field: 0.25rem;
+  --size-selector: 0.25rem;
+
+  /* The four v2 colours with no v3 token (`docs/DESIGN.md`, "Inherited from
+   * ReachKit v2"), spent by the ten inherited components. The gradient is
+   * the canvas's own (`docs/design/canvas/`). `tint-violet`'s line is
+   * #ddd8fa, which is `--accent-line`; it takes that token rather than a
+   * fifth name. DESIGN.md states one value for each and no dark value, so
+   * all four are theme-invariant until a dark value is ruled. */
+  --gradient-violet: linear-gradient(150deg, #7056e4 0%, #4e3fba 100%);
+  --tint-violet: #f7f5ff;
+  --on-dark-muted: #b7b4c4;
+  --brand-arc: #c3b2ff;
+}
+
+/* The page's own ground and ink. Until something paints them, Tailwind's
+ * preflight leaves the document white in both themes. */
 body {
   background: var(--bg);
   color: var(--ink);
 }
 
-/* The hairline, named (issue #243).
- *
- * `design/tokens.md` §2b (frozen under `archive/sdlc-factory-2026-09-04/`),
- * verbatim: "`--border-hair` `1px` — Every rule, card edge, cell border and
- * input outline. **Named, not changed** — the value was already spent about
- * twenty times as a bare `1px`, the last raw value in the stylesheet."
- *
- * Here rather than in `src/ui/theme.css` for the reason
- * `src/ui/layout/layout.css` gives for its three: that file's `:root` is
- * `BUILD.md` §2.1's block verbatim and `tests/ui/tokens.test.ts` refuses any
- * token §2.1 does not state. It belongs beside this entry because this is
- * the file that makes §2.2's component set real, and the width is what
- * `tailwind.config.ts` hands daisyUI as `--border` — the one slot its
- * components draw every edge from. `--line` is the colour of the same edge
- * and stays in §2.1.
- */
+/* The hairline, named (#243): 1px, the width of every rule, card edge, cell
+ * border and input outline — the value daisyUI's `--border` slot takes
+ * above. `--line` is the colour of the same edge. */
 :root {
   --border-hair: 1px;
 }

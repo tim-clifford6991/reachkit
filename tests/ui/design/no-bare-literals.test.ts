@@ -9,8 +9,9 @@
 // weight, measure and breakpoint.
 //
 // `theme.css` is exempt because it *is* the token file, and `tailwind.css`
-// because it is the framework's entry point and maps §2.1's tokens onto
-// daisyUI's slots.
+// because it is the framework's entry point and the one daisyUI theme: it
+// maps the tokens onto daisyUI's slots and declares the four v2 colours
+// `docs/DESIGN.md` adds to the theme.
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import postcss, { type Declaration } from "postcss";

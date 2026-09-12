@@ -13,13 +13,12 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import postcss, { type Root, type Rule, type AtRule } from "postcss";
 import { describe, expect, it } from "vitest";
-import { approvedTokens } from "./design/tokens-doc";
+import { approvedTokens, daisyTheme, TAILWIND_CSS } from "./design/tokens-doc";
 
 const THEME_CSS_PATH = path.resolve(__dirname, "../../src/ui/theme.css");
-const TAILWIND_CONFIG_PATH = path.resolve(__dirname, "../../tailwind.config.ts");
 
 const THEME_CSS = readFileSync(THEME_CSS_PATH, "utf8");
-const TAILWIND_CONFIG_SOURCE = readFileSync(TAILWIND_CONFIG_PATH, "utf8");
+const THEME_SLOTS = daisyTheme();
 
 // `BUILD.md` §2.1's code fence, verbatim (path: BUILD.md).
 const BUILD_MD_LIGHT_BLOCK = `
@@ -298,30 +297,25 @@ describe(
       "--color-error": "var(--bad)",
     };
 
-    it("tailwind.config.ts asserts all six mappings, each as a variable reference", () => {
+    it("the reachkit theme block in src/ui/tailwind.css maps all eight slots, each as a variable reference", () => {
       for (const [slot, value] of Object.entries(EXPECTED_MAPPING)) {
-        const re = new RegExp(`"${slot}"\\s*:\\s*"([^"]+)"`);
-        const match = TAILWIND_CONFIG_SOURCE.match(re);
-        expect(match, `${slot} present in tailwind.config.ts`).not.toBeNull();
-        expect(match?.[1]).toBe(value);
+        expect(THEME_SLOTS.get(slot), `${slot} in the theme block`).toBe(value);
       }
     });
 
     it("no mapped slot carries a literal colour instead of a variable reference", () => {
       for (const slot of Object.keys(EXPECTED_MAPPING)) {
-        const re = new RegExp(`"${slot}"\\s*:\\s*"([^"]+)"`);
-        const match = TAILWIND_CONFIG_SOURCE.match(re);
-        expect(match?.[1]).toMatch(/^var\(--[a-z0-9-]+\)$/);
+        expect(THEME_SLOTS.get(slot)).toMatch(/^var\(--[a-z0-9-]+\)$/);
       }
     });
 
     it("mutation: a slot rewritten as a literal hex is caught", () => {
-      const mutated = TAILWIND_CONFIG_SOURCE.replace(
-        '"--color-primary": "var(--accent)"',
-        '"--color-primary": "#5b4be0"'
+      const mutated = readFileSync(TAILWIND_CSS, "utf8").replace(
+        "--color-primary: var(--accent);",
+        "--color-primary: #5b4be0;"
       );
-      const match = mutated.match(/"--color-primary"\s*:\s*"([^"]+)"/);
-      expect(match?.[1]).not.toMatch(/^var\(--[a-z0-9-]+\)$/);
+      expect(daisyTheme(mutated).get("--color-primary")).toBe("#5b4be0");
+      expect(daisyTheme(mutated).get("--color-primary")).not.toMatch(/^var\(--[a-z0-9-]+\)$/);
     });
   }
 );

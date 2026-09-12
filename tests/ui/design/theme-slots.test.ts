@@ -11,7 +11,8 @@
 // declared". It is **"is the slot set complete"**, and it asks daisyUI
 // itself: `node_modules/daisyui/themes.css`'s own `light` theme is the
 // canonical list of what a custom theme has to supply, and every name in
-// it must be either declared by `tailwind.config.ts` or named below with
+// it must be either declared by the `reachkit` theme block in
+// `src/ui/tailwind.css` or named below with
 // the reason it is not. A daisyUI release that adds a slot fails here,
 // naming it, rather than shipping as another silently dropped
 // declaration (ADR-010's idiom: enumerate the source, never a hand list).
@@ -23,6 +24,7 @@ import { describe, expect, it } from "vitest";
 import { classTokensAcrossSurfaces, REPO_ROOT, read } from "./vocabulary";
 import path from "node:path";
 import { readFileSync } from "node:fs";
+import { daisyTheme } from "./tokens-doc";
 
 /* ── daisyUI's own slot set ───────────────────────────────────────────── */
 
@@ -45,22 +47,12 @@ function daisySlots(): { names: readonly string[]; values: Readonly<Record<strin
   return { names: Object.keys(values), values };
 }
 
-/* ── what the config declares ─────────────────────────────────────────── */
+/* ── what the theme block declares ─────────────────────────────────── */
 
-/** The `"--slot": "value"` pairs in `tailwind.config.ts`. Read off the
- *  source rather than the module: the theme is registered by *calling*
- *  daisyUI's plugin, so the object is gone by the time the config is
- *  imported. Comments in that file quote slot names in backticks, never in
- *  the `"--x": "y"` shape this matches. */
+/** The `--slot: value` pairs in the `@plugin "daisyui/theme"` block of
+ *  `src/ui/tailwind.css` — the one daisyUI theme (`docs/DESIGN.md`). */
 function declaredSlots(): Readonly<Record<string, string>> {
-  const source = read("tailwind.config.ts");
-  const slots: Record<string, string> = {};
-  for (const match of source.matchAll(/^\s*"(--[a-z0-9-]+)":\s*"([^"]*)",?\s*$/gm)) {
-    const [, name, value] = match;
-    if (name === undefined || value === undefined) continue;
-    slots[name] = value;
-  }
-  return slots;
+  return Object.fromEntries(daisyTheme());
 }
 
 /** The tokens `src/ui/theme.css`'s bare `:root` declares — §2.1 verbatim,

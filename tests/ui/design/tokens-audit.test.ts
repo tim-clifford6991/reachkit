@@ -20,6 +20,7 @@ import { describe, expect, it } from "vitest";
 import postcss, { type Declaration } from "postcss";
 import ts from "typescript";
 import { SRC_DIR, read, walkFiles } from "./vocabulary";
+import { daisyTheme } from "./tokens-doc";
 
 /* ── where a colour may be written down ───────────────────────────────── */
 
@@ -27,7 +28,9 @@ const ALLOWED_LITERALS: ReadonlyArray<{ readonly path: string; readonly why: str
   { path: "src/ui/theme.css", why: "§2.1 itself — the one place the values live" },
   {
     path: "src/ui/tailwind.css",
-    why: "the Tailwind 4 entry point: it maps §2.1's tokens onto daisyUI's theme slots (2026-09-05 ruling, #93)",
+    why:
+      "the Tailwind 4 entry point and the one daisyUI theme (`docs/DESIGN.md`): it maps the tokens onto " +
+      "daisyUI's slots and declares the four v2 colours DESIGN.md adds to the theme",
   },
   {
     path: "src/ui/layout/layout.css",
@@ -208,8 +211,18 @@ describe('§2.1 — every colour in src/** resolves to a token, "these exact val
     expect(ALLOWED_LITERALS).toHaveLength(5);
   });
 
-  it("the three allowed files that are not theme.css write only values theme.css declares", () => {
+  it("the allowed files that are not theme.css write only values the theme declares", () => {
     const themeValues = new Set([...THEME_ROOT.values()].map((v) => v.toLowerCase()));
+    // The theme block's own tokens — the four v2 colours `docs/DESIGN.md` adds
+    // to the theme — are declared values too, but only there: a `--color-*`
+    // slot must stay a `var()` (`theme-slots.test.ts`), so its values are not
+    // admitted, and no other file may spend a v2 hex it did not name.
+    const themeBlockValues = new Set(
+      [...daisyTheme()]
+        .filter(([name]) => !name.startsWith("--color-"))
+        .flatMap(([, value]) => value.match(HEX) ?? [])
+        .map((hex) => hex.toLowerCase())
+    );
     const stray: string[] = [];
     for (const entry of ALLOWED_LITERALS) {
       if (entry.path === "src/ui/theme.css") continue;
@@ -219,7 +232,9 @@ describe('§2.1 — every colour in src/** resolves to a token, "these exact val
             .join(" ")
         : stringsOf(entry.path).join(" ");
       for (const hex of text.match(HEX) ?? []) {
-        if (!themeValues.has(hex.toLowerCase())) stray.push(`${entry.path}: ${hex}`);
+        const declaredInTheme =
+          entry.path === "src/ui/tailwind.css" && themeBlockValues.has(hex.toLowerCase());
+        if (!themeValues.has(hex.toLowerCase()) && !declaredInTheme) stray.push(`${entry.path}: ${hex}`);
       }
     }
     expect(stray).toEqual([]);

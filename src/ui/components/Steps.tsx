@@ -36,9 +36,10 @@ const CHECK_STROKE = 3;
 
 /** The bead's colour per state, through daisyUI's own modifiers. The set
  *  draws a finished step `--ok` (`.step.done .b` L308) and the one under way
- *  in the accent (`.step.now .b` L309); `tailwind.config.ts` maps daisyUI's
- *  `success` slot to `--ok` and `primary` to `--accent`, so each modifier is
- *  the token and nothing is minted (issue #509). A pending step keeps the
+ *  in the accent (`.step.now .b` L309); the `reachkit` theme in
+ *  `src/ui/tailwind.css` maps daisyUI's `success` slot to `--ok` and
+ *  `primary` to `--accent`, so each modifier is the token and nothing is
+ *  minted (issue #509). A pending step keeps the
  *  quiet ground. */
 const STATE_CLASS: Record<StepItem["state"], string | null> = {
   pending: null,
