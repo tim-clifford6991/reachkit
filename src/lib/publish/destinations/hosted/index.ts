@@ -55,6 +55,17 @@ export type {
   PublishedPageRecord,
 } from "./store";
 
+/** Whether an existing page's address is one this destination serves: the
+ *  host this site was given, never a recomposed default — since SPEC §5's
+ *  ruling of 2026-09-12 the label is the customer's. */
+function servesAddress(url: string, host: string): boolean {
+  try {
+    return new URL(url).host.toLowerCase() === host.toLowerCase();
+  } catch {
+    return false;
+  }
+}
+
 export const HOSTED_ADAPTER: DestinationAdapter = Object.freeze({
   kind: "hosted" as const,
 
@@ -91,6 +102,12 @@ export const HOSTED_ADAPTER: DestinationAdapter = Object.freeze({
       return { ok: false, madeLive: false, reason: "destination_rejected" };
     }
     if (page.slug.trim() === "") {
+      return { ok: false, madeLive: false, reason: "destination_rejected" };
+    }
+    // §7's update of a page this destination does not serve: it answers only
+    // at this site's own host, so a page on the customer's site has nothing
+    // here to change and must not be published a second time beside it.
+    if (page.updateOf !== undefined && !servesAddress(page.updateOf, site.host)) {
       return { ok: false, madeLive: false, reason: "destination_rejected" };
     }
 

@@ -340,6 +340,10 @@ export interface RenderedPage {
   slug: string;
   bodyMd: string;
   meta: Readonly<Record<string, unknown>>;
+  /** The existing page this delivery updates — §7's third asset kind — as
+   *  the URL the opportunity recorded. Absent on a new post or page. An
+   *  adapter that sees it changes that address and never mints a second. */
+  updateOf?: string;
 }
 
 /** The `publications` row (§10, plus this issue's own columns). */
