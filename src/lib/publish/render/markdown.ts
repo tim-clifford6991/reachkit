@@ -74,6 +74,17 @@ function isAddressable(href: string): boolean {
   return MARKDOWN_LINK_SCHEMES.some((scheme) => href.startsWith(scheme));
 }
 
+/** The one place a link's Markdown is minted, so the screen, the copy-out
+ *  bytes and every destination carry the same address. `null` where the
+ *  label has no words or the address is not one `isAddressable` allows: an
+ *  unwritable link is left out, never written dead or as a placeholder. */
+export function markdownLink(label: string, href: string): string | null {
+  const address = href.trim();
+  if (!isAddressable(address) || /[\s()<>]/.test(address)) return null;
+  const text = label.replace(/[[\]]/g, "").replace(/\s+/g, " ").trim();
+  return text === "" ? null : `[${text}](${address})`;
+}
+
 const INLINE_RE =
   /(`[^`]+`)|(\[[^\]\n]*\]\([^)\s]+\))|(\*\*[^*]+\*\*)|(__[^_]+__)|(\*[^*\n]+\*)|(_[^_\n]+_)/;
 

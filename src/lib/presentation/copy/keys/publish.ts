@@ -259,6 +259,12 @@ export const PUBLISH_COPY = Object.freeze({
     { slots: { publisher: "text" }, fixedBy: "S19 (11a)" },
   ],
 
+  // 2026-09-12, issue #567 (SPEC §7): the head over the links every
+  // published asset carries to the site's own pages and to the earlier
+  // assets in its cluster. Owner-owed; until it is written the links
+  // publish with no head, because this one would print on their domain.
+  "publish.links.heading": ["TODO(copy)", { slots: {}, fixedBy: "SPEC §7 (2026-09-12)" }],
+
   "publish.wordpress.noSeoPlugin": ["No SEO plugin was found on your site, so the title and description weren’t written into one. The page is live all the same.", { slots: {}, fixedBy: "REQ-060 c4" }],
   "publish.wordpress.namedForRemoval": [
     "ReachKit never made this post live, so nothing in your site was changed. Removing the draft there is yours to do.",

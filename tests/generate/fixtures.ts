@@ -20,9 +20,11 @@ import type {
   DraftPatch,
   DraftRow,
   GenerateStore,
+  PublishedAsset,
   SiteFacts,
   StoredPage,
 } from "../../src/lib/generate/store";
+import type { SiteProfile } from "../../src/lib/site-profile";
 import { fullSections } from "../scan/report/fixtures";
 
 export const AT = new Date("2026-09-05T10:00:00.000Z");
@@ -136,6 +138,10 @@ export interface MemoryStore extends GenerateStore {
   site: SiteFacts | null;
   storedReport: StoredReport | null;
   published: StoredPage[];
+  /** §7's two linking reads. Empty by default: a suite that says nothing
+   *  about links gets a page with none, as a site with no profile does. */
+  profile: SiteProfile | null;
+  assets: PublishedAsset[];
   seed(row: Partial<DraftRow> & { id: string }): DraftRow;
 }
 
@@ -156,6 +162,8 @@ export function memoryStore(over: Partial<MemoryStore> = {}): MemoryStore {
     },
     storedReport: report(),
     published: [],
+    profile: null,
+    assets: [],
 
     seed(row) {
       const full: DraftRow = {
@@ -218,6 +226,12 @@ export function memoryStore(over: Partial<MemoryStore> = {}): MemoryStore {
       return [...rows.values()]
         .filter((row) => row.id !== exceptDraftId && row.state !== "published")
         .map((row) => ({ ref: row.id, title: row.title ?? "", markdown: row.body_md ?? "" }));
+    },
+    async siteProfile() {
+      return store.profile;
+    },
+    async publishedAssets() {
+      return store.assets;
     },
     async draftsShortOfHandOff(_siteId, limit) {
       return [...rows.values()].slice(0, limit);

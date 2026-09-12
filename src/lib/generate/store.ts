@@ -19,6 +19,7 @@
 // carries an earlier version of it. See `voice/inputs.ts`.
 import { dbAdmin } from "@/lib/db";
 import { readStoredReport, type StoredReport } from "@/lib/scan/report";
+import { readSiteProfile, type SiteProfile } from "@/lib/site-profile";
 
 /** The `drafts` row, as §10 and this issue's two migrations leave it. */
 export interface DraftRow {
@@ -92,6 +93,21 @@ export interface StoredPage {
   markdown: string;
 }
 
+/** A ReachKit page of this site's that reached an address, as §7's linker
+ *  reads it. `unpublishedAt` and `knownMissing` are carried rather than
+ *  filtered here: whether a page is one to send a reader to is the linking
+ *  policy's call (`links.ts`), and this file reads rows. */
+export interface PublishedAsset {
+  liveUrl: string;
+  title: string;
+  /** The search the page was written for — what its cluster is read from. */
+  targetQuery: string | null;
+  publishedAt: Date;
+  unpublishedAt: Date | null;
+  /** The 24-hour check found no page at the address (404 or 410). */
+  knownMissing: boolean;
+}
+
 export interface GenerateStore {
   siteFacts(siteId: string): Promise<SiteFacts | null>;
   /** The freshest stored report for the site — the scan a day's page is
@@ -106,6 +122,12 @@ export interface GenerateStore {
    *  path here takes a site id other than the one it was called with. */
   publishedPages(siteId: string): Promise<StoredPage[]>;
   queuedPages(siteId: string, exceptDraftId: string | null): Promise<StoredPage[]>;
+  /** The stored reading of the customer's own site — the inventory §7's
+   *  links are drawn from. Through the port like every other read: the
+   *  suites in `tests/generate/**` have no database. */
+  siteProfile(domain: string): Promise<SiteProfile | null>;
+  /** This site's pages that reached an address, for §7's cluster links. */
+  publishedAssets(siteId: string): Promise<PublishedAsset[]>;
   /** Drafts short of hand-off, for the claim sweep — never one already
    *  handed to a destination or already live. */
   draftsShortOfHandOff(siteId: string, limit: number): Promise<DraftRow[]>;
@@ -263,6 +285,39 @@ export function supabaseGenerateStore(): GenerateStore {
       return (result.data ?? []).map(pageOf);
     },
 
+    async siteProfile(domain) {
+      return readSiteProfile(domain);
+    },
+
+    async publishedAssets(siteId) {
+      const result = await untyped()
+        .from<PublicationAssetRow>("publications")
+        .select("live_url, published_at, unpublished_at, verify, drafts(title, opportunities(target_query))")
+        .eq("site_id", siteId)
+        .not("published_at", "is", null)
+        .not("live_url", "is", null);
+      if (result.error) {
+        throw new Error(`generate/store: read from publications failed: ${result.error.message}`);
+      }
+      const assets: PublishedAsset[] = [];
+      for (const row of result.data ?? []) {
+        // A row with no address, no publish date or no title of its own is
+        // not a page to link: none of the three is invented to make one.
+        if (row.live_url === null || row.published_at === null) continue;
+        const title = row.drafts?.title ?? null;
+        if (title === null || title.trim() === "") continue;
+        assets.push({
+          liveUrl: row.live_url,
+          title,
+          targetQuery: row.drafts?.opportunities?.target_query ?? null,
+          publishedAt: new Date(row.published_at),
+          unpublishedAt: row.unpublished_at === null ? null : new Date(row.unpublished_at),
+          knownMissing: verifiedMissing(row.verify),
+        });
+      }
+      return assets;
+    },
+
     async draftsShortOfHandOff(siteId, limit) {
       const result = await untyped()
         .from<DraftRow>("drafts")
@@ -285,6 +340,23 @@ export function supabaseGenerateStore(): GenerateStore {
       return (result.data ?? []).length;
     },
   };
+}
+
+interface PublicationAssetRow {
+  live_url: string | null;
+  published_at: string | null;
+  unpublished_at: string | null;
+  verify: unknown;
+  drafts: { title: string | null; opportunities: { target_query: string | null } | null } | null;
+}
+
+/** Did the 24-hour check find no page at the address? Read structurally off
+ *  the one member that decides it, rather than through the publishing
+ *  leaf's reader — this engine may not depend on that node, and what is
+ *  needed here is one arm of `VerifyOutcome`, not the whole record. */
+function verifiedMissing(verify: unknown): boolean {
+  if (verify === null || typeof verify !== "object") return false;
+  return (verify as { outcome?: unknown }).outcome === "page_not_found";
 }
 
 /** A `jsonb` array of strings, read defensively: a member that is not a

@@ -32,6 +32,7 @@ import type { CostContext } from "@/lib/costs";
 import type { Opportunity } from "@/lib/opportunities";
 import { recordedFactValue } from "../fact";
 import { recoveryOutcome, type Recovery } from "../claims/recovery";
+import { bodyWithLinks, planLinks } from "../links";
 import { recordedRulesValue, recordedVerdictValue } from "../record";
 import { runHardRules } from "../rules";
 import { renderOf } from "../rules/text";
@@ -144,7 +145,24 @@ export async function generateDraft(
   if (polished.kind === "unmeasured") return stepFailed(a.siteId, "answerability");
 
   const body = polished.value;
-  const rendered = renderOf(body.bodyMarkdown);
+
+  // §7 (2026-09-12): the page's links are the profile's real pages and this
+  // site's earlier assets, written here — after the last model step, so the
+  // battery judges the text that publishes and not a draft of it.
+  const [profile, published] = await Promise.all([
+    store.siteProfile(a.site.domain),
+    store.publishedAssets(a.siteId),
+  ]);
+  const bodyMarkdown = bodyWithLinks(
+    body.bodyMarkdown,
+    planLinks({
+      profile,
+      published,
+      targetQuery: a.opportunity.targetQuery,
+      bodyMarkdown: body.bodyMarkdown,
+    })
+  );
+  const rendered = renderOf(bodyMarkdown);
 
   // 4. The row. `attribution` is the name **recorded** for the site and
   //    nothing else. No column records one today, so it is null and the page
@@ -158,7 +176,7 @@ export async function generateDraft(
     opportunity_id: a.opportunity.id,
     state: GENERATING,
     title: body.title,
-    body_md: body.bodyMarkdown,
+    body_md: bodyMarkdown,
     // The one shape (`../fact.ts`), so what is written here and what the
     // draft view and the hosted page read cannot be spelled differently.
     grounded_fact: recordedFactValue(grounding.fact),
@@ -175,7 +193,7 @@ export async function generateDraft(
   //    three sets.
   const comparison = await buildComparisonSet({ siteId: a.siteId, exceptDraftId: draftId });
   const outcome = await runHardRules(c, {
-    markdown: body.bodyMarkdown,
+    markdown: bodyMarkdown,
     rendered,
     site: a.site,
     comparison,
