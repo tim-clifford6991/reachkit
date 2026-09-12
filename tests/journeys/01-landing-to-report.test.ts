@@ -483,9 +483,13 @@ describe("/ → /scan/{domain}: a stranger scans and reads a report (JN-001, JN-
     );
     const { networkKeyOf } = await import("../../src/lib/scan/admission");
 
+    // Read at the clock the walk measured at. Left to default, this reads
+    // the wall clock, and the visit fell outside `FREE_RESCAN_WINDOW_D` of
+    // the fixture's own measurement once that many days had really passed.
     const state = await resolveAddress({
       rawSegment: DOMAIN,
       network: networkKeyOf("203.0.113.99"),
+      now: READ_AT,
     });
 
     // Step 8 — the visitor lands on the report their scan produced, with
