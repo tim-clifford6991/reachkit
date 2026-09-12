@@ -21,6 +21,8 @@ vi.mock("@/lib/scan/stages", () => ({ progress: vi.fn() }));
 import { progress } from "@/lib/scan/stages";
 import type { StageEvent } from "@/lib/scan/stages";
 import type { Ending } from "@/lib/scan/ceilings";
+import { TIMING } from "@/lib/config/constants";
+import * as route from "@/app/api/scan/[scanId]/progress/route";
 import { GET } from "@/app/api/scan/[scanId]/progress/route";
 
 const ROUTE_PATH = path.resolve(
@@ -302,5 +304,55 @@ describe("Transport headers", () => {
     const notFound = await GET(notFoundRequest.request, { params: notFoundRequest.params });
     expect(notFound.headers.get("Cache-Control")).toBe("no-store");
     expect(notFound.headers.get("X-Robots-Tag")).toBe("noindex");
+  });
+});
+
+// ── Issue #540 — what the stream needs from the platform, stated ────────
+
+describe("issue #540 — the route's streaming and runtime requirements are explicit in the file", () => {
+  it("progress-route/config · never cached: `dynamic = force-dynamic` and `revalidate = 0`", () => {
+    expect(route.dynamic).toBe("force-dynamic");
+    expect(route.revalidate).toBe(0);
+  });
+
+  it("progress-route/config · the invocation outlives the pass it watches: `maxDuration` is the platform ceiling, as a literal", () => {
+    expect(route.maxDuration).toBe(TIMING.platformCeilingS);
+    expect(route.maxDuration).toBeGreaterThan(TIMING.reportCeilingS);
+    // Next reads route segment config out of the source at build time.
+    expect(ROUTE_SOURCE).toMatch(/^export const maxDuration = \d+;$/m);
+  });
+
+  it("progress-route/config · no `runtime` export: the default is `nodejs` and `edge` is deprecated in this version", () => {
+    expect("runtime" in route).toBe(false);
+    expect(ROUTE_SOURCE).toMatch(/The Edge\s+\/\/\s+Runtime is deprecated|Edge Runtime is deprecated/);
+  });
+
+  it("progress-route/headers · `X-Accel-Buffering: no` on the stream, so no proxy holds the frames back", async () => {
+    const ending: Ending = { kind: "report", complete: true, stoppedReason: "complete" };
+    const { iterable } = fakeIterable([{ ending }]);
+    vi.mocked(progress).mockReturnValue(iterable);
+    const { request, params } = requestFor("scan-9");
+    const res = await GET(request, { params });
+    expect(res.headers.get("X-Accel-Buffering")).toBe("no");
+    expect(res.headers.get("Content-Type")).toMatch(/text\/event-stream/);
+  });
+
+  it("progress-route/stream · the first chunk opens past every byte-counted buffer with an SSE comment, and carries the first event with it", async () => {
+    const heartbeat: StageEvent = { heartbeat: true };
+    const { iterable } = fakeIterable([heartbeat, { stage: "reading_your_site", done: false }]);
+    vi.mocked(progress).mockReturnValue(iterable);
+    const { request, params } = requestFor("scan-10");
+    const res = await GET(request, { params });
+    const reader = res.body!.getReader();
+    const { value } = await reader.read();
+    const firstChunk = new TextDecoder().decode(value);
+    const [preamble, frame] = firstChunk.split("\n\n");
+    // A comment line: every EventSource ignores it, so it is no event.
+    expect(preamble?.startsWith(":")).toBe(true);
+    expect(preamble).not.toMatch(/^data:/m);
+    // WebKit holds a stream's first 1024 bytes back.
+    expect(new TextEncoder().encode(preamble).length).toBeGreaterThanOrEqual(1024);
+    expect(frame).toBe(`data: ${JSON.stringify(heartbeat)}`);
+    await reader.cancel();
   });
 });
