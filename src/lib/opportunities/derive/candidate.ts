@@ -8,7 +8,12 @@
 import type { Opportunity, RejectionCount } from "../types";
 import { noRejections } from "../types";
 
-export type Candidate = Omit<Opportunity, "id" | "status" | "createdAt">;
+/** The cluster and readiness fields are omitted too: the database defaults
+ *  them, and the cluster step that fills them is not this file's. */
+export type Candidate = Omit<
+  Opportunity,
+  "id" | "status" | "createdAt" | "clusterKey" | "absorbedQueries" | "ready" | "unreadyReason"
+>;
 
 export interface DerivationResult {
   candidates: Candidate[];

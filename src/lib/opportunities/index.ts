@@ -15,9 +15,10 @@ export type {
   Ranked,
   RejectionCount,
   Shortfall,
+  UnreadyReason,
   Winnability,
 } from "./types";
-export { BARRIERS, FAMILY_OF, OPPORTUNITY_TYPES } from "./types";
+export { BARRIERS, FAMILY_OF, OPPORTUNITY_TYPES, UNREADY_REASONS } from "./types";
 
 export { bandWinnability, qualifies } from "./winnability/band";
 export { qualifyingBar, winnableBar } from "./winnability/bars";

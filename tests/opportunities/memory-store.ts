@@ -78,6 +78,12 @@ export function memoryStore(state: MemoryState): OpportunityStore {
         acceptance: JSON.parse(JSON.stringify(insert.acceptance)) as unknown,
         fit_band: insert.fit_band,
         effort: insert.effort,
+        // The readiness migration's defaults: nothing has clustered or
+        // assessed a row at the moment it is written.
+        cluster_key: insert.cluster_key ?? null,
+        absorbed_queries: [...(insert.absorbed_queries ?? [])],
+        ready: false,
+        unready_reason: "not_assessed",
         status: "open",
         created_at: state.now.toISOString(),
       };

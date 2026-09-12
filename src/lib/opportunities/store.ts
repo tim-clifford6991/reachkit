@@ -26,6 +26,7 @@ import type {
   Opportunity,
   OpportunityStatus,
   OpportunityType,
+  UnreadyReason,
   Winnability,
 } from "./types";
 
@@ -52,6 +53,10 @@ export interface OpportunityRow {
   fit_band: string | null;
   effort: string | number;
   status: string;
+  cluster_key: string | null;
+  absorbed_queries: string[];
+  ready: boolean;
+  unready_reason: string | null;
   created_at: string;
 }
 
@@ -72,6 +77,10 @@ export interface OpportunityInsert {
   acceptance: Acceptance;
   fit_band: Winnability | null;
   effort: number;
+  /** Optional because the database defaults both: a row nothing has
+   *  clustered carries no cluster and no absorbed sibling. */
+  cluster_key?: string | null;
+  absorbed_queries?: readonly string[];
 }
 
 export type InsertOutcome =
@@ -145,6 +154,10 @@ export function readOpportunity(row: OpportunityRow): Opportunity {
     fitBand: row.fit_band as Winnability | null,
     effort: typeof row.effort === "number" ? row.effort : Number(row.effort),
     status: row.status as OpportunityStatus,
+    clusterKey: row.cluster_key,
+    absorbedQueries: row.absorbed_queries ?? [],
+    ready: row.ready,
+    unreadyReason: row.unready_reason as UnreadyReason | null,
     createdAt: new Date(row.created_at),
   };
 }
@@ -188,7 +201,8 @@ const UNIQUE_VIOLATION = "23505";
 
 const COLUMNS =
   "id, site_id, scan_id, type, family, target_query, target_ref, proposed_slug, " +
-  "title, volume, evidence, acceptance, fit_band, effort, status, created_at";
+  "title, volume, evidence, acceptance, fit_band, effort, status, cluster_key, " +
+  "absorbed_queries, ready, unready_reason, created_at";
 
 export function supabaseOpportunityStore(): OpportunityStore {
   return {

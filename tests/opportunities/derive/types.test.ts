@@ -1,7 +1,9 @@
-// BUILD §7 — the closed surface: eight kinds, three families, three forms.
+// BUILD §7 and SPEC §0 — the closed surface: nine kinds, four families,
+// three forms.
 import "../env";
 import { describe, expect, it } from "vitest";
 import { EFFORT_BY_TYPE } from "../../../src/lib/config/constants";
+import { measured } from "../../../src/lib/measure/measured";
 import {
   BARRIERS,
   FAMILY_OF,
@@ -12,8 +14,8 @@ import {
   type OpportunityType,
 } from "../../../src/lib/opportunities/types";
 
-describe('§7\'s table: four Write, three Improve, one Fix — "Types, closed enum"', () => {
-  it("the enum is exactly the eight, in §7's own order", () => {
+describe('§7\'s table plus SPEC §0\'s Earn — "Types, closed enum"', () => {
+  it("the enum is exactly the nine, in §7's own order and Earn last", () => {
     expect(OPPORTUNITY_TYPES).toEqual([
       "answer_page",
       "keyword_page",
@@ -23,15 +25,16 @@ describe('§7\'s table: four Write, three Improve, one Fix — "Types, closed en
       "answerable_page",
       "refresh_page",
       "unblock",
+      "listed_page",
     ]);
   });
 
-  it("the type-to-family map is total over the eight and yields exactly three families", () => {
+  it("the type-to-family map is total over the nine and yields exactly four families", () => {
     for (const type of OPPORTUNITY_TYPES) {
       expect(FAMILY_OF[type]).toBeDefined();
     }
     expect(new Set(Object.values(FAMILY_OF))).toEqual(
-      new Set<Family>(["write", "improve", "fix"])
+      new Set<Family>(["write", "improve", "fix", "earn"])
     );
   });
 
@@ -45,10 +48,12 @@ describe('§7\'s table: four Write, three Improve, one Fix — "Types, closed en
     ]);
     expect(byFamily("improve")).toEqual(["expand_page", "answerable_page", "refresh_page"]);
     expect(byFamily("fix")).toEqual(["unblock"]);
+    // SPEC §0: Earn is a family of its own, and `listed_page` is its one kind.
+    expect(byFamily("earn")).toEqual(["listed_page"]);
   });
 
-  it("a ninth type does not type-check", () => {
-    // @ts-expect-error — the enum is closed; a ninth kind is a compile error.
+  it("a tenth type does not type-check", () => {
+    // @ts-expect-error — the enum is closed; a tenth kind is a compile error.
     const ninth: OpportunityType = "video_page";
     expect(ninth).toBe("video_page");
   });
@@ -92,7 +97,7 @@ describe("§7: the acceptance test is one of three forms", () => {
 
 describe("§7: evidence is one shape per family", () => {
   it("three arms, discriminated by family", () => {
-    const arms: Evidence["family"][] = ["write", "improve", "fix"];
+    const arms: Evidence["family"][] = ["write", "improve", "fix", "earn"];
     expect(new Set(arms)).toEqual(new Set(Object.values(FAMILY_OF)));
   });
 
@@ -101,6 +106,20 @@ describe("§7: evidence is one shape per family", () => {
     // required: §7 lists it among what every opportunity carries.
     const evidence: Evidence = { family: "write", query: "q", volume: null };
     expect(evidence).toBeDefined();
+  });
+
+  it("the Earn arm carries the source that named a rival, and not a party to write to", () => {
+    const evidence: Evidence = {
+      family: "earn",
+      query: "best onboarding software",
+      volume: measured(1900, new Date("2026-09-07T00:00:00.000Z")),
+      source: { surface: "ai_answer", ref: "chatgpt" },
+      rival: { domain: "appcues.com" },
+    };
+    expect(evidence.family).toBe("earn");
+    // @ts-expect-error — there is no contact, address or outreach field: the
+    // answer is an asset on the customer's own domain (SPEC §0).
+    expect(evidence.contact).toBeUndefined();
   });
 
   it("the five barriers are closed and the Fix arm names one of them", () => {
