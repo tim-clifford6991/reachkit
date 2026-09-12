@@ -44,7 +44,7 @@ const ROUTES = [
   { file: "imprint/page.tsx", Page: ImprintPage, title: "legal.imprint.title", updated: "legal.imprint.updated", document: "legal.imprint.body" },
 ] as const;
 
-describe('UI-SPEC S5 — "One renderer for the three routes"', () => {
+describe('S5 — "One renderer for the three routes"', () => {
   it("every route renders `LegalPage` and states no sentence of its own", () => {
     for (const route of ROUTES) {
       const src = body(route.file);
@@ -73,7 +73,7 @@ describe('UI-SPEC S5 — "One renderer for the three routes"', () => {
   });
 });
 
-describe("UI-SPEC S5 — the screen: eyebrow, title, updated line, one card", () => {
+describe("S5 — the screen: eyebrow, title, updated line, one card", () => {
   for (const route of ROUTES) {
     describe(route.file, () => {
       const html = renderToStaticMarkup(<route.Page />);
@@ -104,7 +104,7 @@ describe("UI-SPEC S5 — the screen: eyebrow, title, updated line, one card", ()
   }
 });
 
-describe("UI-SPEC S5 — the Markdown body goes through the product's one renderer", () => {
+describe("S5 — the Markdown body goes through the product's one renderer", () => {
   it("the screen spends the one renderer's parse and serialiser and defines no second renderer", () => {
     const src = body(RENDERER);
     expect(src).toContain("parseMarkdown");
@@ -133,7 +133,7 @@ describe("UI-SPEC S5 — the Markdown body goes through the product's one render
   });
 });
 
-describe("UI-SPEC S5 — the body's headings take the ladder (issue #493)", () => {
+describe("S5 — the body's headings take the ladder (issue #493)", () => {
   // The page's title is its one `<h1>`, so a body heading sits one level
   // under it: a `##` renders as an `<h3>`, which is the `--h3` the set's
   // `.doc h2` draws, reached by the ladder's own step rather than by an
@@ -161,7 +161,7 @@ describe("UI-SPEC S5 — the body's headings take the ladder (issue #493)", () =
   });
 });
 
-describe("UI-SPEC S5 — the three routes read nothing", () => {
+describe("S5 — the three routes read nothing", () => {
   it("no session, no cookie, no store, on the renderer or on any route", () => {
     for (const file of [RENDERER, ...ROUTES.map((route) => route.file)]) {
       const src = body(file);

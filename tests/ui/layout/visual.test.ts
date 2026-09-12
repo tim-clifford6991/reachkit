@@ -543,7 +543,7 @@ describe(`visual baselines — ${SHOTS.length} surface(s) × ${BANDS.length} ban
     ).toBe(4);
   });
 
-  it("UI-SPEC S13 is photographed as its own account, at /app and nowhere else", () => {
+  it("S13 is photographed as its own account, at /app and nowhere else", () => {
     // The week-0 arm is Overview's. Every other address this account can
     // reach is the screen the live account already photographs, and a
     // second picture of an identical page is a baseline that can only go

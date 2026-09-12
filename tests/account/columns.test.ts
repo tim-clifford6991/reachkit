@@ -158,7 +158,7 @@ function freshSiteId(userId: string): string {
 }
 
 describe(
-  'BP-017 `## Data model delta`: "`users` — as `BUILD.md` §10, plus `notify jsonb`, …"',
+  'BP-017 `## Data model delta`: "`users` — as BUILD §10, plus `notify jsonb`, …"',
   () => {
     it("users.notify exists as jsonb, not null, default {}", () => {
       const rows = psqlRows(

@@ -12,8 +12,9 @@
     "test:layout": "vitest run --project layout",
     "review:gallery": "MAIL_PREVIEW_OUT=.review/mail vitest run --project node tests/mail/preview && REVIEW_GALLERY=1 MAIL_PREVIEW_OUT=.review/mail vitest run --project layout tests/ui/layout/review-gallery.test.ts",
     "copy:owed": "node scripts/copy/owed.mjs",
+    "orphans": "node scripts/orphans.mjs",
     "typecheck": "tsc --noEmit",
-    "db:types": "supabase gen types typescript --local > src/lib/db/types.generated.ts"
+    "db:types": "bash scripts/db-substrate/gen-types.sh > src/lib/db/types.generated.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.123.0",

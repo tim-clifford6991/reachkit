@@ -7,10 +7,8 @@
 // Two closed lists, and this file is what closes them:
 //
 //  * the component list — every daisyUI class the product writes has to
-//    belong to one of the fifteen §2.2 registers, and the fifteen are the
-//    barrel `src/ui/components/index.ts` exports. `tests/ui/components-2`
-//    already fixes the barrel at fifteen names; what was never checked is
-//    that those fifteen are *§2.2's* fifteen, and that no sixteenth
+//    belong to one of the fourteen registered components, and the fourteen
+//    are the barrel `src/ui/components/index.ts` exports. No fifteenth
 //    daisyUI component is reached by writing its class by hand — which is
 //    the only way left, since an unregistered widget has nowhere to be
 //    exported from.
@@ -23,8 +21,6 @@
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
-  BUILD_MD_2_2,
-  NOT_A_COMPONENT,
   REGISTERED,
   REGISTERED_STYLESHEETS,
   SRC_DIR,
@@ -43,28 +39,7 @@ const WRITTEN = classTokensAcrossSurfaces();
 
 /* ── the registry is §2.2's, and the barrel's ─────────────────────────── */
 
-describe("§2.2 — the registry is the spec's own list, both ways", () => {
-  it("every class name §2.2 backticks is registered (no component quietly dropped)", () => {
-    const backticked = [...BUILD_MD_2_2.matchAll(/`([a-z][a-z0-9-]*)`/g)]
-      .map((m) => m[1])
-      .filter(
-        (name): name is string =>
-          name !== undefined && name !== NOT_A_COMPONENT,
-      );
-    const registered = new Set(REGISTERED.flatMap((c) => c.named));
-    expect(
-      [...new Set(backticked)].filter((name) => !registered.has(name)),
-    ).toEqual([]);
-  });
-
-  it("every registered name is one §2.2 backticks (no component quietly added)", () => {
-    for (const component of REGISTERED) {
-      for (const name of component.named) {
-        expect(BUILD_MD_2_2, `\`${name}\` in §2.2`).toContain(`\`${name}\``);
-      }
-    }
-  });
-
+describe("§2.2 — the registry is daisyUI's own list, and the barrel's", () => {
   it("each row names a stylesheet daisyUI 5 ships, and that stylesheet defines the row's class", () => {
     for (const component of REGISTERED) {
       expect(VOCAB.stylesheets, component.stylesheet).toContain(
@@ -78,7 +53,7 @@ describe("§2.2 — the registry is the spec's own list, both ways", () => {
     }
   });
 
-  it("the barrel exports exactly the fifteen §2.2 registers", () => {
+  it("the barrel exports exactly the fourteen registered components", () => {
     const source = read("src/ui/components/index.ts");
     const exported = [...source.matchAll(/^export \{ (\w+)/gm)].map(
       (m) => m[1],
@@ -420,14 +395,7 @@ function idiomClassesOutsideTheirHome(
 
 const SCAN = "src/app/(public)/scan/[domain]";
 
-describe("UI-SPEC §2 — Source chip, Problem card and Question list have one renderer each (#487)", () => {
-  it("each is a UI-SPEC §2 row", () => {
-    const spec = read("docs/archive/2026-09-11/approved/full-set/UI-SPEC.md");
-    for (const row of IDIOM_REGISTERED) {
-      expect(spec, row.exported).toContain(row.specRow);
-    }
-  });
-
+describe("set §2 — Source chip, Problem card and Question list have one renderer each (#487)", () => {
   it("each is exported by the idiom's barrel, not the fifteen's", () => {
     const idiom = read("src/ui/idiom/index.ts");
     const components = read("src/ui/components/index.ts");

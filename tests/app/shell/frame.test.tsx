@@ -119,7 +119,7 @@ describe("REQ-040 c2 — the Calendar destination's waiting count", () => {
     expect(root.querySelector("[data-testid='shell-navlink-overview']")?.textContent).not.toMatch(/\d/);
   });
 
-  it("every destination carries its UI-SPEC §2.6 glyph before its word, hidden from the tree (issue #506)", () => {
+  it("every destination carries its set §2.6 glyph before its word, hidden from the tree (issue #506)", () => {
     const root = render(<SidebarNav waiting={7} />);
     for (const destination of DESTINATIONS) {
       const link = root.querySelector(`[data-testid='shell-navlink-${destination}']`);
@@ -360,7 +360,7 @@ describe("REQ-040 c7 — a never-measured domain states no number", () => {
     );
   });
 
-  it("the autopilot card states what the mode is doing before the first pass (UI-SPEC S13)", () => {
+  it("the autopilot card states what the mode is doing before the first pass (S13)", () => {
     // "First page after the deep pass" — the set's own sentence, in place
     // of the mode's ordinary state. The arm is the same `WeekCount` the
     // domain block above reads, so the two lines in this column cannot

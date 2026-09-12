@@ -39,7 +39,7 @@ const EVERY_SCREEN = [
   { name: "(account)/app/loading.tsx", markup: APP },
 ];
 
-describe("UI-SPEC §4 rule 3 — a waiting state is one written line", () => {
+describe("set §4 rule 3 — a waiting state is one written line", () => {
   it.each(EVERY_SCREEN)("$name draws exactly one sentence", ({ markup }) => {
     expect(occurrences(markup, "<p")).toBe(1);
     expect(occurrences(markup, `<p class="rk-quiet">${COPY["chrome.loading.line"]}</p>`)).toBe(1);

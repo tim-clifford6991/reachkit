@@ -326,7 +326,7 @@ describe("REQ-045 c12 — the Markdown and the HTML are always available to copy
   });
 });
 
-describe("UI-SPEC S16 — the card the approved set draws", () => {
+describe("S16 — the card the approved set draws", () => {
   it("the head carries the stage, the claim outcome and REQ-093 c2's label", () => {
     const root = markup();
     expect(root.querySelector('[data-testid="draft-stage-your_review"]')).not.toBeNull();
@@ -367,7 +367,7 @@ describe("UI-SPEC S16 — the card the approved set draws", () => {
   });
 });
 
-describe("UI-SPEC S16 — the Decide rail", () => {
+describe("S16 — the Decide rail", () => {
   it("it is the registered panel, labelled, with the three controls and the checks", () => {
     const root = markup();
     const rail = root.querySelector('[data-testid="draft-decide"]');

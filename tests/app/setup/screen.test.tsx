@@ -80,7 +80,7 @@ describe('REQ-025 c1 — "it asks for exactly three decisions ... and for nothin
     expect(tree.querySelector('[data-testid="setup-site-and-market"]')).not.toBeNull();
   });
 
-  it("UI-SPEC S10 — each Change is the set's outlined pill, not bare text (#521)", () => {
+  it("S10 — each Change is the set's outlined pill, not bare text (#521)", () => {
     const changes = [...screenFor().querySelectorAll('[data-testid="setup-site-and-market"] button')];
     expect(changes).toHaveLength(2);
     for (const change of changes) {

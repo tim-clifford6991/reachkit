@@ -204,7 +204,7 @@ function themeRootTokens(): ReadonlyMap<string, string> {
   return tokenSet(THEME_CSS).light;
 }
 
-describe("BUILD.md §1 / BP-018 NFR — self-hosted, no third-party font request", () => {
+describe("BUILD §1 / BP-018 NFR — self-hosted, no third-party font request", () => {
   it("every face fonts.ts loads is a file inside node_modules/@fontsource, never a hosted CDN", () => {
     const calls = localFontCalls(fontsSource());
     expect(calls.length).toBeGreaterThan(0);
@@ -346,7 +346,7 @@ describe("BP-018 error behaviour — `.num` is the sole enforcement point of the
   });
 });
 
-describe("BUILD.md §2.3 — the type scale, asserted against the clause", () => {
+describe("BUILD §2.3 — the type scale, asserted against the clause", () => {
   it("headings: Jakarta weight in 700-800, letter-spacing -0.02em, text-wrap: balance", () => {
     const rules = Array.from(parseCss(typeCssSource())) as CSSStyleRule[];
     const heading = rules.find((r) => /(^|,\s*)h1(,|\s|$)/.test(r.selectorText ?? ""));

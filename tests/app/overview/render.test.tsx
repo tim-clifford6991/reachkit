@@ -211,7 +211,7 @@ describe("three tiles, and no fourth", () => {
     expect(count(markup, 'class="stats"')).toBe(3);
   });
 
-  it("leads with the Discoverability Score, its delta and its band (UI-SPEC 6a)", () => {
+  it("leads with the Discoverability Score, its delta and its band (ruling 6a)", () => {
     // The set's `62 ▲ 8` beside the band word. Between DECISIONS
     // 2026-09-03 and the owner's 2026-09-08 screen set this tile did not
     // exist; ruling 6a names "Overview tile" and brought it back.
@@ -436,7 +436,7 @@ describe("this week", () => {
   });
 });
 
-describe("needs you (UI-SPEC S12)", () => {
+describe("needs you (S12)", () => {
   const model = assembleOverview(facts());
   const markup = html(<NeedsYouModule alerts={model.alerts} overflow={model.overflow} />);
 
@@ -482,7 +482,7 @@ describe("needs you (UI-SPEC S12)", () => {
   });
 });
 
-describe("UI-SPEC S13 — the week-0 arm, drawn", () => {
+describe("S13 — the week-0 arm, drawn", () => {
   const weekZero = { firstDueOn: new Date(Date.UTC(2026, 8, 7)) };
   const model = assembleOverview(
     facts({

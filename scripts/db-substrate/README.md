@@ -46,7 +46,7 @@ So a run has an end as well as a beginning:
 scripts/db-substrate/down.sh                 # this worktree's run
 scripts/db-substrate/down.sh --run <id>      # a named run
 scripts/db-substrate/down.sh --drop          # …and drop its database too
-scripts/db-substrate/reap.sh                 # every stack whose worktree is gone
+scripts/db-substrate/down.sh --orphans       # every stack whose worktree is gone
 ```
 
 `--drop` is deliberately not the default: the database is what makes the
@@ -55,7 +55,7 @@ replay. Stopping the processes is what recovers the memory; the database
 costs disk, which this box has.
 
 **Before removing a worktree, stop its stack** — `down.sh --run <id>`, or
-`reap.sh` afterwards, which finds any stack whose working directory has been
+`down.sh --orphans` afterwards, which finds any stack whose working directory has been
 deleted (including stacks started before #273, which have no state file).
 
 ### One run, one stack — never two
@@ -133,7 +133,7 @@ this file still asked that question. The shared stack (no `--run`) is recorded
 and reused the same way, and `down.sh --run shared` stops it.
 
 A start that fails part-way stops what it had already started, so a partial
-stack is never left for `reap.sh` to find later.
+stack is never left for `down.sh --orphans` to find later.
 
 ## Keys
 

@@ -9,7 +9,7 @@
 //      can shadow them — the Supabase security advisor's
 //      `function_search_path_mutable`, which named all eight of this
 //      schema's plpgsql functions after the 2026-09-08 cutover
-//      (`docs/DEPLOYMENT.md` §4).
+//      (`docs/RUNBOOK.md` §11).
 //   2. **A table with RLS on and no policy says so in a `comment on
 //      table`.** Policy-less is the design here — `dbAdmin()`-only, §10
 //      default-deny — but the advisor reads `pg_description`, not a
@@ -170,7 +170,7 @@ describe('advisor `rls_enabled_no_policy` — the tables that are policy-less by
 
   it("finds the ones the advisor names in `public`", () => {
     // The advisor named six; two are v2's, in schema `v2_archive` (the
-    // cutover's rollback path, `docs/DEPLOYMENT.md` §3.6) and not created
+    // cutover's rollback path, `docs/RUNBOOK.md` §9) and not created
     // by any migration here, and `auth_links` was dropped by #468 when
     // identity moved onto Supabase Auth.
     expect(policyLess).toEqual(["domain_blocks", "email_suppressions", "fetches"]);

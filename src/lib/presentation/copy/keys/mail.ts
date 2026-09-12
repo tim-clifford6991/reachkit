@@ -27,12 +27,12 @@ export const MAIL_COPY = Object.freeze({
   // same line. It carries the `{address}` slot because the set writes the
   // address inside the sentence, in mono, and a sentence with a value in
   // it has a slot rather than two half-sentences.
-  "optout.confirmed": ["No more follow-up mail will reach {address} — for this domain or any other. The page you asked for stays yours.", { slots: { address: "text" }, fixedBy: "REQ-011 c3 · UI-SPEC S7 (11a)" }],
+  "optout.confirmed": ["No more follow-up mail will reach {address} — for this domain or any other. The page you asked for stays yours.", { slots: { address: "text" }, fixedBy: "REQ-011 c3 · S7 (11a)" }],
   "optout.invalid": ["That unsubscribe link isn’t valid any more. Reply to any ReachKit email with \"stop\" and we’ll stop by hand.", { slots: {}, fixedBy: "REQ-011 c3" }],
 
   // The card's own head (UI-SPEC S7, 11a). The set draws one eyebrow over
   // the mail chip and it states what happened: "Opted out".
-  "optout.head": ["Opted out", { slots: {}, fixedBy: "REQ-010 c11 · UI-SPEC S7 (11a)" }],
+  "optout.head": ["Opted out", { slots: {}, fixedBy: "REQ-010 c11 · S7 (11a)" }],
   /** The same head on the two arms where nothing was opted out — an
    *  invalid link, or a store this product could not reach.
    *
@@ -40,7 +40,7 @@ export const MAIL_COPY = Object.freeze({
    *  so 11a writes no eyebrow for the other two arms, and "Opted out" over
    *  "that link isn’t valid any more" would be the page contradicting
    *  itself in its own head. */
-  "optout.head.unresolved": ["Not opted out", { slots: {}, fixedBy: "REQ-010 c11 · UI-SPEC S7 (12a)" }],
+  "optout.head.unresolved": ["Not opted out", { slots: {}, fixedBy: "REQ-010 c11 · S7 (12a)" }],
 
   // 2026-09-05, issue #30 (the mail seam, BUILD §12). Six keys the shell
   // and the whole-mail line need. Five are sentences the product speaks in
@@ -93,14 +93,14 @@ export const MAIL_COPY = Object.freeze({
   // The page itself (REQ-010 c4).
   "mail.firstPage.subject": [
     "Your first page: {title}",
-    { slots: { title: "text" }, fixedBy: "REQ-010 c4 · UI-SPEC S20 (11a)" },
+    { slots: { title: "text" }, fixedBy: "REQ-010 c4 · S20 (11a)" },
   ],
-  "mail.firstPage.target_search": ["target search", { slots: {}, fixedBy: "REQ-010 c4 · UI-SPEC S20 (11a)" }],
+  "mail.firstPage.target_search": ["target search", { slots: {}, fixedBy: "REQ-010 c4 · S20 (11a)" }],
   "mail.firstPage.volume_label": ["asked", { slots: {}, fixedBy: "REQ-010 c4" }],
   "mail.firstPage.volume_note": ["Searches per month, measured on US Google in English.", { slots: {}, fixedBy: "REQ-010 c4" }],
   "mail.firstPage.first_of_n": [
     "The complete page, copy-ready, in Markdown and HTML. That’s page 1 of {pagesFound} we found for you.",
-    { slots: { pagesFound: "text" }, fixedBy: "REQ-010 c4 · UI-SPEC S20 (11a)" },
+    { slots: { pagesFound: "text" }, fixedBy: "REQ-010 c4 · S20 (11a)" },
   ],
 
   // The message that closes the request when no page is coming (c7), one
@@ -151,12 +151,12 @@ export const MAIL_COPY = Object.freeze({
   // missing one fails to compose rather than shipping without it.
 
   // The sign-in link a completed payment sends (§13, REQ-024 c1).
-  "mail.magicLink.subject": ["Your sign-in link", { slots: {}, fixedBy: "REQ-024 c1 · UI-SPEC S20 (11a)" }],
+  "mail.magicLink.subject": ["Your sign-in link", { slots: {}, fixedBy: "REQ-024 c1 · S20 (11a)" }],
   "mail.magicLink.body": [
     "One click signs you in on this device. The link works once and expires in 15 minutes.",
-    { slots: {}, fixedBy: "REQ-024 c1 · UI-SPEC S20 (11a)" },
+    { slots: {}, fixedBy: "REQ-024 c1 · S20 (11a)" },
   ],
-  "mail.magicLink.action": ["Sign in", { slots: {}, fixedBy: "REQ-024 c1 · UI-SPEC S20 (11a)" }],
+  "mail.magicLink.action": ["Sign in", { slots: {}, fixedBy: "REQ-024 c1 · S20 (11a)" }],
 
   // The 15-minute chase (REQ-024 c5): the payment succeeded, and either a
   // working link or a written statement that the account is not open yet.
@@ -204,8 +204,8 @@ export const MAIL_COPY = Object.freeze({
   // omission arm: a mail whose subject could not be composed does not go
   // out at all, so the approved subject carries no number (issue #388).
   "mail.weekly.subject": ["Monday: what moved this week", { slots: {}, fixedBy: "§12" }],
-  "mail.weekly.score": ["Discoverability Score", { slots: {}, fixedBy: "UI-SPEC 6a" }],
-  "mail.weekly.aiAnswers": ["AI answers", { slots: {}, fixedBy: "§12 · UI-SPEC S20 (11a)" }],
+  "mail.weekly.score": ["Discoverability Score", { slots: {}, fixedBy: "ruling 6a" }],
+  "mail.weekly.aiAnswers": ["AI answers", { slots: {}, fixedBy: "§12 · S20 (11a)" }],
   "mail.weekly.verdicts": ["pages judged", { slots: {}, fixedBy: "REQ-063 c4" }],
   "mail.weekly.verdicts.none": ["No pages published yet, so none to judge.", { slots: {}, fixedBy: "REQ-064 c3" }],
   "mail.weekly.next": ["next three", { slots: {}, fixedBy: "§12" }],
@@ -272,7 +272,7 @@ export const MAIL_COPY = Object.freeze({
   // by the set; their lines are the owner's 2026-09-10 approval (#458).
   "mail.draftReady.autopilotWindow": [
     "Publishes {publishesAt} unless you say no.",
-    { slots: { publishesAt: "date" }, fixedBy: "REQ-057 c1 · UI-SPEC S20 (11a)" },
+    { slots: { publishesAt: "date" }, fixedBy: "REQ-057 c1 · S20 (11a)" },
   ],
   "mail.draftReady.autopilotZero": [
     "Publishes {publishesAt}. No veto window set.",
@@ -337,9 +337,9 @@ export const MAIL_COPY = Object.freeze({
   // of this kind's lines already take.
   "mail.draftReady.subject": [
     "{publishesAt}: {title}",
-    { slots: { publishesAt: "text", title: "text" }, fixedBy: "BUILD §12 · UI-SPEC S20 (11a)" },
+    { slots: { publishesAt: "text", title: "text" }, fixedBy: "BUILD §12 · S20 (11a)" },
   ],
-  "mail.draftReady.stopAction": ["Stop this page", { slots: {}, fixedBy: "REQ-057 c1 · UI-SPEC S20 (11a)" }],
+  "mail.draftReady.stopAction": ["Stop this page", { slots: {}, fixedBy: "REQ-057 c1 · S20 (11a)" }],
 
   // 2026-09-06, issue #50 (REQ-062 c5, BUILD §12's `published` mail).
   // Sixteen keys.
@@ -380,7 +380,7 @@ export const MAIL_COPY = Object.freeze({
    *  Written, not owed: S20 draws this row as "verified", unbracketed, so
    *  ruling 11a makes it approved copy and it is transcribed byte for
    *  byte. */
-  "mail.published.verified_label": ["verified", { slots: {}, fixedBy: "REQ-062 c5 · UI-SPEC S20" }],
+  "mail.published.verified_label": ["verified", { slots: {}, fixedBy: "REQ-062 c5 · S20" }],
 
   // The four outcomes, as the four subjects of a `verdicts` block, and the
   // three words one of them can carry. Split this way so the four names
@@ -503,8 +503,8 @@ export const MAIL_COPY = Object.freeze({
   // The shell's own two. The wordmark is above; these are the rest of the
   // footer band the set draws: `ReachKit · [imprint line] · plain-text
   // version attached`.
-  "mail.shell.imprint": ["[[imprint: owner fills legal entity, city]]", { slots: {}, fixedBy: "UI-SPEC S20" }],
-  "mail.shell.plaintext_note": ["plain-text version attached", { slots: {}, fixedBy: "UI-SPEC S20 (11a)" }],
+  "mail.shell.imprint": ["[[imprint: owner fills legal entity, city]]", { slots: {}, fixedBy: "S20" }],
+  "mail.shell.plaintext_note": ["plain-text version attached", { slots: {}, fixedBy: "S20 (11a)" }],
 
   // S20's footer line — why this mail arrived — one per kind the set
   // draws. `mail.reason.report` takes the removal address as a slot rather
@@ -512,31 +512,31 @@ export const MAIL_COPY = Object.freeze({
   // (REQ-002 c1), and a second copy here is exactly what that rule is for.
   "mail.reason.magicLink": [
     "You asked for this link at reachkit.app/signin. If you didn’t, ignore this mail.",
-    { slots: {}, fixedBy: "UI-SPEC S20 (11a)" },
+    { slots: {}, fixedBy: "S20 (11a)" },
   ],
   "mail.reason.report": [
     "Own this site and want the report taken down? Write to {address}.",
-    { slots: { address: "text" }, fixedBy: "UI-SPEC S20 (11a)" },
+    { slots: { address: "text" }, fixedBy: "S20 (11a)" },
   ],
   "mail.reason.firstPage": [
     "Sent once, because you asked for it on the report. Follow-up mail has an opt-out link.",
-    { slots: {}, fixedBy: "UI-SPEC S20 (11a)" },
+    { slots: {}, fixedBy: "S20 (11a)" },
   ],
   "mail.reason.draftReady": [
     "Daily draft-ready mail · switch off in Settings › Notifications.",
-    { slots: {}, fixedBy: "UI-SPEC S20 (11a)" },
+    { slots: {}, fixedBy: "S20 (11a)" },
   ],
   "mail.reason.published": [
     "Published-page mail · switch off in Settings › Notifications.",
-    { slots: {}, fixedBy: "UI-SPEC S20 (11a)" },
+    { slots: {}, fixedBy: "S20 (11a)" },
   ],
   "mail.reason.weekly": [
     "Monday movement mail · switch off in Settings › Notifications.",
-    { slots: {}, fixedBy: "UI-SPEC S20 (11a)" },
+    { slots: {}, fixedBy: "S20 (11a)" },
   ],
   "mail.reason.nurture": [
     "Opt out of all follow-up: one link, every domain, for good.",
-    { slots: {}, fixedBy: "UI-SPEC S20 (11a)" },
+    { slots: {}, fixedBy: "S20 (11a)" },
   ],
 
   // The `report` kind — registered in `MAIL_KINDS` since the seam was
@@ -546,45 +546,45 @@ export const MAIL_COPY = Object.freeze({
   // it on the number, not on the domain alone (6a names the number).
   "mail.report.subject": [
     "{domain} — Discoverability Score {score}, {band}",
-    { slots: { domain: "text", score: "text", band: "text" }, fixedBy: "UI-SPEC S20 (11a)" },
+    { slots: { domain: "text", score: "text", band: "text" }, fixedBy: "S20 (11a)" },
   ],
-  "mail.report.heading": ["Your report is ready", { slots: {}, fixedBy: "UI-SPEC S20 (11a)" }],
+  "mail.report.heading": ["Your report is ready", { slots: {}, fixedBy: "S20 (11a)" }],
   "mail.report.body": [
     "The whole verdict is on the report, free and permanent.",
-    { slots: {}, fixedBy: "UI-SPEC S20 (11a)" },
+    { slots: {}, fixedBy: "S20 (11a)" },
   ],
-  "mail.report.action": ["Open the report", { slots: {}, fixedBy: "UI-SPEC S20 (11a)" }],
-  "mail.report.fact.score": ["Discoverability Score", { slots: {}, fixedBy: "UI-SPEC 6a" }],
-  "mail.report.fact.aiAnswers": ["AI answers", { slots: {}, fixedBy: "UI-SPEC S20 (11a)" }],
-  "mail.report.fact.googleSearch": ["Google search", { slots: {}, fixedBy: "UI-SPEC S20 (11a)" }],
+  "mail.report.action": ["Open the report", { slots: {}, fixedBy: "S20 (11a)" }],
+  "mail.report.fact.score": ["Discoverability Score", { slots: {}, fixedBy: "ruling 6a" }],
+  "mail.report.fact.aiAnswers": ["AI answers", { slots: {}, fixedBy: "S20 (11a)" }],
+  "mail.report.fact.googleSearch": ["Google search", { slots: {}, fixedBy: "S20 (11a)" }],
 
   // The headings S20 gives the kinds whose heading is a sentence rather
   // than a page title. `first-page`, `draft-ready` and `published` head on
   // the page's own title, which is data and arrives through a slot.
-  "mail.magicLink.heading": ["Sign in to ReachKit", { slots: {}, fixedBy: "UI-SPEC S20 (11a)" }],
-  "mail.magicLink.fact.for": ["for", { slots: {}, fixedBy: "UI-SPEC S20 (11a)" }],
-  "mail.firstPage.heading": ["{title}", { slots: { title: "text" }, fixedBy: "UI-SPEC S20 (11a)" }],
-  "mail.firstPage.fact.format": ["format", { slots: {}, fixedBy: "UI-SPEC S20 (11a)" }],
-  "mail.draftReady.heading": ["{title}", { slots: { title: "text" }, fixedBy: "UI-SPEC S20 (11a)" }],
+  "mail.magicLink.heading": ["Sign in to ReachKit", { slots: {}, fixedBy: "S20 (11a)" }],
+  "mail.magicLink.fact.for": ["for", { slots: {}, fixedBy: "S20 (11a)" }],
+  "mail.firstPage.heading": ["{title}", { slots: { title: "text" }, fixedBy: "S20 (11a)" }],
+  "mail.firstPage.fact.format": ["format", { slots: {}, fixedBy: "S20 (11a)" }],
+  "mail.draftReady.heading": ["{title}", { slots: { title: "text" }, fixedBy: "S20 (11a)" }],
   "mail.draftReady.body": [
     "Publishes tomorrow at 07:00 unless you say no.",
-    { slots: {}, fixedBy: "UI-SPEC S20 (11a)" },
+    { slots: {}, fixedBy: "S20 (11a)" },
   ],
-  "mail.draftReady.fact.search": ["search", { slots: {}, fixedBy: "UI-SPEC S20 (11a)" }],
-  "mail.draftReady.fact.answeredBy": ["answered today by", { slots: {}, fixedBy: "UI-SPEC S20 (11a)" }],
-  "mail.draftReady.fact.you": ["you", { slots: {}, fixedBy: "UI-SPEC S20 (11a)" }],
+  "mail.draftReady.fact.search": ["search", { slots: {}, fixedBy: "S20 (11a)" }],
+  "mail.draftReady.fact.answeredBy": ["answered today by", { slots: {}, fixedBy: "S20 (11a)" }],
+  "mail.draftReady.fact.you": ["you", { slots: {}, fixedBy: "S20 (11a)" }],
   "mail.published.body": [
     "Verified at its address after 24 hours.",
-    { slots: {}, fixedBy: "UI-SPEC S20 (11a)" },
+    { slots: {}, fixedBy: "S20 (11a)" },
   ],
-  "mail.published.action": ["View the page", { slots: {}, fixedBy: "UI-SPEC S20 (11a)" }],
-  "mail.weekly.heading": ["What moved this week", { slots: {}, fixedBy: "UI-SPEC S20 (11a)" }],
+  "mail.published.action": ["View the page", { slots: {}, fixedBy: "S20 (11a)" }],
+  "mail.weekly.heading": ["What moved this week", { slots: {}, fixedBy: "S20 (11a)" }],
   "mail.weekly.body": [
     "Only what was measured. A number that was not measured is not here.",
-    { slots: {}, fixedBy: "UI-SPEC S20 (11a)" },
+    { slots: {}, fixedBy: "S20 (11a)" },
   ],
-  "mail.weekly.action": ["Open the overview", { slots: {}, fixedBy: "UI-SPEC S20 (11a)" }],
-  "mail.nurture.action": ["Start ReachKit €49", { slots: {}, fixedBy: "UI-SPEC S20 (11a)" }],
+  "mail.weekly.action": ["Open the overview", { slots: {}, fixedBy: "S20 (11a)" }],
+  "mail.nurture.action": ["Start ReachKit €49", { slots: {}, fixedBy: "S20 (11a)" }],
 
   // ── The one mail nobody outside this company ever receives (issue #329,
   // BUILD §6.5): the owner, told that the product's daily spend crossed a

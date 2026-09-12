@@ -70,13 +70,13 @@ export const DRAFT_COPY = Object.freeze({
   // control words were "Copy as Markdown" / "Copy as HTML" until ruling 11a:
   // the set writes them as the formats they produce, and the card head above
   // them already says what the two buttons do.
-  "draft.copy.title": ["Copy it out", { slots: {}, fixedBy: "BUILD §9 · UI-SPEC S16 (11a)" }],
+  "draft.copy.title": ["Copy it out", { slots: {}, fixedBy: "BUILD §9 · S16 (11a)" }],
   "draft.copy.note": [
     "yours, for any destination",
-    { slots: {}, fixedBy: "REQ-045 c12 · UI-SPEC S16 (11a)" },
+    { slots: {}, fixedBy: "REQ-045 c12 · S16 (11a)" },
   ],
-  "draft.copy.markdown": ["Markdown", { slots: {}, fixedBy: "BUILD §9 · UI-SPEC S16 (11a)" }],
-  "draft.copy.html": ["HTML", { slots: {}, fixedBy: "BUILD §9 · UI-SPEC S16 (11a)" }],
+  "draft.copy.markdown": ["Markdown", { slots: {}, fixedBy: "BUILD §9 · S16 (11a)" }],
+  "draft.copy.html": ["HTML", { slots: {}, fixedBy: "BUILD §9 · S16 (11a)" }],
 
   // §4.6's info box, and its two arms.
   "draft.do-nothing.title": [
@@ -92,11 +92,11 @@ export const DRAFT_COPY = Object.freeze({
 
   // The four claim-check outcomes REQ-045 c3 requires to be stated in every
   // case, including the empty list. Each is a badge's word.
-  "draft.claim.passed": ["claim-checked", { slots: {}, fixedBy: "REQ-045 c3 · UI-SPEC S16 (11a)" }],
+  "draft.claim.passed": ["claim-checked", { slots: {}, fixedBy: "REQ-045 c3 · S16 (11a)" }],
   "draft.claim.failed": ["claim check failed", { slots: {}, fixedBy: "REQ-045 c11" }],
   "draft.claim.outstanding": [
     "claim check running",
-    { slots: {}, fixedBy: "REQ-045 c9 · UI-SPEC S17 (11a)" },
+    { slots: {}, fixedBy: "REQ-045 c9 · S17 (11a)" },
   ],
   "draft.claim.nothing-to-check": ["no never-claim list", { slots: {}, fixedBy: "REQ-045 c3" }],
   // c11's own sentence. The entry itself renders beside it as a value, so
@@ -112,10 +112,10 @@ export const DRAFT_COPY = Object.freeze({
 
   // The back link §4.6 asks for, the unsaved indicator c7 asks for, and the
   // one written line an unknown draft id resolves to.
-  "draft.back": ["← Back to calendar", { slots: {}, fixedBy: "BUILD §4.6 · UI-SPEC S16 (11a)" }],
+  "draft.back": ["← Back to calendar", { slots: {}, fixedBy: "BUILD §4.6 · S16 (11a)" }],
   "draft.unsaved": [
     "could not save — your text is kept here; nothing unsaved publishes",
-    { slots: {}, fixedBy: "REQ-045 c7 · UI-SPEC S17 (11a)" },
+    { slots: {}, fixedBy: "REQ-045 c7 · S17 (11a)" },
   ],
   "draft.not-found": ["There is no draft at this address.", { slots: {}, fixedBy: "REQ-045 c1" }],
 
@@ -127,15 +127,15 @@ export const DRAFT_COPY = Object.freeze({
   // what a destination will render.
   "draft.written": [
     "draft written {at} · ~{words} words",
-    { slots: { at: "date", words: "text" }, fixedBy: "UI-SPEC S16 (11a)" },
+    { slots: { at: "date", words: "text" }, fixedBy: "S16 (11a)" },
   ],
-  "draft.words": ["~{words} words", { slots: { words: "text" }, fixedBy: "UI-SPEC S16 (11a)" }],
+  "draft.words": ["~{words} words", { slots: { words: "text" }, fixedBy: "S16 (11a)" }],
 
   // S16's right-hand rail: the two labels above its two blocks. The
   // controls under "Decide" are `draft.action.*` above; the rows under
   // "Checks" are the four below.
-  "draft.decide.title": ["Decide", { slots: {}, fixedBy: "REQ-045 c4 · UI-SPEC S16 (11a)" }],
-  "draft.checks.title": ["Checks", { slots: {}, fixedBy: "UI-SPEC S16 (11a)" }],
+  "draft.decide.title": ["Decide", { slots: {}, fixedBy: "REQ-045 c4 · S16 (11a)" }],
+  "draft.checks.title": ["Checks", { slots: {}, fixedBy: "S16 (11a)" }],
 
   // The four §8 hard rules S16 names, each as the sentence the set writes
   // for a rule that passed. A rule whose outcome this product has not
@@ -143,19 +143,19 @@ export const DRAFT_COPY = Object.freeze({
   // stands for a check that did not run.
   "draft.checks.grounded": [
     "grounded — {facts} fact, {sources} source",
-    { slots: { facts: "text", sources: "text" }, fixedBy: "REQ-045 c2 · UI-SPEC S16 (11a)" },
+    { slots: { facts: "text", sources: "text" }, fixedBy: "REQ-045 c2 · S16 (11a)" },
   ],
   "draft.checks.do-not-claim": [
     "no claim from your do-not-claim list",
-    { slots: {}, fixedBy: "REQ-045 c3 · UI-SPEC S16 (11a)" },
+    { slots: {}, fixedBy: "REQ-045 c3 · S16 (11a)" },
   ],
   "draft.checks.near-duplicate": [
     "near-duplicate gate passed",
-    { slots: {}, fixedBy: "BUILD §8 · UI-SPEC S16 (11a)" },
+    { slots: {}, fixedBy: "BUILD §8 · S16 (11a)" },
   ],
   "draft.checks.no-invented-author": [
     "no invented author",
-    { slots: {}, fixedBy: "BUILD §8 · UI-SPEC S16 (11a)" },
+    { slots: {}, fixedBy: "BUILD §8 · S16 (11a)" },
   ],
 
   // S17, the edit arm. The back link, the two state badges the read view's
@@ -164,31 +164,31 @@ export const DRAFT_COPY = Object.freeze({
   // panes, and the two controls that leave the editor.
   "draft.edit.back": [
     "← Back to the draft",
-    { slots: {}, fixedBy: "REQ-045 c5 · UI-SPEC S17 (11a)" },
+    { slots: {}, fixedBy: "REQ-045 c5 · S17 (11a)" },
   ],
   "draft.edit.state.edited": [
     "edited · re-check on save",
-    { slots: {}, fixedBy: "REQ-045 c9 · UI-SPEC S17 (11a)" },
+    { slots: {}, fixedBy: "REQ-045 c9 · S17 (11a)" },
   ],
   "draft.edit.state.unsaved": [
     "unsaved",
-    { slots: {}, fixedBy: "REQ-045 c7 · UI-SPEC S17 (11a)" },
+    { slots: {}, fixedBy: "REQ-045 c7 · S17 (11a)" },
   ],
-  "draft.edit.saving": ["saving…", { slots: {}, fixedBy: "REQ-045 c6 · UI-SPEC S17 (11a)" }],
+  "draft.edit.saving": ["saving…", { slots: {}, fixedBy: "REQ-045 c6 · S17 (11a)" }],
   "draft.edit.saved": [
     "saved {at}",
-    { slots: { at: "date" }, fixedBy: "REQ-045 c6 · UI-SPEC S17 (11a)" },
+    { slots: { at: "date" }, fixedBy: "REQ-045 c6 · S17 (11a)" },
   ],
   "draft.edit.footnote": [
     // One literal, not a concatenation: `registry.test.ts` reads every value
     // back out of this source verbatim, and `"a" + "b"` is not a string it
     // can find there.
     "Saves itself as you type. The grounded fact stays marked while it survives your edit; the claim check re-runs on every save and the page cannot publish until it passes.",
-    { slots: {}, fixedBy: "REQ-045 c6, c8, c9 · UI-SPEC S17 (11a)" },
+    { slots: {}, fixedBy: "REQ-045 c6, c8, c9 · S17 (11a)" },
   ],
-  "draft.edit.done": ["Done editing", { slots: {}, fixedBy: "REQ-045 c5 · UI-SPEC S17 (11a)" }],
+  "draft.edit.done": ["Done editing", { slots: {}, fixedBy: "REQ-045 c5 · S17 (11a)" }],
   "draft.edit.discard": [
     "Discard changes",
-    { slots: {}, fixedBy: "REQ-045 c5 · UI-SPEC S17 (11a)" },
+    { slots: {}, fixedBy: "REQ-045 c5 · S17 (11a)" },
   ],
 }) satisfies CopyPartition;

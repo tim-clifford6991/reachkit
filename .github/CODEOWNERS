@@ -1,13 +1,11 @@
-# The owner's files. Branch protection on main requires the six status checks
-# and a code-owner review. The master lands with the owner's account, which
-# cannot review its own PR, so scripts/land.sh merges with --admin once the
-# checks are green: the checks are the gate, the flag only bypasses the review
-# row. A feature PR that touches a file below is refused at review (CLAUDE.md
-# "Don't"); an agent may not loosen a rule to make its own PR pass.
-BUILD.md              @tim-clifford6991
-DECISIONS.md          @tim-clifford6991
-ARCHITECTURE.md       @tim-clifford6991
-DATA-COSTS.md         @tim-clifford6991
+# The owner's files. No code-owner review is required any more (the owner's
+# own account could not satisfy it; docs/PROCESS.md, Gates) — these rows say
+# who owns what. A PR that touches one names it under *Corpus* in its body; an
+# agent may not loosen a rule to make its own PR pass.
+README.md             @tim-clifford6991
+docs/SPEC.md          @tim-clifford6991
+docs/DESIGN.md        @tim-clifford6991
+docs/PROCESS.md       @tim-clifford6991
 CLAUDE.md             @tim-clifford6991
 /.github/             @tim-clifford6991
 /scripts/             @tim-clifford6991

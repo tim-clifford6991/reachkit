@@ -789,7 +789,7 @@ export function buildSheet(root = REPO_ROOT) {
     out(`## ${screen.id} · ${screen.label} — ${screen.group}`);
     out();
     out(
-      `UI-SPEC \`§${screen.id}\` · the set draws it as \`current="${screen.key}"\` ` +
+      `Screen \`${screen.id}\` · the set draws it as \`current="${screen.key}"\` ` +
         `(\`docs/archive/2026-09-11/approved/full-set/screens/${screen.key}-light.png\`).`
     );
     out();

@@ -1,7 +1,7 @@
 // tests/ui/components-1.test.tsx
 //
 // WO-268 `## Test plan` — the five rows carried verbatim from WO-031 for
-// the first eight of the fifteen registered components: Btn, Card, Badge,
+// the first eight of the fourteen registered components: Btn, Card, Badge,
 // Alert, Stat, Tabs, Table, Progress. Criterion source: BP-018 and
 // `BUILD.md`, not a requirement — BP-018 has no requirement ancestor.
 //
@@ -87,7 +87,6 @@ const ALL_COMPONENT_FILES = [
   "Collapse",
   "Input",
   "Divider",
-  "Kbd",
 ];
 
 describe(
@@ -350,7 +349,7 @@ describe('BP-018 decision 1: "daisyUI components only — no bespoke widgets"', 
 });
 
 describe(
-  '`BUILD.md` §2.2: "`table` (+zebra, always inside an `overflow-x-auto` wrap)"',
+  'BUILD §2.2: "`table` (+zebra, always inside an `overflow-x-auto` wrap)"',
   () => {
     it("Table always renders the overflow-x-auto wrap as its root, with no prop to omit it", () => {
       const root = renderRoot(

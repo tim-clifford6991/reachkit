@@ -51,7 +51,7 @@ describe("issue #298 — the card radius is the ruled --r-box, never the propose
   });
 });
 
-describe("UI-SPEC S1 — the landing's chips carry the icons the approved set draws", () => {
+describe("S1 — the landing's chips carry the icons the approved set draws", () => {
   // The archive's drawings are superseded by the owner's approved screen set
   // (2026-09-08, #364/#367), and with them the two-icon rule this block used
   // to hold: the set draws a different landing, so it names different icons.

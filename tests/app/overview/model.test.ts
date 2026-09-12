@@ -204,7 +204,7 @@ describe("the assembly is pure, and reads nothing", () => {
   });
 });
 
-describe("UI-SPEC S13 — the week-0 arm (REQ-040 c7)", () => {
+describe("S13 — the week-0 arm (REQ-040 c7)", () => {
   /** The state the set draws: the deep pass has taken one reading, no
    *  weekly week has been measured, and the first is still due. */
   const weekZeroFacts = (over: Partial<OverviewFacts> = {}): OverviewFacts =>

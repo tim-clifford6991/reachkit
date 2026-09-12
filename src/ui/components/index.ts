@@ -1,10 +1,10 @@
-// BUILD §2.2 — the registered component set — the closed fifteen.
+// BUILD §2.2 — the registered component set — the closed fourteen.
 // src/ui/components/index.ts
 //
 // BP-018 `## Public interface`, verbatim: "Registered components only —
 // daisyUI primitives plus the five allowed customs." WO-268 file plan:
-// "Barrel exporting exactly the fifteen BP-018 lists; written once, closed
-// at fifteen." Nothing outside this list is exported from this module — an
+// "Barrel exporting exactly the components BP-018 lists; written once and
+// closed." Nothing outside this list is exported from this module — an
 // unregistered widget has nowhere to be exported from (BP-018 decision 1).
 export { Btn } from "./Btn";
 export { Card } from "./Card";
@@ -27,4 +27,3 @@ export { Collapse } from "./Collapse";
 export { Input } from "./Input";
 export type { InputProps } from "./Input";
 export { Divider } from "./Divider";
-export { Kbd } from "./Kbd";

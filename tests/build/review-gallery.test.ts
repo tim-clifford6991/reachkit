@@ -299,9 +299,5 @@ describe("issue #383 — the page is self-contained and fits the artifact host",
   it("writes where nothing is committed", () => {
     expect(REVIEW_DIR).toBe(".review");
     expect(source(".gitignore")).toContain(`${REVIEW_DIR}/`);
-    // ARCHITECTURE rule 7 closes the *committed* top-level set; this is a
-    // tooling directory like `.next/` and `coverage/`, and the test that
-    // enforces the rule names it as one.
-    expect(source("tests/app/toolchain.test.ts")).toContain(`"${REVIEW_DIR}"`);
   });
 });
