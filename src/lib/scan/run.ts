@@ -68,6 +68,7 @@ import type { Drivers } from "@/lib/measure/score";
 import { verdictOf, type Verdict } from "@/lib/measure/verdict";
 import { aiMode, llmScraper, serpOrganic } from "@/lib/vendors/dataforseo";
 import type { AiAnswer, CacheScope, SerpResult } from "@/lib/vendors/dataforseo/types";
+import { SERP_FANOUT, withStageBudget, type StageOutcome } from "./budgets";
 import { withScanBounds, type Bounds } from "./ceilings";
 import { advanceCorrectionState, readCorrectionFacts, registerCorrectionRunner } from "./correction";
 import { parseDomain, type CanonicalDomain } from "./domain";
@@ -135,6 +136,19 @@ interface TierParameters {
    *  refuse it if it were. Two independent guards for a rule whose breach
    *  is money spent against a promise. */
   battery: boolean;
+  /** Whether each stage runs inside its own time-and-spend budget
+   *  (`STAGE_BUDGETS`, `src/lib/scan/budgets.ts`) — issue #539.
+   *
+   *  The free path's, and only the free path's, because the two sums those
+   *  budgets fit inside are the free path's: `TIMING.reportTargetS` and
+   *  `CAPS.FREE_C`. The deep pass is released at ten minutes rather than
+   *  stopped and the weekly pass runs on the standard queue, so for both
+   *  the cap re-checked between stages is the whole of the bound and a
+   *  per-stage clock would only cut short work nobody is waiting on.
+   *
+   *  A row here rather than a tier test at the seam, for the same reason
+   *  every other parameter is one: the pipeline below branches on no tier. */
+  stageBudgets: boolean;
   /** §6.4's SERP window for this tier's target SERPs, verbatim: "SERPs 30d
    *  (**except the weekly target re-check**)". The exception is a *tier's*
    *  fact and not the vendor module's, so it is a row here and passed down
@@ -159,6 +173,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     servesStoredReport: true,
     sizesRivals: false,
     battery: false,
+    stageBudgets: true,
     serpWindowDays: CACHE_WINDOWS_D.serp,
   }),
   deep: Object.freeze({
@@ -170,6 +185,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     servesStoredReport: false,
     sizesRivals: true,
     battery: true,
+    stageBudgets: false,
     serpWindowDays: CACHE_WINDOWS_D.serp,
   }),
   weekly: Object.freeze({
@@ -181,6 +197,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     servesStoredReport: false,
     sizesRivals: true,
     battery: true,
+    stageBudgets: false,
     serpWindowDays: CACHE_WINDOWS_D.serpWeeklyRecheck,
   }),
 } as const);
@@ -623,8 +640,8 @@ interface StageArgs {
 }
 
 /**
- * The six stages in `STAGES` order, with both ceilings re-checked between
- * every one.
+ * The six stages in `STAGES` order, each inside its own budget, with both
+ * of the pass's ceilings re-checked between every one.
  *
  * Stages two and four report reads that arrive with stage one's own call:
  * `measureDomain` is one call and produces the access rules and the
@@ -633,6 +650,16 @@ interface StageArgs {
  * reported, not what it reports. The alternative is splitting
  * `measureDomain` into a read half and a presence half, which changes that
  * module's declared signature — which is why it is not taken here.
+ *
+ * **Each stage is bounded by its own budget, not only by the pass's**
+ * (issue #539). Before this, one overall ceiling was the only bound, so
+ * whichever stage was slow consumed all of it and every later stage read
+ * `not_attempted` — which is why no production free scan had ever reached
+ * `complete`. A stage that spends its own budget now ends *there*: it emits
+ * no exit event (`stages.ts`: "a stage the ceilings cut off emits no
+ * `done: true`"), its sections keep the `not_attempted` arm they were
+ * initialised with, and the pass goes on to the next stage and keeps
+ * buying. The pass's own ceilings are unchanged and still end it.
  */
 async function runStages(a: StageArgs): Promise<void> {
   const { scanId, bounds, cost, domain, sections } = a;
@@ -644,9 +671,25 @@ async function runStages(a: StageArgs): Promise<void> {
     await a.onStage?.(stage);
   };
 
+  /** One stage's work, inside that stage's own budget. The `Bounds` handed
+   *  down answers for the stage's ceilings as well as the pass's, so every
+   *  multi-call step that already re-reads `stopNow()` between calls starts
+   *  respecting its stage's budget with no line of its own changing. */
+  const inBudget = <T>(stage: StageName, work: (b: Bounds) => Promise<T>): Promise<StageOutcome<T>> =>
+    withStageBudget({ stage, bounds, cost, applies: a.parameters.stageBudgets }, work);
+
   if (bounds.stopNow() !== null) return;
   await enter("reading_your_site");
-  const measurement = await attempt("reading_your_site", () => measureDomain(cost, { domain, tier: a.tier }));
+  const read = await inBudget("reading_your_site", () =>
+    attempt("reading_your_site", () => measureDomain(cost, { domain, tier: a.tier }))
+  );
+  // The one stage whose budget ends the pass rather than just itself:
+  // nothing after it measures anything without the site's own documents,
+  // exactly as a refused home ends it below. It is *not* `site_unreadable`
+  // — nobody refused us, we ran out of budget — so no refusal is claimed
+  // and the ending stays the ceilings' own to decide.
+  if (read.spent) return;
+  const measurement = read.value;
   if (!failed(measurement)) sections.measurement = measurement;
   await exitStage(scanId, "reading_your_site");
 
@@ -659,25 +702,34 @@ async function runStages(a: StageArgs): Promise<void> {
     return;
   }
 
+  // Reports the access rules stage one already read: it buys nothing and
+  // waits for nothing, so it has nothing to spend its budget on.
   if (bounds.stopNow() !== null) return;
   await enter("reading_access_rules");
   await exitStage(scanId, "reading_access_rules");
 
   if (bounds.stopNow() !== null) return;
   await enter("reading_your_market");
-  await readMarket(a);
-  await exitStage(scanId, "reading_your_market");
+  if (!(await inBudget("reading_your_market", (b) => readMarket({ ...a, bounds: b }))).spent) {
+    await exitStage(scanId, "reading_your_market");
+  }
 
   if (bounds.stopNow() !== null) return;
   await enter("checking_your_presence");
-  await sizeTrackedRivals(a);
-  await exitStage(scanId, "checking_your_presence");
+  if (!(await inBudget("checking_your_presence", (b) => sizeTrackedRivals({ ...a, bounds: b }))).spent) {
+    await exitStage(scanId, "checking_your_presence");
+  }
 
   if (bounds.stopNow() !== null) return;
   await enter("asking_the_twelve");
-  await askTheTwelve(a);
-  await exitStage(scanId, "asking_the_twelve");
+  if (!(await inBudget("asking_the_twelve", (b) => askTheTwelve({ ...a, bounds: b }))).spent) {
+    await exitStage(scanId, "asking_the_twelve");
+  }
 
+  // Scoring buys nothing and is synchronous — it counts over SERPs already
+  // paid for (§6.6's "zero extra cost"). Its budget row is the CPU the
+  // count is allowed, and there is no await inside it for a race to
+  // preempt, so it is not wrapped: a synchronous call cannot be cut off.
   if (bounds.stopNow() !== null) return;
   await enter("scoring");
   score(a);
@@ -804,14 +856,29 @@ function seedsOf(profile: Profile): string[] {
 /** §6.2's free battery: the twelve question-SERPs, live, reading each
  *  SERP's own AI Overview at no extra cost — and, at the tiers whose
  *  parameters say so, §6.2's paid battery beside each of them. The
- *  ceilings are re-checked between every one — this is the multi-call step
+ *  ceilings are re-checked before every one — this is the multi-call step
  *  §6.5 names, and it is now three calls per question rather than one — and
  *  a question the ceiling stopped us reaching carries `not_attempted`,
  *  which lowers the cards' denominator rather than reading as a miss.
  *
+ *  **The twelve are bought concurrently** (issue #539). They are twelve
+ *  independent queries — no call reads another's answer — and bought one
+ *  after another they were most of the pass's whole time target on their
+ *  own, which is the serialised shape that stopped every free scan
+ *  finishing. `SERP_FANOUT` of them are in flight at a time; the cap is
+ *  still checked against every reservation in flight, because
+ *  `recordFetch` sums them (`src/lib/costs/index.ts`), and `stopNow()` is
+ *  still read before each question is taken, so a ceiling reached
+ *  mid-stage leaves every question it did not reach `not_attempted`.
+ *
  *  The two records stay the same length as each other and as the twelve:
  *  `serps[i]` and `battery[i]` are the same question's, whatever any of
- *  the three calls did, so the card can pair them by position. */
+ *  the three calls did, so the card can pair them by position. Both are
+ *  filled with the arm that says nobody got there and then written *by
+ *  index* — never pushed — so neither the fan-out's completion order nor a
+ *  stage that ended early can pair a question with another's answer, and a
+ *  pass the overall ceiling discards mid-stage still gives back every
+ *  answer already written. */
 /**
  * Whose purchase this pass's vendor calls are (#75).
  *
@@ -835,24 +902,40 @@ async function askTheTwelve(a: StageArgs): Promise<void> {
   const questions = sections.questions;
   const asked = questions.kind === "unmeasured" ? [] : questions.value;
 
-  for (const question of asked) {
-    if (bounds.stopNow() !== null) {
-      sections.serps.push(unmeasured("not_attempted", questions.at));
-      sections.battery.push(noBattery(questions.at));
-      continue;
-    }
-    const serp = await attempt("asking_the_twelve", () =>
-      serpOrganic(cost, {
-        query: question.search.keyword,
-        mode: parameters.serpMode,
-        loadAsyncAiOverview: parameters.asyncAiOverview && !a.correction,
-        scope: cacheScope(a),
-        freshnessDays: parameters.serpWindowDays,
-      })
-    );
-    sections.serps.push(failed(serp) ? unmeasured("undeterminable", questions.at) : serp);
-    sections.battery.push(await askTheBattery(a, question.search.keyword, questions.at));
+  // Every question's slot, on the arm that says we did not get to it.
+  // Written by index below; a question nobody reached keeps this.
+  for (let i = 0; i < asked.length; i += 1) {
+    sections.serps.push(unmeasured("not_attempted", questions.at));
+    sections.battery.push(noBattery(questions.at));
   }
+
+  // One shared cursor over the twelve, taken by `SERP_FANOUT` workers. A
+  // worker re-reads the ceilings before taking a question, so the stage
+  // stops asking on the first refusal rather than asking eleven more times
+  // and being refused eleven more times.
+  let next = 0;
+  const buyOne = async (): Promise<void> => {
+    for (;;) {
+      const i = next;
+      next += 1;
+      const question = asked[i];
+      if (question === undefined) return;
+      if (bounds.stopNow() !== null) continue;
+      const serp = await attempt("asking_the_twelve", () =>
+        serpOrganic(cost, {
+          query: question.search.keyword,
+          mode: parameters.serpMode,
+          loadAsyncAiOverview: parameters.asyncAiOverview && !a.correction,
+          scope: cacheScope(a),
+          freshnessDays: parameters.serpWindowDays,
+        })
+      );
+      sections.serps[i] = failed(serp) ? unmeasured("undeterminable", questions.at) : serp;
+      sections.battery[i] = await askTheBattery(a, question.search.keyword, questions.at);
+    }
+  };
+
+  await Promise.all(Array.from({ length: Math.min(SERP_FANOUT, asked.length) }, () => buyOne()));
 }
 
 /** The battery nobody bought: both engines on the arm that says we did not

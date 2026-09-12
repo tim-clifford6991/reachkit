@@ -12,19 +12,23 @@
 // afterwards, clamped to the reservation (ADR-094 decision 3a, BP-007
 // decision 4).
 //
-// **Sequential-calls assumption (rule 1.1 — parameter, recorded once
-// here).** `capHit()`'s own contract — "re-checked between calls in any
-// multi-call step" — and every multi-call example in BP-007 describe a
-// caller `await`ing one `recordFetch` at a time inside a loop, never
-// several run concurrently (e.g. via `Promise.all`). This implementation
-// tracks one in-flight reservation at a time on that assumption; a caller
-// that fans multiple `recordFetch` calls out concurrently would race that
-// single slot. No call site in this WO's scope does — BP-008/BP-009's
-// callers are this seam's, out of scope here — and enforcing mutual
-// exclusion defensively (a queue, a lock) is not asked for by any test
-// row and is not added speculatively. Reversal cost if this assumption
-// stops holding: replace the single `inFlightReserved` number with a set
-// of concurrent reservations, summed — a change local to this file.
+// **Concurrent calls are reserved against the cap together (issue #539).**
+// This seam used to track one in-flight reservation at a time, on the
+// stated assumption that every caller `await`ed one `recordFetch` before
+// starting the next: `inFlightReserved` was *assigned* the current call's
+// figure and zeroed after it, so two calls in flight left the cap checked
+// against one of them and the other's money invisible. That assumption was
+// the reason the free pass bought its twelve SERPs one after another, and
+// buying them one after another is why the pass never finished inside its
+// ceiling (`src/lib/scan/budgets.ts`). The reversal that header named is
+// the one taken here: reservations now *accumulate* — `+=` on the way in,
+// `-=` in the `finally` — so `spentCents()` is the sum of everything
+// ledgered plus everything in flight, and the cap is checked against all
+// of it. Nothing else about the contract moves: a call whose reservation
+// would cross the cap is still refused rather than throwing, and the
+// re-check-between-calls discipline still holds for callers that are
+// sequential. No lock is needed — the runtime is single-threaded, and the
+// two arithmetic statements below never interleave.
 import { dbAdmin } from "@/lib/db";
 // §6.4's first rule — "nothing is fetched that no rendered surface reads"
 // and, with it, nothing fetched twice that one scan already holds. A cost
@@ -237,12 +241,14 @@ export async function withCostContext<T>(
       // Between the reservation and the settlement the context is
       // charged the higher (reserved) figure, so a cap can never be
       // exceeded by a call in flight (BP-007 `## Error & edge behavior`).
-      inFlightReserved = call.costCents;
+      // Accumulated, not assigned: several calls may be in flight at once
+      // (issue #539) and the cap is checked against the sum of them.
+      inFlightReserved += call.costCents;
       let payload: P;
       try {
         payload = await call.run();
       } finally {
-        inFlightReserved = 0;
+        inFlightReserved -= call.costCents;
       }
 
       let settledCents = call.costCents;
