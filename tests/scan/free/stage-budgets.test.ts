@@ -137,3 +137,50 @@ describe("the fan-out is narrower than the twelve it buys", () => {
     expect(SERP_FANOUT).toBeLessThan(12);
   });
 });
+
+describe("a stage that was abandoned says so to the work still running inside it", () => {
+  it("work still in flight is told, so its late answer is not written back", async () => {
+    vi.useFakeTimers();
+    const budget = STAGE_BUDGETS.asking_the_twelve;
+    const written: string[] = [];
+    let answer: () => void = () => undefined;
+
+    const outcome = withStageBudget(
+      { stage: "asking_the_twelve", bounds: passBounds(), cost: fakeCost(() => 0), applies: true },
+      async (_stageBounds, abandoned) => {
+        expect(abandoned()).toBe(false);
+        await new Promise<void>((resolve) => {
+          answer = resolve;
+        });
+        if (!abandoned()) written.push("late answer");
+      }
+    );
+
+    await vi.advanceTimersByTimeAsync(budget.seconds * 1000);
+    expect(await outcome).toEqual({ spent: true });
+
+    // The vendor answers after the stage ended. The worker asks before it
+    // writes, and keeps its answer out of a `sections` the pass has already
+    // scored and stored.
+    answer();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(written).toEqual([]);
+  });
+
+  it("work that answered inside its budget is never told it was abandoned, and leaves no timer behind", async () => {
+    vi.useFakeTimers();
+    let toldWhileRunning = true;
+    const outcome = await withStageBudget(
+      { stage: "reading_your_market", bounds: passBounds(), cost: fakeCost(() => 0), applies: true },
+      async (_stageBounds, abandoned) => {
+        toldWhileRunning = abandoned();
+        return "measured";
+      }
+    );
+    expect(outcome).toEqual({ spent: false, value: "measured" });
+    expect(toldWhileRunning).toBe(false);
+    // The budget's own timer goes with the stage rather than holding the
+    // event loop open for the rest of the budget.
+    expect(vi.getTimerCount()).toBe(0);
+  });
+});

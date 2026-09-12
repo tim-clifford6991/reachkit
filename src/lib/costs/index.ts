@@ -243,50 +243,59 @@ export async function withCostContext<T>(
       // exceeded by a call in flight (BP-007 `## Error & edge behavior`).
       // Accumulated, not assigned: several calls may be in flight at once
       // (issue #539) and the cap is checked against the sum of them.
+      // **The reservation is held until the settlement reaches the ledger**
+      // (#539 review). It used to be released the moment `call.run()`
+      // returned, which left a window — the settlement, and the `await` on
+      // the ledger write — where this call's money was in neither figure
+      // `spentCents()` sums: no longer reserved, not yet ledgered. With the
+      // twelve bought `SERP_FANOUT` at a time that window is the ordinary
+      // case, so a concurrent worker's check above read a stale total and
+      // the pass could cross its cap by as many calls as were in it. The
+      // `finally` releases on every path, a ledger write that raises
+      // included.
       inFlightReserved += call.costCents;
-      let payload: P;
       try {
-        payload = await call.run();
+        const payload = await call.run();
+
+        let settledCents = call.costCents;
+        if (isFetchRefusal(payload)) {
+          // A refused fetch bought nothing: its row is ledgered at 0 cents
+          // (issue #479), whatever was reserved for it.
+          settledCents = 0;
+        } else if (isVendorFailure(payload) && !payload.billed) {
+          // A vendor call that failed in a way the vendor does not charge for
+          // (the call site says which — issue #504) is ledgered at 0 cents.
+          settledCents = 0;
+        } else if (call.settleCents) {
+          const proposedCents = call.settleCents(payload);
+          if (proposedCents > call.costCents) {
+            // A settlement never raises a charge (BP-007 `## Error & edge
+            // behavior`) — clamp to the reservation and log, never trust
+            // the closure.
+            logClampedSettlement(call.source, call.costCents, proposedCents);
+          } else {
+            settledCents = proposedCents;
+          }
+        }
+
+        await writeFetchRow({
+          scanId: ctx.scanId,
+          source: call.source,
+          cacheKey: call.cacheKey,
+          policyVersion: ctx.policyVersion,
+          reservedCents: call.costCents,
+          costCents: settledCents,
+          payload,
+        });
+        ledgeredCents += settledCents;
+        // The day's total moves by what was actually ledgered, and `add`
+        // publishes the crossing if this is the call that made one.
+        day.add(settledCents);
+
+        return { payload, fresh: true, costCents: settledCents };
       } finally {
         inFlightReserved -= call.costCents;
       }
-
-      let settledCents = call.costCents;
-      if (isFetchRefusal(payload)) {
-        // A refused fetch bought nothing: its row is ledgered at 0 cents
-        // (issue #479), whatever was reserved for it.
-        settledCents = 0;
-      } else if (isVendorFailure(payload) && !payload.billed) {
-        // A vendor call that failed in a way the vendor does not charge for
-        // (the call site says which — issue #504) is ledgered at 0 cents.
-        settledCents = 0;
-      } else if (call.settleCents) {
-        const proposedCents = call.settleCents(payload);
-        if (proposedCents > call.costCents) {
-          // A settlement never raises a charge (BP-007 `## Error & edge
-          // behavior`) — clamp to the reservation and log, never trust
-          // the closure.
-          logClampedSettlement(call.source, call.costCents, proposedCents);
-        } else {
-          settledCents = proposedCents;
-        }
-      }
-
-      await writeFetchRow({
-        scanId: ctx.scanId,
-        source: call.source,
-        cacheKey: call.cacheKey,
-        policyVersion: ctx.policyVersion,
-        reservedCents: call.costCents,
-        costCents: settledCents,
-        payload,
-      });
-      ledgeredCents += settledCents;
-      // The day's total moves by what was actually ledgered, and `add`
-      // publishes the crossing if this is the call that made one.
-      day.add(settledCents);
-
-      return { payload, fresh: true, costCents: settledCents };
     },
 
     capHit(): boolean {

@@ -126,8 +126,18 @@ function assertBudgetsFit(): void {
 
 assertBudgetsFit();
 
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+/** A delay that can be cleared. The timer is cleared as soon as the race
+ *  below settles, whichever side won it (#539 review): an uncleared
+ *  `setTimeout` holds the event loop open for the rest of the budget after
+ *  a stage that answered early, which on a short-lived invocation is wall
+ *  clock the platform is paying for and a fake clock still has to advance
+ *  past. */
+function cancellableDelay(ms: number): { promise: Promise<void>; cancel: () => void } {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const promise = new Promise<void>((resolve) => {
+    timer = setTimeout(resolve, ms);
+  });
+  return { promise, cancel: () => clearTimeout(timer) };
 }
 
 /**
@@ -210,12 +220,17 @@ function logStageBudgetSpent(a: {
  * `work` is handed a `Bounds` that answers for the stage's ceilings as well
  * as the pass's, and is raced against the stage's own deadline — so a stage
  * stuck inside a vendor call that never resolves still ends at its budget
- * and the pass still reaches the stages after it. The losing side is not
- * cancelled (nothing in this pipeline is cancellable: the vendor client
- * takes no signal from here), and it does not need to be — its result is
- * discarded, the sections it would have filled keep their `not_attempted`
- * arm, and its spend is already ledgered by `recordFetch`, which is what
- * "bounded and ledgered" means.
+ * and the pass still reaches the stages after it.
+ *
+ * **The losing side cannot be cancelled, so it is told** (#539 review).
+ * Nothing in this pipeline is cancellable — the vendor client takes no
+ * signal from here — so a call already in flight when the budget runs out
+ * goes on running and eventually answers. The second parameter `work`
+ * receives is how it finds out that nobody is waiting any more: `abandoned()`
+ * reads `true` from the moment this function returns `{ spent: true }`, and
+ * a worker that checks it before writing keeps its late answer out of a
+ * `sections` the pass has already scored and stored. Its spend is ledgered
+ * by `recordFetch` either way, which is what "bounded and ledgered" means.
  *
  * `applies: false` — the two paid tiers, whose passes are released at ten
  * minutes or run on the standard queue — runs `work` against the pass's own
@@ -231,24 +246,34 @@ export async function withStageBudget<T>(
     cost: CostContext;
     applies: boolean;
   },
-  work: (bounds: Bounds) => Promise<T>
+  work: (bounds: Bounds, abandoned: () => boolean) => Promise<T>
 ): Promise<StageOutcome<T>> {
-  if (!a.applies) return { spent: false, value: await work(a.bounds) };
+  // A pass with no report deadline abandons no stage, so its work is never
+  // told it was: the predicate is a constant `false` rather than a branch
+  // every caller would have to remember to read.
+  if (!a.applies) return { spent: false, value: await work(a.bounds, () => false) };
 
   const budget = STAGE_BUDGETS[a.stage];
   const startedAtMs = Date.now();
   const spentAtEntryCents = a.cost.spentCents();
   const bounds = stageBounds({ bounds: a.bounds, cost: a.cost, budget, startedAtMs, spentAtEntryCents });
 
+  // Flipped only once the race has actually settled against the work, so a
+  // stage that answered in time is never told it was abandoned by a timer
+  // that fired afterwards.
+  let abandoned = false;
+  const timer = cancellableDelay(budget.seconds * 1000);
   const done: StageOutcome<T> = await Promise.race([
-    (async (): Promise<StageOutcome<T>> => ({ spent: false, value: await work(bounds) }))(),
+    (async (): Promise<StageOutcome<T>> => ({ spent: false, value: await work(bounds, () => abandoned) }))(),
     (async (): Promise<StageOutcome<T>> => {
-      await delay(budget.seconds * 1000);
+      await timer.promise;
       return { spent: true };
     })(),
   ]);
+  timer.cancel();
 
   if (done.spent) {
+    abandoned = true;
     logStageBudgetSpent({
       stage: a.stage,
       budget,

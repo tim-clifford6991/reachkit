@@ -675,7 +675,10 @@ async function runStages(a: StageArgs): Promise<void> {
    *  down answers for the stage's ceilings as well as the pass's, so every
    *  multi-call step that already re-reads `stopNow()` between calls starts
    *  respecting its stage's budget with no line of its own changing. */
-  const inBudget = <T>(stage: StageName, work: (b: Bounds) => Promise<T>): Promise<StageOutcome<T>> =>
+  const inBudget = <T>(
+    stage: StageName,
+    work: (b: Bounds, abandoned: () => boolean) => Promise<T>
+  ): Promise<StageOutcome<T>> =>
     withStageBudget({ stage, bounds, cost, applies: a.parameters.stageBudgets }, work);
 
   if (bounds.stopNow() !== null) return;
@@ -685,10 +688,21 @@ async function runStages(a: StageArgs): Promise<void> {
   );
   // The one stage whose budget ends the pass rather than just itself:
   // nothing after it measures anything without the site's own documents,
-  // exactly as a refused home ends it below. It is *not* `site_unreadable`
-  // — nobody refused us, we ran out of budget — so no refusal is claimed
-  // and the ending stays the ceilings' own to decide.
-  if (read.spent) return;
+  // exactly as a refused home ends it below.
+  //
+  // **And it ends the pass the way §479 ends a home nobody could read**
+  // (#539 review). Returning here without recording anything left the pass
+  // with no ceiling fired and no unreadable arm, so `runBounded` settled
+  // the one ending that says the report is whole: a scan that measured
+  // nothing, every section `not_attempted`, stored as `complete`. That is
+  // the very metric this issue is judged on. `siteUnreadable(null)` is the
+  // honest arm — we read nothing of the customer's own site, and `refusal`
+  // is `null` because nobody refused us, which is the same arm a read that
+  // raised already records. Never `complete`.
+  if (read.spent) {
+    bounds.siteUnreadable(null);
+    return;
+  }
   const measurement = read.value;
   if (!failed(measurement)) sections.measurement = measurement;
   await exitStage(scanId, "reading_your_site");
@@ -710,10 +724,14 @@ async function runStages(a: StageArgs): Promise<void> {
 
   if (bounds.stopNow() !== null) return;
   await enter("reading_your_market");
-  if (!(await inBudget("reading_your_market", (b) => readMarket({ ...a, bounds: b }))).spent) {
+  if (!(await inBudget("reading_your_market", (b, abandoned) => readMarket({ ...a, bounds: b }, abandoned))).spent) {
     await exitStage(scanId, "reading_your_market");
   }
 
+  // No abandonment guard is threaded here, and none is owed: `sizesRivals`
+  // is false on the free path and the budget applies on no other, so on
+  // every pass this stage can be abandoned on, it returns before it awaits
+  // anything at all.
   if (bounds.stopNow() !== null) return;
   await enter("checking_your_presence");
   if (!(await inBudget("checking_your_presence", (b) => sizeTrackedRivals({ ...a, bounds: b }))).spent) {
@@ -722,7 +740,7 @@ async function runStages(a: StageArgs): Promise<void> {
 
   if (bounds.stopNow() !== null) return;
   await enter("asking_the_twelve");
-  if (!(await inBudget("asking_the_twelve", (b) => askTheTwelve({ ...a, bounds: b }))).spent) {
+  if (!(await inBudget("asking_the_twelve", (b, abandoned) => askTheTwelve({ ...a, bounds: b }, abandoned))).spent) {
     await exitStage(scanId, "asking_the_twelve");
   }
 
@@ -809,7 +827,7 @@ async function previousSizes(domain: CanonicalDomain): Promise<readonly RivalSiz
  *  Each step's failure stops the chain at that step and leaves everything
  *  after it on the arm it was initialised with; nothing downstream is
  *  synthesised from a step that did not answer. */
-async function readMarket(a: StageArgs): Promise<void> {
+async function readMarket(a: StageArgs, abandoned: () => boolean): Promise<void> {
   const { bounds, cost, sections } = a;
   const measurement = sections.measurement;
   if (measurement === null || measurement.text.home === null) return;
@@ -820,7 +838,7 @@ async function readMarket(a: StageArgs): Promise<void> {
       ...(measurement.text.pricing === null ? {} : { pricing: measurement.text.pricing }),
     })
   );
-  if (failed(profile)) return;
+  if (failed(profile) || abandoned()) return;
   sections.profile = profile;
   if (profile.kind === "unmeasured") return;
 
@@ -828,7 +846,7 @@ async function readMarket(a: StageArgs): Promise<void> {
   const market = await attempt("reading_your_market", () =>
     deriveMarketSet(cost, { seeds: seedsOf(profile.value) })
   );
-  if (failed(market)) return;
+  if (failed(market) || abandoned()) return;
   sections.marketRows = market;
   if (market.kind === "unmeasured") return;
 
@@ -838,7 +856,7 @@ async function readMarket(a: StageArgs): Promise<void> {
   const questions = await attempt("reading_your_market", () =>
     phraseQuestions(cost, { selected: sections.selected })
   );
-  if (!failed(questions)) sections.questions = questions;
+  if (!failed(questions) && !abandoned()) sections.questions = questions;
 }
 
 /** §6.7 step 2 buys suggestions "on the primary seed" — the profile's own
@@ -897,7 +915,7 @@ function cacheScope(a: StageArgs): CacheScope {
   return a.siteId === undefined ? { domain: a.domain } : { site: a.siteId };
 }
 
-async function askTheTwelve(a: StageArgs): Promise<void> {
+async function askTheTwelve(a: StageArgs, abandoned: () => boolean): Promise<void> {
   const { bounds, cost, parameters, sections } = a;
   const questions = sections.questions;
   const asked = questions.kind === "unmeasured" ? [] : questions.value;
@@ -930,8 +948,18 @@ async function askTheTwelve(a: StageArgs): Promise<void> {
           freshnessDays: parameters.serpWindowDays,
         })
       );
+      const battery = await askTheBattery(a, question.search.keyword, questions.at);
+      // **A worker whose stage was abandoned writes nothing** (#539
+      // review). The budget stops the pass *waiting* for this stage; it
+      // cannot cancel a call already in flight, so without this an answer
+      // that arrived late landed in `sections` after `score(a)` had already
+      // counted them — money spent and then either uncounted or, worse,
+      // mutating a report that was already composed and stored. Both writes
+      // happen together after the last await, so a question's SERP and its
+      // battery are never half a pair.
+      if (abandoned()) return;
       sections.serps[i] = failed(serp) ? unmeasured("undeterminable", questions.at) : serp;
-      sections.battery[i] = await askTheBattery(a, question.search.keyword, questions.at);
+      sections.battery[i] = battery;
     }
   };
 

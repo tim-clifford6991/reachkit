@@ -268,6 +268,61 @@ describe("the six stages", () => {
   });
 });
 
+describe("a stage that spends its own budget (issue #539)", () => {
+  it("a stage one that ran out of budget ends the pass unreadable, never `complete`", async () => {
+    vi.useFakeTimers();
+    try {
+      const { STAGE_BUDGETS } = await import("../../../src/lib/scan/budgets");
+      // The site read never answers, so the stage's own budget is the only
+      // thing that can end it — the pass's 50 s ceiling is nowhere near.
+      measureDomain.mockImplementation(() => new Promise(() => undefined));
+
+      const pass = runScan({ domain: DOMAIN, tier: "free" });
+      await vi.advanceTimersByTimeAsync(STAGE_BUDGETS.reading_your_site.seconds * 1000);
+      await pass;
+
+      // Nothing was measured. The one thing such a pass must never claim is
+      // that its report is whole.
+      expect(storedReport().complete).toBe(false);
+      expect(stages.lines).toEqual(["reading_your_site:enter"]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("a SERP that answers after its stage was abandoned never reaches the report", async () => {
+    vi.useFakeTimers();
+    try {
+      const { STAGE_BUDGETS } = await import("../../../src/lib/scan/budgets");
+      let answer: () => void = () => undefined;
+      const held = new Promise<void>((resolve) => {
+        answer = resolve;
+      });
+      serpOrganic.mockImplementation(async () => {
+        await held;
+        return measured(SERP, AT);
+      });
+
+      const pass = runScan({ domain: DOMAIN, tier: "free" });
+      await vi.advanceTimersByTimeAsync(STAGE_BUDGETS.asking_the_twelve.seconds * 1000);
+      await pass;
+
+      const report = storedReport();
+      expect(report.serps).toHaveLength(12);
+      expect(report.serps.every((serp) => serp.kind === "unmeasured")).toBe(true);
+
+      // The vendor answers now, with the stage long over and the report
+      // already composed and stored: the answer is dropped, never written
+      // back into a report the customer has already been given.
+      answer();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(report.serps.every((serp) => serp.kind === "unmeasured")).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
 describe("a ceiling gives back what was measured", () => {
   it("a battery the ceiling cut short keeps its unmeasured arms and lowers the denominator, never writes a 0", async () => {
     // The cost seam's own cap arm: `serpOrganic` returns `not_attempted`
