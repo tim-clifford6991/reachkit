@@ -117,12 +117,13 @@ export async function weeklyDueSites(now: Date): Promise<readonly DueSite[]> {
  *  the measurement is the engine's, so a second delivery of the same key
  *  starts nothing.
  *
- *  **Two obligations of one tick, visible here rather than hidden inside
+ *  **Three obligations of one tick, visible here rather than hidden inside
  *  the pass** (issue #181, and the same shape the 24-hour check takes):
- *  the pass records what it measured and stops, and the digest is sent
- *  after it. The digest carries its own once-ness on the same site-week
- *  row (`scans.digest_sent_at`), so a re-delivery of this tick measures
- *  nothing and sends nothing.
+ *  the pass records what it measured and stops, the week is judged, and
+ *  the digest is sent after both. The judgement carries its own once-ness
+ *  on `(publication_id, week_start)` and the digest carries its own on the
+ *  same site-week row (`scans.digest_sent_at`), so a re-delivery of this
+ *  tick measures nothing, judges nothing further and sends nothing.
  *
  *  **A degraded pass still tells.** A week that reached only some of its
  *  sections is REQ-064 c4's case — measured, with the sections it missed
@@ -136,6 +137,13 @@ export async function startWeeklyScan(a: DueSite & { readonly now: Date }): Prom
     zone: a.zone,
     now: a.now,
   });
+
+  // §6's verdict on every page published so far, written before the digest
+  // reads it. A failed pass stored no report, so its week judges nothing.
+  if (outcome.ran && outcome.status !== "failed") {
+    const { judgeWeek } = await import("@/lib/opportunities");
+    await judgeWeek({ siteId: a.siteId, week: a.weekStart });
+  }
 
   const { sendWeeklyDigest } = await import("@/lib/mail/weekly");
   const told = await sendWeeklyDigest({
