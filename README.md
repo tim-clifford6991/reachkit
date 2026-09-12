@@ -7,18 +7,18 @@ your rivals instead of you. Then ReachKit writes one page a day to change that."
 
 Production <https://reachkit.app> · dev <https://dev.reachkit.app> · repo `tim-clifford6991/reachkit`.
 
-## The nine MVP features (status 2026-09-11)
+## The nine MVP features (status 2026-09-12)
 
 | # | Feature | What the user gets | Status |
 |---|---|---|---|
 | 1 | Landing / marketing | Reads what ReachKit does and types in a domain | **Live** — approved copy renders. |
-| 2 | Free scan for any URL | A real, permanent findability report without an account | **Broken** — 0 of 17 scans have ever completed and the progress stream is dead on production. |
-| 3 | Payment + magic-link auth | Pays €49 with no account first, then signs in from the mailed link | **Blocked** — Resend sending domain unverified (#325); payment code done but never exercised live (#319). |
-| 4 | Protected dashboard | One signed-in place showing the market, the rivals and the week | **Inert** — the screens exist; Inngest jobs are not registered against production (#422), so nothing ticks. |
+| 2 | Free scan for any URL | A real, permanent findability report without an account | **Fixed in code, unverified live** — the progress stream now crosses the instance boundary (#540, merged 2026-09-12) and per-stage budgets are in review (#539); no dev deploy of it yet, 0 completed scans on record. |
+| 3 | Payment + magic-link auth | Pays €49 with no account first, then signs in from the mailed link | **Ready to test** — Resend domain verified (#325, 2026-09-12); one real magic link (#542) and one real Stripe test-mode payment (#319) still to be exercised. |
+| 4 | Protected dashboard | One signed-in place showing the market, the rivals and the week | **Inert until a payment** — the screens exist and the eight Inngest jobs are registered against production (#422, 2026-09-12); nothing ticks before a paid site exists. |
 | 5 | Onboarding | Confirms rivals and category and connects where pages publish: a hosted subdomain, or their WordPress | **Partial** — setup, hosted + WordPress connect and rival/category confirm all exist in `src/app`; unproven end to end. |
 | 6 | Weekly deep scan and targeting | Every Monday the market is re-measured and the next pages are picked | **Built, never run live.** |
 | 7 | Content calendar, daily actions | A new post, new page or update each day, cross-linked to their own pages and earlier assets | **Built, never run live.** |
-| 8 | Email | Onboarding, free-scan nurture, weekly digest, retention / win-back | **Not deliverable** — 11 mail kinds registered, 5 without copy (#388), none sends until #325. |
+| 8 | Email | Onboarding, free-scan nurture, weekly digest, retention / win-back | **Sends, copy incomplete** — mail can send (#325); 11 mail kinds registered, 5 without copy (#388); no sequence has run live. |
 | 9 | Technical site issues | Told what is broken on their own site and what to do about it | **Not built.** |
 
 ## What "delivered" means
@@ -39,9 +39,9 @@ weekly scan → calendar → email → technical issues — but all nine are MVP
 | # | Document | What it holds |
 |---|---|---|
 | 1 | `README.md` | This page: what ReachKit is, the nine features and where each stands, what delivered means. |
-| 2 | `docs/SPEC.md` | One section per feature: what the user gets, screens, rules and rulings (dated, in place), mail, done-when. MVP only. |
-| 3 | `docs/DESIGN.md` | The daisyUI theme, the UI rules, and the Claude Design canvas the screens come from. |
-| 4 | `docs/PROCESS.md` | Issue to production: roles, the ten steps, the gates, the decision flow. |
+| 2 | `docs/SPEC.md` | **Fixed in code, unverified live** — the progress stream now crosses the instance boundary (#540, merged 2026-09-12) and per-stage budgets are in review (#539); no dev deploy of it yet, 0 completed scans on record. |
+| 3 | `docs/DESIGN.md` | **Ready to test** — Resend domain verified (#325, 2026-09-12); one real magic link (#542) and one real Stripe test-mode payment (#319) still to be exercised. |
+| 4 | `docs/PROCESS.md` | **Inert until a payment** — the screens exist and the eight Inngest jobs are registered against production (#422, 2026-09-12); nothing ticks before a paid site exists. |
 | 5 | `CLAUDE.md` | What an agent reads first, and the nine things it never does. |
 
 These five files are the corpus; there is no sixth. Renders live in `docs/design/`. Everything not needed for the nine features is archived under `docs/archive/<date>/`; the old
