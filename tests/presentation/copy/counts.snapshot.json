@@ -62,11 +62,15 @@
   "settings.ts": {
     "owed": [],
     "awaiting": [],
-    "ruled": 101
+    "ruled": 103
   },
   "setup.ts": {
     "owed": [],
-    "awaiting": [],
+    "awaiting": [
+      "setup.destination.label.label",
+      "setup.destination.label.refused.invalid",
+      "setup.destination.label.refused.taken"
+    ],
     "ruled": 62
   },
   "signin.ts": {

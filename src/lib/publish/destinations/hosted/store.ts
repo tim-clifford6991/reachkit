@@ -19,12 +19,19 @@
 // WO-230/WO-231 (the page and the sitemap).
 import { readRecordedFact, type RecordedFact } from "@/lib/generate/fact";
 import { publishDb } from "../../db";
+import { hostFor } from "./label";
 
 /** A site, as the edge sees it: an id and the domain that resolved to it.
  *  There is nothing about its owner on this shape. */
 export interface HostedSite {
   siteId: string;
   domain: string;
+  /** The host this site's pages are served at — `<label>.<domain>`, as the
+   *  customer chose it (SPEC §5, 2026-09-12). Composed from the stored
+   *  label where the destination row carries one and from the default
+   *  where it does not, so a row written before the label became a choice
+   *  still names the host it has always served at. */
+  host: string;
 }
 
 /** §9: "Every published page records: opportunity id, target query,
@@ -124,6 +131,14 @@ interface SiteRow {
   domain: string;
 }
 
+/** A live hosted destination and the site it belongs to, as the Host
+ *  lookup reads it. No credential-adjacent column is named. */
+interface DestinationHostRow {
+  site_id: string;
+  hostname: string | null;
+  sites: { domain: string | null } | null;
+}
+
 interface PublicationRow {
   id: string;
   site_id: string;
@@ -175,7 +190,41 @@ export async function hostedSiteForDomain(domain: string): Promise<HostedSite | 
     .limit(1);
   if (error !== null || data === null) return null;
   const row = data[0];
-  return row === undefined ? null : { siteId: row.id, domain: row.domain };
+  if (row === undefined) return null;
+  return { siteId: row.id, domain: row.domain, host: hostFor({ label: null, domain: row.domain }) };
+}
+
+/**
+ * The site whose hosted pages are served on this **host**, or `null`.
+ *
+ * SPEC §5's ruling of 2026-09-12 made the subdomain label the customer's,
+ * so a Host header is no longer a pinned label over a domain this product
+ * can take apart — `blog.example.com` and `news.example.com` are two
+ * customers' choices and neither is derivable from the other. The host is
+ * stored whole on the destination row and matched whole here.
+ *
+ * **Exact match, one lookup, no fallback of any kind** — the property
+ * `hostedSiteForDomain` has and for the same reason: an unclaimed host
+ * resolves to nothing, never to "the only site there is". The partial
+ * unique index means at most one live destination claims a host, so this
+ * has exactly one answer.
+ */
+export async function hostedSiteForHostname(host: string): Promise<HostedSite | null> {
+  const name = host.trim().toLowerCase();
+  if (name === "") return null;
+  const { data, error } = await publishDb()
+    .from<DestinationHostRow>("destinations")
+    .select("site_id, hostname, sites!inner(domain)")
+    .eq("hostname", name)
+    .eq("kind", "hosted")
+    .is("deleted_at", null)
+    .limit(1);
+  if (error !== null || data === null) return null;
+  const row = data[0];
+  if (row === undefined) return null;
+  const domain = row.sites?.domain ?? null;
+  if (domain === null || domain.trim() === "") return null;
+  return { siteId: row.site_id, domain, host: name };
 }
 
 function slugOf(liveUrl: string): string | null {
@@ -324,5 +373,30 @@ export async function siteForDraft(draftId: string): Promise<HostedSite | null> 
   if (error !== null || data === null) return null;
   const domain = data.sites?.domain ?? null;
   if (domain === null || domain.trim() === "") return null;
-  return { siteId: data.site_id, domain };
+  // The host the customer chose, where they chose one. A site whose
+  // destination row carries none is served at the default label, which is
+  // the host it has always been served at — never a blank first label.
+  const chosen = await hostnameOfSite(data.site_id);
+  return {
+    siteId: data.site_id,
+    domain,
+    host: chosen ?? hostFor({ label: null, domain }),
+  };
+}
+
+/** The host a site's live hosted destination serves at, or `null`. Read
+ *  here rather than through `hostname.ts` so that the delivery path — and
+ *  everything else the edge's module graph reaches — stays clear of the
+ *  vendor seam. */
+async function hostnameOfSite(siteId: string): Promise<string | null> {
+  const { data, error } = await publishDb()
+    .from<{ hostname: string | null }>("destinations")
+    .select("hostname")
+    .eq("site_id", siteId)
+    .eq("kind", "hosted")
+    .is("deleted_at", null)
+    .limit(1);
+  if (error !== null || data === null) return null;
+  const host = data[0]?.hostname ?? null;
+  return host === null || host.trim() === "" ? null : host.trim().toLowerCase();
 }

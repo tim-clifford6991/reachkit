@@ -42,12 +42,12 @@
 import { PREVIEW_HOST_SUFFIX, HOSTED_SUBDOMAIN_LABEL } from "@/lib/config/constants";
 import { env } from "@/lib/config/env";
 import { hostedServingState } from "@/lib/account/billing";
-import { hostedSiteForDomain } from "@/lib/publish/destinations/hosted";
+import { hostedSiteForDomain, hostedSiteForHostname } from "@/lib/publish/destinations/hosted";
 
 export { tags } from "@/lib/publish/destinations/hosted";
 
 export type HostDisposition =
-  | { kind: "site"; siteId: string; domain: string; indexable: true }
+  | { kind: "site"; siteId: string; domain: string; host: string; indexable: true }
   | { kind: "preview"; slug: string; indexable: false }
   | { kind: "gone"; reason: "unpublished" | "access_ended" | "account_deleted" }
   | { kind: "unknown" };
@@ -100,6 +100,30 @@ export function isAppHost(host: string): boolean {
   return name === appHost();
 }
 
+/**
+ * The lifecycle question, asked once for whichever lookup found the site.
+ *
+ * Both paths into a served page end here, so a customer whose access has
+ * ended stops being served whether their host was matched whole or by the
+ * default label — one question, one answer, no second place to forget it.
+ */
+async function dispositionFor(site: {
+  siteId: string;
+  domain: string;
+  host: string;
+}): Promise<HostDisposition> {
+  let serving: Awaited<ReturnType<typeof hostedServingState>>;
+  try {
+    serving = await hostedServingState(site.siteId);
+  } catch {
+    // `hostedServingState` already fails closed on a deletion it cannot
+    // read; a throw here is the same direction, one level out.
+    return goneFor("account_deleted");
+  }
+  if (!serving.serve) return goneFor(serving.because);
+  return { kind: "site", siteId: site.siteId, domain: site.domain, host: site.host, indexable: true };
+}
+
 /** REQ-076 c10 and REQ-079 c6, through one predicate: a departed
  *  customer's pages stop being served, and both endings answer 410. The
  *  reason travels so an operator can tell which ending it was; it never
@@ -123,6 +147,21 @@ export async function resolveHost(host: string): Promise<HostDisposition> {
   // The deployment's own address is not a customer and not a preview.
   if (name === appHost()) return { kind: "unknown" };
 
+  // **The host as the customer chose it** (SPEC §5, 2026-09-12). The label
+  // is theirs, so the Host is matched whole against the host stored on
+  // their destination row — `blog.example.com` and `news.example.com` are
+  // two customers' choices and neither is derivable from a pinned label.
+  // First, because a stored host is the exact and authoritative answer;
+  // the lookup below it is what still serves a site whose destination row
+  // predates the ruling.
+  let chosen: Awaited<ReturnType<typeof hostedSiteForHostname>>;
+  try {
+    chosen = await hostedSiteForHostname(name);
+  } catch {
+    return { kind: "unknown" };
+  }
+  if (chosen !== null) return dispositionFor(chosen);
+
   if (name.startsWith(CONTENT_PREFIX)) {
     const domain = name.slice(CONTENT_PREFIX.length);
     if (domain === "") return { kind: "unknown" };
@@ -135,17 +174,7 @@ export async function resolveHost(host: string): Promise<HostDisposition> {
     }
     if (site === null) return { kind: "unknown" };
 
-    let serving: Awaited<ReturnType<typeof hostedServingState>>;
-    try {
-      serving = await hostedServingState(site.siteId);
-    } catch {
-      // `hostedServingState` already fails closed on a deletion it cannot
-      // read; a throw here is the same direction, one level out.
-      return goneFor("account_deleted");
-    }
-    if (!serving.serve) return goneFor(serving.because);
-
-    return { kind: "site", siteId: site.siteId, domain: site.domain, indexable: true };
+    return dispositionFor(site);
   }
 
   if (name.endsWith(PREVIEW_SUFFIX)) {

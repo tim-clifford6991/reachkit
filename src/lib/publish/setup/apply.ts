@@ -10,8 +10,9 @@
 // describes and no later step repairs.
 //
 // **Zero network calls, and that is a budget, not an accident.** Nothing
-// here resolves DNS, reaches a WordPress site or checks a destination's
-// health. §4.3's footer is a founder pressing one control and the product
+// here resolves DNS, reaches a WordPress site, adds a domain to the
+// project or checks a destination's health — the host the founder chose
+// arrives as an argument, already decided. §4.3's footer is a founder pressing one control and the product
 // starting; a DNS lookup on that path would put a third party's timeout
 // between the press and the pass. `tests/publish/setup/apply.test.ts`
 // asserts it with the egress seam stubbed to throw, so an edit that adds a
@@ -39,6 +40,15 @@ export interface SetupChoice {
   siteId: string;
   mode: PublishingMode;
   destinationKind: DestinationKind;
+  /** The host this destination will serve the customer's pages at —
+   *  `<label>.<their domain>`, the label being theirs since SPEC §5's
+   *  ruling of 2026-09-12. `null` for a destination that serves at no host
+   *  of its own, which is every WordPress one.
+   *
+   *  It commits with the mode and the destination and not after them: a
+   *  destination row written without the host the founder was shown the
+   *  record for is a founder pointing a CNAME at a host nothing serves. */
+  hostname: string | null;
 }
 
 /** `connected` is a literal, not a boolean: there is no arm in which
@@ -71,6 +81,7 @@ export async function applySetupChoice(a: SetupChoice): Promise<SetupChoiceAppli
       p_site_id: a.siteId,
       p_mode: a.mode,
       p_kind: a.destinationKind,
+      p_hostname: a.hostname,
     }
   );
   if (error) throw new Error(`applySetupChoice: ${error.message}`);

@@ -21,6 +21,7 @@ import { adapter } from "../_adapter";
 import { completeSetup, type SetupResult, type SetupSubmission } from "@/app/(account)/setup/submit";
 import { setupStore } from "@/app/(account)/setup/_setup/provider";
 import { currentSession } from "@/lib/account/identity";
+import { DEFAULT_HOSTED_LABEL } from "@/lib/publish/destinations/hosted/label";
 
 const BAD_REQUEST = 400;
 const UNAUTHENTICATED = 401;
@@ -43,13 +44,23 @@ function parseSubmission(body: unknown): SetupSubmission | null {
   if (typeof destination !== "object" || destination === null) return null;
   const kind = (destination as Record<string, unknown>).kind;
   if (kind !== "hosted" && kind !== "wordpress") return null;
+  // SPEC §5: the hosted arm carries the subdomain label the founder chose.
+  // A label absent from the payload is the default they were shown — never
+  // a blank first segment, and never a refusal for a field they left as
+  // they found it. Whether it is *usable* is `completeSetup`'s, which asks
+  // the same two questions the screen asked.
+  const label = (destination as Record<string, unknown>).label;
+  if (label !== undefined && typeof label !== "string") return null;
 
   return {
     domain: b.domain,
     category: b.category,
     competitors: b.competitors as string[],
     mode: b.mode,
-    destination: kind === "hosted" ? { kind: "hosted" } : { kind: "wordpress", connectLater: true },
+    destination:
+      kind === "hosted"
+        ? { kind: "hosted", label: label ?? DEFAULT_HOSTED_LABEL }
+        : { kind: "wordpress", connectLater: true },
   };
 }
 

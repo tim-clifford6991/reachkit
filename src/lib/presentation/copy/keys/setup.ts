@@ -160,6 +160,36 @@ export const SETUP_COPY = Object.freeze({
    *  until a site address is given — never a blank, dash or placeholder. */
   "setup.destination.dnsPending": ["DNS record shown once your site is given.", { slots: {}, fixedBy: "REQ-028 c2" }],
 
+  // ── The subdomain label (SPEC §5, ruling of 2026-09-12) ─────────────
+  //
+  // §5 made the label the customer's: "a subdomain label the customer
+  // chooses (default `content`), refusing an invalid or already-taken
+  // label in one written line". The approved artboard draws the field with
+  // a bracketed placeholder — `OnboardingPublishing.dc.html`: "[COPY:
+  // choose the subdomain, e.g. blog or content]" — which is the canvas's
+  // own way of saying the sentence is not written yet.
+  //
+  // **Three keys, all owed.** `CLAUDE.md`'s standing rule: add the key,
+  // leave the value `TODO(copy)`, name it in the PR. The marker renders as
+  // itself, so the field and each refusal are visibly unwritten rather
+  // than invisibly absent — and no sentence here was composed to fill
+  // them. The two words the state is read as ("waiting for DNS", "live")
+  // are §5's own and are written, in `settings.ts`.
+  "setup.destination.label.label": [
+    "TODO(copy)",
+    { slots: {}, fixedBy: "SPEC §5 (2026-09-12) · Canvas: Setup" },
+  ],
+  /** The one written line for a label that is not a label at all. */
+  "setup.destination.label.refused.invalid": [
+    "TODO(copy)",
+    { slots: {}, fixedBy: "SPEC §5 (2026-09-12)" },
+  ],
+  /** The one written line for a label somebody else already serves at. */
+  "setup.destination.label.refused.taken": [
+    "TODO(copy)",
+    { slots: {}, fixedBy: "SPEC §5 (2026-09-12)" },
+  ],
+
   // ── The waiting screen (REQ-029) ────────────────────────────────────
   "setup.waiting.head": ["Your first page is on its way.", { slots: {}, fixedBy: "REQ-029 c1" }],
   /** One line per stage of the pass. Which step is under way, in written

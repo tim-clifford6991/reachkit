@@ -95,5 +95,10 @@ export async function ensureFreshHealth(destinationId: string): Promise<Destinat
     reason: row.health_reason,
     lastCheckedAt: new Date(row.last_checked_at),
     heldPages: held.count,
+    // SPEC §5: the customer's own host and the word for its state, read
+    // off the row the check has just refreshed — so the address on the
+    // screen and the state beside it are one reading, never two.
+    hostname: row.hostname,
+    hostnameState: row.hostname_state,
   });
 }

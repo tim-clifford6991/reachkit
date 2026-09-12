@@ -27,6 +27,14 @@ import type {
  *  them since #107 — and are read here rather than re-minted under a
  *  `publish.*` name. Two keys holding the same sentence is how a product
  *  ends up calling one state two things. */
+/** SPEC §5's two ruled words, one key each. The state is the row's, so a
+ *  surface cannot decide that a record has resolved: it renders the word
+ *  the check recorded. */
+const HOSTNAME_KEY: Record<"pending_dns" | "live", CopyKey> = {
+  pending_dns: "settings.destination.hostname.waiting",
+  live: "settings.destination.hostname.live",
+};
+
 const STATE_KEY: Record<DestinationHealth, CopyKey> = {
   ok: "settings.destination.health.ok",
   expired: "settings.destination.health.expired",
@@ -89,6 +97,11 @@ export interface DestinationFacts {
   reason: HealthReason | null;
   lastCheckedAt: Date;
   heldPages: number;
+  /** The host the customer's pages are served at, where this destination
+   *  has one of its own (SPEC §5, 2026-09-12). */
+  hostname?: string | null;
+  /** What the project's domain list says about it. */
+  hostnameState?: "pending_dns" | "live" | null;
 }
 
 /**
@@ -100,6 +113,8 @@ export interface DestinationFacts {
  * its band and no line, rather than being hidden or guessed at.
  */
 export function destinationView(facts: DestinationFacts): DestinationView {
+  const hostname = facts.hostname ?? null;
+  const hostnameState = hostname === null ? null : (facts.hostnameState ?? "pending_dns");
   return {
     id: facts.id,
     kind: facts.kind,
@@ -108,9 +123,15 @@ export function destinationView(facts: DestinationFacts): DestinationView {
     lastCheckedAt: facts.lastCheckedAt,
     heldPages: facts.heldPages,
     action: facts.health === "ok" ? "none" : actionFor(facts.kind, facts.reason),
+    hostname,
+    // A host with no state recorded is one nobody has pointed yet, which
+    // is what "waiting for DNS" says — never a blank beside an address the
+    // customer is being asked to point.
+    hostnameState,
     copy: {
       state: STATE_KEY[facts.health],
       line: facts.health === "ok" || facts.reason === null ? null : LINE_KEY[facts.reason],
+      hostname: hostnameState === null ? null : HOSTNAME_KEY[hostnameState],
     },
   };
 }

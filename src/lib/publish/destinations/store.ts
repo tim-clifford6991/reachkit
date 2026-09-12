@@ -14,8 +14,8 @@
 import { publishDb } from "../db";
 import type { DestinationHealth, DestinationKind, HealthReason } from "../types";
 
-/** The `destinations` row as this subsystem reads it. Eleven columns, and
- *  no twelfth: `config` is not here, and there is nowhere on this shape for
+/** The `destinations` row as this subsystem reads it. Thirteen columns,
+ *  and no fourteenth: `config` is not here, and there is nowhere on this shape for
  *  a vendor message to live. */
 export interface DestinationRecord {
   id: string;
@@ -29,12 +29,21 @@ export interface DestinationRecord {
   deleted_at: string | null;
   publish_capable: boolean | null;
   stamp_capable: boolean | null;
+  /** SPEC §5 (2026-09-12): the host this destination serves the customer's
+   *  pages at, and what the project's domain list says about it. Null for
+   *  a destination that serves at no host of its own. */
+  hostname: string | null;
+  hostname_state: "pending_dns" | "live" | null;
 }
 
 /** The one select list. Written once so that no caller can widen it. */
 export const RECORD_COLUMNS =
   "id, site_id, kind, health, health_reason, health_changed_at, " +
-  "broken_mail_sent_at, last_checked_at, deleted_at, publish_capable, stamp_capable";
+  "broken_mail_sent_at, last_checked_at, deleted_at, publish_capable, stamp_capable, " +
+  // SPEC §5: the customer's own host and its state. Neither is
+  // credential-adjacent — the host is the address on their own domain that
+  // they are asked to point — and both are what a surface states.
+  "hostname, hostname_state";
 
 /** One destination by id, live or disconnected. `reconnect` and
  *  `disconnect` both address a row by id and both must be able to see a

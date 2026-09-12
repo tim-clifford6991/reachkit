@@ -28,6 +28,7 @@ import { hasActiveAccess } from "@/lib/account/billing";
 import { dbAdmin } from "@/lib/db";
 import { resolvesInDns } from "@/lib/egress/dns";
 import { applySetupChoice } from "@/lib/publish/setup/apply";
+import { hostFor } from "@/lib/publish/destinations/hosted/label";
 import type { SetupProgressState, SetupStore, SetupSubmission } from "../submit";
 
 /** ADR-050's rule, as a port. The default is now the billing leaf's own
@@ -146,6 +147,14 @@ export function liveSetupStore(): SetupStore {
 
     resolvesInDns: (host) => resolvesInDns(host),
 
+    /** SPEC §5's "already-taken label", asked of the rows. The unique
+     *  index is what actually decides; this is the readable form of the
+     *  same refusal, asked before the founder presses the one control. */
+    async hostnameTaken(a): Promise<boolean> {
+      const { hostnameTaken } = await import("@/lib/publish/destinations/hosted/hostname");
+      return hostnameTaken({ hostname: a.hostname, exceptSiteId: a.siteId });
+    },
+
     async readProgress(userId): Promise<SetupProgressState> {
       const site = await siteFor(userId);
       return site.setup_completed_at === null
@@ -178,11 +187,46 @@ export function liveSetupStore(): SetupStore {
         .eq("id", a.siteId);
       if (answers.error) throw new Error(`commitSetup: ${answers.error.message}`);
 
-      await applySetupChoice({
+      // SPEC §5: the host the founder chose commits with the mode and the
+      // destination. WordPress serves at no host of ours, so it carries
+      // none — and `null` is that, not a blank.
+      const hostname =
+        a.submission.destination.kind === "hosted"
+          ? hostFor({ label: a.submission.destination.label, domain: a.submission.domain })
+          : null;
+
+      const applied = await applySetupChoice({
         siteId: a.siteId,
         mode: a.submission.mode,
         destinationKind: a.submission.destination.kind,
+        hostname,
       });
+
+      // **The hostname is added to the project here, on the save** (SPEC
+      // §5: "on save the app adds the hostname to the project's domain
+      // list"). Swallowed like the enqueue below it and for the same
+      // reason: the founder is committed either way, the attachment is
+      // idempotent, and the health check makes it again on every pass — so
+      // a vendor that was unreachable for one second costs a wait, not a
+      // founder who has to answer the three questions again.
+      if (hostname !== null) {
+        try {
+          const { syncHostname } = await import("@/lib/publish/destinations/hosted/hostname");
+          await syncHostname({
+            destinationId: applied.destinationId,
+            hostname,
+            // Nothing is resolved on this path: §4.3's footer is a founder
+            // pressing one control and the product starting, and a DNS
+            // lookup here would put a third party's timeout between the
+            // press and the pass. The record has just been shown to them,
+            // so "waiting for DNS" is what it honestly is.
+            resolves: false,
+          });
+        } catch {
+          // The next health check attaches it. Nothing is swallowed that
+          // this founder could act on.
+        }
+      }
 
       const stamped = await untyped()
         .from<SiteSetupRow>("sites")

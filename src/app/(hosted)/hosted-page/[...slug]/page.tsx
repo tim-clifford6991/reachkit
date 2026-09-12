@@ -65,7 +65,7 @@ import type React from "react";
 import { BODY_CLASSES } from "@/app/(account)/app/draft/[draftId]/present";
 import { copy } from "@/lib/presentation/copy";
 import { markPassage, parseMarkdown, toHtml } from "@/lib/publish/render/markdown";
-import { liveUrlFor, livePageBySlug, type HostedPage } from "@/lib/publish/destinations/hosted";
+import { liveUrlOnHost, livePageBySlug, type HostedPage } from "@/lib/publish/destinations/hosted";
 import { Surface } from "@/ui/layout";
 import { resolveHost } from "../../resolve-host";
 
@@ -98,9 +98,12 @@ const load = cache(async (slug: string): Promise<Resolved | null> => {
   return {
     page,
     // Always the customer's own domain, composed from the one composer
-    // (`liveUrlFor`). There is no argument to it that yields a ReachKit
-    // address, and no branch here that could introduce one.
-    canonical: liveUrlFor({ domain: disposition.domain, slug: page.slug }),
+    // (`liveUrlOnHost`, which `liveUrlFor` is itself written in terms of).
+    // The host is the one that resolved — the label is the customer's
+    // since SPEC §5's ruling of 2026-09-12 — so the canonical names the
+    // address the visitor actually typed and never a recomposed guess at
+    // it. There is no argument to it that yields a ReachKit address.
+    canonical: liveUrlOnHost({ host: disposition.host, slug: page.slug }),
   };
 });
 

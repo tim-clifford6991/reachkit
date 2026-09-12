@@ -307,7 +307,24 @@ export interface DestinationView {
    *  count, derived; never a sentence. */
   heldPages: number;
   action: DestinationAction;
-  copy: { state: CopyKey; line: CopyKey | null };
+  /** The host this destination serves the customer's pages at, where it
+   *  serves at one of its own (SPEC §5, 2026-09-12). `null` for a
+   *  destination ReachKit does not host. It is the customer's own address
+   *  and never ours, which is why a surface may state it. */
+  hostname: string | null;
+  /** What the project's domain list says about that host: the customer
+   *  reads one of exactly two words, "waiting for DNS" until their record
+   *  resolves and "live" after (SPEC §5). `null` where there is no host to
+   *  say it about. */
+  hostnameState: "pending_dns" | "live" | null;
+  copy: {
+    state: CopyKey;
+    line: CopyKey | null;
+    /** The word for `hostnameState`, or `null` where there is no host.
+     *  A key, like every other sentence: the two words are §5's own and
+     *  the registry is where they are written. */
+    hostname: CopyKey | null;
+  };
 }
 
 /** Opaque here; each adapter narrows it. Encrypted at rest, never logged

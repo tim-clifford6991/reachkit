@@ -52,6 +52,7 @@ describe("§4.3 — the mode and the destination are two writes in one transacti
       siteId: SITE,
       mode: "copilot",
       destinationKind: "hosted",
+      hostname: "content.example.com",
     });
 
     expect(applied).toEqual({ ok: true, destinationId: applied.destinationId, connected: false });
@@ -61,7 +62,7 @@ describe("§4.3 — the mode and the destination are two writes in one transacti
   });
 
   it("it is one round trip, so there is no instant at which one has landed and the other has not", async () => {
-    await applySetupChoice({ siteId: SITE, mode: "autopilot", destinationKind: "wordpress" });
+    await applySetupChoice({ siteId: SITE, mode: "autopilot", destinationKind: "wordpress", hostname: null });
     expect(db.rpcCalls).toHaveLength(1);
     expect(db.rpcCalls[0]!.fn).toBe("apply_setup_choice");
   });
@@ -76,7 +77,7 @@ describe("§4.3 — the mode and the destination are two writes in one transacti
   it("a site that does not exist is an error, never a half-applied setup", async () => {
     db = fakeDb({ sites: [], destinations: [] });
     await expect(
-      applySetupChoice({ siteId: SITE, mode: "autopilot", destinationKind: "hosted" })
+      applySetupChoice({ siteId: SITE, mode: "autopilot", destinationKind: "hosted", hostname: "content.example.com" })
     ).rejects.toThrow(/destination id/);
     expect(db.tables.destinations).toEqual([]);
   });
@@ -88,6 +89,7 @@ describe("REQ-028 c3 — a founder who uses WordPress can defer connecting it an
       siteId: SITE,
       mode: "autopilot",
       destinationKind: "wordpress",
+      hostname: null,
     });
 
     expect(applied.ok).toBe(true);
@@ -110,7 +112,7 @@ describe("REQ-028 c3 — a founder who uses WordPress can defer connecting it an
 
 describe("REQ-028 c4 — setup completes with neither DNS nor WordPress set up", () => {
   it("zero network calls — the egress seam is never reached", async () => {
-    await applySetupChoice({ siteId: SITE, mode: "autopilot", destinationKind: "hosted" });
+    await applySetupChoice({ siteId: SITE, mode: "autopilot", destinationKind: "hosted", hostname: "content.example.com" });
     expect(egressReached).not.toHaveBeenCalled();
   });
 
@@ -138,7 +140,7 @@ describe("REQ-028 c5 — nothing is published to any other destination", () => {
   it("the kind written is the kind chosen, for both kinds", async () => {
     for (const kind of ["hosted", "wordpress"] as const) {
       db = fakeDb({ sites: [{ id: SITE, mode: "autopilot" }], destinations: [] });
-      await applySetupChoice({ siteId: SITE, mode: "autopilot", destinationKind: kind });
+      await applySetupChoice({ siteId: SITE, mode: "autopilot", destinationKind: kind, hostname: null });
       expect(db.tables.destinations![0]!.kind).toBe(kind);
     }
   });

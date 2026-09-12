@@ -14,12 +14,21 @@ const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
 applyEnvFixture();
 
 const sites = new Map<string, string>();
+/** SPEC §5 (2026-09-12): the host a customer chose, as their destination
+ *  row holds it — Host header to site id. */
+const hosts = new Map<string, { siteId: string; domain: string }>();
 const serving = new Map<string, { serve: boolean; because?: string }>();
 
 vi.mock("@/lib/publish/destinations/hosted", () => ({
   hostedSiteForDomain: async (domain: string) => {
     const id = sites.get(domain);
-    return id === undefined ? null : { siteId: id, domain };
+    return id === undefined ? null : { siteId: id, domain, host: `content.${domain}` };
+  },
+  // SPEC §5 (2026-09-12): the Host is matched whole against the host on
+  // the destination row, before any label is assumed.
+  hostedSiteForHostname: async (host: string) => {
+    const found = hosts.get(host);
+    return found === undefined ? null : { ...found, host };
   },
   tags: { site: (s: string) => `hosted:site:${s}`, page: (p: string) => `hosted:page:${p}` },
 }));
@@ -33,6 +42,7 @@ const { PREVIEW_HOST_SUFFIX } = await import("@/lib/config/constants");
 
 beforeEach(() => {
   sites.clear();
+  hosts.clear();
   serving.clear();
   sites.set("example.com", "site-1");
 });
@@ -43,6 +53,7 @@ describe("REQ-059 c1 — a Host of content.{their domain} resolves to their site
       kind: "site",
       siteId: "site-1",
       domain: "example.com",
+      host: "content.example.com",
       indexable: true,
     });
   });
@@ -67,6 +78,44 @@ describe("REQ-059 c1 — a Host of content.{their domain} resolves to their site
     await expect(resolveHost("")).resolves.toEqual({ kind: "unknown" });
     await expect(resolveHost("   ")).resolves.toEqual({ kind: "unknown" });
     await expect(resolveHost("content.")).resolves.toEqual({ kind: "unknown" });
+  });
+});
+
+describe("SPEC §5 (2026-09-12) — the customer chose the label, so the Host is matched whole", () => {
+  it("a host on their destination row resolves to their site, carrying the host that answered", async () => {
+    hosts.set("blog.example.com", { siteId: "site-9", domain: "example.com" });
+    await expect(resolveHost("blog.example.com")).resolves.toEqual({
+      kind: "site",
+      siteId: "site-9",
+      domain: "example.com",
+      host: "blog.example.com",
+      indexable: true,
+    });
+  });
+
+  it("**any label, not one pinned word** — the row a prefix test fails", async () => {
+    for (const label of ["blog", "news", "learn", "guides-2026"]) {
+      hosts.clear();
+      hosts.set(`${label}.example.com`, { siteId: "site-9", domain: "example.com" });
+      await expect(resolveHost(`${label}.example.com`)).resolves.toMatchObject({
+        kind: "site",
+        host: `${label}.example.com`,
+      });
+    }
+  });
+
+  it("a host no destination claims is unknown — never another customer's site", async () => {
+    hosts.set("blog.example.com", { siteId: "site-9", domain: "example.com" });
+    await expect(resolveHost("blog.stranger.example")).resolves.toEqual({ kind: "unknown" });
+  });
+
+  it("a site that has stopped is gone whichever lookup found it", async () => {
+    hosts.set("blog.example.com", { siteId: "site-9", domain: "example.com" });
+    serving.set("site-9", { serve: false, because: "retention_elapsed" });
+    await expect(resolveHost("blog.example.com")).resolves.toEqual({
+      kind: "gone",
+      reason: "access_ended",
+    });
   });
 });
 
@@ -117,7 +166,9 @@ describe("ADR-002 decision 2 — a preview address is never indexable, and no co
     // source declares the two arms with literal `true`/`false`, not
     // `boolean`, so no assignment can flip one.
     const source = readSource("src/app/(hosted)/resolve-host.ts");
-    expect(source).toContain('kind: "site"; siteId: string; domain: string; indexable: true');
+    expect(source).toContain(
+      'kind: "site"; siteId: string; domain: string; host: string; indexable: true'
+    );
     expect(source).toContain('kind: "preview"; slug: string; indexable: false');
     expect(source).not.toMatch(/indexable:\s*boolean/);
   });

@@ -33,7 +33,7 @@
 "use client";
 
 import type React from "react";
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Btn } from "@/ui/components/Btn";
 import { Badge } from "@/ui/components/Badge";
@@ -58,15 +58,18 @@ import {
   type RivalRefusal,
 } from "@/lib/market/setup/rivals";
 import {
+  dnsRecordFor,
   preselected,
   type DestinationKind,
   type DnsPending,
   type DnsRecord,
   type PublishingMode,
 } from "@/lib/publish/setup/cards";
+import { checkLabel, type LabelRefusal } from "@/lib/publish/destinations/hosted/label";
 import type { SetupScreenModel } from "./_setup/facts";
 import type { SetupRefusal, SetupSubmission } from "./submit";
 import type { ResolveDomainResponse } from "@/app/api/setup/domain/route";
+import type { CheckLabelResponse } from "@/app/api/setup/label/route";
 import type { SetupResult } from "./submit";
 
 const ADDRESS_REFUSAL_COPY = {
@@ -82,6 +85,15 @@ const RIVAL_REFUSAL_COPY = {
   set_full: "setup.competitors.refused.set-full",
 } as const satisfies Record<RivalRefusal, string>;
 
+/** SPEC §5's two refusals, as written lines. The same two keys the
+ *  submit's own refusals resolve to: one sentence per refusal, wherever it
+ *  is found, so the screen and the server cannot word the same refusal two
+ *  ways. */
+const LABEL_REFUSAL_COPY = {
+  not_a_label: "setup.destination.label.refused.invalid",
+  taken: "setup.destination.label.refused.taken",
+} as const satisfies Record<LabelRefusal, string>;
+
 /** Every refusal the founder can be shown, as a written line. `SetupResult`'s
  *  `already_complete` is absent on purpose: a founder who has completed setup
  *  is *taken onward* (REQ-025 c4), never shown a refusal, so that arm
@@ -92,6 +104,11 @@ const SUBMIT_REFUSAL_COPY = {
   invalid_domain: "setup.address.refused.unreachable",
   no_active_access: "setup.refused.no-access",
   too_many_competitors: "setup.competitors.refused.set-full",
+  // SPEC §5's pair, refused a second time at the submit because an answer
+  // from a browser is not a fact. Each keeps its own line: one asks the
+  // founder to type a label, the other to type a different one.
+  invalid_label: "setup.destination.label.refused.invalid",
+  label_taken: "setup.destination.label.refused.taken",
 } as const satisfies Record<
   | Exclude<SetupRefusal, "already_complete">
   | "address_missing"
@@ -102,6 +119,31 @@ const SUBMIT_REFUSAL_COPY = {
 /** Where the one submit leads (§4.3). An internal route name, not a
  *  customer-visible string. */
 const WAITING_PATH = "/setup/waiting";
+
+/**
+ * SPEC §5's second question about a label: does anybody else already serve
+ * at the host it would compose? A row, so a round trip — the shape of the
+ * label is decided in the browser by `checkLabel` and costs none.
+ *
+ * A call that does not complete refuses nothing: the submit asks the same
+ * question against the canonical domain and is what actually decides, so a
+ * blip here must not stand between a founder and a label nobody holds.
+ */
+async function checkHostedLabel(
+  label: string,
+  domain: string | null,
+): Promise<CheckLabelResponse> {
+  try {
+    const response = await fetch("/api/setup/label", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ label, domain }),
+    });
+    return (await response.json()) as CheckLabelResponse;
+  } catch {
+    return { label: null, hostname: null, refusal: null };
+  }
+}
 
 async function resolveDomain(host: string): Promise<ResolveDomainResponse> {
   const response = await fetch("/api/setup/domain", {
@@ -136,6 +178,16 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
   const [destination, setDestination] = useState<DestinationKind>(
     defaults.destination,
   );
+  // SPEC §5 (2026-09-12): the subdomain label is the customer's, and the
+  // card is drawn with the default until they change it. The value the
+  // screen opens on is the one the cards were composed with, so what they
+  // were shown and what they submit are one fact read twice.
+  const [label, setLabel] = useState(hostedLabel(p.model));
+  const [labelRefusal, setLabelRefusal] = useState<LabelRefusal | null>(null);
+  /** Which availability question is the current one. A founder types
+   *  faster than a round trip answers, and an older answer landing last
+   *  would refuse a label they have already changed. */
+  const labelAsked = useRef(0);
   const [submitRefusal, setSubmitRefusal] = useState<
     keyof typeof SUBMIT_REFUSAL_COPY | null
   >(null);
@@ -143,6 +195,36 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
 
   const selected = new Set(state.rivals.map((rival) => rival.domain));
   const full = isFull(state.rivals);
+
+  // REQ-028 c2, and SPEC §5's "appears as soon as the site address is
+  // known": the record is composed here rather than read off the server's
+  // model, because both halves of its name move while the founder is on
+  // this screen — they type their address, and they choose their label.
+  // The one thing the screen cannot derive is the target it points at,
+  // which is a deployment binding and rides on the model.
+  const dns: DnsRecord | DnsPending = dnsRecordFor({
+    siteDomain: state.siteDomain,
+    cnameTarget: p.model.cnameTarget,
+    label,
+  });
+
+  /** The label, as the founder types it. The shape is decided here and at
+   *  once; whether the host is free is a row, and is asked of the server
+   *  with the newest answer winning. */
+  async function draftLabel(next: string): Promise<void> {
+    setLabel(next);
+    const shape = checkLabel(next);
+    if (!shape.ok) {
+      setLabelRefusal(shape.because);
+      return;
+    }
+    setLabelRefusal(null);
+    labelAsked.current += 1;
+    const asked = labelAsked.current;
+    const answer = await checkHostedLabel(next, state.siteDomain);
+    if (asked !== labelAsked.current) return;
+    setLabelRefusal(answer.refusal);
+  }
 
   async function commitAddress(): Promise<void> {
     const answer = await resolveDomain(addressDraft);
@@ -237,7 +319,7 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
       mode,
       destination:
         destination === "hosted"
-          ? { kind: "hosted" }
+          ? { kind: "hosted", label }
           : { kind: "wordpress", connectLater: true },
     };
 
@@ -643,12 +725,42 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
               onChoose={() => setDestination(option.kind)}
               testId={`setup-destination-${option.kind}`}
             >
-              {option.kind === "hosted" ? (
-                <HostedRecord dns={hostedDns(p.model)} />
-              ) : null}
+              {option.kind === "hosted" ? <HostedRecord dns={dns} /> : null}
             </OptionCard>
           ))}
         </div>
+
+        {/* SPEC §5 (2026-09-12): the label the founder chooses, and the
+            record above it moves with every keystroke. It sits under the
+            pair rather than inside the hosted card because that card is a
+            `<button>` — the approved artboard draws the field within it,
+            and a form control nested in a button is neither valid markup
+            nor operable by keyboard. Named in the PR. */}
+        {destination === "hosted" ? (
+          <div data-testid="setup-destination-label">
+            {labelRefusal === null ? (
+              <Input
+                label={copy("setup.destination.label.label")}
+                name="label"
+                value={label}
+                onChange={(next) => {
+                  void draftLabel(next);
+                }}
+              />
+            ) : (
+              <Input
+                label={copy("setup.destination.label.label")}
+                name="label"
+                value={label}
+                onChange={(next) => {
+                  void draftLabel(next);
+                }}
+                invalid
+                invalidMessage={copy(LABEL_REFUSAL_COPY[labelRefusal])}
+              />
+            )}
+          </div>
+        ) : null}
       </IdiomCard>
 
       {submitRefusal === null ? null : (
@@ -702,18 +814,20 @@ const ADD_PLACEHOLDER = {
   another: "setup.competitors.add.placeholder",
 } as const satisfies Record<string, CopyKey>;
 
-/** The hosted option's `dns`, which the card type guarantees is present
- *  for `hosted` and one of exactly two shapes. */
-function hostedDns(model: SetupScreenModel): DnsRecord | DnsPending {
+/** The label the hosted card was composed with — the founder's own, or
+ *  the default they have not changed. Read off the card rather than named
+ *  again here, so "the value they were shown" and "the value the field
+ *  opens on" are one fact (SPEC §5). */
+function hostedLabel(model: SetupScreenModel): string {
   const hosted = model.cards.destination.find(
     (option) => option.kind === "hosted",
   );
-  if (!hosted?.dns) {
+  if (hosted?.label === undefined) {
     throw new Error(
-      "SetupForm: the hosted destination must always carry a dns shape.",
+      "SetupForm: the hosted destination must always carry a subdomain label.",
     );
   }
-  return hosted.dns;
+  return hosted.label;
 }
 
 /** REQ-028 c2: the record once the site address is known, and one written

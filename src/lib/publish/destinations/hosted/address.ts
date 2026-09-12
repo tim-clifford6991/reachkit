@@ -17,15 +17,24 @@
 // substitution and no more; it re-implements nothing.
 //
 // The archived plan is WO-228.
-import { HOSTED_SUBDOMAIN_LABEL, PREVIEW_HOST_SUFFIX } from "@/lib/config/constants";
+import { PREVIEW_HOST_SUFFIX } from "@/lib/config/constants";
 import { env } from "@/lib/config/env";
 import { dnsRecordFor, type DnsPending, type DnsRecord } from "../../setup/cards";
+import { hostFor } from "./label";
 
 export type { DnsPending, DnsRecord };
 
-/** The host a customer points at us: `content.{their domain}`. */
-export function hostedHostFor(domain: string): string {
-  return `${HOSTED_SUBDOMAIN_LABEL}.${domain}`;
+/** The host a customer points at us: `<label>.{their domain}`.
+ *
+ *  **The label is the customer's since SPEC §5's ruling of 2026-09-12**,
+ *  and was one pinned word before it. It is optional here and omitting it
+ *  yields the default — which is what a row written before that ruling
+ *  has, and what the record at setup is drawn with before the founder
+ *  touches the field. The composition itself is `label.ts`'s `hostFor`, so
+ *  the host the record names, the host the edge matches and the host added
+ *  to the project's domain list are one string written once. */
+export function hostedHostFor(domain: string, label?: string | null): string {
+  return hostFor({ label: label ?? null, domain });
 }
 
 /** The preview host for a slug: `{slug}.reachkit.app` (§9). `noindex`
@@ -40,12 +49,31 @@ export function previewHostFor(slug: string): string {
  *  customer's own domain: there is no argument to this function that
  *  produces a ReachKit address, which is the property the canonical link,
  *  the sitemap entry and `publications.live_url` all rest on. */
-export function liveUrlFor(a: { domain: string; slug: string }): string {
-  return `https://${hostedHostFor(a.domain)}/${a.slug}`;
+export function liveUrlFor(a: { domain: string; slug: string; label?: string | null }): string {
+  return liveUrlOnHost({ host: hostedHostFor(a.domain, a.label ?? null), slug: a.slug });
+}
+
+/** The same address, composed from a host that has already been resolved.
+ *
+ *  Since SPEC §5's ruling of 2026-09-12 the host is stored — the customer
+ *  chose its first label — so the delivery and the canonical link read it
+ *  rather than recomposing it from a domain and a label each. This is
+ *  still the one composer: `liveUrlFor` is written in terms of it, so
+ *  there is one place a hosted address is spelled and both entry points
+ *  end in it. */
+export function liveUrlOnHost(a: { host: string; slug: string }): string {
+  return `https://${a.host}/${a.slug}`;
 }
 
 /** The record a founder sets, with this deployment's edge as its value.
  *  The two shapes are `cards.ts`'s and are not widened here. */
-export function hostedDnsRecord(siteDomain: string | null): DnsRecord | DnsPending {
-  return dnsRecordFor({ siteDomain, cnameTarget: env.HOSTED_EDGE_CNAME_TARGET });
+export function hostedDnsRecord(
+  siteDomain: string | null,
+  label?: string | null
+): DnsRecord | DnsPending {
+  return dnsRecordFor({
+    siteDomain,
+    cnameTarget: env.HOSTED_EDGE_CNAME_TARGET,
+    label: label ?? null,
+  });
 }

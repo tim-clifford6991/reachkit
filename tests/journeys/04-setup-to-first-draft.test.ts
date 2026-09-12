@@ -188,6 +188,7 @@ vi.mock("@/lib/egress/robots", () => ({
 const resolving = new Set<string>();
 vi.mock("@/lib/egress/dns", () => ({
   resolvesInDns: async (host: string) => resolving.has(host),
+  hostnameTaken: async () => false,
 }));
 
 // ── Anthropic ───────────────────────────────────────────────────────────
@@ -465,7 +466,7 @@ const THE_THREE_DECISIONS = {
   category: "project management software for agencies",
   competitors: [...RIVALS],
   mode: "autopilot" as const,
-  destination: { kind: "hosted" as const },
+  destination: { kind: "hosted" as const, label: "content" },
 };
 
 let realSetTimeout: typeof setTimeout;

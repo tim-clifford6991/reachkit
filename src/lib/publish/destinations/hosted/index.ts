@@ -28,15 +28,18 @@ import type {
   RenderedPage,
   UnpublishResult,
 } from "../../types";
-import { liveUrlFor } from "./address";
+import { liveUrlOnHost } from "./address";
 import { invalidateHosted } from "./cache";
 import { siteForDraft } from "./store";
 
-export { hostedDnsRecord, hostedHostFor, liveUrlFor, previewHostFor } from "./address";
+export { hostedDnsRecord, hostedHostFor, liveUrlFor, liveUrlOnHost, previewHostFor } from "./address";
 export type { DnsPending, DnsRecord } from "./address";
 export { invalidateHosted, tags } from "./cache";
+export { DEFAULT_HOSTED_LABEL, checkLabel, hostFor, normaliseLabel } from "./label";
+export type { LabelCheck, LabelRefusal } from "./label";
 export {
   hostedSiteForDomain,
+  hostedSiteForHostname,
   livePageBySlug,
   livePagesForSite,
   readFaq,
@@ -98,7 +101,11 @@ export const HOSTED_ADAPTER: DestinationAdapter = Object.freeze({
     return {
       ok: true,
       madeLive: true,
-      liveUrl: liveUrlFor({ domain: site.domain, slug: page.slug }),
+      // The host the site actually serves at, which since SPEC §5's ruling
+      // of 2026-09-12 is the label the customer chose. Read off the site
+      // rather than recomposed, so the address recorded on the publication
+      // and the address the edge answers at cannot disagree.
+      liveUrl: liveUrlOnHost({ host: site.host, slug: page.slug }),
     };
   },
 

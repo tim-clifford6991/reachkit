@@ -245,6 +245,27 @@ export const SETTINGS_COPY = Object.freeze({
   ],
   "settings.publishing.set-dns": ["Set up the DNS record", { slots: {}, fixedBy: "BUILD §9 · REQ-059 c2" }],
 
+  // ── The customer's own subdomain (SPEC §5, ruling of 2026-09-12) ───────
+  //
+  // **Two words, and the ruling writes both.** §5: "settings shows 'live'
+  // or 'waiting for DNS'", and §12 ruling 7 says it again. They are the
+  // owner's own strings, quoted here rather than composed — which is why
+  // they are values and not `TODO(copy)`: nothing about them was chosen by
+  // an implementer.
+  //
+  // They are not `settings.destination.health.*` renamed. Health is what
+  // the destination's end can be seen to be; these say whether the
+  // customer's own record has resolved yet, and a destination can be
+  // perfectly healthy with a record nobody has pointed.
+  "settings.destination.hostname.live": [
+    "live",
+    { slots: {}, fixedBy: "SPEC §5 · §12 ruling 7 (2026-09-12)" },
+  ],
+  "settings.destination.hostname.waiting": [
+    "waiting for DNS",
+    { slots: {}, fixedBy: "SPEC §5 · §12 ruling 7 (2026-09-12)" },
+  ],
+
   // ── Notifications ──────────────────────────────────────────────────────
   // One key per `stoppable: 'toggle'` row of `MAIL_KINDS`, named by the row's
   // own key, which is the word §12 prints for that mail. The panel projects

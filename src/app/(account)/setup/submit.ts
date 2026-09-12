@@ -20,6 +20,7 @@
 import type { PublishingMode } from "@/lib/publish/setup/cards";
 import { BATTERY } from "@/lib/config/constants";
 import { registrableDomain } from "@/lib/market/rivals/domains";
+import { checkLabel, hostFor } from "@/lib/publish/destinations/hosted/label";
 
 /** The closed shape of the one submit (REQ-025 c1, c2). */
 export interface SetupSubmission {
@@ -30,8 +31,13 @@ export interface SetupSubmission {
   /** At most `BATTERY.COMPETITORS_MAX`; an empty set is legal (REQ-026 c11). */
   competitors: readonly string[];
   mode: PublishingMode;
-  /** REQ-028 c3: WordPress can be deferred and setup still completes. */
-  destination: { kind: "hosted" } | { kind: "wordpress"; connectLater: true };
+  /** REQ-028 c3: WordPress can be deferred and setup still completes.
+   *
+   *  The hosted arm carries the subdomain label the founder chose (SPEC §5,
+   *  2026-09-12). It is a required member of that arm and not an optional
+   *  one: a hosted destination with no label is a host with an empty first
+   *  segment, and the screen always has a value — the default. */
+  destination: { kind: "hosted"; label: string } | { kind: "wordpress"; connectLater: true };
 }
 
 export type SetupRefusal =
@@ -39,7 +45,12 @@ export type SetupRefusal =
   | "already_complete"
   | "invalid_domain"
   | "market_missing"
-  | "too_many_competitors";
+  | "too_many_competitors"
+  /** SPEC §5: "refusing an invalid or already-taken label in one written
+   *  line". Two refusals, because the founder's next move differs — one
+   *  asks them to type a label, the other to type a different one. */
+  | "invalid_label"
+  | "label_taken";
 
 export type SetupResult = { ok: true; siteId: string } | { ok: false; refused: SetupRefusal };
 
@@ -71,6 +82,10 @@ export type SetupProgressState =
 export interface SetupStore {
   hasActiveAccess(userId: string): Promise<boolean>;
   resolvesInDns(host: string): Promise<boolean>;
+  /** Whether another site already serves at this host (SPEC §5). Passed in
+   *  for the reason `resolvesInDns` is: the refusal order is this
+   *  function's, and where the rows live is not. */
+  hostnameTaken(a: { hostname: string; siteId: string }): Promise<boolean>;
   readProgress(userId: string): Promise<SetupProgressState>;
   commitSetup(a: { siteId: string; submission: SetupSubmission }): Promise<void>;
   enqueueDeepPass(siteId: string): Promise<void>;
@@ -108,6 +123,20 @@ export async function completeSetup(
   // the narrowing, not a second check.
   if (domain === null) return { ok: false, refused: "invalid_domain" };
   if (!(await store.resolvesInDns(domain))) return { ok: false, refused: "invalid_domain" };
+
+  // The label, checked against the domain that survived above — a host
+  // cannot be composed before the domain is canonical, which is why this
+  // refusal sits here rather than in `shapeRefusal`. The browser asked the
+  // same two questions as the founder typed; they are asked again because
+  // an answer from a browser is not a fact (SPEC §5).
+  if (a.submission.destination.kind === "hosted") {
+    const label = checkLabel(a.submission.destination.label);
+    if (!label.ok) return { ok: false, refused: "invalid_label" };
+    const hostname = hostFor({ label: label.label, domain });
+    if (await store.hostnameTaken({ hostname, siteId: progress.siteId })) {
+      return { ok: false, refused: "label_taken" };
+    }
+  }
 
   await store.commitSetup({
     siteId: progress.siteId,

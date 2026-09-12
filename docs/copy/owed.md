@@ -2,7 +2,7 @@
 
 **Generated. Do not type into this file** — `npm run copy:owed` rewrites it and `tests/presentation/copy/owed-sheet.test.ts` fails when it is out of date. Write the sentences in your reply, or straight into `src/lib/presentation/copy/keys/*.ts`, and run the generator again: a key that gains a sentence leaves this sheet by itself.
 
-**0 keys**, across 799 in the registry — **0 empty** (`copy()` throws on these: a mail with one does not send, a screen with one does not render) and **0 `TODO(copy)`** (these render the marker, in public, until they are written).
+**3 keys**, across 804 in the registry — **0 empty** (`copy()` throws on these: a mail with one does not send, a screen with one does not render) and **3 `TODO(copy)`** (these render the marker, in public, until they are written).
 
 **How to read a row.**
 
@@ -28,7 +28,7 @@ A key with slots (`{value}`, `{date}`) carries them beside its name; the sentenc
 | S7 | Opt-out | none | 0 |
 | S8 | Not found | none | 0 |
 | S9 | Sign in | none | 0 |
-| S10 | Setup | none | 0 |
+| S10 | [Setup](#s10-setup-join) | 3 | 0 |
 | S11 | Waiting | none | 0 |
 | S12 | Overview | none | 0 |
 | S13 | Overview · week 0 | none | 0 |
@@ -39,4 +39,16 @@ A key with slots (`{value}`, `{date}`) carries them beside its name; the sentenc
 | S18 | Settings | none | 0 |
 | S19 | Hosted page | none | 0 |
 | S20 | Mails | none | 0 |
+
+## S10 · Setup — Join
+
+Screen `S10` · the set draws it as `current="setup"` (`docs/archive/2026-09-11/approved/full-set/screens/setup-light.png`).
+
+Every bracketed hint the set draws on this screen: `[competitor-picker line — owner’s]` · `[setup head — owner’s]` · `[autopilot description — owner’s]` · `[copilot description — owner’s]` · `[hosted-blog description — owner’s]`
+
+| key | standing | where | the set says | fixed by | max |
+|---|---|---|---|---|---|
+| `setup.destination.label.label`<br>`setup.ts` | marker | control · `<div>` · `app/(account)/setup/SetupForm.tsx` · +1 more |  | SPEC §5 (2026-09-12) · Canvas: Setup | 26 — sibling `setup.market.label` |
+| `setup.destination.label.refused.invalid`<br>`setup.ts` | marker | `LABEL_REFUSAL_COPY` · `app/(account)/setup/SetupForm.tsx` · +1 more |  | SPEC §5 (2026-09-12) |  |
+| `setup.destination.label.refused.taken`<br>`setup.ts` | marker | `LABEL_REFUSAL_COPY` · `app/(account)/setup/SetupForm.tsx` · +1 more |  | SPEC §5 (2026-09-12) |  |
 

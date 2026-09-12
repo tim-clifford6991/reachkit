@@ -315,7 +315,7 @@ describe("with every destination disconnected or failing, nothing is published a
 });
 
 describe("DestinationView can hold no credential and no vendor payload", () => {
-  it("its fields are exactly the eight a surface may see", () => {
+  it("its fields are exactly the ten a surface may see", () => {
     const view = destinationView({
       id: "dest-1",
       kind: "wordpress",
@@ -324,11 +324,18 @@ describe("DestinationView can hold no credential and no vendor payload", () => {
       lastCheckedAt: new Date(NOW),
       heldPages: 3,
     });
+    // A closed list, and it stays closed: the point of this row is that a
+    // field a vendor string could arrive in cannot be added without
+    // failing here. The two added by SPEC §5's ruling of 2026-09-12 are
+    // the customer's own host and which of §5's two words it is read as —
+    // an address on their domain and a token, neither of them a message.
     expect(Object.keys(view).sort()).toEqual([
       "action",
       "copy",
       "health",
       "heldPages",
+      "hostname",
+      "hostnameState",
       "id",
       "kind",
       "lastCheckedAt",
