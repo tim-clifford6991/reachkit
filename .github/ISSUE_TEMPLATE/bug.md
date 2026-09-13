@@ -11,5 +11,5 @@ labels: bug
 <!-- Cite docs/SPEC.md if it is specced. -->
 
 ## Done when
-- [ ] a test reproduces it and passes
+<!-- Optional. What you can click on the live site. -->
 - [ ]

@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
-# scripts/land.sh — landing a production deployment (docs/PROCESS.md step 10:
-# "**Deployer** deploys dev on the merge and production in batches; **master**
-# applies the migration and then runs the production smoke check by hand").
+# scripts/land.sh — a deployment is READY once the live site walks
+# landing → scan → report (`scripts/smoke.sh`). See docs/PROCESS.md.
 #
 #   scripts/land.sh                     # land the current production deployment
 #   LAND_BASE_URL=https://dev.reachkit.app scripts/land.sh

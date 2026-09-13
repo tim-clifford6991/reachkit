@@ -41,18 +41,18 @@ weekly scan → calendar → email → technical issues — but all nine are MVP
 | 1 | `README.md` | This page: what ReachKit is, the nine features and where each stands, what delivered means. |
 | 2 | `docs/SPEC.md` | One section per feature: what the user gets, screens, rules and rulings (dated, in place), mail, done-when. MVP only. |
 | 3 | `docs/DESIGN.md` | The daisyUI theme, the UI rules, and the Claude Design canvas the screens come from. |
-| 4 | `docs/PROCESS.md` | Issue to production: roles, the ten steps, the gates, the decision flow. |
-| 5 | `CLAUDE.md` | What an agent reads first, and the nine things it never does. |
+| 4 | `docs/PROCESS.md` | Issue → docs if needed → implement → merge. The owner tests live. |
+| 5 | `CLAUDE.md` | What an agent reads first, and what it never does. |
 
 These five files are the corpus; there is no sixth. Renders live in `docs/design/`. Everything not needed for the nine features is archived under `docs/archive/<date>/`; the old
-sdlc-factory corpus is frozen at `docs/archive/2026-09-04/` — never edited, never deleted. A difference between the code and `SPEC.md` or `DESIGN.md` is a defect in the code, filed as an issue.
+sdlc-factory corpus is frozen at `docs/archive/2026-09-04/` — never edited, never deleted. A difference between the code and `SPEC.md` or `DESIGN.md` is a defect in the code — CI's `audit` check blocks the PR.
 
 ## Where work is tracked
 
 | Where | What it carries |
 |---|---|
-| [The Project board](https://github.com/users/tim-clifford6991/projects/1) | Every open issue in one flat list with its `Phase`. The board **is** the priority — no queue file, no milestone. |
-| Issues | Three fields — outcome, evidence, done-when — plus one link to the `SPEC.md` section they implement. |
-| Pull requests | One issue = one PR, body carrying `Closes #n`. |
+| [The Project board](https://github.com/users/tim-clifford6991/projects/1) | Status (Ready is next) and Feature (F1–F9). P0 = the paying path. |
+| Issues | What the user can do afterwards. A SPEC link when behaviour is new. |
+| Pull requests | What changed, how it was proved, `Closes #n` when it closes an issue. |
 
-How work flows is `docs/PROCESS.md`; this page carries no process detail.
+How work flows is `docs/PROCESS.md`. The owner does not review by reading tickets: they answer questions and click through `dev.reachkit.app`.

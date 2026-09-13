@@ -1,7 +1,6 @@
-# The owner's files. No code-owner review is required any more (the owner's
-# own account could not satisfy it; docs/PROCESS.md, Gates) — these rows say
-# who owns what. A PR that touches one names it under *Corpus* in its body; an
-# agent may not loosen a rule to make its own PR pass.
+# Who owns the product corpus and tooling. Not a required review (this
+# account cannot approve its own PRs). An agent may not loosen a rule to
+# make its own PR pass.
 README.md             @tim-clifford6991
 docs/SPEC.md          @tim-clifford6991
 docs/DESIGN.md        @tim-clifford6991
