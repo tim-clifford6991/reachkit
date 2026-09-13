@@ -200,3 +200,27 @@ describe("S1 layout — Tailwind utilities, no idiom class, no viewport band (#5
     expect(sheet).not.toMatch(/^\.rk-split\b/m);
   });
 });
+
+// Issue #642 — `Canvas: LandingMobile`. What the artboard adds at 320 and
+// 768: every numbered section says its own word beside its number, the
+// video block is headed before its frame, and a step card names which of
+// the three it is.
+describe("Canvas: LandingMobile — the words the artboard heads each section with", () => {
+  it("every numbered section names its own word", async () => {
+    const markup = await renderPage();
+    for (const key of ["landing.why.eyebrow", "landing.does.eyebrow", "landing.start.eyebrow"]) {
+      expect(markup, key).toContain(key);
+    }
+  });
+
+  it("the video block carries its eyebrow and its heading", async () => {
+    const markup = await renderPage();
+    expect(markup).toContain("landing.video.eyebrow");
+    expect(markup).toContain("landing.video.heading");
+  });
+
+  it("each step says which of the three it is", async () => {
+    const markup = await renderPage();
+    for (const count of ["01/03", "02/03", "03/03"]) expect(markup, count).toContain(count);
+  });
+});

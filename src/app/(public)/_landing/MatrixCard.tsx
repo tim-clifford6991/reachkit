@@ -141,7 +141,7 @@ export function MatrixCard(): React.JSX.Element {
           label={copy("ai-answers.title")}
         />
       </div>
-      <p className="rk-explain">{copy("landing.why.matrix.line")}</p>
+      <p className="explain">{copy("landing.why.matrix.line")}</p>
     </IdiomCard>
   );
 }
