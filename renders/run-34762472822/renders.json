@@ -1,0 +1,38 @@
+{
+  "rendered": [
+    {
+      "name": "-app-draft-draft-2026-09-15",
+      "route": "/app/draft/draft-2026-09-15",
+      "screen": "S9",
+      "viewport": "-app-draft-draft-2026-09-15-1280-light.png",
+      "full": "-app-draft-draft-2026-09-15-full.png",
+      "file": "side--app-draft-draft-2026-09-15.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/auth-light.png",
+      "moved": false,
+      "why": "named under `Renders:`"
+    },
+    {
+      "name": "reserved-app-draft-draft-2026-09-15",
+      "route": "/app/draft/draft-2026-09-15",
+      "screen": "S16",
+      "viewport": "reserved-app-draft-draft-2026-09-15-1280-light.png",
+      "full": "reserved-app-draft-draft-2026-09-15-full.png",
+      "file": "side-reserved-app-draft-draft-2026-09-15.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/draft-light.png",
+      "moved": true,
+      "why": "46386 of 614400 pixels differ (7.550%)"
+    },
+    {
+      "name": "live-app-draft-00000000-0000-0000-0000-0000000000e1",
+      "route": "/app/draft/00000000-0000-0000-0000-0000000000e1",
+      "screen": "S16",
+      "viewport": "live-app-draft-00000000-0000-0000-0000-0000000000e1-1280-light.png",
+      "full": "live-app-draft-00000000-0000-0000-0000-0000000000e1-full.png",
+      "file": "side-live-app-draft-00000000-0000-0000-0000-0000000000e1.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/draft-light.png",
+      "moved": true,
+      "why": "29434 of 614400 pixels differ (4.791%)"
+    }
+  ],
+  "skipped": []
+}
