@@ -86,18 +86,27 @@ type LabelPlacement = { labelInHead?: boolean; carryBeside?: boolean };
 
 export type StatProps = (StatMeasured | StatUnmeasured | StatSpecimen) & LabelPlacement;
 
+/** S12's figure (issue #509) on daisyUI's own `stat-value`: daisyUI has no
+ *  slot for a stat's size or weight, so the theme's big-numeral rung rides as
+ *  utilities naming the same two tokens. */
+const FIGURE = "stat-value num text-(length:--t-num-big) font-(--num-weight) tracking-[-0.03em]";
+
+/** The landing frame's miniature at the frame's own rung (issue #488) — the
+ *  same figure one step down, so it reads as a picture of S12. */
+const FIGURE_MINI =
+  "stat-value num text-(length:--h1) font-(--num-weight) tracking-[-0.03em] leading-[1.05]";
+
 // The set's own miniature (artifact L578-584): `.stat-l`, then `.stat-row`
 // holding `.stat-v` and its badge on one baseline. The rung it is drawn at
-// — the figure at `--h1`, no inset — is the frame's to set, from
-// `.rk-shot-tile` in `idiom.css`: this file renders no inline style
-// (BP-018 decision 1), and a size is the frame's fact, not the tile's.
+// — the figure at `--h1`, no inset — is this arm's own since issue #548:
+// the frame's stylesheet no longer reaches into daisyUI's parts.
 function SpecimenStat(p: StatSpecimen): React.JSX.Element {
   return (
-    <div className="stats">
-      <div className="stat">
-        <div className="stat-title whitespace-normal">{p.label}</div>
+    <div className="stats grid min-w-0">
+      <div className="stat min-w-0 p-0">
+        <div className="stat-title whitespace-normal text-(length:--t-xs) font-semibold text-(--ink-2)">{p.label}</div>
         <div className="mt-2 flex min-w-0 flex-wrap items-baseline gap-2">
-          <div className="stat-value num">{p.value}</div>
+          <div className={FIGURE_MINI}>{p.value}</div>
           {p.delta}
         </div>
       </div>
@@ -128,12 +137,12 @@ export function Stat(p: StatProps): React.JSX.Element {
         {p.carryBeside === true && p.state !== "unmeasured" ? (
           // `gap-2` is `--s-2`, the rung nearest the set's 10px gap.
           <div className="flex flex-wrap items-baseline gap-2" data-carry={CARRY_BESIDE}>
-            <div className="stat-value num">{p.value}</div>
+            <div className={FIGURE}>{p.value}</div>
             <div className="stat-desc whitespace-normal">{p.delta ?? p.goal}</div>
           </div>
         ) : (
           <>
-            <div className="stat-value num">{p.state === "unmeasured" ? "—" : p.value}</div>
+            <div className={FIGURE}>{p.state === "unmeasured" ? "—" : p.value}</div>
             <div className="stat-desc whitespace-normal">
               {p.state === "unmeasured" ? p.reason : (p.delta ?? p.goal)}
             </div>

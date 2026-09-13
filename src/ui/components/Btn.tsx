@@ -53,7 +53,7 @@ import type React from "react";
  *
  *  The rank, and the one tone that may accompany one, are two arms rather than
  *  an optional prop beside `variant`: `tone` is only ever readable on the
- *  outline rank (`idiom.css` styles `.rk-btn-outline[data-tone="…"]` and
+ *  outline rank (it colours that rank's edge and label and nothing
  *  nothing else), so a caller that asks for a toned primary should not
  *  compile rather than render a button whose tone silently does nothing
  *  (issue #271).
@@ -155,16 +155,23 @@ type BtnElement =
 export function Btn(p: BtnProps): React.JSX.Element {
   const classes = ["btn"];
   if (p.variant === "primary") classes.push("btn-primary");
-  if (p.variant === "ghost") classes.push("btn-ghost");
-  // The idiom's three ranks. `btn-ghost` under the two quiet arms so the
-  // daisyUI base still supplies the size, the focus ring and the disabled
-  // state; what the widening adds is the fill, the edge and the ink.
-  if (p.variant === "secondary") classes.push("btn-ghost", "rk-btn-outline");
-  if (p.variant === "tertiary") classes.push("btn-ghost", "rk-btn-tertiary");
-  if (p.variant === "on-accent") classes.push("btn-ghost", "rk-btn-inverse");
-  // Pill throughout — `--r-pill` is already law and the idiom spends no new
-  // radius for it (tokens.md §9.1).
-  if (p.pill === true) classes.push("rk-pill");
+  // The approved set's ranks are daisyUI's own (issue #548): `btn-outline`
+  // for the secondary and `btn-ghost` for both quiet arms. Nothing in this
+  // product restyles either of them.
+  if (p.variant === "ghost" || p.variant === "tertiary") classes.push("btn-ghost");
+  if (p.variant === "secondary") classes.push("btn-outline");
+  // The inverse arm and the two tones set daisyUI's own `--btn-color` (and
+  // `--btn-fg` for the label) to a theme token — the mechanism daisyUI's own
+  // colour modifiers use, so the edge and the ink follow from it.
+  if (p.variant === "on-accent") {
+    classes.push("[--btn-color:var(--on-accent)]", "[--btn-fg:var(--accent)]");
+  }
+  if (p.tone === "warn") classes.push("[--btn-color:var(--warn)]");
+  if (p.tone === "accent") classes.push("[--btn-color:var(--accent)]");
+  // Selected is daisyUI's own pinned active state, pushed by the same prop
+  // that sets `aria-pressed` below (issue #288).
+  if (p.pressed === true) classes.push("btn-active");
+  if (p.pill === true) classes.push("rounded-(--r-pill)");
   if (p.size === "sm") classes.push("btn-sm");
   if (p.block) classes.push("btn-block");
 
@@ -190,7 +197,7 @@ export function Btn(p: BtnProps): React.JSX.Element {
       // modifier.
       data-tone={p.tone}
       // `aria-pressed` is the *whole* selected state — the stylesheet keys
-      // its tint off this attribute, so a chip that looks chosen is chosen
+      // `btn-active` rides on the same prop, so a chip that looks chosen is chosen
       // in the accessibility tree by construction and the two cannot
       // diverge (issue #288). Absent, not `false`, where a button is not a
       // toggle: `aria-pressed="false"` on an ordinary button tells a screen

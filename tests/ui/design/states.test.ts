@@ -17,6 +17,12 @@ const SRC = path.join(REPO, "src");
 const read = (rel: string): string => readFileSync(path.join(REPO, rel), "utf8");
 
 const IDIOM = "src/ui/idiom/idiom.css";
+// The states that fall on a daisyUI component class are daisyUI's own since
+// issue #548 — the owner ruling of 2026-09-11 retires the re-skins, and
+// `docs/DESIGN.md` takes every state "from daisyUI's own state selectors with
+// the theme's colours". What stays asserted here is what the product still
+// declares: the idiom's own parts (§0 7, 8, 12), the calendar cell, the
+// shell's nav row, and the one motion token.
 const CALENDAR = "src/ui/components/custom/calendar-grid.css";
 const SHELL = "src/ui/layout/shell.css";
 
@@ -45,75 +51,25 @@ function decls(file: string, selector: string): Map<string, string> {
   return out;
 }
 
-describe("§0 1–3 — Btn pressed, disabled and the warn hover", () => {
-  it("§0 1: each rank's :active is its own hover ground, and nothing moves", () => {
-    expect(decls(IDIOM, ".btn.rk-btn-outline:is(:hover, :active)").get("background")).toBe(
-      "var(--accent-bg)"
-    );
-    expect(decls(IDIOM, ".btn.rk-btn-tertiary:is(:hover, :active)").get("background")).toBe(
-      "var(--sunk)"
-    );
-    expect(decls(IDIOM, ".btn.btn-primary:is(:hover, :active)").get("filter")).toBe(
-      "brightness(1.08)"
-    );
-    const active = decls(IDIOM, ".btn:active");
-    expect(active.get("translate")).toBe("none");
-    expect(active.get("transform")).toBe("none");
-  });
-
-  it("§0 2: disabled, all four ranks — --ink-3 on --sunk, a --line edge, default cursor", () => {
-    for (const selector of [
-      ".btn:disabled",
-      ".btn.btn-primary:disabled",
-      ".btn.rk-btn-outline:disabled",
-      ".btn.rk-btn-tertiary:disabled",
-      ".btn.rk-btn-outline[data-tone]:disabled",
-    ]) {
-      const d = decls(IDIOM, selector);
-      expect(d.get("background"), selector).toBe("var(--sunk)");
-      expect(d.get("color"), selector).toBe("var(--ink-3)");
-      expect(d.get("border"), selector).toBe("1px solid var(--line)");
-      expect(d.get("cursor"), selector).toBe("default");
-      expect(d.get("filter"), selector).toBe("none");
-    }
-  });
-
-  it("§0 3: the warn outline fills with --warn-bg on hover", () => {
-    expect(
-      decls(IDIOM, '.btn.rk-btn-outline[data-tone="warn"]:is(:hover, :active)').get("background")
-    ).toBe("var(--warn-bg)");
-  });
-});
-
 describe("§0 4–5 — the field's disabled and invalid states", () => {
-  it("§0 4: a disabled field is --sunk ground with --ink-3 text", () => {
-    const d = decls(IDIOM, ".input:disabled");
-    expect(d.get("background")).toBe("var(--sunk)");
-    expect(d.get("color")).toBe("var(--ink-3)");
-  });
-
   it("§0 4: S10's market card is not dimmed as a whole", () => {
     const form = read("src/app/(account)/setup/SetupForm.tsx");
     expect(form).not.toMatch(/\{\s*opacity:\s*0?\.6\s*\}/);
     expect(form).not.toMatch(/\bDIMMED\b/);
   });
 
-  it("§0 5: an invalid field's edge is --bad, keyed on aria-invalid, never a class", () => {
-    expect(decls(IDIOM, '.input[aria-invalid="true"]').get("border-color")).toBe("var(--bad)");
+  it("§0 5: an invalid field's edge is --bad, and the state is never colour alone", () => {
+    // The edge is daisyUI's own `input-error` — `--color-error` is `--bad` —
+    // since issue #548, and the one prop that draws it also sets
+    // `aria-invalid` and renders the written line beneath the field.
     const input = read("src/ui/components/Input.tsx");
     expect(input).toContain("aria-invalid={p.invalid === true}");
-    expect(input).not.toContain("input-error");
+    expect(input).toContain("input-error");
+    expect(input).toContain("{p.invalidMessage}");
   });
 });
 
-describe("§0 6–9 — switch, option card, tag and collapse", () => {
-  it("§0 6: a disabled switch is the --line track at half strength, its label --ink-3", () => {
-    const d = decls(IDIOM, ".toggle:disabled");
-    expect(d.get("background")).toBe("var(--line)");
-    expect(d.get("opacity")).toBe("0.5");
-    expect(decls(IDIOM, "label:has(> .toggle:disabled)").get("color")).toBe("var(--ink-3)");
-  });
-
+describe("§0 7–8 — the idiom's own option card and tag", () => {
   it("§0 7: a disabled option card is --sunk, --line, default cursor, over hover too", () => {
     for (const selector of [".rk-choice:disabled", ".rk-choice:disabled:hover"]) {
       const d = decls(IDIOM, selector);
@@ -127,12 +83,6 @@ describe("§0 6–9 — switch, option card, tag and collapse", () => {
   it("§0 8: hover raises the tag's × and leaves the tag's ground alone", () => {
     expect(decls(IDIOM, ".rk-tag:hover .rk-tag-x").get("opacity")).toBe("1");
     expect(read(IDIOM)).not.toMatch(/\.rk-tag:hover\s*\{/);
-  });
-
-  it("§0 9: the collapse summary takes --sunk on hover", () => {
-    expect(decls(IDIOM, ".collapse > .collapse-title:hover").get("background")).toBe(
-      "var(--sunk)"
-    );
   });
 });
 

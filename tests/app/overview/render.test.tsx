@@ -408,7 +408,7 @@ describe("this week", () => {
     expect(markup).toContain("overview.week.title");
     expect(markup).toContain('href="/app/calendar"');
     expect(markup).toContain("overview.week.calendar-link");
-    expect(markup).toContain("rk-btn-tertiary");
+    expect(markup).toContain("btn-ghost");
   });
 
   it("draws the set's flat cells and coloured rule, and no word the set does not draw (#521)", () => {
@@ -460,8 +460,8 @@ describe("needs you (S12)", () => {
     // Two calls to act on one screen, and §9.1 gives the screen one solid
     // fill: the page that publishes anyway takes it.
     expect(markup).toContain('data-tone="warn"');
-    expect(markup).toContain("btn btn-sm btn-primary rk-pill");
-    expect(markup).toContain("rk-btn-outline");
+    expect(markup).toContain("btn btn-sm btn-primary rounded-(--r-pill)");
+    expect(markup).toContain("btn-outline");
   });
 
   it("each panel's control navigates to that item's own address", () => {

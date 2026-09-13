@@ -156,7 +156,7 @@ function DayActions(p: { cell: DayCell }): React.JSX.Element {
                 href={action.href}
                 className={
                   leavesTheProduct
-                    ? "btn btn-sm btn-ghost rk-btn-outline rk-daypanel-wide"
+                    ? "btn btn-sm btn-outline rk-daypanel-wide"
                     : "btn btn-sm btn-primary rk-daypanel-wide"
                 }
                 data-testid={`day-action-${action.key}`}

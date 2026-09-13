@@ -96,9 +96,9 @@ describe('REQ-025 c1 — "it asks for exactly three decisions ... and for nothin
     const changes = [...screenFor().querySelectorAll('[data-testid="setup-site-and-market"] button')];
     expect(changes).toHaveLength(2);
     for (const change of changes) {
-      expect(change.classList.contains("rk-btn-outline"), change.outerHTML).toBe(true);
-      expect(change.classList.contains("rk-pill"), change.outerHTML).toBe(true);
-      expect(change.classList.contains("rk-btn-tertiary"), change.outerHTML).toBe(false);
+      expect(change.classList.contains("btn-outline"), change.outerHTML).toBe(true);
+      expect(change.classList.contains("rounded-(--r-pill)"), change.outerHTML).toBe(true);
+      expect(change.classList.contains("btn-ghost"), change.outerHTML).toBe(false);
     }
   });
 

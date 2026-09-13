@@ -120,12 +120,12 @@ const HAND_WRITTEN: ReadonlyArray<{
   {
     file: "src/app/(account)/app/_overview/WeekModule.tsx",
     classes: ["btn", "btn-sm", "btn-ghost"],
-    why: "a link that reads as a button (#15): `Btn` renders a `<button>` with an `onClick`, and this control navigates with no client runtime. daisyUI's own class pair for the case. `btn-ghost` is the third class since #353: the approved set puts \"Open calendar \u2192\" in the card head as the quiet tertiary, because the screen's one solid fill is spent on the veto panel's \"Read it\" (tokens.md \u00a79.1), and the tertiary rank is `btn-ghost` plus the idiom's own `rk-btn-tertiary`.",
+    why: "a link that reads as a button (#15): `Btn` renders a `<button>` with an `onClick`, and this control navigates with no client runtime. daisyUI's own class pair for the case. `btn-ghost` is the third class since #353: the approved set puts \"Open calendar \u2192\" in the card head as the quiet tertiary, because the screen's one solid fill is spent on the veto panel's \"Read it\" (tokens.md \u00a79.1), and the tertiary rank is daisyUI's own `btn-ghost`.",
   },
   {
     file: "src/ui/idiom/ActionPanel.tsx",
-    classes: ["btn", "btn-sm", "btn-primary", "btn-ghost"],
-    why: "the same case a third time, one level down (#353). A panel's CTA may be a navigation \u2014 Overview's two Needs-you panels go to a draft and to the settings card \u2014 and `Btn` is a `<button>`, so the anchor arm carries the classes the rank would have put on the button. The four classes are the two ranks the set draws: the solid primary on the veto panel and the outline secondary on the reconnect panel. The panel is not in `src/ui/components/**` because \u00a72.2's set of fifteen is closed and `ActionPanel` is not a sixteenth member of it.",
+    classes: ["btn", "btn-sm", "btn-primary", "btn-outline"],
+    why: "the same case a third time, one level down (#353). A panel's CTA may be a navigation \u2014 Overview's two Needs-you panels go to a draft and to the settings card \u2014 and `Btn` is a `<button>`, so the anchor arm carries the classes the rank would have put on the button. The four classes are the two ranks the set draws: daisyUI's solid primary on the veto panel and its own `btn-outline` on the reconnect panel. The panel is not in `src/ui/components/**` because \u00a72.2's set of fifteen is closed and `ActionPanel` is not a sixteenth member of it.",
   },
   {
     file: "src/app/(account)/app/_overview/RivalModule.tsx",
@@ -134,8 +134,8 @@ const HAND_WRITTEN: ReadonlyArray<{
   },
   {
     file: "src/app/(account)/app/calendar/DayPanelView.tsx",
-    classes: ["btn", "btn-sm", "btn-primary", "btn-ghost"],
-    why: "S15's block control (#354), and the same case as the two rows above: the day's one way in navigates — to the draft, to the live page, to Settings — so it is an `<a>` with no client runtime rather than `Btn`'s `<button>` with an `onClick`. `btn-primary` is the solid rank where it leads further into the customer's own work and `btn-ghost` is the base the outline rank widens where it leaves the product for the live page; §9.1 gives a screen one filled button and a control that navigates away is not the one the panel is asking for.",
+    classes: ["btn", "btn-sm", "btn-primary", "btn-outline"],
+    why: "S15's block control (#354), and the same case as the two rows above: the day's one way in navigates — to the draft, to the live page, to Settings — so it is an `<a>` with no client runtime rather than `Btn`'s `<button>` with an `onClick`. `btn-primary` is the solid rank where it leads further into the customer's own work and `btn-outline` is the rank where it leaves the product for the live page; §9.1 gives a screen one filled button and a control that navigates away is not the one the panel is asking for.",
   },
   {
     file: "src/app/(account)/app/calendar/page.tsx",
@@ -254,8 +254,8 @@ const ALLOWED_CSS: ReadonlyArray<{
       "ported from the live preview code (issue #266). Not a sixth custom " +
       "surface: §2.2's five are the calendar grid, the day panel, the AI " +
       "dot-matrix, chart SVGs and the sidebar, and this styles none of them " +
-      "— it declares four tokens and widens `Card`'s head, `Btn`'s ranks and " +
-      "`Progress`'s ground, plus the two grounds the idiom introduced",
+      "— it declares four tokens and widens `Card`'s head, and since #548 it " +
+      "styles no daisyUI component class at all",
   },
   {
     path: "src/ui/layout/surface.css",

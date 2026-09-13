@@ -47,8 +47,8 @@ export type ActionPanelRank = "primary" | "secondary";
  *  written here because the rank's markup is a `<button>` and this control
  *  navigates; `component-registry.test.ts` carries the row. */
 const LINK_CLASS: Readonly<Record<ActionPanelRank, string>> = Object.freeze({
-  primary: "btn btn-sm btn-primary rk-pill",
-  secondary: "btn btn-sm btn-ghost rk-btn-outline rk-pill",
+  primary: "btn btn-sm btn-primary rounded-(--r-pill)",
+  secondary: "btn btn-sm btn-outline [--btn-color:var(--accent)] rounded-(--r-pill)",
 });
 
 type ActionPanelBase = {

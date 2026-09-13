@@ -331,12 +331,12 @@ describe("issue #354 — S15, the approved panel arms", () => {
     const veto = root.querySelector('[data-testid="day-action-calendar.action.veto"] button');
     // The outline rank on `warn` — issue #271's arm, for a control whose
     // consequence is the opposite of the one above it.
-    expect(veto?.className).toContain("rk-btn-outline");
+    expect(veto?.className).toContain("btn-outline");
     expect(veto?.getAttribute("data-tone")).toBe("warn");
     expect(veto?.className).not.toContain("btn-primary");
 
     const move = root.querySelector('[data-testid="day-action-calendar.action.move"] button');
-    expect(move?.className).toContain("rk-btn-tertiary");
+    expect(move?.className).toContain("btn-ghost");
     // Move and Veto share one row, each taking half of it.
     for (const key of ["calendar.action.move", "calendar.action.veto"]) {
       expect(
@@ -351,7 +351,7 @@ describe("issue #354 — S15, the approved panel arms", () => {
       '[data-testid="day-action-calendar.action.view-live-page"]',
     );
     expect(live?.tagName.toLowerCase()).toBe("a");
-    expect(live?.className).toContain("rk-btn-outline");
+    expect(live?.className).toContain("btn-outline");
     expect(live?.className).not.toContain("btn-primary");
   });
 

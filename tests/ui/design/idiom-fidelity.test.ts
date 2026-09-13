@@ -166,14 +166,12 @@ describe("issue #486 — every chip the approved set draws carries its glyph", (
 
 describe("issue #509 — the generated mark, the S12 figure and the tag hover, as the set draws them", () => {
   const idiom = withoutComments(read("ui/idiom/idiom.css"));
-  const ruleBody = (selector: string): string => {
-    // Anchored at the line start, so a descendant rule whose selector ends
-    // in the same text is not read as this one: `.rk-shot-tile
-    // .stat-value.num` (the S1 miniature, issue #488) ends in
-    // `.stat-value.num {` and is not the S12 rule this reads.
-    const at = idiom.indexOf(`\n${selector} {`);
+  const ruleBody = (selector: string, css: string = idiom): string => {
+    // Anchored at the line start, so a rule whose selector merely ends in
+    // the same text is not read as this one.
+    const at = css.indexOf(`\n${selector} {`);
     expect(at, `${selector} is declared`).toBeGreaterThanOrEqual(0);
-    const block = idiom.slice(at + 1);
+    const block = css.slice(at + 1);
     return block.slice(0, block.indexOf("}"));
   };
 
@@ -206,14 +204,13 @@ describe("issue #509 — the generated mark, the S12 figure and the tag hover, a
     expect(drawn).toEqual([...TREND_PATHS]);
   });
 
-  it("S12's figure computes --t-num-big at --num-weight (set `.stat-v` L192)", () => {
-    const body = ruleBody(".stat-value.num");
-    expect(body).toContain("font-size: var(--t-num-big)");
-    expect(body).toContain("font-weight: var(--num-weight)");
-  });
-
-  it("Stat's value is the element that rule reaches", () => {
-    expect(read("ui/components/Stat.tsx")).toContain('className="stat-value num"');
+  it("S12's figure is --t-num-big at --num-weight, on daisyUI's own stat-value", () => {
+    // daisyUI has no slot for a stat's size or weight, so since issue #548
+    // the rung rides as utilities on the component rather than as a rule
+    // re-skinning `.stat-value`.
+    expect(read("ui/components/Stat.tsx")).toContain(
+      'const FIGURE = "stat-value num text-(length:--t-num-big) font-(--num-weight)'
+    );
   });
 
   it("ruling 8: hover raises the tag's × to full opacity and leaves the ground alone", () => {
