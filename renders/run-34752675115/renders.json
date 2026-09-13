@@ -1,0 +1,124 @@
+{
+  "rendered": [
+    {
+      "name": "-app",
+      "route": "/app",
+      "screen": "S9",
+      "viewport": "-app-1280-light.png",
+      "full": "-app-full.png",
+      "file": "side--app.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/auth-light.png",
+      "moved": false,
+      "why": "named under `Renders:`"
+    },
+    {
+      "name": "reserved-app-calendar",
+      "route": "/app/calendar",
+      "screen": "S14",
+      "viewport": "reserved-app-calendar-1280-light.png",
+      "full": "reserved-app-calendar-full.png",
+      "file": "side-reserved-app-calendar.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/calendar-light.png",
+      "moved": true,
+      "why": "4489 of 614400 pixels differ (0.731%)"
+    },
+    {
+      "name": "reserved-app-draft-draft-2026-09-15",
+      "route": "/app/draft/draft-2026-09-15",
+      "screen": "S16",
+      "viewport": "reserved-app-draft-draft-2026-09-15-1280-light.png",
+      "full": "reserved-app-draft-draft-2026-09-15-full.png",
+      "file": "side-reserved-app-draft-draft-2026-09-15.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/draft-light.png",
+      "moved": true,
+      "why": "4389 of 614400 pixels differ (0.714%)"
+    },
+    {
+      "name": "reserved-app",
+      "route": "/app",
+      "screen": "S12",
+      "viewport": "reserved-app-1280-light.png",
+      "full": "reserved-app-full.png",
+      "file": "side-reserved-app.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/overview-light.png",
+      "moved": true,
+      "why": "22416 of 614400 pixels differ (3.648%)"
+    },
+    {
+      "name": "reserved-app-settings",
+      "route": "/app/settings",
+      "screen": "S18",
+      "viewport": "reserved-app-settings-1280-light.png",
+      "full": "reserved-app-settings-full.png",
+      "file": "side-reserved-app-settings.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/settings-light.png",
+      "moved": true,
+      "why": "4394 of 614400 pixels differ (0.715%)"
+    },
+    {
+      "name": "live-app-calendar",
+      "route": "/app/calendar",
+      "screen": "S14",
+      "viewport": "live-app-calendar-1280-light.png",
+      "full": "live-app-calendar-full.png",
+      "file": "side-live-app-calendar.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/calendar-light.png",
+      "moved": true,
+      "why": "3488 of 614400 pixels differ (0.568%)"
+    },
+    {
+      "name": "live-app-draft-00000000-0000-0000-0000-0000000000e1",
+      "route": "/app/draft/00000000-0000-0000-0000-0000000000e1",
+      "screen": "S16",
+      "viewport": "live-app-draft-00000000-0000-0000-0000-0000000000e1-1280-light.png",
+      "full": "live-app-draft-00000000-0000-0000-0000-0000000000e1-full.png",
+      "file": "side-live-app-draft-00000000-0000-0000-0000-0000000000e1.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/draft-light.png",
+      "moved": true,
+      "why": "3434 of 614400 pixels differ (0.559%)"
+    },
+    {
+      "name": "live-app",
+      "route": "/app",
+      "screen": "S12",
+      "viewport": "live-app-1280-light.png",
+      "full": "live-app-full.png",
+      "file": "side-live-app.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/overview-light.png",
+      "moved": true,
+      "why": "21021 of 614400 pixels differ (3.421%)"
+    },
+    {
+      "name": "live-app-settings",
+      "route": "/app/settings",
+      "screen": "S18",
+      "viewport": "live-app-settings-1280-light.png",
+      "full": "live-app-settings-full.png",
+      "file": "side-live-app-settings.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/settings-light.png",
+      "moved": true,
+      "why": "3501 of 614400 pixels differ (0.570%)"
+    },
+    {
+      "name": "week0-app",
+      "route": "/app",
+      "screen": "S13",
+      "viewport": "week0-app-1280-light.png",
+      "full": "week0-app-full.png",
+      "file": "side-week0-app.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/overview0-light.png",
+      "moved": true,
+      "why": "11358 of 614400 pixels differ (1.849%)"
+    }
+  ],
+  "skipped": [
+    {
+      "name": "waiting-app",
+      "route": "/app",
+      "screen": null,
+      "viewport": "waiting-app-1280-light.png",
+      "full": "waiting-app-full.png",
+      "reason": "no approved render for an unreferenced route"
+    }
+  ]
+}
