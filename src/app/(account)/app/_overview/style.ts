@@ -30,8 +30,10 @@ export const STACK = "flex min-w-0 flex-col gap-(--s-2)";
 /** The dim line under a card's own answer. */
 export const QUIET = "text-(color:--ink-2)";
 
-/** Provenance: quiet, mono, at the ladder's floor rung. */
-export const PROV = "num text-(length:--t-eyebrow) text-(color:--ink-3)";
+/** Provenance: quiet, mono, at the ladder's floor rung. `num-phrase` is
+ *  the ruled opt-in that lets a mono *phrase* fold at its spaces — `.num`
+ *  alone is `nowrap`, which is right for a value and wrong for a sentence. */
+export const PROV = "num num-phrase text-(length:--t-eyebrow) text-(color:--ink-3)";
 
 /** A value and the delta or goal it carries, side by side. */
 export const CARRY = "flex min-w-0 flex-wrap items-baseline gap-(--s-2)";

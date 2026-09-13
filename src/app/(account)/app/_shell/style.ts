@@ -39,5 +39,7 @@ export const MARK =
  *  sidebar's rule and the content. */
 export const MAIN = "min-w-0 lg:flex-1 lg:ps-(--rk-gutter)";
 
-/** Provenance: quiet, mono, at the ladder's floor rung. */
-export const PROV = "num text-(length:--t-eyebrow) text-(color:--ink-3)";
+/** Provenance: quiet, mono, at the ladder's floor rung. `num-phrase` is
+ *  the ruled opt-in that lets a mono *phrase* fold at its spaces — `.num`
+ *  alone is `nowrap`, which is right for a value and wrong for a sentence. */
+export const PROV = "num num-phrase text-(length:--t-eyebrow) text-(color:--ink-3)";
