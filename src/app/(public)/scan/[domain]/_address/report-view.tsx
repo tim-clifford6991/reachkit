@@ -26,6 +26,8 @@
 // spinner — and the rest of the report stays usable.
 import type React from "react";
 import { Alert, Btn } from "@/ui/components";
+import { ActionPanel } from "@/ui/idiom";
+import { CircleAlert } from "lucide-react";
 import { Surface } from "@/ui/layout";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import type { ScoreFactorName } from "@/lib/measure/score";
@@ -79,6 +81,42 @@ function formatMeasuredOn(at: Date): string {
   });
 }
 
+/** The drivers the pass could not measure, named in the notice's own slot.
+ *  The separator is `", "` and is not a sentence — the artboard draws
+ *  "and", which is the owner's to say. */
+function incompleteLine(unmeasured: readonly ScoreFactorName[]): string {
+  return copy("notice.incomplete", {
+    what: unmeasured.map((factor) => copy(FACTOR_NAME_KEY[factor])).join(", "),
+  });
+}
+
+/** The label of the control that answers a notice, so the panel and the
+ *  standalone button cannot name the same action two different ways. */
+function controlLabel(control: AddressControl & { kind: "rescan" }): string {
+  return copy(control.because === "incomplete" ? "control.rescan-incomplete" : "control.rescan-age");
+}
+
+/** REQ-001 c14 as the approved screen draws it: the accent panel carries the
+ *  sentence and the one control together, rather than a warning bar with a
+ *  button beneath it. `role="alert"` keeps the notice announced once, which
+ *  is what every other arm of the switch is. */
+function IncompleteNotice(p: {
+  unmeasured: readonly ScoreFactorName[];
+  control: AddressControl & { kind: "rescan" };
+}): React.JSX.Element {
+  return (
+    <div role="alert">
+      <ActionPanel
+        tone="accent"
+        icon={<CircleAlert size={20} strokeWidth={1.75} aria-hidden />}
+        title={incompleteLine(p.unmeasured)}
+        state="default"
+        cta={controlLabel(p.control)}
+      />
+    </div>
+  );
+}
+
 /** A total switch: at most one line renders, ever, and `null` is an arm
  *  rather than a missing value. */
 function NoticeLine(p: {
@@ -92,16 +130,7 @@ function NoticeLine(p: {
     // an empty `incomplete` (#541). The separator is `", "` and is not a
     // sentence — the artboard draws "and", which is the owner's to say.
     case "incomplete":
-      return (
-        <Alert
-          tone="warn"
-          message={copy("notice.incomplete", {
-            what: notice.unmeasured
-              .map((factor) => copy(FACTOR_NAME_KEY[factor]))
-              .join(", "),
-          })}
-        />
-      );
+      return <Alert tone="warn" message={incompleteLine(notice.unmeasured)} />;
     case "site_unreadable":
       return <Alert tone="warn" message={copy("notice.site-unreadable")} />;
     case "measurement_failed":
@@ -127,15 +156,7 @@ function ControlButton(p: {
     case "none":
       return null;
     case "rescan":
-      return (
-        <Btn
-          label={copy(
-            control.because === "incomplete"
-              ? "control.rescan-incomplete"
-              : "control.rescan-age",
-          )}
-        />
-      );
+      return <Btn label={controlLabel(control)} />;
     case "retry":
       return <Btn label={copy("control.retry")} />;
     case "correction_retry":
@@ -206,8 +227,14 @@ export function ReportView(p: {
           together, so a visitor reads what happened and what they can do
           about it in one place. */}
         <div className="col-span-full flex flex-col gap-3">
-          <NoticeLine notice={notice} />
-          <ControlButton control={control} />
+          {notice !== null && notice.kind === "incomplete" && control.kind === "rescan" ? (
+            <IncompleteNotice unmeasured={notice.unmeasured} control={control} />
+          ) : (
+            <>
+              <NoticeLine notice={notice} />
+              <ControlButton control={control} />
+            </>
+          )}
         </div>
 
         {/* **The copy control is in the header's bar** (UI-SPEC S2, issue

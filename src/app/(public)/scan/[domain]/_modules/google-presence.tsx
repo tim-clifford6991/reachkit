@@ -33,12 +33,12 @@
 // `0` written beside it, never as an absent row (§6.6).
 import type React from "react";
 import { Search } from "lucide-react";
-import { Card, Divider, Table } from "@/ui/components";
+import { Btn, Card, Divider, Table } from "@/ui/components";
 import { PresenceBars } from "@/ui/charts";
 import { CardHead, SourceChip } from "@/ui/idiom";
 import { copy } from "@/lib/presentation/copy";
 import type { PresenceSection } from "@/lib/scan/report";
-import { Num } from "../_address/measured";
+import { dash, Num } from "../_address/measured";
 
 export function GooglePresenceCard(p: { section: PresenceSection }): React.JSX.Element {
   const { section } = p;
@@ -152,5 +152,21 @@ export function GooglePresenceCard(p: { section: PresenceSection }): React.JSX.E
 /** REQ-004 c10/c11: named as absent in one written line; the rest of the
  *  report stays usable. */
 export function GooglePresenceAbsent(): React.JSX.Element {
-  return <Card state="degraded" title={<CardHead icon={<Search size={15} strokeWidth={1.8} aria-hidden />} eyebrow={copy("presence.title")} />} degradedLine={copy("presence.absent")} />;
+  return (
+    <Card
+      state="default"
+      title={
+        <CardHead
+          icon={<Search size={15} strokeWidth={1.8} aria-hidden />}
+          eyebrow={copy("presence.title")}
+          pill={<Num unmeasured>{dash()}</Num>}
+        />
+      }
+    >
+      <p className="t-sm text-(color:--ink-2)">{copy("presence.absent")}</p>
+      <div>
+        <Btn label={copy("control.rescan-incomplete")} variant="secondary" tone="accent" size="sm" pill />
+      </div>
+    </Card>
+  );
 }
