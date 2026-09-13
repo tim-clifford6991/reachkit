@@ -1,0 +1,47 @@
+{
+  "rendered": [
+    {
+      "name": "-pricing",
+      "route": "/pricing",
+      "screen": "S4",
+      "viewport": "-pricing-1280-light.png",
+      "full": "-pricing-full.png",
+      "file": "side--pricing.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/pricing-light.png",
+      "moved": true,
+      "why": "7820 of 614400 pixels differ (1.273%)"
+    },
+    {
+      "name": "-scan-example-com",
+      "route": "/scan/example.com",
+      "screen": "S2",
+      "viewport": "-scan-example-com-1280-light.png",
+      "full": "-scan-example-com-full.png",
+      "file": "side--scan-example-com.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/report-light.png",
+      "moved": false,
+      "why": "named under `Renders:`"
+    },
+    {
+      "name": "fallback-public-error",
+      "route": "/pricing",
+      "screen": "S8",
+      "viewport": "fallback-public-error-1280-light.png",
+      "full": "fallback-public-error-full.png",
+      "file": "side-fallback-public-error.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/notfound-light.png",
+      "moved": false,
+      "why": "named under `Renders:`"
+    }
+  ],
+  "skipped": [
+    {
+      "name": "waiting-report",
+      "route": "/scan/example.com",
+      "screen": null,
+      "viewport": "waiting-report-1280-light.png",
+      "full": "waiting-report-full.png",
+      "reason": "no approved render for an unreferenced route"
+    }
+  ]
+}
