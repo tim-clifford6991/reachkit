@@ -364,6 +364,46 @@ describe('REQ-028 c1 and c2 — mode and destination', () => {
     expect(record?.textContent).toContain(FIXTURE_SETUP_FACTS.cnameTarget);
   });
 
+  it("Canvas: OnboardingPublishing — the chosen destination carries the set's `default`", () => {
+    const hosted = screenFor().querySelector('[data-testid="setup-destination-hosted"]');
+    expect(hosted?.querySelector(".rk-choice-badge")?.textContent).toBe(
+      COPY["setup.mode.default"]
+    );
+    const wordpress = screenFor().querySelector(
+      '[data-testid="setup-destination-wordpress"]'
+    );
+    expect(wordpress?.querySelector(".rk-choice-badge")).toBeNull();
+  });
+
+  it("the record carries the state the hostname is in, in the same two words settings reads back", () => {
+    const tree = screenFor();
+    expect(tree.querySelector('[data-testid="setup-dns-state"]')?.textContent).toBe(
+      COPY["settings.destination.hostname.waiting"]
+    );
+    // Nothing to be in a state about before there is a record.
+    expect(screenFor(SCANLESS).querySelector('[data-testid="setup-dns-state"]')).toBeNull();
+  });
+
+  it("the WordPress card names what connecting will ask for, and asks for none of it here", () => {
+    const card = screenFor().querySelector(
+      '[data-testid="setup-destination-wordpress"]'
+    );
+    expect(card?.querySelector('[data-testid="setup-wordpress-site"]')?.textContent).toBe(
+      "example.com"
+    );
+    expect(card?.querySelector('[data-testid="setup-wordpress-help"]')?.textContent).toBe(
+      COPY["settings.destination.app-password.help"]
+    );
+    // §5 keeps the connect itself for settings: the card says what it
+    // needs and carries no field to type it into.
+    expect(card?.querySelectorAll("input")).toHaveLength(0);
+  });
+
+  it("SPEC §5 — the subdomain label is a value, so the field is in the numeral face", () => {
+    const field = screenFor().querySelector('input[name="label"]');
+    expect(field?.className).toContain("num");
+  });
+
   it("c2 — with no address given, one written line stands where the record will sit; no blank, dash or placeholder", () => {
     const tree = screenFor(SCANLESS);
     const pending = tree.querySelector('[data-testid="setup-dns-pending"]');
