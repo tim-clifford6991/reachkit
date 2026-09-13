@@ -36,19 +36,23 @@ const HUNDREDTHS = 100;
 
 /**
  * The gauge as the artboard draws it: a 270° arc, open at the foot, in a
- * square viewBox. `sweep` is that three-quarter turn of `circumference`,
- * so the track and the value are one geometry rather than two.
+ * square viewBox, drawn well inside it so no stroke can reach the edge.
  */
 const GAUGE = Object.freeze({
   box: 200,
   centre: 100,
-  radius: 88.5,
-  stroke: 15,
-  circumference: 556.1,
-  sweep: 417.1,
+  radius: 82,
+  stroke: 13,
   /** Turned so the arc's gap sits at the bottom of the dial. */
   rotate: 135,
+  /** Three quarters of a turn. */
+  turn: 0.75,
 });
+
+/** Derived from the radius, so the dash an arc is drawn with and the circle
+ *  it is drawn on cannot disagree. */
+const CIRCUMFERENCE = 2 * Math.PI * GAUGE.radius;
+const SWEEP = CIRCUMFERENCE * GAUGE.turn;
 
 /** The meaning token each band's tone is spoken in. Keyed by tone rather
  *  than by band, so `BAND_TONE` stays the one place a band's meaning is
@@ -63,7 +67,10 @@ const TONE_PAINT = Object.freeze({
 
 /** The arc's own geometry, which no token describes: it is a drawing in
  *  viewBox units, the way every chart under `src/ui/charts` is drawn. */
-const GAUGE_SVG: React.CSSProperties = { width: "100%", height: "auto", display: "block" };
+// The box is stated on the element, not left to `height: auto`: an SVG is
+// not covered by the preflight rule that gives images an intrinsic height,
+// and a box shorter than its drawing puts every shape in it outside it.
+const GAUGE_SVG: React.CSSProperties = { maxWidth: "100%", display: "block" };
 
 /** The arc's presentation values, bound to a name rather than spelled in
  *  the attribute: a literal in a JSX attribute is a voice position, and
@@ -140,10 +147,17 @@ function DriverBar(p: { factor: ScoreFactorName; value: Measured<number> }): Rea
 /** The dial. The value arc is drawn only from a measured score: an arc at
  *  zero over a dash would be a reading the scan never took. */
 function Gauge(p: { score: number | null; paint: string }): React.JSX.Element {
-  const { box, centre, radius, stroke, circumference, sweep, rotate } = GAUGE;
+  const { box, centre, radius, stroke, rotate } = GAUGE;
   const turn = `rotate(${rotate} ${centre} ${centre})`;
   return (
-    <svg viewBox={`0 0 ${box} ${box}`} style={GAUGE_SVG} aria-hidden focusable={ARC.notFocusable}>
+    <svg
+      viewBox={`0 0 ${box} ${box}`}
+      width={box}
+      height={box}
+      style={GAUGE_SVG}
+      aria-hidden
+      focusable={ARC.notFocusable}
+    >
       <circle
         cx={centre}
         cy={centre}
@@ -153,7 +167,7 @@ function Gauge(p: { score: number | null; paint: string }): React.JSX.Element {
         stroke={ARC.track}
         strokeWidth={stroke}
         strokeLinecap={ARC.capRound}
-        strokeDasharray={`${sweep} ${circumference}`}
+        strokeDasharray={`${SWEEP} ${CIRCUMFERENCE}`}
       />
       {p.score === null ? null : (
         <circle
@@ -165,7 +179,7 @@ function Gauge(p: { score: number | null; paint: string }): React.JSX.Element {
           stroke={p.paint}
           strokeWidth={stroke}
           strokeLinecap={ARC.capRound}
-          strokeDasharray={`${(sweep * p.score) / HUNDREDTHS} ${circumference}`}
+          strokeDasharray={`${(SWEEP * p.score) / HUNDREDTHS} ${CIRCUMFERENCE}`}
         />
       )}
     </svg>
