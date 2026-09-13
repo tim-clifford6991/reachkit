@@ -32,7 +32,6 @@
 // omits a line nobody has written.
 import type React from "react";
 import { Badge } from "@/ui/components/Badge";
-import { CardHead, IdiomCard } from "@/ui/idiom";
 import type { Tone } from "@/ui/types";
 import {
   unpublishedLine,
@@ -41,6 +40,7 @@ import {
 } from "@/lib/publish/record/lines";
 import type { PageRecord } from "@/lib/publish/record";
 import { formatDateTime } from "../../_shell/format";
+import { CARD, EYEBROW } from "./skin";
 import { writtenLine } from "../../_shell/written";
 
 /**
@@ -75,11 +75,9 @@ function Row(p: {
   children: React.ReactNode;
 }): React.JSX.Element {
   return (
-    <div className="grid grid-cols-[minmax(0,7rem)_minmax(0,1fr)] items-baseline gap-3">
-      <span className="text-[length:var(--t-eyebrow)] font-bold uppercase tracking-[0.1em] opacity-60">
-        {p.label}
-      </span>
-      <span className="flex min-w-0 flex-col gap-1">{p.children}</span>
+    <div className="grid grid-cols-[minmax(0,7rem)_minmax(0,1fr)] items-baseline gap-(--s-3)">
+      <span className={EYEBROW}>{p.label}</span>
+      <span className="flex min-w-0 flex-col gap-(--s-1)">{p.children}</span>
     </div>
   );
 }
@@ -95,15 +93,12 @@ export function PageRecordBlock(p: {
   const verification = verificationLine(record.verification);
   const title = writtenLine("record.title");
 
-  // UI-SPEC S16's idiom (issue #355): the page's own standing is a card
-  // like everything else on the screen, and its title is the card head's
-  // eyebrow rather than a heading floating on the grey ground. The record
-  // is still this component's — what changed is the box it stands in.
+  // The page's own standing is a card like everything else on the
+  // screen, and its title is that card's eyebrow. The record is still this
+  // component's — what changed is the box it stands in.
   return (
-    <IdiomCard
-      testId="draft-record"
-      head={title === null ? null : <CardHead eyebrow={title} />}
-    >
+    <section className={CARD} data-testid="draft-record">
+      {title === null ? null : <span className={EYEBROW}>{title}</span>}
       <Row label={writtenLine("record.label.address")}>
         {record.address.offered ? (
           <>
@@ -128,10 +123,10 @@ export function PageRecordBlock(p: {
       )}
 
       <Row label={writtenLine("record.label.checked")}>
-        <span className="flex flex-wrap items-baseline gap-2">
+        <span className="flex flex-wrap items-baseline gap-(--s-2)">
           <Badge tone={VERIFICATION_TONE[verification.kind]} wrap>{writtenLine(verification.copy)}</Badge>
           {verification.at === null ? null : (
-            <span className="num text-[length:var(--t-eyebrow)] opacity-60">
+            <span className="num text-(length:--t-eyebrow) text-(color:--ink-3)">
               {formatDateTime(verification.at, p.timeZone)}
             </span>
           )}
@@ -144,8 +139,8 @@ export function PageRecordBlock(p: {
           about their site and not a failure of their page — the page went
           out and is readable. */}
       {record.seoNote === null ? null : (
-        <p className="text-xs opacity-70">{writtenLine(record.seoNote)}</p>
+        <p className="text-(length:--t-sm) text-(color:--ink-2)">{writtenLine(record.seoNote)}</p>
       )}
-    </IdiomCard>
+    </section>
   );
 }

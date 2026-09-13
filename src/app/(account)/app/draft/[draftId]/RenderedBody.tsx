@@ -32,6 +32,11 @@ import type React from "react";
 import { markPassage, parseMarkdown, toHtml, type Block } from "@/lib/publish/render/markdown";
 import { DRAFT_BODY_CLASSES, demoteHeadings } from "./present";
 
+/** The document's own measure and ink. The per-element steps are
+ *  `DRAFT_BODY_CLASSES`; this is the ground they sit on, in the same
+ *  tokens, so the body carries no stylesheet. */
+const DOC = "text-(length:--t-body) leading-[1.7] text-(color:--ink-2) min-w-0";
+
 /** The index of the first block the passage was marked in, or `-1`. */
 function markedBlockIndex(blocks: readonly Block[], fact: string): number {
   return blocks.findIndex((block) => markPassage([block], fact).marked);
@@ -69,7 +74,7 @@ export function RenderedBody(p: {
   if (at === -1) {
     return (
       <div
-        className="rk-doc rk-doc-levelled"
+        className={DOC}
         data-testid={p["data-testid"]}
         dangerouslySetInnerHTML={{ __html: toHtml(marked, DRAFT_BODY_CLASSES) }}
       />
@@ -77,7 +82,7 @@ export function RenderedBody(p: {
   }
 
   return (
-    <div className="rk-doc rk-doc-levelled" data-testid={p["data-testid"]}>
+    <div className={DOC} data-testid={p["data-testid"]}>
       <div dangerouslySetInnerHTML={{ __html: toHtml(marked.slice(0, at + 1), DRAFT_BODY_CLASSES) }} />
       {p.source}
       <div dangerouslySetInnerHTML={{ __html: toHtml(marked.slice(at + 1), DRAFT_BODY_CLASSES) }} />

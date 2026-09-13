@@ -381,10 +381,10 @@ describe("S16 — the Decide rail", () => {
     const root = markup();
     expect(
       root.querySelector('[data-testid="draft-action-draft.action.approve"]')?.className
-    ).toContain("rk-daypanel-block");
+    ).toContain("w-full");
     for (const key of ["draft.action.edit", "draft.action.veto"]) {
       expect(root.querySelector(`[data-testid="draft-action-${key}"]`)?.className).toContain(
-        "rk-daypanel-half"
+        "flex-1"
       );
     }
   });

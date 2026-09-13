@@ -48,6 +48,7 @@ import { copy } from "@/lib/presentation/copy";
 import { PREVIEW_DEBOUNCE_MS } from "@/lib/config/constants";
 import { Tabs } from "@/ui/components/Tabs";
 import { RenderedBody } from "./RenderedBody";
+import { EYEBROW } from "./skin";
 import { useDebounced } from "./useDebounced";
 
 export const EDITOR_PANES = ["markdown", "preview"] as const;
@@ -68,7 +69,7 @@ export function Editor(p: {
   const previewBody = useDebounced(p.bodyMd, PREVIEW_DEBOUNCE_MS);
 
   return (
-    <div className="flex flex-col gap-3" data-testid="draft-editor">
+    <div className="flex flex-col gap-(--s-3)" data-testid="draft-editor">
       <div className="lg:hidden" data-testid="draft-editor-tabs">
         <Tabs
           tabs={[
@@ -80,16 +81,16 @@ export function Editor(p: {
         />
       </div>
 
-      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 items-start gap-(--s-4) lg:grid-cols-2">
         <div
           className={`min-w-0 ${p.pane === "markdown" ? "block" : "hidden lg:block"}`}
           data-testid="draft-editor-markdown"
         >
-          <p className="eyebrow rk-daypanel-eyebrow mb-2 hidden lg:block">
+          <p className={`${EYEBROW} mb-(--s-2) hidden lg:block`}>
             {copy("draft.editor.tab.markdown")}
           </p>
           <textarea
-            className="num t-sm border-base-300 bg-base-100 rounded-box h-96 w-full border p-3"
+            className="num text-(length:--t-sm) border-base-300 bg-base-100 rounded-(--r-box) h-96 w-full border p-(--s-3)"
             value={p.bodyMd}
             onChange={(e) => p.onChange(e.target.value)}
             onBlur={p.onFlush}
@@ -101,10 +102,10 @@ export function Editor(p: {
           className={`min-w-0 ${p.pane === "preview" ? "block" : "hidden lg:block"}`}
           data-testid="draft-editor-preview"
         >
-          <p className="eyebrow rk-daypanel-eyebrow mb-2 hidden lg:block">
+          <p className={`${EYEBROW} mb-(--s-2) hidden lg:block`}>
             {copy("draft.editor.tab.preview")}
           </p>
-          <div className="bg-base-200 rounded-box p-4">
+          <div className="bg-base-200 rounded-(--r-box) p-(--s-4)">
             <RenderedBody
               bodyMd={previewBody}
               markFact={p.markFact}

@@ -154,7 +154,12 @@ describe("issue #486 — every chip the approved set draws carries its glyph", (
   });
 
   it("S16's Copy-it-out head and S2's Copy link pill carry copy (L780, L577)", () => {
-    expect(read("app/(account)/app/draft/[draftId]/DraftScreen.tsx")).toMatch(CHIP("Copy"));
+    // The draft screen draws the glyph beside the eyebrow rather than
+    // through `CardHead`'s chip: `Canvas: DailyAction` draws that head as a
+    // label row, so the assertion is the glyph, not the prop it arrived by.
+    expect(read("app/(account)/app/draft/[draftId]/DraftScreen.tsx")).toMatch(
+      /<Copy size=\{15\}/
+    );
     expect(read("app/(public)/scan/[domain]/_address/copy-link.tsx")).toMatch(/icon=\{<Copy size=\{14\}/);
   });
 

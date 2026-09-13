@@ -2,7 +2,7 @@
 
 **Generated. Do not type into this file** — `npm run copy:owed` rewrites it and `tests/presentation/copy/owed-sheet.test.ts` fails when it is out of date. Write the sentences in your reply, or straight into `src/lib/presentation/copy/keys/*.ts`, and run the generator again: a key that gains a sentence leaves this sheet by itself.
 
-**19 keys**, across 820 in the registry — **0 empty** (`copy()` throws on these: a mail with one does not send, a screen with one does not render) and **19 `TODO(copy)`** (these render the marker, in public, until they are written).
+**21 keys**, across 822 in the registry — **0 empty** (`copy()` throws on these: a mail with one does not send, a screen with one does not render) and **21 `TODO(copy)`** (these render the marker, in public, until they are written).
 
 **How to read a row.**
 
@@ -34,7 +34,7 @@ A key with slots (`{value}`, `{date}`) carries them beside its name; the sentenc
 | S13 | Overview · week 0 | none | 0 |
 | S14 | Calendar | none | 0 |
 | S15 | Day panel states | none | 0 |
-| S16 | Draft | none | 0 |
+| S16 | [Draft](#s16-draft-app) | 2 | 0 |
 | S17 | Draft · edit | none | 0 |
 | S18 | [Settings](#s18-settings-app) | 1 | 0 |
 | S19 | Hosted page | none | 0 |
@@ -75,6 +75,17 @@ Every bracketed hint the set draws on this screen: `[competitor-picker line — 
 | `setup.profile.title`<br>`setup.ts` | marker | control · `<div class="flex flex-wrap items-center gap-2">` · `app/(account)/setup/SetupForm.tsx` |  | SPEC.md §5 (2026-09-12) | 18 — sibling `setup.site-and-market.title` |
 | `setup.profile.voice.label`<br>`setup.ts` | marker | control · `<div class="flex flex-wrap items-center gap-2">` · `app/(account)/setup/SetupForm.tsx` |  | SPEC.md §5 (2026-09-12) | 26 — sibling `setup.market.label` |
 | `setup.profile.voice.later`<br>`setup.ts` | marker | control · `<p class="rk-quiet">` · `app/(account)/setup/SetupForm.tsx` |  | SPEC.md §5 (2026-09-12) |  |
+
+## S16 · Draft — App
+
+Screen `S16` · the set draws it as `current="draft"` (`docs/archive/2026-09-11/approved/full-set/screens/draft-light.png`).
+
+Every bracketed hint the set draws on this screen: `[page title 15]` · `[do-nothing explanation — owner’s]` · `[opening paragraph — generated, labelled below]` · `[section heading]` · `[body paragraph]` · `[grounded fact]` · `[body continues]` · `[source title]`
+
+| key | standing | where | the set says | fixed by | max |
+|---|---|---|---|---|---|
+| `draft.do-nothing.countdown` `{hours} {minutes}`<br>`draft.ts` | marker | panel · `<span class="num text-(length:--h2) font-semibold">` · `app/(account)/app/draft/[draftId]/DecidePanel.tsx` |  | SPEC.md §7 · Canvas: DailyAction | 30 — sibling `draft.do-nothing.title` |
+| `draft.do-nothing.publishes` `{at}`<br>`draft.ts` | marker | panel · `<span class="text-(length:--h4) font-semibold">` · `app/(account)/app/draft/[draftId]/DecidePanel.tsx` |  | SPEC.md §7 · Canvas: DailyAction | 30 — sibling `draft.do-nothing.title` |
 
 ## S18 · Settings — App
 

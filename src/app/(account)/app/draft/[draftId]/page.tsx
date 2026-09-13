@@ -22,9 +22,11 @@
 // root (`../../layout.tsx`), and a second one would be a second
 // `[data-surface]` in the document.
 import type React from "react";
+import { now } from "@/lib/config/now";
 import { fromStored, renderGenerated } from "@/lib/presentation/generated";
 import { writtenLine } from "../../_shell/written";
 import { DraftScreen } from "./DraftScreen";
+import { countdownTo } from "./model";
 import { readDraft } from "./provider";
 
 interface DraftParams {
@@ -62,7 +64,13 @@ export default async function DraftPage(p: {
     body: fromStored("drafts.body", view.bodyMdGenerated),
   });
 
+  // The veto window's countdown is resolved here, against the one clock
+  // (`src/lib/config/now.ts`). A client that read its own `Date` would drift
+  // from the frozen clock every render is measured against.
+  const publishesAt = view.doNothing.publishesAt;
+  const countdown = publishesAt === null ? null : countdownTo(publishesAt, now());
+
   return (
-    <DraftScreen view={view} generatedLabel={generated.label} />
+    <DraftScreen view={view} generatedLabel={generated.label} countdown={countdown} />
   );
 }

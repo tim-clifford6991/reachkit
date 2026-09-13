@@ -86,6 +86,19 @@ export const DRAFT_COPY = Object.freeze({
   "draft.do-nothing.autopilot": ["It publishes at {at} unless you veto it.", { slots: { at: "date" }, fixedBy: "REQ-045 c4" }],
   "draft.do-nothing.copilot": ["Nothing publishes on its own.", { slots: {}, fixedBy: "REQ-045 c4" }],
 
+  // The Decide box's heading and its countdown, as `Canvas: DailyAction`
+  // draws them. Neither sentence is in the registry and neither is drawn
+  // bracketed on the artboard, so both are owner-owed rather than
+  // transcribed: the marker renders until the owner writes them.
+  "draft.do-nothing.publishes": [
+    "TODO(copy)",
+    { slots: { at: "date" }, fixedBy: "SPEC.md §7 · Canvas: DailyAction" },
+  ],
+  "draft.do-nothing.countdown": [
+    "TODO(copy)",
+    { slots: { hours: "text", minutes: "text" }, fixedBy: "SPEC.md §7 · Canvas: DailyAction" },
+  ],
+
   // §4.6's two editor panes.
   "draft.editor.tab.markdown": ["Markdown", { slots: {}, fixedBy: "BUILD §4.6" }],
   "draft.editor.tab.preview": ["Preview", { slots: {}, fixedBy: "BUILD §4.6" }],

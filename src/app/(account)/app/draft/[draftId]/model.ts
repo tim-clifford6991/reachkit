@@ -184,6 +184,21 @@ export function wordCount(bodyMd: string): number {
   return trimmed === "" ? 0 : trimmed.split(/\s+/).length;
 }
 
+/**
+ * The Decide box's countdown: whole hours and minutes left of the veto
+ * window. `null` once the window has run out — a window that has passed
+ * states no time rather than a negative one.
+ */
+export function countdownTo(
+  publishesAt: Date,
+  at: Date
+): { hours: number; minutes: number } | null {
+  const ms = publishesAt.getTime() - at.getTime();
+  if (ms <= 0) return null;
+  const total = Math.floor(ms / 60_000);
+  return { hours: Math.floor(total / 60), minutes: total % 60 };
+}
+
 export function assembleDraft(facts: DraftFacts): DraftView {
   return {
     draftId: facts.draftId,
