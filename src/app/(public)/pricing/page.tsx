@@ -31,38 +31,32 @@
 // the reading measure and centred, which is how the set draws a page whose
 // whole content is one decision. The chrome above and below is the group
 // layout's (ruling 3a).
-import type React from "react";
+import React, { use } from "react";
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 import { Surface } from "@/ui/layout";
 import { copy } from "@/lib/presentation/copy";
-import { env } from "@/lib/config/env";
-import { createCheckoutSession } from "@/lib/account/checkout/session";
 import { PricingCard } from "../scan/[domain]/_modules/pricing";
 import { PUBLIC_ROUTE_SEO } from "../_seo/routes";
 import { staticMetadata } from "../_seo/metadata";
+import { startCheckout } from "./actions";
+import { CHECKOUT_QUERY_KEY, REFUSED_MARKER, type PricingSearchParams } from "./state";
 
-/** REQ-021 criterion 4's "one control … begins checkout with no account,
- *  sign-in, password or form asked first": a Server Function reached by the
- *  card's own submit. It posts to this page's own URL, which is why this
- *  route needs no second entry on the middleware allow-list and no API
- *  adapter of its own.
- *
- *  `createCheckoutSession` throws `CheckoutNotImplementedError` until issue
- *  #33 lands; nothing here catches it, because a caught one would leave the
- *  buyer looking at a page that says a purchase began when none did. A
- *  refused session likewise throws: the written line a refused checkout owes
- *  its reader is REQ-020's and has no key yet — #33 brings both. */
-async function startCheckout(): Promise<void> {
-  "use server";
-  const result = await createCheckoutSession({
-    origin: { kind: "pricing" },
-    returnTo: new URL("/pricing", env.NEXT_PUBLIC_APP_URL).toString(),
-  });
-  if (!result.ok) {
-    throw new Error(`createCheckoutSession refused this purchase: ${result.reason}`);
-  }
-  redirect(result.url);
+function isPromise<T>(value: Promise<T> | T | undefined): value is Promise<T> {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    typeof (value as { then?: unknown }).then === "function"
+  );
+}
+
+/** Accepts a real `searchParams` Promise (production) or an already-plain
+ *  object (this file's own tests), on the terms
+ *  `src/app/(public)/signin/page.tsx` established. */
+function usePricingSearchParams(
+  searchParams: Promise<PricingSearchParams> | PricingSearchParams | undefined
+): PricingSearchParams {
+  if (isPromise(searchParams)) return use(searchParams);
+  return searchParams ?? {};
 }
 
 /** One reading column (design tokens §2b): the page is one decision, and a
@@ -73,7 +67,14 @@ const READING_MEASURE: React.CSSProperties = { maxWidth: "var(--w-read)" };
  *  besides the landing a stranger may arrive at from a search result. */
 export const metadata: Metadata = staticMetadata(PUBLIC_ROUTE_SEO.pricing);
 
-export default function PricingPage(): React.JSX.Element {
+export default function PricingPage(props: {
+  searchParams?: Promise<PricingSearchParams> | PricingSearchParams;
+}): React.JSX.Element {
+  // Issue #624: the one thing this surface reads off its own address — the
+  // marker `startCheckout` sends a refused purchase back with, so the offer
+  // states what happened instead of the route throwing.
+  const refused = usePricingSearchParams(props.searchParams)[CHECKOUT_QUERY_KEY] === REFUSED_MARKER;
+
   return (
     <Surface
       arms={{
@@ -103,7 +104,7 @@ export default function PricingPage(): React.JSX.Element {
               card keeps the owner's 2026-09-04 ruling; the facts are the
               same four either way, which is REQ-021 c4's "on the same
               terms". */}
-          <PricingCard startAction={startCheckout} terms="pricing" />
+          <PricingCard startAction={startCheckout} terms="pricing" refused={refused} />
         </div>
 
         <p className="t-explain mx-auto text-center opacity-60" style={READING_MEASURE}>

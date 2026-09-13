@@ -63,7 +63,7 @@ function originFrom(metadata: Stripe.Metadata | null): CheckoutOrigin {
 }
 
 /** The customer id, whether the session carries it expanded or as a
- *  reference. `customer_creation: 'always'` means one exists. */
+ *  reference. A subscription-mode session always creates one. */
 function customerIdOf(session: Stripe.Checkout.Session): string | null {
   const customer = session.customer;
   if (customer === null || customer === undefined) return null;

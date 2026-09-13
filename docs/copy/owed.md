@@ -2,7 +2,7 @@
 
 **Generated. Do not type into this file** — `npm run copy:owed` rewrites it and `tests/presentation/copy/owed-sheet.test.ts` fails when it is out of date. Write the sentences in your reply, or straight into `src/lib/presentation/copy/keys/*.ts`, and run the generator again: a key that gains a sentence leaves this sheet by itself.
 
-**18 keys**, across 819 in the registry — **0 empty** (`copy()` throws on these: a mail with one does not send, a screen with one does not render) and **18 `TODO(copy)`** (these render the marker, in public, until they are written).
+**19 keys**, across 820 in the registry — **0 empty** (`copy()` throws on these: a mail with one does not send, a screen with one does not render) and **19 `TODO(copy)`** (these render the marker, in public, until they are written).
 
 **How to read a row.**
 
@@ -20,7 +20,7 @@ A key with slots (`{value}`, `{date}`) carries them beside its name; the sentenc
 | screen | | owed | empty |
 |---|---|---:|---:|
 | S1 | Landing | none | 0 |
-| S2 | Free report | none | 0 |
+| S2 | [Free report](#s2-free-report-public) | 1 | 0 |
 | S3 | Report states | none | 0 |
 | S4 | Pricing | none | 0 |
 | S5 | Legal | none | 0 |
@@ -39,6 +39,16 @@ A key with slots (`{value}`, `{date}`) carries them beside its name; the sentenc
 | S18 | [Settings](#s18-settings-app) | 1 | 0 |
 | S19 | Hosted page | none | 0 |
 | S20 | Mails | none | 0 |
+
+## S2 · Free report — Public
+
+Screen `S2` · the set draws it as `current="report"` (`docs/archive/2026-09-11/approved/full-set/screens/report-light.png`).
+
+Every bracketed hint the set draws on this screen: `[robots lines — verbatim, REQ-009 c2]` · `[DIY instructional body — owner’s]` · `[page 1 title]` · `[rights line — owner’s]`
+
+| key | standing | where | the set says | fixed by | max |
+|---|---|---|---|---|---|
+| `offer.checkout.refused`<br>`offer.ts` | marker | card · `<Card>` · `app/(public)/scan/[domain]/_modules/pricing.tsx` |  | SPEC.md §3 (2026-09-13) |  |
 
 ## S10 · Setup — Join
 
