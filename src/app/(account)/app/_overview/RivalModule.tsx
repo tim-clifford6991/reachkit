@@ -1,4 +1,4 @@
-// BUILD §4.5 — how far ahead each rival is, in both arms.
+// §4.5 · Canvas: WeeklyScan — how far ahead each rival is, in both arms.
 //
 // §4.5 item 4: "per rival — name · falling sparkline (gray, accent
 // endpoint) · `78×` big mono · `was 276×` success badge. One dim line:
@@ -24,7 +24,7 @@
 import type React from "react";
 import { Users } from "lucide-react";
 import { RivalSparkline } from "@/ui/charts";
-import { Badge } from "@/ui/components";
+import { Badge, Card } from "@/ui/components";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import type { SwapOffer } from "@/lib/market/rivals/offer";
 import type { Tone } from "@/ui/types";
@@ -33,21 +33,32 @@ import { formatDate } from "../_shell/format";
 import { writtenLine } from "../_shell/written";
 import { renderValue } from "./present";
 import type { RatioRival, RivalGapModule } from "./rivals";
-import { CardHead } from "@/ui/idiom";
-import { CARRY, CHART_BOX, OFFER, RIVAL_ENTRY, RIVAL_ROW, STACK } from "./style";
 
 /** §2.5: the badge on a rival row reports the customer's own progress —
  *  the gap that used to be — so it is a success state, never an alarm. */
 const WAS_TONE: Tone = "ok";
 const RIVAL_LABEL = "overview.rivals.title" satisfies CopyKey;
 
-/** Where `SwapOffer.destination` goes. A `Record` over the handle's own
- *  union, so a second destination is a compile error here rather than a
- *  control that leads nowhere — and the address itself is
- *  `DESTINATION_HREF`'s, written once for the whole app (issue #223). */
-const SWAP_HREF: Record<Extract<SwapOffer, { offered: true }>["destination"], string> = {
-  "settings.competitors": DESTINATION_HREF.settings,
-};
+/* Where this card's parts sit, as `Canvas: WeeklyScan` draws them: token
+ * utilities on the registered `Card`, so the screen writes no class of its
+ * own and no stylesheet (`docs/DESIGN.md`, "What is retired"). */
+/** The head: the artboard's 20px glyph and its eyebrow, both quiet ink. */
+const HEAD = "flex min-w-0 items-center gap-(--s-2) text-(color:--ink-3)";
+const EYEBROW = "eyebrow font-bold tracking-[0.1em]";
+/** A column of parts; `min-w-0` so a long domain shrinks rather than
+ *  pushing the document sideways at the compact floor. */
+const STACK = "flex min-w-0 flex-col gap-(--s-2)";
+/** One rival: name, sparkline, figure — one column below 240px of plot. */
+const ROW = "grid min-w-0 grid-cols-[repeat(auto-fit,minmax(min(240px,100%),1fr))] items-center gap-(--s-3)";
+/** A chart's own box: every chart is drawn at the width of what holds it. */
+const CHART_BOX = "min-w-0 overflow-x-auto";
+/** A value and what it carries, on one baseline, wrapping rather than
+ *  shrinking (ADR-093 decision 3 — text is never shrunk to fit). */
+const CARRY = "flex min-w-0 flex-wrap items-baseline gap-(--s-2)";
+/** The artboard's dim line under a card: 13px in the second ink. */
+const DIM = "text-(length:--t-sm) text-(color:--ink-2)";
+/** REQ-096 c6's offer, sunk under the rival it is about. */
+const OFFER = "flex min-w-0 flex-col items-start gap-(--s-2)";
 
 /**
  * REQ-096 c6, under the rival it is about.
@@ -77,8 +88,8 @@ function Offer(p: { offer: SwapOffer }): React.JSX.Element | null {
   const control = writtenLine("overview.rivals.far.swap");
   if (line === null || control === null) return null;
   return (
-    <div style={OFFER}>
-      <p className="rk-prov">{line}</p>
+    <div className={OFFER}>
+      <p className="explain">{line}</p>
       {/* A link that reads as a button, the same case and the same daisyUI
           pair `WeekModule` states its reason for. */}
       <a href={SWAP_HREF[p.offer.destination]} className="btn btn-sm btn-ghost">
@@ -87,6 +98,14 @@ function Offer(p: { offer: SwapOffer }): React.JSX.Element | null {
     </div>
   );
 }
+
+/** Where `SwapOffer.destination` goes. A `Record` over the handle's own
+ *  union, so a second destination is a compile error here rather than a
+ *  control that leads nowhere — and the address itself is
+ *  `DESTINATION_HREF`'s, written once for the whole app (issue #223). */
+const SWAP_HREF: Record<Extract<SwapOffer, { offered: true }>["destination"], string> = {
+  "settings.competitors": DESTINATION_HREF.settings,
+};
 
 /** A rival's plot and its written figure, in the order §4.5 sets them out.
  *  `RivalSparkline` already lays out name · plot · value as one row; the
@@ -104,36 +123,47 @@ function RivalRow(p: {
   const points = [...p.series];
 
   return (
-    <div style={RIVAL_ENTRY}>
-    <div style={RIVAL_ROW}>
-      <div style={CHART_BOX}>
-        {p.account === undefined ? (
-          <RivalSparkline
-            name={p.domain}
-            value={p.value}
-            label={label}
-            points={points.filter((point): point is number => point !== null)}
-          />
-        ) : (
-          <RivalSparkline
-            name={p.domain}
-            value={p.value}
-            label={label}
-            points={points}
-            account={p.account}
-          />
+    <div className={STACK}>
+      <div className={ROW}>
+        <div className={CHART_BOX}>
+          {p.account === undefined ? (
+            <RivalSparkline
+              name={p.domain}
+              value={p.value}
+              label={label}
+              points={points.filter((point): point is number => point !== null)}
+            />
+          ) : (
+            <RivalSparkline
+              name={p.domain}
+              value={p.value}
+              label={label}
+              points={points}
+              account={p.account}
+            />
+          )}
+        </div>
+        {p.previous === null ? null : (
+          <span className={CARRY}>
+            <Badge tone={WAS_TONE}>
+              <span className="num">{p.previous}</span>
+            </Badge>
+          </span>
         )}
       </div>
-      {p.previous === null ? null : (
-        <span style={CARRY}>
-          <Badge tone={WAS_TONE}>
-            <span className="num">{p.previous}</span>
-          </Badge>
-        </span>
-      )}
+      <Offer offer={p.offer} />
     </div>
-    <Offer offer={p.offer} />
-    </div>
+  );
+}
+
+/** The card's head: the glyph and the eyebrow the artboard draws, and no
+ *  chip — `Canvas: WeeklyScan` draws its section heads bare. */
+function Head(): React.JSX.Element {
+  return (
+    <span className={HEAD}>
+      <Users aria-hidden size={ICON} strokeWidth={STROKE} />
+      <span className={EYEBROW}>{copy("overview.rivals.title")}</span>
+    </span>
   );
 }
 
@@ -153,16 +183,16 @@ export function RivalModule(p: {
       due: formatDate(weekZero.firstDueOn, p.timeZone),
     });
     return (
-      <section className="rk-idiom-card" data-testid="overview-rivals">
-        <CardHead icon={<Users aria-hidden size={ICON} />} eyebrow={copy("overview.rivals.title")} />
-        {line === null ? null : <p className="rk-quiet">{line}</p>}
+      <section data-testid="overview-rivals">
+        <Card state="default" title={<Head />}>
+          {line === null ? null : <p className={DIM}>{line}</p>}
+        </Card>
       </section>
     );
   }
 
   const line = writtenLine(p.rivals.lineKey);
   const windowLine = comparisonWindow(p.rivals, p.timeZone);
-  const title = copy("overview.rivals.title");
 
   const rows =
     p.rivals.kind === "absolute"
@@ -194,24 +224,24 @@ export function RivalModule(p: {
         ));
 
   return (
-    <section className="rk-idiom-card" data-testid="overview-rivals">
-      {/* Every idiom card carries the head (DECISIONS 2026-09-08, #302):
-          chip · eyebrow · optional right-aligned pill. This card's head has
-          no pill — the set gives it none, because the rows are the answer. */}
-      <CardHead icon={<Users aria-hidden size={ICON} />} eyebrow={title} />
-      <div style={STACK}>{rows}</div>
-      {p.rivals.kind === "absolute" ? (
-        <p className="rk-prov" style={CARRY} data-testid="overview-rivals-own">
-          <span>{copy("overview.rivals.you")}</span>
-          <span className="num">{renderValue(p.rivals.own, RIVAL_LABEL).text}</span>
-        </p>
-      ) : null}
-      {line === null ? null : <p className="rk-quiet">{line}</p>}
-      {windowLine === null ? null : (
-        <p className="rk-prov" data-testid="overview-rivals-comparison-window">
-          {windowLine}
-        </p>
-      )}
+    <section data-testid="overview-rivals">
+      {/* The head is the artboard's: glyph, eyebrow, and no pill — the rows
+          are this card's answer. */}
+      <Card state="default" title={<Head />}>
+        <div className={STACK}>{rows}</div>
+        {p.rivals.kind === "absolute" ? (
+          <p className={`explain ${CARRY}`} data-testid="overview-rivals-own">
+            <span>{copy("overview.rivals.you")}</span>
+            <span className="num">{renderValue(p.rivals.own, RIVAL_LABEL).text}</span>
+          </p>
+        ) : null}
+        {line === null ? null : <p className={DIM}>{line}</p>}
+        {windowLine === null ? null : (
+          <p className="explain" data-testid="overview-rivals-comparison-window">
+            {windowLine}
+          </p>
+        )}
+      </Card>
     </section>
   );
 }
@@ -251,5 +281,7 @@ function previousFigure(previous: RatioRival["previous"]): string | null {
   });
 }
 
-/** The chip's glyph size — 14px inside `.rk-head-chip`'s 32px square. */
-const ICON = 14;
+/** The head's glyph, at the artboard's size and the design system's stroke
+ *  (`docs/DESIGN.md`, "Components": lucide, 20px in chrome, stroke 1.75). */
+const ICON = 20;
+const STROKE = 1.75;

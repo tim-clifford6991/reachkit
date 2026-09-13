@@ -46,29 +46,6 @@ export const MODULE: React.CSSProperties = {
   minWidth: 0,
 };
 
-/** One rival's whole entry: its row, and — where REQ-096 c6 applies — the
- *  written line and the one control, directly under it. A column so the
- *  offer belongs to that rival and moves with it; a module-level banner
- *  would be a statement about the whole set, which c7 forbids the product
- *  implying (issue #223). */
-export const RIVAL_ENTRY: React.CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  gap: GAP_TIGHT,
-  minWidth: 0,
-};
-
-/** The offer's own box. Sunk rather than surfaced: §2.5 keeps rival
- *  strength neutral — a rival beyond reach is context, not the customer's
- *  problem — so it takes no tone, no border colour and no alarm. */
-export const OFFER: React.CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "flex-start",
-  gap: GAP_TIGHT,
-  minWidth: 0,
-};
-
 export const STACK: React.CSSProperties = {
   display: "flex",
   flexDirection: "column",
@@ -95,16 +72,6 @@ export const TILES: React.CSSProperties = {
   display: "grid",
   gridTemplateColumns: "repeat(auto-fit, minmax(min(200px, 100%), 1fr))",
   gap: GAP,
-  minWidth: 0,
-};
-
-/** One rival: name, sparkline, figure. Falls to one column at compact,
- *  where 132px of plot beside a domain name does not fit. */
-export const RIVAL_ROW: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(min(240px, 100%), 1fr))",
-  gap: GAP,
-  alignItems: "center",
   minWidth: 0,
 };
 

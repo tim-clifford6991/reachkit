@@ -1,11 +1,11 @@
-// BUILD §4.3 — the waiting screen: which step, never how long.
+// §5 — the waiting screen: which step, never how long.
 //
 // "While the deep pass runs: progress screen; on completion straight to the
 // app with the first draft already in the calendar. A degraded pass still
-// releases setup (zero proposals is legal, never faked)." (§4.3)
+// releases setup (zero proposals is legal, never faked)."
 //
-// The archived plan is WO-153. A server component that reads the pass once
-// and hands it down; the client half subscribes for the rest.
+// A server component that reads the pass once and hands it down; the client
+// half subscribes for the rest.
 //
 // **One sentence states a duration, and no stage does** (issue #356). The
 // owner ruled on 2026-09-06 that REQ-025 c1 wins and this screen stated no
@@ -16,9 +16,7 @@
 // What has not changed is the **per-stage** silence, and it is still
 // structural rather than reviewed: `PassProgress` carries a stage or an
 // ending and has no member a time could arrive in, so no step can show an
-// elapsed, an estimate, a countdown, a clock or a percentage. The set draws
-// an elapsed time beside each stage; that needs a reading the engine does
-// not take, and the PR says so.
+// elapsed, an estimate, a countdown, a clock or a percentage.
 //
 // A founder who arrives after the pass has ended is released straight into
 // the app, degraded or not; that decision is `release.ts`'s pure function,
@@ -29,13 +27,22 @@ import { redirect } from "next/navigation";
 import { Surface } from "@/ui/layout";
 import { copy } from "@/lib/presentation/copy";
 import { Sparkles } from "lucide-react";
-import { CardHead, IdiomCard } from "@/ui/idiom";
+import { Card } from "@/ui/components";
 import { readPassProgress } from "../_setup/provider";
 import { ProgressStrip, type SetupPhase } from "../_setup/ProgressStrip";
 import { STAGES } from "@/lib/scan/stages";
 import { drawnStages, ROW_COPY_KEY } from "../_setup/stages";
 import { destinationFor } from "./release";
 import { Waiting } from "./Waiting";
+
+/* The screen in token utilities on the registered `Card`: no class of this
+ * screen's own, and no stylesheet (`docs/DESIGN.md`, "What is retired"). */
+const SCREEN = "grid content-start gap-(--s-4) p-(--s-4)";
+/** The card head the artboard draws: a 20px glyph and its eyebrow, quiet. */
+const HEAD = "flex min-w-0 items-center gap-(--s-2) text-(color:--ink-3)";
+const EYEBROW = "eyebrow font-bold tracking-[0.1em]";
+/** The two lines under the rows: 13px in the second ink. */
+const LINE = "text-(length:--t-sm) text-(color:--ink-2)";
 
 export default async function WaitingPage(): Promise<React.JSX.Element> {
   const progress = await readPassProgress();
@@ -72,7 +79,7 @@ export default async function WaitingPage(): Promise<React.JSX.Element> {
         wide: { kind: "same-as-below" },
       }}
     >
-      <main className="grid content-start gap-4 p-4">
+      <main className={SCREEN}>
         {/* UI-SPEC S11: the same strip, one phase on. Setup is behind them
             and the first page is what is running. */}
         <ProgressStrip current={PHASE} />
@@ -80,24 +87,26 @@ export default async function WaitingPage(): Promise<React.JSX.Element> {
         {/* The set draws the stages inside a card, with the two lines
             under them — so the founder reads what is happening and what
             happens next in one box, rather than a bare list on the page. */}
-        <IdiomCard
-          head={
-            <CardHead
-              icon={<Sparkles aria-hidden size={ICON} />}
-              eyebrow={copy("setup.progress.first-page")}
-            />
-          }
-          testId={WAITING_CARD_TEST_ID}
-        >
-          <Waiting rows={rows} />
-          {/* REQ-025 c1 as the approved set amends it: one sentence, and
-              the promise that matters more than the clock — a pass that
-              finds nothing worth writing says so. */}
-          <p className="rk-quiet" data-testid="setup-waiting-about">
-            {copy("setup.waiting.about")}
-          </p>
-        </IdiomCard>
-        <p className="rk-quiet" style={CENTRED} data-testid="setup-waiting-close-tab">
+        <section data-testid={WAITING_CARD_TEST_ID}>
+          <Card
+            state="default"
+            title={
+              <span className={HEAD}>
+                <Sparkles aria-hidden size={ICON} strokeWidth={STROKE} />
+                <span className={EYEBROW}>{copy("setup.progress.first-page")}</span>
+              </span>
+            }
+          >
+            <Waiting rows={rows} />
+            {/* REQ-025 c1 as the approved set amends it: one sentence, and
+                the promise that matters more than the clock — a pass that
+                finds nothing worth writing says so. */}
+            <p className={LINE} data-testid="setup-waiting-about">
+              {copy("setup.waiting.about")}
+            </p>
+          </Card>
+        </section>
+        <p className={`${LINE} text-center`} data-testid="setup-waiting-close-tab">
           {copy("setup.waiting.close-tab")}
         </p>
       </main>
@@ -105,10 +114,10 @@ export default async function WaitingPage(): Promise<React.JSX.Element> {
   );
 }
 
-/** The chip's glyph size — 14px inside `.rk-head-chip`'s 32px square. */
-const ICON = 14;
-
-const CENTRED: React.CSSProperties = { textAlign: "center" };
+/** The head's glyph, at the artboard's size and the design system's stroke
+ *  (`docs/DESIGN.md`, "Components": lucide, 20px in chrome, stroke 1.75). */
+const ICON = 20;
+const STROKE = 1.75;
 
 /** The stage a pass that recorded none stands at. `passProgressFor` makes
  *  the same substitution for the same reason: "which step is under way"
