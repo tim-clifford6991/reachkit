@@ -1,0 +1,38 @@
+{
+  "rendered": [
+    {
+      "name": "-app-settings",
+      "route": "/app/settings",
+      "screen": "S9",
+      "viewport": "-app-settings-1280-light.png",
+      "full": "-app-settings-full.png",
+      "file": "side--app-settings.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/auth-light.png",
+      "moved": false,
+      "why": "named under `Renders:`"
+    },
+    {
+      "name": "reserved-app-settings",
+      "route": "/app/settings",
+      "screen": "S18",
+      "viewport": "reserved-app-settings-1280-light.png",
+      "full": "reserved-app-settings-full.png",
+      "file": "side-reserved-app-settings.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/settings-light.png",
+      "moved": true,
+      "why": "13637 of 614400 pixels differ (2.220%)"
+    },
+    {
+      "name": "live-app-settings",
+      "route": "/app/settings",
+      "screen": "S18",
+      "viewport": "live-app-settings-1280-light.png",
+      "full": "live-app-settings-full.png",
+      "file": "side-live-app-settings.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/settings-light.png",
+      "moved": true,
+      "why": "14034 of 614400 pixels differ (2.284%)"
+    }
+  ],
+  "skipped": []
+}
