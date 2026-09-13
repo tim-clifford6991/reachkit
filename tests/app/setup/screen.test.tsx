@@ -69,7 +69,7 @@ describe('REQ-025 c1 — "it asks for exactly three decisions ... and for nothin
     // confirmed here" adds the card that shows what was read of their
     // site. It is a reading shown back, not a fourth decision — the three
     // decisions are still the three, and the submit is still one.
-    expect(tree.querySelectorAll("form section")).toHaveLength(4);
+    expect(tree.querySelectorAll("form section, form > .card")).toHaveLength(4);
   });
 
   it("the no-report arm is four, because the site is asked for before the market is suggested", () => {
@@ -77,7 +77,7 @@ describe('REQ-025 c1 — "it asks for exactly three decisions ... and for nothin
     for (const id of ["setup-address", "setup-market", "setup-competitors", "setup-publishing"]) {
       expect(tree.querySelector(`[data-testid="${id}"]`), id).not.toBeNull();
     }
-    expect(tree.querySelectorAll("form section")).toHaveLength(4);
+    expect(tree.querySelectorAll("form section, form > .card")).toHaveLength(4);
   });
 
   it("REQ-021 c6 — a measured address is shown to confirm or change, not typed into an empty field", () => {
@@ -265,17 +265,20 @@ describe('REQ-026 c1 and c3 — the market card in each of its states', () => {
 });
 
 describe('REQ-026 c9 and c10 — the competitors card', () => {
-  it("suggested rivals are offered one by one, each acceptable or rejectable on its own", () => {
+  it("SPEC §5 — the rivals the scan found are already in the set, each removable", () => {
     const tree = screenFor();
-    const chips = tree.querySelectorAll('[data-testid="setup-competitors-suggested"] button');
-    expect(chips).toHaveLength(FIXTURE_SETUP_FACTS.suggestedRivals?.length ?? 0);
-    expect(Array.from(chips).map((c) => c.textContent)).toEqual([
+    const tags = tree.querySelectorAll('[data-testid="setup-competitors-selected"] button');
+    expect(Array.from(tags).map((tag) => tag.textContent)).toEqual([
       ...(FIXTURE_SETUP_FACTS.suggestedRivals ?? []),
     ]);
+    // Each tag's one action is removal, and it says which rival it removes.
+    for (const tag of tags) {
+      expect(tag.getAttribute("aria-label")).toContain(tag.textContent ?? "");
+    }
   });
 
-  it("none is selected on arrival — no domain the founder did not choose ever joins the set", () => {
-    const tree = screenFor();
+  it("a founder with no scan behind them starts with an empty set", () => {
+    const tree = screenFor(SCANLESS);
     expect(
       tree.querySelectorAll('[data-testid="setup-competitors-selected"] button')
     ).toHaveLength(0);
@@ -433,6 +436,6 @@ describe('SPEC.md §5 (2026-09-12) — "The site profile is confirmed here"', ()
   it("a founder whose site was never read gets no card, rather than an empty one", () => {
     const tree = screenFor(SCANLESS);
     expect(tree.querySelector('[data-testid="setup-profile"]')).toBeNull();
-    expect(tree.querySelectorAll("form section")).toHaveLength(4);
+    expect(tree.querySelectorAll("form section, form > .card")).toHaveLength(4);
   });
 });

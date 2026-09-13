@@ -112,6 +112,13 @@ export const SETUP_COPY = Object.freeze({
 
   // ── Competitors (REQ-026) ───────────────────────────────────────────
   "setup.competitors.title": ["Competitors", { slots: {}, fixedBy: "REQ-026 c7" }],
+  /** The line under the head, where the scan's rivals are already in the
+   *  set: what they are, and that the founder may take any of them out.
+   *  The artboard draws it bracketed, so the sentence is the owner's. */
+  "setup.competitors.found": [
+    "TODO(copy)",
+    { slots: {}, fixedBy: "SPEC §5 · Canvas: OnboardingCompetitors" },
+  ],
   /** REQ-026 c10, first limb: waiting on the market, never "none found". */
   "setup.competitors.awaiting-market": ["Suggested once your market is stated.", { slots: {}, fixedBy: "REQ-026 c10" }],
   "setup.competitors.seeking": ["Looking for rivals in your market…", { slots: {}, fixedBy: "REQ-026 c10" }],

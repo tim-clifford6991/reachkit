@@ -10,6 +10,7 @@ import {
   type ReportFacts,
   type SetupState,
 } from "@/lib/market/setup/state";
+import { addRival } from "@/lib/market/setup/rivals";
 import { setupCards, type SetupCards } from "@/lib/publish/setup/cards";
 import { BATTERY } from "@/lib/config/constants";
 import type { SiteProfile } from "@/lib/site-profile/types";
@@ -56,10 +57,32 @@ export interface SetupScreenModel {
   competitorsMax: number;
 }
 
+/** SPEC §5: the competitors the scan found are **pre-filled and each
+ *  removable**, so a founder who agrees with the scan does nothing.
+ *  `addRival` is what caps the set and refuses their own domain. */
+function withScanRivals(state: SetupState, found: readonly string[]): SetupState {
+  let rivals = state.rivals;
+  for (const domain of found) {
+    const added = addRival(rivals, {
+      domain,
+      origin: "suggested",
+      ownDomain: state.siteDomain,
+      resolves: true,
+    });
+    if (added.ok) rivals = added.set;
+  }
+  return { ...state, rivals };
+}
+
 export function assembleSetup(facts: SetupFacts): SetupScreenModel {
   const opened = initialSetupState(facts.measured);
   const state =
-    facts.suggestedRivals === null ? opened : onSuggestionsSettled(opened, facts.suggestedRivals);
+    facts.suggestedRivals === null
+      ? opened
+      : withScanRivals(
+          onSuggestionsSettled(opened, facts.suggestedRivals),
+          facts.suggestedRivals
+        );
 
   return {
     state,

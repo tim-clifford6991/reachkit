@@ -36,11 +36,12 @@ import type React from "react";
 import { useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Btn } from "@/ui/components/Btn";
+import { Card } from "@/ui/components/Card";
 import { Badge } from "@/ui/components/Badge";
 import { Input } from "@/ui/components/Input";
 import { Divider } from "@/ui/components/Divider";
-import { BookOpen, Globe, Sparkles, Users } from "lucide-react";
-import { CardHead, IdiomCard, OptionCard, RemovableTag } from "@/ui/idiom";
+import { BookOpen, Globe, Sparkles, Users, X } from "lucide-react";
+import { CardHead, IdiomCard, OptionCard } from "@/ui/idiom";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import {
   onDomainChanged,
@@ -176,7 +177,6 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
   >(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const selected = new Set(state.rivals.map((rival) => rival.domain));
   const full = isFull(state.rivals);
 
   // REQ-028 c2, and SPEC §5's "appears as soon as the site address is
@@ -265,30 +265,11 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
     setState((current) => ({ ...current, rivals: result.set }));
   }
 
-  function toggleSuggested(domain: string): void {
-    if (selected.has(domain)) {
-      setState((current) => ({
-        ...current,
-        rivals: removeRival(current.rivals, domain),
-      }));
-      setRivalRefusal(null);
-      return;
-    }
-    // A suggestion came from the product's own derivation over the
-    // founder's market, so there is nothing to resolve: `resolves` is
-    // true by provenance, not by assumption.
-    const result = addRival(state.rivals, {
-      domain,
-      origin: "suggested",
-      ownDomain: state.siteDomain,
-      resolves: true,
-    });
-    if (!result.ok) {
-      setRivalRefusal(result.because);
-      return;
-    }
+  /** SPEC §5: every rival in the set is removable — the scan's own and
+   *  the founder's alike, one control each. */
+  function dropRival(domain: string): void {
     setRivalRefusal(null);
-    setState((current) => ({ ...current, rivals: result.set }));
+    setState((current) => ({ ...current, rivals: removeRival(current.rivals, domain) }));
   }
 
   async function handleSubmit(
@@ -565,119 +546,105 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
         </>
       )}
 
-      <IdiomCard
-        head={
-          <CardHead
-            icon={<Users aria-hidden size={ICON} />}
-            eyebrow={copy("setup.competitors.title")}
-            // REQ-026 c9's limit, stated on screen — and the set puts it
-            // in the card's head as "n of 5" rather than in a line under
-            // the field, so the count is beside the thing it counts.
-            pill={
-              <Badge tone="neutral">
-                <span className="num" data-testid="setup-competitors-limit">
-                  {copy("setup.competitors.limit", {
-                    chosen: state.rivals.length,
-                    max: p.model.competitorsMax,
-                  })}
-                </span>
-              </Badge>
-            }
-          />
+      {/* Canvas: OnboardingCompetitors — the glyph and eyebrow with the
+          count opposite, the scan's rivals as removable tags, and one row
+          to add another. */}
+      <Card
+        state="default"
+        title={
+          <div className={HEAD_ROW}>
+            <span className={HEAD_LABEL}>
+              <Users aria-hidden size={GLYPH} strokeWidth={STROKE} />
+              <span className="eyebrow">{copy("setup.competitors.title")}</span>
+            </span>
+            <Badge tone="accent">
+              <span className="num" data-testid="setup-competitors-limit">
+                {copy("setup.competitors.limit", {
+                  chosen: state.rivals.length,
+                  max: p.model.competitorsMax,
+                })}
+              </span>
+            </Badge>
+          </div>
         }
-        testId={COMPETITORS_TEST_ID}
       >
-        {state.suggestions.state === "awaiting_market" ? (
-          <p data-testid="setup-competitors-awaiting">
-            {copy("setup.competitors.awaiting-market")}
-          </p>
-        ) : null}
-        {state.suggestions.state === "seeking" ? (
-          <p data-testid="setup-competitors-seeking">
-            {copy("setup.competitors.seeking")}
-          </p>
-        ) : null}
-        {state.suggestions.state === "none_found" ? (
-          <p data-testid="setup-competitors-none-found">
-            {copy("setup.competitors.none-found")}
-          </p>
-        ) : null}
+        <div className={CARD_COLUMN} data-testid={COMPETITORS_TEST_ID}>
+          {state.suggestions.state === "awaiting_market" ? (
+            <p data-testid="setup-competitors-awaiting">
+              {copy("setup.competitors.awaiting-market")}
+            </p>
+          ) : null}
+          {state.suggestions.state === "seeking" ? (
+            <p data-testid="setup-competitors-seeking">
+              {copy("setup.competitors.seeking")}
+            </p>
+          ) : null}
+          {state.suggestions.state === "none_found" ? (
+            <p data-testid="setup-competitors-none-found">
+              {copy("setup.competitors.none-found")}
+            </p>
+          ) : null}
+          {state.rivals.length === 0 ? null : (
+            <p className={LEAD_LINE} data-testid="setup-competitors-found">
+              {copy("setup.competitors.found")}
+            </p>
+          )}
 
-        <div
-          className="flex flex-wrap items-center gap-2"
-          data-testid="setup-competitors-suggested"
-        >
-          {state.suggestions.candidates.map((domain) => (
+          <div className={TAG_ROW} data-testid="setup-competitors-selected">
+            {state.rivals.map((rival) => (
+              <button
+                key={rival.domain}
+                type="button"
+                className={TAG}
+                aria-label={copy("setup.competitors.remove", { rival: rival.domain })}
+                onClick={() => dropRival(rival.domain)}
+              >
+                <span className="num">{rival.domain}</span>
+                <X aria-hidden size={GLYPH} strokeWidth={STROKE} className={TAG_X} />
+              </button>
+            ))}
+          </div>
+
+          <div className={ADD_ROW}>
+            {rivalRefusal === null ? (
+              <Input
+                mono
+                label={copy("setup.competitors.add.label")}
+                placeholder={copy(
+                  ADD_PLACEHOLDER[state.rivals.length === 0 ? "first" : "another"],
+                )}
+                name="competitor"
+                value={rivalDraft}
+                onChange={setRivalDraft}
+                disabled={full}
+              />
+            ) : (
+              <Input
+                mono
+                label={copy("setup.competitors.add.label")}
+                placeholder={copy(
+                  ADD_PLACEHOLDER[state.rivals.length === 0 ? "first" : "another"],
+                )}
+                name="competitor"
+                value={rivalDraft}
+                onChange={setRivalDraft}
+                disabled={full}
+                invalid
+                invalidMessage={copy(RIVAL_REFUSAL_COPY[rivalRefusal])}
+              />
+            )}
             <Btn
-              key={domain}
-              label={domain}
-              size="sm"
+              label={copy("setup.competitors.add.action")}
               variant="secondary"
               pill
-              pressed={selected.has(domain)}
-              disabled={full && !selected.has(domain)}
-              onClick={() => toggleSuggested(domain)}
+              disabled={full}
+              onClick={() => {
+                void addTypedRival();
+              }}
             />
-          ))}
+          </div>
         </div>
-
-        <div
-          className="flex flex-wrap items-center gap-2"
-          data-testid="setup-competitors-selected"
-        >
-          {/* The chosen set, as the set draws it: mono tags on the accent
-              tint, each with the × that removes it (REQ-026 c7). A removal
-              control rather than a toggle — `RemovableTag` says why it is
-              not `Btn` with `aria-pressed`, which the suggestions above
-              still are. */}
-          {state.rivals.map((rival) => (
-            <RemovableTag
-              key={rival.domain}
-              value={rival.domain}
-              removeLabel={copy("setup.competitors.remove", { rival: rival.domain })}
-              onRemove={() => toggleSuggested(rival.domain)}
-            />
-          ))}
-        </div>
-
-        <Divider />
-
-        {rivalRefusal === null ? (
-          <Input
-            label={copy("setup.competitors.add.label")}
-            placeholder={copy(
-              ADD_PLACEHOLDER[state.rivals.length === 0 ? "first" : "another"],
-            )}
-            name="competitor"
-            value={rivalDraft}
-            onChange={setRivalDraft}
-            disabled={full}
-          />
-        ) : (
-          <Input
-            label={copy("setup.competitors.add.label")}
-            placeholder={copy(
-              ADD_PLACEHOLDER[state.rivals.length === 0 ? "first" : "another"],
-            )}
-            name="competitor"
-            value={rivalDraft}
-            onChange={setRivalDraft}
-            disabled={full}
-            invalid
-            invalidMessage={copy(RIVAL_REFUSAL_COPY[rivalRefusal])}
-          />
-        )}
-        <Btn
-          label={copy("setup.competitors.add.action")}
-          variant="tertiary"
-          size="sm"
-          pill
-          disabled={full}
-          onClick={() => {
-            void addTypedRival();
-          }}
-        />
-      </IdiomCard>
+      </Card>
 
       {/* SPEC.md §5 (2026-09-12) — "Your site, as we read it". The
           inventory and the site name are shown **as read**: there is no
@@ -859,6 +826,28 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
 
 /** The chip's glyph size — 14px inside `.rk-head-chip`'s 32px square. */
 const ICON = 14;
+
+/** The artboard's own head: glyph and eyebrow left, the count opposite. */
+const HEAD_ROW = "flex w-full flex-wrap items-center justify-between gap-(--s-3)";
+const HEAD_LABEL = "flex min-w-0 items-center gap-(--s-2) text-(color:--ink-3)";
+const CARD_COLUMN = "flex flex-col gap-(--s-4)";
+const LEAD_LINE = "text-(length:--t-sm) text-(color:--ink-2)";
+const TAG_ROW = "flex flex-wrap items-center gap-(--s-2)";
+
+/** A rival in the set: the accent tint, its own hairline, and the × that
+ *  takes it out. The glyph is decoration — the button's accessible name is
+ *  the owner's removal sentence. */
+const TAG =
+  "inline-flex items-center gap-(--s-2) rounded-(--r-pill) border border-(color:--accent-line) bg-(--accent-bg) py-(--s-1) pr-(--s-2) pl-(--s-3) text-(length:--t-sm) text-primary hover:bg-(--accent-line) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(color:--accent)";
+const TAG_X = "text-(color:--ink-3)";
+
+/** The field and its action on one row, the field taking the slack. */
+const ADD_ROW =
+  "flex flex-wrap items-end gap-(--s-3) [&>:first-child]:min-w-0 [&>:first-child]:flex-auto [&_input]:w-full";
+
+/** The set draws a chrome glyph at 20px, stroke 1.75. */
+const GLYPH = 20;
+const STROKE = 1.75;
 
 /** A test hook, bound to a name for the copy sweep's reason. */
 const SITE_AND_MARKET_TEST_ID = "setup-site-and-market";
