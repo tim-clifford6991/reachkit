@@ -33,7 +33,9 @@ export interface CheckoutParams {
   readonly tax_id_collection: { readonly enabled: true };
   /** DECISIONS 2026-08-28 · ADR-052. */
   readonly automatic_tax: { readonly enabled: false };
-  readonly customer_creation: "always";
+  // No `customer_creation`: Stripe accepts it in `payment` mode only and
+  // refuses a subscription session that carries it. Subscription mode
+  // creates the customer either way, which is what `record.ts` reads back.
   /** REQ-020 c6 — nothing beyond the payment is asked. */
   readonly phone_number_collection: { readonly enabled: false };
   /** REQ-020 c6 — the one place a questionnaire could be added, empty. */
@@ -56,7 +58,6 @@ export function checkoutParams(): CheckoutParams {
     billing_address_collection: "required",
     tax_id_collection: Object.freeze({ enabled: true as const }),
     automatic_tax: Object.freeze({ enabled: false as const }),
-    customer_creation: "always",
     phone_number_collection: Object.freeze({ enabled: false as const }),
     custom_fields: Object.freeze([] as const),
     allow_promotion_codes: false,
@@ -72,7 +73,6 @@ export const CHECKOUT_PARAM_KEYS: readonly (keyof CheckoutParams)[] = Object.fre
   "billing_address_collection",
   "tax_id_collection",
   "automatic_tax",
-  "customer_creation",
   "phone_number_collection",
   "custom_fields",
   "allow_promotion_codes",

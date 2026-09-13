@@ -103,6 +103,11 @@ export const OFFER_COPY = Object.freeze({
   // REQ-097's own non-goal draws that line.
   "plan.single": ["One page a day", { slots: {}, fixedBy: "REQ-022 c1" }],
 
+  // 2026-09-13, issue #624: what the offer says when the vendor refuses to
+  // open checkout. Owner-owed — the approved set draws no refused state on
+  // S4 — so it carries the marker rather than a sentence written here.
+  "offer.checkout.refused": ["TODO(copy)", { slots: {}, fixedBy: "SPEC.md §3 (2026-09-13)" }],
+
   // 2026-09-05, issue #13: the four values the four slotted lines above
   // take. BP-031's `offerTerms()` was to supply them and does not exist;
   // the free report's pricing card (`BUILD.md` §4.1 module 6) needs them
