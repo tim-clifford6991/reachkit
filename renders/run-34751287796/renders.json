@@ -1,0 +1,25 @@
+{
+  "rendered": [
+    {
+      "name": "-scan-example-com",
+      "route": "/scan/example.com",
+      "screen": "S2",
+      "viewport": "-scan-example-com-1280-light.png",
+      "full": "-scan-example-com-full.png",
+      "file": "side--scan-example-com.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/report-light.png",
+      "moved": false,
+      "why": "named under `Renders:`"
+    }
+  ],
+  "skipped": [
+    {
+      "name": "waiting-report",
+      "route": "/scan/example.com",
+      "screen": null,
+      "viewport": "waiting-report-1280-light.png",
+      "full": "waiting-report-full.png",
+      "reason": "no approved render for an unreferenced route"
+    }
+  ]
+}
