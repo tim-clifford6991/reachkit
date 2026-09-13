@@ -2,7 +2,7 @@
 
 **Generated. Do not type into this file** — `npm run copy:owed` rewrites it and `tests/presentation/copy/owed-sheet.test.ts` fails when it is out of date. Write the sentences in your reply, or straight into `src/lib/presentation/copy/keys/*.ts`, and run the generator again: a key that gains a sentence leaves this sheet by itself.
 
-**20 keys**, across 821 in the registry — **0 empty** (`copy()` throws on these: a mail with one does not send, a screen with one does not render) and **20 `TODO(copy)`** (these render the marker, in public, until they are written).
+**21 keys**, across 822 in the registry — **0 empty** (`copy()` throws on these: a mail with one does not send, a screen with one does not render) and **21 `TODO(copy)`** (these render the marker, in public, until they are written).
 
 **How to read a row.**
 
@@ -20,7 +20,7 @@ A key with slots (`{value}`, `{date}`) carries them beside its name; the sentenc
 | screen | | owed | empty |
 |---|---|---:|---:|
 | S1 | Landing | none | 0 |
-| S2 | [Free report](#s2-free-report-public) | 2 | 0 |
+| S2 | [Free report](#s2-free-report-public) | 3 | 0 |
 | S3 | Report states | none | 0 |
 | S4 | Pricing | none | 0 |
 | S5 | Legal | none | 0 |
@@ -48,6 +48,7 @@ Every bracketed hint the set draws on this screen: `[robots lines — verbatim, 
 
 | key | standing | where | the set says | fixed by | max |
 |---|---|---|---|---|---|
+| `offer.checkout.refused`<br>`offer.ts` | marker | card · `<Card>` · `app/(public)/scan/[domain]/_modules/pricing.tsx` |  | SPEC.md §3 (2026-09-13) |  |
 | `verdict.drivers.title`<br>`report.ts` | marker | eyebrow · `<p class="eyebrow opacity-60">` · `app/(public)/scan/[domain]/_address/verdict.tsx` |  | ruling 1b |  |
 | `verdict.limiting.eyebrow`<br>`report.ts` | marker | eyebrow · `<p class="eyebrow">` · `app/(public)/scan/[domain]/_address/verdict.tsx` |  | REQ-004 c2 | 112 — sibling `verdict.limiting.presence` |
 

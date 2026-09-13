@@ -35,24 +35,42 @@ const TENTHS = 10;
 const HUNDREDTHS = 100;
 
 /**
- * The gauge as the artboard draws it: a 270° arc, open at the foot, in a
- * square viewBox, drawn well inside it so no stroke can reach the edge.
+ * The gauge as the artboard draws it: a 270° arc open at the foot, stated
+ * as its own path. It carries no `transform`: a rotation maps the shape's
+ * local box and takes its axis-aligned bounds, which inflates it past the
+ * viewBox even when every painted pixel is inside (layout check 2).
  */
 const GAUGE = Object.freeze({
   box: 200,
   centre: 100,
   radius: 82,
   stroke: 13,
-  /** Turned so the arc's gap sits at the bottom of the dial. */
-  rotate: 135,
-  /** Three quarters of a turn. */
-  turn: 0.75,
+  /** Open at the foot: the arc runs from 135° clockwise for 270°. */
+  startDeg: 135,
+  extentDeg: 270,
 });
 
-/** Derived from the radius, so the dash an arc is drawn with and the circle
- *  it is drawn on cannot disagree. */
-const CIRCUMFERENCE = 2 * Math.PI * GAUGE.radius;
-const SWEEP = CIRCUMFERENCE * GAUGE.turn;
+const FULL_TURN_DEG = 360;
+
+function polar(deg: number): readonly [number, number] {
+  const rad = (deg * Math.PI) / 180;
+  return [
+    GAUGE.centre + GAUGE.radius * Math.cos(rad),
+    GAUGE.centre + GAUGE.radius * Math.sin(rad),
+  ];
+}
+
+/** The dial's one path — track and value are drawn on the same arc, so the
+ *  reading and the ground it sits on cannot disagree. */
+const ARC_PATH = ((): string => {
+  const [x0, y0] = polar(GAUGE.startDeg);
+  const [x1, y1] = polar(GAUGE.startDeg + GAUGE.extentDeg);
+  const r = GAUGE.radius;
+  return `M ${x0} ${y0} A ${r} ${r} 0 1 1 ${x1} ${y1}`;
+})();
+
+/** The arc's own length, which the value's dash is a fraction of. */
+const SWEEP = 2 * Math.PI * GAUGE.radius * (GAUGE.extentDeg / FULL_TURN_DEG);
 
 /** The meaning token each band's tone is spoken in. Keyed by tone rather
  *  than by band, so `BAND_TONE` stays the one place a band's meaning is
@@ -65,11 +83,9 @@ const TONE_PAINT = Object.freeze({
   neutral: "var(--ink-3)",
 });
 
-/** The arc's own geometry, which no token describes: it is a drawing in
- *  viewBox units, the way every chart under `src/ui/charts` is drawn. */
 // The box is stated on the element, not left to `height: auto`: an SVG is
-// not covered by the preflight rule that gives images an intrinsic height,
-// and a box shorter than its drawing puts every shape in it outside it.
+// not covered by the preflight rule that gives an image an intrinsic
+// height, and a box shorter than its drawing puts its contents outside it.
 const GAUGE_SVG: React.CSSProperties = { maxWidth: "100%", display: "block" };
 
 /** The arc's presentation values, bound to a name rather than spelled in
@@ -147,8 +163,7 @@ function DriverBar(p: { factor: ScoreFactorName; value: Measured<number> }): Rea
 /** The dial. The value arc is drawn only from a measured score: an arc at
  *  zero over a dash would be a reading the scan never took. */
 function Gauge(p: { score: number | null; paint: string }): React.JSX.Element {
-  const { box, centre, radius, stroke, rotate } = GAUGE;
-  const turn = `rotate(${rotate} ${centre} ${centre})`;
+  const { box, stroke } = GAUGE;
   return (
     <svg
       viewBox={`0 0 ${box} ${box}`}
@@ -158,28 +173,21 @@ function Gauge(p: { score: number | null; paint: string }): React.JSX.Element {
       aria-hidden
       focusable={ARC.notFocusable}
     >
-      <circle
-        cx={centre}
-        cy={centre}
-        r={radius}
-        transform={turn}
+      <path
+        d={ARC_PATH}
         fill={ARC.unfilled}
         stroke={ARC.track}
         strokeWidth={stroke}
         strokeLinecap={ARC.capRound}
-        strokeDasharray={`${SWEEP} ${CIRCUMFERENCE}`}
       />
       {p.score === null ? null : (
-        <circle
-          cx={centre}
-          cy={centre}
-          r={radius}
-          transform={turn}
+        <path
+          d={ARC_PATH}
           fill={ARC.unfilled}
           stroke={p.paint}
           strokeWidth={stroke}
           strokeLinecap={ARC.capRound}
-          strokeDasharray={`${(SWEEP * p.score) / HUNDREDTHS} ${CIRCUMFERENCE}`}
+          strokeDasharray={`${(SWEEP * p.score) / HUNDREDTHS} ${SWEEP}`}
         />
       )}
     </svg>

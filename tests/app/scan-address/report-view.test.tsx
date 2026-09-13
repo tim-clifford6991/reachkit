@@ -134,8 +134,9 @@ describe("Canvas: Report module 1 — the score is a dial, and the limit is a ti
   const strip = html.slice(0, html.indexOf("ai-answers.title"));
 
   it("draws the value arc over its own track, in the band's own meaning token", () => {
-    // Two arcs and no more: the track, then the sweep the score earned.
-    expect(strip.split("<circle").length - 1).toBe(2);
+    // Two arcs: the track, then the sweep the score earned — the second
+    // is the only element on the strip drawn with a dash.
+    expect(strip.split("stroke-dasharray").length - 1).toBe(1);
     expect(strip).toContain('stroke="var(--sunk)"');
     // The fixture bands `findable`, whose tone is `ok`.
     expect(strip).toContain('stroke="var(--ok)"');
