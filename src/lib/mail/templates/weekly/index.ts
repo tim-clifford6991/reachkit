@@ -32,9 +32,12 @@ import type { WeekStanding } from "@/lib/opportunities";
 import { PAGE_VERDICTS } from "@/lib/presentation/bands";
 import type { CopyKey } from "@/lib/presentation/copy";
 import { formatStat } from "../../blocks/format";
-import type { CopyVars, ListRow, MailBlock, VerdictRow } from "../../blocks/types";
+import type { CopyVars, ListRow, MailBlock, StatTile, VerdictRow } from "../../blocks/types";
 
 const SUBJECT = "mail.weekly.subject" satisfies CopyKey;
+const EYEBROW = "mail.weekly.eyebrow" satisfies CopyKey;
+const ISSUES = "mail.weekly.issues" satisfies CopyKey;
+const ISSUES_LINK = "mail.weekly.issues.link" satisfies CopyKey;
 const HEADING = "mail.weekly.heading" satisfies CopyKey;
 const BODY = "mail.weekly.body" satisfies CopyKey;
 const ACTION = "mail.weekly.action" satisfies CopyKey;
@@ -45,6 +48,11 @@ const REASON = "mail.reason.weekly" satisfies CopyKey;
  *  validates at boot. */
 function overviewHref(): string {
   return new URL("/app", env.NEXT_PUBLIC_APP_URL).toString();
+}
+
+/** §9's list, where the technical-issues panel sends the reader. */
+function issuesHref(): string {
+  return new URL("/app/issues", env.NEXT_PUBLIC_APP_URL).toString();
 }
 const SCORE = "mail.weekly.score" satisfies CopyKey;
 const AI_ANSWERS = "mail.weekly.aiAnswers" satisfies CopyKey;
@@ -80,6 +88,11 @@ export interface WeeklyMail {
  * explicit that a measured zero is shown.
  */
 export function buildWeekly(a: {
+  /** The two figures the week reached, each stated beside its own delta in
+   *  one tile (Canvas: MailDigest). A level that was not measured takes its
+   *  whole tile with it, the delta included. */
+  score: Measured<number>;
+  aiAnswers: Measured<number>;
   scoreDelta: Measured<number>;
   aiAnswersDelta: Measured<number>;
   /** The week's standings. `unmeasured` where the week produced none to
@@ -91,6 +104,10 @@ export function buildWeekly(a: {
    *  measured-and-empty states the supply's own empty line — the calendar
    *  is never padded (DECISIONS 2026-08-28). */
   next: Measured<readonly { targetQuery: string }[]>;
+  /** How many technical faults this week's pass found on the site (§9).
+   *  `unmeasured` leaves the whole panel out — which is what a product that
+   *  has not counted them yet has to say. */
+  issues: Measured<number>;
 }): WeeklyMail {
   return {
     subject: SUBJECT,
@@ -100,13 +117,17 @@ export function buildWeekly(a: {
       // is and is not — "Only what was measured. A number that was not
       // measured is not here." — then the measured sections, which §12's
       // omission rule drops one at a time.
+      { block: "eyebrow", text: EYEBROW },
       { block: "heading", text: HEADING },
       { block: "paragraph", text: BODY },
-      { block: "stat", label: SCORE, value: a.scoreDelta, format: "delta" },
-      { block: "stat", label: AI_ANSWERS, value: a.aiAnswersDelta, format: "delta" },
+      // The canvas heads the digest with the three figures read across, so
+      // they are one row of tiles rather than three stacked stats. §12's
+      // four sections keep their order underneath.
+      { block: "statRow", tiles: tilesFor(a) },
+      // The judged pages, in their own panel. The section is named by the
+      // tile above it, so it carries no second label.
       {
         block: "verdicts",
-        label: VERDICTS,
         items: mapMeasuredRows(a.pages, verdictRows),
         emptyLine: VERDICTS_NONE,
       },
@@ -116,11 +137,49 @@ export function buildWeekly(a: {
         items: mapMeasuredRows(a.next, nextRows),
         emptyLine: NEXT_NONE,
       },
+      // §9's panel: how many faults this week's pass found, and the way to
+      // the list. Both sentences are owner-owed, so nothing is sent with it
+      // until they are written — and no count reaches it before §9 is built.
+      {
+        block: "notice",
+        text: ISSUES,
+        tone: "warn",
+        count: a.issues,
+        href: issuesHref(),
+        linkLabel: ISSUES_LINK,
+      },
       // S20's one solid button. Absolute, because a mail client resolves
       // no relative path.
       { block: "action", label: ACTION, href: overviewHref() },
     ],
   };
+}
+
+/**
+ * The canvas's three tiles: the score, the AI answers, and how many pages
+ * the week judged.
+ *
+ * The third is a count of the rows the section below it states, not a
+ * fourth measurement — so a week that judged nothing shows a measured zero
+ * over its own written line, and a week nobody measured drops both.
+ */
+function tilesFor(a: {
+  score: Measured<number>;
+  aiAnswers: Measured<number>;
+  scoreDelta: Measured<number>;
+  aiAnswersDelta: Measured<number>;
+  pages: Measured<readonly WeeklyPage[]>;
+}): readonly StatTile[] {
+  const judged = mapMeasuredRows(a.pages, verdictRows);
+  return [
+    { label: SCORE, value: a.score, format: "integer", delta: a.scoreDelta },
+    { label: AI_ANSWERS, value: a.aiAnswers, format: "integer", delta: a.aiAnswersDelta },
+    {
+      label: VERDICTS,
+      value: judged.kind === "unmeasured" ? judged : { kind: "measured", value: judged.value.length, at: judged.at },
+      format: "integer",
+    },
+  ];
 }
 
 /** `mapMeasured` over a list, keeping the arm and the date: an unmeasured

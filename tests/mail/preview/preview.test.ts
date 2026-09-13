@@ -38,12 +38,7 @@ describe("issue #376 — the shell renders S20, and every kind the set draws wea
     // the fixture's, not the product's, and it is pinned here so it cannot
     // change without this file seeing it.
     expect(PREVIEW_KINDS).toHaveLength(7);
-    expect([...NOT_PREVIEWABLE].sort()).toEqual([
-      "first-page",
-      "nurture",
-      "published",
-      "weekly",
-    ]);
+    expect([...NOT_PREVIEWABLE].sort()).toEqual(["first-page", "nurture", "published"]);
     for (const key of [
       "mail.published.subject",
       "mail.weekly.subject",
@@ -52,7 +47,7 @@ describe("issue #376 — the shell renders S20, and every kind the set draws wea
     ] as const) {
       expect(COPY[key], `${key} is owed again`).not.toBe("");
     }
-    expect(previewable).toHaveLength(3);
+    expect(previewable).toHaveLength(4);
 
     // The two lead mails `kinds.ts` has a fixture for compose now, each
     // carrying its now-written stop label in both bodies.
@@ -84,8 +79,10 @@ describe("issue #376 — the shell renders S20, and every kind the set draws wea
         expect(body).toContain("plain-text version attached");
       }
 
-      // One solid button, and exactly one: §12's shell draws one action.
-      expect(mail.html.split("display:inline-block;padding").length - 1).toBe(1);
+      // One solid button, and exactly one: §12's shell draws one action. The
+      // button's own padding, not an inline-block prefix — the digest's
+      // movement chips are inline-blocks too, and they are not buttons.
+      expect(mail.html.split("display:inline-block;padding:11px 18px").length - 1).toBe(1);
 
       if (OUT_DIR !== null) {
         mkdirSync(OUT_DIR, { recursive: true });

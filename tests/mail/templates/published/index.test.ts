@@ -180,7 +180,8 @@ describe("buildPublished — one message, all three arms", () => {
       if ("text" in block) keys.add(block.text);
       if (block.block === "action") keys.add(block.label);
       if (block.block === "verdicts") {
-        keys.add(block.label);
+        // This mail names its section; the digest's does not (#639).
+        if (block.label !== undefined) keys.add(block.label);
         keys.add(block.emptyLine);
         if (block.items.kind !== "unmeasured") {
           for (const row of block.items.value) {

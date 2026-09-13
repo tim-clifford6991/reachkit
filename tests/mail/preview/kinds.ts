@@ -23,6 +23,7 @@ import type {
   DraftReadyPage,
   TellableTelling,
 } from "../../../src/lib/mail/templates/draft-ready";
+import type { WeeklyPage } from "../../../src/lib/mail/templates/weekly";
 
 const AT = new Date("2026-09-08T07:00:00.000Z");
 const APP = "https://reachkit.example";
@@ -123,6 +124,48 @@ export async function composePreview(kind: PreviewKind): Promise<ComposedMail> {
         reason: mail.reason,
       });
     }
+    case "weekly": {
+      const { buildWeekly } = await import("../../../src/lib/mail/templates/weekly");
+      // The digest artboard's own figures, so the preview and the picture
+      // it is checked against state the same week.
+      const judged = (liveUrl: string, standing: Record<string, unknown>): WeeklyPage =>
+        ({ liveUrl, standing: { measuredAt: AT, movement: null, verifyNote: null, ...standing } }) as unknown as WeeklyPage;
+      const mail = buildWeekly({
+        score: measured(46, AT),
+        aiAnswers: measured(3, AT),
+        scoreDelta: measured(8, AT),
+        aiAnswersDelta: measured(1, AT),
+        pages: measured(
+          [
+            judged("https://example.com/holiday-pay", {
+              kind: "verdict",
+              verdict: "working",
+              movement: { previousWeek: "2026-09-01", spansWeeks: 1, from: measured(31, AT), to: measured(18, AT), declined: false },
+            }),
+            judged("https://example.com/payroll-for-five", { kind: "verdict", verdict: "too_early" }),
+          ],
+          AT
+        ),
+        next: measured(
+          [
+            { targetQuery: "payroll software for five people" },
+            { targetQuery: "holiday pay rules for part-time staff" },
+            { targetQuery: "how to run payroll without an accountant" },
+          ],
+          AT
+        ),
+        // Measured here, so the panel the artboard draws is visible in the
+        // preview. In the product §9 has counted nothing, so it is absent.
+        issues: measured(3, AT),
+      });
+      return composeMail({
+        kind,
+        subject: mail.subject,
+        blocks: mail.blocks,
+        reason: mail.reason,
+        measurement: { state: "complete" },
+      });
+    }
     case "nurture": {
       const { buildNurture } = await import("../../../src/lib/mail/templates/nurture");
       const mail = buildNurture({ email: "you@company.com", domain: "example.com", touch: 1 });
@@ -171,7 +214,6 @@ export const NOT_PREVIEWABLE: readonly PreviewKind[] = [
   "first-page",
   "nurture",
   "published",
-  "weekly",
 ];
 
 async function composeUnwritten(kind: PreviewKind): Promise<ComposedMail> {

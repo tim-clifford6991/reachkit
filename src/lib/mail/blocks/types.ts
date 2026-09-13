@@ -1,6 +1,6 @@
 // BUILD §12 — the only vocabulary a mail template may speak.
 //
-// Eight arms, and nothing else. A template hands `composeMail()` a list of
+// Ten arms, and nothing else. A template hands `composeMail()` a list of
 // these and holds no conditional of its own: every value that can be
 // absent enters as a `Measured<T>` (`src/lib/measure/measured.ts`), so a
 // template cannot format a number itself and cannot forget BUILD §12's
@@ -12,7 +12,7 @@
 // string that is not a key — the draft page itself — and it carries the
 // two fields `generatedLabel()` needs, so model text cannot reach a mail
 // without the label that identifies it (ADR-012, §8's `GeneratedText`
-// rule). There is no ninth arm and no free-string escape hatch.
+// rule). There is no eleventh arm and no free-string escape hatch.
 import type { Measured } from "@/lib/measure/measured";
 import type { CopyKey } from "@/lib/presentation/copy";
 
@@ -54,6 +54,21 @@ export interface VerdictRow {
   readonly verdict: CopyKey;
 }
 
+/** One tile of a `statRow` — the figure the week reached, and the movement
+ *  since the week before it. Two measurements, so either can be absent on
+ *  its own: an unmeasured `value` drops the tile, an unmeasured `delta`
+ *  drops only the chip, and a measured zero of either is a result. */
+export interface StatTile {
+  readonly label: CopyKey;
+  readonly value: Measured<number>;
+  readonly format: StatFormat;
+  readonly delta?: Measured<number>;
+}
+
+/** The meaning a tinted panel carries. Closed: a fourth is a change here,
+ *  not a caller's string. */
+export type NoticeTone = "accent" | "warn";
+
 /** How a `stat` block's number is written. Three forms, closed: a plain
  *  integer, a signed delta, and a per-month rate. A fourth form is a
  *  change to this union, not a caller's string. */
@@ -83,7 +98,9 @@ export type MailBlock =
     }
   | {
       readonly block: "verdicts";
-      readonly label: CopyKey;
+      /** Absent where the section is already named above it — the digest's
+       *  own tile carries that name (Canvas: MailDigest). */
+      readonly label?: CopyKey;
       readonly items: Measured<readonly VerdictRow[]>;
       readonly emptyLine: CopyKey;
     }
@@ -103,8 +120,33 @@ export type MailBlock =
       readonly block: "facts";
       readonly items: readonly FactRow[];
     }
+  | {
+      /** The one written line over a heading, saying which mail this is. */
+      readonly block: "eyebrow";
+      readonly text: CopyKey;
+    }
+  | {
+      /** The row of figures the canvas heads the digest with. A row and not
+       *  three `stat` blocks: they are read across, and the omission rule
+       *  applies to each tile rather than to the row. */
+      readonly block: "statRow";
+      readonly tiles: readonly StatTile[];
+    }
   | { readonly block: "action"; readonly label: CopyKey; readonly href: string }
-  | { readonly block: "notice"; readonly text: CopyKey; readonly vars?: CopyVars }
+  | {
+      readonly block: "notice";
+      readonly text: CopyKey;
+      readonly vars?: CopyVars;
+      readonly tone?: NoticeTone;
+      /** The count the sentence's own slot takes. `Measured`, so a notice
+       *  about a count nobody measured is left out entirely (`omit.ts`)
+       *  rather than stating a zero nobody found. */
+      readonly count?: Measured<number>;
+      /** The link the panel closes with, where it has one. Its label is a
+       *  key like every other sentence. */
+      readonly href?: string;
+      readonly linkLabel?: CopyKey;
+    }
   | {
       readonly block: "pageBody";
       readonly pageTitle: string;
@@ -121,7 +163,7 @@ export type MailBlock =
  *  fact rows restate what the heading and the one line already say — the
  *  address a link is for, the search a page targets — so a mail that lost
  *  them has not lost its point, and "nothing to report" would be false. */
-export const CONDITIONAL_BLOCKS = ["stat", "list", "verdicts"] as const;
+export const CONDITIONAL_BLOCKS = ["stat", "statRow", "list", "verdicts"] as const;
 
 export type ConditionalBlock = (typeof CONDITIONAL_BLOCKS)[number];
 

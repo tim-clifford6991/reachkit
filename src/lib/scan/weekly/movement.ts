@@ -30,7 +30,7 @@
 // `weekStartFor` would have computed then. A site that skipped a week has
 // no row there and reads `unmeasured` — the honest answer, since the
 // movement across a gap is not a week's movement.
-import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
+import { measured, measuredZero, unmeasured, type Measured } from "@/lib/measure/measured";
 import type { StoredReport } from "../report";
 import { readWeekScan } from "./store";
 
@@ -38,6 +38,12 @@ import { readWeekScan } from "./store";
  *  omission rule decides what is printed and this module decides nothing
  *  about presentation. */
 export interface WeekMovement {
+  /** The level each figure reached this week, stated beside its delta —
+   *  the two facts one digest tile carries (Canvas: MailDigest). Read off
+   *  the same stored report the delta is made from, so neither is a second
+   *  measurement of the same week. */
+  readonly score: Measured<number>;
+  readonly aiAnswers: Measured<number>;
   readonly scoreDelta: Measured<number>;
   readonly aiAnswersDelta: Measured<number>;
 }
@@ -76,6 +82,14 @@ function aiAnswersOf(report: StoredReport | null): number | null {
   return report.aiAnswers === null ? null : report.aiAnswers.customerCitations;
 }
 
+/** One week's own figure, on the same trichotomy as the deltas: a figure
+ *  the pass did not reach is unmeasured, and one it measured at zero is a
+ *  result that prints. */
+function levelOf(value: number | null, at: Date): Measured<number> {
+  if (value === null) return unmeasured<number>("not_attempted", at);
+  return value === 0 ? measuredZero(0, at) : measured(value, at);
+}
+
 function deltaOf(now: number | null, before: number | null, at: Date): Measured<number> {
   // Two measurements or nothing: see the module header.
   if (now === null || before === null) return unmeasured<number>("not_attempted", at);
@@ -104,6 +118,8 @@ export async function weekMovement(a: {
   const before = lastWeek?.report ?? null;
 
   return {
+    score: levelOf(scoreOf(now), a.at),
+    aiAnswers: levelOf(aiAnswersOf(now), a.at),
     scoreDelta: deltaOf(scoreOf(now), scoreOf(before), a.at),
     aiAnswersDelta: deltaOf(aiAnswersOf(now), aiAnswersOf(before), a.at),
   };

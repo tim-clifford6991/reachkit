@@ -34,6 +34,18 @@ export const MAIL_TOKENS = Object.freeze({
   "--on-accent": "#ffffff",
   "--accent-bg": "#eeecfd",
   "--accent-line": "#ddd8fa",
+  // The three meaning triples the digest spends: a chip on a figure that
+  // rose or fell, and the tinted panel naming what the reader must fix
+  // (Canvas: MailDigest). Values are the theme's; a mail mixes none.
+  "--ok": "#1f8a6b",
+  "--ok-bg": "#e7f6f0",
+  "--ok-line": "#d2ede3",
+  "--warn": "#b8722a",
+  "--warn-bg": "#fff3e6",
+  "--warn-line": "#fbe1c6",
+  "--bad": "#c0432b",
+  "--bad-bg": "#fdece8",
+  "--bad-line": "#f8d5cd",
   "--r-box": "14px",
   "--r-field": "9px",
   "--r-pill": "999px",

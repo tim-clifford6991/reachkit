@@ -446,7 +446,6 @@ const { sendWeeklyDigest } = await import("../../src/lib/mail/weekly");
 const { copy } = await import("../../src/lib/presentation/copy");
 const { COPY, COPY_META, OWNER_OWED } = await import("../../src/lib/presentation/copy/registry");
 const { PAGE_VERDICTS } = await import("../../src/lib/presentation/bands");
-const { escapeHtml } = await import("../../src/lib/mail/blocks/html");
 const { readWeek: weekStrip, CALENDAR_HREF } = await import(
   "../../src/app/(account)/app/_overview/week"
 );
@@ -742,6 +741,9 @@ describe("Monday: the week is re-measured, judged, and told (JN-005)", () => {
 
     // §12's four sections, in §12's order.
     const whole = buildWeekly({
+      score: measured(46, MONDAY),
+      aiAnswers: measured(3, MONDAY),
+      issues: unmeasured("not_attempted", MONDAY),
       scoreDelta: measured(4, MONDAY),
       // A measured zero is a result — "no movement" — and prints.
       aiAnswersDelta: measuredZero(0, MONDAY),
@@ -753,28 +755,34 @@ describe("Monday: the week is re-measured, judged, and told (JN-005)", () => {
     });
     expect(whole.subject).toBe("mail.weekly.subject");
     expect(whole.blocks.map((block) => block.block)).toEqual([
+      "eyebrow",
       "heading",
       "paragraph",
-      "stat",
-      "stat",
+      "statRow",
       "verdicts",
       "list",
+      "notice",
       "action",
     ]);
-    expect(omittedIndexes(whole.blocks)).toEqual([]);
+    // §9's panel is the one section out: nothing has counted this site's
+    // technical faults, so it states none rather than a zero.
+    expect(omittedIndexes(whole.blocks)).toEqual([6]);
 
     // A week that reached neither the score nor the AI answers omits both
     // blocks rather than printing a 0 for a measurement nobody made.
     const partial = buildWeekly({
+      score: unmeasured("not_attempted", MONDAY),
+      aiAnswers: unmeasured("not_attempted", MONDAY),
+      issues: unmeasured("not_attempted", MONDAY),
       scoreDelta: unmeasured("undeterminable", MONDAY),
       aiAnswersDelta: unmeasured("not_attempted", MONDAY),
       pages: unmeasured("not_attempted", MONDAY),
       next: unmeasured("not_attempted", MONDAY),
     });
-    // Indexes 2–5 since #376: S20's heading and its one line lead, and
-    // neither is conditional — the four §12 sections that are still follow
-    // them and are still the four that drop.
-    expect(omittedIndexes(partial.blocks)).toEqual([2, 3, 4, 5]);
+    // Indexes 3–6 since #639: the canvas's eyebrow, heading and one line
+    // lead and none is conditional — the sections that can drop follow them,
+    // and here every one of them does.
+    expect(omittedIndexes(partial.blocks)).toEqual([3, 4, 5, 6]);
     // Every conditional section dropped: the mail carries the one line
     // that says so rather than standing empty.
     expect(chooseWholeMailLine({ blocks: partial.blocks })).toBe("mail.nothing_to_report");
@@ -793,20 +801,20 @@ describe("Monday: the week is re-measured, judged, and told (JN-005)", () => {
       digest_sent_at: null,
     });
 
-    // The digest's own lines are written (issue #458), and this week judged
-    // a page: the word a judged page is given — `verdict.page.*`, the
-    // verdict partition's — is written too, the owner's approved words of
-    // 2026-09-10 (#459). So the mail composes: the vendor is handed it once,
-    // and **the week is stamped**, so the next tick does not tell it again.
+    // The digest's nine own lines are written (#458) and so are the verdict
+    // words (#459). What the canvas adds is an eyebrow nobody has written
+    // (#639), and §8 says what that means in a mail: it sends nothing at
+    // all. So **the week is not stamped** — it stays open, and the tick
+    // offers it again the moment the owner writes that one sentence.
     for (const key of DIGEST_KEYS) expect(OWNER_OWED, key).not.toContain(key);
     for (const key of Object.values(PAGE_VERDICTS)) expect(OWNER_OWED, key).not.toContain(key);
     const told = await sendWeeklyDigest({ siteId: SITE_ID, weekStart: "2026-08-31", now: MONDAY });
-    expect(told).toEqual({ sent: true, id: "resend-1" });
-    expect(vendorSends).toBe(1);
-    expect(scans.find((scan) => scan.id === "scan-told")?.digest_sent_at ?? null).not.toBeNull();
+    expect(told).toEqual({ sent: false, reason: "not-composable" });
+    expect(vendorSends).toBe(0);
+    expect(scans.find((scan) => scan.id === "scan-told")?.digest_sent_at ?? null).toBeNull();
   });
 
-  it("every sentence the digest speaks is the owner's, written by issue #458, so the digest composes and goes", async () => {
+  it("every sentence the digest speaks is a registry key — and the one nobody has written keeps it out of an inbox", async () => {
     for (const key of DIGEST_KEYS) {
       expect(Object.keys(COPY), key).toContain(key);
       expect(COPY[key], key).not.toBe("");
@@ -819,9 +827,8 @@ describe("Monday: the week is re-measured, judged, and told (JN-005)", () => {
       for (const slot of slots) expect(said, key).toContain(`${slot}-value`);
     }
 
-    // So the mail composes, and the vendor is handed a mail that says the
-    // sentences. A week that judged no page and has nothing next needs no
-    // verdict word, so nothing still owed stands in the way.
+    // A week that judged no page and has nothing next composes all the
+    // same, each empty result stating its own written line.
     const payloads: string[] = [];
     __setVendorTransportForTesting(async (payload) => {
       vendorSends += 1;
@@ -829,11 +836,16 @@ describe("Monday: the week is re-measured, judged, and told (JN-005)", () => {
       return { status: 200, headers: {}, body: JSON.stringify({ id: "resend-1" }) };
     });
     const mail = buildWeekly({
+      score: measured(46, MONDAY),
+      aiAnswers: measured(3, MONDAY),
+      issues: unmeasured("not_attempted", MONDAY),
       scoreDelta: measured(4, MONDAY),
       aiAnswersDelta: measuredZero(0, MONDAY),
       pages: measured([], MONDAY),
       next: measured([], MONDAY),
     });
+    // And it reaches no inbox: the eyebrow the canvas draws is owed, so the
+    // seam refuses the send and the vendor is handed nothing.
     const sent = await sendEmail({
       kind: "weekly",
       to: "founder@acme.com",
@@ -843,20 +855,8 @@ describe("Monday: the week is re-measured, judged, and told (JN-005)", () => {
       blocks: mail.blocks,
       measurement: { state: "complete" },
     });
-    expect(sent).toEqual({ sent: true, id: "resend-1" });
-    expect(vendorSends).toBe(1);
-    const delivered = JSON.parse(payloads[0] ?? "{}") as { subject?: string; text?: string; html?: string };
-    expect(delivered.subject).toBe(COPY["mail.weekly.subject"]);
-    for (const key of [
-      "mail.weekly.verdicts",
-      "mail.weekly.verdicts.none",
-      "mail.weekly.next",
-      "mail.weekly.next.none",
-    ] as const) {
-      expect(delivered.text, key).toContain(COPY[key]);
-      expect(delivered.html, key).toContain(escapeHtml(COPY[key]));
-    }
-
+    expect(sent).toEqual({ sent: false, reason: "not-composable" });
+    expect(payloads).toEqual([]);
   });
 
   it("the screens read the same week the measurement was filed under", async () => {

@@ -212,6 +212,16 @@ export const MAIL_COPY = Object.freeze({
   "mail.weekly.next.none": ["Nothing next: no open opportunity is left, and the calendar is never padded.", { slots: {}, fixedBy: "REQ-064 c3" }],
   "mail.weekly.next.item": ["{search}", { slots: { search: "text" }, fixedBy: "§12" }],
 
+  // 2026-09-13, issue #639 (Canvas: MailDigest). Three sentences the
+  // artboard draws that no key holds: the mail's own eyebrow, and the two
+  // the technical-issues panel needs — the line stating how many faults
+  // this week's pass found, and the label on the link to the list. The
+  // panel is absent until the owner writes them, which is also what §9
+  // being unbuilt means: no count reaches it either.
+  "mail.weekly.eyebrow": ["TODO(copy)", { slots: {}, fixedBy: "SPEC.md §8 · Canvas: MailDigest" }],
+  "mail.weekly.issues": ["TODO(copy)", { slots: { count: "text" }, fixedBy: "SPEC.md §9 · Canvas: MailDigest" }],
+  "mail.weekly.issues.link": ["TODO(copy)", { slots: {}, fixedBy: "SPEC.md §9 · Canvas: MailDigest" }],
+
   // The three forms a judged page's row takes. Three sentences and not one
   // with a conditional: "this page" and "this page, which moved from here
   // to there since the date it was measured" and "…, over an interval

@@ -115,12 +115,13 @@ describe("the Monday digest goes out for a week that was measured", () => {
     expect(sent[0]!.to).toBe("founder@example.com");
     expect(sent[0]!.subject).toBe("mail.weekly.subject");
     expect(sent[0]!.blocks.map((b) => b.block)).toEqual([
+      "eyebrow",
       "heading",
       "paragraph",
-      "stat",
-      "stat",
+      "statRow",
       "verdicts",
       "list",
+      "notice",
       "action",
     ]);
   });

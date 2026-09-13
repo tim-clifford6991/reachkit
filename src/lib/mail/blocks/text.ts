@@ -13,7 +13,7 @@
 import { copy } from "@/lib/presentation/copy";
 import { generatedLabel } from "@/lib/presentation/generated";
 import { formatStat } from "./format";
-import { factRowsOf, rowsOf } from "./html";
+import { factRowsOf, noticeLinkOf, noticeVarsOf, rowsOf, tilesOf } from "./html";
 import { isMeasuredEmpty, omittedIndexes } from "./omit";
 import type { MailBlock } from "./types";
 
@@ -26,10 +26,15 @@ function statLines(labelText: string, value: string, note: string | null): strin
   return note === null ? head : `${head}\n${note}`;
 }
 
-function rowLines(labelText: string, rows: readonly { left: string; right?: string }[], emptyLine: string | null): string {
-  if (emptyLine !== null) return `${labelText}\n${emptyLine}`;
+function rowLines(
+  labelText: string | null,
+  rows: readonly { left: string; right?: string }[],
+  emptyLine: string | null
+): string {
+  const head = labelText === null ? [] : [labelText];
+  if (emptyLine !== null) return [...head, emptyLine].join("\n");
   const lines = rows.map((item) => (item.right === undefined ? item.left : `${item.left}: ${item.right}`));
-  return [labelText, ...lines].join("\n");
+  return [...head, ...lines].join("\n");
 }
 
 /** BUILD §12's plain-text twin of an action. The URL is written out beside
@@ -65,11 +70,34 @@ export function renderBlocksText(blocks: readonly MailBlock[]): {
         );
         break;
       case "list":
-      case "verdicts":
         parts.push(
           isMeasuredEmpty(block)
             ? rowLines(copy(block.label), [], copy(block.emptyLine))
             : rowLines(copy(block.label), rowsOf(block), null)
+        );
+        break;
+      case "verdicts": {
+        const head = block.label === undefined ? null : copy(block.label);
+        parts.push(
+          isMeasuredEmpty(block)
+            ? rowLines(head, [], copy(block.emptyLine))
+            : rowLines(head, rowsOf(block), null)
+        );
+        break;
+      }
+      case "eyebrow":
+        parts.push(copy(block.text));
+        break;
+      case "statRow":
+        // The same tiles, one figure to a line, its movement in brackets
+        // after it — the row's two facts, in the only order text has.
+        parts.push(
+          tilesOf(block)
+            .map((tile) => {
+              const head = `${tile.label}: ${tile.value}`;
+              return tile.delta === null ? head : `${head} (${tile.delta.text})`;
+            })
+            .join("\n")
         );
         break;
       case "facts":
@@ -80,9 +108,12 @@ export function renderBlocksText(blocks: readonly MailBlock[]): {
       case "action":
         parts.push(actionLine(copy(block.label), block.href));
         break;
-      case "notice":
-        parts.push(copy(block.text, block.vars));
+      case "notice": {
+        const link = noticeLinkOf(block);
+        const sentence = copy(block.text, noticeVarsOf(block));
+        parts.push(link === null ? sentence : `${sentence}\n${link.label}: ${link.href}`);
         break;
+      }
       case "pageBody":
         parts.push(
           `${generatedLabel({ pageTitle: block.pageTitle, written: block.written }).label}\n${block.markdown}`

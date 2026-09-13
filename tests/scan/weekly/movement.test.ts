@@ -79,6 +79,20 @@ describe("a delta needs two measurements", () => {
     const movement = await weekMovement({ siteId: "site-1", weekStart: WEEK, at: AT });
     expect(movement.scoreDelta).toEqual({ kind: "measured", value: 4, at: AT });
     expect(movement.aiAnswersDelta).toEqual({ kind: "measured", value: 3, at: AT });
+    // And the levels the digest states beside them: this week's own, never
+    // the week before's, and never recomputed from the delta.
+    expect(movement.score).toEqual({ kind: "measured", value: 45, at: AT });
+    expect(movement.aiAnswers).toEqual({ kind: "measured", value: 5, at: AT });
+  });
+
+  it("a level stands on its own: the first week has figures but no movement", async () => {
+    seedWeek(WEEK, report({ score: 45, citations: 0 }));
+
+    const movement = await weekMovement({ siteId: "site-1", weekStart: WEEK, at: AT });
+    expect(movement.score).toMatchObject({ kind: "measured", value: 45 });
+    // A figure measured at zero is a result, and it prints.
+    expect(movement.aiAnswers).toMatchObject({ kind: "zero", value: 0 });
+    expect(movement.scoreDelta.kind).toBe("unmeasured");
   });
 
   it("**no previous week is unmeasured, never zero** — the first digest states no movement", async () => {
@@ -132,6 +146,8 @@ describe("a delta needs two measurements", () => {
     const movement = await weekMovement({ siteId: "site-1", weekStart: WEEK, at: AT });
     expect(movement.scoreDelta.kind).toBe("unmeasured");
     expect(movement.aiAnswersDelta.kind).toBe("unmeasured");
+    // And no level either: there is no figure to state, not a zero.
+    expect(movement.score.kind).toBe("unmeasured");
   });
 
   it("it reads and writes nothing — the weeks are left exactly as they were", async () => {

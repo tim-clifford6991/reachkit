@@ -25,6 +25,14 @@ function isOmitted(block: MailBlock): boolean {
   switch (block.block) {
     case "stat":
       return block.value.kind === "unmeasured";
+    case "statRow":
+      // Every tile unmeasured is a row with nothing in it. One measured
+      // tile keeps the row, and the unmeasured tiles drop themselves.
+      return block.tiles.every((tile) => tile.value.kind === "unmeasured");
+    case "notice":
+      // A notice that states a count states nothing without one. A notice
+      // with no count at all is unconditional, as it has always been.
+      return block.count !== undefined && block.count.kind === "unmeasured";
     case "list":
     case "verdicts":
       return block.items.kind === "unmeasured";

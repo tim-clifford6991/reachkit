@@ -33,7 +33,7 @@
 import { dbAdmin } from "@/lib/db";
 import { WEEKLY_NEXT_COUNT } from "@/lib/config/constants";
 import type { CopyKey } from "@/lib/presentation/copy";
-import { measured, type Measured } from "@/lib/measure/measured";
+import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
 import { rankOpen, weeklyDigest } from "@/lib/opportunities";
 import { opportunityStore, readOpportunity } from "@/lib/opportunities/store";
 import { accountForWeek, weekMovement, type UnmeasuredPart } from "@/lib/scan/weekly";
@@ -139,6 +139,10 @@ export async function sendWeeklyDigest(a: {
   }));
 
   const mail = buildWeekly({
+    // The levels and their deltas come from one read of the same two weeks,
+    // so the tile's figure and its movement cannot be of different weeks.
+    score: movement.score,
+    aiAnswers: movement.aiAnswers,
     scoreDelta: movement.scoreDelta,
     aiAnswersDelta: movement.aiAnswersDelta,
     // Measured, and measured-empty where the week judged nothing: "you
@@ -148,6 +152,9 @@ export async function sendWeeklyDigest(a: {
     // case this function has already returned on.
     pages: measured(pages, at),
     next: await nextThree(a.siteId, at),
+    // §9 is not built, so no pass has counted this site's technical faults.
+    // The panel is left out rather than stating a zero nobody measured.
+    issues: unmeasured("not_attempted", at),
   });
 
   const result = await sendEmail({
