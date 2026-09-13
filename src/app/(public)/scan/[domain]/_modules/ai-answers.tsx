@@ -54,7 +54,7 @@
 // came from (REQ-093 c3).
 import type React from "react";
 import { Bot } from "lucide-react";
-import { Badge, Card, Collapse, Divider, Table } from "@/ui/components";
+import { Badge, Btn, Card, Collapse, Divider, Table } from "@/ui/components";
 import { AiDotMatrixChart, type AiDotMatrixCellState, type AiDotMatrixRow } from "@/ui/charts";
 import { CardHead, QuestionList, SourceChip, type QuestionItem } from "@/ui/idiom";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
@@ -65,7 +65,7 @@ import type {
   BatteryEngine,
   StoredQuestion,
 } from "@/lib/scan/report";
-import { Num, ratio } from "../_address/measured";
+import { dash, Num, ratio } from "../_address/measured";
 
 /** How many of the twelve the list shows before "Show all 12"
  *  (`BUILD.md` §4.1: "First 4 shown"). A layout parameter of this one
@@ -402,5 +402,23 @@ export function AiAnswersCard(p: {
  *  absent in one written line, and the rest of the report stays usable —
  *  never an empty card, never a spinner. */
 export function AiAnswersAbsent(): React.JSX.Element {
-  return <Card state="degraded" title={<CardHead icon={<Bot size={15} strokeWidth={1.8} aria-hidden />} eyebrow={copy("ai-answers.title")} />} degradedLine={copy("ai-answers.absent")} />;
+  return (
+    <Card
+      state="default"
+      title={
+        <CardHead
+          icon={<Bot size={15} strokeWidth={1.8} aria-hidden />}
+          eyebrow={copy("ai-answers.title")}
+          pill={<Num unmeasured>{dash()}</Num>}
+        />
+      }
+    >
+      <p className="t-sm text-(color:--ink-2)">{copy("ai-answers.absent")}</p>
+      {/* The part this card could not measure is offered again on the card
+          itself, which is where the approved screen puts it. */}
+      <div>
+        <Btn label={copy("control.rescan-incomplete")} variant="secondary" tone="accent" size="sm" pill />
+      </div>
+    </Card>
+  );
 }

@@ -86,8 +86,15 @@ function DriverBar(p: { factor: ScoreFactorName; value: Measured<number> }): Rea
   const tenths = p.value.kind === "unmeasured" ? null : Math.round(p.value.value / TENTHS);
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-1">
-      {tenths === null ? null : <Progress value={tenths} max={TENTHS} label={name} />}
-      <p className="text-xs opacity-60">
+      {/* A driver with no value keeps its track and draws no fill: the
+          approved screen holds the row's place, and a `progress` at zero
+          would claim a measurement of zero. */}
+      {tenths === null ? (
+        <div className="h-(--s-2) rounded-(--r-pill) bg-base-200" aria-hidden />
+      ) : (
+        <Progress value={tenths} max={TENTHS} label={name} />
+      )}
+      <p className={tenths === null ? "text-xs text-(color:--ink-3)" : "text-xs opacity-60"}>
         {name} <Num unmeasured={tenths === null}>{tenths === null ? dash() : ratioOfTen(tenths)}</Num>
       </p>
     </div>

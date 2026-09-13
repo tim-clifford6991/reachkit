@@ -360,6 +360,18 @@ describe("REQ-004 c10/c11 — an absent section is named, and the rest stays usa
     expect(html).toContain("price.amount");
     expect(html).toContain("removal.line.on-report");
   });
+
+  it("offers the missing part again on each absent card, and once in the notice", () => {
+    const withNotice = render(
+      FIXTURE_DEGRADED_REPORT,
+      { kind: "incomplete", unmeasured: ["presence"] },
+      { kind: "rescan", because: "incomplete" }
+    );
+    // The two absent sections and the notice — and the notice's control is
+    // inside it, so the screen never offers the same action twice over.
+    expect(count(withNotice, "control.rescan-incomplete")).toBe(3);
+    expect(count(withNotice, 'role="alert"')).toBe(1);
+  });
 });
 
 describe("REQ-091/092 — cold start: a domain that ranks for nothing still reads", () => {

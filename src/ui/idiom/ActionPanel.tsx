@@ -56,8 +56,10 @@ type ActionPanelBase = {
   icon: React.ReactNode;
   /** Owner's. Required, no default. */
   title: string;
-  /** Owner's. One short explanatory line — §2.5's dim line, not a paragraph. */
-  line: string;
+  /** Owner's. One short explanatory line — §2.5's dim line, not a paragraph.
+   *  Optional: the report's incomplete notice is drawn with its sentence and
+   *  its control alone, so a panel with nothing more to say says nothing. */
+  line?: string;
 };
 
 /** **`specimen` is a fourth arm and not a fourth state** (issue #351).
@@ -107,7 +109,7 @@ export function ActionPanel(p: ActionPanelProps): React.JSX.Element {
       </span>
       <div className="rk-panel-body">
         <p className="rk-panel-title">{p.title}</p>
-        <p className="rk-quiet">{p.line}</p>
+        {p.line === undefined ? null : <p className="rk-quiet">{p.line}</p>}
       </div>
       {p.state === "specimen" ? null : (
         <div className="rk-panel-cta">
