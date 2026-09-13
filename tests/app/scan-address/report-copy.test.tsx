@@ -135,7 +135,9 @@ const SCREEN_KEYS: readonly CopyKey[] = [
   "generated.page.proposed",
   // 6 · pricing
   "price.amount",
+  "price.vat_included",
   "price.interval",
+  "plan.single",
   "offer.cadence.page",
   "offer.cadence.page.value",
   "offer.cadence.measure",

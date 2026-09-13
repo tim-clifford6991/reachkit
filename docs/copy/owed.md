@@ -48,7 +48,7 @@ Every bracketed hint the set draws on this screen: `[robots lines — verbatim, 
 
 | key | standing | where | the set says | fixed by | max |
 |---|---|---|---|---|---|
-| `offer.checkout.refused`<br>`offer.ts` | marker | card · `<Card>` · `app/(public)/scan/[domain]/_modules/pricing.tsx` |  | SPEC.md §3 (2026-09-13) |  |
+| `offer.checkout.refused`<br>`offer.ts` | marker | `PricingCard` · `app/(public)/scan/[domain]/_modules/pricing.tsx` |  | SPEC.md §3 (2026-09-13) |  |
 
 ## S10 · Setup — Join
 

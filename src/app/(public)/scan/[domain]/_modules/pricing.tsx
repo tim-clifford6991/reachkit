@@ -38,7 +38,7 @@
 // screen passes nothing and is unchanged.
 import type React from "react";
 import { Check } from "lucide-react";
-import { Alert, Btn, Card } from "@/ui/components";
+import { Alert, Badge, Btn, Card } from "@/ui/components";
 import { VETO } from "@/lib/config/constants";
 import { copy } from "@/lib/presentation/copy";
 import { Num } from "../_address/measured";
@@ -86,33 +86,46 @@ export function PricingCard(
   const specs = TERM_LINES[p.terms ?? "report"]();
 
   return (
-    // No card head. The approved set draws this card headless on both
-    // surfaces that carry it (UI-SPEC S2 module 6, S4): it opens on the
-    // price, which is the answer §2.5 says a card leads with, and an
-    // eyebrow above it would name the card the button already names.
-    <Card state="default" title={null}>
-      {/* REQ-022 c1: "€49 per month and says that VAT is included". The
-          amount is the ladder's big figure and the terms sit on its
-          baseline beside it. Centred, as the set draws the whole card. */}
-      <div className="flex flex-wrap items-baseline justify-center gap-2 text-center">
-        <div className="font-semibold" style={PRICE_SIZE}>
-          <Num>{copy("price.amount")}</Num>
+    // 2026-09-13, issue #628: `Canvas: Pay` draws the offer ringed — the VAT
+    // pill alone in the head, the price in a tinted box, the terms ticked
+    // under it. No eyebrow: S4 speaks `offer.start` once, above its heading.
+    <Card
+      state="default"
+      accent
+      title={
+        <span className="flex w-full justify-end">
+          <Badge tone="accent">{copy("price.vat_included")}</Badge>
+        </span>
+      }
+    >
+      {/* REQ-022 c1: "€49 per month and says that VAT is included", in the
+          artboard's tinted box. The tint is `--accent-bg`, not the canvas's
+          `tint-violet`, which has no dark value ruled. */}
+      <div className="flex flex-col gap-(--s-2) rounded-(--r-box) border border-(color:--accent-line) bg-(--accent-bg) p-(--s-4)">
+        <div className="flex flex-wrap items-baseline gap-(--s-3)">
+          <div className="font-semibold" style={PRICE_SIZE}>
+            <Num>{copy("price.amount")}</Num>
+          </div>
+          <span className="font-semibold text-(length:--h4) text-(color:--ink-3)">
+            {copy("price.interval")}
+          </span>
         </div>
-        <span className="t-sm font-semibold opacity-60">{copy("price.interval")}</span>
+        {/* The plan's own name, which the artboard prints under the price in
+            the accent — the same public fact §4.7's Billing card states. */}
+        <p className="font-bold text-(length:--t-sm) text-primary">{copy("plan.single")}</p>
       </div>
 
       {/* The four the offer states, each with the set's own check mark in
-          `--ok` and a hairline between them — a list of what is included,
-          which is what a tick means and the one place `--ok` is not a
-          state on this screen. The glyph is decorative: every row says in
-          writing what it includes. */}
-      <ul className="flex list-none flex-col p-0 text-left">
+          `--ok` — a list of what is included, which is what a tick means
+          and the one place `--ok` is not a state on this screen. The glyph
+          is decorative: every row says in writing what it includes. */}
+      <ul className="flex list-none flex-col gap-(--s-2) p-0 text-left">
         {specs.map((line) => (
           <li
             key={line}
-            className="border-base-300 t-sm flex items-center gap-3 border-t py-2 first:border-t-0"
+            className="flex items-start gap-(--s-3) text-(length:--t-sm) text-(color:--ink-2)"
           >
-            <Check size={15} strokeWidth={2.4} className="text-success shrink-0" aria-hidden />
+            <Check size={20} strokeWidth={1.75} className="text-success shrink-0" aria-hidden />
             <span>{line}</span>
           </li>
         ))}
@@ -123,14 +136,16 @@ export function PricingCard(
           try again — never a thrown error and a 500. */}
       {p.refused ? <Alert tone="bad" message={copy("offer.checkout.refused")} /> : null}
 
+      {/* The artboard draws the control at the field radius, not the pill:
+          it is the width of the card and a pill that wide reads as a bar. */}
       {p.startAction ? (
         <form action={p.startAction}>
-          <Btn label={copy("offer.start.priced")} variant="primary" pill block type="submit" />
+          <Btn label={copy("offer.start.priced")} variant="primary" block type="submit" />
         </form>
       ) : (
-        <Btn label={copy("offer.start.priced")} variant="primary" pill block />
+        <Btn label={copy("offer.start.priced")} variant="primary" block />
       )}
-      <p className="t-explain text-center opacity-60">{copy("offer.cancel_self_service")}</p>
+      <p className="explain">{copy("offer.cancel_self_service")}</p>
     </Card>
   );
 }

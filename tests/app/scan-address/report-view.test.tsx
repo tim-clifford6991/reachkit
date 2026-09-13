@@ -341,6 +341,21 @@ describe("ruling 2b (2026-09-08) — this screen has two solids, and they are th
   });
 });
 
+// `Canvas: Pay` (issue #628) — the offer card's own anatomy on the report.
+describe("Canvas: Pay — the offer card as the artboard draws it", () => {
+  const html = render(FIXTURE_REPORT);
+
+  it("the head is the VAT pill, and the card is the ringed one", () => {
+    expect(html).toContain("price.vat_included");
+    expect(html).toContain("rk-accent-ring");
+  });
+
+  it("the tinted box names the plan under the amount", () => {
+    expect(html).toContain("plan.single");
+    expect(html.indexOf("price.amount")).toBeLessThan(html.indexOf("plan.single"));
+  });
+});
+
 describe("REQ-004 c10/c11 — an absent section is named, and the rest stays usable", () => {
   const html = render(FIXTURE_DEGRADED_REPORT);
 
