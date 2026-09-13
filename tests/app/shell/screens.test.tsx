@@ -146,7 +146,9 @@ describe("settings — the built screen keeps the three contracts the frame set"
       expect(html).not.toContain("settings.head");
       expect(html).not.toContain("<p></p>");
     } else {
-      expect(html).toContain("<p>settings.head</p>");
+      // The paragraph carries the artboard's own quiet ink since #636, so
+      // what is asserted is the line and its element, not bare markup.
+      expect(html).toMatch(/<p[^>]*>settings\.head<\/p>/);
     }
   });
 

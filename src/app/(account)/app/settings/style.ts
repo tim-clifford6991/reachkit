@@ -39,8 +39,9 @@ export const VALUE = "num min-w-0 wrap-anywhere";
 /** A card's one headline figure, at the artboard's h2. */
 export const FIGURE = "num text-(length:--h2) font-semibold wrap-anywhere";
 
-/** The quiet line a card answers with, and the smaller aside under it. */
-export const QUIET = "min-w-0 text-(length:--t-sm) text-(color:--ink-2) wrap-anywhere";
+/** The quiet line under the screen's own title: body size in the quiet ink,
+ *  which is what the artboard draws there. */
+export const QUIET = "min-w-0 text-(color:--ink-2) wrap-anywhere";
 export const EXPLAIN = "explain min-w-0 wrap-anywhere";
 
 /** The artboard's inset row: a destination on its own tinted ground. */
