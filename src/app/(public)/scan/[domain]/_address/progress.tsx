@@ -1,42 +1,18 @@
-// BUILD §4.1 — the scanning arm's named stages
-//
-// REQ-003 c1: named stages that advance as work completes — never an
-// unlabelled spinner and never an indeterminate bar alone.
-//
-// **Each finished stage carries the time it took** (UI-SPEC S3, issue
-// #352). It is measured in the browser, from the frame this component
-// mounted on to the event that finished the stage, so it is an elapsed
-// time and never a countdown, a percentage or an estimate: nothing here
-// predicts when the scan ends, and the running stage carries no figure at
-// all — a number beside it would be a promise the scan has not made.
-//
-// REQ-001 c9: arriving on a shared link starts a scan with no further
-// action from the visitor. The post happens **on first frame, in the
-// browser** and never during server render — a server render that started
-// a scan would start one for every crawler, prefetch and refresh.
-//
-// REQ-003 c3: the ending event swaps the report in without a reload. This
-// component asks the router to re-render the route rather than reloading
-// the document: the server resolves the address again, now finds a stored
-// report, and the `report` arm replaces this one in place.
-//
-// The stream is `GET /api/scan/{scanId}/progress` (server-sent events),
-// which serialises `@/lib/scan/stages`' own `StageEvent` verbatim.
+// BUILD §4.1 / SPEC §2 — the scanning arm, as `Canvas: ScanProgress` draws
+// it: one row per named stage with its own elapsed time, and a determinate
+// bar under them. No spinner, no percentage, no countdown.
 //
 // **`StageName` is imported as a type and never as a value.**
-// `src/lib/scan/stages.ts` imports `dbAdmin`, and through it
-// `src/lib/config/env.ts`, which parses the server's environment at module
-// load — a value import of `STAGES` from a `"use client"` module would
-// drag the admin database client and the whole server environment into the
-// browser bundle. The six handles are the keys of `STAGE_KEY` below, whose
-// `satisfies Record<StageName, CopyKey>` is the compile-time guarantee
-// that they are exactly the six the engine declares: a seventh stage
-// added there fails this file's build until it has a word here.
+// `src/lib/scan/stages.ts` reaches `dbAdmin` and the parsed server
+// environment, which a `"use client"` module must not pull into the bundle;
+// `satisfies Record<StageName, CopyKey>` below is what still fails the build
+// when the engine declares a seventh stage with no word here.
 "use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Steps } from "@/ui/components";
+import { Circle, CircleCheck, CircleDot } from "lucide-react";
+import { Progress } from "@/ui/components";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import type { StageEvent, StageName } from "@/lib/scan/stages";
 import type { CanonicalDomain } from "@/lib/scan/domain";
@@ -57,8 +33,51 @@ const STAGE_KEY = {
  *  checked against the union by the `satisfies` above. */
 const STAGES = Object.keys(STAGE_KEY) as readonly StageName[];
 
+type StageState = "done" | "active" | "pending";
+
+/** The artboard's glyph and ink per state: the finished stage checked in
+ *  `--ok`, the running one in the accent, the ones ahead of it quiet. */
+const GLYPH: Record<StageState, typeof Circle> = {
+  done: CircleCheck,
+  active: CircleDot,
+  pending: Circle,
+};
+const ICON_CLASS: Record<StageState, string> = {
+  done: "text-success",
+  active: "text-primary",
+  pending: "text-(color:--ink-3)",
+};
+const LABEL_CLASS: Record<StageState, string> = {
+  done: "",
+  active: "font-semibold text-primary",
+  pending: "text-(color:--ink-3)",
+};
+const TIME_CLASS: Record<StageState, string> = {
+  done: "text-(color:--ink-2)",
+  active: "text-primary",
+  pending: "text-(color:--ink-3)",
+};
+
+/** The set's icon: 20px at stroke 1.75 (`docs/DESIGN.md`, "Icons"). */
+const ICON_SIZE = 20;
+const ICON_STROKE = 1.75;
+
+/** Two units of the bar per finished stage and one for the stage under way,
+ *  which is the fill the artboard draws with three done and a fourth
+ *  running. The bar counts stages; it predicts nothing. */
+const PER_STAGE = 2;
+
+/** The clock the running stage's figure is read off, ticked once a second
+ *  so an elapsed time stays elapsed rather than freezing at its start. */
+const TICK_MS = 1000;
+
 function isStageEvent(value: unknown): value is StageEvent {
   return typeof value === "object" && value !== null;
+}
+
+/** Whole seconds between two marks, or 0 where the first never arrived. */
+function secondsBetween(from: number | undefined, to: number): number {
+  return from === undefined ? 0 : Math.max(0, Math.round((to - from) / TICK_MS));
 }
 
 export function ScanProgress(p: {
@@ -69,12 +88,12 @@ export function ScanProgress(p: {
 }): React.JSX.Element {
   const router = useRouter();
   const [scanId, setScanId] = useState<string | undefined>(p.scanId);
-  const [done, setDone] = useState<ReadonlySet<StageName>>(new Set());
-  const [active, setActive] = useState<StageName | undefined>(undefined);
-  /** Whole seconds from this component's first frame to each stage's own
-   *  ending event. `useState`'s initialiser runs once, in the browser. */
-  const [startedAt] = useState<number>(() => Date.now());
-  const [elapsed, setElapsed] = useState<Readonly<Record<string, number>>>({});
+  /** When each stage started and when it finished, both measured in the
+   *  browser. A stage's figure is the distance between its own two marks —
+   *  its duration, as the artboard draws it, never a total or an estimate. */
+  const [began, setBegan] = useState<Readonly<Record<string, number>>>({});
+  const [ended, setEnded] = useState<Readonly<Record<string, number>>>({});
+  const [now, setNow] = useState<number>(() => Date.now());
 
   // First frame, browser only: claim a scan if the address did not hand
   // one over. `location` is the canonical address and is ignored here —
@@ -109,6 +128,9 @@ export function ScanProgress(p: {
     source.onmessage = (message: MessageEvent<string>) => {
       const parsed: unknown = JSON.parse(message.data);
       if (!isStageEvent(parsed)) return;
+      // REQ-003 c3: the ending event swaps the report in with no reload —
+      // the server resolves the address again and the `report` arm replaces
+      // this one in place.
       if ("ending" in parsed) {
         source.close();
         router.refresh();
@@ -116,38 +138,62 @@ export function ScanProgress(p: {
       }
       if ("stage" in parsed) {
         const event = parsed;
-        if (event.done) {
-          setDone((previous) => new Set(previous).add(event.stage));
-          setElapsed((previous) =>
-            event.stage in previous
-              ? previous
-              : { ...previous, [event.stage]: Math.max(0, Math.round((Date.now() - startedAt) / 1000)) }
-          );
-          setActive((current) => (current === event.stage ? undefined : current));
-        } else {
-          setActive(event.stage);
-        }
+        const at = Date.now();
+        const mark = (previous: Readonly<Record<string, number>>) =>
+          event.stage in previous ? previous : { ...previous, [event.stage]: at };
+        if (event.done) setEnded(mark);
+        else setBegan(mark);
       }
     };
     return () => {
       source.close();
     };
-  }, [router, scanId, startedAt]);
+  }, [router, scanId]);
+
+  const stateOf = (stage: StageName): StageState =>
+    ended[stage] !== undefined ? "done" : began[stage] !== undefined ? "active" : "pending";
+  const secondsOf = (stage: StageName): number =>
+    secondsBetween(began[stage], ended[stage] ?? now);
+
+  const running = STAGES.some((stage) => stateOf(stage) === "active");
+  useEffect(() => {
+    if (!running) return;
+    const tick = setInterval(() => setNow(Date.now()), TICK_MS);
+    return () => {
+      clearInterval(tick);
+    };
+  }, [running]);
+
+  const filled = STAGES.reduce((total, stage) => {
+    const state = stateOf(stage);
+    return total + (state === "done" ? PER_STAGE : state === "active" ? 1 : 0);
+  }, 0);
 
   return (
-    <Steps
-      direction="vertical"
-      steps={STAGES.map((stage) => {
-        const seconds = elapsed[stage];
-        return {
-          id: stage,
-          label: copy(STAGE_KEY[stage]),
-          state: done.has(stage) ? "done" : stage === active ? "active" : "pending",
-          // Only a stage that finished has a time; the one running and the
-          // ones ahead of it carry none.
-          note: seconds === undefined ? undefined : copy("stage.elapsed", { seconds: String(seconds) }),
-        };
-      })}
-    />
+    <div className="flex flex-col gap-(--s-4)">
+      <ol className="flex flex-col divide-y divide-base-300 border-y border-base-300">
+        {STAGES.map((stage) => {
+          const state = stateOf(stage);
+          const Glyph = GLYPH[state];
+          return (
+            <li key={stage} className="flex items-center gap-(--s-3) py-(--s-2)">
+              <Glyph
+                size={ICON_SIZE}
+                strokeWidth={ICON_STROKE}
+                className={`shrink-0 ${ICON_CLASS[state]}`}
+                aria-hidden
+              />
+              <span className={`min-w-0 flex-1 ${LABEL_CLASS[state]}`}>{copy(STAGE_KEY[stage])}</span>
+              <span className={`num t-sm ${TIME_CLASS[state]}`}>
+                {copy("stage.elapsed", { seconds: String(secondsOf(stage)) })}
+              </span>
+            </li>
+          );
+        })}
+      </ol>
+      {/* Determinate by construction (`Progress` takes no indeterminate
+          arm): it counts the stages behind it and promises no finish time. */}
+      <Progress value={filled} max={STAGES.length * PER_STAGE} />
+    </div>
   );
 }

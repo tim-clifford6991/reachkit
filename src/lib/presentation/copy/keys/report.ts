@@ -161,6 +161,10 @@ export const REPORT_COPY = Object.freeze({
     "Under a minute. This address is permanent — you can come back to it.",
     { slots: {}, fixedBy: "REQ-003 c1" },
   ],
+  // The status line the `ScanProgress` artboard draws under the domain,
+  // bracketed there and so the owner's to write. It declares no slot: a
+  // slot the sentence never spends is a placeholder nothing substitutes.
+  "scan.status.line": ["TODO(copy)", { slots: {}, fixedBy: "SPEC §2 · Canvas: Scan progress" }],
 
   // ── Module 2, left card — AI answers (REQ-006) ────────────────────────
   "ai-answers.title": ["AI answers", { slots: {}, fixedBy: "REQ-006 c1" }],

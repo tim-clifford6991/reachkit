@@ -132,9 +132,19 @@ describe("REQ-003 c1 — the scanning arms show named stages, never a bare spinn
     for (const stage of STAGES) expect(html).toContain(`stage.${stage}`);
   });
 
-  it("shows no percentage, countdown or indeterminate bar", () => {
+  it("every stage carries an elapsed figure, and the head carries the status line", () => {
     const html = render(ARMS[3]![1]);
-    expect(html).not.toContain("<progress");
+    // `stage.elapsed` is `{seconds} s`, and the mock renders a key with its
+    // slots: six rows, six figures, and none of them a countdown.
+    expect(html.split("stage.elapsed(").length - 1).toBe(STAGES.length);
+    expect(html).toContain("scan.status.line");
+  });
+
+  it("the bar is determinate, and no percentage or countdown is written", () => {
+    // The artboard draws a bar under the stages; `Progress` has no
+    // indeterminate arm, so it renders with both `value` and `max`.
+    const html = render(ARMS[3]![1]);
+    expect(html).toMatch(/<progress[^>]*value="\d+"[^>]*max="\d+"/);
     expect(html).not.toContain("%");
   });
 

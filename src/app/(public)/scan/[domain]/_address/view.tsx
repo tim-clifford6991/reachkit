@@ -37,15 +37,24 @@ import { Num } from "./measured";
  *  The domain is a value: mono, and never rewritten to fit. */
 function StateCard(p: {
   domain: string;
+  /** The quiet line the artboard draws under the domain, where the arm has
+   *  one: what is happening to this address, in the head rather than the
+   *  body. Absent on the arms whose whole body is that sentence. */
+  note?: string;
   children: React.ReactNode;
 }): React.JSX.Element {
   return (
     <Card
       state="default"
       title={
-        <h3 className="min-w-0 overflow-x-auto">
-          <Num>{p.domain}</Num>
-        </h3>
+        <div className="flex min-w-0 flex-col gap-(--s-1)">
+          <h3 className="min-w-0 overflow-x-auto">
+            <Num>{p.domain}</Num>
+          </h3>
+          {p.note === undefined ? null : (
+            <p className="t-sm font-normal text-(color:--ink-3)">{p.note}</p>
+          )}
+        </div>
       }
     >
       {p.children}
@@ -62,7 +71,8 @@ function Pane(p: { children: React.ReactNode }): React.JSX.Element {
         wide: { kind: "same-as-below" },
       }}
     >
-      <main className="mx-auto flex max-w-[640px] flex-col gap-4 p-6">
+      {/* The artboard's measure: one `--w-read` card, centred. */}
+      <main className="mx-auto flex max-w-(--w-read) flex-col gap-(--s-4) p-(--s-5)">
         {p.children}
       </main>
     </Surface>
@@ -110,21 +120,21 @@ export function AddressView(p: {
     case "starting":
       return (
         <Pane>
-          <StateCard domain={state.domain}>
+          <StateCard domain={state.domain} note={copy("scan.status.line")}>
             <ScanProgress domain={state.domain} />
-            <p className="t-explain opacity-60">{copy("scan.waiting.line")}</p>
+            <p className="t-sm text-(color:--ink-2)">{copy("scan.waiting.line")}</p>
           </StateCard>
         </Pane>
       );
     case "scanning":
       return (
         <Pane>
-          <StateCard domain={state.domain}>
+          <StateCard domain={state.domain} note={copy("scan.status.line")}>
             <ScanProgress domain={state.domain} scanId={state.scanId} />
-            {/* REQ-003 c1's own frame, and the set's line: what the wait is
-                worth, and that the address survives it. No countdown — the
-                stages carry the only figures on this screen. */}
-            <p className="t-explain opacity-60">{copy("scan.waiting.line")}</p>
+            {/* The artboard's closing line: what the wait is worth, and that
+                the address survives it. No countdown — the stages and the
+                bar carry the only figures on this screen. */}
+            <p className="t-sm text-(color:--ink-2)">{copy("scan.waiting.line")}</p>
           </StateCard>
         </Pane>
       );
