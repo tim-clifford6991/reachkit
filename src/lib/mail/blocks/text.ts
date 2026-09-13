@@ -13,7 +13,7 @@
 import { copy } from "@/lib/presentation/copy";
 import { generatedLabel } from "@/lib/presentation/generated";
 import { formatStat } from "./format";
-import { factRowsOf, rowsOf } from "./html";
+import { DONE_MARK, factRowsOf, rowsOf, stepRowsOf } from "./html";
 import { isMeasuredEmpty, omittedIndexes } from "./omit";
 import type { MailBlock } from "./types";
 
@@ -70,6 +70,21 @@ export function renderBlocksText(blocks: readonly MailBlock[]): {
           isMeasuredEmpty(block)
             ? rowLines(copy(block.label), [], copy(block.emptyLine))
             : rowLines(copy(block.label), rowsOf(block), null)
+        );
+        break;
+      case "eyebrow":
+        parts.push(copy(block.text));
+        break;
+      case "steps":
+        // The same rows, one step to a line, its own line indented under
+        // it — the panel's layout, in the only way text has of drawing one.
+        parts.push(
+          stepRowsOf(block)
+            .map((item) => {
+              const head = `${item.index} ${item.label}${item.done ? ` ${DONE_MARK}` : ""}`;
+              return item.line === null ? head : `${head}\n   ${item.line}`;
+            })
+            .join("\n")
         );
         break;
       case "facts":

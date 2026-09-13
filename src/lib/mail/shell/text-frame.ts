@@ -31,6 +31,7 @@ export function frameText(parts: TextFrameParts): string {
   // the same footer rather than a bare URL.
   const footer: string[] = [FOOTER_RULE];
   if (parts.reason !== null) footer.push(parts.reason);
+  for (const note of parts.notes) footer.push(note);
   if (parts.optOut !== null) footer.push(`${parts.optOut.label}: ${parts.optOut.href}`);
   footer.push(
     [parts.wordmark, parts.imprint, parts.plainTextNote]

@@ -34,6 +34,9 @@ export interface FrameParts {
    * until the owner writes the imprint itself, which the set brackets.
    */
   reason: string | null;
+  /** The footer lines the canvas draws under the reason — today, the one
+   *  naming a way to reach a person. Already-rendered sentences. */
+  notes: readonly string[];
   imprint: string | null;
   plainTextNote: string;
   /** Rendered when the caller supplies a stop control. Its label is
@@ -57,8 +60,10 @@ function footerHtml(parts: FrameParts): string {
   const band = [parts.wordmark, parts.imprint, parts.plainTextNote]
     .filter((piece): piece is string => piece !== null && piece !== "")
     .join(BAND_SEPARATOR);
+  const notes = parts.notes.map((note) => `<p style="margin:0">${escapeHtml(note)}</p>`).join("");
   return [
     reason,
+    notes,
     optOutHtml(parts.optOut),
     `<p style="margin:0;padding-top:8px">${escapeHtml(band)}</p>`,
   ].join("");
@@ -105,12 +110,13 @@ export function frameHtml(parts: FrameParts): string {
     brandHeadHtml(parts.wordmark),
     parts.rows,
     wholeMailLineHtml(parts.wholeMailLine),
-    `</table>`,
-    `</td></tr>`,
     // The whole footer is mono, as S20 draws it — the reason line included,
-    // not only the imprint band.
-    `<tr><td style="padding:14px 0 0 0;font-family:${token("--font-mono-mail")};font-size:${token("--t-xs")};line-height:1.5;color:${token("--ink-3")}">`,
+    // not only the imprint band — and it sits inside the card under a
+    // hairline, which is how every mail artboard on the canvas draws it.
+    `<tr><td style="padding:14px 0 0 0;border-top:1px solid ${token("--line")};font-family:${token("--font-mono-mail")};font-size:${token("--t-xs")};line-height:1.5;color:${token("--ink-3")}">`,
     footerHtml(parts),
+    `</td></tr>`,
+    `</table>`,
     `</td></tr>`,
     `</table></td></tr></table></body></html>`,
   ].join("");

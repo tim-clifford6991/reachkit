@@ -1,6 +1,6 @@
 // BUILD §12 — the only vocabulary a mail template may speak.
 //
-// Eight arms, and nothing else. A template hands `composeMail()` a list of
+// Ten arms, and nothing else. A template hands `composeMail()` a list of
 // these and holds no conditional of its own: every value that can be
 // absent enters as a `Measured<T>` (`src/lib/measure/measured.ts`), so a
 // template cannot format a number itself and cannot forget BUILD §12's
@@ -12,7 +12,7 @@
 // string that is not a key — the draft page itself — and it carries the
 // two fields `generatedLabel()` needs, so model text cannot reach a mail
 // without the label that identifies it (ADR-012, §8's `GeneratedText`
-// rule). There is no ninth arm and no free-string escape hatch.
+// rule). There is no eleventh arm and no free-string escape hatch.
 import type { Measured } from "@/lib/measure/measured";
 import type { CopyKey } from "@/lib/presentation/copy";
 
@@ -52,6 +52,16 @@ export interface VerdictRow {
   readonly subject: CopyKey;
   readonly subjectVars?: CopyVars;
   readonly verdict: CopyKey;
+}
+
+/** One row of a `steps` block — the numbered panel the canvas draws on the
+ *  welcome mail. `line` is the row's own second sentence where it has one,
+ *  and `done` marks a step the reader is already past. Both halves are
+ *  keys; the row's number is its position, which nobody wrote. */
+export interface StepRow {
+  readonly label: CopyKey;
+  readonly line?: CopyKey;
+  readonly done?: boolean;
 }
 
 /** How a `stat` block's number is written. Three forms, closed: a plain
@@ -103,6 +113,13 @@ export type MailBlock =
       readonly block: "facts";
       readonly items: readonly FactRow[];
     }
+  | {
+      /** The sequence position the canvas draws over the heading. One
+       *  written line, never composed here from a count and a name. */
+      readonly block: "eyebrow";
+      readonly text: CopyKey;
+    }
+  | { readonly block: "steps"; readonly items: readonly StepRow[] }
   | { readonly block: "action"; readonly label: CopyKey; readonly href: string }
   | { readonly block: "notice"; readonly text: CopyKey; readonly vars?: CopyVars }
   | {

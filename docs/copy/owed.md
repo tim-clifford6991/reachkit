@@ -2,7 +2,7 @@
 
 **Generated. Do not type into this file** — `npm run copy:owed` rewrites it and `tests/presentation/copy/owed-sheet.test.ts` fails when it is out of date. Write the sentences in your reply, or straight into `src/lib/presentation/copy/keys/*.ts`, and run the generator again: a key that gains a sentence leaves this sheet by itself.
 
-**18 keys**, across 819 in the registry — **0 empty** (`copy()` throws on these: a mail with one does not send, a screen with one does not render) and **18 `TODO(copy)`** (these render the marker, in public, until they are written).
+**24 keys**, across 825 in the registry — **0 empty** (`copy()` throws on these: a mail with one does not send, a screen with one does not render) and **24 `TODO(copy)`** (these render the marker, in public, until they are written).
 
 **How to read a row.**
 
@@ -38,7 +38,7 @@ A key with slots (`{value}`, `{date}`) carries them beside its name; the sentenc
 | S17 | Draft · edit | none | 0 |
 | S18 | [Settings](#s18-settings-app) | 1 | 0 |
 | S19 | Hosted page | none | 0 |
-| S20 | Mails | none | 0 |
+| S20 | [Mails](#s20-mails-mail) | 6 | 0 |
 
 ## S10 · Setup — Join
 
@@ -75,4 +75,19 @@ Every bracketed hint the set draws on this screen: `[voice description — the c
 | key | standing | where | the set says | fixed by | max |
 |---|---|---|---|---|---|
 | `settings.voice.save`<br>`settings.ts` | marker | `<span>` · `app/(account)/app/settings/panels/VoicePanel.tsx` |  | SPEC.md §5 (2026-09-12) | 97 — sibling `settings.voice.filter-note` |
+
+## S20 · Mails — Mail
+
+Screen `S20` · the set draws it as `current="mail"` (`docs/archive/2026-09-11/approved/full-set/screens/mail-light.png`).
+
+Every bracketed hint the set draws on this screen: `[imprint line]`
+
+| key | standing | where | the set says | fixed by | max |
+|---|---|---|---|---|---|
+| `mail.reason.welcome`<br>`mail.ts` | marker | `WELCOME_REASON` · `lib/mail/templates/magic-link/index.ts` |  | SPEC.md §8 · Canvas: MailWelcome | 86 — sibling `mail.reason.firstPage` |
+| `mail.welcome.body`<br>`mail.ts` | marker | `WELCOME_BODY` · `lib/mail/templates/magic-link/index.ts` |  | SPEC.md §8 · Canvas: MailWelcome | 85 — sibling `mail.magicLink.body` |
+| `mail.welcome.eyebrow`<br>`mail.ts` | marker | `WELCOME_EYEBROW` · `lib/mail/templates/magic-link/index.ts` |  | SPEC.md §8 · Canvas: MailWelcome |  |
+| `mail.welcome.heading`<br>`mail.ts` | marker | `WELCOME_HEADING` · `lib/mail/templates/magic-link/index.ts` |  | SPEC.md §8 · Canvas: MailWelcome | 20 — sibling `mail.report.heading` |
+| `mail.welcome.step.scan`<br>`mail.ts` | marker | `WELCOME_SCAN` · `lib/mail/templates/magic-link/index.ts` |  | SPEC.md §8 · Canvas: MailWelcome |  |
+| `mail.welcome.step.scan.line`<br>`mail.ts` | marker | `WELCOME_SCAN_LINE` · `lib/mail/templates/magic-link/index.ts` |  | SPEC.md §8 · Canvas: MailWelcome |  |
 

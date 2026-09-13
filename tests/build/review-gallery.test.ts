@@ -62,7 +62,7 @@ const SHOTS = galleryShots(COOKIES);
 
 /** The mails `tests/mail/preview` composes today. Named here so the coverage
  *  assertion below counts S20 the way a real run does. */
-const MAIL_KINDS = ["magic-link", "report", "draft-ready"];
+const MAIL_KINDS = ["welcome", "magic-link", "report", "draft-ready"];
 
 function source(rel: string): string {
   return readFileSync(path.join(REPO, rel), "utf8");

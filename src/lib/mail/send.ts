@@ -17,7 +17,7 @@
 // caller that must send at most once carries its own natural key. It
 // retries nothing either; the retry window belongs to whoever owns the
 // occasion.
-import type { CopyKey } from "@/lib/presentation/copy";
+import { TODO_COPY_MARKER, type CopyKey } from "@/lib/presentation/copy";
 import type { CopyVars, MailBlock } from "./blocks/types";
 import { MAIL_KINDS, type MailKind } from "./kinds";
 import { stoppedByPreference } from "./notifications";
@@ -39,6 +39,8 @@ interface SendCommon {
   reason?: CopyKey;
   /** The reason line's own slots, where its sentence takes one. */
   reasonVars?: CopyVars;
+  /** The footer lines drawn under the reason, carried through as keys. */
+  notes?: readonly CopyKey[];
   optOut?: OptOutControl;
   /** The one occasion a togglable mail is sent anyway: a page going live
    *  under autopilot at a veto window of zero, where the mail is the whole
@@ -154,6 +156,17 @@ export async function sendEmail(m: SendInput): Promise<SendResult> {
     return { sent: false, reason: "not-composable" };
   }
 
+  // §8: a sentence the owner has not written sends nothing at all. An empty
+  // value is already refused by `copy()` above; the other owner-owed
+  // standing renders its marker, and this is what stops that reaching a reader.
+  if (composed.html.includes(TODO_COPY_MARKER) || composed.text.includes(TODO_COPY_MARKER)) {
+    log({ kind: m.kind, recipient: recipientEarly, outcome: "not-composable", omitted: 0, vendorId: null });
+    console.warn(
+      JSON.stringify({ event: "mail_not_composable", kind: m.kind, detail: "owner-owed marker" })
+    );
+    return { sent: false, reason: "not-composable" };
+  }
+
   const recipient = recipientEarly;
   const omitted = composed.omitted.length;
 
@@ -197,6 +210,7 @@ function compose(m: SendInput): ReturnType<typeof composeMail> {
         blocks: m.blocks,
         reason: m.reason,
         reasonVars: m.reasonVars,
+        notes: m.notes,
         optOut: m.optOut,
         measurement: m.measurement,
       })
@@ -207,6 +221,7 @@ function compose(m: SendInput): ReturnType<typeof composeMail> {
         blocks: m.blocks,
         reason: m.reason,
         reasonVars: m.reasonVars,
+        notes: m.notes,
         optOut: m.optOut,
       });
 }

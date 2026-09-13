@@ -34,6 +34,9 @@ export const MAIL_TOKENS = Object.freeze({
   "--on-accent": "#ffffff",
   "--accent-bg": "#eeecfd",
   "--accent-line": "#ddd8fa",
+  // The one meaning colour a mail spends: the mark on a step already done
+  // (the canvas draws it on MailWelcome). The other eight have no mail.
+  "--ok": "#1f8a6b",
   "--r-box": "14px",
   "--r-field": "9px",
   "--r-pill": "999px",

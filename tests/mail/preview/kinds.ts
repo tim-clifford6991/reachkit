@@ -42,8 +42,11 @@ const PREVIEW_PAGE: DraftReadyPage = {
   markdown: "# How to choose onboarding software\n\nThe page, as written.",
 };
 
-/** The seven the set draws, in its own order. */
+/** The seven the set draws, in its own order, plus the one the canvas
+ *  draws: `welcome` is the provisioning arm of the `magic-link` row (issue
+ *  #637), composed here so it is photographed beside its artboard. */
 export const PREVIEW_KINDS = [
+  "welcome",
   "magic-link",
   "report",
   "first-page",
@@ -61,6 +64,17 @@ export async function composePreview(kind: PreviewKind): Promise<ComposedMail> {
   const { composeMail } = await import("../../../src/lib/mail/shell/compose");
 
   switch (kind) {
+    case "welcome": {
+      const { buildWelcome } = await import("../../../src/lib/mail/templates/magic-link");
+      const mail = buildWelcome({ href: `${APP}/signin?t=preview` });
+      return composeMail({
+        kind: "magic-link",
+        subject: mail.subject,
+        blocks: mail.blocks,
+        reason: mail.reason,
+        notes: mail.notes,
+      });
+    }
     case "magic-link": {
       const { buildMagicLink } = await import("../../../src/lib/mail/templates/magic-link");
       const mail = buildMagicLink({ href: `${APP}/signin?t=preview`, address: "you@company.com" });

@@ -64,6 +64,9 @@ interface ComposeCommon {
   /** The reason line's own slots, where its sentence takes one — the
    *  report's removal address is the only such slot today. */
   reasonVars?: CopyVars;
+  /** The footer lines the canvas draws under the reason — today, the one
+   *  naming a way to reach a person. Keys, like every other sentence. */
+  notes?: readonly CopyKey[];
   optOut?: OptOutControl;
 }
 
@@ -167,6 +170,7 @@ export function composeMail(m: ComposeInput): ComposedMail {
   const footer = {
     wordmark,
     reason: m.reason === undefined ? null : copy(m.reason, m.reasonVars),
+    notes: (m.notes ?? []).map((note) => copy(note)),
     imprint,
     plainTextNote: copy(PLAIN_TEXT_NOTE),
   };

@@ -158,6 +158,20 @@ export const MAIL_COPY = Object.freeze({
   ],
   "mail.magicLink.action": ["Sign in", { slots: {}, fixedBy: "REQ-024 c1 · S20 (11a)" }],
 
+  // 2026-09-13, issue #637. The welcome mail the canvas draws
+  // (docs/design/canvas/MailWelcome.dc.html). Every other sentence on that
+  // artboard quotes a key that already exists; these six are the ones it
+  // brackets, so they are the owner's. They carry the renderable marker
+  // rather than the empty value — the mail has to be reviewable beside its
+  // artboard — and `sendEmail` refuses any mail still carrying one, so §8's
+  // "an unwritten key sends nothing at all" holds for both standings.
+  "mail.welcome.eyebrow": ["TODO(copy)", { slots: {}, fixedBy: "SPEC.md §8 · Canvas: MailWelcome" }],
+  "mail.welcome.heading": ["TODO(copy)", { slots: {}, fixedBy: "SPEC.md §8 · Canvas: MailWelcome" }],
+  "mail.welcome.body": ["TODO(copy)", { slots: {}, fixedBy: "SPEC.md §8 · Canvas: MailWelcome" }],
+  "mail.welcome.step.scan": ["TODO(copy)", { slots: {}, fixedBy: "SPEC.md §8 · Canvas: MailWelcome" }],
+  "mail.welcome.step.scan.line": ["TODO(copy)", { slots: {}, fixedBy: "SPEC.md §8 · Canvas: MailWelcome" }],
+  "mail.reason.welcome": ["TODO(copy)", { slots: {}, fixedBy: "SPEC.md §8 · Canvas: MailWelcome" }],
+
   // The 15-minute chase (REQ-024 c5): the payment succeeded, and either a
   // working link or a written statement that the account is not open yet.
   // Two bodies, not one with a conditional: "here is your way in" and "we

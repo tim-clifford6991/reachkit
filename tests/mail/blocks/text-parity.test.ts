@@ -5,9 +5,11 @@ import { renderBlocksText } from "../../../src/lib/mail/blocks/text";
 import { measured, measuredZero } from "../../../src/lib/measure/measured";
 import * as f from "../fixtures";
 
-// Seven of the eight arms. `pageBody` is exercised in page-body.test.ts,
+// Nine of the ten arms. `pageBody` is exercised in page-body.test.ts,
 // where the owner-owed label is handled explicitly.
 const ALL_ARMS = [
+  f.EYEBROW,
+  f.STEPS,
   f.HEADING,
   f.PARAGRAPH,
   f.stat(f.num(12), { note: f.NOTE_KEY }),

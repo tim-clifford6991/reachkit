@@ -1,4 +1,4 @@
-// BUILD §12 · §2.1 · §2.3 — the HTML rendering of the eight blocks.
+// BUILD §12 · §2.1 · §2.3 — the HTML rendering of the ten blocks.
 //
 // One render function per arm, table-based (the only layout an inbox can
 // be relied on to lay out), every colour and font stack named through
@@ -62,7 +62,7 @@ function label(text: string): string {
 
 function renderHeading(text: string): string {
   return row(
-    `<h3 style="margin:0;font-size:${token("--h3")};font-weight:700;letter-spacing:-0.02em;color:${token("--ink")}">${escapeHtml(text)}</h3>`
+    `<h3 style="margin:0;font-size:${token("--h2")};line-height:1.2;font-weight:700;letter-spacing:-0.02em;color:${token("--ink")}">${escapeHtml(text)}</h3>`
   );
 }
 
@@ -123,13 +123,59 @@ function renderFacts(rows: readonly { label: string; value: string }[]): string 
   );
 }
 
+/** The sequence position over the heading, as the canvas draws it: eyebrow
+ *  size, uppercase, the wide tracking, in the quiet ink. */
+function renderEyebrow(text: string): string {
+  return row(
+    `<div style="font-size:${token("--t-eyebrow")};text-transform:uppercase;font-weight:700;letter-spacing:0.1em;color:${token("--ink-3")}">${escapeHtml(text)}</div>`
+  );
+}
+
+/** The mark a finished step carries. A character and not an inline SVG:
+ *  Gmail strips `<svg>` outright, and a step that lost its mark would read
+ *  as one still to do. */
+export const DONE_MARK = "\u2713";
+
+/** The tinted panel of numbered steps the canvas draws (MailWelcome): the
+ *  position in mono, the step, and its own line where it has one. */
+function renderSteps(rows: readonly StepLine[]): string {
+  const items = rows
+    .map((item) => {
+      const mark = item.done
+        ? `<span style="padding-left:8px;color:${token("--ok")};font-weight:700">${DONE_MARK}</span>`
+        : "";
+      const line =
+        item.line === null
+          ? ""
+          : `<div style="padding-top:2px;font-size:${token("--t-sm")};line-height:1.5;color:${token("--ink-2")}">${escapeHtml(item.line)}</div>`;
+      return (
+        `<tr><td width="28" valign="top" style="width:28px;padding:5px 0;font-family:${token("--font-mono-mail")};font-size:${token("--t-xs")};font-weight:600;color:${token("--ink-3")}">${escapeHtml(item.index)}</td>` +
+        `<td style="padding:5px 0"><div style="font-size:${token("--t-body")};font-weight:600;color:${token("--ink")}">${escapeHtml(item.label)}${mark}</div>${line}</td></tr>`
+      );
+    })
+    .join("");
+  return row(
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${token("--accent-bg")};border:1px solid ${token("--accent-line")};border-radius:${token("--r-box")}">` +
+      `<tr><td style="padding:16px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${items}</table></td></tr></table>`
+  );
+}
+
+/** The address beside the button, as every mail artboard draws it: host and
+ *  path, in mono. A reader who will not press a button in a mail can still
+ *  see where it goes; the scheme is dropped because it is not information. */
+function actionAddress(href: string): string {
+  const url = new URL(href);
+  return url.pathname === "/" ? url.host : `${url.host}${url.pathname}`;
+}
+
 function renderAction(labelText: string, href: string): string {
   const safe = safeHref(href);
   if (safe === null) {
     return row(`<p style="margin:0">${escapeHtml(labelText)}</p>`);
   }
   return row(
-    `<a href="${escapeHtml(safe)}" style="display:inline-block;padding:11px 18px;border-radius:${token("--r-pill")};background:${token("--accent")};color:${token("--on-accent")};text-decoration:none;font-family:${token("--font-ui-mail")};font-size:${token("--t-body")};font-weight:700">${escapeHtml(labelText)}</a>`
+    `<a href="${escapeHtml(safe)}" style="display:inline-block;padding:11px 18px;border-radius:${token("--r-pill")};background:${token("--accent")};color:${token("--on-accent")};text-decoration:none;font-family:${token("--font-ui-mail")};font-size:${token("--t-body")};font-weight:700">${escapeHtml(labelText)}</a>` +
+      `<span style="padding-left:12px;font-size:${token("--t-sm")};color:${token("--ink-3")}">${mono(actionAddress(safe))}</span>`
   );
 }
 
@@ -164,6 +210,26 @@ export function rowsOf(
   return block.items.value.map((item) => ({
     left: copy(item.subject, item.subjectVars),
     right: copy(item.verdict),
+  }));
+}
+
+/** One rendered row of a `steps` block. */
+export interface StepLine {
+  index: string;
+  label: string;
+  line: string | null;
+  done: boolean;
+}
+
+/** The rows of a `steps` block, rendered through `copy()`. Shared with the
+ *  plain-text renderer so the two bodies cannot carry different steps. The
+ *  number is the position, counted here rather than written by a template. */
+export function stepRowsOf(block: Extract<MailBlock, { block: "steps" }>): readonly StepLine[] {
+  return block.items.map((item, index) => ({
+    index: String(index + 1).padStart(2, "0"),
+    label: copy(item.label),
+    line: item.line === undefined ? null : copy(item.line),
+    done: item.done === true,
   }));
 }
 
@@ -216,6 +282,12 @@ export function renderBlocksHtml(blocks: readonly MailBlock[]): {
         parts.push(renderRows(copy(block.label), rowsOf(block), null));
         break;
       }
+      case "eyebrow":
+        parts.push(renderEyebrow(copy(block.text)));
+        break;
+      case "steps":
+        parts.push(renderSteps(stepRowsOf(block)));
+        break;
       case "facts":
         parts.push(renderFacts(factRowsOf(block)));
         break;

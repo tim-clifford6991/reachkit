@@ -43,6 +43,12 @@ export function stat(value: Measured<number>, opts?: { note?: CopyKey; format?: 
     : { block: "stat", label: LABEL_KEY, value, format: opts?.format ?? "integer", note: opts.note };
 }
 
+export const EYEBROW: MailBlock = { block: "eyebrow", text: LABEL_KEY };
+export const STEPS: MailBlock = {
+  block: "steps",
+  items: [{ label: HEADING_KEY, done: true }, { label: ACTION_KEY, line: NOTE_KEY }],
+};
+
 export function list(items: Measured<readonly { label: CopyKey }[]>): MailBlock {
   return { block: "list", label: LABEL_KEY, items, emptyLine: EMPTY_KEY };
 }
