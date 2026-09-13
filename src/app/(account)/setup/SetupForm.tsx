@@ -787,6 +787,10 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
 
         <Divider />
 
+        {/* Canvas: OnboardingPublishing — the pair, each card carrying what
+            choosing it involves: the hosted card its record and the state
+            that record is in, the WordPress card what connecting will ask
+            for. The chosen one carries the set's own `default`. */}
         <div className="rk-pick" data-testid="setup-destination">
           {p.model.cards.destination.map((option) => (
             <OptionCard
@@ -794,10 +798,14 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
               title={copy(option.name)}
               line={copy(option.copy)}
               chosen={destination === option.kind}
+              badge={option.preselected ? copy("setup.mode.default") : undefined}
               onChoose={() => setDestination(option.kind)}
               testId={`setup-destination-${option.kind}`}
             >
               {option.kind === "hosted" ? <HostedRecord dns={dns} /> : null}
+              {option.kind === "wordpress" ? (
+                <WordPressAsks domain={state.siteDomain} />
+              ) : null}
             </OptionCard>
           ))}
         </div>
@@ -812,6 +820,7 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
           <div data-testid="setup-destination-label">
             {labelRefusal === null ? (
               <Input
+                mono
                 label={copy("setup.destination.label.label")}
                 name="label"
                 value={label}
@@ -821,6 +830,7 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
               />
             ) : (
               <Input
+                mono
                 label={copy("setup.destination.label.label")}
                 name="label"
                 value={label}
@@ -926,23 +936,72 @@ function HostedRecord(p: { dns: DnsRecord | DnsPending }): React.JSX.Element {
   }
   return (
     <>
-      <p data-testid="setup-dns-caption">
+      <span className={ASK_LINE} data-testid="setup-dns-caption">
         {copy("setup.destination.dnsRecord")}
-      </p>
-      {/* §2.2 allows no stylesheet here, so the record wraps with
-          utilities: `wrap-anywhere` is Tailwind's `overflow-wrap: anywhere`
-          — ADR-093 check 3 treats any clipped mono element as an offender
-          whatever an allow-list says, so a record longer than a 320px
-          column has to break inside its own box rather than hide behind a
-          scrollbar. */}
-      <p
-        className="num flex min-w-0 flex-wrap gap-2"
-        data-testid="setup-dns-record"
-      >
-        <span className="min-w-0 wrap-anywhere">{p.dns.type}</span>
-        <span className="min-w-0 wrap-anywhere">{p.dns.name}</span>
-        <span className="min-w-0 wrap-anywhere">{p.dns.value}</span>
-      </p>
+      </span>
+      {/* Canvas: OnboardingPublishing — the record in its own inset box,
+          the hostname's state beside it. The state is `waiting`: the host
+          cannot resolve before the customer creates the record they are
+          being shown, and settings reads the same two words back. */}
+      <span className={RECORD_BOX}>
+        {/* §2.2 allows no stylesheet here, so the record wraps with
+            utilities: `wrap-anywhere` is Tailwind's `overflow-wrap:
+            anywhere` — ADR-093 check 3 treats any clipped mono element as
+            an offender whatever an allow-list says, so a record longer
+            than a 320px column has to break inside its own box rather
+            than hide behind a scrollbar. */}
+        <span
+          className="num flex min-w-0 flex-wrap gap-(--s-2)"
+          data-testid="setup-dns-record"
+        >
+          <span className="min-w-0 wrap-anywhere">{p.dns.name}</span>
+          <span className="min-w-0 wrap-anywhere">{p.dns.type}</span>
+          <span className="min-w-0 wrap-anywhere">{p.dns.value}</span>
+        </span>
+        <Badge tone="warn">
+          <span data-testid="setup-dns-state">
+            {copy("settings.destination.hostname.waiting")}
+          </span>
+        </Badge>
+      </span>
     </>
   );
 }
+
+/** Canvas: OnboardingPublishing — what connecting WordPress asks for, on
+ *  the card that offers it. Shown, never asked here: §5 keeps the connect
+ *  itself for settings ("connect later"), and setup's fields are the three
+ *  decisions and no fourth. */
+function WordPressAsks(p: { domain: string | null }): React.JSX.Element {
+  return (
+    <>
+      <span className={ASK}>
+        <span className={ASK_LINE}>{copy("settings.destination.site-url")}</span>
+        {p.domain === null ? null : (
+          <span className="num wrap-anywhere" data-testid="setup-wordpress-site">
+            {p.domain}
+          </span>
+        )}
+      </span>
+      <span className={ASK}>
+        <span className={ASK_LINE}>
+          {copy("settings.destination.app-password")}
+        </span>
+        <span className="explain" data-testid="setup-wordpress-help">
+          {copy("settings.destination.app-password.help")}
+        </span>
+      </span>
+    </>
+  );
+}
+
+/** A card's own quiet line, at the set's `--t-sm` rung. */
+const ASK_LINE = "mt-(--s-3) block text-(length:--t-sm) text-(color:--ink-2)";
+
+/** One thing a destination asks for: what it is called, then what it holds. */
+const ASK = "mt-(--s-3) flex min-w-0 flex-col";
+
+/** The record's inset box: the accent hairline the set draws around it, the
+ *  value, and the state the hostname is in. */
+const RECORD_BOX =
+  "mt-(--s-2) flex flex-wrap items-center justify-between gap-(--s-3) rounded-(--r-field) border border-(color:--accent-line) bg-(--surface) p-(--s-3)";
