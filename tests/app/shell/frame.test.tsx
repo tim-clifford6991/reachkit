@@ -230,7 +230,7 @@ describe("REQ-040 c5 — a viewport too narrow for the sidebar keeps all three",
   it("the compact row renders the same three destinations, labelled, in order", () => {
     const row = render(<SidebarNav waiting={0} row />);
     const nav = row.matches("nav") ? row : row.querySelector("nav");
-    expect(nav?.className).toContain("rk-nav-row");
+    expect(nav?.getAttribute("data-testid")).toBe("shell-compact-nav");
     const links = [...row.querySelectorAll("a")];
     expect(links.map((a) => a.textContent)).toEqual([
       "shell.nav.overview",
@@ -297,14 +297,14 @@ describe("REQ-040 c5 — a viewport too narrow for the sidebar keeps all three",
     expect(compactNav(top)?.querySelectorAll("a")).toHaveLength(3);
     expect(top?.querySelector("[data-testid='shell-tabbar']")).toBeNull();
     expect(top?.querySelector("[role='tab']")).toBeNull();
-    expect(top?.querySelector(".rk-domain")).not.toBeNull();
+    expect(top?.querySelector("[data-testid='shell-domain']")).not.toBeNull();
     expect(top?.querySelector("[data-testid='shell-publishing']")).not.toBeNull();
   });
 
   it("the sidebar carries the same three parts at the wide breakpoint", async () => {
     const root = await renderLayout();
     const sidebar = root.querySelector("[data-testid='shell-sidebar']");
-    expect(sidebar?.querySelector(".rk-domain")).not.toBeNull();
+    expect(sidebar?.querySelector("[data-testid='shell-domain']")).not.toBeNull();
     expect(sidebar?.querySelector("[data-testid='shell-sidebar-nav']")).not.toBeNull();
     expect(compactNav(sidebar)).toBeNull();
     expect(sidebar?.querySelector("[data-testid='shell-publishing']")).not.toBeNull();
@@ -329,9 +329,11 @@ describe("REQ-040 c6 — the domain block states the domain and its measured wee
   it("the week line resolves from shell.domain.measured-weeks, or renders nothing while owed", () => {
     const root = render(<DomainBlock shell={SCHEDULED} />);
     if (COPY["shell.domain.measured-weeks"] === "") {
-      expect(root.querySelector(".rk-prov")).toBeNull();
+      expect(root.querySelector("[data-testid='shell-domain-line']")).toBeNull();
     } else {
-      expect(root.querySelector(".rk-prov")?.textContent).toBe("shell.domain.measured-weeks");
+      expect(root.querySelector("[data-testid='shell-domain-line']")?.textContent).toBe(
+        "shell.domain.measured-weeks"
+      );
     }
     // Either way, the not-measured line is not the one that reached it.
     expect(root.textContent).not.toContain("shell.domain.not-measured");
@@ -348,9 +350,11 @@ describe("REQ-040 c7 — a never-measured domain states no number", () => {
     const root = render(<DomainBlock shell={unmeasured} />);
     expect(root.textContent).not.toContain("shell.domain.measured-weeks");
     if (COPY["shell.domain.not-measured"] !== "") {
-      expect(root.querySelector(".rk-prov")?.textContent).toBe("shell.domain.not-measured");
+      expect(root.querySelector("[data-testid='shell-domain-line']")?.textContent).toBe(
+        "shell.domain.not-measured"
+      );
     } else {
-      expect(root.querySelector(".rk-prov")).toBeNull();
+      expect(root.querySelector("[data-testid='shell-domain-line']")).toBeNull();
     }
   });
 

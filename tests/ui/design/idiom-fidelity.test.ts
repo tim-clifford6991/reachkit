@@ -111,20 +111,20 @@ describe("issue #486 — every chip the approved set draws carries its glyph", (
   const CHIP = (name: string): RegExp => new RegExp(`icon=\\{<${name} size=\\{15\\}`);
 
   it("the brand mark is the trend glyph at stroke 2, on all four spends", () => {
-    for (const rel of [
-      "app/(public)/_chrome/Header.tsx",
-      "app/(public)/_chrome/Footer.tsx",
-      "app/(account)/app/layout.tsx",
-    ]) {
+    for (const rel of ["app/(public)/_chrome/Header.tsx", "app/(public)/_chrome/Footer.tsx"]) {
       const source = read(rel);
       expect(source, rel).toMatch(/className="rk-wordmark-chip"[^>]*>\s*<TrendingUp size=\{15\} strokeWidth=\{2\}/);
       expect(source, rel).not.toMatch(/className="rk-wordmark-chip"[^>]*\/>/);
     }
-    // S9 draws the same mark in Tailwind utilities over the same tokens
-    // (issue #549): the class is gone from that screen, the glyph is not.
-    const signin = read("app/(public)/signin/page.tsx");
-    expect(signin).toMatch(/rounded-\(--r-field\) bg-primary text-primary-content/);
-    expect(signin).toMatch(/<TrendingUp size=\{15\} strokeWidth=\{2\}/);
+    // S9 and the Dashboard's sidebar draw the same mark in Tailwind
+    // utilities over the same tokens (#549, #632): the class is gone from
+    // those screens, the glyph is not.
+    for (const rel of ["app/(public)/signin/page.tsx", "app/(account)/app/_shell/style.ts"]) {
+      expect(read(rel), rel).toMatch(/rounded-\(--r-field\) bg-primary text-primary-content/);
+    }
+    for (const rel of ["app/(public)/signin/page.tsx", "app/(account)/app/layout.tsx"]) {
+      expect(read(rel), rel).toMatch(/<TrendingUp size=\{15\} strokeWidth=\{2\}/);
+    }
   });
 
   it("the mark is the set's square: --r-field corners, --accent ground, --on-accent ink", () => {

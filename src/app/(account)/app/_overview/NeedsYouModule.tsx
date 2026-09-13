@@ -1,78 +1,46 @@
-// UI-SPEC S12 · BUILD §4.5 item 5 — "Needs you", the tinted panels.
+// Canvas: Dashboard — "Needs you", the tinted panels.
 //
-// The approved set (owner, 2026-09-08) draws the alerts as their own card,
-// headed "Needs you", each alert an `ActionPanel`: a chip, a bold title, one
-// dim line and one pill. §4.5 wrote them as rows under "This week"; the set
-// is the newer artifact and this is where they moved (issue #353).
+// At most two alerts, each with one control; the cap is the model's, so this
+// file renders the list it is given and the remainder is a written count,
+// never a third panel. The page about to publish takes the warn ground and
+// the solid fill — the window closes whether or not the customer acts; the
+// broken connection takes the accent ground and the outline, because nothing
+// happens until they do.
 //
-// **The two kinds are two panels, and the difference is not decoration.**
-// tokens.md §9.1 gives a screen one solid fill, and this card is where the
-// set spends it: the page about to publish takes the warn ground and the
-// solid "Read it", because the window closes whether or not the customer
-// acts; the broken connection takes the accent ground and the outline
-// "Reconnect", because nothing happens until they do. `PANEL` is that
-// mapping, a `Record` over the model's own union — so a third alert kind
-// would not compile rather than render an untoned panel.
-//
-// **At most two alerts, each with one control.** The cap is the model's
-// (`readAlerts`), so this file cannot raise it — it renders the list it is
-// given. Where more exist, the remainder is a written count with where to
-// see it, never a third panel.
-//
-// **A panel whose words are not written does not render.** This screen's
-// rule (`tests/app/overview/page.test.tsx`: "no owner-owed key renders
-// anything at all") is stricter than the app's, and the set draws both
-// alert titles bracketed — they are the owner's. So today this card states
-// its head and, where nothing is waiting, its empty line; each panel
-// appears the moment its title and its line are written, with no code
-// change here. A tinted panel with a blank title would be the placeholder
-// the rule exists to forbid.
-//
-// **An empty alert list is a success state, not a blank.** §2.5: "an empty
-// queue is a success state". Where nothing is waiting the module states
-// `overview.alerts.empty` rather than dropping a region out of the page.
+// A panel whose title, line or control the owner has not written does not
+// render: a tinted panel with a blank title is the placeholder the rule
+// exists to forbid. An empty list is a success state, not a blank.
 import type React from "react";
 import { Bell, FileText, Plug } from "lucide-react";
-import { Alert as AlertBox } from "@/ui/components";
+import { Alert as AlertBox, Card } from "@/ui/components";
 import { copy } from "@/lib/presentation/copy";
 import type { AlertTone } from "@/ui/components";
-import { ActionPanel, CardHead, type ActionPanelRank, type ActionPanelTone } from "@/ui/idiom";
+import { ActionPanel, type ActionPanelRank, type ActionPanelTone } from "@/ui/idiom";
 import { writtenLine } from "../_shell/written";
 import { formatCount } from "./present";
 import type { Alert, AlertKind, Overflow } from "./alerts";
-import { STACK } from "./style";
+import { CARD_HEAD, CARD_LABEL, GLYPH, QUIET, SECTION, STROKE } from "./style";
 
-/** §2.5's third rule: an intended-empty state takes `neutral` or `ok`,
- *  never `bad`/`warn`. */
+/** §2.5's third rule: an intended-empty state takes `neutral` or `ok`. */
 const NOTHING_WAITING_TONE: AlertTone = "ok";
 
-/** The chip's glyph size — 14px inside `.rk-head-chip`'s 32px square. */
-const ICON = 14;
+/** The glyph inside a panel's own chip, at the idiom's proportion. */
+const PANEL_GLYPH = 14;
 
-/** How each kind of alert is drawn, from the set's own two panels. The
- *  ground, the glyph and the CTA's rank travel together because they are
- *  one decision: what this alert is asking of the customer. */
+/** How each kind of alert is drawn. The ground, the glyph and the CTA's rank
+ *  travel together because they are one decision: what this alert asks of
+ *  the customer. A `Record` over the model's union, so a third kind would
+ *  not compile rather than render an untoned panel. */
 const PANEL: Readonly<
   Record<AlertKind, { tone: ActionPanelTone; rank: ActionPanelRank; icon: React.ReactNode }>
 > = Object.freeze({
-  pending_veto: {
-    tone: "warn",
-    rank: "primary",
-    icon: <FileText aria-hidden size={ICON} />,
-  },
-  needs_you: {
-    tone: "accent",
-    rank: "secondary",
-    icon: <Plug aria-hidden size={ICON} />,
-  },
+  pending_veto: { tone: "warn", rank: "primary", icon: <FileText aria-hidden size={PANEL_GLYPH} /> },
+  needs_you: { tone: "accent", rank: "secondary", icon: <Plug aria-hidden size={PANEL_GLYPH} /> },
 });
 
-/** One alert, as the set's panel — or nothing.
- *
- *  The title, the line and the control's word are owed together: a panel is
- *  a title over an explanation over a control, and any one of the three
- *  missing makes the other two state something the product cannot finish.
- *  Nothing here composes a stand-in for a key the owner has not written. */
+/** One alert, as the artboard's panel — or nothing. The title, the line and
+ *  the control's word are owed together: any one of the three missing makes
+ *  the other two state something the product cannot finish. */
 function Panel(p: { alert: Alert }): React.JSX.Element | null {
   const title = writtenLine(p.alert.key, p.alert.vars);
   const cta = writtenLine(p.alert.actionKey);
@@ -94,9 +62,8 @@ function Panel(p: { alert: Alert }): React.JSX.Element | null {
   );
 }
 
-/** The veto line's one slot, written from the model's own numbers. The
- *  units are a registry key's characters (`…pending-veto.left`), so no "h"
- *  or "m" is written at a call site and the module never divides. */
+/** The veto line's one slot. The units are a registry key's characters, so
+ *  no "h" or "m" is written here and the module never divides. */
 function lineVars(alert: Alert): Record<string, string> {
   if (alert.timeLeft === undefined) return {};
   const left = writtenLine("overview.alert.pending-veto.left", {
@@ -120,24 +87,36 @@ export function NeedsYouModule(p: {
   const emptyLine = p.alerts.length === 0 ? writtenLine("overview.alerts.empty") : null;
 
   return (
-    <section className="rk-idiom-card" data-testid="overview-needs-you">
-      <CardHead icon={<Bell aria-hidden size={ICON} />} eyebrow={copy("overview.needs-you.title")} />
-      <div style={STACK} data-testid="overview-alerts">
-        {/* The set's pair (UI-SPEC S12, set L718–719; issue #521): the two
-            panels side by side from the medium band up, stacked below it —
-            `.rk-panel-pair` in `idiom.css`. */}
-        {panels.length === 0 ? null : (
-          <div className="rk-panel-pair" data-testid="overview-alert-panels">
-            {panels}
+    <section data-testid="overview-needs-you">
+      <Card
+        state="default"
+        title={
+          <div className={CARD_HEAD}>
+            <span className={CARD_LABEL}>
+              <Bell aria-hidden size={GLYPH} strokeWidth={STROKE} />
+              <span className="eyebrow">{copy("overview.needs-you.title")}</span>
+            </span>
           </div>
-        )}
-        {emptyLine === null ? null : <AlertBox tone={NOTHING_WAITING_TONE} message={emptyLine} />}
-        {overflowLine === null ? null : (
-          <p className="rk-quiet" data-testid="overview-overflow">
-            {overflowLine}
-          </p>
-        )}
-      </div>
+        }
+      >
+        <div className={SECTION} data-testid="overview-alerts">
+          {/* The artboard's pair: side by side from the medium band up,
+              stacked below it, and a lone panel takes the whole row. */}
+          {panels.length === 0 ? null : (
+            <div className={PANEL_PAIR} data-testid="overview-alert-panels">
+              {panels}
+            </div>
+          )}
+          {emptyLine === null ? null : <AlertBox tone={NOTHING_WAITING_TONE} message={emptyLine} />}
+          {overflowLine === null ? null : (
+            <p className={QUIET} data-testid="overview-overflow">
+              {overflowLine}
+            </p>
+          )}
+        </div>
+      </Card>
     </section>
   );
 }
+
+const PANEL_PAIR = "grid min-w-0 grid-cols-1 gap-(--s-3) lg:grid-cols-2";

@@ -37,6 +37,7 @@ import { assembleOverview, type OverviewFacts } from "@/app/(account)/app/_overv
 import { HeadModule } from "@/app/(account)/app/_overview/HeadModule";
 import { GrowthModule } from "@/app/(account)/app/_overview/GrowthModule";
 import { TileRow } from "@/app/(account)/app/_overview/TileRow";
+import { ScoreCard } from "@/app/(account)/app/_overview/ScoreCard";
 import { RivalModule } from "@/app/(account)/app/_overview/RivalModule";
 import { NeedsYouModule } from "@/app/(account)/app/_overview/NeedsYouModule";
 import { WeekModule } from "@/app/(account)/app/_overview/WeekModule";
@@ -190,37 +191,39 @@ describe("the growth chart", () => {
     expect(markup).not.toContain("<polyline");
     // …and no source chip either: nothing was measured, so there is no date
     // a reading came from to name.
-    expect(markup).not.toContain("rk-srcchip");
+    expect(markup).not.toContain("overview.growth.source.");
     expect(markup).toContain("place.overview.weekly-presence.chart");
     expect(markup).toContain("Sep 7, 2026");
   });
 });
 
-describe("three tiles, and no fourth", () => {
+describe("two tiles, and the score in the card above them", () => {
   const model = assembleOverview(facts());
   const markup = html(
     <TileRow
-      score={model.score}
       aiAnswers={model.aiAnswers}
       pagesPublished={model.pagesPublished}
       timeZone={ZONE}
     />
   );
+  const scoreMarkup = html(
+    <ScoreCard score={model.score} growth={model.growth} timeZone={ZONE} />
+  );
 
-  it("renders exactly three stat tiles", () => {
-    expect(count(markup, 'class="stats"')).toBe(3);
+  it("renders exactly two stat tiles", () => {
+    expect(count(markup, 'class="stats"')).toBe(2);
   });
 
   it("leads with the Discoverability Score, its delta and its band (ruling 6a)", () => {
     // The set's `62 ▲ 8` beside the band word. Between DECISIONS
     // 2026-09-03 and the owner's 2026-09-08 screen set this tile did not
     // exist; ruling 6a names "Overview tile" and brought it back.
-    expect(markup).toContain('data-testid="overview-tile-score"');
-    expect(markup).toContain("overview.tile.score.label");
-    expect(markup).toContain(">62<");
-    expect(markup).toContain("overview.delta.up");
-    expect(markup).toContain(">8<");
-    expect(markup).toContain("band.score.hard-to-find");
+    expect(scoreMarkup).toContain('data-testid="overview-tile-score"');
+    expect(scoreMarkup).toContain("overview.tile.score.label");
+    expect(scoreMarkup).toContain(">62<");
+    expect(scoreMarkup).toContain("overview.delta.up");
+    expect(scoreMarkup).toContain(">8<");
+    expect(scoreMarkup).toContain("band.score.hard-to-find");
   });
 
   // The row is the last child of `.stat`, which is the only child of
@@ -228,16 +231,17 @@ describe("three tiles, and no fourth", () => {
   // consecutive `</div>`s are the row's own end and nothing else's. Slicing
   // to `</section>` would swallow the lines *under* the row, which is
   // exactly what these tests have to tell apart.
-  const rowOf = (testId: string): string => {
-    const tile = markup.slice(markup.indexOf(`data-testid="${testId}"`));
+  const rowIn = (source: string, testId: string): string => {
+    const tile = source.slice(source.indexOf(`data-testid="${testId}"`));
     const row = tile.slice(tile.indexOf('data-carry="beside"'));
     return row.slice(0, row.indexOf("</div></div></div>"));
   };
+  const rowOf = (testId: string): string => rowIn(markup, testId);
 
   it("draws each tile's carried value and badge beside the figure, on one row (#521)", () => {
     // The set's `62 ▲8 Hard to find` and `2/12 goal: 6`: one row per tile.
-    expect(count(markup, 'data-carry="beside"')).toBe(3);
-    const score = rowOf("overview-tile-score");
+    expect(count(markup, 'data-carry="beside"')).toBe(2);
+    const score = rowIn(scoreMarkup, "overview-tile-score");
     expect(score).toContain(">62<");
     expect(score).toContain("overview.delta.up");
     expect(score).toContain("band.score.hard-to-find");
@@ -267,7 +271,7 @@ describe("three tiles, and no fourth", () => {
     // chip wraps, and the goal lands back under the figure — which is what
     // the master read in CI's render of this branch.
     expect(rowOf("overview-tile-ai-answers")).not.toContain("overview.tile.ai-answers.means");
-    expect(markup).toContain('<p class="rk-quiet">overview.tile.ai-answers.means');
+    expect(markup).toContain('<p class="text-(color:--ink-2)">overview.tile.ai-answers.means');
     // The pages tile carries no goal, so it states no goal sentence either —
     // the line under its row is the set's own "rest under 3 weeks" (#536).
     expect(markup).not.toContain("overview.tile.pages.means");
@@ -302,7 +306,7 @@ describe("three tiles, and no fourth", () => {
     // (`whitespace-normal`, so a written reason wraps inside its tile), and
     // this test is about every tile having a description — not about how
     // many classes the design system puts on it.
-    expect(count(markup, "stat-desc")).toBe(3);
+    expect(count(markup, "stat-desc")).toBe(2);
     expect(markup).not.toMatch(/class="stat-desc[^"]*"><\/div>/);
   });
 });
@@ -408,7 +412,7 @@ describe("this week", () => {
     expect(markup).toContain("overview.week.title");
     expect(markup).toContain('href="/app/calendar"');
     expect(markup).toContain("overview.week.calendar-link");
-    expect(markup).toContain("btn-ghost");
+    expect(markup).toContain("font-semibold text-primary");
   });
 
   it("draws the set's flat cells and coloured rule, and no word the set does not draw (#521)", () => {
@@ -450,7 +454,7 @@ describe("needs you (S12)", () => {
     expect(count(markup, "rk-panel-cta")).toBe(2);
     // The set draws the two as one pair (#521): both panels sit in the one
     // pair container, and the count stays outside it.
-    const pair = markup.slice(markup.indexOf('class="rk-panel-pair"'));
+    const pair = markup.slice(markup.indexOf('data-testid="overview-alert-panels"'));
     expect(markup).toContain('data-testid="overview-alert-panels"');
     expect(count(pair.slice(0, pair.indexOf('data-testid="overview-overflow"')), 'class="rk-panel"')).toBe(2);
     expect(markup).toContain("overview.alert.overflow(1)");
@@ -498,8 +502,16 @@ describe("S13 — the week-0 arm, drawn", () => {
 
   it("the chart card names the pass its one reading came from", () => {
     const markup = html(<GrowthModule growth={model.growth} timeZone={ZONE} />);
-    expect(markup).toContain("rk-srcchip");
-    expect(markup).toContain("overview.growth.source.deep-pass");
+    // The date the reading came from is the card's, opposite its label.
+    const card = html(
+      <ScoreCard
+        score={model.score}
+        growth={model.growth}
+        timeZone={ZONE}
+        weekZero={model.weekZero}
+      />
+    );
+    expect(card).toContain("overview.growth.source.deep-pass");
     // One point, drawn — and no run *between* two of them: the polyline
     // carries a single coordinate pair, which is what renders the lone
     // reading (a zero-length subpath under a round linecap is a dot), and
@@ -521,14 +533,22 @@ describe("S13 — the week-0 arm, drawn", () => {
   it("each tile states when its own reading arrives, in place of a number", () => {
     const markup = html(
       <TileRow
-        score={model.score}
         aiAnswers={model.aiAnswers}
         pagesPublished={model.pagesPublished}
         timeZone={ZONE}
         weekZero={model.weekZero}
       />
     );
-    expect(markup).toContain("overview.tile.score.first-due");
+    expect(
+      html(
+        <ScoreCard
+          score={model.score}
+          growth={model.growth}
+          timeZone={ZONE}
+          weekZero={model.weekZero}
+        />
+      )
+    ).toContain("overview.tile.score.first-due");
     expect(markup).toContain("overview.tile.ai-answers.first-pass");
     expect(markup).toContain("overview.tile.pages.first-review");
     // No band beside a dash: a band is a reading of a score.

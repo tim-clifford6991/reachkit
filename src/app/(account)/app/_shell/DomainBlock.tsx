@@ -1,19 +1,14 @@
-// BUILD §4.4 — "domain block (accent dot, domain, `Week n · re-measured Mon`)".
+// Canvas: Dashboard — the domain, and the week it was last measured in.
 //
-// Two arms, from `WeekCount` (REQ-040 c6 and c7): a counted number of
-// measured weeks with the date of the last one, or — where this domain has
-// never been measured — no number at all and one written line naming the
-// date the first measurement is due. The dot is decoration and carries no
-// meaning of its own (BP-018's words-not-colour rule), so it is `aria-hidden`.
-//
-// The week line and the not-measured line are both owner-owed today, so
-// `writtenLine` returns `null` for them and the block renders the domain
-// alone rather than throwing. Filling either key in the registry is the
-// whole of what turns the line on.
+// Two arms: a counted number of measured weeks with the date of the last one,
+// or — where this domain has never been measured — no number at all and one
+// written line naming the date the first measurement is due. The dot is
+// decoration and carries no meaning of its own, so it is `aria-hidden`.
 import type React from "react";
 import { formatDate } from "./format";
 import { writtenLine } from "./written";
 import type { ShellModel } from "./model";
+import { PROV } from "./style";
 
 export function DomainBlock(p: { shell: ShellModel }): React.JSX.Element {
   const { shell } = p;
@@ -28,14 +23,21 @@ export function DomainBlock(p: { shell: ShellModel }): React.JSX.Element {
         });
 
   return (
-    <div className="rk-domain">
-      <p className="rk-domain-name">
-        <span className="rk-dot" aria-hidden="true" />
-        {/* §2.3: "Every numeral, date, URL … is JetBrains Mono with
-            tabular-nums." A domain is a URL-shaped value. */}
+    <div className={DOMAIN} data-testid="shell-domain">
+      <p className={DOMAIN_NAME}>
+        <span className={DOT} aria-hidden="true" />
+        {/* A domain is a URL-shaped value, so it takes the numeral face. */}
         <span className="num">{shell.domain}</span>
       </p>
-      {line === null ? null : <p className="rk-prov">{line}</p>}
+      {line === null ? null : (
+        <p className={PROV} data-testid="shell-domain-line">
+          {line}
+        </p>
+      )}
     </div>
   );
 }
+
+const DOMAIN = "flex min-w-0 flex-col gap-(--s-1)";
+const DOMAIN_NAME = "flex min-w-0 items-center gap-(--s-2) font-bold";
+const DOT = "size-(--s-2) flex-none rounded-(--r-pill) bg-primary";

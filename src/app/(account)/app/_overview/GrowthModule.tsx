@@ -1,34 +1,13 @@
-// BUILD §4.5 — the growth chart, and the two footnotes under it.
+// Canvas: Dashboard — the searches series, and the two footnotes under it.
 //
-// §4.5 item 2: "searches-you-appear-in, weekly points, area+line in
-// `--chart-you`, endpoint labelled, footnote pair: start value · 'At 400 the
-// big category terms unlock.'" The drawing is `GrowthLine`'s (§2.4's closed
-// inventory); what this file decides is what it is handed.
+// The artboard draws this beside the score, inside one card, so this file
+// renders the column and `ScoreCard` renders the card around it.
 //
-// **An unmeasured week arrives as a gap with its own account.** The chart
-// requires one — a `GrowthWeek` with a `null` value has no call shape
-// without an `account` string — so the week that did not run carries
-// REQ-065 c3's own line on its mark. It does not cut the line (`cuts:
-// false`, #386): no reading is drawn for that week and none is borrowed
-// from the week before, but the market did not change, so the line joins
-// the measurements either side and reaches its last measured week — where
-// the set puts the end dot. Where the owner has not written that line yet
-// the week still holds its column and its mark.
-//
-// **A change marker is a break that does cut it** (REQ-071 c12, issue
-// #205). `readGrowth` hands over `entries`, which are the window's weeks
-// with a break standing wherever a change fell between two of them; that
-// break arrives as `cuts: true`, because the weeks either side were
-// measured against different markets. So the series before and after a
-// change are two runs, never joined — and §2.4's inventory gains no sixth
-// chart.
-//
-// **Where nothing has been measured there is no chart.** The `none` arm
-// renders one written line and the date the first measurement is due — the
-// same date the shell's domain block states, because both read the one
-// `firstDueOn` they were handed.
+// A week that was not measured keeps its column and its mark but draws no
+// vertex: the market did not change, so the line joins the measurements
+// either side. A change marker does cut the line — the weeks either side
+// were measured against different markets.
 import type React from "react";
-import { TrendingUp } from "lucide-react";
 import { GrowthLine, type GrowthWeek } from "@/ui/charts";
 import { copy } from "@/lib/presentation/copy";
 import { CHANGE_ACCOUNT_KEY } from "./changes";
@@ -37,34 +16,49 @@ import { writtenLine } from "../_shell/written";
 import { GOALS } from "./goals";
 import { formatCount, formatMonthDay } from "./present";
 import type { GrowthModule as GrowthModuleModel } from "./growth";
-import { CardHead, SourceChip } from "@/ui/idiom";
-import { CHART_PLATE, STACK } from "./style";
+import { CHART_BOX, PROV, SCORE_SERIES } from "./style";
+
+/** The chip naming when the series was last measured — the newest week that
+ *  actually was, never the window's last entry, which may be a break or a
+ *  week that did not run. A date nothing was measured on would be
+ *  provenance for a reading the product does not have. */
+export function growthSource(growth: GrowthModuleModel, timeZone: string): string | null {
+  if (growth.kind === "week-zero") {
+    return writtenLine("overview.growth.source.deep-pass", {
+      on: formatDate(growth.on, timeZone),
+    });
+  }
+  if (growth.kind !== "series") return null;
+  const newest = growth.points.filter((point) => point.value.kind !== "unmeasured").at(-1);
+  return newest === undefined
+    ? null
+    : writtenLine("overview.growth.source.remeasured", {
+        on: formatDate(newest.weekStart, timeZone),
+      });
+}
 
 export function GrowthModule(p: {
   growth: GrowthModuleModel;
   timeZone: string;
 }): React.JSX.Element {
+  const label = copy("overview.tile.searches.label");
+
   if (p.growth.kind === "none") {
     const line = writtenLine("place.overview.weekly-presence.chart");
     return (
-      <section className="rk-idiom-card" data-testid="overview-growth">
-        <Head />
-        <div style={STACK}>
-          {line === null ? null : <p>{line}</p>}
-          <p className="rk-prov" data-testid="overview-growth-first-due">
-            {formatDate(p.growth.firstDueOn, p.timeZone)}
-          </p>
-        </div>
-      </section>
+      <div className={SCORE_SERIES} data-testid="overview-growth">
+        <span className="eyebrow">{label}</span>
+        {line === null ? null : <p>{line}</p>}
+        <p className={PROV} data-testid="overview-growth-first-due">
+          {formatDate(p.growth.firstDueOn, p.timeZone)}
+        </p>
+      </div>
     );
   }
 
-  // UI-SPEC S13: one point, from the deep pass, labelled as such. The
-  // chart is the same `GrowthLine` — a second chart for one point would be
-  // a sixth entry in §2.4's closed inventory — and what changes is what the
-  // card says around it: the chip names the pass the reading came from, and
-  // the right footnote says the weekly line has not begun, in place of the
-  // goal sentence a series carries.
+  // One point, from the deep pass. The same `GrowthLine` — a second chart for
+  // one point would be a sixth entry in the closed inventory — and what
+  // changes is what the card says around it.
   if (p.growth.kind === "week-zero") {
     const point: GrowthWeek = {
       name: formatMonthDay(p.growth.on, p.timeZone),
@@ -74,61 +68,42 @@ export function GrowthModule(p: {
       value: formatCount(p.growth.value),
     });
     const firstMonday = writtenLine("overview.growth.footnote.first-monday");
-    const chip = writtenLine("overview.growth.source.deep-pass", {
-      on: formatDate(p.growth.on, p.timeZone),
-    });
     return (
-      <section className="rk-idiom-card" data-testid="overview-growth">
-        <Head source={chip} />
-        <div style={CHART_PLATE}>
-          <GrowthLine weeks={[point]} label={copy("overview.tile.searches.label")} />
+      <div className={SCORE_SERIES} data-testid="overview-growth">
+        <span className="eyebrow">{label}</span>
+        <div className={CHART_BOX}>
+          <GrowthLine weeks={[point]} label={label} />
         </div>
-        <div style={STACK}>
-          {starting === null ? null : <p className="rk-prov">{starting}</p>}
-          {firstMonday === null ? null : <p className="rk-prov">{firstMonday}</p>}
+        <div className={FOOTNOTES}>
+          {starting === null ? null : <span className={PROV}>{starting}</span>}
+          {firstMonday === null ? null : <span className={PROV}>{firstMonday}</span>}
         </div>
-      </section>
+      </div>
     );
   }
 
   const unmeasuredAccount = writtenLine("place.overview.weekly-presence.week");
   const weeks = p.growth.entries.map((entry): GrowthWeek => {
     if (entry.kind === "break") {
-      // The break the change stands in. Its name is the date the answer
-      // changed — the same date every number beside it is read against —
-      // and its account is the written line naming which answer it was.
+      // The break the change stands in: its name is the date the answer
+      // changed, its account the written line naming which answer it was.
       const name = formatMonthDay(entry.marker.on, p.timeZone);
       const account = writtenLine(CHANGE_ACCOUNT_KEY[entry.marker.kind]);
-      // This one cuts the line: the weeks either side were measured
-      // against different markets (REQ-071 c12).
       return { name, value: null, account: account ?? name, cuts: true };
     }
-    // The week's own name, in the room a weekly column leaves it (see
-    // `formatMonthDay`). The full date the measurement carries is in the
-    // mark's tooltip, and the chart's own footnotes state the rest.
     const point = entry.week;
     const name = formatMonthDay(point.weekStart, p.timeZone);
-    // A week that was not measured does **not** cut the line (#386, master
-    // review): the market did not change, there is only no reading for that
-    // week, so the line joins the measurements either side and draws no
-    // vertex over this column. The week keeps its place and its account.
     return point.value.kind === "unmeasured"
       ? { name, value: null, account: unmeasuredAccount ?? name, cuts: false }
       : { name, value: point.value.value };
   });
 
-  // The chart's own type refuses an empty series; `readGrowth` only returns
-  // the `series` arm when at least one week was measured, so this narrowing
-  // is the two facts meeting rather than a check for something that can
-  // happen.
+  // The chart's type refuses an empty series, and `readGrowth` only returns
+  // this arm when at least one week was measured: the two facts meeting.
   const [first, ...rest] = weeks;
-  if (first === undefined) return <section className="rk-idiom-card" data-testid="overview-growth" />;
+  if (first === undefined) return <div className={SCORE_SERIES} data-testid="overview-growth" />;
 
   const goal = GOALS.searches_appeared_in;
-  // No `overview.goal` chip here since #353: the goal was named twice on
-  // this card — once on a dashed rule across the plot and once in the
-  // right-hand footnote — and the set keeps the footnote. One fact, one
-  // place. (The plot draws no dashed rule of any kind now — #386.)
   const startPoint = p.growth.points.find((point) => point.value.kind !== "unmeasured");
   const startLine =
     startPoint === undefined || startPoint.value.kind === "unmeasured"
@@ -137,56 +112,21 @@ export function GrowthModule(p: {
           value: formatCount(startPoint.value.value),
         });
   const goalLine = writtenLine(goal.meansKey, { goal: formatCount(goal.value) });
-  // The newest week that was actually measured — never the window's last
-  // entry, which may be a break or a week that did not run. A chip naming
-  // a date nothing was measured on would be provenance for a reading the
-  // product does not have.
-  const measured = p.growth.points.filter((point) => point.value.kind !== "unmeasured");
-  const newest = measured.at(-1);
-  const sourceChip =
-    newest === undefined
-      ? null
-      : writtenLine("overview.growth.source.remeasured", {
-          on: formatDate(newest.weekStart, p.timeZone),
-        });
 
   return (
-    <section className="rk-idiom-card" data-testid="overview-growth">
-      {/* The head, and on the right the chip naming when the series was
-          last measured (UI-SPEC S12: "re-measured Mon 1 Sep"). The date is
-          the newest measured week's own — the same reading the sidebar's
-          domain block states, from the same series. */}
-      <Head source={sourceChip} />
-      <div style={CHART_PLATE}>
-        <GrowthLine
-          weeks={[first, ...rest]}
-          label={copy("overview.tile.searches.label")}
-        />
+    <div className={SCORE_SERIES} data-testid="overview-growth">
+      <span className="eyebrow">{label}</span>
+      <div className={CHART_BOX}>
+        <GrowthLine weeks={[first, ...rest]} label={label} />
       </div>
-      <div style={STACK}>
-        {startLine === null ? null : <p className="rk-prov">{startLine}</p>}
-        {goalLine === null ? null : <p className="rk-prov">{goalLine}</p>}
+      {/* The artboard's footnote pair: the series' first value at one end,
+          what reaching the goal unlocks at the other. */}
+      <div className={FOOTNOTES}>
+        {startLine === null ? null : <span className={PROV}>{startLine}</span>}
+        {goalLine === null ? null : <span className={PROV}>{goalLine}</span>}
       </div>
-    </section>
+    </div>
   );
 }
 
-/** The card's head. One definition for both arms — the chart arm and the
- *  nothing-measured-yet arm are the same card with different bodies, and a
- *  head written twice is a head that comes to differ. */
-function Head(p: { source?: string | null }): React.JSX.Element {
-  return (
-    <CardHead
-      icon={<TrendingUp aria-hidden size={ICON} />}
-      eyebrow={copy("overview.tile.searches.label")}
-      pill={
-        p.source === null || p.source === undefined ? null : (
-          <SourceChip>{p.source}</SourceChip>
-        )
-      }
-    />
-  );
-}
-
-/** The chip's glyph size — 14px inside `.rk-head-chip`'s 32px square. */
-const ICON = 14;
+const FOOTNOTES = "flex min-w-0 flex-wrap items-center justify-between gap-(--s-3)";

@@ -1,34 +1,18 @@
-// BUILD §4.4 — the app shell every app screen sits inside.
+// Canvas: Dashboard — the app shell every app screen sits inside.
 //
-// "Left sidebar (222px, sticky): domain block (accent dot, domain, `Week n ·
-// re-measured Mon`) · nav **Overview / Calendar / Settings** (Calendar shows
-// item count) · footer autopilot card (state + next publish time + toggle).
-// Mobile: sidebar hidden, top tabs. No other navigation."
+// The artboard's sidebar: the brand, the Workspace nav, and at its foot the
+// autopilot block with the domain under it. Below the medium band the sidebar
+// is hidden and those parts collapse into the top header — the same three
+// destinations stay reachable, as one row with its labels and counts kept.
 //
-// Below 1024 the "top tabs" are the Workspace nav itself, as one row (UI-SPEC
-// §0 11, 2026-09-11, which UI-SPEC wins over §4 on): labels and counts kept,
-// nothing hidden, no drawer and no bottom bar.
+// The publishing state lives here and in no screen: a screen that forgot to
+// render it would be the only way to break the promise that it is visible
+// from every screen, and there is no screen that renders it.
 //
-// REQ-040's promise is that the publishing state is visible from *every*
-// screen, which is why it lives in this layout and in no screen: a screen
-// that forgot to render it would be the only way to break the promise, and
-// there is no screen that renders it.
-//
-// **This layout owns the route's `Surface` root** (BP-018: "Every screen
-// root is a `Surface`"; ADR-093 decision 6's sweep asserts exactly one
-// `[data-surface]` per document). Under `/app` the shell *is* the screen
-// root — the sidebar and the main column are what the band arms describe —
-// so a page under `/app` declares no `Surface` of its own. `compact` is one
-// column (top tabs above the content), `medium` is two (sidebar beside
-// main), and `wide` is the same as `medium`: the day panel that changes at
-// `--breakpoint-xl` belongs to the calendar screen (§4.6, issue #16), not
-// to the frame.
-//
-// The shell is read once, here (`readShell`, request-cached), and passed
-// down. `SidebarNav` is the one client component — it needs the current
-// pathname to mark the current destination — and both bands render it, the
-// compact one with `row`, so a fourth destination cannot appear on one
-// breakpoint only.
+// This layout owns the route's `Surface` root, so a page under `/app`
+// declares none of its own. `shell.css` is still imported because the sibling
+// app screens spend `.rk-prov` and its neighbours; the shell itself now draws
+// in Tailwind utilities over the theme's tokens.
 import type React from "react";
 import { TrendingUp } from "lucide-react";
 import { Surface } from "@/ui/layout";
@@ -38,6 +22,19 @@ import { PublishingCard } from "./_shell/PublishingCard";
 import { SidebarNav } from "./_shell/SidebarNav";
 import { StoppedNotice } from "./_shell/StoppedNotice";
 import { readShell } from "./_shell/provider";
+import {
+  MAIN,
+  MARK,
+  NAV_GROUP,
+  SHELL,
+  SHELL_BODY,
+  SHELL_TOP,
+  SIDEBAR,
+  SIDEBAR_FOOT,
+  SIDEBAR_INNER,
+  SIDEBAR_TOP,
+  WORDMARK,
+} from "./_shell/style";
 import "@/ui/layout/shell.css";
 
 export default async function AppLayout({
@@ -55,48 +52,40 @@ export default async function AppLayout({
         wide: { kind: "same-as-below" },
       }}
     >
-      <div className="rk-shell">
-        {/* Below --breakpoint-lg: the sidebar is hidden and its three parts
-            collapse into this header (REQ-040 c5); the Workspace nav is the
-            same nav as one row, counts kept (UI-SPEC §0 11). */}
-        <header className="rk-shell-top" data-testid="shell-top">
+      <div className={SHELL}>
+        <header className={SHELL_TOP} data-testid="shell-top">
           <DomainBlock shell={shell} />
           <SidebarNav waiting={shell.waiting} row />
           <PublishingCard shell={shell} />
         </header>
 
-        <div className="rk-shell-body">
-          <aside className="rk-sidebar" data-testid="shell-sidebar">
-            {/* The column stretches so its rule runs the full height; the
-                inner block is what sticks. See `shell.css`. */}
-            <div className="rk-sidebar-inner">
-              {/* The brand row the set draws at the top of the sidebar
-                  (S12, UI-SPEC §2). The same wordmark and chip markup the
-                  public header spends, from the same key — one word, one
-                  home — because the customer crosses between the two and a
-                  second spelling of the product's name would be visible. */}
-              <p className="rk-wordmark" data-testid="shell-brand">
-                <span className="rk-wordmark-chip" aria-hidden="true">
-                  <TrendingUp size={15} strokeWidth={2} aria-hidden />
-                </span>
-                <span>{copy("chrome.wordmark")}</span>
-              </p>
-              <DomainBlock shell={shell} />
-              {/* The set labels the three destinations. The eyebrow role
-                  supplies the uppercase and the tracking; the string is
-                  "Workspace". */}
-              <div className="flex min-w-0 flex-col gap-1">
-                <span className="eyebrow">{copy("shell.workspace")}</span>
-                <SidebarNav waiting={shell.waiting} />
+        <div className={SHELL_BODY}>
+          <aside className={SIDEBAR} data-testid="shell-sidebar">
+            <div className={SIDEBAR_INNER}>
+              <div className={SIDEBAR_TOP}>
+                <p className={WORDMARK} data-testid="shell-brand">
+                  <span className={MARK} aria-hidden="true">
+                    <TrendingUp size={15} strokeWidth={2} aria-hidden />
+                  </span>
+                  <span>{copy("chrome.wordmark")}</span>
+                </p>
+                <div className={NAV_GROUP}>
+                  <span className="eyebrow">{copy("shell.workspace")}</span>
+                  <SidebarNav waiting={shell.waiting} />
+                </div>
               </div>
-              <PublishingCard shell={shell} />
+              {/* The artboard puts the autopilot block and the domain at the
+                  foot of the column, pushed there by the free space. */}
+              <div className={SIDEBAR_FOOT}>
+                <PublishingCard shell={shell} />
+                <DomainBlock shell={shell} />
+              </div>
             </div>
           </aside>
-          <main className="rk-main">
-            {/* REQ-092 c3: stated on the screen the customer lands on, once
-                — not in the header and the sidebar the way the domain block
-                and the publishing card are, because two copies of one
-                statement is two accounts of one fact. */}
+          <main className={MAIN}>
+            {/* Stated once, on the screen the customer lands on — not in the
+                header and the sidebar the way the domain block is, because
+                two copies of one statement is two accounts of one fact. */}
             <StoppedNotice stopped={shell.stopped} timeZone={shell.timeZone} />
             {children}
           </main>
