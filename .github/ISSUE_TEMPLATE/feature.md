@@ -1,22 +1,18 @@
 ---
 name: Feature
-about: One shippable piece of the product — sized for one PR
+about: Something a user can do afterwards
 labels: feature
 ---
 
 ## What
-<!-- One paragraph. Cite the BUILD section ("BUILD §4.6"), the DECISIONS lines that constrain it,
-     and the REQ criteria it satisfies ("REQ-045 c5–c11" — archive/sdlc-factory-2026-09-04/corpus/docs/requirements/). -->
+<!-- One sentence: what the user can do after this lands. -->
+
+## Why
+<!-- Why this is on the path to MVP. Skip if obvious. -->
+
+## SPEC
+<!-- `docs/SPEC.md` section, or "bug in already-specified behaviour — no docs edit". -->
 
 ## Done when
-<!-- Observable behaviour, each line testable. The PR cannot merge until every box is ticked. -->
+<!-- Optional. Observable on the live site, not "CI green". -->
 - [ ]
-- [ ]
-
-## Design
-<!-- For a screen: its S<id> and section in docs/DESIGN.md ("S16 · §S16").
-     A new or changed surface needs an approved artifact landed in the set first (PROCESS §4). Otherwise "no UI". -->
-
-## Notes
-<!-- Constraints, things NOT to do, the ADR-nnn behind a rule if worth reading.
-     Milestone: M1–M10 build order (BUILD §16), M11 live verification, M12 go-live, M13 copy, M14 UI fidelity. -->

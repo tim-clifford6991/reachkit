@@ -71,7 +71,7 @@ Every interactive element has hover, focus-visible, disabled and, where it appli
 | Only the six product components exist under `src/ui/components/custom/` | `tests/ui/design/component-registry.test.ts` |
 | No new stylesheet under `src/ui/`; `idiom.css` only shrinks | unenforced — to add with the reduction issue (#548) |
 | Every numeral renders in the mono face | `tests/ui/design/vocabulary.ts` + layout suite |
-| A changed screen's PR cites its artboard and shows the render | `pr-hygiene` (body check) |
+| A changed screen matches its artboard | the owner clicks the route on `dev.reachkit.app` |
 
 ## What is retired
 

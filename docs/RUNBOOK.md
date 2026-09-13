@@ -19,11 +19,17 @@ holds it. Read the file.
 
 ## 1. Landing a change
 
-How a change reaches `main` and then production — the five required checks, the
-`master-approved` label, GitHub auto-merge, the lander, the deployer and the batched production
-deploys — is `docs/PROCESS.md` (*Ten steps*, *Gates*, *Deploys and migrations*); this page starts
-after the merge. `Vercel` is not a check: Git deployments are off (`vercel.json`
-`git.deploymentEnabled: false`) and a Vercel row on a PR is ignored by everything that merges.
+How a change reaches `main` is `docs/PROCESS.md`: three required checks, then
+`gh pr merge --squash --delete-branch` (or the GitHub UI). This page starts after the merge.
+
+Dev (`dev.reachkit.app`) deploys from `main` via `rk-deployer`. If it has not moved after a
+merge, run `bash /root/ops/reachkit/bin/deploy-dev-once.sh`. Production is batched (at most
+every two hours) and stays frozen while `/root/ops/reachkit/state/prod-frozen` exists. `Vercel`
+is not a check: Git deployments are off (`vercel.json` `git.deploymentEnabled: false`).
+
+The owner tests the path live on `dev.reachkit.app`. A merged migration is applied through the
+Supabase connector after the target deploy is READY, then the path is walked again
+(`scripts/smoke.sh` / `scripts/land.sh`).
 
 ---
 
@@ -35,7 +41,7 @@ after the merge. `Vercel` is not a check: Git deployments are off (`vercel.json`
 | Vercel | team `timclifford` (`team_lFEcKlyuKD5risdEnak7iRIm`), **Hobby plan** (one concurrent build, 100 deployments a day, no deployment protection); project **`reachkit`** (`prj_QJUivDYYshplvV0enuc2oZNIjcnd`), Git-linked to `tim-clifford6991/reachkit`, production branch `main`, Node 24, Next.js preset, no root directory |
 | Production | `reachkit.app` (and `www.`) |
 | Development host | `dev.reachkit.app` — the same project, bound to `main`. It is the URL the owner steers on; it is not a separate environment |
-| Preview | none. Git deployments are off (`vercel.json` `git.deploymentEnabled: false`): every push used to create a cancelled deployment that still counted toward the Hobby quota. The deployer asks for each deployment (`docs/PROCESS.md`, *Deploys and migrations*); CI's renders comment is the review surface |
+| Preview | none. Git deployments are off (`vercel.json` `git.deploymentEnabled: false`): every push used to create a cancelled deployment that still counted toward the Hobby quota. The deployer asks for each deployment of `main`; the owner reviews on `dev.reachkit.app` |
 | Database | one Supabase project, `reachkit` (`kleepxxddbcnfsfwudoe`), Postgres 17, us-east-1, **Free plan**. v2's objects sit in schema `v2_archive`, the rollback path (§9). The org is Vercel-Marketplace-managed: uninstalling that integration would delete the org and the database; the exit path is a transfer to a Supabase-managed org |
 | Jobs | Inngest app `reachkit`, registered at `https://reachkit.app/api/jobs` — owed by the owner: create the app, paste the two keys, sync the functions (#315, §4) |
 | Mail | Resend, sending domain `reachkit.app` (SPF, DKIM, DMARC) — pending #325; `MAIL_FROM` is `hello@reachkit.app` (§6) |
@@ -627,7 +633,7 @@ deployment (`dpl_2NEUXishMXAkzXG4Ti85yTy7NDda`, 23 Aug 2026).
 
 | Situation | Go to |
 |---|---|
-| a PR is green and should ship | §1 — the master labels it `master-approved`; auto-merge does the rest |
+| a PR is green and should ship | §1 — merge it; the owner tests on `dev.reachkit.app` |
 | the site is 500ing | §7 — read the runtime log, find the last `boot_invariants` line |
 | every page 500s and nothing changed | §2 — the Supabase project may have paused after seven idle days |
 | nothing has published for days | §4 — is the Inngest app registered? The ticks are silent when it is not |

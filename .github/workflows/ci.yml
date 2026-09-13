@@ -1,4 +1,5 @@
-# CI is the process. A PR merges only when this is green.
+# Required on main: typecheck · lint · unit, audit, schema · RLS.
+# Layout screenshots are evidence; they do not block merge (docs/PROCESS.md).
 name: CI
 
 on:
@@ -27,6 +28,7 @@ jobs:
 
   layout:
     name: layout conformance (browser)
+    continue-on-error: true
     runs-on: ubuntu-latest
     # Renders come from here, not from the box (issue #404). The suite this
     # job runs already photographs every screen at 1280; composing the

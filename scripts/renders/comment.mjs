@@ -67,7 +67,7 @@ lines.push(
 );
 lines.push("");
 lines.push(
-  "_Posted by CI (issue #404). Renders are not built on the box — see `docs/PROCESS.md` §2.4._"
+  "_Posted by CI. Renders are evidence, not a merge gate — the owner reviews on `dev.reachkit.app`._"
 );
 
 process.stdout.write(lines.join("\n") + "\n");
