@@ -41,9 +41,13 @@ export interface FrameParts {
   optOut: { href: string; label: string } | null;
 }
 
+/** The stop link, as the canvas draws it: on the reason's own line, after
+ *  an em dash. Layout, not voice — both sentences are already rendered. */
+const REASON_SEPARATOR = " — ";
+
 function optOutHtml(optOut: FrameParts["optOut"]): string {
   if (optOut === null) return "";
-  return `<p style="margin:0;padding-top:8px"><a href="${escapeHtml(optOut.href)}" style="color:${token("--ink-3")};text-decoration:underline">${escapeHtml(optOut.label)}</a></p>`;
+  return `${REASON_SEPARATOR}<a href="${escapeHtml(optOut.href)}" style="color:${token("--accent")};text-decoration:none">${escapeHtml(optOut.label)}</a>`;
 }
 
 /** The middle dot the imprint band's parts are set between. Layout, not
@@ -53,15 +57,19 @@ const BAND_SEPARATOR = " · ";
 
 function footerHtml(parts: FrameParts): string {
   const reason =
-    parts.reason === null ? "" : `<p style="margin:0">${escapeHtml(parts.reason)}</p>`;
+    parts.reason === null
+      ? ""
+      : `<p style="margin:0;padding-bottom:6px">${escapeHtml(parts.reason)}${optOutHtml(parts.optOut)}</p>`;
+  // A kind with no reason still carries its stop link rather than losing it
+  // with the sentence that would have introduced it.
+  const orphanLink =
+    parts.reason === null && parts.optOut !== null
+      ? `<p style="margin:0;padding-bottom:6px">${optOutHtml(parts.optOut).slice(REASON_SEPARATOR.length)}</p>`
+      : "";
   const band = [parts.wordmark, parts.imprint, parts.plainTextNote]
     .filter((piece): piece is string => piece !== null && piece !== "")
     .join(BAND_SEPARATOR);
-  return [
-    reason,
-    optOutHtml(parts.optOut),
-    `<p style="margin:0;padding-top:8px">${escapeHtml(band)}</p>`,
-  ].join("");
+  return [reason, orphanLink, `<p style="margin:0">${escapeHtml(band)}</p>`].join("");
 }
 
 function wholeMailLineHtml(line: string | null): string {
@@ -79,14 +87,13 @@ function wholeMailLineHtml(line: string | null): string {
  * depends on one is a brand most readers never see.
  */
 function brandHeadHtml(wordmark: string): string {
-  const mark = `<td width="18" style="width:18px;padding:0 8px 0 0"><div style="width:14px;height:14px;border-radius:4px;background:${token("--accent")}"></div></td>`;
+  const mark = `<td width="24" style="width:24px;padding:0 10px 0 0"><div style="width:24px;height:24px;border-radius:${token("--r-field")};background:${token("--accent")}"></div></td>`;
   return [
-    `<tr><td style="padding:0 0 14px 0;border-bottom:1px solid ${token("--line")}">`,
+    `<tr><td style="padding:0 0 20px 0">`,
     `<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>`,
     mark,
-    `<td style="font-family:${token("--font-ui-mail")};font-size:${token("--t-body")};font-weight:700;letter-spacing:-0.02em;color:${token("--ink")}">${escapeHtml(wordmark)}</td>`,
+    `<td style="font-family:${token("--font-ui-mail")};font-size:${token("--h4")};font-weight:700;letter-spacing:-0.01em;color:${token("--ink")}">${escapeHtml(wordmark)}</td>`,
     `</tr></table></td></tr>`,
-    `<tr><td style="height:18px;line-height:18px;font-size:0">&nbsp;</td></tr>`,
   ].join("");
 }
 
@@ -97,20 +104,21 @@ export function frameHtml(parts: FrameParts): string {
   return [
     `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head>`,
     `<body style="margin:0;padding:0;background:${token("--bg")}">`,
-    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${token("--bg")};padding:24px 12px">`,
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${token("--bg")};padding:24px 20px 32px">`,
     `<tr><td align="center">`,
-    `<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px;max-width:100%">`,
-    `<tr><td style="background:${token("--surface")};border:1px solid ${token("--line")};border-radius:${token("--r-box")};padding:22px">`,
+    `<table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="width:560px;max-width:100%">`,
+    `<tr><td style="background:${token("--surface")};border:1px solid ${token("--line")};border-radius:${token("--r-box")};padding:32px">`,
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">`,
     brandHeadHtml(parts.wordmark),
     parts.rows,
     wholeMailLineHtml(parts.wholeMailLine),
-    `</table>`,
-    `</td></tr>`,
-    // The whole footer is mono, as S20 draws it — the reason line included,
-    // not only the imprint band.
-    `<tr><td style="padding:14px 0 0 0;font-family:${token("--font-mono-mail")};font-size:${token("--t-xs")};line-height:1.5;color:${token("--ink-3")}">`,
+    // The rule and the footer are inside the card, where every mail
+    // artboard draws them, and the footer is set in the ui face.
+    `<tr><td style="height:1px;line-height:1px;font-size:0;background:${token("--line")}">&nbsp;</td></tr>`,
+    `<tr><td style="padding:16px 0 0 0;font-family:${token("--font-ui-mail")};font-size:${token("--t-xs")};line-height:1.5;color:${token("--ink-3")}">`,
     footerHtml(parts),
+    `</td></tr>`,
+    `</table>`,
     `</td></tr>`,
     `</table></td></tr></table></body></html>`,
   ].join("");

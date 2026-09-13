@@ -13,7 +13,7 @@
 import { copy } from "@/lib/presentation/copy";
 import { generatedLabel } from "@/lib/presentation/generated";
 import { formatStat } from "./format";
-import { factRowsOf, rowsOf } from "./html";
+import { factRowsOf, meterRowsOf, rowsOf } from "./html";
 import { isMeasuredEmpty, omittedIndexes } from "./omit";
 import type { MailBlock } from "./types";
 
@@ -76,6 +76,20 @@ export function renderBlocksText(blocks: readonly MailBlock[]): {
         // One row per line, `label: value` — the plain-text twin of the
         // `dl`, in the same order, from the same builder.
         parts.push(factRowsOf(block).map((item) => `${item.label}: ${item.value}`).join("\n"));
+        break;
+      case "eyebrow":
+      case "footnote":
+        parts.push(copy(block.text, block.vars));
+        break;
+      case "score":
+        // The card's three parts on one line, in the order it draws them:
+        // what was measured, the number, the band word, the subject.
+        parts.push(
+          `${copy(block.label)}: ${block.value} · ${block.band}\n${block.subject}`
+        );
+        break;
+      case "meters":
+        parts.push(meterRowsOf(block).map((item) => `${item.label}: ${item.value}`).join("\n"));
         break;
       case "action":
         parts.push(actionLine(copy(block.label), block.href));

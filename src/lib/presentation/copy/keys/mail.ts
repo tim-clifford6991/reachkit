@@ -548,6 +548,13 @@ export const MAIL_COPY = Object.freeze({
     "{domain} — Discoverability Score {score}, {band}",
     { slots: { domain: "text", score: "text", band: "text" }, fixedBy: "S20 (11a)" },
   ],
+  // 2026-09-13, issue #638: `Canvas: MailReport` draws two sentences the
+  // owner has not written — the sequence eyebrow over the heading, and the
+  // 13px line under the button. Both are bracketed on the canvas, so 11a
+  // approves nothing to fill them with; they carry the marker and §8 keeps
+  // them out of a sent mail until the owner writes them.
+  "mail.report.eyebrow": ["TODO(copy)", { slots: {}, fixedBy: "Canvas: MailReport" }],
+  "mail.report.sequence_note": ["TODO(copy)", { slots: {}, fixedBy: "Canvas: MailReport" }],
   "mail.report.heading": ["Your report is ready", { slots: {}, fixedBy: "S20 (11a)" }],
   "mail.report.body": [
     "The whole verdict is on the report, free and permanent.",

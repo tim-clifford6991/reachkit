@@ -50,6 +50,22 @@ export const MAIL_TOKENS = Object.freeze({
   "--font-ui": '"Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif',
   "--font-mono": '"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace',
 
+  // The canvas draws the score in the big-number rung and the band chip in
+  // the meaning colours; a mail spends both the way it already spends a
+  // colour rather than writing the values into a renderer.
+  "--t-num-big": "44px",
+  "--num-weight": "600",
+  "--ok": "#1f8a6b",
+  "--ok-bg": "#e7f6f0",
+  "--ok-line": "#d2ede3",
+  "--warn": "#b8722a",
+  "--warn-bg": "#fff3e6",
+  "--warn-line": "#fbe1c6",
+  "--bad": "#c0432b",
+  "--bad-bg": "#fdece8",
+  "--bad-line": "#f8d5cd",
+  "--h4": "16px",
+
   // ── The two stacks a mail actually renders in ──────────────────────
   //
   // The two above are the product's, and a mail cannot have them: an inbox

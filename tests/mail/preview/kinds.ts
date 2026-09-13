@@ -14,9 +14,10 @@
 // clock, and this is it. The one line it wants is
 // `MAIL_PREVIEW_OUT=… npx vitest run --project node tests/mail/preview`.
 //
-// The fixtures are the set's own figures where the set states them — 62 ·
-// Hard to find, 0 of 9, 0 of 12 — because a preview that showed different
-// numbers from the screen it is checked against would be checking nothing.
+// The fixtures are the drawn figures where a screen states them — the
+// report's 38 · Hard to find over 61 / 34 / 22 is `Canvas: MailReport`'s
+// own card — because a preview that showed different numbers from the
+// screen it is checked against would be checking nothing.
 import { measured } from "../../../src/lib/measure/measured";
 import type { ComposedMail } from "../../../src/lib/mail/shell/compose";
 import type {
@@ -71,12 +72,14 @@ export async function composePreview(kind: PreviewKind): Promise<ComposedMail> {
       const mail = buildReport({
         facts: {
           domain: "example.com",
-          score: "62",
+          score: "38",
           band: "Hard to find",
-          aiAnswers: "0 of 9",
-          googleSearch: "0 of 12",
+          tone: "warn",
+          foundations: { value: "61", fill: 61 },
+          answerability: { value: "34", fill: 34 },
+          presence: { value: "22", fill: 22 },
         },
-        href: `${APP}/scan/example.com`,
+        href: `${APP}/r/example-com`,
         removalAddress: "remove@reachkit.app",
       });
       return composeMail({

@@ -95,19 +95,40 @@ describe("issue #376 — the shell renders S20, and every kind the set draws wea
     });
   }
 
-  it("the fact rows are mono, and they are a dl", async () => {
-    // S20's "mono fact rows": the value takes the mono face, and the rows
-    // are a description list — the set's own markup, not a paragraph with
-    // a colon in it.
+  it("the report states its verdict as the canvas draws it — the score card, then the three factors", async () => {
+    // `Canvas: MailReport` replaced the fact rows with a score card and a
+    // row of factor tiles, so this asserts that card: the number, its band
+    // word, the domain it is about, and the three factors under it.
     const mail = await composePreview("report");
-    expect(mail.html).toContain("<dl");
+    expect(mail.html).toContain("Discoverability Score");
     // The mail-safe mono stack, not the product's `JetBrains Mono`: an
     // inbox loads no webfont, so the mail names faces a reader has
     // installed (issue #376, the owner's render of 2026-09-09).
     expect(mail.html).toContain("ui-monospace");
-    expect(mail.html).toContain("Discoverability Score");
-    // And the plain-text twin states the same facts, one to a line.
-    expect(mail.text).toContain("Discoverability Score: 62 · Hard to find");
+    for (const factor of ["Foundations", "Answerability", "Presence"]) {
+      expect(mail.html, factor).toContain(factor);
+      expect(mail.text, factor).toContain(factor);
+    }
+    // The band chip takes the meaning colour its handle names, and the
+    // address the button goes to is written beside it.
+    expect(mail.html).toContain("#b8722a");
+    expect(mail.html).toContain("reachkit.example/r/example-com");
+    // And the plain-text twin states the same card, one line to a part.
+    expect(mail.text).toContain("Discoverability Score: 38 · Hard to find");
+    expect(mail.text).toContain("Foundations: 61");
+  });
+
+  it("the two sentences the owner has not written send nothing at all", async () => {
+    // §8, 2026-09-07: an owner-owed key renders its marker on a screen and
+    // sends nothing in a mail. The canvas brackets the sequence eyebrow and
+    // the line under the button, so both are absent from both bodies until
+    // the owner writes them — no marker, no blank row.
+    const mail = await composePreview("report");
+    for (const body of [mail.html, mail.text]) {
+      expect(body).not.toContain("TODO(copy)");
+    }
+    expect(COPY["mail.report.eyebrow"]).toBe("TODO(copy)");
+    expect(COPY["mail.report.sequence_note"]).toBe("TODO(copy)");
   });
 
   it("the report mail names the removal address once, from its one home", async () => {

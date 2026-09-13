@@ -1,6 +1,6 @@
 // BUILD §12 — the only vocabulary a mail template may speak.
 //
-// Eight arms, and nothing else. A template hands `composeMail()` a list of
+// Twelve arms, and nothing else. A template hands `composeMail()` a list of
 // these and holds no conditional of its own: every value that can be
 // absent enters as a `Measured<T>` (`src/lib/measure/measured.ts`), so a
 // template cannot format a number itself and cannot forget BUILD §12's
@@ -43,6 +43,20 @@ export interface FactRow {
    * facts about one mail, and a key per address is not a copy registry.
    */
   readonly value: string;
+}
+
+/** The three meaning tones a chip can carry. The handle, never a colour:
+ *  the words are `SCORE_BANDS`' and the tone is chosen by the caller that
+ *  banded the number, so this seam holds no second copy of that map. */
+export type MeaningTone = "ok" | "warn" | "bad";
+
+/** One tile of a `meters` block — a factor's written label, its value as
+ *  the caller already wrote it, and how much of the bar is filled. `fill`
+ *  is the bar's width and not a second number the reader is shown. */
+export interface MeterRow {
+  readonly label: CopyKey;
+  readonly value: string;
+  readonly fill: number;
 }
 
 /** One row of a `verdicts` block: the subject of the verdict and the band
@@ -103,6 +117,23 @@ export type MailBlock =
       readonly block: "facts";
       readonly items: readonly FactRow[];
     }
+  | { readonly block: "eyebrow"; readonly text: CopyKey; readonly vars?: CopyVars }
+  | {
+      /**
+       * The canvas's score card: the label, the number in the big-number
+       * rung, the band word as a tinted chip and the subject it is about.
+       * Every part arrives already written — a score states a value and
+       * formats none.
+       */
+      readonly block: "score";
+      readonly label: CopyKey;
+      readonly value: string;
+      readonly band: string;
+      readonly tone: MeaningTone;
+      readonly subject: string;
+    }
+  | { readonly block: "meters"; readonly items: readonly MeterRow[] }
+  | { readonly block: "footnote"; readonly text: CopyKey; readonly vars?: CopyVars }
   | { readonly block: "action"; readonly label: CopyKey; readonly href: string }
   | { readonly block: "notice"; readonly text: CopyKey; readonly vars?: CopyVars }
   | {

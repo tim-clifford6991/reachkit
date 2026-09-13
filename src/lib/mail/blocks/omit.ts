@@ -16,11 +16,18 @@
 // Both `html.ts` and `text.ts` call this and neither computes an omission
 // of its own. A rule that held in one body and not the other is the exact
 // failure the single plain-text renderer exists to prevent.
+import { COPY, TODO_COPY_MARKER, type CopyKey } from "@/lib/presentation/copy";
 import type { MailBlock } from "./types";
 
-/** Is this block dropped? A block with no `Measured` value is never
- *  dropped — a heading, an action, a notice and a page body are
- *  unconditional by construction. */
+/** §8, 2026-09-07: an owner-owed key renders its marker on a screen and
+ *  sends nothing at all in a mail. So a block whose whole sentence is
+ *  still unwritten is dropped here, with the rest of the omissions. */
+function unwritten(key: CopyKey): boolean {
+  return COPY[key] === TODO_COPY_MARKER;
+}
+
+/** Is this block dropped? Three reasons: an unmeasured value, an empty
+ *  table, or a sentence the owner has not written yet (§8). */
 function isOmitted(block: MailBlock): boolean {
   switch (block.block) {
     case "stat":
@@ -28,6 +35,16 @@ function isOmitted(block: MailBlock): boolean {
     case "list":
     case "verdicts":
       return block.items.kind === "unmeasured";
+    case "heading":
+    case "paragraph":
+    case "notice":
+    case "eyebrow":
+    case "footnote":
+      return unwritten(block.text);
+    case "meters":
+      // Empty for the reason an empty `facts` table is: there is no
+      // written line that says "no tiles".
+      return block.items.length === 0;
     case "facts":
       // The one arm dropped for being *empty*: a `list` states its empty
       // result in a written line, and there is no such line for a fact
