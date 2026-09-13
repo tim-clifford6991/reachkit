@@ -1,0 +1,27 @@
+{
+  "rendered": [
+    {
+      "name": "-pricing",
+      "route": "/pricing",
+      "screen": "S4",
+      "viewport": "-pricing-1280-light.png",
+      "full": "-pricing-full.png",
+      "file": "side--pricing.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/pricing-light.png",
+      "moved": false,
+      "why": "named under `Renders:`"
+    },
+    {
+      "name": "fallback-public-error",
+      "route": "/pricing",
+      "screen": "S8",
+      "viewport": "fallback-public-error-1280-light.png",
+      "full": "fallback-public-error-full.png",
+      "file": "side-fallback-public-error.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/notfound-light.png",
+      "moved": false,
+      "why": "named under `Renders:`"
+    }
+  ],
+  "skipped": []
+}
