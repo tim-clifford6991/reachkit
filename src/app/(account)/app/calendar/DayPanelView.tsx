@@ -43,7 +43,7 @@ import {
 } from "@/lib/publish/record/lines";
 import { formatDate, formatDateTime } from "../_shell/format";
 import { writtenLine } from "../_shell/written";
-import { actionsFor } from "./actions";
+import { actionsFor, type DayAction } from "./actions";
 import { EMPTY_ACCOUNT_COPY_KEY, isLawCause, stopForEmptyDay } from "./empty";
 import { emptyLineFor } from "./CalendarView";
 import { nextPublishStatement, stoppedWorkStatement, type WorkStop } from "@/lib/presentation/stopped";
@@ -52,6 +52,31 @@ import { STAGE_FILTER_COPY_KEY, STAGE_TONE } from "./stages";
 import { publishing, type PublishingCommand } from "./publishing";
 import { WhyThisPage } from "./WhyThisPage";
 import type { DayCell, PageOnDay } from "./month";
+
+/** The canvas's control block: the day's one way in, and the line saying
+ *  when the page goes out, together on the accent tint. */
+const CTA =
+  "flex basis-full flex-col gap-(--s-3) rounded-(--r-box) border border-(color:--accent-line) bg-(--accent-bg) p-(--s-4)";
+/** Move and a stop share the row under it, each taking half however long
+ *  its word is. */
+const HALF = "min-w-0 flex-1 basis-0";
+/** The head, the page's own heading, and the two quiet mono lines — the
+ *  date beside the chip, and the provenance line under everything. */
+const HEAD = "flex flex-wrap items-center justify-between gap-(--s-2)";
+const ACCOUNT = "flex min-w-0 flex-col gap-(--s-3)";
+const TITLE = "text-(length:--h3) font-bold";
+const DATE = "num text-(length:--t-xs) text-(color:--ink-3)";
+const PROVENANCE = "num text-(length:--t-explain) text-(color:--ink-3)";
+/** The one way in that leaves the product, so takes the outline rank. */
+const LEAVES_THE_PRODUCT = "calendar.action.view-live-page";
+
+function isLink(a: DayAction): a is Extract<DayAction, { kind: "link" }> {
+  return a.kind === "link";
+}
+
+function isCommand(a: DayAction): a is Extract<DayAction, { kind: "command" }> {
+  return a.kind === "command";
+}
 
 /** The writes the panel can ask for. `skip`, `veto` and `regenerate` are §9
  *  edges and go to the state machine through the seam; `move` still
@@ -113,72 +138,61 @@ function dayMarker(day: string): Date {
 }
 
 /**
- * The panel's controls, in the ranks the approved S15 draws (issue #354).
+ * The panel's controls, in the ranks `Canvas: Calendar` draws.
  *
- * Each rank is read off what the action *is*, not off a second table
- * beside `actions.ts`:
- *
- *  - **The day's one way in takes the full column** — the link its stage
- *    earns. `actionsFor` offers at most one, so the block control cannot
- *    become two. It is the SOLID rank where it leads further into the
- *    customer's own work (read the page; reconnect the destination), and
- *    the OUTLINE rank where it leaves the product for the live page: §9.1
- *    gives a screen one filled button, and a control that navigates away
- *    is not the thing the panel is asking for.
+ *  - **The day's one way in leads the tinted block**, beside the line
+ *    saying when the page goes out. `actionsFor` offers at most one. It is
+ *    the SOLID rank where it leads further into the customer's own work,
+ *    and the OUTLINE rank where it leaves the product for the live page:
+ *    §9.1 gives a screen one filled button, and a control that navigates
+ *    away is not the thing the panel is asking for.
  *  - **A stop is the outline rank on `warn`** — the arm issue #271 spent
- *    that tone on, for exactly this pairing: a veto stands beside an
- *    approve, the two are opposite consequences and one destroys the
- *    draft. `skip` is the same §9 edge under §4.6's other word, so it
- *    takes the same rank.
+ *    that tone on: a veto stands beside an approve, the two are opposite
+ *    consequences and one destroys the draft. `skip` is the same §9 edge
+ *    under §4.6's other word, so it takes the same rank.
  *  - **Move and a restart are quiet.** Move re-deadlines a page and asks
  *    nothing of anyone; a restart stands beside a reconnect that already
  *    holds the fill.
  *
- * The two half-width controls share one row under the block one, each
- * taking half of it however long its word is (`day-panel.css`).
- *
- * The link is an anchor carrying the registered `btn` classes rather than
- * a `Btn`, the way the month switcher's neighbours and the Overview's two
- * links already are: it navigates, so it is an `<a>` with no client
- * runtime, and `Btn` renders a `<button>` with an `onClick`. Declared in
- * `tests/ui/design/component-registry.test.ts`'s exception list with that
- * reason.
+ * Every control is the registered `Btn`: its link arm renders the `<a>` a
+ * navigation needs, so this screen hand-writes no daisyUI class.
  */
-function DayActions(p: { cell: DayCell }): React.JSX.Element {
+function DayActions(p: { cell: DayCell; lines: React.ReactNode }): React.JSX.Element {
+  const actions = actionsFor(p.cell);
+  const way = actions.filter(isLink)[0];
+  const commands = actions.filter(isCommand);
+
   return (
     <>
-      {actionsFor(p.cell).map((action) => {
-        if (action.kind === "link") {
-          const leavesTheProduct = action.key === "calendar.action.view-live-page";
-          return (
-            <span key={action.key} className="rk-daypanel-block">
-              <a
-                href={action.href}
-                className={
-                  leavesTheProduct
-                    ? "btn btn-sm btn-outline rk-daypanel-wide"
-                    : "btn btn-sm btn-primary rk-daypanel-wide"
-                }
-                data-testid={`day-action-${action.key}`}
-              >
-                {copy(action.key)}
-              </a>
+      {way === undefined && p.lines === null ? null : (
+        <span className={CTA} data-testid="day-cta">
+          {p.lines}
+          {way === undefined ? null : (
+            <span data-testid={`day-action-${way.key}`}>
+              <Btn
+                href={way.href}
+                label={copy(way.key)}
+                variant={way.key === LEAVES_THE_PRODUCT ? "secondary" : "primary"}
+                size="sm"
+                block
+                pill
+              />
             </span>
-          );
-        }
+          )}
+        </span>
+      )}
+      {commands.map((action) => {
         const stop = action.command === "veto" || action.command === "skip";
         return (
-          <span
-            key={action.key}
-            className="rk-daypanel-half"
-            data-testid={`day-action-${action.key}`}
-          >
+          <span key={action.key} className={HALF} data-testid={`day-action-${action.key}`}>
             {stop ? (
               <Btn
                 label={copy(action.key)}
                 variant="secondary"
                 tone="warn"
                 size="sm"
+                block
+                pill
                 onClick={() => run(action.command, action.draftId, p.cell.day)}
               />
             ) : (
@@ -186,6 +200,8 @@ function DayActions(p: { cell: DayCell }): React.JSX.Element {
                 label={copy(action.key)}
                 variant="tertiary"
                 size="sm"
+                block
+                pill
                 onClick={() => run(action.command, action.draftId, p.cell.day)}
               />
             )}
@@ -256,27 +272,22 @@ export function DayPanelView(p: {
     return (
       <DayPanel
         heading={
-          <div className="rk-daypanel-heading" data-testid="day-head">
+          <div className={HEAD} data-testid="day-head">
             <Badge tone="neutral">{copy("calendar.empty.day-badge")}</Badge>
-            <span className="num rk-prov">{date}</span>
+            <span className={DATE}>{date}</span>
           </div>
         }
         account={
-          <>
-            <hr className="rk-daypanel-rule" />
-            <div className="flex flex-col gap-2" data-testid="day-account">
-              {account === null ? null : (
-                <p data-testid="day-empty-line">{account}</p>
-              )}
-              {law === null ? null : (
-                <>
-                  <p data-testid="day-empty-line">{law.line}</p>
-                  <p data-testid="day-stopped-needs">{law.needsLine}</p>
-                  <p data-testid="day-stopped-resumes">{law.resumesLine}</p>
-                </>
-              )}
-            </div>
-          </>
+          <div className="flex min-w-0 flex-col gap-(--s-2)" data-testid="day-account">
+            {account === null ? null : <p data-testid="day-empty-line">{account}</p>}
+            {law === null ? null : (
+              <>
+                <p data-testid="day-empty-line">{law.line}</p>
+                <p data-testid="day-stopped-needs">{law.needsLine}</p>
+                <p data-testid="day-stopped-resumes">{law.resumesLine}</p>
+              </>
+            )}
+          </div>
         }
       />
     );
@@ -310,6 +321,17 @@ export function DayPanelView(p: {
           otherwise: { tag: "scheduled", at: formatDateTime(page.publishAt, p.timeZone) },
         }).line;
 
+  // The canvas puts the status lines on the accent tint with the control
+  // they belong to, so they are handed to `DayActions` rather than drawn
+  // in the account above it.
+  const statusLines =
+    publishLine === null && vetoLine === null ? null : (
+      <>
+        {publishLine === null ? null : <p data-testid="day-publish-line">{publishLine}</p>}
+        {vetoLine === null ? null : <p data-testid="day-veto-line">{vetoLine}</p>}
+      </>
+    );
+
   // The record's own summary, or nothing. `unpublishOutcome` is stated in
   // preference to the check: a page ReachKit took down is accounted for by
   // what the takedown found, and the check that will never run beside it
@@ -319,29 +341,21 @@ export function DayPanelView(p: {
   return (
     <DayPanel
       heading={
-        <div className="rk-daypanel-heading" data-testid="day-head">
+        <div className={HEAD} data-testid="day-head">
           <Badge tone={STAGE_TONE[page.stage]}>
             {copy(STAGE_FILTER_COPY_KEY[page.stage])}
           </Badge>
-          <span className="num rk-prov">{date}</span>
+          <span className={DATE}>{date}</span>
         </div>
       }
       account={
-        <div className="flex flex-col gap-3" data-testid="day-account">
+        <div className={ACCOUNT} data-testid="day-account">
           {/* S15's four parts, in its order: the page's own heading, then a
               rule, then the status lines its stage earns, then "Why this
               page", then the rule the controls sit under. */}
-          <p className="rk-daypanel-title" data-testid="day-title">
+          <p className={TITLE} data-testid="day-title">
             {page.title}
           </p>
-          <hr className="rk-daypanel-rule" />
-          {/* Status rows — one per fact this stage actually has. */}
-          {publishLine === null ? null : (
-            <p data-testid="day-publish-line">{publishLine}</p>
-          )}
-          {vetoLine === null ? null : (
-            <p data-testid="day-veto-line">{vetoLine}</p>
-          )}
           {/* What became of the page, in one line (issue #217). The same
               two facts the draft view's record block states, read through
               the same keys, so the panel and that view cannot disagree
@@ -357,7 +371,7 @@ export function DayPanelView(p: {
             <p className="flex flex-wrap items-baseline gap-2" data-testid="day-record-line">
               <Badge tone={recordLine.tone} wrap>{recordLine.text}</Badge>
               {recordLine.at === null ? null : (
-                <span className="num rk-prov">{formatDate(recordLine.at, p.timeZone)}</span>
+                <span className={DATE}>{formatDate(recordLine.at, p.timeZone)}</span>
               )}
             </p>
           )}
@@ -367,7 +381,6 @@ export function DayPanelView(p: {
             {copy(BAND_LABELS.winnability[page.why.winnability])}
           </Badge>
           <WhyThisPage why={page.why} />
-          <hr className="rk-daypanel-rule" />
         </div>
       }
       provenance={
@@ -376,12 +389,12 @@ export function DayPanelView(p: {
            element in every one of S15's arms, which is why it is the
            component's own slot rather than the tail of the account. */
         provenance === null ? undefined : (
-          <p className="rk-prov" data-testid="day-provenance">
+          <p className={PROVENANCE} data-testid="day-provenance">
             {provenance}
           </p>
         )
       }
-      actions={<DayActions cell={cell} />}
+      actions={<DayActions cell={cell} lines={statusLines} />}
     />
   );
 }

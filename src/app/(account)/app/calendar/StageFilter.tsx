@@ -7,48 +7,19 @@
 // from the very cells the grid renders — so the filter and the grid cannot
 // disagree about what is on the calendar (WO-164 step 3).
 //
-// **Six cards in one row, in the approved option-card idiom** (issue #354,
-// screen S14). The set draws them as `.opt` boxes — a small label above a
-// large mono count — laid out `repeat(6, minmax(0, 1fr))` and folding to
-// three columns below `--breakpoint-lg`:
+// **Six boxes in one row, as `Canvas: Calendar` draws them**: the stage
+// word above its count, the chosen one edged and lettered in the accent
+// through `aria-pressed`'s own variant, so what the eye reads and what a
+// screen reader reads cannot diverge (§2.5). Token utilities on a bare
+// `<button>` — no stylesheet, no `Card`, no chip.
 //
-//     <button class="opt" aria-pressed="…">
-//       <span class="stat-l">All</span>
-//       <div class="num">28</div>
-//     </button>
-//
-// What this file changed to match it (they were `Card`s with a `Badge` and
-// a bare count before): the word is the card's own label rather than a
-// stage chip — six filled chips in a row read as six states of something,
-// which is precisely what a filter is not — the count is the headline
-// figure at `--t-h3` in the mono face, and the chosen card carries the
-// accent edge and tint the idiom registers for a selected box.
-//
-// **Why a bare `<button>` around a `Card`.** §2.2 closes custom CSS at five
-// surfaces and a filter card is not one of them, so this file adds no
-// stylesheet of its own; `rk-opt` is the idiom's own widening of `Card`
-// (`src/ui/idiom/idiom.css`), on the same footing as its card head and its
-// button ranks. It also cannot put the count inside a `Btn` or a `Tabs`
-// tab: both take `label: string`, and §2.3 requires every numeral to be
-// JetBrains Mono, which a numeral inside a flat label string can never be.
-// `Card`'s title takes a `React.ReactNode`, so the word and the count are
-// two nodes, and the button is the interactive wrapper around them.
-//
-// **The chosen card says so twice.** The tint is the eye's reading and
-// `aria-pressed` is the screen reader's, and the stylesheet keys the tint
-// off that attribute — so the two cannot diverge (§2.5's words-not-colour
-// rule, and the pairing issue #288 already built for `Btn`).
-//
-// **Not a `Join`.** daisyUI's `join` is a non-wrapping row that welds its
-// children edge to edge; six cards in one at 320px push the document into a
-// horizontal scroll and squeeze the widest stage word ("Your review") until
-// it clips — both offenders ADR-093 decision 6's sweep reports. The grid
-// re-columns instead, which is what the layout law asks for: the box
-// changes, the text is never shrunk to fit.
+// The count cannot go inside a `Btn` or a `Tabs` tab: both take
+// `label: string`, and §2.3 requires every numeral to be JetBrains Mono,
+// which a numeral inside a flat label string can never be. A grid and not
+// a wrapping flex row, so six boxes are one width whatever their words are.
 "use client";
 
 import type React from "react";
-import { Card } from "@/ui/components/Card";
 import { copy } from "@/lib/presentation/copy";
 import {
   STAGE_FILTERS,
@@ -56,6 +27,17 @@ import {
   type StageFilter as StageFilterId,
 } from "./stages";
 import type { MonthModel } from "./month";
+
+/** The canvas's filter box: its word above its count, the chosen one edged
+ *  and lettered in the accent. The state is read off `aria-pressed`, so
+ *  what the eye reads and what a screen reader reads cannot diverge. */
+const BOX =
+  "group flex min-w-0 flex-col gap-(--s-1) rounded-(--r-box) border border-base-300 bg-base-100 px-(--s-4) py-(--s-3) text-left aria-pressed:border-primary";
+const WORD =
+  "text-(length:--t-sm) text-(color:--ink-2) group-aria-pressed:font-semibold group-aria-pressed:text-primary";
+/** The headline figure: the canvas's `--h2` step, mono as every numeral
+ *  is (§2.3). */
+const COUNT = "num text-(length:--h2) font-semibold";
 
 export function StageFilter(p: {
   counts: MonthModel["counts"];
@@ -68,26 +50,22 @@ export function StageFilter(p: {
     // are the same width whatever their words are — a filter row whose
     // boxes size to their labels reads as six unrelated controls.
     <div
-      className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6"
+      className="grid grid-cols-2 gap-(--s-3) lg:grid-cols-3 xl:grid-cols-6"
       data-testid="stage-filters"
     >
       {STAGE_FILTERS.map((filter) => (
         <button
           key={filter}
           type="button"
-          className="rk-opt"
+          className={BOX}
           data-testid={`stage-filter-${filter}`}
           aria-pressed={filter === p.selected}
           onClick={() => p.onSelect(filter)}
         >
-          <Card
-            state="default"
-            title={<span className="rk-opt-label">{copy(STAGE_FILTER_COPY_KEY[filter])}</span>}
-          >
-            <span className="num rk-opt-count" data-testid={`stage-count-${filter}`}>
-              {p.counts[filter]}
-            </span>
-          </Card>
+          <span className={WORD}>{copy(STAGE_FILTER_COPY_KEY[filter])}</span>
+          <span className={COUNT} data-testid={`stage-count-${filter}`}>
+            {p.counts[filter]}
+          </span>
         </button>
       ))}
     </div>

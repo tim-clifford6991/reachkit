@@ -133,11 +133,6 @@ const HAND_WRITTEN: ReadonlyArray<{
     why: "REQ-096 c6's one control (#223), and the same case as the row above: it navigates to the competitors card, so it is an `<a>` rather than `Btn`'s `<button>`. `btn-ghost` is the third class and it is the point of the row — §2.5 keeps rival strength neutral, so the control beside a far rival must not read as a call to action, and the ruling on #177 fixed plain ghost for exactly this kind of quiet control.",
   },
   {
-    file: "src/app/(account)/app/calendar/DayPanelView.tsx",
-    classes: ["btn", "btn-sm", "btn-primary", "btn-outline"],
-    why: "S15's block control (#354), and the same case as the two rows above: the day's one way in navigates — to the draft, to the live page, to Settings — so it is an `<a>` with no client runtime rather than `Btn`'s `<button>` with an `onClick`. `btn-primary` is the solid rank where it leads further into the customer's own work and `btn-outline` is the rank where it leaves the product for the live page; §9.1 gives a screen one filled button and a control that navigates away is not the one the panel is asking for.",
-  },
-  {
     file: "src/app/(account)/app/calendar/page.tsx",
     classes: ["btn", "btn-sm", "btn-ghost"],
     why: "§4.6's month switcher, as the approved S14 draws it (#354, and #269 before it): `\u2190 Sep 2026 \u2192`. The two arrows are `<a>` and not `Btn`'s `<button>` because the month lives in the address — they navigate with no client runtime, and the month between them is not a control at all. `btn-ghost` is the quiet pill the drawing gives them: a switcher is not the screen's call to action, and §9.1 gives the screen one fill.",

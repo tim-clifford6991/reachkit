@@ -134,7 +134,17 @@ function dayMarker(day: string): Date {
   return new Date(`${day}T00:00:00.000Z`);
 }
 
-export function CalendarView(p: { model: MonthModel }): React.JSX.Element {
+/** The canvas draws the month as one card — the weekday heads, the grid
+ *  and the footnote inside it — with the day panel beside that card. */
+const GRID_CARD =
+  "flex min-w-0 flex-col gap-(--s-4) rounded-(--r-box) border border-base-300 bg-base-100 p-(--s-5) shadow-sm";
+
+export function CalendarView(p: {
+  model: MonthModel;
+  /** §4.6's footnote, resolved on the server and drawn inside the month
+   *  card where the canvas puts it. */
+  footnote?: React.ReactNode;
+}): React.JSX.Element {
   const [filter, setFilter] = useState<StageFilterId>("all");
   const [selected, setSelected] = useState<string>(() => openOn(p.model));
 
@@ -149,13 +159,16 @@ export function CalendarView(p: { model: MonthModel }): React.JSX.Element {
       />
       <DayPanelLayout
         grid={
-          <CalendarGrid
-            weekdays={weekdayLabels()}
-            cells={p.model.cells.map((c) =>
-              toGridCell(c, filter, selected, p.model.stopped, p.model.timeZone)
-            )}
-            onSelect={setSelected}
-          />
+          <div className={GRID_CARD}>
+            <CalendarGrid
+              weekdays={weekdayLabels()}
+              cells={p.model.cells.map((c) =>
+                toGridCell(c, filter, selected, p.model.stopped, p.model.timeZone)
+              )}
+              onSelect={setSelected}
+            />
+            {p.footnote}
+          </div>
         }
         panel={
           cell === undefined ? null : (

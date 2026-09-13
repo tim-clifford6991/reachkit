@@ -35,6 +35,16 @@ import { copy } from "@/lib/presentation/copy";
 import { renderMeasured } from "@/lib/presentation/measured";
 import type { WhyThisPage as WhyFacts } from "./month";
 
+/** The canvas's block, named once: its eyebrow, and its two columns — the
+ *  key at the near edge in the quiet ink, the value right-aligned. */
+const EYEBROW = "eyebrow font-bold tracking-[0.1em] text-(color:--ink-3)";
+const ROWS =
+  "grid grid-cols-[auto_1fr] gap-x-(--s-3) gap-y-(--s-2) text-(length:--t-sm)";
+const KEY = "whitespace-nowrap text-(color:--ink-2)";
+const VALUE = "text-right";
+/** Quiet, mono and small — as every provenance line on this panel is. */
+const QUIET = "num text-(length:--t-explain) text-(color:--ink-3)";
+
 /** One label/value pair. The label arrives already resolved from the
  *  registry — this component reads no key and writes no word, so there is
  *  no position here a sentence could be typed into. The value is always a
@@ -58,8 +68,10 @@ function Row(p: {
 }): React.JSX.Element {
   return (
     <>
-      <dt>{p.label}</dt>
-      <dd className={p.phrase === true ? "num num-phrase" : "num"}>{p.children}</dd>
+      <dt className={KEY}>{p.label}</dt>
+      <dd className={p.phrase === true ? `num num-phrase ${VALUE}` : `num ${VALUE}`}>
+        {p.children}
+      </dd>
     </>
   );
 }
@@ -82,8 +94,8 @@ function Row(p: {
 function Sentence(p: { label: string; children: React.ReactNode }): React.JSX.Element {
   return (
     <>
-      <dt>{p.label}</dt>
-      <dd>{p.children}</dd>
+      <dt className={KEY}>{p.label}</dt>
+      <dd className={VALUE}>{p.children}</dd>
     </>
   );
 }
@@ -101,8 +113,8 @@ export function WhyThisPage(p: { why: WhyFacts }): React.JSX.Element {
 
   return (
     <div className="flex flex-col gap-3" data-testid="why-this-page">
-      <p className="eyebrow rk-daypanel-eyebrow">{copy("calendar.why.title")}</p>
-      <dl className="rk-daypanel-why">
+      <p className={EYEBROW}>{copy("calendar.why.title")}</p>
+      <dl className={ROWS}>
         <Row label={copy("calendar.why.search")} phrase>
           {why.search}
         </Row>
@@ -121,7 +133,7 @@ export function WhyThisPage(p: { why: WhyFacts }): React.JSX.Element {
           is a sentence about why a value is a dash, and a `<dd>` holding a
           sentence beside four values is the defect #297 already found in
           `done when`. */}
-      {you.line === undefined ? null : <p className="rk-prov">{you.line}</p>}
+      {you.line === undefined ? null : <p className={QUIET}>{you.line}</p>}
     </div>
   );
 }

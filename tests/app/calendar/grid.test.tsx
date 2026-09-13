@@ -220,22 +220,21 @@ describe("issue #354 — S14, the approved calendar screen", () => {
     expect(cards).toHaveLength(6);
     for (const card of cards) {
       const id = card.getAttribute("data-testid") ?? "";
-      // The approved `.opt`: the idiom's selectable box around a `Card`,
-      // not a chip and not a bare button.
-      expect(card.className, id).toContain("rk-opt");
-      expect(card.querySelector(".card"), id).not.toBeNull();
-      // The count is the card's headline figure, and it is mono (§2.3).
-      const count = card.querySelector(".rk-opt-count");
+      // The canvas's own box, drawn in token utilities: no `Card` inside
+      // it, the stage word above its count.
+      expect(card.querySelector(".card"), id).toBeNull();
+      const count = card.querySelector('[data-testid^="stage-count-"]');
       expect(count, id).not.toBeNull();
+      // The count is the box's headline figure, and it is mono (§2.3).
       expect(count?.className, id).toContain("num");
     }
   });
 
   it("the chosen card carries the accent state in the accessibility tree, not by tint alone", () => {
     const root = view();
-    // `CalendarView` opens on `all`, so that is the chosen card. The tint
-    // is keyed off this attribute in `idiom.css`, so a card cannot look
-    // chosen without being chosen (§2.5).
+    // `CalendarView` opens on `all`, so that is the chosen box. The accent
+    // edge is this attribute's own variant, so a box cannot look chosen
+    // without being chosen (§2.5).
     expect(
       root.querySelector('[data-testid="stage-filter-all"]')?.getAttribute("aria-pressed"),
     ).toBe("true");

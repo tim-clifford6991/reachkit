@@ -178,8 +178,9 @@ describe("REQ-043 c10 — one provenance line, and no date repeated beside each 
     const rendered = panel("2026-09-15").querySelector('[data-testid="day-provenance"]');
     expect(rendered).not.toBeNull();
     expect(rendered?.textContent).toContain("measured");
-    // Quiet, mono, small — §2.5, through the one class that says so.
-    expect(rendered?.className).toContain("rk-prov");
+    // Quiet, mono, small — §2.5, in the tokens the canvas draws it in.
+    expect(rendered?.className).toContain("num");
+    expect(rendered?.className).toContain("text-(color:--ink-3)");
     // Last: after the controls, which is where the approved panel draws it.
     // A line that has to be quiet (§2.5) cannot sit above the one control
     // the panel is asking for.
@@ -206,7 +207,7 @@ describe("REQ-043 c9 — the panel renders exactly the projection, and adds noth
 
   it("a live page offers one way through, at its recorded address", () => {
     const root = panel("2026-09-01");
-    const link = root.querySelector('[data-testid="day-action-calendar.action.view-live-page"]');
+    const link = root.querySelector('[data-testid="day-action-calendar.action.view-live-page"] a');
     expect(link?.getAttribute("href")).toBe("https://content.example.com/2026-09-01");
     expect(root.querySelectorAll('[data-testid^="day-action-"]')).toHaveLength(1);
   });
@@ -310,23 +311,30 @@ describe("a cell with a page whose stage has no action", () => {
 describe("issue #354 — S15, the approved panel arms", () => {
   it("the head is the stage chip at the near edge and the date at the far one", () => {
     const head = panel("2026-09-15").querySelector('[data-testid="day-head"]');
-    expect(head?.className).toContain("rk-daypanel-heading");
+    expect(head?.className).toContain("justify-between");
     const children = [...(head?.children ?? [])];
     expect(children[0]?.className).toContain("badge");
     // The date is quiet and mono — it is the head's second half, not its
     // subject (§2.5's provenance rule, and S15's own `.prov`).
     expect(children[1]?.className).toContain("num");
-    expect(children[1]?.className).toContain("rk-prov");
+    expect(children[1]?.className).toContain("text-(color:--ink-3)");
   });
 
   it("**review offers a solid way in across the column, with Move and a warn-outline Veto under it**", () => {
     const root = panel("2026-09-15");
-    const read = root.querySelector('[data-testid="day-action-calendar.action.read-full-page"]');
+    const read = root.querySelector(
+      '[data-testid="day-action-calendar.action.read-full-page"] a',
+    );
     // The one way in: an anchor, because it navigates, and the solid rank,
-    // because it is what the panel is asking for (§9.1's one fill).
+    // because it is what the panel is asking for (§9.1's one fill). It is
+    // `Btn`'s link arm, so this screen hand-writes no `btn` class.
     expect(read?.tagName.toLowerCase()).toBe("a");
     expect(read?.className).toContain("btn-primary");
-    expect(read?.parentElement?.className).toContain("rk-daypanel-block");
+    // The canvas stands it in the tinted block, under the line saying how
+    // long they have to stop the page.
+    const cta = root.querySelector('[data-testid="day-cta"]');
+    expect(cta?.contains(read ?? null)).toBe(true);
+    expect(cta?.querySelector('[data-testid="day-veto-line"]')).not.toBeNull();
 
     const veto = root.querySelector('[data-testid="day-action-calendar.action.veto"] button');
     // The outline rank on `warn` — issue #271's arm, for a control whose
@@ -342,13 +350,13 @@ describe("issue #354 — S15, the approved panel arms", () => {
       expect(
         root.querySelector(`[data-testid="day-action-${key}"]`)?.className,
         key,
-      ).toContain("rk-daypanel-half");
+      ).toContain("flex-1");
     }
   });
 
   it("live's way in is the OUTLINE rank — it leaves the product, so it is not the screen's fill", () => {
     const live = panel("2026-09-01").querySelector(
-      '[data-testid="day-action-calendar.action.view-live-page"]',
+      '[data-testid="day-action-calendar.action.view-live-page"] a',
     );
     expect(live?.tagName.toLowerCase()).toBe("a");
     expect(live?.className).toContain("btn-outline");
