@@ -65,6 +65,16 @@ const TONE_PAINT = Object.freeze({
  *  viewBox units, the way every chart under `src/ui/charts` is drawn. */
 const GAUGE_SVG: React.CSSProperties = { width: "100%", height: "auto", display: "block" };
 
+/** The arc's presentation values, bound to a name rather than spelled in
+ *  the attribute: a literal in a JSX attribute is a voice position, and
+ *  these are geometry (`chart-primitives.ts` names its own the same way). */
+const ARC = Object.freeze({
+  unfilled: "none",
+  capRound: "round",
+  track: "var(--sunk)",
+  notFocusable: "false",
+});
+
 /** The score's size — the ladder's big-number rung (`--t-num-big`). */
 const BIG_NUMBER: React.CSSProperties = { fontSize: "var(--t-num-big)", lineHeight: 1.1 };
 
@@ -131,31 +141,33 @@ function DriverBar(p: { factor: ScoreFactorName; value: Measured<number> }): Rea
  *  zero over a dash would be a reading the scan never took. */
 function Gauge(p: { score: number | null; paint: string }): React.JSX.Element {
   const { box, centre, radius, stroke, circumference, sweep, rotate } = GAUGE;
+  const turn = `rotate(${rotate} ${centre} ${centre})`;
   return (
-    <svg viewBox={`0 0 ${box} ${box}`} style={GAUGE_SVG} aria-hidden focusable="false">
-      <g
-        transform={`rotate(${rotate} ${centre} ${centre})`}
-        fill="none"
+    <svg viewBox={`0 0 ${box} ${box}`} style={GAUGE_SVG} aria-hidden focusable={ARC.notFocusable}>
+      <circle
+        cx={centre}
+        cy={centre}
+        r={radius}
+        transform={turn}
+        fill={ARC.unfilled}
+        stroke={ARC.track}
         strokeWidth={stroke}
-        strokeLinecap="round"
-      >
+        strokeLinecap={ARC.capRound}
+        strokeDasharray={`${sweep} ${circumference}`}
+      />
+      {p.score === null ? null : (
         <circle
           cx={centre}
           cy={centre}
           r={radius}
-          stroke="var(--sunk)"
-          strokeDasharray={`${sweep} ${circumference}`}
+          transform={turn}
+          fill={ARC.unfilled}
+          stroke={p.paint}
+          strokeWidth={stroke}
+          strokeLinecap={ARC.capRound}
+          strokeDasharray={`${(sweep * p.score) / HUNDREDTHS} ${circumference}`}
         />
-        {p.score === null ? null : (
-          <circle
-            cx={centre}
-            cy={centre}
-            r={radius}
-            stroke={p.paint}
-            strokeDasharray={`${(sweep * p.score) / HUNDREDTHS} ${circumference}`}
-          />
-        )}
-      </g>
+      )}
     </svg>
   );
 }
@@ -201,7 +213,7 @@ export function VerdictStrip(p: {
           room to read. */}
       <div className="flex flex-wrap items-center gap-6">
         <div className="flex basis-full flex-col items-center gap-2 sm:basis-48">
-          <div className="relative flex w-full items-center justify-center">
+          <div className="relative w-full">
             <Gauge
               score={measured === null ? null : measured.score}
               paint={measured === null ? TONE_PAINT.neutral : TONE_PAINT[BAND_TONE[measured.band]]}
