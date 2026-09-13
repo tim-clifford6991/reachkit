@@ -24,6 +24,11 @@ import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { applyEnvFixture } from "../../mail/env-fixture";
+import {
+  REFUSED_MARKER,
+  REFUSED_PATH,
+  type PricingSearchParams,
+} from "@/app/(public)/pricing/state";
 
 // `page.tsx` reads `@/lib/config/env` at module load (BP-005) for the
 // absolute `returnTo` it hands checkout, so the bindings are in place before
@@ -41,32 +46,50 @@ const REPORT_VIEW_PATH = path.resolve(
   import.meta.dirname,
   "../../../src/app/(public)/scan/[domain]/_address/report-view.tsx"
 );
+// Issue #624: the Server Function moved out of the page into its own
+// `"use server"` module, so the assertions about what checkout is asked for
+// read it there.
+const ACTIONS_PATH = path.resolve(
+  import.meta.dirname,
+  "../../../src/app/(public)/pricing/actions.ts"
+);
+const ACTIONS_SOURCE = readFileSync(ACTIONS_PATH, "utf8");
 
 /** `PAGE_SOURCE` with every comment removed — block, line and JSX. The
  *  assertions below are about what the module *does*, and this file's own
  *  header quotes the very identifiers ("scanId") those assertions forbid in
  *  code. */
-const PAGE_BODY = PAGE_SOURCE.replace(/\{\s*\/\*[\s\S]*?\*\/\s*\}/g, "")
-  .replace(/\/\*[\s\S]*?\*\//g, "")
-  .replace(/^[ \t]*\/\/.*$/gm, "");
+function withoutComments(source: string): string {
+  return source
+    .replace(/\{\s*\/\*[\s\S]*?\*\/\s*\}/g, "")
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/^[ \t]*\/\/.*$/gm, "");
+}
+
+const PAGE_BODY = withoutComments(PAGE_SOURCE);
+const ACTIONS_BODY = withoutComments(ACTIONS_SOURCE);
 
 /** Rendered once and shared: the page takes no argument and is a pure
  *  function of the registry, so a second render could only produce the same
  *  markup at the cost of another `resetModules()` and a fresh import of the
  *  whole copy registry. */
-let cachedRender: Promise<string> | undefined;
+const cachedRenders = new Map<string, Promise<string>>();
 
-function render(): Promise<string> {
-  cachedRender ??= renderOnce();
-  return cachedRender;
+function render(searchParams: PricingSearchParams = {}): Promise<string> {
+  const key = JSON.stringify(searchParams);
+  const hit = cachedRenders.get(key);
+  if (hit) return hit;
+  const rendered = renderOnce(searchParams);
+  cachedRenders.set(key, rendered);
+  return rendered;
 }
 
-async function renderOnce(): Promise<string> {
+async function renderOnce(searchParams: PricingSearchParams): Promise<string> {
   vi.resetModules();
   const { default: PricingPage } = (await import("@/app/(public)/pricing/page.tsx")) as {
-    default: () => React.JSX.Element;
+    default: (p: { searchParams?: PricingSearchParams }) => React.JSX.Element;
   };
-  return renderToStaticMarkup(<PricingPage />);
+  return renderToStaticMarkup(<PricingPage searchParams={searchParams} />);
 }
 
 describe('REQ-021 c4 — "Given a surface that offers ReachKit away from any report, when a founder reaches it, then it carries exactly one offer to subscribe, states the price on the terms REQ-022 criterion 1 fixes and what the subscription does on the same terms the offer at the end of a report states (criterion 2), and one control on it begins checkout with no account, sign-in, password or form asked first (REQ-020 criterion 1)." — pricing/offer', () => {
@@ -151,24 +174,21 @@ describe('REQ-021 c4 — "Given a surface that offers ReachKit away from any rep
 
 describe('REQ-021 c5 — "Given a founder on a price surface with no report behind it, when they buy, then the purchase completes on the same terms as one made from a report." — pricing/checkout · the origin is pricing and carries no scan', () => {
   it("the one control posts a Server Function that names origin { kind: 'pricing' } exactly", () => {
-    expect(PAGE_SOURCE).toContain('"use server"');
-    expect(PAGE_BODY).toContain('origin: { kind: "pricing" }');
-    expect(PAGE_BODY).toContain("createCheckoutSession");
+    expect(ACTIONS_SOURCE).toContain('"use server"');
+    expect(ACTIONS_BODY).toContain('origin: { kind: "pricing" }');
+    expect(ACTIONS_BODY).toContain("createCheckoutSession");
   });
 
-  it("no scan id is fabricated here: the page names no scanId at all", () => {
-    expect(PAGE_BODY).not.toMatch(/scanId/);
-    expect(PAGE_BODY).not.toMatch(/kind: "report"/);
+  it("no scan id is fabricated here: neither the page nor its action names one", () => {
+    for (const body of [PAGE_BODY, ACTIONS_BODY]) {
+      expect(body).not.toMatch(/scanId/);
+      expect(body).not.toMatch(/kind: "report"/);
+    }
   });
 
   it("returnTo is this surface's own absolute URL, built from NEXT_PUBLIC_APP_URL", () => {
-    expect(PAGE_BODY).toContain("NEXT_PUBLIC_APP_URL");
-    expect(PAGE_BODY).toContain('new URL("/pricing"');
-  });
-
-  it("a refused session is not swallowed: the page never renders as if checkout began", () => {
-    expect(PAGE_BODY).toMatch(/if \(!result\.ok\)/);
-    expect(PAGE_BODY).toMatch(/throw new Error/);
+    expect(ACTIONS_BODY).toContain("NEXT_PUBLIC_APP_URL");
+    expect(ACTIONS_BODY).toContain('new URL("/pricing"');
   });
 
   it("the report's own offer is unchanged: with no startAction the card renders its control bare", () => {
@@ -178,6 +198,60 @@ describe('REQ-021 c5 — "Given a founder on a price surface with no report behi
     expect(card).toContain("startAction?: () => Promise<void>");
     expect(card).toMatch(/p\.startAction \?/);
     expect(readFileSync(REPORT_VIEW_PATH, "utf8")).toContain("<PricingCard />");
+  });
+});
+
+describe("SPEC.md \u00a73 \u2014 a refused checkout answers on the offer, never with a 500 (issue #624)", () => {
+  /** Drives the vendor arm end to end: the SDK double refuses to create the
+   *  session, exactly as live Stripe refused every session this product ever
+   *  asked it for, and the action is the real one the control posts to. */
+  async function attempt(refuse: boolean): Promise<{ digest?: string; error: unknown }> {
+    vi.resetModules();
+    const { setStripe } = await import("@/lib/account/stripe/client");
+    const { newStripeDouble, stripeDouble } = await import("../../account/stripe-double");
+    const vendor = newStripeDouble();
+    if (refuse) {
+      vendor.sessionCreateError = new Error(
+        "`customer_creation` can only be used in `payment` mode"
+      );
+    }
+    setStripe(stripeDouble(vendor));
+    const { startCheckout } = await import("@/app/(public)/pricing/actions");
+    const error: unknown = await startCheckout().then(
+      () => undefined,
+      (thrown: unknown) => thrown
+    );
+    setStripe(null);
+    return { digest: (error as { digest?: string } | undefined)?.digest, error };
+  }
+
+  it("a refused session redirects back to the offer with the marker, not into an error", async () => {
+    const { digest, error } = await attempt(true);
+    // A `redirect` carries Next's digest; a thrown Error carries none, which
+    // is the difference between a written line and the 500 this replaces.
+    expect(digest).toMatch(/^NEXT_REDIRECT/);
+    expect(digest).toContain(REFUSED_PATH);
+    expect((error as Error).message).not.toContain("customer_creation");
+  });
+
+  it("a session that opens still sends the buyer to Stripe", async () => {
+    const { digest } = await attempt(false);
+    expect(digest).toMatch(/^NEXT_REDIRECT/);
+    expect(digest).toContain("https://checkout.stripe.com/");
+  });
+
+  it("the offer renders its written line when the marker is on the address", async () => {
+    const html = await render({ checkout: REFUSED_MARKER });
+    const { copy } = await import("@/lib/presentation/copy");
+    expect(html).toContain('role="alert"');
+    expect(html).toContain(copy("offer.checkout.refused"));
+    // Still the offer: the control the buyer tries again with is on the page.
+    expect(html).toContain(copy("offer.start.priced"));
+  });
+
+  it("and says nothing about a refusal on an address without it", async () => {
+    const html = await render();
+    expect(html).not.toContain('role="alert"');
   });
 });
 

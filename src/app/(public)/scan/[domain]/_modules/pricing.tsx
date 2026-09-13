@@ -24,6 +24,10 @@
 // ruling is recorded on the control it kept, so the next reader of this
 // file does not re-open it.
 //
+// `refused` is the same additive shape as `startAction`: the surface that
+// can start a checkout is the surface that can be refused one, and the line
+// belongs to the offer rather than to either page's own frame.
+//
 // 2026-09-05, issue #19: `startAction` is how the *other* surface that
 // carries this offer — `/pricing`, the scanless one — gives that control
 // its destination. REQ-021 criterion 4 says that surface states the terms
@@ -34,7 +38,7 @@
 // screen passes nothing and is unchanged.
 import type React from "react";
 import { Check } from "lucide-react";
-import { Btn, Card } from "@/ui/components";
+import { Alert, Btn, Card } from "@/ui/components";
 import { VETO } from "@/lib/config/constants";
 import { copy } from "@/lib/presentation/copy";
 import { Num } from "../_address/measured";
@@ -77,7 +81,7 @@ const TERM_LINES: Readonly<Record<OfferTerms, () => readonly string[]>> = {
 };
 
 export function PricingCard(
-  p: { startAction?: () => Promise<void>; terms?: OfferTerms } = {}
+  p: { startAction?: () => Promise<void>; terms?: OfferTerms; refused?: boolean } = {}
 ): React.JSX.Element {
   const specs = TERM_LINES[p.terms ?? "report"]();
 
@@ -113,6 +117,11 @@ export function PricingCard(
           </li>
         ))}
       </ul>
+
+      {/* Issue #624: the vendor refused to open checkout. One written line
+          on the offer itself, in the bad tone, above the control that will
+          try again — never a thrown error and a 500. */}
+      {p.refused ? <Alert tone="bad" message={copy("offer.checkout.refused")} /> : null}
 
       {p.startAction ? (
         <form action={p.startAction}>

@@ -71,8 +71,12 @@ describe('REQ-020 c6 — "their company, their role, and what they mean to use t
     expect(params.phone_number_collection.enabled).toBe(false);
   });
 
-  it("customer_creation is always — the account is created by the payment", () => {
-    expect(params.customer_creation).toBe("always");
+  it("customer_creation is not sent at all — Stripe refuses it outside payment mode", () => {
+    // Issue #624: the live vendor answered "`customer_creation` can only be
+    // used in `payment` mode" to every subscription session carrying it, so
+    // no checkout ever opened. Subscription mode creates the customer anyway.
+    expect(params).not.toHaveProperty("customer_creation");
+    expect(CHECKOUT_PARAM_KEYS).not.toContain("customer_creation");
   });
 
   it("the object has exactly the declared keys — an added field fails here", () => {
