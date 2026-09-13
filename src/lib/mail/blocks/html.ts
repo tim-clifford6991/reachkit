@@ -60,9 +60,11 @@ function label(text: string): string {
   return `<div style="font-size:${token("--t-eyebrow")};text-transform:uppercase;letter-spacing:0.04em;color:${token("--ink-3")};padding-bottom:4px">${escapeHtml(text)}</div>`;
 }
 
-function renderHeading(text: string): string {
+/** The canvas heads a mail at 25px and a second mail inside one sheet at
+ *  20px, so the rung is the caller's and the h2 is the default. */
+function renderHeading(text: string, rung: "h2" | "h3"): string {
   return row(
-    `<h3 style="margin:0;font-size:${token("--h3")};font-weight:700;letter-spacing:-0.02em;color:${token("--ink")}">${escapeHtml(text)}</h3>`
+    `<h3 style="margin:0;font-size:${token(rung === "h3" ? "--h3" : "--h2")};line-height:1.2;font-weight:700;letter-spacing:-0.02em;color:${token("--ink")}">${escapeHtml(text)}</h3>`
   );
 }
 
@@ -114,23 +116,53 @@ function renderFacts(rows: readonly { label: string; value: string }[]): string 
   const items = rows
     .map(
       (item) =>
-        `<tr><td style="padding:7px 0;border-bottom:1px solid ${token("--line")};font-family:${token("--font-mono-mail")};font-size:${token("--t-sm")};color:${token("--ink-2")}">${escapeHtml(item.label)}</td>` +
-        `<td align="right" style="padding:7px 0;border-bottom:1px solid ${token("--line")};font-size:${token("--t-sm")};color:${token("--ink")}">${mono(item.value)}</td></tr>`
+        `<tr><td style="padding:4px 0;font-size:${token("--t-sm")};color:${token("--ink-2")}">${escapeHtml(item.label)}</td>` +
+        `<td align="right" style="padding:4px 0;font-size:${token("--t-sm")};font-weight:600;color:${token("--ink")}">${mono(item.value)}</td></tr>`
     )
     .join("");
+  // The canvas sets the rows in a sunk panel rather than on hairlines
+  // (MailWinback, MailDigest); the `dl` stays, because the markup is what
+  // "mono fact rows" asks for and only the ground changed.
   return row(
-    `<dl style="margin:0"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${items}</table></dl>`
+    `<dl style="margin:0"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${token("--sunk")};border-radius:${token("--r-field")}">` +
+      `<tr><td style="padding:16px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${items}</table></td></tr></table></dl>`
   );
 }
 
-function renderAction(labelText: string, href: string): string {
+/** The sequence position over the heading, as every mail artboard draws
+ *  it: eyebrow size, uppercase, the wide tracking, in the quiet ink. */
+function renderEyebrow(text: string): string {
+  return row(
+    `<div style="font-size:${token("--t-eyebrow")};text-transform:uppercase;font-weight:700;letter-spacing:0.1em;color:${token("--ink-3")}">${escapeHtml(text)}</div>`
+  );
+}
+
+/** The 13px line the canvas sets under a section — an aside beside the
+ *  mail's own voice, never the sentence the mail is about. */
+function renderFootnote(text: string): string {
+  return row(
+    `<div style="font-size:${token("--t-sm")};line-height:1.5;color:${token("--ink-2")}">${escapeHtml(text)}</div>`
+  );
+}
+
+function renderAction(
+  labelText: string,
+  href: string,
+  secondary: { label: string; href: string } | null
+): string {
   const safe = safeHref(href);
   if (safe === null) {
     return row(`<p style="margin:0">${escapeHtml(labelText)}</p>`);
   }
-  return row(
-    `<a href="${escapeHtml(safe)}" style="display:inline-block;padding:11px 18px;border-radius:${token("--r-pill")};background:${token("--accent")};color:${token("--on-accent")};text-decoration:none;font-family:${token("--font-ui-mail")};font-size:${token("--t-body")};font-weight:700">${escapeHtml(labelText)}</a>`
-  );
+  const button = `<a href="${escapeHtml(safe)}" style="display:inline-block;padding:11px 18px;border-radius:${token("--r-pill")};background:${token("--accent")};color:${token("--on-accent")};text-decoration:none;font-family:${token("--font-ui-mail")};font-size:${token("--t-body")};font-weight:700">${escapeHtml(labelText)}</a>`;
+  // The canvas draws a quiet link beside the button. It is a link and not
+  // a second solid button: one of those per mail is the product rule.
+  const beside = secondary === null ? null : safeHref(secondary.href);
+  const quiet =
+    secondary === null || beside === null
+      ? ""
+      : `<a href="${escapeHtml(beside)}" style="display:inline-block;margin-left:8px;padding:11px 18px;border-radius:${token("--r-pill")};color:${token("--ink-2")};text-decoration:none;font-family:${token("--font-ui-mail")};font-size:${token("--t-body")};font-weight:700">${escapeHtml(secondary.label)}</a>`;
+  return row(`${button}${quiet}`);
 }
 
 function renderNotice(text: string): string {
@@ -191,7 +223,13 @@ export function renderBlocksHtml(blocks: readonly MailBlock[]): {
     if (dropped.has(index)) continue;
     switch (block.block) {
       case "heading":
-        parts.push(renderHeading(copy(block.text, block.vars)));
+        parts.push(renderHeading(copy(block.text, block.vars), block.rung ?? "h2"));
+        break;
+      case "eyebrow":
+        parts.push(renderEyebrow(copy(block.text, block.vars)));
+        break;
+      case "footnote":
+        parts.push(renderFootnote(copy(block.text, block.vars)));
         break;
       case "paragraph":
         parts.push(renderParagraph(copy(block.text, block.vars)));
@@ -220,7 +258,15 @@ export function renderBlocksHtml(blocks: readonly MailBlock[]): {
         parts.push(renderFacts(factRowsOf(block)));
         break;
       case "action":
-        parts.push(renderAction(copy(block.label), block.href));
+        parts.push(
+          renderAction(
+            copy(block.label),
+            block.href,
+            block.secondary === undefined
+              ? null
+              : { label: copy(block.secondary.label), href: block.secondary.href }
+          )
+        );
         break;
       case "notice":
         parts.push(renderNotice(copy(block.text, block.vars)));

@@ -169,6 +169,16 @@ const BROKEN_BODY = "mail.account.destinationBroken.body" satisfies CopyKey;
 const BROKEN_HELD = "mail.account.destinationBroken.held" satisfies CopyKey;
 const BROKEN_ACTION = "mail.account.destinationBroken.action" satisfies CopyKey;
 
+// §10's payment-failed notice, as `Canvas: MailWinback` draws it. Five of
+// its six sentences are the owner's (§12 ruling 6); the sixth is the line
+// every `account` mail already ends on.
+const PAYMENT_FAILED_EYEBROW = "mail.account.paymentFailed.eyebrow" satisfies CopyKey;
+const PAYMENT_FAILED_SUBJECT = "mail.account.paymentFailed.subject" satisfies CopyKey;
+const PAYMENT_FAILED_HEADING = "mail.account.paymentFailed.heading" satisfies CopyKey;
+const PAYMENT_FAILED_BODY = "mail.account.paymentFailed.body" satisfies CopyKey;
+const PAYMENT_FAILED_ACTION = "mail.account.paymentFailed.action" satisfies CopyKey;
+const PAYMENT_FAILED_REASON = "mail.reason.paymentFailed" satisfies CopyKey;
+
 /** The chase where the account is open and a link exists: the payment
  *  succeeded, here is the way in, here is a person. */
 export function buildChaseWithLink(a: { href: string }): AccountMail {
@@ -290,6 +300,30 @@ export function buildDestinationBroken(a: { held: number; href: string; at: Date
       { block: "stat", label: BROKEN_HELD, value: measured(a.held, a.at), format: "integer" },
       { block: "action", label: BROKEN_ACTION, href: a.href },
       { block: "notice", text: REACH_A_PERSON },
+    ],
+  };
+}
+
+/**
+ * §10's retention notice on a failed payment, in the sections
+ * `Canvas: MailWinback` draws: where the reader is in the sequence, what
+ * was declined, what happens next, the way to fix it, and a person.
+ *
+ * It is an `account` mail — `stoppable: false`, like every other thing
+ * this file tells a founder about money that has left their bank, and the
+ * artboard says so in its own footer. `href` is the billing settings page:
+ * the customer's card is theirs to change, and no other control helps.
+ */
+export function buildPaymentFailed(a: { href: string }): AccountMail {
+  return {
+    subject: PAYMENT_FAILED_SUBJECT,
+    reason: PAYMENT_FAILED_REASON,
+    blocks: [
+      { block: "eyebrow", text: PAYMENT_FAILED_EYEBROW },
+      { block: "heading", text: PAYMENT_FAILED_HEADING, rung: "h3" },
+      { block: "paragraph", text: PAYMENT_FAILED_BODY },
+      { block: "action", label: PAYMENT_FAILED_ACTION, href: a.href },
+      { block: "footnote", text: REACH_A_PERSON },
     ],
   };
 }

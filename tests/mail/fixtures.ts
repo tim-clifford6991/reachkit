@@ -36,6 +36,8 @@ export const HEADING: MailBlock = { block: "heading", text: HEADING_KEY };
 export const PARAGRAPH: MailBlock = { block: "paragraph", text: HEADING_KEY };
 export const ACTION: MailBlock = { block: "action", label: ACTION_KEY, href: "https://example.com/x" };
 export const NOTICE: MailBlock = { block: "notice", text: HEADING_KEY };
+export const EYEBROW: MailBlock = { block: "eyebrow", text: LABEL_KEY };
+export const FOOTNOTE: MailBlock = { block: "footnote", text: NOTE_KEY };
 
 export function stat(value: Measured<number>, opts?: { note?: CopyKey; format?: "integer" | "delta" | "perMonth" }): MailBlock {
   return opts?.note === undefined

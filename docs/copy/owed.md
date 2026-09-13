@@ -2,7 +2,7 @@
 
 **Generated. Do not type into this file** — `npm run copy:owed` rewrites it and `tests/presentation/copy/owed-sheet.test.ts` fails when it is out of date. Write the sentences in your reply, or straight into `src/lib/presentation/copy/keys/*.ts`, and run the generator again: a key that gains a sentence leaves this sheet by itself.
 
-**18 keys**, across 819 in the registry — **0 empty** (`copy()` throws on these: a mail with one does not send, a screen with one does not render) and **18 `TODO(copy)`** (these render the marker, in public, until they are written).
+**25 keys**, across 826 in the registry — **0 empty** (`copy()` throws on these: a mail with one does not send, a screen with one does not render) and **25 `TODO(copy)`** (these render the marker, in public, until they are written).
 
 **How to read a row.**
 
@@ -38,7 +38,7 @@ A key with slots (`{value}`, `{date}`) carries them beside its name; the sentenc
 | S17 | Draft · edit | none | 0 |
 | S18 | [Settings](#s18-settings-app) | 1 | 0 |
 | S19 | Hosted page | none | 0 |
-| S20 | Mails | none | 0 |
+| S20 | [Mails](#s20-mails-mail) | 7 | 0 |
 
 ## S10 · Setup — Join
 
@@ -75,4 +75,20 @@ Every bracketed hint the set draws on this screen: `[voice description — the c
 | key | standing | where | the set says | fixed by | max |
 |---|---|---|---|---|---|
 | `settings.voice.save`<br>`settings.ts` | marker | `<span>` · `app/(account)/app/settings/panels/VoicePanel.tsx` |  | SPEC.md §5 (2026-09-12) | 97 — sibling `settings.voice.filter-note` |
+
+## S20 · Mails — Mail
+
+Screen `S20` · the set draws it as `current="mail"` (`docs/archive/2026-09-11/approved/full-set/screens/mail-light.png`).
+
+Every bracketed hint the set draws on this screen: `[imprint line]`
+
+| key | standing | where | the set says | fixed by | max |
+|---|---|---|---|---|---|
+| `mail.account.paymentFailed.action`<br>`mail.ts` | marker | `PAYMENT_FAILED_ACTION` · `lib/mail/templates/account/index.ts` |  | SPEC.md §10 · §12 ruling 6 · Canvas: MailWinback | 18 — sibling `mail.nurture.action` |
+| `mail.account.paymentFailed.body`<br>`mail.ts` | marker | `PAYMENT_FAILED_BODY` · `lib/mail/templates/account/index.ts` |  | SPEC.md §10 · §12 ruling 6 · Canvas: MailWinback | 85 — sibling `mail.magicLink.body` |
+| `mail.account.paymentFailed.eyebrow`<br>`mail.ts` | marker | `PAYMENT_FAILED_EYEBROW` · `lib/mail/templates/account/index.ts` |  | SPEC.md §10 · §12 ruling 6 · Canvas: MailWinback |  |
+| `mail.account.paymentFailed.heading`<br>`mail.ts` | marker | `PAYMENT_FAILED_HEADING` · `lib/mail/templates/account/index.ts` |  | SPEC.md §10 · §12 ruling 6 · Canvas: MailWinback | 20 — sibling `mail.report.heading` |
+| `mail.account.paymentFailed.subject`<br>`mail.ts` | marker | `PAYMENT_FAILED_SUBJECT` · `lib/mail/templates/account/index.ts` |  | SPEC.md §10 · §12 ruling 6 · Canvas: MailWinback | 33 — sibling `mail.published.subject` |
+| `mail.reason.paymentFailed`<br>`mail.ts` | marker | `PAYMENT_FAILED_REASON` · `lib/mail/templates/account/index.ts` |  | SPEC.md §10 · §12 ruling 6 · Canvas: MailWinback | 86 — sibling `mail.reason.firstPage` |
+| `mail.vetoReminder.eyebrow`<br>`mail.ts` | marker | `VETO_EYEBROW` · `lib/mail/templates/draft-ready/index.ts` |  | SPEC.md §10 · §12 ruling 6 · Canvas: MailWinback |  |
 

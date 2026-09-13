@@ -70,6 +70,17 @@ const STOP_ACTION = "mail.draftReady.stopAction" satisfies CopyKey;
 const WHY_SEARCH = "mail.draftReady.why.search" satisfies CopyKey;
 const WHY_VOLUME = "mail.draftReady.why.volume" satisfies CopyKey;
 
+// §10's veto reminder, as `Canvas: MailWinback` draws it. Every sentence
+// but the eyebrow is a key this kind or the veto page already speaks — a
+// second copy of "Stop this page" would be two sentences to keep in step.
+const VETO_EYEBROW = "mail.vetoReminder.eyebrow" satisfies CopyKey;
+const VETO_WINDOW = "mail.draftReady.autopilotWindow" satisfies CopyKey;
+const VETO_GOES_LIVE = "mail.draftReady.dest.goesLiveThen" satisfies CopyKey;
+const VETO_DO_NOTHING = "publish.veto.ask.do-nothing" satisfies CopyKey;
+const VETO_CALENDAR = "publish.veto.calendar" satisfies CopyKey;
+const FACT_ANSWERED_BY = "mail.draftReady.fact.answeredBy" satisfies CopyKey;
+const FACT_SITE = "publish.veto.ask.row.site" satisfies CopyKey;
+
 /** The page as the customer meets it: its model-written title and the body
  *  that title belongs to. The two travel together because the label the
  *  title is carried by is the block's own — a title without it would be
@@ -77,6 +88,15 @@ const WHY_VOLUME = "mail.draftReady.why.volume" satisfies CopyKey;
 export interface DraftReadyPage {
   readonly title: string;
   readonly markdown: string;
+}
+
+/** The three rows `Canvas: MailWinback` sets in the veto reminder's panel,
+ *  each already written by the caller that measured it — a fact row states
+ *  a value and formats none. */
+export interface VetoReminderFacts {
+  readonly asked: string;
+  readonly answeredBy: string;
+  readonly site: string;
 }
 
 /** §7's stored evidence for this page, as §12's "why-data". `volume` stays
@@ -190,5 +210,61 @@ export function buildDraftReady(a: {
     subjectVars: { publishesAt: a.publishesAt ?? "", title: a.page?.title ?? "" },
     reason: REASON,
     blocks,
+  };
+}
+
+/**
+ * §10's veto reminder — the retention touch at six hours left on an
+ * unopened draft — in the sections `Canvas: MailWinback` draws: the page,
+ * the window left, the evidence §7 chose it on, what going live means, and
+ * the two ways out.
+ *
+ * **It is the `draft-ready` kind and not a twelfth row.** The reader's
+ * switch is the daily draft-ready one, which is why the artboard's own
+ * footer names that mail; a new register row would offer a second switch
+ * for the same telling (ADR-042).
+ *
+ * **It carries no page body.** `buildDraftReady` is the mail that delivers
+ * the draft, and this one is a reminder about a draft the customer already
+ * has — the canvas draws the panel, not the page.
+ *
+ * Every value arrives already written: the window in the customer's own
+ * zone, the volume through `formatStat`. A template that formatted one
+ * would be a second formatter.
+ */
+export function buildVetoReminder(a: {
+  page: { readonly title: string };
+  query: string;
+  publishesAt: string;
+  facts: VetoReminderFacts;
+  stopHref: string;
+  calendarHref: string;
+}): DraftReadyMail {
+  return {
+    subject: SUBJECT,
+    subjectVars: { publishesAt: a.publishesAt, title: a.page.title },
+    reason: REASON,
+    blocks: [
+      { block: "eyebrow", text: VETO_EYEBROW },
+      { block: "heading", text: HEADING, vars: { title: a.page.title } },
+      { block: "paragraph", text: VETO_WINDOW, vars: { publishesAt: a.publishesAt } },
+      { block: "footnote", text: WHY_SEARCH, vars: { query: a.query } },
+      {
+        block: "facts",
+        items: [
+          { label: WHY_VOLUME, value: a.facts.asked },
+          { label: FACT_ANSWERED_BY, value: a.facts.answeredBy },
+          { label: FACT_SITE, value: a.facts.site },
+        ],
+      },
+      { block: "footnote", text: VETO_GOES_LIVE, vars: { site: a.facts.site } },
+      { block: "footnote", text: VETO_DO_NOTHING },
+      {
+        block: "action",
+        label: STOP_ACTION,
+        href: a.stopHref,
+        secondary: { label: VETO_CALENDAR, href: a.calendarHref },
+      },
+    ],
   };
 }

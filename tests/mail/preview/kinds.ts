@@ -42,8 +42,13 @@ const PREVIEW_PAGE: DraftReadyPage = {
   markdown: "# How to choose onboarding software\n\nThe page, as written.",
 };
 
-/** The seven the set draws, in its own order. */
+/** The seven the set draws, in its own order, plus the two the canvas
+ *  draws on `MailWinback` (issue #641): the veto reminder is an arm of the
+ *  `draft-ready` row and the payment-failed notice an arm of `account`,
+ *  composed here so both are photographed beside their artboard. */
 export const PREVIEW_KINDS = [
+  "veto-reminder",
+  "payment-failed",
   "magic-link",
   "report",
   "first-page",
@@ -61,6 +66,25 @@ export async function composePreview(kind: PreviewKind): Promise<ComposedMail> {
   const { composeMail } = await import("../../../src/lib/mail/shell/compose");
 
   switch (kind) {
+    case "veto-reminder": {
+      const { buildVetoReminder } = await import("../../../src/lib/mail/templates/draft-ready");
+      // The canvas's own figures, so the preview checks the picture it is
+      // held against rather than a second set of numbers.
+      const mail = buildVetoReminder({
+        page: { title: "Holiday pay rules for part-time staff" },
+        query: "holiday pay for part-time staff",
+        publishesAt: "in 6 h",
+        facts: { asked: "1,900", answeredBy: "rival-one.example.net", site: "example.com" },
+        stopHref: `${APP}/stop/preview`,
+        calendarHref: `${APP}/app/calendar`,
+      });
+      return composeMail({ kind: "draft-ready", subject: mail.subject, subjectVars: mail.subjectVars, blocks: mail.blocks, reason: mail.reason });
+    }
+    case "payment-failed": {
+      const { buildPaymentFailed } = await import("../../../src/lib/mail/templates/account");
+      const mail = buildPaymentFailed({ href: `${APP}/app/settings/billing` });
+      return composeMail({ kind: "account", subject: mail.subject, blocks: mail.blocks, reason: mail.reason });
+    }
     case "magic-link": {
       const { buildMagicLink } = await import("../../../src/lib/mail/templates/magic-link");
       const mail = buildMagicLink({ href: `${APP}/signin?t=preview`, address: "you@company.com" });

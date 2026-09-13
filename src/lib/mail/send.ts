@@ -17,7 +17,7 @@
 // caller that must send at most once carries its own natural key. It
 // retries nothing either; the retry window belongs to whoever owns the
 // occasion.
-import type { CopyKey } from "@/lib/presentation/copy";
+import { TODO_COPY_MARKER, type CopyKey } from "@/lib/presentation/copy";
 import type { CopyVars, MailBlock } from "./blocks/types";
 import { MAIL_KINDS, type MailKind } from "./kinds";
 import { stoppedByPreference } from "./notifications";
@@ -150,6 +150,17 @@ export async function sendEmail(m: SendInput): Promise<SendResult> {
     });
     console.warn(
       JSON.stringify({ event: "mail_not_composable", kind: m.kind, detail: String(error) })
+    );
+    return { sent: false, reason: "not-composable" };
+  }
+
+  // §8: an owner-owed sentence sends nothing at all. `copy()` already
+  // refuses the empty standing above; the marker standing renders, and
+  // this is what stops it reaching a reader. Before any store is asked.
+  if (composed.html.includes(TODO_COPY_MARKER) || composed.text.includes(TODO_COPY_MARKER)) {
+    log({ kind: m.kind, recipient: recipientEarly, outcome: "not-composable", omitted: 0, vendorId: null });
+    console.warn(
+      JSON.stringify({ event: "mail_not_composable", kind: m.kind, detail: "owner-owed marker" })
     );
     return { sent: false, reason: "not-composable" };
   }

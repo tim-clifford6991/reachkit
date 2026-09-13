@@ -1,6 +1,6 @@
 // BUILD §12 — the only vocabulary a mail template may speak.
 //
-// Eight arms, and nothing else. A template hands `composeMail()` a list of
+// Ten arms, and nothing else. A template hands `composeMail()` a list of
 // these and holds no conditional of its own: every value that can be
 // absent enters as a `Measured<T>` (`src/lib/measure/measured.ts`), so a
 // template cannot format a number itself and cannot forget BUILD §12's
@@ -12,7 +12,7 @@
 // string that is not a key — the draft page itself — and it carries the
 // two fields `generatedLabel()` needs, so model text cannot reach a mail
 // without the label that identifies it (ADR-012, §8's `GeneratedText`
-// rule). There is no ninth arm and no free-string escape hatch.
+// rule). There is no eleventh arm and no free-string escape hatch.
 import type { Measured } from "@/lib/measure/measured";
 import type { CopyKey } from "@/lib/presentation/copy";
 
@@ -60,7 +60,14 @@ export interface VerdictRow {
 export type StatFormat = "integer" | "delta" | "perMonth";
 
 export type MailBlock =
-  | { readonly block: "heading"; readonly text: CopyKey; readonly vars?: CopyVars }
+  | {
+      readonly block: "heading";
+      readonly text: CopyKey;
+      readonly vars?: CopyVars;
+      /** Which rung the canvas sets this heading in. The 25px h2 is a
+       *  mail's own head; h3 heads a second mail inside one sheet. */
+      readonly rung?: "h2" | "h3";
+    }
   | { readonly block: "paragraph"; readonly text: CopyKey; readonly vars?: CopyVars }
   | {
       readonly block: "stat";
@@ -103,7 +110,16 @@ export type MailBlock =
       readonly block: "facts";
       readonly items: readonly FactRow[];
     }
-  | { readonly block: "action"; readonly label: CopyKey; readonly href: string }
+  | { readonly block: "eyebrow"; readonly text: CopyKey; readonly vars?: CopyVars }
+  | { readonly block: "footnote"; readonly text: CopyKey; readonly vars?: CopyVars }
+  | {
+      readonly block: "action";
+      readonly label: CopyKey;
+      readonly href: string;
+      /** The quiet link the canvas draws beside the button. One solid
+       *  button per mail stays the rule — this is a link, not a second. */
+      readonly secondary?: { readonly label: CopyKey; readonly href: string };
+    }
   | { readonly block: "notice"; readonly text: CopyKey; readonly vars?: CopyVars }
   | {
       readonly block: "pageBody";

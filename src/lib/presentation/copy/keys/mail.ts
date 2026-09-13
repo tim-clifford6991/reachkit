@@ -341,6 +341,21 @@ export const MAIL_COPY = Object.freeze({
   ],
   "mail.draftReady.stopAction": ["Stop this page", { slots: {}, fixedBy: "REQ-057 c1 · S20 (11a)" }],
 
+  // 2026-09-13, issue #641. `Canvas: MailWinback` draws the retention
+  // sequence, and §12 ruling 6 makes its copy the owner's: the master
+  // drafts the sheet, the owner approves it, and until then these mails
+  // cannot send at all. Seven keys carry the renderable marker so both
+  // mails compose for review beside the artboard, and `sendEmail` refuses
+  // any mail still holding one. Every other sentence the artboard draws
+  // quotes a key that already exists.
+  "mail.vetoReminder.eyebrow": ["TODO(copy)", { slots: {}, fixedBy: "SPEC.md §10 · §12 ruling 6 · Canvas: MailWinback" }],
+  "mail.account.paymentFailed.eyebrow": ["TODO(copy)", { slots: {}, fixedBy: "SPEC.md §10 · §12 ruling 6 · Canvas: MailWinback" }],
+  "mail.account.paymentFailed.subject": ["TODO(copy)", { slots: {}, fixedBy: "SPEC.md §10 · §12 ruling 6 · Canvas: MailWinback" }],
+  "mail.account.paymentFailed.heading": ["TODO(copy)", { slots: {}, fixedBy: "SPEC.md §10 · §12 ruling 6 · Canvas: MailWinback" }],
+  "mail.account.paymentFailed.body": ["TODO(copy)", { slots: {}, fixedBy: "SPEC.md §10 · §12 ruling 6 · Canvas: MailWinback" }],
+  "mail.account.paymentFailed.action": ["TODO(copy)", { slots: {}, fixedBy: "SPEC.md §10 · §12 ruling 6 · Canvas: MailWinback" }],
+  "mail.reason.paymentFailed": ["TODO(copy)", { slots: {}, fixedBy: "SPEC.md §10 · §12 ruling 6 · Canvas: MailWinback" }],
+
   // 2026-09-06, issue #50 (REQ-062 c5, BUILD §12's `published` mail).
   // Sixteen keys.
   //

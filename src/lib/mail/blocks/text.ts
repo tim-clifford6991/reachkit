@@ -77,8 +77,19 @@ export function renderBlocksText(blocks: readonly MailBlock[]): {
         // `dl`, in the same order, from the same builder.
         parts.push(factRowsOf(block).map((item) => `${item.label}: ${item.value}`).join("\n"));
         break;
+      case "eyebrow":
+      case "footnote":
+        parts.push(copy(block.text, block.vars));
+        break;
       case "action":
-        parts.push(actionLine(copy(block.label), block.href));
+        parts.push(
+          block.secondary === undefined
+            ? actionLine(copy(block.label), block.href)
+            : [
+                actionLine(copy(block.label), block.href),
+                actionLine(copy(block.secondary.label), block.secondary.href),
+              ].join("\n")
+        );
         break;
       case "notice":
         parts.push(copy(block.text, block.vars));

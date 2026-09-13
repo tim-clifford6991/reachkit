@@ -37,7 +37,8 @@ describe("issue #376 — the shell renders S20, and every kind the set draws wea
     // `kinds.ts` still names the four as `NOT_PREVIEWABLE` — that list is
     // the fixture's, not the product's, and it is pinned here so it cannot
     // change without this file seeing it.
-    expect(PREVIEW_KINDS).toHaveLength(7);
+    // Nine: the set's seven, plus the canvas's two retention mails (#641).
+    expect(PREVIEW_KINDS).toHaveLength(9);
     expect([...NOT_PREVIEWABLE].sort()).toEqual([
       "first-page",
       "nurture",
@@ -52,7 +53,7 @@ describe("issue #376 — the shell renders S20, and every kind the set draws wea
     ] as const) {
       expect(COPY[key], `${key} is owed again`).not.toBe("");
     }
-    expect(previewable).toHaveLength(3);
+    expect(previewable).toHaveLength(5);
 
     // The two lead mails `kinds.ts` has a fixture for compose now, each
     // carrying its now-written stop label in both bodies.
