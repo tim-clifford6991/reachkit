@@ -1,0 +1,38 @@
+{
+  "rendered": [
+    {
+      "name": "-app-calendar",
+      "route": "/app/calendar",
+      "screen": "S9",
+      "viewport": "-app-calendar-1280-light.png",
+      "full": "-app-calendar-full.png",
+      "file": "side--app-calendar.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/auth-light.png",
+      "moved": false,
+      "why": "named under `Renders:`"
+    },
+    {
+      "name": "reserved-app-calendar",
+      "route": "/app/calendar",
+      "screen": "S14",
+      "viewport": "reserved-app-calendar-1280-light.png",
+      "full": "reserved-app-calendar-full.png",
+      "file": "side-reserved-app-calendar.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/calendar-light.png",
+      "moved": true,
+      "why": "31656 of 614400 pixels differ (5.152%)"
+    },
+    {
+      "name": "live-app-calendar",
+      "route": "/app/calendar",
+      "screen": "S14",
+      "viewport": "live-app-calendar-1280-light.png",
+      "full": "live-app-calendar-full.png",
+      "file": "side-live-app-calendar.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/calendar-light.png",
+      "moved": true,
+      "why": "20954 of 614400 pixels differ (3.410%)"
+    }
+  ],
+  "skipped": []
+}
