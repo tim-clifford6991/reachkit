@@ -1,64 +1,67 @@
-// BUILD §4.7, REQ-055, REQ-053 — "How your pages sound".
+// Canvas: Settings — "How your pages sound": the voice ReachKit writes in,
+// and the claims a page may never make.
 //
-// The approved screen set gives these two answers a card of their own
-// (UI-SPEC S18, issue #374). They were rows inside "Your content" before,
-// which put the two constraints on what a page may say inside the card about
-// pages the customer already owns — and squeezed the voice, which REQ-055
-// calls "a description", into a one-line value beside an Edit button.
+// Two settings and no third. The voice (REQ-055) is one field and the whole
+// of what ReachKit knows about how a customer's pages should sound: nothing
+// is inferred, and it is the multi-line arm because a description is a
+// paragraph.
 //
-// Two settings and no third:
+// The never-claim list (REQ-053) is entries the customer adds and removes,
+// with the one line saying what the list does — a hard filter, and a draft
+// that matches an entry is held and returned naming it.
 //
-//  · **the voice** (REQ-055) — ONE field, and the whole of what ReachKit
-//    knows about how a customer's pages should sound. Nothing is learned
-//    about them and no second field infers a tone: the customer writes it or
-//    it is empty. It is `Input`'s multi-line arm, because a description is a
-//    paragraph and a box that cannot hold its content is the defect ADR-093
-//    decision 2 names.
-//  · **the never-claim list** (REQ-053) — entries the customer adds and
-//    removes, each a claim their pages must never make, with the one written
-//    line saying what the list *does*: it is a hard filter, and a draft that
-//    matches an entry is held and returned to them naming the entry. That
-//    line is the difference between a preference and a guarantee, which is
-//    why the card states it rather than leaving the list to speak for itself.
-//
-// **Neither is an engine parameter** and that is why they may be here at all
-// (REQ-070 criterion 3). They are constraints on content published under the
-// customer's own name — §14.6 makes the customer the publisher of record —
-// not a cap, a cadence, a model choice or a weight. Both keys are in
-// `SETTABLE`, and `tests/app/settings/screen.test.tsx` reads every rendered
-// `setting-<key>` off the document and asserts the set against it, so moving
-// them between cards cannot lose one.
+// Neither is an engine parameter: both are constraints on content published
+// under the customer's own name, which is why they may be offered at all.
 "use client";
 
 import type React from "react";
 import { useState } from "react";
 import { PenLine } from "lucide-react";
-import { Btn } from "@/ui/components/Btn";
-import { Card } from "@/ui/components/Card";
-import { Input } from "@/ui/components/Input";
-import { CardHead, RemovableTag } from "@/ui/idiom";
+import { Btn, Card, Input } from "@/ui/components";
+import { RemovableTag } from "@/ui/idiom";
 import { copy } from "@/lib/presentation/copy";
 import { writtenLine } from "../../_shell/written";
 import { saveVoiceAction } from "../change-actions";
 import { VOICE_FIELD } from "../voice-state";
 import type { SettingsModel } from "../model";
+import {
+  CARD_HEAD,
+  CARD_LABEL,
+  CONTROLS,
+  EXPLAIN,
+  GLYPH,
+  RULE,
+  SECTION,
+  STACK,
+  STROKE,
+  TAGS,
+} from "../style";
 
 export function VoicePanel(p: { settings: SettingsModel }): React.JSX.Element {
   const filterNote = writtenLine("settings.voice.filter-note");
   const placeholder = writtenLine("settings.voice.placeholder");
-  // The stored voice, and the customer's edit of it in flight. Controlled
-  // for `MarketPanel`'s reason: React resets a form after its action, and
-  // a box that emptied itself the moment it saved would look like the save
-  // had thrown the text away.
+  const readFromSite = writtenLine("settings.voice.read-from-site");
+  // The stored voice, and the customer's edit of it in flight. Controlled,
+  // because React resets a form after its action and a box that emptied
+  // itself on save would look like the save had thrown the text away.
   const [text, setText] = useState(p.settings.voice.text);
 
   return (
-    <Card state="default" title={<CardHead icon={<PenLine size={15} strokeWidth={1.8} aria-hidden />} eyebrow={copy("settings.voice.title")} />}>
-      <div className="flex min-w-0 flex-col gap-4">
-        {/* SPEC.md §5 (2026-09-12): the same summary setup showed, stored
-            where drafting reads it. One field and one press — the form is
-            the write path, exactly as the market card's field is. */}
-        <form action={saveVoiceAction} className="flex min-w-0 flex-col gap-3">
+    <Card
+      state="default"
+      title={
+        <div className={CARD_HEAD}>
+          <span className={CARD_LABEL}>
+            <PenLine size={GLYPH} strokeWidth={STROKE} aria-hidden />
+            <span className="eyebrow">{copy("settings.voice.title")}</span>
+          </span>
+        </div>
+      }
+    >
+      <div className={SECTION}>
+        {/* The same summary setup showed, stored where drafting reads it.
+            One field and one press — the form is the write path. */}
+        <form action={saveVoiceAction} className={STACK}>
           <div className="min-w-0" data-testid="setting-voice_text">
             <Input
               multiline
@@ -69,7 +72,8 @@ export function VoicePanel(p: { settings: SettingsModel }): React.JSX.Element {
               onChange={setText}
             />
           </div>
-          <span>
+          {readFromSite === null ? null : <p className={EXPLAIN}>{readFromSite}</p>}
+          <div className={CONTROLS}>
             <Btn
               type="submit"
               label={copy("settings.voice.save")}
@@ -77,23 +81,18 @@ export function VoicePanel(p: { settings: SettingsModel }): React.JSX.Element {
               variant="secondary"
               pill
             />
-          </span>
+          </div>
         </form>
 
-        <hr className="border-base-300 min-w-0 border-t" />
+        <hr className={RULE} />
 
-        <div className="flex min-w-0 flex-col gap-3" data-testid="setting-do_not_claim">
+        <div className={SECTION} data-testid="setting-do_not_claim">
           <p className="eyebrow opacity-60">{copy("settings.voice.never-claim")}</p>
-          {/* Each entry with its own way out. A claim the customer can add
+          {/* Each entry with its own way out: a claim the customer can add
               and cannot remove would be a filter they no longer control.
-
-              S18 draws the entries as tags, the same `.tag.on` the rivals
-              above take, so they are `RemovableTag` (issue #488) — with its
-              `phrase` arm, because a claim is a sentence the customer wrote
-              ("the fastest onboarding on the market") and must fold inside
-              its card rather than run past it, which the sweep's check 3
-              caught when this was a `Btn` label. */}
-          <div className="flex min-w-0 flex-wrap gap-2">
+              `phrase`, because a claim is a sentence and must fold inside
+              its card rather than run past it. */}
+          <div className={TAGS}>
             {p.settings.doNotClaim.map((claim) => (
               <span className="min-w-0 max-w-full" key={claim} data-testid={`claim-${claim}`}>
                 <RemovableTag
@@ -104,7 +103,7 @@ export function VoicePanel(p: { settings: SettingsModel }): React.JSX.Element {
               </span>
             ))}
           </div>
-          <div className="flex min-w-0 flex-wrap items-end gap-2">
+          <div className="flex min-w-0 flex-wrap items-end gap-(--s-2)">
             <span className="min-w-0 grow">
               <Input
                 label={copy("settings.voice.add-claim")}
@@ -116,9 +115,7 @@ export function VoicePanel(p: { settings: SettingsModel }): React.JSX.Element {
         </div>
       </div>
 
-      {filterNote === null ? null : (
-        <p className="text-xs opacity-60 wrap-anywhere">{filterNote}</p>
-      )}
+      {filterNote === null ? null : <p className={EXPLAIN}>{filterNote}</p>}
     </Card>
   );
 }

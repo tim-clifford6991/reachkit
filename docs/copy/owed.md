@@ -36,7 +36,7 @@ A key with slots (`{value}`, `{date}`) carries them beside its name; the sentenc
 | S15 | Day panel states | none | 0 |
 | S16 | Draft | none | 0 |
 | S17 | Draft · edit | none | 0 |
-| S18 | [Settings](#s18-settings-app) | 1 | 0 |
+| S18 | [Settings](#s18-settings-app) | 2 | 0 |
 | S19 | Hosted page | none | 0 |
 | S20 | Mails | none | 0 |
 
@@ -84,5 +84,6 @@ Every bracketed hint the set draws on this screen: `[voice description — the c
 
 | key | standing | where | the set says | fixed by | max |
 |---|---|---|---|---|---|
-| `settings.voice.save`<br>`settings.ts` | marker | `<span>` · `app/(account)/app/settings/panels/VoicePanel.tsx` |  | SPEC.md §5 (2026-09-12) | 97 — sibling `settings.voice.filter-note` |
+| `settings.voice.read-from-site`<br>`settings.ts` | marker | `VoicePanel` · `app/(account)/app/settings/panels/VoicePanel.tsx` |  | Canvas: Settings | 97 — sibling `settings.voice.filter-note` |
+| `settings.voice.save`<br>`settings.ts` | marker | `<div>` · `app/(account)/app/settings/panels/VoicePanel.tsx` |  | SPEC.md §5 (2026-09-12) | 97 — sibling `settings.voice.filter-note` |
 

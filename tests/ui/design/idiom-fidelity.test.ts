@@ -136,20 +136,25 @@ describe("issue #486 — every chip the approved set draws carries its glyph", (
     expect(body).toContain("color: var(--on-accent)");
   });
 
-  it("S18's nine card heads take the set's nine glyphs (L807–821)", () => {
+  it("Settings' card heads take the artboard's glyphs, at the size DESIGN.md fixes (#636)", () => {
+    // The screen draws its heads in Tailwind utilities over the tokens
+    // (`settings/style.ts`): the glyph is the artboard's, the chip is not,
+    // and billing's is gone with the card the artboard merged into Account.
     const panels: Record<string, string> = {
-      MarketPanel: "Globe",
-      CompetitorsPanel: "Users",
-      PublishingPanel: "Sparkles",
+      AccountPanel: "Lock",
+      DestinationsPanel: "Sparkles",
+      PublishingPanel: "Clock",
       VoicePanel: "PenLine",
       NotificationsPanel: "Bell",
-      BillingPanel: "CreditCard",
-      AccountPanel: "Lock",
+      MarketPanel: "Globe",
+      CompetitorsPanel: "Users",
       ContentPanel: "FileText",
       DangerZone: "Shield",
     };
     for (const [file, icon] of Object.entries(panels)) {
-      expect(read(`app/(account)/app/settings/panels/${file}.tsx`), file).toMatch(CHIP(icon));
+      expect(read(`app/(account)/app/settings/panels/${file}.tsx`), file).toMatch(
+        new RegExp(`<${icon} size=\\{GLYPH\\}`)
+      );
     }
   });
 

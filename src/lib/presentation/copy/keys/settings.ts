@@ -406,6 +406,10 @@ export const SETTINGS_COPY = Object.freeze({
    *  `settings.content.voice`, which the owner has already written; this
    *  is the press that stores it, and it is owner-owed. */
   "settings.voice.save": ["TODO(copy)", { slots: {}, fixedBy: "SPEC.md §5 (2026-09-12)" }],
+  /** The line under the voice box: where the text came from, and what
+   *  editing it changes. Bracketed on `Canvas: Settings`, so it is the
+   *  owner's to write (#636). */
+  "settings.voice.read-from-site": ["TODO(copy)", { slots: {}, fixedBy: "Canvas: Settings" }],
   "settings.voice.placeholder": ["Plain and direct. Short sentences. We say “customers”, never “users”.", { slots: {}, fixedBy: "REQ-055" }],
 
   // REQ-075's own promise, and the reason the three switches above it are

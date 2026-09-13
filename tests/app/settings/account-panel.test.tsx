@@ -44,6 +44,12 @@ vi.mock("@/app/(account)/app/settings/account-actions", () => ({
 
 const { AccountPanel } = await import("@/app/(account)/app/settings/panels/AccountPanel");
 const { ACCOUNT_NOTE_KEYS } = await import("@/lib/account/identity/notes");
+const { assembleSettings } = await import("@/app/(account)/app/settings/model");
+const { FIXTURE_SETTINGS_FACTS } = await import("@/app/(account)/app/settings/fixture");
+
+/** The artboard draws the plan inside the Account card (#636). This suite is
+ *  about the account half, so the billing half is the fixture's. */
+const BILLING = assembleSettings(FIXTURE_SETTINGS_FACTS).billing;
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -60,12 +66,19 @@ async function mount(account: AccountView): Promise<HTMLElement> {
   const container = document.createElement("div");
   document.body.appendChild(container);
   await act(async () => {
-    createRoot(container).render(<AccountPanel account={account} />);
+    createRoot(container).render(<AccountPanel account={account} billing={BILLING} />);
   });
   return container;
 }
 
 const text = (root: HTMLElement): string => root.textContent ?? "";
+
+/** The notes, and only them: since the artboard merged billing into this
+ *  card (#636) the card holds paragraphs that are not notes. */
+const noteLines = (root: HTMLElement): (string | null)[] =>
+  [...(root.querySelector('[data-testid="account-notes"]')?.querySelectorAll("p") ?? [])].map(
+    (el) => el.textContent
+  );
 
 /** The card's own code, comments stripped — citing a rule is not reaching
  *  for the mechanism it forbids (`tests/mail/leads/source.ts`'s reason). */
@@ -111,8 +124,7 @@ describe("REQ-077 c1 — what the card shows at rest", () => {
     // hardcoded would draw them the other way round, or draw the real two.
     const given = ["settings.account.sign-out", "settings.account.name"] as unknown as typeof ACCOUNT_NOTE_KEYS;
     const root = await mount({ ...AT_REST, noteKeys: given });
-    const notes = [...root.querySelectorAll("p")].map((el) => el.textContent);
-    expect(notes).toEqual([...given]);
+    expect(noteLines(root)).toEqual([...given]);
   });
 
   it("the card names no note key of its own — it renders the ones it is handed", async () => {
@@ -127,8 +139,7 @@ describe("REQ-077 c1 — what the card shows at rest", () => {
     // draws exactly the two lines, in identity's order — no stand-in, no
     // extra paragraph.
     const root = await mount(AT_REST);
-    const notes = [...root.querySelectorAll("p")].map((el) => el.textContent);
-    expect(notes).toEqual([...ACCOUNT_NOTE_KEYS]);
+    expect(noteLines(root)).toEqual([...ACCOUNT_NOTE_KEYS]);
   });
 });
 

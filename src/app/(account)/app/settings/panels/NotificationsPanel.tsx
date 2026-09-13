@@ -1,58 +1,61 @@
-// BUILD §4.7 — "**Notifications** (3 toggles)".
+// Canvas: Settings — the recurring mails the customer may switch off.
 //
-// One settable key, `notifications`, and the rows are *projected* rather than
+// One settable key, `notifications`, and the rows are projected rather than
 // counted out: `notificationRows` reads the `stoppable: 'toggle'` subset off
-// `MAIL_KINDS` (WO-179 decision 4). §4.7 says three because three is what the
-// register holds; this panel maps over whatever it holds, so a fourth
-// stoppable mail arrives here as a fourth switch and never as a mail a
-// customer was told they could stop and could not.
+// `MAIL_KINDS`, so a fourth stoppable mail arrives here as a fourth switch.
 //
-// ADR-042 is why these switches reach nothing else: they are the customer's
-// own three, over their own recurring mails, and they never touch the
-// address-wide suppression store. With all three off, the sign-in link, the
-// account and subscription notices, the setup reminder and the one
-// unsuppressible draft-ready announcement all still arrive.
-//
-// **The row is a name at the near edge and a switch at the far one** (issue
-// #374, UI-SPEC S18), separated by hairlines — the shape every settable row
-// on this screen takes, so a customer reads one column of names and one
-// column of controls rather than three switches each carrying its own word.
-// `Toggle`'s `labelHidden` is what moves the word without losing it: the
-// label stays required and still reaches the accessibility tree.
-//
-// REQ-075's own promise closes the card: the mail that cannot be switched
-// off is named. That is what makes turning all three off a decision rather
-// than a risk, and it is why the line belongs here and not in a footnote
-// somewhere else.
+// These switches reach nothing else — they are the customer's own, over
+// their own recurring mails, and never the address-wide suppression store.
+// REQ-075's promise closes the card: the mail that cannot be switched off is
+// named, which is what makes turning all of them off a decision.
 import type React from "react";
 import { Bell } from "lucide-react";
-import { Card } from "@/ui/components/Card";
-import { Toggle } from "@/ui/components/Toggle";
-import { CardHead } from "@/ui/idiom";
+import { Card, Toggle } from "@/ui/components";
 import { copy } from "@/lib/presentation/copy";
 import { writtenLine } from "../../_shell/written";
 import type { SettingsModel } from "../model";
+import {
+  CARD_HEAD,
+  CARD_LABEL,
+  EXPLAIN,
+  GLYPH,
+  ROW,
+  ROW_VALUE,
+  SECTION,
+  STROKE,
+} from "../style";
 
 export function NotificationsPanel(p: { settings: SettingsModel }): React.JSX.Element {
   const alwaysOn = writtenLine("settings.notifications.always-on");
 
   return (
-    <Card state="default" title={<CardHead icon={<Bell size={15} strokeWidth={1.8} aria-hidden />} eyebrow={copy("settings.notifications.title")} />}>
-      <div className="flex min-w-0 flex-col" data-testid="setting-notifications">
+    <Card
+      state="default"
+      title={
+        <div className={CARD_HEAD}>
+          <span className={CARD_LABEL}>
+            <Bell size={GLYPH} strokeWidth={STROKE} aria-hidden />
+            <span className="eyebrow">{copy("settings.notifications.title")}</span>
+          </span>
+        </div>
+      }
+    >
+      {/* The row is a name at the near edge and a switch at the far one, so
+          the customer reads one column of names and one of controls.
+          `labelHidden` moves the word without losing it. */}
+      <div className={SECTION} data-testid="setting-notifications">
         {p.settings.notifications.map((row) => (
-          <div
-            key={row.kind}
-            className="border-base-300 flex min-w-0 flex-wrap items-center justify-between gap-2 border-t py-2 first:border-t-0"
-            data-testid={`notification-${row.kind}`}
-          >
-            <span className="min-w-0 text-sm wrap-anywhere">{copy(row.copyKey)}</span>
-            <Toggle label={copy(row.copyKey)} labelHidden checked={row.on} />
+          <div key={row.kind} className={ROW} data-testid={`notification-${row.kind}`}>
+            <span className="min-w-0 wrap-anywhere">{copy(row.copyKey)}</span>
+            <span className={ROW_VALUE}>
+              <Toggle label={copy(row.copyKey)} labelHidden checked={row.on} />
+            </span>
           </div>
         ))}
       </div>
 
       {alwaysOn === null ? null : (
-        <p className="text-xs opacity-60 wrap-anywhere" data-testid="notifications-always-on">
+        <p className={EXPLAIN} data-testid="notifications-always-on">
           {alwaysOn}
         </p>
       )}

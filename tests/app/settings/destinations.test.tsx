@@ -24,7 +24,7 @@ vi.mock("@/lib/presentation/copy", async (importOriginal) => {
   return { ...actual, copy: (key: string) => key };
 });
 
-import { PublishingPanel } from "@/app/(account)/app/settings/panels/PublishingPanel";
+import { DestinationsPanel } from "@/app/(account)/app/settings/panels/DestinationsPanel";
 import { FIXTURE_SETTINGS_FACTS } from "@/app/(account)/app/settings/fixture";
 import { assembleSettings } from "@/app/(account)/app/settings/model";
 import { destinationView } from "@/lib/publish/destinations/view";
@@ -51,7 +51,7 @@ async function mount(facts: Partial<DestinationFacts> | null): Promise<HTMLEleme
   const host = document.createElement("div");
   document.body.append(host);
   await act(async () => {
-    createRoot(host).render(<PublishingPanel settings={settings} />);
+    createRoot(host).render(<DestinationsPanel settings={settings} />);
   });
   return host;
 }

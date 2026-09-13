@@ -169,22 +169,32 @@ describe("REQ-070 c1 — the rendered control set is exactly the fourteen SETTAB
     expect(testIds(root, "setting-")).toEqual([...SETTABLE].sort());
   });
 
-  it("each of the eight cards §4.7 names is on the screen, in its own column", async () => {
+  it("the artboard's sections are on the screen, and no card the move dropped (#636)", async () => {
     const root = await mountScreen();
-    const left = root.querySelector('[data-testid="settings-left"]');
-    const right = root.querySelector('[data-testid="settings-right"]');
-    expect(left).not.toBeNull();
-    expect(right).not.toBeNull();
-    // §4.7's left column: Your market · Competitors · Publishing · Notifications.
-    expect(left?.textContent).toContain("settings.market.title");
-    expect(left?.textContent).toContain("settings.competitors.title");
-    expect(left?.textContent).toContain("settings.publishing.title");
-    expect(left?.textContent).toContain("settings.notifications.title");
-    // §4.7's right column: Billing · Account · Your content · Danger zone.
-    expect(right?.textContent).toContain("settings.billing.title");
-    expect(right?.textContent).toContain("settings.account.title");
-    expect(right?.textContent).toContain("settings.content.title");
-    expect(right?.textContent).toContain("danger.zone.title");
+    const screen = root.querySelector('[data-testid="settings"]');
+    expect(screen).not.toBeNull();
+    // `Canvas: Settings`, in its own order: the account (billing merged into
+    // it), where pages go, the veto window, how they sound, what is mailed,
+    // and the danger zone last.
+    for (const label of [
+      "settings.account.title",
+      "settings.publishing.destinations",
+      "settings.publishing.veto",
+      "settings.voice.title",
+      "settings.notifications.title",
+      "danger.zone.title",
+    ]) {
+      expect(screen?.textContent, label).toContain(label);
+    }
+    // The three the artboard does not draw keep their cards: the move is an
+    // arrangement, and no setting is dropped by it.
+    for (const label of [
+      "settings.market.title",
+      "settings.competitors.title",
+      "settings.content.title",
+    ]) {
+      expect(screen?.textContent, label).toContain(label);
+    }
   });
 
   it("the market card states the one line §4.7 gives it, and states it once", async () => {
