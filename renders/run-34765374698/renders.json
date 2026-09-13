@@ -1,0 +1,80 @@
+{
+  "rendered": [
+    {
+      "name": "-app",
+      "route": "/app",
+      "screen": "S9",
+      "viewport": "-app-1280-light.png",
+      "full": "-app-full.png",
+      "file": "side--app.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/auth-light.png",
+      "moved": false,
+      "why": "named under `Renders:`"
+    },
+    {
+      "name": "-setup-waiting",
+      "route": "/setup/waiting",
+      "screen": "S9",
+      "viewport": "-setup-waiting-1280-light.png",
+      "full": "-setup-waiting-full.png",
+      "file": "side--setup-waiting.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/auth-light.png",
+      "moved": false,
+      "why": "named under `Renders:`"
+    },
+    {
+      "name": "reserved-app",
+      "route": "/app",
+      "screen": "S12",
+      "viewport": "reserved-app-1280-light.png",
+      "full": "reserved-app-full.png",
+      "file": "side-reserved-app.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/overview-light.png",
+      "moved": false,
+      "why": "named under `Renders:`"
+    },
+    {
+      "name": "unfinished-setup-waiting",
+      "route": "/setup/waiting",
+      "screen": "S11",
+      "viewport": "unfinished-setup-waiting-1280-light.png",
+      "full": "unfinished-setup-waiting-full.png",
+      "file": "side-unfinished-setup-waiting.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/waiting-light.png",
+      "moved": true,
+      "why": "9390 of 614400 pixels differ (1.528%)"
+    },
+    {
+      "name": "live-app",
+      "route": "/app",
+      "screen": "S12",
+      "viewport": "live-app-1280-light.png",
+      "full": "live-app-full.png",
+      "file": "side-live-app.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/overview-light.png",
+      "moved": false,
+      "why": "named under `Renders:`"
+    },
+    {
+      "name": "week0-app",
+      "route": "/app",
+      "screen": "S13",
+      "viewport": "week0-app-1280-light.png",
+      "full": "week0-app-full.png",
+      "file": "side-week0-app.png",
+      "approved": "docs/archive/2026-09-11/approved/full-set/screens/overview0-light.png",
+      "moved": false,
+      "why": "named under `Renders:`"
+    }
+  ],
+  "skipped": [
+    {
+      "name": "waiting-app",
+      "route": "/app",
+      "screen": null,
+      "viewport": "waiting-app-1280-light.png",
+      "full": "waiting-app-full.png",
+      "reason": "no approved render for an unreferenced route"
+    }
+  ]
+}
