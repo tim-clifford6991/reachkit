@@ -58,23 +58,23 @@ Every bracketed hint the set draws on this screen: `[competitor-picker line — 
 
 | key | standing | where | the set says | fixed by | max |
 |---|---|---|---|---|---|
-| `setup.destination.label.label`<br>`setup.ts` | marker | control · `<div>` · `app/(account)/setup/SetupForm.tsx` · +1 more |  | SPEC §5 (2026-09-12) · Canvas: Setup | 26 — sibling `setup.market.label` |
+| `setup.destination.label.label`<br>`setup.ts` | marker | `<div>` · `app/(account)/setup/SetupForm.tsx` · +1 more |  | SPEC §5 (2026-09-12) · Canvas: Setup | 26 — sibling `setup.market.label` |
 | `setup.destination.label.refused.invalid`<br>`setup.ts` | marker | `LABEL_REFUSAL_COPY` · `app/(account)/setup/SetupForm.tsx` · +1 more |  | SPEC §5 (2026-09-12) |  |
 | `setup.destination.label.refused.taken`<br>`setup.ts` | marker | `LABEL_REFUSAL_COPY` · `app/(account)/setup/SetupForm.tsx` · +1 more |  | SPEC §5 (2026-09-12) |  |
 | `setup.profile.pages-read` `{pages}`<br>`setup.ts` | marker | badge · `<span class="num">` · `app/(account)/setup/SetupForm.tsx` |  | SPEC.md §5 (2026-09-12) |  |
-| `setup.profile.purpose.about`<br>`setup.ts` | marker | control · `<div class="rk-pick">` · `app/(account)/setup/SetupForm.tsx` |  | SPEC.md §2 (2026-09-12) | 175 — sibling `setup.waiting.about` |
-| `setup.profile.purpose.blog`<br>`setup.ts` | marker | control · `<div class="rk-pick">` · `app/(account)/setup/SetupForm.tsx` |  | SPEC.md §2 (2026-09-12) |  |
-| `setup.profile.purpose.contact`<br>`setup.ts` | marker | control · `<div class="rk-pick">` · `app/(account)/setup/SetupForm.tsx` |  | SPEC.md §2 (2026-09-12) |  |
-| `setup.profile.purpose.features`<br>`setup.ts` | marker | control · `<div class="rk-pick">` · `app/(account)/setup/SetupForm.tsx` |  | SPEC.md §2 (2026-09-12) |  |
-| `setup.profile.purpose.legal`<br>`setup.ts` | marker | control · `<div class="rk-pick">` · `app/(account)/setup/SetupForm.tsx` |  | SPEC.md §2 (2026-09-12) |  |
-| `setup.profile.purpose.other`<br>`setup.ts` | marker | control · `<div class="rk-pick">` · `app/(account)/setup/SetupForm.tsx` |  | SPEC.md §2 (2026-09-12) |  |
-| `setup.profile.purpose.pricing`<br>`setup.ts` | marker | control · `<div class="rk-pick">` · `app/(account)/setup/SetupForm.tsx` |  | SPEC.md §2 (2026-09-12) |  |
-| `setup.profile.purpose.product`<br>`setup.ts` | marker | control · `<div class="rk-pick">` · `app/(account)/setup/SetupForm.tsx` |  | SPEC.md §2 (2026-09-12) |  |
-| `setup.profile.purposes`<br>`setup.ts` | marker | control · `<p class="rk-quiet">` · `app/(account)/setup/SetupForm.tsx` |  | SPEC.md §5 (2026-09-12) |  |
-| `setup.profile.site-name`<br>`setup.ts` | marker | — · placed with its group |  | SPEC.md §5 (2026-09-12) |  |
-| `setup.profile.title`<br>`setup.ts` | marker | control · `<div class="flex flex-wrap items-center gap-2">` · `app/(account)/setup/SetupForm.tsx` |  | SPEC.md §5 (2026-09-12) | 18 — sibling `setup.site-and-market.title` |
-| `setup.profile.voice.label`<br>`setup.ts` | marker | control · `<div class="flex flex-wrap items-center gap-2">` · `app/(account)/setup/SetupForm.tsx` |  | SPEC.md §5 (2026-09-12) | 26 — sibling `setup.market.label` |
-| `setup.profile.voice.later`<br>`setup.ts` | marker | control · `<p class="rk-quiet">` · `app/(account)/setup/SetupForm.tsx` |  | SPEC.md §5 (2026-09-12) |  |
+| `setup.profile.purpose.about`<br>`setup.ts` | marker | `<div class="rk-pick">` · `app/(account)/setup/SetupForm.tsx` |  | SPEC.md §2 (2026-09-12) | 175 — sibling `setup.waiting.about` |
+| `setup.profile.purpose.blog`<br>`setup.ts` | marker | `<div class="rk-pick">` · `app/(account)/setup/SetupForm.tsx` |  | SPEC.md §2 (2026-09-12) |  |
+| `setup.profile.purpose.contact`<br>`setup.ts` | marker | `<div class="rk-pick">` · `app/(account)/setup/SetupForm.tsx` |  | SPEC.md §2 (2026-09-12) |  |
+| `setup.profile.purpose.features`<br>`setup.ts` | marker | `<div class="rk-pick">` · `app/(account)/setup/SetupForm.tsx` |  | SPEC.md §2 (2026-09-12) |  |
+| `setup.profile.purpose.legal`<br>`setup.ts` | marker | `<div class="rk-pick">` · `app/(account)/setup/SetupForm.tsx` |  | SPEC.md §2 (2026-09-12) |  |
+| `setup.profile.purpose.other`<br>`setup.ts` | marker | `<div class="rk-pick">` · `app/(account)/setup/SetupForm.tsx` |  | SPEC.md §2 (2026-09-12) |  |
+| `setup.profile.purpose.pricing`<br>`setup.ts` | marker | `<div class="rk-pick">` · `app/(account)/setup/SetupForm.tsx` |  | SPEC.md §2 (2026-09-12) |  |
+| `setup.profile.purpose.product`<br>`setup.ts` | marker | `<div class="rk-pick">` · `app/(account)/setup/SetupForm.tsx` |  | SPEC.md §2 (2026-09-12) |  |
+| `setup.profile.purposes`<br>`setup.ts` | marker | `<p class="rk-quiet">` · `app/(account)/setup/SetupForm.tsx` |  | SPEC.md §5 (2026-09-12) |  |
+| `setup.profile.site-name`<br>`setup.ts` | marker | eyebrow · `<span class="eyebrow text-(color:--ink-3)">` · `app/(account)/setup/SetupForm.tsx` |  | SPEC.md §5 (2026-09-12) |  |
+| `setup.profile.title`<br>`setup.ts` | marker | `<div class="flex flex-wrap items-center gap-2">` · `app/(account)/setup/SetupForm.tsx` |  | SPEC.md §5 (2026-09-12) | 18 — sibling `setup.site-and-market.title` |
+| `setup.profile.voice.label`<br>`setup.ts` | marker | `<div class="flex flex-wrap items-center gap-2">` · `app/(account)/setup/SetupForm.tsx` |  | SPEC.md §5 (2026-09-12) | 26 — sibling `setup.market.label` |
+| `setup.profile.voice.later`<br>`setup.ts` | marker | `<p class="rk-quiet">` · `app/(account)/setup/SetupForm.tsx` |  | SPEC.md §5 (2026-09-12) |  |
 
 ## S18 · Settings — App
 

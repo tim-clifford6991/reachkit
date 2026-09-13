@@ -52,24 +52,23 @@ function model(over: Partial<SetupFacts> = {}) {
 const SCANLESS: Partial<SetupFacts> = { measured: null, suggestedRivals: null, profile: null };
 
 describe('REQ-025 c1 — "it asks for exactly three decisions ... and for nothing else, save the site address"', () => {
-  it("the report arm is §4.3's three cards, because the set merges site and market", () => {
-    // UI-SPEC S10 draws one card — "Your site & market" — where both are
-    // already known and each needs only a Change. That is §4.3's own
-    // "three cards, one submit" literally, where this screen drew four.
+  it("the report arm draws the site and the market as two cards, as the canvas does", () => {
+    // Canvas: OnboardingCompetitors draws "Your site" on its own and
+    // OnboardingMarket draws "Your market" on its own, so the merged
+    // "Your site & market" card is gone. The three decisions are still
+    // three and the submit is still one.
     const tree = screenFor();
     for (const id of [
-      "setup-site-and-market",
+      "setup-address",
       "setup-market",
       "setup-competitors",
+      "setup-profile",
       "setup-publishing",
     ]) {
       expect(tree.querySelector(`[data-testid="${id}"]`), id).not.toBeNull();
     }
-    // Four boxes, not three, since 2026-09-12: §5's "The site profile is
-    // confirmed here" adds the card that shows what was read of their
-    // site. It is a reading shown back, not a fourth decision — the three
-    // decisions are still the three, and the submit is still one.
-    expect(tree.querySelectorAll("form section")).toHaveLength(4);
+    expect(tree.querySelector('[data-testid="setup-site-and-market"]')).toBeNull();
+    expect(tree.querySelectorAll("form section")).toHaveLength(5);
   });
 
   it("the no-report arm is four, because the site is asked for before the market is suggested", () => {
@@ -85,16 +84,14 @@ describe('REQ-025 c1 — "it asks for exactly three decisions ... and for nothin
     expect(tree.querySelector('[data-testid="setup-address-value"]')?.textContent).toBe(
       "example.com"
     );
-    // The set's merged card shows the address and a Change and no line
-    // under it: that line explained a field the founder did not type
-    // into, and the card no longer has one.
-    expect(tree.querySelector('[data-testid="setup-address-measured"]')).toBeNull();
-    expect(tree.querySelector('[data-testid="setup-site-and-market"]')).not.toBeNull();
+    // The canvas draws the line back under the address, because the card
+    // carries the address alone again.
+    expect(tree.querySelector('[data-testid="setup-address-measured"]')).not.toBeNull();
   });
 
-  it("S10 — each Change is the set's outlined pill, not bare text (#521)", () => {
-    const changes = [...screenFor().querySelectorAll('[data-testid="setup-site-and-market"] button')];
-    expect(changes).toHaveLength(2);
+  it("the address Change is the set's outlined pill, not bare text (#521)", () => {
+    const changes = [...screenFor().querySelectorAll('[data-testid="setup-address"] button')];
+    expect(changes).toHaveLength(1);
     for (const change of changes) {
       expect(change.classList.contains("btn-outline"), change.outerHTML).toBe(true);
       expect(change.classList.contains("rounded-(--r-pill)"), change.outerHTML).toBe(true);
@@ -170,11 +167,11 @@ describe('REQ-025 c3 — "when they look for anything that tunes the engine ... 
     const measured = Array.from(screenFor().querySelectorAll("input")).map((i) =>
       i.getAttribute("name")
     );
-    expect(measured.sort()).toEqual(["competitor", "label"]);
+    expect(measured.sort()).toEqual(["category", "competitor", "label"]);
 
     // The no-report arm asks for the site and a competitor. The market's
-    // own field arrives with the site (UI-SPEC S10: "Suggested once your
-    // site is given"), so it is not a field this arm can show.
+    // own field arrives with the site ("Suggested once your site is
+    // given"), so it is not a field this arm can show.
     const scanless = Array.from(screenFor(SCANLESS).querySelectorAll("input")).map((i) =>
       i.getAttribute("name")
     );
@@ -242,17 +239,21 @@ describe("REQ-025 c1 as amended (C1, 2026-09-08) — one estimate, on the contro
 });
 
 describe('REQ-026 c1 and c3 — the market card in each of its states', () => {
-  it("a measured address renders the inferred category as a chip, changeable", () => {
+  it("a measured address renders the inferred category in the field, editable in place", () => {
+    // Canvas: OnboardingMarket draws the market as a field holding what was
+    // inferred — not a chip a Change swaps for one.
     const tree = screenFor();
-    expect(tree.querySelector('[data-testid="setup-market-chip"]')?.textContent).toBe(
+    expect(tree.querySelector('input[name="category"]')?.getAttribute("value")).toBe(
       FIXTURE_SETUP_FACTS.measured?.report.category
     );
+    expect(tree.querySelector('[data-testid="setup-market-chip"]')).toBeNull();
+    expect(tree.querySelector('[data-testid="setup-market-state-it"]')).not.toBeNull();
   });
 
-  it("a scanless purchase dims the market card and says when its suggestion arrives", () => {
-    // UI-SPEC S10's no-report arm: the site is asked for first, and the
-    // market card is dimmed with one line rather than an empty field for
-    // something the product has not sought yet.
+  it("a scanless purchase says when the market's suggestion arrives", () => {
+    // The no-report arm: the site is asked for first, and the market card
+    // carries one line rather than an empty field for something the
+    // product has not sought yet.
     const tree = screenFor(SCANLESS);
     expect(tree.querySelector('[data-testid="setup-market-chip"]')).toBeNull();
     expect(tree.querySelector('[data-testid="setup-market-awaiting-site"]')).not.toBeNull();

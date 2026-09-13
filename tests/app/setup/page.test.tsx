@@ -61,10 +61,10 @@ describe("/setup", () => {
 
   it("renders the three decisions, the address and one submit", async () => {
     const tree = await renderPage(() => import("@/app/(account)/setup/page"));
-    // The fixture's report arm: UI-SPEC S10 merges the site and the market
-    // into one card, so the address's slot is that card.
+    // The fixture's report arm: the canvas draws the site and the market
+    // as two cards, so the address has a card of its own.
     for (const id of [
-      "setup-site-and-market",
+      "setup-address",
       "setup-market",
       "setup-competitors",
       "setup-publishing",

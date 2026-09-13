@@ -144,9 +144,10 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
   const [editingAddress, setEditingAddress] = useState(
     p.model.state.address.state !== "measured",
   );
-  const [marketDraft, setMarketDraft] = useState("");
-  const [editingMarket, setEditingMarket] = useState(
-    p.model.state.market.state === "empty",
+  // Canvas: OnboardingMarket — the field holds the market, so it opens on
+  // what the scan inferred and what it holds is what the one submit sends.
+  const [marketDraft, setMarketDraft] = useState(
+    settledCategory(p.model.state) ?? "",
   );
   // SPEC.md §5 (2026-09-12): the voice as the founder will leave it —
   // what the scan read, until they type over it. Held here with the other
@@ -241,11 +242,14 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
     );
   }
 
-  function commitMarket(): void {
-    const category = marketDraft.trim();
-    if (category === "") return;
-    setState((current) => onMarketStated(current, category));
-    setEditingMarket(false);
+  /** Typing states the market, which is `onMarketStated`'s own transition:
+   *  the rivals suggested for the market they have left stop being offered.
+   *  An emptied field states nothing, and the one submit refuses it. */
+  function draftMarket(next: string): void {
+    setMarketDraft(next);
+    const stated = next.trim();
+    if (stated === "") return;
+    setState((current) => onMarketStated(current, stated));
   }
 
   async function addTypedRival(): Promise<void> {
@@ -300,8 +304,10 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
       setSubmitRefusal(checked.because);
       return;
     }
-    const category = settledCategory(state);
-    if (state.siteDomain === null || category === null) {
+    // The field is the market, so the field is what is sent: a founder who
+    // cleared it has stated none, whatever the card last settled on.
+    const category = marketDraft.trim();
+    if (state.siteDomain === null || category === "") {
       setSubmitRefusal("market_missing");
       return;
     }
@@ -340,19 +346,6 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
     }
   }
 
-  // REQ-021 c6's arm, as the set draws it: where the address was measured
-  // and the market inferred, the two are **one card** — "Your site &
-  // market" — because both are already known and each needs only a Change.
-  // The moment either is being edited, or either is unknown, the screen is
-  // back to the two cards the no-report arm needs.
-  const settled =
-    state.address.state === "measured" &&
-    !editingAddress &&
-    state.market.state !== "empty" &&
-    !editingMarket
-      ? { domain: state.address.domain, category: state.market.category }
-      : null;
-
   // The cards are separated by the frame, not by their own shadow:
   // `--shadow-card` is a hairline, and two `--surface` cards flush against
   // each other read as one box — which is how this screen first rendered
@@ -361,19 +354,22 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
   // stylesheet of its own.
   return (
     <form onSubmit={handleSubmit} data-testid="setup-form" className="grid gap-4">
-      {settled !== null ? (
-        <IdiomCard
-          head={
-            <CardHead
-              icon={<Globe aria-hidden size={ICON} />}
-              eyebrow={copy("setup.site-and-market.title")}
-            />
-          }
-          testId={SITE_AND_MARKET_TEST_ID}
-        >
-          <div style={ROW}>
+      <IdiomCard
+        head={
+          <CardHead
+            icon={<Globe aria-hidden size={ICON} />}
+            eyebrow={copy("setup.address.title")}
+          />
+        }
+        testId={ADDRESS_TEST_ID}
+      >
+        {state.address.state === "measured" && !editingAddress ? (
+          <>
             <p className="num" data-testid="setup-address-value">
-              {settled.domain}
+              {state.address.domain}
+            </p>
+            <p data-testid="setup-address-measured">
+              {copy("setup.address.measured")}
             </p>
             <Btn
               label={copy("setup.address.change")}
@@ -382,188 +378,89 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
               pill
               onClick={() => setEditingAddress(true)}
             />
-          </div>
-          <Divider />
-          <div style={ROW} data-testid="setup-market">
-            {/* The chip §4.3 asks for, holding text a founder wrote
-                  themselves. daisyUI's `badge` is fixed-height
-                  (`height: var(--size)`) and `Badge` accepts no class of
-                  its own, so a market longer than one line escapes it at
-                  the 320px floor. §2.2 allows this screen no stylesheet,
-                  so the height is relaxed with a Tailwind arbitrary
-                  variant on the wrapper — a generated utility, not a rule
-                  of ours. Named in the PR: the durable fix is a wrapping
-                  variant on the registered component. */}
-            <div className="[&>.badge]:h-auto [&>.badge]:py-1">
-              <Badge tone="accent">
-                <span data-testid="setup-market-chip" className="wrap-anywhere">
-                  {settled.category}
-                </span>
-              </Badge>
-            </div>
+          </>
+        ) : (
+          <>
+            {addressRefusal === null ? (
+              <Input
+                label={copy("setup.address.label")}
+                placeholder={copy("setup.address.placeholder")}
+                name="domain"
+                value={addressDraft}
+                onChange={setAddressDraft}
+              />
+            ) : (
+              <Input
+                label={copy("setup.address.label")}
+                placeholder={copy("setup.address.placeholder")}
+                name="domain"
+                value={addressDraft}
+                onChange={setAddressDraft}
+                invalid
+                invalidMessage={copy(ADDRESS_REFUSAL_COPY[addressRefusal])}
+              />
+            )}
             <Btn
-              label={copy("setup.market.change")}
+              label={copy("setup.address.change")}
               variant="secondary"
               size="sm"
               pill
               onClick={() => {
-                setMarketDraft(settled.category);
-                setEditingMarket(true);
+                void commitAddress();
               }}
             />
-          </div>
-        </IdiomCard>
-      ) : (
-        <>
-          <IdiomCard
-            head={
-              <CardHead
-                icon={<Globe aria-hidden size={ICON} />}
-                eyebrow={copy("setup.address.title")}
-              />
-            }
-            testId={ADDRESS_TEST_ID}
-          >
-            {state.address.state === "measured" && !editingAddress ? (
-              <>
-                <p className="num" data-testid="setup-address-value">
-                  {state.address.domain}
-                </p>
-                <p data-testid="setup-address-measured">
-                  {copy("setup.address.measured")}
-                </p>
-                <Btn
-                  label={copy("setup.address.change")}
-                  variant="secondary"
-                  size="sm"
-                  pill
-                  onClick={() => setEditingAddress(true)}
-                />
-              </>
-            ) : (
-              <>
-                {addressRefusal === null ? (
-                  <Input
-                    label={copy("setup.address.label")}
-                    placeholder={copy("setup.address.placeholder")}
-                    name="domain"
-                    value={addressDraft}
-                    onChange={setAddressDraft}
-                  />
-                ) : (
-                  <Input
-                    label={copy("setup.address.label")}
-                    placeholder={copy("setup.address.placeholder")}
-                    name="domain"
-                    value={addressDraft}
-                    onChange={setAddressDraft}
-                    invalid
-                    invalidMessage={copy(ADDRESS_REFUSAL_COPY[addressRefusal])}
-                  />
-                )}
-                <Btn
-                  label={copy("setup.address.change")}
-                  variant="secondary"
-                  size="sm"
-                  pill
-                  onClick={() => {
-                    void commitAddress();
-                  }}
-                />
-                {/* REQ-021 c7's own promise, and the set's own sentence
-                      for it: the address they paid with is not assumed to
-                      be the site. Stated where the field is, not in a
-                      footnote under the screen. */}
-                <p className="rk-quiet" data-testid="setup-address-assurance">
-                  {copy("setup.address.assurance")}
-                </p>
-              </>
-            )}
-          </IdiomCard>
+            {/* REQ-021 c7's own promise, and the set's own sentence for it:
+                the address they paid with is not assumed to be the site. */}
+            <p className="rk-quiet" data-testid="setup-address-assurance">
+              {copy("setup.address.assurance")}
+            </p>
+          </>
+        )}
+      </IdiomCard>
 
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            {/* The market card before the site is given: one line saying
-                when its suggestion arrives, rather than an empty field for
-                something the product has not sought yet. Not dimmed as a
-                whole — UI-SPEC §0 4 strikes the set's inline `opacity:.6`
-                (L682); a field that cannot be used yet is the field's own
-                disabled state, never a faded card. */}
-            <div
-              data-testid="setup-market"
-              data-awaiting={
-                state.address.state === "measured" ? undefined : "site"
-              }
+      {/* Canvas: OnboardingMarket — the market is its own card, and the
+          category a field holding what the scan inferred rather than a chip
+          behind a Change. Before the site is given there is nothing to infer
+          from, so the card says when its suggestion arrives instead. */}
+      <div
+        data-testid="setup-market"
+        data-awaiting={state.address.state === "measured" ? undefined : "site"}
+      >
+        <IdiomCard
+          head={
+            <CardHead
+              icon={<Globe aria-hidden size={ICON} />}
+              eyebrow={copy("setup.market.title")}
+            />
+          }
+        >
+          {state.address.state !== "measured" ? (
+            <p
+              className="t-sm text-(color:--ink-2)"
+              data-testid="setup-market-awaiting-site"
             >
-              <IdiomCard
-                head={
-                  <CardHead
-                    icon={<Globe aria-hidden size={ICON} />}
-                    eyebrow={copy("setup.market.title")}
-                  />
-                }
+              {copy("setup.market.awaiting-site")}
+            </p>
+          ) : (
+            <>
+              <Input
+                mono
+                label={copy("setup.market.label")}
+                placeholder={copy("setup.market.placeholder")}
+                name="category"
+                value={marketDraft}
+                onChange={draftMarket}
+              />
+              <p
+                className="t-sm text-(color:--ink-2)"
+                data-testid="setup-market-state-it"
               >
-                {state.address.state !== "measured" ? (
-                  <p
-                    className="rk-quiet"
-                    data-testid="setup-market-awaiting-site"
-                  >
-                    {copy("setup.market.awaiting-site")}
-                  </p>
-                ) : state.market.state === "empty" || editingMarket ? (
-                  <>
-                    {state.market.state === "empty" ? (
-                      <p data-testid="setup-market-state-it">
-                        {copy("setup.market.state-it")}
-                      </p>
-                    ) : null}
-                    <Input
-                      label={copy("setup.market.label")}
-                      placeholder={copy("setup.market.placeholder")}
-                      name="category"
-                      value={marketDraft}
-                      onChange={setMarketDraft}
-                    />
-                    <Btn
-                      label={copy("setup.market.change")}
-                      variant="secondary"
-                      size="sm"
-                      pill
-                      onClick={commitMarket}
-                    />
-                  </>
-                ) : (
-                  <>
-                    <div className="[&>.badge]:h-auto [&>.badge]:py-1">
-                      <Badge tone="accent">
-                        <span
-                          data-testid="setup-market-chip"
-                          className="wrap-anywhere"
-                        >
-                          {state.market.category}
-                        </span>
-                      </Badge>
-                    </div>
-                    <Btn
-                      label={copy("setup.market.change")}
-                      variant="secondary"
-                      size="sm"
-                      pill
-                      onClick={() => {
-                        setMarketDraft(
-                          state.market.state === "empty"
-                            ? ""
-                            : state.market.category,
-                        );
-                        setEditingMarket(true);
-                      }}
-                    />
-                  </>
-                )}
-              </IdiomCard>
-            </div>
-          </div>
-        </>
-      )}
+                {copy("setup.market.state-it")}
+              </p>
+            </>
+          )}
+        </IdiomCard>
+      </div>
 
       <IdiomCard
         head={
@@ -708,13 +605,26 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
           }
           testId={PROFILE_TEST_ID}
         >
+          {/* Canvas: OnboardingMarket draws the name under its own eyebrow
+              at the card-head rung, beside the domain it was read from. */}
           <div style={ROW}>
             {p.model.profile.siteName === null ? null : (
-              <p data-testid="setup-profile-site-name">
-                {p.model.profile.siteName}
-              </p>
+              <span className="flex flex-col gap-(--s-1)">
+                <span className="eyebrow text-(color:--ink-3)">
+                  {copy("setup.profile.site-name")}
+                </span>
+                <span
+                  className="text-(length:--h3) font-semibold"
+                  data-testid="setup-profile-site-name"
+                >
+                  {p.model.profile.siteName}
+                </span>
+              </span>
             )}
-            <p className="num" data-testid="setup-profile-domain">
+            <p
+              className="num text-(color:--ink-3)"
+              data-testid="setup-profile-domain"
+            >
               {p.model.profile.domain}
             </p>
           </div>
@@ -871,7 +781,6 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
 const ICON = 14;
 
 /** A test hook, bound to a name for the copy sweep's reason. */
-const SITE_AND_MARKET_TEST_ID = "setup-site-and-market";
 const ADDRESS_TEST_ID = "setup-address";
 const COMPETITORS_TEST_ID = "setup-competitors";
 const PROFILE_TEST_ID = "setup-profile";
