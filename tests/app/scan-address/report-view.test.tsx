@@ -129,6 +129,28 @@ describe("ruling 1b (2026-09-08) — the driver bars are back, on the header str
   });
 });
 
+describe("Canvas: Report module 1 — the score is a dial, and the limit is a tinted line", () => {
+  const html = render(FIXTURE_REPORT);
+  const strip = html.slice(0, html.indexOf("ai-answers.title"));
+
+  it("draws the value arc over its own track, in the band's own meaning token", () => {
+    // Two arcs and no more: the track, then the sweep the score earned.
+    expect(strip.split("<circle").length - 1).toBe(2);
+    expect(strip).toContain('stroke="var(--sunk)"');
+    // The fixture bands `findable`, whose tone is `ok`.
+    expect(strip).toContain('stroke="var(--ok)"');
+  });
+
+  it("names the scale the score is out of, under the numeral", () => {
+    expect(strip).toContain(">/100<");
+  });
+
+  it("carries the artboard's two eyebrows — over the drivers, and over the limit", () => {
+    expect(strip).toContain("verdict.drivers.title");
+    expect(strip).toContain("verdict.limiting.eyebrow");
+  });
+});
+
 describe("DECISIONS 2026-09-03 — no per-question volume, no market-total footnote", () => {
   const html = render(FIXTURE_REPORT);
 

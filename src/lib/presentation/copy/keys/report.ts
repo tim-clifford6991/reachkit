@@ -141,6 +141,10 @@ export const REPORT_COPY = Object.freeze({
   // rather than an invented one, exactly as the pricing card's Start was
   // until checkout landed.
   "verdict.not-your-market": ["Not your market?", { slots: {}, fixedBy: "REQ-094 c1" }],
+  // The artboard draws an eyebrow over the three driver bars and another
+  // over the line naming what holds the score down. Both owner-owed.
+  "verdict.drivers.title": ["TODO(copy)", { slots: {}, fixedBy: "ruling 1b" }],
+  "verdict.limiting.eyebrow": ["TODO(copy)", { slots: {}, fixedBy: "REQ-004 c2" }],
 
   // ── The scanning arm's six named stages (REQ-003 c1) ──────────────────
   // One key per `StageName` (`src/lib/scan/stages.ts`) — a stage with no
