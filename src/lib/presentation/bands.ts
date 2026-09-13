@@ -12,9 +12,8 @@
 // the words a banded handle renders as.
 //
 // ADR-001 is why the two band sets (`winnability`, `rivalSize`) sit in one
-// file, `BAND_LABELS` — the disjointness assertion it records is strong
-// precisely because it iterates both sets from one export
-// (`tests/pins.test.ts`, WO-007). No flattened array of the six band
+// file, `BAND_LABELS` — the disjointness it records is a property of this
+// one export (WO-007). No flattened array of the six band
 // terms is exported here, and no `BAND_TERMS` constant: a hand-written
 // six-element array would be the seventh copy that lets a fourth term
 // through undetected (ADR-001 point 4).

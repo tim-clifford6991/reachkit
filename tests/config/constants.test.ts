@@ -4,8 +4,8 @@
 // `## Test plan` header note: BP-005 carries `satisfies: []`, so this work
 // order claims no `implements:` edge to a requirement and cites BP-005's
 // stated behaviour rather than inheriting a requirement's criteria). The
-// value-against-quoted-source assertions are WO-007's `tests/pins.test.ts`
-// and are not duplicated here.
+// value-against-quoted-source assertions WO-007 held were deleted (#561);
+// nothing here replaces them.
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -250,7 +250,7 @@ describe("PREVIEW_HOST_SUFFIX — the parent of every {slug}.reachkit.app previe
 });
 
 // BUILD §13 / ADR-052 — the three price pins (issues #33, #91). Structural
-// rows only: the values against their quoted clauses are `tests/pins.test.ts`'s.
+// rows only: no row asserts the values against their quoted clauses.
 // The last two rows are the ones that keep the *sentence* out of this file —
 // BP-005 decision 5, "no customer-visible string enters this file; the
 // sentence a founder reads stays in the registry under `PRICE_COPY_KEYS`".

@@ -74,9 +74,9 @@ function blockedReaderCount(policy: RobotsPolicy): number {
 }
 
 function gatesOf(facts: OnPageFacts, policy: RobotsPolicy): number {
-  // `AI_READER_AGENTS` is a pinned, non-empty tuple (`tests/pins.test.ts`
-  // asserts its six names), so the denominator cannot be 0 — its length is
-  // a literal type, which is why no empty-list guard is written here.
+  // `AI_READER_AGENTS` is a pinned, non-empty tuple (asserted non-empty in
+  // `tests/config/constants.test.ts`), so the denominator cannot be 0 — its
+  // length is a literal type, which is why no empty-list guard is written here.
   const readers = AI_READER_AGENTS.length;
   const openShare = (readers - blockedReaderCount(policy)) / readers;
   const gates = openShare * SCALE;

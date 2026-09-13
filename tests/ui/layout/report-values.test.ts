@@ -39,6 +39,7 @@ import { describe, expect, it } from "vitest";
 import { getBaseURL, withPage } from "./browser";
 import { headersFor, urlFor } from "./routes";
 import { widths } from "./widths";
+import { sweepWidths } from "./matrix";
 
 /** Chromium starts per call (see `browser.ts`), once per width. */
 const BROWSER_MS = 60_000;
@@ -152,7 +153,7 @@ describe("§4.1 — the report fits its cards from the medium band up (#307)", (
   // Asserted over every declared scroll container on the route rather
   // than over the two this issue fixed, so a third that starts scrolling
   // at these widths is caught by the same row.
-  for (const width of widths().filter((w) => w >= 1024)) {
+  for (const width of sweepWidths().filter((w) => w >= 1024)) {
     it(
       `no scroll container on ${REPORT.path} scrolls at ${width}px`,
       async () => {
@@ -227,7 +228,7 @@ describe(`§2.3 — no value on the presence card is broken across lines`, () =>
     BROWSER_MS
   );
 
-  for (const width of widths()) {
+  for (const width of sweepWidths()) {
     it(
       `${REPORT.path} @ ${width}px wraps no domain mid-word`,
       async () => {

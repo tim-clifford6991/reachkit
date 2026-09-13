@@ -42,7 +42,7 @@ jobs:
           script: |
             const fs = require("fs");
             const report = fs.readFileSync("drift.md", "utf8");
-            const hasFindings = /\| (GAP|UNSPECCED|MISSING|MALFORMED|TODO) /.test(report);
+            const hasFindings = /\| (GAP|UNSPECCED|MISSING|MALFORMED|MISMATCH|TODO) /.test(report);
             const title = "Drift audit — nightly report";
             const { data: open } = await github.rest.issues.listForRepo({ ...context.repo, state: "open", labels: "drift" });
             const existing = open.find(i => i.title === title);

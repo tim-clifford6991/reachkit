@@ -33,7 +33,7 @@
 // declared scroll container) rather than rewriting the value.
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { BAND_MIN } from "@/ui/layout/bands";
+import { bands } from "./matrix";
 import { getBaseURL, getLiveAccountCookie, withPage } from "./browser";
 import {
   enumerateRoutes,
@@ -46,10 +46,10 @@ import { LIVE_DRAFT_ID } from "./seed";
 
 const APP_ROOT = path.resolve(__dirname, "../../../src/app");
 
-/** The three bands. The boundary-minus-one widths are an off-by-one
- *  question about media queries; whether a value may be broken is not one,
- *  so this asks it once per band. */
-const BANDS = [BAND_MIN.compact, BAND_MIN.medium, BAND_MIN.wide] as const;
+/** The bands this sweep asks at — one by default, three under the full
+ *  matrix (`matrix.ts`). Whether a value may be broken is not an
+ *  off-by-one question, so it is asked once per band, never per width. */
+const BANDS = bands();
 
 /** The whole `it`, including a Chromium launch and three navigations. */
 const PER_ROUTE_BROWSER_MS = 90_000;

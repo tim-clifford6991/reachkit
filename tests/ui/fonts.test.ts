@@ -380,7 +380,7 @@ describe("BUILD §2.3 — the type scale, asserted against the clause", () => {
     // owner's 2026-09-02 ruling, transcribed from `design/tokens.md` §4
     // ("Ratio 1.25 from the 15px body") in the frozen corpus. A frozen
     // document cannot drift, so they are pinned by quotation here — the
-    // `tests/pins.test.ts` convention — and the *rendered* sizes, which is
+    // pinned-value convention — and the *rendered* sizes, which is
     // the half preflight broke, are asserted by
     // `tests/ui/layout/heading-scale.test.ts` in a real browser.
     const rules = Array.from(parseCss(typeCssSource())) as CSSStyleRule[];

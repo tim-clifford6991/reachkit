@@ -8,7 +8,7 @@
 // change §2's layout law exists to catch.
 //
 // So this file presses Edit and then runs the same four checks the sweep
-// runs, at the same five widths. It is a browser suite because the state
+// runs, at the same widths. It is a browser suite because the state
 // only exists in a browser: the field is opened by a client component's own
 // state, and no server render produces it.
 //
@@ -28,7 +28,7 @@ import {
   TRUNCATION_ALLOWLIST,
 } from "./checks";
 import { headersFor } from "./routes";
-import { widths } from "./widths";
+import { sweepWidths as widths } from "./matrix";
 
 /** The route, and the session it is swept under — the same seeded account
  *  `browser.ts` put in the database (#193), through the same header builder
@@ -76,7 +76,7 @@ async function openDomainField(page: Page): Promise<void> {
   }
 }
 
-describe(`layout sweep — ${SETTINGS.path} with a field open × 5 widths`, () => {
+describe(`layout sweep — ${SETTINGS.path} with a field open × ${widths().length} width(s)`, () => {
   for (const width of widths()) {
     it(
       `${SETTINGS.path} @ ${width}px reports no offender on checks 1-4 with the domain field open`,

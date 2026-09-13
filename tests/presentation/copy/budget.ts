@@ -6,7 +6,7 @@
 // infrastructure, not a product code path — `structure.md` rule 5 sends
 // every number that appears twice to `src/lib/config/constants.ts`
 // (BP-005), and putting a CI wall-clock budget there would make
-// `tests/pins.test.ts` assert a fact about CI hardware, not about the
+// a constants pin assert a fact about CI hardware, not about the
 // product. Declared here and nowhere else, per the file plan.
 //
 // Exceeding it is fixed by sharding on the surface glob — passing
