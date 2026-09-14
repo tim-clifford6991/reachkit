@@ -1,32 +1,12 @@
 // BUILD §4.5 — the growth chart, and the two footnotes under it.
 //
-// §4.5 item 2: "searches-you-appear-in, weekly points, area+line in
-// `--chart-you`, endpoint labelled, footnote pair: start value · 'At 400 the
-// big category terms unlock.'" The drawing is `GrowthLine`'s (§2.4's closed
-// inventory); what this file decides is what it is handed.
+// SPEC §4: trend is 12 trailing weeks, read from stored Monday rows. The
+// drawing is `GrowthLine` (Recharts); this file decides what it is handed.
 //
-// **An unmeasured week arrives as a gap with its own account.** The chart
-// requires one — a `GrowthWeek` with a `null` value has no call shape
-// without an `account` string — so the week that did not run carries
-// REQ-065 c3's own line on its mark. It does not cut the line (`cuts:
-// false`, #386): no reading is drawn for that week and none is borrowed
-// from the week before, but the market did not change, so the line joins
-// the measurements either side and reaches its last measured week — where
-// the set puts the end dot. Where the owner has not written that line yet
-// the week still holds its column and its mark.
-//
-// **A change marker is a break that does cut it** (REQ-071 c12, issue
-// #205). `readGrowth` hands over `entries`, which are the window's weeks
-// with a break standing wherever a change fell between two of them; that
-// break arrives as `cuts: true`, because the weeks either side were
-// measured against different markets. So the series before and after a
-// change are two runs, never joined — and §2.4's inventory gains no sixth
-// chart.
-//
-// **Where nothing has been measured there is no chart.** The `none` arm
-// renders one written line and the date the first measurement is due — the
-// same date the shell's domain block states, because both read the one
-// `firstDueOn` they were handed.
+// - An unmeasured week is a gap with its own account that does not cut the
+//   line (#386); a change marker is a break that does (#205).
+// - Week 0 is one point from the deep pass, labelled as such.
+// - Nothing measured: no chart, one line and the first-due date.
 import type React from "react";
 import { TrendingUp } from "lucide-react";
 import { GrowthLine, type GrowthWeek } from "@/ui/charts";
@@ -37,156 +17,120 @@ import { writtenLine } from "../_shell/written";
 import { GOALS } from "./goals";
 import { formatCount, formatMonthDay } from "./present";
 import type { GrowthModule as GrowthModuleModel } from "./growth";
-import { CardHead, SourceChip } from "@/ui/idiom";
-import { CHART_PLATE, STACK } from "./style";
+
+const TEST_ID = "overview-growth";
+const SOURCE_TEST_ID = "overview-growth-source";
+
+function Card(p: { source?: string | null; children: React.ReactNode }): React.JSX.Element {
+  return (
+    <section className="card card-border min-w-0 bg-base-100" data-testid={TEST_ID}>
+      <div className="card-body gap-4 p-5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="card-title text-xs font-semibold uppercase tracking-wide text-base-content/60">
+            <TrendingUp aria-hidden size={20} strokeWidth={1.75} />
+            {copy("overview.tile.searches.label")}
+          </h2>
+          {p.source === null || p.source === undefined ? null : (
+            <span className="badge badge-ghost num" data-testid={SOURCE_TEST_ID}>
+              {p.source}
+            </span>
+          )}
+        </div>
+        {p.children}
+      </div>
+    </section>
+  );
+}
+
+function Footnotes(p: { lines: readonly (string | null)[] }): React.JSX.Element {
+  return (
+    <div className="flex flex-wrap justify-between gap-2 text-xs text-base-content/60">
+      {p.lines.map((line) => (line === null ? null : <p key={line}>{line}</p>))}
+    </div>
+  );
+}
 
 export function GrowthModule(p: {
   growth: GrowthModuleModel;
   timeZone: string;
 }): React.JSX.Element {
+  const label = copy("overview.tile.searches.label");
+
   if (p.growth.kind === "none") {
     const line = writtenLine("place.overview.weekly-presence.chart");
     return (
-      <section className="rk-idiom-card" data-testid="overview-growth">
-        <Head />
-        <div style={STACK}>
-          {line === null ? null : <p>{line}</p>}
-          <p className="rk-prov" data-testid="overview-growth-first-due">
-            {formatDate(p.growth.firstDueOn, p.timeZone)}
-          </p>
-        </div>
-      </section>
+      <Card>
+        {line === null ? null : <p className="text-sm">{line}</p>}
+        <p className="num text-xs text-base-content/60" data-testid="overview-growth-first-due">
+          {formatDate(p.growth.firstDueOn, p.timeZone)}
+        </p>
+      </Card>
     );
   }
 
-  // UI-SPEC S13: one point, from the deep pass, labelled as such. The
-  // chart is the same `GrowthLine` — a second chart for one point would be
-  // a sixth entry in §2.4's closed inventory — and what changes is what the
-  // card says around it: the chip names the pass the reading came from, and
-  // the right footnote says the weekly line has not begun, in place of the
-  // goal sentence a series carries.
   if (p.growth.kind === "week-zero") {
-    const point: GrowthWeek = {
-      name: formatMonthDay(p.growth.on, p.timeZone),
-      value: p.growth.value,
-    };
-    const starting = writtenLine("overview.growth.footnote.starting", {
-      value: formatCount(p.growth.value),
-    });
-    const firstMonday = writtenLine("overview.growth.footnote.first-monday");
-    const chip = writtenLine("overview.growth.source.deep-pass", {
-      on: formatDate(p.growth.on, p.timeZone),
-    });
+    const point: GrowthWeek = { name: formatMonthDay(p.growth.on, p.timeZone), value: p.growth.value };
     return (
-      <section className="rk-idiom-card" data-testid="overview-growth">
-        <Head source={chip} />
-        <div style={CHART_PLATE}>
-          <GrowthLine weeks={[point]} label={copy("overview.tile.searches.label")} />
+      <Card
+        source={writtenLine("overview.growth.source.deep-pass", {
+          on: formatDate(p.growth.on, p.timeZone),
+        })}
+      >
+        <div className="w-full min-w-0">
+          <GrowthLine weeks={[point]} label={label} />
         </div>
-        <div style={STACK}>
-          {starting === null ? null : <p className="rk-prov">{starting}</p>}
-          {firstMonday === null ? null : <p className="rk-prov">{firstMonday}</p>}
-        </div>
-      </section>
+        <Footnotes
+          lines={[
+            writtenLine("overview.growth.footnote.starting", { value: formatCount(p.growth.value) }),
+            writtenLine("overview.growth.footnote.first-monday"),
+          ]}
+        />
+      </Card>
     );
   }
 
   const unmeasuredAccount = writtenLine("place.overview.weekly-presence.week");
   const weeks = p.growth.entries.map((entry): GrowthWeek => {
     if (entry.kind === "break") {
-      // The break the change stands in. Its name is the date the answer
-      // changed — the same date every number beside it is read against —
-      // and its account is the written line naming which answer it was.
       const name = formatMonthDay(entry.marker.on, p.timeZone);
       const account = writtenLine(CHANGE_ACCOUNT_KEY[entry.marker.kind]);
-      // This one cuts the line: the weeks either side were measured
-      // against different markets (REQ-071 c12).
       return { name, value: null, account: account ?? name, cuts: true };
     }
-    // The week's own name, in the room a weekly column leaves it (see
-    // `formatMonthDay`). The full date the measurement carries is in the
-    // mark's tooltip, and the chart's own footnotes state the rest.
     const point = entry.week;
     const name = formatMonthDay(point.weekStart, p.timeZone);
-    // A week that was not measured does **not** cut the line (#386, master
-    // review): the market did not change, there is only no reading for that
-    // week, so the line joins the measurements either side and draws no
-    // vertex over this column. The week keeps its place and its account.
     return point.value.kind === "unmeasured"
       ? { name, value: null, account: unmeasuredAccount ?? name, cuts: false }
       : { name, value: point.value.value };
   });
 
-  // The chart's own type refuses an empty series; `readGrowth` only returns
-  // the `series` arm when at least one week was measured, so this narrowing
-  // is the two facts meeting rather than a check for something that can
-  // happen.
+  // `readGrowth` returns the series arm only with at least one measured week.
   const [first, ...rest] = weeks;
-  if (first === undefined) return <section className="rk-idiom-card" data-testid="overview-growth" />;
+  if (first === undefined) return <Card>{null}</Card>;
 
-  const goal = GOALS.searches_appeared_in;
-  // No `overview.goal` chip here since #353: the goal was named twice on
-  // this card — once on a dashed rule across the plot and once in the
-  // right-hand footnote — and the set keeps the footnote. One fact, one
-  // place. (The plot draws no dashed rule of any kind now — #386.)
-  const startPoint = p.growth.points.find((point) => point.value.kind !== "unmeasured");
-  const startLine =
-    startPoint === undefined || startPoint.value.kind === "unmeasured"
-      ? null
-      : writtenLine("overview.growth.footnote.start", {
-          value: formatCount(startPoint.value.value),
-        });
-  const goalLine = writtenLine(goal.meansKey, { goal: formatCount(goal.value) });
-  // The newest week that was actually measured — never the window's last
-  // entry, which may be a break or a week that did not run. A chip naming
-  // a date nothing was measured on would be provenance for a reading the
-  // product does not have.
   const measured = p.growth.points.filter((point) => point.value.kind !== "unmeasured");
+  const start = measured[0];
   const newest = measured.at(-1);
-  const sourceChip =
-    newest === undefined
-      ? null
-      : writtenLine("overview.growth.source.remeasured", {
-          on: formatDate(newest.weekStart, p.timeZone),
-        });
+  const goal = GOALS.searches_appeared_in;
 
   return (
-    <section className="rk-idiom-card" data-testid="overview-growth">
-      {/* The head, and on the right the chip naming when the series was
-          last measured (UI-SPEC S12: "re-measured Mon 1 Sep"). The date is
-          the newest measured week's own — the same reading the sidebar's
-          domain block states, from the same series. */}
-      <Head source={sourceChip} />
-      <div style={CHART_PLATE}>
-        <GrowthLine
-          weeks={[first, ...rest]}
-          label={copy("overview.tile.searches.label")}
-        />
-      </div>
-      <div style={STACK}>
-        {startLine === null ? null : <p className="rk-prov">{startLine}</p>}
-        {goalLine === null ? null : <p className="rk-prov">{goalLine}</p>}
-      </div>
-    </section>
-  );
-}
-
-/** The card's head. One definition for both arms — the chart arm and the
- *  nothing-measured-yet arm are the same card with different bodies, and a
- *  head written twice is a head that comes to differ. */
-function Head(p: { source?: string | null }): React.JSX.Element {
-  return (
-    <CardHead
-      icon={<TrendingUp aria-hidden size={ICON} />}
-      eyebrow={copy("overview.tile.searches.label")}
-      pill={
-        p.source === null || p.source === undefined ? null : (
-          <SourceChip>{p.source}</SourceChip>
-        )
+    <Card
+      source={
+        newest === undefined
+          ? null
+          : writtenLine("overview.growth.source.remeasured", { on: formatDate(newest.weekStart, p.timeZone) })
       }
-    />
+    >
+      <div className="w-full min-w-0">
+        <GrowthLine weeks={[first, ...rest]} label={label} />
+      </div>
+      <Footnotes
+        lines={[
+          start === undefined || start.value.kind === "unmeasured"
+            ? null
+            : writtenLine("overview.growth.footnote.start", { value: formatCount(start.value.value) }),
+          writtenLine(goal.meansKey, { goal: formatCount(goal.value) }),
+        ]}
+      />
+    </Card>
   );
 }
-
-/** The chip's glyph size — 14px inside `.rk-head-chip`'s 32px square. */
-const ICON = 14;

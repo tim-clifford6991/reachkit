@@ -177,7 +177,7 @@ describe("the growth chart", () => {
     expect(markup).not.toContain("<figure");
     // …and no source chip either: nothing was measured, so there is no date
     // a reading came from to name.
-    expect(markup).not.toContain("rk-srcchip");
+    expect(markup).not.toContain('data-testid="overview-growth-source"');
     expect(markup).toContain("place.overview.weekly-presence.chart");
     expect(markup).toContain("Sep 7, 2026");
   });
@@ -248,15 +248,9 @@ describe("three tiles, and no fourth", () => {
   });
 
   it("keeps the goal's sentence under the row, never inside it (#521)", () => {
-    // The set's `.stat-row` (S12 L709–711) holds the figure and its pills
-    // and nothing else; what reaching a goal means is the `.explain` line
-    // beneath. Inside the row that sentence sets the min-content width, the
-    // chip wraps, and the goal lands back under the figure — which is what
-    // the master read in CI's render of this branch.
     expect(rowOf("overview-tile-ai-answers")).not.toContain("overview.tile.ai-answers.means");
-    expect(markup).toContain('<p class="rk-quiet">overview.tile.ai-answers.means');
-    // The pages tile carries no goal, so it states no goal sentence either —
-    // the line under its row is the set's own "rest under 3 weeks" (#536).
+    expect(markup).toContain("overview.tile.ai-answers.means");
+    // The pages tile carries no goal, so it states no goal sentence either.
     expect(markup).not.toContain("overview.tile.pages.means");
   });
 
@@ -380,7 +374,7 @@ describe("this week", () => {
     for (const day of ["31", "1", "2", "3", "4", "5", "6"]) {
       expect(markup, `missing day ${day}`).toContain(`>${day}</span>`);
     }
-    expect(count(markup, 'class="rk-week-day"')).toBe(7);
+    expect(count(markup, 'data-testid="overview-week-day"')).toBe(7);
   });
 
   it("gives every day the written word for its state — identity is never colour alone", () => {
@@ -398,17 +392,9 @@ describe("this week", () => {
     expect(markup).toContain("btn-ghost");
   });
 
-  it("draws the set's flat cells and coloured rule, and no word the set does not draw (#521)", () => {
-    // UI-SPEC S12: a quiet cell per day with a rule under the date. The
-    // state is the cell's data and its accessible text — never a visible
-    // word the set does not draw.
-    expect(count(markup, "rk-week-rule")).toBe(7);
+  it("names each day by its date and state, and marks today", () => {
     expect(markup).toContain('data-state="today"');
-    // No chart frame and no SVG marks: the card head's glyph is the only
-    // svg left.
-    expect(markup).not.toContain("rk-mark");
-    expect(markup).not.toContain('viewBox="0 0 300');
-    expect(markup).not.toContain("max-width:560px");
+    expect(markup).toMatch(/aria-label="4 · overview\.week\.day\.today"/);
   });
 
   it("renders exactly one supply statement", () => {
@@ -433,22 +419,18 @@ describe("needs you (S12)", () => {
   });
 
   it("renders at most two panels, each with one control, and the remainder as a count", () => {
-    expect(count(markup, "rk-panel-title")).toBe(2);
-    expect(count(markup, "rk-panel-cta")).toBe(2);
-    // The set draws the two as one pair (#521): both panels sit in the one
-    // pair container, and the count stays outside it.
-    const pair = markup.slice(markup.indexOf('class="rk-panel-pair"'));
-    expect(markup).toContain('data-testid="overview-alert-panels"');
-    expect(count(pair.slice(0, pair.indexOf('data-testid="overview-overflow"')), 'class="rk-panel"')).toBe(2);
+    expect(count(markup, 'data-testid="overview-alert"')).toBe(2);
+    const pair = markup.slice(markup.indexOf('data-testid="overview-alert-panels"'));
+    expect(count(pair.slice(0, pair.indexOf('data-testid="overview-overflow"')), "<a ")).toBe(2);
     expect(markup).toContain("overview.alert.overflow(1)");
   });
 
-  it("gives the veto panel the warn ground and the solid pill, the reconnect panel the accent ground and the outline", () => {
-    // Two calls to act on one screen, and §9.1 gives the screen one solid
-    // fill: the page that publishes anyway takes it.
-    expect(markup).toContain('data-tone="warn"');
-    expect(markup).toContain("btn btn-sm btn-primary rounded-(--r-pill)");
-    expect(markup).toContain("btn-outline");
+  it("spends the one solid button on the page that publishes anyway, the outline on the reconnect", () => {
+    const veto = markup.slice(markup.indexOf('data-kind="pending_veto"'));
+    const reconnect = markup.slice(markup.indexOf('data-kind="needs_you"'));
+    expect(veto.slice(0, veto.indexOf("</a>"))).toContain('class="btn btn-primary');
+    expect(reconnect.slice(0, reconnect.indexOf("</a>"))).toContain("btn-outline");
+    expect(count(markup, 'class="btn btn-primary')).toBe(1);
   });
 
   it("each panel's control navigates to that item's own address", () => {
@@ -465,7 +447,7 @@ describe("needs you (S12)", () => {
     const emptyMarkup = html(<NeedsYouModule alerts={empty.alerts} />);
     expect(emptyMarkup).toContain("overview.alerts.empty");
     expect(count(emptyMarkup, 'role="alert"')).toBe(1);
-    expect(count(emptyMarkup, "rk-panel-title")).toBe(0);
+    expect(count(emptyMarkup, 'data-testid="overview-alert"')).toBe(0);
   });
 });
 
@@ -485,7 +467,7 @@ describe("S13 — the week-0 arm, drawn", () => {
 
   it("the chart card names the pass its one reading came from", () => {
     const markup = html(<GrowthModule growth={model.growth} timeZone={ZONE} />);
-    expect(markup).toContain("rk-srcchip");
+    expect(markup).toContain('data-testid="overview-growth-source"');
     expect(markup).toContain("overview.growth.source.deep-pass");
     // One reading, charted: the lone week is the chart's one written
     // reading (its dot is drawn on the client, #550).

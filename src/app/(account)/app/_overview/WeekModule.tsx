@@ -1,100 +1,73 @@
-// BUILD §4.5 · UI-SPEC S12 — this week: the seven-day strip, and the one
-// supply statement.
+// BUILD §4.5 · §6 — this week: the seven-day strip, and the one supply
+// statement.
 //
-// §4.5 item 5, verbatim: "**This week**: 7-day strip (done/today/next) +
-// 'Open calendar →' + up to two alerts (today's page pending veto → 'Read
-// it'; a needs-you item → action button)."
-//
-// **The alerts are their own card since #353.** The approved set draws two
-// cards where §4.5 wrote one region: "This week" (the strip, with the
-// calendar control in its head) and "Needs you" (the tinted panels). The
-// set is the newer owner artifact and this file follows it — see
-// `NeedsYouModule.tsx`, which is where the alerts, the overflow count and
-// the empty state moved. What stays here is the week itself and the supply
-// statement, which is a fact about this week's pages rather than something
-// waiting on the customer.
-//
-// **Identity is never colour alone.** Every day carries its own date and the
-// written word for its state — the set draws no word in the cell, so the
-// word is the cell's accessible text (`WeekStrip`, issue #521) and the strip
-// still says what it means with the colours removed (§2.4). The three words
-// are §4.5's own; the model picks which, and this file only reads them.
-//
-// **One supply statement, never two.** `readSupplyStatement` returns at most
-// one key even where all three conditions hold; this file renders the one it
-// gets and has no branch that could add a second.
+// SPEC §4 "this week" and §6: a day is filled only by a ready opportunity,
+// and a short week says so in one written line rather than padding. The
+// strip is a CSS grid in the route (docs/DESIGN.md rule 2: a grid that is
+// not a series). Identity is never colour alone — each day carries its date
+// and the written word for its state as its accessible name.
 import type React from "react";
 import { Calendar } from "lucide-react";
-import { WeekStrip, type SevenDays, type WeekDay } from "@/ui/charts";
 import { copy } from "@/lib/presentation/copy";
-import { CardHead } from "@/ui/idiom";
 import { writtenLine } from "../_shell/written";
 import { formatDayOfMonth } from "./present";
 import type { SupplyStatement } from "./supply";
-import { CALENDAR_DAY_ZONE, type WeekModule as WeekModuleModel } from "./week";
+import { CALENDAR_DAY_ZONE, type DayState, type WeekModule as WeekModuleModel } from "./week";
 
-/** A day cell. Its date is a calendar-day marker the site's zone was
- *  already applied to (`readWeek`), so it is read back in
- *  `CALENDAR_DAY_ZONE` — formatting it in the site's zone a second time
- *  would shift every cell back across midnight.
- *
- *  The label is the day of the month, as the set draws it: a cell is a
- *  seventh of the card, 30px wide at the compact floor, and the strip is one
- *  named week. The month is the module's own heading's to carry. */
-function dayOf(day: WeekModuleModel["days"][number]): WeekDay {
-  return {
-    date: formatDayOfMonth(day.date, CALENDAR_DAY_ZONE),
-    state: day.state,
-    // The written word for the state. All three are filled, so a strip
-    // never renders a day whose mark is missing.
-    mark: copy(day.markKey),
-  };
-}
+/** The cell ground and the rule under the date, per state, from the theme. */
+const DAY: Readonly<Record<DayState, { cell: string; rule: string }>> = {
+  done: { cell: "bg-base-200", rule: "bg-success" },
+  today: { cell: "bg-primary/10 text-primary", rule: "bg-primary" },
+  "to-come": { cell: "bg-base-200 opacity-60", rule: "bg-base-300" },
+};
 
 export function WeekModule(p: {
   week: WeekModuleModel;
   timeZone: string;
   supply?: SupplyStatement;
 }): React.JSX.Element {
-  const days = p.week.days.map(dayOf);
-  // Seven, by type: `readWeek` builds a seven-tuple and the mapping keeps
-  // its length, so this is the two facts meeting rather than a cast that
-  // could let a six-day strip through.
-  const [d0, d1, d2, d3, d4, d5, d6] = days;
-  const strip: SevenDays | null =
-    d0 && d1 && d2 && d3 && d4 && d5 && d6 ? [d0, d1, d2, d3, d4, d5, d6] : null;
-
-  const supplyLine = p.supply === undefined ? null : writtenLine(p.supply.key, p.supply.vars);
   const title = copy("overview.week.title");
+  const supplyLine = p.supply === undefined ? null : writtenLine(p.supply.key, p.supply.vars);
 
   return (
-    <section className="rk-idiom-card" data-testid="overview-week">
-      <CardHead
-        icon={<Calendar aria-hidden size={ICON} />}
-        eyebrow={title}
-        // The set puts the calendar control in the head, right-aligned and
-        // quiet: it leaves the screen, and the screen's one solid fill is
-        // spent on the veto panel's "Read it" (§9.1). A link rather than
-        // `Btn`, because it navigates with no client runtime — the same
-        // case `component-registry.test.ts` carries this file's row for.
-        pill={
-          <a className="btn btn-sm btn-ghost rounded-(--r-pill)" href={p.week.calendarHref}>
+    <section className="card card-border min-w-0 bg-base-100" data-testid="overview-week">
+      <div className="card-body gap-4 p-5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="card-title text-xs font-semibold uppercase tracking-wide text-base-content/60">
+            <Calendar aria-hidden size={20} strokeWidth={1.75} />
+            {title}
+          </h2>
+          <a className="btn btn-ghost btn-sm" href={p.week.calendarHref}>
             {copy("overview.week.calendar-link")}
           </a>
-        }
-      />
-      {/* The full width of the card, as the set draws it — the strip is
-          HTML cells, so it takes no plate cap (issue #521). */}
-      {strip === null ? null : <WeekStrip days={strip} label={title} />}
-      {supplyLine === null ? null : (
-        <p className="rk-quiet" data-testid="overview-supply">
-          {supplyLine}
-        </p>
-      )}
+        </div>
+        <ol className="grid grid-cols-7 gap-2" aria-label={title}>
+          {p.week.days.map((day) => {
+            // A calendar-day marker, already in the site's zone (`readWeek`).
+            const date = formatDayOfMonth(day.date, CALENDAR_DAY_ZONE);
+            const name = `${date} · ${copy(day.markKey)}`;
+            return (
+              <li
+                key={day.date.toISOString()}
+                className={`min-w-0 rounded-field px-1 py-2 text-center ${DAY[day.state].cell}`}
+                data-state={day.state}
+                data-testid="overview-week-day"
+                title={name}
+              >
+                <span className="num block text-sm font-semibold" role="img" aria-label={name}>
+                  {date}
+                </span>
+                <span className={`mt-2 block h-1 rounded-full ${DAY[day.state].rule}`} aria-hidden />
+              </li>
+            );
+          })}
+        </ol>
+        {supplyLine === null ? null : (
+          <p className="text-xs text-base-content/60" data-testid="overview-supply">
+            {supplyLine}
+          </p>
+        )}
+      </div>
     </section>
   );
 }
-
-/** The chip's glyph, at the size `.rk-head-chip` draws it — 14px inside a
- *  32px square, which is the idiom's own proportion (`idiom.css` §2). */
-const ICON = 14;
