@@ -28,6 +28,8 @@ jobs:
 
   layout:
     name: layout conformance (browser)
+    # Not a merge gate. Skip on PRs so daisyUI work is not delayed by PNG diffs.
+    if: github.event_name == 'push'
     continue-on-error: true
     runs-on: ubuntu-latest
     # Renders come from here, not from the box (issue #404). The suite this
