@@ -451,6 +451,25 @@ describe("needs you (S12)", () => {
   });
 });
 
+describe("needs you — a technical issue the customer fixes (#572)", () => {
+  const model = assembleOverview(
+    facts({
+      waiting: [
+        { kind: "site_issue", check: "slow_pages", count: 3, over: 40, severity: "critical", since: AT(31), href: "/scan/example.com" },
+      ],
+    })
+  );
+  const markup = html(<NeedsYouModule alerts={model.alerts} overflow={model.overflow} issuesOverflow={model.issuesOverflow} />);
+
+  it("names the check, its stored count over its set and its severity, and links to the fix lines", () => {
+    expect(markup).toContain("check.slow-pages.title");
+    expect(markup).toContain(">3/40<");
+    expect(markup).toContain("severity.high");
+    expect(markup).toContain('href="/scan/example.com"');
+    expect(markup).toContain("alert-error");
+  });
+});
+
 describe("S13 — the week-0 arm, drawn", () => {
   const weekZero = { firstDueOn: new Date(Date.UTC(2026, 8, 7)) };
   const model = assembleOverview(

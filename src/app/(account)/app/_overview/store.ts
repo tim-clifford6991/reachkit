@@ -11,7 +11,9 @@
 //   firstDueOn        §11's weekly clock — `nextDueOn`
 //   pagesPublished    §9's live `publications`
 //   supply            §7's own count — `supplyDepth`
-//   waiting           §9's `in_review` and `needs_attention` drafts
+//   waiting           §9's `in_review` and `needs_attention` drafts, and
+//                     SPEC §9's technical issues the customer fixes, from
+//                     the newest stored report (#572)
 //
 //   points / aiPresence   §11's stored weekly scans — `readWeekScans`
 //   changes               §4.7's change markers — `changeMarkers`
@@ -90,11 +92,13 @@ import {
 import type { OverviewFacts } from "./model";
 import type { WeeklyPoint } from "./growth";
 import type { RivalFact, RivalFacts } from "./rivals";
-import type { WaitingItem } from "./alerts";
+import { waitingIssues, type WaitingItem } from "./alerts";
 
 export interface OverviewSite {
   siteId: string;
   timeZone: string;
+  /** The site's domain — where its free report, and the fix lines, live. */
+  domain: string;
 }
 
 interface MinimalResult<T> {
@@ -155,7 +159,7 @@ async function pagesPublished(siteId: string, at: Date): Promise<Measured<number
  */
 async function deepPassReading(
   siteId: string
-): Promise<{ value: Measured<number>; on: Date } | undefined> {
+): Promise<{ value: Measured<number>; on: Date; report: StoredReport } | undefined> {
   const { data, error } = await client()
     .from<{ id: string; report: unknown; created_at: string }>("scans")
     .select("id, report, created_at")
@@ -167,7 +171,7 @@ async function deepPassReading(
   const row = data?.[0];
   if (error !== null || row === undefined || row.report === null) return undefined;
   const report = readStoredReport(row.report);
-  return { value: report.ownRanked, on: new Date(row.created_at) };
+  return { value: report.ownRanked, on: new Date(row.created_at), report };
 }
 
 /**
@@ -272,6 +276,9 @@ interface WeeklyFacts {
    *  the report screen cannot disagree about the week they mean. */
   score: Measured<{ score: number; band: BandHandle }>;
   scorePrevious?: Measured<{ score: number; band: BandHandle }>;
+  /** The newest measured week's report, whose technical issues are the ones
+   *  the customer is shown — Monday's re-check, never a stale week's. */
+  latest: StoredReport | null;
 }
 
 async function weeklySeries(site: OverviewSite, now: Date): Promise<WeeklyFacts> {
@@ -302,7 +309,7 @@ async function weeklySeries(site: OverviewSite, now: Date): Promise<WeeklyFacts>
 
   const first = weeks.findIndex((week) => scans.has(week));
   if (first === -1) {
-    return { points: [], aiPresence: [], changes: [], rivals, score, ...(scorePrevious === undefined ? {} : { scorePrevious }) };
+    return { points: [], aiPresence: [], changes: [], rivals, score, latest, ...(scorePrevious === undefined ? {} : { scorePrevious }) };
   }
 
   const measuredWeeks = weeks.slice(first);
@@ -328,6 +335,7 @@ async function weeklySeries(site: OverviewSite, now: Date): Promise<WeeklyFacts>
     changes,
     rivals,
     score,
+    latest,
     ...(scorePrevious === undefined ? {} : { scorePrevious }),
   };
 }
@@ -488,7 +496,7 @@ export async function readOverviewFacts(site: OverviewSite): Promise<OverviewFac
     // from `firstDueOn`, which is a real date.
     points: series.points,
     firstDueOn,
-    ...(deepPass === undefined ? {} : { deepPass }),
+    ...(deepPass === undefined ? {} : { deepPass: { value: deepPass.value, on: deepPass.on } }),
     aiPresence: series.aiPresence,
     changes: series.changes,
     pagesPublished: published,
@@ -506,6 +514,18 @@ export async function readOverviewFacts(site: OverviewSite): Promise<OverviewFac
       // is not that arrival.
       firstArrivalShortfall: false,
     },
-    waiting,
+    waiting: [...waiting, ...issuesWaiting(series.latest ?? deepPass?.report ?? null, site.domain)],
   };
+}
+
+/** SPEC §9 on the dashboard (#572): the customer's own open issues from the
+ *  newest stored report — Monday's, or the deep pass before the first
+ *  Monday. A fault fixed before Monday reads as a zero on that report and so
+ *  is not here. Nothing is re-checked for the screen. */
+function issuesWaiting(report: StoredReport | null, domain: string): readonly WaitingItem[] {
+  if (report === null) return [];
+  return waitingIssues(report.siteIssues, {
+    measuredAt: report.verdict.measuredAt,
+    reportHref: `/scan/${encodeURIComponent(domain)}`,
+  });
 }

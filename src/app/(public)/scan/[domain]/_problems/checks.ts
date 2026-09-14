@@ -11,8 +11,10 @@
 //
 // Copyable lines exist only where the line is fixed text: the viewport meta
 // line and the robots `Sitemap:` line. Neither can block a crawler.
-import type { Measured } from "@/lib/measure/measured";
+import { measured, measuredZero, type Measured } from "@/lib/measure/measured";
 import type { CopyKey } from "@/lib/presentation/copy";
+import { SITE_CHECK_TITLE } from "@/lib/presentation/site-issues";
+import { DOER_OF, type IssueSeverity, type SiteIssuesSection } from "@/lib/site-issues/types";
 import type { Severity } from "./model";
 
 export type TechnicalCheck =
@@ -44,17 +46,6 @@ export const DOER_KEY: Readonly<Record<Doer, CopyKey>> = Object.freeze({
   reachkit_rewrites: "check.doer.reachkit-rewrites",
 });
 
-/** SPEC §9, 2026-09-14. */
-const CHECK: Readonly<Record<TechnicalCheck, { title: CopyKey; doer: Doer }>> = Object.freeze({
-  page_titles: { title: "check.page-titles.title", doer: "reachkit_rewrites" },
-  meta_descriptions: { title: "check.meta-descriptions.title", doer: "reachkit_rewrites" },
-  noindex_pages: { title: "check.noindex-pages.title", doer: "free_fix" },
-  sitemap: { title: "check.sitemap.title", doer: "free_fix" },
-  slow_pages: { title: "check.slow-pages.title", doer: "free_fix" },
-  broken_links: { title: "check.broken-links.title", doer: "free_fix" },
-  phone_usability: { title: "check.phone-usability.title", doer: "free_fix" },
-  structured_data: { title: "check.structured-data.title", doer: "reachkit_writes" },
-});
 
 /** What the engine reports for one check. `sitemapUrl` is the address the
  *  site's sitemap is served at, where the engine found one to point to. */
@@ -107,10 +98,32 @@ export function checkCardsOf(readings: CheckReadings): readonly CheckCard[] {
     const reading = readings[check] ?? null;
     return {
       check,
-      title: CHECK[check].title,
-      doer: DOER_KEY[CHECK[check].doer],
+      title: SITE_CHECK_TITLE[check],
+      // SPEC §9, 2026-09-14 — the engine's own map (`DOER_OF`).
+      doer: DOER_KEY[DOER_OF[check]],
       reading,
       fix: fixFor(check, reading),
     };
   });
+}
+
+const SEVERITY_OF: Readonly<Record<IssueSeverity, Severity>> = Object.freeze({
+  nothing_to_fix: "low",
+  worth_fixing: "mid",
+  critical: "high",
+});
+
+/** The stored section (#570) as this module's readings. A check that could
+ *  not run is left out, so its card is absent with its why-line. A report
+ *  written before the checks existed (`null`) reports none. */
+export function readingsOf(section: SiteIssuesSection | null, at: Date): CheckReadings {
+  const readings: Partial<Record<TechnicalCheck, CheckReading>> = {};
+  for (const issue of section?.issues ?? []) {
+    if (!issue.ran || issue.check === "ai_readers_blocked") continue;
+    readings[issue.check] = {
+      count: issue.count === 0 ? measuredZero(0, at) : measured(issue.count, at),
+      severity: measured(SEVERITY_OF[issue.severity], at),
+    };
+  }
+  return readings;
 }

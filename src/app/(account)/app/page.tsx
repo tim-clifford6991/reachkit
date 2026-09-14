@@ -52,7 +52,7 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
         <RivalModule rivals={overview.rivals} timeZone={shell.timeZone} weekZero={overview.weekZero} />
         <div className="flex min-w-0 flex-col gap-6">
           <WeekModule week={overview.week} timeZone={shell.timeZone} supply={overview.supply} />
-          <NeedsYouModule alerts={overview.alerts} overflow={overview.overflow} />
+          <NeedsYouModule alerts={overview.alerts} overflow={overview.overflow} issuesOverflow={overview.issuesOverflow} />
         </div>
       </div>
     </div>

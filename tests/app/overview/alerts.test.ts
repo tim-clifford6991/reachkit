@@ -7,16 +7,19 @@ import { describe, expect, it } from "vitest";
 import { OVERVIEW_ALERT_CAP } from "@/lib/config/constants";
 import {
   ALERTS_EMPTY_KEY,
+  ISSUE_OVERFLOW_WHERE_KEY,
   OVERFLOW_WHERE_KEY,
   readAlerts,
-  type WaitingItem,
+  waitingIssues,
+  type WaitingDraft,
 } from "@/app/(account)/app/_overview/alerts";
+import type { SiteIssue, SiteIssuesSection } from "@/lib/site-issues/types";
 
 /** The instant every window below is measured against. Fixed, because a
  *  duration read from the wall clock is a different assertion every run. */
 const AT = new Date(Date.UTC(2026, 8, 3, 12, 0));
 
-const item = (over: Partial<WaitingItem> = {}): WaitingItem => ({
+const item = (over: Partial<WaitingDraft> = {}): WaitingDraft => ({
   kind: "pending_veto",
   title: "a draft",
   since: new Date(Date.UTC(2026, 8, 3)),
@@ -123,5 +126,56 @@ describe("the veto window the panel's line states (S12)", () => {
   it("a needs-you item is not on a clock and carries no window at all", () => {
     const { alerts } = readAlerts([item({ kind: "needs_you" })], AT);
     expect(alerts[0]?.timeLeft).toBeUndefined();
+  });
+});
+
+// ── SPEC §9 on the dashboard (#572) ───────────────────────────────────
+const ran = (check: SiteIssue["check"], count: number, over: Partial<SiteIssue> = {}): SiteIssue =>
+  ({
+    check,
+    ran: true,
+    count,
+    over: 40,
+    unit: "pages",
+    severity: count === 0 ? "nothing_to_fix" : "worth_fixing",
+    doer: "free_fix",
+    ...over,
+  }) as SiteIssue;
+const section = (issues: SiteIssue[]): SiteIssuesSection => ({ pagesChecked: 40, stoppedBy: "complete", issues });
+const MONDAY = { measuredAt: AT, reportHref: "/scan/example.com" };
+
+describe("technical issues in Needs you", () => {
+  it("only the customer's own open issues wait: not a zero, not ReachKit's, not one that could not run", () => {
+    const waiting = waitingIssues(
+      section([
+        ran("slow_pages", 3),
+        ran("broken_links", 0),
+        ran("page_titles", 5, { doer: "reachkit_rewrites" }),
+        { check: "sitemap", ran: false, because: "sitemap_unreadable" },
+      ]),
+      MONDAY
+    );
+    expect(waiting.map((w) => w.check)).toEqual(["slow_pages"]);
+    expect(waiting[0]).toMatchObject({ count: 3, over: 40, href: "/scan/example.com" });
+  });
+
+  it("a fault fixed by Monday is a zero on Monday's report, so it is gone", () => {
+    const before = waitingIssues(section([ran("noindex_pages", 2), ran("phone_usability", 4)]), MONDAY);
+    const after = waitingIssues(section([ran("noindex_pages", 0), ran("phone_usability", 4)]), MONDAY);
+    expect(before).toHaveLength(2);
+    expect(after.map((w) => w.check)).toEqual(["phone_usability"]);
+    expect(waitingIssues(null, MONDAY)).toEqual([]);
+  });
+
+  it("drafts outrank issues, Critical outranks Worth fixing, and the issue remainder is counted on its own line", () => {
+    const issues = waitingIssues(
+      section([ran("slow_pages", 3), ran("sitemap", 1, { severity: "critical", unit: "site", over: 1 }), ran("broken_links", 7)]),
+      MONDAY
+    );
+    const { alerts, overflow, issuesOverflow } = readAlerts([...issues, item()], AT);
+    expect(alerts.map((a) => a.kind)).toEqual(["pending_veto", "site_issue"]);
+    expect(alerts[1]).toMatchObject({ severity: "critical", figure: { count: 1, over: 1 }, href: "/scan/example.com" });
+    expect(overflow).toBeUndefined();
+    expect(issuesOverflow).toEqual({ remaining: 2, whereKey: ISSUE_OVERFLOW_WHERE_KEY });
   });
 });

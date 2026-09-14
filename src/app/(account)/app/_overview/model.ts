@@ -117,6 +117,8 @@ export interface OverviewModel {
   /** At most two (§4.5: "up to two alerts"). */
   alerts: readonly Alert[];
   overflow?: Overflow;
+  /** The technical issues left over after the cap, counted on their own. */
+  issuesOverflow?: Overflow;
 }
 
 /** Everything Overview reads, before it is a model. One shape, so a fixture
@@ -181,7 +183,7 @@ export function assembleOverview(facts: OverviewFacts): OverviewModel {
   const measuredPoints = facts.points.filter((p) => p.value.kind !== "unmeasured");
   const latest = measuredPoints.at(-1);
   const previous = measuredPoints.at(-2);
-  const { alerts, overflow } = readAlerts(facts.waiting, facts.today);
+  const { alerts, overflow, issuesOverflow } = readAlerts(facts.waiting, facts.today);
   const supply = readSupplyStatement(facts.supply);
   const window = aiWindow(facts.points, facts.aiPresence, facts.changes);
   const scoreDelta =
@@ -248,6 +250,7 @@ export function assembleOverview(facts: OverviewFacts): OverviewModel {
     ...(supply ? { supply } : {}),
     alerts,
     ...(overflow ? { overflow } : {}),
+    ...(issuesOverflow ? { issuesOverflow } : {}),
   };
 }
 
