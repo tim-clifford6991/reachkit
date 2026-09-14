@@ -30,6 +30,7 @@ Pinned numbers live in `src/lib/config/constants.ts`. Newest dated line in a sec
 - Same header (brand · Sign in · one solid CTA) and footer (brand, rights, removal address, Product, Legal) on every public page.
 - The offer is one component, used on the report and on `/pricing`; only the Start target differs.
 - A 16:9 video block with a play control and one written line, whether or not the asset exists. Secondary CTAs scroll to the field.
+- 2026-09-14  The header CTA is outline on every public page; each screen’s own action is its only solid button (supersedes “one solid CTA” in the header and ruling 2b’s two solids on the landing).
 
 **Done when** `Example.com`, `https://www.example.com/pricing` and `EXAMPLE.COM` hit the same report. `/pricing` states €49/month VAT included and has one checkout control. `/privacy`, `/terms` and `/imprint` are in the landing footer.
 

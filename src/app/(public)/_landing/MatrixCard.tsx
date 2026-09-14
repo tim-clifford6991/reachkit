@@ -33,8 +33,6 @@ import type React from "react";
 import { Bot } from "lucide-react";
 import { AiDotMatrixChart, type AiDotMatrixCellState, type AiDotMatrixRow } from "@/ui/charts";
 import type { AnswerCell } from "@/lib/market/questions/matrix";
-import { Badge } from "@/ui/components/Badge";
-import { CardHead, IdiomCard } from "@/ui/idiom";
 import { copy } from "@/lib/presentation/copy";
 import { FIXTURE_REPORT } from "../scan/[domain]/_fixture/states";
 import { Num, ratio } from "../scan/[domain]/_address/measured";
@@ -103,45 +101,28 @@ export function MatrixCard(): React.JSX.Element {
   if (answers === null || rows.length === 0) return <></>;
 
   return (
-    <IdiomCard
-      testId={MATRIX_TEST_ID}
-      head={
-        <CardHead
-          icon={<Bot size={15} strokeWidth={1.8} aria-hidden />}
-          eyebrow={copy("ai-answers.title")}
-          pill={
-            <Badge tone="neutral">
-              <Num>
-                {answers.measuredAt.toLocaleDateString(CHIP_LOCALE, { day: "numeric", month: "short" })}
-              </Num>
-            </Badge>
-          }
-        />
-      }
-    >
-      {/* A chart is drawn at `width: 100%` of the box it is given, and the
-          box is a declared scroll container so a matrix wider than the card
-          scrolls rather than shrinking its labels — ADR-093's "content fits
-          its box **or the box changes**", and the same wrap the report's
-          own module takes (#352). At 320 a rival's domain is wider than a
-          quarter of the card, and without this the row's name is drawn
-          outside the viewBox. */}
-      <div className="min-w-0 overflow-x-auto">
-        <AiDotMatrixChart
-          rows={rows}
-          // Every cell is identified by its column and its row, never by
-          // colour alone (§2.4) — and the column label is the question's own
-          // NUMBER, not its wording. The wording is `GeneratedText`, and
-          // CLAUDE.md allows generated prose nowhere but draft page content,
-          // always labelled; the landing is the last surface that could carry
-          // it unlabelled. The number is a data identity, it is what the
-          // report's own list numbers each question by, and it sets in the
-          // mono numeral face like every other numeral in the product.
-          questions={answers.rows.map((row) => String(row.question.n))}
-          label={copy("ai-answers.title")}
-        />
+    <div className="card min-w-0 border border-base-300 bg-base-100" data-testid={MATRIX_TEST_ID}>
+      <div className="card-body gap-4">
+        <div className="flex items-center justify-between gap-2">
+          <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-base-content/60">
+            <Bot size={16} strokeWidth={1.75} aria-hidden />
+            {copy("ai-answers.title")}
+          </p>
+          <span className="badge badge-ghost">
+            <Num>{answers.measuredAt.toLocaleDateString(CHIP_LOCALE, { day: "numeric", month: "short" })}</Num>
+          </span>
+        </div>
+        {/* A matrix wider than the card scrolls rather than shrinking its
+            labels: at 320 a rival's domain is wider than a quarter of it. */}
+        <div className="min-w-0 overflow-x-auto">
+          <AiDotMatrixChart
+            rows={rows}
+            questions={answers.rows.map((row) => String(row.question.n))}
+            label={copy("ai-answers.title")}
+          />
+        </div>
+        <p className="text-sm text-base-content/70">{copy("landing.why.matrix.line")}</p>
       </div>
-      <p className="explain">{copy("landing.why.matrix.line")}</p>
-    </IdiomCard>
+    </div>
   );
 }

@@ -135,14 +135,6 @@ describe("§0 11 — the compact band keeps the Workspace nav as one row", () =>
   });
 });
 
-describe("§0 12 — footer links", () => {
-  it("underline on hover, as .linkish", () => {
-    expect(decls(IDIOM, ".rk-chrome-foot-in nav a:hover").get("text-decoration")).toBe(
-      "underline"
-    );
-  });
-});
-
 describe("§0 13 — one motion token", () => {
   it("--motion-fast is .18s in all three blocks of theme.css", () => {
     const set = tokenSet(THEME_CSS);

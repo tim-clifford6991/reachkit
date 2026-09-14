@@ -1,57 +1,34 @@
-// BUILD §3, UI-SPEC 3a — the public header (issue #351).
+// BUILD §3 — the public header, a daisyUI navbar.
 // src/app/(public)/_chrome/Header.tsx
 //
-// **Ruling 3a, verbatim**: "Public header = brand · Sign in (quiet) · one
-// solid CTA". That is the whole header, on every public route. The Pricing
-// link that used to sit here is in the footer's Product column, where 3a
-// puts it — the header carries the two things a stranger does, and the
-// compact-band `Collapse` that listed the links goes with them: two
-// controls need no menu, and every link is still in the document.
+// Brand · Sign in (ghost) · the header CTA (outline). SPEC §1, 2026-09-14:
+// the header CTA is outline on every public page, so each screen's own
+// action is its only solid button.
 //
-// **The header's CTA is drawn on the landing too, and that is new.** Ruling
-// 2b of 2026-09-08 supersedes #290's one-primary reading: "two solid
-// primaries per screen are allowed where the artifact draws them (landing:
-// header CTA + hero CTA)". On the landing that CTA is REQ-099 c3's — it
-// brings the hero's own field into view with the cursor in it rather than
-// loading a page, so the page still has exactly one submit control. On
-// every other public route it is a link to the landing, which is where the
-// field is.
+// On the landing the CTA focuses the hero's field (`FieldCta`) rather than
+// loading a page, so the page keeps exactly one submit control. On every
+// other public route it is a link to the landing.
 //
-// **The right slot is the route's, and the route says so.** On the report
-// address the approved set draws REQ-001 c7's quiet *Copy link* there
-// instead of the pair — it is the one screen with an address to copy, and
-// the control had been standing inside the report's own tree because the
-// chrome had no slot for it (issue #352's own note). It has one now. The
-// arm is a value the layout passes, never a pathname this file reads: a
-// header that reads the route is a second place the rule lives.
-//
-// **A token page's slot is its own address, quiet** (master's third review
-// of #399). S6 draws `pubBar('<span class="prov">/veto/{token}</span>')` —
-// the bar's right side is the address the mail's link landed on, in the
-// mono face, `--ink-3`, no control beside it. There is nothing for 3a's
-// pair to do there: the reader of a stop link has no account to sign in to
-// and did not come to scan a domain, and a solid CTA beside the one thing
-// the page asks would be a second primary the set does not draw.
+// The right slot is the route's, handed over by the layout: the report
+// address shows its Copy link, and a token page shows its own address,
+// quiet, with no control beside it.
 import type React from "react";
 import { TrendingUp } from "lucide-react";
 import Link from "next/link";
-import { Btn } from "@/ui/components/Btn";
 import { copy } from "@/lib/presentation/copy";
 import { CopyLink } from "../scan/[domain]/_address/copy-link";
 import { FieldCta } from "../_landing/FieldCta";
 
-/** What the bar's right slot holds. A closed union with a `never` default
- *  below, so a fourth kind of chrome cannot arrive without a rendering —
- *  and so the decision is a value the layout hands over rather than a
- *  pathname read twice. */
+/** What the bar's right slot holds. A closed union, so a fourth kind of
+ *  chrome cannot arrive without a rendering. */
 export type HeaderAction =
-  /** Ruling 3a's pair: quiet Sign in, then the one solid CTA. */
+  /** Sign in, then the header CTA as a link to the landing. */
   | { kind: "cta" }
-  /** The same pair, with REQ-099 c3's CTA — the hero's own field. */
+  /** The same pair, with the CTA focusing the landing's own field. */
   | { kind: "landing" }
-  /** REQ-001 c7's control, on the one screen with an address to copy. */
+  /** The one screen with an address to copy. */
   | { kind: "copy-link"; canonicalUrl: string }
-  /** A token page's own address, quiet — S6's `.prov` in the bar. */
+  /** A token page's own address, quiet. */
   | { kind: "address"; address: string };
 
 function Action(p: { action: HeaderAction }): React.JSX.Element {
@@ -59,40 +36,47 @@ function Action(p: { action: HeaderAction }): React.JSX.Element {
     return <CopyLink canonicalUrl={p.action.canonicalUrl} />;
   }
   if (p.action.kind === "address") {
-    // The set's `.prov` exactly — mono, `--t-explain`, `--ink-3`, no
-    // margin — which this sheet already carries as `.rk-prov-line`. Not a
-    // link: the reader is standing on it.
-    return <span className="rk-prov-line">{p.action.address}</span>;
+    return <span className="font-mono text-xs text-base-content/60">{p.action.address}</span>;
   }
   return (
     <>
-      {/* Quiet, on every route: signing in is what a customer does, and
-          it is never the thing a stranger came to do. */}
-      <Btn href="/signin" label={copy("chrome.nav.signin")} variant="tertiary" pill />
+      <Link href="/signin" className="btn btn-ghost">
+        {copy("chrome.nav.signin")}
+      </Link>
       {p.action.kind === "landing" ? (
         <FieldCta label={copy("chrome.cta.scan")} />
       ) : (
-        <Btn href="/" label={copy("chrome.cta.scan")} variant="primary" pill />
+        <Link href="/" className="btn btn-outline btn-primary">
+          {copy("chrome.cta.scan")}
+        </Link>
       )}
     </>
   );
 }
 
+/** The brand, as the header and the footer both draw it. */
+export function Brand(): React.JSX.Element {
+  return (
+    <Link href="/" className="flex items-center gap-2 text-lg font-extrabold tracking-tight">
+      <span className="grid size-7 place-items-center rounded-field bg-primary text-primary-content" aria-hidden>
+        <TrendingUp size={16} strokeWidth={1.75} aria-hidden />
+      </span>
+      <span>{copy("chrome.wordmark")}</span>
+    </Link>
+  );
+}
+
 export function Header(p: { action: HeaderAction }): React.JSX.Element {
   return (
-    <header className="rk-chrome-head" data-testid="public-header">
-      <div className="rk-chrome-bar">
-        <Link href="/" className="rk-wordmark">
-          <span className="rk-wordmark-chip" aria-hidden>
-            <TrendingUp size={15} strokeWidth={2} aria-hidden />
-          </span>
-          <span>{copy("chrome.wordmark")}</span>
-        </Link>
-
-        <div className="rk-chrome-controls">
+    <header className="sticky top-0 z-10 border-b border-base-300 bg-base-100" data-testid="public-header">
+      <nav className="navbar mx-auto max-w-6xl flex-wrap gap-2 px-4">
+        <div className="flex-1">
+          <Brand />
+        </div>
+        <div className="flex flex-none items-center gap-2">
           <Action action={p.action} />
         </div>
-      </div>
+      </nav>
     </header>
   );
 }

@@ -92,11 +92,11 @@ describe("S1 — the landing's chips carry the icons the approved set draws", ()
     expect(order).toEqual(["Search", "Users", "Calendar"]);
   });
 
-  it("each card head takes the chip the set draws on it", () => {
-    expect(read("app/(public)/_landing/HeroShot.tsx")).toMatch(/icon=\{<TrendingUp /);
-    expect(read("app/(public)/_landing/MatrixCard.tsx")).toMatch(/icon=\{<Bot /);
-    expect(read("app/(public)/_landing/WeekCard.tsx")).toMatch(/icon=\{<Calendar /);
-    expect(read("app/(public)/_landing/WeekCard.tsx")).toMatch(/icon=\{<FileText /);
+  it("each card head takes its glyph, at lucide stroke 1.75", () => {
+    expect(read("app/(public)/_landing/HeroShot.tsx")).toMatch(/<TrendingUp size=\{16\} strokeWidth=\{1\.75\}/);
+    expect(read("app/(public)/_landing/MatrixCard.tsx")).toMatch(/<Bot size=\{16\} strokeWidth=\{1\.75\}/);
+    expect(read("app/(public)/_landing/WeekCard.tsx")).toMatch(/<Calendar size=\{16\} strokeWidth=\{1\.75\}/);
+    expect(read("app/(public)/_landing/WeekCard.tsx")).toMatch(/<FileText size=\{20\} strokeWidth=\{1\.75\}/);
   });
 
   it("the hero's own control carries no glyph — the set draws none on it", () => {
@@ -110,12 +110,13 @@ describe("S1 — the landing's chips carry the icons the approved set draws", ()
 describe("issue #486 — every chip the approved set draws carries its glyph", () => {
   const CHIP = (name: string): RegExp => new RegExp(`icon=\\{<${name} size=\\{15\\}`);
 
-  it("the brand mark is the trend glyph at stroke 2, on all four spends", () => {
-    for (const rel of [
-      "app/(public)/_chrome/Header.tsx",
-      "app/(public)/_chrome/Footer.tsx",
-      "app/(account)/app/layout.tsx",
-    ]) {
+  it("the brand mark is the trend glyph on an accent square, on every spend", () => {
+    // The public chrome draws one `Brand`, in daisyUI and Tailwind classes;
+    // the footer reuses it.
+    const header = read("app/(public)/_chrome/Header.tsx");
+    expect(header).toMatch(/rounded-field bg-primary text-primary-content" aria-hidden>\s*<TrendingUp size=\{16\} strokeWidth=\{1\.75\}/);
+    expect(read("app/(public)/_chrome/Footer.tsx")).toContain("<Brand />");
+    for (const rel of ["app/(account)/app/layout.tsx"]) {
       const source = read(rel);
       expect(source, rel).toMatch(/className="rk-wordmark-chip"[^>]*>\s*<TrendingUp size=\{15\} strokeWidth=\{2\}/);
       expect(source, rel).not.toMatch(/className="rk-wordmark-chip"[^>]*\/>/);
