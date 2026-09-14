@@ -39,24 +39,14 @@ import { Btn } from "@/ui/components/Btn";
 import { Badge } from "@/ui/components/Badge";
 import { Input } from "@/ui/components/Input";
 import { Divider } from "@/ui/components/Divider";
-import { BookOpen, Globe, Sparkles, Users } from "lucide-react";
-import { CardHead, IdiomCard, OptionCard, RemovableTag } from "@/ui/idiom";
+import { BookOpen, Sparkles } from "lucide-react";
+import { CardHead, IdiomCard, OptionCard } from "@/ui/idiom";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import {
-  onDomainChanged,
-  onMarketStated,
   settledCategory,
-  validateAddress,
   validateSetup,
-  type AddressRefusal,
   type SetupState,
 } from "@/lib/market/setup/state";
-import {
-  addRival,
-  isFull,
-  removeRival,
-  type RivalRefusal,
-} from "@/lib/market/setup/rivals";
 import {
   dnsRecordFor,
   preselected,
@@ -68,23 +58,12 @@ import {
 import { purposeCounts, type PagePurpose } from "@/lib/site-profile/types";
 import { checkLabel, type LabelRefusal } from "@/lib/publish/destinations/hosted/label";
 import { checkSubdomainLabel } from "./label-actions";
+import { MarketCard } from "./MarketCard";
+import { RivalsCard } from "./RivalsCard";
 import type { SetupScreenModel } from "./_setup/facts";
 import type { SetupRefusal, SetupSubmission } from "./submit";
 import type { ResolveDomainResponse } from "@/app/api/setup/domain/route";
 import type { SetupResult } from "./submit";
-
-const ADDRESS_REFUSAL_COPY = {
-  not_a_domain: "setup.address.refused.not-a-domain",
-  does_not_resolve: "setup.address.refused.unreachable",
-} as const satisfies Record<AddressRefusal, string>;
-
-const RIVAL_REFUSAL_COPY = {
-  not_a_domain: "setup.competitors.refused.not-a-domain",
-  does_not_resolve: "setup.competitors.refused.does-not-resolve",
-  own_domain: "setup.competitors.refused.own-domain",
-  already_present: "setup.competitors.refused.already-present",
-  set_full: "setup.competitors.refused.set-full",
-} as const satisfies Record<RivalRefusal, string>;
 
 /** SPEC §5's two refusals, as written lines. The same two keys the
  *  submit's own refusals resolve to: one sentence per refusal, wherever it
@@ -135,19 +114,6 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
   const defaults = preselected(p.model.cards);
 
   const [state, setState] = useState<SetupState>(p.model.state);
-  const [addressDraft, setAddressDraft] = useState(
-    p.model.state.siteDomain ?? "",
-  );
-  const [addressRefusal, setAddressRefusal] = useState<AddressRefusal | null>(
-    null,
-  );
-  const [editingAddress, setEditingAddress] = useState(
-    p.model.state.address.state !== "measured",
-  );
-  const [marketDraft, setMarketDraft] = useState("");
-  const [editingMarket, setEditingMarket] = useState(
-    p.model.state.market.state === "empty",
-  );
   // SPEC.md §5 (2026-09-12): the voice as the founder will leave it —
   // what the scan read, until they type over it. Held here with the other
   // drafts because it is the same kind of thing: text a founder is
@@ -155,8 +121,6 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
   const [voiceDraft, setVoiceDraft] = useState(
     p.model.profile?.voice?.text ?? "",
   );
-  const [rivalDraft, setRivalDraft] = useState("");
-  const [rivalRefusal, setRivalRefusal] = useState<RivalRefusal | null>(null);
   const [mode, setMode] = useState<PublishingMode>(defaults.mode);
   const [destination, setDestination] = useState<DestinationKind>(
     defaults.destination,
@@ -175,9 +139,6 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
     keyof typeof SUBMIT_REFUSAL_COPY | null
   >(null);
   const [submitting, setSubmitting] = useState(false);
-
-  const selected = new Set(state.rivals.map((rival) => rival.domain));
-  const full = isFull(state.rivals);
 
   // REQ-028 c2, and SPEC §5's "appears as soon as the site address is
   // known": the record is composed here rather than read off the server's
@@ -218,77 +179,6 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
     }
     if (asked !== labelAsked.current) return;
     setLabelRefusal(refusal);
-  }
-
-  async function commitAddress(): Promise<void> {
-    const answer = await resolveDomain(addressDraft);
-    const checked = validateAddress(answer.domain, answer.resolves);
-    if (!checked.ok) {
-      setAddressRefusal(checked.because);
-      return;
-    }
-    setAddressRefusal(null);
-    setEditingAddress(false);
-    // REQ-026 c6: the card then stands by the address they gave — the
-    // inferred market where a completed report exists for it, the empty
-    // card where none does. A market they typed themselves is kept, which
-    // is `onDomainChanged`'s rule, not this component's.
-    setState((current) =>
-      onDomainChanged(current, {
-        domain: checked.domain,
-        report: answer.report,
-      }),
-    );
-  }
-
-  function commitMarket(): void {
-    const category = marketDraft.trim();
-    if (category === "") return;
-    setState((current) => onMarketStated(current, category));
-    setEditingMarket(false);
-  }
-
-  async function addTypedRival(): Promise<void> {
-    const answer = await resolveDomain(rivalDraft);
-    const result = addRival(state.rivals, {
-      domain: answer.domain,
-      origin: "typed",
-      ownDomain: state.siteDomain,
-      resolves: answer.resolves,
-    });
-    if (!result.ok) {
-      setRivalRefusal(result.because);
-      return;
-    }
-    setRivalRefusal(null);
-    setRivalDraft("");
-    setState((current) => ({ ...current, rivals: result.set }));
-  }
-
-  function toggleSuggested(domain: string): void {
-    if (selected.has(domain)) {
-      setState((current) => ({
-        ...current,
-        rivals: removeRival(current.rivals, domain),
-      }));
-      setRivalRefusal(null);
-      return;
-    }
-    // A suggestion came from the product's own derivation over the
-    // founder's market, so there is nothing to resolve: `resolves` is
-    // true by provenance, not by assumption.
-    const result = addRival(state.rivals, {
-      domain,
-      origin: "suggested",
-      ownDomain: state.siteDomain,
-      resolves: true,
-    });
-    if (!result.ok) {
-      setRivalRefusal(result.because);
-      return;
-    }
-    setRivalRefusal(null);
-    setState((current) => ({ ...current, rivals: result.set }));
   }
 
   async function handleSubmit(
@@ -340,344 +230,23 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
     }
   }
 
-  // REQ-021 c6's arm, as the set draws it: where the address was measured
-  // and the market inferred, the two are **one card** — "Your site &
-  // market" — because both are already known and each needs only a Change.
-  // The moment either is being edited, or either is unknown, the screen is
-  // back to the two cards the no-report arm needs.
-  const settled =
-    state.address.state === "measured" &&
-    !editingAddress &&
-    state.market.state !== "empty" &&
-    !editingMarket
-      ? { domain: state.address.domain, category: state.market.category }
-      : null;
-
-  // The cards are separated by the frame, not by their own shadow:
-  // `--shadow-card` is a hairline, and two `--surface` cards flush against
-  // each other read as one box — which is how this screen first rendered
-  // once the `<section>` wrappers went. `gap-4` is `--s-4`, the rhythm the
-  // set draws, as a Tailwind utility because §2.2 allows this screen no
-  // stylesheet of its own.
   return (
     <form onSubmit={handleSubmit} data-testid="setup-form" className="grid gap-4">
-      {settled !== null ? (
-        <IdiomCard
-          head={
-            <CardHead
-              icon={<Globe aria-hidden size={ICON} />}
-              eyebrow={copy("setup.site-and-market.title")}
-            />
-          }
-          testId={SITE_AND_MARKET_TEST_ID}
-        >
-          <div style={ROW}>
-            <p className="num" data-testid="setup-address-value">
-              {settled.domain}
-            </p>
-            <Btn
-              label={copy("setup.address.change")}
-              variant="secondary"
-              size="sm"
-              pill
-              onClick={() => setEditingAddress(true)}
-            />
-          </div>
-          <Divider />
-          <div style={ROW} data-testid="setup-market">
-            {/* The chip §4.3 asks for, holding text a founder wrote
-                  themselves. daisyUI's `badge` is fixed-height
-                  (`height: var(--size)`) and `Badge` accepts no class of
-                  its own, so a market longer than one line escapes it at
-                  the 320px floor. §2.2 allows this screen no stylesheet,
-                  so the height is relaxed with a Tailwind arbitrary
-                  variant on the wrapper — a generated utility, not a rule
-                  of ours. Named in the PR: the durable fix is a wrapping
-                  variant on the registered component. */}
-            <div className="[&>.badge]:h-auto [&>.badge]:py-1">
-              <Badge tone="accent">
-                <span data-testid="setup-market-chip" className="wrap-anywhere">
-                  {settled.category}
-                </span>
-              </Badge>
-            </div>
-            <Btn
-              label={copy("setup.market.change")}
-              variant="secondary"
-              size="sm"
-              pill
-              onClick={() => {
-                setMarketDraft(settled.category);
-                setEditingMarket(true);
-              }}
-            />
-          </div>
-        </IdiomCard>
-      ) : (
-        <>
-          <IdiomCard
-            head={
-              <CardHead
-                icon={<Globe aria-hidden size={ICON} />}
-                eyebrow={copy("setup.address.title")}
-              />
-            }
-            testId={ADDRESS_TEST_ID}
-          >
-            {state.address.state === "measured" && !editingAddress ? (
-              <>
-                <p className="num" data-testid="setup-address-value">
-                  {state.address.domain}
-                </p>
-                <p data-testid="setup-address-measured">
-                  {copy("setup.address.measured")}
-                </p>
-                <Btn
-                  label={copy("setup.address.change")}
-                  variant="secondary"
-                  size="sm"
-                  pill
-                  onClick={() => setEditingAddress(true)}
-                />
-              </>
-            ) : (
-              <>
-                {addressRefusal === null ? (
-                  <Input
-                    label={copy("setup.address.label")}
-                    placeholder={copy("setup.address.placeholder")}
-                    name="domain"
-                    value={addressDraft}
-                    onChange={setAddressDraft}
-                  />
-                ) : (
-                  <Input
-                    label={copy("setup.address.label")}
-                    placeholder={copy("setup.address.placeholder")}
-                    name="domain"
-                    value={addressDraft}
-                    onChange={setAddressDraft}
-                    invalid
-                    invalidMessage={copy(ADDRESS_REFUSAL_COPY[addressRefusal])}
-                  />
-                )}
-                <Btn
-                  label={copy("setup.address.change")}
-                  variant="secondary"
-                  size="sm"
-                  pill
-                  onClick={() => {
-                    void commitAddress();
-                  }}
-                />
-                {/* REQ-021 c7's own promise, and the set's own sentence
-                      for it: the address they paid with is not assumed to
-                      be the site. Stated where the field is, not in a
-                      footnote under the screen. */}
-                <p className="rk-quiet" data-testid="setup-address-assurance">
-                  {copy("setup.address.assurance")}
-                </p>
-              </>
-            )}
-          </IdiomCard>
+      <MarketCard
+        state={state}
+        setState={setState}
+        questions={p.model.questions}
+        resolveDomain={resolveDomain}
+      />
 
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            {/* The market card before the site is given: one line saying
-                when its suggestion arrives, rather than an empty field for
-                something the product has not sought yet. Not dimmed as a
-                whole — UI-SPEC §0 4 strikes the set's inline `opacity:.6`
-                (L682); a field that cannot be used yet is the field's own
-                disabled state, never a faded card. */}
-            <div
-              data-testid="setup-market"
-              data-awaiting={
-                state.address.state === "measured" ? undefined : "site"
-              }
-            >
-              <IdiomCard
-                head={
-                  <CardHead
-                    icon={<Globe aria-hidden size={ICON} />}
-                    eyebrow={copy("setup.market.title")}
-                  />
-                }
-              >
-                {state.address.state !== "measured" ? (
-                  <p
-                    className="rk-quiet"
-                    data-testid="setup-market-awaiting-site"
-                  >
-                    {copy("setup.market.awaiting-site")}
-                  </p>
-                ) : state.market.state === "empty" || editingMarket ? (
-                  <>
-                    {state.market.state === "empty" ? (
-                      <p data-testid="setup-market-state-it">
-                        {copy("setup.market.state-it")}
-                      </p>
-                    ) : null}
-                    <Input
-                      label={copy("setup.market.label")}
-                      placeholder={copy("setup.market.placeholder")}
-                      name="category"
-                      value={marketDraft}
-                      onChange={setMarketDraft}
-                    />
-                    <Btn
-                      label={copy("setup.market.change")}
-                      variant="secondary"
-                      size="sm"
-                      pill
-                      onClick={commitMarket}
-                    />
-                  </>
-                ) : (
-                  <>
-                    <div className="[&>.badge]:h-auto [&>.badge]:py-1">
-                      <Badge tone="accent">
-                        <span
-                          data-testid="setup-market-chip"
-                          className="wrap-anywhere"
-                        >
-                          {state.market.category}
-                        </span>
-                      </Badge>
-                    </div>
-                    <Btn
-                      label={copy("setup.market.change")}
-                      variant="secondary"
-                      size="sm"
-                      pill
-                      onClick={() => {
-                        setMarketDraft(
-                          state.market.state === "empty"
-                            ? ""
-                            : state.market.category,
-                        );
-                        setEditingMarket(true);
-                      }}
-                    />
-                  </>
-                )}
-              </IdiomCard>
-            </div>
-          </div>
-        </>
-      )}
-
-      <IdiomCard
-        head={
-          <CardHead
-            icon={<Users aria-hidden size={ICON} />}
-            eyebrow={copy("setup.competitors.title")}
-            // REQ-026 c9's limit, stated on screen — and the set puts it
-            // in the card's head as "n of 5" rather than in a line under
-            // the field, so the count is beside the thing it counts.
-            pill={
-              <Badge tone="neutral">
-                <span className="num" data-testid="setup-competitors-limit">
-                  {copy("setup.competitors.limit", {
-                    chosen: state.rivals.length,
-                    max: p.model.competitorsMax,
-                  })}
-                </span>
-              </Badge>
-            }
-          />
-        }
-        testId={COMPETITORS_TEST_ID}
-      >
-        {state.suggestions.state === "awaiting_market" ? (
-          <p data-testid="setup-competitors-awaiting">
-            {copy("setup.competitors.awaiting-market")}
-          </p>
-        ) : null}
-        {state.suggestions.state === "seeking" ? (
-          <p data-testid="setup-competitors-seeking">
-            {copy("setup.competitors.seeking")}
-          </p>
-        ) : null}
-        {state.suggestions.state === "none_found" ? (
-          <p data-testid="setup-competitors-none-found">
-            {copy("setup.competitors.none-found")}
-          </p>
-        ) : null}
-
-        <div
-          className="flex flex-wrap items-center gap-2"
-          data-testid="setup-competitors-suggested"
-        >
-          {state.suggestions.candidates.map((domain) => (
-            <Btn
-              key={domain}
-              label={domain}
-              size="sm"
-              variant="secondary"
-              pill
-              pressed={selected.has(domain)}
-              disabled={full && !selected.has(domain)}
-              onClick={() => toggleSuggested(domain)}
-            />
-          ))}
-        </div>
-
-        <div
-          className="flex flex-wrap items-center gap-2"
-          data-testid="setup-competitors-selected"
-        >
-          {/* The chosen set, as the set draws it: mono tags on the accent
-              tint, each with the × that removes it (REQ-026 c7). A removal
-              control rather than a toggle — `RemovableTag` says why it is
-              not `Btn` with `aria-pressed`, which the suggestions above
-              still are. */}
-          {state.rivals.map((rival) => (
-            <RemovableTag
-              key={rival.domain}
-              value={rival.domain}
-              removeLabel={copy("setup.competitors.remove", { rival: rival.domain })}
-              onRemove={() => toggleSuggested(rival.domain)}
-            />
-          ))}
-        </div>
-
-        <Divider />
-
-        {rivalRefusal === null ? (
-          <Input
-            label={copy("setup.competitors.add.label")}
-            placeholder={copy(
-              ADD_PLACEHOLDER[state.rivals.length === 0 ? "first" : "another"],
-            )}
-            name="competitor"
-            value={rivalDraft}
-            onChange={setRivalDraft}
-            disabled={full}
-          />
-        ) : (
-          <Input
-            label={copy("setup.competitors.add.label")}
-            placeholder={copy(
-              ADD_PLACEHOLDER[state.rivals.length === 0 ? "first" : "another"],
-            )}
-            name="competitor"
-            value={rivalDraft}
-            onChange={setRivalDraft}
-            disabled={full}
-            invalid
-            invalidMessage={copy(RIVAL_REFUSAL_COPY[rivalRefusal])}
-          />
-        )}
-        <Btn
-          label={copy("setup.competitors.add.action")}
-          variant="tertiary"
-          size="sm"
-          pill
-          disabled={full}
-          onClick={() => {
-            void addTypedRival();
-          }}
-        />
-      </IdiomCard>
+      <RivalsCard
+        rivals={state.rivals}
+        suggestions={state.suggestions}
+        ownDomain={state.siteDomain}
+        max={p.model.competitorsMax}
+        resolveDomain={resolveDomain}
+        onRivals={(rivals) => setState((current) => ({ ...current, rivals }))}
+      />
 
       {/* SPEC.md §5 (2026-09-12) — "Your site, as we read it". The
           inventory and the site name are shown **as read**: there is no
@@ -871,9 +440,6 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
 const ICON = 14;
 
 /** A test hook, bound to a name for the copy sweep's reason. */
-const SITE_AND_MARKET_TEST_ID = "setup-site-and-market";
-const ADDRESS_TEST_ID = "setup-address";
-const COMPETITORS_TEST_ID = "setup-competitors";
 const PROFILE_TEST_ID = "setup-profile";
 const PUBLISHING_TEST_ID = "setup-publishing";
 
@@ -889,18 +455,10 @@ const ROW: React.CSSProperties = {
 
 const CENTRED: React.CSSProperties = { textAlign: "center" };
 
-/** The add field's two placeholders. The set asks for the first rival by
- *  example and for the next by "another"; the arm is the count, so no call
- *  site chooses a sentence. */
-const ADD_PLACEHOLDER = {
-  first: "setup.competitors.add.placeholder.first",
-  another: "setup.competitors.add.placeholder",
-} as const satisfies Record<string, CopyKey>;
-
 /** SPEC.md §2's eight purposes, each as the key whose word a customer
  *  reads. A record rather than a template so the key is a `CopyKey` the
  *  registry checks, and so an engine token can never reach a screen as
- *  itself — the same reason `ADD_PLACEHOLDER` above is a record. */
+ *  itself. */
 const PURPOSE_COPY = {
   pricing: "setup.profile.purpose.pricing",
   about: "setup.profile.purpose.about",

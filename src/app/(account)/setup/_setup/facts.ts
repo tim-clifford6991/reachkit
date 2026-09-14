@@ -13,6 +13,14 @@ import {
 import { setupCards, type SetupCards } from "@/lib/publish/setup/cards";
 import { BATTERY } from "@/lib/config/constants";
 import type { SiteProfile } from "@/lib/site-profile/types";
+import type { StoredQuestion } from "@/lib/scan/report";
+
+/** SPEC §5: the twelve questions the scan phrased for the measured market,
+ *  shown read-only, and the scan they belong to. */
+export interface SetupQuestions {
+  scanId: string;
+  items: readonly StoredQuestion[];
+}
 
 export interface SetupFacts {
   /** REQ-021 c6 versus c7. A completed report for the address the account
@@ -25,6 +33,9 @@ export interface SetupFacts {
    *  "sought and none came back" — a different state, with its own line
    *  (REQ-026 c10). */
   suggestedRivals: readonly string[] | null;
+  /** SPEC §5's read-only questions for the measured market, or `null`
+   *  where no report phrased any. */
+  questions: SetupQuestions | null;
   /** §9's edge hostname, from `HOSTED_EDGE_CNAME_TARGET`. Read by the
    *  provider, never by the cards. */
   cnameTarget: string;
@@ -54,6 +65,7 @@ export interface SetupScreenModel {
   /** REQ-026 c9: the limit is stated on screen, so the screen is given it
    *  rather than spelling the number itself. */
   competitorsMax: number;
+  questions: SetupQuestions | null;
 }
 
 export function assembleSetup(facts: SetupFacts): SetupScreenModel {
@@ -67,5 +79,6 @@ export function assembleSetup(facts: SetupFacts): SetupScreenModel {
     cnameTarget: facts.cnameTarget,
     profile: facts.profile,
     competitorsMax: BATTERY.COMPETITORS_MAX,
+    questions: facts.questions,
   };
 }

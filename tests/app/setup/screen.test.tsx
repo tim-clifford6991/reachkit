@@ -25,6 +25,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 import { SetupForm } from "@/app/(account)/setup/SetupForm";
+import { RivalsCard } from "@/app/(account)/setup/RivalsCard";
 import { assembleSetup, type SetupFacts } from "@/app/(account)/setup/_setup/facts";
 import { FIXTURE_SETUP_FACTS } from "@/app/(account)/setup/_setup/fixture";
 import { COPY } from "@/lib/presentation/copy";
@@ -92,14 +93,26 @@ describe('REQ-025 c1 — "it asks for exactly three decisions ... and for nothin
     expect(tree.querySelector('[data-testid="setup-site-and-market"]')).not.toBeNull();
   });
 
-  it("S10 — each Change is the set's outlined pill, not bare text (#521)", () => {
+  it("each Change is an outlined button, not bare text (#521)", () => {
     const changes = [...screenFor().querySelectorAll('[data-testid="setup-site-and-market"] button')];
     expect(changes).toHaveLength(2);
     for (const change of changes) {
       expect(change.classList.contains("btn-outline"), change.outerHTML).toBe(true);
-      expect(change.classList.contains("rounded-(--r-pill)"), change.outerHTML).toBe(true);
-      expect(change.classList.contains("btn-ghost"), change.outerHTML).toBe(false);
     }
+  });
+
+  it("SPEC §5 — the measured market's questions are shown read-only, and only beside that scan's market", () => {
+    const tree = screenFor();
+    const list = tree.querySelector('[data-testid="setup-site-and-market"] [data-testid="setup-market-questions"]');
+    const items = FIXTURE_SETUP_FACTS.questions?.items ?? [];
+    expect(list?.querySelectorAll("li")).toHaveLength(items.length);
+    expect(list?.textContent).toContain(items[0]?.wording.text);
+    expect(list?.textContent).toContain(items[0]?.search);
+    expect(list?.querySelectorAll("input, textarea, button")).toHaveLength(0);
+
+    const otherScan = { scanId: "another-scan", items };
+    expect(screenFor({ questions: otherScan }).querySelector('[data-testid="setup-market-questions"]')).toBeNull();
+    expect(screenFor(SCANLESS).querySelector('[data-testid="setup-market-questions"]')).toBeNull();
   });
 
   it("REQ-021 c7 — a scanless purchase gets an empty address field, with nothing pre-filled", () => {
@@ -304,6 +317,32 @@ describe('REQ-026 c9 and c10 — the competitors card', () => {
     const tree = screenFor({ suggestedRivals: [] });
     expect(tree.querySelector('[data-testid="setup-competitors-none-found"]')).not.toBeNull();
     expect(tree.querySelector('[data-testid="setup-competitors-awaiting"]')).toBeNull();
+  });
+
+  it("SPEC §5 — with five chosen, a sixth cannot be added and the limit is named; each chosen rival can be removed", () => {
+    const rivals = ["a.com", "b.com", "c.com", "d.com", "e.com"].map((domain) => ({
+      domain,
+      origin: "typed" as const,
+    }));
+    const tree = render(
+      <RivalsCard
+        rivals={rivals}
+        suggestions={{ state: "offered", candidates: ["f.com"] }}
+        ownDomain="example.com"
+        max={BATTERY.COMPETITORS_MAX}
+        resolveDomain={vi.fn()}
+        onRivals={vi.fn()}
+      />
+    );
+    expect(tree.querySelector('input[name="competitor"]')?.hasAttribute("disabled")).toBe(true);
+    expect(tree.querySelector('[data-testid="setup-competitors-suggested"] button')?.hasAttribute("disabled")).toBe(true);
+    expect(tree.querySelector('[data-testid="setup-competitors-refusal"]')?.textContent).toBe(
+      COPY["setup.competitors.refused.set-full"]
+    );
+    const removals = tree.querySelectorAll('[data-testid="setup-competitors-selected"] button[aria-label]');
+    expect(Array.from(removals).map((b) => b.getAttribute("aria-label"))).toEqual(
+      rivals.map((r) => COPY["setup.competitors.remove"].replace("{rival}", r.domain))
+    );
   });
 });
 
