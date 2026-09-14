@@ -1,199 +1,130 @@
 // BUILD §4.5 — three tiles, one headline number each.
 //
-// §4.5 item 3 named four things, the owner amended it on 2026-09-03
-// ("Overview's AI-answers tile shows one reading only: weeks present in the
-// trailing window. The composite score has no tile on Overview."), and the
-// approved screen set reversed the second half of that amendment on
-// 2026-09-08: ruling 6a names "Overview tile" among the surfaces that label
-// the Discoverability Score, and S12 draws it first of three.
+// SPEC §4: every headline number has a change, a goal or a denominator.
+// The score carries its delta (or goal) and its band; AI answers carry
+// `n/12` and the goal; pages carry the count already ranking. Week 0 draws
+// a dash and the date the first reading is due — nothing presented as a
+// measurement.
 //
-// So the three tiles are the set's three: the **Discoverability Score**
-// with its delta and its band, AI answers over the trailing window, and
-// pages published with the count already ranking. The searches reading is
-// still on this screen and still one headline — it is the growth card's,
-// which is where the set puts it, and `overview.tile.searches.label` is
-// that card's eyebrow now.
-//
-// The first half of the 2026-09-03 ruling is untouched: the AI tile shows
-// one reading, and no per-question figure appears anywhere here.
-//
-// **Every headline carries its delta or its goal, never bare.** `Stat`'s own
-// type is what enforces it — `delta` and `goal` are mutually exclusive and
-// one is required — and `carriedBy` decides which: the delta where a
-// previous measurement exists and produced one, the goal otherwise. The goal
-// always exists, which is why "never bare" is reachable in every state.
-//
-// **The pages tile is the one tile that carries neither** (issue #536). §4.5
-// item 3 lists its contents — "Pages published (n + 'm already ranking' +
-// 'rest under 3 weeks — too early to judge')" — and the set draws exactly
-// those and no chip for a goal or a delta (S12, set L711: `17` beside
-// `6 already ranking`; S13, L726: `0` alone). What its figure carries is the
-// standing beside it, which is a measured value and not a target, so the tile
-// is not bare either: `carries="beside-only"` is that rule, and `goal: 30` is
-// not drawn on this screen at all.
-//
-// **The AI tile shows one reading and no movement.** No delta is passed to
-// it, and none can be: `model.aiAnswers.headline` has no `delta` field set
-// by the assembly. What sits under it is the window itself, drawn as the dot
-// matrix — the presence of each week, with the shortfall to the goal as
-// dashed dots — and no per-question figure appears anywhere on this screen.
+// daisyUI `stat` and `badge` in the route (docs/DESIGN.md rule 1). The AI
+// window is `AiDotMatrixChart`, a grid, until that component is retired.
 import type React from "react";
 import { AiDotMatrixChart, type AiDotMatrixCellState, type AiDotMatrixRow } from "@/ui/charts";
-import { Badge, Stat } from "@/ui/components";
-import { BAND_TONE } from "@/ui/bands";
 import { SCORE_BANDS } from "@/lib/presentation/bands";
 import { TOO_EARLY_WEEKS } from "@/lib/config/constants";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
+import type { Measured } from "@/lib/measure/measured";
 import { formatDate } from "../_shell/format";
 import { writtenLine } from "../_shell/written";
 import { GOALS } from "./goals";
 import { carriedBy, formatCount, formatDayOfMonth, renderValue, type Carried } from "./present";
 import type { AiPresenceWindow, Module, ScoreModule } from "./model";
-import type { Measured } from "@/lib/measure/measured";
+import { BAND_TONE } from "@/ui/bands";
 import type { Tone } from "@/ui/types";
-import { CardHead, IdiomCard } from "@/ui/idiom";
-import { CARRY, CHART_BOX, STACK, TILES } from "./style";
 
-/** The one place a delta or a goal becomes a node. `Stat` takes exactly one
- *  of the two, so this returns the pair the caller spreads.
- *
- *  `beside` is what the set draws on the same row after the carried value —
- *  the score's band, the pages' "already ranking" (UI-SPEC S12, set
- *  L709–711; issue #521): `62 ▲8 Hard to find`, `17 6 already ranking`. It
- *  rides in the carrier so `Stat`'s one row holds all of it.
- *
- *  **Only badges ride here.** The set's `.stat-row` (L709–711) holds the
- *  figure and its pills and nothing else; the sentence that says what a goal
- *  means is a `.explain` line under the row. A whole sentence inside the row
- *  sets the row's min-content width, which wraps the pill onto the next line
- *  and puts the goal chip back under the figure — the defect the master read
- *  in CI's S12 render of this branch. `meansLine` draws that sentence where
- *  the set draws it. */
-function statCarrier(
-  carried: Carried,
-  beside: React.ReactNode = null
-): { delta: React.ReactNode } | { goal: React.ReactNode } {
-  // A badge, not bare text (UI-SPEC S12): the set draws every tile's
-  // carried value as a pill beside the number — the delta in the success
-  // tone, the goal in the neutral one — and §2.5 fixes which is which. A
-  // delta is the customer's own movement, so it is `ok`; a goal is a
-  // target, which is not a state at all.
+const SCORE_LABEL = "overview.tile.score.label" satisfies CopyKey;
+const AI_LABEL = "overview.tile.ai-answers.label" satisfies CopyKey;
+const PAGES_LABEL = "overview.tile.pages.label" satisfies CopyKey;
+const SCORE_TEST_ID = "overview-tile-score";
+const AI_TEST_ID = "overview-tile-ai-answers";
+const PAGES_TEST_ID = "overview-tile-pages";
+const CARRY_BESIDE = "beside";
+
+const BADGE: Readonly<Record<Tone, string>> = {
+  accent: "badge badge-primary",
+  ok: "badge badge-success badge-soft",
+  warn: "badge badge-warning badge-soft",
+  bad: "badge badge-error badge-soft",
+  neutral: "badge badge-ghost",
+};
+
+/** The carried value as a badge: a delta is the customer's own movement
+ *  (success), a goal is a target (ghost). */
+function carriedBadge(carried: Carried): React.JSX.Element {
   if (carried.kind === "delta") {
-    return {
-      delta: (
-        <span style={CARRY}>
-          <Badge tone={DELTA_TONE}>
-            <span style={CARRY}>
-              <span className="num">{copy(carried.markKey)}</span>
-              <span className="num">{carried.text}</span>
-            </span>
-          </Badge>
-          {beside}
-        </span>
-      ),
-    };
-  }
-  return {
-    goal: (
-      <span style={CARRY}>
-        <Badge tone={GOAL_TONE}>
-          <span className="num">{carried.text}</span>
-        </Badge>
-        {beside}
+    return (
+      <span className={BADGE.ok}>
+        <span className="num">{copy(carried.markKey)}</span>
+        <span className="num">{carried.text}</span>
       </span>
-    ),
-  };
-}
-
-/** The pages tile's row: the standing beside the figure and nothing else
- *  (issue #536). The set draws no goal chip and no delta chip on that tile —
- *  S12's row is `17` beside `6 already ranking` (L711) and S13's is `0` alone
- *  (L726) — so `beside` is the whole of the row here, and where no standing
- *  was measured the figure carries nothing, which is S13 as drawn.
- *
- *  It rides in `Stat`'s `goal` slot because that slot is the set's
- *  `.stat-row` position — `Stat` renders `delta ?? goal` there and names no
- *  third carrier — and never as a goal: this arm is precisely the absence of
- *  one. */
-function besideOnly(beside: React.ReactNode): { goal: React.ReactNode } {
-  return { goal: beside };
-}
-
-/** What reaching the goal means, as the set's `.explain` line under the row
- *  (S12 L711's "rest under 3 weeks — too early to judge" sits the same way).
- *  A delta carries no such sentence, and where the owner has not written the
- *  goal's, `writtenLine` has already returned `null` and nothing is drawn. */
-function meansLine(carried: Carried): React.JSX.Element | null {
-  if (carried.kind !== "goal" || carried.means === null) return null;
-  return <p className="rk-quiet">{carried.means}</p>;
-}
-
-function Tile(p: {
-  module: Module<number>;
-  labelKey: CopyKey;
-  testId: string;
-  /** What the headline is out of, where it is a count within a fixed set. */
-  outOf?: number;
-  /** A badge the set draws on the value's own row (see `statCarrier`). */
-  beside?: React.ReactNode;
-  /** Which chips the set draws on this tile's row. Every tile but the pages
-   *  tile draws the module's delta or its goal beside the figure, with what
-   *  reaching the goal means on the line under it; the pages tile draws
-   *  `beside` alone, and so no means sentence either — there is no goal on
-   *  that tile for a sentence to explain (issue #536). */
-  carries?: "delta-or-goal" | "beside-only";
-  children?: React.ReactNode;
-}): React.JSX.Element {
-  const label = copy(p.labelKey);
-  const value = renderValue(p.module.headline.value, p.labelKey);
-  const besideAlone = p.carries === BESIDE_ONLY;
-  const carried = carriedBy(p.module.headline, p.labelKey);
-
+    );
+  }
   return (
-    // Take A, the take the owner approved on 2026-09-02: "one card per
-    // module, the three stat tiles broken out as three boxes — six boxes".
-    // Each tile is its own box now, and its label is the box's head rather
-    // than the tile's own `stat-title`: the idiom's card head already
-    // carries an eyebrow, and a tile with two of them states the same claim
-    // twice (`Stat`'s `labelInHead` widening).
-    <IdiomCard head={<CardHead eyebrow={label} />} testId={p.testId}>
-      <div style={STACK}>
-      {value.isDash ? (
-        <>
-          <Stat state="unmeasured" label={label} labelInHead reason={value.line ?? label} />
-          {p.beside === undefined || p.beside === null ? null : <span style={CARRY}>{p.beside}</span>}
-        </>
-      ) : (
-        <>
-          <Stat
-            state={p.module.headline.value.kind === "zero" ? "measured-zero" : "measured"}
-            label={label}
-            labelInHead
-            carryBeside
-            value={
-              p.outOf === undefined ? (
-                value.text
-              ) : (
-                <span className="num">{`${value.text}/${formatCount(p.outOf)}`}</span>
-              )
-            }
-            {...(besideAlone ? besideOnly(p.beside) : statCarrier(carried, p.beside))}
-          />
-          {besideAlone ? null : meansLine(carried)}
-        </>
-      )}
-      {p.children}
-      </div>
-    </IdiomCard>
+    <span className={BADGE.neutral}>
+      <span className="num">{carried.text}</span>
+    </span>
   );
 }
 
-/** The window, as the matrix's one row. A week that was not measured is a
- *  `muted` cell — §6.2's rule applied to weeks: never a miss — and a date
- *  the answers changed is a `break` cell, which is a rule and not a
- *  reading (REQ-071 c12, issue #205). The count is handed in already
- *  written and is taken over `weeks`, so a break can never be counted as
- *  one. */
+/** What reaching the goal means, under the row. A delta carries none. */
+function meansLine(carried: Carried): React.JSX.Element | null {
+  if (carried.kind !== "goal" || carried.means === null) return null;
+  return <p className="text-xs text-base-content/60">{carried.means}</p>;
+}
+
+/** One tile: a card holding one daisyUI `stat`. `beside` rides on the
+ *  figure's row as its description. */
+function Tile(p: {
+  label: string;
+  testId: string;
+  figure: React.ReactNode | null;
+  beside: React.ReactNode;
+  children?: React.ReactNode;
+}): React.JSX.Element {
+  return (
+    <section className="card card-border min-w-0 bg-base-100" data-testid={p.testId}>
+      <div className="card-body gap-3 p-5">
+        <div className="stats" aria-label={p.label}>
+          <div className="stat p-0">
+            <div className="stat-title text-xs font-semibold uppercase tracking-wide">{p.label}</div>
+            <div className="flex flex-wrap items-baseline gap-2" data-carry={CARRY_BESIDE}>
+              <div className="stat-value num">{p.figure ?? "—"}</div>
+              {p.beside === null ? null : (
+                <div className="stat-desc flex flex-wrap items-center gap-2 whitespace-normal">{p.beside}</div>
+              )}
+            </div>
+          </div>
+        </div>
+        {p.children}
+      </div>
+    </section>
+  );
+}
+
+function ScoreTile(p: { score: ScoreModule; firstDue: string | null }): React.JSX.Element {
+  const label = copy(SCORE_LABEL);
+  const value = renderValue(p.score.headline.value, SCORE_LABEL);
+  const carried = carriedBy(p.score.headline, SCORE_LABEL);
+  const firstDue =
+    p.firstDue === null ? null : writtenLine("overview.tile.score.first-due", { due: p.firstDue });
+
+  return (
+    <Tile
+      label={label}
+      testId={SCORE_TEST_ID}
+      figure={value.isDash ? null : value.text}
+      beside={
+        value.isDash ? (
+          value.line ?? label
+        ) : (
+          <>
+            {carriedBadge(carried)}
+            {/* A band is a reading of a score: none beside a dash. */}
+            {p.score.band === null ? null : (
+              <span className={BADGE[BAND_TONE[p.score.band]]}>{copy(SCORE_BANDS[p.score.band])}</span>
+            )}
+          </>
+        )
+      }
+    >
+      {value.isDash ? null : meansLine(carried)}
+      {firstDue === null ? null : <p className="text-xs text-base-content/60">{firstDue}</p>}
+    </Tile>
+  );
+}
+
+/** The window as the matrix's one row. An unmeasured week is `muted`, never
+ *  a miss; a change is a `break`, which is a rule and not a reading. */
 function presenceRow(window: AiPresenceWindow, count: string): AiDotMatrixRow {
   const cells: AiDotMatrixCellState[] = window.entries.map((entry) =>
     entry.kind === "break"
@@ -207,106 +138,35 @@ function presenceRow(window: AiPresenceWindow, count: string): AiDotMatrixRow {
   return { name: copy(AI_LABEL), identity: "you", cells, count };
 }
 
-// Every key and test id below is bound to a name before it reaches JSX.
-// The copy sweep (`tests/presentation/copy/string-literal-sweep.test.ts`)
-// presumes any string literal in a JSX attribute is product voice unless
-// the attribute is on its allow-list, and it is right to: a `labelKey=` a
-// reader could mistake for a caption is exactly the shape it guards. These
-// are registry keys and test hooks, and they say so by being named.
-const SCORE_LABEL = "overview.tile.score.label" satisfies CopyKey;
-const AI_LABEL = "overview.tile.ai-answers.label" satisfies CopyKey;
-const PAGES_LABEL = "overview.tile.pages.label" satisfies CopyKey;
-const SCORE_TEST_ID = "overview-tile-score";
-const AI_TEST_ID = "overview-tile-ai-answers";
-const PAGES_TEST_ID = "overview-tile-pages";
-/** The pages tile's arm, bound to a name for the same reason the keys and
- *  test ids above are: it is a structural choice, not product voice. */
-const BESIDE_ONLY = "beside-only" as const;
-
-/** The score's own tile: the number, its delta, and the band it stands in.
- *
- *  The band is a `Badge` on the value's own row rather than a second headline —
- *  it is a word for where the score is, not a number — and its tone is
- *  `BAND_TONE`'s, the one map the report's verdict head reads too, so one
- *  band is never drawn two colours on two screens.
- *
- *  Where the score is unmeasured there is no band: a band is a reading of a
- *  score, and naming one beside a dash would be a verdict on a measurement
- *  the product does not have (S13's arm). */
-function ScoreTile(p: { score: ScoreModule; firstDue: string | null }): React.JSX.Element {
-  const label = copy(SCORE_LABEL);
-  const value = renderValue(p.score.headline.value, SCORE_LABEL);
-  // S13: the dash carries the date its first reading is due, which is the
-  // date the shell's domain block states from the same `firstDueOn`.
-  const firstDue =
-    p.firstDue === null ? null : writtenLine("overview.tile.score.first-due", { due: p.firstDue });
-  const scoreCarried = carriedBy(p.score.headline, SCORE_LABEL);
-  const band =
-    p.score.band === null ? null : (
-      <Badge tone={BAND_TONE[p.score.band]}>{copy(SCORE_BANDS[p.score.band])}</Badge>
-    );
-
-  return (
-    <IdiomCard head={<CardHead eyebrow={label} />} testId={SCORE_TEST_ID}>
-      <div style={STACK}>
-        {value.isDash ? (
-          <Stat state="unmeasured" label={label} labelInHead reason={value.line ?? label} />
-        ) : (
-          <>
-            <Stat
-              state={p.score.headline.value.kind === "zero" ? "measured-zero" : "measured"}
-              label={label}
-              labelInHead
-              carryBeside
-              value={value.text}
-              {...statCarrier(scoreCarried, band)}
-            />
-            {meansLine(scoreCarried)}
-          </>
-        )}
-        {firstDue === null ? null : <p className="rk-quiet">{firstDue}</p>}
-      </div>
-    </IdiomCard>
-  );
-}
-
 export function TileRow(p: {
   score: ScoreModule;
-  /** UI-SPEC S13's arm. Present only before the first weekly pass has run;
-   *  each tile then states when its own reading arrives, in place of a
-   *  number nobody has measured. */
+  /** Present only before the first weekly pass has run. */
   weekZero?: { firstDueOn: Date } | null;
   aiAnswers: Module<number> & { window: AiPresenceWindow };
   pagesPublished: Module<number>;
   timeZone: string;
 }): React.JSX.Element {
-  const aiValue = renderValue(p.aiAnswers.headline.value, AI_LABEL);
-  const aiGoal = GOALS.ai_answers;
-  const windowLine = writtenLine("overview.tile.ai-answers.window", {
-    weeks: aiValue.text,
-    of: formatCount(p.aiAnswers.window.of),
-  });
+  const weekZero = p.weekZero ?? null;
+  const firstDue = weekZero === null ? null : formatDate(weekZero.firstDueOn, p.timeZone);
 
-  // Each week's own column label: the day of the month, in the site's zone.
-  // Two mono characters, so twelve of them fit the chart's own gutter — and
-  // every cell is still named by its column and its row (§2.4).
-  // One label per column, breaks included — a rule with no name would be a
-  // mark the reader cannot identify, which §2.4 forbids as much for a break
-  // as for a cell.
+  // AI answers: n/12, the goal, and the window drawn under it.
+  const aiLabel = copy(AI_LABEL);
+  const aiValue = renderValue(p.aiAnswers.headline.value, AI_LABEL);
+  const aiCarried = carriedBy(p.aiAnswers.headline, AI_LABEL);
+  const outOf = formatCount(p.aiAnswers.window.of);
+  const windowLine = writtenLine("overview.tile.ai-answers.window", { weeks: aiValue.text, of: outOf });
+  const firstPass = weekZero === null ? null : writtenLine("overview.tile.ai-answers.first-pass");
   const weekLabels = p.aiAnswers.window.entries.map((entry) =>
     formatDayOfMonth(entry.kind === "break" ? entry.marker.on : entry.week.weekStart, p.timeZone)
   );
 
-  // The set's "6 already ranking" and "rest under 3 weeks — too early to
-  // judge". The first is the model's context value; the second is REQ-063
-  // c2's own window, from the pin. Neither renders where the count was not
-  // taken: a badge saying nothing ranks is a claim, and the dim line is
-  // about a remainder there is no count for.
+  // Pages: the count, beside it the count already ranking, under it the
+  // too-early remainder. Neither line renders where ranking was not taken.
+  const pagesLabel = copy(PAGES_LABEL);
+  const pagesValue = renderValue(p.pagesPublished.headline.value, PAGES_LABEL);
   const rankingValue = p.pagesPublished.context?.[0];
   const rankingRendered =
-    rankingValue === undefined
-      ? null
-      : renderValue(rankingValue.value as Measured<number>, PAGES_LABEL);
+    rankingValue === undefined ? null : renderValue(rankingValue.value as Measured<number>, PAGES_LABEL);
   const ranking =
     rankingValue === undefined || rankingRendered === null || rankingRendered.isDash
       ? null
@@ -315,57 +175,49 @@ export function TileRow(p: {
     ranking === null
       ? null
       : writtenLine("overview.tile.pages.too-early", { weeks: formatCount(TOO_EARLY_WEEKS) });
-
-  // S13's three lines. All three or none: they are one arm of the screen,
-  // and a tile that states its first-reading date beside two tiles that do
-  // not would read as that tile alone being unmeasured.
-  const weekZero = p.weekZero ?? null;
-  const firstDue = weekZero === null ? null : formatDate(weekZero.firstDueOn, p.timeZone);
-  const firstPass = weekZero === null ? null : writtenLine("overview.tile.ai-answers.first-pass");
   const firstReview = weekZero === null ? null : writtenLine("overview.tile.pages.first-review");
 
   return (
-    <div style={TILES} data-testid="overview-tiles">
+    <div className="grid min-w-0 gap-3 lg:grid-cols-3" data-testid="overview-tiles">
       <ScoreTile score={p.score} firstDue={firstDue} />
+
       <Tile
-        module={p.aiAnswers}
-        labelKey={AI_LABEL}
+        label={aiLabel}
         testId={AI_TEST_ID}
-        outOf={p.aiAnswers.window.of}
+        figure={aiValue.isDash ? null : `${aiValue.text}/${outOf}`}
+        beside={aiValue.isDash ? (aiValue.line ?? aiLabel) : carriedBadge(aiCarried)}
       >
-        {firstPass === null ? null : <p className="rk-quiet">{firstPass}</p>}
-        {windowLine === null ? null : <p className="rk-prov">{windowLine}</p>}
-        <div style={CHART_BOX}>
+        {aiValue.isDash ? null : meansLine(aiCarried)}
+        {firstPass === null ? null : <p className="text-xs text-base-content/60">{firstPass}</p>}
+        {windowLine === null ? null : <p className="num text-xs text-base-content/60">{windowLine}</p>}
+        <div className="min-w-0 overflow-x-auto">
           <AiDotMatrixChart
-            rows={[presenceRow(p.aiAnswers.window, `${aiValue.text}/${formatCount(p.aiAnswers.window.of)}`)]}
+            rows={[presenceRow(p.aiAnswers.window, `${aiValue.text}/${outOf}`)]}
             questions={weekLabels}
             goal={{
-              count: aiGoal.value,
-              name: copy("overview.goal", { value: formatCount(aiGoal.value) }),
+              count: GOALS.ai_answers.value,
+              name: copy("overview.goal", { value: formatCount(GOALS.ai_answers.value) }),
             }}
-            label={copy(AI_LABEL)}
+            label={aiLabel}
           />
         </div>
       </Tile>
+
       <Tile
-        module={p.pagesPublished}
-        labelKey={PAGES_LABEL}
+        label={pagesLabel}
         testId={PAGES_TEST_ID}
-        beside={ranking === null ? null : <Badge tone={RANKING_TONE}>{ranking}</Badge>}
-        carries={BESIDE_ONLY}
+        figure={pagesValue.isDash ? null : pagesValue.text}
+        beside={
+          pagesValue.isDash ? (
+            (pagesValue.line ?? pagesLabel)
+          ) : ranking === null ? null : (
+            <span className={BADGE.ok}>{ranking}</span>
+          )
+        }
       >
-        {tooEarly === null ? null : <p className="rk-quiet">{tooEarly}</p>}
-        {firstReview === null ? null : <p className="rk-quiet">{firstReview}</p>}
+        {tooEarly === null ? null : <p className="text-xs text-base-content/60">{tooEarly}</p>}
+        {firstReview === null ? null : <p className="text-xs text-base-content/60">{firstReview}</p>}
       </Tile>
     </div>
   );
 }
-
-/** §2.5: the badge beside the pages count reports the customer's own
- *  progress — pages that are working — so it is a success state. */
-const RANKING_TONE: Tone = "ok";
-/** The same rule for the carried values: movement the customer made is a
- *  success state; a goal is a target and takes the neutral pill the set
- *  draws it in. */
-const DELTA_TONE: Tone = "ok";
-const GOAL_TONE: Tone = "neutral";

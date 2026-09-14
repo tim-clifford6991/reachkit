@@ -29,7 +29,6 @@ import { RivalModule } from "./_overview/RivalModule";
 import { TileRow } from "./_overview/TileRow";
 import { NeedsYouModule } from "./_overview/NeedsYouModule";
 import { WeekModule } from "./_overview/WeekModule";
-import { SCREEN } from "./_overview/style";
 
 export default async function OverviewPage(): Promise<React.JSX.Element> {
   // The zone is the shell's one stored preference (REQ-073 c1), read through
@@ -39,7 +38,7 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
   const [shell, overview] = await Promise.all([readShell(), readOverview()]);
 
   return (
-    <div style={SCREEN} data-testid="overview">
+    <div className="flex min-w-0 flex-col gap-6" data-testid="overview">
       <HeadModule head={overview.head} />
       <GrowthModule growth={overview.growth} timeZone={shell.timeZone} />
       <TileRow
@@ -49,9 +48,13 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
         timeZone={shell.timeZone}
         weekZero={overview.weekZero}
       />
-      <RivalModule rivals={overview.rivals} timeZone={shell.timeZone} weekZero={overview.weekZero} />
-      <WeekModule week={overview.week} timeZone={shell.timeZone} supply={overview.supply} />
-      <NeedsYouModule alerts={overview.alerts} overflow={overview.overflow} />
+      <div className="grid min-w-0 gap-6 xl:grid-cols-2">
+        <RivalModule rivals={overview.rivals} timeZone={shell.timeZone} weekZero={overview.weekZero} />
+        <div className="flex min-w-0 flex-col gap-6">
+          <WeekModule week={overview.week} timeZone={shell.timeZone} supply={overview.supply} />
+          <NeedsYouModule alerts={overview.alerts} overflow={overview.overflow} />
+        </div>
+      </div>
     </div>
   );
 }
