@@ -36,13 +36,13 @@ export interface AccountMail {
 }
 
 /**
- * S20's shape, in the order the set draws it: heading, one short line, the
- * fact rows, one solid button.
+ * SPEC §8's sign-in mail: heading, one short line, the one solid action,
+ * then the fact row, with the reason in the shell's footer.
  *
- * The address is a fact row and not a sentence. The set draws `for ·
- * you@company.com`, and it earns its place: this mail is a credential, so a
- * reader who was sent it at an address they do not recognise can see that
- * before they click.
+ * The action comes straight after the line because it is the whole point
+ * of the mail. The address is a fact row and not a sentence (`for ·
+ * you@company.com`): this mail is a credential, so a reader sent it at an
+ * address they do not recognise can see that beside the button.
  */
 export function buildMagicLink(a: { href: string; address: string }): AccountMail {
   return {
@@ -51,8 +51,8 @@ export function buildMagicLink(a: { href: string; address: string }): AccountMai
     blocks: [
       { block: "heading", text: HEADING },
       { block: "paragraph", text: BODY },
-      { block: "facts", items: [{ label: FACT_FOR, value: a.address }] },
       { block: "action", label: ACTION, href: a.href },
+      { block: "facts", items: [{ label: FACT_FOR, value: a.address }] },
     ],
   };
 }
