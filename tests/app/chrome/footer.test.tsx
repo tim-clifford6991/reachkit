@@ -23,7 +23,9 @@ describe("ruling 3a — brand · rights · removal address · Product · Legal",
   const html = renderToStaticMarkup(<Footer />);
 
   it("the brand and the two column headings render", () => {
-    expect(html).toContain("rk-wordmark");
+    expect(html).toContain('href="/"');
+    // Links underline on hover: daisyUI's own link-hover.
+    expect(html).toContain("link link-hover");
     expect(html).toContain(COPY["chrome.footer.product"]);
     expect(html).toContain(COPY["chrome.footer.legal"]);
   });

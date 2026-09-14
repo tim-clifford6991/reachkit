@@ -16,9 +16,7 @@
 // second field, no selector, no toggle.
 "use client";
 
-import { use, useState, type FormEvent } from "react";
-import { Input } from "@/ui/components/Input";
-import { Btn } from "@/ui/components/Btn";
+import { use, useId, useState, type FormEvent } from "react";
 import { copy } from "@/lib/presentation/copy";
 import type { DomainProblem } from "@/lib/scan/domain";
 import type { StartScanResponse } from "@/app/api/scan/route";
@@ -37,10 +35,6 @@ const PROBLEM_COPY_KEY = {
   no_public_suffix: "landing.problem.no-public-suffix",
   too_long: "landing.problem.too-long",
 } as const satisfies Record<DomainProblem, string>;
-
-/** The field row's layout, named once — see the comment at the `<form>`. */
-const FIELD_ROW =
-  "flex w-full max-w-(--w-form) flex-wrap items-end gap-(--s-2) [&>:first-child]:min-w-0 [&>:first-child]:flex-auto [&_input]:w-full";
 
 function isDomainProblem(value: string | undefined): value is DomainProblem {
   return value !== undefined && Object.prototype.hasOwnProperty.call(PROBLEM_COPY_KEY, value);
@@ -83,6 +77,7 @@ export function ScanForm(props: {
   const [value, setValue] = useState(initial.value ?? "");
   const [problem, setProblem] = useState<DomainProblem | undefined>(initialProblem);
   const [submitting, setSubmitting] = useState(false);
+  const problemId = useId();
 
   // `## Steps` step 4: with JavaScript, post JSON and navigate to
   // `location` on `ok: true`; on `ok: false`, re-render in place with the
@@ -111,43 +106,29 @@ export function ScanForm(props: {
   }
 
   return (
-    // The field and its control on one 8 px row at the form measure. The
-    // field grows into what the control leaves and the input fills it:
-    // daisyUI's `.input` caps itself at 20rem, which left a 145 px hole.
-    <form action="/api/scan" method="post" onSubmit={handleSubmit} className={FIELD_ROW}>
+    <form action="/api/scan" method="post" onSubmit={handleSubmit} className="flex w-full flex-col gap-2">
+      <div className="flex w-full flex-wrap gap-2">
+        <input
+          type="text"
+          name="value"
+          aria-label={copy("landing.field.label")}
+          placeholder={copy("landing.field.placeholder")}
+          className={problem ? "input input-error w-auto min-w-0 flex-1" : "input w-auto min-w-0 flex-1"}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          aria-invalid={problem !== undefined}
+          aria-describedby={problem ? problemId : undefined}
+        />
+        {/* The screen's one submit control and its one solid button. */}
+        <button type="submit" className="btn btn-primary" disabled={submitting} aria-busy={submitting || undefined}>
+          {props.submitLabel ?? copy("landing.submit.label")}
+        </button>
+      </div>
       {problem ? (
-        <Input
-          label={copy("landing.field.label")}
-          labelHidden
-          placeholder={copy("landing.field.placeholder")}
-          name="value"
-          value={value}
-          onChange={setValue}
-          invalid
-          invalidMessage={copy(PROBLEM_COPY_KEY[problem])}
-        />
-      ) : (
-        <Input
-          label={copy("landing.field.label")}
-          labelHidden
-          placeholder={copy("landing.field.placeholder")}
-          name="value"
-          value={value}
-          onChange={setValue}
-        />
-      )}
-      {/* The screen's one submit control, and the hero's own solid primary
-          (ruling 2b gives this page two — this one and the header's). The
-          approved set draws it beside the field on one row, on the page's
-          own `--bg`: the accent hero is gone with the set, and with it the
-          `on-accent` inversion this control used to take. */}
-      <Btn
-        type="submit"
-        label={props.submitLabel ?? copy("landing.submit.label")}
-        variant="primary"
-        pill
-        inFlight={submitting}
-      />
+        <p id={problemId} className="text-sm text-error">
+          {copy(PROBLEM_COPY_KEY[problem])}
+        </p>
+      ) : null}
     </form>
   );
 }

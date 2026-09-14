@@ -54,7 +54,6 @@
   );
 }
 
-
 /* ── 1 · The card: shadow, never a border ─────────────────────────────── */
 
 /* The idiom's first rule. The radius is the ruled `--r-box`, not the
@@ -249,7 +248,6 @@
   padding-inline-start: calc(var(--s-6) + var(--s-4));
 }
 
-
 /* ── 7 · What other screens still spend (issue #351, reduced by #534) ──
  *
  * The landing's own layout is not here any more — it is token utilities in
@@ -288,97 +286,6 @@
   margin: 0;
 }
 
-/* ── The hero component's browser frame ─────────────────────────────── */
-
-.rk-shot {
-  background: var(--surface);
-  border-radius: var(--r-box);
-  box-shadow: var(--shadow-card);
-  overflow: hidden;
-  min-width: 0;
-}
-
-.rk-shot-bar {
-  display: flex;
-  align-items: center;
-  gap: var(--s-1);
-  padding: var(--s-2) var(--s-4);
-  border-bottom: 1px solid var(--line);
-  background: var(--sunk);
-}
-
-.rk-shot-dot {
-  width: var(--s-2);
-  height: var(--s-2);
-  border-radius: var(--r-pill);
-  background: var(--line);
-  flex: 0 0 auto;
-}
-
-.rk-shot-url {
-  font-size: var(--t-eyebrow);
-  color: var(--ink-3);
-  margin-left: var(--s-3);
-  min-width: 0;
-}
-
-.rk-shot-body {
-  padding: var(--s-4);
-  display: flex;
-  flex-direction: column;
-  gap: var(--s-3);
-  background: var(--bg);
-}
-
-.rk-shot-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--s-3);
-  flex-wrap: wrap;
-}
-
-/* The Overview's own h1, at the rung a miniature of it lands on. It is a `<p>`
- * and not an `<h2>`: the frame is a picture of another screen, and its
- * headline is not a heading of this one — a document outline that walked
- * into it would say the landing has a section it does not have. */
-.rk-shot-h {
-  font-size: var(--h3);
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  color: var(--ink);
-  margin: 0;
-}
-
-/* Three across, and one column below `--breakpoint-sm`: a third of a
- * 320px frame is 85px, and "Discoverability Score" does not fit it — the
- * label would be clipped, which is what ADR-093's check 3 refuses. The set
- * draws the frame at one width; this is that drawing given a narrow arm. */
-.rk-shot-tiles {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--s-3);
-}
-
-@media (min-width: 640px) {
-  .rk-shot-tiles {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
-.rk-shot-tile {
-  background: var(--surface);
-  border-radius: var(--r-box);
-  box-shadow: var(--shadow-card);
-  padding: var(--s-4);
-  min-width: 0;
-}
-
-.rk-shot-of {
-  font-size: var(--t-body);
-  color: var(--ink-3);
-}
-
 /* The dim line under a card's own answer — the set's `.explain`. */
 .rk-explain {
   font-size: var(--t-explain);
@@ -391,43 +298,7 @@
   margin: 0;
 }
 
-/* ── 8 · The public chrome — PROPOSED (issue #266) ────────────────────── */
-
-/* No approved artifact draws a public header or footer: the owner endorsed
- * the card idiom, and that idiom draws the landing, the sign-in and the
- * overview, not the chrome around them. The mockup linked on #266 carries
- * the label *proposed — not in the approved idiom*, and these rules are
- * that mockup. They spend the idiom's own vocabulary and mint nothing: the
- * pill ranks, the `--s-6` square chip, `--shadow-card` separation, and the
- * eyebrow already declared above. */
-
-.rk-chrome-head {
-  background: var(--surface);
-  box-shadow: var(--shadow-card);
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
-.rk-chrome-bar {
-  display: flex;
-  align-items: center;
-  gap: var(--s-3);
-  /* The set's own `.pubbar` wraps, and at 320 it has to: the brand and 3a's
-   * two controls are wider than 288px of content box, and a row that cannot
-   * wrap puts its last control outside the bar — a containment offender on
-   * every public route (the layout sweep, issue #351). */
-  flex-wrap: wrap;
-  max-width: var(--w-wide);
-  margin-inline: auto;
-  padding: var(--s-3) var(--s-4);
-}
-
-@media (min-width: 1024px) {
-  .rk-chrome-bar {
-    padding-inline: var(--s-5);
-  }
-}
+/* ── 8 · The brand mark and the public shell ──────────────────────────── */
 
 .rk-wordmark {
   display: flex;
@@ -457,71 +328,6 @@
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
-}
-
-/* 3a's two controls, at the right of the bar. There is no link list and no
- * compact collapse any more: the header is brand, Sign in and one CTA at
- * every width, so nothing has to be folded away and every link that used to
- * live here is in the footer, in the document, on every route. */
-.rk-chrome-controls {
-  display: flex;
-  align-items: center;
-  gap: var(--s-2);
-  flex-wrap: wrap;
-  flex: 0 1 auto;
-}
-
-.rk-chrome-foot {
-  background: var(--surface);
-  box-shadow: var(--shadow-card);
-  margin-top: auto;
-}
-
-.rk-chrome-foot-in {
-  max-width: var(--w-wide);
-  margin-inline: auto;
-  padding: var(--s-6) var(--s-4);
-  display: grid;
-  gap: var(--s-5);
-}
-
-/* Three columns from `--breakpoint-md`, one below it — where the approved
- * set puts the footer's own fold (issue #357). The brand's column is wide
- * and the two link columns are not, which is what `2fr 1fr 1fr` says. */
-@media (min-width: 768px) {
-  .rk-chrome-foot-in {
-    grid-template-columns: 2fr 1fr 1fr;
-    gap: var(--s-6);
-  }
-}
-
-@media (min-width: 1024px) {
-  .rk-chrome-foot-in {
-    padding-inline: var(--s-5);
-  }
-}
-
-.rk-chrome-foot-in nav {
-  display: flex;
-  flex-direction: column;
-  gap: var(--s-1);
-}
-
-.rk-chrome-foot-in nav a {
-  color: var(--ink-2);
-  text-decoration: none;
-  /* `--s-1`, not the 3px this carried (issue #349). Three is not a rung of
-   * the ruled ladder, and §2's own rule is that a layout wanting a value
-   * the ladder does not name raises the gap rather than inventing one — so
-   * it takes the rung. The footer's links grow one pixel top and bottom;
-   * that is the one deliberate pixel change in this PR. */
-  padding-block: var(--s-1);
-}
-
-.rk-chrome-fine {
-  color: var(--ink-3);
-  font-size: var(--t-xs);
-  margin: var(--s-2) 0 0;
 }
 
 /* The public shell is a column so the footer sits at the bottom of a short
@@ -997,7 +803,6 @@
   color: var(--ink);
 }
 
-
 /* ── 14 · The danger card's edge (issue #374) ────────────────────────── */
 
 /* S18's Danger zone: the card keeps its own surface and shadow and takes a
@@ -1029,7 +834,6 @@
   background: var(--bad-bg);
   color: var(--bad);
 }
-
 
 /* ── 15 · The hosted page (UI-SPEC S19, issue #375) ───────────────────── */
 
@@ -1142,7 +946,6 @@
   padding: var(--s-5) var(--s-4);
 }
 
-
 /* ── 16 · A document under the screen's own h1, levelled (#355, #493) ── */
 
 /* S16 and S17 render the customer's page itself, and the body is `.rk-doc`
@@ -1216,7 +1019,6 @@
   margin: 0 0 var(--s-4);
   min-width: 0;
 }
-
 
 /* ── 17 · The draft's three small parts (issue #355) ─────────────────── */
 
@@ -1518,7 +1320,6 @@
   margin: var(--s-1) 0 0 var(--s-5);
 }
 
-
 /* ── 19 · Interaction states — UI-SPEC §0, rulings of 2026-09-11 (#530) ──
  *
  * What is left here is the idiom's own: the global focus ring, reduced
@@ -1577,7 +1378,3 @@
   opacity: 1;
 }
 
-/* §0 12 — the footer's links underline on hover, as `.linkish` (L371). */
-.rk-chrome-foot-in nav a:hover {
-  text-decoration: underline;
-}

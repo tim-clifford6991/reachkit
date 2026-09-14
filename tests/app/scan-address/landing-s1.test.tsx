@@ -66,26 +66,12 @@ describe("S1 hero — the product component in a browser frame (REQ-099 c4, ruli
     }
   });
 
-  // Issue #488: the set draws the tiles with `.stat-l` + `.stat-v` +
-  // `.stat-row` — UI-SPEC §2's Stat — so they are the registered `Stat`,
-  // and the landing's own second stat vocabulary is struck.
-  it("the three tiles are the registered Stat, and rk-shot-tile-* is gone", async () => {
+  it("the three tiles are one daisyUI stats row inside a mockup-browser frame", async () => {
     const markup = await renderPage();
     const shot = markup.slice(markup.indexOf('data-testid="landing-shot"'));
-    expect(shot.match(/class="stats /g)).toHaveLength(3);
-    expect(shot).toMatch(/class="stat-value num /);
-    const sheet = readFileSync(path.resolve(import.meta.dirname, "../../../src/ui/idiom/idiom.css"), "utf8");
-    expect(markup).not.toContain("rk-shot-tile-");
-    expect(sheet).not.toContain("rk-shot-tile-");
-  });
-
-  // The frame's figure is `--h1` and S12's is `--t-num-big`. Since issue #548
-  // neither is a rule the frame's sheet writes over daisyUI's part: the
-  // miniature is `Stat`'s own specimen arm, and the rung rides on it.
-  it("the miniature's figure is the frame's --h1, never S12's --t-num-big", async () => {
-    const shot = (await renderPage()).slice(0);
-    expect(shot).toContain("text-(length:--h1)");
-    expect(shot).not.toContain("--t-num-big");
+    expect(markup).toMatch(/class="mockup-browser [^"]*" data-testid="landing-shot"/);
+    expect(shot.match(/class="stats /g)).toHaveLength(1);
+    expect(shot.match(/class="stat min-w-0"/g)).toHaveLength(3);
   });
 
   it("no source date and no example line ride with it (5c amends REQ-099 c8)", async () => {
@@ -123,7 +109,7 @@ describe("S1 video block — ruling 4c: a frame, a play control and one written 
 describe("S1 sections — 01 why-care, 02 what-it-does, 03 how-to-start", () => {
   it("the three numbers render in order, in the mono face", async () => {
     const markup = await renderPage();
-    const numbers = [...markup.matchAll(/class="num">(\d\d)</g)].map((m) => m[1]);
+    const numbers = [...markup.matchAll(/class="font-mono">(\d\d)</g)].map((m) => m[1]);
     expect(numbers).toEqual(["01", "02", "03"]);
   });
 
@@ -139,12 +125,12 @@ describe("S1 sections — 01 why-care, 02 what-it-does, 03 how-to-start", () => 
   it("02 carries the live This-week card with its panel, and the panel offers nothing", async () => {
     const markup = await renderPage();
     expect(markup).toContain('data-testid="landing-week"');
-    expect(markup).toContain("rk-panel");
     expect(markup).toContain("landing.week.page.line");
-    // The specimen arm: no CTA inside the panel. A solid accent button a
-    // visitor cannot use would also be a third solid (ruling 2b).
-    const panel = markup.slice(markup.indexOf("rk-panel"));
-    expect(panel.slice(0, panel.indexOf("</section>"))).not.toContain("rk-panel-cta");
+    // No control inside the panel: a stranger has no account to act in.
+    const panel = markup.slice(markup.indexOf('data-testid="landing-week"'));
+    const card = panel.slice(0, panel.indexOf("</section>"));
+    expect(card).toContain('class="alert');
+    expect(card).not.toMatch(/<button|<a\b/);
   });
 
   it("03 carries the three Step cards, titles and bodies from their own keys", async () => {
@@ -157,12 +143,12 @@ describe("S1 sections — 01 why-care, 02 what-it-does, 03 how-to-start", () => 
     expect(markup).toContain("landing.start.cancel");
   });
 
-  it("the closing CTA is the solid rank and focuses the field rather than submitting", async () => {
+  it("the closing CTA is outline and focuses the field rather than submitting (SPEC §1, 2026-09-14)", async () => {
     const markup = await renderPage();
     const buttons = [...markup.matchAll(/<button\b[^>]*>/g)].map((m) => m[0]);
     const closing = buttons.filter((b) => !/type="submit"/.test(b));
     expect(closing).toHaveLength(1);
-    expect(closing[0]).toMatch(/btn-primary/);
+    expect(closing[0]).toMatch(/btn-outline btn-primary/);
     expect(closing[0]).toMatch(/type="button"/);
   });
 

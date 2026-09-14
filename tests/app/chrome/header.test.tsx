@@ -1,4 +1,4 @@
-// BUILD §3, UI-SPEC 3a — the public header's three parts (issue #351).
+// BUILD §3 — the public header's three parts.
 // tests/app/chrome/header.test.tsx
 //
 // The header is applied by `(public)/layout.tsx`, and the cold-start and
@@ -6,16 +6,10 @@
 // group layout — which is what makes their counts a screen's own. So the
 // header's own shape is asserted here, where it renders.
 //
-// **What #351 changed, and why the old assertions are gone.** This file
-// used to hold #290's reading — "the header carries no solid primary, and
-// on `/` it carries no CTA at all" — which came from applying tokens.md
-// §9.1's one-solid-primary rule to a control that appears on every screen.
-// The owner's ruling 2b of 2026-09-08 supersedes it: "two solid primaries
-// per screen are allowed where the artifact draws them (landing: header CTA
-// + hero CTA)", and 3a fixes the header as "brand · Sign in (quiet) · one
-// solid CTA" on every public route. Both are asserted below, along with the
-// property that keeps REQ-001 c1 true on the landing: the CTA there is not
-// a submit control, it is the control that focuses the one field.
+// SPEC §1, 2026-09-14: brand · Sign in · the header CTA, and the CTA is
+// outline on every public page, so each screen's own action is its only
+// solid button. On the landing the CTA is not a submit control: it focuses
+// the one field, which keeps REQ-001 c1 true.
 //
 // **The right slot is a closed union since #357.** Four arms — the pair, the
 // landing's field CTA, the report address's copy control, and (since #371) a
@@ -40,7 +34,7 @@ const TOKEN_PAGE: HeaderAction = { kind: "address", address: "/veto/a-token" };
 describe("S2 — on the report address the right slot is REQ-001 c7's control", () => {
   it("draws the copy control, and neither half of the pair", () => {
     const html = markup(REPORT);
-    expect(html).toContain("rk-wordmark");
+    expect(html).toContain('href="/"');
     expect(html).toContain("btn-ghost");
     expect(html).not.toContain('href="/signin"');
     expect(html).not.toContain("btn-primary");
@@ -56,8 +50,7 @@ describe("S2 — on the report address the right slot is REQ-001 c7's control", 
 describe("S6 — on a token page the right slot is the address, quiet", () => {
   it("draws the address in the set's own `.prov`, and neither half of the pair", () => {
     const html = markup(TOKEN_PAGE);
-    expect(html).toContain("rk-wordmark");
-    expect(html).toContain("rk-prov-line");
+    expect(html).toContain('href="/"');
     expect(html).toContain("/veto/a-token");
     // A reader of a stop link has no account to sign in to and did not come
     // to scan a domain: the set draws no control on that side of the bar.
@@ -70,28 +63,25 @@ describe("S6 — on a token page the right slot is the address, quiet", () => {
   });
 });
 
-describe("ruling 3a — brand · Sign in (quiet) · one solid CTA", () => {
+describe("SPEC §1 — brand · Sign in · the header CTA, outline", () => {
   it("both arms carry the wordmark and the quiet Sign in, and nothing else links out", () => {
     // The hrefs, not the keys: this renders against the real registry, so
     // an owed sentence resolves to its `TODO(copy)` marker and a key name
     // never reaches the markup. What is stable is the destination.
     for (const html of [markup(LANDING), markup(ELSEWHERE)]) {
-      expect(html).toContain("rk-wordmark");
       expect(html).toContain('href="/signin"');
-      // Quiet, which is ruling 3a's own word for it (`pill-quiet` in the
-      // set): the tertiary rank, not the outline secondary (issue #357).
       expect(html).toContain("btn-ghost");
-      expect(html).not.toContain("btn-outline");
-      // 3a moves Pricing to the footer's Product column; the header is
-      // three things and a fourth link is not one of them.
+      // Pricing is in the footer's Product column; the header is three
+      // things and a fourth link is not one of them.
       expect(html).not.toContain('href="/pricing"');
     }
   });
 
-  it("every arm carries exactly one solid CTA, at the pill radius (2b)", () => {
+  it("every arm carries one CTA, outline, so the header adds no solid button to any screen (2026-09-14)", () => {
     for (const html of [markup(LANDING), markup(ELSEWHERE)]) {
-      expect(html.split("btn-primary").length - 1).toBe(1);
-      expect(html).toContain("rounded-(--r-pill)");
+      const primaries = [...html.matchAll(/class="([^"]*\bbtn-primary\b[^"]*)"/g)].map((m) => m[1] ?? "");
+      expect(primaries).toHaveLength(1);
+      expect(primaries[0]).toContain("btn-outline");
     }
   });
 
