@@ -148,32 +148,20 @@ describe("the growth chart", () => {
   it("runs one line to the last measured week, with no vertex over the week that was not measured", () => {
     const model = assembleOverview(facts());
     const markup = html(<GrowthModule growth={model.growth} timeZone={ZONE} />);
-    // One run: the market did not change, so the line joins the weeks
-    // either side of the unmeasured one and reaches the last measured week
-    // — where the end dot sits (#386, master review).
-    expect(count(markup, "<polyline")).toBe(1);
-    // Three vertices for four weeks: no point is drawn over the week
-    // nobody measured, so no reading is stated for it.
-    const points = /<polyline points="([^"]+)"/.exec(markup)?.[1] ?? "";
-    expect(points.split(" ")).toHaveLength(3);
-    // Nothing is drawn in the week's place (#386), and the account of why
-    // is on its mark.
-    expect(markup).not.toContain("stroke-dasharray");
+    // The drawing is Recharts' and paints on the client (#550; its line is
+    // read in tests/ui/recharts-charts.test.tsx). The server writes every
+    // week's reading: four weeks, the unmeasured one stating why.
+    expect(count(markup, "<li>")).toBe(4);
     expect(markup).toContain("place.overview.weekly-presence.week");
   });
 
   it("labels the endpoint only — no numeral under any weekly point (#386)", () => {
     const model = assembleOverview(facts());
     const markup = html(<GrowthModule growth={model.growth} timeZone={ZONE} />);
-    // The last measured week's value, once, above its dot. The three
-    // earlier weeks and the em dash the unmeasured one used to print are
-    // gone from the plot; every one of them still states its name and its
-    // reading in its mark's tooltip.
-    expect(markup).toContain(">81<");
-    expect(markup).not.toContain(">0<");
-    expect(markup).not.toContain(">36<");
+    // No em dash stands in for the unmeasured week; every week states its
+    // name and its reading, the last measured one included.
     expect(markup).not.toContain("—");
-    expect(markup).toContain("<title>");
+    expect(markup).toMatch(/<li>[^<]*· 81<\/li>/);
     // …and the start value is the card's left-hand footnote, as S12 draws
     // it, not a numeral on the plot.
     expect(markup).toContain("overview.growth.footnote.start(0)");
@@ -186,8 +174,7 @@ describe("the growth chart", () => {
     // `<svg>`. What this asserts is the absence of the *chart*, which the
     // inventory's charts all label as an image role — not the absence of
     // every vector on the card.
-    expect(markup).not.toContain('role="img"');
-    expect(markup).not.toContain("<polyline");
+    expect(markup).not.toContain("<figure");
     // …and no source chip either: nothing was measured, so there is no date
     // a reading came from to name.
     expect(markup).not.toContain("rk-srcchip");
@@ -500,14 +487,10 @@ describe("S13 — the week-0 arm, drawn", () => {
     const markup = html(<GrowthModule growth={model.growth} timeZone={ZONE} />);
     expect(markup).toContain("rk-srcchip");
     expect(markup).toContain("overview.growth.source.deep-pass");
-    // One point, drawn — and no run *between* two of them: the polyline
-    // carries a single coordinate pair, which is what renders the lone
-    // reading (a zero-length subpath under a round linecap is a dot), and
-    // the area fill `GrowthLine` guards on two points is absent.
-    expect(markup).toContain('role="img"');
-    expect(count(markup, "<polyline")).toBe(1);
-    expect(markup).toMatch(/points="[\d.]+,[\d.]+"/);
-    expect(markup).not.toContain('opacity="0.1"');
+    // One reading, charted: the lone week is the chart's one written
+    // reading (its dot is drawn on the client, #550).
+    expect(markup).toContain("<figure");
+    expect(count(markup, "<li>")).toBe(1);
   });
 
   it("its footnotes are S13's pair, and the goal sentence is not among them", () => {
