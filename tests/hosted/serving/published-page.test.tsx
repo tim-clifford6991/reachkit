@@ -104,8 +104,9 @@ beforeEach(() => {
 describe("S19 — the customer is the publisher, and the page says so", () => {
   it("their mark and their name lead the page, and the address is beside it", async () => {
     const html = await render();
-    expect(html).toContain('class="rk-hosted-brand"');
-    expect(html).toContain('class="rk-hosted-mark"');
+    const bar = html.slice(html.indexOf("<header"), html.indexOf("</header>"));
+    expect(bar).toContain("rounded-full");
+    expect(bar).not.toContain("primary");
     expect(html).toContain(">example.com</span>");
     // The host the page answers at, taken off the canonical rather than
     // composed a second time.
@@ -113,13 +114,13 @@ describe("S19 — the customer is the publisher, and the page says so", () => {
   });
 
   it("the category they chose is the eyebrow, and a site that chose none draws none", async () => {
-    expect(await render()).toContain('class="eyebrow">user onboarding software');
+    expect(await render()).toContain(">user onboarding software</span>");
 
     state.page = livePage({
       publisher: { name: "example.com", category: null, timeZone: "America/New_York" },
     });
     const html = await render();
-    expect(html).not.toContain('class="eyebrow"');
+    expect(html).not.toContain("user onboarding software");
     // And the page still renders: an unstated category withholds an
     // eyebrow, never the page.
     expect(html).toContain("The best onboarding tools");

@@ -154,7 +154,7 @@ describe("issue #486 — every chip the approved set draws carries its glyph", (
   });
 
   it("S2's Copy link pill carries copy (L577)", () => {
-    expect(read("app/(public)/scan/[domain]/_address/copy-link.tsx")).toMatch(/icon=\{<Copy size=\{14\}/);
+    expect(read("app/(public)/scan/[domain]/_address/copy-link.tsx")).toMatch(/<Copy size=\{16\} strokeWidth=\{1\.75\}/);
   });
 
   it("a card head with no glyph draws no chip — the set never draws an empty one", () => {

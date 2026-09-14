@@ -85,7 +85,10 @@ export default function PublicLayout({
   // already where the chrome's per-route decisions live.
   const bare = pathname === SIGN_IN;
   return (
-    <div className="rk-public-shell">
+    // A column at least the viewport tall, so the footer sits at the bottom
+    // of a short page. `data-public-shell` is the hook `surface.css` reads
+    // to let a declared screen (sign-in) fill what the chrome leaves.
+    <div data-public-shell className="flex min-h-svh flex-col">
       {bare ? null : <Header action={actionFor(pathname)} />}
       {children}
       <Footer />

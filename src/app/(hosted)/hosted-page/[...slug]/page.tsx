@@ -48,10 +48,12 @@
 // on our domain — where a reader of the page can check it. There is no
 // heading of ours, no navigation, no link to us and no wordmark.
 //
-// **Nothing on this surface is `--accent`.** The product's colour would be
-// our branding on a stranger's domain; the customer's mark is `--ink`, as
-// the set draws it, and the stylesheet section this page uses names the
-// accent nowhere.
+// **Nothing on this surface is the primary colour.** The product's colour
+// would be our branding on a stranger's domain; the customer's mark is the
+// base content colour, and no class here names `primary`.
+//
+// daisyUI and Tailwind's scale in the route (DESIGN rule 1): no `rk-hosted-*`
+// class, no type-ladder class. Dates, addresses and domains are `num`.
 //
 // **Nothing here writes.** No form, no server action, no mutation: a
 // crawler cannot advance §9's state machine by fetching a page.
@@ -215,6 +217,12 @@ function sourceLineFor(page: HostedPage): string | null {
   });
 }
 
+/** The byline, the source and the canonical note, and the address in the
+ *  bar: mono because each is a date, an address or a domain, quiet because
+ *  none of them is the page, and free to fold anywhere because a canonical
+ *  URL is one long token at 320. */
+const QUIET_LINE = "num num-phrase text-base-content/60 m-0 text-sm wrap-anywhere";
+
 export default async function HostedPageRoute({
   params,
 }: {
@@ -253,9 +261,8 @@ export default async function HostedPageRoute({
         // draws both as rules across the top and the bottom. `declared`
         // takes no measure and no gutter, so the three widths on this
         // screen are the screen's own — the bar and the footer at
-        // `--w-wide`, the article at `--w-read` — exactly as its stylesheet
-        // states them.
-        compact: { kind: "declared", note: "their bar, the article at --w-read, their footer" },
+        // `max-w-6xl`, the article at `max-w-2xl`.
+        compact: { kind: "declared", note: "their bar, the article at max-w-2xl, their footer" },
         medium: { kind: "same-as-below" },
         wide: { kind: "same-as-below" },
       }}
@@ -267,21 +274,25 @@ export default async function HostedPageRoute({
       {/* The customer's own bar: their mark, their name, and the address
           this page answers at. Not a `<nav>` and not a link — there is
           nowhere on their site for us to send a reader. */}
-      <header className="rk-hosted-bar">
-        <span className="rk-hosted-brand">
-          <span className="rk-hosted-mark" aria-hidden />
+      <header className="border-base-300 mx-auto flex w-full max-w-6xl flex-wrap items-center gap-3 border-b px-4 py-3">
+        <span className="text-base-content mr-auto flex min-w-0 items-center gap-2 font-extrabold tracking-tight">
+          <span className="bg-base-content size-4 shrink-0 rounded-full" aria-hidden />
           <span>{page.publisher.name}</span>
         </span>
-        <span className="rk-hosted-line">{hostOf(canonical)}</span>
+        <span className={QUIET_LINE}>{hostOf(canonical)}</span>
       </header>
 
       <main>
-        <article className="rk-hosted">
+        <article className="mx-auto w-full max-w-2xl px-5 py-12">
           {page.publisher.category === null ? null : (
-            <span className="eyebrow">{page.publisher.category}</span>
+            <span className="text-base-content/60 text-xs font-semibold tracking-wide uppercase">
+              {page.publisher.category}
+            </span>
           )}
-          <h1 className="rk-hosted-h">{page.title}</h1>
-          <p className="rk-hosted-line">
+          <h1 className="text-base-content my-3 text-4xl font-extrabold tracking-tight text-balance">
+            {page.title}
+          </h1>
+          <p className={QUIET_LINE}>
             <time dateTime={page.publishedAt.toISOString().slice(0, 10)}>
               {copy("hosted.published", {
                 date: writeDate(page.publishedAt, page.publisher.timeZone),
@@ -290,19 +301,19 @@ export default async function HostedPageRoute({
             </time>
           </p>
 
-          <hr className="rk-hosted-rule" />
+          <hr className="border-base-300 my-6" />
 
           {/* The body, with §8's recorded passage marked where it is still
               in the text. `markPassage` is the same call the draft screen
               makes, so what the customer approved and what a visitor reads
               are marked alike; a passage that no longer occurs marks
               nothing rather than marking the nearest thing to it. */}
-          <div className="rk-hosted-doc" dangerouslySetInnerHTML={{ __html: body }} />
-          {sourceLine === null ? null : <p className="rk-hosted-line">{sourceLine}</p>}
+          <div className="text-lg leading-relaxed" dangerouslySetInnerHTML={{ __html: body }} />
+          {sourceLine === null ? null : <p className={QUIET_LINE}>{sourceLine}</p>}
 
-          <hr className="rk-hosted-rule" />
+          <hr className="border-base-300 my-6" />
 
-          <p className="rk-hosted-line">
+          <p className={QUIET_LINE}>
             {copy("hosted.canonical", {
               domain: page.publisher.name,
               canonical,
@@ -311,11 +322,10 @@ export default async function HostedPageRoute({
         </article>
       </main>
 
-      {/* Their line, and nothing of ours beside it. The imprint half of
-          what the set draws here is the customer's to state and no column
-          carries one yet, so the footer states what it has. */}
-      <footer className="rk-hosted-foot">
-        <span className="rk-hosted-line">
+      {/* Their line, and nothing of ours beside it. The imprint half is the
+          customer's to state and no column carries one yet. */}
+      <footer className="border-base-300 mx-auto w-full max-w-6xl border-t px-4 py-6">
+        <span className={QUIET_LINE}>
           {copy("hosted.footer", { publisher: page.publisher.name })}
         </span>
       </footer>

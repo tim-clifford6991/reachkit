@@ -13,23 +13,26 @@
 // client runtime the control renders and does nothing — the address is
 // still in the browser's own address bar, which is why this needs no
 // no-JavaScript fallback of its own.
+//
+// daisyUI `btn btn-ghost btn-sm` in the route (DESIGN rule 1); lucide's
+// copy glyph at 16px, stroke 1.75.
 "use client";
 
 import type React from "react";
 import { Copy } from "lucide-react";
-import { Btn } from "@/ui/components";
 import { copy } from "@/lib/presentation/copy";
 
 export function CopyLink(p: { canonicalUrl: string }): React.JSX.Element {
   return (
-    <Btn
-      label={copy("copy-link.label")}
-      icon={<Copy size={14} strokeWidth={1.8} aria-hidden />}
-      variant="ghost"
-      size="sm"
+    <button
+      type="button"
+      className="btn btn-ghost btn-sm"
       onClick={() => {
         void navigator.clipboard?.writeText(p.canonicalUrl);
       }}
-    />
+    >
+      <Copy size={16} strokeWidth={1.75} aria-hidden />
+      {copy("copy-link.label")}
+    </button>
   );
 }
