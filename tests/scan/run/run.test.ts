@@ -29,10 +29,13 @@ vi.mock("@/lib/measure", async (importOriginal) => ({
 // (see the header). Left real it reaches the crawl's own fetcher, whose
 // deadline and timeouts are timers — and a suite that controls the clock
 // to test a stage budget can never fire them, so the pass never returns.
-const buildSiteProfile = vi.fn();
+const buildSiteProfileWithCrawl = vi.fn(async () => ({
+  profile: null,
+  crawl: { pages: [], discovered: 0, stoppedBy: "complete", fetched: [], broken: [], sitemap: "absent" },
+}));
 vi.mock("@/lib/site-profile", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../../src/lib/site-profile")>()),
-  buildSiteProfile: (...a: unknown[]) => buildSiteProfile(...a),
+  buildSiteProfileWithCrawl: (...a: unknown[]) => buildSiteProfileWithCrawl(...(a as [])),
 }));
 
 const deriveProfile = vi.fn();

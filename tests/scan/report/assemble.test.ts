@@ -47,6 +47,8 @@ const REPORT_KEYS = [
   "sources",
   "onPage",
   "robots",
+  // SPEC §9's technical-issue checks (#570).
+  "siteIssues",
   "coherence",
   "correctionState",
 ] as const;

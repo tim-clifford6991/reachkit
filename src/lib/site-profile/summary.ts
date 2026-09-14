@@ -36,6 +36,9 @@ import { llm } from "@/lib/llm";
 import type { Tier } from "@/lib/measure";
 import type { Measured } from "@/lib/measure/measured";
 import type { CrawledPage } from "./crawl";
+
+/** The four members of a crawled page the voice is read from — no more. */
+type PageSample = Pick<CrawledPage, "url" | "title" | "h1" | "text">;
 import type { VoiceSummary } from "./types";
 
 /** What one call reads off a site: everything the profile stores that is
@@ -132,7 +135,7 @@ function cutAtWord(text: string, budget: number): string {
  *  whole is cut at a word; pages after it are not sent. Nothing here
  *  touches the caller's own array — the inventory keeps every page. */
 export function boundPages(
-  pages: readonly CrawledPage[],
+  pages: readonly PageSample[],
   maxChars: number
 ): readonly { url: string; title: string; text: string }[] {
   const sent: { url: string; title: string; text: string }[] = [];
@@ -166,7 +169,7 @@ export function boundPages(
  */
 export function deriveVoice(
   c: CostContext,
-  a: { domain: string; pages: readonly CrawledPage[]; tier: Tier }
+  a: { domain: string; pages: readonly PageSample[]; tier: Tier }
 ): Promise<Measured<SiteReading>> {
   const pages = boundPages(a.pages, SITE_PROFILE.VOICE_INPUT_MAX_CHARS);
   return llm(c, {

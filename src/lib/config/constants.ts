@@ -255,6 +255,23 @@ export const SITE_PROFILE = Object.freeze({
   VOICE_INPUT_MAX_CHARS: 4_000,
 } as const);
 
+/** SPEC §9's technical-issue checks over the crawled pages — the two numbers
+ *  the owner ruled on 2026-09-14.
+ *
+ *  `SLOW_PAGE_MS`: a page is slow when the crawl's own fetch of its document
+ *  took at least this long. It is the one speed signal that costs nothing
+ *  beyond the crawl itself; a page served from the cache has no timing and
+ *  is left out of the set the count is measured over.
+ *
+ *  `CRITICAL_PAGE_SHARE`: a per-page check is "Worth fixing" from one page
+ *  and "Critical" once at least this share of the set it was measured over
+ *  is affected. A site-wide fault (a `noindex` home page, no sitemap, an AI
+ *  reader blocked) is "Critical" whenever it is present. */
+export const SITE_ISSUES = Object.freeze({
+  SLOW_PAGE_MS: 3_000,
+  CRITICAL_PAGE_SHARE: 0.25,
+} as const);
+
 /** How many `llm()` calls one free pass issues — BP-009 `## NFR budget`,
  *  quoted: "the free scan's **two** nano calls — `profile` and
  *  `question-phrasing` (BP-025 decision 2) — sit inside the 60-second

@@ -130,11 +130,19 @@ describe("dates survive the round trip through jsonb", () => {
 // The upgrade is the migration path the issue asks to be stated, and it is
 // stated here, in the reader, because a stored blob has exactly one reader.
 
+/** The same blob as `asStoredJson`, wound back to what version 6 wrote: no
+ *  `siteIssues`, because the technical-issue checks did not exist (#570). */
+function asVersion6Json(): Record<string, unknown> {
+  const { siteIssues, ...blob } = asStoredJson() as Record<string, unknown>;
+  void siteIssues;
+  return { ...blob, version: 6 };
+}
+
 /** The same blob as `asStoredJson`, wound back to what version 5 wrote:
  *  a verdict with no `factors` — the three the score is composed of, which
  *  version 6 keeps so the header strip can draw its bars (ruling 1b). */
 function asVersion5Json(): Record<string, unknown> {
-  const blob = asStoredJson() as Record<string, unknown>;
+  const blob = asVersion6Json();
   const { factors, ...verdict } = blob.verdict as Record<string, unknown>;
   void factors;
   return { ...blob, version: 5, verdict };
@@ -352,6 +360,23 @@ describe("a report written at version 5 is lifted, not refused", () => {
     const report = readStoredReport(asVersion5Json());
     expect(report.verdict.measuredAt).toBeInstanceOf(Date);
     expect(report.verdict.factors.presence.at).toBeInstanceOf(Date);
+  });
+});
+
+describe("a report written at version 6 is lifted, not refused", () => {
+  it("carries no technical-issue checks — null, never nine zeros or reasons the pass never gave", () => {
+    const report = readStoredReport(asVersion6Json());
+    expect(report.version).toBe(REPORT_VERSION);
+    expect(report.siteIssues).toBeNull();
+  });
+
+  it("changes nothing else about the blob", () => {
+    const before = asVersion6Json();
+    const lifted = readStoredReport(before) as unknown as Record<string, unknown>;
+    for (const key of Object.keys(before)) {
+      if (key === "version") continue;
+      expect(JSON.stringify(lifted[key]), key).toBe(JSON.stringify(before[key]));
+    }
   });
 });
 

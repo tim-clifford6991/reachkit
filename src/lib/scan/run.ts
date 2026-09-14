@@ -75,6 +75,7 @@ import { parseDomain, type CanonicalDomain } from "./domain";
 import { readCurrentReport } from "./report";
 import type { AiAnswersSection, StoppedReason, StoredReport, SupplySection, Tier } from "./report";
 import { answersSectionOf, blockedAgentsOf } from "./sections";
+import { checkSite, type CrawlReading } from "@/lib/site-issues/checks";
 import { emitEnding, enterStage, exitStage } from "./stages";
 import type { StageName } from "./stages";
 import { assembleReport, storeCurrentReport, type ScanStatus } from "./store";
@@ -227,6 +228,10 @@ interface Sections {
   aiAnswers: AiAnswersSection | null;
   presence: PresenceCard | null;
   coherence: CoherenceVerdict;
+  /** The site profile's one crawl, as SPEC §9's checks read it. `null` until
+   *  the crawl has run — and after a crawl that raised, which the checks
+   *  report as not run rather than as a site with no issues. */
+  siteCrawl: CrawlReading | null;
 }
 
 /** Everything outstanding, before any stage has run. `not_attempted` is
@@ -247,6 +252,7 @@ function freshSections(at: Date): Sections {
     aiAnswers: null,
     presence: null,
     coherence: { verdict: "unjudgeable", measuredCount: 0 },
+    siteCrawl: null,
   };
 }
 
@@ -736,8 +742,9 @@ async function runStages(a: StageArgs): Promise<void> {
   // what actually happened, and the pass continues either way.
   if (bounds.stopNow() === null) {
     try {
-      const { buildSiteProfile } = await import("@/lib/site-profile");
-      await buildSiteProfile(cost, {
+      const { buildSiteProfileWithCrawl } = await import("@/lib/site-profile");
+      const { readingOf } = await import("@/lib/site-issues");
+      const { crawl } = await buildSiteProfileWithCrawl(cost, {
         domain,
         // `CanonicalDomain` is the branded string itself, and the home
         // address the measurement read is `https://<domain>/` — the same
@@ -749,6 +756,9 @@ async function runStages(a: StageArgs): Promise<void> {
         sitemaps: measurement.robots.kind === "unmeasured" ? [] : measurement.robots.value.sitemaps,
         tier: a.tier,
       });
+      // SPEC §9: the technical-issue checks run over exactly this crawl —
+      // the one run, nothing fetched beyond its set (2026-09-12).
+      sections.siteCrawl = readingOf(crawl);
     } catch (error) {
       console.log(
         JSON.stringify({
@@ -1213,6 +1223,7 @@ function composeReport(a: {
     sources: s.sources,
     onPage,
     robots,
+    siteIssues: checkSite({ crawl: s.siteCrawl, robots, blockedAgents: blockedAgentsOf(robots) }),
     coherence: s.coherence,
     correctionState: a.correctionState,
   });

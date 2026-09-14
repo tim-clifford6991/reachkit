@@ -133,6 +133,7 @@ export function fullSections(over: Partial<ReportSections> = {}): ReportSections
     sources: [],
     onPage: measured(ON_PAGE, AT),
     robots: measured(ROBOTS, AT),
+    siteIssues: null,
     coherence: { verdict: "unjudgeable", measuredCount: 1 },
     correctionState: "none",
     ...over,

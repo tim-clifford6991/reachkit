@@ -132,7 +132,7 @@ const FIXTURE_RECORD = {
   // constant in `tests/app/scan-address/report-view.test.tsx`, which runs
   // in node and may import it, so the two cannot drift (#352; the label
   // had been left at 3 through two migrations).
-  version: 6,
+  version: 7,
   scanId: "fixture-scan-1",
   domain: OWN_DOMAIN as CanonicalDomain,
   tier: "free",
@@ -148,6 +148,7 @@ const FIXTURE_RECORD = {
   sources: [],
   onPage: { kind: "unmeasured", reason: "not_attempted", at: MEASURED_AT },
   robots: { kind: "unmeasured", reason: "not_attempted", at: MEASURED_AT },
+  siteIssues: null,
   coherence: { verdict: "unjudgeable", measuredCount: 0 },
   correctionState: "none",
 } as const satisfies Pick<
@@ -168,6 +169,7 @@ const FIXTURE_RECORD = {
   | "sources"
   | "onPage"
   | "robots"
+  | "siteIssues"
   | "coherence"
   | "correctionState"
 >;

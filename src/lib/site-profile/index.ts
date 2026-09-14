@@ -34,7 +34,7 @@
 // and its account are known; a scan has neither on the free path.
 import type { CostContext } from "@/lib/costs";
 import type { Tier } from "@/lib/measure";
-import { crawlSite } from "./crawl";
+import { crawlSite, type CrawlOutcome } from "./crawl";
 import { derivePurpose } from "./purpose";
 import { siteNameFromTitle, siteNameOf } from "./site-name";
 import { deriveVoice } from "./summary";
@@ -65,16 +65,27 @@ export {
  * the caller does not hold it (`null`), the crawl reads the home page
  * itself through its own ledgered, cached fetch.
  */
-export async function buildSiteProfile(
+export async function buildSiteProfile(c: CostContext, a: ProfileArgs): Promise<SiteProfile | null> {
+  return (await buildSiteProfileWithCrawl(c, a)).profile;
+}
+
+interface ProfileArgs {
+  domain: string;
+  homeUrl: string;
+  homeHtml: string | null;
+  sitemaps: readonly string[];
+  tier: Tier;
+}
+
+/**
+ * `buildSiteProfile`, handing back the crawl it read as well — SPEC §9's
+ * technical-issue checks run over exactly that set (2026-09-12), so the
+ * scan reads the site once and both consumers share the one run.
+ */
+export async function buildSiteProfileWithCrawl(
   c: CostContext,
-  a: {
-    domain: string;
-    homeUrl: string;
-    homeHtml: string | null;
-    sitemaps: readonly string[];
-    tier: Tier;
-  }
-): Promise<SiteProfile | null> {
+  a: ProfileArgs
+): Promise<{ profile: SiteProfile | null; crawl: CrawlOutcome }> {
   const crawl = await crawlSite(c, {
     domain: a.domain,
     homeUrl: a.homeUrl,
@@ -86,7 +97,7 @@ export async function buildSiteProfile(
   // zero pages written over last week's hundred would be this module
   // deleting a measurement, and §2's "records what it has" is about a
   // small site, never about a failed crawl.
-  if (crawl.pages.length === 0) return null;
+  if (crawl.pages.length === 0) return { profile: null, crawl };
 
   const inventory: readonly InventoryRow[] = crawl.pages.map((page) => ({
     url: page.url,
@@ -123,5 +134,5 @@ export async function buildSiteProfile(
   };
 
   await writeSiteProfile(profile);
-  return profile;
+  return { profile, crawl };
 }
