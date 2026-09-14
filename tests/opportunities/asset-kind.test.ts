@@ -28,4 +28,10 @@ describe("the day's asset kind", () => {
     expect(fix.length).toBeGreaterThan(0);
     fix.forEach((type) => expect(assetKindOf(type)).toBeNull());
   });
+
+  it("is a new page for Earn — a citable asset on the customer's domain", () => {
+    const earn = OPPORTUNITY_TYPES.filter((type) => FAMILY_OF[type] === "earn");
+    expect(earn).toEqual(["listed_page"]);
+    earn.forEach((type) => expect(assetKindOf(type)).toBe("page"));
+  });
 });

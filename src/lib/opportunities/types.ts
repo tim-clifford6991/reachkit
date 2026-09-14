@@ -59,10 +59,11 @@ export type AssetKind = "post" | "page" | "update";
 /** Which kind of asset a day publishes for each opportunity type.
  *
  *  `null` is the Fix family and not an omission: clearing an access barrier
- *  changes a page's headers, and publishes no asset of its own. No type
- *  yields `post` — the surface has no post-shaped opportunity to derive one
- *  from, and choosing which Write type is a post is the owner's, not a
- *  mapping's. Total over the enum, so a ninth type is a compile error here. */
+ *  changes a page's headers, and publishes no asset of its own. Earn writes
+ *  a citable page the same way Write does. No type yields `post` — the
+ *  surface has no post-shaped opportunity to derive one from, and choosing
+ *  which Write type is a post is the owner's, not a mapping's. Total over
+ *  the enum, so a new type is a compile error here. */
 export const ASSET_KIND_OF: Readonly<Record<OpportunityType, AssetKind | null>> = Object.freeze({
   answer_page: "page",
   keyword_page: "page",
@@ -72,6 +73,7 @@ export const ASSET_KIND_OF: Readonly<Record<OpportunityType, AssetKind | null>> 
   answerable_page: "update",
   refresh_page: "update",
   unblock: null,
+  listed_page: "page",
 });
 
 /** The day's asset kind, read off the opportunity it was picked for. */
