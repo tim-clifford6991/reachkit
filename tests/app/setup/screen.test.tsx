@@ -363,7 +363,7 @@ describe('REQ-028 c1 and c2 — mode and destination', () => {
     ]) {
       const option = tree.querySelector(`[data-testid="${id}"]`);
       expect(option, id).not.toBeNull();
-      expect(option?.querySelector(".rk-choice-d")?.textContent ?? "", id).not.toBe("");
+      expect(option?.querySelector('[data-testid="setup-option-line"]')?.textContent ?? "", id).not.toBe("");
     }
   });
 
@@ -405,13 +405,13 @@ describe('REQ-028 c1 and c2 — mode and destination', () => {
 
   it("Canvas: OnboardingPublishing — the chosen destination carries the set's `default`", () => {
     const hosted = screenFor().querySelector('[data-testid="setup-destination-hosted"]');
-    expect(hosted?.querySelector(".rk-choice-badge")?.textContent).toBe(
+    expect(hosted?.querySelector('[data-testid="setup-option-default"]')?.textContent).toBe(
       COPY["setup.mode.default"]
     );
     const wordpress = screenFor().querySelector(
       '[data-testid="setup-destination-wordpress"]'
     );
-    expect(wordpress?.querySelector(".rk-choice-badge")).toBeNull();
+    expect(wordpress?.querySelector('[data-testid="setup-option-default"]')).toBeNull();
   });
 
   it("the record carries the state the hostname is in, in the same two words settings reads back", () => {

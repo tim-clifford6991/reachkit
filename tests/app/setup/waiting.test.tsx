@@ -64,7 +64,7 @@ describe('c1 — "they see which step is under way in written words rather than 
     // UI-SPEC S11's five rows, not the engine's six handles: three of the
     // handles are drawn on the first row and two on the second.
     const tree = waitingAt("reading_your_market");
-    const rows = Array.from(tree.querySelectorAll(".rk-stage"));
+    const rows = Array.from(tree.querySelectorAll('[data-testid="setup-waiting"] > li'));
     expect(rows).toHaveLength(DRAWN_ROWS.length);
     expect(rows).toHaveLength(5);
     const current = rows.filter((row) => row.getAttribute("data-state") === "current");
@@ -74,7 +74,7 @@ describe('c1 — "they see which step is under way in written words rather than 
 
   it("a handle on the second drawn row makes the first one done", () => {
     const tree = waitingAt("checking_your_presence");
-    const states = Array.from(tree.querySelectorAll(".rk-stage")).map((row) =>
+    const states = Array.from(tree.querySelectorAll('[data-testid="setup-waiting"] > li')).map((row) =>
       row.getAttribute("data-state")
     );
     expect(states).toEqual(["done", "current", "pending", "pending", "pending"]);
@@ -86,7 +86,7 @@ describe('c1 — "they see which step is under way in written words rather than 
     for (const row of DRAWN_ROWS) {
       for (const stage of ROW_STAGES[row]) {
         const tree = waitingAt(stage);
-        const current = Array.from(tree.querySelectorAll(".rk-stage")).find(
+        const current = Array.from(tree.querySelectorAll('[data-testid="setup-waiting"] > li')).find(
           (node) => node.getAttribute("data-state") === "current"
         );
         expect(current?.getAttribute("data-testid"), stage).toBe(`setup-stage-${row}`);
@@ -97,7 +97,7 @@ describe('c1 — "they see which step is under way in written words rather than 
   it("there is no bare spinner and no indeterminate bar: every mark carries a label", () => {
     const tree = waitingAt("scoring");
     expect(tree.querySelectorAll("progress")).toHaveLength(0);
-    for (const row of Array.from(tree.querySelectorAll(".rk-stage"))) {
+    for (const row of Array.from(tree.querySelectorAll('[data-testid="setup-waiting"] > li'))) {
       expect((row.textContent ?? "").trim().length).toBeGreaterThan(0);
     }
   });
@@ -123,7 +123,7 @@ describe("REQ-029 c1 as the approved set amends it — a finished row's time, an
 
   it("a finished row states its own elapsed time, from the pass's own instants", () => {
     const tree = waitingAt("scoring", ENTERED);
-    const times = Array.from(tree.querySelectorAll(".rk-stage-t")).map((n) => n.textContent);
+    const times = Array.from(tree.querySelectorAll('[data-testid="setup-stage-time"]')).map((n) => n.textContent);
     // 41 s and 18 s are the differences between consecutive entries — the
     // very durations the set prints — and the running row's dash.
     expect(times).toEqual(["41 s", "18 s", COPY["setup.waiting.stage.running"]]);
@@ -131,10 +131,10 @@ describe("REQ-029 c1 as the approved set amends it — a finished row's time, an
 
   it("the running row states a dash, never a running clock", () => {
     const tree = waitingAt("scoring", ENTERED);
-    const current = Array.from(tree.querySelectorAll(".rk-stage")).find(
+    const current = Array.from(tree.querySelectorAll('[data-testid="setup-waiting"] > li')).find(
       (row) => row.getAttribute("data-state") === "current"
     );
-    expect(current?.querySelector(".rk-stage-t")?.textContent).toBe(
+    expect(current?.querySelector('[data-testid="setup-stage-time"]')?.textContent).toBe(
       COPY["setup.waiting.stage.running"]
     );
   });
@@ -142,14 +142,14 @@ describe("REQ-029 c1 as the approved set amends it — a finished row's time, an
   it("a row the pass recorded no instant for states no time at all", () => {
     // Never a zero: a duration nobody measured is not a duration of none.
     const tree = waitingAt("scoring");
-    expect(tree.querySelectorAll(".rk-stage-t")).toHaveLength(1);
+    expect(tree.querySelectorAll('[data-testid="setup-stage-time"]')).toHaveLength(1);
   });
 
   it("a row that has not begun states nothing", () => {
     const tree = waitingAt("reading_your_site", ENTERED);
-    const pending = Array.from(tree.querySelectorAll('.rk-stage[data-state="pending"]'));
+    const pending = Array.from(tree.querySelectorAll('[data-testid="setup-waiting"] > li[data-state="pending"]'));
     expect(pending.length).toBeGreaterThan(0);
-    for (const row of pending) expect(row.querySelector(".rk-stage-t")).toBeNull();
+    for (const row of pending) expect(row.querySelector('[data-testid="setup-stage-time"]')).toBeNull();
   });
 
   it("nothing estimates, counts down, shows a clock or a percentage", () => {
