@@ -1,24 +1,14 @@
-// BUILD §4.3 · UI-SPEC S10 · S11 — where the founder is, in three phases.
+// SPEC §5 — where the founder is, in three phases: Paid, Setup, First page.
 //
-// The set draws the same strip on both screens: `Paid` done, then `Setup`,
-// then `First page`. On `/setup` the current phase is Setup; on
-// `/setup/waiting` it is First page and Setup is done. One component, so
-// the two screens cannot disagree about the order or the words.
-//
-// **The registered `Steps`, not a strip of its own.** BUILD §2.2's set of
-// fifteen includes `steps` and this is exactly that: three labelled steps
-// with a state each. So this file writes no class and mints no CSS — §2.2
-// allows setup no stylesheet at all.
-//
-// **No phase carries a duration.** The amended REQ-025 c1 (see
-// `keys/setup.ts`) restored one sentence per screen — the submit's and the
-// waiting card's — and the set draws no clock on a step. `Steps` has a
-// `note` slot and this file passes none.
+// The same strip heads `/setup` (Setup current) and `/setup/waiting` (First
+// page current), so the two screens cannot disagree about the order or the
+// words. daisyUI `steps` in the route (DESIGN.md rule 1); a finished phase
+// carries a lucide check. No phase carries a duration.
 import type React from "react";
-import { Steps, type StepItem } from "@/ui/components/Steps";
+import { Check } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 
-/** The three phases, in the set's order. */
+/** The three phases, in order. */
 export const SETUP_PHASES = ["paid", "setup", "first-page"] as const;
 export type SetupPhase = (typeof SETUP_PHASES)[number];
 
@@ -30,15 +20,27 @@ const PHASE_COPY: Readonly<Record<SetupPhase, CopyKey>> = Object.freeze({
 
 export function ProgressStrip(p: { current: SetupPhase }): React.JSX.Element {
   const at = SETUP_PHASES.indexOf(p.current);
-  const steps: StepItem[] = SETUP_PHASES.map((phase, index) => ({
-    id: phase,
-    label: copy(PHASE_COPY[phase]),
-    state: index < at ? "done" : index === at ? "active" : "pending",
-  }));
 
   return (
-    <div data-testid="setup-progress" data-current={p.current}>
-      <Steps steps={steps} />
-    </div>
+    <ul className="steps w-full" data-testid="setup-progress" data-current={p.current}>
+      {SETUP_PHASES.map((phase, index) => {
+        const state = index < at ? "done" : index === at ? "active" : "pending";
+        return (
+          <li
+            key={phase}
+            className={state === "pending" ? "step text-sm" : "step step-primary text-sm"}
+            data-state={state}
+            aria-current={state === "active" ? "step" : undefined}
+          >
+            {state === "done" ? (
+              <span className="step-icon">
+                <Check aria-hidden size={16} strokeWidth={1.75} />
+              </span>
+            ) : null}
+            {copy(PHASE_COPY[phase])}
+          </li>
+        );
+      })}
+    </ul>
   );
 }

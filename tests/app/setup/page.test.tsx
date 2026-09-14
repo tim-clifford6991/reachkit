@@ -119,12 +119,12 @@ describe("/setup/waiting", () => {
     // Five rows, one current. This pass recorded no instants, so no
     // finished row states a time — a duration nobody measured is not a
     // duration of none — and the current row states the dash.
-    expect(tree.querySelectorAll(".rk-stage")).toHaveLength(5);
+    expect(tree.querySelectorAll('[data-testid="setup-waiting"] > li')).toHaveLength(5);
     expect(
-      Array.from(tree.querySelectorAll(".rk-stage")).map((row) => row.getAttribute("data-state"))
+      Array.from(tree.querySelectorAll('[data-testid="setup-waiting"] > li')).map((row) => row.getAttribute("data-state"))
     ).toEqual(["current", "pending", "pending", "pending", "pending"]);
     expect(
-      Array.from(tree.querySelectorAll(".rk-stage-t")).map((node) => node.textContent)
+      Array.from(tree.querySelectorAll('[data-testid="setup-stage-time"]')).map((node) => node.textContent)
     ).toEqual(["–"]);
   });
 

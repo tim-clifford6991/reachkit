@@ -33,46 +33,27 @@
 "use client";
 
 import type React from "react";
-import { useRef, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { Btn } from "@/ui/components/Btn";
-import { Badge } from "@/ui/components/Badge";
-import { Input } from "@/ui/components/Input";
-import { Divider } from "@/ui/components/Divider";
-import { BookOpen, Sparkles } from "lucide-react";
-import { CardHead, IdiomCard, OptionCard } from "@/ui/idiom";
-import { copy, type CopyKey } from "@/lib/presentation/copy";
+import { copy } from "@/lib/presentation/copy";
 import {
   settledCategory,
   validateSetup,
   type SetupState,
 } from "@/lib/market/setup/state";
 import {
-  dnsRecordFor,
   preselected,
   type DestinationKind,
-  type DnsPending,
-  type DnsRecord,
   type PublishingMode,
 } from "@/lib/publish/setup/cards";
-import { purposeCounts, type PagePurpose } from "@/lib/site-profile/types";
-import { checkLabel, type LabelRefusal } from "@/lib/publish/destinations/hosted/label";
-import { checkSubdomainLabel } from "./label-actions";
 import { MarketCard } from "./MarketCard";
+import { ProfileCard } from "./ProfileCard";
+import { PublishingCard } from "./PublishingCard";
 import { RivalsCard } from "./RivalsCard";
 import type { SetupScreenModel } from "./_setup/facts";
 import type { SetupRefusal, SetupSubmission } from "./submit";
 import type { ResolveDomainResponse } from "@/app/api/setup/domain/route";
 import type { SetupResult } from "./submit";
-
-/** SPEC §5's two refusals, as written lines. The same two keys the
- *  submit's own refusals resolve to: one sentence per refusal, wherever it
- *  is found, so the screen and the server cannot word the same refusal two
- *  ways. */
-const LABEL_REFUSAL_COPY = {
-  not_a_label: "setup.destination.label.refused.invalid",
-  taken: "setup.destination.label.refused.taken",
-} as const satisfies Record<LabelRefusal, string>;
 
 /** Every refusal the founder can be shown, as a written line. `SetupResult`'s
  *  `already_complete` is absent on purpose: a founder who has completed setup
@@ -130,56 +111,10 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
   // screen opens on is the one the cards were composed with, so what they
   // were shown and what they submit are one fact read twice.
   const [label, setLabel] = useState(hostedLabel(p.model));
-  const [labelRefusal, setLabelRefusal] = useState<LabelRefusal | null>(null);
-  /** Which availability question is the current one. A founder types
-   *  faster than a round trip answers, and an older answer landing last
-   *  would refuse a label they have already changed. */
-  const labelAsked = useRef(0);
   const [submitRefusal, setSubmitRefusal] = useState<
     keyof typeof SUBMIT_REFUSAL_COPY | null
   >(null);
   const [submitting, setSubmitting] = useState(false);
-
-  // REQ-028 c2, and SPEC §5's "appears as soon as the site address is
-  // known": the record is composed here rather than read off the server's
-  // model, because both halves of its name move while the founder is on
-  // this screen — they type their address, and they choose their label.
-  // The one thing the screen cannot derive is the target it points at,
-  // which is a deployment binding and rides on the model.
-  const dns: DnsRecord | DnsPending = dnsRecordFor({
-    siteDomain: state.siteDomain,
-    cnameTarget: p.model.cnameTarget,
-    label,
-  });
-
-  /** The label, as the founder types it. The shape is decided here and at
-   *  once; whether the host is free is a row, and is asked of the server
-   *  with the newest answer winning. */
-  async function draftLabel(next: string): Promise<void> {
-    setLabel(next);
-    const shape = checkLabel(next);
-    if (!shape.ok) {
-      setLabelRefusal(shape.because);
-      return;
-    }
-    setLabelRefusal(null);
-    labelAsked.current += 1;
-    const asked = labelAsked.current;
-    // SPEC §5's second question — whether anybody else already serves at
-    // the host this label composes — is a row, so it is the Server
-    // Function's. A call that does not complete refuses nothing: the
-    // submit asks the same question against the canonical domain and is
-    // what actually decides, so a blip here must not stand between a
-    // founder and a label nobody holds.
-    let refusal: LabelRefusal | null = null;
-    try {
-      refusal = (await checkSubdomainLabel({ label: next, domain: state.siteDomain })).refusal;
-    } catch {
-      refusal = null;
-    }
-    if (asked !== labelAsked.current) return;
-    setLabelRefusal(refusal);
-  }
 
   async function handleSubmit(
     event: FormEvent<HTMLFormElement>,
@@ -248,227 +183,45 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
         onRivals={(rivals) => setState((current) => ({ ...current, rivals }))}
       />
 
-      {/* SPEC.md §5 (2026-09-12) — "Your site, as we read it". The
-          inventory and the site name are shown **as read**: there is no
-          control to correct them here, because they are a reading, not a
-          decision. The one thing the founder may change is the voice,
-          which is what everything written for them will sound like.
-
-          No profile, no card. A scan has built one for every founder who
-          arrived from a report; one who bought with no report behind them
-          has nothing read yet, and an empty card claiming to have read
-          their site would be a lie the screen tells on its own. */}
+      {/* No profile, no card: a founder who bought with no report behind
+          them has had nothing read yet. */}
       {p.model.profile === null ? null : (
-        <IdiomCard
-          head={
-            <CardHead
-              icon={<BookOpen aria-hidden size={ICON} />}
-              eyebrow={copy("setup.profile.title")}
-              pill={
-                <Badge tone="accent">
-                  <span className="num" data-testid="setup-profile-pages">
-                    {copy("setup.profile.pages-read", {
-                      pages: p.model.profile.pagesRead,
-                    })}
-                  </span>
-                </Badge>
-              }
-            />
-          }
-          testId={PROFILE_TEST_ID}
-        >
-          <div style={ROW}>
-            {p.model.profile.siteName === null ? null : (
-              <p data-testid="setup-profile-site-name">
-                {p.model.profile.siteName}
-              </p>
-            )}
-            <p className="num" data-testid="setup-profile-domain">
-              {p.model.profile.domain}
-            </p>
-          </div>
-
-          <p className="rk-quiet">{copy("setup.profile.purposes")}</p>
-          {/* One chip per purpose that actually occurs, with its count.
-              `purposeCounts` drops the purposes with no pages — an empty
-              count is not a fact worth a chip. */}
-          <div
-            className="flex flex-wrap items-center gap-2"
-            data-testid="setup-profile-purposes"
-          >
-            {purposeCounts(p.model.profile.inventory).map((entry) => (
-              <Badge key={entry.purpose} tone="accent">
-                {/* The word and its count are two elements with a gap
-                    between them, never a space typed as a JSX child: a
-                    string literal on a surface is a product sentence to
-                    the copy sweep, and it is right to say so. */}
-                <span className="flex items-center gap-2">
-                  <span data-testid={`setup-profile-purpose-${entry.purpose}`}>
-                    {copy(PURPOSE_COPY[entry.purpose])}
-                  </span>
-                  <span className="num">{entry.count}</span>
-                </span>
-              </Badge>
-            ))}
-          </div>
-
-          <Input
-            multiline
-            label={copy("setup.profile.voice.label")}
-            name="voice_text"
-            value={voiceDraft}
-            onChange={setVoiceDraft}
-          />
-          <p className="rk-quiet" data-testid="setup-profile-voice-later">
-            {copy("setup.profile.voice.later")}
-          </p>
-        </IdiomCard>
+        <ProfileCard profile={p.model.profile} voice={voiceDraft} onVoice={setVoiceDraft} />
       )}
 
-      <IdiomCard
-        head={
-          <CardHead
-            icon={<Sparkles aria-hidden size={ICON} />}
-            eyebrow={copy("setup.publishing.title")}
-          />
-        }
-        testId={PUBLISHING_TEST_ID}
-      >
-        {/* Two option pairs, as the set draws them: the mode, a rule, the
-              destination. Each card carries its own line, and the hosted
-              destination carries its CNAME record inside the option it
-              belongs to rather than under the whole card. */}
-        <div className="rk-pick" data-testid="setup-mode">
-          {p.model.cards.mode.map((option) => (
-            <OptionCard
-              key={option.mode}
-              title={copy(option.name)}
-              line={copy(option.copy)}
-              chosen={mode === option.mode}
-              badge={
-                option.preselected ? copy("setup.mode.default") : undefined
-              }
-              onChoose={() => setMode(option.mode)}
-              testId={`setup-mode-${option.mode}`}
-            />
-          ))}
-        </div>
-
-        <Divider />
-
-        {/* Canvas: OnboardingPublishing — the pair, each card carrying what
-            choosing it involves: the hosted card its record and the state
-            that record is in, the WordPress card what connecting will ask
-            for. The chosen one carries the set's own `default`. */}
-        <div className="rk-pick" data-testid="setup-destination">
-          {p.model.cards.destination.map((option) => (
-            <OptionCard
-              key={option.kind}
-              title={copy(option.name)}
-              line={copy(option.copy)}
-              chosen={destination === option.kind}
-              badge={option.preselected ? copy("setup.mode.default") : undefined}
-              onChoose={() => setDestination(option.kind)}
-              testId={`setup-destination-${option.kind}`}
-            >
-              {option.kind === "hosted" ? <HostedRecord dns={dns} /> : null}
-              {option.kind === "wordpress" ? (
-                <WordPressAsks domain={state.siteDomain} />
-              ) : null}
-            </OptionCard>
-          ))}
-        </div>
-
-        {/* SPEC §5 (2026-09-12): the label the founder chooses, and the
-            record above it moves with every keystroke. It sits under the
-            pair rather than inside the hosted card because that card is a
-            `<button>` — the approved artboard draws the field within it,
-            and a form control nested in a button is neither valid markup
-            nor operable by keyboard. Named in the PR. */}
-        {destination === "hosted" ? (
-          <div data-testid="setup-destination-label">
-            {labelRefusal === null ? (
-              <Input
-                mono
-                label={copy("setup.destination.label.label")}
-                name="label"
-                value={label}
-                onChange={(next) => {
-                  void draftLabel(next);
-                }}
-              />
-            ) : (
-              <Input
-                mono
-                label={copy("setup.destination.label.label")}
-                name="label"
-                value={label}
-                onChange={(next) => {
-                  void draftLabel(next);
-                }}
-                invalid
-                invalidMessage={copy(LABEL_REFUSAL_COPY[labelRefusal])}
-              />
-            )}
-          </div>
-        ) : null}
-      </IdiomCard>
+      <PublishingCard
+        cards={p.model.cards}
+        siteDomain={state.siteDomain}
+        cnameTarget={p.model.cnameTarget}
+        mode={mode}
+        onMode={setMode}
+        destination={destination}
+        onDestination={setDestination}
+        label={label}
+        onLabel={setLabel}
+      />
 
       {submitRefusal === null ? null : (
-        <p data-testid="setup-submit-refusal">
+        <div role="alert" className="alert alert-error alert-soft text-sm" data-testid="setup-submit-refusal">
           {copy(SUBMIT_REFUSAL_COPY[submitRefusal])}
-        </p>
+        </div>
       )}
-      <Btn
+      {/* The screen's one solid primary. */}
+      <button
         type="submit"
-        label={copy("setup.submit")}
-        variant="primary"
-        pill
-        inFlight={submitting}
-        block
-      />
-      {/* REQ-021 c10, and the set's own sentence for it, centred under the
-          one control. */}
-      <p className="rk-quiet" style={CENTRED} data-testid="setup-footer-line">
+        className="btn btn-primary btn-block"
+        disabled={submitting}
+        aria-busy={submitting}
+      >
+        {copy("setup.submit")}
+      </button>
+      {/* REQ-021 c10, centred under the one control. */}
+      <p className="text-center text-sm text-base-content/70" data-testid="setup-footer-line">
         {copy("setup.footer.line")}
       </p>
     </form>
   );
 }
-
-/** The chip's glyph size — 14px inside `.rk-head-chip`'s 32px square. */
-const ICON = 14;
-
-/** A test hook, bound to a name for the copy sweep's reason. */
-const PROFILE_TEST_ID = "setup-profile";
-const PUBLISHING_TEST_ID = "setup-publishing";
-
-/** A settled row: the value, and the one control that changes it. */
-const ROW: React.CSSProperties = {
-  display: "flex",
-  flexWrap: "wrap",
-  alignItems: "center",
-  justifyContent: "space-between",
-  gap: "0.75rem",
-  minWidth: 0,
-};
-
-const CENTRED: React.CSSProperties = { textAlign: "center" };
-
-/** SPEC.md §2's eight purposes, each as the key whose word a customer
- *  reads. A record rather than a template so the key is a `CopyKey` the
- *  registry checks, and so an engine token can never reach a screen as
- *  itself. */
-const PURPOSE_COPY = {
-  pricing: "setup.profile.purpose.pricing",
-  about: "setup.profile.purpose.about",
-  features: "setup.profile.purpose.features",
-  product: "setup.profile.purpose.product",
-  blog: "setup.profile.purpose.blog",
-  contact: "setup.profile.purpose.contact",
-  legal: "setup.profile.purpose.legal",
-  other: "setup.profile.purpose.other",
-} as const satisfies Record<PagePurpose, CopyKey>;
 
 /** The label the hosted card was composed with — the founder's own, or
  *  the default they have not changed. Read off the card rather than named
@@ -485,81 +238,3 @@ function hostedLabel(model: SetupScreenModel): string {
   }
   return hosted.label;
 }
-
-/** REQ-028 c2: the record once the site address is known, and one written
- *  line where it is not — never a blank, a dash or a placeholder. */
-function HostedRecord(p: { dns: DnsRecord | DnsPending }): React.JSX.Element {
-  if ("pending" in p.dns) {
-    return <p data-testid="setup-dns-pending">{copy(p.dns.copy)}</p>;
-  }
-  return (
-    <>
-      <span className={ASK_LINE} data-testid="setup-dns-caption">
-        {copy("setup.destination.dnsRecord")}
-      </span>
-      {/* Canvas: OnboardingPublishing — the record in its own inset box,
-          the hostname's state beside it. The state is `waiting`: the host
-          cannot resolve before the customer creates the record they are
-          being shown, and settings reads the same two words back. */}
-      <span className={RECORD_BOX}>
-        {/* §2.2 allows no stylesheet here, so the record wraps with
-            utilities: `wrap-anywhere` is Tailwind's `overflow-wrap:
-            anywhere` — ADR-093 check 3 treats any clipped mono element as
-            an offender whatever an allow-list says, so a record longer
-            than a 320px column has to break inside its own box rather
-            than hide behind a scrollbar. */}
-        <span
-          className="num flex min-w-0 flex-wrap gap-(--s-2)"
-          data-testid="setup-dns-record"
-        >
-          <span className="min-w-0 wrap-anywhere">{p.dns.name}</span>
-          <span className="min-w-0 wrap-anywhere">{p.dns.type}</span>
-          <span className="min-w-0 wrap-anywhere">{p.dns.value}</span>
-        </span>
-        <Badge tone="warn">
-          <span data-testid="setup-dns-state">
-            {copy("settings.destination.hostname.waiting")}
-          </span>
-        </Badge>
-      </span>
-    </>
-  );
-}
-
-/** Canvas: OnboardingPublishing — what connecting WordPress asks for, on
- *  the card that offers it. Shown, never asked here: §5 keeps the connect
- *  itself for settings ("connect later"), and setup's fields are the three
- *  decisions and no fourth. */
-function WordPressAsks(p: { domain: string | null }): React.JSX.Element {
-  return (
-    <>
-      <span className={ASK}>
-        <span className={ASK_LINE}>{copy("settings.destination.site-url")}</span>
-        {p.domain === null ? null : (
-          <span className="num wrap-anywhere" data-testid="setup-wordpress-site">
-            {p.domain}
-          </span>
-        )}
-      </span>
-      <span className={ASK}>
-        <span className={ASK_LINE}>
-          {copy("settings.destination.app-password")}
-        </span>
-        <span className="explain" data-testid="setup-wordpress-help">
-          {copy("settings.destination.app-password.help")}
-        </span>
-      </span>
-    </>
-  );
-}
-
-/** A card's own quiet line, at the set's `--t-sm` rung. */
-const ASK_LINE = "mt-(--s-3) block text-(length:--t-sm) text-(color:--ink-2)";
-
-/** One thing a destination asks for: what it is called, then what it holds. */
-const ASK = "mt-(--s-3) flex min-w-0 flex-col";
-
-/** The record's inset box: the accent hairline the set draws around it, the
- *  value, and the state the hostname is in. */
-const RECORD_BOX =
-  "mt-(--s-2) flex flex-wrap items-center justify-between gap-(--s-3) rounded-(--r-field) border border-(color:--accent-line) bg-(--surface) p-(--s-3)";

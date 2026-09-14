@@ -29,7 +29,6 @@ import { redirect } from "next/navigation";
 import { Surface } from "@/ui/layout";
 import { copy } from "@/lib/presentation/copy";
 import { Sparkles } from "lucide-react";
-import { CardHead, IdiomCard } from "@/ui/idiom";
 import { readPassProgress } from "../_setup/provider";
 import { ProgressStrip, type SetupPhase } from "../_setup/ProgressStrip";
 import { STAGES } from "@/lib/scan/stages";
@@ -77,38 +76,29 @@ export default async function WaitingPage(): Promise<React.JSX.Element> {
             and the first page is what is running. */}
         <ProgressStrip current={PHASE} />
         <h1>{copy("setup.waiting.head")}</h1>
-        {/* The set draws the stages inside a card, with the two lines
-            under them — so the founder reads what is happening and what
-            happens next in one box, rather than a bare list on the page. */}
-        <IdiomCard
-          head={
-            <CardHead
-              icon={<Sparkles aria-hidden size={ICON} />}
-              eyebrow={copy("setup.progress.first-page")}
-            />
-          }
-          testId={WAITING_CARD_TEST_ID}
-        >
-          <Waiting rows={rows} />
-          {/* REQ-025 c1 as the approved set amends it: one sentence, and
-              the promise that matters more than the clock — a pass that
-              finds nothing worth writing says so. */}
-          <p className="rk-quiet" data-testid="setup-waiting-about">
-            {copy("setup.waiting.about")}
-          </p>
-        </IdiomCard>
-        <p className="rk-quiet" style={CENTRED} data-testid="setup-waiting-close-tab">
+        {/* The stages and the one line under them in one card, so the
+            founder reads what is happening and what happens next together. */}
+        <section className="card bg-base-100 shadow-sm" data-testid={WAITING_CARD_TEST_ID}>
+          <div className="card-body gap-4">
+            <h2 className="card-title text-base">
+              <Sparkles aria-hidden size={20} strokeWidth={1.75} />
+              {copy("setup.progress.first-page")}
+            </h2>
+            <Waiting rows={rows} />
+            {/* REQ-025 c1 as amended: one sentence, and the promise that a
+                pass which finds nothing worth writing says so. */}
+            <p className="text-sm text-base-content/70" data-testid="setup-waiting-about">
+              {copy("setup.waiting.about")}
+            </p>
+          </div>
+        </section>
+        <p className="text-center text-sm text-base-content/70" data-testid="setup-waiting-close-tab">
           {copy("setup.waiting.close-tab")}
         </p>
       </main>
     </Surface>
   );
 }
-
-/** The chip's glyph size — 14px inside `.rk-head-chip`'s 32px square. */
-const ICON = 14;
-
-const CENTRED: React.CSSProperties = { textAlign: "center" };
 
 /** The stage a pass that recorded none stands at. `passProgressFor` makes
  *  the same substitution for the same reason: "which step is under way"
