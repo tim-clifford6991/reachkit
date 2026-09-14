@@ -116,11 +116,8 @@ describe("issue #486 — every chip the approved set draws carries its glyph", (
     const header = read("app/(public)/_chrome/Header.tsx");
     expect(header).toMatch(/rounded-field bg-primary text-primary-content" aria-hidden>\s*<TrendingUp size=\{16\} strokeWidth=\{1\.75\}/);
     expect(read("app/(public)/_chrome/Footer.tsx")).toContain("<Brand />");
-    for (const rel of ["app/(account)/app/layout.tsx"]) {
-      const source = read(rel);
-      expect(source, rel).toMatch(/className="rk-wordmark-chip"[^>]*>\s*<TrendingUp size=\{15\} strokeWidth=\{2\}/);
-      expect(source, rel).not.toMatch(/className="rk-wordmark-chip"[^>]*\/>/);
-    }
+    // The app shell draws the same mark.
+    expect(read("app/(account)/app/layout.tsx")).toMatch(/rounded-field bg-primary text-primary-content" aria-hidden>\s*<TrendingUp size=\{16\} strokeWidth=\{1\.75\}/);
     // Sign-in draws the same mark as the public chrome, in its own card.
     const signin = read("app/(public)/signin/page.tsx");
     expect(signin).toMatch(/rounded-field bg-primary text-primary-content/);

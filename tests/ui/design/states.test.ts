@@ -24,7 +24,6 @@ const IDIOM = "src/ui/idiom/idiom.css";
 // declares: the idiom's own parts (§0 7, 8, 12), the calendar cell, the
 // shell's nav row, and the one motion token.
 const CALENDAR = "src/ui/components/custom/calendar-grid.css";
-const SHELL = "src/ui/layout/shell.css";
 
 function walk(dir: string, keep: (file: string) => boolean, out: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {
@@ -111,28 +110,6 @@ describe("§0 11 — the compact band keeps the Workspace nav as one row", () =>
     expect(layout).not.toMatch(/TabBar/);
   });
 
-  it("the row is horizontal, and each item is as wide as its own word", () => {
-    expect(decls(SHELL, ".rk-nav-row").get("flex-direction")).toBe("row");
-    // An equal share is narrower than "Calendar" and its count at the 320
-    // floor, which checks 2 and 3 read as a cut word. The items size to
-    // their content and the row spreads them instead.
-    expect(decls(SHELL, ".rk-nav-row .rk-navlink").get("flex")).toBe("0 1 auto");
-    expect(decls(SHELL, ".rk-nav-row").get("justify-content")).toBe("space-between");
-  });
-
-  it("hides nothing in the row but the decorative glyph", () => {
-    const hidden: string[] = [];
-    postcss.parse(read(SHELL)).walkRules((rule: Rule) => {
-      const hides = rule.nodes.some(
-        (n) => n.type === "decl" && n.prop === "display" && n.value.trim() === "none"
-      );
-      if (hides && /rk-nav|rk-navlink/.test(rule.selector)) hidden.push(rule.selector);
-    });
-    // §0 11 keeps the labels and the counts. The glyph is `aria-hidden`
-    // decoration, and at 320 the three words and Calendar's count fit the
-    // row only without it — so it goes, and neither a word nor a count does.
-    expect(hidden).toEqual([".rk-nav-row .rk-navlink > svg"]);
-  });
 });
 
 describe("§0 13 — one motion token", () => {

@@ -352,7 +352,7 @@ describe("§2.1 — no reference to a token nothing declares", () => {
     // The case this reads through declarations rather than raw text for:
     // a screen explaining in a comment that daisyUI's badge is
     // `height: var(--size)` owes this repo no `--size` token.
-    expect(tokenReferences("src/ui/layout/shell.css").length).toBeGreaterThan(0);
+    expect(tokenReferences("src/ui/layout/surface.css").length).toBeGreaterThan(0);
     const decls = declarationsOf("/* height: var(--size) */ .x { color: var(--ink); }");
     const seen = decls.flatMap((decl) =>
       [...decl.value.matchAll(/var\(\s*(--[\w-]+)/g)].map((match) => match[1])
