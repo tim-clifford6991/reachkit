@@ -616,4 +616,30 @@ export const MAIL_COPY = Object.freeze({
    *  these are their labels, and the unit is the owner's word to choose. */
   "mail.ops.spend-ceiling.fact.spent": ["spent today, in cents", { slots: {}, fixedBy: "BUILD §6.5 · issue 329" }],
   "mail.ops.spend-ceiling.fact.ceiling": ["daily ceiling, in cents", { slots: {}, fixedBy: "BUILD §6.5 · issue 329" }],
+
+  // ── SPEC §8, Retention (issue 569). Owner-owed: the copy sheet is issue
+  // 568. `sendEmail` refuses a mail that still carries the marker, so none of
+  // these kinds sends until its sentences are written ("Unwritten keys send
+  // nothing"). Slots are named for what the sequence can supply.
+  "mail.inactivity.subject": ["TODO(copy)", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
+  "mail.inactivity.line": ["TODO(copy)", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
+  "mail.inactivity.action": ["TODO(copy)", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
+  "mail.reason.inactivity": ["TODO(copy)", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
+  /** `{page}` is the draft's title; `{closesAt}` the moment its veto window
+   *  closes, in the customer's zone. */
+  "mail.vetoReminder.subject": ["TODO(copy)", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
+  "mail.vetoReminder.line": ["TODO(copy)", { slots: { page: "text", closesAt: "date" }, fixedBy: "SPEC §8 · issue 569" }],
+  "mail.vetoReminder.action": ["TODO(copy)", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
+  "mail.reason.vetoReminder": ["TODO(copy)", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
+  "mail.paymentFailed.subject": ["TODO(copy)", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
+  "mail.paymentFailed.line": ["TODO(copy)", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
+  "mail.paymentFailed.action": ["TODO(copy)", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
+  /** `{accessEndsOn}` is the day access ends (`paid_through`), in the
+   *  customer's zone — SPEC §8's "cancellation (end date)". */
+  "mail.cancellation.subject": ["TODO(copy)", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
+  "mail.cancellation.line": ["TODO(copy)", { slots: { accessEndsOn: "date" }, fixedBy: "SPEC §8 · issue 569" }],
+  "mail.winback.subject": ["TODO(copy)", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
+  "mail.winback.line": ["TODO(copy)", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
+  "mail.winback.action": ["TODO(copy)", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
+  "mail.reason.winback": ["TODO(copy)", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
 }) satisfies CopyPartition;

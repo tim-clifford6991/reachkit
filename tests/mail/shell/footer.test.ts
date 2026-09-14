@@ -35,7 +35,15 @@ const { OWNER_OWED } = await import("../../../src/lib/presentation/copy/registry
  * approves no sentence to fill their footer with, and inventing one is the
  * thing CLAUDE.md forbids. When the owner writes them, this list shrinks.
  */
-const NO_REASON_YET = ["first-page-unavailable", "setup-reminder", "account", "ops"] as const;
+const NO_REASON_YET = [
+  "first-page-unavailable",
+  "setup-reminder",
+  "account",
+  "ops",
+  // SPEC §8's two retention account notices (issue #569), like `account`.
+  "payment-failed",
+  "cancellation",
+] as const;
 
 const BASE = {
   subject: "mail.shell.wordmark",
@@ -48,8 +56,11 @@ describe("issue #376 — S20's footer, in both bodies", () => {
     // the register rather than against itself — a fourth kind added to
     // `MAIL_KINDS` without a footer line fails here, naming itself.
     const drawn = ["magic-link", "report", "first-page", "draft-ready", "published", "weekly", "nurture"];
+    // SPEC §8's three retention follow-ups carry a reason key (owner-owed, #568).
+    const retentionWithReason = ["inactivity", "veto-reminder", "win-back"];
+    drawn.push(...retentionWithReason);
     const registered = Object.keys(MAIL_KINDS);
-    expect(registered).toHaveLength(11);
+    expect(registered).toHaveLength(16);
     expect([...NO_REASON_YET].sort()).toEqual(registered.filter((k) => !drawn.includes(k)).sort());
   });
 

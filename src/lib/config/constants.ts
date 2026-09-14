@@ -614,6 +614,13 @@ export const EXPORT_DEADLINE_MS = 120_000 as const;           // BP-062 (chosen)
 export const HOSTED_RETENTION_DAYS = 30 as const;             // BP-060 · REQ-076 c10
 export const HOSTING_END_REMINDER_DAYS = 7 as const;          // BP-060 · REQ-076 c11
 export const MAINTENANCE_TICK_MINUTES = 15 as const;          // BP-003 d1 · REQ-024 c5
+// SPEC §8 Retention (#569): idle 7 days · veto < 6 h · win-back once at +30 d after access ends.
+// Stated in the SPEC table, pinned here so each is written once.
+export const RETENTION_MAIL = Object.freeze({
+  inactivityIdleDays: 7, vetoReminderHours: 6, winbackAfterAccessDays: 30,
+  /** How stale a stored "last seen" may be before an /app visit rewrites it. */
+  seenRefreshMinutes: 60,
+} as const);
 export const NURTURE_MAX_TOUCHES = 3 as const;                // BP-029 · REQ-010 c9
 export const SEQUENCE_START_DEADLINE_DAYS = 7 as const;       // BP-029 · REQ-010 c12
 export const FIRST_PAGE_RETRY_WINDOW_H = 24 as const;         // BP-029 · REQ-010 c8

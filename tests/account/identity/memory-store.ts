@@ -12,6 +12,8 @@ import type {
 export interface MemoryIdentity {
   users: IdentityAccountRow[];
   sites: { id: string; user_id: string }[];
+  /** `users.last_seen_at`, by account (SPEC §8, #569). */
+  seen: Map<string, Date>;
   failAccountRead: boolean;
   failPendingRead: boolean;
   failCompleteChange: boolean;
@@ -22,6 +24,7 @@ export function newMemoryIdentity(): MemoryIdentity {
   return {
     users: [],
     sites: [],
+    seen: new Map(),
     failAccountRead: false,
     failPendingRead: false,
     failCompleteChange: false,
@@ -96,6 +99,12 @@ export function memoryIdentityStore(state: MemoryIdentity): IdentityStore {
       if (user.first_signed_in_at !== null) return { ok: true, stamped: false };
       patchUser(state, userId, { first_signed_in_at: at.toISOString() });
       return { ok: true, stamped: true };
+    },
+
+    async stampSeen(userId, at) {
+      if (!state.users.some((u) => u.id === userId)) return { ok: false };
+      state.seen.set(userId, at);
+      return { ok: true };
     },
 
     async writePending(a) {

@@ -561,6 +561,69 @@ export async function remindSetup(siteId: string): Promise<EngineResult> {
   return { done: true };
 }
 
+// ── Retention / win-back — SPEC §8 (issue #569), built and wired here
+//
+// Five obligations on `account/maintenance`'s tick, one per retention mail
+// the tick owns (the sixth kind, the hosting-end notice, is the pair above).
+// Every rule is `src/lib/mail/retention/`'s, imported at the call because it
+// reaches `@/lib/db`. Not sending is a decided, logged outcome, never a
+// degraded run.
+
+export async function accountsDueInactivity(): Promise<readonly string[]> {
+  const { accountsDueInactivity: due } = await import("@/lib/mail/retention");
+  return due(new Date());
+}
+
+export async function nudgeInactive(userId: string): Promise<EngineResult> {
+  const { sendInactivityNudge } = await import("@/lib/mail/retention");
+  await sendInactivityNudge(userId);
+  return { done: true };
+}
+
+export async function draftsDueVetoReminder(): Promise<readonly string[]> {
+  const { draftsDueVetoReminder: due } = await import("@/lib/mail/retention");
+  return due(new Date());
+}
+
+export async function remindVeto(draftId: string): Promise<EngineResult> {
+  const { sendVetoReminder } = await import("@/lib/mail/retention");
+  await sendVetoReminder(draftId);
+  return { done: true };
+}
+
+export async function accountsDuePaymentFailed(): Promise<readonly string[]> {
+  const { accountsDuePaymentFailed: due } = await import("@/lib/mail/retention");
+  return due();
+}
+
+export async function noticePaymentFailed(userId: string): Promise<EngineResult> {
+  const { sendPaymentFailed } = await import("@/lib/mail/retention");
+  await sendPaymentFailed(userId);
+  return { done: true };
+}
+
+export async function accountsDueCancellation(): Promise<readonly string[]> {
+  const { accountsDueCancellation: due } = await import("@/lib/mail/retention");
+  return due();
+}
+
+export async function noticeCancellation(userId: string): Promise<EngineResult> {
+  const { sendCancellation } = await import("@/lib/mail/retention");
+  await sendCancellation(userId);
+  return { done: true };
+}
+
+export async function accountsDueWinback(): Promise<readonly string[]> {
+  const { accountsDueWinback: due } = await import("@/lib/mail/retention");
+  return due(new Date());
+}
+
+export async function winBack(userId: string): Promise<EngineResult> {
+  const { sendWinback } = await import("@/lib/mail/retention");
+  await sendWinback(userId);
+  return { done: true };
+}
+
 // ── Destinations — BUILD §9 (issue #48), built and wired here
 //
 // The seventh obligation on `draft/generate`'s daily per-site tick: a

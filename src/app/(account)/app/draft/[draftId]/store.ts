@@ -226,3 +226,9 @@ export async function readDraftRow(a: {
     timeZone: a.site.timeZone,
   };
 }
+
+/** SPEC §8 (#569): the owner opened this draft, so no veto reminder goes. */
+export async function recordDraftOpened(draftId: string, at: Date): Promise<void> {
+  const { retentionStore } = await import("@/lib/mail/retention");
+  await retentionStore().recordDraftOpened(draftId, at);
+}

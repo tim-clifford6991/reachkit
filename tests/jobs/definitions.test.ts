@@ -58,6 +58,17 @@ function engineDouble(): Record<string, unknown> {
     // The tick's seventh obligation (issue #438).
     scansLeftRunning: record("scansLeftRunning", []),
     finishScanLeftRunning: record("finishScanLeftRunning", done),
+    // SPEC §8's retention sequence (issue #569).
+    accountsDueInactivity: record("accountsDueInactivity", []),
+    nudgeInactive: record("nudgeInactive", done),
+    draftsDueVetoReminder: record("draftsDueVetoReminder", []),
+    remindVeto: record("remindVeto", done),
+    accountsDuePaymentFailed: record("accountsDuePaymentFailed", []),
+    noticePaymentFailed: record("noticePaymentFailed", done),
+    accountsDueCancellation: record("accountsDueCancellation", []),
+    noticeCancellation: record("noticeCancellation", done),
+    accountsDueWinback: record("accountsDueWinback", []),
+    winBack: record("winBack", done),
   };
 }
 
@@ -350,14 +361,14 @@ describe("lead/nurture — an hourly tick over due work (#182)", () => {
   });
 });
 
-describe("account/maintenance — seven due-work queries, seven hand-offs, no domain logic", () => {
+describe("account/maintenance — its due-work queries and hand-offs, no domain logic", () => {
   it("ticks every MAINTENANCE_TICK_MINUTES", async () => {
     const job = await definition("account/maintenance");
     expect(job.trigger).toEqual({ kind: "cron", cron: `*/${MAINTENANCE_TICK_MINUTES} * * * *` });
     expect(MAINTENANCE_TICK_MINUTES).toBe(15);
   });
 
-  it("a tick whose seven queries return nothing is seven reads and no hand-off", async () => {
+  it("a tick whose queries return nothing is one read each and no hand-off", async () => {
     // The sixth is §4.3's setup reminders (issue #36): a founder who paid
     // and has not answered the three questions. The seventh is §6.4's
     // in-flight bound (issue #438): a free pass an invocation the platform
@@ -373,6 +384,11 @@ describe("account/maintenance — seven due-work queries, seven hand-offs, no do
       "accountsDueForPurge",
       "sitesDueSetupReminder",
       "scansLeftRunning",
+      "accountsDueInactivity",
+      "draftsDueVetoReminder",
+      "accountsDuePaymentFailed",
+      "accountsDueCancellation",
+      "accountsDueWinback",
     ]);
     expect(outcome).toEqual({ outcome: "skipped", subjectId: null, reason: "no-subject" });
   });
@@ -626,6 +642,14 @@ describe("nothing fakes work — an unbuilt engine fails loudly", () => {
       scansLeftRunning: async () => [],
       finishScanLeftRunning: async () => ({ finished: false }),
     }));
+    // SPEC §8's retention sequence (issue #569), stood in with nothing due.
+    vi.doMock("@/lib/mail/retention", () => ({
+      accountsDueInactivity: async () => [],
+      draftsDueVetoReminder: async () => [],
+      accountsDuePaymentFailed: async () => [],
+      accountsDueCancellation: async () => [],
+      accountsDueWinback: async () => [],
+    }));
     const { jobs } = await import("@/jobs");
     const { runJob } = await import("@/jobs/run");
 
@@ -666,6 +690,7 @@ describe("nothing fakes work — an unbuilt engine fails loudly", () => {
     setLifecycleStore(null);
     setBillingStore(null);
     vi.doUnmock("@/lib/scan/stuck");
+    vi.doUnmock("@/lib/mail/retention");
     vi.doUnmock("@/lib/mail/setup/reminders");
     vi.doUnmock("@/lib/account/provisioning/due-work");
   });

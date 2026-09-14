@@ -66,6 +66,11 @@ export interface IdentityStore {
     at: Date
   ): Promise<{ ok: true; stamped: boolean } | { ok: false }>;
 
+  /** SPEC §8 (#569): every successful redemption moves `users.last_seen_at`,
+   *  which is what the retention sequence's "idle 7 days" is measured from
+   *  and what ends an idle spell. */
+  stampSeen(userId: string, at: Date): Promise<{ ok: true } | { ok: false }>;
+
   /** The three pending columns and nothing else — `users.email` is not in
    *  this statement (REQ-077 c2). `conflict` is
    *  `users_pending_email_lower_key` refusing a second customer the same
@@ -173,6 +178,14 @@ export function supabaseIdentityStore(): IdentityStore {
         .select("id");
       if (error) return { ok: false };
       return { ok: true, stamped: (data?.length ?? 0) > 0 };
+    },
+
+    async stampSeen(userId, at) {
+      const { error } = await untyped()
+        .from<IdentityAccountRow>("users")
+        .update({ last_seen_at: at.toISOString() })
+        .eq("id", userId);
+      return error ? { ok: false } : { ok: true };
     },
 
     async writePending(a) {

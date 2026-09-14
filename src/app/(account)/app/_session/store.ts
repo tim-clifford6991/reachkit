@@ -74,6 +74,13 @@ export async function readAppSite(siteId: string): Promise<AppSiteRow | null> {
   return data[0] ?? null;
 }
 
+/** SPEC §8 (#569): an /app visit ends an idle spell. The retention store
+ *  writes at most once an hour; this is the session's door to it. */
+export async function recordAccountSeen(userId: string, at: Date): Promise<void> {
+  const { retentionStore } = await import("@/lib/mail/retention");
+  await retentionStore().recordSeen(userId, at);
+}
+
 /**
  * Whether this site owns this draft.
  *

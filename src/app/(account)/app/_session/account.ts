@@ -91,6 +91,15 @@ const fromSession: AppAccountReader = async () => {
     return { ok: false, because: "no_site" };
   }
 
+  // SPEC §8 (#569): an /app visit ends an idle spell, as a sign-in does.
+  // At most one write an hour, and never in the way of the screen.
+  try {
+    const { recordAccountSeen } = await import("./store");
+    await recordAccountSeen(session.userId, new Date());
+  } catch (error) {
+    console.warn(JSON.stringify({ event: "retention_seen_unrecorded", detail: String(error) }));
+  }
+
   return {
     ok: true,
     account: {
