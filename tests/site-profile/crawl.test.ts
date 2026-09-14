@@ -295,3 +295,64 @@ describe("crawlSite", () => {
     expect(capped.pages.map((p) => p.url)).toEqual([HOME]);
   });
 });
+
+describe("what SPEC §9's technical-issue checks read off the crawl (#570)", () => {
+  const TIMEOUT = (url: string): FetchOutcome => ({ ok: false, reason: "timeout", url, readAt: READ_AT });
+
+  it("names a linked page that answered with an HTTP error as broken, and a page it read as fetched", async () => {
+    const home = page("Home", `<a href="/pricing">Pricing</a><a href="/about#team">About</a>`);
+    const out = await crawlSite(
+      fakeCost(),
+      { domain: DOMAIN, homeUrl: HOME, homeHtml: home, sitemaps: [] },
+      fakePorts({ "https://example.com/about": ok("https://example.com/about", page("About")) })
+    );
+
+    expect(out.pages[0]?.links).toEqual(["https://example.com/pricing", "https://example.com/about"]);
+    expect(out.broken).toEqual(["https://example.com/pricing"]);
+    expect(out.fetched).toEqual(expect.arrayContaining([HOME, "https://example.com/pricing", "https://example.com/about"]));
+  });
+
+  it("a link whose fetch timed out is neither broken nor fetched — a slow server is not a missing page", async () => {
+    const home = page("Home", `<a href="/pricing">Pricing</a>`);
+    const out = await crawlSite(
+      fakeCost(),
+      { domain: DOMAIN, homeUrl: HOME, homeHtml: home, sitemaps: [] },
+      fakePorts({ "https://example.com/pricing": TIMEOUT("https://example.com/pricing") })
+    );
+    expect(out.broken).toEqual([]);
+    expect(out.fetched).not.toContain("https://example.com/pricing");
+  });
+
+  it("states whether the site has a sitemap: found, a plain 404, or a read that did not come back", async () => {
+    const run = (sitemapAnswer: FetchOutcome | undefined) =>
+      crawlSite(
+        fakeCost(),
+        { domain: DOMAIN, homeUrl: HOME, homeHtml: page("Home"), sitemaps: [] },
+        fakePorts(sitemapAnswer === undefined ? {} : { "https://example.com/sitemap.xml": sitemapAnswer })
+      );
+    const urlset = `<urlset><url><loc>https://example.com/</loc></url></urlset>`;
+
+    expect((await run(ok("https://example.com/sitemap.xml", urlset))).sitemap).toBe("found");
+    expect((await run(undefined)).sitemap).toBe("absent");
+    expect((await run(TIMEOUT("https://example.com/sitemap.xml"))).sitemap).toBe("unreadable");
+  });
+
+  it("reads each page's meta description, phone viewport and structured data, and times its own fetch", async () => {
+    const about =
+      `<html><head><title>About</title><meta content="Who we are." name="description">` +
+      `<meta name="viewport" content="width=device-width, initial-scale=1">` +
+      `<script type="application/ld+json">{"@type":"Organization"}</script></head><body></body></html>`;
+    const out = await crawlSite(
+      fakeCost(),
+      { domain: DOMAIN, homeUrl: HOME, homeHtml: page("Home", `<a href="/about">About</a>`), sitemaps: [] },
+      fakePorts({ "https://example.com/about": ok("https://example.com/about", about) })
+    );
+
+    const [home, read] = out.pages;
+    expect(home?.facts).toEqual({ metaDescription: "", noindex: false, phoneViewport: false, schemaTypes: 0 });
+    // The home document was handed over, not fetched: nothing to time.
+    expect(home?.fetchMs).toBeNull();
+    expect(read?.facts).toEqual({ metaDescription: "Who we are.", noindex: false, phoneViewport: true, schemaTypes: 1 });
+    expect(typeof read?.fetchMs).toBe("number");
+  });
+});

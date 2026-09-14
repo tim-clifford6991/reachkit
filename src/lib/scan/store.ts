@@ -31,6 +31,7 @@ import type { OnPageFacts } from "@/lib/measure/parse";
 import type { Drivers } from "@/lib/measure/score";
 import type { Verdict } from "@/lib/measure/verdict";
 import type { RobotsPolicy } from "@/lib/egress/types";
+import type { SiteIssuesSection } from "@/lib/site-issues/types";
 import type { SerpResult } from "@/lib/vendors/dataforseo/types";
 import type { CanonicalDomain } from "./domain";
 import type { AI_READER_AGENTS } from "@/lib/config/constants";
@@ -77,6 +78,7 @@ export interface ReportSections {
   sources: readonly string[];
   onPage: Measured<OnPageFacts>;
   robots: Measured<RobotsPolicy>;
+  siteIssues: SiteIssuesSection | null;
   coherence: CoherenceVerdict;
   correctionState: CorrectionState;
 }
@@ -108,6 +110,7 @@ export function assembleReport(s: ReportSections): StoredReport {
     sources: s.sources,
     onPage: s.onPage,
     robots: s.robots,
+    siteIssues: s.siteIssues,
     coherence: s.coherence,
     correctionState: s.correctionState,
   };

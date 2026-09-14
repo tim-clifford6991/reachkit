@@ -53,6 +53,7 @@ import { safeFetch } from "@/lib/egress/safe-fetch";
 import type { FetchOutcome } from "@/lib/egress/types";
 import { registrableDomain } from "@/lib/market/rivals/domains";
 import { visibleText } from "@/lib/measure/parse";
+import { readPageFacts, type PageIssueFacts } from "@/lib/site-issues/facts";
 import {
   isStoredDocument,
   OWN_FETCH_OPTS,
@@ -69,6 +70,14 @@ export interface CrawledPage {
   title: string;
   h1: string;
   text: string;
+  /** What SPEC §9's technical-issue checks read off this page. */
+  facts: PageIssueFacts;
+  /** The in-scope pages this page links to, as crawl identities
+   *  (`dedupeKey`), once each. */
+  links: readonly string[];
+  /** How long this crawl's own fetch of the document took, or `null` where
+   *  no fetch was timed (a document handed over or served from the cache). */
+  fetchMs: number | null;
 }
 
 export interface CrawlOutcome {
@@ -78,6 +87,15 @@ export interface CrawlOutcome {
    *  at the cap left pages behind rather than exhausting the site. */
   discovered: number;
   stoppedBy: "complete" | "page_cap" | "time_budget";
+  /** Every in-scope address this crawl fetched, read or not, by identity. */
+  fetched: readonly string[];
+  /** The fetched addresses that answered with an HTTP error (4xx/5xx). A
+   *  timeout or a refusal is not a broken page and is in neither list. */
+  broken: readonly string[];
+  /** Whether the site declares a sitemap this crawl could read. `absent` is
+   *  a read with nothing in it (a 404, or a document with no `<loc>`);
+   *  `unreadable` is a read that did not come back. */
+  sitemap: "found" | "absent" | "unreadable";
 }
 
 /** The one seam this module crosses. Doubled in tests; wired to the
@@ -146,13 +164,20 @@ export async function crawlSite(
   // second one on top of it.
   const home =
     a.homeHtml !== null && a.homeHtml !== ""
-      ? { url: a.homeUrl, html: a.homeHtml }
+      ? { url: a.homeUrl, html: a.homeHtml, fetchMs: null }
       : await readHome(c, a.homeUrl, ports);
-  if (home === null) return { pages: [], discovered: 0, stoppedBy: "complete" };
+  if (home === null) {
+    return { pages: [], discovered: 0, stoppedBy: "complete", fetched: [], broken: [], sitemap: "unreadable" };
+  }
 
+  const fetched = new Set<string>();
+  const broken = new Set<string>();
   const homeKey = dedupeKey(home.url);
-  if (homeKey !== null) seen.add(homeKey);
-  pages.push(pageOf(home.url, home.html));
+  if (homeKey !== null) {
+    seen.add(homeKey);
+    fetched.add(homeKey);
+  }
+  pages.push(pageOf(home.url, home.html, site, home.fetchMs));
 
   // The frontier, in discovery order: the site's own sitemap first, then
   // the home document's links, then each read page's links behind them.
@@ -166,7 +191,8 @@ export async function crawlSite(
     frontier.push(url);
   };
 
-  for (const url of await sitemapUrls(c, a, ports, deadline)) enqueue(url, home.url);
+  const sitemap = await sitemapUrls(c, a, ports, deadline);
+  for (const url of sitemap.urls) enqueue(url, home.url);
   for (const href of anchorHrefs(home.html)) enqueue(href, home.url);
 
   let stoppedBy: CrawlOutcome["stoppedBy"] = "complete";
@@ -189,16 +215,31 @@ export async function crawlSite(
     const room = SITE_PROFILE.MAX_PAGES - pages.length;
     const batch = frontier.splice(0, Math.min(SITE_PROFILE.CONCURRENCY, room));
 
-    // Phase one: the network, in parallel.
+    // Phase one: the network, in parallel. Each fetch is timed on its own.
     const outcomes = await Promise.all(
-      batch.map(async (url) => ({ url, outcome: await ports.fetchDocument(url, OWN_FETCH_OPTS) }))
+      batch.map(async (url) => {
+        const began = Date.now();
+        const outcome = await ports.fetchDocument(url, OWN_FETCH_OPTS);
+        return { url, outcome, fetchMs: Date.now() - began };
+      })
     );
 
     // Phase two: the ledger, strictly one at a time (see the header).
-    for (const { url, outcome } of outcomes) {
+    for (const { url, outcome, fetchMs } of outcomes) {
+      const key = dedupeKey(url);
       const stored = await ledger(c, url, outcome);
-      if (stored === null) continue;
-      const page = pageOf(stored.url, stored.html);
+      if (stored === null) {
+        if (key !== null && isHttpError(outcome)) {
+          fetched.add(key);
+          broken.add(key);
+        }
+        continue;
+      }
+      if (key !== null) fetched.add(key);
+      // A document the ledger served from its window was not this fetch's
+      // bytes, so this fetch's time is not its time.
+      const timed = outcome.ok && outcome.readAt.toISOString() === stored.readAt ? fetchMs : null;
+      const page = pageOf(stored.url, stored.html, site, timed);
       pages.push(page);
       for (const href of anchorHrefs(stored.html)) enqueue(href, stored.url);
     }
@@ -206,7 +247,20 @@ export async function crawlSite(
 
   if (stoppedBy === "complete" && pages.length >= SITE_PROFILE.MAX_PAGES) stoppedBy = "page_cap";
 
-  return { pages, discovered: seen.size, stoppedBy };
+  return {
+    pages,
+    discovered: seen.size,
+    stoppedBy,
+    fetched: [...fetched],
+    broken: [...broken],
+    sitemap: sitemap.state,
+  };
+}
+
+/** An answer from the site's own server that the page is not there or
+ *  failed — the one refusal a link can be called broken for. */
+function isHttpError(outcome: FetchOutcome): boolean {
+  return !outcome.ok && outcome.reason === "status" && outcome.status !== undefined && outcome.status >= 400;
 }
 
 /** One own-document row, at zero cents under `OWN_FETCH_SOURCE` — the same
@@ -248,14 +302,17 @@ async function readHome(
   c: CostContext,
   homeUrl: string,
   ports: CrawlPorts
-): Promise<{ url: string; html: string } | null> {
+): Promise<{ url: string; html: string; fetchMs: number | null } | null> {
+  let fetchMs: number | null = null;
   const result = await c.recordFetch<StoredDocument | FetchRefusal>({
     source: OWN_FETCH_SOURCE,
     cacheKey: homeUrl,
     freshnessDays: CACHE_WINDOWS_D.own,
     costCents: 0,
     run: async () => {
+      const began = Date.now();
       const outcome = await ports.fetchDocument(homeUrl, OWN_FETCH_OPTS);
+      fetchMs = Date.now() - began;
       // A refusal here is the measurement pass's home key: `refusalOf`'s
       // row is the shape the cache never serves back (BUILD §6.4).
       return outcome.ok ? toStoredDocument(outcome) : refusalOf(outcome);
@@ -263,7 +320,7 @@ async function readHome(
   });
   if ("skipped" in result) return null;
   const stored = result.payload;
-  return isStoredDocument(stored) ? { url: stored.url, html: stored.html } : null;
+  return isStoredDocument(stored) ? { url: stored.url, html: stored.html, fetchMs } : null;
 }
 
 /** The site's own sitemaps: what `robots.txt` declared, plus the
@@ -276,7 +333,7 @@ async function sitemapUrls(
   a: { homeUrl: string; sitemaps: readonly string[] },
   ports: CrawlPorts,
   deadline: number
-): Promise<readonly string[]> {
+): Promise<{ urls: readonly string[]; state: CrawlOutcome["sitemap"] }> {
   const queue: string[] = [];
   const requested = new Set<string>();
   const push = (url: string): void => {
@@ -290,6 +347,8 @@ async function sitemapUrls(
   if (conventional !== null) push(conventional);
 
   const found: string[] = [];
+  let declaresOne = false;
+  let unreadable = false;
   let index = 0;
   while (index < queue.length) {
     if (Date.now() >= deadline) break;
@@ -298,16 +357,28 @@ async function sitemapUrls(
 
     const outcome = await ports.fetchDocument(url, OWN_FETCH_OPTS);
     const stored = await ledger(c, url, outcome);
-    if (stored === null) continue;
+    if (stored === null) {
+      // A 404 or 410 is a plain "no sitemap here". Anything else — a
+      // timeout, a refusal, a server error — is a read that did not come
+      // back, and says nothing about whether one exists.
+      const gone = !outcome.ok && outcome.reason === "status" && (outcome.status === 404 || outcome.status === 410);
+      if (!gone) unreadable = true;
+      continue;
+    }
 
     const locs = locElements(stored.html);
     if (SITEMAP_INDEX_RE.test(stored.html)) {
+      if (locs.length > 0) declaresOne = true;
       for (const child of locs) push(child);
       continue;
     }
+    if (locs.length > 0) declaresOne = true;
     for (const loc of locs) found.push(loc);
   }
-  return found;
+  // A deadline that cut the queue short leaves addresses unread.
+  if (index < queue.length) unreadable = true;
+  const state: CrawlOutcome["sitemap"] = declaresOne ? "found" : unreadable ? "unreadable" : "absent";
+  return { urls: found, state };
 }
 
 /** `<loc>` values, in document order. */
@@ -383,12 +454,23 @@ function dedupeKey(url: string): string | null {
 
 /** One read page, parsed. Never throws: a document that carries no title
  *  and no `h1` yields empty strings, which is the truth about it. */
-function pageOf(url: string, html: string): CrawledPage {
+function pageOf(url: string, html: string, site: string | null, fetchMs: number | null): CrawledPage {
+  const links = new Set<string>();
+  for (const href of anchorHrefs(html)) {
+    const target = inScopeUrl(href, url, site);
+    const key = target === null ? null : dedupeKey(target);
+    if (key !== null) links.add(key);
+  }
+  const own = dedupeKey(url);
+  if (own !== null) links.delete(own);
   return {
     url,
     title: firstText(html, TITLE_RE),
     h1: firstText(html, H1_RE),
     text: visibleText(html).slice(0, SITE_PROFILE.PAGE_SAMPLE_CHARS),
+    facts: readPageFacts(url, html),
+    links: [...links],
+    fetchMs,
   };
 }
 

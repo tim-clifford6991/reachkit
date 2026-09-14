@@ -148,6 +148,8 @@ Pinned numbers live in `src/lib/config/constants.ts`. Newest dated line in a sec
 **Rules**
 - Checks run across the crawled profile pages, up to 100 (2026-09-12): missing/duplicate title · missing/duplicate meta description · `noindex` on a page that should be indexed · no sitemap · slow pages · broken internal links · not usable on a phone · missing structured data · AI readers blocked in `robots.txt`.
 - Severity is Critical · Worth fixing · Nothing to fix. Who-does-it is “Free fix · 10 min” / “ReachKit writes” / “ReachKit rewrites”.
+- Severity steps (2026-09-14): a zero is Nothing to fix. A site-wide fault (`noindex` home page, no sitemap, an AI reader blocked) is Critical whenever present. A per-page count is Worth fixing from one page and Critical at 25% of the set it was counted over.
+- Slow page (2026-09-14): ReachKit’s own fetch of the page took 3 s or more. A page served from the cache has no timing and is left out of that count’s set.
 - Robots fix lines name only the pinned AI-reader list (GPTBot, ClaudeBot, OAI-SearchBot, Claude-SearchBot, PerplexityBot, Google-Extended).
 - `noindex` home page is Foundations = 0, not “unmeasured”.
 - A ReachKit-fixable issue becomes a Fix opportunity and outranks new writing for that cluster.

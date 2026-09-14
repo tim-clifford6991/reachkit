@@ -152,6 +152,7 @@
 import type { AI_READER_AGENTS } from "@/lib/config/constants";
 import { dbAdmin } from "@/lib/db";
 import type { RobotsPolicy } from "@/lib/egress/types";
+import type { SiteIssuesSection } from "@/lib/site-issues/types";
 import type { CoherenceVerdict } from "@/lib/market/coherence/check";
 import type { CorrectionState } from "@/lib/market/coherence/state";
 import type { EngineCell } from "@/lib/market/questions/matrix";
@@ -181,7 +182,7 @@ export type StoppedReason = "complete" | "time_ceiling" | "spend_ceiling" | "sit
  *  it does not know throws rather than returning a partially-populated
  *  value: `null` would be indistinguishable from "no report" at every call
  *  site. */
-export const REPORT_VERSION = 6;
+export const REPORT_VERSION = 7;
 
 /** One cell of the AI-answers matrix — one question, one measured SERP.
  *  BP-025 `## Public interface` (issue #26's `matrix.ts` owns it). An
@@ -371,6 +372,11 @@ export interface StoredReport {
   sources: readonly string[];
   onPage: Measured<OnPageFacts>;
   robots: Measured<RobotsPolicy>;
+  /** SPEC §9's nine technical-issue checks over the crawled pages. `null`
+   *  only on a report written before the checks existed (version ≤ 6) —
+   *  never for a pass that ran them, whose could-not-run checks carry their
+   *  own reasons. */
+  siteIssues: SiteIssuesSection | null;
   /** §6.7 step 5. A total union, unwrapped: it already carries its own
    *  failure arm, and a wrapper would give a consumer two `unknown`s to
    *  branch on (ADR-095 decision 3). */
@@ -410,7 +416,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 /** The version this build's own migration knows how to lift, and the only
  *  one: a report written before issue #128 bought the paid battery. */
-const MIGRATABLE_VERSIONS: readonly number[] = [3, 4, 5];
+const MIGRATABLE_VERSIONS: readonly number[] = [3, 4, 5, 6];
 
 /** The two battery columns of a report written before anything bought
  *  them. `not_attempted` and not `no_answer`: nobody asked these engines,
@@ -505,12 +511,12 @@ function upgradeFromVersion4(blob: Record<string, unknown>): Record<string, unkn
  */
 function upgradeFromVersion5(blob: Record<string, unknown>): Record<string, unknown> {
   const verdict = blob.verdict;
-  if (!isRecord(verdict)) return { ...blob, version: REPORT_VERSION };
+  if (!isRecord(verdict)) return { ...blob, version: 6 };
   const at = verdict.measuredAt;
   const unmeasured = { kind: "unmeasured", reason: "undeterminable", at };
   return {
     ...blob,
-    version: REPORT_VERSION,
+    version: 6,
     verdict: {
       ...verdict,
       factors: {
@@ -522,6 +528,18 @@ function upgradeFromVersion5(blob: Record<string, unknown>): Record<string, unkn
   };
 }
 
+/**
+ * Version 6 → 7 (#570): the report carries SPEC §9's technical-issue checks.
+ *
+ * A report written before this version never ran them, and none is invented
+ * here: `siteIssues` arrives `null`, which is "these checks were not part of
+ * this pass" — not nine could-not-run reasons the pass never gave, and never
+ * nine zeros.
+ */
+function upgradeFromVersion6(blob: Record<string, unknown>): Record<string, unknown> {
+  return { ...blob, version: REPORT_VERSION, siteIssues: null };
+}
+
 /** Every upgrade this build can apply, oldest first, each lifting a blob
  *  one version. Chained rather than switched on, so a version-3 report is
  *  lifted twice and lands readable — a build that only knew `n → latest`
@@ -530,6 +548,7 @@ const UPGRADES: readonly ((blob: Record<string, unknown>) => Record<string, unkn
   upgradeFromVersion3,
   upgradeFromVersion4,
   upgradeFromVersion5,
+  upgradeFromVersion6,
 ];
 
 /** The version guard, and the one upgrade beside it. Throws — loudly — on
