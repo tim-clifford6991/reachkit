@@ -20,7 +20,7 @@
 // measurement exceptions never coexist with the nothing-to-report line.
 // `measurement` is required for `'weekly'` and rejected for every other
 // kind — a type error, not a runtime check.
-import { copy, COPY } from "@/lib/presentation/copy";
+import { copy, COPY, TODO_COPY_MARKER } from "@/lib/presentation/copy";
 import type { CopyKey } from "@/lib/presentation/copy";
 import { renderBlocksHtml } from "../blocks/html";
 import { renderBlocksText } from "../blocks/text";
@@ -182,7 +182,11 @@ export function composeMail(m: ComposeInput): ComposedMail {
 
   const footer = {
     wordmark,
-    reason: m.reason === undefined ? null : copy(m.reason, m.reasonVars),
+    // A reason still awaiting the owner's line renders nothing, the way the
+    // imprint above does: SPEC §8 says an unwritten key sends nothing, and
+    // a `TODO(copy)` in a delivered footer is exactly that sentence sent.
+    reason:
+      m.reason === undefined || COPY[m.reason] === TODO_COPY_MARKER ? null : copy(m.reason, m.reasonVars),
     imprint,
     plainTextNote: copy(PLAIN_TEXT_NOTE),
   };

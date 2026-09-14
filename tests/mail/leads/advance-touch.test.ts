@@ -74,6 +74,7 @@ describe("the touch is composed through the real shell and handed to the send se
     // the offer — the one sentence on this kind the set writes, since every
     // other string it draws here is bracketed and stays the owner's.
     expect(sendCalls[0]?.blocks).toEqual([
+      { block: "heading", text: "mail.nurture.subject.1" },
       { block: "paragraph", text: "mail.nurture.body.1", vars: { domain: "acme.com" } },
       {
         block: "action",

@@ -234,6 +234,7 @@ export async function sendSetupReminder(
     to,
     subject: mail.subject,
     blocks: mail.blocks,
+    reason: mail.reason,
   });
   if (!result.sent) return { sent: false, reason: "mail" };
 

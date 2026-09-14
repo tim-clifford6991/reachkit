@@ -16,6 +16,7 @@
 // emails", with no exception, which is why `optOut` is a **required** field
 // of what a lead template returns — a lead mail without one is
 // unrepresentable rather than merely untested.
+import { env } from "@/lib/config/env";
 import type { Measured } from "@/lib/measure/measured";
 import type { CopyKey } from "@/lib/presentation/copy";
 import { formatStat } from "../../blocks/format";
@@ -44,11 +45,14 @@ export interface LeadMail {
   readonly optOut: OptOutControl;
 }
 
-/** The address the opt-out link points at. An internal route shape, not a
- *  customer-visible string: `/opt-out/{token}` is BP-001's public route and
- *  `PUBLIC_PATHS` already carries it. */
+/** The address the opt-out link points at: BP-001's public
+ *  `/opt-out/{token}` route, **absolute** (#640). A mail client resolves no
+ *  relative path, so a bare `/opt-out/…` was a link that went nowhere in
+ *  every inbox — and SPEC §8's "one opt-out click stops further follow-up"
+ *  with it. Built from the one binding `env.ts` validates at boot, the way
+ *  the nurture offer link is. */
 export function optOutHref(email: string): string {
-  return `/opt-out/${optOutTokenFor(email)}`;
+  return new URL(`/opt-out/${optOutTokenFor(email)}`, env.NEXT_PUBLIC_APP_URL).toString();
 }
 
 export function optOutControlFor(email: string): OptOutControl {
