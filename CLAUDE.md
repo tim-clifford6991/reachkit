@@ -1,19 +1,20 @@
 # reachkit
 
-Read `README.md` first — the nine features, where each stands, and what *delivered* means. Then the one `docs/SPEC.md` section the work is for (and `docs/DESIGN.md` if a screen changes). How work flows is `docs/PROCESS.md`: issue → docs if needed → implement → merge when the three checks are green. The owner tests live on `dev.reachkit.app`. There is no factory.
+Read `README.md` (nine features, what delivered means), then only the `docs/SPEC.md` section you are changing. UI: `docs/DESIGN.md` — three rules (daisyUI, Recharts, lucide). Flow: `docs/PROCESS.md`. The owner tests live on `dev.reachkit.app`.
 
-Ship the paying path. Prefer an existing library over new code.
+Ship the paying path. Prefer a library over new code. Do not open `docs/design/canvas/` or `docs/archive/`.
 
 ## Don't
 
-- Never invent a user-facing sentence. Every sentence the product speaks is a key in `src/lib/presentation/copy/keys/`; copy is owner-owed. An unwritten one stays `TODO(copy)` and is named on the PR.
-- Never add a custom component, CSS sheet or token vocabulary where daisyUI, Recharts 3 or the canvas already has one.
-- Never write a test that transcribes a document. A test proves behaviour a customer can observe.
-- Never guess an owner decision. Label the issue `blocked-on-owner` and ask; record the answer as a dated line in `docs/SPEC.md`.
-- Never edit or delete anything under `docs/archive/`.
+- Never invent a user-facing sentence. Keys live in `src/lib/presentation/copy/keys/`. Missing → `TODO(copy)` on the PR.
+- Never add a custom component, CSS sheet, token set, or SVG chart where daisyUI or Recharts covers it. Do not wrap daisyUI in a new `Btn`/`Card`.
+- Never “match the artboard.” There is no artboard in the process.
+- Never write a test that transcribes a document.
+- Never guess an owner decision — `blocked-on-owner` and ask; record the answer as a dated SPEC line.
+- Never edit `docs/archive/` or `docs/design/canvas/`.
 - Never reintroduce Master, Worker, dispatcher, lander, `rk-*` agents, mandatory worktrees, or extra merge gates.
 
-Work in this checkout (or a local clone). Branch from `origin/main`, open a PR, merge when `typecheck · lint · unit`, `audit`, and `schema · RLS` are green.
+Work in `/root/projects/reachkitv3` on a branch from `origin/main`. Merge when `typecheck · lint · unit`, `audit`, and `schema · RLS` are green.
 
 <!-- BEGIN:nextjs-agent-rules -->
 
