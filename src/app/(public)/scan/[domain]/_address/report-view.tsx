@@ -38,7 +38,7 @@ import {
 import { FreePageAbsent, FreePageCard } from "../_modules/free-page";
 import { PricingCard } from "../_modules/pricing";
 import { CheckCards, ProblemCards } from "../_problems/cards";
-import { checkCardsOf } from "../_problems/checks";
+import { checkCardsOf, readingsOf } from "../_problems/checks";
 import { MethodSections } from "../_problems/method";
 import { cardsOf, PROBLEM_ORDER } from "../_problems/model";
 import { unblockLines } from "../_problems/unblock";
@@ -270,9 +270,9 @@ export function ReportView(p: {
           <ProblemCards cards={cards} />
         </div>
         <div className="col-span-full">
-          {/* SPEC §9's other eight checks. The scan reports none of them yet
-              (#570), so each is absent with its why-line — no count is made up. */}
-          <CheckCards cards={checkCardsOf({})} />
+          {/* SPEC §9's other eight checks, as the scan stored them (#570). A
+              check that could not run is absent with its why-line. */}
+          <CheckCards cards={checkCardsOf(readingsOf(report.siteIssues, report.verdict.measuredAt))} />
         </div>
         <div className="col-span-full">
           <MethodSections for={PROBLEM_ORDER} />

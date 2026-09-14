@@ -47,7 +47,7 @@ const { readOverviewFacts } = await import("@/app/(account)/app/_overview/store"
 
 const SITE_ID = "site-1";
 const ZONE = "UTC";
-const SITE = { siteId: SITE_ID, timeZone: ZONE };
+const SITE = { siteId: SITE_ID, timeZone: ZONE, domain: "example.com" };
 
 /** A Monday in 2026, as `scans.week_start` spells it. The clock below sits
  *  inside the week of the 7th of September, so these are the last four

@@ -262,6 +262,11 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: { left: "text" }, fixedBy: "S12" },
   ],
   "overview.alert.overflow": ["{remaining} more in the calendar.", { slots: { remaining: "text" }, fixedBy: "REQ-041 c5" }],
+  // A technical issue the customer fixes (SPEC §9, #572): its title is the
+  // check's own, its line the severity word. The control's word and the
+  // count of the issues not shown are owner-owed.
+  "overview.alert.site-issue.action": ["TODO(copy)", { slots: {}, fixedBy: "issue 572" }],
+  "overview.alert.site-issue.overflow": ["TODO(copy)", { slots: { remaining: "text" }, fixedBy: "issue 572" }],
   "overview.alerts.empty": ["Nothing needs you today.", { slots: {}, fixedBy: "REQ-041 c5" }],
 
   // ── The one supply statement Overview may make, resolved in this order.

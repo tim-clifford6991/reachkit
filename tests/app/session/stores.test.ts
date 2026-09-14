@@ -191,7 +191,7 @@ describe("§4.5 — what has not been measured is said, not guessed", () => {
       { id: "p2", site_id: "site-1", published_at: "2026-09-02", unpublished_at: "2026-09-03" },
       { id: "p3", site_id: "site-other", published_at: "2026-09-02", unpublished_at: null },
     ]);
-    const facts = await readOverviewFacts({ siteId: "site-1", timeZone: "America/New_York" });
+    const facts = await readOverviewFacts({ siteId: "site-1", timeZone: "America/New_York", domain: "example.com" });
     // One live page: the taken-down one and the other site's are both out,
     // by the same predicate the hosted sitemap reads.
     expect(facts.pagesPublished).toMatchObject({ kind: "measured", value: 1 });
@@ -203,7 +203,7 @@ describe("§4.5 — what has not been measured is said, not guessed", () => {
     // yet. `tests/app/overview/store.test.ts` drives the other arms from
     // rows; what matters here is that an empty read stays empty rather
     // than becoming a line at zero.
-    const facts = await readOverviewFacts({ siteId: "site-1", timeZone: "America/New_York" });
+    const facts = await readOverviewFacts({ siteId: "site-1", timeZone: "America/New_York", domain: "example.com" });
     expect(facts.points).toEqual([]);
     expect(facts.aiPresence).toEqual([]);
     expect(facts.rivals.own.kind).toBe("unmeasured");
@@ -219,14 +219,14 @@ describe("§4.5 — what has not been measured is said, not guessed", () => {
       { id: "d3", site_id: "site-1", state: "planned", title: "Planned", created_at: "2026-09-03" },
       { id: "d4", site_id: "site-other", state: "in_review", title: "Theirs", created_at: "2026-09-02" },
     ]);
-    const facts = await readOverviewFacts({ siteId: "site-1", timeZone: "America/New_York" });
+    const facts = await readOverviewFacts({ siteId: "site-1", timeZone: "America/New_York", domain: "example.com" });
     expect(facts.waiting.map((item) => item.kind)).toEqual(["needs_you", "pending_veto"]);
-    expect(facts.waiting.map((item) => item.title)).toEqual(["Needs you", "In review"]);
+    expect(facts.waiting.map((item) => ("title" in item ? item.title : null))).toEqual(["Needs you", "In review"]);
     expect(facts.waiting.map((item) => item.href)).toEqual(["/app/draft/d1", "/app/draft/d2"]);
   });
 
   it("the zone it states is the account's own", async () => {
-    const facts = await readOverviewFacts({ siteId: "site-1", timeZone: "Europe/Dublin" });
+    const facts = await readOverviewFacts({ siteId: "site-1", timeZone: "Europe/Dublin", domain: "example.com" });
     expect(facts.timeZone).toBe("Europe/Dublin");
   });
 });

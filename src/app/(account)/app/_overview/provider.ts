@@ -38,6 +38,6 @@ export const readOverview = cache(async function readOverview(): Promise<Overvie
   // Overview reaches no database at all.
   const { readOverviewFacts } = await import("./store");
   return assembleOverview(
-    await readOverviewFacts({ siteId: account.siteId, timeZone: account.timeZone })
+    await readOverviewFacts({ siteId: account.siteId, timeZone: account.timeZone, domain: account.domain })
   );
 });

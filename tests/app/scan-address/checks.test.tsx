@@ -10,6 +10,7 @@ import { CheckCards } from "@/app/(public)/scan/[domain]/_problems/cards";
 import {
   CHECK_ORDER,
   checkCardsOf,
+  readingsOf,
   VIEWPORT_LINE,
   type CheckReading,
 } from "@/app/(public)/scan/[domain]/_problems/checks";
@@ -82,5 +83,26 @@ describe("a measured check", () => {
     for (const check of ["page_titles", "meta_descriptions", "structured_data"] as const) {
       expect(cards.find((c) => c.check === check)?.fix.kind).toBe("doer_only");
     }
+  });
+});
+
+describe("the report reads the stored checks (#570), the same counts the dashboard reads", () => {
+  it("a check that ran carries its stored count; one that could not run is absent", () => {
+    const readings = readingsOf(
+      {
+        pagesChecked: 40,
+        stoppedBy: "complete",
+        issues: [
+          { check: "slow_pages", ran: true, count: 3, over: 40, unit: "pages", severity: "critical", doer: "free_fix" },
+          { check: "broken_links", ran: true, count: 0, over: 120, unit: "links", severity: "nothing_to_fix", doer: "free_fix" },
+          { check: "sitemap", ran: false, because: "sitemap_unreadable" },
+        ],
+      },
+      AT
+    );
+    expect(readings.slow_pages).toEqual({ count: measured(3, AT), severity: measured("high", AT) });
+    expect(readings.broken_links?.count.kind).toBe("zero");
+    expect(readings.sitemap).toBeUndefined();
+    expect(readingsOf(null, AT)).toEqual({});
   });
 });

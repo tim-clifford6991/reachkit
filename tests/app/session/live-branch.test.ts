@@ -113,6 +113,7 @@ describe("§4.5 — Overview draws the signed-in account's own rows", () => {
     expect(readOverviewFacts).toHaveBeenCalledWith({
       siteId: LIVE_ACCOUNT.siteId,
       timeZone: LIVE_ACCOUNT.timeZone,
+      domain: LIVE_ACCOUNT.domain,
     });
   });
 
