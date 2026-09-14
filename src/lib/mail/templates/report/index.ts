@@ -11,17 +11,26 @@
 // report itself taken down (`removal.address`, REQ-002 c1) rather than how
 // to unsubscribe from a series there is none of.
 //
+// **Verdict, next step, one action** (SPEC §8, #638). The verdict is the
+// three fact rows and — where the score could be computed — the report's
+// own sentence naming the factor that holds it down (`verdict.limiting.*`,
+// the same key the report header renders). The next step is one line, and
+// the action is the one button: open the report.
+//
 // The three fact rows are the report's own head, in the set's order and
 // wording: the score with its band word (6a names the number), the AI
 // answers count, the Google search count. Each arrives already written —
 // the score through `formatStat`, the band through `BAND_LABELS` — because
 // a fact row states a value and never formats one.
 import type { CopyKey } from "@/lib/presentation/copy";
+import type { ScoreFactorName } from "@/lib/measure/score";
+import { LIMITING_LINES } from "@/lib/presentation/bands";
 import type { MailBlock } from "../../blocks/types";
 
 const SUBJECT = "mail.report.subject" satisfies CopyKey;
 const HEADING = "mail.report.heading" satisfies CopyKey;
 const BODY = "mail.report.body" satisfies CopyKey;
+const NEXT = "mail.report.next" satisfies CopyKey;
 const ACTION = "mail.report.action" satisfies CopyKey;
 const FACT_SCORE = "mail.report.fact.score" satisfies CopyKey;
 const FACT_AI_ANSWERS = "mail.report.fact.aiAnswers" satisfies CopyKey;
@@ -51,6 +60,9 @@ export interface ReportFacts {
   readonly band: string;
   readonly aiAnswers: string;
   readonly googleSearch: string;
+  /** The factor holding the score down, or `null` where the score could
+   *  not be computed — an unmeasured verdict names no limiting factor. */
+  readonly limiting: ScoreFactorName | null;
 }
 
 export function buildReport(a: {
@@ -81,6 +93,10 @@ export function buildReport(a: {
           { label: FACT_GOOGLE, value: facts.googleSearch },
         ],
       },
+      ...(facts.limiting === null
+        ? []
+        : [{ block: "paragraph", text: LIMITING_LINES[facts.limiting] } as const]),
+      { block: "paragraph", text: NEXT },
       { block: "action", label: ACTION, href: a.href },
     ],
   };

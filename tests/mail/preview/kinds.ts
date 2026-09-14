@@ -137,6 +137,7 @@ export async function composePreview(kind: PreviewKind): Promise<ComposedMail> {
           band: "Hard to find",
           aiAnswers: "0 of 9",
           googleSearch: "0 of 12",
+          limiting: "presence",
         },
         href: `${APP}/scan/example.com`,
         removalAddress: "remove@reachkit.app",
