@@ -23,6 +23,10 @@ function markup(action: HeaderAction): string {
   return renderToStaticMarkup(<Header action={action} />);
 }
 
+function withoutThemeToggle(html: string): string {
+  return html.replace(/<div[^>]*data-testid="theme-toggle"[\s\S]*?<\/ul><\/div>/, "");
+}
+
 const LANDING: HeaderAction = { kind: "landing" };
 const ELSEWHERE: HeaderAction = { kind: "cta" };
 const REPORT: HeaderAction = {
@@ -88,9 +92,17 @@ describe("SPEC §1 — brand · Sign in · the header CTA, outline", () => {
   it("off the landing the CTA is a link to the field's own page", () => {
     const html = markup(ELSEWHERE);
     expect(html).toContain('href="/"');
-    // No `<button>`: a navigation with no client runtime, which is what an
-    // anchor is for.
-    expect(html).not.toContain("<button");
+    // No `<button>` in the CTA slot: a navigation with no client runtime,
+    // which is what an anchor is for. The theme control (#681) is the
+    // header's own and is lifted out first.
+    expect(withoutThemeToggle(html)).not.toContain("<button");
+  });
+
+  it("#681 — every arm carries the Light / Dark / System control", () => {
+    for (const action of [LANDING, ELSEWHERE, REPORT, TOKEN_PAGE]) {
+      expect(markup(action)).toContain('data-testid="theme-toggle"');
+    }
+    expect(markup(ELSEWHERE).match(/data-theme-choice="(light|dark|system)"/g)).toHaveLength(3);
   });
 
   it("on the landing the CTA is a button that focuses the field, never a second submit (REQ-099 c3, REQ-001 c1)", () => {

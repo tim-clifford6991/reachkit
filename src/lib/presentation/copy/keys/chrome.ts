@@ -42,6 +42,12 @@ export const CHROME_COPY = Object.freeze({
    *  links. It is the registered `Collapse`, listing them under the
    *  header — never a drawer or a dropdown (master, 2026-09-07). */
   "chrome.nav.menu": ["Menu", { slots: {}, fixedBy: "issue 266" }],
+  /** #681's Light / Dark / System control: its accessible name and the
+   *  three choices. Owner-owed. */
+  "chrome.theme.label": ["TODO(copy)", { slots: {}, fixedBy: "issue 681" }],
+  "chrome.theme.light": ["TODO(copy)", { slots: {}, fixedBy: "issue 681" }],
+  "chrome.theme.dark": ["TODO(copy)", { slots: {}, fixedBy: "issue 681" }],
+  "chrome.theme.system": ["TODO(copy)", { slots: {}, fixedBy: "issue 681" }],
 
   /* ── The footer ──────────────────────────────────────────────────── */
   "chrome.footer.product": ["Product", { slots: {}, fixedBy: "the approved screen set · 3a" }],

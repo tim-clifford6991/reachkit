@@ -21,6 +21,8 @@ The owner reviews UI by clicking `dev.reachkit.app`. There is no artboard, no ca
 
 One `@plugin "daisyui/theme"` named `reachkit`. Ground, ink, accent, meaning (ok / warn / bad), and chart-you / chart-rival / chart-goal live there. Dark is the same names with dark values. Plus Jakarta Sans for UI; JetBrains Mono for numerals, domains and code.
 
+- 2026-09-14 (#681): Light / Dark / System is the product's theme control — one daisyUI `dropdown` (`src/app/_theme/ThemeToggle.tsx`) in the public header and the `/app` shell, never on hosted pages. System sets no `data-theme`; Light and Dark set `data-theme="light"` / `"dark"` on `<html>`, applied before paint from `localStorage`. Still the one `reachkit` theme with `themes: false`; no second palette.
+
 ## Admitting new UI
 
 daisyUI class → daisyUI class plus a theme colour → Recharts → lucide → stop. A PR that adds a custom component or CSS sheet where those already cover it is rejected.

@@ -140,13 +140,20 @@ describe("S8 — the line each screen writes", () => {
   });
 });
 
+/** The header's Light / Dark / System control (#681), lifted out of a
+ *  screen's markup: it is chrome, not the screen's one control. */
+function withoutThemeToggle(markup: string): string {
+  return markup.replace(/<div[^>]*data-testid="theme-toggle"[\s\S]*?<\/ul><\/div>/, "");
+}
+
 describe("S8 — one control per screen, and it is the route group's own", () => {
   it.each([
     { name: "(public)/not-found.tsx", markup: html(PublicNotFound) },
     { name: "(public)/error.tsx", markup: html(PublicError) },
     // The root 404 is the public one with the chrome around it, so it
     // carries the same one field and the same one submit — the header's and
-    // the footer's controls are links, and none of them is a `<button>`.
+    // the footer's controls are links, and none of them is a `<button>`
+    // save the header's own theme control (#681), which is lifted out.
     { name: "not-found.tsx", markup: html(RootNotFound) },
   ])("$name carries the scan field with the set's solid 'Scan it'", ({ markup }) => {
     expect(COPY["chrome.notfound.cta"]).toBe("Scan it");
@@ -154,7 +161,7 @@ describe("S8 — one control per screen, and it is the route group's own", () =>
     // named field — under S8's word.
     expect(occurrences(markup, 'action="/api/scan"')).toBe(1);
     expect(occurrences(markup, "<input")).toBe(1);
-    expect(occurrences(markup, "<button")).toBe(1);
+    expect(occurrences(withoutThemeToggle(markup), "<button")).toBe(1);
     expect(markup).toContain(COPY["chrome.notfound.cta"]);
     expect(markup).toContain(COPY["landing.field.placeholder"]);
   });

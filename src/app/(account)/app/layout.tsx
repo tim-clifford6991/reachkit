@@ -24,6 +24,7 @@ import { DomainBlock } from "./_shell/DomainBlock";
 import { PublishingCard } from "./_shell/PublishingCard";
 import { SidebarNav } from "./_shell/SidebarNav";
 import { StoppedNotice } from "./_shell/StoppedNotice";
+import { ThemeToggle } from "@/app/_theme/ThemeToggle";
 import { readShell } from "./_shell/provider";
 
 /** The product's mark, as the public header draws it, linking home to /app. */
@@ -66,6 +67,7 @@ export default async function AppLayout({
           </div>
           <SidebarNav waiting={shell.waiting} row />
           <PublishingCard shell={shell} />
+          <ThemeToggle />
         </header>
 
         <aside
@@ -81,6 +83,7 @@ export default async function AppLayout({
             </div>
             <div className="mt-auto">
               <PublishingCard shell={shell} />
+              <ThemeToggle up />
             </div>
           </div>
         </aside>
