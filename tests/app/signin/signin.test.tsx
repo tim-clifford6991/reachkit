@@ -387,10 +387,10 @@ describe("issue #549 — one rounded card, and the address is the field's own pl
   });
 
   it("the two halves are one card's flush grid tracks, clipped to its radius", () => {
-    // Flush: the grid that holds them declares no gap, and the card clips
-    // its children to `--r-box`, so the accent half's corners are the
-    // card's corners.
-    expect(PAGE_SOURCE).toMatch(/overflow-hidden rounded-\(--r-box\)/);
+    // Flush: the grid that holds them declares no gap, and daisyUI's card
+    // clips its children to the theme's box radius, so the accent half's
+    // corners are the card's corners.
+    expect(PAGE_SOURCE).toMatch(/card grid grid-cols-1 overflow-hidden/);
     expect(PAGE_SOURCE).toMatch(/grid grid-cols-1 [^"`]*lg:grid-cols-2/);
     expect(PAGE_SOURCE).not.toMatch(/\bgap-\(--s-\d\)[^"`]*lg:grid-cols-2/);
   });
@@ -409,7 +409,7 @@ describe("issue #549 — one rounded card, and the address is the field's own pl
     expect(html).toContain(`placeholder="${address}"`);
     expect(html).toContain(`aria-label="${address}"`);
     expect(html).not.toContain(`<span>${address}</span>`);
-    // `num` is the mono face and `t-sm` the 13px rung (`src/ui/type.css`).
-    expect(html).toMatch(/<input[^>]*class="input num t-sm"/);
+    // The mono face, at Tailwind's small step.
+    expect(html).toMatch(/<input[^>]*class="input w-full font-mono text-sm"/);
   });
 });

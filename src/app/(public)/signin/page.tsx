@@ -8,56 +8,24 @@
 import Link from "next/link";
 import { Lock, Mail, TrendingUp } from "lucide-react";
 import { use, useActionState, useState } from "react";
-import { Btn } from "@/ui/components/Btn";
-import { Input } from "@/ui/components/Input";
 import { Surface } from "@/ui/layout";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { DEAD_LINK_MARKER, LINK_QUERY_KEY } from "@/lib/account/identity/addresses";
-import { Progress } from "@/ui/components/Progress";
 import { sendLink } from "./actions";
 import { EMAIL_FIELD, SIGN_IN_INITIAL, type SignInState } from "./state";
 
-/** The layout, named once (issue #549). Tailwind utilities over the
- *  approved tokens: one card at `--r-box` clipping two halves that meet
- *  flush, each half stretched to the other's height by the grid row. */
-const CARD =
-  "grid grid-cols-1 overflow-hidden rounded-(--r-box) border border-base-300 bg-base-100 shadow-sm lg:grid-cols-2";
-/** The band's own air inside each half: the inline step the screen had
- *  before the card, so a 320 viewport keeps its content in its box. */
-const HALF =
-  "flex items-center justify-center px-(--s-4) py-(--s-6) sm:px-(--s-5) sm:py-(--s-7) lg:p-(--s-7)";
+/** The layout, named once: one daisyUI card whose two halves meet flush
+ *  and stretch to each other's height. */
+const CARD = "card grid grid-cols-1 overflow-hidden border border-base-300 bg-base-100 shadow-sm lg:grid-cols-2";
+const HALF = "flex items-center justify-center px-4 py-10 sm:px-8 sm:py-14 lg:p-14";
 const PANEL = `${HALF} bg-primary bg-(image:--grad-accent) text-primary-content`;
-/** A half's own column: the set's form measure, its groups `--s-5` apart. */
-const COLUMN = "flex w-full max-w-(--w-form) flex-col gap-(--s-5)";
-const HEAD_GROUP = "flex flex-col gap-(--s-2)";
-/** The field and its control, `--s-3` apart. `[&_input]:w-full` is what
- *  fills the column: daisyUI's `.input` caps its own width at 20rem. */
-const FORM = "flex flex-col gap-(--s-3) [&_input]:w-full";
-const WORDMARK = "flex items-center gap-(--s-2) font-extrabold tracking-[-0.02em]";
-const MARK =
-  "inline-flex size-(--s-5) flex-none items-center justify-center rounded-(--r-field) bg-primary text-primary-content";
-const CHIP =
-  "inline-flex size-(--s-6) flex-none items-center justify-center rounded-(--r-field) bg-(--accent-bg) text-primary";
-const CHIP_WARN =
-  "inline-flex size-(--s-6) flex-none items-center justify-center rounded-(--r-field) bg-(--warn-bg) text-(color:--warn)";
-const QUIET = "text-(color:--ink-2)";
-const NEW_LINE = `flex flex-wrap items-center gap-(--s-1) text-(length:--t-sm) ${QUIET}`;
-
-/** The accent half. `--on-accent` at 12% and 28% is the glass pair, reached
- *  as the theme's own `primary-content` at those two alphas. */
-const ON_ACCENT_QUIET = "text-(color:--on-accent-quiet)";
-const PANEL_H = "font-bold leading-[1.25] tracking-[-0.02em] text-balance";
-const GLASS =
-  "flex flex-col gap-(--s-3) rounded-(--r-box) border border-primary-content/28 bg-primary-content/12 p-(--s-5) lg:p-(--s-6)";
-/** The row wraps, because the pill cannot: `num` is unlayered (`type.css`)
- *  and its `nowrap` outranks any utility, so at 320 the pill takes its own
- *  line rather than leaving the glass card. */
-const BETWEEN = "flex flex-wrap items-center justify-between gap-(--s-3)";
-const PILL =
-  "num max-w-full rounded-(--r-pill) bg-base-content px-(--s-2) py-(--s-1) text-(length:--t-xs) text-base-100";
-const FIGURE = "flex flex-wrap items-baseline gap-(--s-2)";
-const FIGURE_BIG = "num font-bold tracking-[-0.02em] text-(length:--h1) sm:text-(length:--t-num-big)";
-const FIGURE_OF = `num text-(length:--h3) ${ON_ACCENT_QUIET}`;
+const COLUMN = "flex w-full max-w-md flex-col gap-6";
+const HEAD_GROUP = "flex flex-col gap-2";
+const QUIET = "text-base-content/70";
+const CHIP = "grid size-10 flex-none place-items-center rounded-field bg-primary/10 text-primary";
+const CHIP_WARN = "grid size-10 flex-none place-items-center rounded-field bg-warning/10 text-warning";
+const GLASS = "flex flex-col gap-3 rounded-box border border-primary-content/30 bg-primary-content/10 p-6";
+const ON_ACCENT_QUIET = "text-primary-content/80";
 
 /** The specimen the accent half shows: the reserved domain and the figures
  *  the approved set draws on it (ruling 5c). Constants, because this screen
@@ -141,9 +109,9 @@ export default function SignInPage(props: {
               {/* The brand sits inside the card on this route and no public
                   header stands above it: the screen's whole job is one
                   field, and a bar would put a control over it. */}
-              <p className={WORDMARK} data-testid="signin-brand">
-                <span className={MARK} aria-hidden>
-                  <TrendingUp size={15} strokeWidth={2} aria-hidden />
+              <p className="flex items-center gap-2 text-lg font-extrabold tracking-tight" data-testid="signin-brand">
+                <span className="grid size-7 place-items-center rounded-field bg-primary text-primary-content" aria-hidden>
+                  <TrendingUp size={16} strokeWidth={1.75} aria-hidden />
                 </span>
                 <span>{copy("chrome.wordmark")}</span>
               </p>
@@ -155,7 +123,7 @@ export default function SignInPage(props: {
                    that carries none. */
                 <>
                   <span className={CHIP_WARN} data-tone="warn" data-testid="signin-chip">
-                    <Lock size={16} strokeWidth={1.8} aria-hidden />
+                    <Lock size={20} strokeWidth={1.75} aria-hidden />
                   </span>
                   <div className={HEAD_GROUP}>
                     <h1>{copy("signin.expired.head")}</h1>
@@ -163,34 +131,27 @@ export default function SignInPage(props: {
                   </div>
                   {/* The way back to the field: a plain link to this screen
                       without the marker, so it works with no client runtime. */}
-                  <Btn
-                    href={SIGN_IN_PATH}
-                    label={copy("signin.expired.submit")}
-                    variant="primary"
-                    pill
-                    block
-                  />
+                  <Link href={SIGN_IN_PATH} className="btn btn-primary btn-block">
+                    {copy("signin.expired.submit")}
+                  </Link>
                 </>
               ) : answered ? (
                 /* The answered arm. The address is the one they typed,
                    echoed back, never one this screen looked up. */
                 <>
                   <span className={CHIP} data-testid="signin-chip">
-                    <Mail size={16} strokeWidth={1.8} aria-hidden />
+                    <Mail size={20} strokeWidth={1.75} aria-hidden />
                   </span>
                   <div className={HEAD_GROUP}>
                     <h1>{copy("signin.sent.head")}</h1>
                     <p className={QUIET} aria-live="polite">
                       {answer}
                     </p>
-                    <p className={`num ${QUIET}`}>{copy("signin.sent.to", { address: value })}</p>
+                    <p className={`font-mono ${QUIET}`}>{copy("signin.sent.to", { address: value })}</p>
                   </div>
-                  <Btn
-                    href={SIGN_IN_PATH}
-                    label={copy("signin.sent.resend")}
-                    variant="tertiary"
-                    pill
-                  />
+                  <Link href={SIGN_IN_PATH} className="btn btn-ghost self-start">
+                    {copy("signin.sent.resend")}
+                  </Link>
                 </>
               ) : (
                 <>
@@ -199,30 +160,25 @@ export default function SignInPage(props: {
                     <p className={QUIET}>{copy("signin.body")}</p>
                   </div>
 
-                  <form action={formAction} className={FORM}>
+                  <form action={formAction} className="flex flex-col gap-3">
                     {/* The address is the field's own placeholder, in the
                         mono face at the `--t-sm` rung, and the same approved
                         string is the field's accessible name — `labelHidden`
                         carries it as `aria-label` rather than drawing it. */}
-                    <Input
-                      label={copy("signin.field.placeholder")}
-                      labelHidden
-                      mono
+                    <input
+                      type="text"
+                      aria-label={copy("signin.field.placeholder")}
                       placeholder={copy("signin.field.placeholder")}
+                      className="input w-full font-mono text-sm"
                       name={EMAIL_FIELD}
                       value={value}
-                      onChange={setTyped}
+                      onChange={(e) => setTyped(e.target.value)}
                     />
                     {/* The screen's one solid primary, full width — and the
                         only solid button on it. */}
-                    <Btn
-                      type="submit"
-                      label={copy("signin.submit.label")}
-                      variant="primary"
-                      pill
-                      block
-                      inFlight={pending}
-                    />
+                    <button type="submit" className="btn btn-primary btn-block" disabled={pending} aria-busy={pending || undefined}>
+                      {copy("signin.submit.label")}
+                    </button>
                   </form>
 
                   {/* Where the *value* was refused. The answered arm above
@@ -231,9 +187,9 @@ export default function SignInPage(props: {
                     {answer}
                   </p>
 
-                  <p className={NEW_LINE}>
+                  <p className={`flex flex-wrap items-center gap-1 text-sm ${QUIET}`}>
                     <span>{copy("signin.new.prompt")}</span>
-                    <Link href="/" className="font-semibold text-primary">
+                    <Link href="/" className="link link-primary font-semibold">
                       {copy("signin.new.link")}
                     </Link>
                   </p>
@@ -247,22 +203,22 @@ export default function SignInPage(props: {
               stranger's real domain (ruling 5c). */}
           <div className={PANEL} data-testid="signin-panel">
             <div className={COLUMN}>
-              <h2 className={PANEL_H}>{copy("signin.panel.heading")}</h2>
+              <h2>{copy("signin.panel.heading")}</h2>
               <div className={GLASS}>
-                <p className={`num ${ON_ACCENT_QUIET}`}>{SPECIMEN_DOMAIN}</p>
-                <div className={BETWEEN}>
+                <p className={`font-mono ${ON_ACCENT_QUIET}`}>{SPECIMEN_DOMAIN}</p>
+                <div className="flex flex-wrap items-center justify-between gap-3">
                   <p>{copy("signin.panel.score-label")}</p>
-                  <span className={PILL}>{copy("signin.panel.delta")}</span>
+                  <span className="badge border-0 bg-base-content font-mono text-base-100">{copy("signin.panel.delta")}</span>
                 </div>
-                <p className={FIGURE}>
-                  <span className={FIGURE_BIG}>{SPECIMEN_SCORE}</span>
-                  <span className={FIGURE_OF}>{`/${SPECIMEN_MAX}`}</span>
+                <p className="flex flex-wrap items-baseline gap-2 font-mono">
+                  <span className="text-5xl font-bold">{SPECIMEN_SCORE}</span>
+                  <span className={`text-xl ${ON_ACCENT_QUIET}`}>{`/${SPECIMEN_MAX}`}</span>
                 </p>
-                <Progress
+                <progress
+                  className="progress w-full text-primary-content"
                   value={SPECIMEN_SCORE}
                   max={SPECIMEN_MAX}
-                  onAccent
-                  label={copy("signin.panel.score-label")}
+                  aria-label={copy("signin.panel.score-label")}
                 />
                 {/* One line under the bar, and no second one: 5c admits the
                     specimen without a source date or an example line. */}
