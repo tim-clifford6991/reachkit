@@ -12,7 +12,10 @@
 // wrote no toggle script, only the CSS selectors this layout does not
 // duplicate: bare `:root` = light, `:root:not([data-theme="light"])` = the
 // media-guarded dark state, `:root[data-theme="dark"]` = the explicit
-// future toggle. No `data-theme` is set from here.
+// toggle. `data-theme` is set before paint by `THEME_SCRIPT` (#681), from
+// the Light / Dark / System choice `src/app/_theme/ThemeToggle.tsx` stores;
+// `system` sets none. The script is inline, so it carries this request's
+// CSP nonce, read back off the policy `src/middleware.ts` forwarded.
 //
 // Fonts: `fontVariables` (`"rk-fonts"`, `src/ui/fonts.ts`) is the class
 // `src/ui/type.css`'s `.rk-fonts` rule binds `--font-ui`/`--font-mono` on —
@@ -51,6 +54,7 @@
 // registered components' arms, so it ships wherever those components do —
 // which is every route.
 import type React from "react";
+import { headers } from "next/headers";
 
 import "@/ui/theme.css";
 import "@/ui/tailwind.css";
@@ -59,6 +63,7 @@ import "@/ui/layout/layout.css";
 import "@/ui/layout/surface.css";
 import "@/ui/idiom/idiom.css";
 import { fontVariables } from "@/ui/fonts";
+import { THEME_SCRIPT } from "./_theme/theme";
 
 /**
  * **Every ReachKit render is a request's own** (issue #331).
@@ -84,13 +89,21 @@ import { fontVariables } from "@/ui/fonts";
  */
 export const dynamic = "force-dynamic";
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
-}): React.JSX.Element {
+}): Promise<React.JSX.Element> {
+  const policy = (await headers()).get("content-security-policy") ?? "";
+  const nonce = /'nonce-([A-Za-z0-9+/_-]+={0,2})'/.exec(policy)?.[1];
+
+  // `suppressHydrationWarning`: the script sets `data-theme` on `<html>`
+  // before React hydrates, which is the point, not a mismatch.
   return (
-    <html lang="en" className={fontVariables}>
+    <html lang="en" className={fontVariables} suppressHydrationWarning>
+      <head>
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body>{children}</body>
     </html>
   );

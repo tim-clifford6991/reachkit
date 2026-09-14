@@ -618,10 +618,11 @@ export async function middleware(req: NextRequest): Promise<NextResponse> {
   //
   // Next's guide also suggests forwarding the bare value as `x-nonce`, for
   // a page that writes an inline `<script>` of its own and has to stamp it
-  // by hand. This product writes exactly one — the hosted page's JSON-LD —
-  // and a JSON-LD block is a data block a browser never executes and
-  // `script-src` therefore never checks. So the header is not set: an
-  // unread header is a claim nothing holds true.
+  // by hand. This product writes two: the hosted page's JSON-LD, a data
+  // block `script-src` never checks, and the root layout's before-paint
+  // theme script (#681), which reads the nonce back off this same policy
+  // header. So `x-nonce` is not set: an unread header is a claim nothing
+  // holds true.
   const nonce = mintNonce();
   const policy = contentSecurityPolicy(nonce, process.env.NODE_ENV === "development");
   const forwarded = new Headers(req.headers);

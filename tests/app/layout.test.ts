@@ -22,7 +22,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import postcss, { type Declaration, type Root, type Rule } from "postcss";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 
 const LAYOUT_TSX = path.resolve(import.meta.dirname, "../../src/app/layout.tsx");
@@ -36,10 +36,17 @@ function typeCssSource(): string {
   return readFileSync(TYPE_CSS, "utf8");
 }
 
-/** Strips every tag from a static-markup string, leaving only the text nodes. */
+/** Strips every tag from a static-markup string, leaving only the text
+ *  nodes. A `<script>` body is code (the before-paint theme script, #681),
+ *  not a text node anyone reads, so it goes with its tags. */
 function textOutsideTags(html: string): string {
-  return html.replace(/<[^>]*>/g, "").trim();
+  return html.replace(/<script[^>]*>[\s\S]*?<\/script>/g, "").replace(/<[^>]*>/g, "").trim();
 }
+
+// The root layout reads the request's CSP nonce for its inline script (#681).
+vi.mock("next/headers", () => ({
+  headers: async () => new Headers({ "content-security-policy": "script-src 'self' 'nonce-TESTNONCE'" }),
+}));
 
 describe("file plan — src/app/layout.tsx imports src/ui/theme.css and BP-018's font module", () => {
   it("imports src/ui/theme.css", () => {
@@ -58,14 +65,20 @@ describe("file plan — src/app/layout.tsx imports src/ui/theme.css and BP-018's
 describe('BP-018 decision 2 — "no component has a default string"', () => {
   it("the rendered root layout contains no text node this work order authored", async () => {
     const { default: RootLayout } = await import("../../src/app/layout.tsx");
-    const markup = renderToStaticMarkup(RootLayout({ children: null }));
+    const markup = renderToStaticMarkup(await RootLayout({ children: null }));
     expect(textOutsideTags(markup)).toBe("");
   });
 
   it("still renders opaque children — the empty-string assertion isn't vacuous", async () => {
     const { default: RootLayout } = await import("../../src/app/layout.tsx");
-    const markup = renderToStaticMarkup(RootLayout({ children: "CHILDREN_MARKER" }));
+    const markup = renderToStaticMarkup(await RootLayout({ children: "CHILDREN_MARKER" }));
     expect(markup).toContain("CHILDREN_MARKER");
+  });
+
+  it("#681 — the before-paint theme script carries the request's nonce", async () => {
+    const { default: RootLayout } = await import("../../src/app/layout.tsx");
+    const markup = renderToStaticMarkup(await RootLayout({ children: null }));
+    expect(markup).toMatch(/<head><script nonce="TESTNONCE">[^<]*data-theme/);
   });
 });
 
@@ -76,7 +89,7 @@ describe(
     it("<html> carries fontVariables as its class", async () => {
       const { default: RootLayout } = await import("../../src/app/layout.tsx");
       const { fontVariables } = await import("../../src/ui/fonts.ts");
-      const markup = renderToStaticMarkup(RootLayout({ children: null }));
+      const markup = renderToStaticMarkup(await RootLayout({ children: null }));
       const htmlTag = markup.match(/<html[^>]*>/)?.[0];
       expect(htmlTag, "no <html> tag in rendered markup").toBeDefined();
       const classAttr = htmlTag!.match(/class="([^"]*)"/)?.[1];

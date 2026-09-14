@@ -18,6 +18,7 @@ import Link from "next/link";
 import { copy } from "@/lib/presentation/copy";
 import { CopyLink } from "../scan/[domain]/_address/copy-link";
 import { FieldCta } from "../_landing/FieldCta";
+import { ThemeToggle } from "@/app/_theme/ThemeToggle";
 
 /** What the bar's right slot holds. A closed union, so a fourth kind of
  *  chrome cannot arrive without a rendering. */
@@ -74,6 +75,7 @@ export function Header(p: { action: HeaderAction }): React.JSX.Element {
           <Brand />
         </div>
         <div className="flex flex-none items-center gap-2">
+          <ThemeToggle />
           <Action action={p.action} />
         </div>
       </nav>
