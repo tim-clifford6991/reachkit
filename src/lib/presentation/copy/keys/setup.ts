@@ -173,17 +173,17 @@ export const SETUP_COPY = Object.freeze({
   // them. The two words the state is read as ("waiting for DNS", "live")
   // are §5's own and are written, in `settings.ts`.
   "setup.destination.label.label": [
-    "TODO(copy)",
+    "Subdomain",
     { slots: {}, fixedBy: "SPEC §5 (2026-09-12) · Canvas: Setup" },
   ],
   /** The one written line for a label that is not a label at all. */
   "setup.destination.label.refused.invalid": [
-    "TODO(copy)",
+    "That isn’t a valid subdomain.",
     { slots: {}, fixedBy: "SPEC §5 (2026-09-12)" },
   ],
   /** The one written line for a label somebody else already serves at. */
   "setup.destination.label.refused.taken": [
-    "TODO(copy)",
+    "That subdomain is already taken.",
     { slots: {}, fixedBy: "SPEC §5 (2026-09-12)" },
   ],
 
@@ -259,25 +259,31 @@ export const SETUP_COPY = Object.freeze({
   // reason the band words are: `pricing` is an identifier the engine
   // classifies by, and what a customer reads beside a count is a word the
   // owner chooses.
-  "setup.profile.title": ["TODO(copy)", { slots: {}, fixedBy: "SPEC.md §5 (2026-09-12)" }],
+  "setup.profile.title": ["Your site, as we read it", { slots: {}, fixedBy: "SPEC.md §5 (2026-09-12)" }],
   /** The head's pill. `{pages}` is the inventory's own row count — what
    *  was read, never a target or a promise. */
-  "setup.profile.pages-read": ["TODO(copy)", { slots: { pages: "text" }, fixedBy: "SPEC.md §5 (2026-09-12)" }],
-  "setup.profile.site-name": ["TODO(copy)", { slots: {}, fixedBy: "SPEC.md §5 (2026-09-12)" }],
+  "setup.profile.pages-read": [
+    "{pages} pages read",
+    { slots: { pages: "text" }, fixedBy: "SPEC.md §5 (2026-09-12)" },
+  ],
+  "setup.profile.site-name": ["Site name", { slots: {}, fixedBy: "SPEC.md §5 (2026-09-12)" }],
   /** The line above the purpose chips — what each page is for. */
-  "setup.profile.purposes": ["TODO(copy)", { slots: {}, fixedBy: "SPEC.md §5 (2026-09-12)" }],
-  "setup.profile.voice.label": ["TODO(copy)", { slots: {}, fixedBy: "SPEC.md §5 (2026-09-12)" }],
+  "setup.profile.purposes": ["What these pages are for", { slots: {}, fixedBy: "SPEC.md §5 (2026-09-12)" }],
+  "setup.profile.voice.label": ["Brand voice", { slots: {}, fixedBy: "SPEC.md §5 (2026-09-12)" }],
   /** The note under the voice box: the same text is editable in Settings
    *  afterwards (§5's done-when, 2026-09-12). */
-  "setup.profile.voice.later": ["TODO(copy)", { slots: {}, fixedBy: "SPEC.md §5 (2026-09-12)" }],
-  "setup.profile.purpose.pricing": ["TODO(copy)", { slots: {}, fixedBy: "SPEC.md §2 (2026-09-12)" }],
-  "setup.profile.purpose.about": ["TODO(copy)", { slots: {}, fixedBy: "SPEC.md §2 (2026-09-12)" }],
-  "setup.profile.purpose.features": ["TODO(copy)", { slots: {}, fixedBy: "SPEC.md §2 (2026-09-12)" }],
-  "setup.profile.purpose.product": ["TODO(copy)", { slots: {}, fixedBy: "SPEC.md §2 (2026-09-12)" }],
-  "setup.profile.purpose.blog": ["TODO(copy)", { slots: {}, fixedBy: "SPEC.md §2 (2026-09-12)" }],
-  "setup.profile.purpose.contact": ["TODO(copy)", { slots: {}, fixedBy: "SPEC.md §2 (2026-09-12)" }],
-  "setup.profile.purpose.legal": ["TODO(copy)", { slots: {}, fixedBy: "SPEC.md §2 (2026-09-12)" }],
-  "setup.profile.purpose.other": ["TODO(copy)", { slots: {}, fixedBy: "SPEC.md §2 (2026-09-12)" }],
+  "setup.profile.voice.later": [
+    "You can change this later in Settings.",
+    { slots: {}, fixedBy: "SPEC.md §5 (2026-09-12)" },
+  ],
+  "setup.profile.purpose.pricing": ["Pricing", { slots: {}, fixedBy: "SPEC.md §2 (2026-09-12)" }],
+  "setup.profile.purpose.about": ["About", { slots: {}, fixedBy: "SPEC.md §2 (2026-09-12)" }],
+  "setup.profile.purpose.features": ["Features", { slots: {}, fixedBy: "SPEC.md §2 (2026-09-12)" }],
+  "setup.profile.purpose.product": ["Product", { slots: {}, fixedBy: "SPEC.md §2 (2026-09-12)" }],
+  "setup.profile.purpose.blog": ["Blog", { slots: {}, fixedBy: "SPEC.md §2 (2026-09-12)" }],
+  "setup.profile.purpose.contact": ["Contact", { slots: {}, fixedBy: "SPEC.md §2 (2026-09-12)" }],
+  "setup.profile.purpose.legal": ["Legal", { slots: {}, fixedBy: "SPEC.md §2 (2026-09-12)" }],
+  "setup.profile.purpose.other": ["Other", { slots: {}, fixedBy: "SPEC.md §2 (2026-09-12)" }],
 
   // ── The release notice (issue #36) ──────────────────────────────────
   //

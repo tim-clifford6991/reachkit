@@ -106,7 +106,10 @@ export const OFFER_COPY = Object.freeze({
   // 2026-09-13, issue #624: what the offer says when the vendor refuses to
   // open checkout. Owner-owed — the approved set draws no refused state on
   // S4 — so it carries the marker rather than a sentence written here.
-  "offer.checkout.refused": ["TODO(copy)", { slots: {}, fixedBy: "SPEC.md §3 (2026-09-13)" }],
+  "offer.checkout.refused": [
+    "We couldn’t start checkout. Try again in a moment.",
+    { slots: {}, fixedBy: "SPEC.md §3 (2026-09-13)" },
+  ],
 
   // 2026-09-05, issue #13: the four values the four slotted lines above
   // take. BP-031's `offerTerms()` was to supply them and does not exist;
