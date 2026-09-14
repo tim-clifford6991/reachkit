@@ -28,6 +28,7 @@
 // One exported constant each, not a generator: a fixture that varied per
 // call would make the layout conformance sweep non-deterministic.
 import type { SetupFacts } from "./facts";
+import { fromStored } from "@/lib/presentation/generated";
 import type { SiteProfile } from "@/lib/site-profile/types";
 import type { PassProgress } from "./progress";
 import type { SetupProgressState, SetupStore, SetupSubmission } from "../submit";
@@ -66,6 +67,18 @@ export const FIXTURE_SITE_PROFILE: SiteProfile = Object.freeze({
   refreshedAt: new Date(Date.UTC(2026, 8, 12, 6, 0, 0)),
 });
 
+/** The questions the fixture report phrased for its market: data in the
+ *  shape the stored report keeps, never a sentence the screen owns. */
+const FIXTURE_QUESTIONS = Object.freeze(
+  [
+    { search: "agency project management software", wording: "Which project management tool suits a small agency?" },
+    { search: "client portal for agencies", wording: "What gives an agency's clients a view of project progress?" },
+    { search: "agency resource planning", wording: "How do agencies plan who works on which client project?" },
+  ].map((q, index) =>
+    Object.freeze({ n: index + 1, search: q.search, wording: fromStored("questions.wording", q.wording) }),
+  ),
+);
+
 /** A founder who bought from a report: the address was measured, so the
  *  market card is `inferred` and the address is shown to confirm or change
  *  (REQ-021 c6, REQ-026 c1). The scanless arms — an empty address field and
@@ -82,6 +95,7 @@ export const FIXTURE_SETUP_FACTS: SetupFacts = Object.freeze({
     }),
   }),
   suggestedRivals: Object.freeze(["asana.com", "monday.com", "clickup.com", "notion.so"]),
+  questions: Object.freeze({ scanId: FIXTURE_SCAN_ID, items: FIXTURE_QUESTIONS }),
   profile: FIXTURE_SITE_PROFILE,
   // Overwritten by `provider.ts` with `env.HOSTED_EDGE_CNAME_TARGET`; the
   // value here is only what a test that drives `assembleSetup` directly

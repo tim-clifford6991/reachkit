@@ -25,7 +25,8 @@
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import { env } from "@/lib/config/env";
-import { assembleSetup, type SetupScreenModel } from "./facts";
+import { assembleSetup, type SetupQuestions, type SetupScreenModel } from "./facts";
+import type { StoredReport } from "@/lib/scan/report";
 import { liveSetupStore, siteAddressFor } from "./store";
 import type { PassProgress } from "./progress";
 import type { SetupStore } from "../submit";
@@ -84,10 +85,12 @@ export const readSetupScreen = cache(async function readSetupScreen(): Promise<S
           const report = await readReportFor(founder.domain);
           return report === null ? null : { domain: founder.domain, report };
         })();
+  const questions = measured === null ? null : await readQuestionsFor(founder.domain);
 
   return assembleSetup({
     measured,
     suggestedRivals: null,
+    questions,
     // SPEC.md §5 (2026-09-12): what the scan read of this site. Keyed by
     // the domain, because the free scan that built it had no account
     // behind it to key it by.
@@ -195,13 +198,7 @@ export function setupStore(): SetupStore {
  * `null` — the empty card — never a screen the founder cannot get past.
  */
 export async function readReportFor(domain: string): Promise<ReportFacts | null> {
-  let report: Awaited<ReturnType<typeof import("@/lib/scan/report").readCurrentReport>>;
-  try {
-    const { readCurrentReport } = await import("@/lib/scan/report");
-    report = await readCurrentReport(domain);
-  } catch {
-    return null;
-  }
+  const report = await storedReportFor(domain);
   if (report === null) return null;
   // #103: the category has one home — the market the profile inferred —
   // and `categoryOf` is its one derivation.
@@ -214,3 +211,29 @@ export async function readReportFor(domain: string): Promise<ReportFacts | null>
     rivals: (report.presence?.rivals ?? []).map((rival) => rival.domain),
   };
 }
+
+/**
+ * SPEC §5's twelve questions, read-only beside the market they were
+ * phrased for: the stored report's own projection of them, and the scan
+ * they came from, so the screen shows them only while the market card is
+ * still that scan's. `null` where the report phrased none.
+ */
+async function readQuestionsFor(domain: string): Promise<SetupQuestions | null> {
+  const report = await storedReportFor(domain);
+  const rows = report?.aiAnswers?.rows ?? [];
+  if (report === null || rows.length === 0) return null;
+  return { scanId: report.scanId, items: rows.map((row) => row.question) };
+}
+
+/** One read of the stored report per request, shared by the market card
+ *  and its questions. A read that fails is `null`, never a thrown screen. */
+const storedReportFor = cache(async function storedReportFor(
+  domain: string,
+): Promise<StoredReport | null> {
+  try {
+    const { readCurrentReport } = await import("@/lib/scan/report");
+    return await readCurrentReport(domain);
+  } catch {
+    return null;
+  }
+});
