@@ -14,7 +14,7 @@
 // public screen gets ruling 3a's header and footer from
 // `(public)/layout.tsx`; this file renders above all three groups, inside
 // `src/app/layout.tsx` alone, so the shell is written here — the same
-// `rk-public-shell` element, the same `Header` and the same `Footer`, so a
+// `data-public-shell` column, the same `Header` and the same `Footer`, so a
 // stranger who mistypes an address lands somewhere that looks like the
 // product and carries the way out of it.
 //
@@ -53,7 +53,7 @@ const TEST_ID = "root-not-found";
 
 export default function RootNotFound(): React.JSX.Element {
   return (
-    <div className="rk-public-shell" data-testid={TEST_ID}>
+    <div data-public-shell className="flex min-h-svh flex-col" data-testid={TEST_ID}>
       <Header action={ACTION} />
       <PublicNotFound />
       <Footer />

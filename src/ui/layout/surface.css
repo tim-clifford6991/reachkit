@@ -144,10 +144,10 @@
 
 /* And it fills what the shell leaves it, so a screen that asks for the
  * viewport gets exactly the viewport less the chrome above it —
- * `.rk-public-shell` is already `min-height: 100svh` and a flex column, so
+ * `[data-public-shell]` is already `min-h-svh` and a flex column, so
  * this is that arithmetic done by the layout rather than by a number
  * nobody can keep true at two header heights. */
-.rk-public-shell > [data-surface][data-arm-compact^="declared:"] {
+[data-public-shell] > [data-surface][data-arm-compact^="declared:"] {
   flex: 1 1 auto;
   min-height: 0;
   /* A flex column, so the screen inside it can take the height by growing
@@ -159,7 +159,7 @@
   flex-direction: column;
 }
 
-.rk-public-shell > [data-surface][data-arm-compact^="declared:"] > * {
+[data-public-shell] > [data-surface][data-arm-compact^="declared:"] > * {
   flex: 1 1 auto;
   min-height: 0;
 }

@@ -202,7 +202,7 @@ describe("S8 — the root 404, the one an unmatched address reaches (#405)", () 
     // `(public)/layout.tsx` is drawn here or nowhere.
     expect(occurrences(markup, 'data-testid="public-header"')).toBe(1);
     expect(occurrences(markup, 'data-testid="public-footer"')).toBe(1);
-    expect(occurrences(markup, 'class="rk-public-shell"')).toBe(1);
+    expect(occurrences(markup, 'data-public-shell="true"')).toBe(1);
   });
 
   it("takes 3a's own right slot — quiet Sign in, one solid CTA — and no route's", () => {
