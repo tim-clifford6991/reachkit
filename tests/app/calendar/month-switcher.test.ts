@@ -67,22 +67,12 @@ describe("the two formatters, and which position takes which", () => {
 });
 
 describe("the switcher's shape", () => {
-  it("it is the approved row of three: an arrow, the month, an arrow (#354)", () => {
+  it("is a row of three: an arrow, the month, an arrow", () => {
     expect(PAGE).toContain('data-testid="month-switcher"');
-    // Not a `join` any more. A `join` welds its children edge to edge and
-    // does not wrap; what the approved S14 draws is two quiet pills with
-    // the month standing between them, so the arrows read as controls and
-    // the month reads as a label rather than a third button.
-    expect(PAGE).not.toContain("join-item");
-    // The arrows are fixed glyphs — a direction, not a sentence — so they
-    // are named constants rather than registry keys, on the footing
-    // `Stat`'s em dash already stands on. Named constants and not bare JSX
-    // text: the string-literal sweep governs `src/app/**` and does not
-    // read a glyph differently from a sentence, rightly.
-    for (const glyph of ["PREVIOUS_GLYPH", "NEXT_GLYPH"]) {
-      expect(PAGE, glyph).toContain(`const ${glyph} = "\\u21`);
-      expect(PAGE, glyph).toContain(`{${glyph}}`);
-    }
+    // The arrows are lucide glyphs — a direction, not a sentence — so they
+    // need no registry key.
+    expect(PAGE).toContain("<ChevronLeft");
+    expect(PAGE).toContain("<ChevronRight");
   });
 
   it("**an arrow is never a glyph alone** — the month it goes to is its accessible name", () => {

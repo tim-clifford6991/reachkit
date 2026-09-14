@@ -1,32 +1,28 @@
-// UI-SPEC S16 — the draft's right-hand rail: "Decide · solid Approve · Edit
-// · Veto (warn) · 'If you do nothing' info · Checks list".
+// SPEC §7 — the draft's rail: decide (Approve, Edit, Veto), what happens if
+// you do nothing, and the checks the draft passed.
 //
-// It is `Panel` — §2.2's one registered panel, the same box S15 stands the
-// calendar's day detail in (`src/ui/components/custom/DayPanel.tsx` says
-// why there is one box and not two). At and above the wide band it sits
-// beside the page, 290px and sticky; below it, in flow under the page. Not
-// a drawer, at any width.
+// A daisyUI card in an `<aside>`, the same box the calendar's day panel
+// stands in: beside the page and sticky from `xl`, in flow under it below.
+// Not a drawer, at any width.
 //
 // **Nothing here decides which controls exist.** `draftActionsFor` projects
-// them from §9's transition table, so this rail and the calendar's day
-// panel cannot offer different actions for one state (REQ-044 c3). What
-// this file decides is the *rank* each takes in the rail, which is the
-// idiom's and is read off the action itself rather than off its position:
-// Approve is the screen's one solid primary and takes the full column;
-// Edit is the quiet tertiary and Veto the warn outline, sharing the row
-// under it. A state that offers none of them — a page past review — draws
-// no control block at all rather than an empty row.
+// them from §9's transition table, so this rail and the calendar's day panel
+// cannot offer different actions for one state (REQ-044 c3). What this file
+// decides is the rank: Approve is the screen's one solid primary across the
+// column; Edit is ghost and Veto the warning outline, sharing the row under
+// it. A state that offers none of them draws no control block at all.
 "use client";
 
 import type React from "react";
+import { CircleCheck, Info } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
-import { Btn } from "@/ui/components/Btn";
-import { Panel } from "@/ui/components/custom";
 import { formatDateTime } from "../../_shell/format";
 import { writtenLine } from "../../_shell/written";
 import { draftActionsFor, type DraftCommand } from "./actions";
 import { CHECK_COPY_KEY, checkRows } from "./checks";
 import type { ClaimState, DraftView } from "./model";
+
+const EYEBROW = "text-xs font-semibold uppercase tracking-wide opacity-70";
 
 export function DecidePanel(p: {
   view: DraftView;
@@ -57,78 +53,76 @@ export function DecidePanel(p: {
         });
 
   return (
-    <Panel testId="draft-decide">
-      <p className="eyebrow rk-daypanel-eyebrow">{copy("draft.decide.title")}</p>
+    <aside className="card card-border bg-base-100 min-w-0 xl:sticky xl:top-4" data-testid="draft-decide">
+      <div className="card-body min-w-0 gap-3 p-4">
+        <h2 className={EYEBROW}>{copy("draft.decide.title")}</h2>
 
-      {actions.length === 0 ? null : (
-        <div className="rk-daypanel-actions" data-testid="draft-actions">
-          {actions.map((action) => {
-            const solid = action.kind === "command" && action.command === "approve";
-            return (
-              <span
-                key={action.key}
-                className={solid ? "rk-daypanel-block" : "rk-daypanel-half"}
-                data-testid={`draft-action-${action.key}`}
-              >
-                {action.kind === "edit" ? (
-                  <Btn
-                    label={copy(action.key)}
-                    variant="tertiary"
-                    size="sm"
-                    pill
-                    onClick={p.onEdit}
-                  />
-                ) : action.command === "veto" ? (
-                  <Btn
-                    label={copy(action.key)}
-                    variant="secondary"
-                    tone="warn"
-                    size="sm"
-                    pill
-                    onClick={() => p.onCommand("veto")}
-                  />
-                ) : (
-                  <Btn
-                    label={copy(action.key)}
-                    variant="primary"
-                    size="sm"
-                    pill
-                    block
-                    onClick={() => p.onCommand("approve")}
-                  />
-                )}
-              </span>
-            );
-          })}
-        </div>
-      )}
-
-      <hr className="rk-daypanel-rule" />
-
-      {/* §4.6's "what happens if you do nothing". The time is a value and
-          renders whether or not the sentence around it has been written;
-          under copilot there is no time, because nothing happens. */}
-      <div className="rk-note" data-testid="draft-do-nothing">
-        <span className="rk-note-title">{copy("draft.do-nothing.title")}</span>
-        {doNothingLine === null ? null : <span>{doNothingLine}</span>}
-        {view.doNothing.publishesAt === null ? null : (
-          <span className="rk-prov" data-testid="draft-do-nothing-at">
-            {formatDateTime(view.doNothing.publishesAt, view.timeZone)}
-          </span>
+        {actions.length === 0 ? null : (
+          <div className="grid grid-cols-2 gap-2" data-testid="draft-actions">
+            {actions.map((action) =>
+              action.kind === "edit" ? (
+                <button
+                  key={action.key}
+                  type="button"
+                  className="btn btn-sm btn-ghost"
+                  data-testid={`draft-action-${action.key}`}
+                  onClick={p.onEdit}
+                >
+                  {copy(action.key)}
+                </button>
+              ) : action.command === "veto" ? (
+                <button
+                  key={action.key}
+                  type="button"
+                  className="btn btn-sm btn-outline btn-warning"
+                  data-testid={`draft-action-${action.key}`}
+                  onClick={() => p.onCommand("veto")}
+                >
+                  {copy(action.key)}
+                </button>
+              ) : (
+                <button
+                  key={action.key}
+                  type="button"
+                  className="btn btn-sm btn-primary col-span-2"
+                  data-testid={`draft-action-${action.key}`}
+                  onClick={() => p.onCommand("approve")}
+                >
+                  {copy(action.key)}
+                </button>
+              )
+            )}
+          </div>
         )}
-      </div>
 
-      <hr className="rk-daypanel-rule" />
+        {/* "What happens if you do nothing". The time is a value and renders
+            whether or not the sentence around it has been written. */}
+        <div role="note" className="alert items-start text-sm" data-testid="draft-do-nothing">
+          <Info size={20} strokeWidth={1.75} aria-hidden />
+          <div className="flex min-w-0 flex-col gap-1">
+            <span className="font-semibold">{copy("draft.do-nothing.title")}</span>
+            {doNothingLine === null ? null : <span>{doNothingLine}</span>}
+            {view.doNothing.publishesAt === null ? null : (
+              <span className="num text-xs opacity-70" data-testid="draft-do-nothing-at">
+                {formatDateTime(view.doNothing.publishesAt, view.timeZone)}
+              </span>
+            )}
+          </div>
+        </div>
 
-      <p className="eyebrow rk-daypanel-eyebrow">{copy("draft.checks.title")}</p>
-      <div className="flex flex-col gap-2" data-testid="draft-checks">
-        {rows.map((row) => (
-          <p className="rk-check" key={row.rule} data-testid={`draft-check-${row.rule}`}>
-            <span className="rk-check-dot" aria-hidden />
-            <span>{copy(CHECK_COPY_KEY[row.rule], row.vars)}</span>
-          </p>
-        ))}
+        <div className="divider my-0" />
+
+        <h2 className={EYEBROW}>{copy("draft.checks.title")}</h2>
+        {/* A row is only ever drawn for a pass (`checkRows`). */}
+        <ul className="flex flex-col gap-2 text-sm" data-testid="draft-checks">
+          {rows.map((row) => (
+            <li className="flex items-start gap-2" key={row.rule} data-testid={`draft-check-${row.rule}`}>
+              <CircleCheck className="text-success mt-0.5 shrink-0" size={16} strokeWidth={1.75} aria-hidden />
+              <span className="min-w-0">{copy(CHECK_COPY_KEY[row.rule], row.vars)}</span>
+            </li>
+          ))}
+        </ul>
       </div>
-    </Panel>
+    </aside>
   );
 }

@@ -1,31 +1,9 @@
-// BUILD §4.6, UI-SPEC S16 — how the body's own markup is dressed, and
-// nothing else.
+// SPEC §7 — how the draft body's own markup is dressed, and nothing else.
 //
-// §2.2: "Custom CSS is allowed only for: the calendar grid, the day panel,
-// the AI dot-matrix, chart SVGs, and the sidebar — nothing else." A draft
-// body is none of those, so this screen ships no stylesheet: the map below
-// is handed to the one Markdown renderer (`markdown.ts`'s `toHtml`) and the
-// **typography** the approved set draws for a page body lives with the
-// idiom, on `.rk-doc` (`src/ui/idiom/idiom.css` §13), which `RenderedBody`
-// puts on the container. The copy-out passes no map and gets the same
-// elements unclassed — the bytes that publish.
-//
-// **The map shrank when the set landed** (issue #355). It used to carry a
-// Tailwind size and margin for every element — `text-xl`, `text-lg`,
-// `my-2`, `border-l-4` — which is a second type scale beside the approved
-// ladder and a second rhythm beside the approved spacing steps, written in
-// utilities whose values (18px, 14px) are not rungs of either. The element
-// selectors under `.rk-doc` state the same things in tokens. What is left
-// here is the two classes that are not typography:
-//
-//   `code` carries `.num` because §2.3 is "every numeral, date, URL, search
-//   query and **code-like string** is JetBrains Mono", and `.num` is the one
-//   mechanism that rule is applied through (`src/ui/type.css`).
-//
-//   `pre` carries `overflow-x-auto` because the layout conformance suite
-//   names `.overflow-x-auto` as a **declared** scroll container: a long code
-//   line has to scroll inside its own box rather than push the document
-//   sideways, and the declaration is the class, not the CSS property.
+// The maps below are handed to the one Markdown renderer (`markdown.ts`'s
+// `toHtml`), so the screen ships no stylesheet: the body is Tailwind's scale
+// on each element. The copy-out passes no map and gets the same elements
+// unclassed — the bytes that publish.
 import type { HtmlClasses } from "@/lib/publish/render/markdown";
 
 /**
@@ -80,30 +58,34 @@ export const BODY_CLASSES: HtmlClasses = Object.freeze({
 });
 
 /**
- * The map the **draft screen** renders with, and it is almost empty on
- * purpose.
+ * The map the **draft screen** renders with — the read view's body and the
+ * editor's preview alike. Headings arrive one level down (`demoteHeadings`),
+ * under the screen's own `<h1>`, so a body starts at `h2`.
  *
- * The typography of a document is `.rk-doc`'s (`src/ui/idiom/idiom.css`,
- * §10's document idiom, landed for S5) with this screen's `.rk-doc-levelled`
- * modifier over it. A per-element Tailwind class list here would be a
- * second type scale beside the approved ladder and a second rhythm beside
- * the approved spacing steps, written in utilities whose values (18px,
- * 14px) are rungs of neither.
- *
- * Two classes are left, and neither is typography:
- *
- *   `code` carries `.num` because §2.3 is "every numeral, date, URL, search
- *   query and **code-like string** is JetBrains Mono", and `.num` is the one
- *   mechanism that rule is applied through (`src/ui/type.css`).
- *
- *   `pre` carries `overflow-x-auto` because the layout conformance suite
- *   names `.overflow-x-auto` as a **declared** scroll container: a long code
- *   line has to scroll inside its own box rather than push the document
- *   sideways, and the declaration is the class, not the CSS property.
+ * `code` carries `.num` (the mono face for code-like strings). `pre` carries
+ * `overflow-x-auto` so a long code line scrolls inside its own box rather
+ * than pushing the document sideways. The grounded passage's `mark` is the
+ * hosted page's own, so the fact reads the same in both places.
  */
 export const DRAFT_BODY_CLASSES: HtmlClasses = Object.freeze({
-  pre: "overflow-x-auto",
-  code: "num",
+  h1: "mt-6 mb-2 text-2xl font-semibold",
+  h2: "mt-6 mb-2 text-xl font-semibold",
+  h3: "mt-5 mb-2 text-lg font-semibold",
+  h4: "mt-4 mb-1 text-base font-semibold",
+  h5: "mt-4 mb-1 text-base font-semibold",
+  h6: "mt-4 mb-1 text-sm font-semibold",
+  p: "my-3 leading-relaxed",
+  ul: "my-3 list-disc pl-6",
+  ol: "my-3 list-decimal pl-6",
+  li: "my-1",
+  blockquote: "border-base-300 my-4 border-l-4 pl-4 italic",
+  pre: "bg-base-200 rounded-box my-4 overflow-x-auto p-3",
+  code: "num text-sm",
+  hr: "border-base-300 my-6",
+  a: "link",
+  mark: BODY_CLASSES.mark ?? "",
+  strong: "font-semibold",
+  em: "italic",
 });
 
 /**

@@ -104,7 +104,7 @@ describe("the address is the one the record decided, never one the screen chose"
   });
 
   it("the address renders in the mono utility — §2.3's code-like string", () => {
-    expect(render()).toMatch(/class="num[^"]*"[^>]*href="https:\/\/blog\.example\.com\/best-crm"/);
+    expect(render()).toMatch(/class="[^"]*\bnum\b[^"]*"[^>]*href="https:\/\/blog\.example\.com\/best-crm"/);
   });
 });
 

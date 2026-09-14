@@ -1,4 +1,4 @@
-// BUILD §4.6 — the calendar's two interactions: which stage is showing, and
+// SPEC §7 — the calendar's two interactions: which stage is showing, and
 // which day the panel is on.
 //
 // Both are view state and neither is a read, which is why they live in one
@@ -6,20 +6,19 @@
 // itself is *not* state here: it is in the address (`?month=`), so a month
 // the customer switched to survives a reload and can be linked to.
 //
-// REQ-043 criterion 7: "when the day detail first renders, then today is
-// the selected day" — and "today" is the **site-local** day, resolved in
-// `assembleMonth` from the customer's own zone, never from the browser's.
-// A month that does not contain today opens on its first date instead;
-// there is no month in which nothing is selected.
+// "Today" is the **site-local** day, resolved in `assembleMonth` from the
+// customer's own zone, never from the browser's. A month that does not
+// contain today opens on its first date instead; there is no month in which
+// nothing is selected.
+//
+// The month is a CSS grid (DESIGN rule 2: a grid that is not a series is CSS
+// grid): two columns on a phone, Monday–Sunday from `md`, each day a bordered
+// button. The day panel is a daisyUI card beside it from `xl`, sticky there,
+// and in flow below it under that — never a drawer.
 "use client";
 
 import type React from "react";
 import { useState } from "react";
-import {
-  CalendarGrid,
-  DayPanelLayout,
-  type CalendarGridCell,
-} from "@/ui/components/custom";
 import { copy } from "@/lib/presentation/copy";
 import { writtenLine } from "../_shell/written";
 import { StageFilter } from "./StageFilter";
@@ -38,6 +37,7 @@ import { dayNumber, weekdayLabels } from "./dates";
 import {
   STAGE_FILTER_COPY_KEY,
   STAGE_TONE,
+  TONE_BADGE,
   type StageFilter as StageFilterId,
 } from "./stages";
 import { cellFor, type DayCell, type MonthModel } from "./month";
@@ -50,52 +50,6 @@ function openOn(model: MonthModel): string {
   return today?.day ?? first?.day ?? model.today;
 }
 
-/**
- * One `DayCell` as the grid's own cell type.
- *
- * **What narrowing does, stated once.** With `all` selected every date
- * gives its account: a page where there is one, the date's one written
- * line where there is not. With a stage selected the view narrows to that
- * stage — a date that holds no page of it renders its date and nothing
- * else. It does **not** render an empty-date line under narrowing, and
- * that is the point: "no page of this stage here" and "nothing was worth
- * publishing here" are different statements, and REQ-043 c3 forbids the
- * second from being said on a date it is not true of.
- */
-function toGridCell(
-  cell: DayCell,
-  filter: StageFilterId,
-  selected: string,
-  stopped: WorkStop | null,
-  timeZone: string,
-): CalendarGridCell {
-  const showing = filter === "all" || cell.page?.stage === filter;
-  return {
-    id: cell.day,
-    date: dayNumber(cell.day),
-    entry:
-      cell.page === null || !showing
-        ? null
-        : {
-            label: cell.page.title,
-            stage: copy(STAGE_FILTER_COPY_KEY[cell.page.stage]),
-            tone: STAGE_TONE[cell.page.stage],
-          },
-    // One cell, one line. A law-caused empty day states c1's line here and
-    // c2's and c4's beside it in the day panel: a month grid cell holds a
-    // date and a single sentence, and three sentences in one cell would be
-    // a different screen rather than a rendering of the law. The panel is
-    // the place on this surface where c2 and c4 are read (issue #113).
-    emptyLine:
-      filter === "all" && cell.page === null && cell.empty !== null
-        ? emptyLineFor(cell.empty, cell.day, stopped, timeZone)
-        : null,
-    today: cell.today,
-    selected: cell.day === selected,
-    placeholder: !cell.inMonth,
-  };
-}
-
 /** The one line a cell states for its cause. The two law causes render
  *  through `stoppedWorkStatement`, which is REQ-092's one home (ADR-011);
  *  the five the calendar owns render from its own keys. */
@@ -105,9 +59,9 @@ export function emptyLineFor(
   stopped: WorkStop | null,
   timeZone: string,
   /** Which of the two forms the caller is rendering — the cell's first
-   *  line, or the panel's whole account (#209, and issue #354's S14/S15).
-   *  The grid's is the default because the grid is the surface with the
-   *  smaller box; a caller that wants the account asks for it. */
+   *  line, or the panel's whole account (#209). The grid's is the default
+   *  because the grid is the smaller box; a caller that wants the account
+   *  asks for it. */
   keys: Record<CalendarOwnCause, CopyKey> = EMPTY_COPY_KEY,
 ): string | null {
   const cause = empty.cause;
@@ -128,10 +82,83 @@ export function emptyLineFor(
 /** A `DayKey` as the instant that calendar day is marked by. UTC midnight,
  *  the same convention `_overview/week.ts` states for a day marker: the day
  *  was already resolved in the site's zone, and resolving it again would
- *  shift it back across midnight. Never rendered — `WorkStop.since` is read
- *  for which days a stop accounts for and never as a cause. */
+ *  shift it back across midnight. Never rendered. */
 function dayMarker(day: string): Date {
   return new Date(`${day}T00:00:00.000Z`);
+}
+
+/**
+ * One date of the month.
+ *
+ * **What narrowing does.** With `all` selected every date gives its account:
+ * a page where there is one, the date's one written line where there is not.
+ * With a stage selected a date that holds no page of it renders its date and
+ * nothing else — never an empty-date line, because "no page of this stage
+ * here" and "nothing was worth publishing here" are different statements.
+ *
+ * A law-caused empty day states its first line here and the rest of its
+ * account in the day panel (issue #113).
+ */
+function DayButton(p: {
+  cell: DayCell;
+  filter: StageFilterId;
+  selected: boolean;
+  stopped: WorkStop | null;
+  timeZone: string;
+  onSelect: (day: string) => void;
+}): React.JSX.Element {
+  const { cell } = p;
+  if (!cell.inMonth) {
+    // Holds a column position in the first or last week; gone where there
+    // are no columns to hold.
+    return <div className="hidden md:block" aria-hidden="true" data-testid="calendar-placeholder" />;
+  }
+  const page = cell.page !== null && (p.filter === "all" || cell.page.stage === p.filter) ? cell.page : null;
+  const emptyLine =
+    p.filter === "all" && cell.page === null && cell.empty !== null
+      ? emptyLineFor(cell.empty, cell.day, p.stopped, p.timeZone)
+      : null;
+
+  return (
+    <button
+      type="button"
+      className={[
+        "rounded-box border flex min-h-24 min-w-0 flex-col gap-2 p-2 text-left transition-colors hover:border-primary",
+        p.selected
+          ? "border-primary bg-primary/10"
+          : cell.page === null
+            ? "border-base-300 bg-base-200"
+            : "border-base-300 bg-base-100",
+        cell.today ? "ring-2 ring-primary ring-offset-1 ring-offset-base-100" : "",
+      ].join(" ")}
+      data-testid={`calendar-cell-${cell.day}`}
+      data-today={cell.today ? "" : undefined}
+      data-empty={cell.page === null ? "" : undefined}
+      aria-current={p.selected ? "date" : undefined}
+      title={page?.title ?? emptyLine ?? undefined}
+      onClick={() => p.onSelect(cell.day)}
+    >
+      <span className="flex min-w-0 flex-wrap items-center justify-between gap-1">
+        <span className="num text-sm font-semibold" data-testid="cell-date">
+          {dayNumber(cell.day)}
+        </span>
+        {page === null ? null : (
+          <span className={`badge badge-sm ${TONE_BADGE[STAGE_TONE[page.stage]]}`}>
+            {copy(STAGE_FILTER_COPY_KEY[page.stage])}
+          </span>
+        )}
+      </span>
+      {page !== null ? (
+        <span className="line-clamp-3 break-words text-sm" data-testid="cell-label">
+          {page.title}
+        </span>
+      ) : emptyLine === null ? null : (
+        <span className="line-clamp-3 break-words text-xs opacity-70" data-testid="cell-empty-line">
+          {emptyLine}
+        </span>
+      )}
+    </button>
+  );
 }
 
 export function CalendarView(p: { model: MonthModel }): React.JSX.Element {
@@ -142,27 +169,36 @@ export function CalendarView(p: { model: MonthModel }): React.JSX.Element {
 
   return (
     <>
-      <StageFilter
-        counts={p.model.counts}
-        selected={filter}
-        onSelect={setFilter}
-      />
-      <DayPanelLayout
-        grid={
-          <CalendarGrid
-            weekdays={weekdayLabels()}
-            cells={p.model.cells.map((c) =>
-              toGridCell(c, filter, selected, p.model.stopped, p.model.timeZone)
-            )}
-            onSelect={setSelected}
-          />
-        }
-        panel={
-          cell === undefined ? null : (
-            <DayPanelView cell={cell} timeZone={p.model.timeZone} stopped={p.model.stopped} />
-          )
-        }
-      />
+      <StageFilter counts={p.model.counts} selected={filter} onSelect={setFilter} />
+      <div className="grid min-w-0 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_18rem]">
+        <div className="flex min-w-0 flex-col gap-2">
+          {/* Below `md` the grid is two columns of dates, and a list with no
+              week columns has no weekdays to head. */}
+          <div className="hidden grid-cols-7 gap-2 md:grid" aria-hidden="true">
+            {weekdayLabels().map((weekday) => (
+              <span key={weekday} className="text-center text-xs font-semibold uppercase tracking-wide opacity-60">
+                {weekday}
+              </span>
+            ))}
+          </div>
+          <div className="grid min-w-0 grid-cols-2 gap-2 md:grid-cols-7" data-testid="calendar-grid">
+            {p.model.cells.map((c) => (
+              <DayButton
+                key={c.day}
+                cell={c}
+                filter={filter}
+                selected={c.day === selected}
+                stopped={p.model.stopped}
+                timeZone={p.model.timeZone}
+                onSelect={setSelected}
+              />
+            ))}
+          </div>
+        </div>
+        {cell === undefined ? null : (
+          <DayPanelView cell={cell} timeZone={p.model.timeZone} stopped={p.model.stopped} />
+        )}
+      </div>
     </>
   );
 }

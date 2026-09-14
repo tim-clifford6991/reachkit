@@ -84,6 +84,16 @@ export const STAGE_TONE: Record<Stage, Tone> = {
   needs_you: "bad",
 };
 
+/** The daisyUI badge modifier each `Tone` wears on the calendar and the
+ *  draft view. Every badge still carries its word beside the colour. */
+export const TONE_BADGE: Readonly<Record<Tone, string>> = Object.freeze({
+  accent: "badge-primary",
+  ok: "badge-success",
+  warn: "badge-warning",
+  bad: "badge-error",
+  neutral: "badge-ghost",
+});
+
 /** §9's ten, re-exported under the machine's own name so a reader of this
  *  module can see the set the projection is total over without following a
  *  second import. It is the machine's array — not a copy, not a re-listing

@@ -153,8 +153,7 @@ describe("issue #486 — every chip the approved set draws carries its glyph", (
     }
   });
 
-  it("S16's Copy-it-out head and S2's Copy link pill carry copy (L780, L577)", () => {
-    expect(read("app/(account)/app/draft/[draftId]/DraftScreen.tsx")).toMatch(CHIP("Copy"));
+  it("S2's Copy link pill carries copy (L577)", () => {
     expect(read("app/(public)/scan/[domain]/_address/copy-link.tsx")).toMatch(/icon=\{<Copy size=\{14\}/);
   });
 

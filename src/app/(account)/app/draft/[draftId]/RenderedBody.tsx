@@ -1,5 +1,6 @@
-// BUILD §4.6, UI-SPEC S16 — "full page render", the grounded-fact highlight
-// inside it, and the source line under the paragraph that carries it.
+// SPEC §7 — "whole draft to read": the full page render, the grounded-fact
+// highlight inside it, and the source line under the paragraph that carries
+// it.
 //
 // One component, two callers: the read view's body and the editor's live
 // preview pane. Both hand it the Markdown as it now stands and the passage
@@ -19,8 +20,8 @@
 // every attribute value it emits and never passes source HTML through, so
 // the string handed here cannot carry markup a body contained.
 //
-// **The source line is placed, not floated** (issue #355). S16 draws
-// REQ-045 criterion 2's "URL it was read from and the date it was read"
+// **The source line is placed, not floated** (issue #355). REQ-045
+// criterion 2's "URL it was read from and the date it was read" sits
 // directly beneath the paragraph holding the marked fact, because that is
 // the paragraph it is evidence for; a line at the foot of the screen is
 // evidence for the page in general, which is not what the criterion says.
@@ -69,7 +70,7 @@ export function RenderedBody(p: {
   if (at === -1) {
     return (
       <div
-        className="rk-doc rk-doc-levelled"
+        className="min-w-0 break-words"
         data-testid={p["data-testid"]}
         dangerouslySetInnerHTML={{ __html: toHtml(marked, DRAFT_BODY_CLASSES) }}
       />
@@ -77,7 +78,7 @@ export function RenderedBody(p: {
   }
 
   return (
-    <div className="rk-doc rk-doc-levelled" data-testid={p["data-testid"]}>
+    <div className="min-w-0 break-words" data-testid={p["data-testid"]}>
       <div dangerouslySetInnerHTML={{ __html: toHtml(marked.slice(0, at + 1), DRAFT_BODY_CLASSES) }} />
       {p.source}
       <div dangerouslySetInnerHTML={{ __html: toHtml(marked.slice(at + 1), DRAFT_BODY_CLASSES) }} />
