@@ -229,7 +229,7 @@ describe("an owed line is reported as itself, and the week stays open", () => {
   );
 });
 
-describe("ADR-071 — no row, no state", () => {
+describe("no row, no telling — and an unmeasured week that has one says so", () => {
   it("a week the site did not measure sends no mail", async () => {
     db.seed("scans", []);
     const outcome = await sendWeeklyDigest({ siteId: "site-1", weekStart: WEEK, now: NOW });
@@ -237,11 +237,20 @@ describe("ADR-071 — no row, no state", () => {
     expect(sent).toEqual([]);
   });
 
-  it("and neither does a week whose account says it was not measured", async () => {
-    account.answer = { kind: "not_measured", nextDueOn: new Date(Date.UTC(2026, 8, 14, 6, 0, 0)) };
+  it("SPEC §8 — a week whose row exists but was not measured still sends, saying so, once", async () => {
+    const nextDueOn = new Date(Date.UTC(2026, 8, 14, 6, 0, 0));
+    account.answer = { kind: "not_measured", nextDueOn };
     const outcome = await sendWeeklyDigest({ siteId: "site-1", weekStart: WEEK, now: NOW });
-    expect(outcome).toEqual({ sent: false, reason: "not-measured" });
-    expect(sent).toEqual([]);
+    expect(outcome).toEqual({ sent: true, id: "vendor-1" });
+    expect(sent).toHaveLength(1);
+    expect(sent[0]?.measurement).toEqual({ state: "none", nextDueOn });
+    // No figure is stated for a week nobody measured: the stats and lists
+    // all go in as unmeasured, so every one of them is omitted.
+    const sections = (sent[0]?.blocks ?? []).filter((b) => ["stat", "list", "verdicts"].includes(b.block));
+    const arms = sections.map((b) => ((b as { value?: { kind: string } }).value ?? (b as { items?: { kind: string } }).items)?.kind);
+    expect(arms).toEqual(["unmeasured", "unmeasured", "unmeasured", "unmeasured"]);
+    expect(theScan().digest_sent_at).not.toBeNull();
+    expect(await sendWeeklyDigest({ siteId: "site-1", weekStart: WEEK, now: NOW })).toEqual({ sent: false, reason: "already-sent" });
   });
 
   it("a site whose access has ended is owed no week and is told nothing", async () => {
