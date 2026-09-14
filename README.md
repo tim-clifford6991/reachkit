@@ -39,13 +39,12 @@ weekly scan → calendar → email → technical issues — but all nine are MVP
 | # | Document | What it holds |
 |---|---|---|
 | 1 | `README.md` | This page: what ReachKit is, the nine features and where each stands, what delivered means. |
-| 2 | `docs/SPEC.md` | One section per feature: what the user gets, screens, rules and rulings (dated, in place), mail, done-when. MVP only. |
-| 3 | `docs/DESIGN.md` | The daisyUI theme, the UI rules, and the Claude Design canvas the screens come from. |
+| 2 | `docs/SPEC.md` | One section per feature: what the user gets, rules, done-when. No pixels. |
+| 3 | `docs/DESIGN.md` | daisyUI + Recharts + lucide. No artboards. |
 | 4 | `docs/PROCESS.md` | Issue → docs if needed → implement → merge. The owner tests live. |
 | 5 | `CLAUDE.md` | What an agent reads first, and what it never does. |
 
-These five files are the corpus; there is no sixth. Renders live in `docs/design/`. Everything not needed for the nine features is archived under `docs/archive/<date>/`; the old
-sdlc-factory corpus is frozen at `docs/archive/2026-09-04/` — never edited, never deleted. A difference between the code and `SPEC.md` or `DESIGN.md` is a defect in the code — CI's `audit` check blocks the PR.
+These five files are the corpus; there is no sixth. `docs/design/canvas/` and `docs/archive/` are frozen history — not instructions. A difference between the code and `SPEC.md` is a defect in the code — CI's `audit` check blocks the PR.
 
 ## Where work is tracked
 

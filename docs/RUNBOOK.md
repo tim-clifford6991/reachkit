@@ -1,19 +1,8 @@
 # Runbook — operating ReachKit alone
 
-The owner operates this product without a team. This page is what to do, in the order you would
-do it, when something needs doing: landing a change, finding what a job did, stopping the spend,
-rotating a key, getting the database back. It assumes nothing about the reader except that they
-have the accounts.
-
-It is the one operational page — the environments, the bindings, the jobs and the database, with
-the deployment log in §11. Its neighbours own the facts it references and win where they
-disagree: `docs/PROCESS.md` owns how work flows and how a change reaches production;
-`docs/SPEC.md` owns what the product does; the file named beside each claim owns the rest. Nothing under `docs/` is read by the running
-product, so nothing here can change behaviour — every procedure below acts through a dashboard, a
-shell or a merge.
-
-**Where the truth is when this page is wrong.** Every claim below is followed by the file that
-holds it. Read the file.
+Operations only: envs, bindings, jobs, kill switch, mail, boot failures, cost ledger, database.
+How work flows is `docs/PROCESS.md`. What the product does is `docs/SPEC.md`. Nothing here is read
+by the running app.
 
 ---
 
@@ -62,12 +51,9 @@ is a boot failure, not a runtime `undefined`.** There is no default and no fallb
 it, so a deployment cannot start half-configured. `.env.example` lists every name with a blank
 value; a real credential in that file is a defect (`tests/app/env-example.test.ts`).
 
-**Who sets each.** The owner pastes every secret — the Supabase, Stripe, Resend, DataForSEO,
-Anthropic and Inngest keys and `IP_HASH_SALT` — in the dashboard; sensitive rows are write-only in
-Vercel. The master binds the plain rows: `MAIL_FROM`, `KILL_SWITCH`, `OWNER_EMAILS`,
-`HOSTED_EDGE_CNAME_TARGET`, `NEXT_PUBLIC_APP_URL`. v2's leftover bindings were deleted on
-2026-09-10; the project carries exactly the rows below. **Every binding must exist on *both* the
-production and the preview target**, even with previews off: a target missing one cannot build.
+**Who sets each.** The owner pastes every secret and every plain row in the Vercel dashboard
+(production and preview). Sensitive rows are write-only. **Every binding must exist on both
+targets**; a target missing one cannot build.
 
 Nineteen names are in the schema. Two more sit outside it, for stated reasons.
 
@@ -647,42 +633,6 @@ deployment (`dpl_2NEUXishMXAkzXG4Ti85yTy7NDda`, 23 Aug 2026).
 
 ---
 
-## 11. Drill and incident log
+## 11. History
 
-Newest last. A drill or an incident that is not written here did not happen.
-
-_(empty — this page was written 2026-09-10 and no drill has been run against it. The first
-restore drill is owed; see §9.)_
-
-### Deployment log, 2026-09-05 → 2026-09-11
-
-Folded from `docs/DEPLOYMENT.md` (#561), newest last. The cutover procedure it recorded was executed on
-2026-09-08; its rollback is in §9.
-
-- 2026-09-05 — interim project `reachkitv3` created with `dev.reachkit.app`; 12 secrets placeholders (owner had not pasted).
-- 2026-09-08 — owner ruling: consolidate to `reachkit`; this document written; execution pending the owner's choice between the staged and immediate path in step 2.
-- 2026-09-08 12:40Z — **staged path executed** (owner: "staged"): `reachkit` unlinked from reachkitv2 and linked to `tim-clifford6991/reachkitv3`; v2's production deployment (23 Aug, `dpl_2NEUXishMXAkzXG4Ti85yTy7NDda`) stays live as the rollback candidate; `release` branch created at main's HEAD and set as the production branch; the ignored-build-step command skips every production build until cutover (`if [ "$VERCEL_ENV" = "production" ]; then exit 0; else exit 1; fi`); `dev.reachkit.app` moved from `reachkitv3` to `reachkit` bound to branch `main`; a `main` deployment triggered; deployment protection `all_except_custom_domains` set on `reachkit`. Cutover later = remove the ignore command, push `main` → `release` (fast-forward), remove `dev.reachkit.app`.
-- 2026-09-08 12:50Z — first v3 preview builds on `reachkit` failed at the boot invariants: `IP_HASH_SALT` and `OWNER_EMAILS` existed on production only. Both added to the preview target (`OWNER_EMAILS` encrypted, `IP_HASH_SALT` sensitive, values carried over from the interim project's development target); builds re-triggered. Lesson: every binding in `env.ts` must exist on **preview** too, or no PR can build.
-- 2026-09-08 13:0xZ — interim project `reachkitv3` **deleted** (HTTP 204); `reachkit` is the only ReachKit project. Deployment protection **off** on `reachkit`: Vercel's standard protection does not exempt a *branch-bound* custom domain, so `dev.reachkit.app` showed the Vercel login; v2 never had protection, so this restores the previous state. First v3 runtime on `dev.reachkit.app` returned 500 from the boot invariant `PriceObjectMismatch`: v2's `STRIPE_PRICE_ID` is a €59 price, v3's spec is €49 (BUILD §13). **Open until the owner acts:** (a) a €49/month Stripe price bound as `STRIPE_PRICE_ID` on preview (test mode) — the boot invariants refuse anything else; (b) the database: v2's schema is live on reachkit.app, so v3 on `dev.reachkit.app` needs a v3 database until cutover (a Supabase branch or a temporary dev project), or the database cutover happens now and takes v2 down with it.
-- 2026-09-08 ~17:37Z — **cutover executed** (owner's go). Stripe: live product `ReachKit` and its €49/month tax-inclusive price created, v2's products and prices set inactive, `STRIPE_PRICE_ID` bound on production and preview. Database: every v2 object moved to schema `v2_archive`, v3's 38 migrations applied through the Supabase connector in five chunks; the security advisor then named eight plpgsql functions with a mutable `search_path` (#384) and six policy-less tables that are so by design. Vercel: the ignored-build-step cleared, `release` fast-forwarded to `main` (420bb48) → production deployment; `main` redeployed. Verified 2026-09-09: `reachkit.app` renders v3's landing (the Discoverability Score specimen); `dev.reachkit.app` serves the same `main`.
-- 2026-09-08 (evening) — the production branch is **`main`** (`release` exists at 420bb48 and is not the production branch). Owner downgraded Vercel to **Hobby** and Supabase to **Free**. GitHub: `reachkitv3` renamed **`reachkit`** (repository id unchanged, old URLs redirect); the former `reachkit` renamed `reachkitv1` and archived; `reachkitv2` archived. The Vercel link follows the repository id, so deployments continue; the local checkout stays at `/root/projects/reachkitv3`.
-- 2026-09-09 — the Vercel CLI token on the agent box returns 403 on every endpoint and the CLI is no longer installed: env and deploy operations through the API wait for the owner to run `vercel login` there (or paste a fresh token). Until then deploy state is read from the GitHub `Vercel` commit status.
-- 2026-09-09 (morning) — owner reinstalled the CLI and logged in; `vercel whoami` refreshes the OAuth token in `~/.local/share/com.vercel.cli/auth.json` (a 403 with `invalidToken` means: run `vercel whoami` first, then retry). The Vercel MCP connector is attached to the master session (project and deployments readable; no env management). **v2 env leftovers still present** on `reachkit` (22 rows: `APP_URL`, `NEXT_PUBLIC_SITE_URL`, `REACHKIT_*`, `DATAFORSEO_BACKLINKS/LANGUAGE_CODE/LOCATION_CODE`, `POSTHOG_*`, `NEXT_PUBLIC_POSTHOG_*`, `PRODUCT_HUNT_TOKEN`, `TAVILY_API_KEY`, `VOYAGE_API_KEY`, `YOUTUBE_API_KEY`, `STRIPE_PRICE_GROWTH(_ANNUAL)`, `STRIPE_PRICE_SOLO(_ANNUAL)`, `STRIPE_PROMO_CODE_ID`): none is read by v3; the delete calls are blocked by the master session's classifier, so the owner runs `/root/ops/reachkit/bin/rm-v2-env.sh` or deletes them in the dashboard. Deleted rows are struck from §2 when that happens.
-- 2026-09-09 — **security advisor dispositions recorded** (§1): the eight `function_search_path_mutable` WARNs fixed in migration `20260909130000_rls_functions_search_path.sql` (#384, applied to the project after the merge); the four policy-less tables in `public` given a `comment on table` naming BUILD §10 default-deny; `auth_leaked_password_protection` recorded as not applicable — v3 has no passwords (REQ-098).
-- 2026-09-09 20:58Z — #417's migration **applied to the production project** through the Supabase connector (`rls_functions_search_path`); advisor re-read: `function_search_path_mutable` 0, the four `rls_enabled_no_policy` INFO rows and the password WARN as dispositioned in §1.
-- 2026-09-09 ~22:00Z — **Vercel Hobby build limit reached** (100 deployments in the day, all but a handful PR previews): every PR's `Vercel` check failed with `build-rate-limit`. Ruling (master, deployment structure): previews are not needed — CI renders replaced them (#404) — so the ignored-build step builds `main` only, `Vercel` leaves the required checks on `main`, and the lander ignores Vercel rows. The two settings are applied by the owner (the master session's classifier blocks the project PATCH and the branch-protection PATCH); until then the lander merges with `--admin` past the failing row.
-- 2026-09-10 — `MAIL_FROM` bound on `reachkit` (production and preview, plain, not sensitive) as `hello@reachkit.app`: the address `src/lib/mail/vendor/resend.ts` already derived from production's `NEXT_PUBLIC_APP_URL`, so nothing about what leaves changes — what changes is that a preview no longer derives `hello@<hash>.vercel.app`, which is not a verified sending domain. Bound *before* #81 merges, because from that merge on the boot refuses a deployment without it. The owner renames the mailbox in the dashboard if it should be another; the mailbox must be read, since `optout.invalid` tells a reader to reply to it (#325 still owes the verified domain).
-- 2026-09-10 04:15Z–08:35Z — **M3 live check, three runs against production, master through the Supabase connector** (#317). Run 1 (main at 84ae860 minus #443): the free pass never ran — `POST /api/scan` started it as a dangling promise and the invocation was frozen on response; row stayed `running`, 0 fetches → #438 → #443 (`after()` + `maxDuration 60` + the maintenance sweep). Run 2 (with #443): the pass ran in 12.5 s but every paid vendor insert failed — `cost_cents` was `integer` against sub-cent prices → #449 → #450 (`numeric(12,4)` on `fetches`, `scans`, `drafts`). Run 3 (with #450): 15.3 s, 1.8 ¢ ledgered (DataForSEO `ranked_keywords`), search presence measured; the market profile still `unavailable` — the nano tier's 3 s timeout with two SDK retries → #452. Time and spend bounds pass; the measured score waits on #452.
-- 2026-09-10 04:2xZ — **migrations applied to production** through the connector after run 1 exposed one missing: `rls_functions_search_path` (#417, applied 2026-09-09 20:58Z), `fetches_daily_spend` (#427), `sites_setup_stage_times` (#396). Rule from here (PROCESS §3): the lander flags every merged PR that touches `supabase/migrations/` as MIGRATION PENDING and the master applies it the same hour. 07:3xZ — #450's `fetches_money`, `scans_money`, `drafts_money` applied the same way.
-- 2026-09-10 05:1xZ — **production deployments rate-limited** ("retry in 24 hours") after PR previews spent the Hobby quota again, so `main`'s head was not live. The ignored-build step (builds `main` only) and the branch-protection change (`Vercel` no longer required) were applied by the master through the APIs; a production deployment of `main` was re-requested every 10 min until a slot freed (06:27Z, again 08:31Z). The Vercel CLI's OAuth token expires within the hour — every loop refreshes it (`vercel whoami`) before calling.
-- 2026-09-10 05:2xZ — the 22 v2 env rows **deleted** from `reachkit` (master, REST); §2 updated.
-- 2026-09-10 ~09:40Z — **#455 deployed** (`main` at 92544c1): `INFERENCE_TIMEOUT_MS.nano` 15 s bounding the whole `llm()` call, the SDK's own retries off (`INFERENCE_MAX_RETRIES = 0`), a failed call names why.
-- 2026-09-10 (after 09:40Z) — **M3 runs 4 and 4b against production** (#317). Run 4 (linear.app): §6.4's seven-day rescan window served the 06:29Z stored report — no new measurement, a 0.2 s row. Run 4b (hey.com, scan `2baa9c72…`): **17.0 s, 1.97 ¢ ledgered**, 4 fetches — 2 own pages, Labs `ranked_keywords` 1.8 ¢, profile 0.17 ¢; search presence measured. The profile call returned 888 output tokens in ~15 s that missed the strict schema; the seam's retry had no budget left and the failure was logged as `timeout` → #462. Time and spend bounds pass; the market half (profile → questions → rivals → score) still waits.
-- 2026-09-10 — **#456 merged (PR 461) and deployed**: `TIMING.reportCeilingS` 50 s below `platformCeilingS` 60 (pinned to the route's `maxDuration`), `reportTargetS` 40, the sweep keyed on `platformCeilingS + sweepMarginS` 30 (BUILD §11).
-- 2026-09-10 — the owner **approved the copy set** (393 keys, the master's draft from v2 and the archived spec, screen set and requirements); #458 mail, #459 public, #460 app apply it byte for byte.
-- 2026-09-10 — on the owner's instruction the master **closed every idle implementer and started `rk-worker`** (Herdr w3), the one long-lived agent per project; `rk-dispatch` is dispatcher v3 (PROCESS §7).
-- 2026-09-10 14:3xZ — **Vercel rate limit again** ("retry in 24 hours") with previews already off: the ignored-build step still creates a deployment per push and cancels it, and CI's `assets/<pr>-fidelity` branches push too. Fix: `vercel.json` `git.deploymentEnabled: false` (this PR) and the lander redeploys production after each merge via the REST API (`bin/redeploy.sh`, retrying every 20 min while limited). #464–#466 reach production when the limit lifts.
-- 2026-09-10 19:03Z — **M3 run 5 against production** (#317, `main` at a73fe9e). Scan `aff1ca53…` (cal.com) "completed" in **0.6 s with nothing measured**: every factor `not_attempted`, no vendor call, 0 ¢, status `degraded`, `stoppedReason: complete`. The home document is 2 157 610 bytes, over the fetcher's 2 MB cap, so the own-site read was refused `too_large`; the refusal was ledgered as a null payload, the `fetches.payload not null` insert threw, and the throw became the stage's reason → #479 (the own-document cap `OWN_DOCUMENT_MAX_BYTES` 6 MB, refusals ledgered as rows, the `site_unreadable` ending; BUILD §6.4). Run 6 re-reads cal.com after #479 is deployed.
-- 2026-09-10 20:00Z (on merge of PR 492, #468) — **identity moves to Supabase Auth**; migration `20260910120000_users_identity_supabase_auth.sql` applied by the master through the connector (drops `auth_links`, `users.sessions_valid_from`; FK `users.id → auth.users.id` added `not valid`, so it binds every row written from now on; production had 0 `public.users` rows, so no backfill; the one `auth.users` row left over from v2 stays in place, unreferenced). Supabase Auth dashboard settings — pending, owner sets (no management token on the box): Site URL https://reachkit.app; Redirect URLs https://reachkit.app/auth/confirm; Email OTP expiration 86400 s (= SIGNIN_LINK_TTL_H 24 h); Secure email change off (REQ-077 c2/c3); Supabase's own mail templates unused.
-- 2026-09-11 09:11Z — migration `20260911090000_scans_stopped_reason.sql` **applied to production** through the connector *ahead of* PR 503 (#479), as its body requires: additive, the `scans.stopped_reason` check gains `site_unreadable` beside `complete`, `time_ceiling`, `spend_ceiling`, `failed`. Applied before the code so the first `site_unreadable` store cannot hit the old constraint; the lander's MIGRATION PENDING flag on PR 503's merge is already satisfied.
-- 2026-09-11 09:20Z–09:25Z — **M3 run 6 against production at the #503 deploy** (#317). plausible.io (scan `4182c1f7…`): **7.6 s, 1.96 ¢**; the site was read and measured (foundations, answerability, search presence), but the profile call failed to parse on both attempts (`parseFailure: json`, 536 output tokens), so the market, the twelve questions and the AI-answers half are empty (`aiPresence` `unmeasured / undeterminable`). cal.com: run 5's pre-fix report was retired first (`is_current = false`), then scan `127f81eb…` took **10.0 s, 2.30 ¢**; the 2.16 MB home now reads under the 6 MB own-document cap (#503 works), and the profile failed to parse the same way (563 output tokens). → #512 (force structured output), fixed by PR 518.
+Do not extend this section. Cutover and incident narrative live in git. Rollback to v2 is §9.
