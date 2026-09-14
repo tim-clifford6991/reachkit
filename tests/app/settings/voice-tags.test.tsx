@@ -34,26 +34,25 @@ function render(doNotClaim: readonly string[]): HTMLElement {
   return root;
 }
 
-describe("S18 — each never-claim entry is the registered RemovableTag", () => {
+describe("each never-claim entry is a removable tag", () => {
   it("renders the claim in a tag, named by the removal key with the claim in it", () => {
     const root = render([CLAIM]);
-    const tag = root.querySelector(`[data-testid="claim-${CLAIM}"] button.rk-tag`);
+    const tag = root.querySelector(`[data-testid="claim-${CLAIM}"] button`);
     expect(tag).not.toBeNull();
     expect(tag?.getAttribute("type")).toBe("button");
     expect(tag?.getAttribute("aria-label")).toBe(`settings.voice.remove-claim(${CLAIM})`);
   });
 
   it("a claim is a phrase: mono, and folding at its spaces", () => {
-    const value = render([CLAIM]).querySelector("button.rk-tag > .num");
+    const value = render([CLAIM]).querySelector('[data-testid^="claim-"] button > .num');
     expect(value?.textContent).toBe(CLAIM);
     expect(value?.classList.contains("num-phrase")).toBe(true);
   });
 
-  it("one tag per entry, and no chip or Btn shape of its own", () => {
+  it("one tag per entry, and no button shape of its own", () => {
     const root = render([CLAIM, "certified by every regulator"]);
     const list = root.querySelector('[data-testid="setting-do_not_claim"]');
-    expect(list?.querySelectorAll("button.rk-tag")).toHaveLength(2);
-    expect(root.querySelector(".rk-chip")).toBeNull();
+    expect(list?.querySelectorAll('[data-testid^="claim-"] button')).toHaveLength(2);
     expect(list?.querySelector('[data-testid^="claim-"] .btn')).toBeNull();
   });
 });

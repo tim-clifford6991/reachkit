@@ -21,13 +21,14 @@
 // in issue #42). What lives here is the vocabulary both halves share, so the
 // screen and the writer cannot disagree about what the offer is.
 
-/** REQ-070 criterion 1's list, as a closed tuple. A key absent from it cannot
+/** REQ-070 criterion 1's list, as a closed tuple. No `mode`: SPEC §4
+ *  (2026-09-10) — mode is not a customer-facing value; autopilot is the only
+ *  mode. A key absent from it cannot
  *  be written, because `SettableKey` is derived from it. */
 export const SETTABLE = [
   "category",
   "competitors",
   "domain",
-  "mode",
   "veto_hours",
   "publish_time",
   "time_zone",

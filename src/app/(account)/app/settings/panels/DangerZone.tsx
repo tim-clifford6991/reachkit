@@ -39,10 +39,6 @@
 import type React from "react";
 import { Shield } from "lucide-react";
 import { useState } from "react";
-import { Btn } from "@/ui/components/Btn";
-import { Card } from "@/ui/components/Card";
-import { CardHead } from "@/ui/idiom";
-import { Input } from "@/ui/components/Input";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { writtenLine } from "../../_shell/written";
 import { useAction } from "./useAction";
@@ -77,37 +73,37 @@ export function DangerZone(): React.JSX.Element {
   const exportFirst = writtenLine("danger.export-first");
 
   return (
-    // S18 draws this card with a `--bad` hairline edge and its eyebrow in
-    // `--bad`: it is the one card on the screen whose controls destroy
-    // something, and §2.5 gives red to "the customer's problem being shown
-    // to them" — which a card that can unpublish everything qualifies as
-    // before it is pressed, not after. The ring is on the wrapper rather
-    // than on `Card`, which has no danger arm and should not grow one for
-    // one caller; `rk-danger` is the idiom's own, beside the value chip.
-    <div className="rk-danger min-w-0" data-testid="settings-danger">
-      <Card state="default" title={<CardHead icon={<Shield size={15} strokeWidth={1.8} aria-hidden />} eyebrow={copy("danger.zone.title")} />}>
-      {exportFirst === null ? null : <p className="text-xs opacity-60 wrap-anywhere">{exportFirst}</p>}
+    // The one card whose controls destroy something: error edge and heading
+    // before anything is pressed.
+    <section className="card card-border border-error/40 min-w-0 bg-base-100" data-testid="settings-danger">
+      <div className="card-body gap-4">
+        <h2 className="card-title text-base text-error">
+          <Shield size={20} strokeWidth={1.75} aria-hidden />
+          {copy("danger.zone.title")}
+        </h2>
+        {exportFirst === null ? null : <p className="text-xs text-base-content/60 wrap-anywhere">{exportFirst}</p>}
 
-      <div className="flex min-w-0 flex-col gap-3">
-        {DANGER.map((row) => (
-          <div key={row.action} data-testid={`danger-${row.action}`}>
-            {/* The offer. It opens the step and runs nothing — which is why
-                it, and not the control inside the step, is what the closed
-                offer of seven actions is counted from. */}
-            <div className="flex min-w-0 flex-wrap items-center gap-2">
+        <div className="flex min-w-0 flex-col gap-3">
+          {DANGER.map((row) => (
+            <div className="flex min-w-0 flex-col gap-2" key={row.action} data-testid={`danger-${row.action}`}>
+              {/* The offer opens the step and runs nothing. */}
               <span data-testid={`action-${row.action}`}>
-                {/* S18's outlined pill (L821, issue #506). */}
-                <Btn label={copy(row.label)} size="sm" variant="secondary" pill onClick={() => setOpened(row.action)} />
+                <button
+                  type="button"
+                  className="btn btn-outline btn-error btn-sm"
+                  onClick={() => setOpened(row.action)}
+                >
+                  {copy(row.label)}
+                </button>
               </span>
+              {opened === row.action ? <DangerStep row={row} action={action} /> : null}
             </div>
-            {opened === row.action ? <DangerStep row={row} action={action} /> : null}
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
 
-      {action.line === null ? null : <p className="text-xs opacity-60 wrap-anywhere">{action.line}</p>}
-      </Card>
-    </div>
+        {action.line === null ? null : <p className="text-xs text-base-content/60 wrap-anywhere">{action.line}</p>}
+      </div>
+    </section>
   );
 }
 
@@ -135,62 +131,57 @@ function DangerStep(p: {
 
   return (
     <div
-      className="flex min-w-0 flex-col gap-2 rounded-field border border-error/40 border-l-4 border-l-error bg-error/10 p-3"
+      className="flex min-w-0 flex-col gap-3 rounded-box border border-error/40 bg-error/5 p-3"
       data-testid={`consequence-${p.row.action}`}
     >
-      {consequence === null ? null : <p className="text-xs opacity-60 wrap-anywhere">{consequence}</p>}
+      {consequence === null ? null : <p className="text-sm wrap-anywhere">{consequence}</p>}
 
-      {/* Gate 1 — c3's export, before anything is destroyed. Pressing it
-          hands the archive over through the action seam (an address, because
-          a Server Function cannot stream a file); the state below is then
-          re-read from the ticket rather than assumed from the press. */}
+      {/* Gate 1 — c3's export, before anything is destroyed. The state is
+          re-read from the ticket, not assumed from the press. */}
       <div className="flex min-w-0 flex-col gap-1" data-testid={`export-${p.row.action}`}>
-        <span className="eyebrow opacity-60">
+        <span className="text-sm text-base-content/70">
           {handover.taken ? copy("danger.export-taken") : copy("danger.export-take")}
         </span>
         {handover.taken ? null : (
-          <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <Btn
-              label={copy("settings.content.export")}
-              size="sm"
+          <span>
+            <button
+              type="button"
+              className="btn btn-outline btn-sm"
               onClick={() => {
                 p.action.run(p.row.action);
                 void handoverState(p.row.action).then(setHandover);
               }}
-            />
-          </div>
+            >
+              {copy("settings.content.export")}
+            </button>
+          </span>
         )}
       </div>
 
       {/* Gate 2 — c2's typed confirmation. */}
-      <div className="flex min-w-0 flex-col gap-1" data-testid={`confirm-word-${p.row.action}`}>
-        <Input
-          label={copy("danger.type-to-confirm", { word })}
-          placeholder={word}
-          value={typed}
-          onChange={setTyped}
-        />
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <span data-testid={`confirm-${p.row.action}`}>
-            <Btn
-              label={copy(p.row.label)}
-              size="sm"
-              disabled={!armed}
-              onClick={() => {
-                void runDangerAction(p.row.action, typed).then((result) => {
-                  if (result.ran && result.action === "delete_account") {
-                    // The account is gone and the session with it, so a full
-                    // navigation is the only thing that shows the customer
-                    // where they now are.
-                    window.location.assign(result.href);
-                    return;
-                  }
-                  setOutcome(result);
-                });
-              }}
-            />
-          </span>
-        </div>
+      <div className="flex min-w-0 flex-col gap-2" data-testid={`confirm-word-${p.row.action}`}>
+        <label className="flex min-w-0 flex-col gap-1">
+          <span className="text-sm text-base-content/70">{copy("danger.type-to-confirm", { word })}</span>
+          <input className="input w-full" placeholder={word} value={typed} onChange={(e) => setTyped(e.target.value)} />
+        </label>
+        <span data-testid={`confirm-${p.row.action}`}>
+          <button
+            type="button"
+            className="btn btn-error btn-sm"
+            disabled={!armed}
+            onClick={() => {
+              void runDangerAction(p.row.action, typed).then((result) => {
+                if (result.ran && result.action === "delete_account") {
+                  window.location.assign(result.href);
+                  return;
+                }
+                setOutcome(result);
+              });
+            }}
+          >
+            {copy(p.row.label)}
+          </button>
+        </span>
       </div>
 
       {outcome === null ? null : <DangerLine outcome={outcome} />}
@@ -206,17 +197,17 @@ function DangerLine(p: { outcome: RenderedOutcome }): React.JSX.Element {
   const line = writtenLine(p.outcome.lineKey);
   return (
     <div className="flex min-w-0 flex-col gap-1" data-testid="danger-outcome">
-      {line === null ? null : <p className="text-xs opacity-60 wrap-anywhere">{line}</p>}
+      {line === null ? null : <p className="text-xs text-base-content/60 wrap-anywhere">{line}</p>}
       {p.outcome.ran ? (
         <>
-          <p className="text-xs opacity-60 wrap-anywhere">
+          <p className="text-xs text-base-content/60 wrap-anywhere">
             {copy("danger.taken-down-count", { pages: String(p.outcome.takenDown) })}
           </p>
           {p.outcome.stillLive.length === 0 ? null : (
             <ul className="flex min-w-0 flex-col gap-1" data-testid="danger-still-live">
               {p.outcome.stillLive.flatMap((destination) =>
                 destination.liveUrls.map((url) => (
-                  <li key={url} className="num text-xs opacity-60 wrap-anywhere">
+                  <li key={url} className="num text-xs text-base-content/60 wrap-anywhere">
                     {url}
                   </li>
                 ))
@@ -225,7 +216,7 @@ function DangerLine(p: { outcome: RenderedOutcome }): React.JSX.Element {
           )}
         </>
       ) : (
-        <p className="text-xs opacity-60 wrap-anywhere">{copy("danger.nothing-changed")}</p>
+        <p className="text-xs text-base-content/60 wrap-anywhere">{copy("danger.nothing-changed")}</p>
       )}
     </div>
   );

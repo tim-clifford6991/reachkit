@@ -33,25 +33,19 @@
 //
 // **The refusal belongs to the field, not to the chips.** Every one of
 // `addRival`'s five is about the value that was typed, so it is shown on
-// the field that holds it, with the value intact (`Input`'s contract).
+// the field that holds it, with the value intact.
 //
 // **The field has its own name, since issue #270.** It was labelled with
 // the card's heading key, so the card read "Competitors … Competitors": a
 // heading naming the set and a field under it repeating the word rather
 // than naming what is typed into it. `settings.competitors.add-label` is
-// the field's, passed as both label and placeholder — ADR-093's "one
-// string, once", which `Input` renders by omitting a placeholder equal to
-// the label. The heading key is read once, by the heading.
+// the field's label and nothing else — no placeholder repeating it (ADR-093's
+// "one string, once"). The heading key is read once, by the heading.
 "use client";
 
 import type React from "react";
-import { Users } from "lucide-react";
+import { Users, X } from "lucide-react";
 import { useState } from "react";
-import { Badge } from "@/ui/components/Badge";
-import { Btn } from "@/ui/components/Btn";
-import { Card } from "@/ui/components/Card";
-import { CardHead, RemovableTag } from "@/ui/idiom";
-import { Input } from "@/ui/components/Input";
 import { copy } from "@/lib/presentation/copy";
 import { BATTERY } from "@/lib/config/constants";
 import { writtenLine } from "../../_shell/written";
@@ -69,7 +63,7 @@ import type { SettingsModel } from "../model";
 function EmptyLine(): React.JSX.Element | null {
   const line = writtenLine("settings.competitors.none-yet");
   return line === null ? null : (
-    <p className="text-xs opacity-60 wrap-anywhere" data-testid="competitors-none-yet-line">
+    <p className="text-xs text-base-content/60 wrap-anywhere" data-testid="competitors-none-yet-line">
       {line}
     </p>
   );
@@ -107,90 +101,65 @@ export function CompetitorsPanel(p: {
   const refusalLine = refusal === null ? null : writtenLine(refusal);
 
   return (
-    <Card
-      state="default"
-      title={
-        // S18's right-hand slot: how many of the five are taken, in the
-        // set's own words. A value, so it is mono and carries its
-        // denominator — §2.5's "never bare" applied to a count the customer
-        // can act on — and the cap is the one constant rather than a five
-        // typed here. `num-phrase` because "5 of 5" is a phrase: it folds
-        // at its spaces, which `.num`'s own nowrap would refuse.
-        <CardHead
-          icon={<Users size={15} strokeWidth={1.8} aria-hidden />}
-          eyebrow={copy("settings.competitors.title")}
-          pill={
-            <Badge tone="neutral">
-              <span className="num-phrase" data-testid="competitor-count">
-                {copy("settings.competitors.count", {
-                  taken: String(p.competitors.length),
-                  max: String(BATTERY.COMPETITORS_MAX),
-                })}
-              </span>
-            </Badge>
-          }
-        />
-      }
-    >
-      <div className="flex min-w-0 flex-col gap-3" data-testid="setting-competitors">
-        {p.competitors.length > 0 ? null : (
-          // REQ-071 c16. No slot: there is no date and no change to name,
-          // only that comparison begins when a rival is added.
-          <EmptyLine />
-        )}
-        <div className="flex min-w-0 flex-wrap gap-2">
-          {p.competitors.map((domain) => (
-            // S18 draws each rival as the set's `.tag.on` — the domain in
-            // mono on the accent tint with its × — which is `RemovableTag`,
-            // the same tag `/setup` gives a chosen rival (issue #488). Its
-            // accessible name is setup's own removal key: it is the same
-            // act on the same set (REQ-071 c4, "the same rules").
-            //
-            // The domain travels in the form rather than in a closure, so
-            // the press carries exactly one named value and the tag works
-            // the same way the field does; the tag is the form's submit.
-            <div className="min-w-0 max-w-full" key={domain} data-testid={`competitor-${domain}`}>
-              <form action={remove} className="min-w-0 max-w-full">
-                <input type="hidden" name={RIVAL_FIELD} value={domain} readOnly />
-                <RemovableTag
-                  value={domain}
-                  removeLabel={copy("setup.competitors.remove", { rival: domain })}
-                  submits
-                />
-              </form>
-            </div>
-          ))}
+    <section className="card card-border min-w-0 bg-base-100">
+      <div className="card-body gap-4">
+        <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
+          <h2 className="card-title text-base">
+            <Users size={20} strokeWidth={1.75} aria-hidden />
+            {copy("settings.competitors.title")}
+          </h2>
+          <span className="badge badge-ghost num" data-testid="competitor-count">
+            {copy("settings.competitors.count", {
+              taken: String(p.competitors.length),
+              max: String(BATTERY.COMPETITORS_MAX),
+            })}
+          </span>
         </div>
 
-        {full ? null : (
-          <form action={add} className="flex min-w-0 flex-col gap-1" data-testid="add-competitor">
-            {/* Two calls, not one with a spread: `InputProps` is a union in
-                which `invalid: true` and `invalidMessage` arrive together. */}
-            {refusalLine === null ? (
-              <Input
-                label={copy("settings.competitors.add-label")}
-                placeholder={copy("settings.competitors.add-label")}
-                name={RIVAL_FIELD}
-                value={value}
-                onChange={setValue}
-              />
-            ) : (
-              <Input
-                label={copy("settings.competitors.add-label")}
-                placeholder={copy("settings.competitors.add-label")}
-                name={RIVAL_FIELD}
-                value={value}
-                onChange={setValue}
-                invalid
-                invalidMessage={refusalLine}
-              />
-            )}
-            <div className="flex min-w-0 flex-wrap items-center gap-2">
-              <Btn label={copy("settings.competitors.add")} size="sm" variant="secondary" pill type="submit" />
-            </div>
-          </form>
-        )}
+        <div className="flex min-w-0 flex-col gap-3" data-testid="setting-competitors">
+          {p.competitors.length > 0 ? null : <EmptyLine />}
+          <div className="flex min-w-0 flex-wrap gap-2">
+            {p.competitors.map((domain) => (
+              <div className="min-w-0 max-w-full" key={domain} data-testid={`competitor-${domain}`}>
+                {/* Each rival is its own form's submit: pressing it removes
+                    that one rival on the server. */}
+                <form action={remove} className="min-w-0 max-w-full">
+                  <input type="hidden" name={RIVAL_FIELD} value={domain} readOnly />
+                  <button
+                    type="submit"
+                    className="badge badge-outline badge-lg h-auto max-w-full cursor-pointer gap-1"
+                    aria-label={copy("setup.competitors.remove", { rival: domain })}
+                  >
+                    <span className="num min-w-0 wrap-anywhere">{domain}</span>
+                    <X size={16} strokeWidth={1.75} aria-hidden />
+                  </button>
+                </form>
+              </div>
+            ))}
+          </div>
+
+          {full ? null : (
+            <form action={add} className="flex min-w-0 flex-col gap-2" data-testid="add-competitor">
+              <label className="flex min-w-0 flex-col gap-1">
+                <span className="text-sm text-base-content/70">{copy("settings.competitors.add-label")}</span>
+                <input
+                  className={refusalLine === null ? "input num w-full" : "input input-error num w-full"}
+                  name={RIVAL_FIELD}
+                  value={value}
+                  onChange={(e) => setValue(e.target.value)}
+                  aria-invalid={refusalLine !== null}
+                />
+              </label>
+              {refusalLine === null ? null : <p className="text-xs text-error wrap-anywhere">{refusalLine}</p>}
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                <button type="submit" className="btn btn-outline btn-sm">
+                  {copy("settings.competitors.add")}
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
       </div>
-    </Card>
+    </section>
   );
 }

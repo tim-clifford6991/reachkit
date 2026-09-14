@@ -36,10 +36,6 @@
 import type React from "react";
 import { Lock } from "lucide-react";
 import { useActionState, useState } from "react";
-import { Btn } from "@/ui/components/Btn";
-import { Card } from "@/ui/components/Card";
-import { CardHead } from "@/ui/idiom";
-import { Input } from "@/ui/components/Input";
 import { copy } from "@/lib/presentation/copy";
 import { writtenLine } from "../../_shell/written";
 import { useAction } from "./useAction";
@@ -61,107 +57,91 @@ export function AccountPanel(p: { account: SettingsModel["account"] }): React.JS
   const pending = p.account.pending;
 
   return (
-    <Card state="default" title={<CardHead icon={<Lock size={15} strokeWidth={1.8} aria-hidden />} eyebrow={copy("settings.account.title")} />}>
-      <div className="flex min-w-0 flex-col gap-3">
+    <section className="card card-border min-w-0 bg-base-100">
+      <div className="card-body gap-4">
+        <h2 className="card-title text-base">
+          <Lock size={20} strokeWidth={1.75} aria-hidden />
+          {copy("settings.account.title")}
+        </h2>
+
         <div className="flex min-w-0 flex-col gap-1" data-testid="setting-name">
-          <span className="eyebrow opacity-60">{copy("settings.account.name")}</span>
+          <span className="text-sm text-base-content/70">{copy("settings.account.name")}</span>
           <div className="flex min-w-0 flex-wrap items-center gap-2">
-            {/* `null` where the account has stated no name: the card shows an
-                empty value rather than inventing one, and the label still
-                names what is missing. */}
+            {/* An account with no stated name shows an empty value, never an
+                invented one. */}
             <span className="min-w-0 wrap-anywhere">{p.account.name ?? ""}</span>
-            <Btn label={copy("settings.edit")} size="sm" variant="secondary" pill />
+            <button type="button" className="btn btn-outline btn-sm">
+              {copy("settings.edit")}
+            </button>
           </div>
         </div>
 
         <div className="flex min-w-0 flex-col gap-1" data-testid="setting-email">
-          <span className="eyebrow opacity-60">{copy("settings.account.email")}</span>
-          <div className="flex min-w-0 flex-wrap items-center gap-2">
-            {/* §2.3: an address is a code-like string. The address the
-                account signs in with — never the one awaiting confirmation,
-                which has not replaced it and must not read as though it
-                had (REQ-077 c2). */}
-            <span className="num min-w-0 wrap-anywhere">{p.account.email}</span>
-          </div>
+          <span className="text-sm text-base-content/70">{copy("settings.account.email")}</span>
+          {/* The address the account signs in with — never the one awaiting
+              confirmation (REQ-077 c2). */}
+          <span className="num min-w-0 wrap-anywhere">{p.account.email}</span>
         </div>
 
         {pending === null ? null : (
-          <div
-            className="flex min-w-0 flex-col gap-2 rounded-field border border-warning/40 border-l-4 border-l-warning bg-warning/10 p-3"
-            data-testid="email-pending"
-          >
-            <span className="eyebrow opacity-60">{copy("settings.account.email-pending")}</span>
+          <div className="alert alert-warning alert-soft flex min-w-0 flex-col items-start gap-2" data-testid="email-pending">
+            <span className="text-sm font-semibold">{copy("settings.account.email-pending")}</span>
             <span className="num min-w-0 wrap-anywhere" data-testid="email-pending-address">
               {pending.email}
             </span>
-            {/* The moment, formatted once on the model in the customer's own
-                zone. This card states no date of its own. */}
-            <p className="text-xs opacity-60 wrap-anywhere">
+            {/* The moment arrives formatted on the model, in the customer's
+                own zone. */}
+            <p className="text-xs wrap-anywhere">
               {copy("settings.account.email-pending-expires", { at: pending.expiresAt })}
             </p>
             <form action={cancelEmailChangeAction}>
-              <Btn label={copy("settings.account.cancel-change")} size="sm" variant="secondary" pill type="submit" />
+              <button type="submit" className="btn btn-outline btn-sm">
+                {copy("settings.account.cancel-change")}
+              </button>
             </form>
           </div>
         )}
 
-        {/* One field, and it is the same field whether there is a change in
-            flight or not: submitting it while one is pending replaces that
-            one rather than adding a second, which is `beginEmailChange`'s
-            own behaviour and REQ-077 c4's "or replace it". */}
-        <form action={submitChange} className="flex min-w-0 flex-col gap-1" data-testid="email-change">
-          {/* Two calls, not one with a spread: `InputProps` is a union in
-              which `invalid: true` and `invalidMessage` arrive together, and
-              spreading a maybe-object would defeat exactly the guarantee
-              that union exists for. */}
-          {refusalLine === null ? (
-            <Input
+        {/* One field whether or not a change is in flight: submitting while
+            one is pending replaces it (REQ-077 c4). */}
+        <form action={submitChange} className="flex min-w-0 flex-col gap-2" data-testid="email-change">
+          <label className="flex min-w-0 flex-col gap-1">
+            <span className="text-sm text-base-content/70">{copy("settings.account.new-email")}</span>
+            <input
+              className={refusalLine === null ? "input num w-full" : "input input-error num w-full"}
               name={NEW_EMAIL_FIELD}
-              label={copy("settings.account.new-email")}
-              placeholder={copy("settings.account.new-email")}
               value={typed}
-              onChange={setTyped}
+              onChange={(e) => setTyped(e.target.value)}
+              aria-invalid={refusalLine !== null}
             />
-          ) : (
-            <Input
-              name={NEW_EMAIL_FIELD}
-              label={copy("settings.account.new-email")}
-              placeholder={copy("settings.account.new-email")}
-              value={typed}
-              onChange={setTyped}
-              invalid
-              invalidMessage={refusalLine}
-            />
-          )}
+          </label>
+          {refusalLine === null ? null : <p className="text-xs text-error wrap-anywhere">{refusalLine}</p>}
           <div className="flex min-w-0 flex-wrap items-center gap-2">
-            {/* S18's outlined pills (L819, issue #506). */}
-            <Btn label={copy("settings.account.change-email")} size="sm" variant="secondary" pill type="submit" />
+            <button type="submit" className="btn btn-outline btn-sm">
+              {copy("settings.account.change-email")}
+            </button>
           </div>
         </form>
+
+        {p.account.noteKeys.map((key) => {
+          const note = writtenLine(key);
+          return note === null ? null : (
+            <p key={key} className="text-xs text-base-content/60 wrap-anywhere">
+              {note}
+            </p>
+          );
+        })}
+
+        <div className="border-base-300 flex min-w-0 flex-wrap items-center gap-2 border-t pt-4">
+          <span data-testid="action-sign_out">
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => action.run("sign_out")}>
+              {copy("settings.account.sign-out")}
+            </button>
+          </span>
+        </div>
+
+        {action.line === null ? null : <p className="text-xs text-base-content/60 wrap-anywhere">{action.line}</p>}
       </div>
-
-      {p.account.noteKeys.map((key) => {
-        const note = writtenLine(key);
-        return note === null ? null : (
-          <p key={key} className="text-xs opacity-60 wrap-anywhere">
-            {note}
-          </p>
-        );
-      })}
-
-      <div className="flex min-w-0 flex-wrap items-center gap-2">
-        <span data-testid="action-sign_out">
-          <Btn
-            label={copy("settings.account.sign-out")}
-            size="sm"
-            variant="secondary"
-            pill
-            onClick={() => action.run("sign_out")}
-          />
-        </span>
-      </div>
-
-      {action.line === null ? null : <p className="text-xs opacity-60 wrap-anywhere">{action.line}</p>}
-    </Card>
+    </section>
   );
 }

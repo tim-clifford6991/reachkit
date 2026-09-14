@@ -163,7 +163,7 @@ async function click(el: Element): Promise<void> {
 }
 
 // ── REQ-070 criterion 1 ────────────────────────────────────────────────────
-describe("REQ-070 c1 — the rendered control set is exactly the fourteen SETTABLE keys", () => {
+describe("REQ-070 c1 — the rendered control set is exactly the SETTABLE keys", () => {
   it("every settable key has a control, and no control names a key outside the tuple", async () => {
     const root = await mountScreen();
     expect(testIds(root, "setting-")).toEqual([...SETTABLE].sort());

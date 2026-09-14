@@ -35,10 +35,6 @@
 
 import type React from "react";
 import { CreditCard } from "lucide-react";
-import { Btn } from "@/ui/components/Btn";
-import { Badge } from "@/ui/components/Badge";
-import { Card } from "@/ui/components/Card";
-import { CardHead } from "@/ui/idiom";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { writtenLine } from "../../_shell/written";
 import { useAction } from "./useAction";
@@ -54,9 +50,8 @@ const BILLING_UNREADABLE_KEYS: readonly CopyKey[] = [
   "settings.billing.reach-a-person",
 ];
 
-/** The mask S18 draws in front of the last four. Four bullet glyphs are
- *  punctuation standing in for digits nobody may see — not a sentence, and
- *  the same footing `Stat`'s em dash stands on. */
+/** The mask in front of the last four: punctuation standing in for digits
+ *  nobody may see, not a sentence. */
 const CARD_MASK = "\u2022\u2022\u2022\u2022";
 
 export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element {
@@ -97,112 +92,87 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
       ? `${CARD_MASK} ${billing.cardLast4}`
       : null;
 
+  const pill = (key: CopyKey, run: () => void): React.JSX.Element => (
+    <button type="button" className="btn btn-outline btn-sm" onClick={run}>
+      {copy(key)}
+    </button>
+  );
+
   return (
-    <Card state="default" title={<CardHead icon={<CreditCard size={15} strokeWidth={1.8} aria-hidden />} eyebrow={copy("settings.billing.title")} />}>
-      {/* S18 leads with the figure and its state, not with a plan row: the
-          price is the card's one headline number and the pill says whether
-          it is running. The plan *word* is the same fact the pill states —
-          there is one plan (REQ-022 c3) — so drawing both put "TODO(copy)"
-          above a figure that already said everything. */}
-      <div className="flex min-w-0 flex-wrap items-baseline justify-between gap-2">
-        {/* S18 leads with the amount alone at figure size; the interval is
-            the same fact stated quietly beside it, so the card still says
-            "per month, VAT included" without setting it at 44px. Both sit
-            inside one test id, because together they are the price. */}
-        <span
-          className="flex min-w-0 flex-wrap items-baseline gap-2"
-          data-testid="billing-price"
-        >
-          <span className="num rk-card-figure wrap-anywhere">{amount}</span>
-          <span className="num-phrase text-xs opacity-60 wrap-anywhere">
-            {price.slice(1).join(" ")}
+    <section className="card card-border min-w-0 bg-base-100">
+      <div className="card-body gap-4">
+        <h2 className="card-title text-base">
+          <CreditCard size={20} strokeWidth={1.75} aria-hidden />
+          {copy("settings.billing.title")}
+        </h2>
+
+        {/* The price is the card's one headline number; the badge says
+            whether it is running. */}
+        <div className="flex min-w-0 flex-wrap items-baseline justify-between gap-2">
+          <span className="flex min-w-0 flex-wrap items-baseline gap-2" data-testid="billing-price">
+            <span className="num text-3xl font-semibold wrap-anywhere">{amount}</span>
+            <span className="num-phrase text-xs text-base-content/60 wrap-anywhere">{price.slice(1).join(" ")}</span>
           </span>
-        </span>
-        {!billing.readable ? null : (
-          <span data-testid="billing-state">
-            <Badge tone={billing.state === "active" ? "ok" : "neutral"}>
+          {!billing.readable ? null : (
+            <span
+              className={billing.state === "active" ? "badge badge-success badge-soft" : "badge badge-ghost"}
+              data-testid="billing-state"
+            >
               {copy(billing.state === "active" ? "settings.billing.active" : "settings.billing.cancelled")}
-            </Badge>
-          </span>
-        )}
-      </div>
-
-      <hr className="border-base-300 min-w-0 border-t" />
-
-      {/* The two rows S18 draws, each a name at the near edge and a mono
-          value at the far one. A row with nothing behind it is not drawn. */}
-      <dl className="rk-daypanel-why min-w-0">
-        {nextInvoice === null ? null : (
-          <>
-            <dt>{copy("settings.billing.next-invoice")}</dt>
-            {/* A PHRASE of values — a day and an amount, joined by a
-                separator — so it folds where language folds (#307's
-                `num-phrase`). `.num`'s own nowrap is for a single token,
-                and a nowrap row here pushed the card past the document. */}
-            <dd className="num num-phrase" data-testid="billing-next-invoice">
-              {nextInvoice}
-            </dd>
-          </>
-        )}
-        {cardOnFile === null ? null : (
-          <>
-            <dt>{copy("settings.billing.card")}</dt>
-            <dd className="num" data-testid="billing-card">
-              {cardOnFile}
-            </dd>
-          </>
-        )}
-      </dl>
-
-      {/* Three outlined pills (S18 L818, issue #506), all leading to
-          REQ-097 c1's one surface. */}
-      <div className="flex min-w-0 flex-wrap items-center gap-2">
-        {/* The card is changed on the same surface the invoices live on, so
-            this is a second way in and not a second action (REQ-097 c1). */}
-        <Btn
-          label={copy("settings.billing.update-card")}
-          size="sm"
-          variant="secondary"
-          pill
-          onClick={() => action.run("invoices")}
-        />
-        <span data-testid="action-invoices">
-          <Btn
-            label={copy("settings.billing.invoices")}
-            size="sm"
-            variant="secondary"
-            pill
-            onClick={() => action.run("invoices")}
-          />
-        </span>
-        {!billing.readable ? null : billing.state === "active" ? (
-          <span data-testid="action-cancel">
-            <Btn label={copy("settings.billing.cancel")} size="sm" variant="secondary" pill onClick={() => action.run("cancel")} />
-          </span>
-        ) : (
-          <span data-testid="action-resume">
-            <Btn label={copy("settings.billing.resume")} size="sm" variant="secondary" pill onClick={() => action.run("resume")} />
-          </span>
-        )}
-      </div>
-
-      {billing.readable ? null : (
-        <div className="flex min-w-0 flex-col gap-1" data-testid="billing-unreadable">
-          {BILLING_UNREADABLE_KEYS.map((key) => ({ key, line: writtenLine(key) }))
-            .filter((written) => written.line !== null)
-            .map((written) => (
-              <p className="text-xs opacity-60 wrap-anywhere" key={written.key}>
-                {written.line}
-              </p>
-            ))}
+            </span>
+          )}
         </div>
-      )}
-      {cancelling === null ? null : (
-        <p className="text-xs opacity-60 wrap-anywhere" data-testid="billing-cancelling">
-          {cancelling}
-        </p>
-      )}
-      {action.line === null ? null : <p className="text-xs opacity-60 wrap-anywhere">{action.line}</p>}
-    </Card>
+
+        {nextInvoice === null && cardOnFile === null ? null : (
+          <dl className="border-base-300 grid min-w-0 grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 border-t pt-4 text-sm">
+            {nextInvoice === null ? null : (
+              <>
+                <dt className="text-base-content/70">{copy("settings.billing.next-invoice")}</dt>
+                <dd className="num num-phrase text-right" data-testid="billing-next-invoice">
+                  {nextInvoice}
+                </dd>
+              </>
+            )}
+            {cardOnFile === null ? null : (
+              <>
+                <dt className="text-base-content/70">{copy("settings.billing.card")}</dt>
+                <dd className="num text-right" data-testid="billing-card">
+                  {cardOnFile}
+                </dd>
+              </>
+            )}
+          </dl>
+        )}
+
+        {/* All three lead to REQ-097 c1's one billing surface. */}
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          {pill("settings.billing.update-card", () => action.run("invoices"))}
+          <span data-testid="action-invoices">{pill("settings.billing.invoices", () => action.run("invoices"))}</span>
+          {!billing.readable ? null : billing.state === "active" ? (
+            <span data-testid="action-cancel">{pill("settings.billing.cancel", () => action.run("cancel"))}</span>
+          ) : (
+            <span data-testid="action-resume">{pill("settings.billing.resume", () => action.run("resume"))}</span>
+          )}
+        </div>
+
+        {billing.readable ? null : (
+          <div className="flex min-w-0 flex-col gap-1" data-testid="billing-unreadable">
+            {BILLING_UNREADABLE_KEYS.map((key) => ({ key, line: writtenLine(key) }))
+              .filter((written) => written.line !== null)
+              .map((written) => (
+                <p className="text-xs text-base-content/60 wrap-anywhere" key={written.key}>
+                  {written.line}
+                </p>
+              ))}
+          </div>
+        )}
+        {cancelling === null ? null : (
+          <p className="text-xs text-base-content/60 wrap-anywhere" data-testid="billing-cancelling">
+            {cancelling}
+          </p>
+        )}
+        {action.line === null ? null : <p className="text-xs text-base-content/60 wrap-anywhere">{action.line}</p>}
+      </div>
+    </section>
   );
 }

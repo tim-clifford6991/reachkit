@@ -59,14 +59,13 @@ describe("the model is pure — the same facts give the same screen (issue #304)
 describe("REQ-070 c1 — the model carries a value for each settable key and nothing else a control could bind to", () => {
   const model = assembleSettings(FACTS);
 
-  /** Where each of the fourteen keys reads from on the model. A key with no
+  /** Where each settable key reads from on the model. A key with no
    *  row here is a key the screen could not render, and a row for a key
    *  outside `SETTABLE` would be a value no control may write. */
   const READS: Record<(typeof SETTABLE)[number], () => unknown> = {
     category: () => model.market.category,
     competitors: () => model.competitors,
     domain: () => model.domain,
-    mode: () => model.publishing.mode,
     veto_hours: () => model.publishing.vetoHours,
     publish_time: () => model.publishing.publishTime,
     time_zone: () => model.publishing.timeZone,
@@ -79,14 +78,14 @@ describe("REQ-070 c1 — the model carries a value for each settable key and not
     email: () => model.account.email,
   };
 
-  it("every one of the fourteen has a value on the model", () => {
+  it("every settable key has a value on the model", () => {
     for (const key of SETTABLE) {
       expect(READS[key](), key).toBeDefined();
     }
     expect(Object.keys(READS).sort()).toEqual([...SETTABLE].sort());
   });
 
-  it("the model's top-level shape is the fourteen's homes plus billing and the pages count, and nothing else", () => {
+  it("the model's top-level shape is the settable keys' homes plus billing and the pages count, and nothing else", () => {
     expect(Object.keys(model).sort()).toEqual(
       [
         "account",

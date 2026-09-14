@@ -1,19 +1,14 @@
 // BUILD §4.7, REQ-055, REQ-053 — "How your pages sound".
 //
-// The approved screen set gives these two answers a card of their own
-// (UI-SPEC S18, issue #374). They were rows inside "Your content" before,
-// which put the two constraints on what a page may say inside the card about
-// pages the customer already owns — and squeezed the voice, which REQ-055
-// calls "a description", into a one-line value beside an Edit button.
+// These two answers have a card of their own (issue #374): they constrain what
+// a page will say, and the voice is a description, so it gets a textarea.
 //
 // Two settings and no third:
 //
 //  · **the voice** (REQ-055) — ONE field, and the whole of what ReachKit
 //    knows about how a customer's pages should sound. Nothing is learned
 //    about them and no second field infers a tone: the customer writes it or
-//    it is empty. It is `Input`'s multi-line arm, because a description is a
-//    paragraph and a box that cannot hold its content is the defect ADR-093
-//    decision 2 names.
+//    it is empty. A `textarea`, because a description is a paragraph.
 //  · **the never-claim list** (REQ-053) — entries the customer adds and
 //    removes, each a claim their pages must never make, with the one written
 //    line saying what the list *does*: it is a hard filter, and a draft that
@@ -32,11 +27,7 @@
 
 import type React from "react";
 import { useState } from "react";
-import { PenLine } from "lucide-react";
-import { Btn } from "@/ui/components/Btn";
-import { Card } from "@/ui/components/Card";
-import { Input } from "@/ui/components/Input";
-import { CardHead, RemovableTag } from "@/ui/idiom";
+import { PenLine, X } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import { writtenLine } from "../../_shell/written";
 import { saveVoiceAction } from "../change-actions";
@@ -53,72 +44,67 @@ export function VoicePanel(p: { settings: SettingsModel }): React.JSX.Element {
   const [text, setText] = useState(p.settings.voice.text);
 
   return (
-    <Card state="default" title={<CardHead icon={<PenLine size={15} strokeWidth={1.8} aria-hidden />} eyebrow={copy("settings.voice.title")} />}>
-      <div className="flex min-w-0 flex-col gap-4">
-        {/* SPEC.md §5 (2026-09-12): the same summary setup showed, stored
-            where drafting reads it. One field and one press — the form is
-            the write path, exactly as the market card's field is. */}
+    <section className="card card-border min-w-0 bg-base-100">
+      <div className="card-body gap-4">
+        <h2 className="card-title text-base">
+          <PenLine size={20} strokeWidth={1.75} aria-hidden />
+          {copy("settings.voice.title")}
+        </h2>
+
+        {/* SPEC §5 (2026-09-12): the summary setup showed, stored where
+            drafting reads it. One field and one press. */}
         <form action={saveVoiceAction} className="flex min-w-0 flex-col gap-3">
-          <div className="min-w-0" data-testid="setting-voice_text">
-            <Input
-              multiline
-              label={copy("settings.content.voice")}
-              {...(placeholder === null ? {} : { placeholder })}
+          <label className="flex min-w-0 flex-col gap-1" data-testid="setting-voice_text">
+            <span className="text-sm text-base-content/70">{copy("settings.content.voice")}</span>
+            <textarea
+              className="textarea h-auto w-full"
+              rows={4}
               name={VOICE_FIELD}
               value={text}
-              onChange={setText}
+              onChange={(e) => setText(e.target.value)}
+              {...(placeholder === null ? {} : { placeholder })}
             />
-          </div>
+          </label>
           <span>
-            <Btn
-              type="submit"
-              label={copy("settings.voice.save")}
-              size="sm"
-              variant="secondary"
-              pill
-            />
+            <button type="submit" className="btn btn-outline btn-sm">
+              {copy("settings.voice.save")}
+            </button>
           </span>
         </form>
 
-        <hr className="border-base-300 min-w-0 border-t" />
-
-        <div className="flex min-w-0 flex-col gap-3" data-testid="setting-do_not_claim">
-          <p className="eyebrow opacity-60">{copy("settings.voice.never-claim")}</p>
-          {/* Each entry with its own way out. A claim the customer can add
-              and cannot remove would be a filter they no longer control.
-
-              S18 draws the entries as tags, the same `.tag.on` the rivals
-              above take, so they are `RemovableTag` (issue #488) — with its
-              `phrase` arm, because a claim is a sentence the customer wrote
-              ("the fastest onboarding on the market") and must fold inside
-              its card rather than run past it, which the sweep's check 3
-              caught when this was a `Btn` label. */}
+        <div className="border-base-300 flex min-w-0 flex-col gap-3 border-t pt-4" data-testid="setting-do_not_claim">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-base-content/60">
+            {copy("settings.voice.never-claim")}
+          </h3>
+          {/* Each claim with its own way out: a filter the customer cannot
+              remove from is not theirs. A claim is a sentence, so it wraps. */}
           <div className="flex min-w-0 flex-wrap gap-2">
             {p.settings.doNotClaim.map((claim) => (
               <span className="min-w-0 max-w-full" key={claim} data-testid={`claim-${claim}`}>
-                <RemovableTag
-                  value={claim}
-                  phrase
-                  removeLabel={copy("settings.voice.remove-claim", { claim })}
-                />
+                <button
+                  type="button"
+                  className="badge badge-outline badge-lg h-auto max-w-full cursor-pointer gap-1 text-left"
+                  aria-label={copy("settings.voice.remove-claim", { claim })}
+                >
+                  <span className="num num-phrase min-w-0">{claim}</span>
+                  <X size={16} strokeWidth={1.75} aria-hidden />
+                </button>
               </span>
             ))}
           </div>
           <div className="flex min-w-0 flex-wrap items-end gap-2">
-            <span className="min-w-0 grow">
-              <Input
-                label={copy("settings.voice.add-claim")}
-                placeholder={copy("settings.voice.add-claim")}
-              />
-            </span>
-            <Btn label={copy("settings.voice.add")} size="sm" variant="secondary" pill />
+            <label className="flex min-w-0 grow flex-col gap-1">
+              <span className="text-sm text-base-content/70">{copy("settings.voice.add-claim")}</span>
+              <input className="input w-full" />
+            </label>
+            <button type="button" className="btn btn-outline btn-sm">
+              {copy("settings.voice.add")}
+            </button>
           </div>
         </div>
-      </div>
 
-      {filterNote === null ? null : (
-        <p className="text-xs opacity-60 wrap-anywhere">{filterNote}</p>
-      )}
-    </Card>
+        {filterNote === null ? null : <p className="text-xs text-base-content/60 wrap-anywhere">{filterNote}</p>}
+      </div>
+    </section>
   );
 }
