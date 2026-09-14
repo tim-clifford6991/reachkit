@@ -121,11 +121,10 @@ describe("issue #486 — every chip the approved set draws carries its glyph", (
       expect(source, rel).toMatch(/className="rk-wordmark-chip"[^>]*>\s*<TrendingUp size=\{15\} strokeWidth=\{2\}/);
       expect(source, rel).not.toMatch(/className="rk-wordmark-chip"[^>]*\/>/);
     }
-    // S9 draws the same mark in Tailwind utilities over the same tokens
-    // (issue #549): the class is gone from that screen, the glyph is not.
+    // Sign-in draws the same mark as the public chrome, in its own card.
     const signin = read("app/(public)/signin/page.tsx");
-    expect(signin).toMatch(/rounded-\(--r-field\) bg-primary text-primary-content/);
-    expect(signin).toMatch(/<TrendingUp size=\{15\} strokeWidth=\{2\}/);
+    expect(signin).toMatch(/rounded-field bg-primary text-primary-content/);
+    expect(signin).toMatch(/<TrendingUp size=\{16\} strokeWidth=\{1\.75\}/);
   });
 
   it("the mark is the set's square: --r-field corners, --accent ground, --on-accent ink", () => {
