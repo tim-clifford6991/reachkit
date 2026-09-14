@@ -1,9 +1,9 @@
 // BUILD §7 — the closed opportunity surface.
 //
-// Eight kinds, three families, one evidence shape per family, three
+// Nine kinds, four families, one evidence shape per family, three
 // acceptance forms, three winnability handles. Nothing here computes and
 // nothing here speaks: this file is types plus one frozen lookup table, so
-// that a ninth kind, a fourth family or a fourth acceptance form is a
+// that a tenth kind, a fifth family or a fourth acceptance form is a
 // compile error at every call site rather than a value some module has to
 // remember to reject.
 //
@@ -12,8 +12,10 @@
 // `src/lib/presentation/bands.ts` (ADR-001). This engine emits handles.
 import type { Measured } from "@/lib/measure/measured";
 
-/** §7's table, read down the `Type` column. Four Write, three Improve, one
- *  Fix — and no ninth, which is what makes `FAMILY_OF` below total. */
+/** §7's table, read down the `Type` column, plus SPEC §0's Earn family: a
+ *  source names a rival and not the customer, and the answer is a citable
+ *  asset on the customer's own domain. Four Write, three Improve, one Fix,
+ *  one Earn — and no tenth, which is what makes `FAMILY_OF` below total. */
 export type OpportunityType =
   | "answer_page"
   | "keyword_page"
@@ -22,9 +24,10 @@ export type OpportunityType =
   | "expand_page"
   | "answerable_page"
   | "refresh_page"
-  | "unblock";
+  | "unblock"
+  | "listed_page";
 
-export type Family = "write" | "improve" | "fix";
+export type Family = "write" | "improve" | "fix" | "earn";
 
 /** The one mapping. `Readonly<Record<OpportunityType, Family>>` is the
  *  annotation and not `satisfies`: totality over the enum is the property
@@ -41,6 +44,7 @@ export const FAMILY_OF: Readonly<Record<OpportunityType, Family>> = Object.freez
   answerable_page: "improve",
   refresh_page: "improve",
   unblock: "fix",
+  listed_page: "earn",
 });
 
 export const OPPORTUNITY_TYPES: readonly OpportunityType[] = Object.freeze(
@@ -96,7 +100,17 @@ export type Evidence =
       pageUrl: string;
       shortfall: Shortfall;
     }
-  | { family: "fix"; barrier: Barrier; foundOnUrl: string };
+  | { family: "fix"; barrier: Barrier; foundOnUrl: string }
+  | {
+      /** SPEC §0's Earn trigger: a source named a rival and not the
+       *  customer. `source` is the surface that did so, copied at creation
+       *  like every other value here — never a party anyone writes to. */
+      family: "earn";
+      query: string;
+      volume: Measured<number>;
+      source: { surface: "ai_answer" | "search_result"; ref: string };
+      rival: { domain: string };
+    };
 
 /** §7's acceptance test, verbatim: "top 20 for Q" / "named on question P" /
  *  "gate passes". Written once at creation and never rewritten — the
@@ -110,6 +124,27 @@ export type Acceptance =
 export type Winnability = "winnable" | "reach" | "not-yet";
 
 export type OpportunityStatus = "open" | "queued" | "done" | "dismissed";
+
+/** Why a row has not passed readiness, as handles — SPEC §6's clauses, one
+ *  each, plus the state of a row nothing has assessed yet. The database
+ *  mirrors this set in a check constraint, and the words a screen shows are
+ *  the copy registry's, never these. */
+export type UnreadyReason =
+  | "not_assessed"
+  | "cluster_suppressed"
+  | "url_retired"
+  | "keyword_gate"
+  | "format_not_allowed"
+  | "no_grounding_fact";
+
+export const UNREADY_REASONS: readonly UnreadyReason[] = Object.freeze([
+  "not_assessed",
+  "cluster_suppressed",
+  "url_retired",
+  "keyword_gate",
+  "format_not_allowed",
+  "no_grounding_fact",
+]);
 
 export interface Opportunity {
   id: string;
@@ -136,6 +171,17 @@ export interface Opportunity {
   /** 0..1, from `EFFORT_BY_TYPE`. */
   effort: number;
   status: OpportunityStatus;
+  /** §6's parent topic: the calendar's unit is one cluster-day, not one
+   *  keyword-day. Null until the cluster step derives one. */
+  clusterKey: string | null;
+  /** The sibling searches this row absorbed when its cluster collapsed, so
+   *  several queries sharing a parent produce at most one target. */
+  absorbedQueries: readonly string[];
+  /** §6: "A day is filled only by an opportunity that passes readiness."
+   *  Stored, so the reason a row was passed over survives the pass that
+   *  decided it; exactly one of these two carries the answer. */
+  ready: boolean;
+  unreadyReason: UnreadyReason | null;
   createdAt: Date;
 }
 

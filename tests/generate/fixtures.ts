@@ -58,6 +58,10 @@ export function opportunity(over: Partial<Opportunity> = {}): Opportunity {
     fitBand: "winnable",
     effort: 0.5,
     status: "open",
+    clusterKey: null,
+    absorbedQueries: [],
+    ready: false,
+    unreadyReason: "not_assessed",
     createdAt: AT,
     ...over,
   };

@@ -19,7 +19,7 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { topicOf } from "../../src/lib/db/topics";
-import { FAMILY_OF, OPPORTUNITY_TYPES } from "../../src/lib/opportunities/types";
+import { FAMILY_OF, OPPORTUNITY_TYPES, UNREADY_REASONS } from "../../src/lib/opportunities/types";
 import {
   psql,
   psqlRows,
@@ -29,6 +29,7 @@ const REPO_ROOT = path.resolve(import.meta.dirname, "../..");
 const MIGRATIONS = path.join(REPO_ROOT, "supabase/migrations");
 const CORE = "20260906090000_opportunities_core.sql";
 const SUPPLY = "20260906090100_opportunities_supply.sql";
+const READINESS = "20260912120000_opportunities_readiness.sql";
 const BASELINE_MIGRATION = path.join(MIGRATIONS, "00000000000001_baseline.sql");
 
 /** One tuple-only row per line, `|`-separated columns — easy to split. */
@@ -59,6 +60,7 @@ beforeAll(() => {
   psql(["-v", "ON_ERROR_STOP=1", "-f", BASELINE_MIGRATION]);
   psql(["-v", "ON_ERROR_STOP=1", "-f", path.join(MIGRATIONS, CORE)]);
   psql(["-v", "ON_ERROR_STOP=1", "-f", path.join(MIGRATIONS, SUPPLY)]);
+  psql(["-v", "ON_ERROR_STOP=1", "-f", path.join(MIGRATIONS, READINESS)]);
   const [user] = psqlRows(
     `insert into users (email, plan_status) values ('opps@example.com', 'active') returning id;`
   );
@@ -140,7 +142,7 @@ function familyRow(type: string, extra: Row = {}): Row {
     family,
     targetQuery: family === "fix" ? null : `query ${type}`,
     fitBand: family === "fix" ? null : "winnable",
-    proposedSlug: family === "write" ? `slug-${type}` : null,
+    proposedSlug: family === "write" || family === "earn" ? `slug-${type}` : null,
     evidence: `{"family":"${family}"}`,
     ...extra,
   };
@@ -150,10 +152,11 @@ describe("ARCHITECTURE rule 6: migrations are topic-prefixed and topic-owned", (
   it("both files resolve to the opportunities sub-tokens and to no other topic", () => {
     expect(topicOf(CORE)).toEqual({ token: "opportunities_core", owner: "BP-040" });
     expect(topicOf(SUPPLY)).toEqual({ token: "opportunities_supply", owner: "BP-041" });
+    expect(topicOf(READINESS)).toEqual({ token: "opportunities", owner: "BP-013" });
   });
 });
 
-describe("§7: the eight kinds and the three families are closed in the schema", () => {
+describe("§7 and SPEC §0: the nine kinds and the four families are closed in the schema", () => {
   it("every type in the enum is admitted, and a ninth is refused", () => {
     for (const type of OPPORTUNITY_TYPES) {
       expect(refuses(familyRow(type)), `${type} was refused`).toBe(false);
@@ -300,6 +303,84 @@ describe("the supply migration adds one column and no counter", () => {
 
     psql(["-v", "ON_ERROR_STOP=1", "-c", `update opportunities set status = 'queued' where id = '${id}';`]);
     expect(psqlRows(`select status_changed_at from opportunities where id = '${id}';`)).not.toEqual(before);
+  });
+});
+
+/** A well-formed Write row plus whatever readiness columns the case sets.
+ *  Written out rather than folded into `insertSql` so the default case
+ *  inserts the columns the engine writes today and nothing else. */
+function insertReadiness(columns: string, values: string): boolean {
+  rowCounter += 1;
+  return raises(
+    `insert into opportunities (site_id, scan_id, type, family, target_query, target_ref, ` +
+      `proposed_slug, fit_band, effort, evidence, acceptance${columns}) values (` +
+      `'${SITE_ID}', '${SCAN_ID}', 'answer_page', 'write', 'readiness ${rowCounter}', ` +
+      `'readiness-ref-${rowCounter}', 'readiness-slug-${rowCounter}', 'winnable', 0.50, ` +
+      `'{"family":"write"}'::jsonb, '{"check":"c"}'::jsonb${values});`
+  );
+}
+
+describe("SPEC §6: a row carries its cluster, what it absorbed, and whether it is ready", () => {
+  it("a row written by today's engine is unclustered, absorbs nothing and is not ready", () => {
+    expect(insertReadiness("", "")).toBe(false);
+    const [row] = psqlRows(
+      `select cluster_key, absorbed_queries, ready, unready_reason from opportunities ` +
+        `order by created_at desc limit 1;`
+    );
+    // `psql`'s tuple-only output renders a null as an empty field.
+    expect(row).toEqual(["", "{}", "f", "not_assessed"]);
+  });
+
+  it("ready and its reason are a biconditional — never both, never neither", () => {
+    expect(insertReadiness(", ready, unready_reason", ", true, null")).toBe(false);
+    expect(insertReadiness(", ready, unready_reason", ", true, 'keyword_gate'")).toBe(true);
+    expect(insertReadiness(", ready, unready_reason", ", false, null")).toBe(true);
+  });
+
+  it("the reason set is closed to §6's clauses", () => {
+    for (const reason of UNREADY_REASONS) {
+      expect(insertReadiness(", unready_reason", `, '${reason}'`), reason).toBe(false);
+    }
+    expect(insertReadiness(", unready_reason", ", 'we_felt_like_it'")).toBe(true);
+  });
+
+  it("a blank cluster key is not a cluster", () => {
+    expect(insertReadiness(", cluster_key", ", '  '")).toBe(true);
+    expect(insertReadiness(", cluster_key", ", 'user onboarding'")).toBe(false);
+  });
+});
+
+describe("SPEC §6: at most one open row per cluster — the calendar's unit is one cluster-day", () => {
+  it("a second open row in the same cluster is refused, and a closed one may take it again", () => {
+    expect(insertReadiness(", cluster_key", ", 'pricing pages'")).toBe(false);
+    expect(insertReadiness(", cluster_key", ", 'pricing pages'")).toBe(true);
+    expect(insertReadiness(", cluster_key, status", ", 'pricing pages', 'done'")).toBe(false);
+  });
+
+  it("the Fix family is outside it: a barrier is not cluster work", () => {
+    rowCounter += 1;
+    const fixRow = (ref: string) =>
+      raises(
+        `insert into opportunities (site_id, scan_id, type, family, target_query, target_ref, ` +
+          `proposed_slug, fit_band, effort, evidence, acceptance, cluster_key) values (` +
+          `'${SITE_ID}', '${SCAN_ID}', 'unblock', 'fix', null, '${ref}', null, null, 0.20, ` +
+          `'{"family":"fix"}'::jsonb, '{"check":"c"}'::jsonb, 'robots');`
+      );
+    expect(fixRow("fix-cluster-a")).toBe(false);
+    expect(fixRow("fix-cluster-b")).toBe(false);
+  });
+
+  it("two rows with no cluster yet never collide", () => {
+    expect(insertReadiness("", "")).toBe(false);
+    expect(insertReadiness("", "")).toBe(false);
+  });
+});
+
+describe("SPEC §0: the Earn family publishes a page, so it proposes a slug", () => {
+  it("a `listed_page` is admitted as `earn`, with a slug, and refused without one", () => {
+    expect(refuses(familyRow("listed_page"))).toBe(false);
+    expect(refuses(familyRow("listed_page", { proposedSlug: null }))).toBe(true);
+    expect(refuses(familyRow("listed_page", { family: "write", evidence: '{"family":"write"}' }))).toBe(true);
   });
 });
 
