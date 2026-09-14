@@ -1,31 +1,21 @@
-// BUILD §9 — "Everything else = copy as Markdown/HTML (always shown)."
+// SPEC §7 — "one serialiser for screen, copy-as-HTML and copy-as-Markdown".
 //
 // Two controls, always rendered: for a draft and for a published page, on
-// every destination, whether or not ReachKit serves it. That is the whole
-// point of the clause — the customer's words are theirs whatever they are
-// bound for, and a customer on a destination ReachKit does not publish to
-// must never be locked out of their own content.
+// every destination. The customer's words are theirs whatever they are
+// bound for.
 //
 // The Markdown handed over is the body **verbatim**; the HTML is the same
 // body through `markdown.ts`, unclassed — the bytes the hosted template
 // publishes. One renderer, so what is copied and what goes live cannot
-// differ (the archived BP-044 decision 3).
+// differ.
 //
-// They are `Btn`. No copy-out component is registered and none should be —
-// §2.2's set has `btn` and that is what this is. The rank is the idiom's
-// quiet tertiary, which is what S16 draws them as: the card head above them
-// already names what the pair is for, and neither of them is the action the
-// screen is asking for.
-//
-// The clipboard is the browser's and may not be there (an insecure origin,
-// a browser that withholds it). Nothing is claimed either way: this
-// screen states no outcome for a copy, so there is no outcome to be wrong
-// about, and the customer still has the Markdown in the editor beside them.
+// The clipboard is the browser's and may not be there (an insecure origin, a
+// browser that withholds it). Nothing is claimed either way: this screen
+// states no outcome for a copy, so there is no outcome to be wrong about.
 "use client";
 
 import type React from "react";
 import { copy } from "@/lib/presentation/copy";
-import { Btn } from "@/ui/components/Btn";
 import { renderMarkdownHtml } from "@/lib/publish/render/markdown";
 
 function writeClipboard(text: string): void {
@@ -37,24 +27,22 @@ function writeClipboard(text: string): void {
 export function CopyOut(p: { bodyMd: string }): React.JSX.Element {
   return (
     <div className="flex flex-wrap gap-2" data-testid="draft-copy-out">
-      <span data-testid="draft-copy-markdown">
-        <Btn
-          label={copy("draft.copy.markdown")}
-          variant="tertiary"
-          size="sm"
-          pill
-          onClick={() => writeClipboard(p.bodyMd)}
-        />
-      </span>
-      <span data-testid="draft-copy-html">
-        <Btn
-          label={copy("draft.copy.html")}
-          variant="tertiary"
-          size="sm"
-          pill
-          onClick={() => writeClipboard(renderMarkdownHtml(p.bodyMd))}
-        />
-      </span>
+      <button
+        type="button"
+        className="btn btn-sm btn-outline"
+        data-testid="draft-copy-markdown"
+        onClick={() => writeClipboard(p.bodyMd)}
+      >
+        {copy("draft.copy.markdown")}
+      </button>
+      <button
+        type="button"
+        className="btn btn-sm btn-outline"
+        data-testid="draft-copy-html"
+        onClick={() => writeClipboard(renderMarkdownHtml(p.bodyMd))}
+      >
+        {copy("draft.copy.html")}
+      </button>
     </div>
   );
 }

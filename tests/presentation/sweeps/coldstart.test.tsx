@@ -494,7 +494,7 @@ describe("§9.1 idiom — one solid primary per screen, across src/app/(account)
     expect(actions?.querySelectorAll(SOLID_PRIMARY)).toHaveLength(1);
     // The other two are the idiom's quiet ranks, and the veto carries the
     // one tone a rank may take.
-    expect(actions?.querySelectorAll(".btn-outline[data-tone='warn']")).toHaveLength(1);
+    expect(actions?.querySelectorAll(".btn-outline.btn-warning")).toHaveLength(1);
     expect(actions?.querySelectorAll(".btn-ghost")).toHaveLength(1);
   });
 

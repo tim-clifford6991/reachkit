@@ -207,7 +207,7 @@ describe("REQ-045 c3 and c11 — the claim outcome, in every case", () => {
       { state: "nothing_to_check" as const },
     ]) {
       const root = markup({ ...VIEW, claim });
-      const badge = root.querySelector(`[data-testid="draft-claim-${claim.state}"] .badge`);
+      const badge = root.querySelector(`.badge[data-testid="draft-claim-${claim.state}"]`);
       expect(badge?.textContent, claim.state).toBe(copy(CLAIM_COPY_KEY[claim.state]));
       for (const other of CLAIM_STATES) {
         if (other === claim.state) continue;
@@ -259,7 +259,7 @@ describe("REQ-045 c4 — told what happens if nothing is done, and able to appro
   it("§9.1 — Approve is the one solid primary, Veto the warn outline, Edit the quiet arm", () => {
     const root = markup();
     const button = (key: string): Element | null =>
-      root.querySelector(`[data-testid="draft-action-${key}"] button`);
+      root.querySelector(`button[data-testid="draft-action-${key}"]`);
 
     const approve = button("draft.action.approve");
     expect(approve?.className).toContain("btn-primary");
@@ -267,7 +267,7 @@ describe("REQ-045 c4 — told what happens if nothing is done, and able to appro
     const veto = button("draft.action.veto");
     expect(veto?.className).toContain("btn-outline");
     expect(veto?.className).not.toContain("btn-primary");
-    expect(veto?.getAttribute("data-tone")).toBe("warn");
+    expect(veto?.className).toContain("btn-warning");
 
     const edit = button("draft.action.edit");
     expect(edit?.className).toContain("btn-ghost");
@@ -381,10 +381,10 @@ describe("S16 — the Decide rail", () => {
     const root = markup();
     expect(
       root.querySelector('[data-testid="draft-action-draft.action.approve"]')?.className
-    ).toContain("rk-daypanel-block");
+    ).toContain("col-span-2");
     for (const key of ["draft.action.edit", "draft.action.veto"]) {
-      expect(root.querySelector(`[data-testid="draft-action-${key}"]`)?.className).toContain(
-        "rk-daypanel-half"
+      expect(root.querySelector(`[data-testid="draft-action-${key}"]`)?.className).not.toContain(
+        "col-span-2"
       );
     }
   });
@@ -446,7 +446,8 @@ describe("REQ-045 c5-c9 — the editor, its live preview, its autosave and its i
   }
 
   function click(testId: string): void {
-    const el = container.querySelector(`[data-testid="${testId}"] button`);
+    const at = container.querySelector(`[data-testid="${testId}"]`);
+    const el = at instanceof HTMLButtonElement ? at : at?.querySelector("button");
     if (!(el instanceof HTMLButtonElement)) throw new Error(`no button at ${testId}`);
     act(() => el.click());
   }

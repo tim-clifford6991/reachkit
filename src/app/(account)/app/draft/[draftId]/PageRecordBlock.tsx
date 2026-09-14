@@ -13,11 +13,8 @@
 // destination's kind, and picks no key. What it owns is the one thing that
 // is presentation and not fact: which tone each standing wears.
 //
-// **A block, not a card.** It sits inside the draft view's own card,
-// because it is what became of *this* page and not a second object on the
-// screen. §2.2's component set is closed and this adds nothing to it: the
-// rows are a label column and a value column, and the only registered
-// component is `Badge`.
+// A daisyUI card under the page's own card: a label column and a value
+// column, with the check's standing on a badge.
 //
 // **No row without a fact.** There is no blank value and no dash anywhere:
 // a row the record has nothing for is not drawn. The address row is the
@@ -31,9 +28,8 @@
 // full — a screen that throws is worse in every way than a screen that
 // omits a line nobody has written.
 import type React from "react";
-import { Badge } from "@/ui/components/Badge";
-import { CardHead, IdiomCard } from "@/ui/idiom";
 import type { Tone } from "@/ui/types";
+import { TONE_BADGE } from "../../calendar/stages";
 import {
   unpublishedLine,
   verificationLine,
@@ -76,7 +72,7 @@ function Row(p: {
 }): React.JSX.Element {
   return (
     <div className="grid grid-cols-[minmax(0,7rem)_minmax(0,1fr)] items-baseline gap-3">
-      <span className="text-[length:var(--t-eyebrow)] font-bold uppercase tracking-[0.1em] opacity-60">
+      <span className="text-xs font-semibold uppercase tracking-wide opacity-60">
         {p.label}
       </span>
       <span className="flex min-w-0 flex-col gap-1">{p.children}</span>
@@ -95,57 +91,57 @@ export function PageRecordBlock(p: {
   const verification = verificationLine(record.verification);
   const title = writtenLine("record.title");
 
-  // UI-SPEC S16's idiom (issue #355): the page's own standing is a card
-  // like everything else on the screen, and its title is the card head's
-  // eyebrow rather than a heading floating on the grey ground. The record
-  // is still this component's — what changed is the box it stands in.
   return (
-    <IdiomCard
-      testId="draft-record"
-      head={title === null ? null : <CardHead eyebrow={title} />}
-    >
-      <Row label={writtenLine("record.label.address")}>
-        {record.address.offered ? (
-          <>
-            <span>{writtenLine(record.address.label)}</span>
-            {/* §2.3: an address is a code-like string and renders in the
-                mono utility, like every other one on this screen. */}
-            <a className="num min-w-0" href={record.address.url}>
-              {record.address.url}
-            </a>
-          </>
-        ) : (
-          <span>{writtenLine(record.address.copy)}</span>
+    <section className="card card-border bg-base-100 min-w-0" data-testid="draft-record">
+      <div className="card-body min-w-0 gap-3">
+        {title === null ? null : (
+          <h2 className="text-xs font-semibold uppercase tracking-wide opacity-70">{title}</h2>
         )}
-      </Row>
+        <Row label={writtenLine("record.label.address")}>
+          {record.address.offered ? (
+            <>
+              <span>{writtenLine(record.address.label)}</span>
+              <a className="link num min-w-0 truncate" href={record.address.url}>
+                {record.address.url}
+              </a>
+            </>
+          ) : (
+            <span>{writtenLine(record.address.copy)}</span>
+          )}
+        </Row>
 
-      {record.unpublishOutcome === null ? null : (
-        <Row label={writtenLine("record.label.taken-down")}>
-          <span>
-            <Badge tone="neutral" wrap>{writtenLine(unpublishedLine(record.unpublishOutcome))}</Badge>
+        {record.unpublishOutcome === null ? null : (
+          <Row label={writtenLine("record.label.taken-down")}>
+            <span className={`badge h-auto whitespace-normal py-1 text-left ${TONE_BADGE.neutral}`}>
+              {writtenLine(unpublishedLine(record.unpublishOutcome))}
+            </span>
+          </Row>
+        )}
+
+        <Row label={writtenLine("record.label.checked")}>
+          <span className="flex flex-wrap items-baseline gap-2">
+            <span
+              className={`badge h-auto whitespace-normal py-1 text-left ${TONE_BADGE[VERIFICATION_TONE[verification.kind]]}`}
+            >
+              {writtenLine(verification.copy)}
+            </span>
+            {verification.at === null ? null : (
+              <span className="num text-xs opacity-60">
+                {formatDateTime(verification.at, p.timeZone)}
+              </span>
+            )}
           </span>
         </Row>
-      )}
 
-      <Row label={writtenLine("record.label.checked")}>
-        <span className="flex flex-wrap items-baseline gap-2">
-          <Badge tone={VERIFICATION_TONE[verification.kind]} wrap>{writtenLine(verification.copy)}</Badge>
-          {verification.at === null ? null : (
-            <span className="num text-[length:var(--t-eyebrow)] opacity-60">
-              {formatDateTime(verification.at, p.timeZone)}
-            </span>
-          )}
-        </span>
-      </Row>
-
-      {/* REQ-060 criterion 4's line, exactly where the record put it and on
-          no other surface. It takes no tone: the customer's site had no SEO
-          plugin to write the title and description into, which is a fact
-          about their site and not a failure of their page — the page went
-          out and is readable. */}
-      {record.seoNote === null ? null : (
-        <p className="text-xs opacity-70">{writtenLine(record.seoNote)}</p>
-      )}
-    </IdiomCard>
+        {/* REQ-060 criterion 4's line, exactly where the record put it and on
+            no other surface. It takes no tone: the customer's site had no SEO
+            plugin to write the title and description into, which is a fact
+            about their site and not a failure of their page — the page went
+            out and is readable. */}
+        {record.seoNote === null ? null : (
+          <p className="text-xs opacity-70">{writtenLine(record.seoNote)}</p>
+        )}
+      </div>
+    </section>
   );
 }

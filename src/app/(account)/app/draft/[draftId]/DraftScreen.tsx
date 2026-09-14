@@ -1,11 +1,11 @@
-// BUILD §4.6, UI-SPEC S16 and S17 — the draft view's one client component.
-//
-// "(full page render, grounded-fact highlight with its source line,
-// claim-check badge, Approve/Edit/Veto, and the 'what happens if you do
-// nothing' info box). Back link returns to the calendar."
+// SPEC §7 — the draft view's one client component: the whole draft to read,
+// the grounded-fact highlight with its source line, the claim-check badge,
+// Approve / Edit / Veto, "what happens if you do nothing", Markdown edit with
+// live preview, and a back link to the calendar. daisyUI cards, badges and
+// buttons in the route; lucide for the two glyphs.
 //
 // One component owns the four things that change on this screen — which
-// arm is on display (S16's read or S17's edit), what the buffer holds,
+// arm is on display (read or edit), what the buffer holds,
 // whether it has reached the store, and what the store last said — because
 // all four answer to the same edit. Split across components they would need
 // a shared store; here they are pieces of one state and a keystroke updates
@@ -49,15 +49,11 @@ import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AUTOSAVE_DEBOUNCE_MS } from "@/lib/config/constants";
 import { copy } from "@/lib/presentation/copy";
-import { Badge } from "@/ui/components/Badge";
-import { Btn } from "@/ui/components/Btn";
-import { PanelLayout } from "@/ui/components/custom";
-import { Copy } from "lucide-react";
-import { CardHead, IdiomCard, SourceChip } from "@/ui/idiom";
+import { ArrowLeft, Copy } from "lucide-react";
 import { formatCount, formatDate, formatDateTime, formatTime } from "../../_shell/format";
 import { writtenLine } from "../../_shell/written";
 import { publishing } from "../../calendar/publishing";
-import { STAGE_FILTER_COPY_KEY, STAGE_OF, STAGE_TONE } from "../../calendar/stages";
+import { STAGE_FILTER_COPY_KEY, STAGE_OF, STAGE_TONE, TONE_BADGE } from "../../calendar/stages";
 import { CLAIM_COPY_KEY, CLAIM_TONE, claimAfterSave } from "./claim";
 import { CopyOut } from "./CopyOut";
 import { DecidePanel } from "./DecidePanel";
@@ -69,6 +65,8 @@ import { factPresentIn } from "./grounded";
 import { RenderedBody } from "./RenderedBody";
 import { useDebounced } from "./useDebounced";
 import { wordCount, type DraftView } from "./model";
+
+const EYEBROW = "text-xs font-semibold uppercase tracking-wide opacity-70";
 
 /** The two writes this screen can ask for. Both are §9 edges and both go to
  *  the state machine through the seam; a refusal rejects with
@@ -171,7 +169,7 @@ export function DraftScreen(p: {
   const matchedLine =
     claim.state === "failed" ? writtenLine("draft.claim.matched", { entry: claim.matchedEntry }) : null;
 
-  /** §4.6's stage, spoken through the calendar's own projection so the two
+  /** The stage, spoken through the calendar's own projection so the two
    *  surfaces cannot call one state by two names. `null` for a state that
    *  occupies no date at all, which draws no chip rather than an unnamed
    *  one. */
@@ -181,32 +179,32 @@ export function DraftScreen(p: {
    *  do-not-claim list, which states that there was nothing to check
    *  against and is never a silent pass (c3). The state is on the element
    *  as well as in the word, because two of the four words are the owner's
-   *  and are not written yet: a test that could only read the rendered text
-   *  could not tell two unwritten badges apart, and neither could a
-   *  screenshot. */
+   *  and are not written yet. */
   const claimBadge = (
-    <span data-testid={`draft-claim-${claim.state}`}>
-      <Badge tone={CLAIM_TONE[claim.state]}>{copy(CLAIM_COPY_KEY[claim.state])}</Badge>
+    <span
+      className={`badge ${TONE_BADGE[CLAIM_TONE[claim.state]]}`}
+      data-testid={`draft-claim-${claim.state}`}
+    >
+      {copy(CLAIM_COPY_KEY[claim.state])}
     </span>
   );
 
   const stageBadge =
     stage === null ? null : (
-      <span data-testid={`draft-stage-${stage}`}>
-        <Badge tone={STAGE_TONE[stage]}>{copy(STAGE_FILTER_COPY_KEY[stage])}</Badge>
+      <span className={`badge ${TONE_BADGE[STAGE_TONE[stage]]}`} data-testid={`draft-stage-${stage}`}>
+        {copy(STAGE_FILTER_COPY_KEY[stage])}
       </span>
     );
 
   /** Criterion 2's source line: the address the fact was read from and the
-   *  date it was read. Both are values (§2.3), so they render in mono and
-   *  need no sentence to be readable — and **no part of it is drawn
-   *  without its fact** (issue #268): a draft generation recorded no
-   *  grounding for has no address to print and no day to state. */
+   *  date it was read. Both are values, so they render in mono and need no
+   *  sentence to be readable — and **no part of it is drawn without its
+   *  fact** (issue #268). */
   const sourceLine =
     view.grounded.url === "" && view.grounded.readAt === null ? null : (
-      <p className="rk-prov rk-doc-source flex flex-wrap gap-2" data-testid="draft-grounded">
+      <p className="my-2 flex flex-wrap gap-2 text-xs opacity-70" data-testid="draft-grounded">
         {view.grounded.url === "" ? null : (
-          <a href={view.grounded.url} className="num" data-testid="draft-grounded-url">
+          <a href={view.grounded.url} className="link num min-w-0 truncate" data-testid="draft-grounded-url">
             {view.grounded.url}
           </a>
         )}
@@ -229,13 +227,11 @@ export function DraftScreen(p: {
 
   /** The fact, printed as prose, for the one case the marked passage cannot
    *  carry it: an edit removed it from the body. A grounding the edit
-   *  removed is never invisible (c8), and the source line follows it here
-   *  rather than in the document, because there is no longer a paragraph in
-   *  the document it belongs under. */
+   *  removed is never invisible (c8). */
   const droppedGrounding =
     hasGrounding && !grounded ? (
       <section className="flex flex-col gap-1" data-testid="draft-grounded-dropped">
-        <p className="eyebrow rk-daypanel-eyebrow">{copy("draft.grounded.title")}</p>
+        <h2 className={EYEBROW}>{copy("draft.grounded.title")}</h2>
         <p className="min-w-0 break-words" data-testid="draft-grounded-fact">
           {view.grounded.passage}
         </p>
@@ -243,15 +239,15 @@ export function DraftScreen(p: {
       </section>
     ) : null;
 
-  // ── S17, the edit arm ───────────────────────────────────────────────
+  // ── the edit arm ────────────────────────────────────────────────────
   if (editing) {
     const stateBadge = refused ? (
-      <span data-testid="draft-edit-state-unsaved">
-        <Badge tone="bad">{copy("draft.edit.state.unsaved")}</Badge>
+      <span className="badge badge-error" data-testid="draft-edit-state-unsaved">
+        {copy("draft.edit.state.unsaved")}
       </span>
     ) : unsaved ? (
-      <span data-testid="draft-edit-state-edited">
-        <Badge tone="neutral">{copy("draft.edit.state.edited")}</Badge>
+      <span className="badge badge-ghost" data-testid="draft-edit-state-edited">
+        {copy("draft.edit.state.edited")}
       </span>
     ) : (
       claimBadge
@@ -269,13 +265,10 @@ export function DraftScreen(p: {
       <div className="flex min-w-0 flex-col gap-4" data-testid="draft-view">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <nav data-testid="draft-edit-back">
-            <Btn
-              label={copy("draft.edit.back")}
-              variant="tertiary"
-              size="sm"
-              pill
-              onClick={() => setEditing(false)}
-            />
+            <button type="button" className="btn btn-sm btn-ghost" onClick={() => setEditing(false)}>
+              <ArrowLeft size={16} strokeWidth={1.75} aria-hidden />
+              {copy("draft.edit.back")}
+            </button>
           </nav>
           <span className="flex flex-wrap items-center gap-2" data-testid="draft-claim">
             {stageBadge}
@@ -283,74 +276,68 @@ export function DraftScreen(p: {
           </span>
         </div>
 
-        <IdiomCard
-          pad="lg"
-          testId="draft-edit-card"
-          head={
-            <div className="rk-head">
-              <h1 className="rk-edit-title">{view.title}</h1>
+        <section className="card card-border bg-base-100 min-w-0" data-testid="draft-edit-card">
+          <div className="card-body min-w-0 gap-3">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h1 className="card-title break-words text-2xl">{view.title}</h1>
               {saveLine === null ? null : (
-                <span className="rk-prov" data-testid="draft-save-line">
+                <span className="text-xs opacity-70" data-testid="draft-save-line">
                   {saveLine}
                 </span>
               )}
             </div>
-          }
-        >
-          <hr className="rk-daypanel-rule" />
-          <Editor
-            bodyMd={bodyMd}
-            // A keystroke is a new attempt: the refusal standing against the
-            // *previous* text is no longer what the store said about this
-            // one, and leaving it up would keep "could not save" on screen
-            // over a save that is about to run.
-            onChange={(text) => {
-              setBodyMd(text);
-              setRefused(false);
-            }}
-            onFlush={() => {
-              // Read from this render's own state, not from the refs: a blur
-              // can follow a keystroke inside one tick, before the effect
-              // that updates them has run.
-              if (bodyMd !== savedBody) save(bodyMd);
-            }}
-            markFact={grounded ? view.grounded.passage : null}
-            pane={pane}
-            onPane={setPane}
-          />
-          <p className="explain" data-testid="draft-edit-footnote">
-            {copy("draft.edit.footnote")}
-          </p>
-        </IdiomCard>
+            <div className="divider my-0" />
+            <Editor
+              bodyMd={bodyMd}
+              // A keystroke is a new attempt: the refusal standing against the
+              // *previous* text is no longer what the store said about this
+              // one, and leaving it up would keep "could not save" on screen
+              // over a save that is about to run.
+              onChange={(text) => {
+                setBodyMd(text);
+                setRefused(false);
+              }}
+              onFlush={() => {
+                // Read from this render's own state, not from the refs: a blur
+                // can follow a keystroke inside one tick, before the effect
+                // that updates them has run.
+                if (bodyMd !== savedBody) save(bodyMd);
+              }}
+              markFact={grounded ? view.grounded.passage : null}
+              pane={pane}
+              onPane={setPane}
+            />
+            <p className="text-sm opacity-70" data-testid="draft-edit-footnote">
+              {copy("draft.edit.footnote")}
+            </p>
+          </div>
+        </section>
 
         <div className="flex flex-wrap gap-2">
-          <span data-testid="draft-edit-done">
-            <Btn
-              label={copy("draft.edit.done")}
-              variant="primary"
-              size="sm"
-              pill
-              onClick={() => setEditing(false)}
-            />
-          </span>
-          <span data-testid="draft-edit-discard">
-            <Btn
-              label={copy("draft.edit.discard")}
-              variant="tertiary"
-              size="sm"
-              pill
-              // Back to the text the store last confirmed — never to
-              // something the store never saw, and never to a text the
-              // customer has not been shown.
-              onClick={() => setBodyMd(savedBody)}
-            />
-          </span>
+          <button
+            type="button"
+            className="btn btn-sm btn-primary"
+            data-testid="draft-edit-done"
+            onClick={() => setEditing(false)}
+          >
+            {copy("draft.edit.done")}
+          </button>
+          <button
+            type="button"
+            className="btn btn-sm btn-ghost"
+            data-testid="draft-edit-discard"
+            // Back to the text the store last confirmed — never to something
+            // the store never saw.
+            onClick={() => setBodyMd(savedBody)}
+          >
+            {copy("draft.edit.discard")}
+          </button>
         </div>
       </div>
     );
   }
 
-  // ── S16, the read arm ───────────────────────────────────────────────
+  // ── the read arm ────────────────────────────────────────────────────
   const written =
     view.writtenAt === null
       ? copy("draft.words", { words: formatCount(wordCount(bodyMd)) })
@@ -362,97 +349,93 @@ export function DraftScreen(p: {
   return (
     <div className="flex min-w-0 flex-col gap-4" data-testid="draft-view">
       <nav data-testid="draft-back">
-        <Btn href="/app/calendar" label={copy("draft.back")} variant="tertiary" size="sm" pill />
+        <a href="/app/calendar" className="btn btn-sm btn-ghost">
+          <ArrowLeft size={16} strokeWidth={1.75} aria-hidden />
+          {copy("draft.back")}
+        </a>
       </nav>
 
-      <PanelLayout
-        main={
-          <div className="flex min-w-0 flex-col gap-5">
-            <IdiomCard
-              pad="lg"
-              testId="draft-card"
-              head={
-                <div className="rk-head">
-                  <span className="rk-head-l flex-wrap gap-2" data-testid="draft-claim">
-                    {stageBadge}
-                    {claimBadge}
-                    {claim.state === "failed" ? (
-                      // c11: the customer is told which entry held the
-                      // draft. The entry is their own recorded text and
-                      // renders as a value, so it is named whether or not
-                      // the sentence beside it is written yet.
-                      <span className="num" data-testid="draft-claim-entry">
-                        {claim.matchedEntry}
-                      </span>
-                    ) : null}
-                    {matchedLine === null ? null : <span>{matchedLine}</span>}
-                  </span>
-                  {/* REQ-093 c2's label, on the chip S16 draws for it. */}
-                  <span className="rk-gen" data-testid="draft-generated-label">
-                    {p.generatedLabel}
-                  </span>
-                </div>
-              }
-            >
-              <div className="flex min-w-0 flex-col gap-2">
-                <h1>{view.title}</h1>
-                <p className="rk-prov" data-testid="draft-written">
+      <div className="grid min-w-0 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_18rem]">
+        <div className="flex min-w-0 flex-col gap-4">
+          <article className="card card-border bg-base-100 min-w-0" data-testid="draft-card">
+            <div className="card-body min-w-0 gap-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="flex min-w-0 flex-wrap items-center gap-2" data-testid="draft-claim">
+                  {stageBadge}
+                  {claimBadge}
+                  {claim.state === "failed" ? (
+                    // c11: the customer is told which entry held the draft.
+                    // The entry is their own recorded text and renders as a
+                    // value, whether or not the sentence beside it is written.
+                    <span className="num text-sm" data-testid="draft-claim-entry">
+                      {claim.matchedEntry}
+                    </span>
+                  ) : null}
+                  {matchedLine === null ? null : <span className="text-sm">{matchedLine}</span>}
+                </span>
+                {/* REQ-093 c2's label, bound to the text it speaks for. */}
+                <span className="badge badge-outline" data-testid="draft-generated-label">
+                  {p.generatedLabel}
+                </span>
+              </div>
+              <div className="flex min-w-0 flex-col gap-1">
+                <h1 className="card-title break-words text-2xl">{view.title}</h1>
+                <p className="text-xs opacity-70" data-testid="draft-written">
                   {written}
                 </p>
               </div>
-              <hr className="rk-daypanel-rule" />
+              <div className="divider my-0" />
               {body}
               {droppedGrounding}
               {/* Where the customer has edited, the note that keeps the
                   generated-content label from speaking for their words. */}
               {editedNote === null ? null : (
-                <p className="rk-prov" data-testid="draft-edited-note">
+                <p className="text-xs opacity-70" data-testid="draft-edited-note">
                   {editedNote}
                 </p>
               )}
               {/* c7: the change is unsaved and the customer is told so, in
                   the view, while their words stay in the buffer. */}
               {unsaved ? (
-                <p className="rk-prov" data-testid="draft-unsaved">
+                <p className="text-xs opacity-70" data-testid="draft-unsaved">
                   {copy("draft.unsaved")}
                 </p>
               ) : null}
-            </IdiomCard>
+            </div>
+          </article>
 
-            {/* What became of this page (issue #217) — the page's own
-                standing, under the page and outside the card the page is
-                in, and absent rather than empty for a draft whose record
-                could not be read. */}
-            {view.record === null ? null : (
-              <PageRecordBlock record={view.record} timeZone={view.timeZone} />
-            )}
+          {/* What became of this page (issue #217) — absent rather than empty
+              for a draft whose record could not be read. */}
+          {view.record === null ? null : (
+            <PageRecordBlock record={view.record} timeZone={view.timeZone} />
+          )}
 
-            {/* §9: "always shown" — for a draft and for a published page
-                alike (c12). */}
-            <IdiomCard
-              testId="draft-copy-card"
-              head={
-                <CardHead
-                  icon={<Copy size={15} strokeWidth={1.8} aria-hidden />}
-                  eyebrow={copy("draft.copy.title")}
-                  pill={<SourceChip>{copy("draft.copy.note")}</SourceChip>}
-                />
-              }
-            >
+          {/* Copy-out is always shown — for a draft and a published page alike
+              (c12). */}
+          <section className="card card-border bg-base-100 min-w-0" data-testid="draft-copy-card">
+            <div className="card-body min-w-0 gap-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className={`flex items-center gap-2 ${EYEBROW}`}>
+                  <Copy size={20} strokeWidth={1.75} aria-hidden />
+                  {copy("draft.copy.title")}
+                </h2>
+                <span className="badge badge-ghost h-auto whitespace-normal py-1 text-left">
+                  {copy("draft.copy.note")}
+                </span>
+              </div>
               <CopyOut bodyMd={bodyMd} />
-            </IdiomCard>
-          </div>
-        }
-        panel={
-          <DecidePanel
-            view={view}
-            grounded={grounded}
-            claim={claim}
-            onEdit={() => setEditing(true)}
-            onCommand={(command) => run(command, view.draftId)}
-          />
-        }
-      />
+            </div>
+          </section>
+        </div>
+
+        <DecidePanel
+          view={view}
+          grounded={grounded}
+          claim={claim}
+          onEdit={() => setEditing(true)}
+          onCommand={(command) => run(command, view.draftId)}
+        />
+      </div>
     </div>
   );
 }

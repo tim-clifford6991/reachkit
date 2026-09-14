@@ -178,12 +178,10 @@ describe("REQ-043 c10 — one provenance line, and no date repeated beside each 
     const rendered = panel("2026-09-15").querySelector('[data-testid="day-provenance"]');
     expect(rendered).not.toBeNull();
     expect(rendered?.textContent).toContain("measured");
-    // Quiet, mono, small — §2.5, through the one class that says so.
-    expect(rendered?.className).toContain("rk-prov");
     // Last: after the controls, which is where the approved panel draws it.
     // A line that has to be quiet (§2.5) cannot sit above the one control
     // the panel is asking for.
-    const inner = panel("2026-09-15").querySelector(".rk-daypanel-inner");
+    const inner = panel("2026-09-15").querySelector('[data-testid="day-panel"] .card-body');
     expect(inner?.lastElementChild?.getAttribute("data-testid")).toBe("day-provenance");
   });
 
@@ -279,7 +277,7 @@ describe("REQ-043 c11 — an empty day states one account and offers no control"
 describe("the panel is not a drawer, and it renders no sentence of its own", () => {
   it("renders as an <aside> in flow — nothing that slides over or is dismissed", () => {
     const root = panel("2026-09-15");
-    expect(root.querySelector("aside.rk-daypanel")).not.toBeNull();
+    expect(root.querySelector('aside[data-testid="day-panel"]')).not.toBeNull();
     expect(root.querySelector('[role="dialog"]')).toBeNull();
   });
 
@@ -307,43 +305,33 @@ describe("a cell with a page whose stage has no action", () => {
   });
 });
 
-describe("issue #354 — S15, the approved panel arms", () => {
-  it("the head is the stage chip at the near edge and the date at the far one", () => {
+describe("the panel's arms", () => {
+  it("the head is the stage badge at the near edge and the mono date at the far one", () => {
     const head = panel("2026-09-15").querySelector('[data-testid="day-head"]');
-    expect(head?.className).toContain("rk-daypanel-heading");
     const children = [...(head?.children ?? [])];
     expect(children[0]?.className).toContain("badge");
-    // The date is quiet and mono — it is the head's second half, not its
-    // subject (§2.5's provenance rule, and S15's own `.prov`).
     expect(children[1]?.className).toContain("num");
-    expect(children[1]?.className).toContain("rk-prov");
   });
 
-  it("**review offers a solid way in across the column, with Move and a warn-outline Veto under it**", () => {
+  it("review offers a solid way in across the column, with Move and a warning-outline Veto under it", () => {
     const root = panel("2026-09-15");
     const read = root.querySelector('[data-testid="day-action-calendar.action.read-full-page"]');
-    // The one way in: an anchor, because it navigates, and the solid rank,
-    // because it is what the panel is asking for (§9.1's one fill).
+    // The one way in: an anchor, because it navigates, and the one solid
+    // button, because it is what the panel is asking for.
     expect(read?.tagName.toLowerCase()).toBe("a");
     expect(read?.className).toContain("btn-primary");
-    expect(read?.parentElement?.className).toContain("rk-daypanel-block");
+    expect(read?.className).toContain("col-span-2");
 
-    const veto = root.querySelector('[data-testid="day-action-calendar.action.veto"] button');
-    // The outline rank on `warn` — issue #271's arm, for a control whose
-    // consequence is the opposite of the one above it.
+    // A stop is the warning outline: its consequence is the opposite of
+    // the control above it (#271).
+    const veto = root.querySelector('[data-testid="day-action-calendar.action.veto"]');
+    expect(veto?.tagName.toLowerCase()).toBe("button");
     expect(veto?.className).toContain("btn-outline");
-    expect(veto?.getAttribute("data-tone")).toBe("warn");
+    expect(veto?.className).toContain("btn-warning");
     expect(veto?.className).not.toContain("btn-primary");
 
-    const move = root.querySelector('[data-testid="day-action-calendar.action.move"] button');
+    const move = root.querySelector('[data-testid="day-action-calendar.action.move"]');
     expect(move?.className).toContain("btn-ghost");
-    // Move and Veto share one row, each taking half of it.
-    for (const key of ["calendar.action.move", "calendar.action.veto"]) {
-      expect(
-        root.querySelector(`[data-testid="day-action-${key}"]`)?.className,
-        key,
-      ).toContain("rk-daypanel-half");
-    }
   });
 
   it("live's way in is the OUTLINE rank — it leaves the product, so it is not the screen's fill", () => {
@@ -355,7 +343,7 @@ describe("issue #354 — S15, the approved panel arms", () => {
     expect(live?.className).not.toContain("btn-primary");
   });
 
-  it("**the empty arm names the day, states its whole account, and offers nothing**", () => {
+  it("the empty arm names the day, states its whole account, and offers nothing**", () => {
     // 2026-09-23 is emptied by proven-zero supply in the fixture.
     const root = panel("2026-09-23");
     const head = root.querySelector('[data-testid="day-head"]');

@@ -1,89 +1,36 @@
-// BUILD §4.6 — "'Why this page' (search / asked / answered-today-by / you /
-// done-when — all mono values)".
+// SPEC §7 — "Why this page": search / asked / answered today by / you /
+// done when.
 //
-// Five rows, in §4.6's own order. Every label is a registry key; every
-// value is customer or measured data and carries `.num`, which is the one
-// mechanism §2.3's numeral rule is applied through ("Every numeral, date,
-// URL, **search query** and code-like string is JetBrains Mono with
-// tabular-nums").
+// A definition list in a two-column grid, in that order. Every label is a
+// registry key; every value is customer or measured data and carries `.num`
+// (the mono face), except "done when", which is a sentence rather than a
+// value. Values made of several words carry `num-phrase` so they fold where
+// language folds instead of pushing the 18rem panel sideways (#297, #307).
 //
-// REQ-043 criterion 10, as disambiguated 2026-09-03: "one written line
-// states the date they were measured, and that date is **not repeated
-// separately beside each value**." So no row carries a date; the panel's
-// one dim provenance line does, and it is rendered by `DayPanelView`
-// beside these rows rather than inside them.
+// No row carries a date: the panel's one provenance line does (REQ-043 c10).
 //
-// **It is a definition list on a hairline-separated block** (issue #354,
-// approved screen S15). Five keys and five values: `<dl>` is what a
-// key/value list is, and the approved `.why` draws it as a two-column grid
-// with the key at the near edge in the quiet ink and the value beside it.
-// The rows were `<p>`s with the label and the value inline before, which
-// read as five sentences rather than as the page's own record.
-//
-// Both columns are mono, and that is the approved sheet's own reading of
-// §2.3 rather than a widening of it: a search query, the question as asked,
-// the engines that answered and a count are all values, and the keys beside
-// them are fixed labels for values. `done when` is the exception the type
-// already knows about — see `Sentence` below.
-//
-// `youStand` is a `Measured<number>` and goes through `renderMeasured` —
-// the only way a measurement reaches a screen (BP-019). An outage renders
-// the dash and its own written line, never a zero, and a measured zero
-// renders as `0` because that is a measurement.
+// `youStand` is a `Measured<number>` and goes through `renderMeasured` — an
+// outage renders the dash and its own written line, never a zero, and a
+// measured zero renders as `0` because that is a measurement.
 import type React from "react";
 import { copy } from "@/lib/presentation/copy";
 import { renderMeasured } from "@/lib/presentation/measured";
 import type { WhyThisPage as WhyFacts } from "./month";
 
-/** One label/value pair. The label arrives already resolved from the
- *  registry — this component reads no key and writes no word, so there is
- *  no position here a sentence could be typed into. The value is always a
- *  value, and carries `.num` because §2.3 says every one of these is. */
 function Row(p: {
   label: string;
-  /** A value made of **words** — a search query, the question as asked, a
-   *  list of engines — folds where language folds (`num-phrase`, issue
-   *  #307); one made of a single token does not (`num`'s own `nowrap`,
-   *  #297). It is opted into per value and never inferred: whether a string
-   *  is one token or a line of language is a judgement about what the text
-   *  is, and only the caller knows.
-   *
-   *  It is load-bearing at 290px. Three of these five rows carry several
-   *  words, and a nowrap phrase beside a nowrap key in a two-column grid
-   *  overflows the panel and takes the document sideways with it — check 1
-   *  and check 3 of ADR-093 decision 6's sweep, both reported on this
-   *  screen the first time the rows were set as a grid. */
+  /** A value made of words — folds between them. Opted into per value:
+   *  whether a string is one token or a phrase is the caller's judgement. */
   phrase?: boolean;
+  /** A sentence, not a value — no mono face. */
+  sentence?: boolean;
   children: React.ReactNode;
 }): React.JSX.Element {
+  const value = p.sentence === true ? "min-w-0" : p.phrase === true ? "num num-phrase min-w-0" : "num min-w-0";
   return (
     <>
-      <dt>{p.label}</dt>
-      <dd className={p.phrase === true ? "num num-phrase" : "num"}>{p.children}</dd>
-    </>
-  );
-}
-
-/** One label/**sentence** pair — the same row, without `.num`.
- *
- *  `.num` is `white-space: nowrap` since #297, because a value has no
- *  boundaries and every place it could fold is a place it would be read as
- *  a different string. A criterion is not a value: "Named in an AI answer
- *  for the target question within 6 weeks" is a sentence, and §2.3's mono
- *  list is numerals, dates, URLs, search queries and code-like strings —
- *  none of which it is. It was carrying `.num` all the same, and the
- *  nowrap rule is what made that visible: it pushed the calendar's day
- *  panel sideways at 320 and 1280 and the sweep reported the document
- *  scrolling (check 1) and the line clipped (check 3).
- *
- *  So the fix is not a wider box or an exemption — it is that this row
- *  never held a value. The rows above it still do: a search query, the
- *  question as asked, the engines that answered, a count. */
-function Sentence(p: { label: string; children: React.ReactNode }): React.JSX.Element {
-  return (
-    <>
-      <dt>{p.label}</dt>
-      <dd>{p.children}</dd>
+      <dt className="opacity-60">{p.label}</dt>
+      <dd className={value}>{p.children}</dd>
     </>
   );
 }
@@ -92,36 +39,35 @@ export function WhyThisPage(p: { why: WhyFacts }): React.JSX.Element {
   const { why } = p;
   const you = renderMeasured(why.youStand, {
     format: (v) => String(v),
-    // REQ-004 c6: nothing came back that could be read. The calendar shows
-    // a stored measurement, so `not_attempted` is not reachable here — the
-    // scan either produced the number or could not determine it.
+    // The calendar shows a stored measurement, so `not_attempted` is not
+    // reachable here — the scan either produced the number or could not
+    // determine it.
     unmeasuredLine: "unmeasured.undeterminable",
     what: why.search,
   });
 
   return (
-    <div className="flex flex-col gap-3" data-testid="why-this-page">
-      <p className="eyebrow rk-daypanel-eyebrow">{copy("calendar.why.title")}</p>
-      <dl className="rk-daypanel-why">
+    <div className="flex min-w-0 flex-col gap-2" data-testid="why-this-page">
+      <h3 className="text-xs font-semibold uppercase tracking-wide opacity-70">
+        {copy("calendar.why.title")}
+      </h3>
+      <dl className="grid min-w-0 grid-cols-[minmax(0,auto)_minmax(0,1fr)] gap-x-3 gap-y-1 text-sm">
         <Row label={copy("calendar.why.search")} phrase>
           {why.search}
         </Row>
         <Row label={copy("calendar.why.asked")} phrase>
           {why.askedAs}
         </Row>
-        {/* A list of domains: it folds between them and never inside one. */}
         <Row label={copy("calendar.why.answered-today-by")} phrase>
           {why.answeredTodayBy.join(", ")}
         </Row>
-        {/* A count, or the dash — one token, and it does not fold. */}
         <Row label={copy("calendar.why.you")}>{you.text}</Row>
-        <Sentence label={copy("calendar.why.done-when")}>{why.doneWhen}</Sentence>
+        <Row label={copy("calendar.why.done-when")} sentence>
+          {why.doneWhen}
+        </Row>
       </dl>
-      {/* An outage's own written line, under the list rather than in it: it
-          is a sentence about why a value is a dash, and a `<dd>` holding a
-          sentence beside four values is the defect #297 already found in
-          `done when`. */}
-      {you.line === undefined ? null : <p className="rk-prov">{you.line}</p>}
+      {/* An outage's own written line, under the list rather than in it. */}
+      {you.line === undefined ? null : <p className="text-xs opacity-70">{you.line}</p>}
     </div>
   );
 }
