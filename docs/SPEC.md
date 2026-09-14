@@ -52,19 +52,20 @@ Pinned numbers live in `src/lib/config/constants.ts`. Newest dated line in a sec
 
 ## §3 Pay and sign-in
 
-**User gets** Stripe Checkout at €49/month tax-inclusive, no account beforehand. Country for records; VAT number optional. Magic-link mail on payment. Later sign-in is email only. Card, invoices, cancel in Stripe’s portal from Settings.
+**User gets** Stripe Checkout at €49/month tax-inclusive, no account beforehand. Country for records; VAT number optional. After payment the browser lands on setup, signed in. Magic-link mail is for later visits. Later sign-in is email only. Card, invoices, cancel in Stripe’s portal from Settings.
 
 **Rules**
 - One live Stripe Price; boot refuses a mismatch.
 - Account is created by the payment webhook, never a signup form. A second payment from the same address buys no second subscription and says so.
 - Magic link only: no password, no social. Link lasts 24 h; a new one spends older ones. Sign-in copy is identical whatever the address, revealing nothing about who has an account.
+- 2026-09-14  Stripe success URL is this deployment’s `/auth/checkout`, which signs the payer in and sends them to `/setup`. Cancel returns to the page they started from. Never a host this process does not name.
 - Plan and price are ours; every other billing number is read from Stripe.
 - Cancel names the exact date access ends; export stays with no end date.
 - Account routes are server-gated. Sign-out is global.
 - Buying with no report still completes; the site address is asked afterwards.
 - Delete: tombstone at once, purge within 30 days (2026-08-31). Danger-zone unlocks only after the customer types the words on the screen (2026-09-07).
 
-**Done when** A Stripe test-mode payment creates the account and a working magic link with no form before pay. No password control exists. Settings shows €49 and links to Stripe’s portal. Cancel names the end date.
+**Done when** A Stripe test-mode payment on this deployment creates the account and lands the payer on `/setup`, signed in, with no form before pay. No password control exists. Settings shows €49 and links to Stripe’s portal. Cancel names the end date.
 
 ## §4 Dashboard
 

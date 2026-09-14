@@ -13,6 +13,9 @@ import { wireSignInLinkIssuer } from "./wire";
 wireSignInLinkIssuer();
 
 export {
+  CHECKOUT_RETURN_PATH,
+  CHECKOUT_SESSION_PLACEHOLDER,
+  CHECKOUT_SESSION_QUERY_KEY,
   CONFIRM_PATH,
   SIGNIN_PATH,
   confirmLinkPath,

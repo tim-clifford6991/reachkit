@@ -138,6 +138,7 @@ describe(
         // reachable with no session, because having no session is the whole
         // reason its holder is following it.
         "/auth/confirm": "/auth/confirm",
+        "/auth/checkout": "/auth/checkout",
         // Issue #144 — the address the `draft-ready` mail's one veto link
         // lands on. Reachable with no session for the same reason: its
         // holder is reading a mail, not the app.

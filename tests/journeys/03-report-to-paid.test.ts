@@ -1,8 +1,8 @@
 // tests/journeys/03-report-to-paid.test.ts — BUILD §3, §13
 //
 // Journey: Start ReachKit → Stripe Checkout → the webhook → an account, a
-// site and a subscription → the magic-link mail → `/auth/confirm?token_hash=…` (#468) →
-// `/setup` (JN-002 steps 1–2).
+// site and a subscription → `/auth/checkout` signs them in → `/setup`.
+// Magic-link mail is for later visits (`/auth/confirm`).
 //
 // End to end, at the seams and no further in. Everything the product owns
 // is real: the offer card both price surfaces carry, `createCheckoutSession`
@@ -402,11 +402,14 @@ describe("Start → Checkout → webhook → magic link → /setup (JN-002 steps
     expect(report?.metadata).toEqual({ originKind: "report", scanId: SCAN_ID });
     expect(pricing?.metadata).toEqual({ originKind: "pricing" });
 
-    // Both come back where the buyer was reading; the success address is
-    // the same address with checkout=complete on it.
+    // Cancel returns where they were reading. Success is always setup, via
+    // `/auth/checkout`, with Stripe's session-id placeholder unencoded.
     expect(report?.cancel_url).toBe(`https://app.example.com/scan/${DOMAIN}`);
-    expect(report?.success_url).toBe(`https://app.example.com/scan/${DOMAIN}?checkout=complete`);
+    expect(report?.success_url).toBe(
+      "https://app.example.com/auth/checkout?session_id={CHECKOUT_SESSION_ID}"
+    );
     expect(pricing?.cancel_url).toBe("https://app.example.com/pricing");
+    expect(pricing?.success_url).toBe(report?.success_url);
 
     // A report that does not exist yet cannot be bought from, and the
     // refusal never reaches the buyer as vendor text.

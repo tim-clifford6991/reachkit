@@ -27,6 +27,12 @@
 // between a buyer and their purchase. `tests/account/checkout/no-vies.test.ts`
 // asserts it over the whole directory.
 import { stripe, type Stripe } from "../stripe/client";
+import {
+  CHECKOUT_RETURN_PATH,
+  CHECKOUT_SESSION_PLACEHOLDER,
+  CHECKOUT_SESSION_QUERY_KEY,
+} from "../identity/addresses";
+import { env } from "@/lib/config/env";
 import { checkoutParams, type CheckoutParams } from "./params";
 import { resolveOrigin, type CheckoutOrigin } from "./origin";
 import { checkoutEvent } from "./redaction";
@@ -48,13 +54,17 @@ function toVendorParams(p: CheckoutParams): Stripe.Checkout.SessionCreateParams 
   return { ...p, line_items: [...p.line_items], custom_fields: [...p.custom_fields] };
 }
 
-/** What Stripe is told to come back to. Both are derived from the one
- *  allow-listed `returnTo`, so a cancelled checkout returns the buyer
- *  exactly where they were reading. */
+/** What Stripe is told to come back to. Cancel returns the buyer exactly
+ *  where they were reading. Success is always this deployment's
+ *  `/auth/checkout`, with Stripe's session-id placeholder — paying lands
+ *  them in setup, not back on the offer, and never on a host this process
+ *  does not name. */
 function returnUrls(returnTo: URL): { success_url: string; cancel_url: string } {
-  const success = new URL(returnTo.href);
-  success.searchParams.set("checkout", "complete");
-  return { success_url: success.href, cancel_url: returnTo.href };
+  const origin = new URL(env.NEXT_PUBLIC_APP_URL).origin;
+  return {
+    success_url: `${origin}${CHECKOUT_RETURN_PATH}?${CHECKOUT_SESSION_QUERY_KEY}=${CHECKOUT_SESSION_PLACEHOLDER}`,
+    cancel_url: returnTo.href,
+  };
 }
 
 /**
