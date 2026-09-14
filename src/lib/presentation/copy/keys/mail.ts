@@ -554,6 +554,10 @@ export const MAIL_COPY = Object.freeze({
     { slots: {}, fixedBy: "S20 (11a)" },
   ],
   "mail.report.action": ["Open the report", { slots: {}, fixedBy: "S20 (11a)" }],
+  // #638: the mail's next step, between the verdict and its one action.
+  // No approved sentence says what a free-report reader does next, so the
+  // key ships awaiting the owner's line.
+  "mail.report.next": ["TODO(copy)", { slots: {}, fixedBy: "SPEC §8 · #638" }],
   "mail.report.fact.score": ["Discoverability Score", { slots: {}, fixedBy: "ruling 6a" }],
   "mail.report.fact.aiAnswers": ["AI answers", { slots: {}, fixedBy: "S20 (11a)" }],
   "mail.report.fact.googleSearch": ["Google search", { slots: {}, fixedBy: "S20 (11a)" }],
