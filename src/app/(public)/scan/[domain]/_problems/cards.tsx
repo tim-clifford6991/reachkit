@@ -5,75 +5,66 @@
 // from nothing else, so this file cannot reach a report field the model
 // did not hand it.
 //
-// The severity word is `SEVERITY[SEVERITY_INDEX[level]]` —
-// `src/lib/presentation/bands.ts` declares `SEVERITY` as an ordered triple
-// ascending in the count, not a record keyed by the handle, so
-// `SEVERITY[level]` does not type-check and the ordering has exactly one
-// home. The tone rides beside the word and never instead of it: a severity
-// shown in colour alone would be unreadable to a reader who cannot see the
-// colour, and REQ-004 c4's rule against that is general.
+// daisyUI in the route (DESIGN rule 1): each problem is a `card` with a
+// severity `badge` and a who-does-it `badge`. The tone rides beside the word
+// and never instead of it.
 //
 // A count that could not be measured shows the dash for the count *and*
 // for the severity, carries the reason-specific written line, and holds no
 // lines to paste — a founder is never shown a robots directive derived
 // from a measurement that did not happen.
 import type React from "react";
-import { Badge, Btn } from "@/ui/components";
-import { ProblemCard as ProblemCardShell, type ProblemCardEdge } from "@/ui/idiom";
-import type { Tone } from "@/ui/types";
 import { copy } from "@/lib/presentation/copy";
 import { SEVERITY } from "@/lib/presentation/bands";
 import { dash, MeasuredNum, measuredText } from "../_address/measured";
 import { SEVERITY_INDEX, type ProblemCard, type Severity } from "./model";
 
-/** Red appears only for the customer's own problem being shown to them
- *  (`BUILD.md` §2.5) — which is exactly what a `high` severity is. */
-const SEVERITY_TONE: Readonly<Record<Severity, Tone>> = Object.freeze({
-  low: "ok",
-  mid: "warn",
-  high: "bad",
+/** Red only for the customer's own problem being shown to them — which is
+ *  exactly what a `high` severity is. */
+const SEVERITY_BADGE: Readonly<Record<Severity, string>> = Object.freeze({
+  low: "badge-success",
+  mid: "badge-warning",
+  high: "badge-error",
 });
-
-/** `BUILD.md` §4.1 module 3: "Left border color = severity." The border is
- *  never the only carrier of the level — `SeverityBadge` renders the word
- *  beside it, always — so this is a second reading of the same fact, which
- *  is what §2.5 asks a colour to be. An unmeasured severity gets the
- *  neutral edge, because a dash is not a level. */
-const SEVERITY_EDGE: Readonly<Record<Severity, ProblemCardEdge>> = Object.freeze({
-  low: "ok",
-  mid: "warn",
-  high: "bad",
-});
-const UNMEASURED_EDGE: ProblemCardEdge = "neutral";
 
 function SeverityBadge(p: { card: ProblemCard }): React.JSX.Element {
   const { severity } = p.card;
   if (severity.kind === "unmeasured") {
-    return <Badge tone="neutral">{dash()}</Badge>;
+    return <span className="badge badge-ghost">{dash()}</span>;
   }
   const level = severity.value;
   return (
-    <Badge tone={SEVERITY_TONE[level]}>
+    <span className={`badge ${SEVERITY_BADGE[level]}`}>
       {copy(SEVERITY[SEVERITY_INDEX[level]])}
-    </Badge>
+    </span>
   );
 }
 
 /** A total switch over `Fix`, so a new arm fails the build until it has a
- *  rendering. The `paste` arm is the only one that carries lines — they are
- *  the card's code block, handed to `ProblemCard` below — and the copy
- *  control is the only control on any fix. */
+ *  rendering. The `paste` arm is the only one that carries lines, and the
+ *  copy control is the only control on any fix. */
 function FixBody(p: { card: ProblemCard }): React.JSX.Element | null {
   const { fix } = p.card;
   switch (fix.kind) {
     case "none_needed":
-      return <p>{copy(p.card.noneNeeded)}</p>;
+      return <p className="text-sm">{copy(p.card.noneNeeded)}</p>;
     case "unknown": {
       const rendered = measuredText(p.card.count, copy(p.card.title));
-      return rendered.line === undefined ? null : <p>{rendered.line}</p>;
+      return rendered.line === undefined ? null : <p className="text-sm">{rendered.line}</p>;
     }
     case "paste":
-      return <Btn label={copy("problem.paste.label")} size="sm" />;
+      return (
+        <>
+          <pre className="bg-base-200 rounded-box min-w-0 overflow-x-auto p-3 text-xs">
+            <code className="num">{fix.lines.join("\n")}</code>
+          </pre>
+          <div className="card-actions">
+            <button type="button" className="btn btn-outline btn-sm">
+              {copy("problem.paste.label")}
+            </button>
+          </div>
+        </>
+      );
     case "we_write":
     case "we_rewrite":
       return null;
@@ -86,29 +77,20 @@ function FixBody(p: { card: ProblemCard }): React.JSX.Element | null {
 
 function ProblemCardView(p: { card: ProblemCard }): React.JSX.Element {
   const { card } = p;
-  const edge =
-    card.severity.kind === "unmeasured" ? UNMEASURED_EDGE : SEVERITY_EDGE[card.severity.value];
-  // UI-SPEC §2's own row for this component: "title · severity badge ·
-  // who-does-it badge · count · optional code block" — the idiom's
-  // `ProblemCard` (#487), whose edge and code block are token-driven. The
-  // two badges are ruling 9a's pair: the severity word **and** the
-  // who-does-it badge together. The count is the ladder's `--h1`, the one
-  // headline number of this module.
   return (
-    <ProblemCardShell
-      title={copy(card.title)}
-      edge={edge}
-      badges={
-        <>
+    <section className="card bg-base-100 border-base-300 border">
+      <div className="card-body gap-3">
+        <h3 className="card-title text-base">{copy(card.title)}</h3>
+        <div className="flex flex-wrap gap-2">
           <SeverityBadge card={card} />
-          <Badge tone="accent">{copy(card.doer)}</Badge>
-        </>
-      }
-      count={<MeasuredNum value={card.count} what={copy(card.title)} />}
-      code={card.fix.kind === "paste" ? card.fix.lines : undefined}
-    >
-      <FixBody card={card} />
-    </ProblemCardShell>
+          <span className="badge badge-primary badge-outline">{copy(card.doer)}</span>
+        </div>
+        <div className="text-4xl font-semibold">
+          <MeasuredNum value={card.count} what={copy(card.title)} />
+        </div>
+        <FixBody card={card} />
+      </div>
+    </section>
   );
 }
 
@@ -120,7 +102,7 @@ export function ProblemCards(p: {
   cards: readonly [ProblemCard, ProblemCard, ProblemCard];
 }): React.JSX.Element {
   return (
-    <div className="grid grid-cols-1 gap-[var(--s-4)] lg:grid-cols-3">
+    <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-3">
       {p.cards.map((card) => (
         <ProblemCardView key={card.problem} card={card} />
       ))}

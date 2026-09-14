@@ -10,7 +10,7 @@
 // landing page's own five `landing.problem.*` lines rather than minting
 // five more: same union, same wording obligation, one home per claim.
 import type React from "react";
-import { Alert, Btn, Card } from "@/ui/components";
+import { CircleAlert } from "lucide-react";
 import { Surface } from "@/ui/layout";
 import { copy } from "@/lib/presentation/copy";
 import LandingPage from "@/app/(public)/page";
@@ -21,38 +21,27 @@ import type { AddressState } from "./state";
 import { refusalLine } from "./refusal";
 import { Num } from "./measured";
 
-/** The frame every short arm renders inside, and its screen root
- *  (ADR-093 decision 6: every screen root is a `Surface`, and its three
- *  arms are declared, never defaulted). One column at every band: each of
- *  these arms is one written line and at most one control, which is one
- *  column at any width. The `report` arm is the long screen and declares
- *  its own arms; the `removed` arm brings its own `Surface` from
- *  `_address/removal.tsx`. */
-/** The card every short arm renders inside (UI-SPEC S3): the domain as a
- *  mono heading, then what happened to it. One card, one written line, at
- *  most one control — the same shape whichever arm it is, so a visitor
- *  reading two of them in a row is reading one screen twice and not two
- *  screens.
- *
- *  The domain is a value: mono, and never rewritten to fit. */
+/** The card every short arm renders inside: the domain as a mono heading,
+ *  then what happened to it. One card, one written line, at most one
+ *  control — the same shape whichever arm it is. daisyUI `card` in the
+ *  route (DESIGN rule 1). */
 function StateCard(p: {
   domain: string;
   children: React.ReactNode;
 }): React.JSX.Element {
   return (
-    <Card
-      state="default"
-      title={
-        <h3 className="min-w-0 overflow-x-auto">
+    <section className="card bg-base-100 border-base-300 border">
+      <div className="card-body gap-4">
+        <h2 className="card-title min-w-0 overflow-x-auto">
           <Num>{p.domain}</Num>
-        </h3>
-      }
-    >
-      {p.children}
-    </Card>
+        </h2>
+        {p.children}
+      </div>
+    </section>
   );
 }
 
+/** Every short arm is one column at every band (ADR-093 decision 6). */
 function Pane(p: { children: React.ReactNode }): React.JSX.Element {
   return (
     <Surface
@@ -62,7 +51,7 @@ function Pane(p: { children: React.ReactNode }): React.JSX.Element {
         wide: { kind: "same-as-below" },
       }}
     >
-      <main className="mx-auto flex max-w-[640px] flex-col gap-4 p-6">
+      <main className="mx-auto flex w-full max-w-xl flex-col gap-4">
         {p.children}
       </main>
     </Surface>
@@ -112,7 +101,7 @@ export function AddressView(p: {
         <Pane>
           <StateCard domain={state.domain}>
             <ScanProgress domain={state.domain} />
-            <p className="t-explain opacity-60">{copy("scan.waiting.line")}</p>
+            <p className="text-base-content/60 text-sm">{copy("scan.waiting.line")}</p>
           </StateCard>
         </Pane>
       );
@@ -124,7 +113,7 @@ export function AddressView(p: {
             {/* REQ-003 c1's own frame, and the set's line: what the wait is
                 worth, and that the address survives it. No countdown — the
                 stages carry the only figures on this screen. */}
-            <p className="t-explain opacity-60">{copy("scan.waiting.line")}</p>
+            <p className="text-base-content/60 text-sm">{copy("scan.waiting.line")}</p>
           </StateCard>
         </Pane>
       );
@@ -134,7 +123,10 @@ export function AddressView(p: {
     case "refused":
       return (
         <Pane>
-          <Alert tone="neutral" message={refusalLine(state.refusal)} />
+          <div role="alert" className="alert">
+            <CircleAlert size={20} strokeWidth={1.75} aria-hidden />
+            <span>{refusalLine(state.refusal)}</span>
+          </div>
         </Pane>
       );
 
@@ -150,8 +142,10 @@ export function AddressView(p: {
               card of the same shape says it twice. */}
           <StateCard domain={state.domain}>
             <p>{copy("notice.measurement-failed")}</p>
-            <div className="flex">
-              <Btn label={copy("control.retry")} variant="primary" pill />
+            <div className="card-actions">
+              <button type="button" className="btn btn-primary">
+                {copy("control.retry")}
+              </button>
             </div>
           </StateCard>
         </Pane>

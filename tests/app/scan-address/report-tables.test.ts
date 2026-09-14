@@ -1,11 +1,9 @@
 // tests/app/scan-address/report-tables.test.ts — BUILD §2.2, §4.1, issue #244
 //
-// §2.2, verbatim: "`table` (+zebra, always inside an `overflow-x-auto`
-// wrap)". `src/ui/components/Table.tsx` carries that wrap itself — "the
-// wrap is part of the component, not the caller's job" — so a module that
-// renders a table through the component has it by construction.
+// A daisyUI `table` is written in the route (DESIGN rule 1, #626), always
+// inside an `overflow-x-auto` wrap, so a module that writes one says so.
 //
-// What the component cannot cover is a table the screen builds out of a
+// What a table cannot cover is a table the screen builds out of a
 // grid. The report has two: the presence card's occupancy list (domain ·
 // bar · share, one row per domain) and the free page card's label/value
 // pairs. Neither is a `<table>`, and neither was inside a scroll wrap, so
@@ -75,25 +73,18 @@ function trackLists(source: string): string[][] {
  */
 const NOT_YET_WRAPPED: ReadonlyArray<{ readonly file: string; readonly issue: string }> = [];
 
-describe("§2.2 — a table on the report is the registered component, or is wrapped the same way", () => {
-  it("the modules directory is actually read — a rule over nothing is not a rule", () => {
-    expect(files.length).toBeGreaterThan(2);
-  });
-
-  it("no module writes a raw <table> — every table is the registered component", () => {
+describe("a table or grid on the report scrolls inside its own wrap at 320", () => {
+  it("every table a module writes is inside the wrap", () => {
     for (const name of files) {
-      expect(read(name), name).not.toMatch(/<table[\s>]/);
+      const source = read(name);
+      if (!/<table[\s>]/.test(source)) continue;
+      expect(source.search(WRAP), name).toBeGreaterThan(-1);
+      expect(source.search(WRAP), name).toBeLessThan(source.search(/<table[\s>]/));
     }
   });
 
-  it("the registered component brings the wrap, so a module that uses it needs none of its own", () => {
-    const component = readFileSync(
-      path.resolve(import.meta.dirname, "../../../src/ui/components/Table.tsx"),
-      "utf8"
-    );
-    expect(component).toMatch(WRAP);
-    // And it has no prop to leave the wrap off.
-    expect(component).not.toMatch(/wrap\??:/);
+  it("the modules directory is actually read — a rule over nothing is not a rule", () => {
+    expect(files.length).toBeGreaterThan(2);
   });
 
   it("every hand-built multi-column grid sits inside the wrap, or is a named gap", () => {
@@ -140,17 +131,6 @@ describe("§2.2 — a table on the report is the registered component, or is wra
     );
     expect(grids.length).toBeGreaterThan(0);
     for (const grid of grids) expect(grid, grid).toContain("items-start");
-  });
-
-  it("a card's content starts at the top even when the card is stretched", () => {
-    // The other half, and the reason it is stated in the component: a
-    // future grid, or an `h-full` wrapper, stretches a card again, and the
-    // rule that its content starts at the top is not a per-screen choice.
-    const card = readFileSync(
-      path.resolve(import.meta.dirname, "../../../src/ui/components/Card.tsx"),
-      "utf8"
-    );
-    expect(card).toMatch(/card-body[^"]*\[&>p\]:grow-0/);
   });
 
   it("the presence card's occupancy is the registered drawing, inside a declared scroll container", () => {

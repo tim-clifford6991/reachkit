@@ -20,6 +20,9 @@
 // the document: the server resolves the address again, now finds a stored
 // report, and the `report` arm replaces this one in place.
 //
+// daisyUI `steps steps-vertical` in the route (DESIGN rule 1); a finished
+// stage's bead carries lucide's check at stroke 1.75.
+//
 // The stream is `GET /api/scan/{scanId}/progress` (server-sent events),
 // which serialises `@/lib/scan/stages`' own `StageEvent` verbatim.
 //
@@ -36,7 +39,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Steps } from "@/ui/components";
+import { Check } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import type { StageEvent, StageName } from "@/lib/scan/stages";
 import type { CanonicalDomain } from "@/lib/scan/domain";
@@ -135,19 +138,34 @@ export function ScanProgress(p: {
   }, [router, scanId, startedAt]);
 
   return (
-    <Steps
-      direction="vertical"
-      steps={STAGES.map((stage) => {
+    <ul className="steps steps-vertical">
+      {STAGES.map((stage) => {
         const seconds = elapsed[stage];
-        return {
-          id: stage,
-          label: copy(STAGE_KEY[stage]),
-          state: done.has(stage) ? "done" : stage === active ? "active" : "pending",
-          // Only a stage that finished has a time; the one running and the
-          // ones ahead of it carry none.
-          note: seconds === undefined ? undefined : copy("stage.elapsed", { seconds: String(seconds) }),
-        };
+        const state = done.has(stage) ? "done" : stage === active ? "active" : "pending";
+        return (
+          <li
+            key={stage}
+            className={state === "done" ? "step step-success" : state === "active" ? "step step-primary" : "step"}
+            data-state={state}
+          >
+            {state === "done" ? (
+              <span className="step-icon" aria-hidden>
+                <Check size={16} strokeWidth={1.75} aria-hidden />
+              </span>
+            ) : null}
+            <span className="flex flex-wrap items-baseline gap-2">
+              {copy(STAGE_KEY[stage])}
+              {/* Only a stage that finished has a time; the one running and
+                  the ones ahead of it carry none. */}
+              {seconds === undefined ? null : (
+                <span className="text-base-content/60 text-xs">
+                  {copy("stage.elapsed", { seconds: String(seconds) })}
+                </span>
+              )}
+            </span>
+          </li>
+        );
       })}
-    />
+    </ul>
   );
 }

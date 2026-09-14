@@ -298,45 +298,28 @@ describe("BUILD §4.1 — the six modules, in order", () => {
   });
 });
 
-// tokens.md §9.1's ranks on the one public screen that has two calls to
-// action (issue #291). The report offers the free page and the
-// subscription; the idiom gives a screen one solid accent fill, and the
-// owner ruled Start keeps it. The classes are the ranks — `btn-primary` is
-// the fill, `btn-outline` the outline — and the free-page control's tone
-// is what keeps it reading as a call to action rather than an aside.
-describe("ruling 2b (2026-09-08) — this screen has two solids, and they are the two trades", () => {
+// DESIGN rule 1: one solid primary button per screen. On the report it is
+// the offer's Start — the paying path; the free page's control is outline.
+describe("DESIGN rule 1 — the report has one solid primary, and it is Start", () => {
   const html = render(FIXTURE_REPORT);
 
-  /** The opening tag of the `<button>` whose label is `key`. The markup is
-   *  server-rendered and the label is the last thing in the element, so the
-   *  tag is what precedes it — enough to read the classes and the tone, and
-   *  no DOM needed in a file that asserts strings. */
+  /** The opening tag of the `<button>` whose label is `key`. */
   function buttonTag(key: string): string {
     const match = new RegExp(`<button([^>]*)>${key}</button>`).exec(html);
     expect(match, `no <button> labelled ${key} in the rendered report`).not.toBeNull();
     return match?.[1] ?? "";
   }
 
-  it("draws exactly two solid accent buttons — never a third", () => {
-    // Ruling 2b: "two solid primaries per screen are allowed **where the
-    // artifact draws them** … report: Email me + Start". Two, because the
-    // report carries two trades; the ceiling is what this row holds.
-    expect(count(html, "btn-primary")).toBe(2);
+  it("draws exactly one solid primary button", () => {
+    const solids = [...html.matchAll(/<button[^>]*class="([^"]*)"/g)]
+      .map((m) => m[1] ?? "")
+      .filter((cls) => cls.split(" ").includes("btn-primary") && !cls.split(" ").includes("btn-outline"));
+    expect(solids).toHaveLength(1);
+    expect(buttonTag("offer.start.priced")).not.toContain("btn-outline");
   });
 
-  it("they are the giveaway's Email me and the pricing card's Start, and nothing else", () => {
-    expect(buttonTag("free-page.submit")).toContain("btn-primary");
-    // The offer's control carries the price in its label since #369 — the
-    // set draws "Start ReachKit €49" on it, and `offer.start` stays the two
-    // words the owner ruled, which is what the pricing page's eyebrow says.
-    expect(buttonTag("offer.start.priced")).toContain("btn-primary");
-  });
-
-  it("every other control on the screen is a quieter rank", () => {
-    // The copy-link and the correction are tertiary; a third fill would
-    // make the two trades stop reading as the two trades.
-    // (The copy control moved to the header's bar in #357, and its rank is
-    // asserted there.)
+  it("the free page's control and the correction are quieter ranks", () => {
+    expect(buttonTag("free-page.submit")).toContain("btn-outline");
     expect(buttonTag("verdict.not-your-market")).not.toContain("btn-primary");
   });
 });
