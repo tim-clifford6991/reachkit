@@ -255,6 +255,9 @@ export function supabaseBillingStore(): BillingStore {
           stripe_subscription_id: facts.stripe_subscription_id,
           paid_through: facts.paid_through.toISOString(),
           plan_status: facts.plan_status,
+          // SPEC §8 (#569): a plan that is no longer `past_due` ends the
+          // failed-payment spell, so the next failure is mailed afresh.
+          ...(facts.plan_status === "past_due" ? {} : { payment_failed_mailed_at: null }),
           ...(facts.eventId === null ? {} : { last_subscription_event_id: facts.eventId }),
         })
         .eq("id", userId);

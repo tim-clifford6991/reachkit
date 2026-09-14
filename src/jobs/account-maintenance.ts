@@ -1,12 +1,13 @@
 // src/jobs/account-maintenance.ts — BUILD §11
 //
-// The seventh id. `BUILD.md` §11's table names six jobs; seven obligations
+// The seventh id. `BUILD.md` §11's table names six jobs; twelve obligations
 // in the rest of the spec fall due on a clock and no read path can serve
 // them — a payment awaiting sign-in, a payment with no account, a
 // hosting-end notice, a hosting stop, an account due for purge, a founder
 // who paid and never finished setup (§4.3, issue #36), and a free scan
-// left `running` by an invocation the platform froze (§6.4, issue #438).
-// This tick is their trigger and nothing more.
+// left `running` by an invocation the platform froze (§6.4, issue #438), and
+// SPEC §8's five retention mails (issue #569). This tick is their trigger
+// and nothing more.
 //
 // **No domain logic here.** One tick is seven due-work queries and seven
 // hand-offs: each returned subject goes straight back to the module that
@@ -18,7 +19,17 @@
 // hosting notice and strand a paid customer waiting for a sign-in link,
 // none of which is spend and none of which §11's stop is about.
 import {
+  accountsDueCancellation,
   accountsDueForPurge,
+  accountsDueInactivity,
+  accountsDuePaymentFailed,
+  accountsDueWinback,
+  draftsDueVetoReminder,
+  noticeCancellation,
+  noticePaymentFailed,
+  nudgeInactive,
+  remindVeto,
+  winBack,
   backstopProvision,
   chaseSignIn,
   finishScanLeftRunning,
@@ -44,8 +55,8 @@ import type { JobDefinition, Outcome } from "./types";
  *  falls due. */
 export const MAINTENANCE_CRON = `*/${MAINTENANCE_TICK_MINUTES} * * * *`;
 
-/** The seven obligations, each a query and the hand-off that owns its
- *  rule. Adding an eighth is an edit to this list — never a predicate in
+/** The obligations, each a query and the hand-off that owns its rule.
+ *  Adding one is an edit to this list — never a predicate in
  *  the body below. */
 const DUE_WORK: readonly {
   readonly due: () => Promise<readonly string[]>;
@@ -71,6 +82,15 @@ const DUE_WORK: readonly {
   // the way in: staleness is a fact about a clock, and the sweep is the
   // one place in the product allowed to decide a pass is not coming back.
   { due: scansLeftRunning, handOff: finishScanLeftRunning },
+  // SPEC §8's retention sequence (issue #569): idle 7 days, a veto window
+  // closing on an unopened draft, a failed payment, a cancellation, and the
+  // win-back 30 days after access ended. Asked, like the setup reminders,
+  // at every tick and re-decided at send time.
+  { due: accountsDueInactivity, handOff: nudgeInactive },
+  { due: draftsDueVetoReminder, handOff: remindVeto },
+  { due: accountsDuePaymentFailed, handOff: noticePaymentFailed },
+  { due: accountsDueCancellation, handOff: noticeCancellation },
+  { due: accountsDueWinback, handOff: winBack },
 ]);
 
 export const accountMaintenance: JobDefinition = {

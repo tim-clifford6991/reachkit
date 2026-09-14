@@ -62,6 +62,16 @@ export const MAIL_KINDS = Object.freeze({
   // say the product is spending money nobody asked it to. A stoppable
   // alarm is not an alarm.
   ops: { occasionsFrom: "§6.5", stoppable: false },
+  // SPEC §8, Retention (#569). The follow-ups — the idle nudge, the veto
+  // reminder, the win-back — are stopped by the one address-wide opt-out
+  // ("One opt-out click stops further follow-up"). The payment-failed and
+  // cancellation mails are account notices, like the hosting-end notice the
+  // `account` kind already carries, and nothing stops them.
+  inactivity: { occasionsFrom: "SPEC §8", stoppable: "opt-out" },
+  "veto-reminder": { occasionsFrom: "SPEC §8", stoppable: "opt-out" },
+  "payment-failed": { occasionsFrom: "SPEC §8", stoppable: false },
+  cancellation: { occasionsFrom: "SPEC §8", stoppable: false },
+  "win-back": { occasionsFrom: "SPEC §8", stoppable: "opt-out" },
 } as const satisfies Readonly<Record<string, KindRow>>);
 
 export type MailKind = keyof typeof MAIL_KINDS;

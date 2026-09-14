@@ -141,6 +141,9 @@ export async function redeemLink(
   // 15-minute chase keeps reading the first. Whether it stamped is also
   // what says where this customer is going next (REQ-024 c4).
   const stamp = await store.stampFirstSignedIn(verified.userId, now);
+  // SPEC §8 (#569): a sign-in ends an idle spell. Best-effort — a failed
+  // stamp never stands between a customer and their account.
+  await store.stampSeen(verified.userId, now);
 
   logLink({ event: "auth_link_redeemed", userId: verified.userId, purpose, outcome: "signed_in" });
   return {

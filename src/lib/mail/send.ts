@@ -17,7 +17,7 @@
 // caller that must send at most once carries its own natural key. It
 // retries nothing either; the retry window belongs to whoever owns the
 // occasion.
-import type { CopyKey } from "@/lib/presentation/copy";
+import { TODO_COPY_MARKER, type CopyKey } from "@/lib/presentation/copy";
 import type { CopyVars, MailBlock } from "./blocks/types";
 import { MAIL_KINDS, type MailKind } from "./kinds";
 import { stoppedByPreference } from "./notifications";
@@ -135,6 +135,14 @@ export async function sendEmail(m: SendInput): Promise<SendResult> {
   let composed: ReturnType<typeof composeMail>;
   try {
     composed = compose(m);
+    // SPEC §8: "Unwritten keys send nothing." An owner-owed key already
+    // throws in `copy()`; a key still holding the `TODO(copy)` marker renders
+    // as itself, which a screen may show but a mail — sent once, never
+    // corrected — must not. So a mail carrying the marker anywhere is not
+    // composable either.
+    if ([composed.subject, composed.html, composed.text].some((part) => part.includes(TODO_COPY_MARKER))) {
+      throw new Error("sendEmail: the mail carries an unwritten TODO(copy) line.");
+    }
   } catch (error) {
     // A sentence this mail needs has not been written yet, so there is no
     // mail to send. It is reported as its own reason rather than thrown:

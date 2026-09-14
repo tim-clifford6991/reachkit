@@ -35,6 +35,21 @@ vi.mock("@/lib/scan/stuck", () => ({
   finishScanLeftRunning: (id: string) => finishStuckScan(id),
 }));
 
+// SPEC §8's retention sequence (issue #569) reads rows on every tick, so it
+// is stood in with nothing due, on the same footing as the obligations above.
+vi.mock("@/lib/mail/retention", () => ({
+  accountsDueInactivity: async () => [],
+  draftsDueVetoReminder: async () => [],
+  accountsDuePaymentFailed: async () => [],
+  accountsDueCancellation: async () => [],
+  accountsDueWinback: async () => [],
+  sendInactivityNudge: async () => ({ sent: false, reason: "not-due" }),
+  sendVetoReminder: async () => ({ sent: false, reason: "not-due" }),
+  sendPaymentFailed: async () => ({ sent: false, reason: "not-due" }),
+  sendCancellation: async () => ({ sent: false, reason: "not-due" }),
+  sendWinback: async () => ({ sent: false, reason: "not-due" }),
+}));
+
 const engine = await import("../../src/jobs/engine");
 const { scanRun } = await import("../../src/jobs/scan-run");
 const { accountMaintenance } = await import("../../src/jobs/account-maintenance");
