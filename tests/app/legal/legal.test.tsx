@@ -85,8 +85,8 @@ describe("S5 — the screen: eyebrow, title, updated line, one card", () => {
         expect(html).toContain(legalBodyHtml(copy(route.document)));
       });
 
-      it("the eyebrow is the eyebrow role, and the title is the page's one h1", () => {
-        expect(html).toContain("eyebrow");
+      it("the eyebrow stands above the title, and the title is the page's one h1", () => {
+        expect(html.indexOf(copy("legal.eyebrow"))).toBeLessThan(html.indexOf("<h1"));
         expect(html.match(/<h1/g)).toHaveLength(1);
       });
 
@@ -129,7 +129,10 @@ describe("S5 — the Markdown body goes through the product's one renderer", () 
   });
 
   it("the card carries no head — the page's h1 already names the document", () => {
-    expect(body(RENDERER)).toContain("title={null}");
+    const html = renderToStaticMarkup(<PrivacyPage />);
+    const card = html.slice(html.indexOf('class="card '));
+    expect(html.match(/<h1/g)).toHaveLength(1);
+    expect(card).not.toMatch(/card-title|<h1|<h2/);
   });
 });
 

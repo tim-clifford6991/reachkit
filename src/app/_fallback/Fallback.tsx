@@ -83,18 +83,23 @@ const ARMS = {
 /** S8's shape, for one of the two kinds. Not exported: a mount names the
  *  page it is by calling `NotFoundScreen` or `ErrorScreen`, so no route
  *  file spells the kind as a string. */
+/** One centred column: eyebrow, heading, line, one control. */
+const MAIN = "mx-auto flex w-full min-w-0 max-w-2xl flex-col items-center gap-3 px-4 py-12 text-center";
+const EYEBROW = "text-xs font-semibold uppercase tracking-wide text-base-content/60";
+
 function Fallback(p: FallbackProps & { kind: FallbackKind }): React.JSX.Element {
   const head = HEAD[p.kind];
   return (
     <Surface arms={ARMS}>
-      <main className="rk-fallback" data-testid={p.testId}>
-        <p className={head.numeral ? "eyebrow num" : "eyebrow"}>{copy(head.eyebrow)}</p>
-        {/* The set draws the h1 at its display weight; the size is the
-            ruled scale's, bound to the element in `src/ui/type.css`, which
-            is why `.rk-hero-h` carries no size of its own. */}
-        <h1 className="rk-hero-h">{copy(head.heading)}</h1>
+      <main className={MAIN} data-testid={p.testId}>
+        {/* The eyebrow sits directly on the heading; size and weight of the
+            h1 are the element's own, from `src/ui/type.css`. */}
+        <div className="flex flex-col items-center">
+          <p className={head.numeral ? `${EYEBROW} font-mono` : EYEBROW}>{copy(head.eyebrow)}</p>
+          <h1>{copy(head.heading)}</h1>
+        </div>
         {p.line}
-        {p.action}
+        <div className="mt-3 flex w-full max-w-xl justify-center">{p.action}</div>
       </main>
     </Surface>
   );

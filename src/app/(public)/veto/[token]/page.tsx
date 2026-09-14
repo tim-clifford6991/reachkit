@@ -40,14 +40,13 @@
 import type React from "react";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { Clock } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import { previewVetoLink, redeemVetoLink, vetoLinkPath } from "@/lib/publish/publishable";
 import type { PreviewResult, RedeemResult, VetoPreview } from "@/lib/publish/publishable";
-import { Btn, Card } from "@/ui/components";
 import { PUBLIC_ROUTE_SEO } from "../../_seo/routes";
 import { staticMetadata } from "../../_seo/metadata";
-import { CardHead } from "@/ui/idiom";
 import { Surface } from "@/ui/layout";
 import type { Arm, Band } from "@/ui/layout";
 
@@ -133,15 +132,8 @@ async function redeem(token: string): Promise<RedeemResult> {
 type TokenParams = { token: string };
 type Query = { done?: string };
 
-/** The card is **headless** — `title={null}`, the opt-out `Card` takes since
- *  #369 (master's third review of #399). It carried the wordmark, which put
- *  a second *ReachKit* on the page once the chrome was around it: S6's card
- *  starts at its own head (the clock over *Publishes …*), and the brand is
- *  in the bar. The wordmark over a card belongs to the mail shell (S20),
- *  which has no bar to carry it.
- *
- *  One column at every band: the page is one card, and there is nothing to
- *  put beside it. */
+/** One column at every band: the page is one card, headless — it starts at
+ *  its own eyebrow, and the brand is in the bar. */
 const ARMS = {
   compact: { kind: "columns", count: 1 },
   medium: { kind: "columns", count: 1 },
@@ -152,6 +144,11 @@ const ARMS = {
  *  done arm renders only where the token also reads back as spent, so a
  *  hand-typed `?done=1` on a live link shows the ask arm and stops nothing. */
 const DONE = "done";
+
+/** One card at the form measure, and its eyebrow and row-label voice. */
+const MAIN = "mx-auto w-full max-w-lg px-4 py-12 sm:py-16";
+const EYEBROW = "flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-base-content/60";
+const ROW_LABEL = "text-xs font-semibold uppercase tracking-wide text-base-content/60";
 
 /**
  * The line for a link that cannot be spent. Total over `VetoRefusal` — a
@@ -250,52 +247,47 @@ function Ask(p: { token: string; it: VetoPreview }): React.JSX.Element {
       : copy("publish.veto.ask.head", { when: writeMoment(p.it.publishes) });
 
   return (
-    <Card state="default" title={null}>
-      <CardHead icon={<Clock size={15} aria-hidden />} eyebrow={head} />
-      {p.it.title === null ? null : <h1>{p.it.title}</h1>}
-      {/* The set's two why-rows. Utilities and the registered type classes,
-          not a class of this page's own: §2.2 closes custom CSS at five
-          surfaces and a stop page is none of them, so the rows are laid out
-          the way `WhyThisPage` lays its wrapper out and take their voice
-          from `eyebrow` and `.num`. */}
-      <dl className="flex flex-col gap-2">
-        {p.it.query === null ? null : (
-          <div className="flex justify-between gap-3">
-            <dt className="eyebrow">{copy("publish.veto.ask.row.search")}</dt>
-            <dd className="num">{writeSearch(p.it.query, p.it.volume)}</dd>
-          </div>
-        )}
-        {p.it.domain === null ? null : (
-          <div className="flex justify-between gap-3">
-            <dt className="eyebrow">{copy("publish.veto.ask.row.site")}</dt>
-            <dd className="num">{p.it.domain}</dd>
-          </div>
-        )}
-      </dl>
-      <form action={stop}>
-        <Btn
-          label={copy("publish.veto.ask.action")}
-          variant="primary"
-          type="submit"
-          pill
-          block
-        />
-      </form>
-      <p className="rk-explain">{copy("publish.veto.ask.do-nothing")}</p>
-    </Card>
+    <main className={MAIN}>
+      <div className="card border border-base-300 bg-base-100">
+        <div className="card-body gap-4">
+          <p className={EYEBROW}>
+            <Clock size={16} strokeWidth={1.75} aria-hidden />
+            {head}
+          </p>
+          {p.it.title === null ? null : <h1>{p.it.title}</h1>}
+          <dl className="flex flex-col gap-2">
+            {p.it.query === null ? null : (
+              <div className="flex justify-between gap-3">
+                <dt className={ROW_LABEL}>{copy("publish.veto.ask.row.search")}</dt>
+                <dd className="font-mono text-sm">{writeSearch(p.it.query, p.it.volume)}</dd>
+              </div>
+            )}
+            {p.it.domain === null ? null : (
+              <div className="flex justify-between gap-3">
+                <dt className={ROW_LABEL}>{copy("publish.veto.ask.row.site")}</dt>
+                <dd className="font-mono text-sm">{p.it.domain}</dd>
+              </div>
+            )}
+          </dl>
+          <form action={stop}>
+            {/* The screen's one solid button. */}
+            <button type="submit" className="btn btn-primary btn-block">
+              {copy("publish.veto.ask.action")}
+            </button>
+          </form>
+          <p className="text-sm text-base-content/60">{copy("publish.veto.ask.do-nothing")}</p>
+        </div>
+      </div>
+    </main>
   );
 }
 
 /**
  * The done arm, and the refusals that wear its shape.
  *
- * **A line, not a tinted block** (master's second review of #399). The set
- * draws `Stopped` over the page's own title over one `.small` sentence over
- * the quiet control, and no fill of any colour behind it. An `Alert` here
- * put the sentence in a filled panel — green on the done arm, warn on two
- * of the refusals — and the warn fill also broke the standing rule that
- * `--warn` is edge and ink and never a ground. `.rk-quiet` with `.t-sm` is
- * the set's `.small` exactly: 13px in `--ink-2`, no margin, no box.
+ * **A line, not a tinted block.** `Stopped` over the page's own title over
+ * one small sentence over the quiet control, with no fill behind it: a
+ * filled alert would put warn on a ground, and `--warn` is edge and ink.
  *
  * **The title is drawn where there is one.** The done arm has it, because
  * a spent token still says which page it was bound to; the refusals do not,
@@ -303,12 +295,20 @@ function Ask(p: { token: string; it: VetoPreview }): React.JSX.Element {
  */
 function Told(p: { head: string; title: string | null; message: string }): React.JSX.Element {
   return (
-    <Card state="default" title={null}>
-      <CardHead eyebrow={p.head} />
-      {p.title === null ? null : <h1>{p.title}</h1>}
-      <p className="rk-quiet t-sm">{p.message}</p>
-      <Btn label={copy("publish.veto.calendar")} variant="tertiary" href="/app/calendar" pill />
-    </Card>
+    <main className={MAIN}>
+      <div className="card border border-base-300 bg-base-100">
+        <div className="card-body gap-4">
+          <p className={EYEBROW}>{p.head}</p>
+          {p.title === null ? null : <h1>{p.title}</h1>}
+          <p className="text-sm text-base-content/70">{p.message}</p>
+          <div>
+            <Link href="/app/calendar" className="btn btn-ghost">
+              {copy("publish.veto.calendar")}
+            </Link>
+          </div>
+        </div>
+      </div>
+    </main>
   );
 }
 

@@ -45,12 +45,7 @@ interface Node {
   props: Record<string, unknown>;
 }
 
-/** Every element in a returned tree, flattened.
- *
- *  It descends through **every** prop and not only `children`: the approved
- *  idiom hands a card its head as a prop (`IdiomCard head={<CardHead/>}`),
- *  and a walker that followed children alone would report this page as
- *  having no head at all. */
+/** Every element in a returned tree, flattened, through every prop. */
 function nodes(element: React.ReactNode): Node[] {
   if (element === null || typeof element !== "object") return [];
   const node = element as unknown as Node;
@@ -66,9 +61,16 @@ function named(tree: React.ReactNode, name: string): Node | undefined {
   return nodes(tree).find((node) => (node.type as { name?: string })?.name === name);
 }
 
-/** The card's own head — S7's mail chip and its eyebrow. */
+function classOf(node: Node): string {
+  return String(node.props?.className ?? "");
+}
+
+/** The card's eyebrow: the uppercase line with the mail icon that opens it. */
 function eyebrowOf(tree: React.ReactNode): unknown {
-  return named(tree, "CardHead")?.props.eyebrow;
+  const head = nodes(tree).find((node) => node.type === "p" && classOf(node).includes("uppercase"));
+  const children = head?.props.children;
+  const list = Array.isArray(children) ? children : [children];
+  return list.find((child) => typeof child === "string");
 }
 
 /** Every string-valued prop anywhere in the tree — the words the page puts
@@ -162,31 +164,32 @@ describe("three arms, three heads, no fourth rendering and no default arm", () =
 });
 
 describe("the set's card, and nothing else on the page", () => {
-  it("it is the approved idiom's card with the mail chip in its head", async () => {
+  it("it is one daisyUI card with the mail icon in its head, and no tinted block", async () => {
     const tree = await OptOutPage({ params: { token: "not-a-token" } });
-    const types = nodes(tree).map((node) => (node.type as { name?: string })?.name ?? node.type);
-
-    expect(types).toContain("IdiomCard");
-    expect(types).toContain("CardHead");
-    // The `Alert` block this page used to render is on no screen the set
-    // draws: the line is the card's body.
-    expect(types).not.toContain("Alert");
+    expect(nodes(tree).filter((node) => /(^|\s)card(\s|$)/.test(classOf(node)))).toHaveLength(1);
+    const types = nodes(tree).map((node) => (node.type as { displayName?: string; name?: string })?.displayName ?? (node.type as { name?: string })?.name ?? node.type);
+    expect(types.some((t) => typeof t === "string" && /mail/i.test(t))).toBe(true);
+    // The line is the card's body, not an alert.
+    expect(nodes(tree).filter((node) => /\balert\b/.test(classOf(node)))).toEqual([]);
   });
 
   it("one control on every arm — the quiet way back — and no form, field or toggle", async () => {
     for (const token of ["not-a-token", optOutTokenFor("anna@example.com")]) {
       const tree = await OptOutPage({ params: { token } });
-      const buttons = nodes(tree).filter((node) => (node.type as { name?: string })?.name === "Btn");
+      const controls = nodes(tree).filter(
+        (node) => node.type === "button" || typeof node.props?.href === "string",
+      );
 
-      expect(buttons).toHaveLength(1);
-      expect(buttons[0]?.props.label).toBe(copy("chrome.back-to-reachkit"));
-      expect(buttons[0]?.props.variant).toBe("tertiary");
-      expect(buttons[0]?.props.href).toBe("/");
+      expect(controls).toHaveLength(1);
+      expect(controls[0]?.props.children).toBe(copy("chrome.back-to-reachkit"));
+      expect(classOf(controls[0] as Node)).toContain("btn-ghost");
+      expect(controls[0]?.props.href).toBe("/");
 
-      const types = nodes(tree).map((node) => (node.type as { name?: string })?.name ?? node.type);
-      expect(types).not.toContain("Input");
-      expect(types).not.toContain("Toggle");
+      const types = nodes(tree).map((node) => node.type);
+      expect(types).not.toContain("input");
       expect(types).not.toContain("form");
+      // Nothing here asks the reader to act, so nothing is solid.
+      expect(nodes(tree).filter((node) => classOf(node).includes("btn-primary"))).toEqual([]);
     }
   });
 
@@ -198,9 +201,9 @@ describe("the set's card, and nothing else on the page", () => {
     expect(textsOf(tree).join(" ")).not.toContain("anna@example.com");
   });
 
-  it("it is composed from registered components and holds no string a person reads", () => {
+  it("it holds no string a person reads, and no wrapper component", () => {
     const code = codeOf("src/app/(public)/opt-out/[token]/page.tsx");
-    expect(code).toMatch(/from "@\/ui\/idiom"/);
+    expect(code).not.toMatch(/from "@\/ui\/(idiom|components)"/);
     expect(code).toMatch(/from "@\/ui\/layout"/);
     // Every sentence goes through `copy()`; nothing is written here.
     expect(code).not.toMatch(/label=\{"|label="/);

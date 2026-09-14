@@ -5,13 +5,10 @@
 // token on arrival and renders a total switch over the three things that
 // can have happened.
 //
-// **This is the approved screen set built** (`docs/design/approved/full-set/`,
-// UI-SPEC S7, owner 2026-09-08). S7 draws one card: a mail chip over
-// "Opted out", the two approved lines with the address inside the first, and
-// a quiet "Back to ReachKit". What stood here before was the registered
-// `Card` with an `Alert` block inside it — a tone-coloured banner the set
-// draws on no screen — and it deliberately showed neither the address nor a
-// way back.
+// One daisyUI card: a mail icon over "Opted out", the approved lines with the
+// address inside the first, and a quiet "Back to ReachKit" (`btn-ghost`) —
+// nothing on this page asks the reader to do anything, so it has no solid
+// button.
 //
 // **Both of those are the set's own ruling and not an oversight of this
 // build.** The address was suppressed here on the reasoning that "an
@@ -41,12 +38,11 @@
 // Every sentence is a registry key.
 import type React from "react";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Mail } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import type { CopyKey } from "@/lib/presentation/copy";
 import { applyOptOutToken } from "@/lib/mail/leads";
-import { Btn } from "@/ui/components/Btn";
-import { CardHead, IdiomCard } from "@/ui/idiom";
 import { Surface } from "@/ui/layout";
 import { AddressLine } from "@/app/_fallback/AddressLine";
 import type { Arm, Band } from "@/ui/layout";
@@ -110,23 +106,21 @@ export default async function OptOutPage(p: {
 
   return (
     <Surface arms={ARMS}>
-      <main className="rk-one-card">
-        <IdiomCard
-          head={
-            <CardHead
-              icon={<Mail size={15} strokeWidth={1.8} aria-hidden />}
-              eyebrow={copy(head)}
-            />
-          }
-          testId={TEST_ID}
-        >
-          {line}
-          {/* The set's one control, quiet: nothing on this page asks the
-              reader to do anything, and the way back is not an action. */}
-          <div>
-            <Btn href={HOME} label={copy("chrome.back-to-reachkit")} variant="tertiary" pill />
+      <main className="mx-auto w-full max-w-lg px-4 py-12 sm:py-16">
+        <div className="card border border-base-300 bg-base-100" data-testid={TEST_ID}>
+          <div className="card-body gap-4">
+            <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-base-content/60">
+              <Mail size={16} strokeWidth={1.75} aria-hidden />
+              {copy(head)}
+            </p>
+            {line}
+            <div>
+              <Link href={HOME} className="btn btn-ghost">
+                {copy("chrome.back-to-reachkit")}
+              </Link>
+            </div>
           </div>
-        </IdiomCard>
+        </div>
       </main>
     </Surface>
   );
