@@ -149,15 +149,18 @@ describe("REQ-071 c12 — the growth series is two runs, never one line across a
     // takes, so §2.4's inventory gains no sixth chart. What differs is that
     // this one cuts the line and a week with no reading does not (#386) —
     // two runs here, one there.
+    // The chart itself cuts its run at that column (#550, read in
+    // tests/ui/recharts-charts.test.tsx); here, the column is one more
+    // written reading than the four weeks, and it states the change.
     expect(markup).toContain(CHANGE_ACCOUNT_KEY.domain);
-    expect(markup.split("<polyline").length - 1).toBe(2);
+    expect(markup.split("<li>").length - 1).toBe(5);
   });
 
-  it("without a change the same weeks draw one run and no account", () => {
+  it("without a change the same weeks draw four readings and no account", () => {
     const growth = readGrowth({ points: POINTS, firstDueOn: AT(1), changes: [] });
     const markup = html(<GrowthModule growth={growth} timeZone={ZONE} />);
     expect(markup).not.toContain(CHANGE_ACCOUNT_KEY.domain);
-    expect(markup.split("<polyline").length - 1).toBe(1);
+    expect(markup.split("<li>").length - 1).toBe(4);
   });
 });
 

@@ -45,9 +45,9 @@ describe("S1 hero — the product component in a browser frame (REQ-099 c4, ruli
   it("it is the registered GrowthLine over the specimen weeks, not a picture", async () => {
     const markup = await renderPage();
     // The chart's own accessible name is the Overview's tile label, and
-    // its endpoint dot is the mark no image would carry.
-    expect(markup).toMatch(/<svg[^>]*aria-label="overview\.tile\.searches\.label"/);
-    expect(markup).toContain("<circle");
+    // it writes the specimen's weekly readings, which no image would carry.
+    expect(markup).toMatch(/<figure[^>]*aria-label="overview\.tile\.searches\.label"/);
+    expect(markup).toMatch(/<ul class="sr-only"><li>/);
   });
 
   it("the three tiles are the set's three, each labelled by the Overview's own key", async () => {
