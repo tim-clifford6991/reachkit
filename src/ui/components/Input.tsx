@@ -70,13 +70,8 @@ type InputBase = {
    * The control's own text — value and placeholder — in the mono face at
    * the `--t-sm` rung (issue #549).
    *
-   * `docs/design/canvas/RECIPE.md` gives a field that holds an address its
-   * anatomy: "mono 13 placeholder". S9 is where it is spent — the sign-in
-   * field's one written string is the address itself, drawn in the field
-   * rather than above it — and it is a prop on the registered component
-   * for the reason `multiline` and `onAccent` are: a screen may not write
-   * a class of its own. `num` and `t-sm` are `src/ui/type.css`'s, and
-   * being unlayered they out-rank daisyUI's own `.input` font rule.
+   * Sign-in: the address is the field's own text (mono). `num` and `t-sm`
+   * in `src/ui/type.css` out-rank daisyUI's `.input` font rule.
    */
   mono?: boolean;
 

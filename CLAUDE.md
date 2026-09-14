@@ -2,7 +2,7 @@
 
 Read `README.md` (nine features, what delivered means), then only the `docs/SPEC.md` section you are changing. UI: `docs/DESIGN.md` — three rules (daisyUI, Recharts, lucide). Flow: `docs/PROCESS.md`. The owner tests live on `dev.reachkit.app`.
 
-Ship the paying path. Prefer a library over new code. Do not open `docs/design/canvas/` or `docs/archive/`.
+Ship the paying path. Prefer a library over new code. Do not open `docs/archive/`.
 
 ## Don't
 
@@ -11,7 +11,7 @@ Ship the paying path. Prefer a library over new code. Do not open `docs/design/c
 - Never “match the artboard.” There is no artboard in the process.
 - Never write a test that transcribes a document.
 - Never guess an owner decision — `blocked-on-owner` and ask; record the answer as a dated SPEC line.
-- Never edit `docs/archive/` or `docs/design/canvas/`.
+- Never edit `docs/archive/`.
 - Never reintroduce Master, Worker, dispatcher, lander, `rk-*` agents, mandatory worktrees, or extra merge gates.
 
 Work in `/root/projects/reachkitv3` on a branch from `origin/main`. Merge when `typecheck · lint · unit`, `audit`, and `schema · RLS` are green.

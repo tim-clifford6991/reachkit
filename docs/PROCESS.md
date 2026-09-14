@@ -2,7 +2,7 @@
 
 Speed to a working MVP is the measure. Delivered means a stranger completes landing → scan → pay → onboard → a page on their domain, live, with real copy.
 
-There is no factory, no artboard, no canvas task. Do not read `docs/design/canvas/` or `docs/archive/`.
+There is no factory, no artboard, no canvas task. Do not read `docs/archive/`.
 
 ## Roles
 
@@ -42,5 +42,5 @@ Vercel Hobby, Git deployments off. `rk-deployer` deploys `main` (dev every SHA, 
 - Match, cite, or re-seed an artboard / canvas HTML file.
 - Add a custom component, CSS sheet or SVG chart where daisyUI or Recharts exists.
 - Guess an owner decision.
-- Write under `docs/archive/` or `docs/design/canvas/`.
+- Write under `docs/archive/`.
 - Bring back a factory role, dispatcher, lander, worktree-per-issue rule, or extra merge gate.

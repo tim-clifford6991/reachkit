@@ -1,4 +1,6 @@
 .DS_Store
+# Generated locally (`npm run copy:owed`). Do not commit — it dirty every PR.
+docs/copy/owed.md
 node_modules/
 .next/
 .env*.local

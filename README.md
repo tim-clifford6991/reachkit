@@ -44,7 +44,7 @@ weekly scan → calendar → email → technical issues — but all nine are MVP
 | 4 | `docs/PROCESS.md` | Issue → docs if needed → implement → merge. The owner tests live. |
 | 5 | `CLAUDE.md` | What an agent reads first, and what it never does. |
 
-These five files are the corpus; there is no sixth. `docs/design/canvas/` and `docs/archive/` are frozen history — not instructions. A difference between the code and `SPEC.md` is a defect in the code — CI's `audit` check blocks the PR.
+These five files are the corpus; there is no sixth. `docs/archive/` is frozen history — not instructions. A difference between the code and `SPEC.md` is a defect in the code — CI's `audit` check blocks the PR.
 
 ## Where work is tracked
 

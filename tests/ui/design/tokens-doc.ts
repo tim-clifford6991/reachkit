@@ -1,25 +1,11 @@
-// The approved token set, read from `docs/design/tokens.css`.
+// Token reader. `src/ui/theme.css` is the only token file.
 // tests/ui/design/tokens-doc.ts
-//
-// One reader, three tests: `token-set.test.ts` holds `src/ui/theme.css`
-// equal to this file by name *and* value, `tests/ui/tokens.test.ts` uses the
-// names to say which tokens may exist at all, and `no-bare-literals.test.ts`
-// uses the values to prove a converted literal kept the value it had.
-// A second copy of "what the owner approved" is exactly the drift issue #349
-// is about.
-//
-// The source is the token file of record (owner ruling 2026-09-08; UI-SPEC
-// §1, rulings 8a and 10a): the artifact's own three blocks, verbatim, plus
-// the six additions 10a made on top of them. `archive/…/design/tokens.md` is
-// superseded and is not read here — reading it is what the paused first pass
-// of this issue did, and the owner ruled that file is not the approved set.
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import postcss, { type AtRule, type Declaration, type Rule } from "postcss";
 
 const REPO = path.resolve(import.meta.dirname, "../../..");
 
-export const APPROVED_TOKENS_CSS = path.join(REPO, "docs/design/tokens.css");
 export const THEME_CSS = path.join(REPO, "src/ui/theme.css");
 
 /** The three states a token can be declared in. Two files carry the same
@@ -84,16 +70,14 @@ export function tokenSet(file: string): TokenSet {
   return out;
 }
 
-/** The approved set — every token name the owner approved, in any block. */
+/** Every token name `theme.css` declares, in any block. */
 export function approvedTokens(): ReadonlySet<string> {
-  const set = tokenSet(APPROVED_TOKENS_CSS);
+  const set = tokenSet(THEME_CSS);
   return new Set([...set.light.keys(), ...set["dark-media"].keys(), ...set["dark-toggle"].keys()]);
 }
 
-/** An approved light value, for a test that has to prove a converted
- *  literal kept the value it had. */
 export function approvedLightValue(token: string): string | undefined {
-  return tokenSet(APPROVED_TOKENS_CSS).light.get(token);
+  return tokenSet(THEME_CSS).light.get(token);
 }
 
 export const TAILWIND_CSS = path.join(REPO, "src/ui/tailwind.css");
@@ -101,7 +85,7 @@ export const TAILWIND_CSS = path.join(REPO, "src/ui/tailwind.css");
 /**
  * The one daisyUI theme: every custom property the `@plugin "daisyui/theme"`
  * block in `src/ui/tailwind.css` declares, by name, value as written.
- * `docs/DESIGN.md` ("Tokens") rules the theme is declared there and nowhere
+ * `docs/DESIGN.md` rules the theme is declared there and nowhere
  * else, so a second block, or none, throws rather than reading as an empty
  * theme. `source` lets a mutation check parse an edited copy.
  */

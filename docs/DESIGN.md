@@ -10,7 +10,7 @@ The owner reviews UI by clicking `dev.reachkit.app`. There is no artboard, no ca
 
 ## Do not
 
-- Do not read or edit `docs/design/canvas/` or `docs/archive/`. Those files are frozen sketches. They are not a spec. Never open a task to “match the artboard.”
+- Do not read or edit `docs/archive/`. Frozen sketches, including the old canvas HTML. Not a spec. Never match an artboard.
 - Do not add a wrapper component where a daisyUI class exists. Existing wrappers under `src/ui/components/` are debt: new screens skip them; a follow-up PR deletes them.
 - Do not add a stylesheet under `src/ui/` except shrinking `idiom.css` toward empty, then deleting it.
 - Do not hand-roll SVG charts. `GrowthLine`, `PresenceBars`, `RivalSparkline` and `chart-primitives.ts` are debt: replace with Recharts, then delete.
