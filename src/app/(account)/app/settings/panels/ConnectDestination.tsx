@@ -1,50 +1,18 @@
 // BUILD §4.7 · REQ-060 — the one place a WordPress credential is typed.
 //
-// The Publishing card lists destinations with their health and the control
-// the engine chose; until #240 every one of those controls was a bare
-// `Btn` with nothing behind it, and `connect()` / `storeConfig()` had no
-// caller on any screen. This component is that caller's front half.
+// One form, reached from three states (`connect`, `reconnect`,
+// `reconnect_other_account`); the word on the control is the engine's
+// choice. Three fields: site, WordPress user, application password
+// (2026-09-07). In the card, under its row — not a modal, not a route.
 //
-// **One form, reached from three states.** A destination that has never
-// held a credential (`connect`), one whose credential ran out
-// (`reconnect`), and one whose credential is valid and cannot publish
-// (`reconnect_other_account`) all need the same three fields — the word on
-// the control differs because what the customer is being asked to do
-// differs, and that word is the engine's choice rendered through the
-// registry, not this component's.
-//
-// **Three fields: the site, the WordPress user, and that user's
-// application password** (master's ruling, 2026-09-07). The user is not
-// derivable — an application password authenticates as
-// `username:app-password` and is scoped to the account that made it — so a
-// form that asked for two would refuse every real site.
-//
-// **In the card, not a modal and not a route.** A second surface would be
-// a second place to keep honest about a credential; a modal needs focus
-// management this screen does not have. The form opens under the row it
-// belongs to and closes when it succeeds.
-//
-// **Nothing here holds the credential after the call.** The password is
-// state for as long as the customer is typing it and is cleared on every
-// outcome, success or refusal — a refusal that left it in the field would
-// leave a credential sitting in a DOM node on a screen the customer may
-// walk away from. The site address is kept: retyping a URL that was right
-// is friction with no purpose.
-//
-// **A refusal renders no sentence of its own.** The credential is
-// validated by the health check, so what the customer reads is the
-// destination's own state and line on the redrawn card. The redraw is the
-// Server Function's `revalidatePath`, not a `useRouter().refresh()` here:
-// the action already knows the path, and a hook would put an app-router
-// context between this component and every suite that renders it to
-// static markup. This component composes no message, and there is no
-// member on `ConnectOutcome` for one to arrive in.
+// The password is cleared on every outcome. A refusal renders no sentence of
+// its own: the redrawn card states the destination's health (SPEC §5 — no
+// vendor text).
+
 "use client";
 
 import type React from "react";
 import { useCallback, useState } from "react";
-import { Btn } from "@/ui/components/Btn";
-import { Input } from "@/ui/components/Input";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { writtenLine } from "../../_shell/written";
 import { connectWordPress } from "../destination-actions";
@@ -86,51 +54,48 @@ export function ConnectDestination(p: { action: CredentialAction }): React.JSX.E
     });
   }, [applicationPassword, siteUrl, username]);
 
+  const field = (
+    label: string,
+    name: string,
+    value: string,
+    set: (next: string) => void,
+    type: "text" | "password" = "text"
+  ): React.JSX.Element => (
+    <label className="flex min-w-0 flex-col gap-1">
+      <span className="text-sm text-base-content/70">{label}</span>
+      <input
+        className="input w-full"
+        type={type}
+        name={name}
+        value={value}
+        onChange={(e) => set(e.target.value)}
+      />
+    </label>
+  );
+
   return (
     <div className="flex min-w-0 flex-col gap-2" data-testid="wp-credential">
-      {/* S18 draws Reconnect as the accent outline pill (L811, issue
-          #506): the one control on the card asking the customer to act. */}
-      <Btn
-        label={copy(ACTION_COPY_KEY[p.action])}
-        size="sm"
-        variant="secondary"
-        tone="accent"
-        pill
-        onClick={() => setOpen((was) => !was)}
-      />
+      <button type="button" className="btn btn-outline btn-sm" onClick={() => setOpen((was) => !was)}>
+        {copy(ACTION_COPY_KEY[p.action])}
+      </button>
 
       {open ? (
         <div className="flex min-w-0 flex-col gap-2" data-testid="wp-credential-form">
-          <Input
-            label={copy("settings.destination.site-url")}
-            name="site-url"
-            value={siteUrl}
-            onChange={setSiteUrl}
-          />
-          <Input
-            label={copy("settings.destination.username")}
-            name="wp-username"
-            value={username}
-            onChange={setUsername}
-          />
-          {/* `type="password"`: a credential rendered in clear text is a
-              credential in a screenshot. The user name is not one — it is
-              half of a pair, and hiding it would only stop the customer
-              checking what they typed. */}
-          <Input
-            label={copy("settings.destination.app-password")}
-            name="application-password"
-            type="password"
-            value={applicationPassword}
-            onChange={setApplicationPassword}
-          />
-          {help === null ? null : <p className="text-xs opacity-60 wrap-anywhere">{help}</p>}
-          <Btn
-            label={copy("settings.destination.submit")}
-            size="sm"
-            disabled={running}
-            onClick={submit}
-          />
+          {field(copy("settings.destination.site-url"), "site-url", siteUrl, setSiteUrl)}
+          {field(copy("settings.destination.username"), "wp-username", username, setUsername)}
+          {/* `type="password"`: a credential in clear text is a credential in
+              a screenshot. */}
+          {field(
+            copy("settings.destination.app-password"),
+            "application-password",
+            applicationPassword,
+            setApplicationPassword,
+            "password"
+          )}
+          {help === null ? null : <p className="text-xs text-base-content/60 wrap-anywhere">{help}</p>}
+          <button type="button" className="btn btn-primary btn-sm" disabled={running} onClick={submit}>
+            {copy("settings.destination.submit")}
+          </button>
         </div>
       ) : null}
     </div>

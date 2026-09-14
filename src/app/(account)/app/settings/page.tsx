@@ -40,7 +40,7 @@
 // root (`../layout.tsx`), and a second one would be a second `[data-surface]`
 // in the document.
 //
-// **It offers exactly the fourteen settings and the seven actions.** Every
+// **It offers exactly the `SETTABLE` settings and the seven actions.** Every
 // control carries the key it writes as `data-testid="setting-<key>"`, every
 // action carries `data-testid="action-<key>"`, and
 // `tests/app/settings/screen.test.tsx` reads both sets off the rendered

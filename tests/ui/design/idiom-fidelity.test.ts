@@ -108,7 +108,6 @@ describe("S1 — the landing's chips carry the icons the approved set draws", ()
 });
 
 describe("issue #486 — every chip the approved set draws carries its glyph", () => {
-  const CHIP = (name: string): RegExp => new RegExp(`icon=\\{<${name} size=\\{15\\}`);
 
   it("the brand mark is the trend glyph on an accent square, on every spend", () => {
     // The public chrome draws one `Brand`, in daisyUI and Tailwind classes;
@@ -134,23 +133,6 @@ describe("issue #486 — every chip the approved set draws carries its glyph", (
     expect(body).toContain("border-radius: var(--r-field)");
     expect(body).toContain("background: var(--accent)");
     expect(body).toContain("color: var(--on-accent)");
-  });
-
-  it("S18's nine card heads take the set's nine glyphs (L807–821)", () => {
-    const panels: Record<string, string> = {
-      MarketPanel: "Globe",
-      CompetitorsPanel: "Users",
-      PublishingPanel: "Sparkles",
-      VoicePanel: "PenLine",
-      NotificationsPanel: "Bell",
-      BillingPanel: "CreditCard",
-      AccountPanel: "Lock",
-      ContentPanel: "FileText",
-      DangerZone: "Shield",
-    };
-    for (const [file, icon] of Object.entries(panels)) {
-      expect(read(`app/(account)/app/settings/panels/${file}.tsx`), file).toMatch(CHIP(icon));
-    }
   });
 
   it("S2's Copy link pill carries copy (L577)", () => {

@@ -1,7 +1,7 @@
 // BUILD §4.7 — "**Your market** (chip + Edit + 'changing this rebuilds the
 // search set and the 12 questions next Monday')".
 //
-// Two of the fourteen settable keys live here: `category`, which §4.7 draws as
+// Two of the settable keys live here: `category`, which §4.7 draws as
 // a chip with an Edit beside it, and `domain` — "the domain the site is
 // measured and published under" (REQ-070 c1), which belongs with the market
 // because changing either one has the same consequence and the same clock.
@@ -35,10 +35,6 @@
 import type React from "react";
 import { Globe } from "lucide-react";
 import { useState } from "react";
-import { Btn } from "@/ui/components/Btn";
-import { Card } from "@/ui/components/Card";
-import { CardHead } from "@/ui/idiom";
-import { Input } from "@/ui/components/Input";
 import { copy } from "@/lib/presentation/copy";
 import { formatDate } from "../../_shell/format";
 import { writtenLine } from "../../_shell/written";
@@ -156,94 +152,86 @@ export function MarketPanel(p: {
   function editingField(answer_: Answer): React.JSX.Element {
     const field = FIELD[answer_];
     return (
-      <form action={submit} className="flex min-w-0 flex-col gap-1" data-testid={`edit-${answer_}`}>
-        {/* Two calls, not one with a spread: `InputProps` is a union in
-            which `invalid: true` and `invalidMessage` arrive together, and
-            spreading a maybe-object would defeat exactly the guarantee
-            that union exists for. */}
-        {refusalLine === null ? (
-          <Input
+      <form action={submit} className="flex min-w-0 flex-col gap-2" data-testid={`edit-${answer_}`}>
+        <label className="flex min-w-0 flex-col gap-1">
+          <span className="text-sm text-base-content/70">{copy(field.labelKey)}</span>
+          <input
+            className={refusalLine === null ? "input num w-full" : "input input-error num w-full"}
             name={field.name}
-            label={copy(field.labelKey)}
-            placeholder={copy(field.labelKey)}
             value={value}
-            onChange={setValue}
+            onChange={(e) => setValue(e.target.value)}
+            aria-invalid={refusalLine !== null}
           />
-        ) : (
-          <Input
-            name={field.name}
-            label={copy(field.labelKey)}
-            placeholder={copy(field.labelKey)}
-            value={value}
-            onChange={setValue}
-            invalid
-            invalidMessage={refusalLine}
-          />
-        )}
+        </label>
+        {refusalLine === null ? null : <p className="text-xs text-error wrap-anywhere">{refusalLine}</p>}
         <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <Btn label={copy("settings.save")} size="sm" type="submit" />
-          <Btn
-            label={copy("settings.cancel-edit")}
-            size="sm"
-            variant="ghost"
-            onClick={() => setEditing(null)}
-          />
+          <button type="submit" className="btn btn-primary btn-sm">
+            {copy("settings.save")}
+          </button>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditing(null)}>
+            {copy("settings.cancel-edit")}
+          </button>
         </div>
       </form>
     );
   }
 
   return (
-    <Card state="default" title={<CardHead icon={<Globe size={15} strokeWidth={1.8} aria-hidden />} eyebrow={copy("settings.market.title")} />}>
-      {/* S18's order: the SITE first and the market second — the card is
-          "Your site & market", and the domain is the thing the market is
-          derived for. Each is the set's row (issue #506): the name at the
-          near edge, the mono value and its outlined pill at the far one —
-          "Change" beside the domain, "Edit" beside the market, the set's
-          two words. An open field sits under its row. */}
-      <div className="flex min-w-0 flex-col">
-        <SettingRow
-          name={copy("settings.market.domain")}
-          testId="setting-domain"
-          below={editing === "domain" ? editingField("domain") : null}
-        >
-          {editing === "domain" ? null : (
-            <>
-              <span className="num min-w-0 wrap-anywhere">{p.domain}</span>
-              <Btn label={copy("settings.change")} size="sm" variant="secondary" pill onClick={() => open("domain")} />
-            </>
-          )}
-        </SettingRow>
+    <section className="card card-border min-w-0 bg-base-100">
+      <div className="card-body gap-4">
+        <h2 className="card-title text-base">
+          <Globe size={20} strokeWidth={1.75} aria-hidden />
+          {copy("settings.market.title")}
+        </h2>
 
-        <SettingRow
-          name={copy("settings.market.category")}
-          testId="setting-category"
-          below={editing === "category" ? editingField("category") : null}
-        >
-          {editing === "category" ? null : (
-            <>
-              {/* §2.3: a search query and the buyer vocabulary it is written
-                  in are code-like strings, so the value is mono. */}
-              <span className="num min-w-0 wrap-anywhere">{p.market.category}</span>
-              <Btn label={copy("settings.edit")} size="sm" variant="secondary" pill onClick={() => open("category")} />
-            </>
-          )}
-        </SettingRow>
+        {/* The site first, the market second: the market is derived for the
+            domain. An open field sits under its row. */}
+        <div className="flex min-w-0 flex-col">
+          <SettingRow
+            name={copy("settings.market.domain")}
+            testId="setting-domain"
+            below={editing === "domain" ? editingField("domain") : null}
+          >
+            {editing === "domain" ? null : (
+              <>
+                <span className="num min-w-0 wrap-anywhere">{p.domain}</span>
+                <button type="button" className="btn btn-outline btn-sm" onClick={() => open("domain")}>
+                  {copy("settings.change")}
+                </button>
+              </>
+            )}
+          </SettingRow>
+
+          <SettingRow
+            name={copy("settings.market.category")}
+            testId="setting-category"
+            below={editing === "category" ? editingField("category") : null}
+          >
+            {editing === "category" ? null : (
+              <>
+                <span className="num min-w-0 wrap-anywhere">{p.market.category}</span>
+                <button type="button" className="btn btn-outline btn-sm" onClick={() => open("category")}>
+                  {copy("settings.edit")}
+                </button>
+              </>
+            )}
+          </SettingRow>
+        </div>
+
+        {effect === null ? null : <p className="text-xs text-base-content/60 wrap-anywhere">{effect}</p>}
+        {dated === null ? null : (
+          <p
+            className={
+              warned
+                ? "alert alert-warning alert-soft text-xs wrap-anywhere"
+                : "text-xs text-base-content/60 wrap-anywhere"
+            }
+            data-testid="market-change-line"
+          >
+            {dated}
+          </p>
+        )}
       </div>
-
-      {effect === null ? null : <p className="text-xs opacity-60 wrap-anywhere">{effect}</p>}
-      {dated === null ? null : (
-        <p
-          className={
-            warned
-              ? "border-warning/40 bg-warning/10 text-warning rounded-field border px-2.5 py-2 text-xs wrap-anywhere"
-              : "text-xs opacity-60 wrap-anywhere"
-          }
-          data-testid="market-change-line"
-        >
-          {dated}
-        </p>
-      )}
-    </Card>
+    </section>
   );
 }
