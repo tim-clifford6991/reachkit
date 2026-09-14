@@ -1,15 +1,14 @@
-// BUILD §4.4 — "domain block (accent dot, domain, `Week n · re-measured Mon`)".
+// SPEC §4 — the domain block at the head of the shell: a dot, the domain,
+// and the week line.
 //
 // Two arms, from `WeekCount` (REQ-040 c6 and c7): a counted number of
 // measured weeks with the date of the last one, or — where this domain has
 // never been measured — no number at all and one written line naming the
-// date the first measurement is due. The dot is decoration and carries no
-// meaning of its own (BP-018's words-not-colour rule), so it is `aria-hidden`.
+// date the first measurement is due. The dot is a daisyUI `status` and is
+// decoration only (`aria-hidden`); the words carry the meaning.
 //
-// The week line and the not-measured line are both owner-owed today, so
-// `writtenLine` returns `null` for them and the block renders the domain
-// alone rather than throwing. Filling either key in the registry is the
-// whole of what turns the line on.
+// Both lines go through `writtenLine`: an unwritten key renders the domain
+// alone rather than throwing.
 import type React from "react";
 import { formatDate } from "./format";
 import { writtenLine } from "./written";
@@ -28,14 +27,19 @@ export function DomainBlock(p: { shell: ShellModel }): React.JSX.Element {
         });
 
   return (
-    <div className="rk-domain">
-      <p className="rk-domain-name">
-        <span className="rk-dot" aria-hidden="true" />
-        {/* §2.3: "Every numeral, date, URL … is JetBrains Mono with
-            tabular-nums." A domain is a URL-shaped value. */}
-        <span className="num">{shell.domain}</span>
+    <div className="flex min-w-0 flex-col gap-1" data-testid="shell-domain">
+      <p className="flex min-w-0 items-center gap-2 font-semibold">
+        <span className="status status-primary shrink-0" aria-hidden="true" />
+        {/* A domain is a URL-shaped value: mono. */}
+        <span className="num truncate" title={shell.domain}>
+          {shell.domain}
+        </span>
       </p>
-      {line === null ? null : <p className="rk-prov">{line}</p>}
+      {line === null ? null : (
+        <p className="text-xs opacity-60" data-testid="shell-domain-line">
+          {line}
+        </p>
+      )}
     </div>
   );
 }

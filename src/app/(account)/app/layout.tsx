@@ -1,34 +1,21 @@
-// BUILD §4.4 — the app shell every app screen sits inside.
+// SPEC §4 — the signed-in shell every /app screen sits inside.
 //
-// "Left sidebar (222px, sticky): domain block (accent dot, domain, `Week n ·
-// re-measured Mon`) · nav **Overview / Calendar / Settings** (Calendar shows
-// item count) · footer autopilot card (state + next publish time + toggle).
-// Mobile: sidebar hidden, top tabs. No other navigation."
-//
-// Below 1024 the "top tabs" are the Workspace nav itself, as one row (UI-SPEC
-// §0 11, 2026-09-11, which UI-SPEC wins over §4 on): labels and counts kept,
-// nothing hidden, no drawer and no bottom bar.
+// From `lg` a sticky sidebar: the brand, the domain block, the Workspace nav
+// (Overview / Calendar / Settings, Calendar with its waiting count) and the
+// publishing card at its foot. Below `lg` the sidebar is hidden and the same
+// three parts stand in a header above the screen, the nav as one horizontal
+// row with its labels and count kept. No drawer: the nav is never behind a
+// control, and the shell needs no client runtime beyond marking the current
+// destination.
 //
 // REQ-040's promise is that the publishing state is visible from *every*
-// screen, which is why it lives in this layout and in no screen: a screen
-// that forgot to render it would be the only way to break the promise, and
-// there is no screen that renders it.
+// screen, which is why it lives in this layout and in no screen.
 //
-// **This layout owns the route's `Surface` root** (BP-018: "Every screen
-// root is a `Surface`"; ADR-093 decision 6's sweep asserts exactly one
-// `[data-surface]` per document). Under `/app` the shell *is* the screen
-// root — the sidebar and the main column are what the band arms describe —
-// so a page under `/app` declares no `Surface` of its own. `compact` is one
-// column (top tabs above the content), `medium` is two (sidebar beside
-// main), and `wide` is the same as `medium`: the day panel that changes at
-// `--breakpoint-xl` belongs to the calendar screen (§4.6, issue #16), not
-// to the frame.
+// **This layout owns the route's `Surface` root** — exactly one
+// `[data-surface]` per document. A page under `/app` declares no `Surface`
+// of its own.
 //
-// The shell is read once, here (`readShell`, request-cached), and passed
-// down. `SidebarNav` is the one client component — it needs the current
-// pathname to mark the current destination — and both bands render it, the
-// compact one with `row`, so a fourth destination cannot appear on one
-// breakpoint only.
+// The shell is read once, here (`readShell`, request-cached), and passed down.
 import type React from "react";
 import { TrendingUp } from "lucide-react";
 import { Surface } from "@/ui/layout";
@@ -38,7 +25,18 @@ import { PublishingCard } from "./_shell/PublishingCard";
 import { SidebarNav } from "./_shell/SidebarNav";
 import { StoppedNotice } from "./_shell/StoppedNotice";
 import { readShell } from "./_shell/provider";
-import "@/ui/layout/shell.css";
+
+/** The product's mark, as the public header draws it, linking home to /app. */
+function Brand(): React.JSX.Element {
+  return (
+    <a href="/app" className="flex items-center gap-2 text-lg font-extrabold tracking-tight" data-testid="shell-brand">
+      <span className="grid size-7 place-items-center rounded-field bg-primary text-primary-content" aria-hidden>
+        <TrendingUp size={16} strokeWidth={1.75} aria-hidden />
+      </span>
+      <span>{copy("chrome.wordmark")}</span>
+    </a>
+  );
+}
 
 export default async function AppLayout({
   children,
@@ -55,52 +53,43 @@ export default async function AppLayout({
         wide: { kind: "same-as-below" },
       }}
     >
-      <div className="rk-shell">
-        {/* Below --breakpoint-lg: the sidebar is hidden and its three parts
-            collapse into this header (REQ-040 c5); the Workspace nav is the
-            same nav as one row, counts kept (UI-SPEC §0 11). */}
-        <header className="rk-shell-top" data-testid="shell-top">
-          <DomainBlock shell={shell} />
+      <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-start lg:gap-6">
+        {/* Below lg: the sidebar's three parts, in a header (REQ-040 c5). */}
+        <header
+          className="flex min-w-0 flex-col gap-3 rounded-box border border-base-300 bg-base-100 p-3 lg:hidden"
+          data-testid="shell-top"
+        >
+          <div className="navbar min-h-0 gap-3 p-0">
+            <div className="min-w-0 flex-1">
+              <DomainBlock shell={shell} />
+            </div>
+          </div>
           <SidebarNav waiting={shell.waiting} row />
           <PublishingCard shell={shell} />
         </header>
 
-        <div className="rk-shell-body">
-          <aside className="rk-sidebar" data-testid="shell-sidebar">
-            {/* The column stretches so its rule runs the full height; the
-                inner block is what sticks. See `shell.css`. */}
-            <div className="rk-sidebar-inner">
-              {/* The brand row the set draws at the top of the sidebar
-                  (S12, UI-SPEC §2). The same wordmark and chip markup the
-                  public header spends, from the same key — one word, one
-                  home — because the customer crosses between the two and a
-                  second spelling of the product's name would be visible. */}
-              <p className="rk-wordmark" data-testid="shell-brand">
-                <span className="rk-wordmark-chip" aria-hidden="true">
-                  <TrendingUp size={15} strokeWidth={2} aria-hidden />
-                </span>
-                <span>{copy("chrome.wordmark")}</span>
-              </p>
-              <DomainBlock shell={shell} />
-              {/* The set labels the three destinations. The eyebrow role
-                  supplies the uppercase and the tracking; the string is
-                  "Workspace". */}
-              <div className="flex min-w-0 flex-col gap-1">
-                <span className="eyebrow">{copy("shell.workspace")}</span>
-                <SidebarNav waiting={shell.waiting} />
-              </div>
+        <aside
+          className="hidden w-56 shrink-0 lg:sticky lg:top-4 lg:block"
+          data-testid="shell-sidebar"
+        >
+          <div className="flex min-h-[calc(100vh-2rem)] flex-col gap-5 rounded-box border border-base-300 bg-base-100 p-4">
+            <Brand />
+            <DomainBlock shell={shell} />
+            <div className="flex min-w-0 flex-col gap-1">
+              <h2 className="menu-title px-0 text-xs uppercase tracking-wide">{copy("shell.workspace")}</h2>
+              <SidebarNav waiting={shell.waiting} />
+            </div>
+            <div className="mt-auto">
               <PublishingCard shell={shell} />
             </div>
-          </aside>
-          <main className="rk-main">
-            {/* REQ-092 c3: stated on the screen the customer lands on, once
-                — not in the header and the sidebar the way the domain block
-                and the publishing card are, because two copies of one
-                statement is two accounts of one fact. */}
-            <StoppedNotice stopped={shell.stopped} timeZone={shell.timeZone} />
-            {children}
-          </main>
-        </div>
+          </div>
+        </aside>
+
+        <main className="flex min-w-0 flex-1 flex-col gap-4">
+          {/* REQ-092 c3: stated once, on the screen the customer lands on. */}
+          <StoppedNotice stopped={shell.stopped} timeZone={shell.timeZone} />
+          {children}
+        </main>
       </div>
     </Surface>
   );

@@ -1,4 +1,4 @@
-// UI-SPEC S8 — the account error screen (issue #372).
+// The account error screen (issue #372).
 // src/app/(account)/error.tsx
 //
 // "The error page is the same shape with one written line", inside the app.
@@ -21,7 +21,7 @@
 
 import type React from "react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
-import { Btn } from "@/ui/components/Btn";
+import { ArrowLeft } from "lucide-react";
 import { ErrorScreen } from "@/app/_fallback/Fallback";
 
 /** Owner-owed (12a): S8 draws no line for the error page. */
@@ -36,7 +36,10 @@ export default function AccountError(): React.JSX.Element {
     <ErrorScreen
       line={<p>{copy(LINE)}</p>}
       action={
-        <Btn href={OVERVIEW} label={copy("chrome.back-to-overview")} variant="tertiary" pill />
+        <a href={OVERVIEW} className="btn btn-ghost">
+          <ArrowLeft size={20} strokeWidth={1.75} aria-hidden />
+          {copy("chrome.back-to-overview")}
+        </a>
       }
       testId={TEST_ID}
     />
