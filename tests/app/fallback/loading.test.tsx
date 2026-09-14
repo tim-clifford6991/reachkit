@@ -42,7 +42,7 @@ const EVERY_SCREEN = [
 describe("set §4 rule 3 — a waiting state is one written line", () => {
   it.each(EVERY_SCREEN)("$name draws exactly one sentence", ({ markup }) => {
     expect(occurrences(markup, "<p")).toBe(1);
-    expect(occurrences(markup, `<p class="rk-quiet">${COPY["chrome.loading.line"]}</p>`)).toBe(1);
+    expect(occurrences(markup, `>${COPY["chrome.loading.line"]}</p>`)).toBe(1);
   });
 
   it.each(EVERY_SCREEN)("$name draws no bar and no spinner", ({ markup }) => {
@@ -102,9 +102,10 @@ describe("set §4 rule 3 — a waiting state is one written line", () => {
     expect(REPORT).toContain("<main");
   });
 
-  it("both stand in the centred reading column S8's screens stand in", () => {
+  it("both announce themselves as a busy status, not a blank screen", () => {
     for (const { markup } of EVERY_SCREEN) {
-      expect(occurrences(markup, 'class="rk-fallback"')).toBe(1);
+      expect(occurrences(markup, 'role="status"')).toBe(1);
+      expect(markup).toContain('aria-busy="true"');
     }
   });
 });

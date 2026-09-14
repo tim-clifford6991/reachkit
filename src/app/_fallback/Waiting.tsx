@@ -65,13 +65,15 @@ export function WaitingScreen(p: {
     // second class carrying the same six declarations would be a second
     // place to change them.
     <div
-      className="rk-fallback"
+      // `min-h-svh` reserves the box the screen will need, so the footer
+      // does not sit in view and then jump a page down when it arrives.
+      className="mx-auto flex min-h-svh w-full min-w-0 max-w-2xl flex-col items-center gap-3 px-4 py-12 text-center"
       role="status"
       aria-busy="true"
       data-waiting=""
       data-testid={p.testId}
     >
-      <p className="rk-quiet">{copy(LINE)}</p>
+      <p className="text-base-content/70">{copy(LINE)}</p>
     </div>
   );
 }

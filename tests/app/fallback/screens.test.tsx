@@ -75,22 +75,18 @@ describe("S8 — one shape, and every mount wears it", () => {
     // is the setup gate, and `global-error` replaces the root layout — so
     // on all five the screen is the root.
     expect(occurrences(markup, "data-surface")).toBe(1);
-    expect(occurrences(markup, '<main class="rk-fallback"')).toBe(1);
+    expect(occurrences(markup, "<main ")).toBe(1);
   });
 
   it.each(NOT_FOUND_SCREENS)("$name shows the set's 404 eyebrow and heading", ({ markup }) => {
     expect(markup).toContain(`>${COPY["chrome.notfound.eyebrow"]}</p>`);
-    expect(markup).toContain(
-      `<h1 class="rk-hero-h">${COPY["chrome.notfound.heading"]}</h1>`
-    );
+    expect(markup).toContain(`<h1>${COPY["chrome.notfound.heading"]}</h1>`);
     expect(COPY["chrome.notfound.heading"]).toBe("There is no page at this address.");
   });
 
   it.each(NOT_FOUND_SCREENS)("$name sets the 404 in the mono face", ({ markup }) => {
-    // §2: "every numeral in mono with tabular-nums"; `.num` is the one rule
-    // in `src/ui/type.css` that binds the family, and `.eyebrow` above it
-    // in the same file would otherwise win the family back.
-    expect(markup).toContain('<p class="eyebrow num">404</p>');
+    // Every numeral is in the mono face.
+    expect(markup).toMatch(/<p class="[^"]*\bfont-mono\b[^"]*">404<\/p>/);
   });
 
   it.each(ERROR_SCREENS)("$name keeps its shape, and speaks the owner's three strings", ({ markup }) => {
@@ -104,8 +100,8 @@ describe("S8 — one shape, and every mount wears it", () => {
       expect(AWAITING_COPY).not.toContain(key);
     }
     expect(COPY["chrome.error.eyebrow"]).toBe("Error");
-    expect(markup).toContain(`<p class="eyebrow">${COPY["chrome.error.eyebrow"]}</p>`);
-    expect(markup).toContain(`<h1 class="rk-hero-h">${COPY["chrome.error.heading"]}</h1>`);
+    expect(markup).toMatch(new RegExp(`<p class="[^"]*">${COPY["chrome.error.eyebrow"]}</p>`));
+    expect(markup).toContain(`<h1>${COPY["chrome.error.heading"]}</h1>`);
     expect(markup).toContain(`<p>${COPY["chrome.error.line"]}</p>`);
   });
 });
@@ -211,7 +207,6 @@ describe("S8 — the root 404, the one an unmatched address reaches (#405)", () 
     // those three.
     expect(markup).toContain(COPY["chrome.nav.signin"]);
     expect(markup).toContain(COPY["chrome.cta.scan"]);
-    expect(markup).not.toContain("rk-prov-line");
   });
 
   it("is the (public) 404 itself, not a second composition of S8's keys", () => {

@@ -39,7 +39,6 @@ import "@/ui/layout/surface.css";
 import "@/ui/idiom/idiom.css";
 import { fontVariables } from "@/ui/fonts";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
-import { Btn } from "@/ui/components/Btn";
 import { ErrorScreen } from "@/app/_fallback/Fallback";
 
 /** Owner-owed (12a): S8 draws no line for the error page. */
@@ -61,7 +60,11 @@ export default function GlobalError(): React.JSX.Element {
         <ErrorScreen
           line={<p>{copy(LINE)}</p>}
           action={
-            <Btn href={HOME} label={copy("chrome.back-to-reachkit")} variant="tertiary" pill />
+            // A plain anchor: this renders when the root layout failed, so
+            // it assumes no router. Quiet — the screen asks nothing of them.
+            <a href={HOME} className="btn btn-ghost">
+              {copy("chrome.back-to-reachkit")}
+            </a>
           }
           testId={TEST_ID}
         />

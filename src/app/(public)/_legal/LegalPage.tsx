@@ -43,7 +43,6 @@
 // Server Components that read nothing: no session, no cookie, no store.
 import type React from "react";
 import { Surface } from "@/ui/layout";
-import { Card } from "@/ui/components";
 import { copy } from "@/lib/presentation/copy";
 import { demoteHeadings, parseMarkdown, toHtml } from "@/lib/publish/render/markdown";
 import type { LegalDocument } from "./documents";
@@ -64,26 +63,26 @@ export function LegalPage(p: { document: LegalDocument }): React.JSX.Element {
         wide: { kind: "same-as-below" },
       }}
     >
-      <main className="rk-legal">
-        <span className="eyebrow rk-legal-eyebrow">{copy("legal.eyebrow")}</span>
+      <main className="mx-auto flex w-full min-w-0 max-w-3xl flex-col gap-3 px-4 py-12">
+        <span className="text-xs font-semibold uppercase tracking-wide text-base-content/60">
+          {copy("legal.eyebrow")}
+        </span>
         <h1>{copy(p.document.title)}</h1>
-        {/* §2.3: "Every numeral, date, URL … is JetBrains Mono with
-            tabular-nums." The whole line is a date with one word in front of
-            it, and the approved set sets the whole line in the mono face
-            (`.prov`), so `.rk-prov-line` carries it rather than a span
-            around half a sentence the registry holds whole. */}
-        <p className="rk-prov-line">
+        {/* The whole line is a date with one word in front of it, so the
+            whole line is in the mono face. */}
+        <p className="font-mono text-xs text-base-content/60">
           {copy("legal.updated", { date: copy(p.document.updated) })}
         </p>
-        {/* Headless (issue #369's `title={null}`): the set draws this card
-            with no head, because the page's own h1 above it already names
-            the document and a card head would name it twice. */}
-        <Card state="default" title={null}>
-          <div
-            className="rk-doc rk-doc-levelled"
-            dangerouslySetInnerHTML={{ __html: legalBodyHtml(copy(p.document.body)) }}
-          />
-        </Card>
+        {/* One card, no head: the page's own h1 already names the document.
+            `rk-doc` styles the rendered Markdown, which no daisyUI class covers. */}
+        <div className="card mt-3 border border-base-300 bg-base-100">
+          <div className="card-body">
+            <div
+              className="rk-doc rk-doc-levelled"
+              dangerouslySetInnerHTML={{ __html: legalBodyHtml(copy(p.document.body)) }}
+            />
+          </div>
+        </div>
       </main>
     </Surface>
   );

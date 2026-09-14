@@ -113,14 +113,6 @@ function nodes(element: React.ReactNode): Node[] {
   return [node, ...expanded, ...list.flatMap((child) => nodes(child))];
 }
 
-function named(tree: React.ReactNode, name: string): Node | undefined {
-  return nodes(tree).find((node) => (node.type as { name?: string })?.name === name);
-}
-
-function allNamed(tree: React.ReactNode, name: string): Node[] {
-  return nodes(tree).filter((node) => (node.type as { name?: string })?.name === name);
-}
-
 /**
  * Every string a reader would see, joined.
  *
@@ -138,19 +130,37 @@ function text(tree: React.ReactNode): string {
   );
 }
 
+/** The class list an intrinsic element carries. */
+function classOf(node: Node): string {
+  return String(node.props.className ?? "");
+}
+
 /**
- * The one written line the `Told` arm draws — the set's `.small`.
- *
- * Read off the paragraph rather than off an `Alert`'s props, because there
- * is no longer an `Alert`: the set draws a line, not a tinted block, and a
- * suite that kept asserting a tone would be pinning the shape the master's
- * second review of #399 removed.
+ * The one written line the `Told` arm draws: a plain paragraph, not a
+ * tinted block.
  */
 function toldLine(tree: React.ReactNode): string {
-  const paragraph = nodes(tree).find(
-    (node) => node.type === "p" && String(node.props.className ?? "").includes("rk-quiet")
-  );
+  const paragraph = nodes(tree).find((node) => node.type === "p" && classOf(node).includes("text-base-content/70"));
   return String(paragraph?.props.children ?? "");
+}
+
+/** The card's eyebrow: the uppercase line that opens the card. */
+function eyebrowOf(tree: React.ReactNode): string | undefined {
+  const head = nodes(tree).find((node) => node.type === "p" && classOf(node).includes("uppercase"));
+  if (head === undefined) return undefined;
+  const children = head.props.children;
+  const list = Array.isArray(children) ? children : [children];
+  return list.find((child): child is string => typeof child === "string");
+}
+
+/** Every `<button>` the page draws. */
+function buttonsOf(tree: React.ReactNode): Node[] {
+  return nodes(tree).filter((node) => node.type === "button");
+}
+
+/** Every link the page draws, intrinsic or `next/link`. */
+function linksOf(tree: React.ReactNode): Node[] {
+  return nodes(tree).filter((node) => typeof node.props?.href === "string");
 }
 
 async function ask(query: Record<string, string> = {}): Promise<React.ReactNode> {
@@ -191,7 +201,7 @@ describe("the ask arm — what the set draws, in its own order", () => {
   it("names the moment it publishes, the page, the search and the site", async () => {
     const tree = await ask();
     const rendered = text(tree);
-    expect(named(tree, "CardHead")?.props.eyebrow).toBe(
+    expect(eyebrowOf(tree)).toBe(
       COPY["publish.veto.ask.head"].replace("{when}", "Tue 15 Sep 07:00")
     );
     expect(rendered).toContain("How to choose onboarding software");
@@ -204,7 +214,7 @@ describe("the ask arm — what the set draws, in its own order", () => {
     // draws, and the difference is not cosmetic — the reader is deciding
     // whether tomorrow morning is soon, in their own zone, and a suffixed
     // instant makes them do the arithmetic themselves.
-    const eyebrow = String(named(await ask(), "CardHead")?.props.eyebrow);
+    const eyebrow = String(eyebrowOf(await ask()));
     expect(eyebrow).toContain("Tue 15 Sep 07:00");
     expect(eyebrow).not.toContain("2026-09-15");
     expect(eyebrow).not.toContain("UTC");
@@ -241,17 +251,19 @@ describe("the ask arm — what the set draws, in its own order", () => {
       ok: true,
       preview: { ...LIVE_PREVIEW, publishes: null },
     });
-    const eyebrow = String(named(await ask(), "CardHead")?.props.eyebrow);
+    const eyebrow = String(eyebrowOf(await ask()));
     expect(eyebrow).toBe(COPY["publish.veto.ask.action"]);
     expect(eyebrow).not.toContain("UTC");
   });
 
   it("one solid control, labelled as the set labels it, and one quiet line under it", async () => {
     const tree = await ask();
-    const buttons = allNamed(tree, "Btn");
+    const buttons = buttonsOf(tree);
     expect(buttons).toHaveLength(1);
-    expect(buttons[0]?.props.label).toBe(COPY["publish.veto.ask.action"]);
-    expect(buttons[0]?.props.variant).toBe("primary");
+    expect(buttons[0]?.props.children).toBe(COPY["publish.veto.ask.action"]);
+    expect(classOf(buttons[0] as Node)).toContain("btn-primary");
+    // The screen's only solid button: nothing else carries the primary rank.
+    expect(nodes(tree).filter((node) => classOf(node).includes("btn-primary"))).toHaveLength(1);
     expect(text(tree)).toContain(COPY["publish.veto.ask.do-nothing"]);
   });
 
@@ -271,8 +283,8 @@ describe("the ask arm — what the set draws, in its own order", () => {
       },
     });
     const tree = await ask();
-    expect(allNamed(tree, "Btn")).toHaveLength(1);
-    expect(allNamed(tree, "Btn")[0]?.props.label).toBe(COPY["publish.veto.ask.action"]);
+    expect(buttonsOf(tree)).toHaveLength(1);
+    expect(buttonsOf(tree)[0]?.props.children).toBe(COPY["publish.veto.ask.action"]);
   });
 
   it("the token is never echoed onto the page", async () => {
@@ -287,10 +299,15 @@ describe("the done arm, and the refusals that wear its shape", () => {
   it("coming back from the control, on a token that now reads as spent, says it stopped", async () => {
     previewAnswer = async () => ({ ok: false, reason: "used", title: "How teams pick an onboarding tool" });
     const tree = await ask({ done: "1" });
-    expect(named(tree, "CardHead")?.props.eyebrow).toBe(COPY["publish.veto.done.head"]);
+    expect(eyebrowOf(tree)).toBe(COPY["publish.veto.done.head"]);
     expect(toldLine(tree)).toBe(COPY["publish.veto.stopped"]);
-    expect(named(tree, "Btn")?.props.href).toBe("/app/calendar");
-    expect(named(tree, "Btn")?.props.label).toBe(COPY["publish.veto.calendar"]);
+    const links = linksOf(tree);
+    expect(links).toHaveLength(1);
+    expect(links[0]?.props.href).toBe("/app/calendar");
+    expect(links[0]?.props.children).toBe(COPY["publish.veto.calendar"]);
+    // Quiet: the done arm asks nothing of the reader.
+    expect(classOf(links[0] as Node)).toContain("btn-ghost");
+    expect(buttonsOf(tree)).toHaveLength(0);
   });
 
   it("the done arm draws the page's own title under the eyebrow, as the set does", async () => {
@@ -303,10 +320,11 @@ describe("the done arm, and the refusals that wear its shape", () => {
   });
 
   it("no arm renders a tinted block: the sentence is a line, and warn is never a fill", async () => {
+    const tinted = (tree: React.ReactNode): Node[] => nodes(tree).filter((node) => /\balert\b/.test(classOf(node)));
     previewAnswer = async () => ({ ok: false, reason: "used", title: null });
-    expect(named(await ask({ done: "1" }), "Alert")).toBeUndefined();
+    expect(tinted(await ask({ done: "1" }))).toEqual([]);
     previewAnswer = async () => ({ ok: false, reason: "unknown" });
-    expect(named(await ask(), "Alert")).toBeUndefined();
+    expect(tinted(await ask())).toEqual([]);
   });
 
   it("a refusal names no draft: `unknown` and `expired` draw no title", async () => {
@@ -320,7 +338,7 @@ describe("the done arm, and the refusals that wear its shape", () => {
     // The marker is not a claim on its own: the done arm needs the store to
     // agree. Without this, anyone could be told their page was stopped.
     const tree = await ask({ done: "1" });
-    expect(allNamed(tree, "Btn")[0]?.props.label).toBe(COPY["publish.veto.ask.action"]);
+    expect(buttonsOf(tree)[0]?.props.children).toBe(COPY["publish.veto.ask.action"]);
     expect(redeemed).toEqual([]);
   });
 
@@ -382,22 +400,19 @@ describe("the done arm, and the refusals that wear its shape", () => {
       params: Promise.resolve({ token: "a-token" }),
       searchParams: Promise.resolve({}),
     });
-    expect(allNamed(tree, "Btn")[0]?.props.label).toBe(COPY["publish.veto.ask.action"]);
+    expect(buttonsOf(tree)[0]?.props.children).toBe(COPY["publish.veto.ask.action"]);
   });
 });
 
 describe("the card starts at its own head, and the brand is in the bar", () => {
-  // Master's third review of #399: S6's card opens on `cardHead('clock',
-  // 'PUBLISHES …')` and carries no wordmark — the brand is drawn once, in
-  // the public bar the group layout puts around this page. A card titled
-  // *ReachKit* under a bar saying *ReachKit* is the same word twice. The
-  // wordmark over a card belongs to the mail shell (S20), which has no bar.
-  it("both arms pass `Card` a headless title", async () => {
+  // The brand is drawn once, in the public bar the group layout puts around
+  // this page; a card titled *ReachKit* under it would say it twice.
+  it("both arms open one daisyUI card on its eyebrow", async () => {
     previewAnswer = async () => LIVE;
-    expect(named(await ask(), "Card")?.props.title).toBeNull();
+    expect(nodes(await ask()).filter((node) => /(^|\s)card(\s|$)/.test(classOf(node)))).toHaveLength(1);
 
     previewAnswer = async () => ({ ok: false, reason: "used", title: "How teams pick an onboarding tool" });
-    expect(named(await ask({ done: "1" }), "Card")?.props.title).toBeNull();
+    expect(nodes(await ask({ done: "1" })).filter((node) => /(^|\s)card(\s|$)/.test(classOf(node)))).toHaveLength(1);
   });
 
   it("the page spends no wordmark key at all", () => {
@@ -419,9 +434,9 @@ describe("the surface owns no token knowledge", () => {
     expect(text(await ask())).not.toContain("draft-2026-09-15");
   });
 
-  it("one Surface at the root, one Card, and it holds no string a person reads", () => {
+  it("one Surface at the root, no wrapper component, and it holds no string a person reads", () => {
     const code = codeOf(PAGE);
-    expect(code).toMatch(/from "@\/ui\/components"/);
+    expect(code).not.toMatch(/from "@\/ui\/(components|idiom)"/);
     expect(code).toMatch(/from "@\/ui\/layout"/);
     expect(code).not.toMatch(/message=\{"|message="/);
   });
