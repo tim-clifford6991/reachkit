@@ -16,8 +16,13 @@ import { token } from "./tokens";
 export interface FrameParts {
   /** The product's name, rendered from its copy key by `compose.ts`. */
   wordmark: string;
-  /** The block rows, already rendered as `<tr>`s by `renderBlocksHtml`. */
+  /** The block rows before the first action, already rendered as `<tr>`s
+   *  by `renderBlocksHtml`. */
   rows: string;
+  /** The rows from the first action on. The whole-mail line stands between
+   *  the two, so it is read with the sections it is about and not under
+   *  the button. */
+  actions: string;
   /** The one line a mail carries when its conditional sections said
    *  nothing — or when the week behind it could not be measured. `null`
    *  on a mail that has something to say. */
@@ -105,6 +110,7 @@ export function frameHtml(parts: FrameParts): string {
     brandHeadHtml(parts.wordmark),
     parts.rows,
     wholeMailLineHtml(parts.wholeMailLine),
+    parts.actions,
     `</table>`,
     `</td></tr>`,
     // The whole footer is mono, as S20 draws it — the reason line included,

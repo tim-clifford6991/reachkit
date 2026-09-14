@@ -141,11 +141,27 @@ function renderWholeMailLine(key: CopyKey | null, measurement?: MeasurementState
   return copy(key);
 }
 
+/** Where the action run starts: the first `action` block, or the end of
+ *  the list for a mail that has none. */
+function firstActionIndex(blocks: readonly MailBlock[]): number {
+  const index = blocks.findIndex((block) => block.block === "action");
+  return index === -1 ? blocks.length : index;
+}
+
 /** The seam's one composer. Every mail the product sends is built here,
  *  wearing the one frame, carrying both bodies. */
 export function composeMail(m: ComposeInput): ComposedMail {
-  const htmlBody = renderBlocksHtml(m.blocks);
-  const textBody = renderBlocksText(m.blocks);
+  // The blocks are rendered in two runs, split at the first action: the
+  // whole-mail line is a statement about the sections, so it stands after
+  // them and before the one button rather than under it. Omission is
+  // decided block by block (`omit.ts`), so the split changes no decision;
+  // the tail's indexes are shifted back to the whole list's.
+  const cut = firstActionIndex(m.blocks);
+  const head = { html: renderBlocksHtml(m.blocks.slice(0, cut)), text: renderBlocksText(m.blocks.slice(0, cut)) };
+  const tail = { html: renderBlocksHtml(m.blocks.slice(cut)), text: renderBlocksText(m.blocks.slice(cut)) };
+  const shift = (indexes: readonly number[]): readonly number[] => indexes.map((index) => index + cut);
+  const htmlBody = { omitted: [...head.html.omitted, ...shift(tail.html.omitted)] };
+  const textBody = { omitted: [...head.text.omitted, ...shift(tail.text.omitted)] };
 
   const wholeMailLine = chooseWholeMailLine({ blocks: m.blocks, measurement: m.measurement });
   const line = renderWholeMailLine(wholeMailLine, m.measurement);
@@ -179,8 +195,8 @@ export function composeMail(m: ComposeInput): ComposedMail {
 
   return {
     subject: copy(m.subject, m.subjectVars),
-    html: frameHtml({ ...footer, rows: htmlBody.html, wholeMailLine: line, optOut }),
-    text: frameText({ ...footer, body: textBody.text, wholeMailLine: line, optOut }),
+    html: frameHtml({ ...footer, rows: head.html.html, actions: tail.html.html, wholeMailLine: line, optOut }),
+    text: frameText({ ...footer, body: head.text.text, actions: tail.text.text, wholeMailLine: line, optOut }),
     omitted: htmlBody.omitted,
     wholeMailLine,
   };

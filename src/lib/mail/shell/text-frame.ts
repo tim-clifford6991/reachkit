@@ -10,9 +10,12 @@ import type { FrameParts } from "./frame";
  *  plain-text equivalent of the card's bottom edge. */
 const FOOTER_RULE = "—".repeat(24);
 
-export interface TextFrameParts extends Omit<FrameParts, "rows"> {
-  /** The block body, already rendered by `renderBlocksText`. */
+export interface TextFrameParts extends Omit<FrameParts, "rows" | "actions"> {
+  /** The blocks before the first action, rendered by `renderBlocksText`. */
   body: string;
+  /** The blocks from the first action on; the whole-mail line stands
+   *  between the two, as it does in the HTML half. */
+  actions: string;
 }
 
 /** The separator the imprint band's parts are set between, as `frame.ts`
@@ -22,7 +25,7 @@ const BAND_SEPARATOR = " · ";
 export function frameText(parts: TextFrameParts): string {
   const bands: string[] = [parts.wordmark];
 
-  const body = parts.wholeMailLine === null ? parts.body : [parts.body, parts.wholeMailLine].filter((s) => s !== "").join("\n\n");
+  const body = [parts.body, parts.wholeMailLine ?? "", parts.actions].filter((s) => s !== "").join("\n\n");
   if (body !== "") bands.push(body);
 
   // S20's footer, the same three things in the same order as the HTML

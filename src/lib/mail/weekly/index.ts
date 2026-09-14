@@ -16,14 +16,15 @@
 // the week, and the refusal that matters most is a line the owner has not
 // written yet: the mail has to go the moment they write it.
 //
-// **A week the site did not measure sends no mail** (ADR-071: no row, no
-// state). Not an empty digest and not a "nothing happened" note — a week
-// with no measurement has nothing to report *about*, and the account of
-// what is owed and when the next one is due belongs to the screens, which
-// state it from the same `accountForWeek` this module reads. A week that
-// was measured and reached only some of its sections **does** send, with
-// the sections it missed named: that is REQ-064 c4, and it is the arm the
-// omission rule exists for.
+// **An unmeasured week still sends, saying so** (SPEC §8, Weekly: "Unmeasured
+// week still sends, saying so"). Its row exists — a failed pass leaves one —
+// and its account says `not_measured`: the digest carries no section and no
+// figure, only the whole-mail line naming the date the next measurement is
+// due, and it is stamped like any other week. A week with **no row at all**
+// has no key to be told once against and still sends nothing, and neither
+// does a site whose access has ended (`not_owed`: "Stops: … access ends").
+// A week measured only in part sends with the sections it missed named
+// (REQ-064 c4).
 //
 // **The digest is composed for the week, never re-measured.** Every figure
 // comes from what is already stored: the standings from `weeklyDigest`,
@@ -33,7 +34,7 @@
 import { dbAdmin } from "@/lib/db";
 import { WEEKLY_NEXT_COUNT } from "@/lib/config/constants";
 import type { CopyKey } from "@/lib/presentation/copy";
-import { measured, type Measured } from "@/lib/measure/measured";
+import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
 import { rankOpen, weeklyDigest } from "@/lib/opportunities";
 import { opportunityStore, readOpportunity } from "@/lib/opportunities/store";
 import { accountForWeek, weekMovement, type UnmeasuredPart } from "@/lib/scan/weekly";
@@ -113,16 +114,58 @@ export async function sendWeeklyDigest(a: {
   if (week === null) return { sent: false, reason: "not-measured" };
   if (week.digest_sent_at !== null) return { sent: false, reason: "already-sent" };
 
-  // ADR-071: no row, no state. A week that was not measured is not a week
-  // with an empty digest — it has nothing to report about, and what is
-  // owed instead is the screens' account, not a mail.
+  // Access has ended: no week is owed and none is announced.
   const account = await accountForWeek({ siteId: a.siteId, weekStart: a.weekStart, now });
-  if (account.kind === "not_measured" || account.kind === "not_owed") {
-    return { sent: false, reason: "not-measured" };
-  }
+  if (account.kind === "not_owed") return { sent: false, reason: "not-measured" };
 
   const recipient = await readRecipient(a.siteId);
   if (recipient === null) return { sent: false, reason: "no-account" };
+
+  const { mail, measurement } =
+    account.kind === "not_measured"
+      ? unmeasuredWeek(account.nextDueOn, now)
+      : await measuredWeek(a.siteId, a.weekStart, account);
+
+  const result = await sendEmail({
+    kind: "weekly",
+    to: recipient.email,
+    userId: recipient.userId,
+    subject: mail.subject,
+    blocks: mail.blocks,
+    reason: mail.reason,
+    measurement,
+  });
+
+  if (!result.sent) {
+    // `not-composable` is the owner's unwritten line, reported as itself.
+    // Nothing is stamped either way: the week stays open and the next tick
+    // offers it again.
+    return { sent: false, reason: result.reason === "not-composable" ? "not-composable" : "mail" };
+  }
+
+  await stampSent(week.id, now);
+  return { sent: true, id: result.id };
+}
+
+type Composed = { mail: ReturnType<typeof buildWeekly>; measurement: MeasurementState };
+
+/** A week with no measurement: every section unmeasured, so every one is
+ *  omitted, and the whole-mail line says so with the next due date. */
+function unmeasuredWeek(nextDueOn: Date, now: Date): Composed {
+  const gap = unmeasured<never>("undeterminable", now);
+  return {
+    mail: buildWeekly({ scoreDelta: gap, aiAnswersDelta: gap, pages: gap, next: gap }),
+    measurement: { state: "none", nextDueOn },
+  };
+}
+
+/** A week that was measured, in whole or in part: its stored figures. */
+async function measuredWeek(
+  siteId: string,
+  weekStart: string,
+  account: { kind: "complete" | "partial"; measuredAt: Date; unmeasured?: readonly UnmeasuredPart[] }
+): Promise<Composed> {
+  const a = { siteId, weekStart };
 
   const digest = await weeklyDigest({ siteId: a.siteId, week: a.weekStart });
   // The date every figure in this mail is stated as of. `weekMeasuredAt`
@@ -143,32 +186,11 @@ export async function sendWeeklyDigest(a: {
     aiAnswersDelta: movement.aiAnswersDelta,
     // Measured, and measured-empty where the week judged nothing: "you
     // have published nothing yet" is a result, and the template's own
-    // empty line states it. The `unmeasured` arm belongs to a week that
-    // produced no standings to read at all, which is the not-measured
-    // case this function has already returned on.
+    // empty line states it.
     pages: measured(pages, at),
     next: await nextThree(a.siteId, at),
   });
-
-  const result = await sendEmail({
-    kind: "weekly",
-    to: recipient.email,
-    userId: recipient.userId,
-    subject: mail.subject,
-    blocks: mail.blocks,
-    reason: mail.reason,
-    measurement: measurementStateOf(account),
-  });
-
-  if (!result.sent) {
-    // `not-composable` is the owner's unwritten line, reported as itself.
-    // Nothing is stamped either way: the week stays open and the next tick
-    // offers it again.
-    return { sent: false, reason: result.reason === "not-composable" ? "not-composable" : "mail" };
-  }
-
-  await stampSent(week.id, now);
-  return { sent: true, id: result.id };
+  return { mail, measurement: measurementStateOf(account) };
 }
 
 /** §12's "next 3", by the ranking as it stands. Measured-and-empty where

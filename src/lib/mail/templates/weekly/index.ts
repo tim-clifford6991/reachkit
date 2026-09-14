@@ -12,8 +12,9 @@
 // the result it is.
 //
 // The four sections are §12's own four, in its own order. `weekly` is
-// `stoppable: 'toggle'` in the register, so the caller hands `sendEmail` an
-// unsubscribe control; this file carries none.
+// `stoppable: 'toggle'` in the register; the stop control is the caller's to
+// hand `sendEmail`, and this file carries none. No caller hands one yet:
+// there is no `/unsubscribe/{token}` page for the signed token to land on.
 //
 // **What is not here.** The whole-mail line a week that was not measured
 // (or was measured only in part) carries is `composeMail`'s, chosen from
