@@ -1,23 +1,13 @@
-/* src/ui/theme.css — the approved token set, and nothing else.
+/* src/ui/theme.css — the only token file.
  *
- * **This file carries `docs/design/approved/tokens.css` exactly**: the same
- * names at the same values, in the same three blocks, plus the six additions
- * ruling 10a made on top of the artifact. `tests/ui/design/token-set.test.ts`
- * diffs the two files by name and value in both directions, so a token added
- * here that the owner did not approve fails, and an approved token dropped
- * here fails (issue #349).
+ * Colour, radius and the type/space names the product still spends as
+ * `var(--…)` live here. daisyUI's theme in `tailwind.css` maps onto these.
+ * Docs: `docs/DESIGN.md`.
  *
- * That is the whole rule, and it is why this file no longer explains each
- * value: the explanation belongs in `docs/design/approved/tokens.css` and in
- * `docs/design/approved/full-set/UI-SPEC.md` §1, which is where a reader
- * should be sent. What lives here is the transcription.
- *
- * Three-state theming, `BUILD.md` §2.1 verbatim: "bare `:root` = light;
+ * Three-state theming: bare `:root` = light;
  * `@media (prefers-color-scheme: dark)` guarded with
  * `:root:not([data-theme="light"])`; `:root[data-theme="dark"]` for the
- * explicit toggle. Never define a color only inside a dark block." Every
- * token the dark blocks override is declared in the bare `:root` above them
- * (`tests/ui/tokens.test.ts`'s mutation check).
+ * explicit toggle. Never define a color only inside a dark block.
  *
  * Two tokens the product used to declare are **resolved**, not moved
  * (ruling 8a, and the focus state the approved set draws):

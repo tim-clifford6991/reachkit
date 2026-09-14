@@ -10,7 +10,7 @@ import path from "node:path";
 import postcss, { type AtRule, type Declaration, type Rule } from "postcss";
 import { describe, expect, it } from "vitest";
 import { widths } from "../layout/widths";
-import { APPROVED_TOKENS_CSS, THEME_CSS, tokenSet } from "./tokens-doc";
+import { THEME_CSS, tokenSet } from "./tokens-doc";
 
 const REPO = path.resolve(import.meta.dirname, "../../..");
 const SRC = path.join(REPO, "src");
@@ -144,12 +144,10 @@ describe("§0 12 — footer links", () => {
 });
 
 describe("§0 13 — one motion token", () => {
-  it("--motion-fast is .18s in all three blocks of both token files", () => {
-    for (const file of [APPROVED_TOKENS_CSS, THEME_CSS]) {
-      const set = tokenSet(file);
-      for (const block of ["light", "dark-media", "dark-toggle"] as const) {
-        expect(set[block].get("--motion-fast"), `${path.basename(file)} ${block}`).toBe(".18s");
-      }
+  it("--motion-fast is .18s in all three blocks of theme.css", () => {
+    const set = tokenSet(THEME_CSS);
+    for (const block of ["light", "dark-media", "dark-toggle"] as const) {
+      expect(set[block].get("--motion-fast"), block).toBe(".18s");
     }
   });
 
