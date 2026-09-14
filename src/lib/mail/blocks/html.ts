@@ -128,8 +128,15 @@ function renderAction(labelText: string, href: string): string {
   if (safe === null) {
     return row(`<p style="margin:0">${escapeHtml(labelText)}</p>`);
   }
+  // A table-cell button: Outlook ignores padding and background on an
+  // `<a>`, so the fill lives on the cell — as `bgcolor` too, for clients
+  // that drop CSS backgrounds — and the link inside keeps its own padding
+  // for every client that honours it. One link, one solid fill.
   return row(
-    `<a href="${escapeHtml(safe)}" style="display:inline-block;padding:11px 18px;border-radius:${token("--r-pill")};background:${token("--accent")};color:${token("--on-accent")};text-decoration:none;font-family:${token("--font-ui-mail")};font-size:${token("--t-body")};font-weight:700">${escapeHtml(labelText)}</a>`
+    `<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>` +
+      `<td bgcolor="${token("--accent")}" style="border-radius:${token("--r-pill")};background:${token("--accent")}">` +
+      `<a href="${escapeHtml(safe)}" style="display:inline-block;padding:11px 18px;border-radius:${token("--r-pill")};background:${token("--accent")};color:${token("--on-accent")};text-decoration:none;font-family:${token("--font-ui-mail")};font-size:${token("--t-body")};font-weight:700">${escapeHtml(labelText)}</a>` +
+      `</td></tr></table>`
   );
 }
 

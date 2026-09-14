@@ -14,15 +14,15 @@ const build = (): ReturnType<typeof buildMagicLink> =>
   buildMagicLink({ href: HREF, address: ADDRESS });
 
 describe('§13 — "send magic link → /setup"', () => {
-  it("S20's shape: heading, one line, the address it was sent to, one button", () => {
-    // Issue #376. The address is a fact row because this mail is a
-    // credential: a reader sent one at an address they do not recognise
-    // can see that before they click.
+  it("SPEC §8's shape: heading, one line, the one action, then the address it was sent to", () => {
+    // The address is a fact row because this mail is a credential: a
+    // reader sent one at an address they do not recognise can see that
+    // beside the button.
     expect(build().blocks).toEqual([
       { block: "heading", text: "mail.magicLink.heading" },
       { block: "paragraph", text: "mail.magicLink.body" },
-      { block: "facts", items: [{ label: "mail.magicLink.fact.for", value: ADDRESS }] },
       { block: "action", label: "mail.magicLink.action", href: HREF },
+      { block: "facts", items: [{ label: "mail.magicLink.fact.for", value: ADDRESS }] },
     ]);
   });
 
@@ -87,5 +87,33 @@ describe("the sentences are the approved set's, word for word", () => {
     });
     expect(composed.subject).toBe("Your sign-in link");
     expect(composed.text).toContain(ADDRESS);
+  });
+});
+
+const { composeMail } = await import("../../../../src/lib/mail/shell/compose");
+
+describe("#637 — the composed mail, as an inbox receives it", () => {
+  const mail = build();
+  const { html, text } = composeMail({ kind: "magic-link", subject: mail.subject, blocks: mail.blocks, reason: mail.reason });
+  const inOrder = (body: string, parts: readonly string[]): void => {
+    const at = parts.map((part) => body.indexOf(part));
+    expect(at.every((i) => i >= 0), `every part is present: ${at.join(",")}`).toBe(true);
+    expect([...at].sort((a, b) => a - b)).toEqual(at);
+  };
+  const [heading, body, reason] = [COPY["mail.magicLink.heading"], COPY["mail.magicLink.body"], COPY["mail.reason.magicLink"]];
+
+  it("both bodies read heading, line, action, fact row, then the reason footer", () => {
+    inOrder(html, [heading, body, `>${COPY["mail.magicLink.action"]}</a>`, ADDRESS, reason]);
+    inOrder(text, [heading, body, HREF, ADDRESS, reason]);
+  });
+
+  it("one solid action — a single link on a filled table cell — and no stop control", () => {
+    expect([...html.matchAll(/<a href="([^"]*)"/g)].map((m) => m[1])).toEqual([HREF]);
+    expect(html).toMatch(/<td bgcolor="#[0-9a-f]{6}"[^>]*><a href=/);
+    expect(html).not.toMatch(/\sclass="/);
+    for (const b of [html, text]) {
+      expect(b).not.toContain(COPY["mail.optout.label"]);
+      expect(b).not.toContain(COPY["mail.unsubscribe.label"]);
+    }
   });
 });
