@@ -234,6 +234,85 @@ whichever environment is walked.
    the operation alone. A 401 becomes the token `credentials_expired` in
    `destinations/wordpress/errors.ts`, and the payload stops there.
 
+### The deep pass, for real
+
+`docs/SPEC.md` §6's supply and §7's calendar are built and have never run against a real domain. This is the one
+walk that runs a pass, and where to read each thing it did. It needs a paid account whose setup is
+finished (`docs/stripe-setup.md`) and the Inngest app registered (above).
+
+**What starts it: completing setup, and nothing else.** `enqueueDeepPass`
+(`src/app/(account)/setup/_setup/store.ts`) sends `scan/run` with `tier: "deep"`. There is no
+second trigger — the port `src/lib/account/provisioning/deep-pass.ts` offers is registered by
+nothing, so the `queueDeepPass` call provisioning makes at payment answers `not_wired` and queues
+no pass.
+
+**It runs once per site.** The event's `scanId` is `setup-{siteId}`, which is the job's idempotency
+key, so a second setup submit for the same site is deduplicated rather than run again. Running a
+second pass against a site that has had one means a new site row, or an event sent from the Inngest
+dashboard with a different `scanId` (*Running one by hand*, above).
+
+**What it may spend:** `CAPS.DEEP_C` = 150¢, re-checked between stages. The report ceiling does not
+apply to this tier (`TIER_PARAMETERS.deep.deadlineApplies` is `false`) and the founder is released
+at `TIMING.deepReleaseMin` = 10 minutes whatever the pass is still doing. A cap degrades and never
+throws (§8).
+
+**The spend is ledgered per call, not per stage.** `fetches` has no stage column, and a paid pass
+appends nothing to `scans.stage_events` — the two paid tiers insert their `scans` row only when
+they store a report — so a stage's cost is read back through `fetches.source`:
+
+| Stage | Buys | `fetches.source` |
+|---|---|---|
+| `reading_your_site` | the home and pricing documents | `egress.safeFetch` |
+| `reading_access_rules` | nothing | — |
+| `reading_your_market` | the profile, the twelve's wording, seed suggestions | `profile`, `question-phrasing`, `dataforseo_labs/google/keyword_suggestions` |
+| `checking_your_presence` | the customer at 300 rows, then each tracked rival at 100 | `dataforseo_labs/google/ranked_keywords`, `dataforseo_labs/google/competitors_domain` |
+| `asking_the_twelve` | twelve live SERPs and the paid battery | `serp/google/organic`, `serp/google/ai_mode`, `ai_optimization/chat_gpt/llm_scraper` |
+| `scoring` | nothing | — |
+| *after the report* | one typing call per candidate | `opportunity-typing` |
+
+Per-stage *timing* is `sites.setup_stage_times`, one instant per stage, written by
+`src/lib/scan/deep/run.ts`. One pass's own spend is
+`select source, count(*), sum(cost_cents) from fetches where scan_id = …` (§8).
+
+**What to read when it ends, in order.**
+
+1. the job line — `{"event":"job","jobId":"scan/run","outcome":…}`: `ran`, or `degraded` naming the
+   step it stopped at;
+2. the supply line — `{"event":"supply_depth","stop":…,"unused":…,"created":…}`: `target_met` (the
+   30 days `SUPPLY_TARGET_DEPTH` asks for), `evidence_spent` (the market supported fewer), or
+   `pass_ended_early` (the cap went first);
+3. `sites.setup_released_reason` — `completed`, `degraded`, `failed` or `deadline`;
+4. `scans.stopped_reason` — `complete`, `time_ceiling`, `spend_ceiling`, `site_unreadable` or
+   `failed`;
+5. `/app/calendar` — the planned dates, at most one page each. Two pages on one date is a data
+   defect and raises (`TwoPagesOnOneDateError`) rather than drawing both.
+
+A pass that derived nothing still releases the founder and is not an error: zero proposals is legal
+and never faked, and the calendar then states which kind of empty each date is.
+
+### An empty day, and which kind
+
+One account per date, first match over `EMPTY_PRECEDENCE`
+(`src/app/(account)/app/calendar/empty.ts`), total — so every empty date carries exactly one
+written line and none is padded. What a real run can produce today is narrower than the union: the
+calendar's own read supplies no instruction and no stopped day (`readCalendarFacts` leaves both
+empty until #42 and #39 are built), so those two arms cannot fire from this screen yet.
+
+| Cause | Fires when | Read it from |
+|---|---|---|
+| `instruction` | a Fix is dated to the day — not read yet | — |
+| `reachkit_stopped` | ReachKit's own stopped-work record says so — not read yet | — |
+| `page_cannot_go_live` | the date's draft is `skipped` or `unpublished` | the draft's state |
+| `customer_change_holds_pages` | publishing is off, or the destination is disconnected | the site's publishing settings |
+| `change_holds_generation` | a domain or category answer is being replaced | `generationHold()` |
+| `page_held` | a page was planned for the date and did not go out | the publishing machine's held days |
+| `supply_exhausted` | `supplyDepth().unused` was read **and** is zero | `{"event":"supply_depth"}` |
+| `unattributed` | nothing above is established, or the publishing facts were unreadable | the last arm, never a widened one |
+
+`supply_exhausted` is proven only: a depth that could not be read is `null` and not zero, and the
+date falls to `unattributed` rather than telling a customer their market is empty on a day the
+database merely broke.
+
 ---
 
 ## 5. The kill switch
@@ -624,6 +703,7 @@ deployment (`dpl_2NEUXishMXAkzXG4Ti85yTy7NDda`, 23 Aug 2026).
 | every page 500s and nothing changed | §2 — the Supabase project may have paused after seven idle days |
 | nothing has published for days | §4 — is the Inngest app registered? The ticks are silent when it is not |
 | a WordPress destination needs proving | §4 — the six-step walk, and what each step should show |
+| a real deep pass needs running, or the calendar shows empty days | §4 — the deep-pass walk, and which kind of empty each date is |
 | spend looks wrong | §8 — the SQL is there; `fetches` is the truth |
 | stop the spend now | §5 — `KILL_SWITCH=true` on every target, **then redeploy** |
 | a key leaked | §3 — rotate: mint, paste both targets, redeploy, verify, revoke |
