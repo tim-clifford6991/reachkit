@@ -140,12 +140,9 @@ export const SETUP_COPY = Object.freeze({
   "setup.competitors.refused.already-present": ["That domain is already in your set.", { slots: {}, fixedBy: "REQ-026 c8" }],
   "setup.competitors.refused.set-full": ["Your set is full. Remove a rival to add another.", { slots: {}, fixedBy: "REQ-026 c9" }],
 
-  // ── Mode + destination (REQ-028) ────────────────────────────────────
-  "setup.publishing.title": ["Mode + destination", { slots: {}, fixedBy: "REQ-028 c1 · S10 (11a)" }],
-  /** REQ-028 c1: one written line each — pages publish after a review
-   *  window they can stop, versus only when they approve. */
-  "setup.mode.autopilot": ["Each page publishes when its veto window ends, unless you stop it.", { slots: {}, fixedBy: "REQ-028 c1" }],
-  "setup.mode.copilot": ["Nothing publishes until you approve it.", { slots: {}, fixedBy: "REQ-028 c1" }],
+  // ── Destination (REQ-028) ───────────────────────────────────────────
+  // No mode pair and no mode title (SPEC §7, #476): the card is headed with
+  // `settings.publishing.title`.
   "setup.destination.hosted.name": ["Hosted blog", { slots: {}, fixedBy: "REQ-028 c2" }],
   "setup.destination.hosted": ["a blog on your own domain, served by us", { slots: {}, fixedBy: "REQ-028 c2" }],
   "setup.destination.wordpress.name": ["WordPress", { slots: {}, fixedBy: "REQ-028 c3" }],

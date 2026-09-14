@@ -20,7 +20,6 @@ const SUBMISSION: SetupSubmission = {
   domain: "example.com",
   category: "agency CRM",
   competitors: ["asana.com"],
-  mode: "autopilot",
   // SPEC §5 (2026-09-12): the hosted arm carries the subdomain label the
   // founder chose. `content` is the default they are shown.
   destination: { kind: "hosted", label: "content" },
@@ -67,12 +66,13 @@ describe('REQ-025 c2 — "one action starts the product: no multi-page wizard, n
 });
 
 describe('REQ-025 c1 — "it asks for exactly three decisions ... and for nothing else, save the site address"', () => {
-  it("the submission shape has exactly six members, and none of them can carry a duration", () => {
+  it("the submission shape has exactly five members, and none of them can carry a duration", () => {
     // A field absent from the type cannot be sent. The literal list here
     // is the assertion: adding a decision means editing this line, which
     // is the review the requirement asks for.
     //
-    // `voiceText` is the sixth since 2026-09-12 (SPEC.md §5, "The site
+    // No `mode` since #476 (SPEC §7: Autopilot is the only mode).
+    // `voiceText` joined on 2026-09-12 (SPEC.md §5, "The site
     // profile is confirmed here"): the brand-voice summary the founder
     // confirmed or edited. It is not an engine parameter — the row below
     // is what holds it to that — and §5 allows this screen one submit, so
@@ -82,7 +82,6 @@ describe('REQ-025 c1 — "it asks for exactly three decisions ... and for nothin
       "competitors",
       "destination",
       "domain",
-      "mode",
       "voiceText",
     ]);
   });

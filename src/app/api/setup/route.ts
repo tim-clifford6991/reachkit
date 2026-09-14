@@ -38,7 +38,8 @@ function parseSubmission(body: unknown): SetupSubmission | null {
   if (typeof b.domain !== "string") return null;
   if (typeof b.category !== "string") return null;
   if (!Array.isArray(b.competitors) || b.competitors.some((c) => typeof c !== "string")) return null;
-  if (b.mode !== "autopilot" && b.mode !== "copilot") return null;
+  // No `mode` (SPEC §7, #476): Autopilot is the only mode, so a `mode` in
+  // the body is dropped like any other unknown member.
   // SPEC.md §5 (2026-09-12). A body with no voice is a founder whose site
   // had no profile to confirm: the empty string, never a `null` the store
   // would have to arm for.
@@ -60,7 +61,6 @@ function parseSubmission(body: unknown): SetupSubmission | null {
     domain: b.domain,
     category: b.category,
     competitors: b.competitors as string[],
-    mode: b.mode,
     destination:
       kind === "hosted"
         ? { kind: "hosted", label: label ?? DEFAULT_HOSTED_LABEL }

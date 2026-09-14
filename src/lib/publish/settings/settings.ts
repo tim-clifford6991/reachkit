@@ -13,7 +13,7 @@
 // written.
 //
 // **The days-to-hours conversion exists here and nowhere else.** The screen
-// offers whole days 0–7 (`VETO.minDays`/`VETO.maxDays`); the column stores
+// offers whole days 1–7 (`VETO.minDays`/`VETO.maxDays`); the column stores
 // hours because BUILD §10 names it `veto_hours`. Two conversions would be
 // two chances to disagree about what "1 day" is.
 //
@@ -29,7 +29,7 @@
 // The archived plans are WO-218 and WO-219.
 import { VETO } from "@/lib/config/constants";
 import { publishDb } from "../db";
-import { isWholeDays, vetoHoursFromDays } from "./veto";
+import { governingVetoHours, isWholeDays, vetoHoursFromDays } from "./veto";
 
 export type Mode = "autopilot" | "copilot";
 
@@ -137,7 +137,7 @@ const DEFAULT_PUBLISH_TIME = "09:00";
 export function toPublishingSettings(row: SiteSettingsRow): PublishingSettings {
   return {
     mode: row.mode === "copilot" ? "copilot" : "autopilot",
-    vetoHours: typeof row.veto_hours === "number" ? row.veto_hours : VETO.defaultHours,
+    vetoHours: governingVetoHours(row.veto_hours),
     publishTime: toHhMm(row.publish_time),
     // Never a fallback. A null zone travels as null.
     timezone: row.timezone,

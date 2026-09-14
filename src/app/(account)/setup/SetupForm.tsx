@@ -44,7 +44,6 @@ import {
 import {
   preselected,
   type DestinationKind,
-  type PublishingMode,
 } from "@/lib/publish/setup/cards";
 import { MarketCard } from "./MarketCard";
 import { ProfileCard } from "./ProfileCard";
@@ -102,7 +101,6 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
   const [voiceDraft, setVoiceDraft] = useState(
     p.model.profile?.voice?.text ?? "",
   );
-  const [mode, setMode] = useState<PublishingMode>(defaults.mode);
   const [destination, setDestination] = useState<DestinationKind>(
     defaults.destination,
   );
@@ -135,7 +133,6 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
       domain: state.siteDomain,
       category,
       competitors: state.rivals.map((rival) => rival.domain),
-      mode,
       destination:
         destination === "hosted"
           ? { kind: "hosted", label }
@@ -193,8 +190,6 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
         cards={p.model.cards}
         siteDomain={state.siteDomain}
         cnameTarget={p.model.cnameTarget}
-        mode={mode}
-        onMode={setMode}
         destination={destination}
         onDestination={setDestination}
         label={label}

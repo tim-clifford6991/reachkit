@@ -52,7 +52,6 @@ const SUBMISSION = {
   domain: "example.com",
   category: "project management software for agencies",
   competitors: ["asana.com", "monday.com"],
-  mode: "copilot" as const,
   destination: { kind: "wordpress" as const, connectLater: true as const },
   // SPEC.md §5 (2026-09-12): the voice the founder confirmed or edited.
   // A value the stored profile does not already carry, so these rows
@@ -67,7 +66,8 @@ function site(overrides: Record<string, unknown> = {}) {
     domain: "old.example",
     category: null,
     competitors: [],
-    mode: "autopilot",
+    // A row left copilot from before #476: setup records autopilot over it.
+    mode: "copilot",
     created_at: CREATED.toISOString(),
     setup_completed_at: null,
     ...overrides,
@@ -116,7 +116,7 @@ describe("commitSetup — the three answers, the transaction, then the stamp", (
     expect(row.domain).toBe("example.com");
     expect(row.category).toBe(SUBMISSION.category);
     expect(row.competitors).toEqual(["asana.com", "monday.com"]);
-    expect(row.mode).toBe("copilot");
+    expect(row.mode).toBe("autopilot");
     expect(row.setup_completed_at).not.toBeNull();
 
     expect(db.tables.destinations).toHaveLength(1);

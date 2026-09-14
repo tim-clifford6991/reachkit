@@ -86,7 +86,6 @@ const SUBMISSION = {
   domain: "example.com",
   category: "agency CRM",
   competitors: ["asana.com"],
-  mode: "autopilot" as const,
   destination: { kind: "hosted" as const, label: "content" },
 };
 
@@ -149,9 +148,15 @@ describe("POST /api/setup — the one write path", () => {
     await expect(response.json()).resolves.toEqual({ ok: true, siteId: "site-fixture" });
   });
 
+  it("#476 — a `mode` in the body is ignored, not refused: Autopilot is the only mode", async () => {
+    const { POST } = await import("@/app/api/setup/route");
+    const response = await POST(post("/api/setup", { ...SUBMISSION, mode: "copilot" }), undefined);
+    expect(response.status).toBe(200);
+  });
+
   it("a body that is not a submission is a 400 with no refusal handle — it is not a founder's answer", async () => {
     const { POST } = await import("@/app/api/setup/route");
-    for (const body of [null, 42, {}, { ...SUBMISSION, mode: "autopilot-plus" }]) {
+    for (const body of [null, 42, {}, { ...SUBMISSION, destination: { kind: "ftp" } }]) {
       const response = await POST(post("/api/setup", body), undefined);
       expect(response.status).toBe(400);
       await expect(response.json()).resolves.toEqual({ error: "malformed_body" });

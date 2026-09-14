@@ -36,9 +36,12 @@
 import { dbAdmin } from "@/lib/db";
 import type { DestinationKind, PublishingMode } from "./cards";
 
+/** SPEC §7 (2026-09-11; #476): Autopilot is the only mode, so setup records
+ *  it and takes no mode from the founder. */
+const SETUP_MODE: PublishingMode = "autopilot";
+
 export interface SetupChoice {
   siteId: string;
-  mode: PublishingMode;
   destinationKind: DestinationKind;
   /** The host this destination will serve the customer's pages at —
    *  `<label>.<their domain>`, the label being theirs since SPEC §5's
@@ -79,7 +82,7 @@ export async function applySetupChoice(a: SetupChoice): Promise<SetupChoiceAppli
     "apply_setup_choice",
     {
       p_site_id: a.siteId,
-      p_mode: a.mode,
+      p_mode: SETUP_MODE,
       p_kind: a.destinationKind,
       p_hostname: a.hostname,
     }
