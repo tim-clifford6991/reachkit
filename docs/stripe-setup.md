@@ -90,7 +90,7 @@ Vercel target holding live keys (`docs/RUNBOOK.md` §2). Two places will take th
    but the report passes it no action, so its Start has no destination yet.)
 2. Pay on Stripe's page with `4242 4242 4242 4242`, any future expiry, any CVC. The country is
    required; the VAT field may be left empty. Nothing else is asked, and no account exists yet.
-3. The browser returns to the page you started from with `?checkout=complete`.
+3. The browser returns to `/auth/checkout` on this deployment and lands on `/setup`, signed in.
 4. The webhook logs `{"event":"stripe_webhook","outcome":"provision"}`, then
    `{"event":"provision","outcome":"created"}`.
 5. The `users` row carries the address, the customer id, `checkout_session_id` and a `paid_through`

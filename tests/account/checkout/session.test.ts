@@ -125,6 +125,9 @@ describe("the return address is ours, compared after parsing and never by prefix
     const result = await createCheckoutSession({ origin: { kind: "pricing" }, returnTo: OURS });
     expect(result.ok).toBe(true);
     expect(vendor.created[0]?.cancel_url).toBe(OURS);
+    expect(vendor.created[0]?.success_url).toBe(
+      `${ENV_FIXTURE.NEXT_PUBLIC_APP_URL}/auth/checkout?session_id={CHECKOUT_SESSION_ID}`
+    );
   });
 });
 

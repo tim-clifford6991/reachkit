@@ -4,9 +4,10 @@
 // terms `src/app/(public)/signin/state.ts` established: `./actions.ts` is a
 // `"use server"` file and may export only async functions.
 
-/** The query key both arms of a return from checkout use: `complete` is the
- *  one `createCheckoutSession` puts on its success URL. Not customer copy —
- *  a wire name the page reads, never a sentence a person is shown. */
+/** The query key a refused checkout returns with. Success no longer lands
+ *  here — Stripe sends a completed payment to `/auth/checkout`. Not
+ *  customer copy — a wire name the page reads, never a sentence a person
+ *  is shown. */
 export const CHECKOUT_QUERY_KEY = "checkout";
 
 /** The value the refused arm carries. */

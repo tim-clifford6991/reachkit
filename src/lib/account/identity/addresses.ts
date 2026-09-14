@@ -35,6 +35,18 @@ export const SIGNIN_PATH = "/signin";
  *  session yet. */
 export const CONFIRM_PATH = "/auth/confirm";
 
+/** Where Stripe sends a completed Checkout Session. Public by necessity —
+ *  the buyer has just paid and has no session yet. The route provisions
+ *  (idempotent with the webhook), signs them in, and sends them to setup. */
+export const CHECKOUT_RETURN_PATH = "/auth/checkout";
+
+/** Stripe replaces this token in `success_url` with the session id. Must
+ *  appear unencoded — `URLSearchParams` would turn the braces into `%7B`. */
+export const CHECKOUT_SESSION_PLACEHOLDER = "{CHECKOUT_SESSION_ID}";
+
+/** The query key Stripe's session id rides on at `CHECKOUT_RETURN_PATH`. */
+export const CHECKOUT_SESSION_QUERY_KEY = "session_id";
+
 /** The two verification types a link of ours is ever issued as. */
 export type ConfirmType = "magiclink" | "email_change";
 

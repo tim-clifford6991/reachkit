@@ -57,7 +57,12 @@ import { GATE_PATH_HEADER } from "@/app/(account)/setup/gate";
 // imports nothing at all — precisely so this file can share the session
 // cookie's name and the two routes with the module that issues them,
 // instead of holding a second copy of each.
-import { CONFIRM_PATH, isAuthCookieName, SIGNIN_PATH } from "@/lib/account/identity/addresses";
+import {
+  CHECKOUT_RETURN_PATH,
+  CONFIRM_PATH,
+  isAuthCookieName,
+  SIGNIN_PATH,
+} from "@/lib/account/identity/addresses";
 import type { CookieToSet } from "@/lib/account/identity/auth";
 
 // ── Issue #331: the Content-Security-Policy, and the nonce it turns on ──
@@ -187,6 +192,8 @@ export const PUBLIC_PATHS: readonly string[] = [
   // holder has no session yet, so a denial here would send a working link
   // to the screen that says links do not work.
   CONFIRM_PATH,
+  // After Stripe Checkout: the buyer has paid and has no session yet.
+  CHECKOUT_RETURN_PATH,
   // Issue #144: the address the one veto link in the `draft-ready` mail
   // lands on. Unauthenticated by necessity, like `/opt-out/:token` above
   // it — a mail's reader has no session, and the token is the whole of the
