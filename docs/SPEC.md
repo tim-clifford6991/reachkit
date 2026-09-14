@@ -152,6 +152,7 @@ Pinned numbers live in `src/lib/config/constants.ts`. Newest dated line in a sec
 - `noindex` home page is Foundations = 0, not “unmeasured”.
 - A ReachKit-fixable issue becomes a Fix opportunity and outranks new writing for that cluster.
 - A check that could not run is absent with one why-line — never “no issues found”. Not paywalled.
+- 2026-09-14  Who fixes each check: “Free fix · 10 min” — `noindex` on an indexable page, no sitemap, slow pages, broken internal links, not usable on a phone, AI readers blocked. “ReachKit rewrites” — missing/duplicate title, missing/duplicate meta description. “ReachKit writes” — missing structured data. Copyable lines only where the line is fixed: the viewport meta line (phone), the robots `Sitemap:` line (sitemap), the robots `Allow` records (AI readers).
 
 **Done when** A `noindex` home, no sitemap and a blocked AI reader show as three named issues. A pasteable fix is on the free report. Fixing one drops it next Monday.
 

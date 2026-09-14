@@ -242,6 +242,24 @@ export const REPORT_COPY = Object.freeze({
   // The one control any fix carries (REQ-009 c2), on the paste arm only.
   "problem.paste.label": ["Copy the lines", { slots: {}, fixedBy: "REQ-009 c2" }],
 
+  // ── Module 3, the technical checks (SPEC §9, issue 571) ──────────────
+  // The doer words and the measured-zero line are SPEC §9's own; the eight
+  // card titles and the line for a check the scan does not run yet are
+  // owner-owed.
+  "check.doer.free-fix": ["Free fix · 10 min", { slots: {}, fixedBy: "SPEC §9" }],
+  "check.doer.reachkit-writes": ["ReachKit writes", { slots: {}, fixedBy: "SPEC §9" }],
+  "check.doer.reachkit-rewrites": ["ReachKit rewrites", { slots: {}, fixedBy: "SPEC §9" }],
+  "check.none-needed": ["Nothing to fix", { slots: {}, fixedBy: "SPEC §9" }],
+  "check.not-run": ["TODO(copy)", { slots: {}, fixedBy: "issue 571" }],
+  "check.page-titles.title": ["TODO(copy)", { slots: {}, fixedBy: "issue 571" }],
+  "check.meta-descriptions.title": ["TODO(copy)", { slots: {}, fixedBy: "issue 571" }],
+  "check.noindex-pages.title": ["TODO(copy)", { slots: {}, fixedBy: "issue 571" }],
+  "check.sitemap.title": ["TODO(copy)", { slots: {}, fixedBy: "issue 571" }],
+  "check.slow-pages.title": ["TODO(copy)", { slots: {}, fixedBy: "issue 571" }],
+  "check.broken-links.title": ["TODO(copy)", { slots: {}, fixedBy: "issue 571" }],
+  "check.phone-usability.title": ["TODO(copy)", { slots: {}, fixedBy: "issue 571" }],
+  "check.structured-data.title": ["TODO(copy)", { slots: {}, fixedBy: "issue 571" }],
+
   // ── Module 4, the DIY sections (REQ-009 c6) ───────────────────────────
   // Instructional text is allowed here and nowhere else on this screen.
   // S2's eyebrow over the three collapses. The collapses' instructional

@@ -17,7 +17,10 @@ import type React from "react";
 import { copy } from "@/lib/presentation/copy";
 import { SEVERITY } from "@/lib/presentation/bands";
 import { dash, MeasuredNum, measuredText } from "../_address/measured";
+import type { Measured } from "@/lib/measure/measured";
 import { SEVERITY_INDEX, type ProblemCard, type Severity } from "./model";
+import type { CheckCard } from "./checks";
+import { CopyLines } from "./copy-lines";
 
 /** Red only for the customer's own problem being shown to them — which is
  *  exactly what a `high` severity is. */
@@ -27,8 +30,8 @@ const SEVERITY_BADGE: Readonly<Record<Severity, string>> = Object.freeze({
   high: "badge-error",
 });
 
-function SeverityBadge(p: { card: ProblemCard }): React.JSX.Element {
-  const { severity } = p.card;
+function SeverityBadge(p: { severity: Measured<Severity> }): React.JSX.Element {
+  const { severity } = p;
   if (severity.kind === "unmeasured") {
     return <span className="badge badge-ghost">{dash()}</span>;
   }
@@ -37,6 +40,19 @@ function SeverityBadge(p: { card: ProblemCard }): React.JSX.Element {
     <span className={`badge ${SEVERITY_BADGE[level]}`}>
       {copy(SEVERITY[SEVERITY_INDEX[level]])}
     </span>
+  );
+}
+
+function PasteBlock(p: { lines: readonly string[] }): React.JSX.Element {
+  return (
+    <>
+      <pre className="bg-base-200 rounded-box min-w-0 overflow-x-auto p-3 text-xs">
+        <code className="num">{p.lines.join("\n")}</code>
+      </pre>
+      <div className="card-actions">
+        <CopyLines lines={p.lines} />
+      </div>
+    </>
   );
 }
 
@@ -53,18 +69,7 @@ function FixBody(p: { card: ProblemCard }): React.JSX.Element | null {
       return rendered.line === undefined ? null : <p className="text-sm">{rendered.line}</p>;
     }
     case "paste":
-      return (
-        <>
-          <pre className="bg-base-200 rounded-box min-w-0 overflow-x-auto p-3 text-xs">
-            <code className="num">{fix.lines.join("\n")}</code>
-          </pre>
-          <div className="card-actions">
-            <button type="button" className="btn btn-outline btn-sm">
-              {copy("problem.paste.label")}
-            </button>
-          </div>
-        </>
-      );
+      return <PasteBlock lines={fix.lines} />;
     case "we_write":
     case "we_rewrite":
       return null;
@@ -82,7 +87,7 @@ function ProblemCardView(p: { card: ProblemCard }): React.JSX.Element {
       <div className="card-body gap-3">
         <h3 className="card-title text-base">{copy(card.title)}</h3>
         <div className="flex flex-wrap gap-2">
-          <SeverityBadge card={card} />
+          <SeverityBadge severity={card.severity} />
           <span className="badge badge-primary badge-outline">{copy(card.doer)}</span>
         </div>
         <div className="text-4xl font-semibold">
@@ -105,6 +110,52 @@ export function ProblemCards(p: {
     <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-3">
       {p.cards.map((card) => (
         <ProblemCardView key={card.problem} card={card} />
+      ))}
+    </div>
+  );
+}
+
+/** SPEC §9's eight checks. A check that was not run, or ran and could not
+ *  measure, is absent with one why-line: no figure, no severity, no dash, and
+ *  never "Nothing to fix". The who-does-it badge is the ruling's and is
+ *  always shown. */
+function CheckCardView(p: { card: CheckCard }): React.JSX.Element {
+  const { card } = p;
+  const title = copy(card.title);
+  const { fix, reading } = card;
+  const measured = reading !== null && reading.count.kind !== "unmeasured" ? reading : null;
+  const why =
+    fix.kind === "not_run"
+      ? copy("check.not-run")
+      : fix.kind === "unknown" && reading !== null
+        ? measuredText(reading.count, title).line
+        : undefined;
+  return (
+    <section className="card bg-base-100 border-base-300 border" data-check={card.check}>
+      <div className="card-body gap-3">
+        <h3 className="card-title text-base">{title}</h3>
+        <div className="flex flex-wrap gap-2">
+          {measured === null ? null : <SeverityBadge severity={measured.severity} />}
+          <span className="badge badge-primary badge-outline">{copy(card.doer)}</span>
+        </div>
+        {measured === null ? null : (
+          <div className="text-4xl font-semibold">
+            <MeasuredNum value={measured.count} what={title} />
+          </div>
+        )}
+        {why === undefined ? null : <p className="text-sm">{why}</p>}
+        {fix.kind === "none_needed" ? <p className="text-sm">{copy("check.none-needed")}</p> : null}
+        {fix.kind === "paste" ? <PasteBlock lines={fix.lines} /> : null}
+      </div>
+    </section>
+  );
+}
+
+export function CheckCards(p: { cards: readonly CheckCard[] }): React.JSX.Element {
+  return (
+    <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2 lg:grid-cols-4">
+      {p.cards.map((card) => (
+        <CheckCardView key={card.check} card={card} />
       ))}
     </div>
   );
