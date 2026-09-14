@@ -18,7 +18,7 @@ import type { Alert, AlertKind, Overflow } from "./alerts";
 
 const PANEL: Readonly<Record<AlertKind, { alert: string; cta: string; Icon: typeof Bell }>> = {
   pending_veto: { alert: "alert alert-warning alert-soft", cta: "btn btn-primary btn-sm", Icon: FileText },
-  needs_you: { alert: "alert alert-soft", cta: "btn btn-outline btn-primary btn-sm", Icon: Plug },
+  needs_you: { alert: "alert alert-soft", cta: "btn btn-outline btn-sm", Icon: Plug },
 };
 
 function Panel(p: { alert: Alert }): React.JSX.Element | null {
