@@ -105,6 +105,16 @@ export interface OpportunityStore {
    *  opportunity: the completion time of its most recent completed scan. */
   latestCompletedScanAt(siteId: string): Promise<Date | null>;
   byId(opportunityId: string): Promise<OpportunityRow | null>;
+  /** Open `fix_page` rows for one site, ready or not, oldest first — the
+   *  rows readiness assesses, the ranking places and a week's scan retires. */
+  openFixPages(siteId: string): Promise<readonly OpportunityRow[]>;
+  /** Records whether a row passes readiness, with its reason when it does
+   *  not. The two are written together, as the schema's biconditional asks. */
+  setReadiness(opportunityId: string, reason: UnreadyReason | null): Promise<void>;
+  /** A row whose acceptance test passed: its status moves to `done`. */
+  markDone(opportunityId: string): Promise<void>;
+  /** The host the site's live hosted destination serves at, or `null`. */
+  hostedHostFor(siteId: string): Promise<string | null>;
   /** The profile the ranking's intent term is classified against — §6.7's
    *  own, read out of the site's current stored report rather than derived
    *  a second time. `null` where the site has no readable report, which
@@ -179,6 +189,7 @@ interface QueryResult<T> {
 interface MinimalQueryBuilder<T> extends PromiseLike<QueryResult<T>> {
   select(columns: string): MinimalQueryBuilder<T>;
   insert(rows: object): MinimalQueryBuilder<T>;
+  update(values: object): MinimalQueryBuilder<T>;
   eq(column: string, value: string): MinimalQueryBuilder<T>;
   neq(column: string, value: string): MinimalQueryBuilder<T>;
   is(column: string, value: boolean | null): MinimalQueryBuilder<T>;
@@ -277,6 +288,46 @@ export function supabaseOpportunityStore(): OpportunityStore {
         .limit(1);
       if (error) throw new Error(`opportunities.byId: ${error.message}`);
       return data?.[0] ?? null;
+    },
+
+    async openFixPages(siteId) {
+      const { data, error } = await untyped()
+        .from<OpportunityRow>("opportunities")
+        .select(COLUMNS)
+        .eq("site_id", siteId)
+        .eq("status", "open")
+        .eq("type", "fix_page")
+        .order("created_at", { ascending: true });
+      if (error) throw new Error(`opportunities.openFixPages: ${error.message}`);
+      return data ?? [];
+    },
+
+    async setReadiness(opportunityId, reason) {
+      const { error } = await untyped()
+        .from<OpportunityRow>("opportunities")
+        .update({ ready: reason === null, unready_reason: reason })
+        .eq("id", opportunityId);
+      if (error) throw new Error(`opportunities.setReadiness: ${error.message}`);
+    },
+
+    async markDone(opportunityId) {
+      const { error } = await untyped()
+        .from<OpportunityRow>("opportunities")
+        .update({ status: "done" })
+        .eq("id", opportunityId);
+      if (error) throw new Error(`opportunities.markDone: ${error.message}`);
+    },
+
+    async hostedHostFor(siteId) {
+      const { data, error } = await untyped()
+        .from<{ hostname: string | null }>("destinations")
+        .select("hostname")
+        .eq("site_id", siteId)
+        .eq("kind", "hosted")
+        .is("deleted_at", null)
+        .limit(1);
+      if (error) throw new Error(`opportunities.hostedHostFor: ${error.message}`);
+      return data?.[0]?.hostname ?? null;
     },
 
     async profileForSite(siteId) {

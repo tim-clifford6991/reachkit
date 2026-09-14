@@ -79,21 +79,29 @@ function couldNot(check: SiteCheck, because: CouldNotRun): SiteIssue {
 
 function perPage(
   check: SiteCheck,
-  count: number,
+  affected: readonly string[] | number,
   over: number,
   unit: IssueUnit = "pages",
   parts?: { missing: number; duplicate: number }
 ): SiteIssue {
+  const count = typeof affected === "number" ? affected : affected.length;
+  const pages = typeof affected === "number" ? null : affected;
   const severity: IssueSeverity =
     count === 0
       ? "nothing_to_fix"
       : over > 0 && count / over >= SITE_ISSUES.CRITICAL_PAGE_SHARE
         ? "critical"
         : "worth_fixing";
-  return { check, ran: true, count, over, unit, severity, doer: DOER_OF[check], ...(parts ? { parts } : {}) };
+  return { check, ran: true, count, over, unit, severity, doer: DOER_OF[check], pages, ...(parts ? { parts } : {}) };
 }
 
-function siteWide(check: SiteCheck, count: number, over: number, unit: IssueUnit): SiteIssue {
+function siteWide(
+  check: SiteCheck,
+  count: number,
+  over: number,
+  unit: IssueUnit,
+  pages: readonly string[] | null = null
+): SiteIssue {
   return {
     check,
     ran: true,
@@ -102,6 +110,7 @@ function siteWide(check: SiteCheck, count: number, over: number, unit: IssueUnit
     unit,
     severity: count === 0 ? "nothing_to_fix" : "critical",
     doer: DOER_OF[check],
+    pages,
   };
 }
 
@@ -113,20 +122,26 @@ function normalise(text: string): string {
 
 /** Pages with the value missing, and pages sharing a non-empty value with
  *  another page. A page is counted once. */
-function missingOrDuplicate(values: readonly string[]): { affected: number; missing: number; duplicate: number } {
+function missingOrDuplicate(
+  pages: readonly CheckedPage[],
+  valueOf: (page: CheckedPage) => string
+): { affected: readonly string[]; missing: number; duplicate: number } {
   const seen = new Map<string, number>();
-  for (const value of values) {
-    const key = normalise(value);
+  for (const page of pages) {
+    const key = normalise(valueOf(page));
     if (key !== "") seen.set(key, (seen.get(key) ?? 0) + 1);
   }
+  const affected: string[] = [];
   let missing = 0;
   let duplicate = 0;
-  for (const value of values) {
-    const key = normalise(value);
+  for (const page of pages) {
+    const key = normalise(valueOf(page));
     if (key === "") missing++;
     else if ((seen.get(key) ?? 0) > 1) duplicate++;
+    else continue;
+    affected.push(page.key);
   }
-  return { affected: missing + duplicate, missing, duplicate };
+  return { affected, missing, duplicate };
 }
 
 function aiReaders(robots: Measured<RobotsPolicy>, blocked: Blocked): SiteIssue {
@@ -152,6 +167,7 @@ export function checkSite(a: {
     const because: CouldNotRun = a.crawl === null ? "crawl_not_run" : "no_pages_read";
     return {
       pagesChecked: 0,
+      checkedPages: [],
       stoppedBy: a.crawl === null ? "not_run" : a.crawl.stoppedBy,
       issues: SITE_CHECKS.map((check) => (check === "ai_readers_blocked" ? readers : couldNot(check, because))),
     };
@@ -160,14 +176,15 @@ export function checkSite(a: {
   const { pages } = a.crawl;
   const total = pages.length;
 
-  const titles = missingOrDuplicate(pages.map((p) => p.title));
-  const descriptions = missingOrDuplicate(pages.map((p) => p.facts.metaDescription));
+  const titles = missingOrDuplicate(pages, (p) => p.title);
+  const descriptions = missingOrDuplicate(pages, (p) => p.facts.metaDescription);
+  const keysOf = (list: readonly CheckedPage[]): readonly string[] => list.map((p) => p.key);
 
   // A `noindex` home page is the whole site kept out of search.
-  const noindexed = pages.filter((p) => p.facts.noindex).length;
+  const noindexed = keysOf(pages.filter((p) => p.facts.noindex));
   const noindex =
     pages[0]?.facts.noindex === true
-      ? siteWide("noindex_pages", noindexed, total, "pages")
+      ? siteWide("noindex_pages", noindexed.length, total, "pages", noindexed)
       : perPage("noindex_pages", noindexed, total);
 
   const sitemap =
@@ -181,7 +198,7 @@ export function checkSite(a: {
       ? couldNot("slow_pages", "no_timed_reads")
       : perPage(
           "slow_pages",
-          timed.filter((p) => (p.fetchMs ?? 0) >= SITE_ISSUES.SLOW_PAGE_MS).length,
+          keysOf(timed.filter((p) => (p.fetchMs ?? 0) >= SITE_ISSUES.SLOW_PAGE_MS)),
           timed.length
         );
 
@@ -213,13 +230,14 @@ export function checkSite(a: {
     sitemap,
     slow_pages: slow,
     broken_links: broken,
-    phone_usability: perPage("phone_usability", pages.filter((p) => !p.facts.phoneViewport).length, total),
-    structured_data: perPage("structured_data", pages.filter((p) => p.facts.schemaTypes === 0).length, total),
+    phone_usability: perPage("phone_usability", keysOf(pages.filter((p) => !p.facts.phoneViewport)), total),
+    structured_data: perPage("structured_data", keysOf(pages.filter((p) => p.facts.schemaTypes === 0)), total),
     ai_readers_blocked: readers,
   };
 
   return {
     pagesChecked: total,
+    checkedPages: pages.map((p) => p.key),
     stoppedBy: a.crawl.stoppedBy,
     issues: SITE_CHECKS.map((check) => issues[check]),
   };

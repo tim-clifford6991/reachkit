@@ -120,9 +120,12 @@ describe('§7: `unblock` is "instruction only, never generated"', () => {
     ).toBe(0);
   });
 
-  it("every other type has one, so the effort term is total over the seven", () => {
+  it("every type outside the Fix family has one, so the effort term is total over the scored set", () => {
     for (const type of OPPORTUNITY_TYPES) {
-      if (type === "unblock") continue;
+      if (type === "unblock" || type === "fix_page") {
+        expect(effortTerm(type)).toBeNull();
+        continue;
+      }
       const effort = effortTerm(type);
       expect(effort).not.toBeNull();
       expect(effort).toBeGreaterThanOrEqual(0);

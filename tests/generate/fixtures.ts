@@ -204,6 +204,7 @@ export function memoryStore(over: Partial<MemoryStore> = {}): MemoryStore {
         attribution: row.attribution,
         scheduled_for: row.scheduled_for,
         cost_cents: row.cost_cents,
+        meta: row.meta ?? null,
       });
       return id;
     },

@@ -15,7 +15,7 @@ import {
 } from "../../../src/lib/opportunities/types";
 
 describe('§7\'s table plus SPEC §0\'s Earn — "Types, closed enum"', () => {
-  it("the enum is exactly the nine, in §7's own order and Earn last", () => {
+  it("the enum is exactly the ten, in §7's own order, the page fix beside unblock, and Earn last", () => {
     expect(OPPORTUNITY_TYPES).toEqual([
       "answer_page",
       "keyword_page",
@@ -25,6 +25,7 @@ describe('§7\'s table plus SPEC §0\'s Earn — "Types, closed enum"', () => {
       "answerable_page",
       "refresh_page",
       "unblock",
+      "fix_page",
       "listed_page",
     ]);
   });
@@ -47,7 +48,7 @@ describe('§7\'s table plus SPEC §0\'s Earn — "Types, closed enum"', () => {
       "format_page",
     ]);
     expect(byFamily("improve")).toEqual(["expand_page", "answerable_page", "refresh_page"]);
-    expect(byFamily("fix")).toEqual(["unblock"]);
+    expect(byFamily("fix")).toEqual(["unblock", "fix_page"]);
     // SPEC §0: Earn is a family of its own, and `listed_page` is its one kind.
     expect(byFamily("earn")).toEqual(["listed_page"]);
   });
@@ -63,11 +64,11 @@ describe('§7\'s table plus SPEC §0\'s Earn — "Types, closed enum"', () => {
   });
 });
 
-describe("every ranked type has an effort weight, and `unblock` has none", () => {
-  it("EFFORT_BY_TYPE covers the seven and not the eighth", () => {
+describe("every scored type has an effort weight, and the Fix family has none", () => {
+  it("EFFORT_BY_TYPE covers every type outside the Fix family", () => {
     const withEffort = new Set(Object.keys(EFFORT_BY_TYPE));
     for (const type of OPPORTUNITY_TYPES) {
-      expect(withEffort.has(type)).toBe(type !== "unblock");
+      expect(withEffort.has(type)).toBe(FAMILY_OF[type] !== "fix");
     }
   });
 });

@@ -98,7 +98,7 @@ describe("a draft that clears every rule", () => {
     primeSteps(CLEAN_MARKDOWN);
     const outcome = await run();
     expect(outcome.ok).toBe(true);
-    expect(outcome.ok === true && outcome.grounded.passage).toBe(GROUNDED.passage);
+    expect(outcome.ok === true && outcome.grounded?.passage).toBe(GROUNDED.passage);
   });
 
   it("writes the row with the grounded fact, the day it is for, and no attribution the customer did not record", async () => {

@@ -49,6 +49,9 @@ export interface DeriveInput {
    *  entry is `undeterminable` and never a zero — see
    *  `winnability/counts.ts`. */
   rankedCounts: RankedCounts;
+  /** The host the site's hosted destination serves at, whose pages get no
+   *  `fix_page` (SPEC §9, 2026-09-14). Absent where the caller has none. */
+  hostedHost?: string | null;
 }
 
 export interface DeriveOutcome {
@@ -71,7 +74,7 @@ export async function deriveOpportunities(
 
   const write = writeCandidates({ ...base, ownRanked, rankedCounts: a.rankedCounts });
   const improve = improveCandidates({ ...base, ownRanked, rankedCounts: a.rankedCounts });
-  const fix = fixCandidates(base);
+  const fix = fixCandidates({ ...base, hostedHost: a.hostedHost ?? null });
 
   const rejected = [write, improve, fix]
     .map((result) => result.rejected)

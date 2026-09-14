@@ -50,7 +50,10 @@ import { answerability, brief, draft, outline, type PipelineStep } from "./steps
 const GENERATING = "generating";
 
 export type GenerateOutcome =
-  | { ok: true; draftId: string; grounded: GroundedFact }
+  /** `grounded` is `null` for a `fix_page` draft (#690): a metadata-only
+   *  update carries no body, so it stands on the page's own words and on no
+   *  passage. */
+  | { ok: true; draftId: string; grounded: GroundedFact | null }
   | {
       ok: false;
       reason: "rules";

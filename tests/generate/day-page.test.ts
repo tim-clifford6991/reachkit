@@ -31,7 +31,10 @@ const { llmMock, readMeasuredTextMock, nextForDayMock, withCostContextMock } = v
 }));
 vi.mock("@/lib/llm", () => ({ llm: llmMock }));
 vi.mock("@/lib/measure/text", () => ({ readMeasuredText: readMeasuredTextMock }));
-vi.mock("@/lib/opportunities", () => ({ nextForDay: nextForDayMock }));
+vi.mock("@/lib/opportunities", () => ({
+  nextForDay: nextForDayMock,
+  assessFixPages: async () => ({ done: 0, ready: 0 }),
+}));
 vi.mock("@/lib/costs", () => ({ withCostContext: withCostContextMock }));
 
 let generateDayPage: typeof import("../../src/lib/generate").generateDayPage;

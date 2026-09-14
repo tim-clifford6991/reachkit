@@ -34,6 +34,8 @@
 import type { CostContext } from "@/lib/costs";
 import type { StoredReport } from "@/lib/scan/report";
 import type { DeriveInput } from "./derive";
+import { assessFixPages } from "./fix-page";
+import { opportunityStore } from "./store";
 import { pursueDepth, type DepthStop } from "./supply/pursue";
 import { topUp } from "./supply/topup";
 import { rankedCountsFromSizes, type RankedCounts } from "./winnability/counts";
@@ -57,13 +59,14 @@ export function rankedCountsOf(report: StoredReport): RankedCounts {
   return rankedCountsFromSizes(report.rivalSizes.value, at);
 }
 
-function inputFor(a: { siteId: string; report: StoredReport }): DeriveInput {
+function inputFor(a: { siteId: string; report: StoredReport; hostedHost: string | null }): DeriveInput {
   return {
     siteId: a.siteId,
     scanId: a.report.scanId,
     report: a.report,
     ownRanked: a.report.ownRanked,
     rankedCounts: rankedCountsOf(a.report),
+    hostedHost: a.hostedHost,
   };
 }
 
@@ -89,13 +92,22 @@ export async function deriveForPass(
     hasActiveAccess: boolean;
   }
 ): Promise<PassOutcome> {
-  const input = inputFor({ siteId: a.siteId, report: a.report });
+  const hostedHost = await opportunityStore().hostedHostFor(a.siteId);
+  const input = inputFor({ siteId: a.siteId, report: a.report, hostedHost });
+
+  // SPEC §9 (#690): this pass's scan retires the fixes it shows cleared
+  // before anything is derived, so a page fixed last week is not re-derived
+  // beside its own closed row; and the fixes that stand have their
+  // readiness recorded once the derivation has added any new ones.
+  await assessFixPages(a.siteId, { report: a.report });
 
   if (a.tier === "deep") {
     const { created, unused, stop } = await pursueDepth(c, input);
+    await assessFixPages(a.siteId, { report: null });
     return { tier: "deep", created, unused, stop };
   }
 
   const { added, unused } = await topUp(c, { ...input, hasActiveAccess: a.hasActiveAccess });
+  await assessFixPages(a.siteId, { report: null });
   return { tier: "weekly", added, unused };
 }

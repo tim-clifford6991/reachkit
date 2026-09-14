@@ -29,16 +29,17 @@ import type { DraftPromptInputs } from "../voice/inputs";
 /** §8's five steps, closed. `claim_check` is the fifth and is run by
  *  `claims/check.ts`; it is a member here because a caller reporting "which
  *  step did not run" has to be able to name it. */
-export type PipelineStep = "brief" | "outline" | "draft" | "answerability" | "claim_check";
+export type PipelineStep = "brief" | "outline" | "draft" | "answerability" | "claim_check" | "page_read" | "page_fix";
 
 /** The `llm()` call site each step ledgers under. One string per step, so a
  *  cost report reads by step without anyone joining a table. */
-export const STEP_CALL_SITES: Readonly<Record<Exclude<PipelineStep, "claim_check">, LlmCallSite>> =
+export const STEP_CALL_SITES: Readonly<Record<Exclude<PipelineStep, "claim_check" | "page_read">, LlmCallSite>> =
   Object.freeze({
     brief: "generate.brief",
     outline: "generate.outline",
     draft: "generate.draft",
     answerability: "generate.answerability",
+    page_fix: "generate.page_fix",
   });
 
 const BRIEF_SCHEMA = z.strictObject({

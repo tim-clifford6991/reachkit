@@ -91,10 +91,11 @@ describe("the report reads the stored checks (#570), the same counts the dashboa
     const readings = readingsOf(
       {
         pagesChecked: 40,
+        checkedPages: null,
         stoppedBy: "complete",
         issues: [
-          { check: "slow_pages", ran: true, count: 3, over: 40, unit: "pages", severity: "critical", doer: "free_fix" },
-          { check: "broken_links", ran: true, count: 0, over: 120, unit: "links", severity: "nothing_to_fix", doer: "free_fix" },
+          { check: "slow_pages", ran: true, count: 3, over: 40, unit: "pages", severity: "critical", doer: "free_fix", pages: null },
+          { check: "broken_links", ran: true, count: 0, over: 120, unit: "links", severity: "nothing_to_fix", doer: "free_fix", pages: null },
           { check: "sitemap", ran: false, because: "sitemap_unreadable" },
         ],
       },

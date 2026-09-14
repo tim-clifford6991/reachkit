@@ -222,3 +222,40 @@ describe("a retried update", () => {
     expect(writes()).toEqual([]);
   });
 });
+
+describe("a metadata-only update (SPEC §9, #690) changes the page's metadata and never its content", () => {
+  const FIX = { ...UPDATE, bodyMd: "", metadataOnly: { title: "Delivery times and costs", description: "When it arrives." } };
+
+  it("writes the title and the SEO plugin's description to that page's own id, and sends no content", async () => {
+    site.namespaces = ["wp/v2", "yoast/v1"];
+    site.posts = [theirPage()];
+
+    const result = await WORDPRESS_ADAPTER.deliver(FIX, CFG, "d1");
+
+    expect(result.ok).toBe(true);
+    expect(writes().map((r) => r.path)).toEqual(["/wp/v2/posts/41"]);
+    const sent = writes()[0]?.body as Record<string, unknown>;
+    expect(sent).not.toHaveProperty("content");
+    expect(sent.title).toBe("Delivery times and costs");
+    expect(sent.meta).toMatchObject({ _yoast_wpseo_metadesc: "When it arrives." });
+    expect(site.posts[0]?.content).toEqual({ raw: "<p>Their own words.</p>" });
+  });
+
+  it("leaves the title alone when the fix names only the description", async () => {
+    site.namespaces = ["wp/v2", "yoast/v1"];
+    site.posts = [theirPage()];
+
+    await WORDPRESS_ADAPTER.deliver({ ...FIX, metadataOnly: { title: null, description: "When it arrives." } }, CFG, "d1");
+
+    expect(writes()[0]?.body).not.toHaveProperty("title");
+  });
+
+  it("refuses a description a site with no SEO plugin has nowhere to hold — nothing is written", async () => {
+    site.posts = [theirPage()];
+
+    const result = await WORDPRESS_ADAPTER.deliver(FIX, CFG, "d1");
+
+    expect(result.ok).toBe(false);
+    expect(writes()).toEqual([]);
+  });
+});
