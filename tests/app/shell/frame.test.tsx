@@ -152,10 +152,11 @@ describe("REQ-040 c3 — the mode with the next publish time, in the customer's 
     );
   });
 
-  it("copilot renders the copilot word, and the card draws no mode picker (SPEC §7, 2026-09-11)", () => {
+  it("a copilot row still reads Autopilot, and the card draws no mode picker (SPEC §7, #476)", () => {
     const copilot: ShellModel = { ...SCHEDULED, publishing: { mode: "copilot", next: MONDAY(16) } };
     const root = render(<PublishingCard shell={copilot} />);
-    expect(root.textContent).toContain("shell.publishing.mode.copilot");
+    expect(root.textContent).toContain("shell.publishing.mode.autopilot");
+    expect(root.textContent).not.toMatch(/copilot/i);
     for (const card of [root, render(<PublishingCard shell={SCHEDULED} />)]) {
       expect(card.querySelector("input, button, [role='switch']")).toBeNull();
     }
@@ -423,7 +424,6 @@ describe("the frame is the route's one screen root, and it invents no sentence",
       "shell.nav.calendar",
       "shell.nav.settings",
       "shell.publishing.mode.autopilot",
-      "shell.publishing.mode.copilot",
       "shell.domain.measured-weeks",
       "shell.domain.not-measured",
       "next-publish.scheduled",

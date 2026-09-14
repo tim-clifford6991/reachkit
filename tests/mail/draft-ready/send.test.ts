@@ -234,23 +234,19 @@ describe("it refuses to speak about a page this occasion has not arisen for", ()
   });
 });
 
-describe("REQ-057 c7 — the zero-window mail is the whole of the telling", () => {
+describe("SPEC §7 (#476) — there is no zero window: a stored 0 reads as the one-day floor", () => {
   beforeEach(() => {
     seed({ site: { veto_hours: 0 } });
   });
 
-  it("it says there is no interval, offers no stop link, and is sent anyway", async () => {
+  it("the mail names a window and offers the stop link, never the zero-window telling", async () => {
     const outcome = await sendDraftReadyMail({ draftId: "d1", destination: "wordpress", at: AT });
 
     expect(outcome.sent).toBe(true);
     expect(sent[0]!.blocks.find((b) => b.block === "paragraph")?.text).toBe(
-      "mail.draftReady.autopilotZero"
+      "mail.draftReady.autopilotWindow"
     );
-    // No link, because no link would stop it — an offer the product could
-    // not keep.
-    expect(sent[0]!.blocks.find((b) => b.block === "action")).toBeUndefined();
-    // The one occasion the customer's own switch is not asked.
-    expect(sent[0]!.suppressible).toBe(false);
+    expect(sent[0]!.blocks.find((b) => b.block === "action")).toBeDefined();
   });
 });
 

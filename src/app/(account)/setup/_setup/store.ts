@@ -197,7 +197,6 @@ export function liveSetupStore(): SetupStore {
 
       const applied = await applySetupChoice({
         siteId: a.siteId,
-        mode: a.submission.mode,
         destinationKind: a.submission.destination.kind,
         hostname,
       });

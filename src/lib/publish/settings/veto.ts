@@ -1,5 +1,5 @@
-// BUILD §4.7, §9 — the veto window's one conversion, in a leaf that reaches
-// nothing.
+// BUILD §4.7, §9 — the veto window's one conversion and its floor, in a
+// leaf that reaches nothing but the pinned constants.
 //
 // **Why its own file** (issue #374). WO-178 step 4 puts the days-to-hours
 // arithmetic in exactly one module and forbids a second copy: "a second copy
@@ -19,6 +19,7 @@
 // The column stores hours (`sites.veto_hours`, §10) and the stepper offers
 // whole days (`VETO.minDays`…`VETO.maxDays`); these two functions are the
 // whole of the difference between those facts.
+import { VETO } from "@/lib/config/constants";
 
 /** §4.7's own unit relationship, and the only place it is written. */
 const HOURS_PER_DAY = 24;
@@ -39,4 +40,16 @@ export function vetoDaysFromHours(hours: number): number {
  *  the screen agree about what "whole days" means. */
 export function isWholeDays(hours: number): boolean {
   return Number.isInteger(hours) && hours % HOURS_PER_DAY === 0;
+}
+
+/**
+ * The veto window a stored `sites.veto_hours` governs with (#476). SPEC §7:
+ * "range 1–7 days, never zero" — a value below the floor (a row written
+ * before the floor existed) reads as the floor, and a missing one as the
+ * default. Every reader of the governing pair goes through here, so no
+ * surface or mail can be handed a window shorter than a day.
+ */
+export function governingVetoHours(stored: number | null | undefined): number {
+  if (typeof stored !== "number") return VETO.defaultHours;
+  return Math.max(stored, vetoHoursFromDays(VETO.minDays));
 }

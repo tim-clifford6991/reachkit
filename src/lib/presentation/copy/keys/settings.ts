@@ -416,16 +416,6 @@ export const SETTINGS_COPY = Object.freeze({
     { slots: {}, fixedBy: "REQ-075" },
   ],
 
-  // REQ-073 c2's one line on what the mode pair does — both modes in one
-  // sentence, which is what makes it a choice rather than two labels.
-  // Approved (11a); the three `pair.*` keys beside it stay as they are,
-  // because they answer a different question (what happens to THIS page,
-  // stated where a page is).
-  "settings.publishing.pair.note": [
-    "Autopilot: a page publishes when its veto window ends unless you stop it. Copilot: nothing publishes without your approval.",
-    { slots: {}, fixedBy: "REQ-073 c2" },
-  ],
-
   "settings.content.title": ["Your content", { slots: {}, fixedBy: "BUILD §4.7" }],
   "settings.content.pages": ["Pages", { slots: {}, fixedBy: 'BUILD §4.7 ("pages count")' }],
   "settings.content.export": ["Export everything", { slots: {}, fixedBy: "BUILD §4.7" }],

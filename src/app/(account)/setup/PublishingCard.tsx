@@ -1,10 +1,11 @@
-// SPEC §5 — the publishing step of `/setup`: the mode, and where pages
-// publish — the hosted subdomain label they choose (default), or WordPress
-// connected later. daisyUI classes in the route (DESIGN.md rule 1): `card`,
-// `badge`, `input`, `alert`; lucide glyphs at 1.75. No option is a solid
-// primary: the screen's one primary is the submit.
+// SPEC §5 — the publishing step of `/setup`: where pages publish — the
+// hosted subdomain label they choose (default), or WordPress connected
+// later. No mode pair: Autopilot is the only mode (SPEC §7, #476). daisyUI
+// classes in the route (DESIGN.md rule 1): `card`, `badge`, `input`,
+// `alert`; lucide glyphs at 1.75. No option is a solid primary: the
+// screen's one primary is the submit.
 //
-// The mode, the destination and the label are the form's, because the one
+// The destination and the label are the form's, because the one
 // submit stores them. This card holds whether the label is refused, and
 // asks the server whether anyone else already serves at it.
 "use client";
@@ -18,7 +19,6 @@ import {
   type DestinationKind,
   type DnsPending,
   type DnsRecord,
-  type PublishingMode,
   type SetupCards,
 } from "@/lib/publish/setup/cards";
 import { checkLabel, type LabelRefusal } from "@/lib/publish/destinations/hosted/label";
@@ -37,8 +37,6 @@ export function PublishingCard(p: {
   cards: SetupCards;
   siteDomain: string | null;
   cnameTarget: string;
-  mode: PublishingMode;
-  onMode: (mode: PublishingMode) => void;
   destination: DestinationKind;
   onDestination: (destination: DestinationKind) => void;
   label: string;
@@ -81,22 +79,8 @@ export function PublishingCard(p: {
       <div className="card-body gap-4">
         <h2 className="card-title text-base">
           <Sparkles aria-hidden size={20} strokeWidth={1.75} />
-          {copy("setup.publishing.title")}
+          {copy("settings.publishing.title")}
         </h2>
-
-        <div className="grid gap-3 sm:grid-cols-2" data-testid="setup-mode">
-          {p.cards.mode.map((option) => (
-            <Option
-              key={option.mode}
-              title={copy(option.name)}
-              line={copy(option.copy)}
-              chosen={p.mode === option.mode}
-              preselected={option.preselected}
-              onChoose={() => p.onMode(option.mode)}
-              testId={`setup-mode-${option.mode}`}
-            />
-          ))}
-        </div>
 
         <div className="grid gap-3 sm:grid-cols-2" data-testid="setup-destination">
           {p.cards.destination.map((option) => (

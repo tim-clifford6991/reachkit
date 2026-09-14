@@ -600,7 +600,7 @@ describe("three decisions → deep pass → the first page already on the calend
     // each needs only a Change. So this arm names three heads, not four.
     expect(html).toContain("setup.site-and-market.title");
     expect(html).toContain("setup.competitors.title");
-    expect(html).toContain("setup.publishing.title");
+    expect(html).toContain("settings.publishing.title");
     expect(html).toContain('data-testid="setup-destination"');
     expect(html).toContain("setup.submit");
     // Nothing that tunes the engine is on the screen: no cadence, no cap,

@@ -148,22 +148,12 @@ describe('REQ-025 c3 — "when they look for anything that tunes the engine ... 
 
   it("no control on the screen names an engine parameter", () => {
     const tree = screenFor();
-    // The mode controls carry the owner's sentence for what each mode does
-    // (#460) — autopilot's names §9's veto window, which is a law the mode
-    // obeys, not a parameter the control sets. Those approved sentences are
-    // lifted out of the surface before the scan, so the scan still reads
-    // every name, id, test id and every other word a control carries.
-    const MODE_SENTENCES = [COPY["setup.mode.autopilot"], COPY["setup.mode.copilot"]];
     for (const control of Array.from(tree.querySelectorAll("input, select, textarea, button"))) {
-      const said = MODE_SENTENCES.reduce(
-        (rest, sentence) => rest.split(sentence).join(" "),
-        control.textContent ?? ""
-      );
       const surface = [
         control.getAttribute("name") ?? "",
         control.getAttribute("id") ?? "",
         control.getAttribute("data-testid") ?? "",
-        said,
+        control.textContent ?? "",
       ].join(" ");
       expect(surface, `control offers an engine parameter: ${surface}`).not.toMatch(ENGINE);
     }
@@ -346,18 +336,23 @@ describe('REQ-026 c9 and c10 — the competitors card', () => {
   });
 });
 
-describe('REQ-028 c1 and c2 — mode and destination', () => {
-  it("both modes and both destinations render, each with its own written line", () => {
+describe("REQ-028 c2 — the destination, and no mode (SPEC §7, #476)", () => {
+  it("no mode is offered and none is named, in either arm", () => {
+    for (const facts of [{}, SCANLESS]) {
+      const tree = screenFor(facts);
+      expect(tree.querySelector('[data-testid="setup-mode"]')).toBeNull();
+      expect(tree.textContent ?? "").not.toMatch(/copilot|autopilot/i);
+    }
+  });
+
+  it("both destinations render, each with its own written line", () => {
     const tree = screenFor();
-    expect(tree.querySelectorAll('[data-testid="setup-mode"] button')).toHaveLength(2);
     expect(tree.querySelectorAll('[data-testid="setup-destination"] button')).toHaveLength(2);
     // UI-SPEC S10 draws each option as a card carrying its own line, so
     // the line is inside the option rather than in a paragraph under the
     // group — which is what lets the hosted destination hold its CNAME
     // record in the option it belongs to.
     for (const id of [
-      "setup-mode-autopilot",
-      "setup-mode-copilot",
       "setup-destination-hosted",
       "setup-destination-wordpress",
     ]) {
@@ -367,7 +362,7 @@ describe('REQ-028 c1 and c2 — mode and destination', () => {
     }
   });
 
-  it("autopilot and the hosted blog are the selected pair on arrival", () => {
+  it("the hosted blog is selected on arrival", () => {
     // Read off `aria-pressed`, not off a fill (issue #288). Selected was the
     // solid accent rank until this screen drew six of them; it is the
     // outline rank on the accent tint now, and the tint is keyed on this
@@ -375,9 +370,6 @@ describe('REQ-028 c1 and c2 — mode and destination', () => {
     // are the same fact, and this assertion reads the fact rather than one
     // of its two renderings.
     const tree = screenFor();
-    const modes = Array.from(tree.querySelectorAll('[data-testid="setup-mode"] button'));
-    expect(modes[0]?.getAttribute("aria-pressed")).toBe("true");
-    expect(modes[1]?.getAttribute("aria-pressed")).toBe("false");
     const destinations = Array.from(tree.querySelectorAll('[data-testid="setup-destination"] button'));
     expect(destinations[0]?.getAttribute("aria-pressed")).toBe("true");
     expect(destinations[1]?.getAttribute("aria-pressed")).toBe("false");
