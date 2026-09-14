@@ -68,7 +68,16 @@ import type {
   RenderedPage,
 } from "../../types";
 import type { WordPressConfig } from "./client";
-import { createPost, createTag, findTag, readRestIndex, readSelf, searchPosts } from "./client";
+import {
+  createPost,
+  createTag,
+  findPostBySlug,
+  findTag,
+  readRestIndex,
+  readSelf,
+  searchPosts,
+  updatePost,
+} from "./client";
 import { NOT_PUBLISHED, reasonFor, succeeded } from "./errors";
 import { renderMarkdownHtml } from "../../render/markdown";
 import { bodyWithMarker, carriesMarker, markerToken } from "./marks";
@@ -213,6 +222,88 @@ function deliveryOf(
   return delivery;
 }
 
+/** Two addresses name the same page where they differ only in scheme, a
+ *  `www.` label or a trailing slash. Narrow on purpose: a query string is
+ *  part of a page's identity and is not stripped. */
+function sameAddress(a: string, b: string): boolean {
+  const strip = (url: string): string =>
+    url
+      .trim()
+      .toLowerCase()
+      .replace(/^https?:\/\//, "")
+      .replace(/^www\./, "")
+      .replace(/#.*$/, "")
+      .replace(/\/+$/, "");
+  return strip(a) === strip(b);
+}
+
+/** The delivery an update is. `madeLive: false` because ReachKit did not put
+ *  this page on the site — which is what keeps `unpublish` from returning a
+ *  page of the customer's own to draft. No stamp: ADR-083 Decision 2 puts
+ *  one on a post only by ReachKit creating it. */
+function updateDeliveryOf(
+  post: unknown,
+  plugins: readonly SeoPlugin[],
+  page: { title: string; description: string }
+): DeliveryResult {
+  const liveUrl = stringField(post, "link");
+  const id = idOf(post);
+  if (liveUrl === null || id === null) return failed("destination_rejected");
+  if (stringField(post, "status") !== "publish") return failed(NOT_PUBLISHED);
+  return {
+    ok: true,
+    madeLive: false,
+    liveUrl,
+    remoteId: id,
+    seoWritten: seoWrittenIn(plugins, post, page),
+  };
+}
+
+/**
+ * §7's third asset kind: the page the opportunity named, rewritten where it
+ * already stands.
+ *
+ * A page this adapter cannot find at that address is **refused, never
+ * created** — a create here would hand the customer a second page at a new
+ * address in place of the update they were told about.
+ */
+async function updated(
+  cfg: WordPressConfig,
+  page: RenderedPage,
+  updateOf: string,
+  plugins: readonly SeoPlugin[],
+  seoPage: { title: string; description: string },
+  idempotencyKey: string
+): Promise<DeliveryResult> {
+  // The page this draft already rewrote, by its own marker: no second write,
+  // and `madeLive` stays false because ReachKit did not create it.
+  const already = await existingPost(cfg, idempotencyKey);
+  if (already !== null) return updateDeliveryOf(already, plugins, seoPage);
+
+  if (page.slug.trim() === "") return failed("destination_rejected");
+
+  const answer = await findPostBySlug(cfg, page.slug);
+  if (!succeeded(answer)) throw new WordPressProbeError(reasonFor(answer));
+  const candidates = Array.isArray(answer.body) ? answer.body : [];
+  const target = candidates.find((post) => {
+    const link = stringField(post, "link");
+    return link !== null && sameAddress(link, updateOf);
+  });
+  const id = target === undefined ? null : idOf(target);
+  if (id === null) return failed("destination_rejected");
+
+  const meta = seoMetaFor(plugins, seoPage);
+  // The marker rides the rewritten body, so a retry finds this page through
+  // `existingPost` and writes nothing a second time.
+  const written = await updatePost(cfg, id, {
+    title: page.title,
+    content: bodyWithMarker(renderMarkdownHtml(page.bodyMd), idempotencyKey),
+    ...(Object.keys(meta).length === 0 ? {} : { meta }),
+  });
+  if (!succeeded(written)) return failed(reasonFor(written));
+  return updateDeliveryOf(written.body, plugins, seoPage);
+}
+
 /**
  * The post this draft already has in the site, if it has one.
  *
@@ -296,6 +387,13 @@ async function deliver(
     // ordering ADR-084 Decision 1 fixes, and the one a create-then-write
     // implementation would invert.
     const plugins = await detectSeoPlugins(config);
+
+    // §7's update goes first, and runs its own marker check: a page ReachKit
+    // did not create must never be recorded as one it made live, which is
+    // what `deliveryOf` below would say of it.
+    if (page.updateOf !== undefined) {
+      return await updated(config, page, page.updateOf, plugins, seoPage, idempotencyKey);
+    }
 
     const already = await existingPost(config, idempotencyKey);
     if (already !== null) {

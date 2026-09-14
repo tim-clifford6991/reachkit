@@ -125,14 +125,15 @@ function parseJson(text: string): unknown {
   }
 }
 
-// ── The five call shapes, and no sixth ──────────────────────────────────
+// ── The call shapes, and no others ──────────────────────────────────────
 //
 // There is deliberately no "publish this post" call. ADR-084 Decision 1
 // makes the create the one call that publishes, and a status-write that
 // could raise a draft to `publish` is exactly the second half of the
-// two-step that ruling forbids. `setPostStatus` below writes `draft` and
-// nothing else — its type says so — so no create-then-publish sequence can
-// be composed out of this file.
+// two-step that ruling forbids. `setPostDraft` below writes `draft` and
+// nothing else, and `updatePost` writes no status at all — their literal
+// types say so — so no create-then-publish sequence can be composed out of
+// this file.
 
 /** The REST index. One read, and the answer to three questions: is this a
  *  WordPress REST endpoint at all, does the credential reach it, and which
@@ -164,6 +165,37 @@ export function searchPosts(cfg: WordPressConfig, marker: string): Promise<WordP
 /** One post by id, as its author sees it. */
 export function readPost(cfg: WordPressConfig, postId: string): Promise<WordPressAnswer> {
   return call(cfg, `/wp/v2/posts/${encodeURIComponent(postId)}?context=edit`);
+}
+
+/** Candidates at a known address. A page the customer wrote themselves
+ *  carries no marker of ours, so the slug off its URL is the only handle on
+ *  it; `status=any` and `context=edit` for the reasons above. */
+export function findPostBySlug(cfg: WordPressConfig, slug: string): Promise<WordPressAnswer> {
+  const query = new URLSearchParams({
+    slug,
+    status: "any",
+    context: "edit",
+    per_page: String(WORDPRESS.markerSearchLimit),
+  });
+  return call(cfg, `/wp/v2/posts?${query.toString()}`);
+}
+
+/** Rewrites a post that is already there — §7's third asset kind. The
+ *  literal type is the guard: `status` is not a field it accepts, so this
+ *  call can neither raise a draft nor take a live page down. */
+export function updatePost(
+  cfg: WordPressConfig,
+  postId: string,
+  fields: Readonly<{
+    title?: string;
+    content?: string;
+    meta?: Readonly<Record<string, unknown>>;
+  }>
+): Promise<WordPressAnswer> {
+  return call(cfg, `/wp/v2/posts/${encodeURIComponent(postId)}`, {
+    method: "POST",
+    json: fields,
+  });
 }
 
 /** **The one create call**, carrying the status, the SEO fields, the stamp

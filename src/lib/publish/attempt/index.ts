@@ -247,28 +247,57 @@ interface DraftPageRow {
   title: string;
   body_md: string | null;
   meta: Record<string, unknown> | null;
-  opportunities?: { proposed_slug?: string | null } | null;
+  opportunities?: {
+    family?: string | null;
+    proposed_slug?: string | null;
+    target_ref?: string | null;
+  } | null;
+}
+
+/** The last path segment of an existing page's URL — how a destination
+ *  looks that page up. `null` for a site root, which no destination in this
+ *  build can address by slug. */
+function slugOfUrl(url: string): string | null {
+  let pathname: string;
+  try {
+    pathname = new URL(url).pathname;
+  } catch {
+    return null;
+  }
+  const segments = pathname.split("/").filter((segment) => segment !== "");
+  return segments.length === 0 ? null : (segments[segments.length - 1] ?? null);
 }
 
 /** What the adapter is handed. The *rendering* — the one clean typographic
  *  template, the canonical, the `FAQPage` schema — is the hosted edge's
  *  (#49); this assembles the page's own facts and nothing more, and writes
- *  no sentence of its own. */
+ *  no sentence of its own.
+ *
+ *  Two addresses, because §7 has two sorts of asset to address: a Write
+ *  target publishes at the slug its opportunity proposed, and an Improve
+ *  target changes the page its opportunity already named. `fix` addresses
+ *  neither — its `target_ref` is where a barrier was found, not a page to
+ *  rewrite — so it resolves to `null` exactly as it did before. */
 async function renderedPage(draftId: string): Promise<RenderedPage | null> {
   const { data, error } = await publishDb()
     .from<DraftPageRow>("drafts")
-    .select("title, body_md, meta, opportunities(proposed_slug)")
+    .select("title, body_md, meta, opportunities(family, proposed_slug, target_ref)")
     .eq("id", draftId)
     .single();
   if (error !== null || data === null) return null;
-  const slug = data.opportunities?.proposed_slug;
+
+  const opportunity = data.opportunities ?? null;
+  const page = { title: data.title, bodyMd: data.body_md ?? "", meta: data.meta ?? {} };
+
+  if (opportunity?.family === "improve") {
+    const updateOf = opportunity.target_ref;
+    if (typeof updateOf !== "string" || updateOf.length === 0) return null;
+    return { ...page, slug: slugOfUrl(updateOf) ?? "", updateOf };
+  }
+
+  const slug = opportunity?.proposed_slug;
   if (typeof slug !== "string" || slug.length === 0) return null;
-  return {
-    title: data.title,
-    slug,
-    bodyMd: data.body_md ?? "",
-    meta: data.meta ?? {},
-  };
+  return { ...page, slug };
 }
 
 /**
