@@ -1,35 +1,21 @@
-// BUILD §4.1 module 1 — the report's header card (UI-SPEC S2)
+// BUILD §4.1 module 1 — the report's header card (SPEC §2)
 //
 // The domain, when it was measured, the category and its correction; the
 // score under its own name, its band word, one written line naming the
-// factor holding it down; and the three driver mini-bars.
+// factor holding it down; and the three driver mini-bars `n/10`, which live
+// here and on no other card (SPEC §2).
 //
-// **The driver bars are back, with their values** (ruling 1b of
-// 2026-09-08, `docs/design/approved/full-set/UI-SPEC.md` §1). They were
-// removed on 2026-09-03 and the ruling restores them, amending REQ-004 c2
-// and BUILD §4.1 to allow a factor's value "on the header strip only":
-// this file is that one strip, `Verdict.factors` is where the values now
-// travel, and no other card, tile or mail may render one. The registered
-// `Progress` is the bar — `components.md` §1 names it "also the three
-// driver mini-bars of the report's header strip (§4.1); mini-bars are
-// *not* a sixth chart".
+// daisyUI in the route (DESIGN rule 1): `card`, `stat`, `badge`,
+// `progress`, `btn`. The value is spoken in tenths and the bar is drawn from
+// the same tenths, so the drawing and the figure beside it cannot disagree.
 //
-// **The value is spoken in tenths, and the bar is drawn from the same
-// tenths.** `score.ts` computes each factor on 0–100 and the approved set
-// draws `7/10`; one conversion, here, feeds both the label and the bar, so
-// the drawing and the figure beside it cannot disagree — a bar at 46% over
-// a label reading `5/10` would be two different claims about one
-// measurement.
-//
-// The unmeasured arm renders the dash, **no band element at all**, still
+// The unmeasured arm renders the dash and **no band element at all**, still
 // names the domain and the date, and carries one line per factor with no
-// value, saying which of the two reasons applies to each. A measured zero
-// is a zero: `renderMeasured`'s own trichotomy decides which, and it is
-// not re-implemented here. A factor with no value draws no bar — a track
-// at zero would claim a measurement of zero.
+// value. A factor with no value draws no bar — a track at zero would claim a
+// measurement of zero.
 import type React from "react";
-import { Badge, Btn, Card, Progress } from "@/ui/components";
 import { BAND_TONE } from "@/ui/bands";
+import type { Tone } from "@/ui/types";
 import { copy } from "@/lib/presentation/copy";
 import { LIMITING_LINES, SCORE_BANDS } from "@/lib/presentation/bands";
 import type { Verdict } from "@/lib/measure/verdict";
@@ -39,34 +25,34 @@ import type { CopyKey } from "@/lib/presentation/copy";
 import { dash, Num, unmeasuredLineFor } from "./measured";
 
 /** The factor's own name, for the `{what}` slot of the two unmeasured
- *  lines and for its own bar's label. `LIMITING_LINES` holds the
- *  *sentence* about a factor and is a different thing; conflating them
- *  would put a whole sentence inside another sentence's slot. */
+ *  lines and for its own bar's label. */
 const FACTOR_NAMES: Readonly<Record<ScoreFactorName, CopyKey>> = Object.freeze({
   foundations: "verdict.factor.foundations",
   answerability: "verdict.factor.answerability",
   presence: "verdict.factor.presence",
 });
 
-/** The order the three bars are drawn in — `score.ts`'s own tie-break
- *  order, which is the order a founder can act on them in: their own page
- *  today, their own wording next, the market's answer last. */
+/** `score.ts`'s own tie-break order: their own page today, their own
+ *  wording next, the market's answer last. */
 const FACTOR_ORDER: readonly ScoreFactorName[] = ["foundations", "answerability", "presence"];
 
-/** The scale the header speaks in. The factors are 0–100 (`BUILD.md` §5);
- *  the approved set draws `7/10`. Both the label and the bar read this one
- *  number, so they cannot disagree. */
+/** The factors are 0–100; the header speaks in tenths. */
 const TENTHS = 10;
 
-/** REQ-004 c3: one line naming every factor that has no value, and for
- *  each, which of the two reasons applies — never calling a factor the
- *  scan never attempted a missing one. The count follows
- *  `Verdict.missing`'s own length exactly; it is never padded or
- *  truncated. */
+const BADGE_TONE: Readonly<Record<Tone, string>> = Object.freeze({
+  accent: "badge-primary",
+  ok: "badge-success",
+  warn: "badge-warning",
+  bad: "badge-error",
+  neutral: "badge-ghost",
+});
+
+/** One line per factor with no value, naming which of the two reasons
+ *  applies. The count follows `Verdict.missing` exactly. */
 function MissingFactors(p: { verdict: Verdict }): React.JSX.Element | null {
   if (p.verdict.missing.length === 0) return null;
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-1 text-sm">
       {p.verdict.missing.map((m) => (
         <p key={m.factor}>
           {copy(unmeasuredLineFor({ kind: "unmeasured", reason: m.reason, at: p.verdict.measuredAt }), {
@@ -78,47 +64,28 @@ function MissingFactors(p: { verdict: Verdict }): React.JSX.Element | null {
   );
 }
 
-/** One driver mini-bar: the bar, then its name and its value in tenths.
- *  The name is the accessible name of the bar as well, so the reading is
- *  the same whether the row is seen or heard. */
+/** `n/10`, composed in TypeScript: a numeric format, not a sentence. */
+function ratioOfTen(tenths: number): string {
+  return `${tenths}/${TENTHS}`;
+}
+
+/** One driver mini-bar: the bar, then its name and its value in tenths. The
+ *  name is the bar's accessible name as well. */
 function DriverBar(p: { factor: ScoreFactorName; value: Measured<number> }): React.JSX.Element {
   const name = copy(FACTOR_NAMES[p.factor]);
   const tenths = p.value.kind === "unmeasured" ? null : Math.round(p.value.value / TENTHS);
   return (
-    <div className="flex min-w-0 flex-1 flex-col gap-1">
-      {/* A driver with no value keeps its track and draws no fill: the
-          approved screen holds the row's place, and a `progress` at zero
-          would claim a measurement of zero. */}
+    <div className="flex min-w-0 flex-col gap-1">
       {tenths === null ? (
-        <div className="h-(--s-2) rounded-(--r-pill) bg-base-200" aria-hidden />
+        <div className="bg-base-200 h-2 rounded-full" aria-hidden />
       ) : (
-        <Progress value={tenths} max={TENTHS} label={name} />
+        <progress className="progress progress-primary" value={tenths} max={TENTHS} aria-label={name} />
       )}
-      <p className={tenths === null ? "text-xs text-(color:--ink-3)" : "text-xs opacity-60"}>
+      <p className="text-base-content/60 text-xs">
         {name} <Num unmeasured={tenths === null}>{tenths === null ? dash() : ratioOfTen(tenths)}</Num>
       </p>
     </div>
   );
-}
-
-/** The score's own size — the ladder's big-number rung (`--t-num-big`,
- *  44px), named rather than approximated by a utility step. */
-const BIG_NUMBER: React.CSSProperties = { fontSize: "var(--t-num-big)", lineHeight: 1.1 };
-
-/** REQ-094 c1's control, as S2 draws it. The correction itself — the form,
- *  the seven-day window, the re-measure — is REQ-094's own work and not
- *  this screen's, so this is a control with no destination rather than an
- *  invented one, the way the pricing card's Start was until checkout
- *  landed. */
-function CorrectionControl(): React.JSX.Element {
-  return <Btn label={copy("verdict.not-your-market")} variant="tertiary" size="sm" />;
-}
-
-/** `n/10`, composed in TypeScript: a slash written as JSX text is a string
- *  literal in a voice position, and this is a numeric format rather than a
- *  sentence — the same reason `measured.tsx` composes its own ratio. */
-function ratioOfTen(tenths: number): string {
-  return `${tenths}/${TENTHS}`;
 }
 
 export function VerdictStrip(p: {
@@ -131,70 +98,55 @@ export function VerdictStrip(p: {
   const scoreAndBand = verdict.scoreAndBand;
 
   return (
-    <Card
-      state="default"
-      title={
-        <div className="flex w-full flex-wrap items-start justify-between gap-3">
+    <section className="card bg-base-100 border-base-300 border">
+      <div className="card-body gap-4">
+        <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex min-w-0 flex-col gap-1">
-            {/* The domain is a value: mono, and never rewritten to fit
-                (`.num` in `src/ui/type.css`). */}
-            <h3 className="min-w-0 overflow-x-auto">
+            <h2 className="card-title min-w-0 overflow-x-auto">
               <Num>{verdict.domain}</Num>
-            </h3>
-            <div className="flex flex-wrap items-baseline gap-2 text-xs font-normal opacity-60">
-              {/* A mono phrase — a date and a category with a separator
-                  between them — and not one unbreakable value. */}
+            </h2>
+            <div className="text-base-content/60 flex flex-wrap items-center gap-2 text-xs">
               <Num phrase>
                 {p.category === null
                   ? copy("report.measured-at.no-category", { date: p.measuredOn })
                   : copy("report.measured-at", { date: p.measuredOn, category: p.category })}
               </Num>
-              {/* REQ-094 c1's correction control. It has no destination
-                  yet — the correction flow is REQ-094's own work — and a
-                  control with no destination is what this codebase ships
-                  rather than an invented one (`pricing.tsx`'s Start until
-                  checkout landed). */}
-              <CorrectionControl />
+              {/* The category correction. The flow behind it is its own
+                  issue; until then it is a control with no destination. */}
+              <button type="button" className="btn btn-ghost btn-xs">
+                {copy("verdict.not-your-market")}
+              </button>
             </div>
           </div>
 
-          <div className="flex flex-col items-end gap-1 text-right">
-            {/* 6a: "Discoverability Score" is the number's name on every
-                surface that labels it. */}
-            <p className="eyebrow opacity-60">{copy("verdict.score.label")}</p>
-            {/* A block, not an inline `span`: an inline box is sized from
-                its own font's metrics, and JetBrains Mono is taller at the
-                same size than the UI face, so a mono child inside an
-                inline parent overflows it by a pixel or two. A block
-                wrapper takes the line box's height, which is the child's.
-                The size is the ladder's own big-number rung. */}
-            <div className="font-semibold" style={BIG_NUMBER}>
+          <div className="stat w-auto p-0 text-right">
+            <div className="stat-title">{copy("verdict.score.label")}</div>
+            <div className="stat-value text-5xl">
               <Num unmeasured={scoreAndBand.kind === "unmeasured"}>
                 {scoreAndBand.kind === "unmeasured" ? dash() : scoreAndBand.value.score}
               </Num>
             </div>
             {scoreAndBand.kind === "unmeasured" ? null : (
-              <Badge tone={BAND_TONE[scoreAndBand.value.band]}>
-                {copy(SCORE_BANDS[scoreAndBand.value.band])}
-              </Badge>
+              <div className="stat-desc">
+                <span className={`badge ${BADGE_TONE[BAND_TONE[scoreAndBand.value.band]]}`}>
+                  {copy(SCORE_BANDS[scoreAndBand.value.band])}
+                </span>
+              </div>
             )}
           </div>
         </div>
-      }
-    >
-      {verdict.limiting.kind === "factor" ? (
-        <p>{copy(LIMITING_LINES[verdict.limiting.factor])}</p>
-      ) : null}
-      <MissingFactors verdict={verdict} />
 
-      {/* One column on a phone, three across the strip from
-          `--breakpoint-sm`: pinned to one row they would be a third of a
-          wide report each, and at 320 narrower than their own labels. */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        {FACTOR_ORDER.map((factor) => (
-          <DriverBar key={factor} factor={factor} value={verdict.factors[factor]} />
-        ))}
+        {verdict.limiting.kind === "factor" ? (
+          <p className="grow-0">{copy(LIMITING_LINES[verdict.limiting.factor])}</p>
+        ) : null}
+        <MissingFactors verdict={verdict} />
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {FACTOR_ORDER.map((factor) => (
+            <DriverBar key={factor} factor={factor} value={verdict.factors[factor]} />
+          ))}
+        </div>
       </div>
-    </Card>
+    </section>
   );
 }

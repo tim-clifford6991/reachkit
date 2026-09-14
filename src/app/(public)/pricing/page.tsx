@@ -30,7 +30,8 @@
 // — "No account before payment. Your site is asked for after". All of it at
 // the reading measure and centred, which is how the set draws a page whose
 // whole content is one decision. The chrome above and below is the group
-// layout's (ruling 3a).
+// layout's (ruling 3a). Tailwind's scale in the route (DESIGN rule 1): no
+// type-ladder classes and no `var(--w-read)`.
 import React, { use } from "react";
 import type { Metadata } from "next";
 import { Surface } from "@/ui/layout";
@@ -59,10 +60,6 @@ function usePricingSearchParams(
   return searchParams ?? {};
 }
 
-/** One reading column (design tokens §2b): the page is one decision, and a
- *  decision stretched across 1216px reads as a banner. */
-const READING_MEASURE: React.CSSProperties = { maxWidth: "var(--w-read)" };
-
 /** Issue #326: the one offer page (REQ-021 c4), and the one public route
  *  besides the landing a stranger may arrive at from a search result. */
 export const metadata: Metadata = staticMetadata(PUBLIC_ROUTE_SEO.pricing);
@@ -86,20 +83,20 @@ export default function PricingPage(props: {
       {/* A padding edge, so a child's top margin does not collapse through
           `<body>` and so the card is not against the viewport edge at
           320px. */}
-      <main className="flex flex-col gap-5 p-4">
-        <div className="mx-auto w-full text-center" style={READING_MEASURE}>
+      <main className="flex flex-col gap-6 p-4">
+        <div className="mx-auto flex w-full max-w-xl flex-col gap-2 text-center">
           {/* The eyebrow is `offer.start` — the same two words, from the
               key that owns them, rather than a second copy of them. */}
-          <p className="eyebrow opacity-60">{copy("offer.start")}</p>
-          <h1>{copy("pricing.heading")}</h1>
-          <p className="rk-quiet">{copy("pricing.subline")}</p>
+          <p className="text-base-content/60 text-xs font-semibold tracking-wide uppercase">{copy("offer.start")}</p>
+          <h1 className="text-3xl font-semibold">{copy("pricing.heading")}</h1>
+          <p className="text-base-content/70">{copy("pricing.subline")}</p>
         </div>
 
         {/* REQ-021 c4's "exactly one offer": one card, and it is the
             report's own component with somewhere for Start to go. Nothing
             about the terms is restated here, so the two surfaces cannot
             drift. */}
-        <div className="mx-auto w-full" style={READING_MEASURE}>
+        <div className="mx-auto w-full max-w-xl">
           {/* S4's own wording of the four terms (ruling 11a). The report's
               card keeps the owner's 2026-09-04 ruling; the facts are the
               same four either way, which is REQ-021 c4's "on the same
@@ -107,7 +104,7 @@ export default function PricingPage(props: {
           <PricingCard startAction={startCheckout} terms="pricing" refused={refused} />
         </div>
 
-        <p className="t-explain mx-auto text-center opacity-60" style={READING_MEASURE}>
+        <p className="text-base-content/60 mx-auto max-w-xl text-center text-sm">
           {copy("pricing.footnote")}
         </p>
       </main>

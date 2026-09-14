@@ -16,13 +16,10 @@
 // issue #33). Until that lands it is a control with no destination rather
 // than an invented one.
 //
-// **It is the report's one solid primary** (owner's ruling on issue #291).
-// The screen had two filled accent buttons — this one and the free-page
-// card's submit — and §9.1 gives a screen one. Start keeps the fill because
-// it is what the screen is for; the free-page control takes the outline
-// rank in accent and says so in its own header. Nothing changes here: the
-// ruling is recorded on the control it kept, so the next reader of this
-// file does not re-open it.
+// **It is the report's one solid primary** (DESIGN rule 1). Start keeps
+// the fill because it is the paying path; the free-page control is outline.
+//
+// daisyUI in the route: `card`, `alert`, `btn`; lucide for the ticks.
 //
 // `refused` is the same additive shape as `startAction`: the surface that
 // can start a checkout is the surface that can be refused one, and the line
@@ -38,14 +35,9 @@
 // screen passes nothing and is unchanged.
 import type React from "react";
 import { Check } from "lucide-react";
-import { Alert, Btn, Card } from "@/ui/components";
 import { VETO } from "@/lib/config/constants";
 import { copy } from "@/lib/presentation/copy";
 import { Num } from "../_address/measured";
-
-/** The price, at the ladder's big-figure rung — the one headline number
- *  this card carries. */
-const PRICE_SIZE: React.CSSProperties = { fontSize: "var(--t-num-big)", lineHeight: 1.05 };
 
 /** Which of the two approved wordings of the same four terms this card
  *  states.
@@ -84,53 +76,52 @@ export function PricingCard(
   p: { startAction?: () => Promise<void>; terms?: OfferTerms; refused?: boolean } = {}
 ): React.JSX.Element {
   const specs = TERM_LINES[p.terms ?? "report"]();
+  const start = (
+    <button
+      type={p.startAction ? "submit" : "button"}
+      className="btn btn-primary btn-block"
+    >
+      {copy("offer.start.priced")}
+    </button>
+  );
 
   return (
-    // No card head. The approved set draws this card headless on both
-    // surfaces that carry it (UI-SPEC S2 module 6, S4): it opens on the
-    // price, which is the answer §2.5 says a card leads with, and an
-    // eyebrow above it would name the card the button already names.
-    <Card state="default" title={null}>
-      {/* REQ-022 c1: "€49 per month and says that VAT is included". The
-          amount is the ladder's big figure and the terms sit on its
-          baseline beside it. Centred, as the set draws the whole card. */}
-      <div className="flex flex-wrap items-baseline justify-center gap-2 text-center">
-        <div className="font-semibold" style={PRICE_SIZE}>
-          <Num>{copy("price.amount")}</Num>
+    // Headless: the card opens on the price, which is its answer.
+    <section className="card bg-base-100 border-base-300 border">
+      <div className="card-body gap-4">
+        {/* REQ-022 c1: "€49 per month and says that VAT is included". */}
+        <div className="flex flex-wrap items-baseline justify-center gap-2 text-center">
+          <div className="text-5xl font-semibold">
+            <Num>{copy("price.amount")}</Num>
+          </div>
+          <span className="text-base-content/60 text-sm font-semibold">{copy("price.interval")}</span>
         </div>
-        <span className="t-sm font-semibold opacity-60">{copy("price.interval")}</span>
+
+        <ul className="flex list-none flex-col p-0 text-left">
+          {specs.map((line) => (
+            <li
+              key={line}
+              className="border-base-300 flex items-center gap-3 border-t py-2 text-sm first:border-t-0"
+            >
+              <Check size={16} strokeWidth={1.75} className="text-success shrink-0" aria-hidden />
+              <span>{line}</span>
+            </li>
+          ))}
+        </ul>
+
+        {/* Issue #624: the vendor refused to open checkout. One written line
+            on the offer itself, above the control that will try again. */}
+        {p.refused ? (
+          <div role="alert" className="alert alert-error">
+            <span>{copy("offer.checkout.refused")}</span>
+          </div>
+        ) : null}
+
+        {p.startAction ? <form action={p.startAction}>{start}</form> : start}
+        <p className="text-base-content/60 grow-0 text-center text-xs">
+          {copy("offer.cancel_self_service")}
+        </p>
       </div>
-
-      {/* The four the offer states, each with the set's own check mark in
-          `--ok` and a hairline between them — a list of what is included,
-          which is what a tick means and the one place `--ok` is not a
-          state on this screen. The glyph is decorative: every row says in
-          writing what it includes. */}
-      <ul className="flex list-none flex-col p-0 text-left">
-        {specs.map((line) => (
-          <li
-            key={line}
-            className="border-base-300 t-sm flex items-center gap-3 border-t py-2 first:border-t-0"
-          >
-            <Check size={15} strokeWidth={2.4} className="text-success shrink-0" aria-hidden />
-            <span>{line}</span>
-          </li>
-        ))}
-      </ul>
-
-      {/* Issue #624: the vendor refused to open checkout. One written line
-          on the offer itself, in the bad tone, above the control that will
-          try again — never a thrown error and a 500. */}
-      {p.refused ? <Alert tone="bad" message={copy("offer.checkout.refused")} /> : null}
-
-      {p.startAction ? (
-        <form action={p.startAction}>
-          <Btn label={copy("offer.start.priced")} variant="primary" pill block type="submit" />
-        </form>
-      ) : (
-        <Btn label={copy("offer.start.priced")} variant="primary" pill block />
-      )}
-      <p className="t-explain text-center opacity-60">{copy("offer.cancel_self_service")}</p>
-    </Card>
+    </section>
   );
 }

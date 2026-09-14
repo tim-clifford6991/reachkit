@@ -1,19 +1,15 @@
 // BUILD §4.1 module 4 — the DIY collapses
 //
 // The complete method, free, on the same page: three collapsed sections,
-// one per problem, in the cards' own order. Instructional text is allowed
-// here and nowhere else on this screen (`BUILD.md` §4.1), and it is still
-// the owner's — every sentence is a `CopyKey`.
+// one per problem, in the cards' own order. Every sentence is a `CopyKey`.
 //
-// Collapsed markup, never a lazy fetch: the whole method is in the first
-// response, so it is readable with JavaScript off, and nothing is asked
-// for to read it — no payment, no address, no account, no session read
-// and no branch on identity anywhere in this file.
+// daisyUI `collapse` on `details`/`summary`, never a lazy fetch: the whole
+// method is in the first response, readable with JavaScript off, and
+// nothing is asked for to read it — no payment, no address, no account.
 //
 // The union is the same three `ProblemName`s the cards render, so a method
 // section cannot go missing for a problem that has a card.
 import type React from "react";
-import { Collapse } from "@/ui/components";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { PROBLEM_ORDER, type ProblemName } from "./model";
 
@@ -28,13 +24,16 @@ export function MethodSections(p: {
 }): React.JSX.Element {
   return (
     <div className="flex flex-col gap-2">
-      {/* The module's own label (UI-SPEC S2: "The complete method, free"),
-          at the eyebrow rung — a label over a list, not a fourth card. */}
-      <p className="eyebrow opacity-60">{copy("method.title")}</p>
+      <p className="text-base-content/60 text-xs font-semibold tracking-wide uppercase">
+        {copy("method.title")}
+      </p>
       {p.for.map((problem) => (
-        <Collapse key={problem} summary={copy(METHOD_COPY[problem].title)}>
-          <p>{copy(METHOD_COPY[problem].body)}</p>
-        </Collapse>
+        <details key={problem} className="collapse collapse-arrow bg-base-100 border-base-300 border">
+          <summary className="collapse-title font-medium">{copy(METHOD_COPY[problem].title)}</summary>
+          <div className="collapse-content text-sm">
+            <p>{copy(METHOD_COPY[problem].body)}</p>
+          </div>
+        </details>
       ))}
     </div>
   );

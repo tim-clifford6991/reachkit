@@ -2,8 +2,8 @@
 //
 // The six modules in §4.1's order, at most one notice, exactly one control
 // (or none), and the removal address at the foot. A screen composition,
-// not a registry row: every visible element is one of `src/ui/components`'
-// registered rows or a layout element around them.
+// daisyUI classes in the route (DESIGN rule 1): `alert` for the notice,
+// `btn` for the one control; every module below is its own card.
 //
 // §4.1's own order, with the two 2026-09-03 amendments folded in:
 //   1. verdict strip — score, band, one written line. No driver bars.
@@ -25,8 +25,6 @@
 // with one written line (REQ-004 c10/c11) — never an empty card, never a
 // spinner — and the rest of the report stays usable.
 import type React from "react";
-import { Alert, Btn } from "@/ui/components";
-import { ActionPanel } from "@/ui/idiom";
 import { CircleAlert } from "lucide-react";
 import { Surface } from "@/ui/layout";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
@@ -51,12 +49,6 @@ import { VerdictStrip } from "./verdict";
 // `categoryOf` is the one derivation of it, and the screen reads it here
 // rather than from a second member the blob used to carry.
 import { categoryOf } from "@/lib/scan/sections";
-
-/** The offer's own measure: `--w-read`, centred, as the approved set
- *  draws it on both surfaces that carry the card. A single reading column
- *  (design tokens §2b) — an offer stretched across a 1216px report reads
- *  as a banner rather than as a decision. */
-const OFFER_MEASURE: React.CSSProperties = { maxWidth: "var(--w-read)" };
 
 /** BUILD §6.3a / DECISIONS 2026-08-28: MVP is US-English only, one
  *  location constant, so the date a report was measured is formatted once,
@@ -96,49 +88,40 @@ function controlLabel(control: AddressControl & { kind: "rescan" }): string {
   return copy(control.because === "incomplete" ? "control.rescan-incomplete" : "control.rescan-age");
 }
 
-/** REQ-001 c14 as the approved screen draws it: the accent panel carries the
- *  sentence and the one control together, rather than a warning bar with a
- *  button beneath it. `role="alert"` keeps the notice announced once, which
- *  is what every other arm of the switch is. */
+/** REQ-001 c14: the notice carries the sentence and the one control that
+ *  answers it together. `role="alert"` keeps it announced once. */
 function IncompleteNotice(p: {
   unmeasured: readonly ScoreFactorName[];
   control: AddressControl & { kind: "rescan" };
 }): React.JSX.Element {
   return (
-    <div role="alert">
-      <ActionPanel
-        tone="accent"
-        icon={<CircleAlert size={20} strokeWidth={1.75} aria-hidden />}
-        title={incompleteLine(p.unmeasured)}
-        state="default"
-        cta={controlLabel(p.control)}
-      />
+    <div role="alert" className="alert alert-warning flex flex-wrap">
+      <CircleAlert size={20} strokeWidth={1.75} aria-hidden />
+      <span className="min-w-0 flex-1">{incompleteLine(p.unmeasured)}</span>
+      <button type="button" className="btn btn-outline btn-sm">
+        {controlLabel(p.control)}
+      </button>
     </div>
   );
 }
 
-/** A total switch: at most one line renders, ever, and `null` is an arm
- *  rather than a missing value. */
-function NoticeLine(p: {
-  notice: AddressNotice | null;
-}): React.JSX.Element | null {
-  const notice = p.notice;
-  if (notice === null) return null;
+/** A total switch: at most one line, ever, and `null` is an arm rather
+ *  than a missing value. `warn` is whether the line takes the warning tone. */
+function noticeOf(notice: AddressNotice): { line: string; warn: boolean } {
   switch (notice.kind) {
     // The list is a non-empty tuple (`state.ts`), so `{what}` is never
     // filled with the empty string: `resolve.ts` sends `null` instead of
-    // an empty `incomplete` (#541). The separator is `", "` and is not a
-    // sentence — the artboard draws "and", which is the owner's to say.
+    // an empty `incomplete` (#541).
     case "incomplete":
-      return <Alert tone="warn" message={incompleteLine(notice.unmeasured)} />;
+      return { line: incompleteLine(notice.unmeasured), warn: true };
     case "site_unreadable":
-      return <Alert tone="warn" message={copy("notice.site-unreadable")} />;
+      return { line: copy("notice.site-unreadable"), warn: true };
     case "measurement_failed":
-      return <Alert tone="warn" message={copy("notice.measurement-failed")} />;
+      return { line: copy("notice.measurement-failed"), warn: true };
     case "correction_failed":
-      return <Alert tone="warn" message={copy("notice.correction-failed")} />;
+      return { line: copy("notice.correction-failed"), warn: true };
     case "refused":
-      return <Alert tone="neutral" message={refusalLine(notice.refusal)} />;
+      return { line: refusalLine(notice.refusal), warn: false };
     default: {
       const exhaustive: never = notice;
       return exhaustive;
@@ -146,26 +129,46 @@ function NoticeLine(p: {
   }
 }
 
-/** A total switch: `none` renders nothing, every other arm renders exactly
- *  one control, and there is never a second one alongside it. */
-function ControlButton(p: {
-  control: AddressControl;
-}): React.JSX.Element | null {
-  const control = p.control;
+function NoticeLine(p: { notice: AddressNotice | null }): React.JSX.Element | null {
+  if (p.notice === null) return null;
+  const { line, warn } = noticeOf(p.notice);
+  return (
+    <div role="alert" className={warn ? "alert alert-warning" : "alert"}>
+      <CircleAlert size={20} strokeWidth={1.75} aria-hidden />
+      <span>{line}</span>
+    </div>
+  );
+}
+
+/** A total switch: `none` has no label, every other arm has exactly one. */
+function controlLabelOf(control: AddressControl): string | null {
   switch (control.kind) {
     case "none":
       return null;
     case "rescan":
-      return <Btn label={controlLabel(control)} />;
+      return controlLabel(control);
     case "retry":
-      return <Btn label={copy("control.retry")} />;
+      return copy("control.retry");
     case "correction_retry":
-      return <Btn label={copy("control.correction-retry")} />;
+      return copy("control.correction-retry");
     default: {
       const exhaustive: never = control;
       return exhaustive;
     }
   }
+}
+
+/** Exactly one control, or none, and never a second alongside it. */
+function ControlButton(p: { control: AddressControl }): React.JSX.Element | null {
+  const label = controlLabelOf(p.control);
+  if (label === null) return null;
+  return (
+    <div>
+      <button type="button" className="btn btn-outline">
+        {label}
+      </button>
+    </div>
+  );
 }
 
 export function ReportView(p: {
@@ -281,11 +284,11 @@ export function ReportView(p: {
             <FreePageCard section={report.freePage} />
           )}
         </div>
-        <div className="col-span-full mx-auto w-full" style={OFFER_MEASURE}>
+        <div className="col-span-full mx-auto w-full max-w-xl">
           <PricingCard />
         </div>
 
-        <div className="col-span-full">
+        <div className="text-base-content/60 col-span-full text-sm">
           <RemovalAddressLine />
         </div>
       </main>

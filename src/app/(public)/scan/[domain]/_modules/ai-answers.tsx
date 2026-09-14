@@ -27,10 +27,8 @@
 // answer columns", every row carries them as data
 // (`AiAnswersSection.rows[].engines`), and `AnswerColumns` below is that
 // data laid out: one column per engine, one row per question, every cell
-// a written state. It is §2.2's registered `Table` and not a sixth chart —
-// §2.4's inventory is closed at five and a new form is an approval of its
-// own — which also buys the `overflow-x-auto` wrap that lets four columns
-// narrow to 320px by scrolling instead of by shrinking their type.
+// a written state. It is a daisyUI `table` inside an `overflow-x-auto` wrap,
+// so four columns narrow to 320px by scrolling instead of shrinking type.
 //
 // **The columns are built from the data, so nothing here branches on
 // tier.** `report-view.tsx` has no payment, session or tier parameter and
@@ -52,11 +50,12 @@
 // Question wording is model text and reaches this file only through
 // `renderQuestion`, which will not yield the wording without the search it
 // came from (REQ-093 c3).
+// daisyUI in the route (DESIGN rule 1): `card`, `badge`, `table`,
+// `collapse`, `divider`, `btn`; lucide for the head glyph at stroke 1.75.
+//
 import type React from "react";
 import { Bot } from "lucide-react";
-import { Badge, Btn, Card, Collapse, Divider, Table } from "@/ui/components";
 import { AiDotMatrixChart, type AiDotMatrixCellState, type AiDotMatrixRow } from "@/ui/charts";
-import { CardHead, QuestionList, SourceChip, type QuestionItem } from "@/ui/idiom";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { renderQuestion } from "@/lib/presentation/generated";
 import type {
@@ -132,15 +131,15 @@ function wasAsked(rows: AnswerRows, engine: BatteryEngine): boolean {
 function AnswerState(p: { cell: AnswerCell }): React.JSX.Element {
   const { cell } = p;
   if (cell.kind === "unmeasured") {
-    return <Badge tone="neutral">{copy("ai-answers.engine.not-measured")}</Badge>;
+    return <span className="badge badge-ghost">{copy("ai-answers.engine.not-measured")}</span>;
   }
   if (cell.kind === "no_answer") {
-    return <Badge tone="neutral">{copy("ai-answers.question.no-answer")}</Badge>;
+    return <span className="badge badge-ghost">{copy("ai-answers.question.no-answer")}</span>;
   }
   return cell.namesCustomer ? (
-    <Badge tone="ok">{copy("ai-answers.engine.cell.cited")}</Badge>
+    <span className="badge badge-success">{copy("ai-answers.engine.cell.cited")}</span>
   ) : (
-    <Badge tone="bad">{copy("ai-answers.question.not-you")}</Badge>
+    <span className="badge badge-error">{copy("ai-answers.question.not-you")}</span>
   );
 }
 
@@ -157,7 +156,7 @@ const AI_OVERVIEW: BatteryEngine = "ai_overview";
 function EngineNotAsked(p: { engine: BatteryEngine }): React.JSX.Element {
   return (
     <p className="flex flex-wrap items-center gap-2 text-xs">
-      <Badge tone="neutral">{copy(ENGINE_LABEL[p.engine])}</Badge>
+      <span className="badge badge-ghost">{copy(ENGINE_LABEL[p.engine])}</span>
       <span className="opacity-60">{copy("ai-answers.engine.not-measured")}</span>
     </p>
   );
@@ -194,24 +193,34 @@ function AnswerColumns(p: { rows: AnswerRows }): React.JSX.Element | null {
 
   return (
     <>
-      <Table
-        columns={[
-          { key: "n", header: copy("ai-answers.engine.column.question") },
-          ...drawn.map((engine) => ({ key: engine, header: copy(ENGINE_LABEL[engine]) })),
-        ]}
-        rows={p.rows.map((row) => ({
-          n: <Num>{String(row.question.n)}</Num>,
-          ...Object.fromEntries(
-            drawn.map((engine) => [engine, <AnswerState key={engine} cell={cellFor(row, engine)} />])
-          ),
-        }))}
-        // Unreachable, and required anyway: `drawn` is empty whenever
-        // `rows` is, so this component has already returned null. `Table`
-        // admits no fallback for it by design, so it takes the sentence
-        // that would be true — nothing was asked — rather than a string
-        // invented to satisfy the prop.
-        emptyMessage={copy("ai-answers.engine.not-measured")}
-      />
+      <div className="min-w-0 overflow-x-auto">
+        <table className="table table-sm">
+          <thead>
+            <tr>
+              <th className="whitespace-normal">{copy("ai-answers.engine.column.question")}</th>
+              {drawn.map((engine) => (
+                <th key={engine} className="whitespace-normal">
+                  {copy(ENGINE_LABEL[engine])}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {p.rows.map((row) => (
+              <tr key={row.question.n}>
+                <td>
+                  <Num>{String(row.question.n)}</Num>
+                </td>
+                {drawn.map((engine) => (
+                  <td key={engine}>
+                    <AnswerState cell={cellFor(row, engine)} />
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
       {neverAsked.map((engine) => (
         <EngineNotAsked key={engine} engine={engine} />
       ))}
@@ -266,17 +275,28 @@ function matrixRows(section: AiAnswersSection): readonly AiDotMatrixRow[] {
   ];
 }
 
-/** One row of the idiom's `QuestionList` (#487): the wording through
- *  `renderQuestion`, the `not you` badge where the answer did not name the
- *  customer, and the mono provenance line. */
-function questionItem(row: { question: StoredQuestion; cell: AnswerCell }): QuestionItem {
-  const { question, cell } = row;
+/** The card's head: the glyph, the card's name, and what sits at its right —
+ *  the source line on the measured card, the dash on the absent one. */
+function Head(p: { right: React.ReactNode }): React.JSX.Element {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-2">
+      <h2 className="card-title text-base-content/70 text-xs tracking-wide uppercase">
+        <Bot size={16} strokeWidth={1.75} aria-hidden />
+        {copy("ai-answers.title")}
+      </h2>
+      {p.right}
+    </div>
+  );
+}
+
+/** One question: its number, the wording through `renderQuestion`, the
+ *  `not you` badge where the answer did not name the customer, and the mono
+ *  provenance line. */
+function QuestionRow(p: { row: { question: StoredQuestion; cell: AnswerCell } }): React.JSX.Element {
+  const { question, cell } = p.row;
   const namesCustomer = cell.kind === "answered" && cell.namesCustomer;
   // The brands the AI answer named, from the cell that measured them
-  // (#103). They rode on the question until then, which put a fact about
-  // the *answer* on the object beside it and made a third copy of this
-  // very list. A question whose answer named nobody names none — an empty
-  // list, never a claim.
+  // (#103). A question whose answer named nobody names none.
   const namedBrands = cell.kind === "answered" ? cell.citedDomains : [];
   const [wording, provenance] = renderQuestion({
     wording: question.wording,
@@ -286,21 +306,34 @@ function questionItem(row: { question: StoredQuestion; cell: AnswerCell }): Ques
     }),
   });
 
-  return {
-    n: String(question.n),
-    wording: wording.text,
-    badge:
-      cell.kind === "no_answer" ? (
-        <Badge tone="neutral">{copy("ai-answers.question.no-answer")}</Badge>
-      ) : namesCustomer ? undefined : (
-        <Badge tone="bad">{copy("ai-answers.question.not-you")}</Badge>
-      ),
-    // A mono **phrase**, not a single value: it is a line of language with
-    // a search inside it, and `.num`'s "never break a value" rule would
-    // otherwise hold the whole line on one unbreakable run (§2.3, issue
-    // #307's own `phrase` arm).
-    provenance: <Num phrase>{provenance.text}</Num>,
-  };
+  return (
+    <li className="border-base-300 flex flex-col gap-1 border-b py-2 last:border-b-0">
+      <div className="flex items-start gap-2 text-sm">
+        <span className="text-base-content/60">
+          <Num>{String(question.n)}</Num>
+        </span>
+        <span className="min-w-0 flex-1">{wording.text}</span>
+        {cell.kind === "no_answer" ? (
+          <span className="badge badge-ghost badge-sm">{copy("ai-answers.question.no-answer")}</span>
+        ) : namesCustomer ? null : (
+          <span className="badge badge-error badge-sm">{copy("ai-answers.question.not-you")}</span>
+        )}
+      </div>
+      <p className="text-base-content/60 text-xs">
+        <Num phrase>{provenance.text}</Num>
+      </p>
+    </li>
+  );
+}
+
+function QuestionRows(p: { rows: AnswerRows }): React.JSX.Element {
+  return (
+    <ul className="flex flex-col">
+      {p.rows.map((row) => (
+        <QuestionRow key={row.question.n} row={row} />
+      ))}
+    </ul>
+  );
 }
 
 export function AiAnswersCard(p: {
@@ -314,87 +347,56 @@ export function AiAnswersCard(p: {
   const rest = section.rows.slice(QUESTIONS_SHOWN);
 
   return (
-    <Card
-      state="default"
-      title={
-        <CardHead
-          // The set's own glyph for this card (UI-SPEC §2's chip row, and
-          // the icon its `cardHead('bot', 'AI answers', …)` names). It is
-          // decorative — the eyebrow beside it is the label.
-          icon={<Bot size={15} strokeWidth={1.8} aria-hidden />}
-          eyebrow={copy("ai-answers.title")}
-          pill={<SourceChip wrap>{copy("ai-answers.source", { date: p.measuredOn })}</SourceChip>}
+    <section className="card bg-base-100 border-base-300 border">
+      <div className="card-body gap-3">
+        <Head
+          right={
+            <span className="badge badge-ghost h-auto py-1 text-xs whitespace-normal">
+              {copy("ai-answers.source", { date: p.measuredOn })}
+            </span>
+          }
         />
-      }
-    >
-      {/* The card leads with its answer, not with its metric (§2.5). The
-          set sets this line at `--t-sm`, semibold — the ladder's 13 (10a)
-          — not at a heading step: the card's head is its eyebrow, and a
-          second heading under it would be a second head. */}
-      <p className="t-sm font-semibold">
-        {copy("ai-answers.denominator", {
-          answered: String(section.answeredSearches),
-          measured: String(section.measuredSearches),
-        })}
-      </p>
+        {/* The card leads with its answer, not with its metric. */}
+        <p className="grow-0 text-sm font-semibold">
+          {copy("ai-answers.denominator", {
+            answered: String(section.answeredSearches),
+            measured: String(section.measuredSearches),
+          })}
+        </p>
 
-      {/* A chart is drawn at `width: 100%` of the box it is given, and the
-          box is a declared scroll container so a matrix wider than the
-          card scrolls rather than shrinking its labels (ADR-093: content
-          fits its box or the box changes). */}
-      <div className="min-w-0 overflow-x-auto">
-        <AiDotMatrixChart
-          rows={matrixRows(section)}
-          // Each column is identified by its question's own **number**,
-          // never its wording: the wording is `GeneratedText` and carries
-          // its label with it (REQ-093 c3), and a number is a data
-          // identity that sets in the mono numeral face like every other
-          // numeral in the product (§2.3).
-          questions={section.rows.map((row) => String(row.question.n))}
-          label={copy("ai-answers.title")}
-        />
+        {/* The matrix scrolls rather than shrinking its labels. The
+            customer's own row is labelled `n/m`; no sentence repeats it. */}
+        <div className="min-w-0 overflow-x-auto">
+          <AiDotMatrixChart
+            rows={matrixRows(section)}
+            questions={section.rows.map((row) => String(row.question.n))}
+            label={copy("ai-answers.title")}
+          />
+        </div>
+
+        <AnswerColumns rows={section.rows} />
+
+        <div className="divider my-0" />
+
+        <p className="text-base-content/60 grow-0 text-xs font-semibold tracking-wide uppercase">
+          {copy("ai-answers.questions.title")}
+        </p>
+        <QuestionRows rows={shown} />
+        {/* REQ-006 c8: the first four visible and the remainder one action
+            away — `details`, so they are in the document with no JavaScript. */}
+        {rest.length === 0 ? null : (
+          <details className="collapse collapse-arrow border-base-300 border">
+            <summary className="collapse-title text-sm">
+              {copy("ai-answers.questions.show-all", { total: String(section.rows.length) })}
+            </summary>
+            <div className="collapse-content">
+              <QuestionRows rows={rest} />
+            </div>
+          </details>
+        )}
+        <p className="text-base-content/60 grow-0 text-xs">{copy("ai-answers.method")}</p>
       </div>
-      {/* **No second count line under the matrix.** The customer's own row
-          is drawn `n/m` beside their name, which is REQ-006 c1's citation
-          count against c1's own denominator and REQ-006 c4's measurement
-          of a customer cited on none; a sentence repeating it would be the
-          same claim twice, and the approved set draws one line here, not
-          three. `ai-answers.customer-citations` and `ai-answers.legend`
-          are no longer spoken by this card — §2.4 has no legend-only mode
-          because every mark is direct-labelled. */}
-
-      <AnswerColumns rows={section.rows} />
-
-      <Divider />
-
-      {/* A section label inside a card is the eyebrow rung (§2.3's
-          "uppercase 10.5–11px eyebrows for section labels"), not a second
-          card head: `--h3` here put the list's label at the same weight
-          as the card's own verdict.
-          **And not a heading element either**: `heading-scale.test.ts`
-          holds every rendered heading to its own step of the ruled scale,
-          which an 11px `h3` is not — a label is a label, and the landing's
-          own section labels are `p.eyebrow` for the same reason. */}
-      <p className="eyebrow opacity-60">{copy("ai-answers.questions.title")}</p>
-      <QuestionList items={shown.map(questionItem)} />
-      {/* REQ-006 c8: "the first four visible and the remainder one action
-          away". The action is the registered `Collapse` — `details` and
-          `summary`, so the remaining questions are in the document, are
-          reachable with no JavaScript, and stay in the accessibility tree.
-          The set draws a quiet pill labelled "Show all 12"; a pill with no
-          behaviour would be the label without the action, which is the
-          half c8 does not accept. */}
-      {rest.length === 0 ? null : (
-        <Collapse
-          summary={copy("ai-answers.questions.show-all", { total: String(section.rows.length) })}
-        >
-          <QuestionList items={rest.map(questionItem)} />
-        </Collapse>
-      )}
-      {/* REQ-006 c6's one written line: what was measured, and no second
-          engine named anywhere on the card. */}
-      <p className="t-explain opacity-60">{copy("ai-answers.method")}</p>
-    </Card>
+    </section>
   );
 }
 
@@ -403,22 +405,17 @@ export function AiAnswersCard(p: {
  *  never an empty card, never a spinner. */
 export function AiAnswersAbsent(): React.JSX.Element {
   return (
-    <Card
-      state="default"
-      title={
-        <CardHead
-          icon={<Bot size={15} strokeWidth={1.8} aria-hidden />}
-          eyebrow={copy("ai-answers.title")}
-          pill={<Num unmeasured>{dash()}</Num>}
-        />
-      }
-    >
-      <p className="t-sm text-(color:--ink-2)">{copy("ai-answers.absent")}</p>
-      {/* The part this card could not measure is offered again on the card
-          itself, which is where the approved screen puts it. */}
-      <div>
-        <Btn label={copy("control.rescan-incomplete")} variant="secondary" tone="accent" size="sm" pill />
+    <section className="card bg-base-100 border-base-300 border">
+      <div className="card-body gap-3">
+        <Head right={<Num unmeasured>{dash()}</Num>} />
+        <p className="grow-0 text-sm">{copy("ai-answers.absent")}</p>
+        {/* The part this card could not measure is offered again on the card. */}
+        <div className="card-actions">
+          <button type="button" className="btn btn-outline btn-primary btn-sm">
+            {copy("control.rescan-incomplete")}
+          </button>
+        </div>
       </div>
-    </Card>
+    </section>
   );
 }
