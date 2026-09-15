@@ -9,9 +9,9 @@
 // loading a page, so the page keeps exactly one submit control. On every
 // other public route it is a link to the landing.
 //
-// The right slot is the route's, handed over by the layout: the report
-// address shows its Copy link, and a token page shows its own address,
-// quiet, with no control beside it.
+// SPEC §1, owner 2026-09-15 (issue 714): no exceptions. The report, the two
+// token pages and sign-in carry the same bar; the report adds its Copy link
+// beside the pair.
 import type React from "react";
 import { TrendingUp } from "lucide-react";
 import Link from "next/link";
@@ -19,28 +19,36 @@ import { copy } from "@/lib/presentation/copy";
 import { CopyLink } from "../scan/[domain]/_address/copy-link";
 import { FieldCta } from "../_landing/FieldCta";
 import { ThemeToggle } from "@/app/_theme/ThemeToggle";
+import { canonicalUrl } from "./canonical";
 
-/** What the bar's right slot holds. A closed union, so a fourth kind of
- *  chrome cannot arrive without a rendering. */
+/** What the bar's right slot holds beside Sign in. A closed union, so a
+ *  fourth kind of chrome cannot arrive without a rendering. */
 export type HeaderAction =
-  /** Sign in, then the header CTA as a link to the landing. */
+  /** The header CTA as a link to the landing. */
   | { kind: "cta" }
-  /** The same pair, with the CTA focusing the landing's own field. */
+  /** The CTA focusing the landing's own field. */
   | { kind: "landing" }
-  /** The one screen with an address to copy. */
-  | { kind: "copy-link"; canonicalUrl: string }
-  /** A token page's own address, quiet. */
-  | { kind: "address"; address: string };
+  /** The report address: its Copy link, then the CTA as a link. */
+  | { kind: "copy-link"; canonicalUrl: string };
+
+const REPORT_PREFIX = "/scan/";
+
+/** The bar's arm for a public path. Pure, so the one per-route rule is
+ *  asserted where it is written. No origin bound at build time is no
+ *  address to copy: the report then takes the plain arm. */
+export function headerActionFor(pathname: string): HeaderAction {
+  if (pathname === "/") return { kind: "landing" };
+  if (pathname.startsWith(REPORT_PREFIX)) {
+    const url = canonicalUrl(pathname);
+    return url === null ? { kind: "cta" } : { kind: "copy-link", canonicalUrl: url };
+  }
+  return { kind: "cta" };
+}
 
 function Action(p: { action: HeaderAction }): React.JSX.Element {
-  if (p.action.kind === "copy-link") {
-    return <CopyLink canonicalUrl={p.action.canonicalUrl} />;
-  }
-  if (p.action.kind === "address") {
-    return <span className="font-mono text-xs text-base-content/60">{p.action.address}</span>;
-  }
   return (
     <>
+      {p.action.kind === "copy-link" ? <CopyLink canonicalUrl={p.action.canonicalUrl} /> : null}
       <Link href="/signin" className="btn btn-ghost">
         {copy("chrome.nav.signin")}
       </Link>
