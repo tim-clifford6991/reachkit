@@ -1,8 +1,8 @@
 // BUILD §8 — the hard-rule battery.
 //
 // §8's rules are "enforced in code, not prompts", and this is the one place
-// they are all run. Nine of the ten are deterministic passes over finished
-// text and cost nothing; the tenth is the do-not-claim check, which owns
+// they are all run. Fourteen of the fifteen are deterministic passes over finished
+// text and cost nothing; the last is the do-not-claim check, which owns
 // its own module and is called from here rather than re-implemented.
 //
 // **Every rule runs, and the failure list carries all of them** — not the
@@ -21,6 +21,14 @@
 import type { CostContext } from "@/lib/costs";
 import { claimCheck } from "../claims/check";
 import type { ClaimVerdict } from "../claims/check";
+import {
+  checkFirstBlockAnswers,
+  checkInventedProvenance,
+  checkInventedTest,
+  checkNewQuestionHeading,
+  checkTraceableNumerals,
+  type BriefRuleInputs,
+} from "./brief";
 import { checkBrandGap } from "./brandgap";
 import { buildPrivateFigureRegister, checkPrivateFigure } from "./figures";
 import { checkGrounding } from "./grounding";
@@ -61,6 +69,8 @@ export async function runHardRules(
      *  drawn from, as the measurement read it on that fact's read date. The
      *  grounding rule has no other source and no fallback. */
     sourceText: string;
+    /** What the brief handed the model — rules 8–12 read nothing else. */
+    brief: BriefRuleInputs;
   }
 ): Promise<BatteryOutcome> {
   const register = buildPrivateFigureRegister({
@@ -68,14 +78,14 @@ export async function runHardRules(
     opportunities: a.site.opportunities,
   });
 
-  // The nine deterministic arms, keyed by the rule they answer for, so the
+  // The fourteen deterministic arms, keyed by the rule they answer for, so the
   // battery is assembled in `HARD_RULES` order below rather than in
   // whatever order the calls happen to be written in.
   //
   // **Total, not partial** (issue #424). A rule with no arm here would be
   // read as one that failed nothing — by the loop below, which is how
   // `passed` is decided, and by the record the draft view's Checks list is
-  // drawn from. Spelling the nine as a total record makes an undecided rule
+  // drawn from. Spelling the fourteen as a total record makes an undecided rule
   // a compile error rather than a pass the product hands out for free.
   const deterministic: Record<Exclude<HardRule, "do_not_claim">, RuleFailure | null> = {
     grounding: checkGrounding({ grounded: a.grounded, sourceText: a.sourceText }),
@@ -94,9 +104,14 @@ export async function runHardRules(
     no_hidden_text: checkHiddenText({ markdown: a.markdown }),
     no_machine_address: checkMachineAddress({ rendered: a.rendered }),
     near_duplicate: checkNearDuplicate({ rendered: a.rendered, comparison: a.comparison }),
+    no_invented_test: checkInventedTest({ markdown: a.markdown, brief: a.brief }),
+    no_invented_provenance: checkInventedProvenance({ markdown: a.markdown, brief: a.brief }),
+    no_new_question_heading: checkNewQuestionHeading({ markdown: a.markdown, brief: a.brief }),
+    traceable_numerals: checkTraceableNumerals({ markdown: a.markdown, brief: a.brief }),
+    first_block_answers: checkFirstBlockAnswers({ markdown: a.markdown }),
   };
 
-  // The tenth. `claimCheck` owns the match; this file holds no second
+  // The last. `claimCheck` owns the match; this file holds no second
   // implementation of it.
   const claim = await claimCheck(c, { text: a.markdown, list: a.site.doNotClaim });
 

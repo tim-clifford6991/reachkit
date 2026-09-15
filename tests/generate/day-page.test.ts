@@ -45,8 +45,9 @@ let store: MemoryStore;
  *  asserted rather than assumed. */
 const opened: Array<{ scanId: string; cap: string; rollUp?: string }> = [];
 
-const BRIEF = { readerQuestion: "Which tool?", angle: "count seats", mustCover: ["seats"] };
-const OUTLINE = { sections: [{ heading: "Seats", covers: "how many" }] };
+const BRIEF = { readerQuestion: "Which tool?", angle: "count seats", mustCover: ["seats"], factIndexes: [0] };
+const OUTLINE = { headings: ["Which tool should a small team pick?", "What decides it", "What the plan includes"] };
+const NO_OPS = { title: "", description: "", order: [0], firstBlock: "", insertFacts: [] };
 
 function measured(value: unknown) {
   return { kind: "measured", value, at: AT };
@@ -56,13 +57,13 @@ function body(markdown: string) {
   return { title: "A title", slug: "a-title", description: "A description.", bodyMarkdown: markdown };
 }
 
-/** One pass of the four model steps plus the claim check. */
+/** One pass of the four model steps. The site's do-not-claim list is empty,
+ *  so the claim check passes without a call. */
 function queueAttempt(markdown: string): void {
   llmMock.mockResolvedValueOnce(measured(BRIEF));
   llmMock.mockResolvedValueOnce(measured(OUTLINE));
   llmMock.mockResolvedValueOnce(measured(body(markdown)));
-  llmMock.mockResolvedValueOnce(measured(body(markdown)));
-  llmMock.mockResolvedValueOnce(measured({ matches: false, matchedIndex: null }));
+  llmMock.mockResolvedValueOnce(measured(NO_OPS));
 }
 
 beforeEach(async () => {

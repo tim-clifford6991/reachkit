@@ -18,17 +18,26 @@ const { llmMock } = vi.hoisted(() => ({ llmMock: vi.fn() }));
 vi.mock("@/lib/llm", () => ({ llm: llmMock }));
 
 let steps: typeof import("../../../src/lib/generate/pipeline/steps");
+const { briefProjection } = await import("../../../src/lib/generate/pipeline/steps");
 
 const AT = new Date("2026-09-06T00:00:00.000Z");
 
-const BRIEF = { readerQuestion: "Which tool?", angle: "count the seats", mustCover: ["seats"] };
-const OUTLINE = { sections: [{ heading: "Seats", covers: "how many you need" }] };
+const BRIEF = { readerQuestion: "Which tool?", angle: "count the seats", mustCover: ["seats"], factIndexes: [0] };
+const OUTLINE = { sections: [{ role: "answer" as const, heading: "Seats" }] };
+const OPS = { title: "", description: "", order: [0], firstBlock: "", insertFacts: [] };
 const BODY = {
   title: "Which tool should a small team pick?",
   slug: "which-tool-small-team",
   description: "How to choose by seat count.",
   bodyMarkdown: "## Which tool?\n\nCount the seats.",
 };
+
+const PROJECTION = briefProjection({
+  opportunity: opportunity(),
+  facts: [GROUNDED.passage],
+  doNotClaim: ["HIPAA compliant"],
+  voice: "Plain and direct.",
+});
 
 const INPUTS = buildPromptInputs({
   businessName: "Acme",
@@ -52,15 +61,15 @@ function measured(value: unknown) {
 describe("each step calls its own site at the tier §8 names", () => {
   it("brief and outline are nano; draft and the answerability pass are Haiku", async () => {
     llmMock.mockResolvedValueOnce(measured(BRIEF));
-    llmMock.mockResolvedValueOnce(measured(OUTLINE));
+    llmMock.mockResolvedValueOnce(measured({ headings: ["Seats"] }));
     llmMock.mockResolvedValueOnce(measured(BODY));
-    llmMock.mockResolvedValueOnce(measured(BODY));
+    llmMock.mockResolvedValueOnce(measured(OPS));
 
     const cost = fakeCost();
-    await steps.brief(cost, INPUTS);
-    await steps.outline(cost, INPUTS, { brief: BRIEF });
-    await steps.draft(cost, INPUTS, { brief: BRIEF, outline: OUTLINE });
-    await steps.answerability(cost, INPUTS, { body: BODY });
+    await steps.brief(cost, PROJECTION);
+    await steps.outline(cost, INPUTS, { brief: BRIEF, skeleton: ["answer"] });
+    await steps.draft(cost, INPUTS, { brief: BRIEF, outline: OUTLINE, facts: [GROUNDED] });
+    await steps.answerability(cost, INPUTS, { body: BODY, facts: [GROUNDED.passage] });
 
     expect(llmMock.mock.calls.map((call) => [call[1].site, call[1].tier])).toEqual([
       [steps.STEP_CALL_SITES.brief, "nano"],
@@ -77,16 +86,33 @@ describe("each step calls its own site at the tier §8 names", () => {
 });
 
 describe("the prompt's whole knowledge of the customer is the closed struct", () => {
-  it("carries the voice text verbatim and nothing derived from the customer", async () => {
+  it("the brief is handed the closed projection and nothing else (issue 475)", async () => {
     llmMock.mockResolvedValue(measured(BRIEF));
-    await steps.brief(fakeCost(), INPUTS);
+    await steps.brief(fakeCost(), PROJECTION);
+    const input = llmMock.mock.calls[0]?.[1].input as Record<string, unknown>;
+    expect(Object.keys(input).sort()).toEqual(
+      ["task", "cluster", "type", "target", "absorbedQueries", "facts", "doNotClaim", "voice", "acceptance"].sort()
+    );
+    expect(input.voice).toBe("Plain and direct.");
+    expect(input.facts).toEqual([GROUNDED.passage]);
+  });
+
+  it("an outline whose headings do not fit the type's skeleton is not an outline", async () => {
+    llmMock.mockResolvedValue(measured({ headings: ["One", "Two"] }));
+    const outcome = await steps.outline(fakeCost(), INPUTS, { brief: BRIEF, skeleton: ["answer", "detail", "evidence"] });
+    expect(outcome.kind).toBe("unmeasured");
+  });
+
+  it("carries the voice text verbatim and nothing derived from the customer", async () => {
+    llmMock.mockResolvedValue(measured({ headings: ["Seats"] }));
+    await steps.outline(fakeCost(), INPUTS, { brief: BRIEF, skeleton: ["answer"] });
     const input = llmMock.mock.calls[0]?.[1].input as Record<string, unknown>;
     expect(input.voice).toBe("Plain and direct.");
     // Every customer-scoped key in the request is a member of the closed
     // struct; the rest are this step's own task text and its upstream
     // artifacts, which carry nothing about the customer.
     const customerKeys = Object.keys(input).filter(
-      (key) => !["task", "rules", "brief", "outline", "body"].includes(key)
+      (key) => !["task", "rules", "brief", "outline", "body", "sections", "facts"].includes(key)
     );
     const allowed = new Set([...Object.keys(DRAFT_PROMPT_KEYS), "voice"]);
     for (const key of customerKeys) expect(allowed.has(key)).toBe(true);
@@ -94,7 +120,7 @@ describe("the prompt's whole knowledge of the customer is the closed struct", ()
 
   it("carries the grounded passage word for word", async () => {
     llmMock.mockResolvedValue(measured(BODY));
-    await steps.draft(fakeCost(), INPUTS, { brief: BRIEF, outline: OUTLINE });
+    await steps.draft(fakeCost(), INPUTS, { brief: BRIEF, outline: OUTLINE, facts: [GROUNDED] });
     const input = llmMock.mock.calls[0]?.[1].input as { grounded: { passage: string } };
     expect(input.grounded.passage).toBe(GROUNDED.passage);
   });
@@ -105,6 +131,7 @@ describe("the ceiling is re-read before every step", () => {
     const outcome = await steps.draft(fakeCost({ capHit: () => true }), INPUTS, {
       brief: BRIEF,
       outline: OUTLINE,
+      facts: [GROUNDED],
     });
     expect(outcome).toMatchObject({ kind: "unmeasured", reason: "not_attempted" });
     expect(llmMock).not.toHaveBeenCalled();
@@ -114,7 +141,7 @@ describe("the ceiling is re-read before every step", () => {
 describe("a model that did not answer degrades the step", () => {
   it("an `unmeasured` result is returned as it is, never coerced into a body", async () => {
     llmMock.mockResolvedValue({ kind: "unmeasured", reason: "undeterminable", at: AT });
-    const outcome = await steps.answerability(fakeCost(), INPUTS, { body: BODY });
+    const outcome = await steps.answerability(fakeCost(), INPUTS, { body: BODY, facts: [GROUNDED.passage] });
     expect(outcome.kind).toBe("unmeasured");
   });
 });

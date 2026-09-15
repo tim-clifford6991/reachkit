@@ -92,6 +92,10 @@ export interface TextBlock extends Sentence {
   /** True where the block is a Markdown block quote (`>`), which is one of
    *  the two shapes a quoted remark takes. */
   quoted: boolean;
+  /** A heading line, or one list item — neither is a paragraph that could
+   *  answer a question on its own. */
+  heading: boolean;
+  listItem: boolean;
 }
 
 /** A sentence ends at `.`, `!` or `?` followed by whitespace or the end of
@@ -142,7 +146,37 @@ export function blocksOf(markdown: string): TextBlock[] {
     text: renderOf(fragment.raw).replace(/\s+/g, " ").trim(),
     hasLink: hasLink(fragment.raw),
     quoted: fragment.quoted,
+    heading: HEADING_LINE_RE.test(fragment.raw),
+    listItem: LIST_ITEM_RE.test(fragment.raw),
   }));
+}
+
+const HEADING_LINE_RE = /^[ \t]*#{1,6}[ \t]+/;
+const LIST_ITEM_RE = /^[ \t]*(?:[-*+]|\d+[.)])[ \t]+/;
+
+/** The words of every heading in the draft, in document order. */
+export function headingsOf(markdown: string): string[] {
+  return blocksOf(markdown)
+    .filter((block) => block.heading)
+    .map((block) => block.text);
+}
+
+/** Words a question opens with, when it is written without its mark. */
+const INTERROGATIVE_RE =
+  /^(?:what|why|how|when|where|which|who|whose|can|could|does|do|did|is|are|should|will|would)\b/i;
+
+/** A heading shaped as a question: it ends in `?`, or it opens the way a
+ *  question does. The pass that must add none, and the rule that counts
+ *  them, read this one definition. */
+export function isQuestionShaped(heading: string): boolean {
+  const text = heading.trim();
+  return text.endsWith("?") || INTERROGATIVE_RE.test(text);
+}
+
+/** One comparable form of a heading: its words, lower-cased, without the
+ *  question mark or the surrounding space. */
+export function headingKey(heading: string): string {
+  return heading.replace(/[?!.:]+$/, "").replace(/\s+/g, " ").trim().toLowerCase();
 }
 
 /** Every sentence of the draft, in document order. A sentence never spans

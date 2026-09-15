@@ -28,7 +28,7 @@ import type { RuleFailure } from "./types";
  *  fail every draft that says "three steps". Positions 1–9 are the case
  *  this deliberately gives up — they are also the numbers a page has the
  *  most ordinary reasons to contain. */
-const REGISTER_FLOOR = 10;
+export const REGISTER_FLOOR = 10;
 
 function addMeasured(into: Set<string>, value: Measured<number> | null | undefined): void {
   if (value === undefined || value === null) return;
@@ -90,7 +90,7 @@ export function buildPrivateFigureRegister(a: {
  *  grouping separators dropped, a decimal part rounded. */
 const NUMERAL_RE = /\d[\d,]*(?:\.\d+)?/g;
 
-function numeralsOf(sentence: string): Array<{ raw: string; normalised: string }> {
+export function numeralsOf(sentence: string): Array<{ raw: string; normalised: string }> {
   NUMERAL_RE.lastIndex = 0;
   const out: Array<{ raw: string; normalised: string }> = [];
   let match: RegExpExecArray | null;

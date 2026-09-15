@@ -20,6 +20,7 @@
 // **There is no fallback.** The stored report is not an admissible source,
 // a rival's page is not, and the model's knowledge is not. A site with no
 // readable measured text yields `no_fact`, and the day has no page.
+import { BRIEF_MAX_FACTS } from "@/lib/config/constants";
 import { readMeasuredText, type MeasuredText } from "@/lib/measure/text";
 import type { GroundedFact } from "../rules/types";
 
@@ -47,10 +48,12 @@ function candidateSentences(text: string): string[] {
 /** Document order among the sentences that carry a numeral, then document
  *  order among the rest. Deterministic: the same page always grounds the
  *  same way, so a regeneration is not a different fact by accident. */
-function selectPassage(text: string): string | null {
+function orderedPassages(text: string): string[] {
   const sentences = candidateSentences(text);
-  const withNumeral = sentences.find((sentence) => NUMERAL_RE.test(sentence));
-  return withNumeral ?? sentences[0] ?? null;
+  return [
+    ...sentences.filter((sentence) => NUMERAL_RE.test(sentence)),
+    ...sentences.filter((sentence) => !NUMERAL_RE.test(sentence)),
+  ];
 }
 
 /** Freshest first, so a page read this week grounds ahead of one read a
@@ -66,18 +69,37 @@ export type GroundingRead =
    *  measurable state, and the one §8 leaves no way around. */
   | { failed: "no_fact" };
 
+/** One passage of the customer's own page, with the page text it was read
+ *  from — what the grounding rule re-verifies it against. */
+export interface SourcedFact {
+  fact: GroundedFact;
+  sourceText: string;
+}
+
+/**
+ * Up to `BRIEF_MAX_FACTS` passages of the customer's own measured pages,
+ * freshest page first and, within a page, in `orderedPassages`' order — the
+ * facts a brief chooses among (issue 475). Empty where no page yields one.
+ */
+export async function readFacts(a: { siteId: string; scanId?: string }): Promise<SourcedFact[]> {
+  const pages = await readMeasuredText({ siteId: a.siteId, scanId: a.scanId });
+  const out: SourcedFact[] = [];
+  const seen = new Set<string>();
+  for (const page of freshestFirst(pages)) {
+    for (const passage of orderedPassages(page.text)) {
+      if (seen.has(passage)) continue;
+      seen.add(passage);
+      out.push({ fact: { url: page.url, readAt: page.measuredAt, passage }, sourceText: page.text });
+      if (out.length >= BRIEF_MAX_FACTS) return out;
+    }
+  }
+  return out;
+}
+
 export async function readGroundingFact(a: {
   siteId: string;
   scanId?: string;
 }): Promise<GroundingRead> {
-  const pages = await readMeasuredText({ siteId: a.siteId, scanId: a.scanId });
-  for (const page of freshestFirst(pages)) {
-    const passage = selectPassage(page.text);
-    if (passage === null) continue;
-    return {
-      fact: { url: page.url, readAt: page.measuredAt, passage },
-      sourceText: page.text,
-    };
-  }
-  return { failed: "no_fact" };
+  const [first] = await readFacts(a);
+  return first === undefined ? { failed: "no_fact" } : first;
 }

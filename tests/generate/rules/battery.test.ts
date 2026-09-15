@@ -42,6 +42,7 @@ function run(markdown: string, over: Parameters<typeof siteInputs>[0] = {}) {
     comparison: emptyComparison(),
     grounded: GROUNDED,
     sourceText: SOURCE_TEXT,
+    brief: { facts: [GROUNDED.passage], headings: ["Which tool should a small team pick?"], queries: [] },
   });
 }
 
@@ -54,7 +55,7 @@ describe("a draft that clears every rule passes", () => {
 });
 
 describe("every rule runs, and the list carries all of them in `HARD_RULES` order", () => {
-  it("a draft failing three rules reports all three, in order", async () => {
+  it("a draft failing four rules reports all four, in order", async () => {
     const markdown = [
       "Acme is the answer.",
       "",
@@ -68,12 +69,13 @@ describe("every rule runs, and the list carries all of them in `HARD_RULES` orde
       "brand_gap",
       "no_hidden_text",
       "no_machine_address",
+      "first_block_answers",
     ]);
   });
 
   it("a rule that failed is reported even when an earlier one also failed — no short-circuit", async () => {
     const outcome = await run("Acme wins.\n\n<!-- hidden -->");
-    expect(outcome.passed === false && outcome.failed).toHaveLength(2);
+    expect(outcome.passed === false && outcome.failed).toHaveLength(3);
   });
 });
 

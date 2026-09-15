@@ -129,13 +129,17 @@ function measured(value: unknown) {
   return { kind: "measured", value, at: AT };
 }
 
-/** The four model steps, then the claim check. */
+/** The four model steps, then the claim check. The brief picks the one fact
+ *  it is handed; the outline names `answer_page`'s three sections; the
+ *  answerability pass changes nothing. */
 function primeSteps(): void {
   llmMock.mockReset();
-  llmMock.mockResolvedValueOnce(measured({ readerQuestion: "Which tool?", angle: "seats", mustCover: ["seats"] }));
-  llmMock.mockResolvedValueOnce(measured({ sections: [{ heading: "Seats", covers: "how many" }] }));
+  llmMock.mockResolvedValueOnce(
+    measured({ readerQuestion: "Which tool?", angle: "seats", mustCover: ["seats"], factIndexes: [0] })
+  );
+  llmMock.mockResolvedValueOnce(measured({ headings: [PAGE.title, "What decides it", "What the plan includes"] }));
   llmMock.mockResolvedValueOnce(measured(PAGE));
-  llmMock.mockResolvedValueOnce(measured(PAGE));
+  llmMock.mockResolvedValueOnce(measured({ title: "", description: "", order: [0], firstBlock: "", insertFacts: [] }));
   llmMock.mockResolvedValue(measured({ matches: false, matchedIndex: null }));
 }
 
