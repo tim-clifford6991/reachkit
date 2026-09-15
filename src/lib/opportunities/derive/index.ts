@@ -1,8 +1,9 @@
 // BUILD §7 — the derivation, end to end.
 //
 // Order, and there is no other: derive deterministically (Write, Improve,
-// Fix) → qualify and band (already applied inside each family module, over
-// the same top tens) → label through the model → persist. **Nothing after
+// Earn, Fix), keeping one candidate per search → qualify and band (already
+// applied inside each family module, over the same top tens) → label through
+// the model → persist. **Nothing after
 // the derivation step may add a candidate.** The model runs after
 // qualification so that no candidate it touches is one measured evidence
 // did not produce, and persistence runs last so that de-duplication is the
@@ -22,6 +23,7 @@ import type { StoredReport } from "@/lib/scan/report";
 import type { RankedCounts } from "../winnability/counts";
 import { addRejections, noRejections, type Opportunity, type RejectionCount } from "../types";
 import type { Candidate } from "./candidate";
+import { earnCandidates } from "./earn";
 import { fixCandidates } from "./fix";
 import { improveCandidates } from "./improve";
 import { persist } from "./persist";
@@ -65,6 +67,21 @@ export function ownRankedValue(ownRanked: Measured<number>): number {
   return ownRanked.kind === "unmeasured" ? 0 : ownRanked.value;
 }
 
+/** SPEC §6: "Improve of an owned URL outranks a new page", and an Earn
+ *  asset outranks a plain Write for the same search (issue 474's order).
+ *  Handed candidates in that precedence, it keeps the first for each search,
+ *  so one search never plans two pages. Pure. */
+export function onePerSearch(ordered: readonly Candidate[]): Candidate[] {
+  const seen = new Set<string>();
+  return ordered.filter((candidate) => {
+    const key = candidate.targetQuery?.trim().toLowerCase();
+    if (key === undefined || key === "") return true;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 export async function deriveOpportunities(
   c: CostContext,
   a: DeriveInput
@@ -74,14 +91,18 @@ export async function deriveOpportunities(
 
   const write = writeCandidates({ ...base, ownRanked, rankedCounts: a.rankedCounts });
   const improve = improveCandidates({ ...base, ownRanked, rankedCounts: a.rankedCounts });
+  const earn = earnCandidates({ ...base, ownRanked, rankedCounts: a.rankedCounts });
   const fix = fixCandidates({ ...base, hostedHost: a.hostedHost ?? null });
 
-  const rejected = [write, improve, fix]
+  const rejected = [write, improve, earn, fix]
     .map((result) => result.rejected)
     .reduce(addRejections, noRejections());
-  const assessed = write.assessed + improve.assessed + fix.assessed;
+  const assessed = write.assessed + improve.assessed + earn.assessed + fix.assessed;
 
-  const derived: Candidate[] = [...write.candidates, ...improve.candidates, ...fix.candidates];
+  const derived: Candidate[] = [
+    ...onePerSearch([...improve.candidates, ...earn.candidates, ...write.candidates]),
+    ...fix.candidates,
+  ];
   const labelled: Candidate[] = [];
   for (const candidate of derived) {
     // Sequential, not `Promise.all`: the cost seam's cap is re-checked

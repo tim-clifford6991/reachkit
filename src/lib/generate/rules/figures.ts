@@ -77,6 +77,8 @@ export function buildPrivateFigureRegister(a: {
     if (evidence.family === "write") {
       addMeasured(into, evidence.volume);
       addMeasured(into, evidence.rival.position);
+    } else if (evidence.family === "earn") {
+      addMeasured(into, evidence.volume);
     } else if (evidence.family === "improve") {
       addMeasured(into, evidence.volume);
       if (evidence.shortfall.kind === "position") addMeasured(into, evidence.shortfall.position);
