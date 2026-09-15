@@ -21,6 +21,7 @@ export function buildVetoReminder(a: {
   return {
     subject: SUBJECT,
     blocks: [
+      { block: "heading", text: SUBJECT },
       { block: "paragraph", text: LINE, vars: { page: a.page, closesAt: a.closesAt } },
       { block: "action", label: ACTION, href: appHref(`/app/draft/${encodeURIComponent(a.draftId)}`) },
     ],

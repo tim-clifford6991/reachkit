@@ -18,8 +18,14 @@ import { applyEnvFixture } from "../env-fixture";
 
 applyEnvFixture();
 
-const { composePreview, composeUnmeasuredWeek, NOT_PREVIEWABLE, PREVIEW_KINDS } =
-  await import("./kinds");
+const {
+  composePreview,
+  composeRetentionPreview,
+  composeUnmeasuredWeek,
+  NOT_PREVIEWABLE,
+  PREVIEW_KINDS,
+  RETENTION_PREVIEW_KINDS,
+} = await import("./kinds");
 const { COPY } = await import("../../../src/lib/presentation/copy");
 
 /** Where a preview run writes its files, or `null` for an assertion-only
@@ -115,6 +121,23 @@ describe("issue #376 — the shell renders S20, and every kind the set draws wea
       expect(mail.html.split("display:inline-block;padding").length - 1).toBe(
         SOLID_BUTTONS[kind]
       );
+
+      if (OUT_DIR !== null) {
+        mkdirSync(OUT_DIR, { recursive: true });
+        writeFileSync(path.join(OUT_DIR, `${kind}.html`), mail.html, "utf8");
+        writeFileSync(path.join(OUT_DIR, `${kind}.txt`), `${mail.subject}\n\n${mail.text}\n`, "utf8");
+      }
+    });
+  }
+
+  for (const kind of RETENTION_PREVIEW_KINDS) {
+    it(`${kind}: opens on its subject line, and draws at most one button`, async () => {
+      const mail = await composeRetentionPreview(kind);
+      // Every line is still owner-owed, so the heading is found by its tag:
+      // one, and before the first paragraph.
+      expect(mail.html.split("<h3").length - 1).toBe(1);
+      expect(mail.html.indexOf("<h3")).toBeLessThan(mail.html.indexOf("<p style=\"margin:0\">"));
+      expect(mail.html.split("display:inline-block;padding").length - 1).toBe(kind === "cancellation" ? 0 : 1);
 
       if (OUT_DIR !== null) {
         mkdirSync(OUT_DIR, { recursive: true });

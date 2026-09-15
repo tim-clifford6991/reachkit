@@ -15,6 +15,7 @@ export function buildInactivity(a: { email: string }): RetentionMail {
   return {
     subject: SUBJECT,
     blocks: [
+      { block: "heading", text: SUBJECT },
       { block: "paragraph", text: LINE },
       { block: "action", label: ACTION, href: appHref("/app") },
     ],

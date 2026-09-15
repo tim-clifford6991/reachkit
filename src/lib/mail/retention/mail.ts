@@ -6,6 +6,9 @@ import type { CopyKey } from "@/lib/presentation/copy";
 import type { MailBlock } from "../blocks/types";
 import type { OptOutControl } from "../shell/compose";
 
+/** Each retention mail opens on its own subject line as a heading, as the
+ *  other sequence mails do (issue 641), so the inbox row and the first line
+ *  of the mail cannot say different things. */
 export interface RetentionMail {
   readonly subject: CopyKey;
   readonly blocks: readonly MailBlock[];
