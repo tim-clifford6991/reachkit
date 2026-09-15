@@ -36,7 +36,17 @@
 //
 // **In the kill switch's scope**: §11 stops "scan + generate + publish",
 // and this publishes. `runJob()` stops it before the first write.
-import { duePublishRetries, publishApproved } from "@/jobs/engine";
+//
+// **It is also the tick that closes a veto window** (issue 709). SPEC §7's
+// "an untouched draft publishes at window end" needs a clock for the same
+// reason a retry does — nothing sends `publish/execute` when a window runs
+// out, and an event per page could not be delayed to the moment — and it is
+// the same kind of work: a page whose attempt is due, re-entered through
+// `publishApproved()`. Riding this tick keeps the job set closed at eight
+// and keeps the approval inside the kill switch's scope, where anything
+// that publishes must be. Which windows have run out is
+// `publish/attempt/window.ts`'s, not this file's.
+import { duePublishApprovals, duePublishRetries, publishApproved } from "@/jobs/engine";
 import { fanOut, settle } from "./fan-out";
 import type { JobDefinition, Outcome } from "./types";
 
@@ -54,7 +64,12 @@ export const publishRetry: JobDefinition = {
   trigger: { kind: "cron", cron: PUBLISH_RETRY_TICK_CRON },
   idempotencyKey: [],
   async run(input): Promise<Outcome> {
-    const due = await duePublishRetries(input.now);
+    const retries = await duePublishRetries(input.now);
+    const approvals = await duePublishApprovals(input.now);
+    // One attempt per page per tick: a page is in `failed` or waiting on its
+    // window, never both, but the tick does not rest on that.
+    const seen = new Set(retries.map((page) => page.draftId));
+    const due = [...retries, ...approvals.filter((page) => !seen.has(page.draftId))];
     // An hour with nothing due is the ordinary case and is recorded as
     // such — never as a run, which would make the observability line say
     // work happened on every hour of every day.

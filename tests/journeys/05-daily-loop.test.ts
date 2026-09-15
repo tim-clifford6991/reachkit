@@ -34,9 +34,12 @@
 // founder's site is on and a stopped site is not, and the day's page goes
 // out through the same `transition()` and `publish()` calls the engine
 // makes — which is what keeps this file a journey rather than a second
-// copy of the engine. The two edges #45 owns — `generating → in_review`
-// with the veto deadline it stamps, and `approved → publishing` — are
-// still moved here directly, because what this journey is about is the
+// copy of the engine. The window's two ends are the engine's too since
+// issue 709: `generating → in_review`, with the deadline it stamps and the
+// telling, is `enterReview` (the evening tick's), and `in_review →
+// approved` at window end is `dueApprovals` (the hourly publish tick's).
+// The attempt itself is still made here through `publish()` where a test
+// needs its adapter in hand, because what this journey is about is the
 // customer's day and not the job runner's plumbing
 // (`tests/jobs/engine-daily.test.ts` owns that).
 //
@@ -369,6 +372,7 @@ const { MAX_RETRIES } = await import("../../src/lib/publish/attempt/retry");
 const { registerActiveAccessGate } = await import("../../src/lib/scan/weekly/access");
 const { __setVendorTransportForTesting } = await import("../../src/lib/mail/vendor/resend");
 const { sendDraftReadyMail } = await import("../../src/lib/mail/draft-ready");
+const { enterReview, dueApprovals } = await import("../../src/lib/publish/attempt/window");
 
 const generateFixtures = await import("../generate/fixtures");
 const opportunityDoubles = await import("../opportunities/memory-store");
@@ -635,27 +639,32 @@ async function generateTonightsPage(): Promise<string> {
   return outcome.draftId;
 }
 
-/** Step 3 — #45's edge into review, with the deadline a 24-hour window
- *  puts on it, and the telling the customer is owed.
+/** Step 3 — the edge into review, with the deadline the site's window puts
+ *  on it, and the telling the customer is owed.
  *
- *  The telling is now a **mail**, sent through the real template, the real
- *  compose shell and the real send seam (#174): the decision was built
- *  with the veto leaf and nothing composed it, so a real customer was
- *  never told a page was in review. The token this returns is read back
- *  out of the link that actually went to the inbox, so the veto tests
- *  below stop the page with the link the customer was actually sent. */
+ *  **The engine takes it now** (issue 709): `enterReview` is what the
+ *  evening tick's `generateDraft` seam calls after a passing generation —
+ *  it stamps the deadline, moves the page, and sends the draft-ready mail
+ *  through the real template, compose shell and send seam (#174). Until
+ *  then this journey made those three moves by hand, because nothing in
+ *  the product did. The token this returns is read back out of the link
+ *  that actually went to the inbox, so the veto tests below stop the page
+ *  with the link the customer was actually sent. */
 async function enterReviewAndTell(draftId: string): Promise<{ token: string }> {
-  const deadline = new Date(TOLD_AT.getTime() + VETO.defaultHours * 3_600_000);
-  const row = theDraftRow();
-  row.veto_deadline = deadline.toISOString();
-  const moved = await transition(draftId, "in_review", { kind: "system", job: "draft/generate" }, {
-    at: TOLD_AT,
-  });
-  expect(moved.ok).toBe(true);
-
-  const told = await sendDraftReadyMail({ draftId, destination: "wordpress", at: TOLD_AT });
-  expect(told.sent).toBe(true);
+  expect(await enterReview({ draftId, at: TOLD_AT })).toEqual({ kind: "told" });
+  expect(theDraftRow().veto_deadline).toBe(
+    new Date(TOLD_AT.getTime() + VETO.defaultHours * 3_600_000).toISOString()
+  );
   return { token: tokenFromInbox() };
+}
+
+/** The window running out, as the hourly publish tick sees it (issue 709):
+ *  the page is approved by the system and offered for its attempt. This
+ *  replaces the `transition(…, "approved")` the journey used to make by
+ *  hand at the due moment. */
+async function closeTheWindow(draftId: string, at: Date): Promise<void> {
+  expect(await dueApprovals(at)).toEqual([{ draftId, destinationId: DEST_ID }]);
+  expect(theDraftRow().state).toBe("approved");
 }
 
 /** The stop link as it left, read out of the last `draft-ready` mail. */
@@ -885,8 +894,7 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
       await enterReviewAndTell(draftId);
 
       const at = whenItIsDue();
-      const approved = await transition(draftId, "approved", { kind: "system", job: "publish/execute" }, { at });
-      expect(approved.ok).toBe(true);
+      await closeTheWindow(draftId, at);
 
       const result = await publish({
         draftId,
@@ -930,7 +938,7 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
       const draftId = await generateTonightsPage();
       await enterReviewAndTell(draftId);
       const at = whenItIsDue();
-      await transition(draftId, "approved", { kind: "system", job: "publish/execute" }, { at });
+      await closeTheWindow(draftId, at);
 
       // The customer switches publishing off. It is read where the decision
       // is made, so no attempt begins.
@@ -1006,7 +1014,7 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
       const draftId = await generateTonightsPage();
       await enterReviewAndTell(draftId);
       const at = whenItIsDue();
-      await transition(draftId, "approved", { kind: "system", job: "publish/execute" }, { at });
+      await closeTheWindow(draftId, at);
 
       // The customer's site answers 5xx to the create. §9: "Failed
       // publish: back in the queue with a written reason."
@@ -1079,7 +1087,7 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
       const draftId = await generateTonightsPage();
       await enterReviewAndTell(draftId);
       const at = whenItIsDue();
-      await transition(draftId, "approved", { kind: "system", job: "publish/execute" }, { at });
+      await closeTheWindow(draftId, at);
 
       wordpress.failCreates = true;
       // §9's "retry x3": the first attempt plus three retries, and the
@@ -1117,7 +1125,7 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
       const draftId = await generateTonightsPage();
       await enterReviewAndTell(draftId);
       const at = whenItIsDue();
-      await transition(draftId, "approved", { kind: "system", job: "publish/execute" }, { at });
+      await closeTheWindow(draftId, at);
       const published = await publish({
         draftId,
         destination: "wordpress",
