@@ -78,7 +78,8 @@ export interface IdentityAuth {
    *  a refreshed session through `io` where one was due. */
   sessionUser(io: CookieIO): Promise<{ userId: string; accessToken: string } | null>;
 
-  /** Ends this browser's session and clears its cookies. */
+  /** Ends every session the account holds (SPEC §3, "Sign-out is
+   *  global") and clears this browser's cookies. */
   endSession(io: CookieIO): Promise<void>;
 
   /** Ends every session the token's user holds (`global`), or every one but
@@ -203,10 +204,10 @@ export function supabaseIdentityAuth(): IdentityAuth {
     },
 
     async endSession(io) {
-      await sessionClient(io).auth.signOut({ scope: "local" });
+      await sessionClient(io).auth.signOut({ scope: "global" });
       // A revocation Supabase refused still leaves this browser signed
-      // out: `signOut` keeps the cookie on some errors, and REQ-077 c5's
-      // promise is about this browser, so the cookies go regardless.
+      // out: `signOut` keeps the cookie on some errors, and this browser at
+      // least must be signed out, so the cookies go regardless.
       io.setAll(
         io
           .getAll()

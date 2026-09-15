@@ -8,10 +8,10 @@
 // exports at all"). The state and its initial value are shared by the action
 // and the screen, so they live here and both import them.
 export interface SignInState {
-  /** Which of REQ-098's answers the screen is carrying. `none` is before any
-   *  submission, when the screen answers nothing and so reveals nothing
-   *  about any address (REQ-020 criterion 5). */
-  answer: "none" | "invalid" | "sent" | "payment_held" | "no_account";
+  /** Which answer the screen is carrying. `none` is before any submission;
+   *  `requested` is the one answer every well-formed address gets, whether
+   *  or not it has an account (SPEC §3, issue 718). */
+  answer: "none" | "invalid" | "requested";
   /** What was typed, so a refused address is still there when the screen
    *  comes back (REQ-098 criterion 6) — including with no client runtime. */
   value: string;

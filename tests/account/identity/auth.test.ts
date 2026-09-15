@@ -247,11 +247,11 @@ describe("the admin half", () => {
   });
 });
 
-describe("endSession — this browser only, and its cookies go whatever Supabase says", () => {
-  it("signs out with scope local and clears every Supabase session cookie it can see", async () => {
+describe("endSession — every device (SPEC §3), and this browser's cookies go whatever Supabase says", () => {
+  it("signs out with scope global and clears every Supabase session cookie it can see", async () => {
     mocks.session.signOut.mockResolvedValue({ error: { code: "network" } });
     await auth.endSession(io);
-    expect(mocks.session.signOut).toHaveBeenCalledWith({ scope: "local" });
+    expect(mocks.session.signOut).toHaveBeenCalledWith({ scope: "global" });
     expect(written).toEqual([
       { name: "sb-proj-auth-token", value: "", options: expect.objectContaining({ maxAge: 0, path: "/" }) },
     ]);

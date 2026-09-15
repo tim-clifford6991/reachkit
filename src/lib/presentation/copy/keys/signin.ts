@@ -40,8 +40,12 @@
 // 2026-09-10, issue #459: the owner approved the master's drafted copy for
 // every key this partition still owed ("copy proposal approved"; proposal
 // sheet artifact 546f45a0-a996-4d25-b85e-fb03fda7b102), and the 10 approved
-// strings are applied here byte for byte. No key in this partition is
-// owner-owed or `TODO(copy)` any more.
+// strings are applied here byte for byte.
+//
+// Issue 718 (SPEC §3, "Sign-in copy is identical whatever the address"):
+// the link-sent line and REQ-020 criterion 4's two answers are retired for
+// one line every address gets, `signin.link_requested`, which is
+// `TODO(copy)` until the owner writes it.
 import type { CopyPartition } from "../registry.ts";
 
 export const SIGNIN_COPY = Object.freeze({
@@ -62,9 +66,11 @@ export const SIGNIN_COPY = Object.freeze({
 
   // REQ-098 open question 3's five lines — the owner's approved sentences
   // (2026-09-10, #459).
-  "signin.link_sent": ["Your sign-in link is on its way. It works once — if nothing arrives, check your spam folder or send another.", { slots: {}, fixedBy: "REQ-098 c3" }],
-  "signin.payment_held": ["Your payment was received and your account is being opened. The sign-in link follows as soon as it’s ready — there is nothing more to buy.", { slots: {}, fixedBy: "REQ-020 c4" }],
-  "signin.no_account": ["There’s no ReachKit account for that address. Scan your site for free and start ReachKit from the report, or from the pricing page.", { slots: {}, fixedBy: "REQ-020 c4" }],
+  // SPEC §3 (issue 718): one line for every address, saying nothing about
+  // whether it has an account. It replaces the three answers this screen
+  // used to give (link sent, payment held, no account), which told a
+  // stranger who had an account. Owner-owed.
+  "signin.link_requested": ["TODO(copy)", { slots: {}, fixedBy: "issue 718" }],
   "signin.address.invalid": ["That doesn’t look like an email address. Check it and try again.", { slots: {}, fixedBy: "REQ-098 c6" }],
   "signin.link_dead": ["This sign-in link can’t be used any more. Ask for a new one below — it goes to the email you paid with.", { slots: {}, fixedBy: "REQ-098 c7" }],
 

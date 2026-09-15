@@ -9,14 +9,17 @@
 // empty value or one that is not a valid email address … no link is sent,
 // one written line names what is wrong, and they stay on the screen with
 // what they typed intact" — then criterion 3, which routes the three answers
-// `requestMagicLink` gives to the three lines that answer them.
+// `requestMagicLink` gives to the one line that answers it.
 //
-// **The seam is not caught, and its answer is not second-guessed.**
-// `requestMagicLink` (issue #33) decides which of the three answers an
-// address gets, including whether a link was actually sent. A `try` here
-// that fell back to `sent` would tell a customer a link is in their inbox
-// when no mail left the process — the one answer this screen must never
-// give — so a failure below the seam surfaces as a failure.
+// **The seam is not caught.** `requestMagicLink` decides whether a link is
+// mailed; a `try` here that answered anyway would tell a customer to look
+// for a link when the process failed before it could send one, so a failure
+// below the seam surfaces as a failure.
+//
+// **One answer for every address** (SPEC §3, issue 718): the seam returns
+// the same value whether or not the address has an account, and this action
+// turns it into the one state `requested`. There is nothing here to branch
+// on, so the screen cannot say who has an account.
 //
 // **Nothing here reveals whether an address has an account before a
 // submission** (REQ-020 criterion 5): the module holds no lookup of its own,
@@ -47,10 +50,6 @@ export async function sendLink(_previous: SignInState, form: FormData): Promise<
     return { answer: "invalid", value };
   }
 
-  const answer = await requestMagicLink(value.trim());
-  if (answer.sent) return { answer: "sent", value };
-  return {
-    answer: answer.answer === "payment_held_account_opening" ? "payment_held" : "no_account",
-    value,
-  };
+  await requestMagicLink(value.trim());
+  return { answer: "requested", value };
 }

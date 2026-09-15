@@ -42,9 +42,7 @@ type SignInSearchParams = Partial<Record<typeof LINK_QUERY_KEY, string>>;
 const ANSWER_COPY_KEY = {
   none: undefined,
   invalid: "signin.address.invalid",
-  sent: "signin.link_sent",
-  payment_held: "signin.payment_held",
-  no_account: "signin.no_account",
+  requested: "signin.link_requested",
 } as const satisfies Record<SignInState["answer"], CopyKey | undefined>;
 
 /** This screen's own address, for the two controls that lead back to its
@@ -85,12 +83,10 @@ export default function SignInPage(props: {
   const deadLink = params[LINK_QUERY_KEY] === DEAD_LINK_MARKER;
   const answerKey = ANSWER_COPY_KEY[state.answer];
   const answer = answerKey === undefined ? undefined : copy(answerKey);
-  // An address that was answered — whichever of the three answers it got —
-  // is the *sent* arm: one shape, one control, the answer's own line inside
-  // it, so the frame says nothing the line does not. A refusal of the value
+  // Every well-formed address is the answered arm, with the same line —
+  // whether or not it has an account (SPEC §3). A refusal of the value
   // itself keeps the form, with what they typed intact.
-  const answered =
-    state.answer === "sent" || state.answer === "payment_held" || state.answer === "no_account";
+  const answered = state.answer === "requested";
 
   return (
     // The screen is one column until the set opens it into two at 1024, so

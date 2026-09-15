@@ -55,6 +55,11 @@ enable_confirmations = false
 # Password sign-in is disabled: magic-link is the only credential this
 # product issues.
 enable_password_signin = false
+# SPEC §3: "Link lasts 24 h; a new one spends older ones." Seconds, and the
+# platform's maximum. Pinned against `SIGNIN_LINK_TTL_H` by
+# `tests/account/identity/otp-expiry.test.ts`. The hosted project carries
+# its own copy of this setting (Auth → Email → OTP expiry).
+otp_expiry = 86400
 
 [auth.sms]
 enable_signup = false

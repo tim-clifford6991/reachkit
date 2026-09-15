@@ -8,13 +8,13 @@
 // is `getUser()`'s answer — Supabase verifying the token, not this process
 // believing a cookie.
 //
-// **`signOut` ends this session only** (REQ-077 criterion 5, and BP-061's
-// note on it: "Other devices keep their sessions; REQ-077 states no global
-// sign-out and none is invented").
+// **`signOut` ends every session the account holds** (SPEC §3: "Sign-out
+// is global", issue 718): Supabase's `signOut({ scope: "global" })` from the
+// asking session, which revokes every device's refresh token.
 //
 // **`signOutEverywhere` is for a deleted account**, which ends every
-// session the account holds, the asking one included:
-// `auth.admin.signOut(token, "global")`. The other exception — a completed
+// session the account holds, the asking one included, by the account's own
+// id rather than a cookie: `auth.admin.signOut(token, "global")`. The other exception — a completed
 // email change — uses `others` from the redemption itself
 // (`email-change-complete.ts`).
 import { cookies } from "next/headers";
@@ -77,7 +77,7 @@ export async function currentSession(): Promise<Session | null> {
   return { userId: user.userId, siteId: site.siteId };
 }
 
-/** REQ-077 criterion 5. Ends this session only. */
+/** SPEC §3: ends every session the account holds, on every device. */
 export async function signOut(): Promise<void> {
   await identityAuth().endSession(await requestCookieIO());
 }

@@ -150,18 +150,13 @@ describe('REQ-098 c2 — "then it carries these strings verbatim: the heading �
   });
 });
 
-describe('REQ-098 c3 / REQ-020 c4 — "then they are answered in writing on the same screen without being sent anywhere: an address with an open account is sent a link … and an address with none is answered on REQ-020 criterion 4\'s terms" — signin/answers', () => {
-  it.each([
-    ["sent", "signin.link_sent"],
-    ["payment_held", "signin.payment_held"],
-    ["no_account", "signin.no_account"],
-  ] as const)("the %s answer speaks %s, on the same screen", async (answer, key) => {
-    const html = await renderWithKeys({ state: { answer, value: "someone@example.com" } });
-    expect(html).toContain(key);
-    // "without being sent anywhere": still this screen, still this panel —
-    // the answered arm the approved set draws (UI-SPEC S9, issue #373). One
-    // shape for all three answers, so the frame reveals nothing the line
-    // does not, and one control back to the field.
+describe('SPEC §3 — "Sign-in copy is identical whatever the address, revealing nothing about who has an account" (issue 718) — signin/answers', () => {
+  it("the one answer speaks signin.link_requested, on the same screen", async () => {
+    const html = await renderWithKeys({ state: { answer: "requested", value: "someone@example.com" } });
+    expect(html).toContain("signin.link_requested");
+    // Still this screen, still this panel — the answered arm the approved
+    // set draws (UI-SPEC S9, issue #373), with one control back to the
+    // field.
     expect(html).toContain("signin.sent.head");
     // The mocked `copy()` here is the identity on the *key*, so the slot's
     // value is not in this markup; the real-registry describe below is
@@ -174,6 +169,16 @@ describe('REQ-098 c3 / REQ-020 c4 — "then they are answered in writing on the 
     expect(html.match(/<input/g)).toBeNull();
   });
 
+  it("the state has no answer that could tell an address with an account from one without", async () => {
+    const { SIGN_IN_INITIAL } = await import(STATE_MODULE);
+    const answers: SignInState["answer"][] = ["none", "invalid", "requested"];
+    expect(answers).toContain(SIGN_IN_INITIAL.answer);
+    // A compile-time guard as much as a runtime one: a fourth member would
+    // make this assignment fail to type-check.
+    const exhaustive: Record<SignInState["answer"], true> = { none: true, invalid: true, requested: true };
+    expect(Object.keys(exhaustive)).toEqual(answers);
+  });
+
   it("a refused *value* keeps the form and what was typed (c6's arm, not c3's)", async () => {
     const html = await renderWithKeys({ state: { answer: "invalid", value: "nope" } });
     expect(html).toContain("signin.address.invalid");
@@ -184,35 +189,23 @@ describe('REQ-098 c3 / REQ-020 c4 — "then they are answered in writing on the 
 
   it("before a submission the screen answers nothing at all, and so reveals nothing about any address", async () => {
     const html = await renderWithKeys();
-    for (const key of [
-      "signin.link_sent",
-      "signin.payment_held",
-      "signin.no_account",
-      "signin.address.invalid",
-    ]) {
+    for (const key of ["signin.link_requested", "signin.address.invalid"]) {
       expect(html).not.toContain(key);
     }
   });
 
-  // Issue #33 built the seam; before it, this asserted that the action let
-  // the seam's not-implemented error through rather than reporting `sent`.
-  // The property under test is the same one, restated against a seam that
-  // answers: the action decides nothing about an address itself, and every
-  // one of its three answers is the one `requestMagicLink` gave it.
-  it.each([
-    [{ sent: true }, "sent"],
-    [{ sent: false, answer: "payment_held_account_opening", lineKey: "signin.payment_held" }, "payment_held"],
-    [{ sent: false, answer: "no_account", lineKey: "signin.no_account" }, "no_account"],
-  ])("the action reports %j as %s and decides nothing of its own", async (seamAnswer, expected) => {
+  // The action decides nothing about an address itself: it hands the value
+  // to `requestMagicLink` and reports the one answer, whatever came back.
+  it("the action reports `requested` and decides nothing of its own", async () => {
     vi.resetModules();
-    const requestMagicLink = vi.fn(async () => seamAnswer);
+    const requestMagicLink = vi.fn(async () => ({ answered: true }));
     vi.doMock("@/lib/account/provisioning/magic-link", () => ({ requestMagicLink }));
     const { sendLink } = await import(ACTIONS_MODULE);
     const { SIGN_IN_INITIAL } = await import(STATE_MODULE);
     const form = new FormData();
     form.set("email", "someone@example.com");
     await expect(sendLink(SIGN_IN_INITIAL, form)).resolves.toEqual({
-      answer: expected,
+      answer: "requested",
       value: "someone@example.com",
     });
     expect(requestMagicLink).toHaveBeenCalledWith("someone@example.com");
@@ -302,9 +295,7 @@ describe("against the real registry — every arm renders, and nothing is invent
   }
 
   it.each([
-    { answer: "sent", value: "someone@example.com" },
-    { answer: "payment_held", value: "someone@example.com" },
-    { answer: "no_account", value: "someone@example.com" },
+    { answer: "requested", value: "someone@example.com" },
     { answer: "invalid", value: "nope" },
     { answer: "none", value: "" },
   ] as SignInState[])("renders in the %j state without throwing", async (state) => {
@@ -324,7 +315,7 @@ describe("against the real registry — every arm renders, and nothing is invent
   });
 
   it("the answered arm echoes the address they typed, and looks none up", async () => {
-    const text = await renderReal({ answer: "sent", value: "someone@example.com" });
+    const text = await renderReal({ answer: "requested", value: "someone@example.com" });
     // `signin.sent.to` is the set's own line, written: "sent to {address}".
     expect(text).toContain("sent to someone@example.com");
   });
@@ -332,9 +323,7 @@ describe("against the real registry — every arm renders, and nothing is invent
   it("every owed line on every arm is the marker, never a sentence somebody supplied", async () => {
     const { COPY, AWAITING_COPY, TODO_COPY_MARKER } = await import("@/lib/presentation/copy");
     const owed = [
-      "signin.link_sent",
-      "signin.payment_held",
-      "signin.no_account",
+      "signin.link_requested",
       "signin.address.invalid",
       "signin.link_dead",
       "signin.sent.head",
@@ -350,7 +339,7 @@ describe("against the real registry — every arm renders, and nothing is invent
 
   it("the expired arm speaks its three lines and no answer of its own", async () => {
     const { COPY } = await import("@/lib/presentation/copy");
-    const text = await renderReal({ answer: "sent", value: "someone@example.com" }, { link: "dead" });
+    const text = await renderReal({ answer: "requested", value: "someone@example.com" }, { link: "dead" });
     // Head, line, control — and *not* the answer line: someone holding a
     // dead link learns nothing about the address it was issued for
     // (REQ-098 c7), including whether one was answered on this screen.
@@ -358,7 +347,7 @@ describe("against the real registry — every arm renders, and nothing is invent
     expect(text).toContain(`<h1>${COPY["signin.expired.head"]}</h1>`);
     expect(text).toContain(COPY["signin.link_dead"]);
     expect(text).toContain(COPY["signin.expired.submit"]);
-    expect(text).not.toContain(COPY["signin.link_sent"]);
+    expect(text).not.toContain(COPY["signin.link_requested"]);
     expect(text).not.toContain("someone@example.com");
   });
 
