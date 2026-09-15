@@ -244,7 +244,48 @@ export async function runScan(a: {
     );
   }
   const deep = await runDeepPass({ siteId: a.siteId, domain: a.domain });
+  // SPEC §5: "Finishing setup reaches `/app` with a first draft" (issue 737).
+  // The founder is released by now; the first page is started here rather
+  // than waiting for the site's evening tick. Its outcome is logged, not
+  // returned: this job's result is the pass's, and a site the tick would
+  // not draft for yet (a destination still waiting for DNS) is not a
+  // degraded onboarding pass.
+  const first = await kickOffFirstDraft({ siteId: a.siteId, now: new Date() });
+  console.log(JSON.stringify({ event: "first_draft", siteId: a.siteId, outcome: first }));
   return deep.status === "degraded" ? { degraded: "deep-pass" } : { done: true };
+}
+
+/**
+ * The first draft, started when onboarding's pass ends (issue 737).
+ *
+ * The evening tick's own selection and its own date, for one site, without
+ * waiting for the site's evening hour: a site the tick would not draft for
+ * (no zone, not paying, no destination a page could reach) is not drafted
+ * for here either. The draft is for the date the tick would pick, and
+ * `generateDayPage` refuses a date that already has one, so this and a later
+ * tick never write two.
+ *
+ * Never a throw: the onboarding pass already ran and released its founder,
+ * and a job that re-ran it because a first page could not be written would
+ * spend a second deep pass.
+ */
+export async function kickOffFirstDraft(a: { readonly siteId: string; readonly now: Date }): Promise<EngineResult> {
+  try {
+    const selection = await activeSites();
+    if (selection.held !== null) return { degraded: `first-draft:held:${selection.held}` };
+    const site = selection.sites.find((row) => row.siteId === a.siteId);
+    if (site === undefined) return { degraded: "first-draft:not-selected" };
+    const { nextPublishDate } = await import("./site-clock");
+    const outcome = await generateDraft({
+      siteId: a.siteId,
+      publishDate: nextPublishDate(a.now, site.timeZone),
+      now: a.now,
+    });
+    return "degraded" in outcome ? { degraded: `first-draft:${outcome.degraded}` } : outcome;
+  } catch (error) {
+    console.log(JSON.stringify({ event: "first_draft_not_started", siteId: a.siteId, detail: String(error) }));
+    return { degraded: "first-draft:error" };
+  }
 }
 
 // ── The free passes nobody is coming back for — issue #438. Built.
@@ -307,6 +348,9 @@ export async function generateDraft(a: {
 }): Promise<EngineResult> {
   const { generateDayPage } = await import("@/lib/generate");
   const outcome = await generateDayPage({ siteId: a.siteId, publishDate: a.publishDate });
+  // A date that already holds its draft is a day already done, not a
+  // degraded tick.
+  if (!outcome.ok && outcome.because === "already_drafted") return { done: true };
   if (!outcome.ok) return { degraded: `generate:${outcome.because}` };
 
   const { enterReview } = await import("@/lib/publish/attempt/window");

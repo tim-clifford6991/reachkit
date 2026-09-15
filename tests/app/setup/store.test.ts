@@ -266,6 +266,18 @@ describe("the whole submit path, through this store", () => {
     expect(queued).toHaveBeenCalledTimes(1);
   });
 
+  it("issue 737 — a paid founder whose domain has only the free scan's profile (no voice yet) completes, queues the pass, and has no voice invented", async () => {
+    db = fakeDb({
+      sites: [site({ voice_text: null, voice_edited_at: null })],
+      destinations: [],
+      site_profiles: [{ domain: "example.com", site_name: "Example", products: [], claims: [], voice: null, inventory: [{ url: "https://example.com/pricing", title: "Pricing", h1: "Pricing", purpose: "pricing" }], pages_read: 9, refreshed_at: "2026-09-12T09:00:00.000Z" }],
+    });
+    const result = await completeSetup(liveSetupStore(), { userId: USER, submission: { ...SUBMISSION, voiceText: "" } });
+    expect(result).toEqual({ ok: true, siteId: SITE });
+    expect(queued).toHaveBeenCalledWith("scan/run", expect.objectContaining({ tier: "deep", siteId: SITE }));
+    expect(db.tables.sites![0]!.voice_text ?? null).toBeNull();
+  });
+
   it("a second submit starts no second pass", async () => {
     await completeSetup(liveSetupStore(), { userId: USER, submission: SUBMISSION });
     queued.mockClear();

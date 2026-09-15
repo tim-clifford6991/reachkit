@@ -144,6 +144,18 @@ export async function runDeepPass(a: {
     },
   });
 
+  // The pass derived the paid voice; seed the customer's field from it, so
+  // the first draft is written in it (issue 737). Setup could not: a
+  // free-scan profile has no voice to adopt. Unstamped, and never over the
+  // founder's own edit (`adoptVoiceText`); a failure costs a voice, never
+  // the release.
+  try {
+    const { adoptVoiceText } = await import("@/lib/site-profile");
+    await adoptVoiceText({ siteId: a.siteId, domain: a.domain });
+  } catch {
+    // Settings and the next weekly refresh read it again.
+  }
+
   const reason = reasonFor(result.status);
   await releaseToApp({ siteId: a.siteId, reason });
   // The pass is over, so no step is under way. Cleared rather than left

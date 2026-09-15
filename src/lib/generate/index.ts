@@ -49,6 +49,9 @@ export type DayPageOutcome =
   | { ok: true; draftId: string }
   | { ok: false; because: "no_site" }
   | { ok: false; because: "no_scan" }
+  /** SPEC §7: a date holds at most one asset, and this one already has its
+   *  draft — the first draft's kickoff wrote it, or a tick ran twice. */
+  | { ok: false; because: "already_drafted" }
   /** §7: supply is the cap. Nothing was invented to fill the day. */
   | { ok: false; because: "no_opportunity" }
   | { ok: false; because: "rules"; draftId: string | null; attempts: number }
@@ -68,6 +71,7 @@ export async function generateDayPage(a: {
 
   const site = await store.siteFacts(a.siteId);
   if (site === null) return { ok: false, because: "no_site" };
+  if (await store.draftOnDate(a.siteId, a.publishDate)) return { ok: false, because: "already_drafted" };
 
   // §8: "the day's page is generated the evening before from the freshest
   // scan." No scan, no measured pages — and no measured pages is no

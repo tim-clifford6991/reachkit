@@ -128,6 +128,10 @@ export interface GenerateStore {
    *  published, not unpublished, and not found gone by the day-after
    *  check (SPEC §7, 2026-09-12). */
   clusterPages(siteId: string, clusterKey: string): Promise<ClusterPage[]>;
+  /** Whether the site already holds a draft for this calendar date, in any
+   *  state. A date has at most one asset (SPEC §7), and both the first
+   *  draft's kickoff and the evening tick can ask for the same date. */
+  draftOnDate(siteId: string, date: string): Promise<boolean>;
 }
 
 // ── The states this module has to name ──────────────────────────────────
@@ -304,6 +308,17 @@ export function supabaseGenerateStore(): GenerateStore {
 
     async siteInventory(domain) {
       return (await readSiteProfile(domain))?.inventory ?? [];
+    },
+
+    async draftOnDate(siteId, date) {
+      const result = await untyped()
+        .from<{ id: string }>("drafts")
+        .select("id")
+        .eq("site_id", siteId)
+        .eq("scheduled_for", date)
+        .limit(1);
+      if (result.error) throw new Error(`generate/store: read from drafts failed: ${result.error.message}`);
+      return (result.data ?? []).length > 0;
     },
 
     async clusterPages(siteId, clusterKey) {
