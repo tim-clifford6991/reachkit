@@ -137,8 +137,7 @@ describe('BP-010 decision 4 — "Nothing new is stored: BP-007\'s `fetches` row 
       fetches: [{ scan_id: "scan-1", source: OWN_FETCH_SOURCE, payload: storedDocument("https://a.example/", HOME_HTML, READ_AT) }],
     });
     await readMeasuredText({ siteId: SITE });
-    // select + eq(site_id), then select + eq(tier) + in(domain)
-    expect(log.filter((entry) => entry.table === "scans")).toHaveLength(5);
+    expect(log.filter((entry) => entry.table === "scans")).toHaveLength(5); // select + eq(site_id), select + eq(tier) + in(domain)
     expect(log.filter((entry) => entry.table === "fetches").map((entry) => entry.method)).toEqual([
       "select(scan_id, payload)",
       "eq(source)",
@@ -172,26 +171,13 @@ describe('BP-010 decision 4 `## Consequences` — "the comparison set reaches ba
     expect(only(rows).measuredAt.toISOString()).toBe(LATER.toISOString());
   });
 
-  it("a deep pass served from cache still reads the free scan that wrote the rows, and never another site's", async () => {
-    // The paying path: a free scan (no site) read the pages, and the site's
-    // deep pass minutes later was served them from cache, ledgering nothing.
+  it("a deep pass served from cache reads the free scan that wrote the rows, and never another site's", async () => {
+    const doc = (url: string) => ({ source: OWN_FETCH_SOURCE, payload: storedDocument(url, HOME_HTML, READ_AT) });
     useDb({
-      scans: [
-        { id: "free-1", site_id: null, domain: "a.example", tier: "free" },
-        { id: "deep-1", site_id: SITE, domain: "a.example", tier: "deep" },
-        { id: "free-9", site_id: null, domain: "elsewhere.example", tier: "free" },
-        { id: "scan-9", site_id: OTHER_SITE, domain: "a.example", tier: "deep" },
-      ],
-      fetches: [
-        { scan_id: "free-1", source: OWN_FETCH_SOURCE, payload: storedDocument("https://a.example/", HOME_HTML, READ_AT) },
-        { scan_id: "free-9", source: OWN_FETCH_SOURCE, payload: storedDocument("https://elsewhere.example/", "<p>No.</p>", READ_AT) },
-        { scan_id: "scan-9", source: OWN_FETCH_SOURCE, payload: storedDocument("https://a.example/x", "<p>No.</p>", READ_AT) },
-      ],
+      scans: [{ id: "free-1", site_id: null, domain: "a.example", tier: "free" }, { id: "deep-1", site_id: SITE, domain: "a.example", tier: "deep" }, { id: "free-9", site_id: null, domain: "b.example", tier: "free" }, { id: "scan-9", site_id: OTHER_SITE, domain: "a.example", tier: "deep" }],
+      fetches: [{ scan_id: "free-1", ...doc("https://a.example/") }, { scan_id: "free-9", ...doc("https://b.example/") }, { scan_id: "scan-9", ...doc("https://a.example/x") }],
     });
-    for (const scanId of [undefined, "deep-1"]) {
-      const rows = await readMeasuredText({ siteId: SITE, scanId });
-      expect(rows.map((row) => row.url)).toEqual(["https://a.example/"]);
-    }
+    for (const scanId of [undefined, "deep-1"]) expect((await readMeasuredText({ siteId: SITE, scanId })).map((r) => r.url)).toEqual(["https://a.example/"]);
   });
 
   it("a site with no scans returns `[]` — a legitimate empty, not an error", async () => {
