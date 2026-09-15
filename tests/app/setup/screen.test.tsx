@@ -25,6 +25,8 @@ vi.mock("next/navigation", () => ({
 }));
 
 import { SetupForm } from "@/app/(account)/setup/SetupForm";
+import { MarketCard } from "@/app/(account)/setup/MarketCard";
+import { onMarketStated } from "@/lib/market/setup/state";
 import { RivalsCard } from "@/app/(account)/setup/RivalsCard";
 import { assembleSetup, type SetupFacts } from "@/app/(account)/setup/_setup/facts";
 import { FIXTURE_SETUP_FACTS } from "@/app/(account)/setup/_setup/fixture";
@@ -110,9 +112,33 @@ describe('REQ-025 c1 — "it asks for exactly three decisions ... and for nothin
     expect(list?.textContent).toContain(items[0]?.search);
     expect(list?.querySelectorAll("input, textarea, button")).toHaveLength(0);
 
-    const otherScan = { scanId: "another-scan", items };
+    const otherScan = { scanId: "another-scan", items, derivable: null };
     expect(screenFor({ questions: otherScan }).querySelector('[data-testid="setup-market-questions"]')).toBeNull();
     expect(screenFor(SCANLESS).querySelector('[data-testid="setup-market-questions"]')).toBeNull();
+  });
+
+  it("§12 ruling 4 — a corrected category re-derives the twelve from the stored market, still read-only", () => {
+    const questions = FIXTURE_SETUP_FACTS.questions!;
+    const card = (q: typeof questions, category: string) =>
+      render(
+        <MarketCard
+          state={onMarketStated(model().state, category)}
+          setState={() => {}}
+          questions={q}
+          resolveDomain={async () => { throw new Error("no address change here"); }}
+        />
+      ).querySelector('[data-testid="setup-market-questions"]');
+
+    const corrected = card(questions, "time tracking software");
+    const searches = [...(corrected?.querySelectorAll("li") ?? [])].map((li) => li.textContent ?? "");
+    expect(searches.some((text) => text.includes("time tracking software"))).toBe(true);
+    // …a search the measured category's twelve did not hold.
+    expect(questions.items.some((q) => q.search === "time tracking software")).toBe(false);
+    expect(corrected?.querySelectorAll("input, textarea, button")).toHaveLength(0);
+
+    // Nothing to re-derive over, or another scan's market: no twelve.
+    expect(card({ ...questions, derivable: null }, "time tracking software")).toBeNull();
+    expect(card({ ...questions, scanId: "another-scan" }, "time tracking software")).toBeNull();
   });
 
   it("REQ-021 c7 — a scanless purchase gets an empty address field, with nothing pre-filled", () => {

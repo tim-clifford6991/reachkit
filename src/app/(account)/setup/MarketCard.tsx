@@ -9,10 +9,11 @@
 "use client";
 
 import type React from "react";
-import { useId, useState, type Dispatch, type KeyboardEvent, type SetStateAction } from "react";
+import { useId, useMemo, useState, type Dispatch, type KeyboardEvent, type SetStateAction } from "react";
 import { Globe, ListOrdered } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
-import { renderQuestion } from "@/lib/presentation/generated";
+import { fromStored, renderQuestion } from "@/lib/presentation/generated";
+import { rederiveQuestions } from "@/lib/market/questions/rederive";
 import {
   onDomainChanged,
   onMarketStated,
@@ -89,15 +90,29 @@ export function MarketCard(p: {
     };
   }
 
-  // SPEC §5: the questions are the measured market's. Once the founder
-  // states a market of their own, or the address moves to one this scan
-  // did not measure, they no longer describe it and are not shown.
-  const questions =
-    p.questions !== null &&
-    state.market.state === "inferred" &&
-    state.market.fromScanId === p.questions.scanId
-      ? p.questions.items
-      : null;
+  // SPEC §5: the questions are the measured market's, shown while the
+  // market card is still that scan's. §12 ruling 4: a category the founder
+  // corrects re-derives them over the market that same scan bought — in
+  // the browser, buying nothing. An address this scan did not measure has
+  // no twelve here at all.
+  const stated = state.market.state === "stated" ? state.market.category : null;
+  const questions = useMemo((): SetupQuestions["items"] | null => {
+    const q = p.questions;
+    if (q === null) return null;
+    if (state.market.state === "inferred") {
+      return state.market.fromScanId === q.scanId ? q.items : null;
+    }
+    if (stated === null || q.derivable === null) return null;
+    if (state.address.state !== "measured" || state.address.fromScanId !== q.scanId) return null;
+    const derived = rederiveQuestions({ ...q.derivable, category: stated });
+    return derived.length === 0
+      ? null
+      : derived.map((question, index) => ({
+          n: index + 1,
+          search: question.search,
+          wording: fromStored("questions.wording", question.wording),
+        }));
+  }, [p.questions, state.market, state.address, stated]);
 
   const questionList = questions === null ? null : <QuestionList items={questions} />;
 
