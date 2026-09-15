@@ -60,6 +60,9 @@ describe("REQ-059 c1 — a Host of content.{their domain} resolves to their site
 
   it("the Host header is normalised — case, port and a trailing dot", async () => {
     expect(normaliseHost("Content.Example.COM:8443.")).toBe("content.example.com");
+    // An IPv6 literal loses its port and keeps its brackets (issue 608).
+    expect(normaliseHost("[::1]:3000")).toBe("[::1]");
+    expect(normaliseHost("[2001:DB8::1]")).toBe("[2001:db8::1]");
     await expect(resolveHost("CONTENT.EXAMPLE.COM:443")).resolves.toMatchObject({ kind: "site" });
   });
 

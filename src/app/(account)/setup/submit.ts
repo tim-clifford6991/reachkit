@@ -19,7 +19,11 @@
 // neither, and nothing here pretends a row was written.
 import { BATTERY } from "@/lib/config/constants";
 import { registrableDomain } from "@/lib/market/rivals/domains";
-import { checkLabel, hostFor } from "@/lib/publish/destinations/hosted/label";
+import {
+  checkLabel,
+  hostFor,
+  HostnameTakenError,
+} from "@/lib/publish/destinations/hosted/label";
 
 /** The closed shape of the one submit (REQ-025 c1, c2). */
 export interface SetupSubmission {
@@ -151,10 +155,19 @@ export async function completeSetup(
     }
   }
 
-  await store.commitSetup({
-    siteId: progress.siteId,
-    submission: { ...a.submission, domain },
-  });
+  try {
+    await store.commitSetup({
+      siteId: progress.siteId,
+      submission: { ...a.submission, domain },
+    });
+  } catch (error) {
+    // Another site claimed the host between the check above and the
+    // commit, and the unique index refused it (issue 608). The founder's
+    // next move is the check's own — type a different label — so it is
+    // the check's own line, not a 500. Setup is not stamped.
+    if (error instanceof HostnameTakenError) return { ok: false, refused: "label_taken" };
+    throw error;
+  }
 
   // At-least-once, and never before the commit (REQ-028 c4: setup
   // completes and the product still produces their first page).

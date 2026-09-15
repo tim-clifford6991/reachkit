@@ -68,8 +68,28 @@ interface HostnameCheckRow {
  * read that errors answers `false` — not taken — because the unique index
  * is what actually decides, and a founder blocked by a database blip from
  * a name nobody holds has been refused something true.
+ *
+ * That is the answer a founder *typing* is given. The submit asks
+ * `hostnameTakenStrict` instead (issue 608): there, a read that could not
+ * answer is not a free name, because the next thing that happens is a
+ * write.
  */
 export async function hostnameTaken(a: {
+  hostname: string;
+  exceptSiteId?: string;
+}): Promise<boolean> {
+  try {
+    return await hostnameTakenStrict(a);
+  } catch {
+    return false;
+  }
+}
+
+/** `hostnameTaken`, with a read that errors thrown rather than read as
+ *  "not taken". The setup submit asks this before it writes any row, so a
+ *  collision is refused as `label_taken` and never reaches the unique
+ *  index after the founder's answers are already on disk. */
+export async function hostnameTakenStrict(a: {
   hostname: string;
   exceptSiteId?: string;
 }): Promise<boolean> {
@@ -81,7 +101,8 @@ export async function hostnameTaken(a: {
     .eq("hostname", host)
     .is("deleted_at", null)
     .limit(2);
-  if (error !== null || data === null) return false;
+  if (error !== null) throw new Error(`hostnameTaken: ${error.message}`);
+  if (data === null) throw new Error("hostnameTaken: the read returned no rows array");
   return data.some((row) => row.site_id !== a.exceptSiteId);
 }
 

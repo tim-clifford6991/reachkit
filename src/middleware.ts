@@ -298,11 +298,6 @@ const OURS_SUFFIX = `.${PREVIEW_HOST_SUFFIX}`;
 const PLATFORM_SUFFIX = ".vercel.app";
 const LOCAL_HOSTS: ReadonlySet<string> = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
 
-/** The Host header as a hostname: lower-cased, port and trailing dot
- *  removed. `@/app/(hosted)/resolve-host` normalises the same way and is
- *  the module that then decides; it is not imported here because this file
- *  runs before routing on every request and that module reaches the
- *  database. Four lines, and the suite pins the pair. */
 /** This deployment's own address, from the one binding that carries it.
  *  Computed per call rather than memoised: the suites that drive this file
  *  rebind the environment between cases, and the parse is one `URL`. An
@@ -317,9 +312,20 @@ function appHost(): string {
   }
 }
 
+/** The Host header as a hostname: lower-cased, port and trailing dot
+ *  removed. `@/app/(hosted)/resolve-host` normalises the same way and is
+ *  the module that then decides; it is not imported here because this file
+ *  runs before routing on every request and that module reaches the
+ *  database. The suite pins the pair.
+ *
+ *  A bracketed IPv6 literal keeps its brackets and loses its port (issue
+ *  608): `[::1]:3000` is `[::1]`, which is local. Left whole, it matched
+ *  nothing of ours and the entire app was rewritten into the hosted group. */
 function hostnameOf(req: NextRequest): string {
   const raw = (req.headers.get("host") ?? "").trim().toLowerCase();
-  const withoutPort = raw.startsWith("[") ? raw : (raw.split(":")[0] ?? "");
+  const withoutPort = raw.startsWith("[")
+    ? raw.slice(0, raw.indexOf("]") + 1 || raw.length)
+    : (raw.split(":")[0] ?? "");
   return withoutPort.endsWith(".") ? withoutPort.slice(0, -1) : withoutPort;
 }
 

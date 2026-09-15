@@ -84,6 +84,33 @@ describe("§4.3 — the mode and the destination are two writes in one transacti
   });
 });
 
+describe("a host another site claimed is a typed refusal, not an error (issue 608)", () => {
+  const violation = {
+    data: null,
+    error: { message: 'duplicate key value violates unique constraint "destinations_one_live_hostname"' },
+  };
+
+  it("the hostname index's violation throws HostnameTakenError, carrying the host", async () => {
+    db.rpc = (async () => violation) as unknown as typeof db.rpc;
+    const { HostnameTakenError } = await import("@/lib/publish/destinations/hosted/label");
+    const attempt = applySetupChoice({
+      siteId: SITE,
+      destinationKind: "hosted",
+      hostname: "blog.example.com",
+    });
+    await expect(attempt).rejects.toBeInstanceOf(HostnameTakenError);
+    await expect(attempt).rejects.toMatchObject({ hostname: "blog.example.com" });
+  });
+
+  it("any other failure stays an ordinary error", async () => {
+    db.rpc = (async () => ({ data: null, error: { message: "connection reset" } })) as unknown as typeof db.rpc;
+    const { HostnameTakenError } = await import("@/lib/publish/destinations/hosted/label");
+    const attempt = applySetupChoice({ siteId: SITE, destinationKind: "wordpress", hostname: null });
+    await expect(attempt).rejects.toThrow(/connection reset/);
+    await expect(attempt).rejects.not.toBeInstanceOf(HostnameTakenError);
+  });
+});
+
 describe("REQ-028 c3 — a founder who uses WordPress can defer connecting it and setup still completes", () => {
   it("the destination row is created deferred, with no credential collected", async () => {
     const applied = await applySetupChoice({
@@ -123,6 +150,8 @@ describe("REQ-028 c4 — setup completes with neither DNS nor WordPress set up",
     // rather than merely un-matched by a pattern.
     expect(imports).toEqual([
       'import { dbAdmin } from "@/lib/db";',
+      // Pure: the label rule and the collision error (issue 608).
+      'import { HostnameTakenError } from "@/lib/publish/destinations/hosted/label";',
       'import type { DestinationKind, PublishingMode } from "./cards";',
     ]);
   });

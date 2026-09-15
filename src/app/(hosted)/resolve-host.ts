@@ -60,8 +60,10 @@ const PREVIEW_SUFFIX = `.${PREVIEW_HOST_SUFFIX}`;
  *  is against a normalised name. */
 export function normaliseHost(host: string): string {
   const trimmed = host.trim().toLowerCase();
+  // An IPv6 literal is never one of ours, but its port is still a port:
+  // `[::1]:3000` is `[::1]`, the same name `src/middleware.ts` compares.
   const withoutPort = trimmed.startsWith("[")
-    ? trimmed // an IPv6 literal is never one of ours; left whole and unmatched
+    ? trimmed.slice(0, trimmed.indexOf("]") + 1 || trimmed.length)
     : (trimmed.split(":")[0] ?? "");
   return withoutPort.endsWith(".") ? withoutPort.slice(0, -1) : withoutPort;
 }

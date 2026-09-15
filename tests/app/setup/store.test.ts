@@ -108,7 +108,7 @@ describe("readProgress — the one predicate every account route consults", () =
   });
 });
 
-describe("commitSetup — the three answers, the transaction, then the stamp", () => {
+describe("commitSetup — the transaction, the three answers, then the stamp", () => {
   it("writes the answers, applies the mode-and-destination pair, and stamps completion", async () => {
     await liveSetupStore().commitSetup({ siteId: SITE, submission: SUBMISSION });
 
@@ -174,15 +174,16 @@ describe("commitSetup — the three answers, the transaction, then the stamp", (
     }) as typeof db.rpc;
 
     await liveSetupStore().commitSetup({ siteId: SITE, submission: SUBMISSION });
-    // The three answers, the mode-and-destination transaction, the voice
-    // (read from the profile first, so an unchanged summary writes
+    // The mode-and-destination transaction (first since issue 608: it is
+    // the write the hostname index can refuse), the three answers, the
+    // voice (read from the profile first, so an unchanged summary writes
     // nothing — SPEC.md §5, 2026-09-12), and the stamp last. The stamp
     // being last is what this row is for: a crash anywhere above it
     // leaves a founder who is asked again, never one whose choices are
     // half-written.
     expect(order).toEqual([
-      "sites",
       "rpc:apply_setup_choice",
+      "sites",
       "site_profiles",
       "sites",
       "sites",
@@ -272,6 +273,69 @@ describe("the whole submit path, through this store", () => {
       ok: false,
       refused: "already_complete",
     });
+    expect(queued).not.toHaveBeenCalled();
+  });
+});
+
+describe("a hostname collision at setup is label_taken, and writes no row (issue 608)", () => {
+  const HOSTED = {
+    ...SUBMISSION,
+    destination: { kind: "hosted" as const, label: "blog" },
+  };
+
+  it("a host another site holds is refused before any row is written", async () => {
+    db = fakeDb({
+      sites: [site()],
+      destinations: [{ id: "dest-9", site_id: "site-9", hostname: "blog.example.com", deleted_at: null }],
+    });
+    expect(await completeSetup(liveSetupStore(), { userId: USER, submission: HOSTED })).toEqual({
+      ok: false,
+      refused: "label_taken",
+    });
+    expect(db.rpcCalls).toHaveLength(0);
+    expect(db.tables.sites![0]!.domain).toBe("old.example");
+    expect(db.tables.sites![0]!.setup_completed_at).toBeNull();
+  });
+
+  it("a check that could not read is not a free name — the submit stops before writing", async () => {
+    const original = db.client.from;
+    db.client.from = ((table: string) => {
+      if (table !== "destinations") return (original as (t: string) => unknown)(table);
+      const failed = { data: null, error: { message: "connection reset" } };
+      const chain: Record<string, unknown> = {
+        then: (resolve: (v: unknown) => unknown) => resolve(failed),
+      };
+      for (const m of ["select", "eq", "is", "limit"]) chain[m] = () => chain;
+      return chain;
+    }) as typeof db.client.from;
+
+    await expect(
+      completeSetup(liveSetupStore(), { userId: USER, submission: HOSTED })
+    ).rejects.toThrow(/connection reset/);
+    expect(db.rpcCalls).toHaveLength(0);
+    expect(db.tables.sites![0]!.domain).toBe("old.example");
+  });
+
+  it("a host claimed between the check and the commit answers label_taken, with the answers unwritten", async () => {
+    // The race the check cannot close: the unique index refuses the
+    // transaction, which rolls back, and nothing of this submit landed.
+    db.rpc = (async (fn: string, args: Record<string, unknown>) => {
+      db.rpcCalls.push({ fn, args });
+      return {
+        data: null,
+        error: {
+          message:
+            'duplicate key value violates unique constraint "destinations_one_live_hostname"',
+        },
+      };
+    }) as unknown as typeof db.rpc;
+
+    expect(await completeSetup(liveSetupStore(), { userId: USER, submission: HOSTED })).toEqual({
+      ok: false,
+      refused: "label_taken",
+    });
+    expect(db.tables.sites![0]!.domain).toBe("old.example");
+    expect(db.tables.sites![0]!.setup_completed_at).toBeNull();
     expect(queued).not.toHaveBeenCalled();
   });
 });
