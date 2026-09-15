@@ -536,7 +536,10 @@ export const MAIL_COPY = Object.freeze({
   ],
   // #640: SPEC §8 gives every mail a "why it arrived" line; the setup
   // reminder had none, and no approved sentence exists for it.
-  "mail.reason.setupReminder": ["TODO(copy)", { slots: {}, fixedBy: "SPEC §8 · issue 640" }],
+  "mail.reason.setupReminder": [
+    "Up to three reminders while setup is unfinished · finishing setup stops them.",
+    { slots: {}, fixedBy: "SPEC §8 · issue 640" },
+  ],
   "mail.reason.nurture": [
     "Opt out of all follow-up: one link, every domain, for good.",
     { slots: {}, fixedBy: "S20 (11a)" },
@@ -560,7 +563,10 @@ export const MAIL_COPY = Object.freeze({
   // #638: the mail's next step, between the verdict and its one action.
   // No approved sentence says what a free-report reader does next, so the
   // key ships awaiting the owner's line.
-  "mail.report.next": ["TODO(copy)", { slots: {}, fixedBy: "SPEC §8 · issue 638" }],
+  "mail.report.next": [
+    "Each problem on it says who fixes it, and the complete method is there, free.",
+    { slots: {}, fixedBy: "SPEC §8 · issue 638" },
+  ],
   "mail.report.fact.score": ["Discoverability Score", { slots: {}, fixedBy: "ruling 6a" }],
   "mail.report.fact.aiAnswers": ["AI answers", { slots: {}, fixedBy: "S20 (11a)" }],
   "mail.report.fact.googleSearch": ["Google search", { slots: {}, fixedBy: "S20 (11a)" }],
@@ -624,25 +630,49 @@ export const MAIL_COPY = Object.freeze({
   // 568. `sendEmail` refuses a mail that still carries the marker, so none of
   // these kinds sends until its sentences are written ("Unwritten keys send
   // nothing"). Slots are named for what the sequence can supply.
-  "mail.inactivity.subject": ["TODO(copy)", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
-  "mail.inactivity.line": ["TODO(copy)", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
-  "mail.inactivity.action": ["TODO(copy)", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
-  "mail.reason.inactivity": ["TODO(copy)", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
+  "mail.inactivity.subject": ["Your pages are still going out", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
+  "mail.inactivity.line": [
+    "You haven’t signed in for a week. ReachKit is still writing and publishing your pages, and every page waits for you to stop it before it goes live.",
+    { slots: {}, fixedBy: "SPEC §8 · issue 569" },
+  ],
+  "mail.inactivity.action": ["Sign in", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
+  "mail.reason.inactivity": [
+    "Sent after 7 days without a sign-in · signing in stops it.",
+    { slots: {}, fixedBy: "SPEC §8 · issue 569" },
+  ],
   /** `{page}` is the draft's title; `{closesAt}` the moment its veto window
    *  closes, in the customer's zone. */
-  "mail.vetoReminder.subject": ["TODO(copy)", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
-  "mail.vetoReminder.line": ["TODO(copy)", { slots: { page: "text", closesAt: "date" }, fixedBy: "SPEC §8 · issue 569" }],
-  "mail.vetoReminder.action": ["TODO(copy)", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
-  "mail.reason.vetoReminder": ["TODO(copy)", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
-  "mail.paymentFailed.subject": ["TODO(copy)", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
-  "mail.paymentFailed.line": ["TODO(copy)", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
-  "mail.paymentFailed.action": ["TODO(copy)", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
+  "mail.vetoReminder.subject": ["A page publishes soon", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
+  "mail.vetoReminder.line": [
+    "“{page}” publishes at {closesAt} unless you stop it.",
+    { slots: { page: "text", closesAt: "date" }, fixedBy: "SPEC §8 · issue 569" },
+  ],
+  "mail.vetoReminder.action": ["Stop this page", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
+  "mail.reason.vetoReminder": [
+    "Sent when a page has less than 6 hours left to stop it.",
+    { slots: {}, fixedBy: "SPEC §8 · issue 569" },
+  ],
+  "mail.paymentFailed.subject": ["Your payment didn’t go through", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
+  "mail.paymentFailed.line": [
+    "Your latest €49 payment for ReachKit didn’t go through. Update your payment details to settle it.",
+    { slots: {}, fixedBy: "SPEC §8 · issue 569" },
+  ],
+  "mail.paymentFailed.action": ["Update payment details", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
   /** `{accessEndsOn}` is the day access ends (`paid_through`), in the
    *  customer's zone — SPEC §8's "cancellation (end date)". */
-  "mail.cancellation.subject": ["TODO(copy)", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
-  "mail.cancellation.line": ["TODO(copy)", { slots: { accessEndsOn: "date" }, fixedBy: "SPEC §8 · issue 569" }],
-  "mail.winback.subject": ["TODO(copy)", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
-  "mail.winback.line": ["TODO(copy)", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
-  "mail.winback.action": ["TODO(copy)", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
-  "mail.reason.winback": ["TODO(copy)", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
+  "mail.cancellation.subject": ["Your subscription is cancelled", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
+  "mail.cancellation.line": [
+    "You keep full access until {accessEndsOn}, and nothing more is charged.",
+    { slots: { accessEndsOn: "date" }, fixedBy: "SPEC §8 · issue 569" },
+  ],
+  "mail.winback.subject": ["Pick up where you left off", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
+  "mail.winback.line": [
+    "ReachKit can start writing and publishing pages for your site again: one a day, each waiting for you to stop it before it goes live. €49 a month, cancel any time.",
+    { slots: {}, fixedBy: "SPEC §8 · issue 569" },
+  ],
+  "mail.winback.action": ["Resume ReachKit", { slots: {}, fixedBy: "SPEC §8 · issue 569" }],
+  "mail.reason.winback": [
+    "Sent once, 30 days after you cancelled. There is no more follow-up after this one.",
+    { slots: {}, fixedBy: "SPEC §8 · issue 569" },
+  ],
 }) satisfies CopyPartition;

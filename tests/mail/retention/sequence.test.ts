@@ -9,6 +9,20 @@ applyEnvFixture();
 vi.mock("@/lib/db", () => ({ db: () => null, dbAdmin: () => null }));
 vi.mock("@/lib/mail/leads/wire", () => ({ wireSuppressionReader: () => {} }));
 
+/** Keys the unwritten-copy row puts back to the marker. Every retention
+ *  line is written now (the owner's sheet), so the row that proves "unwritten
+ *  keys send nothing" stubs one back here rather than depending on a key
+ *  that happens to be still owed. Empty everywhere else. */
+const unwritten = new Set<string>();
+vi.mock("@/lib/presentation/copy", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/presentation/copy")>();
+  return {
+    ...actual,
+    copy: (key: Parameters<typeof actual.copy>[0], vars?: Parameters<typeof actual.copy>[1]) =>
+      unwritten.has(key) ? actual.TODO_COPY_MARKER : actual.copy(key, vars),
+  };
+});
+
 /** Stands in for the vendor seam: every send that reaches it is recorded,
  *  and a test can make the next answer a refusal. `real` delegates to the
  *  real seam, for the unwritten-copy row. */
@@ -162,11 +176,17 @@ describe("payment failed, cancelled, access +30 d — stopped when resolved", ()
 describe("a kind whose copy is unwritten sends nothing at all", () => {
   it("the real seam refuses a mail still carrying TODO(copy), and the touch is not stamped", async () => {
     real = true;
-    expect(await sendEmail({ kind: "win-back", to: "founder@example.com", ...buildWinback({ email: "founder@example.com" }) }))
-      .toEqual({ sent: false, reason: "not-composable" });
+    unwritten.add("mail.winback.line");
+    unwritten.add("mail.paymentFailed.line");
+    try {
+      expect(await sendEmail({ kind: "win-back", to: "founder@example.com", ...buildWinback({ email: "founder@example.com" }) }))
+        .toEqual({ sent: false, reason: "not-composable" });
 
-    accounts.set("u1", account({ planStatus: "past_due" }));
-    expect(await retention.sendPaymentFailed("u1", NOW)).toEqual({ sent: false, kind: "payment-failed", reason: "not-composable" });
-    expect(accounts.get("u1")!.paymentFailedMailedAt).toBeNull();
+      accounts.set("u1", account({ planStatus: "past_due" }));
+      expect(await retention.sendPaymentFailed("u1", NOW)).toEqual({ sent: false, kind: "payment-failed", reason: "not-composable" });
+      expect(accounts.get("u1")!.paymentFailedMailedAt).toBeNull();
+    } finally {
+      unwritten.clear();
+    }
   });
 });

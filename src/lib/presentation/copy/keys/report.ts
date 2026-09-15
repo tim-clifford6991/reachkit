@@ -137,7 +137,7 @@ export const REPORT_COPY = Object.freeze({
   "report.measured-at.no-category": ["measured {date}", { slots: { date: "text" }, fixedBy: "REQ-094 c1" }],
   // Issue 715: SPEC §2 — "Measurement is US Google in English, stated in one
   // always-visible line." Owner-owed.
-  "report.measurement": ["TODO(copy)", { slots: {}, fixedBy: "SPEC §2 · issue 715" }],
+  "report.measurement": ["Measured in US Google, in English.", { slots: {}, fixedBy: "SPEC §2 · issue 715" }],
   // 6a: "Discoverability Score" is the number's name on every surface that
   // labels it — this eyebrow, the Overview tile, and the two mails.
   "verdict.score.label": ["Discoverability Score", { slots: {}, fixedBy: "ruling 6a" }],
@@ -173,7 +173,10 @@ export const REPORT_COPY = Object.freeze({
   "ai-answers.source": ["Google AI answers · {date}", { slots: { date: "text" }, fixedBy: "REQ-006 c9" }],
   // Issue 715: SPEC §2 — a category correction reuses the AI answers already
   // read, "and says so". Owner-owed.
-  "ai-answers.coverage.cached-only": ["TODO(copy)", { slots: {}, fixedBy: "SPEC §2 · issue 715" }],
+  "ai-answers.coverage.cached-only": [
+    "These AI answers were reused from an earlier scan.",
+    { slots: {}, fixedBy: "SPEC §2 · issue 715" },
+  ],
   "ai-answers.denominator": ["AI answers appear on {answered} of your {measured} biggest searches", { slots: { answered: "text", measured: "text" }, fixedBy: "REQ-006 c1" }],
   "ai-answers.customer-citations": ["You’re named in {cited} of the {answered} AI answers that appeared.", { slots: { cited: "text", answered: "text" }, fixedBy: "REQ-006 c1" }],
   "ai-answers.legend": ["Filled: named in that answer · Empty: not named · Muted: no AI answer appeared", { slots: {}, fixedBy: "REQ-006 c1" }],
@@ -259,15 +262,18 @@ export const REPORT_COPY = Object.freeze({
   "check.doer.reachkit-writes": ["ReachKit writes", { slots: {}, fixedBy: "SPEC §9" }],
   "check.doer.reachkit-rewrites": ["ReachKit rewrites", { slots: {}, fixedBy: "SPEC §9" }],
   "check.none-needed": ["Nothing to fix", { slots: {}, fixedBy: "SPEC §9" }],
-  "check.not-run": ["TODO(copy)", { slots: {}, fixedBy: "issue 571" }],
-  "check.page-titles.title": ["TODO(copy)", { slots: {}, fixedBy: "issue 571" }],
-  "check.meta-descriptions.title": ["TODO(copy)", { slots: {}, fixedBy: "issue 571" }],
-  "check.noindex-pages.title": ["TODO(copy)", { slots: {}, fixedBy: "issue 571" }],
-  "check.sitemap.title": ["TODO(copy)", { slots: {}, fixedBy: "issue 571" }],
-  "check.slow-pages.title": ["TODO(copy)", { slots: {}, fixedBy: "issue 571" }],
-  "check.broken-links.title": ["TODO(copy)", { slots: {}, fixedBy: "issue 571" }],
-  "check.phone-usability.title": ["TODO(copy)", { slots: {}, fixedBy: "issue 571" }],
-  "check.structured-data.title": ["TODO(copy)", { slots: {}, fixedBy: "issue 571" }],
+  "check.not-run": [
+    "This check couldn’t run this time — that isn’t the same as nothing to fix.",
+    { slots: {}, fixedBy: "issue 571" },
+  ],
+  "check.page-titles.title": ["Missing or duplicate titles", { slots: {}, fixedBy: "issue 571" }],
+  "check.meta-descriptions.title": ["Missing or duplicate descriptions", { slots: {}, fixedBy: "issue 571" }],
+  "check.noindex-pages.title": ["Pages hidden from search", { slots: {}, fixedBy: "issue 571" }],
+  "check.sitemap.title": ["No sitemap", { slots: {}, fixedBy: "issue 571" }],
+  "check.slow-pages.title": ["Slow pages", { slots: {}, fixedBy: "issue 571" }],
+  "check.broken-links.title": ["Broken internal links", { slots: {}, fixedBy: "issue 571" }],
+  "check.phone-usability.title": ["Hard to use on a phone", { slots: {}, fixedBy: "issue 571" }],
+  "check.structured-data.title": ["Missing structured data", { slots: {}, fixedBy: "issue 571" }],
 
   // ── Module 4, the DIY sections (REQ-009 c6) ───────────────────────────
   // Instructional text is allowed here and nowhere else on this screen.
