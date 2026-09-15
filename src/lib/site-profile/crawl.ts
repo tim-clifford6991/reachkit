@@ -42,15 +42,26 @@
 // own.
 //
 // **Stopping is a fact, not a failure.** The crawl ends when the frontier
-// is exhausted, when it has read `SITE_PROFILE.MAX_PAGES`, or when
-// `SITE_PROFILE.CRAWL_MS` is spent — and it says which. What it returns is
-// exactly what it read: a site of nine pages yields nine rows, and nothing
-// is invented to reach a hundred (§2, and issue #577's own done-when).
+// is exhausted, when it has read `SITE_PROFILE.MAX_PAGES`, when it has held
+// `SITE_PROFILE.CRAWL_MAX_BYTES`, or when `SITE_PROFILE.CRAWL_MS` is spent —
+// and it says which. What it returns is exactly what it read: a site of nine
+// pages yields nine rows, and nothing is invented to reach a hundred (§2,
+// and issue #577's own done-when).
+//
+// **The site's own rules, and three hard bounds** (master ruling under SPEC
+// §5, 2026-09-12, issue 610). A path the site's `robots.txt` disallows is
+// never read, and its `Crawl-delay` paces the reads, capped at
+// `SITE_PROFILE.CRAWL_DELAY_MAX_MS`. The byte bound is strict: each read in
+// a batch may hold only its share of what is left, so the batch together
+// can never pass it. The time bound is enforced, not merely checked
+// between batches: at `CRAWL_MS` every read still in flight is aborted and
+// the crawl returns what it has.
 import { CACHE_WINDOWS_D, SITE_PROFILE } from "@/lib/config/constants";
 import { refusalOf, type CostContext, type FetchRefusal } from "@/lib/costs";
+import { crawlDelayMs, readRobots, robotsAllows } from "@/lib/egress/robots";
 import type { SafeFetchOpts } from "@/lib/egress/safe-fetch";
-import { safeFetch } from "@/lib/egress/safe-fetch";
-import type { FetchOutcome } from "@/lib/egress/types";
+import { robotsTokensFor, safeFetch } from "@/lib/egress/safe-fetch";
+import type { FetchOutcome, RobotsPolicy } from "@/lib/egress/types";
 import { registrableDomain } from "@/lib/market/rivals/domains";
 import { visibleText } from "@/lib/measure/parse";
 import { readPageFacts, type PageIssueFacts } from "@/lib/site-issues/facts";
@@ -86,7 +97,7 @@ export interface CrawlOutcome {
    *  never shows this; it is what tells a reader of the ledger that a stop
    *  at the cap left pages behind rather than exhausting the site. */
   discovered: number;
-  stoppedBy: "complete" | "page_cap" | "time_budget";
+  stoppedBy: "complete" | "page_cap" | "byte_cap" | "time_budget";
   /** Every in-scope address this crawl fetched, read or not, by identity. */
   fetched: readonly string[];
   /** The fetched addresses that answered with an HTTP error (4xx/5xx). A
@@ -102,15 +113,22 @@ export interface CrawlOutcome {
   homeHtml: string | null;
 }
 
-/** The one seam this module crosses. Doubled in tests; wired to the
- *  product's SSRF-safe fetcher everywhere else. */
+/** The two seams this module crosses. Doubled in tests; wired to the
+ *  product's SSRF-safe fetcher and its robots reader everywhere else.
+ *  `readRobots` is memoised per scan, so asking it per origin here costs
+ *  the fetch `safeFetch` already made. */
 export interface CrawlPorts {
   fetchDocument: (url: string, opts: SafeFetchOpts) => Promise<FetchOutcome>;
+  readRobots: (origin: string) => Promise<RobotsPolicy | { ok: false; reason: string }>;
 }
 
 const DEFAULT_PORTS: CrawlPorts = {
   fetchDocument: (url, opts) => safeFetch(url, opts),
+  readRobots: (origin) => readRobots(origin),
 };
+
+/** The names the crawl's own `User-Agent` answers to in a `robots.txt`. */
+const ROBOTS_TOKENS = robotsTokensFor(OWN_FETCH_OPTS.userAgent);
 
 /** How many sitemap documents one crawl will read: the site's own
  *  declarations from `robots.txt`, plus the conventional address, plus one
@@ -146,8 +164,19 @@ export async function crawlSite(
   a: { domain: string; homeUrl: string; homeHtml: string | null; sitemaps: readonly string[] },
   ports: CrawlPorts = DEFAULT_PORTS
 ): Promise<CrawlOutcome> {
-  const startedAt = Date.now();
-  const deadline = startedAt + SITE_PROFILE.CRAWL_MS;
+  const reader = new BoundedReader(ports, Date.now() + SITE_PROFILE.CRAWL_MS);
+  try {
+    return await crawl(c, a, reader);
+  } finally {
+    reader.close();
+  }
+}
+
+async function crawl(
+  c: CostContext,
+  a: { domain: string; homeUrl: string; homeHtml: string | null; sitemaps: readonly string[] },
+  reader: BoundedReader
+): Promise<CrawlOutcome> {
   const site = registrableDomain(a.domain);
 
   const seen = new Set<string>();
@@ -169,7 +198,7 @@ export async function crawlSite(
   const home =
     a.homeHtml !== null && a.homeHtml !== ""
       ? { url: a.homeUrl, html: a.homeHtml, fetchMs: null }
-      : await readHome(c, a.homeUrl, ports);
+      : await readHome(c, a.homeUrl, reader);
   if (home === null) {
     return {
       pages: [],
@@ -181,6 +210,11 @@ export async function crawlSite(
       homeHtml: null,
     };
   }
+  // The home document is held like any other, whoever fetched it.
+  reader.hold(Buffer.byteLength(home.html, "utf8"));
+
+  // The site's pace, from the home origin's own document.
+  await reader.paceBy(home.url);
 
   const fetched = new Set<string>();
   const broken = new Set<string>();
@@ -208,19 +242,27 @@ export async function crawlSite(
     frontier.push(url);
   };
 
-  const sitemap = await sitemapUrls(c, a, ports, deadline);
+  const sitemap = await sitemapUrls(c, a, reader);
   for (const url of sitemap.urls) enqueue(url, home.url);
   for (const href of anchorHrefs(home.html)) enqueue(href, home.url);
 
   let stoppedBy: CrawlOutcome["stoppedBy"] = "complete";
+  // A page refused only because its share of a batch's bytes was too small
+  // for it is read again alone, with the whole of what is left. Only if it
+  // does not fit that either has the byte bound stopped the crawl.
+  const alone: string[] = [];
 
-  while (frontier.length > 0) {
+  while (frontier.length > 0 || alone.length > 0) {
     if (pages.length >= SITE_PROFILE.MAX_PAGES) {
       stoppedBy = "page_cap";
       break;
     }
-    if (Date.now() >= deadline) {
+    if (reader.expired()) {
       stoppedBy = "time_budget";
+      break;
+    }
+    if (reader.bytesLeft() <= 0) {
+      stoppedBy = "byte_cap";
       break;
     }
     // Out of money: every further `recordFetch` would skip, so the crawl
@@ -230,19 +272,36 @@ export async function crawlSite(
     if (c.capHit()) break;
 
     const room = SITE_PROFILE.MAX_PAGES - pages.length;
-    const batch = frontier.splice(0, Math.min(SITE_PROFILE.CONCURRENCY, room));
+    const candidates =
+      alone.length > 0 ? alone.splice(0, 1) : frontier.splice(0, Math.min(reader.concurrency(), room));
 
-    // Phase one: the network, in parallel. Each fetch is timed on its own.
-    const outcomes = await Promise.all(
-      batch.map(async (url) => {
-        const began = Date.now();
-        const outcome = await ports.fetchDocument(url, OWN_FETCH_OPTS);
-        return { url, outcome, fetchMs: Date.now() - began };
-      })
-    );
+    // A path the site's robots.txt disallows is never read (issue 610). It
+    // stays discovered — it is the site's page — and is not fetched.
+    const batch: string[] = [];
+    for (const url of candidates) {
+      if (await reader.allows(url)) batch.push(url);
+    }
+    if (batch.length === 0) continue;
+
+    // Phase one: the network, in parallel, each read held to its share of
+    // the bytes left and aborted at the deadline.
+    const share = Math.floor(reader.bytesLeft() / batch.length);
+    const outcomes = await Promise.all(batch.map((url) => reader.read(url, share)));
 
     // Phase two: the ledger, strictly one at a time (see the header).
     for (const { url, outcome, fetchMs } of outcomes) {
+      // A read the crawl itself cut short — at its deadline, or at its share
+      // of the byte bound — is a fact about this crawl, not about the page,
+      // and is neither ledgered nor counted.
+      if (outcome === "aborted") {
+        stoppedBy = "time_budget";
+        continue;
+      }
+      if (!outcome.ok && outcome.reason === "too_large" && share < OWN_FETCH_OPTS.maxBytes) {
+        if (batch.length > 1) alone.push(url);
+        else stoppedBy = "byte_cap";
+        continue;
+      }
       const key = dedupeKey(url);
       const stored = await ledger(c, url, outcome);
       if (stored === null) {
@@ -268,6 +327,7 @@ export async function crawlSite(
       pages.push(page);
       for (const href of anchorHrefs(stored.html)) enqueue(href, stored.url);
     }
+    if (stoppedBy !== "complete") break;
   }
 
   if (stoppedBy === "complete" && pages.length >= SITE_PROFILE.MAX_PAGES) stoppedBy = "page_cap";
@@ -281,6 +341,131 @@ export async function crawlSite(
     sitemap: sitemap.state,
     homeHtml: home.html,
   };
+}
+
+/**
+ * Every network read the crawl makes, under its three bounds: the deadline
+ * (enforced by aborting), the byte budget (enforced by each read's
+ * `maxBytes`) and the site's own `Crawl-delay` (enforced by pacing).
+ *
+ * One instance per crawl. `close()` clears the deadline's timer.
+ */
+class BoundedReader {
+  private readonly controller = new AbortController();
+  private readonly timer: ReturnType<typeof setTimeout>;
+  private readonly policies = new Map<string, Promise<RobotsPolicy | null>>();
+  private held = 0;
+  private delayMs = 0;
+  private lastReadAt: number | null = null;
+
+  constructor(
+    private readonly ports: CrawlPorts,
+    private readonly deadline: number
+  ) {
+    this.timer = setTimeout(() => this.controller.abort(), Math.max(0, deadline - Date.now()));
+  }
+
+  close(): void {
+    clearTimeout(this.timer);
+  }
+
+  expired(): boolean {
+    return this.controller.signal.aborted || Date.now() >= this.deadline;
+  }
+
+  bytesLeft(): number {
+    return SITE_PROFILE.CRAWL_MAX_BYTES - this.held;
+  }
+
+  hold(bytes: number): void {
+    this.held += bytes;
+  }
+
+  /** A site that asks for a delay is read one document at a time. */
+  concurrency(): number {
+    return this.delayMs > 0 ? 1 : SITE_PROFILE.CONCURRENCY;
+  }
+
+  /** Adopts the `Crawl-delay` the document at this address's origin asks
+   *  of this reader, capped. */
+  async paceBy(url: string): Promise<void> {
+    const policy = await this.policyFor(url);
+    if (policy === null) return;
+    this.delayMs = Math.min(crawlDelayMs(policy, ROBOTS_TOKENS), SITE_PROFILE.CRAWL_DELAY_MAX_MS);
+  }
+
+  /** Whether the site's robots.txt lets this reader fetch the address. A
+   *  document that could not be read decides nothing — `safeFetch`'s own
+   *  rule — so the address is allowed. */
+  async allows(url: string): Promise<boolean> {
+    const policy = await this.policyFor(url);
+    if (policy === null) return true;
+    const parsed = new URL(url);
+    return robotsAllows(policy, ROBOTS_TOKENS, `${parsed.pathname}${parsed.search}`);
+  }
+
+  /** One read, held to `maxBytes` and to the deadline. Answers `"aborted"`
+   *  when the deadline ended it (or came before it started), whether or not
+   *  the port itself honoured the signal. */
+  async read(
+    url: string,
+    maxBytes: number = this.bytesLeft()
+  ): Promise<{ url: string; outcome: FetchOutcome | "aborted"; fetchMs: number }> {
+    await this.pace();
+    const began = Date.now();
+    if (this.expired() || maxBytes <= 0) {
+      return { url, outcome: this.expired() ? "aborted" : this.overBudget(url), fetchMs: 0 };
+    }
+    this.lastReadAt = began;
+    const outcome = await this.untilDeadline(
+      this.ports.fetchDocument(url, {
+        ...OWN_FETCH_OPTS,
+        maxBytes: Math.min(OWN_FETCH_OPTS.maxBytes, maxBytes),
+        signal: this.controller.signal,
+      })
+    );
+    if (outcome !== "aborted" && outcome.ok) this.hold(outcome.bytes);
+    return { url, outcome, fetchMs: Date.now() - began };
+  }
+
+  private overBudget(url: string): FetchOutcome {
+    return { ok: false, reason: "too_large", url, readAt: new Date() };
+  }
+
+  private async pace(): Promise<void> {
+    if (this.delayMs <= 0 || this.lastReadAt === null) return;
+    const wait = this.lastReadAt + this.delayMs - Date.now();
+    if (wait <= 0) return;
+    await this.untilDeadline(new Promise<void>((resolve) => setTimeout(resolve, wait)));
+  }
+
+  private policyFor(url: string): Promise<RobotsPolicy | null> {
+    let origin: string;
+    try {
+      origin = new URL(url).origin;
+    } catch {
+      return Promise.resolve(null);
+    }
+    let policy = this.policies.get(origin);
+    if (policy === undefined) {
+      policy = this.untilDeadline(this.ports.readRobots(origin))
+        .then((answer) => (answer === "aborted" || !answer.ok ? null : answer))
+        .catch(() => null);
+      this.policies.set(origin, policy);
+    }
+    return policy;
+  }
+
+  private untilDeadline<T>(work: Promise<T>): Promise<T | "aborted"> {
+    const signal = this.controller.signal;
+    if (signal.aborted) return Promise.resolve("aborted");
+    let onAbort: () => void = () => {};
+    const aborted = new Promise<"aborted">((resolve) => {
+      onAbort = () => resolve("aborted");
+      signal.addEventListener("abort", onAbort, { once: true });
+    });
+    return Promise.race([work, aborted]).finally(() => signal.removeEventListener("abort", onAbort));
+  }
 }
 
 /** An answer from the site's own server that the page is not there or
@@ -327,7 +512,7 @@ async function ledger(
 async function readHome(
   c: CostContext,
   homeUrl: string,
-  ports: CrawlPorts
+  reader: BoundedReader
 ): Promise<{ url: string; html: string; fetchMs: number | null } | null> {
   let fetchMs: number | null = null;
   const result = await c.recordFetch<StoredDocument | FetchRefusal>({
@@ -336,9 +521,14 @@ async function readHome(
     freshnessDays: CACHE_WINDOWS_D.own,
     costCents: 0,
     run: async () => {
-      const began = Date.now();
-      const outcome = await ports.fetchDocument(homeUrl, OWN_FETCH_OPTS);
-      fetchMs = Date.now() - began;
+      const read = await reader.read(homeUrl);
+      fetchMs = read.fetchMs;
+      // A read the deadline ended is not a fact about the home page; the
+      // refusal row is still the one shape the cache never serves back.
+      const outcome: FetchOutcome =
+        read.outcome === "aborted"
+          ? { ok: false, reason: "timeout", url: homeUrl, readAt: new Date() }
+          : read.outcome;
       // A refusal here is the measurement pass's home key: `refusalOf`'s
       // row is the shape the cache never serves back (BUILD §6.4).
       return outcome.ok ? toStoredDocument(outcome) : refusalOf(outcome);
@@ -357,8 +547,7 @@ async function readHome(
 async function sitemapUrls(
   c: CostContext,
   a: { homeUrl: string; sitemaps: readonly string[] },
-  ports: CrawlPorts,
-  deadline: number
+  reader: BoundedReader
 ): Promise<{ urls: readonly string[]; state: CrawlOutcome["sitemap"] }> {
   const queue: string[] = [];
   const requested = new Set<string>();
@@ -377,11 +566,15 @@ async function sitemapUrls(
   let unreadable = false;
   let index = 0;
   while (index < queue.length) {
-    if (Date.now() >= deadline) break;
+    if (reader.expired() || reader.bytesLeft() <= 0) break;
     const url = queue[index++];
     if (url === undefined) break;
 
-    const outcome = await ports.fetchDocument(url, OWN_FETCH_OPTS);
+    const { outcome } = await reader.read(url);
+    if (outcome === "aborted") {
+      index--;
+      break;
+    }
     const stored = await ledger(c, url, outcome);
     if (stored === null) {
       // A 404 or 410 is a plain "no sitemap here". Anything else — a
@@ -401,7 +594,8 @@ async function sitemapUrls(
     if (locs.length > 0) declaresOne = true;
     for (const loc of locs) found.push(loc);
   }
-  // A deadline that cut the queue short leaves addresses unread.
+  // A deadline or the byte bound that cut the queue short leaves addresses
+  // unread.
   if (index < queue.length) unreadable = true;
   const state: CrawlOutcome["sitemap"] = declaresOne ? "found" : unreadable ? "unreadable" : "absent";
   return { urls: found, state };

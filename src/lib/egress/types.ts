@@ -28,6 +28,13 @@ export type FetchOutcome =
  *  of them declared it. It is a parse of a fetched document, never a judgement
  *  about it: what each rule means for the blocked-readers count is BP-024's and
  *  what ReachKit serves on a hosted domain is BP-047's. */
+/** One `Allow` or `Disallow` line: `*` and a trailing `$` are its only
+ *  pattern characters (RFC 9309 §2.2.3). */
+export interface RobotsRule {
+  allow: boolean
+  pattern: string
+}
+
 export interface RobotsPolicy {
   ok: true
   origin: string
@@ -45,6 +52,15 @@ export interface RobotsPolicy {
   disallowedAgents: Readonly<Record<string, boolean>>
   /** Sitemap declarations found in the document, in the order they appeared. */
   sitemaps: readonly string[]
+  /** Per product token, lowercased, the `Allow`/`Disallow` lines of the
+   *  group(s) naming it, merged (RFC 9309 §2.2.1) — so a path other than the
+   *  root can be decided (issue 610). Absent on a policy built without them,
+   *  where `disallowedAgents` and `disallowsAll` decide every path. */
+  rules?: Readonly<Record<string, readonly RobotsRule[]>>
+  /** Per product token, lowercased, the `Crawl-delay` its group declared, in
+   *  seconds as written. Not RFC 9309; honoured by the site-profile crawl,
+   *  capped (issue 610). */
+  crawlDelaySeconds?: Readonly<Record<string, number>>
   /** True where the origin answered 404 or an equivalent "no robots.txt".
    *  That is a *read* with nothing in it — REQ-004 criterion 7's `zero`, not
    *  criterion 6's `undeterminable` — and the distinction is the reason this

@@ -82,7 +82,7 @@ export interface SiteIssuesSection {
    *  before they were recorded (version ≤ 7). */
   checkedPages: readonly string[] | null;
   /** Why the crawl ended — so "100 pages" reads as a cap, not a whole site. */
-  stoppedBy: "complete" | "page_cap" | "time_budget" | "not_run";
+  stoppedBy: "complete" | "page_cap" | "byte_cap" | "time_budget" | "not_run";
   issues: readonly SiteIssue[];
 }
 

@@ -28,21 +28,26 @@
 // token is keyed lowercased. The membership list is read from
 // `constants.ts`, never restated here (ADR-022, ADR-090).
 //
-// Verdicts are at the origin root (`/`), which is all `RobotsPolicy`
-// declares; longest-match wins, `Allow` wins a tie, `*` and `$` are the only
-// pattern characters (RFC 9309 §2.2.2–2.2.3).
+// Verdicts are at the origin root (`/`); longest-match wins, `Allow` wins a
+// tie, `*` and `$` are the only pattern characters (RFC 9309 §2.2.2–2.2.3).
+// The merged rules themselves are kept too (issue 610), so `robotsAllows`
+// can decide any other path by the same rule, and each group's
+// `Crawl-delay` is kept for the site-profile crawl to pace itself by.
 import { AI_READER_AGENTS } from "@/lib/config/constants";
 import { memoiseRobots } from "./robots-memo";
 import { safeFetch } from "./safe-fetch";
-import type { RobotsPolicy } from "./types";
+import type { RobotsPolicy, RobotsRule } from "./types";
 
-type Rule = { allow: boolean; pattern: string };
-type Group = { agents: string[]; rules: Rule[] };
+type Rule = RobotsRule;
+type Group = { agents: string[]; rules: Rule[]; crawlDelay?: number };
 
 /** The parsed verdicts of one document — everything in `RobotsPolicy` that
  *  comes from the text rather than from the fetch. Exported for direct
  *  parser tests; production callers use `readRobots`. */
-export type RobotsVerdicts = Pick<RobotsPolicy, "disallowsAll" | "disallowedAgents" | "sitemaps">;
+export type RobotsVerdicts = Pick<
+  RobotsPolicy,
+  "disallowsAll" | "disallowedAgents" | "sitemaps" | "rules" | "crawlDelaySeconds"
+>;
 
 const ROOT_PATH = "/";
 
@@ -63,11 +68,11 @@ function patternMatches(pattern: string, path: string): boolean {
 }
 
 /** Longest matching rule decides; an `Allow` wins a tie; no match allows. */
-function rootDisallowed(rules: readonly Rule[]): boolean {
+function pathDisallowed(rules: readonly Rule[], path: string): boolean {
   let best: Rule | undefined;
   for (const rule of rules) {
     if (rule.pattern === "") continue; // `Disallow:` with no value disallows nothing
-    if (!patternMatches(rule.pattern, ROOT_PATH)) continue;
+    if (!patternMatches(rule.pattern, path)) continue;
     if (
       best === undefined ||
       rule.pattern.length > best.pattern.length ||
@@ -77,6 +82,10 @@ function rootDisallowed(rules: readonly Rule[]): boolean {
     }
   }
   return best !== undefined && !best.allow;
+}
+
+function rootDisallowed(rules: readonly Rule[]): boolean {
+  return pathDisallowed(rules, ROOT_PATH);
 }
 
 /** Product token of a `User-agent:` value — the part before any `/`,
@@ -121,17 +130,25 @@ export function parseRobotsTxt(text: string): RobotsVerdicts {
     if (current === null) continue; // rules before any group are ignored (RFC 9309 §2.2.1)
     if (key === "allow" || key === "disallow") {
       current.rules.push({ allow: key === "allow", pattern: value });
+    } else if (key === "crawl-delay") {
+      const seconds = Number(value);
+      if (value !== "" && Number.isFinite(seconds) && seconds >= 0) current.crawlDelay = seconds;
     }
     // any other key: unknown directive, ignored
   }
 
   // RFC 9309 §2.2.1: groups naming the same token are merged.
   const rulesByToken = new Map<string, Rule[]>();
+  const crawlDelaySeconds: Record<string, number> = {};
   for (const group of groups) {
     for (const agent of group.agents) {
       const existing = rulesByToken.get(agent);
       if (existing) existing.push(...group.rules);
       else rulesByToken.set(agent, [...group.rules]);
+      // Merged groups keep the longest delay any of them asked for.
+      if (group.crawlDelay !== undefined) {
+        crawlDelaySeconds[agent] = Math.max(crawlDelaySeconds[agent] ?? 0, group.crawlDelay);
+      }
     }
   }
 
@@ -145,6 +162,8 @@ export function parseRobotsTxt(text: string): RobotsVerdicts {
     disallowsAll: wildcard !== undefined && rootDisallowed(wildcard),
     disallowedAgents: Object.freeze(disallowedAgents),
     sitemaps: Object.freeze(sitemaps),
+    rules: Object.freeze(Object.fromEntries(rulesByToken)),
+    crawlDelaySeconds: Object.freeze(crawlDelaySeconds),
   };
 }
 
@@ -152,7 +171,58 @@ const ABSENT_VERDICTS: RobotsVerdicts = Object.freeze({
   disallowsAll: false,
   disallowedAgents: Object.freeze({}),
   sitemaps: Object.freeze([]),
+  rules: Object.freeze({}),
+  crawlDelaySeconds: Object.freeze({}),
 });
+
+/** The group that speaks to this reader: the first of `tokens` a group
+ *  names, else the wildcard (RFC 9309 §2.2.1). `undefined` where neither
+ *  exists. `tokens` are tried in order and compared lowercased. */
+function groupKey(
+  record: Readonly<Record<string, unknown>>,
+  tokens: readonly string[]
+): string | undefined {
+  for (const token of tokens) {
+    const key = productToken(token);
+    if (key !== "" && Object.hasOwn(record, key)) return key;
+  }
+  return Object.hasOwn(record, "*") ? "*" : undefined;
+}
+
+/**
+ * Whether this document lets a reader known by `tokens` fetch `path` — the
+ * path and query of the address, as RFC 9309 §2.2.2 matches them.
+ *
+ * A policy that carries no rules (one built by hand, before issue 610) is
+ * decided at the root, exactly as it always was: the named verdict, else
+ * the wildcard's.
+ */
+export function robotsAllows(policy: RobotsPolicy, tokens: readonly string[], path: string): boolean {
+  if (policy.rules === undefined) {
+    for (const token of tokens) {
+      const key = productToken(token);
+      const pinned = PINNED_BY_LOWER.get(key) ?? key;
+      const named = policy.disallowedAgents[pinned] ?? policy.disallowedAgents[token];
+      if (named !== undefined) return !named;
+    }
+    return !policy.disallowsAll;
+  }
+  const key = groupKey(policy.rules, tokens);
+  if (key === undefined) return true;
+  return !pathDisallowed(policy.rules[key] ?? [], path === "" ? ROOT_PATH : path);
+}
+
+/** The `Crawl-delay` the group speaking to this reader declared, in
+ *  milliseconds; `0` where it declared none. Uncapped — the cap is the
+ *  caller's, because how long a reader is willing to wait is its own. */
+export function crawlDelayMs(policy: RobotsPolicy, tokens: readonly string[]): number {
+  const delays = policy.crawlDelaySeconds;
+  if (delays === undefined) return 0;
+  // The delay belongs to the group that decides this reader's rules: a
+  // named group without a delay is not given the wildcard's.
+  const key = policy.rules === undefined ? groupKey(delays, tokens) : groupKey(policy.rules, tokens);
+  return key === undefined ? 0 : Math.round((delays[key] ?? 0) * 1000);
+}
 
 /**
  * BP-006 `readRobots(origin)`. Never throws.

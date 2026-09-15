@@ -44,7 +44,7 @@ export interface CrawlReading {
   /** Every in-scope address the crawl fetched, read or broken. */
   fetchedKeys: ReadonlySet<string>;
   sitemap: "found" | "absent" | "unreadable";
-  stoppedBy: "complete" | "page_cap" | "time_budget";
+  stoppedBy: "complete" | "page_cap" | "byte_cap" | "time_budget";
 }
 
 type Blocked = readonly string[];

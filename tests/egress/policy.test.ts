@@ -267,8 +267,11 @@ describe("BP-006 NFR — fetch( is confined to src/lib/egress/** and src/lib/ven
 
 // ── RobotsPolicy — the type-level suite row 8's test names ─────────────
 
-describe("RobotsPolicy · exactly six required fields, no optional arm, no null policy", () => {
+describe("RobotsPolicy · the verdict fields required, the per-path directives optional, no null policy", () => {
   it("structurally equals the exact shape BP-006 declares — deleting `absent` or widening any field to `| null` is a type error `tsc --noEmit` catches", () => {
+    // `rules` and `crawlDelaySeconds` (issue 610) are optional because a
+    // policy measured before them is stored without them; `robotsAllows`
+    // decides such a policy at the root, as it always was.
     expectTypeOf<RobotsPolicy>().toEqualTypeOf<{
       ok: true;
       origin: string;
@@ -276,11 +279,13 @@ describe("RobotsPolicy · exactly six required fields, no optional arm, no null 
       disallowsAll: boolean;
       disallowedAgents: Readonly<Record<string, boolean>>;
       sitemaps: readonly string[];
+      rules?: Readonly<Record<string, readonly { allow: boolean; pattern: string }[]>>;
+      crawlDelaySeconds?: Readonly<Record<string, number>>;
       absent: boolean;
     }>();
   });
 
-  it("a real value's key set is exactly these seven keys, none optional", () => {
+  it("a value with only the verdict fields is a whole policy: these seven keys", () => {
     const value: RobotsPolicy = {
       ok: true,
       origin: "https://example.com",

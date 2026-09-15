@@ -92,6 +92,7 @@ Pinned numbers live in `src/lib/config/constants.ts`. Newest dated line in a sec
 - Hosted is default (no third-party credential). WordPress sits beside it and may be connected later (site, username, application password — password never echoed; refusal is the destination health state, not a vendor sentence).
 - Hosted is white-label at `<label>.<customer-domain>` after one CNAME (2026-09-12). Save adds the hostname via Vercel Domains API. Settings: “live” / “waiting for DNS”. No ReachKit mark on those pages.
 - Voice is paid-only, built at setup, editable there and in settings (2026-09-12). Inventory and site name are shown as read.
+- The profile crawl honours `robots.txt` per path and its `Crawl-delay` (capped at 1 s), holds at most 8 MB in total, and aborts reads still in flight at its time budget (2026-09-12).
 - Waiting names the step, is live at least every 30 s, no percentage, no promised duration. Degraded pass still releases with one sentence; ten minutes releases regardless.
 
 **Done when** Finishing setup reaches `/app` with a first draft. A sixth competitor is refused. CNAME for the chosen label is shown; destination reads waiting then live. Voice edit persists in settings. Wrong WordPress password shows destination health, no vendor text.
