@@ -22,7 +22,7 @@ export type Row = Record<string, unknown>;
 
 export interface RecordedQuery {
   table: string;
-  verb: "select" | "insert" | "update";
+  verb: "select" | "insert" | "update" | "delete";
   columns?: string;
   values?: Row;
   filters: { op: string; column: string; value: unknown }[];
@@ -66,6 +66,10 @@ function matches(row: Row, filters: RecordedQuery["filters"]): boolean {
         return value !== null && value !== undefined && String(value) >= String(f.value);
       case "lte":
         return value !== null && value !== undefined && String(value) <= String(f.value);
+      case "gt":
+        return value !== null && value !== undefined && String(value) > String(f.value);
+      case "lt":
+        return value !== null && value !== undefined && String(value) < String(f.value);
       case "is-null":
         return value === null || value === undefined;
       case "not-is-null":
@@ -176,6 +180,12 @@ export function fakeDb(): FakeDb {
         for (const row of hits) Object.assign(row, query.values);
         return { data: hits, error: null };
       }
+      if (query.verb === "delete") {
+        const kept = db.rows(table).filter((row) => !matches(row, query.filters));
+        const gone = db.rows(table).filter((row) => matches(row, query.filters));
+        db.tables.set(table, kept);
+        return { data: gone, error: null };
+      }
       return { data: selected(), error: null };
     }
 
@@ -202,6 +212,18 @@ export function fakeDb(): FakeDb {
       },
       lte(column: string, value: unknown) {
         query.filters.push({ op: "lte", column, value });
+        return self;
+      },
+      gt(column: string, value: unknown) {
+        query.filters.push({ op: "gt", column, value });
+        return self;
+      },
+      lt(column: string, value: unknown) {
+        query.filters.push({ op: "lt", column, value });
+        return self;
+      },
+      delete() {
+        query.verb = "delete";
         return self;
       },
       /** PostgREST's `is.`, which takes `null`, `true` and `false` — the
@@ -263,6 +285,11 @@ export function fakeDb(): FakeDb {
             ? { data: null, error: { message: "no rows" } }
             : { data: first, error: null }
         );
+      },
+      maybeSingle() {
+        const { data, error } = run();
+        if (error !== null) return Promise.resolve({ data: null, error });
+        return Promise.resolve({ data: (data ?? [])[0] ?? null, error: null });
       },
       then(resolve: (value: { data: Row[] | null; error: unknown }) => unknown) {
         return Promise.resolve(run()).then(resolve);
