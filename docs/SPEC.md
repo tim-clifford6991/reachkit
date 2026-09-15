@@ -122,6 +122,7 @@ Pinned numbers live in `src/lib/config/constants.ts`. Newest dated line in a sec
 - At most one publish a day, eight a week. Kinds: new post, new page, update of an existing page.
 - Every asset links to real inventory pages (pricing, about, features, product) and to earlier assets in its cluster. No link known to go nowhere. Drafts follow the stored voice. No fact that is not on their site or in the profile (2026-09-12).
 - Markdown subset only; one serialiser for screen, copy-as-HTML and copy-as-Markdown. One auto-regeneration before review; never after. Edits save with no save button.
+- The brief picks facts from the customer’s own pages by index and writes none; no fact picked, no draft. Each opportunity type has one fixed outline. The answerability pass may only reorder sections, shorten a first block to 40–320 characters under a question heading, and insert facts from the brief. A draft that claims a test, carries a byline, date or case study, adds a question heading, states a number no fact holds, or does not open with an answer is stopped.
 - Publish is one idempotent call to the destination on the customer’s domain. At +24 h: reachable, indexable, in a sitemap, AI-readable.
 - Public veto link redeems on GET once. MVP paid service ends at a page on the customer’s own domain (2026-09-11).
 

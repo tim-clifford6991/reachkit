@@ -890,6 +890,16 @@ export const FORMAT_PAGE_ALLOWED = Object.freeze([
  *  number of new questions it may add is zero — a bound, never a budget. */
 export const ANSWERABILITY_MAX_NEW_QUESTIONS = 0 as const;    // §7
 
+/** SPEC §7: the answerability pass may "shorten a first block to 40–320
+ *  characters where a question heading already exists". The same bound is
+ *  what a draft's opening block must fall inside to count as an answer. */
+export const ANSWER_FIRST_BLOCK_CHARS = Object.freeze({ min: 40, max: 320 } as const); // §7
+
+/** How many of the customer's own passages one brief is handed to choose
+ *  from. Chosen, not transcribed: enough for a page to stand on more than one
+ *  fact, few enough that the nano brief call's input stays small. */
+export const BRIEF_MAX_FACTS = 8 as const;                     // §7 · issue 475
+
 /** §7's Improve trigger, transcribed: "Customer ranks 4–30, page thin".
  *  The band is inclusive at both ends. The bought SERP is a top ten
  *  (`transport.ts` fixes depth 10), so today only 4–10 is observable; the

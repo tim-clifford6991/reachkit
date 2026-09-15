@@ -3,10 +3,12 @@
 // The order is fixed and every part of it is §8's:
 //
 //   1. the ceiling, read before anything runs;
-//   2. the grounding read — the customer's own live page, out of the
-//      measurement ledger, never fetched again;
-//   3. brief (nano) → outline (nano) → grounded draft (Haiku) →
-//      answerability + SEO pass (Haiku);
+//   2. the facts read — passages of the customer's own live pages, out of
+//      the measurement ledger, never fetched again;
+//   3. brief (nano), handed a closed projection, choosing facts by index →
+//      outline (nano) over the type's fixed skeleton → grounded draft
+//      (Haiku) → answerability + SEO pass (Haiku), which returns operations
+//      that code applies inside SPEC §7's bound (issue 475);
 //   4. the draft row, written with the grounded fact and the body;
 //   5. the comparison set, and the hard-rule battery over the finished text
 //      — including the claim check, which is step five;
@@ -41,8 +43,18 @@ import { applyLinks } from "../links/apply";
 import type { LinkTarget } from "../links/select";
 import { buildPromptInputs } from "../voice/inputs";
 import { buildComparisonSet } from "./comparison";
-import { readGroundingFact } from "./grounding";
-import { answerability, brief, draft, outline, type PipelineStep } from "./steps";
+import { applyAnswerability } from "./answerability";
+import { readFacts } from "./grounding";
+import { SKELETONS } from "./skeletons";
+import {
+  answerability,
+  brief,
+  briefProjection,
+  draft,
+  outline,
+  selectedFactIndexes,
+  type PipelineStep,
+} from "./steps";
 
 /** The state a row this function writes is left in. §9's transition table
  *  belongs to the publishing engine: this pipeline writes a page and stops,
@@ -104,26 +116,34 @@ export async function generateDraft(
     return { ok: false, reason: "step_failed", draftId: null, step: "brief" };
   }
 
-  // 2. The grounding read. No fallback: §8's fact is the customer's own
-  //    live page or the draft does not ship. A site with nothing readable
-  //    fails hard rule 1 — and it fails it here, before a cent is spent
-  //    writing a page that cannot pass.
-  const grounding = await readGroundingFact({ siteId: a.siteId, scanId: a.scanId });
-  if ("failed" in grounding) {
-    const failed: RuleFailure[] = [{ rule: "grounding" }];
-    logRun({ siteId: a.siteId, outcome: "rules", failed: "grounding", attempt: 1 });
-    return {
-      ok: false,
-      reason: "rules",
-      draftId: null,
-      failed,
-      attempt: 1,
-      // Nothing was written, so there is no row to count an attempt on and
-      // no text to protect: the ordinary recovery rule decides, with the
-      // count this run would have made.
-      recovery: recoveryOutcome({ failed: ["grounding"], automaticAttempts: 0, enteredReview: false }),
-    };
-  }
+  // 2. The facts read. No fallback: §8's fact is the customer's own live
+  //    page or the draft does not ship. A site with nothing readable fails
+  //    hard rule 1 — and it fails it here, before a cent is spent writing a
+  //    page that cannot pass.
+  const facts = await readFacts({ siteId: a.siteId, scanId: a.scanId });
+  if (facts.length === 0) return noFact(a.siteId);
+
+  // The page's shape is its type's, never the model's (issue 475).
+  const skeleton = SKELETONS[a.opportunity.type];
+  if (skeleton === null) return stepFailed(a.siteId, "outline");
+
+  // 3. The brief, handed the closed projection and nothing else. It picks
+  //    facts by index; a brief that picks none stops here, before any draft
+  //    call, with only its own call ledgered.
+  const briefResult = await brief(
+    c,
+    briefProjection({
+      opportunity: a.opportunity,
+      facts: facts.map((sourced) => sourced.fact.passage),
+      doNotClaim: a.site.doNotClaim,
+      voice: a.voiceText,
+    })
+  );
+  if (briefResult.kind === "unmeasured") return stepFailed(a.siteId, "brief");
+  const selected = selectedFactIndexes(briefResult.value, facts.length).map((index) => facts[index]!);
+  const grounding = selected[0];
+  if (grounding === undefined) return noFact(a.siteId);
+  const passages = selected.map((sourced) => sourced.fact.passage);
 
   const inputs = buildPromptInputs({
     businessName: a.site.businessName,
@@ -135,29 +155,30 @@ export async function generateDraft(
     links: a.links,
   });
 
-  // 3. The four model steps. Each re-reads the ceiling; an `unmeasured`
-  //    result from any of them is that step's failure and never a rule's.
-  const briefResult = await brief(c, inputs);
-  if (briefResult.kind === "unmeasured") return stepFailed(a.siteId, "brief");
-
-  const outlineResult = await outline(c, inputs, { brief: briefResult.value });
+  // 4. The skeleton's outline, the draft, and the bounded answerability
+  //    pass. Each re-reads the ceiling; an `unmeasured` result from any of
+  //    them is that step's failure and never a rule's.
+  const outlineResult = await outline(c, inputs, { brief: briefResult.value, skeleton });
   if (outlineResult.kind === "unmeasured") return stepFailed(a.siteId, "outline");
 
   const draftResult = await draft(c, inputs, {
     brief: briefResult.value,
     outline: outlineResult.value,
+    facts: selected.map((sourced) => ({ url: sourced.fact.url, passage: sourced.fact.passage })),
   });
   if (draftResult.kind === "unmeasured") return stepFailed(a.siteId, "draft");
 
-  const polished = await answerability(c, inputs, { body: draftResult.value });
-  if (polished.kind === "unmeasured") return stepFailed(a.siteId, "answerability");
+  const ops = await answerability(c, inputs, { body: draftResult.value, facts: passages });
+  if (ops.kind === "unmeasured") return stepFailed(a.siteId, "answerability");
 
   // SPEC §7: the page links to the chosen pages of the customer's own site
-  // and to none it guessed — held in code, before the row is written, so
-  // the battery reads and the store keeps the body a reader will meet.
+  // and to none it guessed — held in code after the bounded answerability
+  // pass, before the row is written, so the battery reads and the store
+  // keeps the body a reader will meet.
+  const answered = applyAnswerability(draftResult.value, ops.value, passages);
   const body = {
-    ...polished.value,
-    bodyMarkdown: applyLinks(polished.value.bodyMarkdown, {
+    ...answered,
+    bodyMarkdown: applyLinks(answered.bodyMarkdown, {
       domain: a.site.domain,
       targets: a.links,
       groundedUrl: grounding.fact.url,
@@ -204,6 +225,14 @@ export async function generateDraft(
     comparison,
     grounded: grounding.fact,
     sourceText: grounding.sourceText,
+    brief: {
+      facts: passages,
+      headings: outlineResult.value.sections.map((section) => section.heading),
+      queries: [
+        ...(a.opportunity.targetQuery === null ? [] : [a.opportunity.targetQuery]),
+        ...a.opportunity.absorbedQueries,
+      ],
+    },
   });
 
   await store.patchDraft(draftId, {
@@ -254,6 +283,23 @@ export async function generateDraft(
   });
   logRun({ siteId: a.siteId, draftId, outcome: "rules", attempt, recovery });
   return { ok: false, reason: "rules", draftId, failed: outcome.failed, attempt, recovery };
+}
+
+/** Hard rule 1 with nothing to stand on: no page of the customer's yielded a
+ *  passage, or the brief chose none of those it was handed. Nothing was
+ *  written, so there is no row to count an attempt on; the ordinary recovery
+ *  rule decides, with the count this run would have made. */
+function noFact(siteId: string): GenerateOutcome {
+  const failed: RuleFailure[] = [{ rule: "grounding" }];
+  logRun({ siteId, outcome: "rules", failed: "grounding", attempt: 1 });
+  return {
+    ok: false,
+    reason: "rules",
+    draftId: null,
+    failed,
+    attempt: 1,
+    recovery: recoveryOutcome({ failed: ["grounding"], automaticAttempts: 0, enteredReview: false }),
+  };
 }
 
 function stepFailed(siteId: string, step: PipelineStep): GenerateOutcome {

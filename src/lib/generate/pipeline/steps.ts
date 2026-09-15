@@ -21,10 +21,15 @@
 // text — there is no second channel through which a derived profile could
 // reach a model.
 import { z } from "zod";
+import { ANSWER_FIRST_BLOCK_CHARS } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import { llm, type LlmCallSite } from "@/lib/llm";
 import { unmeasured, type Measured } from "@/lib/measure/measured";
+import type { Acceptance, Opportunity } from "@/lib/opportunities/types";
+import { REGISTER_FLOOR } from "../rules/figures";
 import type { DraftPromptInputs } from "../voice/inputs";
+import type { AnswerabilityOps } from "./answerability";
+import { SECTION_TASK, type SectionRole } from "./skeletons";
 
 /** §8's five steps, closed. `claim_check` is the fifth and is run by
  *  `claims/check.ts`; it is a member here because a caller reporting "which
@@ -42,17 +47,24 @@ export const STEP_CALL_SITES: Readonly<Record<Exclude<PipelineStep, "claim_check
     page_fix: "generate.page_fix",
   });
 
+/** `factIndexes` is how the brief chooses facts: by position in the list it
+ *  was handed. It has no field through which to write one (issue 475). */
 const BRIEF_SCHEMA = z.strictObject({
   readerQuestion: z.string(),
   angle: z.string(),
   mustCover: z.array(z.string()),
+  factIndexes: z.array(z.number().int()),
 });
 export type Brief = z.infer<typeof BRIEF_SCHEMA>;
 
-const OUTLINE_SCHEMA = z.strictObject({
-  sections: z.array(z.strictObject({ heading: z.string(), covers: z.string() })).min(1),
-});
-export type Outline = z.infer<typeof OUTLINE_SCHEMA>;
+/** The model writes one heading per skeleton section and nothing else. */
+const OUTLINE_SCHEMA = z.strictObject({ headings: z.array(z.string()) });
+
+/** The outline as the draft reads it: the skeleton's sections, in the
+ *  skeleton's order, each with the heading the model wrote for it. */
+export interface Outline {
+  sections: readonly { role: SectionRole; heading: string }[];
+}
 
 const DRAFT_SCHEMA = z.strictObject({
   title: z.string(),
@@ -62,11 +74,76 @@ const DRAFT_SCHEMA = z.strictObject({
 });
 export type DraftBody = z.infer<typeof DRAFT_SCHEMA>;
 
-/** The answerability + SEO pass returns the same shape the draft step does:
- *  it rewrites a page, it does not annotate one. A pass that returned notes
- *  would need a second writer to apply them, and that writer would be a
- *  place for an unchecked instruction to enter. */
-const ANSWERABILITY_SCHEMA = DRAFT_SCHEMA;
+/** The answerability + SEO pass returns operations, never a page: code
+ *  applies the ones inside SPEC §7's bound (`./answerability.ts`). */
+const ANSWERABILITY_SCHEMA = z.strictObject({
+  title: z.string(),
+  description: z.string(),
+  order: z.array(z.number().int()),
+  firstBlock: z.string(),
+  insertFacts: z.array(z.strictObject({ section: z.number().int(), fact: z.number().int() })),
+});
+
+/**
+ * Everything the brief step is handed, and nothing else (issue 475): the
+ * cluster, the type, the target and the searches it absorbed, the customer's
+ * own passages to choose among, their do-not-claim list, their voice, and the
+ * acceptance test the page is written to pass. No business name, domain or
+ * evidence blob reaches the brief.
+ */
+export interface BriefProjection {
+  cluster: string | null;
+  type: Opportunity["type"];
+  target: string;
+  absorbedQueries: readonly string[];
+  facts: readonly string[];
+  doNotClaim: readonly string[];
+  voice: string | null;
+  acceptance: string;
+}
+
+/** The acceptance test as one line the model can aim at. Model-facing only. */
+function acceptanceText(acceptance: Acceptance): string {
+  switch (acceptance.form) {
+    case "top20":
+      return `ranks in the top 20 for "${acceptance.query}"`;
+    case "named_on":
+      return `is named in the AI answer to "${acceptance.question}"`;
+    case "gate_cleared":
+      return `the ${acceptance.gate} access gate passes`;
+    case "issues_cleared":
+      return `${acceptance.issues.join(", ")} pass for ${acceptance.pageUrl}`;
+  }
+}
+
+export function briefProjection(a: {
+  opportunity: Opportunity;
+  facts: readonly string[];
+  doNotClaim: readonly string[];
+  voice: string | null;
+}): BriefProjection {
+  const o = a.opportunity;
+  return {
+    cluster: o.clusterKey,
+    type: o.type,
+    target: o.targetQuery ?? o.targetRef,
+    absorbedQueries: o.absorbedQueries,
+    facts: a.facts,
+    doNotClaim: a.doNotClaim,
+    voice: a.voice,
+    acceptance: acceptanceText(o.acceptance),
+  };
+}
+
+/** The indexes a brief chose that name a fact it was handed, once each, in
+ *  the order chosen. Anything else the model returned is dropped. */
+export function selectedFactIndexes(brief: Brief, factCount: number): number[] {
+  const out: number[] = [];
+  for (const index of brief.factIndexes) {
+    if (index >= 0 && index < factCount && !out.includes(index)) out.push(index);
+  }
+  return out;
+}
 
 /** The one shape a prompt takes: the closed struct, plus this step's own
  *  task text and its own upstream artifacts. The struct is spread at the
@@ -102,13 +179,18 @@ function promptFor(
  *  respected if asked. */
 const HOUSE_RULES = [
   "Answer the reader's question before naming the business; its name and domain must not appear in the first 300 characters.",
-  "State the grounded passage as the page's one fact about the business, and link its source url.",
+  "State only the facts supplied about the business, each word for word and linked to its source url.",
   "Never invent a byline, an author biography, a persona, a quotation, a testimonial or a review.",
   "Never state a figure about a competitor without linking the public page it was read from.",
   "Never state a ranking position, a search volume or a visibility count.",
   "Write for a human reader only: never address an assistant, a crawler or a ranking system.",
   "Use Markdown only: headings, paragraphs, lists, links, emphasis. No raw HTML and no comments.",
   "Link each page in `links` once, with its url exactly as given, where the text speaks to it; link no other page on the business's domain except the grounded source.",
+  "Never say the page's claims were tested, trialled or benchmarked.",
+  "Never write a byline, a publication or update date, or a case study.",
+  "Use the outline's headings exactly; add no other heading written as a question.",
+  `Write no number of ${REGISTER_FLOOR} or more that the facts or the target search do not contain, unless it is linked to its source.`,
+  `Open the page with a paragraph of ${ANSWER_FIRST_BLOCK_CHARS.min} to ${ANSWER_FIRST_BLOCK_CHARS.max} characters that answers the target search.`,
 ];
 
 async function step<T>(
@@ -121,68 +203,87 @@ async function step<T>(
   return llm(c, { site: a.site, tier: a.tier, schema: a.schema, input: a.input });
 }
 
-export function brief(c: CostContext, inputs: DraftPromptInputs): Promise<Measured<Brief>> {
+export function brief(c: CostContext, projection: BriefProjection): Promise<Measured<Brief>> {
   return step(c, {
     site: STEP_CALL_SITES.brief,
     tier: "nano",
     schema: BRIEF_SCHEMA,
-    input: promptFor(
-      "Write the brief for one page answering the opportunity's target query: " +
-        "the question a reader arrives with, the angle that answers it, and the " +
-        "points the page must cover.",
-      inputs
-    ),
+    input: {
+      task:
+        "Write the brief for one page answering the target search: the question a " +
+        "reader arrives with, the angle that answers it, and the points the page must " +
+        "cover. Choose the facts the page will state by their index in `facts`; you " +
+        "cannot write a fact of your own.",
+      ...projection,
+    },
   });
 }
 
-export function outline(
+export async function outline(
   c: CostContext,
   inputs: DraftPromptInputs,
-  a: { brief: Brief }
+  a: { brief: Brief; skeleton: readonly SectionRole[] }
 ): Promise<Measured<Outline>> {
-  return step(c, {
+  const written = await step(c, {
     site: STEP_CALL_SITES.outline,
     tier: "nano",
     schema: OUTLINE_SCHEMA,
-    input: promptFor("Turn the brief into an outline: one section per point, in reading order.", inputs, {
-      brief: a.brief,
-    }),
+    input: promptFor(
+      "Write one heading for each section, in the order given. Do not add, drop or reorder sections.",
+      inputs,
+      { brief: a.brief, sections: a.skeleton.map((role) => ({ role, task: SECTION_TASK[role] })) }
+    ),
   });
+  if (written.kind === "unmeasured") return written;
+  // A heading list that does not fit the skeleton is not an outline of it.
+  if (written.value.headings.length !== a.skeleton.length) return unmeasured("undeterminable", written.at);
+  return {
+    ...written,
+    value: { sections: a.skeleton.map((role, index) => ({ role, heading: written.value.headings[index]! })) },
+  };
 }
 
 export function draft(
   c: CostContext,
   inputs: DraftPromptInputs,
-  a: { brief: Brief; outline: Outline }
+  a: { brief: Brief; outline: Outline; facts: readonly { url: string; passage: string }[] }
 ): Promise<Measured<DraftBody>> {
   return step(c, {
     site: STEP_CALL_SITES.draft,
     tier: "haiku",
     schema: DRAFT_SCHEMA,
-    input: promptFor("Write the page from the outline, grounded in the passage supplied.", inputs, {
-      brief: a.brief,
-      outline: a.outline,
-      rules: HOUSE_RULES,
-    }),
+    input: promptFor(
+      "Write the page from the outline: each section under its heading, exactly as given, " +
+        "doing what its task says. State only the facts supplied, word for word.",
+      inputs,
+      {
+        brief: a.brief,
+        outline: a.outline.sections.map((section) => ({ ...section, task: SECTION_TASK[section.role] })),
+        facts: a.facts,
+        rules: HOUSE_RULES,
+      }
+    ),
   });
 }
 
 export function answerability(
   c: CostContext,
   inputs: DraftPromptInputs,
-  a: { body: DraftBody }
-): Promise<Measured<DraftBody>> {
+  a: { body: DraftBody; facts: readonly string[] }
+): Promise<Measured<AnswerabilityOps>> {
   return step(c, {
     site: STEP_CALL_SITES.answerability,
     tier: "haiku",
     schema: ANSWERABILITY_SCHEMA,
     input: promptFor(
-      "Rewrite the page so an answer engine can lift its answer whole: the " +
-        "reader's question answered in the opening lines, one idea per heading, " +
-        "and a title and description that name the question. Change nothing the " +
-        "rules forbid and keep the grounded passage word for word.",
+      "Make the page easier for an answer engine to lift, using only these operations: " +
+        "`order` reorders the page's heading sections (a permutation of their indexes); " +
+        `\`firstBlock\` shortens the first section's opening paragraph to ${ANSWER_FIRST_BLOCK_CHARS.min}–${ANSWER_FIRST_BLOCK_CHARS.max} characters ` +
+        "where its heading is a question (\"\" for none); `insertFacts` adds a fact from " +
+        "`facts`, by index, to a section. Also write a title and description that name the " +
+        "question. You cannot add a heading or any other text.",
       inputs,
-      { body: a.body, rules: HOUSE_RULES }
+      { body: a.body, facts: a.facts, rules: HOUSE_RULES }
     ),
   });
 }

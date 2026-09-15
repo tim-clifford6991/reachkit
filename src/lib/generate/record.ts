@@ -18,17 +18,17 @@
 // showed both.
 //
 // **A pass is read out of the failure list, never deduced from the state.**
-// `runHardRules` decides all nine deterministic rules on every run and
+// `runHardRules` decides all fourteen deterministic rules on every run and
 // returns every failure, so "this rule is not in the list" is the same
 // statement `passed: true` makes — not an inference about a run this
 // module never saw. What separates a recorded pass from an assumed one is
 // the difference between `null` and `[]`: a row no battery has written is
 // `null` and passes nothing, and a row a battery passed carries the empty
-// list. `rules/index.ts` spells the nine arms as a total record, so a rule
+// list. `rules/index.ts` spells the fourteen arms as a total record, so a rule
 // that stopped being decided is a compile error rather than a pass this
 // reader would hand out for free.
 //
-// **The tenth rule is not in that record, and must not be.** The
+// **The do-not-claim rule is not in that record, and must not be.** The
 // do-not-claim check has its own column because it is re-run after
 // generation — the customer edits their list, the sweep re-checks, and the
 // verdict that matters is the current one. Reading it out of a battery
@@ -107,8 +107,8 @@ export function checkedAgainstNothing(verdict: ClaimVerdict): boolean {
 
 // ── Hard rules 1–3, 5–7: the battery's own record ───────────────────────
 
-/** The nine rules `runHardRules` decides on every run. `do_not_claim` is
- *  the tenth and is recorded in `drafts.claim_check` instead — it is the
+/** The fourteen rules `runHardRules` decides on every run. `do_not_claim` is
+ *  the fifteenth and is recorded in `drafts.claim_check` instead — it is the
  *  one rule that is re-run after generation. */
 export const RECORDED_RULES: readonly HardRule[] = Object.freeze(
   HARD_RULES.filter((rule) => rule !== "do_not_claim")

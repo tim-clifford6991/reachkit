@@ -276,8 +276,10 @@ const BRIEF = {
   readerQuestion: "Which tool should a small team pick?",
   angle: "count the seats first",
   mustCover: ["seats", "what the plan includes"],
+  factIndexes: [0],
 };
-const OUTLINE = { sections: [{ heading: "Which tool should a small team pick?", covers: "seats" }] };
+/** The answerability pass's operations: none, so the page stands as drafted. */
+const NO_OPS = { title: "", description: "", order: [0], firstBlock: "", insertFacts: [] };
 
 /** A page that passes every one of §8's deterministic rules: the brand is
  *  not named in the opening, the grounded passage is stated word for word
@@ -309,13 +311,19 @@ vi.mock("@anthropic-ai/sdk", () => {
     messages = {
       create: async (request: { messages: { content: string }[] }) => {
         const input = request.messages[0]?.content ?? "";
-        const asked = JSON.parse(input) as { task: string };
+        const asked = JSON.parse(input) as { task: string; sections?: unknown[] };
         modelCalls.push({ task: asked.task, tokens: input.length });
+        // One heading per skeleton section; the first is the page's own.
+        const outline = {
+          headings: (asked.sections ?? []).map((_s, i) => (i === 0 ? PAGE_BODY.title : `Section ${i + 1}`)),
+        };
         const answer = asked.task.startsWith("Write the brief")
           ? BRIEF
-          : asked.task.startsWith("Turn the brief")
-            ? OUTLINE
-            : PAGE_BODY;
+          : asked.task.startsWith("Write one heading")
+            ? outline
+            : asked.task.startsWith("Make the page")
+              ? NO_OPS
+              : PAGE_BODY;
         return {
           content: [{ type: "text", text: JSON.stringify(answer) }],
           usage: { input_tokens: 800, output_tokens: 400 },

@@ -38,8 +38,11 @@ let rejectionCause: typeof import("../../../src/lib/generate/pipeline/rejection"
 let setGenerateStore: typeof import("../../../src/lib/generate/store").setGenerateStore;
 let store: MemoryStore;
 
-const BRIEF = { readerQuestion: "Which tool?", angle: "count the seats", mustCover: ["seats"] };
-const OUTLINE = { sections: [{ heading: "Seats", covers: "how many you need" }] };
+const BRIEF = { readerQuestion: "Which tool?", angle: "count the seats", mustCover: ["seats"], factIndexes: [0] };
+/** One heading per section of `answer_page`'s skeleton. */
+const OUTLINE = { headings: ["Which tool should a small team pick?", "What decides it", "What the plan includes"] };
+/** An answerability pass that changes nothing. */
+const NO_OPS = { title: "", description: "", order: [0], firstBlock: "", insertFacts: [] };
 
 function body(markdown: string) {
   return {
@@ -60,7 +63,7 @@ function primeSteps(markdown: string, claim: unknown = { matches: false, matched
   llmMock.mockResolvedValueOnce(measured(BRIEF));
   llmMock.mockResolvedValueOnce(measured(OUTLINE));
   llmMock.mockResolvedValueOnce(measured(body(markdown)));
-  llmMock.mockResolvedValueOnce(measured(body(markdown)));
+  llmMock.mockResolvedValueOnce(measured(NO_OPS));
   llmMock.mockResolvedValue(measured(claim));
 }
 
@@ -210,7 +213,7 @@ describe("a step that did not run is not a rule that failed", () => {
     llmMock.mockResolvedValueOnce(measured(BRIEF));
     llmMock.mockResolvedValueOnce(measured(OUTLINE));
     llmMock.mockResolvedValueOnce(measured(body(CLEAN_MARKDOWN)));
-    llmMock.mockResolvedValueOnce(measured(body(CLEAN_MARKDOWN)));
+    llmMock.mockResolvedValueOnce(measured(NO_OPS));
     llmMock.mockResolvedValue({ kind: "unmeasured", reason: "undeterminable", at: AT });
     const outcome = await run({ site: siteInputs({ doNotClaim: ["HIPAA compliant"] }) });
     expect(outcome).toMatchObject({ reason: "step_failed", step: "claim_check" });
@@ -233,6 +236,25 @@ describe("grounding has no fallback", () => {
       { rule: "grounding" },
     ]);
     expect(llmMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("the brief chooses facts and can write none (issue 475)", () => {
+  it("a brief that picks no fact it was handed stops before the outline, with only its own call spent", async () => {
+    llmMock.mockReset();
+    llmMock.mockResolvedValueOnce(measured({ ...BRIEF, factIndexes: [7, -1] }));
+    const outcome = await run();
+    expect(outcome.ok === false && outcome.reason === "rules" && outcome.failed).toEqual([{ rule: "grounding" }]);
+    expect(llmMock).toHaveBeenCalledTimes(1);
+    expect(store.rows.size).toBe(0);
+  });
+
+  it("the answerability pass cannot add a question heading: a draft that has one the outline did not is stopped", async () => {
+    primeSteps(`${CLEAN_MARKDOWN}\n\n## Is it worth the money?\n\nThat depends on the seats.`);
+    const outcome = await run();
+    expect(outcome.ok === false && outcome.reason === "rules" && outcome.failed.map((f) => f.rule)).toContain(
+      "no_new_question_heading"
+    );
   });
 });
 
