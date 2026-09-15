@@ -29,9 +29,10 @@
 // all, so reaching here without one means the session ended between the
 // render and the press.
 //
-// **Sign-out needs no account of its own**: `signOut()` deletes *this
-// browser's* cookie and touches no other device, so there is no id to
-// resolve and nothing to refuse. It lands where the refusal lands all the
+// **Sign-out needs no account of its own**: `signOut()` ends every session
+// of whoever this browser is signed in as (SPEC §3, "Sign-out is global")
+// and deletes this browser's cookie, so there is no id to resolve and
+// nothing to refuse. It lands where the refusal lands all the
 // same — one press, one destination, whether the session was there to end or
 // had already gone.
 //
@@ -78,8 +79,8 @@ async function identity(): Promise<typeof import("@/lib/account/identity")> {
  * a client-side route change would leave the deleted cookie unnoticed by
  * every already-rendered piece of the app.
  *
- * No global sign-out, and none is invented: other devices keep their
- * sessions, which is `signOut()`'s own promise and BP-061's note on it.
+ * Global: every device the account is signed in on is signed out too
+ * (SPEC §3, issue 718).
  */
 export async function signOutAction(): Promise<ActionOutcome> {
   const { signOut } = await identity();

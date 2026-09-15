@@ -134,7 +134,7 @@ describe('REQ-077 c5 — "that session ends and returning requires a fresh sign-
     expect(await currentSession()).toBeNull();
   });
 
-  it("a second device's session is unaffected — no global sign-out is invented", async () => {
+  it("a second device's session ends too — sign-out is global (SPEC §3)", async () => {
     const user = account();
     // The phone's session, kept aside: this suite's jar is one browser's,
     // so the second device is modelled as the value that browser holds.
@@ -144,8 +144,19 @@ describe('REQ-077 c5 — "that session ends and returning requires a fresh sign-
     await signOut();
 
     jar.set(FAKE_AUTH_COOKIE, phone);
-    expect(await currentSession()).toEqual({ userId: user.id, siteId: state.sites[0]?.id });
-    expect(auth.signOuts).toEqual([]);
+    expect(await currentSession()).toBeNull();
+  });
+
+  it("another account's session is untouched", async () => {
+    const user = account();
+    const other = account({ email: "other@acme.example" });
+    const [, theirs] = signedInCookie(auth, other.id).split("=") as [string, string];
+
+    signIn(user.id);
+    await signOut();
+
+    jar.set(FAKE_AUTH_COOKIE, theirs);
+    expect((await currentSession())?.userId).toBe(other.id);
   });
 });
 

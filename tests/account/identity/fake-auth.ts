@@ -180,8 +180,11 @@ export function fakeIdentityAuth(state: FakeAuthState): IdentityAuth {
     },
 
     async endSession(io) {
+      // `scope: "global"`: every session the signed-in user holds.
       const session = sessionFrom(state, io);
-      if (session !== null) session.revoked = true;
+      if (session !== null) {
+        for (const s of state.sessions) if (s.userId === session.userId) s.revoked = true;
+      }
       io.setAll([{ name: FAKE_AUTH_COOKIE, value: "", options: { path: "/", maxAge: 0 } }]);
     },
 

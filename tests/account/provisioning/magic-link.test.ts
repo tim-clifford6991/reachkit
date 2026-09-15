@@ -1,7 +1,7 @@
 // tests/account/provisioning/magic-link.test.ts — BUILD §13, issue #33
 //
-// Three answers to one request, each in its own written line, and never an
-// access check.
+// One answer to every request, whatever the address (SPEC §3, issue 718),
+// and never an access check.
 //
 // The seam issue #19 declared has a body now. The case that discriminates
 // hardest is the lapsed customer: REQ-020 criterion 4 rules them *out* of
@@ -73,7 +73,7 @@ afterEach(() => registerSignInLinkIssuer(null));
 describe('REQ-024 c4 — "when they ask for a new sign-in link using the address they paid with, then they are returned to where they left off … never to a dead end or a second checkout"', () => {
   it("an address with an account is sent a link", async () => {
     await openAccount("founder@acme.example");
-    await expect(requestMagicLink("founder@acme.example")).resolves.toEqual({ sent: true });
+    await expect(requestMagicLink("founder@acme.example")).resolves.toEqual({ answered: true });
     expect(links).toBe(1);
     expect(sendCalls[0]).toMatchObject({ kind: "magic-link", to: "founder@acme.example" });
   });
@@ -85,53 +85,37 @@ describe('REQ-024 c4 — "when they ask for a new sign-in link using the address
 
   it("an address in a different case resolves to the same account", async () => {
     await openAccount("founder@acme.example");
-    await expect(requestMagicLink("  FOUNDER@Acme.Example  ")).resolves.toEqual({ sent: true });
+    await expect(requestMagicLink("  FOUNDER@Acme.Example  ")).resolves.toEqual({ answered: true });
     expect(links).toBe(1);
   });
 });
 
-describe('REQ-020 c4 — the two answers that send no link, each its own written line', () => {
-  it("a held completed payment answers payment_held_account_opening and sends no link", async () => {
-    vendor.listed = [{ id: "cs_held" }];
-    const answer = await requestMagicLink("waiting@acme.example");
-    expect(answer).toEqual({
-      sent: false,
-      answer: "payment_held_account_opening",
-      lineKey: "signin.payment_held",
-    });
-    expect(links).toBe(0);
-    expect(sendCalls).toEqual([]);
-  });
-
-  it("an unknown address answers no_account and sends no link", async () => {
-    vendor.listed = [];
-    const answer = await requestMagicLink("stranger@nowhere.example");
-    expect(answer).toEqual({ sent: false, answer: "no_account", lineKey: "signin.no_account" });
-    expect(links).toBe(0);
-    expect(sendCalls).toEqual([]);
-  });
-
-  it("the two carry different line keys — one written line each", async () => {
-    vendor.listed = [{ id: "cs_held" }];
-    const held = await requestMagicLink("waiting@acme.example");
-    vendor.listed = [];
+describe('SPEC §3 — "Sign-in copy is identical whatever the address, revealing nothing about who has an account" (issue 718)', () => {
+  it("an unknown address is sent nothing, and answered exactly as an account is", async () => {
+    await openAccount("founder@acme.example");
+    const known = await requestMagicLink("founder@acme.example");
     const unknown = await requestMagicLink("stranger@nowhere.example");
-    // An implementation that collapsed them into one line fails here.
-    expect(held).not.toEqual(unknown);
-    expect((held as { lineKey: string }).lineKey).not.toBe((unknown as { lineKey: string }).lineKey);
+    expect(unknown).toEqual(known);
+    expect(links).toBe(1);
+    expect(sendCalls).toHaveLength(1);
   });
 
-  it("a vendor it cannot ask answers no_account, never a payment it cannot see", async () => {
-    vendor.listError = new Error("vendor is down");
-    const answer = await requestMagicLink("waiting@acme.example");
-    expect(answer).toMatchObject({ answer: "no_account" });
+  it("a completed payment with no account yet is answered the same, and sends nothing from here", async () => {
+    vendor.listed = [{ id: "cs_held" }];
+    await expect(requestMagicLink("waiting@acme.example")).resolves.toEqual({ answered: true });
+    expect(links).toBe(0);
+    expect(sendCalls).toEqual([]);
+  });
+
+  it("asks the vendor nothing — no lookup whose presence or latency depends on the address", () => {
+    expect(SOURCE).not.toMatch(/stripe|heldPayment/i);
   });
 });
 
 describe('REQ-076 c5 / REQ-020 c4 — a lapsed customer is still sent a link and can still sign in', () => {
   it("an account whose plan lapsed is sent a link", async () => {
     await openAccount("lapsed@acme.example");
-    await expect(requestMagicLink("lapsed@acme.example")).resolves.toEqual({ sent: true });
+    await expect(requestMagicLink("lapsed@acme.example")).resolves.toEqual({ answered: true });
     expect(links).toBe(1);
   });
 
@@ -146,20 +130,5 @@ describe('REQ-076 c5 / REQ-020 c4 — a lapsed customer is still sent a link and
 describe('REQ-020 c5 — nothing is said about any address until one is given', () => {
   it("the function takes exactly one argument, and it is the address", () => {
     expect(requestMagicLink.length).toBe(1);
-  });
-
-  it("no branch returns a session or anything outside the three-arm union", async () => {
-    await openAccount("founder@acme.example");
-    vendor.listed = [{ id: "cs_held" }];
-    const answers = [
-      await requestMagicLink("founder@acme.example"),
-      await requestMagicLink("waiting@acme.example"),
-    ];
-    vendor.listed = [];
-    answers.push(await requestMagicLink("stranger@nowhere.example"));
-    for (const answer of answers) {
-      const keys = Object.keys(answer).sort();
-      expect(keys).toEqual(answer.sent ? ["sent"] : ["answer", "lineKey", "sent"]);
-    }
   });
 });
