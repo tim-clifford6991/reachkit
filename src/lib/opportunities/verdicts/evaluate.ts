@@ -19,8 +19,9 @@
 // observe is a value it must not name. The negative sweep in
 // `evaluate.test.ts` is what holds that line — a positive-only suite is
 // green either way.
-import type { Measured } from "@/lib/measure/measured";
-import type { Acceptance } from "../types";
+import { measured, type Measured } from "@/lib/measure/measured";
+import type { SiteIssuesSection } from "@/lib/site-issues/types";
+import type { Acceptance, PageFix } from "../types";
 import type { NotJudgeableCause, WeekMeasurements } from "./types";
 
 /**
@@ -68,6 +69,27 @@ function retired(cause: NotJudgeableCause): Evaluation {
 }
 
 /**
+ * Whether every named check passes for one page this week. Decided only
+ * where the week checked that page and every named check ran with its
+ * addresses recorded; anything less is this week's miss, never a pass.
+ */
+export function pageFixesCleared(
+  section: SiteIssuesSection | null,
+  issues: readonly PageFix[],
+  pageUrl: string,
+  at: Date
+): Measured<boolean> | null {
+  if (section === null || section.checkedPages === null) return null;
+  if (!section.checkedPages.includes(pageUrl)) return null;
+  for (const check of issues) {
+    const issue = section.issues.find((i) => i.check === check);
+    if (issue === undefined || !issue.ran || issue.pages === null) return null;
+    if (issue.pages.includes(pageUrl)) return measured(false, at);
+  }
+  return measured(true, at);
+}
+
+/**
  * Pure. Can this recorded test be decided from what this week measured?
  *
  * The three forms are §7's own — "top 20 for Q" / "named on question P" /
@@ -105,6 +127,18 @@ export function evaluateAcceptance(a: {
       // `not_measured` — never one of the five causes, and this branch
       // names none.
       if (cleared === undefined) return NOT_MEASURED;
+      return decide(cleared, (m) => m.value);
+    }
+    case "issues_cleared": {
+      // A page the week did not check, or a check that did not run, is this
+      // week's miss — never a cause: the checks are a closed set.
+      const cleared = pageFixesCleared(
+        a.week.siteIssues,
+        a.acceptance.issues,
+        a.acceptance.pageUrl,
+        a.week.measuredAt
+      );
+      if (cleared === null) return NOT_MEASURED;
       return decide(cleared, (m) => m.value);
     }
   }

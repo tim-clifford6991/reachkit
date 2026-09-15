@@ -15,11 +15,12 @@
 //     there is none: supply is the cap, and the calendar is never padded;
 //   * the pipeline runs, and ADR-070's one automatic regeneration is
 //     performed here — once, and never for a draft that has entered review.
-import { nextForDay } from "@/lib/opportunities";
+import { assessFixPages, nextForDay } from "@/lib/opportunities";
 import { withDraftCost } from "./cost";
 import { recoveryOutcome } from "./claims/recovery";
 import type { SiteRuleInputs } from "./rules/types";
 import { generateDraft, type GenerateOutcome } from "./pipeline";
+import { generatePageFix } from "./pipeline/page-fix";
 import { generateStore } from "./store";
 
 export type { GroundedFact, HardRule, RuleFailure, ComparisonSet, SiteRuleInputs } from "./rules/types";
@@ -73,8 +74,42 @@ export async function generateDayPage(a: {
   const report = await store.latestReport(a.siteId);
   if (report === null) return { ok: false, because: "no_scan" };
 
+  // SPEC §9 (#690): the freshest scan retires the fixes it shows cleared,
+  // and the rest have their readiness read against today's destination —
+  // before the day is picked, so a fix the destination can no longer make
+  // is not the page chosen.
+  await assessFixPages(a.siteId, { report });
+
   const opportunity = await nextForDay(a.siteId);
   if (opportunity === null) return { ok: false, because: "no_opportunity" };
+
+  // A fix is a metadata-only update: one call, no regeneration loop — the
+  // only rule it can fail is the customer's own do-not-claim list, which a
+  // second attempt at the same page would read the same way.
+  if (opportunity.type === "fix_page") {
+    const pageUrl = opportunity.targetRef;
+    const { readSiteProfile } = await import("@/lib/site-profile/store");
+    const profile = await readSiteProfile(site.domain);
+    const otherTitles = (profile?.inventory ?? [])
+      .filter((row) => row.url !== pageUrl && row.title !== "")
+      .map((row) => row.title);
+    return withDraftCost({ scanId: report.scanId }, async (cost) => {
+      const fixed = await generatePageFix(cost, {
+        siteId: a.siteId,
+        opportunity,
+        scheduledFor: a.publishDate,
+        domain: site.domain,
+        doNotClaim: site.doNotClaim,
+        voiceText: site.voiceText,
+        otherTitles,
+      });
+      if (fixed.ok) return { ok: true, draftId: fixed.draftId };
+      if (fixed.reason === "step_failed") {
+        return { ok: false, because: "step_failed", draftId: fixed.draftId, step: fixed.step };
+      }
+      return { ok: false, because: "rules", draftId: fixed.draftId, attempts: fixed.attempt };
+    });
+  }
 
   // The one name the product holds for the business is the brand the
   // profile measured off their own home page — what the site calls itself.

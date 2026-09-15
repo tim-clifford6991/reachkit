@@ -47,11 +47,11 @@ export function intentTerm(query: string, profile: Profile): number {
   return intentWeight(query, profile) / INTENT_WEIGHT_MAX;
 }
 
-/** `unblock` has no effort weight and is never ranked; `effortTerm` is
- *  total over the seven that are, and returns `null` for the eighth so a
- *  caller cannot accidentally score one. */
+/** The Fix family has no effort weight and is never scored: `unblock` is
+ *  never ranked, and a `fix_page` is placed by `rank/open.ts`'s rule rather
+ *  than by a score. `null` for both, so a caller cannot score one. */
 export function effortTerm(type: OpportunityType): number | null {
-  if (type === "unblock") return null;
+  if (type === "unblock" || type === "fix_page") return null;
   return EFFORT_BY_TYPE[type];
 }
 

@@ -65,6 +65,11 @@ export type SiteIssue =
       /** For the two missing/duplicate checks: how the count splits. A page
        *  is counted once even when it is both. */
       parts?: { missing: number; duplicate: number };
+      /** The affected pages' addresses, for a count of pages; `null` for a
+       *  count of links, declarations or readers, and on a report written
+       *  before addresses were recorded (version ≤ 7). A Fix opportunity is
+       *  derived per page from this list and from nothing else. */
+      pages: readonly string[] | null;
     }
   | { check: SiteCheck; ran: false; because: CouldNotRun };
 
@@ -72,6 +77,10 @@ export type SiteIssue =
  *  order, and how many pages the crawl read. */
 export interface SiteIssuesSection {
   pagesChecked: number;
+  /** The addresses of the pages checked, in crawl order — the set a page's
+   *  absence from `pages` means anything about. `null` on a report written
+   *  before they were recorded (version ≤ 7). */
+  checkedPages: readonly string[] | null;
   /** Why the crawl ended — so "100 pages" reads as a cap, not a whole site. */
   stoppedBy: "complete" | "page_cap" | "time_budget" | "not_run";
   issues: readonly SiteIssue[];

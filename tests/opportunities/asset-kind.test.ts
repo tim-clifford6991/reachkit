@@ -23,10 +23,12 @@ describe("the day's asset kind", () => {
     write.forEach((type) => expect(assetKindOf(type)).toBe("page"));
   });
 
-  it("is no asset at all for a Fix, which changes a page's headers", () => {
-    const fix = OPPORTUNITY_TYPES.filter((type) => FAMILY_OF[type] === "fix");
-    expect(fix.length).toBeGreaterThan(0);
-    fix.forEach((type) => expect(assetKindOf(type)).toBeNull());
+  it("is no asset at all for an unblock, which changes a page's headers", () => {
+    expect(assetKindOf("unblock")).toBeNull();
+  });
+
+  it("is an update for a page fix — that page's own metadata (SPEC §9, #690)", () => {
+    expect(assetKindOf("fix_page")).toBe("update");
   });
 
   it("is a new page for Earn — a citable asset on the customer's domain", () => {

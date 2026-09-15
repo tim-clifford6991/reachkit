@@ -139,9 +139,15 @@ const ran = (check: SiteIssue["check"], count: number, over: Partial<SiteIssue> 
     unit: "pages",
     severity: count === 0 ? "nothing_to_fix" : "worth_fixing",
     doer: "free_fix",
+    pages: null,
     ...over,
   }) as SiteIssue;
-const section = (issues: SiteIssue[]): SiteIssuesSection => ({ pagesChecked: 40, stoppedBy: "complete", issues });
+const section = (issues: SiteIssue[]): SiteIssuesSection => ({
+  pagesChecked: 40,
+  checkedPages: null,
+  stoppedBy: "complete",
+  issues,
+});
 const MONDAY = { measuredAt: AT, reportHref: "/scan/example.com" };
 
 describe("technical issues in Needs you", () => {

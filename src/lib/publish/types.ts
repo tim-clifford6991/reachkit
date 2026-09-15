@@ -344,6 +344,11 @@ export interface RenderedPage {
    *  the URL the opportunity recorded. Absent on a new post or page. An
    *  adapter that sees it changes that address and never mints a second. */
   updateOf?: string;
+  /** SPEC §9 (#690): an update that changes only a page's metadata — its
+   *  title where `title` is set, its SEO description where `description`
+   *  is — and leaves its content exactly as it is. Present only beside
+   *  `updateOf`. An adapter with no way to change metadata alone refuses it. */
+  metadataOnly?: { title: string | null; description: string | null };
 }
 
 /** The `publications` row (§10, plus this issue's own columns). */

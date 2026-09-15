@@ -30,6 +30,7 @@ const MIGRATIONS = path.join(REPO_ROOT, "supabase/migrations");
 const CORE = "20260906090000_opportunities_core.sql";
 const SUPPLY = "20260906090100_opportunities_supply.sql";
 const READINESS = "20260912120000_opportunities_readiness.sql";
+const FIX_PAGE = "20260914130000_opportunities_fix_page.sql";
 const BASELINE_MIGRATION = path.join(MIGRATIONS, "00000000000001_baseline.sql");
 
 /** One tuple-only row per line, `|`-separated columns — easy to split. */
@@ -61,6 +62,7 @@ beforeAll(() => {
   psql(["-v", "ON_ERROR_STOP=1", "-f", path.join(MIGRATIONS, CORE)]);
   psql(["-v", "ON_ERROR_STOP=1", "-f", path.join(MIGRATIONS, SUPPLY)]);
   psql(["-v", "ON_ERROR_STOP=1", "-f", path.join(MIGRATIONS, READINESS)]);
+  psql(["-v", "ON_ERROR_STOP=1", "-f", path.join(MIGRATIONS, FIX_PAGE)]);
   const [user] = psqlRows(
     `insert into users (email, plan_status) values ('opps@example.com', 'active') returning id;`
   );
@@ -153,11 +155,12 @@ describe("ARCHITECTURE rule 6: migrations are topic-prefixed and topic-owned", (
     expect(topicOf(CORE)).toEqual({ token: "opportunities_core", owner: "BP-040" });
     expect(topicOf(SUPPLY)).toEqual({ token: "opportunities_supply", owner: "BP-041" });
     expect(topicOf(READINESS)).toEqual({ token: "opportunities", owner: "BP-013" });
+    expect(topicOf(FIX_PAGE)).toEqual({ token: "opportunities", owner: "BP-013" });
   });
 });
 
 describe("§7 and SPEC §0: the nine kinds and the four families are closed in the schema", () => {
-  it("every type in the enum is admitted, and a ninth is refused", () => {
+  it("every type in the enum is admitted, and an unknown type is refused", () => {
     for (const type of OPPORTUNITY_TYPES) {
       expect(refuses(familyRow(type)), `${type} was refused`).toBe(false);
     }

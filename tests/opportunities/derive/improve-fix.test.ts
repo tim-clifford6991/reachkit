@@ -197,7 +197,7 @@ describe('§7: `unblock` is "instruction only, never generated, never automated"
     );
     const { candidates } = fixCandidates({ siteId: SITE_ID, scanId: SCAN_ID, report });
     const evidence = candidates[0]!.evidence;
-    if (evidence.family !== "fix") throw new Error("unreachable");
+    if (evidence.family !== "fix" || !("barrier" in evidence)) throw new Error("unreachable");
     expect(evidence.barrier).toBe("blocked_ai_agent");
   });
 
@@ -211,7 +211,7 @@ describe('§7: `unblock` is "instruction only, never generated, never automated"
     );
     const { candidates } = fixCandidates({ siteId: SITE_ID, scanId: SCAN_ID, report });
     const evidence = candidates[0]!.evidence;
-    if (evidence.family !== "fix") throw new Error("unreachable");
+    if (evidence.family !== "fix" || !("barrier" in evidence)) throw new Error("unreachable");
     expect(evidence.barrier).toBe("noindex");
     expect(evidence.foundOnUrl).toBe(ON_PAGE.url);
   });

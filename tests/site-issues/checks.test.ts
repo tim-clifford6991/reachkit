@@ -86,6 +86,8 @@ describe("the nine checks, over the crawled set", () => {
     ];
     const titles = ran(issue(checkSite({ crawl: crawl(pages), robots: ROBOTS, blockedAgents: [] }), "page_titles"));
     expect(titles).toMatchObject({ count: 3, over: 12, unit: "pages", parts: { missing: 1, duplicate: 2 } });
+    // The pages themselves, so a Fix opportunity can name each (#690).
+    expect(titles.pages).toEqual(["https://example.com/p1", "https://example.com/p2", "https://example.com/p3"]);
     // 3 of 12 is 25%: the share at which a per-page fault turns Critical.
     expect(3 / 12).toBe(SITE_ISSUES.CRITICAL_PAGE_SHARE);
     expect(titles.severity).toBe("critical");

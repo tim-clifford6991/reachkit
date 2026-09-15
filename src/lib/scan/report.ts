@@ -182,7 +182,7 @@ export type StoppedReason = "complete" | "time_ceiling" | "spend_ceiling" | "sit
  *  it does not know throws rather than returning a partially-populated
  *  value: `null` would be indistinguishable from "no report" at every call
  *  site. */
-export const REPORT_VERSION = 7;
+export const REPORT_VERSION = 8;
 
 /** One cell of the AI-answers matrix — one question, one measured SERP.
  *  BP-025 `## Public interface` (issue #26's `matrix.ts` owns it). An
@@ -416,7 +416,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 /** The version this build's own migration knows how to lift, and the only
  *  one: a report written before issue #128 bought the paid battery. */
-const MIGRATABLE_VERSIONS: readonly number[] = [3, 4, 5, 6];
+const MIGRATABLE_VERSIONS: readonly number[] = [3, 4, 5, 6, 7];
 
 /** The two battery columns of a report written before anything bought
  *  them. `not_attempted` and not `no_answer`: nobody asked these engines,
@@ -537,7 +537,23 @@ function upgradeFromVersion5(blob: Record<string, unknown>): Record<string, unkn
  * nine zeros.
  */
 function upgradeFromVersion6(blob: Record<string, unknown>): Record<string, unknown> {
-  return { ...blob, version: REPORT_VERSION, siteIssues: null };
+  return { ...blob, version: 7, siteIssues: null };
+}
+
+/**
+ * Version 7 → 8 (#690): each check that ran names the pages it counted.
+ *
+ * A version-7 report counted them and did not keep the addresses, so none is
+ * recovered: every issue that ran arrives with `pages: null`, and no Fix
+ * opportunity is derived from it. The counts render exactly as before.
+ */
+function upgradeFromVersion7(blob: Record<string, unknown>): Record<string, unknown> {
+  const section = blob.siteIssues;
+  if (!isRecord(section) || !Array.isArray(section.issues)) return { ...blob, version: REPORT_VERSION };
+  const issues = section.issues.map((issue: unknown) =>
+    isRecord(issue) && issue.ran === true ? { ...issue, pages: null } : issue
+  );
+  return { ...blob, version: REPORT_VERSION, siteIssues: { ...section, checkedPages: null, issues } };
 }
 
 /** Every upgrade this build can apply, oldest first, each lifting a blob
@@ -549,6 +565,7 @@ const UPGRADES: readonly ((blob: Record<string, unknown>) => Record<string, unkn
   upgradeFromVersion4,
   upgradeFromVersion5,
   upgradeFromVersion6,
+  upgradeFromVersion7,
 ];
 
 /** The version guard, and the one upgrade beside it. Throws — loudly — on

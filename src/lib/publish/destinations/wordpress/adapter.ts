@@ -305,6 +305,48 @@ async function updated(
 }
 
 /**
+ * SPEC §9 (#690): a page's metadata changed where it stands — its title
+ * where the fix names one, its SEO plugin's description where the fix names
+ * one — and its content never sent, so it cannot change.
+ *
+ * Found the way every update is found: by the slug off its address, and
+ * confirmed by that address. A description with no SEO plugin to hold it is
+ * refused — WordPress itself has no description field, and saying it was
+ * written would be false. Idempotent without a marker: writing the same
+ * values twice leaves the page as the first write did.
+ */
+async function metadataUpdated(
+  cfg: WordPressConfig,
+  page: RenderedPage,
+  updateOf: string,
+  fix: { title: string | null; description: string | null },
+  plugins: readonly SeoPlugin[]
+): Promise<DeliveryResult> {
+  if (page.slug.trim() === "") return failed("destination_rejected");
+  if (fix.description !== null && plugins.length === 0) return failed("destination_rejected");
+
+  const answer = await findPostBySlug(cfg, page.slug);
+  if (!succeeded(answer)) throw new WordPressProbeError(reasonFor(answer));
+  const candidates = Array.isArray(answer.body) ? answer.body : [];
+  const target = candidates.find((post) => {
+    const link = stringField(post, "link");
+    return link !== null && sameAddress(link, updateOf);
+  });
+  const id = target === undefined ? null : idOf(target);
+  if (id === null) return failed("destination_rejected");
+
+  const currentTitle = stringField(target, "title") ?? page.title;
+  const seoPage = { title: fix.title ?? currentTitle, description: fix.description ?? "" };
+  const meta = seoMetaFor(plugins, seoPage);
+  const written = await updatePost(cfg, id, {
+    ...(fix.title === null ? {} : { title: fix.title }),
+    ...(Object.keys(meta).length === 0 ? {} : { meta }),
+  });
+  if (!succeeded(written)) return failed(reasonFor(written));
+  return updateDeliveryOf(written.body, plugins, seoPage);
+}
+
+/**
  * The post this draft already has in the site, if it has one.
  *
  * The site's own search finds candidates and the marker confirms one
@@ -391,6 +433,9 @@ async function deliver(
     // §7's update goes first, and runs its own marker check: a page ReachKit
     // did not create must never be recorded as one it made live, which is
     // what `deliveryOf` below would say of it.
+    if (page.updateOf !== undefined && page.metadataOnly !== undefined) {
+      return await metadataUpdated(config, page, page.updateOf, page.metadataOnly, plugins);
+    }
     if (page.updateOf !== undefined) {
       return await updated(config, page, page.updateOf, plugins, seoPage, idempotencyKey);
     }

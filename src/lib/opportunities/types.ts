@@ -1,7 +1,7 @@
 // BUILD §7 — the closed opportunity surface.
 //
-// Nine kinds, four families, one evidence shape per family, three
-// acceptance forms, three winnability handles. Nothing here computes and
+// Ten kinds, four families, one evidence shape per family (two for Fix),
+// four acceptance forms, three winnability handles. Nothing here computes and
 // nothing here speaks: this file is types plus one frozen lookup table, so
 // that a tenth kind, a fifth family or a fourth acceptance form is a
 // compile error at every call site rather than a value some module has to
@@ -11,6 +11,7 @@
 // here and are not this module's: they are `BAND_LABELS.winnability` in
 // `src/lib/presentation/bands.ts` (ADR-001). This engine emits handles.
 import type { Measured } from "@/lib/measure/measured";
+import type { SiteCheck } from "@/lib/site-issues/types";
 
 /** §7's table, read down the `Type` column, plus SPEC §0's Earn family: a
  *  source names a rival and not the customer, and the answer is a citable
@@ -25,6 +26,7 @@ export type OpportunityType =
   | "answerable_page"
   | "refresh_page"
   | "unblock"
+  | "fix_page"
   | "listed_page";
 
 export type Family = "write" | "improve" | "fix" | "earn";
@@ -44,6 +46,7 @@ export const FAMILY_OF: Readonly<Record<OpportunityType, Family>> = Object.freez
   answerable_page: "improve",
   refresh_page: "improve",
   unblock: "fix",
+  fix_page: "fix",
   listed_page: "earn",
 });
 
@@ -73,6 +76,9 @@ export const ASSET_KIND_OF: Readonly<Record<OpportunityType, AssetKind | null>> 
   answerable_page: "update",
   refresh_page: "update",
   unblock: null,
+  // SPEC §9 (#690): ReachKit's fix of a page's own metadata publishes as an
+  // update to that page — its title and description, its content untouched.
+  fix_page: "update",
   listed_page: "page",
 });
 
@@ -99,6 +105,17 @@ export type Barrier =
   | "login_wall"
   | "js_only"
   | "blocked_ai_agent";
+
+/** SPEC §9's checks ReachKit fixes on a page itself (owner ruling
+ *  2026-09-14): the ones whose who-does-it is ReachKit's. A `fix_page`
+ *  opportunity names which of them its page failed. */
+export type PageFix = Extract<SiteCheck, "page_titles" | "meta_descriptions" | "structured_data">;
+
+export const PAGE_FIXES: readonly PageFix[] = Object.freeze([
+  "page_titles",
+  "meta_descriptions",
+  "structured_data",
+]);
 
 export const BARRIERS: readonly Barrier[] = Object.freeze([
   "robots_disallow",
@@ -131,6 +148,10 @@ export type Evidence =
       shortfall: Shortfall;
     }
   | { family: "fix"; barrier: Barrier; foundOnUrl: string }
+  /** SPEC §9 (#690): a crawled page failed checks ReachKit fixes. `pageUrl`
+   *  is the page the update changes; `issues` are the checks it failed in
+   *  the scan that derived it, copied at creation. */
+  | { family: "fix"; issues: readonly PageFix[]; pageUrl: string }
   | {
       /** SPEC §0's Earn trigger: a source named a rival and not the
        *  customer. `source` is the surface that did so, copied at creation
@@ -148,7 +169,10 @@ export type Evidence =
 export type Acceptance =
   | { form: "top20"; query: string }
   | { form: "named_on"; question: string }
-  | { form: "gate_cleared"; gate: Barrier };
+  | { form: "gate_cleared"; gate: Barrier }
+  /** SPEC §9: "Fixing one drops it next Monday" — every named check passes
+   *  for this page in a week's scan. */
+  | { form: "issues_cleared"; issues: readonly PageFix[]; pageUrl: string };
 
 /** §7's three bands. Internal handles; the words are `BAND_LABELS`'. */
 export type Winnability = "winnable" | "reach" | "not-yet";
@@ -165,7 +189,11 @@ export type UnreadyReason =
   | "url_retired"
   | "keyword_gate"
   | "format_not_allowed"
-  | "no_grounding_fact";
+  | "no_grounding_fact"
+  /** A `fix_page` the site's destination cannot update: not a WordPress
+   *  destination, a page on another host, a site root, or a fix that
+   *  destination has no field for. */
+  | "destination_cannot_address";
 
 export const UNREADY_REASONS: readonly UnreadyReason[] = Object.freeze([
   "not_assessed",
@@ -174,6 +202,7 @@ export const UNREADY_REASONS: readonly UnreadyReason[] = Object.freeze([
   "keyword_gate",
   "format_not_allowed",
   "no_grounding_fact",
+  "destination_cannot_address",
 ]);
 
 export interface Opportunity {

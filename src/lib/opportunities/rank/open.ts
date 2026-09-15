@@ -13,6 +13,14 @@
 //
 // `unblock` never appears here: the store's `openRankable` excludes the
 // Fix family, once, and no caller downstream restates that predicate.
+//
+// **A ready `fix_page` is placed, not scored** (SPEC §9, owner ruling
+// 2026-09-14): it outranks new writing for its cluster. It carries no search
+// to score, so it goes immediately ahead of the first Write row in the same
+// cluster — and while clusters are not derived, a null key on either side is
+// one pool, so it goes ahead of the first Write row at all. Improve and Earn
+// keep their scored places. A fix with no Write row to precede goes last. A
+// fix that is not ready is not in the list.
 import { opportunityStore } from "../store";
 import { readOpportunity } from "../store";
 import type { Opportunity, Ranked } from "../types";
@@ -32,6 +40,39 @@ export function orderRanked(
     .map((entry) => ({ opportunityId: entry.opportunity.id, score: entry.score }));
 }
 
+function samePool(a: string | null, b: string | null): boolean {
+  return a === null || b === null || a === b;
+}
+
+/** Oldest first, each ahead of the first Write row of its pool. Pure. */
+export function placeFixPages(
+  scored: readonly { opportunity: Opportunity; score: number }[],
+  fixes: readonly Opportunity[]
+): Ranked[] {
+  const ordered = orderRanked(scored);
+  const byId = new Map(scored.map((entry) => [entry.opportunity.id, entry.opportunity]));
+  const pending = [...fixes].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+
+  const out: Ranked[] = [];
+  for (const entry of ordered) {
+    const opportunity = byId.get(entry.opportunityId);
+    if (opportunity?.family === "write") {
+      for (let i = 0; i < pending.length; ) {
+        const fix = pending[i]!;
+        if (samePool(fix.clusterKey, opportunity.clusterKey)) {
+          out.push({ opportunityId: fix.id, score: entry.score });
+          pending.splice(i, 1);
+        } else {
+          i += 1;
+        }
+      }
+    }
+    out.push(entry);
+  }
+  for (const fix of pending) out.push({ opportunityId: fix.id, score: 0 });
+  return out;
+}
+
 /**
  * The site's open, rankable opportunities in ranked order.
  *
@@ -43,11 +84,14 @@ export function orderRanked(
  */
 export async function rankOpen(siteId: string): Promise<Ranked[]> {
   const store = opportunityStore();
-  const [rows, profile] = await Promise.all([
+  const [rows, profile, fixRows] = await Promise.all([
     store.openRankable(siteId),
     store.profileForSite(siteId),
+    store.openFixPages(siteId),
   ]);
-  if (profile === null || rows.length === 0) return [];
+  const fixes = fixRows.filter((row) => row.ready).map(readOpportunity);
+  // No profile, no score — but a fix needs neither, and still takes its day.
+  if (profile === null || rows.length === 0) return placeFixPages([], fixes);
 
   const scored = rows.map((row) => {
     const opportunity = readOpportunity(row);
@@ -64,5 +108,5 @@ export async function rankOpen(siteId: string): Promise<Ranked[]> {
       }),
     };
   });
-  return orderRanked(scored);
+  return placeFixPages(scored, fixes);
 }

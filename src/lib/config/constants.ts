@@ -191,6 +191,9 @@ export const INFERENCE_MAX_OUTPUT_TOKENS = Object.freeze({
    *  cap. A voice summary is five short members and one paragraph; it does
    *  not need a draft's room. */
   "site-profile": 400,
+  /** SPEC §9 (#690): a page's own title and meta description, rewritten —
+   *  `{ title, description }`, two short strings: ~80 needed. */
+  "generate.page_fix": 256,
 } as const);
 
 /** How many entries each of the business profile's lists may carry (BUILD

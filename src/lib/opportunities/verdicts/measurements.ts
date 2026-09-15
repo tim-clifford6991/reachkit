@@ -95,6 +95,7 @@ export function weekMeasurementsFrom(a: {
     positions,
     namesCustomer,
     gatesCleared: gatesFrom(report, at),
+    siteIssues: report.siteIssues,
   };
 }
 

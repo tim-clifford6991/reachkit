@@ -249,9 +249,21 @@ interface DraftPageRow {
   meta: Record<string, unknown> | null;
   opportunities?: {
     family?: string | null;
+    type?: string | null;
     proposed_slug?: string | null;
     target_ref?: string | null;
   } | null;
+}
+
+/** `drafts.meta.fix`'s new values, read defensively off jsonb. */
+function metadataFixOf(meta: Record<string, unknown>): { title: string | null; description: string | null } | null {
+  const fix = meta.fix;
+  if (typeof fix !== "object" || fix === null) return null;
+  const record = fix as Record<string, unknown>;
+  const title = typeof record.title === "string" && record.title !== "" ? record.title : null;
+  const description =
+    typeof record.description === "string" && record.description !== "" ? record.description : null;
+  return title === null && description === null ? null : { title, description };
 }
 
 /** The last path segment of an existing page's URL — how a destination
@@ -281,13 +293,23 @@ function slugOfUrl(url: string): string | null {
 async function renderedPage(draftId: string): Promise<RenderedPage | null> {
   const { data, error } = await publishDb()
     .from<DraftPageRow>("drafts")
-    .select("title, body_md, meta, opportunities(family, proposed_slug, target_ref)")
+    .select("title, body_md, meta, opportunities(family, type, proposed_slug, target_ref)")
     .eq("id", draftId)
     .single();
   if (error !== null || data === null) return null;
 
   const opportunity = data.opportunities ?? null;
   const page = { title: data.title, bodyMd: data.body_md ?? "", meta: data.meta ?? {} };
+
+  // SPEC §9 (#690): a `fix_page` updates the page it names, and only that
+  // page's metadata. A draft with nothing recorded to change has nothing to
+  // deliver.
+  if (opportunity?.type === "fix_page") {
+    const updateOf = opportunity.target_ref;
+    const metadataOnly = metadataFixOf(page.meta);
+    if (typeof updateOf !== "string" || updateOf.length === 0 || metadataOnly === null) return null;
+    return { ...page, bodyMd: "", slug: slugOfUrl(updateOf) ?? "", updateOf, metadataOnly };
+  }
 
   if (opportunity?.family === "improve") {
     const updateOf = opportunity.target_ref;

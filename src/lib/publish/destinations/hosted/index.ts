@@ -110,6 +110,13 @@ export const HOSTED_ADAPTER: DestinationAdapter = Object.freeze({
     if (page.updateOf !== undefined && !servesAddress(page.updateOf, site.host)) {
       return { ok: false, madeLive: false, reason: "destination_rejected" };
     }
+    // A metadata-only update (#690) has no body to serve: the hosted page is
+    // its row, and this destination changes no page's metadata alone. Hosted
+    // pages get no Fix opportunity (SPEC §9, 2026-09-14), so this refusal is
+    // the guard, not a path.
+    if (page.metadataOnly !== undefined) {
+      return { ok: false, madeLive: false, reason: "destination_rejected" };
+    }
 
     // Immediately, and never on a TTL: the address answers with this page
     // on the next request rather than after a window (WO-028's NFR).

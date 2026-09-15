@@ -88,7 +88,7 @@ export async function refineType(c: CostContext, candidate: Candidate): Promise<
   return {
     ...candidate,
     type: refined,
-    effort: EFFORT_BY_TYPE[refined as Exclude<OpportunityType, "unblock">],
+    effort: EFFORT_BY_TYPE[refined as Exclude<OpportunityType, "unblock" | "fix_page">],
     targetRef: safeSlug(slug, candidate.targetRef),
     title: title.trim() === "" ? null : title,
   };

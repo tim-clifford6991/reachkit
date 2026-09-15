@@ -24,6 +24,8 @@ export interface MemoryState {
   statusChangedAt: Map<string, Date>;
   profile: Profile | null;
   latestScanAt: Date | null;
+  /** The host the site's hosted destination serves at, if any. */
+  hostedHost: string | null;
   now: Date;
   nextId: number;
 }
@@ -34,6 +36,7 @@ export function newMemoryState(over: Partial<MemoryState> = {}): MemoryState {
     statusChangedAt: new Map(),
     profile: null,
     latestScanAt: null,
+    hostedHost: null,
     now: new Date("2026-09-06T09:00:00.000Z"),
     nextId: 1,
     ...over,
@@ -123,6 +126,30 @@ export function memoryStore(state: MemoryState): OpportunityStore {
 
     async profileForSite() {
       return state.profile;
+    },
+
+    async openFixPages(siteId) {
+      return state.rows.filter(
+        (row) => row.site_id === siteId && row.status === "open" && row.type === "fix_page"
+      );
+    },
+
+    async setReadiness(opportunityId, reason) {
+      const row = state.rows.find((r) => r.id === opportunityId);
+      if (row === undefined) return;
+      row.ready = reason === null;
+      row.unready_reason = reason;
+    },
+
+    async markDone(opportunityId) {
+      const row = state.rows.find((r) => r.id === opportunityId);
+      if (row === undefined || row.status === "done") return;
+      row.status = "done";
+      state.statusChangedAt.set(row.id, state.now);
+    },
+
+    async hostedHostFor() {
+      return state.hostedHost;
     },
   };
 }

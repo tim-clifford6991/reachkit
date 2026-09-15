@@ -186,6 +186,8 @@ export function acceptance(form: Acceptance["form"]): Acceptance {
       return { form: "named_on", question: question().text };
     case "gate_cleared":
       return { form: "gate_cleared", gate: "noindex" };
+    case "issues_cleared":
+      return { form: "issues_cleared", issues: ["page_titles"], pageUrl: "https://example.com/pricing" };
   }
 }
 

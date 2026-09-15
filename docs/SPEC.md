@@ -153,6 +153,8 @@ Pinned numbers live in `src/lib/config/constants.ts`. Newest dated line in a sec
 - Robots fix lines name only the pinned AI-reader list (GPTBot, ClaudeBot, OAI-SearchBot, Claude-SearchBot, PerplexityBot, Google-Extended).
 - `noindex` home page is Foundations = 0, not “unmeasured”.
 - A ReachKit-fixable issue becomes a Fix opportunity and outranks new writing for that cluster.
+- Fix opportunity (2026-09-14): one per crawled page that failed a ReachKit-fixed check, naming every such check it failed; none for a page the hosted destination serves (that template is fixed in the product, not by a day). It ranks just ahead of the first new writing in its cluster; while clusters are not derived, ahead of the first new writing at all.
+- Fix delivery (2026-09-14): a metadata-only update — a new title and/or meta description written from the page’s own words, content untouched, through the same veto path. Ready only where the WordPress destination can update the page: its own host, a page with a slug, an SEO plugin for a description. Otherwise the opportunity stands and is not ready. Structured data has no WordPress field and is not ready.
 - A check that could not run is absent with one why-line — never “no issues found”. Not paywalled.
 - 2026-09-14  Who fixes each check: “Free fix · 10 min” — `noindex` on an indexable page, no sitemap, slow pages, broken internal links, not usable on a phone, AI readers blocked. “ReachKit rewrites” — missing/duplicate title, missing/duplicate meta description. “ReachKit writes” — missing structured data. Copyable lines only where the line is fixed: the viewport meta line (phone), the robots `Sitemap:` line (sitemap), the robots `Allow` records (AI readers).
 

@@ -52,6 +52,9 @@ export interface DraftInsert {
   attribution: string | null;
   scheduled_for: string | null;
   cost_cents: number;
+  /** Written by a `fix_page` draft only (#690): the metadata the update
+   *  carries. Absent on every other draft, which the column's null keeps. */
+  meta?: unknown;
 }
 
 /** The columns one run may change. Every one is written by the engine and

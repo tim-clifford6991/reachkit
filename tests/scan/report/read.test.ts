@@ -380,6 +380,25 @@ describe("a report written at version 6 is lifted, not refused", () => {
   });
 });
 
+describe("a report written at version 7 is lifted, not refused", () => {
+  it("keeps every count and records no page addresses it never kept", () => {
+    const current = asStoredJson() as Record<string, unknown>;
+    const v7 = {
+      ...current,
+      version: 7,
+      siteIssues: {
+        pagesChecked: 2,
+        stoppedBy: "complete",
+        issues: [{ check: "page_titles", ran: true, count: 1, over: 2, unit: "pages", severity: "worth_fixing", doer: "reachkit_rewrites" }],
+      },
+    };
+    const report = readStoredReport(v7);
+    expect(report.version).toBe(REPORT_VERSION);
+    expect(report.siteIssues?.checkedPages).toBeNull();
+    expect(report.siteIssues?.issues[0]).toMatchObject({ count: 1, pages: null });
+  });
+});
+
 describe("the version guard", () => {
   it("throws on a blob this build does not know how to read", () => {
     const blob = { ...(asStoredJson() as Record<string, unknown>), version: REPORT_VERSION + 1 };

@@ -27,6 +27,7 @@
 // goes red the day it is proposed.
 import type { Measured } from "@/lib/measure/measured";
 import type { VerifyChecks } from "@/lib/publish/types";
+import type { SiteIssuesSection } from "@/lib/site-issues/types";
 import type { Barrier } from "../types";
 
 /** The three §9 names. */
@@ -194,4 +195,7 @@ export interface WeekMeasurements {
    *  look at — `not_measured`, and never one of the five causes: a barrier
    *  is a member of a closed set and cannot leave a tracked set. */
   readonly gatesCleared: ReadonlyMap<Barrier, Measured<boolean>>;
+  /** SPEC §9's checks this week, as an `issues_cleared` test reads them.
+   *  `null` where the week's report carries none. */
+  readonly siteIssues: SiteIssuesSection | null;
 }
