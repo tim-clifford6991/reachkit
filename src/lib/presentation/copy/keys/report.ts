@@ -173,7 +173,10 @@ export const REPORT_COPY = Object.freeze({
   "ai-answers.source": ["Google AI answers · {date}", { slots: { date: "text" }, fixedBy: "REQ-006 c9" }],
   // Issue 715: SPEC §2 — a category correction reuses the AI answers already
   // read, "and says so". Owner-owed.
-  "ai-answers.coverage.cached-only": ["TODO(copy)", { slots: {}, fixedBy: "SPEC §2 · issue 715" }],
+  "ai-answers.coverage.cached-only": [
+    "These AI answers were reused from an earlier scan.",
+    { slots: {}, fixedBy: "SPEC §2 · issue 715" },
+  ],
   "ai-answers.denominator": ["AI answers appear on {answered} of your {measured} biggest searches", { slots: { answered: "text", measured: "text" }, fixedBy: "REQ-006 c1" }],
   "ai-answers.customer-citations": ["You’re named in {cited} of the {answered} AI answers that appeared.", { slots: { cited: "text", answered: "text" }, fixedBy: "REQ-006 c1" }],
   "ai-answers.legend": ["Filled: named in that answer · Empty: not named · Muted: no AI answer appeared", { slots: {}, fixedBy: "REQ-006 c1" }],
