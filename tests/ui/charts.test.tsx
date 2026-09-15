@@ -18,7 +18,6 @@ import { SERIES_COLOR } from "@/ui/charts/series";
 import { GrowthLine } from "@/ui/charts/GrowthLine";
 import { RivalSparkline } from "@/ui/charts/RivalSparkline";
 import { AiDotMatrixChart, type AiDotMatrixRow } from "@/ui/charts/AiDotMatrixChart";
-import { WeekStrip, type SevenDays } from "@/ui/charts/WeekStrip";
 
 const CHARTS_DIR = path.resolve(__dirname, "../../src/ui/charts");
 
@@ -41,20 +40,8 @@ const MATRIX_ROWS: readonly AiDotMatrixRow[] = [
   },
 ];
 
-const DAY = { date: "26", state: "done", mark: "done" } as const;
-const DAYS: SevenDays = [
-  DAY,
-  { date: "27", state: "done", mark: "done" },
-  { date: "28", state: "nothing-measured", mark: "nothing measured" },
-  { date: "29", state: "done", mark: "done" },
-  { date: "30", state: "done", mark: "done" },
-  { date: "01", state: "today", mark: "today" },
-  { date: "02", state: "to-come", mark: "to come" },
-];
-
 const STORIES: Record<string, () => React.JSX.Element> = {
   AiDotMatrixChart: () => <AiDotMatrixChart rows={MATRIX_ROWS} questions={QUESTIONS} label="matrix" />,
-  WeekStrip: () => <WeekStrip days={DAYS} label="week" />,
 };
 
 /* ── reading a story back ────────────────────────────────────────────── */
@@ -92,10 +79,10 @@ function count(haystack: string, needle: string): number {
 
 const ALL_STORIES = Object.entries(STORIES);
 
-/** The hand-drawn SVG chart. `WeekStrip` is HTML cells since #521, and the
- *  growth line, presence bars and sparkline are Recharts since #550
- *  (`recharts-charts.test.tsx`). */
-const SVG_STORIES = ALL_STORIES.filter(([name]) => name !== "WeekStrip");
+/** The hand-drawn SVG chart. The growth line, presence bars and sparkline
+ *  are Recharts since #550 (`recharts-charts.test.tsx`), and the week strip
+ *  is a CSS grid in its route (issue 729). */
+const SVG_STORIES = ALL_STORIES;
 
 /* ── §2.4's colour rule ──────────────────────────────────────────────── */
 
@@ -123,18 +110,6 @@ describe('BUILD §2.4: "Every bar/point is direct-labelled (name + value) — id
       expect(text).toContain(row.count);
     }
     for (const q of QUESTIONS) expect(text).toContain(q);
-  });
-
-  it("WeekStrip labels all seven days, the unmeasured one included — a labelled empty mark, never a gap", () => {
-    // The date is drawn; the word is each date's accessible name (#521).
-    const names = [...rootOf(STORIES.WeekStrip?.() as React.JSX.Element).querySelectorAll(".rk-week-n")].map(
-      (n) => n.getAttribute("aria-label") ?? ""
-    );
-    DAYS.forEach((day, i) => {
-      expect(names[i]).toContain(day.date);
-      expect(names[i]).toContain(day.mark);
-    });
-    expect(names.join(" ")).toContain("nothing measured");
   });
 
   it("every numeral a chart writes is in the mono utility (§2.3)", () => {
@@ -236,16 +211,13 @@ describe("BP-018: the props refuse what §2.4 and §2.5 forbid", () => {
     // A series with a hole in it has no call shape without its account.
     // @ts-expect-error — a broken series must state what broke it
     void <RivalSparkline name="one.com" value="78×" points={[3, null, 1]} label="gap" />;
-    // Seven days can never become six.
-    // @ts-expect-error — the strip is a seven-tuple
-    void <WeekStrip days={[DAY, DAY, DAY, DAY, DAY, DAY]} label="week" />;
     // "No measurement yet" is a written line in place of the chart, never
     // an empty frame: axes over nothing read as a measurement of zero.
     // @ts-expect-error — `weeks` is non-empty
     void <GrowthLine weeks={[]} label="growth" />;
   }
 
-  it("compiles only because those four shapes are refused", () => {
+  it("compiles only because those three shapes are refused", () => {
     expect(typeof refused).toBe("function");
   });
 });
@@ -378,50 +350,3 @@ describe("issue #490: a chart's groups stay inside its own box, at every length 
   });
 });
 
-/* ── the week strip, as the set draws it (#521) ──────────────────────── */
-
-describe("set §2 WeekStrip: \"seven cells, states done / today / unmeasured / to-come\" (set `.week .day`)", () => {
-  const root = rootOf(STORIES.WeekStrip?.() as React.JSX.Element);
-  const cells = [...root.querySelectorAll("li.rk-week-day")];
-  const css = readFileSync(path.join(CHARTS_DIR, "week-strip.css"), "utf8");
-
-  it("is one named list of seven cells, each carrying its state", () => {
-    expect(root.tagName.toLowerCase()).toBe("ol");
-    expect(root.getAttribute("aria-label")).toBe("week");
-    expect(cells).toHaveLength(7);
-    expect(cells.map((c) => c.getAttribute("data-state"))).toEqual(DAYS.map((d) => d.state));
-  });
-
-  it("draws the date in mono and a rule under it, and no visible word", () => {
-    cells.forEach((cell, i) => {
-      const n = cell.querySelector(".rk-week-n");
-      expect(n?.classList.contains("num")).toBe(true);
-      expect(n?.textContent).toBe(DAYS[i]?.date);
-      expect(cell.querySelector(".rk-week-rule")?.getAttribute("aria-hidden")).toBe("true");
-    });
-  });
-
-  it("names each state to a screen reader and on hover — identity is never colour alone (§2.4)", () => {
-    cells.forEach((cell, i) => {
-      const day = DAYS[i];
-      // An attribute, never an `sr-only` span: the layout sweep's check 3
-      // reads that clipped box as text cut off.
-      const n = cell.querySelector(".rk-week-n");
-      expect(n?.getAttribute("role")).toBe("img");
-      expect(n?.getAttribute("aria-label")).toBe(`${day?.date} · ${day?.mark}`);
-      expect(cell.querySelector(".sr-only")).toBeNull();
-      expect(cell.getAttribute("title")).toBe(`${day?.date} · ${day?.mark}`);
-    });
-  });
-
-  it("paints the set's rule colours — states, never a series (§2.4)", () => {
-    const rule = (state: string, part: string): string =>
-      new RegExp(`\\.rk-week-day\\[data-state="${state}"\\]${part}\\s*\\{[^}]*\\}`).exec(css)?.[0] ?? "";
-    expect(rule("done", " \\.rk-week-rule")).toContain("var(--ok)");
-    expect(rule("nothing-measured", " \\.rk-week-rule")).toContain("var(--warn)");
-    expect(rule("today", " \\.rk-week-rule")).toContain("var(--accent)");
-    expect(rule("today", "")).toContain("var(--accent-bg)");
-    expect(rule("to-come", "")).toContain("opacity");
-    expect(css).not.toMatch(/--chart-(you|rival)|var\(--bad\)/);
-  });
-});
