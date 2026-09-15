@@ -18,6 +18,7 @@ import type {
   OpportunityStore,
 } from "../../src/lib/opportunities/store";
 import type { Profile } from "../../src/lib/market/questions/profile";
+import type { NotWorkingVerdict } from "../../src/lib/opportunities/suppression";
 
 export interface MemoryState {
   rows: OpportunityRow[];
@@ -28,6 +29,9 @@ export interface MemoryState {
   hostedHost: string | null;
   now: Date;
   nextId: number;
+  /** `page_verdicts` rows judged `not_working`, already joined to their
+   *  opportunity. */
+  notWorking: NotWorkingVerdict[];
 }
 
 export function newMemoryState(over: Partial<MemoryState> = {}): MemoryState {
@@ -39,6 +43,7 @@ export function newMemoryState(over: Partial<MemoryState> = {}): MemoryState {
     hostedHost: null,
     now: new Date("2026-09-06T09:00:00.000Z"),
     nextId: 1,
+    notWorking: [],
     ...over,
   };
 }
@@ -139,6 +144,10 @@ export function memoryStore(state: MemoryState): OpportunityStore {
       if (row === undefined) return;
       row.ready = reason === null;
       row.unready_reason = reason;
+    },
+
+    async notWorkingVerdicts() {
+      return state.notWorking;
     },
 
     async markDone(opportunityId) {

@@ -29,6 +29,7 @@ import type {
   UnreadyReason,
   Winnability,
 } from "./types";
+import type { NotWorkingVerdict } from "./suppression";
 
 /** The row as `opportunities` stores it. `jsonb` members arrive parsed and
  *  with their dates still ISO strings — `readOpportunity` revives them. */
@@ -111,6 +112,11 @@ export interface OpportunityStore {
   /** Records whether a row passes readiness, with its reason when it does
    *  not. The two are written together, as the schema's biconditional asks. */
   setReadiness(opportunityId: string, reason: UnreadyReason | null): Promise<void>;
+  /** SPEC §6: every `not_working` verdict for one site, each joined through
+   *  its publication to the opportunity the page was written for. One read
+   *  on `page_verdicts (site_id, week_start)`; the window is applied by
+   *  `suppressionOf`, because a retirement counts verdicts older than it. */
+  notWorkingVerdicts(siteId: string): Promise<readonly NotWorkingVerdict[]>;
   /** A row whose acceptance test passed: its status moves to `done`. */
   markDone(opportunityId: string): Promise<void>;
   /** The host the site's live hosted destination serves at, or `null`. */
@@ -196,6 +202,15 @@ interface MinimalQueryBuilder<T> extends PromiseLike<QueryResult<T>> {
   in(column: string, values: readonly unknown[]): MinimalQueryBuilder<T>;
   order(column: string, options: { ascending: boolean }): MinimalQueryBuilder<T>;
   limit(count: number): MinimalQueryBuilder<T>;
+}
+
+/** `page_verdicts` embedded through `publications → drafts → opportunities`,
+ *  the three foreign keys the baseline declares. */
+interface NotWorkingRow {
+  week_start: string;
+  publications: {
+    drafts: { opportunities: { cluster_key: string | null; family: string; target_ref: string } | null } | null;
+  } | null;
 }
 
 interface MinimalClient {
@@ -308,6 +323,25 @@ export function supabaseOpportunityStore(): OpportunityStore {
         .update({ ready: reason === null, unready_reason: reason })
         .eq("id", opportunityId);
       if (error) throw new Error(`opportunities.setReadiness: ${error.message}`);
+    },
+
+    async notWorkingVerdicts(siteId) {
+      const { data, error } = await untyped()
+        .from<NotWorkingRow>("page_verdicts")
+        .select("week_start, publications(drafts(opportunities(cluster_key, family, target_ref)))")
+        .eq("site_id", siteId)
+        .eq("verdict", "not_working")
+        .order("week_start", { ascending: false });
+      if (error) throw new Error(`opportunities.notWorkingVerdicts: ${error.message}`);
+      return (data ?? []).map((row) => {
+        const o = row.publications?.drafts?.opportunities ?? null;
+        return {
+          week: row.week_start,
+          clusterKey: o?.cluster_key ?? null,
+          family: (o?.family as Family | undefined) ?? null,
+          targetRef: o?.target_ref ?? null,
+        };
+      });
     },
 
     async markDone(opportunityId) {
