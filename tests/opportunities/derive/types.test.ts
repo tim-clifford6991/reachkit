@@ -116,6 +116,7 @@ describe("§7: evidence is one shape per family", () => {
       volume: measured(1900, new Date("2026-09-07T00:00:00.000Z")),
       source: { surface: "ai_answer", ref: "chatgpt" },
       rival: { domain: "appcues.com" },
+      asset: "comparison_table",
     };
     expect(evidence.family).toBe("earn");
     // @ts-expect-error — there is no contact, address or outreach field: the

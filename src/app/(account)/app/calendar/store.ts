@@ -67,11 +67,12 @@ export interface CalendarSite {
 
 // ── The "Why this page" rows, from the evidence stored at creation ───────
 
-/** §4.6's `answered-today-by`: who holds the answer today. A Write target
- *  records the rival it is written to overtake; an Improve target is the
- *  customer's own page, so nobody else holds it. */
+/** §4.6's `answered-today-by`: who holds the answer today. A Write or Earn
+ *  target records the rival it is written to overtake; an Improve target is
+ *  the customer's own page, so nobody else holds it. */
 function answeredTodayBy(choice: Choice): readonly string[] {
-  return choice.evidence.family === "write" ? [choice.evidence.rival.domain] : [];
+  const evidence = choice.evidence;
+  return evidence.family === "write" || evidence.family === "earn" ? [evidence.rival.domain] : [];
 }
 
 /** §4.6's `you`. An Improve target carries the customer's measured

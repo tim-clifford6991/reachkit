@@ -59,6 +59,10 @@ export const OPPORTUNITY_TYPES: readonly OpportunityType[] = Object.freeze(
  *  sort of fact — a closed vocabulary the database mirrors and never owns. */
 export type AssetKind = "post" | "page" | "update";
 
+/** The citable asset an Earn row asks for, chosen from its query's shape
+ *  (`derive/earn.ts`, issue 478). */
+export type EarnAsset = "comparison_table" | "integration_page" | "original_data_page";
+
 /** Which kind of asset a day publishes for each opportunity type.
  *
  *  `null` is the Fix family and not an omission: clearing an access barrier
@@ -161,6 +165,7 @@ export type Evidence =
       volume: Measured<number>;
       source: { surface: "ai_answer" | "search_result"; ref: string };
       rival: { domain: string };
+      asset: EarnAsset;
     };
 
 /** §7's acceptance test, verbatim: "top 20 for Q" / "named on question P" /
