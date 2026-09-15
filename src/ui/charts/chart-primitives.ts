@@ -23,10 +23,9 @@
 // **No CSS file for the SVG charts, and that is deliberate.** §2.2 admits
 // custom CSS for "chart SVGs", but the four SVG charts paint through SVG
 // presentation attributes, and the one rule that cannot be an attribute —
-// `:hover` — ships as a `<style>` element inside each `<svg>`. The one
-// stylesheet in this directory is `week-strip.css`, imported by
-// `WeekStrip.tsx` itself: the strip is HTML cells (issue #521), and cells
-// have no presentation attributes to paint through.
+// `:hover` — ships as a `<style>` element inside each `<svg>`. There is no
+// stylesheet in this directory: the week strip is a CSS grid in its route
+// (issue 729).
 
 /** One mono character's advance, as a share of the font size. There is no
  *  text metrics API in an SVG the server renders, so every width a chart

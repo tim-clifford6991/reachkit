@@ -7,8 +7,6 @@ export { AiDotMatrixChart } from "./AiDotMatrixChart";
 export type { AiDotMatrixCellState, AiDotMatrixRow } from "./AiDotMatrixChart";
 export { RivalSparkline } from "./RivalSparkline";
 export type { RivalSparklineProps } from "./RivalSparkline";
-export { WeekStrip } from "./WeekStrip";
-export type { SevenDays, WeekDay, WeekDayState } from "./WeekStrip";
 
 export { SERIES_COLOR } from "./series";
 export type { SeriesKind } from "./series";

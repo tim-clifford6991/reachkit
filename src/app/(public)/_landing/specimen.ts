@@ -21,7 +21,16 @@
 // because what the frame shows is the Overview (REQ-099 c4: "every word
 // visible inside it is one the product itself renders on that screen").
 // What is here is figures, dates and a week's shape.
-import type { SevenDays } from "@/ui/charts";
+/** One day of the specimen week: its date, its state, and the state's
+ *  written word — the cell's accessible name (`WeekCard.tsx`). */
+export interface WeekDay {
+  readonly date: string;
+  readonly state: "done" | "today" | "to-come" | "nothing-measured";
+  readonly mark: string;
+}
+
+/** Seven, by type: a week with a day dropped has no call shape. */
+export type SevenDays = readonly [WeekDay, WeekDay, WeekDay, WeekDay, WeekDay, WeekDay, WeekDay];
 import type { GrowthWeek } from "@/ui/charts";
 import { copy } from "@/lib/presentation/copy";
 
@@ -50,7 +59,7 @@ export const SPECIMEN_TILES = Object.freeze({
 /** The seven days of the specimen week.
  *
  *  **Three states, not four.** The set's week fixture marks one day
- *  *unmeasured*; `WeekStrip` writes a state's word inside its own cell
+ *  *unmeasured*; the week card names each cell by its state's word
  *  (`mark`), and the product has written words for three of its four
  *  states — done, today and next (`overview.week.day.*`). The fourth has
  *  no sentence yet, and a specimen is not a place to mint one: the rule is
