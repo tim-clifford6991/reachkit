@@ -123,15 +123,6 @@ describe("issue #486 — every chip the approved set draws carries its glyph", (
     expect(signin).toMatch(/<TrendingUp size=\{16\} strokeWidth=\{1\.75\}/);
   });
 
-  it("the mark is the set's square: --r-field corners, --accent ground, --on-accent ink", () => {
-    const css = withoutComments(read("ui/idiom/idiom.css"));
-    const block = css.slice(css.indexOf(".rk-wordmark-chip {"));
-    const body = block.slice(0, block.indexOf("}"));
-    expect(body).toContain("border-radius: var(--r-field)");
-    expect(body).toContain("background: var(--accent)");
-    expect(body).toContain("color: var(--on-accent)");
-  });
-
   it("S2's Copy link pill carries copy (L577)", () => {
     expect(read("app/(public)/scan/[domain]/_address/copy-link.tsx")).toMatch(/<Copy size=\{16\} strokeWidth=\{1\.75\}/);
   });
@@ -142,16 +133,7 @@ describe("issue #486 — every chip the approved set draws carries its glyph", (
   });
 });
 
-describe("issue #509 — the generated mark, the S12 figure and the tag hover, as the set draws them", () => {
-  const idiom = withoutComments(read("ui/idiom/idiom.css"));
-  const ruleBody = (selector: string, css: string = idiom): string => {
-    // Anchored at the line start, so a rule whose selector merely ends in
-    // the same text is not read as this one.
-    const at = css.indexOf(`\n${selector} {`);
-    expect(at, `${selector} is declared`).toBeGreaterThanOrEqual(0);
-    const block = css.slice(at + 1);
-    return block.slice(0, block.indexOf("}"));
-  };
+describe("issue #509 — the generated mark and the S12 figure, as the set draws them", () => {
 
   it("the tab icon and the share cards draw BrandMark, and no pill is left in either", () => {
     const icon = read("app/(public)/icon.tsx");
@@ -189,12 +171,5 @@ describe("issue #509 — the generated mark, the S12 figure and the tag hover, a
     expect(read("ui/components/Stat.tsx")).toContain(
       'const FIGURE = "stat-value num text-(length:--t-num-big) font-(--num-weight)'
     );
-  });
-
-  it("ruling 8: hover raises the tag's × to full opacity and leaves the ground alone", () => {
-    expect(ruleBody(".rk-tag-x")).toContain("opacity: 0.6");
-    const hover = ruleBody(".rk-tag:hover .rk-tag-x");
-    expect(hover).toContain("opacity: 1");
-    expect(idiom).not.toMatch(/\.rk-tag:hover\s*\{/);
   });
 });

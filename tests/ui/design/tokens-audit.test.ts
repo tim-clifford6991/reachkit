@@ -44,7 +44,7 @@ const ALLOWED_LITERALS: ReadonlyArray<{ readonly path: string; readonly why: str
       "derived from a token §2.1 already states — `--shadow-lift` is §2.1's " +
       "own dark-shadow construction re-inked, `--grad-accent` and the glass " +
       "pair are `--on-accent` at the 12%/28% alphas §2.1 states verbatim, " +
-      "and `--on-accent-quiet` is `--on-accent` mixed toward `--accent`. No " +
+      "No " +
       "colour is minted and no second accent stop exists",
   },
   {
@@ -252,7 +252,7 @@ describe('§2.1 — every colour in src/** resolves to a token, "these exact val
  *  rule below is for. Each is derived from a token §2.1 already states —
  *  `design/tokens.md` §9.3 carries the derivations, and `idiom.css`'s own
  *  `:root` block repeats them where the values are. */
-const IDIOM_ROOT: ReadonlySet<string> = new Set(["--grad-accent", "--on-accent-quiet"]);
+const IDIOM_ROOT: ReadonlySet<string> = new Set(["--grad-accent"]);
 
 function nonThemeColourTokens(files: readonly string[]): string[] {
   const out: string[] = [];
@@ -275,7 +275,7 @@ describe("§2.1 — a colour-valued declaration names a §2.1 token and nothing 
     expect(nonThemeColourTokens(CSS_FILES)).toEqual([]);
   });
 
-  it("the idiom's two compositions are declared on :root, and are only two", () => {
+  it("the idiom's one composition is declared on :root, and is only one", () => {
     // Rule 5.5, and the reason `IDIOM_ROOT` is a written list: the set is
     // closed until someone opens it. Each must actually be declared where
     // it says it is, so the allowance cannot outlive the declaration.
@@ -291,7 +291,7 @@ describe("§2.1 — a colour-valued declaration names a §2.1 token and nothing 
     for (const token of IDIOM_ROOT) {
       expect(declared, `${token} is allowed but not declared`).toContain(token);
     }
-    expect([...IDIOM_ROOT].sort()).toEqual(["--grad-accent", "--on-accent-quiet"]);
+    expect([...IDIOM_ROOT].sort()).toEqual(["--grad-accent"]);
     expect(read("src/ui/theme.css")).not.toContain("--shadow-lift");
   });
 

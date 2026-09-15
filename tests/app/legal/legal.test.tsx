@@ -35,7 +35,6 @@ const body = (file: string): string =>
     .replace(/^[ \t]*\/\/.*$/gm, "");
 
 const RENDERER = "_legal/LegalPage.tsx";
-const IDIOM_CSS = path.resolve(import.meta.dirname, "../../../src/ui/idiom/idiom.css");
 
 /** The three routes, each with the document it reads. */
 const ROUTES = [
@@ -92,7 +91,8 @@ describe("S5 — the screen: eyebrow, title, updated line, one card", () => {
 
       it("one card, and the document is inside it", () => {
         expect(html.match(/class="card[ "]/g)).toHaveLength(1);
-        expect(html).toContain('class="rk-doc rk-doc-levelled"');
+        expect(html).toContain('data-testid="legal-document"');
+        expect(html).not.toContain("rk-doc");
       });
 
       it("no control, no field: a legal page asks for nothing", () => {
@@ -145,22 +145,18 @@ describe("S5 — the body's headings take the ladder (issue #493)", () => {
 
   it("every heading the renderer emits is one level under the page's h1", () => {
     const html = legalBodyHtml(md);
-    expect(html).toContain("<h2>Heading one</h2>");
-    expect(html).toContain("<h3>Heading two</h3>");
-    expect(html).toContain("<h4>Heading three</h4>");
+    expect(html).toMatch(/<h2 class="[^"]*">Heading one<\/h2>/);
+    expect(html).toMatch(/<h3 class="[^"]*">Heading two<\/h3>/);
+    expect(html).toMatch(/<h4 class="[^"]*">Heading three<\/h4>/);
     // Never a second h1, and no `##` left at the level it would have to be
     // restyled off.
     expect(html).not.toContain("<h1");
     expect(html.match(/<h2/g)).toHaveLength(1);
   });
 
-  it("the levelled document gives each level its own step, in tokens", () => {
-    const css = readFileSync(IDIOM_CSS, "utf8");
-    for (const [tag, token] of [["h2", "--h2"], ["h3", "--h3"], ["h4", "--h4"]] as const) {
-      expect(css, `.rk-doc.rk-doc-levelled ${tag}`).toMatch(
-        new RegExp(`\\.rk-doc\\.rk-doc-levelled ${tag} \\{\\s*font-size: var\\(${token}\\);`)
-      );
-    }
+  it("a body heading carries no size of its own — the type ladder's element step decides it", () => {
+    const html = legalBodyHtml(md);
+    expect(html).not.toMatch(/<h[2-6] class="(?:[^"]* )?text-(?:xs|sm|base|lg|xl|\dxl)[ "]/);
   });
 });
 

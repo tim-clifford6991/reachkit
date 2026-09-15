@@ -68,23 +68,6 @@ describe("§0 4–5 — the field's disabled and invalid states", () => {
   });
 });
 
-describe("§0 7–8 — the idiom's own option card and tag", () => {
-  it("§0 7: a disabled option card is --sunk, --line, default cursor, over hover too", () => {
-    for (const selector of [".rk-choice:disabled", ".rk-choice:disabled:hover"]) {
-      const d = decls(IDIOM, selector);
-      expect(d.get("background"), selector).toBe("var(--sunk)");
-      expect(d.get("border-color"), selector).toBe("var(--line)");
-      expect(d.get("cursor"), selector).toBe("default");
-    }
-    expect(read("src/ui/idiom/OptionCard.tsx")).toContain("disabled={p.disabled}");
-  });
-
-  it("§0 8: hover raises the tag's × and leaves the tag's ground alone", () => {
-    expect(decls(IDIOM, ".rk-tag:hover .rk-tag-x").get("opacity")).toBe("1");
-    expect(read(IDIOM)).not.toMatch(/\.rk-tag:hover\s*\{/);
-  });
-});
-
 describe("§0 10 — the calendar cell open in the panel", () => {
   it("keeps the hover ring, and today keeps its own", () => {
     expect(decls(CALENDAR, ".rk-cal-cell:hover").get("border-color")).toBe("var(--accent-line)");

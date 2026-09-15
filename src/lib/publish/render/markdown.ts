@@ -375,9 +375,9 @@ export function renderMarkdownHtml(md: string): string {
  * size that is not its step. `heading-scale.test.ts` renders every route and
  * requires each `h1..h4` to compute its own step of the ladder, so the shift
  * is made on the level instead: a `##` arrives as an `<h3>` and earns the
- * 20px the set draws (issues #355, #493). The container carries
- * `.rk-doc-levelled` (`src/ui/idiom/idiom.css`), which gives those levels
- * back their ladder steps.
+ * 20px the set draws (issues #355, #493). The type ladder's element rules
+ * (`src/ui/type.css`) give each level its step; a caller's class map adds
+ * spacing and weight, never a size (issue 731).
  *
  * `h6` stays `h6`: the scale bottoms out and nothing below it exists.
  *
