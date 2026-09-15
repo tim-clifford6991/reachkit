@@ -96,6 +96,10 @@ export interface CrawlOutcome {
    *  a read with nothing in it (a 404, or a document with no `<loc>`);
    *  `unreadable` is a read that did not come back. */
   sitemap: "found" | "absent" | "unreadable";
+  /** The home document this crawl read, handed over or cache-first, so the
+   *  profile reads the published site name off it on every tier (issue
+   *  609). `null` where the home page could not be read. */
+  homeHtml: string | null;
 }
 
 /** The one seam this module crosses. Doubled in tests; wired to the
@@ -167,15 +171,28 @@ export async function crawlSite(
       ? { url: a.homeUrl, html: a.homeHtml, fetchMs: null }
       : await readHome(c, a.homeUrl, ports);
   if (home === null) {
-    return { pages: [], discovered: 0, stoppedBy: "complete", fetched: [], broken: [], sitemap: "unreadable" };
+    return {
+      pages: [],
+      discovered: 0,
+      stoppedBy: "complete",
+      fetched: [],
+      broken: [],
+      sitemap: "unreadable",
+      homeHtml: null,
+    };
   }
 
   const fetched = new Set<string>();
   const broken = new Set<string>();
+  // The identities that already have a row, by the address the document was
+  // finally served from — one row per real page, however many addresses
+  // redirect to it (issue 609).
+  const rows = new Set<string>();
   const homeKey = dedupeKey(home.url);
   if (homeKey !== null) {
     seen.add(homeKey);
     fetched.add(homeKey);
+    rows.add(homeKey);
   }
   pages.push(pageOf(home.url, home.html, site, home.fetchMs));
 
@@ -236,6 +253,14 @@ export async function crawlSite(
         continue;
       }
       if (key !== null) fetched.add(key);
+      // A redirect decides which page this is. A final address off the
+      // customer's own site is not their page, and a final address that
+      // already has a row is an alias of it: neither is a second row.
+      const final = inScopeUrl(stored.url, stored.url, site);
+      const finalKey = final === null ? null : dedupeKey(final);
+      if (finalKey === null || rows.has(finalKey)) continue;
+      rows.add(finalKey);
+      seen.add(finalKey);
       // A document the ledger served from its window was not this fetch's
       // bytes, so this fetch's time is not its time.
       const timed = outcome.ok && outcome.readAt.toISOString() === stored.readAt ? fetchMs : null;
@@ -254,6 +279,7 @@ export async function crawlSite(
     fetched: [...fetched],
     broken: [...broken],
     sitemap: sitemap.state,
+    homeHtml: home.html,
   };
 }
 
@@ -436,11 +462,16 @@ function absoluteUrl(raw: string, from: string): string | null {
   }
 }
 
+/** Query parameters that track a click and never address a page. */
+const TRACKING_PARAM_RE = /^(?:utm_.*|gclid|fbclid|msclkid)$/i;
+
 /** The identity two addresses share when they are the same page: scheme
- *  and host lower-cased by the URL parser, no fragment, no query, no
- *  trailing slash below the root. The query goes because a crawl that read
- *  `/blog?page=1` and `/blog?page=1&utm=x` twice would spend two of its
- *  hundred on one page. */
+ *  and host lower-cased by the URL parser, no fragment, no trailing slash
+ *  below the root, and the query without its tracking parameters, sorted.
+ *  The query stays because `/product?id=1` and `/product?id=2` are two
+ *  pages (issue 609); the tracking parameters go because a crawl that read
+ *  `/blog?page=1` and `/blog?page=1&utm_source=x` twice would spend two of
+ *  its hundred on one page. */
 function dedupeKey(url: string): string | null {
   let parsed: URL;
   try {
@@ -449,7 +480,12 @@ function dedupeKey(url: string): string | null {
     return null;
   }
   const path = parsed.pathname.replace(/\/+$/, "");
-  return `${parsed.protocol}//${parsed.host}${path === "" ? "/" : path}`;
+  for (const name of [...parsed.searchParams.keys()]) {
+    if (TRACKING_PARAM_RE.test(name)) parsed.searchParams.delete(name);
+  }
+  parsed.searchParams.sort();
+  const query = parsed.searchParams.toString();
+  return `${parsed.protocol}//${parsed.host}${path === "" ? "/" : path}${query === "" ? "" : `?${query}`}`;
 }
 
 /** One read page, parsed. Never throws: a document that carries no title
