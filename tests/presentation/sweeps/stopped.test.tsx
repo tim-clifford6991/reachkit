@@ -242,7 +242,7 @@ describe("REQ-092 c8 — no internal cause, anywhere the statement renders", () 
     const swept = (r: (typeof stopped)[number]): ParentNode => {
       if (!LEGAL_ROUTES.has(r.route.url)) return r.doc.body;
       const body = r.doc.body.cloneNode(true) as HTMLElement;
-      const documents = body.querySelectorAll(".rk-doc");
+      const documents = body.querySelectorAll("[data-testid='legal-document']");
       expect(documents, `${r.route.url} renders its legal document`).toHaveLength(1);
       documents.forEach((el) => el.remove());
       return body;
