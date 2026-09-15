@@ -67,6 +67,7 @@ function livePage(over: Record<string, unknown> = {}): unknown {
     slug: "a-page",
     title: "The best onboarding tools",
     bodyMd: `Teams pick a tool on one question: whether ${PASSAGE}.\n\n## What to look for\n\nTime to the first flow.`,
+    description: "What teams look for in an onboarding tool.",
     faq: [],
     grounded: {
       passage: PASSAGE,
@@ -228,8 +229,9 @@ describe("nothing of ours is on a domain that is not ours", () => {
 
   it("the whole document is in the HTML at first byte, with no script but the data block", async () => {
     // REQ-062 c1's property, at the source. The FAQ arm is off here, so
-    // there is no script element at all.
+    // the one script element is the page's `Article` data block (issue 697).
     const html = await render();
-    expect(html).not.toContain("<script");
+    const scripts = html.match(/<script\b[^>]*>/g) ?? [];
+    expect(scripts).toEqual(['<script type="application/ld+json">']);
   });
 });

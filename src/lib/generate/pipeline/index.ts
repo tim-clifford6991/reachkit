@@ -162,6 +162,10 @@ export async function generateDraft(
     state: GENERATING,
     title: body.title,
     body_md: body.bodyMarkdown,
+    // The description the draft step already writes, kept where the hosted
+    // template reads it (issue 697): without it every hosted page's head
+    // has no meta description and §9's crawl flags ReachKit's own template.
+    meta: { description: body.description },
     // The one shape (`../fact.ts`), so what is written here and what the
     // draft view and the hosted page read cannot be spelled differently.
     grounded_fact: recordedFactValue(grounding.fact),

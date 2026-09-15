@@ -130,6 +130,15 @@ describe("§8 — the day's page is for the day after the evening it is generate
   });
 });
 
+describe("issue 697 — the draft keeps the description the hosted page's head reads", () => {
+  it("the description the draft step wrote is stored on the row's meta", async () => {
+    queueAttempt(CLEAN_MARKDOWN);
+    const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
+    const row = outcome.ok ? store.rows.get(outcome.draftId) : undefined;
+    expect(row?.meta).toEqual({ description: "A description." });
+  });
+});
+
 describe("ADR-070 — one automatic regeneration, and no more", () => {
   it("a first attempt stopped by a rule is regenerated once", async () => {
     queueAttempt("Example wins everything, and always has.");

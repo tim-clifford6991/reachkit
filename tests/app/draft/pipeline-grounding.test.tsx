@@ -299,9 +299,10 @@ describe("§8's battery — the record the pipeline wrote is the record the draf
     expect(typeof (row.claim_check as { at: unknown }).at).toBe("string");
     // The empty list is the record: a battery ran, and nothing failed.
     expect(row.rule_failures).toEqual([]);
-    // And nothing was written into `meta` — the keys this screen used to
-    // read are not keys the pipeline has, under any spelling.
-    expect(row.meta ?? null).toBeNull();
+    // And no battery record was written into `meta` — the keys this screen
+    // used to read are not keys the pipeline has, under any spelling. The
+    // one key `meta` carries is the page's description (issue 697).
+    expect(Object.keys((row.meta ?? {}) as object)).toEqual(["description"]);
   });
 
   it("the badge states the check the pipeline ran, on the account's own read", async () => {

@@ -2,16 +2,19 @@
 // tests/hosted/indexing/head.test.tsx — BUILD §9, REQ-059 c3, issue #49
 //
 // The hosted page's head and its structured data: the canonical is on the
-// customer's own domain, and `FAQPage` appears exactly when the stored
-// section is there.
+// customer's own domain, every page carries a description and `Article`
+// (issue 697), and `FAQPage` appears exactly when the stored section is
+// there.
 //
 // The row that matters most is the negative one: a page with no
-// question-and-answer section emits **no markup at all** — never an empty
+// question-and-answer section emits **no `FAQPage` at all** — never an empty
 // `FAQPage`, which would be a structured claim about a section that is not
 // on the page, on a domain that is not ours.
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { applyEnvFixture } from "../../mail/env-fixture";
+
+import { readPageFacts } from "@/lib/site-issues/facts";
 
 applyEnvFixture();
 
@@ -57,6 +60,7 @@ function livePage(faq: { question: string; answer: string }[]): unknown {
     slug: "a-page",
     title: "The best onboarding tools",
     bodyMd: "One paragraph.\n\n## A heading\n\nAnother paragraph.",
+    description: "Which onboarding tools small teams pick, and why.",
     faq,
     grounded: {
       passage: "One paragraph.",
@@ -98,6 +102,27 @@ describe("REQ-059 c3 — the canonical is on the customer's own domain", () => {
     expect(metadata.title).toBe("The best onboarding tools");
   });
 
+  it("the description is the one generation wrote for the page", async () => {
+    const metadata = await generateMetadata({ params: Promise.resolve({ slug: ["a-page"] }) });
+    expect(metadata.description).toBe("Which onboarding tools small teams pick, and why.");
+  });
+
+  it("a page with no stored description is described by its own first paragraph, cut at a word", async () => {
+    const long = `${"word ".repeat(60)}end.`;
+    state.page = { ...(livePage([]) as object), description: null, bodyMd: `## Heading\n\n**${long}**` };
+    const metadata = await generateMetadata({ params: Promise.resolve({ slug: ["a-page"] }) });
+    const description = String(metadata.description);
+    expect(description.startsWith("word word")).toBe(true);
+    expect(description.endsWith("word…")).toBe(true);
+    expect(description.length).toBeLessThanOrEqual(161);
+  });
+
+  it("a page with neither declares no description, never an empty one", async () => {
+    state.page = { ...(livePage([]) as object), description: null, bodyMd: "## Only a heading" };
+    const metadata = await generateMetadata({ params: Promise.resolve({ slug: ["a-page"] }) });
+    expect(metadata.description).toBeUndefined();
+  });
+
   it("an address with no page declares nothing at all", async () => {
     state.page = null;
     const metadata = await generateMetadata({ params: Promise.resolve({ slug: ["a-page"] }) });
@@ -105,11 +130,46 @@ describe("REQ-059 c3 — the canonical is on the customer's own domain", () => {
   });
 });
 
+describe("issue 697 — every page describes itself in structured data", () => {
+  it("a page with no FAQ still carries an Article from what the page states", async () => {
+    state.page = livePage([]);
+    const html = await render();
+    const article = schemaOf(html, "Article");
+    expect(article).toEqual({
+      "@context": "https://schema.org",
+      "@type": "Article",
+      "@id": "https://content.example.com/a-page#article",
+      headline: "The best onboarding tools",
+      description: "Which onboarding tools small teams pick, and why.",
+      url: "https://content.example.com/a-page",
+      mainEntityOfPage: "https://content.example.com/a-page",
+      datePublished: "2026-09-01T09:00:00.000Z",
+      inLanguage: "en-US",
+      publisher: { "@type": "Organization", name: "example.com", url: "https://example.com" },
+    });
+    expect(article).not.toHaveProperty("author");
+  });
+
+  it("the crawl's own reader finds structured data on the page", async () => {
+    state.page = livePage([]);
+    const facts = readPageFacts("https://content.example.com/a-page", await render());
+    expect(facts.schemaTypes).toBeGreaterThan(0);
+  });
+
+  it("the crawl's own reader finds the description once Next writes it into the head", async () => {
+    const metadata = await generateMetadata({ params: Promise.resolve({ slug: ["a-page"] }) });
+    const head = `<head><meta name="description" content="${String(metadata.description)}"/></head>`;
+    expect(readPageFacts("https://content.example.com/a-page", head).metaDescription).toBe(
+      "Which onboarding tools small teams pick, and why."
+    );
+  });
+});
+
 describe("REQ-059 c3 — FAQPage exactly where the data is, and nowhere else", () => {
   it("a page with a stored section is marked up as such", async () => {
     const html = await render();
     expect(html).toContain('type="application/ld+json"');
-    const schema = JSON.parse(jsonLdOf(html)) as Record<string, unknown>;
+    const schema = schemaOf(html, "FAQPage");
     expect(schema["@type"]).toBe("FAQPage");
     expect(schema["@id"]).toBe("https://content.example.com/a-page#faq");
     expect(schema.mainEntity).toEqual([
@@ -121,10 +181,9 @@ describe("REQ-059 c3 — FAQPage exactly where the data is, and nowhere else", (
     ]);
   });
 
-  it("a page without one emits no markup at all — never an empty FAQPage", async () => {
+  it("a page without one emits no FAQPage at all — never an empty one", async () => {
     state.page = livePage([]);
     const html = await render();
-    expect(html).not.toContain("application/ld+json");
     expect(html).not.toContain("FAQPage");
   });
 
@@ -136,11 +195,11 @@ describe("REQ-059 c3 — FAQPage exactly where the data is, and nowhere else", (
     state.page = livePage([]);
     const withoutSection = await render();
     expect(withoutSection).toContain("A heading");
-    expect(withoutSection).not.toContain("application/ld+json");
+    expect(withoutSection).not.toContain("FAQPage");
 
     // One stored entry, one question — never one per heading.
     state.page = livePage([{ question: "Q?", answer: "A." }]);
-    const schema = JSON.parse(jsonLdOf(await render())) as { mainEntity: unknown[] };
+    const schema = schemaOf(await render(), "FAQPage") as { mainEntity: unknown[] };
     expect(schema.mainEntity).toHaveLength(1);
   });
 
@@ -221,8 +280,10 @@ describe("the render itself — the whole page at first byte, and no sentence of
   });
 });
 
-function jsonLdOf(html: string): string {
-  const match = /<script type="application\/ld\+json">(.*?)<\/script>/s.exec(html);
-  if (match?.[1] === undefined) throw new Error("no JSON-LD block in the rendered page");
-  return match[1];
+function schemaOf(html: string, type: string): Record<string, unknown> {
+  for (const match of html.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/gs)) {
+    const schema = JSON.parse(match[1] ?? "") as Record<string, unknown>;
+    if (schema["@type"] === type) return schema;
+  }
+  throw new Error(`no ${type} JSON-LD block in the rendered page`);
 }

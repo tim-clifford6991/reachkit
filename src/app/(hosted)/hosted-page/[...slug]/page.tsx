@@ -1,5 +1,6 @@
 // BUILD §9 — the hosted page: one typographic render, canonical on the
-// customer's own domain, `FAQPage` from data, zero client JavaScript.
+// customer's own domain, a description and `Article` on every page,
+// `FAQPage` from data, zero client JavaScript.
 //
 // §9: published pages "render through **one** clean typographic template
 // (the §2 design system, light-only is acceptable), customisable later —
@@ -27,8 +28,16 @@
 // body** (the archived BP-047 decision 2). A heading heuristic that is
 // wrong emits schema claiming a question-and-answer section that is not
 // there — a structured false statement on the customer's own domain. An
-// absent or empty section emits no markup at all, never an empty
-// `FAQPage`.
+// absent or empty section emits no `FAQPage` at all, never an empty one.
+//
+// **Every page describes itself** (issue 697). §9's crawl flags a page with
+// no meta description and a page with no structured data, and a hosted page
+// is ReachKit's template, not the customer's: a fault there is ours to fix
+// in the template, never a Fix opportunity. So every live page's head
+// carries the description generation wrote for it (`drafts.meta`), and
+// every page carries an `Article` block built from facts the page already
+// states — its title, its description, its date, its canonical and its
+// publisher. No author: §8 forbids inventing one.
 //
 // **The page is the customer's, and the set draws whose** (UI-SPEC S19,
 // issue #375). Their mark and their name at the top, the category they
@@ -66,7 +75,13 @@ import type { Metadata } from "next";
 import type React from "react";
 import { BODY_CLASSES } from "@/app/(account)/app/draft/[draftId]/present";
 import { copy } from "@/lib/presentation/copy";
-import { markPassage, parseMarkdown, toHtml } from "@/lib/publish/render/markdown";
+import {
+  markPassage,
+  parseMarkdown,
+  toHtml,
+  type Block,
+  type Inline,
+} from "@/lib/publish/render/markdown";
 import { liveUrlOnHost, livePageBySlug, type HostedPage } from "@/lib/publish/destinations/hosted";
 import { Surface } from "@/ui/layout";
 import { resolveHost } from "../../resolve-host";
@@ -126,14 +141,72 @@ export async function generateMetadata({
   if (resolved === null) return {};
   return {
     title: resolved.page.title,
+    description: descriptionOf(resolved.page),
     alternates: { canonical: resolved.canonical },
   };
+}
+
+/** A description's length in a search result, past which it is cut. */
+const DESCRIPTION_CHARS = 160;
+
+function inlineText(inlines: readonly Inline[]): string {
+  return inlines
+    .map((inline) => ("children" in inline ? inlineText(inline.children) : inline.text))
+    .join("");
+}
+
+/**
+ * The page's meta description: the one generation wrote for it, or — for a
+ * page generated before that was stored — its own first paragraph, cut at a
+ * word. Always the page's own words, never a sentence of ours. `undefined`
+ * only for a page with neither, which declares no description rather than
+ * an empty one.
+ */
+function descriptionOf(page: HostedPage): string | undefined {
+  if (page.description !== null) return page.description;
+  const first = parseMarkdown(page.bodyMd).find(
+    (block): block is Extract<Block, { kind: "paragraph" }> => block.kind === "paragraph"
+  );
+  const text = first === undefined ? "" : inlineText(first.children).replace(/\s+/g, " ").trim();
+  if (text === "") return undefined;
+  if (text.length <= DESCRIPTION_CHARS) return text;
+  const cut = text.slice(0, DESCRIPTION_CHARS);
+  const space = cut.lastIndexOf(" ");
+  return `${(space > 0 ? cut.slice(0, space) : cut).trimEnd()}…`;
+}
+
+/** A schema object as a script body. Next's own JSON-LD guidance:
+ *  `JSON.stringify` does not escape a `<`, and every value here is
+ *  customer- or model-written text. */
+function jsonLd(schema: Record<string, unknown>): string {
+  return JSON.stringify(schema).replace(/</g, "\\u003c");
+}
+
+/** `Article`, on every page: what the page is, from what it states. */
+function articleSchema(page: HostedPage, canonical: string): string {
+  const description = descriptionOf(page);
+  return jsonLd({
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "@id": `${canonical}#article`,
+    headline: page.title,
+    ...(description === undefined ? {} : { description }),
+    url: canonical,
+    mainEntityOfPage: canonical,
+    datePublished: page.publishedAt.toISOString(),
+    inLanguage: PAGE_LOCALE,
+    publisher: {
+      "@type": "Organization",
+      name: page.publisher.name,
+      url: `https://${page.publisher.name}`,
+    },
+  });
 }
 
 /** `FAQPage` from the stored section, or nothing at all. */
 function faqSchema(page: HostedPage, canonical: string): string | null {
   if (page.faq.length === 0) return null;
-  const schema = {
+  return jsonLd({
     "@context": "https://schema.org",
     "@type": "FAQPage",
     "@id": `${canonical}#faq`,
@@ -142,10 +215,7 @@ function faqSchema(page: HostedPage, canonical: string): string | null {
       name: entry.question,
       acceptedAnswer: { "@type": "Answer", text: entry.answer },
     })),
-  };
-  // Next's own JSON-LD guidance: `JSON.stringify` does not escape a `<`,
-  // and a body is customer- or model-written text.
-  return JSON.stringify(schema).replace(/</g, "\\u003c");
+  });
 }
 
 /**
@@ -237,7 +307,8 @@ export default async function HostedPageRoute({
   if (resolved === null) notFound();
 
   const { page, canonical } = resolved;
-  const schema = faqSchema(page, canonical);
+  const article = articleSchema(page, canonical);
+  const faq = faqSchema(page, canonical);
   // The one Markdown renderer (`markdown.ts`), which escapes every text
   // node on the way out — so a body cannot introduce markup and this
   // string is safe to set as HTML by construction rather than by a
@@ -267,8 +338,9 @@ export default async function HostedPageRoute({
         wide: { kind: "same-as-below" },
       }}
     >
-      {schema === null ? null : (
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: schema }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: article }} />
+      {faq === null ? null : (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: faq }} />
       )}
 
       {/* The customer's own bar: their mark, their name, and the address

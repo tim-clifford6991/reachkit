@@ -30,6 +30,7 @@ import {
   livePageBySlug,
   livePagesForSite,
   previewHostFor,
+  readDescription,
   readFaq,
   tags,
   wasEverLive,
@@ -68,7 +69,7 @@ function seedOnePublishedPage(): void {
       opportunity_id: "opp-1",
       title: "A page",
       body_md: "# A page\n\nBody.",
-      meta: { faq: [{ question: "Q?", answer: "A." }] },
+      meta: { description: "What the page answers.", faq: [{ question: "Q?", answer: "A." }] },
     },
   ]);
   db.seed("publications", [
@@ -335,5 +336,24 @@ describe("the FAQ section is read from stored meta, never parsed from a body", (
     expect(readFaq({ faq: "yes" })).toEqual([]);
     expect(readFaq({ faq: [{ question: "Q?" }] })).toEqual([]);
     expect(readFaq({ faq: [{ question: " ", answer: "A." }] })).toEqual([]);
+  });
+});
+
+describe("the description is read from stored meta (issue 697)", () => {
+  it("a stated description is read, whitespace folded", () => {
+    expect(readDescription({ description: "  What the\n page answers. " })).toBe("What the page answers.");
+  });
+
+  it("a live page carries its draft's description", async () => {
+    seedOnePublishedPage();
+    const page = await livePageBySlug("site-1", "a-page");
+    expect(page?.description).toBe("What the page answers.");
+  });
+
+  it("an absent, blank or non-string description is none, never an empty tag", () => {
+    expect(readDescription(null)).toBeNull();
+    expect(readDescription({})).toBeNull();
+    expect(readDescription({ description: " " })).toBeNull();
+    expect(readDescription({ description: 3 })).toBeNull();
   });
 });
