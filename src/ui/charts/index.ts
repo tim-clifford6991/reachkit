@@ -3,8 +3,6 @@ export { GrowthLine } from "./GrowthLine";
 export type { GrowthWeek } from "./GrowthLine";
 export { PresenceBars } from "./PresenceBars";
 export type { PresenceBar } from "./PresenceBars";
-export { AiDotMatrixChart } from "./AiDotMatrixChart";
-export type { AiDotMatrixCellState, AiDotMatrixRow } from "./AiDotMatrixChart";
 export { RivalSparkline } from "./RivalSparkline";
 export type { RivalSparklineProps } from "./RivalSparkline";
 

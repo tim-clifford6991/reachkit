@@ -221,6 +221,21 @@ describe("three tiles, and no fourth", () => {
     return row.slice(0, row.indexOf("</div></div></div>"));
   };
 
+  it("draws the AI window as a CSS grid of weeks, the shortfall to the goal as dashed goal dots (issue 730)", () => {
+    const tile = markup.slice(markup.indexOf('data-testid="overview-tile-ai-answers"'), markup.indexOf('data-testid="overview-tile-pages"'));
+    const grid = tile.slice(tile.indexOf('role="table"'));
+    expect(grid).not.toContain("<svg");
+    const states = [...grid.matchAll(/data-cell="([a-z-]+)"/g)].map((m) => m[1]);
+    const cited = states.filter((st) => st === "cited").length;
+    // `2/12 goal: 6`: two cited weeks. The shortfall is drawn over weeks the
+    // customer was measured and not cited — never over an unmeasured week.
+    expect(cited).toBe(2);
+    const uncited = states.filter((st) => st === "goal" || st === "not-cited").length;
+    expect(states.filter((st) => st === "goal")).toHaveLength(Math.min(6 - cited, uncited));
+    expect(states.filter((st) => st === "goal").length).toBeGreaterThan(0);
+    expect(count(grid, 'role="columnheader"')).toBe(states.length);
+  });
+
   it("draws each tile's carried value and badge beside the figure, on one row (#521)", () => {
     // The set's `62 ▲8 Hard to find` and `2/12 goal: 6`: one row per tile.
     expect(count(markup, 'data-carry="beside"')).toBe(3);

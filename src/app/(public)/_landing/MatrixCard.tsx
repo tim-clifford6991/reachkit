@@ -14,16 +14,9 @@
 // with the page, and it is inside the layout suite's conformance sweep —
 // which no screenshot of a card would be.
 //
-// **Four rows, and the multi-row matrix is why the chart changed.**
-// `AiDotMatrixChart` reserved a fixed 66-unit name gutter while its only
-// caller drew one row of an Overview tile; a rival's domain is wider than
-// that and was drawn left of the viewBox — a `<g>` escaping its `<svg>`,
-// which the layout suite's check 2 reports and `canary.test.ts` pins as a
-// real defect. The gutter is now derived from the widest name the caller
-// passes (issue #351), so a domain is neither truncated (§2.3 does not
-// truncate a value) nor drawn outside its box, and §4.1's own drawing —
-// "rivals' cited rows filled gray, customer's row empty red-ringed" —
-// renders for the first time.
+// **The report's own grid** (`AnswerMatrix`, issue 730): rows × questions in
+// CSS grid, a domain never truncated (§2.3), "rivals' cited rows filled
+// gray, customer's row empty red-ringed".
 //
 // **Every figure is the fixture's own measurement**, and the counts are
 // the report's: `n/m` over the searches an AI actually answered, which is
@@ -31,11 +24,11 @@
 // the report's own table renders beside this chart on `/scan/{domain}`.
 import type React from "react";
 import { Bot } from "lucide-react";
-import { AiDotMatrixChart, type AiDotMatrixCellState, type AiDotMatrixRow } from "@/ui/charts";
 import type { AnswerCell } from "@/lib/market/questions/matrix";
 import { copy } from "@/lib/presentation/copy";
 import { FIXTURE_REPORT } from "../scan/[domain]/_fixture/states";
 import { Num, ratio } from "../scan/[domain]/_address/measured";
+import { AnswerMatrix, type MatrixCell, type MatrixRow } from "../scan/[domain]/_modules/ai-answers";
 
 /** The chip's date, in the report's own locale — the set draws the source
  *  chip as the date alone, and a date is a value, not a sentence. */
@@ -52,7 +45,7 @@ const CHIP_LOCALE = "en-US";
  *  on a rival's row it would count someone else's citation as that
  *  rival's. A rival is cited when the answer cites the rival's own domain,
  *  and by nothing else. */
-function cellState(cell: AnswerCell, domain: string, own: boolean): AiDotMatrixCellState {
+function cellState(cell: AnswerCell, domain: string, own: boolean): MatrixCell {
   if (cell.kind !== "answered") return "muted";
   const named = cell.citedDomains.some((cited) => cited === domain) || (own && cell.namesCustomer);
   return named ? "cited" : "not-cited";
@@ -68,13 +61,13 @@ function citedCount(cells: readonly AnswerCell[], domain: string): number {
 /** The rivals' rows first and the customer's last: that is the set's order
  *  and it is the reading order of the claim — *they* are cited, *you* are
  *  not. */
-function specimenRows(): readonly AiDotMatrixRow[] {
+function specimenRows(): readonly MatrixRow[] {
   const answers = FIXTURE_REPORT.aiAnswers;
   if (answers === null) return [];
   const rivals = answers.rivals.map(
-    (rival): AiDotMatrixRow => ({
+    (rival): MatrixRow => ({
       name: rival.domain,
-      identity: "rival",
+      you: false,
       cells: rival.cells.map((cell) => cellState(cell, rival.domain, false)),
       count: ratio(citedCount(rival.cells, rival.domain), answers.answeredSearches),
     })
@@ -83,7 +76,7 @@ function specimenRows(): readonly AiDotMatrixRow[] {
     ...rivals,
     {
       name: answers.ownDomain,
-      identity: "you",
+      you: true,
       cells: answers.rows.map((row) => cellState(row.cell, answers.ownDomain, true)),
       count: ratio(answers.customerCitations, answers.answeredSearches),
     },
@@ -115,7 +108,7 @@ export function MatrixCard(): React.JSX.Element {
         {/* A matrix wider than the card scrolls rather than shrinking its
             labels: at 320 a rival's domain is wider than a quarter of it. */}
         <div className="min-w-0 overflow-x-auto">
-          <AiDotMatrixChart
+          <AnswerMatrix
             rows={rows}
             questions={answers.rows.map((row) => String(row.question.n))}
             label={copy("ai-answers.title")}

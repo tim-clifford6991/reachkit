@@ -119,7 +119,8 @@ describe("S1 sections — 01 why-care, 02 what-it-does, 03 how-to-start", () => 
     expect(markup).toContain("landing.why.matrix.line");
     // Four rows — three rivals filled, the customer's own empty and ringed
     // — is the argument the section makes (§4.1's own drawing).
-    expect(markup).toMatch(/<svg[^>]*aria-label="ai-answers\.title"/);
+    // Issue 730: the report's own CSS grid, named by the card's title.
+    expect(markup).toMatch(/role="table"[^>]*aria-label="ai-answers\.title"[^>]*data-testid="ai-matrix"/);
   });
 
   it("02 carries the live This-week card with its panel, and the panel offers nothing", async () => {
