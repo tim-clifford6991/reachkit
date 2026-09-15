@@ -15,6 +15,7 @@
 import { SUPPLY_TARGET_DEPTH } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import { deriveOpportunities, type DeriveInput } from "../derive";
+import { assessReadiness } from "../readiness";
 import { supplyDepth } from "./depth";
 
 /** Why the pursuit stopped. The distribution of this across passes is the
@@ -42,6 +43,9 @@ export async function pursueDepth(
   // index then refuses as duplicates. A loop here would buy nothing and
   // would spend a model call per turn.
   const { created } = await deriveOpportunities(c, a);
+  // SPEC §6: depth is ready supply, so every open row has its answer before
+  // it is counted.
+  await assessReadiness(a.siteId, { at: a.report.verdict.measuredAt });
   const { unused } = await supplyDepth(a.siteId);
 
   const stop: DepthStop =

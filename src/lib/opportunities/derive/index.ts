@@ -26,6 +26,8 @@ import type { Candidate } from "./candidate";
 import { earnCandidates } from "./earn";
 import { fixCandidates } from "./fix";
 import { improveCandidates } from "./improve";
+import { brandTokensOf, collapse } from "../cluster";
+import { opportunityStore, readOpportunity } from "../store";
 import { persist } from "./persist";
 import { refineType } from "./typing";
 import { writeCandidates } from "./write";
@@ -111,10 +113,23 @@ export async function deriveOpportunities(
     labelled.push(await refineType(c, candidate));
   }
 
-  const { created, duplicates } = await persist({ candidates: labelled });
+  // SPEC §6: one survivor per parent topic, over the rows already held as
+  // well as this pass's — after labelling, because the model may refine a
+  // Write's type and the type decides precedence. Losing open rows go first,
+  // so the one-open-row-per-cluster index never sees two.
+  const store = opportunityStore();
+  const existing = (await store.clusterable(a.siteId)).map(readOpportunity);
+  const plan = collapse({ existing, candidates: labelled, brandTokens: brandTokensOf(a.report) });
+  for (const id of plan.dismiss) await store.markDismissed(id);
+  for (const row of plan.update) await store.setCluster(row.id, row.clusterKey, row.absorbedQueries);
+
+  const { created, duplicates } = await persist({ candidates: plan.insert });
+  // A candidate the collapse folded into a row already held is that row's
+  // duplicate: an equivalent open or queued opportunity exists.
+  const folded = labelled.length - plan.insert.length;
   return {
     created,
     assessed,
-    rejected: { ...rejected, duplicate_open: rejected.duplicate_open + duplicates },
+    rejected: { ...rejected, duplicate_open: rejected.duplicate_open + duplicates + folded },
   };
 }

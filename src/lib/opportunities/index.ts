@@ -39,7 +39,8 @@ export {
 export { rankScore } from "./rank/score";
 export { rankOpen } from "./rank/open";
 export { assessFixPages, fixPageReadiness, type FixDelivery } from "./fix-page";
-export { assessVerdictReadiness } from "./verdict-readiness";
+export { assessReadiness, opportunityReady, ownRanksFrom, type ReadinessContext } from "./readiness";
+export { canonicalUrl, clusterKey, collapse, comparePrecedence } from "./cluster";
 export { suppressionOf, verdictReason, type NotWorkingVerdict, type Suppression } from "./suppression";
 export { nextForDay } from "./next";
 export { dismissForVeto, queueForDraft } from "./drafted";

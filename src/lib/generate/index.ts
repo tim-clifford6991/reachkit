@@ -15,7 +15,7 @@
 //     there is none: supply is the cap, and the calendar is never padded;
 //   * the pipeline runs, and ADR-070's one automatic regeneration is
 //     performed here — once, and never for a draft that has entered review.
-import { assessFixPages, nextForDay, queueForDraft } from "@/lib/opportunities";
+import { assessFixPages, assessReadiness, nextForDay, queueForDraft } from "@/lib/opportunities";
 import { withDraftCost } from "./cost";
 import { recoveryOutcome } from "./claims/recovery";
 import type { SiteRuleInputs } from "./rules/types";
@@ -80,6 +80,9 @@ export async function generateDayPage(a: {
   // before the day is picked, so a fix the destination can no longer make
   // is not the page chosen.
   await assessFixPages(a.siteId, { report });
+  // SPEC §6: and every other open row's readiness, so the day is picked
+  // from rows with an answer as of tonight.
+  await assessReadiness(a.siteId, { at: report.verdict.measuredAt });
 
   const opportunity = await nextForDay(a.siteId);
   if (opportunity === null) return { ok: false, because: "no_opportunity" };

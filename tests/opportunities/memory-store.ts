@@ -19,6 +19,7 @@ import type {
 } from "../../src/lib/opportunities/store";
 import type { Profile } from "../../src/lib/market/questions/profile";
 import type { NotWorkingVerdict } from "../../src/lib/opportunities/suppression";
+import type { StoredReport } from "../../src/lib/scan/report";
 
 export interface MemoryState {
   rows: OpportunityRow[];
@@ -32,6 +33,10 @@ export interface MemoryState {
   /** `page_verdicts` rows judged `not_working`, already joined to their
    *  opportunity. */
   notWorking: NotWorkingVerdict[];
+  /** The site's current stored report, where a suite gives one. */
+  report: StoredReport | null;
+  /** Whether the site's own pages ground a fact (SPEC §6, 2026-09-15). */
+  grounded: boolean;
 }
 
 export function newMemoryState(over: Partial<MemoryState> = {}): MemoryState {
@@ -44,6 +49,8 @@ export function newMemoryState(over: Partial<MemoryState> = {}): MemoryState {
     now: new Date("2026-09-06T09:00:00.000Z"),
     nextId: 1,
     notWorking: [],
+    report: null,
+    grounded: true,
     ...over,
   };
 }
@@ -65,7 +72,17 @@ export function memoryStore(state: MemoryState): OpportunityStore {
           (row.status === "open" || row.status === "queued") &&
           dedupeKey(row) === dedupeKey(insert)
       );
-      if (clash) return { outcome: "duplicate" };
+      // `opportunities_open_cluster_uniq`: one open or queued non-Fix row
+      // per cluster.
+      const clusterClash =
+        insert.family !== "fix" &&
+        insert.cluster_key != null &&
+        state.rows.some(
+          (row) =>
+            row.site_id === insert.site_id && row.family !== "fix" && row.cluster_key === insert.cluster_key &&
+            (row.status === "open" || row.status === "queued")
+        );
+      if (clash || clusterClash) return { outcome: "duplicate" };
 
       const id = `opp-${String(state.nextId++).padStart(4, "0")}`;
       const row: OpportunityRow = {
@@ -108,8 +125,34 @@ export function memoryStore(state: MemoryState): OpportunityStore {
 
     async countUnused(siteId) {
       return state.rows.filter(
-        (row) => row.site_id === siteId && row.status === "open" && row.family !== "fix"
+        (row) => row.site_id === siteId && row.status === "open" && row.family !== "fix" && row.ready
       ).length;
+    },
+
+    async clusterable(siteId) {
+      return state.rows.filter(
+        (row) => row.site_id === siteId && (row.status === "open" || row.status === "queued") && row.family !== "fix"
+      );
+    },
+
+    async setCluster(opportunityId, clusterKey, absorbedQueries) {
+      const row = state.rows.find((r) => r.id === opportunityId);
+      if (row === undefined) return;
+      const clash = state.rows.some(
+        (r) => r.id !== opportunityId && r.site_id === row.site_id && r.cluster_key === clusterKey &&
+          (r.status === "open" || r.status === "queued") && r.family !== "fix"
+      );
+      if (clash) throw new Error("memory store: opportunities_open_cluster_uniq");
+      row.cluster_key = clusterKey;
+      row.absorbed_queries = [...absorbedQueries];
+    },
+
+    async currentReport() {
+      return state.report;
+    },
+
+    async hasGroundingFact() {
+      return state.grounded;
     },
 
     async lastStatusChangeAt(siteId) {
