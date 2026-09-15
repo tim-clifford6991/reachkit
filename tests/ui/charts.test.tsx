@@ -5,8 +5,7 @@
 // WO-035/WO-036 test plans, not a requirement — the design system has no
 // requirement ancestor.
 //
-// The stories are rendered to static markup and read back in jsdom, the
-// same way `components-2.test.tsx` reads the registered components: these
+// The stories are rendered to static markup and read back in jsdom: these
 // are server-renderable SVG, so what the browser gets is what the string
 // says.
 import { readFileSync, readdirSync } from "node:fs";

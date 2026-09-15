@@ -310,7 +310,7 @@ describe(
     it("landing/no-js · the <form> itself is a plain post to /api/scan, with no JavaScript required to reach it", () => {
       expect(FORM_SOURCE).toMatch(/<form\s+action="\/api\/scan"\s+method="post"/);
       // The one field carries the native `name` a plain HTML submission
-      // needs (`src/ui/components/Input.tsx`'s WO-070 addition).
+      // needs.
       expect(FORM_SOURCE).toMatch(/name="value"/);
       // preventDefault() is what turns the native submission into the
       // JavaScript path — its presence does not remove the native

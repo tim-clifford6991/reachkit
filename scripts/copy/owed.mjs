@@ -454,8 +454,6 @@ const REGIONS = [
   [/^(Badge)$/, "badge"],
   [/^(CardHead)$/, "card head"],
   [/^(ActionPanel)$/, "action panel"],
-  [/^(DayPanel)$/, "day panel"],
-  [/^(CalendarGrid)$/, "calendar grid"],
   [/^(Collapse)$/, "collapse"],
   [/^(Card|IdiomCard|OptionCard)$/, "card"],
   [/^(Steps|Stat|Table|Alert|Toggle|Progress|Tabs)$/, "component"],

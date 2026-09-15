@@ -67,30 +67,27 @@ export interface RegisteredComponent {
    *  `collapse-title` and `tab-active` are that component's own parts, not
    *  separate widgets. */
   readonly stylesheet: string;
-  /** The name `src/ui/components/index.ts` exports it under. */
-  readonly exported: string;
 }
 
-/** §2.2's closed list, as data. Fourteen rows — the same fourteen
- *  `src/ui/components/index.ts` exports, tied to that barrel by
- *  `component-registry.test.ts`. */
+/** §2.2's closed list, as data. Fourteen rows. Screens write these
+ *  daisyUI classes in the route; no wrapper exports them (issue 732). */
 export const REGISTERED: readonly RegisteredComponent[] = [
-  { named: ["btn"], stylesheet: "components/button", exported: "Btn" },
-  { named: ["card", "card-body", "card-title"], stylesheet: "components/card", exported: "Card" },
-  { named: ["badge"], stylesheet: "components/badge", exported: "Badge" },
-  { named: ["alert"], stylesheet: "components/alert", exported: "Alert" },
-  { named: ["stats", "stat"], stylesheet: "components/stat", exported: "Stat" },
-  { named: ["tabs"], stylesheet: "components/tab", exported: "Tabs" },
-  { named: ["table"], stylesheet: "components/table", exported: "Table" },
-  { named: ["progress"], stylesheet: "components/progress", exported: "Progress" },
-  { named: ["toggle"], stylesheet: "components/toggle", exported: "Toggle" },
-  { named: ["steps"], stylesheet: "components/steps", exported: "Steps" },
+  { named: ["btn"], stylesheet: "components/button" },
+  { named: ["card", "card-body", "card-title"], stylesheet: "components/card" },
+  { named: ["badge"], stylesheet: "components/badge" },
+  { named: ["alert"], stylesheet: "components/alert" },
+  { named: ["stats", "stat"], stylesheet: "components/stat" },
+  { named: ["tabs"], stylesheet: "components/tab" },
+  { named: ["table"], stylesheet: "components/table" },
+  { named: ["progress"], stylesheet: "components/progress" },
+  { named: ["toggle"], stylesheet: "components/toggle" },
+  { named: ["steps"], stylesheet: "components/steps" },
   // §2.2 lists `join` with the fourteen components; daisyUI 5 ships it as
   // a utility. The row records where the classes actually are.
-  { named: ["join"], stylesheet: "utilities/join", exported: "Join" },
-  { named: ["collapse"], stylesheet: "components/collapse", exported: "Collapse" },
-  { named: ["input"], stylesheet: "components/input", exported: "Input" },
-  { named: ["divider"], stylesheet: "components/divider", exported: "Divider" },
+  { named: ["join"], stylesheet: "utilities/join" },
+  { named: ["collapse"], stylesheet: "components/collapse" },
+  { named: ["input"], stylesheet: "components/input" },
+  { named: ["divider"], stylesheet: "components/divider" },
 ];
 
 export const REGISTERED_STYLESHEETS: ReadonlySet<string> = new Set(
@@ -197,10 +194,9 @@ export const TAILWIND_ON_REGISTERED_BASES: ReadonlySet<string> = new Set([
  *  Starts at each `className`/`class` JSX attribute and follows the
  *  identifiers its expression mentions back to their declarations in the
  *  same file — a variable's initializer, and any `name.push(…)` argument —
- *  to a fixed point. That is what it takes to see `btn-primary` in
- *  `Btn.tsx` (pushed onto a local array) and `alert-success` in
- *  `Alert.tsx` (a value of a lookup table a local `const` indexes), and
- *  what keeps `type="checkbox"` out. */
+ *  to a fixed point. That is what it takes to see a class pushed onto a
+ *  local array or held as a value of a lookup table a local `const`
+ *  indexes, and what keeps `type="checkbox"` out. */
 export function classTokensOf(relPath: string): Set<string> {
   const source = read(relPath);
   const sf = ts.createSourceFile(

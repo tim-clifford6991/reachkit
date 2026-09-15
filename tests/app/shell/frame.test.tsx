@@ -11,8 +11,7 @@
 // asserts against a parsed tree, not against markup text — so it declares
 // `jsdom` for itself with the docblock below, the per-file form of the same
 // choice `vitest.config.ts` makes for `tests/ui/**`. It renders with
-// `react-dom/server`'s `renderToStaticMarkup`, exactly as
-// `tests/ui/components-1.test.tsx` does; the layout is an async Server
+// `react-dom/server`'s `renderToStaticMarkup`; the layout is an async Server
 // Component, so it is awaited to a tree first and rendered second.
 //
 // **`copy()` is mocked to `(key) => key`, and `COPY` is not.** The mock lets

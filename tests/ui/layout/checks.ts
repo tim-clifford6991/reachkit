@@ -35,7 +35,7 @@ export const MONO_FONT_FAMILY = "JetBrains Mono";
 //
 // 2026-09-05, issue #13: `.overflow-x-auto` is the first row. `BUILD.md`
 // §2.2 requires every `table` to sit "always inside an `overflow-x-auto`
-// wrap", and `src/ui/components/Table.tsx` is built that way — so a wide
+// wrap", and every screen's table is written that way — so a wide
 // table overflowing that wrapper is the design system working as
 // specified, not a containment defect. The row names the wrapper, so the
 // exemption reaches exactly one child level: anything overflowing a box
@@ -70,7 +70,7 @@ export const SCROLL_CONTAINER_ALLOWLIST: readonly string[] = [
 // which is smaller type.
 //
 // So the approved S14 clamps: three lines, and the full value on the
-// cell's own `title` attribute (`CalendarGrid.tsx`), which is what makes
+// cell's own `title` attribute (`CalendarView.tsx`), which is what makes
 // this a **registered truncation** rather than a loss — the string is
 // still in the document and still reachable. `tests/app/calendar` asserts
 // that the attribute carries the whole of whichever string the cell drew.
