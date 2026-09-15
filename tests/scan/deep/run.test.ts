@@ -187,3 +187,22 @@ describe("a stage write that fails never stops a paid pass", () => {
     expect(db.tables.sites![0]!.setup_released_reason).toBe("completed");
   });
 });
+
+describe("issue 737 — a paid founder whose domain already has a free-scan profile", () => {
+  const profile = (voice: unknown) => ({ domain: "example.com", site_name: "Example", products: [], claims: [], voice, inventory: [], pages_read: 9, refreshed_at: SUBMITTED.toISOString() });
+
+  it("is released, and the pass's voice seeds the site so the first draft is written in it — never over an edit", async () => {
+    const VOICE = { text: "Plain and direct.", tone: "plain", person: "second" };
+    for (const [edited, expected] of [[null, VOICE.text], ["2026-09-06T12:05:00.000Z", "Their own words."]] as const) {
+      db = fakeDb({
+        sites: [{ ...db.tables.sites![0]!, voice_text: edited === null ? null : "Their own words.", voice_edited_at: edited }],
+        site_profiles: [profile(VOICE)],
+      });
+      pipeline.mockResolvedValue({ scanId: "scan-1", status: "done" });
+      const out = await runDeepPass({ siteId: SITE, domain: "example.com" });
+      expect(out.reason).toBe("completed");
+      expect(db.tables.sites![0]!.voice_text).toBe(expected);
+      expect(db.tables.sites![0]!.setup_released_reason).toBe("completed");
+    }
+  });
+});

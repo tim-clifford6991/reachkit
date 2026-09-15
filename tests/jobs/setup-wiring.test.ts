@@ -17,6 +17,12 @@ const dueStuckScans = vi.fn();
 const finishStuckScan = vi.fn();
 
 vi.mock("@/lib/scan/deep/run", () => ({ runDeepPass: (a: unknown) => deepPass(a) }));
+// Issue 737: the first draft is started when the pass ends, through the
+// evening tick's own selection and pipeline — both stood in.
+const selection = vi.fn(async () => ({ sites: [] as { siteId: string; timeZone: string }[], held: null }));
+const dayPage = vi.fn<(a: { siteId: string; publishDate: string }) => Promise<unknown>>(async () => ({ ok: false, because: "no_opportunity" }));
+vi.mock("@/lib/publish/daily", () => ({ sitesForDailyTick: () => selection() }));
+vi.mock("@/lib/generate", () => ({ generateDayPage: (a: { siteId: string; publishDate: string }) => dayPage(a) }));
 vi.mock("@/lib/mail/setup/reminders", () => ({
   sitesDueSetupReminder: () => dueReminders(),
   sendSetupReminder: (id: string) => sendReminder(id),
@@ -129,6 +135,22 @@ describe("§4.3 — the deep pass is `scan/run` at tier deep", () => {
       now: NOW,
     });
     expect(outcome).toEqual({ outcome: "degraded", subjectId: "scan-1", step: "deep-pass" });
+  });
+
+  it("issue 737 — when the pass ends, a site the tick would draft for gets its first draft for the tick's own date", async () => {
+    selection.mockResolvedValueOnce({ sites: [{ siteId: "site-1", timeZone: "America/New_York" }], held: null });
+    const outcome = await engine.kickOffFirstDraft({ siteId: "site-1", now: NOW });
+    // 12:00 UTC is 08:00 in New York on 6 Sep, so tomorrow there is the 7th.
+    expect(dayPage).toHaveBeenCalledWith({ siteId: "site-1", publishDate: "2026-09-07" });
+    expect(outcome).toEqual({ degraded: "first-draft:generate:no_opportunity" });
+  });
+
+  it("issue 737 — a site the tick would not select yet is not drafted for, and the pass still reports as run", async () => {
+    dayPage.mockClear();
+    expect(await engine.kickOffFirstDraft({ siteId: "site-1", now: NOW })).toEqual({ degraded: "first-draft:not-selected" });
+    const outcome = await scanRun.run({ data: { scanId: "scan-1", domain: "example.com", tier: "deep", siteId: "site-1" }, now: NOW });
+    expect(outcome).toEqual({ outcome: "ran", subjectId: "scan-1" });
+    expect(dayPage).not.toHaveBeenCalled();
   });
 
   it("the job holds no tier logic — it reads the tier off the payload and refuses anything else", async () => {

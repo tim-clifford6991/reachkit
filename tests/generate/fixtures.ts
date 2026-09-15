@@ -236,6 +236,9 @@ export function memoryStore(over: Partial<MemoryStore> = {}): MemoryStore {
     async countShortOfHandOff() {
       return rows.size;
     },
+    async draftOnDate(siteId, date) {
+      return [...rows.values()].some((row) => row.site_id === siteId && row.scheduled_for === date);
+    },
     async siteInventory() {
       return store.inventory;
     },

@@ -39,6 +39,9 @@ vi.mock("@/lib/opportunities", () => ({
   assessReadiness: async () => ({ ready: 1, unready: 0 }),
 }));
 vi.mock("@/lib/costs", () => ({ withCostContext: withCostContextMock }));
+// Issue 737: a page is written from the stored inventory, never a new crawl.
+const crawlMock = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/site-profile/crawl", () => ({ crawlSite: crawlMock }));
 
 let generateDayPage: typeof import("../../src/lib/generate").generateDayPage;
 let setGenerateStore: typeof import("../../src/lib/generate/store").setGenerateStore;
@@ -281,5 +284,25 @@ describe("§7 (2026-09-12) — the page links into the customer's own site and t
     const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
     const row = outcome.ok ? store.rows.get(outcome.draftId) : undefined;
     expect(row?.body_md).toBe(CLEAN_MARKDOWN);
+  });
+});
+
+describe("issue 737 — the first draft, for a paid site with a free-scan cache", () => {
+  it("is written from the stored inventory and never starts a crawl", async () => {
+    queueAttempt(CLEAN_MARKDOWN);
+    expect((await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" })).ok).toBe(true);
+    expect(crawlMock).not.toHaveBeenCalled();
+  });
+
+  it("a date that already holds a draft is refused before anything is read or spent", async () => {
+    queueAttempt(CLEAN_MARKDOWN);
+    await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
+    llmMock.mockReset();
+    nextForDayMock.mockClear();
+    const again = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
+    expect(again).toEqual({ ok: false, because: "already_drafted" });
+    expect(nextForDayMock).not.toHaveBeenCalled();
+    expect(llmMock).not.toHaveBeenCalled();
+    expect(store.rows.size).toBe(1);
   });
 });
