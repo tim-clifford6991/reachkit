@@ -1,13 +1,14 @@
 // UI-SPEC §0 — the owner's sixteen rulings of 2026-09-11 (issue #530).
 //
 // Each `it` names the ruling it holds. The states are asserted on the
-// stylesheets that carry them — the registered components' own classes in
-// `idiom.css`, `calendar-grid.css` and `shell.css` — because §0 says they
-// live there and never per screen; a screen that restyled one would be a
-// second definition this file does not see, which is the point.
+// stylesheets that carry them — the idiom's own classes in `idiom.css` and
+// `shell.css` — because §0 says they live there and never per screen; a
+// screen that restyled one would be a second definition this file does not
+// see, which is the point. The calendar cell is daisyUI in the route since
+// issue 732, so its state is read off the route.
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
-import postcss, { type AtRule, type Declaration, type Rule } from "postcss";
+import postcss, { type AtRule, type Declaration } from "postcss";
 import { describe, expect, it } from "vitest";
 import { widths } from "../layout/widths";
 import { THEME_CSS, tokenSet } from "./tokens-doc";
@@ -21,9 +22,8 @@ const IDIOM = "src/ui/idiom/idiom.css";
 // issue #548 — the owner ruling of 2026-09-11 retires the re-skins, and
 // `docs/DESIGN.md` takes every state "from daisyUI's own state selectors with
 // the theme's colours". What stays asserted here is what the product still
-// declares: the idiom's own parts (§0 7, 8, 12), the calendar cell, the
-// shell's nav row, and the one motion token.
-const CALENDAR = "src/ui/components/custom/calendar-grid.css";
+// declares: the calendar cell, the shell's nav row, and the one motion token.
+const CALENDAR_VIEW = "src/app/(account)/app/calendar/CalendarView.tsx";
 
 function walk(dir: string, keep: (file: string) => boolean, out: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {
@@ -34,22 +34,6 @@ function walk(dir: string, keep: (file: string) => boolean, out: string[] = []):
   return out;
 }
 
-/** The declarations of the top-level rule whose selector list contains
- *  `selector` exactly, merged in source order (a later rule wins). */
-function decls(file: string, selector: string): Map<string, string> {
-  const out = new Map<string, string>();
-  postcss.parse(read(file)).walkRules((rule: Rule) => {
-    if (rule.parent?.type === "atrule") return;
-    const list = rule.selectors.map((s) => s.replace(/\s+/g, " ").trim());
-    if (!list.includes(selector)) return;
-    rule.walkDecls((d: Declaration) => {
-      out.set(d.prop, d.value.trim());
-    });
-  });
-  if (out.size === 0) throw new Error(`${file}: no rule for "${selector}"`);
-  return out;
-}
-
 describe("§0 4–5 — the field's disabled and invalid states", () => {
   it("§0 4: S10's market card is not dimmed as a whole", () => {
     const form = read("src/app/(account)/setup/SetupForm.tsx");
@@ -57,32 +41,19 @@ describe("§0 4–5 — the field's disabled and invalid states", () => {
     expect(form).not.toMatch(/\bDIMMED\b/);
   });
 
-  it("§0 5: an invalid field's edge is --bad, and the state is never colour alone", () => {
-    // The edge is daisyUI's own `input-error` — `--color-error` is `--bad` —
-    // since issue #548, and the one prop that draws it also sets
-    // `aria-invalid` and renders the written line beneath the field.
-    const input = read("src/ui/components/Input.tsx");
-    expect(input).toContain("aria-invalid={p.invalid === true}");
-    expect(input).toContain("input-error");
-    expect(input).toContain("{p.invalidMessage}");
-  });
 });
 
 describe("§0 10 — the calendar cell open in the panel", () => {
-  it("keeps the hover ring, and today keeps its own", () => {
-    expect(decls(CALENDAR, ".rk-cal-cell:hover").get("border-color")).toBe("var(--accent-line)");
-    const open = decls(CALENDAR, ".rk-cal-cell.rk-cal-selected");
-    expect(open.get("border-color")).toBe("var(--accent-line)");
-    expect(open.has("background"), "the open cell is a ring, not a ground").toBe(false);
-    expect(decls(CALENDAR, ".rk-cal-cell.rk-cal-today").get("box-shadow")).toContain(
-      "var(--shadow-card)"
-    );
+  it("keeps the hover edge, and today keeps its own ring", () => {
+    const cell = read(CALENDAR_VIEW);
+    expect(cell).toContain("hover:border-primary");
+    expect(cell).toContain("ring-2 ring-primary");
   });
 
   it('carries aria-current="date", and no longer aria-pressed', () => {
-    const grid = read("src/ui/components/custom/CalendarGrid.tsx");
-    expect(grid).toContain('aria-current={cell.selected ? "date" : undefined}');
-    expect(grid).not.toContain("aria-pressed={cell.selected}");
+    const cell = read(CALENDAR_VIEW);
+    expect(cell).toContain('aria-current={p.selected ? "date" : undefined}');
+    expect(cell).not.toContain("aria-pressed={p.selected}");
   });
 });
 

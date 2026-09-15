@@ -75,7 +75,7 @@ export const ATTRIBUTE_ALLOWLIST: readonly AllowlistedAttribute[] = Object.freez
     reason:
       "a tone token — `warn`, `accent` — read by a stylesheet exactly as " +
       "`data-theme` is, and the same category ADR-010 point 1 admits it " +
-      "under. `Btn` and `ActionPanel` already carry it as an expression; " +
+      "under. `ActionPanel` already carries it as an expression; " +
       "the sign-in screen's expired-link chip writes the one it always has " +
       "(issue #373), and a tone is never a sentence.",
   },

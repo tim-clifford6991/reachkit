@@ -14,7 +14,7 @@
 // `Progress`, and the registry refuses it in this position, twice over:
 // `Progress` is *determinate only* — `value` and `max` are both required
 // and non-optional precisely "so an indeterminate bar has no call shape a
-// caller can reach" (`src/ui/components/Progress.tsx`) — and a route that
+// caller can reach" — and a route that
 // has not answered yet has no measured value to put in one. Drawing it at
 // zero would be a figure the product invented; REQ-003 c1 forbids "an
 // unlabelled spinner or an indeterminate bar alone", §4.1 of BUILD writes "no

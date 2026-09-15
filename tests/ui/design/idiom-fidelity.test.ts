@@ -163,13 +163,4 @@ describe("issue #509 — the generated mark and the S12 figure, as the set draws
     const drawn = [...lucide.matchAll(/ d="([^"]+)"/g)].map((m) => m[1]);
     expect(drawn).toEqual([...TREND_PATHS]);
   });
-
-  it("S12's figure is --t-num-big at --num-weight, on daisyUI's own stat-value", () => {
-    // daisyUI has no slot for a stat's size or weight, so since issue #548
-    // the rung rides as utilities on the component rather than as a rule
-    // re-skinning `.stat-value`.
-    expect(read("ui/components/Stat.tsx")).toContain(
-      'const FIGURE = "stat-value num text-(length:--t-num-big) font-(--num-weight)'
-    );
-  });
 });

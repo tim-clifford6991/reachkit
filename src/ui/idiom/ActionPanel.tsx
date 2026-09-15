@@ -5,9 +5,8 @@
 // is a tinted panel** — `--accent-bg` or `--warn-bg`, a white icon chip, a
 // bold title, one dim explanatory line, a pill CTA." It is the idiom's one
 // genuinely new row (`components.md` §7, `proposed`), and it is **not** a
-// daisyUI component: BUILD §2.2's set of fifteen is closed and this is not
-// a sixteenth member of it, which is why it lives here and not in
-// `src/ui/components/`'s barrel.
+// daisyUI component. Its call to action is daisyUI's own `btn`, written in
+// place (DESIGN.md rule 1 — no wrapper over daisyUI, issue 732).
 //
 // TONE ADMITS `accent` AND `warn` ONLY. `--ok`/`--warn`/`--bad` are state
 // colours (§2.5) and a panel is not a state, so `ok` and `bad` have no
@@ -21,11 +20,9 @@
 //
 // **The CTA may navigate, and then it is an `<a>`** (issue #353). Overview's
 // two Needs-you panels take the customer to a draft and to the settings
-// card; `Btn` is a `<button>` with an `onClick`, and a panel that posted
+// card; a `<button>` needs an `onClick`, and a panel that posted
 // nowhere would need client JavaScript to move. So `href` selects an anchor
-// carrying the same classes the rank would have put on the button — the
-// third instance of the "link that reads as a button" case the component
-// registry already records two rows for, and it carries its own row.
+// carrying the same classes the rank puts on the button.
 //
 // **The rank is the caller's** (issue #353). The set draws the veto panel's
 // "Read it" as the solid primary and the reconnect panel's "Reconnect" as
@@ -34,7 +31,6 @@
 // panel keeps the single shape it shipped with wherever a caller says
 // nothing.
 import type React from "react";
-import { Btn } from "../components/Btn";
 
 export type ActionPanelTone = "accent" | "warn";
 
@@ -43,10 +39,9 @@ export type ActionPanelTone = "accent" | "warn";
  *  quiet tertiary, and this control is not quiet. */
 export type ActionPanelRank = "primary" | "secondary";
 
-/** The classes an anchor needs to read as the ranked pill. daisyUI's own,
- *  written here because the rank's markup is a `<button>` and this control
- *  navigates; `component-registry.test.ts` carries the row. */
-const LINK_CLASS: Readonly<Record<ActionPanelRank, string>> = Object.freeze({
+/** The classes the ranked pill carries, as a `<button>` or as an `<a>`:
+ *  daisyUI's own `btn`, the outline rank's edge in the accent. */
+const CTA_CLASS: Readonly<Record<ActionPanelRank, string>> = Object.freeze({
   primary: "btn btn-sm btn-primary rounded-(--r-pill)",
   secondary: "btn btn-sm btn-outline [--btn-color:var(--accent)] rounded-(--r-pill)",
 });
@@ -113,37 +108,23 @@ export function ActionPanel(p: ActionPanelProps): React.JSX.Element {
       </div>
       {p.state === "specimen" ? null : (
         <div className="rk-panel-cta">
-          {/* The registered `Btn`, not markup of its own: daisyUI component
-              classes are written inside `src/ui/components/**` and nowhere
-              else, and a panel that hand-wrote `btn` would be the sixteenth
-              component arriving by class name. */}
           {p.state === "withheld" ? (
             <span className="rk-quiet">{p.withheldAccount}</span>
           ) : p.state === "default" && p.href !== undefined ? (
-            <a className={LINK_CLASS[p.rank ?? "primary"]} href={p.href} data-tone={toneOf(p.rank)}>
+            <a className={CTA_CLASS[p.rank ?? "primary"]} href={p.href} data-tone={toneOf(p.rank)}>
               {p.cta}
             </a>
-          ) : (p.rank ?? "primary") === "secondary" ? (
-            <Btn
-              label={p.cta}
-              variant="secondary"
-              tone="accent"
-              size="sm"
-              pill
-              disabled={p.state === "in-flight"}
-              inFlight={p.state === "in-flight"}
-              onClick={p.state === "default" ? p.onAct : undefined}
-            />
           ) : (
-            <Btn
-              label={p.cta}
-              variant="primary"
-              size="sm"
-              pill
+            <button
+              type="button"
+              className={CTA_CLASS[p.rank ?? "primary"]}
+              data-tone={toneOf(p.rank)}
               disabled={p.state === "in-flight"}
-              inFlight={p.state === "in-flight"}
+              aria-busy={p.state === "in-flight" ? "true" : undefined}
               onClick={p.state === "default" ? p.onAct : undefined}
-            />
+            >
+              {p.cta}
+            </button>
           )}
         </div>
       )}
