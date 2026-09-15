@@ -1,8 +1,7 @@
 // BUILD §2.4 — the SVG presentation tokens the OG card still draws with.
 //
-// Debt, kept for one caller (docs/DESIGN.md: "`chart-primitives.ts` … debt
-// kept only for `AiDotMatrixChart` … and the OG card; delete them with
-// those"). The hand-drawn charts are gone — the series are Recharts (#550)
+// Debt, kept for one caller (docs/DESIGN.md: debt kept only for the OG
+// card; delete it with that card). The hand-drawn charts are gone — the series are Recharts (#550)
 // and the AI-answers matrix is CSS grid (issue 730) — and the social card
 // (`src/app/(public)/_seo/og-card.tsx`) renders through `next/og`, which
 // takes inline SVG and no Recharts, so its two stroke tokens stay here
