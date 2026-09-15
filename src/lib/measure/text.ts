@@ -11,11 +11,15 @@
 // the same one the measurement itself used, so the text handed to
 // generation cannot disagree with the text the page was scored on.
 //
-// The horizon is the site's own scans: a site with no scans returns `[]`
-// — a legitimate empty, not an error. A scan whose own-document read was
-// served from cache ledgered no row of its own (a cache hit spends
-// nothing, so there is nothing to ledger), and so contributes no text here
-// — the bytes it read are the row the earlier scan wrote.
+// The horizon is the site's own scans, plus the free scans of the same
+// domain: a site with no scans returns `[]` — a legitimate empty, not an
+// error. A scan whose own-document read was served from cache ledgered no
+// row of its own (a cache hit spends nothing, so there is nothing to
+// ledger) — the bytes it read are the row the earlier scan wrote. On the
+// paying path that earlier scan is the free scan the customer ran before
+// paying, which belongs to no site, so it is read by its domain: without
+// it, a deep pass run inside the own-document window has no text at all,
+// and a paid site grounds no fact and starts no draft.
 import { dbAdmin } from "@/lib/db";
 import { OWN_FETCH_SOURCE, isStoredDocument } from "./own-fetch";
 import { visibleText } from "./parse";
@@ -63,14 +67,22 @@ function compareMeasuredText(a: MeasuredText, b: MeasuredText): number {
 export async function readMeasuredText(a: { siteId: string; scanId?: string }): Promise<MeasuredText[]> {
   const client = dbAdmin();
 
-  let scansQuery = client.from("scans").select("id").eq("site_id", a.siteId);
+  let scansQuery = client.from("scans").select("id, domain").eq("site_id", a.siteId);
   if (a.scanId !== undefined) scansQuery = scansQuery.eq("id", a.scanId);
   const scans = await scansQuery;
   if (scans.error) {
     throw new Error(`text.ts: read from scans failed: ${scans.error.message}`);
   }
-  const scanIds = (scans.data ?? []).map((row) => row.id);
-  if (scanIds.length === 0) return [];
+  const own = scans.data ?? [];
+  if (own.length === 0) return [];
+
+  // The free scans of this site's domain, which served its cached reads.
+  const domains = [...new Set(own.map((row) => row.domain))];
+  const free = await client.from("scans").select("id").eq("tier", "free").in("domain", domains);
+  if (free.error) {
+    throw new Error(`text.ts: read from scans failed: ${free.error.message}`);
+  }
+  const scanIds = [...new Set([...own.map((row) => row.id), ...(free.data ?? []).map((row) => row.id)])];
 
   const rows = await (client as unknown as MinimalClient)
     .from<OwnFetchRow>("fetches")
