@@ -200,6 +200,9 @@ function stageBounds(a: {
     exhausted() {
       return a.bounds.exhausted();
     },
+    abandoned() {
+      return a.bounds.abandoned();
+    },
   };
   return bounds;
 }
@@ -261,10 +264,11 @@ export async function withStageBudget<T>(
   },
   work: (bounds: Bounds, abandoned: () => boolean) => Promise<T>
 ): Promise<StageOutcome<T>> {
-  // A pass with no report deadline abandons no stage, so its work is never
-  // told it was: the predicate is a constant `false` rather than a branch
-  // every caller would have to remember to read.
-  if (!a.applies) return { spent: false, value: await work(a.bounds, () => false) };
+  // A pass with no stage budgets abandons no stage of its own, so the
+  // predicate is the pass's — which reads `false` for the life of a pass
+  // the deadline does not apply to — rather than a branch every caller
+  // would have to remember to read.
+  if (!a.applies) return { spent: false, value: await work(a.bounds, () => a.bounds.abandoned()) };
 
   const budget = STAGE_BUDGETS[a.stage];
   const startedAtMs = Date.now();
@@ -277,7 +281,13 @@ export async function withStageBudget<T>(
   let abandoned = false;
   const timer = cancellableDelay(budget.seconds * 1000);
   const done: StageOutcome<T> = await Promise.race([
-    (async (): Promise<StageOutcome<T>> => ({ spent: false, value: await work(bounds, () => abandoned) }))(),
+    // Abandoned by this stage's budget, or by the pass's own deadline firing
+    // while the stage was still inside it (issue 607): either way nobody
+    // is waiting for what the work writes.
+    (async (): Promise<StageOutcome<T>> => ({
+      spent: false,
+      value: await work(bounds, () => abandoned || a.bounds.abandoned()),
+    }))(),
     (async (): Promise<StageOutcome<T>> => {
       await timer.promise;
       // The column that ran out, answered by the stage's own two rather

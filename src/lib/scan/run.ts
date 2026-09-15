@@ -692,6 +692,11 @@ async function runStages(a: StageArgs): Promise<void> {
   const read = await inBudget("reading_your_site", () =>
     attempt("reading_your_site", () => measureDomain(cost, { domain, tier: a.tier }))
   );
+  // **A pass whose deadline fired writes nothing more** (issue 607). The
+  // report is composed from `sections` the moment the deadline wins, and
+  // nothing in flight can be cancelled — so every write below an `await`
+  // in this function reads `bounds.abandoned()` first.
+  if (bounds.abandoned()) return;
   // Stage one's budget ends the pass, not just the stage: nothing after it
   // measures anything without the site's own documents. It ends by the
   // column that ran out — never `complete`, never §479's refusal, which
@@ -758,7 +763,7 @@ async function runStages(a: StageArgs): Promise<void> {
       });
       // SPEC §9: the technical-issue checks run over exactly this crawl —
       // the one run, nothing fetched beyond its set (2026-09-12).
-      sections.siteCrawl = readingOf(crawl);
+      if (!bounds.abandoned()) sections.siteCrawl = readingOf(crawl);
     } catch (error) {
       console.log(
         JSON.stringify({
@@ -777,25 +782,28 @@ async function runStages(a: StageArgs): Promise<void> {
 
   if (bounds.stopNow() !== null) return;
   await enter("reading_your_market");
-  if (!(await inBudget("reading_your_market", (b, abandoned) => readMarket({ ...a, bounds: b }, abandoned))).spent) {
-    await exitStage(scanId, "reading_your_market");
-  }
+  const market = await inBudget("reading_your_market", (b, abandoned) => readMarket({ ...a, bounds: b }, abandoned));
+  // An abandoned pass reports no exit either: a stage the ceilings cut off
+  // emits no `done: true` (`stages.ts`), and the ending is already out.
+  if (bounds.abandoned()) return;
+  if (!market.spent) await exitStage(scanId, "reading_your_market");
 
-  // No abandonment guard is threaded here, and none is owed: `sizesRivals`
-  // is false on the free path and the budget applies on no other, so on
-  // every pass this stage can be abandoned on, it returns before it awaits
-  // anything at all.
+  // No stage-abandonment guard is threaded here, and none is owed:
+  // `sizesRivals` is false on the free path and the budget applies on no
+  // other, so on every pass this stage can be abandoned on, it returns
+  // before it awaits anything at all. Its one write still reads the pass's
+  // own `abandoned()`, which costs nothing.
   if (bounds.stopNow() !== null) return;
   await enter("checking_your_presence");
-  if (!(await inBudget("checking_your_presence", (b) => sizeTrackedRivals({ ...a, bounds: b }))).spent) {
-    await exitStage(scanId, "checking_your_presence");
-  }
+  const presence = await inBudget("checking_your_presence", (b) => sizeTrackedRivals({ ...a, bounds: b }));
+  if (bounds.abandoned()) return;
+  if (!presence.spent) await exitStage(scanId, "checking_your_presence");
 
   if (bounds.stopNow() !== null) return;
   await enter("asking_the_twelve");
-  if (!(await inBudget("asking_the_twelve", (b, abandoned) => askTheTwelve({ ...a, bounds: b }, abandoned))).spent) {
-    await exitStage(scanId, "asking_the_twelve");
-  }
+  const twelve = await inBudget("asking_the_twelve", (b, abandoned) => askTheTwelve({ ...a, bounds: b }, abandoned));
+  if (bounds.abandoned()) return;
+  if (!twelve.spent) await exitStage(scanId, "asking_the_twelve");
 
   // Scoring buys nothing and is synchronous — it counts over SERPs already
   // paid for (§6.6's "zero extra cost"). Its budget row is the CPU the
@@ -803,6 +811,7 @@ async function runStages(a: StageArgs): Promise<void> {
   // preempt, so it is not wrapped: a synchronous call cannot be cut off.
   if (bounds.stopNow() !== null) return;
   await enter("scoring");
+  if (bounds.abandoned()) return;
   score(a);
   await exitStage(scanId, "scoring");
 }
@@ -858,7 +867,7 @@ async function sizeTrackedRivals(a: StageArgs): Promise<void> {
       ...(failed(previous) || previous === undefined ? {} : { previous }),
     })
   );
-  if (!failed(sized)) a.sections.rivalSizes = sized;
+  if (!failed(sized) && !a.bounds.abandoned()) a.sections.rivalSizes = sized;
 }
 
 /** The customer's own count as a number for the banding. `unmeasured` is
@@ -972,6 +981,9 @@ async function askTheTwelve(a: StageArgs, abandoned: () => boolean): Promise<voi
   const { bounds, cost, parameters, sections } = a;
   const questions = sections.questions;
   const asked = questions.kind === "unmeasured" ? [] : questions.value;
+  // Entered while the deadline fired: the slots below would be pushed into
+  // the very array the composed report already holds.
+  if (abandoned()) return;
 
   // Every question's slot, on the arm that says we did not get to it.
   // Written by index below; a question nobody reached keeps this.

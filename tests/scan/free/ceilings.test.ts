@@ -443,3 +443,34 @@ describe("issue #539 — `stageExhausted` ends the pass by the column that ran o
     expect(outcome.ending).toEqual({ kind: "report", complete: false, stoppedReason: "spend_ceiling" });
   });
 });
+
+// ── Issue 607 — the body the deadline abandoned is told ───────────────
+
+describe("issue 607 — the pass's deadline tells the body it was abandoned", () => {
+  it("ceilings/abandon · a body still in flight at the deadline reads `abandoned()` from the moment the ending settles", async () => {
+    vi.useFakeTimers();
+    let seen: Bounds | null = null;
+    const promise = withFreeBounds({ scanId: "scan-607", startedAt: startedNow() }, async (bounds: Bounds) => {
+      seen = bounds;
+      expect(bounds.abandoned()).toBe(false);
+      return never<string>();
+    });
+    await vi.advanceTimersByTimeAsync(CEILING_MS);
+    const outcome = await promise;
+    expect(outcome.ending).toEqual({ kind: "report", complete: false, stoppedReason: "time_ceiling" });
+    expect((seen as Bounds | null)?.abandoned()).toBe(true);
+  });
+
+  it("ceilings/abandon · a body that answered in time is never told it was abandoned, and leaves no deadline timer behind", async () => {
+    vi.useFakeTimers();
+    let seen: Bounds | null = null;
+    const outcome = await withFreeBounds({ scanId: "scan-607b", startedAt: startedNow() }, async (bounds: Bounds) => {
+      seen = bounds;
+      return "measured";
+    });
+    expect(outcome.ending.stoppedReason).toBe("complete");
+    expect(vi.getTimerCount()).toBe(0);
+    await vi.advanceTimersByTimeAsync(CEILING_MS);
+    expect((seen as Bounds | null)?.abandoned()).toBe(false);
+  });
+});

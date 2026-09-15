@@ -27,9 +27,10 @@ import { STAGES } from "@/lib/scan/stages";
 /** The pass's own bounds, with nothing fired — the state a stage's budget
  *  has to be able to end a stage from. `stopNow` is the real implementation's
  *  order (time, then money) over these two answers. */
-function passBounds(over: { expired?: boolean; capHit?: boolean } = {}): Bounds {
+function passBounds(over: { expired?: boolean; capHit?: boolean; abandoned?: () => boolean } = {}): Bounds {
   const expired = over.expired ?? false;
   const capHit = over.capHit ?? false;
+  const abandoned = over.abandoned ?? (() => false);
   let exhausted: "time_ceiling" | "spend_ceiling" | undefined;
   return {
     expired: () => expired,
@@ -42,6 +43,7 @@ function passBounds(over: { expired?: boolean; capHit?: boolean } = {}): Bounds 
       exhausted = reason;
     },
     exhausted: () => exhausted,
+    abandoned,
   };
 }
 
@@ -198,5 +200,34 @@ describe("a stage that was abandoned says so to the work still running inside it
     // The budget's own timer goes with the stage rather than holding the
     // event loop open for the rest of the budget.
     expect(vi.getTimerCount()).toBe(0);
+  });
+});
+
+describe("issue 607 — a stage the pass's deadline abandoned is told, as one its own budget abandoned is", () => {
+  it("work still inside its budget reads `abandoned()` once the pass is abandoned", async () => {
+    const pass = { abandoned: false };
+    let told: (() => boolean) | null = null;
+    let finish: () => void = () => undefined;
+    const outcome = withStageBudget(
+      {
+        stage: "asking_the_twelve",
+        bounds: passBounds({ abandoned: () => pass.abandoned }),
+        cost: fakeCost(() => 0),
+        applies: true,
+      },
+      (stageBounds, abandoned) => {
+        told = abandoned;
+        expect(stageBounds.abandoned()).toBe(false);
+        return new Promise<void>((resolve) => {
+          finish = resolve;
+        });
+      }
+    );
+    await Promise.resolve();
+    expect((told as (() => boolean) | null)?.()).toBe(false);
+    pass.abandoned = true;
+    expect((told as (() => boolean) | null)?.()).toBe(true);
+    finish();
+    await outcome;
   });
 });
