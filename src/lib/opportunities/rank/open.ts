@@ -23,7 +23,8 @@
 // fix that is not ready is not in the list.
 import { opportunityStore } from "../store";
 import { readOpportunity } from "../store";
-import type { Opportunity, Ranked } from "../types";
+import { VERDICT_REASONS } from "../suppression";
+import type { Opportunity, Ranked, UnreadyReason } from "../types";
 import { rankScore } from "./score";
 
 /** Descending score; ties broken by age, then by id. */
@@ -91,9 +92,13 @@ export async function rankOpen(siteId: string): Promise<Ranked[]> {
   ]);
   const fixes = fixRows.filter((row) => row.ready).map(readOpportunity);
   // No profile, no score — but a fix needs neither, and still takes its day.
-  if (profile === null || rows.length === 0) return placeFixPages([], fixes);
+  // SPEC §6: a row a Monday verdict holds back — a Write in a suppressed
+  // cluster, anything targeting a retired URL — takes no day. Readiness is
+  // not otherwise derived yet, so these two reasons are read by name.
+  const rankable = rows.filter((row) => !VERDICT_REASONS.includes(row.unready_reason as UnreadyReason));
+  if (profile === null || rankable.length === 0) return placeFixPages([], fixes);
 
-  const scored = rows.map((row) => {
+  const scored = rankable.map((row) => {
     const opportunity = readOpportunity(row);
     return {
       opportunity,

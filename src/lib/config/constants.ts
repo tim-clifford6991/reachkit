@@ -873,6 +873,10 @@ export const WRITE_VOLUME_FLOOR_PER_MONTH = 10 as const;      // §7
  *  URL in it stays allowed." */
 export const CLUSTER_SUPPRESS_WEEKS = 4 as const;             // §6
 
+/** Issue 477: "two `not_working` verdicts on Improve of one URL retire that
+ *  URL" — counted in distinct Monday weeks. */
+export const IMPROVE_RETIRE_AFTER_NOT_WORKING = 2 as const;   // §6
+
 /** SPEC §6: "A residual keyword page fires only when every extra gate
  *  passes; volume >= 10/mo alone is never sufficient." The readiness floor a
  *  gate is checked against, never `WRITE_VOLUME_FLOOR_PER_MONTH`'s discovery

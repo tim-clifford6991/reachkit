@@ -8,6 +8,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DOMAIN, SITE_ID, WEEK, fakeStore, releaseStore, type Fake } from "../opportunities/verdicts/harness";
 import type { DigestPage } from "@/lib/opportunities/verdicts";
+import { setOpportunityStore } from "@/lib/opportunities/store";
+import { memoryStore, newMemoryState, type MemoryState } from "../opportunities/memory-store";
 
 const weekly = vi.hoisted(() => ({
   outcome: { ran: true, scanId: "scan-1", status: "done" } as unknown,
@@ -36,7 +38,10 @@ const tick = () =>
   startWeeklyScan({ siteId: SITE_ID, domain: DOMAIN, zone: "UTC", weekStart: WEEK, now: NOW });
 
 let store: Fake;
+let opportunities: MemoryState;
 beforeEach(() => {
+  opportunities = newMemoryState();
+  setOpportunityStore(memoryStore(opportunities));
   releaseStore();
   weekly.outcome = { ran: true, scanId: "scan-1", status: "done" };
   digest.read = [];
@@ -57,6 +62,19 @@ describe("the Monday tick judges the week it measured", () => {
     weekly.outcome = { ran: true, scanId: "scan-1", status: "degraded", unmeasured: ["rivals"] };
     await tick();
     expect(store.rows).toHaveLength(1);
+  });
+
+  it("SPEC §6 (issue 477): after judging, this week's supply in a cluster judged not working is held back", async () => {
+    opportunities.rows.push({
+      id: "write-1", site_id: SITE_ID, scan_id: "scan-1", type: "answer_page", family: "write",
+      target_query: "user onboarding software", target_ref: "onboarding-faq", proposed_slug: "onboarding-faq", title: null, volume: 500,
+      evidence: { family: "write" }, acceptance: { form: "top20", query: "user onboarding software" },
+      fit_band: "winnable", effort: 0.3, status: "open", cluster_key: "onboarding", absorbed_queries: [],
+      ready: false, unready_reason: "not_assessed", created_at: NOW.toISOString(),
+    });
+    opportunities.notWorking = [{ week: WEEK, clusterKey: "onboarding", family: "write", targetRef: "onboarding-checklist" }];
+    await tick();
+    expect(opportunities.rows[0]!.unready_reason).toBe("cluster_suppressed");
   });
 
   it("**a failed pass judges nothing** — there is no report to judge against", async () => {

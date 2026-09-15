@@ -35,6 +35,7 @@ import type { CostContext } from "@/lib/costs";
 import type { StoredReport } from "@/lib/scan/report";
 import type { DeriveInput } from "./derive";
 import { assessFixPages } from "./fix-page";
+import { assessVerdictReadiness } from "./verdict-readiness";
 import { opportunityStore } from "./store";
 import { pursueDepth, type DepthStop } from "./supply/pursue";
 import { topUp } from "./supply/topup";
@@ -104,10 +105,14 @@ export async function deriveForPass(
   if (a.tier === "deep") {
     const { created, unused, stop } = await pursueDepth(c, input);
     await assessFixPages(a.siteId, { report: null });
+    await assessVerdictReadiness(a.siteId, { at: a.report.verdict.measuredAt });
     return { tier: "deep", created, unused, stop };
   }
 
   const { added, unused } = await topUp(c, { ...input, hasActiveAccess: a.hasActiveAccess });
   await assessFixPages(a.siteId, { report: null });
+  // SPEC §6: a row derived into a cluster a Monday judged not working
+  // carries the suppression from the moment it exists.
+  await assessVerdictReadiness(a.siteId, { at: a.report.verdict.measuredAt });
   return { tier: "weekly", added, unused };
 }
