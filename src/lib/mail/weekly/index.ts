@@ -28,7 +28,8 @@
 //
 // **The digest is composed for the week, never re-measured.** Every figure
 // comes from what is already stored: the standings from `weeklyDigest`,
-// the two deltas from `weekMovement`, the next three from the ranking as
+// the two deltas and the technical checks that moved from `weekMovement`,
+// the next three from the ranking as
 // it stands. A mail that re-measured to state a movement would report a
 // different week from the one it announces.
 import { dbAdmin } from "@/lib/db";
@@ -189,6 +190,9 @@ async function measuredWeek(
     // empty line states it.
     pages: measured(pages, at),
     next: await nextThree(a.siteId, at),
+    // SPEC §9 on Monday: the checks whose count moved, from the same two
+    // stored weeks the deltas are read from.
+    issues: movement.issueChanges,
   });
   return { mail, measurement: measurementStateOf(account) };
 }
