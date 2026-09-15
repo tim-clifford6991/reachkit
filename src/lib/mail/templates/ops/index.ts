@@ -65,3 +65,5 @@ export function buildSpendCeilingAlert(a: {
     ],
   };
 }
+
+export { buildIncidentAlert, closedName, type OpsIncident } from "./incident";

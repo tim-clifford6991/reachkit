@@ -36,7 +36,7 @@
 // schema declares, so a rename in one place cannot silently miss the other.
 import { Inngest } from "inngest";
 import { serve as serveFunctions } from "inngest/next";
-import { runJob } from "./run";
+import { reportDeadLettered, runJob } from "./run";
 import type { JobDefinition, JobEvent } from "./types";
 
 /** The application id, stable across deployments — renaming it orphans
@@ -75,8 +75,13 @@ export function defineJob(definition: JobDefinition): PlatformFunction {
       name: definition.id,
       triggers: [triggerOf(definition)],
       ...(idempotency === undefined ? {} : { idempotency }),
+      // Issue 330: every retry failed — the platform's dead-letter. The
+      // owner is told the job and the error's class, never the event.
+      onFailure: async ({ error }: { error: unknown }) => {
+        await reportDeadLettered(definition.id, error);
+      },
     },
-    async ({ event, step }) => {
+    async ({ event, step, attempt }) => {
       if (afterHours !== undefined) {
         await step.sleep("declared-delay", `${afterHours}h`);
       }
@@ -84,6 +89,7 @@ export function defineJob(definition: JobDefinition): PlatformFunction {
         runJob(definition, {
           data: (event?.data ?? {}) as Readonly<Record<string, unknown>>,
           now: new Date(),
+          attempt,
         })
       );
     }
