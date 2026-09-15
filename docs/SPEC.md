@@ -28,6 +28,7 @@ Pinned numbers live in `src/lib/config/constants.ts`. Newest dated line in a sec
 - Any written domain (scheme, `www`, path, case) reaches one report; a malformed value stays here with the typed text and one error line.
 - One plan only: no tiers, seats, annual or add-ons.
 - Same header (brand · Sign in · one solid CTA) and footer (brand, rights, removal address, Product, Legal) on every public page.
+- 2026-09-15  No header exceptions: `/scan/{domain}`, `/veto/{token}`, `/opt-out/{token}` and `/signin` use the same header. The report keeps its copy-link beside the CTA. Footer still on every public route.
 - The offer is one component, used on the report and on `/pricing`; only the Start target differs.
 - A 16:9 video block with a play control and one written line, whether or not the asset exists. Secondary CTAs scroll to the field.
 - 2026-09-14  The header CTA is outline on every public page; each screen’s own action is its only solid button (supersedes “one solid CTA” in the header and ruling 2b’s two solids on the landing).
@@ -109,6 +110,7 @@ Pinned numbers live in `src/lib/config/constants.ts`. Newest dated line in a sec
 - Cap 40¢ per site per week; degrade with a stated reason; money spent is always ledgered.
 - A week that measured nothing says so. Missing values omit the row, never repeat last week.
 - Residual keyword pages need every extra gate, not volume ≥ 10/mo alone. Format pages: comparison / alternative / integration / template only (2026-09-10).
+- 2026-09-15  Readiness (owner): a `keyword_page` is ready only when volume ≥ min, the band is `winnable`, intent is commercial or transactional, and no owned URL ranks for it (else Improve); otherwise `keyword_gate`. Parent topic is a mechanical `clusterKey()` of the query’s content words (lower-cased; stop words, brand tokens and trailing `s` removed; sorted and joined) — Improve uses the same key. A grounding fact is at least one passage from the site’s own measured page text; if none, every Write/Earn/Improve row is `no_grounding_fact` and supply is 0. Write order among types: `answer_page` > `comparison_page` > `format_page` > `keyword_page`. A `format_page` is ready only when its query contains comparison / vs / alternative / integration / template.
 
 **Done when** After local Monday, every measured number has a new date and a delta. Empty days show a written cause, not filler. A “not working” cluster publishes no new page for it the next week.
 
@@ -138,7 +140,7 @@ Pinned numbers live in `src/lib/config/constants.ts`. Newest dated line in a sec
 | Onboarding | Payment succeeds | `magic-link` (unstoppable) · `account` · `setup-reminder` +24/72/168 h · `draft-ready` | Setup done and first draft in review |
 | Free-scan nurture | Email on the report | `report` · `first-page` (or unavailable) · `nurture` ×3 at +24/72/168 h | Subscribe, opt-out, or third mail. Missed window is dropped. Start within 7 days of capture |
 | Weekly | Local Monday re-measure | `weekly` · `published` +24 h after each go-live | Kind switch off, or access ends. Unmeasured week still sends, saying so |
-| Retention | Idle 7 days · veto <6 h · payment failed · cancelled | Inactivity · veto reminder · payment-failed · cancellation (end date) · hosting-end · win-back once at +30 d | Sign-in, draft resolves, payment succeeds, resume. Win-back copy is owner-owed — until it exists those mails do not send (2026-09-11) |
+| Retention | Idle 7 days · veto <6 h · payment failed · cancelled | Inactivity · veto reminder · payment-failed · cancellation (end date) · hosting-end · win-back once at +30 d | Sign-in, draft resolves, payment succeeds, resume. 2026-09-15 owner approved the retention/win-back sheet (#568); those mails may send. |
 
 **Rules** Unwritten keys send nothing. Address opt-out and per-kind toggles never merge. Unstoppable kinds still arrive with every switch off. From `hello@reachkit.app`.
 
@@ -159,6 +161,7 @@ Pinned numbers live in `src/lib/config/constants.ts`. Newest dated line in a sec
 - Fix opportunity (2026-09-14): one per crawled page that failed a ReachKit-fixed check, naming every such check it failed; none for a page the hosted destination serves (that template is fixed in the product, not by a day). It ranks just ahead of the first new writing in its cluster; while clusters are not derived, ahead of the first new writing at all.
 - Fix delivery (2026-09-14): a metadata-only update — a new title and/or meta description written from the page’s own words, content untouched, through the same veto path. Ready only where the WordPress destination can update the page: its own host, a page with a slug, an SEO plugin for a description. Otherwise the opportunity stands and is not ready. Structured data has no WordPress field and is not ready.
 - A check that could not run is absent with one why-line — never “no issues found”. Not paywalled.
+- 2026-09-15  Technical-issue titles, the not-run line, and Needs-you issue controls are owner-approved (#716).
 - 2026-09-14  Who fixes each check: “Free fix · 10 min” — `noindex` on an indexable page, no sitemap, slow pages, broken internal links, not usable on a phone, AI readers blocked. “ReachKit rewrites” — missing/duplicate title, missing/duplicate meta description. “ReachKit writes” — missing structured data. Copyable lines only where the line is fixed: the viewport meta line (phone), the robots `Sitemap:` line (sitemap), the robots `Allow` records (AI readers).
 
 - 2026-09-14  On the dashboard, “Needs you” holds only the issues the customer fixes (“Free fix · 10 min”), Critical first, after drafts waiting on them; ReachKit’s own rewrites are Fix work, not “Needs you”. Read from the newest stored report (Monday’s, or the deep pass before the first Monday).
@@ -171,7 +174,7 @@ Perplexity; Search Console; locale derivation; CMS besides hosted + WordPress; m
 
 ## §12 Still owed by the owner
 
-- Retention / win-back copy (those mails do not send without it).
-- Stripe test-mode payment walk and a real magic-link walk (issues #319, #542).
-- Legal bodies on `/privacy`, `/terms`, `/imprint` if still `TODO(copy)`.
+- Stripe test-mode payment walk on `dev.reachkit.app` (#319), then three live drafts ≤ 45¢ (#321) and a crawled free scan ≤ 12¢ / 50 s (#715).
+- Production magic-link walk (#542). WordPress connect walk (#324). Gmail/Apple Mail render (#339).
+- Legal imprint: legal entity, address, VAT id still `[[imprint: …]]` placeholders (#335).
 - Lift of production freeze when the paying path works on dev.

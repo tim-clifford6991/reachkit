@@ -70,7 +70,10 @@ export const SIGNIN_COPY = Object.freeze({
   // whether it has an account. It replaces the three answers this screen
   // used to give (link sent, payment held, no account), which told a
   // stranger who had an account. Owner-owed.
-  "signin.link_requested": ["TODO(copy)", { slots: {}, fixedBy: "issue 718" }],
+  "signin.link_requested": [
+    "If that address has an account, a sign-in link is on its way.",
+    { slots: {}, fixedBy: "issue 718" },
+  ],
   "signin.address.invalid": ["That doesn’t look like an email address. Check it and try again.", { slots: {}, fixedBy: "REQ-098 c6" }],
   "signin.link_dead": ["This sign-in link can’t be used any more. Ask for a new one below — it goes to the email you paid with.", { slots: {}, fixedBy: "REQ-098 c7" }],
 
