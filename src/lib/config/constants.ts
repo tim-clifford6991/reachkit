@@ -258,6 +258,25 @@ export const SITE_PROFILE = Object.freeze({
   VOICE_INPUT_MAX_CHARS: 4_000,
 } as const);
 
+/** SPEC §7 Rules (2026-09-12): "Every asset links to real inventory pages
+ *  (pricing, about, features, product) and to earlier assets in its
+ *  cluster." (`src/lib/generate/links/`)
+ *
+ *  `PRODUCT_PAGES_MAX` bounds the one purpose a site can hold dozens of:
+ *  pricing, about and features are one page each, and a site with forty
+ *  integration pages would otherwise hand the page forty links. The
+ *  product pages linked are the ones whose own headings share words with
+ *  the page's query, most-shared first.
+ *
+ *  `CLUSTER_PAGES_MAX` bounds the same list for the cluster's earlier
+ *  pages, newest first. At one page a day a cluster rarely reaches it; the
+ *  bound is there so a long-lived cluster does not turn every new page
+ *  into an index of the old ones. */
+export const CROSS_LINKS = Object.freeze({
+  PRODUCT_PAGES_MAX: 2,
+  CLUSTER_PAGES_MAX: 5,
+} as const);
+
 /** SPEC §9's technical-issue checks over the crawled pages — the two numbers
  *  the owner ruled on 2026-09-14.
  *

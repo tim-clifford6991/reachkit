@@ -187,3 +187,72 @@ describe("§7 — supply is the cap: the calendar is never padded", () => {
     expect(outcome).toEqual({ ok: false, because: "no_site" });
   });
 });
+
+describe("§7 (2026-09-12) — the page links into the customer's own site and to its cluster", () => {
+  const INVENTORY = [
+    { url: "https://example.com/", title: "Acme", h1: "Acme", purpose: "other" as const },
+    { url: "https://example.com/pricing", title: "Pricing", h1: "Plans for every team", purpose: "pricing" as const },
+    { url: "https://example.com/about", title: "About", h1: "Who we are", purpose: "about" as const },
+    { url: "https://example.com/features", title: "Features", h1: "Everything in one place", purpose: "features" as const },
+    { url: "https://example.com/products/boards", title: "Boards", h1: "Project boards", purpose: "product" as const },
+  ];
+  const FIRST = {
+    liveUrl: "https://content.example.com/how-many-seats",
+    title: "How many seats does a team need?",
+    publishedAt: AT,
+  };
+
+  async function publishedHtml(): Promise<string> {
+    const { renderMarkdownHtml } = await import("../../src/lib/publish/render/markdown");
+    const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
+    expect(outcome.ok).toBe(true);
+    const row = outcome.ok ? store.rows.get(outcome.draftId) : undefined;
+    return renderMarkdownHtml(row?.body_md ?? "");
+  }
+
+  it("the second page of a cluster links the inventory's real pages and the first page", async () => {
+    store.inventory = INVENTORY;
+    store.cluster.set("seats", [FIRST]);
+    nextForDayMock.mockResolvedValue(opportunity({ clusterKey: "seats" }));
+    queueAttempt(CLEAN_MARKDOWN);
+
+    const html = await publishedHtml();
+    for (const url of [
+      "https://example.com/pricing",
+      "https://example.com/about",
+      "https://example.com/features",
+      "https://example.com/products/boards",
+      FIRST.liveUrl,
+    ]) {
+      expect(html).toContain(`href="${url}"`);
+    }
+    expect(html).not.toContain('href="https://example.com/"');
+  });
+
+  it("the prompt is told the same pages the stored body links", async () => {
+    store.inventory = INVENTORY;
+    queueAttempt(CLEAN_MARKDOWN);
+    await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
+    const input = llmMock.mock.calls[2]?.[1].input as { links: Array<{ url: string }> };
+    expect(input.links.map((link) => link.url)).toContain("https://example.com/pricing");
+  });
+
+  it("a site with no pricing page publishes with no pricing link, even where the model wrote one", async () => {
+    store.inventory = INVENTORY.filter((row) => row.purpose !== "pricing");
+    queueAttempt(`${CLEAN_MARKDOWN}\n\nCompare [the plans](https://example.com/plans).`);
+
+    const html = await publishedHtml();
+    // The grounded source is the one page the fixture's fact was read from,
+    // and it stays sourced; no other pricing-shaped address is written.
+    const hrefs = [...html.matchAll(/href="([^"]+)"/g)].map((m) => m[1]).filter((href) => href !== GROUNDED.url);
+    expect(hrefs.filter((href) => /pric|plans/.test(href ?? ""))).toEqual([]);
+    expect(html).toContain('href="https://example.com/about"');
+  });
+
+  it("an opportunity outside any cluster, on a site with no profile, links nothing new", async () => {
+    queueAttempt(CLEAN_MARKDOWN);
+    const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
+    const row = outcome.ok ? store.rows.get(outcome.draftId) : undefined;
+    expect(row?.body_md).toBe(CLEAN_MARKDOWN);
+  });
+});

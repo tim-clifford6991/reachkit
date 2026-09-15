@@ -23,6 +23,8 @@ import type {
   SiteFacts,
   StoredPage,
 } from "../../src/lib/generate/store";
+import type { ClusterPage } from "../../src/lib/generate/links/select";
+import type { InventoryRow } from "../../src/lib/site-profile/types";
 import { fullSections } from "../scan/report/fixtures";
 
 export const AT = new Date("2026-09-05T10:00:00.000Z");
@@ -140,6 +142,8 @@ export interface MemoryStore extends GenerateStore {
   site: SiteFacts | null;
   storedReport: StoredReport | null;
   published: StoredPage[];
+  inventory: InventoryRow[];
+  cluster: Map<string, ClusterPage[]>;
   seed(row: Partial<DraftRow> & { id: string }): DraftRow;
 }
 
@@ -160,6 +164,8 @@ export function memoryStore(over: Partial<MemoryStore> = {}): MemoryStore {
     },
     storedReport: report(),
     published: [],
+    inventory: [],
+    cluster: new Map(),
 
     seed(row) {
       const full: DraftRow = {
@@ -229,6 +235,12 @@ export function memoryStore(over: Partial<MemoryStore> = {}): MemoryStore {
     },
     async countShortOfHandOff() {
       return rows.size;
+    },
+    async siteInventory() {
+      return store.inventory;
+    },
+    async clusterPages(_siteId, clusterKey) {
+      return store.cluster.get(clusterKey) ?? [];
     },
     ...over,
   };

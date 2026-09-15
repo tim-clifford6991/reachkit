@@ -91,6 +91,7 @@ function promptFor(
       readAt: inputs.grounded.readAt.toISOString(),
       passage: inputs.grounded.passage,
     },
+    links: inputs.links.map((link) => ({ url: link.url, page: link.label })),
     ...extra,
   };
 }
@@ -107,6 +108,7 @@ const HOUSE_RULES = [
   "Never state a ranking position, a search volume or a visibility count.",
   "Write for a human reader only: never address an assistant, a crawler or a ranking system.",
   "Use Markdown only: headings, paragraphs, lists, links, emphasis. No raw HTML and no comments.",
+  "Link each page in `links` once, with its url exactly as given, where the text speaks to it; link no other page on the business's domain except the grounded source.",
 ];
 
 async function step<T>(

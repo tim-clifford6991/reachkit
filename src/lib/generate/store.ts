@@ -19,6 +19,10 @@
 // carries an earlier version of it. See `voice/inputs.ts`.
 import { dbAdmin } from "@/lib/db";
 import { readStoredReport, type StoredReport } from "@/lib/scan/report";
+import { readStoredCheck } from "@/lib/publish/verify/stored";
+import { readSiteProfile } from "@/lib/site-profile/store";
+import type { InventoryRow } from "@/lib/site-profile/types";
+import type { ClusterPage } from "./links/select";
 
 /** The `drafts` row, as §10 and this issue's two migrations leave it. */
 export interface DraftRow {
@@ -117,6 +121,13 @@ export interface GenerateStore {
   /** How many of them there are, so a truncated sweep can report the rest
    *  as deferred rather than as finished. */
   countShortOfHandOff(siteId: string): Promise<number>;
+  /** The site profile's page inventory for the domain — every page the
+   *  last crawl read, with its purpose. Empty where no pass has built one. */
+  siteInventory(domain: string): Promise<readonly InventoryRow[]>;
+  /** This site's live pages written for opportunities in `clusterKey`:
+   *  published, not unpublished, and not found gone by the day-after
+   *  check (SPEC §7, 2026-09-12). */
+  clusterPages(siteId: string, clusterKey: string): Promise<ClusterPage[]>;
 }
 
 // ── The states this module has to name ──────────────────────────────────
@@ -156,6 +167,7 @@ interface MinimalQueryBuilder<T> extends PromiseLike<QueryResult<T>> {
   eq(column: string, value: string | number): MinimalQueryBuilder<T>;
   neq(column: string, value: string): MinimalQueryBuilder<T>;
   not(column: string, operator: string, value: unknown): MinimalQueryBuilder<T>;
+  is(column: string, value: null): MinimalQueryBuilder<T>;
   in(column: string, values: readonly string[]): MinimalQueryBuilder<T>;
   order(column: string, options: { ascending: boolean }): MinimalQueryBuilder<T>;
   limit(count: number): MinimalQueryBuilder<T>;
@@ -288,6 +300,38 @@ export function supabaseGenerateStore(): GenerateStore {
         .in("state", [...SHORT_OF_HAND_OFF]);
       if (result.error) throw new Error(`generate/store: read from drafts failed: ${result.error.message}`);
       return (result.data ?? []).length;
+    },
+
+    async siteInventory(domain) {
+      return (await readSiteProfile(domain))?.inventory ?? [];
+    },
+
+    async clusterPages(siteId, clusterKey) {
+      const result = await untyped()
+        .from<{
+          live_url: string | null;
+          published_at: string | null;
+          verify: unknown;
+          drafts: { title: string | null; opportunities: { cluster_key: string | null } | null } | null;
+        }>("publications")
+        .select("live_url, published_at, verify, drafts(title, opportunities(cluster_key))")
+        .eq("site_id", siteId)
+        .not("published_at", "is", null)
+        .not("live_url", "is", null)
+        .is("unpublished_at", null);
+      if (result.error) throw new Error(`generate/store: read from publications failed: ${result.error.message}`);
+      const pages: ClusterPage[] = [];
+      for (const row of result.data ?? []) {
+        if (row.live_url === null || row.published_at === null) continue;
+        if (row.drafts?.opportunities?.cluster_key !== clusterKey) continue;
+        if (readStoredCheck(row.verify)?.result.outcome === "page_not_found") continue;
+        pages.push({
+          liveUrl: row.live_url,
+          title: row.drafts.title ?? "",
+          publishedAt: new Date(row.published_at),
+        });
+      }
+      return pages;
     },
   };
 }

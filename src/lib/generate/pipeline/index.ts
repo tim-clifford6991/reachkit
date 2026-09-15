@@ -37,6 +37,8 @@ import { runHardRules } from "../rules";
 import { renderOf } from "../rules/text";
 import type { GroundedFact, RuleFailure, SiteRuleInputs } from "../rules/types";
 import { generateStore } from "../store";
+import { applyLinks } from "../links/apply";
+import type { LinkTarget } from "../links/select";
 import { buildPromptInputs } from "../voice/inputs";
 import { buildComparisonSet } from "./comparison";
 import { readGroundingFact } from "./grounding";
@@ -87,6 +89,9 @@ export async function generateDraft(
     site: SiteRuleInputs;
     voiceText: string | null;
     category: string;
+    /** The customer's own pages the page links to — the inventory's and the
+     *  cluster's, chosen by `../links/select.ts` (SPEC §7, 2026-09-12). */
+    links: readonly LinkTarget[];
     /** The scan whose measured pages ground the page. */
     scanId?: string;
   }
@@ -127,6 +132,7 @@ export async function generateDraft(
     voiceText: a.voiceText,
     opportunity: a.opportunity,
     grounded: grounding.fact,
+    links: a.links,
   });
 
   // 3. The four model steps. Each re-reads the ceiling; an `unmeasured`
@@ -146,7 +152,17 @@ export async function generateDraft(
   const polished = await answerability(c, inputs, { body: draftResult.value });
   if (polished.kind === "unmeasured") return stepFailed(a.siteId, "answerability");
 
-  const body = polished.value;
+  // SPEC §7: the page links to the chosen pages of the customer's own site
+  // and to none it guessed — held in code, before the row is written, so
+  // the battery reads and the store keeps the body a reader will meet.
+  const body = {
+    ...polished.value,
+    bodyMarkdown: applyLinks(polished.value.bodyMarkdown, {
+      domain: a.site.domain,
+      targets: a.links,
+      groundedUrl: grounding.fact.url,
+    }),
+  };
   const rendered = renderOf(body.bodyMarkdown);
 
   // 4. The row. `attribution` is the name **recorded** for the site and

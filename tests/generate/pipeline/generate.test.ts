@@ -72,6 +72,7 @@ function run(over: Partial<Parameters<typeof generateDraft>[1]> = {}) {
     site: siteInputs(),
     voiceText: null,
     category: "project management software",
+    links: [],
     ...over,
   });
 }
@@ -198,6 +199,7 @@ describe("a step that did not run is not a rule that failed", () => {
       site: siteInputs(),
       voiceText: null,
       category: "project management software",
+      links: [],
     });
     expect(outcome).toMatchObject({ reason: "step_failed" });
     expect(llmMock).not.toHaveBeenCalled();

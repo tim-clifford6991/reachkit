@@ -37,6 +37,7 @@ const INPUTS = buildPromptInputs({
   voiceText: "Plain and direct.",
   opportunity: opportunity(),
   grounded: GROUNDED,
+  links: [{ source: "site", purpose: "pricing", url: "https://example.com/pricing", label: "Pricing" }],
 });
 
 beforeEach(async () => {

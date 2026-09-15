@@ -158,6 +158,7 @@ async function runPipeline(site = siteInputs()): Promise<GenerateOutcome> {
     site,
     voiceText: null,
     category: "project management software",
+    links: [],
   });
 }
 

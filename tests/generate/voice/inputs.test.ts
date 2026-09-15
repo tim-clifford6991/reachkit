@@ -2,7 +2,7 @@
 // = one free-text field appended to the prompt. Nothing learned."
 //
 // "Nothing learned" is kept by a closed struct rather than by an audit:
-// `DraftPromptInputs` has six members, and a derived profile, summary,
+// `DraftPromptInputs` has seven members, and a derived profile, summary,
 // embedding or history has no member to arrive through. This suite pins the
 // key set both at compile time (a `Record<keyof …, true>` that fails to
 // compile if a member is added or removed) and at runtime.
@@ -23,13 +23,14 @@ function inputs(voiceText: string | null): DraftPromptInputs {
     voiceText,
     opportunity: opportunity(),
     grounded: GROUNDED,
+    links: [],
   });
 }
 
 describe("DraftPromptInputs is closed", () => {
-  it("has exactly the six members, and no seventh a derived artifact could arrive through", () => {
+  it("has exactly the seven members, and no eighth a derived artifact could arrive through", () => {
     expect(Object.keys(DRAFT_PROMPT_KEYS).sort()).toEqual(
-      ["businessName", "category", "domain", "grounded", "opportunity", "voiceText"].sort()
+      ["businessName", "category", "domain", "grounded", "links", "opportunity", "voiceText"].sort()
     );
   });
 
