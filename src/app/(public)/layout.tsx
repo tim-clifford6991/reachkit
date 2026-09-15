@@ -17,16 +17,11 @@
 // remembers to call: a screen that forgot it would be the only way to break
 // the promise, and there is no screen that renders it.
 //
-// **The header's CTA is drawn on every route it belongs on, the landing
-// included** (ruling 2b, 2026-09-08). What changes between routes is what
-// it does: on `/` it is REQ-099 c3's control and brings the hero's own
-// field into view; off `/` it is a link to the landing. Three routes
-// replace it rather than change it — the report address, whose slot is
-// REQ-001 c7's copy control, and the two token pages, where the set draws
-// the page's own address and no control at all. This layout tells the header
-// which route
-// it is on rather than letting the header read the pathname — a header that
-// reads the route would be a second place that rule lives.
+// **The same header on every public route** (SPEC §1; owner 2026-09-15,
+// issue 714: no exceptions). What changes between routes is what the CTA
+// does — on `/` it brings the hero's own field into view, elsewhere it links
+// to the landing — and the report address adds its copy control beside the
+// pair. `headerActionFor` is that one rule; this layout hands it the path.
 //
 // **`(account)` and `(hosted)` get none of this.** §4.4's sidebar is the
 // app shell's own chrome, and a hosted page is the customer's site, not
@@ -36,40 +31,8 @@
 
 import type React from "react";
 import { usePathname } from "next/navigation";
-import { Header, type HeaderAction } from "./_chrome/Header";
+import { Header, headerActionFor } from "./_chrome/Header";
 import { Footer } from "./_chrome/Footer";
-import { canonicalUrl } from "./_chrome/canonical";
-
-/** The routes whose right slot is not ruling 3a's pair: the landing, whose
- *  CTA is its own field (REQ-099 c3); the report address, whose slot is
- *  REQ-001 c7's copy control; and the two token pages, whose slot is each
- *  page's own address (UI-SPEC S6, S7). */
-const LANDING = "/";
-/** The one public route the header does not stand on (UI-SPEC S9). */
-const SIGN_IN = "/signin";
-const REPORT_PREFIX = "/scan/";
-/** The bar on the two pages a mail's link lands on: the address quiet on
- *  the right, and neither half of 3a's pair. #371 wired S6's; this is S7's,
- *  drawn the same way in the set and taking the same arm — one rendering
- *  for the two, because they are one drawing. */
-const VETO_PREFIX = "/veto/";
-const OPT_OUT_PREFIX = "/opt-out/";
-
-function actionFor(pathname: string): HeaderAction {
-  if (pathname === LANDING) return { kind: "landing" };
-  // The address as it stands, not a composed one: the bar states where the
-  // reader is, and the token is already in the address bar above it.
-  if (pathname.startsWith(VETO_PREFIX) || pathname.startsWith(OPT_OUT_PREFIX)) {
-    return { kind: "address", address: pathname };
-  }
-  if (pathname.startsWith(REPORT_PREFIX)) {
-    const url = canonicalUrl(pathname);
-    // No origin bound at build time is no address to copy: the pair stands
-    // in rather than a control that would copy a broken one.
-    return url === null ? { kind: "cta" } : { kind: "copy-link", canonicalUrl: url };
-  }
-  return { kind: "cta" };
-}
 
 export default function PublicLayout({
   children,
@@ -77,19 +40,12 @@ export default function PublicLayout({
   children: React.ReactNode;
 }): React.JSX.Element {
   const pathname = usePathname();
-  // **The sign-in screen carries no header** (UI-SPEC S9, issue #373). It is
-  // drawn as two full-height panels meeting the viewport's edges, with the
-  // brand inside the left one; a bar across the top would be a third band,
-  // and it would put a control on the one screen whose whole job is a single
-  // field. Named here rather than read as a flag, because this file is
-  // already where the chrome's per-route decisions live.
-  const bare = pathname === SIGN_IN;
   return (
     // A column at least the viewport tall, so the footer sits at the bottom
     // of a short page. `data-public-shell` is the hook `surface.css` reads
     // to let a declared screen (sign-in) fill what the chrome leaves.
     <div data-public-shell className="flex min-h-svh flex-col">
-      {bare ? null : <Header action={actionFor(pathname)} />}
+      <Header action={headerActionFor(pathname)} />
       {children}
       <Footer />
     </div>

@@ -11,13 +11,12 @@
 // solid button. On the landing the CTA is not a submit control: it focuses
 // the one field, which keeps REQ-001 c1 true.
 //
-// **The right slot is a closed union since #357.** Four arms — the pair, the
-// landing's field CTA, the report address's copy control, and (since #371) a
-// token page's own address — decided by the layout and passed in, so this
-// file renders each one directly.
+// **The right slot is a closed union.** Three arms — the pair, the landing's
+// field CTA, and the report address's copy control beside the pair — chosen
+// by `headerActionFor`, which this file asserts per route (issue 714).
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { Header, type HeaderAction } from "@/app/(public)/_chrome/Header";
+import { Header, headerActionFor, type HeaderAction } from "@/app/(public)/_chrome/Header";
 
 function markup(action: HeaderAction): string {
   return renderToStaticMarkup(<Header action={action} />);
@@ -33,37 +32,25 @@ const REPORT: HeaderAction = {
   kind: "copy-link",
   canonicalUrl: "https://reachkit.app/scan/example.com",
 };
-const TOKEN_PAGE: HeaderAction = { kind: "address", address: "/veto/a-token" };
 
-describe("S2 — on the report address the right slot is REQ-001 c7's control", () => {
-  it("draws the copy control, and neither half of the pair", () => {
-    const html = markup(REPORT);
-    expect(html).toContain('href="/"');
-    expect(html).toContain("btn-ghost");
-    expect(html).not.toContain('href="/signin"');
-    expect(html).not.toContain("btn-primary");
+describe("SPEC §1, owner 2026-09-15 (issue 714) — the same bar on the report, token pages and sign-in", () => {
+  it("the veto, opt-out and sign-in routes take the plain pair; the landing takes its field CTA", () => {
+    for (const path of ["/veto/a-token", "/opt-out/a-token", "/signin", "/pricing"]) {
+      expect(headerActionFor(path)).toEqual(ELSEWHERE);
+    }
+    expect(headerActionFor("/")).toEqual(LANDING);
+    expect(["copy-link", "cta"]).toContain(headerActionFor("/scan/example.com").kind);
   });
 
-  it("the address is the one it was handed: the header composes none", () => {
-    // The URL reaches the clipboard through a handler, never the markup —
-    // so what this holds is that the control took it and drew.
-    expect(markup(REPORT)).not.toContain("https://reachkit.app");
-  });
-});
-
-describe("S6 — on a token page the right slot is the address, quiet", () => {
-  it("draws the address in the set's own `.prov`, and neither half of the pair", () => {
-    const html = markup(TOKEN_PAGE);
-    expect(html).toContain('href="/"');
-    expect(html).toContain("/veto/a-token");
-    // A reader of a stop link has no account to sign in to and did not come
-    // to scan a domain: the set draws no control on that side of the bar.
-    expect(html).not.toContain('href="/signin"');
-    expect(html).not.toContain("btn-primary");
-  });
-
-  it("it is text, not a link: the reader is standing on the address", () => {
-    expect(markup(TOKEN_PAGE)).not.toContain('href="/veto/a-token"');
+  it("the report keeps its copy control beside Sign in and the one outline CTA", () => {
+    const html = withoutThemeToggle(markup(REPORT));
+    expect(html).toContain('href="/signin"');
+    expect(html).toContain('<button');
+    const primaries = [...html.matchAll(/class="([^"]*\bbtn-primary\b[^"]*)"/g)].map((m) => m[1] ?? "");
+    expect(primaries).toHaveLength(1);
+    expect(primaries[0]).toContain("btn-outline");
+    // The URL reaches the clipboard through a handler, never the markup.
+    expect(html).not.toContain("https://reachkit.app");
   });
 });
 
@@ -99,7 +86,7 @@ describe("SPEC §1 — brand · Sign in · the header CTA, outline", () => {
   });
 
   it("#681 — every arm carries the Light / Dark / System control", () => {
-    for (const action of [LANDING, ELSEWHERE, REPORT, TOKEN_PAGE]) {
+    for (const action of [LANDING, ELSEWHERE, REPORT]) {
       expect(markup(action)).toContain('data-testid="theme-toggle"');
     }
     expect(markup(ELSEWHERE).match(/data-theme-choice="(light|dark|system)"/g)).toHaveLength(3);
