@@ -135,7 +135,7 @@ export function GooglePresenceCard(p: { section: PresenceSection }): React.JSX.E
 
 /** REQ-004 c10/c11: named as absent in one written line; the rest of the
  *  report stays usable. */
-export function GooglePresenceAbsent(): React.JSX.Element {
+export function GooglePresenceAbsent(p: { cutOff?: boolean } = {}): React.JSX.Element {
   return (
     <section className="card bg-base-100 border-base-300 border">
       <div className="card-body gap-3">
@@ -143,7 +143,7 @@ export function GooglePresenceAbsent(): React.JSX.Element {
         <p className="grow-0 text-sm">{copy("presence.absent")}</p>
         <div className="card-actions">
           <button type="button" className="btn btn-outline btn-primary btn-sm">
-            {copy("control.rescan-incomplete")}
+            {copy(p.cutOff === true ? "control.retry-part" : "control.rescan-incomplete")}
           </button>
         </div>
       </div>

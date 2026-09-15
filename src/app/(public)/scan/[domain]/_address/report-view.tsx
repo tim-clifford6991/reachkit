@@ -172,6 +172,12 @@ function ControlButton(p: { control: AddressControl }): React.JSX.Element | null
   );
 }
 
+/** SPEC §2: a part is cut off when the pass stopped at one of its two
+ *  ceilings — not when it finished, failed, or could not read the site. */
+function cutByCeiling(report: StoredReport): boolean {
+  return report.stoppedReason === "time_ceiling" || report.stoppedReason === "spend_ceiling";
+}
+
 export function ReportView(p: {
   state: {
     report: StoredReport;
@@ -182,6 +188,7 @@ export function ReportView(p: {
   const { report, notice, control } = p.state;
   const measuredOn = formatMeasuredOn(report.verdict.measuredAt);
   const cards = cardsOf(report, unblockLines(report.blockedAgents));
+  const cutOff = cutByCeiling(report);
 
   return (
     // ADR-093 decision 6: the report is a screen, so it is a screen root,
@@ -253,15 +260,17 @@ export function ReportView(p: {
             category={categoryOf(report.market)}
             measuredOn={measuredOn}
           />
+          {/* SPEC §2: what was measured, in one line that is always shown. */}
+          <p className="text-base-content/60 mt-2 font-mono text-xs">{copy("report.measurement")}</p>
         </div>
 
         {report.aiAnswers === null ? (
-          <AiAnswersAbsent />
+          <AiAnswersAbsent cutOff={cutOff} />
         ) : (
           <AiAnswersCard section={report.aiAnswers} measuredOn={measuredOn} />
         )}
         {report.presence === null ? (
-          <GooglePresenceAbsent />
+          <GooglePresenceAbsent cutOff={cutOff} />
         ) : (
           <GooglePresenceCard section={report.presence} />
         )}
@@ -285,7 +294,7 @@ export function ReportView(p: {
             choice between them. */}
         <div className="col-span-full">
           {report.freePage === null ? (
-            <FreePageAbsent />
+            <FreePageAbsent cutOff={cutOff} />
           ) : (
             <FreePageCard section={report.freePage} />
           )}

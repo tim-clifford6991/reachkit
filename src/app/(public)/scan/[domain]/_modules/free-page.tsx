@@ -108,12 +108,21 @@ export function FreePageCard(p: { section: FreePageSection }): React.JSX.Element
 
 /** REQ-004 c10/c11: a scan that found no opportunity says so in one
  *  written line rather than showing an empty card. */
-export function FreePageAbsent(): React.JSX.Element {
+export function FreePageAbsent(p: { cutOff?: boolean } = {}): React.JSX.Element {
   return (
     <section className="card bg-base-100 border-base-300 border">
       <div className="card-body gap-3">
         <Head />
         <p className="grow-0 text-sm">{copy("free-page.absent")}</p>
+        {/* Only a page the pass's ceiling cut off is offered again: a scan that
+            found nothing worth writing has nothing to retry (SPEC §2). */}
+        {p.cutOff === true ? (
+          <div className="card-actions">
+            <button type="button" className="btn btn-outline btn-primary btn-sm">
+              {copy("control.retry-part")}
+            </button>
+          </div>
+        ) : null}
       </div>
     </section>
   );

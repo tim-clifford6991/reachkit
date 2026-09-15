@@ -482,3 +482,20 @@ describe("REQ-002 c1/c3 — one removal address, two surfaces", () => {
     expect(foot).toContain("removal.address");
   });
 });
+
+describe("issue 715 — SPEC §2: what was measured, what was reused, what the ceiling cut off", () => {
+  const cutOff: StoredReport = { ...FIXTURE_DEGRADED_REPORT, complete: false, stoppedReason: "time_ceiling", aiAnswers: FIXTURE_REPORT.aiAnswers };
+
+  it("every report state carries the measurement line once; the reuse disclosure only when cached_only", () => {
+    for (const report of [FIXTURE_REPORT, FIXTURE_DEGRADED_REPORT, cutOff]) expect(count(render(report), ">report.measurement<")).toBe(1);
+    expect(render(FIXTURE_REPORT)).not.toContain("ai-answers.coverage.cached-only");
+    expect(render({ ...FIXTURE_REPORT, aiAnswers: { ...FIXTURE_REPORT.aiAnswers!, coverage: "cached_only" } })).toContain("ai-answers.coverage.cached-only");
+  });
+
+  it("a ceiling-cut report keeps its measured card and offers 'Retry this part' only on the parts it lost", () => {
+    const html = render(cutOff);
+    expect(html).toContain("ai-answers.denominator");
+    expect(count(html, ">control.retry-part<")).toBe(2);
+    expect(render({ ...FIXTURE_DEGRADED_REPORT, stoppedReason: "failed" })).not.toContain("control.retry-part");
+  });
+});

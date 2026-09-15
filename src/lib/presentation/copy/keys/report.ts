@@ -108,6 +108,9 @@ export const REPORT_COPY = Object.freeze({
   "control.rescan-incomplete": ["Measure what’s missing", { slots: {}, fixedBy: "REQ-001 c14" }],
   "control.retry": ["Try again", { slots: {}, fixedBy: "REQ-001 c16" }],
   "control.correction-retry": ["Try the correction again", { slots: {}, fixedBy: "REQ-094 c7" }],
+  // Issue 715: the control on a part the pass's ceiling cut off — SPEC §2
+  // quotes the words.
+  "control.retry-part": ["Retry this part", { slots: {}, fixedBy: "SPEC §2 · issue 715" }],
   "copy-link.label": ["Copy link", { slots: {}, fixedBy: "REQ-001 c7" }],
 
   // ── Module 1, the verdict strip (BUILD §4.1) ──────────────────────────
@@ -132,6 +135,9 @@ export const REPORT_COPY = Object.freeze({
   // determined a category names none and guesses none (REQ-094 c1).
   "report.measured-at": ["measured {date} · {category}", { slots: { date: "text", category: "text" }, fixedBy: "REQ-004 c1" }],
   "report.measured-at.no-category": ["measured {date}", { slots: { date: "text" }, fixedBy: "REQ-094 c1" }],
+  // Issue 715: SPEC §2 — "Measurement is US Google in English, stated in one
+  // always-visible line." Owner-owed.
+  "report.measurement": ["TODO(copy)", { slots: {}, fixedBy: "SPEC §2 · issue 715" }],
   // 6a: "Discoverability Score" is the number's name on every surface that
   // labels it — this eyebrow, the Overview tile, and the two mails.
   "verdict.score.label": ["Discoverability Score", { slots: {}, fixedBy: "ruling 6a" }],
@@ -165,6 +171,9 @@ export const REPORT_COPY = Object.freeze({
   // ── Module 2, left card — AI answers (REQ-006) ────────────────────────
   "ai-answers.title": ["AI answers", { slots: {}, fixedBy: "REQ-006 c1" }],
   "ai-answers.source": ["Google AI answers · {date}", { slots: { date: "text" }, fixedBy: "REQ-006 c9" }],
+  // Issue 715: SPEC §2 — a category correction reuses the AI answers already
+  // read, "and says so". Owner-owed.
+  "ai-answers.coverage.cached-only": ["TODO(copy)", { slots: {}, fixedBy: "SPEC §2 · issue 715" }],
   "ai-answers.denominator": ["AI answers appear on {answered} of your {measured} biggest searches", { slots: { answered: "text", measured: "text" }, fixedBy: "REQ-006 c1" }],
   "ai-answers.customer-citations": ["You’re named in {cited} of the {answered} AI answers that appeared.", { slots: { cited: "text", answered: "text" }, fixedBy: "REQ-006 c1" }],
   "ai-answers.legend": ["Filled: named in that answer · Empty: not named · Muted: no AI answer appeared", { slots: {}, fixedBy: "REQ-006 c1" }],
