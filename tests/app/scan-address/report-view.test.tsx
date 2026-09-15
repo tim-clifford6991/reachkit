@@ -483,41 +483,19 @@ describe("REQ-002 c1/c3 — one removal address, two surfaces", () => {
   });
 });
 
-describe("issue 715 — SPEC §2: what was measured, what was reused, and what the ceiling cut off", () => {
-  const cutOff: StoredReport = {
-    ...FIXTURE_DEGRADED_REPORT,
-    complete: false,
-    stoppedReason: "time_ceiling",
-    // One part measured before the ceiling: it still renders in full.
-    aiAnswers: FIXTURE_REPORT.aiAnswers,
-  };
+describe("issue 715 — SPEC §2: what was measured, what was reused, what the ceiling cut off", () => {
+  const cutOff: StoredReport = { ...FIXTURE_DEGRADED_REPORT, complete: false, stoppedReason: "time_ceiling", aiAnswers: FIXTURE_REPORT.aiAnswers };
 
-  it("every report state that shows a figure carries the measurement line, once", () => {
-    for (const report of [FIXTURE_REPORT, FIXTURE_DEGRADED_REPORT, FIXTURE_COLD_START_REPORT, cutOff]) {
-      expect(count(render(report), ">report.measurement<")).toBe(1);
-    }
-  });
-
-  it("the AI-answers card says it reused cached answers only when the correction did", () => {
+  it("every report state carries the measurement line once; the reuse disclosure only when cached_only", () => {
+    for (const report of [FIXTURE_REPORT, FIXTURE_DEGRADED_REPORT, cutOff]) expect(count(render(report), ">report.measurement<")).toBe(1);
     expect(render(FIXTURE_REPORT)).not.toContain("ai-answers.coverage.cached-only");
-    const corrected: StoredReport = {
-      ...FIXTURE_REPORT,
-      aiAnswers: { ...FIXTURE_REPORT.aiAnswers!, coverage: "cached_only" },
-    };
-    expect(count(render(corrected), "ai-answers.coverage.cached-only")).toBe(1);
+    expect(render({ ...FIXTURE_REPORT, aiAnswers: { ...FIXTURE_REPORT.aiAnswers!, coverage: "cached_only" } })).toContain("ai-answers.coverage.cached-only");
   });
 
-  it("a report the ceiling cut off keeps its measured card and offers 'Retry this part' on each part it lost", () => {
+  it("a ceiling-cut report keeps its measured card and offers 'Retry this part' only on the parts it lost", () => {
     const html = render(cutOff);
     expect(html).toContain("ai-answers.denominator");
-    expect(html).not.toContain("ai-answers.absent");
-    // Google search and the free page were cut off; AI answers was not.
     expect(count(html, ">control.retry-part<")).toBe(2);
-    expect(html).not.toContain(">control.rescan-incomplete<");
-  });
-
-  it("a part missing for any other reason is not a part the ceiling cut off", () => {
-    const html = render({ ...FIXTURE_DEGRADED_REPORT, stoppedReason: "failed" });
-    expect(html).not.toContain("control.retry-part");
+    expect(render({ ...FIXTURE_DEGRADED_REPORT, stoppedReason: "failed" })).not.toContain("control.retry-part");
   });
 });

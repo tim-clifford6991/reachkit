@@ -244,15 +244,7 @@ describe('REQ-001 c16 — "… then one written line says what happened and a ma
       ].sort()
     );
     expect(controlKeys.sort()).toEqual(
-      [
-        "control.correction-retry",
-        "control.rescan-age",
-        "control.rescan-incomplete",
-        "control.retry",
-        // Issue 715: a part the ceiling cut off — a per-card control, not the
-        // report's one.
-        "control.retry-part",
-      ].sort()
+      ["control.correction-retry", "control.rescan-age", "control.rescan-incomplete", "control.retry", "control.retry-part"].sort()
     );
   });
 });
