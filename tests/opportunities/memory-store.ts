@@ -18,6 +18,7 @@ import type {
   OpportunityStore,
 } from "../../src/lib/opportunities/store";
 import type { Profile } from "../../src/lib/market/questions/profile";
+import type { EarnGrounding } from "../../src/lib/opportunities/earn-grounding";
 import type { NotWorkingVerdict } from "../../src/lib/opportunities/suppression";
 import type { StoredReport } from "../../src/lib/scan/report";
 
@@ -37,6 +38,8 @@ export interface MemoryState {
   report: StoredReport | null;
   /** Whether the site's own pages ground a fact (SPEC §6, 2026-09-15). */
   grounded: boolean;
+  /** Which Earn assets the site's own pages ground (issue 478). */
+  earnGrounding: EarnGrounding;
 }
 
 export function newMemoryState(over: Partial<MemoryState> = {}): MemoryState {
@@ -51,6 +54,7 @@ export function newMemoryState(over: Partial<MemoryState> = {}): MemoryState {
     notWorking: [],
     report: null,
     grounded: true,
+    earnGrounding: { comparison_table: true, integration_page: true, original_data_page: true },
     ...over,
   };
 }
@@ -153,6 +157,10 @@ export function memoryStore(state: MemoryState): OpportunityStore {
 
     async hasGroundingFact() {
       return state.grounded;
+    },
+
+    async earnGrounding() {
+      return state.earnGrounding;
     },
 
     async lastStatusChangeAt(siteId) {

@@ -110,6 +110,7 @@ describe("collapse — one survivor per cluster, over held rows and new candidat
 
 const CTX: ReadinessContext = {
   grounded: true,
+  earnGrounding: { comparison_table: true, integration_page: true, original_data_page: true },
   suppression: { clusters: new Set(), retiredUrls: new Set() },
   profile: PROFILE,
   ownRanks: () => false,
