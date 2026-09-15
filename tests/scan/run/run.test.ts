@@ -339,6 +339,63 @@ describe("a stage that spends its own budget (issue #539)", () => {
   });
 });
 
+describe("a pass its own deadline cut off (issue 607)", () => {
+  it("a SERP still in flight when the pass's ceiling fires never changes the composed report", async () => {
+    vi.useFakeTimers();
+    try {
+      const { TIMING } = await import("../../../src/lib/config/constants");
+      const { STAGE_BUDGETS } = await import("../../../src/lib/scan/budgets");
+      // The pass reaches both of these through `await import`, and a module
+      // loaded for the first time takes real time the fake clock does not
+      // wait for: loaded here, the timeline below is the pass's own.
+      await import("@/lib/site-profile");
+      await import("@/lib/site-issues");
+      // The crawl is outside every stage budget, so it is what carries the
+      // pass towards its own ceiling: the twelve start with less of the
+      // pass left than their own stage budget, and the pass's deadline —
+      // not the stage's — is what cuts them off.
+      const crawlMs = (TIMING.reportCeilingS - STAGE_BUDGETS.asking_the_twelve.seconds / 2) * 1000;
+      buildSiteProfileWithCrawl.mockImplementationOnce(async () => {
+        await new Promise((resolve) => setTimeout(resolve, crawlMs));
+        return {
+          profile: null,
+          crawl: { pages: [], discovered: 0, stoppedBy: "complete", fetched: [], broken: [], sitemap: "absent" },
+        };
+      });
+      let answer: () => void = () => undefined;
+      const held = new Promise<void>((resolve) => {
+        answer = resolve;
+      });
+      serpOrganic.mockImplementation(async () => {
+        await held;
+        return measured(SERP, AT);
+      });
+
+      const pass = runScan({ domain: DOMAIN, tier: "free" });
+      await vi.advanceTimersByTimeAsync(TIMING.reportCeilingS * 1000);
+      await pass;
+
+      const report = storedReport();
+      expect(report.stoppedReason).toBe("time_ceiling");
+      expect(report.serps).toHaveLength(12);
+      expect(report.serps.every((serp) => serp.kind === "unmeasured")).toBe(true);
+      const composed = JSON.stringify(report);
+
+      // Every held SERP answers now, with the pass over and its report
+      // stored: nothing they carry is written into what was composed, and
+      // no stage reports an exit after the ending.
+      const linesAtEnding = [...stages.lines];
+      answer();
+      await vi.advanceTimersByTimeAsync(STAGE_BUDGETS.asking_the_twelve.seconds * 1000);
+      expect(JSON.stringify(report)).toBe(composed);
+      expect(stages.lines).toEqual(linesAtEnding);
+      expect(stages.lines).not.toContain("asking_the_twelve:done");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
 describe("a ceiling gives back what was measured", () => {
   it("a battery the ceiling cut short keeps its unmeasured arms and lowers the denominator, never writes a 0", async () => {
     // The cost seam's own cap arm: `serpOrganic` returns `not_attempted`

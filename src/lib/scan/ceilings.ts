@@ -86,6 +86,12 @@ export interface Bounds {
   stageExhausted(reason: "time_ceiling" | "spend_ceiling"): void;
   /** What `stageExhausted` recorded, or `undefined` where it was never called. */
   exhausted(): "time_ceiling" | "spend_ceiling" | undefined;
+  /** `true` from the moment the pass's deadline won the race against the
+   *  body (issue 607). The report is composed from `sections` from then on,
+   *  so a stage still in flight — nothing here can cancel it — checks this
+   *  before every write and writes nothing. `false` for the life of a pass
+   *  the deadline does not apply to, and for a body that settled first. */
+  abandoned(): boolean;
 }
 
 // Rule 1.1 parameter: the generation `withCostContext`'s own cache reads
@@ -116,11 +122,12 @@ interface CapReader {
  *  in a test by faking the global timers (`vi.useFakeTimers()`), not by
  *  passing one in — the public signature stays the two parameters BP-023
  *  declares. */
-function makeBounds(a: { startedAt: Date; clock: () => Date; cost: CapReader }): Bounds {
+function makeBounds(a: { startedAt: Date; clock: () => Date; cost: CapReader }): Bounds & { abandon(): void } {
   const deadlineMs = a.startedAt.getTime() + TIMING.reportCeilingS * 1000;
   let unreadable: { refusal: FetchRefusalReason | null } | undefined;
   let exhausted: "time_ceiling" | "spend_ceiling" | undefined;
-  const bounds: Bounds = {
+  let abandoned = false;
+  const bounds: Bounds & { abandon(): void } = {
     expired(): boolean {
       return a.clock().getTime() >= deadlineMs;
     },
@@ -147,12 +154,27 @@ function makeBounds(a: { startedAt: Date; clock: () => Date; cost: CapReader }):
     exhausted() {
       return exhausted;
     },
+    abandoned() {
+      return abandoned;
+    },
+    // Not on `Bounds`: only the race below may say nobody is waiting, so a
+    // stage handed these bounds cannot abandon its own pass.
+    abandon(): void {
+      abandoned = true;
+    },
   };
   return bounds;
 }
 
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+/** A delay that can be cleared — `budgets.ts`'s own shape, for the same
+ *  reason: an uncleared timer holds the invocation open for the rest of
+ *  the ceiling after a body that answered early. */
+function cancellableDelay(ms: number): { promise: Promise<void>; cancel: () => void } {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const promise = new Promise<void>((resolve) => {
+    timer = setTimeout(resolve, ms);
+  });
+  return { promise, cancel: () => clearTimeout(timer) };
 }
 
 /** Runs `body` and settles an `Ending` from whichever of three things
@@ -214,22 +236,35 @@ async function runBounded<T>(
     }
   })();
 
+  // The deep pass is released at ten minutes rather than stopped, and the
+  // weekly pass runs on the standard queue; for both, the spend cap
+  // re-checked between stages is the whole of the bound, so there is no
+  // timer to race against. `bounds.expired()` is `false` for the life of
+  // such a pass and `stopNow()` reads the cap alone. No timer is even set
+  // for one: a deadline that cannot end the pass must not be able to
+  // abandon its body either (issue 607).
+  if (!a.deadlineApplies) return bodyOutcome;
+
+  const timer = cancellableDelay(bounds.remainingMs());
   const deadlineOutcome: Promise<{ result: T | null; ending: Ending }> = (async () => {
-    await delay(bounds.remainingMs());
+    await timer.promise;
+    // **The losing body cannot be cancelled, so it is told** (issue 607) —
+    // `withStageBudget`'s rule one level up. The caller composes the report
+    // from `sections` as soon as this resolves; flipped here, at the
+    // timer, rather than after the race settles, so no worker's write can
+    // land in the microtasks between the two.
+    bounds.abandon();
     return {
       result: null,
       ending: { kind: "report" as const, complete: false as const, stoppedReason: "time_ceiling" as const },
     };
   })();
 
-  // The deep pass is released at ten minutes rather than stopped, and the
-  // weekly pass runs on the standard queue; for both, the spend cap
-  // re-checked between stages is the whole of the bound, so there is no
-  // timer to race against. `bounds.expired()` is `false` for the life of
-  // such a pass and `stopNow()` reads the cap alone.
-  if (!a.deadlineApplies) return bodyOutcome;
-
-  return Promise.race([bodyOutcome, deadlineOutcome]);
+  try {
+    return await Promise.race([bodyOutcome, deadlineOutcome]);
+  } finally {
+    timer.cancel();
+  }
 }
 
 /** BP-023 `## NFR budget`: "one line per ending carrying `stoppedReason`,
