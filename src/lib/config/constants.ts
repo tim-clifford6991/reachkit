@@ -253,6 +253,12 @@ export const PROFILE_INPUT_MAX_CHARS = 20_000 as const;
 export const SITE_PROFILE = Object.freeze({
   MAX_PAGES: 100,
   CRAWL_MS: 12_000,
+  /** Master ruling under SPEC §5 (2026-09-12, issue 610): the crawl holds
+   *  at most 8 MB in total, and a site's `Crawl-delay` is honoured up to 1 s
+   *  between reads — a longer one is applied as 1 s, and the time budget
+   *  above then decides how much of the site that pace reaches. */
+  CRAWL_MAX_BYTES: 8_000_000,
+  CRAWL_DELAY_MAX_MS: 1_000,
   CONCURRENCY: 6,
   PAGE_SAMPLE_CHARS: 600,
   VOICE_INPUT_MAX_CHARS: 4_000,

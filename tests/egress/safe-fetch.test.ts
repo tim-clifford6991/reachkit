@@ -248,6 +248,34 @@ describe("safeFetch · the own-document cap (issue #479 — one pin, OWN_DOCUMEN
 });
 
 describe("safeFetch · timeout (BP-006 NFR: default 8000 ms, hard max 15000 ms)", () => {
+  it("an abort signal ends a read in flight as a timeout, and destroys the request (issue 610)", async () => {
+    const { safeFetch } = await import("../../src/lib/egress/safe-fetch");
+    vi.spyOn(dns.promises, "lookup").mockResolvedValue({ address: "93.184.216.34", family: 4 });
+    const { requests } = installTransport([{ type: "hang" }]);
+    const controller = new AbortController();
+
+    const pending = safeFetch("https://example.com/slow", { respectRobots: false, signal: controller.signal });
+    await vi.waitFor(() => expect(requests).toHaveLength(1));
+    controller.abort();
+
+    await expect(pending).resolves.toMatchObject({ ok: false, reason: "timeout" });
+    expect((requests[0] as unknown as { destroy: ReturnType<typeof vi.fn> }).destroy).toHaveBeenCalled();
+  });
+
+  it("an already-aborted signal makes no connection at all", async () => {
+    const { safeFetch } = await import("../../src/lib/egress/safe-fetch");
+    vi.spyOn(dns.promises, "lookup").mockResolvedValue({ address: "93.184.216.34", family: 4 });
+    const { calls } = installTransport([okResponse()]);
+    const controller = new AbortController();
+    controller.abort();
+
+    await expect(safeFetch("https://example.com/", { signal: controller.signal })).resolves.toMatchObject({
+      ok: false,
+      reason: "timeout",
+    });
+    expect(calls).toHaveLength(0);
+  });
+
   it("yields timeout when the server hangs past the configured bound", async () => {
     const { safeFetch } = await import("../../src/lib/egress/safe-fetch");
     vi.spyOn(dns.promises, "lookup").mockResolvedValue({ address: "93.184.216.34", family: 4 });
@@ -345,6 +373,24 @@ describe("safeFetch · robots port (BP-006: on by default, delegated to robots.t
     const outcome = await safeFetch("https://example.com/");
 
     expect(outcome).toMatchObject({ ok: false, reason: "robots_disallowed" });
+    __setRobotsPortForTesting(null);
+  });
+
+  it("decides the address's own path: Disallow: /cart refuses /cart and fetches / (issue 610)", async () => {
+    const { safeFetch, __setRobotsPortForTesting } = await import("../../src/lib/egress/safe-fetch");
+    const { parseRobotsTxt } = await import("../../src/lib/egress/robots");
+    vi.spyOn(dns.promises, "lookup").mockResolvedValue({ address: "93.184.216.34", family: 4 });
+    installTransport([okResponse()]);
+    __setRobotsPortForTesting(async () => ({
+      ok: true,
+      origin: "https://example.com",
+      readAt: new Date(),
+      absent: false,
+      ...parseRobotsTxt("User-agent: *\nDisallow: /cart\n"),
+    }));
+
+    expect(await safeFetch("https://example.com/cart?item=1")).toMatchObject({ ok: false, reason: "robots_disallowed" });
+    expect((await safeFetch("https://example.com/")).ok).toBe(true);
     __setRobotsPortForTesting(null);
   });
 

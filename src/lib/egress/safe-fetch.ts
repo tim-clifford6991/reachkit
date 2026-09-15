@@ -20,7 +20,7 @@ import https from "node:https";
 import dns from "node:dns";
 import { isIP } from "node:net";
 import { checkAddress, checkSchemeAndPort } from "./policy";
-import { productToken, readRobots } from "./robots";
+import { readRobots, robotsAllows } from "./robots";
 import type { FetchOutcome, RobotsPolicy } from "./types";
 import { VERIFY } from "@/lib/config/constants";
 
@@ -80,6 +80,11 @@ export type SafeFetchOpts = {
   /** The request body, already serialised. Sent with an explicit
    *  `Content-Length`, so nothing is chunked and nothing is guessed. */
   body?: string;
+  /** Ends the fetch where it stands — a lookup, a connection or a body
+   *  half-read — and answers `timeout`. For a caller with a deadline of its
+   *  own wider than one fetch: the site-profile crawl aborts every read
+   *  still in flight when its budget is spent (issue 610). */
+  signal?: AbortSignal;
 };
 
 // ── The robots port (BP-006 `readRobots`) ───────────────────────────────
@@ -107,11 +112,11 @@ export function __setRobotsPortForTesting(port: RobotsPort | null): void {
 /** RFC 9309 §2.2.1: the group that names our product token decides, and the
  *  wildcard group applies only where no group names us — so a document that
  *  disallows every reader but allows us by name allows us, and one that
- *  allows every reader but disallows us by name refuses us. */
-function isDisallowed(policy: RobotsPolicy, userAgentToken: string, userAgentValue: string): boolean {
-  const named =
-    policy.disallowedAgents[productToken(userAgentValue)] ?? policy.disallowedAgents[userAgentToken];
-  return named ?? policy.disallowsAll;
+ *  allows every reader but disallows us by name refuses us. Decided for the
+ *  address's own path, not only the root (issue 610): `Disallow: /cart`
+ *  refuses `/cart` and leaves `/` alone. */
+function isDisallowed(policy: RobotsPolicy, userAgentToken: string, userAgentValue: string, url: URL): boolean {
+  return !robotsAllows(policy, [userAgentValue, userAgentToken], `${url.pathname}${url.search}`);
 }
 
 // ── Observability — BP-006 NFR budget, verbatim field set ──────────────
@@ -126,6 +131,15 @@ function logFetch(host: string, reason: string, status: number | null, bytes: nu
 
 function userAgentString(token: "reachkit-measure" | "reachkit-verify"): string {
   return token === "reachkit-verify" ? VERIFY.userAgent : MEASURE_USER_AGENT;
+}
+
+/** The names a `robots.txt` group may address this reader by, in the order
+ *  they are tried: the product token of the `User-Agent` sent, then the
+ *  option's own token. A caller that decides robots itself — the
+ *  site-profile crawl, filtering its frontier — asks with exactly the names
+ *  this module's own check uses. */
+export function robotsTokensFor(token: "reachkit-measure" | "reachkit-verify"): readonly string[] {
+  return [userAgentString(token), token];
 }
 
 function clampTimeout(ms: number | undefined): number {
@@ -184,6 +198,28 @@ export async function resolveAddress(hostname: string, remainingMs: number): Pro
   return result;
 }
 
+function isAborted(signal: AbortSignal | undefined): boolean {
+  return signal?.aborted === true;
+}
+
+/** `work`, or `"aborted"` the moment `signal` fires — whichever is first.
+ *  The work itself is not cancelled (a DNS lookup cannot be); it is only no
+ *  longer waited for. */
+async function untilAborted<T>(work: Promise<T>, signal: AbortSignal | undefined): Promise<T | "aborted"> {
+  if (signal === undefined) return work;
+  if (signal.aborted) return "aborted";
+  let onAbort: () => void = () => {};
+  const aborted = new Promise<"aborted">((resolve) => {
+    onAbort = () => resolve("aborted");
+    signal.addEventListener("abort", onAbort, { once: true });
+  });
+  try {
+    return await Promise.race([work, aborted]);
+  } finally {
+    signal.removeEventListener("abort", onAbort);
+  }
+}
+
 /** Issues one HTTP(S) request to `address` — the checked, resolved address,
  *  never the hostname — while keeping `hostname` for the `Host` header and
  *  (HTTPS) the TLS SNI `servername`, so virtual hosting and certificate
@@ -197,7 +233,8 @@ function performRequest(
   userAgentValue: string,
   remainingMs: number,
   maxBytes: number,
-  request: { method: "GET" | "POST"; headers: Readonly<Record<string, string>>; body: string | null }
+  request: { method: "GET" | "POST"; headers: Readonly<Record<string, string>>; body: string | null },
+  signal: AbortSignal | undefined
 ): Promise<HopResult> {
   return new Promise((resolve) => {
     const isHttps = targetUrl.protocol === "https:";
@@ -210,7 +247,12 @@ function performRequest(
       if (settled) return;
       settled = true;
       clearTimeout(timer);
+      signal?.removeEventListener("abort", onAbort);
       resolve(result);
+    };
+    const onAbort = () => {
+      req.destroy();
+      settle({ kind: "timeout" });
     };
 
     // The caller's headers go on first and the three below overwrite them:
@@ -275,6 +317,8 @@ function performRequest(
       req.destroy();
       settle({ kind: "timeout" });
     }, remainingMs);
+    if (signal?.aborted === true) onAbort();
+    else signal?.addEventListener("abort", onAbort, { once: true });
 
     if (request.body !== null) req.write(request.body);
     req.end();
@@ -295,6 +339,7 @@ export async function safeFetch(url: string, opts?: SafeFetchOpts): Promise<Fetc
   const userAgentToken = opts?.userAgent ?? DEFAULT_USER_AGENT_TOKEN;
   const userAgentValue = userAgentString(userAgentToken);
   const deadline = start + timeoutMs;
+  const signal = opts?.signal;
 
   let currentUrl: URL;
   try {
@@ -317,12 +362,12 @@ export async function safeFetch(url: string, opts?: SafeFetchOpts): Promise<Fetc
     // 2. Resolve once. This is the address that gets checked and the
     //    address that gets connected to — nothing re-resolves it.
     const remainingForDns = deadline - Date.now();
-    if (remainingForDns <= 0) {
+    if (remainingForDns <= 0 || isAborted(signal)) {
       logFetch(currentUrl.hostname, "timeout", null, 0, Date.now() - start);
       return fail("timeout", hopUrlString, readAt);
     }
-    const resolved = await resolveAddress(currentUrl.hostname, remainingForDns);
-    if (resolved.kind === "timeout") {
+    const resolved = await untilAborted(resolveAddress(currentUrl.hostname, remainingForDns), signal);
+    if (resolved === "aborted" || resolved.kind === "timeout") {
       logFetch(currentUrl.hostname, "timeout", null, 0, Date.now() - start);
       return fail("timeout", hopUrlString, readAt);
     }
@@ -341,8 +386,12 @@ export async function safeFetch(url: string, opts?: SafeFetchOpts): Promise<Fetc
     // 4. Robots — delegated through the port, on by default, never a
     //    fabricated disallow when the reader cannot determine.
     if (respectRobots) {
-      const robots = await robotsPort(currentUrl.origin, userAgentToken);
-      if (robots.ok && isDisallowed(robots, userAgentToken, userAgentValue)) {
+      const robots = await untilAborted(robotsPort(currentUrl.origin, userAgentToken), signal);
+      if (robots === "aborted") {
+        logFetch(currentUrl.hostname, "timeout", null, 0, Date.now() - start);
+        return fail("timeout", hopUrlString, readAt);
+      }
+      if (robots.ok && isDisallowed(robots, userAgentToken, userAgentValue, currentUrl)) {
         logFetch(currentUrl.hostname, "robots_disallowed", null, 0, Date.now() - start);
         return fail("robots_disallowed", hopUrlString, readAt);
       }
@@ -350,7 +399,7 @@ export async function safeFetch(url: string, opts?: SafeFetchOpts): Promise<Fetc
 
     // 5. Connect — to the resolved, checked address (the pin).
     const remainingForConnect = deadline - Date.now();
-    if (remainingForConnect <= 0) {
+    if (remainingForConnect <= 0 || isAborted(signal)) {
       logFetch(currentUrl.hostname, "timeout", null, 0, Date.now() - start);
       return fail("timeout", hopUrlString, readAt);
     }
@@ -361,7 +410,8 @@ export async function safeFetch(url: string, opts?: SafeFetchOpts): Promise<Fetc
       userAgentValue,
       remainingForConnect,
       maxBytes,
-      { method, headers: callerHeaders, body }
+      { method, headers: callerHeaders, body },
+      signal
     );
 
     if (result.kind === "too_large") {

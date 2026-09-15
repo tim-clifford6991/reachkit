@@ -38,6 +38,8 @@ vi.hoisted(() => {
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { SITE_PROFILE } from "@/lib/config/constants";
 import { isFetchRefusal, type CostContext } from "@/lib/costs";
+import { parseRobotsTxt } from "@/lib/egress/robots";
+import type { SafeFetchOpts } from "@/lib/egress/safe-fetch";
 import type { FetchOutcome } from "@/lib/egress/types";
 import { OWN_FETCH_SOURCE } from "@/lib/measure/own-fetch";
 import { crawlSite, type CrawlPorts } from "@/lib/site-profile/crawl";
@@ -48,6 +50,12 @@ const READ_AT = new Date("2026-09-12T08:00:00.000Z");
 
 function ok(url: string, html: string): FetchOutcome {
   return { ok: true, status: 200, url, html, bytes: html.length, readAt: READ_AT, headers: {} };
+}
+
+/** A document whose body the fetcher counted at `bytes`, whatever the
+ *  fixture's markup weighs. */
+function sized(url: string, html: string, bytes: number): FetchOutcome {
+  return { ok: true, status: 200, url, html, bytes, readAt: READ_AT, headers: {} };
 }
 
 const NOT_FOUND = (url: string): FetchOutcome => ({ ok: false, reason: "status", status: 404, url, readAt: READ_AT });
@@ -90,7 +98,8 @@ function fakeCost(opts: { capped?: boolean } = {}): CostContext & { ledgered: Le
 
 function fakePorts(
   documents: Readonly<Record<string, FetchOutcome>>,
-  onFetch?: () => void
+  onFetch?: () => void,
+  robotsTxt?: string
 ): CrawlPorts & { fetched: string[] } {
   const fetched: string[] = [];
   return {
@@ -99,6 +108,10 @@ function fakePorts(
       fetched.push(url);
       onFetch?.();
       return documents[url] ?? NOT_FOUND(url);
+    },
+    // No robots.txt unless a row gives one: a read with nothing in it.
+    async readRobots(origin: string) {
+      return { ok: true, origin, readAt: READ_AT, absent: robotsTxt === undefined, ...parseRobotsTxt(robotsTxt ?? "") };
     },
   };
 }
@@ -265,9 +278,14 @@ describe("crawlSite", () => {
 
     expect(out.stoppedBy).toBe("time_budget");
     expect(out.pages.length).toBeLessThan(61);
-    // Exactly what was read: one row per document the port answered, plus
-    // the home page. Nothing is invented to fill the bound.
-    expect(out.pages).toHaveLength(ports.fetched.filter((u) => documents[u] !== undefined).length + 1);
+    // Exactly what was read: every row is the home page or a document the
+    // port answered, and nothing is invented to fill the bound. The read in
+    // flight when the budget ran out was aborted (issue 610), so it — and
+    // any batch-mate started after it — is not a row.
+    const answered = ports.fetched.filter((u) => documents[u] !== undefined);
+    for (const p of out.pages.slice(1)) expect(answered).toContain(p.url);
+    expect(out.pages.length).toBeLessThanOrEqual(answered.length);
+    expect(out.pages.length).toBeGreaterThan(answered.length - SITE_PROFILE.CONCURRENCY);
   });
 
   it("ledgers every read at zero cents under the own-document source", async () => {
@@ -354,5 +372,148 @@ describe("what SPEC §9's technical-issue checks read off the crawl (#570)", () 
     expect(home?.fetchMs).toBeNull();
     expect(read?.facts).toEqual({ metaDescription: "Who we are.", noindex: false, phoneViewport: true, schemaTypes: 1 });
     expect(typeof read?.fetchMs).toBe("number");
+  });
+});
+
+describe("the site's own rules and the crawl's hard bounds (issue 610)", () => {
+  const linksTo = (paths: readonly string[]) => paths.map((p) => `<a href="${p}">x</a>`).join("");
+
+  it("a Disallow: /cart line keeps /cart out of the inventory — and out of the fetches", async () => {
+    const documents: Record<string, FetchOutcome> = {
+      "https://example.com/cart": ok("https://example.com/cart", page("Cart")),
+      "https://example.com/cart/checkout": ok("https://example.com/cart/checkout", page("Checkout")),
+      "https://example.com/pricing": ok("https://example.com/pricing", page("Pricing")),
+    };
+    const ports = fakePorts(documents, undefined, "User-agent: *\nDisallow: /cart\n");
+
+    const out = await crawlSite(
+      fakeCost(),
+      { domain: DOMAIN, homeUrl: HOME, homeHtml: page("Home", linksTo(["/cart", "/cart/checkout", "/pricing"])), sitemaps: [] },
+      ports
+    );
+
+    expect(out.pages.map((p) => p.url)).toEqual([HOME, "https://example.com/pricing"]);
+    expect(ports.fetched.filter((u) => u.includes("/cart"))).toEqual([]);
+  });
+
+  it("Crawl-delay: 5 is applied as 1 s between reads, one read at a time", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-12T08:00:00.000Z"));
+    const paths = ["/a", "/b", "/c"];
+    const documents: Record<string, FetchOutcome> = {};
+    for (const p of paths) documents[`https://example.com${p}`] = ok(`https://example.com${p}`, page(p));
+    const readAt: number[] = [];
+    const ports = fakePorts(documents, () => readAt.push(Date.now()), "User-agent: *\nCrawl-delay: 5\n");
+
+    const crawling = crawlSite(
+      fakeCost(),
+      { domain: DOMAIN, homeUrl: HOME, homeHtml: page("Home", linksTo(paths)), sitemaps: [] },
+      ports
+    );
+    await vi.advanceTimersByTimeAsync(SITE_PROFILE.CRAWL_MS);
+    const out = await crawling;
+
+    const pageReads = ports.fetched
+      .map((u, i) => ({ u, at: readAt[i]! }))
+      .filter(({ u }) => documents[u] !== undefined)
+      .map(({ at }) => at);
+    expect(pageReads).toHaveLength(3);
+    expect(pageReads[1]! - pageReads[0]!).toBe(SITE_PROFILE.CRAWL_DELAY_MAX_MS);
+    expect(pageReads[2]! - pageReads[1]!).toBe(SITE_PROFILE.CRAWL_DELAY_MAX_MS);
+    expect(out.pages).toHaveLength(4);
+  });
+
+  it("stops fetching once 8 MB have been read, and the inventory records what it has", async () => {
+    // Twelve pages of 1 MB each: the bound is reached before the twelfth.
+    const MB = 1_000_000;
+    const paths = Array.from({ length: 12 }, (_v, i) => `/big/${i}`);
+    const opts: SafeFetchOpts[] = [];
+    const documents: Record<string, FetchOutcome> = {};
+    for (const p of paths) {
+      const url = `https://example.com${p}`;
+      documents[url] = sized(url, page(p), MB);
+    }
+    const ports = fakePorts(documents);
+    const fetchDocument = ports.fetchDocument;
+    ports.fetchDocument = async (url, o) => {
+      opts.push(o);
+      const answer = await fetchDocument(url, o);
+      // The fetcher's own rule: a body over the cap is refused, not held.
+      if (answer.ok && answer.bytes > (o.maxBytes ?? Infinity)) {
+        return { ok: false, reason: "too_large", url, readAt: READ_AT };
+      }
+      return answer;
+    };
+
+    const out = await crawlSite(
+      fakeCost(),
+      { domain: DOMAIN, homeUrl: HOME, homeHtml: page("Home", linksTo(paths)), sitemaps: [] },
+      ports
+    );
+
+    expect(out.stoppedBy).toBe("byte_cap");
+    const held = out.pages.length - 1; // every page but the home document was a 1 MB read
+    expect(held).toBeGreaterThan(0);
+    expect(held * MB).toBeLessThanOrEqual(SITE_PROFILE.CRAWL_MAX_BYTES);
+    // Every read was capped at what was left, so no batch could pass the bound.
+    for (const o of opts) expect(o.maxBytes).toBeLessThanOrEqual(SITE_PROFILE.CRAWL_MAX_BYTES);
+  });
+
+  it("a page too big only for its share of a batch is read again alone, not lost", async () => {
+    const big = "https://example.com/big";
+    const small = Array.from({ length: 5 }, (_v, i) => `https://example.com/s/${i}`);
+    const documents: Record<string, FetchOutcome> = { [big]: sized(big, page("Big"), 3_000_000) };
+    for (const u of small) documents[u] = ok(u, page(u));
+    const ports = fakePorts(documents);
+    const fetchDocument = ports.fetchDocument;
+    ports.fetchDocument = async (url, o) => {
+      const answer = await fetchDocument(url, o);
+      if (answer.ok && answer.bytes > (o.maxBytes ?? Infinity)) return { ok: false, reason: "too_large", url, readAt: READ_AT };
+      return answer;
+    };
+
+    const out = await crawlSite(
+      fakeCost(),
+      { domain: DOMAIN, homeUrl: HOME, homeHtml: page("Home", linksTo(["/big", "/s/0", "/s/1", "/s/2", "/s/3", "/s/4"])), sitemaps: [] },
+      ports
+    );
+
+    expect(out.pages.map((p) => p.url)).toContain(big);
+    expect(out.stoppedBy).toBe("complete");
+  });
+
+  it("a fetch still in flight at CRAWL_MS is aborted, and the crawl returns inside CRAWL_MS plus one second", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-12T08:00:00.000Z"));
+    const started = Date.now();
+    const signals: AbortSignal[] = [];
+    const ports = fakePorts({});
+    // A server that never answers — and a port that ignores the signal, so
+    // the crawl cannot be relying on the fetcher to give up for it.
+    ports.fetchDocument = (url, o) => {
+      ports.fetched.push(url);
+      if (o.signal !== undefined) signals.push(o.signal);
+      return new Promise<FetchOutcome>(() => {});
+    };
+
+    let returnedAt: number | null = null;
+    const crawling = crawlSite(
+      fakeCost(),
+      { domain: DOMAIN, homeUrl: HOME, homeHtml: page("Home", `<a href="/slow">slow</a>`), sitemaps: [] },
+      ports
+    ).then((out) => {
+      returnedAt = Date.now();
+      return out;
+    });
+
+    await vi.advanceTimersByTimeAsync(SITE_PROFILE.CRAWL_MS + 1_000);
+    const out = await crawling;
+
+    expect(returnedAt).not.toBeNull();
+    expect(returnedAt! - started).toBeLessThanOrEqual(SITE_PROFILE.CRAWL_MS + 1_000);
+    expect(out.stoppedBy).toBe("time_budget");
+    expect(out.pages.map((p) => p.url)).toEqual([HOME]);
+    expect(signals.length).toBeGreaterThan(0);
+    expect(signals.every((s) => s.aborted)).toBe(true);
   });
 });

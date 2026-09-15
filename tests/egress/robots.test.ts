@@ -13,7 +13,7 @@ import dns from "node:dns";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { parseRobotsTxt, readRobots } from "../../src/lib/egress/robots";
+import { crawlDelayMs, parseRobotsTxt, readRobots, robotsAllows } from "../../src/lib/egress/robots";
 import { safeFetch } from "../../src/lib/egress/safe-fetch";
 import { AI_READER_AGENTS } from "../../src/lib/config/constants";
 
@@ -112,6 +112,47 @@ describe("parseRobotsTxt · verdicts at the origin root (RFC 9309)", () => {
   it("three Sitemap lines yield three entries in document order", () => {
     const v = parseRobotsTxt("Sitemap: https://a/1.xml\nUser-agent: *\nDisallow:\nSitemap: https://a/2.xml\nsitemap: https://a/3.xml");
     expect(v.sitemaps).toEqual(["https://a/1.xml", "https://a/2.xml", "https://a/3.xml"]);
+  });
+});
+
+describe("robotsAllows · any path, by the same rule (issue 610)", () => {
+  const policyOf = (text: string) => ({
+    ok: true as const,
+    origin: "https://example.com",
+    readAt: new Date(),
+    absent: false,
+    ...parseRobotsTxt(text),
+  });
+  const US = ["ReachKitMeasure/1.0 (+https://reachkit.app)", "reachkit-measure"];
+
+  it("a Disallow: /cart line refuses /cart and what is under it, and leaves the rest", () => {
+    const policy = policyOf("User-agent: *\nDisallow: /cart\n");
+    expect(robotsAllows(policy, US, "/cart")).toBe(false);
+    expect(robotsAllows(policy, US, "/cart/checkout")).toBe(false);
+    expect(robotsAllows(policy, US, "/pricing")).toBe(true);
+    expect(robotsAllows(policy, US, "/")).toBe(true);
+  });
+
+  it("the group naming us decides, not the wildcard's; longest match and Allow-on-tie hold per path", () => {
+    const policy = policyOf("User-agent: *\nDisallow: /\n\nUser-agent: ReachKitMeasure\nDisallow: /private\nAllow: /private/open\n");
+    expect(robotsAllows(policy, US, "/blog")).toBe(true);
+    expect(robotsAllows(policy, US, "/private/x")).toBe(false);
+    expect(robotsAllows(policy, US, "/private/open/y")).toBe(true);
+  });
+
+  it("a policy carrying no rules — one stored before them — is decided at the root, as before", () => {
+    const base = { ok: true as const, origin: "https://example.com", readAt: new Date(), absent: false, sitemaps: [] };
+    expect(robotsAllows({ ...base, disallowsAll: true, disallowedAgents: {} }, US, "/anything")).toBe(false);
+    expect(robotsAllows({ ...base, disallowsAll: true, disallowedAgents: { "reachkit-measure": false } }, US, "/x")).toBe(true);
+    expect(robotsAllows({ ...base, disallowsAll: false, disallowedAgents: {} }, US, "/x")).toBe(true);
+  });
+
+  it("Crawl-delay is read per group, in milliseconds, and a named group without one takes none from the wildcard", () => {
+    expect(crawlDelayMs(policyOf("User-agent: *\nCrawl-delay: 5\n"), US)).toBe(5_000);
+    expect(crawlDelayMs(policyOf("User-agent: *\nCrawl-delay: 0.5\n"), US)).toBe(500);
+    expect(crawlDelayMs(policyOf("User-agent: *\nCrawl-delay: 5\n\nUser-agent: reachkitmeasure\nDisallow: /x\n"), US)).toBe(0);
+    expect(crawlDelayMs(policyOf("User-agent: *\nCrawl-delay: soon\n"), US)).toBe(0);
+    expect(crawlDelayMs(policyOf(""), US)).toBe(0);
   });
 });
 
