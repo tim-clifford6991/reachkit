@@ -536,7 +536,7 @@ export const MAIL_COPY = Object.freeze({
   ],
   // #640: SPEC §8 gives every mail a "why it arrived" line; the setup
   // reminder had none, and no approved sentence exists for it.
-  "mail.reason.setupReminder": ["TODO(copy)", { slots: {}, fixedBy: "SPEC §8 · #640" }],
+  "mail.reason.setupReminder": ["TODO(copy)", { slots: {}, fixedBy: "SPEC §8 · issue 640" }],
   "mail.reason.nurture": [
     "Opt out of all follow-up: one link, every domain, for good.",
     { slots: {}, fixedBy: "S20 (11a)" },
