@@ -52,8 +52,10 @@ export interface DraftInsert {
   attribution: string | null;
   scheduled_for: string | null;
   cost_cents: number;
-  /** Written by a `fix_page` draft only (#690): the metadata the update
-   *  carries. Absent on every other draft, which the column's null keeps. */
+  /** The page's head facts. A written page stores the description its
+   *  draft step wrote (`{ description }`), which the hosted template reads
+   *  (issue 697); a `fix_page` draft (#690) stores the metadata the update
+   *  carries. */
   meta?: unknown;
 }
 

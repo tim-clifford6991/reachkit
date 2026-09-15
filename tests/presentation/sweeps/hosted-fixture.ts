@@ -38,6 +38,7 @@ export const HOSTED_SWEEP_PAGE: HostedPage = Object.freeze({
     "it takes to publish the first flow, and whether it needs an engineer.\n\n" +
     "## What to look for\n\n- Time to the first published flow\n- Whether a " +
     "non-engineer can ship a change\n",
+  description: "What small product teams should look for in an onboarding tool.",
   faq: Object.freeze([
     {
       question: "How long does the first flow take?",

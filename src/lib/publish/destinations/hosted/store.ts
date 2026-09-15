@@ -115,6 +115,9 @@ export interface HostedPage {
   slug: string;
   title: string;
   bodyMd: string;
+  /** The description generation wrote for this page (`drafts.meta.description`),
+   *  or `null` for a draft that has none stored. */
+  description: string | null;
   faq: readonly FaqEntry[];
   /** What the page is grounded in, or `null` where nothing was recorded. */
   grounded: HostedGrounding | null;
@@ -256,6 +259,7 @@ function toPage(row: PublicationRow): HostedPage | null {
     slug,
     title: draft.title ?? "",
     bodyMd: draft.body_md ?? "",
+    description: readDescription(draft.meta),
     faq: readFaq(draft.meta),
     grounded: readRecordedFact(draft.grounded_fact),
     publisher: {
@@ -292,6 +296,15 @@ export function readFaq(meta: Record<string, unknown> | null): readonly FaqEntry
     entries.push({ question, answer });
   }
   return Object.freeze(entries);
+}
+
+/** `drafts.meta.description`, read as defensively as the FAQ: a blank or
+ *  non-string value is no description, never an empty meta tag. */
+export function readDescription(meta: Record<string, unknown> | null): string | null {
+  const raw = meta?.description;
+  if (typeof raw !== "string") return null;
+  const text = raw.replace(/\s+/g, " ").trim();
+  return text === "" ? null : text;
 }
 
 /** A stated value, or `null` — an empty string is not a category and not a

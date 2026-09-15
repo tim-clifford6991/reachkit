@@ -42,6 +42,7 @@ export {
   hostedSiteForHostname,
   livePageBySlug,
   livePagesForSite,
+  readDescription,
   readFaq,
   siteForDraft,
   wasEverLive,
