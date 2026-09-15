@@ -94,7 +94,8 @@ export function clusterLinkTargets(pages: readonly ClusterPage[]): LinkTarget[] 
 }
 
 /** The comparable identity of an address: host without `www.`, lower-cased,
- *  path without a trailing slash, no fragment, no query. `null` for an
+ *  path without a trailing slash, the query kept (the inventory holds
+ *  `/product?id=1` and `?id=2` as two pages), no fragment. `null` for an
  *  address that does not parse. */
 export function urlKey(url: string): string | null {
   let parsed: URL;
@@ -105,7 +106,7 @@ export function urlKey(url: string): string | null {
   }
   const host = parsed.hostname.toLowerCase().replace(/^www\./, "");
   const path = parsed.pathname.replace(/\/+$/, "");
-  return `${host}${path}`;
+  return `${host}${path}${parsed.search}`;
 }
 
 /** True where `url` is on the customer's domain or one of its subdomains —
@@ -113,7 +114,7 @@ export function urlKey(url: string): string | null {
 export function onSite(url: string, domain: string): boolean {
   const key = urlKey(url);
   if (key === null) return false;
-  const host = key.split("/")[0] ?? "";
+  const host = key.split(/[/?]/)[0] ?? "";
   const site = domain.toLowerCase().replace(/^www\./, "");
   return host === site || host.endsWith(`.${site}`);
 }
@@ -134,7 +135,7 @@ function dedupe(rows: readonly InventoryRow[]): InventoryRow[] {
 
 function depth(url: string): number {
   const key = urlKey(url);
-  return key === null ? Number.MAX_SAFE_INTEGER : key.split("/").length;
+  return key === null ? Number.MAX_SAFE_INTEGER : (key.split("?")[0] ?? "").split("/").length;
 }
 
 function wordsOf(text: string): Set<string> {

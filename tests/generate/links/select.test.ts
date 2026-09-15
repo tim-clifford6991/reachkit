@@ -86,6 +86,20 @@ describe("site pages come from the inventory, by purpose", () => {
   });
 });
 
+describe("an address's query is part of the page it names", () => {
+ it("keeps two pages that differ only by their query as two pages", () => {
+  const targets = siteLinkTargets({
+    domain: "example.com",
+    inventory: [
+      row("https://example.com/product?id=1", "product", "Boards"),
+      row("https://example.com/product?id=2", "product", "Timelines"),
+    ],
+    query: "x",
+  });
+  expect(targets.map((t) => t.url)).toEqual(["https://example.com/product?id=1", "https://example.com/product?id=2"]);
+ });
+});
+
 describe("earlier pages come from the cluster's live publications", () => {
   it("newest first, titled, deduplicated and bounded", () => {
     const pages = Array.from({ length: CROSS_LINKS.CLUSTER_PAGES_MAX + 2 }, (_, i) => ({
