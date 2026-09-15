@@ -16,6 +16,7 @@ import { cappedCost, fakeCost } from "../cost";
 import { memoryStore, newMemoryState, setStatus, type MemoryState } from "../memory-store";
 import {
   AT,
+  PROFILE,
   SCAN_ID,
   SITE_ID,
   defaultReport,
@@ -35,7 +36,7 @@ vi.mock("@anthropic-ai/sdk", () => ({
 let state: MemoryState;
 
 beforeEach(() => {
-  state = newMemoryState();
+  state = newMemoryState({ profile: PROFILE });
   setOpportunityStore(memoryStore(state));
 });
 
@@ -296,4 +297,7 @@ async function deriveOnly(
 ): Promise<void> {
   const { deriveOpportunities } = await import("../../../src/lib/opportunities/derive");
   await deriveOpportunities(ctx, input({ report }) as never);
+  // SPEC §6: depth counts ready rows, so the rows get their answer.
+  const { assessReadiness } = await import("../../../src/lib/opportunities/readiness");
+  await assessReadiness(SITE_ID, { at: AT });
 }

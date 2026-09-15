@@ -1,4 +1,4 @@
-// SPEC §6, issue #477 — a Monday "not working" slows its cluster down: new
+// SPEC §6, issue 477 — a Monday "not working" slows its cluster down: new
 // Write in it is held back for `CLUSTER_SUPPRESS_WEEKS`, Improve of a live
 // URL in it stays allowed, and an owned URL whose Improve failed twice is
 // retired.
@@ -8,7 +8,7 @@ import { CLUSTER_SUPPRESS_WEEKS } from "../../src/lib/config/constants";
 import { rankOpen } from "../../src/lib/opportunities/rank/open";
 import { setOpportunityStore, type OpportunityRow } from "../../src/lib/opportunities/store";
 import { suppressionOf, type NotWorkingVerdict } from "../../src/lib/opportunities/suppression";
-import { assessVerdictReadiness } from "../../src/lib/opportunities/verdict-readiness";
+import { assessReadiness } from "../../src/lib/opportunities/readiness";
 import { memoryStore, newMemoryState, type MemoryState } from "./memory-store";
 import { AT, PROFILE, SITE_ID } from "./fixtures";
 
@@ -67,12 +67,12 @@ describe("a cluster judged not working", () => {
     );
     state.notWorking = [notWorking()];
 
-    await assessVerdictReadiness(SITE_ID, { at: NEXT_WEEK });
+    await assessReadiness(SITE_ID, { at: NEXT_WEEK });
 
     expect(state.rows.map((r) => [r.id, r.unready_reason])).toEqual([
       ["write-own", "cluster_suppressed"],
-      ["write-other", "not_assessed"],
-      ["improve-own", "not_assessed"],
+      ["write-other", null],
+      ["improve-own", null],
     ]);
     const ranked = (await rankOpen(SITE_ID)).map((r) => r.opportunityId);
     expect(ranked).not.toContain("write-own");
@@ -85,11 +85,11 @@ describe("a cluster judged not working", () => {
 
     state.rows.push(row({ id: "write-own", family: "write", type: "answer_page", target_ref: "onboarding-faq" }));
     state.notWorking = [notWorking()];
-    await assessVerdictReadiness(SITE_ID, { at: NEXT_WEEK });
+    await assessReadiness(SITE_ID, { at: NEXT_WEEK });
     expect(state.rows[0]!.unready_reason).toBe("cluster_suppressed");
 
-    await assessVerdictReadiness(SITE_ID, { at: PAST_WINDOW });
-    expect(state.rows[0]!.unready_reason).toBe("not_assessed");
+    await assessReadiness(SITE_ID, { at: PAST_WINDOW });
+    expect(state.rows[0]!.unready_reason).toBeNull();
     expect((await rankOpen(SITE_ID)).map((r) => r.opportunityId)).toEqual(["write-own"]);
   });
 
@@ -112,10 +112,10 @@ describe("an owned URL whose Improve was judged not working twice", () => {
     );
     state.notWorking = [improve("2026-06-01"), improve("2026-06-08")];
 
-    await assessVerdictReadiness(SITE_ID, { at: NEXT_WEEK });
+    await assessReadiness(SITE_ID, { at: NEXT_WEEK });
     expect(state.rows.map((r) => [r.id, r.unready_reason])).toEqual([
       ["improve-own", "url_retired"],
-      ["improve-other", "not_assessed"],
+      ["improve-other", null],
     ]);
     expect((await rankOpen(SITE_ID)).map((r) => r.opportunityId)).toEqual(["improve-other"]);
   });

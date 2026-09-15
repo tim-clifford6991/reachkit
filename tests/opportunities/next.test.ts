@@ -5,6 +5,7 @@ import { AI_READER_AGENTS } from "../../src/lib/config/constants";
 import { measured } from "../../src/lib/measure/measured";
 import { deriveOpportunities } from "../../src/lib/opportunities/derive";
 import { nextForDay } from "../../src/lib/opportunities/next";
+import { assessReadiness } from "../../src/lib/opportunities/readiness";
 import { rankOpen } from "../../src/lib/opportunities/rank/open";
 import { setOpportunityStore } from "../../src/lib/opportunities/store";
 import { supplyDepth } from "../../src/lib/opportunities/supply/depth";
@@ -75,6 +76,8 @@ async function derive(report = defaultReport()): Promise<void> {
     ownRanked: measured(0, AT),
     rankedCounts: smallCounts(),
   });
+  // SPEC §6: only a ready row takes a day, so the rows get their answer.
+  await assessReadiness(SITE_ID, { at: AT });
 }
 
 describe("§7: one list, ordered by the formula", () => {

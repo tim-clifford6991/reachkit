@@ -11,6 +11,7 @@
 // here judges a page again or measures anything: a verdict is the week's
 // fact, and this only reads what it implies for the rows still open.
 import { CLUSTER_SUPPRESS_WEEKS, IMPROVE_RETIRE_AFTER_NOT_WORKING } from "@/lib/config/constants";
+import { canonicalUrl } from "./cluster";
 import type { Family, Opportunity, UnreadyReason } from "./types";
 
 /** One `not_working` verdict, with the opportunity behind the judged page.
@@ -35,15 +36,10 @@ export interface Suppression {
 
 const MS_PER_WEEK = 7 * 86_400_000;
 
-/** The readiness reasons this module owns. A row carrying one of them was
- *  set here, and is released here when the reason lapses. */
-export const VERDICT_REASONS: readonly UnreadyReason[] = Object.freeze(["cluster_suppressed", "url_retired"]);
-
-/** One address form for a URL, so `https://a.com/x/` and `https://a.com/x`
- *  are one page. Not a URL parser: a target that is not a URL (a slug) is
- *  compared as written. */
+/** A retired URL and a row's target are compared in `canonicalUrl`'s form.
+ *  A target that is not a URL (a slug) matches no page address. */
 export function urlKey(ref: string): string {
-  return ref.trim().replace(/\/+$/, "").toLowerCase();
+  return canonicalUrl(ref);
 }
 
 /** Whether a verdict judged on `week` still suppresses at `at`: from its

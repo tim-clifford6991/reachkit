@@ -23,16 +23,20 @@
 // fix that is not ready is not in the list.
 import { opportunityStore } from "../store";
 import { readOpportunity } from "../store";
-import { VERDICT_REASONS } from "../suppression";
-import type { Opportunity, Ranked, UnreadyReason } from "../types";
+import { comparePrecedence } from "../cluster";
+import type { Opportunity, Ranked } from "../types";
 import { rankScore } from "./score";
 
-/** Descending score; ties broken by age, then by id. */
+/** SPEC §6: Improve, then Earn, then Write, and the Write types in the
+ *  owner's order (2026-09-15) — ahead of the score. Then descending score;
+ *  ties broken by age, then by id. */
 export function orderRanked(
   scored: readonly { opportunity: Opportunity; score: number }[]
 ): Ranked[] {
   return [...scored]
     .sort((a, b) => {
+      const precedence = comparePrecedence(a.opportunity, b.opportunity);
+      if (precedence !== 0) return precedence;
       if (b.score !== a.score) return b.score - a.score;
       const age = a.opportunity.createdAt.getTime() - b.opportunity.createdAt.getTime();
       if (age !== 0) return age;
@@ -92,10 +96,9 @@ export async function rankOpen(siteId: string): Promise<Ranked[]> {
   ]);
   const fixes = fixRows.filter((row) => row.ready).map(readOpportunity);
   // No profile, no score — but a fix needs neither, and still takes its day.
-  // SPEC §6: a row a Monday verdict holds back — a Write in a suppressed
-  // cluster, anything targeting a retired URL — takes no day. Readiness is
-  // not otherwise derived yet, so these two reasons are read by name.
-  const rankable = rows.filter((row) => !VERDICT_REASONS.includes(row.unready_reason as UnreadyReason));
+  // SPEC §6: "A day is filled only by an opportunity that passes
+  // readiness." The answer is the stored column (`assessReadiness`).
+  const rankable = rows.filter((row) => row.ready);
   if (profile === null || rankable.length === 0) return placeFixPages([], fixes);
 
   const scored = rankable.map((row) => {

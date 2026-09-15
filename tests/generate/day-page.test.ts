@@ -36,6 +36,7 @@ vi.mock("@/lib/opportunities", () => ({
   nextForDay: nextForDayMock,
   queueForDraft: queueForDraftMock,
   assessFixPages: async () => ({ done: 0, ready: 0 }),
+  assessReadiness: async () => ({ ready: 1, unready: 0 }),
 }));
 vi.mock("@/lib/costs", () => ({ withCostContext: withCostContextMock }));
 

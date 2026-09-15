@@ -40,6 +40,7 @@ import type { StoredReport } from "@/lib/scan/report";
 import { assess } from "../winnability/band";
 import { rankedCountsFor, type RankedCounts } from "../winnability/counts";
 import { FAMILY_OF, noRejections, type Evidence, type OpportunityType, type Shortfall } from "../types";
+import { canonicalUrl } from "../cluster";
 import { emptyDerivation, type Candidate, type DerivationResult } from "./candidate";
 
 interface ImproveInput {
@@ -50,19 +51,10 @@ interface ImproveInput {
   rankedCounts: RankedCounts;
 }
 
-/** Two urls name the same page where they differ only in scheme, a `www.`
- *  label, a trailing slash or a fragment. Deliberately narrow: a query
- *  string is part of a page's identity and is not stripped. */
+/** Two urls name the same page where their canonical forms agree
+ *  (`canonicalUrl`, the one normaliser the cluster step shares). */
 function sameUrl(a: string, b: string): boolean {
-  const strip = (url: string): string =>
-    url
-      .trim()
-      .toLowerCase()
-      .replace(/^https?:\/\//, "")
-      .replace(/^www\./, "")
-      .replace(/#.*$/, "")
-      .replace(/\/+$/, "");
-  return strip(a) === strip(b);
+  return canonicalUrl(a) === canonicalUrl(b);
 }
 
 export function improveCandidates(a: ImproveInput): DerivationResult {

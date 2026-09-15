@@ -18,7 +18,7 @@
 // scoping the policy would have applied, applied here instead.
 import { dbAdmin } from "@/lib/db";
 import type { Profile } from "@/lib/market/questions/profile";
-import { readStoredReport } from "@/lib/scan/report";
+import { readStoredReport, type StoredReport } from "@/lib/scan/report";
 import type {
   Acceptance,
   Evidence,
@@ -97,8 +97,21 @@ export interface OpportunityStore {
    *  set the ranking orders. `unblock` is excluded here, once, so no
    *  caller downstream has to restate the predicate. */
   openRankable(siteId: string): Promise<readonly OpportunityRow[]>;
-  /** The count behind supply depth: `status = 'open' and family <> 'fix'`. */
+  /** The count behind supply depth: open, not the Fix family, and ready
+   *  (SPEC §6 — an unready row is not a day of supply). */
   countUnused(siteId: string): Promise<number>;
+  /** Open and queued non-Fix rows — the set a cluster collapse runs over
+   *  alongside a pass's new candidates. */
+  clusterable(siteId: string): Promise<readonly OpportunityRow[]>;
+  /** Writes a row's cluster and the searches it absorbed. */
+  setCluster(opportunityId: string, clusterKey: string, absorbedQueries: readonly string[]): Promise<void>;
+  /** The site's current stored report, or `null` where it has no readable
+   *  one. */
+  currentReport(siteId: string): Promise<StoredReport | null>;
+  /** SPEC §6 (2026-09-15): whether the site's own measured page text yields
+   *  at least one grounding passage — the generator's own read. A read that
+   *  fails is `false`: a row is never made ready on a guess. */
+  hasGroundingFact(siteId: string): Promise<boolean>;
   /** The moment the site's last non-`fix` opportunity left `open`, which is
    *  the moment supply hit zero. `null` where the site has never held one. */
   lastStatusChangeAt(siteId: string): Promise<Date | null>;
@@ -202,7 +215,7 @@ interface MinimalQueryBuilder<T> extends PromiseLike<QueryResult<T>> {
   select(columns: string): MinimalQueryBuilder<T>;
   insert(rows: object): MinimalQueryBuilder<T>;
   update(values: object): MinimalQueryBuilder<T>;
-  eq(column: string, value: string): MinimalQueryBuilder<T>;
+  eq(column: string, value: string | boolean): MinimalQueryBuilder<T>;
   neq(column: string, value: string): MinimalQueryBuilder<T>;
   is(column: string, value: boolean | null): MinimalQueryBuilder<T>;
   in(column: string, values: readonly unknown[]): MinimalQueryBuilder<T>;
@@ -270,9 +283,39 @@ export function supabaseOpportunityStore(): OpportunityStore {
         .select("id")
         .eq("site_id", siteId)
         .eq("status", "open")
+        .eq("ready", true)
         .neq("family", "fix");
       if (error) throw new Error(`opportunities.countUnused: ${error.message}`);
       return data?.length ?? 0;
+    },
+
+    async clusterable(siteId) {
+      const { data, error } = await untyped()
+        .from<OpportunityRow>("opportunities")
+        .select(COLUMNS)
+        .eq("site_id", siteId)
+        .in("status", ["open", "queued"])
+        .neq("family", "fix")
+        .order("created_at", { ascending: true });
+      if (error) throw new Error(`opportunities.clusterable: ${error.message}`);
+      return data ?? [];
+    },
+
+    async setCluster(opportunityId, clusterKey, absorbedQueries) {
+      const { error } = await untyped()
+        .from<OpportunityRow>("opportunities")
+        .update({ cluster_key: clusterKey, absorbed_queries: [...absorbedQueries] })
+        .eq("id", opportunityId);
+      if (error) throw new Error(`opportunities.setCluster: ${error.message}`);
+    },
+
+    async hasGroundingFact(siteId) {
+      try {
+        const { readGroundingFact } = await import("@/lib/generate/pipeline/grounding");
+        return !("failed" in (await readGroundingFact({ siteId })));
+      } catch {
+        return false;
+      }
     },
 
     async lastStatusChangeAt(siteId) {
@@ -389,19 +432,24 @@ export function supabaseOpportunityStore(): OpportunityStore {
     },
 
     async profileForSite(siteId) {
-      const { data, error } = await untyped()
-        .from<{ report: unknown }>("scans")
-        .select("report")
-        .eq("site_id", siteId)
-        .is("is_current", true)
-        .limit(1);
-      if (error) throw new Error(`opportunities.profileForSite: ${error.message}`);
-      const blob = data?.[0]?.report;
-      if (blob === undefined || blob === null) return null;
-      const report = readStoredReport(blob);
-      return report.market.kind === "unmeasured" ? null : report.market.value.profile;
+      const report = await currentReportOf(siteId);
+      return report === null || report.market.kind === "unmeasured" ? null : report.market.value.profile;
     },
+
+    currentReport: currentReportOf,
   };
+}
+
+async function currentReportOf(siteId: string): Promise<StoredReport | null> {
+  const { data, error } = await untyped()
+    .from<{ report: unknown }>("scans")
+    .select("report")
+    .eq("site_id", siteId)
+    .is("is_current", true)
+    .limit(1);
+  if (error) throw new Error(`opportunities.currentReport: ${error.message}`);
+  const blob = data?.[0]?.report;
+  return blob === undefined || blob === null ? null : readStoredReport(blob);
 }
 
 let store: OpportunityStore | null = null;

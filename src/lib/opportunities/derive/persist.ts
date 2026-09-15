@@ -13,9 +13,10 @@
 import type { OpportunityInsert } from "../store";
 import { opportunityStore, readOpportunity } from "../store";
 import type { Opportunity } from "../types";
+import type { ClusteredCandidate } from "../cluster";
 import type { Candidate } from "./candidate";
 
-export function insertFor(candidate: Candidate): OpportunityInsert {
+export function insertFor(candidate: Candidate | ClusteredCandidate): OpportunityInsert {
   return {
     site_id: candidate.siteId,
     scan_id: candidate.scanId,
@@ -39,11 +40,16 @@ export function insertFor(candidate: Candidate): OpportunityInsert {
     acceptance: candidate.acceptance,
     fit_band: candidate.fitBand,
     effort: candidate.effort,
+    // SPEC §6: the parent topic and the siblings it absorbed, where the
+    // collapse gave the row one.
+    ...("clusterKey" in candidate
+      ? { cluster_key: candidate.clusterKey, absorbed_queries: candidate.absorbedQueries }
+      : {}),
   };
 }
 
 export async function persist(a: {
-  candidates: readonly Candidate[];
+  candidates: readonly (Candidate | ClusteredCandidate)[];
 }): Promise<{ created: Opportunity[]; duplicates: number }> {
   const store = opportunityStore();
   const created: Opportunity[] = [];
