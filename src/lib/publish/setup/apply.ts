@@ -34,7 +34,13 @@
 // unconditionally and by type: nothing is connected at setup, so no caller
 // can be written that waits on one.
 import { dbAdmin } from "@/lib/db";
+import { HostnameTakenError } from "@/lib/publish/destinations/hosted/label";
 import type { DestinationKind, PublishingMode } from "./cards";
+
+/** The unique index a second claim on a host violates
+ *  (`supabase/migrations/20260912120000_destinations_hostname.sql`). Postgres
+ *  names it in the violation's message. */
+const HOSTNAME_INDEX = "destinations_one_live_hostname";
 
 /** SPEC §7 (2026-09-11; #476): Autopilot is the only mode, so setup records
  *  it and takes no mode from the founder. */
@@ -87,7 +93,14 @@ export async function applySetupChoice(a: SetupChoice): Promise<SetupChoiceAppli
       p_hostname: a.hostname,
     }
   );
-  if (error) throw new Error(`applySetupChoice: ${error.message}`);
+  if (error) {
+    // The one refusal a founder can act on: another site holds this host.
+    // The transaction rolled back, so nothing of it landed.
+    if (a.hostname !== null && error.message.includes(HOSTNAME_INDEX)) {
+      throw new HostnameTakenError(a.hostname);
+    }
+    throw new Error(`applySetupChoice: ${error.message}`);
+  }
   if (typeof data !== "string" || data.length === 0) {
     throw new Error("applySetupChoice: the transaction returned no destination id");
   }

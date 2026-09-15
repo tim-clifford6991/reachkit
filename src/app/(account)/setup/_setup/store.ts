@@ -6,8 +6,8 @@
 //
 //   readProgress     `sites.setup_completed_at` — the one predicate every
 //                    account route consults, with no second copy
-//   commitSetup      the three answers, then `applySetupChoice()`'s
-//                    mode-and-destination transaction, then the stamp
+//   commitSetup      `applySetupChoice()`'s mode-and-destination
+//                    transaction, then the three answers, then the stamp
 //   enqueueDeepPass  `scan/run` at tier `deep`, on the queue
 //   resolvesInDns    §6.4's resolver, through the egress seam
 //
@@ -149,10 +149,14 @@ export function liveSetupStore(): SetupStore {
 
     /** SPEC §5's "already-taken label", asked of the rows. The unique
      *  index is what actually decides; this is the readable form of the
-     *  same refusal, asked before the founder presses the one control. */
+     *  same refusal, asked before any row of this submit is written.
+     *
+     *  The strict read (issue 608): a read that errors throws rather than
+     *  answering "free", so a real collision is never waved through to
+     *  surface as the index violation after the answers are updated. */
     async hostnameTaken(a): Promise<boolean> {
-      const { hostnameTaken } = await import("@/lib/publish/destinations/hosted/hostname");
-      return hostnameTaken({ hostname: a.hostname, exceptSiteId: a.siteId });
+      const { hostnameTakenStrict } = await import("@/lib/publish/destinations/hosted/hostname");
+      return hostnameTakenStrict({ hostname: a.hostname, exceptSiteId: a.siteId });
     },
 
     async readProgress(userId): Promise<SetupProgressState> {
@@ -167,7 +171,7 @@ export function liveSetupStore(): SetupStore {
     },
 
     /**
-     * The three answers, the mode-and-destination transaction, and the
+     * The mode-and-destination transaction, the three answers, and the
      * stamp — in that order, and the stamp last on purpose.
      *
      * `setup_completed_at` is what the gate, the reminders and the release
@@ -177,6 +181,24 @@ export function liveSetupStore(): SetupStore {
      * pre-filled — which is the recoverable half of the two.
      */
     async commitSetup(a: { siteId: string; submission: SetupSubmission }): Promise<void> {
+      // SPEC §5: the host the founder chose commits with the mode and the
+      // destination. WordPress serves at no host of ours, so it carries
+      // none — and `null` is that, not a blank.
+      const hostname =
+        a.submission.destination.kind === "hosted"
+          ? hostFor({ label: a.submission.destination.label, domain: a.submission.domain })
+          : null;
+
+      // The transaction first (issue 608): it is the one write the unique
+      // index can refuse, and a host another site claimed a moment ago
+      // throws `HostnameTakenError` out of a rolled-back transaction with no
+      // row of this submit written — the answers included.
+      const applied = await applySetupChoice({
+        siteId: a.siteId,
+        destinationKind: a.submission.destination.kind,
+        hostname,
+      });
+
       const answers = await untyped()
         .from<SiteSetupRow>("sites")
         .update({
@@ -186,20 +208,6 @@ export function liveSetupStore(): SetupStore {
         })
         .eq("id", a.siteId);
       if (answers.error) throw new Error(`commitSetup: ${answers.error.message}`);
-
-      // SPEC §5: the host the founder chose commits with the mode and the
-      // destination. WordPress serves at no host of ours, so it carries
-      // none — and `null` is that, not a blank.
-      const hostname =
-        a.submission.destination.kind === "hosted"
-          ? hostFor({ label: a.submission.destination.label, domain: a.submission.domain })
-          : null;
-
-      const applied = await applySetupChoice({
-        siteId: a.siteId,
-        destinationKind: a.submission.destination.kind,
-        hostname,
-      });
 
       // **The hostname is added to the project here, on the save** (SPEC
       // §5: "on save the app adds the hostname to the project's domain

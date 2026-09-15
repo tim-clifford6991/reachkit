@@ -83,3 +83,16 @@ export function hostFor(a: { label: string | null; domain: string }): string {
   const label = checked !== null && checked.ok ? checked.label : DEFAULT_HOSTED_LABEL;
   return `${label}.${a.domain}`;
 }
+
+/** The host was claimed by another site between the submit's check and its
+ *  commit, and the database's unique index (`destinations_one_live_hostname`)
+ *  refused the write. Thrown by `applySetupChoice` so the submit can answer
+ *  the same `label_taken` line the check gives, rather than a 500 (issue
+ *  608). Declared here, beside the rule, because `submit.ts` reads no row
+ *  and must be able to recognise it without importing one that does. */
+export class HostnameTakenError extends Error {
+  constructor(readonly hostname: string) {
+    super(`hostname taken: ${hostname}`);
+    this.name = "HostnameTakenError";
+  }
+}

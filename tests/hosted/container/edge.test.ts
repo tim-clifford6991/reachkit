@@ -109,6 +109,16 @@ describe("every path on a customer's own domain lands in the hosted group", () =
     expect(rewrittenTo(response)).toBeNull();
   });
 
+  it("a loopback host with a port stays local — a bracketed IPv6 one included (issue 608)", async () => {
+    // `[::1]:3000` is what a local build answers on over IPv6. Its port once
+    // survived normalisation, the name matched none of ours, and every
+    // screen of the app was rewritten into the hosted group.
+    for (const host of ["[::1]:3000", "[::1]", "localhost:3000", "127.0.0.1:3000"]) {
+      const response = await middleware(requestTo("/pricing", host));
+      expect(rewrittenTo(response), host).toBeNull();
+    }
+  });
+
   it("a customer's own host reaches the hosted group whatever label they chose", async () => {
     // SPEC §5 (2026-09-12). The row a prefix test fails: the same customer,
     // the same record, served under `content.` and 404 under `blog.`.
