@@ -19,6 +19,7 @@ import { assessFixPages, nextForDay } from "@/lib/opportunities";
 import { withDraftCost } from "./cost";
 import { recoveryOutcome } from "./claims/recovery";
 import type { SiteRuleInputs } from "./rules/types";
+import { clusterLinkTargets, siteLinkTargets } from "./links/select";
 import { generateDraft, type GenerateOutcome } from "./pipeline";
 import { generatePageFix } from "./pipeline/page-fix";
 import { generateStore } from "./store";
@@ -137,6 +138,22 @@ export async function generateDayPage(a: {
   const category =
     report.market.kind === "unmeasured" ? "" : report.market.value.profile.category;
 
+  // SPEC §7 (2026-09-12): the site's own pages from the profile's
+  // inventory, and the cluster's earlier live pages. Read once for the
+  // day, so a regeneration links the same pages as the attempt it replaces.
+  const inventory = await store.siteInventory(site.domain);
+  const earlier =
+    opportunity.clusterKey === null ? [] : await store.clusterPages(a.siteId, opportunity.clusterKey);
+  const links = [
+    ...siteLinkTargets({
+      domain: site.domain,
+      inventory,
+      query: opportunity.targetQuery ?? "",
+      selfUrl: opportunity.family === "improve" ? opportunity.targetRef : null,
+    }),
+    ...clusterLinkTargets(earlier),
+  ];
+
   return withDraftCost({ scanId: report.scanId }, async (cost) => {
     let last: GenerateOutcome | null = null;
     for (let attempt = 1; attempt <= MAX_AUTOMATIC_ATTEMPTS; attempt++) {
@@ -147,6 +164,7 @@ export async function generateDayPage(a: {
         site: ruleInputs,
         voiceText: site.voiceText,
         category,
+        links,
         scanId: report.scanId,
       });
       if (last.ok) return { ok: true, draftId: last.draftId };
