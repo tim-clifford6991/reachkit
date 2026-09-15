@@ -555,6 +555,29 @@ The procedure, per migration:
    leaked-password WARN are dispositioned below and are expected on every run.
 4. Note it in the log (§11) with the date.
 
+### Pending production schema
+
+Read 2026-09-15 from the `reachkit` project (`kleepxxddbcnfsfwudoe`), read-only. `list_migrations` ends at
+`scans_stage_events` (applied 2026-09-12), and a catalog select found none of the objects below.
+These seven files in `supabase/migrations/` are **not applied**. Apply them in this order:
+
+1. `20260912090000_sites_profile.sql`: `site_profiles`, `sites.voice_edited_at`
+2. `20260912120000_destinations_hostname.sql`: `destinations.hostname*`, `apply_setup_choice`
+3. `20260912120000_opportunities_readiness.sql`: `opportunities.cluster_key` / `absorbed_queries` / `ready` / `unready_reason`
+4. `20260914120000_sites_autopilot.sql`: `sites_veto_hours_floor`
+5. `20260914130000_opportunities_fix_page.sql`: `fix_page` in the type, family and reason constraints (after 3)
+6. `20260915090000_users_retention.sql`: `users.last_seen_at` and the four retention stamps
+7. `20260915090100_drafts_retention.sql`: `drafts.opened_at`, `veto_reminded_at`
+
+**The step.** Only after the owner removes `/root/ops/reachkit/state/prod-frozen`, and only once the
+target deploy is READY: apply each file through the Supabase connector (`apply_migration`), one per
+call, in the order above. Then follow the procedure above (security advisor, log in §11), strike the
+line here, and re-run the catalog check.
+
+**Dev shares this database.** There is one Supabase project (§2), so `dev.reachkit.app` already runs
+`main`'s code against a schema without these seven. Any code path that reads their columns fails
+on dev until they are applied. Whether to apply them before production unfreezes is the owner's call.
+
 Verify a migration against a throwaway database before it reaches the live project — never against
 the shared scratch database, which other work is using:
 
