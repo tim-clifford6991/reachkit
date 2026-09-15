@@ -26,7 +26,7 @@ const DAY = 24 * HOUR;
 /** Which domain a recorded nurture send is about: the body block's own
  *  `domain` var, which is the only place a touch names it. */
 function domainOf(call: { blocks: readonly unknown[] }): string {
-  const first = call.blocks[0] as { vars?: { domain?: string } };
+  const first = call.blocks[1] as { vars?: { domain?: string } };
   return first.vars?.domain ?? "";
 }
 

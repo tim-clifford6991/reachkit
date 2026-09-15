@@ -26,16 +26,24 @@ import type { MailBlock } from "../../blocks/types";
 const SUBJECT = "mail.setupReminder.subject" satisfies CopyKey;
 const BODY = "mail.setupReminder.body" satisfies CopyKey;
 const ACTION = "mail.setupReminder.action" satisfies CopyKey;
+const REASON = "mail.reason.setupReminder" satisfies CopyKey;
 
 export interface SetupReminderMail {
   readonly subject: CopyKey;
   readonly blocks: readonly MailBlock[];
+  /** SPEC §8's "why it arrived". Awaiting the owner's line; the shell
+   *  renders no reason until it is written (`compose.ts`). */
+  readonly reason: CopyKey;
 }
 
 export function buildSetupReminder(a: { signInHref: string }): SetupReminderMail {
   return {
     subject: SUBJECT,
+    reason: REASON,
     blocks: [
+      // Opens on its subject line, as the other sequence mails open on a
+      // heading (#640).
+      { block: "heading", text: SUBJECT },
       { block: "paragraph", text: BODY },
       { block: "action", label: ACTION, href: a.signInHref },
     ],

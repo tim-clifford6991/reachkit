@@ -17,7 +17,7 @@ function build(touch: (typeof TOUCHES)[number]) {
 describe("each touch is its own pair of keys, indexed by the touch number", () => {
   it("the three touches declare three distinct subjects and three distinct lines", () => {
     const subjects = TOUCHES.map((touch) => build(touch).subject);
-    const bodies = TOUCHES.map((touch) => (build(touch).blocks[0] as { text: string }).text);
+    const bodies = TOUCHES.map((touch) => (build(touch).blocks[1] as { text: string }).text);
 
     expect(new Set(subjects).size).toBe(3);
     expect(new Set(bodies).size).toBe(3);
@@ -30,7 +30,7 @@ describe("each touch is its own pair of keys, indexed by the touch number", () =
 
   it("each touch names the one domain it is about", () => {
     for (const touch of TOUCHES) {
-      expect(build(touch).blocks[0]).toMatchObject({
+      expect(build(touch).blocks[1]).toMatchObject({
         block: "paragraph",
         vars: { domain: "acme.com" },
       });
@@ -57,7 +57,7 @@ describe('REQ-010 c11 — "any of these emails … carries a working opt-out"', 
     for (const touch of TOUCHES) {
       const mail = build(touch);
       expect(mail.optOut.mechanism).toBe("opt-out");
-      const token = mail.optOut.href.replace("/opt-out/", "");
+      const token = mail.optOut.href.split("/opt-out/")[1] ?? "";
       expect(readOptOutToken(token), `touch ${touch}`).toEqual({ email: "anna@example.com" });
     }
   });

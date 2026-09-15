@@ -53,7 +53,7 @@ describe('REQ-010 c11 — "any of these emails … carries a working opt-out"', 
   it("the template returns an optOut href, and the token in it round-trips to the address it was built for", () => {
     const mail = build();
     expect(mail.optOut.mechanism).toBe("opt-out");
-    const token = mail.optOut.href.replace("/opt-out/", "");
+    const token = mail.optOut.href.split("/opt-out/")[1] ?? "";
     expect(readOptOutToken(token)).toEqual({ email: "anna@example.com" });
   });
 

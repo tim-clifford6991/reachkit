@@ -142,9 +142,9 @@ describe('REQ-010 c11 — "when it is opened, then it carries a working opt-out"
 
     const mail = build();
     expect(mail.optOut.mechanism).toBe("opt-out");
-    expect(mail.optOut.href).toMatch(/^\/opt-out\//);
+    expect(mail.optOut.href).toMatch(/^https:\/\/[^/]+\/opt-out\//);
 
-    const token = mail.optOut.href.replace("/opt-out/", "");
+    const token = mail.optOut.href.split("/opt-out/")[1] ?? "";
     expect(readOptOutToken(token)).toEqual({ email: "anna@example.com" });
     await expect(applyOptOutToken(token)).resolves.toEqual({ email: "anna@example.com" });
 

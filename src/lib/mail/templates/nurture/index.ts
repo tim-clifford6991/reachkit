@@ -50,6 +50,10 @@ export function buildNurture(a: {
     subject: SUBJECTS[index] as CopyKey,
     reason: REASON,
     blocks: [
+      // The touch opens on its own subject line, as every other sequence
+      // mail opens on a heading (#640) — the same key, so the inbox row and
+      // the first line of the mail cannot say different things.
+      { block: "heading", text: SUBJECTS[index] as CopyKey },
       { block: "paragraph", text: BODIES[index] as CopyKey, vars: { domain: a.domain } },
       // S20 draws one solid button on the nurture mail and it is the
       // offer. The heading and the body stay the owner's — every nurture
