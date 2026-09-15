@@ -718,15 +718,27 @@ describe("nothing fakes work — an unbuilt engine fails loudly", () => {
     const logged: string[] = [];
     vi.spyOn(console, "log").mockImplementation((line: string) => void logged.push(line));
     stubEnv(false);
+    const incidents: unknown[] = [];
+    vi.doMock("@/lib/mail/ops", async (importOriginal) => ({
+      ...(await importOriginal<typeof import("@/lib/mail/ops")>()),
+      reportIncident: async (incident: unknown) => void incidents.push(incident),
+    }));
     const { jobs } = await import("@/jobs");
     const { runJob } = await import("@/jobs/run");
     const job = jobs.find((j) => j.id === "scan/run") as JobDefinition;
-    await expect(
-      runJob(job, { data: { scanId: "s", domain: "example.com", tier: "free" }, now: MONDAY_0600_UTC })
-    ).rejects.toThrow();
+    const data = { scanId: "s", domain: "example.com", tier: "free" };
+    await expect(runJob(job, { data, now: MONDAY_0600_UTC, attempt: 0 })).rejects.toThrow();
     expect(logged).toHaveLength(1);
     const line = JSON.parse(logged[0] as string);
     expect(line).toMatchObject({ event: "job", jobId: "scan/run", outcome: "failed" });
     expect(JSON.stringify(line)).not.toContain("example.com");
+
+    // Issue 330: the owner is told on the first delivery — the job and the
+    // error's class, never the payload — and not again on a retry.
+    expect(incidents).toEqual([{ occasion: "job-failed", jobId: "scan/run", attempt: 0, errorName: expect.any(String) }]);
+    expect(JSON.stringify(incidents)).not.toContain("example.com");
+    await expect(runJob(job, { data, now: MONDAY_0600_UTC, attempt: 1 })).rejects.toThrow();
+    expect(incidents).toHaveLength(1);
+    vi.doUnmock("@/lib/mail/ops");
   });
 });

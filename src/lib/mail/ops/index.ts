@@ -4,3 +4,6 @@ export {
   reportKillSwitchEngaged,
   sendOpsAlert,
 } from "./spend-ceiling";
+// The owner's incident alert (issue 330) — a job failed or was dead-lettered,
+// or a deployment refused to boot.
+export { errorNameOf, reportIncident } from "./incident";

@@ -26,6 +26,15 @@ import { applyEnvFixture } from "../mail/env-fixture";
 
 applyEnvFixture();
 
+// Issue 330: a refused boot tells `OWNER_EMAILS`. The telling is captured
+// here, so a case asserts what the owner would be told and the boot's own
+// log lines stay the boot's.
+const told = vi.hoisted(() => ({ incidents: [] as unknown[] }));
+vi.mock("@/lib/mail/ops", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/mail/ops")>()),
+  reportIncident: async (incident: unknown) => void told.incidents.push(incident),
+}));
+
 const { register } = await import("@/instrumentation");
 const { PRICE_OBJECT_SPEC, PriceObjectMismatch } = await import(
   "@/lib/account/checkout/price-object"
@@ -60,6 +69,7 @@ beforeEach(() => {
   setStripe(stripeDouble(vendor));
   logged = [];
   errored = [];
+  told.incidents = [];
   vi.spyOn(console, "log").mockImplementation((line: unknown) => void logged.push(String(line)));
   vi.spyOn(console, "error").mockImplementation((line: unknown) => void errored.push(String(line)));
   process.env.NEXT_RUNTIME = "nodejs";
@@ -207,7 +217,11 @@ describe("a real deployment carrying RK_FIXED_NOW does not start", () => {
     // Nothing after the refusal ran: no line was logged, so the gate was not
     // registered and Stripe was not read.
     expect(logged).toEqual([]);
-    expect(errored).toEqual([]);
+    // Issue 330: one line naming the refused check and the error's class,
+    // and the owner told the same two names — never the binding's value.
+    expect(onlyLine(errored)).toEqual({ event: "boot_invariants", check: "clock", outcome: "refused", reason: expect.any(String) });
+    expect(told.incidents).toEqual([{ occasion: "boot-refused", check: "clock", errorName: expect.any(String) }]);
+    expect(JSON.stringify(told.incidents)).not.toContain("2026-09-08");
     expect(sitesWithActiveAccess).toBeDefined();
   });
 
@@ -255,7 +269,7 @@ describe("a real deployment that cannot run a job does not start", () => {
       expect(logged.map((line) => JSON.parse(line))).toEqual([
         { event: "boot_invariants", check: "clock", outcome: "checked" },
       ]);
-      expect(errored).toEqual([]);
+      expect(onlyLine(errored)).toMatchObject({ event: "boot_invariants", check: "jobs", outcome: "refused" });
     }
   );
 

@@ -26,6 +26,33 @@ async function reportFlip(): Promise<void> {
   }
 }
 
+/** Issue 330: tells `OWNER_EMAILS`. Imported at the call, like the switch's
+ *  report above, and swallowed: an alert never fails the invocation or
+ *  changes what it rethrows. */
+async function reportToOwners(
+  incident: { occasion: "job-failed"; jobId: string; attempt: number; error: unknown } | { occasion: "dead-lettered"; jobId: string; error: unknown }
+): Promise<void> {
+  try {
+    const { errorNameOf, reportIncident } = await import("@/lib/mail/ops");
+    const errorName = errorNameOf(incident.error);
+    await reportIncident(
+      incident.occasion === "job-failed"
+        ? { occasion: "job-failed", jobId: incident.jobId, attempt: incident.attempt, errorName }
+        : { occasion: "dead-lettered", jobId: incident.jobId, errorName }
+    );
+  } catch {
+    console.warn(JSON.stringify({ event: "ops_incident_alert", occasion: incident.occasion, outcome: "threw" }));
+  }
+}
+
+/**
+ * The platform gave up on a job: every retry failed (issue 330's
+ * dead-letter). Called from the platform's failure handler in `client.ts`.
+ */
+export async function reportDeadLettered(jobId: string, error: unknown): Promise<void> {
+  await reportToOwners({ occasion: "dead-lettered", jobId, error });
+}
+
 export async function runJob(definition: JobDefinition, input: JobInput): Promise<Outcome> {
   const started = Date.now();
 
@@ -67,6 +94,12 @@ export async function runJob(definition: JobDefinition, input: JobInput): Promis
       outcome: "failed",
       durationMs: Date.now() - started,
     });
+    // Issue 330: the owner hears of a failing job on its first delivery
+    // only — a retry that fails again is the same failure, and one whose
+    // retries run out is told once more, as dead-lettered.
+    if ((input.attempt ?? 0) === 0) {
+      await reportToOwners({ occasion: "job-failed", jobId: definition.id, attempt: 0, error });
+    }
     throw error;
   }
 }

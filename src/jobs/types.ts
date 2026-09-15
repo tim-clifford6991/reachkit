@@ -92,6 +92,9 @@ export type Outcome =
 export interface JobInput {
   readonly data: Readonly<Record<string, unknown>>;
   readonly now: Date;
+  /** Which delivery of this event this is, zero-indexed — `0` the first,
+   *  higher on a retry. Absent where the caller does not know. */
+  readonly attempt?: number;
 }
 
 /** A job definition: a trigger, an idempotency key and one call into the

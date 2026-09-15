@@ -81,12 +81,12 @@
  *  is a name from a closed set — never a binding's value, never a vendor
  *  payload, never the price id. */
 function log(
-  check: "checkout" | "access-gate" | "stamp-place" | "clock" | "jobs" | "spend-alerts",
-  outcome: "checked" | "unchecked",
+  check: BootCheck,
+  outcome: "checked" | "unchecked" | "refused",
   reason?: string
 ): void {
   const line = { event: "boot_invariants", check, outcome, ...(reason === undefined ? {} : { reason }) };
-  if (outcome === "unchecked") console.error(JSON.stringify(line));
+  if (outcome !== "checked") console.error(JSON.stringify(line));
   else console.log(JSON.stringify(line));
 }
 
@@ -100,12 +100,44 @@ function log(
 export async function register(): Promise<void> {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
 
+  // Issue 330: a refused boot is visible in the deployment log with a
+  // one-line cause — the check and the error's class, never its message —
+  // and, on a real deployment, told to `OWNER_EMAILS`. Then it is rethrown:
+  // telling the owner never lets the deployment start.
+  const current: { check: BootCheck } = { check: "clock" };
+  try {
+    await assertInvariants(current);
+  } catch (error) {
+    const errorName = error instanceof Error ? error.name : "unknown";
+    log(current.check, "refused", errorName);
+    await tellOwnersOfRefusal(current.check, errorName);
+    throw error;
+  }
+}
+
+type BootCheck = "checkout" | "access-gate" | "stamp-place" | "clock" | "jobs" | "spend-alerts";
+
+/** Never throws: a boot refused because `env` does not parse cannot reach
+ *  the mail seam at all, and the log line above is then the whole telling. */
+async function tellOwnersOfRefusal(check: BootCheck, errorName: string): Promise<void> {
+  try {
+    const { isRealDeployment } = await import("@/lib/config/now");
+    if (!isRealDeployment()) return;
+    const { reportIncident } = await import("@/lib/mail/ops");
+    await reportIncident({ occasion: "boot-refused", check, errorName });
+  } catch {
+    console.error(JSON.stringify({ event: "ops_incident_alert", occasion: "boot-refused", outcome: "unreachable" }));
+  }
+}
+
+async function assertInvariants(current: { check: BootCheck }): Promise<void> {
   // The clock binding, before anything else asserts anything (issue #305).
   // `RK_FIXED_NOW` freezes what every surface calls today — it is what lets
   // the layout sweep photograph screens whose content is a function of the
   // date — and a real deployment carrying one would serve a date that is not
   // the date. It is local and needs nobody, so it is asserted like `env`:
   // the process does not start.
+  current.check = "clock";
   const { assertClockBinding } = await import("@/lib/config/now");
   assertClockBinding();
   log("clock", "checked");
@@ -115,6 +147,7 @@ export async function register(): Promise<void> {
   // than about anything a vendor answers. It sits beside the clock check
   // because both ask the same question of the environment — is this a real
   // deployment, and is it configured like one.
+  current.check = "jobs";
   const { assertJobsBindings } = await import("@/lib/config/env");
   assertJobsBindings();
   log("jobs", "checked");
@@ -124,12 +157,14 @@ export async function register(): Promise<void> {
   // return would hold on the boots where Stripe answered and not on the
   // others, which is exactly the half-configured deployment this hook
   // closes.
+  current.check = "access-gate";
   const { installActiveAccessGate } = await import("@/lib/account/billing");
   await installActiveAccessGate();
   log("access-gate", "checked");
 
   // ADR-083 Decision 4's port, for the same reason and in the same place:
   // local, needing nobody, and ahead of the arm that may return early.
+  current.check = "stamp-place";
   const { installStampCapability } = await import(
     "@/lib/publish/destinations/wordpress/stamp-place"
   );
@@ -142,10 +177,12 @@ export async function register(): Promise<void> {
   // — an unregistered sink means the seam publishes into nothing, which
   // costs an alert and never a refusal, and the ceiling itself holds
   // either way.
+  current.check = "spend-alerts";
   const { installSpendAlerts } = await import("@/lib/mail/ops");
   installSpendAlerts();
   log("spend-alerts", "checked");
 
+  current.check = "checkout";
   const { assertCheckoutBootInvariants } = await import("@/lib/account/checkout/boot");
   const { PriceObjectMismatch } = await import("@/lib/account/checkout/price-object");
 
