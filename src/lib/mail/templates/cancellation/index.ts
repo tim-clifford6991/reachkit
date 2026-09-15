@@ -12,6 +12,9 @@ const LINE = "mail.cancellation.line" satisfies CopyKey;
 export function buildCancellation(a: { accessEndsOn: string }): RetentionMail {
   return {
     subject: SUBJECT,
-    blocks: [{ block: "paragraph", text: LINE, vars: { accessEndsOn: a.accessEndsOn } }],
+    blocks: [
+      { block: "heading", text: SUBJECT },
+      { block: "paragraph", text: LINE, vars: { accessEndsOn: a.accessEndsOn } },
+    ],
   };
 }

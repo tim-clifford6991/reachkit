@@ -252,6 +252,45 @@ export async function composeUnmeasuredWeek(): Promise<ComposedMail> {
   });
 }
 
+/** SPEC §8's retention mails (issue 641). Their lines are owner-owed, so a
+ *  preview shows each `TODO(copy)` marker where a sentence will go. */
+export const RETENTION_PREVIEW_KINDS = [
+  "inactivity",
+  "veto-reminder",
+  "payment-failed",
+  "cancellation",
+  "win-back",
+] as const;
+
+export async function composeRetentionPreview(
+  kind: (typeof RETENTION_PREVIEW_KINDS)[number]
+): Promise<ComposedMail> {
+  const { composeMail } = await import("../../../src/lib/mail/shell/compose");
+  const email = "you@company.com";
+  const mail = await (async () => {
+    switch (kind) {
+      case "inactivity":
+        return (await import("../../../src/lib/mail/templates/inactivity")).buildInactivity({ email });
+      case "veto-reminder":
+        return (await import("../../../src/lib/mail/templates/veto-reminder")).buildVetoReminder({
+          email,
+          draftId: "preview",
+          page: PREVIEW_PAGE.title,
+          closesAt: "Tomorrow 07:00",
+        });
+      case "payment-failed":
+        return (await import("../../../src/lib/mail/templates/payment-failed")).buildPaymentFailed();
+      case "cancellation":
+        return (await import("../../../src/lib/mail/templates/cancellation")).buildCancellation({
+          accessEndsOn: "2026-10-08",
+        });
+      case "win-back":
+        return (await import("../../../src/lib/mail/templates/win-back")).buildWinback({ email });
+    }
+  })();
+  return composeMail({ kind, ...mail });
+}
+
 /** Empty since issue #388: every kind the set draws composes. The name
  *  stays, pinned by `preview.test.ts`, so a kind that stopped composing
  *  would have to be written down here to be skipped. */
