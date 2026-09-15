@@ -221,7 +221,7 @@ describe('REQ-001 c16 — "… then one written line says what happened and a ma
     expect(() => copy("control.retry")).not.toThrow();
   });
 
-  it("the registry holds exactly seven notice.* keys and exactly four control.* keys", () => {
+  it("the registry holds exactly seven notice.* keys and exactly five control.* keys", () => {
     const allKeys = Object.keys(COPY) as CopyKey[];
     const noticeKeys = allKeys.filter((k) => k.startsWith("notice."));
     const controlKeys = allKeys.filter((k) => k.startsWith("control."));
@@ -244,7 +244,15 @@ describe('REQ-001 c16 — "… then one written line says what happened and a ma
       ].sort()
     );
     expect(controlKeys.sort()).toEqual(
-      ["control.correction-retry", "control.rescan-age", "control.rescan-incomplete", "control.retry"].sort()
+      [
+        "control.correction-retry",
+        "control.rescan-age",
+        "control.rescan-incomplete",
+        "control.retry",
+        // Issue 715: a part the ceiling cut off — a per-card control, not the
+        // report's one.
+        "control.retry-part",
+      ].sort()
     );
   });
 });

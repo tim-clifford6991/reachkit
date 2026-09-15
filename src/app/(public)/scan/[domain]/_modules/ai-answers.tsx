@@ -356,6 +356,11 @@ export function AiAnswersCard(p: {
             </span>
           }
         />
+        {/* SPEC §2: a correction reuses the AI answers already read, and the
+            card says so — only then. */}
+        {section.coverage === "cached_only" ? (
+          <p className="grow-0 text-base-content/70 text-xs">{copy("ai-answers.coverage.cached-only")}</p>
+        ) : null}
         {/* The card leads with its answer, not with its metric. */}
         <p className="grow-0 text-sm font-semibold">
           {copy("ai-answers.denominator", {
@@ -403,16 +408,17 @@ export function AiAnswersCard(p: {
 /** REQ-004 c10/c11: a section that could not be produced is named as
  *  absent in one written line, and the rest of the report stays usable —
  *  never an empty card, never a spinner. */
-export function AiAnswersAbsent(): React.JSX.Element {
+export function AiAnswersAbsent(p: { cutOff?: boolean } = {}): React.JSX.Element {
   return (
     <section className="card bg-base-100 border-base-300 border">
       <div className="card-body gap-3">
         <Head right={<Num unmeasured>{dash()}</Num>} />
         <p className="grow-0 text-sm">{copy("ai-answers.absent")}</p>
-        {/* The part this card could not measure is offered again on the card. */}
+        {/* The part this card could not measure is offered again on the card:
+            "Retry this part" where the pass's ceiling cut it off (SPEC §2). */}
         <div className="card-actions">
           <button type="button" className="btn btn-outline btn-primary btn-sm">
-            {copy("control.rescan-incomplete")}
+            {copy(p.cutOff === true ? "control.retry-part" : "control.rescan-incomplete")}
           </button>
         </div>
       </div>
