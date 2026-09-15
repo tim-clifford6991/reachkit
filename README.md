@@ -7,19 +7,21 @@ your rivals instead of you. Then ReachKit writes one page a day to change that."
 
 Production <https://reachkit.app> · dev <https://dev.reachkit.app> · repo `tim-clifford6991/reachkit`.
 
-## The nine MVP features (status 2026-09-12)
+## The nine MVP features (status 2026-09-15)
+
+Built means on `main` with tests. None of it counts as delivered until a stranger walks it on production (below). Production stays frozen until the owner lifts it.
 
 | # | Feature | What the user gets | Status |
 |---|---|---|---|
-| 1 | Landing / marketing | Reads what ReachKit does and types in a domain | **Live** — approved copy renders. |
-| 2 | Free scan for any URL | A real, permanent findability report without an account | **Works on dev** (2026-09-12) — progress stream (#540) and per-stage budgets (#539) merged and smoke-checked on dev.reachkit.app: four real sites complete in 6–19 s, no ceiling, ≤ 12¢; production deploy pending the owner's lift of the freeze. |
-| 3 | Payment + magic-link auth | Pays €49 with no account first, then signs in from the mailed link | **Ready to test** — Resend domain verified (#325, 2026-09-12); one real magic link (#542) and one real Stripe test-mode payment (#319) still to be exercised. |
-| 4 | Protected dashboard | One signed-in place showing the market, the rivals and the week | **Inert until a payment** — the screens exist and the eight Inngest jobs are registered against production (#422, 2026-09-12); nothing ticks before a paid site exists. |
-| 5 | Onboarding | Confirms rivals and category and connects where pages publish: a hosted subdomain, or their WordPress | **Partial** — setup, hosted + WordPress connect and rival/category confirm all exist in `src/app`; unproven end to end. |
-| 6 | Weekly deep scan and targeting | Every Monday the market is re-measured and the next pages are picked | **Built, never run live.** |
-| 7 | Content calendar, daily actions | A new post, new page or update each day, cross-linked to their own pages and earlier assets | **Built, never run live.** |
-| 8 | Email | Onboarding, free-scan nurture, weekly digest, retention / win-back | **Sends, copy incomplete** — mail can send (#325); 11 mail kinds registered, 5 without copy (#388); no sequence has run live. |
-| 9 | Technical site issues | Told what is broken on their own site and what to do about it | **Not built.** |
+| 1 | Landing / marketing | Reads what ReachKit does and types in a domain | **Live**: approved copy renders. `/privacy`, `/terms` and `/imprint` still carry the owner's placeholders (#335). |
+| 2 | Free scan for any URL | A real, permanent findability report without an account | **Works on dev**: progress stream (#540), per-stage budgets (#539), the measurement line, the reused-answers line and "Retry this part" (#719). **Owner walk:** one live scan with the site-profile crawl inside 12¢ and 50 s (#715). |
+| 3 | Payment + magic-link auth | Pays €49 with no account first, then signs in from the mailed link | **Built; payment walked on dev**: a Stripe test-mode payment completed on dev.reachkit.app (#319, 2026-09-15); a link lasts 24 h and sign-out is global (#718). **Owner walk:** one real magic link on production (#542). |
+| 4 | Protected dashboard | One signed-in place showing the market, the rivals and the week | **Built, inert until a payment**: the screens exist, the eight jobs are registered (#422), and "Needs you" carries the customer's own technical issues (#572). Nothing ticks before a paid site exists. |
+| 5 | Onboarding | Confirms rivals and category and connects where pages publish: a hosted subdomain, or their WordPress | **Built**: one submit with rivals, an editable category (#562), a hosted label that refuses a taken host (#608), WordPress, and the voice; a bounded site-profile crawl (#609, #610). **Owner walk:** a real WordPress connects and receives a page (#324). |
+| 6 | Weekly deep scan and targeting | Every Monday the market is re-measured and the next pages are picked | **Built, proved on a simulated week**: Monday re-measure, verdicts and readiness (#474, #477, #478), and a seven-day hands-off run on a fake clock (#323). Never run live. |
+| 7 | Content calendar, daily actions | A new post, new page or update each day, cross-linked to their own pages and earlier assets | **Built, proved on a simulated week**: generate → veto → publish at most one a day, cross-links (#567), and metadata fixes (#690). **Owner walk:** live-model drafts pass every hard rule at 45¢ or less (#321). |
+| 8 | Email | Onboarding, free-scan nurture, weekly digest, retention / win-back | **Built, copy written**: every customer mail kind in SPEC §8 has owner-approved copy (#721), and the retention sequence runs (#569). **Owner walk:** each kind seen in Gmail and Apple Mail (#339). The owner's own incident alert (#330) still carries `TODO(copy)`. |
+| 9 | Technical site issues | Told what is broken on their own site and what to do about it | **Built, copy written**: nine checks over the crawled pages, each with a count, a severity and who fixes it; the same counts on the report, the dashboard and mail; Monday drops a fixed issue; a ReachKit-fixable page becomes a Fix (#570–#573, #690, #716). Never run live. |
 
 ## What "delivered" means
 
