@@ -31,6 +31,7 @@
 // no row there and reads `unmeasured` — the honest answer, since the
 // movement across a gap is not a week's movement.
 import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
+import { issueChanges, type IssueChange } from "@/lib/site-issues/changes";
 import type { StoredReport } from "../report";
 import { readWeekScan } from "./store";
 
@@ -40,6 +41,10 @@ import { readWeekScan } from "./store";
 export interface WeekMovement {
   readonly scoreDelta: Measured<number>;
   readonly aiAnswersDelta: Measured<number>;
+  /** SPEC §9 on Monday: the technical checks whose count moved since the
+   *  week before. `unmeasured` where either week stored no checks — the
+   *  same two-measurements-or-nothing rule as the deltas. */
+  readonly issueChanges: Measured<readonly IssueChange[]>;
 }
 
 const MS_PER_DAY = 86_400_000;
@@ -106,5 +111,6 @@ export async function weekMovement(a: {
   return {
     scoreDelta: deltaOf(scoreOf(now), scoreOf(before), a.at),
     aiAnswersDelta: deltaOf(aiAnswersOf(now), aiAnswersOf(before), a.at),
+    issueChanges: issueChanges(now?.siteIssues ?? null, before?.siteIssues ?? null, a.at),
   };
 }

@@ -32,7 +32,9 @@ import type { Measured } from "@/lib/measure/measured";
 import type { WeekStanding } from "@/lib/opportunities";
 import { PAGE_VERDICTS } from "@/lib/presentation/bands";
 import type { CopyKey } from "@/lib/presentation/copy";
+import type { IssueChange } from "@/lib/site-issues/changes";
 import { formatStat } from "../../blocks/format";
+import { issueChangeRows } from "../../blocks/site-issues";
 import type { CopyVars, ListRow, MailBlock, VerdictRow } from "../../blocks/types";
 
 const SUBJECT = "mail.weekly.subject" satisfies CopyKey;
@@ -92,7 +94,13 @@ export function buildWeekly(a: {
    *  measured-and-empty states the supply's own empty line — the calendar
    *  is never padded (DECISIONS 2026-08-28). */
   next: Measured<readonly { targetQuery: string }[]>;
+  /** SPEC §9 on Monday (#573): the technical checks whose count moved since
+   *  last Monday. Unmeasured — or absent — where either week stored no
+   *  checks, and then the rows are absent; a week with no movement has
+   *  none either. */
+  issues?: Measured<readonly IssueChange[]>;
 }): WeeklyMail {
+  const issues = a.issues === undefined ? [] : issueChangeRows(a.issues);
   return {
     subject: SUBJECT,
     reason: REASON,
@@ -105,6 +113,9 @@ export function buildWeekly(a: {
       { block: "paragraph", text: BODY },
       { block: "stat", label: SCORE, value: a.scoreDelta, format: "delta" },
       { block: "stat", label: AI_ANSWERS, value: a.aiAnswersDelta, format: "delta" },
+      // What moved among the technical checks: last week's count, then this
+      // week's figure. Nothing measured, or nothing moved: no block.
+      ...(issues.length === 0 ? [] : [{ block: "facts", items: issues } as const]),
       {
         block: "verdicts",
         label: VERDICTS,

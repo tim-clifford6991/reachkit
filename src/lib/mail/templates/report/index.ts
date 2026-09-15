@@ -25,6 +25,8 @@
 import type { CopyKey } from "@/lib/presentation/copy";
 import type { ScoreFactorName } from "@/lib/measure/score";
 import { LIMITING_LINES } from "@/lib/presentation/bands";
+import type { SiteIssuesSection } from "@/lib/site-issues/types";
+import { issueRows } from "../../blocks/site-issues";
 import type { MailBlock } from "../../blocks/types";
 
 const SUBJECT = "mail.report.subject" satisfies CopyKey;
@@ -71,8 +73,12 @@ export function buildReport(a: {
   /** The address a removal request goes to — `removal.address`, read by
    *  the caller so this template holds no second copy of it (REQ-002 c1). */
   removalAddress: string;
+  /** SPEC §9: the report's own stored checks (#573). Absent or `null` where
+   *  the pass ran none — the rows are then absent, never nine zeros. */
+  issues?: SiteIssuesSection | null;
 }): ReportMail {
   const { facts } = a;
+  const issues = issueRows(a.issues ?? null);
   return {
     subject: SUBJECT,
     subjectVars: { domain: facts.domain, score: facts.score, band: facts.band },
@@ -93,6 +99,9 @@ export function buildReport(a: {
           { label: FACT_GOOGLE, value: facts.googleSearch },
         ],
       },
+      // SPEC §9: the faults the report counted, each titled as its card is
+      // and figured as the Overview figures it. No fault, no block.
+      ...(issues.length === 0 ? [] : [{ block: "facts", items: issues } as const]),
       ...(facts.limiting === null
         ? []
         : [{ block: "paragraph", text: LIMITING_LINES[facts.limiting] } as const]),

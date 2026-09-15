@@ -143,3 +143,33 @@ describe("a delta needs two measurements", () => {
     expect(JSON.stringify(db.rows("scans"))).toBe(before);
   });
 });
+
+describe("SPEC §9 on Monday: the technical checks that moved (#573)", () => {
+  const issues = (brokenLinks: number) => ({
+    pagesChecked: 40,
+    stoppedBy: "complete",
+    issues: [
+      { check: "broken_links", ran: true, count: brokenLinks, over: 120, unit: "links", severity: brokenLinks === 0 ? "nothing_to_fix" : "worth_fixing", doer: "free_fix" },
+    ],
+  });
+
+  it("reads both stored weeks' checks: a fixed issue is last week's count and this week's zero", async () => {
+    seedWeek(BEFORE, { ...report({ score: 45, citations: 5 }), version: 7, siteIssues: issues(2) });
+    seedWeek(WEEK, { ...report({ score: 45, citations: 5 }), version: 7, siteIssues: issues(0) });
+
+    const movement = await weekMovement({ siteId: "site-1", weekStart: WEEK, at: AT });
+    expect(movement.issueChanges).toEqual({
+      kind: "measured",
+      value: [{ check: "broken_links", from: 2, to: 0, over: 120, unit: "links", severity: "nothing_to_fix" }],
+      at: AT,
+    });
+  });
+
+  it("a week before the checks existed is unmeasured, never 'nothing moved'", async () => {
+    seedWeek(BEFORE, report({ score: 45, citations: 5 }));
+    seedWeek(WEEK, { ...report({ score: 45, citations: 5 }), version: 7, siteIssues: issues(0) });
+
+    const movement = await weekMovement({ siteId: "site-1", weekStart: WEEK, at: AT });
+    expect(movement.issueChanges.kind).toBe("unmeasured");
+  });
+});
