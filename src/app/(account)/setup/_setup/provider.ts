@@ -222,7 +222,12 @@ async function readQuestionsFor(domain: string): Promise<SetupQuestions | null> 
   const report = await storedReportFor(domain);
   const rows = report?.aiAnswers?.rows ?? [];
   if (report === null || rows.length === 0) return null;
-  return { scanId: report.scanId, items: rows.map((row) => row.question) };
+  const { derivableMarket } = await import("@/lib/market/questions/rederive");
+  return {
+    scanId: report.scanId,
+    items: rows.map((row) => row.question),
+    derivable: report.market.kind === "unmeasured" ? null : derivableMarket(report.market.value),
+  };
 }
 
 /** One read of the stored report per request, shared by the market card

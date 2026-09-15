@@ -14,12 +14,17 @@ import { setupCards, type SetupCards } from "@/lib/publish/setup/cards";
 import { BATTERY } from "@/lib/config/constants";
 import type { SiteProfile } from "@/lib/site-profile/types";
 import type { StoredQuestion } from "@/lib/scan/report";
+import type { DerivableMarket } from "@/lib/market/questions/rederive";
 
 /** SPEC §5: the twelve questions the scan phrased for the measured market,
  *  shown read-only, and the scan they belong to. */
 export interface SetupQuestions {
   scanId: string;
   items: readonly StoredQuestion[];
+  /** §12 ruling 4: what a corrected category re-derives the twelve over —
+   *  the market this scan already bought. `null` where it measured none,
+   *  and then a correction derives nothing rather than guessing. */
+  derivable: DerivableMarket | null;
 }
 
 export interface SetupFacts {

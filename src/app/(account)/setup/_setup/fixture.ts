@@ -79,6 +79,28 @@ const FIXTURE_QUESTIONS = Object.freeze(
   ),
 );
 
+/** The market the fixture scan bought and the profile it read — what a
+ *  corrected category re-derives the twelve over (§12 ruling 4). Data in
+ *  the stored shape: searches and volumes, never a sentence. */
+const FIXTURE_MARKET = Object.freeze({
+  profile: Object.freeze({
+    category: "project management software for agencies",
+    job: "manage client projects",
+    offeringType: "software",
+    audienceTerms: Object.freeze(["agencies", "agency"]),
+    namedRivals: Object.freeze([]),
+    vocabulary: Object.freeze(["project", "management", "client", "portal", "resource", "planning"]),
+    brandTokens: Object.freeze(["example"]),
+  }),
+  market: Object.freeze([
+    Object.freeze({ keyword: "agency project management software", volume: 880 }),
+    Object.freeze({ keyword: "client portal for agencies", volume: 320 }),
+    Object.freeze({ keyword: "agency resource planning", volume: 210 }),
+    Object.freeze({ keyword: "time tracking software", volume: 2400 }),
+    Object.freeze({ keyword: "best time tracking app", volume: 1300 }),
+  ]),
+});
+
 /** A founder who bought from a report: the address was measured, so the
  *  market card is `inferred` and the address is shown to confirm or change
  *  (REQ-021 c6, REQ-026 c1). The scanless arms — an empty address field and
@@ -95,7 +117,7 @@ export const FIXTURE_SETUP_FACTS: SetupFacts = Object.freeze({
     }),
   }),
   suggestedRivals: Object.freeze(["asana.com", "monday.com", "clickup.com", "notion.so"]),
-  questions: Object.freeze({ scanId: FIXTURE_SCAN_ID, items: FIXTURE_QUESTIONS }),
+  questions: Object.freeze({ scanId: FIXTURE_SCAN_ID, items: FIXTURE_QUESTIONS, derivable: FIXTURE_MARKET }),
   profile: FIXTURE_SITE_PROFILE,
   // Overwritten by `provider.ts` with `env.HOSTED_EDGE_CNAME_TARGET`; the
   // value here is only what a test that drives `assembleSetup` directly
