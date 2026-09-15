@@ -107,10 +107,13 @@ export async function buildSiteProfileWithCrawl(
   }));
 
   // The name, read rather than asked for, so a free pass stores one too:
-  // the home document where the caller holds it, and otherwise the home
-  // page's own title, which the crawl always has as row one.
+  // the home document — the caller's, or the one the crawl read, which is
+  // how the free pass reads og:site_name (issue 609) — and otherwise the
+  // home page's own title, which the crawl always has as row one.
   const published =
-    siteNameOf(a.homeHtml ?? "") ?? siteNameFromTitle(crawl.pages[0]?.title ?? "");
+    siteNameOf(a.homeHtml ?? "") ??
+    siteNameOf(crawl.homeHtml ?? "") ??
+    siteNameFromTitle(crawl.pages[0]?.title ?? "");
 
   // The inference half, on the paid tiers only — see the header.
   const reading =

@@ -210,6 +210,7 @@ describe("crawlSite", () => {
 
     expect(out.pages.map((p) => p.url)).toEqual([HOME, "https://example.com/pricing", "https://example.com/about"]);
     expect(out.pages[0]?.title).toBe("Example Payments");
+    expect(out.homeHtml).toBe(home);
     expect(ports.fetched).toContain(HOME);
   });
 
@@ -225,13 +226,39 @@ describe("crawlSite", () => {
   });
 
   it("reads one page once, however many ways the site links to it", async () => {
-    const home = page("Home", `<a href="/pricing">a</a><a href="/pricing/">b</a><a href="/pricing?utm=x">c</a><a href="/pricing#plans">d</a>`);
+    const home = page("Home", `<a href="/pricing">a</a><a href="/pricing/">b</a><a href="/pricing?utm_source=x">c</a><a href="/pricing#plans">d</a>`);
     const ports = fakePorts({ "https://example.com/pricing": ok("https://example.com/pricing", page("Pricing")) });
 
     const out = await crawlSite(fakeCost(), { domain: DOMAIN, homeUrl: HOME, homeHtml: home, sitemaps: [] }, ports);
 
     expect(out.pages).toHaveLength(2);
     expect(ports.fetched.filter((u) => u.includes("/pricing"))).toHaveLength(1);
+  });
+
+  it("keeps one row per real page on the site: a redirect alias is that page, an off-site target is none (issue 609)", async () => {
+    const home = page("Home", `<a href="/plans">a</a><a href="/pricing">b</a><a href="/partner">c</a>`);
+    const ports = fakePorts({
+      "https://example.com/plans": ok("https://example.com/pricing", page("Pricing")),
+      "https://example.com/pricing": ok("https://example.com/pricing", page("Pricing")),
+      "https://example.com/partner": ok("https://partner.example.org/", page("Partner")),
+    });
+
+    const out = await crawlSite(fakeCost(), { domain: DOMAIN, homeUrl: HOME, homeHtml: home, sitemaps: [] }, ports);
+
+    expect(out.pages.map((p) => p.url)).toEqual([HOME, "https://example.com/pricing"]);
+  });
+
+  it("keeps the query of a query-addressed page, so two products are two rows (issue 609)", async () => {
+    const home = page("Home", `<a href="/product?id=1">a</a><a href="/product?id=2&utm_source=x">b</a>`);
+    const ports = fakePorts({
+      "https://example.com/product?id=1": ok("https://example.com/product?id=1", page("One")),
+      "https://example.com/product?id=2&utm_source=x": ok("https://example.com/product?id=2&utm_source=x", page("Two")),
+    });
+
+    const out = await crawlSite(fakeCost(), { domain: DOMAIN, homeUrl: HOME, homeHtml: home, sitemaps: [] }, ports);
+
+    expect(out.pages.map((p) => p.title)).toEqual(["Home", "One", "Two"]);
+    expect(out.pages[0]?.links).toEqual(["https://example.com/product?id=1", "https://example.com/product?id=2"]);
   });
 
   it("stops at a hundred pages and says so", async () => {

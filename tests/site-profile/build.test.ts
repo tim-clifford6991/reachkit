@@ -163,6 +163,14 @@ describe("the free pass crawls and names the site, and infers nothing", () => {
     expect(voiceMock).not.toHaveBeenCalled();
   });
 
+  it("reads og:site_name off the home document the crawl read, where the caller holds none (issue 609)", async () => {
+    crawlMock.mockResolvedValueOnce({ ...crawled(["/"]), homeHtml: HOME_HTML.replace("<title>Payouts — Example Payments</title>", "") });
+
+    const profile = await buildSiteProfile({} as never, { ...FREE, homeHtml: null });
+
+    expect(profile?.siteName).toBe("Example Payments");
+  });
+
   it("stores no name at all where the site publishes none — never a guess", async () => {
     crawlMock.mockResolvedValueOnce({
       pages: [{ url: `https://${DOMAIN}/`, title: "", h1: "", text: "" }],
