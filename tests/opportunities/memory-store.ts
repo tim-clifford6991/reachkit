@@ -157,6 +157,20 @@ export function memoryStore(state: MemoryState): OpportunityStore {
       state.statusChangedAt.set(row.id, state.now);
     },
 
+    async markQueued(opportunityId) {
+      const row = state.rows.find((r) => r.id === opportunityId);
+      if (row === undefined || row.status !== "open") return;
+      row.status = "queued";
+      state.statusChangedAt.set(row.id, state.now);
+    },
+
+    async markDismissed(opportunityId) {
+      const row = state.rows.find((r) => r.id === opportunityId);
+      if (row === undefined || (row.status !== "open" && row.status !== "queued")) return;
+      row.status = "dismissed";
+      state.statusChangedAt.set(row.id, state.now);
+    },
+
     async hostedHostFor() {
       return state.hostedHost;
     },

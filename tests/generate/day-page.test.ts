@@ -23,16 +23,18 @@ import {
   type MemoryStore,
 } from "./fixtures";
 
-const { llmMock, readMeasuredTextMock, nextForDayMock, withCostContextMock } = vi.hoisted(() => ({
+const { llmMock, readMeasuredTextMock, nextForDayMock, withCostContextMock, queueForDraftMock } = vi.hoisted(() => ({
   llmMock: vi.fn(),
   readMeasuredTextMock: vi.fn(),
   nextForDayMock: vi.fn(),
   withCostContextMock: vi.fn(),
+  queueForDraftMock: vi.fn(),
 }));
 vi.mock("@/lib/llm", () => ({ llm: llmMock }));
 vi.mock("@/lib/measure/text", () => ({ readMeasuredText: readMeasuredTextMock }));
 vi.mock("@/lib/opportunities", () => ({
   nextForDay: nextForDayMock,
+  queueForDraft: queueForDraftMock,
   assessFixPages: async () => ({ done: 0, ready: 0 }),
 }));
 vi.mock("@/lib/costs", () => ({ withCostContext: withCostContextMock }));
@@ -70,6 +72,7 @@ beforeEach(async () => {
   llmMock.mockReset();
   readMeasuredTextMock.mockReset();
   nextForDayMock.mockReset();
+  queueForDraftMock.mockReset();
   withCostContextMock.mockReset();
   opened.length = 0;
 
@@ -137,6 +140,28 @@ describe("issue 697 — the draft keeps the description the hosted page's head r
     const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
     const row = outcome.ok ? store.rows.get(outcome.draftId) : undefined;
     expect(row?.meta).toEqual({ description: "A description." });
+  });
+});
+
+describe("SPEC §7 (2026-09-15, issue 712) — a written draft queues its opportunity", () => {
+  it("a page that passed takes its opportunity out of the open set, once", async () => {
+    queueAttempt(CLEAN_MARKDOWN);
+    await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
+    expect(queueForDraftMock.mock.calls).toEqual([[opportunity().id]]);
+  });
+
+  it("a draft the battery stopped twice still queues it — it rests in needs_attention, not in the open set", async () => {
+    queueAttempt("Example wins everything, and always has.");
+    queueAttempt("Example wins everything, again, and always.");
+    const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
+    expect(outcome).toMatchObject({ ok: false, because: "rules" });
+    expect(queueForDraftMock.mock.calls).toEqual([[opportunity().id]]);
+  });
+
+  it("a run that wrote no draft leaves the opportunity open for the next evening", async () => {
+    llmMock.mockResolvedValue({ kind: "unmeasured", reason: "undeterminable", at: AT });
+    await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
+    expect(queueForDraftMock).not.toHaveBeenCalled();
   });
 });
 

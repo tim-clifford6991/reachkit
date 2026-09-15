@@ -42,6 +42,7 @@ export { assessFixPages, fixPageReadiness, type FixDelivery } from "./fix-page";
 export { assessVerdictReadiness } from "./verdict-readiness";
 export { suppressionOf, verdictReason, type NotWorkingVerdict, type Suppression } from "./suppression";
 export { nextForDay } from "./next";
+export { dismissForVeto, queueForDraft } from "./drafted";
 
 export { deriveOpportunities, type DeriveInput, type DeriveOutcome } from "./derive";
 export { explainChoice, type Choice } from "./derive/explain";

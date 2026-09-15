@@ -291,17 +291,28 @@ export async function finishScanLeftRunning(scanId: string): Promise<EngineResul
 //
 // Every arm that is not a page is `degraded`, not a throw: a day with no
 // page is a state the calendar renders (§7 — "supply is the cap: never
-// invent an opportunity to fill a day"), not a job that failed. The edge
-// into `in_review` — and the veto clock it starts — is the publishing
-// engine's (#45); this call writes the page and stops.
+// invent an opportunity to fill a day"), not a job that failed.
+//
+// **A page that passed enters review in the same call** (issue 709). The
+// edge, the veto deadline it stamps and the draft-ready mail are the
+// publishing engine's (`publish/attempt/window.ts`); this seam is where the
+// tick's two obligations meet, as `verifyLive` below pairs a check with its
+// mail. A telling that could not leave is a degradation — the page is in
+// review and held until the customer is told — never a throw.
 
 export async function generateDraft(a: {
   readonly siteId: string;
   readonly publishDate: string;
+  readonly now: Date;
 }): Promise<EngineResult> {
   const { generateDayPage } = await import("@/lib/generate");
   const outcome = await generateDayPage({ siteId: a.siteId, publishDate: a.publishDate });
-  return outcome.ok ? { done: true } : { degraded: `generate:${outcome.because}` };
+  if (!outcome.ok) return { degraded: `generate:${outcome.because}` };
+
+  const { enterReview } = await import("@/lib/publish/attempt/window");
+  const entry = await enterReview({ draftId: outcome.draftId, at: a.now });
+  if (entry.kind === "told") return { done: true };
+  return entry.kind === "untold" ? { degraded: `draft-ready:${entry.reason}` } : { degraded: `review:${entry.reason}` };
 }
 
 // ── Publishing — BP-015, built (issue #173)
@@ -369,6 +380,21 @@ export async function publishApproved(a: {
 export async function duePublishRetries(now: Date): Promise<readonly { readonly draftId: string; readonly destinationId: string }[]> {
   const { dueRetries } = await import("@/lib/publish/attempt/due");
   return dueRetries(now);
+}
+
+// ── The windows that have run out — SPEC §7, issue 709. Built.
+//
+// One call into `src/lib/publish/attempt/window.ts`, which owns the rule:
+// a page in review whose window has run out, told on the pair in force and
+// publishable and due, is approved there, and every approved page that is
+// due comes back addressed for `publishApproved()` — the same seam a retry
+// and a customer's approval come through. The hourly publish tick reads
+// it beside the retries; it writes (the approval), so it is only ever
+// called from inside the kill switch's scope.
+
+export async function duePublishApprovals(now: Date): Promise<readonly { readonly draftId: string; readonly destinationId: string }[]> {
+  const { dueApprovals } = await import("@/lib/publish/attempt/window");
+  return dueApprovals(now);
 }
 
 // ── The 24-hour check — BUILD §9, issue #50. Built.

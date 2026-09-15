@@ -125,6 +125,7 @@ Pinned numbers live in `src/lib/config/constants.ts`. Newest dated line in a sec
 - The brief picks facts from the customer’s own pages by index and writes none; no fact picked, no draft. Each opportunity type has one fixed outline. The answerability pass may only reorder sections, shorten a first block to 40–320 characters under a question heading, and insert facts from the brief. A draft that claims a test, carries a byline, date or case study, adds a question heading, states a number no fact holds, or does not open with an answer is stopped.
 - Publish is one idempotent call to the destination on the customer’s domain. At +24 h: reachable, indexable, in a sitemap, AI-readable.
 - Public veto link redeems on GET once. MVP paid service ends at a page on the customer’s own domain (2026-09-11).
+- Opportunity status (2026-09-15, master interim, owner to confirm): a written draft queues its opportunity; a vetoed draft dismisses it; needs_attention leaves it queued.
 
 **Done when** The draft-ready mail link stops that page with no session. An untouched draft publishes at window end on their domain. No two assets share a date. An empty day states its cause and offers no publish.
 

@@ -119,6 +119,12 @@ export interface OpportunityStore {
   notWorkingVerdicts(siteId: string): Promise<readonly NotWorkingVerdict[]>;
   /** A row whose acceptance test passed: its status moves to `done`. */
   markDone(opportunityId: string): Promise<void>;
+  /** A row a draft was written from: `open` moves to `queued`, and no other
+   *  status moves (SPEC §7, 2026-09-15 — issue 712). */
+  markQueued(opportunityId: string): Promise<void>;
+  /** A row whose draft the customer stopped: `open` or `queued` moves to
+   *  `dismissed`, and `done` stays done (SPEC §7, 2026-09-15 — issue 712). */
+  markDismissed(opportunityId: string): Promise<void>;
   /** The host the site's live hosted destination serves at, or `null`. */
   hostedHostFor(siteId: string): Promise<string | null>;
   /** The profile the ranking's intent term is classified against — §6.7's
@@ -350,6 +356,24 @@ export function supabaseOpportunityStore(): OpportunityStore {
         .update({ status: "done" })
         .eq("id", opportunityId);
       if (error) throw new Error(`opportunities.markDone: ${error.message}`);
+    },
+
+    async markQueued(opportunityId) {
+      const { error } = await untyped()
+        .from<OpportunityRow>("opportunities")
+        .update({ status: "queued" })
+        .eq("id", opportunityId)
+        .eq("status", "open");
+      if (error) throw new Error(`opportunities.markQueued: ${error.message}`);
+    },
+
+    async markDismissed(opportunityId) {
+      const { error } = await untyped()
+        .from<OpportunityRow>("opportunities")
+        .update({ status: "dismissed" })
+        .eq("id", opportunityId)
+        .in("status", ["open", "queued"]);
+      if (error) throw new Error(`opportunities.markDismissed: ${error.message}`);
     },
 
     async hostedHostFor(siteId) {

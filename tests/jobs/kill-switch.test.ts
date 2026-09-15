@@ -50,6 +50,12 @@ function engineDouble(): Record<string, unknown> {
       engineCalls.count += 1;
       return [{ draftId: "d1", destinationId: "dest-1" }];
     },
+    // Writes the approval at window end (issue 709), so it is stopped with
+    // the tick it rides.
+    duePublishApprovals: async () => {
+      engineCalls.count += 1;
+      return [];
+    },
     verifyLive: ran,
     advanceSequence: ran,
     advanceDueSequences: async () => {

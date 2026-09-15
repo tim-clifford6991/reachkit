@@ -43,6 +43,7 @@ export const draftGenerate: JobDefinition = {
       return generateDraft({
         siteId: site.siteId,
         publishDate: nextPublishDate(input.now, site.timeZone),
+        now: input.now,
       });
     });
     return settle(results, null);

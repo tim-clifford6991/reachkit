@@ -39,6 +39,8 @@ function engineDouble(): Record<string, unknown> {
     generateDraft: record("generateDraft", done),
     publishApproved: record("publishApproved", done),
     duePublishRetries: record("duePublishRetries", [{ draftId: "d1", destinationId: "dest-1" }]),
+    // SPEC §7's window end rides the same tick (issue 709).
+    duePublishApprovals: record("duePublishApprovals", []),
     verifyLive: record("verifyLive", done),
     advanceSequence: record("advanceSequence", done),
     advanceDueSequences: record("advanceDueSequences", { dropped: 0, released: 0, sent: 0 }),
@@ -221,7 +223,7 @@ describe("draft/generate — the site's own evening, the next publish date", () 
     expect(job.trigger).toEqual({ kind: "cron", cron: "0 * * * *" });
     const outcome = await job.run({ data: {}, now: EVENING_UTC });
     expect(calls.filter((c) => c.fn === "generateDraft")).toEqual([
-      { fn: "generateDraft", arg: { siteId: "site-1", publishDate: "2026-09-08" } },
+      { fn: "generateDraft", arg: { siteId: "site-1", publishDate: "2026-09-08", now: EVENING_UTC } },
     ]);
     expect(outcome).toEqual({ outcome: "ran", subjectId: null });
   });
@@ -277,9 +279,26 @@ describe("publish/execute and publish/verify", () => {
     const outcome = await job.run({ data: {}, now: MONDAY_0600_UTC });
     expect(calls).toEqual([
       { fn: "duePublishRetries", arg: MONDAY_0600_UTC },
+      { fn: "duePublishApprovals", arg: MONDAY_0600_UTC },
       { fn: "publishApproved", arg: { draftId: "d1", destinationId: "dest-1" } },
     ]);
     expect(outcome).toEqual({ outcome: "ran", subjectId: null });
+  });
+
+  it("publish/retry also delivers the pages whose veto window has run out, each once (issue 709)", async () => {
+    // Nothing sends `publish/execute` when a window ends, so the hourly
+    // publish tick is where an untouched page goes out — through the same
+    // seam a retry takes. A page offered by both reads is attempted once.
+    results.set("duePublishApprovals", [
+      { draftId: "d2", destinationId: "dest-2" },
+      { draftId: "d1", destinationId: "dest-1" },
+    ]);
+    const job = await definition("publish/retry");
+    await job.run({ data: {}, now: MONDAY_0600_UTC });
+    expect(calls.filter((c) => c.fn === "publishApproved")).toEqual([
+      { fn: "publishApproved", arg: { draftId: "d1", destinationId: "dest-1" } },
+      { fn: "publishApproved", arg: { draftId: "d2", destinationId: "dest-2" } },
+    ]);
   });
 
   it("an hour with no retry due is a recorded skip, never a run", async () => {

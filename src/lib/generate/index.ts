@@ -15,7 +15,7 @@
 //     there is none: supply is the cap, and the calendar is never padded;
 //   * the pipeline runs, and ADR-070's one automatic regeneration is
 //     performed here — once, and never for a draft that has entered review.
-import { assessFixPages, nextForDay } from "@/lib/opportunities";
+import { assessFixPages, nextForDay, queueForDraft } from "@/lib/opportunities";
 import { withDraftCost } from "./cost";
 import { recoveryOutcome } from "./claims/recovery";
 import type { SiteRuleInputs } from "./rules/types";
@@ -84,6 +84,15 @@ export async function generateDayPage(a: {
   const opportunity = await nextForDay(a.siteId);
   if (opportunity === null) return { ok: false, because: "no_opportunity" };
 
+  // SPEC §7 (2026-09-15, issue 712): a written draft queues its opportunity,
+  // whatever the battery said about it — a draft that failed twice rests in
+  // `needs_attention` and keeps the row queued. A run that wrote no row
+  // leaves the opportunity open for the next evening.
+  const queued = async (outcome: DayPageOutcome): Promise<DayPageOutcome> => {
+    if ("draftId" in outcome && outcome.draftId !== null) await queueForDraft(opportunity.id);
+    return outcome;
+  };
+
   // A fix is a metadata-only update: one call, no regeneration loop — the
   // only rule it can fail is the customer's own do-not-claim list, which a
   // second attempt at the same page would read the same way.
@@ -94,7 +103,7 @@ export async function generateDayPage(a: {
     const otherTitles = (profile?.inventory ?? [])
       .filter((row) => row.url !== pageUrl && row.title !== "")
       .map((row) => row.title);
-    return withDraftCost({ scanId: report.scanId }, async (cost) => {
+    return queued(await withDraftCost({ scanId: report.scanId }, async (cost): Promise<DayPageOutcome> => {
       const fixed = await generatePageFix(cost, {
         siteId: a.siteId,
         opportunity,
@@ -109,7 +118,7 @@ export async function generateDayPage(a: {
         return { ok: false, because: "step_failed", draftId: fixed.draftId, step: fixed.step };
       }
       return { ok: false, because: "rules", draftId: fixed.draftId, attempts: fixed.attempt };
-    });
+    }));
   }
 
   // The one name the product holds for the business is the brand the
@@ -154,7 +163,7 @@ export async function generateDayPage(a: {
     ...clusterLinkTargets(earlier),
   ];
 
-  return withDraftCost({ scanId: report.scanId }, async (cost) => {
+  return queued(await withDraftCost({ scanId: report.scanId }, async (cost): Promise<DayPageOutcome> => {
     let last: GenerateOutcome | null = null;
     for (let attempt = 1; attempt <= MAX_AUTOMATIC_ATTEMPTS; attempt++) {
       last = await generateDraft(cost, {
@@ -189,5 +198,5 @@ export async function generateDayPage(a: {
       return { ok: false, because: "rules", draftId: null, attempts: MAX_AUTOMATIC_ATTEMPTS };
     }
     return { ok: false, because: "rules", draftId: stopped.draftId, attempts: stopped.attempt };
-  });
+  }));
 }
