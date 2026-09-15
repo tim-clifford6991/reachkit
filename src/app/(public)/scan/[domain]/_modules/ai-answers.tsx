@@ -8,16 +8,16 @@
 // **The rival rows are the dot matrix** (issue #352, the approved
 // `walk/report` drawing). §4.1 fixes this card's second element as "a dot
 // matrix over those m — rivals' cited rows filled grey, the customer's
-// row empty red-ringed, `n/{m}` per row", and `AiDotMatrixChart` is
-// §2.4's registered drawing of exactly that. It arrived as an absent-safe
+// row empty red-ringed, `n/{m}` per row". Since issue 730 it is a CSS grid
+// (`AnswerMatrix` below, DESIGN rule 2: a grid that is not a series is CSS
+// grid, not a chart). It arrived as an absent-safe
 // `matrix` slot while issue #11 owned the inventory and nothing ever
 // filled the slot, so the card drew the same rows twice over as a
 // two-column table of ratios instead — nine rows of writing where the
-// drawing belongs, and the reason the left card stood three times the
-// right card's height. The chart direct-labels every row with its own
-// name and its own count (§2.4: "identity is never colour-alone"), and
-// takes its counts **already written** from this card, so the drawing and
-// the card's own figures cannot disagree.
+// drawing belongs. The grid direct-labels every row with its own name and
+// its own count and every cell with its row and question (§2.4: "identity
+// is never colour-alone"), and takes its counts **already written** from
+// this card, so the drawing and the card's own figures cannot disagree.
 //
 // **No per-question `{vol}/mo`** — the owner removed it on 2026-09-03 and
 // `StoredQuestion` has no volume member to render.
@@ -55,7 +55,6 @@
 //
 import type React from "react";
 import { Bot } from "lucide-react";
-import { AiDotMatrixChart, type AiDotMatrixCellState, type AiDotMatrixRow } from "@/ui/charts";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { renderQuestion } from "@/lib/presentation/generated";
 import type {
@@ -228,12 +227,79 @@ function AnswerColumns(p: { rows: AnswerRows }): React.JSX.Element | null {
   );
 }
 
+// ── The matrix, as CSS grid (issue 730) ─────────────────────────────────
+
+/** Three states, and only three: a muted cell is a question with no AI
+ *  answer and is never a miss (§6.2). */
+export type MatrixCell = "cited" | "not-cited" | "muted";
+
+/** One row: its name, whether it is the customer's, its cells in question
+ *  order, and its `n/m` already written by the card. */
+export interface MatrixRow {
+  readonly name: string;
+  readonly you: boolean;
+  readonly cells: readonly MatrixCell[];
+  readonly count: string;
+}
+
+/** The grid's root, found by the landing specimen's and the report's tests. */
+export const MATRIX_TEST_ID = "ai-matrix";
+
+/** Paint from the theme's chart tokens. The customer's absent cell is the
+ *  one red ring (§4.1, §2.5: red is the customer's problem shown to them);
+ *  no rival cell can reach it. */
+function cellClass(cell: MatrixCell, you: boolean): string {
+  if (cell === "muted") return "border border-dashed border-base-300 bg-base-200";
+  if (cell === "cited") return you ? "bg-(--chart-you)" : "bg-(--chart-rival)";
+  return you ? "border-2 border-error" : "border border-base-300 bg-base-100";
+}
+
+/**
+ * §4.1's dot matrix: rows × questions, a name and a count on every row, a
+ * question number under every column. Server-rendered markup — the
+ * surrounding card scrolls it rather than shrinking a domain (§2.3 never
+ * shortens a value).
+ */
+export function AnswerMatrix(p: {
+  rows: readonly MatrixRow[];
+  questions: readonly string[];
+  label: string;
+}): React.JSX.Element {
+  const columns = { gridTemplateColumns: `auto repeat(${Math.max(p.questions.length, 1)}, minmax(0.75rem, 1.25rem)) auto` };
+  return (
+    <div role="table" aria-label={p.label} data-testid={MATRIX_TEST_ID} className="grid w-max items-center gap-x-1 gap-y-1.5" style={columns}>
+      {p.rows.map((row) => (
+        <div role="row" key={row.name} className="contents">
+          <span role="rowheader" className={`num pr-2 text-right text-xs whitespace-nowrap ${row.you ? "text-(--chart-you)" : "text-base-content/70"}`}>
+            {row.name}
+          </span>
+          {row.cells.map((cell, c) => (
+            <div role="cell" key={c} data-cell={cell} title={`${row.name} · ${p.questions[c] ?? ""}`} aria-label={`${row.name} · ${p.questions[c] ?? ""}`}>
+              <div aria-hidden="true" className={`aspect-square rounded-sm ${cellClass(cell, row.you)}`} />
+            </div>
+          ))}
+          <span className={`num pl-2 text-right text-xs ${row.you ? "text-(--chart-you)" : "text-base-content/70"}`}>{row.count}</span>
+        </div>
+      ))}
+      <div role="row" className="contents">
+        <div aria-hidden="true" />
+        {p.questions.map((q, c) => (
+          <span role="columnheader" key={c} className="num border-t border-base-300 pt-1 text-center text-[0.625rem] text-base-content/50">
+            {q}
+          </span>
+        ))}
+        <div aria-hidden="true" />
+      </div>
+    </div>
+  );
+}
+
 /** One cell of the customer's own row. Three states and only three
  *  (§2.4's contract): a question with no AI answer at all is **muted** and
  *  never a miss (§6.2), an answer that named them is cited, and an answer
  *  that did not is the not-cited cell the chart draws red-ringed on this
  *  row alone (§4.1, §2.5). */
-function ownCellState(cell: AnswerCell): AiDotMatrixCellState {
+function ownCellState(cell: AnswerCell): MatrixCell {
   if (cell.kind !== "answered") return "muted";
   return cell.namesCustomer ? "cited" : "not-cited";
 }
@@ -244,7 +310,7 @@ function ownCellState(cell: AnswerCell): AiDotMatrixCellState {
  *  row is never red: §2.5 keeps red for the customer's own problem being
  *  shown to them, and the chart has no prop a rival cell could reach it
  *  with. */
-function rivalCellState(cell: AnswerCell): AiDotMatrixCellState {
+function rivalCellState(cell: AnswerCell): MatrixCell {
   if (cell.kind !== "answered") return "muted";
   return cell.citedDomains.length > 0 ? "cited" : "not-cited";
 }
@@ -257,10 +323,10 @@ function rivalCellState(cell: AnswerCell): AiDotMatrixCellState {
  *  card's answer and a matrix with no rows at all would be that answer
  *  withheld (REQ-091/092). Every `count` is written here and read by the
  *  chart, which performs no arithmetic of its own. */
-function matrixRows(section: AiAnswersSection): readonly AiDotMatrixRow[] {
-  const rivals: AiDotMatrixRow[] = section.rivals.map((rival) => ({
+function matrixRows(section: AiAnswersSection): readonly MatrixRow[] {
+  const rivals: MatrixRow[] = section.rivals.map((rival) => ({
     name: rival.domain,
-    identity: "rival",
+    you: false,
     cells: rival.cells.map(rivalCellState),
     count: ratio(citedCount(rival.cells), answeredCount(rival.cells)),
   }));
@@ -268,7 +334,7 @@ function matrixRows(section: AiAnswersSection): readonly AiDotMatrixRow[] {
     ...rivals,
     {
       name: section.ownDomain,
-      identity: "you",
+      you: true,
       cells: section.rows.map((row) => ownCellState(row.cell)),
       count: ratio(section.customerCitations, section.answeredSearches),
     },
@@ -372,7 +438,7 @@ export function AiAnswersCard(p: {
         {/* The matrix scrolls rather than shrinking its labels. The
             customer's own row is labelled `n/m`; no sentence repeats it. */}
         <div className="min-w-0 overflow-x-auto">
-          <AiDotMatrixChart
+          <AnswerMatrix
             rows={matrixRows(section)}
             questions={section.rows.map((row) => String(row.question.n))}
             label={copy("ai-answers.title")}

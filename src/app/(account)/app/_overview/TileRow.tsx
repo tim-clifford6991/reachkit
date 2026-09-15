@@ -7,9 +7,9 @@
 // measurement.
 //
 // daisyUI `stat` and `badge` in the route (docs/DESIGN.md rule 1). The AI
-// window is `AiDotMatrixChart`, a grid, until that component is retired.
+// window is a CSS grid of weeks (DESIGN rule 2, issue 730): it is not a
+// series, so it is not a chart.
 import type React from "react";
-import { AiDotMatrixChart, type AiDotMatrixCellState, type AiDotMatrixRow } from "@/ui/charts";
 import { SCORE_BANDS } from "@/lib/presentation/bands";
 import { TOO_EARLY_WEEKS } from "@/lib/config/constants";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
@@ -125,8 +125,15 @@ function ScoreTile(p: { score: ScoreModule; firstDue: string | null }): React.JS
 
 /** The window as the matrix's one row. An unmeasured week is `muted`, never
  *  a miss; a change is a `break`, which is a rule and not a reading. */
-function presenceRow(window: AiPresenceWindow, count: string): AiDotMatrixRow {
-  const cells: AiDotMatrixCellState[] = window.entries.map((entry) =>
+type WeekCell = "cited" | "not-cited" | "muted" | "break" | "goal";
+
+/** One cell per window entry. A break is the column a change of domain
+ *  stands in, never a reading; a week with no measurement is muted, never a
+ *  miss. The shortfall to the goal is drawn as dashed goal dots over the
+ *  first weeks the customer was not cited — a distance, not a reading, so
+ *  the tile's figure already says it and no cell is red. */
+function presenceCells(window: AiPresenceWindow, goal: number): readonly WeekCell[] {
+  const cells: WeekCell[] = window.entries.map((entry) =>
     entry.kind === "break"
       ? "break"
       : entry.week.present === null
@@ -135,7 +142,51 @@ function presenceRow(window: AiPresenceWindow, count: string): AiDotMatrixRow {
           ? "cited"
           : "not-cited"
   );
-  return { name: copy(AI_LABEL), identity: "you", cells, count };
+  let short = Math.max(0, goal - cells.filter((c) => c === "cited").length);
+  return cells.map((cell) => {
+    if (cell !== "not-cited" || short === 0) return cell;
+    short -= 1;
+    return "goal";
+  });
+}
+
+const WEEK_CELL_CLASS: Readonly<Record<WeekCell, string>> = Object.freeze({
+  cited: "bg-(--chart-you)",
+  "not-cited": "border border-base-300 bg-base-100",
+  muted: "border border-dashed border-base-300 bg-base-200",
+  break: "border border-dashed border-base-content/40",
+  goal: "border-2 border-dashed border-(--chart-goal)",
+});
+
+/** The AI window: one row of week cells over their dates, and the goal's
+ *  own name at the end. Every cell carries its date and state as its name. */
+function PresenceWeeks(p: {
+  cells: readonly WeekCell[];
+  labels: readonly string[];
+  goalName: string;
+  label: string;
+}): React.JSX.Element {
+  const columns = { gridTemplateColumns: `repeat(${Math.max(p.cells.length, 1)}, minmax(0.75rem, 1.25rem)) auto` };
+  return (
+    <div role="table" aria-label={p.label} className="grid w-max items-center gap-x-1 gap-y-1" style={columns}>
+      <div role="row" className="contents">
+        {p.cells.map((cell, c) => (
+          <div role="cell" key={c} data-cell={cell} title={p.labels[c] ?? ""} aria-label={p.labels[c] ?? ""}>
+            <div aria-hidden="true" className={`aspect-square rounded-sm ${WEEK_CELL_CLASS[cell]}`} />
+          </div>
+        ))}
+        <div aria-hidden="true" />
+      </div>
+      <div role="row" className="contents">
+        {p.labels.map((week, c) => (
+          <span role="columnheader" key={c} className="num border-t border-base-300 pt-1 text-center text-[0.625rem] text-base-content/50">
+            {week}
+          </span>
+        ))}
+        <span className="num pl-2 text-[0.625rem] whitespace-nowrap text-(--chart-goal)">{p.goalName}</span>
+      </div>
+    </div>
+  );
 }
 
 export function TileRow(p: {
@@ -191,13 +242,10 @@ export function TileRow(p: {
         {firstPass === null ? null : <p className="text-xs text-base-content/60">{firstPass}</p>}
         {windowLine === null ? null : <p className="num text-xs text-base-content/60">{windowLine}</p>}
         <div className="min-w-0 overflow-x-auto">
-          <AiDotMatrixChart
-            rows={[presenceRow(p.aiAnswers.window, `${aiValue.text}/${outOf}`)]}
-            questions={weekLabels}
-            goal={{
-              count: GOALS.ai_answers.value,
-              name: copy("overview.goal", { value: formatCount(GOALS.ai_answers.value) }),
-            }}
+          <PresenceWeeks
+            cells={presenceCells(p.aiAnswers.window, GOALS.ai_answers.value)}
+            labels={weekLabels}
+            goalName={copy("overview.goal", { value: formatCount(GOALS.ai_answers.value) })}
             label={aiLabel}
           />
         </div>

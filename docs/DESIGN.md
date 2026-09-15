@@ -13,7 +13,7 @@ The owner reviews UI by clicking `dev.reachkit.app`. There is no artboard, no ca
 - Do not read or edit `docs/archive/`. Frozen sketches, including the old canvas HTML. Not a spec. Never match an artboard.
 - Do not add a wrapper component where a daisyUI class exists. The old wrappers under `src/ui/components/` were deleted (issue 732).
 - Do not add a stylesheet under `src/ui/` except shrinking `idiom.css` toward empty, then deleting it.
-- Do not hand-roll SVG charts. `GrowthLine`, `PresenceBars` and `RivalSparkline` are Recharts (#550). `chart-primitives.ts`, `mark.tsx` and `series.ts` are debt kept only for `AiDotMatrixChart` (a grid: CSS grid, per rule 2) and the OG card; delete them with those.
+- Do not hand-roll SVG charts. `GrowthLine`, `PresenceBars` and `RivalSparkline` are Recharts (#550). The AI-answers matrix is CSS grid in its routes (#730). `chart-primitives.ts` is debt kept only for the OG card's two SVG tokens; delete it with that card. `series.ts` is the Recharts series' colour map.
 - Do not invent tokens, colours, or a type scale. Colour comes from the `reachkit` theme. Spacing and type use Tailwind’s scale (`p-4`, `text-sm`), not `p-(--s-4)`.
 - Do not write a test that transcribes this file or forbids Tailwind’s scale.
 

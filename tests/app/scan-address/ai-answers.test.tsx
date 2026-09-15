@@ -20,7 +20,7 @@ vi.mock("@/lib/presentation/copy", () => ({
     vars === undefined ? key : `${key}(${Object.values(vars).join("|")})`,
 }));
 
-import { AiAnswersCard } from "@/app/(public)/scan/[domain]/_modules/ai-answers";
+import { AiAnswersCard, AnswerMatrix } from "@/app/(public)/scan/[domain]/_modules/ai-answers";
 import { FIXTURE_REPORT } from "@/app/(public)/scan/[domain]/_fixture/states";
 import type { AiAnswersSection, AnswerCell, EngineCell } from "@/lib/scan/report";
 
@@ -69,15 +69,21 @@ function answeredCount(cells: readonly AnswerCell[]): number {
   return cells.filter((c) => c.kind === "answered").length;
 }
 
-/** The card's own drawing, as markup. `role="img"` is `ChartFrame`'s and
- *  only a registered chart carries it — the card head's decorative chip is
- *  an `<svg>` too (issue #352's lucide glyph) and is not a chart. */
-const CHART_ROOT = 'role="img"';
+/** The card's matrix, as markup: the CSS grid (issue 730), from its root to
+ *  the `</div>` that closes it. */
+const CHART_ROOT = 'data-testid="ai-matrix"';
 
 function chart(html: string): string {
   const start = html.indexOf(CHART_ROOT);
-  expect(start, "the card drew no chart").toBeGreaterThan(-1);
-  return html.slice(start, html.indexOf("</svg>", start));
+  expect(start, "the card drew no matrix").toBeGreaterThan(-1);
+  let depth = 1;
+  const tag = /<div\b|<\/div>/g;
+  tag.lastIndex = start;
+  for (let m = tag.exec(html); m !== null; m = tag.exec(html)) {
+    depth += m[0] === "</div>" ? -1 : 1;
+    if (depth === 0) return html.slice(start, m.index);
+  }
+  return html.slice(start);
 }
 
 /** Counts non-overlapping occurrences — every needle here is a distinct key. */
@@ -234,5 +240,36 @@ describe("what the columns deliberately do not move", () => {
       expect(matrix).toContain(`${citedCount(rival.cells)}/${answeredCount(rival.cells)}`);
     }
     expect(matrix).toContain(FREE_SECTION.ownDomain);
+  });
+});
+
+// ── issue 730: the matrix is CSS grid, and its meaning rules still hold ────
+describe("the AI-answers matrix as CSS grid (issue 730, DESIGN rule 2)", () => {
+  const rows = [
+    { name: "acme.com", you: true, count: "0/2", cells: ["not-cited", "muted", "not-cited"] as const },
+    { name: "one.com", you: false, count: "2/2", cells: ["cited", "muted", "not-cited"] as const },
+  ];
+  const html = renderToStaticMarkup(<AnswerMatrix rows={rows} questions={["1", "2", "3"]} label="matrix" />);
+  const cells = [...html.matchAll(/data-cell="([a-z-]+)"[^>]*aria-label="([^"]+)"><div aria-hidden="true" class="([^"]+)"/g)].map(
+    (m) => ({ state: m[1], name: m[2], paint: m[3] ?? "" })
+  );
+
+  it("draws no svg: one grid, a cell per row × question, every cell named by its row and question", () => {
+    expect(html).not.toContain("<svg");
+    expect(html).toMatch(/^<div role="table" aria-label="matrix"/);
+    expect(cells.map((c) => c.name)).toEqual(["acme.com · 1", "acme.com · 2", "acme.com · 3", "one.com · 1", "one.com · 2", "one.com · 3"]);
+    for (const text of ["acme.com", "one.com", "0/2", "2/2"]) expect(html).toContain(text);
+  });
+
+  it("a muted cell is drawn differently from a not-cited one — a question nobody answered is never a miss", () => {
+    const muted = cells.filter((c) => c.state === "muted").map((c) => c.paint);
+    const missed = cells.filter((c) => c.state === "not-cited").map((c) => c.paint);
+    for (const paint of muted) expect(missed).not.toContain(paint);
+  });
+
+  it("the red ring is the customer's absent cell alone; a rival's is neutral, and cited cells take the series tokens", () => {
+    const ringed = cells.filter((c) => c.paint.includes("border-error")).map((c) => c.name);
+    expect(ringed).toEqual(["acme.com · 1", "acme.com · 3"]);
+    expect(cells.find((c) => c.name === "one.com · 1")?.paint).toContain("bg-(--chart-rival)");
   });
 });
