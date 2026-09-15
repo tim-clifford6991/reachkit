@@ -872,9 +872,16 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
       const draftId = await generateTonightsPage();
       const { token } = await enterReviewAndTell(draftId);
 
+      const opportunityId = String(theDraftRow().opportunity_id);
+      // SPEC §7 (2026-09-15, issue 712): the written draft queued it.
+      expect(opportunities.rows.find((row) => row.id === opportunityId)?.status).toBe("queued");
+
       const redeemed = await redeemVeto(token, { kind: "customer", userId: USER_ID }, new Date(TOLD_AT.getTime() + 3_600_000));
       expect(redeemed).toEqual({ ok: true, draftId });
       expect(theDraftRow().state).toBe("skipped");
+      // And the stop dismissed it: tomorrow's tick does not write the topic
+      // the customer just said no to.
+      expect(opportunities.rows.find((row) => row.id === opportunityId)?.status).toBe("dismissed");
 
       // Single use, and a skipped page has no edge to publishing at all.
       const again = await redeemVeto(token, { kind: "customer", userId: USER_ID }, new Date(TOLD_AT.getTime() + 7_200_000));

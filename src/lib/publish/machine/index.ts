@@ -164,7 +164,41 @@ export async function transition(
   }
 
   log({ draftId, from, to, actor: by.kind, outcome: "moved" });
+  if (to === "skipped") await dismissOpportunityOf(draftId);
   return { ok: true, state: to };
+}
+
+/**
+ * SPEC §7 (2026-09-15, issue 712): "a vetoed draft dismisses" its
+ * opportunity. Here rather than at each door a page is stopped through —
+ * the stop link, the draft screen, the calendar — because every one of them
+ * is a move into `skipped` and this is the one place every move is made.
+ *
+ * After the move, and never able to undo it: the page is stopped whether or
+ * not the opportunity's row could be written, and a row left `queued` is
+ * never offered again anyway. Imported at the call for the reason
+ * `guards.ts` imports `@/lib/generate` at its call.
+ */
+async function dismissOpportunityOf(draftId: string): Promise<void> {
+  try {
+    const { data } = await publishDb()
+      .from<{ opportunity_id: string | null }>("drafts")
+      .select("opportunity_id")
+      .eq("id", draftId)
+      .limit(1);
+    const opportunityId = data?.[0]?.opportunity_id ?? null;
+    if (opportunityId === null) return;
+    const { dismissForVeto } = await import("@/lib/opportunities");
+    await dismissForVeto(opportunityId);
+  } catch (error) {
+    console.log(
+      JSON.stringify({
+        event: "opportunity_dismiss_failed",
+        draftId,
+        because: error instanceof Error ? error.message : String(error),
+      })
+    );
+  }
 }
 
 interface TransitionLog {
