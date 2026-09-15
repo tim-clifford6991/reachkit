@@ -28,11 +28,12 @@ const ran = (over: Partial<Extract<SiteIssue, { ran: true }>> & Pick<SiteIssue, 
   unit: "pages",
   severity: "nothing_to_fix",
   doer: "free_fix",
+  pages: null,
   ...over,
 });
 
 function section(issues: readonly SiteIssue[]): SiteIssuesSection {
-  return { pagesChecked: 40, stoppedBy: "complete", issues };
+  return { pagesChecked: 40, checkedPages: null, stoppedBy: "complete", issues };
 }
 
 const LAST_MONDAY = section([
