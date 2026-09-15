@@ -1,9 +1,9 @@
 // SPEC §7 — what a draft's life does to the opportunity it was written from
 // (issue 712).
 //
-// "Opportunity status (2026-09-15, master interim, owner to confirm): a
-// written draft queues its opportunity; a vetoed draft dismisses it;
-// needs_attention leaves it queued." Nothing moved a row out of `open`
+// "Opportunity status (2026-09-15): a written draft queues its
+// opportunity; a vetoed draft dismisses it; needs_attention leaves it
+// queued." Nothing moved a row out of `open`
 // before this, so `nextForDay` offered the same opportunity every evening
 // and §8's near-duplicate gate refused the second page against the first:
 // a site left alone got one page and then none.

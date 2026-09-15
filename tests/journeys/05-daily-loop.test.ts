@@ -1108,6 +1108,11 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
       }
 
       expect(theDraftRow().state).toBe("needs_attention");
+      // SPEC §7 (2026-09-15): needs_attention leaves the opportunity queued —
+      // a page the customer can still restart is not offered twice, and it
+      // is not dismissed as a veto would dismiss it.
+      const opportunityId = String(theDraftRow().opportunity_id);
+      expect(opportunities.rows.find((row) => row.id === opportunityId)?.status).toBe("queued");
       // The reason it stopped is on the page's own history, written by the
       // machine and not by the tick.
       const moves = (theDraftRow().transitions as { to: string; reason?: string }[]) ?? [];
