@@ -47,8 +47,10 @@ function candidateSentences(text: string): string[] {
 
 /** Document order among the sentences that carry a numeral, then document
  *  order among the rest. Deterministic: the same page always grounds the
- *  same way, so a regeneration is not a different fact by accident. */
-function orderedPassages(text: string): string[] {
+ *  same way, so a regeneration is not a different fact by accident.
+ *  Exported for readiness, which asks what kind of passage a site's pages
+ *  hold before a day is planned on them (issue 478). */
+export function orderedPassages(text: string): string[] {
   const sentences = candidateSentences(text);
   return [
     ...sentences.filter((sentence) => NUMERAL_RE.test(sentence)),

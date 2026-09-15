@@ -29,6 +29,7 @@ import type {
   UnreadyReason,
   Winnability,
 } from "./types";
+import { earnGroundingOf, NO_EARN_GROUNDING, type EarnGrounding } from "./earn-grounding";
 import type { NotWorkingVerdict } from "./suppression";
 
 /** The row as `opportunities` stores it. `jsonb` members arrive parsed and
@@ -112,6 +113,10 @@ export interface OpportunityStore {
    *  at least one grounding passage — the generator's own read. A read that
    *  fails is `false`: a row is never made ready on a guess. */
   hasGroundingFact(siteId: string): Promise<boolean>;
+  /** SPEC §6 (2026-09-15), issue 478: which Earn assets the site's own
+   *  measured pages hold a passage of the needed kind for. A read that fails
+   *  grounds none. */
+  earnGrounding(siteId: string): Promise<EarnGrounding>;
   /** The moment the site's last non-`fix` opportunity left `open`, which is
    *  the moment supply hit zero. `null` where the site has never held one. */
   lastStatusChangeAt(siteId: string): Promise<Date | null>;
@@ -315,6 +320,27 @@ export function supabaseOpportunityStore(): OpportunityStore {
         return !("failed" in (await readGroundingFact({ siteId })));
       } catch {
         return false;
+      }
+    },
+
+    async earnGrounding(siteId) {
+      try {
+        const [{ readMeasuredText }, { orderedPassages }, { readSiteProfile }, report] = await Promise.all([
+          import("@/lib/measure/text"),
+          import("@/lib/generate/pipeline/grounding"),
+          import("@/lib/site-profile/store"),
+          currentReportOf(siteId),
+        ]);
+        const [measuredPages, profile] = await Promise.all([
+          readMeasuredText({ siteId }),
+          report === null ? Promise.resolve(null) : readSiteProfile(report.domain),
+        ]);
+        return earnGroundingOf({
+          pages: measuredPages.map((page) => ({ url: page.url, passages: orderedPassages(page.text) })),
+          inventory: profile?.inventory ?? [],
+        });
+      } catch {
+        return NO_EARN_GROUNDING;
       }
     },
 

@@ -13,7 +13,10 @@
 //     no owned URL ranks for it (else it is Improve's) — otherwise
 //     `keyword_gate`;
 //   - a `format_page` is ready only when its query contains comparison / vs /
-//     alternative / integration / template — otherwise `format_not_allowed`.
+//     alternative / integration / template — otherwise `format_not_allowed`;
+//   - a `listed_page` (Earn) is ready only when the site's own pages hold a
+//     passage of the kind its asset needs (`earn-grounding.ts`, issue 478) —
+//     otherwise `no_grounding_fact`.
 //
 // And SPEC §6's Monday verdicts (issue 477): a Write in a cluster judged not
 // working is `cluster_suppressed`, anything targeting a retired URL is
@@ -27,12 +30,15 @@ import type { Profile } from "@/lib/market/questions/profile";
 import { isOwnDomain, registrableDomain } from "@/lib/market/rivals/domains";
 import type { StoredReport } from "@/lib/scan/report";
 import { opportunityStore, readOpportunity } from "./store";
+import { NO_EARN_GROUNDING, type EarnGrounding } from "./earn-grounding";
 import { suppressionOf, verdictReason, type Suppression } from "./suppression";
 import type { Opportunity, UnreadyReason } from "./types";
 
 export interface ReadinessContext {
   /** The site's own measured pages yield at least one passage. */
   grounded: boolean;
+  /** Which Earn assets the site's own pages hold a passage for. */
+  earnGrounding: EarnGrounding;
   /** What this site's Monday verdicts hold back. */
   suppression: Suppression;
   /** The profile §6.7's classifier reads. `null` classifies nothing, so no
@@ -65,6 +71,7 @@ export function opportunityReady(o: Opportunity, ctx: ReadinessContext): Unready
   const verdict = verdictReason(o, ctx.suppression);
   if (verdict !== null) return verdict;
   if (!ctx.grounded) return "no_grounding_fact";
+  if (o.evidence.family === "earn" && !ctx.earnGrounding[o.evidence.asset]) return "no_grounding_fact";
 
   const query = o.targetQuery ?? "";
   if (o.type === "keyword_page") {
@@ -119,8 +126,14 @@ export async function assessReadiness(
     store.profileForSite(siteId),
     store.hasGroundingFact(siteId),
   ]);
+  // Read only where there is an Earn row to answer: it re-reads the site's
+  // measured pages and its profile, which nothing else here needs.
+  const earnGrounding = rows.some((row) => row.family === "earn")
+    ? await store.earnGrounding(siteId)
+    : NO_EARN_GROUNDING;
   const ctx: ReadinessContext = {
     grounded,
+    earnGrounding,
     suppression: suppressionOf(verdicts, a.at),
     profile,
     ownRanks: ownRanksFrom(report),

@@ -10,11 +10,13 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { measured } from "../../src/lib/measure/measured";
 import { collapse } from "../../src/lib/opportunities/cluster";
 import type { Candidate } from "../../src/lib/opportunities/derive/candidate";
-import { assessReadiness } from "../../src/lib/opportunities/readiness";
+import { earnGroundingOf } from "../../src/lib/opportunities/earn-grounding";
+import { assessReadiness, opportunityReady, type ReadinessContext } from "../../src/lib/opportunities/readiness";
 import { rankOpen } from "../../src/lib/opportunities/rank/open";
 import { setOpportunityStore, type OpportunityRow } from "../../src/lib/opportunities/store";
 import { supplyDepth } from "../../src/lib/opportunities/supply/depth";
-import type { Evidence, Opportunity } from "../../src/lib/opportunities/types";
+import type { EarnAsset, Evidence, Opportunity } from "../../src/lib/opportunities/types";
+import type { InventoryRow } from "../../src/lib/site-profile/types";
 import { memoryStore, newMemoryState, type MemoryState } from "./memory-store";
 import { AT, PROFILE, SITE_ID } from "./fixtures";
 
@@ -138,5 +140,103 @@ describe("readiness refuses an Earn row the site's own pages cannot ground, and 
     expect([state.rows[0]?.ready, state.rows[0]?.unready_reason]).toEqual([false, "no_grounding_fact"]);
     expect(await rankOpen(SITE_ID)).toEqual([]);
     expect((await supplyDepth(SITE_ID)).unused).toBe(0);
+  });
+});
+
+describe("SPEC §6 (owner, 2026-09-15): an Earn asset needs a grounding fact of its own kind", () => {
+  const page = (url: string, ...passages: string[]) => ({ url, passages });
+  const inv = (url: string, purpose: InventoryRow["purpose"], h1 = "", title = ""): InventoryRow => ({ url, purpose, h1, title });
+
+  it("a comparison table needs a passage from a pricing, features or product page", () => {
+    const pricing = earnGroundingOf({
+      pages: [page("https://www.example.com/pricing/", "Teams get unlimited projects on every plan we sell today.")],
+      inventory: [inv("https://example.com/pricing", "pricing")],
+    });
+    expect(pricing.comparison_table).toBe(true);
+
+    for (const purpose of ["about", "blog", "contact", "legal", "other"] as const) {
+      const other = earnGroundingOf({
+        pages: [page("https://example.com/story", "We started the company to make onboarding simpler for everyone.")],
+        inventory: [inv("https://example.com/story", purpose)],
+      });
+      expect(other.comparison_table, purpose).toBe(false);
+    }
+    // A pricing page that yields no passage grounds nothing.
+    expect(
+      earnGroundingOf({ pages: [page("https://example.com/pricing")], inventory: [inv("https://example.com/pricing", "pricing")] })
+        .comparison_table
+    ).toBe(false);
+  });
+
+  it("an integration page needs a passage from a page whose address, title or h1 is about integrating", () => {
+    const byUrl = earnGroundingOf({
+      pages: [page("https://example.com/integrations/slack", "Send every onboarding event to the channel your team reads.")],
+      inventory: [],
+    });
+    const byHeading = earnGroundingOf({
+      pages: [page("https://example.com/p/9f2a", "Send every onboarding event to the channel your team reads.")],
+      inventory: [inv("https://example.com/p/9f2a", "other", "Connect Acme to Slack")],
+    });
+    const unrelated = earnGroundingOf({
+      pages: [page("https://example.com/features", "Send every onboarding event to the channel your team reads.")],
+      inventory: [inv("https://example.com/features", "features", "Everything in one place")],
+    });
+    expect([byUrl.integration_page, byHeading.integration_page, unrelated.integration_page]).toEqual([true, true, false]);
+  });
+
+  it("an original-data page needs a passage carrying a numeral", () => {
+    const withFigure = earnGroundingOf({
+      pages: [page("https://example.com/about", "Over 1,200 teams onboard their users with Acme every week.")],
+      inventory: [],
+    });
+    const words = earnGroundingOf({
+      pages: [page("https://example.com/about", "Teams everywhere onboard their users with Acme every single week.")],
+      inventory: [],
+    });
+    expect([withFigure.original_data_page, words.original_data_page]).toEqual([true, false]);
+  });
+
+  it("readiness refuses an Earn row whose asset its site cannot ground, and stores no_grounding_fact", () => {
+    const ctx: ReadinessContext = {
+      grounded: true,
+      earnGrounding: { comparison_table: false, integration_page: true, original_data_page: true },
+      suppression: { clusters: new Set(), retiredUrls: new Set() },
+      profile: PROFILE,
+      ownRanks: () => false,
+    };
+    const earn = (asset: EarnAsset) =>
+      held({ id: asset, type: "listed_page", family: "earn", targetQuery: QUERY, evidence: { ...earnEvidence(QUERY), asset } as Evidence });
+    expect(opportunityReady(earn("comparison_table"), ctx)).toBe("no_grounding_fact");
+    expect(opportunityReady(earn("integration_page"), ctx)).toBeNull();
+    expect(opportunityReady(earn("original_data_page"), ctx)).toBeNull();
+    // A Write row is not held to an Earn asset's kind.
+    expect(opportunityReady(held({ id: "w", type: "answer_page", family: "write", targetQuery: QUERY }), ctx)).toBeNull();
+  });
+});
+
+describe("assessReadiness stores the asset-kind refusal", () => {
+  beforeEach(() => {
+    const state = newMemoryState({
+      profile: PROFILE,
+      earnGrounding: { comparison_table: false, integration_page: false, original_data_page: false },
+    });
+    state.rows.push({
+      id: "earn", site_id: SITE_ID, scan_id: "scan", type: "listed_page", family: "earn", target_query: QUERY, target_ref: "ref", proposed_slug: null, title: null, volume: 500,
+      evidence: { ...earnEvidence(QUERY), volume: { kind: "measured", value: 500, at: AT.toISOString() } },
+      acceptance: { form: "top20", query: QUERY }, fit_band: "winnable", effort: 0.3, status: "open", cluster_key: null,
+      absorbed_queries: [], ready: false, unready_reason: "not_assessed", created_at: AT.toISOString(),
+    });
+    setOpportunityStore(memoryStore(state));
+    stored = state;
+  });
+  afterEach(() => setOpportunityStore(null));
+  let stored: MemoryState;
+
+  it("an Earn row on a site whose pages hold no passage of its kind is stored unready, and fills no day", async () => {
+    // The site grounds a fact in general; only the Earn asset's kind is missing.
+    expect(stored.grounded).toBe(true);
+    await assessReadiness(SITE_ID, { at: AT });
+    expect([stored.rows[0]?.ready, stored.rows[0]?.unready_reason]).toEqual([false, "no_grounding_fact"]);
+    expect(await rankOpen(SITE_ID)).toEqual([]);
   });
 });

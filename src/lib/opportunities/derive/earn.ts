@@ -43,7 +43,9 @@ interface EarnInput {
   rankedCounts: RankedCounts;
 }
 
-const INTEGRATION_SHAPE = /\b(?:integrat\w*|connect\w*|plugins?|api|sync\w*|zapier)\b/;
+/** The words that make a search, or a page, about integrating — read by
+ *  `earnAssetFor` here and by Earn readiness (`../earn-grounding.ts`). */
+export const INTEGRATION_SHAPE = /\b(?:integrat\w*|connect\w*|plugins?|api|sync\w*|zapier)\b/;
 const COMPARISON_SHAPE = /\b(?:vs|versus|alternatives?|compare\w*|comparison|best|top)\b/;
 
 /** The asset a query's shape asks for. Pure and total. */
