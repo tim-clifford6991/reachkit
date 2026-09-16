@@ -29,6 +29,12 @@ vi.mock("@/lib/scan/stuck", () => ({
   scansLeftRunning: () => dueStuckScans(),
   finishScanLeftRunning: async () => ({ finished: true }),
 }));
+// Issue #782's re-enqueue check reads `sites` and `scans` through its own
+// module; stood in with nothing due.
+vi.mock("@/lib/scan/deep/backstop", () => ({
+  sitesWithoutDeepPass: async () => [],
+  deepPassDomain: async () => null,
+}));
 const dueInactive = vi.fn();
 const nudged = vi.fn();
 vi.mock("@/lib/mail/retention", () => ({
