@@ -195,6 +195,8 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
           ? { kind: "hosted", label }
           : { kind: "wordpress", connectLater: true },
       voiceText: voiceDraft,
+      // Issue #783: the site has a zone before its first draft is selected.
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     };
 
     setSubmitting(true);

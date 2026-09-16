@@ -44,6 +44,10 @@ function parseSubmission(body: unknown): SetupSubmission | null {
   // had no profile to confirm: the empty string, never a `null` the store
   // would have to arm for.
   if (b.voiceText !== undefined && typeof b.voiceText !== "string") return null;
+  // Issue #783: the browser's zone. Absent is `null` — `BrowserZone` is the
+  // fallback — and a value that is not a zone is the store's to ignore,
+  // never a refusal of the founder's three answers.
+  if (b.timezone !== undefined && b.timezone !== null && typeof b.timezone !== "string") return null;
 
   const destination = b.destination;
   if (typeof destination !== "object" || destination === null) return null;
@@ -66,6 +70,7 @@ function parseSubmission(body: unknown): SetupSubmission | null {
         ? { kind: "hosted", label: label ?? DEFAULT_HOSTED_LABEL }
         : { kind: "wordpress", connectLater: true },
     voiceText: typeof b.voiceText === "string" ? b.voiceText : "",
+    timezone: typeof b.timezone === "string" ? b.timezone : null,
   };
 }
 

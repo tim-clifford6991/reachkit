@@ -57,6 +57,8 @@ const SUBMISSION = {
   // A value the stored profile does not already carry, so these rows
   // exercise the arm that actually writes one.
   voiceText: "Plain and direct, second person. Short sentences.",
+  // Issue #783 has its own rows below; the rest submit no zone.
+  timezone: null,
 };
 
 function site(overrides: Record<string, unknown> = {}) {
@@ -286,6 +288,42 @@ describe("the whole submit path, through this store", () => {
       refused: "already_complete",
     });
     expect(queued).not.toHaveBeenCalled();
+  });
+});
+
+describe("issue #783 — the browser's zone is stored at submit, while the site has none", () => {
+  const ZONED = { ...SUBMISSION, timezone: "Europe/Lisbon" };
+
+  it("a site with no zone takes the browser's, before the pass is queued", async () => {
+    db = fakeDb({ sites: [site({ timezone: null })], destinations: [] });
+    let zoneWhenQueued: unknown = "never queued";
+    queued.mockImplementation(() => {
+      zoneWhenQueued = db.tables.sites![0]!.timezone;
+    });
+
+    const result = await completeSetup(liveSetupStore(), { userId: USER, submission: ZONED });
+
+    expect(result).toEqual({ ok: true, siteId: SITE });
+    expect(db.tables.sites![0]!.timezone).toBe("Europe/Lisbon");
+    expect(zoneWhenQueued).toBe("Europe/Lisbon");
+  });
+
+  it("a zone already set is never overwritten by the browser's", async () => {
+    db = fakeDb({ sites: [site({ timezone: "America/Denver" })], destinations: [] });
+    await completeSetup(liveSetupStore(), { userId: USER, submission: ZONED });
+    expect(db.tables.sites![0]!.timezone).toBe("America/Denver");
+  });
+
+  it("a value that is not a zone is not stored, and setup still completes and queues the pass", async () => {
+    db = fakeDb({ sites: [site({ timezone: null })], destinations: [] });
+    const result = await completeSetup(liveSetupStore(), {
+      userId: USER,
+      submission: { ...SUBMISSION, timezone: "Mars/Olympus_Mons" },
+    });
+    expect(result).toEqual({ ok: true, siteId: SITE });
+    expect(db.tables.sites![0]!.timezone).toBeNull();
+    expect(db.tables.sites![0]!.setup_completed_at).not.toBeNull();
+    expect(queued).toHaveBeenCalledTimes(1);
   });
 });
 
