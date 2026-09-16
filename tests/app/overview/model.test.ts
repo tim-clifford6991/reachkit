@@ -238,7 +238,7 @@ describe("S13 — the week-0 arm (REQ-040 c7)", () => {
   it("the arm carries the same first-due date the shell's domain block states", () => {
     const firstDueOn = new Date(Date.UTC(2026, 8, 7));
     const model = assembleOverview(weekZeroFacts({ firstDueOn }));
-    expect(model.weekZero).toEqual({ firstDueOn });
+    expect(model.weekZero).toEqual({ firstDueOn, startingOn: AT(31) });
   });
 
   it("the deep reading does not become a weekly measurement", () => {
@@ -250,6 +250,31 @@ describe("S13 — the week-0 arm (REQ-040 c7)", () => {
     expect(model.searches.headline.delta).toBeUndefined();
     expect(model.aiAnswers.headline.value.kind).toBe("unmeasured");
     expect(model.score.band).toBeNull();
+  });
+
+  it("the deep pass's AI reading is the window's week-0 cell — counted, never a delta (#793)", () => {
+    const model = assembleOverview(weekZeroFacts({ aiWeekZero: { weekStart: AT(31), present: true } }));
+    expect(model.aiAnswers.window.weeks).toHaveLength(OVERVIEW_TRAILING_WEEKS);
+    expect(model.aiAnswers.window.weeks.at(-1)).toEqual({ weekStart: AT(31), present: true });
+    expect(model.aiAnswers.headline.value).toMatchObject({ kind: "measured", value: 1 });
+    expect(model.aiAnswers.headline.delta).toBeUndefined();
+  });
+
+  it("weekly weeks follow week 0, and a week between the two is unmeasured, never a miss", () => {
+    // Deep pass in the week of 10 Aug, first weekly on the 24th.
+    const model = assembleOverview(
+      weekZeroFacts({
+        points: [week(24, 41)],
+        aiPresence: [false],
+        aiWeekZero: { weekStart: AT(10), present: true },
+      })
+    );
+    const tail = model.aiAnswers.window.weeks.slice(-3);
+    expect(tail).toEqual([
+      { weekStart: AT(10), present: true },
+      { weekStart: AT(17), present: null },
+      { weekStart: AT(24), present: false },
+    ]);
   });
 
   it("with no deep reading either there is no chart and no week-0 arm", () => {

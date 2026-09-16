@@ -84,6 +84,7 @@ Pinned numbers live in `src/lib/config/constants.ts`. Newest dated line in a sec
 - If ReachKit stopped its own work, the screen says so and gives a resume date or none — no vendor/cap detail.
 - Customer may set veto window, publish time and time zone. Mode is not a customer-facing value (2026-09-10). Autopilot is the only mode.
 - 2026-09-16  (#753, owner: fix the cause and the class) The browser's own time zone is written on the first signed-in screen while the site has none, and never over one already set. A founder who finished setup and whose site has no zone lands on `/setup/zone`, which says why and opens `/app` once the zone is known — never back on `/setup`. No two account screens redirect to each other.
+- 2026-09-16  (#793, owner; supersedes the week-0 line above) The deep pass is week 0. Before the first Monday the score, AI answers and rivals’ lines show what the deep pass measured, labelled as the starting measurement with the date weekly readings begin; a section the deep pass did not measure keeps the dash and its first-due line. From the first Monday the weekly scans take over, and the first deltas compare against week 0. The growth chart’s weekly line and week count stay weekly-only.
 
 **Done when** Sign-in lands on `/app` with three nav items. No session on `/app` goes to `/signin`. A paid account before its first Monday shows no invented score or rivals.
 

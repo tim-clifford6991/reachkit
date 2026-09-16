@@ -2,9 +2,9 @@
 //
 // SPEC §4: every headline number has a change, a goal or a denominator.
 // The score carries its delta (or goal) and its band; AI answers carry
-// `n/12` and the goal; pages carry the count already ranking. Week 0 draws
-// a dash and the date the first reading is due — nothing presented as a
-// measurement.
+// `n/12` and the goal; pages carry the count already ranking. Week 0 shows
+// the deep pass's reading named as the starting measurement (#793), or a
+// dash and the date the first reading is due where the deep pass took none.
 //
 // daisyUI `stat` and `badge` in the route (docs/DESIGN.md rule 1). The AI
 // window is a CSS grid of weeks (DESIGN rule 2, issue 730): it is not a
@@ -91,12 +91,31 @@ function Tile(p: {
   );
 }
 
-function ScoreTile(p: { score: ScoreModule; firstDue: string | null }): React.JSX.Element {
+/** Week 0's two dates, formatted in the site's zone. */
+interface WeekZeroDates {
+  startingOn: string;
+  firstDue: string;
+}
+
+/** Week 0's line under a tile: the starting measurement where the deep
+ *  pass took one (#793), otherwise the tile's own first-due line. */
+function weekZeroLine(
+  weekZero: WeekZeroDates | null,
+  isDash: boolean,
+  dueLine: (due: string) => string | null
+): string | null {
+  if (weekZero === null) return null;
+  if (isDash) return dueLine(weekZero.firstDue);
+  return writtenLine("overview.tile.starting", { on: weekZero.startingOn, due: weekZero.firstDue });
+}
+
+function ScoreTile(p: { score: ScoreModule; weekZero: WeekZeroDates | null }): React.JSX.Element {
   const label = copy(SCORE_LABEL);
   const value = renderValue(p.score.headline.value, SCORE_LABEL);
   const carried = carriedBy(p.score.headline, SCORE_LABEL);
-  const firstDue =
-    p.firstDue === null ? null : writtenLine("overview.tile.score.first-due", { due: p.firstDue });
+  const firstDue = weekZeroLine(p.weekZero, value.isDash, (due) =>
+    writtenLine("overview.tile.score.first-due", { due })
+  );
 
   return (
     <Tile
@@ -192,13 +211,18 @@ function PresenceWeeks(p: {
 export function TileRow(p: {
   score: ScoreModule;
   /** Present only before the first weekly pass has run. */
-  weekZero?: { firstDueOn: Date } | null;
+  weekZero?: { firstDueOn: Date; startingOn: Date } | null;
   aiAnswers: Module<number> & { window: AiPresenceWindow };
   pagesPublished: Module<number>;
   timeZone: string;
 }): React.JSX.Element {
-  const weekZero = p.weekZero ?? null;
-  const firstDue = weekZero === null ? null : formatDate(weekZero.firstDueOn, p.timeZone);
+  const weekZero: WeekZeroDates | null =
+    p.weekZero === undefined || p.weekZero === null
+      ? null
+      : {
+          startingOn: formatDate(p.weekZero.startingOn, p.timeZone),
+          firstDue: formatDate(p.weekZero.firstDueOn, p.timeZone),
+        };
 
   // AI answers: n/12, the goal, and the window drawn under it.
   const aiLabel = copy(AI_LABEL);
@@ -206,7 +230,9 @@ export function TileRow(p: {
   const aiCarried = carriedBy(p.aiAnswers.headline, AI_LABEL);
   const outOf = formatCount(p.aiAnswers.window.of);
   const windowLine = writtenLine("overview.tile.ai-answers.window", { weeks: aiValue.text, of: outOf });
-  const firstPass = weekZero === null ? null : writtenLine("overview.tile.ai-answers.first-pass");
+  const firstPass = weekZeroLine(weekZero, aiValue.isDash, () =>
+    writtenLine("overview.tile.ai-answers.first-pass")
+  );
   const weekLabels = p.aiAnswers.window.entries.map((entry) =>
     formatDayOfMonth(entry.kind === "break" ? entry.marker.on : entry.week.weekStart, p.timeZone)
   );
@@ -230,7 +256,7 @@ export function TileRow(p: {
 
   return (
     <div className="grid min-w-0 gap-3 lg:grid-cols-3" data-testid="overview-tiles">
-      <ScoreTile score={p.score} firstDue={firstDue} />
+      <ScoreTile score={p.score} weekZero={weekZero} />
 
       <Tile
         label={aiLabel}
