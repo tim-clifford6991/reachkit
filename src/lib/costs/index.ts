@@ -171,9 +171,9 @@ export async function withCostContext<T>(
   let ledgeredCents = 0;
   let inFlightReserved = 0;
   let isDegraded = false;
-  // One read, when the context opens, of what the whole product has spent
-  // today (issue #329) — see `daily.ts` for why it is asked once a pass and
-  // not once a call, and for what an unreadable ledger means.
+  // What the whole product has spent today (issue #329), read when the
+  // context opens and again before every paid call (issue 792) — see
+  // `daily.ts` for why, and for what an unreadable ledger means.
   const day = await openDayLedger(now());
   let capHitLogged = false;
 
@@ -228,7 +228,12 @@ export async function withCostContext<T>(
       // throwing. A free scan never gets this far on a day that is already
       // over: `admitFreeScan` refuses it at the door (`admission.ts`), so
       // what this arm holds is the paid pass, which holds rather than fails.
-      if (day.ceilingReached()) {
+      // Read again here, so a pass running beside this one is counted, and
+      // with this pass's other calls in flight, which the ledger has not
+      // seen. This call may still carry the day over — the ceiling is spent
+      // up to, and the crossing it makes is the one the alert reports.
+      await day.refresh(now());
+      if (day.ceilingReached(inFlightReserved)) {
         return refuse("daily_ceiling", call.source, CAPS.DAILY_PRODUCT_C);
       }
 

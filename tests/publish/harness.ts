@@ -45,6 +45,9 @@ export interface FakeDb {
   queries: RecordedQuery[];
   rpcCalls: { fn: string; args: Row }[];
   client: unknown;
+  /** Tables whose reads answer an error, the way an unreachable database
+   *  does. Writes are untouched. */
+  unreadable: Set<string>;
   seed(table: string, rows: Row[]): void;
   rows(table: string): Row[];
   reset(): void;
@@ -133,6 +136,7 @@ export function fakeDb(): FakeDb {
     queries: [],
     rpcCalls: [],
     client: null,
+    unreadable: new Set(),
     seed(table, rows) {
       db.tables.set(table, rows.map((row) => ({ ...row })));
     },
@@ -146,6 +150,7 @@ export function fakeDb(): FakeDb {
     },
     reset() {
       db.tables.clear();
+      db.unreadable.clear();
       db.queries.length = 0;
       db.rpcCalls.length = 0;
     },
@@ -186,6 +191,7 @@ export function fakeDb(): FakeDb {
         db.tables.set(table, kept);
         return { data: gone, error: null };
       }
+      if (db.unreadable.has(table)) return { data: null, error: { message: `stubbed read failure: ${table}` } };
       return { data: selected(), error: null };
     }
 

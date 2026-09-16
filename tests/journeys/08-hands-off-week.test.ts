@@ -530,6 +530,16 @@ async function leaveTheSiteAloneForAWeek(): Promise<void> {
 function setUpTheSite(): void {
   db.reset();
   installTransitionRpc(db);
+  // The product's day ledger, summed from the `fetches` rows this week
+  // wrote — an unanswered read would refuse every paid call (issue 792).
+  db.rpcs.set("fetches_spend_since", (args: Row) =>
+    db
+      .rows("fetches")
+      // A row inserted here carries no `created_at`; the column's default
+      // is now(), so it counts toward today.
+      .filter((row) => row.created_at === undefined || String(row.created_at) >= String(args.p_since))
+      .reduce((total, row) => total + Number(row.cost_cents ?? 0), 0)
+  );
   db.uniqueIndexes.push({
     table: "scans",
     columns: ["site_id", "week_start"],

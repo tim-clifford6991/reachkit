@@ -2,7 +2,7 @@
 //
 // WO-057 `## Test plan` (criteria quoted verbatim from `requirements/
 // REQ-003.md` and `requirements/REQ-002.md`) — the order, refusal,
-// fail-open and idempotence suites for `admitFreeScan`.
+// fail-closed and idempotence suites for `admitFreeScan`.
 //
 // **Substrate note, distinct from `tests/scan/free/schema.test.ts`'s own
 // (Docker unavailable on this host; native PostgreSQL substrate at
@@ -180,8 +180,8 @@ function makeBuilder(table: string) {
 
 /** What `fetches_spend_since` answers this scenario — the product's spend
  *  for the UTC day, which the `daily` step now asks about before it counts
- *  free scans (issue #329). `null` makes the read fail, which is the
- *  fail-open case. */
+ *  free scans (issue #329). `null` makes the read fail, which refuses
+ *  (issue #792). */
 let daySpendCents: number | null = null;
 
 function fakeClient() {
@@ -360,28 +360,26 @@ describe(
   }
 );
 
-describe(
-  'REQ-003 c9 — "Given the scan limiter itself is unavailable, when a visitor starts a scan, then the scan proceeds."',
-  () => {
-    it.each(["cooldown", "daily", "in_flight", "hourly"] as const)(
-      "admission/fail-open · a counting error at the %s step admits",
-      async (target) => {
-        scenarios.scans = (log) => (stepOf(log) === target ? { throws: true } : { rows: [] });
-        const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => undefined);
-        const result = await admitFreeScan({ domain: DOMAIN, network: NETWORK });
-        expect(result).toEqual({ admit: true });
-        expect(consoleSpy).toHaveBeenCalled();
-        consoleSpy.mockRestore();
-      }
-    );
-
-    it("admission/fail-open · except for removal — a domain_blocks read that throws refuses removed", async () => {
-      scenarios.domain_blocks = { throws: true };
+describe("issue #792 — a limiter that cannot be read refuses; SPEC §2 states the bounds and no fail-open", () => {
+  it.each(["cooldown", "daily", "in_flight", "hourly"] as const)(
+    "admission/fail-closed · a counting error at the %s step refuses, and the log names the step",
+    async (target) => {
+      scenarios.scans = (log) => (stepOf(log) === target ? { throws: true } : { rows: [] });
+      const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => undefined);
       const result = await admitFreeScan({ domain: DOMAIN, network: NETWORK });
-      expect(result).toEqual({ refuse: "removed" });
-    });
-  }
-);
+      expect(result).toEqual({ refuse: "unreadable" });
+      const lines = consoleSpy.mock.calls.map((c) => JSON.parse(String(c[0])));
+      expect(lines).toContainEqual(expect.objectContaining({ event: "admission", decision: "unreadable", step: target }));
+      consoleSpy.mockRestore();
+    }
+  );
+
+  it("admission/fail-closed · removal keeps its own refusal — a domain_blocks read that throws refuses removed", async () => {
+    scenarios.domain_blocks = { throws: true };
+    const result = await admitFreeScan({ domain: DOMAIN, network: NETWORK });
+    expect(result).toEqual({ refuse: "removed" });
+  });
+});
 
 describe(
   'REQ-002 c3 — "Given a domain whose report has been removed … it shows the removed report to nobody and starts no scan for anyone"',
@@ -589,9 +587,9 @@ describe("issue #329 — the day's spend ceiling refuses a free scan at the door
     });
   });
 
-  it("an unreadable ledger admits — the same fail-open every other counting step has (REQ-003 c9)", async () => {
+  it("an unreadable ledger refuses — no free scan spends on a figure nobody has (issue #792)", async () => {
     daySpendCents = null;
-    expect(await admitFreeScan({ domain: DOMAIN, network: NETWORK })).toEqual({ admit: true });
+    expect(await admitFreeScan({ domain: DOMAIN, network: NETWORK })).toEqual({ refuse: "unreadable" });
   });
 
   it("it consumes nothing: a refusal on spend writes no row, as every render of a report address must not", async () => {

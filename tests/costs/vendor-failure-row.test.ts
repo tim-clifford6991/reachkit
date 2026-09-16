@@ -21,7 +21,7 @@ vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
 // empty, so nothing but the failure decides what the row carries.
 vi.mock("@/lib/costs/daily", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../src/lib/costs/daily")>()),
-  openDayLedger: async () => ({ spentCents: () => 0, ceilingReached: () => false, add: () => {} }),
+  openDayLedger: async () => ({ spentCents: () => 0, refresh: async () => {}, ceilingReached: () => false, add: () => {} }),
 }));
 
 setEnvFixture();

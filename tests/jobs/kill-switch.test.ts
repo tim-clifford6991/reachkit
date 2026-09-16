@@ -65,6 +65,10 @@ function engineDouble(): Record<string, unknown> {
     },
     verifyLive: ran,
     advanceSequence: ran,
+    deliverDueFirstPages: async () => {
+      engineCalls.count += 1;
+      return 0;
+    },
     advanceDueSequences: async () => {
       engineCalls.count += 1;
       return { dropped: 0, released: 0, sent: 1 };

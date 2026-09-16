@@ -15,9 +15,14 @@ import https from "node:https";
 import dns from "node:dns";
 
 vi.mock("@/lib/db", () => ({
-  dbAdmin: () => {
-    throw new Error("the roll-up must not be reached on the `none` arm");
-  },
+  dbAdmin: () => ({
+    // The day's ledger, read before each paid call (issue 792): nothing
+    // spent yet.
+    rpc: async () => ({ data: 0, error: null }),
+    from: () => {
+      throw new Error("the roll-up must not be reached on the `none` arm");
+    },
+  }),
 }));
 
 const { withCostContext } = await import("@/lib/costs");

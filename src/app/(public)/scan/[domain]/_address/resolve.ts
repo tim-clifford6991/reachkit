@@ -73,6 +73,10 @@ function refusalOf(admission: Exclude<Admission, { admit: true }>, now: Date): A
       // could not be reached. Either way no scan will run and the visitor
       // did not cause it, which is our own stop, not a removal.
       return { reason: "stopped" };
+    case "unreadable":
+      // A bound admission could not read (issue 792): no scan runs, and
+      // the visitor did not cause it — our own stop, like the removal read.
+      return { reason: "stopped" };
     case "cooldown":
       return null;
   }

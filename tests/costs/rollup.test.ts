@@ -18,6 +18,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const { dbAdminMock, readCacheMock, writeFetchRowMock, updates } = vi.hoisted(() => {
   const updates: Array<{ table: string; values: Record<string, unknown> }> = [];
   const dbAdminMock = vi.fn(() => ({
+    // The day's ledger (`fetches_spend_since`) holds nothing yet.
+    rpc: async () => ({ data: 0, error: null }),
     from(table: string) {
       return {
         update(values: Record<string, unknown>) {

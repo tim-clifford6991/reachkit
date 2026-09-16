@@ -226,3 +226,32 @@ describe("a site with no zone is held, and the hold names why", () => {
     });
   });
 });
+
+describe("issue #792 — a ceiling that cannot be counted holds, never counts nothing", () => {
+  it("publications that cannot be read hold the page, even with a page already out today", async () => {
+    db.seed("publications", [publishedAt("2026-09-14T13:00:00.000Z")]);
+    db.unreadable.add("publications");
+    const warned = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    try {
+      expect(await ceilingRoom("s1", new Date("2026-09-14T14:00:00.000Z"))).toEqual({
+        room: false,
+        blockedBy: "unreadable",
+      });
+      expect(JSON.parse(String(warned.mock.calls[0]?.[0]))).toMatchObject({
+        event: "publish_ceiling_unreadable",
+        table: "publications",
+      });
+    } finally {
+      warned.mockRestore();
+    }
+  });
+
+  it("a site read that errors is unreadable, not a site with no zone", async () => {
+    db.unreadable.add("sites");
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    expect(await ceilingRoom("s1", new Date("2026-09-14T14:00:00.000Z"))).toEqual({
+      room: false,
+      blockedBy: "unreadable",
+    });
+  });
+});
