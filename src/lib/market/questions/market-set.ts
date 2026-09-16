@@ -31,6 +31,7 @@ import {
 } from "@/lib/measure/measured";
 import { keywordSuggestions } from "@/lib/vendors/dataforseo";
 import type { Profile } from "./profile";
+import type { PoolRow } from "./widen";
 
 /** BP-025 `## Public interface`. The product's row, not the vendor's: the
  *  vendor's own `SuggestionRow` spells the figure `searchVolume`, and the
@@ -49,6 +50,11 @@ export interface MarketSet {
   profile: Profile;
   suggestions: readonly SuggestionRow[];
   totalVolume: number;
+  /** SPEC §6 thin markets (#778): the ranked rows the pass already bought —
+   *  the site's own and its tracked rivals' — at or above the lowest volume
+   *  step, so a category corrected at setup re-derives over the same pool.
+   *  Absent on a report stored before #778. */
+  pool?: readonly PoolRow[];
 }
 
 /**
@@ -123,6 +129,24 @@ function logMarketSet(seeds: number, outcome: Measured<SuggestionRow[]>): void {
   );
 }
 
+/**
+ * Two reads of the market as one — the first seed's and a later seed's
+ * (SPEC §6's seed ladder, bought one seed at a time so it can stop as soon
+ * as twelve survive). Folds exactly as `deriveMarketSet` folds several seeds:
+ * any measured arm is measured, a later seed that failed leaves the earlier
+ * answer standing, and an exact repeated keyword is one row, kept first.
+ */
+export function joinMarketSets(
+  first: Measured<readonly SuggestionRow[]>,
+  next: Measured<readonly SuggestionRow[]>
+): Measured<readonly SuggestionRow[]> {
+  if (next.kind === "unmeasured") return first;
+  if (first.kind === "unmeasured") return next;
+  const seen = new Set(first.value.map((row) => row.keyword));
+  const rows = [...first.value, ...next.value.filter((row) => !seen.has(row.keyword))];
+  return first.kind === "measured" || next.kind === "measured" ? measured<readonly SuggestionRow[]>(rows, first.at) : measuredZero<readonly SuggestionRow[]>(rows, first.at);
+}
+
 /** The `market` section, composed from the profile that seeded it and the
  *  suggestions the vendor returned (ADR-095: the leaf that declares the
  *  shape owns its construction, so the scan pipeline composes no shape of
@@ -130,8 +154,17 @@ function logMarketSet(seeds: number, outcome: Measured<SuggestionRow[]>): void {
  *  size; the owner removed its footnote from the free report on
  *  2026-09-03, so nothing renders it today — it stays in the blob because
  *  it is what `suggestions` measured, not because a surface reads it. */
-export function marketSetOf(a: { profile: Profile; suggestions: readonly SuggestionRow[] }): MarketSet {
+export function marketSetOf(a: {
+  profile: Profile;
+  suggestions: readonly SuggestionRow[];
+  pool?: readonly PoolRow[];
+}): MarketSet {
   let totalVolume = 0;
   for (const row of a.suggestions) totalVolume += row.volume;
-  return { profile: a.profile, suggestions: a.suggestions, totalVolume };
+  return {
+    profile: a.profile,
+    suggestions: a.suggestions,
+    totalVolume,
+    ...(a.pool === undefined ? {} : { pool: a.pool }),
+  };
 }
