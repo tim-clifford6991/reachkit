@@ -32,7 +32,7 @@ import type { Drivers } from "@/lib/measure/score";
 import type { Verdict } from "@/lib/measure/verdict";
 import type { RobotsPolicy } from "@/lib/egress/types";
 import type { SiteIssuesSection } from "@/lib/site-issues/types";
-import type { SerpResult } from "@/lib/vendors/dataforseo/types";
+import type { RankedRow, SerpResult } from "@/lib/vendors/dataforseo/types";
 import type { CanonicalDomain } from "./domain";
 import type { AI_READER_AGENTS } from "@/lib/config/constants";
 import { REPORT_VERSION } from "./report";
@@ -75,6 +75,7 @@ export interface ReportSections {
   rivals: Measured<RivalCandidate[]>;
   rivalSizes: Measured<RivalSize[]>;
   ownRanked: Measured<number>;
+  ownRankings: Measured<readonly RankedRow[]>;
   sources: readonly string[];
   onPage: Measured<OnPageFacts>;
   robots: Measured<RobotsPolicy>;
@@ -107,6 +108,7 @@ export function assembleReport(s: ReportSections): StoredReport {
     rivals: s.rivals,
     rivalSizes: s.rivalSizes,
     ownRanked: s.ownRanked,
+    ownRankings: s.ownRankings,
     sources: s.sources,
     onPage: s.onPage,
     robots: s.robots,

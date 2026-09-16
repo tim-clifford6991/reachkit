@@ -165,7 +165,7 @@ import type { Measured } from "@/lib/measure/measured";
 import type { OnPageFacts } from "@/lib/measure/parse";
 import type { GeneratedText } from "@/lib/presentation/generated";
 import type { Verdict } from "@/lib/measure/verdict";
-import type { SerpResult } from "@/lib/vendors/dataforseo/types";
+import type { RankedRow, SerpResult } from "@/lib/vendors/dataforseo/types";
 import type { CanonicalDomain } from "./domain";
 
 export type Tier = "free" | "deep" | "weekly";
@@ -182,7 +182,7 @@ export type StoppedReason = "complete" | "time_ceiling" | "spend_ceiling" | "sit
  *  it does not know throws rather than returning a partially-populated
  *  value: `null` would be indistinguishable from "no report" at every call
  *  site. */
-export const REPORT_VERSION = 8;
+export const REPORT_VERSION = 9;
 
 /** One cell of the AI-answers matrix — one question, one measured SERP.
  *  BP-025 `## Public interface` (issue #26's `matrix.ts` owns it). An
@@ -367,6 +367,12 @@ export interface StoredReport {
    *  Capped by the row limit the pass bought, which understates it and so
    *  tightens both bars (issue #117). */
   ownRanked: Measured<number>;
+  /** The rows `ownRanked` counts — each search the customer ranks for, its
+   *  position and the url that ranks — from the same answer, bought once.
+   *  §7's Improve family reads its update candidates here (2026-09-16):
+   *  the site's own ranked pages, not only the home document. `unmeasured`
+   *  on a report written before it was kept (version ≤ 8). */
+  ownRankings: Measured<readonly RankedRow[]>;
   /** §6.6's platform partition — the "sources" half. Stored, not rendered
    *  in MVP. */
   sources: readonly string[];
@@ -416,7 +422,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 /** The version this build's own migration knows how to lift, and the only
  *  one: a report written before issue #128 bought the paid battery. */
-const MIGRATABLE_VERSIONS: readonly number[] = [3, 4, 5, 6, 7];
+const MIGRATABLE_VERSIONS: readonly number[] = [3, 4, 5, 6, 7, 8];
 
 /** The two battery columns of a report written before anything bought
  *  them. `not_attempted` and not `no_answer`: nobody asked these engines,
@@ -549,11 +555,28 @@ function upgradeFromVersion6(blob: Record<string, unknown>): Record<string, unkn
  */
 function upgradeFromVersion7(blob: Record<string, unknown>): Record<string, unknown> {
   const section = blob.siteIssues;
-  if (!isRecord(section) || !Array.isArray(section.issues)) return { ...blob, version: REPORT_VERSION };
+  if (!isRecord(section) || !Array.isArray(section.issues)) return { ...blob, version: 8 };
   const issues = section.issues.map((issue: unknown) =>
     isRecord(issue) && issue.ran === true ? { ...issue, pages: null } : issue
   );
-  return { ...blob, version: REPORT_VERSION, siteIssues: { ...section, checkedPages: null, issues } };
+  return { ...blob, version: 8, siteIssues: { ...section, checkedPages: null, issues } };
+}
+
+/**
+ * Version 8 → 9 (#780): the report keeps the customer's own ranked rows.
+ *
+ * A version-8 report counted them and did not keep them, so none is
+ * recovered: `ownRankings` arrives `not_attempted` at the report's own date,
+ * and Improve reads only the top tens that report bought.
+ */
+function upgradeFromVersion8(blob: Record<string, unknown>): Record<string, unknown> {
+  const verdict = blob.verdict;
+  const at = isRecord(verdict) ? verdict.measuredAt : undefined;
+  return {
+    ...blob,
+    version: REPORT_VERSION,
+    ownRankings: { kind: "unmeasured", reason: "not_attempted", at },
+  };
 }
 
 /** Every upgrade this build can apply, oldest first, each lifting a blob
@@ -566,6 +589,7 @@ const UPGRADES: readonly ((blob: Record<string, unknown>) => Record<string, unkn
   upgradeFromVersion5,
   upgradeFromVersion6,
   upgradeFromVersion7,
+  upgradeFromVersion8,
 ];
 
 /** The version guard, and the one upgrade beside it. Throws — loudly — on

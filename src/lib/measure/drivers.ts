@@ -14,7 +14,7 @@
 // list is `AI_READER_AGENTS`. Nothing here is customer-visible.
 import { AI_READER_AGENTS, SCORING } from "@/lib/config/constants";
 import type { RobotsPolicy } from "@/lib/egress/types";
-import type { RankedResult, SerpResult } from "@/lib/vendors/dataforseo/types";
+import type { RankedResult, RankedRow, SerpResult } from "@/lib/vendors/dataforseo/types";
 import { measured, measuredZero, unmeasured, worseReason, type Measured, type UnmeasuredReason } from "./measured";
 import { asciiLowerCase, type OnPageFacts } from "./parse";
 
@@ -236,6 +236,19 @@ function rankedCountOf(result: RankedResult): number {
 export function ownRankedOf(a: { ranked: Measured<RankedResult>; at: Date }): Measured<number> {
   if (a.ranked.kind === "unmeasured") return unmeasured(a.ranked.reason, a.at);
   return ofValue(rankedCountOf(a.ranked.value), a.at);
+}
+
+/**
+ * The customer's own ranked rows — each search it ranks for, the position
+ * and the url that ranks (SPEC §7, 2026-09-16: update candidates are the
+ * site's own ranked urls, not only the home page). Read off the same answer
+ * `ownRankedOf` counts, so it buys nothing. Zero rows is a measured empty,
+ * exactly as the count is a measured 0.
+ */
+export function ownRankingsOf(a: { ranked: Measured<RankedResult>; at: Date }): Measured<readonly RankedRow[]> {
+  if (a.ranked.kind === "unmeasured") return unmeasured(a.ranked.reason, a.at);
+  const rows = a.ranked.value.rows;
+  return rows.length === 0 ? measuredZero(rows, a.at) : measured(rows, a.at);
 }
 
 /** BUILD §5's SearchPresence over one `ranked_keywords` answer. The two

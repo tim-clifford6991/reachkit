@@ -1350,6 +1350,7 @@ function composeReport(a: {
     rivals: s.rivals,
     rivalSizes: s.rivalSizes,
     ownRanked: m === null ? unmeasured("not_attempted", measuredAt) : m.ownRanked,
+    ownRankings: m === null ? unmeasured("not_attempted", measuredAt) : m.ownRankings,
     sources: s.sources,
     onPage,
     robots,

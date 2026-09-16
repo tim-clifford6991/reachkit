@@ -20,6 +20,7 @@
 import type { CostContext } from "@/lib/costs";
 import type { Measured } from "@/lib/measure/measured";
 import type { StoredReport } from "@/lib/scan/report";
+import type { InventoryRow } from "@/lib/site-profile/types";
 import type { RankedCounts } from "../winnability/counts";
 import { addRejections, noRejections, type Opportunity, type RejectionCount } from "../types";
 import type { Candidate } from "./candidate";
@@ -56,6 +57,10 @@ export interface DeriveInput {
   /** The host the site's hosted destination serves at, whose pages get no
    *  `fix_page` (SPEC §9, 2026-09-14). Absent where the caller has none. */
   hostedHost?: string | null;
+  /** The pages the crawl read (`site_profiles.inventory`), which Improve
+   *  matches to the market's questions beside the site's ranked urls (SPEC
+   *  §7, 2026-09-16). Absent reads as none. */
+  inventory?: readonly InventoryRow[];
 }
 
 export interface DeriveOutcome {
@@ -92,7 +97,12 @@ export async function deriveOpportunities(
   const base = { siteId: a.siteId, scanId: a.scanId, report: a.report };
 
   const write = writeCandidates({ ...base, ownRanked, rankedCounts: a.rankedCounts });
-  const improve = improveCandidates({ ...base, ownRanked, rankedCounts: a.rankedCounts });
+  const improve = improveCandidates({
+    ...base,
+    ownRanked,
+    rankedCounts: a.rankedCounts,
+    inventory: a.inventory ?? [],
+  });
   const earn = earnCandidates({ ...base, ownRanked, rankedCounts: a.rankedCounts });
   const fix = fixCandidates({ ...base, hostedHost: a.hostedHost ?? null });
 

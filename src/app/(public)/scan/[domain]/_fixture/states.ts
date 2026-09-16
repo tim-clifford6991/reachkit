@@ -145,6 +145,7 @@ const FIXTURE_RECORD = {
   rivals: { kind: "unmeasured", reason: "not_attempted", at: MEASURED_AT },
   rivalSizes: { kind: "unmeasured", reason: "not_attempted", at: MEASURED_AT },
   ownRanked: { kind: "unmeasured", reason: "not_attempted", at: MEASURED_AT },
+  ownRankings: { kind: "unmeasured", reason: "not_attempted", at: MEASURED_AT },
   sources: [],
   onPage: { kind: "unmeasured", reason: "not_attempted", at: MEASURED_AT },
   robots: { kind: "unmeasured", reason: "not_attempted", at: MEASURED_AT },
@@ -166,6 +167,7 @@ const FIXTURE_RECORD = {
   | "rivals"
   | "rivalSizes"
   | "ownRanked"
+  | "ownRankings"
   | "sources"
   | "onPage"
   | "robots"

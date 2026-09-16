@@ -29,18 +29,31 @@
 // "all Write-family at first (nothing to Improve yet) ... Improve types
 // appear naturally as pages start ranking."
 //
-// **One measured page.** The scan reads the customer's home document and
-// no other (there is no crawler — §17). So a candidate is produced only
-// where the ranking url is the very url `onPage` was measured on: the
-// shortfall must be a measurement *of that page*, not of a different one.
+// **The site's own pages, not only the home page** (SPEC §7, 2026-09-16).
+// A page is an update candidate for a question where the site ranks it
+// inside the position band for that question's search — read off the
+// question's own bought top ten, or off the site's own ranked rows
+// (`report.ownRankings`, the answer `ownRanked` counts, bought once) for
+// the same search or one of its parent topic (`clusterKey`, the key
+// Improve shares with the cluster step). A site already in the top three
+// for the search has nothing to improve for it. Where several of its pages
+// rank, the one the crawl read as being about the question (its inventory
+// title or h1 carries the topic's words) goes first, then the best
+// position. Nothing is bought here.
+//
+// The shortfall is still a measurement of that page: `expand_page` only
+// for the home document, the one page whose length `onPage` measured;
+// `answerable_page` for any ranked page, with its own position. A page
+// with neither shortfall on record is not a candidate.
 import { EFFORT_BY_TYPE, IMPROVE_POSITION_BAND, THIN_PAGE_VISIBLE_CHARS } from "@/lib/config/constants";
 import { isOwnDomain, registrableDomain } from "@/lib/market/rivals/domains";
 import { measured } from "@/lib/measure/measured";
 import type { StoredReport } from "@/lib/scan/report";
+import type { InventoryRow } from "@/lib/site-profile/types";
 import { bandWinnability } from "../winnability/band";
 import { rankedCountsFor, type RankedCounts } from "../winnability/counts";
-import { FAMILY_OF, noRejections, type Evidence, type OpportunityType, type Shortfall } from "../types";
-import { canonicalUrl } from "../cluster";
+import { FAMILY_OF, noRejections, type Evidence, type Shortfall } from "../types";
+import { brandTokensOf, canonicalUrl, clusterKey } from "../cluster";
 import { emptyDerivation, type Candidate, type DerivationResult } from "./candidate";
 
 interface ImproveInput {
@@ -49,81 +62,130 @@ interface ImproveInput {
   report: StoredReport;
   ownRanked: number;
   rankedCounts: RankedCounts;
+  /** The pages the crawl read. Absent reads as none. */
+  inventory?: readonly InventoryRow[];
 }
 
-/** Two urls name the same page where their canonical forms agree
- *  (`canonicalUrl`, the one normaliser the cluster step shares). */
-function sameUrl(a: string, b: string): boolean {
-  return canonicalUrl(a) === canonicalUrl(b);
+/** One of the site's own pages ranking for a question's search. */
+interface OwnedRanking {
+  url: string;
+  position: number;
+  /** Ranked for the question's very search, not a sibling in its topic. */
+  exact: boolean;
+  /** The crawl read this page, and its title or h1 carries the topic. */
+  topical: boolean;
+}
+
+function normalised(query: string): string {
+  return query.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function topicWords(text: string, brandTokens: readonly string[]): ReadonlySet<string> {
+  return new Set((clusterKey(text, brandTokens) ?? "").split(" ").filter((word) => word !== ""));
+}
+
+/** Exact before topic, a page about the question before one that is not,
+ *  then the better position, then the address — a total order. */
+function compareOwned(a: OwnedRanking, b: OwnedRanking): number {
+  if (a.exact !== b.exact) return a.exact ? -1 : 1;
+  if (a.topical !== b.topical) return a.topical ? -1 : 1;
+  if (a.position !== b.position) return a.position - b.position;
+  return a.url < b.url ? -1 : a.url > b.url ? 1 : 0;
 }
 
 export function improveCandidates(a: ImproveInput): DerivationResult {
   const { report } = a;
   if (report.questions.kind === "unmeasured") return emptyDerivation();
-  if (report.onPage.kind === "unmeasured") return emptyDerivation();
 
   const at = report.verdict.measuredAt;
-  const facts = report.onPage.value;
+  const home = report.onPage.kind === "unmeasured" ? null : report.onPage.value;
   const ownDomain = registrableDomain(report.domain) ?? report.domain;
   const answerRows = report.aiAnswers?.rows ?? [];
+  const brandTokens = brandTokensOf(report);
+  const ranked = report.ownRankings.kind === "unmeasured" ? [] : report.ownRankings.value;
+  const inventory = new Map((a.inventory ?? []).map((row) => [canonicalUrl(row.url), row] as const));
+
+  const topical = (url: string, topic: ReadonlySet<string>): boolean => {
+    const page = inventory.get(canonicalUrl(url));
+    if (page === undefined || topic.size === 0) return false;
+    return [page.title, page.h1].some((text) => {
+      const words = topicWords(text, brandTokens);
+      return [...topic].every((word) => words.has(word));
+    });
+  };
 
   const result: DerivationResult = { candidates: [], assessed: 0, rejected: noRejections() };
-  // One page, one candidate: the measured page cannot be both expanded and
-  // made answerable in two separate pages, and two rows against the same
+  // One page, one candidate: a page cannot be both expanded and made
+  // answerable in two separate pages, and two rows against the same
   // `target_ref` differ only by type — which the partial unique index
   // would let through and §8's near-duplicate gate would then refuse.
-  let claimed = false;
+  const claimed = new Set<string>();
 
   report.questions.value.forEach((question, index) => {
-    if (claimed) return;
     const serpAt = report.serps[index];
     if (serpAt === undefined || serpAt.kind === "unmeasured") return;
     const serp = serpAt.value;
+    const query = question.search.keyword;
+    const exactQuery = normalised(query);
+    const topicKey = clusterKey(query, brandTokens);
+    const topic = topicWords(query, brandTokens);
 
-    const ownRow = serp.organic.find((row) =>
-      isOwnDomain(registrableDomain(row.domain) ?? row.domain, ownDomain)
-    );
-    if (ownRow === undefined) return;
-    if (ownRow.position < IMPROVE_POSITION_BAND.min) return;
-    if (ownRow.position > IMPROVE_POSITION_BAND.max) return;
-    if (!sameUrl(ownRow.url, facts.url)) return;
+    const owned: OwnedRanking[] = [];
+    for (const row of serp.organic) {
+      if (!isOwnDomain(registrableDomain(row.domain) ?? row.domain, ownDomain)) continue;
+      owned.push({ url: row.url, position: row.position, exact: true, topical: topical(row.url, topic) });
+    }
+    for (const row of ranked) {
+      const exact = normalised(row.keyword) === exactQuery;
+      if (!exact && (topicKey === null || clusterKey(row.keyword, brandTokens) !== topicKey)) continue;
+      owned.push({ url: row.url, position: row.position, exact, topical: topical(row.url, topic) });
+    }
+    // Already in the top three for this very search: nothing to improve.
+    if (owned.some((row) => row.exact && row.position < IMPROVE_POSITION_BAND.min)) return;
 
+    const inBand = owned
+      .filter((row) => row.position >= IMPROVE_POSITION_BAND.min && row.position <= IMPROVE_POSITION_BAND.max)
+      .sort(compareOwned);
+    if (inBand.length === 0) return;
     result.assessed += 1;
+
+    const cell = answerRows[index]?.cell;
+    const ignoredByTheAnswer = cell !== undefined && cell.kind === "answered" && !cell.namesCustomer;
+
+    const chosen = inBand
+      .filter((row) => !claimed.has(canonicalUrl(row.url)))
+      .map((row): { row: OwnedRanking; type: "expand_page" | "answerable_page"; shortfall: Shortfall } | null => {
+        if (home !== null && canonicalUrl(row.url) === canonicalUrl(home.url) && home.visibleChars < THIN_PAGE_VISIBLE_CHARS) {
+          return { row, type: "expand_page", shortfall: { kind: "thin", words: measured(home.visibleChars, at) } };
+        }
+        if (ignoredByTheAnswer) {
+          return { row, type: "answerable_page", shortfall: { kind: "position", position: measured(row.position, at) } };
+        }
+        return null;
+      })
+      .find((option) => option !== null);
+    if (chosen === undefined || chosen === null) return;
+    const { row, type, shortfall } = chosen;
 
     // Winnability gates `keyword_page` only (SPEC §6, 2026-09-15); no
     // Improve type is one, so the band is recorded and never drops a page.
+    // It is the same band a Write for this search gets, so both sides of
+    // the daily decision are sized the same way (§7, 2026-09-16).
     const band = bandWinnability({
       top10RankedCounts: rankedCountsFor(
-        serp.organic.map((row) => registrableDomain(row.domain) ?? row.domain),
+        serp.organic.map((organic) => registrableDomain(organic.domain) ?? organic.domain),
         a.rankedCounts,
         at
       ),
       ownRanked: a.ownRanked,
     });
 
-    const query = question.search.keyword;
     const volume = measured(question.search.volume, at);
-    const cell = answerRows[index]?.cell;
-    const ignoredByTheAnswer =
-      cell !== undefined && cell.kind === "answered" && !cell.namesCustomer;
-
-    let type: OpportunityType;
-    let shortfall: Shortfall;
-    if (facts.visibleChars < THIN_PAGE_VISIBLE_CHARS) {
-      type = "expand_page";
-      shortfall = { kind: "thin", words: measured(facts.visibleChars, at) };
-    } else if (ignoredByTheAnswer) {
-      type = "answerable_page";
-      shortfall = { kind: "position", position: measured(ownRow.position, at) };
-    } else {
-      return;
-    }
-
     const evidence: Evidence = {
       family: "improve",
       query,
       volume,
-      pageUrl: ownRow.url,
+      pageUrl: row.url,
       shortfall,
     };
     result.candidates.push({
@@ -132,7 +194,7 @@ export function improveCandidates(a: ImproveInput): DerivationResult {
       type,
       family: FAMILY_OF[type],
       targetQuery: query,
-      targetRef: ownRow.url,
+      targetRef: row.url,
       title: null,
       volume,
       evidence,
@@ -143,7 +205,7 @@ export function improveCandidates(a: ImproveInput): DerivationResult {
       fitBand: band,
       effort: EFFORT_BY_TYPE[type],
     } satisfies Candidate);
-    claimed = true;
+    claimed.add(canonicalUrl(row.url));
   });
 
   return result;
