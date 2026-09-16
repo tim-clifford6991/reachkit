@@ -66,6 +66,29 @@ import type { SetupProgressState } from "./submit";
 export const SETUP_PATH = "/setup";
 export const APP_PATH = "/app";
 
+/** Where a founder who finished setup lands while their site has no stated
+ *  zone (#753). Under `/setup/*`, so the gate below never redirects it, and
+ *  its own page redirects only once the zone is stated. */
+export const ZONE_PATH = "/setup/zone";
+
+/**
+ * Where an account screen that draws dates sends a founder whose site has
+ * no stated zone (REQ-073 c1).
+ *
+ * **Never `/setup` for a founder who finished it** (#753). `/setup` sends a
+ * finished founder to `/app`, and `/app` sent a zone-less one back to
+ * `/setup` — two gates, each correct alone, trapping a founder between them
+ * because one column was null. So a finished founder goes to `ZONE_PATH`,
+ * which says why they are there and leaves only once the zone is stated —
+ * the opposite of the fact that sent them. A founder still in setup goes
+ * to `/setup`, where `setupRedirectFor` would send them anyway; an account
+ * this process cannot name goes to `ZONE_PATH` too, since that page reads
+ * the account itself and redirects nowhere on a guess.
+ */
+export function zoneRedirectFor(setup: SetupProgressState | null): string {
+  return setup !== null && !setup.complete ? SETUP_PATH : ZONE_PATH;
+}
+
 /**
  * The header the authorisation boundary writes the request's own path
  * into, so the `(account)` layout — which Next does not tell its path —

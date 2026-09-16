@@ -37,6 +37,7 @@ vi.mock("next/navigation", async (importOriginal) => {
 });
 
 const account = await import("@/app/(account)/app/_session/account");
+const { resetSetupGateReader, setSetupGateReader } = await import("@/app/(account)/setup/gate-state");
 
 const SITE = {
   id: "site-1",
@@ -57,6 +58,7 @@ beforeEach(() => {
 
 afterEach(() => {
   account.setAppAccountReader(null);
+  resetSetupGateReader();
 });
 
 describe("who is asking, from the signed cookie and one site read", () => {
@@ -136,10 +138,18 @@ describe("§4.3's refusal — where each arm sends the customer", () => {
     expect(redirected).toEqual([]);
   });
 
-  it("a site with no stated zone goes to setup rather than being drawn in the server's (REQ-073 c1)", async () => {
+  it("a site with no stated zone is not drawn in the server's — a founder still in setup goes to setup (REQ-073 c1)", async () => {
     readAppSite.mockResolvedValue({ ...SITE, timezone: null });
+    setSetupGateReader(async () => ({ complete: false, siteId: "site-1", paidAt: new Date(SITE.created_at) }));
     await expect(account.requireSetUpAccount()).rejects.toThrow(/NEXT_REDIRECT/);
     expect(redirected).toEqual(["/setup"]);
+  });
+
+  it("#753 — a founder who finished setup is never sent back to it for a missing zone, which /setup would bounce straight to /app", async () => {
+    readAppSite.mockResolvedValue({ ...SITE, timezone: null });
+    setSetupGateReader(async () => ({ complete: true, siteId: "site-1", completedAt: new Date(SITE.created_at) }));
+    await expect(account.requireSetUpAccount()).rejects.toThrow(/NEXT_REDIRECT/);
+    expect(redirected).toEqual(["/setup/zone"]);
   });
 
   it("a site with a stated zone comes back with it narrowed to a string", async () => {
