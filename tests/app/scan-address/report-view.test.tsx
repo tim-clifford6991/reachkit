@@ -500,3 +500,21 @@ describe("issue 715 — SPEC §2: what was measured, what was reused, what the c
     expect(render({ ...FIXTURE_DEGRADED_REPORT, stoppedReason: "failed" })).not.toContain("control.retry-part");
   });
 });
+
+describe("issue #785 — the report's offer begins checkout, and states a refusal on itself", () => {
+  it("Start is a submit inside a form, not an inert button", () => {
+    const html = render(FIXTURE_REPORT);
+    expect(html).toMatch(/<form[^>]*>\s*<button type="submit" class="btn btn-primary btn-block">offer\.start\.priced<\/button>/);
+  });
+
+  it("a refused checkout renders the offer's written line, and only then", () => {
+    const refused = renderToStaticMarkup(
+      React.createElement(ReportView, {
+        state: { report: FIXTURE_REPORT, notice: null, control: { kind: "none" } },
+        checkoutRefused: true,
+      })
+    );
+    expect(count(refused, "offer.checkout.refused")).toBe(1);
+    expect(render(FIXTURE_REPORT)).not.toContain("offer.checkout.refused");
+  });
+});

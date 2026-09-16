@@ -98,6 +98,10 @@ const { env } = await import("../../src/lib/config/env");
 const { PricingCard } = await import(
   "../../src/app/(public)/scan/[domain]/_modules/pricing"
 );
+const { ReportView } = await import(
+  "../../src/app/(public)/scan/[domain]/_address/report-view"
+);
+const { FIXTURE_REPORT } = await import("../../src/app/(public)/scan/[domain]/_fixture/states");
 const { createCheckoutSession } = await import("../../src/lib/account/checkout/session");
 const { checkoutParams } = await import("../../src/lib/account/checkout/params");
 const { setStripe } = await import("../../src/lib/account/stripe/client");
@@ -298,6 +302,45 @@ afterEach(() => {
 
 // ── The journey, in the steps a founder takes ───────────────────────────
 
+/** Issue #785: the report as the page renders it, for this journey's scan
+ *  and domain, and the one action its offer's Start posts to — found on the
+ *  rendered tree rather than imported, so a report that stops passing it
+ *  fails here. */
+function theReportsStart(): () => Promise<void> {
+  const tree = ReportView({
+    state: {
+      report: { ...FIXTURE_REPORT, scanId: SCAN_ID, domain: DOMAIN as typeof FIXTURE_REPORT.domain },
+      notice: null,
+      control: { kind: "none" },
+    },
+  });
+  const found: (() => Promise<void>)[] = [];
+  const walk = (node: unknown): void => {
+    if (Array.isArray(node)) return node.forEach(walk);
+    if (node === null || typeof node !== "object" || !("props" in node)) return;
+    const el = node as { type: unknown; props: Record<string, unknown> };
+    if (el.type === PricingCard && typeof el.props.startAction === "function") {
+      found.push(el.props.startAction as () => Promise<void>);
+    }
+    walk(el.props.children);
+  };
+  walk(tree);
+  if (found.length !== 1) throw new Error(`the report carried ${found.length} start actions`);
+  return found[0] as () => Promise<void>;
+}
+
+/** Presses Start: the action answers with a redirect, and its digest names
+ *  where the buyer is sent. */
+async function pressStart(): Promise<string> {
+  const thrown: unknown = await theReportsStart()().then(
+    () => undefined,
+    (error: unknown) => error
+  );
+  const digest = (thrown as { digest?: string } | undefined)?.digest ?? "";
+  expect(digest).toMatch(/^NEXT_REDIRECT/);
+  return digest;
+}
+
 /** Step 1 — Start. Both price surfaces reach this one function; only the
  *  origin differs. */
 async function startCheckout(origin: { kind: "report"; scanId: string } | { kind: "pricing" }) {
@@ -362,6 +405,31 @@ async function followTheLink(tokenHash: string): ReturnType<typeof confirmRoute>
 }
 
 describe("Start → Checkout → webhook → magic link → /setup (JN-002 steps 1–2)", () => {
+  it("pressing Start on a report opens a session whose origin is that scan, and the webhook provisions that domain (#785)", async () => {
+    const digest = await pressStart();
+    expect(vendor.created).toHaveLength(1);
+    const opened = vendor.created[0] as Record<string, unknown>;
+    expect(opened.metadata).toEqual({ originKind: "report", scanId: SCAN_ID });
+    expect(opened.cancel_url).toBe(`https://app.example.com/scan/${DOMAIN}`);
+    const sessionId = [...vendor.sessions.keys()][0] as string;
+    expect(digest).toContain(`https://checkout.stripe.com/${sessionId}`);
+
+    theBuyerPays(sessionId);
+    expect((await stripeSaysItCompleted(sessionId)).status).toBe(200);
+
+    expect(accounts.sites).toHaveLength(1);
+    expect(accounts.sites[0]?.domain).toBe(DOMAIN);
+    expect(accounts.sites[0]?.provisioned_from_scan_id).toBe(SCAN_ID);
+    expect(deepPasses).toEqual([{ siteId: accounts.sites[0]?.id as string, domain: DOMAIN }]);
+  });
+
+  it("a report whose checkout is refused comes back to that report with the marker, not to /pricing (#785)", async () => {
+    accounts.scans.set(SCAN_ID, { status: "running", domain: DOMAIN });
+    const digest = await pressStart();
+    expect(digest).toContain(`/scan/${DOMAIN}?checkout=refused`);
+    expect(vendor.created).toEqual([]);
+  });
+
   it("step 1 — one offer, one control, and nothing asked before payment", async () => {
     const html = renderToStaticMarkup(PricingCard() as never);
 
