@@ -35,6 +35,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { GATE_PATH_HEADER, setupRedirectFor } from "./setup/gate";
 import { readSetupGateState } from "./setup/gate-state";
+import { BrowserZone } from "./_zone/BrowserZone";
 
 export default async function AccountLayout({
   children,
@@ -51,9 +52,20 @@ export default async function AccountLayout({
     // The second half is a loop guard and not a second policy: a
     // destination equal to the path being served would redirect a screen
     // to itself forever, and no arm of `setupRedirectFor` returns one
-    // today.
+    // today. It cannot see a loop through a second gate — `/setup` ⇄ `/app`
+    // was one (#753) — so that is kept out by `zoneRedirectFor` sending no
+    // finished founder to `/setup`, and proved by
+    // `tests/app/setup/gate-loop.test.ts`, which follows every redirect the
+    // account gates can give.
     if (destination !== null && destination !== path) redirect(destination);
   }
 
-  return <>{children}</>;
+  // REQ-073 c1's first sign-in write has its caller here, on every account
+  // screen: the zone is the browser's to report, and only script can.
+  return (
+    <>
+      <BrowserZone />
+      {children}
+    </>
+  );
 }

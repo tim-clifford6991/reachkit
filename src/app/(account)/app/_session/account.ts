@@ -149,14 +149,37 @@ export async function requireAppAccount(): Promise<AppAccount> {
  *
  * REQ-073 c1 forbids a zone the customer never stated, and no read path
  * falls back to the server's — so a screen that draws dates asks for this
- * and a site with no zone goes to `/setup`, where the zone is stated,
- * rather than being drawn in one nobody chose. Every date the shell, the
- * calendar and Overview state is site-local, so all three ask this one.
+ * and a site with no zone is sent away rather than drawn in one nobody
+ * chose. Every date the shell, the calendar and Overview state is
+ * site-local, so all three ask this one.
+ *
+ * Where it is sent is `redirectForMissingZone`'s, below.
  */
 export async function requireSetUpAccount(): Promise<AppAccount & { timeZone: string }> {
   const account = await requireAppAccount();
-  if (account.timeZone === null) redirect("/setup");
+  if (account.timeZone === null) return redirectForMissingZone();
   return { ...account, timeZone: account.timeZone };
+}
+
+/**
+ * Leaves a screen that cannot be drawn without a zone (#753).
+ *
+ * This used to be `redirect("/setup")`, and a founder who had finished
+ * setup was sent straight back to `/app` from there — forever. The
+ * destination is now `zoneRedirectFor`'s, the one policy beside the setup
+ * gate's own, so the two cannot disagree: `/setup` only while setup is
+ * unfinished, and otherwise `/setup/zone`, which explains and waits for the
+ * browser to report its zone.
+ *
+ * The setup state is imported at the call for the reason `fromSession`
+ * defers its imports: it reaches `@/lib/db`.
+ */
+export async function redirectForMissingZone(): Promise<never> {
+  const [{ readSetupGateState }, { zoneRedirectFor }] = await Promise.all([
+    import("../../setup/gate-state"),
+    import("../../setup/gate"),
+  ]);
+  redirect(zoneRedirectFor(await readSetupGateState()));
 }
 
 /** Whether this account is the reserved fixture account — the one account

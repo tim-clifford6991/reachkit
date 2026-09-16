@@ -110,7 +110,11 @@ vi.mock("@/app/(account)/app/_session/account", async (importOriginal) => {
   return {
     ...actual,
     appAccount: async () => ({ ok: true, account: RESERVED_ACCOUNT }),
-    requireAppAccount: async () => RESERVED_ACCOUNT,
+    // #753: the one screen that asks for the account without its zone is
+    // `/setup/zone`, and it is only drawn for a site that has none — it
+    // redirects to the app otherwise. The calendar asks too, and takes its
+    // reserved-account branch before it looks at the zone.
+    requireAppAccount: async () => ({ ...RESERVED_ACCOUNT, timeZone: null }),
     requireSetUpAccount: async () => RESERVED_ACCOUNT,
   };
 });

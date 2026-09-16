@@ -111,6 +111,16 @@ export const ROUTE_REFERENCE: Readonly<Record<string, `S${number}`>> = {
   "/setup": "S10",
   /** REFERENCE: S11 — Waiting (§S11; REQ-029) */
   "/setup/waiting": "S11",
+  /**
+   * REFERENCE: S11 — Waiting (§S11), the nearest approved screen (#753).
+   *
+   * `/setup/zone` is newer than the approved set, so no screen was drawn
+   * for it. It is paired with S11 because it is the same kind of screen:
+   * outside the shell, holding a founder until one fact arrives and then
+   * releasing them into `/app`. Not S8 — it is not an error — and not S10,
+   * which asks three questions this screen never asks.
+   */
+  "/setup/zone": "S11",
   /** REFERENCE: S12 — Overview, week 0 is S13 (§S12, §S13; REQ-040…042, 092) */
   "/app": "S12",
   /** REFERENCE: S14 — Calendar, panel states S15 (§S14, §S15; REQ-043, REQ-044) */

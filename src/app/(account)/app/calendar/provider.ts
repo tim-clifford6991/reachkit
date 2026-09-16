@@ -42,9 +42,8 @@
 // does for a real site whose supply has run out.
 import { cache } from "react";
 import { now as clock } from "@/lib/config/now";
-import { redirect } from "next/navigation";
 import type { SupplyNotice } from "@/lib/opportunities";
-import { isReservedFixtureAccount, requireAppAccount } from "../_session/account";
+import { isReservedFixtureAccount, redirectForMissingZone, requireAppAccount } from "../_session/account";
 import { assembleMonth, type MonthModel } from "./month";
 import { dayKeyOf, monthOf, type MonthKey } from "./dates";
 import { FIXTURE_CALENDAR_FACTS } from "./fixture";
@@ -69,7 +68,7 @@ const fromSession: CalendarSiteReader = async () => {
   const account = await requireAppAccount();
   if (isReservedFixtureAccount(account)) return null;
   // REQ-073 c1: a site with no stated zone is never drawn in the server's.
-  if (account.timeZone === null) redirect("/setup");
+  if (account.timeZone === null) return redirectForMissingZone();
   return { siteId: account.siteId, timeZone: account.timeZone };
 };
 

@@ -245,6 +245,16 @@ export const SETUP_COPY = Object.freeze({
     { slots: {}, fixedBy: "S11 · 11a" },
   ],
 
+  // ── No stated time zone yet (issue 753) ─────────────────────────────
+  //
+  // Where a founder who finished setup lands while their site has no zone:
+  // the app draws every date in the site's own zone and never in the
+  // server's (REQ-073 c1), so it cannot open yet. The browser reports its
+  // zone from this screen and the founder is taken on to the app. Both
+  // sentences are the owner's and unwritten, so each renders the marker.
+  "setup.zone.head": ["TODO(copy)", { slots: {}, fixedBy: "issue 753" }],
+  "setup.zone.line": ["TODO(copy)", { slots: {}, fixedBy: "issue 753" }],
+
   // ── Your site, as we read it (SPEC.md §5, 2026-09-12) ───────────────
   //
   // §5's "The site profile is confirmed here": the page inventory and the
