@@ -83,6 +83,7 @@ const FIXTURE_QUESTIONS = Object.freeze(
  *  corrected category re-derives the twelve over (§12 ruling 4). Data in
  *  the stored shape: searches and volumes, never a sentence. */
 const FIXTURE_MARKET = Object.freeze({
+  ownRanked: 400,
   profile: Object.freeze({
     category: "project management software for agencies",
     job: "manage client projects",

@@ -1071,7 +1071,10 @@ async function readMarket(a: StageArgs, abandoned: () => boolean): Promise<void>
   if (market.kind === "unmeasured") return;
 
   const category = a.category === undefined ? {} : { category: a.category };
-  sections.selected = selectTwelve({ profile: profile.value, market: [...market.value], ...category });
+  // The site's own footprint, the same number derivation bands by: selection
+  // never takes a search outsized for it (SPEC §6 right-sizing, issue 830).
+  const ownRanked = ownRankedValue(measurement.ownRanked);
+  sections.selected = selectTwelve({ profile: profile.value, market: [...market.value], ownRanked, ...category });
   if (!isShort(sections.selected)) return phrase(a, abandoned);
 
   // Short. Widen in SPEC §6's order, stopping as soon as twelve survive:
@@ -1086,6 +1089,7 @@ async function readMarket(a: StageArgs, abandoned: () => boolean): Promise<void>
       profile: profile.value,
       suggestions: rows.kind === "unmeasured" ? [] : rows.value,
       pool: poolOf(sections),
+      ownRanked,
       ...category,
       ...(floors === undefined ? {} : { floors }),
     });
