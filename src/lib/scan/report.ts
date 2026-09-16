@@ -367,12 +367,13 @@ export interface StoredReport {
    *  Capped by the row limit the pass bought, which understates it and so
    *  tightens both bars (issue #117). */
   ownRanked: Measured<number>;
-  /** The rows `ownRanked` counts — each search the customer ranks for, its
-   *  position and the url that ranks — from the same answer, bought once.
-   *  §7's Improve family reads its update candidates here (2026-09-16):
-   *  the site's own ranked pages, not only the home document. `unmeasured`
-   *  on a report written before it was kept (version ≤ 8). */
-  ownRankings: Measured<readonly RankedRow[]>;
+  /** The rows `ownRanked` counts — `DomainMeasurement.ownRankedRows` (#778),
+   *  kept on the record: each search the customer ranks for, its position
+   *  and the url that ranks, bought once. §7's Improve family reads its
+   *  update candidates here (2026-09-16), the site's own ranked pages and
+   *  not only the home document. Empty where the call was not made or did
+   *  not answer, and on a report written before it was kept (version ≤ 8). */
+  ownRankedRows: readonly RankedRow[];
   /** §6.6's platform partition — the "sources" half. Stored, not rendered
    *  in MVP. */
   sources: readonly string[];
@@ -566,17 +567,12 @@ function upgradeFromVersion7(blob: Record<string, unknown>): Record<string, unkn
  * Version 8 → 9 (#780): the report keeps the customer's own ranked rows.
  *
  * A version-8 report counted them and did not keep them, so none is
- * recovered: `ownRankings` arrives `not_attempted` at the report's own date,
- * and Improve reads only the top tens that report bought.
+ * recovered: `ownRankedRows` arrives empty, the measurement's own arm for
+ * rows it does not hold, and Improve reads only the top tens that report
+ * bought.
  */
 function upgradeFromVersion8(blob: Record<string, unknown>): Record<string, unknown> {
-  const verdict = blob.verdict;
-  const at = isRecord(verdict) ? verdict.measuredAt : undefined;
-  return {
-    ...blob,
-    version: REPORT_VERSION,
-    ownRankings: { kind: "unmeasured", reason: "not_attempted", at },
-  };
+  return { ...blob, version: REPORT_VERSION, ownRankedRows: [] };
 }
 
 /** Every upgrade this build can apply, oldest first, each lifting a blob

@@ -10,7 +10,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { captureStages, fakeDb } from "./harness";
 import { memoryStore, newMemoryState, type MemoryState } from "../../opportunities/memory-store";
-import { measured, measuredZero, unmeasured } from "../../../src/lib/measure/measured";
+import { measured, unmeasured } from "../../../src/lib/measure/measured";
 import type { DomainMeasurement } from "../../../src/lib/measure";
 import type { Question } from "../../../src/lib/market/questions/phrase";
 import type { StoredReport } from "../../../src/lib/scan/report";
@@ -93,22 +93,23 @@ const SITE_ID = "22222222-2222-4222-8222-222222222222";
 const DOMAIN = "example.com";
 const BLOG_POST = "https://example.com/blog/user-onboarding-checklist";
 
-/** Two questions of the same demand and the same intent: one the site's
- *  blog post ranks 12 for, one it has no page for. */
+/** Two questions of the same demand and the same intent, both small enough
+ *  for a site this size (§6's right-sizing law): one the site's blog post
+ *  ranks 12 for, one it has no page for. */
 const CHECKLIST: Question = {
   ...QUESTION,
   id: "q1",
   text: "What belongs on a user onboarding checklist?",
-  search: { ...SELECTED, keyword: "best user onboarding checklist", volume: 1900 },
+  search: { ...SELECTED, keyword: "best user onboarding checklist", volume: 150 },
 };
 const TOURS: Question = {
   ...QUESTION,
   id: "q2",
   text: "Which product tour tool is best?",
-  search: { ...SELECTED, keyword: "best product tour tool", volume: 1900, rank: 2 },
+  search: { ...SELECTED, keyword: "best product tour tool", volume: 150, rank: 2 },
 };
 
-function measurement(ownRankings: DomainMeasurement["ownRankings"]): DomainMeasurement {
+function measurement(ownRankedRows: DomainMeasurement["ownRankedRows"]): DomainMeasurement {
   return {
     drivers: {
       foundations: measured(52, AT),
@@ -122,15 +123,12 @@ function measurement(ownRankings: DomainMeasurement["ownRankings"]): DomainMeasu
     pricing: null,
     robots: measured(ROBOTS, AT),
     ownRanked: measured(3, AT),
-    ownRankings,
+    ownRankedRows,
     homeRefusal: null,
   };
 }
 
-const RANKED_BLOG_POST = measured(
-  [{ keyword: CHECKLIST.search.keyword, position: 12, searchVolume: 1900, url: BLOG_POST }],
-  AT
-);
+const RANKED_BLOG_POST = [{ keyword: CHECKLIST.search.keyword, position: 12, searchVolume: 150, url: BLOG_POST }];
 
 const answered = (cited: string[]): AiAnswer => ({ answered: true, text: "…", citedDomains: cited });
 
@@ -199,7 +197,7 @@ async function deepPass(): Promise<StoredReport> {
 describe("SPEC §7 (2026-09-16) — update candidates are the site's own ranked pages", () => {
   it("keeps the site's own ranked rows on the stored report, from the one call", async () => {
     const report = await deepPass();
-    expect(report.ownRankings).toEqual(RANKED_BLOG_POST);
+    expect(report.ownRankedRows).toEqual(RANKED_BLOG_POST);
   });
 
   it("a blog post ranking 12 for a market question yields an Improve for that url, and it outranks a comparable new page", async () => {
@@ -222,7 +220,7 @@ describe("SPEC §7 (2026-09-16) — update candidates are the site's own ranked 
   });
 
   it("without the ranked rows the same pass has no page to update — the home page is not invented as one", async () => {
-    measureDomain.mockResolvedValue(measurement(measuredZero([], AT)));
+    measureDomain.mockResolvedValue(measurement([]));
     await deepPass();
     expect(state.rows.filter((row) => row.family === "improve")).toEqual([]);
   });

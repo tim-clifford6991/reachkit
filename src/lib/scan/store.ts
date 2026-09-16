@@ -75,7 +75,7 @@ export interface ReportSections {
   rivals: Measured<RivalCandidate[]>;
   rivalSizes: Measured<RivalSize[]>;
   ownRanked: Measured<number>;
-  ownRankings: Measured<readonly RankedRow[]>;
+  ownRankedRows: readonly RankedRow[];
   sources: readonly string[];
   onPage: Measured<OnPageFacts>;
   robots: Measured<RobotsPolicy>;
@@ -108,7 +108,7 @@ export function assembleReport(s: ReportSections): StoredReport {
     rivals: s.rivals,
     rivalSizes: s.rivalSizes,
     ownRanked: s.ownRanked,
-    ownRankings: s.ownRankings,
+    ownRankedRows: s.ownRankedRows,
     sources: s.sources,
     onPage: s.onPage,
     robots: s.robots,

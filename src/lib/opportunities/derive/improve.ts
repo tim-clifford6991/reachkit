@@ -33,7 +33,7 @@
 // A page is an update candidate for a question where the site ranks it
 // inside the position band for that question's search — read off the
 // question's own bought top ten, or off the site's own ranked rows
-// (`report.ownRankings`, the answer `ownRanked` counts, bought once) for
+// (`report.ownRankedRows`, the answer `ownRanked` counts, bought once) for
 // the same search or one of its parent topic (`clusterKey`, the key
 // Improve shares with the cluster step). A site already in the top three
 // for the search has nothing to improve for it. Where several of its pages
@@ -50,7 +50,7 @@ import { isOwnDomain, registrableDomain } from "@/lib/market/rivals/domains";
 import { measured } from "@/lib/measure/measured";
 import type { StoredReport } from "@/lib/scan/report";
 import type { InventoryRow } from "@/lib/site-profile/types";
-import { bandWinnability } from "../winnability/band";
+import { demandBand, rightSizedBand } from "../winnability/band";
 import { rankedCountsFor, type RankedCounts } from "../winnability/counts";
 import { FAMILY_OF, noRejections, type Evidence, type Shortfall } from "../types";
 import { brandTokensOf, canonicalUrl, clusterKey } from "../cluster";
@@ -102,7 +102,7 @@ export function improveCandidates(a: ImproveInput): DerivationResult {
   const ownDomain = registrableDomain(report.domain) ?? report.domain;
   const answerRows = report.aiAnswers?.rows ?? [];
   const brandTokens = brandTokensOf(report);
-  const ranked = report.ownRankings.kind === "unmeasured" ? [] : report.ownRankings.value;
+  const ranked = report.ownRankedRows;
   const inventory = new Map((a.inventory ?? []).map((row) => [canonicalUrl(row.url), row] as const));
 
   const topical = (url: string, topic: ReadonlySet<string>): boolean => {
@@ -167,18 +167,26 @@ export function improveCandidates(a: ImproveInput): DerivationResult {
     if (chosen === undefined || chosen === null) return;
     const { row, type, shortfall } = chosen;
 
-    // Winnability gates `keyword_page` only (SPEC §6, 2026-09-15); no
-    // Improve type is one, so the band is recorded and never drops a page.
-    // It is the same band a Write for this search gets, so both sides of
-    // the daily decision are sized the same way (§7, 2026-09-16).
-    const band = bandWinnability({
+    // The same sizing a Write for this search gets, so both sides of the
+    // daily decision are right-sized alike (§7, 2026-09-16): a search
+    // outsized for the site offers no update either (§6, 2026-09-16). The
+    // competition bar gates `keyword_page` only (§6, 2026-09-15), and no
+    // Improve type is one, so otherwise the band is recorded and never
+    // drops a page.
+    const sizing = {
       top10RankedCounts: rankedCountsFor(
         serp.organic.map((organic) => registrableDomain(organic.domain) ?? organic.domain),
         a.rankedCounts,
         at
       ),
       ownRanked: a.ownRanked,
-    });
+      volume: question.search.volume,
+    };
+    if (demandBand(sizing) === "not-yet") {
+      result.rejected.not_yet += 1;
+      return;
+    }
+    const band = rightSizedBand(sizing);
 
     const volume = measured(question.search.volume, at);
     const evidence: Evidence = {

@@ -251,13 +251,13 @@ describe("SPEC §7 (2026-09-16): update candidates are the site's own pages, not
   const rivalsOnly = serp();
 
   function ranked(rows: { keyword: string; position: number; url: string }[]) {
-    return measured(rows.map((row) => ({ ...row, searchVolume: 1900 })), AT);
+    return rows.map((row) => ({ ...row, searchVolume: 190 }));
   }
 
   it("a blog post the site's own ranked rows put at 12 for the question becomes an Improve of that url", () => {
     const report = reportOf(
       { questions: [question()], serps: [rivalsOnly] },
-      { ownRankings: ranked([{ keyword: "best user onboarding software", position: 12, url: POST }]) }
+      { ownRankedRows: ranked([{ keyword: "best user onboarding software", position: 12, url: POST }]) }
     );
     const { candidates, assessed } = improveCandidates({ ...base, report, rankedCounts: smallCounts() });
     expect(assessed).toBe(1);
@@ -289,13 +289,13 @@ describe("SPEC §7 (2026-09-16): update candidates are the site's own pages, not
   it("a ranked row in the question's parent topic matches it; an unrelated search does not", () => {
     const sibling = reportOf(
       { questions: [question()], serps: [rivalsOnly] },
-      { ownRankings: ranked([{ keyword: "user onboarding softwares best", position: 20, url: POST }]) }
+      { ownRankedRows: ranked([{ keyword: "user onboarding softwares best", position: 20, url: POST }]) }
     );
     expect(improveCandidates({ ...base, report: sibling, rankedCounts: smallCounts() }).candidates).toHaveLength(1);
 
     const unrelated = reportOf(
       { questions: [question()], serps: [rivalsOnly] },
-      { ownRankings: ranked([{ keyword: "pricing page examples", position: 12, url: POST }]) }
+      { ownRankedRows: ranked([{ keyword: "pricing page examples", position: 12, url: POST }]) }
     );
     expect(improveCandidates({ ...base, report: unrelated, rankedCounts: smallCounts() }).candidates).toEqual([]);
   });
@@ -308,9 +308,19 @@ describe("SPEC §7 (2026-09-16): update candidates are the site's own pages, not
         { keyword: "best user onboarding software", position: 12, url: POST },
       ],
     ]) {
-      const report = reportOf({ questions: [question()], serps: [rivalsOnly] }, { ownRankings: ranked(rows) });
+      const report = reportOf({ questions: [question()], serps: [rivalsOnly] }, { ownRankedRows: ranked(rows) });
       expect(improveCandidates({ ...base, report, rankedCounts: smallCounts() }).candidates).toEqual([]);
     }
+  });
+
+  it("a search outsized for the site offers no update either — both sides are right-sized alike", () => {
+    const report = reportOf(
+      { questions: [question({ search: search({ volume: 50_000 }) })], serps: [rivalsOnly] },
+      { ownRankedRows: ranked([{ keyword: "best user onboarding software", position: 12, url: POST }]) }
+    );
+    const result = improveCandidates({ ...base, report, rankedCounts: smallCounts() });
+    expect(result.candidates).toEqual([]);
+    expect(result.rejected.not_yet).toBe(1);
   });
 
   it("of two ranking pages, the one the crawl read as about the question goes first, over a better position", () => {
@@ -318,7 +328,7 @@ describe("SPEC §7 (2026-09-16): update candidates are the site's own pages, not
     const report = reportOf(
       { questions: [question()], serps: [rivalsOnly] },
       {
-        ownRankings: ranked([
+        ownRankedRows: ranked([
           { keyword: "best user onboarding software", position: 8, url: OTHER },
           { keyword: "best user onboarding software", position: 15, url: POST },
         ]),
@@ -344,7 +354,7 @@ describe("SPEC §7 (2026-09-16): update candidates are the site's own pages, not
     const report = reportOf(
       { questions: [question(), second], serps: [rivalsOnly, rivalsOnly] },
       {
-        ownRankings: ranked([
+        ownRankedRows: ranked([
           { keyword: "best user onboarding software", position: 12, url: POST },
           { keyword: "best product tour tool", position: 9, url: TOURS },
         ]),

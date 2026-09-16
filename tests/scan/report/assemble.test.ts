@@ -45,7 +45,7 @@ const REPORT_KEYS = [
   "rivalSizes",
   "ownRanked",
   // The rows that count is read off, kept for Improve under #780.
-  "ownRankings",
+  "ownRankedRows",
   "sources",
   "onPage",
   "robots",

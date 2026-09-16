@@ -125,7 +125,7 @@ function measurement(over: Partial<DomainMeasurement> = {}): DomainMeasurement {
     pricing: null,
     robots: measured(ROBOTS, AT),
     ownRanked: measuredZero(0, AT),
-    ownRankings: measuredZero([], AT),
+    ownRankedRows: [],
     homeRefusal: null,
     ...over,
   };
