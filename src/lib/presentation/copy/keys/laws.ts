@@ -158,6 +158,13 @@ export const LAWS_COPY = Object.freeze({
     "First page after the deep pass",
     { slots: {}, fixedBy: "S13" },
   ],
+  /** Issue #782: Overview and Calendar while the onboarding pass and the
+   *  first draft run in the background, the founder already in the app.
+   *  Drafted in the registry's voice; the owner may correct it. */
+  "shell.onboarding.first-page": [
+    "Your first page is being written. This screen updates itself when it’s ready — you can leave it open or come back later.",
+    { slots: {}, fixedBy: "issue 782" },
+  ],
   // Both approved as written by the screen set (ruling 11a): S12's domain
   // block reads "Week 6 · re-measured Mon 1 Sep" and S13's — the week the
   // first Monday has not come — reads "not measured yet · first due Mon 8

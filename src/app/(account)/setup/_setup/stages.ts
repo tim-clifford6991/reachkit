@@ -18,10 +18,11 @@
 //      and the twelve live SERPs are where rivals are seen, so both are
 //      "sizing your rivals". This is the many-to-one the drawing asks for,
 //      and it is why the screen shows five rows and not six.
-//   2. **Rows four and five hold no handle, and light for no pass.** The
-//      engine's six end at `scoring`; writing the page and checking it are
-//      §8's and §9's, and the founder is released into the app as they
-//      happen. The set draws both rows blank for the same reason — they
+//   2. **Rows four and five hold no handle.** The engine's six end at
+//      `scoring`; writing the page and checking it are §8's and §9's. Row
+//      four lights for the first draft, which the pass writes before it
+//      releases the founder (issue #782) under its own stage value; row
+//      five lights for no pass. The set draws both rows blank for the same reason — they
 //      say what is coming, not what is running. A row that could never be
 //      current would be a defect if the set did not draw it; it does.
 //   3. **The order is the engine's, not this file's.** `ROW_STAGES` lists
@@ -31,6 +32,7 @@
 //      the wrong row.
 import type { CopyKey } from "@/lib/presentation/copy";
 import type { StageName } from "@/lib/scan/stages";
+import type { OnboardingStage } from "@/lib/scan/deep/progress";
 
 /** The five rows S11 draws, in its order. */
 export const DRAWN_ROWS = [
@@ -68,7 +70,10 @@ export const ROW_STAGES: Readonly<Record<DrawnRow, readonly StageName[]>> = Obje
 
 /** Which row a handle is drawn on. Derived from `ROW_STAGES`, so the two
  *  cannot disagree. */
-export function rowOf(stage: StageName): DrawnRow | null {
+export function rowOf(stage: OnboardingStage): DrawnRow | null {
+  // The first draft is written after the scan and before the release (issue
+  // #782), so row four is current while it is.
+  if (stage === "writing_first_draft") return "writing_your_first_page";
   for (const row of DRAWN_ROWS) {
     if (ROW_STAGES[row].includes(stage)) return row;
   }
@@ -96,7 +101,7 @@ export interface DrawnStage {
  * several handles they hold rather than across one of them.
  */
 export function drawnStages(a: {
-  stage: StageName;
+  stage: OnboardingStage;
   enteredAt: Readonly<Partial<Record<StageName, string>>>;
 }): readonly DrawnStage[] {
   const current = rowOf(a.stage);

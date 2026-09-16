@@ -171,9 +171,9 @@ export function setupRedirectFor(a: {
   if (a.setup.complete) {
     // "when they return to it, then they are not asked the three
     // decisions again and are taken onward" (REQ-025 c4). Only `/setup`
-    // itself is redirected — `/setup/waiting` is where a founder waits
-    // out their own pass, and the release decision there is
-    // `waiting/release.ts`'s, not this file's.
+    // itself is redirected — `/setup/waiting` now sends everyone to the
+    // app on its own (issue #782), and `/setup/zone` is a finished
+    // founder's to reach.
     return a.path === SETUP_PATH ? APP_PATH : null;
   }
 

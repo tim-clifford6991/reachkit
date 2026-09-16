@@ -46,6 +46,7 @@ import {
   stopHosting,
   type EngineResult,
 } from "@/jobs/engine";
+import { deepPassBackstop } from "./deep-pass-backstop";
 import { MAINTENANCE_TICK_MINUTES } from "@/lib/config/constants";
 import { fanOut, settle } from "./fan-out";
 import type { JobDefinition, Outcome } from "./types";
@@ -91,6 +92,7 @@ const DUE_WORK: readonly {
   { due: accountsDuePaymentFailed, handOff: noticePaymentFailed },
   { due: accountsDueCancellation, handOff: noticeCancellation },
   { due: accountsDueWinback, handOff: winBack },
+  deepPassBackstop,
 ]);
 
 export const accountMaintenance: JobDefinition = {

@@ -103,6 +103,11 @@ const PAYLOADS: Readonly<Record<string, Readonly<Record<string, unknown>>>> = {
 async function invoke(id: JobId, killSwitch: boolean) {
   stubEnv(killSwitch);
   vi.doMock("@/jobs/engine", () => engineDouble());
+  // Issue #782's obligation reads `sites` and `scans` through its own module.
+  vi.doMock("@/lib/scan/deep/backstop", () => ({
+    sitesWithoutDeepPass: async () => [],
+    deepPassDomain: async () => null,
+  }));
   const { jobs } = await import("@/jobs");
   const { runJob } = await import("@/jobs/run");
   const definition = jobs.find((j: JobDefinition) => j.id === id);

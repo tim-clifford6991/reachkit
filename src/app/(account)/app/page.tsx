@@ -23,6 +23,8 @@
 import type React from "react";
 import { readShell } from "./_shell/provider";
 import { readOverview } from "./_overview/provider";
+import { readOnboarding } from "./_shell/onboarding";
+import { FirstPageNotice } from "./_shell/OnboardingStatus";
 import { GrowthModule } from "./_overview/GrowthModule";
 import { HeadModule } from "./_overview/HeadModule";
 import { RivalModule } from "./_overview/RivalModule";
@@ -35,10 +37,11 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
   // the shell's own request-cached provider rather than restated here: two
   // readers of a customer's time zone is how two parts of one screen come to
   // state two different days.
-  const [shell, overview] = await Promise.all([readShell(), readOverview()]);
+  const [shell, overview, onboarding] = await Promise.all([readShell(), readOverview(), readOnboarding()]);
 
   return (
     <div className="flex min-w-0 flex-col gap-6" data-testid="overview">
+      <FirstPageNotice state={onboarding} />
       <HeadModule head={overview.head} />
       <GrowthModule growth={overview.growth} timeZone={shell.timeZone} />
       <TileRow

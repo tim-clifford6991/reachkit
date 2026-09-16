@@ -83,7 +83,6 @@ const { default: AppLayout } = await import("@/app/(account)/app/layout");
 const { default: AppPage } = await import("@/app/(account)/app/page");
 const { currentCalendarSite } = await import("@/app/(account)/app/calendar/provider");
 const { default: SetupPage } = await import("@/app/(account)/setup/page");
-const { default: WaitingPage } = await import("@/app/(account)/setup/waiting/page");
 const { default: ZonePage } = await import("@/app/(account)/setup/zone/page");
 const { BrowserZone } = await import("@/app/(account)/_zone/BrowserZone");
 const { reportBrowserZone } = await import("@/app/(account)/_zone/actions");
@@ -107,7 +106,6 @@ const SCREENS: Readonly<Record<string, readonly Entry[]>> = {
   "/app/calendar": [() => AppLayout({ children: null }), () => currentCalendarSite()],
   "/app/settings": [() => AppLayout({ children: null })],
   "/setup": [() => SetupPage()],
-  "/setup/waiting": [() => WaitingPage()],
   "/setup/zone": [() => ZonePage()],
 };
 
@@ -194,7 +192,7 @@ afterEach(() => {
 describe("#753 — a founder who finished setup, with no time zone, is not bounced between /setup and /app", () => {
   beforeEach(() => seedSite({ completed: true, timezone: null }));
 
-  it.each([SETUP_PATH, APP_PATH, "/setup/waiting", "/app/calendar"])(
+  it.each([SETUP_PATH, APP_PATH, "/app/calendar"])(
     "asking for %s ends on the zone screen, and the walk terminates",
     async (start) => {
       expect([...(await landings(start))]).toEqual([ZONE_PATH]);

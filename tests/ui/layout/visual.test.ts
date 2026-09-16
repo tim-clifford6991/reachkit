@@ -526,7 +526,7 @@ describe(`visual baselines — ${SHOTS.length} surface(s) × ${BANDS.length} ban
   });
 
   it("both setup screens are photographed signed in, as the founder who is still in setup", () => {
-    expect(SETUP_ROUTES.map((route) => route.path).sort()).toEqual(["/setup", "/setup/waiting"]);
+    expect(SETUP_ROUTES.map((route) => route.path).sort()).toEqual(["/setup"]);
     expect(SETUP_ROUTES.every((route) => route.cookie === getSetupAccountCookie())).toBe(true);
     // The four signed-in sets are four different accounts, which is the
     // only reason there are four: a picture signed in as an account that is

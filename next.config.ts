@@ -89,6 +89,12 @@ export const SECURITY_HEADERS: readonly { key: string; value: string }[] = [
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["@supabase/supabase-js"],
+  // Issue #782: the waiting screen is gone — a founder waits for their pass
+  // inside the app, where the side panel says which step is running. An old
+  // tab or a saved link still reaches the app.
+  async redirects() {
+    return [{ source: "/setup/waiting", destination: "/app", permanent: false }];
+  },
   async headers() {
     return [
       // Issue #331: every path, every response.

@@ -1,4 +1,6 @@
-// BUILD §4.3 — when the waiting screen lets go.
+// BUILD §4.3 — when the waiting screen lets go. Since issue #782 there is
+// no waiting screen to hold anyone; the rule stands for the app's side
+// panel, which refreshes the app when a pass stops running.
 //
 // "on completion straight to the app with the first draft already in the
 // calendar. A degraded pass still releases setup (zero proposals is legal,

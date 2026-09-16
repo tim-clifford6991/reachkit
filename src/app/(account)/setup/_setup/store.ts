@@ -23,7 +23,7 @@
 // `POST /api/setup` resolves the founder from the session and this store
 // reads and writes that founder's own rows. The two are one switch —
 // `provider.ts` says why.
-import { sendJobEvent } from "@/jobs/client";
+import { sendDeepPass } from "@/jobs/deep-pass-backstop";
 import { hasActiveAccess } from "@/lib/account/billing";
 import { dbAdmin } from "@/lib/db";
 import { resolvesInDns } from "@/lib/egress/dns";
@@ -286,12 +286,7 @@ export function liveSetupStore(): SetupStore {
       const row = site.data?.[0];
       if (row === undefined) throw new Error(`enqueueDeepPass: no site ${siteId}`);
 
-      await sendJobEvent("scan/run", {
-        scanId: `setup-${siteId}`,
-        domain: row.domain,
-        tier: "deep",
-        siteId,
-      });
+      await sendDeepPass({ siteId, domain: row.domain });
     },
   };
 }
