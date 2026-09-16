@@ -169,7 +169,10 @@ export type Admission =
   | { refuse: "daily"; retryAfterSeconds: number }
   | { refuse: "switched_off" }
   | { refuse: "cooldown"; retryAfterSeconds: number }
-  | { refuse: "removed" };
+  | { refuse: "removed" }
+  /** A bound could not be read (issue #792). No scan starts on a count
+   *  nobody has; the visitor did not cause it. */
+  | { refuse: "unreadable" };
 
 // ── The narrow, explicitly cast escape hatch for the two schema gaps ────
 
@@ -296,7 +299,8 @@ async function checkCooldown(client: Client, domain: CanonicalDomain): Promise<A
 async function checkDailySpend(): Promise<Admission | null> {
   const at = now();
   const spentCents = await readDaySpendCents(at);
-  if (spentCents === null || !ceilingReached(spentCents)) return null;
+  if (spentCents === null) throw new Error("daily spend unreadable");
+  if (!ceilingReached(spentCents)) return null;
   return { refuse: "daily", retryAfterSeconds: secondsUntilDayRollsOver(at) };
 }
 
@@ -397,7 +401,7 @@ async function evaluateAdmission(
   domain: CanonicalDomain,
   network: NetworkKey
 ): Promise<{ result: Admission; step: FreeStep }> {
-  // Step 1 — removed. Outside the fail-open handler (WO-057 `## Steps`
+  // Step 1 — removed. Outside the handler below (WO-057 `## Steps`
   // step 4, BP-023 `## Error & edge behavior`): a removal-table read
   // that errors refuses rather than admits, because failing open there
   // would serve a removed report, which REQ-002 criterion 3 forbids
@@ -411,9 +415,9 @@ async function evaluateAdmission(
   if (removed) return { result: { refuse: "removed" }, step: "removed" };
 
   // Steps 2 to 6 — cooldown, switched off, daily, in-flight, hourly — are
-  // wrapped in one fail-open handler: any read error here admits (REQ-003
-  // c9), and the failure is logged as such (the step that threw is the
-  // step the log line names).
+  // wrapped in one handler that fails closed (issue #792; SPEC §2 states
+  // the bounds and no fail-open): any read error here refuses, and the
+  // log line names the step that threw. The next request asks again.
   let step: FreeStep = "cooldown";
   try {
     const cooldown = await checkCooldown(client, domain);
@@ -444,7 +448,7 @@ async function evaluateAdmission(
 
     return { result: { admit: true }, step: "none" };
   } catch {
-    return { result: { admit: true }, step };
+    return { result: { refuse: "unreadable" }, step };
   }
 }
 

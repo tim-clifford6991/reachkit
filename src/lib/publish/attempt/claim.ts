@@ -82,6 +82,9 @@ export type HeldBy =
   | "ceiling_day"
   | "ceiling_week"
   | "zone_not_set"
+  /** The ceilings could not be counted (issue #792) — held, never counted
+   *  as nothing published. */
+  | "ceiling_unreadable"
   | "destination_not_working"
   | "not_publishable"
   | "telling_owed"
@@ -263,6 +266,7 @@ async function heldWord(
       if (room.room) return "ceiling_day";
       if (room.blockedBy === "week") return "ceiling_week";
       if (room.blockedBy === "zone_not_set") return "zone_not_set";
+      if (room.blockedBy === "unreadable") return "ceiling_unreadable";
       return "ceiling_day";
     }
     default:
