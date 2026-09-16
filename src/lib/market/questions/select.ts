@@ -23,6 +23,7 @@
 // rule WO-073 step 4 wrote down would keep it alive on `onboarding` alone.
 // Where the spec rules, the archived plan does not re-open it (CLAUDE.md).
 import { BATTERY, SELECTION } from "@/lib/config/constants";
+import { qualifyingDemand } from "@/lib/opportunities/winnability/bars";
 import type { Profile } from "./profile";
 import type { SuggestionRow } from "./market-set";
 
@@ -293,7 +294,8 @@ const FLOORS: ReadonlyArray<readonly [Intent, number]> = Object.freeze([
  * The twelve — or as many as the market yielded.
  *
  * `score = intentWeight × log10(volume + 1)`, volume floor 50/mo unless the
- * caller steps it down (SPEC §6 thin markets, `widen.ts`), own-brand
+ * caller steps it down (SPEC §6 thin markets, `widen.ts`), volume ceiling
+ * `qualifyingDemand(ownRanked)` (SPEC §6 right-sizing, issue 830), own-brand
  * dropped, relevance guard against the profile's vocabulary, near-duplicate
  * collapse, composition constraints. Pure: no context, no clock, no I/O.
  *
@@ -311,13 +313,22 @@ export function selectTwelve(a: {
   /** The volume floor, one of `SELECTION.volumeSteps`. Defaults to the
    *  first step. */
   floor?: number;
+  /** How many keywords the site itself ranks for — the footprint the
+   *  demand ceiling scales with, the same number derivation bands by
+   *  (unmeasured reads as the cold-start 0). Required: a selection that
+   *  never saw the site's size could pick a head term it cannot win. */
+  ownRanked: number;
 }): SelectedSearch[] {
   const { profile } = a;
   const floor = a.floor ?? SELECTION.volumeFloorPerMonth;
+  // SPEC §6 right-sizing law (2026-09-16, issue 830): a search above the
+  // most demand this site may be offered is not a question for it at all —
+  // it takes no slot among the twelve and buys no SERP or battery call.
+  const ceiling = qualifyingDemand(a.ownRanked);
 
   const survivors: Candidate[] = [];
   for (const row of a.market) {
-    if (row.volume < floor) continue;
+    if (row.volume < floor || row.volume > ceiling) continue;
     const intent = classifyIntent(row.keyword, profile);
     if (intent === "own_brand") continue;
     const rivals = row.rivals ?? [];

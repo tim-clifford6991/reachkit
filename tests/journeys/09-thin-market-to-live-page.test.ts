@@ -458,6 +458,7 @@ const { releaseNotice } = await import("../../src/lib/scan/deep/notice");
 const { onboardingPanel } = await import("../../src/app/(account)/app/_shell/onboarding");
 const { passProgressFor } = await import("../../src/lib/scan/deep/progress");
 const { demandBand } = await import("../../src/lib/opportunities/winnability/band");
+const { qualifyingDemand } = await import("../../src/lib/opportunities/winnability/bars");
 
 import type { JobDefinition, Outcome } from "../../src/jobs/types";
 
@@ -725,6 +726,19 @@ describe("a new site in a thin market goes from setup to a published right-sized
       const seeds = vendorRequests.filter((request) => request.url.includes("keyword_suggestions"));
       expect(seeds.length).toBeGreaterThan(1);
       expect(seeds.length).toBeLessThanOrEqual(4);
+
+      // Right-sized at selection (issue 830): no stored question is a search
+      // outsized for a site that ranks for three keywords, and the head term
+      // is never bought — no SERP and no battery call names it.
+      for (const question of report.questions.value) {
+        expect(question.search.volume).toBeLessThanOrEqual(qualifyingDemand(OWN_RANKED.length));
+      }
+      expect(report.questions.value.map((q) => q.search.keyword)).not.toContain(HEAD_TERM);
+      const bought = vendorRequests.filter((request) =>
+        ["serp/google/organic", "llm_scraper", "ai_mode"].some((path) => request.url.includes(path))
+      );
+      expect(bought.length).toBeGreaterThan(0);
+      expect(bought.filter((request) => request.task.keyword === HEAD_TERM)).toEqual([]);
 
       // ── Derivation: at least one ready opportunity, right-sized for a
       //    site that ranks for three keywords — and never the head term.

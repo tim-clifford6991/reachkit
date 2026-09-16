@@ -17,6 +17,7 @@ import {
   stemKey,
   type Intent,
 } from "../../../src/lib/market/questions/select.ts";
+import { qualifyingDemand } from "../../../src/lib/opportunities/winnability/bars.ts";
 import { QUESTIONS_DIR, runtimeImportClosure } from "./import-graph.ts";
 
 const FIXTURE = JSON.parse(
@@ -24,17 +25,21 @@ const FIXTURE = JSON.parse(
 ) as { profile: Profile; market: SuggestionRow[] };
 
 const PROFILE = FIXTURE.profile;
+/** An established site: 30,000 ranked keywords puts the demand ceiling
+ *  (`qualifyingDemand`) far above every fixture search, so these suites
+ *  read selection's other rules alone. */
+const OWN_RANKED = 30_000;
 
 beforeEach(() => {
   vi.spyOn(console, "log").mockImplementation(() => {});
 });
 
 function keywords(market: SuggestionRow[]): string[] {
-  return selectTwelve({ profile: PROFILE, market }).map((s) => s.keyword);
+  return selectTwelve({ profile: PROFILE, ownRanked: OWN_RANKED, market }).map((s) => s.keyword);
 }
 
 function countIntent(market: SuggestionRow[], intent: Intent): number {
-  return selectTwelve({ profile: PROFILE, market }).filter((s) => s.intent === intent).length;
+  return selectTwelve({ profile: PROFILE, ownRanked: OWN_RANKED, market }).filter((s) => s.intent === intent).length;
 }
 
 /** A seeded LCG — the property tests generate the same markets on every run
@@ -49,9 +54,9 @@ function lcg(seed: number): () => number {
 
 describe("selectTwelve — the fixture, selected byte-identically", () => {
   it("selectTwelve/byte-identical-on-every-run — 100 runs, and a shuffled copy of the same market, yield the identical result including rank and score", () => {
-    const first = selectTwelve({ profile: PROFILE, market: FIXTURE.market });
+    const first = selectTwelve({ profile: PROFILE, ownRanked: OWN_RANKED, market: FIXTURE.market });
     for (let run = 0; run < 100; run++) {
-      expect(selectTwelve({ profile: PROFILE, market: FIXTURE.market })).toEqual(first);
+      expect(selectTwelve({ profile: PROFILE, ownRanked: OWN_RANKED, market: FIXTURE.market })).toEqual(first);
     }
 
     const random = lcg(20260905);
@@ -60,11 +65,11 @@ describe("selectTwelve — the fixture, selected byte-identically", () => {
       const j = Math.floor(random() * (i + 1));
       [shuffled[i], shuffled[j]] = [shuffled[j]!, shuffled[i]!];
     }
-    expect(selectTwelve({ profile: PROFILE, market: shuffled })).toEqual(first);
+    expect(selectTwelve({ profile: PROFILE, ownRanked: OWN_RANKED, market: shuffled })).toEqual(first);
   });
 
   it("selects exactly the twelve, in rank order, ranked 1…12", () => {
-    const selected = selectTwelve({ profile: PROFILE, market: FIXTURE.market });
+    const selected = selectTwelve({ profile: PROFILE, ownRanked: OWN_RANKED, market: FIXTURE.market });
 
     expect(selected).toHaveLength(BATTERY.QUESTIONS);
     expect(selected.map((s) => s.rank)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
@@ -85,7 +90,7 @@ describe("selectTwelve — the fixture, selected byte-identically", () => {
   });
 
   it("scores by the pinned law — intentWeight × log10(volume + 1) — and breaks an exact tie on volume, then on the keyword", () => {
-    const selected = selectTwelve({ profile: PROFILE, market: FIXTURE.market });
+    const selected = selectTwelve({ profile: PROFILE, ownRanked: OWN_RANKED, market: FIXTURE.market });
 
     for (const search of selected) {
       expect(search.score).toBeCloseTo(
@@ -112,7 +117,7 @@ describe("selectTwelve — what never reaches the ranking", () => {
 
     expect(selected).not.toContain("user onboarding tooltip guide"); // 40/mo
     expect(selected).not.toContain("product tour walkthrough"); // 20/mo
-    for (const search of selectTwelve({ profile: PROFILE, market: FIXTURE.market })) {
+    for (const search of selectTwelve({ profile: PROFILE, ownRanked: OWN_RANKED, market: FIXTURE.market })) {
       expect(search.volume).toBeGreaterThanOrEqual(SELECTION.volumeFloorPerMonth);
     }
   });
@@ -135,7 +140,7 @@ describe("selectTwelve — what never reaches the ranking", () => {
   });
 
   it("selectTwelve/no-two-share-a-stem-key — near-duplicates collapse to the highest-volume member", () => {
-    const selected = selectTwelve({ profile: PROFILE, market: FIXTURE.market });
+    const selected = selectTwelve({ profile: PROFILE, ownRanked: OWN_RANKED, market: FIXTURE.market });
     const stems = selected.map((s) => stemKey(s.keyword));
     expect(new Set(stems).size).toBe(stems.length);
 
@@ -151,7 +156,7 @@ describe("selectTwelve — what never reaches the ranking", () => {
 
 describe("selectTwelve — the composition constraints (a portfolio, not a leaderboard)", () => {
   it("meets both floors and breaks neither cap on the fixture", () => {
-    const selected = selectTwelve({ profile: PROFILE, market: FIXTURE.market });
+    const selected = selectTwelve({ profile: PROFILE, ownRanked: OWN_RANKED, market: FIXTURE.market });
     const namesRival = (keyword: string) =>
       PROFILE.namedRivals.some((rival) => keyword.toLowerCase().includes(rival));
 
@@ -170,7 +175,7 @@ describe("selectTwelve — the composition constraints (a portfolio, not a leade
   });
 
   it("the rival-brand cap skips a search that would exceed it, even though it outranks the twelfth", () => {
-    const selected = selectTwelve({ profile: PROFILE, market: FIXTURE.market });
+    const selected = selectTwelve({ profile: PROFILE, ownRanked: OWN_RANKED, market: FIXTURE.market });
     const skipped = "best appcues alternative for saas teams";
 
     expect(selected.map((s) => s.keyword)).not.toContain(skipped);
@@ -191,7 +196,7 @@ describe("selectTwelve — the composition constraints (a portfolio, not a leade
       { keyword: "best onboarding tool", volume: 300 },
     ];
 
-    const selected = selectTwelve({ profile: PROFILE, market });
+    const selected = selectTwelve({ profile: PROFILE, ownRanked: OWN_RANKED, market });
 
     expect(selected.filter((s) => /^how to\b/.test(s.keyword))).toHaveLength(SELECTION.maxHowTo);
     expect(selected.map((s) => s.keyword)).toContain("user onboarding software");
@@ -206,7 +211,7 @@ describe("selectTwelve — the composition constraints (a portfolio, not a leade
       market.push({ keyword: `best onboarding ${"walkthrough ".repeat(i)}platform`, volume: 100 - i });
     }
 
-    const selected = selectTwelve({ profile: PROFILE, market });
+    const selected = selectTwelve({ profile: PROFILE, ownRanked: OWN_RANKED, market });
 
     expect(selected).toHaveLength(BATTERY.QUESTIONS);
     expect(countIntent(market, "decision")).toBe(SELECTION.minDecision);
@@ -225,7 +230,7 @@ describe("selectTwelve — the composition constraints (a portfolio, not a leade
       { keyword: "user activation", volume: 200 },
     ];
 
-    const selected = selectTwelve({ profile: PROFILE, market });
+    const selected = selectTwelve({ profile: PROFILE, ownRanked: OWN_RANKED, market });
     const rivals = selected.filter((s) =>
       PROFILE.namedRivals.some((rival) => s.keyword.includes(rival))
     );
@@ -234,6 +239,44 @@ describe("selectTwelve — the composition constraints (a portfolio, not a leade
     expect(selected.filter((s) => s.intent === "decision").length).toBeLessThan(
       SELECTION.minDecision
     );
+  });
+});
+
+describe("selectTwelve — right-sized to the site's own footprint (SPEC §6, 2026-09-16, issue 830)", () => {
+  // The journey 09 shape: one head term beside long-tail rows.
+  const market: SuggestionRow[] = [
+    { keyword: "user onboarding software", volume: 22_000 },
+    { keyword: "user onboarding checklist", volume: 40 },
+    { keyword: "product tour tool", volume: 30 },
+    { keyword: "onboarding tooltip", volume: 20 },
+  ];
+
+  it("a site ranking for 3 keywords is never given a search above qualifyingDemand(3), and the long tail keeps its slots", () => {
+    const selected = selectTwelve({ profile: PROFILE, ownRanked: 3, market, floor: 20 });
+
+    expect(selected.map((s) => s.keyword)).not.toContain("user onboarding software");
+    for (const search of selected) expect(search.volume).toBeLessThanOrEqual(qualifyingDemand(3));
+    expect(selected.map((s) => s.keyword)).toEqual(
+      expect.arrayContaining(["user onboarding checklist", "product tour tool", "onboarding tooltip"])
+    );
+  });
+
+  it("an established site (30,000 ranked) still selects the head term", () => {
+    const selected = selectTwelve({ profile: PROFILE, ownRanked: 30_000, market, floor: 20 });
+
+    expect(selected[0]?.keyword).toBe("user onboarding software");
+  });
+
+  it("the ceiling is the derivation's own bar: a search at it is kept, one above it is not", () => {
+    const at = qualifyingDemand(3);
+    const edge: SuggestionRow[] = [
+      { keyword: "user onboarding software", volume: at },
+      { keyword: "product tour software", volume: at + 1 },
+    ];
+
+    expect(selectTwelve({ profile: PROFILE, ownRanked: 3, market: edge }).map((s) => s.keyword)).toEqual([
+      "user onboarding software",
+    ]);
   });
 });
 
@@ -250,14 +293,14 @@ describe("selectTwelve — fewer than twelve is a complete result (the cold-star
       { keyword: "warehouse management software", volume: 9000 }, // off market
     ];
 
-    const selected = selectTwelve({ profile: PROFILE, market });
+    const selected = selectTwelve({ profile: PROFILE, ownRanked: OWN_RANKED, market });
 
     expect(selected).toHaveLength(5);
     expect(selected.map((s) => s.rank)).toEqual([1, 2, 3, 4, 5]);
   });
 
   it("an empty market selects nothing and completes — a domain that ranks for nothing still finishes this step", () => {
-    expect(selectTwelve({ profile: PROFILE, market: [] })).toEqual([]);
+    expect(selectTwelve({ profile: PROFILE, ownRanked: OWN_RANKED, market: [] })).toEqual([]);
   });
 
   it("a market of nothing but off-market rows selects nothing rather than relaxing the guard to fill twelve", () => {
@@ -266,15 +309,15 @@ describe("selectTwelve — fewer than twelve is a complete result (the cold-star
       volume: 5000,
     }));
 
-    expect(selectTwelve({ profile: PROFILE, market })).toEqual([]);
+    expect(selectTwelve({ profile: PROFILE, ownRanked: OWN_RANKED, market })).toEqual([]);
   });
 
   it("the founder's confirmed category joins the guard's support set — the searches its seed bought survive (#767)", () => {
     const market: SuggestionRow[] = [{ keyword: "warehouse forklift maintenance", volume: 5000 }];
 
-    expect(selectTwelve({ profile: PROFILE, market })).toEqual([]);
+    expect(selectTwelve({ profile: PROFILE, ownRanked: OWN_RANKED, market })).toEqual([]);
     expect(
-      selectTwelve({ profile: PROFILE, market, category: "warehouse forklift maintenance" }).map((s) => s.keyword)
+      selectTwelve({ profile: PROFILE, ownRanked: OWN_RANKED, market, category: "warehouse forklift maintenance" }).map((s) => s.keyword)
     ).toEqual(["warehouse forklift maintenance"]);
   });
 
@@ -289,7 +332,7 @@ describe("selectTwelve — fewer than twelve is a complete result (the cold-star
       }));
       const inMarket = new Set(market.map((row) => row.keyword));
 
-      const selected = selectTwelve({ profile: PROFILE, market });
+      const selected = selectTwelve({ profile: PROFILE, ownRanked: OWN_RANKED, market });
 
       expect(selected.length).toBeLessThanOrEqual(BATTERY.QUESTIONS);
       expect(selected.map((s) => s.rank)).toEqual(selected.map((_, i) => i + 1));
@@ -318,7 +361,7 @@ describe("selectTwelve — observability (BP-025 `## NFR budget`)", () => {
   it("logs the selected count and which constraint bound it, and never a keyword", () => {
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 
-    selectTwelve({ profile: PROFILE, market: FIXTURE.market });
+    selectTwelve({ profile: PROFILE, ownRanked: OWN_RANKED, market: FIXTURE.market });
 
     const logged = JSON.parse(logSpy.mock.calls.at(-1)![0] as string) as Record<string, unknown>;
     expect(logged.event).toBe("selection");
