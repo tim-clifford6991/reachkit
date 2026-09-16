@@ -73,11 +73,11 @@ import { verdictOf, type Verdict } from "@/lib/measure/verdict";
 import { aiMode, llmScraper, serpOrganic } from "@/lib/vendors/dataforseo";
 import type { AiAnswer, CacheScope, RankedRow, SerpResult } from "@/lib/vendors/dataforseo/types";
 import { SERP_FANOUT, withStageBudget, type StageOutcome } from "./budgets";
-import { withScanBounds, type Bounds } from "./ceilings";
+import { withScanBounds, withStoredPassSpend, type Bounds } from "./ceilings";
 import { advanceCorrectionState, readCorrectionFacts, registerCorrectionRunner } from "./correction";
 import { parseDomain, type CanonicalDomain } from "./domain";
 import { marketTooSmall } from "./market-floor";
-import { readCurrentReport } from "./report";
+import { readCurrentReport, readScanReport } from "./report";
 import type { AiAnswersSection, StoppedReason, StoredReport, SupplySection, Tier } from "./report";
 import { answersSectionOf, blockedAgentsOf } from "./sections";
 import { checkSite, type CrawlReading } from "@/lib/site-issues/checks";
@@ -349,6 +349,9 @@ interface RunningScanRow {
    *  `src/`; a read shape that spelled the column as a property would read
    *  to that check as a second writer. */
   fromIncompleteRescan: boolean;
+  /** What the row already carries — setup's rival suggestion, on the
+   *  onboarding row (issue 798). Counted into the pass's own context. */
+  costCents?: number | string | null;
 }
 
 /** The running row already claimed for this pass, or `null`: for a free
@@ -361,7 +364,7 @@ async function adoptClaimedRow(a: {
 }): Promise<RunningScanRow | null> {
   const running = untyped(dbAdmin())
     .from<RunningScanRow>("scans")
-    .select("id, fromIncompleteRescan:from_incomplete_rescan")
+    .select("id, fromIncompleteRescan:from_incomplete_rescan, costCents:cost_cents")
     .eq("tier", a.tier)
     .eq("status", "running");
   const { data, error } = await (a.siteId === undefined
@@ -528,25 +531,19 @@ export interface RunScanArgs {
    */
   onStage?: (stage: StageName) => void | Promise<void>;
   /**
-   * Called once the pass's report is stored, with the report and the
-   * pass's own `CostContext`.
+   * Called once the pass's report is stored, with the report and a
+   * `CostContext` on the pass's own money (`spendOnStoredReport`).
    *
    * §6.3 puts "Haiku ×~4 for opportunity typing" inside the deep and
    * weekly passes' own budgets, so the work this hook does spends the
-   * pass's money and no other: the context handed here is the one the
-   * stages spent, its cap still applies, and a second `withCostContext`
-   * would be a second budget *and* a second roll-up over the same
-   * `scans` row.
+   * pass's money and no other: the context handed here opens on what the
+   * row already carries, under the pass's own cap, and its close adds what
+   * the hook spent to the row's `cost_cents` (issue 798 — the typing used
+   * to be ledgered in `fetches` and missing from the row's total).
    *
    * **After the store, and that ordering is a foreign key.**
    * `opportunities.scan_id references scans (id)`: an opportunity derived
-   * before the row it belongs to exists cannot be written. The pass's own
-   * roll-up was written when the bounds closed and `store_current_report`
-   * overwrote it a moment ago, so what this hook spends is ledgered in
-   * `fetches` — which BP-007 states is the source of truth — and is not
-   * added to the row's cached `cost_cents`. Stated rather than hidden: it
-   * is a summary that under-reports by the typing calls, not a figure the
-   * ledger disagrees with.
+   * before the row it belongs to exists cannot be written.
    *
    * It is awaited, and it never stops the pass: a derivation that throws
    * is logged and the stored report stands (§4.3 — "a degraded pass still
@@ -569,6 +566,7 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
   // 1. The row this pass writes to.
   let scanId: string;
   let fromIncompleteRescan = false;
+  let priorCents = 0;
   // A correction never went through admission, so there is no claimed row
   // to adopt: its row is claimed by the correction seam below (#786).
   if (parameters.adoptsClaim && a.correctionOf === undefined) {
@@ -583,6 +581,8 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
     }
     scanId = claimed.id;
     fromIncompleteRescan = claimed.fromIncompleteRescan;
+    const carried = Number(claimed.costCents ?? 0);
+    priorCents = Number.isFinite(carried) ? carried : 0;
   } else if (a.scanId !== undefined) {
     scanId = a.scanId;
   } else {
@@ -629,14 +629,9 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
   //    after it has closed.
   const sections = freshSections(startedAt);
   const spend: { cents: number; degraded: boolean } = { cents: 0, degraded: false };
-  // The pass's own context, held past the block that opened it so
-  // `afterReport` can spend inside the same cap. See `RunScanArgs.afterReport`
-  // for why the work it does cannot run before the row is stored.
-  let passCost: CostContext | null = null;
   const { ending } = await withScanBounds(
-    { scanId, startedAt, cap: parameters.cap, deadlineApplies: parameters.deadlineApplies },
+    { scanId, startedAt, cap: parameters.cap, deadlineApplies: parameters.deadlineApplies, priorCents },
     async (bounds, cost) => {
-      passCost = cost;
       try {
         await runStages({
           scanId,
@@ -705,9 +700,9 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
   //    passes' own step, supplied by their callers rather than decided
   //    here (this file branches on no tier). A hook that throws does not
   //    take the report down with it.
-  if (a.afterReport !== undefined && passCost !== null) {
+  if (a.afterReport !== undefined) {
     try {
-      await a.afterReport({ report: composed.report, cost: passCost });
+      await spendOnStoredReport({ scanId, tier: a.tier, report: composed.report }, a.afterReport);
     } catch (error) {
       console.log(
         JSON.stringify({
@@ -740,6 +735,27 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
     await reportIncident({ occasion: "market-too-small", scanId, tier: a.tier });
   }
   return stored;
+}
+
+/**
+ * The work a paid pass does with its stored report, on the pass's own
+ * money (issue 798): a context under the tier's cap that opens on the
+ * row's `cost_cents` and adds its own spend to it at close.
+ *
+ * `runScan` calls it with the report it just stored. The onboarding pass
+ * calls it as a step of its own, after the pass's step has ended, and the
+ * report is read back from the row; a row that stored none has nothing to
+ * derive from, and nothing is opened.
+ */
+export async function spendOnStoredReport(
+  a: { scanId: string; tier: Tier; report?: StoredReport },
+  body: (a: { report: StoredReport; cost: CostContext }) => Promise<void>
+): Promise<void> {
+  const report = a.report ?? (await readScanReport(a.scanId));
+  if (report === null) return;
+  await withStoredPassSpend({ scanId: a.scanId, cap: TIER_PARAMETERS[a.tier].cap }, (cost) =>
+    body({ report, cost })
+  );
 }
 
 /** The state machine's own answer, never a second table: a pass that

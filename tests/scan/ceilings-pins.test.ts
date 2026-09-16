@@ -78,6 +78,20 @@ describe("the free pass's two ceilings — issue #456", () => {
     expect(Number(matches[0]![1])).toBe(TIMING.platformCeilingS);
   });
 
+  it("issue 798 — the free pass marks its own row failed after the design ceiling and before the platform freezes it", () => {
+    const budgetS = TIMING.platformCeilingS - TIMING.requestBudgetMarginS;
+    expect(TIMING.requestBudgetMarginS).toBeGreaterThan(0);
+    expect(budgetS).toBeGreaterThan(TIMING.reportCeilingS);
+    expect(budgetS).toBeLessThan(TIMING.platformCeilingS);
+  });
+
+  it("issue 798 — the job route declares the same platform ceiling, as a literal", () => {
+    const jobs = read("src/app/api/jobs/[[...slug]]/route.ts");
+    const matches = [...jobs.matchAll(/^export const maxDuration = (\d+);$/gm)];
+    expect(matches).toHaveLength(1);
+    expect(Number(matches[0]![1])).toBe(TIMING.platformCeilingS);
+  });
+
   it("the free path's inference arithmetic fits inside the design ceiling", () => {
     const calls = FREE_PASS_NANO_CALL_SITES.reduce((total, rel) => total + nanoCallsIn(rel), 0);
     expect(calls).toBe(2);
