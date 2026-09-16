@@ -55,7 +55,7 @@ export const SEGMENT_FIXTURES: Readonly<Record<string, string>> = {
    * segment is the only shape that names a page: `content.{domain}/a/b` is
    * not a deeper page, it is not a page at all.
    */
-  "[...slug]": "best-onboarding-tools",
+  "[[...slug]]": "best-onboarding-tools",
   /**
    * The draft view's address (issue #17, `BUILD.md` §4.6). The value is the
    * one draft the fixture holds in `in_review` — the stage §4.6 gives this
@@ -145,7 +145,7 @@ export const ROUTE_REFERENCE: Readonly<Record<string, `S${number}`>> = {
 /** The one `(hosted)` page in the tree, keyed as the maps below key it:
  *  the file's own path relative to the repo root, POSIX separators. Named
  *  once so the two host maps cannot key it differently. */
-export const HOSTED_PAGE_FILE = "src/app/(hosted)/hosted-page/[...slug]/page.tsx";
+export const HOSTED_PAGE_FILE = "src/app/(hosted)/hosted-page/[[...slug]]/page.tsx";
 
 /**
  * One row per `(hosted)` page, keyed by `HOSTED_PAGE_FILE`'s spelling,
@@ -185,7 +185,7 @@ const HOST_FIXTURES: Readonly<Record<string, string>> = {
  *
  * `seed.ts`'s `seedHostedPublisher()` writes that customer: a site on
  * `publisher.test` whose one live publication is at this route's
- * `[...slug]` fixture. Sweeping the route through this host renders S19
+ * `[[...slug]]` fixture. Sweeping the route through this host renders S19
  * itself — the customer's bar, their eyebrow and byline, the body with
  * §8's passage marked, the source line and their footer — which is the arm
  * the approved set draws and the arm a fidelity review needs a picture of.

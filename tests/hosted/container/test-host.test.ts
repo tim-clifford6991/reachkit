@@ -84,6 +84,11 @@ describe("issue 762 — HOSTED_TEST_HOST names one platform host as a hosted hos
     expect(rewrittenTo(await middleware(requestTo("/setup", TEST_HOST)))).toBe("/hosted-page/setup");
   });
 
+  it("bound, the root of the host is the hosted index, not ReachKit's landing", async () => {
+    const middleware = await middlewareWith(TEST_HOST, "preview");
+    expect(rewrittenTo(await middleware(requestTo("/", TEST_HOST)))).toBe("/hosted-page");
+  });
+
   it("the match is on the lower-cased hostname, port and case aside", async () => {
     const middleware = await middlewareWith(TEST_HOST.toUpperCase(), "preview");
     const response = await middleware(requestTo("/a-page", `${TEST_HOST.toUpperCase()}:443`));

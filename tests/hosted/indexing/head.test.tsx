@@ -50,8 +50,8 @@ vi.mock("@/lib/publish/destinations/hosted", async () => {
   };
 });
 
-const Page = (await import("@/app/(hosted)/hosted-page/[...slug]/page")).default;
-const { generateMetadata } = await import("@/app/(hosted)/hosted-page/[...slug]/page");
+const Page = (await import("@/app/(hosted)/hosted-page/[[...slug]]/page")).default;
+const { generateMetadata } = await import("@/app/(hosted)/hosted-page/[[...slug]]/page");
 
 function livePage(faq: { question: string; answer: string }[]): unknown {
   return {

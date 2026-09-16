@@ -8,7 +8,7 @@ import type { HtmlClasses } from "@/lib/publish/render/markdown";
 
 /**
  * The map the **hosted page** renders a published body with (S19,
- * `src/app/(hosted)/hosted-page/[...slug]/page.tsx`). Untouched by #355:
+ * `src/app/(hosted)/hosted-page/[[...slug]]/page.tsx`). Untouched by #355:
  * that screen has its own stylesheet (`.rk-hosted-doc`) and its own
  * baselines, and the mark's class is pinned by its test.
  *

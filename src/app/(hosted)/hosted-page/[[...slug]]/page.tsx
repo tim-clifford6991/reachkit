@@ -64,8 +64,13 @@
 // daisyUI and Tailwind's scale in the route (DESIGN rule 1): no `rk-hosted-*`
 // class, no type-ladder class. Dates, addresses and domains are `num`.
 //
-// **Nothing here writes.** No form, no server action, no mutation: a
-// crawler cannot advance §9's state machine by fetching a page.
+// **Nothing here writes.** No server action, no mutation, and the one form
+// — the index's search (`listing.tsx`) — is a GET: a crawler cannot advance
+// §9's state machine by fetching a page.
+//
+// **The root of the host is the index** (SPEC §7, 2026-09-16): every live
+// page, newest first, with a search, and an honest empty state for a site
+// that has published nothing. That is why the catch-all is optional.
 //
 // The archived plan is WO-230.
 import { cache } from "react";
@@ -82,9 +87,16 @@ import {
   type Block,
   type Inline,
 } from "@/lib/publish/render/markdown";
-import { liveUrlOnHost, livePageBySlug, type HostedPage } from "@/lib/publish/destinations/hosted";
+import {
+  liveUrlOnHost,
+  livePageBySlug,
+  livePagesForSite,
+  type HostedPage,
+} from "@/lib/publish/destinations/hosted";
 import { Surface } from "@/ui/layout";
 import { resolveHost } from "../../resolve-host";
+import { HostedIndex, queryOf } from "./listing";
+import { hostOf, PAGE_LOCALE, QUIET_LINE, writeDate } from "./present";
 
 /** Nothing on this surface is cached (WO-028's NFR): a publication row that
  *  changes is read again on the very next request, so a takedown never
@@ -130,12 +142,46 @@ function oneSegment(slug: readonly string[]): string | null {
   return slug.length === 1 ? (slug[0] ?? null) : null;
 }
 
+/** The root of the host — no segment at all — is the index (SPEC §7,
+ *  2026-09-16), not a 404. */
+function isIndex(slug: readonly string[] | undefined): boolean {
+  return slug === undefined || slug.length === 0;
+}
+
+interface IndexResolved {
+  publisher: string;
+  canonical: string;
+  pages: HostedPage[];
+}
+
+/** The index's one resolution per request: the site this Host serves and
+ *  every live page of it, or `null` for any Host that is not a site. */
+const loadIndex = cache(async (): Promise<IndexResolved | null> => {
+  const host = (await headers()).get("host") ?? "";
+  const disposition = await resolveHost(host);
+  if (disposition.kind !== "site") return null;
+  return {
+    publisher: disposition.domain,
+    canonical: `https://${disposition.host}/`,
+    pages: await livePagesForSite(disposition.siteId),
+  };
+});
+
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ slug: string[] }>;
+  params: Promise<{ slug?: string[] }>;
 }): Promise<Metadata> {
   const { slug } = await params;
+  if (isIndex(slug)) {
+    const index = await loadIndex();
+    if (index === null) return {};
+    return {
+      title: `${copy("hosted.index.heading")} · ${index.publisher}`,
+      alternates: { canonical: index.canonical },
+    };
+  }
+  if (slug === undefined) return {};
   const segment = oneSegment(slug);
   const resolved = segment === null ? null : await load(segment);
   if (resolved === null) return {};
@@ -218,61 +264,6 @@ function faqSchema(page: HostedPage, canonical: string): string | null {
   });
 }
 
-/**
- * The locale this page's one date is written in.
- *
- * DECISIONS 2026-08-28 — "MVP is US-English only: one `SERP_LOCATION`
- * constant" — spelled the way `Intl` spells it, the same derivation
- * `src/lib/mail/blocks/format.ts` and `_shell/format.ts` each make at their
- * own boundary. `src/lib` never imports `src/app` and neither of those is
- * this surface's, so the pin is named once more here rather than reached
- * for across a seam it may not cross.
- */
-const PAGE_LOCALE = "en-US";
-
-/**
- * A date this page states, in the zone the customer publishes in.
- *
- * `formatMailDate`'s own reasoning, on the surface rather than in the
- * mail: a site that has stated no zone (REQ-073 c1 forbids inventing one)
- * has its date written in UTC rather than in a zone this product picked
- * for it. A published page's date is a calendar day, so at worst it is the
- * day either side — and a page that withheld its own publication date
- * because a setting was blank would be worse.
- *
- * **One date format on the page**, for the byline and for the source line
- * alike. The set's specimen writes the source's date without a year
- * ("retrieved 14 Sep"); a hosted page stays live for years and a bare day
- * and month on it is ambiguous, so both dates are written the one way.
- */
-function writeDate(at: Date, timeZone: string | null): string {
-  const parts = new Intl.DateTimeFormat(PAGE_LOCALE, {
-    timeZone: timeZone ?? "UTC",
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  }).formatToParts(at);
-  const part = (type: Intl.DateTimeFormatPartTypes): string =>
-    parts.find((p) => p.type === type)?.value ?? "";
-  // Composed from parts, not from the locale's own pattern: `en-US` orders
-  // a short date month-first and punctuates it with a comma, and the set
-  // draws "4 Sep 2026". The order the set draws is fixed, not the locale's
-  // to choose; the month's own spelling still comes from `Intl`.
-  return `${part("day")} ${part("month")} ${part("year")}`;
-}
-
-/** The address in the bar: the host the page answers at, taken off the
- *  canonical rather than composed a second time, so the two cannot
- *  disagree. A canonical that will not parse yields the whole string,
- *  which is still the customer's own address and never ours. */
-function hostOf(canonical: string): string {
-  try {
-    return new URL(canonical).host;
-  } catch {
-    return canonical;
-  }
-}
-
 /** The set's source line, or `null` for a page generation recorded no
  *  grounding for. The address stands in for the set's `[source title]`:
  *  what §8 records is where the fact was read, and a title we do not hold
@@ -287,18 +278,22 @@ function sourceLineFor(page: HostedPage): string | null {
   });
 }
 
-/** The byline, the source and the canonical note, and the address in the
- *  bar: mono because each is a date, an address or a domain, quiet because
- *  none of them is the page, and free to fold anywhere because a canonical
- *  URL is one long token at 320. */
-const QUIET_LINE = "num num-phrase text-base-content/60 m-0 text-sm wrap-anywhere";
-
 export default async function HostedPageRoute({
   params,
+  searchParams,
 }: {
-  params: Promise<{ slug: string[] }>;
+  params: Promise<{ slug?: string[] }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }): Promise<React.JSX.Element> {
   const { slug } = await params;
+  if (isIndex(slug)) {
+    const index = await loadIndex();
+    // An unknown or stopped Host has no index either: the same 404.
+    if (index === null) notFound();
+    const query = queryOf((await searchParams)?.q);
+    return <HostedIndex {...index} query={query} />;
+  }
+  if (slug === undefined) notFound();
   const segment = oneSegment(slug);
   const resolved = segment === null ? null : await load(segment);
   // An unknown Host, an address this site never published at, and a page in
