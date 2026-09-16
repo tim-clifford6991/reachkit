@@ -313,9 +313,8 @@ async function acceptanceAtPublish(opportunityId: string | null): Promise<unknow
     .limit(1);
   const row = error === null ? data?.[0] : undefined;
   if (row === undefined) return null;
-  if (row.acceptance !== null && row.acceptance !== undefined) return row.acceptance;
   const query = row.target_query?.trim() ?? "";
-  return query === "" ? null : { form: "top20", query };
+  return row.acceptance ?? (query === "" ? null : { form: "top20", query });
 }
 
 async function insertPublication(a: {

@@ -250,11 +250,9 @@ interface PublicationRow {
  *  publication at publish time, else its opportunity's, else "top 20 for"
  *  the search the opportunity targets. `null` only where none exists. */
 function acceptanceOf(row: PublicationRow): unknown {
-  if (row.acceptance != null) return row.acceptance;
   const opportunity = row.drafts?.opportunities;
-  if (opportunity?.acceptance != null) return opportunity.acceptance;
   const query = opportunity?.target_query?.trim() ?? "";
-  return query === "" ? null : { form: "top20", query };
+  return row.acceptance ?? opportunity?.acceptance ?? (query === "" ? null : { form: "top20", query });
 }
 
 interface VerdictRow {
