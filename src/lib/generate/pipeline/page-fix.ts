@@ -101,15 +101,15 @@ export async function generatePageFix(
 ): Promise<GenerateOutcome> {
   const evidence = a.opportunity.evidence;
   if (evidence.family !== "fix" || !("issues" in evidence)) {
-    return { ok: false, reason: "step_failed", draftId: null, step: "page_read" };
+    return { ok: false, reason: "step_failed", draftId: a.draftId ?? null, step: "page_read" };
   }
   const { pageUrl, issues } = evidence;
 
-  if (c.capHit()) return { ok: false, reason: "step_failed", draftId: null, step: "page_read" };
+  if (c.capHit()) return { ok: false, reason: "step_failed", draftId: a.draftId ?? null, step: "page_read" };
   const page = await readPage(c, pageUrl);
   if (page === null) {
     logRun({ siteId: a.siteId, step: "page_read", outcome: "unreadable" });
-    return { ok: false, reason: "step_failed", draftId: null, step: "page_read" };
+    return { ok: false, reason: "step_failed", draftId: a.draftId ?? null, step: "page_read" };
   }
 
   const before = {
@@ -119,7 +119,7 @@ export async function generatePageFix(
   const fixesTitle = issues.includes("page_titles");
   const fixesDescription = issues.includes("meta_descriptions");
 
-  if (c.capHit()) return { ok: false, reason: "step_failed", draftId: null, step: "page_fix" };
+  if (c.capHit()) return { ok: false, reason: "step_failed", draftId: a.draftId ?? null, step: "page_fix" };
   const written = await import("@/lib/llm").then(({ llm }) =>
     llm(c, {
       site: STEP_CALL_SITES.page_fix,
@@ -143,7 +143,7 @@ export async function generatePageFix(
   );
   if (written.kind === "unmeasured") {
     logRun({ siteId: a.siteId, step: "page_fix", outcome: "step_failed" });
-    return { ok: false, reason: "step_failed", draftId: null, step: "page_fix" };
+    return { ok: false, reason: "step_failed", draftId: a.draftId ?? null, step: "page_fix" };
   }
 
   const record: PageFixRecord = {

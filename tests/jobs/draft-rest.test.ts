@@ -222,3 +222,74 @@ describe("#788 — Regenerate is carried out by the draft tick", () => {
     expect(statusOf(opportunityId)).toBe("open");
   });
 });
+
+describe("#813 — a draft whose claim check cannot run rests in needs_attention, not generating", () => {
+  /** An entry the page does not state literally, so the check asks the model. */
+  const LIST = ["ReachKit is the cheapest tool on the market"];
+
+  function claimCheckUnavailable(): void {
+    llmMock.mockResolvedValueOnce({ kind: "unmeasured", reason: "undeterminable", at: fixtures.AT });
+  }
+
+  beforeEach(() => {
+    const [site] = db.rows("sites");
+    if (site !== undefined) site.do_not_claim = LIST;
+  });
+
+  async function uncheckedEvening() {
+    modelWrites(fixtures.CLEAN_MARKDOWN);
+    claimCheckUnavailable();
+    modelWrites(fixtures.CLEAN_MARKDOWN);
+    claimCheckUnavailable();
+    return draftGenerate.run({ data: {}, now: EVENING });
+  }
+
+  it("the automatic second attempt runs first, then the date's one row rests and the opportunity is open", async () => {
+    const outcome = await uncheckedEvening();
+    expect(outcome).toEqual({ outcome: "degraded", subjectId: null, step: "generate:step_failed" });
+    expect(llmMock).toHaveBeenCalledTimes(10);
+
+    const drafts = db.rows("drafts");
+    expect(drafts).toHaveLength(1);
+    const [draft] = drafts;
+    expect(draft).toMatchObject({ scheduled_for: "2026-09-08", state: "needs_attention", hard_rules_passed: false });
+    const moves = draft?.transitions as { from: string; to: string; reason?: string }[];
+    expect(moves.at(-1)).toMatchObject({ from: "generating", to: "needs_attention", reason: "step_failed:claim_check" });
+    expect(statusOf(opportunityId)).toBe("open");
+    expect(draftReadyMock).not.toHaveBeenCalled();
+  });
+
+  it("Regenerate, then a tick with the model answering again, puts the same row in review", async () => {
+    await uncheckedEvening();
+    const [draft] = db.rows("drafts");
+    const draftId = String(draft?.id);
+
+    expect(await regenerateDraft(draftId)).toBeNull();
+    modelWrites(fixtures.CLEAN_MARKDOWN);
+    llmMock.mockResolvedValueOnce(measured({ matches: false, matchedIndex: null }));
+    const outcome = await draftGenerate.run({ data: {}, now: MORNING });
+    expect(outcome).toEqual({ outcome: "ran", subjectId: null });
+
+    expect(db.rows("drafts")).toHaveLength(1);
+    expect(draft).toMatchObject({ id: draftId, scheduled_for: "2026-09-08", state: "in_review", hard_rules_passed: true });
+    expect(statusOf(opportunityId)).toBe("queued");
+    expect(draftReadyMock).toHaveBeenCalledWith(expect.objectContaining({ draftId }));
+  });
+
+  it("a Regenerate whose check still cannot run rests again, and the next tick spends nothing on it", async () => {
+    await uncheckedEvening();
+    const [draft] = db.rows("drafts");
+    await regenerateDraft(String(draft?.id));
+
+    modelWrites(fixtures.CLEAN_MARKDOWN);
+    claimCheckUnavailable();
+    await draftGenerate.run({ data: {}, now: MORNING });
+    expect(db.rows("drafts")).toHaveLength(1);
+    expect(draft?.state).toBe("needs_attention");
+    expect(statusOf(opportunityId)).toBe("open");
+
+    llmMock.mockClear();
+    await draftGenerate.run({ data: {}, now: new Date(MORNING.getTime() + 3_600_000) });
+    expect(llmMock).not.toHaveBeenCalled();
+  });
+});
