@@ -8,8 +8,16 @@
 import type React from "react";
 import { copy } from "@/lib/presentation/copy";
 import type { DnsRecord } from "@/lib/publish/setup/cards";
+import type { HostnameState } from "@/lib/publish/destinations/hosted/hostname";
 
-export function CnameRecord(p: { record: DnsRecord }): React.JSX.Element {
+export function CnameRecord(p: {
+  record: DnsRecord;
+  /** The domain list's word for the host, where a "check connection" press
+   *  on `/setup` has just asked it (#757). Absent is "waiting for DNS" — the
+   *  word a record nobody has checked is shown under. */
+  state?: HostnameState;
+}): React.JSX.Element {
+  const live = p.state === "live";
   return (
     <>
       <span className="mt-2 block text-sm text-base-content/70" data-testid="dns-caption">
@@ -29,8 +37,11 @@ export function CnameRecord(p: { record: DnsRecord }): React.JSX.Element {
             {p.record.value}
           </span>
         </span>
-        <span className="badge badge-warning badge-soft" data-testid="dns-state">
-          {copy("settings.destination.hostname.waiting")}
+        <span
+          className={live ? "badge badge-success badge-soft" : "badge badge-warning badge-soft"}
+          data-testid="dns-state"
+        >
+          {copy(live ? "settings.destination.hostname.live" : "settings.destination.hostname.waiting")}
         </span>
       </span>
     </>
