@@ -11,7 +11,7 @@ import { opportunityReady, type ReadinessContext } from "../../src/lib/opportuni
 import { rankOpen } from "../../src/lib/opportunities/rank/open";
 import { setOpportunityStore, type OpportunityRow } from "../../src/lib/opportunities/store";
 import { supplyDepth } from "../../src/lib/opportunities/supply/depth";
-import { assessReadiness } from "../../src/lib/opportunities/readiness";
+import { assessReadiness, canUpdateFrom } from "../../src/lib/opportunities/readiness";
 import type { Opportunity } from "../../src/lib/opportunities/types";
 import { memoryStore, newMemoryState, type MemoryState } from "./memory-store";
 import { AT, PROFILE, SITE_ID } from "./fixtures";
@@ -114,6 +114,7 @@ const CTX: ReadinessContext = {
   suppression: { clusters: new Set(), retiredUrls: new Set() },
   profile: PROFILE,
   ownRanks: () => false,
+  canUpdate: () => true,
 };
 
 describe("opportunityReady — the one predicate", () => {
@@ -141,6 +142,30 @@ describe("opportunityReady — the one predicate", () => {
     for (const [family, type] of [["write", "answer_page"], ["improve", "expand_page"], ["earn", "listed_page"]] as const) {
       expect(opportunityReady(held({ id: family, type, family, targetQuery: "best onboarding tool" }), { ...CTX, grounded: false })).toBe("no_grounding_fact");
     }
+  });
+});
+
+describe("issue 781 — an Improve is ready only where the site's destination can deliver the update", () => {
+  const improve = (targetRef: string) =>
+    held({ id: "i", type: "answerable_page", family: "improve", targetQuery: "user onboarding checklist", targetRef });
+  const hosted = canUpdateFrom({ host: "blog.example.com", slugs: ["onboarding-checklist"] });
+
+  it("a hosted destination updates only ReachKit's own live publication on its host", () => {
+    expect(opportunityReady(improve("https://blog.example.com/onboarding-checklist/"), { ...CTX, canUpdate: hosted })).toBeNull();
+    for (const url of [
+      "https://example.com/onboarding-checklist",
+      "https://blog.example.com/never-published",
+      "https://blog.example.com/",
+      "https://blog.example.com/guides/onboarding-checklist",
+    ]) {
+      expect(opportunityReady(improve(url), { ...CTX, canUpdate: hosted }), url).toBe("destination_cannot_address");
+    }
+  });
+
+  it("any other destination keeps its updates, and a Write is never asked", () => {
+    expect(opportunityReady(improve("https://example.com/pricing"), { ...CTX, canUpdate: canUpdateFrom(null) })).toBeNull();
+    const write = held({ id: "w", type: "answer_page", family: "write", targetQuery: "what is a product tour" });
+    expect(opportunityReady(write, { ...CTX, canUpdate: () => false })).toBeNull();
   });
 });
 

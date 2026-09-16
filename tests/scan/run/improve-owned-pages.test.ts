@@ -225,3 +225,35 @@ describe("SPEC §7 (2026-09-16) — update candidates are the site's own ranked 
     expect(state.rows.filter((row) => row.family === "improve")).toEqual([]);
   });
 });
+
+describe("SPEC §7, issue 781 — a hosted site is offered only the updates its destination can deliver", () => {
+  const HOSTED_POST = "https://blog.example.com/user-onboarding-checklist";
+
+  it("an Improve of a page outside ReachKit is unready with destination_cannot_address and never ranks for a day", async () => {
+    // The hosted host serves nothing at the blog post's address.
+    state.hostedOwnPages = { host: "blog.example.com", slugs: ["user-onboarding-checklist"] };
+    await deepPass();
+
+    const improve = state.rows.find((row) => row.family === "improve");
+    expect(improve).toMatchObject({ target_ref: BLOG_POST, ready: false, unready_reason: "destination_cannot_address" });
+    const write = state.rows.find((row) => row.family === "write" && row.target_query === TOURS.search.keyword);
+    expect(write!.ready).toBe(true);
+
+    const order = (await rankOpen(SITE_ID)).map((entry) => entry.opportunityId);
+    expect(order).not.toContain(improve!.id);
+    expect(order).toContain(write!.id);
+  });
+
+  it("an Improve of a page ReachKit published on the host is ready and ranks ahead of the new page", async () => {
+    measureDomain.mockResolvedValue(measurement([{ ...RANKED_BLOG_POST[0]!, url: HOSTED_POST }]));
+    state.hostedOwnPages = { host: "blog.example.com", slugs: ["user-onboarding-checklist"] };
+    await deepPass();
+
+    const improve = state.rows.find((row) => row.family === "improve");
+    expect(improve).toMatchObject({ target_ref: HOSTED_POST, ready: true, unready_reason: null });
+    const write = state.rows.find((row) => row.family === "write" && row.target_query === TOURS.search.keyword);
+    const order = (await rankOpen(SITE_ID)).map((entry) => entry.opportunityId);
+    expect(order.indexOf(improve!.id)).toBe(0);
+    expect(order.indexOf(improve!.id)).toBeLessThan(order.indexOf(write!.id));
+  });
+});
