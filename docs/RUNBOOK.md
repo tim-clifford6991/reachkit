@@ -55,7 +55,7 @@ value; a real credential in that file is a defect (`tests/app/env-example.test.t
 (production and preview). Sensitive rows are write-only. **Every binding must exist on both
 targets**; a target missing one cannot build.
 
-Nineteen names are in the schema. Two more sit outside it, for stated reasons.
+Twenty-three names are in the schema. Two more sit outside it, for stated reasons.
 
 | Binding | What it is for | Server-only | Notes |
 |---|---|---|---|
@@ -78,6 +78,8 @@ Nineteen names are in the schema. Two more sit outside it, for stated reasons.
 | `OWNER_EMAILS` | comma-separated; the only recipient of ops mail | | each entry must be an address |
 | `NEXT_PUBLIC_APP_URL` | the app's own origin | | must parse |
 | `HOSTED_EDGE_CNAME_TARGET` | what a customer points `content.{their-domain}` at | | `edge.reachkit.app` |
+| `VERCEL_API_TOKEN` | adds a customer's hosted host to the project's domain list and reads back whether it is verified (`src/lib/vendors/vercel/domains.ts`) | ● | optional in the schema, **required for any hosted host to reach "live"**. Absent, setup's save and the scheduled pass attach nothing, and the founder's "check connection" press answers "could not ask" (#757) |
+| `VERCEL_PROJECT_ID` | the project those hosts are added to | | same: optional in the schema, required with the token. An identifier, not a secret |
 | `POSTHOG_API_KEY` | product analytics ingestion — the three events of issue 336 | ● | optional; absent, nothing is captured |
 | `POSTHOG_HOST` | the PostHog region's ingestion host | | optional; defaults to `https://us.i.posthog.com` |
 | `DATABASE_URL` | migration and test tooling only | — | no module under `src/` reads it; **never bound in Vercel** |

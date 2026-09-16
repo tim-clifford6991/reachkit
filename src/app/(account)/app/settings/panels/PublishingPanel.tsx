@@ -12,12 +12,14 @@
 //
 // A hosted destination still waiting for DNS shows the record to create,
 // under the action that names it (#754) — the same block setup showed, so a
-// founder who did not act then can act now.
+// founder who did not act then can act now — and the press that asks the
+// domain list about it now (#757), the same press setup offers.
 //
 // The fix note sits under the card: Fix-type work is never automated.
 import type React from "react";
 import { Sparkles } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
+import { CheckConnection } from "../../../_destination/CheckConnection";
 import { CnameRecord } from "../../../_destination/CnameRecord";
 import { writtenLine } from "../../_shell/written";
 import { ConnectDestination, type CredentialAction } from "./ConnectDestination";
@@ -163,6 +165,8 @@ export function PublishingPanel(p: { settings: SettingsModel }): React.JSX.Eleme
                 <div className="mt-2 flex min-w-0 flex-col gap-1" data-testid={`dns-${destination.id}`}>
                   <h4 className="text-sm font-semibold">{copy(ACTION_COPY_KEY.set_dns)}</h4>
                   <CnameRecord record={destination.dns} />
+                  {/* The destination names its own host: nothing is sent. */}
+                  <CheckConnection draft={null} />
                 </div>
               )}
             </div>

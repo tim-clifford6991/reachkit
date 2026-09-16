@@ -266,6 +266,21 @@ export const SETTINGS_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC §5 · §12 ruling 7 (2026-09-12)" },
   ],
 
+  // ── Check connection (issue #757; owner ruling 2026-09-16) ────────────
+  //
+  // The founder's own press, beside the CNAME record on `/setup` and in
+  // Settings. Three answers the screen must not fold into two — the domain
+  // list said live, the domain list said waiting, or nothing could be asked
+  // — and the press inside the floor, which asked nothing and says when it
+  // may. Every sentence is the owner's.
+  "settings.destination.check.button": ["TODO(copy)", { slots: {}, fixedBy: "SPEC §5 (2026-09-16, issue 757)" }],
+  "settings.destination.check.live": ["TODO(copy)", { slots: {}, fixedBy: "SPEC §5 (2026-09-16, issue 757)" }],
+  "settings.destination.check.pending-dns": ["TODO(copy)", { slots: {}, fixedBy: "SPEC §5 (2026-09-16, issue 757)" }],
+  "settings.destination.check.could-not-ask": ["TODO(copy)", { slots: {}, fixedBy: "SPEC §5 (2026-09-16, issue 757)" }],
+  /** `seconds` is how long until the press may ask again, as a whole
+   *  number. */
+  "settings.destination.check.too-soon": ["TODO(copy)", { slots: { seconds: "text" }, fixedBy: "SPEC §5 (2026-09-16, issue 757)" }],
+
   // ── Notifications ──────────────────────────────────────────────────────
   // One key per `stoppable: 'toggle'` row of `MAIL_KINDS`, named by the row's
   // own key, which is the word §12 prints for that mail. The panel projects

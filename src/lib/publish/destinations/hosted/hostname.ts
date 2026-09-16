@@ -19,13 +19,18 @@
 // health pass makes and decides nothing about the host.
 //
 // **It is not on the edge's path.** `store.ts` holds the Host lookup the
-// hosted edge makes, and this module is imported only by the setup store
-// and the health check — so nothing a middleware-reachable file imports
-// reaches the vendor seam.
+// hosted edge makes, and this module is imported only by the setup store,
+// the health check and the founder's own "check connection" action — so
+// nothing a middleware-reachable file imports reaches the vendor seam.
 //
 // **No sentence, and no vendor payload.** What a caller learns is a state
-// with two members, which is what the customer reads two words for.
-import { DESTINATION_HOSTNAME_RECHECK_H } from "@/lib/config/constants";
+// with two members, which is what the customer reads two words for — and,
+// for a founder who pressed the button, whether anything was asked at all
+// (`checkHostnameNow`, issue #757).
+import {
+  DESTINATION_HOSTNAME_CHECK_FLOOR_S,
+  DESTINATION_HOSTNAME_RECHECK_H,
+} from "@/lib/config/constants";
 import { publishDb } from "../../db";
 import { addProjectDomain } from "@/lib/vendors/vercel/domains";
 
@@ -140,17 +145,129 @@ export async function syncHostname(a: {
   const recorded: HostnameState = row?.hostname_state ?? "pending_dns";
   if (askedRecently(row?.hostname_checked_at ?? null, now)) return recorded;
 
-  const vendor = await addProjectDomain(a.hostname);
-  // "We could not ask" is not an answer about the host. `elsewhere` is one
-  // — another project holds it, so this one does not serve it.
-  const answered = vendor.ok || vendor.because === "elsewhere";
-  const state: HostnameState = vendor.ok && vendor.verified ? "live" : "pending_dns";
+  const answer = await askVendor(a.hostname);
   await writeHostnameState({
     destinationId: a.destinationId,
-    state: answered ? state : null,
+    state: answer.asked ? answer.state : null,
     at: now,
   });
-  return answered ? state : recorded;
+  return answer.asked ? answer.state : recorded;
+}
+
+/** The vendor's answer about one host, with "nothing was asked" kept apart
+ *  from "waiting for DNS". `syncHostname` folds the second arm back into
+ *  the recorded word, because a scheduled pass has nobody to tell; a
+ *  founder who pressed a button does (#757). */
+type VendorAnswer = { asked: true; state: HostnameState } | { asked: false };
+
+/** Attaches the host — idempotently, `addProjectDomain`'s own promise — and
+ *  judges what the domain list said. The one place the judgement is made,
+ *  so the save, the health pass and the founder's press cannot come to
+ *  read one vendor answer two ways. */
+async function askVendor(hostname: string): Promise<VendorAnswer> {
+  const vendor = await addProjectDomain(hostname);
+  // "We could not ask" is not an answer about the host. `elsewhere` is one
+  // — another project holds it, so this one does not serve it.
+  if (!vendor.ok && vendor.because !== "elsewhere") return { asked: false };
+  return { asked: true, state: vendor.ok && vendor.verified ? "live" : "pending_dns" };
+}
+
+/**
+ * What a founder's own "check connection" press learned (issue #757).
+ *
+ * Three answers, never folded into two:
+ *
+ *   * `asked` — the domain list answered, and `state` is its word.
+ *   * `could_not_ask` — no token is bound, or the vendor did not answer.
+ *     Nothing is known about the host, and nothing is claimed: this is not
+ *     "waiting for DNS".
+ *   * `too_soon` — this site's last press was inside
+ *     `DESTINATION_HOSTNAME_CHECK_FLOOR_S`, so nothing was asked now. It
+ *     carries when the founder may ask again and no state, so an old answer
+ *     cannot be read as a new one.
+ */
+export type HostnameCheck =
+  | { outcome: "asked"; state: HostnameState }
+  | { outcome: "could_not_ask" }
+  | { outcome: "too_soon"; askAgainAt: string; askAgainInS: number };
+
+/** When each site's founder last pressed, per server instance. Keyed by
+ *  site, not host: a founder cycling labels is one founder asking. A row's
+ *  own `hostname_checked_at` is read beside it where a destination exists,
+ *  so an instance that has not seen this site still honours a recent ask. */
+const lastPressed = new Map<string, number>();
+
+/**
+ * Asks the vendor about one host now, on a founder's press — before setup
+ * is submitted, or from Settings — and records the answer on the
+ * destination where one already holds the host.
+ *
+ * **Keyed on the hostname, not on a row** (owner ruling 2026-09-16): at
+ * setup the host is `<label>.<address>` and no destination exists yet, and
+ * the founder must be able to verify their record there. The host is the
+ * caller's to derive from the session's own site; nothing here trusts one.
+ *
+ * **It bypasses `DESTINATION_HOSTNAME_RECHECK_H`, and has a floor of its
+ * own.** An hour-old answer handed back to a founder who has just created
+ * their record is a lie; a button with no floor is a loop against the
+ * vendor. So a press inside the floor asks nothing and says so.
+ */
+export async function checkHostnameNow(a: {
+  siteId: string;
+  hostname: string;
+  /** The destination already holding this host, or `null` before setup has
+   *  created one. */
+  destinationId: string | null;
+  now?: Date;
+}): Promise<HostnameCheck> {
+  const now = a.now ?? new Date();
+  const row = a.destinationId === null ? null : await readHostnameCheck(a.destinationId);
+  // Either stamp may be absent, unreadable or ahead of this clock; none of
+  // those is a reason to refuse the founder, as `askedRecently` rules for
+  // the pass.
+  const stamps = [
+    lastPressed.get(a.siteId) ?? Number.NaN,
+    row?.hostname_checked_at == null ? Number.NaN : Date.parse(row.hostname_checked_at),
+  ].filter((at) => !Number.isNaN(at) && at <= now.getTime());
+  const floorMs = DESTINATION_HOSTNAME_CHECK_FLOOR_S * 1000;
+  const last = stamps.length === 0 ? null : Math.max(...stamps);
+  if (last !== null && now.getTime() - last < floorMs) {
+    const at = last + floorMs;
+    return {
+      outcome: "too_soon",
+      askAgainAt: new Date(at).toISOString(),
+      askAgainInS: Math.ceil((at - now.getTime()) / 1000),
+    };
+  }
+
+  lastPressed.set(a.siteId, now.getTime());
+  const answer = await askVendor(a.hostname);
+  if (a.destinationId !== null) {
+    await writeHostnameState({
+      destinationId: a.destinationId,
+      state: answer.asked ? answer.state : null,
+      at: now,
+    });
+  }
+  return answer.asked ? { outcome: "asked", state: answer.state } : { outcome: "could_not_ask" };
+}
+
+/** The site's live hosted destination and the host it serves at, or `null`
+ *  where it has none — a WordPress site, or a founder who has not submitted
+ *  setup yet. Its own select list, for the reason the module header gives. */
+export async function hostedDestinationOf(
+  siteId: string
+): Promise<{ id: string; hostname: string } | null> {
+  const { data, error } = await publishDb()
+    .from<HostnameRow & { kind: string }>("destinations")
+    .select("id, site_id, hostname, kind")
+    .eq("site_id", siteId)
+    .eq("kind", "hosted")
+    .is("deleted_at", null)
+    .limit(1);
+  if (error !== null || data === null) return null;
+  const row = data[0];
+  return row === undefined || row.hostname === null ? null : { id: row.id, hostname: row.hostname };
 }
 
 /** What the project's domain list last said about this destination's host,

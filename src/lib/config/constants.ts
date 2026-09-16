@@ -607,6 +607,16 @@ export const DESTINATION_BREAKAGE_MAIL_DELAY_H = 24 as const; // BP-058 · REQ-0
  *  unreachable on the same day the founder made it. Reversal cost is this
  *  one number. */
 export const DESTINATION_HOSTNAME_RECHECK_H = 1 as const;     // SPEC §5 (2026-09-12)
+/** The shortest gap between two vendor calls a founder's own "check
+ *  connection" press may make for one site (issue #757). Chosen, not
+ *  transcribed: a press asks the vendor now rather than waiting out
+ *  `DESTINATION_HOSTNAME_RECHECK_H`, so it needs its own floor or the button
+ *  becomes a way to call the Domains API in a loop. Half a minute is longer
+ *  than a double-click or a second tab and shorter than the time it takes to
+ *  edit a DNS record and come back. A press inside it is told when it may ask
+ *  again — never handed an old answer as a new one. Reversal cost is this one
+ *  number. */
+export const DESTINATION_HOSTNAME_CHECK_FLOOR_S = 30 as const; // SPEC §5 (2026-09-16, #757)
 
 /** BP-049 NFR budget: "`VERIFY.coverageFloor = 0.95` and `VERIFY.userAgent`
  *  belong in BP-005 (config over constants, rule 7)." `userAgent` is our own
