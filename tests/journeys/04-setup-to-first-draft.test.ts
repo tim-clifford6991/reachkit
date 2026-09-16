@@ -396,11 +396,32 @@ function freshSite(): SiteRow {
   };
 }
 
+/** The `scans` rows this journey writes: the onboarding pass's one row,
+ *  claimed as the pass starts and adopted by it (owner ruling,
+ *  2026-09-16). An id already held is not inserted twice, and a select
+ *  answers what its `eq` filters match. */
+const scanRows: Record<string, unknown>[] = [];
+
+function answerScans(query: DbQuery): unknown[] {
+  const matches = scanRows.filter((row) => query.filters.every(([column, value]) => row[column] === value));
+  if (query.verb === "insert") {
+    if (!scanRows.some((row) => row.id === query.values?.id)) {
+      scanRows.push({ ...query.values, fromIncompleteRescan: false });
+    }
+    return [];
+  }
+  if (query.verb === "update") {
+    for (const row of matches) Object.assign(row, query.values);
+    return matches;
+  }
+  return matches;
+}
+
 /** The `sites` table, as PostgREST would answer for it. Everything else on
  *  this path is a cache miss or a cold start. */
 function answerQuery(query: DbQuery): unknown[] | null {
   if (query.table === "domain_blocks" || query.table === "fetches") return [];
-  if (query.table === "scans") return query.verb === "select" ? [] : [];
+  if (query.table === "scans") return answerScans(query);
   // The account `currentSession()` verifies this journey's cookie against
   // (#133): a live account, never signed out of elsewhere, not tombstoned.
   if (query.table === "users") {
@@ -475,6 +496,7 @@ beforeEach(() => {
   db.reset();
   db.answer = answerQuery;
   db.singles.set("scans", { id: "scan-journey-04" });
+  scanRows.length = 0;
   for (const key of Object.keys(rpcAnswers)) delete rpcAnswers[key];
   rpcAnswers.apply_setup_choice = "destination-journey-04";
 
@@ -731,6 +753,15 @@ describe("three decisions → deep pass → the first page already on the calend
     "steps 4–8 — the deep pass runs the six stages, spends inside CAP_DEEP, and every cent of it is ledgered",
     async () => {
       await untilTheFounderIsReleased();
+
+      // One onboarding pass, in the one row it claimed, and every cent
+      // ledgered against that row.
+      expect(scanRows.filter((row) => row.tier === "deep" && row.site_id === SITE_ID)).toHaveLength(1);
+      expect(scanRows[0]!.status).not.toBe("running");
+      const keyedTo = new Set(
+        db.queries.filter((q) => q.table === "fetches" && q.verb === "insert").map((q) => q.values?.scan_id)
+      );
+      expect([...keyedTo]).toEqual([scanRows[0]!.id]);
 
       const rows = ledger();
       const spent = rows.reduce((total, row) => total + row.costCents, 0);

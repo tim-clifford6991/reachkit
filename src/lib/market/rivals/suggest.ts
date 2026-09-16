@@ -53,6 +53,16 @@ import { registrableDomain } from "./domains";
 const SUGGEST_CEILING_MS = TIMING.suggestCeilingS * 1000;
 
 /**
+ * Opens the cost context the one vendor call spends in, only when that
+ * call is made. The inferred and empty paths never open one — which is
+ * what lets the screen read settle an inferred market's suggestions with
+ * no row to spend against — and the stated path's is the caller's: setup
+ * keys it to the deep pass's claimed row (owner ruling, 2026-09-16). A
+ * spend that cannot open rejects, and is settled like a vendor failure.
+ */
+export type Spend = <T>(body: (c: CostContext) => Promise<T>) => Promise<T>;
+
+/**
  * Suggested rival domains for the card, canonical and ready to be added.
  *
  * The three `Measured` arms say which of the three paths above was taken,
@@ -73,7 +83,7 @@ const SUGGEST_CEILING_MS = TIMING.suggestCeilingS * 1000;
  * being rewritten as an answer nobody measured.
  */
 export async function suggestRivals(
-  c: CostContext,
+  spend: Spend,
   a: { state: SetupState; report: ReportFacts | null; at: Date }
 ): Promise<Measured<string[]>> {
   const own = a.state.siteDomain;
@@ -102,7 +112,12 @@ export async function suggestRivals(
     return unmeasured<string[]>("not_attempted", a.at);
   }
 
-  const rows = await withinCeiling(competitorsDomain(c, { domain: own }), a.at);
+  const rows = await withinCeiling(
+    spend((c) => competitorsDomain(c, { domain: own })).catch(() =>
+      unmeasured<{ domain: string }[]>("undeterminable", a.at)
+    ),
+    a.at
+  );
   if (rows.kind === "unmeasured") {
     logSuggestion({ source: "competitors_domain", count: 0 });
     return unmeasured<string[]>(rows.reason, a.at);

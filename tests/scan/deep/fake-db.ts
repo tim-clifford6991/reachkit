@@ -48,6 +48,7 @@ export function fakeDb(tables: Record<string, Row[]> = {}): FakeDb {
       from(table: string) {
         const filters: Filter[] = [];
         let updates: Row | null = null;
+        let inserted: Row | null = null;
 
         const rows = (): Row[] => (tables[table] ??= []);
         const matched = (): Row[] => rows().filter((row) => filters.every((f) => f(row)));
@@ -58,6 +59,15 @@ export function fakeDb(tables: Record<string, Row[]> = {}): FakeDb {
           },
           update(values: Row) {
             updates = values;
+            return self;
+          },
+          // An `id` already held is refused the way the primary key refuses
+          // it: Postgres's unique violation, and no row written.
+          insert(values: Row) {
+            inserted = values;
+            return self;
+          },
+          order() {
             return self;
           },
           eq(column: string, value: unknown) {
@@ -75,7 +85,16 @@ export function fakeDb(tables: Record<string, Row[]> = {}): FakeDb {
           limit() {
             return self;
           },
-          then(resolve: (v: { data: Row[]; error: null }) => unknown) {
+          then(resolve: (v: { data: Row[]; error: { message: string; code: string } | null }) => unknown) {
+            if (inserted !== null) {
+              const row = inserted;
+              if (row.id !== undefined && rows().some((held) => held.id === row.id)) {
+                const error = { message: "duplicate key value violates unique constraint", code: "23505" };
+                return Promise.resolve({ data: [], error }).then(resolve);
+              }
+              rows().push({ ...row });
+              return Promise.resolve({ data: [{ ...row }], error: null }).then(resolve);
+            }
             const hit = matched();
             if (updates !== null) for (const row of hit) Object.assign(row, updates);
             return Promise.resolve({ data: hit, error: null }).then(resolve);

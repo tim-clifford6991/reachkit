@@ -89,9 +89,14 @@ const MEASUREMENT: DomainMeasurement = {
 let stages: { lines: string[]; restore: () => void };
 const order: string[] = [];
 
+const CLAIMED_ID = "44444444-4444-4444-8444-444444444444";
+
 beforeEach(() => {
   vi.clearAllMocks();
   db.reset();
+  // The row setup claimed for the onboarding pass (owner ruling,
+  // 2026-09-16), which the deep pass adopts.
+  db.rows.set("scans", [{ id: CLAIMED_ID, fromIncompleteRescan: false }]);
   order.length = 0;
   measureDomain.mockResolvedValue(MEASUREMENT);
   deriveProfile.mockResolvedValue(measured(PROFILE, AT));
@@ -107,17 +112,42 @@ beforeEach(() => {
 
 afterEach(() => stages.restore());
 
-describe("a paid pass claims its own row before it spends", () => {
+describe("a paid pass has its row before it spends", () => {
   it("inserts one `running` row, carrying the site it belongs to", async () => {
-    await runScan({ domain: DOMAIN, tier: "deep", siteId: "site-1" });
+    await runScan({ domain: DOMAIN, tier: "weekly", siteId: "site-1" });
     const inserts = db.queries.filter((q) => q.table === "scans" && q.verb === "insert");
     expect(inserts).toHaveLength(1);
     expect(inserts[0]!.values).toMatchObject({
       domain: DOMAIN,
-      tier: "deep",
+      tier: "weekly",
       status: "running",
       site_id: "site-1",
     });
+  });
+
+  it("the deep pass adopts the row setup claimed for its site, and inserts none (owner ruling, 2026-09-16)", async () => {
+    await runScan({ domain: DOMAIN, tier: "deep", siteId: "site-1" });
+    expect(db.queries.filter((q) => q.table === "scans" && q.verb === "insert")).toHaveLength(0);
+    const adopted = db.queries.find((q) => q.table === "scans" && q.verb === "select")!;
+    expect(adopted.filters).toEqual(
+      expect.arrayContaining([
+        ["tier", "deep"],
+        ["status", "running"],
+        ["site_id", "site-1"],
+      ])
+    );
+    const stored = storeCurrentReport.mock.calls[0]![0] as { report: StoredReport };
+    expect(stored.report.scanId).toBe(CLAIMED_ID);
+  });
+
+  it("a deep pass with no claimed row runs nothing — never a second pass for a site", async () => {
+    db.rows.set("scans", []);
+    await expect(runScan({ domain: DOMAIN, tier: "deep", siteId: "site-1" })).resolves.toEqual({
+      scanId: "",
+      status: "failed",
+    });
+    expect(measureDomain).not.toHaveBeenCalled();
+    expect(db.queries.filter((q) => q.table === "scans" && q.verb === "insert")).toHaveLength(0);
   });
 
   it("claims nothing where the caller already claimed one — the weekly pass's `(site_id, week_start)` row is not doubled", async () => {
@@ -126,7 +156,7 @@ describe("a paid pass claims its own row before it spends", () => {
   });
 
   it("writes the report into the row it claimed, and not into a second one", async () => {
-    await runScan({ domain: DOMAIN, tier: "deep", siteId: "site-1" });
+    await runScan({ domain: DOMAIN, tier: "weekly", siteId: "site-1" });
     const inserted = db.queries.find((q) => q.table === "scans" && q.verb === "insert")!.values!;
     const stored = storeCurrentReport.mock.calls[0]![0] as { report: StoredReport };
     expect(stored.report.scanId).toBe(inserted.id);

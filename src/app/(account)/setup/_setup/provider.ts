@@ -30,7 +30,7 @@ import type { StoredReport } from "@/lib/scan/report";
 import { liveSetupStore, siteAddressFor } from "./store";
 import type { PassProgress } from "./progress";
 import type { SetupStore } from "../submit";
-import type { ReportFacts } from "@/lib/market/setup/state";
+import { initialSetupState, type ReportFacts } from "@/lib/market/setup/state";
 import type { SiteProfile } from "@/lib/site-profile/types";
 
 /** The signed-in founder, or §4.3's refusal. `src/middleware.ts` has
@@ -66,15 +66,14 @@ const currentFounder = cache(async function currentFounder(): Promise<{
  * this account will use, or `null` for a purchase with no report behind it
  * — in which case the address field is empty and nothing is pre-filled.
  *
- * **`suggestedRivals` is `null` on a screen read, and that is the honest
- * value rather than a gap.** `suggestRivals` is a vendor call through the
- * cost seam (`CostContext`), and REQ-026 c7's suggestions are sought when
- * the market settles — not on every render of a page a founder returns to
- * each time they retype their address. `null` is the state the shape
- * declares for "no market known yet and none has been sought", which is
- * exactly what a screen read knows; an empty array would be the different,
- * stronger claim that some source was asked and offered nothing
- * (REQ-026 c10).
+ * **`suggestedRivals` is settled here for a free upgrade, and only from
+ * the report** (issue 750). A measured address opens on the market that
+ * report inferred, and that market's suggestions are the report's own
+ * rivals — no vendor call, no row, nothing written while a page renders.
+ * A report that named none opens on "none found", never on a card still
+ * seeking. A purchase with no report opens on `null`, which is "no market
+ * known yet": that card waits on the founder, and `POST /api/setup/rivals`
+ * seeks once they give an address or state a market.
  */
 export const readSetupScreen = cache(async function readSetupScreen(): Promise<SetupScreenModel> {
   const founder = await currentFounder();
@@ -86,10 +85,21 @@ export const readSetupScreen = cache(async function readSetupScreen(): Promise<S
           return report === null ? null : { domain: founder.domain, report };
         })();
   const questions = measured === null ? null : await readQuestionsFor(founder.domain);
+  const suggestedRivals =
+    measured === null
+      ? null
+      : await (async () => {
+          const { rivalsForScreen } = await import("./rivals");
+          return rivalsForScreen({
+            state: initialSetupState(measured),
+            report: measured.report,
+            at: new Date(),
+          });
+        })();
 
   return assembleSetup({
     measured,
-    suggestedRivals: null,
+    suggestedRivals,
     questions,
     // SPEC.md §5 (2026-09-12): what the scan read of this site. Keyed by
     // the domain, because the free scan that built it had no account

@@ -24,8 +24,13 @@ vi.mock("@/lib/db", () => ({
   db: () => db.client,
 }));
 
+/** The onboarding claim, recorded so the pass is seen to make it before
+ *  the pipeline adopts it. Its rows are `run.ts`'s and tested there. */
+const claimed = vi.fn<(a: { siteId: string; domain: string }) => Promise<string>>(async () => "claimed-scan");
+
 vi.mock("@/lib/scan/run", () => ({
   runScan: (a: unknown) => pipeline(a),
+  claimOnboardingPass: (a: { siteId: string; domain: string }) => claimed(a),
 }));
 
 const { reasonFor, runDeepPass } = await import("../../../src/lib/scan/deep/run");
@@ -94,6 +99,21 @@ describe("§4.3 — the deep pass is the one pipeline with tier as a parameter",
     expect(args.tier).toBe("deep");
     expect(args.domain).toBe("example.com");
     expect(args.siteId).toBe(SITE);
+  });
+
+  it("claims the site's onboarding row at the committed address before the pipeline adopts it (owner ruling, 2026-09-16)", async () => {
+    const order: string[] = [];
+    claimed.mockImplementationOnce(async () => {
+      order.push("claimed");
+      return "claimed-scan";
+    });
+    pipeline.mockImplementationOnce(async () => {
+      order.push("pipeline");
+      return { scanId: "claimed-scan", status: "done" };
+    });
+    await runDeepPass({ siteId: SITE, domain: "example.com" });
+    expect(claimed).toHaveBeenCalledWith({ siteId: SITE, domain: "example.com" });
+    expect(order).toEqual(["claimed", "pipeline"]);
   });
 
   it("holds no stage list, no ceiling and no cost arithmetic of its own", () => {
