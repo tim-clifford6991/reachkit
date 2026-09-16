@@ -13,6 +13,7 @@
 import type { DomainProblem, CanonicalDomain } from "@/lib/scan/domain";
 import type { StoredReport } from "@/lib/scan/report";
 import type { ScoreFactorName } from "@/lib/measure/score";
+import type { CorrectionOffer } from "@/lib/market/coherence/offer";
 
 /** The four refusals a visitor can be shown in writing. Named by the
  *  sentence each renders, not by the admission internals behind them:
@@ -91,4 +92,7 @@ export type AddressState =
       report: StoredReport;
       notice: AddressNotice | null;
       control: AddressControl;
+      /** Whether the header's "Not your market?" correction is on offer
+       *  for this report, decided once against the visit's clock (#786). */
+      correction: CorrectionOffer;
     };

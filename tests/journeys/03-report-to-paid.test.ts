@@ -312,6 +312,7 @@ function theReportsStart(): () => Promise<void> {
       report: { ...FIXTURE_REPORT, scanId: SCAN_ID, domain: DOMAIN as typeof FIXTURE_REPORT.domain },
       notice: null,
       control: { kind: "none" },
+      correction: { offered: true, as: "first" },
     },
   });
   const found: (() => Promise<void>)[] = [];

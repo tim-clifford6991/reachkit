@@ -27,7 +27,25 @@ const readCorrectionFacts = vi.fn<(domain: string) => Promise<ReportFacts | null
 const advanceCorrectionState = vi.fn<
   (a: { scanId: string; from: CorrectionState; to: CorrectionState }) => Promise<boolean>
 >();
-const runner = vi.fn(async () => ({ scanId: "scan-1", status: "done" as const }));
+/** The rerun, held open until a test settles it: the route must answer
+ *  with the id before the pass is over (#786). */
+let settleRun: (status: "done" | "degraded" | "failed") => void = () => {};
+const runner = vi.fn(async () => ({
+  scanId: "scan-2",
+  finished: new Promise<{ scanId: string; status: "done" | "degraded" | "failed" }>((resolve) => {
+    settleRun = (status) => resolve({ scanId: "scan-2", status });
+  }),
+}));
+
+// The keep-alive seam, as `api-scan.test.ts` stands in for it: the real
+// `after` throws outside a request scope, and what this suite observes is
+// the task the route handed over.
+const { afterTasks } = vi.hoisted(() => ({ afterTasks: [] as (() => Promise<void>)[] }));
+vi.mock("next/server", () => ({
+  after: (task: () => Promise<void>) => {
+    afterTasks.push(task);
+  },
+}));
 let registeredRunner: typeof runner | null = runner;
 
 vi.mock("@/lib/scan/correction", () => ({
@@ -80,6 +98,7 @@ beforeEach(() => {
   advanceCorrectionState.mockReset();
   nextCorrectionState.mockClear();
   runner.mockClear();
+  afterTasks.length = 0;
   registeredRunner = runner;
   envFixture.KILL_SWITCH = false;
   readCorrectionFacts.mockResolvedValue(facts());
@@ -125,7 +144,7 @@ describe("REQ-094 c3 — an accepted correction is one re-measurement inside the
   it("correct-route/accepted · one runScan, correctionOf and the corrected category set, nothing else passed", async () => {
     const response = await post();
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ ok: true, scanId: "scan-1" });
+    expect(await response.json()).toEqual({ ok: true, scanId: "scan-2" });
 
     expect(runner).toHaveBeenCalledTimes(1);
     expect(runner).toHaveBeenCalledWith({
@@ -135,6 +154,31 @@ describe("REQ-094 c3 — an accepted correction is one re-measurement inside the
       category: "employee scheduling software",
     });
     expect(runner.mock.calls[0]).toHaveLength(1);
+  });
+
+  it("correct-route/accepted · answers with the rerun's id before the pass ends, and keeps the pass alive with after() (#786)", async () => {
+    const response = await post();
+    expect(await response.json()).toEqual({ ok: true, scanId: "scan-2" });
+    // Answered while the rerun is still open; the pass is handed over once.
+    expect(afterTasks).toHaveLength(1);
+    let settled = false;
+    const task = afterTasks[0]!().then(() => {
+      settled = true;
+    });
+    await Promise.resolve();
+    expect(settled).toBe(false);
+    settleRun("done");
+    await task;
+    expect(settled).toBe(true);
+  });
+
+  it("correct-route/refusal · a refusal hands nothing to after()", async () => {
+    readCorrectionFacts.mockResolvedValue(facts({ correctionState: "used" }));
+    await post();
+    envFixture.KILL_SWITCH = true;
+    readCorrectionFacts.mockResolvedValue(facts());
+    await post();
+    expect(afterTasks).toHaveLength(0);
   });
 
   it("correct-route/accepted · the stored state is advanced exactly as the machine returned it", async () => {
@@ -280,7 +324,7 @@ describe("The adapter holds no engine logic of its own", () => {
     expect(JSON.parse(line as string)).toEqual({
       event: "report_correction",
       outcome: "accepted",
-      scanId: "scan-1",
+      scanId: "scan-2",
       as: "first",
     });
     for (const l of lines) expect(l).not.toContain("a very specific corrected category");
