@@ -96,6 +96,14 @@ describe("the measurement is runScan with the tier as its parameter, and nothing
     expect(call.scanId).toBe((outcome as { scanId: string }).scanId);
   });
 
+  it("passes the category the founder confirmed, read from the site (#767)", async () => {
+    weekReadsBack({ id: "x", status: "done", report: COMPLETE_REPORT });
+    DB.rows.set("sites", [{ id: SITE.siteId, category: "employee scheduling software" }]);
+    await runWeekly({ ...SITE, now: MONDAY_0600_UTC });
+    const call = runScan.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(call.category).toBe("employee scheduling software");
+  });
+
   it("claims the week before the pipeline is called, never after", async () => {
     weekReadsBack({ id: "x", status: "done", report: COMPLETE_REPORT });
     runScan.mockImplementation(async () => {
@@ -119,7 +127,9 @@ describe("the measurement is runScan with the tier as its parameter, and nothing
     });
     // The double records only what the module sent: an update would have
     // to have been built through a verb this shape has no member for.
-    expect(DB.statements.map((s) => s.verb).sort()).toEqual(["insert", "select"]);
+    // The two selects are the site's confirmed category (#767) and the
+    // week's account read back.
+    expect(DB.statements.map((s) => s.verb).sort()).toEqual(["insert", "select", "select"]);
   });
 
   it("stamps the site's own Monday, not the tick's UTC date", async () => {

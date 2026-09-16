@@ -45,6 +45,7 @@ import { accountForWeek, type UnmeasuredPart } from "./account";
 import { sitesWithActiveAccess } from "./access";
 import { claimWeek, readSiteZone, releaseWeek } from "./store";
 import { runScan } from "../run";
+import { readSiteCategory } from "../site-category";
 import { isWeeklyDue, localClock, weekStartFor } from "./week";
 
 /** Why a week was not measured, before anything was spent. */
@@ -95,6 +96,10 @@ export async function runWeekly(a: {
   const withAccess = await sitesWithActiveAccess("runWeekly", [a.siteId]);
   if (!withAccess.has(a.siteId)) return refuse(a.siteId, "no_active_access");
 
+  // Read before the claim, so a failed read leaves no week to release. The
+  // category the founder confirmed is the one the week searches (#767).
+  const category = await readSiteCategory(a.siteId);
+
   const claim = await claimWeek({ siteId: a.siteId, domain: a.domain, weekStart });
   if (!claim.claimed) return refuse(a.siteId, "already_measured");
 
@@ -108,6 +113,7 @@ export async function runWeekly(a: {
       siteId: a.siteId,
       domain: a.domain,
       tier: "weekly",
+      ...(category === undefined ? {} : { category }),
       afterReport: async ({ report, cost }) => {
         await deriveForPass(cost, {
           tier: "weekly",
