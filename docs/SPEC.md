@@ -7,6 +7,8 @@ Pinned numbers live in `src/lib/config/constants.ts`. Newest dated line in a sec
 
 ## §0 Terms
 
+**Goal (owner, 2026-09-16)** Users pay ReachKit to generate content that improves their SEO and GEO ranking. Each day the system decides the best content for that business — from what it knows of the business, the posts the site already has, and what its rivals rank for — and either publishes a new post or updates an existing page (§7). Everything is right-sized to the business’s own presence — its footprint (§6): never compete for searches outsized for the site. A new site that ranks for almost nothing — ReachKit itself — still gets winnable, small targets, not an empty calendar. Every change serves this goal.
+
 | Term | Meaning |
 |---|---|
 | **SEO / GEO** | Google organic findability of the customer’s domain / whether ChatGPT, Google AI Mode and AI Overviews name them. |
@@ -14,7 +16,8 @@ Pinned numbers live in `src/lib/config/constants.ts`. Newest dated line in a sec
 | **Market** | Category the scan measures; the customer may correct it. It fixes the twelve questions, the rivals and the volumes. |
 | **Site profile** | Page inventory (URL, title, h1, purpose), site name, products/claims, brand-voice summary. Up to 100 pages from sitemap + internal links. Free scan stores inventory + name; voice is paid-only, shown at setup (2026-09-12). |
 | **Rival** | Domain in Google’s top ten or named in an AI answer; at most five per site. |
-| **Question** | One of the market’s twelve biggest buyer searches. |
+| **Question** | One of the market’s twelve biggest buyer searches the site can win — right-sized per §6 (2026-09-16). |
+| **Footprint** | How many keywords the site itself ranks for, and each rival’s count. The measure of a business’s presence that right-sizing scales with (§6, 2026-09-16) — not the score’s Presence factor. |
 | **Opportunity** | Write (missing page) · Improve (owned URL) · Fix (technical) · Earn (first-party citable asset on their domain — never outreach). |
 | **Asset** | What one day publishes: new post, new page, or update to an existing page. At most one a day. |
 | **Veto** | Finished draft waits, visible and stoppable, before it publishes. Default 24 h, range 1–7 days, never zero. |
@@ -86,7 +89,7 @@ Pinned numbers live in `src/lib/config/constants.ts`. Newest dated line in a sec
 
 ## §5 Onboarding
 
-**User gets** Three decisions on one screen after payment: rivals (pre-filled, removable, add their own, max five), market category (editable) with the twelve questions read-only, publishing (hosted subdomain label they choose, or WordPress). Brand voice shown and editable. Then a named-stage wait and the first page.
+**User gets** Three decisions on one screen after payment: rivals (pre-filled, removable, add their own, max five), market category (editable) with the twelve questions read-only, publishing (hosted subdomain label they choose, or WordPress). Brand voice shown and editable. Then straight into the app, where the deep pass and the first page arrive in the background (2026-09-16).
 
 **Rules**
 - One submit finishes setup. No wizard, no engine settings.
@@ -96,13 +99,15 @@ Pinned numbers live in `src/lib/config/constants.ts`. Newest dated line in a sec
 - Voice is paid-only, built at setup, editable there and in settings (2026-09-12). Inventory and site name are shown as read.
 - The profile crawl honours `robots.txt` per path and its `Crawl-delay` (capped at 1 s), holds at most 8 MB in total, and aborts reads still in flight at its time budget (2026-09-12).
 - Waiting names the step, is live at least every 30 s, no percentage, no promised duration. Degraded pass still releases with one sentence; ten minutes releases regardless.
+- 2026-09-16  Owner (#777, supersedes the waiting screen above): one submit releases the founder straight into `/app`. The deep pass is a background job; while it runs the app names its current step (same rules: live at least every 30 s, no percentage, no promised duration) and refreshes itself when the pass and the first draft finish. A lost enqueue is retried, never silently dropped (#782).
+- 2026-09-16  First draft vs never pad (#777): the first draft is written from the deep pass’s best ready opportunity — never from a filler. The pass uses the thin-market steps in §6, so a new or small site still gets one. If it still ends with no ready opportunity, there is no first draft: the pass records *market too small* and the app tells the founder why in place of the draft.
 - 2026-09-16  The first draft and the evening drafts are written and wait in review while the destination is still pending — hosted DNS not yet resolving, WordPress not yet connected. Publishing still waits for a destination that works.
 - 2026-09-16  The deep pass's `scans` row is claimed when setup accepts the founder's address; a stated market's suggested rivals (`competitors_domain`) are spent against that row, and the deep pass adopts it rather than inserting a second. A free upgrade's suggestions are its report's own rivals, bought for nothing.
 - 2026-09-16  Settings shows the hosted CNAME record (name, type, value) for as long as the host is waiting for DNS — the same record setup showed, not only once at setup (#754). A calendar date held by a setting names the one setting that holds it; a host waiting for its CNAME points at that record. Those lines are drafted (#759); the owner corrects the wording.
 - 2026-09-16  Owner ruling (#757): the founder can complete the CNAME and verify it from the setup page, before submitting. The check is keyed on the hostname — `<label>.<the site's own stored address>`, derived on the server, never a host the browser names — attaches it to the project (idempotently) and reports what the vendor says; submit then records the state. Settings offers the same check beside the record for a host waiting for DNS.
 - 2026-09-16  A check answers one of three: live, waiting for DNS, or could not ask (no token bound, or the vendor did not answer) — never the second in place of the third. It asks now rather than waiting out the hourly re-check, at most once per `DESTINATION_HOSTNAME_CHECK_FLOOR_S` per site; a press inside that says when the founder may ask again and shows no answer as new. An address changed on screen but not submitted is not checked. A label checked and not submitted stays on the project's domain list. The lines are drafted (#759); the owner corrects the wording.
 
-**Done when** Finishing setup reaches `/app` with a first draft. A sixth competitor is refused. CNAME for the chosen label is shown; destination reads waiting then live. Voice edit persists in settings. Wrong WordPress password shows destination health, no vendor text.
+**Done when** Finishing setup reaches `/app` at once; the first draft follows in the background, or the founder is told the market was too small. A sixth competitor is refused. CNAME for the chosen label is shown; destination reads waiting then live. Voice edit persists in settings. Wrong WordPress password shows destination health, no vendor text.
 
 ## §6 Weekly scan
 
@@ -118,6 +123,13 @@ Pinned numbers live in `src/lib/config/constants.ts`. Newest dated line in a sec
 - Residual keyword pages need every extra gate, not volume ≥ 10/mo alone. Format pages: comparison / alternative / integration / template only (2026-09-10).
 - 2026-09-15  Readiness (owner): a `keyword_page` is ready only when volume ≥ min, the band is `winnable`, intent is commercial or transactional, and no owned URL ranks for it (else Improve); otherwise `keyword_gate`. Parent topic is a mechanical `clusterKey()` of the query’s content words (lower-cased; stop words, brand tokens and trailing `s` removed; sorted and joined) — Improve uses the same key. A grounding fact is at least one passage from the site’s own measured page text; if none, every Write/Earn/Improve row is `no_grounding_fact` and supply is 0. Write order among types: `answer_page` > `comparison_page` > `format_page` > `keyword_page`. A `format_page` is ready only when its query contains comparison / vs / alternative / integration / template.
 - 2026-09-15  Earn readiness (owner): a `listed_page` is ready only when the site’s own pages hold a passage of its asset’s kind — `comparison_table`: from a pricing, features or product page; `integration_page`: from a page whose URL, title or h1 matches the integration words that chose the asset; `original_data_page`: a passage carrying a numeral. Otherwise `no_grounding_fact`.
+- 2026-09-16  Right-sizing law (owner, #777): a target is offered only if it is winnable *for this site’s presence*. The bar scales with the site’s own footprint and its rivals’ (§0): a site that ranks for little gets small, long-tail and AI-answer targets and never head terms; larger searches are admitted only as its own presence grows. This applies to the free report’s twelve questions, the deep pass and every weekly pass.
+- 2026-09-16  Thin markets (owner defaults, #777; the owner may override on review). A pass that is short of twelve questions reads the market this way, stopping as soon as twelve survive:
+  - Seeds, in order: the confirmed category → a 2–3 word head term derived from it → the site profile’s vocabulary. At most 3 extra suggestion purchases per pass, inside that pass’s own cap.
+  - Candidates are pooled from suggestions, the rivals’ ranked keywords and the site’s own ranked keywords, de-duplicated before selection. Ranked keywords already bought for sizing are reused, not bought again.
+  - Volume floor steps 50 → 20 → 10 /mo, only as far as needed to reach twelve questions. Each question records the step it came from, and that step is the “min” readiness checks it against.
+  - A paid pass (deep or weekly) ends with at least one ready opportunity, or records *market too small* and tells the founder why. Too few questions is never a silent empty calendar.
+- 2026-09-16  Never pad (2026-09-11) still holds under these rules: the seeds, pool and volume steps widen which searches are measured; every other readiness gate stands unchanged.
 
 **Done when** After local Monday, every measured number has a new date and a delta. Empty days show a written cause, not filler. A “not working” cluster publishes no new page for it the next week.
 
@@ -135,6 +147,7 @@ Pinned numbers live in `src/lib/config/constants.ts`. Newest dated line in a sec
 - Publish is one idempotent call to the destination on the customer’s domain. At +24 h: reachable, indexable, in a sitemap, AI-readable.
 - Public veto link redeems on GET once. MVP paid service ends at a page on the customer’s own domain (2026-09-11).
 - Opportunity status (2026-09-15): a written draft queues its opportunity; a vetoed draft dismisses it; needs_attention leaves it queued.
+- 2026-09-16  Daily decision (owner, #777): each day chooses between a *new post* (Write/Earn) and an *update of an existing page* (Improve/Fix), whichever ranks higher for this site. Update candidates are the site’s own pages — its ranked URLs and crawled inventory, not only the home page — matched to the market’s questions; both sides are right-sized per §6. An empty day is still a stated cause, never filler.
 - Hosted index (2026-09-16): the root of a hosted host lists every live page, newest first, with a search; a site with nothing published says so instead of answering 404.
 
 **Done when** The draft-ready mail link stops that page with no session. An untouched draft publishes at window end on their domain. No two assets share a date. An empty day states its cause and offers no publish.
