@@ -225,3 +225,36 @@ describe("afterReport — one hook, once, after the store, on the pass's own mon
     expect(storeCurrentReport).toHaveBeenCalledTimes(2);
   });
 });
+
+describe("issue 798 — every paid call against the row is in its cost", () => {
+  it("the deep pass opens on what setup's rival suggestion already spent against the claimed row", async () => {
+    await runScan({ domain: DOMAIN, tier: "deep", siteId: "site-1" });
+    db.rows.set("scans", [{ id: CLAIMED_ID, fromIncompleteRescan: false, costCents: 1.5 }]);
+    await runScan({ domain: DOMAIN, tier: "deep", siteId: "site-1" });
+    const [fresh, carried] = storeCurrentReport.mock.calls.map((call) => (call[0] as { costCents: number }).costCents);
+    expect(carried! - fresh!).toBeCloseTo(1.5, 6);
+  });
+
+  it("what the hook spends after the store is added to the row's cost, and its status is left standing", async () => {
+    // The row as the store left it: what the pass (and setup) spent.
+    db.rows.set("scans", [{ id: CLAIMED_ID, fromIncompleteRescan: false, costCents: 1.5, cost_cents: 1.5 }]);
+    await runScan({
+      domain: DOMAIN,
+      tier: "deep",
+      siteId: "site-1",
+      afterReport: async ({ cost }) => {
+        await cost.recordFetch({
+          source: "opportunity-typing",
+          cacheKey: "typing-1",
+          freshnessDays: 0,
+          costCents: 0.2,
+          run: async () => ({ type: "write" }),
+        });
+      },
+    });
+    const rollUps = db.queries.filter((q) => q.table === "scans" && q.verb === "update" && q.values?.cost_cents !== undefined);
+    const last = rollUps.at(-1)!;
+    expect(last.filters).toEqual([["id", CLAIMED_ID]]);
+    expect(last.values).toEqual({ cost_cents: expect.closeTo(1.7, 6) });
+  });
+});

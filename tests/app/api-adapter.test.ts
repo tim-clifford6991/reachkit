@@ -113,9 +113,10 @@ describe("the jobs route is transport only", () => {
     expect(code).not.toMatch(/createFunction|cron:|triggers:/);
   });
 
-  it("exports exactly GET, POST and PUT", () => {
+  it("exports exactly GET, POST and PUT, and the platform's ceiling on an invocation (issue 798)", () => {
     const exported = [...code.matchAll(/export const (\w+)/g)].map((m) => m[1]);
-    expect(exported.sort()).toEqual(["GET", "POST", "PUT"]);
+    expect(exported.sort()).toEqual(["GET", "POST", "PUT", "maxDuration"]);
+    expect(code).toMatch(/^export const maxDuration = \d+;$/m);
   });
 
   it("imports no engine module", () => {

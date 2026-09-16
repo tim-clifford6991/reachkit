@@ -27,6 +27,7 @@
 import { runDeepPass } from "@/lib/scan/deep/run";
 import { sendSetupReminder, sitesDueSetupReminder as sitesDueSetupReminderRows } from "@/lib/mail/setup/reminders";
 import { dueSites, runWeekly, type DueSite } from "@/lib/scan/weekly";
+import type { StepRunner } from "./types";
 
 /** A site and the zone its own clock runs in. Due-ness is computed from
  *  this — never from UTC (ADR-060). */
@@ -233,6 +234,8 @@ export async function runScan(a: {
   readonly domain: string;
   readonly tier: ScanTier;
   readonly siteId?: string;
+  /** The job's durable steps, where it has them (issue 798). */
+  readonly step?: StepRunner;
 }): Promise<EngineResult> {
   if (a.tier !== SCAN_RUN_TIER) throw new NotAJobPath(a.tier, `runScan(${a.scanId})`);
   if (a.siteId === undefined) {
@@ -248,6 +251,7 @@ export async function runScan(a: {
   const deep = await runDeepPass({
     siteId,
     domain: a.domain,
+    ...(a.step === undefined ? {} : { step: a.step }),
     // SPEC §5: "Finishing setup reaches `/app` with a first draft" (issue
     // 737). The first page is started here rather than waiting for the
     // site's evening tick, and before the release (issue #782): the founder
