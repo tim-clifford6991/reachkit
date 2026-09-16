@@ -723,6 +723,27 @@ export async function noticeBrokenDestination(a: {
   return { done: true };
 }
 
+// ── Hosted health — issue #791.
+//
+// `account/maintenance` refreshes the health of a hosted destination whose
+// last check is older than its window, so a founder whose record has come
+// good gets `ok` — and their pages — without opening Settings. The windows
+// are `health/due.ts`'s and the check is `checkHealth`'s; this wrapper holds
+// neither.
+
+export async function hostedDestinationsDueHealth(): Promise<readonly string[]> {
+  const { hostedDestinationsDueHealth: due } = await import("@/lib/publish/destinations/health");
+  return due(new Date());
+}
+
+export async function refreshDestinationHealth(destinationId: string): Promise<EngineResult> {
+  const { checkHealth } = await import("@/lib/publish/destinations/health");
+  // Whatever state it finds is an answer and is recorded; a broken
+  // destination is the founder's to fix, not a degraded tick.
+  await checkHealth(destinationId);
+  return { done: true };
+}
+
 // ── Erasure — issue #52, built.
 //
 // Two calls into `src/lib/account/lifecycle/`, and no logic of their own.
