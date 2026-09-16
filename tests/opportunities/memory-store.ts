@@ -18,6 +18,7 @@ import type {
   OpportunityStore,
 } from "../../src/lib/opportunities/store";
 import type { Profile } from "../../src/lib/market/questions/profile";
+import type { HostedOwnPages } from "../../src/lib/publish/destinations/hosted/own-page";
 import type { EarnGrounding } from "../../src/lib/opportunities/earn-grounding";
 import type { NotWorkingVerdict } from "../../src/lib/opportunities/suppression";
 import type { StoredReport } from "../../src/lib/scan/report";
@@ -30,6 +31,9 @@ export interface MemoryState {
   latestScanAt: Date | null;
   /** The host the site's hosted destination serves at, if any. */
   hostedHost: string | null;
+  /** The pages the site's hosted destination could update, or `null` where
+   *  its destination is not hosted (issue 781). */
+  hostedOwnPages: HostedOwnPages | null;
   now: Date;
   nextId: number;
   /** `page_verdicts` rows judged `not_working`, already joined to their
@@ -52,6 +56,7 @@ export function newMemoryState(over: Partial<MemoryState> = {}): MemoryState {
     profile: null,
     latestScanAt: null,
     hostedHost: null,
+    hostedOwnPages: null,
     now: new Date("2026-09-06T09:00:00.000Z"),
     nextId: 1,
     notWorking: [],
@@ -235,6 +240,10 @@ export function memoryStore(state: MemoryState): OpportunityStore {
 
     async hostedHostFor() {
       return state.hostedHost;
+    },
+
+    async hostedOwnPages() {
+      return state.hostedOwnPages;
     },
 
     async inventoryFor() {
