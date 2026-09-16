@@ -19,7 +19,7 @@ import { writtenLine } from "../_shell/written";
 import { formatDate } from "../_shell/format";
 import type { SupplyNotice } from "@/lib/opportunities";
 
-/** §7's notice, with its zero told apart (#765, #784): `unmeasured` is an
+/** §7's notice, with its zero told apart (issue 765, issue 784): `unmeasured` is an
  *  exhausted count over a market that was never measured — there was
  *  nothing to use up, and "nothing worth publishing is left" is false. */
 export type CalendarSupplyNotice = SupplyNotice | { kind: "unmeasured" };

@@ -39,7 +39,7 @@ export function FirstPageNotice(p: { state: OnboardingState }): React.JSX.Elemen
   );
 }
 
-/** Overview's release notice (#784) — `overviewNotice`'s key, or nothing. */
+/** Overview's release notice (issue 784) — `overviewNotice`'s key, or nothing. */
 export function ReleaseNoticeLine(p: { noticeKey: CopyKey | null }): React.JSX.Element | null {
   if (p.noticeKey === null) return null;
   return (

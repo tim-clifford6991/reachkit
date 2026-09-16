@@ -135,7 +135,7 @@ export const readMonth = cache(async function readMonth(month: MonthKey): Promis
  * The reserved fixture account has no rows to count, so it reads the arm
  * its own `unusedSupply` fixes — zero, exhausted — without a database.
  *
- * An exhausted notice is told apart by `supplyMeasured` (#765, #784): a
+ * An exhausted notice is told apart by `supplyMeasured` (issue 765, issue 784): a
  * market never measured reads `unmeasured`, and one whose distinction could
  * not be read states neither rather than "used up".
  */

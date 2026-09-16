@@ -38,7 +38,7 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
   // readers of a customer's time zone is how two parts of one screen come to
   // state two different days.
   const [shell, overview, onboarding] = await Promise.all([readShell(), readOverview(), readOnboarding()]);
-  // #784: the founder's reason when the pass released them short — what the
+  // issue 784: the founder's reason when the pass released them short — what the
   // shell's panel is not already saying.
   const notice =
     onboarding.kind === "none"

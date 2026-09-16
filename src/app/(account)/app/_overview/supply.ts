@@ -28,7 +28,7 @@ import type { CopyKey } from "@/lib/presentation/copy";
  *  REQ-095's own are `supplyDepth`'s (§7), read and passed in. */
 export interface SupplyFacts {
   exhausted: boolean;
-  /** #765/#784: zero supply over a market that was never measured — the
+  /** issue 765/issue 784: zero supply over a market that was never measured — the
    *  current scan derived no questions, or the site never held an
    *  opportunity. Never true alongside `exhausted`; neither is true where
    *  the distinction could not be read. */

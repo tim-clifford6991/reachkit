@@ -488,7 +488,7 @@ export async function readOverviewFacts(site: OverviewSite): Promise<OverviewFac
     pagesRanking(site.siteId, weekStartFor({ at: now, zone: site.timeZone }), now),
     deepPassReading(site.siteId),
   ]);
-  // #765/#784: a zero is either a market used up or one never measured, and
+  // issue 765/issue 784: a zero is either a market used up or one never measured, and
   // only a read that answered may say which — an unreadable one says neither.
   const measured = depth.unused === 0 ? await supplyMeasured(site.siteId).catch(() => null) : null;
 

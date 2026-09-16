@@ -46,7 +46,7 @@ export function onboardingPanel(a: {
 }
 
 /**
- * The release notice Overview states (#784): what the panel is not already
+ * The release notice Overview states (issue 784): what the panel is not already
  * saying. Nothing while the pass runs, and nothing the panel shows. A market
  * too small is told in any week — a weekly pass can record it too, and its
  * sentence says Monday measures again; the other two speak of the *first*
