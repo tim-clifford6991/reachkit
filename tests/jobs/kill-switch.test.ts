@@ -46,6 +46,7 @@ function engineDouble(): Record<string, unknown> {
     // switch stops it too — this counter is what proves it.
     noticeBrokenDestination: ran,
     publishApproved: ran,
+    publishDue: ran,
     duePublishRetries: async () => {
       engineCalls.count += 1;
       return [{ draftId: "d1", destinationId: "dest-1" }];

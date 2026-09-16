@@ -18,6 +18,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const transition = vi.fn();
 vi.mock("@/lib/publish/machine", () => ({ transition: (...a: unknown[]) => transition(...a) }));
 
+// Issue #790: an approval that moved asks the engine to send the page's
+// `publish/execute` for its moment. Doubled here for the machine's reason.
+const schedulePublish = vi.fn(async () => ({ scheduled: true }));
+vi.mock("@/jobs/engine", () => ({ schedulePublish: (...a: unknown[]) => schedulePublish(...(a as [])) }));
+
 // Issue #169: the day panel's writes now act as the signed-in customer and
 // refuse a draft the account does not own. The ownership read reaches
 // `@/lib/db`; this suite is about the actor and the edge, so the read is
@@ -197,6 +202,7 @@ describe("neither seam claims a write succeeded", () => {
       kind: "customer",
       userId: RESERVED_ACCOUNT.userId,
     });
+    expect(schedulePublish).toHaveBeenCalledWith({ draftId: "d1" });
   });
 
   it("a refused approve rejects, naming the command and the machine's own word", async () => {

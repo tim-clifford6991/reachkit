@@ -68,7 +68,15 @@ async function move(draftId: string, to: State): Promise<string | null> {
   const actor: Actor = { kind: "customer", userId: account.userId };
   const { transition } = await import("@/lib/publish/machine");
   const result = await transition(draftId, to, actor);
-  if (result.ok) return null;
+  if (result.ok) {
+    // Issue #790: an approval is sent for the page's own publish moment,
+    // not left to the hourly sweep. Imported here for the reason above.
+    if (result.state === "approved") {
+      const { schedulePublish } = await import("@/jobs/engine");
+      await schedulePublish({ draftId });
+    }
+    return null;
+  }
   return result.refused === "guard" ? (result.failedGuard ?? "guard") : result.refused;
 }
 
