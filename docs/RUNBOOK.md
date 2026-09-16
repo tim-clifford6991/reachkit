@@ -185,6 +185,39 @@ Routes log the same way: `{"event":"request","routeId":…,"status":…,"duratio
 one exists, `scanId` (`src/app/api/_log.ts`). Vercel's runtime logs are the only place these go —
 there is no log sink, no APM and no error tracker.
 
+### Is it firing?
+
+The heartbeat (#799) answers this without the Inngest dashboard or a Vercel log query. Every
+invocation of every job — cron or event, whatever its outcome — upserts that job's one row in
+`job_runs`: `last_run_at` and `last_outcome` (`ran`, `skipped`, `stopped`, `degraded`, `failed`).
+Read it in the Supabase SQL editor on the target's project:
+
+```sql
+select job_id, last_run_at, last_outcome, stale_alerted_at, now() - last_run_at as quiet_for
+from job_runs order by last_run_at;
+```
+
+| What you see | Means |
+|---|---|
+| every cron job within its interval (`account/maintenance` 15 min, the other four 60 min) | the crons fire; `skipped` is a tick with nothing due, not a fault |
+| one job far behind the others | that function stopped — check it is synced on the `reachkit` app in Inngest |
+| every row old, or the table empty | nothing is firing: the app is not registered or synced, or `/api/jobs` is not answering (*Running one by hand*, #315) |
+| a job with no row at all | it has never run against this database — an event job nobody has sent yet, or a cron that never fired |
+
+**The stale-job alert.** After recording its own run, each invocation reads the other rows. A
+scheduled job whose `last_run_at` is more than **twice its interval** ago is mailed to
+`OWNER_EMAILS` through the incident mail (§6): *"A scheduled job has not run for more than
+twice its usual interval."* with the job, its last run and its interval. `stale_alerted_at` records
+that mail; the job is not mailed again until it has run and gone quiet again.
+
+The alert is carried by the jobs themselves — Vercel Hobby's crons are daily, so there is no
+second clock to watch the first. One job stopping is caught by the others (the 15-minute
+maintenance tick watches the hourly four, and they watch it). **Every job stopping sends no
+mail**, because nothing runs to notice: that is the "every row old" line above, and the reason to
+read the table after a deploy or a sync. The heartbeat is installed only where `/api/jobs` mounts
+the registry; a failed write logs `{"event":"job_heartbeat","outcome":"record-failed"}` and never
+fails the job.
+
 ### Verifying a WordPress destination end to end
 
 The walk, in order, with the observation each step should produce. It has not been run against a
