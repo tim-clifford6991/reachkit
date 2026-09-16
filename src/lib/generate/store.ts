@@ -71,6 +71,12 @@ export interface DraftPatch {
   state?: string;
   title?: string | null;
   body_md?: string | null;
+  /** A regeneration rewrites the page on the date's one row (#788). */
+  meta?: unknown;
+  /** Rewritten only with the passage it already holds — the trigger
+   *  refuses any other — so the source's address and read date can move to
+   *  the read this run made. */
+  grounded_fact?: unknown;
   rule_failures?: unknown;
   hard_rule_attempts?: number;
   claim_check?: unknown;
@@ -132,6 +138,16 @@ export interface GenerateStore {
    *  state. A date has at most one asset (SPEC §7), and both the first
    *  draft's kickoff and the evening tick can ask for the same date. */
   draftOnDate(siteId: string, date: string): Promise<boolean>;
+  /** Drafts on these sites the customer restarted — `needs_attention →
+   *  generating`, the last move on the row — that no run has regenerated
+   *  yet (#788). A row the evening tick wrote straight into `generating`
+   *  carries no move, so a first run in progress is never one of these. */
+  restartedDrafts(siteIds: readonly string[]): Promise<readonly RestartedDraft[]>;
+}
+
+export interface RestartedDraft {
+  draftId: string;
+  siteId: string;
 }
 
 // ── The states this module has to name ──────────────────────────────────
@@ -321,6 +337,20 @@ export function supabaseGenerateStore(): GenerateStore {
       return (result.data ?? []).length > 0;
     },
 
+    async restartedDrafts(siteIds) {
+      if (siteIds.length === 0) return [];
+      const result = await untyped()
+        .from<{ id: string; site_id: string; transitions: unknown }>("drafts")
+        .select("id, site_id, transitions")
+        .in("site_id", siteIds)
+        .eq("state", "generating")
+        .order("created_at", { ascending: true });
+      if (result.error) throw new Error(`generate/store: read from drafts failed: ${result.error.message}`);
+      return (result.data ?? [])
+        .filter((row) => lastMoveIsRestart(row.transitions))
+        .map((row) => ({ draftId: row.id, siteId: row.site_id }));
+    },
+
     async clusterPages(siteId, clusterKey) {
       const result = await untyped()
         .from<{
@@ -349,6 +379,13 @@ export function supabaseGenerateStore(): GenerateStore {
       return pages;
     },
   };
+}
+
+/** Whether the row's last recorded move is the customer's restart. */
+function lastMoveIsRestart(transitions: unknown): boolean {
+  if (!Array.isArray(transitions) || transitions.length === 0) return false;
+  const last = transitions[transitions.length - 1] as { from?: unknown; to?: unknown } | null;
+  return last?.from === "needs_attention" && last?.to === "generating";
 }
 
 /** A `jsonb` array of strings, read defensively: a member that is not a

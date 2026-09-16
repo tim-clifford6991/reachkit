@@ -42,6 +42,12 @@ function engineDouble(): Record<string, unknown> {
     startWeeklyScan: ran,
     runScan: ran,
     generateDraft: ran,
+    // The customer's Regenerate is carried out by the same tick (#788).
+    restartedDrafts: async () => {
+      engineCalls.count += 1;
+      return [{ draftId: "d1", siteId: "site-1" }];
+    },
+    regenerateDraft: ran,
     // BUILD §9's one mail per breakage rides `draft/generate`, so the kill
     // switch stops it too — this counter is what proves it.
     noticeBrokenDestination: ran,

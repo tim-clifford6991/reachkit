@@ -143,6 +143,9 @@ export interface OpportunityStore {
   /** A row whose draft the customer stopped: `open` or `queued` moves to
    *  `dismissed`, and `done` stays done (SPEC §7, 2026-09-15 — issue 712). */
   markDismissed(opportunityId: string): Promise<void>;
+  /** A row whose draft the rules stopped for the last time: `queued` moves
+   *  back to `open`, and no other status moves (#788). */
+  markOpen(opportunityId: string): Promise<void>;
   /** The host the site's live hosted destination serves at, or `null`. */
   hostedHostFor(siteId: string): Promise<string | null>;
   /** The profile the ranking's intent term is classified against — §6.7's
@@ -443,6 +446,15 @@ export function supabaseOpportunityStore(): OpportunityStore {
         .eq("id", opportunityId)
         .in("status", ["open", "queued"]);
       if (error) throw new Error(`opportunities.markDismissed: ${error.message}`);
+    },
+
+    async markOpen(opportunityId) {
+      const { error } = await untyped()
+        .from<OpportunityRow>("opportunities")
+        .update({ status: "open" })
+        .eq("id", opportunityId)
+        .eq("status", "queued");
+      if (error) throw new Error(`opportunities.markOpen: ${error.message}`);
     },
 
     async hostedHostFor(siteId) {

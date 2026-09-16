@@ -42,6 +42,7 @@ export type ScanTier = "free" | "deep" | "weekly";
  *  hold could be forgotten. A **type** import, so it is erased and drags
  *  no database client onto this seam's graph. */
 import type { DailySelection } from "@/lib/publish/daily";
+import type { DayPageOutcome } from "@/lib/generate";
 export type { DailySelection };
 
 /** What one call into the engine reports back. `degraded` names the step
@@ -351,10 +352,37 @@ export async function generateDraft(a: {
   // A date that already holds its draft is a day already done, not a
   // degraded tick.
   if (!outcome.ok && outcome.because === "already_drafted") return { done: true };
-  if (!outcome.ok) return { degraded: `generate:${outcome.because}` };
+  return reviewWritten(outcome, a.now);
+}
 
+/** Drafts the customer restarted (§9's `needs_attention → generating`) on
+ *  these sites that no run has regenerated yet — one a site (#788). */
+export async function restartedDrafts(
+  siteIds: readonly string[]
+): Promise<readonly { readonly draftId: string; readonly siteId: string }[]> {
+  const { restartedDrafts: restarted } = await import("@/lib/generate");
+  return restarted(siteIds);
+}
+
+/** The customer's Regenerate, carried out by the draft tick (#788): the
+ *  page is written again for its own date, and a passing one enters review
+ *  exactly as the evening's does. */
+export async function regenerateDraft(a: {
+  readonly siteId: string;
+  readonly draftId: string;
+  readonly now: Date;
+}): Promise<EngineResult> {
+  const { regenerateRestarted } = await import("@/lib/generate");
+  return reviewWritten(await regenerateRestarted({ siteId: a.siteId, draftId: a.draftId }), a.now);
+}
+
+async function reviewWritten(
+  outcome: DayPageOutcome,
+  now: Date
+): Promise<EngineResult> {
+  if (!outcome.ok) return { degraded: `generate:${outcome.because}` };
   const { enterReview } = await import("@/lib/publish/attempt/window");
-  const entry = await enterReview({ draftId: outcome.draftId, at: a.now });
+  const entry = await enterReview({ draftId: outcome.draftId, at: now });
   if (entry.kind === "told") return { done: true };
   return entry.kind === "untold" ? { degraded: `draft-ready:${entry.reason}` } : { degraded: `review:${entry.reason}` };
 }

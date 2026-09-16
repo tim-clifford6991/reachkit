@@ -94,6 +94,9 @@ export async function generatePageFix(
     voiceText: string | null;
     /** The other crawled pages' titles, so a duplicate is written apart. */
     otherTitles: readonly string[];
+    /** The date's row, when the customer restarted it: rewritten in place,
+     *  never inserted beside (#788). */
+    draftId?: string;
   }
 ): Promise<GenerateOutcome> {
   const evidence = a.opportunity.evidence;
@@ -152,18 +155,27 @@ export async function generatePageFix(
   };
 
   const store = generateStore();
-  const draftId = await store.insertDraft({
-    site_id: a.siteId,
-    opportunity_id: a.opportunity.id,
-    state: GENERATING,
+  const fields = {
     title: record.title ?? before.title,
     body_md: "",
-    grounded_fact: null,
-    attribution: null,
-    scheduled_for: a.scheduledFor,
     cost_cents: c.spentCents(),
     meta: { fix: record, ...(record.description === null ? {} : { description: record.description }) },
-  });
+  };
+  let draftId: string;
+  if (a.draftId === undefined) {
+    draftId = await store.insertDraft({
+      ...fields,
+      site_id: a.siteId,
+      opportunity_id: a.opportunity.id,
+      state: GENERATING,
+      grounded_fact: null,
+      attribution: null,
+      scheduled_for: a.scheduledFor,
+    });
+  } else {
+    draftId = a.draftId;
+    await store.patchDraft(draftId, fields);
+  }
 
   const claim = await claimCheck(c, {
     text: [record.title, record.description].filter((v) => v !== null).join("\n"),
