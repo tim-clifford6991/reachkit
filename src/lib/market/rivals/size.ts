@@ -123,9 +123,12 @@ export async function sizeRivals(
 
     // The vendor's total where there is one; the rows otherwise. Never
     // both, and never a count assembled from the two.
+    // Which of the two it is rides along, so winnability never has to
+    // guess it from the number (#768).
     const rankedCount = rows.value.total ?? rows.value.rows.length;
+    const countIs = rows.value.total === null ? "rows" : "total";
     const band = bandRivalSize({ rivalRanked: rankedCount, ownRanked: a.ownRanked });
-    entries.push({ domain, state: "sized", rankedCount, band, at: a.at, current: true });
+    entries.push({ domain, state: "sized", rankedCount, countIs, band, at: a.at, current: true });
     logSizing({
       rankedCount,
       ownRanked: a.ownRanked,

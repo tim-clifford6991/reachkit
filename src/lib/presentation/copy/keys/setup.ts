@@ -342,4 +342,7 @@ export const SETUP_COPY = Object.freeze({
    *  not complete — never that it found nothing, which is a different
    *  fact with its own line (§7). */
   "setup.release.incomplete": ["Your first measurement didn’t complete. Nothing is needed from you — the next measurement fills it in.", { slots: {}, fixedBy: "REQ-029 c5" }],
+  /** Issue #770: the pass read the market and found too few searches to
+   *  plan a page from — a measurement, not a failure. */
+  "setup.release.market-too-small": ["We couldn’t find enough searches for your market to plan pages yet. A broader category in Settings usually helps — we’ll measure again on Monday.", { slots: {}, fixedBy: "issue 770" }],
 }) satisfies CopyPartition;

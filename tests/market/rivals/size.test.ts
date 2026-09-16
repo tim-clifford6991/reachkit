@@ -310,6 +310,7 @@ describe("REQ-096 c2 · BUILD §7 — a rival's size is the vendor's own total, 
 
     const entry = (out.kind === "unmeasured" ? [] : out.value)[0] as Extract<RivalSize, { state: "sized" }>;
     expect(entry.rankedCount).toBe(4231);
+    expect(entry.countIs).toBe("total");
     // The ceiling this issue is about: the count is not the rows, and it is
     // far above the most rows this product ever buys for a rival.
     expect(entry.rankedCount).toBeGreaterThan(PRICE_BOOK.RANKED_RIVAL_ROWS);
@@ -350,6 +351,7 @@ describe("REQ-096 c2 · BUILD §7 — a rival's size is the vendor's own total, 
 
     const entry = (out.kind === "unmeasured" ? [] : out.value)[0] as Extract<RivalSize, { state: "sized" }>;
     expect(entry.rankedCount).toBe(PRICE_BOOK.RANKED_RIVAL_ROWS);
+    expect(entry.countIs).toBe("rows");
     expect(entry.band).not.toBe("far");
     expect(swapOffer(entry).offered).toBe(false);
   });

@@ -642,6 +642,10 @@ export const MAIL_COPY = Object.freeze({
   "mail.ops.incident.fact.attempt": ["Attempt", { slots: {}, fixedBy: "issue 330" }],
   "mail.ops.incident.fact.error": ["Error", { slots: {}, fixedBy: "issue 330" }],
   "mail.ops.incident.fact.check": ["Check", { slots: {}, fixedBy: "issue 330" }],
+  // Issue #770: a paid pass read the market and found too little to plan from.
+  "mail.ops.incident.market-too-small": ["A paid pass found too little search demand to plan any pages.", { slots: {}, fixedBy: "issue 770" }],
+  "mail.ops.incident.fact.scan": ["Scan", { slots: {}, fixedBy: "issue 770" }],
+  "mail.ops.incident.fact.tier": ["Tier", { slots: {}, fixedBy: "issue 770" }],
 
   // ── SPEC §8, Retention (issue 569). Owner-owed: the copy sheet is issue
   // 568. `sendEmail` refuses a mail that still carries the marker, so none of

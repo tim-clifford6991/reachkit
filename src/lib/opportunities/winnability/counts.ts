@@ -1,16 +1,21 @@
 // BUILD §7 — which ranked counts may satisfy a bar.
 //
-// A bar is a comparison against a rival domain's *total* ranked count. The
-// product buys `ranked_keywords` at a row cap (`PRICE_BOOK.RANKED_RIVAL_ROWS`),
-// so a response that came back **at** the cap is a floor — "at least this
-// many" — and not a count. Comparing a floor against a bar reads a large
-// rival as a small one, which manufactures targets the customer cannot
-// win: the exact harm §7's winnability rule exists to prevent.
+// A bar is a comparison against a rival domain's *total* ranked count.
+// Sizing stores the vendor's own total where the vendor returned one
+// (#117), and that is a measurement at any size — a rival ranking for
+// 50,000 searches is a large rival, not an unknown one (#768). Only where
+// no total came back is the count the rows bought at
+// `PRICE_BOOK.RANKED_RIVAL_ROWS`, and a row count **at** the cap is a floor
+// — "at least this many" — not a count. Comparing a floor against a bar
+// reads a large rival as a small one, which manufactures targets the
+// customer cannot win: the exact harm §7's winnability rule exists to
+// prevent.
 //
-// So: a count at or above the cap is coerced to `unmeasured`, and an
-// `unmeasured` count never satisfies a bar. The honest outcome of not
-// knowing is fewer opportunities, never a guessed one — supply is the cap
-// (DECISIONS, 2026-08-28).
+// So: a row count at or above the cap is coerced to `unmeasured`, and an
+// `unmeasured` count never satisfies a bar. Which kind a count is travels
+// from sizing on the entry (`countIs`); it is never inferred from the
+// number. The honest outcome of not knowing is fewer opportunities, never
+// a guessed one — supply is the cap (DECISIONS, 2026-08-28).
 import { PRICE_BOOK } from "@/lib/config/constants";
 import type { RivalSize } from "@/lib/market/rivals/size";
 import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
@@ -18,19 +23,26 @@ import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
 /**
  * A rival's ranked count as winnability may read it.
  *
- * `null` — we bought no rows for this domain — and a count at the row cap
+ * `null` — we bought no rows for this domain — and a row count at the cap
  * both become `undeterminable`: we tried and cannot tell, which is the
- * stronger and truer of the two unmeasured reasons here. A count below the
- * cap is the vendor's own number and passes through with the date it was
- * measured on.
+ * stronger and truer of the two unmeasured reasons here. A vendor total is
+ * the vendor's own number at any size, and so is a row count below the
+ * cap; both pass through with the date they were measured on.
+ *
+ * `countIs` absent is an entry stored before #768 said which it was. A
+ * count above the cap can only have been a total there, so only a count
+ * exactly at the cap stays unknown.
  */
 export function rankedCountFrom(
-  raw: { rows: number; at: Date } | null,
+  raw: { count: number; countIs?: "total" | "rows"; at: Date } | null,
   at: Date
 ): Measured<number> {
   if (raw === null) return unmeasured("undeterminable", at);
-  if (raw.rows >= PRICE_BOOK.RANKED_RIVAL_ROWS) return unmeasured("undeterminable", raw.at);
-  return measured(raw.rows, raw.at);
+  const cap = PRICE_BOOK.RANKED_RIVAL_ROWS;
+  const floor =
+    raw.countIs === "rows" ? raw.count >= cap : raw.countIs === undefined && raw.count === cap;
+  if (floor) return unmeasured("undeterminable", raw.at);
+  return measured(raw.count, raw.at);
 }
 
 /** The lookup a derivation is handed: one entry per domain the deep pass
@@ -49,10 +61,9 @@ export type RankedCounts = ReadonlyMap<string, Measured<number>>;
  * `unsized` rival contributes `undeterminable` — never a zero, which
  * would satisfy every bar.
  *
- * `sized` counts still pass through `rankedCountFrom`, so the row cap is
- * applied on this side too. #37 records the same bound in its own header
- * and names issue #117 as the fix; until that lands, a rival at the cap
- * is a rival whose size we do not know, and winnability says so.
+ * `sized` counts still pass through `rankedCountFrom`, so a row count at
+ * the cap — the vendor returned no total — is a rival whose size we do not
+ * know, and winnability says so. A vendor total is read as the count it is.
  */
 export function rankedCountsFromSizes(
   sizes: readonly RivalSize[],
@@ -63,7 +74,7 @@ export function rankedCountsFromSizes(
     counts.set(
       size.domain,
       size.state === "sized"
-        ? rankedCountFrom({ rows: size.rankedCount, at: size.at }, at)
+        ? rankedCountFrom({ count: size.rankedCount, countIs: size.countIs, at: size.at }, at)
         : unmeasured<number>("undeterminable", at)
     );
   }

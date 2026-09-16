@@ -130,7 +130,14 @@ describe("the deep pass pursues depth", () => {
     await deriveForPass(fakeCost().ctx, {
       tier: "deep",
       siteId: SITE_ID,
-      report: defaultReport({ rivalSizes: unmeasured("undeterminable", AT) }),
+      // A keyword page: the one Write type an unsized market drops (§6).
+      report: reportOf(
+        {
+          questions: [question({ search: search({ keyword: "user onboarding software" }) })],
+          serps: [serp({ aiOverview: { present: false, asynchronousAiOverview: false, referenceDomains: [] } })],
+        },
+        { rivalSizes: unmeasured("undeterminable", AT) }
+      ),
       hasActiveAccess: true,
     });
     expect(state.rows.filter((row) => row.family === "write")).toHaveLength(0);

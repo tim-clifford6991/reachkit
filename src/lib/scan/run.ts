@@ -73,6 +73,7 @@ import { SERP_FANOUT, withStageBudget, type StageOutcome } from "./budgets";
 import { withScanBounds, type Bounds } from "./ceilings";
 import { advanceCorrectionState, readCorrectionFacts, registerCorrectionRunner } from "./correction";
 import { parseDomain, type CanonicalDomain } from "./domain";
+import { marketTooSmall } from "./market-floor";
 import { readCurrentReport } from "./report";
 import type { AiAnswersSection, StoppedReason, StoredReport, SupplySection, Tier } from "./report";
 import { answersSectionOf, blockedAgentsOf } from "./sections";
@@ -703,8 +704,20 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
     stoppedReason,
     status: stored.status,
     because:
-      ending.stoppedReason === "site_unreadable" ? (ending.refusal ?? "stage_undeterminable") : "pass_ended",
+      ending.stoppedReason === "site_unreadable"
+        ? (ending.refusal ?? "stage_undeterminable")
+        : composed.marketTooSmall
+          ? "market_too_small"
+          : "pass_ended",
   });
+
+  // 8. #770: a paid pass (one with a site) that found too little market
+  //    tells the owner. Imported at the call, as `src/jobs/run.ts` does;
+  //    `reportIncident` never throws.
+  if (composed.marketTooSmall && a.siteId !== undefined) {
+    const { reportIncident } = await import("@/lib/mail/ops");
+    await reportIncident({ occasion: "market-too-small", scanId, tier: a.tier });
+  }
   return stored;
 }
 
@@ -1264,7 +1277,7 @@ function composeReport(a: {
   sections: Sections;
   startedAt: Date;
   correctionState: CorrectionState;
-}): { report: StoredReport; drivers: Drivers; sectionMissing: boolean } {
+}): { report: StoredReport; drivers: Drivers; sectionMissing: boolean; marketTooSmall: boolean } {
   const s = a.sections;
   const m = s.measurement;
 
@@ -1343,15 +1356,24 @@ function composeReport(a: {
     correctionState: a.correctionState,
   });
 
+  // #770: a market read and found too small buys no SERP, so AI presence
+  // has nothing to be read from. That is the market's answer and not a
+  // missing section: presence missing for that reason alone does not
+  // degrade the pass. A search-presence read that failed still does.
+  const tooSmall = marketTooSmall(s.questions);
+  const missingFactors = verdict.missing.filter(
+    (f) => !(tooSmall && f.factor === "presence" && drivers.searchPresence.kind !== "unmeasured")
+  );
+
   const sectionMissing =
     s.aiAnswers === null ||
     s.presence === null ||
-    verdict.missing.length > 0 ||
+    missingFactors.length > 0 ||
     market.kind === "unmeasured" ||
     s.questions.kind === "unmeasured" ||
     s.serps.some((serp) => serp.kind === "unmeasured");
 
-  return { report, drivers, sectionMissing };
+  return { report, drivers, sectionMissing, marketTooSmall: tooSmall };
 }
 
 /** The twelve SERPs as the one input the verdict reads them as: measured
