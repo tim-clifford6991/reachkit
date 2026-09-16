@@ -13,13 +13,14 @@ import { adapter } from "../../_adapter";
 
 const ROUTE_ID = "/api/jobs";
 
-/** The platform's ceiling on one invocation of a job step, in seconds
- *  (issue 798) — the same bound `POST /api/scan` declares, and
- *  `TIMING.platformCeilingS` pins it. Unset, a job ran under the plan's
- *  default, shorter than a paid pass. The onboarding pass is split into
- *  steps (`runDeepPass`) so each fits inside it on its own. A literal:
- *  Next reads route segment config out of the source at build time. */
+// The platform's ceiling on one invocation of a job step, in seconds
+// (issue 798) — the same bound `POST /api/scan` declares, and
+// `TIMING.platformCeilingS` pins it. Unset, a job ran under the plan's
+// default, shorter than a paid pass. The onboarding pass is split into
+// steps (`runDeepPass`) so each fits inside it on its own. A literal:
+// Next reads route segment config out of the source at build time.
 export const maxDuration = 60;
+
 const handlers = serve();
 
 export const GET = adapter(ROUTE_ID, handlers.GET);
