@@ -197,7 +197,7 @@ describe("REQ-025 c6 — the reminders are the maintenance tick's sixth obligati
     expect(sendReminder).toHaveBeenCalledWith("site-1");
   });
 
-  it("a query that fails for any other reason still stops the tick — an absence is not a fault", async () => {
+  it("a query that fails for any other reason still fails the run — an absence is not a fault (issue 797: after the other obligations ran)", async () => {
     dueReminders.mockRejectedValue(new Error("the database is unreachable"));
     await expect(accountMaintenance.run({ data: {}, now: NOW })).rejects.toThrow(/unreachable/);
   });
