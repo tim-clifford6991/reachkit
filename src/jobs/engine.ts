@@ -613,7 +613,7 @@ export async function advanceDueSequences(now: Date): Promise<{
 }
 
 /**
- * The free first pages owed to captured leads (SPEC §2, #787), on the same
+ * The free first pages owed to captured leads (SPEC §2, issue 787), on the same
  * hourly tick. `dueFirstPageDeliveries` decides which leads are due against
  * their stored attempts; each is delivered once through `deliverFirstPage`,
  * which writes the page, mails it and starts the nurture sequence. Returns

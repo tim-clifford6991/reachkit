@@ -6,7 +6,7 @@
 // (`src/lib/generate/**`, §8) writes it. Each is a **declared port** here,
 // with the narrowest shape this feature reads.
 //
-// Both defaults are the real ones (#787). The offer is the report's own
+// Both defaults are the real ones (issue 787). The offer is the report's own
 // `freePage` — the one the card renders, so the card and the mail cannot
 // disagree — and the page is written by `./writer.ts` from that report's
 // best right-sized target under the FREE cap. The register functions are

@@ -1409,7 +1409,7 @@ function composeReport(a: {
     coherence: s.coherence,
     correctionState: a.correctionState,
   });
-  // SPEC §2 (#787): the one first-page proposal is the best right-sized
+  // SPEC §2 (issue 787): the one first-page proposal is the best right-sized
   // Write target this pass measured — derived, never padded.
   const report: StoredReport = { ...assembled, freePage: freePageOf(assembled) };
 

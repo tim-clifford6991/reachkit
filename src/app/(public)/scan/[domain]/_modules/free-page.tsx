@@ -26,7 +26,7 @@ import type { FreePageSection } from "@/lib/scan/report";
 import { Num } from "../_address/measured";
 import { LeadCapture } from "./lead-capture";
 
-/** The Write types a report can offer, in the reader's words (#787). */
+/** The Write types a report can offer, in the reader's words (issue 787). */
 const FORMAT_LINE: Readonly<Record<string, CopyKey>> = Object.freeze({
   answer_page: "free-page.format.answer_page",
   comparison_page: "free-page.format.comparison_page",
@@ -92,7 +92,7 @@ export function FreePageCard(p: { section: FreePageSection; scanId: string }): R
             {FORMAT_LINE[section.format] === undefined ? null : <span>{copy(FORMAT_LINE[section.format]!)}</span>}
           </Row>
         </dl>
-        {/* REQ-010 c1's one control, and the one field it needs (#787). */}
+        {/* REQ-010 c1's one control, and the one field it needs (issue 787). */}
         <LeadCapture scanId={p.scanId} />
         <p className="text-base-content/60 grow-0 text-xs">
           <Num phrase>{copy("free-page.of", { total: String(section.totalPages) })}</Num>

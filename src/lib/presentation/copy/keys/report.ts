@@ -321,7 +321,7 @@ export const REPORT_COPY = Object.freeze({
   "free-page.target.value": ["{keyword} · {volume}/mo", { slots: { keyword: "text", volume: "text" }, fixedBy: "REQ-010 c1" }],
   "free-page.row.beats": ["beats", { slots: {}, fixedBy: "REQ-010 c1" }],
   "free-page.row.format": ["format", { slots: {}, fixedBy: "REQ-010 c1" }],
-  // The format row's value, one per Write type the report can offer (#787,
+  // The format row's value, one per Write type the report can offer (issue 787,
   // drafted — the owner corrects the wording).
   "free-page.format.answer_page": ["An answer page", { slots: {}, fixedBy: "REQ-010 c1" }],
   "free-page.format.comparison_page": ["A comparison page", { slots: {}, fixedBy: "REQ-010 c1" }],

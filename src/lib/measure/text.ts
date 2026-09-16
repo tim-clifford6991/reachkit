@@ -87,7 +87,7 @@ export async function readMeasuredText(a: { siteId: string; scanId?: string }): 
   return textOfScans(scanIds);
 }
 
-/** The pages the free scans of `domain` measured (#787): a free report's
+/** The pages the free scans of `domain` measured (issue 787): a free report's
  *  lead has no site, so its page is grounded on the domain's own reads. */
 export async function readDomainText(domain: string): Promise<MeasuredText[]> {
   const free = await dbAdmin().from("scans").select("id").eq("tier", "free").eq("domain", domain);

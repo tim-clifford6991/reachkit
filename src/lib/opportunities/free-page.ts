@@ -1,4 +1,4 @@
-// SPEC §2 · §6 (#787) — the free report's one first page.
+// SPEC §2 · §6 (issue 787) — the free report's one first page.
 //
 // The report offers the page the paid engine would write first, chosen from
 // what the scan already measured. It spends nothing and calls no model: the

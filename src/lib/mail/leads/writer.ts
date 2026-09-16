@@ -1,4 +1,4 @@
-// SPEC §2 · §8 (#787) — the lead's first page, written.
+// SPEC §2 · §8 (issue 787) — the lead's first page, written.
 //
 // The draft writer port's real implementation. A lead has no site, so §8's
 // `generateDraft` — which writes a `drafts` row and compares against a

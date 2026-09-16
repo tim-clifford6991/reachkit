@@ -20,7 +20,7 @@
 // offer. No eighth id: this one keeps its name and its place in `JOB_IDS`.
 //
 // The same tick delivers the free first pages captured leads are owed
-// (#787) — the delivery is what starts each sequence.
+// (issue 787) — the delivery is what starts each sequence.
 //
 // **This file holds no sequence logic and no clock arithmetic.** Which rows
 // are dropped, which address is released next, and which touch has come
@@ -53,7 +53,7 @@ export const leadNurture: JobDefinition = {
   idempotencyKey: [],
   async run(input): Promise<Outcome> {
     // The first page goes first: its delivery is what schedules a sequence
-    // (#787), which the sweep then reads.
+    // (issue 787), which the sweep then reads.
     const delivered = await deliverDueFirstPages(input.now);
     const swept = await advanceDueSequences(input.now);
     const moved = delivered + swept.dropped + swept.released + swept.sent;

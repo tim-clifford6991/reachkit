@@ -1,4 +1,4 @@
-// SPEC §2 · §8 (#787) — the free page card's one control.
+// SPEC §2 · §8 (issue 787) — the free page card's one control.
 //
 // An email address and nothing else (REQ-010 c1), posted with the report's
 // scan to `POST /api/lead`. The route answers with a copy key, which is the
