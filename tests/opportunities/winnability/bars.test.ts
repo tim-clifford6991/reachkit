@@ -2,7 +2,12 @@
 import "../env";
 import { describe, expect, it } from "vitest";
 import { WINNABILITY } from "../../../src/lib/config/constants";
-import { qualifyingBar, winnableBar } from "../../../src/lib/opportunities/winnability/bars";
+import {
+  qualifyingBar,
+  qualifyingDemand,
+  winnableBar,
+  winnableDemand,
+} from "../../../src/lib/opportunities/winnability/bars";
 
 describe('§7, quoted: "a Write target qualifies only if its top-10 contains at least one domain whose ranked count <= max(500, 5x customer\'s)"', () => {
   it("the qualifying bar is the greater of the floor and the multiple", () => {
@@ -48,5 +53,19 @@ describe("the bar takes one number and nothing else", () => {
     // two customers cannot be held to two thresholds.
     expect(qualifyingBar.length).toBe(1);
     expect(winnableBar.length).toBe(1);
+  });
+});
+
+describe("the demand ceilings scale with the site's own footprint (SPEC §6, 2026-09-16)", () => {
+  it("read the pins, and the winnable ceiling sits strictly inside the qualifying one", () => {
+    for (const ownRanked of [0, 3, 99, 100, 500, 30_000]) {
+      expect(qualifyingDemand(ownRanked)).toBe(
+        Math.max(WINNABILITY.demandFloor, WINNABILITY.demandMultiple * ownRanked)
+      );
+      expect(winnableDemand(ownRanked)).toBe(
+        Math.max(WINNABILITY.demandNearFloor, WINNABILITY.demandNearMultiple * ownRanked)
+      );
+      expect(winnableDemand(ownRanked)).toBeLessThan(qualifyingDemand(ownRanked));
+    }
   });
 });

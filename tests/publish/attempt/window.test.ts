@@ -27,7 +27,7 @@ vi.mock("@/lib/mail/draft-ready", () => ({
   },
 }));
 
-const { enterReview, dueApprovals } = await import("@/lib/publish/attempt/window");
+const { enterReview, dueApprovals, dueApproval, publishDueAt } = await import("@/lib/publish/attempt/window");
 const { VETO } = await import("@/lib/config/constants");
 
 /** 22:00 UTC is the site's evening in New York in September. */
@@ -177,5 +177,47 @@ describe("the hourly tick closes a window that has run out", () => {
     db.seed("destinations", []);
     expect(await dueApprovals(DUE)).toEqual([]);
     expect(draft().state).toBe("in_review");
+  });
+});
+
+describe("issue #790 — the moment a page's attempt is sent for, and what the event finds when it arrives", () => {
+  /** 09:00 New York on 3 September: the first publish time at or after the
+   *  24-hour window that opens on the evening of the 1st. */
+  const DUE = new Date("2026-09-03T13:00:00.000Z");
+
+  it("a page entering review is due at the first publish time after its window, at its live destination", async () => {
+    await enterReview({ draftId: "d1", at: EVENING });
+    expect(await publishDueAt("d1")).toEqual({ draftId: "d1", destinationId: "dest-1", at: DUE });
+  });
+
+  it("a customer's approval moves the moment to the first publish time after the approval", async () => {
+    await enterReview({ draftId: "d1", at: EVENING });
+    draft().state = "approved";
+    draft().approved_at = "2026-09-02T02:00:00.000Z"; // 22:00 New York on the 1st
+    expect((await publishDueAt("d1"))?.at).toEqual(new Date("2026-09-02T13:00:00.000Z"));
+  });
+
+  it("a copilot page nobody approved has no moment, and neither has a page with nowhere to go", async () => {
+    seed({ site: { mode: "copilot" } });
+    await enterReview({ draftId: "d1", at: EVENING });
+    expect(await publishDueAt("d1")).toBeNull();
+    seed();
+    await enterReview({ draftId: "d1", at: EVENING });
+    db.seed("destinations", []);
+    expect(await publishDueAt("d1")).toBeNull();
+  });
+
+  it("the event at its moment approves the page at window end and addresses it, as the tick would", async () => {
+    await enterReview({ draftId: "d1", at: EVENING });
+    expect(await dueApproval("d1", DUE)).toEqual({ draftId: "d1", destinationId: "dest-1" });
+    expect(draft().state).toBe("approved");
+  });
+
+  it("an event that arrives before the moment, or for a page that was stopped, finds nothing to do", async () => {
+    await enterReview({ draftId: "d1", at: EVENING });
+    expect(await dueApproval("d1", new Date(DUE.getTime() - HOUR))).toBeNull();
+    expect(draft().state).toBe("in_review");
+    draft().state = "skipped";
+    expect(await dueApproval("d1", DUE)).toBeNull();
   });
 });

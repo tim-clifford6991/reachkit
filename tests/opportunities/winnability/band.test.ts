@@ -102,19 +102,33 @@ describe("rankedCountsFor keeps a missing domain visible", () => {
 describe("assess tells the two rejections apart", () => {
   it("a market we could not read is `unmeasured_top10`, not `not_yet`", () => {
     expect(
-      assess({ top10RankedCounts: [unmeasured<number>("undeterminable", AT)], ownRanked: 0 })
+      assess({ top10RankedCounts: [unmeasured<number>("undeterminable", AT)], ownRanked: 0, volume: 20 })
     ).toEqual({ qualified: false, because: "unmeasured_top10" });
   });
 
   it("a market of large rivals is `not_yet`", () => {
-    expect(assess({ top10RankedCounts: [measured(9000, AT)], ownRanked: 0 })).toEqual({
+    expect(assess({ top10RankedCounts: [measured(9000, AT)], ownRanked: 0, volume: 20 })).toEqual({
       qualified: false,
       because: "not_yet",
     });
   });
 
+  it("a search outsized for the site is refused before its top ten is read", () => {
+    expect(assess({ top10RankedCounts: [measured(40, AT)], ownRanked: 3, volume: 50_000 })).toEqual({
+      qualified: false,
+      because: "outsized",
+    });
+  });
+
+  it("the band is the lower of competition and demand — a small top ten does not make a mid-size search winnable", () => {
+    expect(assess({ top10RankedCounts: [measured(40, AT)], ownRanked: 0, volume: 800 })).toEqual({
+      qualified: true,
+      band: "reach",
+    });
+  });
+
   it("a qualified target carries the band it qualified into", () => {
-    expect(assess({ top10RankedCounts: [measured(40, AT)], ownRanked: 0 })).toEqual({
+    expect(assess({ top10RankedCounts: [measured(40, AT)], ownRanked: 0, volume: 20 })).toEqual({
       qualified: true,
       band: "winnable",
     });
@@ -176,7 +190,7 @@ describe("#37's rival sizing is where the counts come from, and it is not re-don
       },
     ];
     const counts = rankedCountsFor(["semrush.com"], rankedCountsFromSizes(big, AT), AT);
-    expect(assess({ top10RankedCounts: counts, ownRanked: 0 })).toEqual({
+    expect(assess({ top10RankedCounts: counts, ownRanked: 0, volume: 20 })).toEqual({
       qualified: false,
       because: "not_yet",
     });

@@ -30,6 +30,7 @@ import { Surface } from "@/ui/layout";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import type { ScoreFactorName } from "@/lib/measure/score";
 import type { StoredReport } from "@/lib/scan/report";
+import type { CorrectionOffer } from "@/lib/market/coherence/offer";
 import { AiAnswersAbsent, AiAnswersCard } from "../_modules/ai-answers";
 import {
   GooglePresenceAbsent,
@@ -184,10 +185,11 @@ export function ReportView(p: {
     report: StoredReport;
     notice: AddressNotice | null;
     control: AddressControl;
+    correction: CorrectionOffer;
   };
   checkoutRefused?: boolean;
 }): React.JSX.Element {
-  const { report, notice, control } = p.state;
+  const { report, notice, control, correction } = p.state;
   const measuredOn = formatMeasuredOn(report.verdict.measuredAt);
   const cards = cardsOf(report, unblockLines(report.blockedAgents));
   const cutOff = cutByCeiling(report);
@@ -261,6 +263,7 @@ export function ReportView(p: {
             verdict={report.verdict}
             category={categoryOf(report.market)}
             measuredOn={measuredOn}
+            correction={correction}
           />
           {/* SPEC §2: what was measured, in one line that is always shown. */}
           <p className="text-base-content/60 mt-2 font-mono text-xs">{copy("report.measurement")}</p>

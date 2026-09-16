@@ -66,6 +66,13 @@ export function draftAction(routeId: string, to: State, reason: string) {
 
     const moved = await transition(id, to, { kind: "customer", userId: session.userId }, { reason });
     if (moved.ok) {
+      // Issue #790: an approved page is sent for its own publish moment
+      // rather than waiting on the hourly sweep. When that moment is, and
+      // whether the page then goes out, stays the engine's answer.
+      if (moved.state === "approved") {
+        const { schedulePublish } = await import("@/jobs/engine");
+        await schedulePublish({ draftId: id });
+      }
       return Response.json({ state: moved.state } satisfies ActionAccepted);
     }
 

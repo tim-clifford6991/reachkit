@@ -46,7 +46,7 @@ describe('§7: `expand_page` — "Customer ranks 4-30, page thin"', () => {
     expect(only.evidence).toEqual({
       family: "improve",
       query: "best user onboarding software",
-      volume: { kind: "measured", value: 1900, at: AT },
+      volume: { kind: "measured", value: 190, at: AT },
       pageUrl: ON_PAGE.url,
       shortfall: { kind: "thin", words: { kind: "measured", value: 400, at: AT } },
     });

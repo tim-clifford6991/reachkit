@@ -22,6 +22,8 @@ import type { Verdict } from "@/lib/measure/verdict";
 import type { Measured } from "@/lib/measure/measured";
 import type { ScoreFactorName } from "@/lib/measure/score";
 import type { CopyKey } from "@/lib/presentation/copy";
+import type { CorrectionOffer } from "@/lib/market/coherence/offer";
+import { CategoryCorrection } from "./correction";
 import { dash, Num, unmeasuredLineFor } from "./measured";
 
 /** The factor's own name, for the `{what}` slot of the two unmeasured
@@ -93,6 +95,8 @@ export function VerdictStrip(p: {
   category: string | null;
   /** Already formatted by the one caller that owns the report's one date. */
   measuredOn: string;
+  /** Whether the category correction is on offer (SPEC §2, #786). */
+  correction: CorrectionOffer;
 }): React.JSX.Element {
   const { verdict } = p;
   const scoreAndBand = verdict.scoreAndBand;
@@ -111,11 +115,9 @@ export function VerdictStrip(p: {
                   ? copy("report.measured-at.no-category", { date: p.measuredOn })
                   : copy("report.measured-at", { date: p.measuredOn, category: p.category })}
               </Num>
-              {/* The category correction. The flow behind it is its own
-                  issue; until then it is a control with no destination. */}
-              <button type="button" className="btn btn-ghost btn-xs">
-                {copy("verdict.not-your-market")}
-              </button>
+              {/* The category correction: an inline field that re-measures
+                  on the market given, and follows the rerun here (#786). */}
+              <CategoryCorrection domain={verdict.domain} offer={p.correction} />
             </div>
           </div>
 

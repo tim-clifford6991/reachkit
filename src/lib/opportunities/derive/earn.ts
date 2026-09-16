@@ -109,10 +109,11 @@ export function earnCandidates(a: EarnInput): DerivationResult {
         at
       ),
       ownRanked: a.ownRanked,
+      volume: question.search.volume,
     });
     if (!verdict.qualified) {
-      if (verdict.because === "not_yet") result.rejected.not_yet += 1;
-      else result.rejected.unmeasured_top10 += 1;
+      if (verdict.because === "unmeasured_top10") result.rejected.unmeasured_top10 += 1;
+      else result.rejected.not_yet += 1;
       return;
     }
 

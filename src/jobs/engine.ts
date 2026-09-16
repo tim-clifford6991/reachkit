@@ -383,7 +383,10 @@ async function reviewWritten(
   if (!outcome.ok) return { degraded: `generate:${outcome.because}` };
   const { enterReview } = await import("@/lib/publish/attempt/window");
   const entry = await enterReview({ draftId: outcome.draftId, at: now });
-  if (entry.kind === "told") return { done: true };
+  if (entry.kind === "told") {
+    await schedulePublish({ draftId: outcome.draftId });
+    return { done: true };
+  }
   return entry.kind === "untold" ? { degraded: `draft-ready:${entry.reason}` } : { degraded: `review:${entry.reason}` };
 }
 
@@ -435,6 +438,53 @@ export async function publishApproved(a: {
     await sendJobEvent("publish/verify", { publicationId: outcome.publicationId });
   }
   return { done: true };
+}
+
+// ── The attempt, sent for its moment — issue #790.
+//
+// An approval (the customer's, or the window's end) used to wait for the
+// hourly publish tick. `schedulePublish` asks the publishing engine when the
+// page first becomes publishable and due and sends one `publish/execute`
+// stamped for that moment; `publishDue` is what that event runs — the
+// one-page form of the tick's read (approving at window end) and then
+// `publishApproved()`, so the event and the tick are one attempt with the
+// same guards. The tick stays: an event that was lost, held or sent before
+// a setting changed is picked up there.
+//
+// **A send that fails never fails what occasioned it.** The approval has
+// happened and the tick will deliver the page; the miss is logged.
+
+export async function schedulePublish(a: { readonly draftId: string }): Promise<{ readonly scheduled: boolean }> {
+  try {
+    const { publishDueAt } = await import("@/lib/publish/attempt/window");
+    const due = await publishDueAt(a.draftId);
+    if (due === null) return { scheduled: false };
+    const { sendJobEvent } = await import("./client");
+    await sendJobEvent(
+      "publish/execute",
+      { draftId: due.draftId, destinationId: due.destinationId, dueAt: due.at.toISOString() },
+      { at: due.at }
+    );
+    return { scheduled: true };
+  } catch (error) {
+    console.log(
+      JSON.stringify({
+        event: "publish_schedule_failed",
+        error: error instanceof Error ? error.name : "unknown",
+      })
+    );
+    return { scheduled: false };
+  }
+}
+
+export async function publishDue(a: {
+  readonly draftId: string;
+  readonly now: Date;
+}): Promise<EngineResult | { readonly notDue: true }> {
+  const { dueApproval } = await import("@/lib/publish/attempt/window");
+  const page = await dueApproval(a.draftId, a.now);
+  if (page === null) return { notDue: true };
+  return publishApproved(page);
 }
 
 // ── The retries that have come round — BUILD §9, issue #200. Built.

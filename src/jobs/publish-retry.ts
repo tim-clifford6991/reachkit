@@ -7,14 +7,11 @@
 //
 // **It is a clock job, for the reasons `src/jobs/lead-nurture.ts` states,
 // verbatim in shape.** A
-// retry cannot be a chained event: `publish/execute`'s idempotency key is
-// `(draftId, destinationId)`, so re-sending its event for the same page is
-// deduped rather than delayed — the second delivery is a no-op, which is
-// precisely what the at-most-once guarantee for a *post* is for. A delay
-// per event is not available either: `JobTrigger`'s `afterHours` is per
-// *job*, read once at `defineJob`. And a declined event is never
-// re-delivered, where **a lost tick cannot lose a retry**: the next one
-// re-reads the same row and it is still due.
+// retry cannot be a chained event: a `publish/execute` for a page is sent
+// for the moment it first becomes due, and its idempotency key carries that
+// moment, not the retry's. And a declined event is never re-delivered,
+// where **a lost tick cannot lose a retry**: the next one re-reads the same
+// row and it is still due.
 //
 // **This file holds no retry logic and no clock arithmetic.** Which pages
 // have come round is `src/lib/publish/attempt/due.ts`'s, off the same
@@ -37,15 +34,14 @@
 // **In the kill switch's scope**: §11 stops "scan + generate + publish",
 // and this publishes. `runJob()` stops it before the first write.
 //
-// **It is also the tick that closes a veto window** (issue 709). SPEC §7's
-// "an untouched draft publishes at window end" needs a clock for the same
-// reason a retry does — nothing sends `publish/execute` when a window runs
-// out, and an event per page could not be delayed to the moment — and it is
-// the same kind of work: a page whose attempt is due, re-entered through
-// `publishApproved()`. Riding this tick keeps the job set closed at eight
-// and keeps the approval inside the kill switch's scope, where anything
-// that publishes must be. Which windows have run out is
-// `publish/attempt/window.ts`'s, not this file's.
+// **It is also the backstop that closes a veto window** (issue 709). Since
+// issue #790 a page's own `publish/execute` is sent for the moment it falls
+// due — on approval and when its window opens — and delivers it then. This
+// tick still reads every window that has run out and every approved page
+// that is due, so an event that was lost, arrived before a setting moved
+// the moment later, or was held re-enters here: the same work, through
+// `publishApproved()`, inside the kill switch's scope. Which windows have
+// run out is `publish/attempt/window.ts`'s, not this file's.
 import { duePublishApprovals, duePublishRetries, publishApproved } from "@/jobs/engine";
 import { fanOut, settle } from "./fan-out";
 import type { JobDefinition, Outcome } from "./types";
