@@ -37,7 +37,7 @@ import { isOwnDomain, registrableDomain } from "@/lib/market/rivals/domains";
 import { measured, type Measured } from "@/lib/measure/measured";
 import type { StoredReport } from "@/lib/scan/report";
 import type { SerpResult } from "@/lib/vendors/dataforseo/types";
-import { assess } from "../winnability/band";
+import { assess, bandWinnability } from "../winnability/band";
 import { rankedCountsFor, type RankedCounts } from "../winnability/counts";
 import { FAMILY_OF, noRejections, type Evidence, type OpportunityType } from "../types";
 import { emptyDerivation, slugify, type Candidate, type DerivationResult } from "./candidate";
@@ -124,21 +124,12 @@ export function writeCandidates(a: WriteInput): DerivationResult {
 
     result.assessed += 1;
 
-    // Winnability first: a target nobody can size, or nobody small enough,
-    // never becomes a candidate whatever its trigger says.
-    const verdict = assess({
-      top10RankedCounts: rankedCountsFor(
-        serp.organic.map((row) => registrableDomain(row.domain) ?? row.domain),
-        a.rankedCounts,
-        at
-      ),
-      ownRanked: a.ownRanked,
-    });
-    if (!verdict.qualified) {
-      if (verdict.because === "not_yet") result.rejected.not_yet += 1;
-      else result.rejected.unmeasured_top10 += 1;
-      return;
-    }
+    const top10RankedCounts = rankedCountsFor(
+      serp.organic.map((row) => registrableDomain(row.domain) ?? row.domain),
+      a.rankedCounts,
+      at
+    );
+    const verdict = assess({ top10RankedCounts, ownRanked: a.ownRanked });
 
     const rival = bestRival(serp, ownDomain, at);
     if (rival === null) return;
@@ -161,6 +152,15 @@ export function writeCandidates(a: WriteInput): DerivationResult {
       type = "keyword_page";
     if (type === null) return;
 
+    // Winnability gates `keyword_page` only (SPEC §6, 2026-09-15). An answer
+    // or comparison page keeps its band — ranking still weighs it — but a
+    // top ten of large domains does not drop it.
+    if (type === "keyword_page" && !verdict.qualified) {
+      if (verdict.because === "not_yet") result.rejected.not_yet += 1;
+      else result.rejected.unmeasured_top10 += 1;
+      return;
+    }
+
     const evidence: Evidence = { family: "write", query, volume, rival };
     result.candidates.push({
       siteId: a.siteId,
@@ -176,7 +176,9 @@ export function writeCandidates(a: WriteInput): DerivationResult {
         type === "answer_page"
           ? { form: "named_on", question: question.text }
           : { form: "top20", query },
-      fitBand: verdict.band,
+      fitBand: verdict.qualified
+        ? verdict.band
+        : bandWinnability({ top10RankedCounts, ownRanked: a.ownRanked }),
       effort: EFFORT_BY_TYPE[type],
     } satisfies Candidate);
   });

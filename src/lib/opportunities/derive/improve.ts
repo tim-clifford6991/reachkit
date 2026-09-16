@@ -37,7 +37,7 @@ import { EFFORT_BY_TYPE, IMPROVE_POSITION_BAND, THIN_PAGE_VISIBLE_CHARS } from "
 import { isOwnDomain, registrableDomain } from "@/lib/market/rivals/domains";
 import { measured } from "@/lib/measure/measured";
 import type { StoredReport } from "@/lib/scan/report";
-import { assess } from "../winnability/band";
+import { bandWinnability } from "../winnability/band";
 import { rankedCountsFor, type RankedCounts } from "../winnability/counts";
 import { FAMILY_OF, noRejections, type Evidence, type OpportunityType, type Shortfall } from "../types";
 import { canonicalUrl } from "../cluster";
@@ -90,7 +90,9 @@ export function improveCandidates(a: ImproveInput): DerivationResult {
 
     result.assessed += 1;
 
-    const verdict = assess({
+    // Winnability gates `keyword_page` only (SPEC §6, 2026-09-15); no
+    // Improve type is one, so the band is recorded and never drops a page.
+    const band = bandWinnability({
       top10RankedCounts: rankedCountsFor(
         serp.organic.map((row) => registrableDomain(row.domain) ?? row.domain),
         a.rankedCounts,
@@ -98,11 +100,6 @@ export function improveCandidates(a: ImproveInput): DerivationResult {
       ),
       ownRanked: a.ownRanked,
     });
-    if (!verdict.qualified) {
-      if (verdict.because === "not_yet") result.rejected.not_yet += 1;
-      else result.rejected.unmeasured_top10 += 1;
-      return;
-    }
 
     const query = question.search.keyword;
     const volume = measured(question.search.volume, at);
@@ -143,7 +140,7 @@ export function improveCandidates(a: ImproveInput): DerivationResult {
         type === "answerable_page"
           ? { form: "named_on", question: question.text }
           : { form: "top20", query },
-      fitBand: verdict.band,
+      fitBand: band,
       effort: EFFORT_BY_TYPE[type],
     } satisfies Candidate);
     claimed = true;
