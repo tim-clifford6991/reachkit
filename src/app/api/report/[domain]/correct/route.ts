@@ -30,6 +30,7 @@
 // emits the one request line every API route emits and a thrown error —
 // a database failure reading the report, a vendor payload from inside the
 // re-measurement — answers `unavailable` rather than reaching a body.
+import { after } from "next/server";
 import { adapter } from "../../../_adapter";
 import { env } from "@/lib/config/env";
 import { correctionOffer } from "@/lib/market/coherence/offer";
@@ -151,12 +152,29 @@ async function handle(
   });
   if (!won) return refuse("already_running");
 
+  // The seam answers once the rerun's row exists and the pass has started
+  // (#786). The id goes back at once so the report can follow the stages;
+  // the pass itself is handed to `after()`, which keeps this invocation
+  // alive until it settles, exactly as `POST /api/scan` does.
   const run = await runner({ domain: parsed.domain, tier: "free", correctionOf: report.scanId, category });
+  after(async () => {
+    try {
+      const { status } = await run.finished;
+      log({ outcome: "finished", scanId: run.scanId, status });
+    } catch (error: unknown) {
+      log({ outcome: "run_failed", scanId: run.scanId, because: error instanceof Error ? error.message : String(error) });
+    }
+  });
   log({ outcome: "accepted", scanId: run.scanId, as: offer.as });
   return Response.json({ ok: true, scanId: run.scanId } satisfies CorrectReportResponse, { status: 200 });
 }
 
 export const POST = adapter(ROUTE_ID, handle);
+
+/** The platform's bound on this invocation, which now carries the rerun
+ *  past the response. The same literal `POST /api/scan` declares, for the
+ *  same reason: Next reads it out of the source at build time. */
+export const maxDuration = 60;
 
 /** What became of the correction — a different fact from the request line
  *  `adapter()` emits, which says only that a request was answered. The scan

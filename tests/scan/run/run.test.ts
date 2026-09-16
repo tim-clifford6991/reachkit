@@ -125,6 +125,7 @@ function measurement(over: Partial<DomainMeasurement> = {}): DomainMeasurement {
     pricing: null,
     robots: measured(ROBOTS, AT),
     ownRanked: measuredZero(0, AT),
+    ownRankedRows: [],
     homeRefusal: null,
     ...over,
   };
@@ -566,9 +567,18 @@ describe("a market correction runs inside the scan it corrects", () => {
   });
 
   it("spends one allowance: one cost context, no second free-path claim", async () => {
-    await runScan({ domain: DOMAIN, tier: "free", correctionOf: CORRECTED });
+    // The seam claims the rerun's row and hands its id in (#786); the pass
+    // claims nothing further.
+    await runScan({ domain: DOMAIN, tier: "free", correctionOf: CORRECTED, scanId: CLAIMED_ID });
     expect(db.queries.filter((q) => q.verb === "insert")).toHaveLength(0);
     expect(storeCurrentReport).toHaveBeenCalledTimes(1);
+  });
+
+  it("never adopts an admission claim — a correction has none, so it cannot end no_claimed_slot (#786)", async () => {
+    db.rows.set("scans", []);
+    const result = await runScan({ domain: DOMAIN, tier: "free", correctionOf: CORRECTED, scanId: CLAIMED_ID });
+    expect(result).toEqual({ scanId: CLAIMED_ID, status: "done" });
+    expect(measureDomain).toHaveBeenCalledTimes(1);
   });
 });
 

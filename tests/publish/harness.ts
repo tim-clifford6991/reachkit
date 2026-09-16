@@ -316,7 +316,8 @@ export function fakeDb(): FakeDb {
 
 /**
  * `publish_transition`, as the migration writes it: one statement that sets
- * the state, appends the record, and maintains `publishable_since` — guarded
+ * the state, appends the record, maintains `publishable_since` and records a
+ * customer's approval — guarded
  * by `where … and state = p_from`, the optimistic lock two concurrent movers
  * race on.
  */
@@ -333,6 +334,12 @@ export function installTransitionRpc(db: FakeDb): void {
       row.publishable_since = row.publishable_since ?? new Date().toISOString();
     } else if (["published", "skipped", "unpublished"].includes(to)) {
       row.publishable_since = null;
+    }
+    // A customer's approval is recorded in the same statement (issue #790).
+    const record = args.p_record as { at?: string; actor?: { kind?: string } };
+    if (to === "approved" && record.actor?.kind === "customer") {
+      row.approved_at = record.at ?? new Date().toISOString();
+      row.approved_by = record.actor;
     }
     return true;
   });

@@ -23,22 +23,37 @@ import {
   type MemoryStore,
 } from "./fixtures";
 
-const { llmMock, readMeasuredTextMock, nextForDayMock, withCostContextMock, queueForDraftMock } = vi.hoisted(() => ({
+const {
+  llmMock,
+  readMeasuredTextMock,
+  nextForDayMock,
+  withCostContextMock,
+  queueForDraftMock,
+  releaseForDraftMock,
+  transitionMock,
+} = vi.hoisted(() => ({
   llmMock: vi.fn(),
   readMeasuredTextMock: vi.fn(),
   nextForDayMock: vi.fn(),
   withCostContextMock: vi.fn(),
   queueForDraftMock: vi.fn(),
+  releaseForDraftMock: vi.fn(),
+  transitionMock: vi.fn(),
 }));
 vi.mock("@/lib/llm", () => ({ llm: llmMock }));
 vi.mock("@/lib/measure/text", () => ({ readMeasuredText: readMeasuredTextMock }));
 vi.mock("@/lib/opportunities", () => ({
   nextForDay: nextForDayMock,
   queueForDraft: queueForDraftMock,
+  releaseForDraft: releaseForDraftMock,
+  opportunityById: async () => null,
   assessFixPages: async () => ({ done: 0, ready: 0 }),
   assessReadiness: async () => ({ ready: 1, unready: 0 }),
 }));
 vi.mock("@/lib/costs", () => ({ withCostContext: withCostContextMock }));
+// §9's mover, at its door: the move a stopped page makes is asserted here,
+// and the machine's own table and guards are tested where they live.
+vi.mock("@/lib/publish/machine", () => ({ transition: transitionMock }));
 // Issue 737: a page is written from the stored inventory, never a new crawl.
 const crawlMock = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/site-profile/crawl", () => ({ crawlSite: crawlMock }));
@@ -77,6 +92,13 @@ beforeEach(async () => {
   readMeasuredTextMock.mockReset();
   nextForDayMock.mockReset();
   queueForDraftMock.mockReset();
+  releaseForDraftMock.mockReset();
+  transitionMock.mockReset();
+  transitionMock.mockImplementation(async (draftId: string, to: string) => {
+    const row = store.rows.get(draftId);
+    if (row !== undefined) store.rows.set(draftId, { ...row, state: to });
+    return { ok: true, state: to };
+  });
   withCostContextMock.mockReset();
   opened.length = 0;
 
@@ -154,12 +176,21 @@ describe("SPEC §7 (2026-09-15, issue 712) — a written draft queues its opport
     expect(queueForDraftMock.mock.calls).toEqual([[opportunity().id]]);
   });
 
-  it("a draft the battery stopped twice still queues it — it rests in needs_attention, not in the open set", async () => {
+  it("a draft the battery stopped twice rests in needs_attention and releases its opportunity (#788)", async () => {
     queueAttempt("Example wins everything, and always has.");
     queueAttempt("Example wins everything, again, and always.");
     const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
     expect(outcome).toMatchObject({ ok: false, because: "rules" });
-    expect(queueForDraftMock.mock.calls).toEqual([[opportunity().id]]);
+    const [row] = [...store.rows.values()];
+    expect(row?.state).toBe("needs_attention");
+    expect(transitionMock).toHaveBeenCalledWith(
+      row?.id,
+      "needs_attention",
+      { kind: "system", job: "draft/generate" },
+      { reason: expect.stringMatching(/^rules:.+/) }
+    );
+    expect(queueForDraftMock).not.toHaveBeenCalled();
+    expect(releaseForDraftMock.mock.calls).toEqual([[opportunity().id]]);
   });
 
   it("a run that wrote no draft leaves the opportunity open for the next evening", async () => {
@@ -175,7 +206,10 @@ describe("ADR-070 — one automatic regeneration, and no more", () => {
     queueAttempt(CLEAN_MARKDOWN);
     const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
     expect(outcome.ok).toBe(true);
-    expect(store.rows.size).toBe(2);
+    // #788: the regeneration rewrites the date's one row.
+    expect(store.rows.size).toBe(1);
+    const row = outcome.ok ? store.rows.get(outcome.draftId) : undefined;
+    expect(row).toMatchObject({ state: "generating", body_md: CLEAN_MARKDOWN, hard_rule_attempts: 1 });
   });
 
   it("a second attempt stopped again comes to rest — never a third", async () => {
@@ -183,8 +217,16 @@ describe("ADR-070 — one automatic regeneration, and no more", () => {
     queueAttempt("Example wins everything, again, and always.");
     queueAttempt(CLEAN_MARKDOWN);
     const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
+    expect(outcome).toMatchObject({ ok: false, because: "rules", attempts: 2 });
+    expect(store.rows.size).toBe(1);
+  });
+
+  it("a regeneration that cannot run leaves the first stop standing: the row rests, never waits in generating", async () => {
+    queueAttempt("Example wins everything, and always has.");
+    llmMock.mockResolvedValue({ kind: "unmeasured", reason: "undeterminable", at: AT });
+    const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
     expect(outcome).toMatchObject({ ok: false, because: "rules" });
-    expect(store.rows.size).toBe(2);
+    expect([...store.rows.values()].map((row) => row.state)).toEqual(["needs_attention"]);
   });
 
   it("a step that did not run consumes no attempt: it stops at once", async () => {

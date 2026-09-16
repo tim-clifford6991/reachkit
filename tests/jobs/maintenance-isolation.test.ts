@@ -50,6 +50,13 @@ vi.mock("@/lib/mail/retention", () => ({
   sendWinback: async () => ({ sent: false, reason: "not-due" }),
 }));
 
+// Issue #791's hosted-health refresh reads `destinations`; stood in with
+// nothing due, and driven in `hosted-health-tick.test.ts`.
+vi.mock("@/lib/publish/destinations/health", () => ({
+  hostedDestinationsDueHealth: async () => [],
+  checkHealth: async () => ({ health: "ok", reason: null, checkedAt: new Date() }),
+}));
+
 const { accountMaintenance } = await import("../../src/jobs/account-maintenance");
 const { registerSignInLinkIssuer } = await import("@/lib/account/provisioning/sign-in-link");
 const { setStripe } = await import("@/lib/account/stripe/client");

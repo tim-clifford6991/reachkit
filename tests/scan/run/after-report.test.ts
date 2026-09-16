@@ -83,6 +83,7 @@ const MEASUREMENT: DomainMeasurement = {
   pricing: null,
   robots: measured(ROBOTS, AT),
   ownRanked: measuredZero(0, AT),
+  ownRankedRows: [],
   homeRefusal: null,
 };
 

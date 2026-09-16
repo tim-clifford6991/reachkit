@@ -82,12 +82,17 @@ async function hostedHealth(row: DestinationRecord): Promise<{ health: Destinati
     return { health: "expired", reason: "never_connected" };
   }
   const host = row.hostname ?? hostFor({ label: null, domain });
-  const resolves = await resolvesInDns(host);
   // Made whether or not the record resolves — the host has to be on the
   // project before a certificate can be issued for it — and throttled
   // inside `syncHostname`, so a health pass per destination is not a vendor
   // call per destination.
-  await syncHostname({ destinationId: row.id, hostname: host });
+  const state = await syncHostname({ destinationId: row.id, hostname: host });
+  // Issue #791: the domain list verifying the host is the stronger answer —
+  // the record points at this project and the certificate exists — so a
+  // verified host is `ok` whatever this resolver sees, and is the same word
+  // `syncHostname` has just written beside `live`.
+  if (state === "live") return { health: "ok", reason: null };
+  const resolves = await resolvesInDns(host);
   if (!resolves) {
     return { health: "expired", reason: "dns_unset" };
   }

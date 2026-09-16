@@ -3,8 +3,10 @@
 // Three actions, each exactly one call to the state machine. What may
 // follow an approval, a veto or a skip is the machine's answer and never a
 // route's — so the discriminating assertions here are the *absences*: no
-// publish, no destination adapter, no job, and no import that reaches the
-// publishable predicate.
+// publish, no destination adapter, and no import that reaches the
+// publishable predicate. The one job an approval sends (issue #790) is
+// `publish/execute`, for the moment the engine names — asserted below at
+// the platform's door, through the real engine seam.
 //
 // The archived plan is WO-245.
 import { readFileSync, readdirSync } from "node:fs";
@@ -19,6 +21,14 @@ vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
  *  it through — the cookie and its MAC are `tests/account/identity`'s. */
 let session: { userId: string; siteId: string | null } | null = null;
 vi.mock("@/lib/account/identity", () => ({ currentSession: async () => session }));
+
+/** The job platform, doubled at its one door. */
+const sent: { name: string; data: Record<string, unknown>; at?: Date }[] = [];
+vi.mock("@/jobs/client", () => ({
+  sendJobEvent: async (name: string, data: Record<string, unknown>, options: { at?: Date } = {}) => {
+    sent.push({ name, data, ...(options.at === undefined ? {} : { at: options.at }) });
+  },
+}));
 
 import { POST as approve } from "@/app/api/drafts/[id]/approve/route";
 import { POST as veto } from "@/app/api/drafts/[id]/veto/route";
@@ -70,6 +80,7 @@ function seed(state: string, over: Row = {}): void {
 
 beforeEach(() => {
   seed("in_review");
+  sent.length = 0;
   session = { userId: "u1", siteId: "s1" };
 });
 
@@ -119,9 +130,12 @@ describe('REQ-057 c2 — "it publishes under this rule and no other"', () => {
     const response = await approve(request(), context());
     expect(await response.json()).toEqual({ state: "approved" });
     expect(db.rows("drafts")[0]?.state).toBe("approved");
-    // No publication row, and no table but `drafts` was touched.
+    // No publication row, and nothing written outside the one move — which
+    // records the customer's approval with it (issue #790).
     expect(db.rows("publications")).toEqual([]);
-    expect(new Set(db.queries.map((q) => q.table))).toEqual(new Set(["drafts"]));
+    expect(db.queries.filter((q) => q.verb !== "select")).toEqual([]);
+    expect(db.rows("drafts")[0]).toMatchObject({ approved_by: { kind: "customer", userId: "u1" } });
+    expect(db.rows("drafts")[0]?.approved_at).toEqual(expect.any(String));
   });
 
   it("the predicate is not reachable from a route — none of the four files imports the publishable leaf", () => {
@@ -144,13 +158,53 @@ describe('REQ-057 c2 — "it publishes under this rule and no other"', () => {
     }
   });
 
-  it("no route reaches a destination adapter or a job", () => {
+  it("no route reaches a destination adapter", () => {
     for (const file of routeFiles()) {
       const source = readFileSync(file, "utf8");
       expect(source, file).not.toContain("lib/publish/attempt");
       expect(source, file).not.toContain("lib/publish/destinations");
-      expect(source, file).not.toContain("@/jobs");
     }
+  });
+});
+
+describe("issue #790 — an approved page is sent for its own publish moment, not the hourly sweep", () => {
+  it("approving sends one publish/execute stamped for the site's next publish time after the approval", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    // 10:15 UTC on 16 September; the site publishes at 09:00 UTC, so the
+    // first publish time at or after the approval is 09:00 the next day.
+    vi.setSystemTime(new Date("2026-09-16T10:15:00.000Z"));
+    try {
+      seed("in_review", { told: null });
+      db.seed("destinations", [{ id: "dest-1", site_id: "s1", kind: "hosted", deleted_at: null }]);
+      const response = await approve(request(), context());
+      expect(await response.json()).toEqual({ state: "approved" });
+    } finally {
+      vi.useRealTimers();
+    }
+    const due = new Date("2026-09-17T09:00:00.000Z");
+    expect(sent).toEqual([
+      {
+        name: "publish/execute",
+        data: { draftId: "d1", destinationId: "dest-1", dueAt: due.toISOString() },
+        at: due,
+      },
+    ]);
+  });
+
+  it("a veto, a skip and a refused approval send nothing", async () => {
+    db.seed("destinations", [{ id: "dest-1", site_id: "s1", kind: "hosted", deleted_at: null }]);
+    await veto(request(), context());
+    seed("in_review");
+    await skip(request(), context());
+    seed("published");
+    await approve(request(), context());
+    expect(sent).toEqual([]);
+  });
+
+  it("a page with nowhere to go is approved and sends nothing — the hourly tick is still its backstop", async () => {
+    const response = await approve(request(), context());
+    expect(await response.json()).toEqual({ state: "approved" });
+    expect(sent).toEqual([]);
   });
 });
 

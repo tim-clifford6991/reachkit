@@ -42,6 +42,7 @@ export type ScanTier = "free" | "deep" | "weekly";
  *  hold could be forgotten. A **type** import, so it is erased and drags
  *  no database client onto this seam's graph. */
 import type { DailySelection } from "@/lib/publish/daily";
+import type { DayPageOutcome } from "@/lib/generate";
 export type { DailySelection };
 
 /** What one call into the engine reports back. `degraded` names the step
@@ -358,11 +359,41 @@ export async function generateDraft(a: {
   // A date that already holds its draft is a day already done, not a
   // degraded tick.
   if (!outcome.ok && outcome.because === "already_drafted") return { done: true };
-  if (!outcome.ok) return { degraded: `generate:${outcome.because}` };
+  return reviewWritten(outcome, a.now);
+}
 
+/** Drafts the customer restarted (§9's `needs_attention → generating`) on
+ *  these sites that no run has regenerated yet — one a site (#788). */
+export async function restartedDrafts(
+  siteIds: readonly string[]
+): Promise<readonly { readonly draftId: string; readonly siteId: string }[]> {
+  const { restartedDrafts: restarted } = await import("@/lib/generate");
+  return restarted(siteIds);
+}
+
+/** The customer's Regenerate, carried out by the draft tick (#788): the
+ *  page is written again for its own date, and a passing one enters review
+ *  exactly as the evening's does. */
+export async function regenerateDraft(a: {
+  readonly siteId: string;
+  readonly draftId: string;
+  readonly now: Date;
+}): Promise<EngineResult> {
+  const { regenerateRestarted } = await import("@/lib/generate");
+  return reviewWritten(await regenerateRestarted({ siteId: a.siteId, draftId: a.draftId }), a.now);
+}
+
+async function reviewWritten(
+  outcome: DayPageOutcome,
+  now: Date
+): Promise<EngineResult> {
+  if (!outcome.ok) return { degraded: `generate:${outcome.because}` };
   const { enterReview } = await import("@/lib/publish/attempt/window");
-  const entry = await enterReview({ draftId: outcome.draftId, at: a.now });
-  if (entry.kind === "told") return { done: true };
+  const entry = await enterReview({ draftId: outcome.draftId, at: now });
+  if (entry.kind === "told") {
+    await schedulePublish({ draftId: outcome.draftId });
+    return { done: true };
+  }
   return entry.kind === "untold" ? { degraded: `draft-ready:${entry.reason}` } : { degraded: `review:${entry.reason}` };
 }
 
@@ -414,6 +445,53 @@ export async function publishApproved(a: {
     await sendJobEvent("publish/verify", { publicationId: outcome.publicationId });
   }
   return { done: true };
+}
+
+// ── The attempt, sent for its moment — issue #790.
+//
+// An approval (the customer's, or the window's end) used to wait for the
+// hourly publish tick. `schedulePublish` asks the publishing engine when the
+// page first becomes publishable and due and sends one `publish/execute`
+// stamped for that moment; `publishDue` is what that event runs — the
+// one-page form of the tick's read (approving at window end) and then
+// `publishApproved()`, so the event and the tick are one attempt with the
+// same guards. The tick stays: an event that was lost, held or sent before
+// a setting changed is picked up there.
+//
+// **A send that fails never fails what occasioned it.** The approval has
+// happened and the tick will deliver the page; the miss is logged.
+
+export async function schedulePublish(a: { readonly draftId: string }): Promise<{ readonly scheduled: boolean }> {
+  try {
+    const { publishDueAt } = await import("@/lib/publish/attempt/window");
+    const due = await publishDueAt(a.draftId);
+    if (due === null) return { scheduled: false };
+    const { sendJobEvent } = await import("./client");
+    await sendJobEvent(
+      "publish/execute",
+      { draftId: due.draftId, destinationId: due.destinationId, dueAt: due.at.toISOString() },
+      { at: due.at }
+    );
+    return { scheduled: true };
+  } catch (error) {
+    console.log(
+      JSON.stringify({
+        event: "publish_schedule_failed",
+        error: error instanceof Error ? error.name : "unknown",
+      })
+    );
+    return { scheduled: false };
+  }
+}
+
+export async function publishDue(a: {
+  readonly draftId: string;
+  readonly now: Date;
+}): Promise<EngineResult | { readonly notDue: true }> {
+  const { dueApproval } = await import("@/lib/publish/attempt/window");
+  const page = await dueApproval(a.draftId, a.now);
+  if (page === null) return { notDue: true };
+  return publishApproved(page);
 }
 
 // ── The retries that have come round — BUILD §9, issue #200. Built.
@@ -727,6 +805,27 @@ export async function noticeBrokenDestination(a: {
   // the ordinary answer for a site whose destination is working, has
   // already been written about, or whose customer has been back since.
   await sendBreakageMail(a.siteId, a.now);
+  return { done: true };
+}
+
+// ── Hosted health — issue #791.
+//
+// `account/maintenance` refreshes the health of a hosted destination whose
+// last check is older than its window, so a founder whose record has come
+// good gets `ok` — and their pages — without opening Settings. The windows
+// are `health/due.ts`'s and the check is `checkHealth`'s; this wrapper holds
+// neither.
+
+export async function hostedDestinationsDueHealth(): Promise<readonly string[]> {
+  const { hostedDestinationsDueHealth: due } = await import("@/lib/publish/destinations/health");
+  return due(new Date());
+}
+
+export async function refreshDestinationHealth(destinationId: string): Promise<EngineResult> {
+  const { checkHealth } = await import("@/lib/publish/destinations/health");
+  // Whatever state it finds is an answer and is recorded; a broken
+  // destination is the founder's to fix, not a degraded tick.
+  await checkHealth(destinationId);
   return { done: true };
 }
 

@@ -50,17 +50,17 @@ function threeTargets() {
       question({
         id: "q1",
         text: "What is the best onboarding software?",
-        search: search({ keyword: "best onboarding software", volume: 100 }),
+        search: search({ keyword: "best onboarding software", volume: 20 }),
       }),
       question({
         id: "q2",
         text: "What is the best onboarding platform?",
-        search: search({ keyword: "best onboarding platform", volume: 9000 }),
+        search: search({ keyword: "best onboarding platform", volume: 180 }),
       }),
       question({
         id: "q3",
         text: "What is onboarding?",
-        search: search({ keyword: "onboarding meaning", volume: 400 }),
+        search: search({ keyword: "onboarding meaning", volume: 80 }),
       }),
     ],
     serps: [serp(), serp(), serp()],

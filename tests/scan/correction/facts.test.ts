@@ -211,7 +211,10 @@ describe("The re-measurement seam", () => {
   });
 
   it("hands back exactly the pipeline that registered", async () => {
-    const fake = vi.fn(async () => ({ scanId: "scan-2", status: "done" as const }));
+    const fake = vi.fn(async () => ({
+      scanId: "scan-2",
+      finished: Promise.resolve({ scanId: "scan-2", status: "done" as const }),
+    }));
     registerCorrectionRunner(fake);
     expect(correctionRunner()).toBe(fake);
     registerCorrectionRunner(null);

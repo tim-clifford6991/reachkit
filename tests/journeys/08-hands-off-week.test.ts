@@ -20,8 +20,9 @@
 //
 //   · the job platform  → `sendJobEvent` and the hourly cron, driven here
 //                         (`tick` below): a cron job runs every hour,
-//                         an event runs `afterHours` after it was sent,
-//                         once per idempotency key
+//                         an event runs `afterHours` after it was sent —
+//                         or at the moment it was stamped for (issue #790)
+//                         — once per idempotency key
 //   · Anthropic         → the SDK client `llm()` constructs
 //   · the live page     → `safeFetch` / `readRobots`: the hosted edge's
 //                         answer for a published address is the page's own
@@ -145,8 +146,8 @@ interface QueuedEvent {
 const queued: QueuedEvent[] = [];
 
 vi.mock("@/jobs/client", () => ({
-  sendJobEvent: async (name: string, data: Record<string, unknown>) => {
-    queued.push({ name, data, runAt: new Date(Date.now()) });
+  sendJobEvent: async (name: string, data: Record<string, unknown>, options: { at?: Date } = {}) => {
+    queued.push({ name, data, runAt: options.at ?? new Date(Date.now()) });
   },
 }));
 
@@ -473,8 +474,11 @@ async function seedTheWeeksSupply(
   }
 }
 
-/** One hour of the platform: every cron job, then every event whose moment
- *  has come, each through `runJob()`, once per idempotency key. */
+/** One hour of the platform, each invocation through `runJob()`, once per
+ *  idempotency key: the events whose moment is this hour's, then every cron
+ *  job, then the events those sent whose moment has come. An event stamped
+ *  for 09:00 is delivered at 09:00 — the hourly publish tick on the same
+ *  hour is its backstop, not its carrier (issue #790). */
 const CRON_JOBS: readonly JobDefinition[] = [draftGenerate, publishRetry, weeklyRefresh];
 const EVENT_JOBS: Readonly<Record<string, JobDefinition>> = {
   "publish/execute": publishExecute,
@@ -482,19 +486,27 @@ const EVENT_JOBS: Readonly<Record<string, JobDefinition>> = {
 };
 const delivered = new Set<string>();
 
+/** The moment a queued event runs: its stamp plus its job's declared delay. */
+function dueAt(event: QueuedEvent): number {
+  const job = EVENT_JOBS[event.name];
+  if (job === undefined) throw new Error(`no job listens for ${event.name}`);
+  const delay = job.trigger.kind === "event" ? (job.trigger.afterHours ?? 0) : 0;
+  return event.runAt.getTime() + delay * HOUR;
+}
+
 async function tick(now: Date): Promise<void> {
   vi.setSystemTime(now);
+  await deliverDueEvents(now);
   for (const job of CRON_JOBS) {
     runs.push({ at: now, job: job.id, outcome: await runJob(job, { data: {}, now }) });
   }
-  // Events sent during this tick, or before it, whose delay has run out.
+  await deliverDueEvents(now);
+}
+
+/** Events sent during this tick, or before it, whose moment has come. */
+async function deliverDueEvents(now: Date): Promise<void> {
   for (;;) {
-    const next = queued.find((event) => {
-      const job = EVENT_JOBS[event.name];
-      if (job === undefined) throw new Error(`no job listens for ${event.name}`);
-      const delay = job.trigger.kind === "event" ? (job.trigger.afterHours ?? 0) : 0;
-      return event.runAt.getTime() + delay * HOUR <= now.getTime();
-    });
+    const next = queued.find((event) => dueAt(event) <= now.getTime());
     if (next === undefined) break;
     queued.splice(queued.indexOf(next), 1);
     const job = EVENT_JOBS[next.name]!;
@@ -640,14 +652,16 @@ describe("one site, left alone for a week (issue 323)", () => {
       // and it goes out at the following 09:00, so the first page is live on
       // Thursday; the check runs a day after each go-live; the site's own
       // Monday is measured at 06:00, before that morning's page goes out.
+      // Each page goes out through the `publish/execute` its evening sent
+      // for that 09:00 (issue #790) — the hourly sweep finds nothing left.
       expect(dayLedger()).toEqual({
         "2026-09-08": ["draft/generate:ran"],
         "2026-09-09": ["draft/generate:ran"],
-        "2026-09-10": ["publish/retry:ran", "draft/generate:ran"],
-        "2026-09-11": ["publish/retry:ran", "publish/verify:ran", "draft/generate:ran"],
-        "2026-09-12": ["publish/retry:ran", "publish/verify:ran", "draft/generate:ran"],
-        "2026-09-13": ["publish/retry:ran", "publish/verify:ran", "draft/generate:ran"],
-        "2026-09-14": ["weekly/refresh:ran", "publish/retry:ran", "publish/verify:ran", "draft/generate:ran"],
+        "2026-09-10": ["publish/execute:ran", "draft/generate:ran"],
+        "2026-09-11": ["publish/execute:ran", "publish/verify:ran", "draft/generate:ran"],
+        "2026-09-12": ["publish/execute:ran", "publish/verify:ran", "draft/generate:ran"],
+        "2026-09-13": ["publish/execute:ran", "publish/verify:ran", "draft/generate:ran"],
+        "2026-09-14": ["weekly/refresh:ran", "publish/execute:ran", "publish/verify:ran", "draft/generate:ran"],
       });
       // Four model steps a page, seven pages, and not one regeneration.
       expect(modelCalls).toHaveLength(7 * 4);
@@ -753,10 +767,10 @@ describe("one site, left alone for a week (issue 323)", () => {
       await leaveTheSiteAloneForAWeek();
       const troubled = runs.filter((run) => run.outcome.outcome === "degraded" || run.outcome.outcome === "stopped");
       expect(troubled).toEqual([]);
-      // Every check whose moment came inside the week ran; the only one still
-      // waiting is due after the last tick.
+      // Every event whose moment came inside the week ran; the ones still
+      // waiting are due after the last tick.
       const end = WEEK_START.getTime() + WEEK_HOURS * HOUR;
-      expect(queued.filter((event) => event.runAt.getTime() + 24 * HOUR <= end)).toEqual([]);
+      expect(queued.filter((event) => dueAt(event) <= end)).toEqual([]);
     },
     WEEK_TIMEOUT_MS
   );
