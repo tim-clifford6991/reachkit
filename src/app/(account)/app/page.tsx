@@ -43,7 +43,7 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
     <div className="flex min-w-0 flex-col gap-6" data-testid="overview">
       <FirstPageNotice state={onboarding} />
       <HeadModule head={overview.head} />
-      <GrowthModule growth={overview.growth} timeZone={shell.timeZone} />
+      <GrowthModule growth={overview.growth} searches={overview.searches} timeZone={shell.timeZone} />
       <TileRow
         score={overview.score}
         aiAnswers={overview.aiAnswers}

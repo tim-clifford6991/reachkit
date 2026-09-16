@@ -23,6 +23,7 @@ const item = (over: Partial<WaitingDraft> = {}): WaitingDraft => ({
   kind: "pending_veto",
   title: "a draft",
   since: new Date(Date.UTC(2026, 8, 3)),
+  vetoDeadline: new Date(Date.UTC(2026, 8, 4)),
   href: "/app/draft/1",
   ...over,
 });
@@ -108,19 +109,30 @@ describe("nothing waiting", () => {
 });
 
 describe("the veto window the panel's line states (S12)", () => {
-  it("a page that started waiting 17 h 48 m ago has 6 h 12 m of window left", () => {
-    // `VETO.defaultHours` is 24, so a window opened at 18:12 the day before
-    // closes at 18:12 today, and at noon 6 h 12 m of it are left — the very
-    // duration the approved set prints.
-    const since = new Date(Date.UTC(2026, 8, 2, 18, 12));
-    const { alerts } = readAlerts([item({ since })], AT);
+  it("a window closing at 18:12 has 6 h 12 m left at noon", () => {
+    const vetoDeadline = new Date(Date.UTC(2026, 8, 3, 18, 12));
+    const { alerts } = readAlerts([item({ vetoDeadline })], AT);
     expect(alerts[0]?.timeLeft).toEqual({ hours: 6, minutes: 12 });
+    expect(alerts[0]?.lineKey).toBe("overview.alert.pending-veto.due");
+  });
+
+  it("the countdown is the stored deadline, never a default length from when it started waiting (issue 794)", () => {
+    // Written 17 h 48 m ago, but the site's window was 20 hours: 2 h 12 m left.
+    const since = new Date(Date.UTC(2026, 8, 2, 18, 12));
+    const vetoDeadline = new Date(Date.UTC(2026, 8, 3, 14, 12));
+    const { alerts } = readAlerts([item({ since, vetoDeadline })], AT);
+    expect(alerts[0]?.timeLeft).toEqual({ hours: 2, minutes: 12 });
   });
 
   it("a window that has already closed states no time rather than a negative one", () => {
-    const since = new Date(Date.UTC(2026, 8, 1));
-    const { alerts } = readAlerts([item({ since })], AT);
+    const { alerts } = readAlerts([item({ vetoDeadline: new Date(Date.UTC(2026, 8, 1)) })], AT);
     expect(alerts[0]?.timeLeft).toEqual({ hours: 0, minutes: 0 });
+  });
+
+  it("a page in review with no window running carries no countdown and says it waits", () => {
+    const { alerts } = readAlerts([item({ vetoDeadline: null })], AT);
+    expect(alerts[0]?.timeLeft).toBeUndefined();
+    expect(alerts[0]?.lineKey).toBe("overview.alert.pending-veto.no-window");
   });
 
   it("a needs-you item is not on a clock and carries no window at all", () => {
