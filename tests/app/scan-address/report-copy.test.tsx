@@ -203,7 +203,7 @@ describe("the report renders end to end against the real registry", () => {
     expect(() =>
       renderToStaticMarkup(
         React.createElement(ReportView, {
-          state: { report, notice: null, control: { kind: "none" } },
+          state: { report, notice: null, control: { kind: "none" }, correction: { offered: true, as: "first" } },
         })
       )
     ).not.toThrow();
@@ -212,7 +212,7 @@ describe("the report renders end to end against the real registry", () => {
   it("no rendered line is blank: every sentence the report speaks renders as text", () => {
     const html = renderToStaticMarkup(
       React.createElement(ReportView, {
-        state: { report: FIXTURE_REPORT, notice: null, control: { kind: "none" } },
+        state: { report: FIXTURE_REPORT, notice: null, control: { kind: "none" }, correction: { offered: true, as: "first" } },
       })
     );
     // Nothing renders as an empty element where a sentence belongs. The
@@ -247,7 +247,7 @@ describe("the report renders end to end against the real registry", () => {
       );
       const html = freshRender(
         freshReact.createElement(FreshReportView, {
-          state: { report: FIXTURE_REPORT, notice: null, control: { kind: "none" } },
+          state: { report: FIXTURE_REPORT, notice: null, control: { kind: "none" }, correction: { offered: true, as: "first" } },
         })
       );
       // The marker is on screen, which is the whole point of it: the owner

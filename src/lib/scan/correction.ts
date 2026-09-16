@@ -49,7 +49,18 @@ export type CorrectionRunner = (a: {
   tier: "free";
   correctionOf: string;
   category: string;
-}) => Promise<{ scanId: string; status: "done" | "degraded" | "failed" }>;
+}) => Promise<CorrectionRun>;
+
+/** A started re-measurement (#786). `scanId` is the row the pass writes
+ *  to, already claimed when this resolves — so the report can follow the
+ *  rerun's stages at `/api/scan/{scanId}/progress` from the moment the
+ *  submission is answered — and `finished` settles when the pass does. The
+ *  correction route hands `finished` to `after()`: the pass outlives the
+ *  response, as the free scan's does. */
+export interface CorrectionRun {
+  scanId: string;
+  finished: Promise<{ scanId: string; status: "done" | "degraded" | "failed" }>;
+}
 
 let runner: CorrectionRunner | null = null;
 

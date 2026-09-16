@@ -568,7 +568,9 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
   // 1. The row this pass writes to.
   let scanId: string;
   let fromIncompleteRescan = false;
-  if (parameters.adoptsClaim) {
+  // A correction never went through admission, so there is no claimed row
+  // to adopt: its row is claimed by the correction seam below (#786).
+  if (parameters.adoptsClaim && a.correctionOf === undefined) {
     const claimed = await adoptClaimedRow({
       domain,
       tier: a.tier,
@@ -1455,6 +1457,27 @@ function logPass(fields: {
 // rather than one that is reachable and was never introduced. The
 // correction's own parameter (`loadAsyncAiOverview: false`, DECISIONS
 // 2026-09-03) travels as `correctionOf`, never as a ceiling of its own.
-registerCorrectionRunner((a) =>
-  runScan({ domain: a.domain, tier: a.tier, correctionOf: a.correctionOf, category: a.category })
-);
+//
+// The row is claimed here, before the seam answers, and the pass is started
+// and not awaited (#786): the report follows the rerun's stages by that
+// row's id, and a stream opened on a row that does not exist yet is a 404.
+// The free tier adopts an admission claim, and a correction has none — it
+// spends no second allowance — so without this claim the pass found no row
+// and ended `no_claimed_slot` before it measured anything.
+registerCorrectionRunner(async (a) => {
+  const parsed = parseDomain(a.domain);
+  if (!parsed.ok) throw new Error(`correction: ${parsed.problem}`);
+  const scanId = crypto.randomUUID();
+  const { claimed } = await claimPassRow({ scanId, domain: parsed.domain, tier: a.tier });
+  if (!claimed) throw new Error(`correction: the scan row ${scanId} already exists`);
+  return {
+    scanId,
+    finished: runScan({
+      scanId,
+      domain: parsed.domain,
+      tier: a.tier,
+      correctionOf: a.correctionOf,
+      category: a.category,
+    }),
+  };
+});
