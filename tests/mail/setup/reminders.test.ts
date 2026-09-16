@@ -33,6 +33,7 @@ const {
   sitesDueSetupReminder,
 } = await import("../../../src/lib/mail/setup/reminders");
 const { SETUP_REMINDER_OFFSETS_H } = await import("../../../src/lib/config/constants");
+const { registerSignInLinkIssuer } = await import("../../../src/lib/account/provisioning/sign-in-link");
 const { MAIL_KINDS } = await import("../../../src/lib/mail/kinds");
 
 const SITE = "site-1";
@@ -187,10 +188,38 @@ describe("REQ-025 c6 — a working way back in, or no mail at all", () => {
     expect(sent).not.toHaveBeenCalled();
   });
 
-  it("with no issuer wired at all — today's answer — no reminder goes out", async () => {
+  it("issue 797 — by default the link is the identity module's, issued to the founder's own account", async () => {
+    // The port answered `null` for every founder until #797, so no reminder
+    // was ever sent. The default now issues through the sign-in-link port
+    // the sign-in mail and the chase use; a double registered there stands
+    // in for Supabase Auth, and the identity wiring defers to it.
+    const asked: { userId: string; to: string }[] = [];
+    registerSignInLinkIssuer(async (a) => {
+      asked.push({ userId: a.userId, to: a.to });
+      return { issued: true, url: "https://reachkit.example/auth/confirm?token_hash=t", expiresAt: new Date() };
+    });
     resetSignInLinkIssuer();
-    expect(await sendSetupReminder(SITE, at(24))).toEqual({ sent: false, reason: "no-link" });
-    expect(sent).not.toHaveBeenCalled();
+    try {
+      expect(await sendSetupReminder(SITE, at(24))).toEqual({ sent: true, index: 0 });
+      expect(asked).toEqual([{ userId: USER, to: "founder@example.com" }]);
+      const mail = sent.mock.calls[0]![0] as { blocks: { block: string; href?: string }[] };
+      expect(mail.blocks.find((b) => b.block === "action")?.href).toBe(
+        "https://reachkit.example/auth/confirm?token_hash=t"
+      );
+    } finally {
+      registerSignInLinkIssuer(null);
+    }
+  });
+
+  it("issue 797 — an identity issuer that cannot issue is still no link and no mail", async () => {
+    registerSignInLinkIssuer(async () => ({ issued: false, reason: "vendor" }));
+    resetSignInLinkIssuer();
+    try {
+      expect(await sendSetupReminder(SITE, at(24))).toEqual({ sent: false, reason: "no-link" });
+      expect(sent).not.toHaveBeenCalled();
+    } finally {
+      registerSignInLinkIssuer(null);
+    }
   });
 });
 

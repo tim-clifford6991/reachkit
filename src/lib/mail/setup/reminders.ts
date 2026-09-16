@@ -45,32 +45,41 @@ export const SETUP_LANDING_PATH = "/setup";
  * Issues one sign-in link that lands on `landsOn`, or `null` where none
  * can be issued.
  *
- * **A port, and it answers `null` today.** §13's identity half — the
- * Supabase Auth behind `issueLink` and `redeemLink` (#35, #468) — and
- * `src/lib/account/provisioning/magic-link.ts` is its declared seam:
- * `requestMagicLink()` *sends* the sign-in mail, which is a different
- * occasion from putting a link inside this one. Until #35 exports the
- * issuer, no link can be issued, so no reminder is sent — which is REQ-025
- * c6's own rule ("no reminder ever going out before there is an account to
- * sign in to"), reached honestly rather than by mailing a link that would
- * not work.
+ * **Wired to the identity module** (issue #797). Until then this port
+ * answered `null` for every founder, waiting on an issuer #35 had already
+ * shipped, so no setup reminder was ever sent. The default now issues
+ * through the same port the sign-in mail and the 15-minute chase use
+ * (`src/lib/account/provisioning/sign-in-link.ts`), wiring the identity
+ * issuer first exactly as `sendSignInLink` does. A link that cannot be
+ * issued is still `null`, and `null` is still no send. `landsOn` is not
+ * carried in the link: a founder who signs in with setup unfinished is
+ * sent to it by the setup gate, which allow-lists the same literal.
  */
 export type SignInLinkIssuer = (a: {
+  userId: string;
   email: string;
   landsOn: string;
 }) => Promise<string | null>;
 
-const identityIsIssue35: SignInLinkIssuer = async () => null;
+const identityIssuer: SignInLinkIssuer = async (a) => {
+  // Imported lazily: this module rides `src/jobs/engine.ts`'s static
+  // imports, and the identity module pulls Supabase Auth.
+  const { wireSignInLinkIssuer } = await import("@/lib/account/identity/wire");
+  const { issueSignInLink: issue } = await import("@/lib/account/provisioning/sign-in-link");
+  wireSignInLinkIssuer();
+  const link = await issue({ userId: a.userId, to: a.email });
+  return link.issued ? link.url : null;
+};
 
-let issueSignInLink: SignInLinkIssuer = identityIsIssue35;
+let issueSignInLink: SignInLinkIssuer = identityIssuer;
 
-/** The seam #35 fills, and the one tests drive a send through. */
+/** The door tests drive a send through. */
 export function setSignInLinkIssuer(next: SignInLinkIssuer): void {
   issueSignInLink = next;
 }
 
 export function resetSignInLinkIssuer(): void {
-  issueSignInLink = identityIsIssue35;
+  issueSignInLink = identityIssuer;
 }
 
 const MS_PER_HOUR = 3_600_000;
@@ -222,7 +231,7 @@ export async function sendSetupReminder(
   // touched and this founder is due again at the next offset.
   let href: string | null;
   try {
-    href = await issueSignInLink({ email: to, landsOn: SETUP_LANDING_PATH });
+    href = await issueSignInLink({ userId: row.user_id, email: to, landsOn: SETUP_LANDING_PATH });
   } catch {
     return { sent: false, reason: "no-link" };
   }

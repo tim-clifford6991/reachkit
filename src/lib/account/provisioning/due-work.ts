@@ -29,7 +29,7 @@
 // what these return.
 import { PAYMENT_BACKSTOP_H, PAYMENT_CHASE_MINUTES } from "@/lib/config/constants";
 import { accountStore } from "../store";
-import { stripe } from "../stripe/client";
+import { stripe, type Stripe } from "../stripe/client";
 
 /** Every account whose payment completed at least `PAYMENT_CHASE_MINUTES`
  *  ago, at which nobody has signed in and which has not already been
@@ -60,6 +60,9 @@ export async function paymentsWithoutAccounts(now: Date): Promise<readonly strin
       created: { gte: floor, lte: cutoff },
       status: "complete",
       limit: 100,
+      // The subscription rides the same listing, so a second purchase
+      // already settled is recognised without a further vendor call.
+      expand: ["data.subscription"],
     });
   } catch {
     // A vendor we cannot list is not a set of payments with no accounts.
@@ -74,7 +77,32 @@ export async function paymentsWithoutAccounts(now: Date): Promise<readonly strin
     // An unreadable store must not make a session look unprovisioned: the
     // backstop would then try to open an account that already exists.
     if (!existing.ok) continue;
-    if (existing.account === null) due.push(session.id);
+    if (existing.account !== null) continue;
+    if (await secondPurchaseSettled(session)) continue;
+    due.push(session.id);
   }
   return due;
+}
+
+/** A second purchase whose subscription has already been cancelled
+ *  (issue #797).
+ *
+ *  A second payment from an address that already has an account never gets
+ *  an account of its own, so without this it stays "a payment without an
+ *  account" for the whole listing window: every tick for a day handed it to
+ *  the backstop, which cancelled again and mailed the founder again. The
+ *  cancellation is the stamp — it is the vendor's own record that
+ *  `duplicates.ts` has done its part, and the listing already carries it.
+ *  Both halves are required: a first payment whose subscription was
+ *  cancelled still has no account, and it is still owed one. */
+async function secondPurchaseSettled(session: Stripe.Checkout.Session): Promise<boolean> {
+  const subscription = session.subscription;
+  if (subscription === null || typeof subscription !== "object") return false;
+  if (subscription.status !== "canceled") return false;
+  const email = session.customer_details?.email ?? null;
+  if (email === null) return false;
+  const holder = await accountStore().accountByEmail(email);
+  // Unreadable is not settled: the backstop runs, and provisioning's own
+  // constraints decide.
+  return holder.ok && holder.account !== null;
 }
