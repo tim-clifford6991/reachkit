@@ -239,6 +239,18 @@ export function memoryStore(over: Partial<MemoryStore> = {}): MemoryStore {
     async draftOnDate(siteId, date) {
       return [...rows.values()].some((row) => row.site_id === siteId && row.scheduled_for === date);
     },
+    async restartedDrafts(siteIds) {
+      // The row as the double holds it carries no move log; a test marks a
+      // restart by the `transitions` it seeds, as the table would hold it.
+      return [...rows.values()]
+        .filter((row) => siteIds.includes(row.site_id) && row.state === "generating")
+        .filter((row) => {
+          const moves = (row as unknown as { transitions?: { from: string; to: string }[] }).transitions ?? [];
+          const last = moves[moves.length - 1];
+          return last?.from === "needs_attention" && last.to === "generating";
+        })
+        .map((row) => ({ draftId: row.id, siteId: row.site_id }));
+    },
     async siteInventory() {
       return store.inventory;
     },

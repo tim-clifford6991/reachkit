@@ -42,8 +42,8 @@ export { assessFixPages, fixPageReadiness, type FixDelivery } from "./fix-page";
 export { assessReadiness, opportunityReady, ownRanksFrom, type ReadinessContext } from "./readiness";
 export { canonicalUrl, clusterKey, collapse, comparePrecedence } from "./cluster";
 export { suppressionOf, verdictReason, type NotWorkingVerdict, type Suppression } from "./suppression";
-export { nextForDay } from "./next";
-export { dismissForVeto, queueForDraft } from "./drafted";
+export { nextForDay, opportunityById } from "./next";
+export { dismissForVeto, queueForDraft, releaseForDraft } from "./drafted";
 
 export { deriveOpportunities, type DeriveInput, type DeriveOutcome } from "./derive";
 export { explainChoice, type Choice } from "./derive/explain";

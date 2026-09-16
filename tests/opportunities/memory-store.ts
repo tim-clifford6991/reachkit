@@ -222,6 +222,13 @@ export function memoryStore(state: MemoryState): OpportunityStore {
       state.statusChangedAt.set(row.id, state.now);
     },
 
+    async markOpen(opportunityId) {
+      const row = state.rows.find((r) => r.id === opportunityId);
+      if (row === undefined || row.status !== "queued") return;
+      row.status = "open";
+      state.statusChangedAt.set(row.id, state.now);
+    },
+
     async hostedHostFor() {
       return state.hostedHost;
     },

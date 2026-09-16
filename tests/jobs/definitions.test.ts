@@ -37,6 +37,9 @@ function engineDouble(): Record<string, unknown> {
     startWeeklyScan: record("startWeeklyScan", done),
     runScan: record("runScan", done),
     generateDraft: record("generateDraft", done),
+    // The customer's Regenerate rides the same tick (#788).
+    restartedDrafts: record("restartedDrafts", []),
+    regenerateDraft: record("regenerateDraft", done),
     publishApproved: record("publishApproved", done),
     publishDue: record("publishDue", done),
     duePublishRetries: record("duePublishRetries", [{ draftId: "d1", destinationId: "dest-1" }]),

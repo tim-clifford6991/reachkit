@@ -146,7 +146,8 @@ Pinned numbers live in `src/lib/config/constants.ts`. Newest dated line in a sec
 - The brief picks facts from the customer’s own pages by index and writes none; no fact picked, no draft. Each opportunity type has one fixed outline. The answerability pass may only reorder sections, shorten a first block to 40–320 characters under a question heading, and insert facts from the brief. A draft that claims a test, carries a byline, date or case study, adds a question heading, states a number no fact holds, or does not open with an answer is stopped.
 - Publish is one idempotent call to the destination on the customer’s domain. At +24 h: reachable, indexable, in a sitemap, AI-readable.
 - Public veto link redeems on GET once. MVP paid service ends at a page on the customer’s own domain (2026-09-11).
-- Opportunity status (2026-09-15): a written draft queues its opportunity; a vetoed draft dismisses it; needs_attention leaves it queued.
+- Opportunity status (2026-09-15): a written draft queues its opportunity; a vetoed draft dismisses it.
+- Stopped drafts (2026-09-16, #788): a date keeps one draft row across every attempt. A draft the hard rules stop for the last time moves to needs_attention with the rules that stopped it and releases its opportunity to open. Regenerate writes that date's draft again on the next hourly draft tick.
 - 2026-09-16  Daily decision (owner, #777): each day chooses between a *new post* (Write/Earn) and an *update of an existing page* (Improve/Fix), whichever ranks higher for this site. Update candidates are the site’s own pages — its ranked URLs and crawled inventory, not only the home page — matched to the market’s questions; both sides are right-sized per §6. An empty day is still a stated cause, never filler.
 - Hosted index (2026-09-16): the root of a hosted host lists every live page, newest first, with a search; a site with nothing published says so instead of answering 404.
 
