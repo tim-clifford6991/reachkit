@@ -144,22 +144,21 @@ async function pagesPublished(siteId: string, at: Date): Promise<Measured<number
 }
 
 /**
- * The deep pass's own reading of searches-appeared-in — UI-SPEC S13's
- * single point.
+ * The deep pass's own report — week 0 (#793).
  *
  * Read from the site's `deep` scan, which `readWeekScans` deliberately does
- * not return: that query is `tier = 'weekly'`, because a deep scan is not a
- * measured week and must not enter the week count, the deltas or the AI
- * window. This is the one place the deep reading is read, and it reaches
- * exactly one thing — the chart's week-0 arm, where the card's own chip
- * says which pass it came from.
+ * not return: that query is `tier = 'weekly'`, and the growth series and
+ * its week count stay the weekly passes' own. The deep reading reaches the
+ * chart's week-0 arm and, as the starting measurement, the score, the AI
+ * answers and the rival lines until the first Monday — and it is what the
+ * first Monday's deltas are taken against (`weeklySeries`).
  *
  * The newest deep scan, not the first: a customer whose market was
  * re-measured by a second deep pass is shown the reading that stands.
  */
-async function deepPassReading(
-  siteId: string
-): Promise<{ value: Measured<number>; on: Date; report: StoredReport } | undefined> {
+type DeepPass = { value: Measured<number>; on: Date; report: StoredReport };
+
+async function deepPassReading(siteId: string): Promise<DeepPass | undefined> {
   const { data, error } = await client()
     .from<{ id: string; report: unknown; created_at: string }>("scans")
     .select("id, report, created_at")
@@ -277,13 +276,23 @@ interface WeeklyFacts {
   score: Measured<{ score: number; band: BandHandle }>;
   scorePrevious?: Measured<{ score: number; band: BandHandle }>;
   /** The newest measured week's report, whose technical issues are the ones
-   *  the customer is shown — Monday's re-check, never a stale week's. */
+   *  the customer is shown — Monday's re-check, never a stale week's. Week
+   *  0's before the first Monday. */
   latest: StoredReport | null;
+  /** The deep pass's AI-answer reading, as the window's week-0 cell. */
+  aiWeekZero?: { weekStart: Date; present: boolean | null };
 }
 
-async function weeklySeries(site: OverviewSite, now: Date): Promise<WeeklyFacts> {
+async function weeklySeries(
+  site: OverviewSite,
+  now: Date,
+  deepPass: Promise<DeepPass | undefined>
+): Promise<WeeklyFacts> {
   const weeks = windowWeeks(now, site.timeZone);
-  const scans = await readWeekScans({ siteId: site.siteId, weekStarts: weeks });
+  const [scans, deep] = await Promise.all([
+    readWeekScans({ siteId: site.siteId, weekStarts: weeks }),
+    deepPass,
+  ]);
 
   // The two weeks every current figure on this screen is read from. The
   // *latest measured* week, not the current one: a customer reading on a
@@ -292,24 +301,56 @@ async function weeklySeries(site: OverviewSite, now: Date): Promise<WeeklyFacts>
   // what a delta and a `was 276×` are taken against — and skipping an
   // unmeasured week between them is right, because the comparison is
   // between two measurements and not between two calendar weeks.
+  //
+  // **The deep pass is week 0** (#793). Before the first Monday it is the
+  // latest reading — the starting measurement — and on the first Monday it
+  // is the one that week's deltas compare against. It stands only where its
+  // week precedes every weekly week this window read: a deep pass re-run
+  // after the weeklies began is not where the customer started.
   const measured = weeks.filter((week) => scans.get(week)?.report != null);
-  const latest = scans.get(measured.at(-1) ?? "")?.report ?? null;
-  const previousWeek = scans.get(measured.at(-2) ?? "")?.report ?? null;
+  const first = weeks.findIndex((week) => scans.has(week));
+  const firstScanned = weeks[first];
+  const deepWeek = deep === undefined ? null : weekStartFor({ at: deep.on, zone: site.timeZone });
+  const weekZero =
+    deep !== undefined && deepWeek !== null && (firstScanned === undefined || deepWeek < firstScanned)
+      ? { report: deep.report, weekStart: deepWeek }
+      : null;
+  const latest = scans.get(measured.at(-1) ?? "")?.report ?? weekZero?.report ?? null;
+  const previousWeek =
+    measured.length >= 2
+      ? (scans.get(measured.at(-2) ?? "")?.report ?? null)
+      : measured.length === 1
+        ? (weekZero?.report ?? null)
+        : null;
   const rivals = await rivalFacts({
     siteId: site.siteId,
     weeks,
     scans,
     latest,
     previous: previousWeek,
+    lead: weekZero?.report ?? null,
     now,
   });
+  // The AI window's week-0 cell, while that week is still inside the window.
+  const aiWeekZero =
+    weekZero !== null && weekZero.weekStart >= (weeks[0] as string)
+      ? { weekStart: mondayOf(weekZero.weekStart), present: presentInAnswers(weekZero.report) }
+      : undefined;
 
   const score = scoreOf(latest, now);
   const scorePrevious = previousWeek === null ? undefined : scoreOf(previousWeek, now);
 
-  const first = weeks.findIndex((week) => scans.has(week));
   if (first === -1) {
-    return { points: [], aiPresence: [], changes: [], rivals, score, latest, ...(scorePrevious === undefined ? {} : { scorePrevious }) };
+    return {
+      points: [],
+      aiPresence: [],
+      changes: [],
+      rivals,
+      score,
+      latest,
+      ...(scorePrevious === undefined ? {} : { scorePrevious }),
+      ...(aiWeekZero === undefined ? {} : { aiWeekZero }),
+    };
   }
 
   const measuredWeeks = weeks.slice(first);
@@ -337,6 +378,7 @@ async function weeklySeries(site: OverviewSite, now: Date): Promise<WeeklyFacts>
     score,
     latest,
     ...(scorePrevious === undefined ? {} : { scorePrevious }),
+    ...(aiWeekZero === undefined ? {} : { aiWeekZero }),
   };
 }
 
@@ -394,10 +436,12 @@ function seriesFor(a: {
   weeks: readonly string[];
   scans: ReadonlyMap<string, WeekScan>;
   warm: boolean;
+  /** Week 0's report, read before the window's weeks. */
+  lead: StoredReport | null;
 }): number[] {
   const points: number[] = [];
-  for (const week of a.weeks) {
-    const report = a.scans.get(week)?.report ?? null;
+  const reports = [a.lead, ...a.weeks.map((week) => a.scans.get(week)?.report ?? null)];
+  for (const report of reports) {
     const rival = rivalCountOf(sizingFor(report, a.domain));
     if (rival === undefined) continue;
     if (!a.warm) {
@@ -426,6 +470,7 @@ async function rivalFacts(a: {
   scans: ReadonlyMap<string, WeekScan>;
   latest: StoredReport | null;
   previous: StoredReport | null;
+  lead: StoredReport | null;
   now: Date;
 }): Promise<RivalFacts> {
   const own = a.latest === null ? unmeasured<number>("not_attempted", a.now) : a.latest.ownRanked;
@@ -453,7 +498,7 @@ async function rivalFacts(a: {
           ? unmeasured<number>("not_attempted", a.now)
           : measured(ranked, size.at),
       ...(previousRanked === undefined ? {} : { previousRanked: measured(previousRanked, a.now) }),
-      series: seriesFor({ domain, weeks: a.weeks, scans: a.scans, warm }),
+      series: seriesFor({ domain, weeks: a.weeks, scans: a.scans, warm, lead: a.lead }),
       ...(size === undefined ? {} : { size }),
     };
   });
@@ -476,17 +521,18 @@ export async function readOverviewFacts(site: OverviewSite): Promise<OverviewFac
   const now = clock();
   const { supplyDepth, supplyMeasured } = await import("@/lib/opportunities");
 
+  const deepRead = deepPassReading(site.siteId);
   const [firstDueOn, published, depth, waiting, series, ranking, deepPass] = await Promise.all([
     nextDueOn({ siteId: site.siteId, now }),
     pagesPublished(site.siteId, now),
     supplyDepth(site.siteId),
     waitingItems(site.siteId),
-    weeklySeries(site, now),
+    weeklySeries(site, now, deepRead),
     // The week the standings are read for is the site's current one — the
     // same Monday `windowWeeks` ends on, so the badge counts the week the
     // rest of the screen is about.
     pagesRanking(site.siteId, weekStartFor({ at: now, zone: site.timeZone }), now),
-    deepPassReading(site.siteId),
+    deepRead,
   ]);
   // issue 765/issue 784: a zero is either a market used up or one never measured, and
   // only a read that answered may say which — an unreadable one says neither.
@@ -501,6 +547,7 @@ export async function readOverviewFacts(site: OverviewSite): Promise<OverviewFac
     firstDueOn,
     ...(deepPass === undefined ? {} : { deepPass: { value: deepPass.value, on: deepPass.on } }),
     aiPresence: series.aiPresence,
+    ...(series.aiWeekZero === undefined ? {} : { aiWeekZero: series.aiWeekZero }),
     changes: series.changes,
     pagesPublished: published,
     pagesRanking: ranking,

@@ -137,6 +137,14 @@ export const OVERVIEW_COPY = Object.freeze({
     "measured with the first weekly pass",
     { slots: {}, fixedBy: "S13" },
   ],
+  // #793: the deep pass is week 0. Where it measured the score or the AI
+  // answers, the tile shows that reading and names it as the starting
+  // measurement, with the date the weekly readings take over. Drafted
+  // (#759); the owner corrects the wording.
+  "overview.tile.starting": [
+    "starting measurement, {on} · weekly from {due}",
+    { slots: { on: "date", due: "date" }, fixedBy: "issue 793" },
+  ],
   "overview.tile.pages.first-review": [
     "first page in review today",
     { slots: {}, fixedBy: "S13" },
@@ -207,6 +215,13 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.rivals.line.week-zero": [
     "Sized with the first weekly measurement, {due}.",
     { slots: { due: "date" }, fixedBy: "S13" },
+  ],
+
+  // #793: the deep pass sized the rivals, so week 0 draws their rows from
+  // it and says so. Drafted (#759); the owner corrects the wording.
+  "overview.rivals.line.starting": [
+    "Starting sizes from your deep pass, {on}. Weekly from {due}.",
+    { slots: { on: "date", due: "date" }, fixedBy: "issue 793" },
   ],
 
   // ── REQ-096 c6: a rival banded `far`, and the two sentences it needs.

@@ -77,6 +77,9 @@ export interface DoNothing {
 export interface DraftView {
   draftId: string;
   title: string;
+  /** The meta description (`drafts.meta.description`), which the founder
+   *  edits beside the title and the body (#789). */
+  description: string;
   /** UI-SPEC S16's provenance line: the day and time the page was written.
    *  It is the `drafts` row's own `created_at` — the moment §8 wrote the
    *  page — and never the last save, which is a different fact and is
@@ -113,6 +116,9 @@ export interface DraftView {
    *  than deducing a pass from the fact that the draft reached review
    *  (`checks.ts` states the argument). */
   recordedChecks: readonly RailCheck[];
+  /** The last battery found a rule this text breaks, so it is held from
+   *  publishing until a save passes (#789). */
+  rulesFailed: boolean;
   /** The site-local zone every date this view states is expressed in. */
   timeZone: string;
 }
@@ -122,6 +128,7 @@ export interface DraftView {
 export interface DraftFacts {
   draftId: string;
   title: string;
+  description: string;
   /** The `drafts` row's `created_at` — when the page was written. */
   writtenAt: Date | null;
   bodyMd: string;
@@ -147,6 +154,7 @@ export interface DraftFacts {
   /** §8's battery, as generation recorded it. Empty is the honest answer
    *  for a draft it recorded nothing for. */
   recordedChecks: readonly RailCheck[];
+  rulesFailed: boolean;
   timeZone: string;
 }
 
@@ -188,6 +196,7 @@ export function assembleDraft(facts: DraftFacts): DraftView {
   return {
     draftId: facts.draftId,
     title: facts.title,
+    description: facts.description,
     writtenAt: facts.writtenAt,
     bodyMd: facts.bodyMd,
     bodyMdGenerated: facts.bodyMdGenerated,
@@ -211,6 +220,7 @@ export function assembleDraft(facts: DraftFacts): DraftView {
     lastSavedAt: facts.lastSavedAt,
     record: facts.record,
     recordedChecks: facts.recordedChecks,
+    rulesFailed: facts.rulesFailed,
     timeZone: facts.timeZone,
   };
 }

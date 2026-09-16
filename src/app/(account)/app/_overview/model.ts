@@ -108,9 +108,11 @@ export interface OverviewModel {
   week: WeekModule;
   /** UI-SPEC S13's arm (REQ-040 c7): the deep pass has measured and the
    *  first weekly pass is still due. `null` on every ordinary read. The
-   *  date it carries is the one the shell's domain block states, from the
-   *  same `firstDueOn`, so the two cannot disagree. */
-  weekZero: { firstDueOn: Date } | null;
+   *  due date is the one the shell's domain block states, from the same
+   *  `firstDueOn`, so the two cannot disagree; `startingOn` is when the
+   *  deep pass took the starting measurement the tiles and rival lines
+   *  show until then (#793). */
+  weekZero: { firstDueOn: Date; startingOn: Date } | null;
   /** REQ-095's one statement, never two. Absent where the product has
    *  nothing to say about supply. */
   supply?: SupplyStatement;
@@ -141,6 +143,9 @@ export interface OverviewFacts {
    *  question's AI answer, oldest first; `null` where the week was not
    *  measured. */
   aiPresence: readonly (boolean | null)[];
+  /** The deep pass's AI-answer reading, where it is week 0 (#793): the
+   *  window's first cell before the weekly weeks, and never a delta. */
+  aiWeekZero?: AiPresenceWeek;
   /** The dates inside the window at which an answer this site is measured
    *  under changed (REQ-071 c12/c13, issue #213). Supplied here and read
    *  by two things: the week count below, which may not span one, and the
@@ -178,14 +183,15 @@ export function assembleOverview(facts: OverviewFacts): OverviewModel {
   // The week-0 arm is the growth module's own answer, not a second test of
   // the same facts: `readGrowth` already decides whether any weekly week
   // was measured, and this reads that decision back. One place decides it.
-  const weekZero = growth.kind === "week-zero" ? { firstDueOn: growth.firstDueOn } : null;
+  const weekZero =
+    growth.kind === "week-zero" ? { firstDueOn: growth.firstDueOn, startingOn: growth.on } : null;
   const direction: HeadDirection = weekZero === null ? headDirection(facts.points) : "week_zero";
   const measuredPoints = facts.points.filter((p) => p.value.kind !== "unmeasured");
   const latest = measuredPoints.at(-1);
   const previous = measuredPoints.at(-2);
   const { alerts, overflow, issuesOverflow } = readAlerts(facts.waiting, facts.today);
   const supply = readSupplyStatement(facts.supply);
-  const window = aiWindow(facts.points, facts.aiPresence, facts.changes);
+  const window = aiWindow(facts.points, facts.aiPresence, facts.changes, facts.aiWeekZero);
   const scoreDelta =
     facts.scorePrevious === undefined
       ? undefined
@@ -302,17 +308,30 @@ function deltaOf(now: Measured<number>, before: Measured<number>): Measured<numb
 
 /** The fixed window, aligned to the weekly series so both readings on this
  *  screen mean the same weeks. `aiPresence[i]` is `points[i]`'s week; the
- *  window is then padded at the front, one week at a time, to its full
- *  length — those are weeks before the customer started, which were not
- *  measured and are not misses. */
+ *  deep pass's week 0 stands before them, with any week between it and the
+ *  first weekly one unmeasured (#793); the window is then padded at the
+ *  front, one week at a time, to its full length — those are weeks before
+ *  the customer started, which were not measured and are not misses. */
 function aiWindow(
   points: readonly WeeklyPoint[],
   presence: readonly (boolean | null)[],
-  changes: readonly ChangeMarker[]
+  changes: readonly ChangeMarker[],
+  weekZero?: AiPresenceWeek
 ): AiPresenceWindow {
-  const paired = points.map(
+  const weekly = points.map(
     (point, i): AiPresenceWeek => ({ weekStart: point.weekStart, present: presence[i] ?? null })
   );
+  const first = weekly[0]?.weekStart;
+  const lead: AiPresenceWeek[] = [];
+  if (weekZero !== undefined && (first === undefined || weekZero.weekStart < first)) {
+    lead.push(weekZero);
+    const from = weekZero.weekStart.getTime();
+    const between = first === undefined ? 0 : Math.round((first.getTime() - from) / MS_PER_WEEK) - 1;
+    for (let step = 1; step <= between; step += 1) {
+      lead.push({ weekStart: new Date(from + step * MS_PER_WEEK), present: null });
+    }
+  }
+  const paired = [...lead, ...weekly];
   const inWindow = paired.slice(-OVERVIEW_TRAILING_WEEKS);
   const missing = OVERVIEW_TRAILING_WEEKS - inWindow.length;
   const firstStart = inWindow[0]?.weekStart;
