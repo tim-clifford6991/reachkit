@@ -7,10 +7,10 @@
 // the customer edits (rendered into a real client root, so state, the two
 // debounces and the autosave actually run).
 //
-// The save seam is mocked here and only here: `tests/app/draft/actions.test.ts`
-// holds the unmocked stub against its own promise. What this file needs is a
-// seam it can watch and steer — a save that is refused (today's behaviour,
-// and a real outage's) and a save that lands.
+// The save seam is mocked here: `tests/app/draft/save.test.ts` drives the
+// real one through the Server Function to the row. What this file needs is a
+// seam it can watch and steer — a save that is refused (a real outage's
+// behaviour) and a save that lands.
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createRoot, type Root } from "react-dom/client";
@@ -464,6 +464,11 @@ describe("REQ-045 c5-c9 — the editor, its live preview, its autosave and its i
     });
   }
 
+  /** The value setter React's own listener reads, for any field. */
+  function setNativeValue(el: HTMLInputElement | HTMLTextAreaElement, text: string): void {
+    Object.getOwnPropertyDescriptor(Object.getPrototypeOf(el), "value")?.set?.call(el, text);
+  }
+
   async function settle(ms: number): Promise<void> {
     await act(async () => {
       vi.advanceTimersByTime(ms);
@@ -530,7 +535,7 @@ describe("REQ-045 c5-c9 — the editor, its live preview, its autosave and its i
     expect(save).not.toHaveBeenCalled();
     await settle(AUTOSAVE_DEBOUNCE_MS);
     expect(save).toHaveBeenCalledTimes(1);
-    expect(save).toHaveBeenCalledWith({ draftId: VIEW.draftId, bodyMd: "one two three" });
+    expect(save).toHaveBeenCalledWith({ draftId: VIEW.draftId, title: VIEW.title, bodyMd: "one two three", description: VIEW.description });
   });
 
   it("blur flushes the pending save immediately, without waiting out the debounce", () => {
@@ -540,7 +545,7 @@ describe("REQ-045 c5-c9 — the editor, its live preview, its autosave and its i
     // React maps `onBlur` onto the DOM's `focusout`, which is the event
     // that actually bubbles.
     act(() => textarea().dispatchEvent(new FocusEvent("focusout", { bubbles: true })));
-    expect(save).toHaveBeenCalledWith({ draftId: VIEW.draftId, bodyMd: "edited on the way out" });
+    expect(save).toHaveBeenCalledWith({ draftId: VIEW.draftId, title: VIEW.title, bodyMd: "edited on the way out", description: VIEW.description });
   });
 
   it("leaving the view flushes the last buffer", () => {
@@ -550,7 +555,9 @@ describe("REQ-045 c5-c9 — the editor, its live preview, its autosave and its i
     act(() => root.unmount());
     expect(save).toHaveBeenCalledWith({
       draftId: VIEW.draftId,
+      title: VIEW.title,
       bodyMd: "typed and then navigated away",
+      description: VIEW.description,
     });
     // Re-created so `afterEach`'s unmount has a root to act on.
     root = createRoot(container);
@@ -579,8 +586,9 @@ describe("REQ-045 c5-c9 — the editor, its live preview, its autosave and its i
     save.mockResolvedValue({
       ok: true,
       savedAt: new Date(0),
-      grounded: { present: false },
       claim: { state: "outstanding" },
+      recordedChecks: [],
+      rulesFailed: false,
     });
     mount();
     click("draft-action-draft.action.edit");
@@ -594,6 +602,50 @@ describe("REQ-045 c5-c9 — the editor, its live preview, its autosave and its i
     );
     click("draft-edit-done");
     expect(container.querySelector('[data-testid="draft-unsaved"]')).toBeNull();
+  });
+
+  it("#789 — the title and the meta description are edited and saved with the body", async () => {
+    mount();
+    click("draft-action-draft.action.edit");
+    const title = container.querySelector<HTMLInputElement>('[data-testid="draft-editor-title"]')!;
+    const description = container.querySelector<HTMLTextAreaElement>('[data-testid="draft-editor-description"]')!;
+    act(() => {
+      setNativeValue(title, "A founder's title");
+      title.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    act(() => {
+      setNativeValue(description, "A founder's description.");
+      description.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await settle(AUTOSAVE_DEBOUNCE_MS);
+    expect(save).toHaveBeenCalledTimes(1);
+    expect(save).toHaveBeenCalledWith({
+      draftId: VIEW.draftId,
+      title: "A founder's title",
+      bodyMd: VIEW.bodyMd,
+      description: "A founder's description.",
+    });
+  });
+
+  it("#789 — a saved edit that breaks a page rule says the page is held, and its words stay", async () => {
+    save.mockResolvedValue({
+      ok: true,
+      savedAt: new Date(0),
+      claim: { state: "passed", at: new Date(0) },
+      recordedChecks: [],
+      rulesFailed: true,
+    });
+    mount();
+    click("draft-action-draft.action.edit");
+    type("In our tests it held up.");
+    expect(container.querySelector('[data-testid="draft-rules-held"]')).toBeNull();
+    await settle(AUTOSAVE_DEBOUNCE_MS);
+    expect(container.querySelector('[data-testid="draft-rules-held"]')?.textContent).toBe(
+      copy("draft.edit.rules-held")
+    );
+    expect(textarea().value).toBe("In our tests it held up.");
+    // The badge states the check that ran on the saved text.
+    expect(container.querySelector('[data-testid="draft-claim-passed"]')).not.toBeNull();
   });
 
   it("the claim badge drops the moment the text differs, and no earlier", () => {
@@ -677,8 +729,9 @@ describe("REQ-045 c5-c9 — the editor, its live preview, its autosave and its i
     save.mockResolvedValue({
       ok: true,
       savedAt: new Date(Date.UTC(2026, 8, 15, 17, 6, 0)),
-      grounded: { present: true },
       claim: { state: "outstanding" },
+      recordedChecks: [],
+      rulesFailed: false,
     });
     mount();
     click("draft-action-draft.action.edit");

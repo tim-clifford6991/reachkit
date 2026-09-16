@@ -182,6 +182,7 @@ const DELIVERED: PageRecord = {
 const UNEDITED: DraftFacts = {
   draftId: FIXTURE_DRAFT_ID,
   title: "How to choose a CRM for a small team",
+  description: "What a small team should weigh when it picks a CRM: seats, price and what the free tier holds.",
   writtenAt: WRITTEN_AT,
   bodyMd: BODY,
   bodyMdGenerated: BODY,
@@ -202,6 +203,7 @@ const UNEDITED: DraftFacts = {
   // deduced for the reason `checks.ts` states — and this is the fixture
   // account's own run, not a stand-in for a draft that has none.
   recordedChecks: ["near_duplicate", "no_invented_people"],
+  rulesFailed: false,
   timeZone: FIXTURE_TIME_ZONE,
 };
 
