@@ -59,11 +59,21 @@ describe("an unmeasured ranked count is never read as a small one", () => {
   });
 });
 
-describe("a count at the row cap is a floor, not a count", () => {
-  it("`ranked_keywords` returning the cap is coerced to unmeasured", () => {
+describe("a row count at the cap is a floor, not a count", () => {
+  it("`ranked_keywords` returning the cap with no total is coerced to unmeasured", () => {
     const cap = PRICE_BOOK.RANKED_RIVAL_ROWS;
-    expect(rankedCountFrom({ rows: cap, at: AT }, AT).kind).toBe("unmeasured");
-    expect(rankedCountFrom({ rows: cap - 1, at: AT }, AT)).toEqual(measured(cap - 1, AT));
+    expect(rankedCountFrom({ count: cap, countIs: "rows", at: AT }, AT)).toEqual(
+      unmeasured<number>("undeterminable", AT)
+    );
+    expect(rankedCountFrom({ count: cap - 1, countIs: "rows", at: AT }, AT)).toEqual(
+      measured(cap - 1, AT)
+    );
+  });
+
+  it("a vendor total is a measurement at any size (#768)", () => {
+    expect(rankedCountFrom({ count: 50_000, countIs: "total", at: AT }, AT)).toEqual(
+      measured(50_000, AT)
+    );
   });
 
   it("a domain we bought no rows for is undeterminable, never zero", () => {
@@ -74,8 +84,8 @@ describe("a count at the row cap is a floor, not a count", () => {
     expect(count).not.toEqual(measuredZero(0, AT));
   });
 
-  it("a count at the cap therefore cannot satisfy a bar", () => {
-    const atCap = rankedCountFrom({ rows: PRICE_BOOK.RANKED_RIVAL_ROWS, at: AT }, AT);
+  it("a row count at the cap therefore cannot satisfy a bar", () => {
+    const atCap = rankedCountFrom({ count: PRICE_BOOK.RANKED_RIVAL_ROWS, countIs: "rows", at: AT }, AT);
     // 100 is under the 500 qualifying bar; read as a count it would pass.
     expect(qualifies({ top10RankedCounts: [atCap], ownRanked: 0 })).toBe(false);
   });
@@ -136,15 +146,13 @@ describe("#37's rival sizing is where the counts come from, and it is not re-don
     expect(counts.get("userpilot.com")).not.toEqual(measuredZero(0, later));
   });
 
-  it("the row cap is applied on this side too, whatever the sizing recorded", () => {
-    // #37's own header records the same bound and names issue #117 as the
-    // fix. Until it lands, a rival at the cap is a rival whose size we do
-    // not know — and a target is not made winnable by it.
+  it("a rival sized from capped rows with no total is not a count — a target is not made winnable by it", () => {
     const atCap: RivalSize[] = [
       {
         domain: "big.com",
         state: "sized",
         rankedCount: PRICE_BOOK.RANKED_RIVAL_ROWS,
+        countIs: "rows",
         band: bandRivalSize({ rivalRanked: PRICE_BOOK.RANKED_RIVAL_ROWS, ownRanked: 0 }),
         at: AT,
         current: true,
@@ -153,6 +161,25 @@ describe("#37's rival sizing is where the counts come from, and it is not re-don
     const counts = rankedCountsFromSizes(atCap, AT);
     expect(counts.get("big.com")!.kind).toBe("unmeasured");
     expect(qualifies({ top10RankedCounts: [counts.get("big.com")!], ownRanked: 0 })).toBe(false);
+  });
+
+  it("a top ten holding a rival with a large vendor total is judged, not `unmeasured_top10` (#768)", () => {
+    const big: RivalSize[] = [
+      {
+        domain: "semrush.com",
+        state: "sized",
+        rankedCount: 50_000,
+        countIs: "total",
+        band: bandRivalSize({ rivalRanked: 50_000, ownRanked: 0 }),
+        at: AT,
+        current: true,
+      },
+    ];
+    const counts = rankedCountsFor(["semrush.com"], rankedCountsFromSizes(big, AT), AT);
+    expect(assess({ top10RankedCounts: counts, ownRanked: 0 })).toEqual({
+      qualified: false,
+      because: "not_yet",
+    });
   });
 
   it("a rival's size band is never read as a target's winnability band", () => {
