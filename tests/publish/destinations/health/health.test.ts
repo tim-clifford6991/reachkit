@@ -120,6 +120,22 @@ describe("a hosted destination's state is a DNS question", () => {
     });
   });
 
+  it("issue #791 — a host the domain list has verified is `ok`, whatever this resolver sees", async () => {
+    seedSite();
+    seedDestination({
+      kind: "hosted",
+      config: null,
+      health: "expired",
+      hostname: "blog.example.com",
+      hostname_state: "live",
+      hostname_checked_at: new Date().toISOString(),
+    });
+    probe.dns = false;
+    expect(await checkHealth("dest-1")).toMatchObject({ health: "ok", reason: null });
+    const { destinationWorking } = await import("@/lib/publish/destinations");
+    expect(await destinationWorking("site-1")).toBe(true);
+  });
+
   it("while it is not `ok`, the destination is not working, so no page is delivered there", async () => {
     seedSite();
     seedDestination({ kind: "hosted", config: null, health: "ok" });

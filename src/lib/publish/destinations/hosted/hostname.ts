@@ -145,7 +145,11 @@ export async function syncHostname(a: {
   const recorded: HostnameState = row?.hostname_state ?? "pending_dns";
   if (askedRecently(row?.hostname_checked_at ?? null, now)) return recorded;
 
-  const answer = await askVendor(a.hostname);
+  // A founder's press at `/setup` that verified this host is the vendor's
+  // answer already (issue #791): the row created at submit records it rather
+  // than asking again — and rather than losing it to a vendor that does not
+  // answer the second time.
+  const answer = takeVerifiedAtSetup(a.hostname, now) ?? (await askVendor(a.hostname));
   await writeHostnameState({
     destinationId: a.destinationId,
     state: answer.asked ? answer.state : null,
@@ -196,6 +200,24 @@ export type HostnameCheck =
  *  own `hostname_checked_at` is read beside it where a destination exists,
  *  so an instance that has not seen this site still honours a recent ask. */
 const lastPressed = new Map<string, number>();
+
+/** Hosts a founder's `/setup` press found verified before any destination
+ *  held them, and when (issue #791). Per server instance, like `lastPressed`:
+ *  a submit that lands on another instance asks the vendor, which gives the
+ *  same answer. Read once, by the first `syncHostname` for the host — the
+ *  submit's — and good for `DESTINATION_HOSTNAME_RECHECK_H`, the window any
+ *  recorded answer stands for. */
+const verifiedAtSetup = new Map<string, number>();
+
+function takeVerifiedAtSetup(hostname: string, now: Date): VendorAnswer | null {
+  const at = verifiedAtSetup.get(hostname);
+  if (at === undefined) return null;
+  verifiedAtSetup.delete(hostname);
+  const age = now.getTime() - at;
+  return age >= 0 && age < DESTINATION_HOSTNAME_RECHECK_H * HOUR_MS
+    ? { asked: true, state: "live" }
+    : null;
+}
 
 /**
  * Asks the vendor about one host now, on a founder's press — before setup
@@ -248,6 +270,8 @@ export async function checkHostnameNow(a: {
       state: answer.asked ? answer.state : null,
       at: now,
     });
+  } else if (answer.asked && answer.state === "live") {
+    verifiedAtSetup.set(a.hostname, now.getTime());
   }
   return answer.asked ? { outcome: "asked", state: answer.state } : { outcome: "could_not_ask" };
 }
@@ -297,15 +321,48 @@ function askedRecently(at: string | null, now: Date): boolean {
 /** Records what the project's domain list said, and when it was asked.
  *  `state: null` is a pass that asked and got no answer: the date is
  *  stamped — so the next pass is still throttled — and the word the
- *  customer reads is left as it was. */
+ *  customer reads is left as it was.
+ *
+ *  **`live` is also health `ok`, in the same write** (issue #791). The
+ *  domain list verifying the host is the moment the certificate exists and
+ *  the edge serves it, so the `destination_working` guard must not go on
+ *  reading an older `expired` until some later pass happens to agree. The
+ *  columns are `writeHealth`'s own: `health_changed_at` moves only when the
+ *  state changed, and reaching `ok` clears `broken_mail_sent_at`. A host that
+ *  is not verified leaves health to the check (`health/check.ts`). */
 export async function writeHostnameState(a: {
   destinationId: string;
   state: HostnameState | null;
   at: Date;
 }): Promise<void> {
-  const checkedAt = { hostname_checked_at: a.at.toISOString() };
-  await publishDb()
-    .from<never>("destinations")
-    .update(a.state === null ? checkedAt : { hostname_state: a.state, ...checkedAt })
-    .eq("id", a.destinationId);
+  const at = a.at.toISOString();
+  const checkedAt = { hostname_checked_at: at };
+  let values: Record<string, unknown> =
+    a.state === null ? checkedAt : { hostname_state: a.state, ...checkedAt };
+  if (a.state === "live") {
+    const health = await readHealth(a.destinationId);
+    values = {
+      ...values,
+      health: "ok",
+      health_reason: null,
+      last_checked_at: at,
+      broken_mail_sent_at: null,
+      ...(health === "ok" ? {} : { health_changed_at: at }),
+    };
+  }
+  await publishDb().from<never>("destinations").update(values).eq("id", a.destinationId);
+}
+
+/** The destination's recorded health, for `writeHostnameState`'s
+ *  changed-or-not. A read that fails reads as changed: stamping
+ *  `health_changed_at` on a row that was already `ok` costs nothing a
+ *  customer sees, since the breakage mail counts only from a broken state. */
+async function readHealth(destinationId: string): Promise<string | null> {
+  const { data, error } = await publishDb()
+    .from<{ health: string }>("destinations")
+    .select("health")
+    .eq("id", destinationId)
+    .limit(1);
+  if (error !== null || data === null) return null;
+  return data[0]?.health ?? null;
 }

@@ -25,6 +25,7 @@ import { checkHealth } from "./check";
 export { checkHealth } from "./check";
 export type { HealthCheck } from "./check";
 export { breakageMailDue, sendBreakageMail } from "./breakage-mail";
+export { hostedDestinationsDueHealth } from "./due";
 export type { BreakageMail } from "./breakage-mail";
 
 const HOUR_MS = 3_600_000;

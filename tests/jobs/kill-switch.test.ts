@@ -95,6 +95,9 @@ function engineDouble(): Record<string, unknown> {
     noticeCancellation: ran,
     accountsDueWinback: none,
     winBack: ran,
+    // Hosted health, refreshed on the tick (issue #791).
+    hostedDestinationsDueHealth: none,
+    refreshDestinationHealth: ran,
   };
 }
 
