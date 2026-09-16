@@ -23,7 +23,7 @@ vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
 import { claim } from "@/lib/publish/attempt/claim";
 import { setPublishing } from "@/lib/publish/switch";
 import type { Actor } from "@/lib/publish/types";
-import type { GuardDeps } from "@/lib/publish/machine";
+import { DEFAULT_GUARD_DEPS, type GuardDeps } from "@/lib/publish/machine";
 
 const SYSTEM: Actor = { kind: "system", job: "publish/execute" };
 const AT = new Date(Date.UTC(2026, 8, 15, 12, 0, 0));
@@ -290,6 +290,21 @@ describe("every refusal is a hold, and names which one", () => {
     });
     expect(result).toEqual({ ok: false, reason: "held", heldBy: "ceiling_day" });
     expect(db.rows("drafts")[0]?.state).toBe("approved");
+  });
+
+  it("issue #792 — publications that cannot be counted hold the page through the real guard, naming that", async () => {
+    db.unreadable.add("publications");
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const result = await claim({
+      draftId: "d1",
+      destination: "hosted",
+      by: SYSTEM,
+      at: AT,
+      deps: openDeps({ hasCeilingRoom: DEFAULT_GUARD_DEPS.hasCeilingRoom }),
+    });
+    expect(result).toEqual({ ok: false, reason: "held", heldBy: "ceiling_unreadable" });
+    expect(db.rows("drafts")[0]?.state).toBe("approved");
+    expect(db.queries.filter((q) => q.table === "publications" && q.verb === "insert")).toEqual([]);
   });
 
   it("a needs_attention page whose draft failed a hard rule is held, naming that", async () => {

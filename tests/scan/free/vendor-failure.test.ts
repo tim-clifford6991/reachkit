@@ -48,7 +48,7 @@ vi.mock("@/lib/db", () => ({ dbAdmin: () => strictClient, db: () => strictClient
 
 vi.mock("@/lib/costs/daily", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../../src/lib/costs/daily")>()),
-  openDayLedger: async () => ({ spentCents: () => 0, ceilingReached: () => false, add: () => {} }),
+  openDayLedger: async () => ({ spentCents: () => 0, refresh: async () => {}, ceilingReached: () => false, add: () => {} }),
 }));
 
 const HOME_HTML =

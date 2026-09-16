@@ -520,6 +520,9 @@ function ledger(): { source: string; costCents: number }[] {
 beforeEach(() => {
   db.reset();
   installTransitionRpc(db);
+  // The product's day ledger holds nothing yet; an unreadable one would
+  // refuse every paid call (issue #792).
+  db.rpcs.set("fetches_spend_since", () => 0);
   installRedeemRpc(db);
   modelCalls.length = 0;
   inbox.length = 0;
@@ -1218,6 +1221,73 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
       expect((await heldPages(SITE_ID)).count).toBe(1);
       expect(facts.heldDays).toEqual([]);
       expect(facts.customerChangeHoldsPages).toBeNull();
+    },
+    JOURNEY_TIMEOUT_MS
+  );
+
+  it(
+    "issue #792 — a day ledger nobody can read spends nothing: tonight's page makes no model call",
+    async () => {
+      db.rpcs.delete("fetches_spend_since"); // the read answers an error
+      const warned = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+      try {
+        await seedOneOpportunity();
+        const outcome = await generateDayPage({
+          siteId: SITE_ID,
+          publishDate: nextPublishDate(EVENING, TIME_ZONE),
+        });
+        expect(outcome.ok).toBe(false);
+        expect(modelCalls).toHaveLength(0);
+        expect(ledger()).toEqual([]);
+        const events = warned.mock.calls.map((c) => String(c[0]));
+        expect(events.some((line) => line.includes("daily_spend_unreadable"))).toBe(true);
+      } finally {
+        warned.mockRestore();
+      }
+    },
+    JOURNEY_TIMEOUT_MS
+  );
+
+  it(
+    "issue #792 — publications that cannot be counted hold the page, and the next tick publishes it once",
+    async () => {
+      const draftId = await generateTonightsPage();
+      await enterReviewAndTell(draftId);
+      const at = whenItIsDue();
+      await closeTheWindow(draftId, at);
+
+      db.unreadable.add("publications");
+      const warned = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+      let held: Awaited<ReturnType<typeof publish>>;
+      try {
+        held = await publish({
+          draftId,
+          destination: "wordpress",
+          by: { kind: "system", job: "publish/execute" },
+          at,
+          adapterFor: () => WORDPRESS_ADAPTER,
+        });
+        expect(warned.mock.calls.map((c) => String(c[0])).some((l) => l.includes("publish_ceiling_unreadable"))).toBe(true);
+      } finally {
+        warned.mockRestore();
+      }
+      expect(held).toEqual({ ok: false, reason: "held", heldBy: "ceiling_unreadable" });
+      expect(theDraftRow().state).toBe("approved");
+      expect(wordpress.posts).toEqual([]);
+
+      // The read comes back: the next attempt counts nothing published today
+      // and the page goes out once.
+      db.unreadable.delete("publications");
+      const result = await publish({
+        draftId,
+        destination: "wordpress",
+        by: { kind: "system", job: "publish/execute" },
+        at,
+        adapterFor: () => WORDPRESS_ADAPTER,
+      });
+      expect(result.ok).toBe(true);
+      expect(theDraftRow().state).toBe("published");
+      expect(db.rows("publications")).toHaveLength(1);
     },
     JOURNEY_TIMEOUT_MS
   );
