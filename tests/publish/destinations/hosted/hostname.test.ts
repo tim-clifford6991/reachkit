@@ -108,6 +108,23 @@ describe("§5 — the hostname is attached, and the customer reads one of two wo
     expect(db.rows("destinations")[0]?.hostname_state).toBe("live");
   });
 
+  it("issue #791 — live is health ok in the same write, and a host not verified leaves health to the check", async () => {
+    seedDestination({ health_reason: "dns_unset", broken_mail_sent_at: AGES_AGO });
+    await sync();
+    expect(db.rows("destinations")[0]).toMatchObject({ hostname_state: "pending_dns", health: "expired" });
+
+    answers({ ok: true, attached: true, verified: true });
+    await sync(new Date(NOW.getTime() + 2 * 3_600_000));
+    expect(db.rows("destinations")[0]).toMatchObject({
+      hostname_state: "live",
+      health: "ok",
+      health_reason: null,
+      broken_mail_sent_at: null,
+      health_changed_at: "2026-09-12T14:00:00.000Z",
+      last_checked_at: "2026-09-12T14:00:00.000Z",
+    });
+  });
+
   it("**a deployment with no token never reads live** — the row a resolved record would have lied about", async () => {
     // Nothing is attached, so a pointed record gets the platform's 404.
     seedDestination();

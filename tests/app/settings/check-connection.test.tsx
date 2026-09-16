@@ -126,6 +126,8 @@ const { assembleSettings } = await import("@/app/(account)/app/settings/model");
 const { PublishingPanel } = await import("@/app/(account)/app/settings/panels/PublishingPanel");
 const { checkConnection } = await import("@/app/(account)/_destination/check-actions");
 const { DESTINATION_HOSTNAME_CHECK_FLOOR_S } = await import("@/lib/config/constants");
+const { liveSetupStore } = await import("@/app/(account)/setup/_setup/store");
+const { destinationWorking } = await import("@/lib/publish/destinations");
 
 const DOMAIN = LIVE_ACCOUNT.domain;
 const HOST = `content.${DOMAIN}`;
@@ -285,6 +287,68 @@ describe("SPEC §5 — /setup: the founder verifies their record before submitti
   });
 });
 
+describe("issue #791 — a press at /setup that verified is recorded on the row the submit creates", () => {
+  it("verified before submit: the destination is created live and healthy, even when the vendor does not answer the submit", async () => {
+    db.seed("sites", [
+      {
+        id: "site-1",
+        user_id: "user-1",
+        domain: DOMAIN,
+        created_at: "2026-09-16T00:00:00.000Z",
+        setup_completed_at: null,
+        publishing_enabled: true,
+      },
+    ]);
+    // `apply_setup_choice` as its migration writes the row: deferred,
+    // `expired`, the host the founder chose and waiting for DNS.
+    db.rpcs.set("apply_setup_choice", (args: Row) => {
+      db.seed("destinations", [
+        {
+          id: "dest-setup",
+          site_id: args.p_site_id,
+          kind: args.p_kind,
+          config: null,
+          health: "expired",
+          health_reason: "never_connected",
+          health_changed_at: "2026-09-16T00:00:00.000Z",
+          broken_mail_sent_at: null,
+          last_checked_at: "2026-09-16T00:00:00.000Z",
+          created_at: "2026-09-16T00:00:00.000Z",
+          deleted_at: null,
+          hostname: args.p_hostname,
+          hostname_state: "pending_dns",
+        },
+      ]);
+      return "dest-setup";
+    });
+    vendor.answer = "verified";
+    await press(await setupScreen());
+    expect(answerIn(document.body)?.outcome).toBe("live");
+
+    // The submit's own vendor call finds nothing: the press's answer stands.
+    vendor.answer = "silent";
+    vendor.calls.length = 0;
+    // The submit's write, as `completeSetup` makes it once the payload is
+    // accepted (`.test` is not a registrable domain, so the shape checks in
+    // front of it are not what this case drives).
+    await liveSetupStore().commitSetup({
+      siteId: "site-1",
+      submission: {
+        domain: DOMAIN,
+        category: "agency software",
+        competitors: [],
+        destination: { kind: "hosted", label: "content" },
+        voiceText: "",
+      },
+    });
+
+    expect(vendor.calls).toEqual([]);
+    const row = db.rows("destinations").find((r) => r.id === "dest-setup")!;
+    expect(row).toMatchObject({ hostname: HOST, hostname_state: "live", health: "ok", health_reason: null });
+    expect(await destinationWorking("site-1")).toBe(true);
+  });
+});
+
 describe("#759 (owner ruling 2026-09-16) — every line the press draws is written", () => {
   it("the six keys are written, and the button, each answer and the throttle line render no marker", async () => {
     for (const key of [
@@ -420,6 +484,15 @@ describe("SPEC §5 — Settings: the same press, beside the record a waiting hos
     expect(answerIn(block)).toEqual({ outcome: "live", text: COPY["settings.destination.check.live"] });
     expect(destinationRow().hostname_state).toBe("live");
     expect(destinationRow().hostname_checked_at).toBe(new Date(clock).toISOString());
+    // Issue #791: verified is healthy, in the same press — the guard that
+    // holds every page reads it now, not after some later pass.
+    expect(destinationRow()).toMatchObject({
+      health: "ok",
+      health_reason: null,
+      health_changed_at: new Date(clock).toISOString(),
+      last_checked_at: new Date(clock).toISOString(),
+    });
+    expect(await destinationWorking("site-1")).toBe(true);
     expect(revalidated).toEqual(["/app/settings"]);
 
     // What revalidation redraws: the card from the row the press wrote.

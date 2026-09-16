@@ -71,6 +71,9 @@ function engineDouble(): Record<string, unknown> {
     noticeCancellation: record("noticeCancellation", done),
     accountsDueWinback: record("accountsDueWinback", []),
     winBack: record("winBack", done),
+    // Hosted health, refreshed on the tick (issue #791).
+    hostedDestinationsDueHealth: record("hostedDestinationsDueHealth", []),
+    refreshDestinationHealth: record("refreshDestinationHealth", done),
   };
 }
 
@@ -408,6 +411,7 @@ describe("account/maintenance — its due-work queries and hand-offs, no domain 
       "accountsDuePaymentFailed",
       "accountsDueCancellation",
       "accountsDueWinback",
+      "hostedDestinationsDueHealth",
     ]);
     expect(outcome).toEqual({ outcome: "skipped", subjectId: null, reason: "no-subject" });
   });
@@ -668,6 +672,12 @@ describe("nothing fakes work — an unbuilt engine fails loudly", () => {
       accountsDuePaymentFailed: async () => [],
       accountsDueCancellation: async () => [],
       accountsDueWinback: async () => [],
+    }));
+    // Issue #791's hosted-health refresh reads `destinations`, stood in with
+    // nothing due.
+    vi.doMock("@/lib/publish/destinations/health", () => ({
+      hostedDestinationsDueHealth: async () => [],
+      checkHealth: async () => ({ health: "ok", reason: null, checkedAt: new Date() }),
     }));
     const { jobs } = await import("@/jobs");
     const { runJob } = await import("@/jobs/run");
