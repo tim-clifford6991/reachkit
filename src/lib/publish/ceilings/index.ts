@@ -35,7 +35,7 @@ import {
  * would publish on the wrong day, which is the one thing the ceiling is
  * stated in the customer's zone to prevent.
  *
- * `unreadable` is a hold for the same reason (issue #792): the site or its
+ * `unreadable` is a hold for the same reason (issue 792): the site or its
  * publications could not be read, so nothing is known about how many pages
  * went out. Counting that as none could publish a second page in a day. The
  * hold writes nothing, and the next tick asks again.

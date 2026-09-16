@@ -170,7 +170,7 @@ export type Admission =
   | { refuse: "switched_off" }
   | { refuse: "cooldown"; retryAfterSeconds: number }
   | { refuse: "removed" }
-  /** A bound could not be read (issue #792). No scan starts on a count
+  /** A bound could not be read (issue 792). No scan starts on a count
    *  nobody has; the visitor did not cause it. */
   | { refuse: "unreadable" };
 
@@ -415,7 +415,7 @@ async function evaluateAdmission(
   if (removed) return { result: { refuse: "removed" }, step: "removed" };
 
   // Steps 2 to 6 — cooldown, switched off, daily, in-flight, hourly — are
-  // wrapped in one handler that fails closed (issue #792; SPEC §2 states
+  // wrapped in one handler that fails closed (issue 792; SPEC §2 states
   // the bounds and no fail-open): any read error here refuses, and the
   // log line names the step that threw. The next request asks again.
   let step: FreeStep = "cooldown";

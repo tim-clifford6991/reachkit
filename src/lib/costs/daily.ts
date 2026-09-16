@@ -26,7 +26,7 @@
 //    named under *Adjacent* on issue #329's PR, and it is gone.
 //  - **it degrades, it never throws.** §6.5's own rule. A ceiling that is
 //    reached skips remaining work, and so does a ledger that cannot be
-//    *read* (issue #792): a figure nobody has is not room to spend. The
+//    *read* (issue 792): a figure nobody has is not room to spend. The
 //    call is skipped, `daily_spend_unreadable` says why, and the next call
 //    or tick asks the ledger again.
 //
@@ -147,7 +147,7 @@ function untypedRpc(client: ReturnType<typeof dbAdmin>): MinimalRpcClient {
  *
  * `null` means the ledger could not be read — not zero. The caller decides
  * what an unreadable ledger means, and every caller here decides the same
- * thing: nothing is spent on a number nobody has (issue #792).
+ * thing: nothing is spent on a number nobody has (issue 792).
  */
 export async function readDaySpendCents(now: Date): Promise<number | null> {
   try {
@@ -176,7 +176,7 @@ function logUnreadable(reason: string): void {
 
 /**
  * The day's ledger as one pass sees it: read when a cost context opens, and
- * read again before every paid call (issue #792).
+ * read again before every paid call (issue 792).
  *
  * Once a pass was not enough: two passes running together each read the
  * day once at their start and each spent up to the ceiling on its own. The

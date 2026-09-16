@@ -172,7 +172,7 @@ export async function withCostContext<T>(
   let inFlightReserved = 0;
   let isDegraded = false;
   // What the whole product has spent today (issue #329), read when the
-  // context opens and again before every paid call (issue #792) — see
+  // context opens and again before every paid call (issue 792) — see
   // `daily.ts` for why, and for what an unreadable ledger means.
   const day = await openDayLedger(now());
   let capHitLogged = false;

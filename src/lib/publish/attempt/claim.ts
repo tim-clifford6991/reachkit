@@ -82,7 +82,7 @@ export type HeldBy =
   | "ceiling_day"
   | "ceiling_week"
   | "zone_not_set"
-  /** The ceilings could not be counted (issue #792) — held, never counted
+  /** The ceilings could not be counted (issue 792) — held, never counted
    *  as nothing published. */
   | "ceiling_unreadable"
   | "destination_not_working"
