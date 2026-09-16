@@ -189,7 +189,7 @@ export const SETUP_COPY = Object.freeze({
   /** Issue #757: a "check connection" press on `/setup` for an address the
    *  founder has changed on screen but not submitted. The server knows only
    *  the site's stored address as theirs, and asks about no other host. */
-  "setup.destination.check.address-unsaved": ["TODO(copy)", { slots: {}, fixedBy: "SPEC §5 (2026-09-16, #757)" }],
+  "setup.destination.check.address-unsaved": ["TODO(copy)", { slots: {}, fixedBy: "SPEC §5 (2026-09-16, issue 757)" }],
 
   // ── The waiting screen (REQ-029) ────────────────────────────────────
   "setup.waiting.head": ["Your first page is on its way.", { slots: {}, fixedBy: "REQ-029 c1" }],

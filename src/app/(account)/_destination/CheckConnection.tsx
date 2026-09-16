@@ -111,7 +111,7 @@ export function CheckConnection(p: {
         </div>
       )}
       {askAgainInS === null ? null : (
-        <div role="status" className="alert alert-info alert-soft text-sm" data-testid="check-connection-too-soon">
+        <div role="status" className="alert alert-soft text-sm" data-testid="check-connection-too-soon">
           {copy("settings.destination.check.too-soon", { seconds: askAgainInS })}
         </div>
       )}
