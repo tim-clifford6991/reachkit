@@ -266,7 +266,11 @@ function envelope(result: unknown): unknown {
 
 const vendorRequests: { url: string; task: Record<string, unknown> }[] = [];
 
-function vendorAnswer(url: string): unknown {
+/** The site's own ranked rows the doubled `ranked_keywords` answers with
+ *  for its own domain (#795). Empty unless a test sets them. */
+let ownRankedItems: Record<string, unknown>[] = [];
+
+function vendorAnswer(url: string, task: Record<string, unknown> = {}): unknown {
   if (url.includes("/task_post")) {
     return { tasks: [{ id: "task-queued", status_code: 20100, status_message: "Task Created." }] };
   }
@@ -309,6 +313,9 @@ function vendorAnswer(url: string): unknown {
     });
   }
   if (url.includes("ranked_keywords")) {
+    if (task.target === DOMAIN && ownRankedItems.length > 0) {
+      return envelope({ total_count: ownRankedItems.length, items: ownRankedItems });
+    }
     return envelope({ items: [] });
   }
   return envelope({
@@ -438,6 +445,7 @@ const { ActiveAccessGateNotRegistered } = await import("../../src/lib/scan/weekl
 const { installActiveAccessGate } = await import("../../src/lib/account/billing");
 const { setOpportunityStore } = await import("../../src/lib/opportunities");
 const verdicts = await import("../../src/lib/opportunities/verdicts");
+const { readStoredReport } = await import("../../src/lib/scan/report");
 const { buildWeekly } = await import("../../src/lib/mail/templates/weekly");
 const { omittedIndexes } = await import("../../src/lib/mail/blocks/omit");
 const { chooseWholeMailLine } = await import("../../src/lib/mail/shell/compose");
@@ -477,6 +485,7 @@ beforeEach(() => {
   for (const key of Object.keys(rpcAnswers)) delete rpcAnswers[key];
   modelCalls.length = 0;
   vendorRequests.length = 0;
+  ownRankedItems = [];
   vendorSends = 0;
 
   sites = [{ id: SITE_ID, domain: DOMAIN, timezone: ZONE, user_id: USER_ID }];
@@ -497,7 +506,7 @@ beforeEach(() => {
     vi.fn(async (url: string, init?: RequestInit) => {
       const body = typeof init?.body === "string" ? (JSON.parse(init.body) as unknown[]) : [];
       vendorRequests.push({ url, task: (body[0] ?? {}) as Record<string, unknown> });
-      return { ok: true, status: 200, statusText: "OK", json: async () => vendorAnswer(url) };
+      return { ok: true, status: 200, statusText: "OK", json: async () => vendorAnswer(url, (body[0] ?? {}) as Record<string, unknown>) };
     })
   );
 
@@ -723,6 +732,34 @@ describe("Monday: the week is re-measured, judged, and told (JN-005)", () => {
     expect(unmeasuredWeek.standings[0]?.standing.kind).toBe("no_week");
     expect(noWeek.rows).toEqual([]);
   });
+
+  it(
+    "a page whose search is not among the week's questions is still judged, from the rows the pass bought (#795)",
+    async () => {
+      const target = "agency gantt chart";
+      ownRankedItems = [
+        {
+          keyword_data: { keyword: target, keyword_info: { search_volume: 5 } },
+          ranked_serp_element: { serp_item: { rank_group: 6, url: `https://${DOMAIN}/gantt` } },
+        },
+      ];
+      await measureTheWeek();
+
+      const stored = db.rpcCalls.find((call) => call.fn === "store_current_report")?.args.p_report;
+      const report = readStoredReport(JSON.parse(JSON.stringify(stored)));
+      const questions = report.questions.kind === "unmeasured" ? [] : report.questions.value;
+      expect(questions.map((q) => q.search.keyword)).not.toContain(target);
+
+      const page = verdictDoubles.pageOf({ domain: DOMAIN, acceptance: { form: "top20", query: target } });
+      const store = verdictDoubles.fakeStore({ pages: [page], scanId: "scan-week", report });
+      const judged = await verdicts.judgeWeek({ siteId: SITE_ID, week: "2026-08-31" });
+
+      expect(judged.standings[0]?.standing).toMatchObject({ kind: "verdict" });
+      expect(store.rows).toHaveLength(1);
+      expect(store.rows[0]).toMatchObject({ cause: null, measured: { kind: "measured", value: 6 } });
+    },
+    JOURNEY_TIMEOUT_MS
+  );
 
   it("the digest states what moved, and omits the sections the week did not measure", async () => {
     const page = verdictDoubles.pageOf();

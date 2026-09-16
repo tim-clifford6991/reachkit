@@ -67,6 +67,20 @@ function seed(state = "approved", over: Row = {}): void {
 
 beforeEach(() => seed());
 
+describe("the claim records the page's acceptance test on its publication (#795)", () => {
+  it("copies the opportunity's own test", async () => {
+    db.seed("opportunities", [{ id: "o1", acceptance: { form: "named_on", question: "Which tool?" }, target_query: "tool" }]);
+    await claim({ draftId: "d1", destination: "hosted", by: SYSTEM, at: AT, deps: openDeps() });
+    expect(db.rows("publications")[0]?.acceptance).toEqual({ form: "named_on", question: "Which tool?" });
+  });
+
+  it("gives a page whose opportunity carries no test 'top 20 for' the search it targets", async () => {
+    db.seed("opportunities", [{ id: "o1", acceptance: null, target_query: "project tool for agencies" }]);
+    await claim({ draftId: "d1", destination: "hosted", by: SYSTEM, at: AT, deps: openDeps() });
+    expect(db.rows("publications")[0]?.acceptance).toEqual({ form: "top20", query: "project tool for agencies" });
+  });
+});
+
 describe("a first claim writes the row before anything leaves the process", () => {
   it("inserts one publication, claimed, at attempt 1", async () => {
     const result = await claim({ draftId: "d1", destination: "hosted", by: SYSTEM, at: AT, deps: openDeps() });
