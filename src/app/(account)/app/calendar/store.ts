@@ -42,6 +42,7 @@ import {
   nextForDay,
   rankOpen,
   supplyDepth,
+  supplyMeasured,
   type Choice,
 } from "@/lib/opportunities";
 import { writtenLine } from "../_shell/written";
@@ -282,6 +283,12 @@ export async function readCalendarFacts(a: {
     marketHold(a.site.siteId, a.now).catch(() => null),
   ]);
 
+  // #765: a zero depth is either a market used up or one never measured,
+  // and the empty day says which. Read only where the depth is a proven
+  // zero — no other day can reach either supply arm — and a read that
+  // throws states neither.
+  const measured = depth === 0 ? await supplyMeasured(a.site.siteId).catch(() => null) : null;
+
   // The head is the first fillable date's page; the rest of the list, in
   // its own order, is the dates after it. One list, one order, and no
   // second ranking — `nextForDay` is this list's head, loaded.
@@ -344,5 +351,6 @@ export async function readCalendarFacts(a: {
     // exhausted arm is a proven claim (ADR-061 point 1) and a depth read
     // beside pages nobody could see is not one.
     unusedSupply: publishing.readable ? depth : null,
+    supplyMeasured: publishing.readable ? measured : null,
   };
 }

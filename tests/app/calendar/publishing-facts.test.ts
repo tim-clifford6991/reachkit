@@ -30,6 +30,9 @@ const explainChoice = vi.fn();
 
 vi.mock("@/lib/opportunities", () => ({
   supplyDepth: (...a: unknown[]) => supplyDepth(...a),
+  // #765: a zero depth's market was measured and used up, unless a row
+  // says otherwise.
+  supplyMeasured: async () => true,
   nextForDay: (...a: unknown[]) => nextForDay(...a),
   rankOpen: (...a: unknown[]) => rankOpen(...a),
   explainChoice: (...a: unknown[]) => explainChoice(...a),
