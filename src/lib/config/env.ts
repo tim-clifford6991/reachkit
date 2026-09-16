@@ -135,6 +135,13 @@ const schema = z.object({
   // analytics binding is never what stands between a customer and a scan.
   POSTHOG_API_KEY: z.string().min(1).optional(),
   POSTHOG_HOST: z.url().optional(),
+  // Issue 762, owner 2026-09-16: "use a project auto generated URL, i.e. a
+  // vercel.app url, for testing purposes." The one platform host the
+  // middleware treats as a customer's hosted host, so the hosted blog can
+  // be walked with no domain and no DNS record. A dev/preview testing aid
+  // only: `.optional()` because no process needs it, and the middleware
+  // ignores it on production and when it names the app's own host.
+  HOSTED_TEST_HOST: z.string().min(1).optional(),
 });
 
 // BP-005 decision 6b: "the member's type is a required `string` either

@@ -338,10 +338,29 @@ const HOSTED_GONE_PATH = "/hosted-gone";
  *  therefore served where they stand, not rewritten. */
 const HOSTED_DOCUMENT_PATHS: readonly string[] = ["/robots.txt", "/sitemap.xml"];
 
+/** The one test host named by `HOSTED_TEST_HOST` (issue 762), or the empty
+ *  string, which matches nothing. Exact and lower-cased — never a suffix,
+ *  never a pattern, never a second host.
+ *
+ *  **Refused on production.** `VERCEL_ENV` is the platform's own name for
+ *  the environment and is read raw, as `@/lib/config/now` reads `VERCEL`:
+ *  when it is `production` the binding is ignored, so a stray value can
+ *  never turn a production host into a customer's blog. **Never the app's
+ *  own host** either: a typo there must not stop the app serving its own
+ *  screens. */
+function hostedTestHost(): string {
+  if (process.env.VERCEL_ENV === "production") return "";
+  const named = (env.HOSTED_TEST_HOST ?? "").trim().toLowerCase();
+  return named === appHost() ? "" : named;
+}
+
 function isHostedEdgeHost(req: NextRequest): boolean {
   const name = hostnameOf(req);
   if (name === "") return false;
   if (name === appHost()) return false;
+  // Before the two exclusions below, which would otherwise refuse it: the
+  // test host is a `.vercel.app` address.
+  if (name === hostedTestHost()) return true;
   if (name === PREVIEW_HOST_SUFFIX || name.endsWith(OURS_SUFFIX)) return false;
   if (name.endsWith(PLATFORM_SUFFIX)) return false;
   return !LOCAL_HOSTS.has(name);
