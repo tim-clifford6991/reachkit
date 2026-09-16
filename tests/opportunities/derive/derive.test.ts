@@ -77,9 +77,17 @@ describe("a completed scan becomes opportunities, persisted", () => {
 });
 
 describe("the counts add up, and every rejection lands in exactly one counter", () => {
+  // Winnability drops a keyword page only (§6), so the rejections are
+  // counted on a search that types as one: no AI answer, customer absent.
+  const keywordReport = () =>
+    reportOf({
+      questions: [question({ search: search({ keyword: "user onboarding software" }) })],
+      serps: [serp({ aiOverview: { present: false, asynchronousAiOverview: false, referenceDomains: [] } })],
+    });
+
   it("a market of large rivals is counted as not_yet and creates nothing", async () => {
     const { ctx } = fakeCost();
-    const result = await deriveOpportunities(ctx, { ...input(), rankedCounts: bigCounts() });
+    const result = await deriveOpportunities(ctx, { ...input(), report: keywordReport(), rankedCounts: bigCounts() });
     expect(result.created).toEqual([]);
     // Every target looked at, across the three families: the one search,
     // plus the two access gates the Fix derivation examined and found
@@ -90,7 +98,7 @@ describe("the counts add up, and every rejection lands in exactly one counter", 
 
   it("a market we could not size is counted separately", async () => {
     const { ctx } = fakeCost();
-    const result = await deriveOpportunities(ctx, { ...input(), rankedCounts: unreadableCounts() });
+    const result = await deriveOpportunities(ctx, { ...input(), report: keywordReport(), rankedCounts: unreadableCounts() });
     expect(result.rejected).toEqual({ not_yet: 0, unmeasured_top10: 1, duplicate_open: 0 });
   });
 
