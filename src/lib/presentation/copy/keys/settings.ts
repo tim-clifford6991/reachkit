@@ -272,14 +272,14 @@ export const SETTINGS_COPY = Object.freeze({
   // Settings. Three answers the screen must not fold into two — the domain
   // list said live, the domain list said waiting, or nothing could be asked
   // — and the press inside the floor, which asked nothing and says when it
-  // may. Every sentence is the owner's.
-  "settings.destination.check.button": ["TODO(copy)", { slots: {}, fixedBy: "SPEC §5 (2026-09-16, issue 757)" }],
-  "settings.destination.check.live": ["TODO(copy)", { slots: {}, fixedBy: "SPEC §5 (2026-09-16, issue 757)" }],
-  "settings.destination.check.pending-dns": ["TODO(copy)", { slots: {}, fixedBy: "SPEC §5 (2026-09-16, issue 757)" }],
-  "settings.destination.check.could-not-ask": ["TODO(copy)", { slots: {}, fixedBy: "SPEC §5 (2026-09-16, issue 757)" }],
+  // may. Drafted and shipped under the owner ruling of 2026-09-16 (#759).
+  "settings.destination.check.button": ["Check connection", { slots: {}, fixedBy: "SPEC §5 (2026-09-16, issue 757)" }],
+  "settings.destination.check.live": ["Connected. Your pages will publish to this address.", { slots: {}, fixedBy: "SPEC §5 (2026-09-16, issue 757)" }],
+  "settings.destination.check.pending-dns": ["Not connected yet. A new DNS record usually takes a few minutes, sometimes a few hours. Check again shortly.", { slots: {}, fixedBy: "SPEC §5 (2026-09-16, issue 757)" }],
+  "settings.destination.check.could-not-ask": ["We couldn’t check just now. Try again in a moment.", { slots: {}, fixedBy: "SPEC §5 (2026-09-16, issue 757)" }],
   /** `seconds` is how long until the press may ask again, as a whole
    *  number. */
-  "settings.destination.check.too-soon": ["TODO(copy)", { slots: { seconds: "text" }, fixedBy: "SPEC §5 (2026-09-16, issue 757)" }],
+  "settings.destination.check.too-soon": ["Just checked. You can check again in {seconds} seconds.", { slots: { seconds: "text" }, fixedBy: "SPEC §5 (2026-09-16, issue 757)" }],
 
   // ── Notifications ──────────────────────────────────────────────────────
   // One key per `stoppable: 'toggle'` row of `MAIL_KINDS`, named by the row's

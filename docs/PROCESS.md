@@ -18,7 +18,7 @@ There is no factory, no artboard, no canvas task. Do not read `docs/archive/`.
 3. **Implement.** Branch from `origin/main` in this checkout. daisyUI classes in the route, Recharts for series, lucide for icons, Stripe / Resend / Supabase for those jobs. No new wrapper, no new CSS sheet, no SVG chart. PR: what changed, how you proved it, `Closes #n`.
 4. **Prove and ship.** Three checks green. `gh pr merge --squash --delete-branch`. Owner clicks `dev.reachkit.app`. Production stays frozen until the owner lifts it. Apply a merged migration through the Supabase connector after the target deploy is READY, then walk the path again.
 
-`blocked-on-owner` is not implemented around. Missing copy is `TODO(copy)`, never invented.
+`blocked-on-owner` is not implemented around. Missing copy is drafted and shipped, never `TODO(copy)` (owner ruling 2026-09-16, #759): the PR body names every new or changed string so the owner can correct the wording.
 
 ## Gates
 

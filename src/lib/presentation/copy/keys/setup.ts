@@ -153,6 +153,17 @@ export const SETUP_COPY = Object.freeze({
   /** The caption over the record itself. The record's three values are
    *  data and carry no key. */
   "setup.destination.dnsRecord": ["Add this record at your DNS provider", { slots: {}, fixedBy: "REQ-028 c2" }],
+  /** Issue #759 (owner ruling 2026-09-16): where that provider is, and the
+   *  Cloudflare proxy that flattens the CNAME so the connection can't be
+   *  verified — both beside the record on `/setup` and in Settings. */
+  "setup.destination.dnsWhere": [
+    "Add it wherever your domain’s DNS is managed — usually your registrar, or Cloudflare if your domain is on it.",
+    { slots: {}, fixedBy: "SPEC §5 · §12 (2026-09-16, issue 759)" },
+  ],
+  "setup.destination.dnsProxy": [
+    "On Cloudflare, set this record to DNS only — the grey cloud. A proxied record hides it from us and the connection can’t be verified.",
+    { slots: {}, fixedBy: "SPEC §5 · §12 (2026-09-16, issue 759)" },
+  ],
   /** REQ-028 c2: the written line that stands where the record will sit
    *  until a site address is given — never a blank, dash or placeholder. */
   "setup.destination.dnsPending": ["DNS record shown once your site is given.", { slots: {}, fixedBy: "REQ-028 c2" }],
@@ -189,7 +200,7 @@ export const SETUP_COPY = Object.freeze({
   /** Issue #757: a "check connection" press on `/setup` for an address the
    *  founder has changed on screen but not submitted. The server knows only
    *  the site's stored address as theirs, and asks about no other host. */
-  "setup.destination.check.address-unsaved": ["TODO(copy)", { slots: {}, fixedBy: "SPEC §5 (2026-09-16, issue 757)" }],
+  "setup.destination.check.address-unsaved": ["Confirm your site address first — this record is for the address ReachKit has.", { slots: {}, fixedBy: "SPEC §5 (2026-09-16, issue 757)" }],
 
   // ── The waiting screen (REQ-029) ────────────────────────────────────
   "setup.waiting.head": ["Your first page is on its way.", { slots: {}, fixedBy: "REQ-029 c1" }],
@@ -254,10 +265,11 @@ export const SETUP_COPY = Object.freeze({
   // Where a founder who finished setup lands while their site has no zone:
   // the app draws every date in the site's own zone and never in the
   // server's (REQ-073 c1), so it cannot open yet. The browser reports its
-  // zone from this screen and the founder is taken on to the app. Both
-  // sentences are the owner's and unwritten, so each renders the marker.
-  "setup.zone.head": ["TODO(copy)", { slots: {}, fixedBy: "issue 753" }],
-  "setup.zone.line": ["TODO(copy)", { slots: {}, fixedBy: "issue 753" }],
+  // zone from this screen and the founder is taken on to the app. Drafted
+  // and shipped under the owner ruling of 2026-09-16 (#759); the owner
+  // corrects the wording.
+  "setup.zone.head": ["Setting your time zone.", { slots: {}, fixedBy: "issue 753" }],
+  "setup.zone.line": ["ReachKit shows every date in your own time zone, so it needs yours before the app opens. Your browser is telling us now.", { slots: {}, fixedBy: "issue 753" }],
 
   // ── Your site, as we read it (SPEC.md §5, 2026-09-12) ───────────────
   //
