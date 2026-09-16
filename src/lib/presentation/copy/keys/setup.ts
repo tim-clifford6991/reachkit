@@ -153,15 +153,24 @@ export const SETUP_COPY = Object.freeze({
   /** The caption over the record itself. The record's three values are
    *  data and carry no key. */
   "setup.destination.dnsRecord": ["Add this record at your DNS provider", { slots: {}, fixedBy: "REQ-028 c2" }],
-  /** Issue #759 (owner ruling 2026-09-16): where that provider is, and the
-   *  Cloudflare proxy that flattens the CNAME so the connection can't be
-   *  verified — both beside the record on `/setup` and in Settings. */
+  /** Issue #759 (owner ruling 2026-09-16): where that provider is, and what
+   *  to try on Cloudflare — both beside the record on `/setup` and in
+   *  Settings.
+   *
+   *  **A proxied record is not a failure.** An earlier draft of the second
+   *  line said a proxied record "hides it from us and the connection can't
+   *  be verified". Checked against the live domain on 2026-09-16 that is
+   *  false: `content.reachkit.app` was proxied by Cloudflare — no CNAME
+   *  visible, Cloudflare's own addresses answering — and it still attached
+   *  and verified, and the host reaches this app (`x-vercel-id` and
+   *  `x-matched-path` on its 404). So the grey cloud is what to try when a
+   *  connection will not verify, never a rule stated as a cause. */
   "setup.destination.dnsWhere": [
     "Add it wherever your domain’s DNS is managed — usually your registrar, or Cloudflare if your domain is on it.",
     { slots: {}, fixedBy: "SPEC §5 · §12 (2026-09-16, issue 759)" },
   ],
   "setup.destination.dnsProxy": [
-    "On Cloudflare, set this record to DNS only — the grey cloud. A proxied record hides it from us and the connection can’t be verified.",
+    "On Cloudflare this works either proxied or set to DNS only. If the connection won’t verify, try DNS only — the grey cloud.",
     { slots: {}, fixedBy: "SPEC §5 · §12 (2026-09-16, issue 759)" },
   ],
   /** REQ-028 c2: the written line that stands where the record will sit
