@@ -12,7 +12,7 @@
 // Tuning the engine per customer is a §17 non-goal; this is what makes it
 // unrepresentable rather than merely discouraged.
 //
-// The four numbers are `WINNABILITY`'s and are imported, never restated.
+// The numbers are `WINNABILITY`'s and are imported, never restated.
 import { WINNABILITY } from "@/lib/config/constants";
 
 /** `max(500, 5 × ownRanked)` — the bar a Write target must clear at all. */
@@ -29,4 +29,22 @@ export function qualifyingBar(ownRanked: number): number {
  *  catch someone raising `WINNABILITY.nearFloor` to the qualifying floor. */
 export function winnableBar(ownRanked: number): number {
   return Math.max(WINNABILITY.nearFloor, WINNABILITY.nearMultiple * ownRanked);
+}
+
+// The demand side of the right-sizing law (SPEC §6, 2026-09-16, #779). The
+// same shape as the two bars above, over a search's monthly volume instead
+// of a rival's ranked count: a search bigger than this is outsized for the
+// site, however small the domains that rank for it today.
+
+/** `max(1000, 10 × ownRanked)` searches a month — the most demand a target
+ *  may carry and still be offered at all. */
+export function qualifyingDemand(ownRanked: number): number {
+  return Math.max(WINNABILITY.demandFloor, WINNABILITY.demandMultiple * ownRanked);
+}
+
+/** `max(200, 2 × ownRanked)` searches a month — the demand under which a
+ *  target is Winnable rather than Reach, so a small site's ranking prefers
+ *  its small, specific searches. */
+export function winnableDemand(ownRanked: number): number {
+  return Math.max(WINNABILITY.demandNearFloor, WINNABILITY.demandNearMultiple * ownRanked);
 }
