@@ -7,7 +7,7 @@
 // written rather than drawing an empty app with no reason.
 import type React from "react";
 import { PenLine } from "lucide-react";
-import { copy } from "@/lib/presentation/copy";
+import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { DRAWN_ROWS, ROW_COPY_KEY, type DrawnRow } from "@/app/(account)/setup/_setup/stages";
 import { OnboardingPanel } from "./OnboardingPanel";
 import type { OnboardingState } from "./onboarding";
@@ -35,6 +35,16 @@ export function FirstPageNotice(p: { state: OnboardingState }): React.JSX.Elemen
     <div role="status" className="alert items-start" data-testid="first-page-notice">
       <PenLine size={20} strokeWidth={1.75} aria-hidden />
       <span>{copy("shell.onboarding.first-page")}</span>
+    </div>
+  );
+}
+
+/** Overview's release notice (#784) — `overviewNotice`'s key, or nothing. */
+export function ReleaseNoticeLine(p: { noticeKey: CopyKey | null }): React.JSX.Element | null {
+  if (p.noticeKey === null) return null;
+  return (
+    <div role="status" className="alert alert-warning items-start text-sm" data-testid="overview-release-notice">
+      {copy(p.noticeKey)}
     </div>
   );
 }

@@ -28,6 +28,11 @@ import type { CopyKey } from "@/lib/presentation/copy";
  *  REQ-095's own are `supplyDepth`'s (§7), read and passed in. */
 export interface SupplyFacts {
   exhausted: boolean;
+  /** #765/#784: zero supply over a market that was never measured — the
+   *  current scan derived no questions, or the site never held an
+   *  opportunity. Never true alongside `exhausted`; neither is true where
+   *  the distinction could not be read. */
+  unmeasured: boolean;
   short: boolean;
   firstArrivalShortfall: boolean;
 }
@@ -42,6 +47,7 @@ export interface SupplyStatement {
  *  if-chain someone could reorder without noticing. */
 export const SUPPLY_PRECEDENCE = [
   { when: "exhausted", key: "overview.supply.exhausted" },
+  { when: "unmeasured", key: "overview.supply.unmeasured" },
   { when: "short", key: "overview.supply.short" },
   { when: "firstArrivalShortfall", key: "overview.supply.first-arrival" },
 ] as const satisfies readonly { when: keyof SupplyFacts; key: CopyKey }[];

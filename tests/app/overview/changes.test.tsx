@@ -86,7 +86,7 @@ const facts = (over: Partial<OverviewFacts> = {}): OverviewFacts => ({
       },
     ],
   },
-  supply: { exhausted: false, short: false, firstArrivalShortfall: false },
+  supply: { exhausted: false, unmeasured: false, short: false, firstArrivalShortfall: false },
   waiting: [],
   ...over,
 });

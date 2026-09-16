@@ -474,7 +474,7 @@ export async function readOverviewFacts(site: OverviewSite): Promise<OverviewFac
   // the seed writes its measured weeks against the same value, and the two
   // halves cannot drift apart on a Monday.
   const now = clock();
-  const { supplyDepth } = await import("@/lib/opportunities");
+  const { supplyDepth, supplyMeasured } = await import("@/lib/opportunities");
 
   const [firstDueOn, published, depth, waiting, series, ranking, deepPass] = await Promise.all([
     nextDueOn({ siteId: site.siteId, now }),
@@ -488,6 +488,9 @@ export async function readOverviewFacts(site: OverviewSite): Promise<OverviewFac
     pagesRanking(site.siteId, weekStartFor({ at: now, zone: site.timeZone }), now),
     deepPassReading(site.siteId),
   ]);
+  // #765/#784: a zero is either a market used up or one never measured, and
+  // only a read that answered may say which — an unreadable one says neither.
+  const measured = depth.unused === 0 ? await supplyMeasured(site.siteId).catch(() => null) : null;
 
   return {
     timeZone: site.timeZone,
@@ -506,7 +509,8 @@ export async function readOverviewFacts(site: OverviewSite): Promise<OverviewFac
     rivals: series.rivals,
     today: now,
     supply: {
-      exhausted: depth.unused === 0,
+      exhausted: depth.unused === 0 && measured === true,
+      unmeasured: depth.unused === 0 && measured === false,
       short: depth.unused > 0 && depth.unused < SUPPLY_SHORT_BELOW,
       // The first-arrival shortfall is a statement about the pass the
       // customer arrived after, which only the arrival itself can know
