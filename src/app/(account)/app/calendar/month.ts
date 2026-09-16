@@ -19,7 +19,7 @@
 // calendar is never padded") are kept by a read that cannot pad.
 import type { Measured } from "@/lib/measure/measured";
 import type { UnpublishOutcome, VerifyDisposition } from "@/lib/publish/types";
-import { accountFor, type EmptyAccount, type EmptyFacts } from "./empty";
+import { accountFor, type EmptyAccount, type EmptyFacts, type HeldBySetting } from "./empty";
 import type { WorkStop } from "@/lib/presentation/stopped";
 import { STAGE_OF, type State, type Stage, type StageFilter } from "./stages";
 import { dayKeyOf, monthGrid, monthOf, type DayKey, type MonthKey } from "./dates";
@@ -151,7 +151,7 @@ export interface CalendarFacts {
    * inherit "there was nothing worth publishing" (REQ-043 c3).
    */
   heldDays: readonly DayKey[];
-  customerChangeHoldsPages: "publishing_off" | "destination_disconnected" | null;
+  customerChangeHoldsPages: HeldBySetting | null;
   /** REQ-071 c11: the market answer being replaced and the date pages
    *  resume, or `null`. `generationHold()`'s own `held: true` arm — the
    *  engine has already chosen one reason where two answers changed, so

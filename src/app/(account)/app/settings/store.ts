@@ -266,6 +266,10 @@ export async function readLiveSettingsFacts(
 
     destinations: destinations.list,
     destinationsReadable: destinations.readable,
+    // The record's value, from the binding setup reads (#754). Imported at
+    // the call, like every read here: `env` parses every binding when it is
+    // evaluated.
+    cnameTarget: (await import("@/lib/config/env")).env.HOSTED_EDGE_CNAME_TARGET,
 
     ...card,
     notifyPrefs: notify,

@@ -37,12 +37,13 @@
 // a page whose publish moment does not exist yet: a page in review under
 // autopilot is told the veto deadline instead (the panel's own line), and
 // under copilot it has no moment at all until it is approved.
-import { destinationWorking } from "@/lib/publish/destinations";
+import { destinationWaitingOnDns, destinationWorking } from "@/lib/publish/destinations";
 import { scheduledPagesFor, type ScheduledPage } from "@/lib/publish/record";
 import { nextPublishTimeAtOrAfter, readPublishingSettings } from "@/lib/publish/settings";
 import { heldPages, isPublishingOn } from "@/lib/publish/switch";
 import type { State } from "@/lib/publish/types";
 import { daysOfMonth, type DayKey, type MonthKey } from "./dates";
+import type { HeldBySetting } from "./empty";
 
 export type { ScheduledPage };
 
@@ -79,8 +80,9 @@ export interface PublishingFacts {
   /** REQ-043 c4's saved change, where one is holding pages back. The
    *  switch is asked first: it is the customer's own act, and a
    *  disconnected destination on a site whose publishing is off is not the
-   *  fact they need. */
-  customerChangeHoldsPages: "publishing_off" | "destination_disconnected" | null;
+   *  fact they need. A destination that is not working because its host
+   *  is still waiting for DNS is named as that (#754). */
+  customerChangeHoldsPages: HeldBySetting | null;
 }
 
 /**
@@ -114,13 +116,15 @@ export async function readPublishingFacts(a: {
   let held: { draftIds: string[] };
   let publishingOn: boolean;
   let destinationOk: boolean;
+  let waitingOnDns: boolean;
   let settings: Awaited<ReturnType<typeof readPublishingSettings>>;
   try {
-    [pages, held, publishingOn, destinationOk, settings] = await Promise.all([
+    [pages, held, publishingOn, destinationOk, waitingOnDns, settings] = await Promise.all([
       scheduledPagesFor({ siteId: a.siteId, from, to }),
       heldPages(a.siteId),
       isPublishingOn(a.siteId),
       destinationWorking(a.siteId),
+      destinationWaitingOnDns(a.siteId),
       readPublishingSettings(a.siteId),
     ]);
   } catch (error) {
@@ -162,7 +166,9 @@ export async function readPublishingFacts(a: {
     customerChangeHoldsPages: !publishingOn
       ? "publishing_off"
       : !destinationOk
-        ? "destination_disconnected"
+        ? waitingOnDns
+          ? "destination_pending_dns"
+          : "destination_disconnected"
         : null,
   };
 }

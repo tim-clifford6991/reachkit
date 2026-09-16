@@ -25,9 +25,10 @@ import { StageFilter } from "./StageFilter";
 import { DayPanelView } from "./DayPanelView";
 import {
   EMPTY_COPY_KEY,
+  HELD_BY_SETTING_COPY_KEY,
   isLawCause,
   stopForEmptyDay,
-  type CalendarOwnCause,
+  type OneLineCause,
 } from "./empty";
 import type { CopyKey } from "@/lib/presentation/copy";
 import { CHANGE_COPY_KEY } from "./change-line";
@@ -62,9 +63,12 @@ export function emptyLineFor(
    *  line, or the panel's whole account (#209). The grid's is the default
    *  because the grid is the smaller box; a caller that wants the account
    *  asks for it. */
-  keys: Record<CalendarOwnCause, CopyKey> = EMPTY_COPY_KEY,
+  keys: Record<OneLineCause, CopyKey> = EMPTY_COPY_KEY,
 ): string | null {
-  const cause = empty.cause;
+  // REQ-043 c4: the setting that holds pages, each with its own line (#754).
+  if (empty.cause === "customer_change_holds_pages") {
+    return writtenLine(HELD_BY_SETTING_COPY_KEY[empty.setting]);
+  }
   // REQ-071 c11's two slots. Both values are the engine's — the held answer
   // named through its own registry key, and the resumption date formatted
   // in the site's zone (issue #204).
@@ -74,6 +78,7 @@ export function emptyLineFor(
       date: formatDate(empty.resumesOn, timeZone),
     });
   }
+  const cause = empty.cause;
   if (!isLawCause(cause)) return writtenLine(keys[cause]);
   const stop = stopForEmptyDay({ cause, stop: stopped, since: dayMarker(day) });
   return stoppedWorkStatement(stop, { formatDate: (on) => formatDate(on, timeZone) }).line;

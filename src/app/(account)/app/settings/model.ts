@@ -34,6 +34,7 @@ import type { CopyKey } from "@/lib/presentation/copy";
 import { effectiveOn } from "@/lib/market/changes/pending";
 import { CHANGE_COPY_KEY } from "../calendar/change-line";
 import type { DestinationView } from "@/lib/publish/types";
+import { dnsRecordFor, type DnsRecord } from "@/lib/publish/setup/cards";
 import type { ACCOUNT_NOTE_KEYS } from "@/lib/account/identity/notes";
 import type { PublishingMode } from "../_shell/model";
 import { formatDate, formatDateTime } from "../_shell/format";
@@ -60,6 +61,12 @@ export type {
   DestinationView,
   HealthReason,
 } from "@/lib/publish/types";
+
+/** A destination as this screen renders it: the registry's view, plus the
+ *  record a hosted destination still waiting for DNS asks the customer to
+ *  create (#754). `null` on every other destination — a live host, a
+ *  WordPress site, or a row with no host of its own has no record to show. */
+export type SettingsDestination = DestinationView & { dns: DnsRecord | null };
 
 export interface PublishingSettings {
   mode: PublishingMode;
@@ -151,7 +158,7 @@ export interface SettingsModel {
   competitors: readonly string[];
   domain: string;
   publishing: PublishingSettings;
-  destinations: readonly DestinationView[];
+  destinations: readonly SettingsDestination[];
   voice: { text: string };
   doNotClaim: readonly string[];
   notifications: readonly NotificationRow[];
@@ -235,6 +242,11 @@ export interface SettingsFacts {
    *  an unreadable one are different facts, and only the first is one the
    *  customer can act on. */
   destinationsReadable: boolean;
+  /** §9's edge hostname, from `HOSTED_EDGE_CNAME_TARGET` — the value of the
+   *  record a hosted destination is waiting on. Setup's own binding, read
+   *  by the store here too, so the record Settings shows is the one setup
+   *  showed (#754). */
+  cnameTarget: string;
   /** `users` (§10), plus the notify preferences the toggles read. A kind
    *  absent from the record reads as on. `name` is `null` where the account
    *  has not stated one — `accountCard()` returns the column as it is, and
@@ -304,6 +316,29 @@ function savedChange(facts: SettingsFacts): MarketChange | null {
   };
 }
 
+/**
+ * The record a hosted destination waiting for DNS still needs (#754).
+ *
+ * Setup shows it once; a founder who did not act then reads it here. It is
+ * `dnsRecordFor()`'s record, composed from the host the destination stores
+ * — split back into the label and the domain it was composed from — so the
+ * two screens cannot state two records for one host. A host the record
+ * would not name exactly is shown no record rather than a different one.
+ */
+function dnsFor(view: DestinationView, cnameTarget: string): DnsRecord | null {
+  if (view.kind !== "hosted" || view.hostname === null || view.hostnameState !== "pending_dns") {
+    return null;
+  }
+  const dot = view.hostname.indexOf(".");
+  if (dot === -1) return null;
+  const record = dnsRecordFor({
+    siteDomain: view.hostname.slice(dot + 1),
+    cnameTarget,
+    label: view.hostname.slice(0, dot),
+  });
+  return "pending" in record || record.name !== view.hostname ? null : record;
+}
+
 export function assembleSettings(facts: SettingsFacts): SettingsModel {
   const market = {
     category: facts.category,
@@ -326,7 +361,7 @@ export function assembleSettings(facts: SettingsFacts): SettingsModel {
       timeZone: facts.timeZone,
       enabled: facts.publishingEnabled,
     },
-    destinations: facts.destinations,
+    destinations: facts.destinations.map((view) => ({ ...view, dns: dnsFor(view, facts.cnameTarget) })),
     voice: { text: facts.voiceText },
     doNotClaim: facts.doNotClaim,
     notifications: notificationRows(facts.notifyPrefs),

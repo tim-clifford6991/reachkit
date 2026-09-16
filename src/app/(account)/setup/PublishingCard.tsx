@@ -23,6 +23,7 @@ import {
 } from "@/lib/publish/setup/cards";
 import { checkLabel, type LabelRefusal } from "@/lib/publish/destinations/hosted/label";
 import { checkSubdomainLabel } from "./label-actions";
+import { CnameRecord } from "../_destination/CnameRecord";
 
 /** SPEC §5's two refusals, the same two keys the submit's own resolve to. */
 const LABEL_REFUSAL_COPY = {
@@ -187,25 +188,8 @@ function HostedRecord(p: { dns: DnsRecord | DnsPending }): React.JSX.Element {
       </span>
     );
   }
-  return (
-    <>
-      <span className={`mt-2 ${QUIET}`} data-testid="setup-dns-caption">
-        {copy("setup.destination.dnsRecord")}
-      </span>
-      {/* The hostname is `waiting` until the customer creates the record
-          they are being shown; settings reads the same word back. */}
-      <span className="flex flex-wrap items-center justify-between gap-2 rounded-box bg-base-200 p-3">
-        <span className="num flex min-w-0 flex-wrap gap-2 text-sm" data-testid="setup-dns-record">
-          <span className="min-w-0 wrap-anywhere">{p.dns.name}</span>
-          <span className="min-w-0 wrap-anywhere">{p.dns.type}</span>
-          <span className="min-w-0 wrap-anywhere">{p.dns.value}</span>
-        </span>
-        <span className="badge badge-warning badge-soft" data-testid="setup-dns-state">
-          {copy("settings.destination.hostname.waiting")}
-        </span>
-      </span>
-    </>
-  );
+  // The same block Settings shows a destination still waiting for DNS (#754).
+  return <CnameRecord record={p.dns} />;
 }
 
 /** What connecting WordPress will ask for, shown on the option that offers

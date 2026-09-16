@@ -98,6 +98,10 @@ describe("REQ-043 c4 — each other cause resolves to itself, and to exactly one
       cause: "customer_change_holds_pages",
       setting: "destination_disconnected",
     });
+    expect(accountFor({ ...NOTHING, customerChangeHoldsPages: "destination_pending_dns" })).toEqual({
+      cause: "customer_change_holds_pages",
+      setting: "destination_pending_dns",
+    });
   });
 
   it("an unenumerated cause resolves to unattributed, and this file names no line for it", () => {
