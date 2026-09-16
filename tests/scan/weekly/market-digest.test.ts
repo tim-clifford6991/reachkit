@@ -28,6 +28,10 @@ vi.mock("@/lib/scan/stuck", () => ({
   scansLeftRunning: async () => [],
   finishScanLeftRunning: async () => ({ finished: false }),
 }));
+vi.mock("@/lib/scan/deep/backstop", () => ({
+  sitesWithoutDeepPass: async () => [],
+  deepPassDomain: async () => null,
+}));
 vi.mock("@/lib/mail/retention", () => ({
   accountsDueInactivity: async () => [],
   draftsDueVetoReminder: async () => [],
