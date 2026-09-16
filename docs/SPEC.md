@@ -148,6 +148,7 @@ Pinned numbers live in `src/lib/config/constants.ts`. Newest dated line in a sec
 - Public veto link redeems on GET once. MVP paid service ends at a page on the customer’s own domain (2026-09-11).
 - Opportunity status (2026-09-15): a written draft queues its opportunity; a vetoed draft dismisses it.
 - Stopped drafts (2026-09-16, #788): a date keeps one draft row across every attempt. A draft the hard rules stop for the last time moves to needs_attention with the rules that stopped it and releases its opportunity to open. Regenerate writes that date's draft again on the next hourly draft tick.
+- 2026-09-16  (#813) A step that could not run after the date's row exists (the claim check, answerability, any later step) ends the same way: after the one automatic second attempt, the row moves to needs_attention naming the step and releases its opportunity to open. No second row; Regenerate restarts it.
 - 2026-09-16  Daily decision (owner, #777): each day chooses between a *new post* (Write/Earn) and an *update of an existing page* (Improve/Fix), whichever ranks higher for this site. Update candidates are the site’s own pages — its ranked URLs and crawled inventory, not only the home page — matched to the market’s questions; both sides are right-sized per §6. An empty day is still a stated cause, never filler.
 - Hosted index (2026-09-16): the root of a hosted host lists every live page, newest first, with a search; a site with nothing published says so instead of answering 404.
 

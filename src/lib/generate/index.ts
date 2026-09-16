@@ -178,7 +178,9 @@ interface PageInput {
  * SPEC §7 (2026-09-15, issue 712): a written draft queues its opportunity.
  * A draft the rules stopped for the last time does not (2026-09-16, #788):
  * it rests in `needs_attention` and the opportunity goes back to the open
- * set. A run that wrote no row, or one a step stopped, moves neither.
+ * set. Nor does a row a step stopped for the last time (#813): it rests the
+ * same way, its reason naming the step. A run that wrote no row moves
+ * neither.
  */
 async function settle(outcome: DayPageOutcome, opportunityId: string): Promise<void> {
   if (outcome.ok) {
@@ -186,10 +188,19 @@ async function settle(outcome: DayPageOutcome, opportunityId: string): Promise<v
     return;
   }
   if (outcome.because === "rules" && outcome.draftId !== null) {
-    await rest(outcome.draftId, opportunityId);
+    await rest(outcome.draftId, opportunityId, await rulesReason(outcome.draftId));
     return;
   }
-  if (outcome.because === "step_failed" && outcome.draftId !== null) await queueForDraft(opportunityId);
+  if (outcome.because === "step_failed" && outcome.draftId !== null) {
+    await rest(outcome.draftId, opportunityId, `step_failed:${outcome.step}`);
+  }
+}
+
+/** The move's reason for a rule stop: the rules on the row. */
+async function rulesReason(draftId: string): Promise<string> {
+  const row = await generateStore().draftById(draftId);
+  const failed = readRecordedRules(row?.rule_failures) ?? [];
+  return `rules:${failed.map((failure) => failure.rule).join(",")}`;
 }
 
 /**
@@ -197,21 +208,14 @@ async function settle(outcome: DayPageOutcome, opportunityId: string): Promise<v
  * `generating` for the state the customer can act on, and its opportunity
  * leaves `queued`. The rules that stopped it are on the row already
  * (`rule_failures`, which the draft view lists); the move's record names
- * them too.
+ * them too — or names the step that could not run (#813).
  *
  * Never a throw on a refused move: the page is stopped either way, and a
  * row another mover moved first is logged rather than forced.
  */
-async function rest(draftId: string, opportunityId: string): Promise<void> {
-  const row = await generateStore().draftById(draftId);
-  const failed = readRecordedRules(row?.rule_failures) ?? [];
+async function rest(draftId: string, opportunityId: string, reason: string): Promise<void> {
   const { transition } = await import("@/lib/publish/machine");
-  const moved = await transition(
-    draftId,
-    "needs_attention",
-    { kind: "system", job: "draft/generate" },
-    { reason: `rules:${failed.map((failure) => failure.rule).join(",")}` }
-  );
+  const moved = await transition(draftId, "needs_attention", { kind: "system", job: "draft/generate" }, { reason });
   if (!moved.ok) {
     console.log(JSON.stringify({ event: "draft_not_rested", draftId, refused: moved.refused, state: moved.state }));
   }
@@ -295,6 +299,7 @@ async function writePage(a: PageInput & { attempts: number }): Promise<DayPageOu
     // #788: one row for the date across every attempt — an attempt after
     // the first rewrites the row the first one wrote.
     let draftId = a.draftId;
+    let ruleStopped = false;
     for (let attempt = 1; attempt <= a.attempts; attempt++) {
       last = await generateDraft(cost, {
         siteId: a.siteId,
@@ -309,18 +314,23 @@ async function writePage(a: PageInput & { attempts: number }): Promise<DayPageOu
       });
       if (last.draftId !== null) draftId = last.draftId;
       if (last.ok) return { ok: true, draftId: last.draftId };
-      // A step that did not run is not a rule that failed: regenerating
-      // would not make an unavailable model available, and it must not
-      // consume the one automatic attempt.
       if (last.reason === "step_failed") {
+        // A step that did not run before any row was written leaves nothing
+        // to rest: the opportunity stays open for the next evening.
+        if (draftId === undefined) {
+          return { ok: false, because: "step_failed", draftId: null, step: last.step };
+        }
         // After a rule already stopped this date's row, a regeneration that
         // could not run leaves that stop standing: the row rests on it
         // rather than waiting in `generating` for a run nothing will make.
-        if (attempt > 1 && draftId !== undefined) {
-          return { ok: false, because: "rules", draftId, attempts: attempt - 1 };
-        }
-        return { ok: false, because: "step_failed", draftId: draftId ?? null, step: last.step };
+        if (ruleStopped) return { ok: false, because: "rules", draftId, attempts: attempt - 1 };
+        // #813: a row a step stopped takes the automatic second attempt a
+        // rule stop takes — a model that did not answer may answer now. The
+        // ceiling would stop that attempt too, so it rests at once.
+        if (attempt < a.attempts && !cost.capHit()) continue;
+        return { ok: false, because: "step_failed", draftId, step: last.step };
       }
+      ruleStopped = true;
       if (
         recoveryOutcome({
           failed: last.failed.map((failure) => failure.rule),
