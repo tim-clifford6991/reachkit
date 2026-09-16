@@ -184,19 +184,19 @@ export const DRAFT_COPY = Object.freeze({
     // back out of this source verbatim, and `"a" + "b"` is not a string it
     // can find there.
     "Saves itself as you type. The grounded fact stays marked while it survives your edit; the page rules and the claim check re-run on every save and the page cannot publish until they pass.",
-    { slots: {}, fixedBy: "REQ-045 c6, c8, c9 · S17 (11a) · #789" },
+    { slots: {}, fixedBy: "REQ-045 c6, c8, c9 · S17 (11a) · issue 789" },
   ],
   // #789: the founder edits the title and the meta description beside the
   // body, and is told when a saved edit breaks a page rule. Drafted (#759);
   // the owner corrects the wording.
-  "draft.edit.title-label": ["Title", { slots: {}, fixedBy: "SPEC §7 · #789" }],
+  "draft.edit.title-label": ["Title", { slots: {}, fixedBy: "SPEC §7 · issue 789" }],
   "draft.edit.description-label": [
     "Meta description",
-    { slots: {}, fixedBy: "SPEC §7 · #789" },
+    { slots: {}, fixedBy: "SPEC §7 · issue 789" },
   ],
   "draft.edit.rules-held": [
     "Your edit breaks one of the page rules, so this page won’t publish until the text passes them. Your words are saved.",
-    { slots: {}, fixedBy: "SPEC §7 · #789" },
+    { slots: {}, fixedBy: "SPEC §7 · issue 789" },
   ],
   "draft.edit.done": ["Done editing", { slots: {}, fixedBy: "REQ-045 c5 · S17 (11a)" }],
   "draft.edit.discard": [
