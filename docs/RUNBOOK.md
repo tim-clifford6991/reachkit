@@ -589,7 +589,7 @@ The procedure, per migration:
    migration per run, in filename order, oldest first.
 3. Re-read the **security advisor** afterwards. A new `plpgsql` function without
    `set search_path = ''` is a WARN, and `tests/db/functions-search-path.test.ts` should have
-   caught it before the merge. The five `rls_enabled_no_policy` INFO rows and the
+   caught it before the merge. The `rls_enabled_no_policy` INFO rows (six once `job_runs` is applied, #799) and the
    leaked-password WARN are dispositioned below and are expected on every run.
 4. Record it in this section with the date.
 
@@ -644,7 +644,7 @@ what each report means here:
 | Finding | Disposition |
 |---|---|
 | `function_search_path_mutable` — eight plpgsql functions | **Fixed** by `supabase/migrations/20260909130000_rls_functions_search_path.sql` (#384): each function pins `set search_path = ''` and names this schema's tables `public.<table>`. Re-applied to the project through the connector after the merge; the WARN count is then 0. A new function without the clause fails `tests/db/functions-search-path.test.ts` before it can reach the project |
-| `rls_enabled_no_policy` — `domain_blocks`, `email_suppressions`, `fetches` in `public` (`auth_links` dropped 2026-09-10, #468), and two tables in `v2_archive` | **By design, and now said in place.** The three in `public` are `dbAdmin()`-only (BUILD §10 default-deny) and each carries a `comment on table` naming the rule, so the intent is where the advisor reads. The two in `v2_archive` are v2's frozen objects, kept as the v2 rollback path (*Backups and restore*); they are not v3's to change and go when the rollback path is retired |
+| `rls_enabled_no_policy` — `domain_blocks`, `email_suppressions`, `fetches`, `job_runs` (the job heartbeat, #799 — six INFO rows once its migration is applied) in `public` (`auth_links` dropped 2026-09-10, #468), and two tables in `v2_archive` | **By design, and now said in place.** The four in `public` are `dbAdmin()`-only (BUILD §10 default-deny) and each carries a `comment on table` naming the rule, so the intent is where the advisor reads. The two in `v2_archive` are v2's frozen objects, kept as the v2 rollback path (*Backups and restore*); they are not v3's to change and go when the rollback path is retired |
 | `auth_leaked_password_protection` — HaveIBeenPwned check disabled | **Not applicable.** v3 has no passwords: sign-in is a one-time link and nothing else (REQ-098 — "no password field, no social sign-in"; `supabase/config.toml` sets `enable_password_signin = false`). There is no password for the check to read, so the setting stays off and this WARN is expected on every advisor run |
 
 ### The substrate

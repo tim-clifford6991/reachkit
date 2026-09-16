@@ -35,8 +35,7 @@ create table job_runs (
 alter table job_runs enable row level security;
 
 comment on table job_runs is
-  'The job heartbeat (issue #799): each job''s last run and its outcome, one row per job, written by '
-  'the job runner. The stale-job alert reads it: a scheduled job quiet for twice its interval is '
-  'told to OWNER_EMAILS once, and stale_alerted_at records that telling.';
+  'The job heartbeat (issue #799): each job''s last run and outcome, written by the job runner and read '
+  'by the stale-job alert. dbAdmin()-only; BUILD §10 default-deny; no anon/authenticated policy by design.';
 
 grant select, insert, update, delete on job_runs to service_role;
