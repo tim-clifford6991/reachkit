@@ -101,7 +101,7 @@ const DUE_WORK: readonly {
   // opening Settings after their record verifies.
   { due: hostedDestinationsDueHealth, handOff: refreshDestinationHealth },
   deepPassBackstop,
-  // Issue #796: the weekly passes that found too little market, told to the
+  // Issue 796: the weekly passes that found too little market, told to the
   // owner as one digest per Monday rather than one mail per site.
   { due: marketDigestsDue, handOff: sendMarketDigest },
 ]);

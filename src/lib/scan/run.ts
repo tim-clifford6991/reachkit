@@ -178,6 +178,11 @@ interface TierParameters {
    *  nano calls, not a second purchase. The free report still pools the
    *  site's own ranked rows and walks the volume steps, which buy nothing. */
   extraSeeds: number;
+  /** Issues 770 and 796: how the owner hears of a pass that found too little
+   *  market. `immediate` mails at once (a site's first, deep pass);
+   *  `digest` is folded into the owner's Monday digest
+   *  (`./weekly/market-digest`); `none` has no site to speak of. */
+  marketTooSmallAlert: "immediate" | "digest" | "none";
 }
 
 export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.freeze({
@@ -193,6 +198,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     stageBudgets: true,
     serpWindowDays: CACHE_WINDOWS_D.serp,
     extraSeeds: 0,
+    marketTooSmallAlert: "none",
   }),
   deep: Object.freeze({
     cap: "DEEP",
@@ -206,6 +212,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     stageBudgets: false,
     serpWindowDays: CACHE_WINDOWS_D.serp,
     extraSeeds: SELECTION.maxExtraSeeds,
+    marketTooSmallAlert: "immediate",
   }),
   weekly: Object.freeze({
     cap: "WEEKLY",
@@ -219,6 +226,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     stageBudgets: false,
     serpWindowDays: CACHE_WINDOWS_D.serpWeeklyRecheck,
     extraSeeds: SELECTION.maxExtraSeeds,
+    marketTooSmallAlert: "digest",
   }),
 } as const);
 
@@ -731,12 +739,11 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
           : "pass_ended",
   });
 
-  // 8. #770: a site's first (deep) pass that found too little market tells
-  //    the owner at once. A weekly pass is told in the owner's Monday digest
-  //    (#796, `./weekly/market-digest`), never one mail per site per week.
-  //    Imported at the call, as `src/jobs/run.ts` does; `reportIncident`
-  //    never throws.
-  if (composed.marketTooSmall && a.siteId !== undefined && a.tier === "deep") {
+  // 8. #770: a paid pass (one with a site) that found too little market
+  //    tells the owner at once where its parameters say `immediate`; a
+  //    `digest` pass waits for the owner's Monday digest (issue 796). Imported
+  //    at the call, as `src/jobs/run.ts` does; `reportIncident` never throws.
+  if (composed.marketTooSmall && a.siteId !== undefined && parameters.marketTooSmallAlert === "immediate") {
     const { reportIncident } = await import("@/lib/mail/ops");
     await reportIncident({ occasion: "market-too-small", scanId, tier: a.tier });
   }

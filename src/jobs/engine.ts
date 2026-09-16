@@ -333,7 +333,7 @@ export async function finishScanLeftRunning(scanId: string): Promise<EngineResul
   return { done: true };
 }
 
-/** Issue #796: the Monday whose owner market digest is due, once that
+/** Issue 796: the Monday whose owner market digest is due, once that
  *  Monday has ended in every zone and a weekly pass of it is unread. */
 export async function marketDigestsDue(): Promise<readonly string[]> {
   const { marketDigestsDue: due } = await import("@/lib/scan/weekly/market-digest");

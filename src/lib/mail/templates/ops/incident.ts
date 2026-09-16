@@ -17,7 +17,7 @@ export type OpsIncident =
   // Issue #770: no error — the market was read and was too small. The facts
   // are the scan's id and its tier, never the domain.
   | { occasion: "market-too-small"; scanId: string; tier: string }
-  // Issue #796: the weekly passes of one Monday that found too little
+  // Issue 796: the weekly passes of one Monday that found too little
   // market, folded into one line a week rather than one mail per site.
   | { occasion: "market-too-small-week"; weekStart: string; scanIds: readonly string[] };
 

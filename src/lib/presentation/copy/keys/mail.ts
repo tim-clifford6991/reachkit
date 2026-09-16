@@ -646,7 +646,7 @@ export const MAIL_COPY = Object.freeze({
   "mail.ops.incident.market-too-small": ["A paid pass found too little search demand to plan any pages.", { slots: {}, fixedBy: "issue 770" }],
   "mail.ops.incident.fact.scan": ["Scan", { slots: {}, fixedBy: "issue 770" }],
   "mail.ops.incident.fact.tier": ["Tier", { slots: {}, fixedBy: "issue 770" }],
-  // Issue #796: the Monday digest of weekly passes that found too little.
+  // Issue 796: the Monday digest of weekly passes that found too little.
   "mail.ops.incident.market-too-small-week": ["These weekly passes found too little search demand to plan any pages.", { slots: {}, fixedBy: "issue 796" }],
   "mail.ops.incident.fact.week": ["Week of", { slots: {}, fixedBy: "issue 796" }],
 

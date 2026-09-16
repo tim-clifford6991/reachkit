@@ -21,7 +21,7 @@ export function errorNameOf(error: unknown): string {
 }
 
 /** Whether at least one owner address was accepted by the seam — the
- *  answer a caller that carries its own once-ness stamps on (#796). */
+ *  answer a caller that carries its own once-ness stamps on (issue 796). */
 export async function reportIncident(incident: OpsIncident): Promise<boolean> {
   const mail = buildIncidentAlert(incident);
   let owners: readonly string[];

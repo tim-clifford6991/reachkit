@@ -1,8 +1,8 @@
 -- supabase/migrations/20260917090000_scans_market_digest.sql
 --
--- Issue #796 — the owner's Monday market digest has read this weekly pass.
+-- Issue 796 — the owner's Monday market digest has read this weekly pass.
 --
--- #770 mailed the owner on every paid pass that found too little market, so
+-- Issue 770 mailed the owner on every paid pass that found too little market, so
 -- a thin site mailed every Monday. A site's first (deep) pass still mails at
 -- once; a weekly pass is folded into one owner digest per Monday, sent by the
 -- maintenance tick once that Monday has ended in every zone. This column is
@@ -23,4 +23,4 @@ alter table scans
   add column market_digest_at timestamptz null;
 
 comment on column scans.market_digest_at is
-  'Issue #796. When the owner''s Monday market digest read this weekly pass (too small or not). Null means not yet read, including a digest the send seam refused, which the next maintenance tick retries.';
+  'Issue 796. When the owner''s Monday market digest read this weekly pass (too small or not). Null means not yet read, including a digest the send seam refused, which the next maintenance tick retries.';

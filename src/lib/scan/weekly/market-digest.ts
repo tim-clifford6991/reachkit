@@ -1,6 +1,6 @@
-// Issue #796 — the owner's Monday market digest.
+// Issue 796 — the owner's Monday market digest.
 //
-// #770 mailed the owner on every paid pass that found too little market
+// Issue 770 mailed the owner on every paid pass that found too little market
 // (`../market-floor`), and a weekly pass is a paid pass, so a thin site
 // mailed every Monday. A site's first (deep) pass still mails at once — that
 // is news. A weekly pass is folded into one owner mail per Monday listing
