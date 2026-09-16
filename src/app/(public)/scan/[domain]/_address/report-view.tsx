@@ -301,7 +301,7 @@ export function ReportView(p: {
           {report.freePage === null ? (
             <FreePageAbsent cutOff={cutOff} />
           ) : (
-            <FreePageCard section={report.freePage} />
+            <FreePageCard section={report.freePage} scanId={report.scanId} />
           )}
         </div>
         <div className="col-span-full mx-auto w-full max-w-xl">
