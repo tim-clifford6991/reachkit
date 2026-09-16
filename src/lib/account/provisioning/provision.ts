@@ -36,6 +36,7 @@
 // date a webhook will supply seconds later. The column's own default keeps
 // the row legal in that window.
 import { recordCheckoutFacts } from "../checkout/record";
+import { capture } from "@/lib/analytics";
 import { accountStore } from "../store";
 import { queueDeepPass } from "./deep-pass";
 import { handleSecondPurchase } from "./duplicates";
@@ -150,6 +151,12 @@ export async function provisionFromPayment(sessionId: string): Promise<Provision
   }
 
   logProvision({ sessionId, outcome: "created" });
+  // Issue 336: the second of the three product events. Awaited — this runs
+  // inside the webhook's own work and nothing downstream waits on it — and
+  // the seam swallows every failure, so a vendor that is down never makes a
+  // provisioned account look unprovisioned.
+  await capture("paid", { subject: userId });
+
   return { userId, siteId, created: true, signIn };
 }
 

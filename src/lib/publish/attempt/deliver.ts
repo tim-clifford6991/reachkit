@@ -42,6 +42,7 @@
 // Reporting a retry as though it had been queued would be worse than
 // saying so.
 import { publishDb } from "../db";
+import { capture } from "@/lib/analytics";
 import { readDestination } from "../destinations/store";
 import type { GuardDeps } from "../machine";
 import type { Actor, FailureReason } from "../types";
@@ -109,6 +110,12 @@ export async function deliverApproved(a: {
   });
 
   if (result.ok) {
+    // Issue 336: the third product event, on the delivery that made the
+    // page live and never on a re-entry that found it already published.
+    // The subject is the site, hashed inside the seam.
+    if (!result.alreadyPublished) {
+      await capture("draft_published", { subject: (await siteOf(a.draftId)) ?? a.draftId });
+    }
     return {
       kind: "delivered",
       publicationId: result.publicationId,

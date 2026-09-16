@@ -59,6 +59,11 @@ const BINDING_NAMES = [
   // to boot.
   "VERCEL_API_TOKEN",
   "VERCEL_PROJECT_ID",
+  // Issue 336 — the owner's three product events (2026-09-16). Optional for
+  // the same reason the two pairs above are: a deployment carrying neither
+  // captures nothing rather than failing to boot.
+  "POSTHOG_API_KEY",
+  "POSTHOG_HOST",
 ] as const;
 
 /** Issue #315's pair, named once here. */
@@ -67,6 +72,9 @@ const JOBS_BINDING_NAMES = ["INNGEST_SIGNING_KEY", "INNGEST_EVENT_KEY"] as const
 /** Issue #322's pair. Optional for their own reason (see above), so they
  *  are out of the no-default set exactly as the jobs pair is. */
 const DOMAIN_BINDING_NAMES = ["VERCEL_API_TOKEN", "VERCEL_PROJECT_ID"] as const;
+
+/** Issue 336's pair, optional on the same footing. */
+const ANALYTICS_BINDING_NAMES = ["POSTHOG_API_KEY", "POSTHOG_HOST"] as const;
 
 // The missing-binding it.each below (BP-005 `## Error & edge behavior`,
 // "Every other binding keeps the no-default, no-fallback rule") excludes
@@ -79,7 +87,8 @@ const NO_DEFAULT_BINDING_NAMES = BINDING_NAMES.filter(
   (name) =>
     name !== "NANO_API_KEY" &&
     !(JOBS_BINDING_NAMES as readonly string[]).includes(name) &&
-    !(DOMAIN_BINDING_NAMES as readonly string[]).includes(name)
+    !(DOMAIN_BINDING_NAMES as readonly string[]).includes(name) &&
+    !(ANALYTICS_BINDING_NAMES as readonly string[]).includes(name)
 );
 
 // WO-005 file plan's closed set of server-only bindings, moved onto 6a.
@@ -97,6 +106,9 @@ const SERVER_ONLY_NAMES = [
   // kind of secret as the nine above. `VERCEL_PROJECT_ID` is not — it
   // names a project, it does not open one.
   "VERCEL_API_TOKEN",
+  // Issue 336: an ingestion key writes events; a browser bundle holds none.
+  // `POSTHOG_HOST` is an address, not a secret.
+  "POSTHOG_API_KEY",
 ] as const;
 
 // A complete, validly-shaped set of bindings. Values are fixtures, never
@@ -124,6 +136,8 @@ const VALID_ENV: Record<(typeof BINDING_NAMES)[number], string> = {
   INNGEST_EVENT_KEY: "event-key-fixture",
   VERCEL_API_TOKEN: "vercel-token-fixture-do-not-leak",
   VERCEL_PROJECT_ID: "prj_fixture",
+  POSTHOG_API_KEY: "phc_fixture",
+  POSTHOG_HOST: "https://eu.i.posthog.com",
 };
 
 const ORIGINAL_ENV = { ...process.env };
@@ -206,7 +220,7 @@ describe('BP-005 error behaviour — "`env` throws at boot on a missing or malfo
 });
 
 describe("BUILD §15's binding list, moved onto BP-005 decision 6", () => {
-  it("env's key set equals the new 19-name list — an extra binding fails; a missing one fails", async () => {
+  it("env's key set equals the binding list — an extra binding fails; a missing one fails", async () => {
     applyEnv({});
     const { env } = await importEnvModule();
     expect(Object.keys(env).sort()).toEqual([...BINDING_NAMES].sort());
