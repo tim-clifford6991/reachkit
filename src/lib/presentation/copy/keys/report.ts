@@ -321,6 +321,12 @@ export const REPORT_COPY = Object.freeze({
   "free-page.target.value": ["{keyword} · {volume}/mo", { slots: { keyword: "text", volume: "text" }, fixedBy: "REQ-010 c1" }],
   "free-page.row.beats": ["beats", { slots: {}, fixedBy: "REQ-010 c1" }],
   "free-page.row.format": ["format", { slots: {}, fixedBy: "REQ-010 c1" }],
+  // The format row's value, one per Write type the report can offer (#787,
+  // drafted — the owner corrects the wording).
+  "free-page.format.answer_page": ["An answer page", { slots: {}, fixedBy: "REQ-010 c1" }],
+  "free-page.format.comparison_page": ["A comparison page", { slots: {}, fixedBy: "REQ-010 c1" }],
+  "free-page.format.format_page": ["A comparison, alternative, integration or template page", { slots: {}, fixedBy: "REQ-010 c1" }],
+  "free-page.format.keyword_page": ["A page for this search", { slots: {}, fixedBy: "REQ-010 c1" }],
   // REQ-010 c2's trade: the address field and the one control beside it.
   "free-page.email.label": ["Your email", { slots: {}, fixedBy: "REQ-010 c2" }],
   "free-page.email.placeholder": ["you@company.com", { slots: {}, fixedBy: "REQ-010 c2" }],

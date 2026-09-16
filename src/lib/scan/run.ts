@@ -63,6 +63,7 @@ import { buildPresenceCard, type PresenceCard } from "@/lib/market/rivals/presen
 import { sizeRivals, type RivalSize } from "@/lib/market/rivals/size";
 import { trackedRivals } from "@/lib/market/rivals/tracked";
 import type { MarketSerp } from "@/lib/market/views";
+import { freePageOf } from "@/lib/opportunities/free-page";
 import { aiPresenceOf, measureDomain, type DomainMeasurement } from "@/lib/measure";
 import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
 import type { InputOutcome, ScanInput } from "@/lib/measure/partition";
@@ -1306,9 +1307,7 @@ function score(a: StageArgs): void {
 /** BUILD §4.1 module 3's two counts. The opportunities engine (issue #40)
  *  derives them and is not built, so they are `not_attempted` — the arm
  *  that says we did not get to it. A 0 would be a claim about the
- *  customer's site that nobody has made, and the free page card (module 5)
- *  is the same engine's, so it is `null`: a named absent section, never an
- *  empty card. */
+ *  customer's site that nobody has made. */
 function UNMEASURED_SUPPLY(at: Date): SupplySection {
   return { missingPages: unmeasured("not_attempted", at), unquotablePages: unmeasured("not_attempted", at) };
 }
@@ -1381,7 +1380,7 @@ function composeReport(a: {
             at: measuredAt,
           };
 
-  const report = assembleReport({
+  const assembled = assembleReport({
     scanId: a.scanId,
     domain: a.domain,
     tier: a.tier,
@@ -1410,6 +1409,9 @@ function composeReport(a: {
     coherence: s.coherence,
     correctionState: a.correctionState,
   });
+  // SPEC §2 (#787): the one first-page proposal is the best right-sized
+  // Write target this pass measured — derived, never padded.
+  const report: StoredReport = { ...assembled, freePage: freePageOf(assembled) };
 
   // #770: a market read and found too small buys no SERP, so AI presence
   // has nothing to be read from. That is the market's answer and not a

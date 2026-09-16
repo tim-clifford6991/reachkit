@@ -20,10 +20,19 @@
 // `input`, `btn`; lucide for the head glyph at stroke 1.75.
 import type React from "react";
 import { FileText } from "lucide-react";
-import { copy } from "@/lib/presentation/copy";
+import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { renderGenerated } from "@/lib/presentation/generated";
 import type { FreePageSection } from "@/lib/scan/report";
 import { Num } from "../_address/measured";
+import { LeadCapture } from "./lead-capture";
+
+/** The Write types a report can offer, in the reader's words (#787). */
+const FORMAT_LINE: Readonly<Record<string, CopyKey>> = Object.freeze({
+  answer_page: "free-page.format.answer_page",
+  comparison_page: "free-page.format.comparison_page",
+  format_page: "free-page.format.format_page",
+  keyword_page: "free-page.format.keyword_page",
+});
 
 function Head(p: { right?: React.ReactNode }): React.JSX.Element {
   return (
@@ -48,7 +57,7 @@ function Row(p: { label: string; children: React.ReactNode }): React.JSX.Element
   );
 }
 
-export function FreePageCard(p: { section: FreePageSection }): React.JSX.Element {
+export function FreePageCard(p: { section: FreePageSection; scanId: string }): React.JSX.Element {
   const { section } = p;
   const title = renderGenerated(section.title, {
     state: "proposed",
@@ -80,24 +89,11 @@ export function FreePageCard(p: { section: FreePageSection }): React.JSX.Element
             )}
           </Row>
           <Row label={copy("free-page.row.format")}>
-            <Num>{section.format}</Num>
+            {FORMAT_LINE[section.format] === undefined ? null : <span>{copy(FORMAT_LINE[section.format]!)}</span>}
           </Row>
         </dl>
-        {/* REQ-010 c1's one control, and the one field it needs. */}
-        <div className="flex flex-wrap items-end gap-2">
-          <label className="flex min-w-0 flex-1 flex-col gap-1">
-            <span className="text-base-content/60 text-sm">{copy("free-page.email.label")}</span>
-            <input
-              className="input w-full"
-              type="text"
-              name="email"
-              placeholder={copy("free-page.email.placeholder")}
-            />
-          </label>
-          <button type="button" className="btn btn-outline btn-primary">
-            {copy("free-page.submit")}
-          </button>
-        </div>
+        {/* REQ-010 c1's one control, and the one field it needs (#787). */}
+        <LeadCapture scanId={p.scanId} />
         <p className="text-base-content/60 grow-0 text-xs">
           <Num phrase>{copy("free-page.of", { total: String(section.totalPages) })}</Num>
         </p>

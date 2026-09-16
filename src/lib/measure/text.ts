@@ -84,6 +84,22 @@ export async function readMeasuredText(a: { siteId: string; scanId?: string }): 
   }
   const scanIds = [...new Set([...own.map((row) => row.id), ...(free.data ?? []).map((row) => row.id)])];
 
+  return textOfScans(scanIds);
+}
+
+/** The pages the free scans of `domain` measured (#787): a free report's
+ *  lead has no site, so its page is grounded on the domain's own reads. */
+export async function readDomainText(domain: string): Promise<MeasuredText[]> {
+  const free = await dbAdmin().from("scans").select("id").eq("tier", "free").eq("domain", domain);
+  if (free.error) {
+    throw new Error(`text.ts: read from scans failed: ${free.error.message}`);
+  }
+  const scanIds = (free.data ?? []).map((row) => row.id);
+  return scanIds.length === 0 ? [] : textOfScans(scanIds);
+}
+
+async function textOfScans(scanIds: readonly string[]): Promise<MeasuredText[]> {
+  const client = dbAdmin();
   const rows = await (client as unknown as MinimalClient)
     .from<OwnFetchRow>("fetches")
     .select("scan_id, payload")

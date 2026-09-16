@@ -19,6 +19,9 @@
 // never re-delivered, which is the property the chained shape could not
 // offer. No eighth id: this one keeps its name and its place in `JOB_IDS`.
 //
+// The same tick delivers the free first pages captured leads are owed
+// (#787) — the delivery is what starts each sequence.
+//
 // **This file holds no sequence logic and no clock arithmetic.** Which rows
 // are dropped, which address is released next, and which touch has come
 // round are `src/lib/mail/leads/sequence.ts`'s, reached through one engine
@@ -34,7 +37,7 @@
 // makes a re-run exact, and it reads `touch_count` from the row.
 //
 // Not in the kill switch's scope: §11 stops scan, generate and publish.
-import { advanceDueSequences } from "@/jobs/engine";
+import { advanceDueSequences, deliverDueFirstPages } from "@/jobs/engine";
 import type { JobDefinition, Outcome } from "./types";
 
 /** Hourly, on the hour — the same tick `weekly/refresh` and `draft/generate`
@@ -49,8 +52,11 @@ export const leadNurture: JobDefinition = {
   trigger: { kind: "cron", cron: NURTURE_TICK_CRON },
   idempotencyKey: [],
   async run(input): Promise<Outcome> {
+    // The first page goes first: its delivery is what schedules a sequence
+    // (#787), which the sweep then reads.
+    const delivered = await deliverDueFirstPages(input.now);
     const swept = await advanceDueSequences(input.now);
-    const moved = swept.dropped + swept.released + swept.sent;
+    const moved = delivered + swept.dropped + swept.released + swept.sent;
     // An hour with nothing due is the ordinary case and is recorded as
     // such — never as a run, which would make the observability line say
     // work happened on every hour of every day.
