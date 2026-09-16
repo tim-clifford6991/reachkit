@@ -45,6 +45,33 @@ export function onboardingPanel(a: {
   return { kind: "none" };
 }
 
+/**
+ * The release notice Overview states (issue 784): what the panel is not already
+ * saying. Nothing while the pass runs, and nothing the panel shows. A market
+ * too small is told in any week — a weekly pass can record it too, and its
+ * sentence says Monday measures again; the other two speak of the *first*
+ * measurement, so only in week zero.
+ */
+export function overviewNotice(a: {
+  onboarding: OnboardingState;
+  notice: { readonly key: CopyKey } | null;
+  weekZero: boolean;
+}): CopyKey | null {
+  if (a.onboarding.kind !== "none" || a.notice === null) return null;
+  if (a.weekZero || a.notice.key === "setup.release.market-too-small") return a.notice.key;
+  return null;
+}
+
+/** `releaseNotice()` for the signed-in account, once per request — the panel
+ *  and Overview read the same answer. */
+export const readReleaseNotice = cache(async function readReleaseNotice(): Promise<{ readonly key: CopyKey } | null> {
+  const account = await requireSetUpAccount();
+  if (isReservedFixtureAccount(account)) return null;
+  // Imported at the call: the report reader reaches `@/lib/db`.
+  const { releaseNotice } = await import("@/lib/scan/deep/notice");
+  return releaseNotice({ domain: account.domain });
+});
+
 export const readOnboarding = cache(async function readOnboarding(): Promise<OnboardingState> {
   const account = await requireSetUpAccount();
   if (isReservedFixtureAccount(account)) return { kind: "none" };
@@ -57,6 +84,5 @@ export const readOnboarding = cache(async function readOnboarding(): Promise<Onb
   const shell = await readShell();
   const weekZero = shell.weeks.kind !== "counted";
   if (!weekZero) return { kind: "none" };
-  const { releaseNotice } = await import("@/lib/scan/deep/notice");
-  return onboardingPanel({ progress, notice: await releaseNotice({ domain: account.domain }), weekZero });
+  return onboardingPanel({ progress, notice: await readReleaseNotice(), weekZero });
 });

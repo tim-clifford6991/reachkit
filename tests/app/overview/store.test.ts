@@ -40,6 +40,8 @@ const supplyDepth = vi.fn(async () => ({ unused: 9, total: 12 }));
 const readWeek = vi.fn(async (): Promise<readonly { standing: { kind: string } }[]> => []);
 vi.mock("@/lib/opportunities", () => ({
   supplyDepth: (...a: unknown[]) => supplyDepth(...(a as [])),
+  // #784: read only where the depth is zero; this suite's sites hold supply.
+  supplyMeasured: async () => true,
   readWeek: (...a: unknown[]) => readWeek(...(a as [])),
 }));
 

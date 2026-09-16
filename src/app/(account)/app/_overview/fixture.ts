@@ -142,7 +142,7 @@ export const FIXTURE_OVERVIEW_FACTS: OverviewFacts = Object.freeze({
     ]),
   }),
 
-  supply: Object.freeze({ exhausted: false, short: true, firstArrivalShortfall: false }),
+  supply: Object.freeze({ exhausted: false, unmeasured: false, short: true, firstArrivalShortfall: false }),
 
   // Three items waiting: two render, one becomes the overflow count.
   waiting: Object.freeze([

@@ -612,6 +612,26 @@ export async function advanceDueSequences(now: Date): Promise<{
   return advanceSequences(now);
 }
 
+/**
+ * The free first pages owed to captured leads (SPEC §2, issue 787), on the same
+ * hourly tick. `dueFirstPageDeliveries` decides which leads are due against
+ * their stored attempts; each is delivered once through `deliverFirstPage`,
+ * which writes the page, mails it and starts the nurture sequence. Returns
+ * how many it attempted.
+ *
+ * Writing a page spends on a model, so the kill switch holds it (§11 stops
+ * generation) while the tick's touches still run. A held lead has made no
+ * attempt, so its retry window has not started.
+ */
+export async function deliverDueFirstPages(now: Date): Promise<number> {
+  const { killSwitchEngaged } = await import("@/jobs/kill-switch");
+  if (killSwitchEngaged()) return 0;
+  const { dueFirstPageDeliveries, deliverFirstPage } = await import("@/lib/mail/leads");
+  const due = await dueFirstPageDeliveries(now);
+  for (const leadId of due) await deliverFirstPage(leadId, now);
+  return due.length;
+}
+
 // ── Payments and provisioning — BUILD §13 (issue #33)
 // Built, like the weekly measurement above: `src/lib/account/provisioning/**`
 // owns the rules, and the four wrappers here do nothing but pass a clock

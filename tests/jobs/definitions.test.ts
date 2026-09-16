@@ -47,6 +47,7 @@ function engineDouble(): Record<string, unknown> {
     duePublishApprovals: record("duePublishApprovals", []),
     verifyLive: record("verifyLive", done),
     advanceSequence: record("advanceSequence", done),
+    deliverDueFirstPages: record("deliverDueFirstPages", 0),
     advanceDueSequences: record("advanceDueSequences", { dropped: 0, released: 0, sent: 0 }),
     paymentsAwaitingSignIn: record("paymentsAwaitingSignIn", []),
     chaseSignIn: record("chaseSignIn", done),
@@ -365,7 +366,10 @@ describe("lead/nurture — an hourly tick over due work (#182)", () => {
     await job.run({ data: {}, now: MONDAY_0600_UTC });
     // `now` is the tick's, injected — the job reads no clock of its own,
     // which is what makes due-ness testable without travelling in time.
-    expect(calls).toEqual([{ fn: "advanceDueSequences", arg: MONDAY_0600_UTC }]);
+    expect(calls).toEqual([
+      { fn: "deliverDueFirstPages", arg: MONDAY_0600_UTC },
+      { fn: "advanceDueSequences", arg: MONDAY_0600_UTC },
+    ]);
   });
 
   it("an hour with nothing due is recorded as skipped, never as a run", async () => {

@@ -50,6 +50,9 @@ vi.mock("@/app/(account)/app/calendar/drafts-read", () => ({
 
 vi.mock("@/app/(account)/app/_shell/stop", () => ({ readStop: async () => null }));
 
+// The pass has released the founder; the side panel is not this suite's.
+vi.mock("@/app/(account)/app/_shell/onboarding", () => ({ readOnboarding: async () => ({ kind: "none" }) }));
+
 vi.mock("@/lib/market/changes", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/market/changes")>()),
   declaredAnswers: async () => null,
@@ -63,6 +66,7 @@ const provider = await import("@/app/(account)/app/calendar/provider");
 const { cellFor } = await import("@/app/(account)/app/calendar/month");
 const { CalendarView } = await import("@/app/(account)/app/calendar/CalendarView");
 const { DayPanelView } = await import("@/app/(account)/app/calendar/DayPanelView");
+const { default: CalendarPage } = await import("@/app/(account)/app/calendar/page");
 
 const AT = new Date(Date.UTC(2026, 8, 14, 6, 0, 0));
 
@@ -144,5 +148,32 @@ describe("#765 — zero supply says which zero it is", () => {
       },
     } as unknown as OpportunityStore);
     expect((await emptyDay()).cause).toBe("unattributed");
+  });
+});
+
+describe("#784 — the calendar's one supply statement says which zero it is", () => {
+  async function statement(): Promise<string | null> {
+    const page = await CalendarPage({ searchParams: Promise.resolve({ month: MONTH }) });
+    return render(page).querySelector('[data-testid="calendar-supply-statement"]')?.textContent ?? null;
+  }
+
+  it("a market used up keeps 'nothing worth publishing is left'", async () => {
+    setOpportunityStore(storeWith({ questions: 12, everHeld: true }));
+    expect(await statement()).toContain(COPY["calendar.supply.exhausted"].split("{")[0]);
+  });
+
+  it("a market never measured says so, never 'used up'", async () => {
+    setOpportunityStore(storeWith({ questions: 0, everHeld: false }));
+    expect(await statement()).toBe(COPY["calendar.supply.unmeasured"]);
+  });
+
+  it("a measured-ness read that fails states neither", async () => {
+    setOpportunityStore({
+      ...storeWith({ questions: 12, everHeld: true }),
+      currentReport: async () => {
+        throw new Error("the database is down");
+      },
+    } as unknown as OpportunityStore);
+    expect(await statement()).toBeNull();
   });
 });
