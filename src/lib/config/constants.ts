@@ -416,6 +416,14 @@ export const TIMING = Object.freeze({
    *  and fails if the two ever disagree. 60 is the plan this product
    *  deploys to (Hobby). Issue #456. */
   platformCeilingS: 60,
+  /** The ceiling on one invocation of a job step on `/api/jobs`, in
+   *  seconds — `export const maxDuration` on that route, a literal there
+   *  for the same reason as above. Not `platformCeilingS`: the project runs
+   *  fluid compute, whose default and plan ceiling is 300, and the onboarding
+   *  pass's measurement step (every question's SERPs, ChatGPT and AI Mode
+   *  reads, rival sizing, the extra seeds) runs in one invocation and does
+   *  not fit in the free request path's 60. Issue 798. */
+  jobsCeilingS: 300,
   /** How long before `platformCeilingS` a free pass still running in its
    *  request marks its own row `failed` (issue 798). Past the design
    *  ceiling a pass is only storing its partial report; one still going

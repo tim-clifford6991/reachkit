@@ -85,11 +85,15 @@ describe("the free pass's two ceilings — issue #456", () => {
     expect(budgetS).toBeLessThan(TIMING.platformCeilingS);
   });
 
-  it("issue 798 — the job route declares the same platform ceiling, as a literal", () => {
+  it("issue 798 — the job route declares its own ceiling, the fluid default, as a literal — never the free path's", () => {
     const jobs = read("src/app/api/jobs/[[...slug]]/route.ts");
     const matches = [...jobs.matchAll(/^export const maxDuration = (\d+);$/gm)];
     expect(matches).toHaveLength(1);
-    expect(Number(matches[0]![1])).toBe(TIMING.platformCeilingS);
+    expect(TIMING.jobsCeilingS).toBe(300);
+    expect(Number(matches[0]![1])).toBe(TIMING.jobsCeilingS);
+    // The free request path keeps its 60: the two are different bounds.
+    expect(TIMING.platformCeilingS).toBe(60);
+    expect(TIMING.jobsCeilingS).toBeGreaterThan(TIMING.platformCeilingS);
   });
 
   it("the free path's inference arithmetic fits inside the design ceiling", () => {

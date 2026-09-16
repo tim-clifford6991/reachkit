@@ -13,13 +13,13 @@ import { adapter } from "../../_adapter";
 
 const ROUTE_ID = "/api/jobs";
 
-// The platform's ceiling on one invocation of a job step, in seconds
-// (issue 798) — the same bound `POST /api/scan` declares, and
-// `TIMING.platformCeilingS` pins it. Unset, a job ran under the plan's
-// default, shorter than a paid pass. The onboarding pass is split into
-// steps (`runDeepPass`) so each fits inside it on its own. A literal:
-// Next reads route segment config out of the source at build time.
-export const maxDuration = 60;
+// The ceiling on one invocation of a job step, in seconds (issue 798) —
+// `TIMING.jobsCeilingS` pins it. It is the project's fluid-compute default
+// and the plan's ceiling, not the free request path's 60: the onboarding
+// pass's measurement step buys every question's SERPs and answers in one
+// invocation and needs the room. A literal: Next reads route segment
+// config out of the source at build time.
+export const maxDuration = 300;
 
 const handlers = serve();
 
