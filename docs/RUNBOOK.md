@@ -553,32 +553,36 @@ The procedure, per migration:
    migration per run, in filename order, oldest first.
 3. Re-read the **security advisor** afterwards. A new `plpgsql` function without
    `set search_path = ''` is a WARN, and `tests/db/functions-search-path.test.ts` should have
-   caught it before the merge. The four `rls_enabled_no_policy` INFO rows and the
+   caught it before the merge. The five `rls_enabled_no_policy` INFO rows and the
    leaked-password WARN are dispositioned below and are expected on every run.
-4. Note it in the log (§11) with the date.
+4. Record it in this section with the date.
 
-### Pending production schema
+### Applied 2026-09-16
 
-Read 2026-09-15 from the `reachkit` project (`kleepxxddbcnfsfwudoe`), read-only. `list_migrations` ends at
-`scans_stage_events` (applied 2026-09-12), and a catalog select found none of the objects below.
-These seven files in `supabase/migrations/` are **not applied**. Apply them in this order:
+The seven migrations this section listed as pending were applied to the `reachkit` project
+(`kleepxxddbcnfsfwudoe`) on 2026-09-16 on the owner's instruction, one `apply_migration` call
+each, in this order:
 
-1. `20260912090000_sites_profile.sql`: `site_profiles`, `sites.voice_edited_at`
-2. `20260912120000_destinations_hostname.sql`: `destinations.hostname*`, `apply_setup_choice`
-3. `20260912120000_opportunities_readiness.sql`: `opportunities.cluster_key` / `absorbed_queries` / `ready` / `unready_reason`
-4. `20260914120000_sites_autopilot.sql`: `sites_veto_hours_floor`
-5. `20260914130000_opportunities_fix_page.sql`: `fix_page` in the type, family and reason constraints (after 3)
-6. `20260915090000_users_retention.sql`: `users.last_seen_at` and the four retention stamps
-7. `20260915090100_drafts_retention.sql`: `drafts.opened_at`, `veto_reminded_at`
+1. `sites_profile`: `site_profiles`, `sites.voice_edited_at`
+2. `destinations_hostname`: `destinations.hostname*`, 4-arg `apply_setup_choice`
+3. `opportunities_readiness`: `cluster_key` / `absorbed_queries` / `ready` / `unready_reason`
+4. `sites_autopilot`: `sites_veto_hours_floor` (both `update`s matched 0 rows)
+5. `opportunities_fix_page`: `fix_page` in the type, family and reason constraints
+6. `users_retention`: `users.last_seen_at` and the four retention stamps
+7. `drafts_retention`: `drafts.opened_at`, `veto_reminded_at`
 
-**The step.** Only after the owner removes `/root/ops/reachkit/state/prod-frozen`, and only once the
-target deploy is READY: apply each file through the Supabase connector (`apply_migration`), one per
-call, in the order above. Then follow the procedure above (security advisor, log in §11), strike the
-line here, and re-run the catalog check.
+Verified afterwards: every object present, and `apply_setup_choice` at
+`(p_site_id uuid, p_mode text, p_kind text, p_hostname text)`. The security advisor returned only
+the standing dispositions below — five `rls_enabled_no_policy` INFO rows and the leaked-password
+WARN — and nothing new.
 
-**Dev shares this database.** There is one Supabase project (§2), so `dev.reachkit.app` already runs
-`main`'s code against a schema without these seven. Any code path that reads their columns fails
-on dev until they are applied. Whether to apply them before production unfreezes is the owner's call.
+Until then `POST /api/setup` answered 500 on `dev.reachkit.app` (the deployed code called
+`apply_setup_choice` with four arguments; the live function still took three), and `GET /app`
+logged `retention store: seen: column users.last_seen_at does not exist`.
+
+**Dev shares this database.** There is one Supabase project (§2). A migration merged to `main` and
+left unapplied breaks `dev.reachkit.app` as soon as a code path reads its columns, as the two
+failures above did.
 
 Verify a migration against a throwaway database before it reaches the live project — never against
 the shared scratch database, which other work is using:
