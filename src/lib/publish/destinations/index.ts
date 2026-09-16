@@ -124,6 +124,28 @@ export async function destinationWorking(siteId: string): Promise<boolean> {
 }
 
 /**
+ * The site's live destination is waiting for the customer's DNS record:
+ * its host is `pending_dns` (SPEC §5).
+ *
+ * Asked beside `destinationWorking`, never instead of it: a destination
+ * that does not work because nobody has pointed its record yet is the one
+ * the customer can fix from the record Settings shows, so the calendar
+ * names that cause on its own (#754). A read that fails answers `false`,
+ * which is the general "not connected" — never a record nobody read.
+ */
+export async function destinationWaitingOnDns(siteId: string): Promise<boolean> {
+  const { data, error } = await publishDb()
+    .from<{ id: string }>("destinations")
+    .select("id, hostname_state")
+    .eq("site_id", siteId)
+    .eq("hostname_state", "pending_dns")
+    .is("deleted_at", null)
+    .limit(1);
+  if (error !== null || data === null) return false;
+  return data.length > 0;
+}
+
+/**
  * Every live destination this site has, as a surface sees it, each with a
  * state no older than the freshness window.
  *

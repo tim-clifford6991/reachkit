@@ -106,6 +106,8 @@ export const FIXTURE_SETTINGS_FACTS: SettingsFacts = Object.freeze({
   // the action and the copy keys the panel renders are the engine's mapping,
   // so a fixture cannot show a control the engine would not offer.
   destinationsReadable: true,
+  // A hostname, never a sentence — the value setup's fixture carries.
+  cnameTarget: "content.dev.reachkit.app",
   destinations: Object.freeze([
     destinationView({
       id: "dest-wordpress",

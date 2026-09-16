@@ -10,10 +10,15 @@
 // the one the engine chose (`DestinationView.action`). A valid credential
 // that cannot publish gets `reconnect_other_account`, never plain Reconnect.
 //
+// A hosted destination still waiting for DNS shows the record to create,
+// under the action that names it (#754) — the same block setup showed, so a
+// founder who did not act then can act now.
+//
 // The fix note sits under the card: Fix-type work is never automated.
 import type React from "react";
 import { Sparkles } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
+import { CnameRecord } from "../../../_destination/CnameRecord";
 import { writtenLine } from "../../_shell/written";
 import { ConnectDestination, type CredentialAction } from "./ConnectDestination";
 import { SettingRow } from "./SettingRow";
@@ -43,7 +48,8 @@ const HEALTH_BADGE: Record<DestinationHealth, string> = {
   error: "badge badge-error badge-soft",
 };
 
-/** The one action this card states and does not run itself. */
+/** The one action this card states and does not run itself. Where the
+ *  record is known it is the record's heading rather than a control. */
 const ACTION_COPY_KEY: Record<Extract<DestinationAction, "set_dns">, CopyKey> = {
   set_dns: "settings.publishing.set-dns",
 };
@@ -127,8 +133,9 @@ export function PublishingPanel(p: { settings: SettingsModel }): React.JSX.Eleme
                 </span>
                 <span className="flex min-w-0 flex-wrap items-center gap-2">
                   {/* SPEC §5: "live" / "waiting for DNS", beside health and
-                      never instead of it. */}
-                  {destination.copy.hostname === null ? null : (
+                      never instead of it. Where the record is shown below,
+                      the record's own badge says it, beside the record. */}
+                  {destination.copy.hostname === null || destination.dns !== null ? null : (
                     <span
                       className={
                         destination.hostnameState === "live"
@@ -142,7 +149,7 @@ export function PublishingPanel(p: { settings: SettingsModel }): React.JSX.Eleme
                   <span className={HEALTH_BADGE[destination.health]}>{copy(destination.copy.state)}</span>
                   {needsCredential(destination.action) ? (
                     <ConnectDestination action={destination.action} />
-                  ) : destination.action === "none" ? null : (
+                  ) : destination.action === "none" || destination.dns !== null ? null : (
                     <button type="button" className="btn btn-outline btn-sm">
                       {copy(ACTION_COPY_KEY[destination.action])}
                     </button>
@@ -151,6 +158,12 @@ export function PublishingPanel(p: { settings: SettingsModel }): React.JSX.Eleme
               </div>
               {destination.copy.line === null ? null : (
                 <p className="text-xs text-base-content/60 wrap-anywhere">{copy(destination.copy.line)}</p>
+              )}
+              {destination.dns === null ? null : (
+                <div className="mt-2 flex min-w-0 flex-col gap-1" data-testid={`dns-${destination.id}`}>
+                  <h4 className="text-sm font-semibold">{copy(ACTION_COPY_KEY.set_dns)}</h4>
+                  <CnameRecord record={destination.dns} />
+                </div>
               )}
             </div>
           ))}

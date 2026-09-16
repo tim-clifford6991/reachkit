@@ -24,7 +24,7 @@ vi.mock("@/lib/presentation/copy", async (importOriginal) => {
 import { COPY } from "@/lib/presentation/copy";
 import { CalendarView } from "@/app/(account)/app/calendar/CalendarView";
 import { assembleMonth, type CalendarFacts } from "@/app/(account)/app/calendar/month";
-import { EMPTY_COPY_KEY } from "@/app/(account)/app/calendar/empty";
+import { EMPTY_COPY_KEY, HELD_BY_SETTING_COPY_KEY } from "@/app/(account)/app/calendar/empty";
 import {
   FIXTURE_CALENDAR_FACTS,
   FIXTURE_MONTH,
@@ -150,6 +150,21 @@ describe("REQ-043 c3 and ADR-061 — the two grey lines are never swapped", () =
     // Still not another cause's line, which is the half of this that the
     // marker must not paper over.
     expect(cellEl(root, "2026-09-23").textContent).not.toContain("stopped.work.line");
+  });
+
+  it("a date held by a setting says which setting, each with its own line (#754)", () => {
+    const lines = (["publishing_off", "destination_pending_dns", "destination_disconnected"] as const).map(
+      (setting) => {
+        const facts: CalendarFacts = { ...FIXTURE_CALENDAR_FACTS, customerChangeHoldsPages: setting };
+        const root = render(<CalendarView model={assembleMonth(facts, FIXTURE_MONTH)} />);
+        // 2026-09-23 is emptied by proven-zero supply in the fixture, which
+        // the saved setting outranks.
+        const line = cellEl(root, "2026-09-23").querySelector('[data-testid="cell-empty-line"]')?.textContent;
+        expect(line).toBe(HELD_BY_SETTING_COPY_KEY[setting]);
+        return line;
+      }
+    );
+    expect(new Set(lines).size).toBe(3);
   });
 
   it("a date ReachKit stopped on carries ReachKit's own line", () => {
