@@ -486,6 +486,12 @@ export interface RunScanArgs {
   /** A market correction re-measures inside the scan it corrects: same
    *  spend ceiling, no second allowance consumed. */
   correctionOf?: string;
+  /** The category the founder confirmed — `sites.category` on a paid pass,
+   *  the corrected one on the free report's correction. Where present it is
+   *  the market's seed ahead of the inferred category (SPEC §0: the category
+   *  "fixes the twelve questions"), and its words join the relevance guard's
+   *  support set. Absent, the pass seeds from the profile as before. */
+  category?: string;
   /**
    * Called as each stage is entered, before its work starts.
    *
@@ -622,6 +628,7 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
           startedAt,
           ...(a.siteId === undefined ? {} : { siteId: a.siteId }),
           ...(a.onStage === undefined ? {} : { onStage: a.onStage }),
+          ...(a.category === undefined ? {} : { category: a.category }),
         });
       } finally {
         spend.cents = cost.spentCents();
@@ -731,6 +738,8 @@ interface StageArgs {
    *  document has been read has one that is not `new Date()`. */
   startedAt: Date;
   onStage?: (stage: StageName) => void | Promise<void>;
+  /** `RunScanArgs.category`, carried to the market stage. */
+  category?: string;
 }
 
 /**
@@ -994,13 +1003,17 @@ async function readMarket(a: StageArgs, abandoned: () => boolean): Promise<void>
 
   if (bounds.stopNow() !== null) return;
   const market = await attempt("reading_your_market", () =>
-    deriveMarketSet(cost, { seeds: seedsOf(profile.value) })
+    deriveMarketSet(cost, { seeds: seedsOf(profile.value, a.category) })
   );
   if (failed(market) || abandoned()) return;
   sections.marketRows = market;
   if (market.kind === "unmeasured") return;
 
-  sections.selected = selectTwelve({ profile: profile.value, market: [...market.value] });
+  sections.selected = selectTwelve({
+    profile: profile.value,
+    market: [...market.value],
+    ...(a.category === undefined ? {} : { category: a.category }),
+  });
 
   if (bounds.stopNow() !== null) return;
   const questions = await attempt("reading_your_market", () =>
@@ -1009,12 +1022,14 @@ async function readMarket(a: StageArgs, abandoned: () => boolean): Promise<void>
   if (!failed(questions) && !abandoned()) sections.questions = questions;
 }
 
-/** §6.7 step 2 buys suggestions "on the primary seed" — the profile's own
- *  category phrase, in buyer vocabulary. Where the model returned an empty
- *  category the first vocabulary term stands in for it; where it returned
- *  neither there is no seed and the vendor is not called. */
-function seedsOf(profile: Profile): string[] {
-  for (const candidate of [profile.category, ...profile.vocabulary]) {
+/** §6.7 step 2 buys suggestions "on the primary seed". The category the
+ *  founder confirmed comes first (#767); without one it is the profile's
+ *  own category phrase, in buyer vocabulary. Where the model returned an
+ *  empty category the first vocabulary term stands in for it; where there
+ *  is none of these there is no seed and the vendor is not called. Still
+ *  one seed, never more. */
+function seedsOf(profile: Profile, confirmed?: string): string[] {
+  for (const candidate of [confirmed ?? "", profile.category, ...profile.vocabulary]) {
     const seed = candidate.trim();
     if (seed !== "") return [seed];
   }
@@ -1367,5 +1382,5 @@ function logPass(fields: {
 // correction's own parameter (`loadAsyncAiOverview: false`, DECISIONS
 // 2026-09-03) travels as `correctionOf`, never as a ceiling of its own.
 registerCorrectionRunner((a) =>
-  runScan({ domain: a.domain, tier: a.tier, correctionOf: a.correctionOf })
+  runScan({ domain: a.domain, tier: a.tier, correctionOf: a.correctionOf, category: a.category })
 );

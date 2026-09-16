@@ -151,7 +151,7 @@ async function handle(
   });
   if (!won) return refuse("already_running");
 
-  const run = await runner({ domain: parsed.domain, tier: "free", correctionOf: report.scanId });
+  const run = await runner({ domain: parsed.domain, tier: "free", correctionOf: report.scanId, category });
   log({ outcome: "accepted", scanId: run.scanId, as: offer.as });
   return Response.json({ ok: true, scanId: run.scanId } satisfies CorrectReportResponse, { status: 200 });
 }

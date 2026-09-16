@@ -269,6 +269,15 @@ describe("selectTwelve — fewer than twelve is a complete result (the cold-star
     expect(selectTwelve({ profile: PROFILE, market })).toEqual([]);
   });
 
+  it("the founder's confirmed category joins the guard's support set — the searches its seed bought survive (#767)", () => {
+    const market: SuggestionRow[] = [{ keyword: "warehouse forklift maintenance", volume: 5000 }];
+
+    expect(selectTwelve({ profile: PROFILE, market })).toEqual([]);
+    expect(
+      selectTwelve({ profile: PROFILE, market, category: "warehouse forklift maintenance" }).map((s) => s.keyword)
+    ).toEqual(["warehouse forklift maintenance"]);
+  });
+
   it("selectTwelve/never-pads-and-never-repeats — over generated markets of size 0…60, the result is at most twelve, every keyword comes from the market, and no keyword repeats", () => {
     const pool = FIXTURE.market.map((row) => row.keyword);
     const random = lcg(1013904223);

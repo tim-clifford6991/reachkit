@@ -206,6 +206,11 @@ describe("the six stages", () => {
     expect(result).toEqual({ scanId: CLAIMED_ID, status: "done" });
   });
 
+  it("seeds the market on the founder's confirmed category ahead of the inferred one — still one seed (#767)", async () => {
+    await runScan({ domain: DOMAIN, tier: "free", category: "employee scheduling software" });
+    expect(deriveMarketSet).toHaveBeenCalledWith(expect.anything(), { seeds: ["employee scheduling software"] });
+  });
+
   it("a domain that ranks for nothing runs every stage to completion — cold start branches nothing", async () => {
     measureDomain.mockResolvedValue(
       measurement({

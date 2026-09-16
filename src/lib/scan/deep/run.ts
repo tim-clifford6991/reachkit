@@ -40,6 +40,7 @@ import { dbAdmin } from "@/lib/db";
 import { deriveForPass } from "@/lib/opportunities";
 import { claimOnboardingPass, runScan } from "../run";
 import type { ScanStatus } from "../store";
+import { readSiteCategory } from "../site-category";
 import { releaseToApp, type ReleaseReason } from "./release";
 
 /** The pass's end state, as a release reason. Three of the latch's four
@@ -132,10 +133,15 @@ export async function runDeepPass(a: {
   // 2026-09-16). A throw here is the job's to retry: no pass without a row.
   await claimOnboardingPass({ siteId: a.siteId, domain: a.domain });
 
+  // The category the founder confirmed at setup is the one the market is
+  // searched on (#767); none stored, the pass seeds from the profile.
+  const category = await readSiteCategory(a.siteId);
+
   const result = await runScan({
     domain: a.domain,
     siteId: a.siteId,
     tier: "deep",
+    ...(category === undefined ? {} : { category }),
     onStage: (stage) => recordStage(a.siteId, stage),
     // Onboarding's pass runs on a payment that has just cleared, so the
     // gate is answered `true` here and never guessed at inside the

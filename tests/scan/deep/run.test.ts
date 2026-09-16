@@ -101,6 +101,14 @@ describe("§4.3 — the deep pass is the one pipeline with tier as a parameter",
     expect(args.siteId).toBe(SITE);
   });
 
+  it("passes the category the founder confirmed at setup, read from the site (#767)", async () => {
+    db.tables.sites![0]!.category = "employee scheduling software";
+    pipeline.mockResolvedValue({ scanId: "scan-1", status: "done" });
+    await runDeepPass({ siteId: SITE, domain: "example.com" });
+
+    expect((pipeline.mock.calls[0]![0] as Record<string, unknown>).category).toBe("employee scheduling software");
+  });
+
   it("claims the site's onboarding row at the committed address before the pipeline adopts it (owner ruling, 2026-09-16)", async () => {
     const order: string[] = [];
     claimed.mockImplementationOnce(async () => {

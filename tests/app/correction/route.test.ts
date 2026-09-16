@@ -122,13 +122,18 @@ describe("The address segment and the one body field", () => {
 });
 
 describe("REQ-094 c3 — an accepted correction is one re-measurement inside the scan it corrects", () => {
-  it("correct-route/accepted · one runScan, correctionOf set, nothing else passed", async () => {
+  it("correct-route/accepted · one runScan, correctionOf and the corrected category set, nothing else passed", async () => {
     const response = await post();
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ ok: true, scanId: "scan-1" });
 
     expect(runner).toHaveBeenCalledTimes(1);
-    expect(runner).toHaveBeenCalledWith({ domain: "customer.com", tier: "free", correctionOf: "scan-1" });
+    expect(runner).toHaveBeenCalledWith({
+      domain: "customer.com",
+      tier: "free",
+      correctionOf: "scan-1",
+      category: "employee scheduling software",
+    });
     expect(runner.mock.calls[0]).toHaveLength(1);
   });
 

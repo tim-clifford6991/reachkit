@@ -196,9 +196,14 @@ export function stemKey(keyword: string): string {
  * last is not decoration — `SELECTION.maxRivalBrand` admits up to three
  * rival-brand searches into the twelve, which a guard blind to the rivals the
  * site itself names would delete before the cap ever saw them.
+ *
+ * One addition from outside the profile: the category the founder confirmed
+ * (`sites.category`, or the free report's correction), where the pass has
+ * one. It is the seed the market was bought on (#767), so a guard blind to
+ * its words would delete the very searches it asked for.
  */
-export function passesRelevanceGuard(keyword: string, p: Profile): boolean {
-  const support = supportSet(p);
+export function passesRelevanceGuard(keyword: string, p: Profile, category?: string): boolean {
+  const support = supportSet(p, category);
   let supported = 0;
   for (const token of contentTokens(keyword)) {
     if (support.has(token)) {
@@ -210,9 +215,9 @@ export function passesRelevanceGuard(keyword: string, p: Profile): boolean {
   return supported > 0;
 }
 
-function supportSet(p: Profile): ReadonlySet<string> {
+function supportSet(p: Profile, category?: string): ReadonlySet<string> {
   const tokens = new Set<string>();
-  const sources = [p.category, p.offeringType, p.job, ...p.vocabulary, ...p.audienceTerms, ...p.namedRivals];
+  const sources = [category ?? "", p.category, p.offeringType, p.job, ...p.vocabulary, ...p.audienceTerms, ...p.namedRivals];
   for (const source of sources) {
     for (const token of contentTokens(source)) tokens.add(token);
   }
@@ -257,7 +262,13 @@ const FLOORS: ReadonlyArray<readonly [Intent, number]> = Object.freeze([
  * which is legal, whereas exceeding a cap would put a leaderboard where a
  * portfolio belongs.
  */
-export function selectTwelve(a: { profile: Profile; market: SuggestionRow[] }): SelectedSearch[] {
+export function selectTwelve(a: {
+  profile: Profile;
+  market: SuggestionRow[];
+  /** The founder's confirmed category, where the pass has one — it joins
+   *  the relevance guard's support set. */
+  category?: string;
+}): SelectedSearch[] {
   const { profile } = a;
 
   const survivors: Candidate[] = [];
@@ -265,7 +276,7 @@ export function selectTwelve(a: { profile: Profile; market: SuggestionRow[] }): 
     if (row.volume < SELECTION.volumeFloorPerMonth) continue;
     const intent = classifyIntent(row.keyword, profile);
     if (intent === "own_brand") continue;
-    if (!passesRelevanceGuard(row.keyword, profile)) continue;
+    if (!passesRelevanceGuard(row.keyword, profile, a.category)) continue;
     survivors.push({
       keyword: row.keyword,
       volume: row.volume,
