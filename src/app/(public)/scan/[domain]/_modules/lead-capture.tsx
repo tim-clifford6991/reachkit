@@ -43,7 +43,7 @@ export function LeadCapture(p: { scanId: string }): React.JSX.Element {
 
   if (step.kind === "answered" && step.ok) {
     return (
-      <div role="status" className="alert alert-success alert-soft" data-lead="accepted">
+      <div role="status" className="alert alert-success alert-soft" data-testid="lead-accepted">
         <CircleCheck size={20} strokeWidth={1.75} aria-hidden />
         <span>{copy(step.message)}</span>
       </div>
@@ -51,7 +51,7 @@ export function LeadCapture(p: { scanId: string }): React.JSX.Element {
   }
 
   return (
-    <form className="flex flex-col gap-2" onSubmit={(event) => void onSubmit(event)} data-lead="form">
+    <form className="flex flex-col gap-2" onSubmit={(event) => void onSubmit(event)} data-testid="lead-form">
       <div className="flex flex-wrap items-end gap-2">
         <label className="flex min-w-0 flex-1 flex-col gap-1">
           <span className="text-base-content/60 text-sm">{copy("free-page.email.label")}</span>
@@ -60,7 +60,6 @@ export function LeadCapture(p: { scanId: string }): React.JSX.Element {
             type="email"
             name="email"
             required
-            autoComplete="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             placeholder={copy("free-page.email.placeholder")}
@@ -71,7 +70,7 @@ export function LeadCapture(p: { scanId: string }): React.JSX.Element {
         </button>
       </div>
       {step.kind === "answered" ? (
-        <div role="alert" className="alert alert-error alert-soft" data-lead="refused">
+        <div role="alert" className="alert alert-error alert-soft" data-testid="lead-refused">
           <CircleAlert size={20} strokeWidth={1.75} aria-hidden />
           <span>{copy(step.message)}</span>
         </div>
