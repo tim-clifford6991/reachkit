@@ -82,6 +82,7 @@ Twenty-three names are in the schema. Two more sit outside it, for stated reason
 | `VERCEL_PROJECT_ID` | the project those hosts are added to | | same: optional in the schema, required with the token. An identifier, not a secret |
 | `POSTHOG_API_KEY` | product analytics ingestion — the three events of issue 336 | ● | optional; absent, nothing is captured |
 | `POSTHOG_HOST` | the PostHog region's ingestion host | | optional; defaults to `https://us.i.posthog.com` |
+| `HOSTED_TEST_HOST` | one generated `*.vercel.app` host the middleware serves as a customer's hosted blog, so hosted publishing can be walked with no domain (#762) | | **a dev/preview testing aid only.** Optional; exact host, no pattern. Ignored when `VERCEL_ENV` is `production` and when it equals `NEXT_PUBLIC_APP_URL`'s host. A destination row whose hostname is this host is what it resolves to |
 | `DATABASE_URL` | migration and test tooling only | — | no module under `src/` reads it; **never bound in Vercel** |
 | `RK_FIXED_NOW` | a test fixture | — | **never set in any Vercel environment**; a real deployment refuses to boot with it — §7 |
 

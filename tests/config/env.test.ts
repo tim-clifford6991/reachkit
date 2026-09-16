@@ -64,6 +64,9 @@ const BINDING_NAMES = [
   // captures nothing rather than failing to boot.
   "POSTHOG_API_KEY",
   "POSTHOG_HOST",
+  // Issue 762 — the one vercel.app host served as a hosted blog, for
+  // testing. Optional: no process needs it.
+  "HOSTED_TEST_HOST",
 ] as const;
 
 /** Issue #315's pair, named once here. */
@@ -88,7 +91,8 @@ const NO_DEFAULT_BINDING_NAMES = BINDING_NAMES.filter(
     name !== "NANO_API_KEY" &&
     !(JOBS_BINDING_NAMES as readonly string[]).includes(name) &&
     !(DOMAIN_BINDING_NAMES as readonly string[]).includes(name) &&
-    !(ANALYTICS_BINDING_NAMES as readonly string[]).includes(name)
+    !(ANALYTICS_BINDING_NAMES as readonly string[]).includes(name) &&
+    name !== "HOSTED_TEST_HOST"
 );
 
 // WO-005 file plan's closed set of server-only bindings, moved onto 6a.
@@ -138,6 +142,7 @@ const VALID_ENV: Record<(typeof BINDING_NAMES)[number], string> = {
   VERCEL_PROJECT_ID: "prj_fixture",
   POSTHOG_API_KEY: "phc_fixture",
   POSTHOG_HOST: "https://eu.i.posthog.com",
+  HOSTED_TEST_HOST: "reachkit-git-main-fixture.vercel.app",
 };
 
 const ORIGINAL_ENV = { ...process.env };
