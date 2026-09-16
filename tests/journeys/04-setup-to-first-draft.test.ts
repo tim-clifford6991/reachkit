@@ -306,7 +306,7 @@ function vendorAnswer(url: string): unknown {
     return envelope({
       items: SUGGESTIONS.map((keyword, i) => ({
         keyword,
-        keyword_info: { search_volume: 5200 - i * 140 },
+        keyword_info: { search_volume: 180 - i * 10 }, // right-sized for a site ranking for nothing (#779)
       })),
     });
   }

@@ -37,7 +37,7 @@ import { isOwnDomain, registrableDomain } from "@/lib/market/rivals/domains";
 import { measured, type Measured } from "@/lib/measure/measured";
 import type { StoredReport } from "@/lib/scan/report";
 import type { SerpResult } from "@/lib/vendors/dataforseo/types";
-import { assess, bandWinnability } from "../winnability/band";
+import { assess, rightSizedBand } from "../winnability/band";
 import { rankedCountsFor, type RankedCounts } from "../winnability/counts";
 import { FAMILY_OF, noRejections, type Evidence, type OpportunityType } from "../types";
 import { emptyDerivation, slugify, type Candidate, type DerivationResult } from "./candidate";
@@ -129,7 +129,8 @@ export function writeCandidates(a: WriteInput): DerivationResult {
       a.rankedCounts,
       at
     );
-    const verdict = assess({ top10RankedCounts, ownRanked: a.ownRanked });
+    const sizing = { top10RankedCounts, ownRanked: a.ownRanked, volume: question.search.volume };
+    const verdict = assess(sizing);
 
     const rival = bestRival(serp, ownDomain, at);
     if (rival === null) return;
@@ -152,12 +153,13 @@ export function writeCandidates(a: WriteInput): DerivationResult {
       type = "keyword_page";
     if (type === null) return;
 
-    // Winnability gates `keyword_page` only (SPEC §6, 2026-09-15). An answer
-    // or comparison page keeps its band — ranking still weighs it — but a
-    // top ten of large domains does not drop it.
-    if (type === "keyword_page" && !verdict.qualified) {
-      if (verdict.because === "not_yet") result.rejected.not_yet += 1;
-      else result.rejected.unmeasured_top10 += 1;
+    // The competition bar gates `keyword_page` only (SPEC §6, 2026-09-15).
+    // An answer or comparison page keeps its band — ranking still weighs it
+    // — but a top ten of large domains does not drop it. A search outsized
+    // for the site drops every type (right-sizing law, §6, 2026-09-16).
+    if (!verdict.qualified && (type === "keyword_page" || verdict.because === "outsized")) {
+      if (verdict.because === "unmeasured_top10") result.rejected.unmeasured_top10 += 1;
+      else result.rejected.not_yet += 1;
       return;
     }
 
@@ -176,9 +178,7 @@ export function writeCandidates(a: WriteInput): DerivationResult {
         type === "answer_page"
           ? { form: "named_on", question: question.text }
           : { form: "top20", query },
-      fitBand: verdict.qualified
-        ? verdict.band
-        : bandWinnability({ top10RankedCounts, ownRanked: a.ownRanked }),
+      fitBand: verdict.qualified ? verdict.band : rightSizedBand(sizing),
       effort: EFFORT_BY_TYPE[type],
     } satisfies Candidate);
   });

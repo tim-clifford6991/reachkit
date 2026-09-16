@@ -160,6 +160,58 @@ describe("the deep pass pursues depth", () => {
   });
 });
 
+describe("right-sizing law — a target is offered only in proportion to the site's own presence (SPEC §6, 2026-09-16, #779)", () => {
+  /** One market, two searches: a 20/mo long-tail question an AI answer
+   *  gave to a rival, and a 50,000/mo head term no answer covers. The rivals
+   *  ranking for both are small, so only the site's own footprint differs. */
+  function market(ownRanked: number) {
+    return reportOf(
+      {
+        questions: [
+          question({
+            id: "q1",
+            text: "How do I onboard users without code?",
+            search: search({ keyword: "onboard users without code", volume: 20 }),
+          }),
+          question({
+            id: "q2",
+            text: "What is the best project management software?",
+            search: search({ keyword: "project management software", volume: 50_000 }),
+          }),
+        ],
+        serps: [
+          serp(),
+          serp({ aiOverview: { present: false, asynchronousAiOverview: false, referenceDomains: [] } }),
+        ],
+      },
+      { rivalSizes: measured(sized(40), AT), ownRanked: measured(ownRanked, AT) }
+    );
+  }
+
+  async function offered(ownRanked: number): Promise<(string | null)[]> {
+    await deriveForPass(fakeCost().ctx, {
+      tier: "deep",
+      siteId: SITE_ID,
+      report: market(ownRanked),
+      hasActiveAccess: true,
+    });
+    return state.rows.filter((row) => row.family === "write").map((row) => row.target_query);
+  }
+
+  it("a site ranking for 3 keywords is offered the 20/mo answer and refused the 50,000/mo head term", async () => {
+    const queries = await offered(3);
+    expect(queries).toContain("onboard users without code");
+    expect(queries).not.toContain("project management software");
+    const small = state.rows.find((row) => row.target_query === "onboard users without code")!;
+    expect(small.fit_band).toBe("winnable");
+  });
+
+  it("a site ranking for 30,000 keywords is offered the head term", async () => {
+    const queries = await offered(30_000);
+    expect(queries).toContain("project management software");
+  });
+});
+
 describe("the weekly pass tops up", () => {
   it("adds what the week newly found, and a re-run of the same week adds nothing", async () => {
     const report = reportOf(

@@ -9,9 +9,15 @@
 // must be able to tell that case from a top ten of large rivals, because
 // the two mean different things: one is a market we could not read, the
 // other a market we read and found too hard. `assess()` returns which.
+//
+// Right-sizing (SPEC §6, 2026-09-16, #779): the bars above measure the
+// competition against the site's own footprint; `demandBand` measures the
+// search itself against it. A target's band is the lower of the two, and a
+// search above the demand ceiling is outsized for the site — `assess()`
+// refuses it as `not_yet` before the competition is read at all.
 import type { Measured } from "@/lib/measure/measured";
 import type { Winnability } from "../types";
-import { qualifyingBar, winnableBar } from "./bars";
+import { qualifyingBar, qualifyingDemand, winnableBar, winnableDemand } from "./bars";
 
 /** A count that may be compared against a bar at all. `zero` counts — a
  *  domain that ranks for nothing — are real values and are the smallest
@@ -58,19 +64,51 @@ export function bandWinnability(a: {
   return "not-yet";
 }
 
+/** The demand band of one search for this site: `winnable` at or under
+ *  `winnableDemand`, `reach` at or under `qualifyingDemand`, `not-yet` — a
+ *  search outsized for the site — above it. */
+export function demandBand(a: { volume: number; ownRanked: number }): Winnability {
+  if (a.volume <= winnableDemand(a.ownRanked)) return "winnable";
+  if (a.volume <= qualifyingDemand(a.ownRanked)) return "reach";
+  return "not-yet";
+}
+
+const ORDER: readonly Winnability[] = ["not-yet", "reach", "winnable"];
+
+function lower(a: Winnability, b: Winnability): Winnability {
+  return ORDER.indexOf(a) <= ORDER.indexOf(b) ? a : b;
+}
+
+/** A target's right-sized band: the lower of its competition band and its
+ *  demand band, so a small top ten does not make a head term winnable for a
+ *  site that ranks for nothing. */
+export function rightSizedBand(a: {
+  top10RankedCounts: readonly Measured<number>[];
+  ownRanked: number;
+  volume: number;
+}): Winnability {
+  return lower(bandWinnability(a), demandBand(a));
+}
+
 /** Why a target did not qualify, or the band it qualified into. One call,
  *  so a derivation never has to decide for itself which of the two
- *  rejection counters a failure belongs in. */
+ *  rejection counters a failure belongs in.
+ *
+ *  `outsized` is the search's demand above the site's ceiling. It counts
+ *  as `not_yet` — the winnability bar was not cleared — and, unlike the
+ *  competition bar, it refuses every new target type. */
 export type Assessment =
   | { qualified: true; band: Winnability }
-  | { qualified: false; because: "not_yet" | "unmeasured_top10" };
+  | { qualified: false; because: "outsized" | "not_yet" | "unmeasured_top10" };
 
 export function assess(a: {
   top10RankedCounts: readonly Measured<number>[];
   ownRanked: number;
+  volume: number;
 }): Assessment {
+  if (demandBand(a) === "not-yet") return { qualified: false, because: "outsized" };
   const smallest = smallestComparable(a.top10RankedCounts);
   if (smallest === null) return { qualified: false, because: "unmeasured_top10" };
   if (!qualifies(a)) return { qualified: false, because: "not_yet" };
-  return { qualified: true, band: bandWinnability(a) };
+  return { qualified: true, band: rightSizedBand(a) };
 }
