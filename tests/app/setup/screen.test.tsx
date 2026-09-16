@@ -141,6 +141,30 @@ describe('REQ-025 c1 — "it asks for exactly three decisions ... and for nothin
     expect(card({ ...questions, scanId: "another-scan" }, "time tracking software")).toBeNull();
   });
 
+  it("SPEC §6 thin markets (#778) — a corrected category re-derives over the stored pool and the volume steps, not the 50/mo cut", () => {
+    const questions = FIXTURE_SETUP_FACTS.questions!;
+    const thin = {
+      ...questions,
+      derivable: {
+        profile: questions.derivable!.profile,
+        // A new site's market: nothing reaches 50/mo.
+        market: [{ keyword: "time tracking software for agencies", volume: 20 }],
+        pool: [{ keyword: "harvest alternatives", volume: 10, rival: "harvest.com" }],
+      },
+    };
+    const list = render(
+      <MarketCard
+        state={onMarketStated(model().state, "time tracking software")}
+        setState={() => {}}
+        questions={thin}
+        resolveDomain={async () => { throw new Error("no address change here"); }}
+      />
+    ).querySelector('[data-testid="setup-market-questions"]');
+    const searches = [...(list?.querySelectorAll("li") ?? [])].map((li) => li.textContent ?? "");
+    expect(searches.some((text) => text.includes("time tracking software for agencies"))).toBe(true);
+    expect(searches.some((text) => text.includes("harvest alternatives"))).toBe(true);
+  });
+
   it("REQ-021 c7 — a scanless purchase gets an empty address field, with nothing pre-filled", () => {
     const tree = screenFor(SCANLESS);
     const field = tree.querySelector('input[name="domain"]');

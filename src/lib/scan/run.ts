@@ -39,7 +39,7 @@
 // the next visitor is not refused for an in-flight scan that is not
 // running. A correction is not a re-scan: it re-measures inside the scan
 // it corrects and always runs.
-import { CACHE_WINDOWS_D, FREE_RESCAN_WINDOW_D } from "@/lib/config/constants";
+import { CACHE_WINDOWS_D, FREE_RESCAN_WINDOW_D, SELECTION } from "@/lib/config/constants";
 import { captureInBackground } from "@/lib/analytics";
 import type { CapName, CostContext } from "@/lib/costs";
 import { dbAdmin } from "@/lib/db";
@@ -49,6 +49,7 @@ import { nextCorrectionState, type CorrectionState } from "@/lib/market/coherenc
 import { buildAiAnswersCard, type BatteryAnswers } from "@/lib/market/questions/matrix";
 import {
   deriveMarketSet,
+  joinMarketSets,
   marketSetOf,
   type MarketSet,
   type SuggestionRow,
@@ -56,6 +57,7 @@ import {
 import { phraseQuestions, type Question } from "@/lib/market/questions/phrase";
 import { deriveProfile, type Profile } from "@/lib/market/questions/profile";
 import { selectTwelve, type SelectedSearch } from "@/lib/market/questions/select";
+import { isShort, poolFrom, seedLadder, selectWidened, type PoolRow } from "@/lib/market/questions/widen";
 import { deriveRivals, type RivalCandidate } from "@/lib/market/rivals/derive";
 import { buildPresenceCard, type PresenceCard } from "@/lib/market/rivals/presence";
 import { sizeRivals, type RivalSize } from "@/lib/market/rivals/size";
@@ -68,7 +70,7 @@ import type { OnPageFacts } from "@/lib/measure/parse";
 import type { Drivers } from "@/lib/measure/score";
 import { verdictOf, type Verdict } from "@/lib/measure/verdict";
 import { aiMode, llmScraper, serpOrganic } from "@/lib/vendors/dataforseo";
-import type { AiAnswer, CacheScope, SerpResult } from "@/lib/vendors/dataforseo/types";
+import type { AiAnswer, CacheScope, RankedRow, SerpResult } from "@/lib/vendors/dataforseo/types";
 import { SERP_FANOUT, withStageBudget, type StageOutcome } from "./budgets";
 import { withScanBounds, type Bounds } from "./ceilings";
 import { advanceCorrectionState, readCorrectionFacts, registerCorrectionRunner } from "./correction";
@@ -168,6 +170,14 @@ interface TierParameters {
    *  `CACHE_WINDOWS_D.serpWeeklyRecheck` exists to close. The two passes a
    *  human waits for buy at the pinned 30. */
   serpWindowDays: number;
+  /** SPEC §6 thin markets (2026-09-16): how many `keyword_suggestions`
+   *  beyond the first seed a pass short of twelve may buy — at most
+   *  `SELECTION.maxExtraSeeds`, inside the pass's own cap. `0` on the free
+   *  path: its 12¢ is already divided stage by stage (`budgets.ts`), and
+   *  `reading_your_market`'s 4.7¢ holds one suggestion purchase and the two
+   *  nano calls, not a second purchase. The free report still pools the
+   *  site's own ranked rows and walks the volume steps, which buy nothing. */
+  extraSeeds: number;
 }
 
 export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.freeze({
@@ -182,6 +192,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     battery: false,
     stageBudgets: true,
     serpWindowDays: CACHE_WINDOWS_D.serp,
+    extraSeeds: 0,
   }),
   deep: Object.freeze({
     cap: "DEEP",
@@ -194,6 +205,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     battery: true,
     stageBudgets: false,
     serpWindowDays: CACHE_WINDOWS_D.serp,
+    extraSeeds: SELECTION.maxExtraSeeds,
   }),
   weekly: Object.freeze({
     cap: "WEEKLY",
@@ -206,6 +218,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     battery: true,
     stageBudgets: false,
     serpWindowDays: CACHE_WINDOWS_D.serpWeeklyRecheck,
+    extraSeeds: SELECTION.maxExtraSeeds,
   }),
 } as const);
 
@@ -230,6 +243,10 @@ interface Sections {
    *  tracked rivals leaves the arm `freshSections` gave it — never a
    *  zero, which would satisfy every winnability bar. */
   rivalSizes: Measured<RivalSize[]>;
+  /** The rows sizing read, by rival (#778) — SPEC §6's thin-market pool
+   *  selects over them. `null` until sizing has been attempted, which is
+   *  also what stops a pass that sized early from sizing twice. */
+  rivalRows: Map<string, readonly RankedRow[]> | null;
   sources: readonly string[];
   aiAnswers: AiAnswersSection | null;
   presence: PresenceCard | null;
@@ -254,6 +271,7 @@ function freshSections(at: Date): Sections {
     battery: [],
     rivals: unmeasured("not_attempted", at),
     rivalSizes: unmeasured("not_attempted", at),
+    rivalRows: null,
     sources: [],
     aiAnswers: null,
     presence: null,
@@ -954,6 +972,11 @@ async function runStages(a: StageArgs): Promise<void> {
 async function sizeTrackedRivals(a: StageArgs): Promise<void> {
   const siteId = a.siteId;
   if (!a.parameters.sizesRivals || siteId === undefined) return;
+  // A thin market sized the rivals already, inside `reading_your_market`
+  // (SPEC §6 thin markets): the same rows are never bought twice.
+  if (a.sections.rivalRows !== null) return;
+  const rivalRows = new Map<string, readonly RankedRow[]>();
+  a.sections.rivalRows = rivalRows;
 
   // `null` is a site that is not there, which is not "tracks none": the
   // sizing then stays on the arm that says the pass did not get to it,
@@ -975,6 +998,9 @@ async function sizeTrackedRivals(a: StageArgs): Promise<void> {
       // and found none", which would make every rival here
       // `added_since_last_sizing` instead of `awaiting_deep_pass`.
       ...(failed(previous) || previous === undefined ? {} : { previous }),
+      onRows: (domain, rows) => {
+        rivalRows.set(domain, rows);
+      },
     })
   );
   if (!failed(sized) && !a.bounds.abandoned()) a.sections.rivalSizes = sized;
@@ -1014,20 +1040,55 @@ async function readMarket(a: StageArgs, abandoned: () => boolean): Promise<void>
   sections.profile = profile;
   if (profile.kind === "unmeasured") return;
 
+  // SPEC §6 thin markets (#778): the first seed is the one every pass buys.
+  // The rest of the ladder is bought one seed at a time, only while short.
+  const seeds = seedLadder(profile.value, a.category);
   if (bounds.stopNow() !== null) return;
   const market = await attempt("reading_your_market", () =>
-    deriveMarketSet(cost, { seeds: seedsOf(profile.value, a.category) })
+    deriveMarketSet(cost, { seeds: seeds.slice(0, 1) })
   );
   if (failed(market) || abandoned()) return;
   sections.marketRows = market;
   if (market.kind === "unmeasured") return;
 
-  sections.selected = selectTwelve({
-    profile: profile.value,
-    market: [...market.value],
-    ...(a.category === undefined ? {} : { category: a.category }),
-  });
+  const category = a.category === undefined ? {} : { category: a.category };
+  sections.selected = selectTwelve({ profile: profile.value, market: [...market.value], ...category });
+  if (!isShort(sections.selected)) return phrase(a, abandoned);
 
+  // Short. Widen in SPEC §6's order, stopping as soon as twelve survive:
+  // the ranked rows the pass already buys join the pool (the rivals' are
+  // read now rather than in `checking_your_presence`, which then sizes
+  // nothing), then further seeds at the first step, then the lower steps.
+  if (a.parameters.sizesRivals && bounds.stopNow() === null) await sizeTrackedRivals(a);
+  if (abandoned()) return;
+  const widen = (floors?: readonly number[]): SelectedSearch[] => {
+    const rows = sections.marketRows;
+    return selectWidened({
+      profile: profile.value,
+      suggestions: rows.kind === "unmeasured" ? [] : rows.value,
+      pool: poolOf(sections),
+      ...category,
+      ...(floors === undefined ? {} : { floors }),
+    });
+  };
+  sections.selected = widen([SELECTION.volumeFloorPerMonth]);
+
+  for (const seed of seeds.slice(1, 1 + a.parameters.extraSeeds)) {
+    if (!isShort(sections.selected) || bounds.stopNow() !== null) break;
+    const more = await attempt("reading_your_market", () => deriveMarketSet(cost, { seeds: [seed] }));
+    if (abandoned()) return;
+    if (failed(more)) break;
+    sections.marketRows = joinMarketSets(sections.marketRows, more);
+    sections.selected = widen([SELECTION.volumeFloorPerMonth]);
+  }
+
+  if (isShort(sections.selected)) sections.selected = widen();
+  return phrase(a, abandoned);
+}
+
+/** §6.7 step 4: the selected searches, worded. */
+async function phrase(a: StageArgs, abandoned: () => boolean): Promise<void> {
+  const { bounds, cost, sections } = a;
   if (bounds.stopNow() !== null) return;
   const questions = await attempt("reading_your_market", () =>
     phraseQuestions(cost, { selected: sections.selected })
@@ -1035,18 +1096,9 @@ async function readMarket(a: StageArgs, abandoned: () => boolean): Promise<void>
   if (!failed(questions) && !abandoned()) sections.questions = questions;
 }
 
-/** §6.7 step 2 buys suggestions "on the primary seed". The category the
- *  founder confirmed comes first (#767); without one it is the profile's
- *  own category phrase, in buyer vocabulary. Where the model returned an
- *  empty category the first vocabulary term stands in for it; where there
- *  is none of these there is no seed and the vendor is not called. Still
- *  one seed, never more. */
-function seedsOf(profile: Profile, confirmed?: string): string[] {
-  for (const candidate of [confirmed ?? "", profile.category, ...profile.vocabulary]) {
-    const seed = candidate.trim();
-    if (seed !== "") return [seed];
-  }
-  return [];
+/** SPEC §6 thin markets: the ranked rows this pass already bought. */
+function poolOf(sections: Sections): PoolRow[] {
+  return poolFrom({ own: sections.measurement?.ownRankedRows ?? [], rivals: sections.rivalRows ?? new Map() });
 }
 
 /** §6.2's free battery: the twelve question-SERPs, live, reading each
@@ -1323,7 +1375,7 @@ function composeReport(a: {
         ? unmeasured(s.marketRows.reason, measuredAt)
         : {
             kind: s.marketRows.kind,
-            value: marketSetOf({ profile: s.profile.value, suggestions: s.marketRows.value }),
+            value: marketSetOf({ profile: s.profile.value, suggestions: s.marketRows.value, pool: poolOf(s) }),
             at: measuredAt,
           };
 

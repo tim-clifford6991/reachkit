@@ -101,6 +101,7 @@ const MEASUREMENT: DomainMeasurement = {
   pricing: null,
   robots: measured(ROBOTS, AT),
   ownRanked: measuredZero(0, AT),
+  ownRankedRows: [],
   homeRefusal: null,
 };
 
@@ -135,7 +136,10 @@ describe("the same six stages run at every tier", () => {
     await runScan({ domain: DOMAIN, tier });
     expect(measureDomain).toHaveBeenCalledTimes(1);
     expect(deriveProfile).toHaveBeenCalledTimes(1);
-    expect(deriveMarketSet).toHaveBeenCalledTimes(1);
+    // This market is one search, so every tier is short of twelve and
+    // walks SPEC §6's seed ladder as far as its own `extraSeeds` row lets
+    // it (#778): the profile offers two more seeds — its vocabulary.
+    expect(deriveMarketSet).toHaveBeenCalledTimes(1 + Math.min(TIER_PARAMETERS[tier].extraSeeds, 2));
     expect(phraseQuestions).toHaveBeenCalledTimes(1);
     expect(serpOrganic).toHaveBeenCalledTimes(1);
     expect(storeCurrentReport).toHaveBeenCalledTimes(1);

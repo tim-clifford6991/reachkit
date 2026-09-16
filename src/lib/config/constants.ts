@@ -499,6 +499,13 @@ export const NURTURE_H = Object.freeze([24, 72, 168] as const);
 // The free report and the market chain
 export const SELECTION = Object.freeze({                    // BP-025 · REQ-006 · BUILD §6.7 step 3
   volumeFloorPerMonth: 50,
+  /** SPEC §6 thin markets (2026-09-16): the floor steps a pass short of
+   *  twelve questions walks down, only as far as it needs. The first step
+   *  is `volumeFloorPerMonth`; the last is never below `KEYWORD_PAGE_MIN_VOLUME`. */
+  volumeSteps: Object.freeze([50, 20, 10] as const),
+  /** SPEC §6 thin markets: at most this many extra `keyword_suggestions`
+   *  purchases per paid pass, inside that pass's own cap. */
+  maxExtraSeeds: 3,
   intentWeights: Object.freeze({ decision: 3, solution: 3, problem: 2, informational: 1 } as const),
   minDecision: 4, minSolution: 3, maxRivalBrand: 3, maxHowTo: 2,
 } as const);

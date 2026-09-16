@@ -5,28 +5,34 @@
 // `select.ts`'s one classifier and the wording is the mechanical template.
 // Nothing here buys, measures or calls a model, and nothing it imports
 // reaches a Node built-in — the setup screen runs it in the browser.
-import { SELECTION } from "@/lib/config/constants";
 import type { SuggestionRow } from "./market-set";
 import type { Profile } from "./profile";
-import { selectTwelve } from "./select";
 import { templateQuestion } from "./template";
+import { LOWEST_STEP, selectWidened, type PoolRow } from "./widen";
 
-/** What a corrected category re-derives over: the profile the scan read
- *  and the market it bought. */
+/** What a corrected category re-derives over: the profile the scan read,
+ *  the market it bought and the ranked rows it pooled (SPEC §6 thin
+ *  markets, #778). */
 export interface DerivableMarket {
   profile: Profile;
   market: readonly SuggestionRow[];
+  pool?: readonly PoolRow[];
 }
 
 /** The stored market cut to the rows selection can ever keep — those at or
- *  above the volume floor — so a screen carries no row it could not use.
- *  `selectTwelve` applies the same floor, so the result is unchanged. */
-export function derivableMarket(a: { profile: Profile; suggestions: readonly SuggestionRow[] }): DerivableMarket {
+ *  above the lowest volume step — so a screen carries no row it could not
+ *  use. Selection applies the same steps, so the result is unchanged. */
+export function derivableMarket(a: {
+  profile: Profile;
+  suggestions: readonly SuggestionRow[];
+  pool?: readonly PoolRow[];
+}): DerivableMarket {
   return {
     profile: a.profile,
     market: a.suggestions
-      .filter((row) => row.volume >= SELECTION.volumeFloorPerMonth)
+      .filter((row) => row.volume >= LOWEST_STEP)
       .map((row) => ({ keyword: row.keyword, volume: row.volume })),
+    pool: (a.pool ?? []).filter((row) => row.volume >= LOWEST_STEP),
   };
 }
 
@@ -42,7 +48,10 @@ export function rederiveQuestions(
   a: DerivableMarket & { category: string }
 ): readonly { search: string; wording: string }[] {
   const profile: Profile = { ...a.profile, category: a.category };
-  return selectTwelve({ profile, market: [...a.market] }).map((search) => ({
+  // The same widening the pass read the market with (SPEC §6 thin markets):
+  // the suggestions at 50/mo first, then the pool and the lower steps only
+  // while short — never the bare 50/mo cut.
+  return selectWidened({ profile, suggestions: a.market, pool: a.pool ?? [] }).map((search) => ({
     search: search.keyword,
     wording: templateQuestion(search.keyword),
   }));
