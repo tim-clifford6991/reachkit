@@ -292,6 +292,13 @@ describe("the named guards refuse the edge, each in its turn", () => {
     expect(ceilings).not.toHaveBeenCalled();
   });
 
+  it("approved → publishing refuses a page whose edited text broke a hard rule (#789)", async () => {
+    seedDraft("approved", { hard_rules_passed: false });
+    const result = await transition("d1", "publishing", SYSTEM, { at: AT, deps: openDeps() });
+    expect(result).toMatchObject({ failedGuard: "draft_passed_hard_rules", state: "approved" });
+    expect(draftRow().state).toBe("approved");
+  });
+
   it("needs_attention → publishing requires draft_passed_hard_rules, and names it when refused", async () => {
     seedDraft("needs_attention", { hard_rules_passed: false });
     const result = await transition("d1", "publishing", SYSTEM, { at: AT, deps: openDeps() });

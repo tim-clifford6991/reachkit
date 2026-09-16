@@ -199,8 +199,12 @@ describe("GUARDS names guards only on edges that exist", () => {
     ]);
   });
 
-  it("needs_attention → publishing is open only to a draft that passed the hard rules", () => {
-    expect(GUARDS[edgeKey("needs_attention", "publishing")]).toContain("draft_passed_hard_rules");
+  it("every route into an attempt is open only to a draft whose text passed the hard rules (#789)", () => {
+    // A founder's edit re-runs the battery; an edit that breaks a rule must
+    // hold the page on the ordinary route and the retry alike.
+    for (const [from, to] of TRANSITIONS.filter(([, t]) => t === "publishing")) {
+      expect(GUARDS[edgeKey(from, to)]?.[2], `${from}→${to}`).toBe("draft_passed_hard_rules");
+    }
   });
 
   it("approved → publishing carries the telling, so no page publishes on a pair the customer was never told about", () => {
