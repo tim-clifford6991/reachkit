@@ -38,6 +38,12 @@ export type RivalSize =
        *  and so bands nearer (#117). A plain number either way: the
        *  stored blob's shape is unchanged, so no report version moves. */
       rankedCount: number;
+      /** Which of the two `rankedCount` is (#768). `total` is the vendor's
+       *  own count and a measurement at any size; `rows` is the rows that
+       *  call bought, so at the row cap it is only a floor. Absent on an
+       *  entry stored before #768: a count above the cap can only have been
+       *  a total, so there only a count exactly at the cap is unknown. */
+      countIs?: "total" | "rows";
       /** Derived from `rankedCount` and the customer's own count, never
        *  stored independently of them: re-deriving from the two counts
        *  reproduces this value, and a test asserts it. */
