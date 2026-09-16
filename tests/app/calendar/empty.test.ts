@@ -16,10 +16,11 @@ const NOTHING: EmptyFacts = {
   customerChangeHoldsPages: null,
   changeHoldsGeneration: null,
   unusedSupply: null,
+  supplyMeasured: true,
 };
 
 describe("ADR-061 — the precedence is data, and it is the one ADR-061 states", () => {
-  it("is instruction → reachkit_stopped → page_cannot_go_live → customer_change_holds_pages → change_holds_generation → page_held → supply_exhausted → unattributed", () => {
+  it("is instruction → reachkit_stopped → page_cannot_go_live → customer_change_holds_pages → change_holds_generation → page_held → supply_unmeasured → supply_exhausted → unattributed", () => {
     expect([...EMPTY_PRECEDENCE]).toEqual([
       "instruction",
       "reachkit_stopped",
@@ -34,6 +35,9 @@ describe("ADR-061 — the precedence is data, and it is the one ADR-061 states",
       // #116: below every cause that says *why*, above the arm REQ-043 c3
       // reserves. A date a page was planned for did not run out of supply.
       "page_held",
+      // #765: the two supply arms are exclusive on `supplyMeasured`, so
+      // their relative order decides nothing; both sit above the fallback.
+      "supply_unmeasured",
       "supply_exhausted",
       "unattributed",
     ]);
@@ -62,6 +66,24 @@ describe("REQ-043 c3 — the exhausted-supply line is a proven arm, never the fa
 
   it("unused supply that is read and non-zero does not fire the arm either", () => {
     expect(accountFor({ ...NOTHING, unusedSupply: 7 })).toEqual({ cause: "unattributed" });
+  });
+
+  it("#765 — a zero supply over a market never measured is supply_unmeasured, never 'used up'", () => {
+    expect(accountFor({ ...NOTHING, unusedSupply: 0, supplyMeasured: false })).toEqual({
+      cause: "supply_unmeasured",
+    });
+    expect(EMPTY_COPY_KEY.supply_unmeasured).toBe("calendar.empty.supply-unmeasured");
+    expect(COPY[EMPTY_COPY_KEY.supply_unmeasured]).not.toBe(COPY[EMPTY_COPY_KEY.supply_exhausted]);
+  });
+
+  it("#765 — an unread measured-ness states neither supply arm", () => {
+    expect(accountFor({ ...NOTHING, unusedSupply: 0, supplyMeasured: null })).toEqual({
+      cause: "unattributed",
+    });
+    // And a never-measured market with supply standing claims nothing.
+    expect(accountFor({ ...NOTHING, unusedSupply: 3, supplyMeasured: false })).toEqual({
+      cause: "unattributed",
+    });
   });
 
   it("no other cause ever returns the exhausted-supply key", () => {
@@ -176,6 +198,7 @@ describe("REQ-043 c5 — one account per date, and the instruction outranks ever
         changeHoldsGeneration: { because: "domain", resumesOn: new Date("2026-09-21T00:00:00.000Z") },
         pageHeld: true,
         unusedSupply: 0,
+        supplyMeasured: false,
       })
     ).toEqual({ cause: "instruction", opportunityId: "o9" });
   });
@@ -207,6 +230,7 @@ describe("REQ-043 c5 — one account per date, and the instruction outranks ever
       ],
       pageHeld: [false, true],
       unusedSupply: [null, 0, 3],
+      supplyMeasured: [null, false, true],
     } as const;
     let seen = 0;
     for (const instruction of values.instruction)
@@ -215,7 +239,8 @@ describe("REQ-043 c5 — one account per date, and the instruction outranks ever
           for (const customerChangeHoldsPages of values.customerChangeHoldsPages)
             for (const changeHoldsGeneration of values.changeHoldsGeneration)
               for (const pageHeld of values.pageHeld)
-              for (const unusedSupply of values.unusedSupply) {
+              for (const unusedSupply of values.unusedSupply)
+              for (const supplyMeasured of values.supplyMeasured) {
                 const account = accountFor({
                   instruction,
                   reachkitStopped,
@@ -224,11 +249,12 @@ describe("REQ-043 c5 — one account per date, and the instruction outranks ever
                   changeHoldsGeneration,
                   pageHeld,
                   unusedSupply,
+                  supplyMeasured,
                 });
                 expect(EMPTY_PRECEDENCE).toContain(account.cause);
                 seen += 1;
               }
     // 3 × 2 × 3 × 3 × 3 × 2 × 3 — the new axis is swept like every other.
-    expect(seen).toBe(648);
+    expect(seen).toBe(1944);
   });
 });

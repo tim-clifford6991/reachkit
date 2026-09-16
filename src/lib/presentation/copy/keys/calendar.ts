@@ -190,6 +190,14 @@ export const CALENDAR_COPY = Object.freeze({
     "Nothing worth publishing on this date — the supply of opportunities in your market is used up until Monday's re-measure finds more.",
     { slots: {}, fixedBy: "REQ-043 c3" },
   ],
+  // #765 (owner ruling 2026-09-16): a zero supply over a market that was
+  // never measured — the current scan derived no questions, or the site has
+  // never held an opportunity — is not "used up". Its own line, in the cell
+  // and the panel alike. Drafted and shipped under #759's ruling.
+  "calendar.empty.supply-unmeasured": [
+    "We couldn’t find enough searches for your market yet. Try a broader category in Settings — we’ll measure again on Monday.",
+    { slots: {}, fixedBy: "REQ-043 c3" },
+  ],
   // S15's `empty` arm leads with a chip carrying this word, so a date with
   // no page is named rather than left as a bare numeral. Approved (11a).
   "calendar.empty.day-badge": ["Empty day", { slots: {}, fixedBy: "REQ-043 c11" }],

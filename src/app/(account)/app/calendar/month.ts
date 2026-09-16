@@ -160,6 +160,8 @@ export interface CalendarFacts {
   /** `supplyDepth().unused`, **read** — or `null` where it could not be.
    *  ADR-061 point 1 turns on this distinction. */
   unusedSupply: number | null;
+  /** `supplyMeasured()`, read where supply is zero — or `null` (#765). */
+  supplyMeasured: boolean | null;
 }
 
 /** Thrown rather than rendered: two pages on one date is a data defect and
@@ -189,6 +191,7 @@ function emptyFactsFor(day: DayKey, facts: CalendarFacts, cannotGoLive: State | 
     changeHoldsGeneration: facts.changeHoldsGeneration,
     pageHeld: facts.heldDays.includes(day),
     unusedSupply: facts.unusedSupply,
+    supplyMeasured: facts.supplyMeasured,
   };
 }
 

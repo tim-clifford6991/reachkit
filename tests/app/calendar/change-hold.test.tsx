@@ -58,6 +58,7 @@ const NOTHING: EmptyFacts = {
   changeHoldsGeneration: null,
   pageHeld: false,
   unusedSupply: null,
+  supplyMeasured: true,
 };
 
 function facts(over: Partial<CalendarFacts> = {}): CalendarFacts {
@@ -72,6 +73,7 @@ function facts(over: Partial<CalendarFacts> = {}): CalendarFacts {
     customerChangeHoldsPages: null,
     changeHoldsGeneration: null,
     unusedSupply: null,
+    supplyMeasured: true,
     ...over,
   };
 }

@@ -38,6 +38,10 @@ export type EmptyAccount =
    *  values, and never a third derived here. */
   | { cause: "change_holds_generation"; because: "domain" | "category"; resumesOn: Date }
   | { cause: "page_held" }
+  /** #765: supply is zero because there was never a market to use up —
+   *  the current scan derived no questions, or the site has never held an
+   *  opportunity. Not `supply_exhausted`: "used up" is false here. */
+  | { cause: "supply_unmeasured" }
   | { cause: "supply_exhausted" }
   | { cause: "unattributed" };
 
@@ -96,6 +100,7 @@ export const EMPTY_PRECEDENCE: readonly EmptyCause[] = Object.freeze([
   "customer_change_holds_pages",
   "change_holds_generation",
   "page_held",
+  "supply_unmeasured",
   "supply_exhausted",
   "unattributed",
 ] as const);
@@ -141,6 +146,14 @@ export interface EmptyFacts {
    * a depth nobody could read is exactly the case the fallback exists for.
    */
   unusedSupply: number | null;
+  /**
+   * #765: `supplyMeasured()` — whether the zero above is a market used up
+   * (`true`) or one never measured (`false`), **read**; `null` where it was
+   * not or could not be read. The two supply arms each fire only on their
+   * own proven value, so an unreadable answer states neither and falls to
+   * `unattributed`, as an unreadable depth does.
+   */
+  supplyMeasured: boolean | null;
 }
 
 /**
@@ -184,6 +197,7 @@ export const EMPTY_COPY_KEY: Record<OneLineCause, CopyKey> = {
   page_cannot_go_live: "calendar.empty.page-cannot-go-live",
   change_holds_generation: "calendar.empty.change-holds-pages",
   page_held: "calendar.empty.page-held",
+  supply_unmeasured: "calendar.empty.supply-unmeasured",
   supply_exhausted: "cause.supply-exhausted",
 };
 
@@ -309,7 +323,17 @@ export function accountFor(facts: EmptyFacts): EmptyAccount {
         // suffer: `=== 0`, never `!facts.unusedSupply` and never a
         // fall-through. `null` — a depth that could not be read — does not
         // fire this arm.
-        if (facts.unusedSupply === 0) return { cause: "supply_exhausted" };
+        if (facts.unusedSupply === 0 && facts.supplyMeasured === true) {
+          return { cause: "supply_exhausted" };
+        }
+        break;
+      case "supply_unmeasured":
+        // #765: the same proven zero, over a market that was never there
+        // to use up. Both arms need their own read value; `null` fires
+        // neither.
+        if (facts.unusedSupply === 0 && facts.supplyMeasured === false) {
+          return { cause: "supply_unmeasured" };
+        }
         break;
       case "unattributed":
         return { cause: "unattributed" };

@@ -218,4 +218,7 @@ export const FIXTURE_CALENDAR_FACTS: CalendarFacts = Object.freeze({
   // date to `unattributed` instead, which is the behaviour that ADR's
   // mutation check pins.
   unusedSupply: 0,
+  // #765: the fixture account's market was measured and used up, so its
+  // empty dates keep the exhausted line.
+  supplyMeasured: true,
 });

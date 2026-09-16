@@ -55,6 +55,7 @@ const BARE: CalendarFacts = {
   customerChangeHoldsPages: null,
   changeHoldsGeneration: null,
   unusedSupply: null,
+  supplyMeasured: true,
 };
 
 describe("BUILD §4.6 — the grid is Mon–Sun and weekends are ordinary dates", () => {

@@ -48,7 +48,7 @@ export { dismissForVeto, queueForDraft } from "./drafted";
 export { deriveOpportunities, type DeriveInput, type DeriveOutcome } from "./derive";
 export { explainChoice, type Choice } from "./derive/explain";
 
-export { supplyDepth, type Depth } from "./supply/depth";
+export { supplyDepth, supplyMeasured, type Depth } from "./supply/depth";
 export { supplyNotice, type SupplyNotice } from "./supply/notice";
 export { pursueDepth, type DepthStop } from "./supply/pursue";
 export { topUp } from "./supply/topup";

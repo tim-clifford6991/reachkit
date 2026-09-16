@@ -40,3 +40,29 @@ export async function supplyDepth(siteId: string): Promise<Depth> {
   if (lastChange !== null) return { unused: 0, exhaustedSince: lastChange };
   return { unused: 0, exhaustedSince: await store.latestCompletedScanAt(siteId) };
 }
+
+/**
+ * Whether a site with no supply ever had a market to use up (#765).
+ *
+ * Zero depth says two different things. A site whose opportunities were all
+ * used or held has **exhausted** its supply; a site whose current scan
+ * derived no questions, or that has never held a single non-Fix
+ * opportunity, was **never measured** — there was nothing to use up, and
+ * telling that founder their supply "is used up" is false.
+ *
+ * Both halves are stored facts: the current report's `questions`, and
+ * `lastStatusChangeAt`, which is `null` exactly where the site has never
+ * held a non-Fix row. A site with no current report has no measured
+ * questions. A read that throws propagates — the caller decides what an
+ * unreadable answer is, and it is never a guess at either state.
+ */
+export async function supplyMeasured(siteId: string): Promise<boolean> {
+  const store = opportunityStore();
+  const [report, lastChange] = await Promise.all([
+    store.currentReport(siteId),
+    store.lastStatusChangeAt(siteId),
+  ]);
+  const questions = report?.questions;
+  const asked = questions !== undefined && questions.kind !== "unmeasured" && questions.value.length > 0;
+  return asked && lastChange !== null;
+}
