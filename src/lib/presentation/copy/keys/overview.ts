@@ -143,7 +143,7 @@ export const OVERVIEW_COPY = Object.freeze({
   // (#759); the owner corrects the wording.
   "overview.tile.starting": [
     "starting measurement, {on} · weekly from {due}",
-    { slots: { on: "date", due: "date" }, fixedBy: "#793" },
+    { slots: { on: "date", due: "date" }, fixedBy: "issue 793" },
   ],
   "overview.tile.pages.first-review": [
     "first page in review today",
@@ -221,7 +221,7 @@ export const OVERVIEW_COPY = Object.freeze({
   // it and says so. Drafted (#759); the owner corrects the wording.
   "overview.rivals.line.starting": [
     "Starting sizes from your deep pass, {on}. Weekly from {due}.",
-    { slots: { on: "date", due: "date" }, fixedBy: "#793" },
+    { slots: { on: "date", due: "date" }, fixedBy: "issue 793" },
   ],
 
   // ── REQ-096 c6: a rival banded `far`, and the two sentences it needs.
