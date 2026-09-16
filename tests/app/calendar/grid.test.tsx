@@ -21,7 +21,7 @@ vi.mock("@/lib/presentation/copy", async (importOriginal) => {
   return { ...actual, copy: (key: string) => key };
 });
 
-import { COPY } from "@/lib/presentation/copy";
+import { AWAITING_COPY, COPY } from "@/lib/presentation/copy";
 import { CalendarView } from "@/app/(account)/app/calendar/CalendarView";
 import { assembleMonth, type CalendarFacts } from "@/app/(account)/app/calendar/month";
 import { EMPTY_COPY_KEY, HELD_BY_SETTING_COPY_KEY } from "@/app/(account)/app/calendar/empty";
@@ -161,6 +161,8 @@ describe("REQ-043 c3 and ADR-061 — the two grey lines are never swapped", () =
         // the saved setting outranks.
         const line = cellEl(root, "2026-09-23").querySelector('[data-testid="cell-empty-line"]')?.textContent;
         expect(line).toBe(HELD_BY_SETTING_COPY_KEY[setting]);
+        // #759: the key the cell draws is written, not the marker.
+        expect(AWAITING_COPY).not.toContain(HELD_BY_SETTING_COPY_KEY[setting]);
         return line;
       }
     );

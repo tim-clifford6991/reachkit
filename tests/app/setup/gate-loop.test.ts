@@ -88,6 +88,7 @@ const { default: ZonePage } = await import("@/app/(account)/setup/zone/page");
 const { BrowserZone } = await import("@/app/(account)/_zone/BrowserZone");
 const { reportBrowserZone } = await import("@/app/(account)/_zone/actions");
 const { APP_PATH, SETUP_PATH, ZONE_PATH } = await import("@/app/(account)/setup/gate");
+const { AWAITING_COPY, COPY, TODO_COPY_MARKER } = await import("@/lib/presentation/copy");
 
 const USER = "user-1";
 const SITE = "site-1";
@@ -204,6 +205,13 @@ describe("#753 — a founder who finished setup, with no time zone, is not bounc
     forwardedPath = ZONE_PATH;
     const html = renderToStaticMarkup((await ZonePage()) as ReactElement);
     expect(html).toContain('data-testid="setup-zone"');
+    // #759 (owner ruling 2026-09-16): the screen states written sentences,
+    // never the marker.
+    for (const key of ["setup.zone.head", "setup.zone.line"] as const) {
+      expect(AWAITING_COPY, key).not.toContain(key);
+      expect(html).toContain(COPY[key]);
+    }
+    expect(html).not.toContain(TODO_COPY_MARKER);
 
     const layout = await AccountLayout({ children: null });
     expect(carries(layout, BrowserZone)).toBe(true);

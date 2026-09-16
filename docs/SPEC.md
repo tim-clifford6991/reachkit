@@ -2,7 +2,7 @@
 
 The nine features below are the product. Anything not needed by one of them is out of scope (§11).
 UI is `docs/DESIGN.md` (daisyUI, Recharts, lucide) — this file does not describe pixels, artboards or canvas.
-Every customer-visible sentence is a key in `src/lib/presentation/copy/keys/`. Do not invent copy; `TODO(copy)` on screens, send nothing in mail.
+Every customer-visible sentence is a key in `src/lib/presentation/copy/keys/`. A missing sentence is drafted and shipped, never `TODO(copy)`; the owner corrects the wording (§12, 2026-09-16). A mail carrying the marker still sends nothing.
 Pinned numbers live in `src/lib/config/constants.ts`. Newest dated line in a section wins. Pre-2026-09-11 log: `docs/archive/2026-09-11/`.
 
 ## §0 Terms
@@ -98,9 +98,9 @@ Pinned numbers live in `src/lib/config/constants.ts`. Newest dated line in a sec
 - Waiting names the step, is live at least every 30 s, no percentage, no promised duration. Degraded pass still releases with one sentence; ten minutes releases regardless.
 - 2026-09-16  The first draft and the evening drafts are written and wait in review while the destination is still pending — hosted DNS not yet resolving, WordPress not yet connected. Publishing still waits for a destination that works.
 - 2026-09-16  The deep pass's `scans` row is claimed when setup accepts the founder's address; a stated market's suggested rivals (`competitors_domain`) are spent against that row, and the deep pass adopts it rather than inserting a second. A free upgrade's suggestions are its report's own rivals, bought for nothing.
-- 2026-09-16  Settings shows the hosted CNAME record (name, type, value) for as long as the host is waiting for DNS — the same record setup showed, not only once at setup (#754). A calendar date held by a setting names the one setting that holds it; a host waiting for its CNAME points at that record. Those lines are `TODO(copy)` until the owner writes them.
+- 2026-09-16  Settings shows the hosted CNAME record (name, type, value) for as long as the host is waiting for DNS — the same record setup showed, not only once at setup (#754). A calendar date held by a setting names the one setting that holds it; a host waiting for its CNAME points at that record. Those lines are drafted (#759); the owner corrects the wording.
 - 2026-09-16  Owner ruling (#757): the founder can complete the CNAME and verify it from the setup page, before submitting. The check is keyed on the hostname — `<label>.<the site's own stored address>`, derived on the server, never a host the browser names — attaches it to the project (idempotently) and reports what the vendor says; submit then records the state. Settings offers the same check beside the record for a host waiting for DNS.
-- 2026-09-16  A check answers one of three: live, waiting for DNS, or could not ask (no token bound, or the vendor did not answer) — never the second in place of the third. It asks now rather than waiting out the hourly re-check, at most once per `DESTINATION_HOSTNAME_CHECK_FLOOR_S` per site; a press inside that says when the founder may ask again and shows no answer as new. An address changed on screen but not submitted is not checked. A label checked and not submitted stays on the project's domain list. The lines are `TODO(copy)` until the owner writes them.
+- 2026-09-16  A check answers one of three: live, waiting for DNS, or could not ask (no token bound, or the vendor did not answer) — never the second in place of the third. It asks now rather than waiting out the hourly re-check, at most once per `DESTINATION_HOSTNAME_CHECK_FLOOR_S` per site; a press inside that says when the founder may ask again and shows no answer as new. An address changed on screen but not submitted is not checked. A label checked and not submitted stays on the project's domain list. The lines are drafted (#759); the owner corrects the wording.
 
 **Done when** Finishing setup reaches `/app` with a first draft. A sixth competitor is refused. CNAME for the chosen label is shown; destination reads waiting then live. Voice edit persists in settings. Wrong WordPress password shows destination health, no vendor text.
 
@@ -185,3 +185,4 @@ Perplexity; Search Console; locale derivation; CMS besides hosted + WordPress; m
 - Production magic-link walk (#542). WordPress connect walk (#324). Gmail/Apple Mail render (#339).
 - Legal imprint: legal entity, address, VAT id still `[[imprint: …]]` placeholders (#335).
 - Lift of production freeze when the paying path works on dev.
+- 2026-09-16  Copy: `TODO(copy)` is never a shipped state for a customer-visible string — the marker renders as itself, so an unwritten key is visible breakage. A missing sentence is drafted in the registry’s voice and shipped, every new or changed string is named in the PR body, and the owner corrects the wording (#759).

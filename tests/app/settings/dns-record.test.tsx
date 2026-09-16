@@ -77,7 +77,7 @@ vi.mock("@/lib/publish/destinations/registry", () => ({
   }),
 }));
 
-const { COPY } = await import("@/lib/presentation/copy");
+const { AWAITING_COPY, COPY } = await import("@/lib/presentation/copy");
 const { default: SetupPage } = await import("@/app/(account)/setup/page");
 const { readLiveSettingsFacts } = await import("@/app/(account)/app/settings/store");
 const { assembleSettings } = await import("@/app/(account)/app/settings/model");
@@ -176,6 +176,33 @@ describe("SPEC §5 — a host waiting for DNS shows its record in Settings, the 
     const block = host.querySelector('[data-testid="dns-dest-1"]');
     expect(block?.querySelector('[data-testid="dns-record"]')).not.toBeNull();
     expect(block?.textContent).toContain(COPY["settings.publishing.set-dns"]);
+  });
+
+  it("#759: where the record is added, and the Cloudflare proxy line, sit beside the record on both screens", async () => {
+    const setup = document.createElement("div");
+    document.body.append(setup);
+    const page = await SetupPage();
+    await act(async () => {
+      createRoot(setup).render(page);
+    });
+    const { host } = await settingsShows({ hostname: `content.${DOMAIN}` });
+
+    const blocks = {
+      setup: setup.querySelector('[data-testid="setup-destination-hosted"]'),
+      settings: host.querySelector('[data-testid="dns-dest-1"]'),
+    };
+    for (const [screen, block] of Object.entries(blocks)) {
+      expect(block?.querySelector('[data-testid="dns-record"]'), screen).not.toBeNull();
+      expect(block?.querySelector('[data-testid="dns-where"]')?.textContent, screen).toBe(
+        COPY["setup.destination.dnsWhere"]
+      );
+      expect(block?.querySelector('[data-testid="dns-proxy"]')?.textContent, screen).toBe(
+        COPY["setup.destination.dnsProxy"]
+      );
+    }
+    for (const key of ["setup.destination.dnsWhere", "setup.destination.dnsProxy"] as const) {
+      expect(AWAITING_COPY, key).not.toContain(key);
+    }
   });
 
   it("a label the founder chose: the record names their host on both screens", async () => {

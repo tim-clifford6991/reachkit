@@ -6,7 +6,7 @@ Ship the paying path. Prefer a library over new code. Do not open `docs/archive/
 
 ## Don't
 
-- Never invent a user-facing sentence. Keys live in `src/lib/presentation/copy/keys/`. Missing → `TODO(copy)` on the PR.
+- Never ship `TODO(copy)` in a customer-visible string (owner ruling 2026-09-16, #759). Keys live in `src/lib/presentation/copy/keys/`. Missing → draft the sentence in the registry’s voice, ship it, and name every new or changed string in the PR body so the owner can correct it.
 - Never add a custom component, CSS sheet, token set, or SVG chart where daisyUI or Recharts covers it. Do not wrap daisyUI in a new `Btn`/`Card`.
 - Never “match the artboard.” There is no artboard in the process.
 - Never write a test that transcribes a document.

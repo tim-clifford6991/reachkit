@@ -177,11 +177,11 @@ export const CALENDAR_COPY = Object.freeze({
   "calendar.empty.page-cannot-go-live": ["The page for this date was stopped or taken down, so it won’t go live. No page replaces it.", { slots: {}, fixedBy: "REQ-043 c4" }],
   // #754 (owner 2026-09-16): the one held line offered both causes when the
   // app knows which it is. Split into one line per setting — and a host
-  // waiting for its CNAME points at the record Settings shows. The
-  // sentences are the owner's.
-  "calendar.empty.customer-change-holds-pages.publishing-off": ["TODO(copy)", { slots: {}, fixedBy: "REQ-043 c4" }],
-  "calendar.empty.customer-change-holds-pages.destination-pending-dns": ["TODO(copy)", { slots: {}, fixedBy: "REQ-043 c4" }],
-  "calendar.empty.customer-change-holds-pages.destination-disconnected": ["TODO(copy)", { slots: {}, fixedBy: "REQ-043 c4" }],
+  // waiting for its CNAME points at the record Settings shows. Drafted and
+  // shipped under the owner ruling of 2026-09-16 (#759).
+  "calendar.empty.customer-change-holds-pages.publishing-off": ["Publishing is off, so this page is waiting. Turn it on in Settings and pages resume.", { slots: {}, fixedBy: "REQ-043 c4" }],
+  "calendar.empty.customer-change-holds-pages.destination-pending-dns": ["Your domain isn’t connected yet, so this page is waiting. Check the connection in Settings — once the DNS record is picked up, pages resume.", { slots: {}, fixedBy: "REQ-043 c4" }],
+  "calendar.empty.customer-change-holds-pages.destination-disconnected": ["There’s no connected place to publish to, so this page is waiting. Connect one in Settings and pages resume.", { slots: {}, fixedBy: "REQ-043 c4" }],
   "calendar.empty.page-held": ["The page for this date was held while ReachKit’s own work was stopped. It still publishes, in turn, once work resumes.", { slots: {}, fixedBy: "REQ-092 c5" }],
   // The day panel's whole account of an exhausted supply — S15's `empty`
   // arm, verbatim (ruling 11a, issue #354). Its cell states the first line

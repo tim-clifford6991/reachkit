@@ -627,20 +627,21 @@ export const MAIL_COPY = Object.freeze({
   "mail.ops.spend-ceiling.fact.ceiling": ["daily ceiling, in cents", { slots: {}, fixedBy: "BUILD §6.5 · issue 329" }],
 
   // ── The owner's incident alert (issue 330): a job invocation failed, a
-  // job exhausted its retries, or a deployment refused to boot. Owner-owed:
-  // `sendEmail` refuses a mail that carries the marker, so none of these
-  // sends until the owner writes the lines. The fact values are closed
+  // job exhausted its retries, or a deployment refused to boot. Drafted and
+  // shipped under the owner ruling of 2026-09-16 (#759): while these held
+  // the marker `sendEmail` refused the mail, and the owner heard nothing
+  // when a job died. The fact values are closed
   // names — a job id, an attempt number, an error class, a boot check —
   // never a message, a payload or an address.
-  "mail.ops.incident.subject": ["TODO(copy)", { slots: {}, fixedBy: "issue 330" }],
-  "mail.ops.incident.heading": ["TODO(copy)", { slots: {}, fixedBy: "issue 330" }],
-  "mail.ops.incident.job-failed": ["TODO(copy)", { slots: {}, fixedBy: "issue 330" }],
-  "mail.ops.incident.dead-lettered": ["TODO(copy)", { slots: {}, fixedBy: "issue 330" }],
-  "mail.ops.incident.boot-refused": ["TODO(copy)", { slots: {}, fixedBy: "issue 330" }],
-  "mail.ops.incident.fact.job": ["TODO(copy)", { slots: {}, fixedBy: "issue 330" }],
-  "mail.ops.incident.fact.attempt": ["TODO(copy)", { slots: {}, fixedBy: "issue 330" }],
-  "mail.ops.incident.fact.error": ["TODO(copy)", { slots: {}, fixedBy: "issue 330" }],
-  "mail.ops.incident.fact.check": ["TODO(copy)", { slots: {}, fixedBy: "issue 330" }],
+  "mail.ops.incident.subject": ["ReachKit incident", { slots: {}, fixedBy: "issue 330" }],
+  "mail.ops.incident.heading": ["Something needs your attention", { slots: {}, fixedBy: "issue 330" }],
+  "mail.ops.incident.job-failed": ["A job failed.", { slots: {}, fixedBy: "issue 330" }],
+  "mail.ops.incident.dead-lettered": ["A job ran out of retries and was set aside.", { slots: {}, fixedBy: "issue 330" }],
+  "mail.ops.incident.boot-refused": ["A deployment refused to boot.", { slots: {}, fixedBy: "issue 330" }],
+  "mail.ops.incident.fact.job": ["Job", { slots: {}, fixedBy: "issue 330" }],
+  "mail.ops.incident.fact.attempt": ["Attempt", { slots: {}, fixedBy: "issue 330" }],
+  "mail.ops.incident.fact.error": ["Error", { slots: {}, fixedBy: "issue 330" }],
+  "mail.ops.incident.fact.check": ["Check", { slots: {}, fixedBy: "issue 330" }],
 
   // ── SPEC §8, Retention (issue 569). Owner-owed: the copy sheet is issue
   // 568. `sendEmail` refuses a mail that still carries the marker, so none of

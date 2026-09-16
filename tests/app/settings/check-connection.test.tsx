@@ -119,7 +119,7 @@ vi.mock("@/lib/publish/destinations/registry", () => ({
   }),
 }));
 
-const { COPY, copy } = await import("@/lib/presentation/copy");
+const { AWAITING_COPY, COPY, TODO_COPY_MARKER, copy } = await import("@/lib/presentation/copy");
 const { default: SetupPage } = await import("@/app/(account)/setup/page");
 const { readLiveSettingsFacts } = await import("@/app/(account)/app/settings/store");
 const { assembleSettings } = await import("@/app/(account)/app/settings/model");
@@ -282,6 +282,43 @@ describe("SPEC §5 — /setup: the founder verifies their record before submitti
     expect(vendor.calls).toHaveLength(2);
     expect(tooSoonIn(host)).toBeNull();
     expect(answerIn(host)?.outcome).toBe("live");
+  });
+});
+
+describe("#759 (owner ruling 2026-09-16) — every line the press draws is written", () => {
+  it("the six keys are written, and the button, each answer and the throttle line render no marker", async () => {
+    for (const key of [
+      "settings.destination.check.button",
+      "settings.destination.check.live",
+      "settings.destination.check.pending-dns",
+      "settings.destination.check.could-not-ask",
+      "settings.destination.check.too-soon",
+      "setup.destination.check.address-unsaved",
+    ] as const) {
+      expect(AWAITING_COPY, key).not.toContain(key);
+    }
+
+    const host = await setupScreen();
+    const button = host.querySelector('[data-testid="check-connection-press"]');
+    expect(button?.textContent).toBe(COPY["settings.destination.check.button"]);
+
+    const seen: (string | undefined)[] = [];
+    for (const answer of ["unverified", "silent", "verified"] as const) {
+      vendor.answer = answer;
+      clock += DESTINATION_HOSTNAME_CHECK_FLOOR_S * 1000;
+      vi.setSystemTime(clock);
+      await press(host);
+      seen.push(answerIn(host)?.text);
+    }
+    expect(seen).toEqual([
+      COPY["settings.destination.check.pending-dns"],
+      COPY["settings.destination.check.could-not-ask"],
+      COPY["settings.destination.check.live"],
+    ]);
+
+    await press(host);
+    expect(tooSoonIn(host)).not.toBeNull();
+    expect(host.textContent).not.toContain(TODO_COPY_MARKER);
   });
 });
 

@@ -121,7 +121,12 @@ export const OWNER_OWED: readonly CopyKey[] = Object.freeze(
  *  `OWNER_OWED` is — a key is awaiting copy exactly when its value is the
  *  marker — so "what is still unwritten" stays one question with one
  *  answer, and `tests/presentation/copy/registry.test.ts` counts both
- *  lists rather than only the one that throws. */
+ *  lists rather than only the one that throws.
+ *
+ *  Owner ruling 2026-09-16 (#759) reverses that standing rule: a
+ *  customer-visible sentence is drafted and shipped, never left as the
+ *  marker, and the owner corrects the wording. The marker stays defined so
+ *  `sendEmail` and the tests can still refuse it. */
 export const TODO_COPY_MARKER = "TODO(copy)";
 
 export const AWAITING_COPY: readonly CopyKey[] = Object.freeze(
