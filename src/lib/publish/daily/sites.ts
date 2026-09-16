@@ -1,8 +1,8 @@
 // BUILD §11, §9 — `draft/generate`'s site list (BP-014).
 //
 // The evening tick's candidates: every site ReachKit is still working for,
-// that has a destination a page could actually reach, and that carries a
-// zone to be evening *in*.
+// that has somewhere to publish once the page is written, and that carries
+// a zone to be evening *in*.
 //
 // **The hour is not decided here, and that is deliberate.** ADR-060's gate
 // is `isDraftDue(now, zone)` in `src/jobs/site-clock.ts`, where the tick's
@@ -25,14 +25,16 @@
 //      stop is spend against a day they said they did not want. The stop
 //      moves no page and this excludes none: the pages already held stay
 //      exactly where they are (`switch/index.ts`).
-//   3. a live destination that can publish. `health = 'ok'` is the whole
-//      test the `destination_working` guard makes, and it already carries
-//      `cannot_publish`: ADR-086 makes `publish_capable === false` outrank
-//      every other answer, so such a row reads `error`. The column is
-//      excluded here as well, spelled rather than relied on — a row whose
-//      probe found it incapable is never a candidate even if its health
-//      has not been re-read since. A site with no destination row at all
-//      matches neither and is never returned.
+//   3. a live destination row — **whatever its health** (SPEC §5, owner
+//      2026-09-16, issue 744). A hosted destination is `expired` until its
+//      CNAME resolves and a deferred WordPress until it is connected, and a
+//      founder is not left without pages for the days that takes: the page
+//      is written and waits in review. Publishing is where health is
+//      decided, by the `destination_working` guard on every edge into
+//      `publishing` (`machine/table.ts`), so nothing goes out to a
+//      destination that cannot take it. A site with no destination row at
+//      all is still never returned: that page would have nowhere to go
+//      even once it was written.
 //   4. active access, asked of **the same registered gate the weekly tick
 //      asks** (issue #201, master's ruling; ADR-050 — one rule, one
 //      reader). A day's page is spend, and a site whose access has ended
@@ -86,7 +88,6 @@ interface SiteRow {
 
 interface DestinationSiteRow {
   site_id: string;
-  publish_capable: boolean | null;
 }
 
 export async function sitesForDailyTick(): Promise<DailySelection> {
@@ -109,28 +110,23 @@ export async function sitesForDailyTick(): Promise<DailySelection> {
 
   const destinations = await publishDb()
     .from<DestinationSiteRow>("destinations")
-    .select("site_id, publish_capable")
+    .select("site_id")
     .in(
       "site_id",
       withAZone.map((row) => row.id)
     )
-    .eq("health", "ok")
     .is("deleted_at", null);
   if (destinations.error !== null) {
     throw new Error(`publish/daily: could not read the destinations: ${destinations.error.message}`);
   }
 
-  // ADR-086's rule, spelled here rather than left to `health` alone: a
-  // probe that found the credential cannot publish outranks every other
-  // answer, and this is what keeps a row whose health has not been re-read
-  // since out of the tick. `null` is "not probed", which is not a refusal.
-  const reachable = new Set(
-    (destinations.data ?? [])
-      .filter((row) => row.publish_capable !== false)
-      .map((row) => row.site_id)
-  );
+  // Somewhere for the page to go, once it is written. Health is not read
+  // here (issue 744): a destination still waiting for DNS or for its
+  // credential is one a page waits for in review, not one a founder gets
+  // no pages for.
+  const hasDestination = new Set((destinations.data ?? []).map((row) => row.site_id));
   const candidates = withAZone
-    .filter((row) => reachable.has(row.id))
+    .filter((row) => hasDestination.has(row.id))
     .map((row): DailySite => ({ siteId: row.id, timeZone: row.timezone }));
   if (candidates.length === 0) {
     logSelection({ sites: withAZone.length, withDestination: 0, paying: 0 });
