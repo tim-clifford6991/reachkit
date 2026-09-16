@@ -245,12 +245,12 @@ const WEEK_ZERO_ROUTES = enumerateRoutes(APP_ROOT, {
  * The second is fixed by one more host, not a changed one:
  * `PUBLISHED_HOST_FIXTURES` names the customer `seed.ts`'s
  * `seedHostedPublisher()` writes, whose one live publication is at this
- * route's own `[...slug]` fixture. The bare capture above keeps the 404
+ * route's own `[[...slug]]` fixture. The bare capture above keeps the 404
  * arm; this adds the live arm beside it.
  *
  * No cookie, and that is the surface's own promise: the hosted edge answers
  * a stranger on a stranger's domain with no session, no cookie and no
- * payment (`(hosted)/hosted-page/[...slug]/page.tsx`).
+ * payment (`(hosted)/hosted-page/[[...slug]]/page.tsx`).
  */
 const PUBLISHED_HOSTED_ROUTES = enumerateRoutes(APP_ROOT, {
   hostFixtures: PUBLISHED_HOST_FIXTURES,

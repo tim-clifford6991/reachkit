@@ -399,7 +399,10 @@ async function hostedRewrite(req: NextRequest, forwarded: Headers): Promise<Next
   }
 
   const destination = req.nextUrl.clone();
-  destination.pathname = answer === "gone" ? HOSTED_GONE_PATH : `${HOSTED_PAGE_PREFIX}${pathname}`;
+  // The root is the hosted index, which the optional catch-all serves at
+  // the prefix itself (SPEC §7, 2026-09-16).
+  const page = pathname === "/" ? HOSTED_PAGE_PREFIX : `${HOSTED_PAGE_PREFIX}${pathname}`;
+  destination.pathname = answer === "gone" ? HOSTED_GONE_PATH : page;
   // `forwarded` carries this request's CSP and nonce (issue #331). A
   // rewrite is still a render, and a render that never saw the nonce emits
   // script tags the policy on the way out refuses.

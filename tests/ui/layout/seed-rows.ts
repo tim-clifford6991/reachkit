@@ -212,7 +212,7 @@ export function acceptanceFor(index: number): string {
 export const PUBLISHER_PAGE = Object.freeze({
   draftId: "00000000-0000-0000-0000-0000000000f1",
   /** The address the page went live at — the last segment of `live_url`,
-   *  and the `[...slug]` fixture `routes.ts` already enumerates this route
+   *  and the `[[...slug]]` fixture `routes.ts` already enumerates this route
    *  with, so the sweep's URL and the published row name one page. */
   slug: "best-onboarding-tools",
   title: "Best onboarding tools",

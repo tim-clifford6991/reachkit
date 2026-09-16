@@ -135,6 +135,7 @@ Pinned numbers live in `src/lib/config/constants.ts`. Newest dated line in a sec
 - Publish is one idempotent call to the destination on the customer’s domain. At +24 h: reachable, indexable, in a sitemap, AI-readable.
 - Public veto link redeems on GET once. MVP paid service ends at a page on the customer’s own domain (2026-09-11).
 - Opportunity status (2026-09-15): a written draft queues its opportunity; a vetoed draft dismisses it; needs_attention leaves it queued.
+- Hosted index (2026-09-16): the root of a hosted host lists every live page, newest first, with a search; a site with nothing published says so instead of answering 404.
 
 **Done when** The draft-ready mail link stops that page with no session. An untouched draft publishes at window end on their domain. No two assets share a date. An empty day states its cause and offers no publish.
 

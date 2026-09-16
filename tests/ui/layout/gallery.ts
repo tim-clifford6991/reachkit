@@ -100,7 +100,7 @@ export type Door = (typeof DOORS)[number];
 /** The hosted edge's one address, as the sweep spells it — read off the
  *  fixture rather than typed, so a renamed slug cannot leave this file
  *  naming an address nothing visits. */
-export const HOSTED_PAGE_PATH = `/hosted-page/${SEGMENT_FIXTURES["[...slug]"]}`;
+export const HOSTED_PAGE_PATH = `/hosted-page/${SEGMENT_FIXTURES["[[...slug]]"]}`;
 
 /** An `(account)` or setup address — the two groups `src/middleware.ts`
  *  answers with the sign-in prompt when no session is presented. */

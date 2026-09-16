@@ -110,7 +110,7 @@ export const ROUTE_HARNESS: Readonly<Record<string, HarnessRow>> = Object.freeze
   // Host `hosted-fixture.ts` supplies. It sits in no shell: it is served on
   // a customer's own domain and carries nothing of ReachKit's — no
   // navigation, no publishing line, no sentence of ours at all.
-  "(hosted)/hosted-page/[...slug]/page.tsx": {
+  "(hosted)/hosted-page/[[...slug]]/page.tsx": {
     props: () => ({ params: { slug: ["best-onboarding-tools"] } }),
     shell: false,
     async: true,

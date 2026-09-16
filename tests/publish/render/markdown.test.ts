@@ -135,7 +135,7 @@ describe("issue #414 — the grounded mark is the mint the approved set draws", 
   // or could go wrong again: the family, the pair of tokens it is drawn
   // from, and the fact that one map dresses both surfaces.
   const DRAFT = "src/app/(account)/app/draft/[draftId]/RenderedBody.tsx";
-  const HOSTED = "src/app/(hosted)/hosted-page/[...slug]/page.tsx";
+  const HOSTED = "src/app/(hosted)/hosted-page/[[...slug]]/page.tsx";
 
   it("the tint is the ok family's own pair, and no warn value is left", () => {
     expect(BODY_CLASSES.mark).toContain("var(--ok-bg)");

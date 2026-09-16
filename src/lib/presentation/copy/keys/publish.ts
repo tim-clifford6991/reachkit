@@ -258,6 +258,21 @@ export const PUBLISH_COPY = Object.freeze({
     "© {publisher}",
     { slots: { publisher: "text" }, fixedBy: "S19 (11a)" },
   ],
+  // The hosted index at `/` (owner 2026-09-16): every live page of the
+  // site, newest first, with a search. Drafted under #759's ruling; the
+  // owner corrects the wording. None names ReachKit — the index is served
+  // on the customer's host exactly as a page is.
+  "hosted.index.heading": ["Articles", { slots: {}, fixedBy: "SPEC §7 (2026-09-16)" }],
+  "hosted.index.searchLabel": ["Search articles", { slots: {}, fixedBy: "SPEC §7 (2026-09-16)" }],
+  "hosted.index.searchSubmit": ["Search", { slots: {}, fixedBy: "SPEC §7 (2026-09-16)" }],
+  "hosted.index.empty": [
+    "Nothing has been published here yet.",
+    { slots: {}, fixedBy: "SPEC §7 (2026-09-16)" },
+  ],
+  "hosted.index.noMatch": [
+    "No articles match “{query}”.",
+    { slots: { query: "text" }, fixedBy: "SPEC §7 (2026-09-16)" },
+  ],
 
   "publish.wordpress.noSeoPlugin": ["No SEO plugin was found on your site, so the title and description weren’t written into one. The page is live all the same.", { slots: {}, fixedBy: "REQ-060 c4" }],
   "publish.wordpress.namedForRemoval": [

@@ -53,7 +53,7 @@ vi.mock("@/lib/publish/destinations/hosted", async () => {
   };
 });
 
-const Page = (await import("@/app/(hosted)/hosted-page/[...slug]/page")).default;
+const Page = (await import("@/app/(hosted)/hosted-page/[[...slug]]/page")).default;
 const { COPY } = await import("@/lib/presentation/copy");
 
 const PASSAGE = "a non-engineer can ship a change";
