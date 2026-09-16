@@ -40,6 +40,7 @@
 // running. A correction is not a re-scan: it re-measures inside the scan
 // it corrects and always runs.
 import { CACHE_WINDOWS_D, FREE_RESCAN_WINDOW_D } from "@/lib/config/constants";
+import { captureInBackground } from "@/lib/analytics";
 import type { CapName, CostContext } from "@/lib/costs";
 import { dbAdmin } from "@/lib/db";
 import type { RobotsPolicy } from "@/lib/egress/types";
@@ -485,6 +486,12 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
       ...(a.siteId === undefined ? {} : { siteId: a.siteId }),
     });
   }
+
+  // Issue 336, owner 2026-09-16: one of the three product events, recorded
+  // as the pass begins. Started and not awaited — the free pass runs under
+  // a 50 s ceiling and an analytics vendor is never allowed a second of it —
+  // and the subject is the domain, hashed inside the seam.
+  captureInBackground("scan_started", { subject: domain, tier: a.tier });
 
   // 2. §6.4's seven-day window — the free path's, per `servesStoredReport`.
   if (a.correctionOf === undefined && parameters.servesStoredReport) {

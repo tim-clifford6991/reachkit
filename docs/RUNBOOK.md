@@ -78,6 +78,8 @@ Nineteen names are in the schema. Two more sit outside it, for stated reasons.
 | `OWNER_EMAILS` | comma-separated; the only recipient of ops mail | | each entry must be an address |
 | `NEXT_PUBLIC_APP_URL` | the app's own origin | | must parse |
 | `HOSTED_EDGE_CNAME_TARGET` | what a customer points `content.{their-domain}` at | | `edge.reachkit.app` |
+| `POSTHOG_API_KEY` | product analytics ingestion — the three events of issue 336 | ● | optional; absent, nothing is captured |
+| `POSTHOG_HOST` | the PostHog region's ingestion host | | optional; defaults to `https://us.i.posthog.com` |
 | `DATABASE_URL` | migration and test tooling only | — | no module under `src/` reads it; **never bound in Vercel** |
 | `RK_FIXED_NOW` | a test fixture | — | **never set in any Vercel environment**; a real deployment refuses to boot with it — §7 |
 

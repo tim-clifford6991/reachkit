@@ -127,6 +127,14 @@ const schema = z.object({
   // than a secret — it names a project, it does not open one — so it is
   // not in the server-only set below.
   VERCEL_PROJECT_ID: z.string().min(1).optional(),
+  // Issue 336, owner 2026-09-16: three product events through PostHog. The
+  // key is the project's own ingestion key and the host is the region's
+  // address; both are `.optional()` for the reason the two above are — a
+  // process that is not a deployment records nothing, and a deployment
+  // carrying neither captures nothing rather than refusing to boot. An
+  // analytics binding is never what stands between a customer and a scan.
+  POSTHOG_API_KEY: z.string().min(1).optional(),
+  POSTHOG_HOST: z.url().optional(),
 });
 
 // BP-005 decision 6b: "the member's type is a required `string` either
@@ -162,6 +170,9 @@ const SERVER_ONLY_KEYS = [
   // Issue #322: a token that can add a domain to our project has no
   // business in a browser bundle. Same kind of secret as the nine above.
   "VERCEL_API_TOKEN",
+  // Issue 336: an ingestion key belongs on the server. It writes events; a
+  // browser bundle has no business holding one.
+  "POSTHOG_API_KEY",
 ] as const satisfies readonly (keyof Env)[];
 
 const serverOnlyKeySet: ReadonlySet<string> = new Set(SERVER_ONLY_KEYS);
