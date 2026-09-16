@@ -30,13 +30,21 @@
 // Suggested rivals make no such call: they came from the product's own
 // derivation over the founder's market, so they are already canonical and
 // already known to exist.
+//
+// **They are sought again whenever the address or the market changes**
+// (issue 750): `POST /api/setup/rivals` answers for the address and market
+// on screen, and `onSuggestionsSettled` is the one transition into the
+// card. An answer for an address or market the founder has since replaced
+// is dropped, and a request that fails settles the card as none found —
+// the founder types their own rather than watching it seek.
 "use client";
 
 import type React from "react";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { copy } from "@/lib/presentation/copy";
 import {
+  onSuggestionsSettled,
   settledCategory,
   validateSetup,
   type SetupState,
@@ -52,6 +60,7 @@ import { RivalsCard } from "./RivalsCard";
 import type { SetupScreenModel } from "./_setup/facts";
 import type { SetupRefusal, SetupSubmission } from "./submit";
 import type { ResolveDomainResponse } from "@/app/api/setup/domain/route";
+import type { SeekRivalsResponse } from "@/app/api/setup/rivals/route";
 import type { SetupResult } from "./submit";
 
 /** Every refusal the founder can be shown, as a written line. `SetupResult`'s
@@ -89,6 +98,22 @@ async function resolveDomain(host: string): Promise<ResolveDomainResponse> {
   return (await response.json()) as ResolveDomainResponse;
 }
 
+async function seekRivals(domain: string, category: string | null): Promise<SeekRivalsResponse> {
+  const response = await fetch("/api/setup/rivals", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ domain, category }),
+  });
+  if (!response.ok) throw new Error(`POST /api/setup/rivals: ${response.status}`);
+  return (await response.json()) as SeekRivalsResponse;
+}
+
+/** The market the server is asked about: the one stated, or `null` for
+ *  the one the address's own report infers. */
+function statedCategory(state: SetupState): string | null {
+  return state.market.state === "stated" ? state.market.category : null;
+}
+
 export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
   const router = useRouter();
   const defaults = preselected(p.model.cards);
@@ -113,6 +138,37 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
     keyof typeof SUBMIT_REFUSAL_COPY | null
   >(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // The address given and the market known, as the server is asked about
+  // them. The screen opens settled — a free upgrade's rivals came with the
+  // page — so a request goes only once one of these moves.
+  const soughtDomain = state.siteDomain;
+  const soughtCategory = statedCategory(state);
+  const unsettled =
+    state.suggestions.state === "seeking" || state.suggestions.state === "awaiting_market";
+  useEffect(() => {
+    if (soughtDomain === null || !unsettled) return;
+    let current = true;
+    seekRivals(soughtDomain, soughtCategory)
+      .then(
+        (answer) => answer.candidates,
+        (): readonly string[] => [],
+      )
+      .then((candidates) => {
+        if (!current) return;
+        setState((now) => {
+          if (now.siteDomain !== soughtDomain || statedCategory(now) !== soughtCategory) return now;
+          // Only a card that is seeking settles. `null` — no market known —
+          // leaves a card waiting on its market as it is; a seeking card
+          // told there is none settles as none found rather than seeking on.
+          if (now.suggestions.state !== "seeking") return now;
+          return onSuggestionsSettled(now, candidates ?? []);
+        });
+      });
+    return () => {
+      current = false;
+    };
+  }, [soughtDomain, soughtCategory, unsettled]);
 
   async function handleSubmit(
     event: FormEvent<HTMLFormElement>,

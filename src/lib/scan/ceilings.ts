@@ -103,7 +103,7 @@ export interface Bounds {
 // free-scan cache entry at once (BP-007 `## Error & edge behavior`,
 // "bumping the policy version is how a changed derivation invalidates its
 // cache").
-const FREE_SCAN_POLICY_VERSION = 1;
+export const FREE_SCAN_POLICY_VERSION = 1;
 
 /** The narrow slice of `CostContext` a `Bounds` needs — `capHit()` alone.
  *  Kept separate from the full interface so `makeBounds` cannot reach for

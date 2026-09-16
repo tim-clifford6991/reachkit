@@ -84,12 +84,18 @@ describe("§4.3's screen is drawn for the founder who is signed in", () => {
     expect(JSON.stringify(model.cards)).toContain(process.env.HOSTED_EDGE_CNAME_TARGET);
   });
 
-  it("suggestions are not sought on a screen read — `null`, not an empty list", async () => {
-    // `suggestRivals` is a vendor call through the cost seam, and "sought
-    // and none came back" (an empty list, REQ-026 c10) is a different,
-    // stronger claim than "none has been sought".
+  it("a measured address opens with its report's rivals offered — read from the report, not a fixture (issue 750)", async () => {
     const model = await provider.readSetupScreen();
-    expect(model.state.suggestions.state).not.toBe("none_found");
+    expect(model.state.suggestions).toEqual({
+      state: "offered",
+      candidates: ["asana.com", "monday.com", "clickup.com"],
+    });
+  });
+
+  it("an address nobody measured opens waiting on the market, never on none found (REQ-026 c10)", async () => {
+    setupSession.address = { siteId: "site-1", domain: "unmeasured.test" };
+    const model = await provider.readSetupScreen();
+    expect(model.state.suggestions.state).toBe("awaiting_market");
   });
 });
 

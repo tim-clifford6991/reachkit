@@ -173,14 +173,18 @@ describe("what does differ is exactly the looked-up parameters", () => {
 
   it("each tier spends against its own cap and only the free path has the report deadline", () => {
     expect(TIER_PARAMETERS.free).toMatchObject({ cap: "FREE", deadlineApplies: true, adoptsClaim: true });
-    expect(TIER_PARAMETERS.deep).toMatchObject({ cap: "DEEP", deadlineApplies: false, adoptsClaim: false });
+    expect(TIER_PARAMETERS.deep).toMatchObject({ cap: "DEEP", deadlineApplies: false, adoptsClaim: true });
     expect(TIER_PARAMETERS.weekly).toMatchObject({ cap: "WEEKLY", deadlineApplies: false, adoptsClaim: false });
   });
 
-  it("the paid tiers insert their own row; the free path adopts admission's", async () => {
-    await runScan({ domain: DOMAIN, tier: "deep" });
-    // No read of the claimed row at all — the paid pass has its own id.
+  it("the weekly pass inserts its own row; the free path adopts admission's and the deep pass setup's", async () => {
+    await runScan({ domain: DOMAIN, tier: "weekly" });
+    // No read of a claimed row at all — the weekly pass has its own id.
     expect(db.queries.filter((q) => q.table === "scans" && q.verb === "select")).toHaveLength(0);
+
+    db.queries.length = 0;
+    await runScan({ domain: DOMAIN, tier: "deep", siteId: "site-1" });
+    expect(db.queries.filter((q) => q.table === "scans" && q.verb === "insert")).toHaveLength(0);
   });
 
   it("the table is frozen — a tier's parameters cannot be changed at run time", () => {

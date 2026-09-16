@@ -38,7 +38,7 @@
 import type { StageName } from "../stages";
 import { dbAdmin } from "@/lib/db";
 import { deriveForPass } from "@/lib/opportunities";
-import { runScan } from "../run";
+import { claimOnboardingPass, runScan } from "../run";
 import type { ScanStatus } from "../store";
 import { releaseToApp, type ReleaseReason } from "./release";
 
@@ -125,6 +125,12 @@ export async function runDeepPass(a: {
   // this the first" would mean naming the pipeline's stage order in this
   // file, which `run.test.ts` holds it not to.
   await recordStage(a.siteId, null, { reset: true });
+
+  // The row setup claimed when it accepted the address, or claimed now for
+  // a founder whose address it never sought against — at the address setup
+  // committed. The pass adopts it and inserts no second (owner ruling,
+  // 2026-09-16). A throw here is the job's to retry: no pass without a row.
+  await claimOnboardingPass({ siteId: a.siteId, domain: a.domain });
 
   const result = await runScan({
     domain: a.domain,

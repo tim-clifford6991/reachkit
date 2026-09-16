@@ -217,18 +217,19 @@ export function MarketCard(p: {
       </section>
 
       {/* Before the site is given, one line says when a suggestion arrives
-          rather than an empty field for something not sought yet. */}
+          rather than an empty field for something not sought yet. Once it
+          is given — measured or typed — the market can be stated. */}
       <section
         className={CARD}
         data-testid={MARKET_TEST_ID}
-        data-awaiting={state.address.state === "measured" ? undefined : AWAITING_SITE}
+        data-awaiting={state.siteDomain === null ? AWAITING_SITE : undefined}
       >
         <div className="card-body gap-4">
           <h2 className="card-title text-base">
             <Globe {...ICON} />
             {copy("setup.market.title")}
           </h2>
-          {state.address.state !== "measured" ? (
+          {state.siteDomain === null ? (
             <p className={QUIET} data-testid="setup-market-awaiting-site">
               {copy("setup.market.awaiting-site")}
             </p>

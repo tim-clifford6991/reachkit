@@ -101,6 +101,7 @@ describe("the boundary — every setup route is signed-in-only", () => {
     "/setup/waiting",
     "/api/setup",
     "/api/setup/domain",
+    "/api/setup/rivals",
     "/api/setup/progress",
   ])(
     "%s without a session is redirected to the sign-in prompt",
@@ -121,6 +122,7 @@ describe("the boundary — every setup route is signed-in-only", () => {
     "/setup/waiting",
     "/api/setup",
     "/api/setup/domain",
+    "/api/setup/rivals",
     "/api/setup/progress",
   ])(
     "%s with a session is served",
