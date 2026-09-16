@@ -163,6 +163,7 @@ function reportState() {
     },
     notice: null,
     control: { kind: "none" as const },
+    correction: { offered: true as const, as: "first" as const },
   };
 }
 

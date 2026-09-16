@@ -141,12 +141,34 @@ export const REPORT_COPY = Object.freeze({
   // 6a: "Discoverability Score" is the number's name on every surface that
   // labels it — this eyebrow, the Overview tile, and the two mails.
   "verdict.score.label": ["Discoverability Score", { slots: {}, fixedBy: "ruling 6a" }],
-  // REQ-094 c1's correction control, as S2 draws it. The correction flow
-  // itself (the form, the 7-day window, the re-measure) is REQ-094's own
-  // work and not this screen's: the control is offered with no destination
-  // rather than an invented one, exactly as the pricing card's Start was
-  // until checkout landed.
+  // REQ-094 c1's correction control, as S2 draws it. #786 gives it its
+  // destination: an inline field that posts the corrected market to
+  // `POST /api/report/{domain}/correct` and follows the rerun's stages.
   "verdict.not-your-market": ["Not your market?", { slots: {}, fixedBy: "REQ-094 c1" }],
+  // #786: the field, its line and its outcomes. Drafted in the registry's
+  // voice under the 2026-09-16 ruling (#759) — named in the PR for the
+  // owner to correct.
+  "correction.field.label": ["Your market, in a few words", { slots: {}, fixedBy: "SPEC §2 · issue 786" }],
+  "correction.submit": ["Measure again for this market", { slots: {}, fixedBy: "SPEC §2 · issue 786" }],
+  "correction.cancel": ["Cancel", { slots: {}, fixedBy: "SPEC §2 · issue 786" }],
+  "correction.line": [
+    "You can correct the market once. The AI answers already read are reused.",
+    { slots: {}, fixedBy: "SPEC §2 · issue 786" },
+  ],
+  "correction.running": [
+    "Measuring again for the market you gave. This report updates when it finishes.",
+    { slots: {}, fixedBy: "SPEC §2 · issue 786" },
+  ],
+  "correction.refused.running": ["A correction is already running for this report.", { slots: {}, fixedBy: "SPEC §2 · issue 786" }],
+  "correction.refused.used": ["This report’s one correction has already been used.", { slots: {}, fixedBy: "SPEC §2 · issue 786" }],
+  "correction.refused.too-old": [
+    "This report is too old to correct — measure it again instead.",
+    { slots: {}, fixedBy: "SPEC §2 · issue 786" },
+  ],
+  "correction.refused.unavailable": [
+    "The correction couldn’t start, and nothing was used. Try again in a few minutes.",
+    { slots: {}, fixedBy: "SPEC §2 · issue 786" },
+  ],
 
   // ── The scanning arm's six named stages (REQ-003 c1) ──────────────────
   // One key per `StageName` (`src/lib/scan/stages.ts`) — a stage with no

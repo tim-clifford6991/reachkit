@@ -425,12 +425,14 @@ const FIXTURE_ARMS: Readonly<Record<string, (domain: CanonicalDomain) => Address
       report: FIXTURE_DEGRADED_REPORT,
       notice: { kind: "incomplete", unmeasured: ["foundations", "presence"] },
       control: { kind: "rescan", because: "incomplete" },
+      correction: { offered: true, as: "first" },
     }),
     "cold-start.example.com": () => ({
       kind: "report",
       report: FIXTURE_COLD_START_REPORT,
       notice: null,
       control: { kind: "none" },
+      correction: { offered: true, as: "first" },
     }),
     "starting.example.com": (domain) => ({ kind: "starting", domain }),
     "scanning.example.com": (domain) => ({
@@ -475,5 +477,6 @@ export function fixtureStateFor(domain: CanonicalDomain): AddressState | null {
     report: { ...FIXTURE_REPORT, verdict: { ...FIXTURE_REPORT.verdict, domain } },
     notice: null,
     control: { kind: "none" },
+    correction: { offered: true, as: "first" },
   };
 }

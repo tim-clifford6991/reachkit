@@ -36,16 +36,18 @@ import {
 } from "@/app/(public)/scan/[domain]/_fixture/states";
 import type { AddressControl, AddressNotice } from "@/app/(public)/scan/[domain]/_address/state";
 import type { CanonicalDomain } from "@/lib/scan/domain";
+import type { CorrectionOffer } from "@/lib/market/coherence/offer";
 import type { StoredReport } from "@/lib/scan/report";
 
 
 function render(
   report: StoredReport,
   notice: AddressNotice | null = null,
-  control: AddressControl = { kind: "none" }
+  control: AddressControl = { kind: "none" },
+  correction: CorrectionOffer = { offered: true, as: "first" }
 ): string {
   return renderToStaticMarkup(
-    React.createElement(ReportView, { state: { report, notice, control } })
+    React.createElement(ReportView, { state: { report, notice, control, correction } })
   );
 }
 
@@ -510,7 +512,7 @@ describe("issue #785 — the report's offer begins checkout, and states a refusa
   it("a refused checkout renders the offer's written line, and only then", () => {
     const refused = renderToStaticMarkup(
       React.createElement(ReportView, {
-        state: { report: FIXTURE_REPORT, notice: null, control: { kind: "none" } },
+        state: { report: FIXTURE_REPORT, notice: null, control: { kind: "none" }, correction: { offered: true, as: "first" } },
         checkoutRefused: true,
       })
     );
