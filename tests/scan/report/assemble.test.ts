@@ -44,6 +44,8 @@ const REPORT_KEYS = [
   // and the customer's own count it bands against, joined under #140.
   "rivalSizes",
   "ownRanked",
+  // The rows that count is read off, kept for Improve under #780.
+  "ownRankings",
   "sources",
   "onPage",
   "robots",

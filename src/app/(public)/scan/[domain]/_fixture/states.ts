@@ -132,7 +132,7 @@ const FIXTURE_RECORD = {
   // constant in `tests/app/scan-address/report-view.test.tsx`, which runs
   // in node and may import it, so the two cannot drift (#352; the label
   // had been left at 3 through two migrations).
-  version: 8,
+  version: 9,
   scanId: "fixture-scan-1",
   domain: OWN_DOMAIN as CanonicalDomain,
   tier: "free",
