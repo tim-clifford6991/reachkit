@@ -10,25 +10,39 @@
 import type React from "react";
 import { TrendingUp } from "lucide-react";
 import { GrowthLine, type GrowthWeek } from "@/ui/charts";
-import { copy } from "@/lib/presentation/copy";
+import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { CHANGE_ACCOUNT_KEY } from "./changes";
 import { formatDate } from "../_shell/format";
 import { writtenLine } from "../_shell/written";
 import { GOALS } from "./goals";
-import { formatCount, formatMonthDay } from "./present";
+import { carriedBy, formatCount, formatMonthDay } from "./present";
 import type { GrowthModule as GrowthModuleModel } from "./growth";
+import type { Module } from "./model";
 
 const TEST_ID = "overview-growth";
 const SOURCE_TEST_ID = "overview-growth-source";
+const DELTA_TEST_ID = "overview-growth-delta";
+const SEARCHES_LABEL = "overview.tile.searches.label";
 
-function Card(p: { source?: string | null; children: React.ReactNode }): React.JSX.Element {
+function Card(p: {
+  source?: string | null;
+  /** The change since the previous reading, drawn beside the title. */
+  delta?: { markKey: CopyKey; text: string } | null;
+  children: React.ReactNode;
+}): React.JSX.Element {
   return (
     <section className="card card-border min-w-0 bg-base-100" data-testid={TEST_ID}>
       <div className="card-body gap-4 p-5">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="card-title text-xs font-semibold uppercase tracking-wide text-base-content/60">
             <TrendingUp aria-hidden size={20} strokeWidth={1.75} />
-            {copy("overview.tile.searches.label")}
+            {copy(SEARCHES_LABEL)}
+            {p.delta === null || p.delta === undefined ? null : (
+              <span className="badge badge-success badge-soft" data-testid={DELTA_TEST_ID}>
+                <span className="num">{copy(p.delta.markKey)}</span>
+                <span className="num">{p.delta.text}</span>
+              </span>
+            )}
           </h2>
           {p.source === null || p.source === undefined ? null : (
             <span className="badge badge-ghost num" data-testid={SOURCE_TEST_ID}>
@@ -52,9 +66,11 @@ function Footnotes(p: { lines: readonly (string | null)[] }): React.JSX.Element 
 
 export function GrowthModule(p: {
   growth: GrowthModuleModel;
+  /** The searches reading and its week-over-week delta (issue 794). */
+  searches?: Module<number>;
   timeZone: string;
 }): React.JSX.Element {
-  const label = copy("overview.tile.searches.label");
+  const label = copy(SEARCHES_LABEL);
 
   if (p.growth.kind === "none") {
     const line = writtenLine("place.overview.weekly-presence.chart");
@@ -111,9 +127,13 @@ export function GrowthModule(p: {
   const start = measured[0];
   const newest = measured.at(-1);
   const goal = GOALS.searches_appeared_in;
+  // The change since the previous reading, where the model took one. The
+  // goal already has its footnote, so only a delta is drawn.
+  const carried = p.searches === undefined ? null : carriedBy(p.searches.headline, SEARCHES_LABEL);
 
   return (
     <Card
+      delta={carried?.kind === "delta" ? carried : null}
       source={
         newest === undefined
           ? null
