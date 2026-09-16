@@ -7,7 +7,8 @@
 //   readProgress     `sites.setup_completed_at` — the one predicate every
 //                    account route consults, with no second copy
 //   commitSetup      `applySetupChoice()`'s mode-and-destination
-//                    transaction, then the three answers, then the stamp
+//                    transaction, then the three answers, the browser's
+//                    zone while the site has none, then the stamp
 //   enqueueDeepPass  `scan/run` at tier `deep`, on the queue
 //   resolvesInDns    §6.4's resolver, through the egress seam
 //
@@ -256,6 +257,21 @@ export function liveSetupStore(): SetupStore {
         // are committed, and a voice that did not store is the next
         // refresh's or Settings' to fix, never this founder's to answer
         // again.
+      }
+
+      // Issue #783: the browser's zone, before the stamp and so before the
+      // pass is queued — the pass's first-draft kickoff selects only a site
+      // with a zone. `adoptBrowserTimezone` decides everything: the IANA
+      // check, and a write only while the column is null. Swallowed for the
+      // voice's reason: an unusable zone never un-completes a setup, and
+      // `BrowserZone` still reports one on the next account screen.
+      if (a.submission.timezone !== null) {
+        try {
+          const { adoptBrowserTimezone } = await import("@/lib/publish/settings");
+          await adoptBrowserTimezone(a.siteId, a.submission.timezone);
+        } catch {
+          // `BrowserZone` is the fallback (#753).
+        }
       }
 
       const stamped = await untyped()

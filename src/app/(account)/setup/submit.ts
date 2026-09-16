@@ -55,6 +55,19 @@ export interface SetupSubmission {
    * submit and no second save control.
    */
   voiceText: string;
+  /**
+   * The browser's own IANA zone, as `Intl` reports it (issue #783). Not a
+   * decision and not an engine parameter: the founder is asked nothing, and
+   * it is the zone every date in the app is drawn in. It rides the submit
+   * so the site has one before the deep pass's first-draft kickoff selects
+   * it — that selection, the evening tick and the weekly pass all skip a
+   * site with no zone. `null` where the browser reported none.
+   *
+   * Stored only while `sites.timezone` is null, through the same check
+   * `adoptBrowserTimezone` gives `BrowserZone` (#753), which stays the
+   * fallback for a submit that carried none.
+   */
+  timezone: string | null;
 }
 
 export type SetupRefusal =

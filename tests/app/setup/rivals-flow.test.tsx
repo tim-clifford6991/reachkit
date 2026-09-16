@@ -54,8 +54,15 @@ const routes: Record<string, (request: Request, context: unknown) => Promise<Res
 
 const AT = new Date("2026-09-16T09:00:00.000Z");
 
+/** What the one submit sent to `POST /api/setup` (issue #783). */
+const submitted: Record<string, unknown>[] = [];
+
 /** The browser's requests, handed to the route handlers that serve them. */
 vi.stubGlobal("fetch", async (url: string, init: RequestInit) => {
+  if (url === "/api/setup") {
+    submitted.push(JSON.parse(String(init.body)) as Record<string, unknown>);
+    return Response.json({ ok: true, siteId: "site-1" });
+  }
   const handler = routes[url];
   if (handler === undefined) throw new Error(`no route for ${url}`);
   return handler(new Request(`https://reachkit.example${url}`, init), undefined);
@@ -104,6 +111,7 @@ const shown = (root: HTMLElement, id: string): boolean =>
 beforeEach(() => {
   document.body.innerHTML = "";
   resetSetupSession();
+  submitted.length = 0;
   competitorsDomain.mockReset();
   db = fakeDb({
     sites: [
@@ -124,6 +132,18 @@ describe("free upgrade — the report's rivals are on the card when the screen o
     });
     expect(root.querySelector('[data-testid="setup-competitors-selected"]')?.textContent).toContain("asana.com");
     expect(competitorsDomain).not.toHaveBeenCalled();
+  });
+});
+
+describe("issue #783 — the submit carries the browser's zone", () => {
+  it("the one submit sends the zone the browser reports, beside the three decisions", async () => {
+    const root = await mount();
+    await act(async () => {
+      (root.querySelector('[data-testid="setup-form"]') as HTMLFormElement).requestSubmit();
+    });
+    await until(() => submitted.length === 1);
+    expect(submitted[0]!.timezone).toBe(Intl.DateTimeFormat().resolvedOptions().timeZone);
+    expect(submitted[0]!.domain).toBe("example.com");
   });
 });
 

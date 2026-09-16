@@ -132,9 +132,13 @@ vi.mock("next/headers", () => ({
 // ── The job platform ────────────────────────────────────────────────────
 
 const jobEvents: { name: string; payload: Record<string, unknown> }[] = [];
+/** The site's zone at the moment each event was sent (issue #783): the
+ *  deep pass, and so its first-draft kickoff, starts from that event. */
+const zoneWhenSent: (string | null)[] = [];
 vi.mock("@/jobs/client", () => ({
   sendJobEvent: async (name: string, payload: Record<string, unknown>) => {
     jobEvents.push({ name, payload });
+    zoneWhenSent.push(site.timezone);
   },
 }));
 
@@ -369,7 +373,7 @@ interface SiteRow {
   mode: string;
   veto_hours: number;
   publish_time: string;
-  timezone: string;
+  timezone: string | null;
   publishing_enabled: boolean;
 }
 
@@ -469,6 +473,8 @@ const { addAuthUser, fakeIdentityAuth, newFakeAuth, signedInCookie } = await imp
   "../account/identity/fake-auth"
 );
 const { runDeepPass } = await import("../../src/lib/scan/deep/run");
+const { activeSites } = await import("../../src/jobs/engine");
+const { registerActiveAccessGate } = await import("../../src/lib/scan/weekly/access");
 const { passProgressFor } = await import("../../src/lib/scan/deep/progress");
 const { isReleased, deadlineFrom } = await import("../../src/lib/scan/deep/release");
 const { destinationFor, APP_PATH } = await import(
@@ -501,6 +507,7 @@ beforeEach(() => {
   rpcAnswers.apply_setup_choice = "destination-journey-04";
 
   jobEvents.length = 0;
+  zoneWhenSent.length = 0;
   modelCalls.length = 0;
   vendorRequests.length = 0;
   site = freshSite();
@@ -679,6 +686,37 @@ describe("three decisions → deep pass → the first page already on the calend
     expect(jobEvents.filter((event) => event.name === "scan/run")).toHaveLength(1);
   });
 
+  // ── Issue #783: the zone rides the submit ───────────────────────────
+  //
+  // `kickOffFirstDraft` selects the site through the evening tick's own
+  // list, which skips a site with no zone. `BrowserZone` only reports one
+  // after an account screen renders, so a founder who submitted before it
+  // answered got no first page. The submit carries the browser's zone now.
+  it("step 3 — a site with no zone takes the browser's on submit, before the pass is queued, and the first-draft selection picks it", async () => {
+    site.timezone = null;
+    db.rows.set("destinations", [{ site_id: SITE_ID }]);
+    registerActiveAccessGate(async (ids) => new Set(ids));
+    try {
+      // Without it, the selection the kickoff makes skips this site.
+      expect((await activeSites()).sites).toEqual([]);
+
+      const submitted = await submitTheThree({ timezone: "Europe/Lisbon" });
+      expect(submitted).toEqual({ status: 200, body: { ok: true, siteId: SITE_ID } });
+
+      expect(site.timezone).toBe("Europe/Lisbon");
+      expect(jobEvents.map((event) => event.name)).toEqual(["scan/run"]);
+      expect(zoneWhenSent).toEqual(["Europe/Lisbon"]);
+      expect((await activeSites()).sites).toEqual([{ siteId: SITE_ID, timeZone: "Europe/Lisbon" }]);
+    } finally {
+      registerActiveAccessGate(null);
+    }
+  });
+
+  it("step 3 — a zone the site already has is never overwritten by the browser's", async () => {
+    const submitted = await submitTheThree({ timezone: "Asia/Tokyo" });
+    expect(submitted.status).toBe(200);
+    expect(site.timezone).toBe(TIME_ZONE);
+  });
 
   // ── Issue #240: the WordPress arm of step 3 ─────────────────────────
   //

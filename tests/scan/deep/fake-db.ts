@@ -85,6 +85,15 @@ export function fakeDb(tables: Record<string, Row[]> = {}): FakeDb {
           limit() {
             return self;
           },
+          // PostgREST's `.single()`: exactly one matched row, or an error.
+          single() {
+            const hit = matched();
+            return Promise.resolve(
+              hit.length === 1
+                ? { data: { ...hit[0] }, error: null }
+                : { data: null, error: { message: `expected one row, matched ${hit.length}`, code: "PGRST116" } }
+            );
+          },
           then(resolve: (v: { data: Row[]; error: { message: string; code: string } | null }) => unknown) {
             if (inserted !== null) {
               const row = inserted;
