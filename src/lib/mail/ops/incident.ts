@@ -20,21 +20,26 @@ export function errorNameOf(error: unknown): string {
   return error instanceof Error ? error.name : "unknown";
 }
 
-export async function reportIncident(incident: OpsIncident): Promise<void> {
+/** Whether at least one owner address was accepted by the seam — the
+ *  answer a caller that carries its own once-ness stamps on (#796). */
+export async function reportIncident(incident: OpsIncident): Promise<boolean> {
   const mail = buildIncidentAlert(incident);
   let owners: readonly string[];
   try {
     owners = env.OWNER_EMAILS;
   } catch {
     log(incident.occasion, "no-owners");
-    return;
+    return false;
   }
+  let accepted = false;
   for (const to of owners) {
     try {
       const result = await sendEmail({ kind: "ops", to, subject: mail.subject, blocks: mail.blocks });
       log(incident.occasion, result.sent ? "sent" : result.reason);
+      if (result.sent) accepted = true;
     } catch {
       log(incident.occasion, "threw");
     }
   }
+  return accepted;
 }

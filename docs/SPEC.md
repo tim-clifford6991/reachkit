@@ -131,6 +131,7 @@ Pinned numbers live in `src/lib/config/constants.ts`. Newest dated line in a sec
   - Volume floor steps 50 → 20 → 10 /mo, only as far as needed to reach twelve questions. Each question records the step it came from, and that step is the “min” readiness checks it against.
   - A paid pass (deep or weekly) ends with at least one ready opportunity, or records *market too small* and tells the founder why. Too few questions is never a silent empty calendar.
 - 2026-09-16  Never pad (2026-09-11) still holds under these rules: the seeds, pool and volume steps widen which searches are measured; every other readiness gate stands unchanged.
+- 2026-09-16  Market too small, told to the owner (#796): a site’s first (deep) pass mails the owner at once; weekly passes are one owner digest per Monday listing their scan ids, sent once that Monday has ended in every zone — never one mail per site per week.
 
 **Done when** After local Monday, every measured number has a new date and a delta. Empty days show a written cause, not filler. A “not working” cluster publishes no new page for it the next week.
 

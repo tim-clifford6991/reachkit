@@ -16,7 +16,10 @@ export type OpsIncident =
   | { occasion: "boot-refused"; check: string; errorName: string }
   // Issue #770: no error — the market was read and was too small. The facts
   // are the scan's id and its tier, never the domain.
-  | { occasion: "market-too-small"; scanId: string; tier: string };
+  | { occasion: "market-too-small"; scanId: string; tier: string }
+  // Issue #796: the weekly passes of one Monday that found too little
+  // market, folded into one line a week rather than one mail per site.
+  | { occasion: "market-too-small-week"; weekStart: string; scanIds: readonly string[] };
 
 const SUBJECT = "mail.ops.incident.subject" satisfies CopyKey;
 const HEADING = "mail.ops.incident.heading" satisfies CopyKey;
@@ -26,6 +29,7 @@ const BODY: Readonly<Record<OpsIncident["occasion"], CopyKey>> = Object.freeze({
   "dead-lettered": "mail.ops.incident.dead-lettered",
   "boot-refused": "mail.ops.incident.boot-refused",
   "market-too-small": "mail.ops.incident.market-too-small",
+  "market-too-small-week": "mail.ops.incident.market-too-small-week",
 });
 
 /** A scan id is a UUID, and `closedName` would refuse one that starts with
@@ -40,7 +44,18 @@ export function closedName(value: string): string {
   return /^[A-Za-z][A-Za-z0-9_/-]{0,63}$/.test(value) ? value : "Error";
 }
 
+/** A week is a stored calendar date; anything else is written `unknown`. */
+function closedDate(value: string): string {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : "unknown";
+}
+
 function factsOf(incident: OpsIncident): FactRow[] {
+  if (incident.occasion === "market-too-small-week") {
+    return [
+      { label: "mail.ops.incident.fact.week", value: closedDate(incident.weekStart) },
+      ...incident.scanIds.map((id) => ({ label: "mail.ops.incident.fact.scan", value: closedId(id) }) as const),
+    ];
+  }
   if (incident.occasion === "market-too-small") {
     return [
       { label: "mail.ops.incident.fact.scan", value: closedId(incident.scanId) },

@@ -99,6 +99,8 @@ function engineDouble(): Record<string, unknown> {
     // Hosted health, refreshed on the tick (issue #791).
     hostedDestinationsDueHealth: none,
     refreshDestinationHealth: ran,
+    marketDigestsDue: none,
+    sendMarketDigest: ran,
   };
 }
 

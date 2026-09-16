@@ -731,10 +731,12 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
           : "pass_ended",
   });
 
-  // 8. #770: a paid pass (one with a site) that found too little market
-  //    tells the owner. Imported at the call, as `src/jobs/run.ts` does;
-  //    `reportIncident` never throws.
-  if (composed.marketTooSmall && a.siteId !== undefined) {
+  // 8. #770: a site's first (deep) pass that found too little market tells
+  //    the owner at once. A weekly pass is told in the owner's Monday digest
+  //    (#796, `./weekly/market-digest`), never one mail per site per week.
+  //    Imported at the call, as `src/jobs/run.ts` does; `reportIncident`
+  //    never throws.
+  if (composed.marketTooSmall && a.siteId !== undefined && a.tier === "deep") {
     const { reportIncident } = await import("@/lib/mail/ops");
     await reportIncident({ occasion: "market-too-small", scanId, tier: a.tier });
   }
