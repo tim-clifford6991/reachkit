@@ -191,13 +191,13 @@ describe('REQ-021 c5 — "Given a founder on a price surface with no report behi
     expect(ACTIONS_BODY).toContain('new URL("/pricing"');
   });
 
-  it("the report's own offer is unchanged: with no startAction the card renders its control bare", () => {
-    // `startAction` is additive. The report screen passes nothing, and must
-    // still get a control that is not wrapped in a form of this page's.
+  it("the report's offer carries its own action, never this page's (issue #785)", () => {
     const card = readFileSync(CARD_PATH, "utf8");
     expect(card).toContain("startAction?: () => Promise<void>");
     expect(card).toMatch(/p\.startAction \?/);
-    expect(readFileSync(REPORT_VIEW_PATH, "utf8")).toContain("<PricingCard />");
+    const reportView = readFileSync(REPORT_VIEW_PATH, "utf8");
+    expect(reportView).toContain("startReportCheckout");
+    expect(reportView).not.toContain("startCheckout}");
   });
 });
 

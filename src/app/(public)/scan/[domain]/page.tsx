@@ -54,6 +54,7 @@ import { resolveAddress } from "./_address/resolve";
 import { fixtureStateFor } from "./_fixture/states";
 import { PUBLIC_ROUTE_SEO } from "../../_seo/routes";
 import { publicMetadata } from "../../_seo/metadata";
+import { CHECKOUT_QUERY_KEY, REFUSED_MARKER, type PricingSearchParams } from "../../pricing/state";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -112,8 +113,10 @@ async function resolve(rawSegment: string): Promise<AddressState> {
 
 export default async function ScanAddressPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ domain: string }>;
+  searchParams?: Promise<PricingSearchParams>;
 }): Promise<React.JSX.Element> {
   const { domain } = await params;
   const raw = decodeURIComponent(domain);
@@ -130,5 +133,8 @@ export default async function ScanAddressPage({
   // that never do. `view.tsx` declares each arm's own arms, and the
   // `removed` arm brings its own from `_address/removal.tsx` (#28), so a
   // wrapper here would make two `[data-surface]` roots on that one arm.
-  return <AddressView state={state} />;
+  // Issue #785: a refused checkout from this report's offer comes back
+  // here with the marker, and the offer states it in its own line.
+  const checkoutRefused = (await searchParams)?.[CHECKOUT_QUERY_KEY] === REFUSED_MARKER;
+  return <AddressView state={state} checkoutRefused={checkoutRefused} />;
 }
