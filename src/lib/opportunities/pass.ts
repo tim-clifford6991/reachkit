@@ -33,6 +33,7 @@
 // `topUp`'s own header requires.
 import type { CostContext } from "@/lib/costs";
 import type { StoredReport } from "@/lib/scan/report";
+import type { InventoryRow } from "@/lib/site-profile/types";
 import type { DeriveInput } from "./derive";
 import { assessFixPages } from "./fix-page";
 import { opportunityStore } from "./store";
@@ -59,7 +60,12 @@ export function rankedCountsOf(report: StoredReport): RankedCounts {
   return rankedCountsFromSizes(report.rivalSizes.value, at);
 }
 
-function inputFor(a: { siteId: string; report: StoredReport; hostedHost: string | null }): DeriveInput {
+function inputFor(a: {
+  siteId: string;
+  report: StoredReport;
+  hostedHost: string | null;
+  inventory: readonly InventoryRow[];
+}): DeriveInput {
   return {
     siteId: a.siteId,
     scanId: a.report.scanId,
@@ -67,6 +73,7 @@ function inputFor(a: { siteId: string; report: StoredReport; hostedHost: string 
     ownRanked: a.report.ownRanked,
     rankedCounts: rankedCountsOf(a.report),
     hostedHost: a.hostedHost,
+    inventory: a.inventory,
   };
 }
 
@@ -92,8 +99,12 @@ export async function deriveForPass(
     hasActiveAccess: boolean;
   }
 ): Promise<PassOutcome> {
-  const hostedHost = await opportunityStore().hostedHostFor(a.siteId);
-  const input = inputFor({ siteId: a.siteId, report: a.report, hostedHost });
+  const store = opportunityStore();
+  const [hostedHost, inventory] = await Promise.all([
+    store.hostedHostFor(a.siteId),
+    store.inventoryFor(a.report.domain),
+  ]);
+  const input = inputFor({ siteId: a.siteId, report: a.report, hostedHost, inventory });
 
   // SPEC §9 (#690): this pass's scan retires the fixes it shows cleared
   // before anything is derived, so a page fixed last week is not re-derived

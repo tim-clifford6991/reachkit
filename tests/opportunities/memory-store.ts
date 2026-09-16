@@ -21,6 +21,7 @@ import type { Profile } from "../../src/lib/market/questions/profile";
 import type { EarnGrounding } from "../../src/lib/opportunities/earn-grounding";
 import type { NotWorkingVerdict } from "../../src/lib/opportunities/suppression";
 import type { StoredReport } from "../../src/lib/scan/report";
+import type { InventoryRow } from "../../src/lib/site-profile/types";
 
 export interface MemoryState {
   rows: OpportunityRow[];
@@ -40,6 +41,8 @@ export interface MemoryState {
   grounded: boolean;
   /** Which Earn assets the site's own pages ground (issue 478). */
   earnGrounding: EarnGrounding;
+  /** The pages the crawl read of the site's domain (#780). */
+  inventory: InventoryRow[];
 }
 
 export function newMemoryState(over: Partial<MemoryState> = {}): MemoryState {
@@ -55,6 +58,7 @@ export function newMemoryState(over: Partial<MemoryState> = {}): MemoryState {
     report: null,
     grounded: true,
     earnGrounding: { comparison_table: true, integration_page: true, original_data_page: true },
+    inventory: [],
     ...over,
   };
 }
@@ -231,6 +235,10 @@ export function memoryStore(state: MemoryState): OpportunityStore {
 
     async hostedHostFor() {
       return state.hostedHost;
+    },
+
+    async inventoryFor() {
+      return state.inventory;
     },
   };
 }

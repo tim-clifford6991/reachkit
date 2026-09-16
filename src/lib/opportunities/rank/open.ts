@@ -27,22 +27,48 @@ import { comparePrecedence } from "../cluster";
 import type { Opportunity, Ranked } from "../types";
 import { rankScore } from "./score";
 
-/** SPEC §6: Improve, then Earn, then Write, and the Write types in the
- *  owner's order (2026-09-15) — ahead of the score. Then descending score;
- *  ties broken by age, then by id. */
+/** Descending score; ties broken by age, then by id. */
+function byScore(
+  a: { opportunity: Opportunity; score: number },
+  b: { opportunity: Opportunity; score: number }
+): number {
+  if (b.score !== a.score) return b.score - a.score;
+  const age = a.opportunity.createdAt.getTime() - b.opportunity.createdAt.getTime();
+  if (age !== 0) return age;
+  return a.opportunity.id < b.opportunity.id ? -1 : a.opportunity.id > b.opportunity.id ? 1 : 0;
+}
+
+/** SPEC §7's daily decision (2026-09-16): an update of an existing page
+ *  (Improve) against a new page (Earn, Write), whichever ranks higher for
+ *  this site. The new pages keep their own order — Earn, then Write, and
+ *  the Write types in the owner's order (2026-09-15) ahead of the score —
+ *  and the updates are in score order; the two lists are merged by score,
+ *  an update taking a tie. Both sides carry the same right-sized fit, so a
+ *  target outsized for the site weighs nothing on either. Within one
+ *  topic an update still wins outright (§6: the cluster step keeps it). */
 export function orderRanked(
   scored: readonly { opportunity: Opportunity; score: number }[]
 ): Ranked[] {
-  return [...scored]
-    .sort((a, b) => {
-      const precedence = comparePrecedence(a.opportunity, b.opportunity);
-      if (precedence !== 0) return precedence;
-      if (b.score !== a.score) return b.score - a.score;
-      const age = a.opportunity.createdAt.getTime() - b.opportunity.createdAt.getTime();
-      if (age !== 0) return age;
-      return a.opportunity.id < b.opportunity.id ? -1 : a.opportunity.id > b.opportunity.id ? 1 : 0;
-    })
-    .map((entry) => ({ opportunityId: entry.opportunity.id, score: entry.score }));
+  const updates = scored.filter((entry) => entry.opportunity.family === "improve").sort(byScore);
+  const fresh = scored
+    .filter((entry) => entry.opportunity.family !== "improve")
+    .sort((a, b) => comparePrecedence(a.opportunity, b.opportunity) || byScore(a, b));
+
+  const merged: { opportunity: Opportunity; score: number }[] = [];
+  let u = 0;
+  let f = 0;
+  while (u < updates.length || f < fresh.length) {
+    const update = updates[u];
+    const next = fresh[f];
+    if (update !== undefined && (next === undefined || update.score >= next.score)) {
+      merged.push(update);
+      u += 1;
+    } else {
+      merged.push(next!);
+      f += 1;
+    }
+  }
+  return merged.map((entry) => ({ opportunityId: entry.opportunity.id, score: entry.score }));
 }
 
 function samePool(a: string | null, b: string | null): boolean {

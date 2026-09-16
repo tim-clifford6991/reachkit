@@ -19,6 +19,7 @@
 import { dbAdmin } from "@/lib/db";
 import type { Profile } from "@/lib/market/questions/profile";
 import { readStoredReport, type StoredReport } from "@/lib/scan/report";
+import type { InventoryRow } from "@/lib/site-profile/types";
 import type {
   Acceptance,
   Evidence,
@@ -148,6 +149,11 @@ export interface OpportunityStore {
   markOpen(opportunityId: string): Promise<void>;
   /** The host the site's live hosted destination serves at, or `null`. */
   hostedHostFor(siteId: string): Promise<string | null>;
+  /** The pages the crawl read of this domain (`site_profiles.inventory`) —
+   *  the update candidates the Improve family matches to the market's
+   *  questions (SPEC §7, 2026-09-16). Empty where no profile could be read:
+   *  Improve then reads only the ranked urls, never a guessed page. */
+  inventoryFor(domain: string): Promise<readonly InventoryRow[]>;
   /** The profile the ranking's intent term is classified against — §6.7's
    *  own, read out of the site's current stored report rather than derived
    *  a second time. `null` where the site has no readable report, which
@@ -467,6 +473,15 @@ export function supabaseOpportunityStore(): OpportunityStore {
         .limit(1);
       if (error) throw new Error(`opportunities.hostedHostFor: ${error.message}`);
       return data?.[0]?.hostname ?? null;
+    },
+
+    async inventoryFor(domain) {
+      try {
+        const { readSiteProfile } = await import("@/lib/site-profile/store");
+        return (await readSiteProfile(domain))?.inventory ?? [];
+      } catch {
+        return [];
+      }
     },
 
     async profileForSite(siteId) {
