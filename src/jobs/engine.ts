@@ -244,15 +244,22 @@ export async function runScan(a: {
         "the onboarding pass belongs to a site and the event must name it."
     );
   }
-  const deep = await runDeepPass({ siteId: a.siteId, domain: a.domain });
-  // SPEC §5: "Finishing setup reaches `/app` with a first draft" (issue 737).
-  // The founder is released by now; the first page is started here rather
-  // than waiting for the site's evening tick. Its outcome is logged, not
-  // returned: this job's result is the pass's, and a site the tick would
-  // not draft for yet (a destination still waiting for DNS) is not a
-  // degraded onboarding pass.
-  const first = await kickOffFirstDraft({ siteId: a.siteId, now: new Date() });
-  console.log(JSON.stringify({ event: "first_draft", siteId: a.siteId, outcome: first }));
+  const siteId = a.siteId;
+  const deep = await runDeepPass({
+    siteId,
+    domain: a.domain,
+    // SPEC §5: "Finishing setup reaches `/app` with a first draft" (issue
+    // 737). The first page is started here rather than waiting for the
+    // site's evening tick, and before the release (issue #782): the founder
+    // is already in the app, and its side panel stays on until this ends.
+    // Its outcome is logged, not returned: this job's result is the pass's,
+    // and a site the tick would not draft for yet (a destination still
+    // waiting for DNS) is not a degraded onboarding pass.
+    beforeRelease: async () => {
+      const first = await kickOffFirstDraft({ siteId, now: new Date() });
+      console.log(JSON.stringify({ event: "first_draft", siteId, outcome: first }));
+    },
+  });
   return deep.status === "degraded" ? { degraded: "deep-pass" } : { done: true };
 }
 

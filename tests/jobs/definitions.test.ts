@@ -84,6 +84,11 @@ function engineDouble(): Record<string, unknown> {
 async function load(): Promise<readonly JobDefinition[]> {
   stubEnv(false);
   vi.doMock("@/jobs/engine", () => engineDouble());
+  // Issue #782's obligation reads `sites` and `scans` through its own module.
+  vi.doMock("@/lib/scan/deep/backstop", () => ({
+    sitesWithoutDeepPass: async () => [],
+    deepPassDomain: async () => null,
+  }));
   const { jobs } = await import("@/jobs");
   return jobs;
 }
@@ -105,6 +110,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.doUnmock("@/jobs/engine");
+  vi.doUnmock("@/lib/scan/deep/backstop");
   vi.unstubAllEnvs();
   vi.resetModules();
   vi.restoreAllMocks();
@@ -680,6 +686,10 @@ describe("nothing fakes work — an unbuilt engine fails loudly", () => {
     vi.doMock("@/lib/scan/stuck", () => ({
       scansLeftRunning: async () => [],
       finishScanLeftRunning: async () => ({ finished: false }),
+    }));
+    vi.doMock("@/lib/scan/deep/backstop", () => ({
+      sitesWithoutDeepPass: async () => [],
+      deepPassDomain: async () => null,
     }));
     // SPEC §8's retention sequence (issue #569), stood in with nothing due.
     vi.doMock("@/lib/mail/retention", () => ({

@@ -402,6 +402,12 @@ export const TIMING = Object.freeze({
   // headroom under the ceiling, the same margin the ceiling keeps under the
   // platform's. Reversal cost: one pin.
   reportTargetS: 40, reportCeilingS: 50, deepReleaseMin: 10, progressHeartbeatS: 30,
+  /** Issue #782: how long after setup completes a site with no ended deep
+   *  pass is re-sent one by `account/maintenance` — past the release
+   *  deadline, so a pass that is merely slow has had its window — and how
+   *  far back that look goes: the queue's own idempotency window, inside
+   *  which a re-send is dropped for a pass already queued. */
+  deepPassBackstopMin: 15, deepPassBackstopH: 24,
   /** The platform's own ceiling on the `POST /api/scan` invocation, in
    *  seconds — `export const maxDuration` on that route, which must stay a
    *  literal there because Next reads route segment config out of the

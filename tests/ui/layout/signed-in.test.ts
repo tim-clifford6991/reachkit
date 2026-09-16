@@ -81,7 +81,7 @@ describe("§4.3 — signed in as a founder still in setup, the setup screens ans
   // address it came from, so if either redirect started applying to this
   // account the sweep would keep passing against re-photographed pictures of
   // the overview. This fails first, and says which screen moved.
-  it.each(["/setup", "/setup/waiting"])("%s is itself, not the app", async (path) => {
+  it.each(["/setup"])("%s is itself, not the app", async (path) => {
     expect(await landsAt(path, getSetupAccountCookie())).toBe(path);
   }, 60_000);
 

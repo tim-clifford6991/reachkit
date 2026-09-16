@@ -208,6 +208,35 @@ describe("the completion is committed before the pass is enqueued", () => {
     expect(recorder.committed).toHaveLength(1);
   });
 
+  it("issue #782 — a failed send is retried, and a send that then lands is sent once", async () => {
+    let attempts = 0;
+    const { store, recorder } = storeOf({
+      enqueueDeepPass: async (siteId) => {
+        attempts += 1;
+        if (attempts === 1) throw new Error("the queue blinked");
+        recorder.enqueued.push(siteId);
+      },
+    });
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const result = await completeSetup(store, { userId: USER, submission: SUBMISSION });
+    expect(result).toEqual({ ok: true, siteId: SITE });
+    expect(attempts).toBe(2);
+    expect(recorder.enqueued).toEqual([SITE]);
+  });
+
+  it("issue #782 — a queue that stays down is tried a bounded number of times, and the founder is still complete", async () => {
+    let attempts = 0;
+    const { store } = storeOf({
+      enqueueDeepPass: async () => {
+        attempts += 1;
+        throw new Error("the queue is down");
+      },
+    });
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    expect(await completeSetup(store, { userId: USER, submission: SUBMISSION })).toEqual({ ok: true, siteId: SITE });
+    expect(attempts).toBe(3);
+  });
+
   it("the commit happens first — the enqueue never runs against an uncommitted setup", async () => {
     const order: string[] = [];
     const { store } = storeOf({

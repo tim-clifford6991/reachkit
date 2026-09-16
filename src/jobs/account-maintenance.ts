@@ -48,6 +48,7 @@ import {
   stopHosting,
   type EngineResult,
 } from "@/jobs/engine";
+import { deepPassBackstop } from "./deep-pass-backstop";
 import { MAINTENANCE_TICK_MINUTES } from "@/lib/config/constants";
 import { fanOut, settle } from "./fan-out";
 import type { JobDefinition, Outcome } from "./types";
@@ -97,6 +98,7 @@ const DUE_WORK: readonly {
   // has passed, so `destination_working` stops depending on a founder
   // opening Settings after their record verifies.
   { due: hostedDestinationsDueHealth, handOff: refreshDestinationHealth },
+  deepPassBackstop,
 ]);
 
 export const accountMaintenance: JobDefinition = {

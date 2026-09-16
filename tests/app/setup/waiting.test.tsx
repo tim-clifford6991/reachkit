@@ -13,18 +13,17 @@ vi.mock("next/navigation", () => ({
   redirect: vi.fn(),
 }));
 
-import { Waiting, type WaitingRow } from "@/app/(account)/setup/waiting/Waiting";
 import { APP_PATH, destinationFor } from "@/app/(account)/setup/waiting/release";
 import {
   DRAWN_ROWS,
   drawnStages,
   ROW_COPY_KEY,
   ROW_STAGES,
+  rowOf,
 } from "@/app/(account)/setup/_setup/stages";
 import { ProgressStrip } from "@/app/(account)/setup/_setup/ProgressStrip";
 import { COPY } from "@/lib/presentation/copy";
 import { TIMING } from "@/lib/config/constants";
-import type { StageName } from "@/lib/scan/stages";
 
 function render(el: React.ReactElement): Element {
   const container = document.createElement("div");
@@ -32,139 +31,37 @@ function render(el: React.ReactElement): Element {
   return container;
 }
 
-/** The rows the server would draw for a pass at `stage`, with every
- *  sentence resolved the way `waiting/page.tsx` resolves it. No elapsed
- *  times unless a caller supplies entries. */
-function rowsAt(
-  stage: StageName,
-  enteredAt: Readonly<Partial<Record<StageName, string>>> = {}
-): readonly WaitingRow[] {
-  return drawnStages({ stage, enteredAt }).map((drawn) => ({
-    id: drawn.row,
-    label: COPY[ROW_COPY_KEY[drawn.row]],
-    state: drawn.state,
-    time:
-      drawn.state === "current"
-        ? COPY["setup.waiting.stage.running"]
-        : drawn.seconds === null
-          ? null
-          : COPY["setup.waiting.stage.elapsed"].replace("{seconds}", String(drawn.seconds)),
-  }));
-}
-
-function waitingAt(
-  stage: StageName,
-  enteredAt: Readonly<Partial<Record<StageName, string>>> = {}
-): Element {
-  return render(<Waiting rows={rowsAt(stage, enteredAt)} />);
-}
-
 describe('c1 — "they see which step is under way in written words rather than a bare spinner, [and] the step named is the step actually running"', () => {
-  it("the five drawn rows render, each named, and one of them is current", () => {
-    // UI-SPEC S11's five rows, not the engine's six handles: three of the
-    // handles are drawn on the first row and two on the second.
-    const tree = waitingAt("reading_your_market");
-    const rows = Array.from(tree.querySelectorAll('[data-testid="setup-waiting"] > li'));
-    expect(rows).toHaveLength(DRAWN_ROWS.length);
-    expect(rows).toHaveLength(5);
-    const current = rows.filter((row) => row.getAttribute("data-state") === "current");
-    expect(current).toHaveLength(1);
-    expect(current[0]?.textContent).toContain(COPY["setup.waiting.stage.measuring-your-market"]);
+  // Issue #782: the waiting screen is gone and the app's side panel names
+  // the step (`tests/app/shell/onboarding.test.tsx` renders it). What stays
+  // here is the mapping it names the step through.
+  it("every handle the engine can report lands on a drawn row", () => {
+    for (const row of DRAWN_ROWS) {
+      for (const stage of ROW_STAGES[row]) expect(rowOf(stage), stage).toBe(row);
+    }
+  });
+
+  it("the first draft, written before the release, is the fourth row", () => {
+    expect(rowOf("writing_first_draft")).toBe("writing_your_first_page");
+    const states = drawnStages({ stage: "writing_first_draft", enteredAt: {} }).map((row) => row.state);
+    expect(states).toEqual(["done", "done", "done", "current", "pending"]);
   });
 
   it("a handle on the second drawn row makes the first one done", () => {
-    const tree = waitingAt("checking_your_presence");
-    const states = Array.from(tree.querySelectorAll('[data-testid="setup-waiting"] > li')).map((row) =>
-      row.getAttribute("data-state")
-    );
+    const states = drawnStages({ stage: "checking_your_presence", enteredAt: {} }).map((row) => row.state);
     expect(states).toEqual(["done", "current", "pending", "pending", "pending"]);
   });
 
-  it("every handle the engine can report lands on a drawn row, and marks it current", () => {
-    // The mapping is total: no stage leaves the screen with no row lit,
-    // which would be the bare spinner REQ-029 c1 forbids.
-    for (const row of DRAWN_ROWS) {
-      for (const stage of ROW_STAGES[row]) {
-        const tree = waitingAt(stage);
-        const current = Array.from(tree.querySelectorAll('[data-testid="setup-waiting"] > li')).find(
-          (node) => node.getAttribute("data-state") === "current"
-        );
-        expect(current?.getAttribute("data-testid"), stage).toBe(`setup-stage-${row}`);
-      }
-    }
-  });
-
-  it("there is no bare spinner and no indeterminate bar: every mark carries a label", () => {
-    const tree = waitingAt("scoring");
-    expect(tree.querySelectorAll("progress")).toHaveLength(0);
-    for (const row of Array.from(tree.querySelectorAll('[data-testid="setup-waiting"] > li'))) {
-      expect((row.textContent ?? "").trim().length).toBeGreaterThan(0);
-    }
-  });
-});
-
-describe("REQ-029 c1 as the approved set amends it — a finished row's time, and no clock", () => {
-  // This block asserted that nothing on the screen stated a duration at
-  // all, on the 2026-09-06 ruling. UI-SPEC S11 draws an elapsed time
-  // beside every finished row, ruling 11a makes the drawing the
-  // reference, and `sites.setup_stage_times` records the instants a
-  // duration is computed from. So the rule is now: a **finished** row may
-  // state one, the running row states a dash, and nothing anywhere
-  // estimates, counts down or shows a percentage.
-  const FORBIDDEN = /(~\s*\d|%|remaining|eta\b|countdown|\d{1,2}:\d{2})/i;
-
-  /** A pass on the third drawn row, with the two before it timed — the
-   *  state S11 draws. */
-  const ENTERED = {
-    reading_your_site: "2026-09-05T09:31:00.000Z",
-    checking_your_presence: "2026-09-05T09:31:41.000Z",
-    scoring: "2026-09-05T09:31:59.000Z",
-  } as const;
-
-  it("a finished row states its own elapsed time, from the pass's own instants", () => {
-    const tree = waitingAt("scoring", ENTERED);
-    const times = Array.from(tree.querySelectorAll('[data-testid="setup-stage-time"]')).map((n) => n.textContent);
-    // 41 s and 18 s are the differences between consecutive entries — the
-    // very durations the set prints — and the running row's dash.
-    expect(times).toEqual(["41 s", "18 s", COPY["setup.waiting.stage.running"]]);
-  });
-
-  it("the running row states a dash, never a running clock", () => {
-    const tree = waitingAt("scoring", ENTERED);
-    const current = Array.from(tree.querySelectorAll('[data-testid="setup-waiting"] > li')).find(
-      (row) => row.getAttribute("data-state") === "current"
-    );
-    expect(current?.querySelector('[data-testid="setup-stage-time"]')?.textContent).toBe(
-      COPY["setup.waiting.stage.running"]
-    );
-  });
-
-  it("a row the pass recorded no instant for states no time at all", () => {
-    // Never a zero: a duration nobody measured is not a duration of none.
-    const tree = waitingAt("scoring");
-    expect(tree.querySelectorAll('[data-testid="setup-stage-time"]')).toHaveLength(1);
-  });
-
-  it("a row that has not begun states nothing", () => {
-    const tree = waitingAt("reading_your_site", ENTERED);
-    const pending = Array.from(tree.querySelectorAll('[data-testid="setup-waiting"] > li[data-state="pending"]'));
-    expect(pending.length).toBeGreaterThan(0);
-    for (const row of pending) expect(row.querySelector('[data-testid="setup-stage-time"]')).toBeNull();
-  });
-
-  it("nothing estimates, counts down, shows a clock or a percentage", () => {
-    for (const row of DRAWN_ROWS) {
-      for (const stage of ROW_STAGES[row]) {
-        expect(waitingAt(stage, ENTERED).textContent ?? "", stage).not.toMatch(FORBIDDEN);
-      }
-    }
-  });
-
-  it("mutation check: the scan does catch what it forbids", () => {
-    expect("~3 minutes").toMatch(FORBIDDEN);
-    expect("40% done").toMatch(FORBIDDEN);
-    expect("2:15 remaining").toMatch(FORBIDDEN);
-    expect("41 s").not.toMatch(FORBIDDEN);
+  it("a finished row's time is the difference between the pass's own instants — never a clock", () => {
+    const drawn = drawnStages({
+      stage: "scoring",
+      enteredAt: {
+        reading_your_site: "2026-09-05T09:31:00.000Z",
+        checking_your_presence: "2026-09-05T09:31:41.000Z",
+        scoring: "2026-09-05T09:31:59.000Z",
+      },
+    });
+    expect(drawn.map((row) => row.seconds)).toEqual([41, 18, null, null, null]);
   });
 });
 
@@ -180,7 +77,7 @@ describe('c2 — "when it ends, then the founder is taken into the app without a
     );
   });
 
-  it("a running pass renders the frame instead of redirecting", () => {
+  it("a running pass is not released", () => {
     expect(destinationFor({ running: true, stage: "scoring", enteredAt: {} })).toBeNull();
   });
 });
@@ -202,8 +99,8 @@ describe("the drawn rows span the engine's stages exactly, and the poll cadence 
   });
 
   it("the last two rows hold no handle, and that is the set's drawing", () => {
-    // §8's writing and §9's checking are past the scan's six handles, and
-    // the founder is released as they happen. The set draws both rows
+    // §8's writing and §9's checking are past the scan's six handles. The
+    // first draft lights row four through its own stage (issue #782). The set draws both rows
     // blank; a row that can never be current is deliberate here.
     expect(ROW_STAGES.writing_your_first_page).toHaveLength(0);
     expect(ROW_STAGES.checking_it).toHaveLength(0);

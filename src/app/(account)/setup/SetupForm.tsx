@@ -85,9 +85,10 @@ const SUBMIT_REFUSAL_COPY = {
   string
 >;
 
-/** Where the one submit leads (§4.3). An internal route name, not a
+/** Where the one submit leads: straight into the app, the pass running in
+ *  the background (issue #782). An internal route name, not a
  *  customer-visible string. */
-const WAITING_PATH = "/setup/waiting";
+const APP_PATH = "/app";
 
 async function resolveDomain(host: string): Promise<ResolveDomainResponse> {
   const response = await fetch("/api/setup/domain", {
@@ -204,12 +205,12 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
         body: JSON.stringify(submission),
       });
       const body = (await response.json()) as SetupResult;
-      // §4.3: the submit leads to the progress screen, which releases into
-      // the app when the pass ends. A founder who had already completed
-      // setup goes to the same place, and is asked nothing again
-      // (REQ-025 c4).
+      // Issue #782: the submit leads straight into the app, where the side
+      // panel says which step of the pass is under way. A founder who had
+      // already completed setup goes to the same place, and is asked
+      // nothing again (REQ-025 c4).
       if (body.ok || body.refused === "already_complete") {
-        router.push(WAITING_PATH);
+        router.push(APP_PATH);
         return;
       }
       setSubmitRefusal(body.refused);

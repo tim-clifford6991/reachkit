@@ -35,7 +35,7 @@
 // the stages spent, on the report the pass just stored. A derivation that
 // finds nothing is a normal return: §4.3 releases the founder either way
 // and "zero proposals is legal, never faked".
-import type { StageName } from "../stages";
+import { FIRST_DRAFT_STAGE, type OnboardingStage } from "./progress";
 import { dbAdmin } from "@/lib/db";
 import { deriveForPass } from "@/lib/opportunities";
 import { claimOnboardingPass, runScan } from "../run";
@@ -75,7 +75,7 @@ export function reasonFor(status: ScanStatus): ReleaseReason {
  */
 async function recordStage(
   siteId: string,
-  stage: StageName | null,
+  stage: OnboardingStage | null,
   opts: { reset?: boolean } = {}
 ): Promise<void> {
   try {
@@ -118,6 +118,12 @@ async function recordStage(
 export async function runDeepPass(a: {
   siteId: string;
   domain: string;
+  /** The work that belongs to onboarding after the scan and before the
+   *  release — the first draft (issue #782). The founder is already in the
+   *  app; the release is what clears their side panel, so it waits for the
+   *  first page rather than announcing an app with none in it. A throw here
+   *  never holds the release. */
+  beforeRelease?: () => Promise<void>;
 }): Promise<{ scanId: string; status: ScanStatus; reason: ReleaseReason }> {
   // The timings belong to one pass, so the map is cleared before this one
   // rather than added to whatever a previous pass left — two passes'
@@ -166,6 +172,15 @@ export async function runDeepPass(a: {
     await adoptVoiceText({ siteId: a.siteId, domain: a.domain });
   } catch {
     // Settings and the next weekly refresh read it again.
+  }
+
+  if (a.beforeRelease !== undefined) {
+    await recordStage(a.siteId, FIRST_DRAFT_STAGE);
+    try {
+      await a.beforeRelease();
+    } catch (error) {
+      console.warn(JSON.stringify({ event: "before_release_failed", siteId: a.siteId, detail: String(error) }));
+    }
   }
 
   const reason = reasonFor(result.status);
