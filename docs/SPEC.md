@@ -95,6 +95,7 @@ Pinned numbers live in `src/lib/config/constants.ts`. Newest dated line in a sec
 - Voice is paid-only, built at setup, editable there and in settings (2026-09-12). Inventory and site name are shown as read.
 - The profile crawl honours `robots.txt` per path and its `Crawl-delay` (capped at 1 s), holds at most 8 MB in total, and aborts reads still in flight at its time budget (2026-09-12).
 - Waiting names the step, is live at least every 30 s, no percentage, no promised duration. Degraded pass still releases with one sentence; ten minutes releases regardless.
+- 2026-09-16  The first draft and the evening drafts are written and wait in review while the destination is still pending — hosted DNS not yet resolving, WordPress not yet connected. Publishing still waits for a destination that works.
 
 **Done when** Finishing setup reaches `/app` with a first draft. A sixth competitor is refused. CNAME for the chosen label is shown; destination reads waiting then live. Voice edit persists in settings. Wrong WordPress password shows destination health, no vendor text.
 

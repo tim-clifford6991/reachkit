@@ -100,10 +100,15 @@ describe("a site the tick must not prepare a page for", () => {
     expect(await sitesForDailyTick()).toEqual({ sites: [], held: null });
   });
 
-  it("a destination that is not working — the guard's own test, `health = 'ok'`", async () => {
-    db.seed("sites", [site("s1")]);
-    db.seed("destinations", [destination("s1", { health: "expired" })]);
-    expect(await sitesForDailyTick()).toEqual({ sites: [], held: null });
+  it("a destination still pending is prepared a page — SPEC §5, owner 2026-09-16 (issue 744)", async () => {
+    // Hosted waiting for DNS, and WordPress not connected yet: the page is
+    // written and waits in review. Publishing is where health is decided
+    // (`destination_working`), so nothing goes out to either.
+    for (const over of [{ health: "expired" }, { health: "error" }, { health: "expired", publish_capable: false }]) {
+      db.seed("sites", [site("s1")]);
+      db.seed("destinations", [destination("s1", over)]);
+      expect((await sitesForDailyTick()).sites).toEqual([{ siteId: "s1", timeZone: ZONE }]);
+    }
   });
 
   it("a disconnected destination is not one — its credential was destroyed", async () => {
@@ -112,25 +117,10 @@ describe("a site the tick must not prepare a page for", () => {
     expect(await sitesForDailyTick()).toEqual({ sites: [], held: null });
   });
 
-  it("cannot_publish outranks a health that has not been re-read since (ADR-086)", async () => {
-    // The discriminating case: the probe found the credential cannot
-    // publish and the row still reads `ok`. Dropping the `publish_capable`
-    // filter passes every other test in this file and fails this one.
-    db.seed("sites", [site("s1")]);
-    db.seed("destinations", [destination("s1", { health: "ok", publish_capable: false })]);
-    expect(await sitesForDailyTick()).toEqual({ sites: [], held: null });
-  });
-
   it("a destination nobody has probed is not refused — null is 'not asked', never 'no'", async () => {
     db.seed("sites", [site("s1")]);
     db.seed("destinations", [destination("s1", { publish_capable: null })]);
     expect((await sitesForDailyTick()).sites).toHaveLength(1);
-  });
-
-  it("one site's broken destination never takes another site's page down with it", async () => {
-    db.seed("sites", [site("s1"), site("s2")]);
-    db.seed("destinations", [destination("s1", { health: "error" }), destination("s2")]);
-    expect((await sitesForDailyTick()).sites.map((s) => s.siteId)).toEqual(["s2"]);
   });
 });
 
@@ -172,9 +162,9 @@ describe("active access is asked of the gate that owns it (#201, ADR-050)", () =
       return new Set(siteIds);
     });
     db.seed("sites", [site("s1"), site("s2"), site("s3", { publishing_enabled: false })]);
-    db.seed("destinations", [destination("s1"), destination("s2", { health: "error" }), destination("s3")]);
+    db.seed("destinations", [destination("s1"), destination("s2")]);
     await sitesForDailyTick();
-    expect(asked).toEqual([["s1"]]);
+    expect(asked).toEqual([["s1", "s2"]]);
   });
 
   it("no candidate means no question — the gate is not asked at all", async () => {
