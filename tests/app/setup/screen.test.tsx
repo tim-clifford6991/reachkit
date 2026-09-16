@@ -413,7 +413,7 @@ describe("REQ-028 c2 — the destination, and no mode (SPEC §7, #476)", () => {
 
   it("c2 — the CNAME record is shown once the address is known, in the numeral face", () => {
     const tree = screenFor();
-    const record = tree.querySelector('[data-testid="setup-dns-record"]');
+    const record = tree.querySelector('[data-testid="dns-record"]');
     expect(record).not.toBeNull();
     expect(record?.className).toContain("num");
     expect(record?.textContent).toContain("CNAME");
@@ -434,11 +434,11 @@ describe("REQ-028 c2 — the destination, and no mode (SPEC §7, #476)", () => {
 
   it("the record carries the state the hostname is in, in the same two words settings reads back", () => {
     const tree = screenFor();
-    expect(tree.querySelector('[data-testid="setup-dns-state"]')?.textContent).toBe(
+    expect(tree.querySelector('[data-testid="dns-state"]')?.textContent).toBe(
       COPY["settings.destination.hostname.waiting"]
     );
     // Nothing to be in a state about before there is a record.
-    expect(screenFor(SCANLESS).querySelector('[data-testid="setup-dns-state"]')).toBeNull();
+    expect(screenFor(SCANLESS).querySelector('[data-testid="dns-state"]')).toBeNull();
   });
 
   it("the WordPress card names what connecting will ask for, and asks for none of it here", () => {
@@ -464,7 +464,7 @@ describe("REQ-028 c2 — the destination, and no mode (SPEC §7, #476)", () => {
   it("c2 — with no address given, one written line stands where the record will sit; no blank, dash or placeholder", () => {
     const tree = screenFor(SCANLESS);
     const pending = tree.querySelector('[data-testid="setup-dns-pending"]');
-    expect(tree.querySelector('[data-testid="setup-dns-record"]')).toBeNull();
+    expect(tree.querySelector('[data-testid="dns-record"]')).toBeNull();
     expect(pending).not.toBeNull();
     const text = (pending?.textContent ?? "").trim();
     expect(text.length).toBeGreaterThan(0);

@@ -19,13 +19,19 @@
 import type { CopyKey } from "@/lib/presentation/copy";
 import type { WorkStop } from "@/lib/presentation/stopped";
 
+/** The saved setting holding pages back (REQ-043 c4). A hosted host still
+ *  waiting for its CNAME is its own member, apart from any other destination
+ *  that is not working, because it has its own remedy: the record Settings
+ *  shows (#754). */
+export type HeldBySetting = "publishing_off" | "destination_pending_dns" | "destination_disconnected";
+
 /** REQ-043 criteria 3, 4 and 5. One account per date, resolved in one fixed
  *  order, total. */
 export type EmptyAccount =
   | { cause: "instruction"; opportunityId: string }
   | { cause: "reachkit_stopped" }
   | { cause: "page_cannot_go_live"; state: "skipped" | "unpublished" }
-  | { cause: "customer_change_holds_pages"; setting: "publishing_off" | "destination_disconnected" }
+  | { cause: "customer_change_holds_pages"; setting: HeldBySetting }
   /** REQ-071 c11 (issue #204): a market answer the customer replaced is
    *  holding generation until the pass that adopts it. It carries the one
    *  held answer and the date pages resume — `generationHold()`'s own two
@@ -108,7 +114,7 @@ export interface EmptyFacts {
    *  both to `null`), or `null` where there is no such draft. */
   pageCannotGoLive: "skipped" | "unpublished" | null;
   /** A change the customer saved that holds pages back, or `null`. */
-  customerChangeHoldsPages: "publishing_off" | "destination_disconnected" | null;
+  customerChangeHoldsPages: HeldBySetting | null;
   /** REQ-071 c11: the market answer being replaced, and the date pages
    *  resume — `generationHold()`'s `held: true` arm, or `null` where
    *  nothing is being replaced. Read, never derived here. */
@@ -161,6 +167,10 @@ export const LAW_CAUSES: readonly EmptyCause[] = Object.freeze([
 
 export type CalendarOwnCause = Exclude<EmptyCause, "reachkit_stopped" | "unattributed">;
 
+/** The calendar's own causes that speak one line whatever they carry. The
+ *  held-by-setting cause is not one: each setting has its own line. */
+export type OneLineCause = Exclude<CalendarOwnCause, "customer_change_holds_pages">;
+
 export function isLawCause(cause: EmptyCause): cause is "reachkit_stopped" | "unattributed" {
   return cause === "reachkit_stopped" || cause === "unattributed";
 }
@@ -169,13 +179,22 @@ export function isLawCause(cause: EmptyCause): cause is "reachkit_stopped" | "un
  *  cell**. The two law causes are absent by type, so this file cannot name
  *  their key again: adding one back is a compile error, not a review
  *  comment. */
-export const EMPTY_COPY_KEY: Record<CalendarOwnCause, CopyKey> = {
+export const EMPTY_COPY_KEY: Record<OneLineCause, CopyKey> = {
   instruction: "calendar.empty.instruction",
   page_cannot_go_live: "calendar.empty.page-cannot-go-live",
-  customer_change_holds_pages: "calendar.empty.customer-change-holds-pages",
   change_holds_generation: "calendar.empty.change-holds-pages",
   page_held: "calendar.empty.page-held",
   supply_exhausted: "cause.supply-exhausted",
+};
+
+/** REQ-043 c4's held date, one line per setting (#754). The app knows which
+ *  setting it is, so the date says that one — and a host waiting for its
+ *  CNAME points the customer at the record — rather than one sentence
+ *  offering every cause. The same line in the cell and the panel. */
+export const HELD_BY_SETTING_COPY_KEY: Record<HeldBySetting, CopyKey> = {
+  publishing_off: "calendar.empty.customer-change-holds-pages.publishing-off",
+  destination_pending_dns: "calendar.empty.customer-change-holds-pages.destination-pending-dns",
+  destination_disconnected: "calendar.empty.customer-change-holds-pages.destination-disconnected",
 };
 
 /**
@@ -196,9 +215,9 @@ export const EMPTY_COPY_KEY: Record<CalendarOwnCause, CopyKey> = {
  * twice rather than gaining a second, unwritten one. A cause that grows a
  * panel form later changes one row here and nothing else — and a cause
  * added to the union fails both maps on the day it is added, which is what
- * `Record<CalendarOwnCause, …>` is for.
+ * `Record<OneLineCause, …>` is for.
  */
-export const EMPTY_ACCOUNT_COPY_KEY: Record<CalendarOwnCause, CopyKey> = {
+export const EMPTY_ACCOUNT_COPY_KEY: Record<OneLineCause, CopyKey> = {
   ...EMPTY_COPY_KEY,
   supply_exhausted: "calendar.empty.supply-exhausted",
 };

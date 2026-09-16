@@ -98,7 +98,7 @@ describe("/setup", () => {
 
   it("the CNAME record points at the deployment's own edge binding, never a literal in a card", async () => {
     const tree = await renderPage(() => import("@/app/(account)/setup/page"));
-    const record = tree.querySelector('[data-testid="setup-dns-record"]');
+    const record = tree.querySelector('[data-testid="dns-record"]');
     // The fixture env's `HOSTED_EDGE_CNAME_TARGET`.
     expect(record?.textContent).toContain("content.example.com");
   });

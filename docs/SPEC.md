@@ -98,6 +98,7 @@ Pinned numbers live in `src/lib/config/constants.ts`. Newest dated line in a sec
 - Waiting names the step, is live at least every 30 s, no percentage, no promised duration. Degraded pass still releases with one sentence; ten minutes releases regardless.
 - 2026-09-16  The first draft and the evening drafts are written and wait in review while the destination is still pending — hosted DNS not yet resolving, WordPress not yet connected. Publishing still waits for a destination that works.
 - 2026-09-16  The deep pass's `scans` row is claimed when setup accepts the founder's address; a stated market's suggested rivals (`competitors_domain`) are spent against that row, and the deep pass adopts it rather than inserting a second. A free upgrade's suggestions are its report's own rivals, bought for nothing.
+- 2026-09-16  Settings shows the hosted CNAME record (name, type, value) for as long as the host is waiting for DNS — the same record setup showed, not only once at setup (#754). A calendar date held by a setting names the one setting that holds it; a host waiting for its CNAME points at that record. Those lines are `TODO(copy)` until the owner writes them.
 
 **Done when** Finishing setup reaches `/app` with a first draft. A sixth competitor is refused. CNAME for the chosen label is shown; destination reads waiting then live. Voice edit persists in settings. Wrong WordPress password shows destination health, no vendor text.
 

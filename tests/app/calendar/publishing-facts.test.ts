@@ -88,6 +88,7 @@ function seed(a: {
   publications?: Row[];
   publishingEnabled?: boolean;
   destinationHealth?: string;
+  hostnameState?: string | null;
 }): void {
   db.reset();
   db.seed("sites", [
@@ -102,7 +103,14 @@ function seed(a: {
     },
   ]);
   db.seed("destinations", [
-    { id: "dest-1", site_id: SITE_ID, kind: "hosted", health: a.destinationHealth ?? "ok", config: null },
+    {
+      id: "dest-1",
+      site_id: SITE_ID,
+      kind: "hosted",
+      health: a.destinationHealth ?? "ok",
+      config: null,
+      hostname_state: a.hostnameState ?? "live",
+    },
   ]);
   db.seed("drafts", a.drafts ?? []);
   db.seed("publications", a.publications ?? []);
@@ -325,6 +333,18 @@ describe("the empty-date arms, from rows", () => {
     expect(cellFor(model, "2026-09-20")?.empty).toEqual({
       cause: "customer_change_holds_pages",
       setting: "destination_disconnected",
+    });
+  });
+
+  it("customer_change_holds_pages: a host still waiting for its CNAME is named as that, not as disconnected (#754)", async () => {
+    seed({ destinationHealth: "expired", hostnameState: "pending_dns" });
+
+    const facts = await readCalendarFacts({ site: SITE, month: MONTH, now: NOW });
+    expect(facts.customerChangeHoldsPages).toBe("destination_pending_dns");
+    const model = assembleMonth(facts, MONTH);
+    expect(cellFor(model, "2026-09-20")?.empty).toEqual({
+      cause: "customer_change_holds_pages",
+      setting: "destination_pending_dns",
     });
   });
 
