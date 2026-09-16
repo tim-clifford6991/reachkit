@@ -60,6 +60,9 @@ function Pane(p: { children: React.ReactNode }): React.JSX.Element {
 
 export function AddressView(p: {
   state: AddressState;
+  /** Issue #785: the report's checkout came back refused. Read by the
+   *  report arm's offer only. */
+  checkoutRefused?: boolean;
 }): React.JSX.Element {
   const state = p.state;
   switch (state.kind) {
@@ -152,7 +155,7 @@ export function AddressView(p: {
       );
 
     case "report":
-      return <ReportView state={state} />;
+      return <ReportView state={state} checkoutRefused={p.checkoutRefused} />;
 
     default: {
       const exhaustive: never = state;

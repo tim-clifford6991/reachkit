@@ -12,9 +12,8 @@
 // — which travels into `offer.veto.window.value`'s `{hours}` slot, so
 // "24h veto" is written down once, in `constants.ts`.
 //
-// The start control is a link to checkout in the shipped journey (§3, §13,
-// issue #33). Until that lands it is a control with no destination rather
-// than an invented one.
+// The start control begins checkout (§3, §13): on the report its origin is
+// the report's scan (issue #785), on `/pricing` it is scanless.
 //
 // **It is the report's one solid primary** (DESIGN rule 1). Start keeps
 // the fill because it is the paying path; the free-page control is outline.
@@ -31,8 +30,8 @@
 // "on the same terms the offer at the end of a report states (criterion
 // 2)"; the strongest reading of that is one component, rendered twice, so
 // the two cannot drift by construction. Everything above the control is
-// identical either way; only where Start goes differs, and the report
-// screen passes nothing and is unchanged.
+// identical either way; only where Start goes differs — the report screen
+// passes its own report-origin action (issue #785).
 import type React from "react";
 import { Check } from "lucide-react";
 import { VETO } from "@/lib/config/constants";

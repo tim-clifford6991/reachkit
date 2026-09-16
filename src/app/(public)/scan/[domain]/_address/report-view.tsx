@@ -46,6 +46,7 @@ import { RemovalAddressLine } from "./removal";
 import type { AddressControl, AddressNotice } from "./state";
 import { refusalLine } from "./refusal";
 import { VerdictStrip } from "./verdict";
+import { startReportCheckout } from "./checkout";
 // #103: the category has one home — the market the profile inferred.
 // `categoryOf` is the one derivation of it, and the screen reads it here
 // rather than from a second member the blob used to carry.
@@ -184,6 +185,7 @@ export function ReportView(p: {
     notice: AddressNotice | null;
     control: AddressControl;
   };
+  checkoutRefused?: boolean;
 }): React.JSX.Element {
   const { report, notice, control } = p.state;
   const measuredOn = formatMeasuredOn(report.verdict.measuredAt);
@@ -300,7 +302,12 @@ export function ReportView(p: {
           )}
         </div>
         <div className="col-span-full mx-auto w-full max-w-xl">
-          <PricingCard />
+          {/* Issue #785: Start buys from this report — its scan is the
+              checkout's origin, so the site is provisioned on this domain. */}
+          <PricingCard
+            startAction={startReportCheckout.bind(null, report.domain, report.scanId)}
+            refused={p.checkoutRefused === true}
+          />
         </div>
 
         <div className="text-base-content/60 col-span-full text-sm">

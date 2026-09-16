@@ -104,31 +104,47 @@ export const accountMaintenance: JobDefinition = {
   trigger: { kind: "cron", cron: MAINTENANCE_CRON },
   idempotencyKey: [],
   async run(): Promise<Outcome> {
+    // Every obligation runs, whatever the one before it did (issue #797).
+    // A tick that returned at the first degraded or throwing check starved
+    // everything behind it in the list — one unprovisionable payment held
+    // every hosting notice, purge, reminder, stuck-scan finish and
+    // retention mail for as long as it stayed due. So each check is its own
+    // try: what it degraded and what it threw are collected, and reported
+    // together once the last one has run.
     let handedOff = 0;
+    const degraded: string[] = [];
+    const failures: unknown[] = [];
     for (const { due, handOff } of DUE_WORK) {
-      // An obligation whose engine has not shipped is skipped, loudly, and
-      // the other five still run. Before issue #36 the first unbuilt query
-      // took the whole tick down with it, which meant the *built*
-      // obligations behind it in this list never ran either — a purge held
-      // and a hosting notice withheld because an unrelated node had not
-      // landed. Only `EngineNotBuilt` is caught: a query that fails for any
-      // other reason still stops the tick, because that is a fault, not an
-      // absence.
-      let subjects: readonly string[];
       try {
-        subjects = await due();
+        const subjects = await due();
+        handedOff += subjects.length;
+        const settled = settle(await fanOut(subjects, (subjectId) => handOff(subjectId)), null);
+        if (settled.outcome === "degraded") degraded.push(settled.step);
       } catch (error) {
-        if (!(error instanceof EngineNotBuilt)) throw error;
-        console.warn(
-          JSON.stringify({ event: "maintenance_obligation_not_built", engine: error.engine })
+        // An obligation whose engine has not shipped is skipped, loudly —
+        // an absence, not a fault, so it fails nothing.
+        if (error instanceof EngineNotBuilt) {
+          console.warn(
+            JSON.stringify({ event: "maintenance_obligation_not_built", engine: error.engine })
+          );
+          continue;
+        }
+        console.error(
+          JSON.stringify({
+            event: "maintenance_obligation_failed",
+            message: error instanceof Error ? error.message : String(error),
+          })
         );
-        continue;
+        failures.push(error);
       }
-      handedOff += subjects.length;
-      const results = await fanOut(subjects, (subjectId) => handOff(subjectId));
-      const settled = settle(results, null);
-      if (settled.outcome === "degraded") return settled;
     }
+    // A fault still fails the run, so the platform records it — but only
+    // after every other obligation has had its turn.
+    if (failures.length === 1) throw failures[0];
+    if (failures.length > 1) {
+      throw new AggregateError(failures, `account/maintenance: ${failures.length} obligations failed`);
+    }
+    if (degraded.length > 0) return { outcome: "degraded", subjectId: null, step: degraded.join(",") };
     return handedOff === 0
       ? { outcome: "skipped", subjectId: null, reason: "no-subject" }
       : { outcome: "ran", subjectId: null };
