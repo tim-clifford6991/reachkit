@@ -4,7 +4,8 @@
 // tone prop — rival strength is never red) · the written figure · a `was`
 // badge. Below `RATIO_UNLOCK` the cold-start arm shows absolute counts
 // beside the customer's own and never the gap-shrinking line. Week 0 draws
-// no rows, only when sizing arrives.
+// the deep pass's sizes as the starting rows and says so (#793); where the
+// deep pass sized nobody it draws no rows, only when sizing arrives.
 //
 // A far rival (REQ-096 c6) carries one line and one link to the
 // competitors card under its own row — both sentences or neither.
@@ -91,10 +92,10 @@ function RivalRow(p: {
 export function RivalModule(p: {
   rivals: RivalGapModule;
   timeZone: string;
-  weekZero?: { firstDueOn: Date } | null;
+  weekZero?: { firstDueOn: Date; startingOn: Date } | null;
 }): React.JSX.Element {
   const weekZero = p.weekZero ?? null;
-  if (weekZero !== null) {
+  if (weekZero !== null && !anySized(p.rivals)) {
     const line = writtenLine("overview.rivals.line.week-zero", {
       due: formatDate(weekZero.firstDueOn, p.timeZone),
     });
@@ -102,6 +103,13 @@ export function RivalModule(p: {
   }
 
   const line = writtenLine(p.rivals.lineKey);
+  const starting =
+    weekZero === null
+      ? null
+      : writtenLine("overview.rivals.line.starting", {
+          on: formatDate(weekZero.startingOn, p.timeZone),
+          due: formatDate(weekZero.firstDueOn, p.timeZone),
+        });
   const windowLine = comparisonWindow(p.rivals, p.timeZone);
 
   const rows =
@@ -140,6 +148,7 @@ export function RivalModule(p: {
         </p>
       ) : null}
       {line === null ? null : <p className="text-xs text-base-content/60">{line}</p>}
+      {starting === null ? null : <p className="text-xs text-base-content/60">{starting}</p>}
       {windowLine === null ? null : (
         <p className="num text-xs text-base-content/60" data-testid="overview-rivals-comparison-window">
           {windowLine}
@@ -147,6 +156,13 @@ export function RivalModule(p: {
       )}
     </Card>
   );
+}
+
+/** Whether any row carries a measured size — week 0 draws rows only then. */
+function anySized(rivals: RivalGapModule): boolean {
+  return rivals.kind === "absolute"
+    ? rivals.rivals.some((rival) => rival.ranked.kind !== "unmeasured")
+    : rivals.rivals.some((rival) => rival.ratio.kind !== "unmeasured");
 }
 
 /** REQ-071 c13 — the window this card compared over, where a change fell
