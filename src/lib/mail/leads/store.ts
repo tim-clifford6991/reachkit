@@ -36,6 +36,22 @@ export type FirstPageState = "pending" | "written" | "sent" | "notice_sent" | "a
 
 export type SuppressionCause = "opt_out" | "subscribed";
 
+/** The report's one free page (issue 826), stored on the scan that offered
+ *  it so every lead on that report is mailed the same page. `writing` is a
+ *  writer's claim on the scan; `written` carries the page; `refused` is the
+ *  hard rules' answer, recorded once. A scan nobody has claimed reads `null`. */
+export type ScanFirstPage =
+  | { readonly state: "writing"; readonly claimedAt: Date }
+  | { readonly state: "written"; readonly title: string; readonly markdown: string }
+  | { readonly state: "refused" };
+
+/** How a claimed write ends: the page, the refusal, or — when no page was
+ *  produced — the claim released so a later lead may try. */
+export type ScanFirstPageSettlement =
+  | { readonly state: "written"; readonly title: string; readonly markdown: string }
+  | { readonly state: "refused" }
+  | { readonly state: "released" };
+
 export interface LeadRow {
   readonly id: string;
   readonly scan_id: string;
@@ -127,6 +143,23 @@ export interface LeadStore {
    *  `ports.ts` reads it through `readStoredReport`. `null` where the scan
    *  has no report (yet). */
   scanReport(scanId: string): Promise<{ ok: true; report: unknown } | { ok: false }>;
+
+  /** The report's stored free page, or `null` where no writer holds it. */
+  scanFirstPage(scanId: string): Promise<{ ok: true; page: ScanFirstPage | null } | { ok: false }>;
+
+  /** Takes the scan for one write: succeeds where nobody holds it, or where
+   *  the holder's claim is older than `staleBefore` (its writer never
+   *  finished). A conditional update, so two ticks cannot both win. */
+  claimScanFirstPage(
+    scanId: string,
+    now: Date,
+    staleBefore: Date
+  ): Promise<{ ok: true; claimed: boolean } | { ok: false }>;
+
+  settleScanFirstPage(
+    scanId: string,
+    settlement: ScanFirstPageSettlement
+  ): Promise<{ ok: true } | { ok: false }>;
 }
 
 interface QueryResult<T> {
@@ -142,6 +175,7 @@ interface MinimalQueryBuilder<T> extends PromiseLike<QueryResult<T>> {
   eq(column: string, value: string): MinimalQueryBuilder<T>;
   in(column: string, values: readonly unknown[]): MinimalQueryBuilder<T>;
   is(column: string, value: null): MinimalQueryBuilder<T>;
+  lt(column: string, value: string): MinimalQueryBuilder<T>;
   order(column: string, options: { ascending: boolean }): MinimalQueryBuilder<T>;
   limit(count: number): MinimalQueryBuilder<T>;
 }
@@ -165,6 +199,31 @@ const LEAD_COLUMNS =
  *  index carries it, and it is the one error this module reports as an
  *  outcome rather than a failure. */
 const UNIQUE_VIOLATION = "23505";
+
+interface ScanFirstPageRow {
+  readonly free_page_state: "writing" | "written" | "refused" | null;
+  readonly free_page_claimed_at: string | null;
+  readonly free_page_title: string | null;
+  readonly free_page_markdown: string | null;
+}
+
+/** The row's four columns as the one union. A `written` row without its page
+ *  is refused by the schema's check; one read anyway is treated as unclaimed
+ *  rather than mailed empty. */
+function firstPageOf(row: ScanFirstPageRow): ScanFirstPage | null {
+  switch (row.free_page_state) {
+    case "writing":
+      return { state: "writing", claimedAt: new Date(row.free_page_claimed_at ?? 0) };
+    case "written":
+      return row.free_page_title === null || row.free_page_markdown === null
+        ? null
+        : { state: "written", title: row.free_page_title, markdown: row.free_page_markdown };
+    case "refused":
+      return { state: "refused" };
+    default:
+      return null;
+  }
+}
 
 export function supabaseLeadStore(): LeadStore {
   return {
@@ -266,6 +325,49 @@ export function supabaseLeadStore(): LeadStore {
         .limit(1);
       if (error) return { ok: false };
       return { ok: true, report: data?.[0]?.report ?? null };
+    },
+
+    async scanFirstPage(scanId) {
+      const { data, error } = await untyped()
+        .from<ScanFirstPageRow>("scans")
+        .select("free_page_state, free_page_claimed_at, free_page_title, free_page_markdown")
+        .eq("id", scanId)
+        .limit(1);
+      if (error) return { ok: false };
+      const row = data?.[0];
+      return { ok: true, page: row === undefined ? null : firstPageOf(row) };
+    },
+
+    async claimScanFirstPage(scanId, now, staleBefore) {
+      const claim = { free_page_state: "writing", free_page_claimed_at: now.toISOString() };
+      const fresh = await untyped()
+        .from<{ id: string }>("scans")
+        .update(claim)
+        .eq("id", scanId)
+        .is("free_page_state", null)
+        .select("id");
+      if (fresh.error) return { ok: false };
+      if ((fresh.data?.length ?? 0) > 0) return { ok: true, claimed: true };
+      const stale = await untyped()
+        .from<{ id: string }>("scans")
+        .update(claim)
+        .eq("id", scanId)
+        .eq("free_page_state", "writing")
+        .lt("free_page_claimed_at", staleBefore.toISOString())
+        .select("id");
+      if (stale.error) return { ok: false };
+      return { ok: true, claimed: (stale.data?.length ?? 0) > 0 };
+    },
+
+    async settleScanFirstPage(scanId, settlement) {
+      const patch =
+        settlement.state === "written"
+          ? { free_page_state: "written", free_page_title: settlement.title, free_page_markdown: settlement.markdown }
+          : settlement.state === "refused"
+            ? { free_page_state: "refused" }
+            : { free_page_state: null, free_page_claimed_at: null };
+      const { error } = await untyped().from<{ id: string }>("scans").update(patch).eq("id", scanId);
+      return error ? { ok: false } : { ok: true };
     },
   };
 }

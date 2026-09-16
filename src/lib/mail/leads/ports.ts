@@ -41,9 +41,9 @@ export type OfferReader = (
   scanId: string
 ) => Promise<{ read: true; page: OfferedPage | null } | { read: false }>;
 
-/** The page itself. One call per lead, ever — the guard is
- *  `giveaway.ts`'s, because it is a fact about the lead row, not about
- *  this port. `refused` distinguishes §8's hard rules and claim check
+/** The page itself. One call per report, ever — the guard is
+ *  `giveaway.ts`'s, because it is a fact about the scan row (issue 826), not
+ *  about this port. `refused` distinguishes §8's hard rules and claim check
  *  turning a page down from the pipeline failing to produce one: REQ-010
  *  criterion 7 owes the founder the cause, and those are two causes. */
 export type DraftWriter = (a: {

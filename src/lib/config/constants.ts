@@ -696,6 +696,10 @@ export const NURTURE_MAX_TOUCHES = 3 as const;                // BP-029 · REQ-0
 export const SEQUENCE_START_DEADLINE_DAYS = 7 as const;       // BP-029 · REQ-010 c12
 export const FIRST_PAGE_RETRY_WINDOW_H = 24 as const;         // BP-029 · REQ-010 c8
 export const FIRST_PAGE_RETRY_MINUTES = Object.freeze([5, 30, 120, 360, 720, 1440] as const);  // BP-029 d4
+/** A writer's claim on a report's free page older than this never finished (its
+ *  invocation died): the next lead may take the scan and write it. Longer than
+ *  any one job invocation can live. SPEC §2 (issue 826, chosen). */
+export const FIRST_PAGE_CLAIM_STALE_MINUTES = 30 as const;
 
 /** Overview's headline goal **values** (BP-038). Numbers only: BP-038's `GOALS`
  *  pairs each with its copy key and is the one home of the pairing, so this file

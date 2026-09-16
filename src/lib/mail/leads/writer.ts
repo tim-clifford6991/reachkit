@@ -12,8 +12,9 @@
 // costs about 6.5¢ and is spent only on an identified lead (`giveaway.ts`).
 //
 // **Nothing is stored here.** The page travels back to `deliverFirstPage`,
-// which keeps it on the lead row so a retry re-sends it and never re-writes.
-// There is no regeneration: one call per lead, ever.
+// which stores it on the scan so every lead on the report is mailed the same
+// page, and a retry re-sends it and never re-writes. There is no
+// regeneration: one call per report, ever (issue 826).
 import { BATTERY, BRIEF_MAX_FACTS } from "@/lib/config/constants";
 import { withCostContext } from "@/lib/costs";
 import { DRAFT_POLICY_VERSION } from "@/lib/generate/cost";
