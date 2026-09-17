@@ -33,7 +33,11 @@
 // which `hasActiveAccess()` puts on the import graph of surfaces all over
 // the product, so dragging a database client behind it would be paid for
 // everywhere and needed nowhere.
-import { registerActiveAccessGate, sitesWithActiveAccess } from "@/lib/scan/weekly/access";
+import {
+  activeAccessGateRegistered,
+  registerActiveAccessGate,
+  sitesWithActiveAccess,
+} from "@/lib/scan/weekly/access";
 import { hasActiveAccess } from "./gate";
 
 /** Which of these sites' owners have active access right now — ADR-050's
@@ -53,10 +57,11 @@ async function activeAccessForSites(siteIds: readonly string[]): Promise<Readonl
  * question through **the same door the weekly selection uses**, with an
  * empty set — which `sitesWithActiveAccess` answers without reaching a
  * database — so what is established is that a reader on this module graph
- * gets an answer rather than a throw. The failure it catches is a boot that
- * registered into one instance of `access.ts` while the jobs route reads
- * another; the symptom of that, without this, is a Monday tick that throws
- * in production and nowhere else.
+ * gets an answer rather than a throw. It proves nothing about any other
+ * module graph: Next bundles instrumentation apart from each route, so the
+ * `/api/jobs` route reads its own instance of `access.ts`, which this call
+ * never reaches (issue 863). That route's readers call
+ * `ensureActiveAccessGate()` below instead.
  *
  * It throws rather than logging. Instrumentation's own line is between a
  * fact this deployment can establish and a vendor it could not reach: this
@@ -66,4 +71,18 @@ async function activeAccessForSites(siteIds: readonly string[]): Promise<Readonl
 export async function installActiveAccessGate(): Promise<void> {
   registerActiveAccessGate(activeAccessForSites);
   await sitesWithActiveAccess("installActiveAccessGate", []);
+}
+
+/**
+ * Registers the gate on the caller's own module graph if nothing has yet.
+ *
+ * Issue 863: the gate `src/instrumentation.ts` registers lives in
+ * instrumentation's bundle, and the `/api/jobs` route bundle carries a
+ * second instance of `access.ts` that nothing registered — every daily
+ * tick held `access-unreadable` for a paying site. The jobs engine calls
+ * this before each selection that asks the gate. A gate already registered
+ * (a test's double, or a second tick) is left alone.
+ */
+export async function ensureActiveAccessGate(): Promise<void> {
+  if (!activeAccessGateRegistered()) await installActiveAccessGate();
 }

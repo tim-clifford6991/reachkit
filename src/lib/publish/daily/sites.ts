@@ -144,8 +144,15 @@ export async function sitesForDailyTick(): Promise<DailySelection> {
       "sitesForDailyTick",
       candidates.map((site) => site.siteId)
     );
-  } catch {
-    logSelection({ sites: withAZone.length, withDestination: candidates.length, paying: null });
+  } catch (error) {
+    // The error's class and never its message (issue 863): a hold must be
+    // diagnosable from this line alone.
+    logSelection({
+      sites: withAZone.length,
+      withDestination: candidates.length,
+      paying: null,
+      errorClass: error instanceof Error ? error.name : "unknown",
+    });
     return { sites: [], held: "access-unreadable" };
   }
 
@@ -164,6 +171,7 @@ function logSelection(fields: {
   sites: number;
   withDestination: number;
   paying: number | null;
+  errorClass?: string;
 }): void {
   console.log(JSON.stringify({ event: "daily_site_selection", ...fields }));
 }

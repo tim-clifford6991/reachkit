@@ -33,6 +33,14 @@ export function registerActiveAccessGate(fn: ActiveAccessGate | null): void {
   gate = fn;
 }
 
+/** Whether this module instance has a gate. Asked by billing's
+ *  `ensureActiveAccessGate()` so a route graph that instrumentation never
+ *  reached registers its own, and a test's double is never replaced
+ *  (issue 863). */
+export function activeAccessGateRegistered(): boolean {
+  return gate !== null;
+}
+
 export class ActiveAccessGateNotRegistered extends Error {
   constructor(caller: string) {
     super(

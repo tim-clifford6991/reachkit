@@ -202,6 +202,21 @@ describe("a gate that cannot be read holds the tick, and says so", () => {
     expect(await sitesForDailyTick()).toEqual({ sites: [], held: "access-unreadable" });
   });
 
+  it("the hold's line names the error's class and nothing of its message (issue 863)", async () => {
+    const logged: string[] = [];
+    const spy = vi.spyOn(console, "log").mockImplementation((line: unknown) => void logged.push(String(line)));
+    registerActiveAccessGate(async () => {
+      throw new TypeError("secret-site.example could not be read");
+    });
+    db.seed("sites", [site("s1")]);
+    db.seed("destinations", [destination("s1")]);
+    await sitesForDailyTick();
+    spy.mockRestore();
+    expect(logged.map((line) => JSON.parse(line))).toEqual([
+      { event: "daily_site_selection", sites: 1, withDestination: 1, paying: null, errorClass: "TypeError" },
+    ]);
+  });
+
   it("a gate that throws is the same answer — fail closed on spend", async () => {
     registerActiveAccessGate(async () => {
       throw new Error("billing store unreadable");

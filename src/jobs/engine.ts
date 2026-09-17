@@ -85,12 +85,23 @@ export class EngineNotBuilt extends Error {
 // environment the moment it is imported, and a static import here would
 // put a database client in every module graph this seam appears in.
 
+/** Billing's gate, registered on this route's own module graph (issue 863).
+ *  `src/instrumentation.ts` registers it into instrumentation's bundle,
+ *  which is not the instance of `access.ts` the `/api/jobs` bundle reads;
+ *  without this every daily tick held `access-unreadable`. Imported at the
+ *  call: billing reaches `@/lib/db`. */
+async function ensureAccessGate(): Promise<void> {
+  const { ensureActiveAccessGate } = await import("@/lib/account/billing");
+  await ensureActiveAccessGate();
+}
+
 /** What one evening tick found: every site ReachKit is still working for
  *  that a page could actually reach and whose owner is paying, with its
  *  own time zone — and, where the access gate could not be read, no site
  *  and the reason. Read by `draft/generate`'s fan-out, which gates each
  *  row on the site's own evening. */
 export async function activeSites(): Promise<DailySelection> {
+  await ensureAccessGate();
   const { sitesForDailyTick } = await import("@/lib/publish/daily");
   return sitesForDailyTick();
 }
@@ -109,6 +120,7 @@ export type { DueSite } from "@/lib/scan/weekly";
  *  active access, and that carries no measurement for the week it is in
  *  (ADR-060). */
 export async function weeklyDueSites(now: Date): Promise<readonly DueSite[]> {
+  await ensureAccessGate();
   return dueSites(now);
 }
 
@@ -133,6 +145,7 @@ export async function weeklyDueSites(now: Date): Promise<readonly DueSite[]> {
  *  of. Only a week with no measurement at all sends nothing, and that
  *  decision is `sendWeeklyDigest`'s, read from `accountForWeek`. */
 export async function startWeeklyScan(a: DueSite & { readonly now: Date }): Promise<EngineResult> {
+  await ensureAccessGate();
   const outcome = await runWeekly({
     siteId: a.siteId,
     domain: a.domain,

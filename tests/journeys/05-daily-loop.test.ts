@@ -729,8 +729,12 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
     expect((await engine.activeSites()).sites).toEqual([]);
 
     // And a tick that cannot read the gate prepares nothing and says why,
-    // rather than spending on a guess in either direction.
-    registerActiveAccessGate(null);
+    // rather than spending on a guess in either direction. A gate that
+    // throws, not an unregistered one: the engine registers billing's own
+    // where nothing has (issue 863).
+    registerActiveAccessGate(async () => {
+      throw new Error("billing store unreadable");
+    });
     expect(await engine.activeSites()).toEqual({ sites: [], held: "access-unreadable" });
     payingCustomer();
     expect((await engine.activeSites()).sites).toHaveLength(1);
