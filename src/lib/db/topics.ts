@@ -49,6 +49,8 @@ export const MIGRATION_TOPICS: readonly MigrationTopic[] = [
   { token: "destinations", owner: "BP-058" },
   { token: "leads", owner: "BP-029" },
   { token: "suppressions", owner: "BP-029" },
+  // The job heartbeat (issue #799): `job_runs`, written by `src/jobs/run.ts`.
+  { token: "jobs", owner: "issue 799" },
 ];
 
 // The open sub-token list (`structure.md` rule 3a) — each narrows exactly

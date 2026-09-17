@@ -9,6 +9,7 @@
 // This file names no platform and holds no job logic: it imports the eight
 // definitions and hands them to `serveJobs()`.
 import { serveJobs } from "./client";
+import { installHeartbeat } from "./heartbeat";
 import { scanRun } from "./scan-run";
 import { draftGenerate } from "./draft-generate";
 import { publishExecute } from "./publish-execute";
@@ -31,7 +32,10 @@ export const jobs: readonly JobDefinition[] = Object.freeze([
   accountMaintenance,
 ]);
 
+/** Mounting the registry is also what installs the heartbeat (issue #799):
+ *  where jobs are served, each run is recorded against this schedule. */
 export function serve() {
+  installHeartbeat(jobs);
   return serveJobs(jobs);
 }
 

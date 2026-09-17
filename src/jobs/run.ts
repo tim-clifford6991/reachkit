@@ -10,6 +10,7 @@
 // own retry and its dashboard are what a failure is for, and swallowing it
 // here would turn a broken engine into a silent success.
 import { observeKillSwitchEngaged, stoppedByKillSwitch } from "./kill-switch";
+import { beat } from "./heartbeat";
 import { recordInvocation } from "./observability";
 import type { JobDefinition, JobInput, Outcome } from "./types";
 
@@ -74,6 +75,7 @@ export async function runJob(definition: JobDefinition, input: JobInput): Promis
       outcome: "stopped",
       durationMs: Date.now() - started,
     });
+    await beat(definition.id, "stopped", input.now);
     return outcome;
   }
 
@@ -86,6 +88,8 @@ export async function runJob(definition: JobDefinition, input: JobInput): Promis
       durationMs: Date.now() - started,
       ...(outcome.outcome === "degraded" ? { step: outcome.step } : {}),
     });
+    // Issue #799: the job's last run and outcome, and the stale-job check.
+    await beat(definition.id, outcome.outcome, input.now);
     return outcome;
   } catch (error) {
     recordInvocation({
@@ -94,6 +98,7 @@ export async function runJob(definition: JobDefinition, input: JobInput): Promis
       outcome: "failed",
       durationMs: Date.now() - started,
     });
+    await beat(definition.id, "failed", input.now);
     // Issue 330: the owner hears of a failing job on its first delivery
     // only — a retry that fails again is the same failure, and one whose
     // retries run out is told once more, as dead-lettered.
