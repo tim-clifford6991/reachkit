@@ -23,6 +23,21 @@ export async function sendDeepPass(a: { siteId: string; domain: string }): Promi
   });
 }
 
+/** The `scan/run` payload for one pass measured again now (issue 837).
+ *  `scanId` is the fresh row `claimRemeasurePass` claimed — a new key per
+ *  press, so each allowed press starts exactly one pass — and `remeasure`
+ *  tells the pass it adopts that row rather than the site's onboarding one. */
+export async function sendRemeasure(a: { scanId: string; siteId: string; domain: string }): Promise<void> {
+  const { sendJobEvent } = await import("./client");
+  await sendJobEvent("scan/run", {
+    scanId: a.scanId,
+    domain: a.domain,
+    tier: "deep",
+    siteId: a.siteId,
+    remeasure: true,
+  });
+}
+
 export const deepPassBackstop = Object.freeze({
   async due(): Promise<readonly string[]> {
     const { sitesWithoutDeepPass } = await import("@/lib/scan/deep/backstop");

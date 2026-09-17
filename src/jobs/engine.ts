@@ -236,6 +236,8 @@ export async function runScan(a: {
   readonly siteId?: string;
   /** The job's durable steps, where it has them (issue 798). */
   readonly step?: StepRunner;
+  /** A pass measured again now, on the row its request claimed (issue 837). */
+  readonly remeasure?: boolean;
 }): Promise<EngineResult> {
   if (a.tier !== SCAN_RUN_TIER) throw new NotAJobPath(a.tier, `runScan(${a.scanId})`);
   if (a.siteId === undefined) {
@@ -252,6 +254,7 @@ export async function runScan(a: {
     siteId,
     domain: a.domain,
     ...(a.step === undefined ? {} : { step: a.step }),
+    ...(a.remeasure === true ? { remeasure: true } : {}),
     // SPEC §5: "Finishing setup reaches `/app` with a first draft" (issue
     // 737). The first page is started here rather than waiting for the
     // site's evening tick, and before the release (issue #782): the founder

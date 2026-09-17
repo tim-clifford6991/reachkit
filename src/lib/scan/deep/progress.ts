@@ -84,24 +84,37 @@ export async function passProgressFor(
 ): Promise<DeepPassProgress> {
   const release = await isReleased(siteId, now);
   if (release.released) {
-    return { running: false, degraded: release.reason !== "completed" };
+    // A released founder whose market is being measured again now (issue
+    // 837) is shown that pass's steps, in the same panel, until it ends.
+    const { remeasureUnderWay } = await import("./remeasure");
+    const stage = await readStage(siteId);
+    if ((stage.setup_stage ?? null) === null || !(await remeasureUnderWay(siteId, release.at, now))) {
+      return { running: false, degraded: release.reason !== "completed" };
+    }
+    return running(stage);
   }
+  return running(await readStage(siteId));
+}
 
+async function readStage(siteId: string): Promise<StageRow> {
   const { data, error } = await (dbAdmin() as unknown as MinimalClient)
     .from<StageRow>("sites")
     .select("setup_stage, setup_stage_times")
     .eq("id", siteId)
     .limit(1);
   if (error) throw new Error(`passProgressFor: ${error.message}`);
+  return data?.[0] ?? { setup_stage: null, setup_stage_times: null };
+}
 
-  const recorded = data?.[0]?.setup_stage ?? null;
+function running(row: StageRow): DeepPassProgress {
+  const recorded = row.setup_stage ?? null;
   return {
     running: true,
     stage: isStage(recorded) ? recorded : STAGES[0]!,
     // Only the handles this engine knows: a key the column carries that
     // `STAGES` does not name is a stage from an older shape, and a screen
     // that timed it would draw a row it has no name for.
-    enteredAt: knownEntries(data?.[0]?.setup_stage_times ?? null),
+    enteredAt: knownEntries(row.setup_stage_times ?? null),
   };
 }
 

@@ -20,8 +20,9 @@ import { applyEnvFixture } from "../../mail/env-fixture";
 
 applyEnvFixture();
 
-const { appAccount, saveDomain, saveCategory, saveRivals, declaredAnswers, resolvesInDns, redirect, revalidated } =
+const { appAccount, saveDomain, saveCategory, saveRivals, declaredAnswers, resolvesInDns, redirect, revalidated, startRemeasure } =
   vi.hoisted(() => ({
+    startRemeasure: vi.fn(),
     appAccount: vi.fn(),
     saveDomain: vi.fn(),
     saveCategory: vi.fn(),
@@ -37,6 +38,7 @@ const { appAccount, saveDomain, saveCategory, saveRivals, declaredAnswers, resol
 vi.mock("@/app/(account)/app/_session/account", () => ({ appAccount }));
 vi.mock("@/lib/market/changes", () => ({ saveDomain, saveCategory, saveRivals, declaredAnswers }));
 vi.mock("@/lib/egress/dns", () => ({ resolvesInDns }));
+vi.mock("@/lib/scan/deep/remeasure", () => ({ startRemeasure }));
 vi.mock("next/cache", () => ({
   revalidatePath: (path: string) => {
     revalidated.push(path);
@@ -84,6 +86,7 @@ beforeEach(() => {
   saveRivals.mockResolvedValue({ ok: true, effectiveOn: EFFECTIVE });
   declaredAnswers.mockResolvedValue({ domain: "acme.com", category: "agency work", rivals: [] });
   resolvesInDns.mockResolvedValue(true);
+  startRemeasure.mockResolvedValue({ started: true, scanId: "scan-now" });
 });
 
 describe("the site is the session's own, and no field names one", () => {
@@ -133,6 +136,28 @@ describe("the site is the session's own, and no field names one", () => {
   it("a missing field is the empty string, never a guess", async () => {
     await actions.saveCategoryAction(new FormData());
     expect(saveCategory).toHaveBeenCalledWith({ siteId: "site-1", category: "" });
+  });
+});
+
+describe("owner ruling 2026-09-17 (issue 837) — a changed category measures the market again now", () => {
+  it("a new category starts a pass for the session's site and the card says it is measuring", async () => {
+    const answer = await actions.saveCategoryAction(categoryForm("bookkeeping software"));
+    expect(startRemeasure).toHaveBeenCalledWith({ siteId: "site-1", domain: "acme.com" });
+    expect(answer).toEqual({ answer: "saved", effectiveOn: EFFECTIVE.toISOString(), remeasuring: true });
+    expect(revalidated).toContain("/app");
+  });
+
+  it("saving the category it already has starts nothing", async () => {
+    const answer = await actions.saveCategoryAction(categoryForm("agency work"));
+    expect(startRemeasure).not.toHaveBeenCalled();
+    expect(answer).toEqual({ answer: "saved", effectiveOn: EFFECTIVE.toISOString() });
+  });
+
+  it("a start the daily bound refuses still saves, with the dated line", async () => {
+    startRemeasure.mockResolvedValue({ started: false, because: "daily_limit", nextAt: EFFECTIVE });
+    const answer = await actions.saveCategoryAction(categoryForm("bookkeeping software"));
+    expect(saveCategory).toHaveBeenCalledWith({ siteId: "site-1", category: "bookkeeping software" });
+    expect(answer).toEqual({ answer: "saved", effectiveOn: EFFECTIVE.toISOString() });
   });
 });
 

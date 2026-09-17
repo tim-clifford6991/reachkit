@@ -194,6 +194,24 @@ describe('BP-010 decision 4 `## Consequences` — "the comparison set reaches ba
     }
   });
 
+  it("a pass measured again from cache reads the site's earlier pass of the same domain, and never another site's (issue 837)", async () => {
+    useDb({
+      scans: [
+        { id: "deep-1", site_id: SITE, domain: "a.example", tier: "deep" },
+        { id: "deep-2", site_id: SITE, domain: "a.example", tier: "deep" },
+        { id: "old-domain", site_id: SITE, domain: "before.example", tier: "deep" },
+        { id: "scan-9", site_id: OTHER_SITE, domain: "a.example", tier: "deep" },
+      ],
+      fetches: [
+        { scan_id: "deep-1", source: OWN_FETCH_SOURCE, payload: storedDocument("https://a.example/", HOME_HTML, READ_AT) },
+        { scan_id: "old-domain", source: OWN_FETCH_SOURCE, payload: storedDocument("https://before.example/", "<p>No.</p>", READ_AT) },
+        { scan_id: "scan-9", source: OWN_FETCH_SOURCE, payload: storedDocument("https://a.example/x", "<p>No.</p>", READ_AT) },
+      ],
+    });
+    const rows = await readMeasuredText({ siteId: SITE, scanId: "deep-2" });
+    expect(rows.map((row) => row.url)).toEqual(["https://a.example/"]);
+  });
+
   it("a site with no scans returns `[]` — a legitimate empty, not an error", async () => {
     useDb({ scans: [], fetches: FETCHES });
     await expect(readMeasuredText({ siteId: "site-with-nothing" })).resolves.toEqual([]);

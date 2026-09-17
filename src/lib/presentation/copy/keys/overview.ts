@@ -297,7 +297,7 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.supply.exhausted": ["No pages are left worth writing. Monday’s re-measure looks for more.", { slots: {}, fixedBy: "REQ-095 c3" }],
   // issue 784 (issue 765's distinction, 2026-09-16): zero supply over a market that
   // was never measured is not "no pages left". Drafted under issue 759's ruling.
-  "overview.supply.unmeasured": ["Nothing in your market is ready to write yet, so no pages are planned. Monday’s re-measure looks again.", { slots: {}, fixedBy: "issue 784" }],
+  "overview.supply.unmeasured": ["Nothing in your market is ready to write yet, so no pages are planned. Pick a broader category and we’ll measure again right away.", { slots: {}, fixedBy: "issue 784" }],
   "overview.supply.short": ["Fewer than a week of pages is left. Monday’s re-measure looks for more.", { slots: {}, fixedBy: "REQ-095 c5" }],
   "overview.supply.first-arrival": ["Your first pass found less than a month of pages. We look for more every Monday.", { slots: {}, fixedBy: "REQ-095 c6" }],
 

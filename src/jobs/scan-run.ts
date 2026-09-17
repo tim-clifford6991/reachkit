@@ -29,6 +29,9 @@ export const scanRun: JobDefinition = {
       // The pass, its opportunities and the first draft are three steps
       // (issue 798), so none has to fit the others inside one invocation.
       ...(input.step === undefined ? {} : { step: input.step }),
+      // A pass measured again now (issue 837) adopts its own fresh row, not
+      // the site's onboarding one.
+      ...(input.data.remeasure === true ? { remeasure: true } : {}),
     });
     return "degraded" in result
       ? { outcome: "degraded", subjectId: scanId, step: result.degraded }
