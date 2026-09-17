@@ -40,6 +40,17 @@ describe("the seed ladder", () => {
     expect(headTermOf("scheduling")).toBeNull();
   });
 
+  it("a category that opens 'X and …' takes its head term from the noun phrase at its end (issue 836)", () => {
+    expect(headTermOf("SEO and content marketing software")).toBe("content marketing software");
+    expect(headTermOf("SEO and marketing software")).toBe("marketing software");
+    expect(headTermOf("SEO and software")).toBeNull();
+    expect(seedLadder({ ...PROFILE, vocabulary: ["seo"] }, "SEO and content marketing software")).toEqual([
+      "SEO and content marketing software",
+      "content marketing software",
+      "seo",
+    ]);
+  });
+
   it("orders the confirmed category, its head term, then the vocabulary — each once", () => {
     const profile = { ...PROFILE, vocabulary: ["onboarding", "User Onboarding Software", "tooltip"] };
     expect(seedLadder(profile, "user onboarding software for saas teams")).toEqual([

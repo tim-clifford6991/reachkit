@@ -249,6 +249,14 @@ describe("a thin market still yields questions and a planned page (SPEC §6, #77
     expect(questions.find((q) => q.search.keyword === "userpilot alternatives")?.search.floor).toBe(20);
   });
 
+  it("a category that opens 'X and …' buys its noun phrase as the second seed (issue 836)", async () => {
+    deriveProfile.mockResolvedValue(measured({ ...PROFILE, category: "SEO and content marketing software" }, AT));
+    await deepPass();
+
+    const seeds = keywordSuggestions.mock.calls.map((call) => (call[1] as { seed: string }).seed);
+    expect(seeds.slice(0, 2)).toEqual(["SEO and content marketing software", "content marketing software"]);
+  });
+
   it("the six stages are still six, in order", async () => {
     await deepPass();
     expect(stages.lines.filter((line) => line.endsWith(":enter"))).toEqual([
