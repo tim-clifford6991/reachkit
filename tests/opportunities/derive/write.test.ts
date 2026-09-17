@@ -44,6 +44,39 @@ describe('§7: `answer_page` — "AI answer for a question names rivals, not cus
   });
 });
 
+describe("issue 858 — the answer_page trigger reads every answer column the pass measured", () => {
+  const noOverview = serp({ aiOverview: { present: false, asynchronousAiOverview: false, referenceDomains: [] } });
+  const withEngines = (chatgpt: { kind: "answered"; citedDomains: string[]; namesCustomer: boolean } | { kind: "no_answer" }) => {
+    const report = reportOf({
+      questions: [question({ search: search({ keyword: "seo content brief template for startups", intent: "informational" }) })],
+      serps: [noOverview],
+    });
+    const row = report.aiAnswers!.rows[0]!;
+    (row as { engines: unknown }).engines = [
+      { engine: "ai_overview", cell: row.cell },
+      { engine: "ai_mode", cell: { kind: "no_answer" } },
+      { engine: "chatgpt", cell: chatgpt },
+    ];
+    return report;
+  };
+
+  it("no AI Overview, but ChatGPT answered citing a rival and not the customer: an answer_page", () => {
+    const report = withEngines({ kind: "answered", citedDomains: ["briefkit.io"], namesCustomer: false });
+    const { candidates } = writeCandidates({ ...base, report, rankedCounts: unreadableCounts() });
+    expect(candidates.map((c) => c.type)).toEqual(["answer_page"]);
+  });
+
+  it("an engine that names the customer, or answered nothing, is no trigger", () => {
+    for (const cell of [
+      { kind: "answered" as const, citedDomains: ["briefkit.io"], namesCustomer: true },
+      { kind: "no_answer" as const },
+    ]) {
+      const { candidates } = writeCandidates({ ...base, report: withEngines(cell), rankedCounts: unreadableCounts() });
+      expect(candidates.map((c) => c.type)).not.toContain("answer_page");
+    }
+  });
+});
+
 describe('§7: `keyword_page` — "Rival top-20 for a query >=10/mo; customer absent"', () => {
   const noAnswer = serp({
     aiOverview: { present: false, asynchronousAiOverview: false, referenceDomains: [] },

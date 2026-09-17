@@ -143,12 +143,18 @@ export function writeCandidates(a: WriteInput): DerivationResult {
     const rival = bestRival(serp, ownDomain, at);
     if (rival === null) return;
 
-    const answerCell = answerRows[index]?.cell;
-    const ignoredByTheAnswer =
-      answerCell !== undefined &&
-      answerCell.kind === "answered" &&
-      !answerCell.namesCustomer &&
-      citedRival(answerCell.citedDomains, ownDomain) !== null;
+    // Every answer column the pass measured, not only the AI Overview
+    // (issue 858): a long-tail search often has no Overview at all, while
+    // ChatGPT and AI Mode — bought beside it on a paid pass — answer it and
+    // name rivals. A stored row from before the engines has its cell alone.
+    const row = answerRows[index];
+    const answerCells = row === undefined ? [] : row.engines.length > 0 ? row.engines.map((engine) => engine.cell) : [row.cell];
+    const ignoredByTheAnswer = answerCells.some(
+      (answerCell) =>
+        answerCell.kind === "answered" &&
+        !answerCell.namesCustomer &&
+        citedRival(answerCell.citedDomains, ownDomain) !== null
+    );
 
     const customerAbsent = !serp.organic.some((row) =>
       isOwnDomain(registrableDomain(row.domain) ?? row.domain, ownDomain)

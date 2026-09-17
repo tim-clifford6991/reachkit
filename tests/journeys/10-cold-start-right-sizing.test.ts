@@ -725,6 +725,9 @@ describe("a cold-start site is offered right-sized questions, reachable rivals a
         .filter((row) => row.site_id === SITE_ID && row.family === "write" && row.ready === true);
       expect(writes.length).toBeGreaterThanOrEqual(1);
       for (const row of writes) expect(["winnable", "reach"]).toContain(row.fit_band);
+      // No SERP carries an AI Overview; ChatGPT and AI Mode cite the small
+      // rival and not the site — the answer-page trigger reads those columns.
+      expect(writes.some((row) => row.type === "answer_page")).toBe(true);
       expect(db.rows("opportunities").map((row) => row.target_query)).not.toEqual(expect.arrayContaining([HEAD_TERMS[0]]));
 
       // ── The Overview, read from the stored rows: the reachable rival is a
