@@ -44,6 +44,10 @@ export type SevenDayModel = readonly [
 
 export interface WeekModule {
   days: SevenDayModel;
+  /** The searches this week's pages are aimed at (issue 867) — the pages
+   *  themselves, never a count. Empty where the week has none planned or
+   *  written, and the module then states no aim. */
+  searches?: readonly string[];
   /** §4.5's "Open calendar →" — the one control this module carries. */
   calendarHref: string;
 }

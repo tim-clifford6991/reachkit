@@ -204,6 +204,25 @@ const UNEDITED: DraftFacts = {
   // account's own run, not a stand-in for a draft that has none.
   recordedChecks: ["near_duplicate", "no_invented_people"],
   rulesFailed: false,
+  // What this page is for (issue 867): the reserved account's own target,
+  // the same one its calendar day panel states.
+  target: {
+    kind: "target",
+    target: {
+      search: "best crm for small teams",
+      askedAs: "What CRM should a small team use?",
+      volume: { kind: "measured", value: 210, at: READ_AT },
+      difficulty: { kind: "measured", value: 12, at: READ_AT },
+      ceiling: 36,
+      winnability: "winnable",
+      engines: [
+        { engine: "ai_overview", standing: "names_others" },
+        { engine: "ai_mode", standing: "no_answer" },
+        { engine: "chatgpt", standing: "names_you" },
+      ],
+      doneWhen: "Ranked in the top 20 for the target search within 3 weeks",
+    },
+  },
   timeZone: FIXTURE_TIME_ZONE,
 };
 

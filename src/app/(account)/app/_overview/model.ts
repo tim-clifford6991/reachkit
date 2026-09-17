@@ -21,6 +21,7 @@
 // by a test with no database and no browser at all.
 import type { BandHandle } from "@/lib/measure/bands";
 import type { ChangeMarker } from "@/lib/market/changes/markers";
+import type { AnswerEngine } from "@/lib/opportunities/types";
 import { weekOf, withBreaks, type SeriesEntry } from "./changes";
 import type { Measured } from "@/lib/measure/measured";
 import type { CopyKey } from "@/lib/presentation/copy";
@@ -60,6 +61,9 @@ export interface Module<T> {
  *  tracked question, appears anywhere on Overview; that is why this module's
  *  headline has no `delta` and why the per-week presence flags below are the
  *  matrix's cells rather than a second series. */
+/** §6.2's engine handles, as this screen names them (issue 867). */
+export type { AnswerEngine } from "@/lib/opportunities/types";
+
 export interface AiPresenceWeek {
   weekStart: Date;
   /** `true` where the customer was named in at least one tracked question's
@@ -102,7 +106,12 @@ export interface OverviewModel {
    *  still carries its delta, and is still what `headDirection` and the
    *  chart's own footnotes are read from. */
   searches: Module<number>;
-  aiAnswers: Module<number> & { window: AiPresenceWindow };
+  aiAnswers: Module<number> & {
+    window: AiPresenceWindow;
+    /** Issue 867: the engine the number is counted from, and the engines
+     *  measured on each page's own search beside it. */
+    engines: { countedFrom: AnswerEngine; alsoMeasured: readonly AnswerEngine[] };
+  };
   pagesPublished: Module<number>;
   rivals: RivalGapModule;
   week: WeekModule;
@@ -178,7 +187,20 @@ export interface OverviewFacts {
   today: Date;
   supply: SupplyFacts;
   waiting: readonly WaitingItem[];
+  /** Which of §6.2's three answer engines the latest pass actually asked
+   *  (issue 867). The tile's number counts Google's AI Overview alone
+   *  (`matrix.ts`), so the line under it says so and names the others where
+   *  they were asked — never an engine nobody asked. */
+  aiEngines: readonly AnswerEngine[];
+  /** The searches this week's pages are aimed at, in the order the days
+   *  take them (issue 867). Empty where the week has no planned or written
+   *  page, and the line is then absent rather than empty. */
+  weekSearches: readonly string[];
 }
+
+/** The one engine the AI-answers number is counted from (§6.2's own rule,
+ *  `matrix.ts`: "the three counts stay the AI-Overview counts"). */
+const COUNTED_FROM = "ai_overview" satisfies AnswerEngine;
 
 export function assembleOverview(facts: OverviewFacts): OverviewModel {
   const growth = readGrowth({
@@ -245,6 +267,12 @@ export function assembleOverview(facts: OverviewFacts): OverviewModel {
         goal: "ai_answers",
       },
       window,
+      // The number counts Google's AI Overview alone (§6.2, `matrix.ts`);
+      // the others were measured per question where the battery asked them.
+      engines: {
+        countedFrom: COUNTED_FROM,
+        alsoMeasured: facts.aiEngines.filter((engine) => engine !== COUNTED_FROM),
+      },
     },
     pagesPublished: {
       headline: {
@@ -263,7 +291,7 @@ export function assembleOverview(facts: OverviewFacts): OverviewModel {
     },
     rivals: resolveRivals(facts.rivals, facts.changes),
     weekZero,
-    week: readWeek({ today: facts.today, timeZone: facts.timeZone }),
+    week: { ...readWeek({ today: facts.today, timeZone: facts.timeZone }), searches: facts.weekSearches },
     ...(supply ? { supply } : {}),
     alerts,
     ...(overflow ? { overflow } : {}),

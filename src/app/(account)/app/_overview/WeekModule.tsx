@@ -28,6 +28,11 @@ export function WeekModule(p: {
 }): React.JSX.Element {
   const title = copy("overview.week.title");
   const supplyLine = p.supply === undefined ? null : writtenLine(p.supply.key, p.supply.vars);
+  // Issue 867: what this week's pages are aimed at — the searches, never a
+  // count. A week with no planned or written page states no aim.
+  const searches = p.week.searches ?? [];
+  const aimLine =
+    searches.length === 0 ? null : writtenLine("overview.week.aimed-at", { searches: searches.join(", ") });
 
   return (
     <section className="card card-border min-w-0 bg-base-100" data-testid="overview-week">
@@ -62,6 +67,11 @@ export function WeekModule(p: {
             );
           })}
         </ol>
+        {aimLine === null ? null : (
+          <p className="text-xs text-base-content/60" data-testid="overview-week-aim">
+            {aimLine}
+          </p>
+        )}
         {supplyLine === null ? null : (
           <p className="text-xs text-base-content/60" data-testid="overview-supply">
             {supplyLine}

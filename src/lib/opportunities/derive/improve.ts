@@ -55,6 +55,7 @@ import { rankedCountsFor, type RankedCounts } from "../winnability/counts";
 import { FAMILY_OF, noRejections, type Evidence, type Shortfall } from "../types";
 import { brandTokensOf, canonicalUrl, clusterKey } from "../cluster";
 import { emptyDerivation, type Candidate, type DerivationResult } from "./candidate";
+import { targetFactsOf } from "./target";
 
 interface ImproveInput {
   siteId: string;
@@ -195,6 +196,13 @@ export function improveCandidates(a: ImproveInput): DerivationResult {
       volume,
       pageUrl: row.url,
       shortfall,
+      // What this page is optimising for, copied at creation (issue 867).
+      target: targetFactsOf({
+        difficulty: question.search.difficulty,
+        ownRanked: a.ownRanked,
+        answerRow: answerRows[index],
+        at,
+      }),
     };
     result.candidates.push({
       siteId: a.siteId,

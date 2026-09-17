@@ -20,6 +20,7 @@
 import type { CopyKey } from "@/lib/presentation/copy";
 import type { RecordedFact } from "@/lib/generate/fact";
 import type { PageRecord } from "@/lib/publish/record";
+import type { PageTarget } from "../../_shell/page-target";
 import type { RailCheck } from "./checks";
 import type { PublishingMode } from "../../_shell/model";
 import type { State } from "../../calendar/stages";
@@ -74,6 +75,19 @@ export interface DoNothing {
   publishesAt: Date | null;
 }
 
+/**
+ * What this page is for (issue 867), in the three states a draft can be in.
+ *
+ * `fix` and `unknown` are kept apart because they are different facts: a
+ * Fix page has no market target — it repairs something on the site, and no
+ * search, volume or band is owed for it — while `unknown` is a row whose
+ * opportunity could not be read at all. Neither is a block of blanks.
+ */
+export type DraftTarget =
+  | { kind: "target"; target: PageTarget }
+  | { kind: "fix" }
+  | { kind: "unknown" };
+
 export interface DraftView {
   draftId: string;
   title: string;
@@ -119,6 +133,9 @@ export interface DraftView {
   /** The last battery found a rule this text breaks, so it is held from
    *  publishing until a save passes (#789). */
   rulesFailed: boolean;
+  /** What this page is optimising for (issue 867) — the opportunity's own
+   *  stored evidence, projected once for this screen and the day panel. */
+  target: DraftTarget;
   /** The site-local zone every date this view states is expressed in. */
   timeZone: string;
 }
@@ -155,6 +172,9 @@ export interface DraftFacts {
    *  for a draft it recorded nothing for. */
   recordedChecks: readonly RailCheck[];
   rulesFailed: boolean;
+  /** The opportunity this draft was written from, as this screen states it
+   *  (issue 867). `unknown` where the row could not be read. */
+  target: DraftTarget;
   timeZone: string;
 }
 
@@ -221,6 +241,7 @@ export function assembleDraft(facts: DraftFacts): DraftView {
     record: facts.record,
     recordedChecks: facts.recordedChecks,
     rulesFailed: facts.rulesFailed,
+    target: facts.target,
     timeZone: facts.timeZone,
   };
 }

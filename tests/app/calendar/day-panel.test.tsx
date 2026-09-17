@@ -90,9 +90,38 @@ describe("REQ-043 c8 — the panel says why this page exists", () => {
       "calendar.why.answered-today-by",
       "calendar.why.you",
       "calendar.why.done-when",
+      // Issue 867: what the page is optimising for.
+      "calendar.why.volume",
+      "calendar.why.difficulty",
+      "calendar.why.engines",
     ]) {
       expect(text, key).toContain(key);
     }
+  });
+
+  it("issue 867 — the rows are in one order: search, asked, demand, difficulty, who answers today, the engines", () => {
+    const why = root.querySelector('[data-testid="why-this-page"]');
+    const labels = [...(why?.querySelectorAll("dt") ?? [])].map((dt) => dt.textContent ?? "");
+    expect(labels).toEqual([
+      "calendar.why.search",
+      "calendar.why.asked",
+      "calendar.why.volume",
+      "calendar.why.difficulty",
+      "calendar.why.answered-today-by",
+      "calendar.why.engines",
+      "calendar.why.you",
+      "calendar.why.done-when",
+    ]);
+  });
+
+  it("issue 867 — each engine is named with where it stood, and the difficulty is beside this site's ceiling", () => {
+    const why = root.querySelector('[data-testid="why-this-page"]');
+    const text = why?.textContent ?? "";
+    // The fixture's first specimen: difficulty 12 against a ceiling of 36,
+    // and three engines. The line keys are the registry's, doubled to their
+    // own names by this file's `copy` mock.
+    expect(text).toContain("calendar.why.difficulty.of-ceiling");
+    expect(text).toContain("calendar.why.engine.line");
   });
 
   it("every value is mono, and the one criterion is not a value (§2.3; #297)", () => {
@@ -110,17 +139,22 @@ describe("REQ-043 c8 — the panel says why this page exists", () => {
     // sentence pushed the day panel sideways at 320 and 1280 and the
     // layout sweep reported the document scrolling. The row that changed
     // is the row that never held a value.
+    //
+    // Issue 867 added three more rows — the demand, the difficulty and the
+    // engines — and the rule is unchanged: every one of them is a value,
+    // and "done when" is still the one sentence.
     const keys = why?.querySelectorAll("dt") ?? [];
     const values = why?.querySelectorAll("dd") ?? [];
-    expect(keys.length).toBe(5);
-    expect(values.length).toBe(5);
+    expect(keys.length).toBe(8);
+    expect(values.length).toBe(8);
     const monoValues = why?.querySelectorAll("dd.num") ?? [];
-    expect(monoValues.length).toBe(4);
-    // Three of the four are values made of WORDS and fold where language
-    // folds (#307's `num-phrase`); the fourth is a count and does not.
+    expect(monoValues.length).toBe(7);
     // `.num`'s `nowrap` alone overflowed the 290px panel and took the
     // document sideways with it (#354).
-    expect(why?.querySelectorAll("dd.num-phrase").length).toBe(3);
+    // Five of the seven are values made of WORDS and fold where language
+    // folds (#307's `num-phrase`); the demand and the standing are counts
+    // and do not.
+    expect(why?.querySelectorAll("dd.num-phrase").length).toBe(5);
     // And the criterion is still stated — as prose, in its own row.
     const texts = [...keys].map((r) => r.textContent ?? "");
     expect(texts.some((t) => t.includes("calendar.why.done-when"))).toBe(true);

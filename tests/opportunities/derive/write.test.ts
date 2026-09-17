@@ -3,6 +3,8 @@ import "../env";
 import { describe, expect, it } from "vitest";
 import { WRITE_VOLUME_FLOOR_PER_MONTH } from "../../../src/lib/config/constants";
 import { writeCandidates } from "../../../src/lib/opportunities/derive/write";
+import { difficultyCeiling } from "../../../src/lib/opportunities/winnability/bars";
+import { measured } from "../../../src/lib/measure/measured";
 import {
   AT,
   SCAN_ID,
@@ -41,6 +43,37 @@ describe('§7: `answer_page` — "AI answer for a question names rivals, not cus
     const report = reportOf({ questions: [question()], serps: [named] });
     const { candidates } = writeCandidates({ ...base, report, rankedCounts: smallCounts() });
     expect(candidates.map((c) => c.type)).not.toContain("answer_page");
+  });
+});
+
+describe("issue 867 — the target's own facts are copied onto the evidence at creation", () => {
+  it("carries the search's difficulty, the ceiling this site is judged against, and every engine's standing", () => {
+    const report = reportOf({
+      questions: [question({ search: search({ difficulty: 12 }) })],
+      serps: [serp()],
+    });
+    const { candidates } = writeCandidates({ ...base, report, rankedCounts: smallCounts() });
+
+    expect(candidates).toHaveLength(1);
+    const evidence = candidates[0]!.evidence;
+    if (evidence.family !== "write") throw new Error("expected a Write candidate");
+    expect(evidence.target?.difficulty).toEqual(measured(12, AT));
+    // `difficultyCeiling(0)` — the cold-start bar (SPEC §6, issue 858).
+    expect(evidence.target?.ceiling).toBe(difficultyCeiling(0));
+    // One entry per engine the row carried, each with where it stood.
+    expect(evidence.target?.engines).toEqual([
+      { engine: "ai_overview", standing: "names_others" },
+      { engine: "ai_mode", standing: "unmeasured" },
+      { engine: "chatgpt", standing: "unmeasured" },
+    ]);
+  });
+
+  it("a search the vendor gave no difficulty for carries the unmeasured arm, never a 0", () => {
+    const report = reportOf({ questions: [question()], serps: [serp()] });
+    const { candidates } = writeCandidates({ ...base, report, rankedCounts: smallCounts() });
+    const evidence = candidates[0]!.evidence;
+    if (evidence.family !== "write") throw new Error("expected a Write candidate");
+    expect(evidence.target?.difficulty.kind).toBe("unmeasured");
   });
 });
 
@@ -207,7 +240,7 @@ describe("evidence is copied out of the report, with its own dates", () => {
     const report = reportOf({ questions: [question()], serps: [serp()] });
     const { candidates } = writeCandidates({ ...base, report, rankedCounts: smallCounts() });
     const evidence = candidates[0]!.evidence;
-    expect(evidence).toEqual({
+    expect(evidence).toMatchObject({
       family: "write",
       query: "best user onboarding software",
       volume: { kind: "measured", value: 90, at: AT },
@@ -217,6 +250,9 @@ describe("evidence is copied out of the report, with its own dates", () => {
         position: { kind: "measured", value: 1, at: AT },
       },
     });
+    // What this page is optimising for rides beside them since issue 867,
+    // and has its own case below.
+    expect(Object.keys(evidence).sort()).toEqual(["family", "query", "rival", "target", "volume"]);
   });
 
   it("the rival is the best-placed result that is not the customer's own", () => {

@@ -174,4 +174,12 @@ export const FIXTURE_OVERVIEW_FACTS: OverviewFacts = Object.freeze({
       href: "/app/draft/fixture-veto-2",
     },
   ]),
+
+  // Issue 867: the engines the reserved account's pass asked, and what this
+  // week's pages are aimed at.
+  aiEngines: Object.freeze(["ai_overview", "ai_mode", "chatgpt"] as const),
+  weekSearches: Object.freeze([
+    "best crm for small teams",
+    "crm pricing comparison",
+  ]),
 });
