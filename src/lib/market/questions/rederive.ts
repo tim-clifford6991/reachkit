@@ -7,6 +7,7 @@
 // reaches a Node built-in — the setup screen runs it in the browser.
 import type { SuggestionRow } from "./market-set";
 import type { Profile } from "./profile";
+import { difficultyField } from "./select";
 import { templateQuestion } from "./template";
 import { LOWEST_STEP, selectWidened, type PoolRow } from "./widen";
 
@@ -37,7 +38,7 @@ export function derivableMarket(a: {
     ownRanked: a.ownRanked,
     market: a.suggestions
       .filter((row) => row.volume >= LOWEST_STEP)
-      .map((row) => ({ keyword: row.keyword, volume: row.volume })),
+      .map((row) => ({ keyword: row.keyword, volume: row.volume, ...difficultyField(row.difficulty) })),
     pool: (a.pool ?? []).filter((row) => row.volume >= LOWEST_STEP),
   };
 }

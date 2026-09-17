@@ -31,11 +31,12 @@ import {
   type Measured,
   type UnmeasuredReason,
 } from "@/lib/measure/measured";
-import { qualifyingDemand } from "@/lib/opportunities/winnability/bars";
+import { difficultyCeiling, qualifyingDemand } from "@/lib/opportunities/winnability/bars";
 import { keywordSuggestions } from "@/lib/vendors/dataforseo";
 import type { VolumeWindow } from "@/lib/vendors/dataforseo/types";
 import type { Profile } from "./profile";
 import type { PoolRow } from "./widen";
+import { difficultyField } from "./select";
 
 /** BP-025 `## Public interface`. The product's row, not the vendor's: the
  *  vendor's own `SuggestionRow` spells the figure `searchVolume`, and the
@@ -43,6 +44,9 @@ import type { PoolRow } from "./widen";
 export interface SuggestionRow {
   keyword: string;
   volume: number;
+  /** The vendor's keyword difficulty, 0–100, where it gave one (issue 858).
+   *  Absent or `null`: not known, and selection reads the row on volume. */
+  difficulty?: number | null;
 }
 
 /** The `market` section of the report blob, declared here because this node
@@ -101,7 +105,7 @@ export async function deriveMarketSet(
     for (const row of result.value) {
       if (seen.has(row.keyword)) continue;
       seen.add(row.keyword);
-      rows.push({ keyword: row.keyword, volume: row.searchVolume });
+      rows.push({ keyword: row.keyword, volume: row.searchVolume, ...difficultyField(row.difficulty) });
     }
   }
 
@@ -111,7 +115,7 @@ export async function deriveMarketSet(
 }
 
 /**
- * The volume every suggestions purchase asks the vendor for (issue 846):
+ * The window every suggestions purchase asks the vendor for (issue 846):
  * from the lowest volume step a pass may walk down to, up to the demand
  * ceiling right-sizing allows this site (SPEC §6, issue 830). Bought
  * without it, the vendor's top rows by volume in an established category
@@ -119,7 +123,13 @@ export async function deriveMarketSet(
  * Selection still applies its own floor and ceiling to every row.
  */
 export function suggestionsWindow(ownRanked: number): VolumeWindow {
-  return { min: SELECTION.volumeSteps[SELECTION.volumeSteps.length - 1]!, max: qualifyingDemand(ownRanked) };
+  return {
+    min: SELECTION.volumeSteps[SELECTION.volumeSteps.length - 1]!,
+    max: qualifyingDemand(ownRanked),
+    // Issue 858: no harder than the site's difficulty ceiling, so the rows
+    // bought are ones a site of this footprint can win.
+    maxDifficulty: difficultyCeiling(ownRanked),
+  };
 }
 
 function foldOutcome(a: {

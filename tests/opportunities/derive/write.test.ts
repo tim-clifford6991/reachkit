@@ -177,7 +177,7 @@ describe("evidence is copied out of the report, with its own dates", () => {
     expect(evidence).toEqual({
       family: "write",
       query: "best user onboarding software",
-      volume: { kind: "measured", value: 190, at: AT },
+      volume: { kind: "measured", value: 90, at: AT },
       rival: {
         domain: "appcues.com",
         url: { kind: "measured", value: "https://appcues.com/a", at: AT },

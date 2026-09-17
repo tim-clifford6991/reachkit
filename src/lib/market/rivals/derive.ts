@@ -6,7 +6,9 @@
 // there is no argument through which a customer's ranked count, presence
 // or history could reach it. The output is identical whether the customer
 // ranks for 10,000 searches or for none — the property the cold-start test
-// pins directly.
+// pins directly. The one exception is the bands a paid pass already holds
+// (issue 858): right-sizing keeps a rival far beyond the site out of its
+// rivals, and a pass that holds no band derives exactly as before.
 //
 // **This module buys nothing.** §6.6: "Zero extra cost — it counts over
 // SERPs already bought." It resolves no import into `src/lib/vendors/`,
@@ -19,6 +21,10 @@
 import { BATTERY, RIVAL_SCORE } from "@/lib/config/constants";
 import type { MarketSerp } from "../views";
 import { isOwnDomain, isPlatformDomain, registrableDomain } from "./domains";
+
+/** `band.ts`'s `RivalSizeBand`, spelled out: the free card's modules name no
+ *  sizing module, not even for a type (§6.4, `size.test.ts`). */
+type SizeBand = "near" | "middle" | "far";
 
 /** §6.6's suggested-rival row. Nothing about a rival's *size* — ranked
  *  count, revenue, traffic, funding, headcount — has a field here, and
@@ -82,6 +88,12 @@ function byScoreThenDomain(a: RivalCandidate, b: RivalCandidate): number {
 export function deriveRivals(a: {
   serps: readonly MarketSerp[];
   ownDomain: string;
+  /** The bands a pass already holds for some of these domains (SPEC §6
+   *  right-sizing, owner walk 2026-09-17, issue 858) — the tracked rivals a
+   *  paid pass sized, never a new purchase. A domain banded `far` is not
+   *  one of the site's rivals, and near ones come before middle ones before
+   *  those nobody sized. Absent (the free path): the score order alone. */
+  sizes?: ReadonlyMap<string, SizeBand>;
 }): { rivals: RivalCandidate[]; sources: string[] } {
   const tallies = new Map<string, Tally>();
   const sources: string[] = [];
@@ -139,7 +151,15 @@ export function deriveRivals(a: {
     score: scoreOf(t),
   }));
   scored.sort(byScoreThenDomain);
-  const rivals = scored.slice(0, BATTERY.COMPETITORS_MAX);
+  const sizes = a.sizes ?? new Map<string, SizeBand>();
+  const reach = (domain: string): number => {
+    const band = sizes.get(domain);
+    return band === "near" ? 0 : band === "middle" ? 1 : 2;
+  };
+  const rivals = scored
+    .filter((candidate) => sizes.get(candidate.domain) !== "far")
+    .sort((x, y) => reach(x.domain) - reach(y.domain) || byScoreThenDomain(x, y))
+    .slice(0, BATTERY.COMPETITORS_MAX);
 
   // Before the partition: every distinct domain the SERPs named that was
   // neither the customer's own nor unparseable. After it: the product

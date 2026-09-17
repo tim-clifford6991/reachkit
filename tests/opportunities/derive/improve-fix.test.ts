@@ -46,7 +46,7 @@ describe('§7: `expand_page` — "Customer ranks 4-30, page thin"', () => {
     expect(only.evidence).toEqual({
       family: "improve",
       query: "best user onboarding software",
-      volume: { kind: "measured", value: 190, at: AT },
+      volume: { kind: "measured", value: 90, at: AT },
       pageUrl: ON_PAGE.url,
       shortfall: { kind: "thin", words: { kind: "measured", value: 400, at: AT } },
     });
@@ -251,7 +251,7 @@ describe("SPEC §7 (2026-09-16): update candidates are the site's own pages, not
   const rivalsOnly = serp();
 
   function ranked(rows: { keyword: string; position: number; url: string }[]) {
-    return rows.map((row) => ({ ...row, searchVolume: 190 }));
+    return rows.map((row) => ({ ...row, searchVolume: 90 }));
   }
 
   it("a blog post the site's own ranked rows put at 12 for the question becomes an Improve of that url", () => {

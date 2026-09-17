@@ -55,6 +55,8 @@ import type { CostContext } from "@/lib/costs";
 import { measured, measuredZero, unmeasured, type Measured } from "@/lib/measure/measured";
 import { competitorsDomain } from "@/lib/vendors/dataforseo";
 import type { ReportFacts, SetupState } from "../setup/state";
+import type { CompetitorRow } from "@/lib/vendors/dataforseo/types";
+import { bandRivalSize } from "./band";
 import { registrableDomain } from "./domains";
 
 const SUGGEST_CEILING_MS = TIMING.suggestCeilingS * 1000;
@@ -134,12 +136,12 @@ export async function suggestRivals(
 
   const rows = await withinCeiling(
     spend((c) => competitorsDomain(c, { domain: own })).catch(() =>
-      unmeasured<{ domain: string }[]>("undeterminable", a.at)
+      unmeasured<CompetitorRow[]>("undeterminable", a.at)
     ),
     a.at
   );
   const candidates = admissible(
-    [...named, ...(rows.kind === "unmeasured" ? [] : rows.value.map((row) => row.domain))],
+    [...named, ...(rows.kind === "unmeasured" ? [] : reachable(rows.value))],
     a.state,
     own
   );
@@ -148,6 +150,27 @@ export async function suggestRivals(
   return rows.kind === "unmeasured"
     ? unmeasured<string[]>(rows.reason, a.at)
     : measuredZero<string[]>([], a.at);
+}
+
+/**
+ * The vendor's competitors, right-sized to the founder's own site (SPEC §6,
+ * owner walk 2026-09-17, issue 858): the call already reports each domain's
+ * footprint and the site's own, so a rival far beyond the site is never
+ * offered as theirs, and the nearest come first. A competitor the vendor
+ * gave no count for keeps its place after the sized ones — nothing about
+ * it says it is far.
+ */
+function reachable(rows: readonly CompetitorRow[]): string[] {
+  const order = (row: CompetitorRow): number => {
+    if (row.rankedCount === undefined) return 2;
+    const band = bandRivalSize({ rivalRanked: row.rankedCount, ownRanked: row.ownRankedCount ?? 0 });
+    return band === "near" ? 0 : band === "middle" ? 1 : 3;
+  };
+  return rows
+    .map((row) => ({ row, order: order(row) }))
+    .filter(({ order }) => order !== 3)
+    .sort((x, y) => x.order - y.order)
+    .map(({ row }) => row.domain);
 }
 
 /**
@@ -190,11 +213,11 @@ function admissible(
  *  settle whatever the call ends up costing, and the founder is released
  *  meanwhile. */
 async function withinCeiling(
-  call: Promise<Measured<{ domain: string }[]>>,
+  call: Promise<Measured<CompetitorRow[]>>,
   at: Date
-): Promise<Measured<{ domain: string }[]>> {
+): Promise<Measured<CompetitorRow[]>> {
   let timer: ReturnType<typeof setTimeout> | undefined;
-  const ceiling = new Promise<Measured<{ domain: string }[]>>((resolve) => {
+  const ceiling = new Promise<Measured<CompetitorRow[]>>((resolve) => {
     timer = setTimeout(() => resolve(unmeasured("undeterminable", at)), SUGGEST_CEILING_MS);
   });
   try {

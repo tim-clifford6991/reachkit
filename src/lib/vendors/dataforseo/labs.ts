@@ -79,9 +79,21 @@ function parseRanked(result: unknown): { rows: RankedRow[]; total: number | null
       position,
       searchVolume: (info ? asNumber(info.search_volume) : undefined) ?? 0,
       url: (serp ? asString(serp.url) : undefined) ?? "",
+      // Only where the vendor gave one (issue 858): the stored own and rival
+      // rows keep their shape otherwise.
+      ...(difficultyOf(kd) === null ? {} : { difficulty: difficultyOf(kd) }),
     });
   }
   return { rows, total };
+}
+
+/** `keyword_properties.keyword_difficulty` on a keyword record (issue 858):
+ *  the vendor's 0–100 difficulty, `null` where it gave none or gave a value
+ *  outside that range. */
+function difficultyOf(record: Record<string, unknown> | undefined): number | null {
+  const properties = record && isRecord(record.keyword_properties) ? record.keyword_properties : undefined;
+  const value = properties ? asNumber(properties.keyword_difficulty) : undefined;
+  return value === undefined || value < 0 || value > 100 ? null : value;
 }
 
 function parseSuggestions(result: unknown): SuggestionRow[] | undefined {
@@ -94,9 +106,21 @@ function parseSuggestions(result: unknown): SuggestionRow[] | undefined {
     const keyword = asString(item.keyword);
     if (!keyword) continue;
     const info = isRecord(item.keyword_info) ? item.keyword_info : undefined;
-    rows.push({ keyword, searchVolume: (info ? asNumber(info.search_volume) : undefined) ?? 0 });
+    rows.push({
+      keyword,
+      searchVolume: (info ? asNumber(info.search_volume) : undefined) ?? 0,
+      difficulty: difficultyOf(item),
+    });
   }
   return rows;
+}
+
+/** `full_domain_metrics.organic.count` on a competitor item (issue 858). */
+function organicCountOf(item: Record<string, unknown>): number | undefined {
+  const full = isRecord(item.full_domain_metrics) ? item.full_domain_metrics : undefined;
+  const organic = full && isRecord(full.organic) ? full.organic : undefined;
+  const count = organic ? asNumber(organic.count) : undefined;
+  return count === undefined || count < 0 ? undefined : count;
 }
 
 function parseCompetitors(target: string, result: unknown): CompetitorRow[] | undefined {
@@ -104,14 +128,25 @@ function parseCompetitors(target: string, result: unknown): CompetitorRow[] | un
   if (result.items === null || result.items === undefined) return [];
   if (!Array.isArray(result.items)) return undefined;
   const rows: CompetitorRow[] = [];
+  let own: number | undefined;
   for (const item of asArray(result.items)) {
     if (!isRecord(item)) continue;
     const domain = asString(item.domain)?.toLowerCase();
-    // The vendor lists the target itself as its own first "competitor".
-    if (!domain || domain === target.toLowerCase()) continue;
-    rows.push({ domain, overlapKeywords: asNumber(item.intersections) ?? 0 });
+    if (!domain) continue;
+    const rankedCount = organicCountOf(item);
+    // The vendor lists the target itself as its own first "competitor":
+    // not a rival, but its count is the target's own footprint.
+    if (domain === target.toLowerCase()) {
+      own = rankedCount;
+      continue;
+    }
+    rows.push({
+      domain,
+      overlapKeywords: asNumber(item.intersections) ?? 0,
+      ...(rankedCount === undefined ? {} : { rankedCount }),
+    });
   }
-  return rows;
+  return own === undefined ? rows : rows.map((row) => ({ ...row, ownRankedCount: own }));
 }
 
 export async function rankedKeywords(
@@ -151,7 +186,7 @@ export async function keywordSuggestions(
     source: "dataforseo_labs/google/keyword_suggestions",
     // The window is part of the key (issue 846): rows bought for one
     // ceiling are never served to a pass with another.
-    cacheKey: `${a.seed}|${a.rows}|v${a.volume.min}-${a.volume.max}|${LOCALE_KEY}`,
+    cacheKey: `${a.seed}|${a.rows}|v${a.volume.min}-${a.volume.max}|d${a.volume.maxDifficulty}|${LOCALE_KEY}`,
     freshnessDays: CACHE_WINDOWS_D.suggestions,
     costCents: PRICE_BOOK.SUGGESTIONS_COST_C,
     fetch: () =>
@@ -160,11 +195,20 @@ export async function keywordSuggestions(
         limit: a.rows,
         // The vendor's own syntax (docs.dataforseo.com, keyword_suggestions/
         // live: `filters`, `order_by`): the rows inside the window, largest
-        // first, so the limit keeps the best right-sized rows.
+        // first, so the limit keeps the best right-sized rows. Difficulty
+        // (issue 858) is `keyword_properties.keyword_difficulty`; a row the
+        // vendor has no difficulty for is kept, since selection reads it on
+        // volume alone.
         filters: [
           ["keyword_info.search_volume", ">=", a.volume.min],
           "and",
           ["keyword_info.search_volume", "<=", a.volume.max],
+          "and",
+          [
+            ["keyword_properties.keyword_difficulty", "<=", a.volume.maxDifficulty],
+            "or",
+            ["keyword_properties.keyword_difficulty", "=", null],
+          ],
         ],
         order_by: ["keyword_info.search_volume,desc"],
       }),

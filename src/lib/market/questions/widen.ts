@@ -21,7 +21,7 @@ import { BATTERY, SELECTION } from "@/lib/config/constants";
 import type { SuggestionRow } from "./market-set";
 import type { Profile } from "./profile";
 import type { RankedRow } from "@/lib/vendors/dataforseo/types";
-import { STOP_WORDS, selectTwelve, type MarketRow, type SelectedSearch } from "./select";
+import { STOP_WORDS, difficultyField, selectTwelve, type MarketRow, type SelectedSearch } from "./select";
 
 /** A ranked keyword pooled beside the suggestions: the site's own row
  *  (`rival: null`) or a tracked rival's. Rows the pass already bought — the
@@ -31,6 +31,9 @@ export interface PoolRow {
   keyword: string;
   volume: number;
   rival: string | null;
+  /** The vendor's keyword difficulty where the ranked row carried one
+   *  (issue 858). */
+  difficulty?: number;
 }
 
 /** The lowest volume step. A row below it is never selected at any step. */
@@ -44,14 +47,18 @@ export function poolFrom(a: {
 }): PoolRow[] {
   const pool: PoolRow[] = [];
   for (const row of a.own) {
-    if (row.searchVolume >= LOWEST_STEP) pool.push({ keyword: row.keyword, volume: row.searchVolume, rival: null });
+    if (row.searchVolume >= LOWEST_STEP) pool.push(poolRow(row, null));
   }
   for (const [rival, rows] of a.rivals) {
     for (const row of rows) {
-      if (row.searchVolume >= LOWEST_STEP) pool.push({ keyword: row.keyword, volume: row.searchVolume, rival });
+      if (row.searchVolume >= LOWEST_STEP) pool.push(poolRow(row, rival));
     }
   }
   return pool;
+}
+
+function poolRow(row: RankedRow, rival: string | null): PoolRow {
+  return { keyword: row.keyword, volume: row.searchVolume, rival, ...difficultyField(row.difficulty) };
 }
 
 function words(text: string): string[] {
@@ -117,8 +124,10 @@ export function pooledMarket(suggestions: readonly SuggestionRow[], pool: readon
     if (key === "") return;
     let held = byKey.get(key);
     if (held === undefined) {
-      held = { row: { keyword: row.keyword, volume: row.volume }, rivals: [] };
+      held = { row: { keyword: row.keyword, volume: row.volume, ...difficultyField(row.difficulty) }, rivals: [] };
       byKey.set(key, held);
+    } else if (held.row.difficulty === undefined && row.difficulty !== undefined && row.difficulty !== null) {
+      held.row = { ...held.row, difficulty: row.difficulty };
     }
     if (rival !== null && !held.rivals.includes(rival)) held.rivals.push(rival);
   };

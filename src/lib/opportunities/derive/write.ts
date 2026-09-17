@@ -129,7 +129,15 @@ export function writeCandidates(a: WriteInput): DerivationResult {
       a.rankedCounts,
       at
     );
-    const sizing = { top10RankedCounts, ownRanked: a.ownRanked, volume: question.search.volume };
+    // The search's own difficulty, where the vendor measured one (issue
+    // 858): a long-tail SERP's small domains are never sized, and without
+    // it a cold-start site's winnable searches read as an unmeasured top ten.
+    const sizing = {
+      top10RankedCounts,
+      ownRanked: a.ownRanked,
+      volume: question.search.volume,
+      difficulty: question.search.difficulty ?? null,
+    };
     const verdict = assess(sizing);
 
     const rival = bestRival(serp, ownDomain, at);

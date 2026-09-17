@@ -461,7 +461,7 @@ export const TIMING = Object.freeze({
  *    for no more than `max(500, 5 × own)` keywords (Reach), `max(100, 2 × own)`
  *    (Winnable). Rivals' sizes against the site's own.
  *  - **Demand** — `demand*`: the search itself is no bigger than
- *    `max(1000, 10 × own)` searches a month (Reach), `max(200, 2 × own)`
+ *    `max(300, 10 × own)` searches a month (Reach), `max(100, 2 × own)`
  *    (Winnable). Above the first it is outsized for the site and refused for
  *    every Write and Earn type — a site that ranks for three keywords is
  *    offered a 20/mo long-tail answer, never a 50,000/mo head term; a site
@@ -471,10 +471,22 @@ export const TIMING = Object.freeze({
  *  A target's band is the lower of the two. Competition still gates only
  *  `keyword_page` (§6, 2026-09-15, #769); demand gates every new target.
  *  Improve reads competition only — the site already ranks for that search.
- *  The eight numbers are owner-correctable defaults. */
+ *
+ *  - **Difficulty** — `difficulty*` (SPEC §6, owner walk 2026-09-17, issue
+ *    858): the vendor's own keyword difficulty (0–100, "difficulty of
+ *    ranking in the first top-10 organic results", log scale) may be no
+ *    higher than `30 + 10 × log10(1 + own)` (Reach), `15 + 10 × log10(1 +
+ *    own)` (Winnable), never above 100. A search harder than the first is
+ *    outsized exactly as a search too big is. Where the vendor gives no
+ *    difficulty the search is read on volume and competition alone.
+ *
+ *  The cold-start demand floors were 1000 and 200 until issue 858: a floor
+ *  of 1000 admitted "best seo software" for a site ranking for three
+ *  keywords. The numbers are owner-correctable defaults. */
 export const WINNABILITY = Object.freeze({
   qualifyFloor: 500, qualifyMultiple: 5, nearFloor: 100, nearMultiple: 2,
-  demandFloor: 1000, demandMultiple: 10, demandNearFloor: 200, demandNearMultiple: 2,
+  demandFloor: 300, demandMultiple: 10, demandNearFloor: 100, demandNearMultiple: 2,
+  difficultyFloor: 30, difficultyNearFloor: 15, difficultyPerDecade: 10, difficultyMax: 100,
 } as const);
 
 export const RIVAL_SIZE_BANDS = Object.freeze({
@@ -551,6 +563,12 @@ export const SELECTION = Object.freeze({                    // BP-025 · REQ-006
   maxExtraSeeds: 3,
   intentWeights: Object.freeze({ decision: 3, solution: 3, problem: 2, informational: 1 } as const),
   minDecision: 4, minSolution: 3, maxRivalBrand: 3, maxHowTo: 2,
+  /** SPEC §6 right-sizing (owner walk 2026-09-17, issue 858): while the
+   *  site's demand ceiling sits at its cold-start floor, a specific search
+   *  of at least `longTailWords` content words scores `longTailWeight` ×
+   *  its intent score, so long-tail searches carrying the profile's words
+   *  lead the twelve. Owner-correctable defaults. */
+  longTailWords: 3, longTailWeight: 2,
 } as const);
 
 export const COHERENCE = Object.freeze({                    // BP-028 · REQ-094 c2 · BUILD §6.7 step 5

@@ -22,8 +22,8 @@
 // survives only under that reading: the weaker "shares at least one token"
 // rule WO-073 step 4 wrote down would keep it alive on `onboarding` alone.
 // Where the spec rules, the archived plan does not re-open it (CLAUDE.md).
-import { BATTERY, SELECTION } from "@/lib/config/constants";
-import { qualifyingDemand } from "@/lib/opportunities/winnability/bars";
+import { BATTERY, SELECTION, WINNABILITY } from "@/lib/config/constants";
+import { difficultyCeiling, qualifyingDemand } from "@/lib/opportunities/winnability/bars";
 import type { Profile } from "./profile";
 import type { SuggestionRow } from "./market-set";
 
@@ -48,6 +48,15 @@ export interface SelectedSearch {
    *  and never below the floor the selection ran at. Absent on a report
    *  stored before #778, which selected at `SELECTION.volumeFloorPerMonth`. */
   floor?: number;
+  /** The vendor's keyword difficulty, 0–100, where it gave one (issue 858)
+   *  — derivation bands the target by it. */
+  difficulty?: number;
+}
+
+/** A row's difficulty as a stored row carries it: present only where the
+ *  vendor gave one, so a row without it stores as it always did. */
+export function difficultyField(difficulty: number | null | undefined): { difficulty?: number } {
+  return difficulty === undefined || difficulty === null ? {} : { difficulty };
 }
 
 // ── The shape tables. One edit changes a classification everywhere ──────────
@@ -269,6 +278,7 @@ export function brandOf(domain: string): string {
 interface Candidate {
   keyword: string;
   volume: number;
+  difficulty: number | null;
   intent: Intent;
   score: number;
   rivalBrand: boolean;
@@ -293,9 +303,11 @@ const FLOORS: ReadonlyArray<readonly [Intent, number]> = Object.freeze([
 /**
  * The twelve — or as many as the market yielded.
  *
- * `score = intentWeight × log10(volume + 1)`, volume floor 50/mo unless the
- * caller steps it down (SPEC §6 thin markets, `widen.ts`), volume ceiling
- * `qualifyingDemand(ownRanked)` (SPEC §6 right-sizing, issue 830), own-brand
+ * `score = intentWeight × log10(volume + 1)` (× `SELECTION.longTailWeight`
+ * for a long-tail search at cold start, issue 858), volume floor 50/mo unless
+ * the caller steps it down (SPEC §6 thin markets, `widen.ts`), volume ceiling
+ * `qualifyingDemand(ownRanked)` (SPEC §6 right-sizing, issue 830), difficulty
+ * ceiling `difficultyCeiling(ownRanked)` where the vendor gave one, own-brand
  * dropped, relevance guard against the profile's vocabulary, near-duplicate
  * collapse, composition constraints. Pure: no context, no clock, no I/O.
  *
@@ -325,19 +337,33 @@ export function selectTwelve(a: {
   // most demand this site may be offered is not a question for it at all —
   // it takes no slot among the twelve and buys no SERP or battery call.
   const ceiling = qualifyingDemand(a.ownRanked);
+  // Issue 858: nor one harder than its footprint allows, by the vendor's own
+  // difficulty. The ladder steps volume down; it never raises this.
+  const hardest = difficultyCeiling(a.ownRanked);
+  // While the demand ceiling is at its cold-start floor, specific long-tail
+  // searches lead: a new site wins "seo content brief template for
+  // startups", not "seo software".
+  const coldStart = ceiling === WINNABILITY.demandFloor;
 
   const survivors: Candidate[] = [];
   for (const row of a.market) {
     if (row.volume < floor || row.volume > ceiling) continue;
+    const difficulty = row.difficulty ?? null;
+    if (difficulty !== null && difficulty > hardest) continue;
     const intent = classifyIntent(row.keyword, profile);
     if (intent === "own_brand") continue;
     const rivals = row.rivals ?? [];
     if (!passesRelevanceGuard(row.keyword, profile, a.category, rivals)) continue;
+    const longTail = coldStart && contentTokens(row.keyword).length >= SELECTION.longTailWords;
     survivors.push({
       keyword: row.keyword,
       volume: row.volume,
+      difficulty,
       intent,
-      score: SELECTION.intentWeights[intent] * Math.log10(row.volume + 1),
+      score:
+        SELECTION.intentWeights[intent] *
+        Math.log10(row.volume + 1) *
+        (longTail ? SELECTION.longTailWeight : 1),
       rivalBrand: namesAnyOf(row.keyword, [...profile.namedRivals, ...rivals.map(brandOf)]),
       howTo: HOW_TO.test(normalise(row.keyword)),
     });
@@ -411,6 +437,7 @@ export function selectTwelve(a: {
       score: candidate.score,
       rank: index + 1,
       floor: stepOf(candidate.volume, floor),
+      ...difficultyField(candidate.difficulty),
     }));
 
   logSelection(ranked.length, selected.length, unmetFloors, floor);

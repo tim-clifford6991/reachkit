@@ -78,12 +78,6 @@ export interface AbsoluteRival {
   ranked: Measured<number>;
   series: readonly (number | null)[];
   breakAccount?: string;
-  /** REQ-096 c6, on **both** arms. The offer follows the band, and a
-   *  customer whose own count is still below the unlock can have a rival
-   *  beyond reach exactly as one above it can — reading c6 as a warm-arm
-   *  rule would withhold the one control from the customers likeliest to
-   *  need it. */
-  offer: SwapOffer;
 }
 
 export interface RatioRival {
@@ -102,12 +96,21 @@ export interface RatioRival {
     | { kind: "spans_change"; marker: ChangeMarker };
   series: readonly (number | null)[];
   breakAccount?: string;
-  offer: SwapOffer;
+}
+
+/** The far rivals the customer tracks, told apart from the rows (SPEC §6
+ *  right-sizing, owner walk 2026-09-17, issue 858): market leaders, named
+ *  in one secondary line and never drawn as "your rivals". `swap` is REQ-096
+ *  c6's one control, on both arms — a cold-start customer can track a
+ *  giant exactly as a warm one can. */
+export interface MarketLeaders {
+  domains: readonly string[];
+  swap: SwapOffer;
 }
 
 export type RivalGapModule =
-  | { kind: "absolute"; own: Measured<number>; rivals: readonly AbsoluteRival[]; lineKey: CopyKey }
-  | { kind: "ratio"; rivals: readonly RatioRival[]; lineKey: CopyKey };
+  | { kind: "absolute"; own: Measured<number>; rivals: readonly AbsoluteRival[]; leaders: MarketLeaders; lineKey: CopyKey }
+  | { kind: "ratio"; rivals: readonly RatioRival[]; leaders: MarketLeaders; lineKey: CopyKey };
 
 /** The one line the cold-start arm states. Named separately from the arm so
  *  the inequality with the shrinking line is a property a test can read
@@ -124,41 +127,62 @@ export function resolveRivals(
   const confirmed = facts.rivals.filter((rival) => rival.confirmed);
   const ownCount = facts.own.kind === "unmeasured" ? 0 : facts.own.value;
 
+  // Right-sized (issue 858): the reachable rivals are the rows, nearest
+  // band first; a far one is a market leader, named on its own line. The
+  // set itself is untouched — every tracked rival is still measured, and
+  // the customer changes it only from the competitors card (REQ-096 c7).
+  const far = confirmed.filter((rival) => offerFor(rival).offered);
+  const reachable = confirmed.filter((rival) => !offerFor(rival).offered).sort(byReach);
+  const leaders: MarketLeaders = {
+    domains: far.map((rival) => rival.domain),
+    swap: far.length === 0 ? { offered: false } : offerFor(far[0]!),
+  };
+
   if (ownCount < RATIO_UNLOCK) {
     return {
       kind: "absolute",
       own: facts.own,
-      rivals: confirmed.map((rival) => ({
+      rivals: reachable.map((rival) => ({
         domain: rival.domain,
         ranked: rival.ranked,
         series: rival.series,
         ...(rival.breakAccount === undefined ? {} : { breakAccount: rival.breakAccount }),
-        offer: offerFor(rival),
       })),
+      leaders,
       lineKey: ABSOLUTE_LINE_KEY,
     };
   }
 
   return {
     kind: "ratio",
-    rivals: confirmed.map((rival) => ({
+    rivals: reachable.map((rival) => ({
       domain: rival.domain,
       ratio: ratioOf(rival.ranked, facts.own),
       previous: previousOf(facts, rival, changes),
       series: rival.series,
       ...(rival.breakAccount === undefined ? {} : { breakAccount: rival.breakAccount }),
-      offer: offerFor(rival),
     })),
+    leaders,
     lineKey: SHRINKING_LINE_KEY,
   };
 }
 
-/** REQ-096 c6's offer for one rival, and the whole of this resolver's part
- *  in it: a rival the week did not size has nothing to ask, and one it did
- *  is asked through `swapOffer` — which is where "far, and only far" is
- *  written. Nothing here reads `band` and nothing here writes a sentence. */
+/** REQ-096 c6's condition for one rival: a rival the week did not size has
+ *  nothing to ask, and one it did is asked through `swapOffer` — which is
+ *  where "far, and only far" is written. */
 function offerFor(rival: RivalFact): SwapOffer {
   return rival.size === undefined ? { offered: false } : swapOffer(rival.size);
+}
+
+/** Near before middle, and a rival the week did not size after both; the
+ *  customer's own order otherwise (the sort is stable). */
+function byReach(a: RivalFact, b: RivalFact): number {
+  return reachOrder(a) - reachOrder(b);
+}
+
+function reachOrder(rival: RivalFact): number {
+  if (rival.size?.state !== "sized") return 2;
+  return rival.size.band === "near" ? 0 : 1;
 }
 
 /** How many times the rival's count the customer's is. Only ever called on

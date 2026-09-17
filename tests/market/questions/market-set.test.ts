@@ -83,7 +83,7 @@ describe("deriveMarketSet — the vendor's rows, and only the vendor's rows", ()
     await deriveMarketSet(c, { seeds: ["seed one", "seed two"], ownRanked: 0 });
 
     expect(suggestionsMock).toHaveBeenCalledTimes(2);
-    const volume = { min: 10, max: 1000 };
+    const volume = { min: 10, max: 300, maxDifficulty: 30 };
     expect(suggestionsMock.mock.calls[0]).toEqual([c, { seed: "seed one", rows: VENDOR.suggestionsRows, volume }]);
     expect(suggestionsMock.mock.calls[1]).toEqual([c, { seed: "seed two", rows: VENDOR.suggestionsRows, volume }]);
   });

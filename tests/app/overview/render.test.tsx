@@ -307,7 +307,8 @@ describe("how far ahead each rival is", () => {
   it("the ratio arm renders the figure, the was badge and the shrinking line", () => {
     const model = assembleOverview(facts());
     const markup = html(<RivalModule rivals={model.rivals} timeZone={ZONE} />);
-    expect(markup).toContain("overview.rivals.ratio(78)");
+    // The fixture's reachable rival: 420 against 81.
+    expect(markup).toContain("overview.rivals.ratio(5)");
     expect(markup).toContain("overview.rivals.was");
     expect(markup).toContain("overview.rivals.line.shrinking");
   });
@@ -334,47 +335,40 @@ describe("how far ahead each rival is", () => {
     expect(markup).not.toContain("overview.rivals.ratio");
   });
 
-  // ── REQ-096 c6, rendered (issue #223) ───────────────────────────────
-  //
-  // `page.test.tsx` asserts the other half: while either sentence is owed,
-  // nothing of this renders at all. Here every key is written, so this is
-  // what the customer sees the moment the owner fills them.
-  it("a far rival carries the written line and one control, under its own row", () => {
+  // ── Right-sized rivals, rendered (issue 858; REQ-096 c6) ────────────
+  it("a far rival is not a row: it is named as a market leader, after the reachable rows, with one control", () => {
     const model = assembleOverview(facts());
     const markup = html(<RivalModule rivals={model.rivals} timeZone={ZONE} />);
-    expect(markup).toContain("overview.rivals.far.line(bigcompetitor.com)");
-    expect(markup).toContain("overview.rivals.far.swap");
+    expect(markup).toContain("overview.rivals.leaders(bigcompetitor.com)");
+    expect(markup).not.toContain("overview.rivals.spark.label(bigcompetitor.com)");
+    expect(markup).toContain("overview.rivals.spark.label(secondplace.io)");
+    expect(markup.indexOf("secondplace.io")).toBeLessThan(markup.indexOf("overview.rivals.leaders("));
+    expect(markup).not.toContain("overview.rivals.none-reachable");
   });
 
   it("the control is a link to the competitors card, and there is exactly one", () => {
     const model = assembleOverview(facts());
     const markup = html(<RivalModule rivals={model.rivals} timeZone={ZONE} />);
     expect(markup.split('href="/app/settings"').length - 1).toBe(1);
-    expect(markup.split("overview.rivals.far.swap").length - 1).toBe(1);
+    expect(markup.split("overview.rivals.leaders.swap").length - 1).toBe(1);
   });
 
-  it("no other rival's row carries it — the fixture's middle-banded rival has none", () => {
-    const model = assembleOverview(facts());
-    const markup = html(<RivalModule rivals={model.rivals} timeZone={ZONE} />);
-    // Both rivals render; only one offer does.
-    expect(markup).toContain("secondplace.io");
-    expect(markup.split("overview.rivals.far.line").length - 1).toBe(1);
-  });
-
-  it("the far rival keeps its figure and its badge — the offer adds, it never replaces", () => {
-    const model = assembleOverview(facts());
-    const markup = html(<RivalModule rivals={model.rivals} timeZone={ZONE} />);
-    expect(markup).toContain("overview.rivals.ratio(78)");
-    expect(markup).toContain("overview.rivals.was");
-  });
-
-  it("it names no replacement and offers no removal — only the two written keys appear", () => {
-    const model = assembleOverview(facts());
-    const markup = html(<RivalModule rivals={model.rivals} timeZone={ZONE} />);
-    const rivalKeys = [...markup.matchAll(/overview\.rivals\.[a-z.]+/g)].map((m) => m[0]);
-    expect(new Set(rivalKeys.filter((k) => k.startsWith("overview.rivals.far")))).toEqual(
-      new Set(["overview.rivals.far.line", "overview.rivals.far.swap"])
+  it("with no reachable rival the card says so first, and leads with no far rival", () => {
+    const far = (domain: string, count: number) => ({
+      domain,
+      confirmed: true,
+      ranked: measured(count, AT(31)),
+      series: [count],
+      size: { domain, state: "sized" as const, rankedCount: count, band: "far" as const, at: AT(31), current: true },
+    });
+    const model = assembleOverview(
+      facts({ rivals: { own: measured(3, AT(31)), rivals: [far("zapier.com", 218_224), far("ahrefs.com", 59_767)] } })
     );
+    const markup = html(<RivalModule rivals={model.rivals} timeZone={ZONE} />);
+    expect(markup).toContain("overview.rivals.none-reachable");
+    expect(markup).toContain("overview.rivals.leaders(zapier.com, ahrefs.com)");
+    expect(markup).not.toContain("overview.rivals.spark.label");
+    expect(markup).not.toContain("far beyond your reach");
   });
 });
 
