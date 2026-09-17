@@ -113,7 +113,8 @@ export const EMPTY_PRECEDENCE: readonly EmptyCause[] = Object.freeze([
 export interface EmptyFacts {
   /** REQ-047 c5's outstanding instruction against this date, or `null`. */
   instruction: { opportunityId: string } | null;
-  /** REQ-092 c1: a cap, a halt, or a step that failed on this date. */
+  /** REQ-092 c1: the kill switch or the day's spend ceiling (issue 841 —
+   *  a pass that ended degraded or failed is not a stop). */
   reachkitStopped: boolean;
   /** A draft on this date in a state that occupies no date (`STAGE_OF` maps
    *  both to `null`), or `null` where there is no such draft. */
