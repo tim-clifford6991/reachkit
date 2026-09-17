@@ -13,8 +13,9 @@ How a change reaches `main` is `docs/PROCESS.md`: three required checks, then
 
 Dev (`dev.reachkit.app`) deploys from `main` via `rk-deployer`. If it has not moved after a
 merge, run `bash /root/ops/reachkit/bin/deploy-dev-once.sh`. Production is batched (at most
-every two hours) and stays frozen while `/root/ops/reachkit/state/prod-frozen` exists. `Vercel`
-is not a check: Git deployments are off (`vercel.json` `git.deploymentEnabled: false`).
+every two hours) and receives every merge, the same as dev (no freeze, owner 2026-09-17, #844).
+`/api/jobs` is served by production, so a job or pass change takes effect only once production is
+deployed. `Vercel` is not a check: Git deployments are off (`vercel.json` `git.deploymentEnabled: false`).
 
 The owner tests the path live on `dev.reachkit.app`. A merged migration is applied through the
 Supabase connector after the target deploy is READY, then the path is walked again

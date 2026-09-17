@@ -9,7 +9,7 @@ Production <https://reachkit.app> · dev <https://dev.reachkit.app> · repo `tim
 
 ## The nine MVP features (status 2026-09-15)
 
-Built means on `main` with tests. None of it counts as delivered until a stranger walks it on production (below). Production stays frozen until the owner lifts it.
+Built means on `main` with tests. None of it counts as delivered until a stranger walks it on production (below).
 
 | # | Feature | What the user gets | Status |
 |---|---|---|---|
