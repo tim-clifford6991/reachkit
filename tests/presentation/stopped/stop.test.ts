@@ -82,41 +82,20 @@ describe("REQ-092 c2/c4/c6 — no absent arm, and no third outcome", () => {
   });
 });
 
-describe("REQ-092 c1 — stopCause classifies the three shapes and only those", () => {
-  const RUNS = ["ok", "degraded", "failed"] as const;
-  const rows: { capHit: boolean; killSwitch: boolean; lastRun: (typeof RUNS)[number]; expected: StopShape | null }[] =
-    [];
-  for (const capHit of [false, true]) {
-    for (const killSwitch of [false, true]) {
-      for (const lastRun of RUNS) {
-        const expected: StopShape | null = killSwitch
-          ? "halted"
-          : capHit
-            ? "spend-ceiling"
-            : lastRun === "ok"
-              ? null
-              : "step-failed";
-        rows.push({ capHit, killSwitch, lastRun, expected });
-      }
-    }
-  }
+describe("REQ-092 c1, issue 841 — stopCause classifies the two real stops and only those", () => {
+  const rows: { capHit: boolean; killSwitch: boolean; expected: StopShape | null }[] = [
+    { capHit: false, killSwitch: false, expected: null },
+    { capHit: true, killSwitch: false, expected: "spend-ceiling" },
+    { capHit: false, killSwitch: true, expected: "halted" },
+    { capHit: true, killSwitch: true, expected: "halted" },
+  ];
 
-  it.each(rows)(
-    "capHit=$capHit killSwitch=$killSwitch lastRun=$lastRun → $expected",
-    ({ expected, ...facts }) => {
-      expect(stopCause(facts)).toBe(expected);
-    }
-  );
-
-  it("every stopped combination returns a shape, so no stop is unobservable", () => {
-    const stopped = rows.filter((r) => r.killSwitch || r.capHit || r.lastRun !== "ok");
-    expect(stopped.length).toBe(rows.length - 1);
-    for (const row of stopped) {
-      expect(stopCause({ capHit: row.capHit, killSwitch: row.killSwitch, lastRun: row.lastRun })).not.toBeNull();
-    }
+  it.each(rows)("capHit=$capHit killSwitch=$killSwitch → $expected", ({ expected, ...facts }) => {
+    expect(stopCause(facts)).toBe(expected);
   });
 
-  it("the only unstopped row is the one where nothing went wrong", () => {
-    expect(stopCause({ capHit: false, killSwitch: false, lastRun: "ok" })).toBeNull();
+  it("a pass's own outcome is not an input: a degraded or failed run cannot make a stop", () => {
+    // @ts-expect-error — `lastRun` is no longer a fact a stop is read from.
+    expect(stopCause({ capHit: false, killSwitch: false, lastRun: "degraded" })).toBeNull();
   });
 });

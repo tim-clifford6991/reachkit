@@ -274,7 +274,7 @@ export async function readCalendarFacts(a: {
     // (#113). A read that throws is not a claim that nothing stopped: the
     // day's own account falls to `unattributed`, which is the same stop
     // said without a record behind it (ADR-061 point 2).
-    readStop(a.site.siteId).catch(() => null),
+    readStop().catch(() => null),
     // REQ-071 c11's hold (#204). A read that could not answer is not a site
     // replacing nothing — but it is also not a licence to hold every date
     // on a guess, and the day's account falls through to the arms below,
