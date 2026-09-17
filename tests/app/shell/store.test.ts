@@ -20,6 +20,9 @@ const reachKitStopped = vi.fn();
 const nextDueOn = vi.fn();
 const measuredWeeksOf = vi.fn();
 const rows = new Map<string, Record<string, unknown>[]>();
+/** What `fetches_spend_since` answers — the day's product-wide spend, in
+ *  cents, or an error where the ledger cannot be read. */
+const daySpend = vi.hoisted(() => ({ cents: 4.41 as number | null }));
 
 vi.mock("@/lib/publish/switch", () => ({
   isPublishingOn: (...a: unknown[]) => isPublishingOn(...a),
@@ -73,7 +76,15 @@ vi.mock("@/lib/db", () => {
     };
     return self;
   };
-  return { dbAdmin: () => ({ from: (table: string) => builder(table) }) };
+  return {
+    dbAdmin: () => ({
+      from: (table: string) => builder(table),
+      rpc: async (fn: string) =>
+        fn === "fetches_spend_since" && daySpend.cents !== null
+          ? { data: daySpend.cents, error: null }
+          : { data: null, error: { message: "the ledger is unreadable" } },
+    }),
+  };
 });
 
 const { readShellFacts } = await import("@/app/(account)/app/_shell/store");
@@ -93,6 +104,7 @@ beforeEach(() => {
   reachKitStopped.mockResolvedValue(false);
   nextDueOn.mockResolvedValue(new Date("2026-09-14T10:00:00.000Z"));
   measuredWeeksOf.mockResolvedValue([]);
+  daySpend.cents = 4.41;
 });
 
 afterEach(() => {
@@ -154,16 +166,44 @@ describe("the four causes are read as four facts", () => {
     expect(facts.stopped?.resumes).toEqual({ promised: false });
   });
 
-  it("the stop's `since` is read, not invented: a failed run began when the run did", async () => {
-    // `since` decides which days a stop accounts for, so a fabricated one
-    // mis-attributes them.
+  it("issue 841: a pass stored degraded — a thin market — is not a stop", async () => {
+    // The owner's walk: zero questions, so the pass's SERPs and rivals were
+    // missing and the row was `degraded`; the switch was off and the day had
+    // spent 4.41¢ of 5000¢. Nothing stopped.
     rows.set("scans", [
       { id: "s1", site_id: "site-1", status: "degraded", created_at: "2026-09-05T06:00:00.000Z" },
     ]);
     const facts = await readShellFacts(SITE);
-    expect(facts.stopped?.since).toEqual(new Date("2026-09-05T06:00:00.000Z"));
-    // REQ-092 c6: the run was cut short but still produced its page.
-    expect(facts.stopped?.partial).toBe(true);
+    expect(facts.stopped).toBeNull();
+    expect(facts.noPublishCauses.reachkit_stopped).toBe(false);
+  });
+
+  it("issue 841: a failed pass is not a stop either", async () => {
+    rows.set("scans", [
+      { id: "s1", site_id: "site-1", status: "failed", created_at: "2026-09-05T06:00:00.000Z" },
+    ]);
+    expect((await readShellFacts(SITE)).stopped).toBeNull();
+  });
+
+  it("the day's spend ceiling reached is ReachKit's own stop", async () => {
+    daySpend.cents = 5000;
+    const facts = await readShellFacts(SITE);
+    expect(facts.stopped).not.toBeNull();
+    expect(facts.noPublishCauses.reachkit_stopped).toBe(true);
+    expect(facts.stopped?.needs).toEqual({ kind: "nothing" });
+    expect(facts.stopped?.resumes).toEqual({ promised: false });
+    expect(facts.stopped?.partial).toBe(false);
+  });
+
+  it("just under the ceiling is not a stop", async () => {
+    daySpend.cents = 4999.99;
+    expect((await readShellFacts(SITE)).stopped).toBeNull();
+  });
+
+  it("a ledger that cannot be read states no stop — nothing is known to be reached", async () => {
+    daySpend.cents = null;
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    expect((await readShellFacts(SITE)).stopped).toBeNull();
   });
 
   it("the kill switch has no recorded moment, so it accounts for no earlier day", async () => {

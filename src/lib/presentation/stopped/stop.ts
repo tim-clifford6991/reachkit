@@ -30,24 +30,27 @@ export interface WorkStop {
   partial: boolean;
 }
 
-/** The three stop shapes REQ-092 c1 names. Internal only — the returned
- *  handle is never rendered, never reaches a `CopyKey`, and is never
- *  placed in a `WorkStop`. It exists so a resumption date can be derived
- *  per shape and so a stop can be logged where logging is allowed. */
-export type StopShape = "spend-ceiling" | "halted" | "step-failed";
+/** The two stop shapes that are real stops (issue 841, owner 2026-09-17):
+ *  the kill switch is engaged, or the day's spend ceiling is reached.
+ *  Internal only — the returned handle is never rendered, never reaches a
+ *  `CopyKey`, and is never placed in a `WorkStop`. It exists so a
+ *  resumption date can be derived per shape and so a stop can be logged
+ *  where logging is allowed.
+ *
+ *  **There is no third shape for a pass that ended `degraded` or `failed`.**
+ *  A pass that found too little market is stored `degraded` (its SERPs and
+ *  rivals sections are missing), and reading that as "ReachKit stopped its
+ *  own work" told a founder whose kill switch was off, and whose day had
+ *  spent 4.41¢ of its ceiling, something false. A thin market is the
+ *  market-too-small state; a pass that failed is the pass's own record. */
+export type StopShape = "spend-ceiling" | "halted";
 
 /** Classification order: the strongest fact wins. A kill switch is a
- *  halt whatever else is true; a cap reached is a spend ceiling whether or
- *  not the last run also degraded. `null` is "ReachKit has not stopped",
- *  the value that makes every downstream statement render from the other
- *  cause set. */
-export function stopCause(facts: {
-  capHit: boolean;
-  killSwitch: boolean;
-  lastRun: "ok" | "degraded" | "failed";
-}): StopShape | null {
+ *  halt whatever else is true; a ceiling reached is a spend ceiling.
+ *  `null` is "ReachKit has not stopped", the value that makes every
+ *  downstream statement render from the other cause set. */
+export function stopCause(facts: { capHit: boolean; killSwitch: boolean }): StopShape | null {
   if (facts.killSwitch) return "halted";
   if (facts.capHit) return "spend-ceiling";
-  if (facts.lastRun === "degraded" || facts.lastRun === "failed") return "step-failed";
   return null;
 }
