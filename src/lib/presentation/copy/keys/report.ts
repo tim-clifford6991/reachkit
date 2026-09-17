@@ -205,8 +205,21 @@ export const REPORT_COPY = Object.freeze({
   // REQ-006 c6's one written line: what was measured, and no second
   // engine named anywhere on the card. S2 draws it as the source chip at
   // the foot of the card.
-  "ai-answers.method": ["= your market’s 12 biggest searches, asked as a buyer asks AI.", { slots: {}, fixedBy: "REQ-006 c9" }],
-  "ai-answers.questions.title": ["The 12 questions", { slots: {}, fixedBy: "REQ-006 c9" }],
+  // Issue 873: the count is the pass's, never the literal twelve. A free
+  // pass asks as many questions as its market yielded and its purse can pay
+  // to ask, so a card that said "12" over nine rows was stating a number
+  // the report did not have.
+  "ai-answers.method": [
+    "= your market’s {total} biggest searches, asked as a buyer asks AI.",
+    { slots: { total: "text" }, fixedBy: "REQ-006 c9 · issue 873" },
+  ],
+  "ai-answers.questions.title": ["The {total} questions", { slots: { total: "text" }, fixedBy: "REQ-006 c9 · issue 873" }],
+  // Issue 873: what this report measured, in one line, so a founder does
+  // not count rows to find out.
+  "ai-answers.questions.measured": [
+    "This report measured {measured} of these {total} searches.",
+    { slots: { measured: "text", total: "text" }, fixedBy: "issue 873" },
+  ],
   "ai-answers.questions.show-all": ["Show all {total}", { slots: { total: "text" }, fixedBy: "REQ-006 c9" }],
   "ai-answers.question.not-you": ["not you", { slots: {}, fixedBy: "REQ-006 c1" }],
   "ai-answers.question.no-answer": ["no answer", { slots: {}, fixedBy: "REQ-006 c1" }],

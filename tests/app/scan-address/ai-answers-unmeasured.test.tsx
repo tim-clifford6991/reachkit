@@ -58,6 +58,29 @@ function allUnmeasured(): AiAnswersSection {
   };
 }
 
+describe("issue 873 — the card states what the report measured, and never claims twelve", () => {
+  it("the questions heading and the method line carry the pass's own count", () => {
+    const six: AiAnswersSection = { ...SECTION, rows: SECTION.rows.slice(0, 6), measuredSearches: 6 };
+    const html = render(six);
+
+    expect(html).toContain("ai-answers.questions.title(6)");
+    expect(html).toContain("ai-answers.method(6)");
+    expect(html).not.toContain("ai-answers.questions.title(12)");
+  });
+
+  it("one line says how many of them were measured, so a founder does not count rows", () => {
+    const nine: AiAnswersSection = { ...SECTION, rows: SECTION.rows.slice(0, 9), measuredSearches: 6 };
+    expect(render(nine)).toContain("ai-answers.questions.measured(6|9)");
+  });
+
+  it("a full report says so in the same line, not only a short one", () => {
+    const whole: AiAnswersSection = { ...SECTION, measuredSearches: SECTION.rows.length };
+    expect(render(whole)).toContain(
+      `ai-answers.questions.measured(${SECTION.rows.length}|${SECTION.rows.length})`
+    );
+  });
+});
+
 describe("issue 869 — a question nobody could read is not a question you were left out of", () => {
   it("renders the not-measured line, never the red `not you`, for an unmeasured cell", () => {
     const html = render(allUnmeasured());

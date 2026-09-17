@@ -119,6 +119,29 @@ export function affordsSeed(a: { remainingCents: number; selected: number }): bo
   return a.remainingCents > PRICE_BOOK.SUGGESTIONS_COST_C + a.selected * QUESTION_SERP_RESERVE_C;
 }
 
+/**
+ * How many questions a purse of `cents` can actually ask (issue 873).
+ *
+ * A reserve each, never a settlement: the reservation is what the cap is
+ * checked against (`recordFetch`), so it is what decides whether a question
+ * can be asked at all. Any remainder below one question's reserve buys
+ * nothing, which is why this floors.
+ *
+ * The free pass used to select and *phrase* twelve whatever the market
+ * ladder had left of the shared purse, and the questions at the end of the
+ * list were then dropped after the visitor had already been shown them.
+ * Deciding the count here, before the phrasing, is what makes the free
+ * report a list of questions it can pay to answer.
+ *
+ * The epsilon is the binary representation, not a tolerance: the reserve is
+ * a tenth-of-a-cent figure (`numeric(12,4)` in `fetches`), and 4.8/0.4
+ * lands a hair under twelve in IEEE-754.
+ */
+export function questionsAffordable(cents: number): number {
+  if (cents <= 0) return 0;
+  return Math.floor((cents + 1e-9) / QUESTION_SERP_RESERVE_C);
+}
+
 /** How many of the twelve question-SERPs one pass has in flight at once
  *  (issue #539).
  *
