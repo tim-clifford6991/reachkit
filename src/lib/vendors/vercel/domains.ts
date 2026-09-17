@@ -78,6 +78,14 @@ function credentials(): { token: string; projectId: string } | null {
   return { token, projectId };
 }
 
+/** Whether this deployment carries both bindings at all — a yes or no,
+ *  never the values. A founder's press asks it first (issue 840), so a
+ *  deployment that cannot verify any host says so instead of reading as a
+ *  vendor that did not answer this time. */
+export function domainsConfigured(): boolean {
+  return credentials() !== null;
+}
+
 /** The one composition of the credential, and the only place it is a
  *  string. Not exported: a header a caller could build is a header a
  *  caller could log. */
