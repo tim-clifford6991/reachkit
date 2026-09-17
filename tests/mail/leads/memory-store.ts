@@ -17,6 +17,7 @@ import type {
   LeadPatch,
   LeadRow,
   LeadStore,
+  ScanFirstPage,
   SequenceState,
   SuppressionCause,
 } from "../../../src/lib/mail/leads/store";
@@ -26,6 +27,9 @@ export interface MemoryState {
   suppressions: Map<string, SuppressionCause>;
   scans: Map<string, string>;
   reports: Map<string, unknown>;
+  /** The scans' stored free pages (issue 826); absent reads as unclaimed. */
+  firstPages: Map<string, ScanFirstPage>;
+  failFirstPageRead: boolean;
   failInsert: boolean;
   failScanRead: boolean;
   failLeadRead: boolean;
@@ -41,6 +45,8 @@ export function newMemoryState(): MemoryState {
     suppressions: new Map(),
     scans: new Map(),
     reports: new Map(),
+    firstPages: new Map(),
+    failFirstPageRead: false,
     failInsert: false,
     failScanRead: false,
     failLeadRead: false,
@@ -158,6 +164,28 @@ export function memoryStore(state: MemoryState): LeadStore {
     async scanReport(scanId) {
       if (state.failReportRead) return { ok: false };
       return { ok: true, report: state.reports.get(scanId) ?? null };
+    },
+
+    async scanFirstPage(scanId) {
+      if (state.failFirstPageRead) return { ok: false };
+      return { ok: true, page: state.firstPages.get(scanId) ?? null };
+    },
+
+    // The conditional update, mirrored: only an unclaimed scan, or one whose
+    // writer's claim went stale, is taken.
+    async claimScanFirstPage(scanId, now, staleBefore) {
+      const held = state.firstPages.get(scanId);
+      const free =
+        held === undefined || (held.state === "writing" && held.claimedAt.getTime() < staleBefore.getTime());
+      if (!free) return { ok: true, claimed: false };
+      state.firstPages.set(scanId, { state: "writing", claimedAt: now });
+      return { ok: true, claimed: true };
+    },
+
+    async settleScanFirstPage(scanId, settlement) {
+      if (settlement.state === "released") state.firstPages.delete(scanId);
+      else state.firstPages.set(scanId, settlement);
+      return { ok: true };
     },
   };
 }
