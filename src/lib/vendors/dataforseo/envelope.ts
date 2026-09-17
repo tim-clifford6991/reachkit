@@ -71,6 +71,29 @@ interface VendorTask {
  *  not recognise are all `unparseable`. */
 export type VendorFailureKind = TransportFailure | `task_${number}` | "deadline" | "no_surface";
 
+/**
+ * Whether one more ask is worth making inside the same pass (issue 865).
+ *
+ * Production, 2026-09-17: 8 of 62 live SERP calls came back `timeout` — our
+ * own `REQUEST_TIMEOUT_MS` abort, inside the latency tail of the live
+ * endpoint — and DataForSEO bills those (the task may well have run). The
+ * cell they were bought for was dropped and never asked again, which is
+ * where "a fifth of the battery is unmeasured" came from.
+ *
+ * Closed, and deliberately narrow: a clock or a connection that went wrong
+ * once may go right the second time, and a vendor under load answers a 429
+ * or a 5xx it will not answer again. Everything else is the same answer
+ * twice — a 4xx is this request, `unparseable` is this shape, `no_surface`
+ * is this endpoint, and `deadline` is a standard-queue task that already
+ * had `VENDOR.stdQueueDeadlineMin` — so asking again would only spend.
+ */
+export function worthAskingAgain(kind: string): boolean {
+  if (kind === "timeout" || kind === "transport") return true;
+  if (kind === "http_429") return true;
+  const status = /^http_(\d{3})$/.exec(kind);
+  return status !== null && Number(status[1]) >= 500;
+}
+
 export type VendorOutcome =
   | { ok: true; result: unknown }
   | {

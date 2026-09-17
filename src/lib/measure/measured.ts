@@ -20,7 +20,20 @@ export type UnmeasuredReason = "undeterminable" | "not_attempted";
 export type Measured<T> =
   | { kind: "measured"; value: T; at: Date }
   | { kind: "zero"; value: T; at: Date }
-  | { kind: "unmeasured"; reason: UnmeasuredReason; at: Date };
+  | {
+      kind: "unmeasured";
+      reason: UnmeasuredReason;
+      at: Date;
+      /** What the source said, where the caller heard it (issue 865) — a
+       *  vendor failure's own kind (`timeout`, `http_502`, `task_40102`),
+       *  never a message and never anything a customer's site returned.
+       *  Optional and additive: the three arms are unchanged, no reader has
+       *  to know it is there, and a report stored without it is still a
+       *  report. It exists so a cell that could not be measured can say why
+       *  it could not — the state issue 715's "Retry this part" reads, and
+       *  what made a fifth of one battery unreadable from the outside. */
+      because?: string;
+    };
 
 /** The only constructors. There is no `Measured.of(number | null)`: a
  *  nullable number cannot say why, and the whole point of REQ-004 is that
@@ -31,8 +44,8 @@ export function measured<T>(value: T, at: Date): Measured<T> {
 export function measuredZero<T>(zero: T, at: Date): Measured<T> {
   return { kind: "zero", value: zero, at };
 }
-export function unmeasured<T>(reason: UnmeasuredReason, at: Date): Measured<T> {
-  return { kind: "unmeasured", reason, at };
+export function unmeasured<T>(reason: UnmeasuredReason, at: Date, because?: string): Measured<T> {
+  return { kind: "unmeasured", reason, at, ...(because === undefined ? {} : { because }) };
 }
 
 /** Preserves the arm and the `at`; never touches the `unmeasured` arm's

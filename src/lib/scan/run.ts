@@ -72,6 +72,12 @@ import type { OnPageFacts } from "@/lib/measure/parse";
 import type { Drivers } from "@/lib/measure/score";
 import { verdictOf, type Verdict } from "@/lib/measure/verdict";
 import { aiMode, llmScraper, serpOrganic } from "@/lib/vendors/dataforseo";
+// By file, not through the barrel: ARCHITECTURE fixes that barrel's
+// exported set at BP-008's six functions and `tests/vendors/never-list.test.ts`
+// asserts it, so a predicate about vendor failures is imported the way the
+// vendor types already are (issue 865).
+import { worthAskingAgain } from "@/lib/vendors/dataforseo/envelope";
+import type { VendorFailure } from "@/lib/costs";
 import type { AiAnswer, CacheScope, RankedRow, SerpResult } from "@/lib/vendors/dataforseo/types";
 import {
   MARKET_PURSE_CENTS,
@@ -768,6 +774,11 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
     tier: a.tier,
     stoppedReason,
     status: stored.status,
+    // Issue 865: how much of the battery this pass actually measured, so
+    // "ten of twelve" is a fact in the log rather than one to be inferred
+    // from the stored report.
+    serpsMeasured: composed.report.serps.filter((serp) => serp.kind !== "unmeasured").length,
+    serpsAsked: composed.report.serps.length,
     because:
       ending.stoppedReason === "site_unreadable"
         ? (ending.refusal ?? "stage_undeterminable")
@@ -1257,11 +1268,51 @@ async function askTheTwelve(a: StageArgs, abandoned: () => boolean): Promise<voi
     sections.battery.push(noBattery(questions.at));
   }
 
+  /** One question's live SERP, with the vendor's own failure kind where
+   *  there was one (issue 865). The cell is what this returns; nothing
+   *  here writes to `sections`. */
+  const askOne = async (
+    keyword: string
+  ): Promise<{ serp: Measured<SerpResult> | StageFailure; failure: VendorFailure | null }> => {
+    const heard: { failure: VendorFailure | null } = { failure: null };
+    const serp = await attempt("asking_the_twelve", () =>
+      serpOrganic(cost, {
+        query: keyword,
+        mode: parameters.serpMode,
+        loadAsyncAiOverview: parameters.asyncAiOverview && !a.correction,
+        scope: cacheScope(a),
+        freshnessDays: parameters.serpWindowDays,
+        onFailure: (failure) => {
+          heard.failure = failure;
+        },
+      })
+    );
+    return { serp, failure: heard.failure };
+  };
+
+  /** The cell, carrying the vendor's own kind where the call failed (issue
+   *  865): `undeterminable` says a cell could not be measured, `because`
+   *  says what the pass was told — a vendor that timed out and a request it
+   *  refused are not the same fact, and the second is not worth re-asking. */
+  const cellFor = (
+    got: { serp: Measured<SerpResult> | StageFailure; failure: VendorFailure | null },
+    at: Date
+  ): Measured<SerpResult> => {
+    if (failed(got.serp)) return unmeasured("undeterminable", at);
+    if (got.serp.kind === "unmeasured" && got.failure !== null) {
+      return unmeasured<SerpResult>(got.serp.reason, got.serp.at, got.failure.vendorFailure);
+    }
+    return got.serp;
+  };
+
   // One shared cursor over the twelve, taken by `serpFanout` workers. A
   // worker re-reads the ceilings before taking a question, so the stage
   // stops asking on the first refusal rather than asking eleven more times
   // and being refused eleven more times.
   let next = 0;
+  /** Issue 865: the questions whose first ask failed in a way that is worth
+   *  one more, asked again only once every question has been asked once. */
+  const worthOneMore: { readonly index: number; readonly keyword: string; readonly because: string }[] = [];
   const buyOne = async (): Promise<void> => {
     for (;;) {
       const i = next;
@@ -1269,15 +1320,7 @@ async function askTheTwelve(a: StageArgs, abandoned: () => boolean): Promise<voi
       const question = asked[i];
       if (question === undefined) return;
       if (bounds.stopNow() !== null) continue;
-      const serp = await attempt("asking_the_twelve", () =>
-        serpOrganic(cost, {
-          query: question.search.keyword,
-          mode: parameters.serpMode,
-          loadAsyncAiOverview: parameters.asyncAiOverview && !a.correction,
-          scope: cacheScope(a),
-          freshnessDays: parameters.serpWindowDays,
-        })
-      );
+      const got = await askOne(question.search.keyword);
       const battery = await askTheBattery(a, question.search.keyword, questions.at);
       // **A worker whose stage was abandoned writes nothing** (#539
       // review). The budget stops the pass *waiting* for this stage; it
@@ -1288,12 +1331,58 @@ async function askTheTwelve(a: StageArgs, abandoned: () => boolean): Promise<voi
       // happen together after the last await, so a question's SERP and its
       // battery are never half a pair.
       if (abandoned()) return;
-      sections.serps[i] = failed(serp) ? unmeasured("undeterminable", questions.at) : serp;
+      sections.serps[i] = cellFor(got, questions.at);
       sections.battery[i] = battery;
+      if (got.failure !== null && worthAskingAgain(got.failure.vendorFailure)) {
+        worthOneMore.push({ index: i, keyword: question.search.keyword, because: got.failure.vendorFailure });
+      }
     }
   };
 
   await Promise.all(Array.from({ length: Math.min(parameters.serpFanout, asked.length) }, () => buyOne()));
+
+  // **One more ask, and only one, and only after every question has had
+  // its first** (issue 865).
+  //
+  // Production 2026-09-17: about an eighth of live SERP calls came back
+  // `timeout` — our own request abort inside the vendor's latency tail,
+  // which DataForSEO bills either way — and the cell was dropped and never
+  // asked again. That is where "a fifth of the battery is unmeasured" came
+  // from; the `not_attempted` tail on the same passes is the same call,
+  // seen from the stage's clock, since a request that runs to the abort
+  // holds one of `serpFanout` workers for all of it.
+  //
+  // **After the sweep, never inside it**: a question that has never been
+  // asked outranks one that is being asked twice, so the retries take
+  // whatever time and money the first sweep left and nothing that was owed
+  // to a question still waiting.
+  //
+  // **It spends nothing the pass had not already set aside**: the retry is
+  // an ordinary purchase through the same `CostContext`, so the cap is
+  // checked against it exactly as it was against the first ask, and a
+  // purse with no room refuses it rather than raising anything. A question
+  // reserves the async-AI-Overview surcharge and a failed call settles the
+  // base price, which is the room this ask is made in.
+  let nextRetry = 0;
+  const askAgain = async (): Promise<void> => {
+    for (;;) {
+      const owed = worthOneMore[nextRetry];
+      nextRetry += 1;
+      if (owed === undefined) return;
+      if (bounds.stopNow() !== null || abandoned()) return;
+      const got = await askOne(owed.keyword);
+      if (abandoned()) return;
+      const cell = cellFor(got, questions.at);
+      logSerpRetry({ because: owed.because, outcome: cell.kind === "unmeasured" ? "unmeasured" : "measured" });
+      sections.serps[owed.index] = cell;
+    }
+  };
+
+  if (worthOneMore.length > 0 && !abandoned() && bounds.stopNow() === null) {
+    await Promise.all(
+      Array.from({ length: Math.min(parameters.serpFanout, worthOneMore.length) }, () => askAgain())
+    );
+  }
 }
 
 /** The battery nobody bought: both engines on the arm that says we did not
@@ -1523,13 +1612,25 @@ function composeReport(a: {
     (f) => !(tooSmall && f.factor === "presence" && drivers.searchPresence.kind !== "unmeasured")
   );
 
+  // Issue 865: **the twelve are a battery, not a section.** One question
+  // whose SERP the vendor dropped used to mark the whole pass `degraded` —
+  // ten of twelve measured, inside its budget, ending `complete`, carried
+  // the same word as a pass that lost its market or was cut off by a
+  // ceiling, and the app's states read that word. A battery says what it
+  // measured and what it did not: every cell carries its own arm and its
+  // `because`, and the pass is only missing this section when *no*
+  // question was measured at all. Everything else here is unchanged — a
+  // section that is wholly absent still degrades the pass, and so does a
+  // ceiling or a cap (`spend.degraded`, `stoppedReason`).
+  const noQuestionMeasured = s.serps.length > 0 && s.serps.every((serp) => serp.kind === "unmeasured");
+
   const sectionMissing =
     s.aiAnswers === null ||
     s.presence === null ||
     missingFactors.length > 0 ||
     market.kind === "unmeasured" ||
     s.questions.kind === "unmeasured" ||
-    s.serps.some((serp) => serp.kind === "unmeasured");
+    noQuestionMeasured;
 
   return { report, drivers, sectionMissing, marketTooSmall: tooSmall };
 }
@@ -1544,11 +1645,21 @@ function foldSerps(serps: readonly Measured<SerpResult>[], at: Date): Measured<n
   return unmeasured(first !== undefined && first.kind === "unmeasured" ? first.reason : "not_attempted", at);
 }
 
+/** One line per re-asked question (issue 865), carrying the failure that
+ *  bought the second ask and what it came back as — never the query. */
+function logSerpRetry(fields: { because: string; outcome: "measured" | "unmeasured" }): void {
+  console.log(JSON.stringify({ event: "serp_retry", ...fields }));
+}
+
 function logPass(fields: {
   scanId: string;
   tier: Tier;
   stoppedReason: StoppedReason;
   status: ScanStatus;
+  /** Issue 865: how much of the battery this pass measured. Absent where
+   *  a pass ended before the twelve were asked at all. */
+  serpsMeasured?: number;
+  serpsAsked?: number;
   because: string;
 }): void {
   console.log(JSON.stringify({ event: "scan_pass", ...fields }));
