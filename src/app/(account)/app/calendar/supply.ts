@@ -19,8 +19,14 @@ import { writtenLine } from "../_shell/written";
 import { formatDate } from "../_shell/format";
 import type { SupplyNotice } from "@/lib/opportunities";
 
-export function supplyLine(notice: SupplyNotice | null, timeZone: string): string | null {
+/** §7's notice, with its zero told apart (issue 765, issue 784): `unmeasured` is an
+ *  exhausted count over a market that was never measured — there was
+ *  nothing to use up, and "nothing worth publishing is left" is false. */
+export type CalendarSupplyNotice = SupplyNotice | { kind: "unmeasured" };
+
+export function supplyLine(notice: CalendarSupplyNotice | null, timeZone: string): string | null {
   if (notice === null) return null;
+  if (notice.kind === "unmeasured") return writtenLine("calendar.supply.unmeasured");
   if (notice.kind === "exhausted") {
     return writtenLine("calendar.supply.exhausted", {
       since: notice.since === null ? "" : formatDate(notice.since, timeZone),

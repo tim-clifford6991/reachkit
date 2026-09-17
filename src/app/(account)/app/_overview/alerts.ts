@@ -30,7 +30,7 @@
 // waiting items must see the same two alerts.
 import type { CopyKey } from "@/lib/presentation/copy";
 import { SITE_CHECK_TITLE, SITE_SEVERITY_WORD } from "@/lib/presentation/site-issues";
-import { OVERVIEW_ALERT_CAP, VETO } from "@/lib/config/constants";
+import { OVERVIEW_ALERT_CAP } from "@/lib/config/constants";
 import { SITE_CHECKS, type SiteCheck, type SiteIssuesSection } from "@/lib/site-issues/types";
 
 /** The kinds, in the order they outrank each other. */
@@ -61,6 +61,11 @@ export interface WaitingDraft {
   title: string;
   /** When it started waiting; the tie-break, oldest first. */
   since: Date;
+  /** When its veto window closes — the draft's own stored `veto_deadline`,
+   *  stamped from the site's `veto_hours` when it entered review (issue
+   *  794). `null` where no window is running: nothing publishes it on a
+   *  clock, so there is no countdown to state. */
+  vetoDeadline: Date | null;
   /** The one control: where it takes them. */
   href: string;
 }
@@ -110,6 +115,7 @@ export const ALERTS_EMPTY_KEY = "overview.alerts.empty" satisfies CopyKey;
 export const OVERFLOW_WHERE_KEY = "overview.alert.overflow" satisfies CopyKey;
 export const ISSUE_OVERFLOW_WHERE_KEY = "overview.alert.site-issue.overflow" satisfies CopyKey;
 const ISSUE_ACTION_KEY = "overview.alert.site-issue.action" satisfies CopyKey;
+const PENDING_NO_WINDOW_KEY = "overview.alert.pending-veto.no-window" satisfies CopyKey;
 
 /** The stored section's issues that wait on the customer: ran, counted at
  *  least one, and theirs to fix. A projection — nothing is re-checked. */
@@ -165,12 +171,17 @@ export function readAlerts(
       };
     }
     const copyKeys = ALERT_COPY[item.kind];
-    const left = item.kind === "pending_veto" ? timeLeft(item.since, at) : undefined;
+    const left =
+      item.kind === "pending_veto" && item.vetoDeadline !== null ? timeLeft(item.vetoDeadline, at) : undefined;
+    // A page in review with no window running is not on a clock: its line
+    // says it waits for the customer rather than stating a countdown.
+    const lineKey =
+      item.kind === "pending_veto" && left === undefined ? PENDING_NO_WINDOW_KEY : copyKeys.lineKey;
     return {
       kind: item.kind,
       key: copyKeys.key,
       actionKey: copyKeys.actionKey,
-      lineKey: copyKeys.lineKey,
+      lineKey,
       vars: { title: item.title },
       ...(left === undefined ? {} : { timeLeft: left }),
       href: item.href,
@@ -199,15 +210,15 @@ function byRankThenAge(a: WaitingItem, b: WaitingItem): number {
 /**
  * What is left of a veto window, as whole hours and whole minutes.
  *
- * The window's length is `VETO.defaultHours` — the pin, never a literal
- * here — measured from the moment the page started waiting. A window that
- * has already run out is `0 h 0 m` rather than a negative duration: the
- * page publishes at the boundary, and a countdown that went below zero
- * would state a time that has not arrived as one that has passed.
+ * The window closes at the draft's stored `veto_deadline` — the instant the
+ * publish sweep itself approves it at — never a default length counted from
+ * when the row was written (issue 794). A window that has already run out
+ * is `0 h 0 m` rather than a negative duration: the page publishes at the
+ * boundary, and a countdown that went below zero would state a time that
+ * has not arrived as one that has passed.
  */
-function timeLeft(since: Date, at: Date): { hours: number; minutes: number } {
-  const closes = since.getTime() + VETO.defaultHours * 3_600_000;
-  const ms = Math.max(0, closes - at.getTime());
+function timeLeft(closes: Date, at: Date): { hours: number; minutes: number } {
+  const ms = Math.max(0, closes.getTime() - at.getTime());
   const minutes = Math.floor(ms / 60_000);
   return { hours: Math.floor(minutes / 60), minutes: minutes % 60 };
 }

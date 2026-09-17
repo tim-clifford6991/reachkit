@@ -36,11 +36,10 @@
 //
 // The three keys that remain in `meta` are the **save path's**, not
 // generation's: `body_md_generated`, `first_edited_at` and `last_saved_at`
-// are written by `PATCH /api/drafts/{id}`, which `save.ts` declares and no
-// code yet serves. Until it does they are absent — and absent is exactly
-// what an unedited draft should read as, which is why the generated body
-// falls back to the body as it stands and the screen states no edit and no
-// save. Whoever lands that route writes the keys this file reads.
+// are written by the editor's save (`@/lib/generate/edit`, #789). On a draft
+// never edited they are absent — and absent is exactly what an unedited
+// draft should read as, which is why the generated body falls back to the
+// body as it stands and the screen states no edit and no save.
 //
 // `writtenAt` is not among them: it is `drafts.created_at`, a column the
 // baseline declares `not null`, so the day the page was written is read
@@ -49,6 +48,7 @@ import { dbAdmin } from "@/lib/db";
 import { readRecordedFact } from "@/lib/generate/fact";
 import {
   checkedAgainstNothing,
+  readRecordedRules,
   readRecordedVerdict,
   recordedRulesPassed,
 } from "@/lib/generate/record";
@@ -129,8 +129,8 @@ function stringAt(meta: Record<string, unknown> | null, key: string): string | n
  * do-not-claim list is never stated as a silent pass. A `failed` verdict
  * carries the entry it matched, because the arm is unrenderable without it.
  */
-function claimOf(row: DraftRow): ClaimState {
-  const verdict = readRecordedVerdict(row.claim_check);
+export function claimStateOf(claimCheck: unknown): ClaimState {
+  const verdict = readRecordedVerdict(claimCheck);
   if (verdict === null || verdict.state === "unrun") return { state: "outstanding" };
   if (verdict.state === "failed") {
     return { state: "failed", matchedEntry: verdict.matchedEntry, at: verdict.at };
@@ -151,9 +151,15 @@ function claimOf(row: DraftRow): ClaimState {
  * for answers the empty list, which is the arm `checks.ts` draws no row
  * for — the screen declining to speak for a run it has no result from.
  */
-function recordedChecksOf(row: DraftRow): readonly RailCheck[] {
-  const passed = recordedRulesPassed(row.rule_failures);
+export function recordedChecksOf(ruleFailures: unknown): readonly RailCheck[] {
+  const passed = recordedRulesPassed(ruleFailures);
   return RAIL_CHECKS.filter((rule) => passed.includes(rule));
+}
+
+/** Whether the last battery recorded a rule this text breaks (#789). A row
+ *  no battery has recorded anything for breaks none it can name. */
+export function rulesFailedOf(ruleFailures: unknown): boolean {
+  return (readRecordedRules(ruleFailures) ?? []).length > 0;
 }
 
 export interface DraftSite {
@@ -197,6 +203,7 @@ export async function readDraftRow(a: {
   return {
     draftId: row.id,
     title: row.title,
+    description: stringAt(row.meta, "description") ?? "",
     writtenAt: new Date(row.created_at),
     bodyMd,
     bodyMdGenerated: generated,
@@ -207,7 +214,7 @@ export async function readDraftRow(a: {
     // grounding: `assembleDraft` draws no highlight and no source line for
     // one, rather than an empty address beside a stand-in date (#268).
     groundedFact: readRecordedFact(row.grounded_fact),
-    claim: claimOf(row),
+    claim: claimStateOf(row.claim_check),
     mode: a.site.mode,
     // §9's veto window, and only where one is running: a page that is not
     // awaiting review has no time at which doing nothing publishes it.
@@ -222,7 +229,8 @@ export async function readDraftRow(a: {
     // is the one read behind every surface that states a page's standing;
     // nothing here re-derives liveness from a column.
     record: await pageRecordFor(a.draftId),
-    recordedChecks: recordedChecksOf(row),
+    recordedChecks: recordedChecksOf(row.rule_failures),
+    rulesFailed: rulesFailedOf(row.rule_failures),
     timeZone: a.site.timeZone,
   };
 }

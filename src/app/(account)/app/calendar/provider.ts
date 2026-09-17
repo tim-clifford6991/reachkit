@@ -42,7 +42,7 @@
 // does for a real site whose supply has run out.
 import { cache } from "react";
 import { now as clock } from "@/lib/config/now";
-import type { SupplyNotice } from "@/lib/opportunities";
+import type { CalendarSupplyNotice } from "./supply";
 import { isReservedFixtureAccount, redirectForMissingZone, requireAppAccount } from "../_session/account";
 import { assembleMonth, type MonthModel } from "./month";
 import { dayKeyOf, monthOf, type MonthKey } from "./dates";
@@ -134,13 +134,21 @@ export const readMonth = cache(async function readMonth(month: MonthKey): Promis
  * (`supplyNotice`): "the customer reads one statement of supply, not two".
  * The reserved fixture account has no rows to count, so it reads the arm
  * its own `unusedSupply` fixes — zero, exhausted — without a database.
+ *
+ * An exhausted notice is told apart by `supplyMeasured` (issue 765, issue 784): a
+ * market never measured reads `unmeasured`, and one whose distinction could
+ * not be read states neither rather than "used up".
  */
-export const readSupplyNotice = cache(async function readSupplyNotice(): Promise<SupplyNotice | null> {
+export const readSupplyNotice = cache(async function readSupplyNotice(): Promise<CalendarSupplyNotice | null> {
   const site = await currentCalendarSite();
   if (site === null) {
     const unused = FIXTURE_CALENDAR_FACTS.unusedSupply;
     return unused === 0 ? { kind: "exhausted", days: 0, since: null } : null;
   }
-  const { supplyNotice } = await import("@/lib/opportunities");
-  return supplyNotice({ siteId: site.siteId });
+  const { supplyNotice, supplyMeasured } = await import("@/lib/opportunities");
+  const notice = await supplyNotice({ siteId: site.siteId });
+  if (notice?.kind !== "exhausted") return notice;
+  const measured = await supplyMeasured(site.siteId).catch(() => null);
+  if (measured === null) return null;
+  return measured ? notice : { kind: "unmeasured" };
 });

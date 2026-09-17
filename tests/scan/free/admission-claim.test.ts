@@ -2,7 +2,7 @@
 //
 // WO-058 `## Test plan` (criteria quoted verbatim from `requirements/
 // REQ-003.md` and `requirements/REQ-001.md`) — the transaction, refusal,
-// once-only, fail-open and rescan-flag suites for `claimFreeScanSlot`.
+// once-only, fail-closed and rescan-flag suites for `claimFreeScanSlot`.
 //
 // **Two substrates in one file, deliberately:** every suite except the
 // concurrency one exercises `claimFreeScanSlot` against a mocked `@/lib/db`
@@ -68,6 +68,13 @@ const CLAIM_MIGRATIONS = [
   path.join(REPO_ROOT, "supabase/migrations/00000000000001_baseline.sql"),
   path.join(REPO_ROOT, "supabase/migrations/00000000000005_scans_freepath.sql"),
   path.join(REPO_ROOT, "supabase/migrations/00000000000006_scans_freepath_claim.sql"),
+  // The day's spend ledger admission reads before it counts free scans
+  // (issue #329) — the real `fetches_spend_since`, so a claim here is
+  // admitted on a readable ledger rather than refused on a missing one
+  // (issue #792).
+  path.join(REPO_ROOT, "supabase/migrations/20260903080000_fetches.sql"),
+  path.join(REPO_ROOT, "supabase/migrations/20260909200000_fetches_daily_spend.sql"),
+  path.join(REPO_ROOT, "supabase/migrations/20260910090000_fetches_money.sql"),
 ];
 
 const ENV_FIXTURE: Record<string, string> = {
@@ -230,8 +237,19 @@ function makeBuilder(table: string) {
   return builder;
 }
 
+/** What `fetches_spend_since` answers — the product's spend for the UTC
+ *  day, which the `daily` step reads first (issue #329). `null` makes the
+ *  read fail, which refuses (issue #792). */
+let daySpendCents: number | null;
+
 function fakeClient() {
-  return { from: (table: string) => makeBuilder(table) };
+  return {
+    from: (table: string) => makeBuilder(table),
+    rpc: async () =>
+      daySpendCents === null
+        ? { data: null, error: { message: "fetches_spend_since: stubbed read failure" } }
+        : { data: daySpendCents, error: null },
+  };
 }
 
 function installClient(dbAdminMock: typeof dbAdmin): void {
@@ -253,6 +271,7 @@ function isoMinutesAgo(minutes: number): string {
 }
 
 beforeEach(() => {
+  daySpendCents = 0;
   scenarios = {};
   writeCalls = [];
   insertedRows = [];
@@ -554,31 +573,39 @@ describe(
   }
 );
 
-// ── REQ-003 c9 — the limiter fails open; removal never does ──────────────
+// ── Issue #792 — a limiter that cannot be read refuses; removal keeps its own ─
 
-describe(
-  'REQ-003 c9 — "Given the scan limiter itself is unavailable, when a visitor starts a scan, then the scan proceeds."',
-  () => {
-    it.each(["cooldown", "daily", "in_flight", "hourly"] as const)(
-      "admission/claim · a counting error at the %s step still claims",
-      async (target) => {
-        scenarios.scans = (log) => (stepOf(log) === target ? { throws: true } : { rows: [] });
-        const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => undefined);
-        const result = await claimFreeScanSlot({ domain: DOMAIN, network: NETWORK, fromIncompleteRescan: false });
-        expect(result.claimed).toBe(true);
-        expect(scansInserts()).toHaveLength(1);
-        consoleSpy.mockRestore();
-      }
-    );
-
-    it("admission/claim · a domain_blocks read that throws refuses removed and inserts no row", async () => {
-      scenarios.domain_blocks = { throws: true };
+describe("issue #792 — a limiter that cannot be read claims nothing", () => {
+  it.each(["cooldown", "daily", "in_flight", "hourly"] as const)(
+    "admission/claim · a counting error at the %s step refuses and inserts no row",
+    async (target) => {
+      scenarios.scans = (log) => (stepOf(log) === target ? { throws: true } : { rows: [] });
+      const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => undefined);
       const result = await claimFreeScanSlot({ domain: DOMAIN, network: NETWORK, fromIncompleteRescan: false });
-      expect(result).toEqual({ claimed: false, refusal: { refuse: "removed" } });
+      expect(result).toEqual({ claimed: false, refusal: { refuse: "unreadable" } });
       expect(scansInserts()).toEqual([]);
-    });
-  }
-);
+      consoleSpy.mockRestore();
+    }
+  );
+
+  it("admission/claim · a day's spend ledger that cannot be read refuses and inserts no row", async () => {
+    daySpendCents = null;
+    const warned = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const logged = vi.spyOn(console, "log").mockImplementation(() => undefined);
+    const result = await claimFreeScanSlot({ domain: DOMAIN, network: NETWORK, fromIncompleteRescan: false });
+    expect(result).toEqual({ claimed: false, refusal: { refuse: "unreadable" } });
+    expect(scansInserts()).toEqual([]);
+    warned.mockRestore();
+    logged.mockRestore();
+  });
+
+  it("admission/claim · a domain_blocks read that throws refuses removed and inserts no row", async () => {
+    scenarios.domain_blocks = { throws: true };
+    const result = await claimFreeScanSlot({ domain: DOMAIN, network: NETWORK, fromIncompleteRescan: false });
+    expect(result).toEqual({ claimed: false, refusal: { refuse: "removed" } });
+    expect(scansInserts()).toEqual([]);
+  });
+});
 
 // ── REQ-003 c12 — the limit passing re-opens the claim; removal never does ─
 

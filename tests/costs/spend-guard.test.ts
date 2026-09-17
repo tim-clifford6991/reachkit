@@ -3,8 +3,8 @@
 //
 // `daily.test.ts` is the arithmetic; this file is what `withCostContext`
 // does with it: which calls are refused, what `capHit()` says afterwards,
-// what the pass is marked as, and that a ledger nobody can read refuses
-// nothing.
+// what the pass is marked as, and that a ledger nobody can read spends
+// nothing (issue #792).
 //
 // The `node` project with `@/lib/db`, the cache and the ledger write all
 // mocked, the idiom `rollup.test.ts` establishes — so what is asserted is
@@ -215,17 +215,63 @@ describe("the day's ceiling outranks the pass's own cap, and is recorded as its 
   });
 });
 
-describe("a ledger nobody can read refuses nothing", () => {
-  it("the pass spends exactly as it did before this guard existed", async () => {
-    ledgerHolds(null);
+describe("issue #792 — a ledger nobody can read spends nothing", () => {
+  it("the call is skipped, the pass holds `degraded`, and the log says the ledger was unreadable", async () => {
+    const warned = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    try {
+      ledgerHolds(null);
+      const ran: string[] = [];
+      let result: unknown;
+      let hitAfter = false;
+      await withCostContext({ ...CTX, cap: "DEEP" }, async (cost) => {
+        result = await call(cost, 3, ran);
+        hitAfter = cost.capHit();
+      });
+      expect(ran).toEqual([]);
+      expect(result).toEqual({ skipped: "cap" });
+      expect(hitAfter).toBe(true);
+      expect(writeFetchRowMock).not.toHaveBeenCalled();
+      expect(updates).toEqual([{ table: "scans", values: { cost_cents: 0, status: "degraded" } }]);
+      const events = warned.mock.calls.map((c) => JSON.parse(String(c[0])).event);
+      expect(events).toContain("daily_spend_unreadable");
+    } finally {
+      warned.mockRestore();
+    }
+  });
+
+  it("the day is read again before every paid call, so another pass's spend stops this one", async () => {
+    // The pass opens on a day with room; before its second call another
+    // pass has carried the day to the ceiling.
+    rpcMock.mockReset();
+    rpcMock.mockResolvedValue({ data: CEILING, error: null });
+    rpcMock.mockResolvedValueOnce({ data: 0, error: null }); // the open
+    rpcMock.mockResolvedValueOnce({ data: 0, error: null }); // before call 1
     const ran: string[] = [];
-    let result: unknown;
+    let second: unknown;
     await withCostContext({ ...CTX, cap: "DEEP" }, async (cost) => {
-      result = await call(cost, 3, ran);
+      await call(cost, 1, ran);
+      second = await call(cost, 1, ran);
     });
     expect(ran).toEqual(["vendor"]);
-    expect(result).toEqual({ payload: {}, fresh: true, costCents: 3 });
-    expect(updates).toEqual([{ table: "scans", values: { cost_cents: 3, status: "done" } }]);
+    expect(second).toEqual({ skipped: "cap" });
+    expect(rpcMock).toHaveBeenCalledTimes(3);
+  });
+
+  it("a ledger that comes back is spent against again on the next call", async () => {
+    rpcMock.mockReset();
+    rpcMock.mockResolvedValue({ data: 0, error: null });
+    rpcMock.mockResolvedValueOnce({ data: 0, error: null }); // the open
+    rpcMock.mockResolvedValueOnce({ data: null, error: { message: "stubbed read failure" } });
+    const ran: string[] = [];
+    const results: unknown[] = [];
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    await withCostContext({ ...CTX, cap: "DEEP" }, async (cost) => {
+      results.push(await call(cost, 1, ran));
+      results.push(await call(cost, 1, ran));
+    });
+    expect(results[0]).toEqual({ skipped: "cap" });
+    expect(results[1]).toMatchObject({ fresh: true, costCents: 1 });
+    expect(ran).toEqual(["vendor"]);
   });
 });
 

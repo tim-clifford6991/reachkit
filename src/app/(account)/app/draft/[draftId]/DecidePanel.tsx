@@ -19,7 +19,7 @@ import { copy } from "@/lib/presentation/copy";
 import { formatDateTime } from "../../_shell/format";
 import { writtenLine } from "../../_shell/written";
 import { draftActionsFor, type DraftCommand } from "./actions";
-import { CHECK_COPY_KEY, checkRows } from "./checks";
+import { CHECK_COPY_KEY, checkRows, type RailCheck } from "./checks";
 import type { ClaimState, DraftView } from "./model";
 
 const EYEBROW = "text-xs font-semibold uppercase tracking-wide opacity-70";
@@ -33,6 +33,9 @@ export function DecidePanel(p: {
   /** The claim state as it now stands, which after an edit is not the
    *  stored one (REQ-045 c9). */
   claim: ClaimState;
+  /** The rules the last check recorded a pass for, on the text as it now
+   *  stands — empty while an edit has not been re-checked (#789). */
+  recordedChecks: readonly RailCheck[];
   onEdit: () => void;
   onCommand: (command: DraftCommand) => void;
 }): React.JSX.Element {
@@ -42,7 +45,7 @@ export function DecidePanel(p: {
     grounded: p.grounded,
     groundedUrl: view.grounded.url,
     claim: p.claim,
-    recorded: view.recordedChecks,
+    recorded: p.recordedChecks,
   });
 
   const doNothingLine =

@@ -26,6 +26,9 @@ export const scanRun: JobDefinition = {
       // release latch are both rows on it. Absent on a free scan, which
       // has no site yet.
       siteId: optionalString(input, "siteId"),
+      // The pass, its opportunities and the first draft are three steps
+      // (issue 798), so none has to fit the others inside one invocation.
+      ...(input.step === undefined ? {} : { step: input.step }),
     });
     return "degraded" in result
       ? { outcome: "degraded", subjectId: scanId, step: result.degraded }

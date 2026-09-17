@@ -20,6 +20,7 @@
 import { readRecordedFact, type RecordedFact } from "@/lib/generate/fact";
 import { publishDb } from "../../db";
 import { hostFor } from "./label";
+import type { HostedOwnPages } from "./own-page";
 
 /** A site, as the edge sees it: an id and the domain that resolved to it.
  *  There is nothing about its owner on this shape. */
@@ -319,6 +320,10 @@ function emptyToNull(value: string | null): string | null {
  * The sitemap is exactly this list, and the page render finds its page in
  * it — one predicate, one query, so a page cannot be absent from the
  * sitemap and present at its address, or the reverse.
+ *
+ * **One page per address** (issue 781): an update of a hosted page is a new
+ * publication at the same slug, so the newest live row at a slug is the page
+ * and every older one is a version it replaced — never listed beside it.
  */
 export async function livePagesForSite(siteId: string): Promise<HostedPage[]> {
   const { data, error } = await publishDb()
@@ -330,7 +335,15 @@ export async function livePagesForSite(siteId: string): Promise<HostedPage[]> {
     .is("unpublished_at", null)
     .order("published_at", { ascending: false });
   if (error !== null || data === null) return [];
-  return data.map(toPage).filter((page): page is HostedPage => page !== null);
+  const seen = new Set<string>();
+  return data
+    .map(toPage)
+    .filter((page): page is HostedPage => page !== null)
+    .filter((page) => {
+      if (seen.has(page.slug)) return false;
+      seen.add(page.slug);
+      return true;
+    });
 }
 
 /**
@@ -395,6 +408,33 @@ export async function siteForDraft(draftId: string): Promise<HostedSite | null> 
     domain,
     host: chosen ?? hostFor({ label: null, domain }),
   };
+}
+
+/**
+ * The pages a site's hosted destination could update (issue 781): its host and
+ * the slugs live there. `null` where the site's live destination is not
+ * hosted — that destination answers for itself.
+ *
+ * A read that fails is a hosted site with no page to update, never a guess
+ * that it is not hosted: an update is offered only where it can be
+ * delivered.
+ */
+export async function hostedOwnPagesOfSite(siteId: string): Promise<HostedOwnPages | null> {
+  const NONE: HostedOwnPages = { host: "", slugs: [] };
+  const { data, error } = await publishDb()
+    .from<{ kind: string; hostname: string | null; sites: { domain: string | null } | null }>("destinations")
+    .select("kind, hostname, sites!inner(domain)")
+    .eq("site_id", siteId)
+    .is("deleted_at", null)
+    .limit(1);
+  if (error !== null || data === null) return NONE;
+  const row = data[0];
+  if (row === undefined || row.kind !== "hosted") return null;
+  const domain = row.sites?.domain ?? null;
+  if (domain === null || domain.trim() === "") return NONE;
+  const chosen = row.hostname === null || row.hostname.trim() === "" ? null : row.hostname.trim().toLowerCase();
+  const pages = await livePagesForSite(siteId);
+  return { host: chosen ?? hostFor({ label: null, domain }), slugs: pages.map((page) => page.slug) };
 }
 
 /** The host a site's live hosted destination serves at, or `null`. Read

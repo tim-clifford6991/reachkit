@@ -19,7 +19,7 @@ vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
 // empty, so nothing but the refusal decides what the row carries.
 vi.mock("@/lib/costs/daily", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../src/lib/costs/daily")>()),
-  openDayLedger: async () => ({ spentCents: () => 0, ceilingReached: () => false, add: () => {} }),
+  openDayLedger: async () => ({ spentCents: () => 0, refresh: async () => {}, ceilingReached: () => false, add: () => {} }),
 }));
 
 const { withCostContext, refusalOf, isFetchRefusal } = await import("../../src/lib/costs");

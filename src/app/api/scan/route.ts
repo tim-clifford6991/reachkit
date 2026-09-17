@@ -39,6 +39,7 @@
 import { after } from "next/server";
 import { parseDomain, type DomainProblem } from "@/lib/scan/domain";
 import { networkKeyOf, claimFreeScanSlot } from "@/lib/scan/admission";
+import { TIMING } from "@/lib/config/constants";
 
 export type StartScanResponse =
   | { ok: true; location: string; scanId?: string } // REQ-001 c9; `## Steps` step 5
@@ -152,11 +153,32 @@ export const maxDuration = 60;
  *  ending is a stored report or a `failed` status — so the `catch` here is
  *  for the unforeseen only, and it logs rather than failing a response
  *  that has already gone out. */
-function startPipeline(domain: string, scanId: string): void {
+function startPipeline(domain: string, scanId: string, requestStartedAt: number): void {
   after(async () => {
+    // **The request's budget ends before the platform freezes it** (issue
+    // 798). A pass still running then is about to be killed with its row
+    // `running`, which refuses every visitor from that network until the
+    // sweep finishes it. So the row is marked `failed` first — the sweep's
+    // own guarded write, which a report stored in the last seconds still
+    // overwrites.
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const budgetMs = (TIMING.platformCeilingS - TIMING.requestBudgetMarginS) * 1000 - (Date.now() - requestStartedAt);
+    const budgetEnded = new Promise<"budget_ended">((resolve) => {
+      timer = setTimeout(() => resolve("budget_ended"), budgetMs);
+    });
     try {
       const { runScan } = await import("@/lib/scan/run");
-      await runScan({ domain, tier: "free" });
+      const pass = runScan({ domain, tier: "free" }).then(
+        () => ({ failed: false as const }),
+        (error: unknown) => ({ failed: true as const, error })
+      );
+      const outcome = await Promise.race([pass, budgetEnded]);
+      if (outcome === "budget_ended") {
+        const { finishScanLeftRunning } = await import("@/lib/scan/stuck");
+        await finishScanLeftRunning(scanId);
+      } else if (outcome.failed) {
+        throw outcome.error;
+      }
     } catch (error: unknown) {
       console.log(
         JSON.stringify({
@@ -165,11 +187,14 @@ function startPipeline(domain: string, scanId: string): void {
           because: error instanceof Error ? error.message : String(error),
         })
       );
+    } finally {
+      clearTimeout(timer);
     }
   });
 }
 
 export async function POST(request: Request): Promise<Response> {
+  const requestStartedAt = Date.now();
   const body = await readBody(request);
   if (body.transport === "malformed") {
     return Response.json({ error: "malformed request body" }, { status: 400 });
@@ -211,7 +236,7 @@ export async function POST(request: Request): Promise<Response> {
   // (`GET /api/scan/{scanId}/progress`), which replays the stages this
   // pass publishes as it runs. Its own two ceilings bound the pass and
   // `maxDuration` bounds the invocation it runs in; nothing here does.
-  if (claim.claimed) startPipeline(parsed.domain, claim.scanId);
+  if (claim.claimed) startPipeline(parsed.domain, claim.scanId, requestStartedAt);
 
   if (isForm) return Response.redirect(new URL(location, request.url).toString(), 303);
 

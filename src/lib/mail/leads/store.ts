@@ -123,12 +123,10 @@ export interface LeadStore {
    *  reach through `scan_id` to `scans.domain`. */
   scanDomain(scanId: string): Promise<{ ok: true; domain: string | null } | { ok: false }>;
 
-  /** The scan's open opportunities, in the order the engine wrote them.
-   *  Rows are handed back untyped: their shape is §7's, not this
-   *  feature's, and `ports.ts` is the one place that reads their fields. */
-  openOpportunitiesForScan(
-    scanId: string
-  ): Promise<{ ok: true; rows: readonly unknown[] } | { ok: false }>;
+  /** The scan's stored report blob, untyped — its shape is the scan's, and
+   *  `ports.ts` reads it through `readStoredReport`. `null` where the scan
+   *  has no report (yet). */
+  scanReport(scanId: string): Promise<{ ok: true; report: unknown } | { ok: false }>;
 }
 
 interface QueryResult<T> {
@@ -260,15 +258,14 @@ export function supabaseLeadStore(): LeadStore {
       return { ok: true, domain: data?.[0]?.domain ?? null };
     },
 
-    async openOpportunitiesForScan(scanId) {
+    async scanReport(scanId) {
       const { data, error } = await untyped()
-        .from<unknown>("opportunities")
-        .select("title, target_query, volume, type, evidence, created_at")
-        .eq("scan_id", scanId)
-        .eq("status", "open")
-        .order("created_at", { ascending: true });
+        .from<{ report: unknown }>("scans")
+        .select("report")
+        .eq("id", scanId)
+        .limit(1);
       if (error) return { ok: false };
-      return { ok: true, rows: data ?? [] };
+      return { ok: true, report: data?.[0]?.report ?? null };
     },
   };
 }

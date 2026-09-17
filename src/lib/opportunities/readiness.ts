@@ -22,6 +22,12 @@
 // working is `cluster_suppressed`, anything targeting a retired URL is
 // `url_retired` (`suppression.ts`).
 //
+// And SPEC §7's daily decision (issue 781): an Improve row is an update of an
+// existing page, so it is ready only where the site's destination can make
+// that update — `destination_cannot_address` otherwise. A hosted destination
+// can update only a page ReachKit itself published there (a new version at
+// the same address); WordPress updates any page of the site, as before.
+//
 // The Fix family keeps its own predicate (`fixPageReadiness`): its readiness
 // is a question about the destination, not about the market.
 import { FORMAT_PAGE_ALLOWED, KEYWORD_PAGE_MIN_VOLUME } from "@/lib/config/constants";
@@ -29,6 +35,7 @@ import { classifyIntent } from "@/lib/market/questions/select";
 import type { Profile } from "@/lib/market/questions/profile";
 import { isOwnDomain, registrableDomain } from "@/lib/market/rivals/domains";
 import type { StoredReport } from "@/lib/scan/report";
+import { addressesOwnPage, type HostedOwnPages } from "@/lib/publish/destinations/hosted/own-page";
 import { opportunityStore, readOpportunity } from "./store";
 import { NO_EARN_GROUNDING, type EarnGrounding } from "./earn-grounding";
 import { suppressionOf, verdictReason, type Suppression } from "./suppression";
@@ -47,6 +54,9 @@ export interface ReadinessContext {
   /** Whether an owned URL ranks for this search, as the newest report
    *  measured it. */
   ownRanks: (query: string) => boolean;
+  /** Whether the site's destination can deliver an update of the page at
+   *  this address (issue 781). */
+  canUpdate: (url: string) => boolean;
 }
 
 /** SPEC §6's commercial and transactional searches, in §6.7's classifier's
@@ -70,6 +80,7 @@ function volumeOf(o: Opportunity): number {
 export function opportunityReady(o: Opportunity, ctx: ReadinessContext): UnreadyReason | null {
   const verdict = verdictReason(o, ctx.suppression);
   if (verdict !== null) return verdict;
+  if (o.family === "improve" && !ctx.canUpdate(o.targetRef)) return "destination_cannot_address";
   if (!ctx.grounded) return "no_grounding_fact";
   if (o.evidence.family === "earn" && !ctx.earnGrounding[o.evidence.asset]) return "no_grounding_fact";
 
@@ -105,6 +116,14 @@ export function ownRanksFrom(report: StoredReport | null): (query: string) => bo
   return (query) => ranked.has(query.trim().toLowerCase());
 }
 
+/** Which pages the site's destination can update. `null` (not a hosted
+ *  destination) leaves the update to that destination, which answers for
+ *  itself; a hosted one updates only its own live publications. */
+export function canUpdateFrom(own: HostedOwnPages | null): (url: string) => boolean {
+  if (own === null) return () => true;
+  return (url) => addressesOwnPage(url, own);
+}
+
 /**
  * Records readiness on every open Write, Improve and Earn row of one site.
  *
@@ -131,12 +150,15 @@ export async function assessReadiness(
   const earnGrounding = rows.some((row) => row.family === "earn")
     ? await store.earnGrounding(siteId)
     : NO_EARN_GROUNDING;
+  // Read only where there is an update to deliver.
+  const ownPages = rows.some((row) => row.family === "improve") ? await store.hostedOwnPages(siteId) : null;
   const ctx: ReadinessContext = {
     grounded,
     earnGrounding,
     suppression: suppressionOf(verdicts, a.at),
     profile,
     ownRanks: ownRanksFrom(report),
+    canUpdate: canUpdateFrom(ownPages),
   };
 
   let ready = 0;

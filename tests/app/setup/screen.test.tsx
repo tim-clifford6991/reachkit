@@ -147,6 +147,7 @@ describe('REQ-025 c1 — "it asks for exactly three decisions ... and for nothin
       ...questions,
       derivable: {
         profile: questions.derivable!.profile,
+        ownRanked: questions.derivable!.ownRanked,
         // A new site's market: nothing reaches 50/mo.
         market: [{ keyword: "time tracking software for agencies", volume: 20 }],
         pool: [{ keyword: "harvest alternatives", volume: 10, rival: "harvest.com" }],

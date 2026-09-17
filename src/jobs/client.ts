@@ -85,13 +85,18 @@ export function defineJob(definition: JobDefinition): PlatformFunction {
       if (afterHours !== undefined) {
         await step.sleep("declared-delay", `${afterHours}h`);
       }
-      return step.run("job", () =>
-        runJob(definition, {
-          data: (event?.data ?? {}) as Readonly<Record<string, unknown>>,
-          now: new Date(),
-          attempt,
-        })
-      );
+      // The body runs outside any one step, and a job that splits its work
+      // names its steps through `input.step` (issue 798): a step cannot
+      // hold another, so wrapping the whole body in one would forbid the
+      // split and keep a long job inside a single invocation. The
+      // kill-switch guard in `runJob` is read again on every invocation, so
+      // a switch engaged between steps stops the steps still to come.
+      return runJob(definition, {
+        data: (event?.data ?? {}) as Readonly<Record<string, unknown>>,
+        now: new Date(),
+        attempt,
+        step: (name, body) => step.run(name, body) as Promise<Awaited<ReturnType<typeof body>>>,
+      });
     }
   );
 }

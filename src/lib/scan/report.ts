@@ -662,3 +662,20 @@ export async function readCurrentReport(domain: string): Promise<StoredReport | 
   if (!row || row.report === null || row.report === undefined) return null;
   return readStoredReport(row.report);
 }
+
+/** One scan's own stored report, or `null` where the row has none — read
+ *  by id, for a step that runs after the pass which stored it (issue 798).
+ *  Not the domain's current report: a later pass for the same domain
+ *  would otherwise hand this one a report it did not measure. */
+export async function readScanReport(scanId: string): Promise<StoredReport | null> {
+  const { data, error } = await untyped(dbAdmin())
+    .from<CurrentReportRow>("scans")
+    .select("report")
+    .eq("id", scanId)
+    .limit(1);
+  if (error) throw new Error(`readScanReport: ${error.message}`);
+
+  const row = data?.[0];
+  if (!row || row.report === null || row.report === undefined) return null;
+  return readStoredReport(row.report);
+}
