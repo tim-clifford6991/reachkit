@@ -9,6 +9,14 @@ import type React from "react";
 import { copy } from "@/lib/presentation/copy";
 import type { DnsRecord } from "@/lib/publish/setup/cards";
 import type { HostnameState } from "@/lib/publish/destinations/hosted/hostname";
+import { DnsWhere } from "./DnsWhere";
+
+/** The site address a record sits under: its name less the label.
+ *  `hostFor` composes every record name as `<label>.<address>`, and a label
+ *  holds no dot. */
+function addressOf(name: string): string {
+  return name.slice(name.indexOf(".") + 1);
+}
 
 export function CnameRecord(p: {
   record: DnsRecord;
@@ -44,14 +52,9 @@ export function CnameRecord(p: {
           {copy(live ? "settings.destination.hostname.live" : "settings.destination.hostname.waiting")}
         </span>
       </span>
-      {/* #759: where the record is added, and the Cloudflare proxy that
-          hides it — plain lines beside the record on both screens. */}
-      <span className="mt-2 block text-sm text-base-content/70" data-testid="dns-where">
-        {copy("setup.destination.dnsWhere")}
-      </span>
-      <span className="mt-1 block text-sm text-base-content/70" data-testid="dns-proxy">
-        {copy("setup.destination.dnsProxy")}
-      </span>
+      {/* Where the record is added, from the domain's nameservers
+          (issue 760) — the static line until, or unless, they answer. */}
+      <DnsWhere domain={addressOf(p.record.name)} />
     </>
   );
 }

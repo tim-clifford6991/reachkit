@@ -154,8 +154,9 @@ export const SETUP_COPY = Object.freeze({
    *  data and carry no key. */
   "setup.destination.dnsRecord": ["Add this record at your DNS provider", { slots: {}, fixedBy: "REQ-028 c2" }],
   /** Issue #759 (owner ruling 2026-09-16): where that provider is, and what
-   *  to try on Cloudflare — both beside the record on `/setup` and in
-   *  Settings.
+   *  to try on Cloudflare — beside the record on `/setup` and in Settings.
+   *  Since issue 760 the first is the fallback for a lookup that could not
+   *  answer, and the second is shown only on Cloudflare.
    *
    *  **A proxied record is not a failure.** An earlier draft of the second
    *  line said a proxied record "hides it from us and the connection can't
@@ -168,6 +169,21 @@ export const SETUP_COPY = Object.freeze({
   "setup.destination.dnsWhere": [
     "Add it wherever your domain’s DNS is managed — usually your registrar, or Cloudflare if your domain is on it.",
     { slots: {}, fixedBy: "SPEC §5 · §12 (2026-09-16, issue 759)" },
+  ],
+  /** Issue 760 (owner ruling 2026-09-16): the guidance is derived, not
+   *  generic. An NS lookup on the site's domain names where the record is
+   *  added — the provider where the nameservers are one we know, the
+   *  nameserver itself where they are not (never a guessed brand), and
+   *  `dnsWhere` above where nothing could be looked up. `dnsProxy` is shown
+   *  only when the provider is Cloudflare. `{provider}` is a brand and
+   *  `{nameserver}` a host name: data, never composed words. */
+  "setup.destination.dnsAt": [
+    "Your DNS is managed at {provider}. Add this record there.",
+    { slots: { provider: "text" }, fixedBy: "SPEC §5 (2026-09-16, issue 760)" },
+  ],
+  "setup.destination.dnsNameserver": [
+    "Your DNS is served by {nameserver}. Add this record wherever that nameserver is managed.",
+    { slots: { nameserver: "text" }, fixedBy: "SPEC §5 (2026-09-16, issue 760)" },
   ],
   "setup.destination.dnsProxy": [
     "On Cloudflare this works either proxied or set to DNS only. If the connection won’t verify, try DNS only — the grey cloud.",
