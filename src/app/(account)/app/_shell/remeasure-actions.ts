@@ -7,14 +7,14 @@
 // the session — never a site id the browser sent — and writes the answer.
 //
 // **A `"use server"` module may export only async functions**, so the state,
-// its initial value and the field's wire name live in `./remeasure`.
+// its initial value and the field's wire name live in `./remeasure-shared`.
 "use server";
 
 import { revalidatePath } from "next/cache";
 import type { CopyKey } from "@/lib/presentation/copy";
 import { formatDateTime } from "./format";
 import { writtenLine } from "./written";
-import { REMEASURE_CATEGORY_FIELD, type RemeasureState } from "./remeasure";
+import { REMEASURE_CATEGORY_FIELD, type RemeasureState } from "./remeasure-shared";
 
 function refused(key: CopyKey, vars?: Record<string, string>): RemeasureState {
   return { answer: "refused", line: writtenLine(key, vars) ?? "" };

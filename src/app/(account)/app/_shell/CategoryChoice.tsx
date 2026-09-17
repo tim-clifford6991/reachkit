@@ -12,7 +12,7 @@ import type React from "react";
 import { useActionState } from "react";
 import { RefreshCw } from "lucide-react";
 import { remeasureAction } from "./remeasure-actions";
-import { REMEASURE_CATEGORY_FIELD, REMEASURE_INITIAL } from "./remeasure";
+import { REMEASURE_CATEGORY_FIELD, REMEASURE_INITIAL } from "./remeasure-shared";
 
 export function CategoryChoice(p: {
   suggestions: readonly string[];
