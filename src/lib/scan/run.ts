@@ -1311,6 +1311,10 @@ async function askTheTwelve(a: StageArgs, abandoned: () => boolean): Promise<voi
   // stops asking on the first refusal rather than asking eleven more times
   // and being refused eleven more times.
   let next = 0;
+  /** Issue 869: how the battery's two engines are answering this pass, so
+   *  one that is refusing stops being bought. One watch per pass, shared by
+   *  every worker. */
+  const engines = newEngineWatch();
   /** Issue 865: the questions whose first ask failed in a way that is worth
    *  one more, asked again only once every question has been asked once. */
   const worthOneMore: { readonly index: number; readonly keyword: string; readonly because: string }[] = [];
@@ -1322,7 +1326,7 @@ async function askTheTwelve(a: StageArgs, abandoned: () => boolean): Promise<voi
       if (question === undefined) return;
       if (bounds.stopNow() !== null) continue;
       const got = await askOne(question.search.keyword);
-      const battery = await askTheBattery(a, question.search.keyword, questions.at);
+      const battery = await askTheBattery(a, question.search.keyword, questions.at, engines);
       // **A worker whose stage was abandoned writes nothing** (#539
       // review). The budget stops the pass *waiting* for this stage; it
       // cannot cancel a call already in flight, so without this an answer
@@ -1420,32 +1424,170 @@ function noBattery(at: Date): BatteryAnswers {
  * weekly battery. The LLM Scraper has no live variant to choose: its own
  * type admits `"std"` alone.
  */
-async function askTheBattery(a: StageArgs, query: string, at: Date): Promise<BatteryAnswers> {
+async function askTheBattery(
+  a: StageArgs,
+  query: string,
+  at: Date,
+  watch: EngineWatch
+): Promise<BatteryAnswers> {
   const { bounds, cost, parameters } = a;
   if (!parameters.battery) return noBattery(at);
 
   const chatgpt =
     bounds.stopNow() !== null
       ? unmeasured<AiAnswer>("not_attempted", at)
-      : await engineAnswer(at, () => llmScraper(cost, { query, mode: "std", scope: cacheScope(a) }));
+      : await engineAnswer(at, "chatgpt", watch, (onFailure) =>
+          llmScraper(cost, { query, mode: "std", scope: cacheScope(a), onFailure })
+        );
 
   const mode =
     bounds.stopNow() !== null
       ? unmeasured<AiAnswer>("not_attempted", at)
-      : await engineAnswer(at, () => aiMode(cost, { query, mode: parameters.serpMode, scope: cacheScope(a) }));
+      : await engineAnswer(at, "ai_mode", watch, (onFailure) =>
+          aiMode(cost, { query, mode: parameters.serpMode, scope: cacheScope(a), onFailure })
+        );
 
   return { chatgpt, aiMode: mode };
 }
 
+/** The two engines the battery buys, as this pass watches them. */
+type BatteryEngine = "chatgpt" | "ai_mode";
+
+/**
+ * **An engine that is refusing is not bought for the rest of the pass**
+ * (issue 869).
+ *
+ * One engine failing says nothing; the same engine failing twice running
+ * is a vendor that is not going to answer this pass, and every further
+ * question would buy the same refusal. The cells it would have filled are
+ * `unmeasured`, carrying what the engine last said — which is a different
+ * claim from "there was no answer", and the readers keep them apart.
+ *
+ * A zero is not a failure and never counts here: a question Google serves
+ * no AI Mode block for is measured (`TASK_NO_RESULTS`, issue 869), and an
+ * engine answering "nothing here" for every question is answering.
+ *
+ * It bites where a pass asks more questions than its fan-out, and on the
+ * ceiling-stopped waves after the first: at `PAID_SERP_FANOUT` the twelve
+ * batteries are in flight at once, so the first wave is bought before any
+ * refusal is known. That is a bound on what this can save, not a reason
+ * not to have it.
+ */
+interface EngineWatch {
+  readonly failures: Map<BatteryEngine, number>;
+  readonly because: Map<BatteryEngine, string>;
+  /** Engines that have answered at least once this pass. Until an engine is
+   *  in here its asks take turns; afterwards they run with the rest of the
+   *  fan-out. */
+  readonly proven: Set<BatteryEngine>;
+  /** The tail of the queue of asks waiting their turn, per engine. */
+  readonly queue: Map<BatteryEngine, Promise<void>>;
+}
+
+/** Two in a row, counted per pass. */
+const ENGINE_GIVE_UP_AFTER = 2;
+
+function newEngineWatch(): EngineWatch {
+  return { failures: new Map(), because: new Map(), proven: new Set(), queue: new Map() };
+}
+
+/**
+ * **An engine that has not answered yet is asked one question at a time**
+ * (issue 869).
+ *
+ * The give-up rule below can only give up on something it has seen fail,
+ * and at `PAID_SERP_FANOUT` every question's battery is in flight at once —
+ * so a dead engine was bought twelve times before the first failure was
+ * known, which is exactly what production did on 2026-09-17. Until an
+ * engine has answered once this pass, its asks queue: the first question
+ * pays for finding out, and what it finds out is true of the other eleven.
+ * The moment an engine answers — with an answer or with a zero — the gate
+ * opens and the rest run at the fan-out's own width.
+ *
+ * The cost is one engine call's latency on the first question of a pass,
+ * and what it buys is that an outage costs `ENGINE_GIVE_UP_AFTER` calls
+ * instead of one per question.
+ */
+async function inEngineTurn<T>(engine: BatteryEngine, watch: EngineWatch, body: () => Promise<T>): Promise<T> {
+  if (watch.proven.has(engine)) return body();
+
+  const ahead = watch.queue.get(engine) ?? Promise.resolve();
+  let release = (): void => {};
+  const mine = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  watch.queue.set(engine, ahead.then(() => mine));
+  await ahead;
+  try {
+    return await body();
+  } finally {
+    release();
+  }
+}
+
 /** One engine's answer, with a raise turned into the arm that is true of
  *  it. The vendor's own refusals — a `FREE` context, a cap already hit —
- *  come back as `Measured` arms and pass through untouched. */
+ *  come back as `Measured` arms and pass through untouched.
+ *
+ *  Issue 869: the vendor's own failure kind is heard here, so a refusing
+ *  engine stops being bought and the cell says what it was told. */
 async function engineAnswer(
   at: Date,
-  work: () => Promise<Measured<AiAnswer>>
+  engine: BatteryEngine,
+  watch: EngineWatch,
+  work: (onFailure: (failure: VendorFailure) => void) => Promise<Measured<AiAnswer>>
 ): Promise<Measured<AiAnswer>> {
-  const answer = await attempt("asking_the_twelve", work);
-  return failed(answer) ? unmeasured<AiAnswer>("undeterminable", at) : answer;
+  const alreadyFailed = watch.failures.get(engine) ?? 0;
+  if (alreadyFailed >= ENGINE_GIVE_UP_AFTER) {
+    return unmeasured<AiAnswer>("not_attempted", at, watch.because.get(engine));
+  }
+
+  const heard: { failure: VendorFailure | null } = { failure: null };
+  const answer = await inEngineTurn(engine, watch, async () => {
+    // Re-read inside the turn: the asks ahead of this one may have been
+    // what gave the engine up.
+    if ((watch.failures.get(engine) ?? 0) >= ENGINE_GIVE_UP_AFTER) return GAVE_UP;
+    return attempt("asking_the_twelve", () =>
+      work((failure) => {
+        heard.failure = failure;
+      })
+    );
+  });
+
+  if (answer === GAVE_UP) {
+    return unmeasured<AiAnswer>("not_attempted", at, watch.because.get(engine));
+  }
+
+  if (heard.failure !== null) {
+    const failures = (watch.failures.get(engine) ?? 0) + 1;
+    watch.failures.set(engine, failures);
+    watch.because.set(engine, heard.failure.vendorFailure);
+    if (failures === ENGINE_GIVE_UP_AFTER) {
+      logEngineDropped({ engine, because: heard.failure.vendorFailure, after: failures });
+    }
+  } else if (!failed(answer) && answer.kind !== "unmeasured") {
+    // An answer of any kind, a zero included: the engine is answering, so
+    // the count clears and the rest of the pass asks it at the fan-out's
+    // own width.
+    watch.failures.set(engine, 0);
+    watch.proven.add(engine);
+  }
+
+  if (failed(answer)) return unmeasured<AiAnswer>("undeterminable", at);
+  if (answer.kind === "unmeasured" && heard.failure !== null) {
+    return unmeasured<AiAnswer>(answer.reason, answer.at, heard.failure.vendorFailure);
+  }
+  return answer;
+}
+
+/** The arm an ask takes when the engine was given up while it waited its
+ *  turn (issue 869): nothing was bought and nothing was heard. */
+const GAVE_UP = Symbol("battery-engine-gave-up");
+
+/** One line the first time a pass gives up on an engine (issue 869),
+ *  carrying the engine and what it last said — never the query. */
+function logEngineDropped(fields: { engine: BatteryEngine; because: string; after: number }): void {
+  console.log(JSON.stringify({ event: "battery_engine_dropped", ...fields }));
 }
 
 /** The last stage buys nothing: the rivals, both cards and the coherence

@@ -191,7 +191,17 @@ export const REPORT_VERSION = 10;
 export type AnswerCell =
   | { kind: "answered"; citedDomains: readonly string[]; namesCustomer: boolean }
   | { kind: "no_answer" }
-  | { kind: "unmeasured"; reason: "undeterminable" | "not_attempted" };
+  | {
+      kind: "unmeasured";
+      reason: "undeterminable" | "not_attempted";
+      /** What the engine last said, where the measurement heard it (issue
+       *  869, carried from `Measured.because` — issue 865): a vendor
+       *  failure's own kind, never a message. Optional and additive: a cell
+       *  stored without it is still a cell, and it is the state issue 715's
+       *  "Retry this part" and issue 867's engine column read to say why a
+       *  column is blank rather than drawing it as a miss. */
+      because?: string;
+    };
 
 /** `matrix.ts`'s own engine column, re-exported under the blob's roof so a
  *  screen or a fixture can name the type without a **runtime** edge into

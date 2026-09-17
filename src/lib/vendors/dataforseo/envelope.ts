@@ -52,6 +52,35 @@ const TASK_OK = 20000;
 const TASK_CREATED = 20100;
 const TASK_IN_FLIGHT = new Set([40601, 40602]); // Task Handed · Task In Queue
 
+/**
+ * `40102` — **"no search results."**, and it is an answer, not a failure
+ * (issue 869).
+ *
+ * DataForSEO's own appendix gives the message; their help centre gives the
+ * meaning and the bill: "A `40102` response does not mean that the request
+ * failed to reach the search engine… Because processing resources have
+ * already been used, the request is billable even though no SERP items
+ * were returned."
+ * (https://docs.dataforseo.com/v3/appendix/errors/ ·
+ * https://dataforseo.com/help-center/what-does-the-40102-error-mean)
+ *
+ * So the task ran and the engine returned nothing — which is the vendor's
+ * own zero-result, the `[]` this seam already recognises, and never
+ * "we could not measure it". On Google AI Mode it is the ordinary answer
+ * for a query Google serves no AI Mode block for: on production
+ * 2026-09-17, 9 of 14 AI Mode calls came back this way and every one of
+ * them was stored `unmeasured/undeterminable`, which is what left the GEO
+ * half of the measurement blank.
+ *
+ * Reading it as a zero settles it at what it reserved, too — the row used
+ * to be ledgered at 0¢ against a vendor that charges for it.
+ */
+const TASK_NO_RESULTS = 40102;
+
+/** `40103` — "task execution failed, please try to resubmit the task."
+ *  The vendor asks for one more ask in so many words (issue 869). */
+const TASK_EXECUTION_FAILED = 40103;
+
 const MS_PER_S = 1000;
 const MS_PER_MIN = 60 * MS_PER_S;
 
@@ -82,20 +111,34 @@ export type VendorFailureKind = TransportFailure | `task_${number}` | "deadline"
  *
  * Closed, and deliberately narrow: a clock or a connection that went wrong
  * once may go right the second time, and a vendor under load answers a 429
- * or a 5xx it will not answer again. Everything else is the same answer
- * twice — a 4xx is this request, `unparseable` is this shape, `no_surface`
- * is this endpoint, and `deadline` is a standard-queue task that already
- * had `VENDOR.stdQueueDeadlineMin` — so asking again would only spend.
+ * or a 5xx it will not answer again. `task_40103` is here on the vendor's
+ * own instruction — its message is "task execution failed, please try to
+ * resubmit the task." (issue 869,
+ * https://docs.dataforseo.com/v3/appendix/errors/). Everything else is the
+ * same answer twice — a 4xx is this request, `unparseable` is this shape,
+ * `no_surface` is this endpoint, and `deadline` is a standard-queue task
+ * that already had `VENDOR.stdQueueDeadlineMin` — so asking again would
+ * only spend. `task_40102` is not here because it is not a failure at all:
+ * see `TASK_NO_RESULTS`.
  */
 export function worthAskingAgain(kind: string): boolean {
   if (kind === "timeout" || kind === "transport") return true;
   if (kind === "http_429") return true;
+  if (kind === `task_${TASK_EXECUTION_FAILED}`) return true;
   const status = /^http_(\d{3})$/.exec(kind);
   return status !== null && Number(status[1]) >= 500;
 }
 
 export type VendorOutcome =
-  | { ok: true; result: unknown }
+  | {
+      ok: true;
+      result: unknown;
+      /** The vendor processed the request and returned nothing (issue 869):
+       *  `TASK_NO_RESULTS`. The seam reads it as the zero-result `[]`, so
+       *  `parse` is never asked to make sense of a result that is not
+       *  there. */
+      noResults?: true;
+    }
   | {
       ok: false;
       failure: VendorFailureKind;
@@ -152,6 +195,8 @@ function firstTask(payload: unknown): VendorTask | undefined {
 function firstResult(payload: unknown, accepted: boolean): VendorOutcome {
   const task = firstTask(payload);
   if (!task) return failure("unparseable", true, "dataforseo: response carries no task");
+  // The vendor's own zero-result, whatever it cost (issue 869).
+  if (task.status_code === TASK_NO_RESULTS) return { ok: true, result: null, noResults: true };
   if (task.status_code !== TASK_OK) {
     const kind = taskFailure(task.status_code);
     return failure(
@@ -269,6 +314,11 @@ export async function ledgered<T>(
         reason = out.reason;
         return failureRow(call.source, out);
       }
+      // "no search results." — the engine answered with nothing (issue
+      // 869). The zero-result this seam already has a word for, settled at
+      // what it reserved because the vendor charges for it, and never
+      // cached (§6.4: no negative cache), so the next pass asks again.
+      if (out.noResults === true) return [];
       const rows = call.parse(out.result);
       if (rows === undefined) {
         reason = "dataforseo: unparseable result";

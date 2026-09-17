@@ -30,7 +30,16 @@
 import type { CostContext } from "@/lib/costs";
 import { CACHE_WINDOWS_D, PRICE_BOOK, SERP_LOCATION } from "@/lib/config/constants";
 import { mapMeasured, unmeasured, type Measured } from "@/lib/measure/measured";
-import { asArray, asString, callEndpoint, isRecord, ledgered, referenceDomains, type EndpointPaths } from "./envelope";
+import {
+  asArray,
+  asString,
+  callEndpoint,
+  isRecord,
+  ledgered,
+  referenceDomains,
+  type EndpointPaths,
+  type OnVendorFailure,
+} from "./envelope";
 import type { DataForSeoMode } from "./transport";
 import { scopeKey, type AiAnswer, type CacheScope } from "./types";
 
@@ -91,7 +100,15 @@ function paidOnly<T>(c: CostContext, at: Date): Measured<T> | undefined {
 
 export async function aiMode(
   c: CostContext,
-  a: { query: string; mode: DataForSeoMode; scope: CacheScope }
+  a: {
+    query: string;
+    mode: DataForSeoMode;
+    scope: CacheScope;
+    /** Where the battery hears why a call failed (issue 869), so a pass can
+     *  stop buying an engine that is refusing and say on the cell what it
+     *  was told. */
+    onFailure?: OnVendorFailure;
+  }
 ): Promise<Measured<AiAnswer>> {
   const refused = paidOnly<AiAnswer>(c, new Date());
   if (refused) return refused;
@@ -102,13 +119,14 @@ export async function aiMode(
     costCents: a.mode === "live" ? PRICE_BOOK.AI_MODE_LIVE_C : PRICE_BOOK.AI_MODE_STD_C,
     fetch: () => callEndpoint(AI_MODE_PATHS, a.mode, { keyword: a.query }),
     parse: parseAiMode,
+    ...(a.onFailure ? { onFailure: a.onFailure } : {}),
   });
   return mapMeasured(rows, (r) => r[0] ?? NO_ANSWER);
 }
 
 export async function llmScraper(
   c: CostContext,
-  a: { query: string; mode: "std"; scope: CacheScope }
+  a: { query: string; mode: "std"; scope: CacheScope; onFailure?: OnVendorFailure }
 ): Promise<Measured<AiAnswer>> {
   const refused = paidOnly<AiAnswer>(c, new Date());
   if (refused) return refused;
@@ -119,6 +137,7 @@ export async function llmScraper(
     costCents: PRICE_BOOK.CHATGPT_SCRAPE_STD_C,
     fetch: () => callEndpoint(LLM_SCRAPER_PATHS, a.mode, { keyword: a.query }),
     parse: parseLlmScraper,
+    ...(a.onFailure ? { onFailure: a.onFailure } : {}),
   });
   return mapMeasured(rows, (r) => r[0] ?? NO_ANSWER);
 }
