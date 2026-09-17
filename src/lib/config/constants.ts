@@ -180,17 +180,17 @@ export const INFERENCE_MAX_OUTPUT_TOKENS = Object.freeze({
    *  five-member brand-voice summary with the paragraph the customer
    *  reads. Larger than `profile`'s 700 because it answers with prose the
    *  customer edits, not a set of tokens. */
-  /** **400, and the free cap is why.** §2 rules that "one free scan spends
-   *  at most 12¢ … it is a lead magnet, and waste on it is not
-   *  permitted", and the pass already reserves ~11.08¢ before this call
-   *  exists (`tests/scan/free/cost-bound.test.ts` adds it up from the
-   *  pins). `llm()` reserves `MAX_ATTEMPTS` × (estimated input + this
-   *  pin), so the whole of what the profile may reserve has to sit under a
-   *  penny: 400 output tokens with `SITE_PROFILE.VOICE_INPUT_MAX_CHARS` of
-   *  input puts the pass's worst case at ~11.76¢ and keeps it under the
-   *  cap. A voice summary is five short members and one paragraph; it does
-   *  not need a draft's room. */
-  "site-profile": 400,
+  /** **1 200, because 400 cut the answer off (issue 839).** The pin was
+   *  400 while the free pass was to buy this call under its 12¢ ceiling;
+   *  it never does (`FREE_PASS_INFERENCE_CALLS` below) — the call is paid
+   *  only, under `CAPS.DEEP_C` and `CAPS.WEEKLY_C`. An answer with every
+   *  list the schema allows filled is ~800 tokens, so at 400 the forced
+   *  tool's input came back truncated, failed the schema twice, and the
+   *  profile stored `voice: null` on a site that read fine. Two attempts
+   *  at 1 200 output tokens reserve 1.2¢ — nothing either paid cap
+   *  notices. `tests/site-profile/your-voice.test.tsx` holds a full answer to
+   *  this pin. */
+  "site-profile": 1200,
   /** SPEC §9 (#690): a page's own title and meta description, rewritten —
    *  `{ title, description }`, two short strings: ~80 needed. */
   "generate.page_fix": 256,
@@ -320,8 +320,8 @@ export const SITE_ISSUES = Object.freeze({
  *  invocation (`INFERENCE_TIMEOUT_MS` above), and `tests/llm/budget.test.
  *  ts` holds the pass to leaving half the invocation for the fetches, the
  *  SERPs and the battery that are not this seam's. So the inference half
- *  of the profile derives on the first *paid* pass — the deep pass runs at
- *  setup, before the onboarding market step renders its card — and
+ *  of the profile derives on the first *paid* pass — the deep pass, which
+ *  runs in the background once setup is submitted (issue 839) — and
  *  refreshes weekly, which is the cadence §5 and ruling 8 ask for. Nothing
  *  about the free scan's own promise changes: the crawl, the purposes and
  *  the inventory that cross-linking needs are all stored by it. */
