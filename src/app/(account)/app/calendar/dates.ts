@@ -71,6 +71,20 @@ export function addMonths(month: MonthKey, delta: number): MonthKey {
   return keyOfUtc(at).slice(0, 7);
 }
 
+/**
+ * The last date the plan reaches (issue 857, owner 2026-09-17): the day
+ * before the next weekly pass, which is the Sunday of today's own Mon–Sun
+ * week. Plans are decided per weekly pass, so nothing is planned past it.
+ *
+ * On a Monday it is that week's Sunday whether or not the pass has run yet:
+ * before the pass the plan runs through Sunday, and after it the next pass
+ * is a week away. `today` is already site-local, so the edge falls on the
+ * customer's own Monday.
+ */
+export function planHorizonEnd(today: DayKey): DayKey {
+  return addDays(today, 6 - weekdayIndex(today));
+}
+
 /** Every date in a month, in order. */
 export function daysOfMonth(month: MonthKey): readonly DayKey[] {
   const first = `${month}-01`;

@@ -71,6 +71,9 @@ function cellWith(
   return {
     day: "2026-09-15",
     inMonth: true,
+    when: "plan",
+    statesLine: false,
+    horizonMarker: false,
     today: true,
     page: {
       draftId,
@@ -104,6 +107,9 @@ function cellWith(
 const EMPTY_CELL: DayCell = {
   day: "2026-09-24",
   inMonth: true,
+  when: "plan",
+  statesLine: false,
+  horizonMarker: false,
   today: false,
   page: null,
   empty: { cause: "supply_exhausted" },

@@ -235,7 +235,7 @@ describe("REQ-043 c11 — an empty day states one account and offers no control"
   const empties: readonly [string, string][] = [
     ["2026-09-13", "stopped.work.line"],
     ["2026-09-12", "calendar.empty.page-cannot-go-live"],
-    ["2026-09-24", "calendar.empty.instruction"],
+    ["2026-09-19", "calendar.empty.instruction"],
   ];
 
   it("renders no publish or approve control on any empty date", () => {
@@ -344,17 +344,15 @@ describe("the panel's arms", () => {
   });
 
   it("the empty arm names the day, states its whole account, and offers nothing**", () => {
-    // 2026-09-23 is emptied by proven-zero supply in the fixture.
-    const root = panel("2026-09-23");
+    const stopped = panel("2026-09-13");
+    expect(stopped.querySelector('[data-testid="day-empty-line"]')?.textContent).toBe("stopped.work.line");
+    // 2026-09-20 is emptied by proven-zero supply in the fixture. Supply is
+    // the calendar's one statement at its top, and the panel does not
+    // repeat it (issue 857).
+    const root = panel("2026-09-20");
     const head = root.querySelector('[data-testid="day-head"]');
     expect(head?.textContent).toContain("calendar.empty.day-badge");
-    // The panel states the FULL account where the cell states its first
-    // line alone (DECISIONS 2026-09-07, #209 — and S14/S15 draw the same
-    // split for supply). `copy()` is mocked to the key here, so what is
-    // asserted is which key the line came from.
-    const line = root.querySelector('[data-testid="day-empty-line"]');
-    expect(line?.textContent).toBe("calendar.empty.supply-exhausted");
-    expect(line?.textContent).not.toBe("cause.supply-exhausted");
+    expect(root.querySelector('[data-testid="day-empty-line"]')).toBeNull();
     // REQ-043 c11: no action at all.
     expect(root.querySelectorAll('[data-testid^="day-action-"]')).toHaveLength(0);
     // And no provenance: a date holding no page carries no measurement to

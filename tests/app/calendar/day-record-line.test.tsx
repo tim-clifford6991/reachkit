@@ -73,6 +73,9 @@ function render(over: Partial<PageOnDay> = {}): string {
   const cell: DayCell = {
     day: "2026-09-15",
     inMonth: true,
+    when: "plan",
+    statesLine: false,
+    horizonMarker: false,
     today: true,
     page: page(over),
     empty: null,

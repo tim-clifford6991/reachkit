@@ -119,8 +119,10 @@ function DayButton(p: {
     return <div className="hidden md:block" aria-hidden="true" data-testid="calendar-placeholder" />;
   }
   const page = cell.page !== null && (p.filter === "all" || cell.page.stage === p.filter) ? cell.page : null;
+  // Issue 857: the one quiet marker at the horizon, where the plan stops.
+  const marker = cell.horizonMarker ? writtenLine("calendar.horizon.marker") : null;
   const emptyLine =
-    p.filter === "all" && cell.page === null && cell.empty !== null
+    p.filter === "all" && cell.page === null && cell.empty !== null && cell.statesLine
       ? emptyLineFor(cell.empty, cell.day, p.stopped, p.timeZone)
       : null;
 
@@ -140,7 +142,7 @@ function DayButton(p: {
       data-today={cell.today ? "" : undefined}
       data-empty={cell.page === null ? "" : undefined}
       aria-current={p.selected ? "date" : undefined}
-      title={page?.title ?? emptyLine ?? undefined}
+      title={page?.title ?? emptyLine ?? marker ?? undefined}
       onClick={() => p.onSelect(cell.day)}
     >
       <span className="flex min-w-0 flex-wrap items-center justify-between gap-1">
@@ -157,9 +159,13 @@ function DayButton(p: {
         <span className="line-clamp-3 break-words text-sm" data-testid="cell-label">
           {page.title}
         </span>
-      ) : emptyLine === null ? null : (
+      ) : emptyLine !== null ? (
         <span className="line-clamp-3 break-words text-xs opacity-70" data-testid="cell-empty-line">
           {emptyLine}
+        </span>
+      ) : marker === null ? null : (
+        <span className="line-clamp-3 break-words text-xs opacity-50" data-testid="calendar-horizon-marker">
+          {marker}
         </span>
       )}
     </button>

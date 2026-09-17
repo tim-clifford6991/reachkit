@@ -128,17 +128,18 @@ describe("#765 — zero supply says which zero it is", () => {
     setOpportunityStore(storeWith({ questions: 12, everHeld: true }));
     const day = await emptyDay();
     expect(day.cause).toBe("supply_exhausted");
-    expect(day.cellLine).toBe(COPY["cause.supply-exhausted"]);
-    expect(day.panelLine).toBe(COPY["calendar.empty.supply-exhausted"]);
+    // Issue 857: the supply state is the calendar's one statement at its
+    // top; neither the cell nor the panel repeats it.
+    expect(day.cellLine).toBeUndefined();
+    expect(day.panelLine).toBeUndefined();
   });
 
   it("never measured: the current scan derived no questions — the honest line, never 'used up'", async () => {
     setOpportunityStore(storeWith({ questions: 0, everHeld: false }));
     const day = await emptyDay();
     expect(day.cause).toBe("supply_unmeasured");
-    expect(day.cellLine).toBe(COPY["calendar.empty.supply-unmeasured"]);
-    expect(day.panelLine).toBe(COPY["calendar.empty.supply-unmeasured"]);
-    expect(day.panelLine).not.toBe(COPY["calendar.empty.supply-exhausted"]);
+    expect(day.cellLine).toBeUndefined();
+    expect(day.panelLine).toBeUndefined();
   });
 
   it("never measured: questions exist but the site never held an opportunity", async () => {

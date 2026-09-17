@@ -142,6 +142,9 @@ describe("the draft view and the day panel read one table", () => {
       const cell = {
         day: "2026-09-15",
         inMonth: true,
+        when: "plan" as const,
+        statesLine: false,
+        horizonMarker: false,
         today: true,
         empty: null,
         page: {

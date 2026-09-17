@@ -115,10 +115,9 @@ const SCHEDULE: Readonly<Record<DayKey, State>> = {
   "2026-09-16": "approved",
   "2026-09-17": "approved",
   "2026-09-18": "planned",
-  "2026-09-19": "planned",
-  "2026-09-20": "planned",
-  "2026-09-21": "planned",
-  "2026-09-22": "generating",
+  // 2026-09-19 holds an instruction and 2026-09-20 is emptied by supply.
+  // Nothing after 2026-09-20: the plan stops the day before the next weekly
+  // pass (issue 857).
 };
 
 /** The states a page can only be in by having passed through review. */
@@ -200,7 +199,7 @@ export const FIXTURE_CALENDAR_FACTS: CalendarFacts = Object.freeze({
   drafts: Object.freeze(DRAFTS),
   // REQ-047 c5: while an instruction stands against a date, it is that
   // date's one account — outranking even ReachKit's own stop (ADR-061 point 3).
-  instructions: Object.freeze({ "2026-09-24": "opportunity-24" }),
+  instructions: Object.freeze({ "2026-09-19": "opportunity-19" }),
   // REQ-092 c1: a day ReachKit did not do the work. It carries the
   // stopped-work line, never the exhausted-supply one.
   stoppedDays: Object.freeze(["2026-09-13"] as const),

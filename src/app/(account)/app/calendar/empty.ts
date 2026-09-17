@@ -179,6 +179,13 @@ export const LAW_CAUSES: readonly EmptyCause[] = Object.freeze([
   "unattributed",
 ] as const);
 
+/** Issue 857: the two supply arms are a fact about the site's market, not
+ *  about one date. The calendar states supply once, at its top
+ *  (`readSupplyNotice`), and no cell or day panel repeats it. */
+export function isSupplyCause(cause: EmptyCause): cause is "supply_unmeasured" | "supply_exhausted" {
+  return cause === "supply_unmeasured" || cause === "supply_exhausted";
+}
+
 export type CalendarOwnCause = Exclude<EmptyCause, "reachkit_stopped" | "unattributed">;
 
 /** The calendar's own causes that speak one line whatever they carry. The
