@@ -32,15 +32,38 @@ export type MarketChangeState =
   | {
       answer: "saved";
       effectiveOn: string;
-      /** Issue 837: the save started a pass measured again now, so the card
-       *  says that rather than a date. */
-      remeasuring?: boolean;
+      /**
+       * Issue 837, as issue 866 words it: a **changed** category is measured
+       * again at once, so the card says what happened to that measurement
+       * and never a Monday. Absent on a domain save, which does land at the
+       * weekly pass and keeps REQ-071 c6's dated line.
+       */
+      remeasure?: RemeasureAnswer;
+      /** Issue 866: a category save that started no measurement, and why —
+       *  it is the category already being measured, or it was cleared. */
+      note?: "unchanged" | "cleared";
     }
   /** Refused, and nothing was written. `value` is what they typed, kept
    *  intact — `Input`'s contract ("the invalid value stays intact"): a
    *  customer told a domain is already in the set must not also have to
    *  retype it. */
   | { answer: "refused"; lineKey: CopyKey; value: string };
+
+/** What `startRemeasure` answered, as the card states it. A refusal carries
+ *  the written line rather than its key: the daily bound's sentence names a
+ *  time, and the moment is formatted in the site's own zone on the server
+ *  that read it (issue 866). */
+export type RemeasureAnswer = { started: true } | { started: false; line: string };
+
+/** Issue 866's standalone control: the plain way to measure again, with no
+ *  answer to change first. Its refusals are the same two the thin-market
+ *  choice is refused with, because the bound is the same one. */
+export type MarketRemeasureState =
+  | { answer: "idle" }
+  | { answer: "started" }
+  | { answer: "refused"; line: string };
+
+export const MARKET_REMEASURE_INITIAL: MarketRemeasureState = { answer: "idle" };
 
 export const MARKET_CHANGE_INITIAL: MarketChangeState = { answer: "idle" };
 

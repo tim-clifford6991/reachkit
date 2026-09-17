@@ -228,7 +228,13 @@ export async function measuredAnswers(siteId: string): Promise<MeasuredAnswers |
     typeof row.report === "object" && row.report !== null
       ? (row.report as Record<string, unknown>)
       : {};
-  const category = report.category;
+  // Issue 866: the category the pass measured under, as the pass recorded
+  // it (`StoredReport.measuredCategory`). Not `categoryOf(market)`: that is
+  // the category the model inferred from the site, and a founder measured in
+  // their own confirmed one would have that difference read as a pending
+  // change forever. A report written before version 10 carries none, and
+  // claims none.
+  const category = report.measuredCategory;
   return {
     domain: row.domain,
     category: typeof category === "string" ? category : null,

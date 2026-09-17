@@ -162,7 +162,10 @@ export function scan(over: Row & { measuredAt?: string; category?: string | null
     is_current: true,
     created_at: "2026-09-07T06:00:00.000Z",
     report: {
-      category: category === undefined ? "project management software" : category,
+      // Issue 866: the category the pass measured under, as the pass records
+      // it. `category` was never a key on a stored report, which is why the
+      // comparison could not fire.
+      measuredCategory: category === undefined ? "project management software" : category,
       verdict: { measuredAt: measuredAt ?? "2026-09-07T06:00:00.000Z" },
       presence: { rivals: [{ domain: "asana.com" }, { domain: "monday.com" }] },
     },

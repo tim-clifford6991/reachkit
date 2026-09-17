@@ -38,6 +38,7 @@ const { assembleMonth, cellFor } = await import("@/app/(account)/app/calendar/mo
 const { DayPanelView } = await import("@/app/(account)/app/calendar/DayPanelView");
 const { CHANGE_COPY_KEY } = await import("@/app/(account)/app/calendar/change-line");
 const { formatDate } = await import("@/app/(account)/app/_shell/format");
+const { COPY } = await import("@/lib/presentation/copy");
 
 function render(el: React.ReactElement): Element {
   const container = document.createElement("div");
@@ -136,7 +137,7 @@ describe("its place in the seven-arm precedence, at both neighbours", () => {
 describe("the day panel states it, with both slots filled from the engine", () => {
   it("names the change through its own key and the date through the site's zone", () => {
     const model = assembleMonth(
-      facts({ changeHoldsGeneration: { because: "category", resumesOn: RESUMES } }),
+      facts({ changeHoldsGeneration: { because: "domain", resumesOn: RESUMES } }),
       MONTH
     );
     const cell = cellFor(model, "2026-09-16") as DayCell;
@@ -146,11 +147,26 @@ describe("the day panel states it, with both slots filled from the engine", () =
     const line = root.querySelector('[data-testid="day-empty-line"]')?.textContent ?? "";
     expect(line).toContain(EMPTY_COPY_KEY.change_holds_generation);
     // `{change}` is the owner's word, never the engine's handle.
-    expect(line).toContain(CHANGE_COPY_KEY.category);
-    expect(line).not.toMatch(/\|category\b/);
+    expect(line).toContain(CHANGE_COPY_KEY.domain);
+    expect(line).not.toMatch(/\|domain\b/);
     // `{date}` is `resumesOn`, written in the customer's own zone by the
     // shell's one formatter — never a date this screen computed.
     expect(line).toContain(formatDate(RESUMES, ZONE));
+  });
+
+  it("issue 866 — a held category names the measurement it waits on, and no Monday", () => {
+    const model = assembleMonth(
+      facts({ changeHoldsGeneration: { because: "category", resumesOn: RESUMES } }),
+      MONTH
+    );
+    const cell = cellFor(model, "2026-09-16") as DayCell;
+    const root = render(<DayPanelView cell={cell} timeZone={ZONE} stopped={null} />);
+    const line = root.querySelector('[data-testid="day-empty-line"]')?.textContent ?? "";
+    // A category is measured again at once, so its held day states the
+    // category's own line and carries no date at all.
+    expect(line).toBe("calendar.empty.change-holds-pages.category");
+    expect(line).not.toContain(formatDate(RESUMES, ZONE));
+    expect(COPY["calendar.empty.change-holds-pages.category"]).not.toMatch(/Monday|\{date\}/);
   });
 
   it("every date of the plan carries it, because a replacement holds the site and not a day", () => {

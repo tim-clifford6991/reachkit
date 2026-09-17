@@ -411,6 +411,27 @@ describe("a report written at version 8 is lifted, not refused", () => {
   });
 });
 
+// ── issue 866: version 9 → 10, the pass records the category it measured
+//
+// REQ-071's comparison reads the market a measurement was taken in. No
+// stored report carried one, so a changed category was never seen as
+// changed. A report written before this version carries `null` — never the
+// inferred category, which would read as a change on every site whose
+// confirmed and inferred categories differ.
+describe("a report written at version 9 is lifted, not refused", () => {
+  it("records no measured category — it never kept one, and none is inferred for it", () => {
+    const { measuredCategory, ...current } = asStoredJson() as Record<string, unknown>;
+    void measuredCategory;
+    const v9 = { ...current, version: 9 };
+    const report = readStoredReport(v9);
+    expect(report.version).toBe(REPORT_VERSION);
+    expect(report.measuredCategory).toBeNull();
+    // The inferred category is still on the market section, and is not read
+    // as the one the pass measured under.
+    expect(report.market.kind).toBe("measured");
+  });
+});
+
 describe("the version guard", () => {
   it("throws on a blob this build does not know how to read", () => {
     const blob = { ...(asStoredJson() as Record<string, unknown>), version: REPORT_VERSION + 1 };

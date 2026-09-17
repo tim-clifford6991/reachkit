@@ -73,7 +73,9 @@ describe("REQ-071 c1 — the pending change, before the save", () => {
   });
 
   it("takes its date from effectiveOn() and does no arithmetic of its own", () => {
-    const root = market({ editing: "category", pendingChange: null });
+    // The domain: it is the answer that lands at the weekly pass, and the
+    // one REQ-071 c1's dated line is still right for (issue 866).
+    const root = market({ editing: "domain", pendingChange: null });
     const line = root.querySelector('[data-testid="market-change-line"]')?.textContent ?? "";
     // The date a change saved now would take: the engine's answer, in the
     // customer's own zone, written by the shell's one formatter. Compared
@@ -100,12 +102,22 @@ describe("REQ-071 c1 — the pending change, before the save", () => {
 
 describe("REQ-071 c6 — the effective-on line, after the save", () => {
   it("names the stored date and no change word, and is not the warn ground", () => {
-    const root = market({ editing: null, pendingChange: { kind: "category", effectiveOn: ADOPTED_ON } });
+    const root = market({ editing: null, pendingChange: { kind: "domain", effectiveOn: ADOPTED_ON } });
     const cell = root.querySelector('[data-testid="market-change-line"]');
     expect(cell?.textContent).toContain("settings.market.effectiveOn");
     // Saved is not an error: nothing is wrong, and a warning ground would
     // say something is.
     expect(cell?.getAttribute("class") ?? "").not.toContain("warning");
+  });
+
+  it("issue 866 — a saved category says it has not been measured yet, never that a Monday applies", () => {
+    const root = market({ editing: null, pendingChange: { kind: "category", effectiveOn: ADOPTED_ON } });
+    const line = root.querySelector('[data-testid="market-change-line"]')?.textContent ?? "";
+    // The category is measured again by the control on this card; the weekly
+    // pass is named only as the fallback it is.
+    expect(line).toContain("settings.market.category.not-measured-yet");
+    expect(line).not.toContain("settings.market.effectiveOn");
+    expect(line).toContain(formatDate(ADOPTED_ON, ZONE));
   });
 
   it("the unsaved change outranks the saved one — one line, and it is the one being acted on", () => {

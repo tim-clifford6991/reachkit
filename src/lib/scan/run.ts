@@ -715,6 +715,7 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
     scanId,
     domain,
     tier: a.tier,
+    ...(a.category === undefined ? {} : { category: a.category }),
     stoppedReason,
     fromIncompleteRescan,
     sections,
@@ -1512,6 +1513,9 @@ const READ_AND_EMPTY: InputOutcome = { read: true, empty: true };
 
 function composeReport(a: {
   scanId: string;
+  /** `RunScanArgs.category` — the category this pass measured under, kept on
+   *  the record (issue 866). */
+  category?: string;
   domain: CanonicalDomain;
   tier: Tier;
   stoppedReason: StoppedReason;
@@ -1597,6 +1601,10 @@ function composeReport(a: {
     siteIssues: checkSite({ crawl: s.siteCrawl, robots, blockedAgents: blockedAgentsOf(robots) }),
     coherence: s.coherence,
     correctionState: a.correctionState,
+    // Issue 866: the category the pass was handed, so REQ-071's comparison
+    // can see a category change and see it cleared. `null` where the pass
+    // seeded from the profile — the inferred category is not this fact.
+    measuredCategory: a.category ?? null,
   });
   // SPEC §2 (issue 787): the one first-page proposal is the best right-sized
   // Write target this pass measured — derived, never padded.

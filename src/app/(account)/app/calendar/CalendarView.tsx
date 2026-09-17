@@ -73,6 +73,12 @@ export function emptyLineFor(
   // named through its own registry key, and the resumption date formatted
   // in the site's zone (issue #204).
   if (empty.cause === "change_holds_generation") {
+    // Issue 866: a category is measured again at once, so its held day names
+    // the measurement it waits on and no date. The domain keeps REQ-071
+    // c11's dated line — that change does land at the weekly pass.
+    if (empty.because === "category") {
+      return writtenLine("calendar.empty.change-holds-pages.category");
+    }
     return writtenLine(keys[empty.cause], {
       change: copy(CHANGE_COPY_KEY[empty.because]),
       date: formatDate(empty.resumesOn, timeZone),

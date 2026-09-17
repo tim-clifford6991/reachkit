@@ -53,6 +53,10 @@ import { SIGNIN_PATH } from "@/lib/account/identity/addresses";
 import type { RivalSet } from "@/lib/market/setup/rivals";
 import { DESTINATION_HREF } from "../_shell/destinations";
 import { VOICE_FIELD } from "./voice-state";
+import type { CopyKey } from "@/lib/presentation/copy";
+import type { RemeasureStart } from "@/lib/scan/deep/remeasure";
+import { formatDateTime } from "../_shell/format";
+import { writtenLine } from "../_shell/written";
 import {
   DOMAIN_REFUSAL_KEY,
   MARKET_CATEGORY_FIELD,
@@ -60,13 +64,42 @@ import {
   RIVAL_FIELD,
   RIVAL_REFUSAL_KEY,
   type MarketChangeState,
+  type MarketRemeasureState,
+  type RemeasureAnswer,
 } from "./market-state";
 
 async function siteId(): Promise<string> {
+  return (await site()).siteId;
+}
+
+/** The session's site, with the zone a refusal's time is written in
+ *  (issue 866). Never a value the browser sent. */
+async function site(): Promise<{ siteId: string; domain: string; timeZone: string | null }> {
   const { appAccount } = await import("../_session/account");
   const account = await appAccount();
   if (!account.ok) redirect(SIGNIN_PATH);
-  return account.account.siteId;
+  const { siteId: id, domain, timeZone } = account.account;
+  return { siteId: id, domain, timeZone };
+}
+
+/**
+ * What a refused start says (issue 866).
+ *
+ * The same two sentences the thin-market choice is refused with
+ * (`_shell/remeasure-actions.ts`): the bound is one bound and the remedy is
+ * the same, so a second pair of sentences here would be the same refusal
+ * worded twice. The daily one names when the founder may ask again, written
+ * in the site's own zone — never the server's, and never a raw instant.
+ */
+function refusalLine(refused: Exclude<RemeasureStart, { started: true }>, timeZone: string | null): string {
+  if (refused.because === "running") {
+    return writtenLine("setup.remeasure.refused.running" satisfies CopyKey) ?? "";
+  }
+  return (
+    writtenLine("setup.remeasure.refused.daily-limit" satisfies CopyKey, {
+      time: timeZone === null ? "" : formatDateTime(refused.nextAt, timeZone),
+    }) ?? ""
+  );
 }
 
 /** The one field each form carries, as a string. A missing or file-valued
@@ -81,7 +114,7 @@ function typed(form: FormData, field: string): string {
  *  engine's rule), so the screen states the date this press earned. The
  *  screen is revalidated so the card re-reads the declared answers rather
  *  than believing a client-side guess at them. */
-function saved(effectiveOn: Date): MarketChangeState {
+function saved(effectiveOn: Date): Extract<MarketChangeState, { answer: "saved" }> {
   revalidatePath(DESTINATION_HREF.settings);
   // An ISO instant rather than a `Date`: a Server Function's return
   // crosses to the browser, and the screen states the day in the
@@ -108,21 +141,48 @@ export async function saveDomainAction(form: FormData): Promise<MarketChangeStat
  *  something the engine deliberately does not. */
 export async function saveCategoryAction(form: FormData): Promise<MarketChangeState> {
   const { declaredAnswers, saveCategory } = await import("@/lib/market/changes");
-  const site = await siteId();
+  const account = await site();
   const category = typed(form, MARKET_CATEGORY_FIELD);
-  const before = await declaredAnswers(site);
-  const result = await saveCategory({ siteId: site, category });
+  const before = await declaredAnswers(account.siteId);
+  const result = await saveCategory({ siteId: account.siteId, category });
+  const stated = saved(result.effectiveOn);
 
-  // Owner ruling 2026-09-17 (issue 837): a changed category measures the
-  // market again right away, inside the same daily bound as the thin-market
-  // choice. A refused start keeps the dated line: the change still lands at
-  // the next weekly pass.
-  if (category.trim() === "" || category === before.category) return saved(result.effectiveOn);
+  // Owner ruling 2026-09-17 (issue 837), worded by issue 866: a changed
+  // category measures the market again right away, inside the same daily
+  // bound as the thin-market choice — and the card says what became of that
+  // measurement. It never states a Monday for a category: the category is
+  // not what the weekly pass is waiting for.
+  if (category === before.category) return { ...stated, note: "unchanged" };
+  if (category.trim() === "") return { ...stated, note: "cleared" };
+
   const { startRemeasure } = await import("@/lib/scan/deep/remeasure");
-  const started = await startRemeasure({ siteId: site, domain: before.domain });
-  if (!started.started) return saved(result.effectiveOn);
+  const started = await startRemeasure({ siteId: account.siteId, domain: before.domain });
+  const remeasure: RemeasureAnswer = started.started
+    ? { started: true }
+    : { started: false, line: refusalLine(started, account.timeZone) };
+  // The whole app re-reads on a start: the shell's panel now names the
+  // pass's step, which is the founder's loader.
+  if (started.started) revalidatePath("/app", "layout");
+  return { ...stated, remeasure };
+}
+
+/**
+ * Issue 866 — the plain way to measure again, with no answer to change
+ * first.
+ *
+ * The same `startRemeasure` the thin-market choice presses, under the same
+ * daily bound, with the same refusals and the same side-panel loader. It
+ * changes no stored answer: the market is measured again as it stands, so
+ * there is nothing to save and nothing to undo.
+ */
+export async function remeasureNowAction(): Promise<MarketRemeasureState> {
+  const account = await site();
+  const { startRemeasure } = await import("@/lib/scan/deep/remeasure");
+  const started = await startRemeasure({ siteId: account.siteId, domain: account.domain });
+  if (!started.started) return { answer: "refused", line: refusalLine(started, account.timeZone) };
   revalidatePath("/app", "layout");
-  return { answer: "saved", effectiveOn: result.effectiveOn.toISOString(), remeasuring: true };
+  revalidatePath(DESTINATION_HREF.settings);
+  return { answer: "started" };
 }
 
 /**
