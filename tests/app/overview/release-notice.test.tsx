@@ -50,10 +50,10 @@ const AT = new Date(Date.UTC(2026, 8, 14, 6, 0, 0));
 
 /** The current report `releaseNotice` reads: complete, with `questions`
  *  of the given length — zero is §6's market too small (#770). */
-function reportWith(questions: number): StoredReport {
+function reportWith(questions: number, stoppedReason: StoredReport["stoppedReason"] = "complete"): StoredReport {
   return {
-    complete: true,
-    stoppedReason: "complete",
+    complete: stoppedReason === "complete",
+    stoppedReason,
     questions:
       questions === 0
         ? measuredZero([], AT)
@@ -83,8 +83,13 @@ const { COPY } = await import("@/lib/presentation/copy");
 const { resetAccount, signedInAs } = await import("../account-door");
 
 /** The reads `supplyDepth` and `supplyMeasured` are made of. */
-function storeWith(a: { unused: number; questions: number; everHeld: boolean }): OpportunityStore {
-  const report = reportWith(a.questions);
+function storeWith(a: {
+  unused: number;
+  questions: number;
+  everHeld: boolean;
+  stoppedReason?: StoredReport["stoppedReason"];
+}): OpportunityStore {
+  const report = reportWith(a.questions, a.stoppedReason);
   return {
     countUnused: async () => a.unused,
     lastStatusChangeAt: async () => (a.everHeld ? AT : null),
@@ -171,6 +176,24 @@ describe("#784 — a market too small is told, and a never-measured zero is not 
 
     expect(text(tree, "overview-release-notice")).toBeNull();
     expect(text(tree, "overview-supply")).toBe(COPY["overview.supply.exhausted"]);
+  });
+
+  it("issue 855: week zero, a pass stopped on its time ceiling with twelve questions and no supply is still being measured — never too small, never a broader category", async () => {
+    current.report = reportWith(12, "time_ceiling");
+    // Only updates its hosted destination cannot deliver: no non-Fix row held.
+    setOpportunityStore(storeWith({ unused: 0, questions: 12, everHeld: false, stoppedReason: "time_ceiling" }));
+    const tree = await screen();
+
+    const notices = tree.querySelectorAll('[data-testid="shell-onboarding-notice"]');
+    expect(notices.length).toBeGreaterThan(0);
+    for (const n of notices) expect(n.textContent).toContain(COPY["setup.release.measuring"]);
+    expect(text(tree, "overview-supply")).toBe(COPY["overview.supply.measuring"]);
+
+    expect(tree.querySelector('[data-testid="category-choice"]')).toBeNull();
+    expect(tree.querySelector('[data-testid="overview-market-choice"]')).toBeNull();
+    for (const key of ["setup.release.market-too-small", "overview.supply.unmeasured", "overview.supply.exhausted"] as const) {
+      expect(tree.innerHTML).not.toContain(COPY[key]);
+    }
   });
 
   it("a measured-ness read that fails states neither zero", async () => {

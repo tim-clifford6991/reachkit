@@ -10,6 +10,7 @@
 // re-deciding it.
 import type { Question } from "@/lib/market/questions/phrase";
 import type { Measured } from "@/lib/measure/measured";
+import type { StoppedReason } from "./report";
 
 /** Fewer questions than this and the pass has nothing to plan pages from.
  *  One — i.e. zero questions — until phase 2 decides the real minimum. */
@@ -19,4 +20,11 @@ export const MARKET_QUESTION_FLOOR = 1;
  *  `unmeasured` set is not "too small": nobody got to read it. */
 export function marketTooSmall(questions: Measured<readonly Question[]>): boolean {
   return questions.kind !== "unmeasured" && questions.value.length < MARKET_QUESTION_FLOOR;
+}
+
+/** A pass a ceiling stopped did not finish reading the market (issue 855,
+ *  owner): it is never *market too small*, and the founder is never asked
+ *  to change a category for it. It is measured again. */
+export function stoppedOnCeiling(stoppedReason: StoppedReason): boolean {
+  return stoppedReason === "time_ceiling" || stoppedReason === "spend_ceiling";
 }

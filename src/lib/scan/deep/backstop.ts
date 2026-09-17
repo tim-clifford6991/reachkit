@@ -17,6 +17,15 @@
 // still running is not started twice. The query only looks back
 // `TIMING.deepPassBackstopH` hours, the platform's idempotency window, so a
 // pass that ran and crashed is not re-sent past it on every tick for ever.
+//
+// **A pass a ceiling stopped is measured again** (issue 855, owner). A first
+// pass that ended on `time_ceiling` or `spend_ceiling` did not finish reading
+// the market; it is not a market too small and the founder is not asked to
+// change a category. Where the site's newest deep pass ended that way, the
+// same tick starts it again as a re-measure (`startRemeasure`, issue 837) —
+// a fresh row under that bound: one pass at a time, at most
+// `REMEASURE.perDay` in a day, the onboarding pass included — inside the same
+// `TIMING.deepPassBackstopH` window after setup.
 import { TIMING } from "@/lib/config/constants";
 import { dbAdmin } from "@/lib/db";
 
@@ -48,7 +57,8 @@ const MS_PER_MINUTE = 60_000;
 /** At most this many sites a tick. One day of setups is far below it. */
 const SITES_PER_TICK = 200;
 
-/** Every site whose finished setup has no ended deep pass. */
+/** Every site whose finished setup has no ended deep pass, or whose newest
+ *  deep pass a ceiling stopped (issue 855). */
 export async function sitesWithoutDeepPass(now: Date): Promise<readonly string[]> {
   const before = new Date(now.getTime() - TIMING.deepPassBackstopMin * MS_PER_MINUTE).toISOString();
   const after = new Date(now.getTime() - TIMING.deepPassBackstopH * 60 * MS_PER_MINUTE).toISOString();
@@ -64,14 +74,47 @@ export async function sitesWithoutDeepPass(now: Date): Promise<readonly string[]
   if (ids.length === 0) return [];
 
   const passes = await untyped()
-    .from<{ site_id: string }>("scans")
-    .select("site_id")
+    .from<PassRow>("scans")
+    .select("site_id, status, stopped_reason, created_at")
     .eq("tier", "deep")
-    .neq("status", "running")
     .in("site_id", ids);
   if (passes.error) throw new Error(`sitesWithoutDeepPass: could not read scans: ${passes.error.message}`);
-  const ran = new Set((passes.data ?? []).map((row) => row.site_id));
-  return ids.filter((id) => !ran.has(id));
+  const rows = passes.data ?? [];
+  return ids.filter((id) => owed(rows.filter((row) => row.site_id === id)) !== null);
+}
+
+interface PassRow {
+  site_id: string;
+  status: string;
+  stopped_reason?: string | null;
+  created_at?: string | null;
+}
+
+/** The two ceilings: a pass that stopped on one did not finish. */
+const CEILINGS: ReadonlySet<string> = new Set(["time_ceiling", "spend_ceiling"]);
+
+/** What one site's deep rows owe it: its onboarding pass (`never_ran`), the
+ *  pass again because a ceiling stopped the newest (`cut_short`), or nothing
+ *  — a pass that finished, or one still under way. */
+function owed(rows: readonly PassRow[]): "never_ran" | "cut_short" | null {
+  const ended = rows.filter((row) => row.status !== "running");
+  if (ended.length === 0) return "never_ran";
+  const newest = [...rows].sort((a, b) => String(b.created_at ?? "").localeCompare(String(a.created_at ?? "")))[0];
+  if (newest === undefined || newest.status === "running") return null;
+  return CEILINGS.has(String(newest.stopped_reason ?? "")) ? "cut_short" : null;
+}
+
+/** Whether a site the query named is owed its pass again because a ceiling
+ *  stopped its newest one, rather than its onboarding pass never having run —
+ *  which decides whether the tick re-sends setup's event or re-measures. */
+export async function deepPassCutShort(siteId: string): Promise<boolean> {
+  const { data, error } = await untyped()
+    .from<PassRow>("scans")
+    .select("site_id, status, stopped_reason, created_at")
+    .eq("tier", "deep")
+    .eq("site_id", siteId);
+  if (error) throw new Error(`deepPassCutShort: could not read scans: ${error.message}`);
+  return owed(data ?? []) === "cut_short";
 }
 
 /** The address a site's pass runs against, or `null` for a site gone since

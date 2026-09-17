@@ -434,6 +434,10 @@ export const SETUP_COPY = Object.freeze({
    *  plan a page from — a measurement, not a failure. Issue 837 (owner,
    *  2026-09-17): it points at the choice beside it, never at a week. */
   "setup.release.market-too-small": ["We couldn’t find enough searches for your market to plan pages yet. Pick a broader category and we’ll measure your market again right away.", { slots: {}, fixedBy: "issue 770" }],
+  /** Issue 855 (owner, 2026-09-17): the pass stopped on a ceiling before it
+   *  finished reading the market. Not a market too small, and nothing for
+   *  the founder to change. Drafted under issue 759's ruling. */
+  "setup.release.measuring": ["Your market is still being measured — the first pass ran out of time before it finished. ReachKit measures it again automatically, and your first pages follow.", { slots: {}, fixedBy: "issue 855" }],
 
   // Issue 837 (owner ruling 2026-09-17): the choice a thin market offers —
   // two or three broader categories from the site's own profile, and the

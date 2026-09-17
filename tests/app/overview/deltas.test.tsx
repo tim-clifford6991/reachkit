@@ -21,6 +21,7 @@ vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
 vi.mock("@/lib/opportunities", () => ({
   supplyDepth: async () => ({ unused: 9, total: 12 }),
   supplyMeasured: async () => true,
+  supplyState: async () => "measured",
   readWeek: async () => [],
 }));
 

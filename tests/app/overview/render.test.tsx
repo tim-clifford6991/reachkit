@@ -115,7 +115,7 @@ const facts = (over: Partial<OverviewFacts> = {}): OverviewFacts => ({
       },
     ],
   },
-  supply: { exhausted: false, unmeasured: false, short: true, firstArrivalShortfall: false },
+  supply: { exhausted: false, unmeasured: false, measuring: false, short: true, firstArrivalShortfall: false },
   waiting: [
     { kind: "pending_veto", title: "a draft", since: AT(31), vetoDeadline: AT(32), href: "/app/draft/1" },
     { kind: "needs_you", title: "a destination", since: AT(31), vetoDeadline: null, href: "/app/settings" },

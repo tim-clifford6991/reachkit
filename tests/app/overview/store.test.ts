@@ -42,6 +42,7 @@ vi.mock("@/lib/opportunities", () => ({
   supplyDepth: (...a: unknown[]) => supplyDepth(...(a as [])),
   // #784: read only where the depth is zero; this suite's sites hold supply.
   supplyMeasured: async () => true,
+  supplyState: async () => "measured",
   readWeek: (...a: unknown[]) => readWeek(...(a as [])),
 }));
 

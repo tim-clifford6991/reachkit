@@ -549,7 +549,7 @@ export async function readOverviewFacts(site: OverviewSite): Promise<OverviewFac
   // the seed writes its measured weeks against the same value, and the two
   // halves cannot drift apart on a Monday.
   const now = clock();
-  const { supplyDepth, supplyMeasured } = await import("@/lib/opportunities");
+  const { supplyDepth, supplyState } = await import("@/lib/opportunities");
 
   const deepRead = deepPassReading(site.siteId);
   const [firstDueOn, published, depth, waiting, series, ranking, deepPass] = await Promise.all([
@@ -566,7 +566,8 @@ export async function readOverviewFacts(site: OverviewSite): Promise<OverviewFac
   ]);
   // issue 765/issue 784: a zero is either a market used up or one never measured, and
   // only a read that answered may say which — an unreadable one says neither.
-  const measured = depth.unused === 0 ? await supplyMeasured(site.siteId).catch(() => null) : null;
+  // Issue 855: or a market still being measured, which neither of those is.
+  const state = depth.unused === 0 ? await supplyState(site.siteId).catch(() => null) : null;
 
   return {
     timeZone: site.timeZone,
@@ -588,8 +589,9 @@ export async function readOverviewFacts(site: OverviewSite): Promise<OverviewFac
     rivals: series.rivals,
     today: now,
     supply: {
-      exhausted: depth.unused === 0 && measured === true,
-      unmeasured: depth.unused === 0 && measured === false,
+      exhausted: depth.unused === 0 && state === "measured",
+      unmeasured: depth.unused === 0 && state === "unmeasured",
+      measuring: depth.unused === 0 && state === "measuring",
       short: depth.unused > 0 && depth.unused < SUPPLY_SHORT_BELOW,
       // The first-arrival shortfall is a statement about the pass the
       // customer arrived after, which only the arrival itself can know

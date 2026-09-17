@@ -60,10 +60,16 @@ vi.mock("@/lib/mail/retention", () => ({
 // query is stood in; the send goes through the real job client's
 // `sendJobEvent`, recorded here instead of reaching the platform.
 const dueDeepPass = vi.fn<() => Promise<readonly string[]>>(async () => []);
+const cutShort = vi.fn<(siteId: string) => Promise<boolean>>(async () => false);
 vi.mock("@/lib/scan/deep/backstop", () => ({
   sitesWithoutDeepPass: () => dueDeepPass(),
   deepPassDomain: async (siteId: string) => (siteId === "site-gone" ? null : "example.com"),
+  deepPassCutShort: (siteId: string) => cutShort(siteId),
 }));
+// Issue 855: a pass a ceiling stopped is measured again through issue 837's
+// re-measure, whose own bound and row claim `remeasure.test.ts` drives.
+const remeasure = vi.fn<(a: { siteId: string; domain: string }) => Promise<unknown>>(async () => ({ started: true, scanId: "fresh-row" }));
+vi.mock("@/lib/scan/deep/remeasure", () => ({ startRemeasure: (a: { siteId: string; domain: string }) => remeasure(a) }));
 const sent = vi.hoisted(() => [] as { name: string; data: Record<string, unknown> }[]);
 vi.mock("@/jobs/client", async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
@@ -112,6 +118,7 @@ beforeEach(() => {
   setBillingStore(memoryBillingStore(newMemoryBilling()));
   setLifecycleStore(memoryLifecycleStore(newMemoryLifecycle()));
   deepPass.mockReset();
+  remeasure.mockClear();
   dueReminders.mockReset();
   sendReminder.mockReset();
   deepPass.mockResolvedValue({ scanId: "scan-1", status: "done", reason: "completed" });
@@ -337,6 +344,14 @@ describe("SPEC §5 — account/maintenance re-sends the onboarding pass a failed
       { name: "scan/run", data: { scanId: "setup-site-1", domain: "example.com", tier: "deep", siteId: "site-1" } },
     ]);
     expect(outcome).toEqual({ outcome: "ran", subjectId: null });
+  });
+
+  it("issue 855: a site whose newest pass a ceiling stopped is measured again on a fresh row, not re-sent setup's key", async () => {
+    dueDeepPass.mockResolvedValue(["site-1"]);
+    cutShort.mockResolvedValueOnce(true);
+    expect(await accountMaintenance.run({ data: {}, now: NOW })).toEqual({ outcome: "ran", subjectId: null });
+    expect(remeasure).toHaveBeenCalledWith({ siteId: "site-1", domain: "example.com" });
+    expect(sent).toEqual([]);
   });
 
   it("a tick with every pass started sends nothing", async () => {

@@ -70,7 +70,7 @@ export type Ending =
 /** The deadline every stage and every multi-call step re-checks, exactly as
  *  BP-007's `capHit()` is re-checked between calls. */
 export interface Bounds {
-  expired(): boolean; // now ≥ startedAt + TIMING.reportCeilingS
+  expired(): boolean; // now ≥ startedAt + the pass's own ceiling (the free path's: TIMING.reportCeilingS)
   remainingMs(): number;
   capHit(): boolean; // delegates to the CostContext, CAP_FREE
   /** The cents left before the pass's cap — or, inside a stage's budget,
@@ -137,8 +137,17 @@ interface CapReader {
  *  in a test by faking the global timers (`vi.useFakeTimers()`), not by
  *  passing one in — the public signature stays the two parameters BP-023
  *  declares. */
-function makeBounds(a: { startedAt: Date; clock: () => Date; cost: CapReader }): Bounds & { abandon(): void } {
-  const deadlineMs = a.startedAt.getTime() + TIMING.reportCeilingS * 1000;
+function makeBounds(a: {
+  startedAt: Date;
+  ceilingS: number;
+  clock: () => Date;
+  cost: CapReader;
+}): Bounds & { abandon(): void } {
+  // The pass's own ceiling (issue 855). The free report's 50 s used to be
+  // read here for every tier, so a deep pass — which nobody waits on and
+  // which runs in a job invocation of `TIMING.jobsCeilingS` — stopped
+  // asking its twelve after three SERPs.
+  const deadlineMs = a.startedAt.getTime() + a.ceilingS * 1000;
   let unreadable: { refusal: FetchRefusalReason | null } | undefined;
   let exhausted: "time_ceiling" | "spend_ceiling" | undefined;
   let abandoned = false;
@@ -219,10 +228,10 @@ function cancellableDelay(ms: number): { promise: Promise<void>; cancel: () => v
  *     ceiling was reached").
  */
 async function runBounded<T>(
-  a: { startedAt: Date; cost: CostContext; deadlineApplies: boolean },
+  a: { startedAt: Date; ceilingS: number; cost: CostContext; deadlineApplies: boolean },
   body: (b: Bounds, c: CostContext) => Promise<T>
 ): Promise<{ result: T | null; ending: Ending }> {
-  const bounds = makeBounds({ startedAt: a.startedAt, clock: () => new Date(), cost: a.cost });
+  const bounds = makeBounds({ startedAt: a.startedAt, ceilingS: a.ceilingS, clock: () => new Date(), cost: a.cost });
 
   const bodyOutcome: Promise<{ result: T | null; ending: Ending }> = (async () => {
     try {
@@ -254,13 +263,12 @@ async function runBounded<T>(
     }
   })();
 
-  // The deep pass is released at ten minutes rather than stopped, and the
-  // weekly pass runs on the standard queue; for both, the spend cap
-  // re-checked between stages is the whole of the bound, so there is no
-  // timer to race against. `bounds.expired()` is `false` for the life of
-  // such a pass and `stopNow()` reads the cap alone. No timer is even set
-  // for one: a deadline that cannot end the pass must not be able to
-  // abandon its body either (issue 607).
+  // A paid pass (deep, weekly) is not raced: nobody is waiting on its
+  // response. Its ceiling is read cooperatively — `stopNow()` between
+  // calls, as the cap is — and it is the pass's own `ceilingS`, never the
+  // free report's (issue 855). No timer is set for one: a deadline that
+  // does not race the pass must not be able to abandon its body either
+  // (issue 607).
   if (!a.deadlineApplies) return bodyOutcome;
 
   const timer = cancellableDelay(bounds.remainingMs());
@@ -313,16 +321,29 @@ export async function withFreeBounds<T>(
   a: { scanId: string; startedAt: Date },
   body: (b: Bounds, c: CostContext) => Promise<T>
 ): Promise<{ result: T | null; ending: Ending }> {
-  return withScanBounds({ scanId: a.scanId, startedAt: a.startedAt, cap: "FREE", deadlineApplies: true }, body);
+  return withScanBounds(
+    { scanId: a.scanId, startedAt: a.startedAt, cap: "FREE", ceilingS: TIMING.reportCeilingS, deadlineApplies: true },
+    body
+  );
 }
 
-/** The same two-ceiling shape for a pass whose cap is not the free path's
- *  and whose bound is the cap alone (`deadlineApplies: false`). The free
+/** The same two-ceiling shape for a pass whose cap and time ceiling are not
+ *  the free path's, and whose deadline is read between calls rather than
+ *  raced (`deadlineApplies: false`). The free
  *  path never reaches this function with anything but its own two fixed
  *  values — `withFreeBounds` above supplies them and exposes no way to
  *  vary either, which is the whole of ADR-021 decision 1. */
 export async function withScanBounds<T>(
-  a: { scanId: string; startedAt: Date; cap: CapName; deadlineApplies: boolean; priorCents?: number },
+  a: {
+    scanId: string;
+    startedAt: Date;
+    cap: CapName;
+    /** The pass's time ceiling in seconds: `TIMING.reportCeilingS` on the
+     *  free path, `TIMING.paidPassCeilingS` on a paid one (issue 855). */
+    ceilingS: number;
+    deadlineApplies: boolean;
+    priorCents?: number;
+  },
   body: (b: Bounds, c: CostContext) => Promise<T>
 ): Promise<{ result: T | null; ending: Ending }> {
   return withCostContext(
@@ -334,7 +355,7 @@ export async function withScanBounds<T>(
     },
     async (cost) => {
       const outcome = await runBounded(
-        { startedAt: a.startedAt, cost, deadlineApplies: a.deadlineApplies },
+        { startedAt: a.startedAt, ceilingS: a.ceilingS, cost, deadlineApplies: a.deadlineApplies },
         body
       );
       logEnding({ scanId: a.scanId, ending: outcome.ending, elapsedMs: Date.now() - a.startedAt.getTime(), cost });

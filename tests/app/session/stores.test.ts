@@ -71,6 +71,7 @@ vi.mock("@/lib/opportunities", () => ({
   supplyDepth: async () => ({ unused: 0, exhaustedSince: null }),
   // #784: a site with nothing measured never had a market to use up.
   supplyMeasured: async () => false,
+  supplyState: async () => "unmeasured",
   // REQ-063's stored standings, which the pages tile's "already ranking"
   // badge counts (#353). None here: this file is about a site with nothing
   // measured, and the badge does not render.

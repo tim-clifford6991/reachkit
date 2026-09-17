@@ -19,7 +19,7 @@
 // report that found zero opportunities yields `null`, because "we found
 // nothing for you" is §7's own line and not a measurement failure.
 import type { CopyKey } from "@/lib/presentation/copy";
-import { marketTooSmall } from "../market-floor";
+import { marketTooSmall, stoppedOnCeiling } from "../market-floor";
 import { readCurrentReport } from "../report";
 import type { StoredReport } from "../report";
 
@@ -76,6 +76,12 @@ export async function releaseNotice(a: { domain: string }): Promise<ReleaseNotic
 
   if (report === null || report.stoppedReason === "failed") {
     return { key: "setup.release.incomplete", vars: {}, parts: [] };
+  }
+
+  // Issue 855: a ceiling stopped the pass before it finished reading the
+  // market. It is being measured again — never blamed on the category.
+  if (stoppedOnCeiling(report.stoppedReason)) {
+    return { key: "setup.release.measuring", vars: {}, parts: unmeasuredParts(report) };
   }
 
   // #770: the market was read and was too small to plan a page from. Not a

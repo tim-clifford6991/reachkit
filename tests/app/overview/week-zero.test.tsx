@@ -22,6 +22,7 @@ vi.mock("@/lib/opportunities", () => ({
   supplyDepth: async () => ({ unused: 9, total: 12 }),
   // issue 784: read only where the depth is zero; these week-0 sites hold measured supply.
   supplyMeasured: async () => true,
+  supplyState: async () => "measured",
   readWeek: async () => [],
 }));
 
