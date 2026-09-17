@@ -1,7 +1,13 @@
-// SPEC §5 (2026-09-12) — "Your site, as we read it". The inventory and the
-// site name are shown as read, with no control to correct them; the voice
-// is the one thing here the founder may change. daisyUI `card`, `badge`,
-// `textarea` in the route (DESIGN.md rule 1); lucide at 1.75.
+// SPEC §5 (2026-09-12) — "Your voice" (the owner's name for it, issue 839).
+// The inventory and the site name are shown as read, with no control to
+// correct them; the voice is the one thing here the founder may change.
+//
+// Never a blank voice (issue 839): the free scan reads no voice and the
+// deep pass that does runs after this submit, so a profile often arrives
+// here with none. The box is then empty and editable under a line that
+// invites the founder to describe it — never a card with nothing to say.
+// daisyUI `card`, `badge`, `textarea` in the route (DESIGN.md rule 1);
+// lucide at 1.75.
 //
 // The form renders this only where a scan built a profile: a card claiming
 // to have read a site nobody read would be a lie the screen tells.
@@ -35,6 +41,7 @@ export function ProfileCard(p: {
   onVoice: (voice: string) => void;
 }): React.JSX.Element {
   const voiceId = useId();
+  const unread = (p.profile.voice?.text ?? "") === "";
 
   return (
     <section className="card bg-base-100 shadow-sm" data-testid={TEST_ID}>
@@ -77,6 +84,11 @@ export function ProfileCard(p: {
           <label className={QUIET} htmlFor={voiceId}>
             {copy("setup.profile.voice.label")}
           </label>
+          {unread ? (
+            <p className={QUIET} data-testid="setup-profile-voice-unread">
+              {copy("setup.profile.voice.unread")}
+            </p>
+          ) : null}
           <textarea
             id={voiceId}
             name="voice_text"

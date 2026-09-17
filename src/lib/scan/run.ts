@@ -889,8 +889,8 @@ async function runStages(a: StageArgs): Promise<void> {
   // and derive at the paid tiers only: `tests/llm/budget.test.ts` pins the
   // free pass at two nano calls, which is 30 s of the 60 the platform
   // allows this invocation, and a third would not fit. The deep pass runs
-  // at setup, before the onboarding card that shows the voice renders, and
-  // the weekly pass refreshes it after that.
+  // in the background once setup is submitted and seeds the founder's
+  // voice from it (issue 839); the weekly pass refreshes it after that.
   //
   // **Its failure is not this stage's verdict.** `attempt` exists to turn a
   // raised stage into `stage_undeterminable` — a statement about what the

@@ -1,5 +1,5 @@
 /** @vitest-environment jsdom */
-// tests/app/settings/check-connection.test.tsx — SPEC §5, issue #757
+// tests/app/settings/check-connection.test.tsx — SPEC §5, issue #757, issue #840
 // (owner ruling 2026-09-16)
 //
 // A founder who has created their CNAME presses one control — on `/setup`
@@ -171,14 +171,35 @@ async function mount(node: React.ReactNode): Promise<HTMLElement> {
   return host;
 }
 
-/** Presses the one control inside `scope` and waits for the press to settle. */
-async function press(scope: HTMLElement): Promise<void> {
+function buttonIn(scope: HTMLElement): HTMLButtonElement {
   const button = scope.querySelector<HTMLButtonElement>('[data-testid="check-connection-press"]');
   expect(button).not.toBeNull();
+  return button!;
+}
+
+/** Presses the one control inside `scope` and waits for the press to settle
+ *  — the spinner gone. The button itself may stay disabled after: a press
+ *  inside the floor holds it for the countdown (issue 840). */
+async function press(scope: HTMLElement): Promise<void> {
+  const button = buttonIn(scope);
+  expect(button.disabled).toBe(false);
   await act(async () => {
-    button!.click();
+    button.click();
   });
-  await vi.waitFor(() => expect(button!.disabled).toBe(false));
+  await vi.waitFor(() => expect(button.querySelector(".loading")).toBeNull());
+}
+
+/** Moves the browser's clock and its interval timers together, as a
+ *  founder waiting on the screen would. */
+async function wait(ms: number): Promise<void> {
+  await act(async () => {
+    vi.advanceTimersByTime(ms);
+  });
+}
+
+function fakeTheCountdown(): void {
+  vi.useFakeTimers({ toFake: ["Date", "setInterval", "clearInterval"] });
+  vi.setSystemTime(clock);
 }
 
 function answerIn(scope: HTMLElement): { outcome: string | null; text: string } | null {
@@ -240,7 +261,7 @@ describe("SPEC §5 — /setup: the founder verifies their record before submitti
     expect(hostedRecordState(host)).toBe(COPY["settings.destination.hostname.waiting"]);
   });
 
-  it("could not ask — no token bound (today's deployment): nothing is asked, and it does not read as waiting", async () => {
+  it("not configured — no token bound: nothing is asked, it does not read as waiting or as try-again, and no floor is spent (issue 840)", async () => {
     vendor.bound = false;
     const host = await setupScreen();
 
@@ -248,9 +269,20 @@ describe("SPEC §5 — /setup: the founder verifies their record before submitti
 
     expect(vendor.calls).toEqual([]);
     expect(answerIn(host)).toEqual({
-      outcome: "could_not_ask",
-      text: COPY["settings.destination.check.could-not-ask"],
+      outcome: "not_configured",
+      text: COPY["settings.destination.check.not-configured"],
     });
+    expect(COPY["settings.destination.check.not-configured"]).not.toBe(
+      COPY["settings.destination.check.could-not-ask"]
+    );
+    expect(buttonIn(host).disabled).toBe(false);
+
+    // Once the owner binds verification, the very next press asks.
+    vendor.bound = true;
+    await press(host);
+    expect(vendor.calls).toHaveLength(1);
+    expect(answerIn(host)?.outcome).toBe("pending_dns");
+    expect(tooSoonIn(host)).toBeNull();
   });
 
   it("could not ask — the vendor did not answer", async () => {
@@ -263,22 +295,33 @@ describe("SPEC §5 — /setup: the founder verifies their record before submitti
     expect(answerIn(host)?.outcome).toBe("could_not_ask");
   });
 
-  it("the throttle: a second press inside the floor asks nothing, says when to ask again, and keeps the last answer as it was", async () => {
+  it("the throttle: a second press inside the floor asks nothing, counts down with the button disabled, and keeps the last answer as it was", async () => {
+    fakeTheCountdown();
     const host = await setupScreen();
     await press(host);
     expect(answerIn(host)?.outcome).toBe("pending_dns");
 
-    vi.setSystemTime(clock + 10_000);
+    await wait(10_000);
     vendor.answer = "verified";
     await press(host);
 
     expect(vendor.calls).toHaveLength(1);
-    const wait = DESTINATION_HOSTNAME_CHECK_FLOOR_S - 10;
-    expect(tooSoonIn(host)).toBe(copy("settings.destination.check.too-soon", { seconds: wait }));
+    const left = DESTINATION_HOSTNAME_CHECK_FLOOR_S - 10;
+    expect(tooSoonIn(host)).toBe(copy("settings.destination.check.too-soon", { seconds: left }));
     // The earlier answer is not replaced by an answer nobody asked for.
     expect(answerIn(host)?.outcome).toBe("pending_dns");
+    // Issue 840: it cannot be pressed again while it waits.
+    expect(buttonIn(host).disabled).toBe(true);
+    expect(buttonIn(host).classList.contains("btn-disabled")).toBe(true);
 
-    vi.setSystemTime(clock + DESTINATION_HOSTNAME_CHECK_FLOOR_S * 1000);
+    await wait(1000);
+    expect(tooSoonIn(host)).toBe(copy("settings.destination.check.too-soon", { seconds: left - 1 }));
+
+    await wait((left - 1) * 1000);
+    expect(tooSoonIn(host)).toBeNull();
+    expect(buttonIn(host).disabled).toBe(false);
+    expect(buttonIn(host).classList.contains("btn-disabled")).toBe(false);
+
     await press(host);
 
     expect(vendor.calls).toHaveLength(2);
@@ -351,12 +394,13 @@ describe("issue #791 — a press at /setup that verified is recorded on the row 
 });
 
 describe("#759 (owner ruling 2026-09-16) — every line the press draws is written", () => {
-  it("the six keys are written, and the button, each answer and the throttle line render no marker", async () => {
+  it("the seven keys are written, and the button, each answer and the throttle line render no marker", async () => {
     for (const key of [
       "settings.destination.check.button",
       "settings.destination.check.live",
       "settings.destination.check.pending-dns",
       "settings.destination.check.could-not-ask",
+      "settings.destination.check.not-configured",
       "settings.destination.check.too-soon",
       "setup.destination.check.address-unsaved",
     ] as const) {
@@ -384,6 +428,14 @@ describe("#759 (owner ruling 2026-09-16) — every line the press draws is writt
     await press(host);
     expect(tooSoonIn(host)).not.toBeNull();
     expect(host.textContent).not.toContain(TODO_COPY_MARKER);
+
+    vendor.bound = false;
+    clock += DESTINATION_HOSTNAME_CHECK_FLOOR_S * 1000;
+    vi.setSystemTime(clock);
+    const unbound = await setupScreen();
+    await press(unbound);
+    expect(answerIn(unbound)?.text).toBe(COPY["settings.destination.check.not-configured"]);
+    expect(unbound.textContent).not.toContain(TODO_COPY_MARKER);
   });
 });
 
@@ -520,8 +572,9 @@ describe("SPEC §5 — Settings: the same press, beside the record a waiting hos
     expect(redrawn.querySelector('[data-testid="dns-dest-1"] [data-testid="dns-record"]')).not.toBeNull();
   });
 
-  it("could not ask — no token bound: the row's word is left standing, and the founder is told nothing was asked", async () => {
-    seedSettings({ hostname_checked_at: tenMinutesAgo() });
+  it("not configured — no token bound: the row is left as it was, and the founder is told verification is not set up, not to try again (issue 840)", async () => {
+    const checkedAt = tenMinutesAgo();
+    seedSettings({ hostname_checked_at: checkedAt });
     vendor.bound = false;
     const host = await settingsScreen();
     const block = host.querySelector<HTMLElement>('[data-testid="dns-dest-1"]')!;
@@ -530,10 +583,12 @@ describe("SPEC §5 — Settings: the same press, beside the record a waiting hos
 
     expect(vendor.calls).toEqual([]);
     expect(answerIn(block)).toEqual({
-      outcome: "could_not_ask",
-      text: COPY["settings.destination.check.could-not-ask"],
+      outcome: "not_configured",
+      text: COPY["settings.destination.check.not-configured"],
     });
     expect(destinationRow().hostname_state).toBe("pending_dns");
+    expect(destinationRow().hostname_checked_at).toBe(checkedAt);
+    expect(buttonIn(block).disabled).toBe(false);
   });
 
   it("could not ask — the vendor did not answer: the same line, and the recorded word is not raised or lowered", async () => {
@@ -545,22 +600,45 @@ describe("SPEC §5 — Settings: the same press, beside the record a waiting hos
     await press(block);
 
     expect(vendor.calls).toHaveLength(1);
-    expect(answerIn(block)?.outcome).toBe("could_not_ask");
+    expect(answerIn(block)).toEqual({
+      outcome: "could_not_ask",
+      text: COPY["settings.destination.check.could-not-ask"],
+    });
     expect(destinationRow().hostname_state).toBe("pending_dns");
   });
 
-  it("the throttle: a host asked about seconds ago — by the scheduled pass — is not asked again, and the founder is told when they may", async () => {
+  it("the throttle: a host asked about seconds ago — by the scheduled pass — is not asked again, and the wait counts down to a press that asks (issue 840)", async () => {
+    fakeTheCountdown();
     seedSettings({ hostname_checked_at: new Date(clock - 5_000).toISOString() });
     const host = await settingsScreen();
     const block = host.querySelector<HTMLElement>('[data-testid="dns-dest-1"]')!;
 
     await press(block);
 
+    const left = DESTINATION_HOSTNAME_CHECK_FLOOR_S - 5;
     expect(vendor.calls).toEqual([]);
     expect(answerIn(block)).toBeNull();
-    expect(tooSoonIn(block)).toBe(
-      copy("settings.destination.check.too-soon", { seconds: DESTINATION_HOSTNAME_CHECK_FLOOR_S - 5 })
-    );
+    expect(tooSoonIn(block)).toBe(copy("settings.destination.check.too-soon", { seconds: left }));
     expect(revalidated).toEqual([]);
+    expect(buttonIn(block).disabled).toBe(true);
+    expect(buttonIn(block).classList.contains("btn-disabled")).toBe(true);
+
+    const seen: (string | null)[] = [];
+    for (let second = 1; second <= left; second += 1) {
+      await wait(1000);
+      seen.push(tooSoonIn(block));
+    }
+    expect(seen.slice(0, 3)).toEqual(
+      [left - 1, left - 2, left - 3].map((seconds) => copy("settings.destination.check.too-soon", { seconds }))
+    );
+    expect(seen.at(-2)).toBe(copy("settings.destination.check.too-soon", { seconds: 1 }));
+    expect(seen.at(-1)).toBeNull();
+    expect(buttonIn(block).disabled).toBe(false);
+    expect(buttonIn(block).classList.contains("btn-disabled")).toBe(false);
+
+    await press(block);
+    expect(vendor.calls).toHaveLength(1);
+    expect(tooSoonIn(block)).toBeNull();
+    expect(answerIn(block)?.outcome).toBe("pending_dns");
   });
 });
