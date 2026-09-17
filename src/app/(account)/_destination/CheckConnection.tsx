@@ -11,10 +11,17 @@
 // second. A press inside the floor asked nothing: the line from the last
 // answer stays on screen, beside a line saying when the founder may ask
 // again, so an old answer is never passed off as a new one.
+//
+// **The wait counts down, and the button waits with it** (issue 840). A
+// press inside the floor starts a countdown to the moment the founder may
+// ask again; the button is disabled until it reaches zero, then the line
+// goes and the button comes back. "Nothing could be asked" says why: a
+// deployment with no verification bound is told apart from a vendor that did
+// not answer, and only the second tells the founder to try again.
 "use client";
 
 import type React from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { checkConnection, type ConnectionCheck } from "./check-actions";
@@ -38,7 +45,9 @@ function answerLine(answer: Answer): { key: CopyKey; tone: string; id: string } 
         ? { key: "settings.destination.check.live", tone: GOOD, id: "live" }
         : { key: "settings.destination.check.pending-dns", tone: WAITING, id: "pending_dns" };
     case "could_not_ask":
-      return { key: "settings.destination.check.could-not-ask", tone: NOT_ASKED, id: "could_not_ask" };
+      return answer.because === "not_configured"
+        ? { key: "settings.destination.check.not-configured", tone: NOT_ASKED, id: "not_configured" }
+        : { key: "settings.destination.check.could-not-ask", tone: NOT_ASKED, id: "could_not_ask" };
     case "refused":
       if (answer.because === "no_host") return null;
       return { key: REFUSAL_COPY_KEY[answer.because], tone: NOT_ASKED, id: "refused" };
@@ -62,24 +71,44 @@ export function CheckConnection(p: {
 }): React.JSX.Element {
   const [running, setRunning] = useState(false);
   const [answer, setAnswer] = useState<Answer | null>(null);
-  const [askAgainInS, setAskAgainInS] = useState<number | null>(null);
+  /** When, by this browser's clock, the founder may ask again — `null`
+   *  while nothing is being waited out. Counted from the server's
+   *  `askAgainInS` rather than its `askAgainAt`, so a clock that disagrees
+   *  with the server's cannot stretch or skip the wait. */
+  const [askAgainAt, setAskAgainAt] = useState<number | null>(null);
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (askAgainAt === null) return;
+    const tick = setInterval(() => {
+      const at = Date.now();
+      setNow(at);
+      if (at >= askAgainAt) setAskAgainAt(null);
+    }, 1000);
+    return () => clearInterval(tick);
+  }, [askAgainAt]);
+
+  const askAgainInS = askAgainAt === null ? 0 : Math.ceil((askAgainAt - now) / 1000);
+  const waiting = askAgainAt !== null && askAgainInS > 0;
 
   async function press(): Promise<void> {
     setRunning(true);
     try {
       const next = await checkConnection({ draft: p.draft });
       if (next.outcome === "too_soon") {
-        setAskAgainInS(next.askAgainInS);
+        const at = Date.now();
+        setNow(at);
+        setAskAgainAt(at + next.askAgainInS * 1000);
       } else {
-        setAskAgainInS(null);
+        setAskAgainAt(null);
         setAnswer(next);
       }
       p.onAnswer?.(next);
     } catch {
       // The press did not complete: nothing was asked, and the founder is
       // told so rather than left with whatever was shown before.
-      setAskAgainInS(null);
-      setAnswer({ outcome: "could_not_ask" });
+      setAskAgainAt(null);
+      setAnswer({ outcome: "could_not_ask", because: "no_answer" });
     } finally {
       setRunning(false);
     }
@@ -91,8 +120,8 @@ export function CheckConnection(p: {
     <div className="flex min-w-0 flex-col gap-2" data-testid="check-connection">
       <button
         type="button"
-        className="btn btn-outline btn-sm self-start"
-        disabled={running}
+        className={`btn btn-outline btn-sm self-start${waiting ? " btn-disabled" : ""}`}
+        disabled={running || waiting}
         onClick={() => {
           void press();
         }}
@@ -110,7 +139,7 @@ export function CheckConnection(p: {
           {copy(line.key)}
         </div>
       )}
-      {askAgainInS === null ? null : (
+      {!waiting ? null : (
         <div role="status" className="alert alert-soft text-sm" data-testid="check-connection-too-soon">
           {copy("settings.destination.check.too-soon", { seconds: askAgainInS })}
         </div>
