@@ -21,6 +21,15 @@ export interface SuggestionRow {
   searchVolume: number;
 }
 
+/** The monthly search volume a `keywordSuggestions` call buys between,
+ *  both ends inclusive (issue 846): the vendor filters and orders by it, so
+ *  the rows returned are the largest right-sized ones rather than the
+ *  seed's top rows by volume. */
+export interface VolumeWindow {
+  min: number;
+  max: number;
+}
+
 /** `competitorsDomain` — one domain DataForSEO names as a search competitor. */
 export interface CompetitorRow {
   domain: string;

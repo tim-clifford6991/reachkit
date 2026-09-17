@@ -9,7 +9,9 @@
 // are `select.ts`'s, pinned there, so there is exactly one place a search can
 // be dropped (BP-025 decision 1 keeps selection pure and in one place). The
 // only collapse here is transport-level: an exact repeated `keyword` across
-// two seeds is one row, kept at its first occurrence.
+// two seeds is one row, kept at its first occurrence. What it *asks* the
+// vendor for is sized, though: every purchase carries the site's right-sizing
+// window (issue 846), so the rows bought are ones selection may use.
 //
 // **Cold-start law (§6.6).** A vendor that returned no rows is `zero`
 // with `[]` — a measurement, never an error and never `unmeasured`. No row is
@@ -20,7 +22,7 @@
 // `CostContext.recordFetch` (§6.5), which serves the 30-day suggestions
 // window from `fetches` before it spends (§6.4).
 import type { CostContext } from "@/lib/costs";
-import { VENDOR } from "@/lib/config/constants";
+import { SELECTION, VENDOR } from "@/lib/config/constants";
 import {
   measured,
   measuredZero,
@@ -29,7 +31,9 @@ import {
   type Measured,
   type UnmeasuredReason,
 } from "@/lib/measure/measured";
+import { qualifyingDemand } from "@/lib/opportunities/winnability/bars";
 import { keywordSuggestions } from "@/lib/vendors/dataforseo";
+import type { VolumeWindow } from "@/lib/vendors/dataforseo/types";
 import type { Profile } from "./profile";
 import type { PoolRow } from "./widen";
 
@@ -77,8 +81,9 @@ export interface MarketSet {
  */
 export async function deriveMarketSet(
   c: CostContext,
-  a: { seeds: string[] }
+  a: { seeds: string[]; ownRanked: number }
 ): Promise<Measured<SuggestionRow[]>> {
+  const volume = suggestionsWindow(a.ownRanked);
   const rows: SuggestionRow[] = [];
   const seen = new Set<string>();
   let anyMeasured = false;
@@ -86,7 +91,7 @@ export async function deriveMarketSet(
   let at: Date | undefined;
 
   for (const seed of a.seeds) {
-    const result = await keywordSuggestions(c, { seed, rows: VENDOR.suggestionsRows });
+    const result = await keywordSuggestions(c, { seed, rows: VENDOR.suggestionsRows, volume });
     at ??= result.at;
     if (result.kind === "unmeasured") {
       reason = reason === undefined ? result.reason : worseReason(reason, result.reason);
@@ -103,6 +108,18 @@ export async function deriveMarketSet(
   const outcome = foldOutcome({ rows, anyMeasured, reason, at: at ?? new Date() });
   logMarketSet(a.seeds.length, outcome);
   return outcome;
+}
+
+/**
+ * The volume every suggestions purchase asks the vendor for (issue 846):
+ * from the lowest volume step a pass may walk down to, up to the demand
+ * ceiling right-sizing allows this site (SPEC §6, issue 830). Bought
+ * without it, the vendor's top rows by volume in an established category
+ * are all outsized, and selection is left with nothing it may use.
+ * Selection still applies its own floor and ceiling to every row.
+ */
+export function suggestionsWindow(ownRanked: number): VolumeWindow {
+  return { min: SELECTION.volumeSteps[SELECTION.volumeSteps.length - 1]!, max: qualifyingDemand(ownRanked) };
 }
 
 function foldOutcome(a: {
