@@ -133,6 +133,14 @@ describe("#770 — a pass that finds too little market says so", () => {
     });
   });
 
+  it("a weekly pass that finds too little mails nobody at once — it waits for the Monday digest (#796)", async () => {
+    await runScan({ domain: DOMAIN, tier: "weekly", siteId: "site-1", scanId: CLAIMED_ID });
+
+    const stored = storeCurrentReport.mock.calls[0]![0] as { report: StoredReport };
+    expect(stored.report.questions.kind).toBe("zero");
+    expect(mails).toHaveLength(0);
+  });
+
   it("a free pass with no site mails nobody", async () => {
     await runScan({ domain: DOMAIN, tier: "free" });
     expect(mails).toHaveLength(0);

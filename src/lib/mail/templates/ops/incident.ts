@@ -17,6 +17,9 @@ export type OpsIncident =
   // Issue #770: no error — the market was read and was too small. The facts
   // are the scan's id and its tier, never the domain.
   | { occasion: "market-too-small"; scanId: string; tier: string }
+  // Issue 796: the weekly passes of one Monday that found too little
+  // market, folded into one line a week rather than one mail per site.
+  | { occasion: "market-too-small-week"; weekStart: string; scanIds: readonly string[] }
   // Issue #799: no error — a scheduled job has not run for twice its
   // interval. The facts are the job id, its last run as an instant and its
   // interval in minutes.
@@ -30,6 +33,7 @@ const BODY: Readonly<Record<OpsIncident["occasion"], CopyKey>> = Object.freeze({
   "dead-lettered": "mail.ops.incident.dead-lettered",
   "boot-refused": "mail.ops.incident.boot-refused",
   "market-too-small": "mail.ops.incident.market-too-small",
+  "market-too-small-week": "mail.ops.incident.market-too-small-week",
   "job-stale": "mail.ops.incident.job-stale",
 });
 
@@ -45,6 +49,11 @@ export function closedName(value: string): string {
   return /^[A-Za-z][A-Za-z0-9_/-]{0,63}$/.test(value) ? value : "Error";
 }
 
+/** A week is a stored calendar date; anything else is written `unknown`. */
+function closedDate(value: string): string {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : "unknown";
+}
+
 /** An instant written to the minute in UTC, or `unknown` where the value
  *  does not parse as one. */
 function closedInstant(value: string): string {
@@ -53,6 +62,12 @@ function closedInstant(value: string): string {
 }
 
 function factsOf(incident: OpsIncident): FactRow[] {
+  if (incident.occasion === "market-too-small-week") {
+    return [
+      { label: "mail.ops.incident.fact.week", value: closedDate(incident.weekStart) },
+      ...incident.scanIds.map((id) => ({ label: "mail.ops.incident.fact.scan", value: closedId(id) }) as const),
+    ];
+  }
   if (incident.occasion === "job-stale") {
     return [
       { label: "mail.ops.incident.fact.job", value: closedName(incident.jobId) },

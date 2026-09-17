@@ -337,6 +337,20 @@ export async function finishScanLeftRunning(scanId: string): Promise<EngineResul
   return { done: true };
 }
 
+/** Issue 796: the Monday whose owner market digest is due, once that
+ *  Monday has ended in every zone and a weekly pass of it is unread. */
+export async function marketDigestsDue(): Promise<readonly string[]> {
+  const { marketDigestsDue: due } = await import("@/lib/scan/weekly/market-digest");
+  return due(new Date());
+}
+
+/** Sends that week's digest. A mail the seam did not accept is a
+ *  degradation, and the week is offered again at the next tick. */
+export async function sendMarketDigest(weekStart: string): Promise<EngineResult> {
+  const { sendMarketDigest: send } = await import("@/lib/scan/weekly/market-digest");
+  return (await send(weekStart, new Date())) ? { done: true } : { degraded: "market-digest-not-sent" };
+}
+
 // ── Generation — BUILD §8 (issue #44)
 // Built. `src/lib/generate/` owns the pipeline, the hard rules and the
 // recovery decision; the wrapper below passes the job's own `publishDate`

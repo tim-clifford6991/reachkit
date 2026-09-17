@@ -646,6 +646,9 @@ export const MAIL_COPY = Object.freeze({
   "mail.ops.incident.market-too-small": ["A paid pass found too little search demand to plan any pages.", { slots: {}, fixedBy: "issue 770" }],
   "mail.ops.incident.fact.scan": ["Scan", { slots: {}, fixedBy: "issue 770" }],
   "mail.ops.incident.fact.tier": ["Tier", { slots: {}, fixedBy: "issue 770" }],
+  // Issue 796: the Monday digest of weekly passes that found too little.
+  "mail.ops.incident.market-too-small-week": ["These weekly passes found too little search demand to plan any pages.", { slots: {}, fixedBy: "issue 796" }],
+  "mail.ops.incident.fact.week": ["Week of", { slots: {}, fixedBy: "issue 796" }],
   // Issue #799: a scheduled job has gone quiet for twice its interval.
   "mail.ops.incident.job-stale": ["A scheduled job has not run for more than twice its usual interval.", { slots: {}, fixedBy: "issue 799" }],
   "mail.ops.incident.fact.last-run": ["Last run", { slots: {}, fixedBy: "issue 799" }],
