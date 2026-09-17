@@ -45,7 +45,14 @@ const SETTINGS_PATH = "/app/settings";
 
 /**
  * What a press answers. `HostnameCheck`'s three outcomes, plus the refusals
- * that stop a press before the vendor is asked:
+ * that stop a press before the vendor is asked.
+ *
+ * `could_not_ask` says why nothing was asked (issue 840): `not_configured`
+ * is a deployment with no verification bound — pressing again changes
+ * nothing, and the founder must not be told to — and `no_answer` is a
+ * vendor or read that did not answer this time.
+ *
+ * The refusals:
  *
  *   * `not_a_label` / `taken` — §5's two label refusals, the same tokens the
  *     field's own check answers.
@@ -55,8 +62,16 @@ const SETTINGS_PATH = "/app/settings";
  * No member can hold a sentence; the screen chooses the line.
  */
 export type ConnectionCheck =
-  | HostnameCheck
+  | Exclude<HostnameCheck, { outcome: "could_not_ask" }>
+  | { outcome: "could_not_ask"; because: "not_configured" | "no_answer" }
   | { outcome: "refused"; because: LabelRefusal | "address_unsaved" | "no_host" };
+
+/** `checkHostnameNow`'s answer, with its "nothing was asked" named. The
+ *  bindings were read before it ran, so here it is a vendor that did not
+ *  answer. */
+function named(checked: HostnameCheck): ConnectionCheck {
+  return checked.outcome === "could_not_ask" ? { outcome: "could_not_ask", because: "no_answer" } : checked;
+}
 
 export async function checkConnection(a: {
   /** What `/setup` shows before submit: the label typed and the address on
@@ -71,12 +86,17 @@ export async function checkConnection(a: {
   const { checkHostnameNow, hostedDestinationOf, hostnameTakenStrict } = await import(
     "@/lib/publish/destinations/hosted/hostname"
   );
+  const { domainsConfigured } = await import("@/lib/vendors/vercel/domains");
   const site = await siteAddressFor(session.userId);
   if (site === null) return { outcome: "refused", because: "no_host" };
   const destination = await hostedDestinationOf(site.siteId);
 
   if (a.draft === null) {
     if (destination === null) return { outcome: "refused", because: "no_host" };
+    // A deployment that cannot verify any host asks nothing, writes nothing
+    // and spends no floor: the founder is told it is not set up, not to
+    // try again (issue 840).
+    if (!domainsConfigured()) return { outcome: "could_not_ask", because: "not_configured" };
     const checked = await checkHostnameNow({
       siteId: site.siteId,
       hostname: destination.hostname,
@@ -84,7 +104,7 @@ export async function checkConnection(a: {
     });
     // The press wrote the row's state: the card is redrawn from it.
     if (checked.outcome !== "too_soon") revalidatePath(SETTINGS_PATH);
-    return checked;
+    return named(checked);
   }
 
   const label = checkLabel(a.draft.label);
@@ -97,6 +117,8 @@ export async function checkConnection(a: {
     return { outcome: "refused", because: "address_unsaved" };
   }
 
+  if (!domainsConfigured()) return { outcome: "could_not_ask", because: "not_configured" };
+
   const hostname = hostFor({ label: label.label, domain: own });
   let taken: boolean;
   try {
@@ -105,15 +127,16 @@ export async function checkConnection(a: {
     // A read that could not answer is not a free host, and asking the
     // vendor about a host that may be somebody else's is not a check of
     // this founder's record. Nothing was asked.
-    return { outcome: "could_not_ask" };
+    return { outcome: "could_not_ask", because: "no_answer" };
   }
   if (taken) return { outcome: "refused", because: "taken" };
 
-  return checkHostnameNow({
+  const checked = await checkHostnameNow({
     siteId: site.siteId,
     hostname,
     // A founder back on `/setup` whose destination already holds this host
     // has the answer recorded on it too.
     destinationId: destination?.hostname === hostname ? destination.id : null,
   });
+  return named(checked);
 }

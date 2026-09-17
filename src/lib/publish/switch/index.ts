@@ -51,20 +51,14 @@ export async function isPublishingOn(siteId: string): Promise<boolean> {
  * Has ReachKit stopped its own work, so far as a publish attempt is
  * concerned (REQ-092 c1)?
  *
- * **One of the three stop shapes reaches a delivery, and it is the halt.**
- * `stopCause()` (`src/lib/presentation/stopped/stop.ts`) classifies three:
- * `halted`, `spend-ceiling`, `step-failed`. §11 binds the kill switch to
- * "scan+generate+publish", so a halt stops an attempt. The other two do
- * not, and saying so is not a gap:
- *
- *   · a spend ceiling degrades a *scan* (§6.5 — "skip remaining optional
- *     work, mark scan `degraded`, never throw"); it buys no vendor call to
- *     deliver a page that is already written, so there is nothing of it
- *     for a delivery to hit;
- *   · a step that failed on a page is already the machine's own `failed`,
- *     with its retries and its `failed → needs_attention` edge. Reading it
- *     a second time here would hold a page the machine is deliberately
- *     retrying.
+ * **One of the two stop shapes reaches a delivery, and it is the halt.**
+ * `stopCause()` (`src/lib/presentation/stopped/stop.ts`) classifies two:
+ * `halted` and `spend-ceiling` (issue 841: a pass's own degraded or failed
+ * outcome is not a stop). §11 binds the kill switch to
+ * "scan+generate+publish", so a halt stops an attempt. The ceiling does
+ * not, and saying so is not a gap: it refuses *paid vendor calls* (§6.5 —
+ * "skip remaining optional work, mark scan `degraded`, never throw"), and
+ * delivering a page that is already written buys none.
  *
  * **It reads the binding at call time, through a dynamic import.** `env`
  * parses `process.env` at module load and throws on a missing binding, and

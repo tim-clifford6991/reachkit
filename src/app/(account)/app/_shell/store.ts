@@ -20,13 +20,10 @@
 // designed for exactly that, and the alternative — a fixture standing in —
 // is what this issue exists to remove.
 //
-// **`capHit` is not read separately, and that is deliberate.** §6.5 records
-// a spend ceiling by marking the scan `degraded` ("skip remaining optional
-// work, mark scan `degraded`, never throw"), so the fact reaches this file
-// through the last run's status rather than through a second ledger read
-// that could disagree with it. `stopCause` still classifies it — as
-// `step-failed` rather than `spend-ceiling` — and both render a stop; when
-// a per-account cap-hit reader exists, this is the one call site to change.
+// **The stop is two facts and no pass's outcome** (issue 841): the kill
+// switch, and the day's spend ceiling read from the ledger the cost seam
+// refuses from. A pass stored `degraded` — a thin market is one — is not a
+// stop, and `readStop` does not read `scans` at all.
 import { dbAdmin } from "@/lib/db";
 import { now as clock } from "@/lib/config/now";
 import { readStop } from "./stop";
@@ -168,7 +165,7 @@ export async function readShellFacts(site: ShellSite): Promise<ShellFacts> {
     waitingCount(site.siteId),
     nextScheduled(site.siteId, publishingOn),
     plannedCount(site.siteId),
-    readStop(site.siteId),
+    readStop(),
   ]);
 
   return {

@@ -284,9 +284,14 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.destination.check.live": ["Connected. Your pages will publish to this address.", { slots: {}, fixedBy: "SPEC §5 (2026-09-16, issue 757)" }],
   "settings.destination.check.pending-dns": ["Not connected yet. A new DNS record usually takes a few minutes, sometimes a few hours. Check again shortly.", { slots: {}, fixedBy: "SPEC §5 (2026-09-16, issue 757)" }],
   "settings.destination.check.could-not-ask": ["We couldn’t check just now. Try again in a moment.", { slots: {}, fixedBy: "SPEC §5 (2026-09-16, issue 757)" }],
+  // A deployment with no verification bound: pressing again changes nothing,
+  // so this line never says to try again, and it is ReachKit's to fix, not
+  // the founder's DNS (issue 840).
+  "settings.destination.check.not-configured": ["ReachKit can’t verify this connection automatically yet. That’s on our side, not a problem with your DNS. Keep the record as shown and it will be checked once verification is switched on.", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 840)" }],
   /** `seconds` is how long until the press may ask again, as a whole
-   *  number. */
-  "settings.destination.check.too-soon": ["Just checked. You can check again in {seconds} seconds.", { slots: { seconds: "text" }, fixedBy: "SPEC §5 (2026-09-16, issue 757)" }],
+   *  number, counting down on screen. The registry does not pluralise, so
+   *  the number stands after a colon (issue 840). */
+  "settings.destination.check.too-soon": ["Just checked. Seconds until you can check again: {seconds}", { slots: { seconds: "text" }, fixedBy: "SPEC §5 (2026-09-17, issue 840)" }],
 
   // ── Notifications ──────────────────────────────────────────────────────
   // One key per `stoppable: 'toggle'` row of `MAIL_KINDS`, named by the row's
