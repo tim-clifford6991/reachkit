@@ -135,7 +135,14 @@ describe("#784 — a market too small is told, and a never-measured zero is not 
 
     const notices = tree.querySelectorAll('[data-testid="shell-onboarding-notice"]');
     expect(notices.length).toBeGreaterThan(0);
-    for (const n of notices) expect(n.textContent).toBe(COPY["setup.release.market-too-small"]);
+    for (const n of notices) {
+      expect(n.textContent).toContain(COPY["setup.release.market-too-small"]);
+      // Issue 837: with the choice that measures again now, never a wait.
+      expect(n.querySelector('[data-testid="category-choice"]')).not.toBeNull();
+      expect(n.textContent).not.toMatch(/Monday/);
+    }
+    // The panel offers the choice, so Overview does not offer it twice.
+    expect(tree.querySelector('[data-testid="overview-market-choice"]')).toBeNull();
     // The panel already says it: Overview does not say it a second time.
     expect(text(tree, "overview-release-notice")).toBeNull();
 
@@ -152,6 +159,8 @@ describe("#784 — a market too small is told, and a never-measured zero is not 
     expect(text(tree, "shell-onboarding-notice")).toBeNull();
     expect(text(tree, "overview-release-notice")).toBe(COPY["setup.release.market-too-small"]);
     expect(text(tree, "overview-supply")).toBe(COPY["overview.supply.unmeasured"]);
+    // Issue 837: Overview offers the choice itself once the panel does not.
+    expect(tree.querySelector('[data-testid="overview-market-choice"] [data-testid="category-choice"]')).not.toBeNull();
   });
 
   it("a market that had pages and used them up still reads exhausted, with no notice", async () => {

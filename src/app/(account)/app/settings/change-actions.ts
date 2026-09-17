@@ -107,12 +107,22 @@ export async function saveDomainAction(form: FormData): Promise<MarketChangeStat
  *  answers `SaveOk` alone. A validator here would be this screen deciding
  *  something the engine deliberately does not. */
 export async function saveCategoryAction(form: FormData): Promise<MarketChangeState> {
-  const { saveCategory } = await import("@/lib/market/changes");
-  const result = await saveCategory({
-    siteId: await siteId(),
-    category: typed(form, MARKET_CATEGORY_FIELD),
-  });
-  return saved(result.effectiveOn);
+  const { declaredAnswers, saveCategory } = await import("@/lib/market/changes");
+  const site = await siteId();
+  const category = typed(form, MARKET_CATEGORY_FIELD);
+  const before = await declaredAnswers(site);
+  const result = await saveCategory({ siteId: site, category });
+
+  // Owner ruling 2026-09-17 (issue 837): a changed category measures the
+  // market again right away, inside the same daily bound as the thin-market
+  // choice. A refused start keeps the dated line: the change still lands at
+  // the next weekly pass.
+  if (category.trim() === "" || category === before.category) return saved(result.effectiveOn);
+  const { startRemeasure } = await import("@/lib/scan/deep/remeasure");
+  const started = await startRemeasure({ siteId: site, domain: before.domain });
+  if (!started.started) return saved(result.effectiveOn);
+  revalidatePath("/app", "layout");
+  return { answer: "saved", effectiveOn: result.effectiveOn.toISOString(), remeasuring: true };
 }
 
 /**

@@ -128,8 +128,10 @@ export function MarketPanel(p: {
   const justSaved = savedInstantOf(answer);
   const effectiveLine = (date: string): string | null =>
     writtenLine("settings.market.effectiveOn", { date });
-  const dated =
-    justSaved !== null
+  const remeasuring = answer.answer === "saved" && answer.remeasuring === true;
+  const dated = remeasuring
+    ? writtenLine("settings.market.remeasuring")
+    : justSaved !== null
       ? effectiveLine(formatDate(new Date(justSaved), p.timeZone))
       : change === null
         ? null
