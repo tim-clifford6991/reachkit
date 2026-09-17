@@ -214,6 +214,20 @@ describe("the six stages", () => {
     expect(deriveMarketSet).toHaveBeenCalledWith(expect.anything(), { seeds: ["employee scheduling software"], ownRanked: expect.any(Number) });
   });
 
+  it("issue 866 — the stored report records the category the pass measured under", async () => {
+    await runScan({ domain: DOMAIN, tier: "free", category: "employee scheduling software" });
+    expect(storedReport().measuredCategory).toBe("employee scheduling software");
+  });
+
+  it("issue 866 — a pass handed no category records none, never the inferred one", async () => {
+    await runScan({ domain: DOMAIN, tier: "free" });
+    const report = storedReport();
+    expect(report.measuredCategory).toBeNull();
+    // The inferred category is still on the market section, and is not
+    // mistaken for the category the pass was measured under.
+    expect(report.market.kind).not.toBe("unmeasured");
+  });
+
   it("a domain that ranks for nothing runs every stage to completion — cold start branches nothing", async () => {
     measureDomain.mockResolvedValue(
       measurement({

@@ -34,12 +34,16 @@ vi.mock("@/lib/presentation/copy", async (importOriginal) => {
 
 type Answer =
   | { answer: "idle" }
-  | { answer: "saved"; effectiveOn: string }
+  | { answer: "saved"; effectiveOn: string; remeasure?: { started: boolean; line?: string }; note?: string }
   | { answer: "refused"; lineKey: string; value: string };
 
-const { pressed, reply } = vi.hoisted(() => ({
+/** Issue 866's standalone control answers its own state. */
+type RemeasureAnswer = { answer: "idle" } | { answer: "started" } | { answer: "refused"; line: string };
+
+const { pressed, reply, remeasureReply } = vi.hoisted(() => ({
   pressed: [] as { action: string; value: string }[],
   reply: { next: { answer: "idle" } as Answer },
+  remeasureReply: { next: { answer: "started" } as RemeasureAnswer },
 }));
 
 /** The four Server Functions, doubled at the module boundary — the last
@@ -54,6 +58,10 @@ vi.mock("@/app/(account)/app/settings/change-actions", () => {
     saveCategoryAction: record("category", "market_category"),
     addRivalAction: record("add", "rival_domain"),
     removeRivalAction: record("remove", "rival_domain"),
+    remeasureNowAction: async () => {
+      pressed.push({ action: "remeasure", value: "" });
+      return remeasureReply.next;
+    },
   };
 });
 
@@ -155,6 +163,7 @@ beforeEach(() => {
   document.body.innerHTML = "";
   pressed.length = 0;
   reply.next = { answer: "idle" };
+  remeasureReply.next = { answer: "started" };
 });
 
 describe("Edit opens the field it belongs to", () => {
@@ -224,10 +233,14 @@ describe("REQ-071 c1 — the consequence is stated before the button is pressed"
     );
   });
 
-  it("the line names the answer being changed — the market, not the domain", async () => {
+  it("issue 866 — the category says a measurement starts now, and never a Monday date", async () => {
     const root = await market();
     await press(edit(root, "setting-category"));
-    expect(line(root)).toContain("settings.market.change.category");
+    // Not REQ-071 c1's dated line: a category is measured again at once, so
+    // the card states what saving will do and what it costs.
+    expect(text(root)).toContain("settings.market.category.starts-now");
+    expect(text(root)).not.toContain("settings.market.pending");
+    expect(line(root)).toBe("");
   });
 
   it("the standing effect line gives way to it, so the card states one dated sentence", async () => {
@@ -235,6 +248,49 @@ describe("REQ-071 c1 — the consequence is stated before the button is pressed"
     await press(edit(root, "setting-domain"));
     expect(text(root)).not.toContain("settings.market.effect(");
     expect(root.querySelectorAll('[data-testid="market-change-line"]')).toHaveLength(1);
+  });
+});
+
+describe("issue 866 — the standalone 'measure again now'", () => {
+  const remeasure = (root: HTMLElement): Element => within(root, "market-remeasure");
+  const answerLine = (root: HTMLElement): string =>
+    root.querySelector('[data-testid="market-remeasure-line"]')?.textContent ?? "";
+
+  it("says what it will do before it is pressed", async () => {
+    const root = await market();
+    expect(remeasure(root).textContent).toContain("settings.market.remeasure.action");
+    expect(answerLine(root)).toBe("settings.market.remeasure.effect");
+    expect(pressed).toEqual([]);
+  });
+
+  it("a press starts the pass and the card says it is measuring", async () => {
+    const root = await market();
+    await press(root.querySelector('[data-testid="market-remeasure-press"]'));
+    expect(pressed).toEqual([{ action: "remeasure", value: "" }]);
+    expect(answerLine(root)).toBe("settings.market.remeasure.started");
+  });
+
+  it("a refused press states the refusal it was given, and nothing about Monday", async () => {
+    remeasureReply.next = { answer: "refused", line: "already being measured" };
+    const root = await market();
+    await press(root.querySelector('[data-testid="market-remeasure-press"]'));
+    expect(answerLine(root)).toBe("already being measured");
+    expect(text(root)).not.toContain("settings.market.pending");
+  });
+
+  it("it changes no answer: pressing it opens no field and submits no form", async () => {
+    const root = await market();
+    await press(root.querySelector('[data-testid="market-remeasure-press"]'));
+    expect(root.querySelector('[data-testid="edit-category"]')).toBeNull();
+    expect(root.querySelector('[data-testid="edit-domain"]')).toBeNull();
+    expect(pressed.filter((p) => p.action !== "remeasure")).toEqual([]);
+  });
+
+  it("it is the outline rank — this screen's one fill is a Save", async () => {
+    const root = await market();
+    const button = root.querySelector('[data-testid="market-remeasure-press"]');
+    expect(button?.className).toContain("btn-outline");
+    expect(button?.className).not.toContain("btn-primary");
   });
 });
 

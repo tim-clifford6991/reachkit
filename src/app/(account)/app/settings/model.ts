@@ -122,6 +122,11 @@ export interface MarketChange {
   on: string;
   changeKey: CopyKey;
   saved: boolean;
+  /** Which answer is changing (issue 866). The card states a different line
+   *  for a category, which is measured again at once, than for a domain,
+   *  which lands at the weekly pass — so the kind is carried rather than
+   *  recovered from the key. */
+  kind: "domain" | "category";
 }
 
 export interface SettingsModel {
@@ -300,6 +305,7 @@ export function marketChange(
     on: market.wouldTakeEffectOn,
     changeKey: CHANGE_COPY_KEY[editing],
     saved: false,
+    kind: editing,
   };
 }
 
@@ -313,6 +319,7 @@ function savedChange(facts: SettingsFacts): MarketChange | null {
     on: formatDate(facts.pendingChange.effectiveOn, facts.timeZone),
     changeKey: CHANGE_COPY_KEY[facts.pendingChange.kind],
     saved: true,
+    kind: facts.pendingChange.kind,
   };
 }
 

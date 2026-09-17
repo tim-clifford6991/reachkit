@@ -182,7 +182,7 @@ export type StoppedReason = "complete" | "time_ceiling" | "spend_ceiling" | "sit
  *  it does not know throws rather than returning a partially-populated
  *  value: `null` would be indistinguishable from "no report" at every call
  *  site. */
-export const REPORT_VERSION = 9;
+export const REPORT_VERSION = 10;
 
 /** One cell of the AI-answers matrix — one question, one measured SERP.
  *  BP-025 `## Public interface` (issue #26's `matrix.ts` owns it). An
@@ -390,6 +390,25 @@ export interface StoredReport {
   coherence: CoherenceVerdict;
   /** BP-028's value domain, stored on the scan row too. */
   correctionState: CorrectionState;
+  /**
+   * The category this pass measured under (issue 866) — the confirmed
+   * category it was handed (`sites.category`, through `readSiteCategory`,
+   * or the correction's own), or `null` where it was handed none and seeded
+   * from the profile.
+   *
+   * It is **the category the measurement used**, which is why it is stored
+   * rather than derived: `categoryOf(market)` is the category the model
+   * *inferred* from the site, and a founder who confirmed a different one
+   * is measured in theirs. REQ-071's pending-change comparison
+   * (`measuredAnswers`) reads this member and nothing else, so a category
+   * change clears the moment a pass has adopted it — and a report written
+   * before version 10 carries `null`, which claims nothing.
+   *
+   * It is not the `category` member version 5 removed: that one was
+   * `categoryOf(market)` written a second time, and this is a fact no other
+   * member holds.
+   */
+  measuredCategory: string | null;
 }
 
 // ── Reading a stored blob (issue #25) ───────────────────────────────────
@@ -423,7 +442,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 /** The version this build's own migration knows how to lift, and the only
  *  one: a report written before issue #128 bought the paid battery. */
-const MIGRATABLE_VERSIONS: readonly number[] = [3, 4, 5, 6, 7, 8];
+const MIGRATABLE_VERSIONS: readonly number[] = [3, 4, 5, 6, 7, 8, 9];
 
 /** The two battery columns of a report written before anything bought
  *  them. `not_attempted` and not `no_answer`: nobody asked these engines,
@@ -575,6 +594,27 @@ function upgradeFromVersion8(blob: Record<string, unknown>): Record<string, unkn
   return { ...blob, version: REPORT_VERSION, ownRankedRows: [] };
 }
 
+/**
+ * Version 9 → 10 (issue 866): the report records the category the pass
+ * measured under.
+ *
+ * REQ-071's pending-change comparison reads the market a measurement was
+ * taken in (`measuredAnswers`), and until now no stored report carried one —
+ * so a category a founder changed was never seen as changed, and the hold
+ * REQ-071 c11 describes could not fire.
+ *
+ * **A report written before this version carries no category, and none is
+ * invented here.** `measuredCategory` arrives `null`, which is what is true
+ * of it: nobody recorded which category that pass was handed. The inferred
+ * category on `market.profile` is *not* it — a founder who confirmed a
+ * different category at setup would have that difference read as a change
+ * the moment this shipped, holding pages on a site nothing changed on. Such
+ * a report reads as it always did: no measured category, so nothing pending.
+ */
+function upgradeFromVersion9(blob: Record<string, unknown>): Record<string, unknown> {
+  return { ...blob, version: REPORT_VERSION, measuredCategory: null };
+}
+
 /** Every upgrade this build can apply, oldest first, each lifting a blob
  *  one version. Chained rather than switched on, so a version-3 report is
  *  lifted twice and lands readable — a build that only knew `n → latest`
@@ -586,6 +626,7 @@ const UPGRADES: readonly ((blob: Record<string, unknown>) => Record<string, unkn
   upgradeFromVersion6,
   upgradeFromVersion7,
   upgradeFromVersion8,
+  upgradeFromVersion9,
 ];
 
 /** The version guard, and the one upgrade beside it. Throws — loudly — on

@@ -38,15 +38,17 @@ import { useState } from "react";
 import { copy } from "@/lib/presentation/copy";
 import { formatDate } from "../../_shell/format";
 import { writtenLine } from "../../_shell/written";
-import { saveCategoryAction, saveDomainAction } from "../change-actions";
+import { remeasureNowAction, saveCategoryAction, saveDomainAction } from "../change-actions";
 import { SettingRow } from "./SettingRow";
 import {
   MARKET_CATEGORY_FIELD,
   MARKET_CHANGE_INITIAL,
   MARKET_DOMAIN_FIELD,
+  MARKET_REMEASURE_INITIAL,
   refusalKeyOf,
   savedInstantOf,
   type MarketChangeState,
+  type MarketRemeasureState,
 } from "../market-state";
 import { marketChange, type SettingsModel } from "../model";
 
@@ -89,6 +91,9 @@ export function MarketPanel(p: {
    *  `useActionState` so that pressing Edit again asks a fresh question
    *  instead of reopening a field still showing the previous answer. */
   const [answer, setAnswer] = useState<MarketChangeState>(MARKET_CHANGE_INITIAL);
+  /** Issue 866's standalone measurement: what the last press answered. It
+   *  changes no stored answer, so it has no field and no value to keep. */
+  const [remeasure, setRemeasure] = useState<MarketRemeasureState>(MARKET_REMEASURE_INITIAL);
 
   const stated = (answer_: Answer): string =>
     answer_ === "domain" ? p.domain : p.market.category;
@@ -128,21 +133,78 @@ export function MarketPanel(p: {
   const justSaved = savedInstantOf(answer);
   const effectiveLine = (date: string): string | null =>
     writtenLine("settings.market.effectiveOn", { date });
-  const remeasuring = answer.answer === "saved" && answer.remeasuring === true;
-  const dated = remeasuring
-    ? writtenLine("settings.market.remeasuring")
-    : justSaved !== null
-      ? effectiveLine(formatDate(new Date(justSaved), p.timeZone))
-      : change === null
+
+  /**
+   * What the last press did to the market's own measurement (issue 866).
+   *
+   * A category is measured again at once, so the card states that
+   * measurement — started, refused, or not needed — and never REQ-071 c6's
+   * date, which is the weekly pass and is not what a category waits for. A
+   * domain save has none of these and keeps the dated line.
+   */
+  const measured: string | null =
+    answer.answer !== "saved"
+      ? null
+      : answer.remeasure?.started === true
+        ? writtenLine("settings.market.remeasuring")
+        : answer.remeasure?.started === false
+          ? answer.remeasure.line
+          : answer.note === "unchanged"
+            ? writtenLine("settings.market.category.unchanged")
+            : answer.note === "cleared"
+              ? writtenLine("settings.market.category.cleared")
+              : null;
+  const touchedCategory = answer.answer === "saved" && (answer.remeasure !== undefined || answer.note !== undefined);
+
+  const dated =
+    measured !== null
+      ? measured
+      : // A category save that answered says what it did, above; a category
+        // save that answered nothing states nothing rather than a Monday.
+        touchedCategory
         ? null
-        : change.saved
-          ? effectiveLine(change.on)
-          : writtenLine("settings.market.pending", {
-              date: change.on,
-              change: copy(change.changeKey),
-            });
-  const warned = justSaved === null && change?.saved === false;
-  const effect = change === null && justSaved === null ? writtenLine("settings.market.effect") : null;
+        : justSaved !== null
+          ? effectiveLine(formatDate(new Date(justSaved), p.timeZone))
+          : change === null
+            ? null
+            : change.kind === "category"
+              ? // Issue 866: a saved category no pass has adopted yet. It is
+                // measured again by the control below, not on a Monday — so
+                // the line offers that and names the weekly pass only as the
+                // fallback it is. A category still being typed has its own
+                // line above (`starts-now`) and none here.
+                change.saved
+                ? writtenLine("settings.market.category.not-measured-yet", { date: change.on })
+                : null
+              : change.saved
+                ? effectiveLine(change.on)
+                : writtenLine("settings.market.pending", {
+                    date: change.on,
+                    change: copy(change.changeKey),
+                  });
+  const warned = justSaved === null && change?.saved === false && change.kind !== "category";
+  const effect =
+    editing === "category"
+      ? // Issue 866, in place of REQ-071 c1's dated line: saving a different
+        // category measures the market again at once, and what that costs is
+        // said before the press.
+        writtenLine("settings.market.category.starts-now")
+      : change === null && justSaved === null
+        ? writtenLine("settings.market.effect")
+        : null;
+
+  /** What the standalone control says: what it will do until it is pressed,
+   *  then what that press answered. */
+  const remeasureLine =
+    remeasure.answer === "started"
+      ? writtenLine("settings.market.remeasure.started")
+      : remeasure.answer === "refused"
+        ? remeasure.line
+        : writtenLine("settings.market.remeasure.effect");
+
+  async function pressRemeasure(): Promise<void> {
+    setRemeasure(await remeasureNowAction());
+  }
 
   const refusal = refusalKeyOf(answer);
   const refusalLine = refusal === null ? null : writtenLine(refusal);
@@ -218,6 +280,22 @@ export function MarketPanel(p: {
               </>
             )}
           </SettingRow>
+        </div>
+
+        {/* Issue 866: the plain way to measure the market again — the same
+            pass the thin-market choice starts, under the same daily bound.
+            Outline rather than solid: this screen's one fill is a Save. */}
+        <div className="flex min-w-0 flex-col gap-2" data-testid="market-remeasure">
+          <form action={pressRemeasure}>
+            <button type="submit" className="btn btn-outline btn-sm" data-testid="market-remeasure-press">
+              {copy("settings.market.remeasure.action")}
+            </button>
+          </form>
+          {remeasureLine === null ? null : (
+            <p className="text-xs text-base-content/60 wrap-anywhere" data-testid="market-remeasure-line">
+              {remeasureLine}
+            </p>
+          )}
         </div>
 
         {effect === null ? null : <p className="text-xs text-base-content/60 wrap-anywhere">{effect}</p>}

@@ -242,6 +242,14 @@ export const CALENDAR_COPY = Object.freeze({
     "No new page until the change to {change} takes effect. Pages resume on {date}.",
     { slots: { date: "date", change: "text" }, fixedBy: "REQ-071 c11" },
   ],
+  // Issue 866: a category being replaced is measured again at once, so the
+  // held day names the measurement it waits on rather than a Monday. A
+  // domain change keeps the dated line above — that one does land at the
+  // weekly pass. Drafted under issue 759's ruling.
+  "calendar.empty.change-holds-pages.category": [
+    "No new page until your market has been measured again with your new category. Pages resume as soon as that measurement finishes.",
+    { slots: {}, fixedBy: "issue 866" },
+  ],
   // REQ-043 c10's one line. Every one of S15's five arms ends on the same
   // measured tail — "measured Mon 8 Sep" — so that half is approved copy
   // and is filled here (11a). The per-arm prefixes the set draws beside it

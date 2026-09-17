@@ -132,7 +132,7 @@ const FIXTURE_RECORD = {
   // constant in `tests/app/scan-address/report-view.test.tsx`, which runs
   // in node and may import it, so the two cannot drift (#352; the label
   // had been left at 3 through two migrations).
-  version: 9,
+  version: 10,
   scanId: "fixture-scan-1",
   domain: OWN_DOMAIN as CanonicalDomain,
   tier: "free",
@@ -152,6 +152,9 @@ const FIXTURE_RECORD = {
   siteIssues: null,
   coherence: { verdict: "unjudgeable", measuredCount: 0 },
   correctionState: "none",
+  // Issue 866: the category a pass measured under. The fixture pass was
+  // handed none.
+  measuredCategory: null,
 } as const satisfies Pick<
   StoredReport,
   | "version"
@@ -174,6 +177,7 @@ const FIXTURE_RECORD = {
   | "siteIssues"
   | "coherence"
   | "correctionState"
+  | "measuredCategory"
 >;
 
 /** The report the screen renders for every domain with no other fixture

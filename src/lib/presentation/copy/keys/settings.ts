@@ -89,6 +89,41 @@ export const SETTINGS_COPY = Object.freeze({
     "Saved. We’re measuring your market again now with this category.",
     { slots: {}, fixedBy: "issue 837" },
   ],
+  // Issue 866 (owner decision 2026-09-17): a category is measured again at
+  // once, so the category's own statements never name a Monday. Four lines,
+  // drafted under issue 759's ruling — what saving one will do (before the
+  // press, in place of REQ-071 c1's dated line, which stays the domain's),
+  // what an unchanged save did, and a saved category no pass has adopted yet.
+  "settings.market.category.starts-now": [
+    "Saving a different category measures your market again right away — one full measurement, a few minutes of work, and one of the small number of measurements allowed each day.",
+    { slots: {}, fixedBy: "issue 866" },
+  ],
+  "settings.market.category.unchanged": [
+    "Saved. That’s the category we’re already measuring, so nothing was measured again.",
+    { slots: {}, fixedBy: "issue 866" },
+  ],
+  "settings.market.category.cleared": [
+    "Saved. With no category of your own we go back to the market we read from your site, and nothing was measured again.",
+    { slots: {}, fixedBy: "issue 866" },
+  ],
+  "settings.market.category.not-measured-yet": [
+    "Your category is saved and hasn’t been measured yet. Measure again now, or the weekly measurement on {date} picks it up.",
+    { slots: { date: "date" }, fixedBy: "issue 866" },
+  ],
+  // The standalone control (issue 866, fault 3): the only plain way to start
+  // a pass early. What it does is said before it spends; a refused press
+  // reads the same two sentences the thin-market choice is refused with
+  // (`setup.remeasure.refused.*`), because the bound and the remedy are the
+  // same one.
+  "settings.market.remeasure.action": ["Measure again now", { slots: {}, fixedBy: "issue 866" }],
+  "settings.market.remeasure.effect": [
+    "Measures your market again now: a fresh measurement rebuilds your search set and the 12 questions, and your pages follow from it. It uses one of the small number of measurements allowed each day.",
+    { slots: {}, fixedBy: "issue 866" },
+  ],
+  "settings.market.remeasure.started": [
+    "We’re measuring your market again now. Your pages follow as soon as it finishes.",
+    { slots: {}, fixedBy: "issue 866" },
+  ],
   "settings.market.effectiveOn": [
     "Saved. Takes effect with the re-measure on {date}.",
     { slots: { date: "date" }, fixedBy: "REQ-071 c6" },

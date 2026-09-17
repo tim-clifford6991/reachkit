@@ -55,6 +55,8 @@ const { SIGNIN_PATH } = await import("@/lib/account/identity/addresses");
 const { DESTINATION_HREF } = await import("@/app/(account)/app/_shell/destinations");
 
 const EFFECTIVE = new Date("2026-09-14T10:00:00.000Z");
+const { COPY } = await import("@/lib/presentation/copy");
+const { formatDateTime } = await import("@/app/(account)/app/_shell/format");
 
 /** One field, the way a browser sends it. */
 function form(entries: Record<string, string>): FormData {
@@ -139,25 +141,81 @@ describe("the site is the session's own, and no field names one", () => {
   });
 });
 
-describe("owner ruling 2026-09-17 (issue 837) — a changed category measures the market again now", () => {
+describe("owner ruling 2026-09-17 (issue 837), worded by issue 866 — a changed category measures now", () => {
   it("a new category starts a pass for the session's site and the card says it is measuring", async () => {
     const answer = await actions.saveCategoryAction(categoryForm("bookkeeping software"));
     expect(startRemeasure).toHaveBeenCalledWith({ siteId: "site-1", domain: "acme.com" });
-    expect(answer).toEqual({ answer: "saved", effectiveOn: EFFECTIVE.toISOString(), remeasuring: true });
+    expect(answer).toEqual({
+      answer: "saved",
+      effectiveOn: EFFECTIVE.toISOString(),
+      remeasure: { started: true },
+    });
     expect(revalidated).toContain("/app");
   });
 
-  it("saving the category it already has starts nothing", async () => {
+  it("saving the category it already has starts nothing, and promises no date", async () => {
     const answer = await actions.saveCategoryAction(categoryForm("agency work"));
     expect(startRemeasure).not.toHaveBeenCalled();
-    expect(answer).toEqual({ answer: "saved", effectiveOn: EFFECTIVE.toISOString() });
+    expect(answer).toEqual({ answer: "saved", effectiveOn: EFFECTIVE.toISOString(), note: "unchanged" });
   });
 
-  it("a start the daily bound refuses still saves, with the dated line", async () => {
+  it("a cleared category starts nothing and says which nothing it is", async () => {
+    const answer = await actions.saveCategoryAction(categoryForm("  "));
+    expect(startRemeasure).not.toHaveBeenCalled();
+    expect(answer).toEqual({ answer: "saved", effectiveOn: EFFECTIVE.toISOString(), note: "cleared" });
+  });
+
+  it("a start the daily bound refuses says so, in the site's own zone — never the Monday line", async () => {
     startRemeasure.mockResolvedValue({ started: false, because: "daily_limit", nextAt: EFFECTIVE });
     const answer = await actions.saveCategoryAction(categoryForm("bookkeeping software"));
     expect(saveCategory).toHaveBeenCalledWith({ siteId: "site-1", category: "bookkeeping software" });
-    expect(answer).toEqual({ answer: "saved", effectiveOn: EFFECTIVE.toISOString() });
+    expect(answer).toMatchObject({ answer: "saved", remeasure: { started: false } });
+    const line = answer.answer === "saved" ? (answer.remeasure as { line: string }).line : "";
+    // The refusal the thin-market choice speaks, with the moment written in
+    // the site's zone (6:00 UTC is 06:00 in New York's own reading of it).
+    expect(line).toBe(
+      COPY["setup.remeasure.refused.daily-limit"].replace(
+        "{time}",
+        formatDateTime(EFFECTIVE, "America/New_York")
+      )
+    );
+    expect(line).not.toContain("Monday");
+    expect(revalidated).not.toContain("/app");
+  });
+
+  it("a pass already under way says that, and starts no second one", async () => {
+    startRemeasure.mockResolvedValue({ started: false, because: "running" });
+    const answer = await actions.saveCategoryAction(categoryForm("bookkeeping software"));
+    expect(answer).toMatchObject({
+      answer: "saved",
+      remeasure: { started: false, line: COPY["setup.remeasure.refused.running"] },
+    });
+  });
+});
+
+describe("issue 866 — the standalone measurement", () => {
+  it("starts the same pass, for the session's site, changing no stored answer", async () => {
+    const answer = await actions.remeasureNowAction();
+    expect(startRemeasure).toHaveBeenCalledWith({ siteId: "site-1", domain: "acme.com" });
+    expect(saveCategory).not.toHaveBeenCalled();
+    expect(answer).toEqual({ answer: "started" });
+    // The shell's panel re-reads, so the founder gets the loader.
+    expect(revalidated).toContain("/app");
+  });
+
+  it("is refused inside the bound with the written line, and starts nothing", async () => {
+    startRemeasure.mockResolvedValue({ started: false, because: "running" });
+    await expect(actions.remeasureNowAction()).resolves.toEqual({
+      answer: "refused",
+      line: COPY["setup.remeasure.refused.running"],
+    });
+    expect(revalidated).not.toContain("/app");
+  });
+
+  it("a session-less press lands on /signin and starts nothing", async () => {
+    appAccount.mockResolvedValue({ ok: false });
+    await expect(actions.remeasureNowAction()).rejects.toThrow(`NEXT_REDIRECT:${SIGNIN_PATH}`);
+    expect(startRemeasure).not.toHaveBeenCalled();
   });
 });
 
@@ -182,7 +240,7 @@ describe("what the press answers", () => {
     // A `Date` would cross to the browser as whatever the boundary made of
     // it; the screen states the day in the customer's own zone with the one
     // formatter the rest of Settings uses.
-    await expect(actions.saveCategoryAction(categoryForm("agency work"))).resolves.toEqual({
+    await expect(actions.saveDomainAction(domainForm("newname.com"))).resolves.toEqual({
       answer: "saved",
       effectiveOn: EFFECTIVE.toISOString(),
     });
