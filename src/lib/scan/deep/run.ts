@@ -139,6 +139,12 @@ export async function runDeepPass(a: {
    *  never holds the release. */
   beforeRelease?: () => Promise<void>;
   step?: PassStep;
+  /** A pass measured again now (issue 837): the row its request claimed is
+   *  already running, so the onboarding row is not claimed again, and the
+   *  stage the request wrote stands until the pipeline's first. The rest —
+   *  the opportunities, the first draft, the latch already written — is the
+   *  onboarding pass's own. */
+  remeasure?: boolean;
 }): Promise<{ scanId: string; status: ScanStatus; reason: ReleaseReason }> {
   const step = a.step ?? inline;
 
@@ -207,20 +213,28 @@ export async function runDeepPass(a: {
 }
 
 /** The pass's first step: the row, the category and the one pipeline. */
-async function measure(a: { siteId: string; domain: string }): Promise<{ scanId: string; status: ScanStatus }> {
+async function measure(a: {
+  siteId: string;
+  domain: string;
+  remeasure?: boolean;
+}): Promise<{ scanId: string; status: ScanStatus }> {
   // The timings belong to one pass, so the map is cleared before this one
   // rather than added to whatever a previous pass left — two passes'
   // instants in one map would state a stage that ran twice as one that ran
   // long. Cleared here and not on the first stage, because deciding "is
   // this the first" would mean naming the pipeline's stage order in this
   // file, which `run.test.ts` holds it not to.
-  await recordStage(a.siteId, null, { reset: true });
+  //
+  // A re-measure's request already cleared them and wrote the stage its
+  // founder is shown (`remeasure.ts`), so a panel polling between the two
+  // writes is never told the pass is over.
+  if (a.remeasure !== true) await recordStage(a.siteId, null, { reset: true });
 
   // The row setup claimed when it accepted the address, or claimed now for
   // a founder whose address it never sought against — at the address setup
   // committed. The pass adopts it and inserts no second (owner ruling,
   // 2026-09-16). A throw here is the job's to retry: no pass without a row.
-  await claimOnboardingPass({ siteId: a.siteId, domain: a.domain });
+  if (a.remeasure !== true) await claimOnboardingPass({ siteId: a.siteId, domain: a.domain });
 
   // The category the founder confirmed at setup is the one the market is
   // searched on (#767); none stored, the pass seeds from the profile.

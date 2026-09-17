@@ -668,6 +668,22 @@ export const DESTINATION_HOSTNAME_RECHECK_H = 1 as const;     // SPEC §5 (2026-
  *  number. */
 export const DESTINATION_HOSTNAME_CHECK_FLOOR_S = 30 as const; // SPEC §5 (2026-09-16, #757)
 
+/** How often a founder may have their market measured again now (issue 837).
+ *  Chosen, not transcribed: the owner asked for a bound "so it cannot be
+ *  spammed". `perDay` counts every paid deep pass the site started in the
+ *  last 24 hours, the onboarding pass included — each is a `DEEP` cap of
+ *  spend, so three a day is a founder trying two broader categories after a
+ *  thin first read, and never a loop. `runningHoldMin` is how long a started
+ *  pass that has not ended is treated as still under way: one pass at a time,
+ *  and a pass the platform lost stops blocking the next after it. Reversal
+ *  cost is these two numbers. */
+export const REMEASURE = Object.freeze({                      // SPEC §6 (2026-09-17, issue 837)
+  perDay: 3,
+  runningHoldMin: 30,
+  /** At most this many broader categories are offered. */
+  suggestions: 3,
+});
+
 /** BP-049 NFR budget: "`VERIFY.coverageFloor = 0.95` and `VERIFY.userAgent`
  *  belong in BP-005 (config over constants, rule 7)." `userAgent` is our own
  *  token, chosen here as a parameter (rule 1.1) — "our own token … it is not

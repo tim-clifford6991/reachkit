@@ -29,7 +29,13 @@ export type MarketChangeState =
   /** Written. `effectiveOn` is the ISO instant the seam answered with —
    *  the date is written on the screen, in the customer's own zone, by the
    *  one formatter the rest of the screen uses. */
-  | { answer: "saved"; effectiveOn: string }
+  | {
+      answer: "saved";
+      effectiveOn: string;
+      /** Issue 837: the save started a pass measured again now, so the card
+       *  says that rather than a date. */
+      remeasuring?: boolean;
+    }
   /** Refused, and nothing was written. `value` is what they typed, kept
    *  intact — `Input`'s contract ("the invalid value stays intact"): a
    *  customer told a domain is already in the set must not also have to

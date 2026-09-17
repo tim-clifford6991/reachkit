@@ -23,7 +23,8 @@ import { addMonths, monthNameOnly, monthShortLabel } from "./dates";
 import { parseMonth, readMonth, readSupplyNotice } from "./provider";
 import { supplyLine } from "./supply";
 import { readOnboarding } from "../_shell/onboarding";
-import { FirstPageNotice } from "../_shell/OnboardingStatus";
+import { FirstPageNotice, MarketChoice } from "../_shell/OnboardingStatus";
+import { readCategoryChoice } from "../_shell/remeasure";
 
 export default async function CalendarPage({
   searchParams,
@@ -36,7 +37,12 @@ export default async function CalendarPage({
   // §7's one statement of supply. At most one — the precedence between the
   // three arms is the engine's, and this screen renders whichever it
   // returned and never a second.
-  const supplyStatement = supplyLine(await readSupplyNotice(), model.timeZone);
+  const supplyNotice = await readSupplyNotice();
+  const supplyStatement = supplyLine(supplyNotice, model.timeZone);
+  // Issue 837: a calendar empty because the market was too small offers the
+  // choice that fills it, unless the shell's panel already does.
+  const choice =
+    onboarding.kind === "none" && supplyNotice?.kind === "unmeasured" ? await readCategoryChoice() : null;
 
   const previous = addMonths(month, -1);
   const next = addMonths(month, 1);
@@ -77,6 +83,13 @@ export default async function CalendarPage({
       </div>
 
       <FirstPageNotice state={onboarding} />
+      {choice === null ? null : (
+        <section className="card card-border min-w-0 bg-base-100" data-testid="calendar-market-choice">
+          <div className="card-body">
+            <MarketChoice choice={choice} />
+          </div>
+        </section>
+      )}
       <CalendarView model={model} />
 
       {/* One footnote under the grid. §7's supply statement is a separate

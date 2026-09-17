@@ -84,7 +84,19 @@ export async function readMeasuredText(a: { siteId: string; scanId?: string }): 
   }
   const scanIds = [...new Set([...own.map((row) => row.id), ...(free.data ?? []).map((row) => row.id)])];
 
-  return textOfScans(scanIds);
+  const text = await textOfScans(scanIds);
+  if (text.length > 0 || a.scanId === undefined) return text;
+
+  // A pass measured again now (issue 837) runs inside the own-document window
+  // of the site's earlier pass, so every page it read was served from that
+  // pass's rows and it ledgered none of its own. Its pages are then the ones
+  // the site's other scans of the same domain wrote — never another site's.
+  const siblings = await client.from("scans").select("id").eq("site_id", a.siteId).in("domain", domains);
+  if (siblings.error) {
+    throw new Error(`text.ts: read from scans failed: ${siblings.error.message}`);
+  }
+  const wider = (siblings.data ?? []).map((row) => row.id).filter((id) => !scanIds.includes(id));
+  return wider.length === 0 ? text : textOfScans([...scanIds, ...wider]);
 }
 
 /** The pages the free scans of `domain` measured (issue 787): a free report's

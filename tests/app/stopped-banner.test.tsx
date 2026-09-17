@@ -170,7 +170,9 @@ describe("issue 841 — a pass that found no market is not ReachKit stopping", (
     const tree = await overview();
     expect(tree.querySelector('[data-testid="shell-stopped"]')).toBeNull();
     expect(tree.innerHTML).not.toContain(COPY["stopped.work.line"]);
-    expect(text(tree, "shell-onboarding-notice")).toBe(COPY["setup.release.market-too-small"]);
+    // Issue 837: the notice carries the choice that measures again now.
+    expect(text(tree, "shell-onboarding-notice")).toContain(COPY["setup.release.market-too-small"]);
+    expect(tree.querySelector('[data-testid="shell-onboarding-notice"] [data-testid="category-choice"]')).not.toBeNull();
     expect(text(tree, "overview-supply")).toBe(COPY["overview.supply.unmeasured"]);
   });
 

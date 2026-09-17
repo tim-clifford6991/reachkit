@@ -172,9 +172,14 @@ describe("issue #782 — the founder waits in the app, not on a waiting screen",
     });
     const tree = await app();
     expect(tree.querySelector('[data-testid="shell-onboarding"]')).toBeNull();
-    expect(tree.querySelector('[data-testid="shell-onboarding-notice"]')?.textContent).toBe(
-      COPY["setup.release.market-too-small"]
-    );
+    const shown = tree.querySelector('[data-testid="shell-onboarding-notice"]');
+    expect(shown?.textContent).toContain(COPY["setup.release.market-too-small"]);
+    // Issue 837: the reason comes with the choice that fixes it — the
+    // founder's own words at least, and a press that measures again now.
+    const choice = shown?.querySelector('[data-testid="category-choice"]');
+    expect(choice?.querySelector('input[name="category"]')).not.toBeNull();
+    expect(choice?.textContent).toContain(COPY["setup.remeasure.submit"]);
+    expect(shown?.textContent).not.toMatch(/Monday/);
   });
 });
 

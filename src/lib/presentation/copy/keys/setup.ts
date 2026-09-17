@@ -369,6 +369,18 @@ export const SETUP_COPY = Object.freeze({
    *  fact with its own line (§7). */
   "setup.release.incomplete": ["Your first measurement didn’t complete. Nothing is needed from you — the next measurement fills it in.", { slots: {}, fixedBy: "REQ-029 c5" }],
   /** Issue #770: the pass read the market and found too few searches to
-   *  plan a page from — a measurement, not a failure. */
-  "setup.release.market-too-small": ["We couldn’t find enough searches for your market to plan pages yet. A broader category in Settings usually helps — we’ll measure again on Monday.", { slots: {}, fixedBy: "issue 770" }],
+   *  plan a page from — a measurement, not a failure. Issue 837 (owner,
+   *  2026-09-17): it points at the choice beside it, never at a week. */
+  "setup.release.market-too-small": ["We couldn’t find enough searches for your market to plan pages yet. Pick a broader category and we’ll measure your market again right away.", { slots: {}, fixedBy: "issue 770" }],
+
+  // Issue 837 (owner ruling 2026-09-17): the choice a thin market offers —
+  // two or three broader categories from the site's own profile, and the
+  // founder's own words — and the two ways a press is refused. Drafted under
+  // issue 759's ruling; the owner corrects the wording.
+  "setup.remeasure.suggested": ["Broader categories to try", { slots: {}, fixedBy: "issue 837" }],
+  "setup.remeasure.own": ["Or describe your market in your own words", { slots: {}, fixedBy: "issue 837" }],
+  "setup.remeasure.submit": ["Measure again now", { slots: {}, fixedBy: "issue 837" }],
+  "setup.remeasure.refused.empty": ["Type a category, or pick one of the suggestions.", { slots: {}, fixedBy: "issue 837" }],
+  "setup.remeasure.refused.running": ["Your market is already being measured. Your pages follow as soon as it finishes.", { slots: {}, fixedBy: "issue 837" }],
+  "setup.remeasure.refused.daily-limit": ["You’ve measured your market as many times as a day allows. You can measure again after {time}.", { slots: { time: "text" }, fixedBy: "issue 837" }],
 }) satisfies CopyPartition;
