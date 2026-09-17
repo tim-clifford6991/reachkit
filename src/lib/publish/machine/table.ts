@@ -83,9 +83,10 @@ export type Refusal = "not_a_transition" | "guard";
 /** The ten named guards. A guard is a condition on an *edge*, evaluated
  *  in list order; the first that fails names itself in the refusal. */
 export type GuardId =
-  /** needs_attention → publishing: only a draft that passed every
-   *  generation hard rule, so a draft one of those rules stopped is never
-   *  published by starting an attempt. */
+  /** every edge whose target is `publishing`: only a draft whose text as
+   *  it stands passed every hard rule — so a draft one of those rules
+   *  stopped is never published by starting an attempt, and neither is a
+   *  founder's edit that breaks one (SPEC §7, 2026-09-16, #789). */
   | "draft_passed_hard_rules"
   /** needs_attention → generating: only a page whose draft never entered
    *  review, so §8's bound on automatic regeneration is never raised. */
@@ -146,7 +147,9 @@ export function isTransition(from: State, to: State): boolean {
  * guards — ReachKit's own stop, the outstanding claim re-check, the switch,
  * the ceilings and the destination — because "no publish attempt begins"
  * has to be true of every route into an attempt, not of the ordinary one
- * only.
+ * only. Each also carries `draft_passed_hard_rules`, third, beside the claim
+ * re-check it is a sibling of: a founder's edit re-runs the battery, and an
+ * edit that breaks a rule holds the page on every route (#789).
  *
  * **`no_outstanding_claim_recheck` is second on all three, under the stop
  * and above everything else.** BUILD §8 hard rule 4 is a fact about the
@@ -169,6 +172,7 @@ export const GUARDS: Readonly<Record<string, readonly GuardId[]>> = Object.freez
   [edgeKey("approved", "publishing")]: Object.freeze([
     "reachkit_not_stopped",
     "no_outstanding_claim_recheck",
+    "draft_passed_hard_rules",
     "publishable_and_due",
     "customer_told",
     "publishing_switch_on",
@@ -178,6 +182,7 @@ export const GUARDS: Readonly<Record<string, readonly GuardId[]>> = Object.freez
   [edgeKey("failed", "publishing")]: Object.freeze([
     "reachkit_not_stopped",
     "no_outstanding_claim_recheck",
+    "draft_passed_hard_rules",
     "publishable_and_due",
     "customer_told",
     "publishing_switch_on",

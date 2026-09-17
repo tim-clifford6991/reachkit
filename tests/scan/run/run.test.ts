@@ -149,7 +149,9 @@ const KEYWORDS = [
   "user onboarding app",
   "onboarding platform for saas",
 ];
-const TWELVE = KEYWORDS.map((keyword, i) => ({ ...SELECTED, keyword, rank: i + 1 }));
+// 900/mo: under the demand ceiling of the cold-start site `measurement()`
+// describes, so selection keeps every one (issue 830).
+const TWELVE = KEYWORDS.map((keyword, i) => ({ ...SELECTED, keyword, volume: 900, rank: i + 1 }));
 const TWELVE_QUESTIONS = TWELVE.map((search, i) => ({ ...QUESTION, id: `q${i + 1}`, search }));
 
 function happyPath(): void {
@@ -234,6 +236,24 @@ describe("the six stages", () => {
     // The empty sections are measurements, not admissions of failure.
     expect(report.serps.every((serp) => serp.kind !== "unmeasured")).toBe(true);
     expect(report.presence?.you.top10Count).toBe(0);
+  });
+
+  it("the stored report carries its one first-page proposal — the best right-sized search, or none (#787)", async () => {
+    // At 1,900/mo every search is outsized for a site that ranks for nothing.
+    // Selection no longer keeps such a search (issue 830); the phrasing
+    // double hands them over anyway, so the proposal's own guard is read.
+    const outsized = TWELVE_QUESTIONS.map((q) => ({ ...q, search: { ...q.search, volume: 1900 } }));
+    phraseQuestions.mockResolvedValue(measured(outsized, AT));
+    await runScan({ domain: DOMAIN, tier: "free" });
+    expect(storedReport().freePage).toBeNull();
+
+    const small = TWELVE_QUESTIONS.map((q) => ({ ...q, search: { ...q.search, volume: 120 } }));
+    deriveMarketSet.mockResolvedValue(measured(small.map((q) => ({ keyword: q.search.keyword, volume: 120 })), AT));
+    phraseQuestions.mockResolvedValue(measured(small, AT));
+    await runScan({ domain: DOMAIN, tier: "free" });
+    const page = storedReport().freePage;
+    expect(page).toMatchObject({ format: "answer_page", beats: "appcues.com", totalPages: 12 });
+    expect(page?.target.volume).toBe(120);
   });
 
   it("asks one SERP per question, at the battery's own size", async () => {

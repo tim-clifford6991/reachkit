@@ -20,6 +20,8 @@ const db: FakeDb = fakeDb();
 vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
 vi.mock("@/lib/opportunities", () => ({
   supplyDepth: async () => ({ unused: 9, total: 12 }),
+  // issue 784: read only where the depth is zero; these week-0 sites hold measured supply.
+  supplyMeasured: async () => true,
   readWeek: async () => [],
 }));
 

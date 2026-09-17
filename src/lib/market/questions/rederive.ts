@@ -17,6 +17,10 @@ export interface DerivableMarket {
   profile: Profile;
   market: readonly SuggestionRow[];
   pool?: readonly PoolRow[];
+  /** The site's own ranked count the scan measured — the demand ceiling
+   *  the pass selected under (issue 830), so a correction never brings
+   *  back a search outsized for the site. */
+  ownRanked: number;
 }
 
 /** The stored market cut to the rows selection can ever keep — those at or
@@ -26,9 +30,11 @@ export function derivableMarket(a: {
   profile: Profile;
   suggestions: readonly SuggestionRow[];
   pool?: readonly PoolRow[];
+  ownRanked: number;
 }): DerivableMarket {
   return {
     profile: a.profile,
+    ownRanked: a.ownRanked,
     market: a.suggestions
       .filter((row) => row.volume >= LOWEST_STEP)
       .map((row) => ({ keyword: row.keyword, volume: row.volume })),
@@ -51,7 +57,7 @@ export function rederiveQuestions(
   // The same widening the pass read the market with (SPEC §6 thin markets):
   // the suggestions at 50/mo first, then the pool and the lower steps only
   // while short — never the bare 50/mo cut.
-  return selectWidened({ profile, suggestions: a.market, pool: a.pool ?? [] }).map((search) => ({
+  return selectWidened({ profile, suggestions: a.market, pool: a.pool ?? [], ownRanked: a.ownRanked }).map((search) => ({
     search: search.keyword,
     wording: templateQuestion(search.keyword),
   }));

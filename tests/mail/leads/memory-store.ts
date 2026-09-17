@@ -25,13 +25,13 @@ export interface MemoryState {
   leads: LeadRow[];
   suppressions: Map<string, SuppressionCause>;
   scans: Map<string, string>;
-  opportunities: Map<string, readonly unknown[]>;
+  reports: Map<string, unknown>;
   failInsert: boolean;
   failScanRead: boolean;
   failLeadRead: boolean;
   failSuppressionRead: boolean;
   failSuppressionWrite: boolean;
-  failOpportunityRead: boolean;
+  failReportRead: boolean;
   nextId: number;
 }
 
@@ -40,13 +40,13 @@ export function newMemoryState(): MemoryState {
     leads: [],
     suppressions: new Map(),
     scans: new Map(),
-    opportunities: new Map(),
+    reports: new Map(),
     failInsert: false,
     failScanRead: false,
     failLeadRead: false,
     failSuppressionRead: false,
     failSuppressionWrite: false,
-    failOpportunityRead: false,
+    failReportRead: false,
     nextId: 1,
   };
 }
@@ -155,9 +155,9 @@ export function memoryStore(state: MemoryState): LeadStore {
       return { ok: true, domain: state.scans.get(scanId) ?? null };
     },
 
-    async openOpportunitiesForScan(scanId) {
-      if (state.failOpportunityRead) return { ok: false };
-      return { ok: true, rows: state.opportunities.get(scanId) ?? [] };
+    async scanReport(scanId) {
+      if (state.failReportRead) return { ok: false };
+      return { ok: true, report: state.reports.get(scanId) ?? null };
     },
   };
 }

@@ -52,6 +52,7 @@ Pinned numbers live in `src/lib/config/constants.ts`. Newest dated line in a sec
 - Twelve questions: search text only — no per-question volume.
 - Driver mini-bars `n/10` live in the report header only.
 - Scan builds the site profile (up to 100 pages) inside the same 12¢ cap; weekly pass refreshes it (2026-09-12).
+- Fail closed (2026-09-16, #792): a free-scan bound or the day's spend that cannot be read refuses the scan with the paused line and logs the step; nothing is spent on a count nobody has. Every paid call reads the day's spend again first; an unreadable total skips the call and the pass holds.
 
 **Done when** A stranger gets a scored report from `/` with no account; the same URL is the same report a day later; a production free scan is ≤ 12¢ and ≤ 50 s; an unreadable site says so and shows no score.
 
@@ -143,15 +144,18 @@ Pinned numbers live in `src/lib/config/constants.ts`. Newest dated line in a sec
 - Autopilot only: generate → veto → publish. No Copilot, no mode picker, on no screen and in no mail (2026-09-11).
 - Veto default 24 h, range 1–7 days, never zero. Same window for updates as for new pages (2026-09-11).
 - At most one publish a day, eight a week. Kinds: new post, new page, update of an existing page.
+- Fail closed (2026-09-16, #792): when the day's or week's publishes cannot be counted, the page is held, not published, the log says why, and the next tick asks again.
 - Every asset links to real inventory pages (pricing, about, features, product) and to earlier assets in its cluster. No link known to go nowhere. Drafts follow the stored voice. No fact that is not on their site or in the profile (2026-09-12).
 - Markdown subset only; one serialiser for screen, copy-as-HTML and copy-as-Markdown. One auto-regeneration before review; never after. Edits save with no save button.
 - The brief picks facts from the customer’s own pages by index and writes none; no fact picked, no draft. Each opportunity type has one fixed outline. The answerability pass may only reorder sections, shorten a first block to 40–320 characters under a question heading, and insert facts from the brief. A draft that claims a test, carries a byline, date or case study, adds a question heading, states a number no fact holds, or does not open with an answer is stopped.
 - Publish is one idempotent call to the destination on the customer’s domain. At +24 h: reachable, indexable, in a sitemap, AI-readable.
 - Public veto link redeems on GET once. MVP paid service ends at a page on the customer’s own domain (2026-09-11).
 - Opportunity status (2026-09-15): a written draft queues its opportunity; a vetoed draft dismisses it.
+- 2026-09-16  Draft edits (owner, #789): the editor saves the title, the body and the meta description. Every save re-runs the hard rules and the claim check on the edited text. An edit that breaks a rule is still saved, the page says so, and the page is held from publishing on every route until a later save passes. The state and the veto window do not change.
 - Stopped drafts (2026-09-16, #788): a date keeps one draft row across every attempt. A draft the hard rules stop for the last time moves to needs_attention with the rules that stopped it and releases its opportunity to open. Regenerate writes that date's draft again on the next hourly draft tick.
 - 2026-09-16  (#813) A step that could not run after the date's row exists (the claim check, answerability, any later step) ends the same way: after the one automatic second attempt, the row moves to needs_attention naming the step and releases its opportunity to open. No second row; Regenerate restarts it.
 - 2026-09-16  Daily decision (owner, #777): each day chooses between a *new post* (Write/Earn) and an *update of an existing page* (Improve/Fix), whichever ranks higher for this site. Update candidates are the site’s own pages — its ranked URLs and crawled inventory, not only the home page — matched to the market’s questions; both sides are right-sized per §6. An empty day is still a stated cause, never filler.
+- 2026-09-16  (#781) An update is offered only where the site's destination can deliver it: otherwise it is not ready (`destination_cannot_address`) and never fills a day. A hosted destination updates a page ReachKit published there — a new version at the same address, served in place of the old one and listed once; a page outside ReachKit is not updatable there. WordPress keeps updating any page of the site.
 - Hosted index (2026-09-16): the root of a hosted host lists every live page, newest first, with a search; a site with nothing published says so instead of answering 404.
 
 **Done when** The draft-ready mail link stops that page with no session. An untouched draft publishes at window end on their domain. No two assets share a date. An empty day states its cause and offers no publish.

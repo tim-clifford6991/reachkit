@@ -253,6 +253,10 @@ export function TileRow(p: {
       ? null
       : writtenLine("overview.tile.pages.too-early", { weeks: formatCount(TOO_EARLY_WEEKS) });
   const firstReview = weekZero === null ? null : writtenLine("overview.tile.pages.first-review");
+  // The week-over-week change, where the model took one (issue 794). The
+  // tile carries no goal badge, so only a delta is drawn beside the count.
+  const pagesCarried = carriedBy(p.pagesPublished.headline, PAGES_LABEL);
+  const pagesDelta = pagesCarried.kind === "delta" ? pagesCarried : null;
 
   return (
     <div className="grid min-w-0 gap-3 lg:grid-cols-3" data-testid="overview-tiles">
@@ -284,8 +288,11 @@ export function TileRow(p: {
         beside={
           pagesValue.isDash ? (
             (pagesValue.line ?? pagesLabel)
-          ) : ranking === null ? null : (
-            <span className={BADGE.ok}>{ranking}</span>
+          ) : pagesDelta === null && ranking === null ? null : (
+            <>
+              {pagesDelta === null ? null : carriedBadge(pagesDelta)}
+              {ranking === null ? null : <span className={BADGE.ok}>{ranking}</span>}
+            </>
           )
         }
       >

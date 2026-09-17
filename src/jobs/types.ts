@@ -94,7 +94,17 @@ export interface JobInput {
   /** Which delivery of this event this is, zero-indexed — `0` the first,
    *  higher on a retry. Absent where the caller does not know. */
   readonly attempt?: number;
+  /** Runs one named piece of the body as a durable step of its own (issue
+   *  798): its own invocation, retried alone, and not run again once it
+   *  has answered. Absent where the caller has no platform — a test, a
+   *  direct call — and the piece then runs inline. */
+  readonly step?: StepRunner;
 }
+
+/** A named, durable piece of a job body, stated without the platform's
+ *  vocabulary. The answer must be plain data: it is stored between
+ *  invocations and handed back on the next. */
+export type StepRunner = <T>(name: string, body: () => Promise<T>) => Promise<T>;
 
 /** A job definition: a trigger, an idempotency key and one call into the
  *  engine. It holds no engine logic — `run` reads its subject out of

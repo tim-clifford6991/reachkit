@@ -134,14 +134,19 @@ export function selectWidened(a: {
   suggestions: readonly SuggestionRow[];
   pool: readonly PoolRow[];
   floors?: readonly number[];
+  /** The site's own ranked count — `selectTwelve`'s demand ceiling, applied
+   *  at every step, so widening continues until twelve right-sized
+   *  searches survive (issue 830). */
+  ownRanked: number;
 }): SelectedSearch[] {
   const category = a.category === undefined ? {} : { category: a.category };
-  let best = selectTwelve({ profile: a.profile, market: a.suggestions, ...category });
+  const { ownRanked } = a;
+  let best = selectTwelve({ profile: a.profile, market: a.suggestions, ownRanked, ...category });
   if (best.length >= BATTERY.QUESTIONS) return best;
 
   const market = pooledMarket(a.suggestions, a.pool);
   for (const floor of a.floors ?? SELECTION.volumeSteps) {
-    const widened = selectTwelve({ profile: a.profile, market, floor, ...category });
+    const widened = selectTwelve({ profile: a.profile, market, floor, ownRanked, ...category });
     if (widened.length > best.length) best = widened;
     if (best.length >= BATTERY.QUESTIONS) break;
   }

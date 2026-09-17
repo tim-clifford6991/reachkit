@@ -197,7 +197,9 @@ export type UnreadyReason =
   | "no_grounding_fact"
   /** A `fix_page` the site's destination cannot update: not a WordPress
    *  destination, a page on another host, a site root, or a fix that
-   *  destination has no field for. */
+   *  destination has no field for. Or an Improve row on a hosted destination
+   *  whose page is not one of ReachKit's own live publications there
+   *  (issue 781). */
   | "destination_cannot_address";
 
 export const UNREADY_REASONS: readonly UnreadyReason[] = Object.freeze([

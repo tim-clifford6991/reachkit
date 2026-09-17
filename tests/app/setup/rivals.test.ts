@@ -119,7 +119,7 @@ describe("direct purchase — the founder states the market, and competitors_dom
     expect(db.tables.scans).toHaveLength(1);
     const row = db.tables.scans![0]!;
     expect(row).toMatchObject({ tier: "deep", status: "running", site_id: "site-1", domain: "founder.io" });
-    expect(opened).toEqual([{ scanId: row.id, cap: "DEEP", policyVersion: 1, rollUp: "none" }]);
+    expect(opened).toEqual([{ scanId: row.id, cap: "DEEP", policyVersion: 1, rollUp: "add" }]);
     expect(competitorsDomain).toHaveBeenCalledWith(expect.anything(), { domain: "founder.io" });
   });
 

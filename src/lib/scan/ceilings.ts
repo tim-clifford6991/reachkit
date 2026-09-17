@@ -304,11 +304,16 @@ export async function withFreeBounds<T>(
  *  values — `withFreeBounds` above supplies them and exposes no way to
  *  vary either, which is the whole of ADR-021 decision 1. */
 export async function withScanBounds<T>(
-  a: { scanId: string; startedAt: Date; cap: CapName; deadlineApplies: boolean },
+  a: { scanId: string; startedAt: Date; cap: CapName; deadlineApplies: boolean; priorCents?: number },
   body: (b: Bounds, c: CostContext) => Promise<T>
 ): Promise<{ result: T | null; ending: Ending }> {
   return withCostContext(
-    { scanId: a.scanId, cap: a.cap, policyVersion: FREE_SCAN_POLICY_VERSION },
+    {
+      scanId: a.scanId,
+      cap: a.cap,
+      policyVersion: FREE_SCAN_POLICY_VERSION,
+      ...(a.priorCents === undefined ? {} : { priorCents: a.priorCents }),
+    },
     async (cost) => {
       const outcome = await runBounded(
         { startedAt: a.startedAt, cost, deadlineApplies: a.deadlineApplies },
@@ -317,5 +322,21 @@ export async function withScanBounds<T>(
       logEnding({ scanId: a.scanId, ending: outcome.ending, elapsedMs: Date.now() - a.startedAt.getTime(), cost });
       return outcome;
     }
+  );
+}
+
+/** The context a paid pass spends in once its report is stored (issue
+ *  798): the opportunity typing §6.3 puts inside the pass's own budget. It
+ *  is keyed to the pass's row and adds to what that row already carries,
+ *  so the typing is counted in `scans.cost_cents` and against the cap the
+ *  stages already spent — whether it runs in the pass's invocation or in a
+ *  later step of its own. */
+export function withStoredPassSpend<T>(
+  a: { scanId: string; cap: CapName },
+  body: (c: CostContext) => Promise<T>
+): Promise<T> {
+  return withCostContext(
+    { scanId: a.scanId, cap: a.cap, policyVersion: FREE_SCAN_POLICY_VERSION, rollUp: "add" },
+    body
   );
 }

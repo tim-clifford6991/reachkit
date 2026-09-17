@@ -34,11 +34,17 @@ import {
  * whose calendar day we cannot count. Counting it in the server's zone
  * would publish on the wrong day, which is the one thing the ceiling is
  * stated in the customer's zone to prevent.
+ *
+ * `unreadable` is a hold for the same reason (issue 792): the site or its
+ * publications could not be read, so nothing is known about how many pages
+ * went out. Counting that as none could publish a second page in a day. The
+ * hold writes nothing, and the next tick asks again.
  */
 export type CeilingRoom =
   | { room: true }
   | { room: false; blockedBy: "day" | "week"; nextFreeAt: Date }
-  | { room: false; blockedBy: "zone_not_set" };
+  | { room: false; blockedBy: "zone_not_set" }
+  | { room: false; blockedBy: "unreadable" };
 
 /**
  * Is there room to publish for this site at this moment?
@@ -48,6 +54,7 @@ export type CeilingRoom =
  */
 export async function ceilingRoom(siteId: string, at: Date): Promise<CeilingRoom> {
   const timeZone = await siteTimeZone(siteId);
+  if (timeZone === UNREADABLE) return unreadable(siteId, "sites");
   if (timeZone === null) return { room: false, blockedBy: "zone_not_set" };
 
   const dayStart = startOfLocalDay(at, timeZone);
@@ -57,6 +64,7 @@ export async function ceilingRoom(siteId: string, at: Date): Promise<CeilingRoom
   // A published page counts against its ceiling whether or not it was later
   // unpublished — the day it went out is the day it used.
   const published = await publishedSince(siteId, weekStart);
+  if (published === UNREADABLE) return unreadable(siteId, "publications");
 
   const inDay = published.filter((instant) => instant >= dayStart).length;
   if (inDay >= RATE_LIMITS.publishesPerDay) {
@@ -70,23 +78,34 @@ export async function ceilingRoom(siteId: string, at: Date): Promise<CeilingRoom
   return { room: true };
 }
 
-async function siteTimeZone(siteId: string): Promise<string | null> {
+const UNREADABLE = Symbol("unreadable");
+
+/** A ceiling that cannot be counted holds, and says why in the log. */
+function unreadable(siteId: string, table: string): CeilingRoom {
+  console.warn(JSON.stringify({ event: "publish_ceiling_unreadable", siteId, table }));
+  return { room: false, blockedBy: "unreadable" };
+}
+
+/** `null` is a site that exists and has no zone, or no site at all — the
+ *  same hold it always was. A read that errored is `UNREADABLE`. */
+async function siteTimeZone(siteId: string): Promise<string | null | typeof UNREADABLE> {
   const { data, error } = await publishDb()
     .from<{ timezone: string | null }>("sites")
     .select("timezone")
     .eq("id", siteId)
-    .single();
-  if (error !== null || data === null) return null;
-  return typeof data.timezone === "string" && data.timezone.length > 0 ? data.timezone : null;
+    .limit(1);
+  if (error !== null || data === null) return UNREADABLE;
+  const timezone = data[0]?.timezone;
+  return typeof timezone === "string" && timezone.length > 0 ? timezone : null;
 }
 
-async function publishedSince(siteId: string, from: Date): Promise<Date[]> {
+async function publishedSince(siteId: string, from: Date): Promise<Date[] | typeof UNREADABLE> {
   const { data, error } = await publishDb()
     .from<{ published_at: string | null }>("publications")
     .select("published_at")
     .eq("site_id", siteId)
     .gte("published_at", from.toISOString());
-  if (error !== null || data === null) return [];
+  if (error !== null || data === null) return UNREADABLE;
   return data
     .map((row) => row.published_at)
     .filter((value): value is string => typeof value === "string")

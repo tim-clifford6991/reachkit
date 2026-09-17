@@ -30,15 +30,19 @@ import type {
 } from "../../types";
 import { liveUrlOnHost } from "./address";
 import { invalidateHosted } from "./cache";
-import { siteForDraft } from "./store";
+import { addressesOwnPage } from "./own-page";
+import { livePagesForSite, siteForDraft } from "./store";
 
 export { hostedDnsRecord, hostedHostFor, liveUrlFor, liveUrlOnHost, previewHostFor } from "./address";
 export type { DnsPending, DnsRecord } from "./address";
 export { invalidateHosted, tags } from "./cache";
 export { DEFAULT_HOSTED_LABEL, checkLabel, hostFor, normaliseLabel } from "./label";
+export { addressesOwnPage } from "./own-page";
+export type { HostedOwnPages } from "./own-page";
 export type { LabelCheck, LabelRefusal } from "./label";
 export {
   hostedSiteForDomain,
+  hostedOwnPagesOfSite,
   hostedSiteForHostname,
   livePageBySlug,
   livePagesForSite,
@@ -55,17 +59,6 @@ export type {
   HostedSite,
   PublishedPageRecord,
 } from "./store";
-
-/** Whether an existing page's address is one this destination serves: the
- *  host this site was given, never a recomposed default — since SPEC §5's
- *  ruling of 2026-09-12 the label is the customer's. */
-function servesAddress(url: string, host: string): boolean {
-  try {
-    return new URL(url).host.toLowerCase() === host.toLowerCase();
-  } catch {
-    return false;
-  }
-}
 
 export const HOSTED_ADAPTER: DestinationAdapter = Object.freeze({
   kind: "hosted" as const,
@@ -105,11 +98,18 @@ export const HOSTED_ADAPTER: DestinationAdapter = Object.freeze({
     if (page.slug.trim() === "") {
       return { ok: false, madeLive: false, reason: "destination_rejected" };
     }
-    // §7's update of a page this destination does not serve: it answers only
-    // at this site's own host, so a page on the customer's site has nothing
-    // here to change and must not be published a second time beside it.
-    if (page.updateOf !== undefined && !servesAddress(page.updateOf, site.host)) {
-      return { ok: false, madeLive: false, reason: "destination_rejected" };
+    // §7's update of an existing page (issue 781): this destination can change
+    // only a page it serves — one of ReachKit's own live publications on
+    // this site's host — and it does so by publishing the new version at
+    // that same address, which the edge then serves in the old one's place.
+    // A page on the customer's own site has nothing here to change and must
+    // not be published a second time beside it. Readiness reads the same
+    // predicate, so such a page is never offered for a day.
+    if (page.updateOf !== undefined) {
+      const slugs = (await livePagesForSite(site.siteId)).map((live) => live.slug);
+      if (!addressesOwnPage(page.updateOf, { host: site.host, slugs })) {
+        return { ok: false, madeLive: false, reason: "destination_rejected" };
+      }
     }
     // A metadata-only update (#690) has no body to serve: the hosted page is
     // its row, and this destination changes no page's metadata alone. Hosted

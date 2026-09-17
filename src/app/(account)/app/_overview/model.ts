@@ -146,6 +146,10 @@ export interface OverviewFacts {
   /** The deep pass's AI-answer reading, where it is week 0 (#793): the
    *  window's first cell before the weekly weeks, and never a delta. */
   aiWeekZero?: AiPresenceWeek;
+  /** The deep pass's searches reading, where it is week 0 (issue 793): what the
+   *  first weekly point's delta is taken against when no earlier weekly
+   *  point was measured (issue 794). */
+  searchesWeekZero?: Measured<number>;
   /** The dates inside the window at which an answer this site is measured
    *  under changed (REQ-071 c12/c13, issue #213). Supplied here and read
    *  by two things: the week count below, which may not span one, and the
@@ -161,6 +165,9 @@ export interface OverviewFacts {
    *  the tile carries its goal instead. */
   scorePrevious?: Measured<{ score: number; band: BandHandle }>;
   pagesPublished: Measured<number>;
+  /** The live count a week before `today` — the pages tile's delta is the
+   *  difference. Taken only once the weekly series has begun: before the
+   *  first Monday the screen states starting measurements, not movement. */
   pagesPublishedPrevious?: Measured<number>;
   /** How many published pages are already ranking — the set's "6 already
    *  ranking" badge. A `ContextValue`, so §4.5's never-bare rule does not
@@ -188,7 +195,9 @@ export function assembleOverview(facts: OverviewFacts): OverviewModel {
   const direction: HeadDirection = weekZero === null ? headDirection(facts.points) : "week_zero";
   const measuredPoints = facts.points.filter((p) => p.value.kind !== "unmeasured");
   const latest = measuredPoints.at(-1);
-  const previous = measuredPoints.at(-2);
+  // The measured week before the latest, or week 0 on the first Monday —
+  // the same comparison the score's delta makes (issue 793).
+  const previous = measuredPoints.at(-2)?.value ?? (latest === undefined ? undefined : facts.searchesWeekZero);
   const { alerts, overflow, issuesOverflow } = readAlerts(facts.waiting, facts.today);
   const supply = readSupplyStatement(facts.supply);
   const window = aiWindow(facts.points, facts.aiPresence, facts.changes, facts.aiWeekZero);
@@ -225,7 +234,7 @@ export function assembleOverview(facts: OverviewFacts): OverviewModel {
       headline: {
         value: latest?.value ?? { kind: "unmeasured", reason: "not_attempted", at: facts.today },
         goal: "searches_appeared_in",
-        ...(latest && previous ? { delta: deltaOf(latest.value, previous.value) } : {}),
+        ...(latest && previous ? { delta: deltaOf(latest.value, previous) } : {}),
       },
     },
     aiAnswers: {
@@ -241,7 +250,9 @@ export function assembleOverview(facts: OverviewFacts): OverviewModel {
       headline: {
         value: facts.pagesPublished,
         goal: "pages_published",
-        ...(facts.pagesPublishedPrevious
+        // No movement is claimed before the weekly series begins: week 0 is
+        // a starting measurement (issue 793).
+        ...(facts.pagesPublishedPrevious && growth.kind === "series"
           ? { delta: deltaOf(facts.pagesPublished, facts.pagesPublishedPrevious) }
           : {}),
       },

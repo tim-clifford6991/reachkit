@@ -162,18 +162,32 @@ export async function withCostContext<T>(
      *  total would overstate what the scan cost and would flip a scan that
      *  degraded back to `done`. Every ledgered `fetches` row stands either
      *  way: the roll-up is a cached summary, `fetches` is the source of
-     *  truth. */
-    rollUp?: "scan" | "none";
+     *  truth.
+     *
+     *  `"add"` is for spend made against a row outside the pass that
+     *  closes it (issue 798): setup's rival suggestion before the
+     *  onboarding pass runs, and the opportunity typing after its report is
+     *  stored. The row's `cost_cents` is read when the context opens —
+     *  counted against the cap, as `priorCents` is — and the close writes
+     *  the total back to `cost_cents` alone, leaving the status the pass
+     *  wrote, or will write, standing. */
+    rollUp?: "scan" | "add" | "none";
+    /** Spend already ledgered against this row by an earlier context (issue
+     *  798): the claimed onboarding row carries setup's rival suggestion.
+     *  It counts against this cap and is part of the roll-up, so the row's
+     *  `cost_cents` is every paid call made against it, not only this
+     *  context's. `rollUp: "add"` reads it from the row instead. */
+    priorCents?: number;
   },
   body: (cost: CostContext) => Promise<T>
 ): Promise<T> {
   const capValue = CAP_VALUES[ctx.cap];
-  let ledgeredCents = 0;
+  let ledgeredCents = ctx.rollUp === "add" ? await rowCostCents(ctx.scanId) : (ctx.priorCents ?? 0);
   let inFlightReserved = 0;
   let isDegraded = false;
-  // One read, when the context opens, of what the whole product has spent
-  // today (issue #329) — see `daily.ts` for why it is asked once a pass and
-  // not once a call, and for what an unreadable ledger means.
+  // What the whole product has spent today (issue #329), read when the
+  // context opens and again before every paid call (issue 792) — see
+  // `daily.ts` for why, and for what an unreadable ledger means.
   const day = await openDayLedger(now());
   let capHitLogged = false;
 
@@ -228,7 +242,12 @@ export async function withCostContext<T>(
       // throwing. A free scan never gets this far on a day that is already
       // over: `admitFreeScan` refuses it at the door (`admission.ts`), so
       // what this arm holds is the paid pass, which holds rather than fails.
-      if (day.ceilingReached()) {
+      // Read again here, so a pass running beside this one is counted, and
+      // with this pass's other calls in flight, which the ledger has not
+      // seen. This call may still carry the day over — the ceiling is spent
+      // up to, and the crossing it makes is the one the alert reports.
+      await day.refresh(now());
+      if (day.ceilingReached(inFlightReserved)) {
         return refuse("daily_ceiling", call.source, CAPS.DAILY_PRODUCT_C);
       }
 
@@ -335,14 +354,26 @@ export async function withCostContext<T>(
 
   const { error } = await dbAdmin()
     .from("scans")
-    .update({
-      cost_cents: cost.spentCents(),
-      status: cost.degraded() ? "degraded" : "done",
-    })
+    .update(
+      ctx.rollUp === "add"
+        ? { cost_cents: cost.spentCents() }
+        : { cost_cents: cost.spentCents(), status: cost.degraded() ? "degraded" : "done" }
+    )
     .eq("id", ctx.scanId);
   if (error) {
     throw new Error(`withCostContext: roll-up write to scans failed: ${error.message}`);
   }
 
   return result;
+}
+
+/** What a row already carries, for a context that adds to it. A row that
+ *  cannot be read throws: a context that counted it as nothing would open
+ *  with headroom the pass has already spent, and its close would write
+ *  that spend away. */
+async function rowCostCents(scanId: string): Promise<number> {
+  const { data, error } = await dbAdmin().from("scans").select("cost_cents").eq("id", scanId).limit(1);
+  if (error) throw new Error(`withCostContext: could not read ${scanId}'s cost: ${error.message}`);
+  const cents = Number((data?.[0] as { cost_cents?: unknown } | undefined)?.cost_cents ?? 0);
+  return Number.isFinite(cents) ? cents : 0;
 }

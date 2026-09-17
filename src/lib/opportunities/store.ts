@@ -18,6 +18,7 @@
 // scoping the policy would have applied, applied here instead.
 import { dbAdmin } from "@/lib/db";
 import type { Profile } from "@/lib/market/questions/profile";
+import type { HostedOwnPages } from "@/lib/publish/destinations/hosted/own-page";
 import { readStoredReport, type StoredReport } from "@/lib/scan/report";
 import type { InventoryRow } from "@/lib/site-profile/types";
 import type {
@@ -149,6 +150,11 @@ export interface OpportunityStore {
   markOpen(opportunityId: string): Promise<void>;
   /** The host the site's live hosted destination serves at, or `null`. */
   hostedHostFor(siteId: string): Promise<string | null>;
+  /** The pages the site's hosted destination could update — its host and
+   *  the slugs of ReachKit's live publications there (issue 781) — or `null`
+   *  where the site's destination is not hosted. A read that fails updates
+   *  nothing: an update is never made ready on a guess. */
+  hostedOwnPages(siteId: string): Promise<HostedOwnPages | null>;
   /** The pages the crawl read of this domain (`site_profiles.inventory`) —
    *  the update candidates the Improve family matches to the market's
    *  questions (SPEC §7, 2026-09-16). Empty where no profile could be read:
@@ -473,6 +479,15 @@ export function supabaseOpportunityStore(): OpportunityStore {
         .limit(1);
       if (error) throw new Error(`opportunities.hostedHostFor: ${error.message}`);
       return data?.[0]?.hostname ?? null;
+    },
+
+    async hostedOwnPages(siteId) {
+      try {
+        const { hostedOwnPagesOfSite } = await import("@/lib/publish/destinations/hosted/store");
+        return await hostedOwnPagesOfSite(siteId);
+      } catch {
+        return { host: "", slugs: [] };
+      }
     },
 
     async inventoryFor(domain) {

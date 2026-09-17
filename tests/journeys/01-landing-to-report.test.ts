@@ -185,7 +185,9 @@ function vendorAnswer(url: string): unknown {
     return envelope({
       items: SUGGESTIONS.map((keyword, i) => ({
         keyword,
-        keyword_info: { search_volume: 4000 - i * 120 },
+        // Right-sized for a site that ranks for nothing: every search is
+        // under the demand ceiling selection applies (issue 830).
+        keyword_info: { search_volume: 900 - i * 30 },
       })),
     });
   }
@@ -531,4 +533,43 @@ describe("/ → /scan/{domain}: a stranger scans and reads a report (JN-001, JN-
     expect(html.length).toBeGreaterThan(0);
     expect(html).not.toContain("stage.reading_your_site");
   }, JOURNEY_TIMEOUT_MS);
+});
+
+describe("issue #792 — a day ledger nobody can read starts no free scan", () => {
+  it("the route claims nothing, starts no pass and calls no vendor", async () => {
+    const client = db.client as { rpc: (fn: string, args: unknown) => unknown };
+    const answered = client.rpc;
+    client.rpc = (fn: string, args: unknown) =>
+      fn === "fetches_spend_since"
+        ? Promise.resolve({ data: null, error: { message: "stubbed read failure" } })
+        : answered(fn, args);
+    const logged = vi.spyOn(console, "log").mockImplementation(() => undefined);
+    const warned = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    try {
+      const { POST } = await import("../../src/app/api/scan/route");
+      const started = await POST(
+        new Request("https://app.example.com/api/scan", {
+          method: "POST",
+          headers: { "content-type": "application/json", "x-forwarded-for": `203.0.113.${journey}` },
+          body: JSON.stringify({ value: DOMAIN }),
+        })
+      );
+      expect(started.status).toBe(200);
+      const body = (await started.json()) as { ok: boolean; location: string; scanId?: string };
+      expect(body.ok).toBe(true);
+      expect(body.scanId).toBeUndefined();
+      expect(db.queries.filter((q) => q.table === "scans" && q.verb === "insert")).toEqual([]);
+      expect(vendorRequests).toEqual([]);
+      expect(modelCalls).toEqual([]);
+      const decisions = logged.mock.calls
+        .map((c) => String(c[0]))
+        .filter((line) => line.includes('"event":"admission"'))
+        .map((line) => JSON.parse(line) as { decision: string; step: string });
+      expect(decisions).toContainEqual(expect.objectContaining({ decision: "unreadable", step: "daily" }));
+    } finally {
+      client.rpc = answered;
+      logged.mockRestore();
+      warned.mockRestore();
+    }
+  }, 30_000);
 });

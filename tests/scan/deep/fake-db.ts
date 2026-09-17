@@ -82,6 +82,10 @@ export function fakeDb(tables: Record<string, Row[]> = {}): FakeDb {
             filters.push((row) => String(row[column]) < String(value));
             return self;
           },
+          gt(column: string, value: unknown) {
+            filters.push((row) => row[column] !== undefined && String(row[column]) > String(value));
+            return self;
+          },
           limit() {
             return self;
           },
