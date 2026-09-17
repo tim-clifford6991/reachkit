@@ -283,7 +283,9 @@ function QuestionList(p: { items: SetupQuestions["items"] }): React.JSX.Element 
     <details className="collapse collapse-arrow bg-base-200" data-testid="setup-market-questions">
       <summary className="collapse-title flex items-center gap-2 text-sm font-medium">
         <ListOrdered {...ICON} size={16} />
-        {copy("ai-answers.questions.title")}
+        {/* Issue 873: the real count, here as on the report — this list is
+            as long as the pass's own questions, never twelve by assertion. */}
+        {copy("ai-answers.questions.title", { total: String(p.items.length) })}
       </summary>
       <ol className="collapse-content grid gap-3">
         {p.items.map((question) => {

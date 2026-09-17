@@ -458,7 +458,17 @@ export function AiAnswersCard(p: {
         <div className="divider my-0" />
 
         <p className="text-base-content/60 grow-0 text-xs font-semibold tracking-wide uppercase">
-          {copy("ai-answers.questions.title")}
+          {copy("ai-answers.questions.title", { total: String(section.rows.length) })}
+        </p>
+        {/* Issue 873: what was measured, stated rather than counted off the
+            rows. `measuredSearches` is the cells that came back, so a
+            question the pass asked and could not read is not counted here —
+            and neither is one it never reached. */}
+        <p className="text-base-content/60 grow-0 text-xs">
+          {copy("ai-answers.questions.measured", {
+            measured: String(section.measuredSearches),
+            total: String(section.rows.length),
+          })}
         </p>
         <QuestionRows rows={shown} />
         {/* REQ-006 c8: the first four visible and the remainder one action
@@ -473,7 +483,9 @@ export function AiAnswersCard(p: {
             </div>
           </details>
         )}
-        <p className="text-base-content/60 grow-0 text-xs">{copy("ai-answers.method")}</p>
+        <p className="text-base-content/60 grow-0 text-xs">
+          {copy("ai-answers.method", { total: String(section.rows.length) })}
+        </p>
       </div>
     </section>
   );

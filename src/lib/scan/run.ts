@@ -83,7 +83,9 @@ import {
   MARKET_PURSE_CENTS,
   PAID_SERP_FANOUT,
   SERP_FANOUT,
+  STAGE_BUDGETS,
   affordsSeed,
+  questionsAffordable,
   twelveCentsAfter,
   withStageBudget,
   type StageOutcome,
@@ -215,6 +217,14 @@ interface TierParameters {
    *  `digest` is folded into the owner's Monday digest
    *  (`./weekly/market-digest`); `none` has no site to speak of. */
   marketTooSmallAlert: "immediate" | "digest" | "none";
+  /** Issue 873: whether the number of questions is decided by the money
+   *  left to ask them with. True on the free path, whose market ladder and
+   *  twelve share one purse (issue 835) — a pass that widened its market
+   *  has less left for the SERPs, and a question it cannot buy a SERP for is
+   *  a row with no answer in the product's shop window. False on the paid
+   *  tiers: they buy all twelve, and issue 855's ceiling is what bounds
+   *  them. */
+  questionsFitThePurse: boolean;
 }
 
 export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.freeze({
@@ -234,6 +244,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     extraSeeds: SELECTION.maxExtraSeeds,
     ladderStopsAt: "questions",
     marketTooSmallAlert: "none",
+    questionsFitThePurse: true,
   }),
   deep: Object.freeze({
     cap: "DEEP",
@@ -251,6 +262,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     extraSeeds: SELECTION.maxExtraSeeds,
     ladderStopsAt: "twelve",
     marketTooSmallAlert: "immediate",
+    questionsFitThePurse: false,
   }),
   weekly: Object.freeze({
     cap: "WEEKLY",
@@ -268,6 +280,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     extraSeeds: SELECTION.maxExtraSeeds,
     ladderStopsAt: "twelve",
     marketTooSmallAlert: "digest",
+    questionsFitThePurse: false,
   }),
 } as const);
 
@@ -1195,14 +1208,52 @@ async function readMarket(a: StageArgs, abandoned: () => boolean): Promise<void>
   return phrase(a, abandoned);
 }
 
-/** §6.7 step 4: the selected searches, worded. */
+/** §6.7 step 4: the selected searches, worded — as many of them as the
+ *  pass can pay to ask (issue 873). */
 async function phrase(a: StageArgs, abandoned: () => boolean): Promise<void> {
   const { bounds, cost, sections } = a;
   if (bounds.stopNow() !== null) return;
+  if (a.parameters.questionsFitThePurse) sections.selected = whatThePurseCanAsk(a);
   const questions = await attempt("reading_your_market", () =>
     phraseQuestions(cost, { selected: sections.selected })
   );
   if (!failed(questions) && !abandoned()) sections.questions = questions;
+}
+
+/**
+ * **The questions the money left can actually ask** (issue 873).
+ *
+ * The free path's market ladder and its twelve spend one purse (issue 835),
+ * so a pass that widened its market twice has less left for the SERPs. It
+ * still selected twelve, phrased twelve and showed twelve — and the ones at
+ * the end of the list were dropped unasked, which is a free report with
+ * gaps in it where a visitor is deciding whether this product measures
+ * anything. Fewer questions, each with an answer, is the trade this makes.
+ *
+ * It runs before the phrasing, so no model call words a question nobody
+ * will see. The purse is read the same way `asking_the_twelve` will read
+ * it — its own row, or whatever the market left of the shared purse
+ * (`twelveCentsAfter`), whichever is smaller, and never more than the pass
+ * itself has left.
+ *
+ * Nothing here is a floor of its own: too few questions to plan a page from
+ * is `MARKET_QUESTION_FLOOR`'s reading (`market-floor.ts`), reached through
+ * the same `zero` arm a market that was simply too small reaches.
+ */
+function whatThePurseCanAsk(a: StageArgs): SelectedSearch[] {
+  const purse = Math.min(STAGE_BUDGETS.asking_the_twelve.cents, a.bounds.remainingCents());
+  const afforded = questionsAffordable(purse);
+  const selected = a.sections.selected;
+  if (afforded >= selected.length) return selected;
+  console.log(
+    JSON.stringify({
+      event: "questions_afforded",
+      selected: selected.length,
+      afforded,
+      purseCents: Number(purse.toFixed(4)),
+    })
+  );
+  return selected.slice(0, afforded);
 }
 
 /** SPEC §6 thin markets: the ranked rows this pass already bought. */
