@@ -69,6 +69,7 @@ beforeAll(() => {
   psql(["-v", "ON_ERROR_STOP=1", "-f", BASELINE_MIGRATION]);
   psql(["-v", "ON_ERROR_STOP=1", "-f", path.join(MIGRATIONS, migrationName("leads_sequence"))]);
   psql(["-v", "ON_ERROR_STOP=1", "-f", path.join(MIGRATIONS, migrationName("suppressions_email"))]);
+  psql(["-v", "ON_ERROR_STOP=1", "-f", path.join(MIGRATIONS, migrationName("scans_free_page"))]);
   const [row] = psqlRows(
     `insert into scans (domain, tier, status) values ('leads-fixture.example.com', 'free', 'done') returning id;`
   );
@@ -229,6 +230,29 @@ describe("ADR-042 — two stores, and this is the address-keyed one", () => {
     // Default-deny is observable, not just declared: the grants let `anon`
     // reach the table, and RLS with no policy still returns nothing.
     expect(psqlRows(`set role anon; select count(*) from email_suppressions;`)).toEqual([["0"]]);
+  });
+});
+
+describe("issue 826 — the free page is stored once per report, on the scan", () => {
+  it("a scan cannot be marked written without its page", () => {
+    expect(raises(`update scans set free_page_state = 'written' where id = '${SCAN_ID}';`)).toBe(true);
+    expect(raises(`update scans set free_page_state = 'written', free_page_title = 't' where id = '${SCAN_ID}';`)).toBe(true);
+    expect(raises(`update scans set free_page_state = 'drafted' where id = '${SCAN_ID}';`)).toBe(true);
+  });
+
+  it("the claim is conditional: a second writer takes nothing while the first holds the scan", () => {
+    const claim =
+      `with taken as (update scans set free_page_state = 'writing', free_page_claimed_at = now() ` +
+      `where id = '${SCAN_ID}' and free_page_state is null returning id) select count(*) from taken;`;
+    expect(psqlRows(claim)).toEqual([["1"]]);
+    expect(psqlRows(claim)).toEqual([["0"]]);
+    expect(
+      raises(`update scans set free_page_state = 'written', free_page_title = 't', free_page_markdown = 'm' where id = '${SCAN_ID}';`)
+    ).toBe(false);
+  });
+
+  it("the migration resolves to the scans topic", () => {
+    expect(topicOf(migrationName("scans_free_page"))).toEqual({ token: "scans", owner: "BP-012" });
   });
 });
 

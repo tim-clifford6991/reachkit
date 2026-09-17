@@ -53,6 +53,7 @@ Pinned numbers live in `src/lib/config/constants.ts`. Newest dated line in a sec
 - Driver mini-bars `n/10` live in the report header only.
 - Scan builds the site profile (up to 100 pages) inside the same 12¢ cap; weekly pass refreshes it (2026-09-12).
 - Fail closed (2026-09-16, #792): a free-scan bound or the day's spend that cannot be read refuses the scan with the paused line and logs the step; nothing is spent on a count nobody has. Every paid call reads the day's spend again first; an unreadable total skips the call and the pass holds.
+- 2026-09-16  (#826, owner) The free first page is written once per report and stored with its scan. Every lead on that report is mailed the same stored page; a second lead costs nothing. A page the hard rules refused is recorded once, and later leads get the "no page to write" notice without another attempt.
 
 **Done when** A stranger gets a scored report from `/` with no account; the same URL is the same report a day later; a production free scan is ≤ 12¢ and ≤ 50 s; an unreadable site says so and shows no score.
 
@@ -133,6 +134,8 @@ Pinned numbers live in `src/lib/config/constants.ts`. Newest dated line in a sec
   - Volume floor steps 50 → 20 → 10 /mo, only as far as needed to reach twelve questions. Each question records the step it came from, and that step is the “min” readiness checks it against.
   - A paid pass (deep or weekly) ends with at least one ready opportunity, or records *market too small* and tells the founder why. Too few questions is never a silent empty calendar.
 - 2026-09-16  Never pad (2026-09-11) still holds under these rules: the seeds, pool and volume steps widen which searches are measured; every other readiness gate stands unchanged.
+- 2026-09-16  Market too small, told to the owner (#796): a site’s first (deep) pass mails the owner at once; weekly passes are one owner digest per Monday listing their scan ids, sent once that Monday has ended in every zone — never one mail per site per week.
+- 2026-09-16  Verdicts (owner, #795): every published page gets a verdict every Monday. Its acceptance test is recorded on the page when it is published — the opportunity’s own, else top 20 for its search. Its target search is read every week whether or not it is among the twelve, from the site’s own ranked keywords the pass already buys; a week that could not read them says *not measured* for that page. A search is never “no longer tracked”, and a page retired for that reason before this rule is judged again.
 
 **Done when** After local Monday, every measured number has a new date and a delta. Empty days show a written cause, not filler. A “not working” cluster publishes no new page for it the next week.
 

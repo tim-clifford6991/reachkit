@@ -22,7 +22,7 @@ import {
   reportWithOwnPlace,
   verification,
 } from "./harness";
-import { measured } from "../../../src/lib/measure/measured";
+import { measured, unmeasured } from "../../../src/lib/measure/measured";
 import { AT, SITE_ID } from "../fixtures";
 
 afterEach(releaseStore);
@@ -166,13 +166,12 @@ describe("REQ-063 c6 — the three causes this node supplies, from stored state"
     expect(standings[0]?.standing).toMatchObject({ kind: "not_judgeable", cause: "domain_changed" });
   });
 
-  it("each of the five causes is written with its own cause value, and none stands in for another", async () => {
+  it("each cause is written with its own cause value, and none stands in for another", async () => {
     fakeStore({
       pages: [
         pageOf({ publicationId: "unpublished", unpublishedAt: AT }),
         pageOf({ publicationId: "missing", verification: verification("page_not_found") }),
         pageOf({ publicationId: "moved", domain: "elsewhere.com" }),
-        pageOf({ publicationId: "untracked", acceptance: { form: "top20", query: "a search nobody measures" } }),
         pageOf({ publicationId: "left", acceptance: { form: "named_on", question: "a question nobody asks" } }),
       ],
       report: reportWithOwnPlace(3),
@@ -180,13 +179,7 @@ describe("REQ-063 c6 — the three causes this node supplies, from stored state"
     const { standings } = await judgeWeek({ siteId: SITE_ID, week: WEEK });
     expect(
       standings.map((s) => (s.standing.kind === "not_judgeable" ? s.standing.cause : s.standing.kind))
-    ).toEqual([
-      "unpublished",
-      "page_not_found",
-      "domain_changed",
-      "search_untracked",
-      "question_left_set",
-    ]);
+    ).toEqual(["unpublished", "page_not_found", "domain_changed", "question_left_set"]);
   });
 
   it("lastJudgedWeek is the last verdict's week, and null where the page never received one", async () => {
@@ -198,6 +191,63 @@ describe("REQ-063 c6 — the three causes this node supplies, from stored state"
     const { standings } = await judgeWeek({ siteId: SITE_ID, week: WEEK });
     expect(standings[0]?.standing).toMatchObject({ lastJudgedWeek: PREVIOUS_WEEK });
     expect(standings[1]?.standing).toMatchObject({ lastJudgedWeek: null });
+  });
+});
+
+describe("#795 — a page's search is read every week, in the twelve or not", () => {
+  const OUTSIDE = { form: "top20", query: "onboarding checklist template" } as const;
+  const row = (keyword: string, position: number) => ({
+    keyword,
+    position,
+    searchVolume: 20,
+    url: "https://example.com/checklist",
+  });
+
+  it("a search that left the twelve is read from the site's own ranked rows", async () => {
+    const store = fakeStore({
+      pages: [pageOf({ publicationId: "outside", acceptance: OUTSIDE })],
+      report: reportWithOwnPlace(3, {
+        ownRanked: measured(2, AT),
+        ownRankedRows: [row("Onboarding  Checklist Template", 7), row("something else", 4)],
+      }),
+    });
+    const { standings } = await judgeWeek({ siteId: SITE_ID, week: WEEK });
+    expect(standings[0]?.standing).toMatchObject({ kind: "verdict", verdict: "working" });
+    expect(store.inserted[0]).toMatchObject({ verdict: "working", cause: null, measured: { kind: "measured", value: 7 } });
+  });
+
+  it("a site that ranks for it outside the top twenty, or not at all, is judged — never untracked", async () => {
+    fakeStore({
+      pages: [
+        pageOf({ publicationId: "deep", acceptance: OUTSIDE }),
+        pageOf({ publicationId: "absent", acceptance: { form: "top20", query: "a search the site holds no place on" } }),
+      ],
+      report: reportWithOwnPlace(3, {
+        ownRanked: measured(1, AT),
+        ownRankedRows: [row("onboarding checklist template", 35)],
+      }),
+    });
+    const { standings } = await judgeWeek({ siteId: SITE_ID, week: WEEK });
+    expect(standings.map((s) => s.standing)).toMatchObject([
+      { kind: "verdict", verdict: "not_working" },
+      { kind: "verdict", verdict: "not_working" },
+    ]);
+  });
+
+  it("rows that were not read, or that are fewer than the site ranks for, decide nothing this week and write nothing", async () => {
+    for (const over of [
+      { ownRanked: unmeasured<number>("not_attempted", AT), ownRankedRows: [] },
+      { ownRanked: measured(500, AT), ownRankedRows: [row("something else", 4)] },
+    ]) {
+      const store = fakeStore({
+        pages: [pageOf({ publicationId: "outside", acceptance: OUTSIDE })],
+        report: reportWithOwnPlace(3, over),
+      });
+      const { standings } = await judgeWeek({ siteId: SITE_ID, week: WEEK });
+      expect(standings[0]?.standing).toEqual({ kind: "not_measured" });
+      expect(store.inserted).toEqual([]);
+      releaseStore();
+    }
   });
 });
 

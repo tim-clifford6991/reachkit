@@ -66,7 +66,7 @@ describe("the send — one per owner address, and nothing throws", () => {
   it("a vendor that throws is logged, never raised", async () => {
     sent.fail = true;
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    await expect(reportIncident({ occasion: "dead-lettered", jobId: "scan/run", errorName: "Error" })).resolves.toBeUndefined();
+    await expect(reportIncident({ occasion: "dead-lettered", jobId: "scan/run", errorName: "Error" })).resolves.toBe(false);
     expect(warn).toHaveBeenCalled();
     warn.mockRestore();
   });
