@@ -92,10 +92,12 @@ describe("BUILD §4.6 — the grid is Mon–Sun and weekends are ordinary dates"
 });
 
 describe("REQ-043 c1 — one page per date, and no page invented to fill one", () => {
-  it("every in-month cell carries exactly one of a page or an account", () => {
+  it("every date in the plan carries exactly one of a page or an account, and no date both", () => {
     const model = assembleMonth(FIXTURE_CALENDAR_FACTS, FIXTURE_MONTH);
     for (const cell of model.cells.filter((c) => c.inMonth)) {
-      expect([cell.page === null, cell.empty === null].filter((x) => !x), cell.day).toHaveLength(1);
+      const held = [cell.page === null, cell.empty === null].filter((x) => !x);
+      expect(held.length, cell.day).toBe(cell.when === "plan" ? 1 : held.length);
+      expect(held.length, cell.day).toBeLessThanOrEqual(1);
     }
   });
 
@@ -114,9 +116,17 @@ describe("REQ-043 c1 — one page per date, and no page invented to fill one", (
     const pages = model.cells.filter((c) => c.page !== null);
     expect(pages).toHaveLength(1);
     expect(drafts).toHaveLength(1);
-    // Every other in-month date is empty with an account — never a page
-    // the read produced to fill it (§4.6: "the calendar is never padded").
-    expect(model.cells.filter((c) => c.inMonth && c.empty !== null).length).toBe(29);
+    // Every other date in the plan (Tue 15 – Sun 20) is empty with an
+    // account — never a page the read produced to fill it (§4.6: "the
+    // calendar is never padded").
+    expect(model.cells.filter((c) => c.inMonth && c.empty !== null).map((c) => c.day)).toEqual([
+      "2026-09-15",
+      "2026-09-16",
+      "2026-09-17",
+      "2026-09-18",
+      "2026-09-19",
+      "2026-09-20",
+    ]);
   });
 
   it("a draft outside the assembled month is not drawn into it", () => {
@@ -153,7 +163,9 @@ describe("REQ-092 c5 — a date whose page was held carries its own account", ()
       "2026-09"
     );
     expect(cellFor(model, "2026-09-08")?.empty).toEqual({ cause: "page_held" });
-    expect(cellFor(model, "2026-09-09")?.empty).toEqual({ cause: "supply_exhausted" });
+    expect(cellFor(model, "2026-09-16")?.empty).toEqual({ cause: "supply_exhausted" });
+    // Issue 857: a past date states what happened on it, never today's supply.
+    expect(cellFor(model, "2026-09-09")?.empty).toBeNull();
   });
 
   it("a date on the stop's own list still reads as the stop (ADR-061 precedence)", () => {

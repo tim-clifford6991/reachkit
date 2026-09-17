@@ -19,10 +19,10 @@
 // calendar is never padded") are kept by a read that cannot pad.
 import type { Measured } from "@/lib/measure/measured";
 import type { UnpublishOutcome, VerifyDisposition } from "@/lib/publish/types";
-import { accountFor, type EmptyAccount, type EmptyFacts, type HeldBySetting } from "./empty";
+import { accountFor, isLawCause, isSupplyCause, type EmptyAccount, type EmptyFacts, type HeldBySetting } from "./empty";
 import type { WorkStop } from "@/lib/presentation/stopped";
 import { STAGE_OF, type State, type Stage, type StageFilter } from "./stages";
-import { dayKeyOf, monthGrid, monthOf, type DayKey, type MonthKey } from "./dates";
+import { dayKeyOf, monthGrid, monthOf, planHorizonEnd, type DayKey, type MonthKey } from "./dates";
 
 /** REQ-043 criterion 8's evidence, and §4.6's "Why this page" rows —
  *  "search / asked / answered-today-by / you / done-when — all mono
@@ -95,15 +95,31 @@ export interface PageOnDay extends DraftOnDay {
   stage: Stage;
 }
 
+/** Where a date stands against the plan (issue 857). `past` shows what
+ *  happened on it and nothing else; `plan` is today through the day before
+ *  the next weekly pass; `after` is decided by a pass that has not run, so
+ *  it carries no page that is only planned and no per-day line. */
+export type DayWhen = "past" | "plan" | "after";
+
 export interface DayCell {
   day: DayKey;
+  when: DayWhen;
+  /** Whether the grid cell states its account's line. A supply cause never
+   *  does (the calendar states supply once, at its top), and a law cause is
+   *  stated on the first empty day in the plan only — never repeated per
+   *  cell (issue 857). The day panel still gives a selected day's account. */
+  statesLine: boolean;
+  /** The one quiet marker at the horizon: the first date of this month
+   *  after it that holds no page (issue 857). */
+  horizonMarker: boolean;
   /** `false` for a cell that exists only to hold a column position in the
    *  first or last week. Such a cell carries neither a page nor an account,
    *  because it is not a date this calendar has anything to say about. */
   inMonth: boolean;
   today: boolean;
-  /** Exactly one of `page` / `empty` is non-null on an in-month cell; both
-   *  are `null` on an out-of-month one. */
+  /** At most one of `page` / `empty` is non-null. Both are `null` on an
+   *  out-of-month cell, on a past date nothing happened on, and on a date
+   *  after the horizon that holds no written page (issue 857). */
   page: PageOnDay | null;
   empty: EmptyAccount | null;
 }
@@ -118,6 +134,9 @@ export interface MonthModel {
   stopped: WorkStop | null;
   /** The site-local today — the day the panel opens on (REQ-043 c7). */
   today: DayKey;
+  /** The last date the plan reaches: the day before the next weekly pass
+   *  (issue 857). */
+  horizonEnd: DayKey;
   cells: readonly DayCell[];
   /** REQ-043 c6, from the same result as the grid. */
   counts: Readonly<Record<StageFilter, number>>;
@@ -175,6 +194,21 @@ export class TwoPagesOnOneDateError extends Error {
   }
 }
 
+/** A past date's account is what happened on it (issue 857): an
+ *  instruction, a stop, a page stopped or held. What the site is doing now —
+ *  its settings, a market change, its supply — is not history, and a past
+ *  date nothing is recorded against says nothing. */
+function pastAccount(facts: EmptyFacts): EmptyAccount | null {
+  const account = accountFor({
+    ...facts,
+    customerChangeHoldsPages: null,
+    changeHoldsGeneration: null,
+    unusedSupply: null,
+    supplyMeasured: null,
+  });
+  return account.cause === "unattributed" ? null : account;
+}
+
 function emptyFactsFor(day: DayKey, facts: CalendarFacts, cannotGoLive: State | null): EmptyFacts {
   const instruction = facts.instructions[day];
   return {
@@ -205,28 +239,47 @@ export function assembleMonth(facts: CalendarFacts, month: MonthKey): MonthModel
     byDay.set(draft.scheduledFor, draft);
   }
 
-  const cells: DayCell[] = monthGrid(month).map(({ day, inMonth }) => {
-    if (!inMonth) return { day, inMonth, today: day === today, page: null, empty: null };
+  const horizonEnd = planHorizonEnd(today);
 
-    const draft = byDay.get(day);
+  const cells: DayCell[] = monthGrid(month).map(({ day, inMonth }) => {
+    const when: DayWhen = day < today ? "past" : day <= horizonEnd ? "plan" : "after";
+    const base = { day, inMonth, when, today: day === today, statesLine: false, horizonMarker: false };
+    if (!inMonth) return { ...base, page: null, empty: null };
+
+    const found = byDay.get(day);
+    // A page that is only planned past the horizon is not drawn: the pass
+    // that decides that date has not run. A written draft is a fact and is.
+    const draft = found !== undefined && when === "after" && found.draftId === null ? undefined : found;
     const stage = draft === undefined ? null : STAGE_OF[draft.state];
     if (draft !== undefined && stage !== null) {
-      return { day, inMonth, today: day === today, page: { ...draft, stage }, empty: null };
+      return { ...base, page: { ...draft, stage }, empty: null };
     }
-    return {
-      day,
-      inMonth,
-      today: day === today,
-      page: null,
-      empty: accountFor(emptyFactsFor(day, facts, draft?.state ?? null)),
-    };
+    const dayFacts = emptyFactsFor(day, facts, draft?.state ?? null);
+    const empty = when === "past" ? pastAccount(dayFacts) : when === "plan" ? accountFor(dayFacts) : null;
+    return { ...base, page: null, empty };
   });
+
+  // Each site-wide statement once (issue 857): supply at the calendar's top
+  // and in no cell; a law cause on the first empty day in the plan.
+  let lawStated = false;
+  for (const cell of cells) {
+    if (cell.empty === null) continue;
+    if (isSupplyCause(cell.empty.cause)) continue;
+    if (cell.when === "plan" && isLawCause(cell.empty.cause)) {
+      if (lawStated) continue;
+      lawStated = true;
+    }
+    cell.statesLine = true;
+  }
+  const marker = cells.find((cell) => cell.inMonth && cell.when === "after" && cell.page === null);
+  if (marker !== undefined) marker.horizonMarker = true;
 
   return {
     month,
     timeZone: facts.timeZone,
     stopped: facts.stop,
     today,
+    horizonEnd,
     cells,
     counts: countsOf(cells),
   };

@@ -170,6 +170,11 @@ export const CALENDAR_COPY = Object.freeze({
     { slots: {}, fixedBy: "BUILD §4.6" },
   ],
 
+  // Issue 857 (owner, 2026-09-17): the plan reaches only the day before the
+  // next weekly pass. The one quiet marker on the first date after it —
+  // the owner's own words. Drafted under issue 759's ruling.
+  "calendar.horizon.marker": ["Planned after Monday’s scan", { slots: {}, fixedBy: "issue 857" }],
+
   // REQ-043 criterion 4's remaining causes, and criterion 10's one
   // provenance line. Each is a written sentence no artifact states, so the
   // words are the owner's.

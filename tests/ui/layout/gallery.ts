@@ -277,7 +277,7 @@ export const DAY_PANEL_CELLS: Readonly<Record<string, string>> = {
   needs: "2026-09-10",
   /** No row in the fixture's schedule, no stop and no instruction — the
    *  plain empty day. */
-  empty: "2026-09-23",
+  empty: "2026-09-20",
   stopped: "2026-09-13",
 };
 

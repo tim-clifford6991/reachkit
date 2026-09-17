@@ -33,7 +33,7 @@ import {
 import { formatDate, formatDateTime } from "../_shell/format";
 import { writtenLine } from "../_shell/written";
 import { actionsFor } from "./actions";
-import { EMPTY_ACCOUNT_COPY_KEY, isLawCause, stopForEmptyDay } from "./empty";
+import { EMPTY_ACCOUNT_COPY_KEY, isLawCause, isSupplyCause, stopForEmptyDay } from "./empty";
 import { emptyLineFor } from "./CalendarView";
 import { nextPublishStatement, stoppedWorkStatement, type WorkStop } from "@/lib/presentation/stopped";
 import { fullDate } from "./dates";
@@ -183,8 +183,10 @@ export function DayPanelView(p: {
         : null;
     // The date's account **in full** — the cell states the first line alone
     // and the panel states all of it (#209).
+    // A supply cause is the calendar's one supply statement, at its top, and
+    // is not repeated here (issue 857).
     const account =
-      cell.empty === null || law !== null
+      cell.empty === null || law !== null || isSupplyCause(cell.empty.cause)
         ? null
         : emptyLineFor(cell.empty, cell.day, p.stopped, p.timeZone, EMPTY_ACCOUNT_COPY_KEY);
     // No provenance line: a date holding no page carries no measurement.

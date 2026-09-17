@@ -138,18 +138,12 @@ describe("REQ-043 c3 and ADR-061 — the two grey lines are never swapped", () =
       COPY["cause.supply-exhausted"].length,
     );
     const root = view();
-    // 2026-09-23 is emptied by proven-zero supply in the fixture.
-    const emptied = cellEl(root, "2026-09-23").querySelector('[data-testid="cell-empty-line"]');
-    // It renders, where before the empty value meant it did not. `copy()`
-    // resolves to its key in this suite (the shell's convention — the
-    // assertions here are about which key a line comes from, never the
-    // owner's wording), so what stands in the cell is that key; in the
-    // product it is the marker, which `COPY` above is what states.
-    expect(emptied).not.toBeNull();
-    expect(emptied?.textContent).toBe(EMPTY_COPY_KEY.supply_exhausted);
-    // Still not another cause's line, which is the half of this that the
-    // marker must not paper over.
-    expect(cellEl(root, "2026-09-23").textContent).not.toContain("stopped.work.line");
+    // 2026-09-20 is emptied by proven-zero supply in the fixture. Issue 857:
+    // supply is stated once, at the calendar's top, so the cell carries no
+    // line — and never another cause's.
+    expect(MODEL.cells.find((c) => c.day === "2026-09-20")?.empty).toEqual({ cause: "supply_exhausted" });
+    expect(cellEl(root, "2026-09-20").querySelector('[data-testid="cell-empty-line"]')).toBeNull();
+    expect(cellEl(root, "2026-09-20").textContent).not.toContain("stopped.work.line");
   });
 
   it("a date held by a setting says which setting, each with its own line (#754)", () => {
@@ -157,9 +151,9 @@ describe("REQ-043 c3 and ADR-061 — the two grey lines are never swapped", () =
       (setting) => {
         const facts: CalendarFacts = { ...FIXTURE_CALENDAR_FACTS, customerChangeHoldsPages: setting };
         const root = render(<CalendarView model={assembleMonth(facts, FIXTURE_MONTH)} />);
-        // 2026-09-23 is emptied by proven-zero supply in the fixture, which
+        // 2026-09-20 is emptied by proven-zero supply in the fixture, which
         // the saved setting outranks.
-        const line = cellEl(root, "2026-09-23").querySelector('[data-testid="cell-empty-line"]')?.textContent;
+        const line = cellEl(root, "2026-09-20").querySelector('[data-testid="cell-empty-line"]')?.textContent;
         expect(line).toBe(HELD_BY_SETTING_COPY_KEY[setting]);
         // #759: the key the cell draws is written, not the marker.
         expect(AWAITING_COPY).not.toContain(HELD_BY_SETTING_COPY_KEY[setting]);
@@ -264,8 +258,8 @@ describe("the calendar screen's parts", () => {
 
   it("a date with no page carries no stage chip", () => {
     const root = view();
-    // 2026-09-23 is emptied by proven-zero supply in the fixture.
-    const emptied = cellEl(root, "2026-09-23");
+    // 2026-09-20 is emptied by proven-zero supply in the fixture.
+    const emptied = cellEl(root, "2026-09-20");
     expect(emptied.hasAttribute("data-empty")).toBe(true);
     expect(emptied.querySelector(".badge")).toBeNull();
     expect(cellEl(root, "2026-09-05").hasAttribute("data-empty")).toBe(false);
