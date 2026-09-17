@@ -164,13 +164,16 @@ export async function transition(
   }
 
   log({ draftId, from, to, actor: by.kind, outcome: "moved" });
-  if (to === "skipped") await dismissOpportunityOf(draftId);
+  if (to === "skipped") await dismissOpportunityOf(draftId, from);
   return { ok: true, state: to };
 }
 
 /**
  * SPEC §7 (2026-09-15, issue 712): "a vetoed draft dismisses" its
- * opportunity. Here rather than at each door a page is stopped through —
+ * opportunity. One exception (owner, 2026-09-17, issue 833): a draft the
+ * generator stopped rests in `needs_attention` holding its opportunity
+ * queued, and skipping *that* draft refuses the page, not the target — the
+ * opportunity is released to `open` and can fill a later day. Here rather than at each door a page is stopped through —
  * the stop link, the draft screen, the calendar — because every one of them
  * is a move into `skipped` and this is the one place every move is made.
  *
@@ -179,17 +182,21 @@ export async function transition(
  * never offered again anyway. Imported at the call for the reason
  * `guards.ts` imports `@/lib/generate` at its call.
  */
-async function dismissOpportunityOf(draftId: string): Promise<void> {
+async function dismissOpportunityOf(draftId: string, from: State): Promise<void> {
   try {
     const { data } = await publishDb()
-      .from<{ opportunity_id: string | null }>("drafts")
-      .select("opportunity_id")
+      .from<{ opportunity_id: string | null; transitions: unknown }>("drafts")
+      .select("opportunity_id, transitions")
       .eq("id", draftId)
       .limit(1);
     const opportunityId = data?.[0]?.opportunity_id ?? null;
     if (opportunityId === null) return;
-    const { dismissForVeto } = await import("@/lib/opportunities");
-    await dismissForVeto(opportunityId);
+    const { dismissForVeto, releaseForDraft } = await import("@/lib/opportunities");
+    if (from === "needs_attention" && restedFromGenerating(data?.[0]?.transitions)) {
+      await releaseForDraft(opportunityId);
+    } else {
+      await dismissForVeto(opportunityId);
+    }
   } catch (error) {
     console.log(
       JSON.stringify({
@@ -199,6 +206,14 @@ async function dismissOpportunityOf(draftId: string): Promise<void> {
       })
     );
   }
+}
+
+/** Whether the page's last move into `needs_attention` came from
+ *  `generating` — a page the generator stopped, not a publish that failed. */
+function restedFromGenerating(transitions: unknown): boolean {
+  if (!Array.isArray(transitions)) return false;
+  const rested = [...(transitions as Partial<TransitionRecord>[])].reverse().find((move) => move?.to === "needs_attention");
+  return rested?.from === "generating";
 }
 
 interface TransitionLog {

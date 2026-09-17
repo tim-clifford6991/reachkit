@@ -8,12 +8,15 @@
 // first: a site left alone got one page and then none.
 //
 // A published page's row keeps what the weekly verdict already does to it
-// (`markDone` on an acceptance test that passed). A draft the rules stopped
-// for the last time releases its row back to `open` (2026-09-16, #788):
-// left `queued`, the opportunity was held by a page nothing would finish.
+// (`markDone` on an acceptance test that passed). A draft the generator
+// stopped for the last time rests in `needs_attention` and counts as queued
+// (owner, 2026-09-17, issue 833): its row stays `queued`, so the evening
+// does not write a second page for the same target. The founder resolves
+// it — Regenerate keeps the one row; Skip releases the row back to `open`.
 import { opportunityStore } from "./store";
 
-/** A draft now exists for this opportunity: it leaves the open set. */
+/** A draft now exists for this opportunity — written, or stopped and
+ *  resting in `needs_attention` (issue 833): it leaves the open set. */
 export async function queueForDraft(opportunityId: string): Promise<void> {
   await opportunityStore().markQueued(opportunityId);
 }
@@ -24,8 +27,9 @@ export async function dismissForVeto(opportunityId: string): Promise<void> {
   await opportunityStore().markDismissed(opportunityId);
 }
 
-/** A draft written from this opportunity came to rest in `needs_attention`
- *  (#788): the row goes back to the open set. Only `queued` moves. */
+/** The founder skipped a draft the generator stopped (issue 833): the
+ *  target was never refused, only the page, so the row goes back to the
+ *  open set. Only `queued` moves. */
 export async function releaseForDraft(opportunityId: string): Promise<void> {
   await opportunityStore().markOpen(opportunityId);
 }
