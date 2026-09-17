@@ -241,8 +241,18 @@ interface PublicationRow {
   published_at: string | null;
   unpublished_at: string | null;
   verify: unknown;
-  drafts: { opportunities: { acceptance: unknown } | null } | null;
-  sites: { domain: string } | null;
+  acceptance: unknown;
+  drafts: { opportunities: { acceptance: unknown; target_query: string | null } | null } | null;
+  sites: { domain: string | null } | null;
+}
+
+/** The test a published page is judged by (issue 795): the one recorded on the
+ *  publication at publish time, else its opportunity's, else "top 20 for"
+ *  the search the opportunity targets. `null` only where none exists. */
+function acceptanceOf(row: PublicationRow): unknown {
+  const opportunity = row.drafts?.opportunities;
+  const query = opportunity?.target_query?.trim() ?? "";
+  return row.acceptance ?? opportunity?.acceptance ?? (query === "" ? null : { form: "top20", query });
 }
 
 interface VerdictRow {
@@ -279,8 +289,8 @@ export function supabaseVerdictStore(): VerdictStore {
       const { data, error } = await untyped()
         .from<PublicationRow>("publications")
         .select(
-          "id, live_url, published_at, unpublished_at, verify, " +
-            "drafts(opportunities(acceptance)), sites(domain)"
+          "id, live_url, published_at, unpublished_at, verify, acceptance, " +
+            "drafts(opportunities(acceptance, target_query)), sites(domain)"
         )
         .eq("site_id", siteId)
         .not("published_at", "is", null)
@@ -288,13 +298,13 @@ export function supabaseVerdictStore(): VerdictStore {
       if (error) throw new Error(`page_verdicts.publishedPages: ${error.message}`);
       const pages: PublishedPage[] = [];
       for (const row of data ?? []) {
-        const acceptance = row.drafts?.opportunities?.acceptance;
+        const acceptance = acceptanceOf(row);
         const domain = row.sites?.domain;
-        // A publication with no opportunity behind it has no recorded
-        // test, and a page with no site has no domain to compare: neither
-        // is a page this node may judge, and neither is invented here.
+        // A page with no site has no domain to compare, and a page with no
+        // search and no test has nothing to be judged against: neither is
+        // invented here.
         if (row.published_at === null || row.live_url === null) continue;
-        if (acceptance == null || domain === undefined) continue;
+        if (acceptance == null || domain == null) continue;
         pages.push({
           publicationId: row.id,
           acceptance: reviveDates(acceptance) as Acceptance,

@@ -133,6 +133,7 @@ Pinned numbers live in `src/lib/config/constants.ts`. Newest dated line in a sec
   - A paid pass (deep or weekly) ends with at least one ready opportunity, or records *market too small* and tells the founder why. Too few questions is never a silent empty calendar.
 - 2026-09-16  Never pad (2026-09-11) still holds under these rules: the seeds, pool and volume steps widen which searches are measured; every other readiness gate stands unchanged.
 - 2026-09-16  Market too small, told to the owner (#796): a site’s first (deep) pass mails the owner at once; weekly passes are one owner digest per Monday listing their scan ids, sent once that Monday has ended in every zone — never one mail per site per week.
+- 2026-09-16  Verdicts (owner, #795): every published page gets a verdict every Monday. Its acceptance test is recorded on the page when it is published — the opportunity’s own, else top 20 for its search. Its target search is read every week whether or not it is among the twelve, from the site’s own ranked keywords the pass already buys; a week that could not read them says *not measured* for that page. A search is never “no longer tracked”, and a page retired for that reason before this rule is judged again.
 
 **Done when** After local Monday, every measured number has a new date and a delta. Empty days show a written cause, not filler. A “not working” cluster publishes no new page for it the next week.
 

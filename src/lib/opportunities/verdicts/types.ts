@@ -40,7 +40,7 @@ export type WeekStart = string;
 
 /**
  * REQ-063 c6's five ways a recorded acceptance test stops being evaluable.
- * **Every one of them is terminal.** There is no lift condition for any,
+ * **Every one of them but `search_untracked` is terminal** (issue 795). There is no lift condition for any,
  * and no code computes one: `judgeWeek` short-circuits on a prior
  * `not_judgeable` row before it evaluates anything, and `page_verdicts`
  * grants no update and no delete, so there is nothing that could clear a
@@ -56,7 +56,10 @@ export type WeekStart = string;
  * rather than pointing at a softer promise.
  */
 export type NotJudgeableCause =
-  /** Its target search is no longer measured. */
+  /** Its target search is no longer measured. **No longer produced, and
+   *  not terminal** (owner, 2026-09-16, issue 795): a page's target search is
+   *  read every week, in the twelve or not, and a row carrying this cause
+   *  does not retire its page. Kept because `page_verdicts` rows hold it. */
   | "search_untracked"
   /** The customer unpublished the page (REQ-056 c7 — itself terminal). */
   | "unpublished"

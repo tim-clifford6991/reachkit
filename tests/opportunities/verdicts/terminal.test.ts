@@ -12,6 +12,11 @@
 //
 // Removing the short-circuit so a returning search lifts the cause fails
 // here and nowhere else. It will be proposed as a *bug fix*.
+//
+// **One exception, by owner ruling (2026-09-16, #795): `search_untracked`.**
+// A page's target search is now read every week whether or not it is among
+// the twelve, so the cause is no longer produced, and a page an earlier
+// week retired for it is judged again.
 import "../env";
 import { afterEach, describe, expect, it } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
@@ -41,7 +46,7 @@ function weeksFrom(start: string, count: number): string[] {
 }
 
 describe("every cause is terminal, and nothing restores a page to judgement", () => {
-  for (const cause of NOT_JUDGEABLE_CAUSES) {
+  for (const cause of NOT_JUDGEABLE_CAUSES.filter((c) => c !== "search_untracked")) {
     it(`a page retired for ${cause} in week 1 reads the same cause and the same lastJudgedWeek in weeks 2 through 12`, async () => {
       const store = fakeStore({
         // The page is live throughout, its search is measured every week
@@ -88,6 +93,26 @@ describe("every cause is terminal, and nothing restores a page to judgement", ()
           publicationId: "retired",
           week: RETIRED_IN,
           verdict: "not_judgeable",
+          cause: "domain_changed",
+          measuredAt: null,
+          measured: null,
+        }),
+      ],
+    });
+    const { standings } = await judgeWeek({ siteId: SITE_ID, week: "2026-09-07" });
+    expect(standings[0]?.standing).toMatchObject({ kind: "not_judgeable", cause: "domain_changed" });
+  });
+
+  it("a page an earlier week retired for search_untracked is judged again (#795)", async () => {
+    const store = fakeStore({
+      pages: [pageOf({ publicationId: "untracked" })],
+      report: reportWithOwnPlace(1),
+      history: [
+        record({ publicationId: "untracked", week: WEEK_ONE, verdict: "working" }),
+        record({
+          publicationId: "untracked",
+          week: RETIRED_IN,
+          verdict: "not_judgeable",
           cause: "search_untracked",
           measuredAt: null,
           measured: null,
@@ -95,7 +120,8 @@ describe("every cause is terminal, and nothing restores a page to judgement", ()
       ],
     });
     const { standings } = await judgeWeek({ siteId: SITE_ID, week: "2026-09-07" });
-    expect(standings[0]?.standing).toMatchObject({ kind: "not_judgeable", cause: "search_untracked" });
+    expect(standings[0]?.standing).toMatchObject({ kind: "verdict" });
+    expect(store.inserted.map((row) => [row.publicationId, row.cause])).toEqual([["untracked", null]]);
   });
 
   it("a page retired in an earlier week is judged in no later week, whatever this week measured", async () => {

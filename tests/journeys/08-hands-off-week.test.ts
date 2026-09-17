@@ -102,6 +102,9 @@ function fetchesBuilder() {
  *  `digest_sent_at` — absent would read as "already sent". */
 const COLUMN_DEFAULTS: Readonly<Record<string, Row>> = {
   scans: { digest_sent_at: null, report: null },
+  // Monday's verdict reads `unpublished_at`; absent would read as a page
+  // the customer took down.
+  publications: { unpublished_at: null },
 };
 
 function withDefaults(table: string, builder: { insert(values: Row): unknown }): unknown {
@@ -328,7 +331,9 @@ vi.mock("@/lib/scan/run", async (importOriginal) => {
       // What `store_current_report` leaves on the claimed row.
       Object.assign(row, {
         status: "done",
-        report: fixtures.report(),
+        // Measured under the site's own domain, as the pass measures it, and
+        // stored as jsonb stores it — dates as strings.
+        report: JSON.parse(JSON.stringify(fixtures.report({ domain: SITE_DOMAIN as never }))),
         completed_at: new Date(Date.now()).toISOString(),
       });
       return { scanId: a.scanId, status: "done" };
@@ -766,6 +771,15 @@ describe("one site, left alone for a week (issue 323)", () => {
       expect(new Set(verdicts.map((row) => row.publication_id))).toEqual(
         new Set(liveByMonday.map((row) => row.id))
       );
+      // #795: each page was given its test when it was claimed, and each is
+      // judged by it — the week's one question names none of these searches,
+      // and not one page reads untracked.
+      for (const publication of liveByMonday) {
+        const draft = db.rows("drafts").find((row) => row.id === publication.draft_id)!;
+        const opportunity = db.rows("opportunities").find((row) => row.id === draft.opportunity_id)!;
+        expect(publication.acceptance).toEqual(opportunity.acceptance);
+      }
+      expect(verdicts.filter((row) => row.verdict === "not_judgeable").map((row) => row.cause)).toEqual([]);
       expect(mailsOf("mail.weekly")).toHaveLength(1);
     },
     WEEK_TIMEOUT_MS
