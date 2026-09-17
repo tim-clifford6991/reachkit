@@ -36,7 +36,17 @@
 import type { CostContext } from "@/lib/costs";
 import { ASYNC_AIO_SURCHARGE_MULTIPLIER, PRICE_BOOK, SERP_LOCATION } from "@/lib/config/constants";
 import { mapMeasured, type Measured } from "@/lib/measure/measured";
-import { asArray, asNumber, asString, callEndpoint, isRecord, ledgered, referenceDomains, type EndpointPaths } from "./envelope";
+import {
+  asArray,
+  asNumber,
+  asString,
+  callEndpoint,
+  isRecord,
+  ledgered,
+  referenceDomains,
+  type EndpointPaths,
+  type OnVendorFailure,
+} from "./envelope";
 import type { DataForSeoMode } from "./transport";
 import { scopeKey, type CacheScope, type SerpAiOverview, type SerpOrganicRow, type SerpResult } from "./types";
 
@@ -110,6 +120,10 @@ export async function serpOrganic(
      *  one except the weekly target re-check, which passes
      *  `.serpWeeklyRecheck`. Required for the same reason. */
     freshnessDays: number;
+    /** Where this call site hears why a call failed (issue 865), so it can
+     *  decide whether one more ask is worth making and, where it is not,
+     *  put the vendor's own kind on the cell. */
+    onFailure?: OnVendorFailure;
   }
 ): Promise<Measured<SerpResult>> {
   const base = basePriceCents(a.mode);
@@ -129,6 +143,7 @@ export async function serpOrganic(
         load_async_ai_overview: flagged,
       }),
     parse: parseSerp,
+    ...(a.onFailure ? { onFailure: a.onFailure } : {}),
   });
   return mapMeasured(rows, (r) => r[0] ?? EMPTY_SERP);
 }
