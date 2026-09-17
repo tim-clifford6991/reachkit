@@ -52,6 +52,10 @@ function ownPlace(
 export function weekMeasurementsFrom(a: {
   report: StoredReport;
   week: WeekStart;
+  /** Every published page's target search (issue 795). Each gets a key whether
+   *  or not it is among this week's twelve, read from the site's own ranked
+   *  rows where it is not — so no page's search is ever absent. */
+  targets?: readonly string[];
 }): WeekMeasurements {
   const { report } = a;
   const at = report.verdict.measuredAt;
@@ -88,6 +92,10 @@ export function weekMeasurementsFrom(a: {
     namesCustomer.set(question.text, namedBy(cell, at));
   });
 
+  for (const target of a.targets ?? []) {
+    if (!positions.has(target)) positions.set(target, rankedPlace(report, target, at));
+  }
+
   return {
     week: a.week,
     measuredAt: at,
@@ -97,6 +105,39 @@ export function weekMeasurementsFrom(a: {
     gatesCleared: gatesFrom(report, at),
     siteIssues: report.siteIssues,
   };
+}
+
+/** The best place a page's test counts: `top20` names the top twenty. */
+const TRACKED_DEPTH = 20;
+
+/**
+ * The tracked-target read (issue 795): the site's own place on a search that
+ * is not among this week's twelve, from the ranked rows the pass bought for
+ * its count — no call is made for it.
+ *
+ * - The count was not measured this week: not measured, which is transient
+ *   and writes nothing.
+ * - A row names the search inside the top twenty: that place.
+ * - No row does, and the rows are every search the site ranks for: a
+ *   measured zero — the site holds no place, which is a result.
+ * - No row does, but the site ranks for more searches than the rows hold
+ *   (a capped purchase, or a report that kept none): not measured.
+ */
+function rankedPlace(report: StoredReport, target: string, at: Date): Measured<number> {
+  if (report.ownRanked.kind === "unmeasured") return unmeasured<number>(report.ownRanked.reason, at);
+  const wanted = normalised(target);
+  let best: number | null = null;
+  for (const row of report.ownRankedRows) {
+    if (normalised(row.keyword) !== wanted) continue;
+    if (best === null || row.position < best) best = row.position;
+  }
+  if (best !== null) return best <= TRACKED_DEPTH ? measured(best, at) : measuredZero(0, at);
+  if (report.ownRanked.value > report.ownRankedRows.length) return unmeasured<number>("undeterminable", at);
+  return measuredZero(0, at);
+}
+
+function normalised(query: string): string {
+  return query.trim().toLowerCase().replace(/\s+/g, " ");
 }
 
 /** One matrix cell, as the `named_on` form reads it. An `unmeasured` cell

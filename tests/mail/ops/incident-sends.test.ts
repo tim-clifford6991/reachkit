@@ -42,10 +42,13 @@ const INCIDENT_KEYS = [
   "mail.ops.incident.fact.attempt",
   "mail.ops.incident.fact.error",
   "mail.ops.incident.fact.check",
+  "mail.ops.incident.job-stale",
+  "mail.ops.incident.fact.last-run",
+  "mail.ops.incident.fact.interval",
 ] as const;
 
 describe("#759 — the incident alert leaves, on every occasion", () => {
-  it("none of its nine lines is awaiting copy", () => {
+  it("none of its lines is awaiting copy", () => {
     for (const key of INCIDENT_KEYS) expect(AWAITING_COPY, key).not.toContain(key);
   });
 
@@ -53,6 +56,7 @@ describe("#759 — the incident alert leaves, on every occasion", () => {
     { occasion: "job-failed", jobId: "scan/run", attempt: 0, errorName: "TypeError" },
     { occasion: "dead-lettered", jobId: "scan/run", errorName: "TypeError" },
     { occasion: "boot-refused", check: "jobs", errorName: "MissingJobsBindings" },
+    { occasion: "job-stale", jobId: "account/maintenance", lastRunAt: "2026-09-16T11:00:00.000Z", intervalMinutes: 15 },
   ])("$occasion reaches the vendor, with no marker in it", async (incident) => {
     await reportIncident(incident);
 

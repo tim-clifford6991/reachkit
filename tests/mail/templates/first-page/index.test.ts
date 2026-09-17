@@ -138,6 +138,9 @@ describe('REQ-010 c11 — "when it is opened, then it carries a working opt-out"
       },
       scanDomain: async () => ({ ok: true, domain: null }),
       scanReport: async () => ({ ok: true, report: null }),
+      scanFirstPage: async () => ({ ok: true, page: null }),
+      claimScanFirstPage: async () => ({ ok: true, claimed: false }),
+      settleScanFirstPage: async () => ({ ok: true }),
     });
 
     const mail = build();

@@ -1,4 +1,4 @@
-// SPEC §2 · §8 (#787) — the free first page, end to end through the real
+// SPEC §2 · §8 (#787, #826) — the free first page, end to end through the real
 // route and the real `lead/nurture` tick.
 //
 // Real: `POST /api/lead`, capture, the job, the engine seam, the due-work
@@ -150,6 +150,57 @@ describe("an address on the report's card becomes a written, mailed first page a
     expect(llmMock).not.toHaveBeenCalled();
     expect(sendCalls.map((mail) => mail.kind)).toEqual(["first-page-unavailable"]);
     expect(state.leads[0]!.first_page_failure).toBe("no-page-to-write");
+  });
+
+  it("two leads on one report: the page is written once, both are mailed the same page, one ledgered spend (issue 826)", async () => {
+    expect((await submit("anna@example.com")).status).toBe(202);
+    expect((await submit("ben@example.com")).status).toBe(202);
+
+    queuePage(CLEAN_MARKDOWN);
+    await tick();
+
+    expect(llmMock).toHaveBeenCalledTimes(4);
+    expect(opened).toEqual([{ scanId: SCAN_ID, cap: "FREE", policyVersion: 1, rollUp: "none" }]);
+    const pages = sendCalls.filter((mail) => mail.kind === "first-page");
+    expect(pages.map((mail) => mail.to)).toEqual(["anna@example.com", "ben@example.com"]);
+    expect(JSON.stringify(pages[1]!.blocks)).toBe(JSON.stringify(pages[0]!.blocks));
+    expect(state.leads.map((lead) => lead.first_page_state)).toEqual(["sent", "sent"]);
+    expect(state.firstPages.get(SCAN_ID)).toMatchObject({ state: "written", title: "Picking a tool" });
+
+    // A lead arriving a day later costs nothing either.
+    await submit("cleo@example.com");
+    await tick();
+    expect(llmMock).toHaveBeenCalledTimes(4);
+    expect(opened).toHaveLength(1);
+    expect(sendCalls.filter((mail) => mail.kind === "first-page")).toHaveLength(3);
+  });
+
+  it("a refused page is recorded once: a later lead on the report is told there is no page, with no second attempt", async () => {
+    await submit("anna@example.com");
+    queuePage(`${CLEAN_MARKDOWN}\n\n<!-- keywords for the crawler -->`);
+    await tick();
+    expect(state.leads[0]!.first_page_failure).toBe("writing-refused");
+    expect(state.firstPages.get(SCAN_ID)).toEqual({ state: "refused" });
+
+    await submit("ben@example.com");
+    await tick();
+
+    expect(llmMock).toHaveBeenCalledTimes(4);
+    expect(opened).toHaveLength(1);
+    expect(sendCalls.map((mail) => mail.kind)).toEqual(["first-page-unavailable", "first-page-unavailable"]);
+    expect(state.leads[1]!.first_page_failure).toBe("no-page-to-write");
+    expect(state.leads[1]!.first_page_state).toBe("notice_sent");
+  });
+
+  it("a report another writer holds is not written twice: the lead waits for its next attempt", async () => {
+    state.firstPages.set(SCAN_ID, { state: "writing", claimedAt: NOW });
+    await submit("anna@example.com");
+    await tick();
+
+    expect(llmMock).not.toHaveBeenCalled();
+    expect(sendCalls).toHaveLength(0);
+    expect(state.leads[0]!.first_page_state).toBe("pending");
+    expect(state.leads[0]!.first_page_attempts).toBe(1);
   });
 
   it("the kill switch holds the page, spends nothing, and starts no retry window", async () => {

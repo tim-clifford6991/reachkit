@@ -139,6 +139,7 @@ interface DraftRow {
   site_id: string;
   state: string;
   approved_at: string | null;
+  opportunity_id: string | null;
   sites?: { mode?: string | null } | null;
 }
 
@@ -184,6 +185,7 @@ export async function claim(a: ClaimArgs): Promise<ClaimResult> {
       destination: a.destination,
       mode,
       claimedAt: at,
+      acceptance: await acceptanceAtPublish(draft.opportunity_id),
     });
     if (inserted !== null) {
       return {
@@ -277,7 +279,7 @@ async function heldWord(
 async function loadDraft(draftId: string): Promise<DraftRow | null> {
   const { data, error } = await publishDb()
     .from<DraftRow>("drafts")
-    .select("id, site_id, state, approved_at, sites(mode)")
+    .select("id, site_id, state, approved_at, opportunity_id, sites(mode)")
     .eq("id", draftId)
     .single();
   if (error !== null || data === null) return null;
@@ -299,12 +301,33 @@ async function readPublication(
   return row ?? null;
 }
 
+/**
+ * The acceptance test the page is judged by, recorded on the publication
+ * as it is claimed (SPEC §6, issue 795) — so every published page has one and
+ * the weekly verdict never depends on the opportunity row being read back.
+ * The opportunity's own test where it carries one; otherwise "top 20 for"
+ * the search it targets. `null` only where the draft names neither.
+ */
+async function acceptanceAtPublish(opportunityId: string | null): Promise<unknown> {
+  if (opportunityId === null) return null;
+  const { data, error } = await publishDb()
+    .from<{ acceptance: unknown; target_query: string | null }>("opportunities")
+    .select("acceptance, target_query")
+    .eq("id", opportunityId)
+    .limit(1);
+  const row = error === null ? data?.[0] : undefined;
+  if (row === undefined) return null;
+  const query = row.target_query?.trim() ?? "";
+  return row.acceptance ?? (query === "" ? null : { form: "top20", query });
+}
+
 async function insertPublication(a: {
   draftId: string;
   siteId: string;
   destination: DestinationKind;
   mode: "approved" | "autopilot";
   claimedAt: Date;
+  acceptance: unknown;
 }): Promise<{ id: string } | null> {
   const { data, error } = await publishDb()
     .from<{ id: string }>("publications")
@@ -313,6 +336,7 @@ async function insertPublication(a: {
       site_id: a.siteId,
       destination: a.destination,
       mode: a.mode,
+      acceptance: a.acceptance,
       delivery_state: "claimed",
       attempt_no: 1,
       claimed_at: a.claimedAt.toISOString(),

@@ -78,6 +78,13 @@ vi.mock("@/lib/publish/destinations/health", () => ({
   checkHealth: async () => ({ health: "ok", reason: null, checkedAt: new Date() }),
 }));
 
+// Issue #796's Monday market digest reads `scans`; stood in with no week due,
+// and driven in `tests/scan/weekly/market-digest.test.ts`.
+vi.mock("@/lib/scan/weekly/market-digest", () => ({
+  marketDigestsDue: async () => [],
+  sendMarketDigest: async () => true,
+}));
+
 const engine = await import("../../src/jobs/engine");
 const { scanRun } = await import("../../src/jobs/scan-run");
 const { accountMaintenance } = await import("../../src/jobs/account-maintenance");

@@ -172,8 +172,9 @@ describe('advisor `rls_enabled_no_policy` — the tables that are policy-less by
     // The advisor named six; two are v2's, in schema `v2_archive` (the
     // cutover's rollback path, `docs/RUNBOOK.md` §9) and not created
     // by any migration here, and `auth_links` was dropped by #468 when
-    // identity moved onto Supabase Auth.
-    expect(policyLess).toEqual(["domain_blocks", "email_suppressions", "fetches"]);
+    // identity moved onto Supabase Auth. `job_runs` (#799) is the job
+    // heartbeat, written and read only by the job runner.
+    expect(policyLess).toEqual(["domain_blocks", "email_suppressions", "fetches", "job_runs"]);
   });
 
   it.each(policyLess)("%s carries a `comment on table` naming the rule", (table) => {
