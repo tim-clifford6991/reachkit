@@ -145,8 +145,8 @@ export interface OpportunityStore {
   /** A row whose draft the customer stopped: `open` or `queued` moves to
    *  `dismissed`, and `done` stays done (SPEC §7, 2026-09-15 — issue 712). */
   markDismissed(opportunityId: string): Promise<void>;
-  /** A row whose draft the rules stopped for the last time: `queued` moves
-   *  back to `open`, and no other status moves (#788). */
+  /** A row whose stopped draft the founder skipped: `queued` moves back to
+   *  `open`, and no other status moves (issue 833). */
   markOpen(opportunityId: string): Promise<void>;
   /** The host the site's live hosted destination serves at, or `null`. */
   hostedHostFor(siteId: string): Promise<string | null>;

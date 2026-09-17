@@ -176,7 +176,7 @@ describe("SPEC §7 (2026-09-15, issue 712) — a written draft queues its opport
     expect(queueForDraftMock.mock.calls).toEqual([[opportunity().id]]);
   });
 
-  it("a draft the battery stopped twice rests in needs_attention and releases its opportunity (#788)", async () => {
+  it("a draft the battery stopped twice rests in needs_attention and holds its opportunity queued (#788, issue 833)", async () => {
     queueAttempt("Example wins everything, and always has.");
     queueAttempt("Example wins everything, again, and always.");
     const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
@@ -189,8 +189,8 @@ describe("SPEC §7 (2026-09-15, issue 712) — a written draft queues its opport
       { kind: "system", job: "draft/generate" },
       { reason: expect.stringMatching(/^rules:.+/) }
     );
-    expect(queueForDraftMock).not.toHaveBeenCalled();
-    expect(releaseForDraftMock.mock.calls).toEqual([[opportunity().id]]);
+    expect(queueForDraftMock.mock.calls).toEqual([[opportunity().id]]);
+    expect(releaseForDraftMock).not.toHaveBeenCalled();
   });
 
   it("a run that wrote no draft leaves the opportunity open for the next evening", async () => {

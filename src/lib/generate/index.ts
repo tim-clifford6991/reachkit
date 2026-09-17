@@ -17,8 +17,10 @@
 //     performed here — once, on the same row, and never for a draft that
 //     has entered review;
 //   * a draft the rules stopped for the last time rests in
-//     `needs_attention` and releases its opportunity (#788) — it is never
-//     left in `generating`, which no edge moves a stopped page out of.
+//     `needs_attention` (#788) — it is never left in `generating`, which no
+//     edge moves a stopped page out of — and its opportunity stays queued
+//     behind it (issue 833), so no second page is written for that target
+//     while the first waits for the founder.
 //
 // `regenerateRestarted` is the customer's Regenerate carried out: the
 // restart moves the row back into `generating`, and the next draft tick
@@ -29,7 +31,6 @@ import {
   nextForDay,
   opportunityById,
   queueForDraft,
-  releaseForDraft,
   type Opportunity,
 } from "@/lib/opportunities";
 import type { StoredReport } from "@/lib/scan/report";
@@ -176,11 +177,11 @@ interface PageInput {
  * What a run's outcome does to its row and its opportunity.
  *
  * SPEC §7 (2026-09-15, issue 712): a written draft queues its opportunity.
- * A draft the rules stopped for the last time does not (2026-09-16, #788):
- * it rests in `needs_attention` and the opportunity goes back to the open
- * set. Nor does a row a step stopped for the last time (#813): it rests the
- * same way, its reason naming the step. A run that wrote no row moves
- * neither.
+ * A draft the rules stopped for the last time rests in `needs_attention`
+ * (#788), and so does a row a step stopped for the last time (#813), its
+ * reason naming the step. Either way the stopped draft counts as queued
+ * (owner, 2026-09-17, issue 833): its opportunity is queued too, and only
+ * the founder's Skip releases it. A run that wrote no row moves neither.
  */
 async function settle(outcome: DayPageOutcome, opportunityId: string): Promise<void> {
   if (outcome.ok) {
@@ -206,7 +207,7 @@ async function rulesReason(draftId: string): Promise<string> {
 /**
  * §8 rule 4, "twice = needs-attention" (#788): the stopped page leaves
  * `generating` for the state the customer can act on, and its opportunity
- * leaves `queued`. The rules that stopped it are on the row already
+ * is held `queued` behind it (issue 833). The rules that stopped it are on the row already
  * (`rule_failures`, which the draft view lists); the move's record names
  * them too — or names the step that could not run (#813).
  *
@@ -219,7 +220,7 @@ async function rest(draftId: string, opportunityId: string, reason: string): Pro
   if (!moved.ok) {
     console.log(JSON.stringify({ event: "draft_not_rested", draftId, refused: moved.refused, state: moved.state }));
   }
-  await releaseForDraft(opportunityId);
+  await queueForDraft(opportunityId);
 }
 
 async function fixPage(a: PageInput): Promise<DayPageOutcome> {
