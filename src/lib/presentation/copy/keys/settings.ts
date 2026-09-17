@@ -286,8 +286,19 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.destination.check.could-not-ask": ["We couldn’t check just now. Try again in a moment.", { slots: {}, fixedBy: "SPEC §5 (2026-09-16, issue 757)" }],
   // A deployment with no verification bound: pressing again changes nothing,
   // so this line never says to try again, and it is ReachKit's to fix, not
-  // the founder's DNS (issue 840).
-  "settings.destination.check.not-configured": ["ReachKit can’t verify this connection automatically yet. That’s on our side, not a problem with your DNS. Keep the record as shown and it will be checked once verification is switched on.", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 840)" }],
+  // the founder's DNS (issue 840). Since issue 856 it is the second step's
+  // line only, under the public DNS answer, and says what that answer
+  // confirmed: `not-configured` where the record points here,
+  // `not-configured.unconfirmed` where it does not, or could not be read.
+  "settings.destination.check.not-configured": ["Your record is in place. The last step — ReachKit confirming the secure connection — isn’t switched on yet. That’s on our side; there’s nothing more for you to do.", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issues 840, 856)" }],
+  "settings.destination.check.not-configured.unconfirmed": ["The last step — ReachKit confirming the secure connection — isn’t switched on yet. That’s on our side. Once your record points at the right place, there’s nothing more for you to do.", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  // The press's first step (issue 856): what public DNS says about the
+  // record, before any vendor is asked. `{target}` is where the record
+  // points instead — a host name, or an address where a proxy answers.
+  "settings.destination.check.dns.points-here": ["Record found, pointing at the right place.", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "settings.destination.check.dns.points-elsewhere": ["Record found, pointing elsewhere: {target}. Change it to the target shown above.", { slots: { target: "text" }, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "settings.destination.check.dns.not-yet": ["No record yet — DNS changes can take a few minutes. Check again shortly.", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "settings.destination.check.dns.unknown": ["We couldn’t look up your record in public DNS just now.", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
   /** `seconds` is how long until the press may ask again, as a whole
    *  number, counting down on screen. The registry does not pluralise, so
    *  the number stands after a colon (issue 840). */

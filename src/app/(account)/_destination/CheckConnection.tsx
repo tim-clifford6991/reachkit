@@ -18,12 +18,21 @@
 // goes and the button comes back. "Nothing could be asked" says why: a
 // deployment with no verification bound is told apart from a vendor that did
 // not answer, and only the second tells the founder to try again.
+//
+// **Two steps, in order** (issue 856). The press asks public DNS first, and
+// its line comes first: found and pointing here, found and pointing
+// elsewhere (and where), or not yet. The domain list's line is the second
+// step. Where the vendor says live, the DNS line is not drawn: the
+// connection works, and a proxy's addresses are not worth a warning. A
+// deployment with no verification bound says so only as the second step,
+// in words that follow what the DNS step confirmed.
 "use client";
 
 import type React from "react";
 import { useEffect, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
+import type { PublicDns } from "@/lib/publish/destinations/hosted/dns-check";
 import { checkConnection, type ConnectionCheck } from "./check-actions";
 
 /** An answer that says something about the host, or that nothing could be
@@ -45,12 +54,38 @@ function answerLine(answer: Answer): { key: CopyKey; tone: string; id: string } 
         ? { key: "settings.destination.check.live", tone: GOOD, id: "live" }
         : { key: "settings.destination.check.pending-dns", tone: WAITING, id: "pending_dns" };
     case "could_not_ask":
-      return answer.because === "not_configured"
-        ? { key: "settings.destination.check.not-configured", tone: NOT_ASKED, id: "not_configured" }
-        : { key: "settings.destination.check.could-not-ask", tone: NOT_ASKED, id: "could_not_ask" };
+      if (answer.because === "no_answer") {
+        return { key: "settings.destination.check.could-not-ask", tone: NOT_ASKED, id: "could_not_ask" };
+      }
+      // Not set up on our side: the founder's part may already be done.
+      return answer.dns?.state === "points_here"
+        ? { key: "settings.destination.check.not-configured", tone: GOOD, id: "not_configured" }
+        : { key: "settings.destination.check.not-configured.unconfirmed", tone: WAITING, id: "not_configured" };
     case "refused":
       if (answer.because === "no_host") return null;
       return { key: REFUSAL_COPY_KEY[answer.because], tone: NOT_ASKED, id: "refused" };
+  }
+}
+
+/** The first step's line: what public DNS said about the record, or `null`
+ *  where the press did not reach it, or the vendor has said live. */
+function dnsLine(answer: Answer): { text: string; tone: string; id: PublicDns["state"] } | null {
+  if (answer.outcome === "refused" || answer.dns === null) return null;
+  if (answer.outcome === "asked" && answer.state === "live") return null;
+  const dns = answer.dns;
+  switch (dns.state) {
+    case "points_here":
+      return { text: copy("settings.destination.check.dns.points-here"), tone: GOOD, id: dns.state };
+    case "points_elsewhere":
+      return {
+        text: copy("settings.destination.check.dns.points-elsewhere", { target: dns.target }),
+        tone: WAITING,
+        id: dns.state,
+      };
+    case "not_yet":
+      return { text: copy("settings.destination.check.dns.not-yet"), tone: WAITING, id: dns.state };
+    case "unknown":
+      return { text: copy("settings.destination.check.dns.unknown"), tone: NOT_ASKED, id: dns.state };
   }
 }
 
@@ -108,13 +143,14 @@ export function CheckConnection(p: {
       // The press did not complete: nothing was asked, and the founder is
       // told so rather than left with whatever was shown before.
       setAskAgainAt(null);
-      setAnswer({ outcome: "could_not_ask", because: "no_answer" });
+      setAnswer({ outcome: "could_not_ask", because: "no_answer", dns: null });
     } finally {
       setRunning(false);
     }
   }
 
   const line = answer === null ? null : answerLine(answer);
+  const dns = answer === null ? null : dnsLine(answer);
 
   return (
     <div className="flex min-w-0 flex-col gap-2" data-testid="check-connection">
@@ -134,6 +170,11 @@ export function CheckConnection(p: {
         )}
         {copy("settings.destination.check.button")}
       </button>
+      {dns === null ? null : (
+        <div role="status" className={dns.tone} data-testid="check-connection-dns" data-dns={dns.id}>
+          {dns.text}
+        </div>
+      )}
       {line === null ? null : (
         <div role="status" className={line.tone} data-testid="check-connection-answer" data-outcome={line.id}>
           {copy(line.key)}

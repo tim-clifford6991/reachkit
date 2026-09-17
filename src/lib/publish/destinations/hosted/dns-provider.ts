@@ -7,8 +7,13 @@
 // brand — the founder can recognise it or search for it, and a wrong brand
 // would send them to a dashboard their domain is not on. A suffix one
 // provider runs for several (NS1's `nsone.net` also serves Netlify DNS,
-// `googledomains.com` now serves Squarespace and Google Cloud DNS) is left
-// out for the same reason.
+// is left out for the same reason. `googledomains.com` serves both
+// Squarespace Domains (every domain moved from Google Domains) and Google
+// Cloud DNS; since issue 856 it is named "Squarespace" and given
+// Squarespace's steps, the owner's "Google/Squarespace" guide.
+//
+// Each provider carries the guide its steps are drawn from (issue 856): the
+// six the owner named, and the generic guide for every other provider.
 //
 // Provider names are brands, carried as data into the registry's
 // `{provider}` slot — never a sentence.
@@ -16,33 +21,35 @@ import { parse as pslParse } from "psl";
 
 /** What the founder can be told about where their DNS is. */
 export type DnsWhere =
-  | { kind: "provider"; provider: string; cloudflare: boolean }
+  | { kind: "provider"; provider: string; guide: DnsGuideId }
   | { kind: "nameserver"; nameserver: string }
   | { kind: "unknown" };
 
-const CLOUDFLARE = "Cloudflare";
+/** The providers with steps of their own; `generic` is everyone else's. */
+export type DnsGuideId = "cloudflare" | "godaddy" | "namecheap" | "squarespace" | "route53" | "vercel" | "generic";
 
 /** Suffix → provider. A nameserver matches a suffix when it is that name
  *  or ends in `.` + it; Route 53's names carry a numbered label
  *  (`ns-1.awsdns-01.org`), so its row is a pattern. */
-const PROVIDERS: readonly (readonly [RegExp, string])[] = [
-  [/(^|\.)ns\.cloudflare\.com$/, CLOUDFLARE],
-  [/(^|\.)domaincontrol\.com$/, "GoDaddy"],
-  [/(^|\.)awsdns-\d+\.[a-z.]+$/, "Amazon Route 53"],
-  [/(^|\.)registrar-servers\.com$/, "Namecheap"],
-  [/(^|\.)vercel-dns\.com$/, "Vercel"],
-  [/(^|\.)digitalocean\.com$/, "DigitalOcean"],
-  [/(^|\.)ovh\.net$/, "OVHcloud"],
-  [/(^|\.)gandi\.net$/, "Gandi"],
-  [/(^|\.)porkbun\.com$/, "Porkbun"],
-  [/(^|\.)dnsimple\.com$/, "DNSimple"],
-  [/(^|\.)hover\.com$/, "Hover"],
-  [/(^|\.)ui-dns\.(com|de|org|biz)$/, "IONOS"],
-  [/(^|\.)wixdns\.net$/, "Wix"],
+const PROVIDERS: readonly (readonly [RegExp, string, DnsGuideId])[] = [
+  [/(^|\.)ns\.cloudflare\.com$/, "Cloudflare", "cloudflare"],
+  [/(^|\.)domaincontrol\.com$/, "GoDaddy", "godaddy"],
+  [/(^|\.)awsdns-\d+\.[a-z.]+$/, "Amazon Route 53", "route53"],
+  [/(^|\.)registrar-servers\.com$/, "Namecheap", "namecheap"],
+  [/(^|\.)googledomains\.com$/, "Squarespace", "squarespace"],
+  [/(^|\.)vercel-dns\.com$/, "Vercel", "vercel"],
+  [/(^|\.)digitalocean\.com$/, "DigitalOcean", "generic"],
+  [/(^|\.)ovh\.net$/, "OVHcloud", "generic"],
+  [/(^|\.)gandi\.net$/, "Gandi", "generic"],
+  [/(^|\.)porkbun\.com$/, "Porkbun", "generic"],
+  [/(^|\.)dnsimple\.com$/, "DNSimple", "generic"],
+  [/(^|\.)hover\.com$/, "Hover", "generic"],
+  [/(^|\.)ui-dns\.(com|de|org|biz)$/, "IONOS", "generic"],
+  [/(^|\.)wixdns\.net$/, "Wix", "generic"],
 ];
 
-function providerOf(nameserver: string): string | null {
-  for (const [suffix, provider] of PROVIDERS) if (suffix.test(nameserver)) return provider;
+function providerOf(nameserver: string): (typeof PROVIDERS)[number] | null {
+  for (const row of PROVIDERS) if (row[0].test(nameserver)) return row;
   return null;
 }
 
@@ -64,7 +71,7 @@ export function dnsWhereFrom(nameservers: readonly string[] | null): DnsWhere {
   const providers = new Set(nameservers.map(providerOf));
   const [only] = providers;
   if (providers.size === 1 && only !== null && only !== undefined) {
-    return { kind: "provider", provider: only, cloudflare: only === CLOUDFLARE };
+    return { kind: "provider", provider: only[1], guide: only[2] };
   }
   return { kind: "nameserver", nameserver: nameservers[0]! };
 }

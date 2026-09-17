@@ -440,9 +440,9 @@ describe("REQ-028 c2 — the destination, and no mode (SPEC §7, #476)", () => {
     const tree = screenFor();
     const record = tree.querySelector('[data-testid="dns-record"]');
     expect(record).not.toBeNull();
-    expect(record?.className).toContain("num");
+    expect(record?.querySelector('[data-testid="dns-value"]')?.className).toContain("num");
     expect(record?.textContent).toContain("CNAME");
-    expect(record?.textContent).toContain("content.example.com");
+    expect(record?.getAttribute("data-host")).toBe("content.example.com");
     expect(record?.textContent).toContain(FIXTURE_SETUP_FACTS.cnameTarget);
   });
 

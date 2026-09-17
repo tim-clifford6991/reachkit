@@ -96,7 +96,9 @@ function recordIn(root: ParentNode): Shown | null {
   const record = root.querySelector('[data-testid="dns-record"]');
   if (record === null) return null;
   const part = (id: string) => record.querySelector(`[data-testid="dns-${id}"]`)?.textContent ?? "";
-  return { name: part("name"), type: part("type"), value: part("value") };
+  // The table's Name row holds what goes in the provider's name field (issue
+  // 856); the record's full name is the table's own.
+  return { name: record.getAttribute("data-host") ?? "", type: part("type"), value: part("value") };
 }
 
 /** The founder at setup, on the address `DOMAIN`, having typed `label` —
@@ -116,7 +118,7 @@ async function setupShows(label: string | null): Promise<Shown | null> {
       field.dispatchEvent(new Event("input", { bubbles: true }));
     });
   }
-  return recordIn(host.querySelector('[data-testid="setup-destination-hosted"]')!);
+  return recordIn(host.querySelector('[data-testid="setup-publishing"]')!);
 }
 
 /** The same founder's Settings, over the destination row setup's commit
