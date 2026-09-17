@@ -18,9 +18,17 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 // time (every other import it has is a type).
 vi.mock("@/lib/db", () => ({ dbAdmin: vi.fn() }));
 
-import { CAPS, TIMING } from "@/lib/config/constants";
+import { BATTERY, CAPS, PRICE_BOOK, TIMING } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
-import { SERP_FANOUT, STAGE_BUDGETS, withStageBudget } from "@/lib/scan/budgets";
+import {
+  MARKET_PURSE_CENTS,
+  QUESTION_SERP_RESERVE_C,
+  SERP_FANOUT,
+  STAGE_BUDGETS,
+  affordsSeed,
+  twelveCentsAfter,
+  withStageBudget,
+} from "@/lib/scan/budgets";
 import type { Bounds } from "@/lib/scan/ceilings";
 import { STAGES } from "@/lib/scan/stages";
 
@@ -36,6 +44,7 @@ function passBounds(over: { expired?: boolean; capHit?: boolean; abandoned?: () 
     expired: () => expired,
     remainingMs: () => (expired ? 0 : TIMING.reportCeilingS * 1000),
     capHit: () => capHit,
+    remainingCents: () => (capHit ? 0 : CAPS.FREE_C),
     stopNow: () => (expired ? "time_ceiling" : capHit ? "spend_ceiling" : null),
     siteUnreadable: () => undefined,
     unreadable: () => undefined,
@@ -69,6 +78,49 @@ describe("the budget adds up to less than the ceilings the pass has", () => {
   it("the cents sum under the free pass's cap", () => {
     const cents = Object.values(STAGE_BUDGETS).reduce((total, b) => total + b.cents, 0);
     expect(cents).toBeLessThanOrEqual(CAPS.FREE_C);
+  });
+});
+
+describe("the market and the twelve share one purse (issue 835)", () => {
+  it("the purse is the two rows, so the seed ladder is never paid on top of the twelve", () => {
+    expect(MARKET_PURSE_CENTS).toBe(STAGE_BUDGETS.reading_your_market.cents + STAGE_BUDGETS.asking_the_twelve.cents);
+    const others = Object.entries(STAGE_BUDGETS)
+      .filter(([stage]) => stage !== "reading_your_market" && stage !== "asking_the_twelve")
+      .reduce((total, [, b]) => total + b.cents, 0);
+    expect(others + MARKET_PURSE_CENTS).toBeLessThanOrEqual(CAPS.FREE_C);
+    expect(STAGE_BUDGETS.asking_the_twelve.cents).toBeGreaterThanOrEqual(BATTERY.QUESTIONS * QUESTION_SERP_RESERVE_C);
+  });
+
+  it("the twelve get what the market left of the purse — their own row at most, never below nothing", () => {
+    expect(twelveCentsAfter(0)).toBe(STAGE_BUDGETS.asking_the_twelve.cents);
+    expect(twelveCentsAfter(STAGE_BUDGETS.reading_your_market.cents)).toBe(STAGE_BUDGETS.asking_the_twelve.cents);
+    expect(twelveCentsAfter(MARKET_PURSE_CENTS - 2)).toBeCloseTo(2);
+    expect(twelveCentsAfter(MARKET_PURSE_CENTS + 1)).toBe(0);
+  });
+
+  it("a seed is bought only while the purse holds it and a SERP for every question already selected", () => {
+    const seed = PRICE_BOOK.SUGGESTIONS_COST_C;
+    expect(affordsSeed({ remainingCents: seed + 0.01, selected: 0 })).toBe(true);
+    expect(affordsSeed({ remainingCents: seed, selected: 0 })).toBe(false);
+    expect(affordsSeed({ remainingCents: seed + 0.01, selected: 1 })).toBe(false);
+    expect(affordsSeed({ remainingCents: seed + 3 * QUESTION_SERP_RESERVE_C + 0.01, selected: 3 })).toBe(true);
+  });
+
+  it("a stage handed the purse reads its remaining cents from the purse, never past the pass's own", async () => {
+    let remaining = -1;
+    await withStageBudget(
+      {
+        stage: "reading_your_market",
+        bounds: passBounds(),
+        cost: fakeCost(() => 0),
+        applies: true,
+        cents: MARKET_PURSE_CENTS,
+      },
+      async (stageBounds) => {
+        remaining = stageBounds.remainingCents();
+      }
+    );
+    expect(remaining).toBe(Math.min(MARKET_PURSE_CENTS, CAPS.FREE_C));
   });
 });
 

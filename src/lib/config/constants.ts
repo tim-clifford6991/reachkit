@@ -546,7 +546,8 @@ export const SELECTION = Object.freeze({                    // BP-025 · REQ-006
    *  is `volumeFloorPerMonth`; the last is never below `KEYWORD_PAGE_MIN_VOLUME`. */
   volumeSteps: Object.freeze([50, 20, 10] as const),
   /** SPEC §6 thin markets: at most this many extra `keyword_suggestions`
-   *  purchases per paid pass, inside that pass's own cap. */
+   *  purchases per pass, inside that pass's own cap — the free scan's too
+   *  (owner ruling 2026-09-17, issue 835). */
   maxExtraSeeds: 3,
   intentWeights: Object.freeze({ decision: 3, solution: 3, problem: 2, informational: 1 } as const),
   minDecision: 4, minSolution: 3, maxRivalBrand: 3, maxHowTo: 2,

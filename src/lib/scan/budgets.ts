@@ -25,17 +25,30 @@
 // |-------------------------|---------|-------|------------------------|
 // | `reading_your_site`     |      10 |   2.0 | the home and pricing documents, the robots policy, and the one `ranked_keywords`@50 (`RANKED_FREE_COST_C` = 1.8¢) |
 // | `reading_access_rules`  |       1 |   0   | reports a read stage one already made — it buys nothing and waits for nothing |
-// | `reading_your_market`   |      12 |   4.7 | `keyword_suggestions` (1.8¢) and the free path's two nano calls — the profile and the phrasing (≈2.6¢ together at Haiku's row) |
-// | `checking_your_presence`|       2 |   0   | the free tier's `sizesRivals` is `false`: per-rival `ranked_keywords` is on §6.4's never-pull list for this path |
-// | `asking_the_twelve`     |      13 |   5.0 | twelve live SERPs, each reserving the async-AI-Overview surcharge (12 × `SERP_LIVE_C` × `ASYNC_AIO_SURCHARGE_MULTIPLIER` = 4.8¢) |
-// | `scoring`               |       2 |   0   | both cards, the rivals and the coherence verdict, all counted over SERPs already paid for (§6.6's "zero extra cost") |
+// | `reading_your_market`   |      14 |   5.0 | `keyword_suggestions` (1.8¢) and the free path's two nano calls — the profile and the phrasing (≈2.6¢ together at Haiku's row); the seed ladder's extra purchases are paid from the purse it shares with the twelve (below) |
+// | `checking_your_presence`|       1 |   0   | the free tier's `sizesRivals` is `false`: per-rival `ranked_keywords` is on §6.4's never-pull list for this path |
+// | `asking_the_twelve`     |      13 |   5.0 | twelve live SERPs, each reserving the async-AI-Overview surcharge (12 × `QUESTION_SERP_RESERVE_C` = 4.8¢) |
+// | `scoring`               |       1 |   0   | both cards, the rivals and the coherence verdict, all counted over SERPs already paid for (§6.6's "zero extra cost") |
+//
+// **The market and the twelve share one purse** (issue 835, owner ruling
+// 2026-09-17: the free scan walks the same seed ladder as the deep pass,
+// up to `SELECTION.maxExtraSeeds` extra seeds, inside the free cap). Three
+// extra seeds at 1.8¢ each do not fit beside twelve SERPs in 12¢, and they
+// never need to: a seed is bought only while the pass is short of
+// questions, and a question the pass does not have is a SERP it will not
+// buy. So `reading_your_market` spends from its own row *and* the twelve's
+// (`MARKET_PURSE_CENTS`), the twelve get what the market left of that purse
+// (`twelveCentsAfter`), and the run buys an extra seed only while the purse
+// still holds the seed and the SERPs of every question already selected
+// (`affordsSeed`). The column sum below is unchanged by that: the two rows
+// are one purse, not two.
 //
 // The seconds sum to `TIMING.reportTargetS` — 40, the p95 the pass aims at,
 // which is itself ten seconds under `TIMING.reportCeilingS`. Budgeting to
 // the *target* rather than the ceiling is what leaves the overall ceiling
 // something to be: a pass whose every stage spends its whole budget still
 // finishes inside 40 s, and the ten seconds above that are the margin the
-// ending and the stored report are written in. The cents sum to 11.7,
+// ending and the stored report are written in. The cents sum to 12,
 // under `CAPS.FREE_C`. `assertBudgetsFit` below is both sums, checked when
 // this module loads, so a stage whose budget is widened past what the pass
 // can afford fails at import rather than on a customer's scan.
@@ -44,7 +57,7 @@
 // `INFERENCE_TIMEOUT_MS.nano` is 15 s and the free path makes two such
 // calls (`FREE_PASS_INFERENCE_CALLS`), so `reading_your_market`'s worst
 // case at the seam below it is 30 s — three quarters of the whole target.
-// Its budget here is 12. The stage's bound is therefore this file's, not
+// Its budget here is 14. The stage's bound is therefore this file's, not
 // the model client's: a profile call that runs long is cut off with the
 // market `not_attempted` and the twelve still get asked, which is the
 // trade §2 asks for ("a cut-off factor shows '—' with one line per
@@ -56,7 +69,7 @@
 // reason (`runInStageBudget` below). Money stays cooperative: it is read
 // between calls through the stage's own `Bounds`, exactly as the overall
 // cap is.
-import { CAPS, TIMING } from "@/lib/config/constants";
+import { ASYNC_AIO_SURCHARGE_MULTIPLIER, CAPS, PRICE_BOOK, TIMING } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import type { Bounds } from "./ceilings";
 import type { StageName } from "./stages";
@@ -74,11 +87,37 @@ export interface StageBudget {
 export const STAGE_BUDGETS = Object.freeze({
   reading_your_site: Object.freeze({ seconds: 10, cents: 2.0 }),
   reading_access_rules: Object.freeze({ seconds: 1, cents: 0 }),
-  reading_your_market: Object.freeze({ seconds: 12, cents: 4.7 }),
-  checking_your_presence: Object.freeze({ seconds: 2, cents: 0 }),
+  reading_your_market: Object.freeze({ seconds: 14, cents: 5.0 }),
+  checking_your_presence: Object.freeze({ seconds: 1, cents: 0 }),
   asking_the_twelve: Object.freeze({ seconds: 13, cents: 5.0 }),
-  scoring: Object.freeze({ seconds: 2, cents: 0 }),
+  scoring: Object.freeze({ seconds: 1, cents: 0 }),
 }) satisfies Readonly<Record<StageName, StageBudget>>;
+
+/** The most one question's live SERP reserves on the free path: the base
+ *  price with the async-AI-Overview surcharge (ADR-094 d3). The twelve's
+ *  row is twelve of these. */
+export const QUESTION_SERP_RESERVE_C = PRICE_BOOK.SERP_LIVE_C * ASYNC_AIO_SURCHARGE_MULTIPLIER;
+
+/** Issue 835: the purse `reading_your_market` spends from on the free path —
+ *  its own row and the twelve's, because the seed ladder's extra purchases
+ *  are paid from the SERPs of questions the pass does not have. */
+export const MARKET_PURSE_CENTS = STAGE_BUDGETS.reading_your_market.cents + STAGE_BUDGETS.asking_the_twelve.cents;
+
+/** Issue 835: what the twelve may spend once the market has spent
+ *  `marketCents` of the purse they share — their own row at most, never
+ *  below nothing. */
+export function twelveCentsAfter(marketCents: number): number {
+  return Math.max(0, Math.min(STAGE_BUDGETS.asking_the_twelve.cents, MARKET_PURSE_CENTS - marketCents));
+}
+
+/** Issue 835: whether a pass with `remainingCents` left may buy one more
+ *  `keyword_suggestions` seed while it holds `selected` questions — the seed
+ *  and a SERP for every one of them must still fit, so widening never takes
+ *  the money the questions it already has are asked with. Strictly more, so
+ *  the phrasing after the purchase still reads a purse that is not spent. */
+export function affordsSeed(a: { remainingCents: number; selected: number }): boolean {
+  return a.remainingCents > PRICE_BOOK.SUGGESTIONS_COST_C + a.selected * QUESTION_SERP_RESERVE_C;
+}
 
 /** How many of the twelve question-SERPs one pass has in flight at once
  *  (issue #539).
@@ -183,6 +222,10 @@ function stageBounds(a: {
     capHit(): boolean {
       return a.bounds.capHit() || a.cost.spentCents() - a.spentAtEntryCents >= a.budget.cents;
     },
+    remainingCents(): number {
+      const stageLeft = a.budget.cents - (a.cost.spentCents() - a.spentAtEntryCents);
+      return Math.max(0, Math.min(a.bounds.remainingCents(), stageLeft));
+    },
     stopNow(): "time_ceiling" | "spend_ceiling" | null {
       if (bounds.expired()) return "time_ceiling";
       if (bounds.capHit()) return "spend_ceiling";
@@ -261,6 +304,10 @@ export async function withStageBudget<T>(
     bounds: Bounds;
     cost: CostContext;
     applies: boolean;
+    /** The cents this stage may spend, where it is not its own row: the
+     *  market's shared purse and what the twelve get of it (issue 835).
+     *  The seconds are always the row's. */
+    cents?: number;
   },
   work: (bounds: Bounds, abandoned: () => boolean) => Promise<T>
 ): Promise<StageOutcome<T>> {
@@ -270,7 +317,8 @@ export async function withStageBudget<T>(
   // would have to remember to read.
   if (!a.applies) return { spent: false, value: await work(a.bounds, () => a.bounds.abandoned()) };
 
-  const budget = STAGE_BUDGETS[a.stage];
+  const row = STAGE_BUDGETS[a.stage];
+  const budget: StageBudget = a.cents === undefined ? row : { seconds: row.seconds, cents: a.cents };
   const startedAtMs = Date.now();
   const spentAtEntryCents = a.cost.spentCents();
   const bounds = stageBounds({ bounds: a.bounds, cost: a.cost, budget, startedAtMs, spentAtEntryCents });

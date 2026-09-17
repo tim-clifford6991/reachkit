@@ -53,7 +53,7 @@
 // "a number that appears in two files is wrong" — does not reach a value
 // that lives in exactly one file, which this stays as long as no second
 // caller repeats the literal rather than importing it.
-import { TIMING } from "@/lib/config/constants";
+import { CAPS, TIMING } from "@/lib/config/constants";
 import { withCostContext, type CapName, type CostContext, type FetchRefusalReason } from "@/lib/costs";
 
 /** REQ-003's "bounded moment", made total. A free scan reaches exactly one. */
@@ -73,6 +73,10 @@ export interface Bounds {
   expired(): boolean; // now ≥ startedAt + TIMING.reportCeilingS
   remainingMs(): number;
   capHit(): boolean; // delegates to the CostContext, CAP_FREE
+  /** The cents left before the pass's cap — or, inside a stage's budget,
+   *  before that budget — so a step can ask whether its next purchase fits
+   *  before it makes it (issue 835). */
+  remainingCents(): number;
   stopNow(): "time_ceiling" | "spend_ceiling" | null;
   /** Called by the body when its first stage could not read the site's own
    *  home document, before it stops (issue #479). Not a ceiling: the pass
@@ -105,13 +109,24 @@ export interface Bounds {
 // cache").
 export const FREE_SCAN_POLICY_VERSION = 1;
 
-/** The narrow slice of `CostContext` a `Bounds` needs — `capHit()` alone.
+/** Each cap's figure, for `remainingCents()`. The same pins `withCostContext`
+ *  refuses a call against. */
+const CAP_CENTS: Readonly<Record<CapName, number>> = {
+  FREE: CAPS.FREE_C,
+  DEEP: CAPS.DEEP_C,
+  WEEKLY: CAPS.WEEKLY_C,
+  DRAFT: CAPS.DRAFT_C,
+};
+
+/** The narrow slice of `CostContext` a `Bounds` needs — `capHit()`, and the spend and cap `remainingCents()` reads.
  *  Kept separate from the full interface so `makeBounds` cannot reach for
  *  `recordFetch`, which is not this module's to call (`## Out of scope`:
  *  "BP-007's `capHit()` itself, the ledger and the cache — another
  *  node's"). */
 interface CapReader {
   capHit(): boolean;
+  spentCents(): number;
+  readonly cap: CapName;
 }
 
 /** The clock is a parameter of this builder, never read from a global
@@ -136,6 +151,9 @@ function makeBounds(a: { startedAt: Date; clock: () => Date; cost: CapReader }):
     },
     capHit(): boolean {
       return a.cost.capHit();
+    },
+    remainingCents(): number {
+      return Math.max(0, CAP_CENTS[a.cost.cap] - a.cost.spentCents());
     },
     stopNow(): "time_ceiling" | "spend_ceiling" | null {
       if (bounds.expired()) return "time_ceiling";

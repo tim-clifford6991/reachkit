@@ -123,6 +123,11 @@ const PHRASING_PROMPT_CHARS = JSON.stringify(
 function freePassWorstCase(price: { profile: Price; phrasing: Price }) {
   return {
     rankedKeywords: PRICE_BOOK.RANKED_FREE_COST_C,
+    // One seed. The seed ladder's extra seeds (issue 835) are not a line of
+    // their own: each is bought only while the twelve's share of the purse
+    // still holds it and a SERP for every question already selected
+    // (`affordsSeed`, `src/lib/scan/budgets.ts`), so it is paid from SERPs
+    // this sum prices and the pass then does not buy.
     keywordSuggestions: PRICE_BOOK.SUGGESTIONS_COST_C,
     // Twelve live SERPs with the async AI Overview flag, each reserving the
     // surcharge (ADR-094 d3).

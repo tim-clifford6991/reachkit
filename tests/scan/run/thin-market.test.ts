@@ -13,6 +13,9 @@ import { measured, measuredZero, unmeasured } from "../../../src/lib/measure/mea
 import type { DomainMeasurement } from "../../../src/lib/measure";
 import type { SelectedSearch } from "../../../src/lib/market/questions/select";
 import type { StoredReport } from "../../../src/lib/scan/report";
+import { CAPS, PRICE_BOOK, SELECTION } from "../../../src/lib/config/constants";
+import type { CostContext } from "../../../src/lib/costs";
+import { QUESTION_SERP_RESERVE_C } from "../../../src/lib/scan/budgets";
 import { memoryStore, newMemoryState, type MemoryState } from "../../opportunities/memory-store";
 import { AT, ON_PAGE, PROFILE, ROBOTS } from "../report/fixtures";
 
@@ -308,5 +311,92 @@ describe("an established market is unchanged", () => {
     expect(selected).toEqual(expected);
     expect(selected.every((search) => search.floor === 50)).toBe(true);
     expect(rankedKeywords).toHaveBeenCalledTimes(RIVALS.length);
+  });
+});
+
+describe("a new site's free report walks the same ladder inside 12¢ (owner ruling 2026-09-17, issue 835)", () => {
+  // A new site ranks for nothing, and its category seed answers nothing —
+  // the owner's walk of reachkit.app. Its head term answers long-tail rows.
+  const CATEGORY = "user onboarding software for product teams";
+  const HEAD_TERM = "user onboarding software";
+  const LONG_TAIL: readonly (readonly [string, number])[] = [
+    ["user onboarding software pricing", 40],
+    ["user onboarding software for saas", 30],
+    ["product tours software", 20],
+  ];
+  const NEW_SITE: DomainMeasurement = { ...MEASUREMENT, ownRanked: measuredZero(0, AT), ownRankedRows: [] };
+
+  /** A double that charges the pass's real cost context what the price book
+   *  says the call reserves, then answers — so the ledger the cap reads is
+   *  the one a live pass would have, and nothing is bought. */
+  function charged<T>(cents: number, source: string, answer: (a: never) => T) {
+    return async (c: CostContext, a: never): Promise<T> => {
+      const paid = await c.recordFetch({
+        source,
+        cacheKey: `${source}:${JSON.stringify(a)}`,
+        freshnessDays: 0,
+        costCents: cents,
+        run: async () => answer(a),
+      });
+      if ("skipped" in paid) return unmeasured("not_attempted", AT) as T;
+      return paid.payload;
+    };
+  }
+
+  function spentCents(): number {
+    const ending = vi
+      .mocked(console.log)
+      .mock.calls.map((call) => String(call[0]))
+      .find((line) => line.includes('"event":"scan_ending"'));
+    return (JSON.parse(ending!) as { costCents: number }).costCents;
+  }
+
+  beforeEach(() => {
+    measureDomain.mockImplementation(charged(PRICE_BOOK.RANKED_FREE_COST_C, "ranked_keywords", () => NEW_SITE));
+    deriveProfile.mockImplementation(
+      charged(1.3, "profile", () => measured({ ...PROFILE, category: CATEGORY }, AT))
+    );
+    phraseQuestions.mockImplementation(
+      charged(1.3, "question-phrasing", (a: { selected: SelectedSearch[] }) =>
+        measured(
+          a.selected.map((search, i) => ({ id: `q${i + 1}`, text: `${search.keyword}?`, search, phrasing: "model" })),
+          AT
+        )
+      )
+    );
+    serpOrganic.mockImplementation(charged(QUESTION_SERP_RESERVE_C, "serp", () => measured(SERP, AT)));
+  });
+
+  it("the category seed answers nothing, the head term answers long-tail rows: questions, SERPs bought, spend ≤ 12¢", async () => {
+    keywordSuggestions.mockImplementation(
+      charged(PRICE_BOOK.SUGGESTIONS_COST_C, "keyword_suggestions", (a: { seed: string }) =>
+        suggestions(a.seed === HEAD_TERM ? LONG_TAIL : [])
+      )
+    );
+
+    await runScan({ domain: DOMAIN, tier: "free" });
+
+    const seeds = keywordSuggestions.mock.calls.map((call) => (call[1] as { seed: string }).seed);
+    // It stops as soon as it has questions: the vocabulary is never bought.
+    expect(seeds).toEqual([CATEGORY, HEAD_TERM]);
+
+    const report = storedReport();
+    const questions = report.questions.kind === "measured" ? report.questions.value : [];
+    expect(questions.length).toBeGreaterThan(0);
+    expect(serpOrganic).toHaveBeenCalledTimes(questions.length);
+    expect(report.serps.filter((serp) => serp.kind === "measured").length).toBe(questions.length);
+    expect(spentCents()).toBeLessThanOrEqual(CAPS.FREE_C);
+  });
+
+  it("a market that answers no seed buys at most the extra seeds the ladder allows, and still ends inside 12¢", async () => {
+    keywordSuggestions.mockImplementation(
+      charged(PRICE_BOOK.SUGGESTIONS_COST_C, "keyword_suggestions", () => suggestions([]))
+    );
+
+    await runScan({ domain: DOMAIN, tier: "free" });
+
+    expect(keywordSuggestions.mock.calls.length).toBeLessThanOrEqual(1 + SELECTION.maxExtraSeeds);
+    expect(keywordSuggestions.mock.calls.length).toBeGreaterThan(1);
+    expect(spentCents()).toBeLessThanOrEqual(CAPS.FREE_C);
   });
 });
