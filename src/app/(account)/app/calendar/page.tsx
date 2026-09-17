@@ -83,6 +83,13 @@ export default async function CalendarPage({
       </div>
 
       <FirstPageNotice state={onboarding} />
+      {/* §7's one statement of supply, at the calendar's top and nowhere
+          else: no cell and no day panel repeats it (issue 857). */}
+      {supplyStatement === null ? null : (
+        <div role="status" className="alert alert-soft text-sm" data-testid="calendar-supply-statement">
+          {supplyStatement}
+        </div>
+      )}
       {choice === null ? null : (
         <section className="card card-border min-w-0 bg-base-100" data-testid="calendar-market-choice">
           <div className="card-body">
@@ -92,15 +99,11 @@ export default async function CalendarPage({
       )}
       <CalendarView model={model} />
 
-      {/* One footnote under the grid. §7's supply statement is a separate
-          paragraph because it is a separate claim: the footnote states the
-          rule, the statement states what supply is doing right now. */}
+      {/* One footnote under the grid: the rule. What supply is doing right
+          now is stated at the top. */}
       <footer className="flex flex-col gap-1 text-sm opacity-70" data-testid="calendar-footnote">
         {plannedNote === null && supplyNote === null ? null : (
           <p>{[plannedNote, supplyNote].filter((line) => line !== null).join(" ")}</p>
-        )}
-        {supplyStatement === null ? null : (
-          <p data-testid="calendar-supply-statement">{supplyStatement}</p>
         )}
       </footer>
     </div>

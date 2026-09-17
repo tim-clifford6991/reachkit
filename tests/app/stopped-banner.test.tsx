@@ -181,9 +181,9 @@ describe("issue 841 — a pass that found no market is not ReachKit stopping", (
     expect(tree.querySelector('[data-testid="shell-stopped"]')).toBeNull();
     expect(tree.innerHTML).not.toContain(COPY["stopped.work.line"]);
     expect(text(tree, "calendar-supply-statement")).toBe(COPY["calendar.supply.unmeasured"]);
-    const lines = [...tree.querySelectorAll('[data-testid="cell-empty-line"]')].map((n) => n.textContent);
-    expect(lines.length).toBeGreaterThan(0);
-    expect(new Set(lines)).toEqual(new Set([COPY["calendar.empty.supply-unmeasured"]]));
+    // Issue 857: the supply state is stated once, at the top, and no cell repeats it.
+    expect(tree.querySelectorAll('[data-testid="calendar-supply-statement"]')).toHaveLength(1);
+    expect(tree.querySelectorAll('[data-testid="cell-empty-line"]')).toHaveLength(0);
   });
 });
 

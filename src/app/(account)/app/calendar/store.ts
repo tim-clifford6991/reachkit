@@ -46,7 +46,7 @@ import {
   type Choice,
 } from "@/lib/opportunities";
 import { writtenLine } from "../_shell/written";
-import { addDays, dayKeyOf, daysOfMonth, type DayKey, type MonthKey } from "./dates";
+import { addDays, dayKeyOf, daysOfMonth, planHorizonEnd, type DayKey, type MonthKey } from "./dates";
 import {
   declaredAnswers,
   declaredTimezone,
@@ -207,9 +207,13 @@ function plannedOn(day: DayKey, choice: Choice, now: Date): DraftOnDay {
  * from the month's first: a customer paging forward to next month must see
  * the supply that is left after this month has taken its share, not rank 1
  * again.
+ *
+ * And no later than the day before the next weekly pass (issue 857): plans
+ * are decided per pass, so a date that pass decides is not planned now.
  */
 export function fillableDates(a: { month: MonthKey; today: DayKey }): readonly DayKey[] {
-  return daysOfMonth(a.month).filter((day) => day >= a.today);
+  const last = planHorizonEnd(a.today);
+  return daysOfMonth(a.month).filter((day) => day >= a.today && day <= last);
 }
 
 /** How many days of supply stand between today and the first date of the

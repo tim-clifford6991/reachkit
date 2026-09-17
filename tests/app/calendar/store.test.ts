@@ -161,6 +161,23 @@ describe("supply is the cap — the calendar is never padded", () => {
   });
 });
 
+describe("issue 857 — the plan stops the day before the next weekly pass", () => {
+  it("plans today through Sunday and nothing after, however much supply is left", async () => {
+    withSupply(30);
+    const facts = await readCalendarFacts({ site: SITE, month: "2026-09", now: NOW });
+    expect(facts.drafts.map((d) => d.scheduledFor)).toEqual([
+      "2026-09-15",
+      "2026-09-16",
+      "2026-09-17",
+      "2026-09-18",
+      "2026-09-19",
+      "2026-09-20",
+    ]);
+    const october = await readCalendarFacts({ site: SITE, month: "2026-10", now: NOW });
+    expect(october.drafts).toHaveLength(0);
+  });
+});
+
 describe("the next month carries on from where this one stopped", () => {
   it("offsets into the ranked list by the days between today and the month's first", () => {
     // 2026-09-15 → 2026-10-01 is sixteen days of supply already spoken for.

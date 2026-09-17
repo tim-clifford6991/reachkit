@@ -153,12 +153,14 @@ describe("the day panel states it, with both slots filled from the engine", () =
     expect(line).toContain(formatDate(RESUMES, ZONE));
   });
 
-  it("every date of the month carries it, because a replacement holds the site and not a day", () => {
+  it("every date of the plan carries it, because a replacement holds the site and not a day", () => {
     const model = assembleMonth(
       facts({ changeHoldsGeneration: { because: "domain", resumesOn: RESUMES } }),
       MONTH
     );
     const held = model.cells.filter((c) => c.inMonth && c.empty?.cause === "change_holds_generation");
-    expect(held.length).toBe(model.cells.filter((c) => c.inMonth).length);
+    // Issue 857: the plan is today through the day before the next weekly
+    // pass; a past date and a date after it carry no current hold.
+    expect(held.map((c) => c.day)).toEqual(model.cells.filter((c) => c.inMonth && c.when === "plan").map((c) => c.day));
   });
 });

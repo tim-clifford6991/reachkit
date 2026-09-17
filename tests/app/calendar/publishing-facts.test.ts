@@ -279,10 +279,11 @@ describe("the empty-date arms, from rows", () => {
     // The page is not drawn on the date it missed.
     expect(facts.drafts.some((row) => row.scheduledFor === "2026-09-14")).toBe(false);
 
-    // And the precedence: the customer's own saved change outranks it, so
-    // the date that page vacated says what the customer can act on.
+    // The past date states what happened on it (issue 857); the dates in
+    // the plan say what the customer can act on — their own saved change.
     const model = assembleMonth(facts, MONTH);
-    expect(cellFor(model, "2026-09-14")?.empty).toEqual({
+    expect(cellFor(model, "2026-09-14")?.empty).toEqual({ cause: "page_held" });
+    expect(cellFor(model, "2026-09-15")?.empty).toEqual({
       cause: "customer_change_holds_pages",
       setting: "publishing_off",
     });
