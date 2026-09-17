@@ -10,19 +10,6 @@ import { cache } from "react";
 import type { CopyKey } from "@/lib/presentation/copy";
 import { isReservedFixtureAccount, requireSetUpAccount } from "../_session/account";
 
-/** The wire name of the category a press sends — a suggestion's button and
- *  the founder's own field both carry it. */
-export const REMEASURE_CATEGORY_FIELD = "category";
-
-export type RemeasureState =
-  | { answer: "idle" }
-  /** The pass is queued; the revalidated shell shows its steps. */
-  | { answer: "started" }
-  /** Nothing was started, and the line says why. */
-  | { answer: "refused"; line: string };
-
-export const REMEASURE_INITIAL: RemeasureState = { answer: "idle" };
-
 /** The release notice whose arm carries the choice. */
 export const MARKET_TOO_SMALL: CopyKey = "setup.release.market-too-small";
 
