@@ -34,6 +34,8 @@ const facts = (over: Partial<OverviewFacts> = {}): OverviewFacts => ({
   rivals: { own: measuredZero(0, AT(17)), rivals: [] },
   supply: { exhausted: false, unmeasured: false, measuring: false, short: false, firstArrivalShortfall: false },
   waiting: [],
+  aiEngines: ["ai_overview"],
+  weekSearches: [],
   ...over,
 });
 

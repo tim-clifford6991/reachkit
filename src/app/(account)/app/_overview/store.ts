@@ -89,7 +89,8 @@ import {
   weekStartFor,
   type WeekScan,
 } from "@/lib/scan/weekly";
-import type { OverviewFacts } from "./model";
+import type { AnswerEngine, OverviewFacts } from "./model";
+import { CALENDAR_DAY_ZONE } from "./week";
 import type { WeeklyPoint } from "./growth";
 import type { RivalFact, RivalFacts } from "./rivals";
 import { waitingIssues, type WaitingItem } from "./alerts";
@@ -216,6 +217,81 @@ async function pagesRanking(siteId: string, week: string, at: Date): Promise<Mea
     (page) => page.standing.kind === "verdict" && page.standing.verdict === "working"
   ).length;
   return working === 0 ? { kind: "zero", value: 0, at } : measured(working, at);
+}
+
+/** The seven site-local dates of the week `now` falls in, as `drafts`
+ *  spells them (`scheduled_for` is a date, not an instant). The week's own
+ *  strip is `readWeek`'s; this is the same seven days as keys, so the line
+ *  and the strip can never mean two different weeks. */
+async function weekSearchesFor(site: OverviewSite, now: Date): Promise<readonly string[]> {
+  const { readWeek } = await import("./week");
+  const { dayKeyOf } = await import("../calendar/dates");
+  // The strip's days are calendar-day markers at UTC midnight, so they are
+  // read back in `CALENDAR_DAY_ZONE` and never in the site's zone, which
+  // would shift them across midnight (`week.ts` states the rule).
+  const days = readWeek({ today: now, timeZone: site.timeZone }).days.map((day) =>
+    dayKeyOf(day.date, CALENDAR_DAY_ZONE)
+  );
+  return weekSearches(site.siteId, days);
+}
+
+/**
+ * Which of §6.2's three answer engines the latest pass asked (issue 867).
+ *
+ * Read off the stored report's own answer rows: an engine with a cell that
+ * is not `unmeasured` on at least one question was asked, and one with none
+ * was not. The line under the tile therefore never names an engine nobody
+ * asked — the free pass buys the AI Overview alone, and that is what its
+ * line says.
+ */
+function enginesMeasured(report: StoredReport | null): readonly AnswerEngine[] {
+  const rows = report?.aiAnswers?.rows ?? [];
+  const asked: AnswerEngine[] = [];
+  for (const row of rows) {
+    for (const column of row.engines) {
+      const engine = column.engine as AnswerEngine;
+      if (column.cell.kind !== "unmeasured" && !asked.includes(engine)) asked.push(engine);
+    }
+  }
+  return asked;
+}
+
+/**
+ * The searches this week's pages are aimed at (issue 867) — the searches
+ * themselves, never a count.
+ *
+ * One read of the site's own drafts and one of the opportunities behind
+ * them. The week is the site's own (`scheduled_for` is a site-local date),
+ * and a draft with no opportunity or no target query contributes nothing:
+ * this line states the searches the product can name, and a page it cannot
+ * name a search for is simply not in it.
+ */
+async function weekSearches(siteId: string, week: readonly string[]): Promise<readonly string[]> {
+  const days = new Set(week);
+  const { data, error } = await client()
+    .from<{ scheduled_for: string | null; opportunity_id: string | null }>("drafts")
+    .select("scheduled_for, opportunity_id")
+    .eq("site_id", siteId);
+  if (error !== null || data === null) return [];
+  const rows = data
+    .filter((row) => row.scheduled_for !== null && days.has(row.scheduled_for))
+    .sort((x, y) => String(x.scheduled_for).localeCompare(String(y.scheduled_for)));
+  const ids = rows.map((row) => row.opportunity_id).filter((id): id is string => id !== null);
+  if (ids.length === 0) return [];
+
+  const targets = await client()
+    .from<{ id: string; target_query: string | null }>("opportunities")
+    .select("id, target_query")
+    .in("id", ids);
+  if (targets.error !== null || targets.data === null) return [];
+  const queryOf = new Map(targets.data.map((row) => [row.id, row.target_query]));
+  const searches: string[] = [];
+  for (const id of ids) {
+    const query = queryOf.get(id);
+    if (query === null || query === undefined || query.trim() === "") continue;
+    if (!searches.includes(query)) searches.push(query);
+  }
+  return searches;
 }
 
 /** §9's two states that wait on the customer. `needs_you` outranks
@@ -575,6 +651,9 @@ export async function readOverviewFacts(site: OverviewSite): Promise<OverviewFac
   // only a read that answered may say which — an unreadable one says neither.
   // Issue 855: or a market still being measured, which neither of those is.
   const state = depth.unused === 0 ? await supplyState(site.siteId).catch(() => null) : null;
+  // The site's own week, as the seven `scheduled_for` dates a draft can
+  // carry (issue 867).
+  const weekSearches = await weekSearchesFor(site, now);
 
   return {
     timeZone: site.timeZone,
@@ -607,6 +686,10 @@ export async function readOverviewFacts(site: OverviewSite): Promise<OverviewFac
       firstArrivalShortfall: false,
     },
     waiting: [...waiting, ...issuesWaiting(series.latest ?? deepPass?.report ?? null, site.domain)],
+    // Issue 867: which engines this site's pages are measured on, and what
+    // this week's pages are aimed at.
+    aiEngines: enginesMeasured(series.latest ?? deepPass?.report ?? null),
+    weekSearches,
   };
 }
 

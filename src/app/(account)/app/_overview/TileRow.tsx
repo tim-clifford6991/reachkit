@@ -18,7 +18,8 @@ import { formatDate } from "../_shell/format";
 import { writtenLine } from "../_shell/written";
 import { GOALS } from "./goals";
 import { carriedBy, formatCount, formatDayOfMonth, renderValue, type Carried } from "./present";
-import type { AiPresenceWindow, Module, ScoreModule } from "./model";
+import { ENGINE_LABEL } from "../_shell/page-target-words";
+import type { AiPresenceWindow, AnswerEngine, Module, ScoreModule } from "./model";
 import { BAND_TONE } from "@/ui/bands";
 import type { Tone } from "@/ui/types";
 
@@ -212,7 +213,10 @@ export function TileRow(p: {
   score: ScoreModule;
   /** Present only before the first weekly pass has run. */
   weekZero?: { firstDueOn: Date; startingOn: Date } | null;
-  aiAnswers: Module<number> & { window: AiPresenceWindow };
+  aiAnswers: Module<number> & {
+    window: AiPresenceWindow;
+    engines: { countedFrom: AnswerEngine; alsoMeasured: readonly AnswerEngine[] };
+  };
   pagesPublished: Module<number>;
   timeZone: string;
 }): React.JSX.Element {
@@ -230,6 +234,19 @@ export function TileRow(p: {
   const aiCarried = carriedBy(p.aiAnswers.headline, AI_LABEL);
   const outOf = formatCount(p.aiAnswers.window.of);
   const windowLine = writtenLine("overview.tile.ai-answers.window", { weeks: aiValue.text, of: outOf });
+  // Issue 867: which engine the number is counted from, and the engines
+  // measured on each page's own search beside it. The second line is drawn
+  // only where the battery actually asked them — never an engine nobody
+  // asked.
+  const countedFrom = writtenLine("overview.tile.ai-answers.counted-from", {
+    engine: copy(ENGINE_LABEL[p.aiAnswers.engines.countedFrom]),
+  });
+  const alsoMeasured =
+    p.aiAnswers.engines.alsoMeasured.length === 0
+      ? null
+      : writtenLine("overview.tile.ai-answers.also-measured", {
+          engines: p.aiAnswers.engines.alsoMeasured.map((engine) => copy(ENGINE_LABEL[engine])).join(" and "),
+        });
   const firstPass = weekZeroLine(weekZero, aiValue.isDash, () =>
     writtenLine("overview.tile.ai-answers.first-pass")
   );
@@ -271,6 +288,12 @@ export function TileRow(p: {
         {aiValue.isDash ? null : meansLine(aiCarried)}
         {firstPass === null ? null : <p className="text-xs text-base-content/60">{firstPass}</p>}
         {windowLine === null ? null : <p className="num text-xs text-base-content/60">{windowLine}</p>}
+        {countedFrom === null ? null : (
+          <p className="text-xs text-base-content/60" data-testid="overview-ai-engines">
+            {countedFrom}
+            {alsoMeasured === null ? null : ` ${alsoMeasured}`}
+          </p>
+        )}
         <div className="min-w-0 overflow-x-auto">
           <PresenceWeeks
             cells={presenceCells(p.aiAnswers.window, GOALS.ai_answers.value)}

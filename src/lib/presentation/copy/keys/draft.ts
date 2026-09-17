@@ -107,6 +107,24 @@ export const DRAFT_COPY = Object.freeze({
   // §4.6's grounded-fact block, its heading and — where the customer has
   // edited — the note that keeps the generated-content label from claiming
   // their words (REQ-093 c2's non-goal).
+  // Issue 867 (owner, 2026-09-17): the founder edits a page without being
+  // told what it is for. The block's own two sentences; its rows carry the
+  // day panel's labels, so the two screens word one fact once. Drafted under
+  // issue 759's ruling; the owner corrects the wording.
+  "draft.target.title": ["What this page is for", { slots: {}, fixedBy: "issue 867" }],
+  // A Fix page has no market target: no search, no volume, no band. Its own
+  // arm, rather than a block of blanks.
+  "draft.target.fix": [
+    "This page fixes something on your site, so it has no search to win.",
+    { slots: {}, fixedBy: "issue 867" },
+  ],
+  // Where the opportunity behind this draft is no longer readable — it was
+  // purged, or the draft was written before the row carried its target.
+  "draft.target.unknown": [
+    "We can't show what this page is for — the work it came from is no longer on file.",
+    { slots: {}, fixedBy: "issue 867" },
+  ],
+
   "draft.grounded.title": ["Grounded fact", { slots: {}, fixedBy: "REQ-045 c2" }],
   "draft.authorship.edited": ["edited by you since {at}", { slots: { at: "date" }, fixedBy: "REQ-045 c1" }],
 

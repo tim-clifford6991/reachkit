@@ -153,6 +153,34 @@ export const CALENDAR_COPY = Object.freeze({
   "calendar.why.you": ["You", { slots: {}, fixedBy: "REQ-043 c8" }],
   "calendar.why.done-when": ["Done when", { slots: {}, fixedBy: "REQ-043 c8" }],
 
+  // Issue 867 (owner, 2026-09-17): "I don't believe we are currently showing
+  // the users the SEO or GEO metrics their content is currently optimizing
+  // for." The rows that state them, on the day panel and — the same labels,
+  // one place the product words them — in the draft screen's "What this page
+  // is for" block. Plain words for both dimensions, never "SEO" or "GEO" as
+  // jargon (SPEC §4, 2026-09-17). Drafted under issue 759's ruling; the
+  // owner corrects the wording.
+  "calendar.why.volume": ["Searches a month", { slots: {}, fixedBy: "issue 867" }],
+  "calendar.why.difficulty": ["Difficulty", { slots: {}, fixedBy: "issue 867" }],
+  // The difficulty against the ceiling this site is judged by (§6, issue
+  // 858) — a number is not a verdict until it is beside the bar it is
+  // measured against.
+  "calendar.why.difficulty.of-ceiling": [
+    "{difficulty} of {ceiling}",
+    { slots: { difficulty: "text", ceiling: "text" }, fixedBy: "issue 867" },
+  ],
+  "calendar.why.band": ["Winnability", { slots: {}, fixedBy: "issue 867" }],
+  // Where the AI engines stood on this question when the pass measured it.
+  "calendar.why.engines": ["AI answers", { slots: {}, fixedBy: "issue 867" }],
+  "calendar.why.engine.names-you": ["names you", { slots: {}, fixedBy: "issue 867" }],
+  "calendar.why.engine.names-others": ["names others", { slots: {}, fixedBy: "issue 867" }],
+  "calendar.why.engine.no-answer": ["no answer", { slots: {}, fixedBy: "issue 867" }],
+  // One engine's standing, as one phrase: "ChatGPT — names others".
+  "calendar.why.engine.line": [
+    "{engine} — {standing}",
+    { slots: { engine: "text", standing: "text" }, fixedBy: "issue 867" },
+  ],
+
   // §4.6's footnote. The first half is the section's own sentence; the
   // second is the supply rule stated to the builder, and the customer's
   // wording of it is the owner's.

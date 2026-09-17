@@ -11,10 +11,12 @@
 //
 // `youStand` is a `Measured<number>` and goes through `renderMeasured` — an
 // outage renders the dash and its own written line, never a zero, and a
-// measured zero renders as `0` because that is a measurement.
+// measured zero renders as `0` because that is a measurement. The volume
+// and difficulty rows issue 867 added are read the same way.
 import type React from "react";
 import { copy } from "@/lib/presentation/copy";
 import { renderMeasured } from "@/lib/presentation/measured";
+import { ENGINE_LABEL, ENGINE_STANDING, formatCount } from "../_shell/page-target-words";
 import type { WhyThisPage as WhyFacts } from "./month";
 
 function Row(p: {
@@ -37,6 +39,30 @@ function Row(p: {
 
 export function WhyThisPage(p: { why: WhyFacts }): React.JSX.Element {
   const { why } = p;
+  // The two numbers this block gained in issue 867. Both are measurements
+  // and both go through `renderMeasured`: a search nobody could read a
+  // difficulty for shows the dash and its line, never a 0 — which would
+  // read as "nothing to beat".
+  const volume = renderMeasured(why.volume, {
+    format: formatCount,
+    unmeasuredLine: "unmeasured.undeterminable",
+    what: why.search,
+  });
+  const difficultyValue = renderMeasured(why.difficulty, {
+    format: (v) => String(v),
+    unmeasuredLine: "unmeasured.undeterminable",
+    what: why.search,
+  });
+  // Against the ceiling this site is judged by, where the row carries one:
+  // a difficulty is not a verdict until it is beside its bar.
+  const difficulty =
+    difficultyValue.isDash || why.ceiling === null
+      ? difficultyValue.text
+      : copy("calendar.why.difficulty.of-ceiling", {
+          difficulty: difficultyValue.text,
+          ceiling: String(why.ceiling),
+        });
+
   const you = renderMeasured(why.youStand, {
     format: (v) => String(v),
     // The calendar shows a stored measurement, so `not_attempted` is not
@@ -58,9 +84,29 @@ export function WhyThisPage(p: { why: WhyFacts }): React.JSX.Element {
         <Row label={copy("calendar.why.asked")} phrase>
           {why.askedAs}
         </Row>
+        {/* Issue 867: what this page is optimising for — the demand, the
+            difficulty against this site's own ceiling (§6, issue 858), and
+            where the AI engines stood. Each is a stored measurement and
+            renders its own unmeasured arm, never a zero. */}
+        <Row label={copy("calendar.why.volume")}>{volume.text}</Row>
+        <Row label={copy("calendar.why.difficulty")} phrase>
+          {difficulty}
+        </Row>
         <Row label={copy("calendar.why.answered-today-by")} phrase>
           {why.answeredTodayBy.join(", ")}
         </Row>
+        {why.engines.length === 0 ? null : (
+          <Row label={copy("calendar.why.engines")} phrase>
+            {why.engines
+              .map((engine) =>
+                copy("calendar.why.engine.line", {
+                  engine: copy(ENGINE_LABEL[engine.engine]),
+                  standing: copy(ENGINE_STANDING[engine.standing]),
+                })
+              )
+              .join(", ")}
+          </Row>
+        )}
         <Row label={copy("calendar.why.you")}>{you.text}</Row>
         <Row label={copy("calendar.why.done-when")} sentence>
           {why.doneWhen}

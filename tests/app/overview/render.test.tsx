@@ -53,6 +53,9 @@ const week = (day: number, value: number): WeeklyPoint => ({
 const facts = (over: Partial<OverviewFacts> = {}): OverviewFacts => ({
   timeZone: ZONE,
   today: TODAY,
+  // Issue 867: the engines the pass asked, and what this week aims at.
+  aiEngines: ["ai_overview", "ai_mode", "chatgpt"],
+  weekSearches: ["best crm for small teams", "crm pricing comparison"],
   points: [
     { weekStart: AT(10), value: measuredZero(0, AT(10)) },
     week(17, 36),
@@ -369,6 +372,70 @@ describe("how far ahead each rival is", () => {
     expect(markup).toContain("overview.rivals.leaders(zapier.com, ahrefs.com)");
     expect(markup).not.toContain("overview.rivals.spark.label");
     expect(markup).not.toContain("far beyond your reach");
+  });
+});
+
+describe("issue 867 — the AI-answers tile says which engines it speaks for", () => {
+  const tileOf = (over: Partial<OverviewFacts> = {}): string => {
+    const model = assembleOverview(facts(over));
+    const markup = html(
+      <TileRow
+        score={model.score}
+        aiAnswers={model.aiAnswers}
+        pagesPublished={model.pagesPublished}
+        timeZone={ZONE}
+      />
+    );
+    return markup.slice(
+      markup.indexOf('data-testid="overview-tile-ai-answers"'),
+      markup.indexOf('data-testid="overview-tile-pages"')
+    );
+  };
+
+  it("names the engine the number is counted from, and the engines measured beside it, under the tile's own number", () => {
+    const tile = tileOf();
+    // §6.2: the count is Google's AI Overview alone.
+    expect(tile).toContain("overview.tile.ai-answers.counted-from(ai-answers.engine.ai-overview)");
+    expect(tile).toContain(
+      "overview.tile.ai-answers.also-measured(ai-answers.engine.ai-mode and ai-answers.engine.chatgpt)"
+    );
+    // Under the number, not above it.
+    expect(tile.indexOf("overview.tile.ai-answers.label")).toBeLessThan(
+      tile.indexOf("overview.tile.ai-answers.counted-from")
+    );
+  });
+
+  it("a pass that asked no other engine names none — never an engine nobody asked", () => {
+    const tile = tileOf({ aiEngines: ["ai_overview"] });
+    expect(tile).toContain("overview.tile.ai-answers.counted-from(ai-answers.engine.ai-overview)");
+    expect(tile).not.toContain("overview.tile.ai-answers.also-measured");
+  });
+
+  it("and no fourth tile is added for any of it", () => {
+    expect(count(tileOf(), 'class="stat')).toBeGreaterThan(0);
+  });
+});
+
+describe("issue 867 — this week says what its pages aim at", () => {
+  const weekOf = (over: Partial<OverviewFacts> = {}): string => {
+    const model = assembleOverview(facts(over));
+    return html(<WeekModule week={model.week} timeZone={ZONE} supply={model.supply} />);
+  };
+
+  it("names the searches, never a count", () => {
+    const markup = weekOf();
+    expect(markup).toContain(
+      "overview.week.aimed-at(best crm for small teams, crm pricing comparison)"
+    );
+    expect(markup).toContain('data-testid="overview-week-aim"');
+  });
+
+  it("a week with no planned or written page states no aim at all", () => {
+    const markup = weekOf({ weekSearches: [] });
+    expect(markup).not.toContain('data-testid="overview-week-aim"');
+    expect(markup).not.toContain("overview.week.aimed-at");
+    // The strip itself is unchanged.
+    expect(count(markup, 'data-testid="overview-week-day"')).toBe(7);
   });
 });
 

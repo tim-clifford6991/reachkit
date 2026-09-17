@@ -137,12 +137,55 @@ export const BARRIERS: readonly Barrier[] = Object.freeze([
  *  Every value in here is **copied at creation**, never a reference read
  *  back later: the day panel's explanation must still read correctly after
  *  the next weekly scan has moved the numbers. */
+/** SPEC §6.2's three answer columns, by the handles `matrix.ts` names them
+ *  with. Spelled out rather than imported so this leaf, which every screen
+ *  reads, keeps no edge into the market leaf (issue 867). `BATTERY_ENGINES`
+ *  is the list; a fourth engine would have to be added in both, which §6.2
+ *  and §6.4's never-pull list already gate. */
+export type AnswerEngine = "ai_overview" | "ai_mode" | "chatgpt";
+
+/** Where one engine stood on this target's question when the pass measured
+ *  it (issue 867): it named this site, it answered and named others, it
+ *  served no answer, or nobody asked it. Four states and no number — the
+ *  screen states which, and never counts them into a figure. */
+export type EngineStanding = "names_you" | "names_others" | "no_answer" | "unmeasured";
+
+export interface TargetEngine {
+  engine: AnswerEngine;
+  standing: EngineStanding;
+}
+
+/**
+ * What this page is optimising for, beyond its search and volume (issue
+ * 867): the vendor's keyword difficulty for the search, the difficulty
+ * ceiling this site was judged against when the target was chosen (SPEC §6,
+ * issue 858), and where each answer engine stood.
+ *
+ * Copied at creation like every other member of `Evidence`, so the draft
+ * screen and the day panel still read correctly after the next Monday has
+ * moved the numbers. Absent on a row derived before issue 867: `difficulty`
+ * then has no value to render, and the screens show its unmeasured arm
+ * rather than a zero.
+ */
+export interface TargetFacts {
+  /** The search's own difficulty, 0–100. `unmeasured` where the vendor gave
+   *  none — the honest arm, never a 0, which reads as "nothing to beat". */
+  difficulty: Measured<number>;
+  /** `difficultyCeiling(ownRanked)` at creation — what the number above is
+   *  judged against. */
+  ceiling: number;
+  /** One entry per engine the pass carried, in `BATTERY_ENGINES` order. */
+  engines: readonly TargetEngine[];
+}
+
 export type Evidence =
   | {
       family: "write";
       query: string;
       volume: Measured<number>;
       rival: { domain: string; url: Measured<string>; position: Measured<number> };
+      /** issue 867. Absent on a row derived before it. */
+      target?: TargetFacts;
     }
   | {
       family: "improve";
@@ -150,6 +193,8 @@ export type Evidence =
       volume: Measured<number>;
       pageUrl: string;
       shortfall: Shortfall;
+      /** issue 867. Absent on a row derived before it. */
+      target?: TargetFacts;
     }
   | { family: "fix"; barrier: Barrier; foundOnUrl: string }
   /** SPEC §9 (#690): a crawled page failed checks ReachKit fixes. `pageUrl`
@@ -166,6 +211,8 @@ export type Evidence =
       source: { surface: "ai_answer" | "search_result"; ref: string };
       rival: { domain: string };
       asset: EarnAsset;
+      /** issue 867. Absent on a row derived before it. */
+      target?: TargetFacts;
     };
 
 /** §7's acceptance test, verbatim: "top 20 for Q" / "named on question P" /

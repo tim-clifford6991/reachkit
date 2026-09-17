@@ -18,6 +18,7 @@
 // ("Supply is the cap: never invent an opportunity to fill a day; the
 // calendar is never padded") are kept by a read that cannot pad.
 import type { Measured } from "@/lib/measure/measured";
+import type { PageTarget } from "../_shell/page-target";
 import type { UnpublishOutcome, VerifyDisposition } from "@/lib/publish/types";
 import { accountFor, isLawCause, isSupplyCause, type EmptyAccount, type EmptyFacts, type HeldBySetting } from "./empty";
 import type { WorkStop } from "@/lib/presentation/stopped";
@@ -27,16 +28,16 @@ import { dayKeyOf, monthGrid, monthOf, planHorizonEnd, type DayKey, type MonthKe
 /** REQ-043 criterion 8's evidence, and §4.6's "Why this page" rows —
  *  "search / asked / answered-today-by / you / done-when — all mono
  *  values". `youStand` is a `Measured<number>` and not a number: REQ-004's
- *  trichotomy is what keeps an outage from rendering as a zero. */
-export interface WhyThisPage {
-  search: string;
-  askedAs: string;
+ *  trichotomy is what keeps an outage from rendering as a zero.
+ *
+ *  Since issue 867 the rows the draft screen states too — the search, its
+ *  volume, its difficulty against this site's ceiling, the band and where
+ *  the AI engines stood — are `PageTarget`'s, shared with that screen so
+ *  the two cannot word one fact two ways. The two members here are this
+ *  panel's own. */
+export interface WhyThisPage extends PageTarget {
   answeredTodayBy: readonly string[];
   youStand: Measured<number>;
-  doneWhen: string;
-  /** Rendered through `BAND_LABELS.winnability` (ADR-001), never as a word
-   *  this module chooses. */
-  winnability: "winnable" | "reach" | "not-yet";
 }
 
 /** One draft, on the site-local date it is scheduled for. */

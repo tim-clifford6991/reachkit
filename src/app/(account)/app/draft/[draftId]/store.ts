@@ -56,11 +56,15 @@ import type { PublishingMode } from "../../_shell/model";
 import type { State } from "../../calendar/stages";
 import { pageRecordFor } from "@/lib/publish/record";
 import { RAIL_CHECKS, type RailCheck } from "./checks";
-import type { ClaimState, DraftFacts } from "./model";
+import { askedAs, doneWhen } from "../../calendar/store";
+import type { Choice } from "@/lib/opportunities/derive/explain";
+import { pageTargetOf } from "../../_shell/page-target";
+import type { ClaimState, DraftFacts, DraftTarget } from "./model";
 
 interface DraftRow {
   id: string;
   site_id: string;
+  opportunity_id: string | null;
   state: string;
   title: string;
   body_md: string | null;
@@ -90,7 +94,7 @@ interface MinimalClient {
 /** The one select list. `drafts` carries no credential and this names no
  *  column of another account's. */
 const DRAFT_COLUMNS =
-  "id, site_id, state, title, body_md, meta, grounded_fact, claim_check, rule_failures, " +
+  "id, site_id, opportunity_id, state, title, body_md, meta, grounded_fact, claim_check, rule_failures, " +
   "veto_deadline, created_at";
 
 /** §9's ten states, as this screen reads them. A row carrying anything else
@@ -162,6 +166,47 @@ export function rulesFailedOf(ruleFailures: unknown): boolean {
   return (readRecordedRules(ruleFailures) ?? []).length > 0;
 }
 
+/** The engine's own read, with every way it can fail folded into `null`.
+ *  Lazily, the way this screen reaches nothing else at module load: a
+ *  static import of the engine barrel from here would pull its store into
+ *  every module that names this file's types. */
+async function readChoice(opportunityId: string): Promise<Choice | null> {
+  try {
+    const { explainChoice } = await import("@/lib/opportunities");
+    return await explainChoice(opportunityId);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * What this page is for (issue 867): the opportunity §7 chose, read through
+ * the same `explainChoice` the day panel reads, and projected by the same
+ * `pageTargetOf`. The draft screen and the calendar therefore state one
+ * fact one way.
+ *
+ * `unknown` covers every way there is nothing to state — a draft written
+ * before the column was filled, and a row whose opportunity has been purged
+ * — and the screen words one sentence for it rather than a block of blanks.
+ * A read that throws is `unknown` too: this block explains a page, and a
+ * page is still readable without it.
+ */
+async function targetOf(opportunityId: string | null): Promise<DraftTarget> {
+  if (opportunityId === null) return { kind: "unknown" };
+  const choice = await readChoice(opportunityId);
+  if (choice === null) return { kind: "unknown" };
+  const search = choice.evidence.family === "fix" ? "" : choice.evidence.query;
+  const target = pageTargetOf({
+    choice,
+    askedAs: askedAs(choice, search),
+    doneWhen: doneWhen(choice),
+    // The evidence's own measurement date, never today's: an unmeasured
+    // value carries the date the pass could not read it on.
+    at: choice.evidence.family === "fix" ? new Date(0) : choice.evidence.volume.at,
+  });
+  return target === null ? { kind: "fix" } : { kind: "target", target };
+}
+
 export interface DraftSite {
   siteId: string;
   timeZone: string;
@@ -231,6 +276,10 @@ export async function readDraftRow(a: {
     record: await pageRecordFor(a.draftId),
     recordedChecks: recordedChecksOf(row.rule_failures),
     rulesFailed: rulesFailedOf(row.rule_failures),
+    // Read after the row above proved this account owns the draft, like the
+    // page record: asking first would answer about a page the caller may
+    // not see.
+    target: await targetOf(row.opportunity_id),
     timeZone: a.site.timeZone,
   };
 }

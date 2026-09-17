@@ -41,6 +41,7 @@ import { assess, rightSizedBand } from "../winnability/band";
 import { rankedCountsFor, type RankedCounts } from "../winnability/counts";
 import { FAMILY_OF, noRejections, type Evidence, type OpportunityType } from "../types";
 import { emptyDerivation, slugify, type Candidate, type DerivationResult } from "./candidate";
+import { targetFactsOf } from "./target";
 
 /** §7's comparison trigger, second half: "contains vs/alternative". */
 const COMPARISON_SHAPES = [/\bvs\b/, /\bversus\b/, /\balternatives?\b/];
@@ -177,7 +178,19 @@ export function writeCandidates(a: WriteInput): DerivationResult {
       return;
     }
 
-    const evidence: Evidence = { family: "write", query, volume, rival };
+    const evidence: Evidence = {
+      family: "write",
+      query,
+      volume,
+      rival,
+      // What this page is optimising for, copied at creation (issue 867).
+      target: targetFactsOf({
+        difficulty: question.search.difficulty,
+        ownRanked: a.ownRanked,
+        answerRow: row,
+        at,
+      }),
+    };
     result.candidates.push({
       siteId: a.siteId,
       scanId: a.scanId,

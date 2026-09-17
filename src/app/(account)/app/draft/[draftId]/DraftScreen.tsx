@@ -60,6 +60,7 @@ import type { DraftCommand } from "./actions";
 import { draftStore, type SaveBody } from "./save";
 import { Editor, type EditorPane } from "./Editor";
 import { PageRecordBlock } from "./PageRecordBlock";
+import { TargetBlock } from "./TargetBlock";
 import { factPresentIn } from "./grounded";
 import { RenderedBody } from "./RenderedBody";
 import { useDebounced } from "./useDebounced";
@@ -468,6 +469,11 @@ export function DraftScreen(p: {
               ) : null}
             </div>
           </article>
+
+          {/* What this page is optimising for (issue 867) — the search, its
+              demand and difficulty against this site's own ceiling, the band
+              and where the AI engines stood. */}
+          <TargetBlock target={view.target} />
 
           {/* What became of this page (issue #217) — absent rather than empty
               for a draft whose record could not be read. */}

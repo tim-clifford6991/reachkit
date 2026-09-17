@@ -169,6 +169,19 @@ export const OVERVIEW_COPY = Object.freeze({
     "named in {weeks} of the last {of} weeks",
     { slots: { weeks: "text", of: "text" }, fixedBy: "REQ-041 c12" },
   ],
+  // Issue 867 (owner, 2026-09-17): the number counts Google's AI Overview
+  // alone (§6.2, matrix.ts), so the line under the tile says which engine it
+  // is counted from, and names the other engines this site's pages are
+  // measured on where the paid battery asked them. Drafted under issue 759's
+  // ruling; the owner corrects the wording.
+  "overview.tile.ai-answers.counted-from": [
+    "Counted from {engine}.",
+    { slots: { engine: "text" }, fixedBy: "issue 867" },
+  ],
+  "overview.tile.ai-answers.also-measured": [
+    "{engines} are measured on each page's own search.",
+    { slots: { engines: "text" }, fixedBy: "issue 867" },
+  ],
   "overview.tile.ai-answers.means": ["Named by AI in half the weeks.", { slots: {}, fixedBy: "REQ-041 c4" }],
   "overview.tile.pages.label": ["Pages published", { slots: {}, fixedBy: "BUILD §4.5" }],
   // The set's own two lines on the pages tile, both unbracketed and so
@@ -243,6 +256,12 @@ export const OVERVIEW_COPY = Object.freeze({
 
   // ── This week.
   "overview.week.title": ["This week", { slots: {}, fixedBy: "BUILD §4.5" }],
+  // Issue 867: what this week's pages are aimed at — the searches
+  // themselves, never a count. Drafted; the owner corrects the wording.
+  "overview.week.aimed-at": [
+    "This week's pages aim at {searches}.",
+    { slots: { searches: "text" }, fixedBy: "issue 867" },
+  ],
   "overview.week.calendar-link": ["Open calendar →", { slots: {}, fixedBy: "BUILD §4.5" }],
   "overview.week.day.done": ["done", { slots: {}, fixedBy: "REQ-041 c6" }],
   "overview.week.day.today": ["today", { slots: {}, fixedBy: "REQ-041 c6" }],

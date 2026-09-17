@@ -43,13 +43,22 @@ describe('§7: `expand_page` — "Customer ranks 4-30, page thin"', () => {
     const only = candidates[0]!;
     expect(only.type).toBe("expand_page");
     expect(only.family).toBe("improve");
-    expect(only.evidence).toEqual({
+    expect(only.evidence).toMatchObject({
       family: "improve",
       query: "best user onboarding software",
       volume: { kind: "measured", value: 90, at: AT },
       pageUrl: ON_PAGE.url,
       shortfall: { kind: "thin", words: { kind: "measured", value: 400, at: AT } },
     });
+    // What this page is optimising for rides beside them since issue 867.
+    expect(Object.keys(only.evidence).sort()).toEqual([
+      "family",
+      "pageUrl",
+      "query",
+      "shortfall",
+      "target",
+      "volume",
+    ]);
     expect(only.acceptance).toEqual({ form: "top20", query: "best user onboarding software" });
     expect(only.targetRef).toBe(ON_PAGE.url);
   });

@@ -49,6 +49,12 @@ interface Specimen {
   youStand: WhyThisPage["youStand"];
   doneWhen: string;
   winnability: WhyThisPage["winnability"];
+  /** What the page is optimising for (issue 867): the demand, the search's
+   *  difficulty and where the AI engines stood. The third specimen carries
+   *  an unmeasured difficulty, so the reserved account draws that arm too. */
+  volume: WhyThisPage["volume"];
+  difficulty: WhyThisPage["difficulty"];
+  engines: WhyThisPage["engines"];
 }
 
 const SPECIMENS: readonly Specimen[] = [
@@ -60,6 +66,13 @@ const SPECIMENS: readonly Specimen[] = [
     youStand: measured(14, MEASURED_AT),
     doneWhen: "Ranked in the top 20 for the target search within 3 weeks",
     winnability: "winnable",
+    volume: measured(210, MEASURED_AT),
+    difficulty: measured(12, MEASURED_AT),
+    engines: [
+      { engine: "ai_overview", standing: "names_others" },
+      { engine: "ai_mode", standing: "no_answer" },
+      { engine: "chatgpt", standing: "names_you" },
+    ],
   },
   {
     title: "CRM pricing, compared",
@@ -69,6 +82,13 @@ const SPECIMENS: readonly Specimen[] = [
     youStand: measuredZero(0, MEASURED_AT),
     doneWhen: "Named in an AI answer for the target question within 6 weeks",
     winnability: "reach",
+    volume: measured(90, MEASURED_AT),
+    difficulty: measured(28, MEASURED_AT),
+    engines: [
+      { engine: "ai_overview", standing: "names_others" },
+      { engine: "ai_mode", standing: "names_others" },
+      { engine: "chatgpt", standing: "unmeasured" },
+    ],
   },
   {
     title: "Moving from spreadsheets to a CRM",
@@ -78,6 +98,10 @@ const SPECIMENS: readonly Specimen[] = [
     youStand: unmeasured("undeterminable", MEASURED_AT),
     doneWhen: "Ranked in the top 20 for the target search within 3 weeks",
     winnability: "not-yet",
+    volume: measured(40, MEASURED_AT),
+    // The vendor gave this search no difficulty: the dash and its line.
+    difficulty: unmeasured("undeterminable", MEASURED_AT),
+    engines: [{ engine: "ai_overview", standing: "no_answer" }],
   },
 ];
 
@@ -90,6 +114,11 @@ function whyOf(index: number): WhyThisPage {
     youStand: s.youStand,
     doneWhen: s.doneWhen,
     winnability: s.winnability,
+    volume: s.volume,
+    difficulty: s.difficulty,
+    // The ceiling a cold-start site is judged against (§6, issue 858).
+    ceiling: 36,
+    engines: s.engines,
   };
 }
 

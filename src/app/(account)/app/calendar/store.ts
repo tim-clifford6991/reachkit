@@ -46,6 +46,7 @@ import {
   type Choice,
 } from "@/lib/opportunities";
 import { writtenLine } from "../_shell/written";
+import { pageTargetOf } from "../_shell/page-target";
 import { addDays, dayKeyOf, daysOfMonth, planHorizonEnd, type DayKey, type MonthKey } from "./dates";
 import {
   declaredAnswers,
@@ -93,16 +94,22 @@ function youStand(choice: Choice, at: Date): Measured<number> {
  *  target was chosen against one; otherwise it is the search's own
  *  question form — `templateQuestion`, the deterministic shape, which is
  *  code and not a sentence the product speaks. */
-function askedAs(choice: Choice, search: string): string {
+export function askedAs(choice: Choice, search: string): string {
   return choice.acceptance.form === "named_on" ? choice.acceptance.question : templateQuestion(search);
 }
 
 /** §4.6's `done-when`: the acceptance test recorded at creation, in the
  *  owner's words. Owner-owed, so it renders as nothing until written —
  *  never as a placeholder and never as a sentence this file composes.
- *  `gate_cleared` is unreachable here: the Fix family is excluded from the
- *  ranked list by the store, once, and is never a page on a date. */
-function doneWhen(choice: Choice): string {
+ *  `gate_cleared` is unreachable on the calendar: the Fix family is excluded
+ *  from the ranked list by the store, once, and is never a page on a date.
+ *  It is reachable from the draft screen, which reads any draft's own
+ *  opportunity (issue 867), and the arm answers it.
+ *
+ *  Exported for that screen: both this and `askedAs` word a fact the draft
+ *  screen states too, and one wording of one fact is the rule this whole
+ *  projection follows. */
+export function doneWhen(choice: Choice): string {
   const acceptance = choice.acceptance;
   if (acceptance.form === "top20") {
     return writtenLine("calendar.done-when.top20", { query: acceptance.query }) ?? "";
@@ -122,15 +129,25 @@ function measuredAtOf(choice: Choice, fallback: Date): Date {
 
 function whyOf(choice: Choice, at: Date): WhyThisPage {
   const search = choice.evidence.family === "fix" ? "" : choice.evidence.query;
+  // The rows the draft screen states too, from the one projection (issue
+  // 867). A Fix choice has no target at all — the ranked list excludes the
+  // family, so this is the defensive arm and not a state a panel draws.
+  const target = pageTargetOf({ choice, askedAs: askedAs(choice, search), doneWhen: doneWhen(choice), at });
   return {
-    search,
-    askedAs: askedAs(choice, search),
+    ...(target ?? {
+      search,
+      askedAs: askedAs(choice, search),
+      volume: unmeasured<number>("undeterminable", at),
+      difficulty: unmeasured<number>("undeterminable", at),
+      ceiling: null,
+      // Non-null for everything the ranked list can hold: `fit_band` is null
+      // for exactly the Fix family, which the list excludes.
+      winnability: choice.fitBand ?? "not-yet",
+      engines: [],
+      doneWhen: doneWhen(choice),
+    }),
     answeredTodayBy: answeredTodayBy(choice),
     youStand: youStand(choice, at),
-    doneWhen: doneWhen(choice),
-    // Non-null for everything the ranked list can hold: `fit_band` is null
-    // for exactly the Fix family, which the list excludes.
-    winnability: choice.fitBand ?? "not-yet",
   };
 }
 

@@ -34,6 +34,7 @@ import { assess } from "../winnability/band";
 import { rankedCountsFor, type RankedCounts } from "../winnability/counts";
 import { FAMILY_OF, noRejections, type EarnAsset, type Evidence } from "../types";
 import { emptyDerivation, slugify, type Candidate, type DerivationResult } from "./candidate";
+import { targetFactsOf } from "./target";
 
 interface EarnInput {
   siteId: string;
@@ -127,6 +128,13 @@ export function earnCandidates(a: EarnInput): DerivationResult {
       source: { surface, ref: found.source },
       rival: { domain: found.rival },
       asset: earnAssetFor(query),
+      // What this page is optimising for, copied at creation (issue 867).
+      target: targetFactsOf({
+        difficulty: question.search.difficulty,
+        ownRanked: a.ownRanked,
+        answerRow: answerRows[index],
+        at,
+      }),
     };
     result.candidates.push({
       siteId: a.siteId,

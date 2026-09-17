@@ -72,6 +72,10 @@ beforeEach(() => {
     today: new Date("2026-09-08T12:00:00.000Z"),
     supply: { exhausted: true, short: false, firstArrivalShortfall: false },
     waiting: [],
+    // Issue 867: a customer with nothing measured has no engine to name and
+    // no page aimed at anything yet.
+    aiEngines: [],
+    weekSearches: [],
   });
   readDraftRow.mockResolvedValue(null);
 });
