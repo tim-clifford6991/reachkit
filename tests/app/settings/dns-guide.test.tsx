@@ -1,11 +1,14 @@
 /** @vitest-environment jsdom */
-// tests/app/settings/dns-where.test.tsx — SPEC §5, issue 760
-// (owner ruling 2026-09-16)
+// tests/app/settings/dns-guide.test.tsx — SPEC §5, issue 760 (owner ruling
+// 2026-09-16) and issue 856 (owner 2026-09-17)
 //
 // Beside the CNAME record the founder is told where their DNS actually is,
 // because ReachKit looked: the provider the nameservers name, the nameserver
 // itself where no provider is known, and the generic line where nothing
-// could be looked up. The Cloudflare line shows only on Cloudflare.
+// could be looked up. That answer chooses the steps they follow (issue 856):
+// the provider's own field labels, exactly what goes in the name field, a
+// link to the provider's DNS page, and on Cloudflare only the one proxy
+// instruction — DNS only.
 //
 // **Driven through the wiring, not the table.** Each screen is rendered from
 // its own real read — `/setup` from its page, Settings from
@@ -16,7 +19,8 @@
 import { applyEnvFixture } from "../../mail/env-fixture";
 
 applyEnvFixture();
-process.env.HOSTED_EDGE_CNAME_TARGET = "edge.reachkit-760.example";
+const EDGE = "edge.reachkit-760.example";
+process.env.HOSTED_EDGE_CNAME_TARGET = EDGE;
 
 import dns from "node:dns";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -156,7 +160,7 @@ async function screens(): Promise<Record<"setup" | "settings", HTMLElement>> {
   );
 
   return {
-    setup: setup.querySelector<HTMLElement>('[data-testid="setup-destination-hosted"]')!,
+    setup: setup.querySelector<HTMLElement>('[data-testid="setup-dns"]')!,
     settings: settings.querySelector<HTMLElement>('[data-testid="dns-dest-1"]')!,
   };
 }
@@ -174,6 +178,33 @@ async function whereIn(block: HTMLElement, kind: string): Promise<{ where: strin
   };
 }
 
+/** The guide the block draws, once its lookup has settled on `id`. */
+async function guideIn(
+  block: HTMLElement,
+  id: string
+): Promise<{
+  steps: string[];
+  fields: [string, string][];
+  proxy: string | null;
+  link: string | null;
+  linkText: string | null;
+  fullName: string | null;
+}> {
+  await vi.waitFor(() => expect(block.querySelector('[data-testid="dns-guide"]')?.getAttribute("data-guide")).toBe(id));
+  const link = block.querySelector('[data-testid="dns-link"]');
+  return {
+    steps: Array.from(block.querySelectorAll('[data-testid="dns-step"]')).map((step) => step.textContent ?? ""),
+    fields: Array.from(block.querySelectorAll('[data-testid="dns-field"]')).map((row) => [
+      row.querySelector('[data-testid="dns-field-label"]')?.textContent ?? "",
+      row.querySelectorAll("td")[0]?.textContent ?? "",
+    ]),
+    proxy: block.querySelector('[data-testid="dns-proxy"]')?.textContent ?? null,
+    link: link?.getAttribute("href") ?? null,
+    linkText: link?.textContent ?? null,
+    fullName: block.querySelector('[data-testid="dns-full-name"]')?.textContent ?? null,
+  };
+}
+
 describe("SPEC §5 — beside the record, where the founder's DNS actually is (issue 760)", () => {
   it("Cloudflare: named, with the proxy line, on both screens — looked up on the site's zone", async () => {
     const asked = resolver(async () => ["hasslo.ns.cloudflare.com", "connie.ns.cloudflare.com"]);
@@ -184,6 +215,88 @@ describe("SPEC §5 — beside the record, where the founder's DNS actually is (i
       });
     }
     expect(new Set(asked)).toEqual(new Set([DOMAIN]));
+  });
+
+  it("Cloudflare (issue 856): Name is the label alone, Proxy status is DNS only, and the steps say the grey cloud", async () => {
+    resolver(async () => ["hasslo.ns.cloudflare.com", "connie.ns.cloudflare.com"]);
+    for (const [screen, block] of Object.entries(await screens())) {
+      const guide = await guideIn(block, "cloudflare");
+      expect(guide.fields, screen).toEqual([
+        [COPY["setup.destination.guide.field.type"], "CNAME"],
+        [COPY["setup.destination.guide.field.name"], "content"],
+        [COPY["setup.destination.guide.field.target"], EDGE],
+        [COPY["setup.destination.guide.field.proxy-status"], COPY["setup.destination.guide.value.dns-only"]],
+        [COPY["setup.destination.guide.field.ttl"], COPY["setup.destination.guide.value.auto"]],
+      ]);
+      expect(guide.steps, screen).toContain(
+        copy("setup.destination.guide.cloudflare.3", { name: "content", zone: DOMAIN })
+      );
+      // One instruction, not a choice.
+      expect(guide.proxy, screen).toContain("DNS only");
+      expect(guide.proxy, screen).toContain("grey cloud");
+      expect(guide.proxy, screen).not.toMatch(/either|try/i);
+      expect(guide.link, screen).toMatch(/^https:\/\/dash\.cloudflare\.com\//);
+      expect(guide.fullName, screen).toBe(copy("setup.destination.guide.full-name", { host: `content.${DOMAIN}` }));
+    }
+  });
+
+  it.each([
+    ["GoDaddy", ["ns51.domaincontrol.com", "ns52.domaincontrol.com"], "godaddy", "setup.destination.guide.field.name", "setup.destination.guide.field.value"],
+    ["Namecheap", ["dns1.registrar-servers.com", "dns2.registrar-servers.com"], "namecheap", "setup.destination.guide.field.host", "setup.destination.guide.field.value"],
+    ["Squarespace", ["ns-cloud-a1.googledomains.com", "ns-cloud-a2.googledomains.com"], "squarespace", "setup.destination.guide.field.host", "setup.destination.guide.field.data"],
+    ["Amazon Route 53", ["ns-1.awsdns-01.org", "ns-2.awsdns-02.com"], "route53", "setup.destination.guide.field.record-name", "setup.destination.guide.field.value"],
+    ["Vercel", ["ns1.vercel-dns.com", "ns2.vercel-dns.com"], "vercel", "setup.destination.guide.field.name", "setup.destination.guide.field.value"],
+  ] as const)(
+    "%s (issue 856): its own steps, its own field labels with the label alone as the name, a link, and no proxy line",
+    async (provider, nameservers, id, nameLabel, targetLabel) => {
+      resolver(async () => [...nameservers]);
+      for (const [screen, block] of Object.entries(await screens())) {
+        expect((await whereIn(block, "provider")).where, screen).toBe(copy("setup.destination.dnsAt", { provider }));
+        const guide = await guideIn(block, id);
+        expect(guide.fields, screen).toContainEqual([COPY[nameLabel], "content"]);
+        expect(guide.fields, screen).toContainEqual([COPY[targetLabel], EDGE]);
+        expect(guide.steps.length, screen).toBeGreaterThanOrEqual(3);
+        expect(guide.steps.join(" "), screen).toContain(DOMAIN);
+        expect(guide.link, screen).toMatch(/^https:\/\//);
+        expect(guide.linkText, screen).toBe(copy("setup.destination.guide.open", { provider }));
+        expect(guide.proxy, screen).toBeNull();
+      }
+    }
+  );
+
+  it("an unknown provider or no answer (issue 856): the generic steps, which name both the label and the full name, and no link", async () => {
+    resolver(async () => ["ns1.tiny-host.example."]);
+    for (const [screen, block] of Object.entries(await screens())) {
+      await whereIn(block, "nameserver");
+      const guide = await guideIn(block, "generic");
+      expect(guide.steps, screen).toContain(
+        copy("setup.destination.guide.generic.2", { name: "content", host: `content.${DOMAIN}` })
+      );
+      expect(guide.fields, screen).toContainEqual([COPY["setup.destination.guide.field.generic-name"], "content"]);
+      expect(guide.link, screen).toBeNull();
+      expect(guide.proxy, screen).toBeNull();
+    }
+  });
+
+  it("each value has its own copy button, and pressing one puts that value on the clipboard (issue 856)", async () => {
+    resolver(async () => ["ns51.domaincontrol.com"]);
+    const written: string[] = [];
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText: async (text: string) => void written.push(text) },
+    });
+    const { settings } = await screens();
+    await guideIn(settings, "godaddy");
+    const rows = Array.from(settings.querySelectorAll<HTMLElement>('[data-testid="dns-field"]'));
+    for (const row of rows) {
+      await act(async () => {
+        row.querySelector<HTMLButtonElement>('[data-testid="dns-copy"]')!.click();
+      });
+    }
+    expect(written).toEqual(["CNAME", "content", EDGE]);
+    expect(rows[0]!.querySelector('[data-testid="dns-copy"]')?.getAttribute("aria-label")).toBe(
+      COPY["setup.destination.guide.copied"]
+    );
   });
 
   it("a known provider that is not Cloudflare: named, and no proxy line", async () => {
@@ -258,6 +371,7 @@ describe("SPEC §5 — beside the record, where the founder's DNS actually is (i
       "setup.destination.dnsNameserver",
       "setup.destination.dnsWhere",
       "setup.destination.dnsProxy",
+      ...(Object.keys(COPY).filter((key) => key.startsWith("setup.destination.guide.")) as (keyof typeof COPY)[]),
     ] as const) {
       expect(AWAITING_COPY, key).not.toContain(key);
       expect(COPY[key], key).not.toContain(TODO_COPY_MARKER);

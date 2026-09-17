@@ -12,6 +12,10 @@
 // on screen and not yet submitted is not one the server knows as theirs, and
 // is answered `unknown` — the static line — rather than looked up.
 //
+// It answers the zone beside where (issue 856): the guide tells the founder
+// exactly what goes in the Name field, and that is the host less its zone —
+// which only the server's suffix list can find.
+//
 // Nothing here may fail the block: no session, no site, an unparseable
 // address, a lookup that fails or hangs past its bound — each is `unknown`.
 //
@@ -22,11 +26,18 @@
 
 import type { DnsWhere } from "@/lib/publish/destinations/hosted/dns-provider";
 
+/** Where the DNS is, and the zone the record is added to — `null` where the
+ *  address was not looked up. */
+export interface DnsWhereAnswer {
+  where: DnsWhere;
+  zone: string | null;
+}
+
 export async function whereDnsIs(a: {
   /** The site address the record on screen sits under. */
   domain: string;
-}): Promise<DnsWhere> {
-  const unknown: DnsWhere = { kind: "unknown" };
+}): Promise<DnsWhereAnswer> {
+  const unknown: DnsWhereAnswer = { where: { kind: "unknown" }, zone: null };
   try {
     const { currentSession } = await import("@/lib/account/identity");
     const session = await currentSession();
@@ -42,7 +53,7 @@ export async function whereDnsIs(a: {
     if (zone === null) return unknown;
 
     const { nameserversOf } = await import("@/lib/egress");
-    return dnsWhereFrom(await nameserversOf(zone));
+    return { where: dnsWhereFrom(await nameserversOf(zone)), zone };
   } catch {
     return unknown;
   }

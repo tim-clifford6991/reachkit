@@ -28,6 +28,14 @@
 // knowing which entries a press created needs a record this change does not
 // add. The PR states the bound this puts on the project's domain list.
 //
+// **Public DNS first** (issue 856, owner 2026-09-17). Before the vendor is
+// asked, the press asks public DNS whether `<host>` points at the edge: no
+// credential, so it answers on a deployment with no verification bound too,
+// and the founder learns whether they added the record right. The domain
+// list — the certificate — stays the second step, where it is bound. A
+// press refused, or inside the floor, carries no DNS answer: it asked
+// nothing new.
+//
 // **The engine is imported at the call, not at the top**, for the reason
 // `label-actions.ts` gives: this module is imported statically by client
 // components, and the publishing seam reaches `@/lib/db`.
@@ -38,6 +46,7 @@ import { redirect } from "next/navigation";
 import { SIGNIN_PATH } from "@/lib/account/identity/addresses";
 import { checkLabel, hostFor, type LabelRefusal } from "@/lib/publish/destinations/hosted/label";
 import type { HostnameCheck } from "@/lib/publish/destinations/hosted/hostname";
+import type { PublicDns } from "@/lib/publish/destinations/hosted/dns-check";
 
 /** The Settings route, redrawn when a press has written a destination's
  *  state. An internal route name, not a customer-visible string. */
@@ -59,18 +68,36 @@ const SETTINGS_PATH = "/app/settings";
  *   * `address_unsaved` — the address on screen is not the site's own.
  *   * `no_host` — the account has no hosted destination to check.
  *
+ * `asked` and `could_not_ask` carry `dns`, what public DNS answered for the
+ * host first (issue 856) — `null` where the press never reached it.
+ *
  * No member can hold a sentence; the screen chooses the line.
  */
 export type ConnectionCheck =
-  | Exclude<HostnameCheck, { outcome: "could_not_ask" }>
-  | { outcome: "could_not_ask"; because: "not_configured" | "no_answer" }
+  | { outcome: "asked"; state: Extract<HostnameCheck, { outcome: "asked" }>["state"]; dns: PublicDns | null }
+  | Extract<HostnameCheck, { outcome: "too_soon" }>
+  | { outcome: "could_not_ask"; because: "not_configured" | "no_answer"; dns: PublicDns | null }
   | { outcome: "refused"; because: LabelRefusal | "address_unsaved" | "no_host" };
 
-/** `checkHostnameNow`'s answer, with its "nothing was asked" named. The
- *  bindings were read before it ran, so here it is a vendor that did not
- *  answer. */
-function named(checked: HostnameCheck): ConnectionCheck {
-  return checked.outcome === "could_not_ask" ? { outcome: "could_not_ask", because: "no_answer" } : checked;
+/** `checkHostnameNow`'s answer, with its "nothing was asked" named and the
+ *  DNS answer beside it. The bindings were read before it ran, so here
+ *  "nothing was asked" is a vendor that did not answer. */
+function named(checked: HostnameCheck, dns: PublicDns): ConnectionCheck {
+  switch (checked.outcome) {
+    case "could_not_ask":
+      return { outcome: "could_not_ask", because: "no_answer", dns };
+    case "asked":
+      return { ...checked, dns };
+    case "too_soon":
+      return checked;
+  }
+}
+
+/** Public DNS about `hostname`, against the deployment's edge. */
+async function publicDnsOf(hostname: string): Promise<PublicDns> {
+  const { checkPublicDns } = await import("@/lib/publish/destinations/hosted/dns-check");
+  const { env } = await import("@/lib/config/env");
+  return checkPublicDns({ hostname, edge: env.HOSTED_EDGE_CNAME_TARGET });
 }
 
 export async function checkConnection(a: {
@@ -93,10 +120,11 @@ export async function checkConnection(a: {
 
   if (a.draft === null) {
     if (destination === null) return { outcome: "refused", because: "no_host" };
-    // A deployment that cannot verify any host asks nothing, writes nothing
-    // and spends no floor: the founder is told it is not set up, not to
-    // try again (issue 840).
-    if (!domainsConfigured()) return { outcome: "could_not_ask", because: "not_configured" };
+    const dns = await publicDnsOf(destination.hostname);
+    // A deployment that cannot verify any host asks the vendor nothing,
+    // writes nothing and spends no floor: the founder is told what DNS
+    // confirmed, and that the second step is not set up (issue 840).
+    if (!domainsConfigured()) return { outcome: "could_not_ask", because: "not_configured", dns };
     const checked = await checkHostnameNow({
       siteId: site.siteId,
       hostname: destination.hostname,
@@ -104,7 +132,7 @@ export async function checkConnection(a: {
     });
     // The press wrote the row's state: the card is redrawn from it.
     if (checked.outcome !== "too_soon") revalidatePath(SETTINGS_PATH);
-    return named(checked);
+    return named(checked, dns);
   }
 
   const label = checkLabel(a.draft.label);
@@ -117,8 +145,6 @@ export async function checkConnection(a: {
     return { outcome: "refused", because: "address_unsaved" };
   }
 
-  if (!domainsConfigured()) return { outcome: "could_not_ask", because: "not_configured" };
-
   const hostname = hostFor({ label: label.label, domain: own });
   let taken: boolean;
   try {
@@ -127,9 +153,12 @@ export async function checkConnection(a: {
     // A read that could not answer is not a free host, and asking the
     // vendor about a host that may be somebody else's is not a check of
     // this founder's record. Nothing was asked.
-    return { outcome: "could_not_ask", because: "no_answer" };
+    return { outcome: "could_not_ask", because: "no_answer", dns: null };
   }
   if (taken) return { outcome: "refused", because: "taken" };
+
+  const dns = await publicDnsOf(hostname);
+  if (!domainsConfigured()) return { outcome: "could_not_ask", because: "not_configured", dns };
 
   const checked = await checkHostnameNow({
     siteId: site.siteId,
@@ -138,5 +167,5 @@ export async function checkConnection(a: {
     // has the answer recorded on it too.
     destinationId: destination?.hostname === hostname ? destination.id : null,
   });
-  return named(checked);
+  return named(checked, dns);
 }

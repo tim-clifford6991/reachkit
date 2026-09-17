@@ -13,12 +13,18 @@
 // vendor itself — the one `safeFetch` the Domains API goes out through — and
 // the two bindings `addProjectDomain` reads, so "no token bound" is the
 // deployment the owner has today and not a stub of the answer.
+//
+// **Public DNS first** (issue 856). The press asks public DNS whether the
+// host points at the edge before any vendor. The double is the resolver —
+// `dns.promises.resolveCname` and `resolve4` — so the real lookup, bound and
+// judgement run, and nothing reaches the network.
 import { applyEnvFixture } from "../../mail/env-fixture";
 
 applyEnvFixture();
 const EDGE = "edge.reachkit-757.example";
 process.env.HOSTED_EDGE_CNAME_TARGET = EDGE;
 
+import dns from "node:dns";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
@@ -78,6 +84,20 @@ vi.mock("@/lib/egress", async (importOriginal) => ({
     };
   },
 }));
+
+/** The doubled public resolver: what `<host>` answers. */
+const publicDns = vi.hoisted(() => ({
+  answer: { kind: "nxdomain" } as
+    | { kind: "cname"; target: string }
+    | { kind: "proxied"; address: string }
+    | { kind: "nxdomain" }
+    | { kind: "servfail" },
+  asked: [] as string[],
+}));
+
+function dnsError(code: string): Error {
+  return Object.assign(new Error(code), { code });
+}
 
 const revalidated = vi.hoisted(() => [] as string[]);
 vi.mock("next/cache", () => ({
@@ -152,12 +172,30 @@ beforeEach(() => {
   vendor.answer = "unverified";
   vendor.calls.length = 0;
   revalidated.length = 0;
+  publicDns.answer = { kind: "cname", target: EDGE };
+  publicDns.asked.length = 0;
+  vi.spyOn(dns.promises, "resolveCname").mockImplementation(async (name: string) => {
+    publicDns.asked.push(name);
+    const a = publicDns.answer;
+    if (a.kind === "cname") return [a.target];
+    if (a.kind === "proxied") throw dnsError("ENODATA");
+    if (a.kind === "nxdomain") throw dnsError("ENOTFOUND");
+    throw dnsError("ESERVFAIL");
+  });
+  vi.spyOn(dns.promises, "resolve4").mockImplementation(async () => {
+    const a = publicDns.answer;
+    if (a.kind === "proxied") return [a.address];
+    throw dnsError("ENODATA");
+  });
+  // The guide's own NS lookup: nothing to name.
+  vi.spyOn(dns.promises, "resolveNs").mockRejectedValue(dnsError("ENOTFOUND"));
 });
 
 afterEach(() => {
   for (const root of roots.splice(0)) act(() => root.unmount());
   document.body.innerHTML = "";
   vi.useRealTimers();
+  vi.restoreAllMocks();
 });
 
 async function mount(node: React.ReactNode): Promise<HTMLElement> {
@@ -207,6 +245,11 @@ function answerIn(scope: HTMLElement): { outcome: string | null; text: string } 
   return line === null ? null : { outcome: line.getAttribute("data-outcome"), text: line.textContent ?? "" };
 }
 
+function dnsIn(scope: HTMLElement): { state: string | null; text: string } | null {
+  const line = scope.querySelector('[data-testid="check-connection-dns"]');
+  return line === null ? null : { state: line.getAttribute("data-dns"), text: line.textContent ?? "" };
+}
+
 function tooSoonIn(scope: HTMLElement): string | null {
   return scope.querySelector('[data-testid="check-connection-too-soon"]')?.textContent ?? null;
 }
@@ -227,7 +270,7 @@ async function setupScreen(): Promise<HTMLElement> {
 
 function hostedRecordState(host: HTMLElement): string {
   return (
-    host.querySelector('[data-testid="setup-destination-hosted"] [data-testid="dns-state"]')?.textContent ?? ""
+    host.querySelector('[data-testid="setup-dns"] [data-testid="dns-state"]')?.textContent ?? ""
   );
 }
 
@@ -640,5 +683,114 @@ describe("SPEC §5 — Settings: the same press, beside the record a waiting hos
     expect(vendor.calls).toHaveLength(1);
     expect(tooSoonIn(block)).toBeNull();
     expect(answerIn(block)?.outcome).toBe("pending_dns");
+  });
+});
+
+// ── Public DNS first (issue 856) ──────────────────────────────────────────
+
+/** Both screens' press blocks: `/setup` before submit, and Settings over a
+ *  host still waiting for DNS. */
+async function bothScreens(): Promise<Record<"setup" | "settings", HTMLElement>> {
+  const setup = await setupScreen();
+  seedSettings({ hostname_checked_at: tenMinutesAgo() });
+  const settings = await settingsScreen();
+  return { setup, settings: settings.querySelector<HTMLElement>('[data-testid="dns-dest-1"]')! };
+}
+
+/** A fresh press on `scope`: past the floor the last press set. */
+async function pressFresh(scope: HTMLElement): Promise<void> {
+  clock += DESTINATION_HOSTNAME_CHECK_FLOOR_S * 1000;
+  vi.setSystemTime(clock);
+  await press(scope);
+}
+
+describe("SPEC §5 — check connection asks public DNS first, with no vendor credential (issue 856)", () => {
+  it("found, pointing at the right place: said first, and the not-configured line says the founder's part is done", async () => {
+    vendor.bound = false;
+    publicDns.answer = { kind: "cname", target: `${EDGE.toUpperCase()}.` };
+    for (const [screen, block] of Object.entries(await bothScreens())) {
+      await pressFresh(block);
+      expect(dnsIn(block), screen).toEqual({
+        state: "points_here",
+        text: COPY["settings.destination.check.dns.points-here"],
+      });
+      expect(answerIn(block), screen).toEqual({
+        outcome: "not_configured",
+        text: COPY["settings.destination.check.not-configured"],
+      });
+    }
+    expect(new Set(publicDns.asked)).toEqual(new Set([HOST]));
+    expect(vendor.calls).toEqual([]);
+  });
+
+  it("found, pointing elsewhere: the target it points at is shown, and the not-configured line does not say the record is in place", async () => {
+    vendor.bound = false;
+    publicDns.answer = { kind: "cname", target: "old-host.example.net" };
+    for (const [screen, block] of Object.entries(await bothScreens())) {
+      await pressFresh(block);
+      expect(dnsIn(block), screen).toEqual({
+        state: "points_elsewhere",
+        text: copy("settings.destination.check.dns.points-elsewhere", { target: "old-host.example.net" }),
+      });
+      expect(answerIn(block)?.text, screen).toBe(COPY["settings.destination.check.not-configured.unconfirmed"]);
+    }
+  });
+
+  it("a proxied record — addresses and no CNAME — is found pointing elsewhere, at the address", async () => {
+    vendor.bound = false;
+    publicDns.answer = { kind: "proxied", address: "104.21.1.1" };
+    const { settings } = await bothScreens();
+    await pressFresh(settings);
+    expect(dnsIn(settings)).toEqual({
+      state: "points_elsewhere",
+      text: copy("settings.destination.check.dns.points-elsewhere", { target: "104.21.1.1" }),
+    });
+  });
+
+  it("NXDOMAIN: no record yet — DNS changes can take a few minutes", async () => {
+    vendor.bound = false;
+    publicDns.answer = { kind: "nxdomain" };
+    for (const [screen, block] of Object.entries(await bothScreens())) {
+      await pressFresh(block);
+      expect(dnsIn(block), screen).toEqual({ state: "not_yet", text: COPY["settings.destination.check.dns.not-yet"] });
+    }
+  });
+
+  it("a resolver that fails is not 'no record yet'", async () => {
+    vendor.bound = false;
+    publicDns.answer = { kind: "servfail" };
+    const { setup } = await bothScreens();
+    await pressFresh(setup);
+    expect(dnsIn(setup)).toEqual({ state: "unknown", text: COPY["settings.destination.check.dns.unknown"] });
+  });
+
+  it("with verification bound, the domain list stays the second step: the DNS line and then its answer; live draws the live line alone", async () => {
+    publicDns.answer = { kind: "cname", target: EDGE };
+    const { settings } = await bothScreens();
+    vendor.answer = "unverified";
+    await pressFresh(settings);
+    expect(dnsIn(settings)?.state).toBe("points_here");
+    expect(answerIn(settings)?.outcome).toBe("pending_dns");
+    const lines = Array.from(settings.querySelectorAll('[role="status"]')).map((line) => line.getAttribute("data-testid"));
+    expect(lines).toEqual(["check-connection-dns", "check-connection-answer"]);
+
+    vendor.answer = "verified";
+    const redrawn = await setupScreen();
+    await pressFresh(redrawn);
+    expect(answerIn(redrawn)?.outcome).toBe("live");
+    expect(dnsIn(redrawn)).toBeNull();
+  });
+
+  it("every DNS line is written", () => {
+    for (const key of [
+      "settings.destination.check.dns.points-here",
+      "settings.destination.check.dns.points-elsewhere",
+      "settings.destination.check.dns.not-yet",
+      "settings.destination.check.dns.unknown",
+      "settings.destination.check.not-configured.unconfirmed",
+    ] as const) {
+      expect(AWAITING_COPY, key).not.toContain(key);
+      expect(COPY[key], key).not.toContain(TODO_COPY_MARKER);
+    }
   });
 });

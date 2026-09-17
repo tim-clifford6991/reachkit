@@ -16,6 +16,11 @@
 // drawn on the record's own badge. The host it asks about is the server's
 // to derive from the site's own address; this card sends the label and the
 // address on screen, and nothing else.
+//
+// **The guide sits beside the press, not in the option** (issue 856). The
+// record block now carries steps, copy buttons and a link to the provider,
+// none of which may be nested in the hosted option's button — so it is
+// drawn under the label, above "check connection", as Settings draws it.
 "use client";
 
 import type React from "react";
@@ -26,7 +31,6 @@ import {
   dnsRecordFor,
   type DestinationKind,
   type DnsPending,
-  type DnsRecord,
   type SetupCards,
 } from "@/lib/publish/setup/cards";
 import { checkLabel, type LabelRefusal } from "@/lib/publish/destinations/hosted/label";
@@ -116,7 +120,7 @@ export function PublishingCard(p: {
               onChoose={() => p.onDestination(option.kind)}
               testId={`setup-destination-${option.kind}`}
             >
-              {option.kind === "hosted" ? <HostedRecord dns={dns} state={recordState} /> : null}
+              {option.kind === "hosted" && "pending" in dns ? <DnsPendingLine dns={dns} /> : null}
               {option.kind === "wordpress" ? <WordPressAsks domain={p.siteDomain} /> : null}
             </Option>
           ))}
@@ -144,6 +148,11 @@ export function PublishingCard(p: {
             {refusal === null ? null : (
               <div role="alert" className="alert alert-error alert-soft text-sm">
                 {copy(LABEL_REFUSAL_COPY[refusal])}
+              </div>
+            )}
+            {"pending" in dns ? null : (
+              <div className="mt-2" data-testid="setup-dns">
+                <CnameRecord record={dns} {...(recordState === undefined ? {} : { state: recordState })} />
               </div>
             )}
             {/* Keyed by the record's name: a press answers for one host,
@@ -210,18 +219,14 @@ function Option(p: {
   );
 }
 
-/** REQ-028 c2: the record once the site address is known, one written line
- *  where it is not — never a blank. Spans only: it sits inside a button. */
-function HostedRecord(p: { dns: DnsRecord | DnsPending; state: HostnameState | undefined }): React.JSX.Element {
-  if ("pending" in p.dns) {
-    return (
-      <span className={`mt-2 ${QUIET}`} data-testid="setup-dns-pending">
-        {copy(p.dns.copy)}
-      </span>
-    );
-  }
-  // The same block Settings shows a destination still waiting for DNS (#754).
-  return <CnameRecord record={p.dns} {...(p.state === undefined ? {} : { state: p.state })} />;
+/** REQ-028 c2: one written line where the record will sit until the site
+ *  address is known — never a blank. A span: it sits inside a button. */
+function DnsPendingLine(p: { dns: DnsPending }): React.JSX.Element {
+  return (
+    <span className={`mt-2 ${QUIET}`} data-testid="setup-dns-pending">
+      {copy(p.dns.copy)}
+    </span>
+  );
 }
 
 /** What connecting WordPress will ask for, shown on the option that offers

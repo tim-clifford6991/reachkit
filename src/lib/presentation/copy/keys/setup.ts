@@ -153,19 +153,9 @@ export const SETUP_COPY = Object.freeze({
   /** The caption over the record itself. The record's three values are
    *  data and carry no key. */
   "setup.destination.dnsRecord": ["Add this record at your DNS provider", { slots: {}, fixedBy: "REQ-028 c2" }],
-  /** Issue #759 (owner ruling 2026-09-16): where that provider is, and what
-   *  to try on Cloudflare — beside the record on `/setup` and in Settings.
-   *  Since issue 760 the first is the fallback for a lookup that could not
-   *  answer, and the second is shown only on Cloudflare.
-   *
-   *  **A proxied record is not a failure.** An earlier draft of the second
-   *  line said a proxied record "hides it from us and the connection can't
-   *  be verified". Checked against the live domain on 2026-09-16 that is
-   *  false: `content.reachkit.app` was proxied by Cloudflare — no CNAME
-   *  visible, Cloudflare's own addresses answering — and it still attached
-   *  and verified, and the host reaches this app (`x-vercel-id` and
-   *  `x-matched-path` on its 404). So the grey cloud is what to try when a
-   *  connection will not verify, never a rule stated as a cause. */
+  /** Issue 759 (owner ruling 2026-09-16): where that provider is — beside
+   *  the record on `/setup` and in Settings. Since issue 760 it is the
+   *  fallback for a lookup that could not answer. */
   "setup.destination.dnsWhere": [
     "Add it wherever your domain’s DNS is managed — usually your registrar, or Cloudflare if your domain is on it.",
     { slots: {}, fixedBy: "SPEC §5 · §12 (2026-09-16, issue 759)" },
@@ -185,10 +175,82 @@ export const SETUP_COPY = Object.freeze({
     "Your DNS is served by {nameserver}. Add this record wherever that nameserver is managed.",
     { slots: { nameserver: "text" }, fixedBy: "SPEC §5 (2026-09-16, issue 760)" },
   ],
+  /** Issue 856 (owner 2026-09-17): one instruction, not a choice. A proxied
+   *  record did verify for `content.reachkit.app` on 2026-09-16, but a
+   *  hosted custom domain behind Cloudflare's proxy commonly fails its
+   *  certificate, and "either works, try the other if not" left the
+   *  founder to choose. DNS only is the instruction; the reason is one
+   *  line. Shown only on Cloudflare. */
   "setup.destination.dnsProxy": [
-    "On Cloudflare this works either proxied or set to DNS only. If the connection won’t verify, try DNS only — the grey cloud.",
-    { slots: {}, fixedBy: "SPEC §5 · §12 (2026-09-16, issue 759)" },
+    "Set Proxy status to DNS only — the grey cloud. With Cloudflare’s proxy on, the secure certificate for this address often can’t be issued and the connection won’t verify.",
+    { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" },
   ],
+
+  // ── The DNS guide (issue 856; owner 2026-09-17) ─────────────────────
+  //
+  // Per-provider steps beside the record, chosen from the nameserver lookup
+  // (issue 760). `{zone}` is the domain the record is added under, `{name}`
+  // exactly what goes in the provider's name field — the host less its
+  // zone — and `{host}` the full name. Field labels and values are the
+  // provider's own words as its dashboard prints them. Drafted; the owner
+  // corrects the wording.
+  "setup.destination.guide.column.field": ["Field", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "setup.destination.guide.column.value": ["Enter", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "setup.destination.guide.copy": ["Copy", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "setup.destination.guide.copied": ["Copied", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "setup.destination.guide.open": ["Open your {provider} DNS settings", { slots: { provider: "text" }, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "setup.destination.guide.full-name": ["The full name of this record is {host}.", { slots: { host: "text" }, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+
+  "setup.destination.guide.field.type": ["Type", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "setup.destination.guide.field.name": ["Name", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "setup.destination.guide.field.target": ["Target", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "setup.destination.guide.field.value": ["Value", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "setup.destination.guide.field.host": ["Host", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "setup.destination.guide.field.data": ["Data", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "setup.destination.guide.field.proxy-status": ["Proxy status", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "setup.destination.guide.field.ttl": ["TTL", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "setup.destination.guide.field.record-name": ["Record name", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "setup.destination.guide.field.record-type": ["Record type", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "setup.destination.guide.field.routing-policy": ["Routing policy", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "setup.destination.guide.field.generic-name": ["Name (or Host)", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "setup.destination.guide.field.generic-target": ["Target (or Value, Points to)", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "setup.destination.guide.value.dns-only": ["DNS only", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "setup.destination.guide.value.auto": ["Auto", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "setup.destination.guide.value.automatic": ["Automatic", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "setup.destination.guide.value.simple-routing": ["Simple routing", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+
+  "setup.destination.guide.cloudflare.1": ["Open the Cloudflare dashboard and choose {zone}.", { slots: { zone: "text" }, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "setup.destination.guide.cloudflare.2": ["Go to DNS, then Records, and press Add record.", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "setup.destination.guide.cloudflare.3": ["Fill in the fields as shown. In Name, enter only {name} — Cloudflare adds {zone} itself.", { slots: { name: "text", zone: "text" }, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "setup.destination.guide.cloudflare.4": ["Set Proxy status to DNS only, then press Save.", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+
+  "setup.destination.guide.godaddy.1": ["Sign in to GoDaddy, open {zone} from your domains and choose DNS.", { slots: { zone: "text" }, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "setup.destination.guide.godaddy.2": ["Press Add New Record and choose CNAME as the type.", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "setup.destination.guide.godaddy.3": ["Fill in the fields as shown. In Name, enter only {name} — GoDaddy adds {zone} itself.", { slots: { name: "text", zone: "text" }, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "setup.destination.guide.godaddy.4": ["Press Save.", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+
+  "setup.destination.guide.namecheap.1": ["Sign in to Namecheap, open Domain List and press Manage beside {zone}.", { slots: { zone: "text" }, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "setup.destination.guide.namecheap.2": ["Open the Advanced DNS tab, press Add New Record and choose CNAME Record.", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "setup.destination.guide.namecheap.3": ["Fill in the fields as shown. In Host, enter only {name} — Namecheap adds {zone} itself.", { slots: { name: "text", zone: "text" }, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "setup.destination.guide.namecheap.4": ["Press the green tick to save the record.", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+
+  "setup.destination.guide.squarespace.1": ["Sign in to Squarespace, open Domains and choose {zone}.", { slots: { zone: "text" }, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "setup.destination.guide.squarespace.2": ["Open DNS, then DNS Settings, and under Custom records press Add record.", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "setup.destination.guide.squarespace.3": ["Fill in the fields as shown. In Host, enter only {name} — Squarespace adds {zone} itself.", { slots: { name: "text", zone: "text" }, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "setup.destination.guide.squarespace.4": ["Press Save.", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+
+  "setup.destination.guide.route53.1": ["Open Route 53 in the AWS console, choose Hosted zones and open {zone}.", { slots: { zone: "text" }, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "setup.destination.guide.route53.2": ["Press Create record.", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "setup.destination.guide.route53.3": ["Fill in the fields as shown. In Record name, enter only {name} — Route 53 shows {zone} after the box.", { slots: { name: "text", zone: "text" }, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "setup.destination.guide.route53.4": ["Press Create records.", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+
+  "setup.destination.guide.vercel.1": ["Open the Vercel dashboard, go to Domains and choose {zone}.", { slots: { zone: "text" }, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "setup.destination.guide.vercel.2": ["Under DNS Records, fill in the fields as shown. In Name, enter only {name} — Vercel adds {zone} itself.", { slots: { name: "text", zone: "text" }, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "setup.destination.guide.vercel.3": ["Press Add.", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+
+  "setup.destination.guide.generic.1": ["Sign in where your domain’s DNS is managed and open the DNS records for {zone}.", { slots: { zone: "text" }, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "setup.destination.guide.generic.2": ["Add a new record of type CNAME and fill in the fields as shown. In the name field, enter only {name}; if your provider asks for the full name, enter {host}.", { slots: { name: "text", host: "text" }, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
+  "setup.destination.guide.generic.3": ["Save the record. If your provider offers a proxy or forwarding for it, leave that off.", { slots: {}, fixedBy: "SPEC §5 (2026-09-17, issue 856)" }],
   /** REQ-028 c2: the written line that stands where the record will sit
    *  until a site address is given — never a blank, dash or placeholder. */
   "setup.destination.dnsPending": ["DNS record shown once your site is given.", { slots: {}, fixedBy: "REQ-028 c2" }],
