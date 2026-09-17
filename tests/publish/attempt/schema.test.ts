@@ -33,6 +33,8 @@ const APPLIED = [
   "20260906120200_sites_publishing.sql",
   // REQ-060 c4's column (issue #156). Same topic, later file.
   "20260907120000_publications_seo.sql",
+  // The page's own acceptance test, written at claim (#795).
+  "20260916140000_publications_acceptance.sql",
 ];
 
 /** One tuple-only row per line, `|`-separated columns — easy to split. */
@@ -348,5 +350,21 @@ describe("the publishing switch", () => {
       "YES",
       "no default",
     ]);
+  });
+});
+
+describe("#795 — a publication carries its acceptance test, written once", () => {
+  it("is nullable jsonb with no default", () => {
+    expect(columnOf("publications", "acceptance")).toEqual(["jsonb", "YES", "no default"]);
+  });
+
+  it("a null may be filled, a recorded test may not be rewritten", () => {
+    const draft = insertDraft();
+    expect(claim(draft, "dest-acceptance")).toBe(false);
+    const where = `where draft_id = '${draft}' and destination = 'dest-acceptance'`;
+    expect(raises(`update publications set acceptance = '{"form":"top20","query":"q"}' ${where};`)).toBe(false);
+    expect(raises(`update publications set acceptance = '{"form":"top20","query":"other"}' ${where};`)).toBe(true);
+    // Every other column still moves.
+    expect(raises(`update publications set attempt_no = 2 ${where};`)).toBe(false);
   });
 });

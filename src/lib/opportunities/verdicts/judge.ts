@@ -13,14 +13,12 @@
 // and re-ordering it — evaluate first, check the row second — is invisible
 // on every screen. `terminal.test.ts` fails on that re-ordering.
 //
-// **Do not write a lift condition for any cause.** The branch that judges
-// a page again once its search comes back into the tracked set will
-// present as a *bug report* — the page is live, the search is back, the
-// customer is paying, and the screen says no longer judgeable — and
-// REQ-063 c6 forbids it in terms. Its criterion 7, the resumption path,
-// was withdrawn outright on 2026-09-01 and its number was not reused, so a
-// citation to it dangles rather than pointing at a softer promise. Read
-// ADR-072 before touching this file.
+// **One cause is not terminal: `search_untracked`** (owner, 2026-09-16,
+// issue 795). A page's target search is measured every week whether or not it
+// is among the twelve, so it can no longer leave the tracked set; a row
+// that retired a page for it before then is not read as retiring it, and
+// the page is judged again. Every other cause stays terminal — write no
+// lift condition for them.
 //
 // **It fetches nothing.** No page's address is visited here, this week or
 // any week (REQ-063's non-goal). `page_not_found` is read from what the
@@ -96,7 +94,10 @@ export async function judgeWeek(a: {
     // permanent state (ADR-071 point 2).
     return { standings: pages.map((page) => ({ publicationId: page.publicationId, standing: NO_WEEK })) };
   }
-  const measurements = weekMeasurementsFrom({ report: week.report, week: a.week });
+  // Every page's own target search is read this week, in the twelve or not
+  // (issue 795): a search that left the set is still measured, never untracked.
+  const targets = pages.flatMap((page) => (page.acceptance.form === "top20" ? [page.acceptance.query] : []));
+  const measurements = weekMeasurementsFrom({ report: week.report, week: a.week, targets });
 
   const standings: PageStanding[] = [];
   const rows: VerdictInsert[] = [];
@@ -149,8 +150,11 @@ function judgeOne(a: {
   //    Same cause, same `lastJudgedWeek`, no row: the page was retired in
   //    an earlier week and nothing restores it (ADR-072 decision 5c). It
   //    is not re-inserted, so the row that retired it stays the one row
-  //    that did.
-  const retired = a.priorRows.find((row) => row.verdict === "not_judgeable" && row.cause !== null);
+  //    that did. `search_untracked` is the exception (issue 795): its search is
+  //    tracked again, so the page is evaluated.
+  const retired = a.priorRows.find(
+    (row) => row.verdict === "not_judgeable" && row.cause !== null && row.cause !== "search_untracked"
+  );
   if (retired !== undefined && retired.cause !== null) {
     return { standing: notJudgeable(retired.cause, lastJudgedWeek), row: null };
   }
