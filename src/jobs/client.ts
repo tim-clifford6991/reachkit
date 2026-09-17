@@ -85,13 +85,18 @@ export function defineJob(definition: JobDefinition): PlatformFunction {
       if (afterHours !== undefined) {
         await step.sleep("declared-delay", `${afterHours}h`);
       }
-      return step.run("job", () =>
-        runJob(definition, {
-          data: (event?.data ?? {}) as Readonly<Record<string, unknown>>,
-          now: new Date(),
-          attempt,
-        })
-      );
+      // The body runs outside any one step, and a job that splits its work
+      // names its steps through `input.step` (issue 798): a step cannot
+      // hold another, so wrapping the whole body in one would forbid the
+      // split and keep a long job inside a single invocation. The
+      // kill-switch guard in `runJob` is read again on every invocation, so
+      // a switch engaged between steps stops the steps still to come.
+      return runJob(definition, {
+        data: (event?.data ?? {}) as Readonly<Record<string, unknown>>,
+        now: new Date(),
+        attempt,
+        step: (name, body) => step.run(name, body) as Promise<Awaited<ReturnType<typeof body>>>,
+      });
     }
   );
 }
@@ -108,12 +113,21 @@ export function defineJob(definition: JobDefinition): PlatformFunction {
  * At-least-once: the receiving job's `idempotencyKey` is what makes a
  * second delivery harmless, and every event sent here carries the fields
  * that key names.
+ *
+ * `at` delays the run to a moment rather than by a job-wide number of hours
+ * (issue #790): `publish/execute` goes out at the page's own publish time.
+ * The platform holds an event stamped in the future until that moment.
  */
 export async function sendJobEvent(
   event: JobEvent,
-  data: Readonly<Record<string, unknown>>
+  data: Readonly<Record<string, unknown>>,
+  options: { readonly at?: Date } = {}
 ): Promise<void> {
-  await client.send({ name: event, data });
+  await client.send({
+    name: event,
+    data,
+    ...(options.at === undefined ? {} : { ts: options.at.getTime() }),
+  });
 }
 
 /** The HTTP handler set the `/api/jobs` route mounts. It serves exactly the

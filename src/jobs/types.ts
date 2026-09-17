@@ -13,9 +13,8 @@
 // hands the subject back.
 //
 // `publish/retry` is the eighth (issue #200). §9's "retry x3" needs a
-// trigger of its own: a retry cannot be a chained event, because
-// `publish/execute`'s idempotency key is `(draftId, destinationId)` and
-// re-sending it for the same page is deduped rather than delayed. It could
+// trigger of its own: a retry's moment is derived from the failed row and
+// re-read each hour, which a chained event cannot do. It could
 // not ride an existing tick either — `draft/generate`'s is gated to the
 // site's own evening, and `account/maintenance` is deliberately outside
 // the kill switch, which a job that publishes may not be.
@@ -27,7 +26,7 @@
 export type JobId =
   | "scan/run" // on demand; tier is a parameter (free | deep | weekly)
   | "draft/generate" // hourly tick, due at the site's own evening hour
-  | "publish/execute" // on approval or on window expiry
+  | "publish/execute" // sent on approval and on window open, delivered at the page's due moment
   | "publish/verify" // +24h after a publish
   | "publish/retry" // hourly tick; the retries and the veto windows whose moment has come round
   | "weekly/refresh" // hourly tick, due per site-local Monday (ADR-060)
@@ -95,7 +94,17 @@ export interface JobInput {
   /** Which delivery of this event this is, zero-indexed — `0` the first,
    *  higher on a retry. Absent where the caller does not know. */
   readonly attempt?: number;
+  /** Runs one named piece of the body as a durable step of its own (issue
+   *  798): its own invocation, retried alone, and not run again once it
+   *  has answered. Absent where the caller has no platform — a test, a
+   *  direct call — and the piece then runs inline. */
+  readonly step?: StepRunner;
 }
+
+/** A named, durable piece of a job body, stated without the platform's
+ *  vocabulary. The answer must be plain data: it is stored between
+ *  invocations and handed back on the next. */
+export type StepRunner = <T>(name: string, body: () => Promise<T>) => Promise<T>;
 
 /** A job definition: a trigger, an idempotency key and one call into the
  *  engine. It holds no engine logic — `run` reads its subject out of

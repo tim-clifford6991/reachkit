@@ -86,6 +86,18 @@ const client = {
   from: (table: string) => db.client.from(table),
   rpc: (fn: string, args: unknown) => {
     db.rpcCalls.push({ fn, args: args as Record<string, unknown> });
+    // The stored report lands on the pass's row, as the procedure writes
+    // it — a jsonb column, so a later step reads back plain data (issue 798).
+    if (fn === "store_current_report") {
+      const a = args as Record<string, unknown>;
+      for (const row of scanRows.filter((held) => held.id === a.p_scan_id)) {
+        Object.assign(row, {
+          report: JSON.parse(JSON.stringify(a.p_report)),
+          status: a.p_status,
+          cost_cents: a.p_cost_cents,
+        });
+      }
+    }
     return Promise.resolve({ data: rpcAnswers[fn] ?? null, error: null });
   },
 };
@@ -132,9 +144,13 @@ vi.mock("next/headers", () => ({
 // ── The job platform ────────────────────────────────────────────────────
 
 const jobEvents: { name: string; payload: Record<string, unknown> }[] = [];
+/** The site's zone at the moment each event was sent (issue #783): the
+ *  deep pass, and so its first-draft kickoff, starts from that event. */
+const zoneWhenSent: (string | null)[] = [];
 vi.mock("@/jobs/client", () => ({
   sendJobEvent: async (name: string, payload: Record<string, unknown>) => {
     jobEvents.push({ name, payload });
+    zoneWhenSent.push(site.timezone);
   },
 }));
 
@@ -306,7 +322,7 @@ function vendorAnswer(url: string): unknown {
     return envelope({
       items: SUGGESTIONS.map((keyword, i) => ({
         keyword,
-        keyword_info: { search_volume: 5200 - i * 140 },
+        keyword_info: { search_volume: 180 - i * 10 }, // right-sized for a site ranking for nothing (#779)
       })),
     });
   }
@@ -369,7 +385,7 @@ interface SiteRow {
   mode: string;
   veto_hours: number;
   publish_time: string;
-  timezone: string;
+  timezone: string | null;
   publishing_enabled: boolean;
 }
 
@@ -469,6 +485,8 @@ const { addAuthUser, fakeIdentityAuth, newFakeAuth, signedInCookie } = await imp
   "../account/identity/fake-auth"
 );
 const { runDeepPass } = await import("../../src/lib/scan/deep/run");
+const { activeSites } = await import("../../src/jobs/engine");
+const { registerActiveAccessGate } = await import("../../src/lib/scan/weekly/access");
 const { passProgressFor } = await import("../../src/lib/scan/deep/progress");
 const { isReleased, deadlineFrom } = await import("../../src/lib/scan/deep/release");
 const { destinationFor, APP_PATH } = await import(
@@ -497,10 +515,12 @@ beforeEach(() => {
   db.answer = answerQuery;
   db.singles.set("scans", { id: "scan-journey-04" });
   scanRows.length = 0;
+  steps.length = 0;
   for (const key of Object.keys(rpcAnswers)) delete rpcAnswers[key];
   rpcAnswers.apply_setup_choice = "destination-journey-04";
 
   jobEvents.length = 0;
+  zoneWhenSent.length = 0;
   modelCalls.length = 0;
   vendorRequests.length = 0;
   site = freshSite();
@@ -582,9 +602,18 @@ async function runTheQueuedPass(): Promise<{ status: string; reason: string }> {
   const result = await runDeepPass({
     siteId: queued.payload.siteId as string,
     domain: queued.payload.domain as string,
+    // The job platform's steps: each answer is stored and handed back as
+    // plain data, never the object the step returned (issue 798).
+    step: async (name, body) => {
+      steps.push(name);
+      return JSON.parse(JSON.stringify((await body()) ?? null));
+    },
   });
   return { status: result.status, reason: result.reason };
 }
+
+/** The steps the onboarding pass ran, in order. */
+const steps: string[] = [];
 
 /** The `fetches` rows the pass wrote — the ledger, as the product would
  *  have stored it. */
@@ -679,6 +708,37 @@ describe("three decisions → deep pass → the first page already on the calend
     expect(jobEvents.filter((event) => event.name === "scan/run")).toHaveLength(1);
   });
 
+  // ── Issue #783: the zone rides the submit ───────────────────────────
+  //
+  // `kickOffFirstDraft` selects the site through the evening tick's own
+  // list, which skips a site with no zone. `BrowserZone` only reports one
+  // after an account screen renders, so a founder who submitted before it
+  // answered got no first page. The submit carries the browser's zone now.
+  it("step 3 — a site with no zone takes the browser's on submit, before the pass is queued, and the first-draft selection picks it", async () => {
+    site.timezone = null;
+    db.rows.set("destinations", [{ site_id: SITE_ID }]);
+    registerActiveAccessGate(async (ids) => new Set(ids));
+    try {
+      // Without it, the selection the kickoff makes skips this site.
+      expect((await activeSites()).sites).toEqual([]);
+
+      const submitted = await submitTheThree({ timezone: "Europe/Lisbon" });
+      expect(submitted).toEqual({ status: 200, body: { ok: true, siteId: SITE_ID } });
+
+      expect(site.timezone).toBe("Europe/Lisbon");
+      expect(jobEvents.map((event) => event.name)).toEqual(["scan/run"]);
+      expect(zoneWhenSent).toEqual(["Europe/Lisbon"]);
+      expect((await activeSites()).sites).toEqual([{ siteId: SITE_ID, timeZone: "Europe/Lisbon" }]);
+    } finally {
+      registerActiveAccessGate(null);
+    }
+  });
+
+  it("step 3 — a zone the site already has is never overwritten by the browser's", async () => {
+    const submitted = await submitTheThree({ timezone: "Asia/Tokyo" });
+    expect(submitted.status).toBe(200);
+    expect(site.timezone).toBe(TIME_ZONE);
+  });
 
   // ── Issue #240: the WordPress arm of step 3 ─────────────────────────
   //
@@ -834,6 +894,17 @@ describe("three decisions → deep pass → the first page already on the calend
         const asked = JSON.parse(call) as { derivedType: string; allowedTypes: string[] };
         expect(asked.allowedTypes).toContain(asked.derivedType);
       }
+
+      // Issue 798: the derivation is a step of its own, after the pass's,
+      // and the typing it paid for is in the row's cost — every ledgered
+      // call, not only the stages'.
+      expect(steps).toEqual(["deep-pass", "opportunities", "first-draft"]);
+      const spent = ledger().reduce((total, row) => total + row.costCents, 0);
+      const typingCents = ledger()
+        .filter((row) => row.source === "opportunity-typing")
+        .reduce((total, row) => total + row.costCents, 0);
+      expect(typingCents).toBeGreaterThan(0);
+      expect(Number(scanRows[0]!.cost_cents)).toBeCloseTo(spent, 6);
     },
     JOURNEY_TIMEOUT_MS
   );

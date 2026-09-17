@@ -18,9 +18,11 @@ import type {
   OpportunityStore,
 } from "../../src/lib/opportunities/store";
 import type { Profile } from "../../src/lib/market/questions/profile";
+import type { HostedOwnPages } from "../../src/lib/publish/destinations/hosted/own-page";
 import type { EarnGrounding } from "../../src/lib/opportunities/earn-grounding";
 import type { NotWorkingVerdict } from "../../src/lib/opportunities/suppression";
 import type { StoredReport } from "../../src/lib/scan/report";
+import type { InventoryRow } from "../../src/lib/site-profile/types";
 
 export interface MemoryState {
   rows: OpportunityRow[];
@@ -29,6 +31,9 @@ export interface MemoryState {
   latestScanAt: Date | null;
   /** The host the site's hosted destination serves at, if any. */
   hostedHost: string | null;
+  /** The pages the site's hosted destination could update, or `null` where
+   *  its destination is not hosted (issue 781). */
+  hostedOwnPages: HostedOwnPages | null;
   now: Date;
   nextId: number;
   /** `page_verdicts` rows judged `not_working`, already joined to their
@@ -40,6 +45,8 @@ export interface MemoryState {
   grounded: boolean;
   /** Which Earn assets the site's own pages ground (issue 478). */
   earnGrounding: EarnGrounding;
+  /** The pages the crawl read of the site's domain (#780). */
+  inventory: InventoryRow[];
 }
 
 export function newMemoryState(over: Partial<MemoryState> = {}): MemoryState {
@@ -49,12 +56,14 @@ export function newMemoryState(over: Partial<MemoryState> = {}): MemoryState {
     profile: null,
     latestScanAt: null,
     hostedHost: null,
+    hostedOwnPages: null,
     now: new Date("2026-09-06T09:00:00.000Z"),
     nextId: 1,
     notWorking: [],
     report: null,
     grounded: true,
     earnGrounding: { comparison_table: true, integration_page: true, original_data_page: true },
+    inventory: [],
     ...over,
   };
 }
@@ -222,8 +231,23 @@ export function memoryStore(state: MemoryState): OpportunityStore {
       state.statusChangedAt.set(row.id, state.now);
     },
 
+    async markOpen(opportunityId) {
+      const row = state.rows.find((r) => r.id === opportunityId);
+      if (row === undefined || row.status !== "queued") return;
+      row.status = "open";
+      state.statusChangedAt.set(row.id, state.now);
+    },
+
     async hostedHostFor() {
       return state.hostedHost;
+    },
+
+    async hostedOwnPages() {
+      return state.hostedOwnPages;
+    },
+
+    async inventoryFor() {
+      return state.inventory;
     },
   };
 }

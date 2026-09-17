@@ -55,6 +55,19 @@ export interface SetupSubmission {
    * submit and no second save control.
    */
   voiceText: string;
+  /**
+   * The browser's own IANA zone, as `Intl` reports it (issue #783). Not a
+   * decision and not an engine parameter: the founder is asked nothing, and
+   * it is the zone every date in the app is drawn in. It rides the submit
+   * so the site has one before the deep pass's first-draft kickoff selects
+   * it — that selection, the evening tick and the weekly pass all skip a
+   * site with no zone. `null` where the browser reported none.
+   *
+   * Stored only while `sites.timezone` is null, through the same check
+   * `adoptBrowserTimezone` gives `BrowserZone` (#753), which stays the
+   * fallback for a submit that carried none.
+   */
+  timezone: string | null;
 }
 
 export type SetupRefusal =
@@ -170,17 +183,32 @@ export async function completeSetup(
   }
 
   // At-least-once, and never before the commit (REQ-028 c4: setup
-  // completes and the product still produces their first page).
-  try {
-    await store.enqueueDeepPass(progress.siteId);
-  } catch {
-    // Swallowed on purpose: the founder is complete either way, and the
-    // pass is idempotent on `(site_id, 'deep')`. The failure is the
-    // queue's to report, not this founder's to re-answer.
+  // completes and the product still produces their first page). A failed
+  // send is retried here (issue #782): the founder lands in the app and
+  // waits on this pass there, so a dropped send is a side panel that never
+  // clears.
+  for (let attempt = 1; attempt <= ENQUEUE_ATTEMPTS; attempt += 1) {
+    try {
+      await store.enqueueDeepPass(progress.siteId);
+      break;
+    } catch (error) {
+      // Swallowed on purpose after the last attempt: the founder is
+      // complete either way, and the pass is idempotent on its key.
+      // `account/maintenance` re-sends it for a setup left with no pass
+      // (`src/jobs/deep-pass-backstop.ts`); the failure is the queue's to
+      // report, not this founder's to re-answer.
+      console.warn(
+        JSON.stringify({ event: "deep_pass_enqueue_failed", siteId: progress.siteId, attempt, detail: String(error) })
+      );
+    }
   }
 
   return { ok: true, siteId: progress.siteId };
 }
+
+/** How many times one submit sends the pass before leaving it to the
+ *  maintenance backstop (issue #782). */
+const ENQUEUE_ATTEMPTS = 3;
 
 /** Everything about the payload that can be decided without I/O. */
 function shapeRefusal(submission: SetupSubmission): SetupRefusal | null {

@@ -31,14 +31,15 @@
 // pipeline branches on no tier and the free path derives nothing — the
 // choice of *which* §7 entry point a pass uses belongs to the pass. The
 // deep pass pursues a month of depth (`pursueDepth`, through
-// `deriveForPass`), inside the same cost context and the same `DEEP` cap
-// the stages spent, on the report the pass just stored. A derivation that
+// `deriveForPass`), under the same `DEEP` cap the stages spent and counted
+// in the same row's cost (issue 798), on the report the pass just stored —
+// as a step of its own, after the pass's. A derivation that
 // finds nothing is a normal return: §4.3 releases the founder either way
 // and "zero proposals is legal, never faked".
-import type { StageName } from "../stages";
+import { FIRST_DRAFT_STAGE, type OnboardingStage } from "./progress";
 import { dbAdmin } from "@/lib/db";
 import { deriveForPass } from "@/lib/opportunities";
-import { claimOnboardingPass, runScan } from "../run";
+import { claimOnboardingPass, runScan, spendOnStoredReport } from "../run";
 import type { ScanStatus } from "../store";
 import { readSiteCategory } from "../site-category";
 import { releaseToApp, type ReleaseReason } from "./release";
@@ -75,7 +76,7 @@ export function reasonFor(status: ScanStatus): ReleaseReason {
  */
 async function recordStage(
   siteId: string,
-  stage: StageName | null,
+  stage: OnboardingStage | null,
   opts: { reset?: boolean } = {}
 ): Promise<void> {
   try {
@@ -104,8 +105,21 @@ async function recordStage(
   }
 }
 
+/** Runs one named piece of the pass durably, where the caller has a way
+ *  to (the job's steps), and inline where it has none. Each piece's answer
+ *  is plain data, so a piece already done is not run again on a retry. */
+export type PassStep = <T>(name: string, body: () => Promise<T>) => Promise<T>;
+
+const inline: PassStep = (_name, body) => body();
+
 /**
  * Runs one founder's onboarding pass and releases them.
+ *
+ * **Three steps, not one** (issue 798): the pass itself, the opportunities
+ * it derives, and the first draft with the release. Each is its own
+ * invocation on the job platform, so no one of them has to fit the whole
+ * onboarding inside the platform's ceiling on a request, and a later step
+ * that fails is retried without buying the pass a second time.
  *
  * The release is written from the pass's own end state, and it is written
  * whatever that state is: a degraded pass and a failed one both release,
@@ -118,7 +132,82 @@ async function recordStage(
 export async function runDeepPass(a: {
   siteId: string;
   domain: string;
+  /** The work that belongs to onboarding after the scan and before the
+   *  release — the first draft (issue #782). The founder is already in the
+   *  app; the release is what clears their side panel, so it waits for the
+   *  first page rather than announcing an app with none in it. A throw here
+   *  never holds the release. */
+  beforeRelease?: () => Promise<void>;
+  step?: PassStep;
 }): Promise<{ scanId: string; status: ScanStatus; reason: ReleaseReason }> {
+  const step = a.step ?? inline;
+
+  const result = await step("deep-pass", () => measure(a));
+
+  // The pass's measurements become supply, on the pass's own money and
+  // under its own cap, from the report the first step stored. A derivation
+  // that throws is logged: zero proposals is legal, never faked (§4.3).
+  await step("opportunities", async () => {
+    try {
+      await spendOnStoredReport({ scanId: result.scanId, tier: "deep" }, async ({ report, cost }) => {
+        await deriveForPass(cost, {
+          tier: "deep",
+          siteId: a.siteId,
+          report,
+          // Onboarding's pass runs on a payment that has just cleared, so
+          // the gate is answered `true` here and never guessed at inside
+          // the engine (`topUp`'s own rule, which the deep arm does not read).
+          hasActiveAccess: true,
+        });
+      });
+    } catch (error) {
+      console.log(
+        JSON.stringify({
+          event: "after_report_failed",
+          scanId: result.scanId,
+          because: error instanceof Error ? error.message : String(error),
+        })
+      );
+    }
+
+    // The pass derived the paid voice; seed the customer's field from it, so
+    // the first draft is written in it (issue 737). Setup could not: a
+    // free-scan profile has no voice to adopt. Unstamped, and never over the
+    // founder's own edit (`adoptVoiceText`); a failure costs a voice, never
+    // the release.
+    try {
+      const { adoptVoiceText } = await import("@/lib/site-profile");
+      await adoptVoiceText({ siteId: a.siteId, domain: a.domain });
+    } catch {
+      // Settings and the next weekly refresh read it again.
+    }
+    return null;
+  });
+
+  const reason = await step("first-draft", async () => {
+    if (a.beforeRelease !== undefined) {
+      await recordStage(a.siteId, FIRST_DRAFT_STAGE);
+      try {
+        await a.beforeRelease();
+      } catch (error) {
+        console.warn(JSON.stringify({ event: "before_release_failed", siteId: a.siteId, detail: String(error) }));
+      }
+    }
+
+    const released = reasonFor(result.status);
+    await releaseToApp({ siteId: a.siteId, reason: released });
+    // The pass is over, so no step is under way. Cleared rather than left
+    // pointing at `scoring`, which would read as "still scoring" to anyone
+    // who asked after the release.
+    await recordStage(a.siteId, null);
+    return released;
+  });
+
+  return { scanId: result.scanId, status: result.status, reason };
+}
+
+/** The pass's first step: the row, the category and the one pipeline. */
+async function measure(a: { siteId: string; domain: string }): Promise<{ scanId: string; status: ScanStatus }> {
   // The timings belong to one pass, so the map is cleared before this one
   // rather than added to whatever a previous pass left — two passes'
   // instants in one map would state a stage that ran twice as one that ran
@@ -137,45 +226,13 @@ export async function runDeepPass(a: {
   // searched on (#767); none stored, the pass seeds from the profile.
   const category = await readSiteCategory(a.siteId);
 
-  const result = await runScan({
+  return runScan({
     domain: a.domain,
     siteId: a.siteId,
     tier: "deep",
     ...(category === undefined ? {} : { category }),
     onStage: (stage) => recordStage(a.siteId, stage),
-    // Onboarding's pass runs on a payment that has just cleared, so the
-    // gate is answered `true` here and never guessed at inside the
-    // engine (`topUp`'s own rule, which the deep arm does not read).
-    afterReport: async ({ report, cost }) => {
-      await deriveForPass(cost, {
-        tier: "deep",
-        siteId: a.siteId,
-        report,
-        hasActiveAccess: true,
-      });
-    },
   });
-
-  // The pass derived the paid voice; seed the customer's field from it, so
-  // the first draft is written in it (issue 737). Setup could not: a
-  // free-scan profile has no voice to adopt. Unstamped, and never over the
-  // founder's own edit (`adoptVoiceText`); a failure costs a voice, never
-  // the release.
-  try {
-    const { adoptVoiceText } = await import("@/lib/site-profile");
-    await adoptVoiceText({ siteId: a.siteId, domain: a.domain });
-  } catch {
-    // Settings and the next weekly refresh read it again.
-  }
-
-  const reason = reasonFor(result.status);
-  await releaseToApp({ siteId: a.siteId, reason });
-  // The pass is over, so no step is under way. Cleared rather than left
-  // pointing at `scoring`, which would read as "still scoring" to anyone
-  // who asked after the release.
-  await recordStage(a.siteId, null);
-
-  return { scanId: result.scanId, status: result.status, reason };
 }
 
 /** The row's recorded entries, or an empty map where the column has none

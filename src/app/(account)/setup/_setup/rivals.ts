@@ -13,7 +13,8 @@
 //     taken from the browser. A stated market is the direct purchase's
 //     path: `competitors_domain`, spent under the `DEEP` cap against the
 //     deep pass's own `scans` row, which this claims when setup accepts the
-//     address (owner ruling, 2026-09-16). The pass adopts that row later.
+//     address (owner ruling, 2026-09-16), and counted in its `cost_cents`.
+//     The pass adopts that row later. The kill switch refuses the call.
 //
 // **Every missing fact settles to a written state.** No site, a finished
 // setup, an address that is not a domain, a claim that could not be
@@ -94,14 +95,21 @@ export async function seekRivals(a: {
       scanId === null
         ? () => Promise.reject(new Error("no claimed row to spend against"))
         : async (body) => {
-            const [{ withCostContext }, { FREE_SCAN_POLICY_VERSION }] = await Promise.all([
+            const [{ env }, { withCostContext }, { FREE_SCAN_POLICY_VERSION }] = await Promise.all([
+              import("@/lib/config/env"),
               import("@/lib/costs"),
               import("@/lib/scan/ceilings"),
             ]);
-            // `rollUp: "none"`: the row is the pass's, still running. A
-            // roll-up would close it `done` before the pass has begun.
+            // The kill switch stops every paid call (issue 798), and this
+            // one runs on a request rather than a job, so no runner's guard
+            // reads it first. Refused, the card settles "none found".
+            if (env.KILL_SWITCH) throw new Error("the kill switch is engaged");
+            // `rollUp: "add"`: the row is the pass's, still running, so its
+            // status is not touched — a full roll-up would close it `done`
+            // before the pass has begun — but what the call cost is added
+            // to its `cost_cents`, which the pass then carries (issue 798).
             return withCostContext(
-              { scanId, cap: "DEEP", policyVersion: FREE_SCAN_POLICY_VERSION, rollUp: "none" },
+              { scanId, cap: "DEEP", policyVersion: FREE_SCAN_POLICY_VERSION, rollUp: "add" },
               body
             );
           };

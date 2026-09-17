@@ -23,8 +23,16 @@
 // rule WO-073 step 4 wrote down would keep it alive on `onboarding` alone.
 // Where the spec rules, the archived plan does not re-open it (CLAUDE.md).
 import { BATTERY, SELECTION } from "@/lib/config/constants";
+import { qualifyingDemand } from "@/lib/opportunities/winnability/bars";
 import type { Profile } from "./profile";
 import type { SuggestionRow } from "./market-set";
+
+/** A row selection reads: a suggestion, or a ranked keyword pooled beside
+ *  them (SPEC §6 thin markets, #778). `rivals` names the tracked rivals that
+ *  rank for it; their brand tokens support it in the relevance guard. */
+export interface MarketRow extends SuggestionRow {
+  rivals?: readonly string[];
+}
 
 export type Intent = "decision" | "solution" | "problem" | "informational";
 
@@ -35,6 +43,11 @@ export interface SelectedSearch {
   intent: Intent;
   score: number;
   rank: number;
+  /** The volume step this search was admitted at (SPEC §6 thin markets,
+   *  2026-09-16) — the highest of `SELECTION.volumeSteps` its volume meets,
+   *  and never below the floor the selection ran at. Absent on a report
+   *  stored before #778, which selected at `SELECTION.volumeFloorPerMonth`. */
+  floor?: number;
 }
 
 // ── The shape tables. One edit changes a classification everywhere ──────────
@@ -201,9 +214,19 @@ export function stemKey(keyword: string): string {
  * (`sites.category`, or the free report's correction), where the pass has
  * one. It is the seed the market was bought on (#767), so a guard blind to
  * its words would delete the very searches it asked for.
+ *
+ * And for a ranked keyword pooled from a tracked rival (SPEC §6 thin
+ * markets, #778): that rival's brand tokens — its domain's first label — so
+ * "appcues alternatives" survives off the rival's own rows. The category's
+ * head term is already inside `category`'s tokens.
  */
-export function passesRelevanceGuard(keyword: string, p: Profile, category?: string): boolean {
-  const support = supportSet(p, category);
+export function passesRelevanceGuard(
+  keyword: string,
+  p: Profile,
+  category?: string,
+  rivals: readonly string[] = []
+): boolean {
+  const support = supportSet(p, category, rivals);
   let supported = 0;
   for (const token of contentTokens(keyword)) {
     if (support.has(token)) {
@@ -215,13 +238,30 @@ export function passesRelevanceGuard(keyword: string, p: Profile, category?: str
   return supported > 0;
 }
 
-function supportSet(p: Profile, category?: string): ReadonlySet<string> {
+function supportSet(p: Profile, category?: string, rivals: readonly string[] = []): ReadonlySet<string> {
   const tokens = new Set<string>();
-  const sources = [category ?? "", p.category, p.offeringType, p.job, ...p.vocabulary, ...p.audienceTerms, ...p.namedRivals];
+  const sources = [
+    category ?? "",
+    p.category,
+    p.offeringType,
+    p.job,
+    ...p.vocabulary,
+    ...p.audienceTerms,
+    ...p.namedRivals,
+    ...rivals.map(brandOf),
+  ];
   for (const source of sources) {
     for (const token of contentTokens(source)) tokens.add(token);
   }
   return tokens;
+}
+
+/** A tracked rival's brand as a search spells it: the domain's first label
+ *  with its hyphens closed up — `user-pilot.com` → `userpilot`. Never the
+ *  label's parts, which would let "user" support any search. */
+export function brandOf(domain: string): string {
+  const label = domain.toLowerCase().replace(/^www\./, "").split(".")[0] ?? "";
+  return label.replace(/[^a-z0-9]/g, "");
 }
 
 // ── The selection ──────────────────────────────────────────────────────────
@@ -253,7 +293,9 @@ const FLOORS: ReadonlyArray<readonly [Intent, number]> = Object.freeze([
 /**
  * The twelve — or as many as the market yielded.
  *
- * `score = intentWeight × log10(volume + 1)`, volume floor 50/mo, own-brand
+ * `score = intentWeight × log10(volume + 1)`, volume floor 50/mo unless the
+ * caller steps it down (SPEC §6 thin markets, `widen.ts`), volume ceiling
+ * `qualifyingDemand(ownRanked)` (SPEC §6 right-sizing, issue 830), own-brand
  * dropped, relevance guard against the profile's vocabulary, near-duplicate
  * collapse, composition constraints. Pure: no context, no clock, no I/O.
  *
@@ -264,25 +306,39 @@ const FLOORS: ReadonlyArray<readonly [Intent, number]> = Object.freeze([
  */
 export function selectTwelve(a: {
   profile: Profile;
-  market: SuggestionRow[];
+  market: readonly MarketRow[];
   /** The founder's confirmed category, where the pass has one — it joins
    *  the relevance guard's support set. */
   category?: string;
+  /** The volume floor, one of `SELECTION.volumeSteps`. Defaults to the
+   *  first step. */
+  floor?: number;
+  /** How many keywords the site itself ranks for — the footprint the
+   *  demand ceiling scales with, the same number derivation bands by
+   *  (unmeasured reads as the cold-start 0). Required: a selection that
+   *  never saw the site's size could pick a head term it cannot win. */
+  ownRanked: number;
 }): SelectedSearch[] {
   const { profile } = a;
+  const floor = a.floor ?? SELECTION.volumeFloorPerMonth;
+  // SPEC §6 right-sizing law (2026-09-16, issue 830): a search above the
+  // most demand this site may be offered is not a question for it at all —
+  // it takes no slot among the twelve and buys no SERP or battery call.
+  const ceiling = qualifyingDemand(a.ownRanked);
 
   const survivors: Candidate[] = [];
   for (const row of a.market) {
-    if (row.volume < SELECTION.volumeFloorPerMonth) continue;
+    if (row.volume < floor || row.volume > ceiling) continue;
     const intent = classifyIntent(row.keyword, profile);
     if (intent === "own_brand") continue;
-    if (!passesRelevanceGuard(row.keyword, profile, a.category)) continue;
+    const rivals = row.rivals ?? [];
+    if (!passesRelevanceGuard(row.keyword, profile, a.category, rivals)) continue;
     survivors.push({
       keyword: row.keyword,
       volume: row.volume,
       intent,
       score: SELECTION.intentWeights[intent] * Math.log10(row.volume + 1),
-      rivalBrand: namesAnyOf(row.keyword, profile.namedRivals),
+      rivalBrand: namesAnyOf(row.keyword, [...profile.namedRivals, ...rivals.map(brandOf)]),
       howTo: HOW_TO.test(normalise(row.keyword)),
     });
   }
@@ -354,9 +410,10 @@ export function selectTwelve(a: {
       intent: candidate.intent,
       score: candidate.score,
       rank: index + 1,
+      floor: stepOf(candidate.volume, floor),
     }));
 
-  logSelection(ranked.length, selected.length, unmetFloors);
+  logSelection(ranked.length, selected.length, unmetFloors, floor);
   return selected;
 }
 
@@ -375,8 +432,14 @@ function isSurplus(
 
 /** BP-025 `## NFR budget`: "selected count and which constraint bound it".
  *  Counts and constraint names only — never a keyword. */
-function logSelection(eligible: number, selected: number, unmetFloors: readonly Intent[]): void {
+function logSelection(eligible: number, selected: number, unmetFloors: readonly Intent[], floor: number): void {
   const boundBy =
     selected >= BATTERY.QUESTIONS ? "questions" : selected === eligible ? "market" : "caps";
-  console.log(JSON.stringify({ event: "selection", eligible, selected, boundBy, unmetFloors }));
+  console.log(JSON.stringify({ event: "selection", eligible, selected, boundBy, unmetFloors, floor }));
+}
+
+/** The step a search was admitted at: the highest volume step its volume
+ *  meets, never below the floor the selection ran at. */
+function stepOf(volume: number, floor: number): number {
+  return SELECTION.volumeSteps.find((step) => step >= floor && volume >= step) ?? floor;
 }

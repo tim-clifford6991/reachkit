@@ -19,26 +19,33 @@
 // battery because the failure has to have somewhere to live — the cause a
 // rejected day carries has to survive the run that produced it — and the
 // row it is written to stays in `generating`, which is not a state anything
-// publishes from.
+// publishes from, until the caller rests it (`../index.ts`).
+//
+// **A date has one row across every attempt (#788).** A regeneration is
+// handed the row the earlier attempt wrote and rewrites it in place: a
+// second insert left two rows on one date, and the second attempt's
+// near-duplicate gate compared the page against the first attempt's own
+// text. The row's recorded passage is frozen by a trigger, so a rewrite is
+// grounded on that same passage.
 //
 // **A step that failed is not a rule that failed.** A model that did not
 // answer, and the ceiling stopping a step, both give `step_failed`: they do
-// not populate `failed`, they do not increment `hard_rule_attempts`, and
-// they do not consume the one automatic regeneration — regenerating would
-// not make an unavailable model available.
+// not populate `failed` and they do not increment `hard_rule_attempts`.
+// Once the date's row exists the failure names it, and the caller decides
+// whether a second attempt runs and where the row rests (#813).
 //
 // **The hard rules bind what ReachKit generates, never what the customer
 // writes.** This function is on the generation path only; an edit the
 // customer saves does not come through here.
 import type { CostContext } from "@/lib/costs";
 import type { Opportunity } from "@/lib/opportunities";
-import { recordedFactValue } from "../fact";
+import { readRecordedFact, recordedFactValue } from "../fact";
 import { recoveryOutcome, type Recovery } from "../claims/recovery";
 import { recordedRulesValue, recordedVerdictValue } from "../record";
 import { runHardRules } from "../rules";
 import { renderOf } from "../rules/text";
 import type { GroundedFact, RuleFailure, SiteRuleInputs } from "../rules/types";
-import { generateStore } from "../store";
+import { generateStore, type DraftRow } from "../store";
 import { applyLinks } from "../links/apply";
 import type { LinkTarget } from "../links/select";
 import { buildPromptInputs } from "../voice/inputs";
@@ -106,6 +113,9 @@ export async function generateDraft(
     links: readonly LinkTarget[];
     /** The scan whose measured pages ground the page. */
     scanId?: string;
+    /** The row an earlier attempt wrote for this date, to rewrite rather
+     *  than insert beside (#788). */
+    draftId?: string;
   }
 ): Promise<GenerateOutcome> {
   const store = generateStore();
@@ -113,7 +123,7 @@ export async function generateDraft(
   // 1. The ceiling, before anything runs.
   if (c.capHit()) {
     logRun({ siteId: a.siteId, step: "brief", outcome: "cap" });
-    return { ok: false, reason: "step_failed", draftId: null, step: "brief" };
+    return { ok: false, reason: "step_failed", draftId: a.draftId ?? null, step: "brief" };
   }
 
   // 2. The facts read. No fallback: §8's fact is the customer's own live
@@ -125,7 +135,7 @@ export async function generateDraft(
 
   // The page's shape is its type's, never the model's (issue 475).
   const skeleton = SKELETONS[a.opportunity.type];
-  if (skeleton === null) return stepFailed(a.siteId, "outline");
+  if (skeleton === null) return stepFailed(a.siteId, "outline", a.draftId);
 
   // 3. The brief, handed the closed projection and nothing else. It picks
   //    facts by index; a brief that picks none stops here, before any draft
@@ -139,8 +149,16 @@ export async function generateDraft(
       voice: a.voiceText,
     })
   );
-  if (briefResult.kind === "unmeasured") return stepFailed(a.siteId, "brief");
-  const selected = selectedFactIndexes(briefResult.value, facts.length).map((index) => facts[index]!);
+  if (briefResult.kind === "unmeasured") return stepFailed(a.siteId, "brief", a.draftId);
+  const chosen = selectedFactIndexes(briefResult.value, facts.length).map((index) => facts[index]!);
+  // A rewrite stands on the passage its row already records — the trigger
+  // refuses any other. One the facts no longer hold is hard rule 1 failing
+  // on that row.
+  const existing = a.draftId === undefined ? null : await store.draftById(a.draftId);
+  const recorded = existing === null ? null : readRecordedFact(existing.grounded_fact);
+  const pinned = recorded === null ? undefined : facts.find((sourced) => sourced.fact.passage === recorded.passage);
+  if (existing !== null && recorded !== null && pinned === undefined) return lostFact(a.siteId, existing);
+  const selected = pinned === undefined ? chosen : [pinned, ...chosen.filter((sourced) => sourced !== pinned)];
   const grounding = selected[0];
   if (grounding === undefined) return noFact(a.siteId);
   const passages = selected.map((sourced) => sourced.fact.passage);
@@ -159,17 +177,17 @@ export async function generateDraft(
   //    pass. Each re-reads the ceiling; an `unmeasured` result from any of
   //    them is that step's failure and never a rule's.
   const outlineResult = await outline(c, inputs, { brief: briefResult.value, skeleton });
-  if (outlineResult.kind === "unmeasured") return stepFailed(a.siteId, "outline");
+  if (outlineResult.kind === "unmeasured") return stepFailed(a.siteId, "outline", a.draftId);
 
   const draftResult = await draft(c, inputs, {
     brief: briefResult.value,
     outline: outlineResult.value,
     facts: selected.map((sourced) => ({ url: sourced.fact.url, passage: sourced.fact.passage })),
   });
-  if (draftResult.kind === "unmeasured") return stepFailed(a.siteId, "draft");
+  if (draftResult.kind === "unmeasured") return stepFailed(a.siteId, "draft", a.draftId);
 
   const ops = await answerability(c, inputs, { body: draftResult.value, facts: passages });
-  if (ops.kind === "unmeasured") return stepFailed(a.siteId, "answerability");
+  if (ops.kind === "unmeasured") return stepFailed(a.siteId, "answerability", a.draftId);
 
   // SPEC §7: the page links to the chosen pages of the customer's own site
   // and to none it guessed — held in code after the bounded answerability
@@ -193,10 +211,7 @@ export async function generateDraft(
   //    measured is a measurement and is read by the rules; it is not an
   //    author, and writing it here would be the generated byline the rule
   //    exists to prevent.
-  const draftId = await store.insertDraft({
-    site_id: a.siteId,
-    opportunity_id: a.opportunity.id,
-    state: GENERATING,
+  const page = {
     title: body.title,
     body_md: body.bodyMarkdown,
     // The description the draft step already writes, kept where the hosted
@@ -206,14 +221,26 @@ export async function generateDraft(
     // The one shape (`../fact.ts`), so what is written here and what the
     // draft view and the hosted page read cannot be spelled differently.
     grounded_fact: recordedFactValue(grounding.fact),
-    attribution: null,
-    scheduled_for: a.scheduledFor,
     // The draft's own roll-up, in the unit the ledger holds
     // (`drafts.cost_cents` is `numeric(12,4)` since #449). Not rounded:
     // one day's page costs about 6.5¢ and rounding it to a whole cent
     // made the draft disagree with the `fetches` rows it sums.
     cost_cents: c.spentCents(),
-  });
+  };
+  let draftId: string;
+  if (existing === null) {
+    draftId = await store.insertDraft({
+      ...page,
+      site_id: a.siteId,
+      opportunity_id: a.opportunity.id,
+      state: GENERATING,
+      attribution: null,
+      scheduled_for: a.scheduledFor,
+    });
+  } else {
+    draftId = existing.id;
+    await store.patchDraft(draftId, page);
+  }
 
   // 5. The battery, over the finished text, against this customer's own
   //    three sets.
@@ -302,7 +329,36 @@ function noFact(siteId: string): GenerateOutcome {
   };
 }
 
-function stepFailed(siteId: string, step: PipelineStep): GenerateOutcome {
+/** Hard rule 1 on a rewrite: the passage the row records is no longer on
+ *  the customer's pages, and the trigger will not let the row stand on
+ *  another. The failure is recorded on that row and counted like any other,
+ *  so the caller rests it where the customer can see why. */
+async function lostFact(siteId: string, row: DraftRow): Promise<GenerateOutcome> {
+  const failed: RuleFailure[] = [{ rule: "grounding" }];
+  const attempt = row.hard_rule_attempts + 1;
+  await generateStore().patchDraft(row.id, {
+    rule_failures: failed,
+    hard_rule_attempts: attempt,
+    hard_rules_passed: false,
+  });
+  logRun({ siteId, draftId: row.id, outcome: "rules", failed: "grounding", attempt });
+  return {
+    ok: false,
+    reason: "rules",
+    draftId: row.id,
+    failed,
+    attempt,
+    recovery: recoveryOutcome({
+      failed: ["grounding"],
+      automaticAttempts: row.hard_rule_attempts,
+      enteredReview: false,
+    }),
+  };
+}
+
+/** A step that did not run. On a rewrite the date's row already exists, and
+ *  the failure names it so the caller can rest it (#813). */
+function stepFailed(siteId: string, step: PipelineStep, draftId: string | undefined): GenerateOutcome {
   logRun({ siteId, step, outcome: "step_failed" });
-  return { ok: false, reason: "step_failed", draftId: null, step };
+  return { ok: false, reason: "step_failed", draftId: draftId ?? null, step };
 }

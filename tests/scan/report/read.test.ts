@@ -133,8 +133,9 @@ describe("dates survive the round trip through jsonb", () => {
 /** The same blob as `asStoredJson`, wound back to what version 6 wrote: no
  *  `siteIssues`, because the technical-issue checks did not exist (#570). */
 function asVersion6Json(): Record<string, unknown> {
-  const { siteIssues, ...blob } = asStoredJson() as Record<string, unknown>;
+  const { siteIssues, ownRankedRows, ...blob } = asStoredJson() as Record<string, unknown>;
   void siteIssues;
+  void ownRankedRows;
   return { ...blob, version: 6 };
 }
 
@@ -396,6 +397,17 @@ describe("a report written at version 7 is lifted, not refused", () => {
     expect(report.version).toBe(REPORT_VERSION);
     expect(report.siteIssues?.checkedPages).toBeNull();
     expect(report.siteIssues?.issues[0]).toMatchObject({ count: 1, pages: null });
+  });
+});
+
+describe("a report written at version 8 is lifted, not refused", () => {
+  it("holds none of the site's own ranked rows — it never kept them, and none is invented", () => {
+    const { ownRankedRows, ...current } = asStoredJson() as Record<string, unknown>;
+    void ownRankedRows;
+    const v8 = { ...current, version: 8 };
+    const report = readStoredReport(v8);
+    expect(report.version).toBe(REPORT_VERSION);
+    expect(report.ownRankedRows).toEqual([]);
   });
 });
 

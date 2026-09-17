@@ -22,10 +22,17 @@ import { dbAdmin } from "@/lib/db";
 import { STAGES, type StageName } from "../stages";
 import { isReleased } from "./release";
 
+/** The step after the scan: the first draft, written before the founder is
+ *  released (issue #782), so "the pass is running" covers the first page as
+ *  well. Not one of the engine's six handles — the scan knows nothing of
+ *  §8's writing — which is why it is its own value on `sites.setup_stage`. */
+export const FIRST_DRAFT_STAGE = "writing_first_draft" as const;
+export type OnboardingStage = StageName | typeof FIRST_DRAFT_STAGE;
+
 export type DeepPassProgress =
   | {
       running: true;
-      stage: StageName;
+      stage: OnboardingStage;
       /** When each stage of this pass began, keyed by handle
        *  (`sites.setup_stage_times`, issue #356). A finished stage's
        *  elapsed time is the difference between its own entry and the
@@ -56,8 +63,8 @@ interface MinimalClient {
   from<T>(table: string): MinimalQuery<T>;
 }
 
-function isStage(value: string | null): value is StageName {
-  return value !== null && (STAGES as readonly string[]).includes(value);
+function isStage(value: string | null): value is OnboardingStage {
+  return value === FIRST_DRAFT_STAGE || (value !== null && (STAGES as readonly string[]).includes(value));
 }
 
 /**

@@ -13,7 +13,7 @@ import { improveCandidates } from "../../../src/lib/opportunities/derive/improve
 import type { OnPageFacts } from "../../../src/lib/measure/parse";
 import type { RobotsPolicy } from "../../../src/lib/egress/types";
 import { ON_PAGE, ROBOTS } from "../../scan/report/fixtures";
-import { AT, SCAN_ID, SITE_ID, question, reportOf, serp, smallCounts } from "../fixtures";
+import { AT, SCAN_ID, SITE_ID, question, reportOf, search, serp, smallCounts } from "../fixtures";
 
 const base = { siteId: SITE_ID, scanId: SCAN_ID, ownRanked: 0 };
 
@@ -46,7 +46,7 @@ describe('§7: `expand_page` — "Customer ranks 4-30, page thin"', () => {
     expect(only.evidence).toEqual({
       family: "improve",
       query: "best user onboarding software",
-      volume: { kind: "measured", value: 1900, at: AT },
+      volume: { kind: "measured", value: 190, at: AT },
       pageUrl: ON_PAGE.url,
       shortfall: { kind: "thin", words: { kind: "measured", value: 400, at: AT } },
     });
@@ -135,10 +135,10 @@ describe("§6.6's cold-start law: nothing to improve is not something invented",
     ).toEqual([]);
   });
 
-  it("a ranking url that is not the page the scan measured yields nothing", () => {
-    // There is no crawler: the shortfall on record is a measurement of the
-    // home document, and attaching it to a different page would be a claim
-    // about a page nobody read.
+  it("a thin measurement of the home page is never attached to a different ranking page", () => {
+    // `onPage` measured the home document alone: a blog post ranking in the
+    // band is not "thin" on that evidence, and with no answer ignoring the
+    // customer it has no shortfall on record.
     const report = reportOf(
       { questions: [question()], serps: [rankingSerp(5, "https://example.com/blog/post")] },
       { onPage: measured(facts({ visibleChars: 400 }), AT) }
@@ -242,5 +242,126 @@ describe('§7: `unblock` is "instruction only, never generated, never automated"
       }
     );
     expect(fixCandidates({ siteId: SITE_ID, scanId: SCAN_ID, report }).candidates).toEqual([]);
+  });
+});
+
+describe("SPEC §7 (2026-09-16): update candidates are the site's own pages, not only the home page", () => {
+  const POST = "https://example.com/blog/user-onboarding-software";
+  /** The question's top ten: rivals only, and an AI answer citing a rival. */
+  const rivalsOnly = serp();
+
+  function ranked(rows: { keyword: string; position: number; url: string }[]) {
+    return rows.map((row) => ({ ...row, searchVolume: 190 }));
+  }
+
+  it("a blog post the site's own ranked rows put at 12 for the question becomes an Improve of that url", () => {
+    const report = reportOf(
+      { questions: [question()], serps: [rivalsOnly] },
+      { ownRankedRows: ranked([{ keyword: "best user onboarding software", position: 12, url: POST }]) }
+    );
+    const { candidates, assessed } = improveCandidates({ ...base, report, rankedCounts: smallCounts() });
+    expect(assessed).toBe(1);
+    expect(candidates).toHaveLength(1);
+    expect(candidates[0]).toMatchObject({
+      type: "answerable_page",
+      targetRef: POST,
+      targetQuery: "best user onboarding software",
+      fitBand: "winnable",
+      evidence: { pageUrl: POST, shortfall: { kind: "position", position: measured(12, AT) } },
+    });
+  });
+
+  it("a page in the top ten at a url other than the home page is read too", () => {
+    const report = reportOf({
+      questions: [question()],
+      serps: [
+        serp({
+          organic: [
+            { position: 1, domain: "appcues.com", url: "https://appcues.com/a", title: "A" },
+            { position: 7, domain: "example.com", url: POST, title: "Us" },
+          ],
+        }),
+      ],
+    });
+    expect(improveCandidates({ ...base, report, rankedCounts: smallCounts() }).candidates[0]?.targetRef).toBe(POST);
+  });
+
+  it("a ranked row in the question's parent topic matches it; an unrelated search does not", () => {
+    const sibling = reportOf(
+      { questions: [question()], serps: [rivalsOnly] },
+      { ownRankedRows: ranked([{ keyword: "user onboarding softwares best", position: 20, url: POST }]) }
+    );
+    expect(improveCandidates({ ...base, report: sibling, rankedCounts: smallCounts() }).candidates).toHaveLength(1);
+
+    const unrelated = reportOf(
+      { questions: [question()], serps: [rivalsOnly] },
+      { ownRankedRows: ranked([{ keyword: "pricing page examples", position: 12, url: POST }]) }
+    );
+    expect(improveCandidates({ ...base, report: unrelated, rankedCounts: smallCounts() }).candidates).toEqual([]);
+  });
+
+  it("outside the 4–30 band, or already top three for the search, there is nothing to update", () => {
+    for (const rows of [
+      [{ keyword: "best user onboarding software", position: 31, url: POST }],
+      [
+        { keyword: "best user onboarding software", position: 2, url: "https://example.com/" },
+        { keyword: "best user onboarding software", position: 12, url: POST },
+      ],
+    ]) {
+      const report = reportOf({ questions: [question()], serps: [rivalsOnly] }, { ownRankedRows: ranked(rows) });
+      expect(improveCandidates({ ...base, report, rankedCounts: smallCounts() }).candidates).toEqual([]);
+    }
+  });
+
+  it("a search outsized for the site offers no update either — both sides are right-sized alike", () => {
+    const report = reportOf(
+      { questions: [question({ search: search({ volume: 50_000 }) })], serps: [rivalsOnly] },
+      { ownRankedRows: ranked([{ keyword: "best user onboarding software", position: 12, url: POST }]) }
+    );
+    const result = improveCandidates({ ...base, report, rankedCounts: smallCounts() });
+    expect(result.candidates).toEqual([]);
+    expect(result.rejected.not_yet).toBe(1);
+  });
+
+  it("of two ranking pages, the one the crawl read as about the question goes first, over a better position", () => {
+    const OTHER = "https://example.com/blog/release-notes";
+    const report = reportOf(
+      { questions: [question()], serps: [rivalsOnly] },
+      {
+        ownRankedRows: ranked([
+          { keyword: "best user onboarding software", position: 8, url: OTHER },
+          { keyword: "best user onboarding software", position: 15, url: POST },
+        ]),
+      }
+    );
+    const inventory = [
+      { url: OTHER, title: "Release notes", h1: "What shipped", purpose: "blog" as const },
+      { url: POST, title: "The best user onboarding software", h1: "", purpose: "blog" as const },
+    ];
+    expect(
+      improveCandidates({ ...base, report, rankedCounts: smallCounts(), inventory }).candidates[0]?.targetRef
+    ).toBe(POST);
+    expect(improveCandidates({ ...base, report, rankedCounts: smallCounts() }).candidates[0]?.targetRef).toBe(OTHER);
+  });
+
+  it("one candidate per page, but every page that ranks gets its own", () => {
+    const second = question({
+      id: "q2",
+      text: "Which product tour tool is best?",
+      search: search({ keyword: "best product tour tool", rank: 2 }),
+    });
+    const TOURS = "https://example.com/blog/product-tours";
+    const report = reportOf(
+      { questions: [question(), second], serps: [rivalsOnly, rivalsOnly] },
+      {
+        ownRankedRows: ranked([
+          { keyword: "best user onboarding software", position: 12, url: POST },
+          { keyword: "best product tour tool", position: 9, url: TOURS },
+        ]),
+      }
+    );
+    expect(
+      improveCandidates({ ...base, report, rankedCounts: smallCounts() }).candidates.map((c) => c.targetRef)
+    ).toEqual([POST, TOURS]);
   });
 });

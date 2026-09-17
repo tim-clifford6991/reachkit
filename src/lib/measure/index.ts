@@ -44,7 +44,7 @@ import { safeFetch, type SafeFetchOpts } from "@/lib/egress/safe-fetch";
 import { readRobots } from "@/lib/egress/robots";
 import type { FetchOutcome, RobotsPolicy } from "@/lib/egress/types";
 import { rankedKeywords } from "@/lib/vendors/dataforseo";
-import type { RankedResult } from "@/lib/vendors/dataforseo/types";
+import type { RankedResult, RankedRow } from "@/lib/vendors/dataforseo/types";
 import { answerabilityOf, foundationsOf, ownRankedOf, searchPresenceOf } from "./drivers";
 import { measured, measuredZero, unmeasured, type Measured } from "./measured";
 import { OWN_FETCH_OPTS, OWN_FETCH_SOURCE, isStoredDocument, toStoredDocument, type StoredDocument } from "./own-fetch";
@@ -243,6 +243,10 @@ export interface DomainMeasurement {
    *  bought a second time. `unmeasured` carries the same reason
    *  `searchPresence` carries; the two are the same read. */
   ownRanked: Measured<number>;
+  /** The rows that count was read from (#778) — SPEC §6's thin-market pool
+   *  selects over the site's own ranked keywords without buying them again.
+   *  Empty where the call was not made or did not answer. */
+  ownRankedRows: readonly RankedRow[];
   /** Why the fetcher refused the home document, where it did (issue #479);
    *  `null` where it was read. A refused home is the whole site unread:
    *  nothing after it is attempted — no pricing page, no robots read, no
@@ -289,6 +293,7 @@ export async function measureDomain(
       pricing: null,
       robots,
       ownRanked: unmeasured("not_attempted", at),
+      ownRankedRows: [],
       homeRefusal: home.refusal,
     };
   }
@@ -363,10 +368,18 @@ export async function measureDomain(
     // The same rows are read two ways: the driver, and the count itself,
     // which §6.6's banding and §7's bars are expressed in multiples of.
     // Never a second call — both are returned from this one answer.
-    (async (): Promise<{ searchPresence: Measured<number>; ownRanked: Measured<number> }> => {
+    (async (): Promise<{
+      searchPresence: Measured<number>;
+      ownRanked: Measured<number>;
+      ownRankedRows: readonly RankedRow[];
+    }> => {
       if (c.capHit()) {
         logDriver("driver_not_attempted", { driver: "searchPresence", ceiling: "spend_cap", domain: a.domain });
-        return { searchPresence: unmeasured("not_attempted", at), ownRanked: unmeasured("not_attempted", at) };
+        return {
+          searchPresence: unmeasured("not_attempted", at),
+          ownRanked: unmeasured("not_attempted", at),
+          ownRankedRows: [],
+        };
       }
       // A failed call is ledgered as the failure and answers `unmeasured`
       // (issue #504); this is where the stage hears which failure it was, so
@@ -391,14 +404,22 @@ export async function measureDomain(
         // One answer, both readings: §5's reach and §6.6's own count are the
         // vendor's total (#117, #529); §5's top-10 share is over the rows
         // bought. `searchPresenceOf` takes the whole answer for that reason.
-        return { searchPresence: searchPresenceOf({ ranked, at }), ownRanked: ownRankedOf({ ranked, at }) };
+        return {
+          searchPresence: searchPresenceOf({ ranked, at }),
+          ownRanked: ownRankedOf({ ranked, at }),
+          ownRankedRows: ranked.kind === "unmeasured" ? [] : ranked.value.rows,
+        };
       } catch (error) {
         logDriver("driver_undeterminable", {
           driver: "searchPresence",
           domain: a.domain,
           because: error instanceof Error ? error.message : String(error),
         });
-        return { searchPresence: unmeasured("undeterminable", at), ownRanked: unmeasured("undeterminable", at) };
+        return {
+          searchPresence: unmeasured("undeterminable", at),
+          ownRanked: unmeasured("undeterminable", at),
+          ownRankedRows: [],
+        };
       }
     })(),
   ]);
@@ -408,7 +429,7 @@ export async function measureDomain(
     pricingUrl === null || pricingRead === null
       ? null
       : { url: pricingUrl, facts: stampedAt(pricingRead.facts, at) };
-  const { searchPresence, ownRanked } = presence;
+  const { searchPresence, ownRanked, ownRankedRows } = presence;
 
   // 6. The four measured quantities.
   const pages: Measured<OnPageFacts>[] = [onPage, ...(pricing === null ? [] : [pricing.facts]), ...extraFacts];
@@ -436,6 +457,7 @@ export async function measureDomain(
     pricing,
     robots,
     ownRanked,
+    ownRankedRows,
     homeRefusal: null,
   };
 }

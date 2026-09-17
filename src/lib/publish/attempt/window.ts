@@ -26,6 +26,14 @@
 // page those hold is offered, held there, and offered again next hour —
 // exactly as a due retry is (`./due.ts`).
 //
+// **Scheduling the attempt** (`publishDueAt`, issue #790) names the moment a
+// page in review or approved first becomes publishable and due, and the
+// destination it goes to — so the engine can send one `publish/execute`
+// for that moment instead of leaving the page to the next hourly sweep.
+// The event re-enters through `dueApproval`, the one-page form of the
+// sweep's read, so a delivered event and the tick are the same attempt and
+// the tick stays the backstop for any event that was lost.
+//
 // **An untold page is never approved by a clock.** REQ-057 c8: no page
 // publishes without the customer having been told on the pair it publishes
 // under. The guard would hold it at the claim anyway; not approving it here
@@ -34,6 +42,7 @@
 import { VETO } from "@/lib/config/constants";
 import { publishDb } from "../db";
 import { machineDraftFor, transition } from "../machine";
+import { becomesPublishable } from "../publishable/predicate";
 import { customerTold, publishableAndDue } from "../publishable/rule";
 import type { Actor, DestinationKind } from "../types";
 
@@ -135,25 +144,75 @@ export async function dueApprovals(now: Date): Promise<readonly DueApproval[]> {
   const due: DueApproval[] = [];
   const rows = waiting.data ?? [];
   for (const row of rows) {
-    // The window is still open: the cheap test first, before a per-page read.
-    if (row.state === "in_review" && (row.veto_deadline === null || new Date(row.veto_deadline) > now)) continue;
-
-    const draft = await machineDraftFor(row.id);
-    if (draft === null || draft.state !== row.state) continue;
-    if (!customerTold(draft) || !publishableAndDue(draft, now)) continue;
-
-    const destination = await liveDestination(row.site_id);
-    // Disconnected since it was told: nothing to address the attempt to,
-    // and it returns to the tick the moment the customer reconnects.
-    if (destination === null) continue;
-
-    if (draft.state === "in_review") {
-      const approved = await transition(row.id, "approved", CLOSED_BY, { at: now });
-      if (!approved.ok) continue;
-    }
-    due.push({ draftId: row.id, destinationId: destination.id });
+    const page = await approveIfDue(row, now);
+    if (page !== null) due.push(page);
   }
 
   console.log(JSON.stringify({ event: "publish_window_sweep", waiting: rows.length, due: due.length }));
   return due;
+}
+
+/** One waiting page: approved here if its window has run out, and handed
+ *  back when its attempt is due now. `null` for anything else. */
+async function approveIfDue(row: WaitingRow, now: Date): Promise<DueApproval | null> {
+  // The window is still open: the cheap test first, before a per-page read.
+  if (row.state === "in_review" && (row.veto_deadline === null || new Date(row.veto_deadline) > now)) return null;
+
+  const draft = await machineDraftFor(row.id);
+  if (draft === null || draft.state !== row.state) return null;
+  if (!customerTold(draft) || !publishableAndDue(draft, now)) return null;
+
+  const destination = await liveDestination(row.site_id);
+  // Disconnected since it was told: nothing to address the attempt to,
+  // and it returns to the tick the moment the customer reconnects.
+  if (destination === null) return null;
+
+  if (draft.state === "in_review") {
+    const approved = await transition(row.id, "approved", CLOSED_BY, { at: now });
+    if (!approved.ok) return null;
+  }
+  return { draftId: row.id, destinationId: destination.id };
+}
+
+/**
+ * The sweep's read for one page — what a scheduled `publish/execute` asks
+ * when it arrives. The same conditions, the same approval at window end,
+ * and the same `null` for a page that is not due, was stopped, or has
+ * already gone out.
+ */
+export async function dueApproval(draftId: string, now: Date): Promise<DueApproval | null> {
+  const { data, error } = await publishDb()
+    .from<WaitingRow>("drafts")
+    .select("id, site_id, state, veto_deadline")
+    .eq("id", draftId)
+    .in("state", ["in_review", "approved"])
+    .limit(1);
+  if (error !== null) {
+    throw new Error(`publish/window: could not read the page in review: ${error.message}`);
+  }
+  const row = data?.[0];
+  return row === undefined ? null : approveIfDue(row, now);
+}
+
+/** The moment a page's attempt falls due, and where it goes. */
+export interface PublishDue {
+  readonly draftId: string;
+  readonly destinationId: string;
+  readonly at: Date;
+}
+
+/**
+ * When a page in review or approved first becomes publishable and due, by
+ * the rule the claim's own guard reads — or `null` where it has no such
+ * moment yet (copilot without an approval, no zone, a claim re-check) or
+ * nowhere to go. Reads only; the attempt at that moment re-asks every guard.
+ */
+export async function publishDueAt(draftId: string): Promise<PublishDue | null> {
+  const draft = await machineDraftFor(draftId);
+  if (draft === null || (draft.state !== "in_review" && draft.state !== "approved")) return null;
+  const answer = becomesPublishable(draft);
+  if (!answer.publishable) return null;
+  const destination = await liveDestination(draft.siteId);
+  if (destination === null) return null;
+  return { draftId, destinationId: destination.id, at: answer.at };
 }

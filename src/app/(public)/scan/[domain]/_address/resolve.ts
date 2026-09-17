@@ -37,7 +37,7 @@ import { isDomainRemoved } from "@/lib/scan/removal";
 import { RUNNING_ROW_BOUND_S } from "@/lib/scan/stuck";
 import { parseDomain, type CanonicalDomain } from "@/lib/scan/domain";
 import { readCurrentReport, type StoredReport } from "@/lib/scan/report";
-import { correctionOffer } from "@/lib/market/coherence/offer";
+import { correctionOffer, type CorrectionOffer } from "@/lib/market/coherence/offer";
 import type { AddressControl, AddressNotice, AddressRefusal, AddressState } from "./state";
 import { categoryOf } from "@/lib/scan/sections";
 
@@ -72,6 +72,10 @@ function refusalOf(admission: Exclude<Admission, { admit: true }>, now: Date): A
       // question directly, so reaching here means the table said no or
       // could not be reached. Either way no scan will run and the visitor
       // did not cause it, which is our own stop, not a removal.
+      return { reason: "stopped" };
+    case "unreadable":
+      // A bound admission could not read (issue 792): no scan runs, and
+      // the visitor did not cause it — our own stop, like the removal read.
       return { reason: "stopped" };
     case "cooldown":
       return null;
@@ -221,16 +225,18 @@ export async function resolveAddress(a: {
   }
   if (report !== null) {
     const correction = correctionStateOf(report);
+    const offer = correctionOfferOn(report, now);
     return {
       kind: "report",
       report,
       notice: noticeFor({ report, refusal, correctionFailed: correction.failed }),
       control: controlFor({
         report,
-        correctionRetryOffered: correction.retryOffered && correctionOfferStands(report, now),
+        correctionRetryOffered: correction.retryOffered && offer.offered,
         refused: refusal !== null,
         now,
       }),
+      correction: offer,
     };
   }
 
@@ -270,12 +276,12 @@ async function removedForCertain(domain: CanonicalDomain): Promise<boolean> {
   }
 }
 
-/** The correction's own age bound, asked of the report the visitor is
- *  looking at. `readCorrectionFacts` is not called: every field the offer
+/** The correction offer, asked of the report the visitor is looking at —
+ *  the header's control and the retry control read the same answer. `readCorrectionFacts` is not called: every field the offer
  *  reads is already on the blob, and a second read could answer about a
  *  different report than the one being rendered. */
-function correctionOfferStands(report: StoredReport, now: Date): boolean {
-  const offer = correctionOffer({
+function correctionOfferOn(report: StoredReport, now: Date): CorrectionOffer {
+  return correctionOffer({
     report: {
       scanId: report.scanId,
       measuredAt: report.verdict.measuredAt,
@@ -286,5 +292,4 @@ function correctionOfferStands(report: StoredReport, now: Date): boolean {
     },
     now,
   });
-  return offer.offered;
 }

@@ -26,6 +26,8 @@ import { SidebarNav } from "./_shell/SidebarNav";
 import { StoppedNotice } from "./_shell/StoppedNotice";
 import { ThemeToggle } from "@/app/_theme/ThemeToggle";
 import { readShell } from "./_shell/provider";
+import { readOnboarding } from "./_shell/onboarding";
+import { OnboardingStatus } from "./_shell/OnboardingStatus";
 
 /** The product's mark, as the public header draws it, linking home to /app. */
 function Brand(): React.JSX.Element {
@@ -44,7 +46,7 @@ export default async function AppLayout({
 }: {
   children: React.ReactNode;
 }): Promise<React.JSX.Element> {
-  const shell = await readShell();
+  const [shell, onboarding] = await Promise.all([readShell(), readOnboarding()]);
 
   return (
     <Surface
@@ -66,6 +68,7 @@ export default async function AppLayout({
             </div>
           </div>
           <SidebarNav waiting={shell.waiting} row />
+          <OnboardingStatus key={onboarding.kind} state={onboarding} />
           <PublishingCard shell={shell} />
           <ThemeToggle />
         </header>
@@ -81,6 +84,9 @@ export default async function AppLayout({
               <h2 className="menu-title px-0 text-xs uppercase tracking-wide">{copy("shell.workspace")}</h2>
               <SidebarNav waiting={shell.waiting} />
             </div>
+            {/* Issue #782: the deep pass and the first draft run in the
+                background; the panel says which step until they end. */}
+            <OnboardingStatus key={onboarding.kind} state={onboarding} />
             <div className="mt-auto">
               <PublishingCard shell={shell} />
               <ThemeToggle up />

@@ -137,6 +137,14 @@ export const OVERVIEW_COPY = Object.freeze({
     "measured with the first weekly pass",
     { slots: {}, fixedBy: "S13" },
   ],
+  // #793: the deep pass is week 0. Where it measured the score or the AI
+  // answers, the tile shows that reading and names it as the starting
+  // measurement, with the date the weekly readings take over. Drafted
+  // (#759); the owner corrects the wording.
+  "overview.tile.starting": [
+    "starting measurement, {on} · weekly from {due}",
+    { slots: { on: "date", due: "date" }, fixedBy: "issue 793" },
+  ],
   "overview.tile.pages.first-review": [
     "first page in review today",
     { slots: {}, fixedBy: "S13" },
@@ -209,6 +217,13 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: { due: "date" }, fixedBy: "S13" },
   ],
 
+  // #793: the deep pass sized the rivals, so week 0 draws their rows from
+  // it and says so. Drafted (#759); the owner corrects the wording.
+  "overview.rivals.line.starting": [
+    "Starting sizes from your deep pass, {on}. Weekly from {due}.",
+    { slots: { on: "date", due: "date" }, fixedBy: "issue 793" },
+  ],
+
   // ── REQ-096 c6: a rival banded `far`, and the two sentences it needs.
   //
   // **What the line must not say.** It says the rival is far beyond what
@@ -246,9 +261,8 @@ export const OVERVIEW_COPY = Object.freeze({
   // under the title, never a paragraph (§2.5's dim line).
   "overview.alert.needs-you.cause": ["The page couldn’t be delivered to your site.", { slots: {}, fixedBy: "REQ-041 c5" }],
   // The veto panel's own line, unbracketed in the set and therefore
-  // approved. `left` is how long the window has to run, written by
-  // `formatHoursLeft` from the item's own `since` and `VETO.defaultHours` —
-  // never a number typed here.
+  // approved. `left` is how long the window has to run, from the draft's
+  // own stored `veto_deadline` (issue 794) — never a number typed here.
   // The duration that fills `left` above. Its own key, because the two
   // numerals are slots and the units are the set's own characters — the
   // same composition `overview.rivals.was` makes over
@@ -260,6 +274,13 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.alert.pending-veto.due": [
     "publishes in {left} unless you say otherwise",
     { slots: { left: "text" }, fixedBy: "S12" },
+  ],
+  // A page in review with no veto window running: nothing publishes it on
+  // a clock, so the line states no countdown. Drafted (issue 794); the
+  // owner corrects the wording.
+  "overview.alert.pending-veto.no-window": [
+    "waits for you before it publishes",
+    { slots: {}, fixedBy: "issue 794" },
   ],
   "overview.alert.overflow": ["{remaining} more in the calendar.", { slots: { remaining: "text" }, fixedBy: "REQ-041 c5" }],
   // A technical issue the customer fixes (SPEC §9, #572): its title is the
@@ -274,6 +295,9 @@ export const OVERVIEW_COPY = Object.freeze({
 
   // ── The one supply statement Overview may make, resolved in this order.
   "overview.supply.exhausted": ["No pages are left worth writing. Monday’s re-measure looks for more.", { slots: {}, fixedBy: "REQ-095 c3" }],
+  // issue 784 (issue 765's distinction, 2026-09-16): zero supply over a market that
+  // was never measured is not "no pages left". Drafted under issue 759's ruling.
+  "overview.supply.unmeasured": ["Nothing in your market is ready to write yet, so no pages are planned. Monday’s re-measure looks again.", { slots: {}, fixedBy: "issue 784" }],
   "overview.supply.short": ["Fewer than a week of pages is left. Monday’s re-measure looks for more.", { slots: {}, fixedBy: "REQ-095 c5" }],
   "overview.supply.first-arrival": ["Your first pass found less than a month of pages. We look for more every Monday.", { slots: {}, fixedBy: "REQ-095 c6" }],
 

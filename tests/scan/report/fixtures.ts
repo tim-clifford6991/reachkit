@@ -130,6 +130,7 @@ export function fullSections(over: Partial<ReportSections> = {}): ReportSections
     rivals: measured([], AT),
     rivalSizes: unmeasured("not_attempted", AT),
     ownRanked: measuredZero(0, AT),
+    ownRankedRows: [],
     sources: [],
     onPage: measured(ON_PAGE, AT),
     robots: measured(ROBOTS, AT),

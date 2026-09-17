@@ -39,7 +39,7 @@
 // the next visitor is not refused for an in-flight scan that is not
 // running. A correction is not a re-scan: it re-measures inside the scan
 // it corrects and always runs.
-import { CACHE_WINDOWS_D, FREE_RESCAN_WINDOW_D } from "@/lib/config/constants";
+import { CACHE_WINDOWS_D, FREE_RESCAN_WINDOW_D, SELECTION } from "@/lib/config/constants";
 import { captureInBackground } from "@/lib/analytics";
 import type { CapName, CostContext } from "@/lib/costs";
 import { dbAdmin } from "@/lib/db";
@@ -49,6 +49,7 @@ import { nextCorrectionState, type CorrectionState } from "@/lib/market/coherenc
 import { buildAiAnswersCard, type BatteryAnswers } from "@/lib/market/questions/matrix";
 import {
   deriveMarketSet,
+  joinMarketSets,
   marketSetOf,
   type MarketSet,
   type SuggestionRow,
@@ -56,11 +57,13 @@ import {
 import { phraseQuestions, type Question } from "@/lib/market/questions/phrase";
 import { deriveProfile, type Profile } from "@/lib/market/questions/profile";
 import { selectTwelve, type SelectedSearch } from "@/lib/market/questions/select";
+import { isShort, poolFrom, seedLadder, selectWidened, type PoolRow } from "@/lib/market/questions/widen";
 import { deriveRivals, type RivalCandidate } from "@/lib/market/rivals/derive";
 import { buildPresenceCard, type PresenceCard } from "@/lib/market/rivals/presence";
 import { sizeRivals, type RivalSize } from "@/lib/market/rivals/size";
 import { trackedRivals } from "@/lib/market/rivals/tracked";
 import type { MarketSerp } from "@/lib/market/views";
+import { freePageOf } from "@/lib/opportunities/free-page";
 import { aiPresenceOf, measureDomain, type DomainMeasurement } from "@/lib/measure";
 import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
 import type { InputOutcome, ScanInput } from "@/lib/measure/partition";
@@ -68,13 +71,13 @@ import type { OnPageFacts } from "@/lib/measure/parse";
 import type { Drivers } from "@/lib/measure/score";
 import { verdictOf, type Verdict } from "@/lib/measure/verdict";
 import { aiMode, llmScraper, serpOrganic } from "@/lib/vendors/dataforseo";
-import type { AiAnswer, CacheScope, SerpResult } from "@/lib/vendors/dataforseo/types";
+import type { AiAnswer, CacheScope, RankedRow, SerpResult } from "@/lib/vendors/dataforseo/types";
 import { SERP_FANOUT, withStageBudget, type StageOutcome } from "./budgets";
-import { withScanBounds, type Bounds } from "./ceilings";
+import { withScanBounds, withStoredPassSpend, type Bounds } from "./ceilings";
 import { advanceCorrectionState, readCorrectionFacts, registerCorrectionRunner } from "./correction";
 import { parseDomain, type CanonicalDomain } from "./domain";
 import { marketTooSmall } from "./market-floor";
-import { readCurrentReport } from "./report";
+import { readCurrentReport, readScanReport } from "./report";
 import type { AiAnswersSection, StoppedReason, StoredReport, SupplySection, Tier } from "./report";
 import { answersSectionOf, blockedAgentsOf } from "./sections";
 import { checkSite, type CrawlReading } from "@/lib/site-issues/checks";
@@ -168,6 +171,14 @@ interface TierParameters {
    *  `CACHE_WINDOWS_D.serpWeeklyRecheck` exists to close. The two passes a
    *  human waits for buy at the pinned 30. */
   serpWindowDays: number;
+  /** SPEC §6 thin markets (2026-09-16): how many `keyword_suggestions`
+   *  beyond the first seed a pass short of twelve may buy — at most
+   *  `SELECTION.maxExtraSeeds`, inside the pass's own cap. `0` on the free
+   *  path: its 12¢ is already divided stage by stage (`budgets.ts`), and
+   *  `reading_your_market`'s 4.7¢ holds one suggestion purchase and the two
+   *  nano calls, not a second purchase. The free report still pools the
+   *  site's own ranked rows and walks the volume steps, which buy nothing. */
+  extraSeeds: number;
 }
 
 export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.freeze({
@@ -182,6 +193,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     battery: false,
     stageBudgets: true,
     serpWindowDays: CACHE_WINDOWS_D.serp,
+    extraSeeds: 0,
   }),
   deep: Object.freeze({
     cap: "DEEP",
@@ -194,6 +206,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     battery: true,
     stageBudgets: false,
     serpWindowDays: CACHE_WINDOWS_D.serp,
+    extraSeeds: SELECTION.maxExtraSeeds,
   }),
   weekly: Object.freeze({
     cap: "WEEKLY",
@@ -206,6 +219,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     battery: true,
     stageBudgets: false,
     serpWindowDays: CACHE_WINDOWS_D.serpWeeklyRecheck,
+    extraSeeds: SELECTION.maxExtraSeeds,
   }),
 } as const);
 
@@ -230,6 +244,10 @@ interface Sections {
    *  tracked rivals leaves the arm `freshSections` gave it — never a
    *  zero, which would satisfy every winnability bar. */
   rivalSizes: Measured<RivalSize[]>;
+  /** The rows sizing read, by rival (#778) — SPEC §6's thin-market pool
+   *  selects over them. `null` until sizing has been attempted, which is
+   *  also what stops a pass that sized early from sizing twice. */
+  rivalRows: Map<string, readonly RankedRow[]> | null;
   sources: readonly string[];
   aiAnswers: AiAnswersSection | null;
   presence: PresenceCard | null;
@@ -254,6 +272,7 @@ function freshSections(at: Date): Sections {
     battery: [],
     rivals: unmeasured("not_attempted", at),
     rivalSizes: unmeasured("not_attempted", at),
+    rivalRows: null,
     sources: [],
     aiAnswers: null,
     presence: null,
@@ -330,6 +349,9 @@ interface RunningScanRow {
    *  `src/`; a read shape that spelled the column as a property would read
    *  to that check as a second writer. */
   fromIncompleteRescan: boolean;
+  /** What the row already carries — setup's rival suggestion, on the
+   *  onboarding row (issue 798). Counted into the pass's own context. */
+  costCents?: number | string | null;
 }
 
 /** The running row already claimed for this pass, or `null`: for a free
@@ -342,7 +364,7 @@ async function adoptClaimedRow(a: {
 }): Promise<RunningScanRow | null> {
   const running = untyped(dbAdmin())
     .from<RunningScanRow>("scans")
-    .select("id, fromIncompleteRescan:from_incomplete_rescan")
+    .select("id, fromIncompleteRescan:from_incomplete_rescan, costCents:cost_cents")
     .eq("tier", a.tier)
     .eq("status", "running");
   const { data, error } = await (a.siteId === undefined
@@ -509,25 +531,19 @@ export interface RunScanArgs {
    */
   onStage?: (stage: StageName) => void | Promise<void>;
   /**
-   * Called once the pass's report is stored, with the report and the
-   * pass's own `CostContext`.
+   * Called once the pass's report is stored, with the report and a
+   * `CostContext` on the pass's own money (`spendOnStoredReport`).
    *
    * §6.3 puts "Haiku ×~4 for opportunity typing" inside the deep and
    * weekly passes' own budgets, so the work this hook does spends the
-   * pass's money and no other: the context handed here is the one the
-   * stages spent, its cap still applies, and a second `withCostContext`
-   * would be a second budget *and* a second roll-up over the same
-   * `scans` row.
+   * pass's money and no other: the context handed here opens on what the
+   * row already carries, under the pass's own cap, and its close adds what
+   * the hook spent to the row's `cost_cents` (issue 798 — the typing used
+   * to be ledgered in `fetches` and missing from the row's total).
    *
    * **After the store, and that ordering is a foreign key.**
    * `opportunities.scan_id references scans (id)`: an opportunity derived
-   * before the row it belongs to exists cannot be written. The pass's own
-   * roll-up was written when the bounds closed and `store_current_report`
-   * overwrote it a moment ago, so what this hook spends is ledgered in
-   * `fetches` — which BP-007 states is the source of truth — and is not
-   * added to the row's cached `cost_cents`. Stated rather than hidden: it
-   * is a summary that under-reports by the typing calls, not a figure the
-   * ledger disagrees with.
+   * before the row it belongs to exists cannot be written.
    *
    * It is awaited, and it never stops the pass: a derivation that throws
    * is logged and the stored report stands (§4.3 — "a degraded pass still
@@ -550,7 +566,10 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
   // 1. The row this pass writes to.
   let scanId: string;
   let fromIncompleteRescan = false;
-  if (parameters.adoptsClaim) {
+  let priorCents = 0;
+  // A correction never went through admission, so there is no claimed row
+  // to adopt: its row is claimed by the correction seam below (#786).
+  if (parameters.adoptsClaim && a.correctionOf === undefined) {
     const claimed = await adoptClaimedRow({
       domain,
       tier: a.tier,
@@ -562,6 +581,8 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
     }
     scanId = claimed.id;
     fromIncompleteRescan = claimed.fromIncompleteRescan;
+    const carried = Number(claimed.costCents ?? 0);
+    priorCents = Number.isFinite(carried) ? carried : 0;
   } else if (a.scanId !== undefined) {
     scanId = a.scanId;
   } else {
@@ -608,14 +629,9 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
   //    after it has closed.
   const sections = freshSections(startedAt);
   const spend: { cents: number; degraded: boolean } = { cents: 0, degraded: false };
-  // The pass's own context, held past the block that opened it so
-  // `afterReport` can spend inside the same cap. See `RunScanArgs.afterReport`
-  // for why the work it does cannot run before the row is stored.
-  let passCost: CostContext | null = null;
   const { ending } = await withScanBounds(
-    { scanId, startedAt, cap: parameters.cap, deadlineApplies: parameters.deadlineApplies },
+    { scanId, startedAt, cap: parameters.cap, deadlineApplies: parameters.deadlineApplies, priorCents },
     async (bounds, cost) => {
-      passCost = cost;
       try {
         await runStages({
           scanId,
@@ -684,9 +700,9 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
   //    passes' own step, supplied by their callers rather than decided
   //    here (this file branches on no tier). A hook that throws does not
   //    take the report down with it.
-  if (a.afterReport !== undefined && passCost !== null) {
+  if (a.afterReport !== undefined) {
     try {
-      await a.afterReport({ report: composed.report, cost: passCost });
+      await spendOnStoredReport({ scanId, tier: a.tier, report: composed.report }, a.afterReport);
     } catch (error) {
       console.log(
         JSON.stringify({
@@ -719,6 +735,27 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
     await reportIncident({ occasion: "market-too-small", scanId, tier: a.tier });
   }
   return stored;
+}
+
+/**
+ * The work a paid pass does with its stored report, on the pass's own
+ * money (issue 798): a context under the tier's cap that opens on the
+ * row's `cost_cents` and adds its own spend to it at close.
+ *
+ * `runScan` calls it with the report it just stored. The onboarding pass
+ * calls it as a step of its own, after the pass's step has ended, and the
+ * report is read back from the row; a row that stored none has nothing to
+ * derive from, and nothing is opened.
+ */
+export async function spendOnStoredReport(
+  a: { scanId: string; tier: Tier; report?: StoredReport },
+  body: (a: { report: StoredReport; cost: CostContext }) => Promise<void>
+): Promise<void> {
+  const report = a.report ?? (await readScanReport(a.scanId));
+  if (report === null) return;
+  await withStoredPassSpend({ scanId: a.scanId, cap: TIER_PARAMETERS[a.tier].cap }, (cost) =>
+    body({ report, cost })
+  );
 }
 
 /** The state machine's own answer, never a second table: a pass that
@@ -954,6 +991,11 @@ async function runStages(a: StageArgs): Promise<void> {
 async function sizeTrackedRivals(a: StageArgs): Promise<void> {
   const siteId = a.siteId;
   if (!a.parameters.sizesRivals || siteId === undefined) return;
+  // A thin market sized the rivals already, inside `reading_your_market`
+  // (SPEC §6 thin markets): the same rows are never bought twice.
+  if (a.sections.rivalRows !== null) return;
+  const rivalRows = new Map<string, readonly RankedRow[]>();
+  a.sections.rivalRows = rivalRows;
 
   // `null` is a site that is not there, which is not "tracks none": the
   // sizing then stays on the arm that says the pass did not get to it,
@@ -975,6 +1017,9 @@ async function sizeTrackedRivals(a: StageArgs): Promise<void> {
       // and found none", which would make every rival here
       // `added_since_last_sizing` instead of `awaiting_deep_pass`.
       ...(failed(previous) || previous === undefined ? {} : { previous }),
+      onRows: (domain, rows) => {
+        rivalRows.set(domain, rows);
+      },
     })
   );
   if (!failed(sized) && !a.bounds.abandoned()) a.sections.rivalSizes = sized;
@@ -1014,20 +1059,59 @@ async function readMarket(a: StageArgs, abandoned: () => boolean): Promise<void>
   sections.profile = profile;
   if (profile.kind === "unmeasured") return;
 
+  // SPEC §6 thin markets (#778): the first seed is the one every pass buys.
+  // The rest of the ladder is bought one seed at a time, only while short.
+  const seeds = seedLadder(profile.value, a.category);
   if (bounds.stopNow() !== null) return;
   const market = await attempt("reading_your_market", () =>
-    deriveMarketSet(cost, { seeds: seedsOf(profile.value, a.category) })
+    deriveMarketSet(cost, { seeds: seeds.slice(0, 1) })
   );
   if (failed(market) || abandoned()) return;
   sections.marketRows = market;
   if (market.kind === "unmeasured") return;
 
-  sections.selected = selectTwelve({
-    profile: profile.value,
-    market: [...market.value],
-    ...(a.category === undefined ? {} : { category: a.category }),
-  });
+  const category = a.category === undefined ? {} : { category: a.category };
+  // The site's own footprint, the same number derivation bands by: selection
+  // never takes a search outsized for it (SPEC §6 right-sizing, issue 830).
+  const ownRanked = ownRankedValue(measurement.ownRanked);
+  sections.selected = selectTwelve({ profile: profile.value, market: [...market.value], ownRanked, ...category });
+  if (!isShort(sections.selected)) return phrase(a, abandoned);
 
+  // Short. Widen in SPEC §6's order, stopping as soon as twelve survive:
+  // the ranked rows the pass already buys join the pool (the rivals' are
+  // read now rather than in `checking_your_presence`, which then sizes
+  // nothing), then further seeds at the first step, then the lower steps.
+  if (a.parameters.sizesRivals && bounds.stopNow() === null) await sizeTrackedRivals(a);
+  if (abandoned()) return;
+  const widen = (floors?: readonly number[]): SelectedSearch[] => {
+    const rows = sections.marketRows;
+    return selectWidened({
+      profile: profile.value,
+      suggestions: rows.kind === "unmeasured" ? [] : rows.value,
+      pool: poolOf(sections),
+      ownRanked,
+      ...category,
+      ...(floors === undefined ? {} : { floors }),
+    });
+  };
+  sections.selected = widen([SELECTION.volumeFloorPerMonth]);
+
+  for (const seed of seeds.slice(1, 1 + a.parameters.extraSeeds)) {
+    if (!isShort(sections.selected) || bounds.stopNow() !== null) break;
+    const more = await attempt("reading_your_market", () => deriveMarketSet(cost, { seeds: [seed] }));
+    if (abandoned()) return;
+    if (failed(more)) break;
+    sections.marketRows = joinMarketSets(sections.marketRows, more);
+    sections.selected = widen([SELECTION.volumeFloorPerMonth]);
+  }
+
+  if (isShort(sections.selected)) sections.selected = widen();
+  return phrase(a, abandoned);
+}
+
+/** §6.7 step 4: the selected searches, worded. */
+async function phrase(a: StageArgs, abandoned: () => boolean): Promise<void> {
+  const { bounds, cost, sections } = a;
   if (bounds.stopNow() !== null) return;
   const questions = await attempt("reading_your_market", () =>
     phraseQuestions(cost, { selected: sections.selected })
@@ -1035,18 +1119,9 @@ async function readMarket(a: StageArgs, abandoned: () => boolean): Promise<void>
   if (!failed(questions) && !abandoned()) sections.questions = questions;
 }
 
-/** §6.7 step 2 buys suggestions "on the primary seed". The category the
- *  founder confirmed comes first (#767); without one it is the profile's
- *  own category phrase, in buyer vocabulary. Where the model returned an
- *  empty category the first vocabulary term stands in for it; where there
- *  is none of these there is no seed and the vendor is not called. Still
- *  one seed, never more. */
-function seedsOf(profile: Profile, confirmed?: string): string[] {
-  for (const candidate of [confirmed ?? "", profile.category, ...profile.vocabulary]) {
-    const seed = candidate.trim();
-    if (seed !== "") return [seed];
-  }
-  return [];
+/** SPEC §6 thin markets: the ranked rows this pass already bought. */
+function poolOf(sections: Sections): PoolRow[] {
+  return poolFrom({ own: sections.measurement?.ownRankedRows ?? [], rivals: sections.rivalRows ?? new Map() });
 }
 
 /** §6.2's free battery: the twelve question-SERPs, live, reading each
@@ -1252,9 +1327,7 @@ function score(a: StageArgs): void {
 /** BUILD §4.1 module 3's two counts. The opportunities engine (issue #40)
  *  derives them and is not built, so they are `not_attempted` — the arm
  *  that says we did not get to it. A 0 would be a claim about the
- *  customer's site that nobody has made, and the free page card (module 5)
- *  is the same engine's, so it is `null`: a named absent section, never an
- *  empty card. */
+ *  customer's site that nobody has made. */
 function UNMEASURED_SUPPLY(at: Date): SupplySection {
   return { missingPages: unmeasured("not_attempted", at), unquotablePages: unmeasured("not_attempted", at) };
 }
@@ -1323,11 +1396,11 @@ function composeReport(a: {
         ? unmeasured(s.marketRows.reason, measuredAt)
         : {
             kind: s.marketRows.kind,
-            value: marketSetOf({ profile: s.profile.value, suggestions: s.marketRows.value }),
+            value: marketSetOf({ profile: s.profile.value, suggestions: s.marketRows.value, pool: poolOf(s) }),
             at: measuredAt,
           };
 
-  const report = assembleReport({
+  const assembled = assembleReport({
     scanId: a.scanId,
     domain: a.domain,
     tier: a.tier,
@@ -1348,6 +1421,7 @@ function composeReport(a: {
     rivals: s.rivals,
     rivalSizes: s.rivalSizes,
     ownRanked: m === null ? unmeasured("not_attempted", measuredAt) : m.ownRanked,
+    ownRankedRows: m === null ? [] : m.ownRankedRows,
     sources: s.sources,
     onPage,
     robots,
@@ -1355,6 +1429,9 @@ function composeReport(a: {
     coherence: s.coherence,
     correctionState: a.correctionState,
   });
+  // SPEC §2 (issue 787): the one first-page proposal is the best right-sized
+  // Write target this pass measured — derived, never padded.
+  const report: StoredReport = { ...assembled, freePage: freePageOf(assembled) };
 
   // #770: a market read and found too small buys no SERP, so AI presence
   // has nothing to be read from. That is the market's answer and not a
@@ -1403,6 +1480,27 @@ function logPass(fields: {
 // rather than one that is reachable and was never introduced. The
 // correction's own parameter (`loadAsyncAiOverview: false`, DECISIONS
 // 2026-09-03) travels as `correctionOf`, never as a ceiling of its own.
-registerCorrectionRunner((a) =>
-  runScan({ domain: a.domain, tier: a.tier, correctionOf: a.correctionOf, category: a.category })
-);
+//
+// The row is claimed here, before the seam answers, and the pass is started
+// and not awaited (#786): the report follows the rerun's stages by that
+// row's id, and a stream opened on a row that does not exist yet is a 404.
+// The free tier adopts an admission claim, and a correction has none — it
+// spends no second allowance — so without this claim the pass found no row
+// and ended `no_claimed_slot` before it measured anything.
+registerCorrectionRunner(async (a) => {
+  const parsed = parseDomain(a.domain);
+  if (!parsed.ok) throw new Error(`correction: ${parsed.problem}`);
+  const scanId = crypto.randomUUID();
+  const { claimed } = await claimPassRow({ scanId, domain: parsed.domain, tier: a.tier });
+  if (!claimed) throw new Error(`correction: the scan row ${scanId} already exists`);
+  return {
+    scanId,
+    finished: runScan({
+      scanId,
+      domain: parsed.domain,
+      tier: a.tier,
+      correctionOf: a.correctionOf,
+      category: a.category,
+    }),
+  };
+});

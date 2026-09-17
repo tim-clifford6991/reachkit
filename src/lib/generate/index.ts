@@ -14,15 +14,33 @@
 //   * §7's `nextForDay` supplies the opportunity, and supplies nothing when
 //     there is none: supply is the cap, and the calendar is never padded;
 //   * the pipeline runs, and ADR-070's one automatic regeneration is
-//     performed here — once, and never for a draft that has entered review.
-import { assessFixPages, assessReadiness, nextForDay, queueForDraft } from "@/lib/opportunities";
+//     performed here — once, on the same row, and never for a draft that
+//     has entered review;
+//   * a draft the rules stopped for the last time rests in
+//     `needs_attention` and releases its opportunity (#788) — it is never
+//     left in `generating`, which no edge moves a stopped page out of.
+//
+// `regenerateRestarted` is the customer's Regenerate carried out: the
+// restart moves the row back into `generating`, and the next draft tick
+// rewrites that row for the date it already holds.
+import {
+  assessFixPages,
+  assessReadiness,
+  nextForDay,
+  opportunityById,
+  queueForDraft,
+  releaseForDraft,
+  type Opportunity,
+} from "@/lib/opportunities";
+import type { StoredReport } from "@/lib/scan/report";
 import { withDraftCost } from "./cost";
 import { recoveryOutcome } from "./claims/recovery";
+import { readRecordedRules } from "./record";
 import type { SiteRuleInputs } from "./rules/types";
 import { clusterLinkTargets, siteLinkTargets } from "./links/select";
 import { generateDraft, type GenerateOutcome } from "./pipeline";
 import { generatePageFix } from "./pipeline/page-fix";
-import { generateStore } from "./store";
+import { generateStore, type RestartedDraft, type SiteFacts } from "./store";
 
 export type { GroundedFact, HardRule, RuleFailure, ComparisonSet, SiteRuleInputs } from "./rules/types";
 export { HARD_RULES } from "./rules/types";
@@ -40,7 +58,7 @@ export { generateDraft, type GenerateOutcome } from "./pipeline";
 export { rejectionCause, type NearDuplicateCause } from "./pipeline/rejection";
 export { type PipelineStep } from "./pipeline/steps";
 export { type DraftPromptInputs, DRAFT_PROMPT_KEYS } from "./voice/inputs";
-export { setGenerateStore, type GenerateStore } from "./store";
+export { setGenerateStore, type GenerateStore, type RestartedDraft } from "./store";
 export { withDraftCost } from "./cost";
 
 /** Why a day has no page. Every arm is a fact, and none of them is a
@@ -54,6 +72,9 @@ export type DayPageOutcome =
   | { ok: false; because: "already_drafted" }
   /** §7: supply is the cap. Nothing was invented to fill the day. */
   | { ok: false; because: "no_opportunity" }
+  /** A restart that is no longer waiting: the row is gone, is another
+   *  site's, or has left `generating` since it was found. */
+  | { ok: false; because: "no_draft" }
   | { ok: false; because: "rules"; draftId: string | null; attempts: number }
   | { ok: false; because: "step_failed"; draftId: string | null; step: string };
 
@@ -91,42 +112,145 @@ export async function generateDayPage(a: {
   const opportunity = await nextForDay(a.siteId);
   if (opportunity === null) return { ok: false, because: "no_opportunity" };
 
-  // SPEC §7 (2026-09-15, issue 712): a written draft queues its opportunity,
-  // whatever the battery said about it — a draft that failed twice rests in
-  // `needs_attention` and keeps the row queued. A run that wrote no row
-  // leaves the opportunity open for the next evening.
-  const queued = async (outcome: DayPageOutcome): Promise<DayPageOutcome> => {
-    if ("draftId" in outcome && outcome.draftId !== null) await queueForDraft(opportunity.id);
-    return outcome;
-  };
-
+  const page = { siteId: a.siteId, site, report, opportunity, publishDate: a.publishDate };
   // A fix is a metadata-only update: one call, no regeneration loop — the
   // only rule it can fail is the customer's own do-not-claim list, which a
   // second attempt at the same page would read the same way.
-  if (opportunity.type === "fix_page") {
-    const pageUrl = opportunity.targetRef;
-    const { readSiteProfile } = await import("@/lib/site-profile/store");
-    const profile = await readSiteProfile(site.domain);
-    const otherTitles = (profile?.inventory ?? [])
-      .filter((row) => row.url !== pageUrl && row.title !== "")
-      .map((row) => row.title);
-    return queued(await withDraftCost({ scanId: report.scanId }, async (cost): Promise<DayPageOutcome> => {
-      const fixed = await generatePageFix(cost, {
-        siteId: a.siteId,
-        opportunity,
-        scheduledFor: a.publishDate,
-        domain: site.domain,
-        doNotClaim: site.doNotClaim,
-        voiceText: site.voiceText,
-        otherTitles,
-      });
-      if (fixed.ok) return { ok: true, draftId: fixed.draftId };
-      if (fixed.reason === "step_failed") {
-        return { ok: false, because: "step_failed", draftId: fixed.draftId, step: fixed.step };
-      }
-      return { ok: false, because: "rules", draftId: fixed.draftId, attempts: fixed.attempt };
-    }));
+  const outcome =
+    opportunity.type === "fix_page"
+      ? await fixPage(page)
+      : await writePage({ ...page, attempts: MAX_AUTOMATIC_ATTEMPTS });
+  await settle(outcome, opportunity.id);
+  return outcome;
+}
+
+/** Drafts the customer restarted and no run has regenerated yet — one a
+ *  site, oldest first, so a tick spends at most one page on each. */
+export async function restartedDrafts(siteIds: readonly string[]): Promise<readonly RestartedDraft[]> {
+  const seen = new Set<string>();
+  return (await generateStore().restartedDrafts(siteIds)).filter((row) => {
+    if (seen.has(row.siteId)) return false;
+    seen.add(row.siteId);
+    return true;
+  });
+}
+
+/**
+ * The customer's Regenerate (#788), carried out: the page is written again
+ * on the row and for the date it already holds, from the opportunity it was
+ * written for. One attempt — ADR-070 bounds the *automatic* ones, and this
+ * is the customer's. It ends where the evening's run ends: a passing page
+ * for review, or a stopped one back in `needs_attention`.
+ */
+export async function regenerateRestarted(a: { siteId: string; draftId: string }): Promise<DayPageOutcome> {
+  const store = generateStore();
+  const row = await store.draftById(a.draftId);
+  if (row === null || row.site_id !== a.siteId || row.state !== "generating" || row.scheduled_for === null) {
+    return { ok: false, because: "no_draft" };
   }
+  const site = await store.siteFacts(a.siteId);
+  if (site === null) return { ok: false, because: "no_site" };
+  const report = await store.latestReport(a.siteId);
+  if (report === null) return { ok: false, because: "no_scan" };
+  const opportunity = await opportunityById(row.opportunity_id);
+  if (opportunity === null) return { ok: false, because: "no_opportunity" };
+
+  const page = { siteId: a.siteId, site, report, opportunity, publishDate: row.scheduled_for, draftId: row.id };
+  const outcome =
+    opportunity.type === "fix_page" ? await fixPage(page) : await writePage({ ...page, attempts: 1 });
+  await settle(outcome, opportunity.id);
+  return outcome;
+}
+
+interface PageInput {
+  siteId: string;
+  site: SiteFacts;
+  report: StoredReport;
+  opportunity: Opportunity;
+  publishDate: string;
+  /** The date's row, where one is already written. */
+  draftId?: string;
+}
+
+/**
+ * What a run's outcome does to its row and its opportunity.
+ *
+ * SPEC §7 (2026-09-15, issue 712): a written draft queues its opportunity.
+ * A draft the rules stopped for the last time does not (2026-09-16, #788):
+ * it rests in `needs_attention` and the opportunity goes back to the open
+ * set. Nor does a row a step stopped for the last time (#813): it rests the
+ * same way, its reason naming the step. A run that wrote no row moves
+ * neither.
+ */
+async function settle(outcome: DayPageOutcome, opportunityId: string): Promise<void> {
+  if (outcome.ok) {
+    await queueForDraft(opportunityId);
+    return;
+  }
+  if (outcome.because === "rules" && outcome.draftId !== null) {
+    await rest(outcome.draftId, opportunityId, await rulesReason(outcome.draftId));
+    return;
+  }
+  if (outcome.because === "step_failed" && outcome.draftId !== null) {
+    await rest(outcome.draftId, opportunityId, `step_failed:${outcome.step}`);
+  }
+}
+
+/** The move's reason for a rule stop: the rules on the row. */
+async function rulesReason(draftId: string): Promise<string> {
+  const row = await generateStore().draftById(draftId);
+  const failed = readRecordedRules(row?.rule_failures) ?? [];
+  return `rules:${failed.map((failure) => failure.rule).join(",")}`;
+}
+
+/**
+ * §8 rule 4, "twice = needs-attention" (#788): the stopped page leaves
+ * `generating` for the state the customer can act on, and its opportunity
+ * leaves `queued`. The rules that stopped it are on the row already
+ * (`rule_failures`, which the draft view lists); the move's record names
+ * them too — or names the step that could not run (#813).
+ *
+ * Never a throw on a refused move: the page is stopped either way, and a
+ * row another mover moved first is logged rather than forced.
+ */
+async function rest(draftId: string, opportunityId: string, reason: string): Promise<void> {
+  const { transition } = await import("@/lib/publish/machine");
+  const moved = await transition(draftId, "needs_attention", { kind: "system", job: "draft/generate" }, { reason });
+  if (!moved.ok) {
+    console.log(JSON.stringify({ event: "draft_not_rested", draftId, refused: moved.refused, state: moved.state }));
+  }
+  await releaseForDraft(opportunityId);
+}
+
+async function fixPage(a: PageInput): Promise<DayPageOutcome> {
+  const pageUrl = a.opportunity.targetRef;
+  const { readSiteProfile } = await import("@/lib/site-profile/store");
+  const profile = await readSiteProfile(a.site.domain);
+  const otherTitles = (profile?.inventory ?? [])
+    .filter((row) => row.url !== pageUrl && row.title !== "")
+    .map((row) => row.title);
+  return withDraftCost({ scanId: a.report.scanId }, async (cost): Promise<DayPageOutcome> => {
+    const fixed = await generatePageFix(cost, {
+      siteId: a.siteId,
+      opportunity: a.opportunity,
+      scheduledFor: a.publishDate,
+      domain: a.site.domain,
+      doNotClaim: a.site.doNotClaim,
+      voiceText: a.site.voiceText,
+      otherTitles,
+      ...(a.draftId === undefined ? {} : { draftId: a.draftId }),
+    });
+    if (fixed.ok) return { ok: true, draftId: fixed.draftId };
+    if (fixed.reason === "step_failed") {
+      return { ok: false, because: "step_failed", draftId: fixed.draftId, step: fixed.step };
+    }
+    return { ok: false, because: "rules", draftId: fixed.draftId, attempts: fixed.attempt };
+  });
+}
+
+async function writePage(a: PageInput & { attempts: number }): Promise<DayPageOutcome> {
+  const store = generateStore();
+  const { site, report, opportunity } = a;
 
   // The one name the product holds for the business is the brand the
   // profile measured off their own home page — what the site calls itself.
@@ -170,9 +294,13 @@ export async function generateDayPage(a: {
     ...clusterLinkTargets(earlier),
   ];
 
-  return queued(await withDraftCost({ scanId: report.scanId }, async (cost): Promise<DayPageOutcome> => {
+  return withDraftCost({ scanId: report.scanId }, async (cost): Promise<DayPageOutcome> => {
     let last: GenerateOutcome | null = null;
-    for (let attempt = 1; attempt <= MAX_AUTOMATIC_ATTEMPTS; attempt++) {
+    // #788: one row for the date across every attempt — an attempt after
+    // the first rewrites the row the first one wrote.
+    let draftId = a.draftId;
+    let ruleStopped = false;
+    for (let attempt = 1; attempt <= a.attempts; attempt++) {
       last = await generateDraft(cost, {
         siteId: a.siteId,
         opportunity,
@@ -182,14 +310,27 @@ export async function generateDayPage(a: {
         category,
         links,
         scanId: report.scanId,
+        ...(draftId === undefined ? {} : { draftId }),
       });
+      if (last.draftId !== null) draftId = last.draftId;
       if (last.ok) return { ok: true, draftId: last.draftId };
-      // A step that did not run is not a rule that failed: regenerating
-      // would not make an unavailable model available, and it must not
-      // consume the one automatic attempt.
       if (last.reason === "step_failed") {
-        return { ok: false, because: "step_failed", draftId: last.draftId, step: last.step };
+        // A step that did not run before any row was written leaves nothing
+        // to rest: the opportunity stays open for the next evening.
+        if (draftId === undefined) {
+          return { ok: false, because: "step_failed", draftId: null, step: last.step };
+        }
+        // After a rule already stopped this date's row, a regeneration that
+        // could not run leaves that stop standing: the row rests on it
+        // rather than waiting in `generating` for a run nothing will make.
+        if (ruleStopped) return { ok: false, because: "rules", draftId, attempts: attempt - 1 };
+        // #813: a row a step stopped takes the automatic second attempt a
+        // rule stop takes — a model that did not answer may answer now. The
+        // ceiling would stop that attempt too, so it rests at once.
+        if (attempt < a.attempts && !cost.capHit()) continue;
+        return { ok: false, because: "step_failed", draftId, step: last.step };
       }
+      ruleStopped = true;
       if (
         recoveryOutcome({
           failed: last.failed.map((failure) => failure.rule),
@@ -202,8 +343,8 @@ export async function generateDayPage(a: {
     }
     const stopped = last;
     if (stopped === null || stopped.ok || stopped.reason !== "rules") {
-      return { ok: false, because: "rules", draftId: null, attempts: MAX_AUTOMATIC_ATTEMPTS };
+      return { ok: false, because: "rules", draftId: draftId ?? null, attempts: a.attempts };
     }
-    return { ok: false, because: "rules", draftId: stopped.draftId, attempts: stopped.attempt };
-  }));
+    return { ok: false, because: "rules", draftId: draftId ?? null, attempts: stopped.attempt };
+  });
 }

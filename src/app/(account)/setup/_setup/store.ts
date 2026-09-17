@@ -7,7 +7,8 @@
 //   readProgress     `sites.setup_completed_at` — the one predicate every
 //                    account route consults, with no second copy
 //   commitSetup      `applySetupChoice()`'s mode-and-destination
-//                    transaction, then the three answers, then the stamp
+//                    transaction, then the three answers, the browser's
+//                    zone while the site has none, then the stamp
 //   enqueueDeepPass  `scan/run` at tier `deep`, on the queue
 //   resolvesInDns    §6.4's resolver, through the egress seam
 //
@@ -23,7 +24,7 @@
 // `POST /api/setup` resolves the founder from the session and this store
 // reads and writes that founder's own rows. The two are one switch —
 // `provider.ts` says why.
-import { sendJobEvent } from "@/jobs/client";
+import { sendDeepPass } from "@/jobs/deep-pass-backstop";
 import { hasActiveAccess } from "@/lib/account/billing";
 import { dbAdmin } from "@/lib/db";
 import { resolvesInDns } from "@/lib/egress/dns";
@@ -258,6 +259,21 @@ export function liveSetupStore(): SetupStore {
         // again.
       }
 
+      // Issue #783: the browser's zone, before the stamp and so before the
+      // pass is queued — the pass's first-draft kickoff selects only a site
+      // with a zone. `adoptBrowserTimezone` decides everything: the IANA
+      // check, and a write only while the column is null. Swallowed for the
+      // voice's reason: an unusable zone never un-completes a setup, and
+      // `BrowserZone` still reports one on the next account screen.
+      if (a.submission.timezone !== null) {
+        try {
+          const { adoptBrowserTimezone } = await import("@/lib/publish/settings");
+          await adoptBrowserTimezone(a.siteId, a.submission.timezone);
+        } catch {
+          // `BrowserZone` is the fallback (#753).
+        }
+      }
+
       const stamped = await untyped()
         .from<SiteSetupRow>("sites")
         .update({ setup_completed_at: new Date().toISOString() })
@@ -286,12 +302,7 @@ export function liveSetupStore(): SetupStore {
       const row = site.data?.[0];
       if (row === undefined) throw new Error(`enqueueDeepPass: no site ${siteId}`);
 
-      await sendJobEvent("scan/run", {
-        scanId: `setup-${siteId}`,
-        domain: row.domain,
-        tier: "deep",
-        siteId,
-      });
+      await sendDeepPass({ siteId, domain: row.domain });
     },
   };
 }

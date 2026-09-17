@@ -39,6 +39,7 @@ import { CACHE_WINDOWS_D, PRICE_BOOK } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import { measured, measuredZero, type Measured } from "@/lib/measure/measured";
 import { rankedKeywords } from "@/lib/vendors/dataforseo";
+import type { RankedRow } from "@/lib/vendors/dataforseo/types";
 import { bandRivalSize, type RivalSizeBand } from "./band";
 // The shape lives one file over so a screen can name it without pulling
 // the vendor client this module imports (issue #223). Re-exported here so
@@ -99,6 +100,10 @@ export async function sizeRivals(
     ownRanked: number;
     at: Date;
     previous?: readonly RivalSize[];
+    /** Handed each rival's rows as they are read (#778): the rows this call
+     *  already buys, so SPEC §6's thin-market pool reuses them rather than
+     *  buying them again. Not called for a rival that was not read. */
+    onRows?: (domain: string, rows: readonly RankedRow[]) => void;
   }
 ): Promise<Measured<RivalSize[]>> {
   const previousBy = new Map((a.previous ?? []).map((entry) => [entry.domain, entry]));
@@ -120,6 +125,7 @@ export async function sizeRivals(
       entries.push(carriedForward(domain, before, a.previous !== undefined));
       continue;
     }
+    a.onRows?.(domain, rows.value.rows);
 
     // The vendor's total where there is one; the rows otherwise. Never
     // both, and never a count assembled from the two.

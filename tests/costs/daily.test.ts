@@ -180,17 +180,38 @@ describe("the day ledger a pass carries", () => {
     expect(seen).toEqual([{ crossed: "ceiling", ceilingCents: CEILING }]);
   });
 
-  it("an unreadable ledger refuses nothing and reports nothing — the guard fails open", async () => {
+  it("an unreadable ledger refuses, and reports nothing — the guard fails closed (issue #792)", async () => {
     const seen: string[] = [];
     daily.registerSpendAlertSink((a) => seen.push(a.crossed));
     ledgerHolds(null);
     const day = await daily.openDayLedger(new Date());
-    expect(day.ceilingReached()).toBe(false);
-    // Even spending past the ceiling: a guard that cannot see is not a
-    // licence to stop the product, and it is not a licence to raise an
-    // alarm off a figure nobody has either.
+    expect(day.ceilingReached()).toBe(true);
+    // No alarm off a figure nobody has.
     day.add(CEILING * 2);
-    expect(day.ceilingReached()).toBe(false);
     expect(seen).toEqual([]);
+  });
+
+  it("a re-read sees what other passes spent, and counts this pass's calls still in flight", async () => {
+    ledgerHolds(0);
+    const day = await daily.openDayLedger(new Date());
+    expect(day.ceilingReached()).toBe(false);
+    ledgerHolds(CEILING - 10);
+    await day.refresh(new Date());
+    expect(day.spentCents()).toBe(CEILING - 10);
+    expect(day.ceilingReached()).toBe(false);
+    expect(day.ceilingReached(10)).toBe(true);
+  });
+
+  it("a re-read that answers late never takes back a call this pass already ledgered", async () => {
+    const seen: string[] = [];
+    daily.registerSpendAlertSink((a) => seen.push(a.crossed));
+    ledgerHolds(WARN - 1);
+    const at = new Date("2026-09-16T12:00:00.000Z");
+    const day = await daily.openDayLedger(at);
+    day.add(1); // crosses `warn`
+    await day.refresh(at); // the read began before the row landed
+    expect(day.spentCents()).toBe(WARN);
+    day.add(1);
+    expect(seen).toEqual(["warn"]);
   });
 });

@@ -94,19 +94,22 @@ export async function generatePageFix(
     voiceText: string | null;
     /** The other crawled pages' titles, so a duplicate is written apart. */
     otherTitles: readonly string[];
+    /** The date's row, when the customer restarted it: rewritten in place,
+     *  never inserted beside (#788). */
+    draftId?: string;
   }
 ): Promise<GenerateOutcome> {
   const evidence = a.opportunity.evidence;
   if (evidence.family !== "fix" || !("issues" in evidence)) {
-    return { ok: false, reason: "step_failed", draftId: null, step: "page_read" };
+    return { ok: false, reason: "step_failed", draftId: a.draftId ?? null, step: "page_read" };
   }
   const { pageUrl, issues } = evidence;
 
-  if (c.capHit()) return { ok: false, reason: "step_failed", draftId: null, step: "page_read" };
+  if (c.capHit()) return { ok: false, reason: "step_failed", draftId: a.draftId ?? null, step: "page_read" };
   const page = await readPage(c, pageUrl);
   if (page === null) {
     logRun({ siteId: a.siteId, step: "page_read", outcome: "unreadable" });
-    return { ok: false, reason: "step_failed", draftId: null, step: "page_read" };
+    return { ok: false, reason: "step_failed", draftId: a.draftId ?? null, step: "page_read" };
   }
 
   const before = {
@@ -116,7 +119,7 @@ export async function generatePageFix(
   const fixesTitle = issues.includes("page_titles");
   const fixesDescription = issues.includes("meta_descriptions");
 
-  if (c.capHit()) return { ok: false, reason: "step_failed", draftId: null, step: "page_fix" };
+  if (c.capHit()) return { ok: false, reason: "step_failed", draftId: a.draftId ?? null, step: "page_fix" };
   const written = await import("@/lib/llm").then(({ llm }) =>
     llm(c, {
       site: STEP_CALL_SITES.page_fix,
@@ -140,7 +143,7 @@ export async function generatePageFix(
   );
   if (written.kind === "unmeasured") {
     logRun({ siteId: a.siteId, step: "page_fix", outcome: "step_failed" });
-    return { ok: false, reason: "step_failed", draftId: null, step: "page_fix" };
+    return { ok: false, reason: "step_failed", draftId: a.draftId ?? null, step: "page_fix" };
   }
 
   const record: PageFixRecord = {
@@ -152,18 +155,27 @@ export async function generatePageFix(
   };
 
   const store = generateStore();
-  const draftId = await store.insertDraft({
-    site_id: a.siteId,
-    opportunity_id: a.opportunity.id,
-    state: GENERATING,
+  const fields = {
     title: record.title ?? before.title,
     body_md: "",
-    grounded_fact: null,
-    attribution: null,
-    scheduled_for: a.scheduledFor,
     cost_cents: c.spentCents(),
     meta: { fix: record, ...(record.description === null ? {} : { description: record.description }) },
-  });
+  };
+  let draftId: string;
+  if (a.draftId === undefined) {
+    draftId = await store.insertDraft({
+      ...fields,
+      site_id: a.siteId,
+      opportunity_id: a.opportunity.id,
+      state: GENERATING,
+      grounded_fact: null,
+      attribution: null,
+      scheduled_for: a.scheduledFor,
+    });
+  } else {
+    draftId = a.draftId;
+    await store.patchDraft(draftId, fields);
+  }
 
   const claim = await claimCheck(c, {
     text: [record.title, record.description].filter((v) => v !== null).join("\n"),

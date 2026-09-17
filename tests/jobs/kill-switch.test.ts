@@ -42,10 +42,17 @@ function engineDouble(): Record<string, unknown> {
     startWeeklyScan: ran,
     runScan: ran,
     generateDraft: ran,
+    // The customer's Regenerate is carried out by the same tick (#788).
+    restartedDrafts: async () => {
+      engineCalls.count += 1;
+      return [{ draftId: "d1", siteId: "site-1" }];
+    },
+    regenerateDraft: ran,
     // BUILD §9's one mail per breakage rides `draft/generate`, so the kill
     // switch stops it too — this counter is what proves it.
     noticeBrokenDestination: ran,
     publishApproved: ran,
+    publishDue: ran,
     duePublishRetries: async () => {
       engineCalls.count += 1;
       return [{ draftId: "d1", destinationId: "dest-1" }];
@@ -58,6 +65,10 @@ function engineDouble(): Record<string, unknown> {
     },
     verifyLive: ran,
     advanceSequence: ran,
+    deliverDueFirstPages: async () => {
+      engineCalls.count += 1;
+      return 0;
+    },
     advanceDueSequences: async () => {
       engineCalls.count += 1;
       return { dropped: 0, released: 0, sent: 1 };
@@ -106,6 +117,11 @@ const PAYLOADS: Readonly<Record<string, Readonly<Record<string, unknown>>>> = {
 async function invoke(id: JobId, killSwitch: boolean) {
   stubEnv(killSwitch);
   vi.doMock("@/jobs/engine", () => engineDouble());
+  // Issue #782's obligation reads `sites` and `scans` through its own module.
+  vi.doMock("@/lib/scan/deep/backstop", () => ({
+    sitesWithoutDeepPass: async () => [],
+    deepPassDomain: async () => null,
+  }));
   const { jobs } = await import("@/jobs");
   const { runJob } = await import("@/jobs/run");
   const definition = jobs.find((j: JobDefinition) => j.id === id);

@@ -126,40 +126,58 @@ function client(): MinimalClient {
 
 /** §9's live pages: delivered, not taken down. The same predicate the
  *  hosted edge's sitemap reads, so the count on this screen and the pages
- *  actually being served cannot disagree. */
-async function pagesPublished(siteId: string, at: Date): Promise<Measured<number>> {
+ *  actually being served cannot disagree.
+ *
+ *  One read answers two instants (issue 794): the count now, and the count
+ *  as it stood a week ago — a page live then was published by then and not
+ *  yet taken down — which is what the tile's week-over-week delta is taken
+ *  against. `previous` is absent wherever `now` could not be taken. */
+async function pagesPublished(
+  siteId: string,
+  at: Date
+): Promise<{ now: Measured<number>; previous?: Measured<number> }> {
   const { data, error } = await client()
-    .from<{ id: string }>("publications")
-    .select("id")
+    .from<{ id: string; published_at: string; unpublished_at: string | null }>("publications")
+    .select("id, published_at, unpublished_at")
     .eq("site_id", siteId)
-    .not("published_at", "is", null)
-    .is("unpublished_at", null);
+    .not("published_at", "is", null);
   if (error !== null || data === null) {
     // A count we could not take is not a count of zero. `undeterminable`
     // renders the dash and its own line; a `0` would be a claim that this
     // customer has published nothing (REQ-004).
-    return unmeasured<number>("undeterminable", at);
+    return { now: unmeasured<number>("undeterminable", at) };
   }
-  return measured(data.length, at);
+  const weekAgo = new Date(at.getTime() - MS_PER_WEEK);
+  const liveAt = (instant: Date): number =>
+    data.filter(
+      (row) =>
+        new Date(row.published_at) <= instant &&
+        (row.unpublished_at === null || new Date(row.unpublished_at) > instant)
+    ).length;
+  return {
+    now: measured(data.filter((row) => row.unpublished_at === null).length, at),
+    previous: measured(liveAt(weekAgo), weekAgo),
+  };
 }
 
+const MS_PER_WEEK = 7 * 86_400_000;
+
 /**
- * The deep pass's own reading of searches-appeared-in — UI-SPEC S13's
- * single point.
+ * The deep pass's own report — week 0 (#793).
  *
  * Read from the site's `deep` scan, which `readWeekScans` deliberately does
- * not return: that query is `tier = 'weekly'`, because a deep scan is not a
- * measured week and must not enter the week count, the deltas or the AI
- * window. This is the one place the deep reading is read, and it reaches
- * exactly one thing — the chart's week-0 arm, where the card's own chip
- * says which pass it came from.
+ * not return: that query is `tier = 'weekly'`, and the growth series and
+ * its week count stay the weekly passes' own. The deep reading reaches the
+ * chart's week-0 arm and, as the starting measurement, the score, the AI
+ * answers and the rival lines until the first Monday — and it is what the
+ * first Monday's deltas are taken against (`weeklySeries`).
  *
  * The newest deep scan, not the first: a customer whose market was
  * re-measured by a second deep pass is shown the reading that stands.
  */
-async function deepPassReading(
-  siteId: string
-): Promise<{ value: Measured<number>; on: Date; report: StoredReport } | undefined> {
+type DeepPass = { value: Measured<number>; on: Date; report: StoredReport };
+
+async function deepPassReading(siteId: string): Promise<DeepPass | undefined> {
   const { data, error } = await client()
     .from<{ id: string; report: unknown; created_at: string }>("scans")
     .select("id, report, created_at")
@@ -205,8 +223,10 @@ async function pagesRanking(siteId: string, week: string, at: Date): Promise<Mea
  *  the items and chooses nothing. */
 async function waitingItems(siteId: string): Promise<readonly WaitingItem[]> {
   const { data, error } = await client()
-    .from<{ id: string; state: string; title: string; created_at: string }>("drafts")
-    .select("id, state, title, created_at")
+    .from<{ id: string; state: string; title: string; created_at: string; veto_deadline: string | null }>(
+      "drafts"
+    )
+    .select("id, state, title, created_at, veto_deadline")
     .eq("site_id", siteId)
     .in("state", ["in_review", "needs_attention"])
     .order("created_at", { ascending: true });
@@ -217,6 +237,9 @@ async function waitingItems(siteId: string): Promise<readonly WaitingItem[]> {
     // product composed.
     title: row.title,
     since: new Date(row.created_at),
+    // The window the publish sweep itself closes at, stamped from the
+    // site's own `veto_hours` (issue 794) — never a default counted here.
+    vetoDeadline: row.veto_deadline === null ? null : new Date(row.veto_deadline),
     href: `/app/draft/${row.id}`,
   }));
 }
@@ -277,13 +300,26 @@ interface WeeklyFacts {
   score: Measured<{ score: number; band: BandHandle }>;
   scorePrevious?: Measured<{ score: number; band: BandHandle }>;
   /** The newest measured week's report, whose technical issues are the ones
-   *  the customer is shown — Monday's re-check, never a stale week's. */
+   *  the customer is shown — Monday's re-check, never a stale week's. Week
+   *  0's before the first Monday. */
   latest: StoredReport | null;
+  /** The deep pass's AI-answer reading, as the window's week-0 cell. */
+  aiWeekZero?: { weekStart: Date; present: boolean | null };
+  /** The deep pass's searches reading, where it is week 0 — what the first
+   *  Monday's searches delta is taken against (issue 794). */
+  searchesWeekZero?: Measured<number>;
 }
 
-async function weeklySeries(site: OverviewSite, now: Date): Promise<WeeklyFacts> {
+async function weeklySeries(
+  site: OverviewSite,
+  now: Date,
+  deepPass: Promise<DeepPass | undefined>
+): Promise<WeeklyFacts> {
   const weeks = windowWeeks(now, site.timeZone);
-  const scans = await readWeekScans({ siteId: site.siteId, weekStarts: weeks });
+  const [scans, deep] = await Promise.all([
+    readWeekScans({ siteId: site.siteId, weekStarts: weeks }),
+    deepPass,
+  ]);
 
   // The two weeks every current figure on this screen is read from. The
   // *latest measured* week, not the current one: a customer reading on a
@@ -292,24 +328,58 @@ async function weeklySeries(site: OverviewSite, now: Date): Promise<WeeklyFacts>
   // what a delta and a `was 276×` are taken against — and skipping an
   // unmeasured week between them is right, because the comparison is
   // between two measurements and not between two calendar weeks.
+  //
+  // **The deep pass is week 0** (#793). Before the first Monday it is the
+  // latest reading — the starting measurement — and on the first Monday it
+  // is the one that week's deltas compare against. It stands only where its
+  // week precedes every weekly week this window read: a deep pass re-run
+  // after the weeklies began is not where the customer started.
   const measured = weeks.filter((week) => scans.get(week)?.report != null);
-  const latest = scans.get(measured.at(-1) ?? "")?.report ?? null;
-  const previousWeek = scans.get(measured.at(-2) ?? "")?.report ?? null;
+  const first = weeks.findIndex((week) => scans.has(week));
+  const firstScanned = weeks[first];
+  const deepWeek = deep === undefined ? null : weekStartFor({ at: deep.on, zone: site.timeZone });
+  const weekZero =
+    deep !== undefined && deepWeek !== null && (firstScanned === undefined || deepWeek < firstScanned)
+      ? { report: deep.report, weekStart: deepWeek }
+      : null;
+  const latest = scans.get(measured.at(-1) ?? "")?.report ?? weekZero?.report ?? null;
+  const previousWeek =
+    measured.length >= 2
+      ? (scans.get(measured.at(-2) ?? "")?.report ?? null)
+      : measured.length === 1
+        ? (weekZero?.report ?? null)
+        : null;
   const rivals = await rivalFacts({
     siteId: site.siteId,
     weeks,
     scans,
     latest,
     previous: previousWeek,
+    lead: weekZero?.report ?? null,
     now,
   });
+  // The AI window's week-0 cell, while that week is still inside the window.
+  const aiWeekZero =
+    weekZero !== null && weekZero.weekStart >= (weeks[0] as string)
+      ? { weekStart: mondayOf(weekZero.weekStart), present: presentInAnswers(weekZero.report) }
+      : undefined;
 
   const score = scoreOf(latest, now);
   const scorePrevious = previousWeek === null ? undefined : scoreOf(previousWeek, now);
+  const searchesWeekZero = weekZero === null ? undefined : weekZero.report.ownRanked;
 
-  const first = weeks.findIndex((week) => scans.has(week));
   if (first === -1) {
-    return { points: [], aiPresence: [], changes: [], rivals, score, latest, ...(scorePrevious === undefined ? {} : { scorePrevious }) };
+    return {
+      points: [],
+      aiPresence: [],
+      changes: [],
+      rivals,
+      score,
+      latest,
+      ...(scorePrevious === undefined ? {} : { scorePrevious }),
+      ...(aiWeekZero === undefined ? {} : { aiWeekZero }),
+      ...(searchesWeekZero === undefined ? {} : { searchesWeekZero }),
+    };
   }
 
   const measuredWeeks = weeks.slice(first);
@@ -337,6 +407,8 @@ async function weeklySeries(site: OverviewSite, now: Date): Promise<WeeklyFacts>
     score,
     latest,
     ...(scorePrevious === undefined ? {} : { scorePrevious }),
+    ...(aiWeekZero === undefined ? {} : { aiWeekZero }),
+    ...(searchesWeekZero === undefined ? {} : { searchesWeekZero }),
   };
 }
 
@@ -394,10 +466,12 @@ function seriesFor(a: {
   weeks: readonly string[];
   scans: ReadonlyMap<string, WeekScan>;
   warm: boolean;
+  /** Week 0's report, read before the window's weeks. */
+  lead: StoredReport | null;
 }): number[] {
   const points: number[] = [];
-  for (const week of a.weeks) {
-    const report = a.scans.get(week)?.report ?? null;
+  const reports = [a.lead, ...a.weeks.map((week) => a.scans.get(week)?.report ?? null)];
+  for (const report of reports) {
     const rival = rivalCountOf(sizingFor(report, a.domain));
     if (rival === undefined) continue;
     if (!a.warm) {
@@ -426,6 +500,7 @@ async function rivalFacts(a: {
   scans: ReadonlyMap<string, WeekScan>;
   latest: StoredReport | null;
   previous: StoredReport | null;
+  lead: StoredReport | null;
   now: Date;
 }): Promise<RivalFacts> {
   const own = a.latest === null ? unmeasured<number>("not_attempted", a.now) : a.latest.ownRanked;
@@ -453,7 +528,7 @@ async function rivalFacts(a: {
           ? unmeasured<number>("not_attempted", a.now)
           : measured(ranked, size.at),
       ...(previousRanked === undefined ? {} : { previousRanked: measured(previousRanked, a.now) }),
-      series: seriesFor({ domain, weeks: a.weeks, scans: a.scans, warm }),
+      series: seriesFor({ domain, weeks: a.weeks, scans: a.scans, warm, lead: a.lead }),
       ...(size === undefined ? {} : { size }),
     };
   });
@@ -474,20 +549,24 @@ export async function readOverviewFacts(site: OverviewSite): Promise<OverviewFac
   // the seed writes its measured weeks against the same value, and the two
   // halves cannot drift apart on a Monday.
   const now = clock();
-  const { supplyDepth } = await import("@/lib/opportunities");
+  const { supplyDepth, supplyMeasured } = await import("@/lib/opportunities");
 
+  const deepRead = deepPassReading(site.siteId);
   const [firstDueOn, published, depth, waiting, series, ranking, deepPass] = await Promise.all([
     nextDueOn({ siteId: site.siteId, now }),
     pagesPublished(site.siteId, now),
     supplyDepth(site.siteId),
     waitingItems(site.siteId),
-    weeklySeries(site, now),
+    weeklySeries(site, now, deepRead),
     // The week the standings are read for is the site's current one — the
     // same Monday `windowWeeks` ends on, so the badge counts the week the
     // rest of the screen is about.
     pagesRanking(site.siteId, weekStartFor({ at: now, zone: site.timeZone }), now),
-    deepPassReading(site.siteId),
+    deepRead,
   ]);
+  // issue 765/issue 784: a zero is either a market used up or one never measured, and
+  // only a read that answered may say which — an unreadable one says neither.
+  const measured = depth.unused === 0 ? await supplyMeasured(site.siteId).catch(() => null) : null;
 
   return {
     timeZone: site.timeZone,
@@ -498,15 +577,19 @@ export async function readOverviewFacts(site: OverviewSite): Promise<OverviewFac
     firstDueOn,
     ...(deepPass === undefined ? {} : { deepPass: { value: deepPass.value, on: deepPass.on } }),
     aiPresence: series.aiPresence,
+    ...(series.aiWeekZero === undefined ? {} : { aiWeekZero: series.aiWeekZero }),
+    ...(series.searchesWeekZero === undefined ? {} : { searchesWeekZero: series.searchesWeekZero }),
     changes: series.changes,
-    pagesPublished: published,
+    pagesPublished: published.now,
+    ...(published.previous === undefined ? {} : { pagesPublishedPrevious: published.previous }),
     pagesRanking: ranking,
     score: series.score,
     ...(series.scorePrevious === undefined ? {} : { scorePrevious: series.scorePrevious }),
     rivals: series.rivals,
     today: now,
     supply: {
-      exhausted: depth.unused === 0,
+      exhausted: depth.unused === 0 && measured === true,
+      unmeasured: depth.unused === 0 && measured === false,
       short: depth.unused > 0 && depth.unused < SUPPLY_SHORT_BELOW,
       // The first-arrival shortfall is a statement about the pass the
       // customer arrived after, which only the arrival itself can know

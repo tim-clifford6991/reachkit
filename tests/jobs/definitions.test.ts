@@ -37,12 +37,17 @@ function engineDouble(): Record<string, unknown> {
     startWeeklyScan: record("startWeeklyScan", done),
     runScan: record("runScan", done),
     generateDraft: record("generateDraft", done),
+    // The customer's Regenerate rides the same tick (#788).
+    restartedDrafts: record("restartedDrafts", []),
+    regenerateDraft: record("regenerateDraft", done),
     publishApproved: record("publishApproved", done),
+    publishDue: record("publishDue", done),
     duePublishRetries: record("duePublishRetries", [{ draftId: "d1", destinationId: "dest-1" }]),
     // SPEC §7's window end rides the same tick (issue 709).
     duePublishApprovals: record("duePublishApprovals", []),
     verifyLive: record("verifyLive", done),
     advanceSequence: record("advanceSequence", done),
+    deliverDueFirstPages: record("deliverDueFirstPages", 0),
     advanceDueSequences: record("advanceDueSequences", { dropped: 0, released: 0, sent: 0 }),
     paymentsAwaitingSignIn: record("paymentsAwaitingSignIn", []),
     chaseSignIn: record("chaseSignIn", done),
@@ -80,6 +85,11 @@ function engineDouble(): Record<string, unknown> {
 async function load(): Promise<readonly JobDefinition[]> {
   stubEnv(false);
   vi.doMock("@/jobs/engine", () => engineDouble());
+  // Issue #782's obligation reads `sites` and `scans` through its own module.
+  vi.doMock("@/lib/scan/deep/backstop", () => ({
+    sitesWithoutDeepPass: async () => [],
+    deepPassDomain: async () => null,
+  }));
   const { jobs } = await import("@/jobs");
   return jobs;
 }
@@ -101,6 +111,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.doUnmock("@/jobs/engine");
+  vi.doUnmock("@/lib/scan/deep/backstop");
   vi.unstubAllEnvs();
   vi.resetModules();
   vi.restoreAllMocks();
@@ -254,11 +265,23 @@ describe("draft/generate — the site's own evening, the next publish date", () 
 });
 
 describe("publish/execute and publish/verify", () => {
-  it("publish/execute is deduplicated by (draft_id, destination_id) — ADR-080's pair", async () => {
+  it("publish/execute is deduplicated per page per moment, and re-reads the page at the moment it arrives (issue #790)", async () => {
     const job = await definition("publish/execute");
-    expect(job.idempotencyKey).toEqual(["draftId", "destinationId"]);
-    await job.run({ data: { draftId: "d1", destinationId: "dest-1" }, now: MONDAY_0600_UTC });
-    expect(calls).toEqual([{ fn: "publishApproved", arg: { draftId: "d1", destinationId: "dest-1" } }]);
+    expect(job.idempotencyKey).toEqual(["draftId", "destinationId", "dueAt"]);
+    const data = { draftId: "d1", destinationId: "dest-1", dueAt: MONDAY_0600_UTC.toISOString() };
+    expect(await job.run({ data, now: MONDAY_0600_UTC })).toEqual({ outcome: "ran", subjectId: "d1" });
+    expect(calls).toEqual([{ fn: "publishDue", arg: { draftId: "d1", now: MONDAY_0600_UTC } }]);
+  });
+
+  it("publish/execute for a page that is not due when it arrives is a recorded skip, left to the hourly tick", async () => {
+    results.set("publishDue", { notDue: true });
+    const job = await definition("publish/execute");
+    const data = { draftId: "d1", destinationId: "dest-1", dueAt: MONDAY_0600_UTC.toISOString() };
+    expect(await job.run({ data, now: MONDAY_0600_UTC })).toEqual({
+      outcome: "skipped",
+      subjectId: "d1",
+      reason: "not-due",
+    });
   });
 
   it("publish/verify declares the +24h delay rather than sleeping in its own body", async () => {
@@ -272,9 +295,8 @@ describe("publish/execute and publish/verify", () => {
   });
 
   it("publish/retry is an hourly tick that re-enters through the same seam an approval does", async () => {
-    // The whole of §9's retry, and the reason it is a tick: a re-sent
-    // `publish/execute` event is deduped by `(draftId, destinationId)`
-    // rather than delayed, so the retry had nowhere to come from.
+    // The whole of §9's retry, and the reason it is a tick: its moment is
+    // derived from the failed row, and the tick re-reads that row each hour.
     const job = await definition("publish/retry");
     expect(job.trigger).toEqual({ kind: "cron", cron: "0 * * * *" });
     // Idempotency is the row, not the payload: a tick carries no data.
@@ -289,9 +311,10 @@ describe("publish/execute and publish/verify", () => {
   });
 
   it("publish/retry also delivers the pages whose veto window has run out, each once (issue 709)", async () => {
-    // Nothing sends `publish/execute` when a window ends, so the hourly
-    // publish tick is where an untouched page goes out — through the same
-    // seam a retry takes. A page offered by both reads is attempted once.
+    // `publish/execute` is sent for a window's end (issue #790); the hourly
+    // publish tick is the backstop an untouched page still goes out through
+    // — the same seam a retry takes. A page offered by both reads is
+    // attempted once.
     results.set("duePublishApprovals", [
       { draftId: "d2", destinationId: "dest-2" },
       { draftId: "d1", destinationId: "dest-1" },
@@ -343,7 +366,10 @@ describe("lead/nurture — an hourly tick over due work (#182)", () => {
     await job.run({ data: {}, now: MONDAY_0600_UTC });
     // `now` is the tick's, injected — the job reads no clock of its own,
     // which is what makes due-ness testable without travelling in time.
-    expect(calls).toEqual([{ fn: "advanceDueSequences", arg: MONDAY_0600_UTC }]);
+    expect(calls).toEqual([
+      { fn: "deliverDueFirstPages", arg: MONDAY_0600_UTC },
+      { fn: "advanceDueSequences", arg: MONDAY_0600_UTC },
+    ]);
   });
 
   it("an hour with nothing due is recorded as skipped, never as a run", async () => {
@@ -664,6 +690,10 @@ describe("nothing fakes work — an unbuilt engine fails loudly", () => {
     vi.doMock("@/lib/scan/stuck", () => ({
       scansLeftRunning: async () => [],
       finishScanLeftRunning: async () => ({ finished: false }),
+    }));
+    vi.doMock("@/lib/scan/deep/backstop", () => ({
+      sitesWithoutDeepPass: async () => [],
+      deepPassDomain: async () => null,
     }));
     // SPEC §8's retention sequence (issue #569), stood in with nothing due.
     vi.doMock("@/lib/mail/retention", () => ({

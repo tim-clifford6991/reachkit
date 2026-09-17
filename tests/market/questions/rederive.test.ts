@@ -17,12 +17,16 @@ const FIXTURE = JSON.parse(
 ) as { profile: Profile; market: SuggestionRow[] };
 
 const MEASURED = FIXTURE.profile.category;
+/** An established site: 30,000 ranked keywords puts the demand ceiling
+ *  (`qualifyingDemand`) far above every fixture search, so these suites
+ *  read selection's other rules alone. */
+const OWN_RANKED = 30_000;
 /** A correction, not a synonym: the founder says the scan read the wrong
  *  market. Nothing else about their site changed. */
 const CORRECTED = "employee scheduling";
 
 function twelve(category: string): readonly { wording: string; search: string }[] {
-  return rederiveQuestions({ profile: FIXTURE.profile, market: FIXTURE.market, category });
+  return rederiveQuestions({ profile: FIXTURE.profile, ownRanked: OWN_RANKED, market: FIXTURE.market, category });
 }
 
 beforeEach(() => {
@@ -50,7 +54,7 @@ describe("a corrected category re-derives the twelve from the market already mea
   });
 
   it("the market the screen carries is cut to rows selection could keep, and derives the same twelve", () => {
-    const carried = derivableMarket({ profile: FIXTURE.profile, suggestions: FIXTURE.market });
+    const carried = derivableMarket({ profile: FIXTURE.profile, ownRanked: OWN_RANKED, suggestions: FIXTURE.market });
     expect(carried.market.length).toBeLessThanOrEqual(FIXTURE.market.length);
     for (const category of [MEASURED, CORRECTED]) {
       expect(rederiveQuestions({ ...carried, category })).toEqual(twelve(category));

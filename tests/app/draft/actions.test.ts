@@ -9,14 +9,19 @@
 //     state — which is the archived BP-044's own wording of the promise.
 //
 // Plus the two seams this screen calls: nothing here pretends a write
-// succeeded. Approve and Veto now reach BUILD §9's one mover (#45); the
-// save is still declared and stubbed (#44).
+// succeeded. Approve and Veto reach BUILD §9's one mover (#45); the save
+// reaches the engine (#789, `save.test.ts`).
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // `transition()` is exercised in `tests/publish/machine/` against a database
 // double; mocking it here keeps this file's subject the seam's own contract.
 const transition = vi.fn();
 vi.mock("@/lib/publish/machine", () => ({ transition: (...a: unknown[]) => transition(...a) }));
+
+// Issue #790: an approval that moved asks the engine to send the page's
+// `publish/execute` for its moment. Doubled here for the machine's reason.
+const schedulePublish = vi.fn(async () => ({ scheduled: true }));
+vi.mock("@/jobs/engine", () => ({ schedulePublish: (...a: unknown[]) => schedulePublish(...(a as [])) }));
 
 // Issue #169: the day panel's writes now act as the signed-in customer and
 // refuse a draft the account does not own. The ownership read reaches
@@ -38,10 +43,7 @@ import {
   publishing,
   PublishingRefusedError,
 } from "@/app/(account)/app/calendar/publishing";
-import {
-  draftStore,
-  DraftSaveNotBuiltError,
-} from "@/app/(account)/app/draft/[draftId]/save";
+import { draftStore } from "@/app/(account)/app/draft/[draftId]/save";
 
 // BUILD §4.4–§4.6, issue #169 — the surfaces under test now resolve who is
 // asking through `_session/account.ts`, which reads a signed cookie and a
@@ -197,6 +199,7 @@ describe("neither seam claims a write succeeded", () => {
       kind: "customer",
       userId: RESERVED_ACCOUNT.userId,
     });
+    expect(schedulePublish).toHaveBeenCalledWith({ draftId: "d1" });
   });
 
   it("a refused approve rejects, naming the command and the machine's own word", async () => {
@@ -226,17 +229,8 @@ describe("neither seam claims a write succeeded", () => {
     await expect(publishing.veto({ draftId: "d1" })).rejects.toBeInstanceOf(PublishingRefusedError);
   });
 
-  it("the save rejects with DraftSaveNotBuiltError and never resolves ok", async () => {
-    const asked = draftStore.save({ draftId: "d1", bodyMd: "x" });
-    await expect(asked).rejects.toBeInstanceOf(DraftSaveNotBuiltError);
-    await expect(asked).rejects.toMatchObject({ draftId: "d1" });
-  });
-
-  it("the stub names the section that will supply it, and never the customer's body", async () => {
-    const error = await draftStore
-      .save({ draftId: "d1", bodyMd: "the customer's private words" })
-      .catch((e: unknown) => e);
-    expect(String(error)).toContain("d1");
-    expect(String(error)).not.toContain("the customer's private words");
+  it("the save never rejects: the fixture account has no row to write, and is refused rather than told it saved", async () => {
+    const result = await draftStore.save({ draftId: "d1", title: "t", bodyMd: "x", description: "" });
+    expect(result).toEqual({ ok: false, refused: "not_editable" });
   });
 });

@@ -402,6 +402,12 @@ export const TIMING = Object.freeze({
   // headroom under the ceiling, the same margin the ceiling keeps under the
   // platform's. Reversal cost: one pin.
   reportTargetS: 40, reportCeilingS: 50, deepReleaseMin: 10, progressHeartbeatS: 30,
+  /** Issue #782: how long after setup completes a site with no ended deep
+   *  pass is re-sent one by `account/maintenance` — past the release
+   *  deadline, so a pass that is merely slow has had its window — and how
+   *  far back that look goes: the queue's own idempotency window, inside
+   *  which a re-send is dropped for a pass already queued. */
+  deepPassBackstopMin: 15, deepPassBackstopH: 24,
   /** The platform's own ceiling on the `POST /api/scan` invocation, in
    *  seconds — `export const maxDuration` on that route, which must stay a
    *  literal there because Next reads route segment config out of the
@@ -410,6 +416,22 @@ export const TIMING = Object.freeze({
    *  and fails if the two ever disagree. 60 is the plan this product
    *  deploys to (Hobby). Issue #456. */
   platformCeilingS: 60,
+  /** The ceiling on one invocation of a job step on `/api/jobs`, in
+   *  seconds — `export const maxDuration` on that route, a literal there
+   *  for the same reason as above. Not `platformCeilingS`: the project runs
+   *  fluid compute, whose default and plan ceiling is 300, and the onboarding
+   *  pass's measurement step (every question's SERPs, ChatGPT and AI Mode
+   *  reads, rival sizing, the extra seeds) runs in one invocation and does
+   *  not fit in the free request path's 60. Issue 798. */
+  jobsCeilingS: 300,
+  /** How long before `platformCeilingS` a free pass still running in its
+   *  request marks its own row `failed` (issue 798). Past the design
+   *  ceiling a pass is only storing its partial report; one still going
+   *  here is about to be frozen, and its `running` row would refuse the
+   *  visitor's network until the sweep came round. The margin is the time
+   *  that one guarded write needs; a report stored after it overwrites the
+   *  failure with the truth. */
+  requestBudgetMarginS: 3,
   /** How long past the platform's ceiling a free row still `running` has to
    *  be before the sweep (`src/lib/scan/stuck.ts`) calls it a ghost. The
    *  sweep keys on the platform bound, not the design one: a row at 50 s
@@ -431,8 +453,28 @@ export const TIMING = Object.freeze({
   suggestCeilingS: 3,
 } as const);
 
+/** SPEC §6, right-sizing law (owner, 2026-09-16, #777 · #779): a target is
+ *  offered only if it is winnable *for this site's presence*. Two proportions,
+ *  both scaled by the site's own ranked count (its footprint, §0):
+ *
+ *  - **Competition** — `qualify*` / `near*`: at least one top-ten domain ranks
+ *    for no more than `max(500, 5 × own)` keywords (Reach), `max(100, 2 × own)`
+ *    (Winnable). Rivals' sizes against the site's own.
+ *  - **Demand** — `demand*`: the search itself is no bigger than
+ *    `max(1000, 10 × own)` searches a month (Reach), `max(200, 2 × own)`
+ *    (Winnable). Above the first it is outsized for the site and refused for
+ *    every Write and Earn type — a site that ranks for three keywords is
+ *    offered a 20/mo long-tail answer, never a 50,000/mo head term; a site
+ *    that ranks for 30,000 is. The floors keep a site ranking for nothing
+ *    supplied with small targets (the thin-market steps read down to 10/mo).
+ *
+ *  A target's band is the lower of the two. Competition still gates only
+ *  `keyword_page` (§6, 2026-09-15, #769); demand gates every new target.
+ *  Improve reads competition only — the site already ranks for that search.
+ *  The eight numbers are owner-correctable defaults. */
 export const WINNABILITY = Object.freeze({
   qualifyFloor: 500, qualifyMultiple: 5, nearFloor: 100, nearMultiple: 2,
+  demandFloor: 1000, demandMultiple: 10, demandNearFloor: 200, demandNearMultiple: 2,
 } as const);
 
 export const RIVAL_SIZE_BANDS = Object.freeze({
@@ -499,6 +541,13 @@ export const NURTURE_H = Object.freeze([24, 72, 168] as const);
 // The free report and the market chain
 export const SELECTION = Object.freeze({                    // BP-025 · REQ-006 · BUILD §6.7 step 3
   volumeFloorPerMonth: 50,
+  /** SPEC §6 thin markets (2026-09-16): the floor steps a pass short of
+   *  twelve questions walks down, only as far as it needs. The first step
+   *  is `volumeFloorPerMonth`; the last is never below `KEYWORD_PAGE_MIN_VOLUME`. */
+  volumeSteps: Object.freeze([50, 20, 10] as const),
+  /** SPEC §6 thin markets: at most this many extra `keyword_suggestions`
+   *  purchases per paid pass, inside that pass's own cap. */
+  maxExtraSeeds: 3,
   intentWeights: Object.freeze({ decision: 3, solution: 3, problem: 2, informational: 1 } as const),
   minDecision: 4, minSolution: 3, maxRivalBrand: 3, maxHowTo: 2,
 } as const);

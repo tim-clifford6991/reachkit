@@ -25,7 +25,7 @@ export const SCAN_ID = "11111111-1111-4111-8111-111111111111";
 export function search(over: Partial<SelectedSearch> = {}): SelectedSearch {
   return {
     keyword: "best user onboarding software",
-    volume: 1900,
+    volume: 190,
     intent: "decision",
     score: 9.9,
     rank: 1,

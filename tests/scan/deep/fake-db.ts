@@ -82,8 +82,21 @@ export function fakeDb(tables: Record<string, Row[]> = {}): FakeDb {
             filters.push((row) => String(row[column]) < String(value));
             return self;
           },
+          gt(column: string, value: unknown) {
+            filters.push((row) => row[column] !== undefined && String(row[column]) > String(value));
+            return self;
+          },
           limit() {
             return self;
+          },
+          // PostgREST's `.single()`: exactly one matched row, or an error.
+          single() {
+            const hit = matched();
+            return Promise.resolve(
+              hit.length === 1
+                ? { data: { ...hit[0] }, error: null }
+                : { data: null, error: { message: `expected one row, matched ${hit.length}`, code: "PGRST116" } }
+            );
           },
           then(resolve: (v: { data: Row[]; error: { message: string; code: string } | null }) => unknown) {
             if (inserted !== null) {

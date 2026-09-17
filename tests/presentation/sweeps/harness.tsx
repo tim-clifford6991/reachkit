@@ -92,7 +92,6 @@ export const ROUTE_HARNESS: Readonly<Record<string, HarnessRow>> = Object.freeze
   // once, before the app, and the shell states a publishing state and a week
   // count this founder does not have yet (issue #14's own header says so).
   "(account)/setup/page.tsx": { props: () => ({}), shell: false, async: true },
-  "(account)/setup/waiting/page.tsx": { props: () => ({}), shell: false, async: true },
   // #753: where a founder who finished setup waits for their site's zone.
   "(account)/setup/zone/page.tsx": { props: () => ({}), shell: false, async: true },
   "(account)/app/page.tsx": { props: () => ({}), shell: true, async: true },

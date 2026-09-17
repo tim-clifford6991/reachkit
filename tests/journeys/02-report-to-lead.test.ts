@@ -38,11 +38,10 @@
 // sweep. The remaining touches go through `advanceSequences`, which is the
 // same body reached the other way.
 //
-// Two gaps remain between this file and production, named rather than
-// papered over: nothing calls `dueFirstPageDeliveries` yet, and nothing
-// emits a `lead/nurture` event, so in production the sequence still has no
-// scheduler. The journey drives both entry points directly, at the clock
-// it names.
+// Since #787 the hourly `lead/nurture` tick also delivers the due first
+// pages (`tests/mail/leads/free-page-delivery.test.ts` drives that path
+// through the job and the real page writer). This journey still drives the
+// giveaway's two entry points directly, at the clock it names.
 //
 // **The ledger claim is a claim about zero.** §4.2 spends nothing on the
 // visitor's request: no model call, no vendor round trip, no queue. The
@@ -105,9 +104,9 @@ const { POST } = await import("../../src/app/api/lead/route");
 // ── The one offer, written once ─────────────────────────────────────────
 //
 // The card on the report and the page in the mail are the same six facts
-// read twice — the screen reads the report blob, the giveaway reads the
-// `opportunities` rows — so the journey sets both from this one constant
-// and then asserts the founder was told the same thing in both places.
+// read twice — both from the report blob's `freePage` (#787) — so the
+// journey sets both from this one constant and then asserts the founder was
+// told the same thing in both places.
 
 const SCAN_ID = "scan-journey-02";
 const DOMAIN = "example.com";
@@ -125,22 +124,13 @@ const THE_PAGE = {
   pagesFound: 7,
 } as const;
 
-const MEASURED_AT = new Date("2026-09-05T09:00:00.000Z");
 /** The founder is looking at the report and types their address. */
 const SUBMITTED_AT = new Date("2026-09-05T12:00:00.000Z");
 
-/** The `opportunities` rows the scan left behind — `pagesFound` of them,
- *  in the order the engine wrote them, which is the order the default
- *  offer reader takes them in. */
-function opportunityRows(): readonly unknown[] {
-  return Array.from({ length: THE_PAGE.pagesFound }, (_, index) => ({
-    title: index === 0 ? THE_PAGE.title : `Another page (${index})`,
-    target_query: index === 0 ? THE_PAGE.targetQuery : `another search ${index}`,
-    volume: index === 0 ? THE_PAGE.volume : 100,
-    type: THE_PAGE.format,
-    evidence: { rival: THE_PAGE.rival },
-    created_at: MEASURED_AT.toISOString(),
-  }));
+/** The report blob as the scan stores it (jsonb): the giveaway reads the
+ *  very `freePage` the card renders. */
+function storedBlob(scanId: string): unknown {
+  return JSON.parse(JSON.stringify({ ...reportState().report, scanId }));
 }
 
 /** The report the founder is reading: the complete arm, carrying the one
@@ -163,6 +153,7 @@ function reportState() {
     },
     notice: null,
     control: { kind: "none" as const },
+    correction: { offered: true as const, as: "first" as const },
   };
 }
 
@@ -195,7 +186,7 @@ beforeEach(() => {
 
   leads = newMemoryState();
   leads.scans.set(SCAN_ID, DOMAIN);
-  leads.opportunities.set(SCAN_ID, opportunityRows());
+  leads.reports.set(SCAN_ID, storedBlob(SCAN_ID));
   setLeadStore(memoryStore(leads));
 
   accounts = newMemoryAccounts();
@@ -495,7 +486,7 @@ describe('"Email me the full page" → lead → first page → a follow-up that 
     // for another domain still gets that domain's page (ADR-041).
     expect(theOneLead().first_page_state).toBe("sent");
     leads.scans.set("scan-other", "other.example.net");
-    leads.opportunities.set("scan-other", opportunityRows());
+    leads.reports.set("scan-other", storedBlob("scan-other"));
     await submitTheAddress({ scanId: "scan-other", email: ADDRESS });
     await runTheGiveawayJob(SUBMITTED_AT);
     expect(mailsOfKind("mail.firstPage.subject")).toHaveLength(2);

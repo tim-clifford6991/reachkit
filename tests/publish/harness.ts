@@ -45,6 +45,9 @@ export interface FakeDb {
   queries: RecordedQuery[];
   rpcCalls: { fn: string; args: Row }[];
   client: unknown;
+  /** Tables whose reads answer an error, the way an unreachable database
+   *  does. Writes are untouched. */
+  unreadable: Set<string>;
   seed(table: string, rows: Row[]): void;
   rows(table: string): Row[];
   reset(): void;
@@ -96,6 +99,14 @@ function embed(db: FakeDb, table: string, columns: string, row: Row): Row {
   if (names(columns, "sites")) {
     out.sites = db.rows("sites").find((s) => s.id === row.site_id) ?? null;
   }
+  // A site's owner, and its destinations as a list — the hosted edge's
+  // serving question reads both (`account/billing/store.ts`).
+  if (table === "sites" && names(columns, "users")) {
+    out.users = db.rows("users").find((u) => u.id === row.user_id) ?? null;
+  }
+  if (table === "sites" && names(columns, "destinations")) {
+    out.destinations = db.rows("destinations").filter((d) => d.site_id === row.id);
+  }
   if (names(columns, "opportunities")) {
     out.opportunities =
       db.rows("opportunities").find((o) => o.id === row.opportunity_id) ?? null;
@@ -133,6 +144,7 @@ export function fakeDb(): FakeDb {
     queries: [],
     rpcCalls: [],
     client: null,
+    unreadable: new Set(),
     seed(table, rows) {
       db.tables.set(table, rows.map((row) => ({ ...row })));
     },
@@ -146,6 +158,7 @@ export function fakeDb(): FakeDb {
     },
     reset() {
       db.tables.clear();
+      db.unreadable.clear();
       db.queries.length = 0;
       db.rpcCalls.length = 0;
     },
@@ -186,6 +199,7 @@ export function fakeDb(): FakeDb {
         db.tables.set(table, kept);
         return { data: gone, error: null };
       }
+      if (db.unreadable.has(table)) return { data: null, error: { message: `stubbed read failure: ${table}` } };
       return { data: selected(), error: null };
     }
 
@@ -316,7 +330,8 @@ export function fakeDb(): FakeDb {
 
 /**
  * `publish_transition`, as the migration writes it: one statement that sets
- * the state, appends the record, and maintains `publishable_since` — guarded
+ * the state, appends the record, maintains `publishable_since` and records a
+ * customer's approval — guarded
  * by `where … and state = p_from`, the optimistic lock two concurrent movers
  * race on.
  */
@@ -333,6 +348,12 @@ export function installTransitionRpc(db: FakeDb): void {
       row.publishable_since = row.publishable_since ?? new Date().toISOString();
     } else if (["published", "skipped", "unpublished"].includes(to)) {
       row.publishable_since = null;
+    }
+    // A customer's approval is recorded in the same statement (issue #790).
+    const record = args.p_record as { at?: string; actor?: { kind?: string } };
+    if (to === "approved" && record.actor?.kind === "customer") {
+      row.approved_at = record.at ?? new Date().toISOString();
+      row.approved_by = record.actor;
     }
     return true;
   });

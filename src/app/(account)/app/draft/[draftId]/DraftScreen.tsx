@@ -35,9 +35,8 @@
 //     component's state and no code path here clears it except the
 //     customer's own "Discard changes", which returns it to the text the
 //     store last confirmed and never to something the store never saw.
-//     Today every save is refused — `save.ts` is the declared seam and its
-//     store is not built — so this screen shows the customer precisely
-//     what a real outage would show them, and tells them nothing false.
+//     A refused save shows the customer precisely what a real outage
+//     would show them, and tells them nothing false.
 //  5. **The save line states what happened, not what is intended.**
 //     "saving…" while a call is in flight, "saved {time}" only after the
 //     store answered and only while the buffer is that text, and the
@@ -58,13 +57,31 @@ import { CLAIM_COPY_KEY, CLAIM_TONE, claimAfterSave } from "./claim";
 import { CopyOut } from "./CopyOut";
 import { DecidePanel } from "./DecidePanel";
 import type { DraftCommand } from "./actions";
-import { draftStore } from "./save";
+import { draftStore, type SaveBody } from "./save";
 import { Editor, type EditorPane } from "./Editor";
 import { PageRecordBlock } from "./PageRecordBlock";
 import { factPresentIn } from "./grounded";
 import { RenderedBody } from "./RenderedBody";
 import { useDebounced } from "./useDebounced";
-import { wordCount, type DraftView } from "./model";
+import { wordCount, type ClaimState, type DraftView } from "./model";
+import type { RailCheck } from "./checks";
+
+/** The three fields the founder edits (#789), as one value: the buffer, the
+ *  text the store last confirmed, and the text the last check ran on are
+ *  each one of these. */
+type DraftText = Omit<SaveBody, "draftId">;
+
+function sameText(a: DraftText, b: DraftText): boolean {
+  return a.title === b.title && a.bodyMd === b.bodyMd && a.description === b.description;
+}
+
+/** What the last check found, and the text it found it on. */
+interface Checked {
+  text: DraftText;
+  claim: ClaimState;
+  recordedChecks: readonly RailCheck[];
+  rulesFailed: boolean;
+}
 
 const EYEBROW = "text-xs font-semibold uppercase tracking-wide opacity-70";
 
@@ -89,11 +106,20 @@ export function DraftScreen(p: {
   const { view } = p;
   const [editing, setEditing] = useState(false);
   const [pane, setPane] = useState<EditorPane>("markdown");
-  const [bodyMd, setBodyMd] = useState(view.bodyMd);
+  const read: DraftText = { title: view.title, bodyMd: view.bodyMd, description: view.description };
+  const [text, setText] = useState<DraftText>(read);
+  const { bodyMd } = text;
   /** The text the store last confirmed. It starts as what was read, and
    *  only a successful save moves it — which is what makes the unsaved
    *  indicator honest. */
-  const [savedBody, setSavedBody] = useState(view.bodyMd);
+  const [savedText, setSavedText] = useState<DraftText>(read);
+  /** The re-check the store last reported, starting from what was read. */
+  const [checked, setChecked] = useState<Checked>({
+    text: read,
+    claim: view.claim,
+    recordedChecks: view.recordedChecks,
+    rulesFailed: view.rulesFailed,
+  });
   /** When the store last confirmed a save, and whether the last attempt was
    *  refused. Both are set only from what the store answered — there is no
    *  optimistic arm, and "in flight" is not stored at all: a buffer that
@@ -103,19 +129,25 @@ export function DraftScreen(p: {
   const [savedAt, setSavedAt] = useState<Date | null>(view.lastSavedAt);
   const [refused, setRefused] = useState(false);
 
-  const unsaved = bodyMd !== savedBody;
-  const settled = useDebounced(bodyMd, AUTOSAVE_DEBOUNCE_MS);
+  const unsaved = !sameText(text, savedText);
+  const settled = useDebounced(text, AUTOSAVE_DEBOUNCE_MS);
 
   const save = useCallback(
-    (text: string): void => {
+    (next: DraftText): void => {
       void draftStore
-        .save({ draftId: view.draftId, bodyMd: text })
+        .save({ draftId: view.draftId, ...next })
         .then((result) => {
           // Last write wins: what came back is the draft, and nothing is
           // merged into the buffer. A refusal moves nothing at all.
           if (result.ok) {
-            setSavedBody(text);
+            setSavedText(next);
             setSavedAt(result.savedAt);
+            setChecked({
+              text: next,
+              claim: result.claim,
+              recordedChecks: result.recordedChecks,
+              rulesFailed: result.rulesFailed,
+            });
             setRefused(false);
             return;
           }
@@ -130,30 +162,39 @@ export function DraftScreen(p: {
 
   // c6, the pause: one save per settled buffer, never one per keystroke.
   useEffect(() => {
-    if (settled === savedBody) return;
+    if (sameText(settled, savedText)) return;
     save(settled);
-  }, [settled, savedBody, save]);
+  }, [settled, savedText, save]);
 
   // c6, "or leaves the view": the last buffer is flushed on unmount, past
   // the debounce. Refs, because the cleanup runs once and must see the text
   // as it stood when the customer left, not as it stood when the effect was
   // created — and they are written in an effect rather than during render,
   // which is where a ref may be touched at all.
-  const bodyRef = useRef(bodyMd);
-  const savedRef = useRef(savedBody);
+  const textRef = useRef(text);
+  const savedRef = useRef(savedText);
   useEffect(() => {
-    bodyRef.current = bodyMd;
-    savedRef.current = savedBody;
-  }, [bodyMd, savedBody]);
+    textRef.current = text;
+    savedRef.current = savedText;
+  }, [text, savedText]);
   useEffect(() => {
     return () => {
-      if (bodyRef.current !== savedRef.current) save(bodyRef.current);
+      if (!sameText(textRef.current, savedRef.current)) save(textRef.current);
     };
   }, [save]);
 
-  // Rule 3: the stored outcome stands only while the text is the text it
-  // ran against.
-  const claim = bodyMd === view.bodyMd ? view.claim : claimAfterSave();
+  // Rule 3: the last outcome stands only while the text is the text it ran
+  // against — and the re-check a save reports is that outcome from then on.
+  const current = sameText(text, checked.text);
+  const claim = current ? checked.claim : claimAfterSave();
+  const recordedChecks = current ? checked.recordedChecks : [];
+  /** #789: the saved text breaks a page rule and is held until a save passes. */
+  const rulesHeld =
+    current && checked.rulesFailed ? (
+      <p role="alert" className="alert alert-warning text-sm" data-testid="draft-rules-held">
+        {copy("draft.edit.rules-held")}
+      </p>
+    ) : null;
   // Rule 2: the highlight is a function of the buffer, never of a stored flag.
   const grounded = factPresentIn(bodyMd, view.grounded.passage);
   // Whether generation recorded a grounding at all: three facts, and the
@@ -240,6 +281,21 @@ export function DraftScreen(p: {
     ) : null;
 
   // ── the edit arm ────────────────────────────────────────────────────
+  /** A keystroke in any field is a new attempt: the refusal standing against
+   *  the *previous* text is no longer what the store said about this one,
+   *  and leaving it up would keep "could not save" on screen over a save
+   *  that is about to run. */
+  const edit = (change: Partial<DraftText>): void => {
+    setText((prev) => ({ ...prev, ...change }));
+    setRefused(false);
+  };
+  /** Leaving a field saves at once. Read from this render's own state, not
+   *  from the refs: a blur can follow a keystroke inside one tick, before
+   *  the effect that updates them has run. */
+  const flush = (): void => {
+    if (!sameText(text, savedText)) save(text);
+  };
+
   if (editing) {
     const stateBadge = refused ? (
       <span className="badge badge-error" data-testid="draft-edit-state-unsaved">
@@ -279,30 +335,38 @@ export function DraftScreen(p: {
         <section className="card card-border bg-base-100 min-w-0" data-testid="draft-edit-card">
           <div className="card-body min-w-0 gap-3">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <h1 className="card-title break-words text-2xl">{view.title}</h1>
+              <h1 className="card-title break-words text-2xl">{text.title}</h1>
               {saveLine === null ? null : (
                 <span className="text-xs opacity-70" data-testid="draft-save-line">
                   {saveLine}
                 </span>
               )}
             </div>
+            {rulesHeld}
+            <fieldset className="fieldset">
+              <legend className="fieldset-legend">{copy("draft.edit.title-label")}</legend>
+              <input
+                type="text"
+                className="input w-full"
+                value={text.title}
+                onChange={(e) => edit({ title: e.target.value })}
+                onBlur={flush}
+                data-testid="draft-editor-title"
+              />
+              <legend className="fieldset-legend">{copy("draft.edit.description-label")}</legend>
+              <textarea
+                className="textarea h-20 w-full"
+                value={text.description}
+                onChange={(e) => edit({ description: e.target.value })}
+                onBlur={flush}
+                data-testid="draft-editor-description"
+              />
+            </fieldset>
             <div className="divider my-0" />
             <Editor
               bodyMd={bodyMd}
-              // A keystroke is a new attempt: the refusal standing against the
-              // *previous* text is no longer what the store said about this
-              // one, and leaving it up would keep "could not save" on screen
-              // over a save that is about to run.
-              onChange={(text) => {
-                setBodyMd(text);
-                setRefused(false);
-              }}
-              onFlush={() => {
-                // Read from this render's own state, not from the refs: a blur
-                // can follow a keystroke inside one tick, before the effect
-                // that updates them has run.
-                if (bodyMd !== savedBody) save(bodyMd);
-              }}
+              onChange={(next) => edit({ bodyMd: next })}
+              onFlush={flush}
               markFact={grounded ? view.grounded.passage : null}
               pane={pane}
               onPane={setPane}
@@ -328,7 +392,7 @@ export function DraftScreen(p: {
             data-testid="draft-edit-discard"
             // Back to the text the store last confirmed — never to something
             // the store never saw.
-            onClick={() => setBodyMd(savedBody)}
+            onClick={() => setText(savedText)}
           >
             {copy("draft.edit.discard")}
           </button>
@@ -379,12 +443,13 @@ export function DraftScreen(p: {
                 </span>
               </div>
               <div className="flex min-w-0 flex-col gap-1">
-                <h1 className="card-title break-words text-2xl">{view.title}</h1>
+                <h1 className="card-title break-words text-2xl">{text.title}</h1>
                 <p className="text-xs opacity-70" data-testid="draft-written">
                   {written}
                 </p>
               </div>
               <div className="divider my-0" />
+              {rulesHeld}
               {body}
               {droppedGrounding}
               {/* Where the customer has edited, the note that keeps the
@@ -432,6 +497,7 @@ export function DraftScreen(p: {
           view={view}
           grounded={grounded}
           claim={claim}
+          recordedChecks={recordedChecks}
           onEdit={() => setEditing(true)}
           onCommand={(command) => run(command, view.draftId)}
         />

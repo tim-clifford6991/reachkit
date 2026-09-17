@@ -66,6 +66,7 @@ function running(over: Record<string, unknown> = {}): void {
       sequence_state: "running",
       sequence_started_at: STARTED.toISOString(),
       page_delivered_at: STARTED.toISOString(),
+      first_page_state: "sent",
       touch_count: 0,
       next_touch_at: at(NURTURE_H[0]!).toISOString(),
       ...over,

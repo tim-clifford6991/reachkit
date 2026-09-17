@@ -142,7 +142,7 @@ export const FIXTURE_OVERVIEW_FACTS: OverviewFacts = Object.freeze({
     ]),
   }),
 
-  supply: Object.freeze({ exhausted: false, short: true, firstArrivalShortfall: false }),
+  supply: Object.freeze({ exhausted: false, unmeasured: false, short: true, firstArrivalShortfall: false }),
 
   // Three items waiting: two render, one becomes the overflow count.
   waiting: Object.freeze([
@@ -150,24 +150,27 @@ export const FIXTURE_OVERVIEW_FACTS: OverviewFacts = Object.freeze({
       kind: "pending_veto" as const,
       title: "How teams pick an onboarding tool",
       since: new Date(Date.UTC(2026, 8, 4, 6, 0, 0)),
+      vetoDeadline: new Date(Date.UTC(2026, 8, 5, 6, 0, 0)),
       href: "/app/draft/fixture-veto",
     },
     {
       kind: "needs_you" as const,
       title: "Connect the publishing destination",
       since: new Date(Date.UTC(2026, 8, 2, 6, 0, 0)),
+      vetoDeadline: null,
       href: "/app/settings",
     },
     {
       kind: "pending_veto" as const,
       title: "Onboarding checklists that actually get used",
       // The oldest veto item, so this is the one the cap shows — and its
-      // window is still open: `VETO.defaultHours` from here closes at
-      // 20:42 on the 4th, which is 6 h 12 m after `FIXTURE_TODAY`, the
-      // very duration UI-SPEC S12 prints. It used to start a full day
-      // earlier, so the panel stated `0 h 0 m` — true, but a picture of an
-      // expired window rather than of the screen the set draws.
+      // window is still open: its stored deadline closes at 20:42 on the
+      // 4th, which is 6 h 12 m after `FIXTURE_TODAY`, the very duration
+      // UI-SPEC S12 prints. It used to start a full day earlier, so the
+      // panel stated `0 h 0 m` — true, but a picture of an expired window
+      // rather than of the screen the set draws.
       since: new Date(Date.UTC(2026, 8, 3, 20, 42, 0)),
+      vetoDeadline: new Date(Date.UTC(2026, 8, 4, 20, 42, 0)),
       href: "/app/draft/fixture-veto-2",
     },
   ]),

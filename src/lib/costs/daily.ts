@@ -25,9 +25,10 @@
 //    spending slightly over the ceiling; that was the ledger's own defect,
 //    named under *Adjacent* on issue #329's PR, and it is gone.
 //  - **it degrades, it never throws.** §6.5's own rule. A ceiling that is
-//    reached skips remaining work; a ledger that cannot be *read* refuses
-//    nothing at all, the same fail-open BUILD §11 gives the scan limiter —
-//    a guard that cannot see is not a licence to stop the product.
+//    reached skips remaining work, and so does a ledger that cannot be
+//    *read* (issue 792): a figure nobody has is not room to spend. The
+//    call is skipped, `daily_spend_unreadable` says why, and the next call
+//    or tick asks the ledger again.
 //
 // **Why the alert leaves through a port rather than a call.**
 // ARCHITECTURE rule 2 puts `src/lib/costs` at the bottom of the dependency
@@ -146,7 +147,7 @@ function untypedRpc(client: ReturnType<typeof dbAdmin>): MinimalRpcClient {
  *
  * `null` means the ledger could not be read — not zero. The caller decides
  * what an unreadable ledger means, and every caller here decides the same
- * thing: nothing is refused on a number nobody has.
+ * thing: nothing is spent on a number nobody has (issue 792).
  */
 export async function readDaySpendCents(now: Date): Promise<number | null> {
   try {
@@ -174,36 +175,54 @@ function logUnreadable(reason: string): void {
 }
 
 /**
- * The day's ledger as one pass sees it: opened once when a cost context
- * opens, carried forward in memory as that pass spends.
+ * The day's ledger as one pass sees it: read when a cost context opens, and
+ * read again before every paid call (issue 792).
  *
- * One read per pass, not one per call — the ceiling is thousands of cents
- * and a pass is tens, so re-asking the database between two calls of the
- * same scan could not change the answer often enough to be worth a round
- * trip. What the pass itself spends is added here as it is ledgered, so a
- * single pass can reach the ceiling on its own.
+ * Once a pass was not enough: two passes running together each read the
+ * day once at their start and each spent up to the ceiling on its own. The
+ * re-read sees what every other pass has ledgered since. What this pass
+ * has in flight is not in the ledger yet, so the caller hands it in.
  */
 export interface DayLedger {
-  /** The day's total as this pass understands it: what was there when it
-   *  opened, plus what it has ledgered since. */
+  /** The day's total as this pass last read it, plus what it has ledgered
+   *  since. */
   spentCents(): number;
-  /** Whether the day's ceiling is reached — the seam's refusal. Always
-   *  false where the ledger could not be read. */
-  ceilingReached(): boolean;
+  /** Reads the day's total again, for the day `at` falls in. */
+  refresh(at: Date): Promise<void>;
+  /** Whether the day's ceiling is reached, counting `pendingCents` this
+   *  pass has reserved and not yet ledgered — the seam's refusal. Always
+   *  true where the ledger could not be read on its last read. */
+  ceilingReached(pendingCents?: number): boolean;
   /** Records `cents` against the day and publishes a crossing if this is
    *  the spend that made one. */
   add(cents: number): void;
 }
 
 export async function openDayLedger(now: Date): Promise<DayLedger> {
-  const opening = await readDaySpendCents(now);
-  const readable = opening !== null;
-  let spent = opening ?? 0;
+  let readable = false;
+  let spent = 0;
+  let day = dayStartedAt(now).getTime();
+
+  async function refresh(at: Date): Promise<void> {
+    const read = await readDaySpendCents(at);
+    readable = read !== null;
+    if (read === null) return;
+    // Within one day the total only grows. A read that began before this
+    // pass's last ledgered call and answered after it must not take that
+    // call back out — the crossing it made would be made, and told, twice.
+    const readDay = dayStartedAt(at).getTime();
+    spent = readDay === day ? Math.max(spent, read) : read;
+    day = readDay;
+  }
+
+  await refresh(now);
 
   return {
     spentCents: () => spent,
-    ceilingReached: () => readable && ceilingReached(spent),
+    refresh,
+    ceilingReached: (pendingCents = 0) => !readable || ceilingReached(spent + pendingCents),
     add(cents: number): void {
+      // No alert off a figure nobody has.
       if (!readable) return;
       const before = spent;
       spent += cents;

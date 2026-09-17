@@ -12,6 +12,15 @@ import { serve } from "@/jobs";
 import { adapter } from "../../_adapter";
 
 const ROUTE_ID = "/api/jobs";
+
+// The ceiling on one invocation of a job step, in seconds (issue 798) —
+// `TIMING.jobsCeilingS` pins it. It is the project's fluid-compute default
+// and the plan's ceiling, not the free request path's 60: the onboarding
+// pass's measurement step buys every question's SERPs and answers in one
+// invocation and needs the room. A literal: Next reads route segment
+// config out of the source at build time.
+export const maxDuration = 300;
+
 const handlers = serve();
 
 export const GET = adapter(ROUTE_ID, handlers.GET);

@@ -93,7 +93,7 @@ describe("issue #383 — every screen the approved set draws is photographed", (
     // The premise this file rests on: a surface added later is in scope by
     // construction, because the shots come from `routes.ts`'s enumeration —
     // the same one the property sweep and the visual sweep walk.
-    for (const address of ["/", "/pricing", "/signin", "/app", "/app/settings", "/setup/waiting"]) {
+    for (const address of ["/", "/pricing", "/signin", "/app", "/app/settings", "/setup"]) {
       expect(
         SHOTS.some((shot) => shot.route.path === address),
         `${address} is served and never photographed`
@@ -126,7 +126,7 @@ describe("issue #383 — a capture is paired with the screen it actually draws",
     expect(screenFor("states", "/scan/scanning.example.com")).toBe("S3");
     // An account address with no session is the prompt, never the room.
     expect(screenFor("signedout", "/app")).toBe("S9");
-    expect(screenFor("signedout", "/setup/waiting")).toBe("S9");
+    expect(screenFor("signedout", "/setup")).toBe("S9");
     expect(screenFor("reserved", "/app")).toBe("S12");
     expect(screenFor("week0", "/app")).toBe("S13");
     expect(screenFor("day", "/app/calendar")).toBe("S15");

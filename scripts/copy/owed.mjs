@@ -69,7 +69,6 @@ const SCREEN_PATHS = [
   ["src/app/(account)/app/draft/", "draft"], //        S16 (edit is S17, same route)
   ["src/app/(account)/app/calendar/", "calendar"], //  S14 (panel states S15)
   ["src/app/(account)/app/", "overview"], //           S12 (week 0 is S13); the shell too
-  ["src/app/(account)/setup/waiting/", "waiting"], //  S11
   ["src/app/(account)/setup/", "setup"], //            S10
   ["src/app/(account)/not-found.tsx", "notfound"], //  S8
   ["src/app/(account)/error.tsx", "notfound"], //      S8

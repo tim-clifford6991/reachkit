@@ -339,6 +339,7 @@ describe("issue #791 — a press at /setup that verified is recorded on the row 
         competitors: [],
         destination: { kind: "hosted", label: "content" },
         voiceText: "",
+        timezone: null,
       },
     });
 

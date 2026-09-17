@@ -24,6 +24,7 @@ const SUBMISSION: SetupSubmission = {
   // founder chose. `content` is the default they are shown.
   destination: { kind: "hosted", label: "content" },
   voiceText: "Plain and direct, second person.",
+  timezone: "Europe/Lisbon",
 };
 
 interface Recorder {
@@ -66,7 +67,7 @@ describe('REQ-025 c2 — "one action starts the product: no multi-page wizard, n
 });
 
 describe('REQ-025 c1 — "it asks for exactly three decisions ... and for nothing else, save the site address"', () => {
-  it("the submission shape has exactly five members, and none of them can carry a duration", () => {
+  it("the submission shape has exactly six members, and none of them can carry a duration", () => {
     // A field absent from the type cannot be sent. The literal list here
     // is the assertion: adding a decision means editing this line, which
     // is the review the requirement asks for.
@@ -77,11 +78,14 @@ describe('REQ-025 c1 — "it asks for exactly three decisions ... and for nothin
     // confirmed or edited. It is not an engine parameter — the row below
     // is what holds it to that — and §5 allows this screen one submit, so
     // the voice travels on it rather than on a second save control.
+    // `timezone` joined with issue #783: the browser's own zone, which the
+    // founder is not asked for — it is what the first draft is dated in.
     expect(Object.keys(SUBMISSION).sort()).toEqual([
       "category",
       "competitors",
       "destination",
       "domain",
+      "timezone",
       "voiceText",
     ]);
   });
@@ -206,6 +210,35 @@ describe("the completion is committed before the pass is enqueued", () => {
     const result = await completeSetup(store, { userId: USER, submission: SUBMISSION });
     expect(result).toEqual({ ok: true, siteId: SITE });
     expect(recorder.committed).toHaveLength(1);
+  });
+
+  it("issue #782 — a failed send is retried, and a send that then lands is sent once", async () => {
+    let attempts = 0;
+    const { store, recorder } = storeOf({
+      enqueueDeepPass: async (siteId) => {
+        attempts += 1;
+        if (attempts === 1) throw new Error("the queue blinked");
+        recorder.enqueued.push(siteId);
+      },
+    });
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const result = await completeSetup(store, { userId: USER, submission: SUBMISSION });
+    expect(result).toEqual({ ok: true, siteId: SITE });
+    expect(attempts).toBe(2);
+    expect(recorder.enqueued).toEqual([SITE]);
+  });
+
+  it("issue #782 — a queue that stays down is tried a bounded number of times, and the founder is still complete", async () => {
+    let attempts = 0;
+    const { store } = storeOf({
+      enqueueDeepPass: async () => {
+        attempts += 1;
+        throw new Error("the queue is down");
+      },
+    });
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    expect(await completeSetup(store, { userId: USER, submission: SUBMISSION })).toEqual({ ok: true, siteId: SITE });
+    expect(attempts).toBe(3);
   });
 
   it("the commit happens first — the enqueue never runs against an uncommitted setup", async () => {

@@ -109,8 +109,6 @@ export const ROUTE_REFERENCE: Readonly<Record<string, `S${number}`>> = {
   "/signin": "S9",
   /** REFERENCE: S10 — Setup (§S10; REQ-025…028, REQ-021 c7) */
   "/setup": "S10",
-  /** REFERENCE: S11 — Waiting (§S11; REQ-029) */
-  "/setup/waiting": "S11",
   /**
    * REFERENCE: S11 — Waiting (§S11), the nearest approved screen (#753).
    *

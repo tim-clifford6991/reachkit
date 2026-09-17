@@ -115,11 +115,11 @@ const facts = (over: Partial<OverviewFacts> = {}): OverviewFacts => ({
       },
     ],
   },
-  supply: { exhausted: false, short: true, firstArrivalShortfall: false },
+  supply: { exhausted: false, unmeasured: false, short: true, firstArrivalShortfall: false },
   waiting: [
-    { kind: "pending_veto", title: "a draft", since: AT(31), href: "/app/draft/1" },
-    { kind: "needs_you", title: "a destination", since: AT(31), href: "/app/settings" },
-    { kind: "pending_veto", title: "another draft", since: AT(31), href: "/app/draft/2" },
+    { kind: "pending_veto", title: "a draft", since: AT(31), vetoDeadline: AT(32), href: "/app/draft/1" },
+    { kind: "needs_you", title: "a destination", since: AT(31), vetoDeadline: null, href: "/app/settings" },
+    { kind: "pending_veto", title: "another draft", since: AT(31), vetoDeadline: AT(32), href: "/app/draft/2" },
   ],
   ...over,
 });
@@ -496,6 +496,18 @@ describe("S13 — the week-0 arm, drawn", () => {
       pagesRanking: unmeasured<number>("not_attempted", TODAY),
       deepPass: { value: measured(12, AT(31)), on: AT(31) },
       firstDueOn: weekZero.firstDueOn,
+      // The deep pass sized nobody: the card has no starting rows (#793).
+      rivals: {
+        own: measured(12, AT(31)),
+        rivals: [
+          {
+            domain: "bigcompetitor.com",
+            confirmed: true,
+            ranked: unmeasured<number>("not_attempted", AT(31)),
+            series: [],
+          },
+        ],
+      },
     })
   );
 
@@ -539,7 +551,7 @@ describe("S13 — the week-0 arm, drawn", () => {
     expect(markup).not.toContain("overview.goal(30)");
   });
 
-  it("the rivals card states when sizing arrives rather than drawing empty rows", () => {
+  it("with no sizes from the deep pass, the rivals card states when sizing arrives rather than drawing empty rows", () => {
     const markup = html(
       <RivalModule rivals={model.rivals} timeZone={ZONE} weekZero={model.weekZero} />
     );

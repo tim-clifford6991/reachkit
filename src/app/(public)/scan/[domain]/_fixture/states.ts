@@ -132,7 +132,7 @@ const FIXTURE_RECORD = {
   // constant in `tests/app/scan-address/report-view.test.tsx`, which runs
   // in node and may import it, so the two cannot drift (#352; the label
   // had been left at 3 through two migrations).
-  version: 8,
+  version: 9,
   scanId: "fixture-scan-1",
   domain: OWN_DOMAIN as CanonicalDomain,
   tier: "free",
@@ -145,6 +145,7 @@ const FIXTURE_RECORD = {
   rivals: { kind: "unmeasured", reason: "not_attempted", at: MEASURED_AT },
   rivalSizes: { kind: "unmeasured", reason: "not_attempted", at: MEASURED_AT },
   ownRanked: { kind: "unmeasured", reason: "not_attempted", at: MEASURED_AT },
+  ownRankedRows: [],
   sources: [],
   onPage: { kind: "unmeasured", reason: "not_attempted", at: MEASURED_AT },
   robots: { kind: "unmeasured", reason: "not_attempted", at: MEASURED_AT },
@@ -166,6 +167,7 @@ const FIXTURE_RECORD = {
   | "rivals"
   | "rivalSizes"
   | "ownRanked"
+  | "ownRankedRows"
   | "sources"
   | "onPage"
   | "robots"
@@ -425,12 +427,14 @@ const FIXTURE_ARMS: Readonly<Record<string, (domain: CanonicalDomain) => Address
       report: FIXTURE_DEGRADED_REPORT,
       notice: { kind: "incomplete", unmeasured: ["foundations", "presence"] },
       control: { kind: "rescan", because: "incomplete" },
+      correction: { offered: true, as: "first" },
     }),
     "cold-start.example.com": () => ({
       kind: "report",
       report: FIXTURE_COLD_START_REPORT,
       notice: null,
       control: { kind: "none" },
+      correction: { offered: true, as: "first" },
     }),
     "starting.example.com": (domain) => ({ kind: "starting", domain }),
     "scanning.example.com": (domain) => ({
@@ -475,5 +479,6 @@ export function fixtureStateFor(domain: CanonicalDomain): AddressState | null {
     report: { ...FIXTURE_REPORT, verdict: { ...FIXTURE_REPORT.verdict, domain } },
     notice: null,
     control: { kind: "none" },
+    correction: { offered: true, as: "first" },
   };
 }

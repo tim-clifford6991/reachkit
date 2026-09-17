@@ -9,7 +9,17 @@
 //
 // In the kill switch's scope: `runJob()` stops it before this body's first
 // spend and first write.
-import { activeSites, generateDraft, noticeBrokenDestination } from "@/jobs/engine";
+//
+// It is also where the customer's Regenerate is carried out (#788): the
+// restart only moves the page back into `generating`, and every tick —
+// not only a site's evening — writes one restarted page a site again.
+import {
+  activeSites,
+  generateDraft,
+  noticeBrokenDestination,
+  regenerateDraft,
+  restartedDrafts,
+} from "@/jobs/engine";
 import { fanOut, settle } from "./fan-out";
 import { isDraftDue, nextPublishDate } from "./site-clock";
 import type { JobDefinition, Outcome } from "./types";
@@ -31,8 +41,17 @@ export const draftGenerate: JobDefinition = {
       return { outcome: "degraded", subjectId: null, step: `held:${selection.held}` };
     }
 
+    const restarted = await restartedDrafts(selection.sites.map((site) => site.siteId));
+    const regenerated = await fanOut(restarted, (draft) =>
+      regenerateDraft({ siteId: draft.siteId, draftId: draft.draftId, now: input.now })
+    );
+
     const due = selection.sites.filter((site) => isDraftDue(input.now, site.timeZone));
-    if (due.length === 0) return { outcome: "skipped", subjectId: null, reason: "not-due" };
+    if (due.length === 0) {
+      return restarted.length === 0
+        ? { outcome: "skipped", subjectId: null, reason: "not-due" }
+        : settle(regenerated, null);
+    }
 
     const results = await fanOut(due, async (site) => {
       // BUILD §9's one mail per breakage, before the page this site's
@@ -46,6 +65,6 @@ export const draftGenerate: JobDefinition = {
         now: input.now,
       });
     });
-    return settle(results, null);
+    return settle([...regenerated, ...results], null);
   },
 };

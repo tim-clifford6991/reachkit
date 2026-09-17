@@ -22,6 +22,8 @@ import { CalendarView } from "./CalendarView";
 import { addMonths, monthNameOnly, monthShortLabel } from "./dates";
 import { parseMonth, readMonth, readSupplyNotice } from "./provider";
 import { supplyLine } from "./supply";
+import { readOnboarding } from "../_shell/onboarding";
+import { FirstPageNotice } from "../_shell/OnboardingStatus";
 
 export default async function CalendarPage({
   searchParams,
@@ -30,7 +32,7 @@ export default async function CalendarPage({
 }): Promise<React.JSX.Element> {
   const asked = (await searchParams).month;
   const month = await parseMonth(typeof asked === "string" ? asked : undefined);
-  const model = await readMonth(month);
+  const [model, onboarding] = await Promise.all([readMonth(month), readOnboarding()]);
   // §7's one statement of supply. At most one — the precedence between the
   // three arms is the engine's, and this screen renders whichever it
   // returned and never a second.
@@ -74,6 +76,7 @@ export default async function CalendarPage({
         </nav>
       </div>
 
+      <FirstPageNotice state={onboarding} />
       <CalendarView model={model} />
 
       {/* One footnote under the grid. §7's supply statement is a separate

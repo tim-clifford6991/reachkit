@@ -56,6 +56,21 @@ vi.mock("@/lib/mail/retention", () => ({
   sendWinback: async () => ({ sent: false, reason: "not-due" }),
 }));
 
+// Issue #782's obligation — a finished setup whose pass never started. The
+// query is stood in; the send goes through the real job client's
+// `sendJobEvent`, recorded here instead of reaching the platform.
+const dueDeepPass = vi.fn<() => Promise<readonly string[]>>(async () => []);
+vi.mock("@/lib/scan/deep/backstop", () => ({
+  sitesWithoutDeepPass: () => dueDeepPass(),
+  deepPassDomain: async (siteId: string) => (siteId === "site-gone" ? null : "example.com"),
+}));
+const sent = vi.hoisted(() => [] as { name: string; data: Record<string, unknown> }[]);
+vi.mock("@/jobs/client", async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  sendJobEvent: async (name: string, data: Record<string, unknown>) => {
+    sent.push({ name, data });
+  },
+}));
 // Issue #791's hosted-health refresh reads `destinations` on every tick; it
 // is stood in with nothing due and driven in `hosted-health-tick.test.ts`.
 vi.mock("@/lib/publish/destinations/health", () => ({
@@ -99,6 +114,9 @@ beforeEach(() => {
   finishStuckScan.mockReset();
   dueStuckScans.mockResolvedValue([]);
   finishStuckScan.mockResolvedValue({ finished: true });
+  dueDeepPass.mockReset();
+  dueDeepPass.mockResolvedValue([]);
+  sent.length = 0;
 });
 
 describe("§11 — the registry stays closed; setup adds no job of its own", () => {
@@ -118,7 +136,9 @@ describe("§4.3 — the deep pass is `scan/run` at tier deep", () => {
       now: NOW,
     });
 
-    expect(deepPass).toHaveBeenCalledWith({ siteId: "site-1", domain: "example.com" });
+    expect(deepPass).toHaveBeenCalledWith(
+      expect.objectContaining({ siteId: "site-1", domain: "example.com" })
+    );
     expect(outcome).toEqual({ outcome: "ran", subjectId: "scan-1" });
   });
 
@@ -142,6 +162,60 @@ describe("§4.3 — the deep pass is `scan/run` at tier deep", () => {
       now: NOW,
     });
     expect(outcome).toEqual({ outcome: "degraded", subjectId: "scan-1", step: "deep-pass" });
+  });
+
+  it("issue 798 — the platform's steps reach the pass: each of its pieces is a durable step of its own", async () => {
+    const { client, defineJob } = await import("../../src/jobs/client");
+    let handler: ((ctx: unknown) => Promise<unknown>) | undefined;
+    const create = vi.spyOn(client, "createFunction").mockImplementation(((_options: unknown, fn: never) => {
+      handler = fn;
+      return {} as never;
+    }) as never);
+    defineJob(scanRun);
+    create.mockRestore();
+
+    const platformSteps: string[] = [];
+    const step = {
+      run: vi.fn(async (name: string, body: () => Promise<unknown>) => {
+        platformSteps.push(name);
+        return JSON.parse(JSON.stringify((await body()) ?? null));
+      }),
+      sleep: vi.fn(),
+    };
+    deepPass.mockImplementationOnce(async (a: { step: <T>(name: string, body: () => Promise<T>) => Promise<T> }) => {
+      const pass = await a.step("deep-pass", async () => ({ scanId: "scan-1", status: "done" }));
+      await a.step("opportunities", async () => null);
+      const reason = await a.step("first-draft", async () => "completed");
+      return { ...pass, reason };
+    });
+
+    const outcome = await handler!({
+      event: { data: { scanId: "scan-1", domain: "example.com", tier: "deep", siteId: "site-1" } },
+      step,
+      attempt: 0,
+    });
+    expect(platformSteps).toEqual(["deep-pass", "opportunities", "first-draft"]);
+    expect(outcome).toEqual({ outcome: "ran", subjectId: "scan-1" });
+  });
+
+  it("issue #782 — the first draft is written inside the pass, before the founder's release", async () => {
+    const order: string[] = [];
+    selection.mockResolvedValueOnce({ sites: [{ siteId: "site-1", timeZone: "America/New_York" }], held: null });
+    dayPage.mockImplementationOnce(async () => {
+      order.push("first-draft");
+      return { ok: false, because: "no_opportunity" };
+    });
+    deepPass.mockImplementationOnce(async (a: { beforeRelease: () => Promise<void> }) => {
+      order.push("scan");
+      await a.beforeRelease();
+      order.push("release");
+      return { scanId: "scan-1", status: "done", reason: "completed" };
+    });
+    await scanRun.run({
+      data: { scanId: "scan-1", domain: "example.com", tier: "deep", siteId: "site-1" },
+      now: NOW,
+    });
+    expect(order).toEqual(["scan", "first-draft", "release"]);
   });
 
   it("issue 737 — when the pass ends, a site the tick would draft for gets its first draft for the tick's own date", async () => {
@@ -242,5 +316,30 @@ describe("§6.4 — a free pass a frozen invocation left `running` is finished b
       outcome: "ran",
       subjectId: null,
     });
+  });
+});
+
+// ── Issue #782 — a setup the queue never started a pass for ─────────────
+
+describe("SPEC §5 — account/maintenance re-sends the onboarding pass a failed send dropped", () => {
+  it("a site the query names is sent scan/run again, under the key setup's own send carries", async () => {
+    dueDeepPass.mockResolvedValue(["site-1"]);
+    const outcome = await accountMaintenance.run({ data: {}, now: NOW });
+
+    expect(sent).toEqual([
+      { name: "scan/run", data: { scanId: "setup-site-1", domain: "example.com", tier: "deep", siteId: "site-1" } },
+    ]);
+    expect(outcome).toEqual({ outcome: "ran", subjectId: null });
+  });
+
+  it("a tick with every pass started sends nothing", async () => {
+    await accountMaintenance.run({ data: {}, now: NOW });
+    expect(sent).toEqual([]);
+  });
+
+  it("a site gone between the query and the send is sent nothing, and is not a degradation", async () => {
+    dueDeepPass.mockResolvedValue(["site-gone"]);
+    expect(await accountMaintenance.run({ data: {}, now: NOW })).toEqual({ outcome: "ran", subjectId: null });
+    expect(sent).toEqual([]);
   });
 });
