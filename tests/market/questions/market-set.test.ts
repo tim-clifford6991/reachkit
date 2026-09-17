@@ -59,7 +59,7 @@ describe("deriveMarketSet — the vendor's rows, and only the vendor's rows", ()
       )
     );
 
-    const result = await deriveMarketSet(fakeCostContext(), { seeds: ["user onboarding"] });
+    const result = await deriveMarketSet(fakeCostContext(), { seeds: ["user onboarding"], ownRanked: 0 });
 
     expect(result.kind).toBe("measured");
     const rows = (result as { value: SuggestionRow[] }).value;
@@ -80,17 +80,18 @@ describe("deriveMarketSet — the vendor's rows, and only the vendor's rows", ()
     suggestionsMock.mockResolvedValue(vendorRows(["a", 100]));
     const c = fakeCostContext();
 
-    await deriveMarketSet(c, { seeds: ["seed one", "seed two"] });
+    await deriveMarketSet(c, { seeds: ["seed one", "seed two"], ownRanked: 0 });
 
     expect(suggestionsMock).toHaveBeenCalledTimes(2);
-    expect(suggestionsMock.mock.calls[0]).toEqual([c, { seed: "seed one", rows: VENDOR.suggestionsRows }]);
-    expect(suggestionsMock.mock.calls[1]).toEqual([c, { seed: "seed two", rows: VENDOR.suggestionsRows }]);
+    const volume = { min: 10, max: 1000 };
+    expect(suggestionsMock.mock.calls[0]).toEqual([c, { seed: "seed one", rows: VENDOR.suggestionsRows, volume }]);
+    expect(suggestionsMock.mock.calls[1]).toEqual([c, { seed: "seed two", rows: VENDOR.suggestionsRows, volume }]);
   });
 
   it("applies no floor, no filter and no ranking — a 1/mo row and an own-brand row both survive this step", async () => {
     suggestionsMock.mockResolvedValueOnce(vendorRows(["acme pricing", 1], ["onboarding software", 2400]));
 
-    const result = await deriveMarketSet(fakeCostContext(), { seeds: ["acme"] });
+    const result = await deriveMarketSet(fakeCostContext(), { seeds: ["acme"], ownRanked: 0 });
 
     expect((result as { value: SuggestionRow[] }).value).toEqual([
       { keyword: "acme pricing", volume: 1 },
@@ -99,17 +100,27 @@ describe("deriveMarketSet — the vendor's rows, and only the vendor's rows", ()
   });
 });
 
+describe("deriveMarketSet — every purchase asks for the site's right-sizing window (issue 846)", () => {
+  it("a site ranking for 848 buys between the lowest volume step and its demand ceiling, 10 to 8480/mo", async () => {
+    suggestionsMock.mockResolvedValue(vendorRows(["a", 100]));
+
+    await deriveMarketSet(fakeCostContext(), { seeds: ["project management software", "project management"], ownRanked: 848 });
+
+    for (const call of suggestionsMock.mock.calls) expect(call[1]).toMatchObject({ volume: { min: 10, max: 8480 } });
+  });
+});
+
 describe("deriveMarketSet — the cold-start law: an empty market is a measurement", () => {
   it("deriveMarketSet/empty-market-is-zero-not-error — a vendor zero yields zero with [], mints no placeholder row and throws nothing", async () => {
     suggestionsMock.mockResolvedValueOnce({ kind: "zero", at: AT, value: [] });
 
-    const result = await deriveMarketSet(fakeCostContext(), { seeds: ["a market nobody searches"] });
+    const result = await deriveMarketSet(fakeCostContext(), { seeds: ["a market nobody searches"], ownRanked: 0 });
 
     expect(result).toEqual({ kind: "zero", at: AT, value: [] });
   });
 
   it("no seeds spends nothing and returns zero — a domain with no vocabulary still completes the step", async () => {
-    const result = await deriveMarketSet(fakeCostContext(), { seeds: [] });
+    const result = await deriveMarketSet(fakeCostContext(), { seeds: [], ownRanked: 0 });
 
     expect(suggestionsMock).not.toHaveBeenCalled();
     expect(result.kind).toBe("zero");
@@ -123,7 +134,7 @@ describe("deriveMarketSet — the fold across seeds", () => {
       .mockResolvedValueOnce({ kind: "unmeasured", at: AT, reason: "undeterminable" })
       .mockResolvedValueOnce(vendorRows(["onboarding tool", 1900]));
 
-    const result = await deriveMarketSet(fakeCostContext(), { seeds: ["dead seed", "live seed"] });
+    const result = await deriveMarketSet(fakeCostContext(), { seeds: ["dead seed", "live seed"], ownRanked: 0 });
 
     expect(result.kind).toBe("measured");
     expect((result as { value: SuggestionRow[] }).value).toEqual([{ keyword: "onboarding tool", volume: 1900 }]);
@@ -134,7 +145,7 @@ describe("deriveMarketSet — the fold across seeds", () => {
       .mockResolvedValueOnce({ kind: "unmeasured", at: AT, reason: "not_attempted" })
       .mockResolvedValueOnce({ kind: "unmeasured", at: AT, reason: "undeterminable" });
 
-    const result = await deriveMarketSet(fakeCostContext(), { seeds: ["one", "two"] });
+    const result = await deriveMarketSet(fakeCostContext(), { seeds: ["one", "two"], ownRanked: 0 });
 
     // BP-024 decision 3: `undeterminable` outranks `not_attempted`.
     expect(result).toEqual({ kind: "unmeasured", at: AT, reason: "undeterminable" });
@@ -145,7 +156,7 @@ describe("deriveMarketSet — the fold across seeds", () => {
       .mockResolvedValueOnce({ kind: "zero", at: AT, value: [] })
       .mockResolvedValueOnce({ kind: "unmeasured", at: AT, reason: "undeterminable" });
 
-    const result = await deriveMarketSet(fakeCostContext(), { seeds: ["one", "two"] });
+    const result = await deriveMarketSet(fakeCostContext(), { seeds: ["one", "two"], ownRanked: 0 });
 
     expect(result.kind).toBe("unmeasured");
   });
@@ -155,7 +166,7 @@ describe("deriveMarketSet — the fold across seeds", () => {
       .mockResolvedValueOnce(vendorRows(["onboarding tool", 1900], ["product tours", 880]))
       .mockResolvedValueOnce(vendorRows(["onboarding tool", 1750], ["user onboarding", 2400]));
 
-    const result = await deriveMarketSet(fakeCostContext(), { seeds: ["one", "two"] });
+    const result = await deriveMarketSet(fakeCostContext(), { seeds: ["one", "two"], ownRanked: 0 });
 
     const rows = (result as { value: SuggestionRow[] }).value;
     expect(rows).toEqual([
@@ -172,7 +183,7 @@ describe("deriveMarketSet — the fold across seeds", () => {
       suggestionsMock
         .mockResolvedValueOnce(vendorRows(["b", 100], ["a", 900]))
         .mockResolvedValueOnce(vendorRows(["c", 500], ["a", 900]));
-      const result = await deriveMarketSet(fakeCostContext(), { seeds: ["one", "two"] });
+      const result = await deriveMarketSet(fakeCostContext(), { seeds: ["one", "two"], ownRanked: 0 });
       runs.push((result as { value: SuggestionRow[] }).value.map((r) => r.keyword));
     }
 
@@ -187,7 +198,7 @@ describe("deriveMarketSet — observability (BP-025 `## NFR budget`: suggestion 
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
     suggestionsMock.mockResolvedValueOnce(vendorRows(["MARKET-KEYWORD-MARKER-7f31", 900]));
 
-    await deriveMarketSet(fakeCostContext(), { seeds: ["seed"] });
+    await deriveMarketSet(fakeCostContext(), { seeds: ["seed"], ownRanked: 0 });
 
     const logged = JSON.parse(logSpy.mock.calls.at(-1)![0] as string) as Record<string, unknown>;
     expect(logged.event).toBe("market_set");

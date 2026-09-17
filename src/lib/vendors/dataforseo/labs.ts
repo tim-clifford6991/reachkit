@@ -16,7 +16,7 @@ import type { CostContext } from "@/lib/costs";
 import { CACHE_WINDOWS_D, PRICE_BOOK, SERP_LOCATION, VENDOR } from "@/lib/config/constants";
 import type { Measured } from "@/lib/measure/measured";
 import { asArray, asNumber, asString, callEndpoint, isRecord, ledgered, ledgeredWithTotal, type OnVendorFailure } from "./envelope";
-import type { CompetitorRow, RankedResult, RankedRow, SuggestionRow } from "./types";
+import type { CompetitorRow, RankedResult, RankedRow, SuggestionRow, VolumeWindow } from "./types";
 
 const LABS = "/v3/dataforseo_labs/google";
 const LOCALE_KEY = `${SERP_LOCATION.location}|${SERP_LOCATION.language}`;
@@ -145,17 +145,28 @@ export async function rankedKeywords(
 
 export async function keywordSuggestions(
   c: CostContext,
-  a: { seed: string; rows: typeof VENDOR.suggestionsRows }
+  a: { seed: string; rows: typeof VENDOR.suggestionsRows; volume: VolumeWindow }
 ): Promise<Measured<SuggestionRow[]>> {
   return ledgered<SuggestionRow>(c, {
     source: "dataforseo_labs/google/keyword_suggestions",
-    cacheKey: `${a.seed}|${a.rows}|${LOCALE_KEY}`,
+    // The window is part of the key (issue 846): rows bought for one
+    // ceiling are never served to a pass with another.
+    cacheKey: `${a.seed}|${a.rows}|v${a.volume.min}-${a.volume.max}|${LOCALE_KEY}`,
     freshnessDays: CACHE_WINDOWS_D.suggestions,
     costCents: PRICE_BOOK.SUGGESTIONS_COST_C,
     fetch: () =>
       callEndpoint({ live: `${LABS}/keyword_suggestions/live` }, "live", {
         keyword: a.seed,
         limit: a.rows,
+        // The vendor's own syntax (docs.dataforseo.com, keyword_suggestions/
+        // live: `filters`, `order_by`): the rows inside the window, largest
+        // first, so the limit keeps the best right-sized rows.
+        filters: [
+          ["keyword_info.search_volume", ">=", a.volume.min],
+          "and",
+          ["keyword_info.search_volume", "<=", a.volume.max],
+        ],
+        order_by: ["keyword_info.search_volume,desc"],
       }),
     parse: parseSuggestions,
   });
