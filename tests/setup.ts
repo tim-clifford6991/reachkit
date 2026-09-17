@@ -22,6 +22,7 @@
 // declarations out of `fonts.ts` and holds them against the vendor
 // stylesheets, and `tests/ui/layout/vitals.test.ts` reads the emitted
 // preload links off the built app in a real browser.
+import dns from "node:dns";
 import http from "node:http";
 import https from "node:https";
 import { vi } from "vitest";
@@ -38,6 +39,11 @@ function refuse(via: string): never {
 }
 
 globalThis.fetch = (() => refuse("fetch()")) as unknown as typeof fetch;
+
+// Issue 760: the NS lookup beside the CNAME record is real DNS traffic. A
+// suite that renders the record and does not double the resolver reads the
+// lookup as failed — the static line — rather than asking the internet.
+dns.promises.resolveNs = (() => refuse("dns.promises.resolveNs()")) as unknown as typeof dns.promises.resolveNs;
 
 for (const [mod, name] of [
   [http, "http"],
