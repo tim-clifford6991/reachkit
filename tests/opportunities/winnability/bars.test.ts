@@ -3,6 +3,8 @@ import "../env";
 import { describe, expect, it } from "vitest";
 import { WINNABILITY } from "../../../src/lib/config/constants";
 import {
+  difficultyCeiling,
+  winnableDifficulty,
   qualifyingBar,
   qualifyingDemand,
   winnableBar,
@@ -67,5 +69,22 @@ describe("the demand ceilings scale with the site's own footprint (SPEC §6, 202
       );
       expect(winnableDemand(ownRanked)).toBeLessThan(qualifyingDemand(ownRanked));
     }
+  });
+});
+
+describe("the difficulty ceilings scale with the site's own footprint (SPEC §6, owner walk 2026-09-17, issue 858)", () => {
+  it("cold start is the strictest, the ceiling rises with own ranked, and the winnable one sits strictly inside it until both reach 100", () => {
+    expect(difficultyCeiling(0)).toBe(WINNABILITY.difficultyFloor);
+    expect(winnableDifficulty(0)).toBe(WINNABILITY.difficultyNearFloor);
+    let previous = -1;
+    for (const ownRanked of [0, 3, 30, 848, 30_000, 10 ** 9]) {
+      const ceiling = difficultyCeiling(ownRanked);
+      expect(ceiling).toBeGreaterThanOrEqual(previous);
+      expect(ceiling).toBeLessThanOrEqual(100);
+      expect(winnableDifficulty(ownRanked)).toBeLessThanOrEqual(ceiling);
+      if (ceiling < 100) expect(winnableDifficulty(ownRanked)).toBeLessThan(ceiling);
+      previous = ceiling;
+    }
+    expect(difficultyCeiling(30_000)).toBeGreaterThan(difficultyCeiling(3));
   });
 });

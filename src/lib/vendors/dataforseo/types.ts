@@ -13,12 +13,20 @@ export interface RankedRow {
   position: number;
   searchVolume: number;
   url: string;
+  /** The vendor's keyword difficulty, 0–100, where it gave one (issue 858).
+   *  Absent on a row cached before it was read. */
+  difficulty?: number | null;
 }
 
 /** `keywordSuggestions` — one keyword DataForSEO returns for a seed term. */
 export interface SuggestionRow {
   keyword: string;
   searchVolume: number;
+  /** `keyword_properties.keyword_difficulty` — "difficulty of ranking in
+   *  the first top-10 organic results for a keyword", 0–100 on a log scale
+   *  (docs.dataforseo.com, keyword_suggestions/live, issue 858). `null`
+   *  where the vendor gave none. Absent on a row cached before it was read. */
+  difficulty?: number | null;
 }
 
 /** The monthly search volume a `keywordSuggestions` call buys between,
@@ -28,12 +36,22 @@ export interface SuggestionRow {
 export interface VolumeWindow {
   min: number;
   max: number;
+  /** The hardest keyword difficulty bought (issue 858). A row the vendor
+   *  gives no difficulty is still bought. */
+  maxDifficulty: number;
 }
 
 /** `competitorsDomain` — one domain DataForSEO names as a search competitor. */
 export interface CompetitorRow {
   domain: string;
   overlapKeywords: number;
+  /** `full_domain_metrics.organic.count` — "total count of organic SERPs
+   *  that contain the domain" (docs.dataforseo.com, competitors_domain/live)
+   *  — the competitor's own footprint, where the vendor gave it (issue 858). */
+  rankedCount?: number;
+  /** The same count for the target itself, which the vendor lists as its
+   *  own first competitor — the footprint the competitor is banded against. */
+  ownRankedCount?: number;
 }
 
 /** One organic result inside a `SerpResult`'s top 10 (depth 10, fixed by

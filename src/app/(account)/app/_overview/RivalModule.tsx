@@ -7,8 +7,9 @@
 // the deep pass's sizes as the starting rows and says so (#793); where the
 // deep pass sized nobody it draws no rows, only when sizing arrives.
 //
-// A far rival (REQ-096 c6) carries one line and one link to the
-// competitors card under its own row — both sentences or neither.
+// A far rival is a market leader, not a row (SPEC §6 right-sizing, issue
+// 858): the far ones share one secondary line and REQ-096 c6's one link to
+// the competitors card, below the reachable rows — both or neither.
 import type React from "react";
 import { Users } from "lucide-react";
 import { RivalSparkline } from "@/ui/charts";
@@ -18,7 +19,7 @@ import { DESTINATION_HREF } from "../_shell/destinations";
 import { formatDate } from "../_shell/format";
 import { writtenLine } from "../_shell/written";
 import { renderValue } from "./present";
-import type { RatioRival, RivalGapModule } from "./rivals";
+import type { MarketLeaders, RatioRival, RivalGapModule } from "./rivals";
 
 const RIVAL_LABEL = "overview.rivals.title" satisfies CopyKey;
 const TEST_ID = "overview-rivals";
@@ -41,17 +42,26 @@ function Card(p: { children: React.ReactNode }): React.JSX.Element {
   );
 }
 
-function Offer(p: { offer: SwapOffer }): React.JSX.Element | null {
-  if (!p.offer.offered) return null;
-  const line = writtenLine("overview.rivals.far.line", { rival: p.offer.rival });
-  const control = writtenLine("overview.rivals.far.swap");
+/** The far rivals the customer tracks, as market leaders on one secondary
+ *  line with REQ-096 c6's one control (issue 858) — never rows of "your
+ *  rivals", and never leading the card. Where no tracked rival is within
+ *  reach, the card says so first. */
+function Leaders(p: { leaders: MarketLeaders; reachable: number }): React.JSX.Element | null {
+  const { domains, swap } = p.leaders;
+  if (domains.length === 0 || !swap.offered) return null;
+  const none = p.reachable === 0 ? writtenLine("overview.rivals.none-reachable") : null;
+  const line = writtenLine("overview.rivals.leaders", { rivals: domains.join(", ") });
+  const control = writtenLine("overview.rivals.leaders.swap");
   if (line === null || control === null) return null;
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-box bg-base-200 p-3">
-      <p className="text-xs text-base-content/70">{line}</p>
-      <a href={SWAP_HREF[p.offer.destination]} className="btn btn-ghost btn-sm">
-        {control}
-      </a>
+    <div className="flex flex-col gap-2" data-testid="overview-rivals-leaders">
+      {none === null ? null : <p className="text-sm">{none}</p>}
+      <div className="flex flex-wrap items-center gap-2 rounded-box bg-base-200 p-3">
+        <p className="text-xs text-base-content/70">{line}</p>
+        <a href={SWAP_HREF[swap.destination]} className="btn btn-ghost btn-sm">
+          {control}
+        </a>
+      </div>
     </div>
   );
 }
@@ -62,7 +72,6 @@ function RivalRow(p: {
   previous: string | null;
   series: readonly (number | null)[];
   account: string | undefined;
-  offer: SwapOffer;
 }): React.JSX.Element {
   const label = copy("overview.rivals.spark.label", { rival: p.domain });
   return (
@@ -84,7 +93,6 @@ function RivalRow(p: {
           <span className="badge badge-success badge-soft num">{p.previous}</span>
         )}
       </div>
-      <Offer offer={p.offer} />
     </li>
   );
 }
@@ -123,7 +131,6 @@ export function RivalModule(p: {
             previous={null}
             series={rival.series}
             account={rival.breakAccount}
-            offer={rival.offer}
           />
         ))
       : p.rivals.rivals.map((rival) => (
@@ -134,13 +141,12 @@ export function RivalModule(p: {
             previous={previousFigure(rival.previous)}
             series={rival.series}
             account={rival.breakAccount}
-            offer={rival.offer}
           />
         ));
 
   return (
     <Card>
-      <ul className="flex min-w-0 flex-col gap-3">{rows}</ul>
+      {rows.length === 0 ? null : <ul className="flex min-w-0 flex-col gap-3">{rows}</ul>}
       {p.rivals.kind === "absolute" ? (
         <p className="flex flex-wrap items-baseline gap-2 text-sm" data-testid="overview-rivals-own">
           <span>{copy("overview.rivals.you")}</span>
@@ -154,12 +160,15 @@ export function RivalModule(p: {
           {windowLine}
         </p>
       )}
+      <Leaders leaders={p.rivals.leaders} reachable={p.rivals.rivals.length} />
     </Card>
   );
 }
 
 /** Whether any row carries a measured size — week 0 draws rows only then. */
 function anySized(rivals: RivalGapModule): boolean {
+  // A market leader was sized: that is what made it far.
+  if (rivals.leaders.domains.length > 0) return true;
   return rivals.kind === "absolute"
     ? rivals.rivals.some((rival) => rival.ranked.kind !== "unmeasured")
     : rivals.rivals.some((rival) => rival.ratio.kind !== "unmeasured");

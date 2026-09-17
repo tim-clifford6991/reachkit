@@ -187,7 +187,7 @@ function vendorAnswer(url: string): unknown {
         keyword,
         // Right-sized for a site that ranks for nothing: every search is
         // under the demand ceiling selection applies (issue 830).
-        keyword_info: { search_volume: 900 - i * 30 },
+        keyword_info: { search_volume: 290 - i * 15 },
       })),
     });
   }

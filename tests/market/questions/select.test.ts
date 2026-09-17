@@ -17,7 +17,7 @@ import {
   stemKey,
   type Intent,
 } from "../../../src/lib/market/questions/select.ts";
-import { qualifyingDemand } from "../../../src/lib/opportunities/winnability/bars.ts";
+import { difficultyCeiling, qualifyingDemand } from "../../../src/lib/opportunities/winnability/bars.ts";
 import { QUESTIONS_DIR, runtimeImportClosure } from "./import-graph.ts";
 
 const FIXTURE = JSON.parse(
@@ -277,6 +277,62 @@ describe("selectTwelve — right-sized to the site's own footprint (SPEC §6, 20
     expect(selectTwelve({ profile: PROFILE, ownRanked: 3, market: edge }).map((s) => s.keyword)).toEqual([
       "user onboarding software",
     ]);
+  });
+});
+
+describe("selectTwelve — difficulty and the cold-start ceiling (SPEC §6, owner walk 2026-09-17, issue 858)", () => {
+  // reachkit.app on the owner's walk: three ranked keywords.
+  const SEO: Profile = {
+    category: "seo software",
+    job: "write seo content for startups",
+    offeringType: "saas",
+    audienceTerms: ["startups", "founders"],
+    namedRivals: [],
+    vocabulary: ["seo content", "content brief", "ai seo"],
+    brandTokens: ["reachkit"],
+  };
+  const market: SuggestionRow[] = [
+    { keyword: "best seo software", volume: 1000, difficulty: 78 },
+    { keyword: "seo software tool", volume: 880, difficulty: 70 },
+    { keyword: "seo software comparison", volume: 250, difficulty: 55 },
+    { keyword: "seo content brief template for startups", volume: 40, difficulty: 8 },
+    { keyword: "seo content software", volume: 90, difficulty: 29 },
+    { keyword: "seo content brief", volume: 90 },
+    { keyword: "content briefs", volume: 90, difficulty: 10 },
+  ];
+  const picked = (ownRanked: number): string[] =>
+    selectTwelve({ profile: SEO, ownRanked, market, floor: 10 }).map((s) => s.keyword);
+
+  it("own ranked 3: 'best seo software' (hard, 1 000/mo) is excluded and 'seo content brief template for startups' (easy, 40/mo) selected", () => {
+    const keywords = picked(3);
+    expect(keywords).not.toContain("best seo software");
+    expect(keywords).not.toContain("seo software tool");
+    expect(keywords).toContain("seo content brief template for startups");
+  });
+
+  it("a search above the site's difficulty ceiling is dropped even inside the volume window, and one with no difficulty is read on volume", () => {
+    expect(difficultyCeiling(3)).toBeLessThan(55);
+    expect(picked(3)).not.toContain("seo software comparison");
+    expect(picked(3)).toContain("seo content brief");
+  });
+
+  it("at cold start a specific long-tail search leads a shorter, larger one of the same intent", () => {
+    const keywords = picked(3);
+    expect(keywords.indexOf("seo content brief template for startups")).toBeLessThan(keywords.indexOf("content briefs"));
+    // An established site reads them on volume again.
+    const warm = picked(30_000);
+    expect(warm.indexOf("content briefs")).toBeLessThan(warm.indexOf("seo content brief template for startups"));
+  });
+
+  it("the ceilings rise with own ranked: a site ranking for a million is offered the head terms", () => {
+    expect(difficultyCeiling(30_000)).toBeGreaterThan(difficultyCeiling(3));
+    expect(picked(1_000_000)).toEqual(expect.arrayContaining(["best seo software", "seo software tool"]));
+  });
+
+  it("the difficulty rides with the selected search", () => {
+    const selected = selectTwelve({ profile: SEO, ownRanked: 3, market, floor: 10 });
+    expect(selected.find((s) => s.keyword === "seo content brief template for startups")?.difficulty).toBe(8);
+    expect(selected.find((s) => s.keyword === "seo content brief")).not.toHaveProperty("difficulty");
   });
 });
 

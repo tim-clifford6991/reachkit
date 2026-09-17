@@ -129,18 +129,32 @@ export function writeCandidates(a: WriteInput): DerivationResult {
       a.rankedCounts,
       at
     );
-    const sizing = { top10RankedCounts, ownRanked: a.ownRanked, volume: question.search.volume };
+    // The search's own difficulty, where the vendor measured one (issue
+    // 858): a long-tail SERP's small domains are never sized, and without
+    // it a cold-start site's winnable searches read as an unmeasured top ten.
+    const sizing = {
+      top10RankedCounts,
+      ownRanked: a.ownRanked,
+      volume: question.search.volume,
+      difficulty: question.search.difficulty ?? null,
+    };
     const verdict = assess(sizing);
 
     const rival = bestRival(serp, ownDomain, at);
     if (rival === null) return;
 
-    const answerCell = answerRows[index]?.cell;
-    const ignoredByTheAnswer =
-      answerCell !== undefined &&
-      answerCell.kind === "answered" &&
-      !answerCell.namesCustomer &&
-      citedRival(answerCell.citedDomains, ownDomain) !== null;
+    // Every answer column the pass measured, not only the AI Overview
+    // (issue 858): a long-tail search often has no Overview at all, while
+    // ChatGPT and AI Mode — bought beside it on a paid pass — answer it and
+    // name rivals. A stored row from before the engines has its cell alone.
+    const row = answerRows[index];
+    const answerCells = row === undefined ? [] : row.engines.length > 0 ? row.engines.map((engine) => engine.cell) : [row.cell];
+    const ignoredByTheAnswer = answerCells.some(
+      (answerCell) =>
+        answerCell.kind === "answered" &&
+        !answerCell.namesCustomer &&
+        citedRival(answerCell.citedDomains, ownDomain) !== null
+    );
 
     const customerAbsent = !serp.organic.some((row) =>
       isOwnDomain(registrableDomain(row.domain) ?? row.domain, ownDomain)

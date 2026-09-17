@@ -224,17 +224,22 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: { on: "date", due: "date" }, fixedBy: "issue 793" },
   ],
 
-  // ── REQ-096 c6: a rival banded `far`, and the two sentences it needs.
-  //
-  // **What the line must not say.** It says the rival is far beyond what
-  // this customer could catch and why the distance to it will not move. It
-  // does not name a replacement, does not suggest removing the rival, and
-  // is not a verdict on the customer — REQ-096 c7 keeps the rival in the
-  // set until the customer takes it out themselves.
-  "overview.rivals.far.line": ["{rival} is far beyond your reach for now. Its lead is so large that this distance won’t move week to week.", { slots: { rival: "text" }, fixedBy: "REQ-096 c6" }],
-  // The one control c6 allows, and the whole of it: a word for "go to
-  // where you can change who you are measured against". Never "remove".
-  "overview.rivals.far.swap": ["Change who you’re measured against", { slots: {}, fixedBy: "REQ-096 c6" }],
+  // ── REQ-096 c6 as right-sized by issue 858 (owner walk, 2026-09-17): the
+  // far rivals the customer tracks are market leaders on one secondary line,
+  // never "your rivals" and never leading the card. The line names them and
+  // says why they are apart; it does not name a replacement or suggest
+  // removing them — the customer changes the set from the competitors card.
+  // Drafted (issue 759); the owner corrects the wording.
+  "overview.rivals.leaders": [
+    "Market leaders in your searches: {rivals}. They are far larger than you for now, so they aren’t shown as your rivals.",
+    { slots: { rivals: "text" }, fixedBy: "issue 858" },
+  ],
+  "overview.rivals.none-reachable": [
+    "None of the rivals you track is within reach yet. Add a site closer to your size to see the gap move.",
+    { slots: {}, fixedBy: "issue 858" },
+  ],
+  // The one control c6 allows, and the whole of it. Never "remove".
+  "overview.rivals.leaders.swap": ["Change who you’re measured against", { slots: {}, fixedBy: "REQ-096 c6" }],
 
   // ── This week.
   "overview.week.title": ["This week", { slots: {}, fixedBy: "BUILD §4.5" }],

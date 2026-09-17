@@ -3,7 +3,7 @@ import "../env";
 import { describe, expect, it } from "vitest";
 import { PRICE_BOOK } from "../../../src/lib/config/constants";
 import { measured, measuredZero, unmeasured } from "../../../src/lib/measure/measured";
-import { assess, bandWinnability, qualifies } from "../../../src/lib/opportunities/winnability/band";
+import { assess, bandWinnability, qualifies, rightSizedBand } from "../../../src/lib/opportunities/winnability/band";
 import {
   rankedCountFrom,
   rankedCountsFor,
@@ -121,7 +121,7 @@ describe("assess tells the two rejections apart", () => {
   });
 
   it("the band is the lower of competition and demand — a small top ten does not make a mid-size search winnable", () => {
-    expect(assess({ top10RankedCounts: [measured(40, AT)], ownRanked: 0, volume: 800 })).toEqual({
+    expect(assess({ top10RankedCounts: [measured(40, AT)], ownRanked: 0, volume: 250 })).toEqual({
       qualified: true,
       band: "reach",
     });
@@ -206,5 +206,38 @@ describe("#37's rival sizing is where the counts come from, and it is not re-don
     expect(bandWinnability({ top10RankedCounts: [...counts.values()], ownRanked: 0 })).toBe(
       "winnable"
     );
+  });
+});
+
+describe("difficulty bands the competition a long-tail top ten's counts cannot (issue 858)", () => {
+  const unread = [unmeasured<number>("undeterminable", AT)];
+
+  it("a search harder than the site's ceiling is outsized, whatever its volume or top ten", () => {
+    expect(assess({ top10RankedCounts: [measured(40, AT)], ownRanked: 3, volume: 40, difficulty: 78 })).toEqual({
+      qualified: false,
+      because: "outsized",
+    });
+  });
+
+  it("an easy search whose top ten nobody sized qualifies on its difficulty, not as an unmeasured top ten", () => {
+    expect(assess({ top10RankedCounts: unread, ownRanked: 3, volume: 40, difficulty: 8 })).toEqual({
+      qualified: true,
+      band: "winnable",
+    });
+    expect(assess({ top10RankedCounts: unread, ownRanked: 3, volume: 40 })).toEqual({
+      qualified: false,
+      because: "unmeasured_top10",
+    });
+  });
+
+  it("a top ten of giants over a search of middling difficulty is reach, not not-yet", () => {
+    expect(assess({ top10RankedCounts: [measured(218_224, AT)], ownRanked: 3, volume: 40, difficulty: 30 })).toEqual({
+      qualified: true,
+      band: "reach",
+    });
+  });
+
+  it("demand still caps the band", () => {
+    expect(rightSizedBand({ top10RankedCounts: unread, ownRanked: 3, volume: 250, difficulty: 5 })).toBe("reach");
   });
 });

@@ -110,6 +110,7 @@ export function earnCandidates(a: EarnInput): DerivationResult {
       ),
       ownRanked: a.ownRanked,
       volume: question.search.volume,
+      difficulty: question.search.difficulty ?? null,
     });
     if (!verdict.qualified) {
       if (verdict.because === "unmeasured_top10") result.rejected.unmeasured_top10 += 1;

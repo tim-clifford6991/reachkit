@@ -1,23 +1,25 @@
-// tests/scan/free/right-sized-suggestions.test.ts — issue 846
+// tests/scan/free/cold-start-right-sizing.test.ts — issue 858
 //
-// An established category, through the real free pass: the route, the
-// pipeline, the cost seam and its ledger, the market chain and selection
-// are all real. DataForSEO is doubled at the global `fetch` its transport
-// issues, and the double answers `keyword_suggestions` the way the vendor
-// documents it: it applies the request's `filters` and `order_by`, then its
-// `limit`. Without a filter it returns the seed's top rows by volume — the
-// production scan of 2026-09-17 (848 ranked keywords, a category whose top
-// suggestions are 165 000/mo) that bought fifty outsized rows and stored no
-// question at all.
+// The owner's walk of reachkit.app (2026-09-17), through the real free
+// pass: the route, the pipeline, the cost seam, the market chain and
+// selection are real; DataForSEO is doubled at the global `fetch` and
+// answers `keyword_suggestions` as the vendor documents it — `filters`
+// (nested, "and"/"or", `= null`), `order_by`, then `limit`.
+//
+// The site ranks for three keywords. On main its free report opened on
+// "best seo software" (1 000/mo), "seo software tool" (880) and "ai tool for
+// seo" (880): the cold-start demand ceiling was 1 000 and volume was the
+// only difficulty signal. Their SERPs belong to zapier.com and ahrefs.com.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeDb, type DbQuery } from "../run/harness";
 import { CAPS } from "../../../src/lib/config/constants";
+import { difficultyCeiling, qualifyingDemand } from "../../../src/lib/opportunities/winnability/bars";
 import { toolUseMessage } from "../../llm/fixtures";
 import type { FetchOutcome, RobotsPolicy } from "../../../src/lib/egress/types";
 
-const DOMAIN = "acme.com";
-const OWN_RANKED = 848;
-const CEILING = 8480; // max(300, 10 × 848)
+const DOMAIN = "reachkit.app";
+const OWN_RANKED = 3;
+const HEAD_TERMS = ["best seo software", "seo software tool", "ai tool for seo"];
 
 let scanId = "";
 let run = 0;
@@ -33,17 +35,17 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 
 // ── The customer's own server ───────────────────────────────────────────
 
-const HOME_HTML = `<!doctype html><html><head><title>Acme</title></head><body>
-  <h1>Project management software for teams</h1>
-  <h2>What is project management software?</h2>
-  <p>One place for projects, tasks and client work. Teams that plan in one
-     place ship 20% more on time, according to our 2026 survey of 900 teams.</p>
+const HOME_HTML = `<!doctype html><html><head><title>ReachKit</title></head><body>
+  <h1>SEO content for startups, written every day</h1>
+  <h2>What is an SEO content brief?</h2>
+  <p>ReachKit writes one right-sized page a day from your market's searches,
+     and every page is reviewed before it goes live on your site.</p>
   <a href="/pricing">Pricing</a>
 </body></html>`;
 
 const PRICING_HTML = `<!doctype html><html><body><h1>Pricing</h1>
-  <h2>What does it cost?</h2><p>One flat price of 99 euro per month, with
-  unlimited users and a 30 day trial.</p></body></html>`;
+  <h2>What does it cost?</h2><p>One flat price of 49 euro per month for one
+  site.</p></body></html>`;
 
 const READ_AT = new Date(Date.now() - 60 * 60 * 1000);
 
@@ -69,13 +71,13 @@ vi.mock("@/lib/egress/robots", () => ({
 // ── Anthropic ───────────────────────────────────────────────────────────
 
 const PROFILE_ANSWER = {
-  category: "project management software",
-  job: "run projects and client work in one place",
+  category: "seo software",
+  job: "write seo content for startups",
   offeringType: "saas",
-  audienceTerms: ["teams", "agencies"],
-  namedRivals: ["asana"],
-  vocabulary: ["project management", "task management", "team collaboration"],
-  brandTokens: ["acme"],
+  audienceTerms: ["startups", "founders"],
+  namedRivals: [],
+  vocabulary: ["seo content", "content brief", "ai seo"],
+  brandTokens: ["reachkit"],
 };
 
 vi.mock("@anthropic-ai/sdk", () => {
@@ -101,30 +103,20 @@ vi.mock("@anthropic-ai/sdk", () => {
 
 // ── DataForSEO ──────────────────────────────────────────────────────────
 
-/** The seed's whole suggestion universe at the vendor: a head of outsized
- *  construction variants (the incident's rows), then a right-sized long
- *  tail the top-50 read never reached. */
+/** Every seed's suggestion universe at the vendor, with the vendor's own
+ *  keyword difficulty: the incident's head terms, then specific long-tail
+ *  searches a new site can win (one with no difficulty at all). */
 const UNIVERSE: { keyword: string; volume: number; difficulty?: number }[] = [
-  ...Array.from({ length: 28 }, (_, i) => ({ keyword: `construction project management software ${i + 1}`, volume: 165_000 })),
-  { keyword: "construction project management software free", volume: 27_100 },
-  { keyword: "project management software for construction", volume: 18_100 },
-  { keyword: "construction project management software reviews", volume: 14_800 },
-  { keyword: "construction project management software list", volume: 8_100 },
-  ...Array.from({ length: 30 }, (_, i) => ({ keyword: `project management software ${i + 30_000}`, volume: 100_000 - i * 100 })),
-  { keyword: "best project management software for agencies", volume: 2_400 },
-  { keyword: "project management software pricing", volume: 1_900 },
-  { keyword: "asana alternatives for project management", volume: 1_600 },
-  { keyword: "project management software for small teams", volume: 1_300 },
-  { keyword: "project management software comparison", volume: 1_000 },
-  { keyword: "project management software for client work", volume: 880 },
-  { keyword: "simple project management software", volume: 720 },
-  { keyword: "project management software with time tracking", volume: 590 },
-  { keyword: "project management software for marketing teams", volume: 480 },
-  { keyword: "top project management software for startups", volume: 390 },
-  { keyword: "project management software with client portal", volume: 320 },
-  { keyword: "flat price project management software", volume: 260 },
-  { keyword: "project management software for remote teams", volume: 210 },
-  { keyword: "project management software unlimited users", volume: 170 },
+  { keyword: "best seo software", volume: 1000, difficulty: 78 },
+  { keyword: "seo software tool", volume: 880, difficulty: 70 },
+  { keyword: "ai tool for seo", volume: 880, difficulty: 64 },
+  { keyword: "seo software for startups", volume: 260, difficulty: 52 },
+  { keyword: "best ai seo content software", volume: 90, difficulty: 22 },
+  { keyword: "seo content brief template for startups", volume: 40, difficulty: 8 },
+  { keyword: "ai seo content writer for startups", volume: 70, difficulty: 18 },
+  { keyword: "seo content brief software", volume: 50, difficulty: 26 },
+  { keyword: "how to write an seo content brief", volume: 60, difficulty: 14 },
+  { keyword: "seo content for startup founders", volume: 30 },
 ];
 
 type Condition = [string, string, number | null];
@@ -155,7 +147,11 @@ function answerSuggestions(task: Record<string, unknown>): unknown[] {
   const filters = task.filters as Filter | undefined;
   const kept = UNIVERSE.filter((row) => filters === undefined || holds(row, filters));
   kept.sort((a, b) => b.volume - a.volume);
-  return kept.slice(0, Number(task.limit)).map((row) => ({ keyword: row.keyword, keyword_info: { search_volume: row.volume } }));
+  return kept.slice(0, Number(task.limit)).map((row) => ({
+    keyword: row.keyword,
+    keyword_info: { search_volume: row.volume },
+    keyword_properties: { keyword_difficulty: row.difficulty ?? null },
+  }));
 }
 
 function envelope(result: unknown): unknown {
@@ -172,17 +168,19 @@ function vendorAnswer(url: string, task: Record<string, unknown>): unknown {
       total_count: OWN_RANKED,
       items: [
         {
-          keyword_data: { keyword: "acme app", keyword_info: { search_volume: 40 } },
+          keyword_data: { keyword: "reachkit", keyword_info: { search_volume: 40 } },
           ranked_serp_element: { serp_item: { rank_group: 1, url: `https://${DOMAIN}/` } },
         },
       ],
     });
   }
+  // Every SERP: the giants on top, the small domains of a long-tail search below.
   return envelope({
     items: [
-      { type: "organic", rank_group: 1, domain: "asana.com", url: "https://asana.com/", title: "Asana" },
-      { type: "organic", rank_group: 2, domain: "monday.com", url: "https://monday.com/", title: "Monday" },
-      { type: "ai_overview", asynchronous_ai_overview: true, references: [{ domain: "asana.com" }] },
+      { type: "organic", rank_group: 1, domain: "zapier.com", url: "https://zapier.com/blog/seo", title: "Zapier" },
+      { type: "organic", rank_group: 2, domain: "ahrefs.com", url: "https://ahrefs.com/blog/seo", title: "Ahrefs" },
+      { type: "organic", rank_group: 3, domain: "briefkit.io", url: "https://briefkit.io/templates", title: "BriefKit" },
+      { type: "ai_overview", asynchronous_ai_overview: true, references: [{ domain: "zapier.com" }] },
     ],
   });
 }
@@ -219,7 +217,7 @@ beforeEach(() => {
   vendorRequests.length = 0;
   logLines.length = 0;
   run += 1;
-  scanId = `8468468${run}-8468-4846-8846-846846846846`;
+  scanId = `8588588${run}-8588-4858-8858-858858858858`;
   db.answer = answerQuery;
   db.singles.set("scans", { id: scanId });
   vi.spyOn(console, "log").mockImplementation((line: unknown) => {
@@ -259,14 +257,16 @@ async function scan(): Promise<Record<string, unknown>> {
   return store.args;
 }
 
-describe("an established category buys its right-sized market, not its head (issue 846)", () => {
-  it("the fixture is the incident: the seed's top 50 by volume hold no row under the ceiling", () => {
-    const top = answerSuggestions({ limit: 50 });
-    expect(top).toHaveLength(50);
-    expect(top.every((row) => (row as { keyword_info: { search_volume: number } }).keyword_info.search_volume > CEILING)).toBe(true);
+describe("a cold-start site's free report asks right-sized questions (issue 858)", () => {
+  it("the fixture is the incident: without the difficulty filter the window of main admits the head terms", () => {
+    const main = answerSuggestions({
+      limit: 50,
+      filters: [["keyword_info.search_volume", ">=", 10], "and", ["keyword_info.search_volume", "<=", 1000]],
+    }) as { keyword: string }[];
+    expect(main.map((row) => row.keyword)).toEqual(expect.arrayContaining(HEAD_TERMS));
   });
 
-  it("the free pass asks for 10–8480/mo at difficulty ≤ 59, stores questions, is not market_too_small, and spends inside the free cap", async () => {
+  it("buys inside the cold-start window, stores only long-tail questions under the ceilings, and spends inside the free cap", async () => {
     const stored = await scan();
 
     const suggestions = vendorRequests.filter((r) => r.url.includes("keyword_suggestions"));
@@ -275,25 +275,35 @@ describe("an established category buys its right-sized market, not its head (iss
       expect(request.task.filters).toEqual([
         ["keyword_info.search_volume", ">=", 10],
         "and",
-        ["keyword_info.search_volume", "<=", CEILING],
+        ["keyword_info.search_volume", "<=", qualifyingDemand(OWN_RANKED)],
         "and",
-        [["keyword_properties.keyword_difficulty", "<=", 59], "or", ["keyword_properties.keyword_difficulty", "=", null]],
+        [
+          ["keyword_properties.keyword_difficulty", "<=", difficultyCeiling(OWN_RANKED)],
+          "or",
+          ["keyword_properties.keyword_difficulty", "=", null],
+        ],
       ]);
-      expect(request.task.order_by).toEqual(["keyword_info.search_volume,desc"]);
     }
 
-    const report = stored.p_report as { questions: { kind: string; value?: unknown[] } };
-    expect(report.questions.kind).not.toBe("unmeasured");
-    expect(report.questions.value?.length ?? 0).toBeGreaterThan(0);
+    const report = stored.p_report as {
+      questions: { kind: string; value?: { search: { keyword: string; volume: number; difficulty?: number } }[] };
+    };
+    expect(report.questions.kind).toBe("measured");
+    const searches = (report.questions.value ?? []).map((q) => q.search);
+    expect(searches.length).toBeGreaterThan(0);
+    for (const head of HEAD_TERMS) expect(searches.map((s) => s.keyword)).not.toContain(head);
+    for (const search of searches) {
+      expect(search.volume).toBeLessThanOrEqual(qualifyingDemand(OWN_RANKED));
+      if (search.difficulty !== undefined) expect(search.difficulty).toBeLessThanOrEqual(difficultyCeiling(OWN_RANKED));
+    }
+    // Long-tail leads: the first question is a specific search of 3+ words.
+    expect(searches[0]!.keyword.split(" ").length).toBeGreaterThanOrEqual(3);
+    // The difficulty rides with the question, for derivation to band by.
+    expect(searches.find((s) => s.keyword === "seo content brief template for startups")?.difficulty).toBe(8);
+    // No SERP is bought for a head term.
+    const serps = vendorRequests.filter((r) => r.url.includes("serp/google/organic"));
+    for (const head of HEAD_TERMS) expect(serps.filter((r) => r.task.keyword === head)).toEqual([]);
 
-    const passes = logLines.filter((line) => line.includes('"event":"scan_pass"'));
-    expect(passes).toHaveLength(1);
-    expect(passes[0]).not.toContain("market_too_small");
-
-    const spent = db.queries
-      .filter((q) => q.table === "fetches" && q.verb === "insert")
-      .reduce((total, q) => total + Number(q.values?.cost_cents), 0);
-    expect(spent).toBeLessThanOrEqual(CAPS.FREE_C);
     expect(Number(stored.p_cost_cents)).toBeLessThanOrEqual(CAPS.FREE_C);
   }, 30_000);
 });

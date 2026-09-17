@@ -233,15 +233,15 @@ let vendorLatencyS = 0;
 /** Issue 855: the crowded market's searches — twelve and more, each inside
  *  the demand a three-keyword site may be offered (`qualifyingDemand(3)`). */
 const CROWDED_SUGGESTIONS: readonly (readonly [string, number])[] = [
-  ["best bookkeeping software for therapists", 1000],
-  ["bookkeeping software for therapists", 880],
-  ["therapist bookkeeping software", 590],
-  ["accounting software for therapists", 480],
-  ["best accounting app for private practice", 390],
-  ["bookkeeping app for counselors", 320],
+  ["best bookkeeping software for therapists", 300],
+  ["bookkeeping software for therapists", 280],
+  ["therapist bookkeeping software", 180],
+  ["accounting software for therapists", 240],
+  ["best accounting app for private practice", 220],
+  ["bookkeeping app for counselors", 200],
   ["private practice bookkeeping software", 260],
-  ["therapy practice accounting software", 210],
-  ["bookkeeping tool for therapists", 170],
+  ["therapy practice accounting software", 160],
+  ["bookkeeping tool for therapists", 120],
   ["counselor bookkeeping software", 140],
   ["bookkeeping platform for private practice", 110],
   ["best bookkeeping tool for counselors", 90],
@@ -1022,8 +1022,14 @@ describe("a new site in a thin market goes from setup to a published right-sized
       const fixIds = new Set(fixes.map((row) => row.id));
       expect(db.rows("drafts").filter((row) => fixIds.has(row.opportunity_id))).toEqual([]);
       const { supplyDepth } = await import("../../src/lib/opportunities");
+      // Issue 858: this market now yields ready write targets, so the pass's
+      // first draft is written from one — that opportunity is queued, not unused.
+      const drafted = new Set(db.rows("drafts").filter((row) => row.site_id === SITE_ID).map((row) => row.opportunity_id));
+      expect(drafted.size).toBe(1);
       expect((await supplyDepth(SITE_ID)).unused).toBe(
-        db.rows("opportunities").filter((row) => row.site_id === SITE_ID && row.family !== "fix" && row.ready === true).length
+        db
+          .rows("opportunities")
+          .filter((row) => row.site_id === SITE_ID && row.family !== "fix" && row.ready === true && !drafted.has(row.id)).length
       );
     },
     JOURNEY_TIMEOUT_MS

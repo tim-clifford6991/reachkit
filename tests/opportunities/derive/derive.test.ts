@@ -65,8 +65,8 @@ describe("a completed scan becomes opportunities, persisted", () => {
   it("the volume column carries the number and the evidence carries the measurement", async () => {
     const { ctx } = fakeCost();
     const result = await deriveOpportunities(ctx, input());
-    expect(state.rows[0]!.volume).toBe(190);
-    expect(result.created[0]!.volume).toEqual({ kind: "measured", value: 190, at: AT });
+    expect(state.rows[0]!.volume).toBe(90);
+    expect(result.created[0]!.volume).toEqual({ kind: "measured", value: 90, at: AT });
   });
 
   it("only a Write target proposes a slug", async () => {

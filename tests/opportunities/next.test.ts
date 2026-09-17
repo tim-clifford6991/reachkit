@@ -55,7 +55,7 @@ function threeTargets() {
       question({
         id: "q2",
         text: "What is the best onboarding platform?",
-        search: search({ keyword: "best onboarding platform", volume: 180 }),
+        search: search({ keyword: "best onboarding platform", volume: 95 }),
       }),
       question({
         id: "q3",

@@ -61,6 +61,7 @@ import { isShort, poolFrom, seedLadder, selectWidened, type PoolRow } from "@/li
 import { deriveRivals, type RivalCandidate } from "@/lib/market/rivals/derive";
 import { buildPresenceCard, type PresenceCard } from "@/lib/market/rivals/presence";
 import { sizeRivals, type RivalSize } from "@/lib/market/rivals/size";
+import type { RivalSizeBand } from "@/lib/market/rivals/band";
 import { trackedRivals } from "@/lib/market/rivals/tracked";
 import type { MarketSerp } from "@/lib/market/views";
 import { freePageOf } from "@/lib/opportunities/free-page";
@@ -1366,7 +1367,13 @@ function score(a: StageArgs): void {
   const readSerps: MarketSerp[] = [];
   for (const serp of serps) if (serp.kind !== "unmeasured") readSerps.push(serp.value);
 
-  const derivation = deriveRivals({ serps: readSerps, ownDomain: domain });
+  // The bands this pass already holds (issue 858): a far domain is never
+  // one of the report's rivals, and the nearest lead.
+  const sizes = new Map<string, RivalSizeBand>();
+  if (sections.rivalSizes.kind !== "unmeasured") {
+    for (const size of sections.rivalSizes.value) if (size.state === "sized") sizes.set(size.domain, size.band);
+  }
+  const derivation = deriveRivals({ serps: readSerps, ownDomain: domain, sizes });
   sections.rivals = measured(derivation.rivals, sections.questions.at);
   sections.sources = derivation.sources;
 

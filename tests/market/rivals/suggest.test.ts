@@ -285,3 +285,31 @@ describe("issue 838 — setup always offers rivals, even when the report found n
     expect(competitorsMock).not.toHaveBeenCalled();
   });
 });
+
+describe("issue 858 — setup offers the vendor's competitors right-sized to the site", () => {
+  const sized = (rows: readonly [string, number | undefined][], own: number): Measured<CompetitorRow[]> => ({
+    kind: "measured",
+    value: rows.map(([domain, rankedCount]) => ({
+      domain,
+      overlapKeywords: 5,
+      ...(rankedCount === undefined ? {} : { rankedCount }),
+      ownRankedCount: own,
+    })),
+    at: AT,
+  });
+
+  it("a far competitor is never offered, near ones lead middle ones, and an unsized one follows them", async () => {
+    // Against a site ranking for 3: near ≤ 100, middle ≤ 500.
+    competitorsMock.mockResolvedValue(
+      sized([["zapier.com", 218_224], ["unsized.io", undefined], ["middle.io", 400], ["ahrefs.com", 59_767], ["near.io", 80]], 3)
+    );
+    const out = await suggestRivals(spendIn(fakeCostContext()), { state: stated(), report: null, at: AT });
+    expect(out).toEqual({ kind: "measured", value: ["near.io", "middle.io", "unsized.io"], at: AT });
+  });
+
+  it("only far competitors: none is offered, and the card says none were found rather than offering a giant", async () => {
+    competitorsMock.mockResolvedValue(sized([["zapier.com", 218_224], ["ahrefs.com", 59_767]], 3));
+    const out = await suggestRivals(spendIn(fakeCostContext()), { state: stated(), report: null, at: AT });
+    expect(out).toEqual({ kind: "zero", value: [], at: AT });
+  });
+});

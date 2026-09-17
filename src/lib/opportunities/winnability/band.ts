@@ -15,9 +15,17 @@
 // search itself against it. A target's band is the lower of the two, and a
 // search above the demand ceiling is outsized for the site — `assess()`
 // refuses it as `not_yet` before the competition is read at all.
+//
+// Difficulty (SPEC §6, owner walk 2026-09-17, issue 858): the vendor's own
+// keyword difficulty for the search, where it gave one. Above the site's
+// difficulty ceiling the search is outsized, like a search too big. At or
+// under it, difficulty is a measurement of that very top ten — so it bands
+// the competition where the top ten's ranked counts could not be read (the
+// small domains of a long-tail SERP are never sized), and a top ten of
+// giants whose pages are weak for this search is not read as unwinnable.
 import type { Measured } from "@/lib/measure/measured";
 import type { Winnability } from "../types";
-import { qualifyingBar, qualifyingDemand, winnableBar, winnableDemand } from "./bars";
+import { difficultyCeiling, qualifyingBar, qualifyingDemand, winnableBar, winnableDemand, winnableDifficulty } from "./bars";
 
 /** A count that may be compared against a bar at all. `zero` counts — a
  *  domain that ranks for nothing — are real values and are the smallest
@@ -73,10 +81,36 @@ export function demandBand(a: { volume: number; ownRanked: number }): Winnabilit
   return "not-yet";
 }
 
+/** The difficulty band of one search for this site, or `null` where the
+ *  vendor gave no difficulty: `winnable` at or under `winnableDifficulty`,
+ *  `reach` at or under `difficultyCeiling`, `not-yet` above it. */
+export function difficultyBand(a: { difficulty?: number | null; ownRanked: number }): Winnability | null {
+  if (a.difficulty === undefined || a.difficulty === null) return null;
+  if (a.difficulty <= winnableDifficulty(a.ownRanked)) return "winnable";
+  if (a.difficulty <= difficultyCeiling(a.ownRanked)) return "reach";
+  return "not-yet";
+}
+
 const ORDER: readonly Winnability[] = ["not-yet", "reach", "winnable"];
 
 function lower(a: Winnability, b: Winnability): Winnability {
   return ORDER.indexOf(a) <= ORDER.indexOf(b) ? a : b;
+}
+
+function higher(a: Winnability, b: Winnability): Winnability {
+  return ORDER.indexOf(a) >= ORDER.indexOf(b) ? a : b;
+}
+
+/** The competition band: the top ten's ranked counts, raised by the
+ *  search's own difficulty where the vendor measured one. */
+function competitionBand(a: {
+  top10RankedCounts: readonly Measured<number>[];
+  ownRanked: number;
+  difficulty?: number | null;
+}): Winnability {
+  const counts = bandWinnability(a);
+  const difficulty = difficultyBand(a);
+  return difficulty === null ? counts : higher(counts, difficulty);
 }
 
 /** A target's right-sized band: the lower of its competition band and its
@@ -86,17 +120,19 @@ export function rightSizedBand(a: {
   top10RankedCounts: readonly Measured<number>[];
   ownRanked: number;
   volume: number;
+  difficulty?: number | null;
 }): Winnability {
-  return lower(bandWinnability(a), demandBand(a));
+  const band = lower(competitionBand(a), demandBand(a));
+  return difficultyBand(a) === "not-yet" ? "not-yet" : band;
 }
 
 /** Why a target did not qualify, or the band it qualified into. One call,
  *  so a derivation never has to decide for itself which of the two
  *  rejection counters a failure belongs in.
  *
- *  `outsized` is the search's demand above the site's ceiling. It counts
- *  as `not_yet` — the winnability bar was not cleared — and, unlike the
- *  competition bar, it refuses every new target type. */
+ *  `outsized` is the search's demand, or its difficulty, above the site's
+ *  ceiling. It counts as `not_yet` — the winnability bar was not cleared —
+ *  and, unlike the competition bar, it refuses every new target type. */
 export type Assessment =
   | { qualified: true; band: Winnability }
   | { qualified: false; because: "outsized" | "not_yet" | "unmeasured_top10" };
@@ -105,8 +141,14 @@ export function assess(a: {
   top10RankedCounts: readonly Measured<number>[];
   ownRanked: number;
   volume: number;
+  difficulty?: number | null;
 }): Assessment {
   if (demandBand(a) === "not-yet") return { qualified: false, because: "outsized" };
+  const difficulty = difficultyBand(a);
+  if (difficulty === "not-yet") return { qualified: false, because: "outsized" };
+  // A measured difficulty inside the ceiling is a reading of this top ten:
+  // the search qualifies on it, whatever the counts could or could not say.
+  if (difficulty !== null) return { qualified: true, band: rightSizedBand(a) };
   const smallest = smallestComparable(a.top10RankedCounts);
   if (smallest === null) return { qualified: false, because: "unmeasured_top10" };
   if (!qualifies(a)) return { qualified: false, because: "not_yet" };

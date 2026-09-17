@@ -133,88 +133,74 @@ describe("what the module may not do", () => {
   });
 });
 
-// ── REQ-096 c6 — the swap offer, on both arms (issue #223) ─────────────
+// ── Right-sized rivals (issue 858; REQ-096 c6's offer, on both arms) ──
 //
-// The rows that discriminate are the negative ones. `swapOffer` already
-// decides "far, and only far"; what this resolver can get wrong is *which
-// rivals it asks about* and *which arms it asks on* — and both mistakes
-// look like nothing at all on a screen until a customer with a far rival
-// is never offered the one control REQ-096 c6 promises them.
+// A far rival the customer tracks is a market leader: named on its own
+// line with the one control, never a row of "your rivals". The rows are
+// the reachable ones, nearest band first.
 const sized = (band: "near" | "middle" | "far", domain = "bigcompetitor.com") =>
   ({ domain, state: "sized" as const, rankedCount: 6318, band, at: AT, current: true });
 
-describe("the offer follows the band, and the band alone", () => {
-  it("a rival banded far carries the offer, naming itself and the competitors card", () => {
+describe("a far rival is a market leader, not a row", () => {
+  it("a rival banded far leaves the rows and carries the offer, naming itself and the competitors card", () => {
     const gap = resolveRivals(facts(81, { rivals: [rival({ size: sized("far") })] }));
-    expect(gap.rivals[0]?.offer).toEqual({
-      offered: true,
-      rival: "bigcompetitor.com",
-      destination: "settings.competitors",
+    expect(gap.rivals).toEqual([]);
+    expect(gap.leaders).toEqual({
+      domains: ["bigcompetitor.com"],
+      swap: { offered: true, rival: "bigcompetitor.com", destination: "settings.competitors" },
     });
   });
 
-  it.each(["near", "middle"] as const)("a rival banded %s carries none", (band) => {
+  it.each(["near", "middle"] as const)("a rival banded %s is a row, and no leader", (band) => {
     const gap = resolveRivals(facts(81, { rivals: [rival({ size: sized(band) })] }));
-    expect(gap.rivals[0]?.offer).toEqual({ offered: false });
+    expect(gap.rivals.map((r) => r.domain)).toEqual(["bigcompetitor.com"]);
+    expect(gap.leaders).toEqual({ domains: [], swap: { offered: false } });
   });
 
-  it("a rival the week did not size carries none — an unsized rival has no band to be far", () => {
+  it("a rival the week did not size stays a row — an unsized rival has no band to be far", () => {
     const gap = resolveRivals(
       facts(81, {
-        rivals: [
-          rival({
-            size: { domain: "bigcompetitor.com", state: "unsized", because: "awaiting_deep_pass" },
-          }),
-        ],
+        rivals: [rival({ size: { domain: "bigcompetitor.com", state: "unsized", because: "awaiting_deep_pass" } })],
       })
     );
-    expect(gap.rivals[0]?.offer).toEqual({ offered: false });
+    expect(gap.rivals).toHaveLength(1);
+    expect(gap.leaders.domains).toEqual([]);
   });
 
-  it("a rival with no sizing at all carries none, and does not throw", () => {
+  it("a rival with no sizing at all stays a row, and does not throw", () => {
     const gap = resolveRivals(facts(81, { rivals: [rival()] }));
-    expect(gap.rivals[0]?.offer).toEqual({ offered: false });
-  });
-});
-
-describe("**both arms** — a cold-start customer can have a rival beyond reach too", () => {
-  it("the absolute arm carries the offer", () => {
-    // Reading c6 as a warm-arm rule would withhold the one control from
-    // exactly the customers likeliest to need it: the ones whose own count
-    // has not passed the unlock.
-    const gap = resolveRivals(facts(0, { rivals: [rival({ size: sized("far") })] }));
-    expect(gap.kind).toBe("absolute");
-    expect(gap.rivals[0]?.offer).toMatchObject({ offered: true });
+    expect(gap.rivals).toHaveLength(1);
+    expect(gap.leaders.swap).toEqual({ offered: false });
   });
 
-  it("the ratio arm carries it too, and the two arms agree", () => {
+  it("the absolute arm splits them too, and the two arms agree", () => {
     const far = rival({ size: sized("far") });
     const cold = resolveRivals(facts(0, { rivals: [far] }));
     const warm = resolveRivals(facts(RATIO_UNLOCK, { rivals: [far] }));
+    expect(cold.kind).toBe("absolute");
     expect(warm.kind).toBe("ratio");
-    expect(warm.rivals[0]?.offer).toEqual(cold.rivals[0]?.offer);
+    expect(cold.leaders).toEqual(warm.leaders);
+    expect(cold.leaders.swap).toMatchObject({ offered: true });
   });
 });
 
-describe("REQ-096 c7 — an offer never narrows the set", () => {
-  it("a far rival keeps its row, its figure and its place in the order", () => {
+describe("the rows are reachable rivals, nearest first, and no tracked rival is dropped", () => {
+  it("near before middle before unsized; far ones named as leaders in the customer's order", () => {
     const gap = resolveRivals(
       facts(81, {
         rivals: [
-          rival({ domain: "near.example", size: sized("near", "near.example") }),
-          rival({ domain: "far.example", size: sized("far", "far.example") }),
+          rival({ domain: "zapier.com", size: sized("far", "zapier.com") }),
+          rival({ domain: "unsized.example" }),
           rival({ domain: "middle.example", size: sized("middle", "middle.example") }),
+          rival({ domain: "ahrefs.com", size: sized("far", "ahrefs.com") }),
+          rival({ domain: "near.example", size: sized("near", "near.example") }),
         ],
       })
     );
-    expect(gap.rivals.map((r) => r.domain)).toEqual([
-      "near.example",
-      "far.example",
-      "middle.example",
-    ]);
-    expect(gap.rivals.filter((r) => r.offer.offered)).toHaveLength(1);
-    // The far row is not stripped of anything the others carry.
-    expect(gap.rivals[1]).toHaveProperty("ratio");
-    expect(gap.rivals[1]?.series).toEqual([276, 168, 78]);
+    expect(gap.rivals.map((r) => r.domain)).toEqual(["near.example", "middle.example", "unsized.example"]);
+    expect(gap.leaders.domains).toEqual(["zapier.com", "ahrefs.com"]);
+    // The reachable rows keep everything they carried.
+    expect(gap.rivals[0]).toHaveProperty("ratio");
+    expect(gap.rivals[0]?.series).toEqual([276, 168, 78]);
   });
 });

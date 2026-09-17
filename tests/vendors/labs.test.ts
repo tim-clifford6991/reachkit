@@ -33,7 +33,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const WINDOW = { min: 10, max: 1000 };
+const WINDOW = { min: 10, max: 1000, maxDifficulty: 30 };
 
 /** One `ranked_keywords` item in the shape the vendor documents. */
 function rankedItem(keyword: string, position: number, volume: number, url: string): unknown {
@@ -261,7 +261,7 @@ describe('BUILD §6.4 — "Cache windows: own domain 7d · rivals 30d … sugges
 });
 
 describe("keywordSuggestions buys inside the right-sizing window (issue 846)", () => {
-  it("the request for a site ranking for 848 filters search volume to 10–8480 and orders by it, largest first", async () => {
+  it("the request for a site ranking for 848 filters search volume to 10–8480, difficulty to its ceiling, and orders by volume, largest first", async () => {
     const { suggestionsWindow } = await import("../../src/lib/market/questions/market-set.ts");
     const stub = stubVendorFetch(() => envelope({ items: [] }));
     const { ctx } = fakeCostContext();
@@ -270,7 +270,13 @@ describe("keywordSuggestions buys inside the right-sizing window (issue 846)", (
     expect(stub.tasks[0]).toMatchObject({
       keyword: "project management software",
       limit: 50,
-      filters: [["keyword_info.search_volume", ">=", 10], "and", ["keyword_info.search_volume", "<=", 8480]],
+      filters: [
+        ["keyword_info.search_volume", ">=", 10],
+        "and",
+        ["keyword_info.search_volume", "<=", 8480],
+        "and",
+        [["keyword_properties.keyword_difficulty", "<=", 59], "or", ["keyword_properties.keyword_difficulty", "=", null]],
+      ],
       order_by: ["keyword_info.search_volume,desc"],
     });
   });
@@ -278,19 +284,20 @@ describe("keywordSuggestions buys inside the right-sizing window (issue 846)", (
   it("the cache key differs between two ceilings, so rows bought for one are never served for the other", async () => {
     stubVendorFetch(() => envelope({ items: [] }));
     const { ctx, calls } = fakeCostContext();
-    await labs.keywordSuggestions(ctx, { seed: "crm", rows: 50, volume: { min: 10, max: 1000 } });
-    await labs.keywordSuggestions(ctx, { seed: "crm", rows: 50, volume: { min: 10, max: 8480 } });
+    await labs.keywordSuggestions(ctx, { seed: "crm", rows: 50, volume: { min: 10, max: 1000, maxDifficulty: 30 } });
+    await labs.keywordSuggestions(ctx, { seed: "crm", rows: 50, volume: { min: 10, max: 8480, maxDifficulty: 30 } });
+    await labs.keywordSuggestions(ctx, { seed: "crm", rows: 50, volume: { min: 10, max: 8480, maxDifficulty: 59 } });
 
-    expect(calls[0]?.cacheKey).not.toBe(calls[1]?.cacheKey);
+    expect(new Set(calls.map((call) => call.cacheKey)).size).toBe(3);
   });
 });
 
 describe("BUILD §6.3 — keywordSuggestions and competitorsDomain parse into their product rows", () => {
-  it("keywordSuggestions returns keyword and volume, defaulting a missing volume to 0", async () => {
+  it("keywordSuggestions returns keyword, volume and difficulty, defaulting a missing volume to 0 and a missing difficulty to null", async () => {
     stubVendorFetch(() =>
       envelope({
         items: [
-          { keyword: "crm software", keyword_info: { search_volume: 22000 } },
+          { keyword: "crm software", keyword_info: { search_volume: 22000 }, keyword_properties: { keyword_difficulty: 71 } },
           { keyword: "crm tool" }, // no keyword_info
           { keyword_info: { search_volume: 10 } }, // no keyword — dropped
         ],
@@ -302,8 +309,28 @@ describe("BUILD §6.3 — keywordSuggestions and competitorsDomain parse into th
     expect(result.kind).toBe("measured");
     if (result.kind !== "measured") throw new Error("unreachable");
     expect(result.value).toEqual([
-      { keyword: "crm software", searchVolume: 22000 },
-      { keyword: "crm tool", searchVolume: 0 },
+      { keyword: "crm software", searchVolume: 22000, difficulty: 71 },
+      { keyword: "crm tool", searchVolume: 0, difficulty: null },
+    ]);
+  });
+
+  it("competitorsDomain reads each competitor's footprint and the target's own from full_domain_metrics (issue 858)", async () => {
+    stubVendorFetch(() =>
+      envelope({
+        items: [
+          { domain: "example.com", intersections: 3, full_domain_metrics: { organic: { count: 3 } } },
+          { domain: "zapier.com", intersections: 2, full_domain_metrics: { organic: { count: 218224 } } },
+          { domain: "small.io", intersections: 1 },
+        ],
+      })
+    );
+    const { ctx } = fakeCostContext();
+    const result = await labs.competitorsDomain(ctx, { domain: "example.com" });
+
+    if (result.kind !== "measured") throw new Error("expected measured");
+    expect(result.value).toEqual([
+      { domain: "zapier.com", overlapKeywords: 2, rankedCount: 218224, ownRankedCount: 3 },
+      { domain: "small.io", overlapKeywords: 1, ownRankedCount: 3 },
     ]);
   });
 
