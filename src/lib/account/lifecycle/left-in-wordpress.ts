@@ -70,17 +70,22 @@ const noStamp: StampCapability = {
   },
 };
 
-let capability: StampCapability = noStamp;
+/** Kept on `globalThis`, not in a module variable (issue 863): Next
+ *  bundles `src/instrumentation.ts` apart from every route, so a port it
+ *  registered into its own copy of this module was never seen by the
+ *  routes that delete an account. One process, one slot. */
+const CAPABILITY = Symbol.for("reachkit.lifecycle.stampCapability");
+const slot = globalThis as { [CAPABILITY]?: StampCapability };
 
 export function stampCapability(): StampCapability {
-  return capability;
+  return slot[CAPABILITY] ?? noStamp;
 }
 
 /** Wired by the WordPress destination at boot
  *  (`installStampCapability`, #160); `null` restores the unanswered
  *  default. */
 export function setStampCapability(next: StampCapability | null): void {
-  capability = next ?? noStamp;
+  slot[CAPABILITY] = next ?? noStamp;
 }
 
 const WORDPRESS = "wordpress";

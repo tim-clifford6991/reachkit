@@ -56,13 +56,18 @@ export interface SpendAlert {
 
 export type SpendAlertSink = (alert: SpendAlert) => void;
 
-let sink: SpendAlertSink | null = null;
+/** Kept on `globalThis`, not in a module variable (issue 863): Next
+ *  bundles `src/instrumentation.ts` apart from every route, so a sink it
+ *  registered into its own copy of this module was never seen by the
+ *  routes that spend. One process, one slot. */
+const SINK = Symbol.for("reachkit.costs.spendAlertSink");
+const slot = globalThis as { [SINK]?: SpendAlertSink | null };
 
 /** Registered once, at boot, by the side that can send mail. `null`
  *  unregisters — the shape every other port in this codebase uses, and
  *  what lets a test put its own sink in and take it out again. */
 export function registerSpendAlertSink(next: SpendAlertSink | null): void {
-  sink = next;
+  slot[SINK] = next;
 }
 
 /** The two figures in cents, derived from the one pinned ceiling so the
@@ -117,6 +122,7 @@ export function crossingOf(beforeCents: number, afterCents: number): SpendCrossi
  *  throws is the alerting path's problem, never the spending path's: the
  *  scan that noticed the crossing carries on and the failure is logged. */
 export function publishSpendAlert(alert: SpendAlert): void {
+  const sink = slot[SINK] ?? null;
   if (sink === null) return;
   try {
     sink(alert);
