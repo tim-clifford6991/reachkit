@@ -53,6 +53,7 @@ Pinned numbers live in `src/lib/config/constants.ts`. Newest dated line in a sec
 - Driver mini-bars `n/10` live in the report header only.
 - Scan builds the site profile (up to 100 pages) inside the same 12¢ cap; weekly pass refreshes it (2026-09-12).
 - Fail closed (2026-09-16, #792): a free-scan bound or the day's spend that cannot be read refuses the scan with the paused line and logs the step; nothing is spent on a count nobody has. Every paid call reads the day's spend again first; an unreadable total skips the call and the pass holds.
+- 2026-09-16  (#826, owner) The free first page is written once per report and stored with its scan. Every lead on that report is mailed the same stored page; a second lead costs nothing. A page the hard rules refused is recorded once, and later leads get the "no page to write" notice without another attempt.
 
 **Done when** A stranger gets a scored report from `/` with no account; the same URL is the same report a day later; a production free scan is ≤ 12¢ and ≤ 50 s; an unreadable site says so and shows no score.
 
