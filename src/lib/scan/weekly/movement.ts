@@ -78,7 +78,13 @@ function scoreOf(report: StoredReport | null): number | null {
  */
 function aiAnswersOf(report: StoredReport | null): number | null {
   if (report === null) return null;
-  return report.aiAnswers === null ? null : report.aiAnswers.customerCitations;
+  if (report.aiAnswers === null) return null;
+  // Issue 869: the same rule the Overview tile reads by. A week whose AI
+  // answers could not be read counts `0` citations over `0` answers, and a
+  // `0` here becomes a measured delta — the Monday mail would print "AI
+  // answers −3" for an engine outage. No denominator, no number.
+  if (report.aiAnswers.measuredSearches === 0) return null;
+  return report.aiAnswers.customerCitations;
 }
 
 function deltaOf(now: number | null, before: number | null, at: Date): Measured<number> {

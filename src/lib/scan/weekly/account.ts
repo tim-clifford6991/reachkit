@@ -80,6 +80,10 @@ export function unmeasuredPartsOf(report: StoredReport): readonly UnmeasuredPart
   // answers: one purchase, two readings (§6.2). A pass that read none of
   // them reached neither.
   if (report.aiAnswers === null) missing.add("ai_answers");
+  // Issue 869: a section that exists and read no answer at all is as
+  // unmeasured as one that is absent — the customer is told which part is
+  // missing rather than shown a zero for it.
+  if (report.aiAnswers !== null && report.aiAnswers.measuredSearches === 0) missing.add("ai_answers");
   if (report.serps.length === 0 || report.serps.every((serp) => serp.kind === "unmeasured")) {
     missing.add("ai_answers");
     missing.add("rankings");

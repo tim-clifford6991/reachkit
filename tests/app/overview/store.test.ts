@@ -229,6 +229,37 @@ describe("the AI-answers series says measured-and-absent apart from not-measured
     expect(read.aiPresence).toEqual([null]);
   });
 
+  it("a week whose AI answers could not be read at all is null, not a miss (issue 869)", async () => {
+    // The AI Mode engine answered 1 call in 14 on production. A section
+    // that read no answer counts `0` citations over `0` answers, and that
+    // zero used to become `false` — "measured, and AI did not name you".
+    const measuredAt = `${WEEKS.sep07}T09:00:00.000Z`;
+    db.seed("scans", [
+      weeklyScan(WEEKS.sep07, {
+        report: {
+          ...(report({ ownRanked: 40, citations: 0, at: WEEKS.sep07 }) as Record<string, unknown>),
+          aiAnswers: { customerCitations: 0, answeredSearches: 0, measuredSearches: 0, rows: [], measuredAt },
+        },
+      }),
+    ]);
+    const read = await facts();
+    expect(read.aiPresence).toEqual([null]);
+  });
+
+  it("a week that read its answers and was named by none is still false", async () => {
+    const measuredAt = `${WEEKS.sep07}T09:00:00.000Z`;
+    db.seed("scans", [
+      weeklyScan(WEEKS.sep07, {
+        report: {
+          ...(report({ ownRanked: 40, citations: 0, at: WEEKS.sep07 }) as Record<string, unknown>),
+          aiAnswers: { customerCitations: 0, answeredSearches: 4, measuredSearches: 12, rows: [], measuredAt },
+        },
+      }),
+    ]);
+    const read = await facts();
+    expect(read.aiPresence).toEqual([false]);
+  });
+
   it("it is aligned with the series, one entry per point", async () => {
     db.seed("scans", [weeklyScan(WEEKS.aug17), weeklyScan(WEEKS.aug31), weeklyScan(WEEKS.sep07)]);
     const read = await facts();

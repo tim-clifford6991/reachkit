@@ -59,7 +59,16 @@ import type { MarketAiAnswer, MarketSerp, QuestionView } from "../views";
 export type AnswerCell =
   | { kind: "answered"; citedDomains: readonly string[]; namesCustomer: boolean }
   | { kind: "no_answer" }
-  | { kind: "unmeasured"; reason: "undeterminable" | "not_attempted" };
+  | {
+      kind: "unmeasured";
+      reason: "undeterminable" | "not_attempted";
+      /** What the engine last said (issue 869), carried from
+       *  `Measured.because` (issue 865): a vendor failure's own kind, never
+       *  a message. Optional and additive — a screen that does not read it
+       *  is unchanged, and one that does can say why a column is blank
+       *  rather than drawing a blank as a miss. */
+      because?: string;
+    };
 
 /** §6.2's three answer columns, in the order the card lays them out: the
  *  AI Overview that rides free on a SERP already bought, then the two
@@ -146,9 +155,18 @@ function citedDomainsOf(hosts: readonly string[]): string[] {
  *    `answered` with `citedDomains: []` — the answer named no brand, which
  *    is a different fact from no answer appearing, and it raises m.
  */
+/** An unmeasured measurement as a cell, keeping what it was told (issue
+ *  869): `because` is the vendor's own failure kind, and it is the only
+ *  way a screen can say *why* a column is blank instead of drawing a
+ *  blank as a miss. */
+function unmeasuredCell(m: { reason: "undeterminable" | "not_attempted"; because?: string }): AnswerCell {
+  return { kind: "unmeasured", reason: m.reason, ...(m.because === undefined ? {} : { because: m.because }) };
+}
+
 function cellFor(measured: Measured<MarketSerp> | undefined, ownDomain: string): AnswerCell {
   if (measured === undefined) return { kind: "unmeasured", reason: "not_attempted" };
-  if (measured.kind === "unmeasured") return { kind: "unmeasured", reason: measured.reason };
+  // Issue 869: the reason the measurement heard travels with the cell.
+  if (measured.kind === "unmeasured") return unmeasuredCell(measured);
   if (!measured.value.aiOverview.present) return { kind: "no_answer" };
 
   const citedDomains = citedDomainsOf(measured.value.aiOverview.referenceDomains);
@@ -174,7 +192,7 @@ function cellFor(measured: Measured<MarketSerp> | undefined, ownDomain: string):
  */
 function cellForAnswer(answer: Measured<MarketAiAnswer> | undefined, ownDomain: string): AnswerCell {
   if (answer === undefined) return { kind: "unmeasured", reason: "not_attempted" };
-  if (answer.kind === "unmeasured") return { kind: "unmeasured", reason: answer.reason };
+  if (answer.kind === "unmeasured") return unmeasuredCell(answer);
   if (!answer.value.answered) return { kind: "no_answer" };
 
   const citedDomains = citedDomainsOf(answer.value.citedDomains);
