@@ -24,8 +24,9 @@
 // third one: two nano calls already hold half the invocation the platform
 // allows it (`FREE_PASS_INFERENCE_CALLS`, and `tests/llm/budget.test.ts`
 // is that arithmetic). So they derive on the first paid pass — the deep
-// pass runs at setup, before the onboarding market step renders its card —
-// and refresh every Monday with the weekly pass. A free re-scan after that
+// pass, in the background after setup is submitted, which is why setup
+// usually shows no voice yet and invites one (issue 839) — and refresh
+// every Monday with the weekly pass. A free re-scan after that
 // never takes them away again: `writeSiteProfile` leaves a stored voice
 // alone when the pass that calls it has none.
 //

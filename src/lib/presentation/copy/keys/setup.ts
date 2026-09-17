@@ -296,7 +296,7 @@ export const SETUP_COPY = Object.freeze({
   "setup.zone.head": ["Setting your time zone.", { slots: {}, fixedBy: "issue 753" }],
   "setup.zone.line": ["ReachKit shows every date in your own time zone, so it needs yours before the app opens. Your browser is telling us now.", { slots: {}, fixedBy: "issue 753" }],
 
-  // ── Your site, as we read it (SPEC.md §5, 2026-09-12) ───────────────
+  // ── Your voice (SPEC.md §5, 2026-09-12; renamed 2026-09-17, issue 839) ─
   //
   // §5's "The site profile is confirmed here": the page inventory and the
   // site name are shown as read, and the brand-voice summary is shown and
@@ -310,7 +310,9 @@ export const SETUP_COPY = Object.freeze({
   // reason the band words are: `pricing` is an identifier the engine
   // classifies by, and what a customer reads beside a count is a word the
   // owner chooses.
-  "setup.profile.title": ["Your site, as we read it", { slots: {}, fixedBy: "SPEC.md §5 (2026-09-12)" }],
+  // The owner's own name for the section (issue 839): the key is kept so
+  // nothing that reads it churns.
+  "setup.profile.title": ["Your voice", { slots: {}, fixedBy: "issue 839" }],
   /** The head's pill. `{pages}` is the inventory's own row count — what
    *  was read, never a target or a promise. */
   "setup.profile.pages-read": [
@@ -321,6 +323,14 @@ export const SETUP_COPY = Object.freeze({
   /** The line above the purpose chips — what each page is for. */
   "setup.profile.purposes": ["What these pages are for", { slots: {}, fixedBy: "SPEC.md §5 (2026-09-12)" }],
   "setup.profile.voice.label": ["Brand voice", { slots: {}, fixedBy: "SPEC.md §5 (2026-09-12)" }],
+  /** Above an empty voice box, where no voice has been read of the site
+   *  yet — the free scan does not read one, and the deep pass that does
+   *  runs after this submit. Drafted under the owner ruling of 2026-09-16
+   *  (issue 759); the owner corrects the wording. */
+  "setup.profile.voice.unread": [
+    "ReachKit has not read your voice yet. Describe how your site sounds — who it speaks to, the words it uses, the claims it makes — or leave this empty and ReachKit reads it from your pages after you finish setup.",
+    { slots: {}, fixedBy: "issue 839" },
+  ],
   /** The note under the voice box: the same text is editable in Settings
    *  afterwards (§5's done-when, 2026-09-12). */
   "setup.profile.voice.later": [
