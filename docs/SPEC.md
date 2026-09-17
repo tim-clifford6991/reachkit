@@ -133,6 +133,7 @@ Pinned numbers live in `src/lib/config/constants.ts`. Newest dated line in a sec
   - Volume floor steps 50 → 20 → 10 /mo, only as far as needed to reach twelve questions. Each question records the step it came from, and that step is the “min” readiness checks it against.
   - A paid pass (deep or weekly) ends with at least one ready opportunity, or records *market too small* and tells the founder why. Too few questions is never a silent empty calendar.
 - 2026-09-16  Never pad (2026-09-11) still holds under these rules: the seeds, pool and volume steps widen which searches are measured; every other readiness gate stands unchanged.
+- 2026-09-16  Verdicts (owner, #795): every published page gets a verdict every Monday. Its acceptance test is recorded on the page when it is published — the opportunity’s own, else top 20 for its search. Its target search is read every week whether or not it is among the twelve, from the site’s own ranked keywords the pass already buys; a week that could not read them says *not measured* for that page. A search is never “no longer tracked”, and a page retired for that reason before this rule is judged again.
 
 **Done when** After local Monday, every measured number has a new date and a delta. Empty days show a written cause, not filler. A “not working” cluster publishes no new page for it the next week.
 

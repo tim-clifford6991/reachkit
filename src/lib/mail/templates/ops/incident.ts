@@ -1,7 +1,7 @@
 // The owner's incident alert (issue 330) — a job failed, a job was
 // dead-lettered, or a deployment refused to boot.
 //
-// One shape, four occasions, the way the spend alert beside it is built:
+// One shape, five occasions, the way the spend alert beside it is built:
 // the occasion picks the line, and the fact rows carry closed names only.
 // Nothing a customer typed, no event payload, no error message (a message
 // can quote an address or a domain) and no subject id reaches this mail —
@@ -16,7 +16,11 @@ export type OpsIncident =
   | { occasion: "boot-refused"; check: string; errorName: string }
   // Issue #770: no error — the market was read and was too small. The facts
   // are the scan's id and its tier, never the domain.
-  | { occasion: "market-too-small"; scanId: string; tier: string };
+  | { occasion: "market-too-small"; scanId: string; tier: string }
+  // Issue #799: no error — a scheduled job has not run for twice its
+  // interval. The facts are the job id, its last run as an instant and its
+  // interval in minutes.
+  | { occasion: "job-stale"; jobId: string; lastRunAt: string; intervalMinutes: number };
 
 const SUBJECT = "mail.ops.incident.subject" satisfies CopyKey;
 const HEADING = "mail.ops.incident.heading" satisfies CopyKey;
@@ -26,6 +30,7 @@ const BODY: Readonly<Record<OpsIncident["occasion"], CopyKey>> = Object.freeze({
   "dead-lettered": "mail.ops.incident.dead-lettered",
   "boot-refused": "mail.ops.incident.boot-refused",
   "market-too-small": "mail.ops.incident.market-too-small",
+  "job-stale": "mail.ops.incident.job-stale",
 });
 
 /** A scan id is a UUID, and `closedName` would refuse one that starts with
@@ -40,7 +45,21 @@ export function closedName(value: string): string {
   return /^[A-Za-z][A-Za-z0-9_/-]{0,63}$/.test(value) ? value : "Error";
 }
 
+/** An instant written to the minute in UTC, or `unknown` where the value
+ *  does not parse as one. */
+function closedInstant(value: string): string {
+  const at = new Date(value);
+  return Number.isNaN(at.getTime()) ? "unknown" : `${at.toISOString().slice(0, 16).replace("T", " ")} UTC`;
+}
+
 function factsOf(incident: OpsIncident): FactRow[] {
+  if (incident.occasion === "job-stale") {
+    return [
+      { label: "mail.ops.incident.fact.job", value: closedName(incident.jobId) },
+      { label: "mail.ops.incident.fact.last-run", value: closedInstant(incident.lastRunAt) },
+      { label: "mail.ops.incident.fact.interval", value: String(Math.max(0, Math.trunc(incident.intervalMinutes))) },
+    ];
+  }
   if (incident.occasion === "market-too-small") {
     return [
       { label: "mail.ops.incident.fact.scan", value: closedId(incident.scanId) },
