@@ -44,9 +44,25 @@ export const readCategoryChoice = cache(async function readCategoryChoice(): Pro
     readCurrentReport(account.domain),
     readSiteCategory(account.siteId),
   ]);
-  // A blob stored before the market carried its profile reads as none.
-  const market = report === null || report.market.kind === "unmeasured" ? null : report.market.value;
-  type Profile = Parameters<typeof broaderCategories>[0]["profile"];
-  const profile = (market as { profile?: Profile } | null)?.profile ?? null;
-  return { suggestions: broaderCategories({ category: confirmed ?? null, profile }) };
+  type Profile = NonNullable<Parameters<typeof broaderCategories>[0]["profile"]>;
+  return { suggestions: broaderCategories({ category: confirmed ?? null, profile: storedProfile<Profile>(report) }) };
 });
+
+/** The profile a stored report carries, or `null`. Read defensively: a blob
+ *  written before the market carried its profile — or before the report
+ *  carried a market at all — is a report with no profile, never a reason
+ *  for `/app` to fail to render. */
+function storedProfile<P>(report: unknown): P | null {
+  if (typeof report !== "object" || report === null) return null;
+  const market = (report as { market?: unknown }).market;
+  if (typeof market !== "object" || market === null) return null;
+  const { kind, value } = market as { kind?: unknown; value?: unknown };
+  if ((kind !== "measured" && kind !== "zero") || typeof value !== "object" || value === null) return null;
+  const profile = (value as { profile?: unknown }).profile;
+  if (typeof profile !== "object" || profile === null) return null;
+  const { category, offeringType, vocabulary, brandTokens } = profile as Record<string, unknown>;
+  const strings = (list: unknown): boolean => Array.isArray(list) && list.every((item) => typeof item === "string");
+  return typeof category === "string" && typeof offeringType === "string" && strings(vocabulary) && strings(brandTokens)
+    ? (profile as P)
+    : null;
+}
