@@ -19,7 +19,7 @@ export interface SetupSessionState {
   /** `null` is a founder whose provisioning has not run. */
   address: { siteId: string; domain: string } | null;
   /** Keyed by domain: what `readCurrentReport` answers. */
-  reports: Map<string, { scanId: string; category: string | null; rivals: string[] }>;
+  reports: Map<string, { scanId: string; category: string | null; rivals: string[]; namedRivals?: string[] }>;
   pass: PassProgress;
 }
 
@@ -90,7 +90,7 @@ export function reportFactory(actual: Record<string, unknown>): Record<string, u
                 : {
                     kind: "measured",
                     at: new Date(0),
-                    value: { profile: { category: report.category } },
+                    value: { profile: { category: report.category, namedRivals: report.namedRivals ?? [] } },
                   },
             presence: { rivals: report.rivals.map((domainName) => ({ domain: domainName })) },
           };

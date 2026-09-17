@@ -53,6 +53,7 @@ const routes: Record<string, (request: Request, context: unknown) => Promise<Res
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 const AT = new Date("2026-09-16T09:00:00.000Z");
+const COLD_ROUTE_MS = 4000;
 
 /** What the one submit sent to `POST /api/setup` (issue #783). */
 const submitted: Record<string, unknown>[] = [];
@@ -78,12 +79,17 @@ async function mount(): Promise<HTMLElement> {
   return container;
 }
 
-/** Waits for the card's answer: a request the screen made settles it. */
-async function until(check: () => boolean): Promise<void> {
-  await vi.waitFor(async () => {
-    await act(async () => {});
-    expect(check()).toBe(true);
-  });
+/** Waits for the card's answer: a request the screen made settles it.
+ *  `timeout` is for a request that is the first to load the route's lazy
+ *  imports, which a busy machine takes longer than the default over. */
+async function until(check: () => boolean, timeout?: number): Promise<void> {
+  await vi.waitFor(
+    async () => {
+      await act(async () => {});
+      expect(check()).toBe(true);
+    },
+    { timeout }
+  );
 }
 
 async function type(field: Element | null, value: string): Promise<void> {
@@ -132,6 +138,36 @@ describe("free upgrade — the report's rivals are on the card when the screen o
     });
     expect(root.querySelector('[data-testid="setup-competitors-selected"]')?.textContent).toContain("asana.com");
     expect(competitorsDomain).not.toHaveBeenCalled();
+  });
+});
+
+describe("issue 838 — a report that found no rivals: the card asks, and competitors_domain answers", () => {
+  it("the screen opens seeking, then offers the founder's own-domain competitors", async () => {
+    setupSession.reports.set("example.com", {
+      scanId: "scan-fixture",
+      category: "SEO content marketing software",
+      rivals: [],
+    });
+    competitorsDomain.mockResolvedValue({
+      kind: "measured",
+      value: [{ domain: "surferseo.com", overlapKeywords: 2 }],
+      at: AT,
+    });
+    const root = await mount();
+
+    await until(() => offered(root).length > 0, COLD_ROUTE_MS);
+    expect(offered(root)).toEqual(["surferseo.com"]);
+    expect(competitorsDomain).toHaveBeenCalledWith(expect.anything(), { domain: "example.com" });
+    expect(db.tables.scans).toHaveLength(1);
+  });
+
+  it("a vendor that finds none says so rather than seeking on", async () => {
+    setupSession.reports.set("example.com", { scanId: "scan-fixture", category: "SEO software", rivals: [] });
+    competitorsDomain.mockResolvedValue({ kind: "zero", value: [], at: AT });
+    const root = await mount();
+
+    await until(() => shown(root, "setup-competitors-none-found"));
+    expect(shown(root, "setup-competitors-seeking")).toBe(false);
   });
 });
 

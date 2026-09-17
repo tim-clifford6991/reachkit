@@ -9,7 +9,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { applyEnvFixture } from "../../mail/env-fixture";
 import { fakeDb, type FakeDb } from "../../scan/deep/fake-db";
-import { resetSetupSession, sessionFactory, setupSession, storeFactory } from "./session-door";
+import { reportFactory, resetSetupSession, sessionFactory, setupSession, storeFactory } from "./session-door";
 import type { CostContext } from "@/lib/costs";
 
 applyEnvFixture();
@@ -19,6 +19,9 @@ vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
 vi.mock("@/lib/account/identity", () => sessionFactory());
 vi.mock("@/app/(account)/setup/_setup/store", async (importOriginal) =>
   storeFactory(await importOriginal<Record<string, unknown>>())
+);
+vi.mock("@/lib/scan/report", async (importOriginal) =>
+  reportFactory(await importOriginal<Record<string, unknown>>())
 );
 vi.mock("@/lib/site-profile", () => ({ readSiteProfile: async () => null }));
 
@@ -101,6 +104,30 @@ describe("the kill switch stops setup's paid call", () => {
     vi.resetModules();
 
     await expect(candidates({ domain: "founder.io", category: "bookkeeping for dentists" })).resolves.toEqual([]);
+    expect(competitorsDomain).not.toHaveBeenCalled();
+    expect(db.tables.fetches ?? []).toEqual([]);
+  });
+});
+
+describe("issue 838 — a report with no rivals buys them the same way, on the same row", () => {
+  beforeEach(() => {
+    setupSession.reports.set("founder.io", { scanId: "scan-free", category: "SEO content software", rivals: [] });
+  });
+
+  it("the fallback's cost is added to the claimed deep row, which stays running", async () => {
+    await expect(candidates({ domain: "founder.io", category: null })).resolves.toEqual(["rival-one.com"]);
+    const row = db.tables.scans![0]!;
+    expect(db.tables.scans).toHaveLength(1);
+    expect(db.tables.fetches).toHaveLength(1);
+    expect(db.tables.fetches![0]).toMatchObject({ scan_id: row.id, cost_cents: COMPETITORS_C });
+    expect(row).toMatchObject({ tier: "deep", status: "running", cost_cents: COMPETITORS_C });
+  });
+
+  it("the kill switch refuses the fallback: no call, no ledger row, and the card settles on none found", async () => {
+    vi.stubEnv("KILL_SWITCH", "true");
+    vi.resetModules();
+
+    await expect(candidates({ domain: "founder.io", category: null })).resolves.toEqual([]);
     expect(competitorsDomain).not.toHaveBeenCalled();
     expect(db.tables.fetches ?? []).toEqual([]);
   });

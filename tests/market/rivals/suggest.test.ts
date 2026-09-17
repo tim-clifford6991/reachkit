@@ -26,16 +26,21 @@ beforeEach(async () => {
   ({ suggestRivals } = await import("../../../src/lib/market/rivals/suggest.ts"));
 });
 
-function report(a: { rivals?: readonly string[]; category?: string | null } = {}): ReportFacts {
+function report(
+  a: { rivals?: readonly string[]; namedRivals?: readonly string[]; category?: string | null } = {}
+): ReportFacts {
   return {
     scanId: "scan-1",
     category: a.category === undefined ? "project management software" : a.category,
     rivals: a.rivals ?? ["one.com", "two.com"],
+    namedRivals: a.namedRivals ?? [],
   };
 }
 
 /** A card whose market a report inferred. */
-function inferred(a: { rivals?: readonly string[] } = {}): { state: SetupState; report: ReportFacts } {
+function inferred(
+  a: { rivals?: readonly string[]; namedRivals?: readonly string[] } = {}
+): { state: SetupState; report: ReportFacts } {
   const facts = report(a);
   return { state: initialSetupState({ domain: "customer.com", report: facts }), report: facts };
 }
@@ -220,5 +225,63 @@ describe("§6.6 — the report path buys nothing, and no market is re-inferred",
   it("suggestRivals/reaches-no-model — nothing in this module can re-infer a market", () => {
     expect(importsOf("suggest.ts").filter((i) => i.includes("/llm"))).toEqual([]);
     expect(codeOf("suggest.ts")).not.toContain("deriveProfile");
+  });
+});
+
+describe("issue 838 — setup always offers rivals, even when the report found none", () => {
+  it("suggestRivals/inferred-with-no-rivals-falls-back — competitors_domain on the founder's own address", async () => {
+    competitorsMock.mockResolvedValue(competitors(["rival.com", "customer.com"]));
+    const { state, report: facts } = inferred({ rivals: [] });
+    const out = await suggestRivals(spendIn(fakeCostContext()), { state, report: facts, at: AT });
+
+    expect(competitorsMock).toHaveBeenCalledTimes(1);
+    expect(competitorsMock).toHaveBeenCalledWith(expect.anything(), { domain: "customer.com" });
+    expect(out).toEqual({ kind: "measured", value: ["rival.com"], at: AT });
+  });
+
+  it("suggestRivals/the-site's-named-rivals-come-first-and-free — no call while they are there", async () => {
+    const { state, report: facts } = inferred({ rivals: ["one.com"], namedRivals: ["Named.io", "Asana", "one.com"] });
+    const out = await suggestRivals(NO_ROW, { state, report: facts, at: AT });
+
+    // "Asana" is not a domain, so it is not offered; one.com once.
+    expect(out).toEqual({ kind: "measured", value: ["named.io", "one.com"], at: AT });
+    expect(competitorsMock).not.toHaveBeenCalled();
+  });
+
+  it("suggestRivals/named-rivals-lead-a-stated-market's-call-and-survive-its-failure", async () => {
+    const facts = report({ namedRivals: ["named.io"] });
+    const state = onMarketStated(initialSetupState({ domain: "customer.com", report: facts }), "something else");
+
+    competitorsMock.mockResolvedValue(competitors(["vendor-said.com", "named.io"]));
+    await expect(suggestRivals(spendIn(fakeCostContext()), { state, report: facts, at: AT })).resolves.toEqual({
+      kind: "measured",
+      value: ["named.io", "vendor-said.com"],
+      at: AT,
+    });
+
+    competitorsMock.mockResolvedValue({ kind: "unmeasured", reason: "undeterminable", at: AT });
+    await expect(suggestRivals(spendIn(fakeCostContext()), { state, report: facts, at: AT })).resolves.toEqual({
+      kind: "measured",
+      value: ["named.io"],
+      at: AT,
+    });
+  });
+
+  it("suggestRivals/no-spend-leaves-the-fallback-unsought — a caller that cannot buy says nothing was sought", async () => {
+    const { state, report: facts } = inferred({ rivals: [] });
+    const out = await suggestRivals(null, { state, report: facts, at: AT });
+
+    expect(out).toEqual({ kind: "unmeasured", reason: "not_attempted", at: AT });
+    expect(competitorsMock).not.toHaveBeenCalled();
+  });
+
+  it("suggestRivals/an-unopenable-spend-on-the-fallback-settles — the kill switch or no row answers none found", async () => {
+    const { state, report: facts } = inferred({ rivals: [] });
+    await expect(suggestRivals(NO_ROW, { state, report: facts, at: AT })).resolves.toEqual({
+      kind: "unmeasured",
+      reason: "undeterminable",
+      at: AT,
+    });
+    expect(competitorsMock).not.toHaveBeenCalled();
   });
 });

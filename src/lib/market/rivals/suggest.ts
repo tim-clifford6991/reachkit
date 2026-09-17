@@ -11,9 +11,13 @@
 //   - **The market was inferred from a completed report.** The
 //     suggestions are the market-derived rivals that report already
 //     holds — `deriveRivals` over the twelve SERPs, counted over data
-//     already bought, 0¢ (§6.4's reuse rule). No vendor call is made on
-//     this path at all, and the list is identical whether the customer
-//     ranks for 10,000 searches or for none.
+//     already bought, 0¢ (§6.4's reuse rule). No vendor call is made
+//     while that list has a rival in it, and the list is identical whether
+//     the customer ranks for 10,000 searches or for none. **A report that
+//     found none falls back to `competitors_domain`** (issue 838): a new
+//     site whose market read no searches has no SERPs to derive rivals
+//     from, and it is exactly the site that needs them offered. That call
+//     is the stated path's own — same row, same cap, same bound.
 //   - **The founder stated the market.** No report measured it — either
 //     none backs the purchase, or the founder replaced the one that did —
 //     so the market-derived list cannot exist: it needs twelve SERPs only
@@ -25,6 +29,9 @@
 //     says none were found, and the founder types their own. Presence is
 //     never a *dependency* — it is the difference between a supplement
 //     arriving and not arriving.
+//   - **Named on the site.** The rivals the site's own pages name, which
+//     the profile already read, are offered first on both paths above.
+//     They cost nothing, so they never wait on the vendor (issue 838).
 //   - **No market yet.** Nothing is sought and nothing is called. The card
 //     stays waiting on the market; it never says no rivals were found for
 //     a market nobody has stated.
@@ -54,11 +61,13 @@ const SUGGEST_CEILING_MS = TIMING.suggestCeilingS * 1000;
 
 /**
  * Opens the cost context the one vendor call spends in, only when that
- * call is made. The inferred and empty paths never open one — which is
- * what lets the screen read settle an inferred market's suggestions with
- * no row to spend against — and the stated path's is the caller's: setup
- * keys it to the deep pass's claimed row (owner ruling, 2026-09-16). A
- * spend that cannot open rejects, and is settled like a vendor failure.
+ * call is made. The empty path and an inferred market with free rivals
+ * never open one — which is what lets the screen read settle those
+ * suggestions with no row to spend against — and the paid path's is the
+ * caller's: setup keys it to the deep pass's claimed row (owner ruling,
+ * 2026-09-16). A spend that cannot open rejects, and is settled like a
+ * vendor failure. A caller with no spend at all passes `null`, and a card
+ * that needs the call is then left unsought rather than settled.
  */
 export type Spend = <T>(body: (c: CostContext) => Promise<T>) => Promise<T>;
 
@@ -70,7 +79,8 @@ export type Spend = <T>(body: (c: CostContext) => Promise<T>) => Promise<T>;
  *
  *   - `unmeasured` / `not_attempted` — nothing was sought. A card with no
  *     market can only ever reach this arm, so "none were found" is
- *     structurally unreachable from a state that never sought.
+ *     structurally unreachable from a state that never sought. A caller
+ *     with no spend reaches it too, where the answer needs the paid call.
  *   - `zero` — a source was consulted and offered nothing. This is the
  *     card's `none_found`.
  *   - `measured` — candidates, at most `BATTERY.COMPETITORS_MAX` of them.
@@ -83,7 +93,7 @@ export type Spend = <T>(body: (c: CostContext) => Promise<T>) => Promise<T>;
  * being rewritten as an answer nobody measured.
  */
 export async function suggestRivals(
-  spend: Spend,
+  spend: Spend | null,
   a: { state: SetupState; report: ReportFacts | null; at: Date }
 ): Promise<Measured<string[]>> {
   const own = a.state.siteDomain;
@@ -93,6 +103,11 @@ export async function suggestRivals(
     return unmeasured<string[]>("not_attempted", a.at);
   }
 
+  // The rivals the site's own pages name are free on every path: the
+  // profile read them off the founder's site, so they are theirs whichever
+  // market is on the card (issue 838).
+  const named = a.report?.namedRivals ?? [];
+
   // `inferred` is the market a completed report measured, so that report's
   // own derivation is the market's rival list. A `stated` market is one the
   // founder replaced or supplied: the report behind the purchase, if there
@@ -100,14 +115,19 @@ export async function suggestRivals(
   // theirs — which is the same rule REQ-021 c12 states for a replaced
   // domain, applied to a replaced market.
   if (a.state.market.state === "inferred") {
-    const candidates = admissible(a.report?.rivals ?? [], a.state, own);
-    logSuggestion({ source: "report", count: candidates.length });
-    return candidates.length === 0
-      ? measuredZero<string[]>([], a.at)
-      : measured(candidates, a.at);
+    const free = admissible([...named, ...(a.report?.rivals ?? [])], a.state, own);
+    if (free.length > 0) {
+      logSuggestion({ source: "report", count: free.length });
+      return measured(free, a.at);
+    }
+    // A report that found no rivals — a new site whose market read no
+    // searches, so no SERPs to derive them from — still gets suggestions:
+    // the same `competitors_domain` call a stated market makes (issue 838).
   }
 
-  if (own === null) {
+  // No caller that can spend: the screen read. Nothing is sought, so the
+  // card opens seeking and the founder's browser asks the route, which can.
+  if (own === null || spend === null) {
     logSuggestion({ source: "none", count: 0 });
     return unmeasured<string[]>("not_attempted", a.at);
   }
@@ -118,18 +138,16 @@ export async function suggestRivals(
     ),
     a.at
   );
-  if (rows.kind === "unmeasured") {
-    logSuggestion({ source: "competitors_domain", count: 0 });
-    return unmeasured<string[]>(rows.reason, a.at);
-  }
-
   const candidates = admissible(
-    rows.value.map((row) => row.domain),
+    [...named, ...(rows.kind === "unmeasured" ? [] : rows.value.map((row) => row.domain))],
     a.state,
     own
   );
   logSuggestion({ source: "competitors_domain", count: candidates.length });
-  return candidates.length === 0 ? measuredZero<string[]>([], a.at) : measured(candidates, a.at);
+  if (candidates.length > 0) return measured(candidates, a.at);
+  return rows.kind === "unmeasured"
+    ? unmeasured<string[]>(rows.reason, a.at)
+    : measuredZero<string[]>([], a.at);
 }
 
 /**

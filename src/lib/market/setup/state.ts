@@ -11,11 +11,10 @@
 // **`ReportFacts` is deliberately not the stored report** (WO-084 decision
 // note, from BP-034 decision 4): importing `src/lib/scan/`'s report type —
 // a type-only import included — would close a `src/lib/market` ↔
-// `src/lib/scan` cycle. The three fields are a projection the `/setup`
-// adapter supplies, never a rival definition of the report. If this node
-// ever needs a fourth fact, the adapter passes a fourth field; widening
-// this interface toward the stored report field by field is the same
-// mistake taken slowly. `tests/market/setup/state.test.ts` asserts the
+// `src/lib/scan` cycle. The four fields are a projection the `/setup`
+// adapter supplies, never a rival definition of the report. A fact this
+// node needs arrives as one more named field, as `namedRivals` did (issue
+// 838) — never as the stored report's own type. `tests/market/setup/state.test.ts` asserts the
 // absence of that import, pre-erasure.
 //
 // **Every domain reaching these functions is already canonical**, for the
@@ -50,6 +49,9 @@ export interface ReportFacts {
   scanId: string;
   category: string | null;
   rivals: readonly string[];
+  /** The rivals the site's own pages name, as the report's profile read
+   *  them — free candidates for the card (issue 838). */
+  namedRivals: readonly string[];
 }
 
 /** REQ-021 c6 versus c7 — the one thing on this screen that is identity

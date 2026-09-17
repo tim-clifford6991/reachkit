@@ -6,12 +6,13 @@
 //
 //   - **The screen read** (`provider.ts`), for a free upgrade. The market
 //     is inferred from the report the purchase came from, so the rivals
-//     are that report's own — no vendor call, no row, no write while a
-//     page renders.
+//     are that report's own and the ones the site names — no vendor call,
+//     no row, no write while a page renders. A report with neither leaves
+//     the card seeking, and the browser asks the route (issue 838).
 //   - **`POST /api/setup/rivals`**, whenever the founder gives an address
 //     or states a market. The report is read here from the domain, never
-//     taken from the browser. A stated market is the direct purchase's
-//     path: `competitors_domain`, spent under the `DEEP` cap against the
+//     taken from the browser. A stated market — or an inferred one whose
+//     report found no rivals (issue 838) — buys `competitors_domain`, spent under the `DEEP` cap against the
 //     deep pass's own `scans` row, which this claims when setup accepts the
 //     address (owner ruling, 2026-09-16), and counted in its `cost_cents`.
 //     The pass adopts that row later. The kill switch refuses the call.
@@ -27,7 +28,8 @@ import type { Spend } from "@/lib/market/rivals/suggest";
 import type { ReportFacts, SetupState } from "@/lib/market/setup/state";
 
 /** What the card settles on: candidates (possibly none), or `null` where
- *  no market is known and nothing was sought (REQ-026 c10). */
+ *  nothing was sought — no market is known (REQ-026 c10), or the screen
+ *  read would have needed a paid call it cannot make. */
 export type SettledRivals = readonly string[] | null;
 
 /** `suggestRivals`'s three arms, as the card reads them. `not_attempted`
@@ -38,10 +40,6 @@ export function settledRivals(answer: Measured<string[]>): SettledRivals {
   return answer.value;
 }
 
-/** The spend a screen read offers: none. Only the stated path opens one,
- *  and a screen read never holds a stated market. */
-const NO_SPEND: Spend = () => Promise.reject(new Error("a screen read spends nothing"));
-
 /** The free upgrade's suggestions, for the state the screen opens in. */
 export async function rivalsForScreen(a: {
   state: SetupState;
@@ -50,7 +48,9 @@ export async function rivalsForScreen(a: {
 }): Promise<SettledRivals> {
   try {
     const { suggestRivals } = await import("@/lib/market/rivals/suggest");
-    return settledRivals(await suggestRivals(NO_SPEND, a));
+    // A screen read spends nothing: where only a paid call could answer,
+    // the card opens seeking and the route answers it.
+    return settledRivals(await suggestRivals(null, a));
   } catch (error) {
     logUnsought(error);
     return null;

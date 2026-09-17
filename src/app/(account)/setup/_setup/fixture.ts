@@ -115,6 +115,7 @@ export const FIXTURE_SETUP_FACTS: SetupFacts = Object.freeze({
       scanId: FIXTURE_SCAN_ID,
       category: "project management software for agencies",
       rivals: Object.freeze(["asana.com", "monday.com", "clickup.com"]),
+      namedRivals: FIXTURE_MARKET.profile.namedRivals,
     }),
   }),
   suggestedRivals: Object.freeze(["asana.com", "monday.com", "clickup.com", "notion.so"]),
