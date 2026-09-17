@@ -1106,18 +1106,20 @@ async function readMarket(a: StageArgs, abandoned: () => boolean): Promise<void>
   // SPEC §6 thin markets (#778): the first seed is the one every pass buys.
   // The rest of the ladder is bought one seed at a time, only while short.
   const seeds = seedLadder(profile.value, a.category);
+  // The site's own footprint, the same number derivation bands by, read
+  // before any market is bought: every suggestions purchase asks only for
+  // rows inside its window (issue 846), and selection never takes a search
+  // outsized for it (SPEC §6 right-sizing, issue 830).
+  const ownRanked = ownRankedValue(measurement.ownRanked);
   if (bounds.stopNow() !== null) return;
   const market = await attempt("reading_your_market", () =>
-    deriveMarketSet(cost, { seeds: seeds.slice(0, 1) })
+    deriveMarketSet(cost, { seeds: seeds.slice(0, 1), ownRanked })
   );
   if (failed(market) || abandoned()) return;
   sections.marketRows = market;
   if (market.kind === "unmeasured") return;
 
   const category = a.category === undefined ? {} : { category: a.category };
-  // The site's own footprint, the same number derivation bands by: selection
-  // never takes a search outsized for it (SPEC §6 right-sizing, issue 830).
-  const ownRanked = ownRankedValue(measurement.ownRanked);
   sections.selected = selectTwelve({ profile: profile.value, market: [...market.value], ownRanked, ...category });
   if (!isShort(sections.selected)) return phrase(a, abandoned);
 
@@ -1147,7 +1149,7 @@ async function readMarket(a: StageArgs, abandoned: () => boolean): Promise<void>
     // Widening never spends what the questions already selected are asked
     // with (issue 835).
     if (!affordsSeed({ remainingCents: bounds.remainingCents(), selected: sections.selected.length })) break;
-    const more = await attempt("reading_your_market", () => deriveMarketSet(cost, { seeds: [seed] }));
+    const more = await attempt("reading_your_market", () => deriveMarketSet(cost, { seeds: [seed], ownRanked }));
     if (abandoned()) return;
     if (failed(more)) break;
     sections.marketRows = joinMarketSets(sections.marketRows, more);

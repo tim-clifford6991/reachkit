@@ -33,6 +33,8 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+const WINDOW = { min: 10, max: 1000 };
+
 /** One `ranked_keywords` item in the shape the vendor documents. */
 function rankedItem(keyword: string, position: number, volume: number, url: string): unknown {
   return {
@@ -176,7 +178,7 @@ describe("BUILD §6.5 — a cap-skipped call is `not_attempted` and never reache
         name === "rankedKeywords"
           ? await labs.rankedKeywords(ctx, { domain: "example.com", rows: 50 })
           : name === "keywordSuggestions"
-            ? await labs.keywordSuggestions(ctx, { seed: "crm", rows: 50 })
+            ? await labs.keywordSuggestions(ctx, { seed: "crm", rows: 50, volume: WINDOW })
             : await labs.competitorsDomain(ctx, { domain: "example.com" });
 
       expect(result.kind).toBe("unmeasured");
@@ -202,7 +204,7 @@ describe("BUILD §6.1 price book — each call reserves the pinned price, read f
   it("keywordSuggestions reserves PRICE_BOOK.SUGGESTIONS_COST_C at VENDOR.suggestionsRows", async () => {
     const stub = stubVendorFetch(() => envelope({ items: [] }));
     const { ctx, calls } = fakeCostContext();
-    await labs.keywordSuggestions(ctx, { seed: "crm software", rows: 50 });
+    await labs.keywordSuggestions(ctx, { seed: "crm software", rows: 50, volume: WINDOW });
     expect(calls[0]?.costCents).toBe(constants.PRICE_BOOK.SUGGESTIONS_COST_C);
     expect(stub.tasks[0]).toMatchObject({ keyword: "crm software", limit: constants.VENDOR.suggestionsRows });
   });
@@ -231,7 +233,7 @@ describe('BUILD §6.4 — "Cache windows: own domain 7d · rivals 30d … sugges
   it("keywordSuggestions passes CACHE_WINDOWS_D.suggestions", async () => {
     stubVendorFetch(() => envelope({ items: [] }));
     const { ctx, calls } = fakeCostContext();
-    await labs.keywordSuggestions(ctx, { seed: "crm", rows: 50 });
+    await labs.keywordSuggestions(ctx, { seed: "crm", rows: 50, volume: WINDOW });
     expect(calls[0]?.freshnessDays).toBe(constants.CACHE_WINDOWS_D.suggestions);
   });
 
@@ -258,6 +260,31 @@ describe('BUILD §6.4 — "Cache windows: own domain 7d · rivals 30d … sugges
   });
 });
 
+describe("keywordSuggestions buys inside the right-sizing window (issue 846)", () => {
+  it("the request for a site ranking for 848 filters search volume to 10–8480 and orders by it, largest first", async () => {
+    const { suggestionsWindow } = await import("../../src/lib/market/questions/market-set.ts");
+    const stub = stubVendorFetch(() => envelope({ items: [] }));
+    const { ctx } = fakeCostContext();
+    await labs.keywordSuggestions(ctx, { seed: "project management software", rows: 50, volume: suggestionsWindow(848) });
+
+    expect(stub.tasks[0]).toMatchObject({
+      keyword: "project management software",
+      limit: 50,
+      filters: [["keyword_info.search_volume", ">=", 10], "and", ["keyword_info.search_volume", "<=", 8480]],
+      order_by: ["keyword_info.search_volume,desc"],
+    });
+  });
+
+  it("the cache key differs between two ceilings, so rows bought for one are never served for the other", async () => {
+    stubVendorFetch(() => envelope({ items: [] }));
+    const { ctx, calls } = fakeCostContext();
+    await labs.keywordSuggestions(ctx, { seed: "crm", rows: 50, volume: { min: 10, max: 1000 } });
+    await labs.keywordSuggestions(ctx, { seed: "crm", rows: 50, volume: { min: 10, max: 8480 } });
+
+    expect(calls[0]?.cacheKey).not.toBe(calls[1]?.cacheKey);
+  });
+});
+
 describe("BUILD §6.3 — keywordSuggestions and competitorsDomain parse into their product rows", () => {
   it("keywordSuggestions returns keyword and volume, defaulting a missing volume to 0", async () => {
     stubVendorFetch(() =>
@@ -270,7 +297,7 @@ describe("BUILD §6.3 — keywordSuggestions and competitorsDomain parse into th
       })
     );
     const { ctx } = fakeCostContext();
-    const result = await labs.keywordSuggestions(ctx, { seed: "crm", rows: 50 });
+    const result = await labs.keywordSuggestions(ctx, { seed: "crm", rows: 50, volume: WINDOW });
 
     expect(result.kind).toBe("measured");
     if (result.kind !== "measured") throw new Error("unreachable");
@@ -307,7 +334,7 @@ describe("BUILD §6.4 never-list — Labs is live-only, so no Labs call can reac
     const stub = stubVendorFetch(() => envelope({ items: [] }));
     const { ctx } = fakeCostContext();
     await labs.rankedKeywords(ctx, { domain: "example.com", rows: 50 });
-    await labs.keywordSuggestions(ctx, { seed: "crm", rows: 50 });
+    await labs.keywordSuggestions(ctx, { seed: "crm", rows: 50, volume: WINDOW });
     await labs.competitorsDomain(ctx, { domain: "example.com" });
 
     expect(stub.requests).toHaveLength(3);
@@ -327,7 +354,7 @@ describe("BUILD §6.4 never-list — Labs is live-only, so no Labs call can reac
     // @ts-expect-error — rankedKeywords admits no `mode`.
     void labs.rankedKeywords(null as never, { domain: "x", rows: 50, mode: "std" });
     // @ts-expect-error — keywordSuggestions admits no `mode`.
-    void labs.keywordSuggestions(null as never, { seed: "x", rows: 50, mode: "std" });
+    void labs.keywordSuggestions(null as never, { seed: "x", rows: 50, volume: WINDOW, mode: "std" });
     // @ts-expect-error — competitorsDomain admits no `mode`.
     void labs.competitorsDomain(null as never, { domain: "x", mode: "std" });
   }
