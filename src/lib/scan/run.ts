@@ -72,7 +72,14 @@ import type { Drivers } from "@/lib/measure/score";
 import { verdictOf, type Verdict } from "@/lib/measure/verdict";
 import { aiMode, llmScraper, serpOrganic } from "@/lib/vendors/dataforseo";
 import type { AiAnswer, CacheScope, RankedRow, SerpResult } from "@/lib/vendors/dataforseo/types";
-import { SERP_FANOUT, withStageBudget, type StageOutcome } from "./budgets";
+import {
+  MARKET_PURSE_CENTS,
+  SERP_FANOUT,
+  affordsSeed,
+  twelveCentsAfter,
+  withStageBudget,
+  type StageOutcome,
+} from "./budgets";
 import { withScanBounds, withStoredPassSpend, type Bounds } from "./ceilings";
 import { advanceCorrectionState, readCorrectionFacts, registerCorrectionRunner } from "./correction";
 import { parseDomain, type CanonicalDomain } from "./domain";
@@ -173,12 +180,20 @@ interface TierParameters {
   serpWindowDays: number;
   /** SPEC §6 thin markets (2026-09-16): how many `keyword_suggestions`
    *  beyond the first seed a pass short of twelve may buy — at most
-   *  `SELECTION.maxExtraSeeds`, inside the pass's own cap. `0` on the free
-   *  path: its 12¢ is already divided stage by stage (`budgets.ts`), and
-   *  `reading_your_market`'s 4.7¢ holds one suggestion purchase and the two
-   *  nano calls, not a second purchase. The free report still pools the
-   *  site's own ranked rows and walks the volume steps, which buy nothing. */
+   *  `SELECTION.maxExtraSeeds`, inside the pass's own cap. The free path's
+   *  too (owner ruling 2026-09-17, issue 835): a new site's category seed
+   *  can answer nothing, and a free report with no questions is nothing a
+   *  visitor can value. There the purchases are paid from the purse the
+   *  market shares with the twelve (`budgets.ts`), and a seed is bought only
+   *  while that purse still holds it and the SERPs of every question
+   *  already selected (`affordsSeed`). */
   extraSeeds: number;
+  /** When the seed ladder has read enough to stop buying seeds. `twelve`:
+   *  SPEC §6's own rule, twelve questions at the first volume step.
+   *  `questions`: the free path's (owner ruling 2026-09-17, issue 835) —
+   *  "stopping as soon as it has questions", at any step: its 12¢ is
+   *  spent on the report a visitor reads, not on a fuller twelve. */
+  ladderStopsAt: "twelve" | "questions";
   /** Issues 770 and 796: how the owner hears of a pass that found too little
    *  market. `immediate` mails at once (a site's first, deep pass);
    *  `digest` is folded into the owner's Monday digest
@@ -198,7 +213,8 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     battery: false,
     stageBudgets: true,
     serpWindowDays: CACHE_WINDOWS_D.serp,
-    extraSeeds: 0,
+    extraSeeds: SELECTION.maxExtraSeeds,
+    ladderStopsAt: "questions",
     marketTooSmallAlert: "none",
   }),
   deep: Object.freeze({
@@ -213,6 +229,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     stageBudgets: false,
     serpWindowDays: CACHE_WINDOWS_D.serp,
     extraSeeds: SELECTION.maxExtraSeeds,
+    ladderStopsAt: "twelve",
     marketTooSmallAlert: "immediate",
   }),
   weekly: Object.freeze({
@@ -227,6 +244,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     stageBudgets: false,
     serpWindowDays: CACHE_WINDOWS_D.serpWeeklyRecheck,
     extraSeeds: SELECTION.maxExtraSeeds,
+    ladderStopsAt: "twelve",
     marketTooSmallAlert: "digest",
   }),
 } as const);
@@ -839,9 +857,13 @@ async function runStages(a: StageArgs): Promise<void> {
    *  respecting its stage's budget with no line of its own changing. */
   const inBudget = <T>(
     stage: StageName,
-    work: (b: Bounds, abandoned: () => boolean) => Promise<T>
+    work: (b: Bounds, abandoned: () => boolean) => Promise<T>,
+    cents?: number
   ): Promise<StageOutcome<T>> =>
-    withStageBudget({ stage, bounds, cost, applies: a.parameters.stageBudgets }, work);
+    withStageBudget(
+      { stage, bounds, cost, applies: a.parameters.stageBudgets, ...(cents === undefined ? {} : { cents }) },
+      work
+    );
 
   if (bounds.stopNow() !== null) return;
   await enter("reading_your_site");
@@ -938,7 +960,16 @@ async function runStages(a: StageArgs): Promise<void> {
 
   if (bounds.stopNow() !== null) return;
   await enter("reading_your_market");
-  const market = await inBudget("reading_your_market", (b, abandoned) => readMarket({ ...a, bounds: b }, abandoned));
+  // The market spends from the purse it shares with the twelve, and the
+  // twelve get what it left (issue 835): an extra seed is only ever bought
+  // with the SERPs of questions the pass does not have.
+  const marketFromCents = cost.spentCents();
+  const market = await inBudget(
+    "reading_your_market",
+    (b, abandoned) => readMarket({ ...a, bounds: b }, abandoned),
+    MARKET_PURSE_CENTS
+  );
+  const twelveCents = twelveCentsAfter(cost.spentCents() - marketFromCents);
   // An abandoned pass reports no exit either: a stage the ceilings cut off
   // emits no `done: true` (`stages.ts`), and the ending is already out.
   if (bounds.abandoned()) return;
@@ -957,7 +988,11 @@ async function runStages(a: StageArgs): Promise<void> {
 
   if (bounds.stopNow() !== null) return;
   await enter("asking_the_twelve");
-  const twelve = await inBudget("asking_the_twelve", (b, abandoned) => askTheTwelve({ ...a, bounds: b }, abandoned));
+  const twelve = await inBudget(
+    "asking_the_twelve",
+    (b, abandoned) => askTheTwelve({ ...a, bounds: b }, abandoned),
+    twelveCents
+  );
   if (bounds.abandoned()) return;
   if (!twelve.spent) await exitStage(scanId, "asking_the_twelve");
 
@@ -1106,9 +1141,14 @@ async function readMarket(a: StageArgs, abandoned: () => boolean): Promise<void>
     });
   };
   sections.selected = widen([SELECTION.volumeFloorPerMonth]);
+  const readEnough = (): boolean =>
+    a.parameters.ladderStopsAt === "questions" ? widen().length > 0 : !isShort(sections.selected);
 
   for (const seed of seeds.slice(1, 1 + a.parameters.extraSeeds)) {
-    if (!isShort(sections.selected) || bounds.stopNow() !== null) break;
+    if (readEnough() || bounds.stopNow() !== null) break;
+    // Widening never spends what the questions already selected are asked
+    // with (issue 835).
+    if (!affordsSeed({ remainingCents: bounds.remainingCents(), selected: sections.selected.length })) break;
     const more = await attempt("reading_your_market", () => deriveMarketSet(cost, { seeds: [seed], ownRanked }));
     if (abandoned()) return;
     if (failed(more)) break;
