@@ -137,6 +137,9 @@ export function fullSections(over: Partial<ReportSections> = {}): ReportSections
     siteIssues: null,
     coherence: { verdict: "unjudgeable", measuredCount: 1 },
     correctionState: "none",
+    // Issue 866: the category this pass was handed. The fixture pass seeded
+    // from the profile, so it recorded none.
+    measuredCategory: null,
     ...over,
   };
 }

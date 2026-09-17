@@ -82,9 +82,20 @@ interface MeasuredScan {
  *  date no number was measured on. */
 const MEASURED_STATUSES = ["done", "degraded"] as const;
 
+/**
+ * The category the pass measured under, as the pass recorded it (issue 866:
+ * `StoredReport.measuredCategory`).
+ *
+ * It read `report.category` until then — a key no stored report has carried
+ * since version 5, so no category change was ever marked on a chart. It is
+ * not `categoryOf(market)` either: that is the category the model inferred,
+ * and a founder measured in their own confirmed one would have every scan
+ * read as a change away from it. A report written before version 10 records
+ * none, which marks nothing rather than marking every week.
+ */
 function categoryOf(report: unknown): string | null {
   if (typeof report !== "object" || report === null) return null;
-  const category = (report as Record<string, unknown>).category;
+  const category = (report as Record<string, unknown>).measuredCategory;
   return typeof category === "string" ? category : null;
 }
 

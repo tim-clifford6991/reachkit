@@ -53,6 +53,8 @@ const REPORT_KEYS = [
   "siteIssues",
   "coherence",
   "correctionState",
+  // The category the pass measured under (issue 866).
+  "measuredCategory",
 ] as const;
 
 describe("a section is never omitted", () => {

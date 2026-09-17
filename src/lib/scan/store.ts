@@ -82,6 +82,9 @@ export interface ReportSections {
   siteIssues: SiteIssuesSection | null;
   coherence: CoherenceVerdict;
   correctionState: CorrectionState;
+  /** The category the pass was handed, or `null` where it seeded from the
+   *  profile (issue 866). */
+  measuredCategory: string | null;
 }
 
 /** Pure and total: a copy plus the two derived fields. No arithmetic, no
@@ -115,6 +118,7 @@ export function assembleReport(s: ReportSections): StoredReport {
     siteIssues: s.siteIssues,
     coherence: s.coherence,
     correctionState: s.correctionState,
+    measuredCategory: s.measuredCategory,
   };
 }
 
