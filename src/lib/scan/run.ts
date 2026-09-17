@@ -39,7 +39,7 @@
 // the next visitor is not refused for an in-flight scan that is not
 // running. A correction is not a re-scan: it re-measures inside the scan
 // it corrects and always runs.
-import { CACHE_WINDOWS_D, FREE_RESCAN_WINDOW_D, SELECTION } from "@/lib/config/constants";
+import { CACHE_WINDOWS_D, FREE_RESCAN_WINDOW_D, SELECTION, TIMING } from "@/lib/config/constants";
 import { captureInBackground } from "@/lib/analytics";
 import type { CapName, CostContext } from "@/lib/costs";
 import { dbAdmin } from "@/lib/db";
@@ -74,6 +74,7 @@ import { aiMode, llmScraper, serpOrganic } from "@/lib/vendors/dataforseo";
 import type { AiAnswer, CacheScope, RankedRow, SerpResult } from "@/lib/vendors/dataforseo/types";
 import {
   MARKET_PURSE_CENTS,
+  PAID_SERP_FANOUT,
   SERP_FANOUT,
   affordsSeed,
   twelveCentsAfter,
@@ -83,7 +84,7 @@ import {
 import { withScanBounds, withStoredPassSpend, type Bounds } from "./ceilings";
 import { advanceCorrectionState, readCorrectionFacts, registerCorrectionRunner } from "./correction";
 import { parseDomain, type CanonicalDomain } from "./domain";
-import { marketTooSmall } from "./market-floor";
+import { marketTooSmall, stoppedOnCeiling } from "./market-floor";
 import { readCurrentReport, readScanReport } from "./report";
 import type { AiAnswersSection, StoppedReason, StoredReport, SupplySection, Tier } from "./report";
 import { answersSectionOf, blockedAgentsOf } from "./sections";
@@ -105,11 +106,19 @@ interface TierParameters {
    *  re-run switches it off whatever the tier says — that is the
    *  correction's parameter, not this table's. */
   asyncAiOverview: boolean;
-  /** The ninety-second report ceiling. The deep pass is released at ten
-   *  minutes rather than stopped and the weekly pass runs on the standard
-   *  queue; for both, the cap re-checked between stages is the whole of
-   *  the bound. */
+  /** Whether the ceiling below is raced — the free report's, which a
+   *  visitor is waiting on. A paid pass reads its ceiling between calls, as
+   *  it reads the cap. */
   deadlineApplies: boolean;
+  /** The pass's time ceiling, in seconds (issue 855). The free report's
+   *  `reportCeilingS`; a paid pass's `paidPassCeilingS`, which fits inside
+   *  the job invocation it runs in. The free 50 s used to bound every tier,
+   *  and a deep pass stopped asking its twelve after three SERPs. */
+  ceilingS: number;
+  /** How many of the twelve are bought at once: the free path's waves
+   *  (`SERP_FANOUT`, for its stage budget), a paid pass's one wave
+   *  (`PAID_SERP_FANOUT`, issue 855). */
+  serpFanout: number;
   /** A free scan is never started outside admission control: it adopts the
    *  row the claim already inserted and never inserts a second. The deep
    *  pass is the same (owner ruling, 2026-09-16): setup claims its row when
@@ -207,6 +216,8 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     serpMode: "live",
     asyncAiOverview: true,
     deadlineApplies: true,
+    ceilingS: TIMING.reportCeilingS,
+    serpFanout: SERP_FANOUT,
     adoptsClaim: true,
     servesStoredReport: true,
     sizesRivals: false,
@@ -222,6 +233,8 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     serpMode: "live",
     asyncAiOverview: false,
     deadlineApplies: false,
+    ceilingS: TIMING.paidPassCeilingS,
+    serpFanout: PAID_SERP_FANOUT,
     adoptsClaim: true,
     servesStoredReport: false,
     sizesRivals: true,
@@ -237,6 +250,8 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     serpMode: "std",
     asyncAiOverview: false,
     deadlineApplies: false,
+    ceilingS: TIMING.paidPassCeilingS,
+    serpFanout: PAID_SERP_FANOUT,
     adoptsClaim: false,
     servesStoredReport: false,
     sizesRivals: true,
@@ -656,7 +671,14 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
   const sections = freshSections(startedAt);
   const spend: { cents: number; degraded: boolean } = { cents: 0, degraded: false };
   const { ending } = await withScanBounds(
-    { scanId, startedAt, cap: parameters.cap, deadlineApplies: parameters.deadlineApplies, priorCents },
+    {
+      scanId,
+      startedAt,
+      cap: parameters.cap,
+      ceilingS: parameters.ceilingS,
+      deadlineApplies: parameters.deadlineApplies,
+      priorCents,
+    },
     async (bounds, cost) => {
       try {
         await runStages({
@@ -1187,7 +1209,7 @@ function poolOf(sections: Sections): PoolRow[] {
  *  independent queries — no call reads another's answer — and bought one
  *  after another they were most of the pass's whole time target on their
  *  own, which is the serialised shape that stopped every free scan
- *  finishing. `SERP_FANOUT` of them are in flight at a time; the cap is
+ *  finishing. The tier's `serpFanout` of them are in flight at a time; the cap is
  *  still checked against every reservation in flight, because
  *  `recordFetch` sums them (`src/lib/costs/index.ts`), and `stopNow()` is
  *  still read before each question is taken, so a ceiling reached
@@ -1234,7 +1256,7 @@ async function askTheTwelve(a: StageArgs, abandoned: () => boolean): Promise<voi
     sections.battery.push(noBattery(questions.at));
   }
 
-  // One shared cursor over the twelve, taken by `SERP_FANOUT` workers. A
+  // One shared cursor over the twelve, taken by `serpFanout` workers. A
   // worker re-reads the ceilings before taking a question, so the stage
   // stops asking on the first refusal rather than asking eleven more times
   // and being refused eleven more times.
@@ -1270,7 +1292,7 @@ async function askTheTwelve(a: StageArgs, abandoned: () => boolean): Promise<voi
     }
   };
 
-  await Promise.all(Array.from({ length: Math.min(SERP_FANOUT, asked.length) }, () => buyOne()));
+  await Promise.all(Array.from({ length: Math.min(parameters.serpFanout, asked.length) }, () => buyOne()));
 }
 
 /** The battery nobody bought: both engines on the arm that says we did not
@@ -1488,7 +1510,8 @@ function composeReport(a: {
   // has nothing to be read from. That is the market's answer and not a
   // missing section: presence missing for that reason alone does not
   // degrade the pass. A search-presence read that failed still does.
-  const tooSmall = marketTooSmall(s.questions);
+  // Never for a pass a ceiling stopped (issue 855): it did not finish.
+  const tooSmall = marketTooSmall(s.questions) && !stoppedOnCeiling(a.stoppedReason);
   const missingFactors = verdict.missing.filter(
     (f) => !(tooSmall && f.factor === "presence" && drivers.searchPresence.kind !== "unmeasured")
   );

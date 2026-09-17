@@ -219,8 +219,40 @@ const RIVAL_RANKED: Record<string, readonly (readonly [string, number])[]> = {
 };
 
 /** How much market there is. `thin` is the site this journey is about;
- *  `none` is a market in which nobody searches for anything this site does. */
-let market: "thin" | "none" = "thin";
+ *  `none` is a market in which nobody searches for anything this site does;
+ *  `crowded` is reachkit.app's own on 2026-09-17 (issue 855) — a site that
+ *  ranks for three keywords in a market of right-sized searches whose top
+ *  tens are held by domains that rank for tens of thousands. */
+let market: "thin" | "none" | "crowded" = "thin";
+
+/** Issue 855: seconds each vendor request takes, counted one after another
+ *  on the pass's own clock — slower than any real pass, which buys its
+ *  twelve concurrently. `0` leaves the clock where the test put it. */
+let vendorLatencyS = 0;
+
+/** Issue 855: the crowded market's searches — twelve and more, each inside
+ *  the demand a three-keyword site may be offered (`qualifyingDemand(3)`). */
+const CROWDED_SUGGESTIONS: readonly (readonly [string, number])[] = [
+  ["best bookkeeping software for therapists", 1000],
+  ["bookkeeping software for therapists", 880],
+  ["therapist bookkeeping software", 590],
+  ["accounting software for therapists", 480],
+  ["best accounting app for private practice", 390],
+  ["bookkeeping app for counselors", 320],
+  ["private practice bookkeeping software", 260],
+  ["therapy practice accounting software", 210],
+  ["bookkeeping tool for therapists", 170],
+  ["counselor bookkeeping software", 140],
+  ["bookkeeping platform for private practice", 110],
+  ["best bookkeeping tool for counselors", 90],
+  ["therapist accounting app", 70],
+  ["bookkeeping software for private practice therapists", 60],
+];
+
+/** Issue 855: the domains that hold a crowded top ten — each ranks for tens
+ *  of thousands of keywords — and one small site among them. */
+const GIANTS = ["zapier.com", "ahrefs.com", "forbes.com", "capterra.com", "g2.com"] as const;
+const CROWDED_RIVAL_TOTALS: Record<string, number> = { [RIVALS[0]]: 218_224, [RIVALS[1]]: 59_767 };
 
 /** Issue 837: the broader category that does have searches, once the founder
  *  picks it — its seed answers the thin market's rows. */
@@ -262,6 +294,11 @@ function vendorAnswer(url: string, task: Record<string, unknown>): unknown {
   }
   if (url.includes("keyword_suggestions")) {
     const seed = String(task.keyword ?? "");
+    if (market === "crowded") {
+      return envelope({
+        items: CROWDED_SUGGESTIONS.map(([keyword, volume]) => ({ keyword, keyword_info: { search_volume: volume } })),
+      });
+    }
     if (market === "none" && seed !== broaderCategory) return envelope({ items: [] });
     const rows = THIN_SUGGESTIONS[seed] ?? THIN_FALLBACK;
     return envelope({ items: rows.map(([keyword, volume]) => ({ keyword, keyword_info: { search_volume: volume } })) });
@@ -280,10 +317,30 @@ function vendorAnswer(url: string, task: Record<string, unknown>): unknown {
     if (market === "none") return rankedEnvelope([], 0);
     if (target === DOMAIN) return rankedEnvelope(OWN_RANKED, OWN_RANKED.length);
     const rows = RIVAL_RANKED[target] ?? [];
+    if (market === "crowded") {
+      return rankedEnvelope(
+        rows.map(([keyword, volume]) => [keyword, volume, `https://${target}/`] as const),
+        CROWDED_RIVAL_TOTALS[target] ?? 0
+      );
+    }
     return rankedEnvelope(
       rows.map(([keyword, volume]) => [keyword, volume, `https://${target}/`] as const),
       target === RIVALS[0] ? 60 : 50
     );
+  }
+  // A crowded top ten: the giants and the tracked rivals, one small site,
+  // and no AI Overview on the page.
+  if (market === "crowded") {
+    const domains = [...GIANTS, ...RIVALS, "smallbooks.io"];
+    return envelope({
+      items: domains.map((domain, i) => ({
+        type: "organic",
+        rank_group: i + 1,
+        domain,
+        url: `https://${domain}/${String(task.keyword ?? "").replace(/\s+/g, "-")}`,
+        title: `Page ${i + 1}`,
+      })),
+    });
   }
   // A live organic SERP: the two small rivals hold the top of it.
   return envelope({
@@ -606,6 +663,7 @@ beforeEach(() => {
   vi.setSystemTime(SUBMITTED_AT);
   setUpTheDatabase();
   market = "thin";
+  vendorLatencyS = 0;
   broaderCategory = null;
   queued.length = 0;
   runs.length = 0;
@@ -636,6 +694,7 @@ beforeEach(() => {
       const body = typeof init?.body === "string" ? (JSON.parse(init.body) as unknown[]) : [];
       const task = (body[0] ?? {}) as Record<string, unknown>;
       vendorRequests.push({ url, task });
+      if (vendorLatencyS > 0) vi.setSystemTime(new Date(Date.now() + vendorLatencyS * 1000));
       return { ok: true, status: 200, statusText: "OK", json: async () => vendorAnswer(url, task) };
     })
   );
@@ -919,6 +978,53 @@ describe("a new site in a thin market goes from setup to a published right-sized
       expect(db.rows("drafts").filter((row) => row.site_id === SITE_ID)).toHaveLength(1);
       expect(await releaseNotice({ domain: DOMAIN })).toBeNull();
       expect(await passProgressFor(SITE_ID)).toMatchObject({ running: false });
+    },
+    JOURNEY_TIMEOUT_MS
+  );
+
+  it(
+    "issue 855: a three-keyword site in a crowded market measures all twelve inside its ceiling and sizes its own rivals; an update its hosted destination cannot deliver is never the day's work",
+    async () => {
+      market = "crowded";
+      // Every vendor request takes two seconds, one after another: the free
+      // report's 50 s would stop the pass part-way through its twelve.
+      vendorLatencyS = 2;
+      expect((await submitSetup()).status).toBe(200);
+
+      const [pass] = await deliver("scan/run", SUBMITTED_AT);
+      realTimers();
+      expect(pass).toEqual({ outcome: "ran", subjectId: expect.any(String) });
+
+      const scan = db.rows("scans").find((row) => row.site_id === SITE_ID && row.tier === "deep")!;
+      expect(scan.stopped_reason).toBe("complete");
+      const report = scan.report as {
+        questions: { kind: string; value: unknown[] };
+        serps: { kind: string }[];
+        rivals: { kind: string };
+        rivalSizes: { kind: string; value: { band: string }[] };
+      };
+      // Every question the pass selected had its SERP measured.
+      expect(report.questions.kind).toBe("measured");
+      expect(report.questions.value).toHaveLength(12);
+      expect(report.serps.map((serp) => serp.kind)).toEqual(report.questions.value.map(() => "measured"));
+      expect(report.rivals.kind).toBe("measured");
+      // The rivals were sized by this pass, and both are far from this site.
+      expect(report.rivalSizes.kind).toBe("measured");
+      expect(report.rivalSizes.value.map((size) => size.band)).toEqual(["far", "far"]);
+
+
+      // SPEC §7 (issue 855): an update the hosted destination cannot deliver
+      // is never the day's work and never a day of supply — it is not ready,
+      // no draft is written from it, and supply does not count it.
+      const fixes = db.rows("opportunities").filter((row) => row.site_id === SITE_ID && row.type === "fix_page");
+      expect(fixes.length).toBeGreaterThan(0);
+      for (const fix of fixes) expect(fix).toMatchObject({ ready: false, unready_reason: "destination_cannot_address" });
+      const fixIds = new Set(fixes.map((row) => row.id));
+      expect(db.rows("drafts").filter((row) => fixIds.has(row.opportunity_id))).toEqual([]);
+      const { supplyDepth } = await import("../../src/lib/opportunities");
+      expect((await supplyDepth(SITE_ID)).unused).toBe(
+        db.rows("opportunities").filter((row) => row.site_id === SITE_ID && row.family !== "fix" && row.ready === true).length
+      );
     },
     JOURNEY_TIMEOUT_MS
   );

@@ -54,6 +54,13 @@ function nanoCallsIn(rel: string): number {
  *  over the moment it exists, with no second edit here. */
 const maxRetries = (pins as unknown as { INFERENCE_MAX_RETRIES?: number }).INFERENCE_MAX_RETRIES ?? 0;
 
+describe("a paid pass's time ceiling — issue 855", () => {
+  it("is its own, and fits inside the job invocation its measurement runs in with room to store the report", () => {
+    expect(TIMING.paidPassCeilingS).toBeGreaterThan(TIMING.reportCeilingS);
+    expect(TIMING.jobsCeilingS - TIMING.paidPassCeilingS).toBeGreaterThanOrEqual(30);
+  });
+});
+
 describe("the free pass's two ceilings — issue #456", () => {
   it("the design ceiling is 50 s, and it is below the platform's, not above it", () => {
     expect(TIMING.reportCeilingS).toBe(50);

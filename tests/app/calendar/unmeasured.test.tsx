@@ -77,8 +77,13 @@ const { default: CalendarPage } = await import("@/app/(account)/app/calendar/pag
 const AT = new Date(Date.UTC(2026, 8, 14, 6, 0, 0));
 
 /** The four reads the two supply facts are made of, and nothing else. */
-function storeWith(a: { questions: number; everHeld: boolean }): OpportunityStore {
+function storeWith(a: {
+  questions: number;
+  everHeld: boolean;
+  stoppedReason?: StoredReport["stoppedReason"];
+}): OpportunityStore {
   const report = {
+    stoppedReason: a.stoppedReason ?? "complete",
     questions: measured(Array.from({ length: a.questions }, (_, i) => ({ id: `q${i}` })), AT),
   } as unknown as StoredReport;
   return {
@@ -186,6 +191,15 @@ describe("#784 — the calendar's one supply statement says which zero it is", (
     setOpportunityStore(storeWith({ questions: 12, everHeld: true }));
     const used = render(await CalendarPage({ searchParams: Promise.resolve({ month: MONTH }) }));
     expect(used.querySelector('[data-testid="calendar-market-choice"]')).toBeNull();
+  });
+
+  it("issue 855: a pass stopped on its time ceiling is still being measured — never 'too small', and no broader category is offered", async () => {
+    setOpportunityStore(storeWith({ questions: 12, everHeld: false, stoppedReason: "time_ceiling" }));
+    const page = render(await CalendarPage({ searchParams: Promise.resolve({ month: MONTH }) }));
+    expect(page.querySelector('[data-testid="calendar-supply-statement"]')?.textContent).toBe(
+      COPY["calendar.supply.measuring"]
+    );
+    expect(page.querySelector('[data-testid="calendar-market-choice"]')).toBeNull();
   });
 
   it("a measured-ness read that fails states neither", async () => {

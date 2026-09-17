@@ -55,7 +55,7 @@ beforeEach(() => {
 });
 
 describe("REQ-029 c3 — a degraded pass yields one key naming what could not be measured", () => {
-  it("a report that stopped at a ceiling yields the unmeasured key, with the parts it missed", async () => {
+  it("a report that stopped at a ceiling is still being measured (issue 855), with the parts it missed", async () => {
     stored = asStored(
       unreachedSections({
         market: unmeasured("not_attempted", AT),
@@ -63,7 +63,7 @@ describe("REQ-029 c3 — a degraded pass yields one key naming what could not be
       })
     );
     const notice = await releaseNotice({ domain: "example.com" });
-    expect(notice?.key).toBe("setup.release.unmeasured");
+    expect(notice?.key).toBe("setup.release.measuring");
     expect(notice?.parts).toContain("market");
     expect(notice?.parts).toContain("rivals");
   });

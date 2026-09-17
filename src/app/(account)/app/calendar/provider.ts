@@ -145,10 +145,12 @@ export const readSupplyNotice = cache(async function readSupplyNotice(): Promise
     const unused = FIXTURE_CALENDAR_FACTS.unusedSupply;
     return unused === 0 ? { kind: "exhausted", days: 0, since: null } : null;
   }
-  const { supplyNotice, supplyMeasured } = await import("@/lib/opportunities");
+  const { supplyNotice, supplyState } = await import("@/lib/opportunities");
   const notice = await supplyNotice({ siteId: site.siteId });
   if (notice?.kind !== "exhausted") return notice;
-  const measured = await supplyMeasured(site.siteId).catch(() => null);
-  if (measured === null) return null;
-  return measured ? notice : { kind: "unmeasured" };
+  const state = await supplyState(site.siteId).catch(() => null);
+  if (state === null) return null;
+  // Issue 855: a pass stopped on a ceiling is still being measured.
+  if (state === "measuring") return { kind: "measuring" };
+  return state === "measured" ? notice : { kind: "unmeasured" };
 });

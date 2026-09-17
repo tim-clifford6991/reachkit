@@ -9,7 +9,7 @@ import { fakeDb } from "../../publish/harness";
 const db = fakeDb();
 vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client }));
 
-const { sitesWithoutDeepPass, deepPassDomain } = await import("@/lib/scan/deep/backstop");
+const { sitesWithoutDeepPass, deepPassDomain, deepPassCutShort } = await import("@/lib/scan/deep/backstop");
 const { TIMING } = await import("@/lib/config/constants");
 
 const NOW = new Date("2026-09-16T12:00:00.000Z");
@@ -52,6 +52,26 @@ describe("sitesWithoutDeepPass", () => {
     db.seed("sites", []);
     expect(await sitesWithoutDeepPass(NOW)).toEqual([]);
     expect(db.queries.filter((q) => q.table === "scans")).toHaveLength(0);
+  });
+
+  it("issue 855: a finished setup whose newest deep pass stopped on a ceiling is owed the pass again; a finished or running one is not", async () => {
+    const ran = db.rows("scans")[1]!;
+    Object.assign(ran, { stopped_reason: "time_ceiling", status: "degraded", created_at: minutesAgo(18) });
+    expect(await sitesWithoutDeepPass(NOW)).toEqual(["dropped", "ran"]);
+    expect(await deepPassCutShort("ran")).toBe(true);
+    expect(await deepPassCutShort("dropped")).toBe(false);
+
+    ran.stopped_reason = "spend_ceiling";
+    expect(await sitesWithoutDeepPass(NOW)).toEqual(["dropped", "ran"]);
+
+    // Measured again and still under way: nothing more is owed.
+    db.rows("scans").push({ id: "again", site_id: "ran", tier: "deep", status: "running", created_at: minutesAgo(2) });
+    expect(await sitesWithoutDeepPass(NOW)).toEqual(["dropped"]);
+
+    // That pass finished: the site is measured.
+    Object.assign(db.rows("scans").at(-1)!, { status: "done", stopped_reason: "complete" });
+    expect(await sitesWithoutDeepPass(NOW)).toEqual(["dropped"]);
+    expect(await deepPassCutShort("ran")).toBe(false);
   });
 
   it("the address a re-send carries is the site's own, and a site gone since is null", async () => {

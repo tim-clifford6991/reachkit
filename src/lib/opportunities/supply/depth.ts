@@ -15,6 +15,7 @@
 // and no materialised view: a count with a second home drifts from the
 // rows it counts, and a customer told supply is short while it is not is
 // the failure mode that drift produces.
+import { stoppedOnCeiling } from "@/lib/scan/market-floor";
 import { opportunityStore } from "../store";
 
 export interface Depth {
@@ -65,4 +66,17 @@ export async function supplyMeasured(siteId: string): Promise<boolean> {
   const questions = report?.questions;
   const asked = questions !== undefined && questions.kind !== "unmeasured" && questions.value.length > 0;
   return asked && lastChange !== null;
+}
+
+/** What a site's zero supply is, for a screen that states it (issue 855):
+ *  `measured` — a market used up; `unmeasured` — one never measured
+ *  (`supplyMeasured`, issue 765); `measuring` — the current report is a pass
+ *  a ceiling stopped before it finished reading the market, which is being
+ *  measured again and is never told to pick a broader category. */
+export type SupplyState = "measured" | "unmeasured" | "measuring";
+
+export async function supplyState(siteId: string): Promise<SupplyState> {
+  const report = await opportunityStore().currentReport(siteId);
+  if (report !== null && stoppedOnCeiling(report.stoppedReason)) return "measuring";
+  return (await supplyMeasured(siteId)) ? "measured" : "unmeasured";
 }

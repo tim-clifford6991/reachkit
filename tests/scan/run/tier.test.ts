@@ -68,6 +68,7 @@ vi.mock("@/lib/scan/correction", () => ({
 }));
 
 const { runScan, TIER_PARAMETERS } = await import("../../../src/lib/scan/run");
+const { TIMING } = await import("../../../src/lib/config/constants");
 
 const RUN_SOURCE = readFileSync(path.resolve(import.meta.dirname, "../../../src/lib/scan/run.ts"), "utf8");
 
@@ -179,6 +180,10 @@ describe("what does differ is exactly the looked-up parameters", () => {
     expect(TIER_PARAMETERS.free).toMatchObject({ cap: "FREE", deadlineApplies: true, adoptsClaim: true });
     expect(TIER_PARAMETERS.deep).toMatchObject({ cap: "DEEP", deadlineApplies: false, adoptsClaim: true });
     expect(TIER_PARAMETERS.weekly).toMatchObject({ cap: "WEEKLY", deadlineApplies: false, adoptsClaim: false });
+    // Issue 855: a paid pass's ceiling is its own, never the free report's.
+    expect(TIER_PARAMETERS.free.ceilingS).toBe(TIMING.reportCeilingS);
+    expect(TIER_PARAMETERS.deep.ceilingS).toBe(TIMING.paidPassCeilingS);
+    expect(TIER_PARAMETERS.weekly.ceilingS).toBe(TIMING.paidPassCeilingS);
   });
 
   it("the weekly pass inserts its own row; the free path adopts admission's and the deep pass setup's", async () => {

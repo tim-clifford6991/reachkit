@@ -44,9 +44,18 @@ export const deepPassBackstop = Object.freeze({
     return sitesWithoutDeepPass(new Date());
   },
   async handOff(siteId: string): Promise<EngineResult> {
-    const { deepPassDomain } = await import("@/lib/scan/deep/backstop");
+    const { deepPassDomain, deepPassCutShort } = await import("@/lib/scan/deep/backstop");
     const domain = await deepPassDomain(siteId);
     if (domain === null) return { done: true };
+    // A pass a ceiling stopped is measured again on a fresh row, under the
+    // re-measure's own bound (issue 855); a refusal starts nothing and the
+    // next tick asks again.
+    if (await deepPassCutShort(siteId)) {
+      const { startRemeasure } = await import("@/lib/scan/deep/remeasure");
+      const start = await startRemeasure({ siteId, domain });
+      console.log(JSON.stringify({ event: "deep_pass_cut_short_remeasured", siteId, started: start.started }));
+      return { done: true };
+    }
     await sendDeepPass({ siteId, domain });
     console.log(JSON.stringify({ event: "deep_pass_re_enqueued", siteId }));
     return { done: true };

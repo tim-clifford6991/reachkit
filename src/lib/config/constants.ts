@@ -424,6 +424,13 @@ export const TIMING = Object.freeze({
    *  reads, rival sizing, the extra seeds) runs in one invocation and does
    *  not fit in the free request path's 60. Issue 798. */
   jobsCeilingS: 300,
+  /** The time ceiling on a paid pass's measurement (deep and weekly), in
+   *  seconds — its own, never the free report's `reportCeilingS` (issue
+   *  855). The measurement step runs in one `/api/jobs` invocation, so the
+   *  ceiling sits inside `jobsCeilingS` with room to compose and store the
+   *  report before the platform freezes the invocation. A deep pass read
+   *  against the free 50 s stopped after three of its twelve SERPs. */
+  paidPassCeilingS: 240,
   /** How long before `platformCeilingS` a free pass still running in its
    *  request marks its own row `failed` (issue 798). Past the design
    *  ceiling a pass is only storing its partial report; one still going

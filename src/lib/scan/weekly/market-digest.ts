@@ -19,7 +19,7 @@
 // next tick offers the week again. A row still `running` is not read; if it
 // finishes too small after the digest went, the next tick sends it alone.
 import { dbAdmin } from "@/lib/db";
-import { marketTooSmall } from "../market-floor";
+import { marketTooSmall, stoppedOnCeiling } from "../market-floor";
 import { readStoredReport } from "../report";
 
 // `scans.week_start`, `scans.market_digest_at` are on disk and not in the
@@ -101,7 +101,9 @@ export async function sendMarketDigest(weekStart: string, now: Date): Promise<bo
   for (const row of rows) {
     if (row.report === null || row.report === undefined) continue;
     try {
-      if (marketTooSmall(readStoredReport(row.report).questions)) tooSmall.push(row.id);
+      const report = readStoredReport(row.report);
+      // A pass a ceiling stopped did not finish reading its market (issue 855).
+      if (marketTooSmall(report.questions) && !stoppedOnCeiling(report.stoppedReason)) tooSmall.push(row.id);
     } catch {
       // A report this build cannot read is not a market this digest can judge.
       console.warn(JSON.stringify({ event: "market_digest_unreadable_report", scanId: row.id }));

@@ -25,6 +25,7 @@ export type OnboardingState =
  *  the Overview's to mark section by section, not the panel's. */
 const PANEL_NOTICES: readonly CopyKey[] = Object.freeze([
   "setup.release.market-too-small",
+  "setup.release.measuring",
   "setup.release.incomplete",
 ]);
 

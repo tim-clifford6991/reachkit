@@ -138,6 +138,15 @@ export function affordsSeed(a: { remainingCents: number; selected: number }): bo
  *  and is deliberately not reused: this is one pass's own. */
 export const SERP_FANOUT = 4;
 
+/** A paid pass's twelve, all at once (issue 855). The free path's waves
+ *  exist for its 13-second stage budget and its 12¢; a paid pass has
+ *  neither, and each of its questions is three calls — the SERP, the
+ *  ChatGPT read on the standard queue and AI Mode — so three waves of four
+ *  are three times the slowest question's calls, which a job invocation's
+ *  ceiling does not hold. Twelve at once is one wave; the cap is still
+ *  checked against every reservation in flight. */
+export const PAID_SERP_FANOUT = 12;
+
 /** What a stage's work came back with, or the fact that the stage spent its
  *  budget before the work finished. `spent` is never an error: the stage's
  *  sections keep the arm they were initialised with — `not_attempted`, "we

@@ -298,6 +298,9 @@ export const OVERVIEW_COPY = Object.freeze({
   // issue 784 (issue 765's distinction, 2026-09-16): zero supply over a market that
   // was never measured is not "no pages left". Drafted under issue 759's ruling.
   "overview.supply.unmeasured": ["Nothing in your market is ready to write yet, so no pages are planned. Pick a broader category and we’ll measure again right away.", { slots: {}, fixedBy: "issue 784" }],
+  // issue 855: zero supply because the pass that should have filled it stopped
+  // on a ceiling. Drafted under issue 759's ruling.
+  "overview.supply.measuring": ["Your market is still being measured, so no pages are planned yet. ReachKit measures it again automatically.", { slots: {}, fixedBy: "issue 855" }],
   "overview.supply.short": ["Fewer than a week of pages is left. Monday’s re-measure looks for more.", { slots: {}, fixedBy: "REQ-095 c5" }],
   "overview.supply.first-arrival": ["Your first pass found less than a month of pages. We look for more every Monday.", { slots: {}, fixedBy: "REQ-095 c6" }],
 

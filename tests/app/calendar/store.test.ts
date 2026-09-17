@@ -24,6 +24,7 @@ vi.mock("@/lib/opportunities", () => ({
   // #765: a zero depth's market was measured and used up, unless a row
   // says otherwise.
   supplyMeasured: async () => true,
+  supplyState: async () => "measured",
   nextForDay: (...a: unknown[]) => nextForDay(...a),
   rankOpen: (...a: unknown[]) => rankOpen(...a),
   explainChoice: (...a: unknown[]) => explainChoice(...a),

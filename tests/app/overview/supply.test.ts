@@ -13,6 +13,7 @@ import {
 const facts = (over: Partial<SupplyFacts> = {}): SupplyFacts => ({
   exhausted: false,
   unmeasured: false,
+  measuring: false,
   short: false,
   firstArrivalShortfall: false,
   ...over,
@@ -45,6 +46,7 @@ describe("one statement, never two", () => {
 describe("the order is data, not the shape of an if-chain", () => {
   it("the precedence names each condition once, strongest claim first", () => {
     expect(SUPPLY_PRECEDENCE.map((row) => row.when)).toEqual([
+      "measuring",
       "exhausted",
       "unmeasured",
       "short",
