@@ -281,12 +281,16 @@ describe("an established market is unchanged", () => {
   ];
 
   it("buys one seed, selects over the suggestions alone at 50/mo, and sizes rivals in the presence stage", async () => {
+    // An established market is an established site's: its footprint admits
+    // every search here under the demand ceiling (issue 830).
+    measureDomain.mockResolvedValue({ ...MEASUREMENT, ownRanked: measured(30_000, AT) });
     keywordSuggestions.mockImplementation(async () => suggestions(ESTABLISHED));
     await deepPass();
 
     expect(keywordSuggestions).toHaveBeenCalledTimes(1);
     const expected = selectTwelve({
       profile: PROFILE,
+      ownRanked: 30_000,
       market: ESTABLISHED.map(([keyword, volume]) => ({ keyword, volume })),
     });
     expect(expected).toHaveLength(12);

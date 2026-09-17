@@ -11,6 +11,7 @@ import type { Profile } from "../../../src/lib/market/questions/profile.ts";
 import type { SuggestionRow } from "../../../src/lib/market/questions/market-set.ts";
 import { derivableMarket, rederiveQuestions } from "../../../src/lib/market/questions/rederive.ts";
 import { passesRelevanceGuard, selectTwelve } from "../../../src/lib/market/questions/select.ts";
+import { qualifyingDemand } from "../../../src/lib/opportunities/winnability/bars.ts";
 import {
   headTermOf,
   pooledMarket,
@@ -22,6 +23,10 @@ const FIXTURE = JSON.parse(
   readFileSync(path.join(__dirname, "fixtures/market-set.json"), "utf8")
 ) as { profile: Profile; market: SuggestionRow[] };
 const PROFILE = FIXTURE.profile;
+/** An established site: 30,000 ranked keywords puts the demand ceiling
+ *  (`qualifyingDemand`) far above every fixture search, so these suites
+ *  read selection's other rules alone. */
+const OWN_RANKED = 30_000;
 
 beforeEach(() => {
   vi.spyOn(console, "log").mockImplementation(() => {});
@@ -53,8 +58,8 @@ describe("the pool and the steps", () => {
       { keyword: "appcues pricing", volume: 90000, rival: "appcues.com" },
       { keyword: "onboarding", volume: 50000, rival: null },
     ];
-    expect(selectWidened({ profile: PROFILE, suggestions: FIXTURE.market, pool })).toEqual(
-      selectTwelve({ profile: PROFILE, market: FIXTURE.market })
+    expect(selectWidened({ profile: PROFILE, ownRanked: OWN_RANKED, suggestions: FIXTURE.market, pool })).toEqual(
+      selectTwelve({ profile: PROFILE, ownRanked: OWN_RANKED, market: FIXTURE.market })
     );
   });
 
@@ -76,7 +81,7 @@ describe("the pool and the steps", () => {
       { keyword: "product tour tool", volume: 10 },
       { keyword: "walkthrough software", volume: 9 },
     ];
-    const selected = selectWidened({ profile: PROFILE, suggestions, pool: [] });
+    const selected = selectWidened({ profile: PROFILE, ownRanked: OWN_RANKED, suggestions, pool: [] });
     expect(selected.map((s) => [s.keyword, s.floor])).toEqual(
       expect.arrayContaining([
         ["user onboarding software", 50],
@@ -89,19 +94,40 @@ describe("the pool and the steps", () => {
   });
 
   it("stops at the first step that reaches twelve", () => {
-    const eleven = selectTwelve({ profile: PROFILE, market: FIXTURE.market })
+    const eleven = selectTwelve({ profile: PROFILE, ownRanked: OWN_RANKED, market: FIXTURE.market })
       .slice(0, 11)
       .map((s) => ({ keyword: s.keyword, volume: s.volume }));
-    expect(selectTwelve({ profile: PROFILE, market: eleven })).toHaveLength(11);
+    expect(selectTwelve({ profile: PROFILE, ownRanked: OWN_RANKED, market: eleven })).toHaveLength(11);
 
     const selected = selectWidened({
       profile: PROFILE,
+      ownRanked: OWN_RANKED,
       suggestions: [...eleven, { keyword: "tooltip software", volume: 25 }, { keyword: "signup checklist", volume: 12 }],
       pool: [],
     });
     expect(selected).toHaveLength(BATTERY.QUESTIONS);
     expect(selected.find((s) => s.keyword === "tooltip software")?.floor).toBe(20);
     expect(selected.some((s) => s.keyword === "signup checklist")).toBe(false);
+  });
+});
+
+describe("widening under the demand ceiling (issue 830)", () => {
+  it("a head term a small site cannot win takes no slot, so widening keeps reading until right-sized searches fill it", () => {
+    const eleven = selectTwelve({ profile: PROFILE, ownRanked: OWN_RANKED, market: FIXTURE.market })
+      .filter((s) => s.volume <= qualifyingDemand(3))
+      .map((s) => ({ keyword: s.keyword, volume: s.volume }));
+    const suggestions = [...eleven, { keyword: "user onboarding software", volume: 22_000 }];
+
+    const selected = selectWidened({
+      profile: PROFILE,
+      ownRanked: 3,
+      suggestions,
+      pool: [{ keyword: "onboarding tooltip", volume: 20, rival: null }],
+    });
+
+    expect(selected.map((s) => s.keyword)).not.toContain("user onboarding software");
+    expect(selected.map((s) => s.keyword)).toContain("onboarding tooltip");
+    for (const search of selected) expect(search.volume).toBeLessThanOrEqual(qualifyingDemand(3));
   });
 });
 
@@ -120,6 +146,7 @@ describe("a category corrected at setup re-derives with the same pool and steps"
   it("a thin stored market yields questions where the 50/mo cut yielded none", () => {
     const carried = derivableMarket({
       profile: PROFILE,
+      ownRanked: OWN_RANKED,
       suggestions: [
         { keyword: "employee scheduling app", volume: 20 },
         { keyword: "shift planner", volume: 4 },

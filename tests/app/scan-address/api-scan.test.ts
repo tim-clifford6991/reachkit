@@ -44,9 +44,14 @@ vi.mock("next/server", () => ({
 // — is loaded by this suite, exactly as the admission mock above does one
 // layer down.
 vi.mock("@/lib/scan/run", () => ({ runScan: vi.fn() }));
+// The sweep's guarded write, which the route reaches for when a pass is
+// still running as its request's budget ends (issue 798).
+vi.mock("@/lib/scan/stuck", () => ({ finishScanLeftRunning: vi.fn(async () => ({ finished: true })) }));
 
 import { networkKeyOf, claimFreeScanSlot } from "@/lib/scan/admission";
 import { runScan } from "@/lib/scan/run";
+import { finishScanLeftRunning } from "@/lib/scan/stuck";
+import { TIMING } from "@/lib/config/constants";
 import type { Admission, NetworkKey } from "@/lib/scan/admission";
 import type { CanonicalDomain } from "@/lib/scan/domain";
 import { POST, maxDuration } from "@/app/api/scan/route";
@@ -395,5 +400,39 @@ describe("issue #438 — the pipeline is registered with the keep-alive seam, ne
     // see is a ceiling the platform never applies.
     expect(ROUTE_SOURCE).toMatch(/export const maxDuration = \d+;/);
     expect(ROUTE_SOURCE.match(/export const maxDuration/g)).toHaveLength(1);
+  });
+});
+
+describe("issue 798 — a free pass still running when its request's budget ends leaves no running row behind", () => {
+  beforeEach(() => {
+    vi.mocked(finishScanLeftRunning).mockClear();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("api/scan · the row is marked failed before the platform freezes the invocation", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
+    vi.mocked(runScan).mockReturnValue(new Promise(() => {}));
+
+    await POST(postJson("example.com"));
+    const task = afterTasks[0]!();
+
+    await vi.advanceTimersByTimeAsync((TIMING.platformCeilingS - TIMING.requestBudgetMarginS) * 1000 - 1);
+    expect(finishScanLeftRunning).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
+    await task;
+    expect(finishScanLeftRunning).toHaveBeenCalledWith("claimed-scan-id");
+  });
+
+  it("api/scan · a pass that ends inside the budget is left to its own ending", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
+    vi.mocked(runScan).mockResolvedValue({ scanId: "claimed-scan-id", status: "done" });
+
+    await POST(postJson("example.com"));
+    await afterTasks[0]!();
+    await vi.advanceTimersByTimeAsync(TIMING.platformCeilingS * 1000);
+    expect(finishScanLeftRunning).not.toHaveBeenCalled();
   });
 });

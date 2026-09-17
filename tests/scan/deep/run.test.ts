@@ -28,9 +28,20 @@ vi.mock("@/lib/db", () => ({
  *  the pipeline adopts it. Its rows are `run.ts`'s and tested there. */
 const claimed = vi.fn<(a: { siteId: string; domain: string }) => Promise<string>>(async () => "claimed-scan");
 
+/** The pass's own money after the store (issue 798): the seam that reads
+ *  the stored report back and opens the context is `run.ts`'s, tested
+ *  there; here it hands the body a report and a context. */
+const afterStore = vi.fn();
+const STORED = { scanId: "scan-1" } as unknown;
+const COST = { cap: "DEEP" } as unknown;
+
 vi.mock("@/lib/scan/run", () => ({
   runScan: (a: unknown) => pipeline(a),
   claimOnboardingPass: (a: { siteId: string; domain: string }) => claimed(a),
+  spendOnStoredReport: async (a: unknown, body: (b: { report: unknown; cost: unknown }) => Promise<void>) => {
+    afterStore(a);
+    await body({ report: STORED, cost: COST });
+  },
 }));
 
 const { reasonFor, runDeepPass } = await import("../../../src/lib/scan/deep/run");
@@ -62,28 +73,54 @@ beforeEach(() => {
   });
 });
 
-describe("the pass's measurements become supply (issue #126)", () => {
-  it("hands the pipeline an afterReport hook that pursues §7's depth, on this pass's own money", async () => {
+describe("the pass's measurements become supply (issue #126), as a step after the pass's (issue 798)", () => {
+  it("derives §7's depth from the stored report, on the pass's own money, in a step of its own", async () => {
     pipeline.mockResolvedValue({ scanId: "scan-1", status: "done" });
     const derive = vi.fn();
     vi.doMock("@/lib/opportunities", () => ({ deriveForPass: derive }));
     vi.resetModules();
     const { runDeepPass: freshRunDeepPass } = await import("../../../src/lib/scan/deep/run");
 
-    await freshRunDeepPass({ siteId: SITE, domain: "example.com" });
-    const args = pipeline.mock.calls[0]![0] as { afterReport?: (a: unknown) => Promise<void> };
-    expect(typeof args.afterReport).toBe("function");
+    const steps: string[] = [];
+    await freshRunDeepPass({
+      siteId: SITE,
+      domain: "example.com",
+      step: async (name, body) => {
+        steps.push(name);
+        if (name === "opportunities") expect(derive).not.toHaveBeenCalled();
+        // The platform stores each answer and hands back plain data.
+        return JSON.parse(JSON.stringify((await body()) ?? null));
+      },
+    });
 
-    const cost = { cap: "DEEP" } as unknown;
-    const report = { scanId: "scan-1" } as unknown;
-    await args.afterReport?.({ report, cost });
-    expect(derive).toHaveBeenCalledWith(cost, {
+    expect(steps).toEqual(["deep-pass", "opportunities", "first-draft"]);
+    // The pipeline no longer derives inside the pass's invocation.
+    expect((pipeline.mock.calls[0]![0] as { afterReport?: unknown }).afterReport).toBeUndefined();
+    expect(afterStore).toHaveBeenCalledWith({ scanId: "scan-1", tier: "deep" });
+    expect(derive).toHaveBeenCalledWith(COST, {
       tier: "deep",
       siteId: SITE,
-      report,
+      report: STORED,
       // Onboarding's pass runs on a payment that has just cleared.
       hasActiveAccess: true,
     });
+    vi.doUnmock("@/lib/opportunities");
+    vi.resetModules();
+  });
+
+  it("a derivation that throws still releases the founder — zero proposals is legal", async () => {
+    pipeline.mockResolvedValue({ scanId: "scan-1", status: "done" });
+    vi.doMock("@/lib/opportunities", () => ({
+      deriveForPass: async () => {
+        throw new Error("the derivation blew up");
+      },
+    }));
+    vi.resetModules();
+    const { runDeepPass: freshRunDeepPass } = await import("../../../src/lib/scan/deep/run");
+
+    const out = await freshRunDeepPass({ siteId: SITE, domain: "example.com" });
+    expect(out.reason).toBe("completed");
+    expect(db.tables.sites![0]!.setup_released_reason).toBe("completed");
     vi.doUnmock("@/lib/opportunities");
     vi.resetModules();
   });

@@ -236,7 +236,15 @@ async function readQuestionsFor(domain: string): Promise<SetupQuestions | null> 
   return {
     scanId: report.scanId,
     items: rows.map((row) => row.question),
-    derivable: report.market.kind === "unmeasured" ? null : derivableMarket(report.market.value),
+    derivable:
+      report.market.kind === "unmeasured"
+        ? null
+        : derivableMarket({
+            ...report.market.value,
+            // The cold-start 0 where the scan could not count — the same
+            // reading the pass selected under (issue 830).
+            ownRanked: report.ownRanked.kind === "unmeasured" ? 0 : report.ownRanked.value,
+          }),
   };
 }
 

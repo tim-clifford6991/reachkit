@@ -99,6 +99,14 @@ function embed(db: FakeDb, table: string, columns: string, row: Row): Row {
   if (names(columns, "sites")) {
     out.sites = db.rows("sites").find((s) => s.id === row.site_id) ?? null;
   }
+  // A site's owner, and its destinations as a list — the hosted edge's
+  // serving question reads both (`account/billing/store.ts`).
+  if (table === "sites" && names(columns, "users")) {
+    out.users = db.rows("users").find((u) => u.id === row.user_id) ?? null;
+  }
+  if (table === "sites" && names(columns, "destinations")) {
+    out.destinations = db.rows("destinations").filter((d) => d.site_id === row.id);
+  }
   if (names(columns, "opportunities")) {
     out.opportunities =
       db.rows("opportunities").find((o) => o.id === row.opportunity_id) ?? null;

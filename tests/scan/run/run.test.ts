@@ -149,7 +149,9 @@ const KEYWORDS = [
   "user onboarding app",
   "onboarding platform for saas",
 ];
-const TWELVE = KEYWORDS.map((keyword, i) => ({ ...SELECTED, keyword, rank: i + 1 }));
+// 900/mo: under the demand ceiling of the cold-start site `measurement()`
+// describes, so selection keeps every one (issue 830).
+const TWELVE = KEYWORDS.map((keyword, i) => ({ ...SELECTED, keyword, volume: 900, rank: i + 1 }));
 const TWELVE_QUESTIONS = TWELVE.map((search, i) => ({ ...QUESTION, id: `q${i + 1}`, search }));
 
 function happyPath(): void {
@@ -238,6 +240,10 @@ describe("the six stages", () => {
 
   it("the stored report carries its one first-page proposal — the best right-sized search, or none (#787)", async () => {
     // At 1,900/mo every search is outsized for a site that ranks for nothing.
+    // Selection no longer keeps such a search (issue 830); the phrasing
+    // double hands them over anyway, so the proposal's own guard is read.
+    const outsized = TWELVE_QUESTIONS.map((q) => ({ ...q, search: { ...q.search, volume: 1900 } }));
+    phraseQuestions.mockResolvedValue(measured(outsized, AT));
     await runScan({ domain: DOMAIN, tier: "free" });
     expect(storedReport().freePage).toBeNull();
 

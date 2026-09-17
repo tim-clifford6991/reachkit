@@ -185,7 +185,9 @@ function vendorAnswer(url: string): unknown {
     return envelope({
       items: SUGGESTIONS.map((keyword, i) => ({
         keyword,
-        keyword_info: { search_volume: 4000 - i * 120 },
+        // Right-sized for a site that ranks for nothing: every search is
+        // under the demand ceiling selection applies (issue 830).
+        keyword_info: { search_volume: 900 - i * 30 },
       })),
     });
   }

@@ -86,6 +86,18 @@ const client = {
   from: (table: string) => db.client.from(table),
   rpc: (fn: string, args: unknown) => {
     db.rpcCalls.push({ fn, args: args as Record<string, unknown> });
+    // The stored report lands on the pass's row, as the procedure writes
+    // it — a jsonb column, so a later step reads back plain data (issue 798).
+    if (fn === "store_current_report") {
+      const a = args as Record<string, unknown>;
+      for (const row of scanRows.filter((held) => held.id === a.p_scan_id)) {
+        Object.assign(row, {
+          report: JSON.parse(JSON.stringify(a.p_report)),
+          status: a.p_status,
+          cost_cents: a.p_cost_cents,
+        });
+      }
+    }
     return Promise.resolve({ data: rpcAnswers[fn] ?? null, error: null });
   },
 };
@@ -503,6 +515,7 @@ beforeEach(() => {
   db.answer = answerQuery;
   db.singles.set("scans", { id: "scan-journey-04" });
   scanRows.length = 0;
+  steps.length = 0;
   for (const key of Object.keys(rpcAnswers)) delete rpcAnswers[key];
   rpcAnswers.apply_setup_choice = "destination-journey-04";
 
@@ -589,9 +602,18 @@ async function runTheQueuedPass(): Promise<{ status: string; reason: string }> {
   const result = await runDeepPass({
     siteId: queued.payload.siteId as string,
     domain: queued.payload.domain as string,
+    // The job platform's steps: each answer is stored and handed back as
+    // plain data, never the object the step returned (issue 798).
+    step: async (name, body) => {
+      steps.push(name);
+      return JSON.parse(JSON.stringify((await body()) ?? null));
+    },
   });
   return { status: result.status, reason: result.reason };
 }
+
+/** The steps the onboarding pass ran, in order. */
+const steps: string[] = [];
 
 /** The `fetches` rows the pass wrote — the ledger, as the product would
  *  have stored it. */
@@ -872,6 +894,17 @@ describe("three decisions → deep pass → the first page already on the calend
         const asked = JSON.parse(call) as { derivedType: string; allowedTypes: string[] };
         expect(asked.allowedTypes).toContain(asked.derivedType);
       }
+
+      // Issue 798: the derivation is a step of its own, after the pass's,
+      // and the typing it paid for is in the row's cost — every ledgered
+      // call, not only the stages'.
+      expect(steps).toEqual(["deep-pass", "opportunities", "first-draft"]);
+      const spent = ledger().reduce((total, row) => total + row.costCents, 0);
+      const typingCents = ledger()
+        .filter((row) => row.source === "opportunity-typing")
+        .reduce((total, row) => total + row.costCents, 0);
+      expect(typingCents).toBeGreaterThan(0);
+      expect(Number(scanRows[0]!.cost_cents)).toBeCloseTo(spent, 6);
     },
     JOURNEY_TIMEOUT_MS
   );
