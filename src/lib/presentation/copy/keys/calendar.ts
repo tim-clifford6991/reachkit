@@ -195,7 +195,7 @@ export const CALENDAR_COPY = Object.freeze({
   // never held an opportunity — is not "used up". Its own line, in the cell
   // and the panel alike. Drafted and shipped under #759's ruling.
   "calendar.empty.supply-unmeasured": [
-    "We couldn’t find enough searches for your market yet. Try a broader category in Settings — we’ll measure again on Monday.",
+    "We couldn’t find enough searches for your market yet. Pick a broader category and we’ll measure again right away.",
     { slots: {}, fixedBy: "REQ-043 c3" },
   ],
   // S15's `empty` arm leads with a chip carrying this word, so a date with
@@ -236,7 +236,7 @@ export const CALENDAR_COPY = Object.freeze({
   "calendar.supply.exhausted": ["Nothing worth publishing is left in your market, since {since}. Monday’s re-measure looks for more.", { slots: { since: "date" }, fixedBy: "BUILD §4.6" }],
   // issue 784: the same statement over a market that was never measured (issue 765)
   // — there was nothing to use up. Drafted under issue 759's ruling.
-  "calendar.supply.unmeasured": ["We couldn’t find enough searches in your market to plan pages yet. A broader category in Settings usually helps — we’ll measure again on Monday.", { slots: {}, fixedBy: "issue 784" }],
+  "calendar.supply.unmeasured": ["We couldn’t find enough searches in your market to plan pages yet. Pick a broader category and we’ll measure your market again right away.", { slots: {}, fixedBy: "issue 784" }],
   "calendar.supply.short": ["Supply is running short. Pages left: {days}. Monday’s re-measure looks for more.", { slots: { days: "text" }, fixedBy: "BUILD §4.6" }],
   "calendar.supply.first-arrival": ["Your first pass found less than a month of pages — {days} so far. We look for more every Monday.", { slots: { days: "text" }, fixedBy: "BUILD §4.6" }],
 

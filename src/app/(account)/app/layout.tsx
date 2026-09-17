@@ -27,6 +27,7 @@ import { StoppedNotice } from "./_shell/StoppedNotice";
 import { ThemeToggle } from "@/app/_theme/ThemeToggle";
 import { readShell } from "./_shell/provider";
 import { readOnboarding } from "./_shell/onboarding";
+import { MARKET_TOO_SMALL, readCategoryChoice } from "./_shell/remeasure";
 import { OnboardingStatus } from "./_shell/OnboardingStatus";
 
 /** The product's mark, as the public header draws it, linking home to /app. */
@@ -47,6 +48,10 @@ export default async function AppLayout({
   children: React.ReactNode;
 }): Promise<React.JSX.Element> {
   const [shell, onboarding] = await Promise.all([readShell(), readOnboarding()]);
+  // Issue 837: a market too small is offered broader categories beside its
+  // notice, and any one of them measures again now.
+  const choice =
+    onboarding.kind === "notice" && onboarding.key === MARKET_TOO_SMALL ? await readCategoryChoice() : null;
 
   return (
     <Surface
@@ -68,7 +73,7 @@ export default async function AppLayout({
             </div>
           </div>
           <SidebarNav waiting={shell.waiting} row />
-          <OnboardingStatus key={onboarding.kind} state={onboarding} />
+          <OnboardingStatus key={onboarding.kind} state={onboarding} choice={choice} />
           <PublishingCard shell={shell} />
           <ThemeToggle />
         </header>
@@ -86,7 +91,7 @@ export default async function AppLayout({
             </div>
             {/* Issue #782: the deep pass and the first draft run in the
                 background; the panel says which step until they end. */}
-            <OnboardingStatus key={onboarding.kind} state={onboarding} />
+            <OnboardingStatus key={onboarding.kind} state={onboarding} choice={choice} />
             <div className="mt-auto">
               <PublishingCard shell={shell} />
               <ThemeToggle up />

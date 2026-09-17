@@ -24,7 +24,8 @@ import type React from "react";
 import { readShell } from "./_shell/provider";
 import { readOverview } from "./_overview/provider";
 import { overviewNotice, readOnboarding, readReleaseNotice } from "./_shell/onboarding";
-import { FirstPageNotice, ReleaseNoticeLine } from "./_shell/OnboardingStatus";
+import { FirstPageNotice, MarketChoice, ReleaseNoticeLine } from "./_shell/OnboardingStatus";
+import { MARKET_TOO_SMALL, readCategoryChoice } from "./_shell/remeasure";
 import { GrowthModule } from "./_overview/GrowthModule";
 import { HeadModule } from "./_overview/HeadModule";
 import { RivalModule } from "./_overview/RivalModule";
@@ -44,11 +45,24 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
     onboarding.kind === "none"
       ? overviewNotice({ onboarding, notice: await readReleaseNotice(), weekZero: shell.weeks.kind !== "counted" })
       : null;
+  // Issue 837: an empty Overview over a market too small offers the choice
+  // that fills it, unless the shell's panel already does.
+  const choice =
+    onboarding.kind === "none" && (notice === MARKET_TOO_SMALL || overview.supply?.key === "overview.supply.unmeasured")
+      ? await readCategoryChoice()
+      : null;
 
   return (
     <div className="flex min-w-0 flex-col gap-6" data-testid="overview">
       <FirstPageNotice state={onboarding} />
       <ReleaseNoticeLine noticeKey={notice} />
+      {choice === null ? null : (
+        <section className="card card-border min-w-0 bg-base-100" data-testid="overview-market-choice">
+          <div className="card-body">
+            <MarketChoice choice={choice} />
+          </div>
+        </section>
+      )}
       <HeadModule head={overview.head} />
       <GrowthModule growth={overview.growth} searches={overview.searches} timeZone={shell.timeZone} />
       <TileRow

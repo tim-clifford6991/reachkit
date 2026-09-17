@@ -53,6 +53,12 @@ vi.mock("@/app/(account)/app/_shell/stop", () => ({ readStop: async () => null }
 // The pass has released the founder; the side panel is not this suite's.
 vi.mock("@/app/(account)/app/_shell/onboarding", () => ({ readOnboarding: async () => ({ kind: "none" }) }));
 
+// Issue 837: the broader categories the empty calendar offers.
+vi.mock("@/app/(account)/app/_shell/remeasure", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/app/(account)/app/_shell/remeasure")>()),
+  readCategoryChoice: async () => ({ suggestions: ["bookkeeping software", "therapist accounting"] }),
+}));
+
 vi.mock("@/lib/market/changes", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/market/changes")>()),
   declaredAnswers: async () => null,
@@ -165,6 +171,21 @@ describe("#784 — the calendar's one supply statement says which zero it is", (
   it("a market never measured says so, never 'used up'", async () => {
     setOpportunityStore(storeWith({ questions: 0, everHeld: false }));
     expect(await statement()).toBe(COPY["calendar.supply.unmeasured"]);
+  });
+
+  it("a market never measured offers the broader categories that measure it again now (issue 837)", async () => {
+    setOpportunityStore(storeWith({ questions: 0, everHeld: false }));
+    const page = render(await CalendarPage({ searchParams: Promise.resolve({ month: MONTH }) }));
+    const choice = page.querySelector('[data-testid="calendar-market-choice"]');
+    expect([...(choice?.querySelectorAll('[data-testid="category-suggestion"]') ?? [])].map((b) => b.textContent)).toEqual([
+      "bookkeeping software",
+      "therapist accounting",
+    ]);
+    expect(page.querySelector('[data-testid="calendar-supply-statement"]')?.textContent).not.toMatch(/Monday/);
+
+    setOpportunityStore(storeWith({ questions: 12, everHeld: true }));
+    const used = render(await CalendarPage({ searchParams: Promise.resolve({ month: MONTH }) }));
+    expect(used.querySelector('[data-testid="calendar-market-choice"]')).toBeNull();
   });
 
   it("a measured-ness read that fails states neither", async () => {

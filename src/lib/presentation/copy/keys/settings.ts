@@ -69,9 +69,10 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.market.title": ["Your site & market", { slots: {}, fixedBy: "BUILD §4.7" }],
   "settings.market.category": ["market category", { slots: {}, fixedBy: "REQ-070 c1" }],
   "settings.market.domain": ["domain", { slots: {}, fixedBy: "BUILD §10 (`sites.domain`), §4.4" }],
-  // §4.7 verbatim, including its lower-case opening.
+  // §4.7, including its lower-case opening. Issue 837 (owner ruling
+  // 2026-09-17): a category change measures again right away.
   "settings.market.effect": [
-    "changing this rebuilds the search set and the 12 questions next Monday",
+    "changing your domain rebuilds the search set and the 12 questions next Monday; changing your category measures your market again right away",
     { slots: {}, fixedBy: "BUILD §4.7" },
   ],
   // REQ-071's two dated statements about the market (issue #204). Both take
@@ -81,6 +82,12 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.market.pending": [
     "A new {change} takes effect on {date}. Until then no new page is written, and earlier measurements are kept apart, not carried across.",
     { slots: { date: "date", change: "text" }, fixedBy: "REQ-071 c1" },
+  ],
+  // Issue 837 (owner ruling 2026-09-17): a saved category measures the
+  // market again right away. Drafted under issue 759's ruling.
+  "settings.market.remeasuring": [
+    "Saved. We’re measuring your market again now with this category.",
+    { slots: {}, fixedBy: "issue 837" },
   ],
   "settings.market.effectiveOn": [
     "Saved. Takes effect with the re-measure on {date}.",

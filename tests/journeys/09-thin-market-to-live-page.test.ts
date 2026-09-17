@@ -127,10 +127,16 @@ vi.mock("@/lib/presentation/copy", async (importOriginal) => {
   };
 });
 
-vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh: vi.fn() }),
+  redirect: (to: string) => {
+    throw new Error(`journey 09: redirected to ${to}`);
+  },
+}));
 // The hosted adapter clears the edge's cache on delivery; outside a request
-// there is no cache, which that module already tolerates.
-vi.mock("next/cache", () => ({ revalidateTag: () => undefined }));
+// there is no cache, which that module already tolerates. A Server Function
+// revalidates the app it changed (issue 837).
+vi.mock("next/cache", () => ({ revalidateTag: () => undefined, revalidatePath: () => undefined }));
 
 const cookieJar = new Map<string, string>();
 vi.mock("next/headers", () => ({
@@ -216,6 +222,12 @@ const RIVAL_RANKED: Record<string, readonly (readonly [string, number])[]> = {
  *  `none` is a market in which nobody searches for anything this site does. */
 let market: "thin" | "none" = "thin";
 
+/** Issue 837: the broader category that does have searches, once the founder
+ *  picks it — its seed answers the thin market's rows. */
+const BROADER = "private practice bookkeeping";
+let broaderCategory: string | null = null;
+THIN_SUGGESTIONS[BROADER] = THIN_SUGGESTIONS[CATEGORY]!;
+
 function envelope(result: unknown): unknown {
   return { tasks: [{ id: "task-fixture", status_code: 20000, status_message: "Ok.", result: [result] }] };
 }
@@ -249,8 +261,8 @@ function vendorAnswer(url: string, task: Record<string, unknown>): unknown {
     });
   }
   if (url.includes("keyword_suggestions")) {
-    if (market === "none") return envelope({ items: [] });
     const seed = String(task.keyword ?? "");
+    if (market === "none" && seed !== broaderCategory) return envelope({ items: [] });
     const rows = THIN_SUGGESTIONS[seed] ?? THIN_FALLBACK;
     return envelope({ items: rows.map(([keyword, volume]) => ({ keyword, keyword_info: { search_volume: volume } })) });
   }
@@ -458,6 +470,8 @@ const { releaseNotice } = await import("../../src/lib/scan/deep/notice");
 const { onboardingPanel } = await import("../../src/app/(account)/app/_shell/onboarding");
 const { passProgressFor } = await import("../../src/lib/scan/deep/progress");
 const { demandBand } = await import("../../src/lib/opportunities/winnability/band");
+const { readCategoryChoice } = await import("../../src/app/(account)/app/_shell/remeasure");
+const { remeasureAction } = await import("../../src/app/(account)/app/_shell/remeasure-actions");
 const { qualifyingDemand } = await import("../../src/lib/opportunities/winnability/bars");
 
 import type { JobDefinition, Outcome } from "../../src/jobs/types";
@@ -592,6 +606,7 @@ beforeEach(() => {
   vi.setSystemTime(SUBMITTED_AT);
   setUpTheDatabase();
   market = "thin";
+  broaderCategory = null;
   queued.length = 0;
   runs.length = 0;
   inbox.length = 0;
@@ -843,6 +858,67 @@ describe("a new site in a thin market goes from setup to a published right-sized
       const alerts = inbox.filter((mail) => mail.html.includes("mail.ops.incident.market-too-small"));
       expect(alerts).toHaveLength(1);
       expect(alerts[0]!.to).toEqual(["owner@example.com"]);
+    },
+    JOURNEY_TIMEOUT_MS
+  );
+
+  it(
+    "a market too small offers broader categories; picking one measures again now, fills the calendar, and a rapid second press is refused (issue 837)",
+    async () => {
+      market = "none";
+      expect((await submitSetup()).status).toBe(200);
+      await deliver("scan/run", SUBMITTED_AT);
+      expect((await releaseNotice({ domain: DOMAIN }))?.key).toBe("setup.release.market-too-small");
+      expect(db.rows("drafts")).toEqual([]);
+
+      // The founder is offered two or three broader categories from the
+      // site's own profile — never the category that was just measured.
+      const { suggestions } = await readCategoryChoice();
+      expect(suggestions.length).toBeGreaterThanOrEqual(2);
+      expect(suggestions.length).toBeLessThanOrEqual(3);
+      expect(suggestions).toContain(BROADER);
+      expect(suggestions).not.toContain(CATEGORY);
+
+      // They pick one. The press saves it and queues a pass at once — no
+      // wait for Monday — and the side panel shows the pass's steps.
+      vi.setSystemTime(new Date(SUBMITTED_AT.getTime() + 5 * 60_000));
+      broaderCategory = BROADER;
+      const pick = new FormData();
+      pick.set("category", BROADER);
+      expect(await remeasureAction({ answer: "idle" }, pick)).toEqual({ answer: "started" });
+      expect(db.rows("sites").find((row) => row.id === SITE_ID)?.category).toBe(BROADER);
+      const passes = queued.filter((event) => event.name === "scan/run");
+      expect(passes).toHaveLength(1);
+      expect(passes[0]!.data).toMatchObject({ tier: "deep", siteId: SITE_ID, remeasure: true });
+      expect(await passProgressFor(SITE_ID)).toMatchObject({ running: true });
+      expect(onboardingPanel({ progress: await passProgressFor(SITE_ID), notice: null, weekZero: true }).kind).toBe(
+        "running"
+      );
+
+      // A rapid second press starts nothing and says why in a written line.
+      const again = new FormData();
+      again.set("category", "therapist accounting");
+      expect(await remeasureAction({ answer: "idle" }, again)).toEqual({
+        answer: "refused",
+        line: "setup.remeasure.refused.running",
+      });
+      expect(queued.filter((event) => event.name === "scan/run")).toHaveLength(1);
+      expect(db.rows("sites").find((row) => row.id === SITE_ID)?.category).toBe(BROADER);
+
+      // The pass runs as its job on the row the press claimed, seeded on
+      // the chosen category, and produces opportunities and the first page.
+      const [pass] = await deliver("scan/run", new Date());
+      expect(pass).toEqual({ outcome: "ran", subjectId: passes[0]!.data.scanId });
+      const deep = db.rows("scans").filter((row) => row.site_id === SITE_ID && row.tier === "deep");
+      expect(deep).toHaveLength(2);
+      expect(deep.find((row) => row.id === passes[0]!.data.scanId)).toMatchObject({ status: "done", is_current: true });
+      const seeds = vendorRequests.filter((request) => request.url.includes("keyword_suggestions"));
+      expect(seeds.map((request) => request.task.keyword)).toContain(BROADER);
+
+      expect(db.rows("opportunities").filter((row) => row.site_id === SITE_ID && row.ready === true).length).toBeGreaterThan(0);
+      expect(db.rows("drafts").filter((row) => row.site_id === SITE_ID)).toHaveLength(1);
+      expect(await releaseNotice({ domain: DOMAIN })).toBeNull();
+      expect(await passProgressFor(SITE_ID)).toMatchObject({ running: false });
     },
     JOURNEY_TIMEOUT_MS
   );
