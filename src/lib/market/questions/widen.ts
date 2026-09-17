@@ -62,15 +62,24 @@ function words(text: string): string[] {
  * The category's 2–3 word head term: the words before its first connective
  * ("user onboarding software for SaaS teams" → "user onboarding software"),
  * and of those the last three ("AI SEO content platform" → "seo content
- * platform"). `null` where that is the category itself or a single word —
- * there is then no distinct, broader seed to buy.
+ * platform"). Where fewer than two words come before the connective, the
+ * noun phrase is read from the category's last content words instead, three
+ * then two ("SEO and content marketing software" → "content marketing
+ * software"; "SEO and marketing software" → "marketing software", issue 836).
+ * `null` where every choice is the category itself or a single word — there
+ * is then no distinct, broader seed to buy.
  */
 export function headTermOf(category: string): string | null {
   const all = words(category);
   const cut = all.findIndex((word, i) => i > 0 && STOP_WORDS.has(word));
   const head = (cut === -1 ? all : all.slice(0, cut)).slice(-3);
-  if (head.length < 2 || head.join(" ") === all.join(" ")) return null;
-  return head.join(" ");
+  if (head.length >= 2) return head.join(" ") === all.join(" ") ? null : head.join(" ");
+  const content = all.filter((word) => !STOP_WORDS.has(word));
+  for (const size of [3, 2]) {
+    const tail = content.slice(-size);
+    if (tail.length === size && tail.join(" ") !== content.join(" ")) return tail.join(" ");
+  }
+  return null;
 }
 
 /**
