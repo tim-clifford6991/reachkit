@@ -67,13 +67,13 @@ const currentFounder = cache(async function currentFounder(): Promise<{
  * — in which case the address field is empty and nothing is pre-filled.
  *
  * **`suggestedRivals` is settled here for a free upgrade, and only from
- * the report** (issue 750). A measured address opens on the market that
- * report inferred, and that market's suggestions are the report's own
- * rivals — no vendor call, no row, nothing written while a page renders.
- * A report that named none opens on "none found", never on a card still
- * seeking. A purchase with no report opens on `null`, which is "no market
- * known yet": that card waits on the founder, and `POST /api/setup/rivals`
- * seeks once they give an address or state a market.
+ * what is free** (issue 750): the report's own rivals and the ones the
+ * site names — no vendor call, no row, nothing written while a page
+ * renders. A report with neither opens seeking (issue 838): the card asks
+ * `POST /api/setup/rivals`, which buys `competitors_domain` against the
+ * claimed row. A purchase with no report opens on `null`, which is "no
+ * market known yet": that card waits on the founder, and the route seeks
+ * once they give an address or state a market.
  */
 export const readSetupScreen = cache(async function readSetupScreen(): Promise<SetupScreenModel> {
   const founder = await currentFounder();
@@ -184,7 +184,7 @@ export function setupStore(): SetupStore {
 
 /**
  * The completed report the product holds for one address, projected to the
- * three facts the market card needs (REQ-026 c1 versus c3).
+ * facts the market and rivals cards need (REQ-026 c1 versus c3).
  *
  * **Live since #169.** `readCurrentReport(domain)` landed with #25 and
  * `StoredReport` carries `scanId` and `category` directly; the rival names
@@ -193,7 +193,8 @@ export function setupStore(): SetupStore {
  *
  * The projection is deliberate and stays one — `ReportFacts` is not
  * `StoredReport`, for the cycle reason `src/lib/market/setup/state.ts`'s
- * header gives, and the market card needs three facts and no more.
+ * header gives. The rivals the site's own pages name ride along from the
+ * market's profile, as free suggestions (issue 838).
  *
  * **A report with no category is `null`, not a report with an empty
  * market.** REQ-026 c1 versus c3: an inferred market card is drawn from a
@@ -219,6 +220,7 @@ export async function readReportFor(domain: string): Promise<ReportFacts | null>
     scanId: report.scanId,
     category,
     rivals: (report.presence?.rivals ?? []).map((rival) => rival.domain),
+    namedRivals: report.market.kind === "unmeasured" ? [] : report.market.value.profile.namedRivals,
   };
 }
 

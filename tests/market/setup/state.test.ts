@@ -20,8 +20,8 @@ import {
 } from "@/lib/market/setup/state";
 import { addRival } from "@/lib/market/setup/rivals";
 
-const REPORT: ReportFacts = { scanId: "scan-1", category: "agency CRM", rivals: ["a.com"] };
-const OTHER: ReportFacts = { scanId: "scan-2", category: "law firm SEO", rivals: ["b.com"] };
+const REPORT: ReportFacts = { scanId: "scan-1", category: "agency CRM", rivals: ["a.com"], namedRivals: [] };
+const OTHER: ReportFacts = { scanId: "scan-2", category: "law firm SEO", rivals: ["b.com"], namedRivals: [] };
 
 function measured(domain = "example.com", report: ReportFacts = REPORT): SetupState {
   return initialSetupState({ domain, report });

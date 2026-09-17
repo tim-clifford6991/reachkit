@@ -279,6 +279,7 @@ describe("POST /api/setup/domain — does this address resolve", () => {
       scanId: "scan-fixture",
       category: "project management software for agencies",
       rivals: ["asana.com", "monday.com", "clickup.com"],
+      namedRivals: [],
     });
   });
 

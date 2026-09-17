@@ -196,11 +196,52 @@ describe("free upgrade — the market is inferred from the report, and its rival
   });
 });
 
+describe("issue 838 — a report that found no rivals still offers them", () => {
+  beforeEach(() => {
+    setupSession.reports.set("example.com", { scanId: "scan-1", category: "SEO content software", rivals: [] });
+  });
+
+  it("the route falls back to competitors_domain on the founder's own address, spent against the claimed deep row", async () => {
+    competitorsDomain.mockResolvedValue(rows(["rival-one.com", "example.com", "rival-two.com"]));
+
+    await expect(candidates({ domain: "example.com", category: null })).resolves.toEqual([
+      "rival-one.com",
+      "rival-two.com",
+    ]);
+    expect(competitorsDomain).toHaveBeenCalledWith(expect.anything(), { domain: "example.com" });
+    expect(db.tables.scans).toHaveLength(1);
+    const row = db.tables.scans![0]!;
+    expect(row).toMatchObject({ tier: "deep", status: "running", site_id: "site-1", domain: "example.com" });
+    expect(opened).toEqual([{ scanId: row.id, cap: "DEEP", policyVersion: 1, rollUp: "add" }]);
+  });
+
+  it("the rivals the site names are offered on the screen for nothing, and nothing is bought", async () => {
+    setupSession.reports.set("example.com", {
+      scanId: "scan-1",
+      category: "SEO content software",
+      rivals: [],
+      namedRivals: ["surferseo.com", "Jasper"],
+    });
+    const model = await readSetupScreen();
+    expect(model.state.suggestions).toEqual({ state: "offered", candidates: ["surferseo.com"] });
+    expect(competitorsDomain).not.toHaveBeenCalled();
+    expect(opened).toEqual([]);
+  });
+
+  it("a vendor that finds none either settles the card as none found", async () => {
+    competitorsDomain.mockResolvedValue(rows([]));
+    await expect(candidates({ domain: "example.com", category: null })).resolves.toEqual([]);
+  });
+});
+
 describe("an account set up on an older version — every missing fact is a written state", () => {
-  it("a report that named no rivals opens on none found, not seeking", async () => {
+  it("a report that named no rivals opens seeking — the route buys them — and the screen read spends nothing (issue 838)", async () => {
     setupSession.reports.set("example.com", { scanId: "scan-1", category: "agency CRM", rivals: [] });
     const model = await readSetupScreen();
-    expect(model.state.suggestions.state).toBe("none_found");
+    expect(model.state.suggestions.state).toBe("seeking");
+    expect(competitorsDomain).not.toHaveBeenCalled();
+    expect(opened).toEqual([]);
+    expect(db.tables.scans).toEqual([]);
   });
 
   it("an address with no report opens waiting on the market", async () => {
