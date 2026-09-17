@@ -1,3 +1,4 @@
+/** @vitest-environment jsdom */
 // tests/site-profile/your-voice.test.tsx — issue 839, SPEC.md §5
 // (2026-09-17): a site that reads gets a voice, and setup never shows a
 // blank voice section.
@@ -9,13 +10,13 @@
 // than the answer — the forced tool comes back cut off — which is how a
 // site that read fine stored `voice: null` in the owner's walk.
 //
-// Node, not jsdom: under jsdom `env.ts` reads the run as a client bundle
-// and refuses the model key, so the screen's markup is parsed with
-// `JSDOM` directly instead.
+// Rendered as `tests/app/setup/screen.test.tsx` renders. Under jsdom
+// `env.ts` reads a defined `window` as a client bundle and refuses the
+// model key, so the pass runs with `window` stubbed out — it is a server
+// pass — and the screen is drawn after it is restored.
 import React from "react";
-import { JSDOM } from "jsdom";
 import { renderToStaticMarkup } from "react-dom/server";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { applyEnvFixture } from "../mail/env-fixture";
 import { toolUseMessage } from "../llm/fixtures";
 
@@ -111,8 +112,24 @@ function screenWith(profile: unknown): Element {
   const html = renderToStaticMarkup(
     <SetupForm model={assembleSetup({ ...FIXTURE_SETUP_FACTS, profile: profile as never })} />
   );
-  return new JSDOM(html).window.document.body;
+  const container = document.createElement("div");
+  container.innerHTML = html;
+  return container;
 }
+
+/** The profile build, as the server runs it: no `window`. */
+async function build(tier: "free" | "deep") {
+  vi.stubGlobal("window", undefined);
+  try {
+    return await buildSiteProfile(cost(), { ...PASS, tier });
+  } finally {
+    vi.unstubAllGlobals();
+  }
+}
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 beforeEach(() => {
   createMock.mockReset();
@@ -136,7 +153,7 @@ describe("issue 839 — a site that reads gets a voice", () => {
     const answer = fullAnswer();
     createMock.mockImplementation(vendorAnswering(answer));
 
-    const profile = await buildSiteProfile(cost(), { ...PASS, tier: "deep" });
+    const profile = await build("deep");
 
     expect(profile?.voice).toEqual(answer.voice);
     expect(writeMock.mock.calls[0]?.[0]?.voice).toEqual(answer.voice);
@@ -152,7 +169,7 @@ describe("issue 839 — a site that reads gets a voice", () => {
 
 describe("issue 839 — a profile with no voice is never a blank section", () => {
   it("the free scan's profile reads no voice, and setup shows an empty, editable box under the written line", async () => {
-    const profile = await buildSiteProfile(cost(), { ...PASS, tier: "free" });
+    const profile = await build("free");
     expect(createMock).not.toHaveBeenCalled();
     expect(profile?.voice).toBeNull();
 
@@ -170,7 +187,7 @@ describe("issue 839 — a profile with no voice is never a blank section", () =>
   it("a voice call that did not come back leaves the same invitation, with what was read still shown", async () => {
     createMock.mockRejectedValue(Object.assign(new Error("vendor said no"), { status: 529 }));
 
-    const profile = await buildSiteProfile(cost(), { ...PASS, tier: "deep" });
+    const profile = await build("deep");
     expect(profile?.voice).toBeNull();
 
     const card = screenWith(profile).querySelector('[data-testid="setup-profile"]');
