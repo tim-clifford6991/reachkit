@@ -130,6 +130,7 @@ Pinned numbers live in `src/lib/config/constants.ts`. Newest dated line in a sec
 - 2026-09-16  Right-sizing law (owner, #777): a target is offered only if it is winnable *for this site’s presence*. The bar scales with the site’s own footprint and its rivals’ (§0): a site that ranks for little gets small, long-tail and AI-answer targets and never head terms; larger searches are admitted only as its own presence grows. This applies to the free report’s twelve questions, the deep pass and every weekly pass.
 - 2026-09-16  Thin markets (owner defaults, #777; the owner may override on review). A pass that is short of twelve questions reads the market this way, stopping as soon as twelve survive:
   - Seeds, in order: the confirmed category → a 2–3 word head term derived from it → the site profile’s vocabulary. At most 3 extra suggestion purchases per pass, inside that pass’s own cap.
+  - 2026-09-17  Head term (#836): derived from the category’s noun phrase, not only the words before its first connective. Where fewer than two words come before the connective (“SEO and content marketing software”), the head term is the category’s last 3, then 2, content words (“content marketing software”). It is never the category itself and never one word.
   - Candidates are pooled from suggestions, the rivals’ ranked keywords and the site’s own ranked keywords, de-duplicated before selection. Ranked keywords already bought for sizing are reused, not bought again.
   - Volume floor steps 50 → 20 → 10 /mo, only as far as needed to reach twelve questions. Each question records the step it came from, and that step is the “min” readiness checks it against.
   - A paid pass (deep or weekly) ends with at least one ready opportunity, or records *market too small* and tells the founder why. Too few questions is never a silent empty calendar.
@@ -211,4 +212,5 @@ Perplexity; Search Console; locale derivation; CMS besides hosted + WordPress; m
 - Production magic-link walk (#542). WordPress connect walk (#324). Gmail/Apple Mail render (#339).
 - Legal imprint: legal entity, address, VAT id still `[[imprint: …]]` placeholders (#335).
 - Lift of production freeze when the paying path works on dev.
+- 2026-09-17  Owner ruling (#836): jobs delivered to production’s frozen 11 Sep build are fixed by deploying main to production.
 - 2026-09-16  Copy: `TODO(copy)` is never a shipped state for a customer-visible string — the marker renders as itself, so an unwritten key is visible breakage. A missing sentence is drafted in the registry’s voice and shipped, every new or changed string is named in the PR body, and the owner corrects the wording (#759).
