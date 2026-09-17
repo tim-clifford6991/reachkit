@@ -24,6 +24,7 @@ vi.mock("@/app/(account)/app/calendar/store", () => ({
 vi.mock("@/lib/opportunities", () => ({
   supplyNotice: (...a: unknown[]) => supplyNotice(...a),
   supplyMeasured: async () => true,
+  supplyState: async () => "measured",
 }));
 
 const { resetAccount, signedInAs } = await import("../account-door");

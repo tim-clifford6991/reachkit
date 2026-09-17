@@ -32,7 +32,7 @@ const facts = (over: Partial<OverviewFacts> = {}): OverviewFacts => ({
   scorePrevious: measured({ score: 54, band: "hard-to-find" as const }, AT(17)),
   pagesRanking: measured(6, AT(17)),
   rivals: { own: measuredZero(0, AT(17)), rivals: [] },
-  supply: { exhausted: false, unmeasured: false, short: false, firstArrivalShortfall: false },
+  supply: { exhausted: false, unmeasured: false, measuring: false, short: false, firstArrivalShortfall: false },
   waiting: [],
   ...over,
 });
@@ -193,7 +193,7 @@ describe("the assembly is pure, and reads nothing", () => {
 
   it("it states one supply statement or none, and at most two alerts", () => {
     const model = assembleOverview(
-      facts({ supply: { exhausted: true, unmeasured: false, short: true, firstArrivalShortfall: true } })
+      facts({ supply: { exhausted: true, unmeasured: false, measuring: false, short: true, firstArrivalShortfall: true } })
     );
     expect(model.supply?.key).toBe("overview.supply.exhausted");
     expect(model.alerts.length).toBeLessThanOrEqual(2);

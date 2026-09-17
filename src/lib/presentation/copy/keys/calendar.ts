@@ -242,6 +242,9 @@ export const CALENDAR_COPY = Object.freeze({
   // issue 784: the same statement over a market that was never measured (issue 765)
   // — there was nothing to use up. Drafted under issue 759's ruling.
   "calendar.supply.unmeasured": ["We couldn’t find enough searches in your market to plan pages yet. Pick a broader category and we’ll measure your market again right away.", { slots: {}, fixedBy: "issue 784" }],
+  // issue 855: the same zero while the market is still being measured — a pass
+  // stopped on a ceiling, measured again. Drafted under issue 759's ruling.
+  "calendar.supply.measuring": ["Your market is still being measured, so no pages are planned yet. ReachKit measures it again automatically.", { slots: {}, fixedBy: "issue 855" }],
   "calendar.supply.short": ["Supply is running short. Pages left: {days}. Monday’s re-measure looks for more.", { slots: { days: "text" }, fixedBy: "BUILD §4.6" }],
   "calendar.supply.first-arrival": ["Your first pass found less than a month of pages — {days} so far. We look for more every Monday.", { slots: { days: "text" }, fixedBy: "BUILD §4.6" }],
 

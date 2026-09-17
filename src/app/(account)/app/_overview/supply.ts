@@ -33,6 +33,9 @@ export interface SupplyFacts {
    *  opportunity. Never true alongside `exhausted`; neither is true where
    *  the distinction could not be read. */
   unmeasured: boolean;
+  /** Issue 855: zero supply while the market is still being measured — the
+   *  current pass stopped on a ceiling. Never true alongside the two above. */
+  measuring: boolean;
   short: boolean;
   firstArrivalShortfall: boolean;
 }
@@ -46,6 +49,7 @@ export interface SupplyStatement {
  *  the order is a value a test can read rather than the shape of an
  *  if-chain someone could reorder without noticing. */
 export const SUPPLY_PRECEDENCE = [
+  { when: "measuring", key: "overview.supply.measuring" },
   { when: "exhausted", key: "overview.supply.exhausted" },
   { when: "unmeasured", key: "overview.supply.unmeasured" },
   { when: "short", key: "overview.supply.short" },
