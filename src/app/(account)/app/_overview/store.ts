@@ -354,6 +354,13 @@ function ownRankedOf(report: StoredReport | null, at: Date): Measured<number> {
  *  AI answers must not read as a miss. */
 function presentInAnswers(report: StoredReport | null): boolean | null {
   if (report === null || report.aiAnswers === null) return null;
+  // Issue 869: a section whose questions were all unmeasured is not a week
+  // that measured nobody. `customerCitations` is counted over the answers
+  // the pass could read, so with none read it is `0` — and `0` here used to
+  // become `false`, which this matrix draws as "measured, and AI did not
+  // name you". `measuredSearches` is that denominator, and at zero the
+  // honest cell is the blank one.
+  if (report.aiAnswers.measuredSearches === 0) return null;
   return report.aiAnswers.customerCitations > 0;
 }
 

@@ -379,7 +379,15 @@ function QuestionRow(p: { row: { question: StoredQuestion; cell: AnswerCell } })
           <Num>{String(question.n)}</Num>
         </span>
         <span className="min-w-0 flex-1">{wording.text}</span>
-        {cell.kind === "no_answer" ? (
+        {/* Issue 869: an unmeasured cell is not a miss. It used to fall
+            through to the red "not you", so an engine whose calls all
+            failed printed "you are not mentioned" twelve times over an
+            outage. The same ghost badge the engine columns already use for
+            an unmeasured cell — §2.5 keeps red for the customer's own
+            problem, and not having read something is not one. */}
+        {cell.kind === "unmeasured" ? (
+          <span className="badge badge-ghost badge-sm">{copy("ai-answers.engine.not-measured")}</span>
+        ) : cell.kind === "no_answer" ? (
           <span className="badge badge-ghost badge-sm">{copy("ai-answers.question.no-answer")}</span>
         ) : namesCustomer ? null : (
           <span className="badge badge-error badge-sm">{copy("ai-answers.question.not-you")}</span>

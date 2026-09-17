@@ -125,6 +125,35 @@ describe("a delta needs two measurements", () => {
     expect(movement.aiAnswersDelta).toMatchObject({ kind: "measured", value: 3 });
   });
 
+  it("a week whose AI answers could not be read is unmeasured, never a delta (issue 869)", async () => {
+    // The AI Mode engine answered 1 call in 14 on production. A section
+    // that read no answer at all counts `0` citations over `0` measured
+    // searches, and the mail would have printed that as "AI answers −2".
+    const blank = report({ score: 45, citations: 0 });
+    blank.aiAnswers = {
+      measuredSearches: 0,
+      answeredSearches: 0,
+      customerCitations: 0,
+      measuredAt: AT.toISOString(),
+      ownDomain: "example.com",
+      rivals: [],
+    };
+    seedWeek(BEFORE, report({ score: 41, citations: 2 }));
+    seedWeek(WEEK, blank);
+
+    const movement = await weekMovement({ siteId: "site-1", weekStart: WEEK, at: AT });
+    expect(movement.scoreDelta).toMatchObject({ kind: "measured", value: 4 });
+    expect(movement.aiAnswersDelta.kind).toBe("unmeasured");
+  });
+
+  it("a week that read its answers and was named by none still moves", async () => {
+    seedWeek(BEFORE, report({ score: 41, citations: 2 }));
+    seedWeek(WEEK, report({ score: 45, citations: 0 }));
+
+    const movement = await weekMovement({ siteId: "site-1", weekStart: WEEK, at: AT });
+    expect(movement.aiAnswersDelta).toMatchObject({ kind: "measured", value: -2 });
+  });
+
   it("a week with a row and no report at all yields neither figure", async () => {
     seedWeek(BEFORE, report({ score: 41, citations: 2 }));
     seedWeek(WEEK, null);
