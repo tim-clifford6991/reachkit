@@ -64,6 +64,15 @@
 //    `register()`, carrying `PriceObjectMismatch`'s own message: the field,
 //    what was expected, what was found. A deployment that would charge
 //    against a price this repository does not describe does not start.
+//  - **A price the vendor says does not exist** throws too, carrying
+//    `PriceObjectUnknown` and the mode of the configured key (issue 889).
+//    That is the test-mode/live-mode crossing — a live key meeting a
+//    test-mode `STRIPE_PRICE_ID`, which is the state production is in
+//    today — and it belongs on this side of the line rather than the one
+//    below: the vendor answered, and what it answered is a fact about this
+//    deployment's own bindings. Before it was told apart, such a boot
+//    logged `{"check":"checkout","outcome":"unchecked"}` and served, so the
+//    first sign of it was a stranger pressing Start and getting nothing.
 //  - A vendor that could not be read at all is logged and does not stop the
 //    boot. Every scaled instance runs this hook on its cold start, so a
 //    hard dependency on one live Stripe round-trip would turn a Stripe
@@ -184,12 +193,14 @@ async function assertInvariants(current: { check: BootCheck }): Promise<void> {
 
   current.check = "checkout";
   const { assertCheckoutBootInvariants } = await import("@/lib/account/checkout/boot");
-  const { PriceObjectMismatch } = await import("@/lib/account/checkout/price-object");
+  const { PriceObjectMismatch, PriceObjectUnknown } = await import(
+    "@/lib/account/checkout/price-object"
+  );
 
   try {
     await assertCheckoutBootInvariants();
   } catch (error) {
-    if (error instanceof PriceObjectMismatch) throw error;
+    if (error instanceof PriceObjectMismatch || error instanceof PriceObjectUnknown) throw error;
     log("checkout", "unchecked", error instanceof Error ? error.name : "unknown");
     return;
   }

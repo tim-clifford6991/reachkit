@@ -41,9 +41,21 @@ export type MeasurementState =
 /** The stop control a mail carries. `mechanism` chooses the label from a
  *  closed pair — a template never authors one — and names which of
  *  ADR-042's two mechanisms the link belongs to, so the two can never be
- *  confused at the point they are put in front of a reader. */
+ *  confused at the point they are put in front of a reader.
+ *
+ *  **`oneClickHref` is the same stop, for the inbox rather than the reader**
+ *  (RFC 8058, issue 889). `href` is the address the person presses inside
+ *  the mail; `oneClickHref` is the address the mail *client* POSTs to when
+ *  the reader presses the client's own Unsubscribe control, and the two are
+ *  different addresses because one renders a page and the other answers a
+ *  POST. It is a required field rather than an optional one for the reason
+ *  `optOut` itself is required of a lead template: a stop control the inbox
+ *  cannot see is the defect, and an optional field is one a new template
+ *  forgets. Nothing in this shell renders it — it leaves through
+ *  `sendEmail` as a header. */
 export interface OptOutControl {
   href: string;
+  oneClickHref: string;
   mechanism: "opt-out" | "unsubscribe";
 }
 

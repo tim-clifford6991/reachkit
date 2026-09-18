@@ -18,6 +18,12 @@ export interface VendorSend {
   subject: string;
   html: string;
   text: string;
+  /** The address a mail client POSTs to when its own Unsubscribe control is
+   *  pressed — RFC 8058's one-click endpoint, issue 889. Present exactly
+   *  where the mail carries a stop control, absent on the kinds that carry
+   *  none (a sign-in link is not unsubscribable). Absent means the two
+   *  headers are not sent, never that they are sent empty. */
+  listUnsubscribe?: string;
 }
 
 export type VendorResult =

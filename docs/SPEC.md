@@ -64,6 +64,7 @@ Pinned numbers live in `src/lib/config/constants.ts`. Newest dated line in a sec
 
 **Rules**
 - One live Stripe Price; boot refuses a mismatch.
+- 2026-09-18  Boot also refuses a price the vendor says does not exist (#889) — a test-mode `STRIPE_PRICE_ID` asked for with a live-mode key, which is the state production is in. The refusal names the mode of the configured key and never the key. A vendor that could not be read at all is still logged and still serves: a read that did not happen establishes nothing.
 - Account is created by the payment webhook, never a signup form. A second payment from the same address buys no second subscription and says so.
 - Magic link only: no password, no social. Link lasts 24 h; a new one spends older ones. Sign-in copy is identical whatever the address, revealing nothing about who has an account.
 - 2026-09-14  Stripe success URL is this deployment’s `/auth/checkout`, which signs the payer in and sends them to `/setup`. Cancel returns to the page they started from. Never a host this process does not name.
@@ -202,6 +203,7 @@ Pinned numbers live in `src/lib/config/constants.ts`. Newest dated line in a sec
 | Retention | Idle 7 days · veto <6 h · payment failed · cancelled | Inactivity · veto reminder · payment-failed · cancellation (end date) · hosting-end · win-back once at +30 d | Sign-in, draft resolves, payment succeeds, resume. 2026-09-15 owner approved the retention/win-back sheet (#568); those mails may send. |
 
 **Rules** Unwritten keys send nothing. Address opt-out and per-kind toggles never merge. Unstoppable kinds still arrive with every switch off. From `hello@reachkit.app`.
+- 2026-09-18  One-click unsubscribe (#889). Every mail that carries a stop control also carries RFC 8058's `List-Unsubscribe` and `List-Unsubscribe-Post` headers, so a mail client draws its own Unsubscribe control; the header names `/api/opt-out/{token}`, which applies the same token, over the same address, to the same suppression store as the link in the body, on one POST and with no session. A mail that carries no stop control — the sign-in link is the credential — sends neither header. Nothing here merges the address opt-out with the three per-kind toggles: the three togglable kinds carry no stop control today and are switched off in Settings.
 
 **Done when** Magic link and account mail still arrive with all switches off. One opt-out click stops further follow-up. No delivered mail contains a sentence that is not a registry key.
 
