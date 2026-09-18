@@ -42,6 +42,7 @@ vi.mock("@/lib/opportunities", () => ({
 const { readPublishingFacts } = await import("@/app/(account)/app/calendar/drafts-read");
 const { readCalendarFacts } = await import("@/app/(account)/app/calendar/store");
 const { assembleMonth, cellFor } = await import("@/app/(account)/app/calendar/month");
+const { actionsFor } = await import("@/app/(account)/app/calendar/actions");
 
 const SITE_ID = "site-1";
 const ZONE = "America/New_York";
@@ -376,6 +377,90 @@ describe("the empty-date arms, from rows", () => {
 
     const model = assembleMonth(facts, MONTH);
     expect(cellFor(model, "2026-09-20")?.empty).toEqual({ cause: "unattributed" });
+  });
+});
+
+// ── issue 880: the owner's own dogfood page, from its rows ────────────
+//
+// draft 290d12ba rests in `needs_attention` because three §8 hard rules
+// stopped the writing, on a hosted destination that is healthy and live.
+// The calendar offered "Reconnect WordPress".
+describe("issue 880 — why the page needs them, and the act that matches", () => {
+  const RULES = "rules:no_private_figure,no_unsourced_testimonial,brand_gap";
+
+  function restedOnRules(): void {
+    seed({
+      drafts: [
+        draft({
+          id: "d1",
+          state: "needs_attention",
+          scheduled_for: "2026-09-16",
+          transitions: [
+            { from: "planned", to: "generating", at: "2026-09-15T22:00:00.000Z" },
+            { from: "generating", to: "needs_attention", at: "2026-09-15T22:04:00.000Z", reason: RULES },
+          ],
+        }),
+      ],
+    });
+  }
+
+  it("the page carries the rules that stopped it, read off its own transitions", async () => {
+    restedOnRules();
+    const facts = await readPublishingFacts({ siteId: SITE_ID, month: MONTH, today: TODAY });
+    expect(facts.pagesByDay.get("2026-09-16")?.needsYou).toEqual({
+      kind: "rules",
+      rules: ["no_private_figure", "no_unsourced_testimonial", "brand_gap"],
+    });
+  });
+
+  it("and the site's own destination is read as what it is — hosted, and working", async () => {
+    restedOnRules();
+    const facts = await readPublishingFacts({ siteId: SITE_ID, month: MONTH, today: TODAY });
+    expect(facts.destination).toEqual({ kind: "hosted", healthy: true });
+  });
+
+  it("so the day offers no reconnect at all — it offers the page, the restart and the way out", async () => {
+    restedOnRules();
+    const model = assembleMonth(await readCalendarFacts({ site: SITE, month: MONTH, now: NOW }), MONTH);
+    const cell = cellFor(model, "2026-09-16");
+    if (cell === undefined) throw new Error("no cell");
+    const keys = actionsFor(cell, model.destination).map((action) => action.key);
+    expect(keys).not.toContain("calendar.action.reconnect");
+    expect(keys).not.toContain("calendar.action.check-destination");
+    // Issue 882: and the page itself is readable, which is what the
+    // founder was asked to judge.
+    expect(keys).toContain("calendar.action.read-page");
+    expect(keys).toContain("calendar.action.regenerate");
+  });
+
+  it("a page that rested on a delivery nobody could clear does point at the destination", async () => {
+    seed({
+      drafts: [
+        draft({
+          id: "d1",
+          state: "needs_attention",
+          scheduled_for: "2026-09-16",
+          transitions: [
+            { from: "publishing", to: "failed", at: "2026-09-15T22:00:00.000Z" },
+            {
+              from: "failed",
+              to: "needs_attention",
+              at: "2026-09-15T22:04:00.000Z",
+              reason: "reason_needs_customer",
+            },
+          ],
+        }),
+      ],
+      destinationHealth: "error",
+    });
+    const model = assembleMonth(await readCalendarFacts({ site: SITE, month: MONTH, now: NOW }), MONTH);
+    const cell = cellFor(model, "2026-09-16");
+    if (cell === undefined) throw new Error("no cell");
+    const keys = actionsFor(cell, model.destination).map((action) => action.key);
+    // The destination is hosted, so there is no credential to renew: the
+    // founder is pointed at where their pages publish, not at WordPress.
+    expect(keys).toContain("calendar.action.check-destination");
+    expect(keys).not.toContain("calendar.action.reconnect");
   });
 });
 

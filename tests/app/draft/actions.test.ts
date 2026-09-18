@@ -101,6 +101,26 @@ describe("REQ-045 c4 — approve, edit and veto, offered where the state allows 
     }
   });
 
+  it("issue 882 — a stage the calendar now opens read-only offers no editing control", () => {
+    // Every stage with a written page is readable from the calendar
+    // (issue 882). The screen it opens must not offer an act its state
+    // would refuse: only a page still in review may be approved, edited or
+    // vetoed, so the others open as a read.
+    for (const state of ["needs_attention", "approved", "publishing", "published"] as State[]) {
+      const kinds = draftActionsFor(state).map((action) =>
+        action.kind === "command" ? action.command : action.kind
+      );
+      expect(kinds, state).not.toContain("edit");
+      expect(kinds, state).not.toContain("approve");
+      expect(kinds, state).not.toContain("veto");
+    }
+    expect(draftActionsFor("in_review").map((a) => a.key)).toEqual([
+      "draft.action.approve",
+      "draft.action.edit",
+      "draft.action.veto",
+    ]);
+  });
+
   it("no action is offered that the state would refuse — the projection is total over the ten states", () => {
     for (const state of STATES) {
       for (const action of draftActionsFor(state)) {
@@ -172,6 +192,7 @@ describe("the draft view and the day panel read one table", () => {
       enteredReview: false,
       verification: { kind: "never", because: "no_live_address" } as const,
       unpublishOutcome: null,
+      needsYou: null,
         },
       };
       const panelHasVeto = actionsFor(cell).some(

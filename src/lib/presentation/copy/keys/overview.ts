@@ -284,6 +284,13 @@ export const OVERVIEW_COPY = Object.freeze({
   // (#460). One short line
   // under the title, never a paragraph (§2.5's dim line).
   "overview.alert.needs-you.cause": ["The page couldn’t be delivered to your site.", { slots: {}, fixedBy: "REQ-041 c5" }],
+  // Issue 880: the word for a page that is not waiting on a destination —
+  // one the writing rules stopped, or a step that could not run. It is read
+  // and resolved on the page itself, which is where this alert already
+  // points; "Reconnect" above is for a delivery the founder must fix.
+  // Drafted under issue 759's ruling. The cause line for each of the five
+  // causes is `publish.needs-you.*`, stated from the page's own record.
+  "overview.alert.needs-you.read": ["Read the page", { slots: {}, fixedBy: "issue 880" }],
   // The veto panel's own line, unbracketed in the set and therefore
   // approved. `left` is how long the window has to run, from the draft's
   // own stored `veto_deadline` (issue 794) — never a number typed here.

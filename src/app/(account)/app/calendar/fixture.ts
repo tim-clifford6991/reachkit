@@ -207,6 +207,13 @@ const DRAFTS: readonly DraftOnDay[] = Object.entries(SCHEDULE).map(([day, state]
           ? { kind: "never", because: "taken_down_first" }
           : { kind: "never", because: "no_live_address" },
     unpublishOutcome: state === "unpublished" ? "removed" : null,
+    // Issue 880: the fixture's one page that needs the founder is the
+    // `needs_attention` one, and the §8 hard rules are what stopped it —
+    // the owner's own dogfood case, on a hosted destination.
+    needsYou:
+      state === "needs_attention"
+        ? { kind: "rules" as const, rules: ["no_private_figure", "brand_gap"] }
+        : null,
   };
 });
 
@@ -238,6 +245,9 @@ export const FIXTURE_CALENDAR_FACTS: CalendarFacts = Object.freeze({
   // provider). A fixture date here would put an owner-owed line on the
   // owner's own preview of the month, which renders as nothing.
   heldDays: Object.freeze([] as readonly string[]),
+  // Issue 880: the reserved fixture account publishes to a hosted host
+  // that works — so no page of it is ever offered a reconnect.
+  destination: Object.freeze({ kind: "hosted" as const, healthy: true }),
   customerChangeHoldsPages: null,
   // REQ-071 c11: the fixture account is replacing nothing.
   changeHoldsGeneration: null,

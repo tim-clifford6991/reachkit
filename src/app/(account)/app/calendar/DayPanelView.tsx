@@ -26,13 +26,14 @@ import { copy } from "@/lib/presentation/copy";
 import { BAND_LABELS } from "@/lib/presentation/bands";
 import type { Tone } from "@/ui/types";
 import {
+  NEEDS_YOU_COPY,
   unpublishedLine,
   verificationLine,
   type VerificationKind,
 } from "@/lib/publish/record/lines";
 import { formatDate, formatDateTime } from "../_shell/format";
 import { writtenLine } from "../_shell/written";
-import { actionsFor } from "./actions";
+import { actionsFor, type DestinationStanding } from "./actions";
 import { EMPTY_ACCOUNT_COPY_KEY, isLawCause, isSupplyCause, stopForEmptyDay } from "./empty";
 import { emptyLineFor } from "./CalendarView";
 import { nextPublishStatement, stoppedWorkStatement, type WorkStop } from "@/lib/presentation/stopped";
@@ -98,8 +99,8 @@ function dayMarker(day: string): Date {
  * live page. A stop (veto, skip) is the warning outline; move and a restart
  * are ghost. The rest share a two-column row.
  */
-function DayActions(p: { cell: DayCell }): React.JSX.Element | null {
-  const actions = actionsFor(p.cell);
+function DayActions(p: { cell: DayCell; destination: DestinationStanding | null }): React.JSX.Element | null {
+  const actions = actionsFor(p.cell, p.destination);
   if (actions.length === 0) return null;
   return (
     <div className="grid grid-cols-2 gap-2">
@@ -157,6 +158,9 @@ function Heading(p: { badge: string; tone: Tone; date: string }): React.JSX.Elem
 export function DayPanelView(p: {
   cell: DayCell;
   timeZone: string;
+  /** What the site publishes to (issue 880) — which decides whether a page
+   *  waiting on delivery is offered a reconnect or the neutral control. */
+  destination?: DestinationStanding | null;
   /** REQ-092 c3's fact, carried from the model. Both of this panel's law
    *  statements — the publish line and a stopped day's account — turn on
    *  it, and they must turn on the same one. */
@@ -231,6 +235,11 @@ export function DayPanelView(p: {
   // What became of the page, in one line (issue #217) — the same keys the
   // draft view's record block reads, so the two cannot disagree.
   const recordLine = recordSummary(page);
+  // Why the page needs them (issue 880), from its own record and never
+  // from its stage. One sentence per cause, chosen once in
+  // `NEEDS_YOU_COPY`, so this panel and the Overview alert cannot tell one
+  // page's story two ways.
+  const needsYouLine = page.needsYou === null ? null : writtenLine(NEEDS_YOU_COPY[page.needsYou.kind]);
 
   return (
     <Panel
@@ -248,6 +257,7 @@ export function DayPanelView(p: {
         </h2>
         <div className="divider my-0" />
         <div className="flex flex-col gap-1 text-sm">
+          {needsYouLine === null ? null : <p data-testid="day-needs-you-line">{needsYouLine}</p>}
           {publishLine === null ? null : <p data-testid="day-publish-line">{publishLine}</p>}
           {vetoLine === null ? null : <p data-testid="day-veto-line">{vetoLine}</p>}
         </div>
@@ -269,7 +279,7 @@ export function DayPanelView(p: {
         <WhyThisPage why={page.why} />
       </div>
       <div className="divider my-0" />
-      <DayActions cell={cell} />
+      <DayActions cell={cell} destination={p.destination ?? null} />
       {provenance === null ? null : (
         <p className="text-xs opacity-60" data-testid="day-provenance">
           {provenance}

@@ -213,7 +213,12 @@ export function CalendarView(p: { model: MonthModel }): React.JSX.Element {
           </div>
         </div>
         {cell === undefined ? null : (
-          <DayPanelView cell={cell} timeZone={p.model.timeZone} stopped={p.model.stopped} />
+          <DayPanelView
+            cell={cell}
+            timeZone={p.model.timeZone}
+            stopped={p.model.stopped}
+            destination={p.model.destination}
+          />
         )}
       </div>
     </>

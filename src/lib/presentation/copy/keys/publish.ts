@@ -132,6 +132,31 @@ export const PUBLISH_COPY = Object.freeze({
   // are being held and nothing has been lost, because in that state the
   // credential is valid and the page has already failed rather than been
   // held. Wording that distinction is the owner's.
+  // Issue 880 — why a page needs the customer, one sentence per cause, from
+  // the page's own record (`src/lib/publish/record/needs-you.ts`). Until
+  // now every such page was told to reconnect WordPress, whatever stopped
+  // it and whatever the site publishes to. Drafted under issue 759's
+  // ruling; the owner corrects the wording.
+  "publish.needs-you.rules": [
+    "This page didn’t pass our writing rules, so it wasn’t published. Read it to see which rules stopped it, or write it again.",
+    { slots: {}, fixedBy: "issue 880" },
+  ],
+  "publish.needs-you.step": [
+    "We couldn’t finish writing this page — a step of the work failed twice. Nothing was published. Write it again to start it over.",
+    { slots: {}, fixedBy: "issue 880" },
+  ],
+  "publish.needs-you.destination": [
+    "This page is written and couldn’t be delivered to your site. It goes out as soon as the connection to your site works again.",
+    { slots: {}, fixedBy: "issue 880" },
+  ],
+  "publish.needs-you.delivery": [
+    "We tried to publish this page several times and it didn’t go through. Check where your pages are published, and nothing is lost in the meantime.",
+    { slots: {}, fixedBy: "issue 880" },
+  ],
+  "publish.needs-you.unknown": [
+    "This page stopped before it went out and needs you. Read it to see where it got to, or write it again.",
+    { slots: {}, fixedBy: "issue 880" },
+  ],
   "publish.destination.line.never-connected": [
     "Not connected yet. Your pages are held as drafts you can read until it is.",
     { slots: {}, fixedBy: "§9 · REQ-028 c5" },

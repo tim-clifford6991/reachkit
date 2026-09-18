@@ -29,6 +29,8 @@
 // A caller's array order is never trusted: two customers with the same
 // waiting items must see the same two alerts.
 import type { CopyKey } from "@/lib/presentation/copy";
+import { NEEDS_YOU_COPY } from "@/lib/publish/record/lines";
+import { waitsOnDestination, type NeedsYouCause } from "@/lib/publish/record/needs-you";
 import { SITE_CHECK_TITLE, SITE_SEVERITY_WORD } from "@/lib/presentation/site-issues";
 import { OVERVIEW_ALERT_CAP } from "@/lib/config/constants";
 import { SITE_CHECKS, type SiteCheck, type SiteIssuesSection } from "@/lib/site-issues/types";
@@ -68,6 +70,10 @@ export interface WaitingDraft {
   vetoDeadline: Date | null;
   /** The one control: where it takes them. */
   href: string;
+  /** Why the page needs the customer (issue 880), from its own record.
+   *  `null` on the veto arm, which needs nothing explained, and on a page
+   *  whose record states no cause. */
+  cause?: NeedsYouCause | null;
 }
 
 export interface Alert {
@@ -116,6 +122,10 @@ export const OVERFLOW_WHERE_KEY = "overview.alert.overflow" satisfies CopyKey;
 export const ISSUE_OVERFLOW_WHERE_KEY = "overview.alert.site-issue.overflow" satisfies CopyKey;
 const ISSUE_ACTION_KEY = "overview.alert.site-issue.action" satisfies CopyKey;
 const PENDING_NO_WINDOW_KEY = "overview.alert.pending-veto.no-window" satisfies CopyKey;
+/** Issue 880: the word on a needs-you alert whose page is not waiting on a
+ *  destination — the page is read and resolved where it is, and the alert
+ *  already points there. */
+const NEEDS_YOU_READ_ACTION_KEY = "overview.alert.needs-you.read" satisfies CopyKey;
 
 /** The stored section's issues that wait on the customer: ran, counted at
  *  least one, and theirs to fix. A projection — nothing is re-checked. */
@@ -171,16 +181,33 @@ export function readAlerts(
       };
     }
     const copyKeys = ALERT_COPY[item.kind];
+    // Issue 880: the needs-you alert states the page's **own** cause and
+    // offers the act that matches it. It said "The page couldn't be
+    // delivered to your site" and offered "Reconnect" for every page in
+    // `needs_attention` — including one the §8 hard rules stopped, which
+    // was never sent anywhere.
+    const cause = item.kind === "needs_you" ? (item.cause ?? null) : null;
     const left =
       item.kind === "pending_veto" && item.vetoDeadline !== null ? timeLeft(item.vetoDeadline, at) : undefined;
     // A page in review with no window running is not on a clock: its line
     // says it waits for the customer rather than stating a countdown.
     const lineKey =
-      item.kind === "pending_veto" && left === undefined ? PENDING_NO_WINDOW_KEY : copyKeys.lineKey;
+      item.kind === "pending_veto" && left === undefined
+        ? PENDING_NO_WINDOW_KEY
+        : cause === null
+          ? copyKeys.lineKey
+          : NEEDS_YOU_COPY[cause.kind];
+    // The control: reconnecting is for a page waiting on delivery. Every
+    // other cause is read and acted on where the page is — which is where
+    // the alert already points.
+    const actionKey =
+      item.kind === "needs_you" && !waitsOnDestination(cause)
+        ? NEEDS_YOU_READ_ACTION_KEY
+        : copyKeys.actionKey;
     return {
       kind: item.kind,
       key: copyKeys.key,
-      actionKey: copyKeys.actionKey,
+      actionKey,
       lineKey,
       vars: { title: item.title },
       ...(left === undefined ? {} : { timeLeft: left }),

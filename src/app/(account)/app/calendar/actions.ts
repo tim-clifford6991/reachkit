@@ -41,6 +41,8 @@
 // skipped, and not written again, which is the one thing §9 gives the
 // customer at that state.
 import { TRANSITIONS, isTransition } from "@/lib/publish/machine/table";
+import { waitsOnDestination } from "@/lib/publish/record/needs-you";
+import type { DestinationKind } from "@/lib/publish/types";
 import type { CopyKey } from "@/lib/presentation/copy";
 import type { DayCell } from "./month";
 import type { PublishingCommand, RestartCommand, StopCommand } from "./publishing";
@@ -129,6 +131,41 @@ export type DayAction =
   | { key: CopyKey; kind: "link"; href: string }
   | { key: CopyKey; kind: "command"; command: PublishingCommand; draftId: string };
 
+/** What the site publishes to, as the controls need it (issue 880). */
+export interface DestinationStanding {
+  kind: DestinationKind;
+  healthy: boolean;
+}
+
+/**
+ * Whether a **reconnect** is the act this page is waiting for (issue 880).
+ *
+ * Three conditions, and the fault this replaces failed all three: the
+ * control was offered for every page whose stage was `needs_you`.
+ *
+ *  - the page is waiting on **delivery** — a page the §8 rules stopped was
+ *    never sent anywhere, so nothing about the destination is true of it;
+ *  - the destination **carries a credential** — a hosted host has none, so
+ *    there is nothing to reconnect and the WordPress sentence is not the
+ *    founder's situation;
+ *  - the destination is **actually broken** — a working destination is not
+ *    reconnected, whatever a page that failed once is waiting on.
+ *
+ * A destination that carries no credential is not left silent: its own
+ * control points at where the founder fixes it (`CHECK_DESTINATION`).
+ */
+const CREDENTIAL_KINDS: readonly DestinationKind[] = Object.freeze(["wordpress"] as const);
+
+export function offersReconnect(a: {
+  cause: Parameters<typeof waitsOnDestination>[0];
+  destination: DestinationStanding | null;
+}): boolean {
+  if (!waitsOnDestination(a.cause)) return false;
+  const destination = a.destination;
+  if (destination === null) return false;
+  return CREDENTIAL_KINDS.includes(destination.kind) && !destination.healthy;
+}
+
 /** Issue #17's draft view — ARCHITECTURE's `/app/draft/{id}`. */
 export function draftHref(draftId: string): string {
   return `/app/draft/${draftId}`;
@@ -141,19 +178,38 @@ export function draftHref(draftId: string): string {
  * to read a state from, so there is no filter to forget (REQ-043 c11: an
  * empty day "offers no action that would publish or approve a page").
  */
-export function actionsFor(cell: DayCell): readonly DayAction[] {
+export function actionsFor(
+  cell: DayCell,
+  /** What the site publishes to (issue 880). Absent is a page whose
+   *  destination nobody read, which earns no destination control — never a
+   *  reconnect offered on a guess. */
+  destination: DestinationStanding | null = null
+): readonly DayAction[] {
   const page = cell.page;
   if (page === null) return [];
 
   const actions: DayAction[] = [];
 
-  // review → "Read the full page" (§4.6). The draft view is where a page is
-  // read whole; the stage that asks the customer to judge one is the stage
-  // that gets the way in — and a page in review always has a draft to
-  // read, which is why the `null` arm below is not a lost affordance.
-  if (page.stage === "your_review" && page.draftId !== null) {
+  // **A page that has been written can always be read** (issue 882, owner
+  // 2026-09-18: "there is no way to view the content before it is
+  // published; this must always be possible").
+  //
+  // §4.6 gave the way in to `your_review` alone, and that was read as a
+  // property of the stage rather than of the draft: a page resting in
+  // needs-you, one queued to go out and one already live all have a body on
+  // file and offered no way to it — the founder was asked to judge a page
+  // they could not read. The condition is the draft, not the stage.
+  //
+  // `generating` keeps no way in, and that is the one honest absence: the
+  // row exists and its text does not, so there is nothing to read. An empty
+  // day keeps none either, by construction above.
+  //
+  // The stage that asks for a judgement keeps its own word — "Read the full
+  // page" is the sentence §4.6 gives review — and every other stage states
+  // plainly that this opens the page as written.
+  if (page.draftId !== null && page.state !== "generating") {
     actions.push({
-      key: "calendar.action.read-full-page",
+      key: page.stage === "your_review" ? "calendar.action.read-full-page" : "calendar.action.read-page",
       kind: "link",
       href: draftHref(page.draftId),
     });
@@ -166,10 +222,25 @@ export function actionsFor(cell: DayCell): readonly DayAction[] {
     actions.push({ key: "calendar.action.view-live-page", kind: "link", href: page.liveUrl });
   }
 
-  // needs-you → "Reconnect" (§9: "expired credential is a **state**
-  // (reconnect prompt, queue holds)"). The destination lives in Settings.
-  if (page.stage === "needs_you") {
-    actions.push({ key: "calendar.action.reconnect", kind: "link", href: "/app/settings" });
+  // needs-you → the act that matches the cause (issue 880). §9's "expired
+  // credential is a **state** (reconnect prompt, queue holds)" is about a
+  // credential; it was read here as a property of the *stage*, so a page
+  // the §8 hard rules stopped, on a hosted host with nothing to reconnect,
+  // told the founder to reconnect WordPress.
+  //
+  // A page waiting on delivery points at the destination: reconnect where
+  // there is a credential to renew and it is broken, and otherwise the
+  // neutral control that opens where the destination is fixed. A page the
+  // rules or a step stopped points at neither — the restart below is its
+  // act, and the panel states the cause.
+  if (waitsOnDestination(page.needsYou)) {
+    actions.push({
+      key: offersReconnect({ cause: page.needsYou, destination })
+        ? "calendar.action.reconnect"
+        : "calendar.action.check-destination",
+      kind: "link",
+      href: "/app/settings",
+    });
   }
 
   // The customer's own restart — §9's `needs_attention → generating`

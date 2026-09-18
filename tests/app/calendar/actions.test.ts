@@ -64,7 +64,8 @@ function cellWith(
   state: State,
   liveUrl: string | null = null,
   draftId: string | null = "d1",
-  enteredReview = false
+  enteredReview = false,
+  needsYou: import("@/lib/publish/record/needs-you").NeedsYouCause | null = null
 ): DayCell {
   const stage = STAGE_OF[state];
   if (stage === null) throw new Error(`${state} occupies no date`);
@@ -103,10 +104,23 @@ function cellWith(
       // a page nothing delivered carries.
       verification: { kind: "never", because: "no_live_address" } as const,
       unpublishOutcome: null,
+      // Issue 880: why the page needs the founder. The default is the
+      // owner's own dogfood case — the §8 hard rules stopped the writing —
+      // because that is the page that was being offered a reconnect.
+      needsYou:
+        needsYou ??
+        (state === "needs_attention" ? { kind: "rules" as const, rules: ["brand_gap"] } : null),
     },
     empty: null,
   };
 }
+
+/** The site the fixture publishes to: a hosted host that works, which is
+ *  the owner's own account (issue 880). */
+const HOSTED = { kind: "hosted" as const, healthy: true };
+/** A WordPress connection that has stopped working — the one destination
+ *  there is something to reconnect. */
+const BROKEN_WORDPRESS = { kind: "wordpress" as const, healthy: false };
 
 const EMPTY_CELL: DayCell = {
   day: "2026-09-24",
@@ -193,27 +207,66 @@ describe("REQ-043 c9 — §4.6's stage-appropriate actions, and no action a stag
     });
   });
 
-  it("live → View live page, at the recorded address", () => {
+  it("live → the page as written, and View live page at the recorded address", () => {
     const actions = actionsFor(cellWith("published", "https://content.example.com/p"));
     expect(actions).toEqual([
+      // Issue 882: what ReachKit wrote is readable from a live page too —
+      // "View live page" opens the published address and is not a way back
+      // to the text and the checks.
+      { key: "calendar.action.read-page", kind: "link", href: draftHref("d1") },
       { key: "calendar.action.view-live-page", kind: "link", href: "https://content.example.com/p" },
     ]);
   });
 
-  it("live with no recorded address offers no way through — an address is never invented", () => {
-    expect(actionsFor(cellWith("published", null))).toEqual([]);
+  it("live with no recorded address still opens the page as written — an address is never invented", () => {
+    expect(actionsFor(cellWith("published", null))).toEqual([
+      { key: "calendar.action.read-page", kind: "link", href: draftHref("d1") },
+    ]);
   });
 
-  it("needs-you → Reconnect, the restart, and Move + Skip", () => {
-    // #130 added Move and Skip (§9 c3: no page is left in a state it has
-    // no way out of). #143 adds the restart, which is the one thing §9
-    // opens for the customer at this state and for no one else.
-    expect(actionsFor(cellWith("needs_attention"))).toEqual([
-      { key: "calendar.action.reconnect", kind: "link", href: "/app/settings" },
+  it("needs-you on a hosted site → read it, the restart, Move and Skip — and no reconnect", () => {
+    // Issue 880, the owner's dogfood page: `needs_attention` because three
+    // §8 hard rules stopped the writing, on a hosted destination that is
+    // healthy and live. "Reconnect WordPress" was offered for the stage.
+    expect(actionsFor(cellWith("needs_attention"), HOSTED)).toEqual([
+      { key: "calendar.action.read-page", kind: "link", href: draftHref("d1") },
       { key: "calendar.action.regenerate", kind: "command", command: "regenerate", draftId: "d1" },
       { key: "calendar.action.move", kind: "command", command: "move", draftId: "d1" },
       { key: "calendar.action.skip", kind: "command", command: "skip", draftId: "d1" },
     ]);
+  });
+
+  it("a page waiting on a broken WordPress connection does offer the reconnect", () => {
+    const actions = actionsFor(
+      cellWith("needs_attention", null, "d1", false, { kind: "destination" }),
+      BROKEN_WORDPRESS
+    );
+    expect(actions.map((a) => a.key)).toContain("calendar.action.reconnect");
+    expect(actions.map((a) => a.key)).not.toContain("calendar.action.check-destination");
+  });
+
+  it("a page waiting on a hosted destination is pointed at it, never at WordPress", () => {
+    const actions = actionsFor(
+      cellWith("needs_attention", null, "d1", false, { kind: "destination" }),
+      { kind: "hosted" as const, healthy: false }
+    );
+    expect(actions.map((a) => a.key)).toContain("calendar.action.check-destination");
+    expect(actions.map((a) => a.key)).not.toContain("calendar.action.reconnect");
+  });
+
+  it("a working credential destination is not reconnected, whatever the page waited on", () => {
+    const actions = actionsFor(
+      cellWith("needs_attention", null, "d1", false, { kind: "delivery" }),
+      { kind: "wordpress" as const, healthy: true }
+    );
+    expect(actions.map((a) => a.key)).not.toContain("calendar.action.reconnect");
+    expect(actions.map((a) => a.key)).toContain("calendar.action.check-destination");
+  });
+
+  it("a destination nobody read offers no reconnect — never one on a guess", () => {
+    const actions = actionsFor(cellWith("needs_attention", null, "d1", false, { kind: "destination" }), null);
+    expect(actions.map((a) => a.key)).not.toContain("calendar.action.reconnect");
+    expect(actions.map((a) => a.key)).toContain("calendar.action.check-destination");
   });
 
   it("a page mid-generation offers nothing — the Skip the transcription gave it is gone", () => {
@@ -224,9 +277,9 @@ describe("REQ-043 c9 — §4.6's stage-appropriate actions, and no action a stag
     expect(actionsFor(cellWith("generating"))).toEqual([]);
   });
 
-  it("planned → Move + Skip, and never Veto", () => {
+  it("planned → the page as written where one exists, Move + Skip, and never Veto", () => {
     const keys = actionsFor(cellWith("planned")).map((a) => a.key);
-    expect(keys).toEqual(["calendar.action.move", "calendar.action.skip"]);
+    expect(keys).toEqual(["calendar.action.read-page", "calendar.action.move", "calendar.action.skip"]);
     expect(keys).not.toContain("calendar.action.veto");
   });
 
@@ -255,8 +308,39 @@ describe("REQ-043 c9 — §4.6's stage-appropriate actions, and no action a stag
   });
 
   it("scheduled offers neither Move nor Skip — the page is on its way out", () => {
-    expect(actionsFor(cellWith("approved"))).toEqual([]);
-    expect(actionsFor(cellWith("publishing"))).toEqual([]);
+    // Issue 882: it does offer the way in, which is the moment a veto
+    // matters most — the page is written and queued.
+    for (const state of ["approved", "publishing"] as const) {
+      expect(actionsFor(cellWith(state)).map((a) => a.key), state).toEqual(["calendar.action.read-page"]);
+    }
+  });
+
+  it("issue 882 — every stage with a written page offers the way in, and it resolves to that draft", () => {
+    for (const state of STATES) {
+      if (STAGE_OF[state] === null) continue;
+      const actions = actionsFor(cellWith(state, "https://content.example.com/p"));
+      const read = actions.find(
+        (a) => a.key === "calendar.action.read-page" || a.key === "calendar.action.read-full-page"
+      );
+      // `generating` is the one honest absence: the row exists and its
+      // text does not.
+      if (state === "generating") {
+        expect(read, state).toBeUndefined();
+        continue;
+      }
+      expect(read, state).toEqual({
+        key: state === "in_review" ? "calendar.action.read-full-page" : "calendar.action.read-page",
+        kind: "link",
+        href: draftHref("d1"),
+      });
+    }
+  });
+
+  it("issue 882 — a date with no draft offers no way in, and an empty day none at all", () => {
+    expect(actionsFor(cellWith("planned", null, null)).map((a) => a.key)).not.toContain(
+      "calendar.action.read-page"
+    );
+    expect(actionsFor(EMPTY_CELL)).toEqual([]);
   });
 
   it("every command offered is one whose edge is open in the page's own state", () => {
@@ -380,8 +464,10 @@ describe("issue #143 — the restart is offered against the guard, never against
   });
 
   it("and it is absent, not present-and-refusing: the other three controls are unchanged", () => {
+    // Issue 880/882: the page is readable, and the hosted destination the
+    // fixture publishes to is offered no reconnect.
     expect(keysOf(cellWith("needs_attention", null, "d1", true))).toEqual([
-      "calendar.action.reconnect",
+      "calendar.action.read-page",
       "calendar.action.move",
       "calendar.action.skip",
     ]);
