@@ -31,6 +31,11 @@ const CORE = "20260906090000_opportunities_core.sql";
 const SUPPLY = "20260906090100_opportunities_supply.sql";
 const READINESS = "20260912120000_opportunities_readiness.sql";
 const FIX_PAGE = "20260914130000_opportunities_fix_page.sql";
+/** issue 884: `outsized` joins the closed reason set. The list below is
+ *  applied in file order, and a migration missing from it leaves this suite
+ *  testing a constraint the product no longer writes against — which is
+ *  exactly what the gate caught for this one. */
+const OUTSIZED_REASON = "20260918120000_opportunities_outsized_reason.sql";
 const BASELINE_MIGRATION = path.join(MIGRATIONS, "00000000000001_baseline.sql");
 
 /** One tuple-only row per line, `|`-separated columns — easy to split. */
@@ -63,6 +68,7 @@ beforeAll(() => {
   psql(["-v", "ON_ERROR_STOP=1", "-f", path.join(MIGRATIONS, SUPPLY)]);
   psql(["-v", "ON_ERROR_STOP=1", "-f", path.join(MIGRATIONS, READINESS)]);
   psql(["-v", "ON_ERROR_STOP=1", "-f", path.join(MIGRATIONS, FIX_PAGE)]);
+  psql(["-v", "ON_ERROR_STOP=1", "-f", path.join(MIGRATIONS, OUTSIZED_REASON)]);
   const [user] = psqlRows(
     `insert into users (email, plan_status) values ('opps@example.com', 'active') returning id;`
   );
