@@ -51,6 +51,12 @@ const FETCHES_MONEY_MIGRATION = path.join(
   REPO_ROOT,
   "supabase/migrations/20260910090000_fetches_money.sql"
 );
+const FETCHES_DURATION_MIGRATION = path.join(
+  REPO_ROOT,
+  // Issue 877: `duration_ms`, applied with the table it belongs to so these
+  // assertions are about the schema the product actually runs on.
+  "supabase/migrations/20260918090000_fetches_duration_ms.sql"
+);
 
 /** One tuple-only row per line, `|`-separated columns. */
 /** Runs `sql` and returns whether it raised (never throws itself). */
@@ -73,6 +79,7 @@ function resetAndApplySchema(): void {
   psql(["-v", "ON_ERROR_STOP=1", "-f", BASELINE_MIGRATION]);
   psql(["-v", "ON_ERROR_STOP=1", "-f", FETCHES_MIGRATION]);
   psql(["-v", "ON_ERROR_STOP=1", "-f", FETCHES_MONEY_MIGRATION]);
+  psql(["-v", "ON_ERROR_STOP=1", "-f", FETCHES_DURATION_MIGRATION]);
   psql(["-c", "NOTIFY pgrst, 'reload schema';"]);
   execFileSync("sleep", ["0.3"]); // PostgREST's schema-cache reload is async.
 }
