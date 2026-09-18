@@ -51,6 +51,12 @@ const FETCHES_MONEY_MIGRATION = path.join(
   REPO_ROOT,
   "supabase/migrations/20260910090000_fetches_money.sql"
 );
+const FETCHES_DURATION_MIGRATION = path.join(
+  REPO_ROOT,
+  // Issue 877: `duration_ms`, applied with the table it belongs to so these
+  // assertions are about the schema the product actually runs on.
+  "supabase/migrations/20260918090000_fetches_duration_ms.sql"
+);
 
 /** One tuple-only row per line, `|`-separated columns. */
 /** Runs `sql` and returns whether it raised (never throws itself). */
@@ -73,6 +79,7 @@ function resetAndApplySchema(): void {
   psql(["-v", "ON_ERROR_STOP=1", "-f", BASELINE_MIGRATION]);
   psql(["-v", "ON_ERROR_STOP=1", "-f", FETCHES_MIGRATION]);
   psql(["-v", "ON_ERROR_STOP=1", "-f", FETCHES_MONEY_MIGRATION]);
+  psql(["-v", "ON_ERROR_STOP=1", "-f", FETCHES_DURATION_MIGRATION]);
   psql(["-c", "NOTIFY pgrst, 'reload schema';"]);
   execFileSync("sleep", ["0.3"]); // PostgREST's schema-cache reload is async.
 }
@@ -132,7 +139,7 @@ function insertFetch(opts: {
 describe(
   'BP-007 `## Data model delta`: "`fetches` — `id, scan_id, source, cache_key, policy_version, cost_cents, reserved_cents, payload jsonb, created_at`" ... "Indexed `(source, cache_key, policy_version, created_at desc)` for the cache read and on `scan_id` for the ledger read."',
   () => {
-    it("carries exactly the nine named columns", () => {
+    it("carries exactly the nine named columns, and issue 877's tenth", () => {
       const rows = psqlRows(
         `select column_name from information_schema.columns where table_schema = 'public' and table_name = 'fetches' order by column_name;`
       );
@@ -148,6 +155,11 @@ describe(
           "reserved_cents",
           "payload",
           "created_at",
+          // Issue 877: how long the call took — the time waited where it
+          // was abandoned. BP-007's own list is the nine above; this is the
+          // one column added since, and the owner's next abort value is
+          // chosen from it.
+          "duration_ms",
         ].sort()
       );
     });

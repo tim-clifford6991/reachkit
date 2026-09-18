@@ -54,6 +54,11 @@ export interface FetchesRow {
   cost_cents: number;
   reserved_cents: number;
   payload: unknown;
+  /** Issue 877: how long the call took, in milliseconds — the time waited
+   *  where it was abandoned. `null` on a row written before it was
+   *  recorded, which is a row that was not timed rather than one that took
+   *  no time. */
+  duration_ms: number | null;
   created_at: string;
 }
 
@@ -93,6 +98,8 @@ export async function writeFetchRow(row: {
   reservedCents: number;
   costCents: number;
   payload: unknown;
+  /** Issue 877: the elapsed milliseconds of the call this row records. */
+  durationMs?: number;
 }): Promise<void> {
   const { error } = await untypedFetches(dbAdmin())
     .from<FetchesRow>("fetches")
@@ -104,6 +111,7 @@ export async function writeFetchRow(row: {
       reserved_cents: row.reservedCents,
       cost_cents: row.costCents,
       payload: row.payload,
+      ...(row.durationMs === undefined ? {} : { duration_ms: Math.round(row.durationMs) }),
     });
   if (error) {
     throw new Error(`ledger.ts: insert into fetches failed: ${error.message}`);

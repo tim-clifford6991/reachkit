@@ -1354,6 +1354,11 @@ async function askTheTwelve(a: StageArgs, abandoned: () => boolean): Promise<voi
     sections.battery.push(noBattery(questions.at));
   }
 
+  /** Issue 877: how long each ask took, so the tail is visible in the log
+   *  without a query — and so the next abort value is chosen from what
+   *  these calls take rather than from a guess (issue 875's was wrong). */
+  const tookMs: number[] = [];
+
   /** One question's live SERP, with the vendor's own failure kind where
    *  there was one (issue 865). The cell is what this returns; nothing
    *  here writes to `sections`. */
@@ -1361,6 +1366,7 @@ async function askTheTwelve(a: StageArgs, abandoned: () => boolean): Promise<voi
     keyword: string
   ): Promise<{ serp: Measured<SerpResult> | StageFailure; failure: VendorFailure | null }> => {
     const heard: { failure: VendorFailure | null } = { failure: null };
+    const startedMs = Date.now();
     const serp = await attempt("asking_the_twelve", () =>
       serpOrganic(cost, {
         query: keyword,
@@ -1374,6 +1380,7 @@ async function askTheTwelve(a: StageArgs, abandoned: () => boolean): Promise<voi
         },
       })
     );
+    tookMs.push(Date.now() - startedMs);
     return { serp, failure: heard.failure };
   };
 
@@ -1479,6 +1486,37 @@ async function askTheTwelve(a: StageArgs, abandoned: () => boolean): Promise<voi
       Array.from({ length: Math.min(parameters.serpFanout, worthOneMore.length) }, () => askAgain())
     );
   }
+
+  logSerpLatency({
+    asked: tookMs.length,
+    measured: sections.serps.filter((serp) => serp.kind !== "unmeasured").length,
+    slowestMs: tookMs.length === 0 ? 0 : Math.max(...tookMs),
+    medianMs: medianOf(tookMs),
+    abortMs: parameters.serpAbortMs,
+  });
+}
+
+/** The middle of what the asks took, the lower of the two in an even set —
+ *  a figure, not a statistic: the p50 the next abort value is chosen from
+ *  is the owner's, over a week of the rows these calls now carry (issue
+ *  877). */
+function medianOf(values: readonly number[]): number {
+  if (values.length === 0) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  return sorted[Math.floor((sorted.length - 1) / 2)] ?? 0;
+}
+
+/** One line per pass over the twelve (issue 877): how many were asked, how
+ *  many came back, and what the asking took. No query, no customer, no
+ *  query text — the tail of a pass, readable from the deployment log. */
+function logSerpLatency(fields: {
+  asked: number;
+  measured: number;
+  slowestMs: number;
+  medianMs: number;
+  abortMs: number;
+}): void {
+  console.log(JSON.stringify({ event: "serp_latency", ...fields }));
 }
 
 /** The battery nobody bought: both engines on the arm that says we did not
