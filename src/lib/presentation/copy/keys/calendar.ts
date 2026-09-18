@@ -122,11 +122,21 @@ export const CALENDAR_COPY = Object.freeze({
   // §4.6's stage-appropriate actions.
   "calendar.action.read-full-page": ["Read the full page", { slots: {}, fixedBy: "BUILD §4.6" }],
   "calendar.action.view-live-page": ["View live page", { slots: {}, fixedBy: "BUILD §4.6" }],
+  // Issue 882 (owner, 2026-09-18): every written page is readable from the
+  // calendar, not only the one in review. The review stage keeps §4.6's own
+  // word above, which asks for a judgement; every other stage says plainly
+  // what the way in opens. Drafted under issue 759's ruling.
+  "calendar.action.read-page": ["Read the page as written", { slots: {}, fixedBy: "issue 882" }],
   // The approved S15 names the destination the control reconnects: a page
   // that stalled because WordPress refused the connection is reconnected to
   // WordPress, and "Reconnect" alone left the customer to guess which of
   // their settings it meant (ruling 11a, issue #354).
   "calendar.action.reconnect": ["Reconnect WordPress", { slots: {}, fixedBy: "BUILD §4.6" }],
+  // Issue 880: a destination that carries no credential has nothing to
+  // reconnect, so a page waiting on it opens where the founder fixes it
+  // instead — and the WordPress sentence above is never shown to a hosted
+  // site. Drafted under issue 759's ruling.
+  "calendar.action.check-destination": ["Check where your pages publish", { slots: {}, fixedBy: "issue 880" }],
   "calendar.action.move": ["Move", { slots: {}, fixedBy: "BUILD §4.6" }],
   "calendar.action.skip": ["Skip", { slots: {}, fixedBy: "BUILD §4.6" }],
   "calendar.action.veto": ["Veto", { slots: {}, fixedBy: "BUILD §4.6" }],

@@ -14,6 +14,7 @@ import {
   type WaitingDraft,
 } from "@/app/(account)/app/_overview/alerts";
 import type { SiteIssue, SiteIssuesSection } from "@/lib/site-issues/types";
+import { NEEDS_YOU_COPY } from "@/lib/publish/record/lines";
 
 /** The instant every window below is measured against. Fixed, because a
  *  duration read from the wall clock is a different assertion every run. */
@@ -98,6 +99,51 @@ describe("ordering is the resolver's, never the caller's array order", () => {
     const items = [item({ kind: "pending_veto", href: "/b" }), item({ kind: "needs_you", href: "/a" })];
     readAlerts(items, AT);
     expect(items.map((i) => i.href)).toEqual(["/b", "/a"]);
+  });
+});
+
+// ── issue 880: the alert states the page's own cause, and offers the act
+// that matches it ─────────────────────────────────────────────────────
+describe("issue 880 — a needs-you alert says why, from the page's own record", () => {
+  const needsYou = (cause: WaitingDraft["cause"]): ReturnType<typeof readAlerts>["alerts"][number] => {
+    const [alert] = readAlerts([item({ kind: "needs_you", cause, href: "/app/draft/1" })], AT).alerts;
+    if (alert === undefined) throw new Error("no alert");
+    return alert;
+  };
+
+  it("the owner's own page: the §8 rules stopped it, so it is read — never reconnected", () => {
+    const alert = needsYou({ kind: "rules", rules: ["no_private_figure", "brand_gap"] });
+    expect(alert.lineKey).toBe(NEEDS_YOU_COPY.rules);
+    expect(alert.actionKey).toBe("overview.alert.needs-you.read");
+    // The fault: "Reconnect", and a line claiming the page could not be
+    // delivered, on a page that was never sent anywhere.
+    expect(alert.actionKey).not.toBe("overview.alert.needs-you.action");
+    expect(alert.lineKey).not.toBe("overview.alert.needs-you.cause");
+  });
+
+  it("a step that could not run is read too, and says so", () => {
+    const alert = needsYou({ kind: "step", step: "claim_check" });
+    expect(alert.lineKey).toBe(NEEDS_YOU_COPY.step);
+    expect(alert.actionKey).toBe("overview.alert.needs-you.read");
+  });
+
+  it("a page waiting on the destination keeps the reconnect and the delivery line", () => {
+    for (const cause of [{ kind: "destination" }, { kind: "delivery" }] as const) {
+      const alert = needsYou(cause);
+      expect(alert.actionKey, cause.kind).toBe("overview.alert.needs-you.action");
+      expect(alert.lineKey, cause.kind).toBe(NEEDS_YOU_COPY[cause.kind]);
+    }
+  });
+
+  it("a page whose record states no cause is read, not reconnected on a guess", () => {
+    expect(needsYou({ kind: "unknown" }).actionKey).toBe("overview.alert.needs-you.read");
+    expect(needsYou(null).actionKey).toBe("overview.alert.needs-you.read");
+  });
+
+  it("the veto arm is untouched — it needs no cause and keeps its own two keys", () => {
+    const [alert] = readAlerts([item({ kind: "pending_veto" })], AT).alerts;
+    expect(alert?.lineKey).toBe("overview.alert.pending-veto.due");
+    expect(alert?.actionKey).toBe("overview.alert.pending-veto.action");
   });
 });
 

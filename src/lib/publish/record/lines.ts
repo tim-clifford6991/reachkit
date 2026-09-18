@@ -32,6 +32,7 @@
 // is made once, here, and what a screen does with it is the screen's.
 import type { CopyKey } from "@/lib/presentation/copy";
 import type { UnpublishOutcome, VerifyDisposition } from "../types";
+import type { NeedsYouKind } from "./needs-you";
 
 /** REQ-060 criterion 4's line (issue #156), named here rather than in
  *  `index.ts` since #217.
@@ -133,3 +134,25 @@ export function verificationLine(verification: VerifyDisposition): VerificationL
 export function unpublishedLine(outcome: UnpublishOutcome): CopyKey {
   return UNPUBLISHED_COPY[outcome];
 }
+
+/**
+ * Why a page needs the customer, as the sentence each cause is stated
+ * under (issue 880).
+ *
+ * The same discipline as the seven verification lines above, for the fact
+ * that had none: the day panel and the Overview alert read this one map,
+ * so they cannot tell a customer two different stories about one page. A
+ * surface that picked its own key would be the second place the choice is
+ * made — which is how "Reconnect WordPress" came to be the answer to a
+ * rules failure on a hosted site.
+ *
+ * Total over `NeedsYouKind`, so a fifth cause is a compile error here
+ * rather than a page that says nothing about itself.
+ */
+export const NEEDS_YOU_COPY: Readonly<Record<NeedsYouKind, CopyKey>> = Object.freeze({
+  rules: "publish.needs-you.rules",
+  step: "publish.needs-you.step",
+  destination: "publish.needs-you.destination",
+  delivery: "publish.needs-you.delivery",
+  unknown: "publish.needs-you.unknown",
+});

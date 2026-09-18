@@ -146,6 +146,29 @@ export async function destinationWaitingOnDns(siteId: string): Promise<boolean> 
 }
 
 /**
+ * What the site publishes to and whether it is working (issue 880) — the
+ * stored row, read and **not** re-checked.
+ *
+ * Its own read beside `listDestinations` precisely because that one calls
+ * `ensureFreshHealth`, which reaches the vendor. The question here is
+ * whether to offer a *reconnect* control on a page that is waiting on the
+ * destination, and a screen deciding which button to draw may not spend a
+ * vendor call to decide it. The freshness promise is kept where it is made
+ * — on Settings, which states the destination — and the row's own health
+ * is what the calendar reads.
+ *
+ * `null` where the site has no live destination at all: nothing to name
+ * and nothing to reconnect.
+ */
+export async function destinationStanding(
+  siteId: string
+): Promise<{ kind: DestinationKind; healthy: boolean } | null> {
+  const [row] = await liveDestinations(siteId);
+  if (row === undefined) return null;
+  return { kind: row.kind, healthy: row.health === "ok" };
+}
+
+/**
  * Every live destination this site has, as a surface sees it, each with a
  * state no older than the freshness window.
  *

@@ -69,6 +69,8 @@ function page(over: Partial<PageOnDay> = {}): PageOnDay {
     enteredReview: true,
     verification: FOUND,
     unpublishOutcome: null,
+    // Issue 880: a live page needs nothing of the founder.
+    needsYou: null,
     ...over,
   };
 }

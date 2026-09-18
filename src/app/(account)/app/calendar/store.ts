@@ -180,6 +180,8 @@ function pageOn(a: {
     publishAt: a.publishAt,
     verification: a.page.verification,
     unpublishOutcome: a.page.unpublishOutcome,
+    // Issue 880: why the page needs them, as §9's record derived it.
+    needsYou: a.page.needsYou,
   };
 }
 
@@ -206,6 +208,9 @@ function plannedOn(day: DayKey, choice: Choice, now: Date): DraftOnDay {
     // and there is no unpublish call to have found anything.
     verification: { kind: "never", because: "no_live_address" },
     unpublishOutcome: null,
+    // A planned date has no draft, so nothing is wanted of the founder
+    // for it (issue 880).
+    needsYou: null,
   };
 }
 
@@ -366,6 +371,9 @@ export async function readCalendarFacts(a: {
     stoppedDays: [],
     // §9's, read (#175).
     heldDays: publishing.heldDays,
+    // §9's, read (issue 880): what the site publishes to and whether it
+    // works, which decides the control a page waiting on it earns.
+    destination: publishing.destination,
     customerChangeHoldsPages: publishing.customerChangeHoldsPages,
     changeHoldsGeneration: changeHold,
     // A month whose §9 facts are unreadable states no supply either: the
