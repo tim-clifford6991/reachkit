@@ -23,6 +23,7 @@ const MIGRATIONS = path.resolve(import.meta.dirname, "../../supabase/migrations"
 
 const CORE = "20260906120000_drafts_core.sql";
 const CLAIMS = "20260906120100_drafts_claims.sql";
+const ONE_PER_DATE = "20260918120000_drafts_core_one_per_date.sql";
 
 /** The SQL with every `--` comment line removed, so prose about a column
  *  never satisfies an assertion about the column. */
@@ -33,13 +34,41 @@ function sqlOf(name: string): string {
     .join("\n");
 }
 
-describe("both migrations carry an assigned topic token", () => {
+describe("every `drafts` migration here carries an assigned topic token", () => {
   it("`drafts_core` resolves to its sub-token, not to the parent `drafts` topic", () => {
     expect(topicOf(CORE)).toEqual({ token: "drafts_core", owner: "BP-042" });
   });
 
   it("`drafts_claims` resolves to its own sub-token", () => {
     expect(topicOf(CLAIMS)).toEqual({ token: "drafts_claims", owner: "BP-043" });
+  });
+
+  it("the one-per-date index rides `drafts_core`'s sub-token, where the index it replaces lives", () => {
+    expect(topicOf(ONE_PER_DATE)).toEqual({ token: "drafts_core", owner: "BP-042" });
+  });
+});
+
+describe("SPEC §7, issue 886 — a date holds at most one asset, said by the database", () => {
+  const sql = sqlOf(ONE_PER_DATE);
+
+  it("the index on `(site_id, scheduled_for)` is unique", () => {
+    expect(sql).toMatch(
+      /create unique index if not exists drafts_one_per_site_per_date\s+on drafts \(site_id, scheduled_for\)/
+    );
+  });
+
+  it("it reads every state, so a vetoed or published draft still occupies its date", () => {
+    // The only predicate is the null one below: a `state` in the index
+    // would let a second row onto a date whose first draft was skipped.
+    expect(sql).not.toMatch(/where[^;]*\bstate\b/);
+  });
+
+  it("a row carrying no date is outside it — two of those are not a duplicate", () => {
+    expect(sql).toMatch(/where scheduled_for is not null/);
+  });
+
+  it("the non-unique index it replaces is dropped rather than left beside it", () => {
+    expect(sql).toMatch(/drop index if exists idx_drafts_site_scheduled_for/);
   });
 });
 

@@ -12,7 +12,9 @@ import type { EngineResult } from "./engine";
 
 /** The `scan/run` payload for one site's onboarding pass. `scanId` is the
  *  delivery's idempotency key, the same for every send for the site, so a
- *  re-send never starts a second pass. */
+ *  re-send never starts a second pass — and so a second delivery of the
+ *  maintenance tick that sends it does not either (issue 886): the tick
+ *  carries no key of its own, and this one is what stands in for it. */
 export async function sendDeepPass(a: { siteId: string; domain: string }): Promise<void> {
   const { sendJobEvent } = await import("./client");
   await sendJobEvent("scan/run", {
@@ -49,10 +51,13 @@ export const deepPassBackstop = Object.freeze({
     if (domain === null) return { done: true };
     // A pass a ceiling stopped is measured again on a fresh row, under the
     // re-measure's own bound (issue 855); a refusal starts nothing and the
-    // next tick asks again.
-    if (await deepPassCutShort(siteId)) {
+    // next tick asks again. The cut-short pass's own id goes with it (issue
+    // 886): it is the key the fresh row is unique on, so a second delivery
+    // of this tick claims nothing and pays for nothing.
+    const cutShort = await deepPassCutShort(siteId);
+    if (cutShort !== null) {
       const { startRemeasure } = await import("@/lib/scan/deep/remeasure");
-      const start = await startRemeasure({ siteId, domain });
+      const start = await startRemeasure({ siteId, domain, remeasureOf: cutShort });
       console.log(JSON.stringify({ event: "deep_pass_cut_short_remeasured", siteId, started: start.started }));
       return { done: true };
     }

@@ -177,7 +177,30 @@ const SHORT_OF_HAND_OFF = ["generating", "in_review", "approved", "failed", "nee
 
 interface QueryResult<T> {
   data: T[] | null;
-  error: { message: string } | null;
+  error: { message: string; code?: string } | null;
+}
+
+/** Postgres's unique violation, as PostgREST hands it back. */
+const UNIQUE_VIOLATION = "23505";
+
+/**
+ * The date already holds its draft, said by the database rather than by the
+ * read `generateDayPage()` makes first (issue 886).
+ *
+ * `drafts_one_per_site_per_date` is SPEC §7's "a date holds at most one
+ * asset" as an index, and it is what decides two evening ticks that both
+ * read no row and both went on to write one. The loser's insert raises
+ * this, and the engine answers `already_drafted` — the same outcome the
+ * read gives the delivery that arrives after the first run has finished.
+ */
+export class DraftDateTaken extends Error {
+  constructor(
+    readonly siteId: string,
+    readonly publishDate: string | null
+  ) {
+    super(`generate/store: ${siteId} already holds a draft for ${publishDate ?? "no date"}`);
+    this.name = "DraftDateTaken";
+  }
 }
 
 interface MinimalQueryBuilder<T> extends PromiseLike<QueryResult<T>> {
@@ -257,6 +280,13 @@ export function supabaseGenerateStore(): GenerateStore {
         .from<{ id: string }>("drafts")
         .insert(row)
         .select("id");
+      // The one unique rule an insert of a day's page can break is
+      // `drafts_one_per_site_per_date` (issue 886) — the primary key is a
+      // generated uuid. It is raised as itself so the caller can answer
+      // `already_drafted` instead of failing the tick.
+      if (result.error?.code === UNIQUE_VIOLATION) {
+        throw new DraftDateTaken(row.site_id, row.scheduled_for);
+      }
       if (result.error) throw new Error(`generate/store: insert into drafts failed: ${result.error.message}`);
       const created = (result.data ?? [])[0];
       if (created === undefined) throw new Error("generate/store: insert into drafts returned no row");

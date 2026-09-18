@@ -60,7 +60,7 @@ vi.mock("@/lib/mail/retention", () => ({
 // query is stood in; the send goes through the real job client's
 // `sendJobEvent`, recorded here instead of reaching the platform.
 const dueDeepPass = vi.fn<() => Promise<readonly string[]>>(async () => []);
-const cutShort = vi.fn<(siteId: string) => Promise<boolean>>(async () => false);
+const cutShort = vi.fn<(siteId: string) => Promise<string | null>>(async () => null);
 vi.mock("@/lib/scan/deep/backstop", () => ({
   sitesWithoutDeepPass: () => dueDeepPass(),
   deepPassDomain: async (siteId: string) => (siteId === "site-gone" ? null : "example.com"),
@@ -68,8 +68,12 @@ vi.mock("@/lib/scan/deep/backstop", () => ({
 }));
 // Issue 855: a pass a ceiling stopped is measured again through issue 837's
 // re-measure, whose own bound and row claim `remeasure.test.ts` drives.
-const remeasure = vi.fn<(a: { siteId: string; domain: string }) => Promise<unknown>>(async () => ({ started: true, scanId: "fresh-row" }));
-vi.mock("@/lib/scan/deep/remeasure", () => ({ startRemeasure: (a: { siteId: string; domain: string }) => remeasure(a) }));
+const remeasure = vi.fn<(a: { siteId: string; domain: string; remeasureOf?: string }) => Promise<unknown>>(
+  async () => ({ started: true, scanId: "fresh-row" })
+);
+vi.mock("@/lib/scan/deep/remeasure", () => ({
+  startRemeasure: (a: { siteId: string; domain: string; remeasureOf?: string }) => remeasure(a),
+}));
 const sent = vi.hoisted(() => [] as { name: string; data: Record<string, unknown> }[]);
 vi.mock("@/jobs/client", async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
@@ -348,9 +352,15 @@ describe("SPEC §5 — account/maintenance re-sends the onboarding pass a failed
 
   it("issue 855: a site whose newest pass a ceiling stopped is measured again on a fresh row, not re-sent setup's key", async () => {
     dueDeepPass.mockResolvedValue(["site-1"]);
-    cutShort.mockResolvedValueOnce(true);
+    cutShort.mockResolvedValueOnce("cut-short-pass");
     expect(await accountMaintenance.run({ data: {}, now: NOW })).toEqual({ outcome: "ran", subjectId: null });
-    expect(remeasure).toHaveBeenCalledWith({ siteId: "site-1", domain: "example.com" });
+    // Issue 886: the cut-short pass's id rides with it, and is what a
+    // second delivery of this tick would lose the claim on.
+    expect(remeasure).toHaveBeenCalledWith({
+      siteId: "site-1",
+      domain: "example.com",
+      remeasureOf: "cut-short-pass",
+    });
     expect(sent).toEqual([]);
   });
 
