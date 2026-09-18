@@ -130,14 +130,46 @@ function logSend(a: {
   console.log(JSON.stringify({ event: "mail_send", ...a }));
 }
 
+/** RFC 8058's two headers, for a mail that carries a stop control.
+ *
+ *  **`List-Unsubscribe-Post` is a promise, not a hint.** Sending it says
+ *  the URL answers a POST and unsubscribes on that POST alone, with no page
+ *  to press and no confirmation — which is what
+ *  `src/app/api/opt-out/[token]/route.ts` does. The pair is what a mail
+ *  client needs to draw its own Unsubscribe control, and what Gmail's and
+ *  Yahoo's sender rules ask of a bulk sender; the link inside the body is a
+ *  second way to the same suppression, never a substitute (issue 889).
+ *
+ *  The URL is wrapped in angle brackets because the header's grammar is a
+ *  list of URIs, each bracketed. */
+function unsubscribeHeaders(url: string | undefined): Record<string, string> {
+  if (url === undefined) return {};
+  return {
+    "List-Unsubscribe": `<${url}>`,
+    "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+  };
+}
+
 /** One request, both bodies, never a throw. */
 export async function sendViaVendor(v: VendorSend): Promise<VendorResult> {
   const recipient = recipientDigest(v.to);
   const { subject, html, text } = v;
+  const headers = unsubscribeHeaders(v.listUnsubscribe);
   // §15's `MAIL_FROM` (issue #81), read at the send. Not derived from
   // `NEXT_PUBLIC_APP_URL` any more: that address was only ever right on
   // production, and the boot refuses a deployment that names no mailbox.
-  const payload = JSON.stringify({ from: env.MAIL_FROM, to: [v.to], subject, html, text });
+  //
+  // `headers` is omitted entirely for a mail with no stop control rather
+  // than sent as `{}`: a kind that carries no unsubscribe must not tell an
+  // inbox it does.
+  const payload = JSON.stringify({
+    from: env.MAIL_FROM,
+    to: [v.to],
+    subject,
+    html,
+    text,
+    ...(Object.keys(headers).length === 0 ? {} : { headers }),
+  });
 
   let response: TransportResponse;
   try {

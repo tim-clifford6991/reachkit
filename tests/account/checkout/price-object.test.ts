@@ -14,8 +14,14 @@ applyEnvFixture();
 const { PRICE_CURRENCY, PRICE_EUR_CENTS, PRICE_INTERVAL } = await import(
   "@/lib/config/constants"
 );
-const { PRICE_OBJECT_SPEC, PRICE_FIELDS, PriceObjectMismatch, assertPriceMatchesSpec } =
-  await import("@/lib/account/checkout/price-object");
+const {
+  PRICE_OBJECT_SPEC,
+  PRICE_FIELDS,
+  PriceObjectMismatch,
+  PriceObjectUnknown,
+  assertPriceMatchesSpec,
+  keyModeOf,
+} = await import("@/lib/account/checkout/price-object");
 const { setStripe } = await import("@/lib/account/stripe/client");
 const { assertLivePriceMatchesSpec } = await import("@/lib/account/checkout/price-object");
 const { newStripeDouble, stripeDouble } = await import("../stripe-double");
@@ -120,5 +126,44 @@ describe("the live read", () => {
     state.price = { ...matchingPrice(), tax_behavior: "exclusive" };
     setStripe(stripeDouble(state));
     await expect(assertLivePriceMatchesSpec()).rejects.toBeInstanceOf(PriceObjectMismatch);
+  });
+});
+
+// ── the mode crossing (issue 889) ───────────────────────────────────────
+//
+// Production's bindings are a live-mode key and a test-mode price id. Each
+// is well-formed on its own, so the only place the crossing shows is the
+// vendor's answer — and before this it was reported as a vendor that could
+// not be read, which is the one report that lets the deployment serve.
+
+describe("a price the vendor says does not exist is a binding fault, not an outage", () => {
+  it("is its own error, not a mismatch — no field of the spec was compared", async () => {
+    const state = newStripeDouble();
+    state.price = null;
+    setStripe(stripeDouble(state));
+    await expect(assertLivePriceMatchesSpec()).rejects.toBeInstanceOf(PriceObjectUnknown);
+    await expect(assertLivePriceMatchesSpec()).rejects.not.toBeInstanceOf(PriceObjectMismatch);
+  });
+
+  it("a vendor that could not be read at all still comes back as itself", async () => {
+    const state = newStripeDouble();
+    state.priceError = new Error("socket hang up");
+    setStripe(stripeDouble(state));
+    await expect(assertLivePriceMatchesSpec()).rejects.not.toBeInstanceOf(PriceObjectUnknown);
+  });
+
+  it("the message names the key's mode and never the key", () => {
+    const error = new PriceObjectUnknown("live");
+    expect(error.message).toContain("live-mode key");
+    expect(error.message).toContain("STRIPE_PRICE_ID");
+    expect(error.message).not.toContain("sk_");
+  });
+
+  it("the mode is read off the prefix, and an unfamiliar key is not guessed at", () => {
+    expect(keyModeOf("sk_live_abc")).toBe("live");
+    expect(keyModeOf("rk_live_abc")).toBe("live");
+    expect(keyModeOf("sk_test_abc")).toBe("test");
+    expect(keyModeOf("rk_test_abc")).toBe("test");
+    expect(keyModeOf("sk_fixture")).toBe("unrecognised");
   });
 });

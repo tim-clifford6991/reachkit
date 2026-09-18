@@ -138,3 +138,53 @@ describe("BUILD §12 — one send, one request", () => {
     expect(bad).toBeTruthy();
   });
 });
+
+// ── RFC 8058's one-click unsubscribe (issue 889) ────────────────────────
+//
+// The header is a property of the *send*, not of the template: it carries
+// the stop control the mail already shows a reader, so the inbox's own
+// Unsubscribe control and the link in the body reach one suppression.
+
+describe("the stop control reaches the inbox as well as the reader", () => {
+  const STOP = {
+    href: "https://reachkit.example/opt-out/tok",
+    oneClickHref: "https://reachkit.example/api/opt-out/tok",
+    mechanism: "opt-out",
+  } as const;
+
+  it("a mail carrying a stop control sends the one-click address as the header", async () => {
+    await sendEmail({
+      kind: "report",
+      to: "reader@example.com",
+      subject: f.HEADING_KEY,
+      blocks: [f.HEADING],
+      optOut: STOP,
+    });
+    expect(requests[0]?.headers).toEqual({
+      "List-Unsubscribe": `<${STOP.oneClickHref}>`,
+      "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+    });
+  });
+
+  it("the header is the one-click endpoint, never the page the reader lands on", async () => {
+    await sendEmail({
+      kind: "report",
+      to: "reader@example.com",
+      subject: f.HEADING_KEY,
+      blocks: [f.HEADING],
+      optOut: STOP,
+    });
+    const headers = requests[0]?.headers as Record<string, string>;
+    expect(headers["List-Unsubscribe"]).not.toContain(`<${STOP.href}>`);
+  });
+
+  it("a sign-in mail claims no unsubscribe — it is the credential, and nothing stops it", async () => {
+    await sendEmail({
+      kind: "magic-link",
+      to: "reader@example.com",
+      subject: f.HEADING_KEY,
+      blocks: [f.HEADING],
+    });
+    expect(requests[0] && "headers" in requests[0]).toBe(false);
+  });
+});

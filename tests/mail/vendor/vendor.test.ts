@@ -73,6 +73,41 @@ describe("BUILD §12 — the one request", () => {
   });
 });
 
+// ── RFC 8058's one-click unsubscribe (issue 889) ────────────────────────
+//
+// Before this, the request carried `from`, `to`, `subject` and the two
+// bodies and no headers at all: every mail the product sent, including its
+// three-mail nurture sequence, reached an inbox with no `List-Unsubscribe`,
+// so no mail client could draw its own Unsubscribe control and the only way
+// out was the link in the body.
+
+describe("the two unsubscribe headers", () => {
+  const WITH_STOP = { ...SEND, listUnsubscribe: "https://reachkit.example/api/opt-out/tok" };
+
+  it("a mail carrying a stop control sends both, the URL in angle brackets", async () => {
+    respond(200, JSON.stringify({ id: "vendor-1" }));
+    await sendViaVendor(WITH_STOP);
+    const request = JSON.parse(captured[0] as string) as { headers?: Record<string, string> };
+    expect(request.headers).toEqual({
+      "List-Unsubscribe": "<https://reachkit.example/api/opt-out/tok>",
+      "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+    });
+  });
+
+  it("a mail with no stop control sends no headers field at all", async () => {
+    respond(200, JSON.stringify({ id: "vendor-1" }));
+    await sendViaVendor(SEND);
+    const request = JSON.parse(captured[0] as string) as Record<string, unknown>;
+    expect("headers" in request).toBe(false);
+  });
+
+  it("the one-click promise is never made without an address to keep it", async () => {
+    respond(200, JSON.stringify({ id: "vendor-1" }));
+    await sendViaVendor(SEND);
+    expect(captured[0]).not.toContain("One-Click");
+  });
+});
+
 describe("BUILD §12 — every outcome is a value, never an exception", () => {
   it("a thrown transport is retriable", async () => {
     __setVendorTransportForTesting(async () => {

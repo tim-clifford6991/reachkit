@@ -131,6 +131,11 @@ describe(
         "/api/report/:domain/correct": "/api/report/example.com/correct",
         "/api/lead": "/api/lead",
         "/opt-out/:token": "/opt-out/abc123",
+        // Issue 889 — RFC 8058's one-click endpoint, over the same token.
+        // Reachable with no session because the request is a mail client's,
+        // made on behalf of a reader who has none; a denial here answers a
+        // pressed Unsubscribe control with a sign-in redirect.
+        "/api/opt-out/:token": "/api/opt-out/abc123",
         "/pricing": "/pricing",
         "/signin": "/signin",
         // Issue #468 (was `/signin/:token`, #35) — the route that redeems a

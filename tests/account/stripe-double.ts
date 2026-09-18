@@ -108,12 +108,24 @@ function raise(error: Error | null): void {
   if (error !== null) throw error;
 }
 
+/** What Stripe throws when the id names nothing it holds — including every
+ *  test-mode id asked for with a live-mode key, which is the crossing
+ *  issue 889 is about. `code` is the handle the product reads, so the
+ *  double wears it: a double that threw a bare `Error` here would pass a
+ *  boot assertion the live API fails. */
+function resourceMissing(what: string): Error {
+  const error = new Error(`No such ${what}`) as Error & { code: string; statusCode: number };
+  error.code = "resource_missing";
+  error.statusCode = 404;
+  return error;
+}
+
 export function stripeDouble(state: StripeDoubleState): Stripe {
   const double = {
     prices: {
       retrieve: async () => {
         raise(state.priceError);
-        if (state.price === null) throw new Error("no such price");
+        if (state.price === null) throw resourceMissing("price");
         return state.price;
       },
       create: async (params: Record<string, unknown>) => {

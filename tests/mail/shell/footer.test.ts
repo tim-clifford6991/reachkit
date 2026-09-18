@@ -79,7 +79,7 @@ describe("issue #376 — S20's footer, in both bodies", () => {
       ...BASE,
       reason: "mail.reason.report",
       reasonVars: { address: "remove@example.com" },
-      optOut: { href, mechanism: "opt-out" },
+      optOut: { href, oneClickHref: `${href}/one-click`, mechanism: "opt-out" },
     });
 
     const reason = mail.html.indexOf("Own this site");

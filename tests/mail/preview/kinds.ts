@@ -102,7 +102,11 @@ const WEEKLY_NEXT = [
 
 /** Where a `toggle` kind's stop control points: Settings › Notifications,
  *  the customer's own three switches — never the address-wide opt-out. */
-const UNSUBSCRIBE = { href: `${APP}/app/settings`, mechanism: "unsubscribe" } as const;
+const UNSUBSCRIBE = {
+  href: `${APP}/app/settings`,
+  oneClickHref: `${APP}/api/opt-out/preview-token`,
+  mechanism: "unsubscribe",
+} as const;
 
 /** The seven the set draws, in its own order. */
 export const PREVIEW_KINDS = [

@@ -34,8 +34,8 @@ Supabase connector after the target deploy is READY, then the path is walked aga
 | Preview | none. Git deployments are off (`vercel.json` `git.deploymentEnabled: false`): every push used to create a cancelled deployment that still counted toward the Hobby quota. The deployer asks for each deployment of `main`; the owner reviews on `dev.reachkit.app` |
 | Database | one Supabase project, `reachkit` (`kleepxxddbcnfsfwudoe`), Postgres 17, us-east-1, **Free plan**. v2's objects sit in schema `v2_archive`, the rollback path (§9). The org is Vercel-Marketplace-managed: uninstalling that integration would delete the org and the database; the exit path is a transfer to a Supabase-managed org |
 | Jobs | Inngest app `reachkit`, registered at `https://reachkit.app/api/jobs` — owed by the owner: create the app, paste the two keys, sync the functions (#315, §4) |
-| Mail | Resend, sending domain `reachkit.app` (SPF, DKIM, DMARC) — pending #325; `MAIL_FROM` is `hello@reachkit.app` (§6) |
-| Payments | Stripe live: one product `ReachKit`, one €49/month tax-inclusive price bound as `STRIPE_PRICE_ID`; v2's products and prices inactive; webhook `/api/stripe/webhook`; customer portal on. The dashboard steps, and the test-mode walk that proves them, are `docs/stripe-setup.md` |
+| Mail | Resend, sending domain `reachkit.app`; `MAIL_FROM` is `hello@reachkit.app` (§6). #325 got the domain sending; DMARC, the return path and one real inbox are `docs/GO-LIVE.md` §2 and #339 |
+| Payments | Stripe: one product `ReachKit`, one €49/month tax-inclusive price bound as `STRIPE_PRICE_ID`; v2's products and prices inactive; webhook `/api/stripe/webhook`; customer portal on. **Production's three Stripe bindings are test-mode values, so no real customer can pay** (#889) — the switch to live mode is `docs/GO-LIVE.md` §1. The dashboard steps, and the test-mode walk that proves them, are `docs/stripe-setup.md` |
 | Hosted CMS | customers point `content.{their-domain}` at `HOSTED_EDGE_CNAME_TARGET` (`edge.reachkit.app`); per-customer domains are added to the project through the Vercel Domains API (#322) |
 | Local | `npm run dev` on `http://localhost:3000`, bindings from `.env.local` (names in `.env.example`) |
 
@@ -469,7 +469,8 @@ last thing in the log and the deployment serves nothing.
 | 3 | `access-gate` | (registration) | billing's gate could not register — in practice, the database is unreachable | check the Supabase project is awake and `SUPABASE_*` is right |
 | 4 | `stamp-place` | none | — | non-throwing registration |
 | 5 | `spend-alerts` | none | — | non-throwing; an unregistered sink costs an alert, never a refusal |
-| 6 | `checkout` | `PriceObjectMismatch` | the live Stripe Price behind `STRIPE_PRICE_ID` differs from the spec at `unit_amount`, `currency`, `recurring.interval` or `tax_behavior` | the message names the field, the expected value and the found one. Those fields are immutable on a Stripe Price, so the fix is a **new** price built to the spec and `STRIPE_PRICE_ID` repointed at it. This is the only failure this check raises: any other error — a Stripe outage, say — logs `{"check":"checkout","outcome":"unchecked"}` and the deployment serves |
+| 6 | `checkout` | `PriceObjectMismatch` | the live Stripe Price behind `STRIPE_PRICE_ID` differs from the spec at `unit_amount`, `currency`, `recurring.interval` or `tax_behavior` | the message names the field, the expected value and the found one. Those fields are immutable on a Stripe Price, so the fix is a **new** price built to the spec and `STRIPE_PRICE_ID` repointed at it |
+| 6b | `checkout` | `PriceObjectUnknown` | Stripe answered that the price behind `STRIPE_PRICE_ID` does not exist — in practice, a test-mode price id asked for with a live-mode key or the reverse (#889) | the message names the mode of the configured `STRIPE_SECRET_KEY`, never the key. Bind a price created in that mode, or repoint the key. The three Stripe bindings move together (`docs/GO-LIVE.md` §1.3). Any *other* error — a Stripe outage, say — still logs `{"check":"checkout","outcome":"unchecked"}` and the deployment serves: a read that did not happen establishes nothing |
 
 "A real deployment" is `isRealDeployment()` in `src/lib/config/now.ts`, and it **fails closed**:
 anything on Vercel is real, and so is anything with an unset or unparsable `NEXT_PUBLIC_APP_URL`.
@@ -483,7 +484,7 @@ Only an app URL whose host is `localhost`, `127.0.0.1` or `[::1]` is not.
 2. **If it is a binding**: the name is in the message. Confirm it exists on the target that
    failed. A value pasted on one target and not the other is the most common cause — the
    deployment that boots is not evidence about the one that does not.
-3. **If it is the price**: the message names the field and both values.
+3. **If it is the price**: `PriceObjectMismatch` names the field and both values; `PriceObjectUnknown` means the price is not in the configured key's Stripe mode, and the message names that mode.
 4. **If nothing in the log is a boot invariant**, it is not this section: check whether the
    Supabase project has paused (§2) and whether the Vercel build limit was reached (§1).
 
@@ -773,6 +774,7 @@ deployment (`dpl_2NEUXishMXAkzXG4Ti85yTy7NDda`, 23 Aug 2026).
 | spend looks wrong | §8 — the SQL is there; `fetches` is the truth |
 | stop the spend now | §5 — `KILL_SWITCH=true` on every target, **then redeploy** |
 | a key leaked | §3 — rotate: mint, paste both targets, redeploy, verify, revoke |
+| Stripe must go live, or mail must reach a real inbox | `docs/GO-LIVE.md` — the go-live gate, worked through in order |
 | a migration needs to reach production | §9 — by hand, through the SQL editor; `db-live` does not exist |
 | the database is gone | §9 — and read the plan warning first |
 | `Vercel` fails on every PR | §1 — the Hobby plan's 100 builds a day. It is not a required check; nothing is blocked |
