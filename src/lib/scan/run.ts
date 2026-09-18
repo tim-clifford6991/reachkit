@@ -39,7 +39,7 @@
 // the next visitor is not refused for an in-flight scan that is not
 // running. A correction is not a re-scan: it re-measures inside the scan
 // it corrects and always runs.
-import { CACHE_WINDOWS_D, FREE_RESCAN_WINDOW_D, SELECTION, TIMING } from "@/lib/config/constants";
+import { CACHE_WINDOWS_D, FREE_RESCAN_WINDOW_D, SELECTION, TIMING, VENDOR } from "@/lib/config/constants";
 import { captureInBackground } from "@/lib/analytics";
 import type { CapName, CostContext } from "@/lib/costs";
 import { dbAdmin } from "@/lib/db";
@@ -225,6 +225,13 @@ interface TierParameters {
    *  tiers: they buy all twelve, and issue 855's ceiling is what bounds
    *  them. */
   questionsFitThePurse: boolean;
+  /** Issue 875 (owner ruling 2026-09-17): the wall clock one question's SERP
+   *  request may hold. The free path gives up sooner than the transport's
+   *  default — its stage is thirteen seconds at a fan-out of four — and
+   *  leans on issue 865's retry for the calls that were merely slow. The
+   *  paid tiers keep the default: their pass ceiling is issue 855's and no
+   *  stage clock cuts their questions short. */
+  serpAbortMs: number;
 }
 
 export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.freeze({
@@ -245,6 +252,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     ladderStopsAt: "questions",
     marketTooSmallAlert: "none",
     questionsFitThePurse: true,
+    serpAbortMs: VENDOR.freeQuestionAbortMs,
   }),
   deep: Object.freeze({
     cap: "DEEP",
@@ -263,6 +271,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     ladderStopsAt: "twelve",
     marketTooSmallAlert: "immediate",
     questionsFitThePurse: false,
+    serpAbortMs: VENDOR.requestAbortMs,
   }),
   weekly: Object.freeze({
     cap: "WEEKLY",
@@ -281,6 +290,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     ladderStopsAt: "twelve",
     marketTooSmallAlert: "digest",
     questionsFitThePurse: false,
+    serpAbortMs: VENDOR.requestAbortMs,
   }),
 } as const);
 
@@ -317,6 +327,20 @@ interface Sections {
    *  the crawl has run — and after a crawl that raised, which the checks
    *  report as not run rather than as a site with no issues. */
   siteCrawl: CrawlReading | null;
+  /**
+   * **True from the moment the report is being composed** (issue 875).
+   *
+   * A stage the clock cut off cannot cancel a call already in flight, so an
+   * answer can arrive after the stage was abandoned — and it used to be
+   * dropped, although it had been bought and paid for: on the free scans of
+   * 2026-09-17 two SERPs answered and were thrown away. The money is spent
+   * either way, so the honest thing is to keep what came back while there
+   * is still a report to keep it in. This is the line where there stops
+   * being one: `composeReport` reads `sections` from here on, and a write
+   * after it would be a mutation of a report already composed — which is
+   * the defect issue #539's own guard exists to prevent.
+   */
+  sealed: boolean;
 }
 
 /** Everything outstanding, before any stage has run. `not_attempted` is
@@ -328,6 +352,7 @@ function freshSections(at: Date): Sections {
     profile: unmeasured("not_attempted", at),
     marketRows: unmeasured("not_attempted", at),
     selected: [],
+    sealed: false,
     questions: unmeasured("not_attempted", at),
     serps: [],
     battery: [],
@@ -724,6 +749,11 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
   // 5. Assemble from whatever the stages reached, and store.
   const stoppedReason: StoppedReason = ending.stoppedReason;
   const correctionState = correctionStateAfter(correctionBefore, stoppedReason);
+  // Issue 875: from here the report is being composed, so a stage still in
+  // flight writes nothing more. Set immediately before the read, and after
+  // the bounds have settled, so every answer that came back in time — the
+  // late ones included — is in what follows.
+  sections.sealed = true;
   const composed = composeReport({
     scanId,
     domain,
@@ -1334,6 +1364,7 @@ async function askTheTwelve(a: StageArgs, abandoned: () => boolean): Promise<voi
         loadAsyncAiOverview: parameters.asyncAiOverview && !a.correction,
         scope: cacheScope(a),
         freshnessDays: parameters.serpWindowDays,
+        abortMs: parameters.serpAbortMs,
         onFailure: (failure) => {
           heard.failure = failure;
         },
@@ -1378,17 +1409,22 @@ async function askTheTwelve(a: StageArgs, abandoned: () => boolean): Promise<voi
       if (bounds.stopNow() !== null) continue;
       const got = await askOne(question.search.keyword);
       const battery = await askTheBattery(a, question.search.keyword, questions.at, engines);
-      // **A worker whose stage was abandoned writes nothing** (#539
-      // review). The budget stops the pass *waiting* for this stage; it
-      // cannot cancel a call already in flight, so without this an answer
-      // that arrived late landed in `sections` after `score(a)` had already
-      // counted them — money spent and then either uncounted or, worse,
-      // mutating a report that was already composed and stored. Both writes
-      // happen together after the last await, so a question's SERP and its
-      // battery are never half a pair.
-      if (abandoned()) return;
+      // **A late answer is kept, and a sealed report is never written to**
+      // (#539 review, re-cut by issue 875). The budget stops the pass
+      // *waiting* for this stage; it cannot cancel a call already in
+      // flight. The old guard read the stage's abandonment and dropped
+      // whatever arrived after it — money spent, and an answer thrown away
+      // (two of them on the free scans of 2026-09-17). What #539 was
+      // actually protecting against is a write into a report that has
+      // already been composed, and `sections.sealed` is exactly that line:
+      // before it, an answer that arrives is still worth having and
+      // `rescore` below counts it; after it, there is no report left to put
+      // it in. Both writes happen together after the last await, so a
+      // question's SERP and its battery are never half a pair.
+      if (sections.sealed) return;
       sections.serps[i] = cellFor(got, questions.at);
       sections.battery[i] = battery;
+      if (abandoned()) rescore(a);
       if (got.failure !== null && worthAskingAgain(got.failure.vendorFailure)) {
         worthOneMore.push({ index: i, keyword: question.search.keyword, because: got.failure.vendorFailure });
       }
@@ -1644,6 +1680,20 @@ function logEngineDropped(fields: { engine: BatteryEngine; because: string; afte
 /** The last stage buys nothing: the rivals, both cards and the coherence
  *  verdict are all counted over SERPs the pass has already paid for
  *  (§6.6's "zero extra cost"). */
+/**
+ * The scoring, run again over a section that arrived late (issue 875).
+ *
+ * `score` buys nothing and reads nothing but `sections` — §6.6's "zero
+ * extra cost" — so deriving again from a set one SERP larger is the cheap
+ * way to keep the cards, the rivals and the coherence verdict agreeing with
+ * the SERPs the report carries. It is skipped where the stage has not
+ * scored yet: the scoring stage will read the late answer on its own.
+ */
+function rescore(a: StageArgs): void {
+  if (a.sections.sealed || a.sections.presence === null) return;
+  score(a);
+}
+
 function score(a: StageArgs): void {
   const { domain, sections } = a;
   const serps = sections.serps as readonly Measured<MarketSerp>[];

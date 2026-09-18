@@ -30,7 +30,7 @@
 // standard queue") is `task_post` followed by a `GET task_get/…/{id}` —
 // `sendGet` below is that second leg, same credential, same outcome shape.
 import { env } from "@/lib/config/env";
-import { SERP_LOCATION } from "@/lib/config/constants";
+import { SERP_LOCATION, VENDOR } from "@/lib/config/constants";
 
 const DATAFORSEO_BASE_URL = "https://api.dataforseo.com";
 
@@ -63,6 +63,11 @@ export interface DataForSeoRequestSpec {
    *  `RESERVED_TASK_KEYS` is silently dropped, never merged: those three
    *  are this module's alone to set. */
   fields?: Record<string, unknown>;
+  /** The wall clock this one request may hold (issue 875). Absent is
+   *  `REQUEST_TIMEOUT_MS`, which is what every call outside the free path's
+   *  twelve takes. It is per call and never per module because one process
+   *  serves every tier. */
+  timeoutMs?: number;
 }
 
 export interface DataForSeoRequest {
@@ -125,22 +130,30 @@ export type DataForSeoOutcome<T> =
  *  header). */
 export async function sendRequest<T>(spec: DataForSeoRequestSpec): Promise<DataForSeoOutcome<T>> {
   const request = buildRequest(spec);
-  return issue<T>(request.url, {
-    method: request.method,
-    headers: request.headers,
-    body: request.body,
-  });
+  return issue<T>(
+    request.url,
+    {
+      method: request.method,
+      headers: request.headers,
+      body: request.body,
+    },
+    spec.timeoutMs
+  );
 }
 
 /** The standard queue's second leg: `GET {path}` (a `task_get/…/{id}`
  *  path the endpoint module builds from the vendor's own task id, never
  *  from caller input). Same credential placement, same never-throws
  *  outcome contract as `sendRequest`. */
-export async function sendGet<T>(path: string): Promise<DataForSeoOutcome<T>> {
-  return issue<T>(`${DATAFORSEO_BASE_URL}${path}`, {
-    method: "GET",
-    headers: { Authorization: authorizationHeader() },
-  });
+export async function sendGet<T>(path: string, timeoutMs?: number): Promise<DataForSeoOutcome<T>> {
+  return issue<T>(
+    `${DATAFORSEO_BASE_URL}${path}`,
+    {
+      method: "GET",
+      headers: { Authorization: authorizationHeader() },
+    },
+    timeoutMs
+  );
 }
 
 /** The wall clock one vendor request may hold, in milliseconds.
@@ -157,14 +170,19 @@ export async function sendGet<T>(path: string): Promise<DataForSeoOutcome<T>> {
  *  10 s is under every per-stage budget in `STAGE_BUDGETS`, so a single
  *  unanswered request comes back as this module's own `timeout` failure —
  *  ledgered, and `undeterminable` for the one driver that asked — rather
- *  than being the thing that spends the whole stage. Reversal cost: one
- *  constant, this file only. */
-const REQUEST_TIMEOUT_MS = 10_000;
+ *  than being the thing that spends the whole stage.
+ *
+ *  **It is the default, not the rule** (issue 875): a caller may name a
+ *  shorter one, and the free path's question SERPs do — 10 s under a
+ *  13-second stage at a fan-out of four is a quarter of that stage held by
+ *  one stuck call. The pin lives in `constants.ts` with the free path's
+ *  beside it. */
+const REQUEST_TIMEOUT_MS = VENDOR.requestAbortMs;
 
-async function issue<T>(url: string, init: RequestInit): Promise<DataForSeoOutcome<T>> {
+async function issue<T>(url: string, init: RequestInit, timeoutMs?: number): Promise<DataForSeoOutcome<T>> {
   let response: Response;
   try {
-    response = await fetch(url, { ...init, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
+    response = await fetch(url, { ...init, signal: AbortSignal.timeout(timeoutMs ?? REQUEST_TIMEOUT_MS) });
   } catch (error) {
     return {
       ok: false,

@@ -124,6 +124,11 @@ export async function serpOrganic(
      *  decide whether one more ask is worth making and, where it is not,
      *  put the vendor's own kind on the cell. */
     onFailure?: OnVendorFailure;
+    /** The wall clock this request may hold (issue 875). The free path's
+     *  twelve name a shorter one than the transport's default, because the
+     *  stage that buys them is thirteen seconds long and one stuck call
+     *  used to hold a quarter of it for almost all of it. */
+    abortMs?: number;
   }
 ): Promise<Measured<SerpResult>> {
   const base = basePriceCents(a.mode);
@@ -135,13 +140,18 @@ export async function serpOrganic(
     costCents: flagged ? base * ASYNC_AIO_SURCHARGE_MULTIPLIER : base,
     ...(flagged ? { settleCents: (r: readonly SerpResult[] | null) => settledCents(base, r) } : {}),
     fetch: () =>
-      callEndpoint(PATHS, a.mode, {
-        keyword: a.query,
-        // The never-list's one admitted exception, and this is the only
-        // line in the module that can set it. Only ever the caller's own
-        // decided boolean; `false` is sent explicitly, never omitted.
-        load_async_ai_overview: flagged,
-      }),
+      callEndpoint(
+        PATHS,
+        a.mode,
+        {
+          keyword: a.query,
+          // The never-list's one admitted exception, and this is the only
+          // line in the module that can set it. Only ever the caller's own
+          // decided boolean; `false` is sent explicitly, never omitted.
+          load_async_ai_overview: flagged,
+        },
+        a.abortMs
+      ),
     parse: parseSerp,
     ...(a.onFailure ? { onFailure: a.onFailure } : {}),
   });

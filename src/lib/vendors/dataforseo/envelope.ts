@@ -228,17 +228,22 @@ export interface EndpointPaths {
 export async function callEndpoint(
   paths: EndpointPaths,
   mode: DataForSeoMode,
-  fields: Record<string, unknown>
+  fields: Record<string, unknown>,
+  /** The wall clock each request of this call may hold (issue 875) — the
+   *  caller's, where it has one. Both legs of the standard queue take it:
+   *  a `task_get` is the same kind of request as the post that made it. */
+  timeoutMs?: number
 ): Promise<VendorOutcome> {
+  const abort = timeoutMs === undefined ? {} : { timeoutMs };
   if (mode === "live") {
     if (!paths.live) return failure("no_surface", false, "dataforseo: endpoint has no live surface");
-    const out = await sendRequest<unknown>({ path: paths.live, mode, fields });
+    const out = await sendRequest<unknown>({ path: paths.live, mode, fields, ...abort });
     return out.ok ? firstResult(out.payload, false) : fromTransport(out);
   }
 
   if (!paths.std) return failure("no_surface", false, "dataforseo: endpoint has no standard-queue surface");
   const std = paths.std;
-  const posted = await sendRequest<unknown>({ path: std.taskPost, mode, fields });
+  const posted = await sendRequest<unknown>({ path: std.taskPost, mode, fields, ...abort });
   if (!posted.ok) return fromTransport(posted);
   const task = firstTask(posted.payload);
   const id = task ? asString(task.id) : undefined;
@@ -256,7 +261,7 @@ export async function callEndpoint(
   const deadline = Date.now() + VENDOR.stdQueueDeadlineMin * MS_PER_MIN;
   for (;;) {
     await sleep(VENDOR.stdQueuePollIntervalS * MS_PER_S);
-    const got = await sendGet<unknown>(std.taskGet(id));
+    const got = await sendGet<unknown>(std.taskGet(id), timeoutMs);
     if (!got.ok) return failure(got.failure, true, got.reason);
     const polled = firstTask(got.payload);
     if (polled && typeof polled.status_code === "number" && TASK_IN_FLIGHT.has(polled.status_code)) {
