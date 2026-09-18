@@ -823,6 +823,21 @@ export const VENDOR = Object.freeze({                         // #23 · BUILD §
   competitorsDomainRows: 25,
   stdQueuePollIntervalS: 10,
   stdQueueDeadlineMin: 45,
+  /** The wall clock one vendor request may hold, in milliseconds (issue
+   *  #539's bound, pinned here by issue 875 so a tier can carry its own).
+   *  Every call takes this unless its call site names another. */
+  requestAbortMs: 10_000,
+  /** **The free path's question SERPs give up sooner** — owner ruling
+   *  2026-09-17, issue 875, on issue 873's diagnosis. `asking_the_twelve`
+   *  has 13 s at a fan-out of four, so one call held to the 10 s bound took
+   *  a quarter of that stage for almost all of it: on the free scans of
+   *  2026-09-17 a stuck call cost the questions behind it, and two answers
+   *  that did arrive landed after the stage had been abandoned. Five
+   *  seconds is under half the stage and above the ordinary live SERP,
+   *  and issue 865's retry — one more ask after every question has had
+   *  its first, inside the same purse — is what the ones it cuts short
+   *  come back through. */
+  freeQuestionAbortMs: 5_000,
   /** The shape of the payload `ranked_keywords` caches, as a number that
    *  is part of that call's cache key (#117). It went to 2 when the call
    *  began carrying the vendor's own `total_count` beside its rows: an
