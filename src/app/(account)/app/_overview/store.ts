@@ -678,6 +678,9 @@ export async function readOverviewFacts(site: OverviewSite): Promise<OverviewFac
       exhausted: depth.unused === 0 && state === "measured",
       unmeasured: depth.unused === 0 && state === "unmeasured",
       measuring: depth.unused === 0 && state === "measuring",
+      // Issue 881: zero days of pages, and the targets on file are all too
+      // big for this site today.
+      outsized: depth.unused === 0 && state === "outsized",
       short: depth.unused > 0 && depth.unused < SUPPLY_SHORT_BELOW,
       // The first-arrival shortfall is a statement about the pass the
       // customer arrived after, which only the arrival itself can know

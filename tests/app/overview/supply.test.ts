@@ -14,6 +14,7 @@ const facts = (over: Partial<SupplyFacts> = {}): SupplyFacts => ({
   exhausted: false,
   unmeasured: false,
   measuring: false,
+  outsized: false,
   short: false,
   firstArrivalShortfall: false,
   ...over,
@@ -47,6 +48,10 @@ describe("the order is data, not the shape of an if-chain", () => {
   it("the precedence names each condition once, strongest claim first", () => {
     expect(SUPPLY_PRECEDENCE.map((row) => row.when)).toEqual([
       "measuring",
+      // Issue 881: the same zero as `exhausted`/`unmeasured`, told apart —
+      // the market is not used up and not unmeasured, it is too big for
+      // this site today.
+      "outsized",
       "exhausted",
       "unmeasured",
       "short",

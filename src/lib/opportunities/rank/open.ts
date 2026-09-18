@@ -14,6 +14,11 @@
 // `unblock` never appears here: the store's `openRankable` excludes the
 // Fix family, once, and no caller downstream restates that predicate.
 //
+// **A `not-yet` target never appears here either** (issue 881, SPEC §6's
+// right-sizing law): it is excluded before scoring, so no tie-break can
+// hand it a day. The score's `fit` term still weighs the two bands that
+// remain against each other.
+//
 // **A ready `fix_page` is placed, not scored** (SPEC §9, owner ruling
 // 2026-09-14): it outranks new writing for its cluster. It carries no search
 // to score, so it goes immediately ahead of the first Write row in the same
@@ -24,8 +29,15 @@
 import { opportunityStore } from "../store";
 import { readOpportunity } from "../store";
 import { comparePrecedence } from "../cluster";
-import type { Opportunity, Ranked } from "../types";
+import { qualifiesForADay, type Opportunity, type Ranked } from "../types";
 import { rankScore } from "./score";
+
+/** The stored band, as the one predicate reads it. A column carrying
+ *  anything the product does not band by is read as outsized — the
+ *  conservative arm: an unreadable band never fills a day. */
+function bandOf(fitBand: string | null): Opportunity["fitBand"] {
+  return fitBand === "winnable" || fitBand === "reach" ? fitBand : "not-yet";
+}
 
 /** Descending score; ties broken by age, then by id. */
 function byScore(
@@ -124,7 +136,13 @@ export async function rankOpen(siteId: string): Promise<Ranked[]> {
   // No profile, no score — but a fix needs neither, and still takes its day.
   // SPEC §6: "A day is filled only by an opportunity that passes
   // readiness." The answer is the stored column (`assessReadiness`).
-  const rankable = rows.filter((row) => row.ready);
+  // SPEC §6's right-sizing law, enforced (issue 881): a target outsized for
+  // this site is not in the list at all. It used to be barred by weighing 0
+  // in the score, and a zero weight orders without excluding — where every
+  // candidate scored 0 the order was a tie and the tie-break handed the day
+  // to the biggest keyword. A row that does not qualify is dropped here,
+  // once, and `nextForDay` takes the head of what is left.
+  const rankable = rows.filter((row) => row.ready && qualifiesForADay(bandOf(row.fit_band)));
   if (profile === null || rankable.length === 0) return placeFixPages([], fixes);
 
   const scored = rankable.map((row) => {

@@ -72,11 +72,30 @@ export async function supplyMeasured(siteId: string): Promise<boolean> {
  *  `measured` — a market used up; `unmeasured` — one never measured
  *  (`supplyMeasured`, issue 765); `measuring` — the current report is a pass
  *  a ceiling stopped before it finished reading the market, which is being
- *  measured again and is never told to pick a broader category. */
-export type SupplyState = "measured" | "unmeasured" | "measuring";
+ *  measured again and is never told to pick a broader category;
+ *  `outsized` — the site holds targets, and every one of them is too big
+ *  for it today (issue 881). */
+export type SupplyState = "measured" | "unmeasured" | "measuring" | "outsized";
 
 export async function supplyState(siteId: string): Promise<SupplyState> {
-  const report = await opportunityStore().currentReport(siteId);
+  const store = opportunityStore();
+  const report = await store.currentReport(siteId);
   if (report !== null && stoppedOnCeiling(report.stoppedReason)) return "measuring";
+  // Issue 881: zero days of pages beside targets on file is not an empty
+  // market and not a used-up one — it is a market whose searches are all
+  // outsized for this site today. It is stated before the other two
+  // because it is the more specific claim, and it is read from rows rather
+  // than guessed: a count that comes back zero, or that cannot be read at
+  // all, falls through to them rather than claiming either way.
+  if (await outsizedCount(siteId)) return "outsized";
   return (await supplyMeasured(siteId)) ? "measured" : "unmeasured";
+}
+
+/** The site's outsized rows, or 0 where the count could not be read. */
+async function outsizedCount(siteId: string): Promise<number> {
+  try {
+    return await opportunityStore().countOutsized(siteId);
+  } catch {
+    return 0;
+  }
 }
