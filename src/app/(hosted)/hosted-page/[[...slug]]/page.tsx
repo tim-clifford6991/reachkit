@@ -88,7 +88,6 @@ import {
   type Inline,
 } from "@/lib/publish/render/markdown";
 import {
-  liveUrlOnHost,
   livePageBySlug,
   livePagesForSite,
   type HostedPage,
@@ -122,17 +121,21 @@ const load = cache(async (slug: string): Promise<Resolved | null> => {
   // route is reached. A page never renders for either.
   if (disposition.kind !== "site") return null;
 
-  const page = await livePageBySlug(disposition.siteId, slug);
+  const page = await livePageBySlug(disposition.siteId, slug, disposition.host);
   if (page === null) return null;
   return {
     page,
-    // Always the customer's own domain, composed from the one composer
-    // (`liveUrlOnHost`, which `liveUrlFor` is itself written in terms of).
-    // The host is the one that resolved — the label is the customer's
-    // since SPEC §5's ruling of 2026-09-12 — so the canonical names the
-    // address the visitor actually typed and never a recomposed guess at
-    // it. There is no argument to it that yields a ReachKit address.
-    canonical: liveUrlOnHost({ host: disposition.host, slug: page.slug }),
+    // Always the customer's own domain, and always the page's own address:
+    // the store composed it from the host that resolved (`liveUrlOnHost`,
+    // which `liveUrlFor` is itself written in terms of), so the canonical,
+    // the sitemap entry and §9's record are one string rather than three
+    // compositions that can disagree. The host is the one that resolved —
+    // the label is the customer's since SPEC §5's ruling of 2026-09-12, and
+    // a host that moved under this page re-addresses it (SPEC §7,
+    // 2026-09-18, issue 888) — so the canonical names the address the
+    // visitor actually typed and never a stored guess at it. There is no
+    // argument to it that yields a ReachKit address.
+    canonical: page.liveUrl,
   };
 });
 
@@ -163,7 +166,7 @@ const loadIndex = cache(async (): Promise<IndexResolved | null> => {
   return {
     publisher: disposition.domain,
     canonical: `https://${disposition.host}/`,
-    pages: await livePagesForSite(disposition.siteId),
+    pages: await livePagesForSite(disposition.siteId, disposition.host),
   };
 });
 
