@@ -93,6 +93,8 @@ import type { AnswerEngine, OverviewFacts } from "./model";
 import { CALENDAR_DAY_ZONE } from "./week";
 import type { WeeklyPoint } from "./growth";
 import type { RivalFact, RivalFacts } from "./rivals";
+import { needsYouOf } from "@/lib/publish/record/needs-you";
+import type { State } from "@/lib/publish/types";
 import { waitingIssues, type WaitingItem } from "./alerts";
 
 export interface OverviewSite {
@@ -299,10 +301,17 @@ async function weekSearches(siteId: string, week: readonly string[]): Promise<re
  *  the items and chooses nothing. */
 async function waitingItems(siteId: string): Promise<readonly WaitingItem[]> {
   const { data, error } = await client()
-    .from<{ id: string; state: string; title: string; created_at: string; veto_deadline: string | null }>(
-      "drafts"
-    )
-    .select("id, state, title, created_at, veto_deadline")
+    .from<{
+      id: string;
+      state: string;
+      title: string;
+      created_at: string;
+      veto_deadline: string | null;
+      transitions: unknown;
+    }>("drafts")
+    // `transitions` is why the page needs them (issue 880), read off the
+    // same append-only column §9 records every move on.
+    .select("id, state, title, created_at, veto_deadline, transitions")
     .eq("site_id", siteId)
     .in("state", ["in_review", "needs_attention"])
     .order("created_at", { ascending: true });
@@ -316,6 +325,10 @@ async function waitingItems(siteId: string): Promise<readonly WaitingItem[]> {
     // The window the publish sweep itself closes at, stamped from the
     // site's own `veto_hours` (issue 794) — never a default counted here.
     vetoDeadline: row.veto_deadline === null ? null : new Date(row.veto_deadline),
+    // Issue 880: the page's own cause, so the alert states it and offers
+    // the act that matches — never "Reconnect" for a page the writing
+    // rules stopped.
+    cause: needsYouOf({ state: row.state as State, transitions: row.transitions }),
     href: `/app/draft/${row.id}`,
   }));
 }

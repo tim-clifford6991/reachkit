@@ -236,26 +236,52 @@ describe("REQ-043 c9 — the panel renders exactly the projection, and adds noth
     expect(root.querySelectorAll('[data-testid^="day-action-"]')).toHaveLength(3);
   });
 
-  it("a live page offers one way through, at its recorded address", () => {
+  it("a live page offers its recorded address, and the page as written beside it (issue 882)", () => {
     const root = panel("2026-09-01");
     const link = root.querySelector('[data-testid="day-action-calendar.action.view-live-page"]');
     expect(link?.getAttribute("href")).toBe("https://content.example.com/2026-09-01");
-    expect(root.querySelectorAll('[data-testid^="day-action-"]')).toHaveLength(1);
+    // Issue 882: "View live page" opens the published address; what
+    // ReachKit wrote, and the checks it recorded, are read on the page.
+    const read = root.querySelector('[data-testid="day-action-calendar.action.read-page"]');
+    expect(read?.getAttribute("href")).toBe("/app/draft/draft-2026-09-01");
+    expect(root.querySelectorAll('[data-testid^="day-action-"]')).toHaveLength(2);
   });
 
-  it("a needs-you page offers Reconnect, the restart, Move and Skip — and nothing that publishes", () => {
+  it("a needs-you page offers the page, the restart, Move and Skip — and no reconnect on a hosted site", () => {
     // Issue #130: `needs_attention → skipped` is one of §9's fifteen, so
     // the projection offers the stop and the Move that rides beside it.
     // Issue #143: and the restart, on a page whose draft never entered
     // review — which the fixture's is. No control here publishes or
     // approves; the way out is a way out, and the way back is a way back.
+    //
+    // Issue 880: the fixture's page rests there because the §8 hard rules
+    // stopped it, on a hosted host that works — so there is nothing to
+    // reconnect, and issue 882 gives the founder the page itself to read.
     const root = panel("2026-09-10");
-    expect(root.querySelector('[data-testid="day-action-calendar.action.reconnect"]')).not.toBeNull();
+    expect(root.querySelector('[data-testid="day-action-calendar.action.reconnect"]')).toBeNull();
+    expect(root.querySelector('[data-testid="day-action-calendar.action.check-destination"]')).toBeNull();
+    expect(root.querySelector('[data-testid="day-action-calendar.action.read-page"]')).not.toBeNull();
     expect(root.querySelector('[data-testid="day-action-calendar.action.regenerate"]')).not.toBeNull();
     expect(root.querySelector('[data-testid="day-action-calendar.action.move"]')).not.toBeNull();
     expect(root.querySelector('[data-testid="day-action-calendar.action.skip"]')).not.toBeNull();
     expect(root.querySelector('[data-testid="day-action-calendar.action.veto"]')).toBeNull();
     expect(root.querySelectorAll('[data-testid^="day-action-"]')).toHaveLength(4);
+  });
+
+  it("issue 880 — it states why the page needs them, from the page's own record", () => {
+    const root = panel("2026-09-10");
+    // The fixture's page was stopped by the hard rules, so that is the
+    // sentence — never the delivery one, which is false of a page that was
+    // never sent anywhere.
+    // `copy()` resolves to its key in this suite, so what is asserted is
+    // which key the line came from.
+    expect(root.querySelector('[data-testid="day-needs-you-line"]')?.textContent).toBe(
+      "publish.needs-you.rules"
+    );
+    expect(root.textContent).not.toContain("publish.needs-you.destination");
+    // And the registry's sentence is the founder's own case, never the
+    // delivery one.
+    expect(COPY["publish.needs-you.rules"]).toContain("writing rules");
   });
 
   it("a planned page offers Move and Skip, and never Veto", () => {
@@ -329,13 +355,17 @@ describe("the panel is not a drawer, and it renders no sentence of its own", () 
 // A cell the assembler can produce but the fixture's month does not hold,
 // so the union's remaining arm is still rendered somewhere.
 describe("a cell with a page whose stage has no action", () => {
-  it("renders the page and an empty action slot rather than a missing one", () => {
+  it("renders the page and, since issue 882, the one way in to read it", () => {
     const scheduled = cellFor(MODEL, "2026-09-16") as DayCell;
     const root = render(
       <DayPanelView cell={scheduled} timeZone={FIXTURE_TIME_ZONE} stopped={null} />
     );
     expect(root.querySelector('[data-testid="day-title"]')).not.toBeNull();
-    expect(root.querySelectorAll('[data-testid^="day-action-"]')).toHaveLength(0);
+    // A scheduled page is written and queued — the moment a veto matters
+    // most — so it is readable, and it offers nothing else.
+    expect([...root.querySelectorAll('[data-testid^="day-action-"]')].map((el) => el.getAttribute("data-testid"))).toEqual([
+      "day-action-calendar.action.read-page",
+    ]);
   });
 });
 

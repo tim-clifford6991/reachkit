@@ -19,7 +19,8 @@
 // calendar is never padded") are kept by a read that cannot pad.
 import type { Measured } from "@/lib/measure/measured";
 import type { PageTarget } from "../_shell/page-target";
-import type { UnpublishOutcome, VerifyDisposition } from "@/lib/publish/types";
+import type { DestinationKind, UnpublishOutcome, VerifyDisposition } from "@/lib/publish/types";
+import type { NeedsYouCause } from "@/lib/publish/record/needs-you";
 import { accountFor, isLawCause, isSupplyCause, type EmptyAccount, type EmptyFacts, type HeldBySetting } from "./empty";
 import type { WorkStop } from "@/lib/presentation/stopped";
 import { STAGE_OF, type State, type Stage, type StageFilter } from "./stages";
@@ -88,6 +89,11 @@ export interface DraftOnDay {
    *  is true of it: nothing has been delivered, so no check will run. */
   verification: VerifyDisposition;
   unpublishOutcome: UnpublishOutcome | null;
+  /** Why this page needs the customer, from its own record (issue 880), or
+   *  `null` where it does not. The panel states it and `actions.ts` reads
+   *  it to decide which control the page earns — never its stage, which
+   *  says only that something is wanted of them. */
+  needsYou: NeedsYouCause | null;
 }
 
 export interface PageOnDay extends DraftOnDay {
@@ -133,6 +139,9 @@ export interface MonthModel {
    *  screen's law statements — the day panel's publish line and a stopped
    *  day's account — turn on it and must turn on the same one. */
   stopped: WorkStop | null;
+  /** What the site publishes to, and whether it is working (issue 880).
+   *  Carried on the model because the controls a page earns turn on it. */
+  destination: { kind: DestinationKind; healthy: boolean } | null;
   /** The site-local today — the day the panel opens on (REQ-043 c7). */
   today: DayKey;
   /** The last date the plan reaches: the day before the next weekly pass
@@ -177,6 +186,8 @@ export interface CalendarFacts {
    *  engine has already chosen one reason where two answers changed, so
    *  this screen never picks between them (issue #204). */
   changeHoldsGeneration: { because: "domain" | "category"; resumesOn: Date } | null;
+  /** What the site publishes to, and whether it is working (issue 880). */
+  destination: { kind: DestinationKind; healthy: boolean } | null;
   /** `supplyDepth().unused`, **read** — or `null` where it could not be.
    *  ADR-061 point 1 turns on this distinction. */
   unusedSupply: number | null;
@@ -279,6 +290,7 @@ export function assembleMonth(facts: CalendarFacts, month: MonthKey): MonthModel
     month,
     timeZone: facts.timeZone,
     stopped: facts.stop,
+    destination: facts.destination,
     today,
     horizonEnd,
     cells,

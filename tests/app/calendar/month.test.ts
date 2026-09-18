@@ -45,6 +45,7 @@ function draft(day: string, state: DraftOnDay["state"]): DraftOnDay {
     enteredReview: false,
     verification: { kind: "never", because: "no_live_address" } as const,
     unpublishOutcome: null,
+    needsYou: null,
   };
 }
 
@@ -56,6 +57,8 @@ const BARE: CalendarFacts = {
   instructions: {},
   stoppedDays: [],
   heldDays: [],
+  // Issue 880: a hosted host that works.
+  destination: { kind: "hosted", healthy: true },
   customerChangeHoldsPages: null,
   changeHoldsGeneration: null,
   unusedSupply: null,

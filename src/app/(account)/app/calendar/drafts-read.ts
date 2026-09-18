@@ -37,11 +37,11 @@
 // a page whose publish moment does not exist yet: a page in review under
 // autopilot is told the veto deadline instead (the panel's own line), and
 // under copilot it has no moment at all until it is approved.
-import { destinationWaitingOnDns, destinationWorking } from "@/lib/publish/destinations";
+import { destinationStanding, destinationWaitingOnDns, destinationWorking } from "@/lib/publish/destinations";
 import { scheduledPagesFor, type ScheduledPage } from "@/lib/publish/record";
 import { nextPublishTimeAtOrAfter, readPublishingSettings } from "@/lib/publish/settings";
 import { heldPages, isPublishingOn } from "@/lib/publish/switch";
-import type { State } from "@/lib/publish/types";
+import type { DestinationKind, State } from "@/lib/publish/types";
 import { daysOfMonth, type DayKey, type MonthKey } from "./dates";
 import type { HeldBySetting } from "./empty";
 
@@ -77,6 +77,12 @@ export interface PublishingFacts {
   publishAt: ReadonlyMap<string, Date>;
   /** REQ-092 c5's dates: the ones a held page did not go live on. */
   heldDays: readonly DayKey[];
+  /** What the site publishes to, and whether it is working (issue 880).
+   *  The control a page waiting on delivery earns turns on this — a
+   *  reconnect belongs to a destination that carries a credential and is
+   *  actually broken — and never on the page's stage. `null` where the
+   *  site has no live destination. */
+  destination: { kind: DestinationKind; healthy: boolean } | null;
   /** REQ-043 c4's saved change, where one is holding pages back. The
    *  switch is asked first: it is the customer's own act, and a
    *  disconnected destination on a site whose publishing is off is not the
@@ -99,6 +105,7 @@ const UNREADABLE: PublishingFacts = Object.freeze({
   pagesByDay: new Map<DayKey, ScheduledPage>(),
   publishAt: new Map<string, Date>(),
   heldDays: Object.freeze([]),
+  destination: null,
   customerChangeHoldsPages: null,
 });
 
@@ -118,14 +125,18 @@ export async function readPublishingFacts(a: {
   let destinationOk: boolean;
   let waitingOnDns: boolean;
   let settings: Awaited<ReturnType<typeof readPublishingSettings>>;
+  let standing: Awaited<ReturnType<typeof destinationStanding>>;
   try {
-    [pages, held, publishingOn, destinationOk, waitingOnDns, settings] = await Promise.all([
+    [pages, held, publishingOn, destinationOk, waitingOnDns, settings, standing] = await Promise.all([
       scheduledPagesFor({ siteId: a.siteId, from, to }),
       heldPages(a.siteId),
       isPublishingOn(a.siteId),
       destinationWorking(a.siteId),
       destinationWaitingOnDns(a.siteId),
       readPublishingSettings(a.siteId),
+      // Issue 880: the stored row, not a re-check — this decides which
+      // control a page earns and may spend no vendor call.
+      destinationStanding(a.siteId),
     ]);
   } catch (error) {
     console.warn(
@@ -163,6 +174,7 @@ export async function readPublishingFacts(a: {
     pagesByDay,
     publishAt,
     heldDays,
+    destination: standing,
     customerChangeHoldsPages: !publishingOn
       ? "publishing_off"
       : !destinationOk

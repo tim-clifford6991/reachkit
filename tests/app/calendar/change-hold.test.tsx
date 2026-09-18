@@ -71,6 +71,8 @@ function facts(over: Partial<CalendarFacts> = {}): CalendarFacts {
     instructions: {},
     stoppedDays: [],
     heldDays: [],
+    // Issue 880: a hosted host that works — the owner's own account.
+    destination: { kind: "hosted", healthy: true },
     customerChangeHoldsPages: null,
     changeHoldsGeneration: null,
     unusedSupply: null,

@@ -58,6 +58,7 @@ import type { CopyKey } from "@/lib/presentation/copy";
 import { publishDb } from "../db";
 import type { State, UnpublishOutcome, VerifyDisposition } from "../types";
 import { dispositionOf, DISPOSITION_COLUMNS, type DispositionRow } from "../verify/due";
+import { needsYouOf, type NeedsYouCause } from "./needs-you";
 
 /** How an address may be spoken of, decided by the page's **current
  *  state**, not by what ReachKit once did to it. Two keys, not one string
@@ -145,6 +146,8 @@ export const ADDRESS_COPY = Object.freeze({
  *  asserts the two spellings are the same key, which is the coupling that
  *  actually matters. */
 export { SEO_COPY } from "./lines";
+export { needsYouCauseOf, needsYouOf, restedReasonOf, waitsOnDestination } from "./needs-you";
+export type { NeedsYouCause, NeedsYouKind } from "./needs-you";
 
 // Imported as well as re-exported: `seoNoteOf` below names the key, and a
 // re-export alone does not bring it into this module's scope.
@@ -337,6 +340,12 @@ export interface ScheduledPage {
    *  `unpublished`. `null` for every other state, exactly as on
    *  `PageRecord`. */
   readonly unpublishOutcome: UnpublishOutcome | null;
+  /** Why this page needs the customer (issue 880), read off the same
+   *  append-only transitions `enteredReview` is read from — the rules that
+   *  stopped it, the step that could not run, or the delivery it is
+   *  waiting on. `null` for a page in any other state, which needs nothing
+   *  of them. */
+  readonly needsYou: NeedsYouCause | null;
 }
 
 interface ScheduledDraftRow {
@@ -432,6 +441,9 @@ export async function scheduledPagesFor(a: {
       vetoDeadline: asDate(row.veto_deadline),
       approvedAt: asDate(row.approved_at),
       enteredReview: enteredReviewFrom(row.transitions),
+      // Issue 880: why the page needs them, from its own record — never
+      // from its stage, which says only that it does.
+      needsYou: needsYouOf({ state, transitions: row.transitions }),
       liveUrl:
         state === "published" && publication?.made_live_by_us === true
           ? (publication.live_url ?? null)
