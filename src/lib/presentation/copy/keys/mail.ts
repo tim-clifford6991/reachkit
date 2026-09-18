@@ -616,6 +616,15 @@ export const MAIL_COPY = Object.freeze({
   /** Reached the ceiling: free scanning is refused for the rest of the UTC
    *  day and paid passes are holding. */
   "mail.ops.spend-ceiling.reached": ["Today’s spend has reached the daily ceiling. Free scanning is refused for the rest of the UTC day; paid passes are holding.", { slots: {}, fixedBy: "BUILD §6.5 · issue 329" }],
+  /** Issue 885 — one site reached `CAPS.DAILY_SITE_C`, its own share of
+   *  the day. The opposite news to `reached`: the product is still
+   *  serving everybody else, and the fact row names which site. Drafted
+   *  and shipped under the owner ruling of 2026-09-16 (#759); the owner
+   *  corrects the wording. */
+  "mail.ops.spend-ceiling.site-reached": ["One site has reached its own daily cap. Its paid calls are refused for the rest of the UTC day; every other site is unaffected and the product’s own ceiling is untouched.", { slots: {}, fixedBy: "SPEC §6 · issue 885" }],
+  /** Issue 885 — a free-path bound filled. The fact row names which bound;
+   *  the network key and the domain are never written into this mail. */
+  "mail.ops.spend-ceiling.free-scan-bound": ["A free-scan bound has been reached: one network, or one address, has had every free scan it gets in this window. Free scanning carries on for everyone else.", { slots: {}, fixedBy: "SPEC §2 · issue 885" }],
   /** The switch, found engaged. There is no released twin: a release
    *  cannot be told from an ordinary boot without durable state, so the
    *  sentence is not owed until the telling exists. */
@@ -625,6 +634,11 @@ export const MAIL_COPY = Object.freeze({
    *  these are their labels, and the unit is the owner's word to choose. */
   "mail.ops.spend-ceiling.fact.spent": ["spent today, in cents", { slots: {}, fixedBy: "BUILD §6.5 · issue 329" }],
   "mail.ops.spend-ceiling.fact.ceiling": ["daily ceiling, in cents", { slots: {}, fixedBy: "BUILD §6.5 · issue 329" }],
+  /** Issue 885’s third row, drawn only where the alert is not about the
+   *  product as a whole. Closed values: a site id, or one of two bound
+   *  names — never a network key and never a domain. */
+  "mail.ops.spend-ceiling.fact.site": ["site", { slots: {}, fixedBy: "SPEC §6 · issue 885" }],
+  "mail.ops.spend-ceiling.fact.bound": ["bound reached", { slots: {}, fixedBy: "SPEC §2 · issue 885" }],
 
   // ── The owner's incident alert (issue 330): a job invocation failed, a
   // job exhausted its retries, or a deployment refused to boot. Drafted and

@@ -29,6 +29,16 @@
 // re-check-between-calls discipline still holds for callers that are
 // sequential. No lock is needed — the runtime is single-threaded, and the
 // two arithmetic statements below never interleave.
+//
+// **Three ceilings stand over a call, not two (issue 885).** This pass's
+// own cap, the product's day, and — for a call made against a scan row
+// that carries a `site_id` — that site's day (`CAPS.DAILY_SITE_C`). The
+// site is read off the row when the context opens rather than passed in,
+// so no call site can spend around its own customer's cap by leaving an
+// argument out. What each protects is different and they are not
+// interchangeable: the pass cap bounds one measurement, the product's day
+// bounds the company's exposure, and the site's day is what stops one
+// customer from being the reason every other customer's pass is refused.
 import { dbAdmin } from "@/lib/db";
 // §6.4's first rule — "nothing is fetched that no rendered surface reads"
 // and, with it, nothing fetched twice that one scan already holds. A cost
@@ -40,7 +50,7 @@ import { withRobotsMemo } from "@/lib/egress/robots-memo";
 import { CAPS } from "@/lib/config/constants";
 import { now } from "@/lib/config/now";
 import { readCache } from "./cache";
-import { openDayLedger } from "./daily";
+import { openDayLedger, openSiteDayLedger, type SiteDayLedger } from "./daily";
 import { writeFetchRow } from "./ledger";
 import { isFetchRefusal, isVendorFailure } from "./refusal";
 export {
@@ -62,12 +72,13 @@ const CAP_VALUES: Record<CapName, number> = {
 };
 
 /** Why a call was refused. The per-pass cap is the one BP-007 wrote; the
- *  day's ceiling is the product-wide one (issue #329). Both refuse the same
+ *  day's ceiling is the product-wide one (issue #329); the site cap is one
+ *  customer's share of that day (issue 885). All three refuse the same
  *  way — `{ skipped: "cap" }`, degrade, never throw — and a stage that has
  *  been told to stop spending has no use for the difference. It is recorded
  *  rather than returned: what needs to know why is whoever reads the logs
  *  after a day the product went quiet. */
-type CapReason = "scan_cap" | "daily_ceiling";
+type CapReason = "scan_cap" | "daily_ceiling" | "site_cap";
 
 /** The seam's own log channel, the shape `logClampedSettlement` already
  *  uses. One line the first time a context refuses, naming which ceiling
@@ -79,6 +90,10 @@ function logCapHit(a: {
   cap: CapName;
   spentCents: number;
   ceilingCents: number;
+  /** Whose cap, where the refusal is a site's (issue 885): a day the
+   *  product went quiet because one customer used its share is only
+   *  readable afterwards if the line says which customer. */
+  siteId?: string;
 }): void {
   console.warn(JSON.stringify({ event: "cap_hit", ...a }));
 }
@@ -119,9 +134,9 @@ export interface CostContext {
   // supplied, the reservation otherwise — one number, and it is the one
   // the row carries.
 
-  /** True once *either* ceiling is reached — this pass's own cap, or the
-   *  product's daily one (issue #329). Re-checked between calls in any
-   *  multi-call step. */
+  /** True once *any* ceiling over this call is reached — this pass's own
+   *  cap, the product's daily one (issue #329), or this site's daily one
+   *  (issue 885). Re-checked between calls in any multi-call step. */
   capHit(): boolean;
   spentCents(): number;
   degraded(): boolean;
@@ -182,13 +197,32 @@ export async function withCostContext<T>(
   body: (cost: CostContext) => Promise<T>
 ): Promise<T> {
   const capValue = CAP_VALUES[ctx.cap];
-  let ledgeredCents = ctx.rollUp === "add" ? await rowCostCents(ctx.scanId) : (ctx.priorCents ?? 0);
+  // One read of the row this context spends against, for the two facts the
+  // row holds: what it has already been charged (the `"add"` roll-up), and
+  // **whose** money this is (issue 885). The site is read here rather than
+  // taken as an argument on purpose — a per-site cap a caller could name,
+  // or omit, is a cap a caller can walk past, and this seam is the one
+  // place every paid call in the product passes through.
+  const row = await readScanRow(ctx.scanId);
+  if (ctx.rollUp === "add" && row.costCents === null) {
+    // What `rowCostCents` promised before this read was folded into it: a
+    // context that counted an unreadable row as nothing would open with
+    // headroom the pass has already spent, and its close would write that
+    // spend away.
+    throw new Error(`withCostContext: could not read ${ctx.scanId}'s cost: ${row.unreadable}`);
+  }
+  let ledgeredCents = ctx.rollUp === "add" ? (row.costCents ?? 0) : (ctx.priorCents ?? 0);
   let inFlightReserved = 0;
   let isDegraded = false;
   // What the whole product has spent today (issue #329), read when the
   // context opens and again before every paid call (issue 792) — see
   // `daily.ts` for why, and for what an unreadable ledger means.
   const day = await openDayLedger(now());
+  // And what *this site* has spent today (issue 885). `null` where the row
+  // carries no site: a free scan has no customer to charge, and its own
+  // bounds are `FREE_BOUNDS`, checked at the door in `admission.ts`.
+  const site: SiteDayLedger | null =
+    row.siteId === null ? null : await openSiteDayLedger(row.siteId, now());
   let capHitLogged = false;
 
   function refuse(reason: CapReason, source: string, ceilingCents: number): { skipped: "cap" } {
@@ -199,8 +233,14 @@ export async function withCostContext<T>(
         reason,
         source,
         cap: ctx.cap,
-        spentCents: reason === "daily_ceiling" ? day.spentCents() : spentCents(),
+        spentCents:
+          reason === "daily_ceiling"
+            ? day.spentCents()
+            : reason === "site_cap"
+              ? (site?.spentCents() ?? 0)
+              : spentCents(),
         ceilingCents,
+        ...(reason === "site_cap" && site !== null ? { siteId: site.siteId } : {}),
       });
     }
     return { skipped: "cap" };
@@ -249,6 +289,19 @@ export async function withCostContext<T>(
       await day.refresh(now());
       if (day.ceilingReached(inFlightReserved)) {
         return refuse("daily_ceiling", call.source, CAPS.DAILY_PRODUCT_C);
+      }
+
+      // Then this site's own share of the day (issue 885), read the same
+      // way and for the same reason: another pass for the same site may be
+      // running beside this one, and this pass's other calls are in flight
+      // and not yet ledgered. A site at its cap is refused here and
+      // nowhere else — which is what leaves every *other* site's call
+      // untouched, the property the product-wide ceiling cannot give.
+      if (site !== null) {
+        await site.refresh(now());
+        if (site.capReached(inFlightReserved)) {
+          return refuse("site_cap", call.source, CAPS.DAILY_SITE_C);
+        }
       }
 
       // The cap is checked against the **reservation** — the settlement
@@ -314,8 +367,10 @@ export async function withCostContext<T>(
         });
         ledgeredCents += settledCents;
         // The day's total moves by what was actually ledgered, and `add`
-        // publishes the crossing if this is the call that made one.
+        // publishes the crossing if this is the call that made one. The
+        // site's total moves with it, by its own cap and its own crossing.
         day.add(settledCents);
+        site?.add(settledCents);
 
         return { payload, fresh: true, costCents: settledCents };
       } finally {
@@ -324,12 +379,13 @@ export async function withCostContext<T>(
     },
 
     capHit(): boolean {
-      // Either ceiling. A multi-call step re-checks this between calls and
-      // stops on it, so a step that would otherwise keep asking and keep
-      // being refused stops on the first refusal instead — and the pass
-      // ends `spend_ceiling` (`src/lib/scan/ceilings.ts`), which is where
-      // the reason reaches the stored report and the screen.
-      return spentCents() >= capValue || day.ceilingReached();
+      // Any of the three ceilings: this pass's own cap, the product's day,
+      // or this site's day (issue 885). A multi-call step re-checks this
+      // between calls and stops on it, so a step that would otherwise keep
+      // asking and keep being refused stops on the first refusal instead —
+      // and the pass ends `spend_ceiling` (`src/lib/scan/ceilings.ts`),
+      // which is where the reason reaches the stored report and the screen.
+      return spentCents() >= capValue || day.ceilingReached() || (site?.capReached() ?? false);
     },
 
     spentCents,
@@ -373,13 +429,34 @@ export async function withCostContext<T>(
   return result;
 }
 
-/** What a row already carries, for a context that adds to it. A row that
- *  cannot be read throws: a context that counted it as nothing would open
- *  with headroom the pass has already spent, and its close would write
- *  that spend away. */
-async function rowCostCents(scanId: string): Promise<number> {
-  const { data, error } = await dbAdmin().from("scans").select("cost_cents").eq("id", scanId).limit(1);
-  if (error) throw new Error(`withCostContext: could not read ${scanId}'s cost: ${error.message}`);
-  const cents = Number((data?.[0] as { cost_cents?: unknown } | undefined)?.cost_cents ?? 0);
-  return Number.isFinite(cents) ? cents : 0;
+/** The two facts the row this context spends against holds: what it has
+ *  already been charged, and whose site it belongs to.
+ *
+ *  `costCents` is `null` where the row could not be read — the `"add"`
+ *  roll-up raises on that, for the reason its own caller states. `siteId`
+ *  is `null` both for a row that carries no site (every free scan) and for
+ *  a row that could not be read: an unreadable row is not evidence of a
+ *  site whose cap could be reached, and the product's own ceiling still
+ *  stands over the call either way. That asymmetry is deliberate and is
+ *  not the fail-closed rule of issue 792 being bent — a site's *spend
+ *  total* that cannot be read does hold the call (`SiteDayLedger`); this
+ *  is the prior question of whether there is a site at all, and answering
+ *  it wrong in the closed direction would stop the free path too. The line
+ *  below is what makes it visible when it happens. */
+async function readScanRow(
+  scanId: string
+): Promise<{ costCents: number | null; siteId: string | null; unreadable: string | null }> {
+  const { data, error } = await dbAdmin()
+    .from("scans")
+    .select("cost_cents, site_id")
+    .eq("id", scanId)
+    .limit(1);
+  if (error) {
+    console.warn(JSON.stringify({ event: "scan_row_unreadable", scanId, reason: error.message }));
+    return { costCents: null, siteId: null, unreadable: error.message };
+  }
+  const row = data?.[0] as { cost_cents?: unknown; site_id?: unknown } | undefined;
+  const cents = Number(row?.cost_cents ?? 0);
+  const siteId = typeof row?.site_id === "string" && row.site_id.length > 0 ? row.site_id : null;
+  return { costCents: Number.isFinite(cents) ? cents : 0, siteId, unreadable: null };
 }

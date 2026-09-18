@@ -8,9 +8,25 @@
 // list only; the reasoning lives in BP-012's `## Decisions` (rule 2.4):
 //
 //   removed → cooldown → switched off / daily ceiling → in-flight → hourly
+//     → network's day → domain's day   (the last two: issue 885)
 //
 // what each step reads and returns is BP-023's `## Error & edge behavior`
-// table. `evaluateAdmission`, below, is that order extracted once (WO-058
+// table.
+//
+// **The last two steps are issue 885's, and they are here rather than in
+// the route for the reason every other step is: `POST /api/scan` takes a
+// domain from the public landing page and calls straight into
+// `claimFreeScanSlot`, so a bound anywhere above this file is a bound a
+// script skips.** They close the two ways the existing five left the free
+// path open. `checkHourly` bounds a network's hour but nothing bounded its
+// day, so one script that waited ran 5 an hour for 24 hours; and the
+// stored report that makes a repeat of one domain free is read at the
+// report address (`resolve.ts` row 3), never here, so one address claimed
+// from enough networks cost 12¢ every time. What was already closed is
+// left alone: the removal table step 1 reads through `./removal` is a
+// takedown list with no writer anywhere in the product, not a rate limit,
+// and the day's product-wide spend ceiling (issue #329) is already the
+// `daily` step's first question. `evaluateAdmission`, below, is that order extracted once (WO-058
 // `## Steps` step 2, rule 2.4): both `admitFreeScan` and `claimFreeScanSlot`
 // call it, so the order exists exactly once in this file.
 //
@@ -78,8 +94,10 @@ import { now } from "@/lib/config/now";
 // only ever asks this one module a question.
 import {
   ceilingReached,
+  publishFreeScanBoundReached,
   readDaySpendCents,
   secondsUntilDayRollsOver,
+  type FreeScanBound,
 } from "@/lib/costs/daily";
 import { dbAdmin } from "@/lib/db";
 import { isRemovedWith } from "./removal";
@@ -165,6 +183,14 @@ function hashSeed(seed: string): NetworkKey {
 export type Admission =
   | { admit: true }
   | { refuse: "hourly"; retryAfterSeconds: number }
+  /** Issue 885 — this network has had every free scan one network gets in
+   *  a day (`FREE_BOUNDS.scansPerIpPerDay`). Its own arm rather than
+   *  `hourly`'s: the sentence `hourly` renders names the hour. */
+  | { refuse: "network_daily"; retryAfterSeconds: number }
+  /** Issue 885 — this domain has been measured as often as one address is
+   *  measured in a day (`FREE_BOUNDS.scansPerDomainPerDay`), whoever
+   *  asked. */
+  | { refuse: "domain_daily"; retryAfterSeconds: number }
   | { refuse: "in_flight"; sameDomain: boolean; runningScanId?: string; runningSince?: Date }
   | { refuse: "daily"; retryAfterSeconds: number }
   | { refuse: "switched_off" }
@@ -368,7 +394,106 @@ async function checkHourly(client: Client, network: NetworkKey): Promise<Admissi
   return { refuse: "hourly", retryAfterSeconds: Math.ceil(remainingMs / 1000) };
 }
 
-type FreeStep = "removed" | "cooldown" | "switched_off" | "daily" | "in_flight" | "hourly" | "none";
+/**
+ * Issue 885 — how many free scans one network has had today.
+ *
+ * `checkHourly` above bounds a network's hour; nothing bounded its day, so
+ * 5 an hour for 24 hours is 120 scans, `120 x CAPS.FREE_C` = 1440¢, more
+ * than half the whole free path's worst case, from one script that simply
+ * waits. This is that missing bound.
+ *
+ * It counts free-tier rows only — a paid pass carries no `network_hash`,
+ * and naming the tier is also what keeps this read distinguishable from
+ * `checkHourly`'s against the same index.
+ *
+ * `fills` is the at-most-once rule for the owner's telling: it is true
+ * where this request, if it claims, takes the count *to* the bound. The
+ * claim that fills a bound tells the owner; every request refused
+ * afterwards is refused in silence.
+ */
+async function checkNetworkDaily(
+  client: Client,
+  network: NetworkKey
+): Promise<{ result: Admission | null; fills: boolean }> {
+  const bound = FREE_BOUNDS.scansPerIpPerDay;
+  const windowMs = DAILY_WINDOW_H * 3_600_000;
+  const since = new Date(Date.now() - windowMs).toISOString();
+  const { data, error } = await untyped(client)
+    .from<{ created_at: string }>("scans")
+    .select("created_at")
+    .eq("tier", "free")
+    .eq("network_hash", network)
+    .gte("created_at", since)
+    .order("created_at", { ascending: false })
+    .limit(bound);
+  if (error) throw new Error(error.message);
+  const rows = data ?? [];
+  if (rows.length < bound) return { result: null, fills: rows.length === bound - 1 };
+  return { result: refusalAfter(rows, windowMs, "network_daily"), fills: false };
+}
+
+/**
+ * Issue 885 — how many free scans one domain has had today, whoever asked.
+ *
+ * The stored report is what makes a repeat of the same domain cheap, but
+ * it is read at the report address (`resolve.ts` row 3) and not here, and
+ * `POST /api/scan` calls straight into `claimFreeScanSlot`. So a script
+ * holding one address and enough networks paid 12¢ a time, however many
+ * reports were already stored for it. This is the bound that stops that,
+ * in the one place a caller cannot go around.
+ */
+async function checkDomainDaily(
+  client: Client,
+  domain: CanonicalDomain
+): Promise<{ result: Admission | null; fills: boolean }> {
+  const bound = FREE_BOUNDS.scansPerDomainPerDay;
+  const windowMs = DAILY_WINDOW_H * 3_600_000;
+  const since = new Date(Date.now() - windowMs).toISOString();
+  const { data, error } = await client
+    .from("scans")
+    .select("created_at")
+    .eq("tier", "free")
+    .eq("domain", domain)
+    .gte("created_at", since)
+    .order("created_at", { ascending: false })
+    .limit(bound);
+  if (error) throw new Error(error.message);
+  const rows = data ?? [];
+  if (rows.length < bound) return { result: null, fills: rows.length === bound - 1 };
+  return { result: refusalAfter(rows, windowMs, "domain_daily"), fills: false };
+}
+
+/** The wait the two new bounds promise: until the oldest row inside the
+ *  window ages out of it, whole seconds rounded up — the shape
+ *  `checkHourly` and `checkDaily` already use. */
+function refusalAfter(
+  rows: readonly { created_at: string }[],
+  windowMs: number,
+  refuse: "network_daily" | "domain_daily"
+): Admission | null {
+  const oldest = rows[rows.length - 1];
+  if (!oldest) return null;
+  const ageMs = Date.now() - new Date(oldest.created_at).getTime();
+  const remainingMs = Math.max(0, windowMs - ageMs);
+  return { refuse, retryAfterSeconds: Math.ceil(remainingMs / 1000) };
+}
+
+/** Which bound a claim filled, for the owner's telling. */
+const BOUND_SIZE: Readonly<Record<FreeScanBound, number>> = Object.freeze({
+  "network-day": FREE_BOUNDS.scansPerIpPerDay,
+  "domain-day": FREE_BOUNDS.scansPerDomainPerDay,
+});
+
+type FreeStep =
+  | "removed"
+  | "cooldown"
+  | "switched_off"
+  | "daily"
+  | "in_flight"
+  | "hourly"
+  | "network_daily"
+  | "domain_daily"
+  | "none";
 
 /** BP-023 NFR budget: "one line per admission carrying the decision, the
  *  step that produced it, the network key (hashed) and the domain. Never a
@@ -400,7 +525,7 @@ async function evaluateAdmission(
   client: Client,
   domain: CanonicalDomain,
   network: NetworkKey
-): Promise<{ result: Admission; step: FreeStep }> {
+): Promise<{ result: Admission; step: FreeStep; fills: FreeScanBound | null }> {
   // Step 1 — removed. Outside the handler below (WO-057 `## Steps`
   // step 4, BP-023 `## Error & edge behavior`): a removal-table read
   // that errors refuses rather than admits, because failing open there
@@ -410,9 +535,9 @@ async function evaluateAdmission(
   try {
     removed = await isRemovedWith(client, domain);
   } catch {
-    return { result: { refuse: "removed" }, step: "removed" };
+    return { result: { refuse: "removed" }, step: "removed", fills: null };
   }
-  if (removed) return { result: { refuse: "removed" }, step: "removed" };
+  if (removed) return { result: { refuse: "removed" }, step: "removed", fills: null };
 
   // Steps 2 to 6 — cooldown, switched off, daily, in-flight, hourly — are
   // wrapped in one handler that fails closed (issue 792; SPEC §2 states
@@ -421,10 +546,10 @@ async function evaluateAdmission(
   let step: FreeStep = "cooldown";
   try {
     const cooldown = await checkCooldown(client, domain);
-    if (cooldown) return { result: cooldown, step: "cooldown" };
+    if (cooldown) return { result: cooldown, step: "cooldown", fills: null };
 
     step = "switched_off";
-    if (env.KILL_SWITCH) return { result: { refuse: "switched_off" }, step: "switched_off" };
+    if (env.KILL_SWITCH) return { result: { refuse: "switched_off" }, step: "switched_off", fills: null };
 
     // The `daily` step now asks two questions, in the order of what
     // outranks what: the product's daily *spend* ceiling first (one figure
@@ -433,22 +558,42 @@ async function evaluateAdmission(
     // day — so the visitor is told one thing and the step keeps its name.
     step = "daily";
     const dailySpend = await checkDailySpend();
-    if (dailySpend) return { result: dailySpend, step: "daily" };
+    if (dailySpend) return { result: dailySpend, step: "daily", fills: null };
 
     const daily = await checkDaily(client);
-    if (daily) return { result: daily, step: "daily" };
+    if (daily) return { result: daily, step: "daily", fills: null };
 
     step = "in_flight";
     const inFlight = await checkInFlight(client, network, domain);
-    if (inFlight) return { result: inFlight, step: "in_flight" };
+    if (inFlight) return { result: inFlight, step: "in_flight", fills: null };
 
     step = "hourly";
     const hourly = await checkHourly(client, network);
-    if (hourly) return { result: hourly, step: "hourly" };
+    if (hourly) return { result: hourly, step: "hourly", fills: null };
 
-    return { result: { admit: true }, step: "none" };
+    // The two bounds issue 885 adds, last: they are the widest windows in
+    // the order, so a visitor inside a narrower one is told about that
+    // first and is never sent away with a day's wait for an hour's cause.
+    step = "network_daily";
+    const networkDaily = await checkNetworkDaily(client, network);
+    if (networkDaily.result) return { result: networkDaily.result, step: "network_daily", fills: null };
+
+    step = "domain_daily";
+    const domainDaily = await checkDomainDaily(client, domain);
+    if (domainDaily.result) return { result: domainDaily.result, step: "domain_daily", fills: null };
+
+    // Admitted. Where this claim would take one of the two counts to its
+    // bound, that is the crossing the owner is told about — and only one
+    // is reported where a claim fills both, the same way the day's spend
+    // reports the more serious of its two lines rather than both.
+    const fills: FreeScanBound | null = networkDaily.fills
+      ? "network-day"
+      : domainDaily.fills
+        ? "domain-day"
+        : null;
+    return { result: { admit: true }, step: "none", fills };
   } catch {
-    return { result: { refuse: "unreadable" }, step };
+    return { result: { refuse: "unreadable" }, step, fills: null };
   }
 }
 
@@ -508,7 +653,7 @@ export async function claimFreeScanSlot(a: {
 }): Promise<{ claimed: true; scanId: string } | { claimed: false; refusal: Admission }> {
   const client = dbAdmin();
 
-  const { result, step } = await evaluateAdmission(client, a.domain, a.network);
+  const { result, step, fills } = await evaluateAdmission(client, a.domain, a.network);
   if ("refuse" in result) {
     finish(result, step, a.network, a.domain);
     return { claimed: false, refusal: result };
@@ -531,6 +676,13 @@ export async function claimFreeScanSlot(a: {
     finish(refusal, "in_flight", a.network, a.domain);
     return { claimed: false, refusal };
   }
+
+  // Issue 885: the one claim that fills a free-path bound tells the owner,
+  // and it tells them after the row exists — a claim that lost its race or
+  // raised on the insert did not fill anything. Every request refused by
+  // that bound afterwards is refused in silence, which is what keeps this
+  // one telling a piece of news rather than a stream.
+  if (fills !== null) publishFreeScanBoundReached(fills, BOUND_SIZE[fills]);
 
   finish({ admit: true }, "none", a.network, a.domain);
   return { claimed: true, scanId: inserted.id };

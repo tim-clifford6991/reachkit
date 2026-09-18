@@ -1,8 +1,9 @@
 // The owner's spend alert, sent — §6.5's ceilings and §11's switch.
 //
-// Three occasions, one mail (`templates/ops/`): the day's spend crossed
-// four fifths of its ceiling, it reached the ceiling, or the kill switch
-// was found engaged.
+// Five occasions, one mail (`templates/ops/`): the day's spend crossed
+// four fifths of its ceiling, it reached the ceiling, one site reached its
+// own cap (issue 885), a free-path bound filled (issue 885), or the kill
+// switch was found engaged.
 //
 // **Who receives it.** `OWNER_EMAILS` — the binding BUILD §15 has carried
 // since the beginning and which nothing in `src/` read until now. One send
@@ -26,7 +27,7 @@ import type { SpendAlert } from "@/lib/costs/daily";
 import { registerSpendAlertSink } from "@/lib/costs/daily";
 import { sendEmail } from "../send";
 import { buildSpendCeilingAlert } from "../templates/ops";
-import type { OpsOccasion } from "../templates/ops";
+import type { OpsOccasion, OpsSubject } from "../templates/ops";
 
 function log(occasion: OpsOccasion, outcome: string, detail?: string): void {
   const line = {
@@ -49,6 +50,8 @@ export async function sendOpsAlert(a: {
   occasion: OpsOccasion;
   spentCents: number;
   ceilingCents: number;
+  /** Whose ceiling, where it is not the product's (issue 885). */
+  subject?: OpsSubject;
 }): Promise<void> {
   const mail = buildSpendCeilingAlert(a);
   for (const to of env.OWNER_EMAILS) {
@@ -98,9 +101,24 @@ export async function reportKillSwitchEngaged(): Promise<void> {
 export function installSpendAlerts(): void {
   registerSpendAlertSink((alert: SpendAlert) => {
     void sendOpsAlert({
-      occasion: alert.crossed === "ceiling" ? "reached" : "warn",
+      ...occasionOf(alert),
       spentCents: alert.spentCents,
       ceilingCents: alert.ceilingCents,
     });
   });
+}
+
+/** Which of the four spend occasions this crossing is, and the subject the
+ *  mail names beside it (issue 885). An alert with no subject is the
+ *  product's own ceiling — what every alert was before the field existed —
+ *  and keeps the two occasions it always had. */
+function occasionOf(alert: SpendAlert): { occasion: OpsOccasion; subject?: OpsSubject } {
+  const subject = alert.subject;
+  if (subject === undefined || subject.kind === "product") {
+    return { occasion: alert.crossed === "ceiling" ? "reached" : "warn" };
+  }
+  if (subject.kind === "site") {
+    return { occasion: "site-reached", subject: { kind: "site", siteId: subject.siteId } };
+  }
+  return { occasion: "free-scan-bound", subject: { kind: "free-scan", bound: subject.bound } };
 }

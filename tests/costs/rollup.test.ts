@@ -22,6 +22,13 @@ const { dbAdminMock, readCacheMock, writeFetchRowMock, updates } = vi.hoisted(()
     rpc: async () => ({ data: 0, error: null }),
     from(table: string) {
       return {
+        // Issue 885: the context reads the row it spends against when it
+        // opens, for the site the per-site cap is charged to. This suite's
+        // scan carries none, so the cap does not apply and the assertions
+        // below are about the close, exactly as before.
+        select() {
+          return { eq: () => ({ limit: async () => ({ data: [{ cost_cents: 0, site_id: null }], error: null }) }) };
+        },
         update(values: Record<string, unknown>) {
           updates.push({ table, values });
           return { eq: async () => ({ error: null }) };

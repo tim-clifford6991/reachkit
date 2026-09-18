@@ -85,7 +85,14 @@ beforeAll(async () => {
 });
 
 type Row = Record<string, unknown>;
-type Step = "cooldown" | "daily" | "in_flight" | "hourly";
+type Step =
+  | "cooldown"
+  | "daily"
+  | "in_flight"
+  | "hourly"
+  // Issue 885's two bounds read the same table with their own predicates.
+  | "network_daily"
+  | "domain_daily";
 
 interface QueryLog {
   table: string;
@@ -109,6 +116,11 @@ function stepOf(log: QueryLog): Step | "unknown" {
   const eq = Object.fromEntries(log.eq);
   if (eq.status === "running") return "in_flight";
   if (eq.status === "failed") return "cooldown";
+  // Issue 885: both new bounds name the tier, which is what keeps them
+  // apart from `hourly`'s read of the same index and from `daily`'s read
+  // of the same tier.
+  if (eq.tier === "free" && "network_hash" in eq) return "network_daily";
+  if (eq.tier === "free" && "domain" in eq) return "domain_daily";
   if (eq.tier === "free") return "daily";
   if ("network_hash" in eq && log.gte.length > 0) return "hourly";
   return "unknown";

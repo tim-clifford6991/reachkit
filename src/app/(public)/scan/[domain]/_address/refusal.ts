@@ -17,13 +17,15 @@ import type { AddressRefusal } from "./state";
  *  `AddressRefusal` fails this file's build until it has a word. */
 const REFUSAL_KEY = {
   "network-limit": "notice.refused.network-limit",
+  "network-day-limit": "notice.refused.network-day-limit",
+  "domain-day-limit": "notice.refused.domain-day-limit",
   "scan-running": "notice.refused.scan-running",
   stopped: "notice.refused.stopped",
 } as const satisfies Record<AddressRefusal["reason"], CopyKey>;
 
 const SECONDS_PER_MINUTE = 60;
 
-/** The `{wait}` the two network refusals carry: the refusal's own
+/** The `{wait}` every refusal but `stopped` carries: the refusal's own
  *  `retryAfterSeconds`, rounded up to whole minutes, with the unit word
  *  around it read from the registry and never composed here. */
 function formatWait(retryAfterSeconds: number): string {

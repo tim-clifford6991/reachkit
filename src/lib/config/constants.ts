@@ -56,10 +56,37 @@ export const PRICE_BOOK = Object.freeze({
  *
  *  A UTC day, not a site-local one: this is one figure for the whole
  *  product, so there is no site whose clock it could keep (contrast
- *  `WEEK_START` / `WEEKLY_DUE_HOUR_LOCAL`, which are each a customer's). */
+ *  `WEEK_START` / `WEEKLY_DUE_HOUR_LOCAL`, which are each a customer's).
+ *
+ *  **`DAILY_SITE_C` — the ceiling on one site, for the same UTC day**
+ *  (issue 885). `DAILY_PRODUCT_C` is one figure for everyone, so it does
+ *  not care *whose* spend reached it: a single site in a retry loop, or
+ *  one whose market keeps failing and re-measuring, could consume the day
+ *  and every other customer's pass, draft and publish was refused until
+ *  midnight UTC. At one customer that is invisible; at fifty it is an
+ *  outage nobody is told about. This is the missing per-site figure, read
+ *  over the same ledger, for every paid call made against a scan row that
+ *  carries a `site_id`. A free scan has no site and is bounded by
+ *  `FREE_BOUNDS` instead.
+ *
+ *  Its size is the owner's to rule; this is the drafted default and the
+ *  two readings it was sized from:
+ *   - the shape issue 885 names — one deep pass (`DEEP_C` 150¢) plus a
+ *     week of drafts (7 x `DRAFT_C` = 315¢) — is 465¢;
+ *   - the largest day the product's own rules allow a site: SPEC §6's
+ *     re-measure bound is at most 3 deep passes in 24 hours (450¢) and
+ *     the day's page is one draft (45¢), which is 495¢.
+ *   - 500¢ covers both, and is a tenth of `DAILY_PRODUCT_C`: ten sites
+ *     each at their own cap cannot take the day between them, and one
+ *     runaway takes a tenth of it rather than all of it.
+ *
+ *  The same UTC day as the product's, and for the same reason the product
+ *  ceiling keeps no customer's clock: the two figures are read off one
+ *  ledger in one call, and a site-local day would make "today" mean two
+ *  different windows inside a single refusal. */
 export const CAPS = Object.freeze({
   FREE_C: 12, DEEP_C: 150, WEEKLY_C: 40, DRAFT_C: 45,
-  DAILY_PRODUCT_C: 5000,
+  DAILY_PRODUCT_C: 5000, DAILY_SITE_C: 500,
 } as const);
 
 /** The two crossings of `CAPS.DAILY_PRODUCT_C` the owner is told about
@@ -375,8 +402,31 @@ export const CACHE_WINDOWS_D = Object.freeze({
   aiBattery: 6,
 } as const);
 
+/** BUILD §11's free-path bounds, plus the two that issue 885 adds so a
+ *  script cannot walk past them.
+ *
+ *  `scansPerIpPerHour`, `inFlightPerIp` and `scansPerDay` are the original
+ *  three. Between them one network could still run 5 scans an hour for 24
+ *  hours — 120 scans, `120 x CAPS.FREE_C` = 1440¢, more than half the free
+ *  path's own 2400¢ worst case — and one domain could be claimed over and
+ *  over from different networks, because the stored report that makes a
+ *  repeat free is read at the report address and not by the admission
+ *  order the API route calls.
+ *
+ *  Both new figures are drafted defaults the owner corrects:
+ *   - **`scansPerIpPerDay: 20`.** Four hours at the hourly bound, and
+ *     `20 x CAPS.FREE_C` = 240¢ — a twentieth of the day's ceiling, where
+ *     the hourly bound alone left one network six tenths of it. A visitor
+ *     scanning their own site and a few rivals is in single digits.
+ *   - **`scansPerDomainPerDay: 3`.** One domain's first scan, one
+ *     "measure what's missing" and one "measure again" is every route the
+ *     product itself offers into a fresh measurement of one address in a
+ *     day; at 12¢ a scan the domain costs at most 36¢ however many
+ *     networks ask for it. A correction re-measures inside the report and
+ *     never through admission, so it does not spend one of the three. */
 export const FREE_BOUNDS = Object.freeze({
   scansPerIpPerHour: 5, inFlightPerIp: 1, scansPerDay: 200,
+  scansPerIpPerDay: 20, scansPerDomainPerDay: 3,
 } as const);
 
 export const TIMING = Object.freeze({

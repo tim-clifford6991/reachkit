@@ -70,7 +70,7 @@
 // refuses an owner-owed key and every sentence on this chain is owed.
 // `COPY` itself is left real.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { fakeDb, installTransitionRpc, type FakeDb, type Row } from "../publish/harness";
+import { fakeDb, installTransitionRpc, type FakeDb, type Row, installSiteSpendRpc } from "../publish/harness";
 
 const db: FakeDb = fakeDb();
 
@@ -523,6 +523,9 @@ beforeEach(() => {
   // The product's day ledger holds nothing yet; an unreadable one would
   // refuse every paid call (issue #792).
   db.rpcs.set("fetches_spend_since", () => 0);
+  // And the site's own day (issue 885), read by the same seam before the
+  // same calls.
+  installSiteSpendRpc(db);
   installRedeemRpc(db);
   modelCalls.length = 0;
   inbox.length = 0;
