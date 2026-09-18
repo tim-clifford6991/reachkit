@@ -1,4 +1,4 @@
-// tests/scan/free/request-abort.test.ts — issue 875
+// tests/scan/free/request-abort.test.ts — issues 875 and 877
 //
 // **A free scan gives up on a stuck vendor call sooner** (owner ruling
 // 2026-09-17, on issue 873's diagnosis).
@@ -7,9 +7,14 @@
 // transport's 10 s bound took a quarter of that stage for almost all of it:
 // on the free scans of 2026-09-17 the questions behind such a call were
 // never asked, and two answers that did arrive were thrown away because the
-// stage had already been abandoned. The free path now abandons a question's
-// SERP request after 5 s and leans on issue 865's retry; every other call,
-// and every paid tier, keeps 10 s.
+// stage had already been abandoned.
+//
+// **The 5 s bound that answered it was wrong** (issue 877): the first free
+// scan after it shipped aborted 5 of its 7 calls and was billed for all of
+// them. Every tier is back on the transport's 10 s, the bound is still
+// carried per call so a tier can be given its own figure later, and what
+// these calls take is now recorded on the ledger row — which is where the
+// next value comes from.
 //
 // The abort is asserted where it is actually applied — the `AbortSignal`
 // the transport hands `fetch` — and the vendor's own latency is simulated
@@ -312,5 +317,65 @@ describe("issue 875 — an answer that arrives after its stage was abandoned is 
     const slowIndex = TWELVE.findIndex((search) => search.keyword === SLOW);
     expect(report.serps[slowIndex]?.kind).not.toBe("unmeasured");
     expect(landed).toBe(true);
+  });
+});
+
+describe("issue 877 — what a call took is recorded, so the next abort value is not a guess", () => {
+  /** The `fetches` rows this pass wrote, with what the seam timed. */
+  function rows(): { source: string; duration_ms: number | null; payload: unknown }[] {
+    return db.queries
+      .filter((q) => q.table === "fetches" && q.verb === "insert")
+      .map((q) => q.values as unknown as { source: string; duration_ms: number | null; payload: unknown });
+  }
+
+  it("an answered call carries its elapsed time", async () => {
+    vendorSlowOnce(7_000);
+    await runScan({ domain: DOMAIN, tier: "free" });
+
+    const answered = rows().filter((row) => row.source === "serp/google/organic" && Array.isArray(row.payload));
+    expect(answered).not.toHaveLength(0);
+    for (const row of answered) {
+      expect(typeof row.duration_ms).toBe("number");
+      expect(row.duration_ms).toBeGreaterThanOrEqual(0);
+    }
+  });
+
+  it("an abandoned call carries the time we waited, beside the charge it still cost", async () => {
+    vendorSlowOnce(30_000);
+    await runScan({ domain: DOMAIN, tier: "free" });
+
+    const aborted = rows().filter(
+      (row) =>
+        row.source === "serp/google/organic" &&
+        typeof row.payload === "object" &&
+        row.payload !== null &&
+        (row.payload as { vendorFailure?: string }).vendorFailure === "timeout"
+    );
+    expect(aborted).toHaveLength(1);
+    expect(typeof aborted[0]?.duration_ms).toBe("number");
+  });
+
+  it("the pass says what its asking took, in one line", async () => {
+    const logged: Record<string, unknown>[] = [];
+    vi.spyOn(console, "log").mockImplementation((...args: unknown[]) => {
+      if (typeof args[0] !== "string") return;
+      try {
+        logged.push(JSON.parse(args[0]) as Record<string, unknown>);
+      } catch {
+        // Not a JSON line.
+      }
+    });
+    vendorSlowOnce(7_000);
+    await runScan({ domain: DOMAIN, tier: "free" });
+
+    const line = logged.find((entry) => entry.event === "serp_latency");
+    expect(line).toMatchObject({
+      event: "serp_latency",
+      asked: BATTERY.QUESTIONS,
+      measured: BATTERY.QUESTIONS,
+      abortMs: VENDOR.requestAbortMs,
+    });
+    expect(typeof line?.slowestMs).toBe("number");
+    expect(typeof line?.medianMs).toBe("number");
   });
 });

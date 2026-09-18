@@ -132,7 +132,7 @@ function insertFetch(opts: {
 describe(
   'BP-007 `## Data model delta`: "`fetches` — `id, scan_id, source, cache_key, policy_version, cost_cents, reserved_cents, payload jsonb, created_at`" ... "Indexed `(source, cache_key, policy_version, created_at desc)` for the cache read and on `scan_id` for the ledger read."',
   () => {
-    it("carries exactly the nine named columns", () => {
+    it("carries exactly the nine named columns, and issue 877's tenth", () => {
       const rows = psqlRows(
         `select column_name from information_schema.columns where table_schema = 'public' and table_name = 'fetches' order by column_name;`
       );
@@ -148,6 +148,11 @@ describe(
           "reserved_cents",
           "payload",
           "created_at",
+          // Issue 877: how long the call took — the time waited where it
+          // was abandoned. BP-007's own list is the nine above; this is the
+          // one column added since, and the owner's next abort value is
+          // chosen from it.
+          "duration_ms",
         ].sort()
       );
     });

@@ -273,6 +273,11 @@ export async function withCostContext<T>(
       // `finally` releases on every path, a ledger write that raises
       // included.
       inFlightReserved += call.costCents;
+      // Issue 877: what this call took, timed around the call itself and
+      // stored on its row — for a call that was abandoned, the time waited
+      // before giving up. The vendor's own failures come back as a payload
+      // rather than a raise, so one clock covers both.
+      const startedMs = Date.now();
       try {
         const payload = await call.run();
 
@@ -305,6 +310,7 @@ export async function withCostContext<T>(
           reservedCents: call.costCents,
           costCents: settledCents,
           payload,
+          durationMs: Date.now() - startedMs,
         });
         ledgeredCents += settledCents;
         // The day's total moves by what was actually ledgered, and `add`
