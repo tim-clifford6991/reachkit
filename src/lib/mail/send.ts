@@ -13,6 +13,13 @@
 // schedule time: a customer who switches a mail off between the two must
 // not receive it.
 //
+// **The stop control leaves twice.** `composeMail` renders it into both
+// bodies as a link the reader presses; this seam also hands its one-click
+// address to the vendor as RFC 8058's two headers, which is what lets a
+// mail client draw its own Unsubscribe control (issue 889). One control,
+// one token, one suppression — two ways in, because an inbox does not read
+// the body to find out that a mail can be stopped.
+//
 // This function never throws and is **not idempotent on its own** — a
 // caller that must send at most once carries its own natural key. It
 // retries nothing either; the retry window belongs to whoever owns the
@@ -177,6 +184,12 @@ export async function sendEmail(m: SendInput): Promise<SendResult> {
     subject: composed.subject,
     html: composed.html,
     text: composed.text,
+    // RFC 8058 (issue 889). The header goes out exactly where the mail
+    // carries a stop control — the same control, the same token, the same
+    // suppression — so a kind that cannot be stopped never claims it can,
+    // and a kind that can is stoppable from the inbox's own control as well
+    // as from the link in the body.
+    listUnsubscribe: m.optOut?.oneClickHref,
   });
 
   if (result.ok) {

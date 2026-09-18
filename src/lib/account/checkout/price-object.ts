@@ -61,6 +61,64 @@ export class PriceObjectMismatch extends Error {
   }
 }
 
+/** Which mode the configured secret key belongs to, read off its prefix.
+ *  Stripe's secret and restricted keys both carry it (`sk_live_…`,
+ *  `rk_test_…`); a key wearing neither is `unrecognised` rather than
+ *  guessed at. */
+export type KeyMode = "live" | "test" | "unrecognised";
+
+export function keyModeOf(secretKey: string): KeyMode {
+  if (/^[a-z]+_live_/.test(secretKey)) return "live";
+  if (/^[a-z]+_test_/.test(secretKey)) return "test";
+  return "unrecognised";
+}
+
+/** Thrown when Stripe answered, and its answer was that the price behind
+ *  `STRIPE_PRICE_ID` does not exist under this secret key.
+ *
+ *  **This is the test-mode/live-mode crossing, and it is not an outage**
+ *  (issue 889). A test-mode price id and a live-mode secret key each look
+ *  perfectly well-formed on their own — `price_…` carries no mode and the
+ *  key is never printed — so the only place the crossing is visible is the
+ *  vendor's `resource_missing`. Reported as a vendor read that did not
+ *  happen, it left the deployment serving a `/pricing` page whose Start
+ *  button fails for every visitor, with one log line naming an error class.
+ *  It is a fact about this deployment's own configuration, established by
+ *  an answer the vendor gave, so it refuses the boot exactly as a mismatch
+ *  does.
+ *
+ *  The message names the mode of the configured key — which is derived from
+ *  the key's own prefix and is not the key — so the reader is told the one
+ *  thing that distinguishes this from a typo. */
+export class PriceObjectUnknown extends Error {
+  /** `"live"`, `"test"`, or `"unrecognised"` where the key wears neither
+   *  prefix. Never the key. */
+  readonly keyMode: KeyMode;
+  constructor(keyMode: KeyMode) {
+    super(
+      "src/lib/account/checkout/price-object.ts: Stripe answered that the price behind " +
+        "STRIPE_PRICE_ID does not exist. " +
+        (keyMode === "unrecognised"
+          ? "The configured STRIPE_SECRET_KEY wears neither a live- nor a test-mode prefix, so which mode it reads cannot be stated here. "
+          : `The configured STRIPE_SECRET_KEY is a ${keyMode}-mode key, and a price created in the other mode is not reachable with it — test-mode and live-mode objects are separate. `) +
+        "Bind a price created in that key's mode, or repoint STRIPE_SECRET_KEY. " +
+        "Checkout is not started against a price that does not exist."
+    );
+    this.name = "PriceObjectUnknown";
+    this.keyMode = keyMode;
+  }
+}
+
+/** Whether the vendor's own answer was "there is no such object". Read off
+ *  the error's `code` rather than through `instanceof`: the SDK is
+ *  constructed lazily behind `stripe()` and its error classes would have to
+ *  be imported at module load to be compared against, while `code` is the
+ *  stable, documented handle and is what a double can honestly wear. */
+function isResourceMissing(error: unknown): boolean {
+  if (typeof error !== "object" || error === null) return false;
+  return (error as { code?: unknown }).code === "resource_missing";
+}
+
 /** What the comparison reads off a live Price. Narrower than the SDK's own
  *  type on purpose: nothing else about the object is this repository's
  *  business, and a field not read here cannot be accidentally asserted. */
@@ -94,6 +152,18 @@ export function assertPriceMatchesSpec(price: LivePrice): void {
 /** Reads the Price behind `STRIPE_PRICE_ID` and compares it against the
  *  spec. The one function that reaches the vendor here. */
 export async function assertLivePriceMatchesSpec(): Promise<void> {
-  const price = await stripe().prices.retrieve(env.STRIPE_PRICE_ID);
+  let price: unknown;
+  try {
+    price = await stripe().prices.retrieve(env.STRIPE_PRICE_ID);
+  } catch (error) {
+    // Two failures wear one shape at the call site and must not: a vendor
+    // this deployment could not reach has established nothing, while a
+    // vendor that answered `resource_missing` has established that the
+    // configured price is not in the configured key's mode. Only the second
+    // is this deployment's own configuration, and only the second refuses
+    // the boot.
+    if (isResourceMissing(error)) throw new PriceObjectUnknown(keyModeOf(env.STRIPE_SECRET_KEY));
+    throw error;
+  }
   assertPriceMatchesSpec(price as unknown as LivePrice);
 }

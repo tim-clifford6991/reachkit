@@ -55,11 +55,24 @@ export function optOutHref(email: string): string {
   return new URL(`/opt-out/${optOutTokenFor(email)}`, env.NEXT_PUBLIC_APP_URL).toString();
 }
 
+/** The same stop, as the address a mail client POSTs to (RFC 8058, issue
+ *  889). It is a second address rather than the one above because
+ *  `/opt-out/{token}` is a page and Next serves a page and a route handler
+ *  from one segment never — so the one-click endpoint takes its own
+ *  address, over the same token, applying the same suppression. */
+export function oneClickOptOutHref(email: string): string {
+  return new URL(`/api/opt-out/${optOutTokenFor(email)}`, env.NEXT_PUBLIC_APP_URL).toString();
+}
+
 export function optOutControlFor(email: string): OptOutControl {
   // `mechanism` names which of ADR-042's two mechanisms this link belongs
   // to, so the address-wide opt-out and the kind-scoped unsubscribe can
   // never be confused at the point they are put in front of a reader.
-  return { href: optOutHref(email), mechanism: "opt-out" };
+  return {
+    href: optOutHref(email),
+    oneClickHref: oneClickOptOutHref(email),
+    mechanism: "opt-out",
+  };
 }
 
 /** The set's own row: the search, and its monthly volume where one was

@@ -178,6 +178,12 @@ export const PUBLIC_PATHS: readonly string[] = [
   "/api/report/:domain/correct",
   "/api/lead",
   "/opt-out/:token",
+  // Issue 889: RFC 8058's one-click unsubscribe endpoint, over the same
+  // token as the page above it. Public by necessity and for the same
+  // reason — the request comes from a mail client on behalf of a reader who
+  // has no session, and refusing it would answer a pressed Unsubscribe
+  // control with a redirect to a sign-in screen.
+  "/api/opt-out/:token",
   "/pricing",
   // Issue #19: the sign-in address prompt now exists as a route
   // (`src/app/(public)/signin/page.tsx`), so it takes a row on this list

@@ -1,5 +1,9 @@
 # Stripe setup, in test mode
 
+> **Going live is `docs/GO-LIVE.md` §1**, not this page. This page is the test-mode walk. Every
+> object below exists in test mode only: none of it carries over, and the live switch has its own
+> order.
+
 The dashboard steps behind `docs/SPEC.md` §3, in the order to do them, and the one walk that
 proves they took. Everything here is clicked by the owner in Stripe's own dashboard: the objects
 this product charges against live outside the repository, and no test can reach them.

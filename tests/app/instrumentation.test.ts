@@ -169,8 +169,27 @@ describe("a vendor that could not be read is not a mismatch, and does not take t
     ]);
   });
 
-  it("a price that is not there at all is the same arm — a read that did not happen asserts nothing", async () => {
+  it("a price the vendor says does not exist refuses the boot — issue 889's mode crossing", async () => {
+    // A live-mode key meeting a test-mode price id: the vendor answers,
+    // and what it answers is that this deployment's own bindings do not go
+    // together. It used to be filed as a vendor that could not be read,
+    // which let the deployment serve a Start button that failed for every
+    // visitor.
     vendor.price = null;
+    await expect(register()).rejects.toThrow(/does not exist/);
+    expect(onlyLine(errored)).toMatchObject({
+      check: "checkout",
+      outcome: "refused",
+      reason: "PriceObjectUnknown",
+    });
+    expect(told.incidents).toEqual([
+      { occasion: "boot-refused", check: "checkout", errorName: "PriceObjectUnknown" },
+    ]);
+  });
+
+  it("a vendor that could not be read at all still lets the server come up", async () => {
+    vendor.price = { ...MATCHING };
+    vendor.priceError = new Error("socket hang up");
     await expect(register()).resolves.toBeUndefined();
     expect(onlyLine(errored)).toMatchObject({ outcome: "unchecked" });
   });
