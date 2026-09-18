@@ -86,7 +86,7 @@ const facts = (over: Partial<OverviewFacts> = {}): OverviewFacts => ({
       },
     ],
   },
-  supply: { exhausted: false, unmeasured: false, measuring: false, short: false, firstArrivalShortfall: false },
+  supply: { exhausted: false, unmeasured: false, measuring: false, outsized: false, short: false, firstArrivalShortfall: false },
   waiting: [],
   aiEngines: ["ai_overview"],
   weekSearches: [],

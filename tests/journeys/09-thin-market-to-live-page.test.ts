@@ -1021,16 +1021,22 @@ describe("a new site in a thin market goes from setup to a published right-sized
       for (const fix of fixes) expect(fix).toMatchObject({ ready: false, unready_reason: "destination_cannot_address" });
       const fixIds = new Set(fixes.map((row) => row.id));
       expect(db.rows("drafts").filter((row) => fixIds.has(row.opportunity_id))).toEqual([]);
-      const { supplyDepth } = await import("../../src/lib/opportunities");
-      // Issue 858: this market now yields ready write targets, so the pass's
-      // first draft is written from one — that opportunity is queued, not unused.
-      const drafted = new Set(db.rows("drafts").filter((row) => row.site_id === SITE_ID).map((row) => row.opportunity_id));
-      expect(drafted.size).toBe(1);
-      expect((await supplyDepth(SITE_ID)).unused).toBe(
-        db
-          .rows("opportunities")
-          .filter((row) => row.site_id === SITE_ID && row.family !== "fix" && row.ready === true && !drafted.has(row.id)).length
-      );
+      const { supplyDepth, supplyState } = await import("../../src/lib/opportunities");
+      // Issue 881: this market's every top ten belongs to domains that rank
+      // for tens of thousands, so every target it yields is outsized for a
+      // site ranking for three. The honest outcome is **no page** — the run
+      // that wrote one here is the dogfood incident, and this case used to
+      // assert it. A `not-yet` row is not dismissed and not counted: it
+      // stays open, it is zero days of supply, and the state says which
+      // zero it is.
+      const writes = db
+        .rows("opportunities")
+        .filter((row) => row.site_id === SITE_ID && row.family !== "fix");
+      expect(writes.length).toBeGreaterThan(0);
+      expect(writes.every((row) => row.fit_band === "not-yet")).toBe(true);
+      expect(db.rows("drafts").filter((row) => row.site_id === SITE_ID)).toEqual([]);
+      expect((await supplyDepth(SITE_ID)).unused).toBe(0);
+      expect(await supplyState(SITE_ID)).toBe("outsized");
     },
     JOURNEY_TIMEOUT_MS
   );

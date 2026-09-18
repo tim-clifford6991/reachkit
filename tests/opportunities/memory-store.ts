@@ -138,7 +138,23 @@ export function memoryStore(state: MemoryState): OpportunityStore {
 
     async countUnused(siteId) {
       return state.rows.filter(
-        (row) => row.site_id === siteId && row.status === "open" && row.family !== "fix" && row.ready
+        (row) =>
+          row.site_id === siteId &&
+          row.status === "open" &&
+          row.family !== "fix" &&
+          row.ready &&
+          // Issue 881: an outsized target is not a day of pages.
+          row.fit_band !== "not-yet"
+      ).length;
+    },
+
+    async countOutsized(siteId) {
+      return state.rows.filter(
+        (row) =>
+          row.site_id === siteId &&
+          row.status === "open" &&
+          row.family !== "fix" &&
+          row.fit_band === "not-yet"
       ).length;
     },
 

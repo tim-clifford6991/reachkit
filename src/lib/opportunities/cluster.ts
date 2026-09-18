@@ -13,7 +13,7 @@ import { stemKey } from "@/lib/market/questions/select";
 import { registrableDomain } from "@/lib/market/rivals/domains";
 import type { StoredReport } from "@/lib/scan/report";
 import type { Candidate } from "./derive/candidate";
-import type { Family, Opportunity, OpportunityType } from "./types";
+import { qualifiesForADay, type Family, type Opportunity, type OpportunityType, type Winnability } from "./types";
 
 /**
  * The one canonical form of a page address: scheme, a `www.` label, a
@@ -110,11 +110,26 @@ function queryOf(m: Member): string | null {
   return m.kind === "row" ? m.row.targetQuery : m.candidate.targetQuery;
 }
 
-/** A queued row always survives; then precedence; then a row already held
- *  over a new candidate (a re-derivation moves nothing); then volume. */
+/** A queued row always survives; then a right-sized member over an
+ *  outsized one (issue 881); then precedence; then a row already held over
+ *  a new candidate (a re-derivation moves nothing); then volume. */
+/** The band a member carries, row or candidate. */
+function bandOf(m: Member): Winnability | null {
+  return m.kind === "row" ? m.row.fitBand : m.candidate.fitBand;
+}
+
 function compareMembers(a: Member, b: Member): number {
   const queued = Number(b.kind === "row" && b.row.status === "queued") - Number(a.kind === "row" && a.row.status === "queued");
   if (queued !== 0) return queued;
+  // Issue 881: the stale-evidence half. A re-measure **adds** to a site's
+  // rows and recalculates none of them, so the targets derived before
+  // right-sizing shipped are still on file with the band they were given
+  // then. Held-row-wins meant one of those outsized rows survived its
+  // cluster and the pass's own right-sized candidate for the same topic was
+  // never written — the old competing with the new, and winning. A member
+  // that may fill a day outranks one that may not, whichever is the row.
+  const sized = Number(qualifiesForADay(bandOf(b))) - Number(qualifiesForADay(bandOf(a)));
+  if (sized !== 0) return sized;
   const precedence = comparePrecedence(shapeOf(a), shapeOf(b));
   if (precedence !== 0) return precedence;
   const held = Number(b.kind === "row") - Number(a.kind === "row");
