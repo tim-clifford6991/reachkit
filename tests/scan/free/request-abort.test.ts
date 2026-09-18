@@ -205,14 +205,13 @@ afterEach(() => {
 });
 
 describe("issue 875 — the abort is the tier's, and the transport carries it per call", () => {
-  it("a free pass asks its questions under the five-second abort", async () => {
+  it("a free pass asks its questions under the ten-second abort (issue 877's reversion)", async () => {
     vendorSlowOnce(7_000);
     await runScan({ domain: DOMAIN, tier: "free" });
 
-    expect(TIER_PARAMETERS.free.serpAbortMs).toBe(VENDOR.freeQuestionAbortMs);
-    expect(VENDOR.freeQuestionAbortMs).toBeLessThan(VENDOR.requestAbortMs);
+    expect(TIER_PARAMETERS.free.serpAbortMs).toBe(VENDOR.requestAbortMs);
     expect(organicAborts()).not.toHaveLength(0);
-    expect(new Set(organicAborts())).toEqual(new Set([VENDOR.freeQuestionAbortMs]));
+    expect(new Set(organicAborts())).toEqual(new Set([VENDOR.requestAbortMs]));
   });
 
   it("a deep pass keeps the ten-second one", async () => {
@@ -228,9 +227,11 @@ describe("issue 875 — the abort is the tier's, and the transport carries it pe
   });
 });
 
-describe("issue 875 — a call the shorter abort cuts short comes back through issue 865's retry", () => {
+describe("issue 875 — a call the abort cuts short comes back through issue 865's retry", () => {
   it("the question is measured, asked twice, and the pass stays inside its cap", async () => {
-    vendorSlowOnce(7_000);
+    // Longer than any tier's bound, so it is aborted whatever the tier —
+    // which is what issue 877 leaves this case proving.
+    vendorSlowOnce(30_000);
     await runScan({ domain: DOMAIN, tier: "free" });
 
     // The slow one was aborted, then asked again after the sweep.
@@ -248,7 +249,7 @@ describe("issue 875 — a call the shorter abort cuts short comes back through i
   });
 
   it("nothing beyond that one retry is bought: twelve questions, thirteen asks", async () => {
-    vendorSlowOnce(7_000);
+    vendorSlowOnce(30_000);
     await runScan({ domain: DOMAIN, tier: "free" });
 
     expect(asks).toHaveLength(BATTERY.QUESTIONS + 1);

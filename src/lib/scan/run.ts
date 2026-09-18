@@ -225,12 +225,16 @@ interface TierParameters {
    *  tiers: they buy all twelve, and issue 855's ceiling is what bounds
    *  them. */
   questionsFitThePurse: boolean;
-  /** Issue 875 (owner ruling 2026-09-17): the wall clock one question's SERP
-   *  request may hold. The free path gives up sooner than the transport's
-   *  default — its stage is thirteen seconds at a fan-out of four — and
-   *  leans on issue 865's retry for the calls that were merely slow. The
-   *  paid tiers keep the default: their pass ceiling is issue 855's and no
-   *  stage clock cuts their questions short. */
+  /** The wall clock one question's SERP request may hold (issue 875, and
+   *  its value reverted by issue 877).
+   *
+   *  Issue 875 gave the free path five seconds on the owner's ruling; the
+   *  first free scan after it shipped aborted five of its seven calls and
+   *  paid for all of them, because these calls take longer than that. Every
+   *  tier is back on `VENDOR.requestAbortMs`. The parameter stays, and the
+   *  transport still carries the bound per call: that shape is what lets a
+   *  tier be given its own figure once the recorded durations say what one
+   *  should be. */
   serpAbortMs: number;
 }
 
@@ -252,7 +256,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     ladderStopsAt: "questions",
     marketTooSmallAlert: "none",
     questionsFitThePurse: true,
-    serpAbortMs: VENDOR.freeQuestionAbortMs,
+    serpAbortMs: VENDOR.requestAbortMs,
   }),
   deep: Object.freeze({
     cap: "DEEP",
