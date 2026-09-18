@@ -642,7 +642,20 @@ const UPGRADES: readonly ((blob: Record<string, unknown>) => Record<string, unkn
 /** The version guard, and the one upgrade beside it. Throws — loudly — on
  *  a blob this build can neither read nor lift, because `null` reads as
  *  "this domain has no report" at every call site and would quietly take a
- *  customer's report off its own address. */
+ *  customer's report off its own address.
+ *
+ *  **Forward only, and that is the ruling** (issue 887, SPEC §2 2026-09-18).
+ *  The chain lifts an old blob to `REPORT_VERSION`; nothing lifts a blob the
+ *  other way, so a build older than the blob throws here rather than reading
+ *  the members it happens to recognise. That is what makes production
+ *  roll-forward-only: pointing production back at an earlier build turns
+ *  every report written since into a failure, which is what the owner met on
+ *  2026-09-17 ("stored report version 9 is not readable by this build
+ *  (expected 6)"). The message names both numbers on purpose — the on-disk
+ *  version and the one this build writes — because they are the whole
+ *  diagnosis, and `tests/scan/report/read.test.ts` pins that it keeps
+ *  naming them. A version bump is therefore a one-way door: ship the
+ *  upgrade beside it, and fix a bad deploy with the next deploy. */
 export function readStoredReport(blob: unknown): StoredReport {
   if (!isRecord(blob)) {
     throw new Error("readCurrentReport: the stored report is not an object");

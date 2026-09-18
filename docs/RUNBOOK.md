@@ -21,6 +21,47 @@ The owner tests the path live on `dev.reachkit.app`. A merged migration is appli
 Supabase connector after the target deploy is READY, then the path is walked again
 (`scripts/smoke.sh` / `scripts/land.sh`).
 
+### Rolling back a deploy: we do not
+
+**Roll forward only** — SPEC §2, 2026-09-18 (#887). A bad production build is fixed by the *next*
+production deploy: a revert commit merged to `main` and deployed like any other change. Production
+is never pointed back at an earlier build.
+
+That is not a preference, it is what the stored report format allows. A report blob carries the
+version of the build that wrote it, and `src/lib/scan/report.ts` lifts a blob **forward only** —
+`upgradeFromVersion3` … `upgradeFromVersion9`, chained, with nothing going the other way.
+`readStoredReport` throws `stored report version N is not readable by this build (expected M)` on a
+blob it cannot lift, and that includes every blob written by a *newer* build. So an older build put
+back on `reachkit.app` does not degrade on a newer report; it fails on it. Of the nine call sites
+that read a stored report, three catch (the lead-mail offer reader and page writer, the Monday
+market digest) and degrade to "could not read"; the other six — the Overview, opportunities,
+verdicts, both weekly readers, the draft generator — let it throw, as do `readCurrentReport` and
+`readScanReport`. The owner met exactly this on 2026-09-17: *"stored report version 9 is not
+readable by this build (expected 6)"*, which is what made a frozen production look like a broken
+app.
+
+`REPORT_VERSION` is **10** today and has risen most weeks. The set of builds production could
+safely be pointed back at is therefore only those since the last bump, and that set empties at the
+next one, silently. Nothing in a deploy checks it.
+
+**What can hand you a rollback, and what cannot:**
+
+| | |
+|---|---|
+| `bin/redeploy.sh`, `bin/deploy-dev-once.sh`, `bin/deployer.sh` | **Cannot.** All three POST `gitSource.ref: "main"` — the tip of `main` at the moment of the call. None takes a commit, a ref or a deployment id, so no script on this box can put an older build on `reachkit.app`. This is already protected, by having no argument to abuse |
+| Vercel — the dashboard's rollback/promote control, `vercel rollback`, `vercel promote`, `POST /v1/projects/{id}/rollback/{dpl}`, `POST /v10/projects/{id}/promote/{dpl}` | **Can.** Production deployments are retained and the previous one is flagged a rollback candidate; promoting it re-aliases `reachkit.app` with no rebuild, in one click. Nothing prevents it. This door stays shut by decision, not by a guard — do not walk through it |
+| A deploy that fails to build | **Not a rollback at all.** A failed build is never aliased: `reachkit.app` keeps serving the build it already had. Nothing was reverted because nothing was replaced |
+
+**So when production is broken:** `KILL_SWITCH` (§5) first if it is spending or writing wrongly,
+then a revert commit on `main`, then a deploy. Reverting the *code* does not revert the *blobs* an
+intervening build already wrote — if the break is in what a pass stored, that is a data problem and
+§9 is the page for it.
+
+Supporting a real rollback was costed and declined under #887: `readStoredReport` would have to
+tolerate a newer blob by reading only the members it understands, every one of its ~30 members
+would need a not-present arm at every reader, and every future version bump would have to state
+what an older build silently loses. It buys back one click that has never been needed.
+
 ---
 
 ## 2. Environments
@@ -682,10 +723,37 @@ scripts/db-substrate/down.sh                 # the moment the suite finishes
 ### Backups and restore
 
 **The `reachkit` project is on the Supabase Free plan, which has no point-in-time recovery and no
-scheduled backups to restore from.** PITR is a paid add-on on top of the Pro plan. So today the
-only backup that exists is one the owner takes, and there is no automatic recovery point behind a
-mistake. This is the single largest operational exposure in the product and it is owner-owed:
-either upgrade to Pro and enable PITR, or run the dump below on a schedule.
+scheduled backups to restore from.** Re-verified 2026-09-18 (#887): org `timclifford`
+(`vercel_icfg_qHQSeWwkm34ehAw2Kc5FUrCH`) reports plan `free`; project `reachkit`
+(`kleepxxddbcnfsfwudoe`), Postgres `17.6.1.127`, `ACTIVE_HEALTHY`, us-east-1. So today the only
+backup that exists is one the owner takes, and there is no automatic recovery point behind a
+mistake — a bad migration, a wrong `delete`, or a reset like 2026-09-17's takes the data with it.
+This is the single largest operational exposure in the product, it is owner-owed, and it has been
+open since #334.
+
+**Dev and production are one database, and nothing guards that.** There is one Supabase project
+(§2) and `dev.reachkit.app` is the same Vercel project bound to `main` (§2), reading the same
+`SUPABASE_URL`. A dev experiment *is* a production write. A row deleted while steering on dev is a
+customer's row. There is no second project, no branch, no read-only mode, no confirmation step and
+no environment check in `src/lib/config/env.ts` that could tell the two apart — the only guard that
+exists today is care. `KILL_SWITCH` (§5) stops the product writing; it does nothing about a hand on
+the SQL editor. Until recovery exists, treat every statement typed against `kleepxxddbcnfsfwudoe`
+as unrecoverable, because it is.
+
+**Turning recovery on — the cost, the screens, the retention.** Owner-gated: the owner holds the
+account, and every step below is theirs. None of it has been done.
+
+| | |
+|---|---|
+| What Pro alone buys | Daily backups, 7 days of them, restorable in place from **Database → Backups → Scheduled**. That alone ends "there is nothing to restore from". ~$25/mo plan + ~$15/mo compute, less the $10 compute credit |
+| What PITR adds | Restore to any chosen second inside the retention window. WAL is shipped every two minutes, so the worst-case loss is **two minutes**, against up to a day with daily backups alone |
+| Prerequisites | Pro (or Team/Enterprise) **and** at least the Small compute add-on. This project is on Postgres `17.6.1.127`, well past the `15.8.1.079` that physical backups need, so **no Postgres upgrade is required first** |
+| Retention to ask for | **7 days** — ~$0.137/h, ~$100/mo. 14 days is ~$200/mo and 28 is ~$400/mo; neither buys anything 7 does not for a product whose incidents are noticed the same week |
+| All-in, at 7 days | ~$130/mo (Supabase's own worked example: $25 Pro + $15 Small compute + $100 PITR − $10 credit). At €49/mo a seat that is roughly three paying customers |
+| The plan screen | The org is **Vercel-Marketplace-managed** (the `vercel_icfg_` prefix is what says so), and for such an org invoices and plan changes live on Vercel, not Supabase. Start at Supabase dashboard → org `timclifford` → **Billing → Subscription Plan → Change subscription plan**; where that panel refuses because the org is marketplace-managed, it links out — the change is made at **vercel.com → team `timclifford` → the Supabase integration → its plan** |
+| The PITR screen | Supabase dashboard → project `reachkit` → **Project Settings → Add-ons → Point-in-Time Recovery**. Then **Database → Backups → Point in Time** shows the earliest and latest recovery points |
+| Two things to know before pressing it | Enabling PITR **stops** the daily backups (it replaces them, finer-grained). And PITR is **not** covered by the Spend Cap — it bills by the hour whether or not the cap is on |
+| What it still does not cover | A PITR restore is **in place**: the project is inaccessible while it runs, for as long as the database size and WAL volume take. Restoring into a *fresh* project is the **Duplicate Project** path, not the restore button |
 
 **What is actually at risk.** The schema is in `supabase/migrations/` and is recoverable from the
 repository. What is not recoverable from anywhere else is the *data*: accounts, sites, scans,
@@ -712,7 +780,7 @@ that nobody can log in to. `v2_archive` is v2's frozen objects (§2); add
 the product. A dump contains every customer's data: treat it as the most sensitive file the
 project produces, and delete drill copies when the drill ends.
 
-**The restore drill.** Rehearse it against a *scratch* database, never the live project. The point
+**The dump drill.** Rehearse it against a *scratch* database, never the live project. The point
 of the drill is to find out that a step does not work while it does not matter.
 
 1. Take a fresh dump, as above.
@@ -750,7 +818,41 @@ of the drill is to find out that a step does not work while it does not matter.
 7. **Record the drill here**, in the log at §11, with the date, the dump size, the restore time
    and anything that did not work. A drill that is not written down did not happen.
 
-**Restoring for real** is steps 3–4 against the live project with the product stopped first: flip
+**The one drill.** Not a rehearsal of the dump — a rehearsal of the *platform*, which is the only
+thing that can rewind a mistake nobody dumped ahead of. It is runnable the day PITR is on and not
+before; until then the dump drill above is what there is. **The owner triggers it** — no agent runs
+any of it. It writes and then deletes one sentinel row on production and restores into a *clone*;
+production itself is never restored over and never goes down.
+
+1. Insert one sentinel row into `domain_blocks` — a table `dbAdmin()` alone reads, whose `domain`
+   is unique and whose rows block a scan of that domain and nothing else. Use a reserved name so it
+   can never match a customer:
+
+   ```sql
+   insert into domain_blocks (domain, note)
+   values ('restore-drill.invalid', 'issue 887 restore drill, <date>, owner');
+   ```
+
+2. Note the clock. Wait five minutes. Delete it:
+   `delete from domain_blocks where domain = 'restore-drill.invalid';`
+3. Restore **to a point five minutes ago** — between the insert and the delete — into a *scratch
+   project*, via **Duplicate Project** (Supabase's clone-project path) rather than the in-place
+   restore button, so production is never taken down by a drill. On a Vercel-Marketplace org a new
+   project is created from the **Vercel** dashboard, and it bills under this same org: delete it
+   the moment the drill ends.
+4. Confirm the named row is back:
+   `select domain, note, blocked_at from domain_blocks where domain = 'restore-drill.invalid';`
+   One row, with the note, is the whole pass condition. No row means the restore did not reach the
+   point asked for, and that is the finding.
+5. **Record the wall-clock time** — from pressing restore to the clone answering a query — with
+   the database size and the date, in this section. That number is the recovery time the product
+   actually has; until it is written down, "how long would this take" has only a guess for an
+   answer.
+6. Delete the scratch project. Production needs no cleanup: step 2 already removed the sentinel
+   there, and the clone is where it came back.
+
+**Restoring for real**, from a dump, is the dump drill's steps 3–4 against the live project with
+the product stopped first: flip
 `KILL_SWITCH` (§5) and redeploy so nothing writes while the restore runs, restore, verify, then
 release it. Expect to lose everything between the dump and the incident — with no PITR there is no
 finer granularity than the last dump. That gap is the argument for taking dumps often.
@@ -777,6 +879,10 @@ deployment (`dpl_2NEUXishMXAkzXG4Ti85yTy7NDda`, 23 Aug 2026).
 | Stripe must go live, or mail must reach a real inbox | `docs/GO-LIVE.md` — the go-live gate, worked through in order |
 | a migration needs to reach production | §9 — by hand, through the SQL editor; `db-live` does not exist |
 | the database is gone | §9 — and read the plan warning first |
+| production is serving a bad build | §1 — **roll forward**: revert on `main` and deploy. Never promote an older deployment |
+| someone is asking to roll back | §1 — the scripts cannot; Vercel can, and must not. Why is there |
+| "is not readable by this build" in a log | §1 — an older build is reading a newer report. Deploy `main`, do not roll back further |
+| how long would a restore take | §9 — unknown until the drill runs. Enabling it and running it are the owner's |
 | `Vercel` fails on every PR | §1 — the Hobby plan's 100 builds a day. It is not a required check; nothing is blocked |
 
 ---

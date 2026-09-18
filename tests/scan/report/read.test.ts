@@ -432,10 +432,43 @@ describe("a report written at version 9 is lifted, not refused", () => {
   });
 });
 
+// ── The guard is one-way, and production is roll-forward-only (issue 887) ──
+//
+// The chain above lifts an old blob forward. Nothing lifts a blob back, so a
+// build older than the blob — production pointed at an earlier deployment —
+// fails on every report written since, rather than reading the members it
+// happens to recognise. SPEC §2 2026-09-18 records that as the ruling: roll
+// forward only. These two pin the pair the ruling rests on — a newer blob is
+// refused, diagnosably, and an older blob is still lifted — so that a change
+// to either is a deliberate one.
+
 describe("the version guard", () => {
   it("throws on a blob this build does not know how to read", () => {
     const blob = { ...(asStoredJson() as Record<string, unknown>), version: REPORT_VERSION + 1 };
     expect(() => readStoredReport(blob)).toThrow(/not readable by this build/);
+  });
+
+  it("names both versions on a blob one ahead of this build — the failure stays diagnosable", () => {
+    const ahead = REPORT_VERSION + 1;
+    const blob = { ...(asStoredJson() as Record<string, unknown>), version: ahead };
+
+    let message = "";
+    try {
+      readStoredReport(blob);
+    } catch (error) {
+      message = error instanceof Error ? error.message : String(error);
+    }
+
+    // The version on disk and the version this build writes, both in the one
+    // line: on 2026-09-17 they were what said an older build was serving
+    // production, and nothing else in the log did.
+    expect(message).toContain(`version ${ahead}`);
+    expect(message).toContain(`expected ${REPORT_VERSION}`);
+  });
+
+  it("still lifts a blob from behind — forward is the direction that works", () => {
+    const behind = readStoredReport(asVersion3Json());
+    expect(behind.version).toBe(REPORT_VERSION);
   });
 
   it("throws rather than returning null — null is indistinguishable from 'no report'", async () => {
