@@ -102,8 +102,10 @@ type TextStart = "fence" | "brace" | "bracket" | "letter" | "empty" | "other";
 /** Why a `parse` failure got no further attempt: `attempts` — both were
  *  spent; `budget` — an answer came back, did not parse, and the call's
  *  time budget had nothing left to spend on the retry (issue #462: M3 run
- *  4b logged exactly this as `timeout`, which it was not). */
-type RetryExhausted = "attempts" | "budget";
+ *  4b logged exactly this as `timeout`, which it was not); `deterministic`
+ *  — the retry was not spent because it could not have helped (issue 898,
+ *  `runAttempts`). */
+type RetryExhausted = "attempts" | "budget" | "deterministic";
 
 /** The last unparseable answer's diagnosis. `schemaIssues` is where the
  *  schema refused the answer and how — `path:code`, e.g.
@@ -494,10 +496,28 @@ async function runAttempts<T>(
         durationMs: Date.now() - startedAt,
       };
     }
+    const issues = parsed.error.issues;
     lastMiss = {
       parseFailure: "schema",
-      schemaIssues: [...new Set(parsed.error.issues.map(issueLabel))],
+      schemaIssues: [...new Set(issues.map(issueLabel))],
     };
+    // **A too-long answer is not re-asked (issue 898).** The `figma.com`
+    // scan of 2026-09-18 made this call twice, 0.66¢ each, over an answer
+    // whose only fault was one list one item past its cap — and the second
+    // could not have succeeded: what refused the answer is the size this
+    // schema asks for, not the model's mood. Where *every* issue is
+    // `too_big` the miss is in our reading of a conforming-enough answer,
+    // so the attempt budget is kept rather than spent on the same
+    // question. Any other issue — a missing field, a wrong type, a list
+    // empty where `min > 0` — is still worth one more ask, and a mixed
+    // failure is too.
+    //
+    // A caller that would rather trim than fail says so in its own schema,
+    // which is what `src/lib/market/questions/profile.ts` now does; this
+    // is the seam's rule for every caller that has not.
+    if (issues.length > 0 && issues.every((issue) => issue.code === "too_big")) {
+      return unparseable("deterministic", lastMiss);
+    }
     // Falls through to the next attempt (if any is left) — never
     // returns the response's text or its tool input as the value.
   }

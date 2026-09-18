@@ -119,6 +119,9 @@ function noticeOf(notice: AddressNotice): { line: string; warn: boolean } {
       return { line: incompleteLine(notice.unmeasured), warn: true };
     case "site_unreadable":
       return { line: copy("notice.site-unreadable"), warn: true };
+    // Issue 898: the site read and its market did not.
+    case "market_unread":
+      return { line: copy("notice.market-unread"), warn: true };
     case "measurement_failed":
       return { line: copy("notice.measurement-failed"), warn: true };
     case "correction_failed":

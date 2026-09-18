@@ -46,6 +46,10 @@ function storedReport(over: Partial<{
   measuredAt: Date;
   correctionState: StoredReport["correctionState"];
   missing: StoredReport["verdict"]["missing"];
+  /** Issue 898: a report whose market was never read — the profile call
+   *  or the suggestions did not answer, so nothing after that step
+   *  exists. */
+  marketUnread: boolean;
 }> = {}): StoredReport {
   const measuredAt = over.measuredAt ?? new Date("2026-09-05T12:00:00.000Z");
   return {
@@ -56,11 +60,13 @@ function storedReport(over: Partial<{
     // #103: the category has one home — the market the profile inferred.
     // `resolve.ts` derives it with `categoryOf`, so the double carries the
     // market rather than a second member.
-    market: {
-      kind: "measured",
-      at: measuredAt,
-      value: { profile: { category: "product analytics" } },
-    },
+    market: over.marketUnread
+      ? { kind: "unmeasured", at: measuredAt, reason: "undeterminable" }
+      : {
+          kind: "measured",
+          at: measuredAt,
+          value: { profile: { category: "product analytics" } },
+        },
     correctionState: over.correctionState ?? "none",
     verdict: { measuredAt, missing: over.missing ?? [] },
   } as unknown as StoredReport;
@@ -338,6 +344,58 @@ describe("rows 4 to 7 — no stored report", () => {
     readCurrentReport.mockImplementationOnce(() => Promise.reject(new Error("connection reset")));
     const state = await resolve();
     expect(state).toEqual({ kind: "refused", domain: DOMAIN, refusal: { reason: "stopped" } });
+  });
+});
+
+describe("issue 898 — a report whose market was never read says so, rather than showing an empty one", () => {
+  it("is its own notice, not `incomplete` naming a driver the empty market took down with it", async () => {
+    readCurrentReport.mockResolvedValue(
+      storedReport({
+        marketUnread: true,
+        complete: false,
+        // What `figma.com` stored: the market never read, and the one
+        // factor that could not survive it listed as missing.
+        missing: [{ factor: "presence", reason: "undeterminable" }],
+      })
+    );
+    const state = await resolve();
+    if (state.kind !== "report") throw new Error("unreachable");
+    expect(state.notice).toEqual({ kind: "market_unread" });
+    // The visitor still gets the one control that answers it.
+    expect(state.control).toEqual({ kind: "rescan", because: "incomplete" });
+  });
+
+  it("a report whose market was read keeps every notice it had", async () => {
+    readCurrentReport.mockResolvedValue(
+      storedReport({ complete: false, missing: [{ factor: "presence", reason: "undeterminable" }] })
+    );
+    const state = await resolve();
+    if (state.kind !== "report") throw new Error("unreachable");
+    expect(state.notice).toEqual({ kind: "incomplete", unmeasured: ["presence"] });
+  });
+
+  it("an unreadable home page still outranks it — that is the earlier cause", async () => {
+    readCurrentReport.mockResolvedValue(
+      storedReport({ marketUnread: true, complete: false, stoppedReason: "site_unreadable" })
+    );
+    const state = await resolve();
+    if (state.kind !== "report") throw new Error("unreachable");
+    expect(state.notice).toEqual({ kind: "site_unreadable" });
+  });
+
+  it("a refusal in force still outranks it — that is what just happened to this visitor", async () => {
+    admitFreeScan.mockResolvedValue({ refuse: "hourly", retryAfterSeconds: 600 });
+    readCurrentReport.mockResolvedValue(storedReport({ marketUnread: true, complete: false }));
+    const state = await resolve();
+    if (state.kind !== "report") throw new Error("unreachable");
+    expect(state.notice).toMatchObject({ kind: "refused" });
+  });
+
+  it("it is written in the registry's words — a sentence, never a marker", async () => {
+    const { copy } = await import("@/lib/presentation/copy");
+    const line = copy("notice.market-unread");
+    expect(line).not.toContain("TODO(copy)");
+    expect(line.length).toBeGreaterThan(20);
   });
 });
 
