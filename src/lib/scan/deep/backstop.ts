@@ -26,6 +26,15 @@
 // a fresh row under that bound: one pass at a time, at most
 // `REMEASURE.perDay` in a day, the onboarding pass included — inside the same
 // `TIMING.deepPassBackstopH` window after setup.
+//
+// **Why a re-measure is harmless too** (issue 886). `account/maintenance` is
+// a clock tick and carries no idempotency key, so the same tick can be
+// delivered twice. 837's bound refuses the second start once the first has
+// claimed its row, but it reads before it writes, so two deliveries arriving
+// together would both read no running pass and both claim one. The key that
+// does not decay with a clock is the cut-short pass itself: this file hands
+// its id back, the re-measure records it as `scans.remeasure_of`, and
+// `scans_one_remeasure_per_pass` lets exactly one of them through.
 import { TIMING } from "@/lib/config/constants";
 import { dbAdmin } from "@/lib/db";
 
@@ -84,6 +93,7 @@ export async function sitesWithoutDeepPass(now: Date): Promise<readonly string[]
 }
 
 interface PassRow {
+  id?: string;
   site_id: string;
   status: string;
   stopped_reason?: string | null;
@@ -93,28 +103,42 @@ interface PassRow {
 /** The two ceilings: a pass that stopped on one did not finish. */
 const CEILINGS: ReadonlySet<string> = new Set(["time_ceiling", "spend_ceiling"]);
 
+/** The site's newest deep row by claim time. */
+function newestOf(rows: readonly PassRow[]): PassRow | undefined {
+  return [...rows].sort((a, b) => String(b.created_at ?? "").localeCompare(String(a.created_at ?? "")))[0];
+}
+
 /** What one site's deep rows owe it: its onboarding pass (`never_ran`), the
  *  pass again because a ceiling stopped the newest (`cut_short`), or nothing
  *  — a pass that finished, or one still under way. */
 function owed(rows: readonly PassRow[]): "never_ran" | "cut_short" | null {
   const ended = rows.filter((row) => row.status !== "running");
   if (ended.length === 0) return "never_ran";
-  const newest = [...rows].sort((a, b) => String(b.created_at ?? "").localeCompare(String(a.created_at ?? "")))[0];
+  const newest = newestOf(rows);
   if (newest === undefined || newest.status === "running") return null;
   return CEILINGS.has(String(newest.stopped_reason ?? "")) ? "cut_short" : null;
 }
 
-/** Whether a site the query named is owed its pass again because a ceiling
- *  stopped its newest one, rather than its onboarding pass never having run —
- *  which decides whether the tick re-sends setup's event or re-measures. */
-export async function deepPassCutShort(siteId: string): Promise<boolean> {
+/**
+ * The pass a ceiling stopped, where that is what a site the query named is
+ * owed, rather than its onboarding pass never having run — which decides
+ * whether the tick re-sends setup's event or re-measures.
+ *
+ * It answers the **row's id**, not a yes (issue 886): the id is the key the
+ * re-measure it starts is unique on (`scans.remeasure_of`), so two
+ * deliveries of one maintenance tick that both read this pass race on that
+ * column and exactly one of them starts a paid pass.
+ */
+export async function deepPassCutShort(siteId: string): Promise<string | null> {
   const { data, error } = await untyped()
     .from<PassRow>("scans")
-    .select("site_id, status, stopped_reason, created_at")
+    .select("id, site_id, status, stopped_reason, created_at")
     .eq("tier", "deep")
     .eq("site_id", siteId);
   if (error) throw new Error(`deepPassCutShort: could not read scans: ${error.message}`);
-  return owed(data ?? []) === "cut_short";
+  const rows = data ?? [];
+  if (owed(rows) !== "cut_short") return null;
+  return newestOf(rows)?.id ?? null;
 }
 
 /** The address a site's pass runs against, or `null` for a site gone since

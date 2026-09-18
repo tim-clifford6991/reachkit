@@ -13,6 +13,28 @@
 // It is also where the customer's Regenerate is carried out (#788): the
 // restart only moves the page back into `generating`, and every tick —
 // not only a site's evening — writes one restarted page a site again.
+//
+// **What makes a second delivery of one tick harmless** (issue 886).
+// Delivery is at-least-once and a clock tick carries no payload, so there
+// is no natural key to dedupe on and `idempotencyKey` is empty, exactly as
+// `types.ts` describes for a tick: "whose idempotency is a database
+// constraint owned by the engine, not by the trigger". Two things hold it,
+// and neither is in this file:
+//
+//   * **The day's page.** `generateDayPage()` asks first whether the site
+//     already holds a draft for the date, before the cost context is opened
+//     and before the first model call, and answers `already_drafted` — read
+//     here as a day already done, not a degraded tick. That is exact for a
+//     redelivery arriving after the first run wrote its row, and it is what
+//     keeps the second delivery free. Two deliveries running *together*
+//     both pass it, and `drafts_one_per_site_per_date` is what decides
+//     them: one row is written, the loser answers `already_drafted` too.
+//   * **The restarted pages.** `restartedDrafts()` returns rows whose last
+//     recorded move is the customer's restart, and `regenerateRestarted()`
+//     rewrites the row it was given — it writes no row of its own, and it
+//     refuses a row that has left `generating`, which the first run's own
+//     ending moves it out of. So a redelivery rewrites nothing, and two
+//     deliveries running together rewrite one row rather than writing two.
 import {
   activeSites,
   generateDraft,

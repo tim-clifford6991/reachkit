@@ -60,6 +60,7 @@ vi.mock("@/lib/site-profile/crawl", () => ({ crawlSite: crawlMock }));
 
 let generateDayPage: typeof import("../../src/lib/generate").generateDayPage;
 let setGenerateStore: typeof import("../../src/lib/generate/store").setGenerateStore;
+let DraftDateTaken: typeof import("../../src/lib/generate/store").DraftDateTaken;
 let store: MemoryStore;
 
 /** Every context this suite opens, so the cap and the roll-up choice can be
@@ -122,7 +123,7 @@ beforeEach(async () => {
   );
 
   ({ generateDayPage } = await import("../../src/lib/generate"));
-  ({ setGenerateStore } = await import("../../src/lib/generate/store"));
+  ({ setGenerateStore, DraftDateTaken } = await import("../../src/lib/generate/store"));
   store = memoryStore();
   setGenerateStore(store);
 });
@@ -234,6 +235,63 @@ describe("ADR-070 — one automatic regeneration, and no more", () => {
     const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
     expect(outcome).toMatchObject({ ok: false, because: "step_failed", step: "brief" });
     expect(store.rows.size).toBe(0);
+  });
+});
+
+describe("issue 886 — the same evening tick delivered twice", () => {
+  it("the second delivery stops on the date's own row, before the cost context and before a model call", async () => {
+    store.seed({ id: "draft-today", scheduled_for: "2026-09-07", state: "in_review" });
+    const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
+    expect(outcome).toEqual({ ok: false, because: "already_drafted" });
+    expect(opened).toHaveLength(0);
+    expect(llmMock).not.toHaveBeenCalled();
+  });
+
+  it("delivered twice end to end, the site holds one draft and the model was asked once", async () => {
+    queueAttempt(CLEAN_MARKDOWN);
+    const first = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
+    expect(first.ok).toBe(true);
+    const asked = llmMock.mock.calls.length;
+
+    const second = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
+    expect(second).toEqual({ ok: false, because: "already_drafted" });
+    expect(store.rows.size).toBe(1);
+    expect(llmMock.mock.calls.length).toBe(asked);
+    expect(opened).toHaveLength(1);
+  });
+
+  it("two deliveries that both read no row leave one draft: the loser meets the index", async () => {
+    // The window the read alone leaves open — both ask before either
+    // writes. `drafts_one_per_site_per_date` is what decides them, and the
+    // double refuses the second insert the way the index does.
+    queueAttempt(CLEAN_MARKDOWN);
+    queueAttempt(CLEAN_MARKDOWN);
+    const write = store.insertDraft;
+    store.draftOnDate = async () => false;
+    store.insertDraft = async (row) => {
+      const held = [...store.rows.values()].some(
+        (kept) => kept.site_id === row.site_id && kept.scheduled_for === row.scheduled_for
+      );
+      if (held) throw new DraftDateTaken(row.site_id, row.scheduled_for);
+      return write(row);
+    };
+
+    const first = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
+    const second = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
+    expect(first.ok).toBe(true);
+    expect(second).toEqual({ ok: false, because: "already_drafted" });
+    expect(store.rows.size).toBe(1);
+    // The loser wrote no row, so it moves nothing: the opportunity is
+    // queued once, by the run whose page was kept.
+    expect(queueForDraftMock.mock.calls).toEqual([[opportunity().id]]);
+  });
+
+  it("a genuinely new tick — the next date — still writes its own draft", async () => {
+    store.seed({ id: "draft-yesterday", scheduled_for: "2026-09-07", state: "in_review" });
+    queueAttempt(CLEAN_MARKDOWN);
+    const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-08" });
+    expect(outcome.ok).toBe(true);
+    expect(store.rows.size).toBe(2);
   });
 });
 

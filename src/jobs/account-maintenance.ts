@@ -18,6 +18,28 @@
 // Not in the kill switch's scope: halting it would hold a purge, withhold a
 // hosting notice and strand a paid customer waiting for a sign-in link,
 // none of which is spend and none of which §11's stop is about.
+//
+// **What makes a second delivery of one tick harmless** (issue 886).
+// Delivery is at-least-once and a clock tick carries no payload, so
+// `idempotencyKey` is empty, as `types.ts` describes for a tick: "whose
+// idempotency is a database constraint owned by the engine, not by the
+// trigger". Nothing is held here — this file has no rule to hold — and each
+// obligation's own module holds it:
+//
+//   * **The two that spend.** The onboarding pass a lost enqueue owes is
+//     re-sent as `scan/run` with `setup-<siteId>` as its key, so every
+//     delivery's send is one delivery of one event and one pass. A pass a
+//     ceiling stopped is measured again on a fresh row keyed to the pass it
+//     re-measures (`scans.remeasure_of`), so two deliveries claim one row
+//     and one of them pays.
+//   * **The mails.** Each sender re-reads, re-decides, sends and stamps the
+//     row it sent against, so a delivery arriving after the first has sent
+//     finds nothing due. Two arriving *together* both read the row before
+//     either stamp, and the cost of losing that race is one duplicate mail
+//     — stated here as what it is rather than claimed protected.
+//   * **The moves.** A purge, a hosting stop, a destination's health and a
+//     stuck free pass are all a state the subject is moved *to*, and the
+//     move is idempotent: a second delivery writes the same state again.
 import {
   accountsDueCancellation,
   accountsDueForPurge,

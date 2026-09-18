@@ -1,7 +1,10 @@
 // tests/scan/deep/remeasure.test.ts — SPEC §6 (owner ruling 2026-09-17,
 // issue 837): a thin market is measured again now, one pass at a time and
 // at most `REMEASURE.perDay` a day per site.
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { topicOf } from "../../../src/lib/db/topics";
 import { applyEnvFixture } from "../../mail/env-fixture";
 import { fakeDb, type FakeDb, type Row } from "./fake-db";
 
@@ -113,5 +116,75 @@ describe("the bound: one at a time, and a few a day", () => {
   it("passes older than a day do not count", async () => {
     db.tables.scans = [pass("a", "done", 25 * 60), pass("b", "done", 26 * 60), pass("c", "done", 27 * 60)];
     expect(await startRemeasure({ siteId: SITE, domain: DOMAIN, now: NOW })).toMatchObject({ started: true });
+  });
+});
+
+describe("issue 886 — the same maintenance tick delivered twice starts one pass", () => {
+  it("both deliveries read no running pass, and only the first claims the cut-short pass's re-measure", async () => {
+    // The window 837's bound leaves open: `remeasureAllowed` reads before
+    // it writes, so two deliveries running together both see the cut-short
+    // pass ended and nothing under way, and both go on to claim.
+    // `scans_one_remeasure_per_pass` is what decides them.
+    db.tables.scans = [pass("cut-short", "degraded", 40)];
+
+    const both = await Promise.all([
+      startRemeasure({ siteId: SITE, domain: DOMAIN, remeasureOf: "cut-short", now: NOW }),
+      startRemeasure({ siteId: SITE, domain: DOMAIN, remeasureOf: "cut-short", now: NOW }),
+    ]);
+
+    expect(both.filter((one) => one.started)).toHaveLength(1);
+    expect(both.filter((one) => !one.started)).toEqual([{ started: false, because: "running" }]);
+    expect(db.tables.scans.filter((row) => row.remeasure_of === "cut-short")).toHaveLength(1);
+    expect(sent).toHaveLength(1);
+  });
+
+  it("the pass records which one it is measuring again, and the founder's own press records none", async () => {
+    db.tables.scans = [pass("cut-short", "degraded", 40)];
+    const tick = (await startRemeasure({
+      siteId: SITE,
+      domain: DOMAIN,
+      remeasureOf: "cut-short",
+      now: NOW,
+    })) as { scanId: string };
+    expect(db.tables.scans.find((row) => row.id === tick.scanId)).toMatchObject({ remeasure_of: "cut-short" });
+
+    db.tables.scans = [pass("onboarding", "done", 70)];
+    const press = (await startRemeasure({ siteId: SITE, domain: DOMAIN, now: NOW })) as { scanId: string };
+    expect(db.tables.scans.find((row) => row.id === press.scanId)?.remeasure_of).toBeUndefined();
+  });
+
+  it("a later cut-short pass is its own key, so 855 still measures again", async () => {
+    db.tables.scans = [pass("first", "degraded", 200)];
+    expect(await startRemeasure({ siteId: SITE, domain: DOMAIN, remeasureOf: "first", now: NOW })).toMatchObject({
+      started: true,
+    });
+    db.tables.scans = [pass("second", "degraded", 40)];
+    expect(await startRemeasure({ siteId: SITE, domain: DOMAIN, remeasureOf: "second", now: NOW })).toMatchObject({
+      started: true,
+    });
+  });
+});
+
+describe("issue 886 — the rule is the database's, not this module's", () => {
+  const MIGRATION = "20260918120100_scans_remeasure.sql";
+  const sql = readFileSync(path.resolve(import.meta.dirname, "../../../supabase/migrations", MIGRATION), "utf8")
+    .split("\n")
+    .filter((line) => !line.trimStart().startsWith("--"))
+    .join("\n");
+
+  it("carries an assigned topic token", () => {
+    expect(topicOf(MIGRATION)).toEqual({ token: "scans", owner: "BP-012" });
+  });
+
+  it("records which pass a re-measure is measuring again, and holds one re-measure per pass", () => {
+    expect(sql).toMatch(/add column if not exists remeasure_of uuid references scans \(id\)/);
+    expect(sql).toMatch(
+      /create unique index if not exists scans_one_remeasure_per_pass\s+on scans \(remeasure_of\)\s+where remeasure_of is not null/
+    );
+  });
+
+  it("no pass that is not an automatic re-measure is in the index — the founder's press keeps its own bound", () => {
+    expect(sql).toMatch(/where remeasure_of is not null/);
+    expect(sql).not.toMatch(/on scans \(site_id\)/);
   });
 });

@@ -41,8 +41,11 @@ interface PassRow {
 
 interface QueryResult<T> {
   data: T[] | null;
-  error: { message: string } | null;
+  error: { message: string; code?: string } | null;
 }
+
+/** Postgres's unique violation, as PostgREST hands it back. */
+const UNIQUE_VIOLATION = "23505";
 
 interface MinimalQuery<T> extends PromiseLike<QueryResult<T>> {
   select(columns: string): MinimalQuery<T>;
@@ -111,14 +114,31 @@ export async function remeasureAllowed(siteId: string, now: Date = new Date()): 
  * on it starts exactly this pass, and the deep pass adopts it as the site's
  * newest running row. Written here rather than through the pipeline's own
  * claim so that the screens this is sent from reach no vendor client.
+ *
+ * `remeasureOf` is the cut-short pass this one measures again, where the
+ * maintenance tick started it (issue 886). `scans_one_remeasure_per_pass`
+ * makes that insert the thing two deliveries of one tick race on: the loser
+ * is answered `null` here and starts nothing, having spent nothing.
  */
-async function claimFreshPass(a: { siteId: string; domain: string }): Promise<string> {
+async function claimFreshPass(a: {
+  siteId: string;
+  domain: string;
+  remeasureOf?: string;
+}): Promise<string | null> {
   const parsed = parseDomain(a.domain);
   if (!parsed.ok) throw new Error(`remeasure: ${parsed.problem}`);
   const scanId = crypto.randomUUID();
   const { error } = await untyped()
     .from<{ id: string }>("scans")
-    .insert({ id: scanId, domain: parsed.domain, tier: "deep", status: "running", site_id: a.siteId });
+    .insert({
+      id: scanId,
+      domain: parsed.domain,
+      tier: "deep",
+      status: "running",
+      site_id: a.siteId,
+      ...(a.remeasureOf === undefined ? {} : { remeasure_of: a.remeasureOf }),
+    });
+  if (error?.code === UNIQUE_VIOLATION) return null;
   if (error) throw new Error(`remeasure: could not claim the scan row: ${error.message}`);
   return scanId;
 }
@@ -140,6 +160,9 @@ export async function startRemeasure(a: {
   siteId: string;
   domain: string;
   category?: string;
+  /** The cut-short pass this one measures again, where a maintenance tick
+   *  started it (issue 886). Absent for a founder's own press. */
+  remeasureOf?: string;
   now?: Date;
 }): Promise<RemeasureStart> {
   const now = a.now ?? new Date();
@@ -152,6 +175,10 @@ export async function startRemeasure(a: {
   }
 
   const scanId = await claimFreshPass(a);
+  // Another delivery of the same maintenance tick claimed this cut-short
+  // pass's one re-measure first (issue 886). A pass for this site is under
+  // way — the other delivery's — which is the refusal this already has.
+  if (scanId === null) return { started: false, because: "running" };
 
   await untyped()
     .from<{ id: string }>("sites")

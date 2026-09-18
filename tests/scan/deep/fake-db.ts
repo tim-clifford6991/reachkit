@@ -61,8 +61,10 @@ export function fakeDb(tables: Record<string, Row[]> = {}): FakeDb {
             updates = values;
             return self;
           },
-          // An `id` already held is refused the way the primary key refuses
-          // it: Postgres's unique violation, and no row written.
+          // An `id` already held — or a `remeasure_of` already held — is
+          // refused the way Postgres refuses it: a unique violation, and no
+          // row written. The check itself is in `then()`, where the insert
+          // is applied.
           insert(values: Row) {
             inserted = values;
             return self;
@@ -101,7 +103,14 @@ export function fakeDb(tables: Record<string, Row[]> = {}): FakeDb {
           then(resolve: (v: { data: Row[]; error: { message: string; code: string } | null }) => unknown) {
             if (inserted !== null) {
               const row = inserted;
-              if (row.id !== undefined && rows().some((held) => held.id === row.id)) {
+              // `scans_one_remeasure_per_pass` (issue 886) refuses a second
+              // automatic re-measure of one cut-short pass, the same way
+              // the primary key refuses an id already held.
+              const duplicate =
+                (row.id !== undefined && rows().some((held) => held.id === row.id)) ||
+                (row.remeasure_of != null &&
+                  rows().some((held) => held.remeasure_of === row.remeasure_of));
+              if (duplicate) {
                 const error = { message: "duplicate key value violates unique constraint", code: "23505" };
                 return Promise.resolve({ data: [], error }).then(resolve);
               }

@@ -58,8 +58,10 @@ describe("sitesWithoutDeepPass", () => {
     const ran = db.rows("scans")[1]!;
     Object.assign(ran, { stopped_reason: "time_ceiling", status: "degraded", created_at: minutesAgo(18) });
     expect(await sitesWithoutDeepPass(NOW)).toEqual(["dropped", "ran"]);
-    expect(await deepPassCutShort("ran")).toBe(true);
-    expect(await deepPassCutShort("dropped")).toBe(false);
+    // Issue 886: the answer is the cut-short pass's own id — the key the
+    // re-measure it starts is unique on.
+    expect(await deepPassCutShort("ran")).toBe("claim-ran");
+    expect(await deepPassCutShort("dropped")).toBeNull();
 
     ran.stopped_reason = "spend_ceiling";
     expect(await sitesWithoutDeepPass(NOW)).toEqual(["dropped", "ran"]);
@@ -71,7 +73,7 @@ describe("sitesWithoutDeepPass", () => {
     // That pass finished: the site is measured.
     Object.assign(db.rows("scans").at(-1)!, { status: "done", stopped_reason: "complete" });
     expect(await sitesWithoutDeepPass(NOW)).toEqual(["dropped"]);
-    expect(await deepPassCutShort("ran")).toBe(false);
+    expect(await deepPassCutShort("ran")).toBeNull();
   });
 
   it("the address a re-send carries is the site's own, and a site gone since is null", async () => {

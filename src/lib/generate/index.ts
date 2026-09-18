@@ -41,7 +41,7 @@ import type { SiteRuleInputs } from "./rules/types";
 import { clusterLinkTargets, siteLinkTargets } from "./links/select";
 import { generateDraft, type GenerateOutcome } from "./pipeline";
 import { generatePageFix } from "./pipeline/page-fix";
-import { generateStore, type RestartedDraft, type SiteFacts } from "./store";
+import { DraftDateTaken, generateStore, type RestartedDraft, type SiteFacts } from "./store";
 
 export type { GroundedFact, HardRule, RuleFailure, ComparisonSet, SiteRuleInputs } from "./rules/types";
 export { HARD_RULES } from "./rules/types";
@@ -59,7 +59,7 @@ export { generateDraft, type GenerateOutcome } from "./pipeline";
 export { rejectionCause, type NearDuplicateCause } from "./pipeline/rejection";
 export { type PipelineStep } from "./pipeline/steps";
 export { type DraftPromptInputs, DRAFT_PROMPT_KEYS } from "./voice/inputs";
-export { setGenerateStore, type GenerateStore, type RestartedDraft } from "./store";
+export { DraftDateTaken, setGenerateStore, type GenerateStore, type RestartedDraft } from "./store";
 export { withDraftCost } from "./cost";
 
 /** Why a day has no page. Every arm is a fact, and none of them is a
@@ -69,7 +69,10 @@ export type DayPageOutcome =
   | { ok: false; because: "no_site" }
   | { ok: false; because: "no_scan" }
   /** SPEC §7: a date holds at most one asset, and this one already has its
-   *  draft — the first draft's kickoff wrote it, or a tick ran twice. */
+   *  draft — the first draft's kickoff wrote it, or a tick ran twice.
+   *  Reached two ways (issue 886): the read below, which is what saves a
+   *  second delivery's model calls, and `drafts_one_per_site_per_date`,
+   *  which decides two deliveries that both read no row. */
   | { ok: false; because: "already_drafted" }
   /** §7: supply is the cap. Nothing was invented to fill the day. */
   | { ok: false; because: "no_opportunity" }
@@ -93,6 +96,10 @@ export async function generateDayPage(a: {
 
   const site = await store.siteFacts(a.siteId);
   if (site === null) return { ok: false, because: "no_site" };
+  // Issue 886: the tick that delivers this twice stops here, before the
+  // first paid call. The read is not the whole protection — two deliveries
+  // running together both pass it — so the day's row is unique in the
+  // database too, and the loser of that race is caught below.
   if (await store.draftOnDate(a.siteId, a.publishDate)) return { ok: false, because: "already_drafted" };
 
   // §8: "the day's page is generated the evening before from the freshest
@@ -117,10 +124,21 @@ export async function generateDayPage(a: {
   // A fix is a metadata-only update: one call, no regeneration loop — the
   // only rule it can fail is the customer's own do-not-claim list, which a
   // second attempt at the same page would read the same way.
-  const outcome =
-    opportunity.type === "fix_page"
-      ? await fixPage(page)
-      : await writePage({ ...page, attempts: MAX_AUTOMATIC_ATTEMPTS });
+  let outcome: DayPageOutcome;
+  try {
+    outcome =
+      opportunity.type === "fix_page"
+        ? await fixPage(page)
+        : await writePage({ ...page, attempts: MAX_AUTOMATIC_ATTEMPTS });
+  } catch (error) {
+    // Issue 886: another delivery of this tick wrote the date's row while
+    // this one was writing its page. The index refused the second row, so
+    // the day has exactly one page; this run wrote nothing, moves nothing,
+    // and leaves its opportunity open the way any run that wrote no row
+    // does.
+    if (error instanceof DraftDateTaken) return { ok: false, because: "already_drafted" };
+    throw error;
+  }
   await settle(outcome, opportunity.id);
   return outcome;
 }
