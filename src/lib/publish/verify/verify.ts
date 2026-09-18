@@ -42,6 +42,7 @@ import type { RobotsPolicy } from "@/lib/egress/types";
 import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
 import { parseOnPage } from "@/lib/measure/parse";
 import { publishDb } from "../db";
+import { hostedAddressNow } from "../destinations/hosted";
 import type { SiteCondition, VerifyChecks, VerifyOutcome } from "../types";
 import { classify } from "./answer";
 import { bodyCoverage } from "./coverage";
@@ -260,7 +261,7 @@ export async function verifyLive(
 
   // `dispositionOf` has already refused a null address; the local is what
   // narrows the type without a second rule about when an address exists.
-  const liveUrl = row.live_url!;
+  const liveUrl = await addressNow(row);
   const draft = await readDraft(row.draft_id);
   const checkedAt = now;
 
@@ -364,6 +365,29 @@ function aiReadableCheck(a: {
   if (a.robots.kind !== "permits") return unmeasured<boolean>("undeterminable", a.at);
   if (a.bodyMd === null || a.bodyMd === "") return unmeasured<boolean>("undeterminable", a.at);
   return measured(bodyCoverage(a.html, a.bodyMd) >= VERIFY.coverageFloor, a.at);
+}
+
+/**
+ * The address this publication answers at **now** (SPEC §7, 2026-09-18,
+ * issue 888).
+ *
+ * A hosted page is served by this deployment off its site's own host, and
+ * that host can move under pages already published to it — the owner's test
+ * destination moves on a deploy, and a customer can repoint their record.
+ * The page itself moves with it: the edge addresses every live page on the
+ * host that resolved. So the check fetches the address the page answers at
+ * now, and a moved host is never recorded as `page_not_found` — that arm
+ * states something about the customer's page, and their page is live.
+ *
+ * **Only the destination ReachKit serves.** A WordPress page lives on a
+ * host this product does not own and cannot re-address; its stored address
+ * is the only one there is, and composing another would be a guess about
+ * somebody else's site.
+ */
+async function addressNow(row: VerifyRow): Promise<string> {
+  const liveUrl = row.live_url!;
+  if (row.destination !== "hosted") return liveUrl;
+  return hostedAddressNow({ siteId: row.site_id, liveUrl });
 }
 
 async function record(

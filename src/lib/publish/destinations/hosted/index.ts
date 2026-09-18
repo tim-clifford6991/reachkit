@@ -41,6 +41,8 @@ export { addressesOwnPage } from "./own-page";
 export type { HostedOwnPages } from "./own-page";
 export type { LabelCheck, LabelRefusal } from "./label";
 export {
+  hostedAddressNow,
+  hostedHostOfSite,
   hostedSiteForDomain,
   hostedOwnPagesOfSite,
   hostedSiteForHostname,
@@ -106,7 +108,7 @@ export const HOSTED_ADAPTER: DestinationAdapter = Object.freeze({
     // not be published a second time beside it. Readiness reads the same
     // predicate, so such a page is never offered for a day.
     if (page.updateOf !== undefined) {
-      const slugs = (await livePagesForSite(site.siteId)).map((live) => live.slug);
+      const slugs = (await livePagesForSite(site.siteId, site.host)).map((live) => live.slug);
       if (!addressesOwnPage(page.updateOf, { host: site.host, slugs })) {
         return { ok: false, madeLive: false, reason: "destination_rejected" };
       }

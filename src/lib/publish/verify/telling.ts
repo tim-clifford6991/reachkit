@@ -34,6 +34,7 @@
 // The archived plan is WO-235.
 import type { CopyKey } from "@/lib/presentation/copy";
 import { publishDb } from "../db";
+import { hostedAddressNow } from "../destinations/hosted";
 import type { SiteCondition, VerifyOutcome } from "../types";
 import { dispositionFor } from "./due";
 import { CHECK_IDS, type CheckId } from "./checks";
@@ -72,6 +73,7 @@ export interface PublishedTelling {
 interface TellingRow {
   id: string;
   site_id: string;
+  destination: string;
   live_url: string | null;
   verify: unknown;
 }
@@ -103,7 +105,7 @@ function failedChecks(result: VerifyOutcome): readonly CheckId[] {
 export async function tellingFor(publicationId: string): Promise<PublishedTelling | null> {
   const { data, error } = await publishDb()
     .from<TellingRow>("publications")
-    .select("id, site_id, live_url, verify")
+    .select("id, site_id, destination, live_url, verify")
     .eq("id", publicationId)
     .limit(1);
   if (error !== null) throw new Error(`tellingFor(${publicationId}): ${error.message}`);
@@ -115,7 +117,15 @@ export async function tellingFor(publicationId: string): Promise<PublishedTellin
 
   return {
     publicationId: row.id,
-    liveUrl: row.live_url,
+    // The address the page answers at now, which for a hosted page is its
+    // site's current host (SPEC §7, 2026-09-18, issue 888): a mail that
+    // says a page is live links to where it is live, not to a host that
+    // moved out from under it. A page on the customer's own site has one
+    // address and keeps it.
+    liveUrl:
+      row.destination === "hosted"
+        ? await hostedAddressNow({ siteId: row.site_id, liveUrl: row.live_url })
+        : row.live_url,
     result: recorded.result,
     failed: failedChecks(recorded.result),
     siteCondition: recorded.siteCondition,

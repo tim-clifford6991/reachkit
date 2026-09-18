@@ -44,7 +44,7 @@ export async function hostedAnswer(host: string, pathname: string): Promise<Host
     const slug = pageSlug(pathname);
     if (slug === null) return "page";
 
-    if ((await livePageBySlug(disposition.siteId, slug)) !== null) return "page";
+    if ((await livePageBySlug(disposition.siteId, slug, disposition.host)) !== null) return "page";
     return (await wasEverLive(disposition.siteId, slug)) ? "gone" : "page";
   } catch {
     return "page";

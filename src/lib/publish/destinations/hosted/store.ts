@@ -19,6 +19,7 @@
 // WO-230/WO-231 (the page and the sitemap).
 import { readRecordedFact, type RecordedFact } from "@/lib/generate/fact";
 import { publishDb } from "../../db";
+import { liveUrlOnHost } from "./address";
 import { hostFor } from "./label";
 import type { HostedOwnPages } from "./own-page";
 
@@ -109,7 +110,17 @@ export type HostedGrounding = RecordedFact;
 
 /** One live hosted page. `slug` is the last segment of the address the
  *  page was actually published at, so the address the customer's visitor
- *  typed and the address recorded on the row cannot drift apart. */
+ *  typed and the address recorded on the row cannot drift apart.
+ *
+ *  **`liveUrl` is that slug on the host the page is being addressed on
+ *  now**, not the address stored when it was published (SPEC §7,
+ *  2026-09-18, issue 888). A hosted page is its `publications` row and the
+ *  row belongs to a *site*; the host is the site's, and a site whose host
+ *  changed under its live pages serves every one of them at the new
+ *  address. So the canonical the page declares, the entry its sitemap
+ *  carries and the address §9's record names are one string composed from
+ *  the resolving host — a stored address that no longer answers is never
+ *  one of them. */
 export interface HostedPage {
   publicationId: string;
   siteId: string;
@@ -238,7 +249,7 @@ function slugOf(liveUrl: string): string | null {
   return slug === "" ? null : slug;
 }
 
-function toPage(row: PublicationRow): HostedPage | null {
+function toPage(row: PublicationRow, host: string): HostedPage | null {
   const draft = row.drafts;
   const opportunity = draft?.opportunities ?? null;
   if (draft === null || opportunity === null) return null;
@@ -253,6 +264,9 @@ function toPage(row: PublicationRow): HostedPage | null {
   // function cannot compose a whole page from — never a page with a blank
   // where the customer's own name goes.
   if (domain === null || domain.trim() === "") return null;
+
+  // The one composer, on the host that resolved: see `HostedPage.liveUrl`.
+  const liveUrl = liveUrlOnHost({ host, slug });
 
   return {
     publicationId: row.id,
@@ -269,13 +283,13 @@ function toPage(row: PublicationRow): HostedPage | null {
       timeZone: emptyToNull(row.sites?.timezone ?? null),
     },
     publishedAt: new Date(row.published_at),
-    liveUrl: row.live_url,
+    liveUrl,
     record: {
       opportunityId: opportunity.id,
       targetQuery: opportunity.target_query,
       measuredOn: measured === null ? null : new Date(measured),
       mode: row.mode,
-      liveUrl: row.live_url,
+      liveUrl,
     },
   };
 }
@@ -315,17 +329,25 @@ function emptyToNull(value: string | null): string | null {
 }
 
 /**
- * Every live hosted page of one site, newest first.
+ * Every live hosted page of one site, newest first, addressed on `host`.
  *
  * The sitemap is exactly this list, and the page render finds its page in
  * it — one predicate, one query, so a page cannot be absent from the
  * sitemap and present at its address, or the reverse.
  *
+ * **`host` is an argument and not a column** (SPEC §7, 2026-09-18, issue
+ * 888). Every caller has already resolved the host this site is being
+ * served at — the edge from the Host header, the adapter from the site's
+ * destination row — and passing it is what makes "the address a page
+ * states is the address it answers at" hold by construction rather than by
+ * a stored string staying true. A host that changed under live pages
+ * re-addresses all of them here, in one place.
+ *
  * **One page per address** (issue 781): an update of a hosted page is a new
  * publication at the same slug, so the newest live row at a slug is the page
  * and every older one is a version it replaced — never listed beside it.
  */
-export async function livePagesForSite(siteId: string): Promise<HostedPage[]> {
+export async function livePagesForSite(siteId: string, host: string): Promise<HostedPage[]> {
   const { data, error } = await publishDb()
     .from<PublicationRow>("publications")
     .select(PAGE_COLUMNS)
@@ -337,7 +359,7 @@ export async function livePagesForSite(siteId: string): Promise<HostedPage[]> {
   if (error !== null || data === null) return [];
   const seen = new Set<string>();
   return data
-    .map(toPage)
+    .map((row) => toPage(row, host))
     .filter((page): page is HostedPage => page !== null)
     .filter((page) => {
       if (seen.has(page.slug)) return false;
@@ -356,8 +378,12 @@ export async function livePagesForSite(siteId: string): Promise<HostedPage[]> {
  * the site's whole published history and is small by the product's own
  * hard limits — not by an assumption about customer behaviour.
  */
-export async function livePageBySlug(siteId: string, slug: string): Promise<HostedPage | null> {
-  const pages = await livePagesForSite(siteId);
+export async function livePageBySlug(
+  siteId: string,
+  slug: string,
+  host: string
+): Promise<HostedPage | null> {
+  const pages = await livePagesForSite(siteId, host);
   return pages.find((page) => page.slug === slug) ?? null;
 }
 
@@ -433,8 +459,56 @@ export async function hostedOwnPagesOfSite(siteId: string): Promise<HostedOwnPag
   const domain = row.sites?.domain ?? null;
   if (domain === null || domain.trim() === "") return NONE;
   const chosen = row.hostname === null || row.hostname.trim() === "" ? null : row.hostname.trim().toLowerCase();
-  const pages = await livePagesForSite(siteId);
-  return { host: chosen ?? hostFor({ label: null, domain }), slugs: pages.map((page) => page.slug) };
+  const host = chosen ?? hostFor({ label: null, domain });
+  const pages = await livePagesForSite(siteId, host);
+  return { host, slugs: pages.map((page) => page.slug) };
+}
+
+/**
+ * The host a site's hosted pages are served at **now**, or `null` where no
+ * host can be read at all (SPEC §7, 2026-09-18, issue 888).
+ *
+ * The stored host where the destination row carries one, and the default
+ * label over the site's own domain where it does not — the same two arms
+ * `siteForDraft` composes a delivery address from, so the address a page is
+ * published at and the address it is re-addressed at later are decided the
+ * same way. `null` is "we cannot say", and every caller keeps the address
+ * it already had rather than composing one on a blank.
+ */
+export async function hostedHostOfSite(siteId: string): Promise<string | null> {
+  const chosen = await hostnameOfSite(siteId);
+  if (chosen !== null) return chosen;
+  const { data, error } = await publishDb()
+    .from<SiteRow>("sites")
+    .select("id, domain")
+    .eq("id", siteId)
+    .limit(1);
+  if (error !== null || data === null) return null;
+  const domain = data[0]?.domain ?? null;
+  if (domain === null || domain.trim() === "") return null;
+  return hostFor({ label: null, domain });
+}
+
+/**
+ * The address one hosted publication answers at **now**.
+ *
+ * What the 24-hour check fetches and what the `published` mail links, for a
+ * page whose host may have moved under it since it was published (SPEC §7,
+ * 2026-09-18, issue 888). The slug is the one the page was published at —
+ * that never moves — and the host is the site's current one.
+ *
+ * **It falls back to the stored address, never to a blank.** A host that
+ * cannot be read is not a reason to fetch nothing or to link nowhere; it is
+ * a reason to use the last address we know, which is what the row holds.
+ */
+export async function hostedAddressNow(a: {
+  siteId: string;
+  liveUrl: string;
+}): Promise<string> {
+  const slug = slugOf(a.liveUrl);
+  if (slug === null) return a.liveUrl;
+  const host = await hostedHostOfSite(a.siteId);
+  return host === null ? a.liveUrl : liveUrlOnHost({ host, slug });
 }
 
 /** The host a site's live hosted destination serves at, or `null`. Read

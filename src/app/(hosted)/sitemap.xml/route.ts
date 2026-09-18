@@ -4,10 +4,12 @@
 // §9: a published hosted page "is listed in a sitemap". This is that
 // sitemap, and its whole contract is what it may *not* contain: another
 // site's page, a page in any state but live, a preview address, or a
-// ReachKit address. Every entry is `publications.live_url` for a `hosted`
-// publication of the site the Host resolved to, which is the same predicate
-// the page render reads (`livePagesForSite`) — so a page cannot be absent
-// from the sitemap and present at its address, or the reverse.
+// ReachKit address. Every entry is a live `hosted` publication of the site
+// the Host resolved to, addressed on that same Host, which is the same
+// predicate and the same composition the page render reads
+// (`livePagesForSite`) — so a page cannot be absent from the sitemap and
+// present at its address, or the reverse, and a listed address cannot
+// disagree with the canonical the page at it declares.
 //
 // **A site with no live page gets a valid, empty sitemap**, never an error
 // and never a 404: an empty index is a true statement about a site that has
@@ -72,7 +74,11 @@ export async function GET(request: Request): Promise<Response> {
   // do not serve or one that has stopped.
   if (disposition.kind !== "site") return new Response(null, { status: 404 });
 
-  const pages = await livePagesForSite(disposition.siteId);
+  // Addressed on the Host that resolved (SPEC §7, 2026-09-18, issue 888):
+  // the entry is the address the page answers at now, the same string its
+  // canonical link declares — never the one stored when it was published,
+  // which a site whose host moved would list as a document full of 404s.
+  const pages = await livePagesForSite(disposition.siteId, disposition.host);
   const entries = pages
     .map(
       (page) =>

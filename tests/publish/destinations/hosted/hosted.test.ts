@@ -278,7 +278,7 @@ describe("health — what the adapter can honestly say, and what it cannot", () 
 describe("§9's page record — five members, and none of them fabricated", () => {
   it("a live page records opportunity id, target query, measurement date, mode and live URL", async () => {
     seedOnePublishedPage();
-    const page = await livePageBySlug("site-1", "a-page");
+    const page = await livePageBySlug("site-1", "a-page", "content.example.com");
     expect(page?.record).toEqual({
       opportunityId: "opp-1",
       targetQuery: "best onboarding tools",
@@ -291,7 +291,7 @@ describe("§9's page record — five members, and none of them fabricated", () =
   it("a purged scan leaves the measurement date null rather than a made-up one", async () => {
     seedOnePublishedPage();
     db.seed("scans", []);
-    const page = await livePageBySlug("site-1", "a-page");
+    const page = await livePageBySlug("site-1", "a-page", "content.example.com");
     expect(page?.record.measuredOn).toBeNull();
     expect(page?.record.targetQuery).toBe("best onboarding tools");
   });
@@ -300,20 +300,20 @@ describe("§9's page record — five members, and none of them fabricated", () =
 describe("live is one predicate, and every reader shares it", () => {
   it("a published, non-unpublished hosted page is live", async () => {
     seedOnePublishedPage();
-    expect((await livePagesForSite("site-1")).map((p) => p.slug)).toEqual(["a-page"]);
+    expect((await livePagesForSite("site-1", "content.example.com")).map((p) => p.slug)).toEqual(["a-page"]);
   });
 
   it("an unpublished page is gone from the list the moment its row changes", async () => {
     seedOnePublishedPage();
     db.rows("publications")[0]!.unpublished_at = "2026-09-02T00:00:00.000Z";
-    expect(await livePagesForSite("site-1")).toEqual([]);
-    expect(await livePageBySlug("site-1", "a-page")).toBeNull();
+    expect(await livePagesForSite("site-1", "content.example.com")).toEqual([]);
+    expect(await livePageBySlug("site-1", "a-page", "content.example.com")).toBeNull();
     expect(await wasEverLive("site-1", "a-page")).toBe(true);
   });
 
   it("another site's pages are never returned", async () => {
     seedOnePublishedPage();
-    expect(await livePagesForSite("site-2")).toEqual([]);
+    expect(await livePagesForSite("site-2", "content.example.com")).toEqual([]);
   });
 
   it("a slug that never served a page is not `gone` — it was never there", async () => {
@@ -346,7 +346,7 @@ describe("the description is read from stored meta (issue 697)", () => {
 
   it("a live page carries its draft's description", async () => {
     seedOnePublishedPage();
-    const page = await livePageBySlug("site-1", "a-page");
+    const page = await livePageBySlug("site-1", "a-page", "content.example.com");
     expect(page?.description).toBe("What the page answers.");
   });
 
