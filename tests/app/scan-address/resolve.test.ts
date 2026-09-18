@@ -341,6 +341,42 @@ describe("rows 4 to 7 — no stored report", () => {
   });
 });
 
+describe("issue 885 — the two day bounds are refused in writing, each in its own words", () => {
+  it("the network's day and the address's day are different refusals, and neither borrows the hour's sentence", async () => {
+    admitFreeScan.mockResolvedValue({ refuse: "network_daily", retryAfterSeconds: 4200 });
+    expect(await resolve()).toEqual({
+      kind: "refused",
+      domain: DOMAIN,
+      refusal: { reason: "network-day-limit", retryAfterSeconds: 4200 },
+    });
+
+    admitFreeScan.mockResolvedValue({ refuse: "domain_daily", retryAfterSeconds: 3600 });
+    expect(await resolve()).toEqual({
+      kind: "refused",
+      domain: DOMAIN,
+      refusal: { reason: "domain-day-limit", retryAfterSeconds: 3600 },
+    });
+  });
+
+  it("each renders a written line with its wait in it — never a stack trace, and never the hourly sentence", async () => {
+    const { refusalLine } = await import("@/app/(public)/scan/[domain]/_address/refusal");
+    const network = refusalLine({ reason: "network-day-limit", retryAfterSeconds: 4200 });
+    const domain = refusalLine({ reason: "domain-day-limit", retryAfterSeconds: 3600 });
+    const hourly = refusalLine({ reason: "network-limit", retryAfterSeconds: 4200 });
+
+    for (const line of [network, domain]) {
+      expect(line).not.toContain("TODO(copy)");
+      expect(line.length).toBeGreaterThan(20);
+      // The wait is in the sentence, in the registry's own unit word.
+      expect(line).toMatch(/\d+/);
+    }
+    // The address bound is not about the visitor's network, so it does not
+    // tell a stranger they did something they did not do.
+    expect(domain).not.toContain("your network");
+    expect(network).not.toBe(hourly);
+  });
+});
+
 describe("what resolving does not do", () => {
   it("starts no scan and consumes no allowance — admission checks, it never claims", async () => {
     const admission = await import("@/lib/scan/admission");

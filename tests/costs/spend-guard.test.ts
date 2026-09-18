@@ -25,6 +25,17 @@ vi.mock("@/lib/db", () => ({
     rpc: rpcMock,
     from(table: string) {
       return {
+        // Issue 885: every context reads the row it spends against when it
+        // opens, for the site its per-site cap is charged to. These scans
+        // carry none — this file is about the product's ceiling, and
+        // `site-cap.test.ts` is about the site's.
+        select() {
+          return {
+            eq: () => ({
+              limit: async () => ({ data: [{ cost_cents: 0, site_id: null }], error: null }),
+            }),
+          };
+        },
         update(values: Record<string, unknown>) {
           updates.push({ table, values });
           return { eq: async () => ({ error: null }) };

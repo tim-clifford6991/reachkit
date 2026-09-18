@@ -27,12 +27,23 @@ const OPS_MAIL_KEYS = [
   "mail.ops.spend-ceiling.heading",
   "mail.ops.spend-ceiling.warn",
   "mail.ops.spend-ceiling.reached",
+  // Issue 885's two: one site at its own cap, and a free-path bound filled.
+  "mail.ops.spend-ceiling.site-reached",
+  "mail.ops.spend-ceiling.free-scan-bound",
   "mail.ops.spend-ceiling.kill-switch-engaged",
   "mail.ops.spend-ceiling.fact.spent",
   "mail.ops.spend-ceiling.fact.ceiling",
+  "mail.ops.spend-ceiling.fact.site",
+  "mail.ops.spend-ceiling.fact.bound",
 ] as const;
 
-const OCCASIONS = ["warn", "reached", "kill-switch-engaged"] as const;
+const OCCASIONS = [
+  "warn",
+  "reached",
+  "site-reached",
+  "free-scan-bound",
+  "kill-switch-engaged",
+] as const;
 
 describe("the register — the eleventh kind, and the only one whose reader is the owner", () => {
   it("`ops` is registered, occasioned by the cost seam, and cannot be switched off", () => {
@@ -40,7 +51,7 @@ describe("the register — the eleventh kind, and the only one whose reader is t
   });
 });
 
-describe("the template — three occasions, one shape", () => {
+describe("the template — five occasions, one shape", () => {
   it("each occasion speaks its own line, and no two speak the same one", () => {
     const lines = OCCASIONS.map((occasion) => {
       const blocks = buildSpendCeilingAlert({ occasion, spentCents: 1, ceilingCents: 2 }).blocks;
@@ -62,6 +73,57 @@ describe("the template — three occasions, one shape", () => {
     });
   });
 
+  it("an alert about one site names that site, and one about a free bound names the bound and nothing else (issue 885)", () => {
+    const SITE = "11111111-1111-4111-8111-111111111111";
+    const site = buildSpendCeilingAlert({
+      occasion: "site-reached",
+      spentCents: 501,
+      ceilingCents: 500,
+      subject: { kind: "site", siteId: SITE },
+    });
+    expect(site.blocks.find((b) => b.block === "facts")).toEqual({
+      block: "facts",
+      items: [
+        { label: "mail.ops.spend-ceiling.fact.site", value: SITE },
+        { label: "mail.ops.spend-ceiling.fact.spent", value: "501" },
+        { label: "mail.ops.spend-ceiling.fact.ceiling", value: "500" },
+      ],
+    });
+
+    const bound = buildSpendCeilingAlert({
+      occasion: "free-scan-bound",
+      spentCents: 240,
+      ceilingCents: 240,
+      subject: { kind: "free-scan", bound: "network-day" },
+    });
+    expect(bound.blocks.find((b) => b.block === "facts")).toEqual({
+      block: "facts",
+      items: [
+        { label: "mail.ops.spend-ceiling.fact.bound", value: "network-day" },
+        { label: "mail.ops.spend-ceiling.fact.spent", value: "240" },
+        { label: "mail.ops.spend-ceiling.fact.ceiling", value: "240" },
+      ],
+    });
+  });
+
+  it("a value that is not a closed one is written `unknown` — never a domain, an address or a message (issue 885)", () => {
+    const facts = (subject: Parameters<typeof buildSpendCeilingAlert>[0]["subject"]) =>
+      buildSpendCeilingAlert({ occasion: "site-reached", spentCents: 1, ceilingCents: 1, subject })
+        .blocks.find((b) => b.block === "facts");
+    expect(facts({ kind: "site", siteId: "acme.example.com" })).toMatchObject({
+      items: [{ label: "mail.ops.spend-ceiling.fact.site", value: "unknown" }, {}, {}],
+    });
+    expect(facts({ kind: "free-scan", bound: "whatever" as never })).toMatchObject({
+      items: [{ label: "mail.ops.spend-ceiling.fact.bound", value: "unknown" }, {}, {}],
+    });
+  });
+
+  it("an alert with no subject draws the two rows it always drew — the product's own ceiling", () => {
+    const mail = buildSpendCeilingAlert({ occasion: "reached", spentCents: 5000, ceilingCents: 5000 });
+    const facts = mail.blocks.find((b) => b.block === "facts");
+    expect(facts && "items" in facts ? facts.items.length : 0).toBe(2);
+  });
+
   it("every string it speaks is a copy key, and every one of them is the owner's", () => {
     for (const occasion of OCCASIONS) {
       const mail = buildSpendCeilingAlert({ occasion, spentCents: 0, ceilingCents: 0 });
@@ -81,7 +143,7 @@ describe("the template — three occasions, one shape", () => {
     }
   });
 
-  it("all seven sentences are written, none is a `TODO(copy)` placeholder, and each occasion composes", () => {
+  it("every sentence is written, none is a `TODO(copy)` placeholder, and each occasion composes", () => {
     for (const key of OPS_MAIL_KEYS) {
       expect(COPY[key], key).not.toBe("");
       expect(COPY[key], key).not.toBe(TODO_COPY_MARKER);
@@ -103,6 +165,7 @@ describe("the template — three occasions, one shape", () => {
 describe("sending — one send per owner address, and nothing that can fail a scan", () => {
   const sendEmailMock = vi.fn();
   const readDaySpendCentsMock = vi.fn();
+  const registerSpendAlertSinkMock = vi.fn();
 
   beforeEach(() => {
     vi.resetModules();
@@ -117,7 +180,7 @@ describe("sending — one send per owner address, and nothing that can fail a sc
     vi.doMock("../../../src/lib/costs/daily", () => ({
       readDaySpendCents: readDaySpendCentsMock,
       alertThresholdsCents: () => ({ warn: 4000, ceiling: 5000 }),
-      registerSpendAlertSink: vi.fn(),
+      registerSpendAlertSink: registerSpendAlertSinkMock,
     }));
     return import("../../../src/lib/mail/ops/spend-ceiling");
   }
@@ -169,6 +232,42 @@ describe("sending — one send per owner address, and nothing that can fail a sc
     await ops.reportKillSwitchEngaged();
     const withoutFigure = sendEmailMock.mock.calls[0]?.[0] as { blocks: unknown[] };
     expect(JSON.stringify(withoutFigure.blocks)).toContain('"0"');
+  });
+
+  it("which occasion a crossing becomes: the product's two, a site's own, and a free bound's (issue 885)", async () => {
+    process.env.OWNER_EMAILS = "owner@example.com";
+    registerSpendAlertSinkMock.mockReset();
+    const ops = await loadOps();
+    ops.installSpendAlerts();
+    const sink = registerSpendAlertSinkMock.mock.calls[0]?.[0] as (alert: unknown) => void;
+
+    const SITE = "11111111-1111-4111-8111-111111111111";
+    for (const alert of [
+      { crossed: "warn", spentCents: 4000, ceilingCents: 5000 },
+      { crossed: "ceiling", spentCents: 5000, ceilingCents: 5000 },
+      { crossed: "ceiling", spentCents: 501, ceilingCents: 500, subject: { kind: "site", siteId: SITE } },
+      {
+        crossed: "ceiling",
+        spentCents: 240,
+        ceilingCents: 240,
+        subject: { kind: "free-scan", bound: "network-day" },
+      },
+    ]) {
+      sink(alert);
+    }
+    // The sink starts each send and does not await it — a spending call must
+    // never wait on an alert — so the sends land on the next turn.
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const sent = sendEmailMock.mock.calls.map((c) => JSON.stringify((c[0] as { blocks: unknown }).blocks));
+    expect(sent).toHaveLength(4);
+    expect(sent[0]).toContain("mail.ops.spend-ceiling.warn");
+    expect(sent[1]).toContain("mail.ops.spend-ceiling.reached");
+    expect(sent[2]).toContain("mail.ops.spend-ceiling.site-reached");
+    expect(sent[2]).toContain(SITE);
+    expect(sent[3]).toContain("mail.ops.spend-ceiling.free-scan-bound");
+    expect(sent[3]).toContain("network-day");
   });
 
   it("there is no released occasion to send — the type admits three and the module offers one report", () => {

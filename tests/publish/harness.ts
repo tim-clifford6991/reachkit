@@ -329,6 +329,35 @@ export function fakeDb(): FakeDb {
 }
 
 /**
+ * `fetches_site_spend_since(site, since)`, as the migration writes it
+ * (issue 885): the ledger rows of every scan this site owns, from the
+ * boundary forward.
+ *
+ * Registered beside a suite's own `fetches_spend_since`, because a paid
+ * call now reads both — the product's day and the site's — and a read this
+ * fake cannot answer holds the call exactly as an unreadable ledger does
+ * (issue 792). A suite that means to exercise *that* arm deletes the
+ * entry, the way it already deletes the product's.
+ */
+export function installSiteSpendRpc(db: FakeDb): void {
+  db.rpcs.set("fetches_site_spend_since", (args: Row) => {
+    const owned = new Set(
+      db
+        .rows("scans")
+        .filter((row) => row.site_id === args.p_site_id)
+        .map((row) => row.id)
+    );
+    return db
+      .rows("fetches")
+      .filter((row) => owned.has(row.scan_id))
+      // A row inserted by a suite carries no `created_at`; the column's
+      // default is now(), so it counts toward today.
+      .filter((row) => row.created_at === undefined || String(row.created_at) >= String(args.p_since))
+      .reduce((total, row) => total + Number(row.cost_cents ?? 0), 0);
+  });
+}
+
+/**
  * `publish_transition`, as the migration writes it: one statement that sets
  * the state, appends the record, maintains `publishable_since` and records a
  * customer's approval — guarded

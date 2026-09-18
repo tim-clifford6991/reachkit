@@ -221,7 +221,7 @@ describe('REQ-001 c16 — "… then one written line says what happened and a ma
     expect(() => copy("control.retry")).not.toThrow();
   });
 
-  it("the registry holds exactly seven notice.* keys and exactly five control.* keys", () => {
+  it("the registry holds exactly nine notice.* keys and exactly five control.* keys", () => {
     const allKeys = Object.keys(COPY) as CopyKey[];
     const noticeKeys = allKeys.filter((k) => k.startsWith("notice."));
     const controlKeys = allKeys.filter((k) => k.startsWith("control."));
@@ -230,6 +230,9 @@ describe('REQ-001 c16 — "… then one written line says what happened and a ma
         "notice.correction-failed",
         "notice.incomplete",
         "notice.measurement-failed",
+        // Issue 885's two free-path bounds, each with its own sentence.
+        "notice.refused.domain-day-limit",
+        "notice.refused.network-day-limit",
         "notice.refused.network-limit",
         "notice.refused.scan-running",
         // #104: the third `AddressRefusal` reason — ReachKit's own stop.

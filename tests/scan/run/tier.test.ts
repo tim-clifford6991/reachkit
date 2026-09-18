@@ -188,8 +188,14 @@ describe("what does differ is exactly the looked-up parameters", () => {
 
   it("the weekly pass inserts its own row; the free path adopts admission's and the deep pass setup's", async () => {
     await runScan({ domain: DOMAIN, tier: "weekly" });
-    // No read of a claimed row at all — the weekly pass has its own id.
-    expect(db.queries.filter((q) => q.table === "scans" && q.verb === "select")).toHaveLength(0);
+    // No read of a claimed row: the weekly pass has its own id. Since issue
+    // 885 every cost context opens by reading the row it spends against —
+    // for the site its per-site cap is charged to — so "no select at all"
+    // is no longer the shape of that claim. What still holds is that every
+    // `scans` read the pass makes is that one, keyed on the id it already
+    // has, and nothing looks a claim up by domain or network.
+    const reads = db.queries.filter((q) => q.table === "scans" && q.verb === "select");
+    expect(reads.every((q) => q.filters.length === 1 && q.filters[0]?.[0] === "id")).toBe(true);
 
     db.queries.length = 0;
     await runScan({ domain: DOMAIN, tier: "deep", siteId: "site-1" });

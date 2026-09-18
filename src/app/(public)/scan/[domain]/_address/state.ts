@@ -15,7 +15,7 @@ import type { StoredReport } from "@/lib/scan/report";
 import type { ScoreFactorName } from "@/lib/measure/score";
 import type { CorrectionOffer } from "@/lib/market/coherence/offer";
 
-/** The four refusals a visitor can be shown in writing. Named by the
+/** The refusals a visitor can be shown in writing. Named by the
  *  sentence each renders, not by the admission internals behind them:
  *  `src/lib/scan/admission.ts`'s `Admission` union is the engine's own
  *  vocabulary, and its `cooldown` and `removed` arms are separate
@@ -23,6 +23,15 @@ import type { CorrectionOffer } from "@/lib/market/coherence/offer";
  *  different screen. */
 export type AddressRefusal =
   | { reason: "network-limit"; retryAfterSeconds: number }
+  /** Issue 885 — the same network, a day rather than an hour. Its own
+   *  reason and not `network-limit`'s: that sentence names the hour and
+   *  the five, and a sentence that names the wrong window is the one part
+   *  of a refusal that is not true. */
+  | { reason: "network-day-limit"; retryAfterSeconds: number }
+  /** Issue 885 — this address has been measured as often as one address is
+   *  measured in a day, whoever asked. Not about the visitor's network at
+   *  all, so it cannot borrow a sentence that is. */
+  | { reason: "domain-day-limit"; retryAfterSeconds: number }
   | { reason: "scan-running"; retryAfterSeconds: number }
   /** ReachKit's own stop — the kill switch, not anything the visitor did.
    *  It carries no wait: nobody can say when we will start again, and a

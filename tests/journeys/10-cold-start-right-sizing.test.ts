@@ -21,7 +21,7 @@
 // (the SDK client), the customer's own server, Vercel and Resend. Nothing
 // is bought and nothing is sent.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { fakeDb, installTransitionRpc, type FakeDb, type Row } from "../publish/harness";
+import { fakeDb, installTransitionRpc, type FakeDb, type Row, installSiteSpendRpc } from "../publish/harness";
 import { toolUseMessage } from "../llm/fixtures";
 import type { FetchOutcome, RobotsPolicy } from "../../src/lib/egress/types";
 
@@ -474,6 +474,9 @@ function setUpTheDatabase(): void {
       .filter((row) => String(row.created_at) >= String(args.p_since))
       .reduce((total, row) => total + Number(row.cost_cents ?? 0), 0)
   );
+  // And the site's own day (issue 885), read by the same seam before the
+  // same calls.
+  installSiteSpendRpc(db);
   db.rpcs.set("append_scan_stage_event", () => null);
   // `apply_setup_choice`, as the migration writes it: the mode on the site,
   // and one destination created waiting for DNS.

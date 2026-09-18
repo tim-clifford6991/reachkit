@@ -51,7 +51,8 @@ function wholeDaysBetween(from: Date, to: Date): number {
 /** The refusing half of `Admission`, mapped to the sentence the visitor is
  *  shown. `in_flight` for *another* domain is "a scan is already running
  *  from your network"; the hourly and daily counters are both "that is n
- *  scans from your network"; ReachKit's own stop is neither, and says so
+ *  scans from your network", and issue 885's two day bounds each have a
+ *  sentence of their own; ReachKit's own stop is neither, and says so
  *  in its own line (ADR-011: our own stop outranks every other cause that
  *  is also true, and is never dressed as one). `removed` and `cooldown`
  *  never reach here — they are rows 2 and 5, with screens of their own. */
@@ -60,6 +61,14 @@ function refusalOf(admission: Exclude<Admission, { admit: true }>, now: Date): A
     case "hourly":
     case "daily":
       return { reason: "network-limit", retryAfterSeconds: admission.retryAfterSeconds };
+    // Issue 885's two bounds, each with its own sentence: one names the
+    // network's day, the other names this address's day and no network at
+    // all. Both promise a wait, and both waits are real — a counted row
+    // ages out of its window whatever anyone does.
+    case "network_daily":
+      return { reason: "network-day-limit", retryAfterSeconds: admission.retryAfterSeconds };
+    case "domain_daily":
+      return { reason: "domain-day-limit", retryAfterSeconds: admission.retryAfterSeconds };
     case "in_flight":
       return { reason: "scan-running", retryAfterSeconds: inFlightWaitSeconds(admission.runningSince, now) };
     case "switched_off":

@@ -1,5 +1,6 @@
-// BUILD §6.5 — the product-wide daily ceiling: what the whole product may
-// spend in one UTC day, over and above what any one pass may spend.
+// BUILD §6.5 — the daily ceilings: what the whole product, and what one
+// site, may spend in one UTC day, over and above what any one pass may
+// spend.
 //
 // The four caps in `CAPS` each bound *one* pass. Nothing bounded their
 // sum, so the product's exposure for a day was whatever the day's traffic
@@ -39,6 +40,19 @@
 // `registerActiveAccessGate` and `registerSuppressionReader` already use.
 // Nothing registered means nothing is told — never a throw, and never a
 // scan that fails because an alert could not go out.
+//
+// **The per-site ceiling (issue 885) is the same machinery, one predicate
+// narrower.** `CAPS.DAILY_PRODUCT_C` is one figure for everyone and so
+// does not care whose spend reached it: one site in a retry loop could
+// consume the day and every other customer was refused until midnight
+// UTC, silently. `CAPS.DAILY_SITE_C` is read off the same `fetches` rows
+// through `fetches_site_spend_since(site_id, since)` — the same shape as
+// the product's read, the same UTC day, the same exact `numeric` unit, the
+// same "unreadable is not room to spend" rule — and it is checked in the
+// same seam (`src/lib/costs/index.ts`), so no caller can spend around it.
+// What the two protect is not the same thing and they are not
+// interchangeable: the product's ceiling is the company's exposure for a
+// day, and the site's is one customer's share of it.
 import { CAPS, SPEND_ALERT_AT } from "@/lib/config/constants";
 import { dbAdmin } from "@/lib/db";
 
@@ -47,11 +61,32 @@ import { dbAdmin } from "@/lib/db";
  *  the seam stops authorising calls. */
 export type SpendCrossing = "warn" | "ceiling";
 
+/** Whose ceiling an alert is about (issue 885). Absent on an alert is the
+ *  product's — what every alert was before this field existed, and what a
+ *  caller that names no subject still means.
+ *
+ *  `site` carries the site's own id, which is the whole point of the
+ *  per-site cap: an owner told that *a* ceiling was reached cannot act,
+ *  and an owner told which site can. `free-scan` names the bound, never
+ *  the network key and never the domain — the ops mails' own closed-name
+ *  rule (`src/lib/mail/templates/ops/`), and a bound name is what the
+ *  owner acts on. */
+export type SpendSubject =
+  | { readonly kind: "product" }
+  | { readonly kind: "site"; readonly siteId: string }
+  | { readonly kind: "free-scan"; readonly bound: FreeScanBound };
+
+/** Which free-path bound reached its figure (issue 885). One network's
+ *  day, or one domain's. */
+export type FreeScanBound = "network-day" | "domain-day";
+
 export interface SpendAlert {
   readonly crossed: SpendCrossing;
   /** What the day's ledger stood at when the crossing was noticed. */
   readonly spentCents: number;
   readonly ceilingCents: number;
+  /** Whose ceiling (issue 885). Absent is the product's. */
+  readonly subject?: SpendSubject;
 }
 
 export type SpendAlertSink = (alert: SpendAlert) => void;
@@ -241,4 +276,125 @@ export async function openDayLedger(now: Date): Promise<DayLedger> {
       });
     },
   };
+}
+
+// ── The per-site ceiling (issue 885) ───────────────────────────────────
+
+/** Whether a site's day, standing at `spentCents`, has reached its own
+ *  cap. `>=`, like the product's: a figure spent up to, never through. */
+export function siteCeilingReached(spentCents: number): boolean {
+  return spentCents >= CAPS.DAILY_SITE_C;
+}
+
+/** The site crossing, by the same at-most-once rule the product's uses: it
+ *  belongs to the one call whose own spend carried this site's total over
+ *  its cap, so nothing has to remember that an alert was sent. There is no
+ *  warn line for a site — one figure, one crossing. */
+export function siteCrossingOf(beforeCents: number, afterCents: number): SpendCrossing | null {
+  return beforeCents < CAPS.DAILY_SITE_C && afterCents >= CAPS.DAILY_SITE_C ? "ceiling" : null;
+}
+
+/**
+ * What one site has spent since midnight UTC, in cents.
+ *
+ * `null` means the ledger could not be read — not zero, and the caller
+ * decides the same thing every caller of `readDaySpendCents` decides
+ * (issue 792): nothing is spent on a number nobody has.
+ */
+export async function readSiteDaySpendCents(siteId: string, now: Date): Promise<number | null> {
+  try {
+    const { data, error } = await untypedRpc(dbAdmin()).rpc("fetches_site_spend_since", {
+      p_site_id: siteId,
+      p_since: dayStartedAt(now).toISOString(),
+    });
+    if (error) {
+      logSiteUnreadable(siteId, error.message);
+      return null;
+    }
+    const spent = Number(data);
+    if (!Number.isFinite(spent)) {
+      logSiteUnreadable(siteId, `fetches_site_spend_since returned ${String(data)}`);
+      return null;
+    }
+    return spent;
+  } catch (error) {
+    logSiteUnreadable(siteId, String(error));
+    return null;
+  }
+}
+
+function logSiteUnreadable(siteId: string, reason: string): void {
+  console.warn(JSON.stringify({ event: "site_spend_unreadable", siteId, reason }));
+}
+
+/** One site's day, as one pass sees it. The shape of `DayLedger`, minus
+ *  the warn line a site does not have, and plus `siteId` so the refusal
+ *  and the alert can both name whose cap was reached. */
+export interface SiteDayLedger {
+  readonly siteId: string;
+  spentCents(): number;
+  refresh(at: Date): Promise<void>;
+  /** Whether this site's cap is reached, counting `pendingCents` the pass
+   *  has reserved and not yet ledgered. Always true where the site's total
+   *  could not be read on its last read. */
+  capReached(pendingCents?: number): boolean;
+  add(cents: number): void;
+}
+
+export async function openSiteDayLedger(siteId: string, now: Date): Promise<SiteDayLedger> {
+  let readable = false;
+  let spent = 0;
+  let day = dayStartedAt(now).getTime();
+
+  async function refresh(at: Date): Promise<void> {
+    const read = await readSiteDaySpendCents(siteId, at);
+    readable = read !== null;
+    if (read === null) return;
+    // Within one day a site's total only grows — the same reason the
+    // product's read takes the larger of the two figures.
+    const readDay = dayStartedAt(at).getTime();
+    spent = readDay === day ? Math.max(spent, read) : read;
+    day = readDay;
+  }
+
+  await refresh(now);
+
+  return {
+    siteId,
+    spentCents: () => spent,
+    refresh,
+    capReached: (pendingCents = 0) => !readable || siteCeilingReached(spent + pendingCents),
+    add(cents: number): void {
+      if (!readable) return;
+      const before = spent;
+      spent += cents;
+      if (siteCrossingOf(before, spent) === null) return;
+      publishSpendAlert({
+        crossed: "ceiling",
+        spentCents: spent,
+        ceilingCents: CAPS.DAILY_SITE_C,
+        subject: { kind: "site", siteId },
+      });
+    },
+  };
+}
+
+/**
+ * The owner's telling that a free-path bound has been reached (issue 885).
+ *
+ * The bounds are counts of scans, not sums of money, so what the alert
+ * carries is what those counts hold back: `scans x CAPS.FREE_C`, the most
+ * the admitted scans could have cost and the most the refused ones would
+ * have. It is published by the one claim that filled the bound — the same
+ * at-most-once rule the two spend crossings use — so a source that goes on
+ * asking is refused in silence rather than mailing the owner per request.
+ */
+export function publishFreeScanBoundReached(bound: FreeScanBound, scans: number): void {
+  const cents = scans * CAPS.FREE_C;
+  publishSpendAlert({
+    crossed: "ceiling",
+    spentCents: cents,
+    ceilingCents: cents,
+    subject: { kind: "free-scan", bound },
+  });
 }

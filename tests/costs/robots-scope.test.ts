@@ -19,9 +19,17 @@ vi.mock("@/lib/db", () => ({
     // The day's ledger, read before each paid call (issue 792): nothing
     // spent yet.
     rpc: async () => ({ data: 0, error: null }),
-    from: () => {
-      throw new Error("the roll-up must not be reached on the `none` arm");
-    },
+    from: () => ({
+      // Issue 885: one read of the row this context spends against, for
+      // the site its per-site cap is charged to — a select, not the write
+      // the assertion below is about. This scan carries no site.
+      select: () => ({
+        eq: () => ({ limit: async () => ({ data: [{ cost_cents: 0, site_id: null }], error: null }) }),
+      }),
+      update: () => {
+        throw new Error("the roll-up must not be reached on the `none` arm");
+      },
+    }),
   }),
 }));
 

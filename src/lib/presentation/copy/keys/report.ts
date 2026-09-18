@@ -99,6 +99,15 @@ export const REPORT_COPY = Object.freeze({
   // the owner approved this sentence (#516).
   "notice.site-unreadable": ["We couldn’t read this site’s home page, so nothing here could be measured. Check the address and scan again.", { slots: {}, fixedBy: "REQ-004 c6" }],
   "notice.refused.network-limit": ["That’s five scans from your network in the last hour — you can scan again in {wait}.", { slots: { wait: "text" }, fixedBy: "REQ-003 c6" }],
+  // Issue 885's two free-path bounds. Drafted in this registry’s voice and
+  // shipped under the owner ruling of 2026-09-16 (#759); the owner corrects
+  // the wording. Neither borrows `network-limit`’s sentence: that one names
+  // the hour and the five, and the day bound is neither — and the domain
+  // bound is not about the visitor’s network at all, so a sentence that
+  // said "from your network" would be telling a stranger they had done
+  // something they had not.
+  "notice.refused.network-day-limit": ["Your network has had all the free scans it gets today — you can scan again in {wait}.", { slots: { wait: "text" }, fixedBy: "SPEC §2 · issue 885" }],
+  "notice.refused.domain-day-limit": ["This address has been scanned as many times as it can be today — it can be measured again in {wait}. Every stored report stays readable.", { slots: { wait: "text" }, fixedBy: "SPEC §2 · issue 885" }],
   "notice.refused.scan-running": ["A scan is already running from your network. It finishes in about {wait}, then this one can start.", { slots: { wait: "text" }, fixedBy: "REQ-003 c7" }],
   // #104. ReachKit's own stop, in writing — the one refusal the visitor
   // did not cause and the only one that names no wait, because nobody can

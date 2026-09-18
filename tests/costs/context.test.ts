@@ -43,6 +43,7 @@ import {
 
 let withCostContext: (typeof import("../../src/lib/costs/index"))["withCostContext"];
 let readDaySpendCents: (typeof import("../../src/lib/costs/daily"))["readDaySpendCents"];
+let readSiteDaySpendCents: (typeof import("../../src/lib/costs/daily"))["readSiteDaySpendCents"];
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../..");
 const BASELINE_MIGRATION = path.join(REPO_ROOT, "supabase/migrations/00000000000001_baseline.sql");
@@ -79,6 +80,16 @@ const FETCHES_DURATION_MIGRATION = path.join(
   "supabase/migrations/20260918090000_fetches_duration_ms.sql"
 );
 
+// Issue 885: the per-site half of the daily ceiling. `readSiteDaySpendCents`
+// asks this one function, and every claim the per-site cap makes rests on
+// it existing, summing the right rows and being unreachable without the
+// service role — the same three things `fetches_spend_since` is held to
+// below.
+const FETCHES_SITE_SPEND_MIGRATION = path.join(
+  REPO_ROOT,
+  "supabase/migrations/20260918120000_fetches_site_spend.sql"
+);
+
 function resetAndApplySchema(): void {
   psql([
     "-v",
@@ -93,6 +104,7 @@ function resetAndApplySchema(): void {
   psql(["-v", "ON_ERROR_STOP=1", "-f", SCANS_MONEY_MIGRATION]);
   psql(["-v", "ON_ERROR_STOP=1", "-f", DRAFTS_MONEY_MIGRATION]);
   psql(["-v", "ON_ERROR_STOP=1", "-f", FETCHES_DURATION_MIGRATION]);
+  psql(["-v", "ON_ERROR_STOP=1", "-f", FETCHES_SITE_SPEND_MIGRATION]);
   psql(["-c", "NOTIFY pgrst, 'reload schema';"]);
   execFileSync("sleep", ["0.3"]); // PostgREST's schema-cache reload is async.
 }
@@ -169,7 +181,7 @@ const ENV_FIXTURE: Record<string, string> = {
 beforeAll(async () => {
   for (const [key, value] of Object.entries(ENV_FIXTURE)) process.env[key] = value;
   ({ withCostContext } = await import("../../src/lib/costs/index"));
-  ({ readDaySpendCents } = await import("../../src/lib/costs/daily"));
+  ({ readDaySpendCents, readSiteDaySpendCents } = await import("../../src/lib/costs/daily"));
   resetAndApplySchema();
 });
 
@@ -954,5 +966,140 @@ describe("issue #329 — fetches_spend_since, the day's ledger read", () => {
       "select indexname from pg_indexes where tablename = 'fetches';",
     ]);
     expect(indexes).toContain("idx_fetches_created_at");
+  });
+});
+
+// ── The per-site ceiling's own read (issue 885, SPEC §6 2026-09-18) ──────
+//
+// The same three claims the block above makes of `fetches_spend_since`,
+// made of the function the per-site cap rests on: it exists, it sums the
+// right rows, and it is unreachable without the service role. The
+// arithmetic on top of it is `tests/costs/site-cap.test.ts`'s.
+describe("issue 885 — fetches_site_spend_since, one site's day", () => {
+  let user = "";
+  let siteA = "";
+  let siteB = "";
+
+  beforeEach(() => {
+    psql([
+      "-v",
+      "ON_ERROR_STOP=1",
+      "-c",
+      "delete from fetches; delete from scans; delete from sites; delete from users;",
+    ]);
+    const suffix = Math.random().toString(36).slice(2);
+    user = psqlRows(
+      `insert into users (email, plan_status) values ('site-spend-${suffix}@example.com', 'active') returning id;`
+    )[0]?.[0] as string;
+    siteA = psqlRows(
+      `insert into sites (user_id, domain) values ('${user}', 'a-${suffix}.example.com') returning id;`
+    )[0]?.[0] as string;
+    siteB = psqlRows(
+      `insert into sites (user_id, domain) values ('${user}', 'b-${suffix}.example.com') returning id;`
+    )[0]?.[0] as string;
+  });
+
+  function scanFor(siteId: string | null, tier: "free" | "deep"): string {
+    const site = siteId === null ? "null" : `'${siteId}'`;
+    const row = psqlRows(
+      `insert into scans (site_id, domain, tier, status) values (${site}, 'x-${Math.random().toString(36).slice(2)}.example.com', '${tier}', 'done') returning id;`
+    )[0];
+    const [id] = row ?? [];
+    if (!id) throw new Error("insert into scans returned no id");
+    return id;
+  }
+
+  function ledgerRow(scanId: string, costCents: number, createdAt: string): void {
+    psql([
+      "-v",
+      "ON_ERROR_STOP=1",
+      "-c",
+      `insert into fetches (scan_id, source, cache_key, policy_version, cost_cents, reserved_cents, payload, created_at)
+       values ('${scanId}', 'vendor', 'k', 1, ${costCents}, ${costCents}, '{}'::jsonb, '${createdAt}'::timestamptz);`,
+    ]);
+  }
+
+  function siteSpendSince(siteId: string, since: string): number {
+    return Number(
+      psql([
+        "-t",
+        "-A",
+        "-v",
+        "ON_ERROR_STOP=1",
+        "-c",
+        `select fetches_site_spend_since('${siteId}'::uuid, '${since}'::timestamptz);`,
+      ]).trim()
+    );
+  }
+
+  it("a site that has spent nothing today is 0¢, not null — 'no rows' and 'nothing spent' are one fact to a cap", () => {
+    expect(siteSpendSince(siteA, "2026-09-18T00:00:00Z")).toBe(0);
+  });
+
+  it("sums every scan the site owns, across passes, and nothing from another site", () => {
+    ledgerRow(scanFor(siteA, "deep"), 7, "2026-09-18T01:00:00Z");
+    ledgerRow(scanFor(siteA, "deep"), 11, "2026-09-18T09:00:00Z");
+    ledgerRow(scanFor(siteB, "deep"), 400, "2026-09-18T09:00:00Z");
+    // The free scan nobody owns is nobody's spend: `site_id` is null and no
+    // argument can match it.
+    ledgerRow(scanFor(null, "free"), 12, "2026-09-18T09:00:00Z");
+
+    expect(siteSpendSince(siteA, "2026-09-18T00:00:00Z")).toBe(18);
+    expect(siteSpendSince(siteB, "2026-09-18T00:00:00Z")).toBe(400);
+  });
+
+  it("counts from the boundary forward and nothing before it", () => {
+    const scan = scanFor(siteA, "deep");
+    ledgerRow(scan, 7, "2026-09-17T23:59:59Z");
+    ledgerRow(scan, 11, "2026-09-18T00:00:00Z");
+    expect(siteSpendSince(siteA, "2026-09-18T00:00:00Z")).toBe(11);
+    expect(siteSpendSince(siteA, "2026-09-17T00:00:00Z")).toBe(18);
+  });
+
+  it("sums sub-cent rows exactly — twelve standard SERPs are 0.72¢, never 0¢ (issue #449's unit)", () => {
+    const scan = scanFor(siteA, "deep");
+    for (let i = 0; i < 12; i++) ledgerRow(scan, 0.06, "2026-09-18T09:00:00Z");
+    expect(siteSpendSince(siteA, "2026-09-18T00:00:00Z")).toBeCloseTo(0.72, 4);
+  });
+
+  it("is unreachable by anon and by authenticated — no cost figure is ever rendered to a customer", () => {
+    for (const role of ["anon", "authenticated"]) {
+      let refused = false;
+      try {
+        psql([
+          "-v",
+          "ON_ERROR_STOP=1",
+          "-c",
+          `set local role ${role}; select fetches_site_spend_since('${siteA}'::uuid, now());`,
+        ]);
+      } catch {
+        refused = true;
+      }
+      expect(refused, role).toBe(true);
+    }
+  });
+
+  it("carries a pinned, empty search path, so no caller can move what `fetches` resolves to", () => {
+    const config = psql([
+      "-t",
+      "-A",
+      "-v",
+      "ON_ERROR_STOP=1",
+      "-c",
+      "select coalesce(array_to_string(proconfig, ','), '') from pg_proc where proname = 'fetches_site_spend_since';",
+    ]).trim();
+    expect(config).toContain("search_path=");
+  });
+
+  it("the production path reaches it: `readSiteDaySpendCents` over the real client and the real PostgREST", async () => {
+    // The psql cases above prove the function. This one proves the seam's
+    // own call — a service-role RPC through PostgREST's schema cache, with
+    // both arguments named as the function declares them. A grant, a
+    // rename or a stale cache would pass every case above and fail here,
+    // which is the only place production could fail.
+    const at = new Date();
+    ledgerRow(scanFor(siteA, "deep"), 23, at.toISOString());
+    expect(await readSiteDaySpendCents(siteA, at)).toBe(23);
+    expect(await readSiteDaySpendCents(siteB, at)).toBe(0);
   });
 });

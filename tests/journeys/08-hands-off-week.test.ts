@@ -46,7 +46,7 @@
 // asserted by their keys, and journey 06 asserts the digest's sentences
 // against the real registry.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { fakeDb, installTransitionRpc, type FakeDb, type Row } from "../publish/harness";
+import { fakeDb, installTransitionRpc, type FakeDb, type Row, installSiteSpendRpc } from "../publish/harness";
 
 const db: FakeDb = fakeDb();
 
@@ -545,6 +545,9 @@ function setUpTheSite(): void {
       .filter((row) => row.created_at === undefined || String(row.created_at) >= String(args.p_since))
       .reduce((total, row) => total + Number(row.cost_cents ?? 0), 0)
   );
+  // And the site's own day (issue 885), read by the same seam before the
+  // same calls.
+  installSiteSpendRpc(db);
   db.uniqueIndexes.push({
     table: "scans",
     columns: ["site_id", "week_start"],
