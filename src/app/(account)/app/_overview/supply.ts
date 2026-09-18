@@ -36,6 +36,9 @@ export interface SupplyFacts {
   /** Issue 855: zero supply while the market is still being measured — the
    *  current pass stopped on a ceiling. Never true alongside the two above. */
   measuring: boolean;
+  /** Issue 881: zero days of pages while the site holds targets that are
+   *  all outsized for it today. Never true alongside the three above. */
+  outsized: boolean;
   short: boolean;
   firstArrivalShortfall: boolean;
 }
@@ -50,6 +53,10 @@ export interface SupplyStatement {
  *  if-chain someone could reorder without noticing. */
 export const SUPPLY_PRECEDENCE = [
   { when: "measuring", key: "overview.supply.measuring" },
+  // Issue 881: before the two zero arms, because it is the more specific
+  // claim about the same zero — the market is not used up and not
+  // unmeasured, it is too big for this site today.
+  { when: "outsized", key: "overview.supply.outsized" },
   { when: "exhausted", key: "overview.supply.exhausted" },
   { when: "unmeasured", key: "overview.supply.unmeasured" },
   { when: "short", key: "overview.supply.short" },

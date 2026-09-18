@@ -152,5 +152,7 @@ export const readSupplyNotice = cache(async function readSupplyNotice(): Promise
   if (state === null) return null;
   // Issue 855: a pass stopped on a ceiling is still being measured.
   if (state === "measuring") return { kind: "measuring" };
+  // Issue 881: targets on file, every one of them too big for this site.
+  if (state === "outsized") return { kind: "outsized" };
   return state === "measured" ? notice : { kind: "unmeasured" };
 });

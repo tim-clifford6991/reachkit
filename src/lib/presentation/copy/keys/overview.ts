@@ -325,6 +325,13 @@ export const OVERVIEW_COPY = Object.freeze({
   // issue 855: zero supply because the pass that should have filled it stopped
   // on a ceiling. Drafted under issue 759's ruling.
   "overview.supply.measuring": ["Your market is still being measured, so no pages are planned yet. ReachKit measures it again automatically.", { slots: {}, fixedBy: "issue 855" }],
+  // Issue 881 (owner's dogfood, 2026-09-18): the same zero as the two
+  // below, told apart — the market is not used up and not unmeasured, it is
+  // too big for this site today. Drafted; the owner corrects the wording.
+  "overview.supply.outsized": [
+    "Every search we've measured is still too big for your site, so no page is planned. Smaller ones come into reach as your site grows.",
+    { slots: {}, fixedBy: "issue 881" },
+  ],
   "overview.supply.short": ["Fewer than a week of pages is left. Monday’s re-measure looks for more.", { slots: {}, fixedBy: "REQ-095 c5" }],
   "overview.supply.first-arrival": ["Your first pass found less than a month of pages. We look for more every Monday.", { slots: {}, fixedBy: "REQ-095 c6" }],
 

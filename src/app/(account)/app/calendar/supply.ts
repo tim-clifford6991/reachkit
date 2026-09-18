@@ -22,12 +22,19 @@ import type { SupplyNotice } from "@/lib/opportunities";
 /** §7's notice, with its zero told apart (issue 765, issue 784): `unmeasured` is an
  *  exhausted count over a market that was never measured — there was
  *  nothing to use up, and "nothing worth publishing is left" is false. */
-export type CalendarSupplyNotice = SupplyNotice | { kind: "unmeasured" } | { kind: "measuring" };
+export type CalendarSupplyNotice =
+  | SupplyNotice
+  | { kind: "unmeasured" }
+  | { kind: "measuring" }
+  /** Issue 881: the site holds targets and every one of them is outsized
+   *  for it today — neither a market used up nor one never measured. */
+  | { kind: "outsized" };
 
 export function supplyLine(notice: CalendarSupplyNotice | null, timeZone: string): string | null {
   if (notice === null) return null;
   if (notice.kind === "unmeasured") return writtenLine("calendar.supply.unmeasured");
   if (notice.kind === "measuring") return writtenLine("calendar.supply.measuring");
+  if (notice.kind === "outsized") return writtenLine("calendar.supply.outsized");
   if (notice.kind === "exhausted") {
     return writtenLine("calendar.supply.exhausted", {
       since: notice.since === null ? "" : formatDate(notice.since, timeZone),

@@ -31,6 +31,7 @@ import type {
   UnreadyReason,
   Winnability,
 } from "./types";
+import { OUTSIZED } from "./types";
 import { earnGroundingOf, NO_EARN_GROUNDING, type EarnGrounding } from "./earn-grounding";
 import type { NotWorkingVerdict } from "./suppression";
 
@@ -102,7 +103,13 @@ export interface OpportunityStore {
   openRankable(siteId: string): Promise<readonly OpportunityRow[]>;
   /** The count behind supply depth: open, not the Fix family, and ready
    *  (SPEC §6 — an unready row is not a day of supply). */
+  /** Ready, open, non-Fix rows a day may actually be filled from — the
+   *  outsized ones excluded (issue 881). */
   countUnused(siteId: string): Promise<number>;
+  /** Open, non-Fix rows this site holds that are outsized for it (issue
+   *  881). What tells a zero count of supply apart from a market that is
+   *  simply too big for the site today. */
+  countOutsized(siteId: string): Promise<number>;
   /** Open and queued non-Fix rows — the set a cluster collapse runs over
    *  alongside a pass's new candidates. */
   clusterable(siteId: string): Promise<readonly OpportunityRow[]>;
@@ -304,8 +311,25 @@ export function supabaseOpportunityStore(): OpportunityStore {
         .eq("site_id", siteId)
         .eq("status", "open")
         .eq("ready", true)
-        .neq("family", "fix");
+        .neq("family", "fix")
+        // Issue 881: a target outsized for this site is not a day of pages.
+        // It may qualify later and it stays on file, but counting it told a
+        // cold-start founder they held six days of work that the ranking
+        // would never hand a day to.
+        .neq("fit_band", OUTSIZED);
       if (error) throw new Error(`opportunities.countUnused: ${error.message}`);
+      return data?.length ?? 0;
+    },
+
+    async countOutsized(siteId) {
+      const { data, error } = await untyped()
+        .from<{ id: string }>("opportunities")
+        .select("id")
+        .eq("site_id", siteId)
+        .eq("status", "open")
+        .neq("family", "fix")
+        .eq("fit_band", OUTSIZED);
+      if (error) throw new Error(`opportunities.countOutsized: ${error.message}`);
       return data?.length ?? 0;
     },
 

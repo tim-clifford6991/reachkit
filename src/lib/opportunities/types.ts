@@ -229,6 +229,32 @@ export type Acceptance =
 /** §7's three bands. Internal handles; the words are `BAND_LABELS`'. */
 export type Winnability = "winnable" | "reach" | "not-yet";
 
+/** The band a target outsized for this site carries (SPEC §6's right-sizing
+ *  law). Named once, because three things read it: the ranking, which never
+ *  offers one as the day's page; the supply count, which does not count one
+ *  as a day of pages; and the cluster collapse, where a right-sized
+ *  candidate takes the place of one already on file (issue 881). */
+export const OUTSIZED: Winnability = "not-yet";
+
+/**
+ * Whether a target may fill a publishing day at all (issue 881).
+ *
+ * SPEC §6's right-sizing law, as a predicate rather than a weight. It was a
+ * weight — `FIT_WEIGHT["not-yet"]` is 0, "so the formula cannot surface a
+ * target the winnability rule bars" — and a weight does not bar anything:
+ * on the owner's own site every candidate scored 0, the order was a tie,
+ * the tie-break took the biggest keyword, and ReachKit wrote "best seo
+ * software" (1 000/mo) for a site ranking for three. A zero multiplicand
+ * orders; it does not exclude. This does.
+ *
+ * A `not-yet` row still stays on file: the site may grow into it, and the
+ * next pass re-derives it with a band of its own. It is simply never the
+ * day's page and never counted as a day of supply.
+ */
+export function qualifiesForADay(fitBand: Winnability | null): boolean {
+  return fitBand !== null && fitBand !== OUTSIZED;
+}
+
 export type OpportunityStatus = "open" | "queued" | "done" | "dismissed";
 
 /** Why a row has not passed readiness, as handles — SPEC §6's clauses, one

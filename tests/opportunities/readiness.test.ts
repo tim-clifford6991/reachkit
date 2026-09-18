@@ -86,6 +86,85 @@ describe("collapse — one survivor per cluster, over held rows and new candidat
     expect(plan).toEqual({ dismiss: [], insert: [], update: [{ id: "q1", clusterKey: "checklist onboarding", absorbedQueries: [] }] });
   });
 
+  it("issue 881 — a right-sized candidate takes the place of a held outsized row on the same topic", () => {
+    // The stale-evidence half of the dogfood: the six rows on file were
+    // derived before right-sizing shipped and carry `not-yet`. Held-row-wins
+    // let one of them survive its cluster, so the pass's own right-sized
+    // candidate for the same topic was never written — the old competing
+    // with the new, and winning.
+    const plan = collapse({
+      existing: [
+        held({
+          id: "stale",
+          type: "keyword_page",
+          family: "write",
+          targetQuery: "best seo software",
+          fitBand: "not-yet",
+        }),
+      ],
+      candidates: [
+        candidate({
+          type: "keyword_page",
+          family: "write",
+          targetQuery: "seo software best",
+          fitBand: "winnable",
+        }),
+      ],
+      brandTokens: BRANDS,
+    });
+
+    expect(plan.dismiss).toEqual(["stale"]);
+    expect(plan.insert.map((c) => [c.targetQuery, c.fitBand])).toEqual([["seo software best", "winnable"]]);
+  });
+
+  it("issue 881 — an outsized candidate never displaces a right-sized row already held", () => {
+    const plan = collapse({
+      existing: [
+        held({
+          id: "fit",
+          type: "keyword_page",
+          family: "write",
+          targetQuery: "seo content brief template",
+          fitBand: "winnable",
+        }),
+      ],
+      candidates: [
+        candidate({
+          type: "answer_page",
+          family: "write",
+          targetQuery: "seo content brief templates",
+          fitBand: "not-yet",
+        }),
+      ],
+      brandTokens: BRANDS,
+    });
+
+    expect(plan.dismiss).toEqual([]);
+    expect(plan.insert).toEqual([]);
+  });
+
+  it("issue 881 — a queued row still survives, outsized or not: its page is already being written", () => {
+    const plan = collapse({
+      existing: [
+        held({
+          id: "q1",
+          type: "keyword_page",
+          family: "write",
+          targetQuery: "best seo software",
+          fitBand: "not-yet",
+          status: "queued",
+        }),
+      ],
+      candidates: [
+        candidate({ type: "keyword_page", family: "write", targetQuery: "seo software best", fitBand: "winnable" }),
+      ],
+      brandTokens: BRANDS,
+    });
+
+    expect(plan.dismiss).toEqual([]);
+    expect(plan.insert).toEqual([]);
+  });
+
   it("among Write candidates the owner's type order decides, and a re-derivation of the held row moves nothing", () => {
     const plan = collapse({
       existing: [],
