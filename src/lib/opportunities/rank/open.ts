@@ -15,9 +15,13 @@
 // Fix family, once, and no caller downstream restates that predicate.
 //
 // **A `not-yet` target never appears here either** (issue 881, SPEC §6's
-// right-sizing law): it is excluded before scoring, so no tie-break can
-// hand it a day. The score's `fit` term still weighs the two bands that
-// remain against each other.
+// right-sizing law) — but not because this file says so (issue 884):
+// `readiness.ts` stores such a row `ready: false` with the reason
+// `outsized`, and this list ranks ready rows. The score's `fit` term still
+// weighs the two bands that remain against each other, and a row that
+// reaches here banded `not-yet` is a row the stored answer called ready —
+// a contradiction the suites assert against rather than one this file
+// silently repairs.
 //
 // **A ready `fix_page` is placed, not scored** (SPEC §9, owner ruling
 // 2026-09-14): it outranks new writing for its cluster. It carries no search
@@ -29,15 +33,8 @@
 import { opportunityStore } from "../store";
 import { readOpportunity } from "../store";
 import { comparePrecedence } from "../cluster";
-import { qualifiesForADay, type Opportunity, type Ranked } from "../types";
+import type { Opportunity, Ranked } from "../types";
 import { rankScore } from "./score";
-
-/** The stored band, as the one predicate reads it. A column carrying
- *  anything the product does not band by is read as outsized — the
- *  conservative arm: an unreadable band never fills a day. */
-function bandOf(fitBand: string | null): Opportunity["fitBand"] {
-  return fitBand === "winnable" || fitBand === "reach" ? fitBand : "not-yet";
-}
 
 /** Descending score; ties broken by age, then by id. */
 function byScore(
@@ -136,13 +133,14 @@ export async function rankOpen(siteId: string): Promise<Ranked[]> {
   // No profile, no score — but a fix needs neither, and still takes its day.
   // SPEC §6: "A day is filled only by an opportunity that passes
   // readiness." The answer is the stored column (`assessReadiness`).
-  // SPEC §6's right-sizing law, enforced (issue 881): a target outsized for
-  // this site is not in the list at all. It used to be barred by weighing 0
-  // in the score, and a zero weight orders without excluding — where every
-  // candidate scored 0 the order was a tie and the tie-break handed the day
-  // to the biggest keyword. A row that does not qualify is dropped here,
-  // once, and `nextForDay` takes the head of what is left.
-  const rankable = rows.filter((row) => row.ready && qualifiesForADay(bandOf(row.fit_band)));
+  // One predicate, and it is the stored one (issue 884, owner's ruling
+  // 2026-09-18): this list ranks rows the database says are ready and holds
+  // no rule of its own. SPEC §6's right-sizing law is applied where
+  // readiness is decided (`readiness.ts`), which stores `outsized` as the
+  // reason — so the column, the screens and this order cannot disagree.
+  // Issue 881 filtered on `fit_band` here as well, and that second home is
+  // what this removes.
+  const rankable = rows.filter((row) => row.ready);
   if (profile === null || rankable.length === 0) return placeFixPages([], fixes);
 
   const scored = rankable.map((row) => {

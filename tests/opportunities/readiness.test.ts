@@ -209,6 +209,31 @@ describe("opportunityReady — the one predicate", () => {
     expect(opportunityReady(keyword(), { ...CTX, profile: null })).toBe("keyword_gate");
   });
 
+  it("issue 884 — an outsized target is stored unready with its own reason, for every type that takes a day", () => {
+    // The right-sizing law used to be read at ranking time for every type
+    // while only the keyword gate carried it here, so a row could be stored
+    // `ready: true` and still never fill a day.
+    const outsized = (type: Opportunity["type"], family: Opportunity["family"], over: Partial<Opportunity> = {}) =>
+      held({
+        id: `o-${type}`,
+        type,
+        family,
+        targetQuery: "best seo software",
+        fitBand: "not-yet",
+        ...over,
+      });
+
+    expect(opportunityReady(outsized("answer_page", "write"), CTX)).toBe("outsized");
+    expect(opportunityReady(outsized("comparison_page", "write"), CTX)).toBe("outsized");
+    expect(opportunityReady(outsized("format_page", "write", { targetQuery: "seo tool comparison" }), CTX)).toBe("outsized");
+    expect(opportunityReady(outsized("listed_page", "earn"), CTX)).toBe("outsized");
+    expect(opportunityReady(outsized("answerable_page", "improve"), CTX)).toBe("outsized");
+    // A `keyword_page` keeps its own tighter gate, which speaks first.
+    expect(opportunityReady(outsized("keyword_page", "write"), CTX)).toBe("keyword_gate");
+    // And the two bands that qualify are not refused by the shared rule.
+    expect(opportunityReady(held({ id: "r", type: "answer_page", family: "write", targetQuery: "best seo software", fitBand: "reach" }), CTX)).toBeNull();
+  });
+
   it("a format page passes only for comparison / vs / alternative / integration / template", () => {
     const format = (q: string) => held({ id: "f", type: "format_page", family: "write", targetQuery: q });
     for (const q of ["appcues vs userpilot", "userpilot alternatives", "slack integration", "onboarding email templates", "onboarding tool comparison"]) {

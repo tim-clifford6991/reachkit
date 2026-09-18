@@ -139,6 +139,11 @@ export interface OpportunityStore {
   /** Records whether a row passes readiness, with its reason when it does
    *  not. The two are written together, as the schema's biconditional asks. */
   setReadiness(opportunityId: string, reason: UnreadyReason | null): Promise<void>;
+  /** The band a row carries, brought up to today's right-sizing law from
+   *  the evidence already on it (issue 884). Written only where it changed,
+   *  and never from a new measurement — `rebandFor` is arithmetic over
+   *  stored numbers. */
+  setFitBand(opportunityId: string, band: Winnability): Promise<void>;
   /** SPEC §6: every `not_working` verdict for one site, each joined through
    *  its publication to the opportunity the page was written for. One read
    *  on `page_verdicts (site_id, week_start)`; the window is applied by
@@ -311,12 +316,11 @@ export function supabaseOpportunityStore(): OpportunityStore {
         .eq("site_id", siteId)
         .eq("status", "open")
         .eq("ready", true)
-        .neq("family", "fix")
-        // Issue 881: a target outsized for this site is not a day of pages.
-        // It may qualify later and it stays on file, but counting it told a
-        // cold-start founder they held six days of work that the ranking
-        // would never hand a day to.
-        .neq("fit_band", OUTSIZED);
+        .neq("family", "fix");
+      // No second rule here (issue 884): an outsized row is stored
+      // `ready: false` with its own reason by `readiness.ts`, so counting
+      // ready rows already excludes it. The `fit_band` filter issue 881 put
+      // here was the third home of one decision.
       if (error) throw new Error(`opportunities.countUnused: ${error.message}`);
       return data?.length ?? 0;
     },
@@ -429,6 +433,14 @@ export function supabaseOpportunityStore(): OpportunityStore {
         .order("created_at", { ascending: true });
       if (error) throw new Error(`opportunities.openFixPages: ${error.message}`);
       return data ?? [];
+    },
+
+    async setFitBand(opportunityId, band) {
+      const { error } = await untyped()
+        .from<OpportunityRow>("opportunities")
+        .update({ fit_band: band })
+        .eq("id", opportunityId);
+      if (error) throw new Error(`opportunities.setFitBand: ${error.message}`);
     },
 
     async setReadiness(opportunityId, reason) {
