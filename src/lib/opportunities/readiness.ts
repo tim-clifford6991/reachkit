@@ -37,6 +37,9 @@ import { isOwnDomain, registrableDomain } from "@/lib/market/rivals/domains";
 import type { StoredReport } from "@/lib/scan/report";
 import { addressesOwnPage, type HostedOwnPages } from "@/lib/publish/destinations/hosted/own-page";
 import { opportunityStore, readOpportunity } from "./store";
+import { OUTSIZED, qualifiesForADay, type Winnability } from "./types";
+import { demandBand } from "./winnability/band";
+import { difficultyCeiling } from "./winnability/bars";
 import { NO_EARN_GROUNDING, type EarnGrounding } from "./earn-grounding";
 import { suppressionOf, verdictReason, type Suppression } from "./suppression";
 import type { Opportunity, UnreadyReason } from "./types";
@@ -87,6 +90,9 @@ export function opportunityReady(o: Opportunity, ctx: ReadinessContext): Unready
   const query = o.targetQuery ?? "";
   if (o.type === "keyword_page") {
     const intent = ctx.profile === null ? null : classifyIntent(query, ctx.profile);
+    // The band the keyword gate asks for is `winnable` — tighter than the
+    // shared rule above, which admits `reach` too. It stays here because it
+    // is this type's own gate (§6, 2026-09-15) and not the right-sizing law.
     const passes =
       volumeOf(o) >= KEYWORD_PAGE_MIN_VOLUME &&
       o.fitBand === "winnable" &&
@@ -96,6 +102,24 @@ export function opportunityReady(o: Opportunity, ctx: ReadinessContext): Unready
     if (!passes) return "keyword_gate";
   }
   if (o.type === "format_page" && !FORMAT_WORDS.test(query)) return "format_not_allowed";
+
+  // SPEC §6's right-sizing law, for every type that takes a publishing day
+  // (issue 884, owner's ruling 2026-09-18). It was enforced at read time by
+  // the ranking (issue 881) while only `keyword_page` carried it here, so a
+  // row could be stored `ready: true` and still be incapable of filling a
+  // day — the database, the screens and the ranking each holding a
+  // different answer. The decision is made once, here, and stored; the
+  // ranking and the supply count read the column.
+  //
+  // It speaks **after** each type's own gate, so a `keyword_page` still
+  // reports `keyword_gate` — that gate is the tighter one and names the
+  // type's own rule — and the new reason is reached only where nothing more
+  // specific applies.
+  //
+  // The Fix family carries no band and takes no search: `fixPageReadiness`
+  // is its own predicate, and `fit_band` is null for exactly that family (a
+  // check constraint holds it), so this asks nothing of it.
+  if (o.family !== "fix" && !qualifiesForADay(o.fitBand)) return "outsized";
   return null;
 }
 
@@ -122,6 +146,64 @@ export function ownRanksFrom(report: StoredReport | null): (query: string) => bo
 export function canUpdateFrom(own: HostedOwnPages | null): (url: string) => boolean {
   if (own === null) return () => true;
   return (url) => addressesOwnPage(url, own);
+}
+
+/**
+ * The band a row would be given **today**, from the evidence stored on it
+ * (issue 884's stale-band half).
+ *
+ * A row keeps the band it was given when it was derived, and a policy
+ * change moves the bars under it: the dogfood site's six were banded before
+ * right-sizing shipped (issue 862) and were still on file claiming to be
+ * ordinary targets. This re-applies the two halves of the law that **can**
+ * be recomputed from what the row already carries, against the site's
+ * footprint as the current report measures it:
+ *
+ *   - demand — the search's own volume against `qualifyingDemand(own)`;
+ *   - difficulty — the vendor's keyword difficulty, where the row carries
+ *     one (issue 867), against `difficultyCeiling(own)`.
+ *
+ * The competition half is **not** recomputed: it reads the target's whole
+ * top ten, and a row stores one rival, not ten. So this is a floor and
+ * never a promotion — it can only find a row outsized, never restore one.
+ * A row whose stored band already says `not-yet` stays where it is.
+ *
+ * No vendor call: every input is a stored number.
+ */
+export function rebandFor(o: Opportunity, ownRanked: number): Winnability | null {
+  if (o.family === "fix" || o.fitBand === null) return null;
+  if (!qualifiesForADay(o.fitBand)) return o.fitBand;
+
+  const volume = o.volume;
+  if (volume !== null && volume.kind !== "unmeasured" && demandBand({ volume: volume.value, ownRanked }) === "not-yet") {
+    return OUTSIZED;
+  }
+  const difficulty = "target" in o.evidence ? o.evidence.target?.difficulty : undefined;
+  if (
+    difficulty !== undefined &&
+    difficulty.kind !== "unmeasured" &&
+    difficulty.value > difficultyCeiling(ownRanked)
+  ) {
+    return OUTSIZED;
+  }
+  return o.fitBand;
+}
+
+/**
+ * The site's own ranked count as the current report measured it, or `null`
+ * where this site has no readable one.
+ *
+ * `null` is not zero here, and the difference matters: derivation reads an
+ * unmeasured footprint as the cold-start 0 because it is banding against
+ * the pass it just ran, while this re-bands rows that were banded against
+ * some earlier pass. With no measurement in hand the honest move is to
+ * leave every stored band alone rather than to re-band the whole site as
+ * though it ranked for nothing.
+ */
+function ownRankedOf(report: StoredReport | null): number | null {
+  const own = report?.ownRanked;
+  if (own === undefined || own.kind === "unmeasured") return null;
+  return own.value;
 }
 
 /**
@@ -161,12 +243,20 @@ export async function assessReadiness(
     canUpdate: canUpdateFrom(ownPages),
   };
 
+  // Issue 884: the row's band is brought up to today's law before its
+  // readiness is decided, so a row banded under an older one is corrected
+  // by the next pass rather than competing as if it still qualified.
+  const ownRanked = ownRankedOf(report);
+
   let ready = 0;
   for (const row of rows) {
-    const opportunity = readOpportunity(row);
+    const stored = readOpportunity(row);
+    const band = ownRanked === null ? null : rebandFor(stored, ownRanked);
+    if (band !== null && band !== stored.fitBand) await store.setFitBand(stored.id, band);
+    const opportunity = band === null ? stored : { ...stored, fitBand: band };
     const reason = opportunityReady(opportunity, ctx);
     if (reason === null) ready += 1;
-    if (opportunity.ready !== (reason === null) || opportunity.unreadyReason !== reason) {
+    if (stored.ready !== (reason === null) || stored.unreadyReason !== reason) {
       await store.setReadiness(opportunity.id, reason);
     }
   }

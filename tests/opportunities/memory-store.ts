@@ -137,14 +137,10 @@ export function memoryStore(state: MemoryState): OpportunityStore {
     },
 
     async countUnused(siteId) {
+      // Issue 884: the stored answer alone — an outsized row is stored
+      // `ready: false`, so no second rule belongs here.
       return state.rows.filter(
-        (row) =>
-          row.site_id === siteId &&
-          row.status === "open" &&
-          row.family !== "fix" &&
-          row.ready &&
-          // Issue 881: an outsized target is not a day of pages.
-          row.fit_band !== "not-yet"
+        (row) => row.site_id === siteId && row.status === "open" && row.family !== "fix" && row.ready
       ).length;
     },
 
@@ -213,6 +209,12 @@ export function memoryStore(state: MemoryState): OpportunityStore {
       return state.rows.filter(
         (row) => row.site_id === siteId && row.status === "open" && row.type === "fix_page"
       );
+    },
+
+    async setFitBand(opportunityId, band) {
+      const row = state.rows.find((r) => r.id === opportunityId);
+      if (row === undefined) return;
+      row.fit_band = band;
     },
 
     async setReadiness(opportunityId, reason) {

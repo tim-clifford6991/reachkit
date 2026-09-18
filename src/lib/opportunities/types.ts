@@ -250,6 +250,13 @@ export const OUTSIZED: Winnability = "not-yet";
  * A `not-yet` row still stays on file: the site may grow into it, and the
  * next pass re-derives it with a band of its own. It is simply never the
  * day's page and never counted as a day of supply.
+ *
+ * **One home** (issue 884, owner's ruling 2026-09-18): this predicate is
+ * read where readiness is *decided* — `readiness.ts`, which stores the
+ * answer as `ready` / `unready_reason` — and nowhere at read time. The
+ * ranking and the supply count read the stored column; a second filter over
+ * `fit_band` in either of them is a second policy that can drift from it,
+ * which is exactly what issue 881 had to patch in three places.
  */
 export function qualifiesForADay(fitBand: Winnability | null): boolean {
   return fitBand !== null && fitBand !== OUTSIZED;
@@ -268,6 +275,12 @@ export type UnreadyReason =
   | "keyword_gate"
   | "format_not_allowed"
   | "no_grounding_fact"
+  /** SPEC §6's right-sizing law: the target is outsized for this site — its
+   *  band does not qualify it for a publishing day (issue 884). Stored, so
+   *  the database, the screens and the ranking cannot disagree about it,
+   *  and so the founder can be told why a target is on file and not
+   *  planned. */
+  | "outsized"
   /** A `fix_page` the site's destination cannot update: not a WordPress
    *  destination, a page on another host, a site root, or a fix that
    *  destination has no field for. Or an Improve row on a hosted destination
@@ -282,6 +295,7 @@ export const UNREADY_REASONS: readonly UnreadyReason[] = Object.freeze([
   "keyword_gate",
   "format_not_allowed",
   "no_grounding_fact",
+  "outsized",
   "destination_cannot_address",
 ]);
 
