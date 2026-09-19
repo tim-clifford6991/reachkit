@@ -27,7 +27,8 @@ import type { Candidate } from "./candidate";
 import { earnCandidates } from "./earn";
 import { fixCandidates } from "./fix";
 import { improveCandidates } from "./improve";
-import { brandTokensOf, collapse } from "../cluster";
+import { brandTokensOf, collapse, coveredTopics } from "../cluster";
+import { rebandFor } from "../readiness";
 import { opportunityStore, readOpportunity } from "../store";
 import { persist } from "./persist";
 import { refineType } from "./typing";
@@ -127,9 +128,32 @@ export async function deriveOpportunities(
   // well as this pass's — after labelling, because the model may refine a
   // Write's type and the type decides precedence. Losing open rows go first,
   // so the one-open-row-per-cluster index never sees two.
+  //
+  // Issue 903: the collapse is also where a superseded row ends. It is told
+  // which pass these candidates came from and which topics that pass read,
+  // so a row from an earlier report on a topic this one covered and proposed
+  // nothing for is dismissed rather than left open.
+  //
+  // `today` is 884's `rebandFor`, handed in because the readiness step that
+  // normally applies it runs *after* this one: without it the collapse reads
+  // a band from whichever pass wrote the row, which is the stale number 881
+  // was written to stop competing with a right-sized candidate. Only where
+  // this pass measured the footprint — an unmeasured one would re-band the
+  // whole site as though it ranked for nothing, which is exactly the reading
+  // `readiness.ts` refuses.
   const store = opportunityStore();
   const existing = (await store.clusterable(a.siteId)).map(readOpportunity);
-  const plan = collapse({ existing, candidates: labelled, brandTokens: brandTokensOf(a.report) });
+  const brandTokens = brandTokensOf(a.report);
+  const measuredOwnRanked = a.ownRanked.kind === "unmeasured" ? null : a.ownRanked.value;
+  const plan = collapse({
+    existing,
+    candidates: labelled,
+    brandTokens,
+    pass: { scanId: a.scanId, covered: coveredTopics(a.report, brandTokens) },
+    ...(measuredOwnRanked === null
+      ? {}
+      : { today: (row: Opportunity) => rebandFor(row, measuredOwnRanked) }),
+  });
   for (const id of plan.dismiss) await store.markDismissed(id);
   for (const row of plan.update) await store.setCluster(row.id, row.clusterKey, row.absorbedQueries);
 

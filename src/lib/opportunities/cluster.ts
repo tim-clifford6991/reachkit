@@ -45,6 +45,39 @@ export function brandTokensOf(report: StoredReport): readonly string[] {
 }
 
 /**
+ * Every parent topic this pass measured — the twelve it asked and the market
+ * set it read, keyed the same way a row's own query is (issue 903).
+ *
+ * This is what "the new pass covered this topic" means, and it is a fact
+ * about the report rather than about what the derivation chose to keep: a
+ * pass that read a search and proposed nothing for it has covered it and
+ * decided against it, which is exactly the case a superseded row must not
+ * outlive. A topic outside this set is one the pass never looked at, and a
+ * row on it is left alone.
+ *
+ * An unmeasured market and unmeasured questions each contribute nothing, so
+ * a pass that could not read its market supersedes no row at all.
+ */
+export function coveredTopics(report: StoredReport, brandTokens: readonly string[]): ReadonlySet<string> {
+  const searches: string[] = [];
+  if (report.market.kind !== "unmeasured") {
+    for (const row of report.market.value.suggestions) searches.push(row.keyword);
+    // The widened pool (SPEC §6 thin markets): ranked rows the pass already
+    // bought and selected over. A thin market's searches come from here.
+    for (const row of report.market.value.pool ?? []) searches.push(row.keyword);
+  }
+  if (report.questions.kind !== "unmeasured") {
+    for (const question of report.questions.value) searches.push(question.search.keyword);
+  }
+  const topics = new Set<string>();
+  for (const search of searches) {
+    const key = clusterKey(search, brandTokens);
+    if (key !== null) topics.add(key);
+  }
+  return topics;
+}
+
+/**
  * The parent topic of a query, or `null` where it has none: no query (a Fix
  * targets no search), or nothing left once stop words and brands are gone —
  * a search for a brand alone has no topic to share.
@@ -84,8 +117,10 @@ export function comparePrecedence(
 export type ClusteredCandidate = Candidate & { clusterKey: string | null; absorbedQueries: readonly string[] };
 
 export interface CollapsePlan {
-  /** Existing open rows that lost their cluster to a better row. Applied
-   *  first, so the one-open-row-per-cluster index never sees two. */
+  /** Existing open rows that lost their cluster to a better row, and the
+   *  superseded ones this pass covered and proposed nothing for (issue
+   *  903). Applied first, so the one-open-row-per-cluster index never sees
+   *  two. */
   dismiss: readonly string[];
   /** Existing rows that keep their place and take a cluster key or more
    *  absorbed searches. */
@@ -118,7 +153,7 @@ function bandOf(m: Member): Winnability | null {
   return m.kind === "row" ? m.row.fitBand : m.candidate.fitBand;
 }
 
-function compareMembers(a: Member, b: Member): number {
+function compareMembers(a: Member, b: Member, band: (m: Member) => Winnability | null): number {
   const queued = Number(b.kind === "row" && b.row.status === "queued") - Number(a.kind === "row" && a.row.status === "queued");
   if (queued !== 0) return queued;
   // Issue 881: the stale-evidence half. A re-measure **adds** to a site's
@@ -128,7 +163,13 @@ function compareMembers(a: Member, b: Member): number {
   // cluster and the pass's own right-sized candidate for the same topic was
   // never written — the old competing with the new, and winning. A member
   // that may fill a day outranks one that may not, whichever is the row.
-  const sized = Number(qualifiesForADay(bandOf(b))) - Number(qualifiesForADay(bandOf(a)));
+  //
+  // `band` is how a row's own column is brought up to today's law before it
+  // competes (issue 903): 884's `rebandFor` runs in `assessReadiness`, which
+  // is a step *after* the derivation, so the column this read before it was
+  // a band from the pass that wrote it — and for exactly the rows 881 was
+  // written about, that column still claimed to qualify.
+  const sized = Number(qualifiesForADay(band(b))) - Number(qualifiesForADay(band(a)));
   if (sized !== 0) return sized;
   const precedence = comparePrecedence(shapeOf(a), shapeOf(b));
   if (precedence !== 0) return precedence;
@@ -146,11 +187,29 @@ function compareMembers(a: Member, b: Member): number {
  * dismissed — where a cluster already holds a queued row it survives, and a
  * second queued row in the same cluster keeps its place unclustered. Fix
  * candidates and rows with no topic pass through untouched.
+ *
+ * **And the superseded rows** (issue 903). A cluster the pass covered but
+ * put no candidate in is a topic this pass read and decided against, and its
+ * surviving row was derived from a report that is no longer current: it is
+ * dismissed rather than left open competing for a day and counting in the
+ * founder's view of what is planned. Three conditions, each of which alone
+ * leaves the row where it is — the cluster holds a candidate of this pass
+ * (so the row is this pass's own plan for the topic), the row was derived by
+ * this pass, or the pass never covered the topic. A `queued` row has a draft
+ * being written from it and is never dismissed here either.
  */
 export function collapse(a: {
   existing: readonly Opportunity[];
   candidates: readonly Candidate[];
   brandTokens: readonly string[];
+  /** The pass whose report these candidates came from, where the caller has
+   *  one. Absent collapses clusters and supersedes nothing — the shape a
+   *  suite that hands `collapse` bare candidates keeps. */
+  pass?: { scanId: string; covered: ReadonlySet<string> };
+  /** A stored row's band as today's right-sizing law reads it (884's
+   *  `rebandFor`), where the caller can compute one. Absent, the row's own
+   *  column stands. */
+  today?: (row: Opportunity) => Winnability | null;
 }): CollapsePlan {
   const groups = new Map<string, Member[]>();
   const insert: ClusteredCandidate[] = [];
@@ -172,11 +231,24 @@ export function collapse(a: {
     if (!add(key, { kind: "candidate", candidate })) insert.push({ ...candidate, clusterKey: null, absorbedQueries: [] });
   }
 
+  const band = (m: Member): Winnability | null =>
+    m.kind === "row" && a.today !== undefined ? a.today(m.row) ?? m.row.fitBand : bandOf(m);
+
+  /** Whether this pass has superseded the row that survived `key`: it read
+   *  the topic, wrote no candidate on it, and did not derive the row. */
+  const superseded = (row: Opportunity, key: string, hadCandidate: boolean): boolean =>
+    a.pass !== undefined &&
+    !hadCandidate &&
+    row.status === "open" &&
+    row.scanId !== a.pass.scanId &&
+    a.pass.covered.has(key);
+
   const dismiss: string[] = [];
   const update: { id: string; clusterKey: string; absorbedQueries: string[] }[] = [];
   for (const [key, members] of groups) {
-    const [survivor, ...rest] = [...members].sort(compareMembers);
+    const [survivor, ...rest] = [...members].sort((x, y) => compareMembers(x, y, band));
     if (survivor === undefined) continue;
+    const hadCandidate = members.some((member) => member.kind === "candidate");
 
     const own = queryOf(survivor)?.trim().toLowerCase() ?? null;
     const absorbed = new Set<string>(survivor.kind === "row" ? survivor.row.absorbedQueries : []);
@@ -191,6 +263,10 @@ export function collapse(a: {
 
     if (survivor.kind === "candidate") {
       insert.push({ ...survivor.candidate, clusterKey: key, absorbedQueries });
+    } else if (superseded(survivor.row, key, hadCandidate)) {
+      // The whole cluster goes: its losers are already dismissed above, and
+      // the searches they were absorbing have nothing left to hang on.
+      dismiss.push(survivor.row.id);
     } else if (survivor.row.clusterKey !== key || absorbedQueries.join("\n") !== [...survivor.row.absorbedQueries].sort().join("\n")) {
       update.push({ id: survivor.row.id, clusterKey: key, absorbedQueries });
     }

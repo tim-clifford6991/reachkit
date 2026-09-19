@@ -25,6 +25,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { createRoot } from "react-dom/client";
 import { fakeDb } from "../../publish/harness";
 import { LIVE_ACCOUNT } from "../accounts";
+import type { CopyKey } from "@/lib/presentation/copy";
+import type { OnboardingStage } from "@/lib/scan/deep/progress";
 
 const db = fakeDb();
 vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
@@ -245,7 +247,9 @@ describe("OnboardingPanel — polls the progress read and refreshes the app when
       await vi.advanceTimersByTimeAsync(30_000);
     });
     expect(asked).toEqual(["/api/setup/progress"]);
-    expect(container.textContent).toContain("row-2");
+    // `asking_the_twelve` is row three (issue 903): the twelve are bought to
+    // find the pages worth writing, and they size no rival.
+    expect(container.textContent).toContain("row-3");
     expect(nav.refresh).not.toHaveBeenCalled();
 
     await act(async () => {
@@ -253,5 +257,46 @@ describe("OnboardingPanel — polls the progress read and refreshes the app when
     });
     expect(nav.refresh).toHaveBeenCalledTimes(1);
     vi.useRealTimers();
+  });
+});
+
+describe("issue 903 — the step the panel names is the step the pass wrote", () => {
+  // The owner watched the live re-measure of reachkit.app read "Sizing your
+  // rivals" through most of a pass whose `sites.setup_stage` said
+  // `asking_the_twelve` and which was buying question SERPs. The stage the
+  // pass wrote was the true one; the row it was drawn on was not — and a
+  // loader that names the wrong step reads as a stuck pass.
+  //
+  // One case per stage the pass can write, each asserted through the row the
+  // pass actually writes it to and the real `/app` layout that reads it. The
+  // `Record` is total over `OnboardingStage`, so a stage added to the engine
+  // fails to compile here rather than arriving with no sentence.
+  const SAID: Readonly<Record<OnboardingStage, CopyKey>> = {
+    reading_your_site: "setup.waiting.stage.measuring-your-market",
+    reading_access_rules: "setup.waiting.stage.measuring-your-market",
+    reading_your_market: "setup.waiting.stage.measuring-your-market",
+    // `sizeTrackedRivals` is the only work that sizes a rival, and it runs
+    // in this stage: the row says "sizing" exactly while the pass sizes.
+    checking_your_presence: "setup.waiting.stage.sizing-your-rivals",
+    // The twelve are bought to decide which pages are worth writing, and
+    // they size nothing.
+    asking_the_twelve: "setup.waiting.stage.finding-pages",
+    scoring: "setup.waiting.stage.finding-pages",
+    writing_first_draft: "setup.waiting.stage.writing-your-first-page",
+  };
+
+  it("every stage the pass can write names its own step in the side panel", async () => {
+    for (const [stage, key] of Object.entries(SAID)) {
+      db.rows("sites")[0]!.setup_stage = stage;
+      const panel = (await app()).querySelector('[data-testid="shell-onboarding"]');
+      expect(panel?.getAttribute("data-stage"), stage).toBe(stage);
+      expect(panel?.querySelector('[data-testid="shell-onboarding-stage"]')?.textContent, stage).toBe(COPY[key]);
+    }
+  });
+
+  it("the sequence the panel answers for is the engine's own, and the first draft after it", async () => {
+    const { STAGES } = await import("@/lib/scan/stages");
+    const { FIRST_DRAFT_STAGE } = await import("@/lib/scan/deep/progress");
+    expect(Object.keys(SAID)).toEqual([...STAGES, FIRST_DRAFT_STAGE]);
   });
 });
