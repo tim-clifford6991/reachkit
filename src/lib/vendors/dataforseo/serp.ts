@@ -129,6 +129,13 @@ export async function serpOrganic(
      *  stage that buys them is thirteen seconds long and one stuck call
      *  used to hold a quarter of it for almost all of it. */
     abortMs?: number;
+    /** When the caller's own ceiling runs out, as epoch milliseconds (issue
+     *  902). `abortMs` above bounds one request; on the standard queue —
+     *  which is every scheduled pass's mode — this call is a `task_post`
+     *  and then a poll that otherwise runs to `VENDOR.stdQueueDeadlineMin`,
+     *  and that wait is inside the call where a between-calls ceiling check
+     *  cannot reach it. */
+    untilMs?: number;
   }
 ): Promise<Measured<SerpResult>> {
   const base = basePriceCents(a.mode);
@@ -150,7 +157,8 @@ export async function serpOrganic(
           // decided boolean; `false` is sent explicitly, never omitted.
           load_async_ai_overview: flagged,
         },
-        a.abortMs
+        a.abortMs,
+        a.untilMs
       ),
     parse: parseSerp,
     ...(a.onFailure ? { onFailure: a.onFailure } : {}),

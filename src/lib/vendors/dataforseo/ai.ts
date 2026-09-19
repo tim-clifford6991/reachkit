@@ -108,6 +108,12 @@ export async function aiMode(
      *  stop buying an engine that is refusing and say on the cell what it
      *  was told. */
     onFailure?: OnVendorFailure;
+    /** When the caller's own ceiling runs out, as epoch milliseconds
+     *  (issue 902). On the standard queue this call's wait is a poll that
+     *  otherwise runs to `VENDOR.stdQueueDeadlineMin` — forty-five minutes,
+     *  inside one call, where a pass's between-calls check cannot reach it.
+     *  Passing this is how a bounded pass stays bounded. */
+    untilMs?: number;
   }
 ): Promise<Measured<AiAnswer>> {
   const refused = paidOnly<AiAnswer>(c, new Date());
@@ -117,7 +123,7 @@ export async function aiMode(
     cacheKey: `${a.query}|${LOCALE_KEY}|${scopeKey(a.scope)}`,
     freshnessDays: CACHE_WINDOWS_D.aiBattery,
     costCents: a.mode === "live" ? PRICE_BOOK.AI_MODE_LIVE_C : PRICE_BOOK.AI_MODE_STD_C,
-    fetch: () => callEndpoint(AI_MODE_PATHS, a.mode, { keyword: a.query }),
+    fetch: () => callEndpoint(AI_MODE_PATHS, a.mode, { keyword: a.query }, undefined, a.untilMs),
     parse: parseAiMode,
     ...(a.onFailure ? { onFailure: a.onFailure } : {}),
   });
@@ -126,7 +132,7 @@ export async function aiMode(
 
 export async function llmScraper(
   c: CostContext,
-  a: { query: string; mode: "std"; scope: CacheScope; onFailure?: OnVendorFailure }
+  a: { query: string; mode: "std"; scope: CacheScope; onFailure?: OnVendorFailure; untilMs?: number }
 ): Promise<Measured<AiAnswer>> {
   const refused = paidOnly<AiAnswer>(c, new Date());
   if (refused) return refused;
@@ -135,7 +141,7 @@ export async function llmScraper(
     cacheKey: `${a.query}|${LOCALE_KEY}|${scopeKey(a.scope)}`,
     freshnessDays: CACHE_WINDOWS_D.aiBattery,
     costCents: PRICE_BOOK.CHATGPT_SCRAPE_STD_C,
-    fetch: () => callEndpoint(LLM_SCRAPER_PATHS, a.mode, { keyword: a.query }),
+    fetch: () => callEndpoint(LLM_SCRAPER_PATHS, a.mode, { keyword: a.query }, undefined, a.untilMs),
     parse: parseLlmScraper,
     ...(a.onFailure ? { onFailure: a.onFailure } : {}),
   });
