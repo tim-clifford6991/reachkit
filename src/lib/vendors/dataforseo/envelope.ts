@@ -11,8 +11,11 @@
 //
 // 2. **The standard queue** (`mode: "std"` — BUILD §6.4: "everything
 //    scheduled = standard queue"). `task_post`, then poll `task_get` every
-//    `VENDOR.stdQueuePollIntervalS` until the task completes or
-//    `VENDOR.stdQueueDeadlineMin` passes. Live mode is one `POST`.
+//    `VENDOR.stdQueuePollIntervalS` until the task completes or a deadline
+//    passes — the earlier of `VENDOR.stdQueueDeadlineMin` and the
+//    caller's own `untilMs`, because that wait is inside one call and a
+//    caller that re-reads its ceiling between calls cannot reach it
+//    (issue 902). Live mode is one `POST`.
 //
 // 3. **The seam mapping.** Every call runs inside `CostContext.recordFetch`
 //    (BUILD §6.5) with `run()` returning `T[] | VendorFailure` and *never
@@ -117,8 +120,9 @@ export type VendorFailureKind = TransportFailure | `task_${number}` | "deadline"
  * https://docs.dataforseo.com/v3/appendix/errors/). Everything else is the
  * same answer twice — a 4xx is this request, `unparseable` is this shape,
  * `no_surface` is this endpoint, and `deadline` is a standard-queue task
- * that already had `VENDOR.stdQueueDeadlineMin` — so asking again would
- * only spend. `task_40102` is not here because it is not a failure at all:
+ * that already had every second its deadline allowed — the vendor's pin or
+ * the caller's own ceiling, and neither is longer the second time — so
+ * asking again would only spend. `task_40102` is not here because it is not a failure at all:
  * see `TASK_NO_RESULTS`.
  */
 export function worthAskingAgain(kind: string): boolean {
@@ -232,7 +236,26 @@ export async function callEndpoint(
   /** The wall clock each request of this call may hold (issue 875) — the
    *  caller's, where it has one. Both legs of the standard queue take it:
    *  a `task_get` is the same kind of request as the post that made it. */
-  timeoutMs?: number
+  timeoutMs?: number,
+  /** The instant the *caller's* own ceiling runs out, as epoch
+   *  milliseconds — issue 902.
+   *
+   *  `timeoutMs` above bounds one request. It does not bound this call:
+   *  the standard queue is `task_post` and then a poll that runs to
+   *  `VENDOR.stdQueueDeadlineMin`, which is forty-five minutes — eleven
+   *  times a whole paid pass's `TIMING.paidPassCeilingS` and nine times
+   *  the `/api/jobs` invocation the pass runs in. A caller that re-reads
+   *  its ceiling between calls, as every stage of a paid pass does, still
+   *  cannot be held by one of these: the wait is inside the call, where
+   *  no between-calls check can reach. So the caller hands its deadline
+   *  in, and the poll below stops at whichever comes first.
+   *
+   *  Past it the task is left where it is: it was accepted and charged at
+   *  `task_post`, and abandoning the *wait* is what the caller's ceiling
+   *  buys. A deadline already gone when this is called posts nothing at
+   *  all — an unbilled refusal, because a task nobody will collect is a
+   *  purchase with no answer in it. */
+  untilMs?: number
 ): Promise<VendorOutcome> {
   const abort = timeoutMs === undefined ? {} : { timeoutMs };
   if (mode === "live") {
@@ -242,6 +265,12 @@ export async function callEndpoint(
   }
 
   if (!paths.std) return failure("no_surface", false, "dataforseo: endpoint has no standard-queue surface");
+  // Nothing is posted against a ceiling that has already run out: the post
+  // is what the vendor charges for, and its answer would arrive after the
+  // only caller who wanted it had stopped (issue 902).
+  if (untilMs !== undefined && Date.now() >= untilMs) {
+    return failure("deadline", false, "dataforseo: the caller's ceiling ran out before the task was posted");
+  }
   const std = paths.std;
   const posted = await sendRequest<unknown>({ path: std.taskPost, mode, fields, ...abort });
   if (!posted.ok) return fromTransport(posted);
@@ -258,7 +287,10 @@ export async function callEndpoint(
   }
   // From here the task is accepted and charged: every failure below is billed.
 
-  const deadline = Date.now() + VENDOR.stdQueueDeadlineMin * MS_PER_MIN;
+  // The earlier of the pinned queue deadline and the caller's own, so a
+  // caller that must answer inside its ceiling is never held past it by a
+  // task that is merely slow (issue 902).
+  const deadline = Math.min(Date.now() + VENDOR.stdQueueDeadlineMin * MS_PER_MIN, untilMs ?? Number.POSITIVE_INFINITY);
   for (;;) {
     await sleep(VENDOR.stdQueuePollIntervalS * MS_PER_S);
     const got = await sendGet<unknown>(std.taskGet(id), timeoutMs);
