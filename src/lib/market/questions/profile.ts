@@ -37,9 +37,40 @@ export interface Profile {
   brandTokens: readonly string[]; // the own-brand drop set
 }
 
-/** A list of short strings bounded by its `PROFILE_LIST_BOUNDS` row. */
+/**
+ * A list of short strings bounded by its `PROFILE_LIST_BOUNDS` row.
+ *
+ * **Over-full is trimmed, never fatal (issue 898).** A production scan of
+ * `figma.com` on 2026-09-18 answered with seven brand tokens against a cap
+ * of six, and the whole seven-field answer was thrown away for it — twice,
+ * since the seam re-asked. With no profile there is no category, so the
+ * pass bought no suggestions at all and the visitor was shown a report
+ * with no questions, no score and no band. A well-known brand with several
+ * names for itself is not an edge case.
+ *
+ * These caps exist so a prompt cannot return a thousand items and spend
+ * the call's whole output budget on one list (issue #462). They were never
+ * a claim that a model answering one item past the cap has failed. So an
+ * over-full list is cut to `max` **in the model's own order** — the model
+ * put its answer in the order it thought best, and the first `max` of it
+ * is what we asked for — and the answer is kept.
+ *
+ * `z.preprocess`, deliberately, rather than a `.transform` after the
+ * array: the pipe still reports `minItems`/`maxItems` through
+ * `z.toJSONSchema`, so the forced tool `src/lib/llm/index.ts` builds still
+ * tells the model the cap (a `.transform` cannot be represented in JSON
+ * Schema at all, and `forcedToolFor` would quietly fall back to the plain
+ * text path issue #512 exists to avoid).
+ *
+ * Only the over-full case moves. A list that is empty where `min > 0`, an
+ * entry that is not a string, a value that is not a list, a missing field
+ * and an eighth field all still refuse the answer — see `PROFILE_SCHEMA`.
+ */
 function boundedList(bounds: { readonly min: number; readonly max: number }) {
-  return z.array(z.string()).min(bounds.min).max(bounds.max);
+  return z.preprocess(
+    (value) => (Array.isArray(value) && value.length > bounds.max ? value.slice(0, bounds.max) : value),
+    z.array(z.string()).min(bounds.min).max(bounds.max)
+  );
 }
 
 /** The model's output, parsed against exactly `Profile`'s seven fields —
@@ -49,7 +80,9 @@ function boundedList(bounds: { readonly min: number; readonly max: number }) {
  *  `unmeasured` for it, and no rescue path is added here.
  *
  *  Every list is bounded (issue #462): an unbounded `vocabulary` is what
- *  let one answer run to 888 tokens and the whole of the call's budget. */
+ *  let one answer run to 888 tokens and the whole of the call's budget.
+ *  A list one past its bound is trimmed rather than refused (issue 898) —
+ *  `boundedList` above says why, and says what is still refused. */
 export const PROFILE_SCHEMA = z.strictObject({
   category: z.string(),
   job: z.string(),

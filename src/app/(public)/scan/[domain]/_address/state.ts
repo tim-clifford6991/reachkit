@@ -61,6 +61,14 @@ export type AddressNotice =
    *  `incomplete`: every factor is missing, and the one true cause is the
    *  line, not a list of the factors it took with it. */
   | { kind: "site_unreadable" }
+  /** The site read, and its **market** did not (issue 898): the profile
+   *  call did not answer, or the suggestions did not. Nothing after that
+   *  step exists — no questions, no AI answers, no band — so the report is
+   *  not incomplete in the sense `incomplete` means, where some of it was
+   *  measured and some was not. It outranks `incomplete` for the same
+   *  reason `site_unreadable` does: the factors that line would name are
+   *  the consequence, and this is the cause. */
+  | { kind: "market_unread" }
   | { kind: "measurement_failed"; failedAt: Date }
   | { kind: "correction_failed" }
   | { kind: "refused"; refusal: AddressRefusal };

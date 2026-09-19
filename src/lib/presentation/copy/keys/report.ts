@@ -98,6 +98,15 @@ export const REPORT_COPY = Object.freeze({
   // attempted and the report stops there. Owner-owed until 2026-09-11, when
   // the owner approved this sentence (#516).
   "notice.site-unreadable": ["We couldn’t read this site’s home page, so nothing here could be measured. Check the address and scan again.", { slots: {}, fixedBy: "REQ-004 c6" }],
+  // Issue 898. The site read and its market did not — the profile call or
+  // the suggestions did not answer — so there is no question, no answer
+  // card and no band. Distinct from `notice.incomplete`, which names
+  // drivers that were not measured while others were; here nothing was
+  // measured from the market at all, and naming a driver would name the
+  // consequence rather than the cause. Drafted in this registry’s voice
+  // and shipped under the owner ruling of 2026-09-16 (#759); the owner
+  // corrects the wording.
+  "notice.market-unread": ["We couldn’t read this site’s market, so there’s no report to show yet — no searches, no rivals and no score. Measure again in a moment.", { slots: {}, fixedBy: "SPEC §2 · issue 898" }],
   "notice.refused.network-limit": ["That’s five scans from your network in the last hour — you can scan again in {wait}.", { slots: { wait: "text" }, fixedBy: "REQ-003 c6" }],
   // Issue 885's two free-path bounds. Drafted in this registry’s voice and
   // shipped under the owner ruling of 2026-09-16 (#759); the owner corrects

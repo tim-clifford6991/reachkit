@@ -192,20 +192,25 @@ describe("deriveProfile — the Zod schema declared for the model's output", () 
     expect(schema.safeParse(base).success).toBe(true);
   });
 
-  it("deriveProfile/audience-terms-bounded — fewer than 2 or more than 4 audienceTerms does not parse", async () => {
+  it("deriveProfile/audience-terms-bounded — fewer than 2 audienceTerms does not parse; more than 4 is trimmed (issue 898)", async () => {
     llmMock.mockResolvedValueOnce(measuredProfile());
     await deriveProfile(fakeCostContext(), { home: "x" });
     const schema = (llmMock.mock.calls[0]![1] as RecordedLlmCall).schema;
 
     const base = { category: "c", job: "j", offeringType: "o", namedRivals: [], vocabulary: [], brandTokens: [] };
 
+    // Short of the floor is still a failed answer: `min` is a claim that
+    // the model did not describe the business, and nothing can be trimmed
+    // into existence.
     expect(schema.safeParse({ ...base, audienceTerms: [] }).success).toBe(false);
     expect(schema.safeParse({ ...base, audienceTerms: ["one"] }).success).toBe(false);
     expect(schema.safeParse({ ...base, audienceTerms: ["a", "b"] }).success).toBe(true);
     expect(schema.safeParse({ ...base, audienceTerms: ["a", "b", "c", "d"] }).success).toBe(true);
-    expect(schema.safeParse({ ...base, audienceTerms: ["a", "b", "c", "d", "e"] }).success).toBe(
-      false
-    );
+    // One past the cap is kept, cut to the cap, in the model's own order.
+    expect(schema.safeParse({ ...base, audienceTerms: ["a", "b", "c", "d", "e"] })).toMatchObject({
+      success: true,
+      data: { audienceTerms: ["a", "b", "c", "d"] },
+    });
   });
 });
 
@@ -268,25 +273,83 @@ describe("deriveProfile — the prompt and the schema agree (issue #462)", () =>
     }
   });
 
-  it("the lists are capped — vocabulary 12, brandTokens 6, namedRivals 5 — and one past each cap does not parse", () => {
+  const BASE = Object.freeze({
+    category: "c",
+    job: "j",
+    offeringType: "o",
+    audienceTerms: ["a", "b"],
+    namedRivals: [] as string[],
+    vocabulary: [] as string[],
+    brandTokens: [] as string[],
+  });
+
+  it("the lists are capped — vocabulary 12, brandTokens 6, namedRivals 5 — and the model is still told each cap", () => {
     expect(PROFILE_LIST_BOUNDS.vocabulary.max).toBe(12);
     expect(PROFILE_LIST_BOUNDS.brandTokens.max).toBe(6);
     expect(PROFILE_LIST_BOUNDS.namedRivals.max).toBe(5);
-    const base = {
-      category: "c",
-      job: "j",
-      offeringType: "o",
-      audienceTerms: ["a", "b"],
-      namedRivals: [] as string[],
-      vocabulary: [] as string[],
-      brandTokens: [] as string[],
-    };
     for (const key of ["vocabulary", "brandTokens", "namedRivals"] as const) {
       const max = PROFILE_LIST_BOUNDS[key].max;
       const at = Array.from({ length: max }, (_, i) => `t${i}`);
-      expect(PROFILE_SCHEMA.safeParse({ ...base, [key]: at }).success).toBe(true);
-      expect(PROFILE_SCHEMA.safeParse({ ...base, [key]: [...at, "one more"] }).success).toBe(false);
+      expect(PROFILE_SCHEMA.safeParse({ ...BASE, [key]: at }).success).toBe(true);
+      // The cap is still what the forced tool asks for, so trimming is the
+      // fallback and not the plan (issue 898).
+      expect(jsonSchema().properties[key]?.maxItems).toBe(max);
     }
+  });
+
+  // ── Issue 898 — an over-long list is trimmed, not fatal ───────────────
+  //
+  // `figma.com` on 2026-09-18: seven brand tokens against a cap of six,
+  // and the whole seven-field answer thrown away for it. With no profile
+  // there is no category, so the pass bought no suggestions and the
+  // visitor was shown a report with no questions, no score and no band.
+
+  it("a list one past its cap is kept and cut to the cap, in the model's own order — every list the schema bounds", () => {
+    for (const key of ["audienceTerms", "namedRivals", "vocabulary", "brandTokens"] as const) {
+      const max = PROFILE_LIST_BOUNDS[key].max;
+      const over = Array.from({ length: max + 1 }, (_, i) => `t${i}`);
+      const parsed = PROFILE_SCHEMA.safeParse({ ...BASE, [key]: over });
+      expect(parsed.success, key).toBe(true);
+      // The model's order, head-first — never a re-ordering of its answer.
+      expect(parsed.success ? parsed.data[key] : null, key).toEqual(over.slice(0, max));
+    }
+  });
+
+  it("figma's own answer: seven brand tokens is a kept profile, not a thrown-away one", () => {
+    const parsed = PROFILE_SCHEMA.safeParse({
+      category: "design software",
+      job: "design and prototype interfaces with a team",
+      offeringType: "saas",
+      audienceTerms: ["designers", "product teams"],
+      namedRivals: ["sketch"],
+      vocabulary: ["design tool", "prototyping", "whiteboard"],
+      brandTokens: ["figma", "figjam", "figma slides", "dev mode", "figma make", "figma draw", "figma sites"],
+    });
+    expect(parsed.success).toBe(true);
+    expect(parsed.success ? parsed.data.brandTokens : []).toHaveLength(PROFILE_LIST_BOUNDS.brandTokens.max);
+    // The category survives, which is the whole of what the market read
+    // needs from this answer.
+    expect(parsed.success ? parsed.data.category : null).toBe("design software");
+  });
+
+  it("an answer that is really unusable still fails — a missing field, a wrong type, an eighth field, a list empty where min > 0", () => {
+    const missingField: Record<string, unknown> = { ...BASE };
+    delete missingField.category;
+    expect(PROFILE_SCHEMA.safeParse(missingField).success).toBe(false);
+    expect(PROFILE_SCHEMA.safeParse({ ...BASE, vocabulary: ["a", 2] }).success).toBe(false);
+    expect(PROFILE_SCHEMA.safeParse({ ...BASE, vocabulary: "a,b" }).success).toBe(false);
+    expect(PROFILE_SCHEMA.safeParse({ ...BASE, extra: "x" }).success).toBe(false);
+    expect(PROFILE_SCHEMA.safeParse({ ...BASE, audienceTerms: [] }).success).toBe(false);
+  });
+
+  it("trimming leaves the forced tool buildable — the profile call still answers through a tool, not prose (#512)", () => {
+    // `forcedToolFor` gives up on a schema `z.toJSONSchema` cannot express
+    // and falls back to the text path. A `.transform` would do exactly
+    // that silently; this asserts the profile schema is still convertible
+    // and still an object.
+    const schema = jsonSchema();
+    expect(schema.additionalProperties).toBe(false);
+    expect(Object.keys(schema.properties)).toHaveLength(7);
   });
 
   it("the instruction asks for JSON only — no prose, no code fence — and carries no keyword or search of its own", () => {

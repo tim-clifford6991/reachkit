@@ -827,12 +827,20 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
     // from the stored report.
     serpsMeasured: composed.report.serps.filter((serp) => serp.kind !== "unmeasured").length,
     serpsAsked: composed.report.serps.length,
+    // Issue 865's field, and issue 898's fourth word for it: a pass whose
+    // market was never read is not a pass that simply ended. `figma.com`
+    // on 2026-09-18 ended `complete`/`degraded` with `pass_ended`, and
+    // nothing in the line said that the profile call was what the whole
+    // empty report hung on. `marketUnread` names the step it stopped at,
+    // by the `ScanInput` the verdict already reads that step under.
     because:
       ending.stoppedReason === "site_unreadable"
         ? (ending.refusal ?? "stage_undeterminable")
         : composed.marketTooSmall
           ? "market_too_small"
-          : "pass_ended",
+          : composed.marketUnread !== null
+            ? `${composed.marketUnread}_unmeasured`
+            : "pass_ended",
   });
 
   // 8. #770: a paid pass (one with a site) that found too little market
@@ -1808,7 +1816,17 @@ function composeReport(a: {
   sections: Sections;
   startedAt: Date;
   correctionState: CorrectionState;
-}): { report: StoredReport; drivers: Drivers; sectionMissing: boolean; marketTooSmall: boolean } {
+}): {
+  report: StoredReport;
+  drivers: Drivers;
+  sectionMissing: boolean;
+  marketTooSmall: boolean;
+  /** Which step of §6.7 left this pass with no market to read (issue 898),
+   *  or `null` where the market was read. Named by the `ScanInput` that
+   *  step feeds, so the pass's log line and the verdict's own record of
+   *  what went unread say one word between them. */
+  marketUnread: MarketUnread;
+} {
   const s = a.sections;
   const m = s.measurement;
 
@@ -1846,6 +1864,17 @@ function composeReport(a: {
   };
 
   const verdict: Verdict = verdictOf({ domain: a.domain, measuredAt, drivers, inputs, robots });
+
+  // Issue 898: which step left the pass with no market — the profile call
+  // that did not answer, or the suggestions that did not. It is the same
+  // branch the `market` section takes below, read once so the log and the
+  // report cannot disagree.
+  const marketUnread: MarketUnread =
+    s.profile.kind === "unmeasured"
+      ? "business_profile"
+      : s.marketRows.kind === "unmeasured"
+        ? "market_suggestions"
+        : null;
 
   const market: Measured<MarketSet> =
     s.profile.kind === "unmeasured"
@@ -1925,8 +1954,12 @@ function composeReport(a: {
     s.questions.kind === "unmeasured" ||
     noQuestionMeasured;
 
-  return { report, drivers, sectionMissing, marketTooSmall: tooSmall };
+  return { report, drivers, sectionMissing, marketTooSmall: tooSmall, marketUnread };
 }
+
+/** Issue 898 — the two §6.7 steps that can leave a pass with no market at
+ *  all, under the `ScanInput` names the verdict already reads them under. */
+type MarketUnread = Extract<ScanInput, "business_profile" | "market_suggestions"> | null;
 
 /** The twelve SERPs as the one input the verdict reads them as: measured
  *  where any of them was, and carrying the reason where none was. */

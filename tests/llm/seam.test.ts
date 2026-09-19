@@ -722,7 +722,10 @@ describe("llm() — an answer that came back and missed is a `parse` failure, ne
 
   it("two answers that both miss read `retryExhausted: \"attempts\"` — the retry was possible and was spent", async () => {
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
-    createMock.mockResolvedValueOnce(textMessage({ category: "c", vocabulary: ["a", "b", "c"] }));
+    // Neither miss is `too_big`-only, so both are worth another ask
+    // (issue 898): a wrong type is the kind of thing a second answer
+    // really can get right.
+    createMock.mockResolvedValueOnce(textMessage({ category: 7, vocabulary: ["a"] }));
     createMock.mockResolvedValueOnce(textMessage({ category: 7, vocabulary: [1, "b"] }));
 
     await llm(fakeCostContext().ctx, { site: "profile", input: {}, schema: PROFILE_LIKE, tier: "nano" });
@@ -736,6 +739,47 @@ describe("llm() — an answer that came back and missed is a `parse` failure, ne
     expect([...(logged.schemaIssues as string[])].sort()).toEqual(
       ["category:invalid_type", "vocabulary[]:invalid_type"].sort()
     );
+  });
+
+  // ── Issue 898: a deterministic miss is not re-asked ───────────────────
+  //
+  // The `figma.com` scan of 2026-09-18 made this call twice, 0.66¢ each,
+  // over an answer whose only fault was one list one item past its cap.
+  // The second could not have succeeded: what refused it is the size this
+  // schema asks for.
+
+  it("a `too_big`-only miss makes exactly one call, not two, and says why the retry was not spent", async () => {
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    createMock.mockResolvedValueOnce(textMessage({ category: "c", vocabulary: ["a", "b", "c"] }));
+    createMock.mockResolvedValueOnce(textMessage({ category: "c", vocabulary: ["a"] }));
+
+    const result = await llm(fakeCostContext().ctx, {
+      site: "profile",
+      input: {},
+      schema: PROFILE_LIKE,
+      tier: "nano",
+    });
+
+    // One call, although a second answer was queued and would have parsed:
+    // the point is that the money was not spent to find that out.
+    expect(createMock).toHaveBeenCalledTimes(1);
+    expect(result).toMatchObject({ kind: "unmeasured", reason: "undeterminable" });
+    const logged = loggedLine(logSpy);
+    expect(logged.failure).toBe("parse");
+    expect(logged.retryExhausted).toBe("deterministic");
+    expect(logged.parseFailure).toBe("schema");
+    expect(logged.schemaIssues).toEqual(["vocabulary:too_big"]);
+  });
+
+  it("a miss that is `too_big` *and* something else is still re-asked — only the whole-fault case is deterministic", async () => {
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    createMock.mockResolvedValueOnce(textMessage({ category: 7, vocabulary: ["a", "b", "c"] }));
+    createMock.mockResolvedValueOnce(textMessage({ category: 7, vocabulary: ["a", "b", "c"] }));
+
+    await llm(fakeCostContext().ctx, { site: "profile", input: {}, schema: PROFILE_LIKE, tier: "nano" });
+
+    expect(createMock).toHaveBeenCalledTimes(2);
+    expect(loggedLine(logSpy).retryExhausted).toBe("attempts");
   });
 
   it("an answer that is not JSON at all — a code fence, prose, a cut-off answer — reads `parseFailure: \"json\"`, with no schema paths", async () => {

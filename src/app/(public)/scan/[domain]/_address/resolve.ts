@@ -147,7 +147,9 @@ function controlFor(a: {
  *
  *  An incomplete report either names every driver it could not measure or
  *  shows no notice at all (#541) — there is no third state in which the
- *  sentence renders naming nothing. */
+ *  sentence renders naming nothing. A report whose market was never read
+ *  is its own arm above that (issue 898): what it would name is the
+ *  consequence of the market, not the cause. */
 function noticeFor(a: {
   report: StoredReport;
   refusal: AddressRefusal | null;
@@ -156,6 +158,14 @@ function noticeFor(a: {
   if (a.refusal !== null) return { kind: "refused", refusal: a.refusal };
   if (a.correctionFailed) return { kind: "correction_failed" };
   if (a.report.stoppedReason === "site_unreadable") return { kind: "site_unreadable" };
+  // Issue 898: the site read and its market did not, so there is no
+  // question, no answer card and no band to be incomplete *about*. A
+  // report with nothing measured from its market used to fall through to
+  // `incomplete` and name whichever driver the empty market took down with
+  // it — the consequence, never the cause — which is how a `figma.com`
+  // scan came to show an empty report and say only that AI answers were
+  // not measured.
+  if (a.report.market.kind === "unmeasured") return { kind: "market_unread" };
   if (!a.report.complete) {
     // The head is destructured rather than asserted, so the notice's
     // non-empty tuple is *proved* here and the empty case cannot reach the
