@@ -17,8 +17,12 @@ import type { RuleFailure } from "./types";
 
 /** The domain matches on its own registrable label as well as whole — a
  *  page that says "Acme" in its opening line is naming the brand whether or
- *  not it writes "acme.com". Every match is case-insensitive, per §8. */
-function brandTokens(a: { businessName: string | null; domain: string }): string[] {
+ *  not it writes "acme.com". Every match is case-insensitive, per §8.
+ *
+ *  Exported because the frame rule (`./frame.ts`, issue 900) asks the same
+ *  question of the title, the headings and the whole body: what counts as
+ *  naming this business is one answer, given here. */
+export function brandTokens(a: { businessName: string | null; domain: string }): string[] {
   const tokens: string[] = [];
   const name = a.businessName?.trim() ?? "";
   if (name.length > 0) tokens.push(name);
