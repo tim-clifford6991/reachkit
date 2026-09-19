@@ -1512,6 +1512,32 @@ function cacheScope(a: StageArgs): CacheScope {
   return a.siteId === undefined ? { domain: a.domain } : { site: a.siteId };
 }
 
+/**
+ * The instant this pass's ceiling runs out, for a call that waits inside
+ * itself (issue 902).
+ *
+ * A paid pass reads its ceiling cooperatively — `bounds.stopNow()` between
+ * calls, as it reads its cap — and that is enough only while no single
+ * call can outlast the ceiling on its own. Two of the pass's can. The
+ * ChatGPT scraper has no live surface, so every battery ask of it is a
+ * `task_post` and then a poll; the weekly pass buys its question SERPs and
+ * its AI Mode answers the same way. That poll runs to
+ * `VENDOR.stdQueueDeadlineMin` — forty-five minutes, against a
+ * `TIMING.paidPassCeilingS` of four and a `/api/jobs` invocation of five,
+ * and the wait is *inside* the call, where no between-calls check reaches
+ * it. A pass held there is frozen by the platform mid-write: no report
+ * stored, the claimed row still `running`, and the step retried — which is
+ * how twelve questions come to buy more than twelve questions' worth.
+ *
+ * So the deadline goes in with the call, and the queue stops at whichever
+ * of the two comes first. Read at the call and never carried: an ask that
+ * waited its turn asks with what is left now, not with what was left when
+ * its question was taken.
+ */
+function untilCeiling(bounds: Bounds): number {
+  return Date.now() + bounds.remainingMs();
+}
+
 async function askTheTwelve(a: StageArgs, abandoned: () => boolean): Promise<void> {
   const { bounds, cost, parameters, sections } = a;
   const questions = sections.questions;
@@ -1548,6 +1574,7 @@ async function askTheTwelve(a: StageArgs, abandoned: () => boolean): Promise<voi
         scope: cacheScope(a),
         freshnessDays: parameters.serpWindowDays,
         abortMs: parameters.serpAbortMs,
+        untilMs: untilCeiling(bounds),
         onFailure: (failure) => {
           heard.failure = failure;
         },
@@ -1738,15 +1765,15 @@ async function askTheBattery(
   const chatgpt =
     bounds.stopNow() !== null
       ? unmeasured<AiAnswer>("not_attempted", at)
-      : await engineAnswer(at, "chatgpt", watch, (onFailure) =>
-          llmScraper(cost, { query, mode: "std", scope: cacheScope(a), onFailure })
+      : await engineAnswer(at, "chatgpt", watch, bounds, (onFailure) =>
+          llmScraper(cost, { query, mode: "std", scope: cacheScope(a), onFailure, untilMs: untilCeiling(bounds) })
         );
 
   const mode =
     bounds.stopNow() !== null
       ? unmeasured<AiAnswer>("not_attempted", at)
-      : await engineAnswer(at, "ai_mode", watch, (onFailure) =>
-          aiMode(cost, { query, mode: parameters.serpMode, scope: cacheScope(a), onFailure })
+      : await engineAnswer(at, "ai_mode", watch, bounds, (onFailure) =>
+          aiMode(cost, { query, mode: parameters.serpMode, scope: cacheScope(a), onFailure, untilMs: untilCeiling(bounds) })
         );
 
   return { chatgpt, aiMode: mode };
@@ -1837,6 +1864,7 @@ async function engineAnswer(
   at: Date,
   engine: BatteryEngine,
   watch: EngineWatch,
+  bounds: Bounds,
   work: (onFailure: (failure: VendorFailure) => void) => Promise<Measured<AiAnswer>>
 ): Promise<Measured<AiAnswer>> {
   const alreadyFailed = watch.failures.get(engine) ?? 0;
@@ -1849,6 +1877,14 @@ async function engineAnswer(
     // Re-read inside the turn: the asks ahead of this one may have been
     // what gave the engine up.
     if ((watch.failures.get(engine) ?? 0) >= ENGINE_GIVE_UP_AFTER) return GAVE_UP;
+    // **And re-read the ceilings, for the same reason** (issue 902). The
+    // caller read `stopNow()` before handing this ask over, and an
+    // unproven engine's asks take their turns one at a time — so the
+    // decision "the pass still has room for this" was made before a wait
+    // that is as long as every ask ahead of it. On the engine this matters
+    // for that is minutes: the ChatGPT scraper is standard-queue only.
+    // Nothing is bought against a ceiling that has fired since.
+    if (bounds.stopNow() !== null) return STOPPED;
     return attempt("asking_the_twelve", () =>
       work((failure) => {
         heard.failure = failure;
@@ -1859,6 +1895,7 @@ async function engineAnswer(
   if (answer === GAVE_UP) {
     return unmeasured<AiAnswer>("not_attempted", at, watch.because.get(engine));
   }
+  if (answer === STOPPED) return unmeasured<AiAnswer>("not_attempted", at);
 
   if (heard.failure !== null) {
     const failures = (watch.failures.get(engine) ?? 0) + 1;
@@ -1885,6 +1922,11 @@ async function engineAnswer(
 /** The arm an ask takes when the engine was given up while it waited its
  *  turn (issue 869): nothing was bought and nothing was heard. */
 const GAVE_UP = Symbol("battery-engine-gave-up");
+
+/** The arm an ask takes when the pass's own ceiling fired while it waited
+ *  its turn (issue 902): nothing was bought, and the cell says nobody got
+ *  to it rather than naming an engine that never refused. */
+const STOPPED = Symbol("battery-ask-past-the-ceiling");
 
 /** One line the first time a pass gives up on an engine (issue 869),
  *  carrying the engine and what it last said — never the query. */

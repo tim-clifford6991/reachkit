@@ -23,7 +23,16 @@ import { renderOf } from "@/lib/generate/rules/text";
 import { applyAnswerability } from "@/lib/generate/pipeline/answerability";
 import { orderedPassages } from "@/lib/generate/pipeline/grounding";
 import { SKELETONS } from "@/lib/generate/pipeline/skeletons";
-import { answerability, brief, briefProjection, draft, outline, selectedFactIndexes } from "@/lib/generate/pipeline/steps";
+import { answersMarketQuestion } from "@/lib/generate/rules/frame";
+import {
+  answerability,
+  brief,
+  briefProjection,
+  draft,
+  outline,
+  selectedFactIndexes,
+  targetSearches,
+} from "@/lib/generate/pipeline/steps";
 import { buildPromptInputs } from "@/lib/generate/voice/inputs";
 import { readDomainText, type MeasuredText } from "@/lib/measure/text";
 import { bestFreePage, freePageOpportunity } from "@/lib/opportunities/free-page";
@@ -94,7 +103,20 @@ export const writeLeadPage: DraftWriter = async (a) => {
     async (cost): Promise<WriteResult> => {
       const briefResult = await brief(
         cost,
-        briefProjection({ opportunity, facts: facts.map((f) => f.passage), doNotClaim: [], voice: null })
+        briefProjection({
+          opportunity,
+          facts: facts.map((f) => f.passage),
+          doNotClaim: [],
+          voice: null,
+          // The lead's page answers the market's question the same way a
+          // paid site's does, and the same frame binds it (issue 900).
+          marketQuestion: answersMarketQuestion({
+            opportunityType: opportunity.type,
+            queries: targetSearches(opportunity),
+            businessName,
+            domain: report.domain,
+          }),
+        })
       );
       if (briefResult.kind === "unmeasured") return stepFailed(a.leadId, "brief");
       const selected = selectedFactIndexes(briefResult.value, facts.length).map((index) => facts[index]!);
@@ -130,7 +152,9 @@ export const writeLeadPage: DraftWriter = async (a) => {
       const body = applyAnswerability(draftResult.value, ops.value, passages);
       const outcome = await runHardRules(cost, {
         markdown: body.bodyMarkdown,
+        title: body.title,
         rendered: renderOf(body.bodyMarkdown),
+        opportunityType: opportunity.type,
         site: {
           businessName,
           domain: report.domain,

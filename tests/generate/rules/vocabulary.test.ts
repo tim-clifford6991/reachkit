@@ -2,8 +2,9 @@
 // vocabulary.
 //
 // §8 states seven hard rules; read as checks over finished text they are
-// ten, because three of the seven are two checks each. What this suite
-// pins is that the list is *closed* and *ordered*: an eleventh member, or a
+// ten, because three of the seven are two checks each. Issue 475 added five
+// that read the brief and issue 900 added `page_frame`. What this suite pins
+// is that the list is *closed* and *ordered*: a further member, or a
 // reordering, changes what a stored `rule_failures` blob means, and a
 // failure list has to be comparable across runs.
 import "../env";
@@ -11,9 +12,9 @@ import { describe, expect, it } from "vitest";
 import { HARD_RULES, type HardRule } from "../../../src/lib/generate/rules/types";
 
 describe("BUILD §8 — the hard rules are a closed, ordered list", () => {
-  it("has exactly fifteen members and lists each once", () => {
-    expect(HARD_RULES).toHaveLength(15);
-    expect(new Set(HARD_RULES).size).toBe(15);
+  it("has exactly sixteen members and lists each once", () => {
+    expect(HARD_RULES).toHaveLength(16);
+    expect(new Set(HARD_RULES).size).toBe(16);
   });
 
   it("is in the order §8 states the rules, with the two-check rules split where they split", () => {
@@ -24,6 +25,7 @@ describe("BUILD §8 — the hard rules are a closed, ordered list", () => {
       "no_invented_people",
       "no_unsourced_testimonial",
       "brand_gap",
+      "page_frame",
       "no_hidden_text",
       "no_machine_address",
       "near_duplicate",
@@ -51,6 +53,7 @@ describe("BUILD §8 — the hard rules are a closed, ordered list", () => {
       no_invented_people: true,
       no_unsourced_testimonial: true,
       brand_gap: true,
+      page_frame: true,
       no_hidden_text: true,
       no_machine_address: true,
       near_duplicate: true,

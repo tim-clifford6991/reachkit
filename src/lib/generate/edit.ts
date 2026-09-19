@@ -32,7 +32,8 @@ import { withDraftCost } from "./cost";
 import { claimCheck, type ClaimVerdict } from "./claims/check";
 import { readRecordedFact } from "./fact";
 import { buildComparisonSet } from "./pipeline/comparison";
-import { readFacts } from "./pipeline/grounding";
+import { readAllFacts } from "./pipeline/grounding";
+import { targetSearches } from "./pipeline/steps";
 import {
   readRecordedRules,
   readRecordedVerdict,
@@ -207,7 +208,10 @@ async function recheck(
 
     const { opportunityById } = await import("@/lib/opportunities");
     const opportunity = await opportunityById(row.opportunity_id);
-    const facts = await readFacts({ siteId: a.siteId, scanId: report.scanId });
+    // Uncapped: this is a lookup of the passage the row already records, not
+    // a set to choose from, and a recorded passage must be findable however
+    // deep the brief's own list had it (issue 900).
+    const facts = await readAllFacts({ siteId: a.siteId, scanId: report.scanId });
     const recordedFact = readRecordedFact(row.grounded_fact);
     const source =
       recordedFact === null ? undefined : facts.find((sourced) => sourced.fact.passage === recordedFact.passage);
@@ -225,7 +229,9 @@ async function recheck(
 
     const outcome = await runHardRules(cost, {
       markdown: a.bodyMd,
+      title: a.title,
       rendered: renderOf(a.bodyMd),
+      opportunityType: opportunity?.type ?? null,
       site: siteInputs,
       comparison: await buildComparisonSet({ siteId: a.siteId, exceptDraftId: a.draftId }),
       grounded:
@@ -236,10 +242,7 @@ async function recheck(
       brief: {
         facts: facts.map((sourced) => sourced.fact.passage),
         headings: headingsOf(stringAt(meta, "body_md_generated") ?? ""),
-        queries:
-          opportunity === null
-            ? []
-            : [...(opportunity.targetQuery === null ? [] : [opportunity.targetQuery]), ...opportunity.absorbedQueries],
+        queries: opportunity === null ? [] : targetSearches(opportunity),
       },
     });
     return { claim: outcome.claim, failed: recordedRulesValue(outcome), spentCents: cost.spentCents() };

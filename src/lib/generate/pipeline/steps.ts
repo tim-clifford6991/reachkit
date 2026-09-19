@@ -20,6 +20,13 @@
 // Each step passes the struct it was given, unchanged, plus its own task
 // text — there is no second channel through which a derived profile could
 // reach a model.
+//
+// **What the page is *for* is stated, per type** (SPEC §7, 2026-09-19, issue
+// 900). `PAGE_JOB` is carried by every prompt built here, and where the
+// target search is the market's question rather than the customer's own
+// brand, `FRAME_INSTRUCTION` is carried with it. Both are derived from the
+// closed struct — the opportunity's own type and target searches, against the
+// brand already in it — so neither is a new channel into a model.
 import { z } from "zod";
 import { ANSWER_FIRST_BLOCK_CHARS } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
@@ -27,9 +34,10 @@ import { llm, type LlmCallSite } from "@/lib/llm";
 import { unmeasured, type Measured } from "@/lib/measure/measured";
 import type { Acceptance, Opportunity } from "@/lib/opportunities/types";
 import { REGISTER_FLOOR } from "../rules/figures";
+import { FRAME_INSTRUCTION, answersMarketQuestion } from "../rules/frame";
 import type { DraftPromptInputs } from "../voice/inputs";
 import type { AnswerabilityOps } from "./answerability";
-import { SECTION_TASK, type SectionRole } from "./skeletons";
+import { PAGE_JOB, SECTION_TASK, type SectionRole } from "./skeletons";
 
 /** §8's five steps, closed. `claim_check` is the fifth and is run by
  *  `claims/check.ts`; it is a member here because a caller reporting "which
@@ -100,6 +108,13 @@ export interface BriefProjection {
   doNotClaim: readonly string[];
   voice: string | null;
   acceptance: string;
+  /** What a page of this type is for (issue 900). `null` for a type that
+   *  writes no body. */
+  pageJob: string | null;
+  /** The frame instruction, where the target is the market's question, and
+   *  `null` where it is the customer's own. A fixed sentence either way — it
+   *  names no business, so the brief still learns nothing of one. */
+  frame: string | null;
 }
 
 /** The acceptance test as one line the model can aim at. Model-facing only. */
@@ -116,11 +131,23 @@ function acceptanceText(acceptance: Acceptance): string {
   }
 }
 
+/** The target search and every search the row absorbed — what the page is
+ *  written for, as the prompt, the frame rule and the battery all read it. */
+export function targetSearches(opportunity: Opportunity): string[] {
+  return [
+    ...(opportunity.targetQuery === null ? [] : [opportunity.targetQuery]),
+    ...opportunity.absorbedQueries,
+  ];
+}
+
 export function briefProjection(a: {
   opportunity: Opportunity;
   facts: readonly string[];
   doNotClaim: readonly string[];
   voice: string | null;
+  /** Whether the target is the market's question — decided by the caller,
+   *  which holds the brand this projection deliberately does not. */
+  marketQuestion: boolean;
 }): BriefProjection {
   const o = a.opportunity;
   return {
@@ -132,6 +159,8 @@ export function briefProjection(a: {
     doNotClaim: a.doNotClaim,
     voice: a.voice,
     acceptance: acceptanceText(o.acceptance),
+    pageJob: PAGE_JOB[o.type],
+    frame: a.marketQuestion ? FRAME_INSTRUCTION : null,
   };
 }
 
@@ -163,6 +192,18 @@ function promptFor(
     domain: inputs.domain,
     category: inputs.category,
     opportunity: inputs.opportunity,
+    // SPEC §7 (2026-09-19, issue 900): what this page is for, and — where
+    // the search is the market's question and not this business's own — that
+    // the business is one option in it and never its frame.
+    pageJob: PAGE_JOB[inputs.opportunity.type],
+    frame: answersMarketQuestion({
+      opportunityType: inputs.opportunity.type,
+      queries: targetSearches(inputs.opportunity),
+      businessName: inputs.businessName,
+      domain: inputs.domain,
+    })
+      ? FRAME_INSTRUCTION
+      : null,
     grounded: {
       url: inputs.grounded.url,
       readAt: inputs.grounded.readAt.toISOString(),
@@ -179,6 +220,7 @@ function promptFor(
  *  respected if asked. */
 const HOUSE_RULES = [
   "Answer the reader's question before naming the business; its name and domain must not appear in the first 300 characters.",
+  "Do the job `pageJob` states; where `frame` is given it binds, and the page's subject is the reader's question and the options in it, never this business.",
   "State only the facts supplied about the business, each word for word and linked to its source url.",
   "Never invent a byline, an author biography, a persona, a quotation, a testimonial or a review.",
   "Never state a figure about a competitor without linking the public page it was read from.",
@@ -210,7 +252,8 @@ export function brief(c: CostContext, projection: BriefProjection): Promise<Meas
     schema: BRIEF_SCHEMA,
     input: {
       task:
-        "Write the brief for one page answering the target search: the question a " +
+        "Write the brief for one page answering the target search, doing the job " +
+        "`pageJob` states and obeying `frame` where one is given: the question a " +
         "reader arrives with, the angle that answers it, and the points the page must " +
         "cover. Choose the facts the page will state by their index in `facts`; you " +
         "cannot write a fact of your own.",
@@ -254,7 +297,8 @@ export function draft(
     schema: DRAFT_SCHEMA,
     input: promptFor(
       "Write the page from the outline: each section under its heading, exactly as given, " +
-        "doing what its task says. State only the facts supplied, word for word.",
+        "doing what its task says and what `pageJob` says the page is for. State only the " +
+        "facts supplied, word for word.",
       inputs,
       {
         brief: a.brief,

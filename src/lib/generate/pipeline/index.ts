@@ -37,6 +37,7 @@
 // **The hard rules bind what ReachKit generates, never what the customer
 // writes.** This function is on the generation path only; an edit the
 // customer saves does not come through here.
+import { BRIEF_MAX_FACTS } from "@/lib/config/constants";
 import type { CostContext } from "@/lib/costs";
 import type { Opportunity } from "@/lib/opportunities";
 import { readRecordedFact, recordedFactValue } from "../fact";
@@ -51,8 +52,9 @@ import type { LinkTarget } from "../links/select";
 import { buildPromptInputs } from "../voice/inputs";
 import { buildComparisonSet } from "./comparison";
 import { applyAnswerability } from "./answerability";
-import { readFacts } from "./grounding";
+import { readAllFacts } from "./grounding";
 import { SKELETONS } from "./skeletons";
+import { answersMarketQuestion } from "../rules/frame";
 import {
   answerability,
   brief,
@@ -60,6 +62,7 @@ import {
   draft,
   outline,
   selectedFactIndexes,
+  targetSearches,
   type PipelineStep,
 } from "./steps";
 
@@ -130,7 +133,14 @@ export async function generateDraft(
   //    page or the draft does not ship. A site with nothing readable fails
   //    hard rule 1 — and it fails it here, before a cent is spent writing a
   //    page that cannot pass.
-  const facts = await readFacts({ siteId: a.siteId, scanId: a.scanId });
+  // The pages that speak to the target search are offered first, and the
+  // pages are taken in turn rather than one page emptied before the next, so
+  // the brief chooses among facts from across the site (issue 900). `all` is
+  // uncapped only so a passage an earlier attempt pinned can still be found;
+  // `facts` is what the brief is handed.
+  const searches = targetSearches(a.opportunity);
+  const all = await readAllFacts({ siteId: a.siteId, scanId: a.scanId, target: searches[0] });
+  const facts = all.slice(0, BRIEF_MAX_FACTS);
   if (facts.length === 0) return noFact(a.siteId);
 
   // The page's shape is its type's, never the model's (issue 475).
@@ -147,6 +157,12 @@ export async function generateDraft(
       facts: facts.map((sourced) => sourced.fact.passage),
       doNotClaim: a.site.doNotClaim,
       voice: a.voiceText,
+      marketQuestion: answersMarketQuestion({
+        opportunityType: a.opportunity.type,
+        queries: searches,
+        businessName: a.site.businessName,
+        domain: a.site.domain,
+      }),
     })
   );
   if (briefResult.kind === "unmeasured") return stepFailed(a.siteId, "brief", a.draftId);
@@ -156,7 +172,7 @@ export async function generateDraft(
   // on that row.
   const existing = a.draftId === undefined ? null : await store.draftById(a.draftId);
   const recorded = existing === null ? null : readRecordedFact(existing.grounded_fact);
-  const pinned = recorded === null ? undefined : facts.find((sourced) => sourced.fact.passage === recorded.passage);
+  const pinned = recorded === null ? undefined : all.find((sourced) => sourced.fact.passage === recorded.passage);
   if (existing !== null && recorded !== null && pinned === undefined) return lostFact(a.siteId, existing);
   const selected = pinned === undefined ? chosen : [pinned, ...chosen.filter((sourced) => sourced !== pinned)];
   const grounding = selected[0];
@@ -247,7 +263,9 @@ export async function generateDraft(
   const comparison = await buildComparisonSet({ siteId: a.siteId, exceptDraftId: draftId });
   const outcome = await runHardRules(c, {
     markdown: body.bodyMarkdown,
+    title: body.title,
     rendered,
+    opportunityType: a.opportunity.type,
     site: a.site,
     comparison,
     grounded: grounding.fact,
@@ -255,10 +273,7 @@ export async function generateDraft(
     brief: {
       facts: passages,
       headings: outlineResult.value.sections.map((section) => section.heading),
-      queries: [
-        ...(a.opportunity.targetQuery === null ? [] : [a.opportunity.targetQuery]),
-        ...a.opportunity.absorbedQueries,
-      ],
+      queries: searches,
     },
   });
 

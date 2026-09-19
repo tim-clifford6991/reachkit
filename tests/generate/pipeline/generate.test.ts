@@ -25,6 +25,8 @@ import {
   siteInputs,
   type MemoryStore,
 } from "../fixtures";
+import { FRAME_INSTRUCTION } from "../../../src/lib/generate/rules/frame";
+import { PAGE_JOB } from "../../../src/lib/generate/pipeline/skeletons";
 
 const { llmMock, readMeasuredTextMock } = vi.hoisted(() => ({
   llmMock: vi.fn(),
@@ -272,5 +274,92 @@ describe("the comparison set is this customer's alone", () => {
     for (const call of readMeasuredTextMock.mock.calls) {
       expect(call[0]).toMatchObject({ siteId: SITE_ID });
     }
+  });
+});
+
+// SPEC §7 (2026-09-19, issue 900) — a page answers the question it targets.
+//
+// Through the real pipeline, with the model doubled and no live call: what
+// reaches the prompt for a page on a market question, and what the brief is
+// given to choose facts from.
+describe("a page answers the question it targets (issue 900)", () => {
+  const LISTED = opportunity({
+    type: "listed_page",
+    family: "earn",
+    targetQuery: "best ai seo software",
+    targetRef: "best-ai-seo-software",
+    acceptance: { form: "top20", query: "best ai seo software" },
+  });
+
+  /** The input the nth `llm()` call was made with. 0 is the brief, 2 the
+   *  draft — the pipeline's own order. */
+  function promptOf(index: number): Record<string, unknown> {
+    return llmMock.mock.calls[index]?.[1].input as Record<string, unknown>;
+  }
+
+  it("the brief prompt carries the type's job and the frame instruction", async () => {
+    primeSteps(CLEAN_MARKDOWN);
+    await run({ opportunity: LISTED });
+    expect(promptOf(0).pageJob).toBe(PAGE_JOB.listed_page);
+    expect(promptOf(0).frame).toBe(FRAME_INSTRUCTION);
+  });
+
+  it("the draft prompt carries them too — the instruction is not dropped after the brief", async () => {
+    primeSteps(CLEAN_MARKDOWN);
+    await run({ opportunity: LISTED });
+    expect(promptOf(2).pageJob).toBe(PAGE_JOB.listed_page);
+    expect(promptOf(2).frame).toBe(FRAME_INSTRUCTION);
+  });
+
+  it("a target that names the business carries the job but no frame instruction — it is their own question", async () => {
+    primeSteps(CLEAN_MARKDOWN);
+    await run({
+      opportunity: opportunity({ ...LISTED, targetQuery: "acme pricing", absorbedQueries: [] }),
+    });
+    expect(promptOf(0).pageJob).toBe(PAGE_JOB.listed_page);
+    expect(promptOf(0).frame).toBeNull();
+  });
+
+  it("the grounding offered is not only the pricing page", async () => {
+    readMeasuredTextMock.mockResolvedValue([
+      {
+        url: "https://example.com/guides/choosing",
+        text:
+          "Choosing ai seo software starts with counting the people who will open it every day. " +
+          "The software a small team picks is rarely the software a fifty-person team would pick.",
+        measuredAt: AT,
+      },
+      {
+        url: GROUNDED.url,
+        text: Array.from(
+          { length: 12 },
+          (_, index) => `The starter plan includes seat number ${index + 1} and the projects that come with it.`
+        ).join(" "),
+        measuredAt: new Date(AT.getTime() + 60_000),
+      },
+    ]);
+    primeSteps(CLEAN_MARKDOWN);
+    await run({ opportunity: LISTED });
+    const facts = promptOf(0).facts as string[];
+    expect(facts.some((fact) => fact.startsWith("Choosing ai seo software"))).toBe(true);
+    expect(facts.some((fact) => fact.startsWith("The starter plan includes"))).toBe(true);
+  });
+
+  it("a draft that makes the seller its subject is stopped by `page_frame` and nothing else is weakened", async () => {
+    const advert = [
+      "The best ai seo software closes the gap between what buyers ask and what a site",
+      "answers, and the place to start is measuring where you already appear today.",
+      "",
+      "## What the options are",
+      "",
+      "Acme measures where answers send buyers to rivals instead of you. Acme then",
+      "writes one page a day to change that, and Acme publishes it on your own domain.",
+    ].join("\n");
+    primeSteps(advert);
+    const outcome = await run({ opportunity: LISTED });
+    expect(outcome.ok).toBe(false);
+    expect(outcome.ok === false && outcome.reason === "rules" && outcome.failed.map((f) => f.rule)).toContain(
+      "page_frame"
+    );
   });
 });
