@@ -37,7 +37,11 @@ beforeEach(async () => {
 function run(markdown: string, over: Parameters<typeof siteInputs>[0] = {}) {
   return runHardRules(fakeCost(), {
     markdown,
+    // The frame rule reads the title and the opportunity's type; this suite
+    // is about the battery's shape, so it runs pages whose frame is fine.
+    title: "Which tool should a small team pick?",
     rendered: renderOf(markdown),
+    opportunityType: "answer_page",
     site: siteInputs(over),
     comparison: emptyComparison(),
     grounded: GROUNDED,

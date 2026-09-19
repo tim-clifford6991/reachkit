@@ -37,6 +37,7 @@ const PROJECTION = briefProjection({
   facts: [GROUNDED.passage],
   doNotClaim: ["HIPAA compliant"],
   voice: "Plain and direct.",
+  marketQuestion: true,
 });
 
 const INPUTS = buildPromptInputs({
@@ -91,7 +92,10 @@ describe("the prompt's whole knowledge of the customer is the closed struct", ()
     await steps.brief(fakeCost(), PROJECTION);
     const input = llmMock.mock.calls[0]?.[1].input as Record<string, unknown>;
     expect(Object.keys(input).sort()).toEqual(
-      ["task", "cluster", "type", "target", "absorbedQueries", "facts", "doNotClaim", "voice", "acceptance"].sort()
+      // `pageJob` and `frame` (issue 900) are fixed instruction text chosen
+      // by the opportunity's type and by whether the target names the brand
+      // — two known sentences, never a value of the customer's.
+      ["task", "cluster", "type", "target", "absorbedQueries", "facts", "doNotClaim", "voice", "acceptance", "pageJob", "frame"].sort()
     );
     expect(input.voice).toBe("Plain and direct.");
     expect(input.facts).toEqual([GROUNDED.passage]);
@@ -112,7 +116,10 @@ describe("the prompt's whole knowledge of the customer is the closed struct", ()
     // struct; the rest are this step's own task text and its upstream
     // artifacts, which carry nothing about the customer.
     const customerKeys = Object.keys(input).filter(
-      (key) => !["task", "rules", "brief", "outline", "body", "sections", "facts"].includes(key)
+      // `pageJob` and `frame` join this list, not the allowed struct keys:
+      // they are this step's own instruction text (issue 900), fixed
+      // sentences carrying nothing of the customer's.
+      (key) => !["task", "rules", "brief", "outline", "body", "sections", "facts", "pageJob", "frame"].includes(key)
     );
     const allowed = new Set([...Object.keys(DRAFT_PROMPT_KEYS), "voice"]);
     for (const key of customerKeys) expect(allowed.has(key)).toBe(true);

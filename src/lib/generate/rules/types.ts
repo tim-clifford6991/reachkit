@@ -7,7 +7,8 @@
 // rival sourcing are joined by the register of figures only ReachKit holds,
 // which is the same promise ("every figure a reader meets is one they can
 // open a source for") applied to the customer's own numbers. Issue 475 adds
-// five more that read the brief — fifteen in all.
+// five more that read the brief, and issue 900 adds `page_frame` — the one
+// rule about stance rather than about a claim — sixteen in all.
 //
 // Nothing in this file computes and nothing in it speaks: it is types plus
 // one frozen list, so an eleventh rule is a compile error at every call
@@ -21,7 +22,7 @@
 import type { Opportunity } from "@/lib/opportunities";
 import type { StoredReport } from "@/lib/scan/report";
 
-/** The fifteen checks, in the order they run. `do_not_claim` is §8's fourth
+/** The sixteen checks, in the order they run. `do_not_claim` is §8's fourth
  *  rule and lives in `../claims/`; every other member is a deterministic
  *  pass over finished text in this directory. */
 export type HardRule =
@@ -31,6 +32,10 @@ export type HardRule =
   | "no_invented_people"
   | "no_unsourced_testimonial"
   | "brand_gap"
+  /** SPEC §7 (2026-09-19, issue 900): the page's stance, beside `brand_gap`'s
+   *  opening bound, because they are the same promise at two scales — the
+   *  reader's question comes first, and stays first. */
+  | "page_frame"
   | "no_hidden_text"
   | "no_machine_address"
   | "near_duplicate"
@@ -52,6 +57,7 @@ export const HARD_RULES: readonly HardRule[] = Object.freeze([
   "no_invented_people",
   "no_unsourced_testimonial",
   "brand_gap",
+  "page_frame",
   "no_hidden_text",
   "no_machine_address",
   "near_duplicate",

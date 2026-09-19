@@ -1,7 +1,7 @@
 // BUILD §8 — the hard-rule battery.
 //
 // §8's rules are "enforced in code, not prompts", and this is the one place
-// they are all run. Fourteen of the fifteen are deterministic passes over finished
+// they are all run. Fifteen of the sixteen are deterministic passes over finished
 // text and cost nothing; the last is the do-not-claim check, which owns
 // its own module and is called from here rather than re-implemented.
 //
@@ -30,6 +30,7 @@ import {
   type BriefRuleInputs,
 } from "./brief";
 import { checkBrandGap } from "./brandgap";
+import { checkPageFrame } from "./frame";
 import { buildPrivateFigureRegister, checkPrivateFigure } from "./figures";
 import { checkGrounding } from "./grounding";
 import { checkHiddenText } from "./hidden";
@@ -39,6 +40,7 @@ import { checkInventedPeople, checkUnsourcedTestimonial } from "./people";
 import { checkRivalSource } from "./rivals";
 import { HARD_RULES } from "./types";
 import type { ComparisonSet, GroundedFact, HardRule, RuleFailure, SiteRuleInputs } from "./types";
+import type { OpportunityType } from "@/lib/opportunities/types";
 
 export type BatteryOutcome =
   | { passed: true; claim: ClaimVerdict }
@@ -60,8 +62,15 @@ export async function runHardRules(
   c: CostContext,
   a: {
     markdown: string;
+    /** The title as written. The frame rule reads it: a title is the first
+     *  place a page announces whose story it is (issue 900). */
+    title: string;
     /** What a reader of the published page meets. */
     rendered: string;
+    /** The type of the opportunity the page answers, which decides whether
+     *  the frame rule applies at all. `null` where the caller holds no row
+     *  for it — and then that rule decides nothing (issue 900). */
+    opportunityType: OpportunityType | null;
     site: SiteRuleInputs;
     comparison: ComparisonSet;
     grounded: GroundedFact | null;
@@ -78,14 +87,14 @@ export async function runHardRules(
     opportunities: a.site.opportunities,
   });
 
-  // The fourteen deterministic arms, keyed by the rule they answer for, so the
+  // The fifteen deterministic arms, keyed by the rule they answer for, so the
   // battery is assembled in `HARD_RULES` order below rather than in
   // whatever order the calls happen to be written in.
   //
   // **Total, not partial** (issue #424). A rule with no arm here would be
   // read as one that failed nothing — by the loop below, which is how
   // `passed` is decided, and by the record the draft view's Checks list is
-  // drawn from. Spelling the fourteen as a total record makes an undecided rule
+  // drawn from. Spelling the fifteen as a total record makes an undecided rule
   // a compile error rather than a pass the product hands out for free.
   const deterministic: Record<Exclude<HardRule, "do_not_claim">, RuleFailure | null> = {
     grounding: checkGrounding({ grounded: a.grounded, sourceText: a.sourceText }),
@@ -100,6 +109,15 @@ export async function runHardRules(
       rendered: a.rendered,
       businessName: a.site.businessName,
       domain: a.site.domain,
+    }),
+    page_frame: checkPageFrame({
+      title: a.title,
+      markdown: a.markdown,
+      rendered: a.rendered,
+      businessName: a.site.businessName,
+      domain: a.site.domain,
+      opportunityType: a.opportunityType,
+      queries: a.brief.queries,
     }),
     no_hidden_text: checkHiddenText({ markdown: a.markdown }),
     no_machine_address: checkMachineAddress({ rendered: a.rendered }),
