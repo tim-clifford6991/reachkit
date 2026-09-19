@@ -2,10 +2,17 @@
 //
 // §11's `weekly/refresh` re-measures every active site each Monday. What
 // that re-measurement finds becomes supply here: additive only. This
-// dismisses nothing, deletes nothing, re-ranks nothing and re-derives
-// nothing that already exists — a re-derived target lands on the partial
-// unique index and is counted as a duplicate, so two runs of the same
-// week's top-up leave exactly the same supply.
+// deletes nothing, re-ranks nothing and re-derives nothing that already
+// exists — a re-derived target lands on the partial unique index and is
+// counted as a duplicate, so two runs of the same week's top-up leave
+// exactly the same supply.
+//
+// **Additive is about rows added, not about rows never closed.** The
+// derivation's own cluster collapse has always closed a row that lost its
+// parent topic, and issue 903 adds the second case: a row from a report this
+// week's measurement has superseded, on a topic this week covered and
+// proposed nothing for, is dismissed. Both are decisions of the measurement
+// this pass just ran, and neither is reached without one.
 //
 // Access ended, nothing runs. A site whose access has lapsed gets no
 // top-up and no derivation, the same shape re-measurement itself takes.

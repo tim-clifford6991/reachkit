@@ -12,12 +12,22 @@
 // worth stating, because each is a decision a later reader could mistake
 // for an accident:
 //
-//   1. **Rows one and two hold more than one handle each.** Reading the
+//   1. **Rows one and three hold more than one handle each.** Reading the
 //      site, reading its access rules and reading the market are all
-//      "measuring your market" to the founder; the customer's own presence
-//      and the twelve live SERPs are where rivals are seen, so both are
-//      "sizing your rivals". This is the many-to-one the drawing asks for,
-//      and it is why the screen shows five rows and not six.
+//      "measuring your market" to the founder; asking the twelve and
+//      scoring what came back are both "finding pages worth writing". This
+//      is the many-to-one the drawing asks for, and it is why the screen
+//      shows five rows and not six.
+//
+//      **`asking_the_twelve` sat on row two until issue 903**, so through
+//      the longest stretch of a pass — twelve live SERPs — the founder read
+//      "Sizing your rivals" while the pass was buying question SERPs and
+//      `sites.setup_stage` said `asking_the_twelve`. The owner read that as
+//      a stuck pass. The stage the pass wrote was right and the row it was
+//      drawn on was wrong: rivals are sized by `checking_your_presence`
+//      (`sizeTrackedRivals`, SPEC §6.6) and by nothing else, and the twelve
+//      are bought to decide which pages are worth writing. So row two holds
+//      the sizing handle alone and the twelve moved to row three.
 //   2. **Rows four and five hold no handle.** The engine's six end at
 //      `scoring`; writing the page and checking it are §8's and §9's. Row
 //      four lights for the first draft, which the pass writes before it
@@ -62,8 +72,8 @@ export const ROW_STAGES: Readonly<Record<DrawnRow, readonly StageName[]>> = Obje
     "reading_access_rules",
     "reading_your_market",
   ] as const),
-  sizing_your_rivals: Object.freeze(["checking_your_presence", "asking_the_twelve"] as const),
-  finding_pages: Object.freeze(["scoring"] as const),
+  sizing_your_rivals: Object.freeze(["checking_your_presence"] as const),
+  finding_pages: Object.freeze(["asking_the_twelve", "scoring"] as const),
   writing_your_first_page: Object.freeze([] as const),
   checking_it: Object.freeze([] as const),
 });
@@ -97,7 +107,7 @@ export interface DrawnStage {
  * is what keeps the screen from drawing a duration nobody measured.
  *
  * A row that has finished is timed from its own first handle to the next
- * *drawn* row's first handle, so rows one and two are timed across the
+ * *drawn* row's first handle, so rows one and three are timed across the
  * several handles they hold rather than across one of them.
  */
 export function drawnStages(a: {

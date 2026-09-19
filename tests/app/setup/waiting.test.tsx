@@ -58,10 +58,15 @@ describe('c1 — "they see which step is under way in written words rather than 
       enteredAt: {
         reading_your_site: "2026-09-05T09:31:00.000Z",
         checking_your_presence: "2026-09-05T09:31:41.000Z",
+        asking_the_twelve: "2026-09-05T09:31:44.000Z",
         scoring: "2026-09-05T09:31:59.000Z",
       },
     });
-    expect(drawn.map((row) => row.seconds)).toEqual([41, 18, null, null, null]);
+    // Row three opens at `asking_the_twelve` (issue 903), so the sizing row
+    // is timed across the sizing and nothing else — three seconds here,
+    // which is what a pass whose thin market sized its rivals inside
+    // `reading_your_market` actually spends on this stage.
+    expect(drawn.map((row) => row.seconds)).toEqual([41, 3, null, null, null]);
   });
 });
 
