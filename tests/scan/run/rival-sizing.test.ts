@@ -3,9 +3,14 @@
 // The pipeline sizes the customer's tracked rivals, at the two tiers whose
 // parameters say so and at no other. Two mutations this suite exists to
 // kill: a free pass that buys per-rival `ranked_keywords` (§6.4's
-// never-pull list, and the free cap is 12¢), and a pass that stores a
-// measured sizing for a site whose rivals it could not read — which would
-// tell §7's winnability that every rival is small.
+// never-pull list, and the free cap is 12¢), and a pass that invents an
+// entry for a tracked rival it could not read — which would tell §7's
+// winnability that a rival is small on no evidence.
+//
+// The *other* half of `rivalSizes` — the domains the pass's own twelve top
+// tens hold (issue 901) — is `serp-rival-sizing.test.ts`'s. It shows up
+// here only where a case leaves the tracked half empty, and the
+// assertions below say which entries are whose.
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -203,11 +208,20 @@ describe("a paid pass sizes the rivals the customer chose", () => {
     }
   });
 
-  it("a customer who tracks none is a measured zero, not an unmeasured sizing", async () => {
+  it("a customer who tracks none has no entry of their own — and the pass still sizes its own SERPs' domains (issue 901)", async () => {
     trackedRivals.mockResolvedValue([]);
     await runScan({ domain: DOMAIN, tier: "deep", siteId: SITE });
-    expect(storedReport().rivalSizes.kind).toBe("zero");
-    expect(rankedKeywords).not.toHaveBeenCalled();
+    // The tracked half is an honest empty: nothing here is a claim about a
+    // rival the customer chose, because they chose none. What the member
+    // carries is the domains this pass's own top ten holds, which is where
+    // its questions are banded (issue 901) — `SERP`'s two.
+    const sizes = storedReport().rivalSizes;
+    const entries = sizes.kind === "unmeasured" ? [] : sizes.value;
+    expect(entries.map((entry) => entry.domain)).toEqual(["appcues.com", "userpilot.com"]);
+    expect(rankedKeywords.mock.calls.map((call) => (call[1] as { domain: string }).domain)).toEqual([
+      "appcues.com",
+      "userpilot.com",
+    ]);
   });
 
   it("the weekly pass sizes too — §6.3 puts rival rows in both paid tiers", async () => {
@@ -284,24 +298,37 @@ describe("REQ-096 c4 — an unmeasurable rival is carried forward, never demoted
 });
 
 describe("what could not be read is never stored as a measurement", () => {
-  it("a site whose row is not there leaves the sizing unmeasured", async () => {
+  // Issue 901 gave the member a second half — the domains the pass's own
+  // twelve top tens hold — and that half is measured on its own evidence.
+  // So these three no longer read "the member is unmeasured"; what they
+  // hold is the thing they were written for, which is that a tracked read
+  // that failed invents no entry about the customer's own set. `SERP`'s
+  // two domains are the SERP half and are all that may appear.
+  const FROM_OUR_OWN_SERPS = ["appcues.com", "userpilot.com"];
+
+  it("a site whose row is not there says nothing about that customer's rivals", async () => {
     trackedRivals.mockResolvedValue(null);
     await runScan({ domain: DOMAIN, tier: "deep", siteId: SITE });
-    expect(storedReport().rivalSizes.kind).toBe("unmeasured");
-    expect(rankedKeywords).not.toHaveBeenCalled();
+    const sizes = storedReport().rivalSizes;
+    const entries = sizes.kind === "unmeasured" ? [] : sizes.value;
+    expect(entries.map((entry) => entry.domain)).toEqual(FROM_OUR_OWN_SERPS);
   });
 
-  it("a read that raised leaves the sizing unmeasured and the pass carries on", async () => {
+  it("a read that raised says nothing about that customer's rivals, and the pass carries on", async () => {
     trackedRivals.mockRejectedValue(new Error("connection reset"));
     const result = await runScan({ domain: DOMAIN, tier: "deep", siteId: SITE });
     expect(result.status).not.toBe("failed");
-    expect(storedReport().rivalSizes.kind).toBe("unmeasured");
+    const sizes = storedReport().rivalSizes;
+    const entries = sizes.kind === "unmeasured" ? [] : sizes.value;
+    expect(entries.map((entry) => entry.domain)).toEqual(FROM_OUR_OWN_SERPS);
   });
 
-  it("a paid pass with no site sizes nothing — there are no tracked rivals without one", async () => {
+  it("a paid pass with no site reads no tracked rivals — there are none without one", async () => {
     await runScan({ domain: DOMAIN, tier: "deep" });
     expect(trackedRivals).not.toHaveBeenCalled();
-    expect(storedReport().rivalSizes.kind).toBe("unmeasured");
+    const sizes = storedReport().rivalSizes;
+    const entries = sizes.kind === "unmeasured" ? [] : sizes.value;
+    expect(entries.map((entry) => entry.domain)).toEqual(FROM_OUR_OWN_SERPS);
   });
 
   it("the customer's own count that could not be read is unmeasured, never a 0 in the blob", async () => {

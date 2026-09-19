@@ -2,8 +2,8 @@
 //
 // The archived plan is WO-087. Every rival the customer chose gets exactly
 // one entry, in the order they were handed in: sized with its counts, its
-// date and whether that measurement is current, or unsized for one of two
-// named reasons. **There is no code path in this module that filters,
+// date and whether that measurement is current, or unsized for one of
+// `RivalUnsizedReason`'s named reasons. **There is no code path in this module that filters,
 // reorders, excludes, hides or truncates a rival** — that absence is how
 // REQ-096 c7 is held ("no band ever removes a rival, hides it, drops it
 // from a comparison, or stops it being measured"), and the property test
@@ -44,9 +44,9 @@ import { bandRivalSize, type RivalSizeBand } from "./band";
 // The shape lives one file over so a screen can name it without pulling
 // the vendor client this module imports (issue #223). Re-exported here so
 // every existing `from "./size"` is unchanged.
-import type { RivalSize } from "./rival-size";
+import type { RivalSize, RivalUnsizedReason } from "./rival-size";
 
-export type { RivalSize } from "./rival-size";
+export type { RivalSize, RivalUnsizedReason } from "./rival-size";
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -86,6 +86,12 @@ export function dueForResizing(a: { lastMeasuredAt?: Date; now: Date }): boolean
  *   - `previous` was not supplied at all → no pass has run for this
  *     customer, so it is `awaiting_deep_pass`.
  *
+ * `neverSizedBecause` overrides that last pair, and only that pair: a
+ * rival `previous` already carries is still carried forward unchanged
+ * (REQ-096 c4). It exists for issue 901's second caller — the domains a
+ * pass's own twelve top tens hold, which are not a customer's choices and
+ * whose unsized entries must not read as a statement about them.
+ *
  * The returned `Measured` is `zero` for an empty rival set and `measured`
  * otherwise, and never `unmeasured`: the array is always a complete,
  * honest value — one entry per rival, each stating for itself whether it
@@ -100,6 +106,10 @@ export async function sizeRivals(
     ownRanked: number;
     at: Date;
     previous?: readonly RivalSize[];
+    /** What a domain this call could not size says, where no entry in
+     *  `previous` carries it (issue 901). Defaults to the pair `previous`
+     *  decides, above. */
+    neverSizedBecause?: RivalUnsizedReason;
     /** Handed each rival's rows as they are read (#778): the rows this call
      *  already buys, so SPEC §6's thin-market pool reuses them rather than
      *  buying them again. Not called for a rival that was not read. */
@@ -116,13 +126,13 @@ export async function sizeRivals(
     // A rival reached after the ceiling is not measured; it keeps what it
     // had, exactly as one whose fetch failed does.
     if (c.capHit()) {
-      entries.push(carriedForward(domain, before, a.previous !== undefined));
+      entries.push(carriedForward(domain, before, a.previous !== undefined, a.neverSizedBecause));
       continue;
     }
 
     const rows = await rankedKeywords(c, { domain, rows: PRICE_BOOK.RANKED_RIVAL_ROWS });
     if (rows.kind === "unmeasured") {
-      entries.push(carriedForward(domain, before, a.previous !== undefined));
+      entries.push(carriedForward(domain, before, a.previous !== undefined, a.neverSizedBecause));
       continue;
     }
     a.onRows?.(domain, rows.value.rows);
@@ -153,14 +163,15 @@ export async function sizeRivals(
 function carriedForward(
   domain: string,
   before: RivalSize | undefined,
-  hadPreviousPass: boolean
+  hadPreviousPass: boolean,
+  neverSizedBecause?: RivalUnsizedReason
 ): RivalSize {
   if (before?.state === "sized") return { ...before, current: false };
   if (before?.state === "unsized") return before;
   return {
     domain,
     state: "unsized",
-    because: hadPreviousPass ? "added_since_last_sizing" : "awaiting_deep_pass",
+    because: neverSizedBecause ?? (hadPreviousPass ? "added_since_last_sizing" : "awaiting_deep_pass"),
   };
 }
 

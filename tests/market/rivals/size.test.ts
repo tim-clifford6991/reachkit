@@ -212,6 +212,52 @@ describe('REQ-096 c4 — "the last measured band is shown with that earlier date
   });
 });
 
+describe("issue 901 — a caller may name what its own unmeasured domains say", () => {
+  it("size/never-sized-because — a purse that ran out says so, rather than borrowing a reason about a customer's set", async () => {
+    rankedMock.mockResolvedValue(rows(5));
+    const out = await sizeRivals(fakeCostContext({ capHit: true }), {
+      rivals: ["from-our-serp.com"],
+      ownRanked: 3,
+      at: AT,
+      neverSizedBecause: "budget_reached",
+    });
+
+    expect(rankedMock).not.toHaveBeenCalled();
+    const entry = out.kind === "unmeasured" ? undefined : out.value[0];
+    expect(entry).toEqual({ domain: "from-our-serp.com", state: "unsized", because: "budget_reached" });
+  });
+
+  it("size/never-sized-because-does-not-touch-a-carried-entry — REQ-096 c4 still decides a rival we have measured", async () => {
+    const before: RivalSize = {
+      domain: "known.com",
+      state: "sized",
+      rankedCount: 40,
+      countIs: "total",
+      band: "near",
+      at: EARLIER,
+      current: true,
+    };
+    rankedMock.mockResolvedValue(failed());
+    const out = await sizeRivals(fakeCostContext(), {
+      rivals: ["known.com"],
+      ownRanked: 3,
+      at: AT,
+      previous: [before],
+      neverSizedBecause: "budget_reached",
+    });
+
+    const entry = out.kind === "unmeasured" ? undefined : out.value[0];
+    expect(entry).toEqual({ ...before, current: false });
+  });
+
+  it("size/default-is-unchanged — a caller that names nothing gets the two reasons `previous` decides", async () => {
+    rankedMock.mockResolvedValue(failed());
+    const out = await sizeRivals(fakeCostContext(), { rivals: ["a.com"], ownRanked: 0, at: AT });
+    const entry = out.kind === "unmeasured" ? undefined : out.value[0];
+    expect(entry).toEqual({ domain: "a.com", state: "unsized", because: "awaiting_deep_pass" });
+  });
+});
+
 describe('REQ-096 c5 and c7 — "no band ever removes a rival, hides it, drops it from a comparison, or stops it being measured"', () => {
   it("size/unsized-is-a-state-not-a-blank — both reasons come back as discriminated arms, never null or a hole", async () => {
     rankedMock.mockResolvedValue(failed());
