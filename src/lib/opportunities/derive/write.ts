@@ -131,8 +131,9 @@ export function writeCandidates(a: WriteInput): DerivationResult {
       at
     );
     // The search's own difficulty, where the vendor measured one (issue
-    // 858): a long-tail SERP's small domains are never sized, and without
-    // it a cold-start site's winnable searches read as an unmeasured top ten.
+    // 858): it reads a top ten the counts could not, and it still does
+    // where a pass's purse could not size every domain its own SERPs hold
+    // (issue 901).
     const sizing = {
       top10RankedCounts,
       ownRanked: a.ownRanked,

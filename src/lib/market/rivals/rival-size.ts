@@ -18,6 +18,20 @@
 import type { RivalSizeBand } from "./band";
 
 /**
+ * Why a rival carries no count.
+ *
+ * `awaiting_deep_pass` and `added_since_last_sizing` are what the
+ * tracked-rival sizing decides from the last pass's own entries
+ * (`size.ts`). `budget_reached` is issue 901's: a pass sizes the domains
+ * its own twelve top tens hold, and where the money for that ran out the
+ * report says the candidate is unsized rather than borrowing a reason
+ * about a customer's choices it is not about. No surface renders any of
+ * the three — they are a state's reason, and the offer
+ * (`swapOffer`) reads `state` alone.
+ */
+export type RivalUnsizedReason = "awaiting_deep_pass" | "added_since_last_sizing" | "budget_reached";
+
+/**
  * One tracked rival's size, or the named reason it has none.
  *
  * The `unsized` arm carries **no** band and **no** count, so no surface
@@ -54,5 +68,5 @@ export type RivalSize =
   | {
       domain: string;
       state: "unsized";
-      because: "awaiting_deep_pass" | "added_since_last_sizing";
+      because: RivalUnsizedReason;
     };

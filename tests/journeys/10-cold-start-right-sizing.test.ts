@@ -171,6 +171,12 @@ const CATEGORY = "seo software";
 const GIANTS = { "zapier.com": 218_224, "ahrefs.com": 59_767 } as const;
 const SMALL = "briefkit.io";
 const SMALL_RANKED = 80;
+/** Issue 901: a reachable competitor the pass's own top tens hold and the
+ *  founder does not track — the `rohringresults.com` of the owner's live
+ *  re-measure of 2026-09-19. Inside `max(500, 5×3)`, so it is evidence
+ *  about this market, and on main it was never sized. */
+const UNTRACKED = "rohringresults.com";
+const UNTRACKED_RANKED = 338;
 const RIVALS = ["zapier.com", "ahrefs.com", SMALL] as const;
 const HEAD_TERMS = ["best seo software", "seo software tool", "ai tool for seo"];
 
@@ -255,15 +261,22 @@ function vendorAnswer(url: string, task: Record<string, unknown>): unknown {
   if (url.includes("ranked_keywords")) {
     const target = String(task.target ?? "");
     if (target === DOMAIN) return rankedEnvelope(OWN_RANKED, OWN_RANKED.length);
-    const total = target === SMALL ? SMALL_RANKED : (GIANTS[target as keyof typeof GIANTS] ?? 0);
+    const total =
+      target === SMALL
+        ? SMALL_RANKED
+        : target === UNTRACKED
+          ? UNTRACKED_RANKED
+          : (GIANTS[target as keyof typeof GIANTS] ?? 0);
     return rankedEnvelope([[`${target.split(".")[0]} alternatives`, 20, `https://${target}/`]], total);
   }
-  // Every SERP: the giants on top, the small domain of a long-tail search below.
+  // Every SERP: the giants on top, the small domain of a long-tail search
+  // below, and one reachable competitor the founder never named (901).
   return envelope({
     items: [
       { type: "organic", rank_group: 1, domain: "zapier.com", url: "https://zapier.com/blog/seo", title: "Zapier" },
       { type: "organic", rank_group: 2, domain: "ahrefs.com", url: "https://ahrefs.com/blog/seo", title: "Ahrefs" },
       { type: "organic", rank_group: 3, domain: SMALL, url: `https://${SMALL}/templates`, title: "BriefKit" },
+      { type: "organic", rank_group: 4, domain: UNTRACKED, url: `https://${UNTRACKED}/seo`, title: "Rohring" },
     ],
   });
 }
@@ -721,6 +734,15 @@ describe("a cold-start site is offered right-sized questions, reachable rivals a
       expect(shown[0]).toBe(SMALL);
       expect(shown).not.toContain("zapier.com");
       expect(shown).not.toContain("ahrefs.com");
+
+      // ── Issue 901: the pass also sized the reachable competitor its own
+      //    top tens hold and the founder never named, banded it against
+      //    this site, and it is one of the report's rivals. On main it was
+      //    never measured, so it carried no band at all.
+      const untracked = report.rivalSizes.value.find((size) => size.domain === UNTRACKED);
+      expect(untracked).toMatchObject({ state: "sized", band: "middle" });
+      expect(shown).toContain(UNTRACKED);
+      expect(vendorRequests.filter((r) => r.url.includes("ranked_keywords") && r.task.target === UNTRACKED)).toHaveLength(1);
 
       // ── Write opportunities follow: at least one ready, winnable or reach.
       const writes = db

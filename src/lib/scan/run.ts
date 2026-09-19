@@ -39,7 +39,15 @@
 // the next visitor is not refused for an in-flight scan that is not
 // running. A correction is not a re-scan: it re-measures inside the scan
 // it corrects and always runs.
-import { CACHE_WINDOWS_D, FREE_RESCAN_WINDOW_D, SELECTION, TIMING, VENDOR } from "@/lib/config/constants";
+import {
+  CACHE_WINDOWS_D,
+  FREE_RESCAN_WINDOW_D,
+  PRICE_BOOK,
+  SELECTION,
+  SERP_RIVAL_SIZING,
+  TIMING,
+  VENDOR,
+} from "@/lib/config/constants";
 import { captureInBackground } from "@/lib/analytics";
 import type { CapName, CostContext } from "@/lib/costs";
 import { dbAdmin } from "@/lib/db";
@@ -58,6 +66,7 @@ import { phraseQuestions, type Question } from "@/lib/market/questions/phrase";
 import { deriveProfile, type Profile } from "@/lib/market/questions/profile";
 import { selectTwelve, type SelectedSearch } from "@/lib/market/questions/select";
 import { isShort, poolFrom, seedLadder, selectWidened, type PoolRow } from "@/lib/market/questions/widen";
+import { serpRivalCandidates } from "@/lib/market/rivals/candidates";
 import { deriveRivals, type RivalCandidate } from "@/lib/market/rivals/derive";
 import { buildPresenceCard, type PresenceCard } from "@/lib/market/rivals/presence";
 import { sizeRivals, type RivalSize } from "@/lib/market/rivals/size";
@@ -66,7 +75,7 @@ import { trackedRivals } from "@/lib/market/rivals/tracked";
 import type { MarketSerp } from "@/lib/market/views";
 import { freePageOf } from "@/lib/opportunities/free-page";
 import { aiPresenceOf, measureDomain, type DomainMeasurement } from "@/lib/measure";
-import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
+import { measured, measuredZero, unmeasured, type Measured } from "@/lib/measure/measured";
 import type { InputOutcome, ScanInput } from "@/lib/measure/partition";
 import type { OnPageFacts } from "@/lib/measure/parse";
 import type { Drivers } from "@/lib/measure/score";
@@ -314,10 +323,16 @@ interface Sections {
    *  travel in (`MarketAiAnswer`, `src/lib/market/views.ts`). */
   battery: BatteryAnswers[];
   rivals: Measured<RivalCandidate[]>;
-  /** §6.6's sizing, filled by `checking_your_presence` at the two tiers
-   *  whose parameters say so. A pass that could not read the site's
-   *  tracked rivals leaves the arm `freshSections` gave it — never a
-   *  zero, which would satisfy every winnability bar. */
+  /** §6.6's sizing, at the two tiers whose parameters say so. Two halves,
+   *  in this order: the rivals the customer chose, sized by
+   *  `checking_your_presence`, then the domains this pass's own twelve top
+   *  tens hold, sized in `scoring` once those SERPs exist (issue 901).
+   *  A pass that could read neither leaves the arm `freshSections` gave
+   *  it — never a zero, which would satisfy every winnability bar.
+   *
+   *  One entry per domain: a SERP candidate the customer also tracks is
+   *  not a second element, and a fresh measurement replaces one this pass
+   *  carried forward from an earlier one rather than sitting beside it. */
   rivalSizes: Measured<RivalSize[]>;
   /** The rows sizing read, by rival (#778) — SPEC §6's thin-market pool
    *  selects over them. `null` until sizing has been attempted, which is
@@ -1086,12 +1101,19 @@ async function runStages(a: StageArgs): Promise<void> {
   if (bounds.abandoned()) return;
   if (!twelve.spent) await exitStage(scanId, "asking_the_twelve");
 
-  // Scoring buys nothing and is synchronous — it counts over SERPs already
-  // paid for (§6.6's "zero extra cost"). Its budget row is the CPU the
-  // count is allowed, and there is no await inside it for a race to
-  // preempt, so it is not wrapped: a synchronous call cannot be cut off.
+  // Scoring itself buys nothing and is synchronous — it counts over SERPs
+  // already paid for (§6.6's "zero extra cost"). Its budget row is the CPU
+  // the count is allowed, and there is no await inside `score` for a race
+  // to preempt, so it is not wrapped: a synchronous call cannot be cut off.
+  //
+  // The one purchase in this stage is `sizeSerpRivals` (issue 901), and it
+  // is here because this is the first moment the twelve's own top tens
+  // exist: the stage that asks them is the stage before. It runs at the
+  // tiers whose `sizesRivals` says so and buys nothing at any other, so
+  // the free path's 0¢ budget row for this stage still describes it.
   if (bounds.stopNow() !== null) return;
   await enter("scoring");
+  await sizeSerpRivals(a);
   if (bounds.abandoned()) return;
   score(a);
   await exitStage(scanId, "scoring");
@@ -1157,6 +1179,149 @@ async function sizeTrackedRivals(a: StageArgs): Promise<void> {
     })
   );
   if (!failed(sized) && !a.bounds.abandoned()) a.sections.rivalSizes = sized;
+}
+
+/**
+ * **The rivals of the questions this pass actually asked** (issue 901).
+ *
+ * `sizeTrackedRivals` above sizes the set the customer chose, and nothing
+ * fed it the pass's own market: a pass that selected twelve right-sized
+ * questions banded every one of them against domains that never appeared
+ * in their SERPs. Winnability reads a top-ten domain's ranked count
+ * (`rankedCountsFromSizes` → `rankedCountsFor`), so a domain nobody sized
+ * is `undeterminable` and cannot satisfy a bar; and the report's rivals
+ * are ordered and filtered by the bands this pass holds (issue 858), so
+ * an unsized giant outranked the reachable competitor in the site's own
+ * top ten. Both read `sections.rivalSizes`, so both are fixed by putting
+ * the right domains in it.
+ *
+ * **The candidates are the pass's own twelve top tens**, ranked and
+ * selected by `serpRivalCandidates`. Nothing stale reaches them: no
+ * `previous` is supplied, so a domain this call could not measure says
+ * `budget_reached` rather than borrowing a sizing from a pass whose
+ * questions these are not.
+ *
+ * **Reusing what is already bought.** A domain this pass has already
+ * sized as a tracked rival is skipped outright, and a domain sized by an
+ * earlier pass inside §6.4's 30-day rival window is served from the
+ * cache, which is free and does not touch the cap. The rows are not
+ * pooled: SPEC §6's thin-market pool is what *selection* chose over, and
+ * selection is two stages behind by the time this runs.
+ *
+ * **Inside the existing budgets, and it says when it ran out.** The pass's
+ * own cap and ceilings are unchanged and no cap is raised: the sizing
+ * spends from a purse of its own (`withPurse`), bounded by
+ * `SERP_RIVAL_SIZING` and by what the pass has left after the reserve the
+ * opportunity typing still needs. A candidate the purse could not reach is
+ * stored `unsized` with `budget_reached` — said in the report, never
+ * silently replaced by an unrelated set.
+ *
+ * Every failure is a leave-alone, exactly as the tracked sizing's are:
+ * nothing here throws and nothing downstream is synthesised.
+ */
+async function sizeSerpRivals(a: StageArgs): Promise<void> {
+  const { bounds, cost, sections } = a;
+  if (!a.parameters.sizesRivals) return;
+  // The one purchase below an `await enter(...)` in this pipeline, so it
+  // reads both ceilings itself: a pass the deadline has already ended does
+  // not buy, and `score` still runs over what it has.
+  if (bounds.stopNow() !== null || bounds.abandoned()) return;
+
+  const serps: MarketSerp[] = [];
+  for (const serp of sections.serps as readonly Measured<MarketSerp>[]) {
+    if (serp.kind !== "unmeasured") serps.push(serp.value);
+  }
+  if (serps.length === 0) return;
+
+  // Already measured **in this pass**: a tracked rival sized a moment ago
+  // is not bought twice. One carried forward from an earlier pass is not
+  // in this set, and is re-measured rather than left to band a question
+  // this pass introduced.
+  const current = new Set<string>();
+  if (sections.rivalSizes.kind !== "unmeasured") {
+    for (const size of sections.rivalSizes.value) {
+      if (size.state === "sized" && size.current) current.add(size.domain);
+    }
+  }
+
+  const candidates = serpRivalCandidates({
+    serps,
+    ownDomain: a.domain,
+    max: SERP_RIVAL_SIZING.candidatesMax,
+  }).filter((domain) => !current.has(domain));
+  logSerpCandidates(candidates.length, current.size);
+  if (candidates.length === 0) return;
+
+  const measurement = sections.measurement;
+  const at = measurement === null ? a.startedAt : measurement.drivers.foundations.at;
+  const ownRanked = measurement === null ? 0 : ownRankedValue(measurement.ownRanked);
+  const purse = Math.min(
+    SERP_RIVAL_SIZING.candidatesMax * PRICE_BOOK.RANKED_RIVAL_COST_C,
+    Math.max(0, bounds.remainingCents() - SERP_RIVAL_SIZING.reserveCents)
+  );
+
+  const sized = await attempt("scoring", () =>
+    sizeRivals(withPurse(cost, purse), {
+      rivals: candidates,
+      ownRanked,
+      at,
+      neverSizedBecause: "budget_reached",
+    })
+  );
+  if (failed(sized) || sized.kind === "unmeasured" || bounds.abandoned()) return;
+  sections.rivalSizes = joinSizes(sections.rivalSizes, sized.value, at);
+}
+
+/** The two halves of `rivalSizes`, as one entry per domain.
+ *
+ *  A domain the held value already carries keeps its place. It is replaced
+ *  only by a **measurement this pass took** — never by an `unsized` entry,
+ *  which would demote a rival carried forward with its earlier date into
+ *  "we have never measured this" (REQ-096 c4). */
+function joinSizes(
+  held: Measured<RivalSize[]>,
+  fresh: readonly RivalSize[],
+  at: Date
+): Measured<RivalSize[]> {
+  const entries: RivalSize[] = held.kind === "unmeasured" ? [] : [...held.value];
+  for (const entry of fresh) {
+    const index = entries.findIndex((existing) => existing.domain === entry.domain);
+    if (index === -1) {
+      entries.push(entry);
+      continue;
+    }
+    if (entry.state === "sized") entries[index] = entry;
+  }
+  return entries.length === 0 ? measuredZero<RivalSize[]>(entries, at) : measured(entries, at);
+}
+
+/** One pass's cost context, narrowed to a purse — the same arrangement
+ *  `stageBounds` makes for a stage's `Bounds`, and for the same reason: a
+ *  multi-call step that already re-reads `capHit()` between calls starts
+ *  respecting a tighter bound with no line of its own changing.
+ *
+ *  It never widens anything: the pass's own cap, the product's daily one
+ *  and the site's daily one are all still read through the context it
+ *  wraps, and spend is still ledgered by that context. A cache hit costs
+ *  nothing and so consumes none of the purse, which is what lets a later
+ *  pass re-read every candidate inside §6.4's rival window for free. */
+function withPurse(cost: CostContext, cents: number): CostContext {
+  const spentAtEntry = cost.spentCents();
+  return {
+    cap: cost.cap,
+    recordFetch: (call) => cost.recordFetch(call),
+    capHit: () => cost.capHit() || cost.spentCents() - spentAtEntry >= cents,
+    spentCents: () => cost.spentCents(),
+    degraded: () => cost.degraded(),
+  };
+}
+
+/** Issue 901's observability line: how many of its own SERPs' domains a
+ *  pass took as candidates and how many it already held a fresh size for.
+ *  Counts only — no domain reaches a log line from here, the same
+ *  discipline `size.ts` and `derive.ts` keep. */
+function logSerpCandidates(candidates: number, alreadySized: number): void {
+  console.log(JSON.stringify({ event: "serp_rival_candidates", candidates, alreadySized }));
 }
 
 /** The customer's own count as a number for the banding. `unmeasured` is

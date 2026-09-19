@@ -250,9 +250,20 @@ const CROWDED_SUGGESTIONS: readonly (readonly [string, number])[] = [
 ];
 
 /** Issue 855: the domains that hold a crowded top ten — each ranks for tens
- *  of thousands of keywords — and one small site among them. */
+ *  of thousands of keywords.
+ *
+ *  Issue 901 made the vendor answer for all of them: a pass now sizes the
+ *  domains its own top tens hold, not only the two the founder tracks, so
+ *  every domain below is asked for its ranked count and
+ *  `CROWDED_UNNAMED_TOTAL` is what this crowded market says about the ones
+ *  the map does not name. It is a large number because that is this
+ *  journey's premise — "every top ten belongs to domains that rank for
+ *  tens of thousands" is what makes its targets outsized (issue 881) — and
+ *  a fixture that answered 0 for them would be asserting the opposite of
+ *  the case it is here to hold. */
 const GIANTS = ["zapier.com", "ahrefs.com", "forbes.com", "capterra.com", "g2.com"] as const;
 const CROWDED_RIVAL_TOTALS: Record<string, number> = { [RIVALS[0]]: 218_224, [RIVALS[1]]: 59_767 };
+const CROWDED_UNNAMED_TOTAL = 90_000;
 
 /** Issue 837: the broader category that does have searches, once the founder
  *  picks it — its seed answers the thin market's rows. */
@@ -318,9 +329,13 @@ function vendorAnswer(url: string, task: Record<string, unknown>): unknown {
     if (target === DOMAIN) return rankedEnvelope(OWN_RANKED, OWN_RANKED.length);
     const rows = RIVAL_RANKED[target] ?? [];
     if (market === "crowded") {
+      // A domain that ranks for tens of thousands returns rows, and the
+      // vendor's zero-result shape drops the total where there are none
+      // (`ledgeredWithTotal`), so the map's gaps answer with one row too.
+      const crowded = rows.length > 0 ? rows : ([[`${target.split(".")[0]} guide`, 20]] as const);
       return rankedEnvelope(
-        rows.map(([keyword, volume]) => [keyword, volume, `https://${target}/`] as const),
-        CROWDED_RIVAL_TOTALS[target] ?? 0
+        crowded.map(([keyword, volume]) => [keyword, volume, `https://${target}/`] as const),
+        CROWDED_RIVAL_TOTALS[target] ?? CROWDED_UNNAMED_TOTAL
       );
     }
     return rankedEnvelope(
@@ -1004,7 +1019,7 @@ describe("a new site in a thin market goes from setup to a published right-sized
         questions: { kind: string; value: unknown[] };
         serps: { kind: string }[];
         rivals: { kind: string };
-        rivalSizes: { kind: string; value: { band: string }[] };
+        rivalSizes: { kind: string; value: { domain: string; band: string }[] };
       };
       // Every question the pass selected had its SERP measured.
       expect(report.questions.kind).toBe("measured");
@@ -1012,8 +1027,13 @@ describe("a new site in a thin market goes from setup to a published right-sized
       expect(report.serps.map((serp) => serp.kind)).toEqual(report.questions.value.map(() => "measured"));
       expect(report.rivals.kind).toBe("measured");
       // The rivals were sized by this pass, and both are far from this site.
+      // The pass's own top tens add their domains after them (issue 901),
+      // and in this market every one of those is far too.
       expect(report.rivalSizes.kind).toBe("measured");
-      expect(report.rivalSizes.value.map((size) => size.band)).toEqual(["far", "far"]);
+      expect(report.rivalSizes.value.slice(0, 2).map((size) => size.domain)).toEqual([...RIVALS]);
+      expect(report.rivalSizes.value.map((size) => size.band)).toEqual(
+        report.rivalSizes.value.map(() => "far")
+      );
 
 
       // SPEC §7 (issue 855): an update the hosted destination cannot deliver

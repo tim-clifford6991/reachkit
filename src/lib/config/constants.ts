@@ -550,6 +550,29 @@ export const RIVAL_SIZE_BANDS = Object.freeze({
   nearFloor: 100, nearMultiple: 2, middleFloor: 500, middleMultiple: 5,
 } as const);
 
+/** How far a paid pass goes in sizing the rivals **its own twelve top
+ *  tens** hold (issue 901). Drafted defaults, chosen here under rule 1.1;
+ *  the owner may correct either number.
+ *
+ *  `candidatesMax` — one candidate per question the pass may ask
+ *  (`BATTERY.QUESTIONS` is the same number today and bounds a different
+ *  thing, so it is not reused): enough that every question's top ten can
+ *  contribute a domain to band against, and no more. At
+ *  `PRICE_BOOK.RANKED_RIVAL_COST_C` a first pass therefore spends at most
+ *  28.8¢ on this, well inside `CAPS.DEEP_C`; every later pass re-reads the
+ *  same domains inside §6.4's 30-day rival window, where a cache hit is
+ *  free.
+ *
+ *  `reserveCents` — what this sizing may not take. A pass types its
+ *  opportunities out of the same cap after its report is stored (issue
+ *  798), and four Haiku calls at `INFERENCE_PRICE_BOOK.haiku` come to
+ *  about a cent; four cents is several times that and is the only spend
+ *  the pass still owes this cap. A candidate the reserve leaves no room
+ *  for is recorded `unsized` with `budget_reached`, never guessed at. */
+export const SERP_RIVAL_SIZING = Object.freeze({
+  candidatesMax: 12, reserveCents: 4,
+} as const);
+
 /** `BUILD.md` §5's four score bands, as lower bounds on a 0–100 score:
  *  "Bands: 0–24 Invisible · 25–49 Hard to find · 50–74 Findable · 75–100
  *  Dominant". BP-024's `bandOf(score)` says "thresholds are BP-005 pins" and

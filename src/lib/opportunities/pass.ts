@@ -26,7 +26,11 @@
 //                   #37's sizing, projected. An `unmeasured` arm yields
 //                   an empty lookup, and an absent domain is
 //                   `undeterminable`, never a zero that would satisfy
-//                   every bar.
+//                   every bar. Since issue 901 that member carries the
+//                   domains the pass's own twelve top tens hold as well
+//                   as the rivals the customer chose, which is what lets
+//                   a target be banded against a domain its own SERP
+//                   holds.
 //
 // Nothing here writes a sentence, reads a clock, or decides whether the
 // customer has paid: `hasActiveAccess` is the caller's answer, exactly as
