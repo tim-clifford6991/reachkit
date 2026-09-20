@@ -2,7 +2,7 @@
 
 Speed to a working MVP is the measure. Delivered means a stranger completes landing → scan → pay → onboard → a page on their domain, live, with real copy.
 
-There is no factory, no artboard, no canvas task. Do not read `docs/archive/`.
+There is no factory and no artboard task. Do not read `docs/archive/`. The one canvas an issue may cite is the owner-approved redesign of 2026-09-20 named in `docs/DESIGN.md` (#908) — for structure and wording, never pixels.
 
 ## Roles
 
@@ -15,7 +15,7 @@ There is no factory, no artboard, no canvas task. Do not read `docs/archive/`.
 
 1. **State it.** GitHub issue: what the user can do afterwards. `feature` or `bug`. Board: Status (Ready is next) and Feature (F1–F9). P0 = the paying path is broken.
 2. **Document if required.** New behaviour → that section of `docs/SPEC.md`. Look of a screen → `docs/DESIGN.md` (the three library rules, not a drawing). A bug in specified behaviour → no docs edit. An owner answer → one dated line in that SPEC section the same day.
-3. **Implement.** Branch from `origin/main` in this checkout. daisyUI classes in the route, Recharts for series, lucide for icons, Stripe / Resend / Supabase for those jobs. No new wrapper, no new CSS sheet, no SVG chart. PR: what changed, how you proved it, `Closes #n`.
+3. **Implement.** Branch from `origin/main` in this checkout. daisyUI classes in the route, Recharts for series, lucide for icons, the libraries on `docs/DESIGN.md`’s list and no others, Stripe / Resend / Supabase for those jobs. No new wrapper, no new CSS sheet, no SVG chart. PR: what changed, how you proved it, `Closes #n`.
 4. **Prove and ship.** Three checks green. `gh pr merge --squash --delete-branch`. Owner clicks `dev.reachkit.app`. Merges deploy to dev **and** production (owner ruling 2026-09-17, #844); run `scripts/smoke.sh` against production after a production deploy. Apply a merged migration through the Supabase connector after the target deploy is READY, then walk the path again.
 
 `blocked-on-owner` is not implemented around. Missing copy is drafted and shipped, never `TODO(copy)` (owner ruling 2026-09-16, #759): the PR body names every new or changed string so the owner can correct the wording.
@@ -39,7 +39,7 @@ Vercel Hobby, Git deployments off. `rk-deployer` deploys `main` (dev every SHA, 
 ## Never
 
 - Invent a user-facing sentence.
-- Match, cite, or re-seed an artboard / canvas HTML file.
+- Match the pixels or copy the markup of any artboard or canvas. (Citing the 2026-09-20 redesign canvas for what a screen holds is expected — `docs/DESIGN.md`.)
 - Add a custom component, CSS sheet or SVG chart where daisyUI or Recharts exists.
 - Guess an owner decision.
 - Write under `docs/archive/`.
