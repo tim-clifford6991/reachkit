@@ -12,6 +12,7 @@
 // The doubles are deliberately *below* the seam: what is under test is the
 // screen and the route, and both go through the real provider.
 import type { PassProgress } from "@/app/(account)/setup/_setup/progress";
+import type { SavedSetup } from "@/app/(account)/setup/_setup/store";
 
 export interface SetupSessionState {
   /** `null` is a request with no session — §4.3's refusal. */
@@ -21,6 +22,10 @@ export interface SetupSessionState {
   /** Keyed by domain: what `readCurrentReport` answers. */
   reports: Map<string, { scanId: string; category: string | null; rivals: string[]; namedRivals?: string[] }>;
   pass: PassProgress;
+  /** SPEC §5 (2026-09-20, #922): the steps this founder has already left.
+   *  `null` is a founder who has left none — the screen opens on its
+   *  first step with only what the scan read. */
+  saved: SavedSetup | null;
 }
 
 export const setupSession: SetupSessionState = {
@@ -28,6 +33,7 @@ export const setupSession: SetupSessionState = {
   address: { siteId: "site-1", domain: "example.com" },
   reports: new Map(),
   pass: { running: false, degraded: false },
+  saved: null,
 };
 
 // The ordinary founder is the state a suite gets without asking, so a file
@@ -54,6 +60,7 @@ export function resetSetupSession(): void {
   // — the moment `/setup/waiting` exists to show, and the state the screen
   // suites were written against.
   setupSession.pass = { running: true, stage: "reading_your_market" } as PassProgress;
+  setupSession.saved = null;
 }
 
 /**
@@ -69,7 +76,11 @@ export function resetSetupSession(): void {
  * at the factory it wants.
  */
 export function storeFactory(actual: Record<string, unknown>): Record<string, unknown> {
-  return { ...actual, siteAddressFor: async () => setupSession.address };
+  return {
+    ...actual,
+    siteAddressFor: async () => setupSession.address,
+    savedSetupFor: async () => setupSession.saved,
+  };
 }
 
 export function reportFactory(actual: Record<string, unknown>): Record<string, unknown> {

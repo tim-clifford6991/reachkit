@@ -12,6 +12,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
+import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { applyEnvFixture } from "../../mail/env-fixture";
 import { fakeDb, type FakeDb } from "../../scan/deep/fake-db";
 import { reportFactory, resetSetupSession, sessionFactory, setupSession, storeFactory } from "./session-door";
@@ -55,29 +56,56 @@ const routes: Record<string, (request: Request, context: unknown) => Promise<Res
 const AT = new Date("2026-09-16T09:00:00.000Z");
 const COLD_ROUTE_MS = 4000;
 
-/** What the one submit sent to `POST /api/setup` (issue #783). */
+/** Every body the screen sent to `POST /api/setup` — one per step left,
+ *  and the finish (SPEC §5, 2026-09-20). */
 const submitted: Record<string, unknown>[] = [];
+
+/** The finish's own body: the one that carries the whole submission. */
+const finished = (): Record<string, unknown> | undefined =>
+  submitted.find((body) => body.step === "finish");
 
 /** The browser's requests, handed to the route handlers that serve them. */
 vi.stubGlobal("fetch", async (url: string, init: RequestInit) => {
   if (url === "/api/setup") {
-    submitted.push(JSON.parse(String(init.body)) as Record<string, unknown>);
-    return Response.json({ ok: true, siteId: "site-1" });
+    const body = JSON.parse(String(init.body)) as Record<string, unknown>;
+    submitted.push(body);
+    return Response.json(body.step === "finish" ? { ok: true, siteId: "site-1" } : { ok: true });
   }
   const handler = routes[url];
   if (handler === undefined) throw new Error(`no route for ${url}`);
   return handler(new Request(`https://reachkit.example${url}`, init), undefined);
 });
 
-async function mount(): Promise<HTMLElement> {
+/** The screen, opened on one step. `hasMemory` makes the adapter behave
+ *  like a real address bar, so pressing Continue moves the screen on — the
+ *  behaviour SPEC §5 (2026-09-20) puts in the URL. */
+async function mount(step = "site"): Promise<HTMLElement> {
   const model = await readSetupScreen();
   const container = document.createElement("div");
   document.body.appendChild(container);
   await act(async () => {
-    createRoot(container).render(<SetupForm model={model} />);
+    createRoot(container).render(
+      <NuqsTestingAdapter searchParams={{ step }} hasMemory>
+        <SetupForm model={model} />
+      </NuqsTestingAdapter>,
+    );
   });
   return container;
 }
+
+/** Leaving the step forward: the step's own save, then the next step. */
+async function onwards(root: HTMLElement): Promise<void> {
+  const before = submitted.length;
+  await act(async () => {
+    (root.querySelector('[data-testid="setup-onwards"]') as HTMLElement).click();
+  });
+  await until(() => submitted.length > before);
+  await act(async () => {});
+}
+
+/** Which step the screen is on. */
+const at = (root: HTMLElement): string | null =>
+  root.querySelector('[data-testid="setup-form"]')?.getAttribute("data-step") ?? null;
 
 /** Waits for the card's answer: a request the screen made settles it.
  *  `timeout` is for a request that is the first to load the route's lazy
@@ -129,7 +157,7 @@ beforeEach(() => {
 
 describe("free upgrade — the report's rivals are on the card when the screen opens", () => {
   it("offers them as chips, and one can be accepted", async () => {
-    const root = await mount();
+    const root = await mount("rivals");
     expect(offered(root)).toEqual(["asana.com", "monday.com", "clickup.com"]);
     expect(shown(root, "setup-competitors-seeking")).toBe(false);
 
@@ -153,7 +181,7 @@ describe("issue 838 — a report that found no rivals: the card asks, and compet
       value: [{ domain: "surferseo.com", overlapKeywords: 2 }],
       at: AT,
     });
-    const root = await mount();
+    const root = await mount("rivals");
 
     await until(() => offered(root).length > 0, COLD_ROUTE_MS);
     expect(offered(root)).toEqual(["surferseo.com"]);
@@ -164,22 +192,56 @@ describe("issue 838 — a report that found no rivals: the card asks, and compet
   it("a vendor that finds none says so rather than seeking on", async () => {
     setupSession.reports.set("example.com", { scanId: "scan-fixture", category: "SEO software", rivals: [] });
     competitorsDomain.mockResolvedValue({ kind: "zero", value: [], at: AT });
-    const root = await mount();
+    const root = await mount("rivals");
 
     await until(() => shown(root, "setup-competitors-none-found"));
     expect(shown(root, "setup-competitors-seeking")).toBe(false);
   });
 });
 
-describe("issue #783 — the submit carries the browser's zone", () => {
-  it("the one submit sends the zone the browser reports, beside the three decisions", async () => {
-    const root = await mount();
+describe("issue #783 — the finish carries the browser's zone", () => {
+  it("the last step's control sends the zone the browser reports, beside the five answers", async () => {
+    const root = await mount("publishing");
+    await onwards(root);
+    expect(finished()?.timezone).toBe(Intl.DateTimeFormat().resolvedOptions().timeZone);
+    expect(finished()?.domain).toBe("example.com");
+  });
+});
+
+describe("SPEC §5 (2026-09-20) — each step saves as it is left", () => {
+  it("leaving the site step writes the site and the market, and reaches the business step", async () => {
+    const root = await mount("site");
+    await onwards(root);
+    expect(submitted).toEqual([
+      {
+        step: "site",
+        domain: "example.com",
+        category: "project management software for agencies",
+      },
+    ]);
+    expect(at(root)).toBe("business");
+  });
+
+  it("leaving the rivals step writes the rivals the founder kept — the save the pass then reads", async () => {
+    const root = await mount("rivals");
     await act(async () => {
-      (root.querySelector('[data-testid="setup-form"]') as HTMLFormElement).requestSubmit();
+      (root.querySelector('[data-testid="setup-competitors-suggested"] button') as HTMLElement).click();
     });
-    await until(() => submitted.length === 1);
-    expect(submitted[0]!.timezone).toBe(Intl.DateTimeFormat().resolvedOptions().timeZone);
-    expect(submitted[0]!.domain).toBe("example.com");
+    await onwards(root);
+    expect(submitted).toEqual([{ step: "rivals", competitors: ["asana.com"] }]);
+    expect(at(root)).toBe("voice");
+  });
+
+  it("Back goes to the step before it and writes nothing", async () => {
+    const root = await mount("voice");
+    await act(async () => {
+      const back = [...root.querySelectorAll("button")].find(
+        (b) => (b.textContent ?? "").trim() === "Back",
+      );
+      (back as HTMLElement).click();
+    });
+    expect(at(root)).toBe("rivals");
+    expect(submitted).toEqual([]);
   });
 });
 
@@ -198,21 +260,25 @@ describe("direct purchase — address, then market, then rivals", () => {
       ],
       at: AT,
     });
-    const root = await mount();
-    expect(shown(root, "setup-competitors-awaiting")).toBe(true);
+    const root = await mount("site");
 
     await type(root.querySelector('input[name="domain"]'), "founder.io");
     await enter(root.querySelector('input[name="domain"]'));
     // The address is given: the market can now be stated, and the card
     // still waits on it rather than claiming none were found.
     await until(() => root.querySelector('input[name="category"]') !== null);
-    expect(shown(root, "setup-competitors-awaiting")).toBe(true);
     await until(() => (db.tables.scans ?? []).length === 1);
 
     await type(root.querySelector('input[name="category"]'), "bookkeeping for dentists");
     await enter(root.querySelector('input[name="category"]'));
-    await until(() => offered(root).length > 0);
 
+    // Two presses carry them past the business step to the rivals step,
+    // each one saving the step it leaves.
+    await onwards(root);
+    await onwards(root);
+    expect(at(root)).toBe("rivals");
+
+    await until(() => offered(root).length > 0);
     expect(offered(root)).toEqual(["rival-one.com", "rival-two.com"]);
     expect(competitorsDomain).toHaveBeenCalledWith(expect.anything(), { domain: "founder.io" });
     expect(db.tables.scans).toHaveLength(1);
@@ -220,13 +286,15 @@ describe("direct purchase — address, then market, then rivals", () => {
 
   it("a vendor that finds none says so, and the founder can still type their own", async () => {
     competitorsDomain.mockResolvedValue({ kind: "zero", value: [], at: AT });
-    const root = await mount();
+    const root = await mount("site");
 
     await type(root.querySelector('input[name="domain"]'), "founder.io");
     await enter(root.querySelector('input[name="domain"]'));
     await until(() => root.querySelector('input[name="category"]') !== null);
     await type(root.querySelector('input[name="category"]'), "bookkeeping for dentists");
     await enter(root.querySelector('input[name="category"]'));
+    await onwards(root);
+    await onwards(root);
 
     await until(() => shown(root, "setup-competitors-none-found"));
     expect(shown(root, "setup-competitors-seeking")).toBe(false);

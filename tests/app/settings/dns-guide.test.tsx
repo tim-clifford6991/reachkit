@@ -26,6 +26,7 @@ import dns from "node:dns";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { fakeDb } from "../../publish/harness";
 import { LIVE_ACCOUNT } from "../accounts";
 import {
@@ -123,7 +124,9 @@ async function mount(node: React.ReactNode): Promise<HTMLElement> {
 
 /** The two screens, each scoped to the block that holds the record. */
 async function screens(): Promise<Record<"setup" | "settings", HTMLElement>> {
-  const setup = await mount(await SetupPage());
+  const setup = await mount(
+    <NuqsTestingAdapter searchParams={{ step: "publishing" }}>{await SetupPage()}</NuqsTestingAdapter>
+  );
 
   db.seed("sites", [
     {

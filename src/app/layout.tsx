@@ -33,6 +33,13 @@
 // the daisyUI theme mapping that reads them, and before `type.css`, whose
 // element rules are meant to win over the reset.
 //
+// URL state: `nuqs` (`docs/DESIGN.md`'s library list, 2026-09-20) reads and
+// writes the query string of whichever route uses it — setup's step, and the
+// month, day, tab and filters that follow. Its adapter has to sit above every
+// route that calls `useQueryState`, and the root layout is the only element
+// every ReachKit-addressed surface renders inside. It renders `{children}`
+// and nothing of its own, so it adds no markup and no string.
+//
 // Layout tokens: `src/ui/theme.css` declares the approved set on `:root`,
 // including the ladder's floor `--t-eyebrow` that conformance check 4 reads
 // off every route's document (ADR-093; issues #62, #349). `layout.css` is
@@ -55,6 +62,7 @@
 // which is every route.
 import type React from "react";
 import { headers } from "next/headers";
+import { NuqsAdapter } from "nuqs/adapters/next/app";
 
 import "@/ui/theme.css";
 import "@/ui/tailwind.css";
@@ -104,7 +112,9 @@ export default async function RootLayout({
       <head>
         <script nonce={nonce} dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
-      <body>{children}</body>
+      <body>
+        <NuqsAdapter>{children}</NuqsAdapter>
+      </body>
     </html>
   );
 }

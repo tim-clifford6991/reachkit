@@ -217,6 +217,67 @@ describe("POST /api/setup — the one write path", () => {
   });
 });
 
+describe("POST /api/setup — the five step saves (SPEC §5, 2026-09-20)", () => {
+  it("a body naming a step is that step's own save, and answers ok with no site id", async () => {
+    const { POST } = await import("@/app/api/setup/route");
+    for (const body of [
+      { step: "site", domain: "example.com", category: "agency CRM" },
+      { step: "business" },
+      { step: "rivals", competitors: ["asana.com"] },
+      { step: "voice", voiceText: "Plain and direct.", timezone: "Europe/Lisbon" },
+    ]) {
+      const response = await POST(post("/api/setup", body), undefined);
+      expect(response.status, body.step).toBe(200);
+      await expect(response.json()).resolves.toEqual({ ok: true });
+    }
+  });
+
+  it("a step refused answers 422 carrying the refusal, never a sentence", async () => {
+    const { POST } = await import("@/app/api/setup/route");
+    for (const [body, refused] of [
+      [{ step: "site", domain: "not a domain", category: "agency CRM" }, "invalid_domain"],
+      [{ step: "site", domain: "example.com", category: "  " }, "market_missing"],
+      [
+        { step: "rivals", competitors: ["a.com", "b.com", "c.com", "d.com", "e.com", "f.com"] },
+        "too_many_competitors",
+      ],
+    ] as const) {
+      const response = await POST(post("/api/setup", body), undefined);
+      expect(response.status, refused).toBe(422);
+      await expect(response.json()).resolves.toEqual({ ok: false, refused });
+    }
+  });
+
+  it("a step naming an answer it does not carry is a 400 — it is not a founder's answer", async () => {
+    const { POST } = await import("@/app/api/setup/route");
+    for (const body of [
+      { step: "site", domain: "example.com" },
+      { step: "rivals", competitors: [1, 2] },
+      { step: "voice" },
+      // Publishing has no save of its own: leaving it forward is the finish.
+      { step: "publishing", destination: { kind: "hosted", label: "content" } },
+      { step: "not-a-step" },
+    ]) {
+      const response = await POST(post("/api/setup", body), undefined);
+      expect(response.status, JSON.stringify(body)).toBe(400);
+    }
+  });
+
+  it("a body naming the finish is the whole submission, as it always was", async () => {
+    const { POST } = await import("@/app/api/setup/route");
+    const response = await POST(post("/api/setup", { step: "finish", ...SUBMISSION }), undefined);
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ ok: true, siteId: "site-fixture" });
+  });
+
+  it("a step save from a request whose cookie names no account is refused with a status and no sentence", async () => {
+    session = null;
+    const { POST } = await import("@/app/api/setup/route");
+    const response = await POST(post("/api/setup", { step: "business" }), undefined);
+    expect(response.status).toBe(401);
+  });
+});
+
 describe("the account behind setup is the session's, not a fixture (#133)", () => {
   it("_setup/provider.ts hands out the live store", async () => {
     // Asserted on the source, because the module is mocked above for

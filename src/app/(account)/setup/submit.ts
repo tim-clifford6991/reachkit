@@ -24,6 +24,7 @@ import {
   hostFor,
   HostnameTakenError,
 } from "@/lib/publish/destinations/hosted/label";
+import { nextStep, PASS_STARTS_AFTER, type SetupStepId } from "./steps";
 
 /** The closed shape of the one submit (REQ-025 c1, c2). */
 export interface SetupSubmission {
@@ -84,6 +85,32 @@ export type SetupRefusal =
 
 export type SetupResult = { ok: true; siteId: string } | { ok: false; refused: SetupRefusal };
 
+/**
+ * SPEC §5 (2026-09-20, #908): "Each step saves as it is left so a reload
+ * resumes." One arm per step, carrying that step's own answer and nothing
+ * else — the same closed-shape rule `SetupSubmission` enforces for the
+ * finish, applied five times over.
+ *
+ * The business step carries no answer at all. What the founder took out of
+ * and added to their profile has no column to go to until #926 gives the
+ * confirmed profile a home; the save is still made, because leaving the
+ * step is what moves the resume point on.
+ *
+ * There is no publishing arm, and that is not an omission: publishing is
+ * the last step, and leaving it forward *is* the finish, which writes the
+ * destination with everything else. #924 puts the DNS record after it, and
+ * that is the issue that gives publishing a save of its own.
+ */
+export type SetupStepSave =
+  | { step: "site"; domain: string; category: string }
+  | { step: "business" }
+  | { step: "rivals"; competitors: readonly string[] }
+  | { step: "voice"; voiceText: string; timezone: string | null };
+
+/** A step save says yes or refuses in one line, exactly as the finish does.
+ *  It never names a site id: the caller already knows whose setup it is. */
+export type SetupStepResult = { ok: true } | { ok: false; refused: SetupRefusal };
+
 /** Whether setup has been submitted for this account. The one predicate
  *  every account route consults; there is no second copy. */
 export type SetupProgressState =
@@ -118,6 +145,10 @@ export interface SetupStore {
   hostnameTaken(a: { hostname: string; siteId: string }): Promise<boolean>;
   readProgress(userId: string): Promise<SetupProgressState>;
   commitSetup(a: { siteId: string; submission: SetupSubmission }): Promise<void>;
+  /** One step's own write, plus the resume point (SPEC §5, 2026-09-20).
+   *  `resumeAt` is the step the founder has moved on to, which is what
+   *  `/setup` reopens on when they come back to it in a new tab. */
+  saveStep(a: { siteId: string; save: SetupStepSave; resumeAt: SetupStepId | null }): Promise<void>;
   enqueueDeepPass(siteId: string): Promise<void>;
 }
 
@@ -187,23 +218,102 @@ export async function completeSetup(
   // send is retried here (issue #782): the founder lands in the app and
   // waits on this pass there, so a dropped send is a side panel that never
   // clears.
+  //
+  // Since 2026-09-20 (#922) the rivals step has usually sent it already.
+  // Sending it again is free and deliberate: `sendDeepPass` keys the
+  // delivery on the site, so a second send starts no second pass, and a
+  // founder whose rivals step was saved by a build that could not reach the
+  // queue still gets one from the finish.
+  await startPass(store, progress.siteId);
+
+  return { ok: true, siteId: progress.siteId };
+}
+
+/** The bounded send of the onboarding pass, shared by the rivals step and
+ *  the finish. Never throws: the founder's answers are already on disk, and
+ *  `account/maintenance` re-sends a setup left with no pass
+ *  (`src/jobs/deep-pass-backstop.ts`). */
+async function startPass(store: SetupStore, siteId: string): Promise<void> {
   for (let attempt = 1; attempt <= ENQUEUE_ATTEMPTS; attempt += 1) {
     try {
-      await store.enqueueDeepPass(progress.siteId);
-      break;
+      await store.enqueueDeepPass(siteId);
+      return;
     } catch (error) {
-      // Swallowed on purpose after the last attempt: the founder is
-      // complete either way, and the pass is idempotent on its key.
-      // `account/maintenance` re-sends it for a setup left with no pass
-      // (`src/jobs/deep-pass-backstop.ts`); the failure is the queue's to
-      // report, not this founder's to re-answer.
+      // Swallowed on purpose after the last attempt: the failure is the
+      // queue's to report, not this founder's to re-answer.
       console.warn(
-        JSON.stringify({ event: "deep_pass_enqueue_failed", siteId: progress.siteId, attempt, detail: String(error) })
+        JSON.stringify({ event: "deep_pass_enqueue_failed", siteId, attempt, detail: String(error) })
       );
     }
   }
+}
 
-  return { ok: true, siteId: progress.siteId };
+/**
+ * SPEC §5 (2026-09-20, #908) — one step, saved as it is left.
+ *
+ * The preamble is `completeSetup`'s, in the same order and for the same
+ * reason: access first, then completion — a founder who has finished is
+ * taken onward rather than allowed to re-answer a step — and then the
+ * step's own shape. What is refused is refused by the same handle the
+ * finish uses, so the screen draws one line per refusal and has no second
+ * vocabulary for a step.
+ *
+ * **The pass starts here, on the rivals step** (SPEC §5, 2026-09-20: "The
+ * deep pass starts when rivals are confirmed … so voice and publishing
+ * overlap the wait"). It is sent after the competitors are written, never
+ * before: a pass that read the row a moment too early would size the wrong
+ * set of rivals.
+ */
+export async function saveSetupStep(
+  store: SetupStore,
+  a: { userId: string; save: SetupStepSave }
+): Promise<SetupStepResult> {
+  if (!(await store.hasActiveAccess(a.userId))) {
+    return { ok: false, refused: "no_active_access" };
+  }
+
+  const progress = await store.readProgress(a.userId);
+  if (progress.complete) return { ok: false, refused: "already_complete" };
+
+  const checked = await checkedStep(store, a.save);
+  if (!checked.ok) return { ok: false, refused: checked.refused };
+
+  await store.saveStep({
+    siteId: progress.siteId,
+    save: checked.save,
+    resumeAt: nextStep(checked.save.step),
+  });
+
+  if (checked.save.step === PASS_STARTS_AFTER) await startPass(store, progress.siteId);
+
+  return { ok: true };
+}
+
+/** Everything one step can be refused for, and the canonical form of what
+ *  is written. The site step is the only one that needs I/O — §6.4's
+ *  resolver, the same question the finish asks again. */
+async function checkedStep(
+  store: SetupStore,
+  save: SetupStepSave
+): Promise<{ ok: true; save: SetupStepSave } | { ok: false; refused: SetupRefusal }> {
+  switch (save.step) {
+    case "site": {
+      const domain = registrableDomain(save.domain);
+      if (domain === null) return { ok: false, refused: "invalid_domain" };
+      if (save.category.trim() === "") return { ok: false, refused: "market_missing" };
+      if (!(await store.resolvesInDns(domain))) return { ok: false, refused: "invalid_domain" };
+      return { ok: true, save: { ...save, domain } };
+    }
+    case "rivals": {
+      if (save.competitors.length > BATTERY.COMPETITORS_MAX) {
+        return { ok: false, refused: "too_many_competitors" };
+      }
+      return { ok: true, save };
+    }
+    case "business":
+    case "voice":
+      return { ok: true, save };
+  }
 }
 
 /** How many times one submit sends the pass before leaving it to the

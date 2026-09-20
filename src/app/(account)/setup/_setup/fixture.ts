@@ -31,7 +31,13 @@ import type { SetupFacts } from "./facts";
 import { fromStored } from "@/lib/presentation/generated";
 import type { SiteProfile } from "@/lib/site-profile/types";
 import type { PassProgress } from "./progress";
-import type { SetupProgressState, SetupStore, SetupSubmission } from "../submit";
+import type {
+  SetupProgressState,
+  SetupStepSave,
+  SetupStore,
+  SetupSubmission,
+} from "../submit";
+import type { SetupStepId } from "../steps";
 
 export const FIXTURE_DOMAIN = "example.com";
 export const FIXTURE_SITE_ID = "site-fixture";
@@ -125,6 +131,8 @@ export const FIXTURE_SETUP_FACTS: SetupFacts = Object.freeze({
   // value here is only what a test that drives `assembleSetup` directly
   // sees, and it is a hostname, never a sentence.
   cnameTarget: "content.dev.reachkit.app",
+  // A founder who has left no step yet: the screen opens on its first.
+  saved: null,
 });
 
 /** The instant this fixture's pass began. Fixed, so the durations it
@@ -172,13 +180,18 @@ export const FIXTURE_PAID_AT = new Date(Date.UTC(2026, 8, 5, 9, 30, 0));
 export function fixtureSetupStore(): SetupStore & {
   readonly committed: { siteId: string; submission: SetupSubmission }[];
   readonly enqueued: string[];
+  /** SPEC §5 (2026-09-20, #922): every step save made against this store,
+   *  in order, with the resume point each one wrote. */
+  readonly steps: { siteId: string; save: SetupStepSave; resumeAt: SetupStepId | null }[];
 } {
   const committed: { siteId: string; submission: SetupSubmission }[] = [];
   const enqueued: string[] = [];
+  const steps: { siteId: string; save: SetupStepSave; resumeAt: SetupStepId | null }[] = [];
 
   return {
     committed,
     enqueued,
+    steps,
     // §13's `hasActiveAccess()` (#42). The fixture founder has paid —
     // reaching `/setup` at all means a webhook provisioned them.
     hasActiveAccess: async () => true,
@@ -199,6 +212,9 @@ export function fixtureSetupStore(): SetupStore & {
     }),
     commitSetup: async (a) => {
       committed.push(a);
+    },
+    saveStep: async (a) => {
+      steps.push(a);
     },
     enqueueDeepPass: async (siteId) => {
       enqueued.push(siteId);
