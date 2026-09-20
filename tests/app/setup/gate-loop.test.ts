@@ -80,7 +80,7 @@ vi.mock("@/app/(account)/setup/_setup/provider", async (importOriginal) => {
 
 const { default: AccountLayout } = await import("@/app/(account)/layout");
 const { default: AppLayout } = await import("@/app/(account)/app/layout");
-const { default: AppPage } = await import("@/app/(account)/app/page");
+const { default: AppPage } = await import("@/app/(account)/app/(tabs)/page");
 const { currentCalendarSite } = await import("@/app/(account)/app/calendar/provider");
 const { default: SetupPage } = await import("@/app/(account)/setup/page");
 const { default: ZonePage } = await import("@/app/(account)/setup/zone/page");

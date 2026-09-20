@@ -96,6 +96,9 @@ import type { RivalFact, RivalFacts } from "./rivals";
 import { needsYouOf } from "@/lib/publish/record/needs-you";
 import type { State } from "@/lib/publish/types";
 import { waitingIssues, type WaitingItem } from "./alerts";
+import type { WaitingPageFacts, WaitingTarget } from "./waiting";
+import type { CopyKey } from "@/lib/presentation/copy";
+import { STAGE_FILTER_COPY_KEY, STAGE_OF } from "../calendar/stages";
 
 export interface OverviewSite {
   siteId: string;
@@ -221,11 +224,18 @@ async function pagesRanking(siteId: string, week: string, at: Date): Promise<Mea
   return working === 0 ? { kind: "zero", value: 0, at } : measured(working, at);
 }
 
-/** The seven site-local dates of the week `now` falls in, as `drafts`
- *  spells them (`scheduled_for` is a date, not an instant). The week's own
- *  strip is `readWeek`'s; this is the same seven days as keys, so the line
- *  and the strip can never mean two different weeks. */
-async function weekSearchesFor(site: OverviewSite, now: Date): Promise<readonly string[]> {
+/** What this week's seven days hold: the searches the pages on them are
+ *  aimed at (issue 867), and the stage word each day carries (SPEC §4,
+ *  2026-09-20).
+ *
+ *  The seven site-local dates are `drafts`'s own spelling of them
+ *  (`scheduled_for` is a date, not an instant), and they are the very days
+ *  `readWeek` draws — so the strip, the line under it and the drafts read
+ *  for both can never mean two different weeks. */
+async function weekFor(
+  site: OverviewSite,
+  now: Date
+): Promise<{ searches: readonly string[]; pages: readonly (CopyKey | null)[] }> {
   const { readWeek } = await import("./week");
   const { dayKeyOf } = await import("../calendar/dates");
   // The strip's days are calendar-day markers at UTC midnight, so they are
@@ -234,7 +244,7 @@ async function weekSearchesFor(site: OverviewSite, now: Date): Promise<readonly 
   const days = readWeek({ today: now, timeZone: site.timeZone }).days.map((day) =>
     dayKeyOf(day.date, CALENDAR_DAY_ZONE)
   );
-  return weekSearches(site.siteId, days);
+  return weekDrafts(site.siteId, days);
 }
 
 /**
@@ -268,24 +278,42 @@ function enginesMeasured(report: StoredReport | null): readonly AnswerEngine[] {
  * this line states the searches the product can name, and a page it cannot
  * name a search for is simply not in it.
  */
-async function weekSearches(siteId: string, week: readonly string[]): Promise<readonly string[]> {
+async function weekDrafts(
+  siteId: string,
+  week: readonly string[]
+): Promise<{ searches: readonly string[]; pages: readonly (CopyKey | null)[] }> {
   const days = new Set(week);
   const { data, error } = await client()
-    .from<{ scheduled_for: string | null; opportunity_id: string | null }>("drafts")
-    .select("scheduled_for, opportunity_id")
+    .from<{ scheduled_for: string | null; opportunity_id: string | null; state: string }>("drafts")
+    .select("scheduled_for, opportunity_id, state")
     .eq("site_id", siteId);
-  if (error !== null || data === null) return [];
+  // A read that could not answer says nothing about either: every day then
+  // carries the no-page word, which is what the strip can honestly say.
+  if (error !== null || data === null) return { searches: [], pages: [] };
   const rows = data
     .filter((row) => row.scheduled_for !== null && days.has(row.scheduled_for))
     .sort((x, y) => String(x.scheduled_for).localeCompare(String(y.scheduled_for)));
+
+  // The stage word per day, in the strip's own order. `STAGE_OF` is the
+  // calendar's one projection from §9's ten states onto the five stages; a
+  // state that occupies no date at all (`skipped`, `unpublished`) maps to
+  // `null`, and the day says it holds no page — which is true of it.
+  const stageOfDay = new Map<string, CopyKey>();
+  for (const row of rows) {
+    const stage = STAGE_OF[row.state as State];
+    if (stage === null || row.scheduled_for === null) continue;
+    stageOfDay.set(row.scheduled_for, STAGE_FILTER_COPY_KEY[stage]);
+  }
+  const pages = week.map((day) => stageOfDay.get(day) ?? null);
+
   const ids = rows.map((row) => row.opportunity_id).filter((id): id is string => id !== null);
-  if (ids.length === 0) return [];
+  if (ids.length === 0) return { searches: [], pages };
 
   const targets = await client()
     .from<{ id: string; target_query: string | null }>("opportunities")
     .select("id, target_query")
     .in("id", ids);
-  if (targets.error !== null || targets.data === null) return [];
+  if (targets.error !== null || targets.data === null) return { searches: [], pages };
   const queryOf = new Map(targets.data.map((row) => [row.id, row.target_query]));
   const searches: string[] = [];
   for (const id of ids) {
@@ -293,7 +321,121 @@ async function weekSearches(siteId: string, week: readonly string[]): Promise<re
     if (query === null || query === undefined || query.trim() === "") continue;
     if (!searches.includes(query)) searches.push(query);
   }
-  return searches;
+  return { searches, pages };
+}
+
+/**
+ * SPEC §4 (2026-09-20) — the page the Overview leads with.
+ *
+ * The **oldest** draft in review, which is the one `readAlerts` ranks first
+ * among the veto items too: the card and the needs-you list below it cannot
+ * lead with two different pages.
+ *
+ * Nothing is measured. The reason is built from the evidence the pass stored
+ * on the opportunity at creation, read through the same `explainChoice` the
+ * calendar and the draft screen read it through — one projection of one row,
+ * so three screens cannot word one fact three ways. A draft whose
+ * opportunity has been purged still shows: it keeps its title, its window
+ * and its lead, and states the search arm of the reason with no number.
+ *
+ * `null` is "nothing is in review", and a read that could not answer is the
+ * same `null` — the Overview then draws no card rather than an empty one.
+ */
+async function waitingPageFacts(
+  site: OverviewSite,
+  now: Date
+): Promise<WaitingPageFacts | null> {
+  const { data, error } = await client()
+    .from<{
+      id: string;
+      title: string;
+      body_md: string | null;
+      opportunity_id: string | null;
+      veto_deadline: string | null;
+      created_at: string;
+    }>("drafts")
+    .select("id, title, body_md, opportunity_id, veto_deadline, created_at")
+    .eq("site_id", site.siteId)
+    .eq("state", "in_review")
+    .order("created_at", { ascending: true })
+    .limit(1);
+  const row = data?.[0];
+  if (error !== null || row === undefined) return null;
+
+  const [target, readerHost] = await Promise.all([
+    waitingTargetOf(row.opportunity_id, now),
+    readerHostOf(site.siteId),
+  ]);
+  const { leadOf } = await import("./lead");
+
+  return {
+    draftId: row.id,
+    // The customer's own words for their page, never a sentence composed
+    // here.
+    title: row.title,
+    stage: "your_review",
+    // The window the publish sweep itself closes at, stamped from the site's
+    // own `veto_hours` (issue 794) — never a default counted here.
+    goesLiveAt: row.veto_deadline === null ? null : new Date(row.veto_deadline),
+    target,
+    // SPEC §7 (2026-09-20)'s known-content rule decides update-or-new at
+    // writing time; until #928 records it on the row, a page in review is a
+    // new page, which is what every page ReachKit writes today is.
+    update: false,
+    lead: leadOf(row.body_md),
+    readerHost,
+  };
+}
+
+/** What the pass measured about the search a page in review is written to
+ *  win. `null` for a Fix page — which has no market target at all — and for
+ *  a draft whose opportunity could not be read. */
+async function waitingTargetOf(
+  opportunityId: string | null,
+  now: Date
+): Promise<WaitingTarget | null> {
+  if (opportunityId === null) return null;
+  // Lazily, the way this file already reaches `supplyDepth`: a static import
+  // of a `@/lib/db`-reaching module from here hangs the job tests.
+  const { explainChoice } = await import("@/lib/opportunities/derive/explain");
+  const choice = await explainChoice(opportunityId).catch(() => null);
+  if (choice === null) return null;
+  const { pageTargetOf } = await import("../_shell/page-target");
+  const { askedAs, doneWhen } = await import("../calendar/store");
+  const evidence = choice.evidence;
+  const search = evidence.family === "fix" ? "" : evidence.query;
+  const target = pageTargetOf({
+    choice,
+    askedAs: askedAs(choice, search),
+    doneWhen: doneWhen(choice),
+    at: now,
+  });
+  if (target === null) return null;
+  return {
+    search: target.search,
+    volume: target.volume,
+    winnability: target.winnability,
+    // §4.6's `answered-today-by`: who holds the answer today. A Write or
+    // Earn target records the rival it is written to overtake; an Improve
+    // target is the customer's own page, so nobody else holds it.
+    answeredTodayBy:
+      evidence.family === "write" || evidence.family === "earn" ? [evidence.rival.domain] : [],
+  };
+}
+
+/** The address readers reach a page at, where the site's destination has one
+ *  of its own (SPEC §5's hosted subdomain). `null` for a destination with no
+ *  host to state — a WordPress site publishes at its own address, which this
+ *  product does not hold — and never an empty string, which would read as an
+ *  address. */
+async function readerHostOf(siteId: string): Promise<string | null> {
+  const { listDestinations } = await import("@/lib/publish/destinations");
+  const destinations = await listDestinations(siteId).catch(() => []);
+  for (const destination of destinations) {
+    const hostname = destination.hostname;
+    if (typeof hostname === "string" && hostname.trim() !== "") return hostname;
+  }
+  return null;
 }
 
 /** §9's two states that wait on the customer. `needs_you` outranks
@@ -395,6 +537,10 @@ interface WeeklyFacts {
    *  the report screen cannot disagree about the week they mean. */
   score: Measured<{ score: number; band: BandHandle }>;
   scorePrevious?: Measured<{ score: number; band: BandHandle }>;
+  /** SPEC §4 (2026-09-20): one score per week of the window, oldest first,
+   *  for the header's trend. `null` is a week that was not measured — never
+   *  a zero, which the line would be drawn through as a reading. */
+  scorePoints: (number | null)[];
   /** The newest measured week's report, whose technical issues are the ones
    *  the customer is shown — Monday's re-check, never a stale week's. Week
    *  0's before the first Monday. */
@@ -468,6 +614,7 @@ async function weeklySeries(
     return {
       points: [],
       aiPresence: [],
+      scorePoints: [],
       changes: [],
       rivals,
       score,
@@ -484,6 +631,13 @@ async function weeklySeries(
     return { weekStart: at, value: ownRankedOf(scans.get(week)?.report ?? null, at) };
   });
   const aiPresence = measuredWeeks.map((week) => presentInAnswers(scans.get(week)?.report ?? null));
+  // The header's trend: the score each of those weeks measured, read off the
+  // same stored verdict every other figure on this screen comes from. A week
+  // with no report contributes `null`, never a floor it never sat on.
+  const scorePoints = measuredWeeks.map((week) => {
+    const reading = scoreOf(scans.get(week)?.report ?? null, now);
+    return reading.kind === "unmeasured" ? null : reading.value.score;
+  });
 
   // The dates the series breaks at (REQ-071 c12/c13). Derived from the
   // scans themselves — this screen states no change of its own — and
@@ -498,6 +652,7 @@ async function weeklySeries(
   return {
     points,
     aiPresence,
+    scorePoints,
     changes,
     rivals,
     score,
@@ -516,8 +671,15 @@ function scoreOf(
   report: StoredReport | null,
   at: Date
 ): Measured<{ score: number; band: BandHandle }> {
-  if (report === null) return unmeasured<{ score: number; band: BandHandle }>("not_attempted", at);
-  return report.verdict.scoreAndBand;
+  // A report whose verdict carries no reading is a week that did not reach
+  // the score — the same fact as no report at all, and stated the same way.
+  // Never left as the absent value itself: a caller that read `.kind` off it
+  // would be reading a property of nothing.
+  const reading = report?.verdict?.scoreAndBand;
+  if (reading === undefined || reading === null) {
+    return unmeasured<{ score: number; band: BandHandle }>("not_attempted", at);
+  }
+  return reading;
 }
 
 /** §6.6's sizing for one rival in one week, or nothing. The entries are
@@ -648,7 +810,7 @@ export async function readOverviewFacts(site: OverviewSite): Promise<OverviewFac
   const { supplyDepth, supplyState } = await import("@/lib/opportunities");
 
   const deepRead = deepPassReading(site.siteId);
-  const [firstDueOn, published, depth, waiting, series, ranking, deepPass] = await Promise.all([
+  const [firstDueOn, published, depth, waiting, series, ranking, deepPass, waitingPage] = await Promise.all([
     nextDueOn({ siteId: site.siteId, now }),
     pagesPublished(site.siteId, now),
     supplyDepth(site.siteId),
@@ -659,17 +821,20 @@ export async function readOverviewFacts(site: OverviewSite): Promise<OverviewFac
     // rest of the screen is about.
     pagesRanking(site.siteId, weekStartFor({ at: now, zone: site.timeZone }), now),
     deepRead,
+    // SPEC §4 (2026-09-20): the page the screen leads with.
+    waitingPageFacts(site, now),
   ]);
   // issue 765/issue 784: a zero is either a market used up or one never measured, and
   // only a read that answered may say which — an unreadable one says neither.
   // Issue 855: or a market still being measured, which neither of those is.
   const state = depth.unused === 0 ? await supplyState(site.siteId).catch(() => null) : null;
   // The site's own week, as the seven `scheduled_for` dates a draft can
-  // carry (issue 867).
-  const weekSearches = await weekSearchesFor(site, now);
+  // carry (issue 867, and SPEC §4 2026-09-20's stage word per day).
+  const week = await weekFor(site, now);
 
   return {
     timeZone: site.timeZone,
+    waitingPage,
     // §11's stored weeks, projected (#213). Empty is still not a claim:
     // where nothing has been measured `readGrowth` answers its `none` arm
     // from `firstDueOn`, which is a real date.
@@ -684,6 +849,7 @@ export async function readOverviewFacts(site: OverviewSite): Promise<OverviewFac
     ...(published.previous === undefined ? {} : { pagesPublishedPrevious: published.previous }),
     pagesRanking: ranking,
     score: series.score,
+    scorePoints: series.scorePoints,
     ...(series.scorePrevious === undefined ? {} : { scorePrevious: series.scorePrevious }),
     rivals: series.rivals,
     today: now,
@@ -705,7 +871,8 @@ export async function readOverviewFacts(site: OverviewSite): Promise<OverviewFac
     // Issue 867: which engines this site's pages are measured on, and what
     // this week's pages are aimed at.
     aiEngines: enginesMeasured(series.latest ?? deepPass?.report ?? null),
-    weekSearches,
+    weekSearches: week.searches,
+    weekPages: week.pages,
   };
 }
 

@@ -78,6 +78,9 @@ export const FIXTURE_OVERVIEW_FACTS: OverviewFacts = Object.freeze({
   // row and carries no goal chip (issue #536).
   score: measured({ score: 62, band: "hard-to-find" as const }, MONDAY(31)),
   scorePrevious: measured({ score: 54, band: "hard-to-find" as const }, MONDAY(17)),
+  // The header's trend (SPEC §4, 2026-09-20), aligned to `points` above:
+  // the week that did not run is `null`, never a zero.
+  scorePoints: Object.freeze([31, 54, null, 62]),
   pagesPublished: measured(17, MONDAY(31)),
   pagesRanking: measured(6, MONDAY(31)),
 
@@ -173,6 +176,40 @@ export const FIXTURE_OVERVIEW_FACTS: OverviewFacts = Object.freeze({
       vetoDeadline: new Date(Date.UTC(2026, 8, 4, 20, 42, 0)),
       href: "/app/draft/fixture-veto-2",
     },
+  ]),
+
+  // SPEC §4 (2026-09-20): the page waiting for review, which the Overview
+  // leads with. It is the same draft the first alert below is about — one
+  // page, stated twice on one screen would be two pages to a reader — and it
+  // carries the densest arm the card can draw: a measured demand, a rival
+  // holding the answer today, a band, and a body to preview.
+  waitingPage: Object.freeze({
+    draftId: "fixture-veto",
+    title: "How teams pick an onboarding tool",
+    stage: "your_review" as const,
+    goesLiveAt: new Date(Date.UTC(2026, 8, 5, 6, 0, 0)),
+    target: Object.freeze({
+      search: "onboarding tool comparison",
+      volume: measured(1900, MONDAY(31)),
+      winnability: "winnable" as const,
+      answeredTodayBy: Object.freeze(["bigcompetitor.com"]),
+    }),
+    update: false,
+    lead: "Most teams compare onboarding tools on price first and switch within a year. The three questions below sort the shortlist faster, and none of them is about the monthly fee.",
+    readerHost: "content.example.com",
+  }),
+
+  // SPEC §4 (2026-09-20): what each day of the fixture's week holds. Friday
+  // is today, Sunday carries the page in review, and Wednesday holds none —
+  // so the strip shows all three of the words it can say.
+  weekPages: Object.freeze([
+    "calendar.stage.live" as const,
+    "calendar.stage.live" as const,
+    null,
+    "calendar.stage.live" as const,
+    "calendar.stage.live" as const,
+    "calendar.stage.scheduled" as const,
+    "calendar.stage.your-review" as const,
   ]),
 
   // Issue 867: the engines the reserved account's pass asked, and what this

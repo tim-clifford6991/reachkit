@@ -468,9 +468,13 @@ describe("this week", () => {
     expect(markup).toContain("btn-ghost");
   });
 
-  it("names each day by its date and state, and marks today", () => {
+  it("names each day by its weekday, its date, what stands on it and its state", () => {
+    // SPEC §4 (2026-09-20): every cell carries a word, so its meaning is
+    // never its colour. A day nothing is scheduled on says so.
     expect(markup).toContain('data-state="today"');
-    expect(markup).toMatch(/aria-label="4 · overview\.week\.day\.today"/);
+    expect(markup).toMatch(
+      /aria-label="Fri 4 · overview\.week\.day\.no-page · overview\.week\.day\.today"/
+    );
   });
 
   it("renders exactly one supply statement", () => {
@@ -501,12 +505,15 @@ describe("needs you (S12)", () => {
     expect(markup).toContain("overview.alert.overflow(1)");
   });
 
-  it("spends the one solid button on the page that publishes anyway, the outline on the reconnect", () => {
+  it("spends no solid button at all — the screen's one is Read it, on the page waiting for review", () => {
+    // SPEC §4 (2026-09-20): the page in review leads the screen and takes
+    // its one solid control. This card no longer repeats that page, so a
+    // panel here is always a second thing waiting and takes the outline.
     const veto = markup.slice(markup.indexOf('data-kind="pending_veto"'));
     const reconnect = markup.slice(markup.indexOf('data-kind="needs_you"'));
-    expect(veto.slice(0, veto.indexOf("</a>"))).toContain('class="btn btn-primary');
+    expect(veto.slice(0, veto.indexOf("</a>"))).toContain("btn-outline");
     expect(reconnect.slice(0, reconnect.indexOf("</a>"))).toContain("btn-outline");
-    expect(count(markup, 'class="btn btn-primary')).toBe(1);
+    expect(count(markup, 'class="btn btn-primary')).toBe(0);
   });
 
   it("each panel's control navigates to that item's own address", () => {

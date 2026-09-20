@@ -73,7 +73,7 @@ vi.mock("@/lib/presentation/copy", async (importOriginal) => {
 });
 
 import { COPY, type CopyKey } from "@/lib/presentation/copy";
-import OverviewPage from "@/app/(account)/app/page";
+import OverviewPage from "@/app/(account)/app/(tabs)/page";
 import CalendarPage from "@/app/(account)/app/calendar/page";
 import SettingsPage from "@/app/(account)/app/settings/page";
 
@@ -163,7 +163,7 @@ describe("settings — the built screen keeps the three contracts the frame set"
 // the strip and the alert cap — are `tests/app/overview/`'s.
 describe("overview — the built screen still keeps the shell's contract", () => {
   it("declares no Surface — the shell's layout owns this route's screen root", async () => {
-    const source = readFileSync(path.join(APP_DIR, "page.tsx"), "utf8");
+    const source = readFileSync(path.join(APP_DIR, "(tabs)", "page.tsx"), "utf8");
     expect(source).not.toMatch(/from\s+["']@\/ui\/layout/);
     expect(source).not.toContain("<Surface");
     expect(await markup(OverviewPage())).not.toContain("data-surface");

@@ -2,10 +2,15 @@
 //
 // SPEC §4: at most two "needs you" items. The cap and the overflow count are
 // the model's (`readAlerts`); this file renders the list it is given as
-// daisyUI `alert`s. The page about to publish takes the warning ground and
-// the screen's one solid button, because its veto window closes whether or
-// not the customer acts; a broken connection takes the outline, because
-// nothing happens until they do.
+// daisyUI `alert`s. The page about to publish takes the warning ground,
+// because its veto window closes whether or not the customer acts; a broken
+// connection takes the plain one, because nothing happens until they do.
+//
+// **No control here is solid** (docs/DESIGN.md rule 1: one solid primary per
+// screen). Since the 2026-09-20 redesign the screen's one solid button is
+// *Read it* on the page waiting for review, which this card no longer
+// repeats — the model drops the item the card above leads with — so a second
+// page in review is an outline control beside it, not a second call to act.
 //
 // A panel whose title, line or control is unwritten does not render. An
 // empty list is a success state, not a blank.
@@ -17,7 +22,7 @@ import { formatCount } from "./present";
 import type { Alert, AlertKind, Overflow } from "./alerts";
 
 const PANEL: Readonly<Record<AlertKind, { alert: string; cta: string; Icon: typeof Bell }>> = {
-  pending_veto: { alert: "alert alert-warning alert-soft", cta: "btn btn-primary btn-sm", Icon: FileText },
+  pending_veto: { alert: "alert alert-warning alert-soft", cta: "btn btn-outline btn-warning btn-sm", Icon: FileText },
   needs_you: { alert: "alert alert-soft", cta: "btn btn-outline btn-sm", Icon: Plug },
   // A technical issue the customer fixes (SPEC §9): error ground when
   // Critical, warning when Worth fixing, and the outline control to the
@@ -35,8 +40,17 @@ function Panel(p: { alert: Alert }): React.JSX.Element | null {
 
   const drawn = PANEL[p.alert.kind];
   const ground = p.alert.severity === "critical" ? CRITICAL_ALERT : drawn.alert;
+  // `alert-vertical` at every width: the control sits under the line it is
+  // about, which is how the approved board draws it and the only arrangement
+  // that cannot push a button past the panel's edge when two panels share a
+  // half-width column at 1280.
   return (
-    <div role="alert" className={ground} data-kind={p.alert.kind} data-testid="overview-alert">
+    <div
+      role="alert"
+      className={`${ground} alert-vertical justify-items-start text-start`}
+      data-kind={p.alert.kind}
+      data-testid="overview-alert"
+    >
       <drawn.Icon aria-hidden size={20} strokeWidth={1.75} />
       <div className="min-w-0">
         <p className="flex flex-wrap items-center gap-2 font-semibold">
@@ -89,8 +103,11 @@ export function NeedsYouModule(p: {
           <Bell aria-hidden size={20} strokeWidth={1.75} />
           {copy("overview.needs-you.title")}
         </h2>
+        {/* A list, not a two-column grid: since the 2026-09-20 redesign this
+            card stands in the narrower of the two columns beside the week,
+            and two panels sharing that width wrap every title. */}
         {panels.length === 0 ? null : (
-          <div className="grid gap-3 md:grid-cols-2" data-testid="overview-alert-panels">
+          <div className="flex min-w-0 flex-col gap-3" data-testid="overview-alert-panels">
             {panels}
           </div>
         )}

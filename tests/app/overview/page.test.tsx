@@ -27,7 +27,7 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { COPY, type CopyKey } from "@/lib/presentation/copy";
-import OverviewPage from "@/app/(account)/app/page";
+import OverviewPage from "@/app/(account)/app/(tabs)/page";
 
 // BUILD §4.4–§4.6, issue #169 — the surfaces under test now resolve who is
 // asking through `_session/account.ts`, which reads a signed cookie and a
@@ -42,6 +42,10 @@ afterEach(() => resetAccount());
 
 const SRC = path.resolve(import.meta.dirname, "../../../src");
 const APP = path.join(SRC, "app/(account)/app");
+/** The Overview tab's own route, since the four tabs got a sub-layout
+ *  (SPEC §4, 2026-09-20). The route group contributes nothing to the URL:
+ *  this is still `/app`. */
+const TAB = path.join(APP, "(tabs)");
 
 async function markup(): Promise<string> {
   return renderToStaticMarkup(await OverviewPage());
@@ -80,20 +84,22 @@ describe("REQ-041 c1 — Overview is the screen a signed-in customer lands on", 
   });
 
   it("declares no Surface — the shell's layout owns this route's screen root", async () => {
-    const source = readFileSync(path.join(APP, "page.tsx"), "utf8");
+    const source = readFileSync(path.join(TAB, "page.tsx"), "utf8");
     expect(source).not.toMatch(/from\s+["']@\/ui\/layout/);
     expect(await markup()).not.toContain("data-surface");
   });
 
-  it("renders all six of S12's cards", async () => {
-    // §4.5 wrote five modules and put the alerts under "This week"; the
-    // approved set draws six, splitting "Needs you" out (issue #353).
+  it("renders the five parts SPEC §4 (2026-09-20) puts on the Overview tab", async () => {
+    // The owner's enumeration of that date, in its own order: the score in
+    // the header, the page waiting for review, three linked tiles, this
+    // week, needs you. It supersedes the six cards #353 drew — the growth
+    // card, the AI matrix and the rival rows are the Search, AI answers and
+    // Rivals tabs' own now (#916, #918, #917).
     const html = await markup();
     for (const region of [
       "overview-head",
-      "overview-growth",
+      "overview-waiting",
       "overview-tiles",
-      "overview-rivals",
       "overview-week",
       "overview-needs-you",
     ]) {
@@ -101,15 +107,20 @@ describe("REQ-041 c1 — Overview is the screen a signed-in customer lands on", 
     }
   });
 
-  it("renders three tiles and no fourth — the set's three (S12)", async () => {
+  it("renders three tiles and no fourth, each one a door to its tab", async () => {
     const html = await markup();
-    expect(html.split('class="stats"').length - 1).toBe(3);
-    // The score leads since #353 (ruling 6a) and the searches reading has
-    // no tile at all — it is the growth card's, which draws the series.
-    expect(html).toContain('data-testid="overview-tile-score"');
-    expect(html).toContain('data-testid="overview-tile-ai-answers"');
-    expect(html).toContain('data-testid="overview-tile-pages"');
-    expect(html).not.toContain('data-testid="overview-tile-searches"');
+    expect(html).toContain('data-testid="overview-tile-searches"');
+    expect(html).toContain('data-testid="overview-tile-questions"');
+    expect(html).toContain('data-testid="overview-tile-rivals"');
+    expect(html.split('data-testid="overview-tile-').length - 1).toBe(3);
+  });
+
+  it("the twelve-week growth card and the rival rows have left this tab", async () => {
+    // Not deleted — they are what #916 and #917 build their tabs from — but
+    // the Overview tab states each of those readings once, as a tile.
+    const html = await markup();
+    expect(html).not.toContain('data-testid="overview-growth"');
+    expect(html).not.toContain('data-testid="overview-rivals"');
   });
 });
 
@@ -175,7 +186,7 @@ describe("the render performs no measurement, no vendor call and no model call",
   });
 
   it("its module graph reaches no vendor client and no language model", () => {
-    const reachable = transitiveImports(path.join(APP, "page.tsx"));
+    const reachable = transitiveImports(path.join(TAB, "page.tsx"));
     const forbidden = [path.join(SRC, "lib/vendors"), path.join(SRC, "lib/llm")];
     const offenders = [...reachable].filter((file) =>
       forbidden.some((directory) => file.startsWith(directory))
@@ -184,7 +195,7 @@ describe("the render performs no measurement, no vendor call and no model call",
   });
 
   it("the graph is not vacuous — it does reach the screen's own model", () => {
-    const reachable = transitiveImports(path.join(APP, "page.tsx"));
+    const reachable = transitiveImports(path.join(TAB, "page.tsx"));
     expect([...reachable].some((file) => file.endsWith("_overview/model.ts"))).toBe(true);
   });
 });

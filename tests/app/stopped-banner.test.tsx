@@ -88,7 +88,7 @@ vi.mock("@/lib/market/changes", async (importOriginal) => ({
 }));
 
 const { setOpportunityStore } = await import("@/lib/opportunities/store");
-const { default: OverviewPage } = await import("@/app/(account)/app/page");
+const { default: OverviewPage } = await import("@/app/(account)/app/(tabs)/page");
 const { default: CalendarPage } = await import("@/app/(account)/app/calendar/page");
 const { default: AppLayout } = await import("@/app/(account)/app/layout");
 const { COPY } = await import("@/lib/presentation/copy");
