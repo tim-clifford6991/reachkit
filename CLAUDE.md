@@ -1,6 +1,6 @@
 # reachkit
 
-Read `README.md` (nine features, what delivered means), then only the `docs/SPEC.md` section you are changing. UI: `docs/DESIGN.md` — three rules (daisyUI, Recharts, lucide). Flow: `docs/PROCESS.md`. The owner tests live on `dev.reachkit.app`.
+Read `README.md` (nine features, what delivered means), then only the `docs/SPEC.md` section you are changing. UI: `docs/DESIGN.md` — three rules (daisyUI, Recharts, lucide), one library allow-list, and the 2026-09-20 redesign canvas as the structural reference (#908). Flow: `docs/PROCESS.md`. The owner tests live on `dev.reachkit.app`.
 
 Ship the paying path. Prefer a library over new code. Do not open `docs/archive/`.
 
@@ -8,7 +8,7 @@ Ship the paying path. Prefer a library over new code. Do not open `docs/archive/
 
 - Never ship `TODO(copy)` in a customer-visible string (owner ruling 2026-09-16, #759). Keys live in `src/lib/presentation/copy/keys/`. Missing → draft the sentence in the registry’s voice, ship it, and name every new or changed string in the PR body so the owner can correct it.
 - Never add a custom component, CSS sheet, token set, or SVG chart where daisyUI or Recharts covers it. Do not wrap daisyUI in a new `Btn`/`Card`.
-- Never “match the artboard.” There is no artboard in the process.
+- Never match pixels or copy markup from the redesign canvas; it says what a screen holds, daisyUI classes say how it looks. Never add a UI dependency that is not on `docs/DESIGN.md`’s list.
 - Never write a test that transcribes a document.
 - Never guess an owner decision — `blocked-on-owner` and ask; record the answer as a dated SPEC line.
 - Never edit `docs/archive/`.
