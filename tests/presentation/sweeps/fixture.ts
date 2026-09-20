@@ -52,6 +52,10 @@ export const COLD_START_SHELL_FACTS: ShellFacts = Object.freeze({
   weeks: Object.freeze([]),
   firstDueOn: MONDAY(14),
   waiting: 0,
+  // Nothing waiting, so no *Waiting for you* card is drawn (SPEC §4,
+  // 2026-09-20), and no blog of ours is live yet on day one.
+  review: null,
+  blog: null,
   next: null,
   stopped: null,
   noPublishCauses: Object.freeze({

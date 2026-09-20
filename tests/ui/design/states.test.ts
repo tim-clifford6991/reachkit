@@ -57,13 +57,20 @@ describe("§0 10 — the calendar cell open in the panel", () => {
   });
 });
 
-describe("§0 11 — the compact band keeps the Workspace nav as one row", () => {
-  it("the compact header renders the sidebar's own nav as a row, and no tab bar", () => {
+describe("SPEC §4 (2026-09-20) — the compact band keeps all three, as a dock", () => {
+  // This supersedes UI-SPEC §0 11 (2026-09-11), which kept them as one
+  // horizontal row inside a compact header: the owner-approved redesign
+  // (#908) makes the side panel a drawer below `lg` and moves the three
+  // menu items to a bottom bar. What is unchanged, and is what both
+  // rulings are really about, is that none of the three is ever hidden and
+  // no tab bar comes back.
+  it("the compact band gets the dock, and the panel opens from the top bar", () => {
     const layout = read("src/app/(account)/app/layout.tsx");
-    expect(layout).toContain("<SidebarNav waiting={shell.waiting} row />");
+    expect(layout).toContain("<AppDock waiting={shell.waiting} />");
+    expect(layout).toContain("<TopBar shell={shell} />");
     expect(layout).not.toMatch(/TabBar/);
+    expect(read("src/app/(account)/app/_shell/AppDock.tsx")).toContain("dock");
   });
-
 });
 
 describe("§0 13 — one motion token", () => {

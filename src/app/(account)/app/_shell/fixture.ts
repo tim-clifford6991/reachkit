@@ -41,6 +41,17 @@ export const FIXTURE_SHELL_FACTS: ShellFacts = Object.freeze({
   ]),
   firstDueOn: MONDAY(17),
   waiting: 2,
+  // SPEC §4 (2026-09-20): the page the side panel's *Waiting for you* card
+  // is about — one of the two `waiting` counts, so the card and the count
+  // agree on the owner's preview exactly as they do for a customer.
+  review: Object.freeze({
+    draftId: "draft-fixture-1",
+    title: "How much does a bike service cost in 2026?",
+    goesLiveAt: new Date(Date.UTC(2026, 8, 8, 11, 0, 0)),
+  }),
+  // The reserved fixture account publishes to a hosted blog on its own
+  // reserved name, so the shortcut is drawn and goes nowhere real.
+  blog: "https://blog.example.com",
   next: new Date(Date.UTC(2026, 8, 8, 13, 0, 0)),
   // REQ-092 c3: the ordinary state is that ReachKit has not stopped, so
   // nothing states one. The stopped arm is exercised by

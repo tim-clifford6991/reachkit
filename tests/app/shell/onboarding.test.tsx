@@ -126,12 +126,14 @@ describe("issue #782 — the founder waits in the app, not on a waiting screen",
     });
   });
 
-  it("while the pass runs, the side panel says which step, and Overview/Calendar say the first page is being written", async () => {
+  it("while the pass runs, the side panel says which step, and Overview/Plan say the first page is being written", async () => {
     db.rows("sites")[0]!.setup_stage = "reading_your_market";
     const tree = await app();
     const panels = tree.querySelectorAll('[data-testid="shell-onboarding"]');
-    // Header and sidebar: one per breakpoint.
-    expect(panels).toHaveLength(2);
+    // Issue #911: the shell is one drawer, so the panel is drawn once —
+    // not once per breakpoint. The second copy is what forced the old
+    // `offsetParent` guard on its polling.
+    expect(panels).toHaveLength(1);
     expect(panels[0]?.querySelector(".loading")).not.toBeNull();
     expect(panels[0]?.textContent).toContain(COPY["setup.waiting.stage.measuring-your-market"]);
     expect(panels[0]?.textContent).toContain(COPY["setup.waiting.head"]);

@@ -139,8 +139,37 @@ export const LAWS_COPY = Object.freeze({
   // uppercase is the role's, not the string's.
   "shell.workspace": ["Workspace", { slots: {}, fixedBy: "S12" }],
   "shell.nav.overview": ["Overview", { slots: {}, fixedBy: "REQ-040 c1" }],
-  "shell.nav.calendar": ["Calendar", { slots: {}, fixedBy: "REQ-040 c1" }],
+  // SPEC §4 (2026-09-20, #908): "Menu: **Overview · Plan · Settings**" —
+  // *Plan* is the calendar's on-screen name, so the destination keeps its
+  // address and loses its old word. The key was `shell.nav.calendar`; a
+  // renamed key rather than a re-worded one, so nothing can go on speaking
+  // "Calendar" from a name that no longer means it.
+  "shell.nav.plan": ["Plan", { slots: {}, fixedBy: "SPEC §4 (2026-09-20)" }],
   "shell.nav.settings": ["Settings", { slots: {}, fixedBy: "REQ-040 c1" }],
+  /** SPEC §4 (2026-09-20, #908) — the side panel that "collapses to an icon
+   *  rail", and below the large breakpoint is a drawer. The checkbox that
+   *  holds that choice is the one control keyboard and screen readers
+   *  reach, so it carries the panel's name; the two icon-only labels that
+   *  drive it carry the state each one moves to, as their tooltips.
+   *  Drafted in the registry's voice (issue #911); the owner may correct. */
+  "shell.panel.label": ["Side panel", { slots: {}, fixedBy: "issue 911" }],
+  "shell.panel.collapse": ["Collapse the side panel", { slots: {}, fixedBy: "issue 911" }],
+  "shell.panel.open": ["Open the side panel", { slots: {}, fixedBy: "issue 911" }],
+  /** SPEC §4 (2026-09-20) — the *Waiting for you* card: the page in review,
+   *  its title, and when it publishes if the customer does nothing. The
+   *  time is the shell's own formatted date-time in the customer's zone
+   *  (`format.ts`), never a composed "tomorrow": the shell states the day
+   *  it knows rather than a word it would have to work out. */
+  "shell.waiting.head": ["Waiting for you", { slots: {}, fixedBy: "issue 911" }],
+  "shell.waiting.goes-live": [
+    "Goes live {when}",
+    { slots: { when: "date" }, fixedBy: "issue 911" },
+  ],
+  /** SPEC §4 (2026-09-20) — the side panel's two shortcuts. Each is drawn
+   *  only where it can act (SPEC §4, 2026-09-20: "a control that cannot act
+   *  is not drawn"), so the blog link is absent until a blog is live. */
+  "shell.shortcut.blog": ["Visit your blog", { slots: {}, fixedBy: "issue 911" }],
+  "shell.shortcut.help": ["Help", { slots: {}, fixedBy: "issue 911" }],
   "shell.publishing.mode.autopilot": ["Autopilot", { slots: {}, fixedBy: "REQ-040 c3" }],
   // What the mode is doing, under the mode's own word (UI-SPEC S12's
   // autopilot card: the eyebrow, then "Publishing daily", then the next

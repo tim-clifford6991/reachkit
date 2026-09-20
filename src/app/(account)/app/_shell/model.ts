@@ -24,6 +24,23 @@ export type PublishingState =
   | { mode: PublishingMode; next: Date }
   | { mode: PublishingMode; next: null; because: NoPublishReason };
 
+/** SPEC §4 (2026-09-20, #908) — the *Waiting for you* card's whole subject:
+ *  the page sitting in the customer's review, what it is called, and when it
+ *  publishes if they do nothing. `null` for every other state — there is no
+ *  "loading" arm and no empty card, because a card with nothing waiting in
+ *  it is a control that cannot act (SPEC §4 of the same date). */
+export interface WaitingPage {
+  /** Its address is `/app/draft/{draftId}` — the review screen. */
+  draftId: string;
+  /** The page's own title. Model text, rendered as the calendar renders a
+   *  day card's title, and clamped to two lines by the card. */
+  title: string;
+  /** When it goes live unless the customer stops it, or `null` where no
+   *  time is set yet — then the card states the page and not a time it
+   *  would have to invent. */
+  goesLiveAt: Date | null;
+}
+
 export interface ShellModel {
   domain: string;
   /** The zone every date and time the shell states is expressed in
@@ -31,8 +48,17 @@ export interface ShellModel {
   timeZone: string;
   weeks: WeekCount;
   /** REQ-040 c2. `0` renders no count at all — the renderer's rule, but the
-   *  number is stated here rather than being an absent field. */
+   *  number is stated here rather than being an absent field. SPEC §4
+   *  (2026-09-20) moves the count to Overview; it is the same count. */
   waiting: number;
+  /** SPEC §4 (2026-09-20) — the one page the *Waiting for you* card is
+   *  about, or `null`. It is drawn from the same drafts `waiting` counts,
+   *  so the card and the count cannot state different facts. */
+  review: WaitingPage | null;
+  /** SPEC §4 (2026-09-20) — where *Visit your blog* goes, or `null` where
+   *  this site has no live blog of ours to visit and the shortcut is
+   *  therefore not drawn. */
+  blog: string | null;
   publishing: PublishingState;
   /** REQ-092 c3: the fact that ReachKit stopped its own work, or `null`.
    *  Stated on every app screen by `StoppedNotice` and by nothing else.
@@ -54,6 +80,13 @@ export interface ShellFacts {
   /** The count of calendar items waiting on the customer — §9's `in_review`
    *  and `needs_attention` drafts (#45). */
   waiting: number;
+  /** The first of those, for the side panel's card (SPEC §4, 2026-09-20).
+   *  Read, never counted from: `waiting` is the count and this is the one
+   *  the customer is sent to. */
+  review: WaitingPage | null;
+  /** §9's hosted blog, where it is live, as an address a browser can open;
+   *  `null` otherwise. */
+  blog: string | null;
   /** §9's `becomesPublishable` (#45): the next scheduled publish, or `null`
    *  with the four causes stated. */
   next: Date | null;
@@ -78,6 +111,8 @@ export function assembleShell(facts: ShellFacts): ShellModel {
     timeZone: facts.timeZone,
     weeks,
     waiting: facts.waiting,
+    review: facts.review,
+    blog: facts.blog,
     publishing: publishingOf(facts),
     stopped: facts.stopped,
   };

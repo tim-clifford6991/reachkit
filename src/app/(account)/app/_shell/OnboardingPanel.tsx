@@ -7,14 +7,22 @@
 //
 // It polls `GET /api/setup/progress` at the pinned heartbeat. While the pass
 // runs it moves the label; the moment the pass is released it asks the
-// router for a fresh render, so the Overview and Calendar show what the pass
+// router for a fresh render, so the Overview and Plan show what the pass
 // and the first draft wrote and the shell replaces this panel with nothing
-// or with the founder's reason. The shell draws the panel twice (header and
-// sidebar, one hidden per breakpoint); only the one on screen polls.
+// or with the founder's reason.
+//
+// **Issue #911: one panel, and therefore no `offsetParent` guard.** The
+// shell used to draw its parts twice — a compact header and a sidebar, one
+// hidden per breakpoint — so this component polled only when its own copy
+// was the visible one, which it worked out by reading `offsetParent` on
+// every tick. The shell is one drawer now and draws this panel once, so
+// there is no second copy to silence: it polls whenever it is mounted,
+// including while the customer has collapsed the panel to the icon rail —
+// the pass ending is what releases the whole screen, not just this line.
 "use client";
 
 import type React from "react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { TIMING } from "@/lib/config/constants";
 import type { PassProgress } from "@/app/(account)/setup/_setup/progress";
@@ -29,15 +37,12 @@ export function OnboardingPanel(p: {
   labels: Readonly<Record<DrawnRow, string>>;
 }): React.JSX.Element {
   const router = useRouter();
-  const ref = useRef<HTMLDivElement>(null);
   const [stage, setStage] = useState<OnboardingStage>(p.stage);
 
   useEffect(() => {
     let cancelled = false;
 
     async function poll(): Promise<void> {
-      // `offsetParent` is null while a breakpoint hides this copy.
-      if (ref.current === null || ref.current.offsetParent === null) return;
       const response = await fetch(PROGRESS_PATH);
       if (!response.ok) return;
       const progress = (await response.json()) as PassProgress;
@@ -60,7 +65,6 @@ export function OnboardingPanel(p: {
 
   return (
     <div
-      ref={ref}
       role="status"
       className="alert items-start text-sm"
       data-testid="shell-onboarding"
