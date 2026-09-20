@@ -11,17 +11,17 @@
 // "*WordPress*", and the footer's own verb, "Start". Nothing here is
 // composed.
 //
-// **`setup.submit` is "Start", and no sentence on either screen states how
-// long anything takes.** §4.3's footer reads "Start — first page in ~3
-// minutes", and REQ-025 c1 reads "nothing on the screen states how long the
-// deep pass, or the founder's first page, will take". The two contradict
-// each other; the owner ruled on 2026-09-06 (this PR) that **REQ-025 c1
-// wins** and §4.3's footer is amended under #2. So the control keeps the
-// verb and drops the promise, and the absence is asserted rather than
-// reviewed: `tests/app/setup/screen.test.tsx` and `waiting.test.tsx` scan
-// the whole rendered tree — the submit included — for a duration, an
-// estimate, a countdown, a clock or a percentage, and each carries a
-// mutation check proving the scan still catches one.
+// **No sentence on this screen states how long anything takes.** REQ-025
+// c1: "nothing on the screen states how long the deep pass, or the
+// founder's first page, will take". §4.3's old footer control ("Start —
+// first page in ~3 minutes.") and the one-screen head ("Three decisions,
+// then we start.") are both gone with the five-step redesign of 2026-09-20
+// (#908, #922): there is no one submit to hang an estimate on, and each
+// step is headed by its own question. The absence is asserted rather than
+// reviewed — `tests/app/setup/screen.test.tsx` and `waiting.test.tsx` scan
+// every rendered step for a duration, an estimate, a countdown, a clock or
+// a percentage, and each carries a mutation check proving the scan still
+// catches one.
 //
 // The two publishing *mode* names are not here: §4.3's "Autopilot" and
 // "Copilot" are already `shell.publishing.mode.*` in `laws.ts`, which the
@@ -37,26 +37,10 @@ import type { CopyPartition } from "../registry.ts";
 
 export const SETUP_COPY = Object.freeze({
   // ── The screen ──────────────────────────────────────────────────────
-  "setup.head": ["Three decisions, then we start.", { slots: {}, fixedBy: "REQ-025 c1" }],
   /** REQ-025 c5's exception in one line: a founder whose account cannot be
    *  read is told so, and told they can still reach Settings, cancel and
    *  export with setup unfinished. */
   "setup.refused.no-access": ["We couldn’t find an active plan for this account, so setup can’t start. Settings is still open to you — cancel or export your content there at any time.", { slots: {}, fixedBy: "REQ-025 c5" }],
-  /**
-   * §4.3's footer control, with its estimate — the C1 resolution, applied.
-   *
-   * The duration was removed on 2026-09-06 under REQ-025 c1 ("the control
-   * reads 'Start'"), and the approved set of 2026-09-08 draws it back:
-   * "Start — first page in ~3 minutes." #378 resolved the two as C1 — the
-   * approved string stands (11a, and it is the newer owner approval), and
-   * REQ-025 c1 is amended to allow a stated estimate — and wrote it into
-   * BUILD §4.3, where this value now agrees with the spec again.
-   */
-  "setup.submit": [
-    "Start — first page in ~3 minutes.",
-    { slots: {}, fixedBy: "REQ-025 c1 (amended, C1) · S10 (11a)" },
-  ],
-
   // ── The progress strip (UI-SPEC S10 · S11, issue #356) ──────────────
   "setup.progress.paid": ["Paid", { slots: {}, fixedBy: "S10 · 11a" }],
   "setup.progress.setup": ["Setup", { slots: {}, fixedBy: "S10 · 11a" }],
@@ -449,4 +433,205 @@ export const SETUP_COPY = Object.freeze({
   "setup.remeasure.refused.empty": ["Type a category, or pick one of the suggestions.", { slots: {}, fixedBy: "issue 837" }],
   "setup.remeasure.refused.running": ["Your market is already being measured. Your pages follow as soon as it finishes.", { slots: {}, fixedBy: "issue 837" }],
   "setup.remeasure.refused.daily-limit": ["You’ve measured your market as many times as a day allows. You can measure again after {time}.", { slots: { time: "text" }, fixedBy: "issue 837" }],
+
+  // ── The five steps (SPEC §5, 2026-09-20, #908) ──────────────────────
+  //
+  // "setup is **five saved steps** — your site, your business, rivals,
+  // your voice, publishing — one decision each, with Back, and an
+  // equal-column step indicator."
+  //
+  // Every sentence in this block is **drafted** under the ruling of
+  // 2026-09-16 (#759): the owner-approved redesign states what each screen
+  // holds and in what words, and issue #922 lists the questions; the rest
+  // is written in this registry's voice and the owner corrects it. Two of
+  // the canvas's own lines are deliberately not transcribed: a line that
+  // says "on the right" is false on a phone, where the panel sits under
+  // the question, and a line that promises a sample paragraph is promising
+  // #923's panel. Both are written here for the screen this issue ships.
+
+  /** The one-word labels on the daisyUI `steps` indicator. One word each
+   *  is the layout rule (`docs/DESIGN.md`, 2026-09-20): five equal columns
+   *  at 390px only hold one. */
+  "setup.step.site": ["Site", { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" }],
+  "setup.step.business": ["Business", { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" }],
+  "setup.step.rivals": ["Rivals", { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" }],
+  "setup.step.voice": ["Voice", { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" }],
+  "setup.step.publishing": ["Publishing", { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" }],
+
+  /** One question per step — the screen's `<h1>`. The five are the owner's
+   *  own, listed in issue #922. */
+  "setup.step.site.question": ["Is this your business?", { slots: {}, fixedBy: "issue 922" }],
+  "setup.step.business.question": [
+    "Here’s what we learned about your business.",
+    { slots: {}, fixedBy: "issue 922" },
+  ],
+  "setup.step.rivals.question": ["Who do you lose customers to?", { slots: {}, fixedBy: "issue 922" }],
+  "setup.step.voice.question": ["Does this sound like you?", { slots: {}, fixedBy: "issue 922" }],
+  "setup.step.publishing.question": [
+    "Where should your pages go live?",
+    { slots: {}, fixedBy: "issue 922" },
+  ],
+
+  /** The line under each question. Drafted. */
+  "setup.step.site.line": [
+    "Your free scan read this. Everything we write is aimed at this site and this market, so correct either one now.",
+    { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" },
+  ],
+  /** `{pages}` is the inventory's own row count — what was read, never a
+   *  target. "what’s below" rather than "on the right": below the large
+   *  breakpoint the panel follows the question. */
+  "setup.step.business.line": [
+    "We read {pages} pages of your site. Your pages are written from what’s below, so take out anything that’s wrong and add what we missed.",
+    { slots: { pages: "text" }, fixedBy: "SPEC §5 (2026-09-20, issue 908)" },
+  ],
+  /** The same step for a founder whose site nobody has read yet — the free
+   *  scan reads no profile, and the pass that does runs after step 3. */
+  "setup.step.business.line.unread": [
+    "Nothing has been read of your site yet. Add anything your pages should be written from, or carry on — ReachKit reads your site while you finish setup.",
+    { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" },
+  ],
+  /** `{max}` is `BATTERY.COMPETITORS_MAX`. No count of what was found: the
+   *  screen has as many as the pass offered, which is often none. */
+  "setup.step.rivals.line": [
+    "We found these answering the searches you should be winning. Remove any that aren’t rivals and add your own — up to {max}.",
+    { slots: { max: "text" }, fixedBy: "SPEC §5 (2026-09-20, issue 908)" },
+  ],
+  "setup.step.voice.line": [
+    "We wrote down how you talk. Change the words and every page we write follows them.",
+    { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" },
+  ],
+  "setup.step.publishing.line": [
+    "Nothing goes live until you’ve had a day to read the first page. You can change this later in Settings.",
+    { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" },
+  ],
+
+  /** The two controls at the foot of every step, and the two the last two
+   *  steps replace them with. "That’s us" is the owner's own (issue #922);
+   *  "Finish" and "Continue" are the canvas's. */
+  "setup.back": ["Back", { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" }],
+  "setup.continue": ["Continue", { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" }],
+  "setup.business.confirm": ["That’s us", { slots: {}, fixedBy: "issue 922" }],
+  "setup.finish": ["Finish", { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" }],
+
+  // ── Step two: what we learned about your business ───────────────────
+  //
+  // SPEC §5 (2026-09-20): "what the site does, sells and promises, who it
+  // serves, the words it uses, and the facts that may be quoted with the
+  // page each was read from. Every item can be removed and the founder can
+  // add their own."
+  //
+  // The groups below are the ones the stored site profile actually carries
+  // (`src/lib/site-profile/types.ts`). What the site *does* and who it
+  // *serves*, and the page a quoted fact was read from, have no member on
+  // that shape yet; they arrive with #926, which owns this profile's
+  // storage and its editor.
+
+  /** The owner's own sentence (issue #922), under the pages-read chips. */
+  "setup.business.assurance": [
+    "We never invent prices, people or reviews. If a fact isn’t on your site, it won’t be in your pages.",
+    { slots: {}, fixedBy: "issue 922" },
+  ],
+  "setup.business.pages-read": ["Pages we read", { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" }],
+  "setup.business.group.products": ["What you sell", { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" }],
+  "setup.business.group.claims": ["What you promise", { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" }],
+  "setup.business.group.vocabulary": ["Words you use", { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" }],
+  "setup.business.group.facts": ["Facts we can quote", { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" }],
+  /** The quiet note beside each group head. `{max}` is the list's own
+   *  bound, from `VOICE_LIST_MAX`. */
+  "setup.business.group.products.note": [
+    "up to {max}",
+    { slots: { max: "text" }, fixedBy: "SPEC §5 (2026-09-20, issue 908)" },
+  ],
+  "setup.business.group.claims.note": [
+    "we may repeat these",
+    { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" },
+  ],
+  "setup.business.group.vocabulary.note": [
+    "so pages sound like you",
+    { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" },
+  ],
+  "setup.business.group.facts.note": [
+    "in your own words, from your own pages",
+    { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" },
+  ],
+  /** The accessible name on an item's ×. `{item}` is the founder's own
+   *  text, data and never composed words. */
+  "setup.business.remove": [
+    "Remove {item}",
+    { slots: { item: "text" }, fixedBy: "SPEC §5 (2026-09-20, issue 908)" },
+  ],
+  "setup.business.add": ["Add", { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" }],
+  /** The label on a group's own add field. `{group}` is the group head
+   *  above it, so the field is named even when the head is scrolled off. */
+  "setup.business.add.label": [
+    "Add to {group}",
+    { slots: { group: "text" }, fixedBy: "SPEC §5 (2026-09-20, issue 908)" },
+  ],
+  "setup.business.empty": [
+    "Nothing read for this yet. Add what we missed.",
+    { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" },
+  ],
+  "setup.business.full": [
+    "This list is full. Remove one to add another.",
+    { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" },
+  ],
+
+  // ── Step four: your voice ───────────────────────────────────────────
+  /** The second list on the voice step — the claims the site never makes
+   *  and ReachKit must not start making (`VoiceSummary.claimsToAvoid`). */
+  "setup.voice.never": [
+    "Things we should never say about you",
+    { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" },
+  ],
+
+  // ── The panel beside the question ───────────────────────────────────
+  //
+  // SPEC §5 (2026-09-20): "The right-hand side matches the step". The live
+  // panels are #923; what this issue draws is the customer's own blog
+  // address in a daisyUI `mockup-browser` with `skeleton` placeholders,
+  // and — on the business step — the profile itself.
+  "setup.panel.site.title": [
+    "Your blog, as it takes shape",
+    { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" },
+  ],
+  /** `{business}` is the name the site calls itself, read off its own
+   *  pages — data, never a composed word. */
+  "setup.panel.business.title": [
+    "{business}, as we understand it",
+    { slots: { business: "text" }, fixedBy: "SPEC §5 (2026-09-20, issue 908)" },
+  ],
+  "setup.panel.business.title.unnamed": [
+    "Your business, as we understand it",
+    { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" },
+  ],
+  "setup.panel.rivals.title": [
+    "What we’ve found so far",
+    { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" },
+  ],
+  "setup.panel.voice.title": [
+    "How your pages will sound",
+    { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" },
+  ],
+  "setup.panel.publishing.title": [
+    "Your blog, ready for its first page",
+    { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" },
+  ],
+  /** Under the panel, for the whole of setup: nothing on this screen waits
+   *  on the pass (SPEC §5, 2026-09-20). */
+  "setup.panel.note": [
+    "Each answer starts the next piece of our work. Nothing here needs you to wait.",
+    { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" },
+  ],
+  /** What the placeholders stand for, said once rather than drawn as a
+   *  blank: the founder's first page is not written yet. */
+  "setup.panel.awaiting": [
+    "Your first pages appear here once ReachKit has written them.",
+    { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" },
+  ],
+  /** The address the hosted blog will serve at, before it serves anything,
+   *  where no site address has been given yet. */
+  "setup.panel.address.pending": [
+    "Your blog’s address appears once you’ve given your site.",
+    { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" },
+  ],
 }) satisfies CopyPartition;

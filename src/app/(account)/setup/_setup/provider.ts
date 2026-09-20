@@ -27,7 +27,7 @@ import { redirect } from "next/navigation";
 import { env } from "@/lib/config/env";
 import { assembleSetup, type SetupQuestions, type SetupScreenModel } from "./facts";
 import type { StoredReport } from "@/lib/scan/report";
-import { liveSetupStore, siteAddressFor } from "./store";
+import { liveSetupStore, savedSetupFor, siteAddressFor } from "./store";
 import type { PassProgress } from "./progress";
 import type { SetupStore } from "../submit";
 import { initialSetupState, type ReportFacts } from "@/lib/market/setup/state";
@@ -108,6 +108,9 @@ export const readSetupScreen = cache(async function readSetupScreen(): Promise<S
     // §9's edge hostname is a deployment binding, never a string in a
     // card and never a fixture value in production.
     cnameTarget: env.HOSTED_EDGE_CNAME_TARGET,
+    // SPEC §5 (2026-09-20, #922): the answers this founder already gave and
+    // the step they left, so `/setup` reopens where they stopped.
+    saved: await savedSetupFor(founder.userId),
   });
 });
 

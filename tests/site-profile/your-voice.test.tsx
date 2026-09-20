@@ -16,6 +16,7 @@
 // pass — and the screen is drawn after it is restored.
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { applyEnvFixture } from "../mail/env-fixture";
 import { toolUseMessage } from "../llm/fixtures";
@@ -108,9 +109,14 @@ const PASS = {
   sitemaps: [],
 };
 
-function screenWith(profile: unknown): Element {
+/** One step of setup, drawn from this profile. Which step is on screen is
+ *  the URL's since 2026-09-20 (SPEC §5), so the suite names it through
+ *  `nuqs`'s own testing adapter; the voice lives on step four. */
+function screenWith(profile: unknown, step = "voice"): Element {
   const html = renderToStaticMarkup(
-    <SetupForm model={assembleSetup({ ...FIXTURE_SETUP_FACTS, profile: profile as never })} />
+    <NuqsTestingAdapter searchParams={{ step }}>
+      <SetupForm model={assembleSetup({ ...FIXTURE_SETUP_FACTS, profile: profile as never })} />
+    </NuqsTestingAdapter>
   );
   const container = document.createElement("div");
   container.innerHTML = html;
@@ -158,10 +164,10 @@ describe("issue 839 — a site that reads gets a voice", () => {
     expect(profile?.voice).toEqual(answer.voice);
     expect(writeMock.mock.calls[0]?.[0]?.voice).toEqual(answer.voice);
 
-    // And setup shows it under "Your voice", in the box the submit carries,
-    // with no invitation to write one.
-    const card = screenWith(profile).querySelector('[data-testid="setup-profile"]');
-    expect(card?.querySelector("h2")?.textContent).toContain(copy("setup.profile.title"));
+    // And setup's voice step shows it, in the box that step saves, with no
+    // invitation to write one.
+    const card = screenWith(profile).querySelector('[data-testid="setup-voice"]');
+    expect(card?.querySelector("label")?.textContent).toContain(copy("setup.profile.voice.label"));
     expect(card?.querySelector('textarea[name="voice_text"]')?.textContent).toBe(answer.voice.text);
     expect(card?.querySelector('[data-testid="setup-profile-voice-unread"]')).toBeNull();
   });
@@ -173,7 +179,7 @@ describe("issue 839 — a profile with no voice is never a blank section", () =>
     expect(createMock).not.toHaveBeenCalled();
     expect(profile?.voice).toBeNull();
 
-    const card = screenWith(profile).querySelector('[data-testid="setup-profile"]');
+    const card = screenWith(profile).querySelector('[data-testid="setup-voice"]');
     expect(card).not.toBeNull();
     const box = card?.querySelector('textarea[name="voice_text"]');
     expect(box).not.toBeNull();
@@ -190,8 +196,12 @@ describe("issue 839 — a profile with no voice is never a blank section", () =>
     const profile = await build("deep");
     expect(profile?.voice).toBeNull();
 
-    const card = screenWith(profile).querySelector('[data-testid="setup-profile"]');
+    const card = screenWith(profile).querySelector('[data-testid="setup-voice"]');
     expect(card?.querySelector('[data-testid="setup-profile-voice-unread"]')).not.toBeNull();
-    expect(card?.querySelector('[data-testid="setup-profile-pages"]')).not.toBeNull();
+    // And what *was* read of the site is still shown, on the step that
+    // shows it: the pages, by purpose.
+    expect(
+      screenWith(profile, "business").querySelector('[data-testid="setup-pages-read"]')
+    ).not.toBeNull();
   });
 });

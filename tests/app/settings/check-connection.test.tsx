@@ -28,6 +28,7 @@ import dns from "node:dns";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { fakeDb, type Row } from "../../publish/harness";
 import { LIVE_ACCOUNT } from "../accounts";
 import {
@@ -264,7 +265,9 @@ function attached(): string[] {
 // ── /setup, before submit ────────────────────────────────────────────────
 
 async function setupScreen(): Promise<HTMLElement> {
-  const host = await mount(await SetupPage());
+  const host = await mount(
+    <NuqsTestingAdapter searchParams={{ step: "publishing" }}>{await SetupPage()}</NuqsTestingAdapter>
+  );
   return host;
 }
 

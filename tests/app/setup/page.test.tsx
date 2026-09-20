@@ -8,6 +8,7 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import React from "react";
+import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { applyEnvFixture } from "../../mail/env-fixture.ts";
 import { passFactory, reportFactory, resetSetupSession, sessionFactory, storeFactory } from "./session-door";
 
@@ -41,10 +42,19 @@ beforeAll(() => {
   applyEnvFixture();
 });
 
-async function renderPage(loader: () => Promise<{ default: () => Promise<React.JSX.Element> }>) {
+// SPEC §5 (2026-09-20): which step is on screen is the URL's, and `nuqs`
+// reads it through an adapter the root layout supplies. A route rendered
+// on its own has no layout above it, so the suite supplies the library's
+// own testing adapter and the step it is asking about.
+async function renderPage(
+  loader: () => Promise<{ default: () => Promise<React.JSX.Element> }>,
+  searchParams: Record<string, string> = {},
+) {
   const { default: Page } = await loader();
   const container = document.createElement("div");
-  container.innerHTML = renderToStaticMarkup(await Page());
+  container.innerHTML = renderToStaticMarkup(
+    <NuqsTestingAdapter searchParams={searchParams}>{await Page()}</NuqsTestingAdapter>,
+  );
   return container;
 }
 
@@ -59,27 +69,32 @@ describe("/setup", () => {
     expect(root.getAttribute("data-arm-wide")).toBe("same-as-below");
   });
 
-  it("renders the three decisions, the address and one submit", async () => {
+  it("opens on the first step — the founder's site and market — with one primary", async () => {
     const tree = await renderPage(() => import("@/app/(account)/setup/page"));
-    // The fixture's report arm: UI-SPEC S10 merges the site and the market
-    // into one card, so the address's slot is that card.
-    for (const id of [
-      "setup-site-and-market",
-      "setup-market",
-      "setup-competitors",
-      "setup-publishing",
-    ]) {
-      expect(tree.querySelector(`[data-testid="${id}"]`), id).not.toBeNull();
+    expect(tree.querySelector('[data-testid="setup-site-and-market"]')).not.toBeNull();
+    // The later steps' decisions are not on this screen: one question at a
+    // time is what SPEC §5 (2026-09-20) asks for.
+    for (const id of ["setup-competitors", "setup-publishing", "setup-voice"]) {
+      expect(tree.querySelector(`[data-testid="${id}"]`), id).toBeNull();
     }
-    expect(tree.querySelectorAll('button[type="submit"]')).toHaveLength(1);
+    expect(tree.querySelectorAll(".btn-primary")).toHaveLength(1);
   });
 
-  it("states where the founder is, in the set's three phases (S10)", async () => {
+  it("an address naming a step opens on that step", async () => {
+    const tree = await renderPage(() => import("@/app/(account)/setup/page"), { step: "rivals" });
+    expect(tree.querySelector('[data-testid="setup-form"]')?.getAttribute("data-step")).toBe(
+      "rivals",
+    );
+    expect(tree.querySelector('[data-testid="setup-competitors"]')).not.toBeNull();
+    expect(tree.querySelector('[data-testid="setup-site-and-market"]')).toBeNull();
+  });
+
+  it("states where the founder is, in the five steps (SPEC §5, 2026-09-20)", async () => {
     const tree = await renderPage(() => import("@/app/(account)/setup/page"));
-    const strip = tree.querySelector('[data-testid="setup-progress"]');
-    expect(strip).not.toBeNull();
-    expect(strip?.getAttribute("data-current")).toBe("setup");
-    expect(strip?.querySelectorAll("li")).toHaveLength(3);
+    const steps = tree.querySelector('[data-testid="setup-steps"]');
+    expect(steps).not.toBeNull();
+    expect(steps?.getAttribute("data-current")).toBe("site");
+    expect(steps?.querySelectorAll("li")).toHaveLength(5);
   });
 
   it("REQ-021 c10's own line sits under the one control", async () => {
@@ -97,7 +112,9 @@ describe("/setup", () => {
   });
 
   it("the CNAME record points at the deployment's own edge binding, never a literal in a card", async () => {
-    const tree = await renderPage(() => import("@/app/(account)/setup/page"));
+    const tree = await renderPage(() => import("@/app/(account)/setup/page"), {
+      step: "publishing",
+    });
     const record = tree.querySelector('[data-testid="dns-record"]');
     // The fixture env's `HOSTED_EDGE_CNAME_TARGET`.
     expect(record?.textContent).toContain("content.example.com");

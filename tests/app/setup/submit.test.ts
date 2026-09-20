@@ -8,9 +8,11 @@ import { describe, expect, it, vi } from "vitest";
 import {
   completeSetup,
   type SetupProgressState,
+  type SetupStepSave,
   type SetupStore,
   type SetupSubmission,
 } from "@/app/(account)/setup/submit";
+import type { SetupStepId } from "@/app/(account)/setup/steps";
 
 const PAID_AT = new Date(Date.UTC(2026, 8, 5, 9, 30, 0));
 const SITE = "site-1";
@@ -30,12 +32,13 @@ const SUBMISSION: SetupSubmission = {
 interface Recorder {
   committed: { siteId: string; submission: SetupSubmission }[];
   enqueued: string[];
+  steps: { siteId: string; save: SetupStepSave; resumeAt: SetupStepId | null }[];
 }
 
 function storeOf(
   over: Partial<SetupStore> = {}
 ): { store: SetupStore; recorder: Recorder } {
-  const recorder: Recorder = { committed: [], enqueued: [] };
+  const recorder: Recorder = { committed: [], enqueued: [], steps: [] };
   const store: SetupStore = {
     hasActiveAccess: async () => true,
     resolvesInDns: async () => true,
@@ -48,6 +51,9 @@ function storeOf(
     commitSetup: async (a) => {
       recorder.committed.push(a);
     },
+    saveStep: async (a) => {
+      recorder.steps.push(a);
+    },
     enqueueDeepPass: async (siteId) => {
       recorder.enqueued.push(siteId);
     },
@@ -56,8 +62,8 @@ function storeOf(
   return { store, recorder };
 }
 
-describe('REQ-025 c2 — "one action starts the product: no multi-page wizard, no second confirmation screen, no further questions"', () => {
-  it("one call completes setup and enqueues the deep pass; no second round-trip is required", async () => {
+describe("SPEC §5 (2026-09-20) — the finish commits everything and the pass is running", () => {
+  it("one call completes setup and enqueues the deep pass", async () => {
     const { store, recorder } = storeOf();
     const result = await completeSetup(store, { userId: USER, submission: SUBMISSION });
     expect(result).toEqual({ ok: true, siteId: SITE });

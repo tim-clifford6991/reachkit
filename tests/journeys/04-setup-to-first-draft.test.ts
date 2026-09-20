@@ -64,6 +64,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { withNuqsTestingAdapter } from "nuqs/adapters/testing";
 import { fakeDb, type DbQuery } from "../scan/run/harness";
 import {
   memoryStore as opportunityMemoryStore,
@@ -641,23 +642,34 @@ async function untilTheFounderIsReleased(): Promise<void> {
 const JOURNEY_TIMEOUT_MS = 60_000;
 
 describe("three decisions → deep pass → the first page already on the calendar (JN-002 steps 3–9)", () => {
-  it("step 3 — the screen asks three decisions and the submit carries those and nothing else", async () => {
+  it("step 3 — the five steps ask one decision each, and the finish carries those and nothing else", async () => {
     const model = assembleSetup({ ...FIXTURE_SETUP_FACTS, cnameTarget: "content.example.com" });
-    const html = renderToStaticMarkup(createElement(SetupForm, { model }));
+    // SPEC §5 (2026-09-20): which step is on screen is the URL's, so each
+    // render names the step it is asking about, through `nuqs`'s own
+    // testing adapter.
+    const onStep = (step: string): string =>
+      renderToStaticMarkup(
+        createElement(
+          withNuqsTestingAdapter({ searchParams: { step } }),
+          null,
+          createElement(SetupForm, { model })
+        )
+      );
 
-    // Three cards, one submit (§4.3) — and since #356 that is literal: the
-    // approved set (UI-SPEC S10) merges the site and its inferred market
-    // into one card, "Your site & market", because both are known here and
-    // each needs only a Change. So this arm names three heads, not four.
-    expect(html).toContain("setup.site-and-market.title");
-    expect(html).toContain("setup.competitors.title");
-    expect(html).toContain("settings.publishing.title");
-    expect(html).toContain('data-testid="setup-destination"');
-    expect(html).toContain("setup.submit");
-    // Nothing that tunes the engine is on the screen: no cadence, no cap,
+    // One decision per step, and only that step's (SPEC §5, 2026-09-20).
+    expect(onStep("site")).toContain("setup.site-and-market.title");
+    expect(onStep("rivals")).toContain("setup.competitors.title");
+    const publishing = onStep("publishing");
+    expect(publishing).toContain("settings.publishing.title");
+    expect(publishing).toContain('data-testid="setup-destination"');
+    expect(publishing).toContain("setup.finish");
+    // Nothing that tunes the engine is on any of them: no cadence, no cap,
     // no question count, no model choice (REQ-025 c1).
-    for (const forbidden of ["cadence", "cap", "model", "questions per"]) {
-      expect(html.toLowerCase()).not.toContain(`setup.${forbidden}`);
+    for (const step of ["site", "business", "rivals", "voice", "publishing"]) {
+      const html = onStep(step).toLowerCase();
+      for (const forbidden of ["cadence", "cap", "model", "questions per"]) {
+        expect(html, `${step}/${forbidden}`).not.toContain(`setup.${forbidden}`);
+      }
     }
 
     // And a field absent from `SetupSubmission` cannot be sent: the

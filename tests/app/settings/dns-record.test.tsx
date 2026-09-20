@@ -24,6 +24,7 @@ process.env.HOSTED_EDGE_CNAME_TARGET = EDGE;
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
+import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { renderToStaticMarkup } from "react-dom/server";
 import { fakeDb, type Row } from "../../publish/harness";
 import { LIVE_ACCOUNT } from "../accounts";
@@ -107,8 +108,14 @@ async function setupShows(label: string | null): Promise<Shown | null> {
   const host = document.createElement("div");
   document.body.append(host);
   const page = await SetupPage();
+  // SPEC §5 (2026-09-20): the record lives on the publishing step, and
+  // which step is on screen is the URL's — supplied here through `nuqs`'s
+  // own testing adapter, since a route rendered alone has no layout above
+  // it to carry the real one.
   await act(async () => {
-    createRoot(host).render(page);
+    createRoot(host).render(
+      <NuqsTestingAdapter searchParams={{ step: "publishing" }}>{page}</NuqsTestingAdapter>
+    );
   });
   if (label !== null) {
     const field = host.querySelector<HTMLInputElement>('input[name="label"]')!;

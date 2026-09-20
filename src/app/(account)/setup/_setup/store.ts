@@ -9,6 +9,8 @@
 //   commitSetup      `applySetupChoice()`'s mode-and-destination
 //                    transaction, then the three answers, the browser's
 //                    zone while the site has none, then the stamp
+//   saveStep         one step's own answer and the resume point beside it
+//                    (SPEC §5, 2026-09-20, #922)
 //   enqueueDeepPass  `scan/run` at tier `deep`, on the queue
 //   resolvesInDns    §6.4's resolver, through the egress seam
 //
@@ -30,7 +32,8 @@ import { dbAdmin } from "@/lib/db";
 import { resolvesInDns } from "@/lib/egress/dns";
 import { applySetupChoice } from "@/lib/publish/setup/apply";
 import { hostFor } from "@/lib/publish/destinations/hosted/label";
-import type { SetupProgressState, SetupStore, SetupSubmission } from "../submit";
+import type { SetupProgressState, SetupStepSave, SetupStore, SetupSubmission } from "../submit";
+import type { SetupStepId } from "../steps";
 
 /** ADR-050's rule, as a port. The default is now the billing leaf's own
  *  `hasActiveAccess()` — the one export `CLAUDE.md` lets anything outside
@@ -81,6 +84,10 @@ interface SiteSetupRow {
   setup_completed_at: string | null;
 }
 
+/** The columns one row read by id answers, for the writes a step save makes
+ *  against a site the session already resolved. */
+const SITE_COLUMNS = "id, domain, created_at, setup_completed_at";
+
 interface MinimalResult<T> {
   data: T[] | null;
   error: { message: string } | null;
@@ -102,7 +109,7 @@ function untyped(): MinimalClient {
 async function siteFor(userId: string): Promise<SiteSetupRow> {
   const { data, error } = await untyped()
     .from<SiteSetupRow>("sites")
-    .select("id, domain, created_at, setup_completed_at")
+    .select(SITE_COLUMNS)
     .eq("user_id", userId)
     .limit(1);
   if (error) throw new Error(`setup store: could not read the site for ${userId}: ${error.message}`);
@@ -116,6 +123,102 @@ async function siteFor(userId: string): Promise<SiteSetupRow> {
     throw new Error(`setup store: no site for ${userId} — provisioning has not run`);
   }
   return row;
+}
+
+/** The same row, read by its own id — what a step save writes against, once
+ *  `readProgress` has resolved the site from the session. */
+async function siteById(siteId: string): Promise<SiteSetupRow> {
+  const { data, error } = await untyped()
+    .from<SiteSetupRow>("sites")
+    .select(SITE_COLUMNS)
+    .eq("id", siteId)
+    .limit(1);
+  if (error) throw new Error(`setup store: could not read site ${siteId}: ${error.message}`);
+  const row = data?.[0];
+  if (row === undefined) throw new Error(`setup store: no site ${siteId}`);
+  return row;
+}
+
+/** One `sites` update, with the one error message every caller here uses. */
+async function updateSite(siteId: string, values: Record<string, unknown>): Promise<void> {
+  const { error } = await untyped().from<SiteSetupRow>("sites").update(values).eq("id", siteId);
+  if (error) throw new Error(`setup store: writing site ${siteId}: ${error.message}`);
+}
+
+/**
+ * The voice the founder confirmed or edited — two different writes into the
+ * same field (SPEC.md §5, 2026-09-12). An edit goes through `saveVoiceText`,
+ * which stamps `sites.voice_edited_at` so no later refresh overwrites their
+ * words; confirming the summary unchanged seeds the field through
+ * `adoptVoiceText`, stored but unstamped, so every weekly refresh still
+ * reaches it.
+ *
+ * Never throws: a voice that did not store is the next refresh's or
+ * Settings' to fix, and never a founder's to answer again.
+ */
+async function writeVoice(a: { siteId: string; domain: string; voiceText: string }): Promise<void> {
+  try {
+    const { adoptVoiceText, readSiteProfile, saveVoiceText } = await import("@/lib/site-profile");
+    const profile = await readSiteProfile(a.domain);
+    const asRead = profile?.voice?.text ?? "";
+    if (a.voiceText !== asRead) {
+      await saveVoiceText({ siteId: a.siteId, text: a.voiceText });
+    } else {
+      await adoptVoiceText({ siteId: a.siteId, domain: a.domain });
+    }
+  } catch {
+    // See the note above: swallowed on purpose.
+  }
+}
+
+/** Issue #783: the browser's zone, stored only while `sites.timezone` is
+ *  null. `adoptBrowserTimezone` decides everything — the IANA check and the
+ *  write. Swallowed for `writeVoice`'s reason; `BrowserZone` is the
+ *  fallback (#753). */
+async function writeTimezone(siteId: string, timezone: string | null): Promise<void> {
+  if (timezone === null) return;
+  try {
+    const { adoptBrowserTimezone } = await import("@/lib/publish/settings");
+    await adoptBrowserTimezone(siteId, timezone);
+  } catch {
+    // `BrowserZone` is the fallback (#753).
+  }
+}
+
+/**
+ * The destination transaction and the hostname attachment, shared by the
+ * publishing step and the finish (issue 608 keeps them in this order: the
+ * transaction is the one write the unique index can refuse, and it throws
+ * `HostnameTakenError` with no row of this answer written).
+ */
+async function writeDestination(a: {
+  siteId: string;
+  domain: string;
+  destination: SetupSubmission["destination"];
+}): Promise<void> {
+  const hostname =
+    a.destination.kind === "hosted"
+      ? hostFor({ label: a.destination.label, domain: a.domain })
+      : null;
+
+  const applied = await applySetupChoice({
+    siteId: a.siteId,
+    destinationKind: a.destination.kind,
+    hostname,
+  });
+
+  // **The hostname is added to the project here, on the save** (SPEC §5).
+  // Swallowed: the attachment is idempotent and the health check makes it
+  // again on every pass, so a vendor unreachable for one second costs a
+  // wait, not a founder who has to answer again.
+  if (hostname !== null) {
+    try {
+      const { syncHostname } = await import("@/lib/publish/destinations/hosted/hostname");
+      await syncHostname({ destinationId: applied.destinationId, hostname });
+    } catch {
+      // The next health check attaches it.
+    }
+  }
 }
 
 /**
@@ -137,6 +240,57 @@ export async function siteAddressFor(
   try {
     const site = await siteFor(userId);
     return { siteId: site.id, domain: site.domain };
+  } catch {
+    return null;
+  }
+}
+
+/** The columns a half-finished setup has already written, for the screen
+ *  that reopens on them. Every member is what the founder themselves
+ *  answered — nothing here is derived and nothing is a default. */
+export interface SavedSetup {
+  category: string | null;
+  competitors: readonly string[];
+  /** The founder's own voice text, once a voice step has stored one.
+   *  `null` leaves the screen showing what the scan read. */
+  voiceText: string | null;
+  /** SPEC §5 (2026-09-20): the step `/setup` reopens on. `null` is a
+   *  founder who has not left a step yet. */
+  step: string | null;
+}
+
+interface SavedSetupRow {
+  category: string | null;
+  competitors: string[] | null;
+  voice_text: string | null;
+  setup_step: string | null;
+}
+
+/**
+ * What this founder has already answered, read off their own `sites` row.
+ *
+ * `null` where nothing could be read — a founder with no site row, or a
+ * deployment whose `sites` table predates the `setup_step` column. The
+ * screen then opens on its first step with nothing pre-filled, which is
+ * where a founder who has answered nothing belongs, so the failure costs a
+ * re-answer rather than a broken screen.
+ */
+export async function savedSetupFor(userId: string): Promise<SavedSetup | null> {
+  try {
+    const { data, error } = await untyped()
+      .from<SavedSetupRow>("sites")
+      .select("category, competitors, voice_text, setup_step")
+      .eq("user_id", userId)
+      .limit(1);
+    if (error) return null;
+    const row = data?.[0];
+    if (row === undefined) return null;
+    return {
+      category: row.category,
+      competitors: Object.freeze([...(row.competitors ?? [])]),
+      voiceText: row.voice_text,
+      step: row.setup_step,
+    };
   } catch {
     return null;
   }
@@ -182,103 +336,77 @@ export function liveSetupStore(): SetupStore {
      * pre-filled — which is the recoverable half of the two.
      */
     async commitSetup(a: { siteId: string; submission: SetupSubmission }): Promise<void> {
-      // SPEC §5: the host the founder chose commits with the mode and the
-      // destination. WordPress serves at no host of ours, so it carries
-      // none — and `null` is that, not a blank.
-      const hostname =
-        a.submission.destination.kind === "hosted"
-          ? hostFor({ label: a.submission.destination.label, domain: a.submission.domain })
-          : null;
-
-      // The transaction first (issue 608): it is the one write the unique
-      // index can refuse, and a host another site claimed a moment ago
-      // throws `HostnameTakenError` out of a rolled-back transaction with no
-      // row of this submit written — the answers included.
-      const applied = await applySetupChoice({
+      // The destination transaction first (issue 608): it is the one write
+      // the unique index can refuse, and a host another site claimed a
+      // moment ago throws `HostnameTakenError` out of a rolled-back
+      // transaction with no row of this submit written — the answers
+      // included.
+      await writeDestination({
         siteId: a.siteId,
-        destinationKind: a.submission.destination.kind,
-        hostname,
+        domain: a.submission.domain,
+        destination: a.submission.destination,
       });
 
-      const answers = await untyped()
-        .from<SiteSetupRow>("sites")
-        .update({
-          domain: a.submission.domain,
-          category: a.submission.category,
-          competitors: [...a.submission.competitors],
-        })
-        .eq("id", a.siteId);
-      if (answers.error) throw new Error(`commitSetup: ${answers.error.message}`);
+      await updateSite(a.siteId, {
+        domain: a.submission.domain,
+        category: a.submission.category,
+        competitors: [...a.submission.competitors],
+      });
 
-      // **The hostname is added to the project here, on the save** (SPEC
-      // §5: "on save the app adds the hostname to the project's domain
-      // list"). Swallowed like the enqueue below it and for the same
-      // reason: the founder is committed either way, the attachment is
-      // idempotent, and the health check makes it again on every pass — so
-      // a vendor that was unreachable for one second costs a wait, not a
-      // founder who has to answer the three questions again.
-      if (hostname !== null) {
-        try {
-          const { syncHostname } = await import("@/lib/publish/destinations/hosted/hostname");
-          // No DNS lookup on this path: §4.3's footer is a founder pressing
-          // one control and the product starting, and a resolution here
-          // would put a third party's timeout between the press and the
-          // pass. What the state is comes from the domain list's answer to
-          // this one call, which is "not verified yet" for a record the
-          // founder has only just been shown.
-          await syncHostname({ destinationId: applied.destinationId, hostname });
-        } catch {
-          // The next health check attaches it. Nothing is swallowed that
-          // this founder could act on.
-        }
+      await writeVoice({
+        siteId: a.siteId,
+        domain: a.submission.domain,
+        voiceText: a.submission.voiceText,
+      });
+
+      // Issue #783: the zone before the stamp, and so before the pass is
+      // queued — the pass's first-draft kickoff selects only a site with
+      // one.
+      await writeTimezone(a.siteId, a.submission.timezone);
+
+      // The stamp last, and the step cleared with it: `/setup` is a screen
+      // this founder is taken past from here on, so the resume point has
+      // nothing left to point at.
+      await updateSite(a.siteId, {
+        setup_completed_at: new Date().toISOString(),
+        setup_step: null,
+      });
+    },
+
+    /**
+     * SPEC §5 (2026-09-20, #922) — one step's own write, and the resume
+     * point beside it.
+     *
+     * Every arm writes what that step alone decided, and nothing else: a
+     * founder who changes their market on step one and then leaves has
+     * their market stored and their destination untouched. `resumeAt` is
+     * written in the same call as the answer, so a `/setup` reopened in a
+     * new tab can never land on a step whose answer was not saved.
+     *
+     * The business step writes only the resume point. What the founder took
+     * out of and added to the profile they were shown has no column yet —
+     * #926 owns that storage and the editor over it — so this arm stores no
+     * profile rather than inventing a place to put one.
+     */
+    async saveStep(a: {
+      siteId: string;
+      save: SetupStepSave;
+      resumeAt: SetupStepId | null;
+    }): Promise<void> {
+      const step = a.save.step;
+      if (step === "site") {
+        await updateSite(a.siteId, { domain: a.save.domain, category: a.save.category });
+      } else if (step === "rivals") {
+        await updateSite(a.siteId, { competitors: [...a.save.competitors] });
+      } else if (step === "voice") {
+        const site = await siteById(a.siteId);
+        await writeVoice({ siteId: a.siteId, domain: site.domain, voiceText: a.save.voiceText });
+        await writeTimezone(a.siteId, a.save.timezone);
       }
 
-      // SPEC.md §5 (2026-09-12): the voice the founder confirmed or
-      // edited — two different writes into the same field. An edit goes
-      // through `saveVoiceText`, which stamps `sites.voice_edited_at` so
-      // no later refresh overwrites their words. Confirming the summary
-      // unchanged seeds that field through `adoptVoiceText`: stored, so
-      // Settings shows it and drafting reads it, but unstamped, so every
-      // weekly refresh still reaches it. A failure here never
-      // un-completes a setup the founder has finished answering.
-      try {
-        const { adoptVoiceText, readSiteProfile, saveVoiceText } = await import(
-          "@/lib/site-profile"
-        );
-        const profile = await readSiteProfile(a.submission.domain);
-        const asRead = profile?.voice?.text ?? "";
-        if (a.submission.voiceText !== asRead) {
-          await saveVoiceText({ siteId: a.siteId, text: a.submission.voiceText });
-        } else {
-          await adoptVoiceText({ siteId: a.siteId, domain: a.submission.domain });
-        }
-      } catch {
-        // Swallowed for `enqueueDeepPass`'s reason: the three decisions
-        // are committed, and a voice that did not store is the next
-        // refresh's or Settings' to fix, never this founder's to answer
-        // again.
-      }
-
-      // Issue #783: the browser's zone, before the stamp and so before the
-      // pass is queued — the pass's first-draft kickoff selects only a site
-      // with a zone. `adoptBrowserTimezone` decides everything: the IANA
-      // check, and a write only while the column is null. Swallowed for the
-      // voice's reason: an unusable zone never un-completes a setup, and
-      // `BrowserZone` still reports one on the next account screen.
-      if (a.submission.timezone !== null) {
-        try {
-          const { adoptBrowserTimezone } = await import("@/lib/publish/settings");
-          await adoptBrowserTimezone(a.siteId, a.submission.timezone);
-        } catch {
-          // `BrowserZone` is the fallback (#753).
-        }
-      }
-
-      const stamped = await untyped()
-        .from<SiteSetupRow>("sites")
-        .update({ setup_completed_at: new Date().toISOString() })
-        .eq("id", a.siteId);
-      if (stamped.error) throw new Error(`commitSetup: ${stamped.error.message}`);
+      // Last, and unconditionally: the resume point moves only once the
+      // step's own answer is on disk.
+      await updateSite(a.siteId, { setup_step: a.resumeAt });
     },
 
     /**
@@ -295,7 +423,7 @@ export function liveSetupStore(): SetupStore {
     async enqueueDeepPass(siteId: string): Promise<void> {
       const site = await untyped()
         .from<SiteSetupRow>("sites")
-        .select("id, domain, created_at, setup_completed_at")
+        .select(SITE_COLUMNS)
         .eq("id", siteId)
         .limit(1);
       if (site.error) throw new Error(`enqueueDeepPass: ${site.error.message}`);
