@@ -52,7 +52,7 @@ export function BusinessPanel(p: {
   onDraft: (next: BusinessDraft) => void;
 }): React.JSX.Element {
   return (
-    <div className="grid gap-4" data-testid="setup-business">
+    <div className="grid min-w-0 grid-cols-1 gap-4" data-testid="setup-business">
       {BUSINESS_GROUPS.map((group) => (
         <Group key={group} group={group} draft={p.draft} onDraft={p.onDraft} />
       ))}
@@ -116,15 +116,17 @@ function Group(p: {
           </ul>
         )}
 
-        <div className="flex flex-col gap-1.5">
-          <label className={`sr-only ${QUIET}`} htmlFor={fieldId}>
-            {copy("setup.business.add.label", { group: head })}
-          </label>
+        {/* The field is named by `aria-label` rather than by a visually
+            hidden `<label>`: a `sr-only` box is one pixel square with a
+            sentence in it, which every containment and clipping check —
+            rightly — reads as text escaping its box. */}
+        <div className="flex min-w-0 flex-col gap-1.5">
           <div className="flex min-w-0 gap-2">
             <input
               id={fieldId}
               type="text"
               className="input min-w-0 w-full"
+              aria-label={copy("setup.business.add.label", { group: head })}
               value={entry}
               disabled={full}
               onChange={(event) => setEntry(event.target.value)}

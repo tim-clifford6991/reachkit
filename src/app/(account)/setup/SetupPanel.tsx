@@ -49,7 +49,7 @@ export function SetupPanel(p: {
   onDraft: (next: BusinessDraft) => void;
 }): React.JSX.Element {
   return (
-    <aside className="grid min-w-0 content-start gap-3" data-testid="setup-panel" data-step={p.step}>
+    <aside className="grid min-w-0 grid-cols-1 content-start gap-3" data-testid="setup-panel" data-step={p.step}>
       <h2 className="min-w-0 text-base font-medium wrap-anywhere" data-testid="setup-panel-title">
         {p.step === "business" && p.businessName !== null
           ? copy("setup.panel.business.title", { business: p.businessName })
@@ -91,7 +91,7 @@ function BlogMockup(p: { address: string | null }): React.JSX.Element {
           </span>
         )}
       </div>
-      <div className="grid gap-3 border-t border-base-300 p-4">
+      <div className="grid min-w-0 grid-cols-1 gap-3 border-t border-base-300 p-4">
         <div className="skeleton h-6 w-2/3" />
         {Array.from({ length: PLACEHOLDER_LINES }, (_, line) => (
           <div key={line} className="skeleton h-4 w-full" />

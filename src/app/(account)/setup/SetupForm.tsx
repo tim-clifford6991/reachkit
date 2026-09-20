@@ -341,7 +341,7 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
         : `${label}.${state.siteDomain}`;
 
   return (
-    <div className="grid min-w-0 gap-6" data-testid="setup-form" data-step={step}>
+    <div className="grid min-w-0 grid-cols-1 gap-6" data-testid="setup-form" data-step={step}>
       {/* SPEC §5 (2026-09-20) and docs/DESIGN.md: a daisyUI `steps` with
           one-word labels, five equal columns at every width. */}
       <ul className="steps w-full text-xs" data-testid="setup-steps" data-current={step}>
@@ -369,8 +369,12 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
       {/* The question column and the panel that matches it. Below the large
           breakpoint there is one column, and the panel follows the
           question — which is what SPEC §5 asks for on a phone. */}
-      <div className="grid min-w-0 gap-6 lg:grid-cols-2">
-        <div className="grid min-w-0 content-start gap-4">
+      {/* `grid-cols-1` rather than an implicit column: an implicit track is
+          sized `minmax(auto, …)`, so one wide child's min-content would push
+          the whole row past the screen. `minmax(0, 1fr)` is what makes the
+          column the screen's and the content's problem to fit. */}
+      <div className="grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="grid min-w-0 grid-cols-1 content-start gap-4">
           <div className="grid gap-2">
             <h1 className="text-xl font-semibold wrap-anywhere">{copy(STEP_QUESTION[step])}</h1>
             <p className={QUIET} data-testid="setup-step-line">

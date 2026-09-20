@@ -64,7 +64,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { NuqsTestingAdapter } from "nuqs/adapters/testing";
+import { withNuqsTestingAdapter } from "nuqs/adapters/testing";
 import { fakeDb, type DbQuery } from "../scan/run/harness";
 import {
   memoryStore as opportunityMemoryStore,
@@ -650,8 +650,8 @@ describe("three decisions → deep pass → the first page already on the calend
     const onStep = (step: string): string =>
       renderToStaticMarkup(
         createElement(
-          NuqsTestingAdapter,
-          { searchParams: { step } },
+          withNuqsTestingAdapter({ searchParams: { step } }),
+          null,
           createElement(SetupForm, { model })
         )
       );
