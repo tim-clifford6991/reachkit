@@ -43,6 +43,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
 import { ArrowLeft, Check } from "lucide-react";
+import { Surface } from "@/ui/layout";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import {
   onSuggestionsSettled,
@@ -341,154 +342,184 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
         : `${label}.${state.siteDomain}`;
 
   return (
-    <div className="grid min-w-0 grid-cols-1 gap-6" data-testid="setup-form" data-step={step}>
-      {/* SPEC §5 (2026-09-20) and docs/DESIGN.md: a daisyUI `steps` with
-          one-word labels, five equal columns at every width. */}
-      <ul className="steps w-full text-xs" data-testid="setup-steps" data-current={step}>
-        {SETUP_STEPS.map((id, index) => {
-          const done = index < at;
-          const current = index === at;
-          return (
-            <li
-              key={id}
-              className={done || current ? "step step-primary" : "step"}
-              data-state={done ? "done" : current ? "active" : "pending"}
-              aria-current={current ? "step" : undefined}
-            >
-              {done ? (
-                <span className="step-icon">
-                  <Check {...ICON} size={16} />
-                </span>
-              ) : null}
-              {copy(STEP_LABEL[id])}
-            </li>
-          );
-        })}
-      </ul>
+    // The page frame (owner's review of #938): at least the viewport tall,
+    // with the action bar as its last row — so the bar lands on the bottom
+    // of a short page and at the end of a long one, and the page can never
+    // carry a blank band under it. The `Surface` above it holds the band's
+    // gutter and the ruled measure; the bar sits outside it, which is what
+    // lets it run edge to edge on a phone.
+    <div className="grid min-h-svh grid-rows-[1fr_auto]">
+      <Surface
+        arms={{
+          compact: { kind: "columns", count: 1 },
+          medium: { kind: "columns", count: 2 },
+          wide: { kind: "same-as-below" },
+        }}
+      >
+        {/* `pb-28` is the bar's own height and a little over: the content
+            scrolls *behind* a pinned bar, so the last line of it has to
+            clear the bar rather than pass under it. */}
+        <main
+          className="grid min-w-0 grid-cols-1 content-start gap-6 p-4 pb-28"
+          data-testid="setup-form"
+          data-step={step}
+        >
+          {/* SPEC §5 (2026-09-20) and docs/DESIGN.md: a daisyUI `steps` with
+              one-word labels, five equal columns at every width. */}
+          <ul className="steps w-full text-xs" data-testid="setup-steps" data-current={step}>
+            {SETUP_STEPS.map((id, index) => {
+              const done = index < at;
+              const current = index === at;
+              return (
+                <li
+                  key={id}
+                  className={done || current ? "step step-primary" : "step"}
+                  data-state={done ? "done" : current ? "active" : "pending"}
+                  aria-current={current ? "step" : undefined}
+                >
+                  {done ? (
+                    <span className="step-icon">
+                      <Check {...ICON} size={16} />
+                    </span>
+                  ) : null}
+                  {copy(STEP_LABEL[id])}
+                </li>
+              );
+            })}
+          </ul>
 
-      {/* The question column and the panel that matches it. Below the large
-          breakpoint there is one column, and the panel follows the
-          question — which is what SPEC §5 asks for on a phone. */}
-      {/* `grid-cols-1` rather than an implicit column: an implicit track is
-          sized `minmax(auto, …)`, so one wide child's min-content would push
-          the whole row past the screen. `minmax(0, 1fr)` is what makes the
-          column the screen's and the content's problem to fit. */}
-      <div className="grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="grid min-w-0 grid-cols-1 content-start gap-4">
-          <div className="grid gap-2">
-            <h1 className="text-xl font-semibold wrap-anywhere">{copy(STEP_QUESTION[step])}</h1>
-            <p className={QUIET} data-testid="setup-step-line">
-              {stepLine(step, { pagesRead, max: p.model.competitorsMax })}
-            </p>
+          {/* The question column and the panel that matches it. Below the large
+              breakpoint there is one column, and the panel follows the
+              question — which is what SPEC §5 asks for on a phone. */}
+          {/* `grid-cols-1` rather than an implicit column: an implicit track is
+              sized `minmax(auto, …)`, so one wide child's min-content would push
+              the whole row past the screen. `minmax(0, 1fr)` is what makes the
+              column the screen's and the content's problem to fit. */}
+          <div className="grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-2">
+            <div className="grid min-w-0 grid-cols-1 content-start gap-4">
+              <div className="grid gap-2">
+                <h1 className="text-xl font-semibold wrap-anywhere">{copy(STEP_QUESTION[step])}</h1>
+                <p className={QUIET} data-testid="setup-step-line">
+                  {stepLine(step, { pagesRead, max: p.model.competitorsMax })}
+                </p>
+              </div>
+
+              {step === "site" ? (
+                <MarketCard
+                  state={state}
+                  setState={setState}
+                  questions={p.model.questions}
+                  resolveDomain={resolveDomain}
+                />
+              ) : null}
+
+              {step === "business" ? (
+                <div className="grid gap-3" data-testid="setup-pages-read">
+                  <p className={QUIET}>{copy("setup.business.pages-read")}</p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {purposeCounts(p.model.profile?.inventory ?? []).map((entry) => (
+                      <span key={entry.purpose} className="badge badge-ghost gap-2">
+                        <span data-testid={`setup-profile-purpose-${entry.purpose}`}>
+                          {copy(PURPOSE_COPY[entry.purpose])}
+                        </span>
+                        <span className="num">{entry.count}</span>
+                      </span>
+                    ))}
+                  </div>
+                  <p className={QUIET} data-testid="setup-business-assurance">
+                    {copy("setup.business.assurance")}
+                  </p>
+                </div>
+              ) : null}
+
+              {step === "rivals" ? (
+                <RivalsCard
+                  rivals={state.rivals}
+                  suggestions={state.suggestions}
+                  ownDomain={state.siteDomain}
+                  max={p.model.competitorsMax}
+                  resolveDomain={resolveDomain}
+                  onRivals={(rivals) => setState((current) => ({ ...current, rivals }))}
+                />
+              ) : null}
+
+              {step === "voice" ? (
+                <VoiceCard profile={p.model.profile} voice={voiceDraft} onVoice={setVoiceDraft} />
+              ) : null}
+
+              {step === "publishing" ? (
+                <PublishingCard
+                  cards={p.model.cards}
+                  siteDomain={state.siteDomain}
+                  cnameTarget={p.model.cnameTarget}
+                  destination={destination}
+                  onDestination={setDestination}
+                  label={label}
+                  onLabel={setLabel}
+                />
+              ) : null}
+            </div>
+
+            {/* On the business step the panel *is* the step's own controls, so
+                it is rendered there rather than beside a second copy. */}
+            <SetupPanel
+              step={step}
+              blogAddress={blogAddress}
+              businessName={p.model.profile?.siteName ?? null}
+              draft={business}
+              onDraft={setBusiness}
+            />
           </div>
 
-          {step === "site" ? (
-            <MarketCard
-              state={state}
-              setState={setState}
-              questions={p.model.questions}
-              resolveDomain={resolveDomain}
-            />
-          ) : null}
-
-          {step === "business" ? (
-            <div className="grid gap-3" data-testid="setup-pages-read">
-              <p className={QUIET}>{copy("setup.business.pages-read")}</p>
-              <div className="flex flex-wrap items-center gap-2">
-                {purposeCounts(p.model.profile?.inventory ?? []).map((entry) => (
-                  <span key={entry.purpose} className="badge badge-ghost gap-2">
-                    <span data-testid={`setup-profile-purpose-${entry.purpose}`}>
-                      {copy(PURPOSE_COPY[entry.purpose])}
-                    </span>
-                    <span className="num">{entry.count}</span>
-                  </span>
-                ))}
-              </div>
-              <p className={QUIET} data-testid="setup-business-assurance">
-                {copy("setup.business.assurance")}
-              </p>
+          {refusal === null ? null : (
+            <div
+              role="alert"
+              className="alert alert-error alert-soft text-sm"
+              data-testid="setup-submit-refusal"
+            >
+              {copy(REFUSAL_COPY[refusal])}
             </div>
-          ) : null}
-
-          {step === "rivals" ? (
-            <RivalsCard
-              rivals={state.rivals}
-              suggestions={state.suggestions}
-              ownDomain={state.siteDomain}
-              max={p.model.competitorsMax}
-              resolveDomain={resolveDomain}
-              onRivals={(rivals) => setState((current) => ({ ...current, rivals }))}
-            />
-          ) : null}
-
-          {step === "voice" ? (
-            <VoiceCard profile={p.model.profile} voice={voiceDraft} onVoice={setVoiceDraft} />
-          ) : null}
-
-          {step === "publishing" ? (
-            <PublishingCard
-              cards={p.model.cards}
-              siteDomain={state.siteDomain}
-              cnameTarget={p.model.cnameTarget}
-              destination={destination}
-              onDestination={setDestination}
-              label={label}
-              onLabel={setLabel}
-            />
-          ) : null}
-        </div>
-
-        {/* On the business step the panel *is* the step's own controls, so
-            it is rendered there rather than beside a second copy. */}
-        <SetupPanel
-          step={step}
-          blogAddress={blogAddress}
-          businessName={p.model.profile?.siteName ?? null}
-          draft={business}
-          onDraft={setBusiness}
-        />
-      </div>
-
-      {refusal === null ? null : (
-        <div
-          role="alert"
-          className="alert alert-error alert-soft text-sm"
-          data-testid="setup-submit-refusal"
-        >
-          {copy(REFUSAL_COPY[refusal])}
-        </div>
-      )}
+          )}
+        </main>
+      </Surface>
 
       {/* SPEC §5 (2026-09-20): on a phone the actions are pinned to the
-          bottom. `sticky` keeps them inside their own column, so nothing
-          here can be wider than what holds it. */}
-      <div className="sticky bottom-0 grid gap-3 border-t border-base-300 bg-base-100 py-3 lg:static lg:border-0 lg:bg-transparent lg:py-0">
-        <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
-          <button
-            type="button"
-            className="btn btn-ghost"
-            disabled={at === 0 || saving}
-            onClick={back}
-          >
-            <ArrowLeft {...ICON} size={20} />
-            {copy("setup.back")}
-          </button>
-          {/* The screen's one solid primary. */}
-          <button
-            type="button"
-            className="btn btn-primary"
-            disabled={saving}
-            aria-busy={saving}
-            data-testid="setup-onwards"
-            onClick={() => void onwards()}
-          >
-            {copy(onwardsLabel(step))}
-          </button>
+          bottom. Edge to edge, solid, with one hairline over it — a strip
+          inset from both edges reads as floating, and the customer's own
+          page shows past it (owner's review of #938). The outer padding is
+          the band's own gutter plus `main`'s, so Back and the primary stand
+          exactly under the question they belong to, and the inner box is
+          the ruled measure — all without this row sitting inside the
+          `Surface`, which would inset its background with it. */}
+      <div className="sticky bottom-0 border-t border-base-300 bg-base-100 px-8 lg:px-10 xl:px-12">
+        <div className="mx-auto grid w-full max-w-(--w-wide) gap-3 py-3">
+          <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
+            <button
+              type="button"
+              className="btn btn-ghost"
+              disabled={at === 0 || saving}
+              onClick={back}
+            >
+              <ArrowLeft {...ICON} size={20} />
+              {copy("setup.back")}
+            </button>
+            {/* The screen's one solid primary. */}
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={saving}
+              aria-busy={saving}
+              data-testid="setup-onwards"
+              onClick={() => void onwards()}
+            >
+              {copy(onwardsLabel(step))}
+            </button>
+          </div>
+          {/* REQ-021 c10 — said once, under the controls it is about. */}
+          <p className={`text-center ${QUIET}`} data-testid="setup-footer-line">
+            {copy("setup.footer.line")}
+          </p>
         </div>
-        {/* REQ-021 c10 — said once, under the controls it is about. */}
-        <p className={`text-center ${QUIET}`} data-testid="setup-footer-line">
-          {copy("setup.footer.line")}
-        </p>
       </div>
     </div>
   );

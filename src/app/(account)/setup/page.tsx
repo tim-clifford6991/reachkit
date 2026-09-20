@@ -13,12 +13,14 @@
 // is on screen is the URL's (`?step=`, held by `nuqs`) and every decision
 // the founder makes is client state, held in `SetupForm`.
 //
-// The screen root is a `Surface` (BP-018): one column at `compact`, two at
-// `medium` — the question and the panel beside it on a wide enough screen —
-// and `wide` says the same as `medium`, because nothing on this screen
-// changes at `--breakpoint-xl`. The two-column split itself is `lg:` inside
-// the form, which is `--breakpoint-lg`: the same boundary the `medium` arm
-// declares, so the declaration and the query cannot drift.
+// **The `Surface` is `SetupForm`'s, not this file's** (owner's review of
+// #938). The screen's action bar is pinned to the bottom of the phone and
+// has to run edge to edge; a `Surface` carries the band's gutter on both
+// sides, so anything drawn inside one is inset by it and reads as a strip
+// floating in the middle of the screen. The form therefore draws the page
+// frame — a full-height grid whose last row is the bar — with the one
+// `Surface` above it holding the question and the panel. There is still
+// exactly one screen root, with the same arms it always had.
 //
 // **`Suspense`**: `nuqs` reads the query string through Next's own
 // `useSearchParams`, which a client component may only do inside a boundary
@@ -31,7 +33,6 @@
 // utility written where it applies.
 import type React from "react";
 import { Suspense } from "react";
-import { Surface } from "@/ui/layout";
 import { readSetupScreen } from "./_setup/provider";
 import { SetupForm } from "./SetupForm";
 
@@ -39,18 +40,8 @@ export default async function SetupPage(): Promise<React.JSX.Element> {
   const model = await readSetupScreen();
 
   return (
-    <Surface
-      arms={{
-        compact: { kind: "columns", count: 1 },
-        medium: { kind: "columns", count: 2 },
-        wide: { kind: "same-as-below" },
-      }}
-    >
-      <main className="grid min-w-0 content-start gap-4 p-4">
-        <Suspense fallback={<div className="skeleton h-96 w-full" />}>
-          <SetupForm model={model} />
-        </Suspense>
-      </main>
-    </Surface>
+    <Suspense fallback={<div className="skeleton m-4 h-96" />}>
+      <SetupForm model={model} />
+    </Suspense>
   );
 }
