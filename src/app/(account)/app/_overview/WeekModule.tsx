@@ -99,7 +99,11 @@ export function WeekModule(p: {
                     and the row grows with it, which is docs/DESIGN.md's "the
                     box changes" rather than a word cut in half. */}
                 <span
-                  className="hidden w-full text-[0.625rem] leading-tight wrap-anywhere opacity-70 sm:block"
+                  // #946: no `opacity-` on text. The word is drawn in the
+                  // cell's own ink at full strength; thinning it put it
+                  // under the contrast floor on the tinted cells (today's
+                  // and the two ahead), which is the finding axe reported.
+                  className="hidden w-full text-[0.625rem] leading-tight wrap-anywhere sm:block"
                   aria-hidden
                 >
                   {word}

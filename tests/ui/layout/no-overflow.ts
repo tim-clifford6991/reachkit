@@ -457,38 +457,21 @@ export interface KnownDefect {
 /** Found 2026-09-21 by this pass against `main` at 06b33bb, after #938,
  *  #939, #940 and #942. */
 export const KNOWN_ON_MAIN: readonly KnownDefect[] = [
-  // #946 — the theme's muted arms, under the contrast floor on ten screens.
-  { route: "/", check: "axe-serious", match: "color-contrast", issue: 946 },
-  { route: "/scan/example.com", check: "axe-serious", match: "color-contrast", issue: 946 },
-  { route: "/pricing", check: "axe-serious", match: "color-contrast", issue: 946 },
-  { route: "/privacy", check: "axe-serious", match: "color-contrast", issue: 946 },
-  { route: "/terms", check: "axe-serious", match: "color-contrast", issue: 946 },
-  { route: "/imprint", check: "axe-serious", match: "color-contrast", issue: 946 },
-  { route: "/app", check: "axe-serious", match: "color-contrast", issue: 946 },
-  { route: "/app/calendar", check: "axe-serious", match: "color-contrast", issue: 946 },
-  { route: "/app/draft/draft-2026-09-15", check: "axe-serious", match: "color-contrast", issue: 946 },
-  { route: "/app/settings", check: "axe-serious", match: "color-contrast", issue: 946 },
-  { route: "/app/search", check: "axe-serious", match: "color-contrast", issue: 946 },
-  { route: "/app/ai-answers", check: "axe-serious", match: "color-contrast", issue: 946 },
-  { route: "/app/rivals", check: "axe-serious", match: "color-contrast", issue: 946 },
-  // Settings' six sibling tabs, landed 2026-09-21 by #925, in the same shell
-  // and with the same finding as the Settings screen they were cut out of —
-  // exactly as #939's three Overview tabs were. Nothing new is excused:
-  // `color-contrast` is #946, which already excuses `/app/settings` itself
-  // and every other signed-in address, and a tab of the same screen cannot
-  // be held to a bar the screen is not held to. When #946 lands, these six
-  // rows go with the ones above them.
+  // **Empty, since #946 (owner ruling, 2026-09-22).**
   //
-  // **There is no `document-title` row here** and no
-  // `scrollable-region-focusable` one: #957 gave every one of the six its
-  // own title and #962 made every scrolling pane reachable from a keyboard,
-  // so neither finding occurs on these addresses to be excused.
-  { route: "/app/settings/market", check: "axe-serious", match: "color-contrast", issue: 946 },
-  { route: "/app/settings/publishing", check: "axe-serious", match: "color-contrast", issue: 946 },
-  { route: "/app/settings/voice", check: "axe-serious", match: "color-contrast", issue: 946 },
-  { route: "/app/settings/mail", check: "axe-serious", match: "color-contrast", issue: 946 },
-  { route: "/app/settings/billing", check: "axe-serious", match: "color-contrast", issue: 946 },
-  { route: "/app/settings/account", check: "axe-serious", match: "color-contrast", issue: 946 },
+  // Every row this list held was `color-contrast` — the theme's muted arms,
+  // under the floor on ten screens and then on the tabs cut out of them.
+  // The owner ruled the palette instead of excusing it: seven token values
+  // moved in `src/ui/theme.css`, and the handful of places that thinned ink
+  // with an opacity — which no token value can save, since `--ink` at 50%
+  // over white is 3.5:1 even at pure black — stopped doing it. The rows
+  // went with the defect.
+  //
+  // An empty list is the state this file was always aiming at, and it is
+  // not a reason to relax: a defect a pull request *introduces* has never
+  // belonged here (the note above says so), and now nothing at all is
+  // excused. The next row added is a defect found on main with an issue
+  // number, and it is expected to be deleted the same way.
 ];
 
 /**

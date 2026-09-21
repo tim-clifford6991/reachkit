@@ -78,7 +78,7 @@ function Fact(p: {
       data-fact-on={fact.on ? "yes" : "no"}
     >
       <div className="flex min-w-0 grow flex-col gap-1">
-        <p className={`min-w-0 wrap-anywhere ${fact.on ? "" : "text-base-content/50 line-through"}`}>
+        <p className={`min-w-0 wrap-anywhere ${fact.on ? "" : "text-base-content/70 line-through"}`}>
           {fact.passage}
         </p>
         <span className="flex min-w-0 flex-wrap items-center gap-2 text-xs">

@@ -199,7 +199,7 @@ function PresenceWeeks(p: {
       </div>
       <div role="row" className="contents">
         {p.labels.map((week, c) => (
-          <span role="columnheader" key={c} className="num border-t border-base-300 pt-1 text-center text-[0.625rem] text-base-content/50">
+          <span role="columnheader" key={c} className="num border-t border-base-300 pt-1 text-center text-[0.625rem] text-base-content/70">
             {week}
           </span>
         ))}

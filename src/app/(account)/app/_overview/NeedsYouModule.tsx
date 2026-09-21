@@ -66,7 +66,10 @@ function Panel(p: { alert: Alert }): React.JSX.Element | null {
             <span className="badge badge-ghost num">{`${formatCount(p.alert.figure.count)}/${formatCount(p.alert.figure.over)}`}</span>
           )}
         </p>
-        <p className="text-xs opacity-70">{line}</p>
+        {/* #946: the alert's own ink, not a thinned arm of it. On the
+            tinted grounds these alerts are drawn on, 70% opacity put the
+            line under the contrast floor. */}
+        <p className="text-xs">{line}</p>
       </div>
       <a className={drawn.cta} href={p.alert.href}>
         {cta}

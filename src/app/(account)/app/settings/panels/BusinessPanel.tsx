@@ -157,7 +157,7 @@ function Mark(p: { item: BusinessItem; chip?: boolean }): React.JSX.Element | nu
     return (
       <span
         className={`text-[10px] font-semibold uppercase ${
-          p.item.isNew ? "text-primary" : "text-base-content/50"
+          p.item.isNew ? "text-primary" : "text-base-content/70"
         }`}
       >
         {copy(key)}
