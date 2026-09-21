@@ -66,10 +66,9 @@ export interface UnenumeratedSurface {
    *  are at no address, and a name that looked like one would be read as a
    *  picture of an address that does not serve it. */
   readonly name: string;
-  /** The approved screen it is a picture of, where the set draws one. S8
-   *  for the four fallback screens; the two waiting lines are `new` under
-   *  ruling 12a — the set draws no waiting screen — so they have none and
-   *  the CI render composes no side-by-side for them. */
+  /** The approved screen this surface is, where the set draws one. S8 for
+   *  the four fallback screens; the two waiting lines are `new` under
+   *  ruling 12a — the set draws no waiting screen — so they have none. */
   readonly screen?: `S${number}`;
   /** The address the browser is pointed at, and the door it goes through:
    *  the surface's own where it has one, otherwise the document whose group

@@ -1,8 +1,8 @@
 # The full layout matrix — six widths, three bands, both themes.
 #
-# A PR runs one band × one theme (issue #545); this is where the rest of the
-# matrix is still walked, nightly, so a band or theme the default no longer
-# photographs cannot drift unseen. Not a merge gate: it reports.
+# The merge gate walks one band (issue #545); this is where the rest of the
+# matrix is still walked, nightly, so a width or band the gate does not
+# reach cannot drift unseen. Not a merge gate: it reports.
 name: Layout (full matrix)
 
 on:
@@ -35,39 +35,5 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/layout-suite
-      # TEMP(#976) — reverted before this PR merges. `workflow_dispatch` only
-      # exists on the default branch, and `ci.yml` has none yet, so this is
-      # the only way to run `main`'s two browser jobs against a branch.
-      - name: TEMP(#976) the default sweep, as ci.yml's layout job runs it
-        env:
-          RENDER_CAPTURE_DIR: ${{ runner.temp }}/captures
-        run: npm run test:layout
-      - name: TEMP(#976) the review gallery, as ci.yml's review job runs it
-        if: ${{ always() }}
-        run: npm run review:gallery
+      - run: npm run test:layout:full
 
-      # TEMP(#976) — what the landing's 325.7 kB of script is made of.
-      # `vitals.test.ts` measures the weight; nothing says where it comes
-      # from, and `next build` no longer prints a size column.
-      - name: TEMP(#976) the built chunks, largest first, and what is in them
-        if: ${{ always() }}
-        run: |
-          set -eu
-          du -b .next/static/chunks/*.js .next/static/chunks/**/*.js 2>/dev/null \
-            | sort -rn | head -25 || true
-          for f in $(du -b .next/static/chunks/*.js 2>/dev/null | sort -rn | head -10 | cut -f2); do
-            echo "== $f"
-            for lib in recharts @tanstack react-day-picker sonner nuqs date-fns lucide \
-                       micromark mdast @supabase stripe zod; do
-              if grep -qF "$lib" "$f"; then echo "     names $lib"; fi
-            done
-          done
-
-      - name: visual evidence (diff and actual PNGs) when a baseline moved
-        if: ${{ always() }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: visual-evidence-full-${{ github.sha }}
-          path: /tmp/reachkit-visual-*/
-          if-no-files-found: ignore
-          retention-days: 7

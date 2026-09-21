@@ -735,7 +735,7 @@ scripts/db-substrate/down.sh                 # the moment the suite finishes
   ```
 
   With both in place `eval "$(scripts/db-substrate/up.sh --run)"` works here, and
-  `npx vitest run --project db` and `npm run test:no-overflow` can be run on the box rather than
+  `npx vitest run --project db` and `npm run test:layout` can be run on the box rather than
   only in CI.
 - **Stop the stack before removing a worktree.** A stack costs 150–190 MB and nothing else stops
   it: on 2026-09-07 forty-one orphaned processes from deleted worktrees held 1.66 GB of a 7.7 GB

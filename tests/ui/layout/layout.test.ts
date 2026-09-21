@@ -14,6 +14,11 @@
 // on a page with zero padding, which is how a `Surface` that matched no
 // stylesheet rule reached dev with every screen flush to the top-left.
 //
+// It runs on every pull request, as one of the files the `no overflow · axe`
+// gate walks (owner, 2026-09-21, #976 — `docs/PROCESS.md`, Gates). Until
+// then it ran on `main` alone and had been red for days without anybody
+// seeing it, which is most of what that issue is about.
+//
 // Enumerates the real `src/app` tree — never a fixture — and prints
 // `n routes × n widths` unconditionally (rule 5.5): today `src/app/` holds
 // no route (WO-269 rests-on row 5), so `n` is `0`, and that is stated

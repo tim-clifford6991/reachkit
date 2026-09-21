@@ -1,14 +1,14 @@
 // tests/ui/layout/matrix.ts — how wide the browser sweep runs (issue #545)
 //
 // The default is one band × one theme per screen: 1280 light, which is the
-// band and theme the approved set is drawn at and the capture CI composes
-// its side-by-side from. `RK_LAYOUT_FULL=1` restores the full matrix — the
-// six widths, the three bands and both themes — and is what
-// `npm run test:layout:full`, the nightly run and a baseline regeneration
-// set. The 2026-09-11 test-budget ruling (`docs/PROCESS.md`, Test budget)
-// is the reason: the full matrix re-photographs one decision six times per
-// screen on every PR, and that time buys less than the production smoke
-// check it was crowding out.
+// band and theme the approved set is drawn at. `RK_LAYOUT_FULL=1` restores
+// the full matrix — the six widths, the three bands and both themes — and
+// is what `npm run test:layout:full` and the nightly run set. The
+// 2026-09-11 test-budget ruling (`docs/PROCESS.md`, Test budget) is the
+// reason: the full matrix re-checks one decision six times per screen on
+// every PR, and that time buys less than the production smoke check it was
+// crowding out. The sweep this widens is a merge gate now (2026-09-21,
+// #976), which is one more reason the default stays one band.
 import { BAND_MIN } from "@/ui/layout/bands";
 import { widths } from "./widths";
 

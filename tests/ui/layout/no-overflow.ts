@@ -346,6 +346,24 @@ export const EDGE_EPSILON_PX = 0.5;
  */
 export const HYDRATION_MARKER = "next-route-announcer";
 
+/**
+ * Everything that has to be still before a box is measured.
+ *
+ * Stops any transition, animation or caret a screen might carry, so a
+ * measurement is of a settled layout rather than of whichever frame the
+ * repaint landed on. `reducedMotion` alone would not: it silences only what
+ * asks it to.
+ *
+ * It lived in `gallery.ts` until 2026-09-21 (#976) because the two
+ * photographing passes needed it and this one borrowed it; those two
+ * retired and this is where it belongs.
+ */
+export const STILL = `*, *::before, *::after {
+  transition: none !important;
+  animation: none !important;
+  caret-color: transparent !important;
+}`;
+
 /** How long a document may take to hydrate, load its webfont and draw its
  *  charts. Generous on purpose and never the real bound — every caller runs
  *  under its own per-test timeout, and this exists so a page that never

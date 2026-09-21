@@ -26,6 +26,7 @@ import os from "node:os";
 import path from "node:path";
 import { chromium, type Page } from "playwright";
 import { startAuthStub, type AuthStub } from "./auth-stub";
+import { settleForMeasurement } from "./no-overflow";
 import { enumerateRoutes } from "./routes";
 import {
   applyMigrations,
@@ -356,17 +357,23 @@ function settleOnNavigation(page: Page): void {
   page.goto = async (url, gotoOptions) => {
     const response = await goto(url, gotoOptions);
     await page.waitForSelector(WAITING, { state: "detached", timeout: SETTLE_MS });
-    // And the faces, 2026-09-21 (#976). `src/ui/fonts.ts` loads every face
-    // with `display: swap` and `adjustFontFallback: false`, so until the
-    // web font is in, the page is laid out in a fallback with different
-    // metrics — a *different page* from the one the design was ruled on.
-    // Every box this suite measures is a box whose width the swap can
-    // still change, so a sweep that reads before it is a sweep racing the
-    // network for its own subject. The promise resolves as soon as no face
-    // is pending, which on a page carrying none is immediately.
-    await page.evaluate(async () => {
-      await document.fonts.ready;
-    });
+    // And then everything else that has to have happened before a box on
+    // this page means anything — the client runtime, the webfont, the
+    // charts, one painted frame. `no-overflow.ts` worked that out on
+    // 2026-09-20 (#910) and only its own pass used it; every other suite in
+    // this project measured "whatever the document held when `load` fired",
+    // which is a different page.
+    //
+    // 2026-09-21, #976: that is not a nicety. `settings-tab-visible.test.ts`
+    // reads a row that a mount effect scrolls, and it read it before the
+    // effect ran — seven addresses in 2.8 seconds, on routes the rest of
+    // this suite spends thirty apiece on — so it reported the current tab
+    // 72px off the edge on a screen where it is centred. A suite that
+    // measures an unhydrated document reports the defects of a page nobody
+    // is served. It is the navigation that has to wait, so it waits here,
+    // once, for every file (`layout.test.ts`'s own header no longer has to
+    // say it is the un-hydrated pass).
+    await settleForMeasurement(page);
     return response;
   };
 }
