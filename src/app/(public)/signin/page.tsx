@@ -20,19 +20,32 @@ import { SPECIMEN_SIGNIN } from "../_landing/specimen";
  *  and stretch to each other's height. */
 const CARD = "card grid grid-cols-1 overflow-hidden border border-base-300 bg-base-100 shadow-sm lg:grid-cols-2";
 const HALF = "flex items-center justify-center px-4 py-10 sm:px-8 sm:py-14 lg:p-14";
-/** The accent half. **Flat `--primary`, not a gradient** (#937): the app
- *  draws no gradient anywhere, and a panel that did would be the one
- *  surface on the site speaking a language the product does not. The tile
- *  inside it is the app's own — a label, the number over its denominator,
- *  a `progress`, and the estimated gain — which is what "in the app's
- *  language" means on this screen. */
-const PANEL = `${HALF} bg-primary text-primary-content`;
+/**
+ * The accent half: an accent **tint**, with the screen's own ink on it.
+ *
+ * It was a gradient (`--grad-accent`) over solid `--primary`, with white
+ * text at 80%. #937 asks for the app's language, and the app draws no
+ * gradient anywhere — but flat `--primary` was the wrong half of the fix:
+ * `--primary-content` at 80% on a saturated ground is under the contrast
+ * floor, which CI caught on this screen and on the two `/setup` addresses
+ * that redirect to it.
+ *
+ * The 2026-09-20 board draws the half as a light accent tint carrying
+ * ordinary ink, with the app's own white tile on top of it — which is both
+ * what the product looks like and a ground its text passes against by
+ * construction, because the ink is `--base-content` on a mostly-base
+ * ground. No opacity is spent on any sentence here.
+ */
+const PANEL = `${HALF} bg-primary/10`;
 const COLUMN = "flex w-full max-w-md flex-col gap-6";
 const HEAD_GROUP = "flex flex-col gap-2";
 const QUIET = "text-base-content/70";
 const CHIP_WARN = "grid size-10 flex-none place-items-center rounded-field bg-warning/10 text-warning";
-const GLASS = "flex flex-col gap-3 rounded-box border border-primary-content/30 bg-primary-content/10 p-6";
-const ON_ACCENT_QUIET = "text-primary-content/80";
+/** The tile on the tint: the app's own card, not a glass panel. */
+const GLASS = "card bg-base-100 border-base-300 flex flex-col gap-3 border p-6";
+/** The quiet ink on the tint — the same muted step the rest of the screen
+ *  spends, because the ground is now a tint and not a fill. */
+const ON_ACCENT_QUIET = "text-base-content/70";
 
 /** The specimen the accent half shows: the reserved domain and the figures
  *  the approved set draws on it (ruling 5c).
@@ -233,19 +246,19 @@ export default function SignInPage(props: {
               stranger's real domain (ruling 5c). */}
           <div className={PANEL} data-testid="signin-panel">
             <div className={COLUMN}>
-              <h2>{copy("signin.panel.heading")}</h2>
+              <h2 className="text-primary">{copy("signin.panel.heading")}</h2>
               <div className={GLASS}>
                 <p className={`font-mono ${ON_ACCENT_QUIET}`}>{SPECIMEN_DOMAIN}</p>
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <p>{copy("signin.panel.score-label")}</p>
-                  <span className="badge border-0 bg-base-content font-mono text-base-100">{copy("signin.panel.delta")}</span>
+                  <span className="badge badge-success font-mono">{copy("signin.panel.delta")}</span>
                 </div>
                 <p className="flex flex-wrap items-baseline gap-2 font-mono">
                   <span className="text-5xl font-bold">{SPECIMEN_SCORE}</span>
                   <span className={`text-xl ${ON_ACCENT_QUIET}`}>{`/${SPECIMEN_MAX}`}</span>
                 </p>
                 <progress
-                  className="progress w-full text-primary-content"
+                  className="progress progress-primary w-full"
                   value={SPECIMEN_SCORE}
                   max={SPECIMEN_MAX}
                   aria-label={copy("signin.panel.score-label")}
@@ -260,7 +273,7 @@ export default function SignInPage(props: {
                   should not have to wonder whose site it measured. The
                   domain is the sentence's own slot, filled from the same
                   fixture the figures come from. */}
-              <p className={`text-sm ${ON_ACCENT_QUIET}`} data-testid="signin-panel-example">
+              <p className="text-primary text-sm" data-testid="signin-panel-example">
                 {copy("signin.panel.example", { domain: SPECIMEN_DOMAIN })}
               </p>
             </div>
