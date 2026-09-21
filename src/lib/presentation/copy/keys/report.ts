@@ -509,7 +509,24 @@ export const REPORT_COPY = Object.freeze({
      Every sentence here is **drafted** under the owner's 2026-09-16
      ruling (#759), in this registry's voice, and named in the PR body so
      the owner can correct it. */
-  "quiet.refused.head.wait": ["You can scan again in {wait}", { slots: { wait: "text" }, fixedBy: "issue 936" }],
+  /** One heading per refusal reason: **what happened**, never when.
+   *
+   *  The first draft put the wait in the heading ("You can scan again in 37
+   *  min") over the approved sentence, which ends with the same clause —
+   *  the card said one thing twice (owner, 2026-09-21). The heading takes
+   *  the other half of the message instead, and the approved line below it
+   *  is unchanged and still carries the time.
+   *
+   *  One key per reason rather than one shared line, on the footing
+   *  `notice.refused.*` already stands on: the reasons are not each other.
+   *  A network that has spent its hour is not an address that has been
+   *  measured enough, and neither is a scan that is simply still running.
+   *  `refusal.ts` maps them with `satisfies`, so a sixth reason fails the
+   *  build until it has a heading here too. */
+  "quiet.refused.head.network-limit": ["Too many scans from your network", { slots: {}, fixedBy: "issue 936" }],
+  "quiet.refused.head.network-day-limit": ["Your network has used its free scans for today", { slots: {}, fixedBy: "issue 936" }],
+  "quiet.refused.head.domain-day-limit": ["This address has been scanned enough for today", { slots: {}, fixedBy: "issue 936" }],
+  "quiet.refused.head.scan-running": ["A scan is already running", { slots: {}, fixedBy: "issue 936" }],
   "quiet.refused.head.stopped": ["Free scanning is paused", { slots: {}, fixedBy: "issue 936" }],
   "quiet.cooldown.head": ["We couldn’t finish measuring this site", { slots: {}, fixedBy: "issue 936" }],
   "quiet.removed.head": ["This report was removed", { slots: {}, fixedBy: "issue 936" }],

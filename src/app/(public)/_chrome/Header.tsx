@@ -110,8 +110,10 @@ function PhoneMenu(p: { action: HeaderAction }): React.JSX.Element {
               is how a responsive bar is built — but it does mean the
               control exists twice in the document, so each arm says which
               it is and only one is ever displayed, focusable or announced
-              (`hidden` is `display: none`). */}
-          <ThemeToggle />
+              (`hidden` is `display: none`).
+              `labelled`: in here the glyph alone is a mystery under two
+              worded links, so it shows its own name (owner, 2026-09-21). */}
+          <ThemeToggle labelled />
         </li>
       </ul>
     </div>

@@ -122,22 +122,26 @@ describe("S8 — the line each screen writes", () => {
     const markup = html(PublicNotFound);
 
     expect(COPY["chrome.notfound.address"]).toBe("reachkit.app/scan/yourdomain.com");
-    // The line is a declared scroll container since #327 — the address is
-    // 297px at the body rung and the compact reading column is 288, and
-    // `.num` bans every break inside a value, so ADR-093's rule applies and
-    // the *box* changes. The classes are asserted here rather than only in
-    // the stylesheet: the layout sweep's own allow-list is keyed on
-    // `.overflow-x-auto`, so a line that lost the class would stop being a
-    // declared scroll container and start being a check-2 offender.
-    const LINE_BOX = '<p class="min-w-0 max-w-full overflow-x-auto text-start">';
+    // The line is a declared scroll container (#327) and, since the
+    // owner's review of #936, takes its card's own alignment rather than
+    // forcing `text-start`: at 390 the paragraph is 326px around a 289px
+    // value, so it wraps rather than overflowing, and starting the lines
+    // left under a centred heading was the defect. `.num` bans every break
+    // inside a value, so where a box does have to change it is this one.
+    // The classes are asserted here rather than only in the stylesheet:
+    // the layout sweep's allow-list is keyed on `.overflow-x-auto`, so a
+    // line that lost the class would stop being a declared scroll
+    // container and start being a check-2 offender.
+    const LINE_BOX = '<p class="min-w-0 max-w-full overflow-x-auto">';
+    const VALUE_BOX = '<span class="num">';
     expect(markup).toContain(
-      `${LINE_BOX}Reports live at <span class="num">${COPY["chrome.notfound.address"]}</span>.</p>`
+      `${LINE_BOX}Reports live at ${VALUE_BOX}${COPY["chrome.notfound.address"]}</span>.</p>`
     );
     // The whole sentence is still the owner's, in one piece and in order:
     // the only thing between its two halves is the one span.
     const address = COPY["chrome.notfound.address"];
     const [before, after] = copy("chrome.notfound.line", { address }).split(address);
-    expect(markup).toContain(`${LINE_BOX}${before}<span class="num">${address}</span>${after}</p>`);
+    expect(markup).toContain(`${LINE_BOX}${before}${VALUE_BOX}${address}</span>${after}</p>`);
   });
 
   it("the account 404 does not send a signed-in customer to a report address", () => {

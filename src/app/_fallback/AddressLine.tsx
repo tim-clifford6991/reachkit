@@ -42,26 +42,39 @@ export function AddressLine(p: {
 }): React.JSX.Element {
   const [before = "", after = ""] = copy(p.copyKey, { [SLOT]: SENTINEL }).split(SENTINEL);
   return (
-    // **The line is a declared scroll container** (issue #327). `.num` bans
-    // every break inside a value — `overflow-wrap`, `word-break` and
-    // `white-space` all say so, and `src/ui/type.css` states why: "a value
-    // that cannot fit now overflows its box instead of quietly rewriting
-    // itself … ADR-093's rule decides what happens next — the *box*
-    // changes, with the `overflow-x-auto` wrap". S8's address is 32 mono
-    // characters and a full stop, which is 297px at the body rung; the
-    // compact band's reading column is 288. So the box changes here, in the
-    // same three classes the registered `Table` carries (`min-w-0` because
-    // a scroll container that cannot shrink never scrolls).
+    // **A declared scroll container, and it takes its card's alignment**
+    // (issue #327; alignment corrected 2026-09-21 on the owner's review of
+    // #936).
     //
-    // `text-start` is the fourth and it is not decoration: S8 centres its
-    // column, and a line centred inside a box it overflows puts half the
-    // overflow to the **left**, where no scroll position in a left-to-right
-    // document can reach it — a value clipped, which is the one thing the
-    // ruling that allows this box refuses. Where the line fits, the box is
-    // shrink-to-fit and exactly as wide as its widest line, so starting and
-    // centring are the same pixels; it differs only at the width where the
-    // value would otherwise be cut.
-    <p className="min-w-0 max-w-full overflow-x-auto text-start">
+    // `.num` bans every break inside a value — `overflow-wrap`,
+    // `word-break` and `white-space` all say so, and `src/ui/type.css`
+    // states why: "a value that cannot fit now overflows its box instead
+    // of quietly rewriting itself … ADR-093's rule decides what happens
+    // next — the *box* changes, with the `overflow-x-auto` wrap". So the
+    // box changes here, in the same classes the registered `Table` carries
+    // (`min-w-0`, because a scroll container that cannot shrink never
+    // scrolls).
+    //
+    // **It was `text-start`, and that was the wrong half of a real
+    // hazard.** A line centred inside a box it overflows puts half the
+    // overflow to the *left*, where no scroll position in a left-to-right
+    // document can reach it. True — but the sentence around the value
+    // wraps at its spaces, so at the widths the 2026-09-20 ruling names
+    // the paragraph does not overflow at all: at 390 it is 326px holding a
+    // 289px value, 37px to spare, and it simply takes two lines.
+    // `text-start` then left-aligned those two lines under a centred
+    // heading and a centred line, which is what the owner saw.
+    //
+    // So the sentence centres with the rest of the card, and the hazard is
+    // recorded rather than guarded against at a width the product does not
+    // claim: below about 330 the value would overflow and centring would
+    // put some of it out of reach. The floor is 390.
+    //
+    // (The other fix — the scroll box on the value's own span — was tried
+    // and reverted: `overflow` gives an inline-block a new formatting
+    // context, which moved the sentence's closing full stop 3px off the
+    // baseline at every width, to buy a guard that never fires above 330.)
+    <p className="min-w-0 max-w-full overflow-x-auto">
       {before}
       <span className="num">{p.address}</span>
       {after}

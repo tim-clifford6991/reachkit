@@ -23,6 +23,17 @@ const REFUSAL_KEY = {
   stopped: "notice.refused.stopped",
 } as const satisfies Record<AddressRefusal["reason"], CopyKey>;
 
+/** One heading per reason, the same shape and the same totality guarantee
+ *  as `REFUSAL_KEY` above: a reason added to `AddressRefusal` fails this
+ *  file's build until it has a heading as well as a line. */
+const REFUSAL_HEAD = {
+  "network-limit": "quiet.refused.head.network-limit",
+  "network-day-limit": "quiet.refused.head.network-day-limit",
+  "domain-day-limit": "quiet.refused.head.domain-day-limit",
+  "scan-running": "quiet.refused.head.scan-running",
+  stopped: "quiet.refused.head.stopped",
+} as const satisfies Record<AddressRefusal["reason"], CopyKey>;
+
 const SECONDS_PER_MINUTE = 60;
 
 /** The `{wait}` every refusal but `stopped` carries: the refusal's own
@@ -45,18 +56,17 @@ export function refusalLine(refusal: AddressRefusal): string {
 /**
  * The refusal's heading on its own screen (#936).
  *
- * SPEC §1's quiet-page shape puts the answer to the reader's only
- * question first — *when can I scan again?* — and the approved sentence
- * beneath it says why. Composed here, beside the line, for the same
- * reason the line is: the wait figure and the unit word around it are
- * read once, so the heading and the sentence under it can never name two
- * different times.
+ * **What happened, never when** (owner, 2026-09-21). The first draft put
+ * the wait here, over an approved sentence that ends with the same clause,
+ * and the card said one thing twice. The time belongs to the line, which
+ * already carries it and is unchanged; the heading carries the other half
+ * of the message.
  *
- * ReachKit's own stop takes the heading that promises nothing, because
- * nobody can say when free scanning starts again (ADR-011) — the same
- * fact that leaves its sentence without a `{wait}` slot.
+ * So this takes no `{wait}` and does no formatting: there is one heading
+ * per reason and nothing to compose. `formatWait` stays the line's alone,
+ * which is also why the two can no longer disagree about a figure — only
+ * one of them states one.
  */
 export function refusalHeading(refusal: AddressRefusal): string {
-  if (refusal.reason === "stopped") return copy("quiet.refused.head.stopped");
-  return copy("quiet.refused.head.wait", { wait: formatWait(refusal.retryAfterSeconds) });
+  return copy(REFUSAL_HEAD[refusal.reason]);
 }
