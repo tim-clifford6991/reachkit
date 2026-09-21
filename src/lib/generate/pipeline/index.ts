@@ -49,7 +49,7 @@ import type { GroundedFact, RuleFailure, SiteRuleInputs } from "../rules/types";
 import { generateStore, type DraftRow } from "../store";
 import { applyLinks } from "../links/apply";
 import type { LinkTarget } from "../links/select";
-import { buildPromptInputs } from "../voice/inputs";
+import { buildPromptInputs, type KnownPageBrief } from "../voice/inputs";
 import { profileItemsUsed, type PromptProfile } from "../voice/profile-block";
 import { buildComparisonSet } from "./comparison";
 import { applyAnswerability } from "./answerability";
@@ -115,6 +115,11 @@ export async function generateDraft(
     /** The customer's own pages the page links to — the inventory's and the
      *  cluster's, chosen by `../links/select.ts` (SPEC §7, 2026-09-12). */
     links: readonly LinkTarget[];
+    /** SPEC §7 (2026-09-20, #928): the pages the site already has that are
+     *  nearest this one, so the page is written beside them. Passed rather
+     *  than read here for the reason `profile` is: the caller holds the
+     *  index it chose the links from. */
+    known?: readonly KnownPageBrief[];
     /** The confirmed business profile, bounded, or `null` where nothing has
      *  been read of the site (#927). Passed rather than read here: the
      *  caller already holds the market reading it is half made of, so
@@ -204,6 +209,7 @@ export async function generateDraft(
     opportunity: a.opportunity,
     grounded: grounding.fact,
     links: a.links,
+    ...(a.known === undefined ? {} : { known: a.known }),
     profile: a.profile,
   });
 

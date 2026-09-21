@@ -68,6 +68,24 @@ export interface DraftPromptInputs {
    *  byte-for-byte the prompt this product built before #927, which is what
    *  keeps a site with no reading generating exactly as it did. */
   profile: PromptProfile | null;
+  /** SPEC §7 (2026-09-20, #928): the pages this site already has that are
+   *  nearest this one — ours, their blog's and their main site's — so the
+   *  page is written *beside* them rather than over them. Titles and
+   *  addresses only: the model is told what the site covers, never what
+   *  those pages say, because a body it was shown is a body it could
+   *  paraphrase.
+   *
+   *  Empty on a site whose index holds nothing, which is byte-for-byte the
+   *  prompt this product built before #928. It is not the link list:
+   *  `links` is what the finished page is *held* to link, and this is what
+   *  it must not repeat. */
+  known: readonly KnownPageBrief[];
+}
+
+/** One page the site already has, as the prompt states it. */
+export interface KnownPageBrief {
+  title: string;
+  url: string | null;
 }
 
 /** The keys `DraftPromptInputs` has, as a value, so a runtime assertion can
@@ -84,6 +102,7 @@ export const DRAFT_PROMPT_KEYS: Readonly<Record<keyof DraftPromptInputs, true>> 
   grounded: true,
   links: true,
   profile: true,
+  known: true,
 });
 
 /** Assembles the struct from what the pipeline already holds. It reads
@@ -98,6 +117,7 @@ export function buildPromptInputs(a: {
   grounded: GroundedFact;
   links: readonly LinkTarget[];
   profile: PromptProfile | null;
+  known?: readonly KnownPageBrief[];
 }): DraftPromptInputs {
   return {
     businessName: a.businessName,
@@ -108,5 +128,8 @@ export function buildPromptInputs(a: {
     grounded: a.grounded,
     links: a.links,
     profile: a.profile,
+    // Absent reads as none — a caller with no index to offer builds the
+    // prompt this product built before #928.
+    known: a.known ?? [],
   };
 }

@@ -413,6 +413,10 @@ export const KNOWN_CONTENT = Object.freeze({
    *  rows share neither a word nor a spelling with the topic, and the
    *  closest of them is what the caller wants. */
   NEAR_ROWS: 25,
+  /** How many of them are named to the writer as topics the site already
+   *  covers. A list of everything the site has is not a list a model can
+   *  use; the pages worth naming are the ones near this one's topic. */
+  PROMPT_PAGES_MAX: 8,
   /** How many known pages a new page may link to. The same bound and the
    *  same reason as `CROSS_LINKS.CLUSTER_PAGES_MAX`: a page links to what
    *  helps the reader, and a list of every page the site has is an index,

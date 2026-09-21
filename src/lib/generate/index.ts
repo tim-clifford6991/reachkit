@@ -34,6 +34,10 @@ import {
   type Opportunity,
 } from "@/lib/opportunities";
 import type { StoredReport } from "@/lib/scan/report";
+import { KNOWN_CONTENT } from "@/lib/config/constants";
+import { pageScore } from "@/lib/known-content/match";
+import type { KnownPage } from "@/lib/known-content/types";
+import type { KnownPageBrief } from "./voice/inputs";
 import { withDraftCost } from "./cost";
 import { recoveryOutcome } from "./claims/recovery";
 import { readRecordedRules } from "./record";
@@ -49,6 +53,26 @@ import { generatePageFix } from "./pipeline/page-fix";
 import { DraftDateTaken, generateStore, type RestartedDraft, type SiteFacts } from "./store";
 
 export type { GroundedFact, HardRule, RuleFailure, ComparisonSet, SiteRuleInputs } from "./rules/types";
+
+/**
+ * The pages the site already has that are nearest this one (#928), as the
+ * prompt states them.
+ *
+ * Bounded and ranked by the one measure: a list of everything the site has
+ * is not a list the model can use, and the pages worth naming are the ones
+ * near the topic. A page still waiting is named too — it has no address and
+ * is not a link, but it is a topic this site is about to cover and the page
+ * being written must not be the second one about it.
+ */
+function nearestKnown(pages: readonly KnownPage[], query: string): KnownPageBrief[] {
+  if (query.trim() === "") return [];
+  return [...pages]
+    .map((page) => ({ page, score: pageScore({ query }, page) }))
+    .filter((scored) => scored.score > 0)
+    .sort((x, y) => y.score - x.score)
+    .slice(0, KNOWN_CONTENT.PROMPT_PAGES_MAX)
+    .map(({ page }) => ({ title: page.title, url: page.url }));
+}
 export { HARD_RULES } from "./rules/types";
 export { runHardRules, type BatteryOutcome } from "./rules";
 export { similarity } from "./rules/similarity";
@@ -341,15 +365,21 @@ async function writePage(a: PageInput & { attempts: number }): Promise<DayPageOu
   // helps the reader." The pages the site already has — theirs as well as
   // ours — after the two lists that were already chosen, and never one of
   // those twice.
+  const known = await store.knownPages(a.siteId);
   const links = [
     ...chosen,
-    ...knownContentTargets(await store.knownPages(a.siteId), {
+    ...knownContentTargets(known, {
       domain: site.domain,
       query: opportunity.targetQuery ?? "",
       selfUrl,
       already: chosen,
     }),
   ];
+  // SPEC §7 (2026-09-20, #928): the nearest of those pages are stated to
+  // the writer as well — not as pages to link, which `links` already is,
+  // but as topics this site has covered, so the page is written beside them
+  // and never over them. Titles and addresses only.
+  const knownBriefs = nearestKnown(known, opportunity.targetQuery ?? "");
 
   return withDraftCost({ scanId: report.scanId }, async (cost): Promise<DayPageOutcome> => {
     let last: GenerateOutcome | null = null;
@@ -366,6 +396,7 @@ async function writePage(a: PageInput & { attempts: number }): Promise<DayPageOu
         voiceText: site.voiceText,
         category,
         links,
+        known: knownBriefs,
         profile: confirmed.profile,
         factsOff: confirmed.factsOff,
         scanId: report.scanId,
