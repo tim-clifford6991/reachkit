@@ -320,8 +320,15 @@ function tokensOf(reference: string): readonly string[] {
  *  from "reachkit.app") — so the answer names the brand through a third
  *  party (a marketplace listing, a profile page, a review). One reference
  *  is only ever one of the two: the `else` is what keeps the two rates
- *  measuring different things rather than double-counting the same row. */
-function classifyReferences(references: readonly string[], ownDomain: string): { cited: boolean; mentioned: boolean } {
+ *  measuring different things rather than double-counting the same row.
+ *
+ *  **Exported for the AI answers tab** (SPEC §6, 2026-09-20, #918), which
+ *  draws *named* and *linked* as two marks and has to split them the way
+ *  the score already splits them. One implementation, so a cell on that
+ *  screen and the citation rate inside `aiPresenceOf` can never come to
+ *  disagree about what being named means. It is pure and takes no clock,
+ *  so the screen reads stored references with it and measures nothing. */
+export function classifyReferences(references: readonly string[], ownDomain: string): { cited: boolean; mentioned: boolean } {
   const own = hostOf(ownDomain);
   const brandToken = own.split(".")[0] ?? own;
   let cited = false;

@@ -13,7 +13,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { copy } from "@/lib/presentation/copy";
 import OverviewPage from "@/app/(account)/app/(tabs)/page";
-import AiAnswersTabPage from "@/app/(account)/app/(tabs)/ai-answers/page";
 import RivalsTabPage from "@/app/(account)/app/(tabs)/rivals/page";
 import OverviewTabsLayout from "@/app/(account)/app/(tabs)/layout";
 import { OVERVIEW_TABS, TAB_HREF } from "@/app/(account)/app/_overview/tabs";
@@ -91,20 +90,16 @@ describe("SPEC §4 — every part of the Overview tab opens the tab behind it", 
   });
 });
 
-describe("the tabs that have an address and not yet a screen say so", () => {
-  // Search is no longer among them: #916 built it, and its own suites
-  // (`search-*.test.ts`) decide what it states.
-  it("each names itself and states one written line — no number, no dash", () => {
-    for (const [page, tab, soon] of [
-      [AiAnswersTabPage, "ai_answers", "overview.tab.ai-answers.soon"],
-      [RivalsTabPage, "rivals", "overview.tab.rivals.soon"],
-    ] as const) {
-      const html = renderToStaticMarkup(page());
-      expect(html, tab).toContain(copy(soon));
-      expect(html, tab).toContain("skeleton");
-      expect(html, `${tab} renders a placeholder key instead of a sentence`).not.toContain(
-        "TODO(copy)"
-      );
-    }
+describe("the tab that has an address and not yet a screen says so", () => {
+  // Search and AI answers are no longer among them: #916 and #918 built
+  // them, and their own suites (`search-*.test.ts`, `answers-*.test.ts`)
+  // decide what each states.
+  it("names itself and states one written line — no number, no dash", () => {
+    const html = renderToStaticMarkup(RivalsTabPage());
+    expect(html).toContain(copy("overview.tab.rivals.soon"));
+    expect(html).toContain("skeleton");
+    expect(html, "the tab renders a placeholder key instead of a sentence").not.toContain(
+      "TODO(copy)"
+    );
   });
 });
