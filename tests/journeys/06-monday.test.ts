@@ -777,11 +777,17 @@ describe("Monday: the week is re-measured, judged, and told (JN-005)", () => {
     expect(digest.standings).toHaveLength(1);
     expect(digest.weekMeasuredAt).toBeInstanceOf(Date);
 
-    // §12's four sections, in §12's order.
+    // §12's four sections, in §12's order — and since #933 the score is the
+    // one number up top, with the week's own direction said under it and
+    // the other three Overview numbers together below.
     const whole = buildWeekly({
       scoreDelta: measured(4, MONDAY),
       // A measured zero is a result — "no movement" — and prints.
       aiAnswersDelta: measuredZero(0, MONDAY),
+      score: measured(58, MONDAY),
+      searches: measured(21, MONDAY),
+      aiAnswers: measuredZero(0, MONDAY),
+      pagesLive: measured(3, MONDAY),
       pages: measured(
         digest.standings.map((standing) => ({ liveUrl: standing.liveUrl, standing: standing.standing })),
         MONDAY
@@ -791,9 +797,10 @@ describe("Monday: the week is re-measured, judged, and told (JN-005)", () => {
     expect(whole.subject).toBe("mail.weekly.subject");
     expect(whole.blocks.map((block) => block.block)).toEqual([
       "heading",
+      "hero",
       "paragraph",
-      "stat",
-      "stat",
+      "paragraph",
+      "stats",
       "verdicts",
       "list",
       "action",
@@ -808,10 +815,12 @@ describe("Monday: the week is re-measured, judged, and told (JN-005)", () => {
       pages: unmeasured("not_attempted", MONDAY),
       next: unmeasured("not_attempted", MONDAY),
     });
-    // Indexes 2–5 since #376: S20's heading and its one line lead, and
-    // neither is conditional — the four §12 sections that are still follow
-    // them and are still the four that drop.
-    expect(omittedIndexes(partial.blocks)).toEqual([2, 3, 4, 5]);
+    // Since #933 the conditional sections are the number up top, the group
+    // of three beside it, the verdicts and the next three — four again, and
+    // all four drop. The heading and the body line lead and neither is
+    // conditional; the headline sentence is not composed at all for a week
+    // with no measured movement to name.
+    expect(omittedIndexes(partial.blocks)).toEqual([1, 3, 4, 5]);
     // Every conditional section dropped: the mail carries the one line
     // that says so rather than standing empty.
     expect(chooseWholeMailLine({ blocks: partial.blocks })).toBe("mail.nothing_to_report");
