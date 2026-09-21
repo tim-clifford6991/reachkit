@@ -1,5 +1,6 @@
-# Required on main: typecheck · lint · unit, audit, schema · RLS.
-# Layout screenshots are evidence; they do not block merge (docs/PROCESS.md).
+# Required on main: typecheck · lint · unit, audit, schema · RLS — plus
+# `no overflow · axe`, proposed by #910 as the fourth (docs/PROCESS.md, Gates).
+# Layout screenshots stay evidence; they do not block merge (docs/PROCESS.md).
 name: CI
 
 on:
@@ -25,6 +26,53 @@ jobs:
       - run: npm run typecheck
       - run: npm run lint
       - run: npx vitest run --project node --project ui
+
+  no-overflow:
+    name: no overflow · axe (390 / 768 / 1280, light and dark)
+    runs-on: ubuntu-latest
+    # **A merge gate, and it runs on pull requests** (issue #910; owner's
+    # ruling of 2026-09-20 in `docs/DESIGN.md`, "Layout that cannot
+    # overflow"). That is the whole difference between this job and the one
+    # below, which has skipped every PR since it was written.
+    #
+    # The `layout` job's `if:` is not about the database or the browser —
+    # both are here too, and it is the same composite action that sets them
+    # up. It is about what that job produces: committed PNG baselines and a
+    # side-by-side comment, which is a slow review artefact and a pixel diff
+    # that daisyUI work moves on purpose. `docs/DESIGN.md` forbids a pixel
+    # baseline as a merge gate, so that job stays evidence on `main`.
+    #
+    # This job photographs nothing. Every failure it can produce is a
+    # sentence naming an element on a named screen at a named width in a
+    # named theme, so there is nothing here for a PR to be delayed by except
+    # a defect.
+    #
+    # **Where the data comes from.** The same place the sweep below gets it:
+    # `scripts/db-substrate/` against this job's own `postgres:18` service,
+    # with `tests/ui/layout/seed.ts` applying the migrations and seeding the
+    # four accounts, and `tests/ui/layout/auth-stub.ts` answering `getUser()`
+    # — the substrate has no GoTrue. Nothing reaches a vendor and nothing
+    # reaches the shared box, which has no PostgREST and cannot run this
+    # pass at all.
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: reachkit
+          POSTGRES_PASSWORD: reachkit
+          POSTGRES_DB: reachkit_scratch
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U reachkit -d reachkit_scratch"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/layout-suite
+      - name: every (public) and (account) screen, hydrated, at three widths in two themes
+        run: npm run test:no-overflow
 
   layout:
     name: layout conformance (browser)

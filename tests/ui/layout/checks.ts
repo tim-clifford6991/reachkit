@@ -253,6 +253,27 @@ export function checkNoClippingOrTruncation(opts: {
     // element itself is not inside one.
     if (el.closest("svg")) continue;
     if (!isTextBearing(el)) continue;
+    // 2026-09-21, issue #910: **a box that clips nothing has cut nothing
+    // off.** The issue names this check's condition in one sentence — "when
+    // a box with `overflow` other than `visible` has `scrollWidth`/
+    // `scrollHeight` larger than its client size" — and the qualifier is the
+    // whole of this narrowing. `scrollHeight > clientHeight` under
+    // `overflow: visible` says the ink spills the padding box; it does not
+    // say a reader lost a character, because nothing is hiding it. Measured
+    // without it, this check reported `/pricing`'s `h1` (a 31px glyph box in
+    // a 30px line box) and `/signin`'s 48px price (55px of ink in a 48px
+    // line) on every route, at every width, in both themes — two type-scale
+    // facts, fully legible on screen, on a check whose name is "no clipping
+    // or truncation".
+    //
+    // Nothing that *was* being caught stops being caught. Text cut off needs
+    // a box that clips: `text-overflow: ellipsis` requires `overflow`
+    // hidden, a clamped line-count requires it, and a card that cuts its
+    // content requires it. An element that spills a parent it does not clip
+    // is check 2's, which measures it against that parent and is unchanged
+    // here. `fixtures/canary.html`'s `.clipped-name` and `.clipped-value`
+    // both declare `overflow: hidden`, which is why they still fail.
+    if (getComputedStyle(el).overflow === "visible") continue;
     const clipped =
       el.scrollWidth > el.clientWidth || el.scrollHeight > el.clientHeight;
     if (!clipped) continue;

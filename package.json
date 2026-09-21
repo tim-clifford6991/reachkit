@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "test": "vitest run --project node --project ui --project db",
     "test:layout": "vitest run --project layout",
+    "test:no-overflow": "vitest run --project layout tests/ui/layout/no-overflow.test.ts tests/ui/layout/no-overflow-canary.test.ts",
     "test:layout:full": "RK_LAYOUT_FULL=1 vitest run --project layout",
     "review:gallery": "MAIL_PREVIEW_OUT=.review/mail vitest run --project node tests/mail/preview && REVIEW_GALLERY=1 MAIL_PREVIEW_OUT=.review/mail vitest run --project layout tests/ui/layout/review-gallery.test.ts",
     "copy:owed": "node scripts/copy/owed.mjs",
@@ -39,6 +40,7 @@
     "zod": "4.5.4"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
     "@tailwindcss/postcss": "4.3.3",
     "@types/node": "22.20.1",
     "@types/pngjs": "^6.0.5",
