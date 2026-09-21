@@ -67,26 +67,53 @@ describe("the table", () => {
     ]);
   });
 
-  it("scrolls sideways inside its own box, so a phone never scrolls the page", () => {
-    // docs/DESIGN.md's no-overflow rule, and BUILD §2.2's own rule for a
-    // table. The wrap is also what makes the clamped search reachable.
-    const wrap = table().querySelector("table")?.parentElement;
-    expect(wrap?.className).toContain("overflow-x-auto");
+  it("is two shapes in one DOM: stacked rows below `sm`, six columns above", () => {
+    // #963: at 390 four of the six columns were off the right edge of the
+    // scroller. Below `sm` the row is a three-line grid and the box does
+    // not scroll at all; nothing is written twice.
+    const node = table();
+    const wrap = node.querySelector('[data-testid="search-table-scroll"]');
+    expect(wrap?.className).toBe("min-w-0 sm:overflow-x-auto");
+    expect(node.querySelector("thead")?.className).toContain("hidden");
+    const row = node.querySelector('[data-testid="search-row"]');
+    expect(row?.className).toContain("max-sm:grid");
+    expect(row?.className).toContain("sm:table-row");
+    // Six cells, once — the phone shape re-places them, it adds none.
+    expect(row?.querySelectorAll("td")).toHaveLength(6);
   });
 
-  it("clamps a long search to one line and keeps the whole of it in the document", () => {
-    const longest = [...MODEL.rows].sort(
-      (a, b) => b.target.search.length - a.target.search.length
-    )[0];
+  it("the box that can scroll is still reachable from a keyboard (#947)", () => {
+    const wrap = table().querySelector('[data-testid="search-table-scroll"]');
+    expect(wrap?.getAttribute("tabindex")).toBe("0");
+    expect(wrap?.getAttribute("role")).toBe("region");
+    expect(wrap?.getAttribute("aria-label")).toBe(copy("overview.search.table.label"));
+  });
+
+  it("says what each value is on the phone shape, in the column's own word", () => {
+    // The heads are not drawn below `sm`, so `#14` would not say "where you
+    // stand". Every label is the column's own key — no new sentence.
+    const row = table().querySelector('[data-testid="search-row"]');
+    const spoken = [...(row?.querySelectorAll("td > span.sm\\:hidden") ?? [])].map(
+      (el) => el.textContent
+    );
+    expect(spoken).toEqual([
+      copy("overview.search.column.difficulty"),
+      copy("overview.search.column.you"),
+      copy("overview.search.column.rival"),
+    ]);
+  });
+
+  it("cuts no search off at any width, and keeps the whole of it on the cell", () => {
+    // #963: the search used to clamp inside the scroller. The phone shape
+    // has no scroller to reach the rest of a clipped value through, and
+    // `checks.ts` reports a clamp outside a declared scroll container as a
+    // value cut in half — so it wraps at every width and the row grows.
     const cells = [...table().querySelectorAll('[data-testid="search-query"]')];
-    const clamped = cells.find((cell) => cell.getAttribute("title") === longest?.target.search);
-    // Every clamp is registered: the class cuts the line, the title carries
-    // the value, and a value cut in half is a different value.
+    expect(cells.length).toBeGreaterThan(0);
     for (const cell of cells) {
-      expect(cell.className).toContain("truncate");
+      expect(cell.className).not.toMatch(/truncate|line-clamp/);
       expect(cell.getAttribute("title")).toBe(cell.textContent);
     }
-    expect(clamped ?? cells[0]).toBeDefined();
   });
 
   it("never clamps a number", () => {
