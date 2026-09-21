@@ -175,6 +175,10 @@ describe("§4.6 — the draft view reads the account's own draft", () => {
         siteId: LIVE_ACCOUNT.siteId,
         timeZone: LIVE_ACCOUNT.timeZone,
         mode: LIVE_ACCOUNT.mode,
+        // #931: the page frame is drawn on the customer's own domain, and
+        // the session already resolved it — so it is passed with the site
+        // rather than read a second time inside the store.
+        domain: LIVE_ACCOUNT.domain,
       },
     });
   });

@@ -82,7 +82,7 @@ const { readDraftRow } = await import("@/app/(account)/app/draft/[draftId]/store
 const { readOverviewFacts } = await import("@/app/(account)/app/_overview/store");
 const { siteOwnsDraft } = await import("@/app/(account)/app/_session/store");
 
-const SITE = { siteId: "site-1", timeZone: "America/New_York", mode: "autopilot" as const };
+const SITE = { siteId: "site-1", timeZone: "America/New_York", mode: "autopilot" as const, domain: "example.com" };
 
 beforeEach(() => {
   rows.clear();

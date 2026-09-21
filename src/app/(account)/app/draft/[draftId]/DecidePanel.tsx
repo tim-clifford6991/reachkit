@@ -64,14 +64,19 @@ export function DecidePanel(p: {
   });
 
   const doNothingLine =
-    view.doNothing.publishesAt === null
-      ? writtenLine(view.doNothing.key)
-      : writtenLine(view.doNothing.key, {
-          at: formatDateTime(view.doNothing.publishesAt, view.timeZone),
-        });
+    view.doNothing.key === null
+      ? null
+      : view.doNothing.publishesAt === null
+        ? writtenLine(view.doNothing.key)
+        : writtenLine(view.doNothing.key, {
+            at: formatDateTime(view.doNothing.publishesAt, view.timeZone),
+          });
 
   return (
-    <aside className="card card-border bg-base-100 min-w-0 xl:sticky xl:top-4" data-testid="draft-decide">
+    <aside
+      className="card card-border bg-base-100 min-w-0 xl:sticky xl:top-4"
+      data-testid="draft-decide"
+    >
       <div className="card-body min-w-0 gap-3 p-4">
         <h2 className={EYEBROW}>{copy("draft.decide.title")}</h2>
 
@@ -110,25 +115,40 @@ export function DecidePanel(p: {
                 >
                   {copy(action.key)}
                 </button>
-              )
+              ),
             )}
           </div>
         )}
 
         {/* "What happens if you do nothing". The time is a value and renders
-            whether or not the sentence around it has been written. */}
-        <div role="note" className="alert items-start text-sm" data-testid="draft-do-nothing">
-          <Info size={20} strokeWidth={1.75} aria-hidden />
-          <div className="flex min-w-0 flex-col gap-1">
-            <span className="font-semibold">{copy("draft.do-nothing.title")}</span>
-            {doNothingLine === null ? null : <span>{doNothingLine}</span>}
-            {view.doNothing.publishesAt === null ? null : (
-              <span className="num text-xs opacity-70" data-testid="draft-do-nothing-at">
-                {formatDateTime(view.doNothing.publishesAt, view.timeZone)}
+            whether or not the sentence around it has been written — and the
+            box is **absent** where there is neither, rather than a heading
+            with nothing under it (an autopilot page that has already gone
+            out: `doNothingOf` says why it has nothing to say). */}
+        {doNothingLine === null &&
+        view.doNothing.publishesAt === null ? null : (
+          <div
+            role="note"
+            className="alert items-start text-sm"
+            data-testid="draft-do-nothing"
+          >
+            <Info size={20} strokeWidth={1.75} aria-hidden />
+            <div className="flex min-w-0 flex-col gap-1">
+              <span className="font-semibold">
+                {copy("draft.do-nothing.title")}
               </span>
-            )}
+              {doNothingLine === null ? null : <span>{doNothingLine}</span>}
+              {view.doNothing.publishesAt === null ? null : (
+                <span
+                  className="num text-xs opacity-70"
+                  data-testid="draft-do-nothing-at"
+                >
+                  {formatDateTime(view.doNothing.publishesAt, view.timeZone)}
+                </span>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="divider my-0" />
 
@@ -136,9 +156,20 @@ export function DecidePanel(p: {
         {/* A row is only ever drawn for a pass (`checkRows`). */}
         <ul className="flex flex-col gap-2 text-sm" data-testid="draft-checks">
           {rows.map((row) => (
-            <li className="flex items-start gap-2" key={row.rule} data-testid={`draft-check-${row.rule}`}>
-              <CircleCheck className="text-success mt-0.5 shrink-0" size={16} strokeWidth={1.75} aria-hidden />
-              <span className="min-w-0">{copy(CHECK_COPY_KEY[row.rule], row.vars)}</span>
+            <li
+              className="flex items-start gap-2"
+              key={row.rule}
+              data-testid={`draft-check-${row.rule}`}
+            >
+              <CircleCheck
+                className="text-success mt-0.5 shrink-0"
+                size={16}
+                strokeWidth={1.75}
+                aria-hidden
+              />
+              <span className="min-w-0">
+                {copy(CHECK_COPY_KEY[row.rule], row.vars)}
+              </span>
             </li>
           ))}
         </ul>

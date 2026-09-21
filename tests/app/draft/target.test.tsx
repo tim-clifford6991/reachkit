@@ -73,7 +73,7 @@ const SCAN_ID = "11111111-1111-4111-8111-111111111867";
 const DRAFT_ID = "44444444-4444-4444-8444-444444444867";
 const OPPORTUNITY_ID = "55555555-5555-4555-8555-555555555867";
 const AT = new Date("2026-09-14T06:00:00.000Z");
-const SITE = { siteId: SITE_ID, timeZone: "America/New_York", mode: "autopilot" as const };
+const SITE = { siteId: SITE_ID, timeZone: "America/New_York", mode: "autopilot" as const, domain: "example.com" };
 const SEARCH = "seo content brief template for startups";
 
 const ENGINES: TargetFacts["engines"] = [
