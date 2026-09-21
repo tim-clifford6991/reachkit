@@ -32,6 +32,9 @@ import type { PassProgress } from "./progress";
 import type { SetupStore } from "../submit";
 import { initialSetupState, type ReportFacts } from "@/lib/market/setup/state";
 import type { SiteProfile } from "@/lib/site-profile/types";
+import type { RivalGrid } from "./panel-rivals";
+import type { OnboardingStage } from "@/lib/scan/deep/progress";
+import { setupChannelName } from "@/lib/scan/deep/channel";
 
 /** The signed-in founder, or §4.3's refusal. `src/middleware.ts` has
  *  already refused a request carrying no cookie at all, so the `null` arm
@@ -111,8 +114,53 @@ export const readSetupScreen = cache(async function readSetupScreen(): Promise<S
     // SPEC §5 (2026-09-20, #922): the answers this founder already gave and
     // the step they left, so `/setup` reopens where they stopped.
     saved: await savedSetupFor(founder.userId),
+    // SPEC §5 (2026-09-20, #923): the rivals panel, off the same stored
+    // report the market card is drawn from — one read, already cached, and
+    // no vendor call for a panel.
+    rivalGrid: await rivalGridFor(founder.domain),
+    // SPEC §5 (2026-09-20, #923): the pass's step as the server knows it,
+    // and the channel the browser may watch for the next one. Reading it
+    // here is what makes the status line open on a fact rather than on a
+    // spinner. `readPassProgress` is request-cached, and its read is what
+    // latches the release deadline — asking here and asking again for the
+    // waiting screen latches once, which is the property that cache exists
+    // for.
+    ...(await passFor(founder.siteId)),
   });
 });
+
+/**
+ * The pass's step and this founder's channel, for the status line (#923).
+ *
+ * A founder with no site row has neither: no pass to name a step of, and no
+ * channel to watch. The line is then not drawn, rather than drawn empty.
+ */
+async function passFor(
+  siteId: string
+): Promise<{ passStage: OnboardingStage | null; passChannel: string | null }> {
+  if (siteId === "") return { passStage: null, passChannel: null };
+  const progress = await readPassProgress();
+  return {
+    passStage: progress.running ? progress.stage : null,
+    // `setupChannelName`'s, not a second spelling: the publish, the token
+    // and this screen all read the one template, and a name spelled twice
+    // is a subscription that watches a channel nothing publishes to.
+    passChannel: setupChannelName(siteId),
+  };
+}
+
+/**
+ * #923's rivals grid, from the report this address already has.
+ *
+ * The read is `storedReportFor`'s and is request-cached, so drawing the
+ * panel costs nothing a screen was not already paying. A read that fails,
+ * or an address with no report, is `null` — the panel's skeleton arm.
+ */
+async function rivalGridFor(domain: string): Promise<RivalGrid | null> {
+  if (domain === "") return null;
+  const { rivalGridOf } = await import("./panel-rivals");
+  return rivalGridOf(await storedReportFor(domain));
+}
 
 /**
  * The stored site profile for one domain, or `null`.
@@ -134,6 +182,19 @@ async function readProfileFor(domain: string): Promise<SiteProfile | null> {
     return null;
   }
 }
+
+/**
+ * The site the signed-in founder is setting up, or `""` where provisioning
+ * has not written the row yet (#923).
+ *
+ * Exported so the realtime route can mint a token for *this* founder's
+ * channel without taking a site id from the request. It is the same
+ * `currentFounder` read every other setup surface makes, request-cached,
+ * and it states nothing else about the account.
+ */
+export const readSetupSiteId = cache(async function readSetupSiteId(): Promise<string> {
+  return (await currentFounder()).siteId;
+});
 
 /**
  * The deep pass's current state. One arm carries which step is running;

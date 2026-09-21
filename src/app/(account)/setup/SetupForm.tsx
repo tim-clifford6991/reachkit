@@ -57,6 +57,7 @@ import { businessFrom, type BusinessDraft } from "./business";
 import { MarketCard } from "./MarketCard";
 import { PublishingCard } from "./PublishingCard";
 import { RivalsCard } from "./RivalsCard";
+import { PassStatusLine } from "./PassStatusLine";
 import { SetupPanel } from "./SetupPanel";
 import { VoiceCard } from "./VoiceCard";
 import {
@@ -463,6 +464,14 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
             {/* On the business step the panel *is* the step's own controls, so
                 it is rendered there rather than beside a second copy. */}
             <SetupPanel
+              market={settledCategory(state)}
+              rivalGrid={p.model.rivalGrid}
+              status={
+                <PassStatusLine
+                  stage={p.model.passStage}
+                  channel={p.model.passChannel}
+                />
+              }
               step={step}
               blogAddress={blogAddress}
               businessName={p.model.profile?.siteName ?? null}

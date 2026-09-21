@@ -634,4 +634,71 @@ export const SETUP_COPY = Object.freeze({
     "Your blog’s address appears once you’ve given your site.",
     { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" },
   ],
+  // ── SPEC §5 (2026-09-20, #908, #923): the right-hand side that matches
+  // each step, and names the work already done.
+  //
+  // Every sentence below is **drafted** under the owner's 2026-09-16 ruling
+  // (#759) and the PR names each one so the owner can correct it.
+
+  // The rivals step's panel: the searches the scan measured, against the
+  // customer and each rival.
+  // The voice step's panel: one sample paragraph in the customer's own
+  // voice, grounded in a passage the scan read off their pages.
+  "setup.panel.voice.before": [
+    "Write a sample and we'll show you a paragraph in your voice, using something true from your own pages.",
+    { slots: {}, fixedBy: "SPEC §5 2026-09-20" },
+  ],
+  "setup.panel.voice.write": ["Write a sample", { slots: {}, fixedBy: "SPEC §5 2026-09-20" }],
+  "setup.panel.voice.again": ["Write the sample again", { slots: {}, fixedBy: "SPEC §5 2026-09-20" }],
+  "setup.panel.voice.source": ["Read from", { slots: {}, fixedBy: "SPEC §5 2026-09-20" }],
+  // The five states a sample can fail in. Each says what is true of the
+  // measurement or the answer, never that something went wrong.
+  "setup.panel.voice.refused.no-site": [
+    "Give your address first and we can write from your own pages.",
+    { slots: {}, fixedBy: "SPEC §5 2026-09-20" },
+  ],
+  "setup.panel.voice.refused.no-voice": [
+    "Put a paragraph in the box first — the sample is written to sound like it.",
+    { slots: {}, fixedBy: "SPEC §5 2026-09-20" },
+  ],
+  "setup.panel.voice.refused.nothing-measured": [
+    "We haven't read enough of your pages yet to say anything true about you. This fills in as we read them.",
+    { slots: {}, fixedBy: "REQ-004 c6" },
+  ],
+  "setup.panel.voice.refused.bound": [
+    "That's all the samples for now. Your pages are written the same way, from the same pages.",
+    { slots: {}, fixedBy: "SPEC §5 2026-09-20" },
+  ],
+  "setup.panel.voice.refused.unavailable": [
+    "The sample didn't come back. Nothing is lost — try again in a moment.",
+    { slots: {}, fixedBy: "SPEC §5 2026-09-20" },
+  ],
+
+  // The blog mock-up's own lead line: the market the scan read, where it
+  // read one. A market it did not read is a `skeleton`, never this line
+  // with a guess in it.
+  "setup.panel.blog.market": [
+    "For businesses searching for {market}.",
+    { slots: { market: "text" }, fixedBy: "SPEC §5 2026-09-20" },
+  ],
+  "setup.panel.rivals.grid.label": [
+    "The searches we measured, and who holds a place on each",
+    { slots: {}, fixedBy: "SPEC §5 2026-09-20" },
+  ],
+  "setup.panel.rivals.line": [
+    "You appear for {n} of {m} so far. Each empty dot in your row is a page we can write.",
+    { slots: { n: "text", m: "text" }, fixedBy: "SPEC §5 2026-09-20" },
+  ],
+  "setup.panel.rivals.cell": [
+    "{site}, {search}: {state}",
+    { slots: { site: "text", search: "text", state: "text" }, fixedBy: "§2.4" },
+  ],
+  "setup.panel.rivals.present": ["on the first two pages", { slots: {}, fixedBy: "§2.4" }],
+  "setup.panel.rivals.absent": ["not on the first two pages", { slots: {}, fixedBy: "§2.4" }],
+  // Nothing measured for this address yet. It claims nothing about the
+  // rivals; it says what is true of the measurement.
+  "setup.panel.rivals.pending": [
+    "Nothing measured for your address yet. This fills in as we read your market.",
+    { slots: {}, fixedBy: "REQ-004 c6" },
+  ],
 }) satisfies CopyPartition;
