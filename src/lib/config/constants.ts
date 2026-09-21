@@ -399,7 +399,8 @@ export const CROSS_LINKS = Object.freeze({
  * blogs this product meets, and a bound rather than an open crawl of a site
  * we do not own. `WORDPRESS_PER_PAGE` is one page of that read.
  *
- * `INVENTORY_MAX` is #928's own cap on the crawled main-site pages.
+ * `INVENTORY_MAX` caps the crawled main-site pages the index holds — the
+ * hundred the rule was written against.
  */
 export const KNOWN_CONTENT = Object.freeze({
   COVERED_MIN: 0.6,
