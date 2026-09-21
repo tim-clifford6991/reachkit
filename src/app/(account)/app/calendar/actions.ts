@@ -2,6 +2,10 @@
 // Move/Veto; live → *View live page*; needs-you → *Reconnect*; planned →
 // Move/Skip)".
 //
+// **Move is not among them any more** (SPEC §7, 2026-09-20, #908, issue
+// #913): it is not one of §9's edges, it never had an engine, and every
+// press of it was refused. See the projection at the foot of this file.
+//
 // REQ-043 criterion 9: "every action it offers can be carried out in that
 // page's current stage, and no action is offered that would be refused
 // because of that stage." The way to keep that promise is to **project the
@@ -31,21 +35,21 @@
 //    this edge's target is not `skipped`.
 //  - `needs_attention → skipped` is in §9 (its c3 promise that no page is
 //    left in a state it has no way out of) and was not in the copy. It is
-//    the one edge that **adds** controls: a page in `needs_attention` now
-//    offers Move and Skip beside Reconnect.
+//    the one edge that **adds** a control: a page in `needs_attention` now
+//    offers Skip beside Reconnect.
 //
 // `needs_attention → generating` — the customer's own restart — is the
 // fourth edge the copy lacked, and it now opens a control (issue #143).
 // §9 opens that edge for the customer and for no one else, and no surface
-// offered it: a page in `needs_attention` could be reconnected, moved or
-// skipped, and not written again, which is the one thing §9 gives the
-// customer at that state.
+// offered it: a page in `needs_attention` could be reconnected or skipped,
+// and not written again, which is the one thing §9 gives the customer at
+// that state.
 import { TRANSITIONS, isTransition } from "@/lib/publish/machine/table";
 import { waitsOnDestination } from "@/lib/publish/record/needs-you";
 import type { DestinationKind } from "@/lib/publish/types";
 import type { CopyKey } from "@/lib/presentation/copy";
 import type { DayCell } from "./month";
-import type { PublishingCommand, RestartCommand, StopCommand } from "./publishing";
+import type { RestartCommand, StopCommand } from "./publishing";
 import { STATES, type State } from "./stages";
 
 /**
@@ -112,7 +116,6 @@ const RESTART_COPY_KEY: Record<RestartCommand, CopyKey> = {
 };
 
 const STOP_COPY_KEY: Record<StopCommand, CopyKey> = {
-  move: "calendar.action.move",
   skip: "calendar.action.skip",
   veto: "calendar.action.veto",
 };
@@ -127,9 +130,16 @@ const STOP_COPY_KEY: Record<StopCommand, CopyKey> = {
  *  one on the morning it is due). Carrying it here is what makes "no
  *  control is offered that has nothing to act on" a shape instead of a
  *  check every renderer has to remember. */
+/** The commands this panel can offer, which is every one of the seam's but
+ *  `approve`: approving a page is a judgement made while reading it, and
+ *  §4.6 gives it to the draft view alone. Narrowed here rather than left
+ *  wide, so a renderer's answer map is total over what can actually
+ *  arrive. */
+export type DayCommand = StopCommand | RestartCommand;
+
 export type DayAction =
   | { key: CopyKey; kind: "link"; href: string }
-  | { key: CopyKey; kind: "command"; command: PublishingCommand; draftId: string };
+  | { key: CopyKey; kind: "command"; command: DayCommand; draftId: string };
 
 /** What the site publishes to, as the controls need it (issue 880). */
 export interface DestinationStanding {
@@ -273,18 +283,26 @@ export function actionsFor(
     });
   }
 
-  // Move, and the one `→ skipped` edge under its own word. Both are
-  // offered exactly where that edge is open — a page that can still be
-  // stopped is a page that has not gone out, which is the same condition
-  // §4.6 offers Move under, read off the table instead of restated.
+  // The one `→ skipped` edge, under its own word. Offered exactly where
+  // that edge is open — a page that can still be stopped is a page that
+  // has not gone out — read off the table instead of restated.
   //
-  // A page with no draft yet offers neither: both commands write against a
-  // draft's own row, and DECISIONS 2026-09-05 (#99) is the rule they are
-  // held to — "a control never appears to work before its engine exists".
+  // **Move is no longer offered beside it** (SPEC §7, 2026-09-20, #908,
+  // issue #913). §4.6 drew Move at both of these tails, but moving a page
+  // to another date is not one of §9's edges: it rewrites the schedule and
+  // the veto deadline that hangs off it (#46's re-deadline rule), and no
+  // engine does that, so every press of it was refused. DECISIONS
+  // 2026-09-05 (#99) — "a control never appears to work before its engine
+  // exists" — is the rule it was always held to, and the redesign spends
+  // it: a control that cannot act is not drawn. It returns with its
+  // engine, not before.
+  //
+  // A page with no draft yet offers no stop: the command writes against a
+  // draft's own row, and a planned date has no draft until §8 generates
+  // one on the morning it is due.
   const stop = STOP_COMMAND[page.state];
   const draftId = page.draftId;
   if (isTransition(page.state, "skipped") && stop !== null && draftId !== null) {
-    actions.push({ key: STOP_COPY_KEY.move, kind: "command", command: "move", draftId });
     actions.push({ key: STOP_COPY_KEY[stop], kind: "command", command: stop, draftId });
   }
 

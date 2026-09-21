@@ -6,10 +6,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // The seam under test is the app-side adapter, not the engine: it must call
-// BUILD §9's one mover with the right edge and turn its refusal into a
-// rejection. `transition()` itself is exercised in `tests/publish/machine/`
-// against a database double; mocking it here keeps this file's subject the
-// seam's own contract.
+// BUILD §9's one mover with the right edge and hand back what it answered.
+// `transition()` itself is exercised in `tests/publish/machine/` against a
+// database double; mocking it here keeps this file's subject the seam's
+// own contract.
 const transition = vi.fn();
 vi.mock("@/lib/publish/machine", () => ({ transition: (...a: unknown[]) => transition(...a) }));
 
@@ -27,6 +27,13 @@ vi.mock("@/app/(account)/app/_session/store", () => ({
   siteOwnsDraft: async () => true,
 }));
 
+// Issue #913: a write that landed revalidates the two screens that project
+// their controls from the page's state, so the optimistic badge the press
+// drew is replaced by the page's real one. `revalidatePath` needs Next's
+// own request store, which no unit test has; the paths are collected
+// instead, and `ownership.test.ts` is where they are asserted.
+vi.mock("next/cache", () => ({ revalidatePath: () => undefined }));
+
 import { measured } from "@/lib/measure/measured";
 import {
   RESTART_COMMAND,
@@ -39,11 +46,7 @@ import {
 import { STATES, TRANSITIONS, isTransition } from "@/lib/publish/machine/table";
 import type { State } from "@/lib/publish/types";
 import { STAGE_OF } from "@/app/(account)/app/calendar/stages";
-import {
-  publishing,
-  PublishingNotBuiltError,
-  PublishingRefusedError,
-} from "@/app/(account)/app/calendar/publishing";
+import { COMMAND_TARGET, publishing } from "@/app/(account)/app/calendar/publishing";
 import type { DayCell } from "@/app/(account)/app/calendar/month";
 import { COPY } from "@/lib/presentation/copy";
 
@@ -193,11 +196,10 @@ describe("the panel projects from §9's own table — there is no second copy of
 });
 
 describe("REQ-043 c9 — §4.6's stage-appropriate actions, and no action a stage would refuse", () => {
-  it("review → Read the full page + Move + Veto", () => {
+  it("review → Read the full page + Veto, and no Move", () => {
     const actions = actionsFor(cellWith("in_review"));
     expect(actions.map((a) => a.key)).toEqual([
       "calendar.action.read-full-page",
-      "calendar.action.move",
       "calendar.action.veto",
     ]);
     expect(actions[0]).toEqual({
@@ -224,14 +226,13 @@ describe("REQ-043 c9 — §4.6's stage-appropriate actions, and no action a stag
     ]);
   });
 
-  it("needs-you on a hosted site → read it, the restart, Move and Skip — and no reconnect", () => {
+  it("needs-you on a hosted site → read it, the restart and Skip — and no reconnect", () => {
     // Issue 880, the owner's dogfood page: `needs_attention` because three
     // §8 hard rules stopped the writing, on a hosted destination that is
     // healthy and live. "Reconnect WordPress" was offered for the stage.
     expect(actionsFor(cellWith("needs_attention"), HOSTED)).toEqual([
       { key: "calendar.action.read-page", kind: "link", href: draftHref("d1") },
       { key: "calendar.action.regenerate", kind: "command", command: "regenerate", draftId: "d1" },
-      { key: "calendar.action.move", kind: "command", command: "move", draftId: "d1" },
       { key: "calendar.action.skip", kind: "command", command: "skip", draftId: "d1" },
     ]);
   });
@@ -277,9 +278,9 @@ describe("REQ-043 c9 — §4.6's stage-appropriate actions, and no action a stag
     expect(actionsFor(cellWith("generating"))).toEqual([]);
   });
 
-  it("planned → the page as written where one exists, Move + Skip, and never Veto", () => {
+  it("planned → the page as written where one exists, and Skip, and never Veto", () => {
     const keys = actionsFor(cellWith("planned")).map((a) => a.key);
-    expect(keys).toEqual(["calendar.action.read-page", "calendar.action.move", "calendar.action.skip"]);
+    expect(keys).toEqual(["calendar.action.read-page", "calendar.action.skip"]);
     expect(keys).not.toContain("calendar.action.veto");
   });
 
@@ -307,7 +308,7 @@ describe("REQ-043 c9 — §4.6's stage-appropriate actions, and no action a stag
     }
   });
 
-  it("scheduled offers neither Move nor Skip — the page is on its way out", () => {
+  it("scheduled offers no Skip — the page is on its way out", () => {
     // Issue 882: it does offer the way in, which is the moment a veto
     // matters most — the page is written and queued.
     for (const state of ["approved", "publishing"] as const) {
@@ -404,44 +405,69 @@ describe("the publishing seam calls BUILD §9's one mover, and refuses honestly"
     expect(schedulePublish).toHaveBeenCalledTimes(to === "approved" ? 1 : 0);
   });
 
-  it("a refusal rejects, carrying the machine's own word for why", async () => {
+  it("a refusal comes back as a value, carrying the machine's own word for why", async () => {
     transition.mockResolvedValue({
       ok: false,
       refused: "guard",
       failedGuard: "publishing_switch_on",
       state: "approved",
     });
-    await expect(publishing.veto({ draftId: "d1" })).rejects.toBeInstanceOf(PublishingRefusedError);
-    await expect(publishing.veto({ draftId: "d1" })).rejects.toMatchObject({
-      command: "veto",
+    await expect(publishing.veto({ draftId: "d1" })).resolves.toEqual({
+      ok: false,
       refused: "publishing_switch_on",
     });
   });
 
-  it("a move outside the fifteen rejects too, and is not reported as a guard", async () => {
+  it("a move outside the fifteen is refused too, and is not reported as a guard", async () => {
     transition.mockResolvedValue({ ok: false, refused: "not_a_transition", state: "published" });
-    await expect(publishing.skip({ draftId: "d1" })).rejects.toMatchObject({
+    await expect(publishing.skip({ draftId: "d1" })).resolves.toEqual({
+      ok: false,
       refused: "not_a_transition",
     });
   });
 
-  it("a command that changed nothing never resolves as though it had", async () => {
+  it("issue #913 — a command that changed nothing says so, instead of settling silently", async () => {
+    // The defect this issue exists to kill. The two answers used to differ
+    // only in whether a promise rejected, and both screens caught the
+    // rejection and said nothing: a customer who stopped a page and a
+    // customer whose stop was refused saw the same screen. They are now
+    // two values, and a caller cannot read one as the other.
     transition.mockResolvedValue({ ok: false, refused: "not_a_transition", state: "published" });
-    const outcome = await publishing.skip({ draftId: "d1" }).then(
-      () => "resolved",
-      () => "rejected"
-    );
-    expect(outcome).toBe("rejected");
+    const refused = await publishing.skip({ draftId: "d1" });
+    transition.mockResolvedValue({ ok: true, state: "skipped" });
+    const landed = await publishing.skip({ draftId: "d1" });
+    expect(refused.ok).toBe(false);
+    expect(landed).toEqual({ ok: true });
   });
 
-  it("move alone is not a §9 transition, and says so without asking the machine", async () => {
-    // Moving a page to another date rewrites the schedule and the veto
-    // deadline that hangs off it — issue #46's re-deadline rule, not one of
-    // the fifteen edges.
-    await expect(publishing.move({ draftId: "d1", to: "2026-09-20" })).rejects.toBeInstanceOf(
-      PublishingNotBuiltError
-    );
-    expect(transition).not.toHaveBeenCalled();
+  it("a call that never reached the server is a refusal too, never a silent success", async () => {
+    transition.mockRejectedValue(new Error("offline"));
+    await expect(publishing.veto({ draftId: "d1" })).resolves.toMatchObject({ ok: false });
+  });
+
+  it("Move is gone: the seam declares no such command and the panel offers none", () => {
+    expect(Object.keys(publishing).sort()).toEqual(["approve", "regenerate", "skip", "veto"]);
+    expect(Object.keys(COPY)).not.toContain("calendar.action.move");
+    for (const state of STATES) {
+      if (STAGE_OF[state] === null) continue;
+      const keys = actionsFor(cellWith(state)).map((a) => a.key);
+      expect(keys, state).not.toContain("calendar.action.move");
+    }
+  });
+
+  it("every command names the §9 state it asks for, so a screen can draw it before the answer", async () => {
+    // `COMMAND_TARGET` is what `useOptimistic` reads. It must be the same
+    // edge the write asks for, or the badge would show a state the write
+    // never requested.
+    for (const command of ["skip", "veto", "approve", "regenerate"] as const) {
+      transition.mockResolvedValue({ ok: true, state: COMMAND_TARGET[command] });
+      await publishing[command]({ draftId: "d1" });
+      expect(transition, command).toHaveBeenLastCalledWith(
+        "d1",
+        COMMAND_TARGET[command],
+        expect.anything()
+      );
+    }
   });
 });
 
@@ -468,7 +494,6 @@ describe("issue #143 — the restart is offered against the guard, never against
     // fixture publishes to is offered no reconnect.
     expect(keysOf(cellWith("needs_attention", null, "d1", true))).toEqual([
       "calendar.action.read-page",
-      "calendar.action.move",
       "calendar.action.skip",
     ]);
   });
@@ -547,8 +572,8 @@ describe("issue #143 — the restart reaches §9's one mover, and nothing else",
       failedGuard: "never_entered_review",
       state: "needs_attention",
     });
-    await expect(publishing.regenerate({ draftId: "d1" })).rejects.toMatchObject({
-      command: "regenerate",
+    await expect(publishing.regenerate({ draftId: "d1" })).resolves.toEqual({
+      ok: false,
       refused: "never_entered_review",
     });
   });
@@ -559,19 +584,21 @@ describe("issue #143 — the restart reaches §9's one mover, and nothing else",
     // The page has left `needs_attention`; the same control pressed again
     // asks for an edge that no longer exists from where it now is.
     transition.mockResolvedValue({ ok: false, refused: "not_a_transition", state: "generating" });
-    await expect(publishing.regenerate({ draftId: "d1" })).rejects.toMatchObject({
+    await expect(publishing.regenerate({ draftId: "d1" })).resolves.toEqual({
+      ok: false,
       refused: "not_a_transition",
     });
     expect(transition).toHaveBeenCalledTimes(2);
   });
 
-  it("a refusal tells the customer nothing — there is no sentence for one, and none is invented", async () => {
+  it("issue #913 — a refusal has a written sentence, and it is never the machine's own word", async () => {
     transition.mockResolvedValue({ ok: false, refused: "not_a_transition", state: "generating" });
-    const outcome = await publishing.regenerate({ draftId: "d1" }).then(
-      () => "resolved",
-      () => "rejected"
-    );
-    expect(outcome).toBe("rejected");
-    expect(Object.keys(COPY)).not.toContain("calendar.action.regenerate.refused");
+    const outcome = await publishing.regenerate({ draftId: "d1" });
+    expect(outcome).toEqual({ ok: false, refused: "not_a_transition" });
+    // One sentence for every refused write, and it says the only thing
+    // the customer needs: nothing moved. The machine's vocabulary has no
+    // sentence of its own and is never rendered.
+    expect(Object.keys(COPY)).toContain("calendar.answer.refused");
+    expect(COPY["calendar.answer.refused"]).not.toContain("not_a_transition");
   });
 });

@@ -45,14 +45,15 @@
 "use client";
 
 import type React from "react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useOptimistic, useRef, useState, useTransition } from "react";
 import { AUTOSAVE_DEBOUNCE_MS } from "@/lib/config/constants";
 import { copy } from "@/lib/presentation/copy";
 import { ArrowLeft, Copy } from "lucide-react";
 import { formatCount, formatDate, formatDateTime, formatTime } from "../../_shell/format";
 import { writtenLine } from "../../_shell/written";
-import { publishing } from "../../calendar/publishing";
+import { COMMAND_TARGET, publishing } from "../../calendar/publishing";
 import { STAGE_FILTER_COPY_KEY, STAGE_OF, STAGE_TONE, TONE_BADGE } from "../../calendar/stages";
+import { say } from "../../../../_toast/say";
 import { CLAIM_COPY_KEY, CLAIM_TONE, claimAfterSave } from "./claim";
 import { CopyOut } from "./CopyOut";
 import { DecidePanel } from "./DecidePanel";
@@ -86,16 +87,10 @@ interface Checked {
 
 const EYEBROW = "text-xs font-semibold uppercase tracking-wide opacity-70";
 
-/** The two writes this screen can ask for. Both are §9 edges and both go to
- *  the state machine through the seam; a refusal rejects with
- *  `PublishingRefusedError`, and this handler deliberately tells the
- *  customer nothing: there is no registry sentence for a refused write, and
- *  inventing one is what the copy law forbids. The rejection is the
- *  developer's signal; the screen stays as it was. */
-function run(command: DraftCommand, draftId: string): void {
-  const asked =
-    command === "approve" ? publishing.approve({ draftId }) : publishing.veto({ draftId });
-  void asked.catch(() => undefined);
+/** The two writes this screen can ask for. Both are §9 edges and both go
+ *  to the state machine through the seam. */
+function ask(command: DraftCommand, draftId: string): ReturnType<typeof publishing.approve> {
+  return command === "approve" ? publishing.approve({ draftId }) : publishing.veto({ draftId });
 }
 
 export function DraftScreen(p: {
@@ -129,6 +124,36 @@ export function DraftScreen(p: {
    *  that never went out. */
   const [savedAt, setSavedAt] = useState<Date | null>(view.lastSavedAt);
   const [refused, setRefused] = useState(false);
+  /** SPEC §7 (2026-09-20, #908, issue #913) — the page's §9 state as this
+   *  render believes it. On Approve or Stop it is the state the write asks
+   *  for, so the stage chip and the rail's controls both change on the
+   *  press; when the transition ends React drops it for whatever the
+   *  server now reports, which after a refusal is the state the page never
+   *  left. One value, because the chip and the controls are both
+   *  projections of it and must not disagree. */
+  const [state, expect] = useOptimistic(view.state);
+  const [deciding, startDeciding] = useTransition();
+
+  /** What each decision says once the machine has answered. Approve names
+   *  the moment the page goes live where the screen holds one, and says so
+   *  plainly where it does not — never a sentence with a blank in it. */
+  function decisionLine(command: DraftCommand): string {
+    if (command === "veto") return copy("draft.answer.veto");
+    const at = view.doNothing.publishesAt;
+    return at === null
+      ? copy("draft.answer.approve-next")
+      : copy("draft.answer.approve", { at: formatDateTime(at, view.timeZone) });
+  }
+
+  /** One press: show the state the command asks for, ask for it, and say
+   *  what came back. Neither arm is silent. */
+  function decide(command: DraftCommand): void {
+    startDeciding(async () => {
+      expect(COMMAND_TARGET[command]);
+      const outcome = await ask(command, view.draftId);
+      say(outcome.ok ? decisionLine(command) : copy("draft.answer.refused"), outcome.ok ? "ok" : "bad");
+    });
+  }
 
   const unsaved = !sameText(text, savedText);
   const settled = useDebounced(text, AUTOSAVE_DEBOUNCE_MS);
@@ -214,8 +239,8 @@ export function DraftScreen(p: {
   /** The stage, spoken through the calendar's own projection so the two
    *  surfaces cannot call one state by two names. `null` for a state that
    *  occupies no date at all, which draws no chip rather than an unnamed
-   *  one. */
-  const stage = STAGE_OF[view.state];
+   *  one — and is what a stopped page reads as the moment Stop is pressed. */
+  const stage = STAGE_OF[state];
 
   /** The claim badge, in every one of its four states — including the empty
    *  do-not-claim list, which states that there was nothing to check
@@ -501,11 +526,13 @@ export function DraftScreen(p: {
 
         <DecidePanel
           view={view}
+          state={state}
+          deciding={deciding}
           grounded={grounded}
           claim={claim}
           recordedChecks={recordedChecks}
           onEdit={() => setEditing(true)}
-          onCommand={(command) => run(command, view.draftId)}
+          onCommand={decide}
         />
       </div>
     </div>

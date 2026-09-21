@@ -17,12 +17,19 @@
 // has not written renders as nothing rather than throwing on a route the
 // customer reaches.
 //
-// The commands call the declared publishing seam (`publishing.ts`). Nothing
-// here tells the customer a command succeeded.
+// The commands call the declared publishing seam (`publishing.ts`), and
+// **every one of them answers** (SPEC §7, 2026-09-20, #908, issue #913).
+// Until that issue this panel deliberately said nothing at all: a press
+// that the machine refused and a press that stopped a page looked
+// identical, because both resolved into a swallowed promise. Now the stage
+// badge changes on the press (React 19 `useOptimistic`), the seam's answer
+// is spoken as a `sonner` toast drawn with daisyUI `alert` classes, and a
+// refusal rolls the badge back to the state the page still holds.
 "use client";
 
 import type React from "react";
-import { copy } from "@/lib/presentation/copy";
+import { useOptimistic, useTransition } from "react";
+import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { BAND_LABELS } from "@/lib/presentation/bands";
 import type { Tone } from "@/ui/types";
 import {
@@ -33,31 +40,35 @@ import {
 } from "@/lib/publish/record/lines";
 import { formatDate, formatDateTime } from "../_shell/format";
 import { writtenLine } from "../_shell/written";
-import { actionsFor, type DestinationStanding } from "./actions";
+import { actionsFor, type DayCommand, type DestinationStanding } from "./actions";
 import { EMPTY_ACCOUNT_COPY_KEY, isLawCause, isSupplyCause, stopForEmptyDay } from "./empty";
 import { emptyLineFor } from "./CalendarView";
 import { nextPublishStatement, stoppedWorkStatement, type WorkStop } from "@/lib/presentation/stopped";
 import { fullDate } from "./dates";
-import { STAGE_FILTER_COPY_KEY, STAGE_TONE, TONE_BADGE } from "./stages";
-import { publishing, type PublishingCommand } from "./publishing";
+import { STAGE_FILTER_COPY_KEY, STAGE_OF, STAGE_TONE, TONE_BADGE } from "./stages";
+import { COMMAND_TARGET, publishing } from "./publishing";
+import { say } from "../../../_toast/say";
 import { WhyThisPage } from "./WhyThisPage";
 import type { DayCell, PageOnDay } from "./month";
+import type { State } from "@/lib/publish/types";
 
-/** The writes the panel can ask for. `skip`, `veto` and `regenerate` are §9
- *  edges and go to the state machine through the seam; `move` still
- *  refuses, because moving a page to another date is a re-deadline, not a
- *  transition (issue #46). A refused write tells the customer nothing: there
- *  is no registry sentence for it. The screen stays as it was. */
-function run(command: PublishingCommand, draftId: string, to: string): void {
-  const asked =
-    command === "move"
-      ? publishing.move({ draftId, to })
-      : command === "skip"
-        ? publishing.skip({ draftId })
-        : command === "regenerate"
-          ? publishing.regenerate({ draftId })
-          : publishing.veto({ draftId });
-  void asked.catch(() => undefined);
+/** What each write says when it lands. Total over the three commands the
+ *  panel can offer, so a fourth cannot ship without a sentence — which is
+ *  the mechanical half of "every action answers". A refused write says the
+ *  one thing every refusal has in common, and never the machine's own word
+ *  for why. */
+const ANSWER_COPY_KEY: Readonly<Record<DayCommand, CopyKey>> = Object.freeze({
+  skip: "calendar.answer.skip",
+  veto: "calendar.answer.veto",
+  regenerate: "calendar.answer.regenerate",
+});
+
+/** The writes the panel can ask for. All three are §9 edges and go to the
+ *  state machine through the seam. */
+function ask(command: DayCommand, draftId: string): ReturnType<typeof publishing.skip> {
+  if (command === "skip") return publishing.skip({ draftId });
+  if (command === "veto") return publishing.veto({ draftId });
+  return publishing.regenerate({ draftId });
 }
 
 /** How each standing looks — the same map the draft view's record block
@@ -99,7 +110,18 @@ function dayMarker(day: string): Date {
  * live page. A stop (veto, skip) is the warning outline; move and a restart
  * are ghost. The rest share a two-column row.
  */
-function DayActions(p: { cell: DayCell; destination: DestinationStanding | null }): React.JSX.Element | null {
+function DayActions(p: {
+  cell: DayCell;
+  destination: DestinationStanding | null;
+  /** Ask for a write. The panel owns the optimistic state, so the press
+   *  reports up rather than calling the seam here. */
+  onCommand: (command: DayCommand, draftId: string) => void;
+  /** Whether a write this panel asked for is still in flight. Every
+   *  command control is inert while one is: a second press would ask the
+   *  machine for an edge the page has already left, and would answer with
+   *  a refusal for a write that in fact worked. */
+  busy: boolean;
+}): React.JSX.Element | null {
   const actions = actionsFor(p.cell, p.destination);
   if (actions.length === 0) return null;
   return (
@@ -125,7 +147,8 @@ function DayActions(p: { cell: DayCell; destination: DestinationStanding | null 
             type="button"
             className={`btn btn-sm ${stop ? "btn-outline btn-warning" : "btn-ghost"}`}
             data-testid={`day-action-${action.key}`}
-            onClick={() => run(action.command, action.draftId, p.cell.day)}
+            disabled={p.busy}
+            onClick={() => p.onCommand(action.command, action.draftId)}
           >
             {copy(action.key)}
           </button>
@@ -211,16 +234,81 @@ export function DayPanelView(p: {
     );
   }
 
-  const page = cell.page;
+  return (
+    <PageDayPanel
+      cell={cell}
+      page={cell.page}
+      date={date}
+      timeZone={p.timeZone}
+      destination={p.destination ?? null}
+      stopped={p.stopped}
+    />
+  );
+}
+
+/**
+ * The arm for a date that holds a page — and the one place on this screen
+ * that owns a write in flight.
+ *
+ * Its own component because of the hooks. `useOptimistic` and
+ * `useTransition` may not be called on a path a render can skip, and the
+ * empty arm above returns before any of this exists; splitting the arm is
+ * how the page arm gets state without the empty one pretending to have a
+ * page.
+ *
+ * **What the optimism is.** The value is §9's own state, not the badge's
+ * word: the stage, the controls and the badge are all projections of the
+ * state (`STAGE_OF`, `actionsFor`), so moving the one value moves all
+ * three together and none of them can disagree. On a press the panel shows
+ * the state the command asks for (`COMMAND_TARGET`); when the transition
+ * ends React drops the optimistic value and the panel renders the state
+ * the server now reports — which, after a write that landed, is the state
+ * it guessed, and after a refusal is the state the page never left.
+ */
+function PageDayPanel(p: {
+  cell: DayCell;
+  page: PageOnDay;
+  date: string;
+  timeZone: string;
+  destination: DestinationStanding | null;
+  stopped: WorkStop | null;
+}): React.JSX.Element {
+  const { cell, date, page, timeZone, stopped } = p;
+  const [state, expect] = useOptimistic<State>(page.state);
+  const [busy, startTransition] = useTransition();
+
+  /** One press: show what the command asks for, ask for it, and say what
+   *  came back. The sentence is read from the registry either way — there
+   *  is no silent arm and no arm that invents a line. */
+  function command(asked: DayCommand, draftId: string): void {
+    startTransition(async () => {
+      expect(COMMAND_TARGET[asked]);
+      const outcome = await ask(asked, draftId);
+      say(copy(outcome.ok ? ANSWER_COPY_KEY[asked] : "calendar.answer.refused"), outcome.ok ? "ok" : "bad");
+    });
+  }
+
+  // The stage as this render believes it, which during a write is the
+  // stage the write is asking for. `null` is a state that occupies no date
+  // at all (`skipped`, `unpublished`) — a stopped page, in other words —
+  // and the panel then shows what an empty date shows and offers nothing,
+  // which is exactly what the server renders once the re-read lands.
+  const stage = STAGE_OF[state];
+  // The controls, projected from the same optimistic state. A page whose
+  // stop has just been asked for offers no second stop while the answer is
+  // on its way.
+  const shown: DayCell =
+    stage === null ? { ...cell, page: null } : { ...cell, page: { ...page, state, stage } };
+
   const provenance = writtenLine("calendar.provenance.measured", {
-    date: formatDateTime(page.measuredAt, p.timeZone),
+    date: formatDateTime(page.measuredAt, timeZone),
   });
   // The veto window, for the one stage that has one.
   const vetoLine =
     page.vetoDeadline === null
       ? null
       : writtenLine("calendar.status.veto-deadline", {
-          at: formatDateTime(page.vetoDeadline, p.timeZone),
+          at: formatDateTime(page.vetoDeadline, timeZone),
         });
   // The scheduled publish, spoken through the cross-cutting `next-publish`
   // law (issue #113): while ReachKit has stopped its own work the statement
@@ -229,8 +317,8 @@ export function DayPanelView(p: {
     page.publishAt === null
       ? null
       : nextPublishStatement({
-          stopped: p.stopped !== null,
-          otherwise: { tag: "scheduled", at: formatDateTime(page.publishAt, p.timeZone) },
+          stopped: stopped !== null,
+          otherwise: { tag: "scheduled", at: formatDateTime(page.publishAt, timeZone) },
         }).line;
   // What became of the page, in one line (issue #217) — the same keys the
   // draft view's record block reads, so the two cannot disagree.
@@ -245,8 +333,8 @@ export function DayPanelView(p: {
     <Panel
       heading={
         <Heading
-          badge={copy(STAGE_FILTER_COPY_KEY[page.stage])}
-          tone={STAGE_TONE[page.stage]}
+          badge={copy(stage === null ? "calendar.empty.day-badge" : STAGE_FILTER_COPY_KEY[stage])}
+          tone={stage === null ? "neutral" : STAGE_TONE[stage]}
           date={date}
         />
       }
@@ -269,7 +357,7 @@ export function DayPanelView(p: {
               {recordLine.text}
             </span>
             {recordLine.at === null ? null : (
-              <span className="num text-xs opacity-70">{formatDate(recordLine.at, p.timeZone)}</span>
+              <span className="num text-xs opacity-70">{formatDate(recordLine.at, timeZone)}</span>
             )}
           </p>
         )}
@@ -279,7 +367,7 @@ export function DayPanelView(p: {
         <WhyThisPage why={page.why} />
       </div>
       <div className="divider my-0" />
-      <DayActions cell={cell} destination={p.destination ?? null} />
+      <DayActions cell={shown} destination={p.destination} onCommand={command} busy={busy} />
       {provenance === null ? null : (
         <p className="text-xs opacity-60" data-testid="day-provenance">
           {provenance}

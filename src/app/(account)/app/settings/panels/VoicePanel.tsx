@@ -31,12 +31,34 @@ import { PenLine, X } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import { writtenLine } from "../../_shell/written";
 import { saveVoiceAction } from "../change-actions";
+import { addClaimAction, removeClaimAction } from "../panel-actions";
+import { CLAIM_FIELD } from "../panel-state";
 import { VOICE_FIELD } from "../voice-state";
+import { SAVED_BADGE_CLASS, useSetting } from "./useSetting";
 import type { SettingsModel } from "../model";
+
+/** One claim, as the remove action reads it. A `FormData` because both
+ *  claim writes are ordinary form actions and share one reader. */
+function formWith(entry: string): FormData {
+  const form = new FormData();
+  form.set(CLAIM_FIELD, entry);
+  return form;
+}
 
 export function VoicePanel(p: { settings: SettingsModel }): React.JSX.Element {
   const filterNote = writtenLine("settings.voice.filter-note");
   const placeholder = writtenLine("settings.voice.placeholder");
+  // SPEC §4 (2026-09-20, #908, issue #913): the never-claim list writes.
+  // Both halves of it were inert — the × on each tag and the Add beside
+  // the field — so a filter the customer could not add to and could not
+  // remove from was drawn as though they owned it. Both now reach
+  // `saveDoNotClaim`, which is the product's one writer of the column and
+  // re-checks every page the change affects in the same call.
+  const writer = useSetting();
+  // What is being typed into the add field. Controlled for the reason the
+  // voice box is: React resets a form after its action, and a box that
+  // emptied itself the moment it was refused would throw the words away.
+  const [claim, setClaim] = useState("");
   // The stored voice, and the customer's edit of it in flight. Controlled
   // for `MarketPanel`'s reason: React resets a form after its action, and
   // a box that emptied itself the moment it saved would look like the save
@@ -46,9 +68,14 @@ export function VoicePanel(p: { settings: SettingsModel }): React.JSX.Element {
   return (
     <section className="card card-border min-w-0 bg-base-100">
       <div className="card-body gap-4">
-        <h2 className="card-title text-base">
+        <h2 className="card-title min-w-0 flex-wrap text-base">
           <PenLine size={20} strokeWidth={1.75} aria-hidden />
-          {copy("settings.voice.title")}
+          <span className="min-w-0 wrap-anywhere">{copy("settings.voice.title")}</span>
+          {writer.saved ? (
+            <span className={SAVED_BADGE_CLASS} data-testid="voice-saved">
+              {copy("settings.answer.saved-badge")}
+            </span>
+          ) : null}
         </h2>
 
         {/* SPEC §5 (2026-09-12): the summary setup showed, stored where
@@ -79,28 +106,44 @@ export function VoicePanel(p: { settings: SettingsModel }): React.JSX.Element {
           {/* Each claim with its own way out: a filter the customer cannot
               remove from is not theirs. A claim is a sentence, so it wraps. */}
           <div className="flex min-w-0 flex-wrap gap-2">
-            {p.settings.doNotClaim.map((claim) => (
-              <span className="min-w-0 max-w-full" key={claim} data-testid={`claim-${claim}`}>
+            {p.settings.doNotClaim.map((entry) => (
+              <span className="min-w-0 max-w-full" key={entry} data-testid={`claim-${entry}`}>
                 <button
                   type="button"
                   className="badge badge-outline badge-lg h-auto max-w-full cursor-pointer gap-1 text-left"
-                  aria-label={copy("settings.voice.remove-claim", { claim })}
+                  aria-label={copy("settings.voice.remove-claim", { claim: entry })}
+                  disabled={writer.busy}
+                  onClick={() => writer.press(removeClaimAction, formWith(entry))}
                 >
-                  <span className="num num-phrase min-w-0">{claim}</span>
+                  <span className="num num-phrase min-w-0">{entry}</span>
                   <X size={16} strokeWidth={1.75} aria-hidden />
                 </button>
               </span>
             ))}
           </div>
-          <div className="flex min-w-0 flex-wrap items-end gap-2">
+          {/* A form, so the field submits on Enter as well as on the press,
+              and so the whole control works from a plain submit. */}
+          <form
+            action={(form) => {
+              writer.press(addClaimAction, form);
+              setClaim("");
+            }}
+            className="flex min-w-0 flex-wrap items-end gap-2"
+          >
             <label className="flex min-w-0 grow flex-col gap-1">
               <span className="text-sm text-base-content/70">{copy("settings.voice.add-claim")}</span>
-              <input className="input w-full" />
+              <input
+                className="input w-full"
+                name={CLAIM_FIELD}
+                value={claim}
+                onChange={(e) => setClaim(e.target.value)}
+                data-testid="add-claim"
+              />
             </label>
-            <button type="button" className="btn btn-outline btn-sm">
+            <button type="submit" className="btn btn-outline btn-sm" disabled={writer.busy}>
               {copy("settings.voice.add")}
             </button>
-          </div>
+          </form>
         </div>
 
         {filterNote === null ? null : <p className="text-xs text-base-content/60 wrap-anywhere">{filterNote}</p>}

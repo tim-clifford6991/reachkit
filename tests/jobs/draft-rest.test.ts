@@ -58,6 +58,12 @@ vi.mock("@/app/(account)/app/_session/account", () => ({
   requireAppAccount: async () => ({ userId: USER_ID, siteId: fixtures.SITE_ID }),
 }));
 vi.mock("@/app/(account)/app/_session/store", () => ({ siteOwnsDraft: async () => true }));
+// Issue #913: the day panel's writes ask the screens that draw a page's
+// state to re-read. `revalidatePath` needs Next's own request store, which
+// this suite — a job suite calling the Server Function directly — does not
+// have. Which paths are asked for is asserted in
+// `tests/app/calendar/ownership.test.ts`.
+vi.mock("next/cache", () => ({ revalidatePath: () => undefined }));
 
 const fixtures = await import("../generate/fixtures");
 const opportunityDoubles = await import("../opportunities/memory-store");

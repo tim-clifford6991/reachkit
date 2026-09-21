@@ -22,7 +22,10 @@
 // root (`../../layout.tsx`), and a second one would be a second
 // `[data-surface]` in the document.
 import type React from "react";
+import { ArrowLeft } from "lucide-react";
+import { copy } from "@/lib/presentation/copy";
 import { fromStored, renderGenerated } from "@/lib/presentation/generated";
+import { DESTINATION_HREF } from "../../_shell/destinations";
 import { writtenLine } from "../../_shell/written";
 import { DraftScreen } from "./DraftScreen";
 import { readDraft } from "./provider";
@@ -42,10 +45,23 @@ export default async function DraftPage(p: {
     // resolves to one written line, never a stack trace or a vendor
     // payload." The line is the owner's; until it is written this renders
     // its marker, which is a screen the owner can see and correct.
+    //
+    // **And a way out** (SPEC §7, 2026-09-20, #908, issue #913: "no control
+    // is drawn that cannot act", and its opposite — a screen that offers
+    // nothing at all). A customer who followed a stale link, or a link to
+    // a page that has since been stopped, met one sentence and no way
+    // forward: the one route with no navigation of its own, and nothing on
+    // it to press. The back link is the same one the draft itself carries,
+    // to the same address and under the same word, so the dead end reads
+    // like the screen it failed to be.
     const line = writtenLine("draft.not-found");
     return (
-      <div className="flex flex-col gap-4" data-testid="draft-not-found">
+      <div className="flex flex-col items-start gap-4" data-testid="draft-not-found">
         {line === null ? null : <p>{line}</p>}
+        <a href={DESTINATION_HREF.calendar} className="btn btn-sm btn-primary" data-testid="draft-not-found-back">
+          <ArrowLeft size={16} strokeWidth={1.75} aria-hidden />
+          {copy("draft.back")}
+        </a>
       </div>
     );
   }

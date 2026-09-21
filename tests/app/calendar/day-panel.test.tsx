@@ -228,12 +228,13 @@ describe("REQ-043 c10 — one provenance line, and no date repeated beside each 
 });
 
 describe("REQ-043 c9 — the panel renders exactly the projection, and adds nothing", () => {
-  it("a page in review offers Read the full page, Move and Veto", () => {
+  it("a page in review offers Read the full page and Veto — and no Move", () => {
     const root = panel("2026-09-15");
     expect(root.querySelector('[data-testid="day-action-calendar.action.read-full-page"]')).not.toBeNull();
-    expect(root.querySelector('[data-testid="day-action-calendar.action.move"]')).not.toBeNull();
     expect(root.querySelector('[data-testid="day-action-calendar.action.veto"]')).not.toBeNull();
-    expect(root.querySelectorAll('[data-testid^="day-action-"]')).toHaveLength(3);
+    // Issue #913: Move always refused, so it is not drawn.
+    expect(root.querySelector('[data-testid="day-action-calendar.action.move"]')).toBeNull();
+    expect(root.querySelectorAll('[data-testid^="day-action-"]')).toHaveLength(2);
   });
 
   it("a live page offers its recorded address, and the page as written beside it (issue 882)", () => {
@@ -247,9 +248,9 @@ describe("REQ-043 c9 — the panel renders exactly the projection, and adds noth
     expect(root.querySelectorAll('[data-testid^="day-action-"]')).toHaveLength(2);
   });
 
-  it("a needs-you page offers the page, the restart, Move and Skip — and no reconnect on a hosted site", () => {
+  it("a needs-you page offers the page, the restart and Skip — and no reconnect on a hosted site", () => {
     // Issue #130: `needs_attention → skipped` is one of §9's fifteen, so
-    // the projection offers the stop and the Move that rides beside it.
+    // the projection offers the stop.
     // Issue #143: and the restart, on a page whose draft never entered
     // review — which the fixture's is. No control here publishes or
     // approves; the way out is a way out, and the way back is a way back.
@@ -262,10 +263,10 @@ describe("REQ-043 c9 — the panel renders exactly the projection, and adds noth
     expect(root.querySelector('[data-testid="day-action-calendar.action.check-destination"]')).toBeNull();
     expect(root.querySelector('[data-testid="day-action-calendar.action.read-page"]')).not.toBeNull();
     expect(root.querySelector('[data-testid="day-action-calendar.action.regenerate"]')).not.toBeNull();
-    expect(root.querySelector('[data-testid="day-action-calendar.action.move"]')).not.toBeNull();
+    expect(root.querySelector('[data-testid="day-action-calendar.action.move"]')).toBeNull();
     expect(root.querySelector('[data-testid="day-action-calendar.action.skip"]')).not.toBeNull();
     expect(root.querySelector('[data-testid="day-action-calendar.action.veto"]')).toBeNull();
-    expect(root.querySelectorAll('[data-testid^="day-action-"]')).toHaveLength(4);
+    expect(root.querySelectorAll('[data-testid^="day-action-"]')).toHaveLength(3);
   });
 
   it("issue 880 — it states why the page needs them, from the page's own record", () => {
@@ -284,10 +285,11 @@ describe("REQ-043 c9 — the panel renders exactly the projection, and adds noth
     expect(COPY["publish.needs-you.rules"]).toContain("writing rules");
   });
 
-  it("a planned page offers Move and Skip, and never Veto", () => {
+  it("a planned page offers Skip, and never Veto or Move", () => {
     const root = panel("2026-09-18");
     expect(root.querySelector('[data-testid="day-action-calendar.action.skip"]')).not.toBeNull();
     expect(root.querySelector('[data-testid="day-action-calendar.action.veto"]')).toBeNull();
+    expect(root.querySelector('[data-testid="day-action-calendar.action.move"]')).toBeNull();
   });
 });
 
@@ -377,7 +379,7 @@ describe("the panel's arms", () => {
     expect(children[1]?.className).toContain("num");
   });
 
-  it("review offers a solid way in across the column, with Move and a warning-outline Veto under it", () => {
+  it("review offers a solid way in across the column, with a warning-outline Veto under it", () => {
     const root = panel("2026-09-15");
     const read = root.querySelector('[data-testid="day-action-calendar.action.read-full-page"]');
     // The one way in: an anchor, because it navigates, and the one solid
@@ -393,9 +395,6 @@ describe("the panel's arms", () => {
     expect(veto?.className).toContain("btn-outline");
     expect(veto?.className).toContain("btn-warning");
     expect(veto?.className).not.toContain("btn-primary");
-
-    const move = root.querySelector('[data-testid="day-action-calendar.action.move"]');
-    expect(move?.className).toContain("btn-ghost");
   });
 
   it("live's way in is the OUTLINE rank — it leaves the product, so it is not the screen's fill", () => {
