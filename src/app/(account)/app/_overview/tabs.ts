@@ -34,15 +34,10 @@ export const TAB_COPY_KEY: Readonly<Record<OverviewTab, CopyKey>> = Object.freez
   rivals: "overview.tab.rivals",
 });
 
-/** The one line a tab that has its address but not yet its screen carries.
- *  Overview has none — it is the screen itself — and neither do Search or
- *  AI answers any longer: #916 and #918 built them, and each line went with
- *  the placeholder it stood in. #917 is the last one owed. */
-export type UnbuiltTab = Exclude<OverviewTab, "overview" | "search" | "ai_answers">;
-
-export const TAB_SOON_KEY: Readonly<Record<UnbuiltTab, CopyKey>> = Object.freeze({
-  rivals: "overview.tab.rivals.soon",
-});
+/** There is no `TAB_SOON_KEY` any more, and no `UnbuiltTab`. Every one of
+ *  the four has its screen — #916 built Search, #918 AI answers and #917
+ *  Rivals — so the line a tab carried while it had only an address, and the
+ *  placeholder that carried it, went with the last of them. */
 
 /** Which tab a pathname is on, or `undefined` for a path under `/app` that
  *  is none of the four. Overview is matched **exactly** and never by prefix,

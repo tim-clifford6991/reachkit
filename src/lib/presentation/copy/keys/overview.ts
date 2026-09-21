@@ -386,14 +386,9 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.tab.search": ["Search", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
   "overview.tab.rivals": ["Rivals", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
 
-  // The tab that has an address and not yet a screen (#917). It
-  // says what will stand there and that it does not yet — never a blank
-  // screen and never a promise of a date nobody has set. Search had one of
-  // these until #916 built the screen, and AI answers until #918 built its.
-  "overview.tab.rivals.soon": [
-    "Who is ahead of you in your searches, and by how much, will be shown here. It isn’t built yet.",
-    { slots: {}, fixedBy: "issue 917" },
-  ],
+  // Every one of Overview's four tabs has its screen, so the line a tab
+  // carried while it had only an address is gone with the last placeholder
+  // that carried it. `_overview/tabs.ts` is where the four live.
 
   // The head, when a page is waiting to be read. The other four head lines
   // are the series' own (`OVERVIEW_HEAD`) and are unchanged: this arm is
@@ -685,5 +680,109 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.answers.empty": [
     "No AI answers have been measured yet. The first weekly pass puts all twelve questions to every engine.",
     { slots: {}, fixedBy: "SPEC §6 2026-09-20" },
+  ],
+  // ── 2026-09-20 (#908, #917): Overview › Rivals.
+  //
+  // SPEC §4 of that date: "who is on the first page for the twelve
+  // searches, who the three answer engines name, how far ahead each rival's
+  // footprint is over twelve weeks, and the searches rivals win that the
+  // site does not, each with what ReachKit is doing about it." Every
+  // sentence below is **drafted** under the owner's 2026-09-16 ruling (#759)
+  // and the PR names each one so the owner can correct it. The card that
+  // was already built keeps its own words — `overview.rivals.title`,
+  // `overview.rivals.ratio`, `overview.rivals.was`, the two line keys and
+  // the market-leaders sentence are the Overview's and are reused here
+  // rather than spelled a second time.
+  "overview.rivals.lead": [
+    "What we learned from the sites you’re measured against.",
+    { slots: {}, fixedBy: "SPEC §4 2026-09-20" },
+  ],
+
+  // The first counting card: who holds a place on Google's first page for
+  // the twelve searches the pass buys a top ten for.
+  "overview.rivals.first-page.title": [
+    "Who’s on the first page",
+    { slots: {}, fixedBy: "SPEC §4 2026-09-20" },
+  ],
+  "overview.rivals.first-page.lead": [
+    "Of the {of} searches your buyers make most.",
+    { slots: { of: "text" }, fixedBy: "SPEC §4 2026-09-20" },
+  ],
+  "overview.rivals.first-page.started": [
+    "You were on {count} of {of} when you started.",
+    { slots: { count: "text", of: "text" }, fixedBy: "SPEC §4 2026-09-20" },
+  ],
+
+  // The second: who the three answer engines name, counted the way the AI
+  // answers tab draws it, with the link to that tab beneath.
+  "overview.rivals.named.title": ["Who AI answers name", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  "overview.rivals.named.lead": [
+    "Across {engines} — {of} answers.",
+    { slots: { engines: "text", of: "text" }, fixedBy: "SPEC §6 2026-09-20" },
+  ],
+  "overview.rivals.named.see-all": ["See every answer", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+
+  // The line under the card that was already built, which the Overview tab
+  // does not draw: what the ratio is a ratio of, and where level is.
+  "overview.rivals.gap.lead": [
+    "Searches each site appears for, against yours. 1.0× is level.",
+    { slots: {}, fixedBy: "SPEC §4 2026-09-20" },
+  ],
+
+  // A card whose reading the pass never took. It claims nothing about the
+  // rivals; it says what is true of the measurement.
+  "overview.rivals.card.unmeasured": [
+    "Not measured yet. The first weekly pass reads all twelve searches and every answer.",
+    { slots: {}, fixedBy: "REQ-004 c6" },
+  ],
+
+  // The table: every search a rival wins that the site does not.
+  "overview.rivals.table.title": [
+    "Searches your rivals win and you don’t",
+    { slots: {}, fixedBy: "SPEC §4 2026-09-20" },
+  ],
+  "overview.rivals.table.lead": [
+    "From every search your rivals rank for. This list is where your plan comes from.",
+    { slots: {}, fixedBy: "SPEC §4 2026-09-20" },
+  ],
+  "overview.rivals.table.label": [
+    "Searches your rivals win and you don’t",
+    { slots: {}, fixedBy: "SPEC §4 2026-09-20" },
+  ],
+  "overview.rivals.table.empty": [
+    "No search on file is one a rival wins and you don’t. That changes with the next weekly pass.",
+    { slots: {}, fixedBy: "SPEC §4 2026-09-20" },
+  ],
+  "overview.rivals.column.winner": ["Who wins it", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  "overview.rivals.column.doing": ["What we’re doing", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+
+  // SPEC §4's four words for what ReachKit is doing about a search a rival
+  // wins. None of them is "live": a search the customer already wins is not
+  // in this table at all.
+  "overview.rivals.status.in-review": [
+    "Page in your review",
+    { slots: {}, fixedBy: "SPEC §4 2026-09-20" },
+  ],
+  "overview.rivals.status.up-next": ["Up next", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  "overview.rivals.status.needs-page": [
+    "Needs a page on your main site",
+    { slots: {}, fixedBy: "SPEC §4 2026-09-20" },
+  ],
+  "overview.rivals.status.too-big": ["Too big for now", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+
+  // The chips over the table, and the foot under it.
+  "overview.rivals.filter.label": ["Show one rival", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  "overview.rivals.filter.all": ["All rivals", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  "overview.rivals.chip": [
+    "{rival}, {count} searches",
+    { slots: { rival: "text", count: "text" }, fixedBy: "SPEC §4 2026-09-20" },
+  ],
+  "overview.rivals.showing": [
+    "{shown} of {total} searches",
+    { slots: { shown: "text", total: "text" }, fixedBy: "SPEC §4 2026-09-20" },
+  ],
+  "overview.rivals.show-all": [
+    "Show all {total}",
+    { slots: { total: "text" }, fixedBy: "SPEC §4 2026-09-20" },
   ],
 }) satisfies CopyPartition;
