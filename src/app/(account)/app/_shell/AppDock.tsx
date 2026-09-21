@@ -47,16 +47,17 @@ export function AppDock(p: { waiting: number }): React.JSX.Element {
             aria-current={here ? "page" : undefined}
             data-testid={`shell-docklink-${destination}`}
           >
-            {/* The glyph's box is wider than the glyph so the count has
-                somewhere to sit *inside* it: a badge hung off the corner
-                would be an element wider than its container, which is the
-                one thing `docs/DESIGN.md`'s layout law forbids outright. */}
-            <span className="relative grid size-7 place-items-center">
+            {/* A glyph box wide enough to hold the count beside the
+                glyph rather than on it — a badge on the corner of a 20px
+                glyph covers it, and a badge hung outside the box is an
+                element wider than its container. The box is the same
+                width on all three items and the glyph is centred in it,
+                so the one carrying a count keeps the others' centre line;
+                a dock item is a third of the bar, with room to spare. */}
+            <span className="relative flex h-5 w-16 items-center justify-center">
               <Icon size={20} strokeWidth={1.75} aria-hidden />
               {waiting > 0 ? (
-                // REQ-040 c2 in the dock: the number, never a `0`. It sits
-                // on the glyph, so the word below it keeps its own line and
-                // the item cannot grow wider than its third of the bar.
+                // REQ-040 c2 in the dock: the number, never a `0`.
                 <span
                   className="badge badge-xs badge-primary num absolute end-0 top-0"
                   data-testid="shell-dock-count"
