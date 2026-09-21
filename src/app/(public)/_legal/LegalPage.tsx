@@ -48,7 +48,7 @@
 import type React from "react";
 import { Surface } from "@/ui/layout";
 import { copy } from "@/lib/presentation/copy";
-import { demoteHeadings, parseMarkdown, toHtml, type HtmlClasses } from "@/lib/publish/render/markdown";
+import { demoteHeadings, parseMarkdown, type HtmlClasses } from "@/lib/publish/render/markdown";
 import { legalBodyWithIds, legalHeadings, type LegalHeading } from "./sections";
 import type { LegalDocument } from "./documents";
 
