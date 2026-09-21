@@ -40,7 +40,22 @@ const PREVIEW_TELLING = {
 
 const PREVIEW_PAGE: DraftReadyPage = {
   title: "How to choose onboarding software",
-  markdown: "# How to choose onboarding software\n\nThe page, as written.",
+  markdown:
+    "Pick the tool your team will actually open on day one: the one that fits how you " +
+    "already work, not the one with the longest feature list.\n\n" +
+    "The three that matter are what it costs per seat, whether it can be set up without " +
+    "an implementation project, and what happens to your data when you leave.",
+};
+
+/** #933's fact block, as the board draws it: the search, who answers it
+ *  today, the band this site was given for it, and the page the grounded
+ *  passage was read from. */
+const PREVIEW_WHY = {
+  query: "onboarding software for small teams",
+  volume: { kind: "measured" as const, value: 1900, at: AT },
+  answeredBy: "other sites",
+  chances: "Winnable",
+  writtenFrom: "https://example.com/pricing",
 };
 
 /** The zone the `published` mail states its check in (REQ-062 c2) — the
@@ -180,7 +195,9 @@ export async function composePreview(kind: PreviewKind): Promise<ComposedMail> {
         telling: PREVIEW_TELLING,
         publishesAt: "Tomorrow 07:00",
         stopHref: `${APP}/veto/preview`,
+        readHref: `${APP}/app/draft/preview`,
         page: PREVIEW_PAGE,
+        why: PREVIEW_WHY,
       });
       return composeMail({
         kind,
@@ -206,8 +223,20 @@ export async function composePreview(kind: PreviewKind): Promise<ComposedMail> {
       const mail = buildWeekly({
         scoreDelta: measured(8, AT),
         aiAnswersDelta: measured(1, AT),
+        // #933: the four Overview numbers, and the one thing waiting.
+        score: measured(62, AT),
+        searches: measured(34, AT),
+        searchesDelta: measured(5, AT),
+        aiAnswers: measured(6, AT),
+        pagesLive: measured(12, AT),
+        pagesLiveDelta: measured(1, AT),
         pages: measured(WEEKLY_PAGES, AT),
         next: measured(WEEKLY_NEXT, AT),
+        needsYou: {
+          line: "mail.weekly.needsYou",
+          vars: { page: "Onboarding checklists that actually get used" },
+          href: `${APP}/app/draft/preview`,
+        },
       });
       return composeMail({
         kind,
