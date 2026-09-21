@@ -41,6 +41,14 @@ import { copy } from "@/lib/presentation/copy";
 import type { PresenceSection } from "@/lib/scan/report";
 import { dash, Num } from "../_address/measured";
 
+/** A column head, repeated beside its value in the stacked shape and hidden
+ *  from `sm` where the real head row takes over (#956). It writes no
+ *  sentence of its own — the caller passes the same `presence.absent-from.
+ *  column.*` key the `<th>` above it uses. */
+function Label(p: { children: React.ReactNode }): React.JSX.Element {
+  return <span className="text-base-content/60 text-xs sm:hidden">{p.children}</span>;
+}
+
 function Head(p: { right: React.ReactNode }): React.JSX.Element {
   return (
     <div className="flex flex-wrap items-center justify-between gap-2">
@@ -68,11 +76,21 @@ export function GooglePresenceCard(p: { section: PresenceSection }): React.JSX.E
         />
 
         {/* REQ-008 c3: the customer's count appears once, on their own bar.
-            REQ-092: with no rivals to draw, say so where the bars would be. */}
+            REQ-092: with no rivals to draw, say so where the bars would be.
+
+            **This wrap no longer scrolls (#956).** It carried
+            `overflow-x-auto` for the drawing #943 replaced, whose labels
+            were laid out beside the bars and could run wider than the card.
+            Since #943 each row is a line of HTML above a bar that is
+            `width: 100%`, and the domain clamps to its own line — so there
+            has been nothing here to scroll to, and an `overflow-x: auto`
+            that never scrolls is still a box the layout law has to excuse
+            and a tab stop #947 would have to name. `min-w-0` is the half
+            that was doing the work, and it stays. */}
         {section.framing === "suppressed_no_rivals" ? (
           <p className="grow-0 text-sm">{copy("presence.no-rivals")}</p>
         ) : (
-          <div className="min-w-0 overflow-x-auto">
+          <div className="min-w-0">
             <PresenceBars
               you={{ name: section.you.domain, value: section.you.top10Count }}
               rivals={section.rivals.map((rival) => ({
@@ -89,19 +107,54 @@ export function GooglePresenceCard(p: { section: PresenceSection }): React.JSX.E
         <p className="text-base-content/60 grow-0 text-xs font-semibold tracking-wide uppercase">
           {copy("presence.absent-from.title")}
         </p>
-        {/* The search folds at its spaces; the volume and the holder are
-            single values and never fold, so the wrap scrolls at 320 — and a
-            pane that scrolls has to be reachable from a keyboard (#947), so
-            it is a named region and a tab stop under the line above it. No
-            market-total footnote follows (owner, 2026-09-03). */}
+        {/* **One table, two shapes (#956).** From `sm` it is the three-column
+            table it has always been, in the wrap that lets a wide row scroll.
+            Below `sm` there is no scroller at all — a column pushed off the
+            right edge of one is a column a phone reader never sees, and this
+            is the first screen a prospect meets, most often on a phone. The
+            row falls instead: the search on its own line, then the volume and
+            the holder each on a line of their own, labelled by the column
+            head that would have named them. That is #952's shape for the AI
+            answers grid, and `docs/DESIGN.md`'s 2026-09-20 rule read for a
+            table — "a bar gets its own full-width line under its label".
+
+            **No second DOM.** The head row is `hidden sm:table-header-group`
+            and each in-cell label is `sm:hidden`, so every string is written
+            once and only one of the two is ever on screen.
+
+            **The cells are subgrid, never `display: contents`** (#952's own
+            finding): a `contents` element generates no box, so
+            `getBoundingClientRect()` reports it at 0×0 and every value
+            inside measures as escaping its parent. A `col-span-2` subgrid
+            cell has a real box and still sits in the row's own two columns.
+
+            **Why the holder gets a line and not half of one.** It is a
+            domain — one unbreakable token in the mono face, which #256 fixed
+            in place by taking `break-words` off `.num`. Sharing a line with
+            the volume leaves it about 150px, which is where a fixture domain
+            already sits, so it would clamp; and a clamped value in the mono
+            face outside a scroller is what `checkNoClippingOrTruncation`
+            calls a clipped value, correctly. A full-width line is the box
+            changing instead, which is the rule.
+
+            **It keeps #947's tab stop, and keeps it at every width.** From
+            `sm` this wrap can still scroll, and a pane that scrolls with no
+            way into it from a keyboard is #947's defect returning. An
+            attribute cannot be given a breakpoint, so the tab stop stands
+            below `sm` too, where the wrap no longer scrolls — and what it
+            costs there is one stop on a *named* landmark, which announces
+            "5 biggest searches you're absent from" rather than nothing. That
+            is the cheaper of the two errors available.
+
+            No market-total footnote follows (owner, 2026-09-03). */}
         <div
-          className="min-w-0 overflow-x-auto"
+          className="min-w-0 sm:overflow-x-auto"
           tabIndex={0}
           role="region"
           aria-label={copy("presence.absent-from.title")}
         >
           <table className="table table-zebra table-sm">
-            <thead>
+            <thead className="hidden sm:table-header-group">
               <tr>
                 <th className="whitespace-normal">{copy("presence.absent-from.column.search")}</th>
                 <th className="whitespace-normal">{copy("presence.absent-from.column.volume")}</th>
@@ -110,23 +163,30 @@ export function GooglePresenceCard(p: { section: PresenceSection }): React.JSX.E
             </thead>
             <tbody>
               {section.absentFrom.length === 0 ? (
-                <tr>
-                  <td colSpan={3}>{copy("presence.absent-from.empty")}</td>
+                <tr className="grid grid-cols-[auto_minmax(0,1fr)] sm:table-row">
+                  <td className="col-span-2 sm:table-cell" colSpan={3}>
+                    {copy("presence.absent-from.empty")}
+                  </td>
                 </tr>
               ) : (
                 section.absentFrom.map((row, i) => (
-                  <tr key={`${i}-${row.keyword}`}>
-                    <td>
+                  <tr
+                    key={`${i}-${row.keyword}`}
+                    className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 sm:table-row"
+                  >
+                    <td className="col-span-2 max-sm:border-0 max-sm:pb-1 sm:table-cell">
                       <Num phrase>{row.keyword}</Num>
                     </td>
-                    <td>
+                    <td className="col-span-2 grid grid-cols-subgrid items-baseline max-sm:border-0 max-sm:py-0 sm:table-cell">
+                      <Label>{copy("presence.absent-from.column.volume")}</Label>
                       <Num>{row.volume}</Num>
                     </td>
-                    <td>
+                    <td className="col-span-2 grid grid-cols-subgrid items-baseline max-sm:border-0 max-sm:pt-0 max-sm:pb-2 sm:table-cell">
+                      <Label>{copy("presence.absent-from.column.holder")}</Label>
                       {row.topHolder === null ? (
-                        <span>{copy("place.report.first-page.rival")}</span>
+                        <span className="min-w-0">{copy("place.report.first-page.rival")}</span>
                       ) : (
-                        <Num>{row.topHolder}</Num>
+                        <Num clamp={row.topHolder}>{row.topHolder}</Num>
                       )}
                     </td>
                   </tr>

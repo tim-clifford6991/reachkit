@@ -55,6 +55,18 @@ export function Num(p: {
    *  no word inside it is ever broken. Opted in, never inferred: whether
    *  a string is one value or a line of language is the caller's call. */
   phrase?: boolean;
+  /** Clamp to one line with an ellipsis, keeping the whole value on
+   *  `title` — `docs/DESIGN.md`, 2026-09-20: "A label that can grow (a
+   *  title, a domain, a search) is clamped to one or two lines with an
+   *  ellipsis; a number is never clamped, so the box changes instead."
+   *
+   *  **It does not contradict #256's rule above; it is the other arm of
+   *  it.** #256 forbids breaking a domain at a boundary the string does
+   *  not have, which produces a *different* string silently. A clamp cuts
+   *  nothing silently: the ellipsis says there is more, and `title` hands
+   *  back the whole value. Opted in per call site, and never for a number
+   *  — a number has no ellipsis that could mean anything. */
+  clamp?: string;
 }): React.JSX.Element {
   // ADR-093: content fits its box or the box changes, and text is never
   // shrunk to fit. **The box changes; the value does not** (issue #256).
@@ -78,9 +90,11 @@ export function Num(p: {
   // Where a value still cannot fit, the *box* changes and not the value —
   // `_modules/free-page.tsx` stacks its label above the value for exactly
   // that reason.
+  const base = p.phrase === true ? "num num-phrase min-w-0" : "num min-w-0";
   return (
     <span
-      className={p.phrase === true ? "num num-phrase min-w-0" : "num min-w-0"}
+      className={p.clamp === undefined ? base : `${base} max-w-full truncate`}
+      title={p.clamp}
       data-unmeasured={p.unmeasured === true ? "" : undefined}
     >
       {p.children}
