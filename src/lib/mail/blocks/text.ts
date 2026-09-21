@@ -13,7 +13,7 @@
 import { copy } from "@/lib/presentation/copy";
 import { generatedLabel } from "@/lib/presentation/generated";
 import { formatStat } from "./format";
-import { factRowsOf, rowsOf } from "./html";
+import { factRowsOf, rowsOf, statRowsOf } from "./html";
 import { isMeasuredEmpty, omittedIndexes } from "./omit";
 import type { MailBlock } from "./types";
 
@@ -76,6 +76,32 @@ export function renderBlocksText(blocks: readonly MailBlock[]): {
         // One row per line, `label: value` — the plain-text twin of the
         // `dl`, in the same order, from the same builder.
         parts.push(factRowsOf(block).map((item) => `${item.label}: ${item.value}`).join("\n"));
+        break;
+      case "hero":
+        // The headline number, its label and — where one was measured —
+        // its change, in the twin's own two lines.
+        parts.push(
+          statLines(
+            copy(block.label),
+            block.change === undefined || block.change.kind === "unmeasured"
+              ? formatStat(block.value, block.format)
+              : `${formatStat(block.value, block.format)} (${formatStat(block.change, "delta")})`,
+            block.note === undefined ? null : copy(block.note)
+          )
+        );
+        break;
+      case "stats":
+        // One number per line, in the same order and from the same builder
+        // the HTML grid reads: the twin states the same four numbers.
+        parts.push(
+          statRowsOf(block)
+            .map((item) =>
+              item.change === null
+                ? `${item.label}: ${item.value}`
+                : `${item.label}: ${item.value} (${item.change})`
+            )
+            .join("\n")
+        );
         break;
       case "action":
         parts.push(actionLine(copy(block.label), block.href));

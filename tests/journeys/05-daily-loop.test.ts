@@ -857,7 +857,10 @@ describe("the daily loop: pick → generate → tell → publish → +24h check 
       // searched, read from the evidence stored at creation. This journey
       // measured that volume once, in the deep pass — the mail states that
       // number and does not go and ask again.
-      expect(mails[0]!.html).toContain("mail.draftReady.why.search");
+      // #933 draws them as the board does: the search is a row of the fact
+      // block and the volume is the one number up top. Both are still the
+      // evidence stored at creation.
+      expect(mails[0]!.html).toContain("mail.draftReady.fact.search");
       expect(mails[0]!.html).toContain("mail.draftReady.why.volume");
       // The one veto link, and it is a link the database will accept: the
       // sender mints the token it sends, so the hash on the row is the

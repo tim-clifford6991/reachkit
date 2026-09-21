@@ -59,6 +59,20 @@ export interface VerdictRow {
  *  change to this union, not a caller's string. */
 export type StatFormat = "integer" | "delta" | "perMonth";
 
+/** One number in a `stats` group: the same three fields a `stat` carries,
+ *  plus the change beside it. Its own interface because the group holds
+ *  several and each is omitted on its own — an unmeasured number omits its
+ *  row, never the group (SPEC §8, 2026-09-20). */
+export interface StatRow {
+  readonly label: CopyKey;
+  readonly value: Measured<number>;
+  readonly format: StatFormat;
+  /** The change since the measurement before it. Omitted on its own where
+   *  it was not measured: a number with no comparison is still a number,
+   *  and a "0" change nobody measured would be a claim. */
+  readonly change?: Measured<number>;
+}
+
 export type MailBlock =
   | { readonly block: "heading"; readonly text: CopyKey; readonly vars?: CopyVars }
   | { readonly block: "paragraph"; readonly text: CopyKey; readonly vars?: CopyVars }
@@ -103,7 +117,51 @@ export type MailBlock =
       readonly block: "facts";
       readonly items: readonly FactRow[];
     }
-  | { readonly block: "action"; readonly label: CopyKey; readonly href: string }
+  | {
+      /**
+       * SPEC §8 (2026-09-20, #933) — the one number up top.
+       *
+       * The mail's headline figure, above everything the mail then says
+       * about it: the searches a month a page was written for, the
+       * visibility score a week moved. One per mail by construction of the
+       * templates, not by a rule here.
+       *
+       * Unmeasured omits the whole block — including its change, which
+       * travels with it for the reason a `stat`'s note does: a change
+       * standing beside a number that was dropped is a movement of
+       * nothing.
+       */
+      readonly block: "hero";
+      readonly label: CopyKey;
+      readonly value: Measured<number>;
+      readonly format: StatFormat;
+      readonly change?: Measured<number>;
+      readonly note?: CopyKey;
+    }
+  | {
+      /**
+       * SPEC §8 (2026-09-20, #933) — "the four Overview numbers with
+       * change", as one group.
+       *
+       * A group and not four `stat` blocks, because the four are read
+       * together: the renderer lays them two to a row, and a mail that
+       * dropped one of them keeps the shape rather than leaving a gap.
+       * Each row is omitted on its own; the group goes when none is left.
+       */
+      readonly block: "stats";
+      readonly items: readonly StatRow[];
+    }
+  | {
+      readonly block: "action";
+      readonly label: CopyKey;
+      readonly href: string;
+      /** How the button is drawn. `primary` is the one solid fill S20
+       *  gives a mail; `secondary` is the outlined one beside it, for the
+       *  second thing a reader may do — *Stop this page* beside *Read the
+       *  full page*. Absent is `primary`, so every mail written before
+       *  #933 draws exactly what it drew. */
+      readonly variant?: "primary" | "secondary";
+    }
   | { readonly block: "notice"; readonly text: CopyKey; readonly vars?: CopyVars }
   | {
       readonly block: "pageBody";
@@ -112,16 +170,20 @@ export type MailBlock =
       readonly markdown: string;
     };
 
-/** The three arms whose presence depends on a measurement. The whole-mail
- *  line (`shell/compose.ts`) counts over exactly these: a mail of headings
- *  and actions alone has nothing conditional in it and says nothing about
+/** The arms whose presence depends on a measurement. The whole-mail line
+ *  (`shell/compose.ts`) counts over exactly these: a mail of headings and
+ *  actions alone has nothing conditional in it and says nothing about
  *  having nothing to report.
+ *
+ *  `hero` and `stats` join them with #933: they are numbers, they are
+ *  dropped when nothing measured them, and a mail whose headline figure
+ *  and four numbers all went *has* lost what it was about.
  *
  *  `facts` is deliberately **not** here, though `omit.ts` can drop it. The
  *  fact rows restate what the heading and the one line already say — the
  *  address a link is for, the search a page targets — so a mail that lost
  *  them has not lost its point, and "nothing to report" would be false. */
-export const CONDITIONAL_BLOCKS = ["stat", "list", "verdicts"] as const;
+export const CONDITIONAL_BLOCKS = ["stat", "hero", "stats", "list", "verdicts"] as const;
 
 export type ConditionalBlock = (typeof CONDITIONAL_BLOCKS)[number];
 

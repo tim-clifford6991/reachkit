@@ -129,10 +129,15 @@ describe("the customer is told a page is in review", () => {
     expect(sent[0]!.to).toBe("founder@example.com");
     expect(sent[0]!.subject).toBe("mail.draftReady.subject");
 
-    const paragraph = sent[0]!.blocks.find((b) => b.block === "paragraph");
-    expect(paragraph?.text).toBe("mail.draftReady.autopilotWindow");
+    // #933 opens the mail with the line that says what it is, so the
+    // telling is the paragraph that carries the moment rather than the
+    // first one on the list.
+    const paragraphs = sent[0]!.blocks.filter((b) => b.block === "paragraph");
+    expect(paragraphs.map((b) => b.text)).toContain("mail.draftReady.autopilotWindow");
+    expect(paragraphs[0]?.text).toBe("mail.draftReady.ready");
     // The moment is written in the customer's own zone, not UTC.
-    expect(paragraph?.vars?.publishesAt).toContain("EDT");
+    const telling = paragraphs.find((b) => b.text === "mail.draftReady.autopilotWindow");
+    expect(telling?.vars?.publishesAt).toContain("EDT");
 
     const action = sent[0]!.blocks.find((b) => b.block === "action");
     expect(action?.label).toBe("mail.draftReady.stopAction");
@@ -243,7 +248,7 @@ describe("SPEC §7 (#476) — there is no zero window: a stored 0 reads as the o
     const outcome = await sendDraftReadyMail({ draftId: "d1", destination: "wordpress", at: AT });
 
     expect(outcome.sent).toBe(true);
-    expect(sent[0]!.blocks.find((b) => b.block === "paragraph")?.text).toBe(
+    expect(sent[0]!.blocks.filter((b) => b.block === "paragraph").map((b) => b.text)).toContain(
       "mail.draftReady.autopilotWindow"
     );
     expect(sent[0]!.blocks.find((b) => b.block === "action")).toBeDefined();
@@ -259,9 +264,9 @@ describe("copilot — nothing happens until they approve", () => {
     const outcome = await sendDraftReadyMail({ draftId: "d1", destination: "wordpress", at: AT });
 
     expect(outcome.sent).toBe(true);
-    const paragraph = sent[0]!.blocks.find((b) => b.block === "paragraph");
-    expect(paragraph?.text).toBe("mail.draftReady.copilot");
-    expect(paragraph?.vars).toBeUndefined();
+    const paragraphs = sent[0]!.blocks.filter((b) => b.block === "paragraph");
+    expect(paragraphs.map((b) => b.text)).toContain("mail.draftReady.copilot");
+    expect(paragraphs.find((b) => b.text === "mail.draftReady.copilot")?.vars).toBeUndefined();
     expect(sent[0]!.blocks.find((b) => b.block === "action")).toBeUndefined();
     expect(sent[0]!.suppressible).toBeUndefined();
   });
@@ -269,6 +274,15 @@ describe("copilot — nothing happens until they approve", () => {
 
 describe("issue #183 — the mail names the page, and says why §7 chose it", () => {
   const blocksOf = () => sent[0]!.blocks;
+  /** #933: the search the page was written for is the first row of the
+   *  board's fact block. `undefined` where the mail states no why-data at
+   *  all — a fix page, or one whose opportunity has been purged. */
+  const searchRow = (): string | undefined => {
+    const facts = blocksOf().find((b) => b.block === "facts") as unknown as
+      | { items: readonly { label: string; value: string }[] }
+      | undefined;
+    return facts?.items.find((item) => item.label === "mail.draftReady.fact.search")?.value;
+  };
 
   it("**the title travels in the body block that carries the GeneratedText label**", async () => {
     await sendDraftReadyMail({ draftId: "d1", destination: "wordpress", at: AT });
@@ -294,22 +308,34 @@ describe("issue #183 — the mail names the page, and says why §7 chose it", ()
     expect(sent[0]!.subject.startsWith("mail.")).toBe(true);
   });
 
-  it("the page block leads — the mail is about a page, and says which first", async () => {
+  it("the page leads — one line saying what the mail is, then the page's own title", async () => {
     await sendDraftReadyMail({ draftId: "d1", destination: "wordpress", at: AT });
-    // Issue #376, UI-SPEC S20: the heading is the page's own title, and
-    // the page itself follows. The mail is still about a page and still
-    // says which first — it now says it twice, once as a title.
-    expect(blocksOf()[0]!.block).toBe("heading");
-    expect(blocksOf()[1]!.block).toBe("pageBody");
+    // Issue #376, UI-SPEC S20: the heading is the page's own title. #933
+    // puts one written line above it — "Your page is ready to read" — and
+    // moves the page's first lines below the facts, where the board draws
+    // them. The mail still says which page it is about before it says
+    // anything else about it.
+    expect(blocksOf()[0]).toMatchObject({ block: "paragraph", text: "mail.draftReady.ready" });
+    expect(blocksOf()[1]!.block).toBe("heading");
+    const order = blocksOf().map((b) => b.block);
+    expect(order.indexOf("facts")).toBeLessThan(order.indexOf("pageBody"));
   });
 
   it("the why-data is §7's stored evidence: the search, and how often it is searched", async () => {
     await sendDraftReadyMail({ draftId: "d1", destination: "wordpress", at: AT });
 
-    const search = blocksOf().find((b) => b.text === "mail.draftReady.why.search");
-    expect(search?.vars?.query).toBe("how long does a slate roof last");
+    // #933: the search is a row of the fact block the board draws, and the
+    // volume is the one number up top. Both are still §7's stored evidence,
+    // read and never re-measured.
+    const facts = blocksOf().find((b) => b.block === "facts") as unknown as {
+      items: readonly { label: string; value: string }[];
+    };
+    expect(facts.items[0]).toEqual({
+      label: "mail.draftReady.fact.search",
+      value: "how long does a slate roof last",
+    });
 
-    const volume = blocksOf().find((b) => b.block === "stat") as unknown as {
+    const volume = blocksOf().find((b) => b.block === "hero") as unknown as {
       label: string;
       value: { kind: string; value: number };
       format: string;
@@ -324,7 +350,7 @@ describe("issue #183 — the mail names the page, and says why §7 chose it", ()
     // ask again: a fresher number would be a page chosen on one figure and
     // announced on another, and the screen and the mail would disagree.
     await sendDraftReadyMail({ draftId: "d1", destination: "wordpress", at: AT });
-    const volume = blocksOf().find((b) => b.block === "stat") as unknown as {
+    const volume = blocksOf().find((b) => b.block === "hero") as unknown as {
       value: { value: number; at: Date };
     };
     expect(volume.value.value).toBe(1900);
@@ -348,9 +374,7 @@ describe("issue #183 — the mail names the page, and says why §7 chose it", ()
     };
     await sendDraftReadyMail({ draftId: "d1", destination: "wordpress", at: AT });
 
-    expect(blocksOf().find((b) => b.text === "mail.draftReady.why.search")?.vars?.query).toBe(
-      "re-pointing a chimney cost"
-    );
+    expect(searchRow()).toBe("re-pointing a chimney cost");
   });
 
   it("a fix page carries no why-data — it has no search and no volume, and Fix never automates", async () => {
@@ -364,8 +388,8 @@ describe("issue #183 — the mail names the page, and says why §7 chose it", ()
     };
     await sendDraftReadyMail({ draftId: "d1", destination: "wordpress", at: AT });
 
-    expect(blocksOf().find((b) => b.text === "mail.draftReady.why.search")).toBeUndefined();
-    expect(blocksOf().find((b) => b.block === "stat")).toBeUndefined();
+    expect(searchRow()).toBeUndefined();
+    expect(blocksOf().find((b) => b.block === "hero")).toBeUndefined();
     // The page is still named, and the telling still said what it says.
     expect(blocksOf().find((b) => b.block === "pageBody")).toBeDefined();
     expect(blocksOf().find((b) => b.text === "mail.draftReady.autopilotWindow")).toBeDefined();
@@ -376,7 +400,7 @@ describe("issue #183 — the mail names the page, and says why §7 chose it", ()
     await sendDraftReadyMail({ draftId: "d1", destination: "wordpress", at: AT });
 
     expect(blocksOf().find((b) => b.block === "pageBody")).toBeDefined();
-    expect(blocksOf().find((b) => b.text === "mail.draftReady.why.search")).toBeUndefined();
+    expect(searchRow()).toBeUndefined();
   });
 
   it("every sentence it speaks is a registry key, and the title is not one of them", async () => {
@@ -389,9 +413,11 @@ describe("issue #183 — the mail names the page, and says why §7 chose it", ()
     choice.answer = WRITE_CHOICE;
     await sendDraftReadyMail({ draftId: "d1", destination: "wordpress", at: AT });
 
-    // Both why-lines were owner-owed until issue #458 filled them on the
-    // owner's 2026-09-10 approval; each now carries a written sentence.
-    for (const key of ["mail.draftReady.why.search", "mail.draftReady.why.volume"] as const) {
+    // The why-data's own keys were owner-owed until issue #458 filled them
+    // on the owner's 2026-09-10 approval; each carries a written sentence.
+    // Since #933 the search is the board's own fact row and the volume is
+    // the number up top, so those are the two keys the mail now speaks.
+    for (const key of ["mail.draftReady.fact.search", "mail.draftReady.why.volume"] as const) {
       expect(Object.keys(COPY)).toContain(key);
       expect(COPY[key].trim(), key).not.toBe("");
       expect(COPY[key], key).not.toBe(TODO_COPY_MARKER);
@@ -407,9 +433,11 @@ describe("issue #183 — the mail names the page, and says why §7 chose it", ()
       blocks: m.blocks as unknown as readonly MailBlock[],
       reason: m.reason as CopyKey | undefined,
     });
-    const why = copy("mail.draftReady.why.search", { query: "how long does a slate roof last" });
-    expect(composed.text).toContain(why);
-    expect(composed.html).toContain(escapeHtml(why));
+    // The row states the label and, beside it, §7's stored query.
+    const label = copy("mail.draftReady.fact.search");
+    expect(composed.text).toContain(`${label}: how long does a slate roof last`);
+    expect(composed.html).toContain(escapeHtml(label));
+    expect(composed.html).toContain(escapeHtml("how long does a slate roof last"));
     expect(composed.text).toContain(COPY["mail.draftReady.why.volume"]);
     // The title has no key of its own: it is carried by the label, which
     // does (`generated.page.written`).
