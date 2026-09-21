@@ -138,7 +138,15 @@ export const CALENDAR_COPY = Object.freeze({
   // site. Drafted under issue 759's ruling.
   "calendar.action.check-destination": ["Check where your pages publish", { slots: {}, fixedBy: "issue 880" }],
   "calendar.action.skip": ["Skip", { slots: {}, fixedBy: "BUILD §4.6" }],
-  "calendar.action.veto": ["Veto", { slots: {}, fixedBy: "BUILD §4.6" }],
+  // SPEC §7 (2026-09-20, #908, issue #914) — "Screens and mail say *Stop
+  // this page*. 'Veto' remains the internal word and the name of the
+  // mechanism in this file." The key, the command, the column and the
+  // route are all still `veto`; only what the customer reads changed.
+  // The short form, and it is short because the canvas draws this control
+  // in the day panel's two-column secondary row beside *Skip* and *Write
+  // it again* — the full sentence belongs on the page itself, where the
+  // draft screen says it in full.
+  "calendar.action.veto": ["Stop it", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
   // 2026-09-07, issue #143. The customer's own restart — §9 opens
   // `needs_attention → generating` for them and for no one else, and no
   // surface offered it.
@@ -221,7 +229,7 @@ export const CALENDAR_COPY = Object.freeze({
     { slots: {}, fixedBy: "BUILD §4.6" },
   ],
   "calendar.footnote.supply": [
-    "When opportunities run out, future days are empty — the calendar is never padded.",
+    "When opportunities run out, future days are empty — the plan is never padded.",
     { slots: {}, fixedBy: "BUILD §4.6" },
   ],
 
@@ -288,7 +296,8 @@ export const CALENDAR_COPY = Object.freeze({
     "measured {date}",
     { slots: { date: "date" }, fixedBy: "REQ-043 c10" },
   ],
-  "calendar.status.veto-deadline": ["You can veto this page until {at}.", { slots: { at: "date" }, fixedBy: "BUILD §9" }],
+  // SPEC §7 (2026-09-20, #914): the customer's word for the interval.
+  "calendar.status.veto-deadline": ["You can stop this page until {at}.", { slots: { at: "date" }, fixedBy: "SPEC §7 2026-09-20" }],
 
   // §7's one statement of supply, as §4.6's calendar makes it: the three
   // arms of `supplyNotice`, in the engine's own precedence (exhausted >

@@ -209,7 +209,7 @@ export const MAIL_COPY = Object.freeze({
   "mail.weekly.verdicts": ["pages judged", { slots: {}, fixedBy: "REQ-063 c4" }],
   "mail.weekly.verdicts.none": ["No pages published yet, so none to judge.", { slots: {}, fixedBy: "REQ-064 c3" }],
   "mail.weekly.next": ["next three", { slots: {}, fixedBy: "§12" }],
-  "mail.weekly.next.none": ["Nothing next: no open opportunity is left, and the calendar is never padded.", { slots: {}, fixedBy: "REQ-064 c3" }],
+  "mail.weekly.next.none": ["Nothing next: no open opportunity is left, and the plan is never padded.", { slots: {}, fixedBy: "SPEC §8 2026-09-20" }],
   "mail.weekly.next.item": ["{search}", { slots: { search: "text" }, fixedBy: "§12" }],
 
   // The three forms a judged page's row takes. Three sentences and not one
@@ -275,8 +275,8 @@ export const MAIL_COPY = Object.freeze({
     { slots: { publishesAt: "date" }, fixedBy: "REQ-057 c1 · S20 (11a)" },
   ],
   "mail.draftReady.autopilotZero": [
-    "Publishes {publishesAt}. No veto window set.",
-    { slots: { publishesAt: "date" }, fixedBy: "REQ-057 c7" },
+    "Publishes {publishesAt}. There’s no interval in which to stop it.",
+    { slots: { publishesAt: "date" }, fixedBy: "SPEC §8 2026-09-20" },
   ],
   "mail.draftReady.copilot": ["It will not publish until you approve it.", { slots: {}, fixedBy: "REQ-057 c1" }],
 

@@ -74,7 +74,7 @@ export const SETTINGS_COPY = Object.freeze({
   //
   // Two "saved" sentences and not one with a `{when}` slot, because the
   // two answers are different facts rather than one fact with a variable
-  // in it: the veto window, the zone, the switch, the mail switches and
+  // in it: the time to stop a page, the zone, the switch, the mail switches and
   // the never-claim list all bite the moment they are written, and the
   // publish time bites on the next page that goes out. A slot would make
   // the screen compose the difference; two written lines let the owner
@@ -210,7 +210,18 @@ export const SETTINGS_COPY = Object.freeze({
 
   // ── Publishing ─────────────────────────────────────────────────────────
   "settings.publishing.title": ["Publishing", { slots: {}, fixedBy: "BUILD §4.7" }],
-  "settings.publishing.veto": ["veto window", { slots: {}, fixedBy: "BUILD §4.7" }],
+  // SPEC §7 (2026-09-20, #908, issue #914) — "Screens and mail say *Stop
+  // this page*. 'Veto' remains the internal word". §4.7's own label was
+  // the internal word; the canvas (R4-11) gives the customer's, and the
+  // note under it says what the number measures. The key keeps its name:
+  // the mechanism, the column and the stepper are still the veto window.
+  // Drafted from the canvas under issue 759's ruling; the owner may
+  // correct both sentences.
+  "settings.publishing.veto": ["time to stop a page", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
+  "settings.publishing.veto.note": [
+    "How long you get to read each page before it goes live.",
+    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
+  ],
   // §4.7 asks for a "veto window stepper". A stepper's two ends are
   // symbols, not sentences — the same footing `unmeasured.dash` sits on in
   // `laws.ts` ("a transcription of REQ-004's own '—' character, on the same
@@ -242,12 +253,12 @@ export const SETTINGS_COPY = Object.freeze({
   // Three keys, one per pair, and a fourth pair is a type error. The
   // sentences are the owner's.
   "settings.publishing.pair.autopilotWindow": [
-    "A draft you don’t touch publishes at the first publish time after its veto window ends.",
-    { slots: {}, fixedBy: "REQ-073 c2" },
+    "A draft you don’t touch publishes at the first publish time after your time to stop it runs out.",
+    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
   ],
   "settings.publishing.pair.autopilotZero": [
-    "With no veto window, a draft you don’t touch publishes at your next publish time — there is no interval in which to stop it.",
-    { slots: {}, fixedBy: "REQ-073 c2" },
+    "With no time to stop a page, a draft you don’t touch publishes at your next publish time — there is no interval in which to stop it.",
+    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
   ],
   "settings.publishing.pair.copilot": ["A draft you don’t touch stays in review and never publishes on its own.", { slots: {}, fixedBy: "REQ-073 c2" }],
 

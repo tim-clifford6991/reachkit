@@ -90,7 +90,7 @@ export const OFFER_COPY = Object.freeze({
     { slots: {}, fixedBy: "S4 · REQ-021 c2" },
   ],
   "offer.pricing.veto": [
-    "{hours}-hour veto window on every page",
+    "{hours} hours to stop any page before it goes live",
     { slots: { hours: "text" }, fixedBy: "S4 · REQ-021 c2" },
   ],
 

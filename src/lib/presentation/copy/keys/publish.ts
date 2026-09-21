@@ -213,7 +213,9 @@ export const PUBLISH_COPY = Object.freeze({
     { slots: {}, fixedBy: "REQ-057 c1 · S6 (11a)" },
   ],
   "publish.veto.done.head": ["Stopped", { slots: {}, fixedBy: "S6 (11a)" }],
-  "publish.veto.calendar": ["Open the calendar", { slots: {}, fixedBy: "S6 (11a)" }],
+  // SPEC §4 (2026-09-20, #914): *Plan* is the calendar's on-screen name.
+  // The key keeps the internal word, as the route `/veto/{token}` does.
+  "publish.veto.calendar": ["Open the plan", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
   "publish.veto.stopped": [
     "This page will not publish. Tomorrow’s page is unaffected.",
     { slots: {}, fixedBy: "REQ-057 c1 · S6 (11a)" },
