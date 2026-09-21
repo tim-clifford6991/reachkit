@@ -217,4 +217,31 @@ describe("RivalSparkline", () => {
     expect(readings(host)).toContain("one.com · domain changed");
     expect(host.querySelector("p")?.textContent).toBe("domain changed");
   });
+
+  it("never breaks the rival's name mid-word, and keeps the whole of it on the element (#959)", async () => {
+    // At 390 the name used to share a row with the plot and the figure and
+    // was given about 58px, where `wrap-anywhere` broke `secondplace.io`
+    // into `secon` / `dplac` / `e.io`. A domain is a value and §2.3 does
+    // not break one. It has a line of its own now, clamped with its whole
+    // value on `title` — the shape #955 gave `PresenceBars`.
+    const host = await draw(
+      <RivalSparkline name="secondplace.io" value="5×" points={[12, 9, 6, 5]} label="gap" />,
+    );
+    const name = [...host.querySelectorAll("span")].find(
+      (el) => el.textContent === "secondplace.io",
+    );
+    expect(name).toBeDefined();
+    expect(name?.className).toContain("truncate");
+    expect(name?.className).not.toContain("wrap-anywhere");
+    expect(name?.getAttribute("title")).toBe("secondplace.io");
+  });
+
+  it("gives the plot the whole width, under that line rather than beside it", async () => {
+    const host = await draw(
+      <RivalSparkline name="one.com" value="78×" points={[302, 240, 190, 120, 78]} label="gap" />,
+    );
+    const figure = host.querySelector("figure");
+    expect(figure?.className).toContain("w-full");
+    expect(figure?.className).not.toContain("w-32");
+  });
 });

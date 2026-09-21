@@ -86,7 +86,12 @@ function RivalRow(p: {
   return (
     <li className="flex min-w-0 flex-col gap-2">
       <div className="flex min-w-0 flex-wrap items-center gap-3">
-        <div className="min-w-0 flex-1 overflow-x-auto">
+        {/* No scroller any more (#959). It was here because the sparkline
+            drew its name, its plot and its figure on one row, which did not
+            fit a phone; the plot is full-width under its own label line now
+            and the row has nothing to scroll. One fewer allow-listed box
+            hiding a value the customer cannot see. */}
+        <div className="min-w-0 flex-1">
           {p.account === undefined ? (
             <RivalSparkline
               name={p.domain}
