@@ -83,8 +83,22 @@ function safeLabel(label: string): string {
   return label.replace(/[[\]]/g, "").replace(/\s+/g, " ").trim();
 }
 
-/** An address the inline grammar reads back whole: it ends a link at the
- *  first `)` or whitespace, so both are percent-encoded. */
+/**
+ * An address the inline grammar reads back whole.
+ *
+ * **Both parentheses, since issue 929.** The hand-written grammar ended a
+ * link at the first `)`, so encoding that one was enough. The parser is
+ * CommonMark now (`src/lib/publish/render/markdown.ts`), and its rule is
+ * different: an unwrapped destination may contain parentheses only in
+ * **balanced** pairs, so a URL with a lone `(` — which
+ * `https://…/widget_(v2)` becomes the moment its `)` is encoded — is not a
+ * destination at all and the whole link reads as literal text.
+ *
+ * Encoding both leaves an address with no parentheses in it, which every
+ * Markdown parser reads back the same way and which resolves to the same
+ * URL. Whitespace is encoded for the reason it always was: a space ends a
+ * destination in CommonMark too.
+ */
 function safeHref(url: string): string {
-  return url.replace(/\)/g, "%29").replace(/\s/g, "%20");
+  return url.replace(/\(/g, "%28").replace(/\)/g, "%29").replace(/\s/g, "%20");
 }

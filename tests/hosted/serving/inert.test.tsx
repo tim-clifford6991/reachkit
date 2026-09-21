@@ -170,6 +170,34 @@ describe("a published page is inert: nothing in a body reaches the document as m
     expect(doc.body.textContent).toContain("<script>fetch(");
   });
 
+  it("issue 929's own case — a `<script>` typed into a table cell publishes as escaped text", async () => {
+    // The issue's "Done when", over the served bytes. A table is the one
+    // block SPEC §7 (2026-09-20) added that has a *cell* — a place a body
+    // can put text that a hand-written grammar never had to escape — and
+    // the parser behind it is a standard one now. The property is the
+    // renderer's and is unchanged: a cell's content is inline content, and
+    // every text node of it is escaped on the way out.
+    state.page = pageWith({
+      bodyMd:
+        "| Plan | Price |\n| --- | --- |\n" +
+        '| <script>alert(1)</script> | <img src=x onerror="alert(1)"> |\n',
+    });
+    const { html, doc } = await served();
+
+    expect(active(doc)).toEqual([]);
+    const scripts = Array.from(doc.querySelectorAll("script"));
+    expect(scripts.map((script) => script.getAttribute("type"))).toEqual(["application/ld+json"]);
+    // The table is a real table — the block published, it was not dropped —
+    // and the markup a body typed into it is that cell's text.
+    const cells = Array.from(doc.querySelectorAll("td")).map((td) => td.textContent);
+    expect(cells).toEqual(["<script>alert(1)</script>", '<img src=x onerror="alert(1)">']);
+    expect(html).toContain("&lt;script&gt;");
+    // And the table scrolls in a box of its own rather than taking the page
+    // sideways on a phone.
+    const table = doc.querySelector("table");
+    expect(table?.parentElement?.className).toContain("overflow-x-auto");
+  });
+
   it("an `onerror` attribute is text, and lands on no element", async () => {
     state.page = pageWith({
       bodyMd: 'Compare the two:\n\n<img src=x onerror="alert(document.domain)">',

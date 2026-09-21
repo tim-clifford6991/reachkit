@@ -80,6 +80,13 @@ describe("the one serialiser reads the links back", () => {
       label: "Widget [v2]",
     };
     const out = apply("Body.", [odd]);
-    expect(renderMarkdownHtml(out)).toContain('<a href="https://example.com/products/widget_(v2%29">Widget v2</a>');
+    // Issue 929: the parser is CommonMark, whose rule for an unwrapped
+    // destination is that parentheses must be **balanced** — so both are
+    // percent-encoded at the minting side and the address that lands has
+    // none. It resolves to the same URL and every Markdown parser reads it
+    // back the same way.
+    expect(renderMarkdownHtml(out)).toContain(
+      '<a href="https://example.com/products/widget_%28v2%29">Widget v2</a>'
+    );
   });
 });
