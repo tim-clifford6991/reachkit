@@ -386,6 +386,68 @@ describe("S16 — the card the approved set draws", () => {
   });
 });
 
+describe("the Decide bar — one DOM, pinned only below `md`", () => {
+  // The owner's review of #931: on a phone the rail was the last thing under
+  // a ~5,300px page, so a reviewer could not act without scrolling past all
+  // of it. The controls are now fixed to the foot of the viewport below
+  // `md`. **The geometry is proved in a real browser** — Approve's box inside
+  // the viewport at the top of the page and at its foot, the bar above the
+  // shell's dock, the last card clear of it — and the numbers are in the PR
+  // body, because jsdom computes no layout (`checks.ts`'s own header says
+  // why). What is proved *here* is the thing a browser cannot tell us: that
+  // there is only one of everything.
+
+  it("there is one set of controls, not a phone copy beside a desktop one", () => {
+    const root = markup();
+    const controls = root.querySelectorAll('[data-testid^="draft-action-"]');
+    // The in-review fixture offers all three (§9's table, through
+    // `draftActionsFor`), and each appears exactly once.
+    expect(controls.length).toBe(3);
+    for (const key of ["draft.action.approve", "draft.action.edit", "draft.action.veto"]) {
+      expect(
+        root.querySelectorAll(`[data-testid="draft-action-${key}"]`).length,
+        `${key} must exist exactly once in the document`
+      ).toBe(1);
+    }
+    // And one do-nothing line, in the same place as the controls: the
+    // sentence takes the row above them through `order`, not by being
+    // written a second time.
+    expect(root.querySelectorAll('[data-testid="draft-do-nothing"]').length).toBe(1);
+    const bar = root.querySelector('[data-testid="draft-decide-bar"]');
+    expect(bar).not.toBeNull();
+    expect(bar?.querySelector('[data-testid="draft-actions"]')).not.toBeNull();
+    expect(bar?.querySelector('[data-testid="draft-do-nothing"]')).not.toBeNull();
+  });
+
+  it("the checks are not in the bar: they stay below the page", () => {
+    // The owner's words. A four-row list pinned over the page would cover
+    // the page it is about, and a reviewer reads the checks once, before
+    // deciding.
+    const root = markup();
+    const bar = root.querySelector('[data-testid="draft-decide-bar"]');
+    expect(bar?.querySelector('[data-testid="draft-checks"]')).toBeNull();
+    expect(
+      root.querySelector('[data-testid="draft-decide"] [data-testid="draft-checks"]')
+    ).not.toBeNull();
+  });
+
+  it("nothing is pinned from `md` up, and the page reserves room where something is", () => {
+    // The two halves of "below md" as the markup states them: every pinning
+    // class is prefixed, so from `md` up the rail is exactly the card it was
+    // — and the page's own bottom padding is prefixed the same way, so it
+    // exists only where the bar does.
+    const root = markup();
+    const bar = root.querySelector('[data-testid="draft-decide-bar"]');
+    const barClasses = (bar?.getAttribute("class") ?? "").split(/\s+/);
+    expect(barClasses).toContain("max-md:fixed");
+    expect(barClasses, "an unprefixed `fixed` would pin the rail at every width").not.toContain(
+      "fixed"
+    );
+    const view = root.querySelector('[data-testid="draft-view"]');
+    expect((view?.getAttribute("class") ?? "").split(/\s+/)).toContain("max-md:pb-20");
+  });
+});
+
 describe("a published page on an autopilot site renders at all", () => {
   // The screen used to throw for this view, in `DecidePanel`, before it
   // drew a single element: an autopilot page with no veto window left named

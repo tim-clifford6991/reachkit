@@ -542,7 +542,16 @@ export function DraftScreen(p: {
         });
 
   return (
-    <div className="flex min-w-0 flex-col gap-4" data-testid="draft-view">
+    // **Room under the page for the Decide bar** (owner's review of #931).
+    // Below `md` the three controls are fixed above the shell's dock
+    // (`DecidePanel` says why there), so the last card would sit under them
+    // without this. The shell already reserves the dock's own 4rem below
+    // `lg` (`app/layout.tsx`: `pb-20`); this is the bar's height on top of
+    // it, measured in Chromium at 390 rather than guessed — see the PR body.
+    <div
+      className="flex min-w-0 flex-col gap-4 max-md:pb-20"
+      data-testid="draft-view"
+    >
       <nav data-testid="draft-back">
         <a href="/app/calendar" className="btn btn-sm btn-ghost">
           <ArrowLeft size={16} strokeWidth={1.75} aria-hidden />
