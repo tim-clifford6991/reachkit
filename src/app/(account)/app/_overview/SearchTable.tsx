@@ -23,11 +23,24 @@
 // `filter` collapses to the chosen chip with a reset beside it, which is
 // the component working rather than a departure from the board.
 //
-// **It cannot overflow.** The table scrolls sideways inside its own box, so
-// a phone never scrolls the page sideways; the search is clamped to one
-// line with the whole of it on the cell's own `title`; and no number is
-// clamped anywhere — every numeric cell is `whitespace-nowrap`, so the
-// column changes rather than the value.
+// **Two shapes, one DOM** (#963). Six columns do not fit a 390px card:
+// measured while proving #958, the card is 358px and the table 802px, so
+// four of the six sat off the right edge of the scroller and a phone user
+// saw a search and its volume and none of what the table is for. Below
+// `sm` the row is a three-line grid — the search and its demand, then where
+// you stand against the best rival, then the difficulty and the status —
+// and the box does not scroll at all. From `sm` up it is the six-column
+// daisyUI `table`, unchanged, scrolling sideways inside its own box so the
+// page never does.
+//
+// The four cells are rendered **once**. `SEARCH_CELL_CLASS` places each one
+// on the phone shape (the table's column order is not the reading order) and
+// `SEARCH_CELL_LABEL` gives the three that do not say what they are the
+// column's own word beside them. No second markup, no content written twice.
+//
+// **Nothing is clamped and nothing is cut.** The search wraps and the row
+// grows; every numeric cell is `whitespace-nowrap`, so the column changes
+// rather than the value.
 "use client";
 
 import type React from "react";
@@ -46,7 +59,15 @@ import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { formatCount, renderValue } from "./present";
 import { DifficultyBar } from "./DifficultyBar";
 import { SEARCH_FILTERS, type SearchModel, type SearchRow } from "./search-model";
-import { COLUMN_COPY_KEY, FILTER_COPY_KEY, STATUS_BADGE, STATUS_COPY_KEY } from "./search-words";
+import {
+  COLUMN_COPY_KEY,
+  FILTER_COPY_KEY,
+  SEARCH_CELL_CLASS,
+  SEARCH_CELL_LABEL,
+  STATUS_BADGE,
+  STATUS_COPY_KEY,
+  type SearchColumn,
+} from "./search-words";
 
 /** SPEC §4 (2026-09-20): "nine rows then *Show all*." */
 const FIRST_PAGE_ROWS = 9;
@@ -125,14 +146,20 @@ export function SearchTable(p: { model: SearchModel }): React.JSX.Element {
       column.accessor((row) => row.target.search, {
         id: "search",
         header: () => copy(COLUMN_COPY_KEY.search),
-        // **The UI face, not the mono one** (owner's review of this PR).
+        // **The UI face, not the mono one** (owner's review of #948).
         // docs/DESIGN.md reserves JetBrains Mono for numerals, domains and
         // code; a search phrase is none of those, and the approved board
-        // draws it in Plus Jakarta Sans at semibold. The clamp and the
-        // title stay — the value is still whole in the document.
+        // draws it in Plus Jakarta Sans at semibold.
+        //
+        // **It no longer clamps** (#963). On the phone shape there is no
+        // scroller to reach the rest of a clipped value through, and
+        // `checks.ts` reports a clamp outside a declared scroll container
+        // as a value cut in half. So it wraps at every width and the row
+        // grows — the box changing rather than the value. The column keeps
+        // its cap and the cell keeps its `title`.
         cell: (ctx) => (
           <span
-            className="block max-w-[14rem] truncate font-semibold"
+            className="block max-w-[14rem] font-semibold"
             title={ctx.getValue()}
             data-testid="search-query"
           >
@@ -181,7 +208,9 @@ export function SearchTable(p: { model: SearchModel }): React.JSX.Element {
         id: "status",
         header: () => copy(COLUMN_COPY_KEY.status),
         cell: (ctx) => (
-          <span className={`${STATUS_BADGE[ctx.getValue()]} whitespace-nowrap`}>
+          <span
+            className={`${STATUS_BADGE[ctx.getValue()]} max-sm:h-auto max-sm:whitespace-normal sm:whitespace-nowrap`}
+          >
             {copy(STATUS_COPY_KEY[ctx.getValue()])}
           </span>
         ),
@@ -284,13 +313,18 @@ export function SearchTable(p: { model: SearchModel }): React.JSX.Element {
           able to reach it (#947). The region takes the table's own name
           rather than a second one. */}
       <div
-        className="min-w-0 overflow-x-auto"
+        className="min-w-0 sm:overflow-x-auto"
         tabIndex={0}
         role="region"
         aria-label={copy("overview.search.table.label")}
+        data-testid="search-table-scroll"
       >
         <table className="table table-sm" aria-label={copy("overview.search.table.label")}>
-          <thead>
+          {/* The heads belong to the six-column shape. On the phone shape
+              each value carries the head's own word beside it instead, so
+              they are not drawn rather than drawn and read out over a list
+              that no longer has columns. */}
+          <thead className="hidden sm:table-header-group">
             {table.getHeaderGroups().map((group) => (
               <tr key={group.id}>
                 {group.headers.map((header) => (
@@ -303,12 +337,32 @@ export function SearchTable(p: { model: SearchModel }): React.JSX.Element {
           </thead>
           <tbody>
             {table.getRowModel().rows.map((row) => (
-              <tr key={row.id} data-testid="search-row">
-                {row.getVisibleCells().map((cell) => (
-                  <td key={cell.id} className="align-middle">
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </td>
-                ))}
+              <tr
+                key={row.id}
+                data-testid="search-row"
+                // daisyUI rules each cell at the foot; on the phone shape
+                // that draws lines across the middle of a row that is one
+                // block, so below `sm` the cells carry none and the row
+                // itself carries one.
+                className="max-sm:grid max-sm:grid-cols-[minmax(0,1fr)_minmax(0,10rem)] max-sm:items-baseline max-sm:gap-x-3 max-sm:gap-y-1 max-sm:border-b max-sm:border-base-300 max-sm:p-3 max-sm:[&>td]:border-0 sm:table-row"
+              >
+                {row.getVisibleCells().map((cell) => {
+                  const id = cell.column.id as SearchColumn;
+                  const label = SEARCH_CELL_LABEL[id];
+                  return (
+                    <td
+                      key={cell.id}
+                      className={`flex items-baseline gap-1.5 p-0 align-middle sm:table-cell sm:px-3 sm:py-2 ${SEARCH_CELL_CLASS[id]}`}
+                    >
+                      {label === null ? null : (
+                        <span className="shrink-0 text-xs text-base-content/60 sm:hidden">
+                          {copy(label)}
+                        </span>
+                      )}
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </td>
+                  );
+                })}
               </tr>
             ))}
           </tbody>
