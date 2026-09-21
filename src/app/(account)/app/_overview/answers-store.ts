@@ -97,7 +97,16 @@ export async function readAnswerFacts(site: AnswersSite, at: Date): Promise<Answ
     const report = scans.get(week)?.report ?? null;
     const questions = questionsOf(report, site.domain, pages);
     if (questions === null) continue;
-    weeks.push({ weekStart: mondayOf(week), questions });
+    // #919: the pass's page questions, beside its twelve. A pass that asked
+    // none has no member rather than an empty one — the grid draws what was
+    // tracked, and "none were asked" and "none exist" are the same picture
+    // only because they are the same fact here.
+    const pageQuestions = pageQuestionsOf(report, site.domain, pages);
+    weeks.push({
+      weekStart: mondayOf(week),
+      questions,
+      ...(pageQuestions.length === 0 ? {} : { pageQuestions }),
+    });
   }
 
   return {
@@ -142,6 +151,41 @@ function questionsOf(
     // measured, the other two never reached.
     const columns = row.engines.length > 0 ? row.engines : [{ engine: "ai_overview", cell: row.cell }];
     const byEngine = new Map<string, AnswerCell>(columns.map((column) => [column.engine, column.cell]));
+    return {
+      n: row.question.n,
+      wording: row.question.wording,
+      search: row.question.search,
+      marks: ANSWER_ENGINES.map((engine: AnswerEngine) => {
+        const cell = byEngine.get(engine);
+        return cell === undefined ? "not_measured" : markOf(cell, ownDomain);
+      }),
+      page: pages.get(normalise(row.question.search)) ?? null,
+    };
+  });
+}
+
+/**
+ * SPEC §6 (2026-09-20, #919) — one pass's page questions, as grid rows.
+ *
+ * The same reading as the twelve above, over the section stored beside
+ * them: each row's three engine columns, each column as one of the five
+ * marks. The page a row links to is the row's **own** page — a page
+ * question exists because that page was published for that search — so the
+ * same lookup finds it, and finds nothing where the page has since been
+ * taken down.
+ *
+ * A pass that stored no section asked none: an empty list, which the model
+ * carries as "this week tracked the twelve alone".
+ */
+function pageQuestionsOf(
+  report: StoredReport | null,
+  ownDomain: string,
+  pages: ReadonlyMap<string, AnswerPage>
+): readonly AnswerQuestion[] {
+  const section = report?.pageQuestions;
+  if (section === undefined || section === null) return [];
+  return section.rows.map((row): AnswerQuestion => {
+    const byEngine = new Map<string, AnswerCell>(row.engines.map((column) => [column.engine, column.cell]));
     return {
       n: row.question.n,
       wording: row.question.wording,

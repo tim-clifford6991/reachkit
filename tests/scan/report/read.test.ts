@@ -432,6 +432,51 @@ describe("a report written at version 9 is lifted, not refused", () => {
   });
 });
 
+// ── #919: version 10 → 11, the pass records SPEC §6's page questions
+//
+// A pass that ran before this version asked none, so the section arrives
+// `null` — never an empty section, which would say a pass went looking for
+// pages to ask for and found none, and never rows lifted out of the twelve,
+// which are the market's questions and belong to no page.
+describe("a report written at version 10 is lifted, not refused", () => {
+  it("asked no page question — null, never an empty section", () => {
+    const { pageQuestions, ...current } = asStoredJson() as Record<string, unknown>;
+    void pageQuestions;
+    const v10 = { ...current, version: 10 };
+    const report = readStoredReport(v10);
+    expect(report.version).toBe(REPORT_VERSION);
+    expect(report.pageQuestions).toBeNull();
+  });
+
+  it("changes nothing else about the blob", () => {
+    const { pageQuestions, ...current } = asStoredJson() as Record<string, unknown>;
+    void pageQuestions;
+    const before: Record<string, unknown> = { ...current, version: 10 };
+    const lifted = readStoredReport(before) as unknown as Record<string, unknown>;
+    for (const key of Object.keys(before)) {
+      if (key === "version") continue;
+      expect(JSON.stringify(lifted[key]), key).toBe(JSON.stringify(before[key]));
+    }
+  });
+
+  it("the chain steps one version at a time — a version-8 blob lands with every member since", () => {
+    // Each upgrade lifts a blob exactly one version, so the chain applies
+    // all of them. An upgrade that jumped to whatever this build writes
+    // would skip every upgrade after it: a version-8 report would arrive
+    // carrying the current version number and none of the members versions
+    // 9, 10 and 11 add. Both were written that way before #919.
+    const { ownRankedRows, measuredCategory, pageQuestions, ...current } = asStoredJson() as Record<string, unknown>;
+    void ownRankedRows;
+    void measuredCategory;
+    void pageQuestions;
+    const report = readStoredReport({ ...current, version: 8 });
+    expect(report.version).toBe(REPORT_VERSION);
+    expect(report.ownRankedRows).toEqual([]);
+    expect(report.measuredCategory).toBeNull();
+    expect(report.pageQuestions).toBeNull();
+  });
+});
+
 // ── The guard is one-way, and production is roll-forward-only (issue 887) ──
 //
 // The chain above lifts an old blob forward. Nothing lifts a blob back, so a

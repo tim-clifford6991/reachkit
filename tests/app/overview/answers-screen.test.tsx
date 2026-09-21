@@ -20,6 +20,7 @@ import { assembleAnswers, ANSWER_MARKS } from "@/app/(account)/app/_overview/ans
 import { FIXTURE_ANSWERS_FACTS } from "@/app/(account)/app/_overview/answers-fixture";
 import { MARK_COPY_KEY } from "@/app/(account)/app/_overview/answers-words";
 import { copy } from "@/lib/presentation/copy";
+import { PAGE_QUESTION_RETIRE_WEEKS } from "@/lib/config/constants";
 
 const AT = FIXTURE_ANSWERS_FACTS.measuredAt ?? new Date(0);
 const MODEL = assembleAnswers(FIXTURE_ANSWERS_FACTS, AT);
@@ -29,6 +30,12 @@ function render(node: React.JSX.Element): Element {
   container.innerHTML = renderToStaticMarkup(node);
   return container;
 }
+
+/** Every row the grid draws: the twelve the market selected, and the page
+ *  questions beside them (#919). The two are separate members of the model
+ *  on purpose — the rate and this week's n of 12 count the first alone —
+ *  and this is the count of what a reader actually meets. */
+const TRACKED = MODEL.questions.length + MODEL.pageQuestions.length;
 
 const tiles = (): Element => render(<AnswerTiles model={MODEL} />);
 const grid = (): Element => render(<AnswerGrid model={MODEL} />);
@@ -92,7 +99,7 @@ describe("the question × engine grid", () => {
 
   it("gives every mark its own written name, so none is colour alone", () => {
     const cells = [...grid().querySelectorAll('[role="cell"]')];
-    expect(cells.length).toBe(MODEL.questions.length * MODEL.engines.length);
+    expect(cells.length).toBe(TRACKED * MODEL.engines.length);
     for (const cell of cells) {
       const label = cell.getAttribute("aria-label") ?? "";
       const mark = cell.getAttribute("data-mark") ?? "";
@@ -119,7 +126,7 @@ describe("the question × engine grid", () => {
   });
 
   it("puts the customer's own page beside the question where there is one", () => {
-    const withPages = MODEL.questions.filter((q) => q.page !== null);
+    const withPages = [...MODEL.questions, ...MODEL.pageQuestions].filter((q) => q.page !== null);
     expect(withPages.length).toBeGreaterThan(0);
     const links = [...grid().querySelectorAll('[data-testid="answers-page"]')];
     expect(links).toHaveLength(withPages.length);
@@ -146,7 +153,47 @@ describe("the question × engine grid", () => {
     const inCell = [...el.querySelectorAll('[role="cell"] span')].filter((s) =>
       s.className.includes("sm:hidden")
     );
-    expect(inCell).toHaveLength(MODEL.questions.length * MODEL.engines.length);
+    expect(inCell).toHaveLength(TRACKED * MODEL.engines.length);
+  });
+
+  it("draws the published pages' own questions as rows, and states the cap they obey", () => {
+    // SPEC §6 (2026-09-20, #919), board R4-06: "21 of 24 at most". The page
+    // questions are rows of this one grid — they are tracked questions,
+    // asked of the same three engines in the same pass — and the line under
+    // the title is where the set's size and its ceiling are stated.
+    const el = grid();
+    expect(MODEL.pageQuestions.length).toBeGreaterThan(0);
+    expect(el.querySelectorAll('[data-testid="answers-row"]')).toHaveLength(TRACKED);
+    for (const question of MODEL.pageQuestions) {
+      expect(el.textContent, "a page's own question is a row").toContain(question.wording.text);
+    }
+    expect(el.querySelector('[data-testid="answers-tracked"]')?.textContent).toBe(
+      copy("overview.answers.grid.tracked", {
+        tracked: String(TRACKED),
+        max: String(MODEL.cap),
+        weeks: String(PAGE_QUESTION_RETIRE_WEEKS),
+      })
+    );
+  });
+
+  it("counts the four-week rate and this week over the twelve, whatever the pages did", () => {
+    // The rate and the n of 12 are published figures a customer has been
+    // watching; neither moves because ReachKit published a page. The proof
+    // is the denominator: the same facts with the page questions taken out
+    // give the same two numbers.
+    const withoutPages = assembleAnswers(
+      {
+        ...FIXTURE_ANSWERS_FACTS,
+        weeks: FIXTURE_ANSWERS_FACTS.weeks.map(({ pageQuestions, ...week }) => {
+          void pageQuestions;
+          return week;
+        }),
+      },
+      AT
+    );
+    expect(MODEL.rate).toEqual(withoutPages.rate);
+    expect(MODEL.week).toEqual(withoutPages.week);
+    expect(MODEL.tracked).toBe(TRACKED);
   });
 
   it("shows the search each question was phrased from, beside its wording", () => {

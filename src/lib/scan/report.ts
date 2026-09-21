@@ -182,7 +182,7 @@ export type StoppedReason = "complete" | "time_ceiling" | "spend_ceiling" | "sit
  *  it does not know throws rather than returning a partially-populated
  *  value: `null` would be indistinguishable from "no report" at every call
  *  site. */
-export const REPORT_VERSION = 10;
+export const REPORT_VERSION = 11;
 
 /** One cell of the AI-answers matrix — one question, one measured SERP.
  *  BP-025 `## Public interface` (issue #26's `matrix.ts` owns it). An
@@ -276,6 +276,76 @@ export interface AiAnswersSection {
   coverage: "async_included" | "cached_only";
 }
 
+/**
+ * SPEC §6 (2026-09-20, #908 · #919) — the page questions, **beside the
+ * twelve and never inside them**.
+ *
+ * "Each published page's own question may join the tracked set: at most 24
+ * tracked questions in all (the twelve plus twelve) … and a page's question
+ * leaves the set after 8 weeks without a mention."
+ *
+ * It is a section of its own, and that is the issue's own requirement:
+ * *"store them in the report beside, not inside, the twelve, so the score's
+ * AI Presence is unchanged"*. `aiAnswers` is what the score counts over —
+ * `measuredSearches`, `answeredSearches`, `customerCitations` and every
+ * rival row — so a page question added to `aiAnswers.rows` would move a
+ * published score by arriving, which is a measurement changing because the
+ * product wrote a page rather than because the market did anything.
+ *
+ * `null` where the pass asked none: the free and onboarding passes (no
+ * published page has a question yet), a site with no live page, and every
+ * report written before version 11. Never an empty section with an empty
+ * row list, which would say a pass looked and found no page to ask for.
+ */
+export interface PageQuestionsSection {
+  measuredAt: Date;
+  /** The site's own registrable domain, so a row can be read for a mention
+   *  without the reader deciding what "the site" is a second time. */
+  ownDomain: string;
+  /** How many questions this pass tracked in all — the market's plus the
+   *  rows below. Stored rather than derived so a screen states the number
+   *  the pass actually obeyed, and a later change to the cap does not
+   *  rewrite what an old week says about itself. */
+  tracked: number;
+  /** `TRACKED_QUESTIONS_MAX` as this pass read it, for the same reason. */
+  cap: number;
+  rows: readonly PageQuestionRow[];
+  /** The pages whose question left the set this week (SPEC §6's eight
+   *  weeks). Kept because a retirement is a fact about a page that the
+   *  page's own verdict reads, and because the row is how *"a retired
+   *  question's history stays readable"* — the weeks it was asked are in
+   *  the reports behind this one, and this says which week it stopped. */
+  retired: readonly RetiredPageQuestion[];
+}
+
+/** One published page's own question, as this pass asked it. The shape is
+ *  the AI-answers row's — `cell` is the AI-Overview column and `engines`
+ *  is §6.2's three with that cell first — so one reader draws both. */
+export interface PageQuestionRow {
+  /** The publication this question belongs to: its identity across weeks,
+   *  and what a verdict for the page is keyed by. */
+  publicationId: string;
+  /** Where the page is, as it was live this week. */
+  liveUrl: string;
+  /** Numbered on from the twelve (13, 14, …), because the screen draws one
+   *  list of tracked questions and the reader counts through it. */
+  question: StoredQuestion;
+  cell: AnswerCell;
+  engines: readonly EngineCell[];
+}
+
+export interface RetiredPageQuestion {
+  publicationId: string;
+  liveUrl: string;
+  /** The question as it was asked, in plain text: this row is the record of
+   *  a question that is no longer asked, and it is read to say *which*
+   *  question stopped rather than rendered as a question to a customer. */
+  question: string;
+  /** How many weekly passes asked it and heard nothing — the number that
+   *  reached `PAGE_QUESTION_RETIRE_WEEKS`. */
+  weeksWithoutMention: number;
+}
+
 /** BUILD §4.1 module 2, right card — #27's own `PresenceCard`, re-exported
  *  under the name the report blob uses for it rather than re-declared.
  *
@@ -339,6 +409,11 @@ export interface StoredReport {
    *  where it is — one measurement, two readings, no second count. */
   blockedAgents: readonly (typeof AI_READER_AGENTS)[number][];
   aiAnswers: AiAnswersSection | null;
+  /** SPEC §6's page questions (#919), beside the twelve. `null` on a pass
+   *  that asked none and on every report written before version 11 — never
+   *  an empty section. The score reads `aiAnswers` and not this, which is
+   *  the whole reason it is a second member. */
+  pageQuestions: PageQuestionsSection | null;
   presence: PresenceSection | null;
   supply: SupplySection;
   freePage: FreePageSection | null;
@@ -452,7 +527,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 /** The version this build's own migration knows how to lift, and the only
  *  one: a report written before issue #128 bought the paid battery. */
-const MIGRATABLE_VERSIONS: readonly number[] = [3, 4, 5, 6, 7, 8, 9];
+const MIGRATABLE_VERSIONS: readonly number[] = [3, 4, 5, 6, 7, 8, 9, 10];
 
 /** The two battery columns of a report written before anything bought
  *  them. `not_attempted` and not `no_answer`: nobody asked these engines,
@@ -601,7 +676,13 @@ function upgradeFromVersion7(blob: Record<string, unknown>): Record<string, unkn
  * bought.
  */
 function upgradeFromVersion8(blob: Record<string, unknown>): Record<string, unknown> {
-  return { ...blob, version: REPORT_VERSION, ownRankedRows: [] };
+  // The literal `9`, not `REPORT_VERSION` (#919). Each upgrade lifts a blob
+  // **one** version and the chain does the rest — an upgrade that jumped
+  // straight to whatever this build writes would skip every upgrade after
+  // it, and a version-8 report would land at the current number without the
+  // members those upgrades add. Same rule as this file's header states for
+  // helpers: a migration is a frozen statement about two versions.
+  return { ...blob, version: 9, ownRankedRows: [] };
 }
 
 /**
@@ -622,7 +703,26 @@ function upgradeFromVersion8(blob: Record<string, unknown>): Record<string, unkn
  * a report reads as it always did: no measured category, so nothing pending.
  */
 function upgradeFromVersion9(blob: Record<string, unknown>): Record<string, unknown> {
-  return { ...blob, version: REPORT_VERSION, measuredCategory: null };
+  return { ...blob, version: 10, measuredCategory: null };
+}
+
+/**
+ * Version 10 → 11 (#919): the report carries SPEC §6's page questions
+ * beside the twelve.
+ *
+ * A pass that ran before this version asked none, so `pageQuestions`
+ * arrives `null` — "this pass tracked no page question", which is true of
+ * every one of them. Never an empty section, which would say a pass looked
+ * for pages to ask for and found none, and never a row invented from the
+ * twelve: the twelve are the market's questions and belong to no page.
+ *
+ * Every other member is untouched, so an old report renders exactly as it
+ * did — its score, its AI-answers card and its rival rows included, which
+ * is the point of the section being a second member rather than twelve more
+ * rows in the first.
+ */
+function upgradeFromVersion10(blob: Record<string, unknown>): Record<string, unknown> {
+  return { ...blob, version: 11, pageQuestions: null };
 }
 
 /** Every upgrade this build can apply, oldest first, each lifting a blob
@@ -637,6 +737,7 @@ const UPGRADES: readonly ((blob: Record<string, unknown>) => Record<string, unkn
   upgradeFromVersion7,
   upgradeFromVersion8,
   upgradeFromVersion9,
+  upgradeFromVersion10,
 ];
 
 /** The version guard, and the one upgrade beside it. Throws — loudly — on

@@ -163,7 +163,12 @@ function unmeasuredCell(m: { reason: "undeterminable" | "not_attempted"; because
   return { kind: "unmeasured", reason: m.reason, ...(m.because === undefined ? {} : { because: m.because }) };
 }
 
-function cellFor(measured: Measured<MarketSerp> | undefined, ownDomain: string): AnswerCell {
+/** Exported for `src/lib/scan/sections.ts` (#919), which reads the same
+ *  AI-Overview cell off a page question's own SERP. One implementation, so
+ *  a page question's column and a tracked question's column can never come
+ *  to mean two different things — the same reason `engineColumns` below is
+ *  exported. */
+export function overviewCellFor(measured: Measured<MarketSerp> | undefined, ownDomain: string): AnswerCell {
   if (measured === undefined) return { kind: "unmeasured", reason: "not_attempted" };
   // Issue 869: the reason the measurement heard travels with the cell.
   if (measured.kind === "unmeasured") return unmeasuredCell(measured);
@@ -178,7 +183,7 @@ function cellFor(measured: Measured<MarketSerp> | undefined, ownDomain: string):
 }
 
 /**
- * One battery engine's cell, on exactly the arms `cellFor` uses for the
+ * One battery engine's cell, on exactly the arms `overviewCellFor` uses for the
  * AI Overview — so the three columns are the same three kinds and a
  * renderer needs one cell component, not two.
  *
@@ -264,7 +269,7 @@ export function buildAiAnswersCard(a: {
   coverage: AiAnswersCard["coverage"];
 }): AiAnswersCard {
   const rows: AnswerRow[] = a.questions.map((question, i) => {
-    const cell = cellFor(a.serps[i], a.ownDomain);
+    const cell = overviewCellFor(a.serps[i], a.ownDomain);
     const bought = a.battery?.[i];
     return {
       questionId: question.id,

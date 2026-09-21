@@ -42,6 +42,7 @@
 import {
   CACHE_WINDOWS_D,
   FREE_RESCAN_WINDOW_D,
+  PAGE_QUESTION_RETIRE_WEEKS,
   PRICE_BOOK,
   SELECTION,
   SERP_RIVAL_SIZING,
@@ -55,6 +56,10 @@ import type { RobotsPolicy } from "@/lib/egress/types";
 import { checkCoherence, type CoherenceVerdict } from "@/lib/market/coherence/check";
 import { nextCorrectionState, type CorrectionState } from "@/lib/market/coherence/state";
 import { buildAiAnswersCard, type BatteryAnswers } from "@/lib/market/questions/matrix";
+import {
+  trackedQuestions,
+  type PageQuestionCandidate,
+} from "@/lib/market/questions/tracked";
 import {
   deriveMarketSet,
   joinMarketSets,
@@ -103,9 +108,15 @@ import { withScanBounds, withStoredPassSpend, type Bounds } from "./ceilings";
 import { advanceCorrectionState, readCorrectionFacts, registerCorrectionRunner } from "./correction";
 import { parseDomain, type CanonicalDomain } from "./domain";
 import { marketTooSmall, stoppedOnCeiling } from "./market-floor";
-import { readCurrentReport, readScanReport } from "./report";
+import { pageQuestionCandidates, pageQuestionMisses } from "./page-questions";
+import {
+  readCurrentReport,
+  readScanReport,
+  type PageQuestionsSection,
+  type RetiredPageQuestion,
+} from "./report";
 import type { AiAnswersSection, StoppedReason, StoredReport, SupplySection, Tier } from "./report";
-import { answersSectionOf, blockedAgentsOf } from "./sections";
+import { answersSectionOf, blockedAgentsOf, pageQuestionsSectionOf } from "./sections";
 import { checkSite, type CrawlReading } from "@/lib/site-issues/checks";
 import { emitEnding, enterStage, exitStage } from "./stages";
 import type { StageName } from "./stages";
@@ -245,6 +256,15 @@ interface TierParameters {
    *  tier be given its own figure once the recorded durations say what one
    *  should be. */
   serpAbortMs: number;
+  /** SPEC §6 (2026-09-20, #919) — does this pass ask the published pages'
+   *  own questions beside the twelve?
+   *
+   *  The weekly pass, and it alone. A free scan has no site and no
+   *  published page; the onboarding deep pass runs before the first page
+   *  exists, and a page's question is a *weekly* measurement — §6's rule is
+   *  stated in weeks ("8 weeks without a mention"), so a second pass in the
+   *  same week would spend a week of a question's life in an afternoon. */
+  pageQuestions: boolean;
 }
 
 export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.freeze({
@@ -266,6 +286,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     marketTooSmallAlert: "none",
     questionsFitThePurse: true,
     serpAbortMs: VENDOR.requestAbortMs,
+    pageQuestions: false,
   }),
   deep: Object.freeze({
     cap: "DEEP",
@@ -285,6 +306,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     marketTooSmallAlert: "immediate",
     questionsFitThePurse: false,
     serpAbortMs: VENDOR.requestAbortMs,
+    pageQuestions: false,
   }),
   weekly: Object.freeze({
     cap: "WEEKLY",
@@ -304,6 +326,7 @@ export const TIER_PARAMETERS: Readonly<Record<Tier, TierParameters>> = Object.fr
     marketTooSmallAlert: "digest",
     questionsFitThePurse: false,
     serpAbortMs: VENDOR.requestAbortMs,
+    pageQuestions: true,
   }),
 } as const);
 
@@ -322,6 +345,18 @@ interface Sections {
    *  the engines' own prose is generated text and has no member here to
    *  travel in (`MarketAiAnswer`, `src/lib/market/views.ts`). */
   battery: BatteryAnswers[];
+  /** SPEC §6's page questions (#919), beside the twelve and never inside
+   *  them: `serps` and `battery` above are what the score, the rivals and
+   *  the coherence verdict are counted over, and a page question in either
+   *  would move a published score by being asked. Three parallel arrays
+   *  again, in the order the questions were asked. */
+  pageAsked: PageQuestionCandidate[];
+  pageSerps: Measured<SerpResult>[];
+  pageBattery: BatteryAnswers[];
+  /** The pages whose question ran out of weeks this pass. */
+  pageRetired: RetiredPageQuestion[];
+  /** The composed section, rebuilt by `score` beside the AI-answers card. */
+  pageQuestions: PageQuestionsSection | null;
   rivals: Measured<RivalCandidate[]>;
   /** §6.6's sizing, at the two tiers whose parameters say so. Two halves,
    *  in this order: the rivals the customer chose, sized by
@@ -375,6 +410,11 @@ function freshSections(at: Date): Sections {
     questions: unmeasured("not_attempted", at),
     serps: [],
     battery: [],
+    pageAsked: [],
+    pageSerps: [],
+    pageBattery: [],
+    pageRetired: [],
+    pageQuestions: null,
     rivals: unmeasured("not_attempted", at),
     rivalSizes: unmeasured("not_attempted", at),
     rivalRows: null,
@@ -1095,7 +1135,18 @@ async function runStages(a: StageArgs): Promise<void> {
   await enter("asking_the_twelve");
   const twelve = await inBudget(
     "asking_the_twelve",
-    (b, abandoned) => askTheTwelve({ ...a, bounds: b }, abandoned),
+    async (b, abandoned) => {
+      await askTheTwelve({ ...a, bounds: b }, abandoned);
+      // **After the twelve, in their stage, and that is what "degrade page
+      // questions first" means** (#919). The page questions run inside this
+      // same budget row — the same clock, the same `WEEKLY` cap and the
+      // same `stopNow()` between every call — and they ask *second*. So a
+      // pass that is running out of either time or money spends what is
+      // left on the market's twelve and stops before the pages, every time,
+      // with no second rule deciding it. A ceiling met here leaves the
+      // pages unasked, which their section says by being `null` or short.
+      await askThePageQuestions({ ...a, bounds: b }, abandoned);
+    },
     twelveCents
   );
   if (bounds.abandoned()) return;
@@ -1696,6 +1747,125 @@ async function askTheTwelve(a: StageArgs, abandoned: () => boolean): Promise<voi
   });
 }
 
+/**
+ * SPEC §6 (2026-09-20, #908 · #919) — the published pages' own questions,
+ * asked after the twelve and inside their budget.
+ *
+ * **Everything that decides *which* questions is pure and lives
+ * elsewhere.** `trackedQuestions` holds the cap arithmetic and the
+ * retirement (`src/lib/market/questions/tracked.ts`); `page-questions.ts`
+ * holds the two reads it is answered from. This function asks what it is
+ * handed, with the same two calls per question the twelve are asked with —
+ * one SERP, whose AI Overview rides free, and the battery's two engines.
+ *
+ * **It is the first thing a short pass loses.** It runs after the twelve
+ * in the same stage, under the same cap and the same clock, and every
+ * worker re-reads both before taking a question — so a ceiling stops the
+ * pages and never the market.
+ *
+ * **It writes to its own three arrays**, which no card, no rival
+ * derivation, no coherence verdict and no score reads.
+ *
+ * At a tier that asks none, on a pass with no site, and on a site with no
+ * live page, it returns having bought nothing and leaves the section
+ * `null`. Per question, at the standard queue's prices: one SERP
+ * (`SERP_STD_C` 0.06¢) plus ChatGPT (`CHATGPT_SCRAPE_STD_C` 0.12¢) and AI
+ * Mode (`AI_MODE_STD_C` 0.06¢) — 0.24¢, so a full twelve is 2.88¢ against
+ * `CAPS.WEEKLY_C`'s 40¢, and the figure does not move with how many pages
+ * the customer has published, which is the cap's whole purpose.
+ */
+async function askThePageQuestions(a: StageArgs, abandoned: () => boolean): Promise<void> {
+  const { bounds, parameters, sections, siteId } = a;
+  if (!parameters.pageQuestions || siteId === undefined) return;
+  if (abandoned() || bounds.stopNow() !== null) return;
+
+  const at = sections.questions.at;
+  const selected = sections.questions.kind === "unmeasured" ? 0 : sections.questions.value.length;
+  const [candidates, misses] = await Promise.all([
+    pageQuestionCandidates({ siteId, ownRankedRows: sections.measurement?.ownRankedRows ?? [] }),
+    pageQuestionMisses(siteId),
+  ]);
+  if (candidates.length === 0) return;
+
+  const tracked = trackedQuestions({ selected, candidates, misses });
+  logPageQuestions({
+    candidates: candidates.length,
+    asking: tracked.asked.length,
+    retired: tracked.retired.length,
+    waiting: tracked.waiting.length,
+    tracked: tracked.tracked,
+  });
+
+  // The retirements are recorded whether or not a single question is then
+  // asked: a question that has run out of weeks has left the set, and a
+  // ceiling that stops the asking does not put it back.
+  for (const page of tracked.retired) {
+    sections.pageRetired.push({
+      publicationId: page.publicationId,
+      liveUrl: page.liveUrl,
+      question: page.question,
+      weeksWithoutMention: misses.get(page.publicationId) ?? PAGE_QUESTION_RETIRE_WEEKS,
+    });
+  }
+  if (tracked.asked.length === 0 || abandoned()) return;
+
+  // Every asked question's slot, on the arm that says we did not get to
+  // it — the same shape `askTheTwelve` writes, so a page question a
+  // ceiling stopped is `not_attempted` and never a miss.
+  for (const candidate of tracked.asked) {
+    sections.pageAsked.push(candidate);
+    sections.pageSerps.push(unmeasured("not_attempted", at));
+    sections.pageBattery.push(noBattery(at));
+  }
+
+  let next = 0;
+  const engines = newEngineWatch();
+  const buyOne = async (): Promise<void> => {
+    for (;;) {
+      const i = next;
+      next += 1;
+      const candidate = tracked.asked[i];
+      if (candidate === undefined) return;
+      if (bounds.stopNow() !== null) continue;
+      const serp = await attempt("asking_the_twelve", () =>
+        serpOrganic(a.cost, {
+          query: candidate.search,
+          mode: parameters.serpMode,
+          loadAsyncAiOverview: parameters.asyncAiOverview && !a.correction,
+          scope: cacheScope(a),
+          freshnessDays: parameters.serpWindowDays,
+          abortMs: parameters.serpAbortMs,
+          untilMs: untilCeiling(bounds),
+        })
+      );
+      const battery = await askTheBattery(a, candidate.search, at, engines);
+      // The same seal the twelve are written under: a late answer is kept,
+      // and a composed report is never written into.
+      if (sections.sealed) return;
+      sections.pageSerps[i] = failed(serp) ? unmeasured("undeterminable", at) : serp;
+      sections.pageBattery[i] = battery;
+    }
+  };
+
+  await Promise.all(
+    Array.from({ length: Math.min(parameters.serpFanout, tracked.asked.length) }, () => buyOne())
+  );
+}
+
+/** One line per pass over the page questions (#919): how many pages could
+ *  carry one, how many the cap left room for, how many retired and how many
+ *  are waiting for a slot. No customer, no page and no question text — the
+ *  shape of the set, readable from the deployment log. */
+function logPageQuestions(fields: {
+  candidates: number;
+  asking: number;
+  retired: number;
+  waiting: number;
+  tracked: number;
+}): void {
+  console.log(JSON.stringify({ event: "page_questions", ...fields }));
+}
+
 /** The middle of what the asks took, the lower of the two in an even set —
  *  a figure, not a statistic: the p50 the next abort value is chosen from
  *  is the owner's, over a week of the rows these calls now carry (issue
@@ -1989,6 +2159,21 @@ function score(a: StageArgs): void {
     measuredAt: sections.questions.at,
   });
 
+  // Beside the card, never inside it (#919): the page questions are
+  // composed from their own three arrays, and none of the four values
+  // above — the rivals, the presence card, the AI-answers card and the
+  // coherence verdict — has seen one. That is what keeps the score's AI
+  // Presence exactly what it was before a page had a question.
+  sections.pageQuestions = pageQuestionsSectionOf({
+    asked: sections.pageAsked,
+    serps: sections.pageSerps as readonly Measured<MarketSerp>[],
+    battery: sections.pageBattery,
+    retired: sections.pageRetired,
+    selected: sections.questions.kind === "unmeasured" ? 0 : sections.questions.value.length,
+    ownDomain: domain,
+    measuredAt: sections.questions.at,
+  });
+
   sections.coherence = checkCoherence({ serps: readSerps, measuredCount: readSerps.length });
 }
 
@@ -2103,6 +2288,7 @@ function composeReport(a: {
     verdict,
     blockedAgents: blockedAgentsOf(robots),
     aiAnswers: s.aiAnswers,
+    pageQuestions: s.pageQuestions,
     // A pass that never bought a SERP has no card to show, and an empty
     // one would read as "we looked and nobody is there". `null` is the
     // screen's own named-absent arm.

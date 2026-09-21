@@ -12,8 +12,13 @@
 // measured by the call that produced its input; this file re-shapes,
 // filters and labels, and where an input is missing it returns `null` or
 // an empty list rather than a zero.
-import { AI_READER_AGENTS } from "@/lib/config/constants";
-import { engineColumns, type AiAnswersCard } from "@/lib/market/questions/matrix";
+import { AI_READER_AGENTS, TRACKED_QUESTIONS_MAX } from "@/lib/config/constants";
+import {
+  engineColumns,
+  overviewCellFor,
+  type AiAnswersCard,
+  type BatteryAnswers,
+} from "@/lib/market/questions/matrix";
 import type { Question } from "@/lib/market/questions/phrase";
 import type { MarketSet } from "@/lib/market/questions/market-set";
 import type { RivalCandidate } from "@/lib/market/rivals/derive";
@@ -21,7 +26,16 @@ import { isOwnDomain, registrableDomain } from "@/lib/market/rivals/domains";
 import type { RobotsPolicy } from "@/lib/egress/types";
 import type { Measured } from "@/lib/measure/measured";
 import { fromStored } from "@/lib/presentation/generated";
-import type { AiAnswersSection, AnswerCell, StoredQuestion } from "./report";
+import type { MarketSerp } from "@/lib/market/views";
+import type { PageQuestionCandidate } from "@/lib/market/questions/tracked";
+import type {
+  AiAnswersSection,
+  AnswerCell,
+  PageQuestionRow,
+  PageQuestionsSection,
+  RetiredPageQuestion,
+  StoredQuestion,
+} from "./report";
 
 /** Which AI readers the home document's access rules block, in the pinned
  *  list's own order. `Verdict.blockedReaders` is the *count* of exactly
@@ -136,5 +150,74 @@ export function answersSectionOf(a: {
     rivals: a.rivals.map((rival) => ({ domain: rival.domain, cells: rivalCellsOf(cells, rival.domain) })),
     rows,
     coverage: a.card.coverage,
+  };
+}
+
+/**
+ * SPEC §6 (2026-09-20, #908 · #919) — the page questions as the report
+ * stores them, **beside the twelve**.
+ *
+ * The rows have the AI-answers row's shape — the AI-Overview cell that
+ * rode free on the question's own SERP, and §6.2's three columns with that
+ * cell first — built by `engineColumns`, the same function the card uses,
+ * so the two lists can never disagree about which column is which.
+ *
+ * **It counts nothing.** There is no `measuredSearches`, no
+ * `answeredSearches` and no `customerCitations` here, and there will not
+ * be: those three are what the score's AI Presence reads, they are
+ * `aiAnswers`', and a second set of them under a section that must not move
+ * the score would be a denominator waiting to be added to the wrong sum.
+ *
+ * **The numbering continues the twelve** (13, 14, …) because the screen
+ * draws one list of tracked questions and a reader counts through it, and
+ * the cap is a cap on that one list.
+ *
+ * `null` where this pass asked no page question and retired none — the free
+ * and onboarding passes, and a site with no live page. An empty section
+ * would say a pass went looking and found nothing to ask, which is a
+ * different fact and one no reader wants told twice.
+ */
+export function pageQuestionsSectionOf(a: {
+  asked: readonly PageQuestionCandidate[];
+  /** One per asked question, in the order they were asked — the same
+   *  positional pairing `serps` and `battery` keep for the twelve. */
+  serps: readonly Measured<MarketSerp>[];
+  battery: readonly BatteryAnswers[];
+  retired: readonly RetiredPageQuestion[];
+  /** How many questions the market itself contributed this week, so
+   *  `tracked` is the whole set and not this half of it. */
+  selected: number;
+  ownDomain: string;
+  measuredAt: Date;
+}): PageQuestionsSection | null {
+  if (a.asked.length === 0 && a.retired.length === 0) return null;
+
+  const ownDomain = registrableDomain(a.ownDomain) ?? a.ownDomain;
+  const rows = a.asked.map((candidate, index): PageQuestionRow => {
+    const cell = overviewCellFor(a.serps[index], ownDomain);
+    return {
+      publicationId: candidate.publicationId,
+      liveUrl: candidate.liveUrl,
+      question: {
+        n: a.selected + index + 1,
+        wording: fromStored("questions.wording", candidate.question),
+        search: candidate.search,
+      },
+      cell,
+      engines: engineColumns({
+        overview: cell,
+        ...(a.battery[index] === undefined ? {} : { battery: a.battery[index] as BatteryAnswers }),
+        ownDomain,
+      }),
+    };
+  });
+
+  return {
+    measuredAt: a.measuredAt,
+    ownDomain,
+    tracked: a.selected + rows.length,
+    cap: TRACKED_QUESTIONS_MAX,
+    rows,
+    retired: a.retired,
   };
 }

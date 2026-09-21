@@ -121,6 +121,9 @@ export function fullSections(over: Partial<ReportSections> = {}): ReportSections
     verdict: VERDICT,
     blockedAgents: [AI_READER_AGENTS[0]!],
     aiAnswers: answersSectionOf({ card, questions, rivals: [], ownDomain: DOMAIN, measuredAt: AT }),
+    // #919: the fixture pass is a `free` one, and a free pass asks no page
+    // question. A suite that needs one overrides this member.
+    pageQuestions: null,
     presence: buildPresenceCard({ serps, selected: [SELECTED], ownDomain: DOMAIN, rivals: [] }),
     supply: { missingPages: measured(7, AT), unquotablePages: measured(3, AT) },
     freePage: null,
