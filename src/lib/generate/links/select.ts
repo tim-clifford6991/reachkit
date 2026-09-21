@@ -23,6 +23,8 @@
 // out rather than labelled by us.
 import { CROSS_LINKS } from "@/lib/config/constants";
 import type { InventoryRow, PagePurpose } from "@/lib/site-profile/types";
+import { knownLinkTargets as chooseKnownLinks } from "@/lib/known-content/links";
+import type { KnownPage } from "@/lib/known-content/types";
 
 /** The inventory purposes §7 names, in the order a page's links are listed.
  *  `blog`, `contact`, `legal` and `other` are not among them. */
@@ -32,7 +34,13 @@ export type LinkedPurpose = (typeof LINKED_PURPOSES)[number];
 
 export type LinkTarget =
   | { source: "site"; purpose: LinkedPurpose; url: string; label: string }
-  | { source: "cluster"; url: string; label: string };
+  | { source: "cluster"; url: string; label: string }
+  /** SPEC §7 (2026-09-20, #928): a page the site already has, whoever wrote
+   *  it — one of ours, a post on their connected WordPress, or a page the
+   *  crawl read. "New pages link to known content where it helps the
+   *  reader", and the page a skipped topic was a repeat of is linked from
+   *  the pages related to it. */
+  | { source: "known"; url: string; label: string };
 
 /** One earlier page of the cluster, as the store reads it. */
 export interface ClusterPage {
@@ -75,6 +83,36 @@ export function siteLinkTargets(a: {
     }
   }
   return targets;
+}
+
+/**
+ * The pages the site already has that a page about `query` may link to
+ * (#928).
+ *
+ * The vetting — live, on this site, not itself — and the ranking are
+ * `known-content/links.ts`'s, which is the one place that decides what a
+ * link candidate is. This is where the day's page asks for them, beside the
+ * inventory's pages and the cluster's, and it drops the ones those two
+ * already chose: a page linked twice is one link, and the list the model is
+ * told must be the list the finished page is held to.
+ */
+export function knownLinkTargets(
+  pages: readonly KnownPage[],
+  a: { domain: string; query: string; selfUrl?: string | null; already?: readonly LinkTarget[] }
+): LinkTarget[] {
+  const taken = new Set(
+    (a.already ?? []).map((target) => urlKey(target.url)).filter((key): key is string => key !== null)
+  );
+  return chooseKnownLinks(pages, {
+    domain: a.domain,
+    about: a.query,
+    ...(a.selfUrl === undefined ? {} : { selfUrl: a.selfUrl }),
+  })
+    .filter((link) => {
+      const key = urlKey(link.url);
+      return key !== null && !taken.has(key);
+    })
+    .map((link) => ({ source: "known" as const, url: link.url, label: link.label }));
 }
 
 /** The cluster's earlier live pages, newest first, bounded. */

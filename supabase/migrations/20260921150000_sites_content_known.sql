@@ -47,7 +47,9 @@
 -- Rule 3a: the `sites_content` sub-token (`src/lib/db/topics.ts`) — a fact
 -- about what one site already holds, narrowing the `sites` topic. The
 -- timestamp sorts after every migration on disk at implementation time; it
--- depends on `00000000000001_baseline.sql` for `sites` and on nothing else.
+-- depends on `00000000000001_baseline.sql` for `sites`, on
+-- `20260906150100_users_erasure_tickets.sql` for the tombstone its policy
+-- reads, and on nothing else.
 
 create extension if not exists pg_trgm;
 
@@ -136,26 +138,28 @@ comment on column known_content.search is
 --
 -- `security definer` is deliberate and is the same shape the other read
 -- functions in this schema use: the caller is the service client, the site is
--- named by the caller, and the function reads one site's own rows.
+-- named by the caller, and the function reads one site's own rows. Its
+-- `search_path` is empty and every name in it is schema-qualified, which is
+-- what stops a caller shadowing the table it reads (`function_search_path_mutable`).
 create or replace function known_content_near(
   p_site_id uuid,
   p_query text,
   p_limit int default 25
 )
-returns setof known_content
+returns setof public.known_content
 language sql
 stable
 security definer
-set search_path = public, pg_temp
+set search_path = ''
 as $$
   select k.*
-    from known_content k
+    from public.known_content k
    where k.site_id = p_site_id
      and (
-       k.search @@ websearch_to_tsquery('simple', p_query)
-       or k.title % p_query
+       k.search @@ pg_catalog.websearch_to_tsquery('simple', p_query)
+       or public.similarity(k.title, p_query) >= public.show_limit()
      )
-   order by similarity(k.title, p_query) desc, k.published_at desc nulls last
+   order by public.similarity(k.title, p_query) desc, k.published_at desc nulls last
    limit greatest(p_limit, 0);
 $$;
 

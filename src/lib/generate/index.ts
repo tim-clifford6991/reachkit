@@ -39,7 +39,11 @@ import { recoveryOutcome } from "./claims/recovery";
 import { readRecordedRules } from "./record";
 import type { SiteRuleInputs } from "./rules/types";
 import { confirmedForWriting } from "./voice/confirmed";
-import { clusterLinkTargets, siteLinkTargets } from "./links/select";
+import {
+  clusterLinkTargets,
+  knownLinkTargets as knownContentTargets,
+  siteLinkTargets,
+} from "./links/select";
 import { generateDraft, type GenerateOutcome } from "./pipeline";
 import { generatePageFix } from "./pipeline/page-fix";
 import { DraftDateTaken, generateStore, type RestartedDraft, type SiteFacts } from "./store";
@@ -323,14 +327,28 @@ async function writePage(a: PageInput & { attempts: number }): Promise<DayPageOu
   const inventory = await store.siteInventory(site.domain);
   const earlier =
     opportunity.clusterKey === null ? [] : await store.clusterPages(a.siteId, opportunity.clusterKey);
-  const links = [
+  const selfUrl = opportunity.family === "improve" ? opportunity.targetRef : null;
+  const chosen = [
     ...siteLinkTargets({
       domain: site.domain,
       inventory,
       query: opportunity.targetQuery ?? "",
-      selfUrl: opportunity.family === "improve" ? opportunity.targetRef : null,
+      selfUrl,
     }),
     ...clusterLinkTargets(earlier),
+  ];
+  // SPEC §7 (2026-09-20, #928): "New pages link to known content where it
+  // helps the reader." The pages the site already has — theirs as well as
+  // ours — after the two lists that were already chosen, and never one of
+  // those twice.
+  const links = [
+    ...chosen,
+    ...knownContentTargets(await store.knownPages(a.siteId), {
+      domain: site.domain,
+      query: opportunity.targetQuery ?? "",
+      selfUrl,
+      already: chosen,
+    }),
   ];
 
   return withDraftCost({ scanId: report.scanId }, async (cost): Promise<DayPageOutcome> => {

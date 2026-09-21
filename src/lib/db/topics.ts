@@ -99,6 +99,11 @@ export const MIGRATION_SUBTOKENS: readonly MigrationSubtoken[] = [
   // `sites` under rule 3a: the profile is a fact about one site, narrows
   // that topic, and owns its own file by rule 2's precedence.
   { token: "sites_profile", parent: "sites", owner: "SPEC.md §12 ruling 8" },
+  // What one site already has, whoever wrote it (issue #928) — SPEC.md §7's
+  // "Known content" (2026-09-20). A sub-token of `sites` under rule 3a: the
+  // index is a fact about one site's own pages, narrows that topic, and owns
+  // its own file by rule 2's precedence.
+  { token: "sites_content", parent: "sites", owner: "SPEC.md §7 2026-09-20" },
 ];
 
 /**

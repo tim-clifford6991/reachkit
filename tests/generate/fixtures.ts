@@ -5,6 +5,7 @@
 // shape that changes fails to compile here rather than drifting quietly
 // into a suite that keeps passing.
 import "./env";
+import type { KnownPage } from "@/lib/known-content/types";
 import type { CostContext } from "../../src/lib/costs";
 import type { Opportunity } from "../../src/lib/opportunities";
 import type { StoredReport } from "../../src/lib/scan/report";
@@ -143,6 +144,8 @@ export interface MemoryStore extends GenerateStore {
   storedReport: StoredReport | null;
   published: StoredPage[];
   inventory: InventoryRow[];
+  /** #928: the pages this site already has, as `known_content` holds them. */
+  known: KnownPage[];
   cluster: Map<string, ClusterPage[]>;
   seed(row: Partial<DraftRow> & { id: string }): DraftRow;
 }
@@ -165,6 +168,7 @@ export function memoryStore(over: Partial<MemoryStore> = {}): MemoryStore {
     storedReport: report(),
     published: [],
     inventory: [],
+    known: [],
     cluster: new Map(),
 
     seed(row) {
@@ -253,6 +257,11 @@ export function memoryStore(over: Partial<MemoryStore> = {}): MemoryStore {
     },
     async siteInventory() {
       return store.inventory;
+    },
+    // #928: what the site already has. A suite that seeds none is a site
+    // whose index is empty — no repeats to find and no known pages to link.
+    async knownPages() {
+      return store.known;
     },
     async clusterPages(_siteId, clusterKey) {
       return store.cluster.get(clusterKey) ?? [];
