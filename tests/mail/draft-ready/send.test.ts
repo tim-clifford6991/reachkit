@@ -139,14 +139,19 @@ describe("the customer is told a page is in review", () => {
     const telling = paragraphs.find((b) => b.text === "mail.draftReady.autopilotWindow");
     expect(telling?.vars?.publishesAt).toContain("EDT");
 
-    const action = sent[0]!.blocks.find((b) => b.block === "action");
-    expect(action?.label).toBe("mail.draftReady.stopAction");
-    expect(action?.href).toMatch(/\/veto\/[A-Za-z0-9_-]+$/);
+    // #933: two buttons — the page's own address first, then the stop.
+    const actions = sent[0]!.blocks.filter((b) => b.block === "action");
+    expect(actions.map((b) => b.label)).toEqual([
+      "mail.draftReady.readAction",
+      "mail.draftReady.stopAction",
+    ]);
+    expect(actions[0]?.href).toMatch(/\/app\/draft\/d1$/);
+    expect(actions[1]?.href).toMatch(/\/veto\/[A-Za-z0-9_-]+$/);
   });
 
   it("the stop link is the token that was actually issued, absolute and openable", async () => {
     await sendDraftReadyMail({ draftId: "d1", destination: "wordpress", at: AT });
-    const href = sent[0]!.blocks.find((b) => b.block === "action")!.href!;
+    const href = sent[0]!.blocks.filter((b) => b.block === "action").at(-1)!.href!;
     const token = href.slice(href.lastIndexOf("/") + 1);
 
     const { hashToken } = await import("@/lib/publish/publishable");
@@ -267,7 +272,10 @@ describe("copilot — nothing happens until they approve", () => {
     const paragraphs = sent[0]!.blocks.filter((b) => b.block === "paragraph");
     expect(paragraphs.map((b) => b.text)).toContain("mail.draftReady.copilot");
     expect(paragraphs.find((b) => b.text === "mail.draftReady.copilot")?.vars).toBeUndefined();
-    expect(sent[0]!.blocks.find((b) => b.block === "action")).toBeUndefined();
+    // No stop link — and the one button left is the page's own address.
+    expect(sent[0]!.blocks.filter((b) => b.block === "action").map((b) => b.label)).toEqual([
+      "mail.draftReady.readAction",
+    ]);
     expect(sent[0]!.suppressible).toBeUndefined();
   });
 });

@@ -38,6 +38,11 @@
 // import the mail seam for one occasion.
 import { dbAdmin } from "@/lib/db";
 import { env } from "@/lib/config/env";
+import { MAIL_PAGE_LINES } from "@/lib/config/constants";
+import { readRecordedFact } from "@/lib/generate/fact";
+import type { TargetEngine } from "@/lib/opportunities/types";
+import { BAND_LABELS } from "@/lib/presentation/bands";
+import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { explainChoice } from "@/lib/opportunities";
 import { machineDraftFor } from "@/lib/publish/machine";
 import {
@@ -165,6 +170,9 @@ export async function sendDraftReadyMail(a: {
     telling: telling as TellableTelling,
     ...(page.page === null ? {} : { page: page.page }),
     ...(page.why === null ? {} : { why: page.why }),
+    // SPEC §8 (2026-09-20, #933): *Read the full page* is a deep link to
+    // the page's own address in the app — the same one the calendar opens.
+    readHref: readHref(a.draftId),
     ...(telling.kind === "approval_only"
       ? {}
       : { publishesAt: writePublishesAt(telling.publishesAt, account.timeZone) }),
@@ -215,16 +223,25 @@ async function readPage(
   draftId: string
 ): Promise<{ page: DraftReadyPage | null; why: DraftReadyWhy | null }> {
   const { data, error } = await untyped()
-    .from<{ title: string | null; body_md: string | null; opportunity_id: string | null }>("drafts")
-    .select("title, body_md, opportunity_id")
+    .from<{
+      title: string | null;
+      body_md: string | null;
+      opportunity_id: string | null;
+      grounded_fact: unknown;
+    }>("drafts")
+    .select("title, body_md, opportunity_id, grounded_fact")
     .eq("id", draftId)
     .limit(1);
   if (error !== null) throw new Error(`sendDraftReadyMail(${draftId}): ${error.message}`);
 
   const row = data?.[0];
   const title = row?.title ?? null;
+  // The page's **first lines**, not the whole page (SPEC §8, 2026-09-20).
+  // The mail is where a reader decides to open it, and the page itself is
+  // one button away; a whole draft in an inbox is a page nobody then reads.
+  // The cut is `firstLines`' and is bounded by a pin.
   const page: DraftReadyPage | null =
-    title === null || title === "" ? null : { title, markdown: row?.body_md ?? "" };
+    title === null || title === "" ? null : { title, markdown: firstLines(row?.body_md ?? "") };
 
   const opportunityId = row?.opportunity_id ?? null;
   if (opportunityId === null) return { page, why: null };
@@ -235,10 +252,62 @@ async function readPage(
   const evidence = choice.evidence;
   // Two of §7's three families carry a search and its volume; `fix`
   // carries a barrier, and says nothing here.
-  const why: DraftReadyWhy | null =
-    evidence.family === "fix" ? null : { query: evidence.query, volume: evidence.volume };
+  if (evidence.family === "fix") return { page, why: null };
+
+  // #933's other fact rows, every one of them read off what was stored
+  // when the page was chosen: who answers the search today, the band this
+  // site was given for it, and the page the grounded passage was read from.
+  const answered = answeredBy(evidence.target?.engines ?? []);
+  const source = writtenFrom(row?.grounded_fact);
+  const why: DraftReadyWhy = {
+    query: evidence.query,
+    volume: evidence.volume,
+    ...(answered === undefined ? {} : { answeredBy: copy(answered) }),
+    ...(choice.fitBand === null ? {} : { chances: copy(BAND_LABELS.winnability[choice.fitBand]) }),
+    ...(source === undefined ? {} : { writtenFrom: source }),
+  };
 
   return { page, why };
+}
+
+/** The page's own address in the app (#933). Composed here, off the one
+ *  binding that knows where this deployment answers, exactly as the stop
+ *  link above is: a mail carries no host of its own. */
+function readHref(draftId: string): string {
+  return new URL(`/app/draft/${encodeURIComponent(draftId)}`, env.NEXT_PUBLIC_APP_URL).toString();
+}
+
+/**
+ * SPEC §8 (2026-09-20, #933) — who answers this search today, in one word.
+ *
+ * Read off the engines the pass measured for this very search and stored on
+ * the row (`TargetFacts.engines`, issue 867). Three results and one
+ * absence: one of the engines named the customer, one named somebody else,
+ * every engine answered and named no one — or nothing was measured, and the
+ * row is left out rather than guessed at.
+ *
+ * It states *which* rather than *how many*: the screens count engines, this
+ * mail names the standing, and a count here would be a second figure about
+ * the same measurement.
+ */
+function answeredBy(engines: readonly TargetEngine[]): CopyKey | undefined {
+  if (engines.some((engine) => engine.standing === "names_you")) return "mail.draftReady.fact.you";
+  if (engines.some((engine) => engine.standing === "names_others")) {
+    return "mail.draftReady.fact.others";
+  }
+  if (engines.length > 0 && engines.every((engine) => engine.standing === "no_answer")) {
+    return "mail.draftReady.fact.nobody";
+  }
+  return undefined;
+}
+
+/** The passage this page was written from, as the fact row states it: the
+ *  address it was read off. `undefined` where generation recorded no
+ *  grounding — the row is then absent, never an empty address. */
+function writtenFrom(groundedFact: unknown): string | undefined {
+  const recorded = readRecordedFact(groundedFact);
+  const url = recorded?.url ?? "";
+  return url === "" ? undefined : url;
 }
 
 /** The address to write to, and the zone to write the moment in. */
@@ -269,4 +338,17 @@ async function recipient(
   if (email === undefined) return null;
 
   return { email, userId: site.user_id, timeZone: site.timezone };
+}
+
+/**
+ * SPEC §8 (2026-09-20, #933) — "the page's first lines".
+ *
+ * The opening of the page as written, cut at a paragraph boundary and
+ * bounded by `MAIL_PAGE_LINES`. Cut at a boundary and not mid-sentence: a
+ * mail that trails off in the middle of a clause reads as a broken mail
+ * rather than as an excerpt, and the page itself is one button away.
+ */
+function firstLines(markdown: string): string {
+  const paragraphs = markdown.split(/\n\s*\n/).filter((part) => part.trim() !== "");
+  return paragraphs.slice(0, MAIL_PAGE_LINES).join("\n\n");
 }

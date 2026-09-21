@@ -206,6 +206,43 @@ export const MAIL_COPY = Object.freeze({
   "mail.weekly.subject": ["Monday: what moved this week", { slots: {}, fixedBy: "§12" }],
   "mail.weekly.score": ["Discoverability Score", { slots: {}, fixedBy: "ruling 6a" }],
   "mail.weekly.aiAnswers": ["AI answers", { slots: {}, fixedBy: "§12 · S20 (11a)" }],
+
+  // ── SPEC §8 (2026-09-20, #933): the Monday mail as the approved board
+  // draws it — the four Overview numbers with their change, one headline
+  // sentence for the direction the week actually went, and the one item
+  // waiting on the customer.
+  //
+  // "The gap is closing…" is the owner's own drafted sentence and is used
+  // as it was written, for the one direction it is true of. The two beside
+  // it are drafted in the registry's voice under the 2026-09-16 ruling
+  // (#759), and #933's PR names them: a week that went the other way must
+  // not be told the gap is closing, and a week that did not move must not
+  // be told either thing.
+  "mail.weekly.moved.up": [
+    "The gap is closing. Every week so far has been up. Here’s what moved.",
+    { slots: {}, fixedBy: "SPEC §8 2026-09-20" },
+  ],
+  "mail.weekly.moved.flat": [
+    "Your score held where it was this week. Here’s everything that was measured.",
+    { slots: {}, fixedBy: "SPEC §8 2026-09-20" },
+  ],
+  "mail.weekly.moved.down": [
+    "Your score came down this week. Here’s what moved, and what is being written next.",
+    { slots: {}, fixedBy: "SPEC §8 2026-09-20" },
+  ],
+  // The two Overview numbers the mail did not already name. The words are
+  // the Overview's own: a second spelling of "searches you appear in"
+  // would be the second place the product speaks (ADR-001).
+  "mail.weekly.searches": ["Searches you appear in", { slots: {}, fixedBy: "SPEC §8 2026-09-20" }],
+  "mail.weekly.pagesLive": ["Pages live", { slots: {}, fixedBy: "SPEC §8 2026-09-20" }],
+  // The one item waiting on them, and the button that opens it. The line
+  // itself is the record's own — `mail.weekly.needsYou` states what kind of
+  // thing it is, with the page's address in its slot.
+  "mail.weekly.needsYou": [
+    "One page needs you: {page}.",
+    { slots: { page: "text" }, fixedBy: "SPEC §8 2026-09-20" },
+  ],
+  "mail.weekly.needsYou.action": ["Open the page", { slots: {}, fixedBy: "SPEC §8 2026-09-20" }],
   "mail.weekly.verdicts": ["pages judged", { slots: {}, fixedBy: "REQ-063 c4" }],
   "mail.weekly.verdicts.none": ["No pages published yet, so none to judge.", { slots: {}, fixedBy: "REQ-064 c3" }],
   "mail.weekly.next": ["next three", { slots: {}, fixedBy: "§12" }],

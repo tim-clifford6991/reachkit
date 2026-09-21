@@ -41,6 +41,19 @@ import { readWeekScan } from "./store";
 export interface WeekMovement {
   readonly scoreDelta: Measured<number>;
   readonly aiAnswersDelta: Measured<number>;
+  /** SPEC §8 (2026-09-20, #933): the levels those two deltas are the change
+   *  in — the Monday mail states the number as well as its movement, as the
+   *  Overview does. Read off the same stored week; `unmeasured` where the
+   *  week did not reach one, so a mail states no number it does not have.
+   *
+   *  `searches` is the searches the site appears in, the third of the
+   *  Overview's four. The fourth — pages live — is not a measurement of the
+   *  week at all and is read where it is stored, by the mail's own
+   *  occasion. */
+  readonly score: Measured<number>;
+  readonly aiAnswers: Measured<number>;
+  readonly searches: Measured<number>;
+  readonly searchesDelta: Measured<number>;
   /** SPEC §9 on Monday: the technical checks whose count moved since the
    *  week before. `unmeasured` where either week stored no checks — the
    *  same two-measurements-or-nothing rule as the deltas. */
@@ -87,6 +100,20 @@ function aiAnswersOf(report: StoredReport | null): number | null {
   return report.aiAnswers.customerCitations;
 }
 
+/** The searches the site appears in, as the week measured it — the
+ *  Overview's own third number (`ownRanked`, the count the pass stores).
+ *  `null` where the week did not measure it. */
+function searchesOf(report: StoredReport | null): number | null {
+  const own = report?.ownRanked;
+  if (own === undefined || own.kind === "unmeasured") return null;
+  return own.value;
+}
+
+/** One measurement or nothing — the one-sided form of the rule below. */
+function levelOf(now: number | null, at: Date): Measured<number> {
+  return now === null ? unmeasured<number>("not_attempted", at) : measured(now, at);
+}
+
 function deltaOf(now: number | null, before: number | null, at: Date): Measured<number> {
   // Two measurements or nothing: see the module header.
   if (now === null || before === null) return unmeasured<number>("not_attempted", at);
@@ -117,6 +144,13 @@ export async function weekMovement(a: {
   return {
     scoreDelta: deltaOf(scoreOf(now), scoreOf(before), a.at),
     aiAnswersDelta: deltaOf(aiAnswersOf(now), aiAnswersOf(before), a.at),
+    // #933's levels, off the same two weeks. `levelOf` is `deltaOf`'s
+    // one-sided twin: a week that did not reach the figure has none, and
+    // says so rather than standing a zero in its place.
+    score: levelOf(scoreOf(now), a.at),
+    aiAnswers: levelOf(aiAnswersOf(now), a.at),
+    searches: levelOf(searchesOf(now), a.at),
+    searchesDelta: deltaOf(searchesOf(now), searchesOf(before), a.at),
     issueChanges: issueChanges(now?.siteIssues ?? null, before?.siteIssues ?? null, a.at),
   };
 }

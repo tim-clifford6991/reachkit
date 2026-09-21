@@ -1320,6 +1320,14 @@ export const MARKDOWN_LINK_SCHEMES = Object.freeze([
  *  list a customer reads, and because §12 is where it changes. */
 export const WEEKLY_NEXT_COUNT = 3 as const;                  // BUILD §12
 
+/** SPEC §8 (2026-09-20, #933) — how much of a page the page-ready mail
+ *  carries: its first paragraphs, and no more. The mail is where a reader
+ *  decides to open the page; the page itself is one button away, and a
+ *  whole draft in an inbox is a page nobody then reads. Three, because the
+ *  answer-first opening the writing rules require is the first block and
+ *  the two after it are what says whether the page keeps its promise. */
+export const MAIL_PAGE_LINES = 3 as const;                    // SPEC §8 2026-09-20
+
 // ── The Core Web Vitals budget (issue #332)
 /**
  * The three ceilings the two surfaces a stranger meets are held to: the

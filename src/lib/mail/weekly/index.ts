@@ -33,6 +33,7 @@
 // it stands. A mail that re-measured to state a movement would report a
 // different week from the one it announces.
 import { dbAdmin } from "@/lib/db";
+import { env } from "@/lib/config/env";
 import { WEEKLY_NEXT_COUNT } from "@/lib/config/constants";
 import type { CopyKey } from "@/lib/presentation/copy";
 import { measured, unmeasured, type Measured } from "@/lib/measure/measured";
@@ -41,7 +42,7 @@ import { opportunityStore, readOpportunity } from "@/lib/opportunities/store";
 import { accountForWeek, weekMovement, type UnmeasuredPart } from "@/lib/scan/weekly";
 import type { MeasurementState } from "../shell/compose";
 import { sendEmail } from "../send";
-import { buildWeekly, type WeeklyPage } from "../templates/weekly";
+import { buildWeekly, type WeeklyNeedsYou, type WeeklyPage } from "../templates/weekly";
 
 /** Why a digest did not go out. Every arm is reported; none is silent, and
  *  `not-composable` is its own arm rather than folded into `mail` —
@@ -76,6 +77,8 @@ interface MinimalResult<T> {
 interface MinimalQuery<T> extends PromiseLike<MinimalResult<T>> {
   select(columns: string): MinimalQuery<T>;
   eq(column: string, value: unknown): MinimalQuery<T>;
+  is(column: string, value: unknown): MinimalQuery<T>;
+  not(column: string, operator: string, value: unknown): MinimalQuery<T>;
   limit(n: number): MinimalQuery<T>;
   update(values: Record<string, unknown>): MinimalQuery<T>;
 }
@@ -155,7 +158,20 @@ type Composed = { mail: ReturnType<typeof buildWeekly>; measurement: Measurement
 function unmeasuredWeek(nextDueOn: Date, now: Date): Composed {
   const gap = unmeasured<never>("undeterminable", now);
   return {
-    mail: buildWeekly({ scoreDelta: gap, aiAnswersDelta: gap, pages: gap, next: gap }),
+    mail: buildWeekly({
+      scoreDelta: gap,
+      aiAnswersDelta: gap,
+      // #933: a week that measured nothing has no number to put up top and
+      // none beside it. Every one of them is unmeasured, so every one is
+      // omitted and the whole-mail line says why.
+      score: gap,
+      aiAnswers: gap,
+      searches: gap,
+      searchesDelta: gap,
+      pagesLive: gap,
+      pages: gap,
+      next: gap,
+    }),
     measurement: { state: "none", nextDueOn },
   };
 }
@@ -182,9 +198,19 @@ async function measuredWeek(
     standing: standing.standing,
   }));
 
+  const needsYou = await oneNeedsYou(a.siteId);
   const mail = buildWeekly({
     scoreDelta: movement.scoreDelta,
     aiAnswersDelta: movement.aiAnswersDelta,
+    // SPEC §8 (2026-09-20, #933): the four Overview numbers, with their
+    // change. Three are the week's own measurement; the fourth — pages
+    // live — is a count of what is published, read here.
+    score: movement.score,
+    aiAnswers: movement.aiAnswers,
+    searches: movement.searches,
+    searchesDelta: movement.searchesDelta,
+    pagesLive: await pagesLive(a.siteId, at),
+    ...(needsYou === undefined ? {} : { needsYou }),
     // Measured, and measured-empty where the week judged nothing: "you
     // have published nothing yet" is a result, and the template's own
     // empty line states it.
@@ -272,5 +298,71 @@ async function stampSent(scanId: string, at: Date): Promise<void> {
     .eq("id", scanId);
   if (error !== null) {
     throw new Error(`sendWeeklyDigest: could not stamp the digest as sent: ${error.message}`);
+  }
+}
+
+/**
+ * SPEC §8 (2026-09-20, #933) — "Pages live", the fourth Overview number.
+ *
+ * A count of this site's publications that are live now: published, not
+ * since unpublished. Not a measurement of the week — nothing measures it —
+ * so it is counted here, as of the date every other figure in this mail is
+ * stated as of.
+ *
+ * A read that fails is `unmeasured`, which omits the number rather than
+ * claiming the customer has none.
+ */
+async function pagesLive(siteId: string, at: Date): Promise<Measured<number>> {
+  try {
+    const { data, error } = await untyped()
+      .from<{ id: string }>("publications")
+      .select("id")
+      .eq("site_id", siteId)
+      .not("published_at", "is", null)
+      .is("unpublished_at", null);
+    if (error !== null) return unmeasured<number>("undeterminable", at);
+    return measured((data ?? []).length, at);
+  } catch {
+    return unmeasured<number>("undeterminable", at);
+  }
+}
+
+/**
+ * SPEC §8 (2026-09-20, #933) — "one needs-you item".
+ *
+ * One, and the newest: a page resting in `needs_attention` is the one thing
+ * a customer must act on for the product to keep publishing, and a mail
+ * that listed them all would be a second calendar. `undefined` where
+ * nothing is waiting — the mail then says nothing about it, rather than
+ * saying nothing is wrong.
+ *
+ * It states *that* a page needs them and opens it; **why** is the page's
+ * own to say, on the screen that can also fix it (`needs-you.ts` derives
+ * the cause, and the draft screen states it). A cause restated here would
+ * be the second place the product words it.
+ */
+async function oneNeedsYou(siteId: string): Promise<WeeklyNeedsYou | undefined> {
+  try {
+    const { data, error } = await untyped()
+      .from<{ id: string; title: string | null }>("drafts")
+      .select("id, title")
+      .eq("site_id", siteId)
+      .eq("state", "needs_attention")
+      .limit(1);
+    if (error !== null) return undefined;
+    const row = data?.[0];
+    if (row === undefined) return undefined;
+    const title = (row.title ?? "").trim();
+    return {
+      line: "mail.weekly.needsYou",
+      // The page's own title where it has one — model text, and it reaches
+      // the reader through a slot in a written sentence, never as a
+      // sentence of ours. A page with no title yet is named by nothing, and
+      // the line's slot then carries its address in the app instead.
+      vars: { page: title === "" ? row.id : title },
+      href: new URL(`/app/draft/${encodeURIComponent(row.id)}`, env.NEXT_PUBLIC_APP_URL).toString(),
+    };
+  } catch {
+    return undefined;
   }
 }
