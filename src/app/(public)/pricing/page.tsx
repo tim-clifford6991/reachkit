@@ -85,9 +85,14 @@ export default function PricingPage(props: {
           320px. */}
       <main className="flex flex-col gap-6 p-4">
         <div className="mx-auto flex w-full max-w-xl flex-col gap-2 text-center">
-          {/* The eyebrow is `offer.start` — the same two words, from the
-              key that owns them, rather than a second copy of them. */}
-          <p className="text-base-content/60 text-xs font-semibold tracking-wide uppercase">{copy("offer.start")}</p>
+          {/* The eyebrow names the section, not the act (#937, the
+              2026-09-20 board). It was `offer.start` — "Start ReachKit" —
+              which is the *card's* own control repeated above the heading
+              as a label, and reads as an instruction where an eyebrow says
+              where you are. `chrome.nav.pricing` is the word the header
+              and the footer already use for this page, so this is the
+              product's own name for it and not a second copy of anything. */}
+          <p className="text-base-content/60 text-xs font-semibold tracking-wide uppercase">{copy("chrome.nav.pricing")}</p>
           <h1 className="text-3xl font-semibold">{copy("pricing.heading")}</h1>
           <p className="text-base-content/70">{copy("pricing.subline")}</p>
         </div>

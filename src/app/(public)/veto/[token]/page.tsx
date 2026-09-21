@@ -41,7 +41,7 @@ import type React from "react";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Clock } from "lucide-react";
+import { CircleCheck, Clock } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import { previewVetoLink, redeemVetoLink, vetoLinkPath } from "@/lib/publish/publishable";
 import type { PreviewResult, RedeemResult, VetoPreview } from "@/lib/publish/publishable";
@@ -231,6 +231,12 @@ function writeSearch(query: string, volume: number | null): string {
 }
 
 /** The ask arm: what the set draws, in its own order. */
+/** Where a reader who has stopped a page is sent to reach their plan.
+ *  Written here rather than imported: the sign-in screen's own copy of it
+ *  lives in a Client Component, and a server page reaching into one for a
+ *  string would pull the client module into this route's graph. */
+const SIGN_IN_PATH = "/signin";
+
 function Ask(p: { token: string; it: VetoPreview }): React.JSX.Element {
   async function stop(): Promise<void> {
     "use server";
@@ -269,13 +275,37 @@ function Ask(p: { token: string; it: VetoPreview }): React.JSX.Element {
               </div>
             )}
           </dl>
+          {/* **The page's first lines, in its own words** (#937, the
+              2026-09-20 board). A reader deciding whether to stop a page
+              should be able to see what it says; the two rows above tell
+              them what it is *for*, which is not the same question. Plain
+              text from the preview — quoted, never rendered: this card is
+              served with no session, and a blockquote is not the place to
+              draw a heading or a link the body happened to carry. */}
+          {p.it.excerpt === null ? null : (
+            <blockquote
+              className="border-base-300 text-base-content/70 border-s-2 ps-4 text-sm"
+              data-testid="veto-excerpt"
+            >
+              {p.it.excerpt}
+            </blockquote>
+          )}
           <form action={stop}>
             {/* The screen's one solid button. */}
             <button type="submit" className="btn btn-primary btn-block">
               {copy("publish.veto.ask.action")}
             </button>
           </form>
-          <p className="text-sm text-base-content/60">{copy("publish.veto.ask.do-nothing")}</p>
+          {/* The sentence, and the offer it used to end with as a control.
+              A reader who does not want to stop the page may well want to
+              read it — and "in the app" with nothing to press was the same
+              dead end the done arm had. */}
+          <p className="text-base-content/60 flex flex-wrap items-center gap-1 text-sm">
+            <span>{copy("publish.veto.ask.do-nothing")}</span>
+            <Link href={SIGN_IN_PATH} className="link link-primary font-semibold">
+              {copy("publish.veto.ask.signin")}
+            </Link>
+          </p>
         </div>
       </div>
     </main>
@@ -293,16 +323,47 @@ function Ask(p: { token: string; it: VetoPreview }): React.JSX.Element {
  * a spent token still says which page it was bound to; the refusals do not,
  * because `unknown` and `expired` name no draft.
  */
-function Told(p: { head: string; title: string | null; message: string }): React.JSX.Element {
+function Told(p: {
+  head: string;
+  title: string | null;
+  message: string;
+  /** The reader pressed the control and it worked — the one arm that wears
+   *  the alert. A refusal reaches this component with `confirmed` unset. */
+  confirmed?: boolean;
+}): React.JSX.Element {
   return (
     <main className={MAIN}>
       <div className="card border border-base-300 bg-base-100">
         <div className="card-body gap-4">
-          <p className={EYEBROW}>{p.head}</p>
+          {/* **The tinted block is the done arm's alone.** The board draws
+              the confirmation as an `alert-success`, and it earns the fill:
+              it answers something the reader has just done, and it is the
+              one arm here that is good news. The refusals wearing this same
+              shape keep the plain line — a link that was already used or
+              has expired is not a success, and this file's older rule
+              stands for them: warn is edge and ink, never a fill. */}
+          {p.confirmed ? (
+            <div role="status" className="alert alert-success" data-testid="veto-told">
+              <CircleCheck size={20} strokeWidth={1.75} aria-hidden />
+              <span>
+                <span className="font-semibold">{p.head}</span> {copy("publish.veto.done.line")}
+              </span>
+            </div>
+          ) : (
+            <p className={EYEBROW}>{p.head}</p>
+          )}
           {p.title === null ? null : <h1>{p.title}</h1>}
           <p className="text-sm text-base-content/70">{p.message}</p>
+          {/* **It goes to `/signin`, not to the plan** (#937). This page
+              takes no session by construction — the token *is* the
+              authority, and REQ-057's link is opened from a mail on
+              whatever device the reader has to hand. A link straight to
+              `/app/calendar` therefore sent a signed-out reader into a
+              gated address, which bounces them to a sign-in wall with no
+              word about why. The control says what it will do instead,
+              which is #937's Done-when. */}
           <div>
-            <Link href="/app/calendar" className="btn btn-ghost">
+            <Link href={SIGN_IN_PATH} className="btn btn-outline">
               {copy("publish.veto.calendar")}
             </Link>
           </div>
@@ -328,6 +389,7 @@ export default async function VetoPage(p: {
     return (
       <Surface arms={ARMS}>
         <Told
+          confirmed
           head={copy("publish.veto.done.head")}
           title={result.title}
           message={copy("publish.veto.stopped")}

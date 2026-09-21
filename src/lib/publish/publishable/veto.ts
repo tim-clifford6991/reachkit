@@ -269,6 +269,13 @@ export interface VetoPreview {
   readonly volume: number | null;
   /** The site the page goes live on. */
   readonly domain: string | null;
+  /** The page's opening, in the reader's own words rather than ours — the
+   *  2026-09-20 board shows it so a reader deciding whether to stop a page
+   *  can see what the page actually says. Plain text, first sentence or
+   *  two, cut at a word and ellipsed; `null` where the draft has no body
+   *  yet, which is a card with no quote rather than an empty one. Read,
+   *  never re-rendered: this is a preview, not the page. */
+  readonly excerpt: string | null;
   /** When it publishes unless the reader acts, **and the zone that moment
    *  is stated in** — one field, because they are one fact: a time with no
    *  zone beside it is a time the reader has to guess about, and REQ-073 c1
@@ -302,6 +309,7 @@ interface PreviewRow {
   title: string | null;
   veto_token_used_at: string | null;
   veto_token_expires_at: string | null;
+  body_md: string | null;
   opportunities?: { target_query?: string | null; volume?: number | null } | null;
   sites?: { domain?: string | null; timezone?: string | null } | null;
 }
@@ -315,7 +323,7 @@ export async function previewVetoLink(
   const { data, error } = await publishDb()
     .from<PreviewRow>("drafts")
     .select(
-      "id, state, title, veto_token_used_at, veto_token_expires_at, opportunities(target_query, volume), sites(domain, timezone)"
+      "id, state, title, body_md, veto_token_used_at, veto_token_expires_at, opportunities(target_query, volume), sites(domain, timezone)"
     )
     .eq("veto_token_hash", hashToken(token))
     .limit(1);
@@ -354,12 +362,49 @@ export async function previewVetoLink(
       query: row.opportunities?.target_query ?? null,
       volume: row.opportunities?.volume ?? null,
       domain: row.sites?.domain ?? null,
+      excerpt: excerptOf(row.body_md),
       publishes:
         answer !== null && answer.publishable && zone !== null
           ? { at: answer.at, timeZone: zone }
           : null,
     },
   };
+}
+
+/** How much of the page the card quotes, in characters. Two sentences of
+ *  ordinary prose; long enough to show the voice, short enough that the
+ *  card stays a decision and not a read. */
+const EXCERPT_CHARS = 180;
+
+/**
+ * The page's opening as plain text.
+ *
+ * **Not the Markdown renderer.** This is a quotation, not a rendering:
+ * what the card shows is the words, and running the body through the
+ * product's one renderer here would put a heading, a list or a link inside
+ * a blockquote on a page served to a reader with no session. So the
+ * structure is stripped rather than drawn — heading marks, emphasis, list
+ * bullets and link syntax reduced to their text — and nothing this
+ * function emits is HTML.
+ *
+ * Cut at a word boundary and ellipsed, so the quote never ends mid-word.
+ */
+function excerptOf(body: string | null): string | null {
+  if (body === null) return null;
+  const text = body
+    .replace(/```[\s\S]*?```/g, " ")
+    .replace(/^\s{0,3}#{1,6}\s+/gm, "")
+    .replace(/^\s{0,3}[-*+]\s+/gm, "")
+    .replace(/^\s{0,3}>\s?/gm, "")
+    .replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .replace(/[*_`]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (text === "") return null;
+  if (text.length <= EXCERPT_CHARS) return text;
+  const cut = text.slice(0, EXCERPT_CHARS);
+  const lastSpace = cut.lastIndexOf(" ");
+  return `${(lastSpace > 0 ? cut.slice(0, lastSpace) : cut).trimEnd()}…`;
 }
 
 /** The page's own title, or `null` where the draft carries none yet — an

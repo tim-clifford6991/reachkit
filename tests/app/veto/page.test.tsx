@@ -43,6 +43,7 @@ const LIVE_PREVIEW: VetoPreview = {
   query: "best onboarding tools",
   volume: 2400,
   domain: "example.com",
+  excerpt: "Choosing onboarding software comes down to three questions, and the first one is who has to use it…",
   publishes: { at: new Date("2026-09-15T05:00:00.000Z"), timeZone: "Europe/Berlin" },
 };
 
@@ -123,11 +124,31 @@ function nodes(element: React.ReactNode): Node[] {
  * fail on how the page happens to be factored rather than on what it shows.
  */
 function text(tree: React.ReactNode): string {
-  return JSON.stringify(
-    nodes(tree)
-      .filter((node) => typeof node.type === "string")
-      .map((node) => node.props)
-  );
+  // **The string-valued props, not the props object.** `JSON.stringify`
+  // over the whole object throws "Converting circular structure to JSON"
+  // the moment an intrinsic element carries a *component* among its
+  // children — React's dev-mode elements hold owner references — which is
+  // what the ask arm's do-nothing line does since #937 put a `<Link>`
+  // inside its paragraph. Collecting the strings is what this helper was
+  // ever for, and it cannot be defeated by how the tree is nested.
+  const out: string[] = [];
+  const visit = (value: unknown): void => {
+    if (typeof value === "string" || typeof value === "number") {
+      out.push(String(value));
+      return;
+    }
+    if (Array.isArray(value)) {
+      for (const item of value) visit(item);
+    }
+  };
+  for (const node of nodes(tree)) {
+    if (typeof node.type !== "string") continue;
+    for (const [name, value] of Object.entries(node.props ?? {})) {
+      if (name === "children") visit(value);
+      else visit(value);
+    }
+  }
+  return JSON.stringify(out);
 }
 
 /** The class list an intrinsic element carries. */
@@ -144,9 +165,14 @@ function toldLine(tree: React.ReactNode): string {
   return String(paragraph?.props.children ?? "");
 }
 
-/** The card's eyebrow: the uppercase line that opens the card. */
+/** The card's lead: the uppercase line that opens it, or — on the arm the
+ *  reader reaches by pressing the control — the first words of the success
+ *  alert the 2026-09-20 board draws there instead (#937). One helper,
+ *  because what it is asking is "what does this card say first". */
 function eyebrowOf(tree: React.ReactNode): string | undefined {
-  const head = nodes(tree).find((node) => node.type === "p" && classOf(node).includes("uppercase"));
+  const head =
+    nodes(tree).find((node) => node.type === "p" && classOf(node).includes("uppercase")) ??
+    nodes(tree).find((node) => node.type === "span" && classOf(node).includes("font-semibold"));
   if (head === undefined) return undefined;
   const children = head.props.children;
   const list = Array.isArray(children) ? children : [children];
@@ -278,6 +304,7 @@ describe("the ask arm — what the set draws, in its own order", () => {
         title: null,
         query: null,
         volume: null,
+        excerpt: null,
         domain: null,
         publishes: null,
       },
@@ -303,10 +330,18 @@ describe("the done arm, and the refusals that wear its shape", () => {
     expect(toldLine(tree)).toBe(COPY["publish.veto.stopped"]);
     const links = linksOf(tree);
     expect(links).toHaveLength(1);
-    expect(links[0]?.props.href).toBe("/app/calendar");
+    // **`/signin`, not `/app/calendar`** (#937). This page takes no
+    // session — the token is the authority and the link is opened from a
+    // mail — so a link into the app sent a signed-out reader to a gated
+    // address that bounces them to a sign-in wall with no word about why.
+    // The control names where it goes instead, which is what the row below
+    // pins: the destination and the word have to move together.
+    expect(links[0]?.props.href).toBe("/signin");
     expect(links[0]?.props.children).toBe(COPY["publish.veto.calendar"]);
-    // Quiet: the done arm asks nothing of the reader.
-    expect(classOf(links[0] as Node)).toContain("btn-ghost");
+    expect(COPY["publish.veto.calendar"]).toBe("Sign in to open your plan");
+    // Not solid: the done arm asks nothing of the reader, and the page it
+    // offers is one they may or may not want.
+    expect(classOf(links[0] as Node)).toContain("btn-outline");
     expect(buttonsOf(tree)).toHaveLength(0);
   });
 
@@ -319,11 +354,30 @@ describe("the done arm, and the refusals that wear its shape", () => {
     expect(headings[0]?.props.children).toBe("How teams pick an onboarding tool");
   });
 
-  it("no arm renders a tinted block: the sentence is a line, and warn is never a fill", async () => {
+  it("warn is never a fill: a refusal is a line, and only the confirmed stop is tinted (#937)", async () => {
+    // The rule this row has always kept is about **warn**: `--warn` is
+    // edge and ink, so a link that was already used or has expired states
+    // it in a line and never in a tinted block.
+    //
+    // The 2026-09-20 board adds the other half. The arm a reader reaches
+    // by *pressing the control* is the one piece of good news on this
+    // screen, and it earns the `alert-success` the board draws — which is
+    // not warn on a ground, and is not a refusal.
     const tinted = (tree: React.ReactNode): Node[] => nodes(tree).filter((node) => /\balert\b/.test(classOf(node)));
+
+    // Pressed, and it worked: the board's success alert, and only it.
     previewAnswer = async () => ({ ok: false, reason: "used", title: null });
-    expect(tinted(await ask({ done: "1" }))).toEqual([]);
+    const confirmed = tinted(await ask({ done: "1" }));
+    expect(confirmed).toHaveLength(1);
+    expect(classOf(confirmed[0] as Node)).toContain("alert-success");
+    expect(classOf(confirmed[0] as Node)).not.toMatch(/alert-warning|alert-error/);
+
+    // A spent link reached cold is not something the reader just did.
+    previewAnswer = async () => ({ ok: false, reason: "used", title: null });
+    expect(tinted(await ask())).toEqual([]);
     previewAnswer = async () => ({ ok: false, reason: "unknown" });
+    expect(tinted(await ask())).toEqual([]);
+    previewAnswer = async () => ({ ok: false, reason: "expired" });
     expect(tinted(await ask())).toEqual([]);
   });
 

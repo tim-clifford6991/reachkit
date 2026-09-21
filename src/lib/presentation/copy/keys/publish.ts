@@ -208,18 +208,48 @@ export const PUBLISH_COPY = Object.freeze({
   "publish.veto.ask.row.search": ["search", { slots: {}, fixedBy: "S6 (11a)" }],
   "publish.veto.ask.row.site": ["site", { slots: {}, fixedBy: "S6 (11a)" }],
   "publish.veto.ask.action": ["Stop this page", { slots: {}, fixedBy: "REQ-057 c1 · S6 (11a)" }],
+  /** Changed 2026-09-21 (#937). The second half said the page could be
+   *  read and edited "in the app" and offered no way there — on a screen
+   *  served with no session, to a reader who arrived from a mail. That is
+   *  the same dead end `publish.veto.calendar` below had, in prose. The
+   *  sentence keeps what it promises and the offer becomes a control, so
+   *  a reader who wants the page can reach it. Drafted (#759). */
   "publish.veto.ask.do-nothing": [
-    "Or do nothing and it publishes as planned. You can read and edit it in the app.",
-    { slots: {}, fixedBy: "REQ-057 c1 · S6 (11a)" },
+    "Do nothing and it goes live as planned.",
+    { slots: {}, fixedBy: "issue 937" },
+  ],
+  /** The offer that used to be the tail of the sentence above, as a link
+   *  to `/signin` — the door a signed-out reader can actually open.
+   *  Drafted (#759). */
+  "publish.veto.ask.signin": [
+    "Sign in to read or change it",
+    { slots: {}, fixedBy: "issue 937" },
   ],
   "publish.veto.done.head": ["Stopped", { slots: {}, fixedBy: "S6 (11a)" }],
   // SPEC §4 (2026-09-20, #914): *Plan* is the calendar's on-screen name.
   // The key keeps the internal word, as the route `/veto/{token}` does.
-  "publish.veto.calendar": ["Open the plan", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
+  /** Changed 2026-09-21 (#937), and the destination with it. This control
+   *  linked a **signed-out** reader — `(public)/veto/[token]/page.tsx`
+   *  takes no session, by construction — straight to `/app/calendar`,
+   *  which `src/middleware.ts` gates: the reader was bounced to a sign-in
+   *  wall with no word about why. It goes to `/signin` now and says so, so
+   *  the word and the destination cannot come apart. Drafted (#759). */
+  "publish.veto.calendar": ["Sign in to open your plan", { slots: {}, fixedBy: "issue 937" }],
+  /** Changed 2026-09-21 (#937). The old line said what would not happen
+   *  and stopped there; the 2026-09-20 board says what happens *instead* —
+   *  that tomorrow is unaffected, and that this page is not lost, because
+   *  it can be asked for again. A reader who has just stopped something
+   *  wants to know both. Drafted (#759). */
   "publish.veto.stopped": [
-    "This page will not publish. Tomorrow’s page is unaffected.",
-    { slots: {}, fixedBy: "REQ-057 c1 · S6 (11a)" },
+    "Nothing else changes. Tomorrow’s page is written as usual, and you can ask us to write this one again from your plan.",
+    { slots: {}, fixedBy: "issue 937" },
   ],
+  /** The rest of the done arm's alert, after `publish.veto.done.head`'s
+   *  "Stopped" — two keys because the board bolds the first word and reads
+   *  on, and one key holding "Stopped. This page won’t go live." would
+   *  make the bold a matter of where a full stop happens to fall.
+   *  Drafted (#759). */
+  "publish.veto.done.line": ["This page won’t go live.", { slots: {}, fixedBy: "issue 937" }],
   "publish.veto.alreadyUsed": ["This link was already used. The page is stopped.", { slots: {}, fixedBy: "REQ-057 c1" }],
   "publish.veto.expired": ["The moment to stop this page has passed.", { slots: {}, fixedBy: "REQ-057 c1" }],
   "publish.veto.unknown": ["This isn’t a link ReachKit can act on.", { slots: {}, fixedBy: "REQ-057 c1" }],

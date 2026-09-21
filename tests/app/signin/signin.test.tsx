@@ -132,7 +132,12 @@ describe('REQ-098 c2 — "then it carries these strings verbatim: the heading �
       "Enter the email you paid with and we'll send you a sign-in link. No password — accounts are created by payment, never by a signup form."
     );
     expect(copy("signin.field.placeholder")).toBe("you@company.com");
-    expect(copy("signin.submit.label")).toBe("Send my link");
+    // Changed 2026-09-21 (#937): REQ-098 c2 wrote "Send my link" for a
+    // screen that drew nothing else; the 2026-09-20 board says which link
+    // it sends, which is the only question a reader has at this control.
+    // Pinned here so a silent edit to a customer-visible string fails a
+    // test rather than shipping.
+    expect(copy("signin.submit.label")).toBe("Send my sign-in link");
     expect(`${copy("signin.new.prompt")} ${copy("signin.new.link")}`).toBe(
       "New to ReachKit? Start a free scan →"
     );
@@ -165,7 +170,8 @@ describe('SPEC §3 — "Sign-in copy is identical whatever the address, revealin
     expect(html).toContain("signin.sent.resend");
     expect(html).toContain('href="/signin"');
     // The form is not on this arm: the address was taken, and asking for it
-    // again beside the answer would say the answer had not landed.
+    // again beside the answer would say the answer had not landed. (The
+    // *dead-link* arm does carry one since #937 — there, nothing was taken.)
     expect(html.match(/<input/g)).toBeNull();
   });
 
@@ -248,10 +254,15 @@ describe('REQ-098 c7 — "Given a person who opens a sign-in link that no longer
     expect(html).toContain("signin.link_dead");
     // "…and that they may ask for another": an anchor to this screen
     // without the marker, so it needs no client runtime.
+    // "…and that they may ask for another": **the field itself**, since
+    // #937. It was an anchor back to an empty form, which made a reader
+    // holding a dead link take two steps to do the one thing this screen
+    // is for; the 2026-09-20 board draws the field here, and it is the
+    // same form the first arm draws, under this arm's own word.
     expect(html).toContain("signin.expired.submit");
-    expect(html).toContain('href="/signin"');
-    // No form on this arm — the way back to it is the control above.
-    expect(html.match(/<input/g)).toBeNull();
+    expect(html).toContain("<form");
+    expect(html.match(/<input/g)).toHaveLength(1);
+    expect(html).not.toContain('href="/signin"');
   });
 
   it("the arm is warn-toned, and it is the only tone this screen spends", async () => {
