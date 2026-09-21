@@ -182,25 +182,31 @@ describe("the draft screen says what the page is for (issue 867)", () => {
     // The band, in the product's one set of band words.
     expect(text).toContain(copy("band.winnability.winnable"));
     // Every engine, each with where it stood — and the engine that named
-    // this site said so.
-    expect(text).toContain(
-      copy("calendar.why.engine.line", {
-        engine: copy("ai-answers.engine.chatgpt"),
-        standing: copy("calendar.why.engine.names-you"),
-      })
-    );
-    expect(text).toContain(
-      copy("calendar.why.engine.line", {
-        engine: copy("ai-answers.engine.ai-overview"),
-        standing: copy("calendar.why.engine.names-others"),
-      })
-    );
-    expect(text).toContain(
-      copy("calendar.why.engine.line", {
-        engine: copy("ai-answers.engine.ai-mode"),
-        standing: copy("calendar.why.engine.no-answer"),
-      })
-    );
+    // this site said so. Since issue 930 the row draws the two as a name
+    // and a chip (one renderer, `calendar/TargetRows.tsx`), and the one
+    // phrase that joins them is the row's own `title`.
+    const rendered = await block();
+    for (const [engine, standing] of [
+      ["chatgpt", "calendar.why.engine.names-you"],
+      ["ai_overview", "calendar.why.engine.names-others"],
+      ["ai_mode", "calendar.why.engine.no-answer"],
+    ] as const) {
+      const row = rendered.querySelector(`[data-testid="engine-${engine}"]`);
+      expect(row, engine).not.toBeNull();
+      expect(row?.textContent, engine).toContain(copy(standing));
+      expect(row?.getAttribute("title"), engine).toBe(
+        copy("calendar.why.engine.line", {
+          engine: copy(
+            engine === "chatgpt"
+              ? "ai-answers.engine.chatgpt"
+              : engine === "ai_overview"
+                ? "ai-answers.engine.ai-overview"
+                : "ai-answers.engine.ai-mode"
+          ),
+          standing: copy(standing),
+        })
+      );
+    }
   });
 
   it("a search the vendor gave no difficulty for renders the dash and its written line, never a 0", async () => {
@@ -219,9 +225,7 @@ describe("the draft screen says what the page is for (issue 867)", () => {
     // Neither the number nor its ceiling is printed for a difficulty nobody
     // read: a 0 would read as "nothing to beat".
     expect(text).not.toContain(copy("calendar.why.difficulty.of-ceiling", { difficulty: "0", ceiling: "36" }));
-    expect(
-      target.querySelector('[data-testid="draft-target-engines"]')?.textContent ?? ""
-    ).not.toBe("");
+    expect(target.querySelector('[data-testid="target-engines"]')?.textContent ?? "").not.toBe("");
   });
 
   it("a row derived before issue 867 carries no target facts: the block still states the search, and shows no ceiling", async () => {

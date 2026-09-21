@@ -23,7 +23,7 @@ const IDIOM = "src/ui/idiom/idiom.css";
 // `docs/DESIGN.md` takes every state "from daisyUI's own state selectors with
 // the theme's colours". What stays asserted here is what the product still
 // declares: the calendar cell, the shell's nav row, and the one motion token.
-const CALENDAR_VIEW = "src/app/(account)/app/calendar/CalendarView.tsx";
+const DAY_CARD = "src/app/(account)/app/calendar/DayCard.tsx";
 
 function walk(dir: string, keep: (file: string) => boolean, out: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {
@@ -44,14 +44,21 @@ describe("§0 4–5 — the field's disabled and invalid states", () => {
 });
 
 describe("§0 10 — the calendar cell open in the panel", () => {
+  // The cell is `DayCard.tsx` since issue 930: SPEC §7 (2026-09-20, #908)
+  // makes it a fixed-height card with five rules of its own, and
+  // `CalendarView` is now the screen's state around it.
+  //
   it("keeps the hover edge, and today keeps its own ring", () => {
-    const cell = read(CALENDAR_VIEW);
+    const cell = read(DAY_CARD);
     expect(cell).toContain("hover:border-primary");
-    expect(cell).toContain("ring-2 ring-primary");
+    // `ring-inset` since issue 930: the card is 88px at its narrowest and
+    // every pixel of it is spoken for, so the ring is drawn inside the
+    // border box rather than outside it.
+    expect(cell).toContain("ring-2 ring-inset ring-primary");
   });
 
   it('carries aria-current="date", and no longer aria-pressed', () => {
-    const cell = read(CALENDAR_VIEW);
+    const cell = read(DAY_CARD);
     expect(cell).toContain('aria-current={p.selected ? "date" : undefined}');
     expect(cell).not.toContain("aria-pressed={p.selected}");
   });

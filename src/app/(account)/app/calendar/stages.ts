@@ -100,3 +100,40 @@ export const TONE_BADGE: Readonly<Record<Tone, string>> = Object.freeze({
  *  — so there is one place a state is added. */
 export { STATES };
 export type { State };
+
+/**
+ * The stage as a day card draws it: a coloured dot and its word (SPEC §7,
+ * 2026-09-20, #908; issue 930).
+ *
+ * **Not a `badge`, and that is the fix for #944.** A daisyUI `badge`
+ * carries its own horizontal padding and `badge-sm` does not shrink below
+ * its text, so a stage word inside a `minmax(0, 1fr)` column pushed its own
+ * box past the cell's edge at 768 and at 1280 — the containment offender
+ * that pass reported, in both themes. A dot is a fixed 6px square that
+ * cannot shrink and does not need to; the word beside it is ordinary text
+ * in a `truncate` row, so the pair narrows with the column instead of
+ * standing its ground against it.
+ *
+ * The word is still there beside the colour, at every width: §2.5's
+ * words-not-colour rule is what the dot is *added to*, never a substitute
+ * for it.
+ *
+ * Both maps are total over `Tone`. The reachkit theme has no `neutral`
+ * slot, so the neutral arm is drawn from `base-content` at an opacity
+ * rather than from a colour that paints nothing.
+ */
+export const TONE_DOT: Readonly<Record<Tone, string>> = Object.freeze({
+  accent: "bg-primary",
+  ok: "bg-success",
+  warn: "bg-warning",
+  bad: "bg-error",
+  neutral: "bg-base-content/40",
+});
+
+export const TONE_INK: Readonly<Record<Tone, string>> = Object.freeze({
+  accent: "text-primary",
+  ok: "text-success",
+  warn: "text-warning",
+  bad: "text-error",
+  neutral: "text-base-content/70",
+});

@@ -29,7 +29,7 @@ function draft(day: string, state: DraftOnDay["state"]): DraftOnDay {
     why: {
       search: "a search",
       askedAs: "a question",
-      answeredTodayBy: ["rival.example"],
+      bestRival: { domain: "rival.example", position: measured(4, AT) },
       youStand: measured(3, AT),
       doneWhen: "an acceptance test",
       winnability: "winnable",
@@ -46,6 +46,8 @@ function draft(day: string, state: DraftOnDay["state"]): DraftOnDay {
     verification: { kind: "never", because: "no_live_address" } as const,
     unpublishOutcome: null,
     needsYou: null,
+    standing: null,
+    update: false,
   };
 }
 

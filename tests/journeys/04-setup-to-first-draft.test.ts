@@ -987,7 +987,7 @@ describe("three decisions → deep pass → the first page already on the calend
       // is told which search it is for and who holds the answer today.
       expect(first?.title).toBe(head?.targetQuery);
       expect(first?.why.search).toBe(head?.targetQuery);
-      expect(first?.why.answeredTodayBy.length).toBeGreaterThan(0);
+      expect(first?.why.bestRival?.domain).toBeTruthy();
       // The calendar states supply from the count it read, never a 0 it
       // guessed (ADR-061).
       expect(facts.unusedSupply).toBe(depth.unused);
@@ -995,7 +995,13 @@ describe("three decisions → deep pass → the first page already on the calend
       expect(facts.drafts.length).toBeLessThanOrEqual(depth.unused);
 
       // And the screen renders that date, accounted for.
-      const html = renderToStaticMarkup(createElement(CalendarView, { model }));
+      // The screen holds the open day in the address (`nuqs`, issue 930),
+      // and in the product the adapter is in the root layout. A journey
+      // renders the view on its own, so it brings the same testing adapter
+      // the calendar suites use — the adapter is stood in, never the
+      // screen.
+      const { withNuqs } = await import("../app/calendar/nuqs-adapter");
+      const html = renderToStaticMarkup(withNuqs(createElement(CalendarView, { model })));
       expect(html).toContain(first?.scheduledFor.slice(-2));
       expect(html).toContain("calendar.stage.planned");
     },

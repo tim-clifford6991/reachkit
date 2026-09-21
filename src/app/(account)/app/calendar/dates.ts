@@ -193,8 +193,66 @@ export function fullDate(day: DayKey): string {
 /** The seven column heads, Monday first. Taken from a known Monday rather
  *  than written down, so "Mon–Sun" is one fact and not seven strings. */
 export function weekdayLabels(): readonly string[] {
-  // 2026-09-07 is a Monday.
-  const monday: DayKey = "2026-09-07";
   const format = new Intl.DateTimeFormat(SHELL_LOCALE, { timeZone: "UTC", weekday: "short" });
-  return Array.from({ length: 7 }, (_, i) => format.format(utcOf(addDays(monday, i))));
+  return Array.from({ length: 7 }, (_, i) => format.format(utcOf(addDays(MONDAY, i))));
+}
+
+/** A known Monday — the one date in this file that is written down. Every
+ *  weekday name the screen speaks is formatted from it, so "Mon–Sun" and
+ *  the weekly pass's own day are one fact rather than several strings. */
+const MONDAY: DayKey = "2026-09-07";
+
+/** The date a day card and a day of the phone list name, in words — "8
+ *  September". The card itself draws the numeral alone; this is the form
+ *  its label speaks, where "8" on its own would say nothing (issue 930). */
+export function cardDate(day: DayKey): string {
+  return new Intl.DateTimeFormat(SHELL_LOCALE, {
+    timeZone: "UTC",
+    day: "numeric",
+    month: "long",
+  }).format(utcOf(day));
+}
+
+/** The weekday a date falls on, short — the phone list's left column
+ *  (issue 930). Read from the date rather than from a list of seven
+ *  strings, exactly as `weekdayLabels` is. */
+export function weekdayShort(day: DayKey): string {
+  return new Intl.DateTimeFormat(SHELL_LOCALE, { timeZone: "UTC", weekday: "short" }).format(
+    utcOf(day)
+  );
+}
+
+/**
+ * The word a live page's card carries where this week's pass has not
+ * measured a place for it yet — the name of the day it will be: "Mon"
+ * (SPEC §7, 2026-09-20; issue 930).
+ *
+ * It is the **weekday's own name**, taken from a known Monday and not
+ * written down, for `weekdayLabels`'s reason: "Mon–Sun" is one fact and
+ * not seven strings, and the day the weekly pass runs on is the same
+ * Monday §7's plan horizon is cut at. So it is a value, like a date
+ * numeral, rather than a sentence the registry owes.
+ */
+export function firstMeasuredLabel(): string {
+  return weekdayShort(MONDAY);
+}
+
+/** A month as the instant react-day-picker draws it from: the first of the
+ *  month at UTC midnight. The library reads that `Date`'s *local* calendar
+ *  fields, and a `DayKey` is already a site-local calendar day, so the two
+ *  agree exactly as long as nothing here crosses a zone (issue 930). */
+export function monthStartDate(month: MonthKey): Date {
+  const [y, m] = month.split("-").map(Number);
+  return new Date(y ?? 0, (m ?? 1) - 1, 1);
+}
+
+/** The `DayKey` a `Date` react-day-picker handed back names, read off its
+ *  local calendar fields — the inverse of `monthStartDate`, and never
+ *  `toISOString()`, which would shift the day across midnight west of
+ *  Greenwich (issue 930). */
+export function dayKeyOfLocalDate(at: Date): DayKey {
+  const y = String(at.getFullYear()).padStart(4, "0");
+  const m = String(at.getMonth() + 1).padStart(2, "0");
+  const d = String(at.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
 }

@@ -1,0 +1,25 @@
+// tests/app/calendar/nuqs-adapter.tsx — the one adapter these suites need
+// (issue 930).
+//
+// The Plan screen holds the open day in the address (`nuqs`), and `nuqs`
+// refuses to run without an adapter — in the product that is `NuqsAdapter`
+// in the root layout (`src/app/layout.tsx`), and a suite that renders a
+// route on its own has no layout around it. `NuqsTestingAdapter` is the
+// library's own stand-in for exactly that: it reads a fixed query string
+// and records writes instead of touching a router.
+//
+// It is the *adapter* that is stood in, never the screen: every component
+// under it is the product's own, and the value `useQueryState` reads is the
+// one the address would give it.
+import React from "react";
+import { NuqsTestingAdapter } from "nuqs/adapters/testing";
+
+/** Wrap an element in the testing adapter, with the address it should
+ *  believe it is at. The default is no query string at all, which is how a
+ *  founder first reaches the screen. */
+export function withNuqs(
+  element: React.ReactElement,
+  searchParams: string | Record<string, string> = ""
+): React.ReactElement {
+  return <NuqsTestingAdapter searchParams={searchParams}>{element}</NuqsTestingAdapter>;
+}

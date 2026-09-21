@@ -53,6 +53,7 @@ vi.mock("@/lib/market/changes", async (importOriginal) => ({
 const { setOpportunityStore } = await import("@/lib/opportunities/store");
 const provider = await import("@/app/(account)/app/calendar/provider");
 const { default: CalendarPage } = await import("@/app/(account)/app/calendar/page");
+import { withNuqs } from "./nuqs-adapter";
 
 const AT = new Date(Date.UTC(2026, 8, 14, 6, 0, 0));
 
@@ -70,7 +71,7 @@ async function open(a: { at: Date; timeZone: string; month: string }) {
   provider.setCalendarSiteReader(async () => ({ siteId: "site-1", timeZone: a.timeZone }));
   const model = await provider.readMonth(a.month);
   const root = document.createElement("div");
-  root.innerHTML = renderToStaticMarkup(await CalendarPage({ searchParams: Promise.resolve({ month: a.month }) }));
+  root.innerHTML = renderToStaticMarkup(withNuqs(await CalendarPage({ searchParams: Promise.resolve({ month: a.month }) })));
   const cell = (day: string) => root.querySelector(`[data-testid="calendar-cell-${day}"]`);
   const markers = [...root.querySelectorAll('[data-testid="calendar-horizon-marker"]')].map(
     (n) => n.closest('[data-testid^="calendar-cell-"]')?.getAttribute("data-testid")?.replace("calendar-cell-", "")
@@ -114,7 +115,9 @@ describe("issue 857 — a thin market on a Wednesday", () => {
   it("one quiet marker, on the Monday the next pass decides", async () => {
     const { markers, cell } = await open(WEDNESDAY);
     expect(markers).toEqual(["2026-09-21"]);
-    expect(cell("2026-09-21")?.textContent).toContain(COPY["calendar.horizon.marker"]);
+    // Issue 930: the card has room for two words and the panel carries the
+    // sentence they stand for. Both are the registry's.
+    expect(cell("2026-09-21")?.textContent).toContain(COPY["calendar.horizon.short"]);
   });
 
   it("a month wholly after the horizon is blank but for the marker on its first date", async () => {

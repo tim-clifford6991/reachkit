@@ -88,7 +88,7 @@ function cellWith(
       why: {
         search: "a search",
         askedAs: "a question",
-        answeredTodayBy: [],
+        bestRival: null,
         youStand: measured(1, AT),
         doneWhen: "an acceptance test",
         winnability: "reach",
@@ -107,6 +107,8 @@ function cellWith(
       // a page nothing delivered carries.
       verification: { kind: "never", because: "no_live_address" } as const,
       unpublishOutcome: null,
+      standing: null,
+      update: false,
       // Issue 880: why the page needs the founder. The default is the
       // owner's own dogfood case — the §8 hard rules stopped the writing —
       // because that is the page that was being offered a reconnect.

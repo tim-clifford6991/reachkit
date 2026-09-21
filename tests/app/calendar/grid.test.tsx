@@ -25,10 +25,12 @@ import { AWAITING_COPY, COPY } from "@/lib/presentation/copy";
 import { CalendarView } from "@/app/(account)/app/calendar/CalendarView";
 import { assembleMonth, type CalendarFacts } from "@/app/(account)/app/calendar/month";
 import { EMPTY_COPY_KEY, HELD_BY_SETTING_COPY_KEY } from "@/app/(account)/app/calendar/empty";
+import { EMPTY_SHORT_COPY_KEY } from "@/app/(account)/app/calendar/card-lines";
 import {
   FIXTURE_CALENDAR_FACTS,
   FIXTURE_MONTH,
 } from "@/app/(account)/app/calendar/fixture";
+import { withNuqs } from "./nuqs-adapter";
 
 function render(el: React.ReactElement): Element {
   const container = document.createElement("div");
@@ -39,7 +41,7 @@ function render(el: React.ReactElement): Element {
 const MODEL = assembleMonth(FIXTURE_CALENDAR_FACTS, FIXTURE_MONTH);
 
 function view(): Element {
-  return render(<CalendarView model={MODEL} />);
+  return render(withNuqs(<CalendarView model={MODEL} />));
 }
 
 function cellEl(root: Element, day: string): Element {
@@ -68,7 +70,7 @@ describe("REQ-043 c1 — one page or one account per cell, weekends included", (
   it("no cell renders two pages", () => {
     const root = view();
     for (const cell of root.querySelectorAll('[data-testid^="calendar-cell-"]')) {
-      expect(cell.querySelectorAll(".badge").length).toBeLessThanOrEqual(1);
+      expect(cell.querySelectorAll('[data-testid="card-stage"]').length).toBeLessThanOrEqual(1);
     }
   });
 
@@ -104,7 +106,7 @@ describe("REQ-043 c2 — every rendered page carries its stage chip", () => {
 });
 
 describe("REQ-043 c3 and ADR-061 — the two grey lines are never swapped", () => {
-  it("an unattributed empty date renders the stopped-work line and never the exhausted-supply line", () => {
+  it("an unattributed empty date renders the stopped-work cause and never the exhausted-supply one", () => {
     const facts: CalendarFacts = {
       ...FIXTURE_CALENDAR_FACTS,
       drafts: [],
@@ -114,11 +116,13 @@ describe("REQ-043 c3 and ADR-061 — the two grey lines are never swapped", () =
       // Unreadable depth, no other cause: ADR-061's own mutation case.
       unusedSupply: null,
     };
-    const root = render(<CalendarView model={assembleMonth(facts, FIXTURE_MONTH)} />);
+    const root = render(withNuqs(<CalendarView model={assembleMonth(facts, FIXTURE_MONTH)} />));
     const text = root.textContent ?? "";
     // `copy()` is mocked to the key, so the assertion names which key the
-    // line resolved from rather than the owner's wording.
-    expect(text).toContain("stopped.work.line");
+    // line resolved from rather than the owner's wording. On the card that
+    // is the two-word form (issue 930); `law-lines.test.tsx` asserts the
+    // panel's three lines.
+    expect(text).toContain(EMPTY_SHORT_COPY_KEY.reachkit_stopped);
     // The exhausted-supply key is owner-owed and empty, so the only way it
     // could appear is if the resolver had reached it — which is exactly
     // what this asserts it did not.
@@ -150,22 +154,34 @@ describe("REQ-043 c3 and ADR-061 — the two grey lines are never swapped", () =
     const lines = (["publishing_off", "destination_pending_dns", "destination_disconnected"] as const).map(
       (setting) => {
         const facts: CalendarFacts = { ...FIXTURE_CALENDAR_FACTS, customerChangeHoldsPages: setting };
-        const root = render(<CalendarView model={assembleMonth(facts, FIXTURE_MONTH)} />);
+        const root = render(withNuqs(<CalendarView model={assembleMonth(facts, FIXTURE_MONTH)} />));
         // 2026-09-20 is emptied by proven-zero supply in the fixture, which
         // the saved setting outranks.
+        // Issue 930: the card says why in at most two words and the day
+        // panel carries the whole reason. The three settings share the
+        // short form — at two words they would all be "Held back" — and
+        // keep their own accounts, which `law-lines` and `day-panel`
+        // assert where they are stated.
         const line = cellEl(root, "2026-09-20").querySelector('[data-testid="cell-empty-line"]')?.textContent;
-        expect(line).toBe(HELD_BY_SETTING_COPY_KEY[setting]);
-        // #759: the key the cell draws is written, not the marker.
+        expect(line).toBe(EMPTY_SHORT_COPY_KEY.customer_change_holds_pages);
+        // #759: both keys the date draws are written, not the marker.
         expect(AWAITING_COPY).not.toContain(HELD_BY_SETTING_COPY_KEY[setting]);
-        return line;
+        expect(AWAITING_COPY).not.toContain(EMPTY_SHORT_COPY_KEY.customer_change_holds_pages);
+        return HELD_BY_SETTING_COPY_KEY[setting];
       }
     );
     expect(new Set(lines).size).toBe(3);
   });
 
-  it("a date ReachKit stopped on carries ReachKit's own line", () => {
+  it("a date ReachKit stopped on carries ReachKit's own two words, and the panel carries the three lines", () => {
     const root = view();
-    expect(cellEl(root, "2026-09-13").textContent).toContain("stopped.work.line");
+    // Issue 930: two words on the card (`calendar.empty.short.*`), and the
+    // three lines REQ-092 owes in the panel — which is where
+    // `law-lines.test.tsx` asserts `stopped.work.line` still is.
+    expect(cellEl(root, "2026-09-13").textContent).toContain(
+      EMPTY_SHORT_COPY_KEY.reachkit_stopped
+    );
+    expect(cellEl(root, "2026-09-13").textContent).not.toContain("stopped.work.line");
   });
 });
 
@@ -211,13 +227,16 @@ describe("REQ-043 c6 — the stage filter narrows the grid, and every card shows
 describe("§4.6 — today is ringed, and the grid renders no sentence of its own", () => {
   it("exactly one cell is marked as today, and it is the site-local today", () => {
     const root = view();
-    expect(root.querySelectorAll("[data-today]")).toHaveLength(1);
+    // The card's own mark. `react-day-picker` writes `data-today` on the
+    // grid cell around it too, from the `today` it is handed — which is
+    // this model's, so the two agree by construction rather than by luck.
+    expect(root.querySelectorAll('[data-testid^="calendar-cell-"][data-today]')).toHaveLength(1);
     expect(cellEl(root, MODEL.today).hasAttribute("data-today")).toBe(true);
   });
 });
 
 describe("the calendar screen's parts", () => {
-  it("the filter is six toggles, one per stage, each with its mono count", () => {
+  it("the filter is six chips, one per stage, each with its mono count", () => {
     const root = view();
     const cards = root.querySelectorAll('[data-testid^="stage-filter-"]');
     expect(cards).toHaveLength(6);
@@ -225,16 +244,22 @@ describe("the calendar screen's parts", () => {
       const id = card.getAttribute("data-testid") ?? "";
       expect(card.tagName.toLowerCase(), id).toBe("button");
       expect(card.hasAttribute("aria-pressed"), id).toBe(true);
+      expect(card.className, id).toContain("btn");
       const count = card.querySelector('[data-testid^="stage-count-"]');
+      // The count is in the document, not in generated content: daisyUI's
+      // own `filter` radio draws a chip's word from `content:
+      // attr(aria-label)` and collapses the chips that are not chosen, and
+      // REQ-043 c6 wants every stage's count readable at all times.
       expect(count?.className, id).toContain("num");
+      expect(count?.textContent, id).not.toBe("");
     }
   });
 
-  it("the chosen card carries the accent state in the accessibility tree, not by tint alone", () => {
+  it("the chosen chip carries the accent state in the accessibility tree, not by tint alone", () => {
     const root = view();
-    // `CalendarView` opens on `all`, so that is the chosen card. The tint
-    // is keyed off this attribute in `idiom.css`, so a card cannot look
-    // chosen without being chosen (§2.5).
+    // `CalendarView` opens on `all`, so that is the chosen chip. The fill
+    // and this attribute are two readings of one fact, so a chip cannot
+    // look chosen without being chosen (§2.5).
     expect(
       root.querySelector('[data-testid="stage-filter-all"]')?.getAttribute("aria-pressed"),
     ).toBe("true");
@@ -243,25 +268,34 @@ describe("the calendar screen's parts", () => {
     ).toBe("false");
   });
 
-  it("a cell heads with its date and its stage chip on one row, and the title under them", () => {
+  it("a card heads with its date and exactly one number, the title under them, and one stage word at the foot", () => {
     const root = view();
     // 2026-09-05 carries a live page in the fixture.
     const cell = cellEl(root, "2026-09-05");
     const date = cell.querySelector('[data-testid="cell-date"]');
     const head = date?.parentElement;
     expect(date?.textContent).toBe("5");
-    expect(head?.querySelector(".badge")).not.toBeNull();
-    // The title is the cell's own element, outside that row.
-    expect(cell.querySelector('[data-testid="cell-label"]')).not.toBeNull();
+    // SPEC §7's rule 1: the date and **exactly one** number.
+    expect(head?.querySelectorAll('[data-testid="card-number"]')).toHaveLength(1);
+    expect(cell.querySelectorAll('[data-testid="card-number"]')).toHaveLength(1);
+    // The title is the card's own element, outside that row, and clamped.
+    const label = cell.querySelector('[data-testid="cell-label"]');
+    expect(label).not.toBeNull();
+    expect(label?.className).toContain("line-clamp-2");
     expect(head?.querySelector('[data-testid="cell-label"]')).toBeNull();
+    // Rule 3's foot: one stage word with its dot, and never a `badge`
+    // (#944 — a badge carries its own padding and cannot shrink).
+    expect(cell.querySelector('[data-testid="card-stage"]')).not.toBeNull();
+    expect(cell.querySelector(".badge")).toBeNull();
   });
 
-  it("a date with no page carries no stage chip", () => {
+  it("a date with no page carries no stage word and no number", () => {
     const root = view();
     // 2026-09-20 is emptied by proven-zero supply in the fixture.
     const emptied = cellEl(root, "2026-09-20");
     expect(emptied.hasAttribute("data-empty")).toBe(true);
-    expect(emptied.querySelector(".badge")).toBeNull();
+    expect(emptied.querySelector('[data-testid="card-stage"]')).toBeNull();
+    expect(emptied.querySelector('[data-testid="card-number"]')).toBeNull();
     expect(cellEl(root, "2026-09-05").hasAttribute("data-empty")).toBe(false);
   });
 

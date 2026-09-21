@@ -17,29 +17,27 @@
 // draft, and there must not be: §4.6's supply rule and DECISIONS 2026-08-28
 // ("Supply is the cap: never invent an opportunity to fill a day; the
 // calendar is never padded") are kept by a read that cannot pad.
-import type { Measured } from "@/lib/measure/measured";
-import type { PageTarget } from "../_shell/page-target";
+import type { TargetFacts } from "./target";
 import type { DestinationKind, UnpublishOutcome, VerifyDisposition } from "@/lib/publish/types";
 import type { NeedsYouCause } from "@/lib/publish/record/needs-you";
 import { accountFor, isLawCause, isSupplyCause, type EmptyAccount, type EmptyFacts, type HeldBySetting } from "./empty";
+import type { PageStanding } from "./day-number";
 import type { WorkStop } from "@/lib/presentation/stopped";
 import { STAGE_OF, type State, type Stage, type StageFilter } from "./stages";
 import { dayKeyOf, monthGrid, monthOf, planHorizonEnd, type DayKey, type MonthKey } from "./dates";
 
-/** REQ-043 criterion 8's evidence, and §4.6's "Why this page" rows —
- *  "search / asked / answered-today-by / you / done-when — all mono
- *  values". `youStand` is a `Measured<number>` and not a number: REQ-004's
- *  trichotomy is what keeps an outage from rendering as a zero.
+/** REQ-043 criterion 8's evidence, and §7's day-panel rows.
  *
- *  Since issue 867 the rows the draft screen states too — the search, its
- *  volume, its difficulty against this site's ceiling, the band and where
- *  the AI engines stood — are `PageTarget`'s, shared with that screen so
- *  the two cannot word one fact two ways. The two members here are this
- *  panel's own. */
-export interface WhyThisPage extends PageTarget {
-  answeredTodayBy: readonly string[];
-  youStand: Measured<number>;
-}
+ *  **One name and one shape since issue 930**: `TargetFacts` is the single
+ *  projection the day panel and the draft screen both read, and
+ *  `TargetRows` is the single renderer of it. What used to be this screen's
+ *  own interface — `PageTarget` plus two members nobody else had — is that
+ *  type, so there is nothing left here to drift.
+ *
+ *  Kept as an alias rather than deleted: `WhyThisPage` is the name §4.6
+ *  gives these rows and the name the store, the fixture and four suites
+ *  call them by. */
+export type WhyThisPage = TargetFacts;
 
 /** One draft, on the site-local date it is scheduled for. */
 export interface DraftOnDay {
@@ -94,6 +92,28 @@ export interface DraftOnDay {
    *  it to decide which control the page earns — never its stage, which
    *  says only that something is wanted of them. */
   needsYou: NeedsYouCause | null;
+  /**
+   * Where the site stands for this page's search, as §9's weekly judgement
+   * recorded it (issue 930). `null` for a page that is not live, and for a
+   * live page this week's pass measured no place for — which is not a zero
+   * and not an outage: the page went out and the next weekly pass is when
+   * it is first placed (`day-number.ts`'s `first-measure` arm).
+   *
+   * **Read, never derived.** `Movement` is written by `judgeWeek` and read
+   * back by `readWeek`; nothing on this screen re-measures a place or
+   * re-computes a change, so a decline cannot be rounded away on the render
+   * path (REQ-063 c3).
+   */
+  standing: PageStanding | null;
+  /**
+   * Whether this page is an update of a page the site already has, rather
+   * than a new one (SPEC §7, 2026-09-20 — "a mark for an update").
+   *
+   * The opportunity's own family, read: Improve and Fix rewrite a page that
+   * exists, Write and Earn add one. A fact about the row, so the card draws
+   * a mark and decides nothing.
+   */
+  update: boolean;
 }
 
 export interface PageOnDay extends DraftOnDay {

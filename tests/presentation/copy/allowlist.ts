@@ -274,6 +274,26 @@ export const ATTRIBUTE_ALLOWLIST: readonly AllowlistedAttribute[] = Object.freez
     name: "height",
     reason: "the same, and its pair: a chart's own height in pixels or per cent.",
   },
+  {
+    kind: "exact",
+    name: "kind",
+    reason:
+      "a row renderer's own discriminant token (`TargetRows`' 'value' | " +
+      "'prose', issue 930), the same category as `variant`, `state` and " +
+      "`tone`: it selects the face a row's value is set in — the mono one " +
+      "for a search, a domain or a number, the UI one for a sentence — and " +
+      "is never read by a person. Every word the row carries arrives " +
+      "through `label` and `value`, which this sweep still governs.",
+  },
+  {
+    kind: "exact",
+    name: "mode",
+    reason:
+      "`react-day-picker`'s selection-mode token ('single', issue 930), the " +
+      "same category as `type` and `variant`: it selects how the library " +
+      "handles a click, never what the month says. Every word on the grid " +
+      "is the day card's, read through copy().",
+  },
 ] as const);
 
 export function isAllowlistedAttribute(attributeName: string): boolean {
