@@ -323,7 +323,7 @@ export const SETUP_COPY = Object.freeze({
   "setup.waiting.degraded": ["The pass couldn’t measure everything. You’re going into the app all the same — what was measured is shown, and the rest is marked as not measured.", { slots: {}, fixedBy: "REQ-029 c3" }],
   /** S11's own two lines, both unbracketed in the set (11a). */
   "setup.waiting.about": [
-    "About three minutes. When it finishes you land in the app with the first page already on the calendar. If it finds nothing worth writing, it says so — it never invents a page.",
+    "About three minutes. When it finishes you land in the app with the first page already in your plan. If it finds nothing worth writing, it says so — it never invents a page.",
     { slots: {}, fixedBy: "S11 · 11a" },
   ],
   "setup.waiting.close-tab": [

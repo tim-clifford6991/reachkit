@@ -50,11 +50,18 @@ export default async function CalendarPage({
   // as nothing, never as a placeholder sentence.
   const plannedNote = writtenLine("calendar.footnote.planned");
   const supplyNote = writtenLine("calendar.footnote.supply");
+  // SPEC §4 (2026-09-20, #908, issue #914): "*Plan* is the calendar's
+  // on-screen name." The screen is named by the menu item that reaches it,
+  // which is the idiom Settings and Overview already keep — their `h1` is
+  // `shell.nav.*` and the written line sits under it. `calendar.head` is
+  // that line here (the owner's sentence of 2026-09-11, #516), so nothing
+  // it says is lost by the heading taking the name.
+  const head = writtenLine("calendar.head");
 
   return (
     <div className="flex min-w-0 flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold">{copy("calendar.head")}</h1>
+        <h1 className="text-2xl font-semibold">{copy("shell.nav.plan")}</h1>
         <nav className="join" data-testid="month-switcher">
           <a
             href={`/app/calendar?month=${previous}`}
@@ -81,6 +88,8 @@ export default async function CalendarPage({
           </a>
         </nav>
       </div>
+
+      {head === null ? null : <p className="min-w-0 wrap-anywhere">{head}</p>}
 
       <FirstPageNotice state={onboarding} />
       {/* §7's one statement of supply, at the calendar's top and nowhere

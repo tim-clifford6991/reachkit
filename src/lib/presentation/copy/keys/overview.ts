@@ -266,7 +266,9 @@ export const OVERVIEW_COPY = Object.freeze({
     "This week's pages aim at {searches}.",
     { slots: { searches: "text" }, fixedBy: "issue 867" },
   ],
-  "overview.week.calendar-link": ["Open calendar →", { slots: {}, fixedBy: "BUILD §4.5" }],
+  // SPEC §4 (2026-09-20, #914): *Plan* is the calendar's on-screen name;
+  // the key still says where the link goes.
+  "overview.week.calendar-link": ["Open the plan →", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
   "overview.week.day.done": ["done", { slots: {}, fixedBy: "REQ-041 c6" }],
   "overview.week.day.today": ["today", { slots: {}, fixedBy: "REQ-041 c6" }],
   "overview.week.day.to-come": ["next", { slots: {}, fixedBy: "REQ-041 c6" }],
@@ -317,7 +319,7 @@ export const OVERVIEW_COPY = Object.freeze({
     "waits for you before it publishes",
     { slots: {}, fixedBy: "issue 794" },
   ],
-  "overview.alert.overflow": ["{remaining} more in the calendar.", { slots: { remaining: "text" }, fixedBy: "REQ-041 c5" }],
+  "overview.alert.overflow": ["{remaining} more in the plan.", { slots: { remaining: "text" }, fixedBy: "SPEC §4 2026-09-20" }],
   // A technical issue the customer fixes (SPEC §9, #572): its title is the
   // check's own, its line the severity word. The control's word and the
   // count of the issues not shown are owner-owed.

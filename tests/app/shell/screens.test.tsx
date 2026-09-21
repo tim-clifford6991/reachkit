@@ -22,13 +22,15 @@
 //      line the owner has not written renders as nothing rather than as a
 //      placeholder.
 //
-// **Calendar left the shared table on 2026-09-05 (issue #16).** Its screen is
-// built, so it no longer heads itself with the destination's nav word and it
-// no longer renders `calendar.head` as a subordinate line — §4.6 gives it a
-// head of its own (`calendar.head`) and a `searchParams` prop
-// for the month switcher, so it can neither be rendered nor asserted by the
-// same three rows as the two placeholders. The contract it inherits is
-// unchanged and is asserted for it below, in its own block.
+// **Calendar left the shared table on 2026-09-05 (issue #16)**, and came
+// back to its idiom on 2026-09-20 (issue #914). SPEC §4 of that date makes
+// *Plan* the calendar's on-screen name, so the screen heads itself with the
+// destination's nav word again — `shell.nav.plan` — and `calendar.head`
+// (the owner's sentence of 2026-09-11, #516) is the subordinate line under
+// it, exactly as `settings.head` is under Settings. What still keeps it out
+// of the shared table is its `searchParams` prop for the month switcher.
+// The contract it inherits is unchanged and is asserted for it below, in
+// its own block.
 //
 // **Settings left it on 2026-09-05 too (issue #18).** Same reason, one
 // difference: §4.7 gives the screen no head line of its own, so it keeps
@@ -100,10 +102,13 @@ describe("calendar — the built screen keeps the three contracts the frame set"
     return markup(await CalendarPage({ searchParams: Promise.resolve({}) }));
   }
 
-  it("renders, and heads itself with §4.6's own line rather than the nav word", async () => {
+  it("renders, and names itself from the destination's own registry key", async () => {
+    // SPEC §4 (2026-09-20, #914): "*Plan* is the calendar's on-screen
+    // name." The heading is the nav word; §4.6's own line is what stands
+    // under it, so neither is lost.
     const html = await calendarMarkup();
-    expect(html).toMatch(/<h1[^>]*>calendar\.head<\/h1>/);
-    expect(html).not.toMatch(/<h1[^>]*>shell\.nav\.plan<\/h1>/);
+    expect(html).toMatch(/<h1[^>]*>shell\.nav\.plan<\/h1>/);
+    expect(html).toMatch(/<p[^>]*>calendar\.head<\/p>/);
   });
 
   it("declares no Surface — the shell's layout owns this route's screen root", async () => {

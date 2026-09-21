@@ -168,7 +168,18 @@ export function PublishingPanel(p: { settings: SettingsModel }): React.JSX.Eleme
         </h2>
 
         <div className="flex min-w-0 flex-col">
-          <SettingRow name={copy("settings.publishing.veto")} testId="setting-veto_hours">
+          <SettingRow
+            name={copy("settings.publishing.veto")}
+            testId="setting-veto_hours"
+            below={
+              /* SPEC §7 (2026-09-20, #914): the canvas draws the customer's
+                 name for this window with a line saying what the number
+                 measures. The row's own `below` slot carries it. */
+              <p className="text-base-content/60 min-w-0 text-xs wrap-anywhere" data-testid="veto-note">
+                {copy("settings.publishing.veto.note")}
+              </p>
+            }
+          >
             {/* The range is the writer's (issue #46); this offers no press
                 past it rather than rendering a clamp of its own. */}
             <span className="join">

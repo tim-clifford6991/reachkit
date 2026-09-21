@@ -63,7 +63,13 @@ export const DRAFT_COPY = Object.freeze({
   // §4.6's three controls, over the declared publishing interface.
   "draft.action.approve": ["Approve", { slots: {}, fixedBy: "BUILD §4.6" }],
   "draft.action.edit": ["Edit", { slots: {}, fixedBy: "BUILD §4.6" }],
-  "draft.action.veto": ["Veto", { slots: {}, fixedBy: "BUILD §4.6" }],
+  // SPEC §7 (2026-09-20, #908, issue #914) — "Screens and mail say *Stop
+  // this page*. 'Veto' remains the internal word and the name of the
+  // mechanism in this file." The key, the command, the column and the
+  // route are all still `veto`; only what the customer reads changed.
+  // In full here: this control stands on the page it acts on, and the
+  // canvas reserves the short *Stop it* for the day panel's secondary row.
+  "draft.action.veto": ["Stop this page", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
 
   // SPEC §7 (2026-09-20, #908, issue #913) — "every action answers". The
   // two writes this screen offers say what became of the page. Drafts in
@@ -97,7 +103,7 @@ export const DRAFT_COPY = Object.freeze({
     "What happens if you do nothing",
     { slots: {}, fixedBy: "BUILD §4.6" },
   ],
-  "draft.do-nothing.autopilot": ["It publishes at {at} unless you veto it.", { slots: { at: "date" }, fixedBy: "REQ-045 c4" }],
+  "draft.do-nothing.autopilot": ["It publishes at {at} unless you stop it.", { slots: { at: "date" }, fixedBy: "SPEC §7 2026-09-20" }],
   "draft.do-nothing.copilot": ["Nothing publishes on its own.", { slots: {}, fixedBy: "REQ-045 c4" }],
 
   // §4.6's two editor panes.
@@ -144,7 +150,7 @@ export const DRAFT_COPY = Object.freeze({
 
   // The back link §4.6 asks for, the unsaved indicator c7 asks for, and the
   // one written line an unknown draft id resolves to.
-  "draft.back": ["← Back to calendar", { slots: {}, fixedBy: "BUILD §4.6 · S16 (11a)" }],
+  "draft.back": ["← Back to the plan", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
   "draft.unsaved": [
     "could not save — your text is kept here; nothing unsaved publishes",
     { slots: {}, fixedBy: "REQ-045 c7 · S17 (11a)" },
