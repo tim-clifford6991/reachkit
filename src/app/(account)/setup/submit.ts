@@ -17,6 +17,7 @@
 // `_setup/fixture.ts` remains, recording what it was asked to do, for the
 // suites that drive `completeSetup` without a database. This file holds
 // neither, and nothing here pretends a row was written.
+import type { BusinessList } from "@/lib/site-profile/business/types";
 import { BATTERY } from "@/lib/config/constants";
 import { registrableDomain } from "@/lib/market/rivals/domains";
 import {
@@ -103,7 +104,11 @@ export type SetupResult = { ok: true; siteId: string } | { ok: false; refused: S
  */
 export type SetupStepSave =
   | { step: "site"; domain: string; category: string }
-  | { step: "business" }
+  // #970: the four lists as the founder left them, keyed by the stored
+  // field's own name. What is *stored* is what they took out and what they
+  // added, worked out against the same reading the screen drew — so a list
+  // named here is one this step showed, and a list absent is untouched.
+  | { step: "business"; lists: Readonly<Partial<Record<BusinessList, readonly string[]>>> }
   | { step: "rivals"; competitors: readonly string[] }
   | { step: "voice"; voiceText: string; timezone: string | null };
 

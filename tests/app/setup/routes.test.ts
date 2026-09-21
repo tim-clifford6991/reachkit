@@ -224,6 +224,9 @@ describe("POST /api/setup — the five step saves (SPEC §5, 2026-09-20)", () =>
     const { POST } = await import("@/app/api/setup/route");
     for (const body of [
       { step: "site", domain: "example.com", category: "agency CRM" },
+      { step: "business", lists: { products: ["Full service"] } },
+      // #970: a step left with nothing shown touches no list, and is not a
+      // founder's mistake — it saves like any other.
       { step: "business" },
       { step: "rivals", competitors: ["asana.com"] },
       { step: "voice", voiceText: "Plain and direct.", timezone: "Europe/Lisbon" },
@@ -255,6 +258,9 @@ describe("POST /api/setup — the five step saves (SPEC §5, 2026-09-20)", () =>
     for (const body of [
       { step: "site", domain: "example.com" },
       { step: "rivals", competitors: [1, 2] },
+      // #970: a list whose entries are not strings is malformed.
+      { step: "business", lists: { products: [1, 2] } },
+      { step: "business", lists: ["products"] },
       { step: "voice" },
       // Publishing has no save of its own: leaving it forward is the finish.
       { step: "publishing", destination: { kind: "hosted", label: "content" } },

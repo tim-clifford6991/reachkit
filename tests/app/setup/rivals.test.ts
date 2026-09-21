@@ -28,6 +28,14 @@ vi.mock("@/lib/scan/report", async (importOriginal) =>
   reportFactory(await importOriginal<Record<string, unknown>>())
 );
 vi.mock("@/lib/site-profile", () => ({ readSiteProfile: async () => null }));
+// #970: step two's lists are the confirmed business profile, whose three
+// readings are one reader. All three reach Postgres and none is what this
+// file is about, so the seam the provider calls is doubled — the same
+// choice the profile read above makes.
+vi.mock("@/lib/site-profile/business/confirmed", async () => {
+  const { NO_EDITS } = await import("@/lib/site-profile/business/types");
+  return { readConfirmedBusiness: async () => ({ profile: null, market: null, edits: NO_EDITS }) };
+});
 
 const { competitorsDomain, opened } = vi.hoisted(() => ({
   competitorsDomain: vi.fn(),

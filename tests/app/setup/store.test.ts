@@ -43,6 +43,15 @@ vi.mock("@/lib/account/billing", () => ({
   hasActiveAccess: (siteId: string) => paid(siteId),
 }));
 
+/** #970: what the business step hands the overlay. The module that reads
+ *  the three readings and writes the row is tested over its own pure parts
+ *  (`tests/site-profile/business-confirm.test.ts`); what this file proves
+ *  is that the step reaches it, for this site and this site's own domain. */
+const chosen = vi.fn<(a: Record<string, unknown>) => Promise<void>>(async () => undefined);
+vi.mock("@/lib/site-profile/business/confirmed", () => ({
+  saveChosenLists: (a: Record<string, unknown>) => chosen(a),
+}));
+
 const { liveSetupStore, resetActiveAccessReader, setActiveAccessReader } = await import(
   "../../../src/app/(account)/setup/_setup/store"
 );
@@ -82,6 +91,8 @@ function site(overrides: Record<string, unknown> = {}) {
 
 beforeEach(() => {
   queued.mockReset();
+  chosen.mockClear();
+  chosen.mockResolvedValue(undefined);
   resolved.mockClear();
   paid.mockClear();
   paid.mockResolvedValue(true);
@@ -402,5 +413,51 @@ describe("the provider still hands out the fixture, and says why in one place", 
     );
     expect(provider).toContain("liveSetupStore()");
     expect(provider).toContain("#35");
+  });
+});
+
+describe("the business step writes the same corrections Settings writes (SPEC §5 and §7, #970)", () => {
+  const LISTS = {
+    products: ["project management", "retainer billing"],
+    claims: ["set up in an afternoon"],
+    vocabulary: ["agencies"],
+    claimsToKeep: [],
+  };
+
+  it("the four lists reach the overlay, for this site and its own stored domain", async () => {
+    db = fakeDb({ sites: [site({ domain: "acme.example" })], destinations: [] });
+
+    await liveSetupStore().saveStep({
+      siteId: SITE,
+      save: { step: "business", lists: LISTS },
+      resumeAt: "rivals",
+    });
+
+    expect(chosen).toHaveBeenCalledTimes(1);
+    expect(chosen.mock.calls[0]![0]).toEqual({
+      siteId: SITE,
+      // Read off the row, never carried in the save: a founder cannot name
+      // another site's domain by editing a payload.
+      domain: "acme.example",
+      chosen: LISTS,
+    });
+    // And the resume point, as every other step writes it.
+    expect(db.tables.sites?.find((row) => row.id === SITE)?.setup_step).toBe("rivals");
+  });
+
+  it("an overlay that refuses does not hold the founder on the step", async () => {
+    chosen.mockRejectedValue(new Error("edits table unreachable"));
+
+    await expect(
+      liveSetupStore().saveStep({
+        siteId: SITE,
+        save: { step: "business", lists: LISTS },
+        resumeAt: "rivals",
+      })
+    ).resolves.toBeUndefined();
+
+    // The resume point still moved: the step was left, and the same lists
+    // are editable in Settings › Your business.
+    expect(db.tables.sites?.find((row) => row.id === SITE)?.setup_step).toBe("rivals");
   });
 });

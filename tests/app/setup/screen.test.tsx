@@ -33,7 +33,7 @@ import { RivalsCard } from "@/app/(account)/setup/RivalsCard";
 import { assembleSetup, type SetupFacts } from "@/app/(account)/setup/_setup/facts";
 import { FIXTURE_SETUP_FACTS } from "@/app/(account)/setup/_setup/fixture";
 import { SETUP_STEPS, type SetupStepId } from "@/app/(account)/setup/steps";
-import { BUSINESS_GROUPS } from "@/app/(account)/setup/business";
+import { BUSINESS_GROUPS } from "@/app/(account)/setup/_setup/business";
 import { COPY } from "@/lib/presentation/copy";
 import { BATTERY } from "@/lib/config/constants";
 
@@ -60,7 +60,17 @@ function model(over: Partial<SetupFacts> = {}) {
 
 // A founder who bought with no report behind them: nothing was measured,
 // and nothing was read of their site either.
-const SCANLESS: Partial<SetupFacts> = { measured: null, suggestedRivals: null, profile: null };
+// A founder nobody has read anything about: no report, no crawl and no
+// market. #970: the market reading is one of the three the business step's
+// lists are made of, so a scanless fixture has to be without it too — with
+// it, "the words you use" would hold the market's vocabulary on a screen
+// that is supposed to have read nothing.
+const SCANLESS: Partial<SetupFacts> = {
+  measured: null,
+  suggestedRivals: null,
+  profile: null,
+  market: null,
+};
 
 describe("SPEC §5 (2026-09-20) — five saved steps, one question each", () => {
   it("the indicator is five equal columns with one-word labels, and the current one is marked", () => {

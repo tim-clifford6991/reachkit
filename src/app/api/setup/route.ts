@@ -38,6 +38,7 @@ import { isSetupStep } from "@/app/(account)/setup/steps";
 import { setupStore } from "@/app/(account)/setup/_setup/provider";
 import { currentSession } from "@/lib/account/identity";
 import { DEFAULT_HOSTED_LABEL } from "@/lib/publish/destinations/hosted/label";
+import { BUSINESS_LISTS, type BusinessList } from "@/lib/site-profile/business/types";
 
 const BAD_REQUEST = 400;
 const UNAUTHENTICATED = 401;
@@ -65,8 +66,14 @@ function parseStepSave(body: unknown): SetupStepSave | null | undefined {
     case "site":
       if (typeof b.domain !== "string" || typeof b.category !== "string") return undefined;
       return { step, domain: b.domain, category: b.category };
-    case "business":
-      return { step };
+    case "business": {
+      // #970: a record of list name to strings. A key the tuple does not
+      // name is dropped rather than refused — the browser cannot invent a
+      // seventh list, and a body carrying one is not worth a 400 — but a
+      // value that is not a list of strings is malformed.
+      const lists = parseBusinessLists(b.lists);
+      return lists === undefined ? undefined : { step, lists };
+    }
     case "rivals":
       if (!Array.isArray(b.competitors) || b.competitors.some((c) => typeof c !== "string")) {
         return undefined;
@@ -83,6 +90,29 @@ function parseStepSave(body: unknown): SetupStepSave | null | undefined {
     case "publishing":
       return undefined;
   }
+}
+
+/**
+ * The business step's lists, narrowed to the six `site_profile_edits`
+ * holds (#970).
+ *
+ * `undefined` is malformed. An absent body member is an empty record — a
+ * step left with nothing shown, which touches no list — rather than a
+ * refusal the founder would read as their own mistake.
+ */
+function parseBusinessLists(
+  value: unknown
+): Readonly<Partial<Record<BusinessList, readonly string[]>>> | undefined {
+  if (value === undefined || value === null) return {};
+  if (typeof value !== "object" || Array.isArray(value)) return undefined;
+  const source = value as Record<string, unknown>;
+  const out: Partial<Record<BusinessList, readonly string[]>> = {};
+  for (const [key, entry] of Object.entries(source)) {
+    if (!BUSINESS_LISTS.some((list) => list === key)) continue;
+    if (!Array.isArray(entry) || entry.some((item) => typeof item !== "string")) return undefined;
+    out[key as BusinessList] = entry as string[];
+  }
+  return out;
 }
 
 /** SPEC §5's two destinations, shared by a publishing step and the finish.

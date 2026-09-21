@@ -21,6 +21,7 @@
 // field the crawl does not have: a field with nothing in it is absent, and
 // the screen says the site has not been read for it rather than drawing an
 // empty row.
+import type { PagePurpose } from "../types";
 
 /** The six list-shaped fields, as one tuple. The tuple is the set: the
  *  edits table is keyed by these names, the screen draws one group per
@@ -31,10 +32,10 @@
  *  the one vocabulary rather than a second one: `products` and `claims` are
  *  `site_profiles.products` and `.claims`; `vocabulary`, `claimsToKeep` and
  *  `claimsToAvoid` are that row's `voice.*`; `audienceTerms` is the market
- *  reading's. `src/app/(account)/setup/business.ts` names three of its four
- *  groups the same way and says in as many words that #926 should become
- *  their one home — it keeps its own four until the issue that moves that
- *  screen onto this store, which this PR does not do.
+ *  reading's. Since #970 it is also setup's step two's vocabulary: that
+ *  screen shows four of these six lists, by these names, and writes to this
+ *  same table — so a correction made while setting up is in Settings, and
+ *  one made in Settings is on the step.
  *
  *  `vocabulary` is the union of the voice's and the market reading's — see
  *  `confirm.ts` for why one list and not two. */
@@ -85,9 +86,11 @@ export interface BusinessProfile {
   /** The six lists, each already merged, filtered and marked. */
   readonly lists: Readonly<Record<BusinessList, readonly BusinessItem[]>>;
   /** One entry per page purpose that actually occurs, in the crawl's own
-   *  order — `purposeCounts`'s output, carried through unchanged. A purpose
-   *  with no pages has no entry. */
-  readonly purposes: readonly { readonly purpose: string; readonly count: number }[];
+   *  order — `purposeCounts`'s output, carried through unchanged, down to
+   *  its own type: the purposes are a closed set, and a screen drawing a
+   *  line per purpose is owed the compile error when one is added (#970).
+   *  A purpose with no pages has no entry. */
+  readonly purposes: readonly { readonly purpose: PagePurpose; readonly count: number }[];
   /** How many of the site's pages were read, and when. `null` where no
    *  profile has ever been written for the domain. */
   readonly pagesRead: number | null;

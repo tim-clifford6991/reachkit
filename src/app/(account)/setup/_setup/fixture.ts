@@ -31,6 +31,7 @@ import type { RivalGrid } from "./panel-rivals";
 import type { SetupFacts } from "./facts";
 import { fromStored } from "@/lib/presentation/generated";
 import type { SiteProfile } from "@/lib/site-profile/types";
+import { NO_EDITS } from "@/lib/site-profile/business/types";
 import type { PassProgress } from "./progress";
 import type {
   SetupProgressState,
@@ -165,6 +166,17 @@ export const FIXTURE_SETUP_FACTS: SetupFacts = Object.freeze({
   suggestedRivals: Object.freeze(["asana.com", "monday.com", "clickup.com", "notion.so"]),
   questions: Object.freeze({ scanId: FIXTURE_SCAN_ID, items: FIXTURE_QUESTIONS, derivable: FIXTURE_MARKET }),
   profile: FIXTURE_SITE_PROFILE,
+  // #970: the other two readings step two's lists are made of. The market's
+  // four fields are this fixture's own measured market, and the customer
+  // has corrected nothing — the state of a founder meeting the step for the
+  // first time, which is the state every screen fixture is in.
+  market: Object.freeze({
+    job: FIXTURE_MARKET.profile.job,
+    offeringType: FIXTURE_MARKET.profile.offeringType,
+    audienceTerms: FIXTURE_MARKET.profile.audienceTerms,
+    vocabulary: FIXTURE_MARKET.profile.vocabulary,
+  }),
+  edits: NO_EDITS,
   // Overwritten by `provider.ts` with `env.HOSTED_EDGE_CNAME_TARGET`; the
   // value here is only what a test that drives `assembleSetup` directly
   // sees, and it is a hostname, never a sentence.

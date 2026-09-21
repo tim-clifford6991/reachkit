@@ -52,8 +52,8 @@ import {
   type SetupState,
 } from "@/lib/market/setup/state";
 import { preselected, type DestinationKind } from "@/lib/publish/setup/cards";
-import { purposeCounts, type PagePurpose } from "@/lib/site-profile/types";
-import { businessFrom, type BusinessDraft } from "./business";
+import type { PagePurpose } from "@/lib/site-profile/types";
+import { businessFrom, type BusinessDraft } from "./_setup/business";
 import { MarketCard } from "./MarketCard";
 import { PublishingCard } from "./PublishingCard";
 import { RivalsCard } from "./RivalsCard";
@@ -169,7 +169,7 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
     parseAsStringLiteral(SETUP_STEPS).withDefault(p.model.openAt),
   );
   const [state, setState] = useState<SetupState>(p.model.state);
-  const [business, setBusiness] = useState<BusinessDraft>(() => businessFrom(p.model.profile));
+  const [business, setBusiness] = useState<BusinessDraft>(() => businessFrom(p.model.business));
   // SPEC.md §5 (2026-09-12): the voice as the founder will leave it — what
   // the scan read, or what they already saved over it.
   const [voiceDraft, setVoiceDraft] = useState(p.model.voiceText);
@@ -250,7 +250,11 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
         return { step, domain: state.siteDomain, category: settledCategory(state) };
       }
       case "business":
-        return { step };
+        // #970: the four lists as the founder left them. What is *stored*
+        // is what they took out and what they added, which the server works
+        // out against the same reading this screen was drawn from — the
+        // browser never names a decision it did not make.
+        return { step, lists: business };
       case "rivals":
         return { step, competitors: state.rivals.map((rival) => rival.domain) };
       case "voice":
@@ -430,7 +434,10 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
                 <div className="grid gap-3" data-testid="setup-pages-read">
                   <p className={QUIET}>{copy("setup.business.pages-read")}</p>
                   <div className="flex flex-wrap items-center gap-2">
-                    {purposeCounts(p.model.profile?.inventory ?? []).map((entry) => (
+                    {/* #970: the confirmed profile's own counts — the same
+                        `purposeCounts` over the same inventory, read once
+                        where Settings reads it. */}
+                    {p.model.business.purposes.map((entry) => (
                       <span key={entry.purpose} className="badge badge-ghost gap-2">
                         <span data-testid={`setup-profile-purpose-${entry.purpose}`}>
                           {copy(PURPOSE_COPY[entry.purpose])}
