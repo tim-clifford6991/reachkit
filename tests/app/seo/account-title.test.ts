@@ -62,6 +62,15 @@ const OWNER: Readonly<Record<string, string>> = {
   "/app/calendar": "@/app/(account)/app/calendar/page",
   "/app/draft/{draftId}": "@/app/(account)/app/draft/[draftId]/page",
   "/app/settings": "@/app/(account)/app/settings/page",
+  // Settings' six sibling tabs (#925). Each is its own address and each
+  // exports its own title, so each is a named screen here rather than a
+  // route the group's fallback carries.
+  "/app/settings/market": "@/app/(account)/app/settings/market/page",
+  "/app/settings/publishing": "@/app/(account)/app/settings/publishing/page",
+  "/app/settings/voice": "@/app/(account)/app/settings/voice/page",
+  "/app/settings/mail": "@/app/(account)/app/settings/mail/page",
+  "/app/settings/billing": "@/app/(account)/app/settings/billing/page",
+  "/app/settings/account": "@/app/(account)/app/settings/account/page",
   "/setup": "@/app/(account)/setup/page",
   // `/setup/zone` renders only for a founder whose site has no time zone and
   // redirects to `/app` otherwise (#753). It is a route all the same, and
@@ -82,7 +91,9 @@ async function ownTitleOf(route: string): Promise<unknown> {
 const nonEmpty = (value: unknown): boolean =>
   typeof value === "string" && value.trim().length > 0;
 
-/** The eight screens #945 names, and the word each of them owes a reader.
+/** The screens that owe a reader their own name: the eight #945 names, plus
+ *  Settings' six sibling tabs (#925), which are six more addresses a person
+ *  holding twenty tabs can be on.
  *  The expected string is read from the registry, never written here — a
  *  test that transcribed the sentence would have to be edited every time
  *  the owner corrected it, and would then be asserting its own copy. */
@@ -94,6 +105,17 @@ const NAMED: Readonly<Record<string, string>> = {
   "/app/calendar": "meta.app.plan.title",
   "/app/draft/{draftId}": "meta.app.draft.title",
   "/app/settings": "meta.app.settings.title",
+  // `/app/settings` keeps "Settings — ReachKit": it *is* the address
+  // Settings, the one the menu points at. Its six siblings name themselves
+  // inside it, which is what the distinctness rule below requires — six
+  // tabs sharing one title would fail it, and would tell a reader on
+  // Billing only that they are somewhere in Settings.
+  "/app/settings/market": "meta.app.settings.market.title",
+  "/app/settings/publishing": "meta.app.settings.publishing.title",
+  "/app/settings/voice": "meta.app.settings.voice.title",
+  "/app/settings/mail": "meta.app.settings.mail.title",
+  "/app/settings/billing": "meta.app.settings.billing.title",
+  "/app/settings/account": "meta.app.settings.account.title",
   "/setup": "meta.app.setup.title",
 };
 

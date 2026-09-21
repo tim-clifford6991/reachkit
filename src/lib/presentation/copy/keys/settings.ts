@@ -89,6 +89,29 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.answer.saved-badge": ["Saved", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
 
   // ── Your market ────────────────────────────────────────────────────────
+  // ── The tab bar (SPEC §4, 2026-09-20 · #925) ───────────────────────────
+  // "Settings is tabs: Your business, Market and rivals, Publishing, Your
+  // voice, Mail, Billing, Account."
+  //
+  // Only four words are here. Three of the seven are already in this file
+  // under the name the product speaks them by — `settings.publishing.title`,
+  // `settings.billing.title` and `settings.account.title` — and a second
+  // spelling of a word the product already says is a second place to change
+  // it (the rule `overview.ts` states for three of its own four tabs).
+  //
+  // Each of the four is **drafted** under the owner's 2026-09-16 ruling
+  // (#759): written here in the registry's voice and shipped, never left as
+  // a marker, and named in the PR so the owner can correct it. Two are the
+  // redesign's own words for a tab no card is titled with; two are a tab's
+  // word where the card's title is a sentence a bar has no room for — the
+  // voice card is "How your pages sound" and the mail card is
+  // "Notifications", and both cards keep those titles.
+  "settings.tabs.label": ["Settings sections", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  "settings.tab.business": ["Your business", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  "settings.tab.market": ["Market and rivals", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  "settings.tab.voice": ["Your voice", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  "settings.tab.mail": ["Mail", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+
   "settings.market.title": ["Your site & market", { slots: {}, fixedBy: "BUILD §4.7" }],
   "settings.market.category": ["market category", { slots: {}, fixedBy: "REQ-070 c1" }],
   "settings.market.domain": ["domain", { slots: {}, fixedBy: "BUILD §10 (`sites.domain`), §4.4" }],
@@ -404,6 +427,26 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.billing.invoices": ["invoices", { slots: {}, fixedBy: 'BUILD §4.7 ("invoices link")' }],
   "settings.billing.update-card": ["Update card", { slots: {}, fixedBy: "BUILD §4.7" }],
   "settings.billing.cancel": ["Cancel plan", { slots: {}, fixedBy: "BUILD §4.7" }],
+  // 2026-09-21, issue #925 — the three controls that all opened the same
+  // Stripe surface are one control. REQ-097 c1 always said there was one
+  // destination ("the only thing ReachKit offers for it is a control to that
+  // same one destination"); three pills in front of it read as three
+  // destinations, and the customer had to guess which pill held the thing
+  // they came for.
+  //
+  // So the control says where it goes, and the line under it says what is
+  // there. The three things it names are §4.7's own three — `Update card`,
+  // `invoices`, `Cancel plan` — and this sentence is the only place they are
+  // now spoken, so it is drafted (#759) rather than transcribed: §4.7 prints
+  // them as three control words and not as a sentence.
+  "settings.billing.manage": [
+    "Manage billing in Stripe",
+    { slots: {}, fixedBy: "SPEC §4 2026-09-20 · REQ-097 c1" },
+  ],
+  "settings.billing.manage.note": [
+    "Update your card, download invoices, or cancel your plan.",
+    { slots: {}, fixedBy: "SPEC §4 2026-09-20 · REQ-097 c1" },
+  ],
   "settings.billing.resume": [
     "resume",
     { slots: {}, fixedBy: 'REQ-070 c2 ("cancelling or resuming the plan")' },

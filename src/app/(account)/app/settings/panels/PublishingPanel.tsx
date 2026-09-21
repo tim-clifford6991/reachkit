@@ -59,7 +59,7 @@ import {
   VETO_HOURS_FIELD,
   type SettingAnswer,
 } from "../panel-state";
-import { formatVetoWindow, vetoIsWholeDays, vetoWindowDays } from "../format";
+import { formatVetoWindow, vetoIsWholeDays, vetoWindowDays, zoneLabel } from "../format";
 import type { DestinationAction, DestinationHealth, DestinationKind, SettingsModel } from "../model";
 
 /** The window as a written line. A stored window that is not whole days
@@ -271,7 +271,7 @@ export function PublishingPanel(p: { settings: SettingsModel }): React.JSX.Eleme
                   >
                     {resolvableZones(publishing.timeZone).map((zone) => (
                       <option key={zone} value={zone}>
-                        {zone}
+                        {zoneLabel(zone)}
                       </option>
                     ))}
                   </select>
@@ -287,7 +287,13 @@ export function PublishingPanel(p: { settings: SettingsModel }): React.JSX.Eleme
           >
             {editing === "time_zone" ? null : (
               <>
-                <span className="num min-w-0 wrap-anywhere">{publishing.timeZone}</span>
+                {/* The place, then the identifier (#925). `num-phrase` and
+                    not bare `.num`: two facts joined by a separator is a
+                    phrase and folds at its spaces, where a lone identifier
+                    is one value and never folds. */}
+                <span className="num num-phrase min-w-0 wrap-anywhere" data-testid="time-zone-label">
+                  {zoneLabel(publishing.timeZone)}
+                </span>
                 <button
                   type="button"
                   className="btn btn-outline btn-sm"

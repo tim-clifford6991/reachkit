@@ -11,20 +11,26 @@
 //    comment is not what stops the next person adding one (`CLAUDE.md`: "If you
 //    care about a rule and no check enforces it, add the check").
 //
-// 2. **§4.7's two columns arrive at `BAND_MIN.wide`.** The switch is Tailwind's
-//    `xl:` variant, whose breakpoint is 80rem — 1280px at the 16px root, which
-//    is `BAND_MIN.wide` and `--breakpoint-xl`. That coincidence is load-bearing
-//    (it is why a utility can express a design-token boundary at all), so it is
-//    pinned here against both `BAND_MIN` and Tailwind's own theme file, in the
-//    pinned-value shape. If a future Tailwind moved `xl`, this fails
-//    rather than the screen silently reflowing at a width nothing specified.
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+// 2. **The seven tabs are a daisyUI `tabs` bar of links, and it cannot
+//    overflow.** SPEC §4 (2026-09-20): "Settings is tabs: Your business,
+//    Market and rivals, Publishing, Your voice, Mail, Billing, Account."
+//    Until #925 this second claim was about §4.7's two columns and the
+//    `xl:` variant they switched at; the columns are gone — seven tabs are
+//    what replaced them — so what is pinned now is the construction that
+//    replaced them, in the same shape: the bar is stock daisyUI, every tab
+//    is an address rather than a widget, and seven words on a 390px screen
+//    scroll sideways instead of pushing the screen wider
+//    (`docs/DESIGN.md`'s no-overflow rule).
+//
+// **The file keeps its name** though the columns it was named for are gone:
+// `docs/archive/2026-09-11/design-reference.md` names this path and the
+// archive is frozen and unread (`docs/PROCESS.md`), so renaming the file
+// would leave a pointer in a document nobody may fix.
+import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { BAND_MIN } from "@/ui/layout/bands";
 
 const SETTINGS_DIR = path.resolve(import.meta.dirname, "../../src/app/(account)/app/settings");
-const TAILWIND_THEME = path.resolve(import.meta.dirname, "../../node_modules/tailwindcss/theme.css");
 
 function filesUnder(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -47,24 +53,37 @@ describe("BUILD §2.2 — Settings ships no stylesheet of its own", () => {
   });
 });
 
-describe("§4.7's two columns arrive at BAND_MIN.wide", () => {
-  const page = readFileSync(path.join(SETTINGS_DIR, "page.tsx"), "utf8");
+describe("SPEC §4 — the seven tabs are a daisyUI bar of addresses that cannot overflow", () => {
+  const bar = readFileSync(path.join(SETTINGS_DIR, "SettingsTabs.tsx"), "utf8");
 
-  it("the screen declares one column, and two only at the `xl:` variant", () => {
-    expect(page).toMatch(/grid-cols-1/);
-    expect(page).toMatch(/xl:grid-cols-2/);
-    // Not `lg:` — that is where the sidebar returns, and two card columns
-    // beside it would be narrower than the compact band (ADR-093).
-    expect(page).not.toMatch(/lg:grid-cols-/);
+  it("the bar is stock daisyUI `tabs tabs-border` and marks the current tab with daisyUI's own class", () => {
+    expect(bar).toMatch(/\btabs tabs-border\b/);
+    expect(bar).toMatch(/\btab-active\b/);
   });
 
-  it("Tailwind's `xl` breakpoint is BAND_MIN.wide, which is what lets a utility express the token", () => {
-    expect(existsSync(TAILWIND_THEME)).toBe(true);
-    const theme = readFileSync(TAILWIND_THEME, "utf8");
-    const match = /--breakpoint-xl:\s*([0-9.]+)rem/.exec(theme);
-    expect(match, "tailwindcss/theme.css declares no --breakpoint-xl").not.toBeNull();
-    // The root font size is 16px: `src/ui/type.css` sets `font-size` on `body`,
-    // never on `html`, so `rem` is the browser default here.
-    expect(Number(match?.[1]) * 16).toBe(BAND_MIN.wide);
+  it("every tab is an address, so the bar needs no client runtime to navigate", () => {
+    // Links, not buttons: `<a href>` moves the browser, the back button
+    // works between tabs, and nothing here is a widget with state. The one
+    // reason the component is a client component is reading the pathname.
+    expect(bar).toMatch(/<a\b/);
+    expect(bar).not.toMatch(/<button\b/);
+    expect(bar).toMatch(/aria-current=/);
+  });
+
+  it("seven words scroll sideways rather than widening the screen", () => {
+    // `docs/DESIGN.md`: no element is wider than its container at 390. A
+    // nav word cannot be clamped to an ellipsis and stay a nav word, so the
+    // row is the scroll container — the same construction `OverviewTabs` is
+    // proven at. `no-overflow.test.ts` renders all seven and measures it.
+    expect(bar).toMatch(/min-w-0/);
+    expect(bar).toMatch(/overflow-x-auto/);
+    expect(bar).toMatch(/w-max/);
+    expect(bar).toMatch(/flex-nowrap/);
+  });
+
+  it("no tab draws two card columns — the columns are what the tabs replaced", () => {
+    for (const file of files) {
+      expect(readFileSync(file, "utf8"), file).not.toMatch(/grid-cols-2/);
+    }
   });
 });

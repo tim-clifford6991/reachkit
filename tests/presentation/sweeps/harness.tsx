@@ -117,6 +117,19 @@ export const ROUTE_HARNESS: Readonly<Record<string, HarnessRow>> = Object.freeze
     async: true,
   },
   "(account)/app/settings/page.tsx": { props: () => ({}), shell: true, async: true },
+  // SPEC §4 (2026-09-20), #925: Settings is seven addresses. Each takes the
+  // same row as the screen it was cut out of — no params, inside the shell,
+  // and async because each awaits `readSettings` (request-cached, so the
+  // seven reads in this sweep are one read per render). The heading, the
+  // written line and the tab bar are the sub-layout's, which this sweep
+  // does not mount: what each row renders is the tab's own cards, which is
+  // what a cold start and a stopped account are about.
+  "(account)/app/settings/market/page.tsx": { props: () => ({}), shell: true, async: true },
+  "(account)/app/settings/publishing/page.tsx": { props: () => ({}), shell: true, async: true },
+  "(account)/app/settings/voice/page.tsx": { props: () => ({}), shell: true, async: true },
+  "(account)/app/settings/mail/page.tsx": { props: () => ({}), shell: true, async: true },
+  "(account)/app/settings/billing/page.tsx": { props: () => ({}), shell: true, async: true },
+  "(account)/app/settings/account/page.tsx": { props: () => ({}), shell: true, async: true },
   // The draft view (issue #17, BUILD §4.6). The id is the one the fixture
   // holds in `in_review` — the same value `tests/ui/layout/routes.ts` fills
   // `[draftId]` with, and the arm that renders every part of the screen.

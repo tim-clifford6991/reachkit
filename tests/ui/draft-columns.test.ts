@@ -1,7 +1,8 @@
 // tests/ui/draft-columns.test.ts — BUILD §4.6, §2.2, ADR-093
 //
 // Two claims about the draft view's arrangement, on exactly the footing
-// `settings-columns.test.ts` holds the same two for §4.7.
+// `settings-columns.test.ts` holds the same pair for Settings (its second
+// claim is the tab bar since #925, not a column switch).
 //
 // 1. **It ships no CSS.** §2.2: "Custom CSS is allowed only for: the
 //    calendar grid, the day panel, the AI dot-matrix, chart SVGs, and the

@@ -70,3 +70,31 @@ const HOURS_UNIT = "h";
 export function formatVetoWindow(hours: number): string {
   return `${hours}${HOURS_UNIT}`;
 }
+
+/**
+ * A time zone as a place with its identifier beside it — "London ·
+ * Europe/London" (#925).
+ *
+ * `Europe/London` is what the customer stored, what the writer writes and
+ * what every pass reads, so it is never replaced: it stays on the row, in
+ * the mono face, exactly as it is. What is added in front of it is the
+ * place, which is the part a founder recognises — the identifier's own last
+ * segment with its underscores opened up, so `America/New_York` reads "New
+ * York · America/New_York".
+ *
+ * **Nothing is invented and nothing is translated.** The place name is the
+ * identifier's own last segment and not a second copy of a city list this
+ * product would then have to keep: a zone the runtime offers that this
+ * function has never seen reads correctly by construction. That is also why
+ * it is not a registry key — there is no sentence here, only the string the
+ * customer chose, punctuated. The separator is the one this screen already
+ * joins two facts with (the Billing card's next-invoice row).
+ *
+ * A zone with no `/` — `UTC`, and the handful of single-segment ids — has no
+ * place to put in front of itself, so it is returned as it stands rather
+ * than doubled.
+ */
+export function zoneLabel(zone: string): string {
+  const place = zone.slice(zone.lastIndexOf("/") + 1).replaceAll("_", " ");
+  return place === zone ? zone : `${place} · ${zone}`;
+}

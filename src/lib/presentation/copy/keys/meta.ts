@@ -133,4 +133,50 @@ export const META_COPY = Object.freeze({
   "meta.app.draft.title": ["Your page — ReachKit", { slots: {}, fixedBy: "issue 945" }],
   "meta.app.settings.title": ["Settings — ReachKit", { slots: {}, fixedBy: "issue 945" }],
   "meta.app.setup.title": ["Setup — ReachKit", { slots: {}, fixedBy: "issue 945" }],
+
+  /* ── Settings' six sibling tabs (#925) ────────────────────────────────
+     Settings became seven addresses on 2026-09-21, and #945's promise is
+     that a person holding twenty tabs can tell which screen they are on.
+     `/app/settings` keeps "Settings — ReachKit" above, because it *is* the
+     address Settings; each sibling names itself inside it.
+
+     **They cannot share one title**, and that is the test's own rule, not a
+     preference: `tests/app/seo/account-title.test.ts` asserts "no two
+     screens announce the same thing", so six tabs pointed at
+     `meta.app.settings.title` would fail it — and rightly, since a reader
+     on Billing would be told only that they are somewhere in Settings.
+
+     The tab word is the one the bar says (`settings.tab.market`,
+     `settings.publishing.title`, `settings.tab.voice`, `settings.tab.mail`,
+     `settings.billing.title`, `settings.account.title`), spelled out rather
+     than composed for the reason the eight above are: a `<title>` is a
+     sentence in its own right and this partition's point is that the
+     sentence a reader sees is the string written here (rule 8).
+
+     Drafted under the owner's 2026-09-16 ruling (#759) and named in the PR
+     body so the owner can correct any of them. */
+  "meta.app.settings.market.title": [
+    "Market and rivals — Settings — ReachKit",
+    { slots: {}, fixedBy: "issue 925" },
+  ],
+  "meta.app.settings.publishing.title": [
+    "Publishing — Settings — ReachKit",
+    { slots: {}, fixedBy: "issue 925" },
+  ],
+  "meta.app.settings.voice.title": [
+    "Your voice — Settings — ReachKit",
+    { slots: {}, fixedBy: "issue 925" },
+  ],
+  "meta.app.settings.mail.title": [
+    "Mail — Settings — ReachKit",
+    { slots: {}, fixedBy: "issue 925" },
+  ],
+  "meta.app.settings.billing.title": [
+    "Billing — Settings — ReachKit",
+    { slots: {}, fixedBy: "issue 925" },
+  ],
+  "meta.app.settings.account.title": [
+    "Account — Settings — ReachKit",
+    { slots: {}, fixedBy: "issue 925" },
+  ],
 }) satisfies CopyPartition;
