@@ -1,13 +1,69 @@
-// SPEC §4 (2026-09-20, #908) — the Search tab's address.
+// SPEC §4 (2026-09-20, #908) — Overview › Search.
 //
 // "Search tab: every search ReachKit is going after — searches a month,
-// difficulty against the site's ceiling, the site's position and change, the
-// best rival and its position, and status." That screen is #916. This file
-// is its address, so the tab bar and the Overview's first tile both have
-// somewhere to go from the day they land.
+// difficulty against the site's ceiling, the site's position and change,
+// the best rival and its position, and status (page is live · your review ·
+// up next · too big for now). Read from stored opportunities, the site's
+// own ranked keywords and the weekly verdicts; nothing is bought for the
+// screen."
+//
+// **One read, and the two modules are pure over it.** `readSearch()` is the
+// one call this file makes; neither the tiles nor the table fetches for
+// itself, so the render performs no measurement, no vendor call and no
+// model call.
+//
+// **It declares no `Surface`**: the shell's own layout owns this route's
+// screen root, and the tab bar above it is `(tabs)/layout.tsx`'s. A second
+// screen root would be a second `[data-surface]` in the document.
+//
+// **It writes no sentence.** Every word is the registry's.
+//
+// **`Suspense`**: the table holds the chosen chip in the URL through
+// `nuqs`, which reads the query string with Next's own `useSearchParams` —
+// "We recommend wrapping the Client Component that uses `useSearchParams`
+// in a `<Suspense/>` boundary"
+// (`01-app/03-api-reference/04-functions/use-search-params.md`). One
+// daisyUI `skeleton` holds its place, which is what SPEC §4 (2026-09-20)
+// asks of every waiting state in the app: a shape, never a spinner.
 import type React from "react";
-import { TabPlaceholder } from "../../_overview/TabPlaceholder";
+import { Suspense } from "react";
+import { copy } from "@/lib/presentation/copy";
+import { formatDate } from "../../_shell/format";
+import { readShell } from "../../_shell/provider";
+import { readSearch } from "../../_overview/search-provider";
+import { SearchTable } from "../../_overview/SearchTable";
+import { SearchTiles } from "../../_overview/SearchTiles";
 
-export default function SearchTabPage(): React.JSX.Element {
-  return <TabPlaceholder tab="search" />;
+export default async function SearchTabPage(): Promise<React.JSX.Element> {
+  // The zone is the shell's one stored preference, read through the shell's
+  // own request-cached provider rather than restated here: two readers of a
+  // customer's time zone is how two parts of one screen come to state two
+  // different days.
+  const [shell, model] = await Promise.all([readShell(), readSearch()]);
+  const measured =
+    model.measuredAt === null
+      ? null
+      : copy("overview.search.measured", { on: formatDate(model.measuredAt, shell.timeZone) });
+
+  return (
+    <div className="flex min-w-0 flex-col gap-6" data-testid="search-tab">
+      <header className="flex min-w-0 flex-col gap-1">
+        <h1 className="card-title text-base!" data-testid="search-title">
+          {copy("overview.tab.search")}
+        </h1>
+        <p className="max-w-prose text-sm text-base-content/70">{copy("overview.search.lead")}</p>
+        {measured === null ? null : (
+          <p className="num text-xs text-base-content/60" data-testid="search-measured">
+            {measured}
+          </p>
+        )}
+      </header>
+
+      <SearchTiles tiles={model.tiles} />
+
+      <Suspense fallback={<div className="skeleton h-96 min-w-0" />}>
+        <SearchTable model={model} />
+      </Suspense>
+    </div>
+  );
 }

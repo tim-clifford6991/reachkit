@@ -134,6 +134,14 @@ export const ATTRIBUTE_ALLOWLIST: readonly AllowlistedAttribute[] = Object.freez
   },
   {
     kind: "exact",
+    name: "scope",
+    reason:
+      "HTML table semantics — `scope=\"col\"` / `\"row\"` says which cells a header heads. A "
+      + "structural token in the same category ADR-010 point 1 admits `type` and `role` under, "
+      + "and a screen reader reads the header's own text, which copy() still governs.",
+  },
+  {
+    kind: "exact",
     name: "role",
     reason: "an ARIA role token (e.g. 'dialog'), not a sentence.",
   },
