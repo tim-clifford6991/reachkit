@@ -21,8 +21,17 @@
 // not a wrapper around either, and it takes no variant, tone or size prop.
 // A mark that can be drawn four ways is four marks.
 import type React from "react";
-import { TrendingUp } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
+import {
+  MARK_BOX,
+  MARK_CHIP,
+  MARK_DOME,
+  MARK_FADE,
+  MARK_FADE_ID,
+  MARK_INK,
+  MARK_RADIUS,
+  MARK_UNFILLED,
+} from "@/lib/brand/mark";
 
 /**
  * The mark and the wordmark, as a link home.
@@ -63,14 +72,37 @@ export function Brand(p: { href: string; testId?: string }): React.JSX.Element {
  * step up. It is not a variant system — there are two sizes because there
  * are two rooms, and a third caller should ask whether it wants `Brand`.
  */
-export function BrandMark(p: { size?: "md" | "lg" } = {}): React.JSX.Element {
+export function BrandMark(p: { size?: "md" | "lg"; id?: string } = {}): React.JSX.Element {
   const lg = p.size === "lg";
+  const id = p.id ?? MARK_FADE_ID;
+  // **The chip is the drawing, not a box around it.** It used to be a
+  // `bg-primary` span with a lucide glyph inside — two elements, and a
+  // ground that repainted with the theme. The mark is one `<svg>` now: the
+  // chip is its own clipped rect, so the corner, the violet and the dome
+  // scale together and there is nothing for a size to get out of step
+  // with. `aria-hidden` because the wordmark beside it says the name, and
+  // where there is no wordmark the link around it carries one.
   return (
-    <span
-      className={`rounded-field bg-primary text-primary-content grid shrink-0 place-items-center ${lg ? "size-9" : "size-7"}`}
+    <svg
+      viewBox={`0 0 ${MARK_BOX} ${MARK_BOX}`}
+      className={`shrink-0 ${lg ? "size-9" : "size-7"}`}
+      fill={MARK_UNFILLED}
       aria-hidden
+      data-testid="brand-mark"
     >
-      <TrendingUp size={lg ? 18 : 16} strokeWidth={1.75} aria-hidden />
-    </span>
+      <defs>
+        <linearGradient id={id} x1={MARK_FADE.x1} y1={MARK_FADE.y1} x2={MARK_FADE.x2} y2={MARK_FADE.y2}>
+          <stop offset={MARK_FADE.from} stopColor={MARK_INK} />
+          <stop offset={1} stopColor={MARK_INK} stopOpacity={MARK_FADE.toOpacity} />
+        </linearGradient>
+        <clipPath id={`${id}-clip`}>
+          <rect width={MARK_BOX} height={MARK_BOX} rx={MARK_RADIUS} />
+        </clipPath>
+      </defs>
+      <g clipPath={`url(#${id}-clip)`}>
+        <rect width={MARK_BOX} height={MARK_BOX} fill={MARK_CHIP} />
+        <path d={MARK_DOME} fill={`url(#${id})`} />
+      </g>
+    </svg>
   );
 }

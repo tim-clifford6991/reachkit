@@ -51,6 +51,20 @@ const ALLOWED_LITERALS: ReadonlyArray<{ readonly path: string; readonly why: str
     path: "src/lib/mail/shell/tokens.ts",
     why: "a mail client resolves no custom property, so the mail shell carries §2.1's values inline (BUILD §12)",
   },
+  {
+    path: "src/lib/brand/mark.ts",
+    why:
+      "the brand mark's own two inks (owner ruling 2026-09-21, issue 982). " +
+      "§2.1's `--accent` is `#5b4be0` in light and `#9bb4ff` in dark, and " +
+      "`--color-primary` reads it — so a mark drawn in the token would " +
+      "repaint itself in dark, which the ruling forbids: \"the chip stays " +
+      "violet; the wordmark takes the dark theme's ink. One drawing, two " +
+      "inks.\" No colour is minted: both values are §2.1's own light " +
+      "`--accent` and `--on-accent`, written here because the mark must " +
+      "keep them when the theme does not. It is also the file a favicon " +
+      "and an apple-touch icon are generated from, and neither format " +
+      "resolves a custom property",
+  },
 ];
 
 const ALLOWED = new Set(ALLOWED_LITERALS.map((entry) => entry.path));
@@ -208,7 +222,13 @@ describe('§2.1 — every colour in src/** resolves to a token, "these exact val
       expect(entry.why.length, entry.path).toBeGreaterThan(20);
       expect(SRC_FILES, entry.path).toContain(entry.path);
     }
-    expect(ALLOWED_LITERALS).toHaveLength(5);
+    // **Six since 2026-09-21** (#982), and the count is pinned so the list
+    // cannot grow without somebody saying why. The sixth is
+    // `src/lib/brand/mark.ts`: the brand mark's chip must stay violet in
+    // dark by owner ruling, and every token that could carry it flips.
+    // Both values it writes are still §2.1's own — the row below holds it
+    // to that, which is what keeps this an exemption and not a hole.
+    expect(ALLOWED_LITERALS).toHaveLength(6);
   });
 
   it("the allowed files that are not theme.css write only values the theme declares", () => {

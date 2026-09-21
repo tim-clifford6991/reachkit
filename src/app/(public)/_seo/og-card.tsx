@@ -50,6 +50,15 @@ import type React from "react";
 import { copy } from "@/lib/presentation/copy";
 import { token } from "@/lib/mail/shell/tokens";
 import { SVG } from "@/ui/charts/chart-primitives";
+import {
+  MARK_BOX,
+  MARK_CHIP,
+  MARK_DOME,
+  MARK_FADE,
+  MARK_FADE_ID,
+  MARK_INK,
+  MARK_RADIUS,
+} from "@/lib/brand/mark";
 
 /** The Open Graph canvas. Exported for the two `size` exports beside it,
  *  so the number is written once. */
@@ -59,58 +68,52 @@ export const OG_SIZE = { width: 1200, height: 630 } as const;
  *  exports for the same reason. */
 export const OG_CONTENT_TYPE = "image/png" as const;
 
-/** The trend glyph's two strokes, as lucide's `TrendingUp` draws them on
- *  its 24-unit box. Satori renders a plain `<svg>` and nothing else — the
- *  lucide component is a `forwardRef`, which it does not call — so the
- *  geometry is written here once, and `tests/app/seo/metadata.test.tsx`
- *  holds it equal to the component the screens render. */
-export const TREND_PATHS = ["M16 7h6v6", "m22 7-8.5 8.5-5-5L2 17"] as const;
-
-/** The set draws the mark 26px with a 15px glyph (`.brand-mark` L92–93);
- *  the glyph keeps that proportion at whatever size a canvas asks for. */
-const MARK_DRAWN = 26;
-const GLYPH_DRAWN = 15;
-/** Lucide's own box and the set's stroke for this glyph in the mark
- *  (`brand()` L512: stroke 2). */
-const GLYPH_BOX = 24;
-const GLYPH_STROKE = 2;
+/** The drawing itself is `src/lib/brand/mark.ts`'s — see `BrandMark`
+ *  below. Nothing about the mark's geometry is written in this file any
+ *  more (#982). */
 
 /**
- * The brand mark — `.rk-wordmark-chip`, the set's `.brand-mark`: the trend
- * glyph in `--on-accent` on an `--accent` square with `--r-field` corners
- * (issue #509, after #486 squared it on screen). Drawn here once for every
- * generated picture: the share cards beside it and the tab icon, which
- * imports it, so the tab and the timeline cannot show two marks.
+ * The brand mark, for a generated picture.
+ *
+ * **The same drawing the screens render** (#982): the geometry, the chip's
+ * violet and the fade all come from `src/lib/brand/mark.ts`, which is the
+ * product's one home for them. This file used to carry its own — a lucide
+ * glyph's two paths, written out because Satori will not call a
+ * `forwardRef` component — and that was a second mark in a product whose
+ * whole reason for `_brand/` is that there should be one. What stays here
+ * is only *how to hand it to Satori*.
+ *
+ * Satori renders `<svg>` children, so the four elements are written as JSX
+ * rather than as the module's SVG string; `tests/ui/design/brand-mark.test.ts`
+ * holds this rendering and that string equal, so neither can drift.
+ *
+ * The `id` is this canvas's own: a share card is a document of one mark,
+ * and giving it a distinct one keeps the shared default for the screens,
+ * where a page draws the mark more than once.
  */
 export function BrandMark(p: { size: number }): React.JSX.Element {
-  const glyph = Math.round((p.size * GLYPH_DRAWN) / MARK_DRAWN);
+  const id = `${MARK_FADE_ID}-og`;
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        width: p.size,
-        height: p.size,
-        borderRadius: token("--r-field"),
-        background: token("--accent"),
-      }}
+    <svg
+      width={p.size}
+      height={p.size}
+      viewBox={`0 0 ${MARK_BOX} ${MARK_BOX}`}
+      fill={SVG.unfilled}
     >
-      <svg
-        width={glyph}
-        height={glyph}
-        viewBox={`0 0 ${GLYPH_BOX} ${GLYPH_BOX}`}
-        fill={SVG.unfilled}
-        stroke={token("--on-accent")}
-        strokeWidth={GLYPH_STROKE}
-        strokeLinecap={SVG.capRound}
-        strokeLinejoin={SVG.capRound}
-      >
-        {TREND_PATHS.map((d) => (
-          <path key={d} d={d} />
-        ))}
-      </svg>
-    </div>
+      <defs>
+        <linearGradient id={id} x1={MARK_FADE.x1} y1={MARK_FADE.y1} x2={MARK_FADE.x2} y2={MARK_FADE.y2}>
+          <stop offset={MARK_FADE.from} stopColor={MARK_INK} />
+          <stop offset={1} stopColor={MARK_INK} stopOpacity={MARK_FADE.toOpacity} />
+        </linearGradient>
+        <clipPath id={`${id}-clip`}>
+          <rect width={MARK_BOX} height={MARK_BOX} rx={MARK_RADIUS} />
+        </clipPath>
+      </defs>
+      <g clipPath={`url(#${id}-clip)`}>
+        <rect width={MARK_BOX} height={MARK_BOX} fill={MARK_CHIP} />
+        <path d={MARK_DOME} fill={`url(#${id})`} />
+      </g>
+    </svg>
   );
 }
 

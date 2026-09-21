@@ -18,7 +18,7 @@
 // `tests/app/**` runs under the `node` project, so nothing here renders —
 // every assertion is on an exported object, on a module's own source, or
 // on a pure function.
-import { readdirSync, existsSync } from "node:fs";
+import { readdirSync, existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import type { Metadata } from "next";
@@ -276,32 +276,73 @@ describe("every sentence in a public <head> is a key, and the owner is told whic
 
 describe("the favicon set and the manifest ship, and no file is owed to the owner", () => {
   const GENERATED = [
-    "src/app/(public)/icon.tsx",
-    "src/app/(public)/apple-icon.tsx",
     "src/app/(public)/opengraph-image.tsx",
     "src/app/(public)/scan/[domain]/opengraph-image.tsx",
     "src/app/manifest.ts",
   ];
 
-  for (const file of GENERATED) {
+  /** The committed set (#982). `icon` and `apple-icon` take image files in
+   *  any segment, so these sit in the `(public)` group for the reason
+   *  `icon.tsx` did: a `favicon.ico` at the root of `app/`, or anything in
+   *  `public/`, is served on every host this deployment answers — including
+   *  the `content.` host a customer's own page comes from, which BUILD §9
+   *  and §14's guardrail 6 forbid. */
+  const COMMITTED = [
+    "src/app/(public)/icon.svg",
+    "src/app/(public)/icon.ico",
+    "src/app/(public)/apple-icon.png",
+  ];
+
+  for (const file of [...GENERATED, ...COMMITTED]) {
     it(`${file} exists`, () => {
       expect(existsSync(path.join(REPO_ROOT, file))).toBe(true);
     });
   }
 
-  it("every one of them is drawn from code, so no owner-supplied asset is needed", () => {
-    // The Done-when's "no owner files": the mark is the wordmark chip —
-    // the trend glyph on an `--accent` square (#509) — rendered rather than committed, so
-    // the colour has one home (`src/ui/theme.css`, through the resolved
-    // table) instead of being baked into bytes no check can read.
+  it("no owner-supplied asset is needed: every one is made from the drawing", () => {
+    // **The rule changed shape, not substance** (#982). It used to be
+    // "rendered rather than committed, so the colour has one home instead
+    // of being baked into bytes no check can read" — and the icons are
+    // committed now, because the owner's ruling asks for a real `.ico` and
+    // a real 180px PNG, which `ImageResponse` cannot serve.
+    //
+    // The reason that rule gave is what the row below answers: the bytes
+    // *are* checkable. They come from `scripts/brand/render.mjs`, which
+    // reads `src/lib/brand/mark.ts` — the one drawing — and whose
+    // `--check` re-renders and compares. What is still true is the
+    // Done-when it was written for: nothing here is a file the owner has
+    // to supply.
+    expect(existsSync(path.join(REPO_ROOT, "scripts/brand/render.mjs"))).toBe(true);
+    // And nothing is in `public/`, which would reach a customer's host.
     expect(existsSync(path.join(REPO_ROOT, "public"))).toBe(false);
   });
 
-  it("the two icons declare the size a browser asks each of them for", async () => {
-    const icon = (await import("@/app/(public)/icon")) as { size: { width: number } };
-    const apple = (await import("@/app/(public)/apple-icon")) as { size: { width: number } };
-    expect(icon.size.width).toBe(32);
-    expect(apple.size.width).toBe(180);
+  it("the committed SVG is the drawing, byte for byte", async () => {
+    const { brandMarkSvg } = (await import("@/lib/brand/mark")) as {
+      brandMarkSvg: () => string;
+    };
+    const committed = readFileSync(path.join(REPO_ROOT, "src/app/(public)/icon.svg"), "utf8");
+    expect(committed.trim()).toBe(brandMarkSvg());
+  });
+
+  it("the committed .ico holds the two sizes a browser asks a tab for", () => {
+    // ICO: a 6-byte header (reserved, type 1, count), then one 16-byte
+    // directory entry per image. Byte 0 of an entry is its width, and 0
+    // means 256 — which is why the sizes are read and not assumed.
+    const ico = readFileSync(path.join(REPO_ROOT, "src/app/(public)/icon.ico"));
+    expect(ico.readUInt16LE(0)).toBe(0);
+    expect(ico.readUInt16LE(2)).toBe(1);
+    const count = ico.readUInt16LE(4);
+    const sizes = Array.from({ length: count }, (_, i) => ico.readUInt8(6 + i * 16) || 256);
+    expect(sizes.sort((a, b) => a - b)).toEqual([16, 32]);
+  });
+
+  it("the apple icon is the 180 iOS asks for, and a PNG", () => {
+    const png = readFileSync(path.join(REPO_ROOT, "src/app/(public)/apple-icon.png"));
+    expect(png.subarray(1, 4).toString()).toBe("PNG");
+    // IHDR's width and height, big-endian, at a fixed offset in every PNG.
+    expect(png.readUInt32BE(16)).toBe(180);
+    expect(png.readUInt32BE(20)).toBe(180);
   });
 
   it("both share images declare the Open Graph canvas, a type and non-empty alt text", async () => {
