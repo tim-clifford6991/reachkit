@@ -92,44 +92,25 @@ export const NO_OVERFLOW_THEMES: readonly ["light", "dark"] = ["light", "dark"];
  *     screen is caught by `checkNoHorizontalScroll` and by
  *     `checkFixedBoxesFitViewport`, neither of which this row touches.
  *
- * Two rows are this pass's own, and each is a box that is not a box:
- *
- *   * **`.sr-only`** — the screen-reader-only list every Recharts chart
- *     writes beside its drawing (`GrowthLine`, `PresenceBars`,
- *     `RivalSparkline`: "The readings are also written as a visually hidden
- *     list"). Tailwind draws it one pixel square with `clip`, so every
- *     reading inside it measures as overflowing, and its `<li>` elements
- *     measure as escaping their `<ul>`. Nothing is cut off from anybody: the
- *     text is complete, it is in the accessibility tree, and being undrawn
- *     is the entire point of it. Six offenders per chart, on every route
- *     with a chart, at every width, in both themes.
- *   * **`.contents`** — `display: contents` generates **no box at all**. Its
- *     children are laid out by its grandparent, and `getBoundingClientRect`
- *     answers for an element that has no border box, so comparing a child
- *     with it is comparing a real box with nothing. This is the same class
- *     of measurement error PR #942 corrects for out-of-flow elements, one
- *     row along: `checks.ts` already skips an *element* that generates no
- *     box ("No box, nothing to measure — skipped, never reported") and the
- *     rule has simply never been applied to the *parent*. The rivals ×
- *     questions grid writes `display: contents` on every row, so this was
- *     seven offenders per row on `/`, `/app` and `/scan/{domain}`.
- *
- * The mechanical fix for the second — skip a parent with no box, wherever it
- * came from — belongs in `checkContainment` beside #942's correction rather
- * than in a selector here, and is named in this PR for whoever lands next in
- * that function.
+ * Two rows this list used to carry are gone, and neither finding is back.
+ * `.sr-only` is `checks.ts`'s own row now, because the whole-project sweep
+ * meets the same chart lists this pass does (#976). And `.contents` was
+ * this file's note to "whoever lands next in `checkContainment`": the
+ * mechanical fix asked for there — hold a child to the nearest ancestor
+ * that *generates* a box, which is also the box CSS laid it out in — is in
+ * that function since #976, so a `display: contents` row needs no selector
+ * anywhere. `.overflow-y-auto` stays: check 2 reads the holder's own axes
+ * and no longer needs it, but check 3 takes this same list through
+ * `closest()` and that reading is this pass's to change, not #976's.
  *
  * Nothing else is added, and each row names a component that is on screen
- * today. The editor's own panes (#932) are not drawn yet; the row that
- * admits them, if `.overflow-y-auto` does not already, belongs to the PR
- * that draws them.
+ * today — including the editor's own panes (#932), which are drawn since
+ * #1000 and whose scroller is the `.cm-scroller` row below.
  */
 export const NO_OVERFLOW_SCROLL_CONTAINERS: readonly string[] = [
   ...SCROLL_CONTAINER_ALLOWLIST,
   ".overflow-y-auto",
   ".drawer-side",
-  ".sr-only",
-  ".contents",
   // 2026-09-22, issue 932: CodeMirror's scroll box, and the plainest row
   // here after `textarea` — which it is the same object as. `checks.ts`'s
   // own note on that row says it: "a multi-line field IS a scroll
