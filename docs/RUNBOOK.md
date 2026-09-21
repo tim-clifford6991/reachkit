@@ -712,8 +712,31 @@ scripts/db-substrate/down.sh                 # the moment the suite finishes
 - It applies `shim.sql` only — the roles and `auth.uid()`/`auth.role()` that live outside
   `supabase/migrations/`. The suites apply the migrations themselves.
 - It does **not** start PostgreSQL; that must already be listening. It needs `psql`, `node`, and
-  PostgREST via `POSTGREST_BIN` (on this box,
-  `/root/projects/reachkitv3-wt/substrate/postgrest/postgrest`).
+  PostgREST via `POSTGREST_BIN`.
+- **Where PostgREST and postgres-meta live on this box, and how to put them back** (2026-09-21,
+  #910). The path this section used to name — `…/substrate/postgrest/postgrest` — went with the
+  worktree it was inside, so for some weeks `up.sh` could not start a stack here at all and both
+  the `db` and `layout` suites were CI-only. Two things fixed that, neither of them in the
+  repository, and `/tmp` does not survive a reboot:
+
+  ```sh
+  # 1. PostgREST, pinned to the version up.sh pins its image to (v16.2).
+  #    /root/ops/bin is outside every worktree, so removing one cannot take it again.
+  curl -sL -o /tmp/pgrst.tar.xz \
+    https://github.com/PostgREST/postgrest/releases/download/v16.2/postgrest-v16.2-linux-static-x86-64.tar.xz
+  tar -xJf /tmp/pgrst.tar.xz -C /tmp && install -m 755 /tmp/postgrest /root/ops/bin/postgrest
+  export POSTGREST_BIN=/root/ops/bin/postgrest   # or put /root/ops/bin on PATH
+
+  # 2. postgres-meta's install directory. /tmp/reachkit-pgmeta is a symlink to
+  #    /root/tmp/reachkit-pgmeta; after a reboot the symlink is gone, and if it is
+  #    ever left dangling `up.sh` dies on `mkdir: Already exists`, which reads like
+  #    nothing at all.
+  mkdir -p /root/tmp/reachkit-pgmeta && ln -sfn /root/tmp/reachkit-pgmeta /tmp/reachkit-pgmeta
+  ```
+
+  With both in place `eval "$(scripts/db-substrate/up.sh --run)"` works here, and
+  `npx vitest run --project db` and `npm run test:no-overflow` can be run on the box rather than
+  only in CI.
 - **Stop the stack before removing a worktree.** A stack costs 150–190 MB and nothing else stops
   it: on 2026-09-07 forty-one orphaned processes from deleted worktrees held 1.66 GB of a 7.7 GB
   box, which is what the kernel was killing builds to reclaim. `scripts/db-substrate/down.sh --orphans`

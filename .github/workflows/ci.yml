@@ -1,5 +1,6 @@
-# Required on main: typecheck · lint · unit, audit, schema · RLS — plus
-# `no overflow · axe`, proposed by #910 as the fourth (docs/PROCESS.md, Gates).
+# Required on main: typecheck · lint · unit, audit, schema · RLS.
+# `no overflow · axe` runs on every pull request and reports; whether it joins
+# the three is the owner's ruling and #910 asks (docs/PROCESS.md, Gates).
 # Layout screenshots stay evidence; they do not block merge (docs/PROCESS.md).
 name: CI
 
@@ -30,10 +31,12 @@ jobs:
   no-overflow:
     name: no overflow · axe (390 / 768 / 1280, light and dark)
     runs-on: ubuntu-latest
-    # **A merge gate, and it runs on pull requests** (issue #910; owner's
-    # ruling of 2026-09-20 in `docs/DESIGN.md`, "Layout that cannot
-    # overflow"). That is the whole difference between this job and the one
-    # below, which has skipped every PR since it was written.
+    # **It runs on pull requests** (issue #910; owner's ruling of 2026-09-20
+    # in `docs/DESIGN.md`, "Layout that cannot overflow"). That is the whole
+    # difference between this job and the one below, which has skipped every
+    # PR since it was written. Whether a red run here *blocks* the merge is
+    # the owner's to say and #910 asks; `docs/PROCESS.md`'s Gates table is
+    # where the answer goes, and until it does this reports.
     #
     # The `layout` job's `if:` is not about the database or the browser —
     # both are here too, and it is the same composite action that sets them
