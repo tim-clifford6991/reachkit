@@ -27,6 +27,7 @@
 // the owner has not written renders as nothing rather than as a placeholder
 // — the shell's own `writtenLine` rule, shared rather than re-derived.
 import type React from "react";
+import type { Metadata } from "next";
 import { readShell } from "../_shell/provider";
 import { readOverview } from "../_overview/provider";
 import { overviewNotice, readOnboarding, readReleaseNotice } from "../_shell/onboarding";
@@ -40,6 +41,11 @@ import { NeedsYouModule } from "../_overview/NeedsYouModule";
 import { ScoreHead } from "../_overview/ScoreHead";
 import { WaitingPageCard } from "../_overview/WaitingPageCard";
 import { WeekModule } from "../_overview/WeekModule";
+
+/** /app's own `<title>` (#945). Without it this screen announced
+ *  nothing at all — the `(account)` layout's fallback is the floor, not
+ *  the name of this screen. */
+export const metadata: Metadata = { title: copy("meta.app.overview.title") };
 
 export default async function OverviewPage(): Promise<React.JSX.Element> {
   // The zone is the shell's one stored preference (REQ-073 c1), read through

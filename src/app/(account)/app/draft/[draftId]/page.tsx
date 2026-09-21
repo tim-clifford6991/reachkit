@@ -22,6 +22,7 @@
 // root (`../../layout.tsx`), and a second one would be a second
 // `[data-surface]` in the document.
 import type React from "react";
+import type { Metadata } from "next";
 import { ArrowLeft } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import { fromStored, renderGenerated } from "@/lib/presentation/generated";
@@ -29,6 +30,11 @@ import { DESTINATION_HREF } from "../../_shell/destinations";
 import { writtenLine } from "../../_shell/written";
 import { DraftScreen } from "./DraftScreen";
 import { readDraft } from "./provider";
+
+/** /app/draft/{draftId}'s own `<title>` (#945). Without it this screen announced
+ *  nothing at all — the `(account)` layout's fallback is the floor, not
+ *  the name of this screen. */
+export const metadata: Metadata = { title: copy("meta.app.draft.title") };
 
 interface DraftParams {
   draftId: string;

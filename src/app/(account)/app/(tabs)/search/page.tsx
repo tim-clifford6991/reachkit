@@ -26,6 +26,7 @@
 // daisyUI `skeleton` holds its place, which is what SPEC §4 (2026-09-20)
 // asks of every waiting state in the app: a shape, never a spinner.
 import type React from "react";
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import { copy } from "@/lib/presentation/copy";
 import { formatDate } from "../../_shell/format";
@@ -33,6 +34,11 @@ import { readShell } from "../../_shell/provider";
 import { readSearch } from "../../_overview/search-provider";
 import { SearchTable } from "../../_overview/SearchTable";
 import { SearchTiles } from "../../_overview/SearchTiles";
+
+/** /app/search's own `<title>` (#945). Without it this screen announced
+ *  nothing at all — the `(account)` layout's fallback is the floor, not
+ *  the name of this screen. */
+export const metadata: Metadata = { title: copy("meta.app.search.title") };
 
 export default async function SearchTabPage(): Promise<React.JSX.Element> {
   // The zone is the shell's one stored preference, read through the shell's

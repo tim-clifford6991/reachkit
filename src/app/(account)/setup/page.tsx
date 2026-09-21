@@ -32,9 +32,16 @@
 // **No stylesheet of its own.** Every rule this screen needs is a Tailwind
 // utility written where it applies.
 import type React from "react";
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import { readSetupScreen } from "./_setup/provider";
 import { SetupForm } from "./SetupForm";
+import { copy } from "@/lib/presentation/copy";
+
+/** /setup's own `<title>` (#945). Without it this screen announced
+ *  nothing at all — the `(account)` layout's fallback is the floor, not
+ *  the name of this screen. */
+export const metadata: Metadata = { title: copy("meta.app.setup.title") };
 
 export default async function SetupPage(): Promise<React.JSX.Element> {
   const model = await readSetupScreen();

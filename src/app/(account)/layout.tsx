@@ -30,12 +30,31 @@
 // `GATE_PATH_HEADER`, which the authorisation boundary sets on the
 // forwarded request. It is read before the account is: a request that
 // carries no path costs no session read and no database round trip.
+//
+// **It also declares the group's fallback `<title>` (#945).** Every route
+// under here had none at all — axe's `document-title`, serious, on eight
+// screens — because nothing in the group exported `metadata` and the root
+// layout declares no default either. Each screen names itself in its own
+// `page.tsx`; this is the floor beneath them, so a route added later
+// without a title of its own still announces the product rather than
+// nothing. It is the wordmark's own key, not a second spelling of it.
+//
+// A layout's plain-string `title` is Next's documented default for child
+// segments that declare none (`generate-metadata.md`: "`title` (string) and
+// `title.default` define the default title for child segments"). No
+// `title.template` is set: a template would rewrite every screen's own
+// title, and the eight `meta.app.*` rows are already the whole sentence a
+// reader sees.
 import type React from "react";
+import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { copy } from "@/lib/presentation/copy";
 import { GATE_PATH_HEADER, setupRedirectFor } from "./setup/gate";
 import { readSetupGateState } from "./setup/gate-state";
 import { BrowserZone } from "./_zone/BrowserZone";
+
+export const metadata: Metadata = { title: copy("chrome.wordmark") };
 
 export default async function AccountLayout({
   children,

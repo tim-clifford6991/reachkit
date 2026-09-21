@@ -15,6 +15,7 @@
 // It declares no `Surface`: the shell's layout owns this route's screen
 // root (`../layout.tsx`).
 import type React from "react";
+import type { Metadata } from "next";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import { writtenLine } from "../_shell/written";
@@ -25,6 +26,11 @@ import { supplyLine } from "./supply";
 import { readOnboarding } from "../_shell/onboarding";
 import { FirstPageNotice, MarketChoice } from "../_shell/OnboardingStatus";
 import { readCategoryChoice } from "../_shell/remeasure";
+
+/** /app/calendar's own `<title>` (#945). Without it this screen announced
+ *  nothing at all — the `(account)` layout's fallback is the floor, not
+ *  the name of this screen. */
+export const metadata: Metadata = { title: copy("meta.app.plan.title") };
 
 export default async function CalendarPage({
   searchParams,

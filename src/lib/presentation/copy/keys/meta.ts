@@ -98,4 +98,39 @@ export const META_COPY = Object.freeze({
      so no domain is in scope where the sentence is read. */
   "meta.og.alt": ["ReachKit wordmark on a plain card, with the site’s address beneath it.", { slots: {}, fixedBy: "issue 326" }],
   "meta.report.og.alt": ["A ReachKit report card: the domain, its Discoverability Score and the band word.", { slots: {}, fixedBy: "issue 326" }],
+
+  /* ── The signed-in screens (#945) ─────────────────────────────────────
+     Every `(account)` route had **no `<title>` at all** — axe's
+     `document-title`, a serious finding on eight routes, because nothing
+     under `src/app/(account)/` exported `metadata` and the root layout
+     declared no default. These are the eight titles, in the shape the
+     static public rows already use ("<Screen> — ReachKit").
+
+     They carry a title and nothing else. A public row owes a search result
+     two sentences, an Open Graph block and a canonical address; a signed-in
+     screen is behind a session and is nobody's search result, so a
+     description here would be a sentence written for a reader that does not
+     exist. What it owes is the one thing #945 asks for: a person holding
+     twenty tabs can tell which screen they are on.
+
+     Each word is the one the product already says on the screen itself —
+     `shell.nav.overview`, `overview.tab.search`,
+     `overview.tile.ai-answers.label`, `overview.tab.rivals`,
+     `shell.nav.plan`, `shell.nav.settings`, `setup.progress.setup`. They
+     are spelled out rather than composed from those keys because a `<title>`
+     is a sentence in its own right and this partition's whole point is that
+     the sentence a reader sees is the string written here (rule 8). The
+     wordmark is still `chrome.wordmark`'s where it stands alone — the
+     `(account)` layout's fallback reads that key, not a copy of it.
+
+     Drafted under the owner's 2026-09-16 ruling (#759) and named in the
+     PR body so the owner can correct any of them. */
+  "meta.app.overview.title": ["Overview — ReachKit", { slots: {}, fixedBy: "issue 945" }],
+  "meta.app.search.title": ["Search — ReachKit", { slots: {}, fixedBy: "issue 945" }],
+  "meta.app.ai-answers.title": ["AI answers — ReachKit", { slots: {}, fixedBy: "issue 945" }],
+  "meta.app.rivals.title": ["Rivals — ReachKit", { slots: {}, fixedBy: "issue 945" }],
+  "meta.app.plan.title": ["Plan — ReachKit", { slots: {}, fixedBy: "issue 945" }],
+  "meta.app.draft.title": ["Your page — ReachKit", { slots: {}, fixedBy: "issue 945" }],
+  "meta.app.settings.title": ["Settings — ReachKit", { slots: {}, fixedBy: "issue 945" }],
+  "meta.app.setup.title": ["Setup — ReachKit", { slots: {}, fixedBy: "issue 945" }],
 }) satisfies CopyPartition;

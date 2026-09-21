@@ -52,6 +52,7 @@
 // control hidden behind a flag or an "advanced" section fails the same
 // assertion, since a hidden control is still an offered one.
 import type React from "react";
+import type { Metadata } from "next";
 import { copy } from "@/lib/presentation/copy";
 import { writtenLine } from "../_shell/written";
 import { readSettings } from "./provider";
@@ -64,6 +65,11 @@ import { BillingPanel } from "./panels/BillingPanel";
 import { AccountPanel } from "./panels/AccountPanel";
 import { ContentPanel } from "./panels/ContentPanel";
 import { DangerZone } from "./panels/DangerZone";
+
+/** /app/settings's own `<title>` (#945). Without it this screen announced
+ *  nothing at all — the `(account)` layout's fallback is the floor, not
+ *  the name of this screen. */
+export const metadata: Metadata = { title: copy("meta.app.settings.title") };
 
 export default async function SettingsPage(): Promise<React.JSX.Element> {
   const settings = await readSettings();
