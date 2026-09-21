@@ -109,6 +109,7 @@ import { FIXTURE_SETTINGS_FACTS } from "@/app/(account)/app/settings/fixture";
 import { NotificationsPanel } from "@/app/(account)/app/settings/panels/NotificationsPanel";
 import { PublishingPanel } from "@/app/(account)/app/settings/panels/PublishingPanel";
 import { formatDateTime } from "@/app/(account)/app/_shell/format";
+import { ANSWER_PLACEMENT } from "@/app/_toast/Answers";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -321,5 +322,23 @@ describe("Settings — a change is stored and says so", () => {
     const root = await mount(<PublishingPanel settings={SETTINGS} />);
     await press(root.querySelector('[data-testid="veto-more"]'));
     expect(said[0]?.text).toBe(COPY["settings.answer.saved-next-page"]);
+  });
+});
+
+describe("the answer stack clears the bottom menu it will sit over", () => {
+  it("the class carries the menu's height plus its clearance, so changing one fails here", () => {
+    // SPEC §4 (2026-09-20): below the large breakpoint the three menu
+    // items move to a bottom bar (issue #911). Tailwind finds a utility by
+    // reading the source text for it, so the number cannot be
+    // interpolated into the class — this row is what keeps the two
+    // together, and names `src/app/_toast/Answers.tsx` when the dock
+    // changes height.
+    const clears = ANSWER_PLACEMENT.BOTTOM_MENU_PX + ANSWER_PLACEMENT.MENU_CLEARANCE_PX;
+    expect(ANSWER_PLACEMENT.BOTTOM).toContain(`[bottom:calc(${clears}px_+_env(safe-area-inset-bottom`);
+    // And the device's own safe area is respected, not assumed away.
+    expect(ANSWER_PLACEMENT.BOTTOM).toContain("env(safe-area-inset-bottom,0px)");
+    // From `lg` up there is no menu, and the stack keeps where it was —
+    // `sonner`'s own 24px, which is what this shipped with.
+    expect(ANSWER_PLACEMENT.BOTTOM).toContain("lg:bottom-6!");
   });
 });
