@@ -56,6 +56,31 @@ export const SPECIMEN_TILES = Object.freeze({
   published: "17",
 });
 
+/**
+ * The sign-in panel's own specimen (#937).
+ *
+ * It lives here, with the landing's, because this module is the product's
+ * one home for a drawn figure that measures nothing — and the sign-in
+ * screen was carrying its own three literals in the route file, which is
+ * two places for "the number the product shows a stranger" to be edited
+ * and to drift.
+ *
+ * **These are not `SPECIMEN_TILES`'s figures, and must not be.** The
+ * owner's ruling 5c of 2026-09-08 fixes the sign-in card at 47/100 with
+ * `+6 pts est.`, and the hero component at its own; two approved drawings,
+ * two sets of figures, one module that holds both. The delta is a copy key
+ * (`signin.panel.delta`) rather than a number here, because the owner
+ * wrote it with its unit and its hedge in one string.
+ *
+ * The domain is the IANA-reserved name, never a stranger's real one.
+ */
+export const SPECIMEN_SIGNIN = Object.freeze({
+  domain: "example.com",
+  score: 47,
+  /** The score is out of one hundred. */
+  max: 100,
+});
+
 /** The seven days of the specimen week.
  *
  *  **Three states, not four.** The set's week fixture marks one day

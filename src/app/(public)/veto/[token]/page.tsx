@@ -231,6 +231,12 @@ function writeSearch(query: string, volume: number | null): string {
 }
 
 /** The ask arm: what the set draws, in its own order. */
+/** Where a reader who has stopped a page is sent to reach their plan.
+ *  Written here rather than imported: the sign-in screen's own copy of it
+ *  lives in a Client Component, and a server page reaching into one for a
+ *  string would pull the client module into this route's graph. */
+const SIGN_IN_PATH = "/signin";
+
 function Ask(p: { token: string; it: VetoPreview }): React.JSX.Element {
   async function stop(): Promise<void> {
     "use server";
@@ -269,6 +275,21 @@ function Ask(p: { token: string; it: VetoPreview }): React.JSX.Element {
               </div>
             )}
           </dl>
+          {/* **The page's first lines, in its own words** (#937, the
+              2026-09-20 board). A reader deciding whether to stop a page
+              should be able to see what it says; the two rows above tell
+              them what it is *for*, which is not the same question. Plain
+              text from the preview — quoted, never rendered: this card is
+              served with no session, and a blockquote is not the place to
+              draw a heading or a link the body happened to carry. */}
+          {p.it.excerpt === null ? null : (
+            <blockquote
+              className="border-base-300 text-base-content/70 border-s-2 ps-4 text-sm"
+              data-testid="veto-excerpt"
+            >
+              {p.it.excerpt}
+            </blockquote>
+          )}
           <form action={stop}>
             {/* The screen's one solid button. */}
             <button type="submit" className="btn btn-primary btn-block">
@@ -301,8 +322,16 @@ function Told(p: { head: string; title: string | null; message: string }): React
           <p className={EYEBROW}>{p.head}</p>
           {p.title === null ? null : <h1>{p.title}</h1>}
           <p className="text-sm text-base-content/70">{p.message}</p>
+          {/* **It goes to `/signin`, not to the plan** (#937). This page
+              takes no session by construction — the token *is* the
+              authority, and REQ-057's link is opened from a mail on
+              whatever device the reader has to hand. A link straight to
+              `/app/calendar` therefore sent a signed-out reader into a
+              gated address, which bounces them to a sign-in wall with no
+              word about why. The control says what it will do instead,
+              which is #937's Done-when. */}
           <div>
-            <Link href="/app/calendar" className="btn btn-ghost">
+            <Link href={SIGN_IN_PATH} className="btn btn-outline">
               {copy("publish.veto.calendar")}
             </Link>
           </div>

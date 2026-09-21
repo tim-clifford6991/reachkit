@@ -6,7 +6,7 @@
 "use client";
 
 import Link from "next/link";
-import { Lock, Mail } from "lucide-react";
+import { CircleCheck, Lock } from "lucide-react";
 import { use, useActionState, useState } from "react";
 import { Surface } from "@/ui/layout";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
@@ -14,27 +14,36 @@ import { BrandMark } from "@/app/_brand/Brand";
 import { DEAD_LINK_MARKER, LINK_QUERY_KEY } from "@/lib/account/identity/addresses";
 import { sendLink } from "./actions";
 import { EMAIL_FIELD, SIGN_IN_INITIAL, type SignInState } from "./state";
+import { SPECIMEN_SIGNIN } from "../_landing/specimen";
 
 /** The layout, named once: one daisyUI card whose two halves meet flush
  *  and stretch to each other's height. */
 const CARD = "card grid grid-cols-1 overflow-hidden border border-base-300 bg-base-100 shadow-sm lg:grid-cols-2";
 const HALF = "flex items-center justify-center px-4 py-10 sm:px-8 sm:py-14 lg:p-14";
-const PANEL = `${HALF} bg-primary bg-(image:--grad-accent) text-primary-content`;
+/** The accent half. **Flat `--primary`, not a gradient** (#937): the app
+ *  draws no gradient anywhere, and a panel that did would be the one
+ *  surface on the site speaking a language the product does not. The tile
+ *  inside it is the app's own — a label, the number over its denominator,
+ *  a `progress`, and the estimated gain — which is what "in the app's
+ *  language" means on this screen. */
+const PANEL = `${HALF} bg-primary text-primary-content`;
 const COLUMN = "flex w-full max-w-md flex-col gap-6";
 const HEAD_GROUP = "flex flex-col gap-2";
 const QUIET = "text-base-content/70";
-const CHIP = "grid size-10 flex-none place-items-center rounded-field bg-primary/10 text-primary";
 const CHIP_WARN = "grid size-10 flex-none place-items-center rounded-field bg-warning/10 text-warning";
 const GLASS = "flex flex-col gap-3 rounded-box border border-primary-content/30 bg-primary-content/10 p-6";
 const ON_ACCENT_QUIET = "text-primary-content/80";
 
 /** The specimen the accent half shows: the reserved domain and the figures
- *  the approved set draws on it (ruling 5c). Constants, because this screen
- *  renders before there is a session, a scan or a store to read. */
-const SPECIMEN_DOMAIN = "example.com";
-const SPECIMEN_SCORE = 47;
-/** The score is out of one hundred. */
-const SPECIMEN_MAX = 100;
+ *  the approved set draws on it (ruling 5c).
+ *
+ *  **Read from `_landing/specimen.ts`, not written here** (#937). This
+ *  route held its own three literals, which is a second home for "the
+ *  number the product shows a stranger" and a second place for it to
+ *  drift. That module is the product's one home for a drawn figure that
+ *  measures nothing; it holds the hero's and now this panel's, each the
+ *  drawing the owner approved for its own screen. */
+const { domain: SPECIMEN_DOMAIN, score: SPECIMEN_SCORE, max: SPECIMEN_MAX } = SPECIMEN_SIGNIN;
 
 type SignInSearchParams = Partial<Record<typeof LINK_QUERY_KEY, string>>;
 
@@ -133,17 +142,22 @@ export default function SignInPage(props: {
               ) : answered ? (
                 /* The answered arm. The address is the one they typed,
                    echoed back, never one this screen looked up. */
+                /* The answered arm, as the 2026-09-20 board draws it: the
+                   approved sentence in a daisyUI `alert alert-success`,
+                   the terms under it, and the way back to the field. The
+                   address is the one they typed, echoed back, never one
+                   this screen looked up (§3: the copy is identical
+                   whatever the address, so nothing here is a lookup). */
                 <>
-                  <span className={CHIP} data-testid="signin-chip">
-                    <Mail size={20} strokeWidth={1.75} aria-hidden />
-                  </span>
                   <div className={HEAD_GROUP}>
                     <h1>{copy("signin.sent.head")}</h1>
-                    <p className={QUIET} aria-live="polite">
-                      {answer}
-                    </p>
-                    <p className={`font-mono ${QUIET}`}>{copy("signin.sent.to", { address: value })}</p>
                   </div>
+                  <div role="status" className="alert alert-success" data-testid="signin-chip">
+                    <CircleCheck size={20} strokeWidth={1.75} aria-hidden />
+                    <span aria-live="polite">{answer}</span>
+                  </div>
+                  <p className={`font-mono ${QUIET}`}>{copy("signin.sent.to", { address: value })}</p>
+                  <p className={QUIET}>{copy("signin.sent.terms")}</p>
                   <Link href={SIGN_IN_PATH} className="btn btn-ghost self-start">
                     {copy("signin.sent.resend")}
                   </Link>
@@ -215,10 +229,19 @@ export default function SignInPage(props: {
                   max={SPECIMEN_MAX}
                   aria-label={copy("signin.panel.score-label")}
                 />
-                {/* One line under the bar, and no second one: 5c admits the
-                    specimen without a source date or an example line. */}
                 <p className={ON_ACCENT_QUIET}>{copy("signin.panel.line")}</p>
               </div>
+              {/* **Captioned as an example** (#937). Ruling 5c admitted the
+                  *hero* component's figures without an example line, on the
+                  footing that the approved set draws none there. This panel
+                  is a different drawing and the 2026-09-20 board captions
+                  it — a stranger looking at a score on a sign-in screen
+                  should not have to wonder whose site it measured. The
+                  domain is the sentence's own slot, filled from the same
+                  fixture the figures come from. */}
+              <p className={`text-sm ${ON_ACCENT_QUIET}`} data-testid="signin-panel-example">
+                {copy("signin.panel.example", { domain: SPECIMEN_DOMAIN })}
+              </p>
             </div>
           </div>
         </div>

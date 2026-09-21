@@ -55,7 +55,9 @@ export const SIGNIN_COPY = Object.freeze({
     { slots: {}, fixedBy: "REQ-098 c2" },
   ],
   "signin.field.placeholder": ["you@company.com", { slots: {}, fixedBy: "REQ-098 c2" }],
-  "signin.submit.label": ["Send my link", { slots: {}, fixedBy: "REQ-098 c2" }],
+  /** Changed 2026-09-21 (#937): "Send my link" → the board's own word,
+   *  which says which link. Drafted (#759). */
+  "signin.submit.label": ["Send my sign-in link", { slots: {}, fixedBy: "issue 937" }],
   // Criterion 2's last string is one line with a link inside it — "New to
   // ReachKit? Start a free scan →", "whose 'Start a free scan →' is a
   // link". Two keys, because one of the two halves is an anchor and the
@@ -92,7 +94,12 @@ export const SIGNIN_COPY = Object.freeze({
   // than naming an account.
   "signin.sent.head": ["Check your inbox", { slots: {}, fixedBy: "REQ-098 c3" }],
   "signin.sent.to": ["sent to {address}", { slots: { address: "text" }, fixedBy: "REQ-098 c3" }],
-  "signin.sent.resend": ["Send another link", { slots: {}, fixedBy: "REQ-098 c3" }],
+  /** Changed 2026-09-21 (#937). "Send another link" named the wrong act:
+   *  the control returns to the empty field, and the reason a reader
+   *  presses it is that they typed the wrong address — a second link to
+   *  the same place is not what they want. The board says so. Drafted
+   *  (#759). */
+  "signin.sent.resend": ["Use a different email", { slots: {}, fixedBy: "issue 937" }],
   "signin.expired.head": ["This link no longer works", { slots: {}, fixedBy: "REQ-098 c7" }],
   "signin.expired.submit": ["Send a new link", { slots: {}, fixedBy: "REQ-098 c7" }],
 
@@ -116,6 +123,23 @@ export const SIGNIN_COPY = Object.freeze({
   "signin.panel.line": [
     "Hard to find — and we'll show you the fixes that move it.",
     { slots: {}, fixedBy: "owner-supplied, 2026-09-02" },
+  ],
+  /** The caption under the specimen tile (#937). Ruling 5c of 2026-09-08
+   *  removed the "example" line from the *hero* component, on the footing
+   *  that the approved set draws none there. This panel is not that
+   *  component: #937 asks for these figures to be "captioned as an
+   *  example", and the 2026-09-20 board draws the caption. The domain is a
+   *  slot so the sentence and the figures cannot come to name two
+   *  different sites. Drafted (#759). */
+  "signin.panel.example": [
+    "An example on {domain}. It measures no site.",
+    { slots: { domain: "text" }, fixedBy: "issue 937" },
+  ],
+  /** Under the sent alert (#937): what the link is good for, before a
+   *  reader goes looking in a spam folder. Drafted (#759). */
+  "signin.sent.terms": [
+    "It works for 24 hours, and a newer link replaces an older one. Check your spam folder if it isn’t there in a minute.",
+    { slots: {}, fixedBy: "issue 937" },
   ],
 
   // The glass card's pill, drawn on the specimen (ruling 5c). Approved as

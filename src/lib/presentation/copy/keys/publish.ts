@@ -215,7 +215,13 @@ export const PUBLISH_COPY = Object.freeze({
   "publish.veto.done.head": ["Stopped", { slots: {}, fixedBy: "S6 (11a)" }],
   // SPEC §4 (2026-09-20, #914): *Plan* is the calendar's on-screen name.
   // The key keeps the internal word, as the route `/veto/{token}` does.
-  "publish.veto.calendar": ["Open the plan", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
+  /** Changed 2026-09-21 (#937), and the destination with it. This control
+   *  linked a **signed-out** reader — `(public)/veto/[token]/page.tsx`
+   *  takes no session, by construction — straight to `/app/calendar`,
+   *  which `src/middleware.ts` gates: the reader was bounced to a sign-in
+   *  wall with no word about why. It goes to `/signin` now and says so, so
+   *  the word and the destination cannot come apart. Drafted (#759). */
+  "publish.veto.calendar": ["Sign in to open your plan", { slots: {}, fixedBy: "issue 937" }],
   "publish.veto.stopped": [
     "This page will not publish. Tomorrow’s page is unaffected.",
     { slots: {}, fixedBy: "REQ-057 c1 · S6 (11a)" },

@@ -43,6 +43,7 @@ const LIVE_PREVIEW: VetoPreview = {
   query: "best onboarding tools",
   volume: 2400,
   domain: "example.com",
+  excerpt: "Choosing onboarding software comes down to three questions, and the first one is who has to use it…",
   publishes: { at: new Date("2026-09-15T05:00:00.000Z"), timeZone: "Europe/Berlin" },
 };
 
@@ -278,6 +279,7 @@ describe("the ask arm — what the set draws, in its own order", () => {
         title: null,
         query: null,
         volume: null,
+        excerpt: null,
         domain: null,
         publishes: null,
       },
@@ -303,10 +305,18 @@ describe("the done arm, and the refusals that wear its shape", () => {
     expect(toldLine(tree)).toBe(COPY["publish.veto.stopped"]);
     const links = linksOf(tree);
     expect(links).toHaveLength(1);
-    expect(links[0]?.props.href).toBe("/app/calendar");
+    // **`/signin`, not `/app/calendar`** (#937). This page takes no
+    // session — the token is the authority and the link is opened from a
+    // mail — so a link into the app sent a signed-out reader to a gated
+    // address that bounces them to a sign-in wall with no word about why.
+    // The control names where it goes instead, which is what the row below
+    // pins: the destination and the word have to move together.
+    expect(links[0]?.props.href).toBe("/signin");
     expect(links[0]?.props.children).toBe(COPY["publish.veto.calendar"]);
-    // Quiet: the done arm asks nothing of the reader.
-    expect(classOf(links[0] as Node)).toContain("btn-ghost");
+    expect(COPY["publish.veto.calendar"]).toBe("Sign in to open your plan");
+    // Not solid: the done arm asks nothing of the reader, and the page it
+    // offers is one they may or may not want.
+    expect(classOf(links[0] as Node)).toContain("btn-outline");
     expect(buttonsOf(tree)).toHaveLength(0);
   });
 

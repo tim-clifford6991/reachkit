@@ -132,7 +132,12 @@ describe('REQ-098 c2 — "then it carries these strings verbatim: the heading �
       "Enter the email you paid with and we'll send you a sign-in link. No password — accounts are created by payment, never by a signup form."
     );
     expect(copy("signin.field.placeholder")).toBe("you@company.com");
-    expect(copy("signin.submit.label")).toBe("Send my link");
+    // Changed 2026-09-21 (#937): REQ-098 c2 wrote "Send my link" for a
+    // screen that drew nothing else; the 2026-09-20 board says which link
+    // it sends, which is the only question a reader has at this control.
+    // Pinned here so a silent edit to a customer-visible string fails a
+    // test rather than shipping.
+    expect(copy("signin.submit.label")).toBe("Send my sign-in link");
     expect(`${copy("signin.new.prompt")} ${copy("signin.new.link")}`).toBe(
       "New to ReachKit? Start a free scan →"
     );
