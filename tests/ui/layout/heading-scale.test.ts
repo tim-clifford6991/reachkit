@@ -29,6 +29,13 @@
 // document**: a probe element in the heading's own parent, wearing the same
 // classes. That is the invariant that broke, stated without a second copy of
 // Tailwind's ladder anywhere in this repository.
+//
+// Which arm a heading takes is measured, not read off its class list, because
+// a size-bearing class does not carry a size at every viewport: `.t-hero`
+// declares its 46px only above `--breakpoint-sm`, and below it the landing
+// headline draws at the element's own narrow step (#258). So a second,
+// class-less probe stands in the same box, and a heading whose two probes
+// agree is one the scale still speaks for.
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { BAND_MIN } from "@/ui/layout/bands";
@@ -113,6 +120,15 @@ interface Measured {
    *  own parent, or `null` when there are none to probe. `card-title` reads
    *  the card's own size modifier, so the probe has to sit in the same box. */
   probePx: number | null;
+  /** Whether those classes actually *size* the element here.
+   *
+   *  A size-bearing class is not one at every viewport: `.t-hero` declares
+   *  its 46px only above `--breakpoint-sm`, and below it the element's own
+   *  narrow step is what draws the landing headline (#258). So the probe is
+   *  compared against a second, class-less probe in the same box — if the
+   *  two agree, the classes say nothing about size here and the scale is
+   *  still what speaks. */
+  classSized: boolean;
 }
 
 /** The rendered h1's height in line boxes: its border box over its own
@@ -138,17 +154,23 @@ function measureLandingHeadlineLines(): number | null {
 function measureHeadings(): Measured[] {
   const SIZE_BEARING =
     /^(?:text-(?:xs|sm|base|lg|[2-9]?xl)!?|eyebrow|t-hero|card-title)$/;
+  const sizeOfProbe = (parent: Element, className: string): number => {
+    // A `<p>`, not a heading: it is the class's own size that is wanted,
+    // with no element default of its own underneath it.
+    const probe = document.createElement("p");
+    probe.className = className;
+    parent.appendChild(probe);
+    const px = Number.parseFloat(getComputedStyle(probe).fontSize);
+    probe.remove();
+    return px;
+  };
   return [...document.querySelectorAll("h1, h2, h3, h4")].map((el) => {
     const sizeBearing = [...el.classList].filter((name) => SIZE_BEARING.test(name));
     let probePx: number | null = null;
+    let classSized = false;
     if (sizeBearing.length > 0 && el.parentElement) {
-      // A `<p>`, not a heading: it is the class's own size that is wanted,
-      // with no element default of its own underneath it.
-      const probe = document.createElement("p");
-      probe.className = el.className;
-      el.parentElement.appendChild(probe);
-      probePx = Number.parseFloat(getComputedStyle(probe).fontSize);
-      probe.remove();
+      probePx = sizeOfProbe(el.parentElement, el.className);
+      classSized = probePx !== sizeOfProbe(el.parentElement, "");
     }
     return {
       tag: el.tagName.toLowerCase(),
@@ -156,6 +178,7 @@ function measureHeadings(): Measured[] {
       text: (el.textContent ?? "").slice(0, 40),
       sizeBearing,
       probePx,
+      classSized,
     };
   });
 }
@@ -185,7 +208,7 @@ describe(`the heading scale survives preflight — ${routes.length} route(s)`, (
           seen.add(heading.tag);
           const where = `${route.path}: <${heading.tag}> "${heading.text}" @ ${BAND_MIN.compact}px`;
 
-          if (heading.sizeBearing.length > 0) {
+          if (heading.classSized) {
             // The #941 half. The heading must compute exactly what its own
             // classes compute on a plain element in the same box — so an
             // element rule that out-ranks them again fails here, with the
@@ -257,6 +280,9 @@ describe(`the heading scale survives preflight — ${routes.length} route(s)`, (
             // 46 is asserted on top of it, because that number is the
             // owner's (#534) and not Tailwind's.
             if (hero) {
+              // Both bands here are above `--breakpoint-sm`, which is the
+              // only place `.t-hero` declares a size at all — so the class
+              // must be what sizes it, and to the owner's own 46.
               expect(
                 heading.px,
                 `${where} is S1's hero and must compute the set's ${LANDING_HERO_PX}px (#534)`
@@ -265,7 +291,7 @@ describe(`the heading scale survives preflight — ${routes.length} route(s)`, (
                 heading.probePx
               );
               heroSeenAt.push(width);
-            } else if (heading.sizeBearing.length > 0) {
+            } else if (heading.classSized) {
               expect(
                 heading.px,
                 `${where} carries ${heading.sizeBearing.join(" ")} and must compute what it says (#941)`
