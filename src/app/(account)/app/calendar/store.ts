@@ -57,6 +57,9 @@ import {
 } from "@/lib/market/changes";
 import { readStop } from "../_shell/stop";
 import { readPublishingFacts, type ScheduledPage } from "./drafts-read";
+import { weekStartFor } from "@/lib/scan/weekly/week";
+import type { PageStanding } from "./day-number";
+import type { BestRival } from "./target";
 import type { CalendarFacts, DraftOnDay, WhyThisPage } from "./month";
 
 /** The site one calendar belongs to. Which site that is, is
@@ -69,12 +72,29 @@ export interface CalendarSite {
 
 // ── The "Why this page" rows, from the evidence stored at creation ───────
 
-/** §4.6's `answered-today-by`: who holds the answer today. A Write or Earn
- *  target records the rival it is written to overtake; an Improve target is
- *  the customer's own page, so nobody else holds it. */
-function answeredTodayBy(choice: Choice): readonly string[] {
+/** §7's `Best rival`: who holds the answer today, and where they stand
+ *  (issue 930). A Write target records both; an Earn target records the
+ *  rival a source named and no place for it, which is `unmeasured` rather
+ *  than a `#0`; an Improve target is the customer's own page, so nobody
+ *  else holds it and there is no rival at all. */
+function bestRival(choice: Choice, at: Date): BestRival | null {
   const evidence = choice.evidence;
-  return evidence.family === "write" || evidence.family === "earn" ? [evidence.rival.domain] : [];
+  if (evidence.family === "write") {
+    return { domain: evidence.rival.domain, position: evidence.rival.position };
+  }
+  if (evidence.family === "earn") {
+    return { domain: evidence.rival.domain, position: unmeasured<number>("undeterminable", at) };
+  }
+  return null;
+}
+
+/** Whether a page is an update of one the site already has, rather than a
+ *  new one (SPEC §7, 2026-09-20). The opportunity's own family, read: an
+ *  Improve or a Fix rewrites a page that exists; a Write or an Earn adds
+ *  one. Total over the four, so a fifth family is a decision here. */
+function isUpdate(choice: Choice): boolean {
+  const family = choice.evidence.family;
+  return family === "improve" || family === "fix";
 }
 
 /** §4.6's `you`. An Improve target carries the customer's measured
@@ -146,7 +166,7 @@ function whyOf(choice: Choice, at: Date): WhyThisPage {
       engines: [],
       doneWhen: doneWhen(choice),
     }),
-    answeredTodayBy: answeredTodayBy(choice),
+    bestRival: bestRival(choice, at),
     youStand: youStand(choice, at),
   };
 }
@@ -164,6 +184,10 @@ function pageOn(a: {
   page: ScheduledPage;
   choice: Choice;
   publishAt: Date | null;
+  /** Where the site stands for this page's search this week, as §9's
+   *  weekly judgement recorded it — or `null` where this week measured
+   *  none (issue 930). Read once for the site and handed in. */
+  standing: PageStanding | null;
   now: Date;
 }): DraftOnDay {
   const at = measuredAtOf(a.choice, a.now);
@@ -182,6 +206,9 @@ function pageOn(a: {
     unpublishOutcome: a.page.unpublishOutcome,
     // Issue 880: why the page needs them, as §9's record derived it.
     needsYou: a.page.needsYou,
+    // Issue 930: this week's place, read and never re-measured.
+    standing: a.standing,
+    update: isUpdate(a.choice),
   };
 }
 
@@ -211,6 +238,11 @@ function plannedOn(day: DayKey, choice: Choice, now: Date): DraftOnDay {
     // A planned date has no draft, so nothing is wanted of the founder
     // for it (issue 880).
     needsYou: null,
+    // Nothing is published for a planned date, so there is no place to
+    // stand in (issue 930): its card carries the demand it was planned
+    // against, which is `day-number.ts`'s `volume` arm.
+    standing: null,
+    update: isUpdate(choice),
   };
 }
 
@@ -247,6 +279,79 @@ export function offsetForMonth(a: { month: MonthKey; today: DayKey }): number {
   let offset = 0;
   for (let day = a.today; day < first; day = addDays(day, 1)) offset += 1;
   return offset;
+}
+
+/**
+ * Where the site stands **this week** for each page it has live, by the
+ * address that page is served at (issue 930).
+ *
+ * §9's own weekly judgement, read (`readWeek` → `weeklyDigest`): the verdict
+ * row carries the measurement it was taken from and the movement against
+ * the previous one, both written by `judgeWeek` on Monday. Nothing here
+ * re-measures a place, re-computes a change or falls back to an earlier
+ * week — REQ-063 c5 forbids the last of those in terms, and the card's own
+ * `first-measure` arm is what a week with no measurement looks like.
+ *
+ * **Keyed by the live address**, which is `publications.live_url` on both
+ * sides — the digest's and `scheduledPagesFor`'s — so the join is the
+ * publication's own identity rather than a title or a search that two rows
+ * could share.
+ *
+ * A standing that is not an ordinary verdict contributes nothing: a page
+ * `not_judgeable`, one this week did not reach, and a week that was never
+ * measured are all "no place this week", which is the honest reading of
+ * each of them and the one the card already has a word for.
+ *
+ * Lazily imported, for the reason `_overview/store.ts` gives at its own
+ * `readWeek` call: a static import of a `@/lib/db`-reaching module from a
+ * module the job suites load hangs them.
+ */
+async function readStandings(a: {
+  siteId: string;
+  now: Date;
+  timeZone: string;
+  /** The addresses this month's live pages are served at. **Empty means no
+   *  read at all**: a month with nothing live has no place to state, and
+   *  §9's judgement is read for a question this month is asking rather
+   *  than on every render. */
+  liveUrls: readonly string[];
+}): Promise<ReadonlyMap<string, PageStanding>> {
+  const byUrl = new Map<string, PageStanding>();
+  if (a.liveUrls.length === 0) return byUrl;
+  const wanted = new Set(a.liveUrls);
+  try {
+    const { weeklyDigest } = await import("@/lib/opportunities");
+    const week = weekStartFor({ at: a.now, zone: a.timeZone });
+    const { standings } = await weeklyDigest({ siteId: a.siteId, week });
+    for (const page of standings) {
+      if (page.liveUrl === null || !wanted.has(page.liveUrl)) continue;
+      const standing = page.standing;
+      if (standing.kind !== "verdict") continue;
+      const movement = standing.movement;
+      // The place itself is the movement's `to`: it is the very figure the
+      // verdict was decided from, written down at judgement. A page judged
+      // with no movement at all was judged on its first measurement, and
+      // has a place and no change; a page whose `to` could not be measured
+      // has no place to state, which is the card's `first-measure` arm.
+      if (movement === null) continue;
+      const to = movement.to;
+      if (to.kind === "unmeasured") continue;
+      const from = movement.from;
+      byUrl.set(page.liveUrl, {
+        position: to.value,
+        previous: from.kind === "unmeasured" ? null : from.value,
+      });
+    }
+  } catch (error) {
+    // A standing nobody could read is not a page with no place: every live
+    // card then draws the day its place is first measured, which is what a
+    // founder would be told by a week that has not run. Never a zero and
+    // never last week's number.
+    console.warn(
+      JSON.stringify({ event: "calendar_standings_unreadable", siteId: a.siteId, detail: String(error) })
+    );
+  }
+  return byUrl;
 }
 
 /**
@@ -309,6 +414,18 @@ export async function readCalendarFacts(a: {
     marketHold(a.site.siteId, a.now).catch(() => null),
   ]);
 
+  // Issue 930: this week's place for every live page on this month, read
+  // once for the site rather than once per card — and not read at all for a
+  // month with nothing live on it.
+  const standings = await readStandings({
+    siteId: a.site.siteId,
+    now: a.now,
+    timeZone: a.site.timeZone,
+    liveUrls: [...publishing.pagesByDay.values()]
+      .map((page) => page.liveUrl)
+      .filter((url): url is string => url !== null),
+  });
+
   // #765: a zero depth is either a market used up or one never measured,
   // and the empty day says which. Read only where the depth is a proven
   // zero — no other day can reach either supply arm — and a read that
@@ -336,6 +453,7 @@ export async function readCalendarFacts(a: {
         page,
         choice,
         publishAt: publishing.publishAt.get(page.draftId) ?? null,
+        standing: page.liveUrl === null ? null : (standings.get(page.liveUrl) ?? null),
         now: a.now,
       })
     );

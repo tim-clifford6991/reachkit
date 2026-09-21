@@ -145,7 +145,7 @@ describe("the day panel states it, with both slots filled from the engine", () =
     const cell = cellFor(model, "2026-09-16") as DayCell;
     expect(cell.empty?.cause).toBe("change_holds_generation");
 
-    const root = render(<DayPanelView cell={cell} timeZone={ZONE} stopped={null} />);
+    const root = render(<DayPanelView cell={cell} timeZone={ZONE} stopped={null}  onClose={() => undefined} />);
     const line = root.querySelector('[data-testid="day-empty-line"]')?.textContent ?? "";
     expect(line).toContain(EMPTY_COPY_KEY.change_holds_generation);
     // `{change}` is the owner's word, never the engine's handle.
@@ -162,7 +162,7 @@ describe("the day panel states it, with both slots filled from the engine", () =
       MONTH
     );
     const cell = cellFor(model, "2026-09-16") as DayCell;
-    const root = render(<DayPanelView cell={cell} timeZone={ZONE} stopped={null} />);
+    const root = render(<DayPanelView cell={cell} timeZone={ZONE} stopped={null}  onClose={() => undefined} />);
     const line = root.querySelector('[data-testid="day-empty-line"]')?.textContent ?? "";
     // A category is measured again at once, so its held day states the
     // category's own line and carries no date at all.

@@ -43,6 +43,7 @@ import {
 } from "@/app/(account)/app/calendar/empty";
 import { assembleMonth, cellFor, type CalendarFacts, type DayCell } from "@/app/(account)/app/calendar/month";
 import type { State } from "@/app/(account)/app/calendar/stages";
+import { withNuqs } from "./nuqs-adapter";
 
 function render(el: React.ReactElement): Element {
   const container = document.createElement("div");
@@ -71,11 +72,13 @@ function pageOn(day: string, state: State, publishAt: Date | null) {
     verification: { kind: "never", because: "no_live_address" } as const,
     unpublishOutcome: null,
     needsYou: null,
+    standing: null,
+    update: false,
     scheduledFor: day,
     why: {
       search: "a search",
       askedAs: "a question",
-      answeredTodayBy: ["rival.example"],
+      bestRival: { domain: "rival.example", position: { kind: "measured" as const, value: 4, at: AT } },
       youStand: { kind: "unmeasured" as const, reason: "undeterminable" as const, at: AT },
       doneWhen: "",
       winnability: "winnable" as const,
@@ -122,7 +125,7 @@ describe("REQ-092 c7 — the day panel's publish line goes through the one funct
         cell={cellFor(model, "2026-09-16") as DayCell}
         timeZone={ZONE}
         stopped={null}
-      />
+       onClose={() => undefined} />
     );
     expect(root.textContent).toContain("next-publish.scheduled");
     expect(root.textContent).not.toContain("next-publish.stopped");
@@ -139,7 +142,7 @@ describe("REQ-092 c7 — the day panel's publish line goes through the one funct
         cell={cellFor(model, "2026-09-16") as DayCell}
         timeZone={ZONE}
         stopped={STOP}
-      />
+       onClose={() => undefined} />
     );
     // The discriminating pair: the page *has* a publish time, and it is
     // still not stated. ADR-011 point 5 — "not 'prefers': ignores".
@@ -161,7 +164,7 @@ describe("REQ-092 c7 — the day panel's publish line goes through the one funct
         cell={cellFor(model, "2026-09-16") as DayCell}
         timeZone={ZONE}
         stopped={STOP}
-      />
+       onClose={() => undefined} />
     );
     // Nothing to suppress, so nothing is said — never the stopped line as a
     // stand-in for a statement the panel was not making.
@@ -175,7 +178,7 @@ describe("REQ-092 c1, c2 and c4 — a stopped day carries all three lines", () =
     const cell = cellFor(model, "2026-09-16") as DayCell;
     expect(cell.empty?.cause).toBe("reachkit_stopped");
 
-    const root = render(<DayPanelView cell={cell} timeZone={ZONE} stopped={STOP} />);
+    const root = render(<DayPanelView cell={cell} timeZone={ZONE} stopped={STOP}  onClose={() => undefined} />);
     expect(root.querySelector('[data-testid="day-empty-line"]')?.textContent).toBe(
       "stopped.work.line"
     );
@@ -198,7 +201,7 @@ describe("REQ-092 c1, c2 and c4 — a stopped day carries all three lines", () =
     const cell = cellFor(model, "2026-09-16") as DayCell;
     expect(cell.empty?.cause).toBe("unattributed");
 
-    const root = render(<DayPanelView cell={cell} timeZone={ZONE} stopped={null} />);
+    const root = render(<DayPanelView cell={cell} timeZone={ZONE} stopped={null}  onClose={() => undefined} />);
     expect(root.querySelector('[data-testid="day-empty-line"]')?.textContent).toBe(
       "stopped.work.line"
     );
@@ -215,7 +218,7 @@ describe("REQ-092 c1, c2 and c4 — a stopped day carries all three lines", () =
     const cell = cellFor(model, "2026-09-16") as DayCell;
     expect(cell.empty?.cause).toBe("supply_exhausted");
 
-    const root = render(<DayPanelView cell={cell} timeZone={ZONE} stopped={null} />);
+    const root = render(<DayPanelView cell={cell} timeZone={ZONE} stopped={null}  onClose={() => undefined} />);
     // Its own line, from its own key — carrying the `TODO(copy)` marker
     // since #246, so an owed sentence shows as owed on the screen rather
     // than as nothing. What is asserted here is unchanged: whichever line
@@ -231,7 +234,7 @@ describe("REQ-092 c1, c2 and c4 — a stopped day carries all three lines", () =
 
   it("the grid cell states c1's line and no more — the panel is where c2 and c4 are read", () => {
     const model = assembleMonth(facts({ stop: STOP, stoppedDays: ["2026-09-16"] }), MONTH);
-    const root = render(<CalendarView model={model} />);
+    const root = render(withNuqs(<CalendarView model={model} />));
     const text = root.textContent ?? "";
     expect(text).toContain("stopped.work.line");
     // One sentence per cell: the needs line appears once, in the panel

@@ -182,10 +182,26 @@ export const CALENDAR_COPY = Object.freeze({
 
   // §4.6's "Why this page" block and its five rows.
   "calendar.why.title": ["Why this page", { slots: {}, fixedBy: "REQ-043 c8" }],
-  "calendar.why.search": ["Search", { slots: {}, fixedBy: "REQ-043 c8" }],
+  // SPEC §7 (2026-09-20, #908, issue 930): the day panel is label-and-value
+  // rows, and the labels are the founder's words for the facts rather than
+  // the measurement's own names. Four of the six below were reworded for
+  // that pass; every one of them is still the same fact, stated once and
+  // read by both screens (`calendar/TargetRows.tsx`).
+  "calendar.why.search": ["Going after", { slots: {}, fixedBy: "issue 930" }],
   "calendar.why.asked": ["Asked", { slots: {}, fixedBy: "REQ-043 c8" }],
-  "calendar.why.answered-today-by": ["Answered today by", { slots: {}, fixedBy: "REQ-043 c8" }],
-  "calendar.why.you": ["You", { slots: {}, fixedBy: "REQ-043 c8" }],
+  "calendar.why.answered-today-by": ["Best rival", { slots: {}, fixedBy: "issue 930" }],
+  // The rival and where it stands, as one value: a domain alone does not
+  // say it is ahead of you.
+  "calendar.why.answered-today-by.value": [
+    "{domain} · #{position}",
+    { slots: { domain: "text", position: "text" }, fixedBy: "issue 930" },
+  ],
+  "calendar.why.you": ["You today", { slots: {}, fixedBy: "issue 930" }],
+  // §6.6's cold-start law: a measured zero is a measurement — the site
+  // holds no place — and it is said in words rather than as a 0, which
+  // would read as a position. An *unmeasured* place still renders the dash
+  // and its own line, and never this.
+  "calendar.why.not-ranking": ["Not ranking", { slots: {}, fixedBy: "issue 930" }],
   "calendar.why.done-when": ["Done when", { slots: {}, fixedBy: "REQ-043 c8" }],
 
   // Issue 867 (owner, 2026-09-17): "I don't believe we are currently showing
@@ -195,21 +211,30 @@ export const CALENDAR_COPY = Object.freeze({
   // is for" block. Plain words for both dimensions, never "SEO" or "GEO" as
   // jargon (SPEC §4, 2026-09-17). Drafted under issue 759's ruling; the
   // owner corrects the wording.
-  "calendar.why.volume": ["Searches a month", { slots: {}, fixedBy: "issue 867" }],
+  "calendar.why.volume": ["Each month", { slots: {}, fixedBy: "issue 930" }],
+  // The demand as a value, with its unit in words: a bare count in a row
+  // labelled "Each month" does not say what is counted.
+  "calendar.why.volume.value": [
+    "{count} searches",
+    { slots: { count: "text" }, fixedBy: "issue 930" },
+  ],
   "calendar.why.difficulty": ["Difficulty", { slots: {}, fixedBy: "issue 867" }],
   // The difficulty against the ceiling this site is judged by (§6, issue
   // 858) — a number is not a verdict until it is beside the bar it is
   // measured against.
   "calendar.why.difficulty.of-ceiling": [
-    "{difficulty} of {ceiling}",
-    { slots: { difficulty: "text", ceiling: "text" }, fixedBy: "issue 867" },
+    "{difficulty} · your limit is {ceiling}",
+    { slots: { difficulty: "text", ceiling: "text" }, fixedBy: "issue 930" },
   ],
   "calendar.why.band": ["Winnability", { slots: {}, fixedBy: "issue 867" }],
   // Where the AI engines stood on this question when the pass measured it.
   "calendar.why.engines": ["AI answers", { slots: {}, fixedBy: "issue 867" }],
-  "calendar.why.engine.names-you": ["names you", { slots: {}, fixedBy: "issue 867" }],
-  "calendar.why.engine.names-others": ["names others", { slots: {}, fixedBy: "issue 867" }],
-  "calendar.why.engine.no-answer": ["no answer", { slots: {}, fixedBy: "issue 867" }],
+  // Issue 930: each standing is a chip beside its engine rather than half
+  // of a composed phrase, so each one is now a statement of its own and is
+  // capitalised as one.
+  "calendar.why.engine.names-you": ["Names you", { slots: {}, fixedBy: "issue 930" }],
+  "calendar.why.engine.names-others": ["Names rivals", { slots: {}, fixedBy: "issue 930" }],
+  "calendar.why.engine.no-answer": ["No answer", { slots: {}, fixedBy: "issue 930" }],
   // One engine's standing, as one phrase: "ChatGPT — names others".
   "calendar.why.engine.line": [
     "{engine} — {standing}",
@@ -311,6 +336,17 @@ export const CALENDAR_COPY = Object.freeze({
   // string. `days` counts days of pages, so it is a text slot carrying a
   // numeral, exactly as `overview.supply.*` declares it.
   "calendar.supply.exhausted": ["Nothing worth publishing is left in your market, since {since}. Monday’s re-measure looks for more.", { slots: { since: "date" }, fixedBy: "BUILD §4.6" }],
+  // The same claim where the moment it ran out cannot be read (owner, PR
+  // #961, 2026-09-21). `SupplyNotice`'s `since` is `Date | null` by
+  // declaration, so this is a state a real site reaches and not only the
+  // fixture's — and the sentence the screen used to render for it filled
+  // the slot with an empty string: "… in your market, since . Monday’s
+  // re-measure…". A variant without the clause, never a blank: a date the
+  // product does not have is a date it does not mention.
+  "calendar.supply.exhausted.undated": [
+    "Nothing worth publishing is left in your market. Monday’s re-measure looks for more.",
+    { slots: {}, fixedBy: "owner, PR 961" },
+  ],
   // issue 784: the same statement over a market that was never measured (issue 765)
   // — there was nothing to use up. Drafted under issue 759's ruling.
   "calendar.supply.unmeasured": ["We couldn’t find enough searches in your market to plan pages yet. Pick a broader category and we’ll measure your market again right away.", { slots: {}, fixedBy: "issue 784" }],
@@ -337,6 +373,70 @@ export const CALENDAR_COPY = Object.freeze({
   "calendar.done-when.top20": ["you rank in the top 20 for “{query}”", { slots: { query: "text" }, fixedBy: "BUILD §7" }],
   "calendar.done-when.named-on": ["AI names you on “{question}”", { slots: { question: "text" }, fixedBy: "BUILD §7" }],
   "calendar.done-when.gate-cleared": ["the access check passes", { slots: {}, fixedBy: "BUILD §7" }],
+
+  // ── The day card and the day panel (SPEC §7, 2026-09-20, #908; issue 930)
+  //
+  // "A day card holds the date and exactly one number …, the title cut to
+  // two lines, and one stage word … A day with no page says why in at most
+  // two words; the day panel carries the full reason."
+  //
+  // So every cause the calendar speaks now has **two** forms and not one:
+  // the ≤2-word hint the card carries, and the whole account the panel
+  // already carried. The pair is the same split DECISIONS 2026-09-07 (#209)
+  // made for supply, applied to every cause — and the short form is never a
+  // truncation of the long one, because two words cannot be a sentence cut
+  // in half. Drafted under issue 759's ruling; the owner corrects them.
+  "calendar.empty.short.instruction": ["Your fix", { slots: {}, fixedBy: "issue 930" }],
+  "calendar.empty.short.page-cannot-go-live": ["Stopped", { slots: {}, fixedBy: "issue 930" }],
+  "calendar.empty.short.change-holds-pages": ["On hold", { slots: {}, fixedBy: "issue 930" }],
+  "calendar.empty.short.customer-change-holds-pages": ["Held back", { slots: {}, fixedBy: "issue 930" }],
+  "calendar.empty.short.page-held": ["Held back", { slots: {}, fixedBy: "issue 930" }],
+  // The two supply causes never reach a card — §7 (issue 857) states supply
+  // once, at the top of the screen — but the map the card reads is total
+  // over the causes, so a cause added to the union fails to compile rather
+  // than drawing a blank word.
+  "calendar.empty.short.supply-unmeasured": ["No market yet", { slots: {}, fixedBy: "issue 930" }],
+  "calendar.empty.short.supply-exhausted": ["No page", { slots: {}, fixedBy: "issue 930" }],
+  // ReachKit's own stop, and the day nobody can account for, which ADR-061
+  // point 2 says is the same stop without a record behind it.
+  "calendar.empty.short.reachkit-stopped": ["We stopped", { slots: {}, fixedBy: "issue 930" }],
+  // Issue 857's quiet marker, in the room a card has for it. The full line
+  // (`calendar.horizon.marker`) is the panel's.
+  "calendar.horizon.short": ["Planned Mon", { slots: {}, fixedBy: "issue 930" }],
+
+  // The card's whole label, for a reader who never sees it. Three shapes,
+  // because a card has three: a page, a date that says why it has none, and
+  // a date with nothing to say at all. Composed from a key rather than
+  // joined in the renderer, so the punctuation a screen reader pauses on is
+  // the owner's.
+  "calendar.card.aria.page": [
+    "{date}. {stage}. {title}",
+    { slots: { date: "text", stage: "text", title: "text" }, fixedBy: "issue 930" },
+  ],
+  "calendar.card.aria.empty": [
+    "{date}. {reason}",
+    { slots: { date: "text", reason: "text" }, fixedBy: "issue 930" },
+  ],
+  "calendar.card.aria.date": ["{date}", { slots: { date: "text" }, fixedBy: "issue 930" }],
+
+  // What the page is: a new page, or an update of one the site already has
+  // (SPEC §7, 2026-09-20 — "a mark for an update"). The card carries the
+  // mark and this word names it; the panel says it in full.
+  "calendar.card.update": ["Update", { slots: {}, fixedBy: "issue 930" }],
+  "calendar.card.new-page": ["New page", { slots: {}, fixedBy: "issue 930" }],
+
+  // The panel's two section heads, and the one control that closes it.
+  "calendar.panel.search": ["Search", { slots: {}, fixedBy: "issue 930" }],
+  "calendar.panel.close": ["Close", { slots: {}, fixedBy: "issue 930" }],
+
+  // The one note under the month: what the number on a live card is. It is
+  // not a supply statement and does not repeat one — it explains a value,
+  // which is the only thing on the card a founder cannot read off the word
+  // beside it.
+  "calendar.note.live-number": [
+    "On live pages the number is this week's Google position.",
+    { slots: {}, fixedBy: "issue 930" },
+  ],
 
   // 2026-09-06, issue #50 (REQ-043 c12). The three grounds on which the
   // day panel says a way through leads nowhere **in place of** offering

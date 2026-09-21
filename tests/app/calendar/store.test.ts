@@ -212,7 +212,7 @@ describe("a planned date is planned, and claims nothing more", () => {
     const facts = await readCalendarFacts({ site: SITE, month: "2026-09", now: NOW });
     const page = facts.drafts[0]!;
     expect(page.why.search).toBe("search 0");
-    expect(page.why.answeredTodayBy).toEqual(["rival.example"]);
+    expect(page.why.bestRival?.domain).toBe("rival.example");
     expect(page.why.winnability).toBe("winnable");
     expect(page.measuredAt).toEqual(AT);
   });
@@ -220,7 +220,7 @@ describe("a planned date is planned, and claims nothing more", () => {
   it("a Write target's 'you' is undeterminable, never a zero — the evidence records the rival's position, not theirs", async () => {
     withSupply(1);
     const facts = await readCalendarFacts({ site: SITE, month: "2026-09", now: NOW });
-    expect(facts.drafts[0]!.why.youStand.kind).toBe("unmeasured");
+    expect(facts.drafts[0]!.why.youStand?.kind).toBe("unmeasured");
   });
 
   it("an Improve target's 'you' is the position the shortfall measured", async () => {
@@ -244,7 +244,7 @@ describe("a planned date is planned, and claims nothing more", () => {
 
     const facts = await readCalendarFacts({ site: SITE, month: "2026-09", now: NOW });
     expect(facts.drafts[0]!.why.youStand).toEqual(measured(12, AT));
-    expect(facts.drafts[0]!.why.answeredTodayBy).toEqual([]);
+    expect(facts.drafts[0]!.why.bestRival).toBeNull();
   });
 
   it("names the search it targets and never the model's proposed title (ADR-012)", async () => {

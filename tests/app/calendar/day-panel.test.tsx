@@ -22,6 +22,7 @@ import {
   FIXTURE_MONTH,
   FIXTURE_TIME_ZONE,
 } from "@/app/(account)/app/calendar/fixture";
+import { withNuqs } from "./nuqs-adapter";
 
 function render(el: React.ReactElement): Element {
   const container = document.createElement("div");
@@ -35,13 +36,60 @@ function panel(day: string): Element {
   const cell = cellFor(MODEL, day);
   if (cell === undefined) throw new Error(`no cell for ${day}`);
   return render(
-    <DayPanelView cell={cell} timeZone={FIXTURE_TIME_ZONE} stopped={MODEL.stopped} />
+    <DayPanelView cell={cell} timeZone={FIXTURE_TIME_ZONE} stopped={MODEL.stopped}  onClose={() => undefined} />
   );
 }
 
+describe("REQ-043 c7, read as 'from md up' — an absent ?day is open on a desktop and closed on a phone", () => {
+  // Owner, PR #961. "There is no month in which nothing is selected" is
+  // unchanged from `md` up, where the panel stands beside the month. Below
+  // it the panel is a sheet **over** the month, and the same default meant
+  // a customer who tapped Plan landed on a sheet covering their plan.
+  //
+  // One DOM: the difference is `max-md:hidden` on the implicitly-open
+  // panel, and which selection each shape of the month is handed.
+  it("a day nobody asked for is drawn, marked hidden below md, and marks nothing in the list", () => {
+    const root = render(withNuqs(<CalendarView model={MODEL} />));
+    const panel = root.querySelector('[data-testid="day-panel"]');
+    expect(panel).not.toBeNull();
+    expect(panel?.className).toContain("max-md:hidden");
+    expect(panel?.hasAttribute("data-implicit")).toBe(true);
+    // The grid is drawn from `md` up, where this day *is* open.
+    expect(
+      root.querySelector(`[data-testid="calendar-cell-${MODEL.today}"]`)?.getAttribute("aria-current")
+    ).toBe("date");
+    // The list is drawn below it, where it is not — today is still marked
+    // as today, and no row claims to be the open one.
+    expect(
+      root.querySelector(`[data-testid="calendar-day-${MODEL.today}"]`)?.hasAttribute("data-today")
+    ).toBe(true);
+    expect(
+      root.querySelectorAll('[data-testid^="calendar-day-"][aria-current="date"]')
+    ).toHaveLength(0);
+  });
+
+  it("a day the address names is open at every width, and the list marks it", () => {
+    const root = render(withNuqs(<CalendarView model={MODEL} />, { day: "2026-09-18" }));
+    const panel = root.querySelector('[data-testid="day-panel"]');
+    expect(panel?.className).not.toContain("max-md:hidden");
+    expect(panel?.hasAttribute("data-implicit")).toBe(false);
+    expect(
+      root.querySelector('[data-testid="calendar-day-2026-09-18"]')?.getAttribute("aria-current")
+    ).toBe("date");
+  });
+
+  it("?day=none is closed at every width — the founder's own act, and it sticks", () => {
+    const root = render(withNuqs(<CalendarView model={MODEL} />, { day: "none" }));
+    expect(root.querySelector('[data-testid="day-panel"]')).toBeNull();
+    expect(
+      root.querySelectorAll('[data-testid^="calendar-cell-"][aria-current="date"]')
+    ).toHaveLength(0);
+  });
+});
+
 describe("REQ-043 c7 — today is the selected day when the calendar opens", () => {
   it("the panel the view renders on open is today's, not the month's first date", () => {
-    const root = render(<CalendarView model={MODEL} />);
+    const root = render(withNuqs(<CalendarView model={MODEL} />));
     const title = root.querySelector('[data-testid="day-title"]')?.textContent;
     const todayCell = cellFor(MODEL, MODEL.today);
     expect(MODEL.today).toBe("2026-09-15");
@@ -59,7 +107,7 @@ describe("REQ-043 c7 — today is the selected day when the calendar opens", () 
     );
     // 2026-09-15T14:00Z is 2026-09-16 02:00 in Auckland.
     expect(nz.today).toBe("2026-09-16");
-    const root = render(<CalendarView model={nz} />);
+    const root = render(withNuqs(<CalendarView model={nz} />));
     expect(
       root.querySelector('[data-testid="calendar-cell-2026-09-16"]')?.getAttribute("aria-current")
     ).toBe("date");
@@ -67,7 +115,7 @@ describe("REQ-043 c7 — today is the selected day when the calendar opens", () 
 
   it("a month that does not hold today still opens on a day — never on none", () => {
     const november = assembleMonth(FIXTURE_CALENDAR_FACTS, "2026-11");
-    const root = render(<CalendarView model={november} />);
+    const root = render(withNuqs(<CalendarView model={november} />));
     const pressed = [...root.querySelectorAll('[data-testid^="calendar-cell-"]')].filter(
       (c) => c.getAttribute("aria-current") === "date"
     );
@@ -80,11 +128,15 @@ describe("REQ-043 c8 — the panel says why this page exists", () => {
   const root = panel("2026-09-15");
 
   it("states the search, the question, who answers it today, where the customer stands, and done-when", () => {
-    const why = root.querySelector('[data-testid="why-this-page"]');
+    const why = root.querySelector('[data-testid="target-rows"]');
     expect(why).not.toBeNull();
+    // Issue 930: "Why this page" is what the block **is**, and it says so
+    // to a reader rather than in a heading — the visible heads are its two
+    // groups.
+    expect(why?.getAttribute("aria-label")).toBe("calendar.why.title");
     const text = why?.textContent ?? "";
     for (const key of [
-      "calendar.why.title",
+      "calendar.panel.search",
       "calendar.why.search",
       "calendar.why.asked",
       "calendar.why.answered-today-by",
@@ -99,8 +151,8 @@ describe("REQ-043 c8 — the panel says why this page exists", () => {
     }
   });
 
-  it("issue 867 — the rows are in one order: search, asked, demand, difficulty, who answers today, the engines", () => {
-    const why = root.querySelector('[data-testid="why-this-page"]');
+  it("issue 930 — the rows are in one order, and both screens draw this one list", () => {
+    const why = root.querySelector('[data-testid="target-rows"]');
     const labels = [...(why?.querySelectorAll("dt") ?? [])].map((dt) => dt.textContent ?? "");
     expect(labels).toEqual([
       "calendar.why.search",
@@ -108,24 +160,30 @@ describe("REQ-043 c8 — the panel says why this page exists", () => {
       "calendar.why.volume",
       "calendar.why.difficulty",
       "calendar.why.answered-today-by",
-      "calendar.why.engines",
       "calendar.why.you",
+      "calendar.why.band",
       "calendar.why.done-when",
     ]);
   });
 
-  it("issue 867 — each engine is named with where it stood, and the difficulty is beside this site's ceiling", () => {
-    const why = root.querySelector('[data-testid="why-this-page"]');
+  it("issue 930 — each engine is a row of its own, named with where it stood, and the difficulty is beside this site's ceiling", () => {
+    const why = root.querySelector('[data-testid="target-rows"]');
     const text = why?.textContent ?? "";
     // The fixture's first specimen: difficulty 12 against a ceiling of 36,
     // and three engines. The line keys are the registry's, doubled to their
     // own names by this file's `copy` mock.
     expect(text).toContain("calendar.why.difficulty.of-ceiling");
-    expect(text).toContain("calendar.why.engine.line");
+    const engines = [...(why?.querySelectorAll('[data-testid^="engine-"]') ?? [])];
+    expect(engines).toHaveLength(3);
+    // The name and the standing are two elements, and the phrase that
+    // joins them is still the registry's — on the row's own title.
+    for (const engine of engines) {
+      expect(engine.getAttribute("title")).toBe("calendar.why.engine.line");
+    }
   });
 
   it("every value is mono, and the one criterion is not a value (§2.3; #297)", () => {
-    const why = root.querySelector('[data-testid="why-this-page"]');
+    const why = root.querySelector('[data-testid="target-rows"]');
     // Since #354 the block is S15's definition list: five `<dt>` keys and
     // five `<dd>` values, on the hairline-separated block the approved
     // panel draws. **Four** values carry `.num` — the search query, the
@@ -147,14 +205,30 @@ describe("REQ-043 c8 — the panel says why this page exists", () => {
     const values = why?.querySelectorAll("dd") ?? [];
     expect(keys.length).toBe(8);
     expect(values.length).toBe(8);
-    const monoValues = why?.querySelectorAll("dd.num") ?? [];
-    expect(monoValues.length).toBe(7);
-    // `.num`'s `nowrap` alone overflowed the 290px panel and took the
-    // document sideways with it (#354).
-    // Five of the seven are values made of WORDS and fold where language
-    // folds (#307's `num-phrase`); the demand and the standing are counts
-    // and do not.
-    expect(why?.querySelectorAll("dd.num-phrase").length).toBe(5);
+    // Issue 930 splits the eight by **whether the value can grow**, which
+    // is `docs/DESIGN.md`'s own rule and the layout sweep's:
+    //
+    //   three are bounded and mono, and never clamp — the demand, the
+    //   difficulty and the place. A truncated *value* is an offender in
+    //   the sweep whatever its class says, because a value cut in half is
+    //   a different value; the box folds instead (`num-phrase`).
+    //
+    //   four can grow and clamp — the search, the question, the rival's
+    //   domain and the acceptance test. Each is a declared truncation
+    //   (`rk-cal-label`) whose whole string stays on the row's own title.
+    //
+    //   one is neither: the band, a word from a closed set.
+    expect(why?.querySelectorAll("dd.num").length).toBe(3);
+    expect(why?.querySelectorAll("dd.num-phrase").length).toBe(3);
+    const clamped = [...(why?.querySelectorAll("dd.rk-cal-label") ?? [])];
+    expect(clamped).toHaveLength(4);
+    for (const value of clamped) {
+      expect(value.getAttribute("title")).not.toBeNull();
+      // A clamped row holds its text itself: an element inside a clipping
+      // box escapes it the moment the text is long enough.
+      expect(value.children.length).toBe(0);
+      expect(value.className).not.toContain("num");
+    }
     // And the criterion is still stated — as prose, in its own row.
     const texts = [...keys].map((r) => r.textContent ?? "");
     expect(texts.some((t) => t.includes("calendar.why.done-when"))).toBe(true);
@@ -169,7 +243,7 @@ describe("REQ-043 c8 — the panel says why this page exists", () => {
     for (const word of ["Winnable", "Reach", "Not yet"]) expect(text, word).not.toContain(word);
   });
 
-  it("the stage badge and the date head the panel", () => {
+  it("the stage word and the date head the panel", () => {
     const head = root.querySelector('[data-testid="day-head"]')?.textContent ?? "";
     expect(head).toContain("calendar.stage.your-review");
     expect(head).toContain("2026");
@@ -180,7 +254,7 @@ describe("REQ-004 — an unmeasured value is a dash and a line, never a zero", (
   it("a page whose standing could not be measured renders the dash, not 0", () => {
     // The fixture's third specimen carries `unmeasured('undeterminable')`.
     const root = panel("2026-09-03");
-    const values = [...(root.querySelectorAll('[data-testid="why-this-page"] dd.num') ?? [])].map(
+    const values = [...(root.querySelectorAll('[data-testid="target-rows"] dd') ?? [])].map(
       (n) => n.textContent
     );
     expect(values).toContain(COPY["unmeasured.dash"]);
@@ -192,12 +266,22 @@ describe("REQ-004 — an unmeasured value is a dash and a line, never a zero", (
     expect(root.textContent).toContain(line);
   });
 
-  it("a measured zero renders as 0, because 0 is a measurement", () => {
+  it("a measured zero place is §6.6's cold start, said in words — never a `#0`, which is not a position", () => {
+    // The trichotomy is unchanged and this is the *measured* arm: the
+    // fixture's second specimen carries `measuredZero(0)` for where the
+    // site stands, which is a measurement — the site holds no place — and
+    // the panel states it (issue 930's "Not ranking"). What REQ-004
+    // forbids is rendering an **unmeasured** value as a number, and the
+    // row above is where that is asserted. A `0` here would read as a
+    // rank of zero, which no search result has.
     const root = panel("2026-09-02");
-    const values = [...(root.querySelectorAll('[data-testid="why-this-page"] dd.num') ?? [])].map(
+    const values = [...(root.querySelectorAll('[data-testid="target-rows"] dd') ?? [])].map(
       (n) => n.textContent
     );
-    expect(values).toContain("0");
+    // `copy` is mocked to the key in this file, so the assertion names the
+    // key the words came from rather than the owner's wording.
+    expect(values).toContain("calendar.why.not-ranking");
+    expect(values).not.toContain("#0");
   });
 });
 
@@ -220,7 +304,7 @@ describe("REQ-043 c10 — one provenance line, and no date repeated beside each 
   });
 
   it("and no 'Why this page' row carries a measurement date of its own", () => {
-    const why = panel("2026-09-15").querySelector('[data-testid="why-this-page"]');
+    const why = panel("2026-09-15").querySelector('[data-testid="target-rows"]');
     // The one measurement date in the fixture is 2026-09-14; it must not
     // appear five times beside five values.
     expect((why?.textContent ?? "").includes("Sep 14")).toBe(false);
@@ -304,7 +388,11 @@ describe("REQ-043 c11 — an empty day states one account and offers no control"
     for (const [day] of empties) {
       const root = panel(day);
       expect(root.querySelectorAll('[data-testid^="day-action-"]'), day).toHaveLength(0);
-      expect(root.querySelector("button"), day).toBeNull();
+      // The one control an empty day does carry is the one SPEC §7 gave
+      // every day in the 2026-09-20 redesign: the panel is closable. It
+      // publishes nothing and approves nothing.
+      const buttons = [...root.querySelectorAll("button")];
+      expect(buttons.map((b) => b.getAttribute("data-testid")), day).toEqual(["day-panel-close"]);
     }
   });
 
@@ -312,7 +400,7 @@ describe("REQ-043 c11 — an empty day states one account and offers no control"
     for (const [day] of empties) {
       const root = panel(day);
       expect(root.querySelectorAll('[data-testid="day-empty-line"]').length, day).toBeLessThanOrEqual(1);
-      expect(root.querySelector('[data-testid="why-this-page"]'), day).toBeNull();
+      expect(root.querySelector('[data-testid="target-rows"]'), day).toBeNull();
       expect(root.querySelector('[data-testid="day-title"]'), day).toBeNull();
     }
   });
@@ -360,7 +448,7 @@ describe("a cell with a page whose stage has no action", () => {
   it("renders the page and, since issue 882, the one way in to read it", () => {
     const scheduled = cellFor(MODEL, "2026-09-16") as DayCell;
     const root = render(
-      <DayPanelView cell={scheduled} timeZone={FIXTURE_TIME_ZONE} stopped={null} />
+      <DayPanelView cell={scheduled} timeZone={FIXTURE_TIME_ZONE} stopped={null}  onClose={() => undefined} />
     );
     expect(root.querySelector('[data-testid="day-title"]')).not.toBeNull();
     // A scheduled page is written and queued — the moment a veto matters
@@ -372,11 +460,18 @@ describe("a cell with a page whose stage has no action", () => {
 });
 
 describe("the panel's arms", () => {
-  it("the head is the stage badge at the near edge and the mono date at the far one", () => {
+  it("the head is the stage's dot and word at the near edge, the mono date beside them, and the close control at the far one", () => {
+    // Issue 944, fixed here: the stage was a daisyUI `badge`, which carries
+    // its own padding and does not shrink below its text. It is a dot and
+    // a word now — on the card and in the panel, so one stage is drawn one
+    // way (`stages.ts`).
     const head = panel("2026-09-15").querySelector('[data-testid="day-head"]');
     const children = [...(head?.children ?? [])];
-    expect(children[0]?.className).toContain("badge");
-    expect(children[1]?.className).toContain("num");
+    expect(children[0]?.className).toContain("rounded-full");
+    expect(children[1]?.textContent).toBe("calendar.stage.your-review");
+    expect(children[2]?.className).toContain("num");
+    expect(children[3]?.getAttribute("data-testid")).toBe("day-panel-close");
+    expect(head?.querySelector(".badge")).toBeNull();
   });
 
   it("review offers a solid way in across the column, with a warning-outline Veto under it", () => {

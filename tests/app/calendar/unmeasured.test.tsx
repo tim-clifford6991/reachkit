@@ -73,6 +73,7 @@ const { cellFor } = await import("@/app/(account)/app/calendar/month");
 const { CalendarView } = await import("@/app/(account)/app/calendar/CalendarView");
 const { DayPanelView } = await import("@/app/(account)/app/calendar/DayPanelView");
 const { default: CalendarPage } = await import("@/app/(account)/app/calendar/page");
+import { withNuqs } from "./nuqs-adapter";
 
 const AT = new Date(Date.UTC(2026, 8, 14, 6, 0, 0));
 
@@ -104,8 +105,8 @@ async function emptyDay() {
   const model = await provider.readMonth(MONTH);
   const cell = cellFor(model, EMPTY_DAY);
   if (cell === undefined) throw new Error("no cell");
-  const grid = render(<CalendarView model={model} />);
-  const panel = render(<DayPanelView cell={cell} timeZone={SITE.timeZone} stopped={null} />);
+  const grid = render(withNuqs(<CalendarView model={model} />));
+  const panel = render(<DayPanelView cell={cell} timeZone={SITE.timeZone} stopped={null}  onClose={() => undefined} />);
   return {
     cause: cell.empty?.cause,
     cellLine: grid.querySelector(`[data-testid="calendar-cell-${EMPTY_DAY}"] [data-testid="cell-empty-line"]`)
@@ -171,7 +172,11 @@ describe("#784 — the calendar's one supply statement says which zero it is", (
 
   it("a market used up keeps 'nothing worth publishing is left'", async () => {
     setOpportunityStore(storeWith({ questions: 12, everHeld: true }));
-    expect(await statement()).toContain(COPY["calendar.supply.exhausted"].split("{")[0]);
+    // The claim both exhausted arms share — the dated one and the undated
+    // one (owner, PR #961). Which of the two this store reaches depends on
+    // whether it can date the moment supply ran out, and the claim is the
+    // same either way.
+    expect(await statement()).toContain("Nothing worth publishing is left in your market");
   });
 
   it("a market never measured says so, never 'used up'", async () => {

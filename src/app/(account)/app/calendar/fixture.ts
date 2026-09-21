@@ -45,7 +45,7 @@ interface Specimen {
   title: string;
   search: string;
   askedAs: string;
-  answeredTodayBy: readonly string[];
+  bestRival: WhyThisPage["bestRival"];
   youStand: WhyThisPage["youStand"];
   doneWhen: string;
   winnability: WhyThisPage["winnability"];
@@ -62,7 +62,7 @@ const SPECIMENS: readonly Specimen[] = [
     title: "How to choose a CRM for a small team",
     search: "best crm for small teams",
     askedAs: "What CRM should a small team use?",
-    answeredTodayBy: ["hubspot.com", "zoho.com"],
+    bestRival: { domain: "hubspot.com", position: measured(4, MEASURED_AT) },
     youStand: measured(14, MEASURED_AT),
     doneWhen: "Ranked in the top 20 for the target search within 3 weeks",
     winnability: "winnable",
@@ -78,7 +78,7 @@ const SPECIMENS: readonly Specimen[] = [
     title: "CRM pricing, compared",
     search: "crm pricing comparison",
     askedAs: "How much does a CRM cost?",
-    answeredTodayBy: ["capterra.com"],
+    bestRival: { domain: "capterra.com", position: measured(2, MEASURED_AT) },
     youStand: measuredZero(0, MEASURED_AT),
     doneWhen: "Named in an AI answer for the target question within 6 weeks",
     winnability: "reach",
@@ -94,7 +94,9 @@ const SPECIMENS: readonly Specimen[] = [
     title: "Moving from spreadsheets to a CRM",
     search: "spreadsheet to crm migration",
     askedAs: "How do I move my spreadsheet into a CRM?",
-    answeredTodayBy: ["reddit.com", "salesforce.com"],
+    // The vendor placed no rival for this search: the dash beside the
+    // domain, never a `#0`.
+    bestRival: { domain: "reddit.com", position: unmeasured("undeterminable", MEASURED_AT) },
     youStand: unmeasured("undeterminable", MEASURED_AT),
     doneWhen: "Ranked in the top 20 for the target search within 3 weeks",
     winnability: "not-yet",
@@ -110,7 +112,7 @@ function whyOf(index: number): WhyThisPage {
   return {
     search: s.search,
     askedAs: s.askedAs,
-    answeredTodayBy: s.answeredTodayBy,
+    bestRival: s.bestRival,
     youStand: s.youStand,
     doneWhen: s.doneWhen,
     winnability: s.winnability,
@@ -147,6 +149,21 @@ const SCHEDULE: Readonly<Record<DayKey, State>> = {
   // 2026-09-19 holds an instruction and 2026-09-20 is emptied by supply.
   // Nothing after 2026-09-20: the plan stops the day before the next weekly
   // pass (issue 857).
+};
+
+/**
+ * This week's place for the fixture's live pages, by date (issue 930).
+ *
+ * Three of the four arms a live card can draw, so one screenshot exercises
+ * the number rule: a place that rose, a place that fell, and a place
+ * measured for the first time. Every other live date carries no standing at
+ * all, which is the fourth — the card names the day its place is first
+ * measured ("Mon"), exactly as a page published since the last pass does.
+ */
+const STANDINGS: Readonly<Record<DayKey, { position: number; previous: number | null }>> = {
+  "2026-09-01": { position: 11, previous: 17 },
+  "2026-09-05": { position: 23, previous: 15 },
+  "2026-09-07": { position: 31, previous: null },
 };
 
 /** The states a page can only be in by having passed through review. */
@@ -214,6 +231,12 @@ const DRAFTS: readonly DraftOnDay[] = Object.entries(SCHEDULE).map(([day, state]
       state === "needs_attention"
         ? { kind: "rules" as const, rules: ["no_private_figure", "brand_gap"] }
         : null,
+    // Issue 930: where the site stands for this page's search this week.
+    // Only a live page has one, and only where the week measured it.
+    standing: state === "published" ? (STANDINGS[day] ?? null) : null,
+    // Every third specimen is an update of a page the site already has, so
+    // the mark and its absence are both on the owner's own preview.
+    update: index % 3 === 2,
   };
 });
 

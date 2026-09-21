@@ -1,14 +1,25 @@
-// SPEC §7 — the stage filter: All, Live, Your review, Scheduled, Planned,
-// Needs you, each with its count; choosing one narrows the grid.
+// SPEC §7 (2026-09-20, #908, issue 930) — the stage filter, as chips with
+// their counts: All, Live, Your review, Scheduled, Planned, Needs you.
 //
 // The counts come from `MonthModel.counts`, which `assembleMonth` derives
 // from the very cells the grid renders — so the filter and the grid cannot
-// disagree about what is on the calendar.
+// disagree about what is on the calendar (REQ-043 c6).
 //
-// Six daisyUI cards as toggle buttons in a CSS grid that re-columns (two on
-// a phone, three at `lg`, six at `xl`), so every card is the same width
-// whatever its word. The chosen card says so twice: `aria-pressed` for a
-// screen reader, the primary border and tint for an eye.
+// **daisyUI `filter` for the row, `btn` chips inside it, and `<button>`
+// rather than `input[type=radio]`.** The component's radio form is written
+// to collapse: `.filter:has(:checked) input:not(:checked)` takes
+// `width: 0; opacity: 0`, so choosing a stage hides the other five chips
+// and, with them, their counts — and it draws a chip's word from
+// `content: attr(aria-label)`, which puts the count in generated content
+// rather than in the document. REQ-043 c6 asks the opposite of both: "every
+// stage shows how many items it holds", at all times and in the text. So
+// the row is the component's own class (its wrap and its spacing) and each
+// chip is a `btn` on a real button, which is `docs/DESIGN.md`'s rule 1 —
+// daisyUI classes in the route — rather than a component wrapped or a
+// stylesheet added.
+//
+// The chosen chip says so twice: `aria-pressed` for a screen reader, the
+// primary fill for an eye.
 "use client";
 
 import type React from "react";
@@ -26,27 +37,21 @@ export function StageFilter(p: {
   onSelect: (filter: StageFilterId) => void;
 }): React.JSX.Element {
   return (
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6" data-testid="stage-filters">
+    <div className="filter gap-2" role="group" data-testid="stage-filters">
       {STAGE_FILTERS.map((filter) => {
         const pressed = filter === p.selected;
         return (
           <button
             key={filter}
             type="button"
-            className={`card card-border card-sm min-w-0 text-left transition-colors hover:border-primary ${
-              pressed ? "border-primary bg-primary/10" : "bg-base-100"
-            }`}
+            className={`btn btn-sm ${pressed ? "btn-primary" : "btn-outline"}`}
             data-testid={`stage-filter-${filter}`}
             aria-pressed={pressed}
             onClick={() => p.onSelect(filter)}
           >
-            <span className="card-body gap-1">
-              <span className="text-xs font-semibold uppercase tracking-wide opacity-70">
-                {copy(STAGE_FILTER_COPY_KEY[filter])}
-              </span>
-              <span className="num text-2xl font-semibold" data-testid={`stage-count-${filter}`}>
-                {p.counts[filter]}
-              </span>
+            <span>{copy(STAGE_FILTER_COPY_KEY[filter])}</span>
+            <span className="num" data-testid={`stage-count-${filter}`}>
+              {p.counts[filter]}
             </span>
           </button>
         );

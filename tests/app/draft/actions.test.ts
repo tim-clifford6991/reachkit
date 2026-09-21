@@ -179,7 +179,7 @@ describe("the draft view and the day panel read one table", () => {
           why: {
             search: "s",
             askedAs: "a",
-            answeredTodayBy: [],
+            bestRival: null,
             youStand: { kind: "measured" as const, value: 1, at: new Date(0) },
             doneWhen: "d",
             winnability: "winnable" as const,
@@ -196,6 +196,8 @@ describe("the draft view and the day panel read one table", () => {
       verification: { kind: "never", because: "no_live_address" } as const,
       unpublishOutcome: null,
       needsYou: null,
+      standing: null,
+      update: false,
         },
       };
       const panelHasVeto = actionsFor(cell).some(

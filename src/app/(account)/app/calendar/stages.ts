@@ -100,3 +100,81 @@ export const TONE_BADGE: Readonly<Record<Tone, string>> = Object.freeze({
  *  — so there is one place a state is added. */
 export { STATES };
 export type { State };
+
+/**
+ * The stage as a day card draws it: a coloured dot and its word (SPEC §7,
+ * 2026-09-20, #908; issue 930).
+ *
+ * **Not a `badge`, and that is the fix for #944.** A daisyUI `badge`
+ * carries its own horizontal padding and `badge-sm` does not shrink below
+ * its text, so a stage word inside a `minmax(0, 1fr)` column pushed its own
+ * box past the cell's edge at 768 and at 1280 — the containment offender
+ * that pass reported, in both themes. A dot is a fixed 6px square that
+ * cannot shrink and does not need to; the word beside it is ordinary text
+ * in a `truncate` row, so the pair narrows with the column instead of
+ * standing its ground against it.
+ *
+ * The word is still there beside the colour, at every width: §2.5's
+ * words-not-colour rule is what the dot is *added to*, never a substitute
+ * for it.
+ *
+ * Both maps are total over `Tone`. The reachkit theme has no `neutral`
+ * slot, so the neutral arm is drawn from `base-content` at an opacity
+ * rather than from a colour that paints nothing.
+ */
+export const TONE_DOT: Readonly<Record<Tone, string>> = Object.freeze({
+  accent: "bg-primary",
+  ok: "bg-success",
+  warn: "bg-warning",
+  bad: "bg-error",
+  neutral: "bg-base-content/40",
+});
+
+export const TONE_INK: Readonly<Record<Tone, string>> = Object.freeze({
+  accent: "text-primary",
+  ok: "text-success",
+  warn: "text-warning",
+  bad: "text-error",
+  neutral: "text-base-content/70",
+});
+
+/**
+ * **The update mark yields before the stage word does** (owner, PR #961).
+ *
+ * A stage word is never truncated: "Yourre…" and "Sched…" are not words,
+ * and a card that cannot hold one is a card with something else on it that
+ * should go first. What goes first is the mark for an update — the day
+ * panel already says *Update* in full, so nothing is lost by a narrow card
+ * dropping the glyph.
+ *
+ * So the word takes its own width (`shrink-0`, no clamp) and the mark is
+ * shown only on a card wide enough to hold **that stage's** word beside it.
+ * One threshold for all five would be wrong in both directions: it would
+ * hide the mark on a `Live` card, which has 41px to spare at the narrowest
+ * width this grid is ever drawn at, and show it on a `Your review` card,
+ * which has none.
+ *
+ * Each number is the card's **content width** — what a container query
+ * resolves against — and is measured rather than guessed:
+ *
+ *     6px dot + 4px gap + the word + 8px gap + 12px mark + 4px to spare
+ *
+ * over the words as Plus Jakarta Sans 600 draws them at 11px (Live 22,
+ * Planned 44, Needs you 57, Scheduled 59, Your review 63).
+ *
+ * **A wrong number here is caught rather than trusted.** Both the word and
+ * the mark are `shrink-0`, so if a threshold is too low the *mark* is what
+ * runs past the row, and the no-overflow pass reports it as a containment
+ * offender — the word is never the thing that gives.
+ *
+ * Written as whole class names because Tailwind finds a utility by reading
+ * the source text for it: a class built from a variable is a class that is
+ * never emitted.
+ */
+export const STAGE_MARK_AT: Readonly<Record<Stage, string>> = Object.freeze({
+  live: "@min-[56px]/day:block",
+  planned: "@min-[80px]/day:block",
+  needs_you: "@min-[92px]/day:block",
+  scheduled: "@min-[96px]/day:block",
+  your_review: "@min-[100px]/day:block",
+});

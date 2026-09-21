@@ -457,8 +457,6 @@ export interface KnownDefect {
 /** Found 2026-09-21 by this pass against `main` at 06b33bb, after #938,
  *  #939, #940 and #942. */
 export const KNOWN_ON_MAIN: readonly KnownDefect[] = [
-  // #944 — the day card's stage badge, past its cell at 768 and 1280.
-  { route: "/app/calendar", check: "containment", match: "badge.badge-sm.badge-primary", issue: 944 },
   // #946 — the theme's muted arms, under the contrast floor on ten screens.
   { route: "/", check: "axe-serious", match: "color-contrast", issue: 946 },
   { route: "/scan/example.com", check: "axe-serious", match: "color-contrast", issue: 946 },

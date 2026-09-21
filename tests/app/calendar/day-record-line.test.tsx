@@ -53,7 +53,7 @@ function page(over: Partial<PageOnDay> = {}): PageOnDay {
     why: {
       search: "best crm for a small team",
       askedAs: "What is the best CRM for a small team?",
-      answeredTodayBy: [],
+      bestRival: null,
       youStand: { kind: "unmeasured", reason: "undeterminable", at: CHECKED_AT },
       doneWhen: "",
       winnability: "winnable",
@@ -71,6 +71,8 @@ function page(over: Partial<PageOnDay> = {}): PageOnDay {
     unpublishOutcome: null,
     // Issue 880: a live page needs nothing of the founder.
     needsYou: null,
+    standing: null,
+    update: false,
     ...over,
   };
 }
@@ -87,7 +89,7 @@ function render(over: Partial<PageOnDay> = {}): string {
     empty: null,
   };
   return renderToStaticMarkup(
-    React.createElement(DayPanelView, { cell, timeZone: ZONE, stopped: null })
+    React.createElement(DayPanelView, { cell, timeZone: ZONE, stopped: null, onClose: () => undefined })
   );
 }
 

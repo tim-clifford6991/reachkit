@@ -12,9 +12,27 @@
 // value, not a sentence, so the name needs no registry key. The current
 // month is marked with `aria-current` and weight, and is not a link.
 //
+// **It stayed a pair of links when `nuqs` arrived** (issue 930). `nuqs`
+// replaces *hand-rolled* URL state, and an `<a href="?month=">` is not
+// that: it is the month in the address already, server-rendered, with no
+// client runtime, middle-clickable and shareable — the three properties
+// #269 and #354 put here and `tests/app/calendar/month-switcher.test.ts`
+// pins. What `nuqs` holds is the open day, which has no link to be
+// (`CalendarView`). A month link carries no `day`, so switching months
+// opens the new month on its own default rather than on a date that is not
+// in it.
+//
+// **`Suspense`**: `nuqs` reads the query string through Next's own
+// `useSearchParams`, which a client component may only do inside a boundary
+// (`01-app/03-api-reference/04-functions/use-search-params.md`: "We
+// recommend wrapping the Client Component that uses `useSearchParams` in a
+// `<Suspense/>` boundary"). One daisyUI `skeleton` holds its place, which
+// is what SPEC §5 (2026-09-20) asks of every waiting state in the app.
+//
 // It declares no `Surface`: the shell's layout owns this route's screen
 // root (`../layout.tsx`).
 import type React from "react";
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
@@ -66,8 +84,11 @@ export default async function CalendarPage({
 
   return (
     <div className="flex min-w-0 flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold">{copy("shell.nav.plan")}</h1>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex min-w-0 flex-col gap-1">
+          <h1 className="text-2xl font-semibold">{copy("shell.nav.plan")}</h1>
+          {head === null ? null : <p className="min-w-0 wrap-anywhere">{head}</p>}
+        </div>
         <nav className="join" data-testid="month-switcher">
           <a
             href={`/app/calendar?month=${previous}`}
@@ -95,8 +116,6 @@ export default async function CalendarPage({
         </nav>
       </div>
 
-      {head === null ? null : <p className="min-w-0 wrap-anywhere">{head}</p>}
-
       <FirstPageNotice state={onboarding} />
       {/* §7's one statement of supply, at the calendar's top and nowhere
           else: no cell and no day panel repeats it (issue 857). */}
@@ -112,7 +131,9 @@ export default async function CalendarPage({
           </div>
         </section>
       )}
-      <CalendarView model={model} />
+      <Suspense fallback={<div className="skeleton h-96 w-full" />}>
+        <CalendarView model={model} />
+      </Suspense>
 
       {/* One footnote under the grid: the rule. What supply is doing right
           now is stated at the top. */}

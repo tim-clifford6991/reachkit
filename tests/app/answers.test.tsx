@@ -147,7 +147,7 @@ async function dayPanel(): Promise<HTMLElement> {
   const cell = cellFor(MONTH, IN_REVIEW);
   if (cell === undefined) throw new Error(`no cell for ${IN_REVIEW}`);
   return mount(
-    <DayPanelView cell={cell} timeZone={FIXTURE_TIME_ZONE} stopped={MONTH.stopped} />
+    <DayPanelView cell={cell} timeZone={FIXTURE_TIME_ZONE} stopped={MONTH.stopped}  onClose={() => undefined} />
   );
 }
 
