@@ -294,6 +294,36 @@ export async function hostedDestinationOf(
   return row === undefined || row.hostname === null ? null : { id: row.id, hostname: row.hostname };
 }
 
+/**
+ * This site's hosted host and what the domain list last said about it
+ * (#924), in one select and with no vendor call.
+ *
+ * `listDestinations` answers a richer question and reaches the vendor to
+ * keep its health fresh; two screens need only "which host, and is it live
+ * yet" — the connect step after setup, and the Overview item that keeps it
+ * reachable until it is. Neither may spend a vendor call to decide what to
+ * draw.
+ *
+ * `null` where the site has no hosted destination or the row names no
+ * host. A row that was never checked reads `pending_dns`, which is what it
+ * is: nobody has confirmed the record exists.
+ */
+export async function hostedHostFor(
+  siteId: string
+): Promise<{ hostname: string; state: HostnameState } | null> {
+  const { data, error } = await publishDb()
+    .from<HostnameRow & { kind: string; hostname_state: HostnameState | null }>("destinations")
+    .select("id, site_id, hostname, kind, hostname_state")
+    .eq("site_id", siteId)
+    .eq("kind", "hosted")
+    .is("deleted_at", null)
+    .limit(1);
+  if (error !== null || data === null) return null;
+  const row = data[0];
+  if (row === undefined || row.hostname === null) return null;
+  return { hostname: row.hostname, state: row.hostname_state ?? "pending_dns" };
+}
+
 /** What the project's domain list last said about this destination's host,
  *  and when it was asked. Its own select list, for the reason the module
  *  header gives: one question, one list. */

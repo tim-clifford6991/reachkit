@@ -810,7 +810,7 @@ export async function readOverviewFacts(site: OverviewSite): Promise<OverviewFac
   const { supplyDepth, supplyState } = await import("@/lib/opportunities");
 
   const deepRead = deepPassReading(site.siteId);
-  const [firstDueOn, published, depth, waiting, series, ranking, deepPass, waitingPage] = await Promise.all([
+  const [firstDueOn, published, depth, waiting, series, ranking, deepPass, waitingPage, connect] = await Promise.all([
     nextDueOn({ siteId: site.siteId, now }),
     pagesPublished(site.siteId, now),
     supplyDepth(site.siteId),
@@ -823,6 +823,10 @@ export async function readOverviewFacts(site: OverviewSite): Promise<OverviewFac
     deepRead,
     // SPEC §4 (2026-09-20): the page the screen leads with.
     waitingPageFacts(site, now),
+    // SPEC §5 (2026-09-20, #924): the hosted blog's address, while it is
+    // still waiting for its record. One row read, no vendor call — a
+    // screen deciding which item to draw may not spend one.
+    connectWaiting(site.siteId, now),
   ]);
   // issue 765/issue 784: a zero is either a market used up or one never measured, and
   // only a read that answered may say which — an unreadable one says neither.
@@ -867,13 +871,45 @@ export async function readOverviewFacts(site: OverviewSite): Promise<OverviewFac
       // is not that arrival.
       firstArrivalShortfall: false,
     },
-    waiting: [...waiting, ...issuesWaiting(series.latest ?? deepPass?.report ?? null, site.domain)],
+    waiting: [
+      ...connect,
+      ...waiting,
+      ...issuesWaiting(series.latest ?? deepPass?.report ?? null, site.domain),
+    ],
     // Issue 867: which engines this site's pages are measured on, and what
     // this week's pages are aimed at.
     aiEngines: enginesMeasured(series.latest ?? deepPass?.report ?? null),
     weekSearches: week.searches,
     weekPages: week.pages,
   };
+}
+
+/**
+ * SPEC §5 (2026-09-20, #924): the hosted blog's address while it waits for
+ * its DNS record — "it stays reachable from Overview's needs-you and from
+ * Settings until the host is live".
+ *
+ * Empty the moment the host is live, which is a state the row already
+ * carries, and empty for a site with no hosted destination at all. A read
+ * that fails is empty too: an item the screen cannot justify is one it does
+ * not draw.
+ *
+ * `since` is the clock rather than a stored instant, and that is honest
+ * here: nothing records when a record *started* being missing, and the
+ * field is only ever a tie-break between two items of the same rank — of
+ * which there is at most one of these.
+ */
+async function connectWaiting(siteId: string, now: Date): Promise<readonly WaitingItem[]> {
+  try {
+    const { hostedHostFor } = await import("@/lib/publish/destinations/hosted/hostname");
+    const host = await hostedHostFor(siteId);
+    if (host === null || host.state === "live") return [];
+    return [
+      { kind: "connect_blog", hostname: host.hostname, since: now, href: "/setup/connect" },
+    ];
+  } catch {
+    return [];
+  }
 }
 
 /** SPEC §9 on the dashboard (#572): the customer's own open issues from the

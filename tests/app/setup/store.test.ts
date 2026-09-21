@@ -22,6 +22,10 @@ vi.mock("@/lib/db", () => ({
 }));
 
 vi.mock("@/jobs/client", () => ({
+  // #971's stage push goes through `client.realtime` (`src/jobs/realtime.ts`);
+  // a mock without it throws on every stage, which the pass swallows into a
+  // `setup_stage_not_published` log. Doubled as the no-op it is here.
+  client: { realtime: { publish: async () => undefined } },
   sendJobEvent: (event: string, data: unknown) => queued(event, data),
 }));
 

@@ -119,6 +119,17 @@ export const ROUTE_REFERENCE: Readonly<Record<string, `S${number}`>> = {
    * which asks three questions this screen never asks.
    */
   "/setup/zone": "S11",
+  /**
+   * REFERENCE: S10 — Setup, the nearest approved screen (#924).
+   *
+   * The DNS record was drawn on S10 as the publishing step's lower half;
+   * #924 deals it onto its own address so a founder can leave it for later
+   * without leaving setup unfinished. Nothing about the record changed —
+   * the same host, the same value, the same *Check it* — so it is paired
+   * with the screen it came off, on the same footing the Overview's sibling
+   * tabs are paired with S12 below.
+   */
+  "/setup/connect": "S10",
   /** REFERENCE: S12 — Overview, week 0 is S13 (§S12, §S13; REQ-040…042, 092) */
   "/app": "S12",
   /**

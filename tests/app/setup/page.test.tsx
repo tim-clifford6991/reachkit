@@ -111,12 +111,14 @@ describe("/setup", () => {
     }
   });
 
-  it("the CNAME record points at the deployment's own edge binding, never a literal in a card", async () => {
+  it("the publishing step shows no record — it is its own step after setup (#924)", async () => {
+    // Owner, 2026-09-20, reversing #757. The record's own screen, and the
+    // property that its target is the deployment's binding rather than a
+    // literal in a card, are `tests/app/setup/connect.test.tsx`'s.
     const tree = await renderPage(() => import("@/app/(account)/setup/page"), {
       step: "publishing",
     });
-    const record = tree.querySelector('[data-testid="dns-record"]');
-    // The fixture env's `HOSTED_EDGE_CNAME_TARGET`.
-    expect(record?.textContent).toContain("content.example.com");
+    expect(tree.querySelector('[data-testid="dns-record"]')).toBeNull();
+    expect(tree.querySelector('[data-testid="setup-dns-next"]')).not.toBeNull();
   });
 });

@@ -28,6 +28,10 @@ const sendJobEvent = vi.fn<(event: string, data: Record<string, unknown>) => Pro
 vi.mock("@/lib/publish/daily", () => ({ sitesForDailyTick: () => sitesForDailyTick() }));
 vi.mock("@/lib/publish/attempt/deliver", () => ({ deliverApproved: () => deliverApproved() }));
 vi.mock("@/jobs/client", () => ({
+  // #971's stage push goes through `client.realtime` (`src/jobs/realtime.ts`);
+  // a mock without it throws on every stage, which the pass swallows into a
+  // `setup_stage_not_published` log. Doubled as the no-op it is here.
+  client: { realtime: { publish: async () => undefined } },
   sendJobEvent: (event: string, data: Record<string, unknown>) => sendJobEvent(event, data),
 }));
 

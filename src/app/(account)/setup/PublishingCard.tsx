@@ -9,18 +9,14 @@
 // submit stores them. This card holds whether the label is refused, and
 // asks the server whether anyone else already serves at it.
 //
-// **The record can be verified here, before submit** (owner ruling
-// 2026-09-16, #757). The "check connection" press sits under the label —
-// the record is inside the hosted option's button, and a button nested in
-// a button is neither valid markup nor operable — and what it learns is
-// drawn on the record's own badge. The host it asks about is the server's
-// to derive from the site's own address; this card sends the label and the
-// address on screen, and nothing else.
-//
-// **The guide sits beside the press, not in the option** (issue 856). The
-// record block now carries steps, copy buttons and a link to the provider,
-// none of which may be nested in the hosted option's button — so it is
-// drawn under the label, above "check connection", as Settings draws it.
+// **The record is not here any more** (owner, 2026-09-20, #924, reversing
+// #757). It was completed and verified on this step; it is its own step
+// after setup now — `/setup/connect` — with *Do this later*, and it stays
+// reachable from Overview's needs-you and from Settings until the host is
+// live. What is left on this step is the one decision it is for: where
+// pages publish, and under what label. A founder who never opens the
+// connect step still finishes setup, and their pages are still written and
+// wait in review (2026-09-16).
 "use client";
 
 import type React from "react";
@@ -35,10 +31,6 @@ import {
 } from "@/lib/publish/setup/cards";
 import { checkLabel, type LabelRefusal } from "@/lib/publish/destinations/hosted/label";
 import { checkSubdomainLabel } from "./label-actions";
-import { CnameRecord } from "../_destination/CnameRecord";
-import { CheckConnection } from "../_destination/CheckConnection";
-import type { ConnectionCheck } from "../_destination/check-actions";
-import type { HostnameState } from "@/lib/publish/destinations/hosted/hostname";
 
 /** SPEC §5's two refusals, the same two keys the submit's own resolve to. */
 const LABEL_REFUSAL_COPY = {
@@ -68,17 +60,6 @@ export function PublishingCard(p: {
   // The record's name moves with the address and the label, so it is
   // composed here; the target is the deployment's binding.
   const dns = dnsRecordFor({ siteDomain: p.siteDomain, cnameTarget: p.cnameTarget, label: p.label });
-
-  // What the last press learned, for the record it was asked about. A
-  // record whose name has since moved — a new label, a new address — was
-  // never asked about, and reads as waiting again.
-  const [checked, setChecked] = useState<{ name: string; state: HostnameState } | null>(null);
-  const recordName = "pending" in dns ? null : dns.name;
-  const recordState = checked !== null && checked.name === recordName ? checked.state : undefined;
-  function onAnswer(name: string, answer: ConnectionCheck): void {
-    if (answer.outcome === "asked") setChecked({ name, state: answer.state });
-    else if (answer.outcome !== "too_soon") setChecked(null);
-  }
 
   async function draftLabel(next: string): Promise<void> {
     p.onLabel(next);
@@ -150,20 +131,13 @@ export function PublishingCard(p: {
                 {copy(LABEL_REFUSAL_COPY[refusal])}
               </div>
             )}
+            {/* The record and its check are `/setup/connect`'s now (#924).
+                What stands here is the one line saying the address is
+                theirs and that connecting it comes next. */}
             {"pending" in dns ? null : (
-              <div className="mt-2" data-testid="setup-dns">
-                <CnameRecord record={dns} {...(recordState === undefined ? {} : { state: recordState })} />
-              </div>
-            )}
-            {/* Keyed by the record's name: a press answers for one host,
-                and a moved label starts from nothing asked. No press
-                before there is a record to verify. */}
-            {recordName === null ? null : (
-              <CheckConnection
-                key={recordName}
-                draft={{ label: p.label, domain: p.siteDomain }}
-                onAnswer={(answer) => onAnswer(recordName, answer)}
-              />
+              <p className="mt-2 text-sm text-base-content/70" data-testid="setup-dns-next">
+                {copy("setup.destination.connect-next")}
+              </p>
             )}
           </div>
         ) : null}

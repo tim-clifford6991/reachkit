@@ -120,9 +120,17 @@ const PURPOSE_COPY = {
   other: "setup.profile.purpose.other",
 } as const satisfies Record<PagePurpose, CopyKey>;
 
-/** Where the finish leads: straight into the app, the pass already running
- *  (issue #782). An internal route name, not a customer-visible string. */
+/** Where the finish leads. Internal route names, not customer-visible
+ *  strings.
+ *
+ *  Straight into the app, the pass already running (issue #782) — except
+ *  for a founder publishing to the hosted blog, who is carried to the one
+ *  step that comes after setup: the DNS record (#924, SPEC §5 2026-09-20).
+ *  That screen sends them on itself for a host that is already live or has
+ *  no record to make, so this never lands anybody on a screen about
+ *  nothing, and *Do this later* on it leads here. */
 const APP_PATH = "/app";
+const CONNECT_PATH = "/setup/connect";
 
 const QUIET = "text-sm text-base-content/70";
 const ICON = { strokeWidth: 1.75, "aria-hidden": true } as const;
@@ -284,7 +292,11 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
         // panel says which step of the pass is under way. A founder who had
         // already completed setup goes to the same place (REQ-025 c4).
         if (answer.ok || answer.refused === "already_complete") {
-          router.push(APP_PATH);
+          // #924: the hosted blog's address still needs one DNS record, and
+          // that is its own step now rather than a control on the step
+          // before. Every other destination goes straight into the app, as
+          // it always did.
+          router.push(destination === "hosted" ? CONNECT_PATH : APP_PATH);
           return;
         }
         setRefusal(answer.refused);

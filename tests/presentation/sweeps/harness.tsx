@@ -94,6 +94,11 @@ export const ROUTE_HARNESS: Readonly<Record<string, HarnessRow>> = Object.freeze
   "(account)/setup/page.tsx": { props: () => ({}), shell: false, async: true },
   // #753: where a founder who finished setup waits for their site's zone.
   "(account)/setup/zone/page.tsx": { props: () => ({}), shell: false, async: true },
+  // #924: the DNS record on its own address, after setup's five steps. Like
+  // the two above it is outside the shell and reads its own model, so it is
+  // an async server component; a founder with nothing to connect is
+  // redirected, which this sweep renders as the redirect it is.
+  "(account)/setup/connect/page.tsx": { props: () => ({}), shell: false, async: true },
   // SPEC §4 (2026-09-20, #908): Overview has four tabs, each its own
   // address, under a route group that contributes nothing to a URL — so the
   // Overview tab is still `/app` and the three below are its siblings.

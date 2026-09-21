@@ -103,6 +103,16 @@ vi.mock("@/lib/scan/deep/progress", async () => {
   return passFactory();
 });
 
+// SPEC §5 (2026-09-20), #924 — `/setup/connect` states the DNS record for
+// the hosted blog, and reads the row that names it. The fixture founder's
+// row is `session-door.ts`'s: a host that is not live yet, which is the
+// one state the step is drawn for. Without it the page redirects and the
+// sweep measures nothing.
+vi.mock("@/lib/publish/destinations/hosted/hostname", async (importOriginal) => {
+  const { hostedHostFactory } = await import("../../app/setup/session-door");
+  return hostedHostFactory(await importOriginal<Record<string, unknown>>());
+});
+
 vi.mock("@/app/(account)/app/_session/account", async (importOriginal) => {
   const actual = await importOriginal<Record<string, unknown>>();
   const { RESERVED_ACCOUNT } = await import("../../app/accounts");

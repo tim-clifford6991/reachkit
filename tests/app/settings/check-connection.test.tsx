@@ -2,10 +2,11 @@
 // tests/app/settings/check-connection.test.tsx — SPEC §5, issue #757, issue #840
 // (owner ruling 2026-09-16)
 //
-// A founder who has created their CNAME presses one control — on `/setup`
-// before submitting, or in Settings — and is told now whether the host is
-// connected. Three answers, never two: the domain list says live, the domain
-// list says waiting, or nothing could be asked.
+// A founder who has created their CNAME presses one control — on
+// `/setup/connect` after setup (#924 moved it there from the publishing
+// step), or in Settings — and is told now whether the host is connected.
+// Three answers, never two: the domain list says live, the domain list says
+// waiting, or nothing could be asked.
 //
 // **Driven through the wiring, not the unit.** Each screen is rendered from
 // its own real read, the press runs the real Server Function, which runs the
@@ -28,7 +29,6 @@ import dns from "node:dns";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { fakeDb, type Row } from "../../publish/harness";
 import { LIVE_ACCOUNT } from "../accounts";
 import {
@@ -141,7 +141,7 @@ vi.mock("@/lib/publish/destinations/registry", () => ({
 }));
 
 const { AWAITING_COPY, COPY, TODO_COPY_MARKER, copy } = await import("@/lib/presentation/copy");
-const { default: SetupPage } = await import("@/app/(account)/setup/page");
+const { default: ConnectPage } = await import("@/app/(account)/setup/connect/page");
 const { readLiveSettingsFacts } = await import("@/app/(account)/app/settings/store");
 const { assembleSettings } = await import("@/app/(account)/app/settings/model");
 const { PublishingPanel } = await import("@/app/(account)/app/settings/panels/PublishingPanel");
@@ -262,25 +262,25 @@ function attached(): string[] {
     .map((call) => (JSON.parse(call.body ?? "{}") as { name: string }).name);
 }
 
-// ── /setup, before submit ────────────────────────────────────────────────
+// ── /setup/connect, after setup ──────────────────────────────────────────
 
-async function setupScreen(): Promise<HTMLElement> {
-  const host = await mount(
-    <NuqsTestingAdapter searchParams={{ step: "publishing" }}>{await SetupPage()}</NuqsTestingAdapter>
-  );
-  return host;
+/** The connect step, over the destination row the submit left: the host
+ *  waiting for DNS, which is the one state the step is drawn for. */
+async function connectScreen(): Promise<HTMLElement> {
+  seedSettings({});
+  return mount(await ConnectPage());
 }
 
+/** The word the record block shows the host under — "waiting for DNS"
+ *  until a press says otherwise. */
 function hostedRecordState(host: HTMLElement): string {
-  return (
-    host.querySelector('[data-testid="setup-dns"] [data-testid="dns-state"]')?.textContent ?? ""
-  );
+  return host.querySelector('[data-testid="setup-dns"] [data-testid="dns-state"]')?.textContent ?? "";
 }
 
-describe("SPEC §5 — /setup: the founder verifies their record before submitting (#757)", () => {
-  it("live: the vendor is asked about <label>.<their address>, and the record reads live", async () => {
+describe("SPEC §5 — /setup/connect: the founder checks the record they just made (#757, #924)", () => {
+  it("live: the vendor is asked about the host the row names, and the record reads live", async () => {
     vendor.answer = "verified";
-    const host = await setupScreen();
+    const host = await connectScreen();
     expect(hostedRecordState(host)).toBe(COPY["settings.destination.hostname.waiting"]);
 
     await press(host);
@@ -289,13 +289,14 @@ describe("SPEC §5 — /setup: the founder verifies their record before submitti
     expect(vendor.calls[0]!.url).toContain("/projects/prj_757/domains");
     expect(answerIn(host)).toEqual({ outcome: "live", text: COPY["settings.destination.check.live"] });
     expect(hostedRecordState(host)).toBe(COPY["settings.destination.hostname.live"]);
-    // Keyed on the host: no destination exists before submit, and none is made.
-    expect(db.rows("destinations")).toEqual([]);
+    // The press is the row's: what it learned is written there, not held
+    // on the screen until some later pass asks again.
+    expect(destinationRow()).toMatchObject({ hostname: HOST, hostname_state: "live" });
   });
 
   it("pending_dns: the vendor answered and the host is not verified", async () => {
     vendor.answer = "unverified";
-    const host = await setupScreen();
+    const host = await connectScreen();
 
     await press(host);
 
@@ -309,7 +310,7 @@ describe("SPEC §5 — /setup: the founder verifies their record before submitti
 
   it("not configured — no token bound: nothing is asked, it does not read as waiting or as try-again, and no floor is spent (issue 840)", async () => {
     vendor.bound = false;
-    const host = await setupScreen();
+    const host = await connectScreen();
 
     await press(host);
 
@@ -333,7 +334,7 @@ describe("SPEC §5 — /setup: the founder verifies their record before submitti
 
   it("could not ask — the vendor did not answer", async () => {
     vendor.answer = "silent";
-    const host = await setupScreen();
+    const host = await connectScreen();
 
     await press(host);
 
@@ -343,7 +344,7 @@ describe("SPEC §5 — /setup: the founder verifies their record before submitti
 
   it("the throttle: a second press inside the floor asks nothing, counts down with the button disabled, and keeps the last answer as it was", async () => {
     fakeTheCountdown();
-    const host = await setupScreen();
+    const host = await connectScreen();
     await press(host);
     expect(answerIn(host)?.outcome).toBe("pending_dns");
 
@@ -376,7 +377,7 @@ describe("SPEC §5 — /setup: the founder verifies their record before submitti
   });
 });
 
-describe("issue #791 — a press at /setup that verified is recorded on the row the submit creates", () => {
+describe("issue #791 — a press that verified before the row existed is kept by the submit", () => {
   it("verified before submit: the destination is created live and healthy, even when the vendor does not answer the submit", async () => {
     db.seed("sites", [
       {
@@ -411,8 +412,13 @@ describe("issue #791 — a press at /setup that verified is recorded on the row 
       return "dest-setup";
     });
     vendor.answer = "verified";
-    await press(await setupScreen());
-    expect(answerIn(document.body)?.outcome).toBe("live");
+    // Since #924 no screen presses before the row exists — the connect step
+    // stands after the submit. The Server Function still answers a draft,
+    // and what it learns about a host is kept against the host itself: the
+    // property #791 is about is the *submit's*, and it is driven here
+    // through the same call the press makes.
+    const answer = await checkConnection({ draft: { label: "content", domain: DOMAIN } });
+    expect(answer).toMatchObject({ outcome: "asked", state: "live" });
 
     // The submit's own vendor call finds nothing: the press's answer stands.
     vendor.answer = "silent";
@@ -453,7 +459,7 @@ describe("#759 (owner ruling 2026-09-16) — every line the press draws is writt
       expect(AWAITING_COPY, key).not.toContain(key);
     }
 
-    const host = await setupScreen();
+    const host = await connectScreen();
     const button = host.querySelector('[data-testid="check-connection-press"]');
     expect(button?.textContent).toBe(COPY["settings.destination.check.button"]);
 
@@ -478,7 +484,7 @@ describe("#759 (owner ruling 2026-09-16) — every line the press draws is writt
     vendor.bound = false;
     clock += DESTINATION_HOSTNAME_CHECK_FLOOR_S * 1000;
     vi.setSystemTime(clock);
-    const unbound = await setupScreen();
+    const unbound = await connectScreen();
     await press(unbound);
     expect(answerIn(unbound)?.text).toBe(COPY["settings.destination.check.not-configured"]);
     expect(unbound.textContent).not.toContain(TODO_COPY_MARKER);
@@ -694,7 +700,7 @@ describe("SPEC §5 — Settings: the same press, beside the record a waiting hos
 /** Both screens' press blocks: `/setup` before submit, and Settings over a
  *  host still waiting for DNS. */
 async function bothScreens(): Promise<Record<"setup" | "settings", HTMLElement>> {
-  const setup = await setupScreen();
+  const setup = await connectScreen();
   seedSettings({ hostname_checked_at: tenMinutesAgo() });
   const settings = await settingsScreen();
   return { setup, settings: settings.querySelector<HTMLElement>('[data-testid="dns-dest-1"]')! };
@@ -778,7 +784,7 @@ describe("SPEC §5 — check connection asks public DNS first, with no vendor cr
     expect(lines).toEqual(["check-connection-dns", "check-connection-answer"]);
 
     vendor.answer = "verified";
-    const redrawn = await setupScreen();
+    const redrawn = await connectScreen();
     await pressFresh(redrawn);
     expect(answerIn(redrawn)?.outcome).toBe("live");
     expect(dnsIn(redrawn)).toBeNull();

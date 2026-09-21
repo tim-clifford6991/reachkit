@@ -1,6 +1,7 @@
 // SPEC §5 — the "check connection" press, as both screens that offer it
-// render it: `/setup`, beside the record before the founder submits, and
-// Settings, beside the record a host still waiting for DNS shows (#757).
+// render it: `/setup/connect`, beside the record the step is about, and
+// Settings, beside the record a host still waiting for DNS shows (#757,
+// and #924 for where the first of the two now stands).
 //
 // One block, so the two screens cannot drift (#754's lesson): one Server
 // Function, one mapping from what it answered to the line the founder reads.
@@ -98,10 +99,14 @@ const REFUSAL_COPY_KEY = {
 } as const satisfies Record<string, CopyKey>;
 
 export function CheckConnection(p: {
-  /** `/setup`'s label and address before submit; `null` from Settings. */
+  /** A host named before any destination row holds it — a label and the
+   *  address it sits under. `null` is the case both shipped screens are in
+   *  since #924: the row names the host, and the press asks about that.
+   *  The Server Function still answers a draft, and refuses one that is not
+   *  this founder's own address. */
   draft: { label: string; domain: string | null } | null;
-  /** Told of each answer, so `/setup` can draw the record's own word from
-   *  it. Settings passes none: its card is redrawn from the row. */
+  /** Told of each answer, so `/setup/connect` can draw the record's own
+   *  word from it. Settings passes none: its card is redrawn from the row. */
   onAnswer?: (answer: ConnectionCheck) => void;
 }): React.JSX.Element {
   const [running, setRunning] = useState(false);

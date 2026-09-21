@@ -7,12 +7,17 @@
 // else. A founder who did not act during setup could never learn it.
 //
 // **One fact, two screens.** Each side goes through its own real read — the
-// setup page through `readSetupScreen`, Settings through
+// connect step through `_setup/connect.ts`, Settings through
 // `readLiveSettingsFacts` over destination rows — with the deployment's
 // binding set to a value no fixture carries, and the record Settings renders
-// is held to the record setup rendered for the same site and label. A unit
-// of `dnsRecordFor` alone would pass with the binding never reaching
-// Settings, which is the defect.
+// is held to the record the connect step rendered for the same site and
+// host. A unit of `dnsRecordFor` alone would pass with the binding never
+// reaching Settings, which is the defect.
+//
+// The setup-side screen is `/setup/connect` since #924 reversed #757: the
+// record left the publishing step and stands on its own address after
+// setup. Which screen states it is not what this file is about — that the
+// same record is stated on both is.
 import { applyEnvFixture } from "../../mail/env-fixture";
 
 applyEnvFixture();
@@ -24,7 +29,6 @@ process.env.HOSTED_EDGE_CNAME_TARGET = EDGE;
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
-import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { renderToStaticMarkup } from "react-dom/server";
 import { fakeDb, type Row } from "../../publish/harness";
 import { LIVE_ACCOUNT } from "../accounts";
@@ -79,7 +83,7 @@ vi.mock("@/lib/publish/destinations/registry", () => ({
 }));
 
 const { COPY } = await import("@/lib/presentation/copy");
-const { default: SetupPage } = await import("@/app/(account)/setup/page");
+const { default: ConnectPage } = await import("@/app/(account)/setup/connect/page");
 const { readLiveSettingsFacts } = await import("@/app/(account)/app/settings/store");
 const { assembleSettings } = await import("@/app/(account)/app/settings/model");
 const { PublishingPanel } = await import("@/app/(account)/app/settings/panels/PublishingPanel");
@@ -102,35 +106,23 @@ function recordIn(root: ParentNode): Shown | null {
   return { name: record.getAttribute("data-host") ?? "", type: part("type"), value: part("value") };
 }
 
-/** The founder at setup, on the address `DOMAIN`, having typed `label` —
- *  or left the default where `label` is `null`. */
+/** The founder at `/setup/connect`, over the destination row their submit
+ *  left: the host they chose, or the default where `label` is `null`. */
 async function setupShows(label: string | null): Promise<Shown | null> {
+  seedHosted({ hostname: `${label ?? "content"}.${DOMAIN}` });
   const host = document.createElement("div");
   document.body.append(host);
-  const page = await SetupPage();
-  // SPEC §5 (2026-09-20): the record lives on the publishing step, and
-  // which step is on screen is the URL's — supplied here through `nuqs`'s
-  // own testing adapter, since a route rendered alone has no layout above
-  // it to carry the real one.
+  const page = await ConnectPage();
   await act(async () => {
-    createRoot(host).render(
-      <NuqsTestingAdapter searchParams={{ step: "publishing" }}>{page}</NuqsTestingAdapter>
-    );
+    createRoot(host).render(page);
   });
-  if (label !== null) {
-    const field = host.querySelector<HTMLInputElement>('input[name="label"]')!;
-    const setValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
-    await act(async () => {
-      setValue.call(field, label);
-      field.dispatchEvent(new Event("input", { bubbles: true }));
-    });
-  }
-  return recordIn(host.querySelector('[data-testid="setup-publishing"]')!);
+  return recordIn(host.querySelector('[data-testid="setup-dns"]')!);
 }
 
-/** The same founder's Settings, over the destination row setup's commit
- *  left: the host they chose, in the state the domain list reported. */
-async function settingsShows(destination: Row): Promise<{ host: HTMLElement; record: Shown | null }> {
+/** The site and its hosted destination, as the submit leaves them: one row
+ *  waiting for DNS. Both screens read it — the connect step to state the
+ *  record, Settings to state it again. */
+function seedHosted(destination: Row): void {
   db.seed("sites", [
     {
       id: "site-1",
@@ -161,6 +153,11 @@ async function settingsShows(destination: Row): Promise<{ host: HTMLElement; rec
       ...destination,
     },
   ]);
+}
+
+/** The same founder's Settings, over that row. */
+async function settingsShows(destination: Row): Promise<{ host: HTMLElement; record: Shown | null }> {
+  seedHosted(destination);
   const settings = assembleSettings(await readLiveSettingsFacts(ACCOUNT));
   const host = document.createElement("div");
   host.innerHTML = renderToStaticMarkup(<PublishingPanel settings={settings} />);
