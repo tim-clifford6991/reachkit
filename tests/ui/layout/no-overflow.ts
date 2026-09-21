@@ -550,16 +550,35 @@ export function knownDefectFor(route: string, offender: Offender): KnownDefect |
  *     fixed on every other scrolling pane. No swept route carried a table,
  *     so CI could not have held it.
  *
- *     `PUBLISHED_HOST_FIXTURES` is the arm that renders S19 itself —
- *     `seed.ts`'s `seedHostedPublisher()` customer, whose one live
- *     publication is at this route's own `[[...slug]]` fixture, and whose
- *     body carries a table for exactly this reason. The bare enumeration's
- *     own `content.example.com` arm is the 404, which this sweep keeps
- *     too: both are real surfaces and the layout law is over both.
+ *     **The published arm, and that one only.** The route has two — the
+ *     bare enumeration's `content.example.com`, whose site has published
+ *     nothing and which therefore answers the 404, and
+ *     `PUBLISHED_HOST_FIXTURES`'s `content.publisher.test`, which renders
+ *     S19 itself: `seed.ts`'s `seedHostedPublisher()` customer, whose one
+ *     live publication is at this route's own `[[...slug]]` fixture and
+ *     whose body carries the table. This sweep is keyed by path — the
+ *     first test below requires every path in it to be unique, because a
+ *     path swept twice is a screen reported twice — so it takes one, and
+ *     the one with the table is the one this row exists for.
  *
- *     No cookie on either, and that is the surface's own promise: the
- *     hosted edge answers a stranger on a stranger's domain with no
- *     session (`(hosted)/hosted-page/[[...slug]]/page.tsx`).
+ *     Swept with **both** arms once, on the way here, the 404 arm reported
+ *     `document-title` (axe, serious) at all three widths in both themes
+ *     and the published arm reported none. That difference is the whole
+ *     finding, and it is not a defect in what ReachKit publishes:
+ *     `generateMetadata` returns `title: page.title` for every page that
+ *     resolves — measured, and `tests/hosted/indexing/head.test.tsx`
+ *     already holds it — and returns `{}` for one that does not, which is
+ *     the request that falls through to `(hosted)/not-found.tsx`. That
+ *     file renders **no text at all, deliberately**: WO-028's ruling is
+ *     "never a ReachKit page … no copy from the product's own registry" on
+ *     a domain that is not ours, and a `<title>` is text in the document.
+ *     Whether that surface should carry one is the owner's to say and is
+ *     its own issue; it is not excused here with a `KNOWN_ON_MAIN` row,
+ *     because such a row must name an issue and there is none to name.
+ *
+ *     No cookie, and that is the surface's own promise: the hosted edge
+ *     answers a stranger on a stranger's domain with no session
+ *     (`(hosted)/hosted-page/[[...slug]]/page.tsx`).
  */
 export function noOverflowRoutes(
   appRoot: string,
@@ -570,6 +589,7 @@ export function noOverflowRoutes(
   }).filter((route) => route.host !== undefined);
 
   return enumerateRoutes(appRoot, { accountCookie: cookies.reserved })
+    .filter((route) => route.host === undefined)
     .map((route) =>
       route.path === "/setup" || route.path.startsWith("/setup/")
         ? { ...route, cookie: cookies.setup }
