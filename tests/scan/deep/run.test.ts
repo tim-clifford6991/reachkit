@@ -24,6 +24,16 @@ vi.mock("@/lib/db", () => ({
   db: () => db.client,
 }));
 
+// #971's `recordStage` pushes the step it just wrote through
+// `client.realtime` (`src/jobs/realtime.ts`). The push is a courtesy on top
+// of the row and swallows its own failures, so without this double every
+// stage reached the real platform client, was refused by `tests/setup.ts`'s
+// no-network rule and logged — noise this suite is not about.
+vi.mock("@/jobs/client", () => ({
+  client: { realtime: { publish: async () => undefined } },
+  sendJobEvent: async () => undefined,
+}));
+
 /** The onboarding claim, recorded so the pass is seen to make it before
  *  the pipeline adopts it. Its rows are `run.ts`'s and tested there. */
 const claimed = vi.fn<(a: { siteId: string; domain: string }) => Promise<string>>(async () => "claimed-scan");
