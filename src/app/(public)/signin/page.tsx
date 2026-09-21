@@ -91,12 +91,49 @@ export default function SignInPage(props: {
   const value = typed ?? state.value;
 
   const deadLink = params[LINK_QUERY_KEY] === DEAD_LINK_MARKER;
+  // **The dead-link arm's field starts empty.** A reader who followed a
+  // link that no longer works has typed nothing, so there is nothing of
+  // theirs to carry forward — and `state.value` on that pass is whatever
+  // the last action happened to hold, which is an address this screen
+  // would then be echoing at a reader who never entered it. REQ-098 c7's
+  // line is the same whatever the reason; so is its field. What they type
+  // here is kept, because that is theirs.
+  const fieldValue = deadLink ? (typed ?? "") : value;
   const answerKey = ANSWER_COPY_KEY[state.answer];
   const answer = answerKey === undefined ? undefined : copy(answerKey);
   // Every well-formed address is the answered arm, with the same line —
   // whether or not it has an account (SPEC §3). A refusal of the value
   // itself keeps the form, with what they typed intact.
   const answered = state.answer === "requested";
+
+  /** The one form this screen has, under whichever word the arm drawing it
+   *  uses: *Send my sign-in link* on a first visit, *Send a new link* to a
+   *  reader whose link is dead. One field, one submit, one action — §3's
+   *  "sign-in copy is identical whatever the address" is about the words,
+   *  and this is the other half of it: the same door, however you arrived. */
+  function askForLink(label: string): React.JSX.Element {
+    return (
+      <form action={formAction} className="flex flex-col gap-3">
+        {/* The address is the field's own placeholder, in the mono face at
+            the `--t-sm` rung, and the same approved string is the field's
+            accessible name. */}
+        <input
+          type="text"
+          aria-label={copy("signin.field.placeholder")}
+          placeholder={copy("signin.field.placeholder")}
+          className="input w-full font-mono text-sm"
+          name={EMAIL_FIELD}
+          value={fieldValue}
+          onChange={(e) => setTyped(e.target.value)}
+        />
+        {/* The screen's one solid primary, full width — and the only solid
+            button on it. */}
+        <button type="submit" className="btn btn-primary btn-block" disabled={pending} aria-busy={pending || undefined}>
+          {label}
+        </button>
+      </form>
+    );
+  }
 
   return (
     // The screen is one column until the set opens it into two at 1024, so
@@ -133,11 +170,14 @@ export default function SignInPage(props: {
                     <h1>{copy("signin.expired.head")}</h1>
                     <p className={QUIET}>{copy("signin.link_dead")}</p>
                   </div>
-                  {/* The way back to the field: a plain link to this screen
-                      without the marker, so it works with no client runtime. */}
-                  <Link href={SIGN_IN_PATH} className="btn btn-primary btn-block">
-                    {copy("signin.expired.submit")}
-                  </Link>
+                  {/* **The field, here** (#937, the 2026-09-20 board).
+                      This arm used to offer a link back to an empty form,
+                      which made a reader holding a dead link take two
+                      steps to do the one thing the screen exists for. It
+                      is the same form the first arm draws, under this
+                      arm's own word — one form, so the two cannot come to
+                      behave differently. */}
+                  {askForLink(copy("signin.expired.submit"))}
                 </>
               ) : answered ? (
                 /* The answered arm. The address is the one they typed,
@@ -169,26 +209,7 @@ export default function SignInPage(props: {
                     <p className={QUIET}>{copy("signin.body")}</p>
                   </div>
 
-                  <form action={formAction} className="flex flex-col gap-3">
-                    {/* The address is the field's own placeholder, in the
-                        mono face at the `--t-sm` rung, and the same approved
-                        string is the field's accessible name — `labelHidden`
-                        carries it as `aria-label` rather than drawing it. */}
-                    <input
-                      type="text"
-                      aria-label={copy("signin.field.placeholder")}
-                      placeholder={copy("signin.field.placeholder")}
-                      className="input w-full font-mono text-sm"
-                      name={EMAIL_FIELD}
-                      value={value}
-                      onChange={(e) => setTyped(e.target.value)}
-                    />
-                    {/* The screen's one solid primary, full width — and the
-                        only solid button on it. */}
-                    <button type="submit" className="btn btn-primary btn-block" disabled={pending} aria-busy={pending || undefined}>
-                      {copy("signin.submit.label")}
-                    </button>
-                  </form>
+                  {askForLink(copy("signin.submit.label"))}
 
                   {/* Where the *value* was refused. The answered arm above
                       carries its own line. */}
