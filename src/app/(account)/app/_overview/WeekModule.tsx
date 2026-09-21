@@ -59,13 +59,11 @@ export function WeekModule(p: {
       <div className="card-body gap-4 p-5">
         <div className="flex flex-wrap items-center justify-between gap-2">
           {/* The card head, at the sub-head step the approved board draws
-              it at — sentence case, not an uppercase eyebrow. The `!` is
-              not decoration: `src/ui/type.css` states `h2 { font-size:
-              var(--h2) }` **unlayered**, and an unlayered element rule
-              out-ranks `@layer utilities`, so a plain `text-base` on a
-              heading is a class that renders nothing (the same fact that
-              file records for `.t-hero`). */}
-          <h2 className="card-title text-base!">
+              it at — sentence case, not an uppercase eyebrow. Plain
+              `text-base`: the heading scale is in `@layer base` since #941,
+              so a utility on a heading wins and the `!` this line used to
+              carry is gone. */}
+          <h2 className="card-title text-base">
             <Calendar aria-hidden size={20} strokeWidth={1.75} />
             {title}
           </h2>

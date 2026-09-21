@@ -48,7 +48,7 @@ export default async function SearchTabPage(): Promise<React.JSX.Element> {
   return (
     <div className="flex min-w-0 flex-col gap-6" data-testid="search-tab">
       <header className="flex min-w-0 flex-col gap-1">
-        <h1 className="card-title text-base!" data-testid="search-title">
+        <h1 className="card-title text-base" data-testid="search-title">
           {copy("overview.tab.search")}
         </h1>
         <p className="max-w-prose text-sm text-base-content/70">{copy("overview.search.lead")}</p>

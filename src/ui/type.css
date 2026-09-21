@@ -39,72 +39,96 @@
  *                 the two are indistinguishable"
  *
  * A frozen document cannot drift, so these are pinned by quotation and not
- * re-checked against a moving source (the pinned-value convention).
+ * re-checked against a moving source (the pinned-value convention). The
+ * four tokens themselves live in `src/ui/theme.css` with the rest of the
+ * approved set (issue #349); the rules below read them.
  *
- * **They live here and not in `theme.css` or `layout/layout.css`.**
- * `theme.css`'s `:root` is §2.1's colour block verbatim and
- * `tests/ui/tokens.test.ts` refuses any token §2.1 does not state;
- * `layout/layout.css` declares ADR-093's three layout tokens and
- * `tests/ui/layout-tokens.test.ts` refuses a fourth. Type belongs to the
- * type layer.
- *
- * **Why any of this is needed at all.** Until issue #13 no stylesheet
- * imported Tailwind, so a heading with no stated size rendered at the
- * browser's own `h1..h6` defaults and looked right by accident.
- * `src/ui/tailwind.css` brought Tailwind 4's preflight, which resets every
- * heading to `font-size: inherit` — and every `h1` in the product has
- * rendered at the 15px body size since. The four rules below are what
- * preflight took away, stated deliberately this time.
- */
-/* The heading scale and the two "below body" steps this block declared
- * moved to `src/ui/theme.css` with the rest of the approved set (issue
- * #349). The header above records why they were here — §2.1's `:root`
- * refused any token it did not state — and that refusal is now "any token
- * neither §2.1 nor `design/tokens.md` names", so the ladder has one home.
- * The rules below read it; nothing about what they draw changes.
+ * **Why any of this is needed at all.** `src/ui/tailwind.css` brings
+ * Tailwind 4's preflight, which resets every heading to
+ * `font-size: inherit`. The rules below are what preflight took away,
+ * stated deliberately this time.
  */
 
-/* Heading weight is a single value within BUILD.md's stated 700-800 range
+/* **In `@layer base`, so a utility can still say otherwise** (issue #941).
+ *
+ * These rules are element *defaults* — what an `h2` is when nothing else
+ * speaks. Written unlayered they out-ranked every cascade layer, so
+ * `text-xs`, `text-base` and daisyUI's own `card-title` all lost to them
+ * and *WORKSPACE*, *THIS WEEK*, *NEEDS YOU* and every other card head drew
+ * at 25px on every screen. Nothing about the scale changes — `--h1`…`--h4`,
+ * the 640px step-down, the weight, the tracking and `text-wrap: balance`
+ * are exactly as they were. Only its rank does, from "beats everything" to
+ * "the default a class may override", which is what `base` means and what
+ * these rules always were.
+ *
+ * `src/ui/tailwind.css` states the order — `@layer theme, base, components,
+ * utilities` — and the root layout imports it before this file, so `base`
+ * is registered first and `utilities` still wins. Preflight is in this same
+ * layer and earlier in the document, so these still beat it.
+ *
+ * Heading weight is a single value within BUILD.md's stated 700-800 range
  * (an internal parameter, rule 1.1 — reversal cost: one line, no h1..h6
  * differentiation is asked for by this WO's test plan). */
-h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-ui);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  text-wrap: balance;
+@layer base {
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-ui);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+
+  /* `h1` is the one step that is narrower on a narrow viewport.
+   * `design/tokens.md` §4, "A third absolute, from the owner's 2026-09-02
+   * ruling", verbatim: "`--t-h1` takes `--t-h2`'s size ... below
+   * `--breakpoint-sm`. No new size is minted, the 1.25 ratio is untouched,
+   * and heads only ever step **down toward the body, never under it** — a
+   * 31px screen head on a 320px viewport wraps to four lines and pushes the
+   * card's own answer below the fold, which is the owner's rule reached from
+   * the other end."
+   *
+   * #166 left this unimplemented until the owner's own look at 320px
+   * disagreed with the sweep. It did, on `dev` after #251: the landing
+   * headline wrapped to four lines and pushed the field toward the fold
+   * (issue #258).
+   *
+   * Written narrow-first, so the only literal is a `min-width` — the
+   * convention `design/tokens.md` §2b states for itself ("Every query in the
+   * file is a `min-width`, so no literal is ever a breakpoint *minus one
+   * pixel*") and the one `layout.css`, `shell.css` and `surface.css` already
+   * follow. 640px is `--breakpoint-sm`, pinned by
+   * `tests/ui/layout-tokens.test.ts`; a media prelude cannot read a `var()`.
+   *
+   * No other step moves. §4's ruling names two more clauses — `--t-num-big`
+   * takes `--t-h1`'s size below the same breakpoint, and form-control text
+   * runs the other way — and neither token exists in this repository yet;
+   * they are their own work, not this line's. */
+  h1 { font-size: var(--h2); }
+  h2 { font-size: var(--h2); }
+  h3 { font-size: var(--h3); }
+  h4 { font-size: var(--h4); }
+
+  /* The scale names four heading roles and the product uses four: no `h5` or
+   * `h6` appears anywhere under `src/app/**`. Rather than mint a fifth and a
+   * sixth step nobody asked for, these two take the body size — stated, so
+   * that it reads as a decision rather than as the preflight default it
+   * happens to equal. It is also the only size they could take: a head never
+   * steps under the body (`design/tokens.md` §4: heads "only ever step
+   * **down toward the body, never under it**"), and the sub-head above them
+   * is already within 1px of it. Weight and tracking still tell them apart
+   * from a paragraph. */
+  h5, h6 { font-size: inherit; }
 }
 
-/* `h1` is the one step that is narrower on a narrow viewport.
- * `design/tokens.md` §4, "A third absolute, from the owner's 2026-09-02
- * ruling", verbatim: "`--t-h1` takes `--t-h2`'s size ... below
- * `--breakpoint-sm`. No new size is minted, the 1.25 ratio is untouched,
- * and heads only ever step **down toward the body, never under it** — a
- * 31px screen head on a 320px viewport wraps to four lines and pushes the
- * card's own answer below the fold, which is the owner's rule reached from
- * the other end."
+/* S1's hero headline at 46px (owner ruling 2026-09-11 on #534).
  *
- * #166 left this unimplemented until the owner's own look at 320px
- * disagreed with the sweep. It did, on `dev` after #251: the landing
- * headline wrapped to four lines and pushed the field toward the fold
- * (issue #258).
- *
- * Written narrow-first, so the only literal is a `min-width` — the
- * convention `design/tokens.md` §2b states for itself ("Every query in the
- * file is a `min-width`, so no literal is ever a breakpoint *minus one
- * pixel*") and the one `layout.css`, `shell.css` and `surface.css` already
- * follow. 640px is `--breakpoint-sm`, declared in `layout.css` beside the
- * other three and pinned to it by `tests/ui/layout-tokens.test.ts`; a media
- * prelude cannot read a `var()`.
- *
- * No other step moves. §4's ruling names two more clauses — `--t-num-big`
- * takes `--t-h1`'s size below the same breakpoint, and form-control text
- * runs the other way — and neither token exists in this repository yet;
- * they are their own work, not this line's. */
-h1 { font-size: var(--h2); }
-
-/* S1's hero headline at 46px (owner ruling 2026-09-11 on #534); a class and
- * not a utility because the unlayered `h1` rule above out-ranks `@layer
- * utilities`. Below 640 it keeps the element's narrow step (#258). */
+ * It is still a class rather than a utility, for a different reason than it
+ * used to be: 46px is not a rung of Tailwind's type scale, and
+ * `docs/DESIGN.md` forbids inventing one. The reason recorded here before
+ * #941 — "because the unlayered `h1` rule above out-ranks `@layer
+ * utilities`" — is obsolete: the rule is layered now, and a utility would
+ * win if one existed at this size. The class stays unlayered, which is what
+ * keeps it above the `base` step; below 640 it sets no size and so keeps
+ * the element's narrow step (#258). */
 :root {
   --t-hero: 46px;
 }
@@ -119,26 +143,20 @@ h1 { font-size: var(--h2); }
   text-wrap: balance;
 }
 
+/* The file's **one** media block, and it stays one: a `@media` prelude is
+ * the only raw literal a stylesheet here still admits, and
+ * `tests/ui/layout-tokens.test.ts` asserts that this file states exactly one
+ * of them. So the h1 step sits in `@layer base` *inside* the query rather
+ * than in a second query inside the layer — the same two declarations, the
+ * same ranks, one literal. `.t-hero` is beside it and unlayered, which is
+ * what keeps the hero above the step. */
 @media (min-width: 640px) {
-  h1 { font-size: var(--h1); }
+  @layer base {
+    h1 { font-size: var(--h1); }
+  }
 
   .t-hero { font-size: var(--t-hero); }
 }
-
-h2 { font-size: var(--h2); }
-h3 { font-size: var(--h3); }
-h4 { font-size: var(--h4); }
-
-/* The scale names four heading roles and the product uses four: no `h5` or
- * `h6` appears anywhere under `src/app/**`. Rather than mint a fifth and a
- * sixth step nobody asked for, these two take the body size — stated, so
- * that it reads as a decision rather than as the preflight default it
- * happens to equal. It is also the only size they could take: a head never
- * steps under the body (`design/tokens.md` §4: heads "only ever step
- * **down toward the body, never under it**"), and the sub-head above them
- * is already within 1px of it. Weight and tracking still tell them apart
- * from a paragraph. */
-h5, h6 { font-size: inherit; }
 
 body {
   font-family: var(--font-ui);

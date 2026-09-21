@@ -17,6 +17,18 @@
 // The enumerator is the route tree (ADR-010), so a screen added later is in
 // scope by construction. A route with no heading of a level is not an
 // offender — the assertion is per heading found, never per route.
+//
+// **Retargeted by #941.** Until #941 the scale was stated *unlayered*, so it
+// out-ranked `@layer utilities` and every heading on every screen computed
+// its step whatever its class said — which is exactly what this file
+// asserted, and so the defect was invisible here. The scale is a `@layer
+// base` default now, and a heading that carries a size-bearing class draws
+// what that class says. So the scale assertion holds where the scale is what
+// speaks — a heading with no size-bearing class — and a heading that carries
+// one is asserted against **the class's own size, measured in the same
+// document**: a probe element in the heading's own parent, wearing the same
+// classes. That is the invariant that broke, stated without a second copy of
+// Tailwind's ladder anywhere in this repository.
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { BAND_MIN } from "@/ui/layout/bands";
@@ -93,6 +105,14 @@ interface Measured {
   tag: string;
   px: number;
   text: string;
+  /** The classes on this heading that carry a size of their own — a Tailwind
+   *  `text-*` rung, `.eyebrow`, `.t-hero`, or daisyUI's `card-title`. Empty
+   *  when the scale is the only thing that speaks. */
+  sizeBearing: string[];
+  /** What the same classes compute to on a plain element in this heading's
+   *  own parent, or `null` when there are none to probe. `card-title` reads
+   *  the card's own size modifier, so the probe has to sit in the same box. */
+  probePx: number | null;
 }
 
 /** The rendered h1's height in line boxes: its border box over its own
@@ -108,13 +128,36 @@ function measureLandingHeadlineLines(): number | null {
   return Math.round(h1.getBoundingClientRect().height / lineHeight);
 }
 
-/** Every heading on the page, with the size the browser actually computed. */
+/** Every heading on the page, with the size the browser actually computed —
+ *  and, where the heading carries a size-bearing class, what that same class
+ *  computes to on a plain element beside it.
+ *
+ *  Closure-free, like everything `page.evaluate` runs: the pattern and the
+ *  probe are declared inside. `text-base-content/70` and `text-error` are
+ *  colours and must not match, which is what the trailing boundary is for. */
 function measureHeadings(): Measured[] {
-  return [...document.querySelectorAll("h1, h2, h3, h4")].map((el) => ({
-    tag: el.tagName.toLowerCase(),
-    px: Number.parseFloat(getComputedStyle(el).fontSize),
-    text: (el.textContent ?? "").slice(0, 40),
-  }));
+  const SIZE_BEARING =
+    /^(?:text-(?:xs|sm|base|lg|[2-9]?xl)!?|eyebrow|t-hero|card-title)$/;
+  return [...document.querySelectorAll("h1, h2, h3, h4")].map((el) => {
+    const sizeBearing = [...el.classList].filter((name) => SIZE_BEARING.test(name));
+    let probePx: number | null = null;
+    if (sizeBearing.length > 0 && el.parentElement) {
+      // A `<p>`, not a heading: it is the class's own size that is wanted,
+      // with no element default of its own underneath it.
+      const probe = document.createElement("p");
+      probe.className = el.className;
+      el.parentElement.appendChild(probe);
+      probePx = Number.parseFloat(getComputedStyle(probe).fontSize);
+      probe.remove();
+    }
+    return {
+      tag: el.tagName.toLowerCase(),
+      px: Number.parseFloat(getComputedStyle(el).fontSize),
+      text: (el.textContent ?? "").slice(0, 40),
+      sizeBearing,
+      probePx,
+    };
+  });
 }
 
 describe(`the heading scale survives preflight — ${routes.length} route(s)`, () => {
@@ -123,9 +166,11 @@ describe(`the heading scale survives preflight — ${routes.length} route(s)`, (
   });
 
   it(
-    "every rendered h1 is larger than the body, and every heading computes its own step of the scale",
+    "a heading with no size-bearing class is larger than the body and computes its own step; one that carries a class computes what the class says",
     async () => {
       const seen = new Set<string>();
+      let defaulted = 0;
+      let classed = 0;
       for (const route of routes) {
         const headings = await withPage(
           BAND_MIN.compact,
@@ -139,8 +184,23 @@ describe(`the heading scale survives preflight — ${routes.length} route(s)`, (
         for (const heading of headings) {
           seen.add(heading.tag);
           const where = `${route.path}: <${heading.tag}> "${heading.text}" @ ${BAND_MIN.compact}px`;
-          // The defect itself, stated as its own assertion: a heading at
-          // body size is what preflight leaves behind.
+
+          if (heading.sizeBearing.length > 0) {
+            // The #941 half. The heading must compute exactly what its own
+            // classes compute on a plain element in the same box — so an
+            // element rule that out-ranks them again fails here, with the
+            // two numbers in the message.
+            classed += 1;
+            expect(
+              heading.px,
+              `${where} carries ${heading.sizeBearing.join(" ")} and must compute what it says, not the element's step`
+            ).toBe(heading.probePx);
+            continue;
+          }
+
+          defaulted += 1;
+          // The #110 half, unchanged: with nothing else speaking, the scale
+          // speaks. A heading at body size is what preflight leaves behind.
           expect(heading.px, `${where} must be larger than the ${BODY_PX}px body`).toBeGreaterThan(
             BODY_PX
           );
@@ -154,11 +214,14 @@ describe(`the heading scale survives preflight — ${routes.length} route(s)`, (
 
       // Rule 5.5: an assertion that ran over no heading at all is a pass
       // that means nothing, so what it covered is reported rather than
-      // left to be read off a silent green.
+      // left to be read off a silent green. Both arms are counted, because
+      // a sweep that found only one of them proved only half of this.
       console.log(
-        `tests/ui/layout/heading-scale.test.ts: measured ${[...seen].sort().join(", ") || "no"} heading(s) across ${routes.length} route(s)`
+        `tests/ui/layout/heading-scale.test.ts: measured ${[...seen].sort().join(", ") || "no"} heading(s) across ${routes.length} route(s) — ${defaulted} on the scale, ${classed} on their own class`
       );
       expect(seen.has("h1"), "no route rendered an h1 — the sweep proved nothing").toBe(true);
+      expect(defaulted, "no heading anywhere fell through to the scale").toBeGreaterThan(0);
+      expect(classed, "no heading anywhere carried a size-bearing class — #941 is unguarded").toBeGreaterThan(0);
     },
     PER_ROUTE_BROWSER_MS
   );
@@ -189,14 +252,30 @@ describe(`the heading scale survives preflight — ${routes.length} route(s)`, (
           for (const heading of headings) {
             const where = `${route.path}: <${heading.tag}> "${heading.text}" @ ${width}px`;
             const hero = heading.tag === "h1" && isLanding(route);
-            expect(
-              heading.px,
-              hero
-                ? `${where} is S1's hero and must compute the set's ${LANDING_HERO_PX}px (#534)`
-                : `${where} must compute its own step of the scale`
-            ).toBe(hero ? LANDING_HERO_PX : SCALE_PX[heading.tag]);
+            // S1's hero is `.t-hero`, which is size-bearing, so it takes
+            // the probe arm like every other classed heading — and the set's
+            // 46 is asserted on top of it, because that number is the
+            // owner's (#534) and not Tailwind's.
+            if (hero) {
+              expect(
+                heading.px,
+                `${where} is S1's hero and must compute the set's ${LANDING_HERO_PX}px (#534)`
+              ).toBe(LANDING_HERO_PX);
+              expect(heading.px, `${where}: the hero class must be what sizes it`).toBe(
+                heading.probePx
+              );
+              heroSeenAt.push(width);
+            } else if (heading.sizeBearing.length > 0) {
+              expect(
+                heading.px,
+                `${where} carries ${heading.sizeBearing.join(" ")} and must compute what it says (#941)`
+              ).toBe(heading.probePx);
+            } else {
+              expect(heading.px, `${where} must compute its own step of the scale`).toBe(
+                SCALE_PX[heading.tag]
+              );
+            }
             if (heading.tag === "h1") seenH1 = true;
-            if (hero) heroSeenAt.push(width);
           }
         }
       }

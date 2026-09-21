@@ -150,12 +150,12 @@ export default async function AppLayout({
               </div>
               <DomainBlock shell={shell} />
               <div className="flex min-w-0 flex-col gap-1">
-                {/* `.eyebrow`, not `text-xs`: `src/ui/type.css` sizes
-                    `h2` in an **unlayered** rule, which out-ranks every
-                    Tailwind utility in `@layer utilities` — so this label
-                    drew at the 25px module-head step. A class beats an
-                    element selector, and `.eyebrow` is the ruled rung
-                    (`docs/DESIGN.md`: "eyebrow 11 uppercase 700 .1em"). */}
+                {/* `.eyebrow`, not `text-xs`: the rung is ruled
+                    (`docs/DESIGN.md`: "eyebrow 11 uppercase 700 .1em") and
+                    carries its case, weight and ink with the size, which no
+                    single utility does. It was first reached for because
+                    `type.css` out-ranked `text-xs`; that is fixed at the
+                    cause now (#941) and the class is still the right one. */}
                 <h2 className="eyebrow px-0">{copy("shell.workspace")}</h2>
                 <SidebarNav waiting={shell.waiting} />
               </div>
