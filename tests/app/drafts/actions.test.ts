@@ -25,6 +25,10 @@ vi.mock("@/lib/account/identity", () => ({ currentSession: async () => session }
 /** The job platform, doubled at its one door. */
 const sent: { name: string; data: Record<string, unknown>; at?: Date }[] = [];
 vi.mock("@/jobs/client", () => ({
+  // #971's stage push goes through `client.realtime` (`src/jobs/realtime.ts`);
+  // a mock without it throws on every stage, which the pass swallows into a
+  // `setup_stage_not_published` log. Doubled as the no-op it is here.
+  client: { realtime: { publish: async () => undefined } },
   sendJobEvent: async (name: string, data: Record<string, unknown>, options: { at?: Date } = {}) => {
     sent.push({ name, data, ...(options.at === undefined ? {} : { at: options.at }) });
   },

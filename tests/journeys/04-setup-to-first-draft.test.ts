@@ -149,6 +149,10 @@ const jobEvents: { name: string; payload: Record<string, unknown> }[] = [];
  *  deep pass, and so its first-draft kickoff, starts from that event. */
 const zoneWhenSent: (string | null)[] = [];
 vi.mock("@/jobs/client", () => ({
+  // #971's stage push goes through `client.realtime` (`src/jobs/realtime.ts`);
+  // a mock without it throws on every stage, which the pass swallows into a
+  // `setup_stage_not_published` log. Doubled as the no-op it is here.
+  client: { realtime: { publish: async () => undefined } },
   sendJobEvent: async (name: string, payload: Record<string, unknown>) => {
     jobEvents.push({ name, payload });
     zoneWhenSent.push(site.timezone);
