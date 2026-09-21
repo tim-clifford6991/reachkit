@@ -22,12 +22,22 @@
 // `src/` outside the copy registry. (It does not count *files* mentioning
 // the key — prose may cite it, and a citation resolves nothing.)
 //
-// **No control, no route back** (REQ-001 c18, REQ-002 c3): `RemovedView`
-// renders one written line and nothing else — no button, no link, no
-// form, no field, no report content, no score, no band. The one way back
-// is a second written request to the same address, which is a sentence,
-// not a control. Its own suite enumerates every interactive element in
-// the rendered subtree and asserts there are none.
+// **The way back, and the rule that changed** (#936). This module used to
+// render one written line and nothing else — no button, no link, no form
+// — on REQ-001 c18 and REQ-002 c3. SPEC §1's line of **2026-09-20** is the
+// owner deciding the other way: "the removed and refused arms offer a way
+// back to the landing", and #936 restates it ("the `removed` arm is one
+// line with no link ... give each the way out drawn on the board").
+//
+// So `RemovedView` is the quiet card now, with one control: a link to the
+// landing, under the word the board gives it. What the older rule was
+// protecting is untouched and still asserted — **no report content**: no
+// score, no band, no figure, no module, nothing about the domain except
+// the approved sentence naming it. A stranger who lands here still learns
+// nothing about the site. What they gain is somewhere to go, which is
+// what a dead end on a first visit was costing.
+//
+// `removedDocument` below carries the same one way out, as an `<a>`.
 //
 // **Reads nothing about the visitor.** REQ-002 c1's address must be
 // "readable by a visitor with no account, session, or payment", so neither
@@ -48,10 +58,12 @@
 // return 410 in any case (Next 16 offers `notFound`/`forbidden`/
 // `unauthorized` and no `gone`).
 import type React from "react";
+import Link from "next/link";
+import { CircleSlash } from "lucide-react";
+import { QuietPage } from "@/app/_quiet/QuietCard";
 import { REPORT_REMOVED_STATUS } from "@/lib/config/constants";
 import { copy } from "@/lib/presentation/copy";
 import type { CanonicalDomain } from "@/lib/scan/domain";
-import { Surface } from "@/ui/layout";
 
 /** The one call site of `removal.address` in the product. Never composed
  *  from parts, never templated from a domain, never read from `env`. */
@@ -67,24 +79,24 @@ export function RemovalAddressLine(): React.JSX.Element {
   return <p>{copy("removal.line.on-report", { address: removalAddress() })}</p>;
 }
 
-/** REQ-002 c3 — the entire body a removed domain's report address serves:
- *  one written line saying the report was removed at the site owner's
- *  request and naming the address that would bring it back. A screen root,
- *  so it declares its own three band arms (ADR-093); one column at every
- *  band, because one line is one column at any width. */
+/** REQ-002 c3 — the body a removed domain's report address serves: the
+ *  written line saying the report was removed at the site owner's request
+ *  and naming the address that would bring it back, in the quiet-page
+ *  shape with one way onward (#936; see this file's header for the rule
+ *  that changed). A screen root, so `QuietPage` declares the band arms. */
 export function RemovedView(p: { domain: CanonicalDomain }): React.JSX.Element {
   return (
-    <Surface
-      arms={{
-        compact: { kind: "columns", count: 1 },
-        medium: { kind: "same-as-below" },
-        wide: { kind: "same-as-below" },
-      }}
-    >
-      <main>
-        <p>{copy("removal.line.removed", { domain: p.domain, address: removalAddress() })}</p>
-      </main>
-    </Surface>
+    <QuietPage
+      icon={CircleSlash}
+      testId="report-removed"
+      heading={copy("quiet.removed.head")}
+      lines={[copy("removal.line.removed", { domain: p.domain, address: removalAddress() })]}
+      actions={
+        <Link href="/" className="btn btn-outline btn-sm" data-testid="report-removed-scan-another">
+          {copy("control.scan-another")}
+        </Link>
+      }
+    />
   );
 }
 
@@ -105,11 +117,20 @@ export function RemovedView(p: { domain: CanonicalDomain }): React.JSX.Element {
  * `RemovedView` above still renders the styled arm wherever a page owns
  * the response — the fixture preview of this state on `*.example.com`.
  *
- * No control, no link, no form, no report content: the same promise the
- * component keeps, and its own suite enumerates the markup to prove it.
+ * **It says the same three things the card does** (#936): the heading, the
+ * approved line, and one way onward. It is still unstyled, because Next 16
+ * offers no way to serve a styled document at 410 — `next/navigation` has
+ * `notFound`, `forbidden` and `unauthorized` and no `gone`, and there is
+ * no page-level status API to reach for. That gap is this PR's one open
+ * item and is written up in its body.
+ *
+ * No report content: no score, no band, no figure — the half of the older
+ * promise that #936 did not change, and the half its suite still proves.
  */
 export function removedDocument(domain: CanonicalDomain): string {
+  const head = copy("quiet.removed.head");
   const line = copy("removal.line.removed", { domain, address: removalAddress() });
+  const onward = copy("control.scan-another");
   return [
     "<!doctype html>",
     '<html lang="en">',
@@ -117,8 +138,15 @@ export function removedDocument(domain: CanonicalDomain): string {
     '<meta charset="utf-8">',
     '<meta name="viewport" content="width=device-width, initial-scale=1">',
     '<meta name="robots" content="noindex">',
+    `<title>${escapeHtml(head)}</title>`,
     "</head>",
-    `<body><main><p>${escapeHtml(line)}</p></main></body>`,
+    "<body><main>",
+    `<h1>${escapeHtml(head)}</h1>`,
+    `<p>${escapeHtml(line)}</p>`,
+    // The way onward #936 asks for, at the status the ruling asks for.
+    // An `<a>` and not a control: there is nothing here to submit.
+    `<p><a href="/">${escapeHtml(onward)}</a></p>`,
+    "</main></body>",
     "</html>",
   ].join("");
 }

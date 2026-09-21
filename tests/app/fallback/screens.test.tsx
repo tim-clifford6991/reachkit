@@ -81,7 +81,18 @@ describe("S8 — one shape, and every mount wears it", () => {
   it.each(NOT_FOUND_SCREENS)("$name shows the set's 404 eyebrow and heading", ({ markup }) => {
     expect(markup).toContain(`>${COPY["chrome.notfound.eyebrow"]}</p>`);
     expect(markup).toContain(`<h1>${COPY["chrome.notfound.heading"]}</h1>`);
-    expect(COPY["chrome.notfound.heading"]).toBe("There is no page at this address.");
+    // The sentence itself changed with #936 — S8's "There is no page at
+    // this address." was written for a screen that then offered a field
+    // and a specimen address, and the 2026-09-20 board says what happened
+    // instead. Pinned here so a silent edit to a customer-visible string
+    // fails a test rather than shipping.
+    expect(COPY["chrome.notfound.heading"]).toBe("We can’t find that page");
+  });
+
+  it.each(NOT_FOUND_SCREENS)("$name carries the quiet page's icon tile (#936)", ({ markup }) => {
+    // Every quiet page opens with one, and the 404 is one. `aria-hidden`:
+    // the heading under it already says what the screen is.
+    expect(markup).toMatch(/<span class="[^"]*size-10[^"]*"[^>]*aria-hidden="true"><svg/);
   });
 
   it.each(NOT_FOUND_SCREENS)("$name sets the 404 in the mono face", ({ markup }) => {
@@ -111,22 +122,26 @@ describe("S8 — the line each screen writes", () => {
     const markup = html(PublicNotFound);
 
     expect(COPY["chrome.notfound.address"]).toBe("reachkit.app/scan/yourdomain.com");
-    // The line is a declared scroll container since #327 — the address is
-    // 297px at the body rung and the compact reading column is 288, and
-    // `.num` bans every break inside a value, so ADR-093's rule applies and
-    // the *box* changes. The classes are asserted here rather than only in
-    // the stylesheet: the layout sweep's own allow-list is keyed on
-    // `.overflow-x-auto`, so a line that lost the class would stop being a
-    // declared scroll container and start being a check-2 offender.
-    const LINE_BOX = '<p class="min-w-0 max-w-full overflow-x-auto text-start">';
+    // The line is a declared scroll container (#327) and, since the
+    // owner's review of #936, takes its card's own alignment rather than
+    // forcing `text-start`: at 390 the paragraph is 326px around a 289px
+    // value, so it wraps rather than overflowing, and starting the lines
+    // left under a centred heading was the defect. `.num` bans every break
+    // inside a value, so where a box does have to change it is this one.
+    // The classes are asserted here rather than only in the stylesheet:
+    // the layout sweep's allow-list is keyed on `.overflow-x-auto`, so a
+    // line that lost the class would stop being a declared scroll
+    // container and start being a check-2 offender.
+    const LINE_BOX = '<p class="min-w-0 max-w-full overflow-x-auto">';
+    const VALUE_BOX = '<span class="num">';
     expect(markup).toContain(
-      `${LINE_BOX}Reports live at <span class="num">${COPY["chrome.notfound.address"]}</span>.</p>`
+      `${LINE_BOX}Reports live at ${VALUE_BOX}${COPY["chrome.notfound.address"]}</span>.</p>`
     );
     // The whole sentence is still the owner's, in one piece and in order:
     // the only thing between its two halves is the one span.
     const address = COPY["chrome.notfound.address"];
     const [before, after] = copy("chrome.notfound.line", { address }).split(address);
-    expect(markup).toContain(`${LINE_BOX}${before}<span class="num">${address}</span>${after}</p>`);
+    expect(markup).toContain(`${LINE_BOX}${before}${VALUE_BOX}${address}</span>${after}</p>`);
   });
 
   it("the account 404 does not send a signed-in customer to a report address", () => {
@@ -140,10 +155,17 @@ describe("S8 — the line each screen writes", () => {
   });
 });
 
-/** The header's Light / Dark / System control (#681), lifted out of a
- *  screen's markup: it is chrome, not the screen's one control. */
-function withoutThemeToggle(markup: string): string {
-  return markup.replace(/<div[^>]*data-testid="theme-toggle"[\s\S]*?<\/ul><\/div>/, "");
+/** The header's own controls, lifted out of a screen's markup: they are
+ *  chrome, not the screen's one control.
+ *
+ *  Two of them since #936 — the Light / Dark / System control (#681),
+ *  which the header renders once per width arm, and the phone menu's
+ *  trigger. Both are the frame's, on every public route; what S8's rule
+ *  below is about is the control the *screen* offers. */
+function withoutHeaderControls(markup: string): string {
+  return markup
+    .replace(/<div[^>]*data-testid="public-header-menu"[\s\S]*?<\/ul><\/div>/g, "")
+    .replace(/<div[^>]*data-testid="theme-toggle"[\s\S]*?<\/ul><\/div>/g, "");
 }
 
 describe("S8 — one control per screen, and it is the route group's own", () => {
@@ -161,7 +183,11 @@ describe("S8 — one control per screen, and it is the route group's own", () =>
     // named field — under S8's word.
     expect(occurrences(markup, 'action="/api/scan"')).toBe(1);
     expect(occurrences(markup, "<input")).toBe(1);
-    expect(occurrences(withoutThemeToggle(markup), "<button")).toBe(1);
+    // One control that is the screen's own; the frame's two are lifted out
+    // above. The scan field stays the 404's way onward rather than the
+    // board's two links — it is the strongest one available, and #936 asks
+    // for "at least one control", not for a weaker one.
+    expect(occurrences(withoutHeaderControls(markup), "<button")).toBe(1);
     expect(markup).toContain(COPY["chrome.notfound.cta"]);
     expect(markup).toContain(COPY["landing.field.placeholder"]);
   });

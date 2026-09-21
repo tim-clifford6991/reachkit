@@ -35,6 +35,10 @@ const body = (file: string): string =>
     .replace(/^[ \t]*\/\/.*$/gm, "");
 
 const RENDERER = "_legal/LegalPage.tsx";
+/** The screen's other half since #936: the anchors the *On this page* list
+ *  links to are put on block by block there, which is the one place
+ *  `toHtml` is now called from. Both files are held to the rule below. */
+const SECTIONS = "_legal/sections.ts";
 
 /** The three routes, each with the document it reads. */
 const ROUTES = [
@@ -106,14 +110,23 @@ describe("S5 — the screen: eyebrow, title, updated line, one card", () => {
 
 describe("S5 — the Markdown body goes through the product's one renderer", () => {
   it("the screen spends the one renderer's parse and serialiser and defines no second renderer", () => {
-    const src = body(RENDERER);
-    expect(src).toContain("parseMarkdown");
-    expect(src).toContain("toHtml");
-    expect(src).toContain("@/lib/publish/render/markdown");
+    // Both halves of the screen, together. #936 moved the serialiser call
+    // into `sections.ts` so each section heading can carry the `id` the
+    // contents list links to; the rule is unchanged and is about the pair
+    // — the screen parses with the one renderer and serialises with the
+    // one renderer, and neither file grows a second one.
+    const screen = body(RENDERER);
+    const sections = body(SECTIONS);
+    const both = `${screen}\n${sections}`;
+    expect(both).toContain("parseMarkdown");
+    expect(both).toContain("toHtml");
+    expect(screen).toContain("@/lib/publish/render/markdown");
+    expect(sections).toContain("@/lib/publish/render/markdown");
     // No parsing of its own: the one renderer is the whole rule (DECISIONS
     // 2026-09-06, #119), and a screen that split a body on newlines would
-    // be the second one.
-    expect(src).not.toMatch(/\.split\(|\bmarked\b|remark|micromark/);
+    // be the second one. `sections.ts` may only *cut* the parsed blocks.
+    expect(screen).not.toMatch(/\.split\(|\bmarked\b|remark|micromark/);
+    expect(sections).not.toMatch(/\bmarked\b|remark|micromark/);
   });
 
   it("the body is rendered as Markdown, not printed as a string", () => {
@@ -145,13 +158,29 @@ describe("S5 — the body's headings take the ladder (issue #493)", () => {
 
   it("every heading the renderer emits is one level under the page's h1", () => {
     const html = legalBodyHtml(md);
-    expect(html).toMatch(/<h2 class="[^"]*">Heading one<\/h2>/);
-    expect(html).toMatch(/<h3 class="[^"]*">Heading two<\/h3>/);
-    expect(html).toMatch(/<h4 class="[^"]*">Heading three<\/h4>/);
+    // `[^>]*` and not `class="[^"]*"`: since #936 a section heading also
+    // carries the `id` the contents list links to, which sits before the
+    // class. The level is what this row is about, and the level is
+    // unchanged.
+    expect(html).toMatch(/<h2[^>]*>Heading one<\/h2>/);
+    expect(html).toMatch(/<h3[^>]*>Heading two<\/h3>/);
+    expect(html).toMatch(/<h4[^>]*>Heading three<\/h4>/);
     // Never a second h1, and no `##` left at the level it would have to be
     // restyled off.
     expect(html).not.toContain("<h1");
     expect(html.match(/<h2/g)).toHaveLength(1);
+    // Each heading still carries the renderer's own class map.
+    for (const level of [2, 3, 4]) expect(html).toMatch(new RegExp(`<h${level}[^>]*class="[^"]+"`));
+  });
+
+  it("only the section headings get an anchor, and it is their own words (#936)", () => {
+    const html = legalBodyHtml(md);
+    // The shallowest level is the section level — here `#`, which demotes
+    // to `<h2>`. A deeper heading is a subsection and is not in the list,
+    // so it takes no anchor.
+    expect(html).toMatch(/<h2 id="heading-one"/);
+    expect(html).not.toMatch(/<h3 id=/);
+    expect(html).not.toMatch(/<h4 id=/);
   });
 
   it("a body heading carries no size of its own — the type ladder's element step decides it", () => {

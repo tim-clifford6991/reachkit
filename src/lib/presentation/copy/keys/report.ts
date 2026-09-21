@@ -490,4 +490,47 @@ export const REPORT_COPY = Object.freeze({
    *  same sentence through `offer.cancel-line`, which is still empty and is
    *  #369's to fill — one key per screen, neither borrowed. */
   "landing.start.cancel": ["Cancel in one click.", { slots: {}, fixedBy: "approved set S1 · 11a" }],
+
+  /* ── The quiet pages (#936) ───────────────────────────────────────────
+     A refusal, a scan that stopped, a removed report: the screens a
+     stranger did not mean to land on. Each is now an icon tile, a
+     heading, a line and at least one control (`src/app/_quiet/`), and
+     these are the headings and the controls the 2026-09-20 board draws
+     for them.
+
+     **A refusal that carries a wait states it in the heading.** The
+     approved refusal sentences below (`notice.refused.*`) already end
+     with the wait, and they are unchanged — the heading is what a reader
+     sees first, and "you can scan again in 38 minutes" is the answer to
+     the only question they have. The sentence beneath it says why.
+     `notice.refused.stopped` names no wait and so takes the second
+     heading, which promises no time nobody can name (ADR-011).
+
+     Every sentence here is **drafted** under the owner's 2026-09-16
+     ruling (#759), in this registry's voice, and named in the PR body so
+     the owner can correct it. */
+  /** One heading per refusal reason: **what happened**, never when.
+   *
+   *  The first draft put the wait in the heading ("You can scan again in 37
+   *  min") over the approved sentence, which ends with the same clause —
+   *  the card said one thing twice (owner, 2026-09-21). The heading takes
+   *  the other half of the message instead, and the approved line below it
+   *  is unchanged and still carries the time.
+   *
+   *  One key per reason rather than one shared line, on the footing
+   *  `notice.refused.*` already stands on: the reasons are not each other.
+   *  A network that has spent its hour is not an address that has been
+   *  measured enough, and neither is a scan that is simply still running.
+   *  `refusal.ts` maps them with `satisfies`, so a sixth reason fails the
+   *  build until it has a heading here too. */
+  "quiet.refused.head.network-limit": ["Too many scans from your network", { slots: {}, fixedBy: "issue 936" }],
+  "quiet.refused.head.network-day-limit": ["Your network has used its free scans for today", { slots: {}, fixedBy: "issue 936" }],
+  "quiet.refused.head.domain-day-limit": ["This address has been scanned enough for today", { slots: {}, fixedBy: "issue 936" }],
+  "quiet.refused.head.scan-running": ["A scan is already running", { slots: {}, fixedBy: "issue 936" }],
+  "quiet.refused.head.stopped": ["Free scanning is paused", { slots: {}, fixedBy: "issue 936" }],
+  "quiet.cooldown.head": ["We couldn’t finish measuring this site", { slots: {}, fixedBy: "issue 936" }],
+  "quiet.removed.head": ["This report was removed", { slots: {}, fixedBy: "issue 936" }],
+  "control.scan-another": ["Scan a different site", { slots: {}, fixedBy: "issue 936" }],
+  "control.example-report": ["Read an example report", { slots: {}, fixedBy: "issue 936" }],
+  "control.back-to-start": ["Back to the start", { slots: {}, fixedBy: "issue 936" }],
 }) satisfies CopyPartition;

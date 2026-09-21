@@ -48,9 +48,14 @@ describe("the route handler — the status a page cannot set", () => {
     const html = await (await GET(requestFor(REMOVED), params(REMOVED))).text();
     expect(html).toContain("<!doctype html>");
     expect(html).toContain(REMOVED);
-    // REQ-001 c18 / REQ-002 c3: no control, no route back — the one way
-    // back is a second written request, which is a sentence, not a button.
-    for (const tag of ["<button", "<form", "<input", "<a "]) expect(html).not.toContain(tag);
+    // REQ-001 c18 / REQ-002 c3: nothing that could start a scan or reopen
+    // the report. The one *link* is SPEC §1's line of 2026-09-20 — "the
+    // removed and refused arms offer a way back to the landing" — which
+    // #936 gives this document too, so the status path says the same three
+    // things the styled card does.
+    for (const tag of ["<button", "<form", "<input"]) expect(html).not.toContain(tag);
+    expect([...html.matchAll(/href="([^"]*)"/g)].map((m) => m[1])).toEqual(["/"]);
+    expect(html).not.toContain("/scan/");
     // Nothing of the report itself survives a removal.
     for (const leak of ["score", "rival", "Copy link"]) expect(html).not.toContain(leak);
     // `noindex` twice over (ADR-002): the header above and the meta tag.

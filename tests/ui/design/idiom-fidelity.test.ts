@@ -109,18 +109,34 @@ describe("S1 — the landing's chips carry the icons the approved set draws", ()
 
 describe("issue #486 — every chip the approved set draws carries its glyph", () => {
 
-  it("the brand mark is the trend glyph on an accent square, on every spend", () => {
-    // The public chrome draws one `Brand`, in daisyUI and Tailwind classes;
-    // the footer reuses it.
-    const header = read("app/(public)/_chrome/Header.tsx");
-    expect(header).toMatch(/rounded-field bg-primary text-primary-content" aria-hidden>\s*<TrendingUp size=\{16\} strokeWidth=\{1\.75\}/);
-    expect(read("app/(public)/_chrome/Footer.tsx")).toContain("<Brand />");
-    // The app shell draws the same mark.
-    expect(read("app/(account)/app/layout.tsx")).toMatch(/rounded-field bg-primary text-primary-content" aria-hidden>\s*<TrendingUp size=\{16\} strokeWidth=\{1\.75\}/);
-    // Sign-in draws the same mark as the public chrome, in its own card.
-    const signin = read("app/(public)/signin/page.tsx");
-    expect(signin).toMatch(/rounded-field bg-primary text-primary-content/);
-    expect(signin).toMatch(/<TrendingUp size=\{16\} strokeWidth=\{1\.75\}/);
+  it("the brand mark is the trend glyph on an accent square, drawn in exactly one file (#936)", () => {
+    // **This row used to assert the markup in each of the four files that
+    // drew it.** Four identical copies is what it was really recording,
+    // and the mark is about to be replaced — the owner's logo round
+    // (`R7-L1`, `R8-*`, `R9-*` on the 2026-09-20 canvas) is open — so
+    // #936 moved it into one file and this asserts that instead. What it
+    // is protecting is stronger than before: not "the four agree" but
+    // "there is one, and there is nothing else to disagree with it".
+    const brand = read("app/_brand/Brand.tsx");
+    expect(brand).toMatch(/rounded-field bg-primary text-primary-content/);
+    expect(brand).toMatch(/<TrendingUp size=\{lg \? 18 : 16\} strokeWidth=\{1\.75\}/);
+  });
+
+  it("nothing else draws the mark — a second copy is a second mark (#936)", () => {
+    // The swap the logo round is heading for has to be one edit. Every
+    // file that shows the brand reaches for `Brand` or `BrandMark`; none
+    // of them spells the tile or the glyph again.
+    for (const file of [
+      "app/(public)/_chrome/Header.tsx",
+      "app/(public)/_chrome/Footer.tsx",
+      "app/(account)/app/layout.tsx",
+      "app/(account)/app/_shell/TopBar.tsx",
+      "app/(public)/signin/page.tsx",
+    ]) {
+      const source = read(file);
+      expect(source, file).toMatch(/from "@\/app\/_brand\/Brand"/);
+      expect(source, file).not.toContain("rounded-field bg-primary text-primary-content");
+    }
   });
 
   it("S2's Copy link pill carries copy (L577)", () => {

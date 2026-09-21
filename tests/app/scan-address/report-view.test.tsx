@@ -470,14 +470,17 @@ describe("REQ-002 c1/c3 — one removal address, two surfaces", () => {
     expect(html).toContain("removal.line.removed(example.com|removal.address)");
   });
 
-  it("the removed arm offers no control, no form and no link", () => {
+  it("the removed arm offers nothing that re-measures, and exactly one way back (#936)", () => {
     const html = renderToStaticMarkup(
       React.createElement(RemovedView, { domain: "example.com" as CanonicalDomain })
     );
+    // REQ-001 c18's substance, unchanged: no retry control and nothing
+    // that could start a scan. Its "no route back", superseded by SPEC §1
+    // (2026-09-20) — one link, to the landing, and not to a report.
     expect(html).not.toContain("<button");
     expect(html).not.toContain("<form");
-    expect(html).not.toContain("<a ");
     expect(html).not.toContain("<input");
+    expect([...html.matchAll(/href="([^"]*)"/g)].map((m) => m[1])).toEqual(["/"]);
   });
 
   it("the foot line and the removed line resolve the address from one key", () => {

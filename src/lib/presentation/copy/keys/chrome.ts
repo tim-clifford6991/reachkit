@@ -96,16 +96,31 @@ export const CHROME_COPY = Object.freeze({
      string, the set's unbracketed word (11a) or a BUILD/REQ line quoted
      verbatim. It had neither. Nothing in BUILD or the archived REQ set writes it. */
   "chrome.notfound.eyebrow": ["404", { slots: {}, fixedBy: "S8 (11a)" }],
+  /** Changed 2026-09-21 (#936). S8's "There is no page at this address."
+   *  was the sentence for a screen that then offered a scan field and a
+   *  specimen address; the 2026-09-20 board draws the 404 as a quiet card
+   *  that says what happened and offers two ways on. Drafted under the
+   *  owner's 2026-09-16 ruling (#759); the owner corrects the wording. */
   "chrome.notfound.heading": [
-    "There is no page at this address.",
-    { slots: {}, fixedBy: "S8 (11a)" },
+    "We can’t find that page",
+    { slots: {}, fixedBy: "issue 936" },
   ],
   /** The address is a slot and not part of the sentence: the set draws it
    *  in mono inside the line (§2 — "numerals, dates, URLs … JetBrains
-   *  Mono"), and a face is not something a string can carry. */
+   *  Mono"), and a face is not something a string can carry.
+   *
+   *  Still the *second* line on a public 404 — where reports live is worth
+   *  saying to someone who mistyped one — under the new first line below
+   *  (#936). */
   "chrome.notfound.line": [
     "Reports live at {address}.",
     { slots: { address: "text" }, fixedBy: "S8 (11a)" },
+  ],
+  /** The 404's own first line, from the 2026-09-20 board: what probably
+   *  happened, before where reports live. Drafted (#759). */
+  "chrome.notfound.line.why": [
+    "The address may be mistyped, or the page may have moved.",
+    { slots: {}, fixedBy: "issue 936" },
   ],
   /** The shape of a report address, as the set writes it. A specimen, not
    *  a link: it names the form, and the field below it is how a reader
@@ -137,6 +152,10 @@ export const CHROME_COPY = Object.freeze({
      sent to. If the owner wants the report's wait and the app's wait to
      read differently, the split is theirs and it is a second key here. */
   "chrome.loading.line": ["Loading…", { slots: {}, fixedBy: "set §4 rule 3 (12a)" }],
+
+  /** The legal pages' own contents list, built from the document's
+     headings (#936, the 2026-09-20 `R6-7` board). Drafted (#759). */
+  "chrome.on-this-page": ["On this page", { slots: {}, fixedBy: "issue 936" }],
 
   /* ── The two ways back ────────────────────────────────────────────────
      One label each, and each has exactly one home even though two surfaces

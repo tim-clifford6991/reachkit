@@ -7,7 +7,7 @@
 import type React from "react";
 import Link from "next/link";
 import { copy } from "@/lib/presentation/copy";
-import { Brand } from "./Header";
+import { Brand } from "@/app/_brand/Brand";
 
 const LEGAL: readonly { href: string; key: "legal.privacy.title" | "legal.terms.title" | "legal.imprint.title" }[] = [
   { href: "/privacy", key: "legal.privacy.title" },
@@ -20,7 +20,7 @@ export function Footer(): React.JSX.Element {
     <footer className="border-t border-base-300 bg-base-100" data-testid="public-footer">
       <div className="footer mx-auto max-w-6xl px-4 py-10 text-sm sm:footer-horizontal">
         <aside className="max-w-sm">
-          <Brand />
+          <Brand href="/" />
           <p className="text-base-content/60">{copy("chrome.footer.rights")}</p>
           <p className="text-base-content/60">
             {copy("chrome.footer.opt-out", { address: copy("removal.address") })}
@@ -29,6 +29,13 @@ export function Footer(): React.JSX.Element {
 
         <nav aria-label={copy("chrome.footer.product")}>
           <h6 className="footer-title">{copy("chrome.footer.product")}</h6>
+          {/* The board's Product column opens with the free scan itself
+              (#936) — the one thing on this site a stranger came for, and
+              the only column entry that was missing. Its word is the
+              header CTA's own key, not a second spelling of it. */}
+          <Link href="/" className="link link-hover">
+            {copy("chrome.cta.scan")}
+          </Link>
           <Link href="/pricing" className="link link-hover">
             {copy("chrome.nav.pricing")}
           </Link>
