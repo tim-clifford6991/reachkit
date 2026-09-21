@@ -457,9 +457,6 @@ export interface KnownDefect {
 /** Found 2026-09-21 by this pass against `main` at 06b33bb, after #938,
  *  #939, #940 and #942. */
 export const KNOWN_ON_MAIN: readonly KnownDefect[] = [
-  // #943 — the free report's rival labels and counts, drawn outside the
-  // chart's own <svg> and cut to their last character by it.
-  { route: "/scan/example.com", check: "containment", match: "recharts-zIndex-layer", issue: 943 },
   // #944 — the day card's stage badge, past its cell at 768 and 1280.
   { route: "/app/calendar", check: "containment", match: "badge.badge-sm.badge-primary", issue: 944 },
   // #945 — no <title> on any signed-in screen.

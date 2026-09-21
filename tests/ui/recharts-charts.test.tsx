@@ -56,6 +56,15 @@ function texts(host: HTMLElement): string[] {
   return [...host.querySelectorAll("svg.recharts-surface text")].map((t) => t.textContent ?? "");
 }
 
+/** Each bar's label line, as a reader sees it: the name, then the reading.
+ *  HTML since #943 — see that test for why it is not read out of the
+ *  chart's `<svg>`. */
+function labelLines(host: HTMLElement): string[][] {
+  return [...host.querySelectorAll("figure > div")].map((row) =>
+    [...row.querySelectorAll(":scope > div > span")].map((s) => s.textContent ?? "")
+  );
+}
+
 /** The written readings: the list a screen reader and a server render get. */
 function readings(host: HTMLElement): string[] {
   return [...host.querySelectorAll("figure ul.sr-only li")].map((li) => li.textContent ?? "");
@@ -139,10 +148,40 @@ describe("PresenceBars", () => {
     expect(new Set(tracks.map((t) => t.getAttribute("width"))).size).toBe(1);
   });
 
-  it("writes every row's name and its reading over the searches measured", async () => {
+  it("writes every row's name and its reading on a line above the bar, where nothing can clip them (#943)", async () => {
     const host = await draw(<PresenceBars you={{ name: "acme.com", value: 4 }} rivals={rivals} measured={12} label="presence" />);
-    expect(texts(host)).toEqual(expect.arrayContaining(["one.com", "two.com", "acme.com", "9/12", "0/12", "4/12"]));
+    // **Not `texts()`.** Until #943 these strings were Recharts `YAxis`
+    // ticks, and this assertion read them out of the chart's `<svg>` and
+    // passed while a reader saw `t`, `t`, `g`, `m`: a `<text>` drawn
+    // outside its viewBox is in the document and on nobody's screen. They
+    // are a line of HTML above each bar now, which is where the 2026-09-20
+    // ruling puts them, so this reads them where a reader reads them.
+    expect(labelLines(host)).toEqual([
+      ["one.com", "9/12"],
+      ["two.com", "0/12"],
+      ["acme.com", "4/12"],
+    ]);
+    // And no string is left inside the drawing to be cut off by it.
+    expect(texts(host)).toEqual([]);
     expect(readings(host)).toEqual(["one.com · 9/12", "two.com · 0/12", "acme.com · 4/12"]);
+  });
+
+  it("clamps a domain to one line and keeps the whole of it reachable; the reading never clamps", async () => {
+    // The 2026-09-20 ruling: "A label that can grow (a title, a domain, a
+    // search) is clamped to one or two lines with an ellipsis; a number is
+    // never clamped, so the box changes instead." A domain has no length
+    // this card controls, so it takes the clamp and carries its whole value
+    // on `title`; the ratio is a value, and a value cut in half is a
+    // different value.
+    const long = "a-very-long-rival-domain-that-will-not-fit.example.net";
+    const host = await draw(
+      <PresenceBars you={{ name: "acme.com", value: 4 }} rivals={[{ name: long, value: 9 }]} measured={12} label="presence" />
+    );
+    const [name, ratio] = [...host.querySelectorAll("figure > div > div > span")];
+    expect(name?.className).toContain("truncate");
+    expect(name?.getAttribute("title")).toBe(long);
+    expect(ratio?.className).toContain("whitespace-nowrap");
+    expect(ratio?.className).not.toContain("truncate");
   });
 
   it("draws the customer's zero as their whole track ringed in --bad, and never rings a rival's zero", async () => {
