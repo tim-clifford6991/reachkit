@@ -266,6 +266,13 @@ const UNEDITED: DraftFacts = {
   // deduced for the reason `checks.ts` states — and this is the fixture
   // account's own run, not a stand-in for a draft that has none.
   recordedChecks: ["near_duplicate", "no_invented_people"],
+  // #928: the reserved account's site already has four pages, and the
+  // closest to this one is its own CRM comparison — linked from this page,
+  // as the sentence the rail draws says.
+  knownCheck: {
+    pages: 4,
+    closest: { title: "CRM tools compared", url: "https://acme.example/crm-tools", linked: true },
+  },
   rulesFailed: false,
   // What this page is for (issue 867): the reserved account's own target,
   // the same one its calendar day panel states.

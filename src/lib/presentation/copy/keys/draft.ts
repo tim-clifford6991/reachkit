@@ -352,6 +352,20 @@ export const DRAFT_COPY = Object.freeze({
     "near-duplicate gate passed",
     { slots: {}, fixedBy: "BUILD §8 · S16 (11a)" },
   ],
+  // SPEC §7 (2026-09-20, #928) — "The page's checks say it is not a repeat
+  // and name the closest existing page." The owner's own drafted sentence,
+  // and the same one without its last clause for a closest page this page
+  // does not link to: a post still in draft on their blog, or one on a host
+  // we do not link into. A site whose index holds nothing keeps the line
+  // above — there is no page to name and no number worth stating.
+  "draft.checks.not-a-repeat": [
+    "Not a repeat — checked against {n} pages you already have. The closest is “{title}”, and this page links to it.",
+    { slots: { n: "text", title: "text" }, fixedBy: "SPEC §7 2026-09-20" },
+  ],
+  "draft.checks.not-a-repeat.unlinked": [
+    "Not a repeat — checked against {n} pages you already have. The closest is “{title}”.",
+    { slots: { n: "text", title: "text" }, fixedBy: "SPEC §7 2026-09-20" },
+  ],
   "draft.checks.no-invented-author": [
     "no invented author",
     { slots: {}, fixedBy: "BUILD §8 · S16 (11a)" },

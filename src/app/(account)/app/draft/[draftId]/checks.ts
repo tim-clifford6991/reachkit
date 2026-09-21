@@ -41,7 +41,7 @@
 // A red row repeating either would be the same fact twice in one screen.
 import type { CopyKey } from "@/lib/presentation/copy";
 import type { HardRule } from "@/lib/generate/rules/types";
-import type { ClaimState } from "./model";
+import type { ClaimState, KnownCheck } from "./model";
 
 /** The four §8 rules S16 names, in the order the set lists them. A member
  *  outside `HardRule` does not compile. */
@@ -76,6 +76,12 @@ export const CHECK_COPY_KEY: Readonly<Record<RailCheck, CopyKey>> = Object.freez
 export interface CheckRow {
   rule: RailCheck;
   vars?: Record<string, string | number>;
+  /** The sentence this row speaks, where it is not the rule's own default.
+   *  SPEC §7 (2026-09-20, #928) gives the near-duplicate row a fuller one
+   *  on a site whose index holds pages: what it was checked against, and
+   *  the closest page to it. A rule with nothing extra to say keeps
+   *  `CHECK_COPY_KEY`'s. */
+  key?: CopyKey;
 }
 
 /**
@@ -95,6 +101,9 @@ export function checkRows(a: {
    *  own record, `drafts.rule_failures` (#424). Empty where no battery
    *  recorded anything for this draft. */
   recorded: readonly RailCheck[];
+  /** SPEC §7 (2026-09-20, #928): the site's known pages and the closest of
+   *  them to this page. `null` for a site whose index holds none. */
+  known?: KnownCheck | null;
 }): readonly CheckRow[] {
   const rows: CheckRow[] = [];
   if (a.grounded) {
@@ -102,7 +111,32 @@ export function checkRows(a: {
   }
   if (a.claim.state === "passed") rows.push({ rule: "do_not_claim" });
   for (const rule of RECORDED_CHECKS) {
+    if (rule === "near_duplicate") {
+      if (a.recorded.includes(rule)) rows.push(nearDuplicateRow(a.known ?? null));
+      continue;
+    }
     if (a.recorded.includes(rule)) rows.push({ rule });
   }
   return rows;
+}
+
+/**
+ * The near-duplicate row, as full as the facts allow (#928).
+ *
+ * Three sentences and no fourth: the site's index holds nothing worth
+ * naming, so the gate states itself; it holds pages and the closest of them
+ * is linked from this page, which is what SPEC §7's own sentence says; or it
+ * holds pages and the closest is not linked — a post still unpublished, a
+ * page on a host we do not link to — and the row names it without claiming
+ * a link that is not there.
+ */
+function nearDuplicateRow(known: KnownCheck | null): CheckRow {
+  if (known === null || known.pages === 0 || known.closest === null) {
+    return { rule: "near_duplicate" };
+  }
+  return {
+    rule: "near_duplicate",
+    key: known.closest.linked ? "draft.checks.not-a-repeat" : "draft.checks.not-a-repeat.unlinked",
+    vars: { n: known.pages, title: known.closest.title },
+  };
 }

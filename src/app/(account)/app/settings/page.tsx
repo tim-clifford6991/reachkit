@@ -37,6 +37,7 @@ import { readBusiness } from "./business-provider";
 import { ContentPanel } from "./panels/ContentPanel";
 import { BusinessPanel } from "./panels/BusinessPanel";
 import { FactsPanel } from "./panels/FactsPanel";
+import { KnownContentPanel } from "./panels/KnownContentPanel";
 import { WrittenFromPanel } from "./panels/WrittenFromPanel";
 
 /** /app/settings's own `<title>` (#945). Without it this screen announced
@@ -72,6 +73,11 @@ export default async function SettingsBusinessTab(): Promise<React.JSX.Element> 
           empty={profileIsEmpty(business.profile)}
         />
         <FactsPanel facts={business.facts} />
+        {/* #928: what the writer already knows about — theirs as well as
+            ours. It sits under the facts because both answer the same
+            question a customer has about a page: where did this come from,
+            and what was it checked against. */}
+        <KnownContentPanel known={business.known} />
         <ContentPanel settings={settings} />
       </div>
 
