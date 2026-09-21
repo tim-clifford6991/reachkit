@@ -990,6 +990,15 @@ export const RATIO_UNLOCK = 10 as const;                      // §6.6
  *  chart and the tile can never disagree about which weeks they mean. */
 export const OVERVIEW_TRAILING_WEEKS = 12 as const;           // BUILD §4.5 · DECISIONS 2026-09-03
 
+/** SPEC §6 (owner, 2026-09-20, #908): the AI-answers tab states "a rolling
+ *  four-week rate — answers that name or link the site over all answers
+ *  asked". Four weekly passes, and not the twelve above: the window exists
+ *  because one week of twelve questions is too small a sample to read a
+ *  direction from, and the tab's own sentence says so. A separate pin
+ *  because it is a separate reading — the tile over it counts *answers*,
+ *  where `OVERVIEW_TRAILING_WEEKS` counts *weeks*. */
+export const ANSWER_RATE_WEEKS = 4 as const;                  // SPEC §6 2026-09-20
+
 /** BUILD §4.5, verbatim: "up to two alerts". The remainder is stated as a
  *  count with where to see it, never as a third alert. */
 export const OVERVIEW_ALERT_CAP = 2 as const;                 // BUILD §4.5

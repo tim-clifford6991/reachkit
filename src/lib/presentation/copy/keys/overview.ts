@@ -386,14 +386,10 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.tab.search": ["Search", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
   "overview.tab.rivals": ["Rivals", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
 
-  // The tabs that have an address and not yet a screen (#917, #918). Each
+  // The tab that has an address and not yet a screen (#917). It
   // says what will stand there and that it does not yet — never a blank
   // screen and never a promise of a date nobody has set. Search had one of
-  // these until #916 built the screen.
-  "overview.tab.ai-answers.soon": [
-    "The questions ReachKit asks the answer engines, and who they name, will be listed here. It isn’t built yet.",
-    { slots: {}, fixedBy: "issue 918" },
-  ],
+  // these until #916 built the screen, and AI answers until #918 built its.
   "overview.tab.rivals.soon": [
     "Who is ahead of you in your searches, and by how much, will be shown here. It isn’t built yet.",
     { slots: {}, fixedBy: "issue 917" },
@@ -604,5 +600,90 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.search.empty": [
     "No searches are on file yet. They arrive with the first pass over your market.",
     { slots: {}, fixedBy: "SPEC §4 2026-09-20" },
+  ],
+
+  // ── 2026-09-20 (#908, #918): Overview › AI answers.
+  //
+  // SPEC §6 of that date: "a rolling four-week rate — answers that name or
+  // link the site over all answers asked — beside this week's n of 12; named
+  // and linked are counted apart." Every sentence below is **drafted** under
+  // the owner's 2026-09-16 ruling (#759) and the PR names each one so the
+  // owner can correct it. Three words the product already says are reused
+  // rather than spelled again: the tile name ("Questions that name you"),
+  // the window's "of {of}", and the three engine names, which are the
+  // report screen's own keys.
+  "overview.answers.lead": [
+    "Whether the AI engines your buyers ask name you, link to you, and send people your way.",
+    { slots: {}, fixedBy: "SPEC §6 2026-09-20" },
+  ],
+
+  // The first tile: the four-week rate, its denominator, the split the
+  // owner's ruling asks for, and the one line saying why four weeks.
+  "overview.answers.rate.label": [
+    "Answers that name or link you",
+    { slots: {}, fixedBy: "SPEC §6 2026-09-20" },
+  ],
+  "overview.answers.rate.of": [
+    "of {of} answers asked",
+    { slots: { of: "text" }, fixedBy: "SPEC §6 2026-09-20" },
+  ],
+  "overview.answers.rate.means": [
+    "Over the last {weeks} weeks: {questions} questions × {engines} engines. One week alone is too noisy to trust.",
+    { slots: { weeks: "text", questions: "text", engines: "text" }, fixedBy: "SPEC §6 2026-09-20" },
+  ],
+  "overview.answers.rate.split": [
+    "{linked} link to you · {named} name you somewhere else",
+    { slots: { linked: "text", named: "text" }, fixedBy: "SPEC §6 2026-09-20" },
+  ],
+
+  // The second tile: this week's n of 12, and the engine it is counted
+  // from — the Overview's own rule, said on this screen too.
+  "overview.answers.week.means": [
+    "This week, counted from {engine}.",
+    { slots: { engine: "text" }, fixedBy: "SPEC §6 2026-09-20" },
+  ],
+
+  // The grid: its head, the line under it, and the names a reader needs to
+  // read a mark without seeing its colour.
+  "overview.answers.grid.title": [
+    "The questions we ask every week",
+    { slots: {}, fixedBy: "SPEC §6 2026-09-20" },
+  ],
+  "overview.answers.grid.lead": [
+    "The {of} your buyers ask most, put to every engine, every week.",
+    { slots: { of: "text" }, fixedBy: "SPEC §6 2026-09-20" },
+  ],
+  "overview.answers.grid.label": [
+    "Each question, and what each AI engine said",
+    { slots: {}, fixedBy: "SPEC §6 2026-09-20" },
+  ],
+  "overview.answers.legend.label": ["What each mark means", { slots: {}, fixedBy: "SPEC §6 2026-09-20" }],
+
+  // The five marks. *Linked* is a cited domain that is the site's own;
+  // *named* is the brand token appearing in a reference somewhere else.
+  // "Names someone else" is deliberately wider than the board's "Names a
+  // rival": an answer can cite a directory, a marketplace or nobody at all,
+  // and none of those is a rival.
+  "overview.answers.mark.links": ["Links to you", { slots: {}, fixedBy: "SPEC §6 2026-09-20" }],
+  "overview.answers.mark.names": ["Names you", { slots: {}, fixedBy: "SPEC §6 2026-09-20" }],
+  "overview.answers.mark.others": ["Names someone else", { slots: {}, fixedBy: "SPEC §6 2026-09-20" }],
+  "overview.answers.mark.no-answer": ["No answer", { slots: {}, fixedBy: "SPEC §6 2026-09-20" }],
+  "overview.answers.mark.not-measured": ["Not measured", { slots: {}, fixedBy: "SPEC §6 2026-09-20" }],
+  // One cell's accessible name: which question, which engine, what it said.
+  // Never the colour, and never the mark alone.
+  "overview.answers.cell": [
+    "{question} — {engine}: {mark}",
+    { slots: { question: "text", engine: "text", mark: "text" }, fixedBy: "SPEC §6 2026-09-20" },
+  ],
+  // The search a question was phrased from — REQ-093 c3's other half, which
+  // is why the wording never appears without it.
+  "overview.answers.from": ["from {search}", { slots: { search: "text" }, fixedBy: "REQ-093 c3" }],
+  // The customer's own page for a question, where one is live.
+  "overview.answers.page": ["Your page", { slots: {}, fixedBy: "SPEC §6 2026-09-20" }],
+  // Nothing measured yet — a site whose first weekly pass has not run. It
+  // claims nothing about the engines; it says what is true of the record.
+  "overview.answers.empty": [
+    "No AI answers have been measured yet. The first weekly pass puts all twelve questions to every engine.",
+    { slots: {}, fixedBy: "SPEC §6 2026-09-20" },
   ],
 }) satisfies CopyPartition;

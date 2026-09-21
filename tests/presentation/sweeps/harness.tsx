@@ -102,10 +102,13 @@ export const ROUTE_HARNESS: Readonly<Record<string, HarnessRow>> = Object.freeze
   // `search-provider.ts` — the reserved fixture account's, in this sweep —
   // so it is an async server component like the Overview tab beside it.
   "(account)/app/(tabs)/search/page.tsx": { props: () => ({}), shell: true, async: true },
-  // The two tabs #918 and #917 build. Each renders its own name, one
-  // written line and daisyUI `skeleton` blocks — no store, no session, no
-  // params — so the row is the simplest one this table has.
-  "(account)/app/(tabs)/ai-answers/page.tsx": { props: () => ({}), shell: true, async: false },
+  // SPEC §6 (2026-09-20), #918: the AI answers tab reads its own model
+  // through `answers-provider.ts` — the reserved fixture account's, in this
+  // sweep — so it is an async server component like the two beside it.
+  "(account)/app/(tabs)/ai-answers/page.tsx": { props: () => ({}), shell: true, async: true },
+  // The tab #917 builds. It renders its own name, one written line and
+  // daisyUI `skeleton` blocks — no store, no session, no params — so the
+  // row is the simplest one this table has.
   "(account)/app/(tabs)/rivals/page.tsx": { props: () => ({}), shell: true, async: false },
   "(account)/app/calendar/page.tsx": {
     props: () => ({ searchParams: {} }),
