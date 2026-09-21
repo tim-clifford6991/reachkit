@@ -244,6 +244,28 @@ export const ATTRIBUTE_ALLOWLIST: readonly AllowlistedAttribute[] = Object.freez
       "wordings of the same four terms the card renders, and every sentence either arm " +
       "carries arrives from the registry through copy().",
   },
+  {
+    kind: "exact",
+    name: "tab",
+    reason:
+      "Overview's own tab handle ('overview' | 'search' | 'ai_answers' | 'rivals', SPEC §4 " +
+      "2026-09-20), the same category as `variant` and `state`: it selects which of the four " +
+      "addresses a tile or a placeholder belongs to, never what it says. The word each tab " +
+      "speaks is `TAB_COPY_KEY`'s, read through copy(), which this sweep still governs.",
+  },
+  {
+    kind: "exact",
+    name: "width",
+    reason:
+      "a dimension, in the CSS sense — Recharts' ResponsiveContainer takes '100%' here " +
+      "(docs/DESIGN.md's no-overflow rule). A length is not a sentence, and the same " +
+      "category ADR-010 point 1 admits `data-theme` under.",
+  },
+  {
+    kind: "exact",
+    name: "height",
+    reason: "the same, and its pair: a chart's own height in pixels or per cent.",
+  },
 ] as const);
 
 export function isAllowlistedAttribute(attributeName: string): boolean {

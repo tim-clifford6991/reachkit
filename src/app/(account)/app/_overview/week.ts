@@ -30,6 +30,11 @@ export interface WeekDayModel {
   date: Date;
   state: DayState;
   markKey: CopyKey;
+  /** SPEC §4 (2026-09-20): the one word the day carries — the stage of the
+   *  page scheduled for it (`calendar.stage.*`, the calendar's own five) or
+   *  `NO_PAGE_KEY` where nothing is scheduled. Never absent: a cell with no
+   *  word would be a cell whose meaning is its colour, which §2.5 forbids. */
+  pageKey: CopyKey;
 }
 
 export type SevenDayModel = readonly [
@@ -52,6 +57,10 @@ export interface WeekModule {
   calendarHref: string;
 }
 
+/** What a day with nothing scheduled on it says. A day is never blank: the
+ *  strip states what stands on every one of the seven. */
+export const NO_PAGE_KEY = "overview.week.day.no-page" satisfies CopyKey;
+
 export const DAY_MARK: Readonly<Record<DayState, CopyKey>> = Object.freeze({
   done: "overview.week.day.done",
   today: "overview.week.day.today",
@@ -72,7 +81,15 @@ export const CALENDAR_DAY_ZONE = "UTC";
 const DAYS_IN_WEEK = 7;
 const MS_PER_DAY = 86_400_000;
 
-export function readWeek(input: { today: Date; timeZone: string }): WeekModule {
+export function readWeek(input: {
+  today: Date;
+  timeZone: string;
+  /** The stage word for each of the seven days, in the strip's own order
+   *  (the week's first day first). `null` — or an absent entry — is a day
+   *  with no page on it. Supplied by the reader that holds the site's
+   *  drafts; this module decides nothing about what is scheduled. */
+  pages?: readonly (CopyKey | null)[];
+}): WeekModule {
   const today = localMidnight(input.today, input.timeZone);
   const start = weekStartOf(today);
 
@@ -84,7 +101,12 @@ export function readWeek(input: { today: Date; timeZone: string }): WeekModule {
         : date.getTime() === today.getTime()
           ? "today"
           : "to-come";
-    return { date, state, markKey: DAY_MARK[state] };
+    return {
+      date,
+      state,
+      markKey: DAY_MARK[state],
+      pageKey: input.pages?.[offset] ?? NO_PAGE_KEY,
+    };
   };
 
   // Written out rather than generated: the tuple type is the seven, and a

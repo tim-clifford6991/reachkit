@@ -18,15 +18,23 @@ import { REPORT_VERSION } from "@/lib/scan/report";
 
 const db: FakeDb = fakeDb();
 vi.mock("@/lib/db", () => ({ dbAdmin: () => db.client, db: () => db.client }));
+/** REQ-063's stored standings for the week, per test. The searches tile's
+ *  line counts the pages standing `working` out of the pages live, so a test
+ *  about that line seeds them and every other test leaves them empty. */
+const standings = vi.hoisted(() => ({ working: 0 }));
 vi.mock("@/lib/opportunities", () => ({
   supplyDepth: async () => ({ unused: 9, total: 12 }),
   supplyMeasured: async () => true,
   supplyState: async () => "measured",
-  readWeek: async () => [],
+  readWeek: async () =>
+    Array.from({ length: standings.working }, (_unused, i) => ({
+      opportunityId: `o${i}`,
+      standing: { kind: "verdict", verdict: "working" },
+    })),
 }));
 
 const { LIVE_ACCOUNT, resetAccount, signedInAs } = await import("../account-door");
-const { default: OverviewPage } = await import("@/app/(account)/app/page");
+const { default: OverviewPage } = await import("@/app/(account)/app/(tabs)/page");
 const { copy } = await import("@/lib/presentation/copy");
 
 const ZONE = "UTC";
@@ -93,6 +101,7 @@ beforeEach(() => {
   db.seed("publications", []);
   db.seed("drafts", []);
   db.seed("scans", []);
+  standings.working = 0;
 });
 
 afterEach(() => {
@@ -102,30 +111,38 @@ afterEach(() => {
 
 const up = (n: number): string => `<span class="num">${copy("overview.delta.up")}</span><span class="num">${n}</span>`;
 
-describe("the searches-appeared delta is drawn on the growth card", () => {
-  it("two weekly readings: the change between them sits beside the title", async () => {
+// SPEC §4 (2026-09-20): the searches reading is the Overview tab's first
+// tile now, not the growth card — the card itself is the Search tab's (#916).
+// The change it carries is the same one, read from the same two weeks.
+describe("the searches-appeared change is drawn on the tile that opens Search", () => {
+  it("two weekly readings: the change between them sits beside the number", async () => {
     db.seed("scans", [DEEP, WEEK_1, WEEK_2]);
-    const growth = section(await page(), "overview-growth");
-    expect(growth).toContain('data-testid="overview-growth-delta"');
-    expect(growth).toContain(up(6));
+    const tile = section(await page(), "overview-tile-searches");
+    expect(tile).toContain(up(6));
   });
 
-  it("on the first Monday the delta is taken against week 0, the deep pass", async () => {
+  it("on the first Monday the change is taken against week 0, the deep pass", async () => {
     db.seed("scans", [DEEP, WEEK_1]);
-    const growth = section(await page(), "overview-growth");
-    expect(growth).toContain(up(5));
+    expect(section(await page(), "overview-tile-searches")).toContain(up(5));
   });
 
   it("before the first Monday there is no movement to draw", async () => {
     vi.setSystemTime(new Date(Date.UTC(2026, 8, 4, 10, 0, 0)));
     db.seed("scans", [DEEP]);
-    expect(await page()).not.toContain('data-testid="overview-growth-delta"');
+    expect(section(await page(), "overview-tile-searches")).not.toContain(
+      copy("overview.delta.up")
+    );
   });
 });
 
-describe("the pages delta is loaded from the publications and drawn on the tile", () => {
-  it("pages live now against pages live a week ago, with a take-down counted out", async () => {
+// The pages count is the denominator of that tile's line since the redesign
+// ("3 of your 9 pages are already ranking"): the pages tile itself is gone
+// from the Overview tab with the owner's 2026-09-20 enumeration. What is
+// asserted here is that the count reaching the line is the live one.
+describe("the pages live now are the denominator of the tile's line", () => {
+  it("a take-down is counted out of the total the line is read against", async () => {
     db.seed("scans", [DEEP, WEEK_1, WEEK_2]);
+    standings.working = 2;
     db.seed("publications", [
       publication("p1", "2026-09-05T07:00:00.000Z"),
       publication("p2", "2026-09-08T07:00:00.000Z", "2026-09-12T07:00:00.000Z"),
@@ -133,25 +150,29 @@ describe("the pages delta is loaded from the publications and drawn on the tile"
       publication("p4", "2026-09-12T07:00:00.000Z"),
       publication("p5", "2026-09-15T07:00:00.000Z"),
     ]);
-    // A week ago (9 Sep 10:00) p1 and p2 were live; now p1, p3, p4, p5.
-    const tile = section(await page(), "overview-tile-pages");
-    expect(tile).toContain('<div class="stat-value num">4</div>');
-    expect(tile).toContain(up(2));
+    // p2 was taken down, so four pages are live now.
+    const tile = section(await page(), "overview-tile-searches");
+    expect(tile).toContain(
+      copy("overview.tile.searches.ranking", { ranked: "2", published: "4" })
+    );
     expect(tile).not.toContain("TODO(copy)");
   });
 
-  it("before the first Monday the tile states the count and no delta", async () => {
+  it("with no standings read, the line is absent rather than a 0 of 1", async () => {
     vi.setSystemTime(new Date(Date.UTC(2026, 8, 4, 10, 0, 0)));
     db.seed("scans", [DEEP]);
     db.seed("publications", [publication("p1", "2026-09-03T07:00:00.000Z")]);
-    const tile = section(await page(), "overview-tile-pages");
-    expect(tile).toContain('<div class="stat-value num">1</div>');
-    expect(tile).not.toContain(copy("overview.delta.up"));
+    const tile = section(await page(), "overview-tile-searches");
+    expect(tile).not.toContain("already ranking");
   });
 });
 
-describe("the veto countdown is the draft's stored veto_deadline", () => {
-  it("a 4-hour window stamped on the draft counts down to that deadline, not a default day from created_at", async () => {
+// SPEC §4 (2026-09-20): the page in review leads the screen, and the card
+// says when it goes live if the customer does nothing. The instant is the
+// draft's own stored `veto_deadline` (issue 794) — never a default length
+// counted from `created_at`, which is the defect that issue fixed.
+describe("when the page goes live is the draft's stored veto_deadline", () => {
+  it("a 4-hour window stamped on the draft is the time the card states", async () => {
     db.seed("scans", [DEEP, WEEK_1, WEEK_2]);
     db.seed("drafts", [
       {
@@ -163,12 +184,13 @@ describe("the veto countdown is the draft's stored veto_deadline", () => {
         veto_deadline: "2026-09-16T12:30:00.000Z",
       },
     ]);
-    const alerts = section(await page(), "overview-needs-you");
-    const left = copy("overview.alert.pending-veto.left", { hours: "2", minutes: "30" });
-    expect(alerts).toContain(copy("overview.alert.pending-veto.due", { left }));
+    const card = section(await page(), "overview-waiting");
+    // 12:30 UTC, in the site's own zone — not 08:00 plus a default day.
+    expect(card).toContain("12:30");
+    expect(card).not.toContain("TODO(copy)");
   });
 
-  it("a page in review with no window running states no countdown", async () => {
+  it("a page in review with no window running states no time at all", async () => {
     db.seed("scans", [DEEP, WEEK_1, WEEK_2]);
     db.seed("drafts", [
       {
@@ -180,9 +202,38 @@ describe("the veto countdown is the draft's stored veto_deadline", () => {
         veto_deadline: null,
       },
     ]);
-    const alerts = section(await page(), "overview-needs-you");
-    expect(alerts).toContain(copy("overview.alert.pending-veto.no-window"));
-    expect(alerts).not.toContain("publishes in");
-    expect(alerts).not.toContain("TODO(copy)");
+    const card = section(await page(), "overview-waiting");
+    expect(card).toContain(copy("overview.waiting.waits"));
+    expect(card).not.toContain("TODO(copy)");
+  });
+
+  // The countdown itself belongs to a **second** page in review, which the
+  // card does not lead with: one page leads, the rest wait in the list.
+  it("a second page in review keeps its countdown in the needs-you list", async () => {
+    db.seed("scans", [DEEP, WEEK_1, WEEK_2]);
+    db.seed("drafts", [
+      {
+        id: "d1",
+        site_id: SITE_ID,
+        state: "in_review",
+        title: "How to pick a CRM",
+        created_at: "2026-09-16T07:00:00.000Z",
+        veto_deadline: "2026-09-16T18:00:00.000Z",
+      },
+      {
+        id: "d2",
+        site_id: SITE_ID,
+        state: "in_review",
+        title: "How to pick a helpdesk",
+        created_at: "2026-09-16T08:00:00.000Z",
+        veto_deadline: "2026-09-16T12:30:00.000Z",
+      },
+    ]);
+    const html = await page();
+    const alerts = section(html, "overview-needs-you");
+    const left = copy("overview.alert.pending-veto.left", { hours: "2", minutes: "30" });
+    expect(alerts).toContain(copy("overview.alert.pending-veto.due", { left }));
+    // …and the page the card leads with is not repeated in that list.
+    expect(alerts).not.toContain("How to pick a CRM");
   });
 });

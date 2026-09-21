@@ -33,6 +33,7 @@ import { resolveRivals, type RivalFacts, type RivalGapModule } from "./rivals";
 import { readAlerts, type Alert, type Overflow, type WaitingItem } from "./alerts";
 import { readSupplyStatement, type SupplyFacts, type SupplyStatement } from "./supply";
 import { readWeek, type WeekModule } from "./week";
+import { readWaitingPage, type WaitingPage, type WaitingPageFacts } from "./waiting";
 
 /** The single number a module leads with. `goal` is a pin, not a setting —
  *  the same value for every customer — and it is required. */
@@ -91,10 +92,25 @@ export interface AiPresenceWindow {
  *  in. `band` is `null` wherever the score is unmeasured — a band is a
  *  reading of a score, so a screen with no score has no band to name, and
  *  the tile shows the dash with its own line instead (S13). */
-export type ScoreModule = Module<number> & { band: BandHandle | null };
+export type ScoreModule = Module<number> & {
+  band: BandHandle | null;
+  /** SPEC §4 (2026-09-20): the header's twelve-week trend, oldest first.
+   *  `null` is a week that was not measured — never a zero, and never a
+   *  point the line is drawn through as though it had been. */
+  trend: readonly (number | null)[];
+};
 
 export interface OverviewModel {
+  /** Today, in the site's own zone — the date the header states and the day
+   *  the week strip marks. The facts' own, carried through rather than read
+   *  a second time from a clock a renderer reaches for. */
+  today: Date;
   head: { key: CopyKey; direction: HeadDirection; badgeKey?: CopyKey; weeksMeasured: number };
+  /** SPEC §4 (2026-09-20): the page waiting for review, which the Overview
+   *  tab leads with. `null` where nothing is in review — the card is then
+   *  not drawn at all, and the head states the series' own direction
+   *  instead of claiming a page is waiting. */
+  waitingPage: WaitingPage | null;
   growth: GrowthModule;
   /** UI-SPEC S12's first tile (ruling 6a). Not on this screen between
    *  DECISIONS 2026-09-03 and the owner's 2026-09-08 screen set; see
@@ -106,6 +122,11 @@ export interface OverviewModel {
    *  still carries its delta, and is still what `headDirection` and the
    *  chart's own footnotes are read from. */
   searches: Module<number>;
+  /** SPEC §4 (2026-09-20): the searches tile's own trend — one point per
+   *  measured week of the window, oldest first, `null` for a week that was
+   *  not measured. The same readings the growth card draws, as a bare
+   *  series: a sparkline has no room for a break and its account. */
+  searchTrend: readonly (number | null)[];
   aiAnswers: Module<number> & {
     window: AiPresenceWindow;
     /** Issue 867: the engine the number is counted from, and the engines
@@ -135,6 +156,11 @@ export interface OverviewModel {
 /** Everything Overview reads, before it is a model. One shape, so a fixture
  *  and a future query answer the same question. */
 export interface OverviewFacts {
+  /** SPEC §4 (2026-09-20): the page in review the Overview leads with, or
+   *  `null` where none is. Where more than one waits, it is the oldest —
+   *  the same order `readAlerts` ranks them in, so the card and the
+   *  needs-you list cannot lead with two different pages. */
+  waitingPage?: WaitingPageFacts | null;
   /** The zone every date this screen states is expressed in — the shell's
    *  own `sites.time_zone` (REQ-073 c1), read once and passed in. */
   timeZone: string;
@@ -169,6 +195,11 @@ export interface OverviewFacts {
    *  the report's verdict head states (`report.verdict.scoreAndBand`), so
    *  the two surfaces can never disagree about the number or the word. */
   score: Measured<{ score: number; band: BandHandle }>;
+  /** SPEC §4 (2026-09-20): the score of each week of the trailing window,
+   *  oldest first, for the header's trend. `null` is a week that was not
+   *  measured. Absent where no week was — the header then draws no line
+   *  rather than an empty frame, which would read as a measured floor. */
+  scorePoints?: readonly (number | null)[];
   /** The previous week's, where one was taken. The tile's `▲ 8` is the
    *  difference of the two; with no previous reading there is no delta and
    *  the tile carries its goal instead. */
@@ -196,11 +227,21 @@ export interface OverviewFacts {
    *  take them (issue 867). Empty where the week has no planned or written
    *  page, and the line is then absent rather than empty. */
   weekSearches: readonly string[];
+  /** SPEC §4 (2026-09-20): the stage word each of this week's seven days
+   *  carries, in the strip's own order. Absent where the site's drafts could
+   *  not be read, and every day then says it holds no page — which is what
+   *  the strip can honestly say when nothing came back. */
+  weekPages?: readonly (CopyKey | null)[];
 }
 
 /** The one engine the AI-answers number is counted from (§6.2's own rule,
  *  `matrix.ts`: "the three counts stay the AI-Overview counts"). */
 const COUNTED_FROM = "ai_overview" satisfies AnswerEngine;
+
+/** SPEC §4 (2026-09-20): what the head says while a page is waiting to be
+ *  read. It outranks the four direction lines because it is about something
+ *  the customer can act on now, where a direction is about the series. */
+const WAITING_HEAD = "overview.head.waiting" satisfies CopyKey;
 
 export function assembleOverview(facts: OverviewFacts): OverviewModel {
   const growth = readGrowth({
@@ -220,24 +261,48 @@ export function assembleOverview(facts: OverviewFacts): OverviewModel {
   // The measured week before the latest, or week 0 on the first Monday —
   // the same comparison the score's delta makes (issue 793).
   const previous = measuredPoints.at(-2)?.value ?? (latest === undefined ? undefined : facts.searchesWeekZero);
-  const { alerts, overflow, issuesOverflow } = readAlerts(facts.waiting, facts.today);
+  // SPEC §4 (2026-09-20): the page waiting for review, which the Overview
+  // leads with. The head speaks of it where there is one — the customer's
+  // own queue is the first thing the screen is about — and falls back to the
+  // series' own direction where there is not.
+  const waitingPage = facts.waitingPage == null ? null : readWaitingPage(facts.waitingPage);
+  // The card and the needs-you list below it never state the same page
+  // twice: the item the card is about leaves the list, and what is left is
+  // whatever else wants the customer. A second page in review is still an
+  // alert — it is a second thing waiting, and the card only leads with one.
+  const { alerts, overflow, issuesOverflow } = readAlerts(
+    waitingPage === null
+      ? facts.waiting
+      : facts.waiting.filter(
+          (item) => item.kind === "site_issue" || item.href !== waitingPage.href
+        ),
+    facts.today
+  );
   const supply = readSupplyStatement(facts.supply);
   const window = aiWindow(facts.points, facts.aiPresence, facts.changes, facts.aiWeekZero);
   const scoreDelta =
     facts.scorePrevious === undefined
       ? undefined
       : deltaOf(scoreValue(facts.score), scoreValue(facts.scorePrevious));
-
   return {
+    today: facts.today,
+    waitingPage,
+    searchTrend: facts.points.map((point) =>
+      point.value.kind === "unmeasured" ? null : point.value.value
+    ),
     head: {
-      key: OVERVIEW_HEAD[direction],
+      key: waitingPage === null ? OVERVIEW_HEAD[direction] : WAITING_HEAD,
       direction,
       // §4.5's badge is a claim about every week since the customer
       // started, so it is emitted on `rising` and nowhere else, and only
       // over the weeks actually measured (BP-038 decision 4). The week-0
       // badge is not that claim — it names the week, and S13 draws it
       // neutral for exactly that reason.
-      ...(direction === "rising" ? { badgeKey: "overview.head.badge" satisfies CopyKey } : {}),
+      ...(waitingPage === null && direction === "rising"
+        ? { badgeKey: "overview.head.badge" satisfies CopyKey }
+        : {}),
+      // The week-0 badge is not a claim about the head line: it names the
+      // week the screen is reading, which is true whatever the head says.
       ...(direction === "week_zero"
         ? { badgeKey: "overview.head.badge.week-zero" satisfies CopyKey }
         : {}),
@@ -251,6 +316,7 @@ export function assembleOverview(facts: OverviewFacts): OverviewModel {
         ...(scoreDelta === undefined ? {} : { delta: scoreDelta }),
       },
       band: facts.score.kind === "unmeasured" ? null : facts.score.value.band,
+      trend: facts.scorePoints ?? [],
     },
     searches: {
       headline: {
@@ -291,7 +357,14 @@ export function assembleOverview(facts: OverviewFacts): OverviewModel {
     },
     rivals: resolveRivals(facts.rivals, facts.changes),
     weekZero,
-    week: { ...readWeek({ today: facts.today, timeZone: facts.timeZone }), searches: facts.weekSearches },
+    week: {
+      ...readWeek({
+        today: facts.today,
+        timeZone: facts.timeZone,
+        ...(facts.weekPages === undefined ? {} : { pages: facts.weekPages }),
+      }),
+      searches: facts.weekSearches,
+    },
     ...(supply ? { supply } : {}),
     alerts,
     ...(overflow ? { overflow } : {}),

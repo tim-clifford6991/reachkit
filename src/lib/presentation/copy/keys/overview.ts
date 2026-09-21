@@ -163,7 +163,11 @@ export const OVERVIEW_COPY = Object.freeze({
   // The card head of the growth chart still names the searches reading:
   // the set moved that number off the tiles and onto its own card, and
   // this key is the card's eyebrow now rather than a tile label.
-  "overview.tile.searches.label": ["Searches you appear in", { slots: {}, fixedBy: "BUILD §4.5" }],
+  // 2026-09-20 (#908/#915): the redesign names this tile "Searches you appear
+  // for" — the Overview tab's first linked tile, and the Search tab's own
+  // head. One key, reworded; drafted under issue 759's ruling and the
+  // owner's to correct.
+  "overview.tile.searches.label": ["Searches you appear for", { slots: {}, fixedBy: "issue 915" }],
   "overview.tile.ai-answers.label": ["AI answers", { slots: {}, fixedBy: "BUILD §4.5" }],
   "overview.tile.ai-answers.window": [
     "named in {weeks} of the last {of} weeks",
@@ -363,4 +367,121 @@ export const OVERVIEW_COPY = Object.freeze({
     "Compared from {since}, when your settings changed — earlier readings aren’t joined to these.",
     { slots: { since: "date" }, fixedBy: "REQ-071 c13" },
   ],
+
+  // ── 2026-09-20 (#908, #915): Overview's four tabs, the header, the page
+  // waiting for review, and the three linked tiles.
+  //
+  // Every sentence below is **drafted** under the owner's 2026-09-16 ruling
+  // (#759): a customer-visible string is written in the registry's voice and
+  // shipped, never left as a marker, and the PR names each one so the owner
+  // can correct it.
+
+  // The tab bar. Three of the four words already exist in the registry and
+  // are reused (`shell.nav.overview`, `overview.tile.ai-answers.label`); a
+  // fourth spelling of a word the product already says would be a second
+  // place to change it.
+  "overview.tabs.label": ["Overview sections", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  "overview.tab.search": ["Search", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  "overview.tab.rivals": ["Rivals", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+
+  // The three tabs this issue only opens an address for (#916, #917, #918).
+  // Each says what will stand there and that it does not yet — never a blank
+  // screen and never a promise of a date nobody has set.
+  "overview.tab.search.soon": [
+    "Every search ReachKit is going after will be listed here, with what it is worth and where you stand. It isn’t built yet.",
+    { slots: {}, fixedBy: "issue 916" },
+  ],
+  "overview.tab.ai-answers.soon": [
+    "The questions ReachKit asks the answer engines, and who they name, will be listed here. It isn’t built yet.",
+    { slots: {}, fixedBy: "issue 918" },
+  ],
+  "overview.tab.rivals.soon": [
+    "Who is ahead of you in your searches, and by how much, will be shown here. It isn’t built yet.",
+    { slots: {}, fixedBy: "issue 917" },
+  ],
+
+  // The head, when a page is waiting to be read. The other four head lines
+  // are the series' own (`OVERVIEW_HEAD`) and are unchanged: this arm is
+  // about the customer's own queue, not about the gap.
+  "overview.head.waiting": ["One page is waiting for you.", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+
+  // Every sparkline's accessible name: what it is a reading of, over how
+  // many weeks. One key, because every trend on this screen is the same kind
+  // of thing and a chart with no name is a chart a screen reader skips.
+  "overview.trend.label": [
+    "{name}, the last {weeks} weeks",
+    { slots: { name: "text", weeks: "text" }, fixedBy: "SPEC §4 2026-09-20" },
+  ],
+
+  // ── The page waiting for review.
+  "overview.waiting.goes-live": [
+    "Goes live {at}, unless you stop it.",
+    { slots: { at: "date" }, fixedBy: "SPEC §4 2026-09-20" },
+  ],
+  // A page in review with no window running: nothing publishes it on a
+  // clock, so the line states no time.
+  "overview.waiting.waits": ["It waits for you before it publishes.", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  "overview.waiting.why.label": ["Why this page:", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  // The four arms of the reason, one per shape of evidence the opportunity
+  // carries. Never composed at a call site: the screen picks the arm and the
+  // registry says the sentence.
+  "overview.waiting.why.answered-by": [
+    "{volume} people a month search “{search}”. Today {rival} answers them and you don’t appear.",
+    { slots: { volume: "text", search: "text", rival: "text" }, fixedBy: "SPEC §4 2026-09-20" },
+  ],
+  "overview.waiting.why.not-high-enough": [
+    "{volume} people a month search “{search}”, and your own page for it isn’t high enough yet.",
+    { slots: { volume: "text", search: "text" }, fixedBy: "SPEC §4 2026-09-20" },
+  ],
+  // The search was chosen but its demand was never read back: the screen
+  // states what the page is for and claims no number (REQ-004).
+  "overview.waiting.why.search": [
+    "This page is written to win “{search}”.",
+    { slots: { search: "text" }, fixedBy: "SPEC §4 2026-09-20" },
+  ],
+  // A Fix page has no market target at all (SPEC §9).
+  "overview.waiting.why.fix": [
+    "This page fixes something on your own site that is holding your pages back.",
+    { slots: {}, fixedBy: "SPEC §4 2026-09-20" },
+  ],
+  "overview.waiting.badge.new": ["New page", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  "overview.waiting.badge.update": ["Update", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
+  // The small view of the page under the reason. The bar carries the address
+  // readers reach it at, where the destination has one.
+  "overview.waiting.preview.label": ["As your readers will see it", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  // The screen's second control. "Stop this page" is the product's word on
+  // every screen and in every mail (SPEC §4 · §7, 2026-09-20); "veto" stays
+  // internal.
+  "overview.waiting.stop": ["Stop this page", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
+  // Every action answers (SPEC §4, 2026-09-20): the two words the control
+  // says back, on the screen, in place of silence.
+  "overview.waiting.stopped": ["Stopped. This page won’t publish.", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  "overview.waiting.stop-refused": [
+    "That didn’t go through. The page is unchanged — try again in a moment.",
+    { slots: {}, fixedBy: "SPEC §4 2026-09-20" },
+  ],
+
+  // ── The three linked tiles. Each name is the tile's own; the chip beside
+  // it is the tab it opens, spoken from that tab's key.
+  "overview.tile.questions.label": ["Questions that name you", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  // The window's own denominator, beside the count. Its own key because the
+  // "of" is a word and the number is `OVERVIEW_TRAILING_WEEKS`, which is a
+  // pin and is never written at a call site.
+  "overview.tile.ai-answers.of": ["of {of}", { slots: { of: "text" }, fixedBy: "SPEC §4 2026-09-20" }],
+  "overview.tile.rivals.label": ["Your nearest rival’s lead", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  // The line under the searches tile. The count is REQ-063's own stored
+  // standing — pages whose week was judged `working` — so the sentence says
+  // "already ranking" and claims no position.
+  "overview.tile.searches.ranking": [
+    "{ranked} of your {published} pages are already ranking.",
+    { slots: { ranked: "text", published: "text" }, fixedBy: "issue 915" },
+  ],
+  "overview.tile.rivals.whose": [
+    "Your nearest rival is {rival}.",
+    { slots: { rival: "text" }, fixedBy: "issue 915" },
+  ],
+
+  // ── This week: the word a day carries when nothing is scheduled on it.
+  // The five stage words are the calendar's own (`calendar.stage.*`).
+  "overview.week.day.no-page": ["No page", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
 }) satisfies CopyPartition;

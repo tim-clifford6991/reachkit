@@ -121,6 +121,21 @@ export const ROUTE_REFERENCE: Readonly<Record<string, `S${number}`>> = {
   "/setup/zone": "S11",
   /** REFERENCE: S12 — Overview, week 0 is S13 (§S12, §S13; REQ-040…042, 092) */
   "/app": "S12",
+  /**
+   * REFERENCE: S12 — Overview's three sibling tabs (SPEC §4, 2026-09-20,
+   * #908), the nearest approved screen.
+   *
+   * The four tabs are newer than the approved set, so no screen was drawn
+   * for any of the three below. They are paired with S12 on the same
+   * footing `/setup/zone` is paired with S11 (#753): they are the same
+   * screen family — the signed-in Overview, inside the same shell, under
+   * the same tab bar — and their own screens land with #916, #918 and #917.
+   */
+  "/app/search": "S12",
+  /** REFERENCE: S12 — Overview's AI answers tab (#918 builds it) */
+  "/app/ai-answers": "S12",
+  /** REFERENCE: S12 — Overview's Rivals tab (#917 builds it) */
+  "/app/rivals": "S12",
   /** REFERENCE: S14 — Calendar, panel states S15 (§S14, §S15; REQ-043, REQ-044) */
   "/app/calendar": "S14",
   /** REFERENCE: S16 — Draft, edit is S17 (§S16, §S17; REQ-045, REQ-093) */
