@@ -7,7 +7,7 @@
 // they cannot be rendered apart.
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import DraftPage from "@/app/(account)/app/draft/[draftId]/page";
+import DraftPage, { generateMetadata } from "@/app/(account)/app/draft/[draftId]/page";
 import {
   FIXTURE_DRAFTS,
   FIXTURE_DRAFT_ID,
@@ -74,5 +74,33 @@ describe("an id the store does not hold resolves to one written line", () => {
     // stale link left the customer with one sentence and nowhere to go.
     expect(back?.getAttribute("href")).toBe("/app/calendar");
     expect(back?.textContent).toContain(COPY["draft.back"]);
+  });
+});
+
+describe("#984 — the tab says which page is waiting, not which kind of screen", () => {
+  // Owner ruling 2026-09-21. The title is the draft's own, through a slot
+  // in a written sentence — model text never reaches a browser tab as a
+  // sentence of ours — and the static key stays the floor.
+  const titleOf = async (draftId: string): Promise<unknown> =>
+    (await generateMetadata({ params: Promise.resolve({ draftId }) })).title;
+
+  it("a draft with a title carries it", async () => {
+    const facts = FIXTURE_DRAFTS[FIXTURE_DRAFT_ID];
+    expect(await titleOf(FIXTURE_DRAFT_ID)).toBe(
+      COPY["meta.app.draft.title.page"].replace("{title}", facts?.title ?? "")
+    );
+  });
+
+  it("an id that resolves to nothing reads the floor, and says nothing about whether it exists", async () => {
+    expect(await titleOf("no-such-draft")).toBe(COPY["meta.app.draft.title"]);
+  });
+
+  it("it is the same read the render makes — one resolution per request", async () => {
+    // `readDraft` is `React.cache`d, so the metadata and the render below
+    // it describe one row. Asserted by their agreement: the title in the
+    // head is the title in the document.
+    const root = await render(FIXTURE_DRAFT_ID);
+    const heading = root.querySelector("h1")?.textContent ?? "";
+    expect(String(await titleOf(FIXTURE_DRAFT_ID))).toContain(heading);
   });
 });
