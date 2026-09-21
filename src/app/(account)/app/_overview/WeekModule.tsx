@@ -58,7 +58,14 @@ export function WeekModule(p: {
     <section className="card card-border min-w-0 bg-base-100" data-testid="overview-week">
       <div className="card-body gap-4 p-5">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="card-title text-xs font-semibold uppercase tracking-wide text-base-content/60">
+          {/* The card head, at the sub-head step the approved board draws
+              it at — sentence case, not an uppercase eyebrow. The `!` is
+              not decoration: `src/ui/type.css` states `h2 { font-size:
+              var(--h2) }` **unlayered**, and an unlayered element rule
+              out-ranks `@layer utilities`, so a plain `text-base` on a
+              heading is a class that renders nothing (the same fact that
+              file records for `.t-hero`). */}
+          <h2 className="card-title text-base!">
             <Calendar aria-hidden size={20} strokeWidth={1.75} />
             {title}
           </h2>

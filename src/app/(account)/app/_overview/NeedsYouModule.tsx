@@ -99,7 +99,11 @@ export function NeedsYouModule(p: {
   return (
     <section className="card card-border min-w-0 bg-base-100" data-testid="overview-needs-you">
       <div className="card-body gap-4 p-5" data-testid="overview-alerts">
-        <h2 className="card-title text-xs font-semibold uppercase tracking-wide text-base-content/60">
+        {/* The card head, at the sub-head step the approved board draws it
+            at. `!` because `src/ui/type.css`'s unlayered `h2` rule
+            out-ranks `@layer utilities` — see `WeekModule` for the whole
+            of it. */}
+        <h2 className="card-title text-base!">
           <Bell aria-hidden size={20} strokeWidth={1.75} />
           {copy("overview.needs-you.title")}
         </h2>

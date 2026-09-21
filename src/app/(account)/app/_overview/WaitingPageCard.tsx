@@ -115,7 +115,11 @@ export function WaitingPageCard(p: { page: WaitingPage; timeZone: string }): Rea
               )}
             </div>
 
-            <h2 className="card-title line-clamp-2 text-xl leading-tight">{page.title}</h2>
+            {/* No size utility: `type.css`'s unlayered `h2` rule is the
+                module-head step, which is what the approved board draws
+                this title at. A `text-xl` here would be a class that never
+                applied. */}
+            <h2 className="card-title line-clamp-2 leading-tight">{page.title}</h2>
 
             {why === null ? null : (
               <p className="text-sm" data-testid="overview-waiting-why">
