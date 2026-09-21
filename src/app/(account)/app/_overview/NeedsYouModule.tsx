@@ -15,13 +15,18 @@
 // A panel whose title, line or control is unwritten does not render. An
 // empty list is a success state, not a blank.
 import type React from "react";
-import { Bell, FileText, Plug, Wrench } from "lucide-react";
+import { Bell, FileText, Globe, Plug, Wrench } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import { writtenLine } from "../_shell/written";
 import { formatCount } from "./present";
 import type { Alert, AlertKind, Overflow } from "./alerts";
 
 const PANEL: Readonly<Record<AlertKind, { alert: string; cta: string; Icon: typeof Bell }>> = {
+  // #924: the hosted blog's address, waiting for its record. The accent
+  // ground and an outline control — never the error tone, because an
+  // address nobody has connected yet is work to do rather than a fault
+  // (§2.5 keeps red for the customer's own problem shown to them).
+  connect_blog: { alert: "alert alert-info alert-soft", cta: "btn btn-outline btn-primary btn-sm", Icon: Globe },
   pending_veto: { alert: "alert alert-warning alert-soft", cta: "btn btn-outline btn-warning btn-sm", Icon: FileText },
   needs_you: { alert: "alert alert-soft", cta: "btn btn-outline btn-sm", Icon: Plug },
   // A technical issue the customer fixes (SPEC §9): error ground when

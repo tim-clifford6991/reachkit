@@ -34,7 +34,7 @@ import type { CopyKey } from "@/lib/presentation/copy";
 import { effectiveOn } from "@/lib/market/changes/pending";
 import { CHANGE_COPY_KEY } from "../calendar/change-line";
 import type { DestinationView } from "@/lib/publish/types";
-import { dnsRecordFor, type DnsRecord } from "@/lib/publish/setup/cards";
+import { recordForHost, type DnsRecord } from "@/lib/publish/setup/cards";
 import type { ACCOUNT_NOTE_KEYS } from "@/lib/account/identity/notes";
 import type { PublishingMode } from "../_shell/model";
 import { formatDate, formatDateTime } from "../_shell/format";
@@ -327,23 +327,19 @@ function savedChange(facts: SettingsFacts): MarketChange | null {
  * The record a hosted destination waiting for DNS still needs (#754).
  *
  * Setup shows it once; a founder who did not act then reads it here. It is
- * `dnsRecordFor()`'s record, composed from the host the destination stores
- * — split back into the label and the domain it was composed from — so the
- * two screens cannot state two records for one host. A host the record
- * would not name exactly is shown no record rather than a different one.
+ * `recordForHost()`'s record, composed from the host the destination
+ * stores, so no two screens can state two records for one host. A host the
+ * record would not name exactly is shown no record rather than a different
+ * one.
  */
 function dnsFor(view: DestinationView, cnameTarget: string): DnsRecord | null {
   if (view.kind !== "hosted" || view.hostname === null || view.hostnameState !== "pending_dns") {
     return null;
   }
-  const dot = view.hostname.indexOf(".");
-  if (dot === -1) return null;
-  const record = dnsRecordFor({
-    siteDomain: view.hostname.slice(dot + 1),
-    cnameTarget,
-    label: view.hostname.slice(0, dot),
-  });
-  return "pending" in record || record.name !== view.hostname ? null : record;
+  // `recordForHost`'s, not composed again here (#924): setup's connect step
+  // shows the same record, and two compositions is how one host comes to
+  // have two records.
+  return recordForHost({ hostname: view.hostname, cnameTarget });
 }
 
 export function assembleSettings(facts: SettingsFacts): SettingsModel {

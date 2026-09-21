@@ -701,4 +701,55 @@ export const SETUP_COPY = Object.freeze({
     "Nothing measured for your address yet. This fills in as we read your market.",
     { slots: {}, fixedBy: "REQ-004 c6" },
   ],
+  // The line that stands where the record used to, on the publishing step
+  // (#924). It says the address is theirs and that connecting it is the
+  // next thing, rather than asking them to do it here.
+  "setup.destination.connect-next": [
+    "We’ll reserve this address. Connecting it is one DNS record, and it’s the next screen.",
+    { slots: {}, fixedBy: "SPEC §5 2026-09-20" },
+  ],
+
+  // ── SPEC §5 (2026-09-20, #908, #924): the DNS record as its own step
+  // after setup. This supersedes the 2026-09-16 ruling (#757) that it be
+  // completed on the setup page.
+  //
+  // Every sentence below is **drafted** under the owner's 2026-09-16 ruling
+  // (#759) and the PR names each one so the owner can correct it.
+  "setup.connect.eyebrow": [
+    "One last thing · about 5 minutes",
+    { slots: {}, fixedBy: "SPEC §5 2026-09-20" },
+  ],
+  "setup.connect.title": ["Connect your blog’s address", { slots: {}, fixedBy: "SPEC §5 2026-09-20" }],
+  "setup.connect.lead": [
+    "One DNS record points your blog’s address at it. Your first page is being written while you do this.",
+    { slots: {}, fixedBy: "SPEC §5 2026-09-20" },
+  ],
+  // The two ways onward. Neither is a lesser path, and the note beside the
+  // timeline says so.
+  "setup.connect.later": ["Do this later", { slots: {}, fixedBy: "SPEC §5 2026-09-20" }],
+  "setup.connect.onward": ["Go to your dashboard", { slots: {}, fixedBy: "SPEC §5 2026-09-20" }],
+  "setup.connect.onward.live": ["It’s connected — go to your dashboard", { slots: {}, fixedBy: "SPEC §5 2026-09-20" }],
+  "setup.connect.skipping": [
+    "Skipping is fine. Pages are still written and wait for you to read them — they just can’t go live until this record exists. You’ll find it again under Overview and in Settings.",
+    { slots: {}, fixedBy: "SPEC §5 2026-09-20" },
+  ],
+
+  // What happens while the founder does it: three states, each a title and
+  // the line under it.
+  "setup.connect.what": ["What happens as you do this", { slots: {}, fixedBy: "SPEC §5 2026-09-20" }],
+  "setup.connect.stage.reserved": ["Your address is reserved", { slots: {}, fixedBy: "SPEC §5 2026-09-20" }],
+  "setup.connect.stage.reserved.line": [
+    "Nobody else can take it.",
+    { slots: {}, fixedBy: "SPEC §5 2026-09-20" },
+  ],
+  "setup.connect.stage.waiting": ["Waiting for the record", { slots: {}, fixedBy: "SPEC §5 2026-09-20" }],
+  "setup.connect.stage.waiting.line": [
+    "We check on our own every hour, and whenever you press Check the connection.",
+    { slots: {}, fixedBy: "SPEC §5 2026-09-20" },
+  ],
+  "setup.connect.stage.live": ["Your blog goes live", { slots: {}, fixedBy: "SPEC §5 2026-09-20" }],
+  "setup.connect.stage.live.line": [
+    "Usually within minutes of saving the record. We’ll mail you when it does.",
+    { slots: {}, fixedBy: "SPEC §5 2026-09-20" },
+  ],
 }) satisfies CopyPartition;

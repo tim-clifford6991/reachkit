@@ -199,12 +199,28 @@ describe("REQ-025 c1 — nothing on any step states how long anything takes", ()
     expect("40% done").toMatch(TIME);
   });
 
-  it("no setup key states one", () => {
+  /**
+   * The one key that states a duration, and why the rule still holds.
+   *
+   * REQ-025 c1 is about **ReachKit's own work**: the founder is never told
+   * how long the pass, the scan or the first page will take, because the
+   * product does not know and a number it invented would be a promise. The
+   * connect step's eyebrow estimates something else — how long *the
+   * founder's* own visit to their DNS provider takes — which is their work,
+   * not ours, and is the drafted sentence the owner wrote for it twice
+   * (#924's drafted sentences and the `R4-02` board's own eyebrow).
+   *
+   * It is listed rather than pattern-excused: a second key that states a
+   * duration fails here, which is what this test is for.
+   */
+  const STATES_THE_FOUNDERS_OWN_TIME = ["setup.connect.eyebrow"];
+
+  it("no setup key states one, but for the founder's own task", () => {
     const spoken = (Object.keys(COPY) as (keyof typeof COPY)[]).filter((key) =>
       key.startsWith("setup."),
     );
     expect(spoken.length).toBeGreaterThan(0);
-    expect(spoken.filter((key) => TIME.test(COPY[key]))).toEqual([]);
+    expect(spoken.filter((key) => TIME.test(COPY[key]))).toEqual(STATES_THE_FOUNDERS_OWN_TIME);
   });
 });
 
@@ -544,13 +560,16 @@ describe("step five — where the pages go live (REQ-028 c2, SPEC §7 #476)", ()
     ).toBeNull();
   });
 
-  it("c2 — the CNAME record is shown once the address is known, in the numeral face", () => {
-    const record = screenFor("publishing").querySelector('[data-testid="dns-record"]');
-    expect(record).not.toBeNull();
-    expect(record?.querySelector('[data-testid="dns-value"]')?.className).toContain("num");
-    expect(record?.textContent).toContain("CNAME");
-    expect(record?.getAttribute("data-host")).toBe("content.example.com");
-    expect(record?.textContent).toContain(FIXTURE_SETUP_FACTS.cnameTarget);
+  it("the record is not on this step any more — it is its own step after setup (#924)", () => {
+    // Owner, 2026-09-20, reversing #757: the founder finishes setup without
+    // touching DNS. What stands here is the line that says the address will
+    // be theirs and that connecting it is the next screen;
+    // `tests/app/setup/connect.test.tsx` holds the record itself.
+    const tree = screenFor("publishing");
+    expect(tree.querySelector('[data-testid="dns-record"]')).toBeNull();
+    expect(tree.querySelector('[data-testid="setup-dns-next"]')?.textContent).toBe(
+      COPY["setup.destination.connect-next"],
+    );
   });
 
   it("c2 — with no address given, one written line stands where the record will sit; no blank, dash or placeholder", () => {

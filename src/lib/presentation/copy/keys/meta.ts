@@ -133,6 +133,12 @@ export const META_COPY = Object.freeze({
   "meta.app.draft.title": ["Your page — ReachKit", { slots: {}, fixedBy: "issue 945" }],
   "meta.app.settings.title": ["Settings — ReachKit", { slots: {}, fixedBy: "issue 945" }],
   "meta.app.setup.title": ["Setup — ReachKit", { slots: {}, fixedBy: "issue 945" }],
+  // #924: the DNS step after setup is its own address, so it says which
+  // screen it is rather than falling back to the account layout's floor.
+  "meta.app.setup.connect.title": [
+    "Connect your blog — ReachKit",
+    { slots: {}, fixedBy: "issue 945" },
+  ],
 
   /* ── Settings' six sibling tabs (#925) ────────────────────────────────
      Settings became seven addresses on 2026-09-21, and #945's promise is

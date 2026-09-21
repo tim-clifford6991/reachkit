@@ -11,7 +11,7 @@
 // instruction — DNS only.
 //
 // **Driven through the wiring, not the table.** Each screen is rendered from
-// its own real read — `/setup` from its page, Settings from
+// its own real read — `/setup/connect` from its page, Settings from
 // `readLiveSettingsFacts` over destination rows — and mounted, so the record
 // block's own lookup runs the real Server Function, the real zone and
 // provider mapping and the real egress lookup. The one double is the
@@ -26,7 +26,6 @@ import dns from "node:dns";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { fakeDb } from "../../publish/harness";
 import { LIVE_ACCOUNT } from "../accounts";
 import {
@@ -77,7 +76,7 @@ vi.mock("@/lib/publish/destinations/registry", () => ({
 }));
 
 const { AWAITING_COPY, COPY, TODO_COPY_MARKER, copy } = await import("@/lib/presentation/copy");
-const { default: SetupPage } = await import("@/app/(account)/setup/page");
+const { default: ConnectPage } = await import("@/app/(account)/setup/connect/page");
 const { readLiveSettingsFacts } = await import("@/app/(account)/app/settings/store");
 const { assembleSettings } = await import("@/app/(account)/app/settings/model");
 const { PublishingPanel } = await import("@/app/(account)/app/settings/panels/PublishingPanel");
@@ -122,12 +121,10 @@ async function mount(node: React.ReactNode): Promise<HTMLElement> {
   return host;
 }
 
-/** The two screens, each scoped to the block that holds the record. */
+/** The two screens, each scoped to the block that holds the record. Both
+ *  read the same destination row: since #924 the setup-side record stands
+ *  on `/setup/connect`, after the submit that made the row. */
 async function screens(): Promise<Record<"setup" | "settings", HTMLElement>> {
-  const setup = await mount(
-    <NuqsTestingAdapter searchParams={{ step: "publishing" }}>{await SetupPage()}</NuqsTestingAdapter>
-  );
-
   db.seed("sites", [
     {
       id: "site-1",
@@ -158,6 +155,8 @@ async function screens(): Promise<Record<"setup" | "settings", HTMLElement>> {
       hostname_state: "pending_dns",
     },
   ]);
+
+  const setup = await mount(await ConnectPage());
   const settings = await mount(
     <PublishingPanel settings={assembleSettings(await readLiveSettingsFacts(ACCOUNT))} />
   );

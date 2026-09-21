@@ -72,6 +72,11 @@ const OWNER: Readonly<Record<string, string>> = {
   "/app/settings/billing": "@/app/(account)/app/settings/billing/page",
   "/app/settings/account": "@/app/(account)/app/settings/account/page",
   "/setup": "@/app/(account)/setup/page",
+  // #924: the DNS record is its own step after setup, so it is its own
+  // address and exports its own title rather than taking the group's
+  // fallback. It redirects to `/app` for a founder with nothing to
+  // connect, which does not make it any less a named screen.
+  "/setup/connect": "@/app/(account)/setup/connect/page",
   // `/setup/zone` renders only for a founder whose site has no time zone and
   // redirects to `/app` otherwise (#753). It is a route all the same, and
   // the group's fallback is what gives it a title — which is exactly the

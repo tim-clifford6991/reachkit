@@ -69,6 +69,32 @@ export interface SetupCards {
  *  record under the card always names the host they have chosen rather
  *  than the one they started on. `null` is the default label, which is
  *  what the card is drawn with before they touch it. */
+/**
+ * The record a hosted host that is waiting for DNS still needs, composed
+ * from the host itself.
+ *
+ * **One derivation, three screens** (#924). Setup's connect step shows it,
+ * Settings shows it for as long as the host waits (#754), and the Overview
+ * item points at the first. Composing it in each place is how they would
+ * come to state two records for one host — so the host is split back into
+ * the label and the domain it was composed from, `dnsRecordFor` builds it,
+ * and a host the record would not name exactly gets no record rather than
+ * a different one.
+ */
+export function recordForHost(a: {
+  hostname: string;
+  cnameTarget: string;
+}): DnsRecord | null {
+  const dot = a.hostname.indexOf(".");
+  if (dot === -1) return null;
+  const record = dnsRecordFor({
+    siteDomain: a.hostname.slice(dot + 1),
+    cnameTarget: a.cnameTarget,
+    label: a.hostname.slice(0, dot),
+  });
+  return "pending" in record || record.name !== a.hostname ? null : record;
+}
+
 export function dnsRecordFor(a: {
   siteDomain: string | null;
   cnameTarget: string;

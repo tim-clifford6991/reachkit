@@ -785,4 +785,22 @@ export const OVERVIEW_COPY = Object.freeze({
     "Show all {total}",
     { slots: { total: "text" }, fixedBy: "SPEC §4 2026-09-20" },
   ],
+  // ── SPEC §5 (2026-09-20, #924): the hosted blog's address, still waiting
+  // for its DNS record. It leads the needs-you list because until the
+  // record exists nothing written can go live at all, and it leaves the
+  // list the moment the host is live.
+  //
+  // Drafted under the owner's 2026-09-16 ruling (#759); the PR names it.
+  "overview.alert.connect-blog": [
+    "Connect your blog’s address",
+    { slots: {}, fixedBy: "SPEC §5 2026-09-20" },
+  ],
+  "overview.alert.connect-blog.line": [
+    "One DNS record for {host} — about 5 minutes. Pages are written and waiting until it exists.",
+    { slots: { host: "text" }, fixedBy: "SPEC §5 2026-09-20" },
+  ],
+  "overview.alert.connect-blog.action": [
+    "Connect it",
+    { slots: {}, fixedBy: "SPEC §5 2026-09-20" },
+  ],
 }) satisfies CopyPartition;

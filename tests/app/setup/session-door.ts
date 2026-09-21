@@ -26,6 +26,10 @@ export interface SetupSessionState {
    *  `null` is a founder who has left none — the screen opens on its
    *  first step with only what the scan read. */
   saved: SavedSetup | null;
+  /** SPEC §5 (2026-09-20, #924): the hosted blog's own row, as
+   *  `hostedHostFor` reads it. `null` is a founder publishing somewhere
+   *  else — there is then no record to state and no step to draw. */
+  hostedHost: { hostname: string; state: string } | null;
 }
 
 export const setupSession: SetupSessionState = {
@@ -34,6 +38,7 @@ export const setupSession: SetupSessionState = {
   reports: new Map(),
   pass: { running: false, degraded: false },
   saved: null,
+  hostedHost: { hostname: "blog.example.com", state: "pending_dns" },
 };
 
 // The ordinary founder is the state a suite gets without asking, so a file
@@ -61,6 +66,9 @@ export function resetSetupSession(): void {
   // suites were written against.
   setupSession.pass = { running: true, stage: "reading_your_market" } as PassProgress;
   setupSession.saved = null;
+  // The ordinary founder publishes to the hosted blog and has not made the
+  // record yet — the one state `/setup/connect` is drawn for.
+  setupSession.hostedHost = { hostname: "blog.example.com", state: "pending_dns" };
 }
 
 /**
@@ -111,6 +119,13 @@ export function reportFactory(actual: Record<string, unknown>): Record<string, u
 
 export function passFactory(): Record<string, unknown> {
   return { passProgressFor: async () => setupSession.pass };
+}
+
+/** SPEC §5 (2026-09-20, #924) — `/setup/connect` and the Overview item
+ *  behind it both read the hosted row and nothing else. The real function
+ *  makes one select; a suite has no database, so the row is this state's. */
+export function hostedHostFactory(actual: Record<string, unknown>): Record<string, unknown> {
+  return { ...actual, hostedHostFor: async () => setupSession.hostedHost };
 }
 
 export function sessionFactory(): Record<string, unknown> {
