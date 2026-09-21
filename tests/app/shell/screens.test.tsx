@@ -69,6 +69,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import React from "react";
 
+// Settings' heading and its one written line moved into its own sub-layout
+// when the screen became seven tabs (#925), and the bar in that layout reads
+// the pathname to mark the current tab. There is no router in a
+// `renderToStaticMarkup` call, so the one hook it uses is answered here with
+// the address the Settings block below renders — everything else
+// `next/navigation` exports is left alone, because Calendar and the Overview
+// in this same file use it for real.
+vi.mock("next/navigation", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("next/navigation")>();
+  return { ...actual, usePathname: () => "/app/settings" };
+});
+
 vi.mock("@/lib/presentation/copy", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/presentation/copy")>();
   return { ...actual, copy: (key: string) => key };
@@ -78,6 +90,7 @@ import { COPY, type CopyKey } from "@/lib/presentation/copy";
 import OverviewPage from "@/app/(account)/app/(tabs)/page";
 import CalendarPage from "@/app/(account)/app/calendar/page";
 import SettingsPage from "@/app/(account)/app/settings/page";
+import SettingsLayout from "@/app/(account)/app/settings/layout";
 
 // BUILD §4.4–§4.6, issue #169 — the surfaces under test now resolve who is
 // asking through `_session/account.ts`, which reads a signed cookie and a
@@ -125,8 +138,12 @@ describe("calendar — the built screen keeps the three contracts the frame set"
 
 // ── Settings, which is no longer a placeholder (issue #18, BUILD §4.7) ────
 describe("settings — the built screen keeps the three contracts the frame set", () => {
+  /** The screen as a customer reaches it: the sub-layout that draws the
+   *  heading, the written line and the seven-tab bar (#925), around the tab
+   *  that address lands on. Rendering the page alone would assert against
+   *  two thirds of the screen and report the heading missing. */
   async function settingsMarkup(): Promise<string> {
-    return markup(await SettingsPage());
+    return markup(<SettingsLayout>{await SettingsPage()}</SettingsLayout>);
   }
 
   it("renders, and names itself from the destination's own registry key", async () => {
@@ -136,9 +153,14 @@ describe("settings — the built screen keeps the three contracts the frame set"
   });
 
   it("declares no Surface — the shell's layout owns this route's screen root", async () => {
-    const source = readFileSync(path.join(APP_DIR, "settings/page.tsx"), "utf8");
-    expect(source).not.toMatch(/from\s+["']@\/ui\/layout/);
-    expect(source).not.toContain("<Surface");
+    // Both halves of the screen: the tab, and the sub-layout that frames all
+    // seven of them (#925). Exactly one `[data-surface]` per document, and
+    // the shell one level up is what declares it.
+    for (const file of ["settings/page.tsx", "settings/layout.tsx"]) {
+      const source = readFileSync(path.join(APP_DIR, file), "utf8");
+      expect(source, file).not.toMatch(/from\s+["']@\/ui\/layout/);
+      expect(source, file).not.toContain("<Surface");
+    }
     expect(await settingsMarkup()).not.toContain("data-surface");
   });
 

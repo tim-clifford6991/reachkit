@@ -111,7 +111,14 @@ vi.mock("@/app/(account)/app/settings/billing-actions", () => ({
   resumePlan: () => Promise.resolve({ done: "unreachable" as const }),
 }));
 
-import SettingsPage from "@/app/(account)/app/settings/page";
+import SettingsBusinessTab from "@/app/(account)/app/settings/page";
+import SettingsMarketTab from "@/app/(account)/app/settings/market/page";
+import SettingsPublishingTab from "@/app/(account)/app/settings/publishing/page";
+import SettingsVoiceTab from "@/app/(account)/app/settings/voice/page";
+import SettingsMailTab from "@/app/(account)/app/settings/mail/page";
+import SettingsBillingTab from "@/app/(account)/app/settings/billing/page";
+import SettingsAccountTab from "@/app/(account)/app/settings/account/page";
+import { SETTINGS_TABS, SETTINGS_TAB_HREF, settingsTabOf } from "@/app/(account)/app/settings/tabs";
 import { BillingPanel } from "@/app/(account)/app/settings/panels/BillingPanel";
 import { ACTIONS, SETTABLE } from "@/app/(account)/app/settings/settable";
 import { FIXTURE_SETTINGS_FACTS } from "@/app/(account)/app/settings/fixture";
@@ -142,11 +149,56 @@ async function mount(node: React.ReactNode): Promise<HTMLElement> {
   return container;
 }
 
-/** The screen, awaited to a tree (it is an async Server Component) and then
- *  mounted, so its client panels are live. */
+/** Every tab's own Server Component, keyed by the tab it draws — the seven
+ *  addresses `tabs.ts` names, so a tab added to that tuple without a screen
+ *  here is a hole this file's last test reports rather than a control that
+ *  quietly stops being offered. */
+const TAB_SCREEN: Readonly<
+  Record<(typeof SETTINGS_TABS)[number], () => Promise<React.JSX.Element>>
+> = {
+  business: SettingsBusinessTab,
+  market: SettingsMarketTab,
+  publishing: SettingsPublishingTab,
+  voice: SettingsVoiceTab,
+  mail: SettingsMailTab,
+  billing: SettingsBillingTab,
+  account: SettingsAccountTab,
+};
+
+/**
+ * The screen, awaited to a tree (each tab is an async Server Component) and
+ * then mounted, so its client panels are live.
+ *
+ * **All seven tabs at once, and that is what "the screen" now means**
+ * (#925). Settings is seven addresses since the redesign, and the promise
+ * these tests read is a *closed offer* — exactly the thirteen settings and
+ * exactly the seven actions, across the whole of Settings. A suite that
+ * mounted one tab would assert that one tab's subset and call the offer
+ * closed, which is the opposite of what REQ-070 asks. So the offer is read
+ * off the union, exactly as REQ-076 c6's cancel/resume pair is already read
+ * off the union of two plan states below.
+ *
+ * The seven trees share one container, so every assertion about *which*
+ * control exists, what it calls and what it says reads unchanged; the tests
+ * that care which tab a card is on look for that tab's own panel wrapper.
+ */
 async function mountScreen(): Promise<HTMLElement> {
   calls.length = 0;
-  return mount(await SettingsPage());
+  const trees = await Promise.all(SETTINGS_TABS.map((tab) => TAB_SCREEN[tab]()));
+  return mount(
+    <>
+      {SETTINGS_TABS.map((tab, i) => (
+        <React.Fragment key={tab}>{trees[i]}</React.Fragment>
+      ))}
+    </>
+  );
+}
+
+/** One tab on its own, for the assertions that are about where a card
+ *  lives rather than about the offer as a whole. */
+async function mountTab(tab: (typeof SETTINGS_TABS)[number]): Promise<HTMLElement> {
+  calls.length = 0;
+  return mount(await TAB_SCREEN[tab]());
 }
 
 function testIds(root: HTMLElement, prefix: string): string[] {
@@ -169,26 +221,71 @@ describe("REQ-070 c1 — the rendered control set is exactly the SETTABLE keys",
     expect(testIds(root, "setting-")).toEqual([...SETTABLE].sort());
   });
 
-  it("each of the eight cards §4.7 names is on the screen, in its own column", async () => {
-    const root = await mountScreen();
-    const left = root.querySelector('[data-testid="settings-left"]');
-    const right = root.querySelector('[data-testid="settings-right"]');
-    expect(left).not.toBeNull();
-    expect(right).not.toBeNull();
-    // §4.7's left column: Your market · Competitors · Publishing · Notifications.
-    expect(left?.textContent).toContain("settings.market.title");
-    expect(left?.textContent).toContain("settings.competitors.title");
-    expect(left?.textContent).toContain("settings.publishing.title");
-    expect(left?.textContent).toContain("settings.notifications.title");
-    // §4.7's right column: Billing · Account · Your content · Danger zone.
-    expect(right?.textContent).toContain("settings.billing.title");
-    expect(right?.textContent).toContain("settings.account.title");
-    expect(right?.textContent).toContain("settings.content.title");
-    expect(right?.textContent).toContain("danger.zone.title");
+  // SPEC §4 (2026-09-20): "Settings is tabs: Your business, Market and
+  // rivals, Publishing, Your voice, Mail, Billing, Account. The danger zone
+  // lives in Account." Every one of the nine cards §4.7 names still exists
+  // and each is on exactly one tab — which is what "moved as they are"
+  // means, and what makes the union above the whole offer rather than most
+  // of it.
+  it("each of §4.7's nine cards is on exactly one tab, and the danger zone is in Account", async () => {
+    const where: Readonly<Record<string, (typeof SETTINGS_TABS)[number]>> = {
+      "settings.content.title": "business",
+      "settings.market.title": "market",
+      "settings.competitors.title": "market",
+      "settings.publishing.title": "publishing",
+      "settings.voice.title": "voice",
+      "settings.notifications.title": "mail",
+      "settings.billing.title": "billing",
+      "settings.account.title": "account",
+      "danger.zone.title": "account",
+    };
+    const drawn = new Map<(typeof SETTINGS_TABS)[number], string>();
+    for (const tab of SETTINGS_TABS) drawn.set(tab, (await mountTab(tab)).textContent ?? "");
+
+    for (const [title, tab] of Object.entries(where)) {
+      expect(drawn.get(tab), `${title} belongs on the ${tab} tab`).toContain(title);
+      // And nowhere else: a card drawn twice is two places to change it,
+      // and two cards that can disagree about the same setting.
+      for (const other of SETTINGS_TABS) {
+        if (other === tab) continue;
+        expect(drawn.get(other), `${title} must not also be on ${other}`).not.toContain(title);
+      }
+    }
+  });
+
+  it("the danger zone is the foot of Account, below the account card", async () => {
+    // #925: "keep the danger zone out of the way". Out of the way is below
+    // the two ordinary things a customer came for, not behind a disclosure —
+    // REQ-079 c1 has each of its actions state its consequence before it
+    // runs, and that step is what does the keeping.
+    const text = (await mountTab("account")).textContent ?? "";
+    expect(text.indexOf("settings.account.title")).toBeLessThan(text.indexOf("danger.zone.title"));
+  });
+
+  it("the bar offers the seven tabs, each its own address, and no tab is its own prefix", async () => {
+    expect([...SETTINGS_TABS]).toEqual([
+      "business",
+      "market",
+      "publishing",
+      "voice",
+      "mail",
+      "billing",
+      "account",
+    ]);
+    // Business is `/app/settings` itself, so the menu's own link does not
+    // move; every other tab is a sub-path of it, and each address resolves
+    // back to exactly the tab that owns it.
+    expect(SETTINGS_TAB_HREF.business).toBe("/app/settings");
+    for (const tab of SETTINGS_TABS) {
+      expect(settingsTabOf(SETTINGS_TAB_HREF[tab])).toBe(tab);
+    }
+    // The prefix trap `tabOf` and `destinationOf` both name: a prefix match
+    // would make every tab read as Business.
+    expect(settingsTabOf("/app/settings/nothing-here")).toBeUndefined();
   });
 
   it("the market card states the one line §4.7 gives it, and states it once", async () => {
-    const root = await mountScreen();
+    const root = await mountTab("market");
     const occurrences = (root.textContent ?? "").split("settings.market.effect").length - 1;
     expect(occurrences).toBe(1);
   });
@@ -415,22 +512,41 @@ describe("REQ-097 — the Billing card renders no number ReachKit computed", () 
     expect(text).not.toMatch(/[0-9]/);
   });
 
-  it("the three billing controls lead to the one Stripe destination", async () => {
+  it("one control leads to the one Stripe destination, and the line names the three things it does", async () => {
     // REQ-097 c1: "ReachKit offers no separate control per item … the only
-    // thing ReachKit offers for it is a control to that same one destination."
-    // `invoices` and Update card are two affordances onto one action.
-    const root = await mountScreen();
+    // thing ReachKit offers for it is a control to that same one
+    // destination." Until #925 this card drew three pills onto that one
+    // action, which reads as three destinations; there is one now, and the
+    // three things behind it are named in writing instead.
+    const root = await mountTab("billing");
     const card = root.querySelector('[data-testid="action-invoices"]')?.closest(".card");
     const buttons = Array.from(card?.querySelectorAll("button") ?? []);
-    const labels = buttons.map((b) => b.textContent);
-    expect(labels).toContain("settings.billing.invoices");
-    expect(labels).toContain("settings.billing.update-card");
-    expect(labels).toContain("settings.billing.cancel");
+    expect(buttons).toHaveLength(1);
+    expect(buttons[0]?.textContent).toContain("settings.billing.manage");
+    expect(card?.querySelector('[data-testid="billing-manage-note"]')?.textContent).toBe(
+      "settings.billing.manage.note"
+    );
 
+    // And it is the `invoices` interface it calls — the one that opens the
+    // portal (`billing-actions.ts`: `openBillingSurface`, `cancelPlan` and
+    // Update card were all `openPortal()`).
     calls.length = 0;
-    const updateCard = buttons.find((b) => b.textContent === "settings.billing.update-card");
-    await click(updateCard as Element);
+    await click(buttons[0] as Element);
     expect(calls).toEqual(["invoices"]);
+  });
+
+  it("cancelling is that same control — the offer is not lost by collapsing the pills", async () => {
+    // The closed offer of seven actions has to stay complete *on the
+    // screen*, not in a list. `cancel` and `invoices` are one affordance
+    // now, so the control carries both names and pressing it is how a
+    // customer cancels — on Stripe's surface, which is where cancelling has
+    // always happened (REQ-097 c1, and this card shows no confirmation step
+    // of its own).
+    const root = await mountTab("billing");
+    const cancel = root.querySelector('[data-testid="action-cancel"] button');
+    const invoices = root.querySelector('[data-testid="action-invoices"] button');
+    expect(cancel).not.toBeNull();
+    expect(cancel).toBe(invoices);
   });
 });
 

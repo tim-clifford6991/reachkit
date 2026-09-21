@@ -143,6 +143,28 @@ export const ROUTE_REFERENCE: Readonly<Record<string, `S${number}`>> = {
   /** REFERENCE: S18 — Settings (§S18; REQ-070…079) */
   "/app/settings": "S18",
   /**
+   * REFERENCE: S18 — Settings' six sibling tabs (SPEC §4, 2026-09-20, #925).
+   *
+   * "Settings is tabs: Your business, Market and rivals, Publishing, Your
+   * voice, Mail, Billing, Account." Every one of the nine cards S18 draws is
+   * still drawn; what changed is that they stand on seven addresses instead
+   * of in two columns on one. So all seven are paired with S18 — they are
+   * the same screen, dealt out — on the same footing the Overview's three
+   * sibling tabs are paired with S12 above, and `/setup/zone` with S11
+   * (#753).
+   */
+  "/app/settings/market": "S18",
+  /** REFERENCE: S18 — Settings › Publishing (#925) */
+  "/app/settings/publishing": "S18",
+  /** REFERENCE: S18 — Settings › Your voice (#925) */
+  "/app/settings/voice": "S18",
+  /** REFERENCE: S18 — Settings › Mail (#925) */
+  "/app/settings/mail": "S18",
+  /** REFERENCE: S18 — Settings › Billing (#925) */
+  "/app/settings/billing": "S18",
+  /** REFERENCE: S18 — Settings › Account, the danger zone at its foot (#925) */
+  "/app/settings/account": "S18",
+  /**
    * REFERENCE: S19 — Hosted page (§S19; REQ-059).
    *
    * The route is swept through **two** hosts (issue #418): the default

@@ -17,14 +17,18 @@
 // requires the customer be told. Nothing here formats it: it arrives
 // written, in the customer's own zone.
 //
-// **Three affordances, one destination.** REQ-097 c1: "ReachKit offers no
-// separate control per item and presents no field, form, stepper,
+// **One affordance, one destination** (#925). REQ-097 c1: "ReachKit offers
+// no separate control per item and presents no field, form, stepper,
 // cancellation control, confirmation step or consequence screen" for the
 // card, the invoices, the billing address, the VAT number or cancelling —
 // "the only thing ReachKit offers for it is a control to that same one
-// destination". So §4.7's three controls all lead to `billing.surfaceHref`.
-// Cancel plan is one of them: cancelling is done on Stripe's surface, and
-// this screen shows no confirmation step of its own.
+// destination". §4.7's three controls all led to `billing.surfaceHref`, and
+// for a while this card drew all three of them: three pills in front of one
+// destination, which reads as three destinations and leaves the customer
+// guessing which pill holds the thing they came for. There is one now —
+// *Manage billing in Stripe* — with §4.7's three things named in the line
+// under it. Cancel plan is that control: cancelling is done on Stripe's
+// surface, and this screen shows no confirmation step of its own.
 //
 // **`cancel` and `resume` are one position, two plan states** (REQ-076 c6).
 // A running plan offers Cancel plan; a cancelled one offers resume. That is
@@ -34,7 +38,7 @@
 "use client";
 
 import type React from "react";
-import { CreditCard } from "lucide-react";
+import { CreditCard, ExternalLink } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { writtenLine } from "../../_shell/written";
 import { useAction } from "./useAction";
@@ -98,6 +102,16 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
     </button>
   );
 
+  /** The one way to the one destination. `btn-primary` because it is this
+   *  card's only control and `docs/DESIGN.md` allows one solid primary per
+   *  screen; the icon is the card's own, at the badge size a control takes. */
+  const manage = (run: () => void): React.JSX.Element => (
+    <button type="button" className="btn btn-primary btn-sm" onClick={run}>
+      <ExternalLink size={16} strokeWidth={1.75} aria-hidden />
+      {copy("settings.billing.manage")}
+    </button>
+  );
+
   return (
     <section className="card card-border min-w-0 bg-base-100">
       <div className="card-body gap-4">
@@ -144,16 +158,51 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
           </dl>
         )}
 
-        {/* All three lead to REQ-097 c1's one billing surface. */}
+        {/* **One control, and the line says what is behind it** (#925).
+            REQ-097 c1 always said there was one destination — "the only
+            thing ReachKit offers for it is a control to that same one
+            destination" — and three pills in front of it read as three
+            destinations, so the customer had to guess which one held the
+            thing they came for. Update card, invoices and Cancel plan were
+            all `openPortal()` (`../billing-actions.ts`); now they are one
+            press, and the sentence under it names all three.
+
+            **`action-cancel` marks this same control**, because cancelling
+            *is* what pressing it does: `cancel` and `invoices` are one
+            affordance now, and the closed offer of seven actions
+            (`../settable.ts`) is still complete on the screen rather than
+            complete in a list. `resume` is the one that does not belong
+            here — after the paid-through date it opens a new subscription
+            instead of the portal (`resumePlan`), so it stays its own
+            control in its own plan state, which is the position §4.7 gave
+            it and REQ-076 c6's "two plan states, one position". */}
         <div className="flex min-w-0 flex-wrap items-center gap-2">
-          {pill("settings.billing.update-card", () => action.run("invoices"))}
-          <span data-testid="action-invoices">{pill("settings.billing.invoices", () => action.run("invoices"))}</span>
-          {!billing.readable ? null : billing.state === "active" ? (
-            <span data-testid="action-cancel">{pill("settings.billing.cancel", () => action.run("cancel"))}</span>
+          {!billing.readable || billing.state === "active" ? (
+            // `flex min-w-0` on the outer marker is load-bearing, not
+            // decoration: a flex item is blockified, so the inner marker is
+            // a box the height of the button inside it. Left inline it keeps
+            // its own line-box height — the 15px body's, shorter than a
+            // `btn-sm` — and the button stands outside its own parent at
+            // every width, which is a check-2 offender the layout sweep
+            // reports by name. Found by rendering this card at 390, 768 and
+            // 1280 in both themes before the PR was opened.
+            <span className="flex min-w-0" data-testid="action-cancel">
+              <span data-testid="action-invoices">
+                {manage(() => action.run("invoices"))}
+              </span>
+            </span>
           ) : (
-            <span data-testid="action-resume">{pill("settings.billing.resume", () => action.run("resume"))}</span>
+            <>
+              <span data-testid="action-invoices">{manage(() => action.run("invoices"))}</span>
+              <span data-testid="action-resume">
+                {pill("settings.billing.resume", () => action.run("resume"))}
+              </span>
+            </>
           )}
         </div>
+        <p className="text-xs text-base-content/60 wrap-anywhere" data-testid="billing-manage-note">
+          {copy("settings.billing.manage.note")}
+        </p>
 
         {billing.readable ? null : (
           <div className="flex min-w-0 flex-col gap-1" data-testid="billing-unreadable">

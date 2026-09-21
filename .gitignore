@@ -12,3 +12,8 @@ next-env.d.ts
 .vercel
 .env*
 !.env.example
+
+# Renders an implementer took to prove a screen by hand. Evidence for a PR
+# body, never a baseline: the baselines live in tests/ui/layout/__screenshots__
+# and CI is what regenerates them.
+zz-shots/
