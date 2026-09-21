@@ -9,9 +9,9 @@
 //
 // The mutation this kills is the one that shipped: a card that says it is
 // looking for rivals and never offers one.
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import React, { act } from "react";
-import { createRoot } from "react-dom/client";
+import { createRoot, type Root } from "react-dom/client";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { applyEnvFixture } from "../../mail/env-fixture";
 import { fakeDb, type FakeDb } from "../../scan/deep/fake-db";
@@ -32,6 +32,24 @@ vi.mock("@/lib/scan/report", async (importOriginal) =>
 );
 vi.mock("@/lib/site-profile", () => ({ readSiteProfile: async () => null }));
 vi.mock("@/lib/egress", () => ({ resolvesInDns: async () => true }));
+
+// #971's status line holds a live subscription (`inngest/react`), and its
+// token comes from `POST /api/setup/realtime` — a request this file's
+// stubbed `fetch` has no route for, so it rejects. The hook cancels itself
+// on unmount (`node_modules/inngest/react.js:314`) and its late `setError`
+// is guarded by that flag, but a screen this suite mounted and never
+// unmounted has never run the cleanup: the refusal then lands after the
+// suite is over, and React's `setState` reaches for a `window` jsdom has
+// already torn down. Vitest reports that as an unhandled rejection against
+// whichever file happens to be running, which is how it failed a PR that
+// touched none of this.
+//
+// Doubled rather than fed: what the line does with a *pushed* step is not
+// this file's subject, and the step the server rendered — which is what
+// this screen shows — is still the real one.
+vi.mock("inngest/react", () => ({
+  useRealtime: () => ({ messages: { last: undefined } }),
+}));
 
 const { competitorsDomain } = vi.hoisted(() => ({ competitorsDomain: vi.fn() }));
 vi.mock("@/lib/vendors/dataforseo", async (importOriginal) => ({
@@ -83,8 +101,10 @@ async function mount(step = "site"): Promise<HTMLElement> {
   const model = await readSetupScreen();
   const container = document.createElement("div");
   document.body.appendChild(container);
+  const root = createRoot(container);
+  roots.push(root);
   await act(async () => {
-    createRoot(container).render(
+    root.render(
       <NuqsTestingAdapter searchParams={{ step }} hasMemory>
         <SetupForm model={model} />
       </NuqsTestingAdapter>,
@@ -92,6 +112,17 @@ async function mount(step = "site"): Promise<HTMLElement> {
   });
   return container;
 }
+
+/** Every root this file mounted. Unmounted after each test: a screen left
+ *  mounted is a screen whose effects are still running when the suite ends,
+ *  and an effect that settles after jsdom is gone takes the run down with
+ *  it rather than failing its own test. */
+const roots: Root[] = [];
+
+afterEach(() => {
+  for (const root of roots.splice(0)) act(() => root.unmount());
+  document.body.innerHTML = "";
+});
 
 /** Leaving the step forward: the step's own save, then the next step. */
 async function onwards(root: HTMLElement): Promise<void> {
