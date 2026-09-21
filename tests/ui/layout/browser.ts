@@ -373,7 +373,14 @@ function settleOnNavigation(page: Page): void {
     // is served. It is the navigation that has to wait, so it waits here,
     // once, for every file (`layout.test.ts`'s own header no longer has to
     // say it is the un-hydrated pass).
-    await settleForMeasurement(page);
+    //
+    // **Served pages only.** The canaries navigate to a `file://` fixture —
+    // a static document with no client runtime, no `next/font` face and no
+    // chart — where the hydration marker cannot ever appear, so waiting for
+    // it is thirty seconds spent on a page that was finished when `load`
+    // fired. They run under the default 5 s bound, which is the right bound
+    // for them and how this was caught.
+    if (/^https?:/.test(url)) await settleForMeasurement(page);
     return response;
   };
 }
