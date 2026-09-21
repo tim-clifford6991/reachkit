@@ -280,8 +280,15 @@ export function SearchTable(p: { model: SearchModel }): React.JSX.Element {
 
       {/* BUILD §2.2's own rule, and docs/DESIGN.md's no-overflow rule read
           for a table: the table scrolls sideways inside this box, so the
-          page never does. */}
-      <div className="min-w-0 overflow-x-auto">
+          page never does — and because it scrolls, a keyboard has to be
+          able to reach it (#947). The region takes the table's own name
+          rather than a second one. */}
+      <div
+        className="min-w-0 overflow-x-auto"
+        tabIndex={0}
+        role="region"
+        aria-label={copy("overview.search.table.label")}
+      >
         <table className="table table-sm" aria-label={copy("overview.search.table.label")}>
           <thead>
             {table.getHeaderGroups().map((group) => (

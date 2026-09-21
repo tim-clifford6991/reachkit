@@ -90,9 +90,16 @@ export function GooglePresenceCard(p: { section: PresenceSection }): React.JSX.E
           {copy("presence.absent-from.title")}
         </p>
         {/* The search folds at its spaces; the volume and the holder are
-            single values and never fold, so the wrap scrolls at 320. No
+            single values and never fold, so the wrap scrolls at 320 — and a
+            pane that scrolls has to be reachable from a keyboard (#947), so
+            it is a named region and a tab stop under the line above it. No
             market-total footnote follows (owner, 2026-09-03). */}
-        <div className="min-w-0 overflow-x-auto">
+        <div
+          className="min-w-0 overflow-x-auto"
+          tabIndex={0}
+          role="region"
+          aria-label={copy("presence.absent-from.title")}
+        >
           <table className="table table-zebra table-sm">
             <thead>
               <tr>

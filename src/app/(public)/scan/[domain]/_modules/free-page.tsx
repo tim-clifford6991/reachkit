@@ -47,12 +47,23 @@ function Head(p: { right?: React.ReactNode }): React.JSX.Element {
 }
 
 /** A label over its value. The value cell scrolls rather than breaking a
- *  domain mid-token at 320 (issue #256). */
+ *  domain mid-token at 320 (issue #256) — so it is a tab stop, because a
+ *  pane that scrolls with no way into it from a keyboard is reachable with
+ *  a trackpad and by no key (#947).
+ *
+ *  **It takes the tab stop and not the `role="region"` its neighbours
+ *  take.** A `dd`'s role is `definition`, and its name is the `dt` beside
+ *  it; overwriting that with `region` would cut the value loose from the
+ *  label that says what it is, to give it a name it already has. The axe
+ *  rule asks for either a focusable child or a focusable element
+ *  (`focusable-content` / `focusable-element`), and this is the second. */
 function Row(p: { label: string; children: React.ReactNode }): React.JSX.Element {
   return (
     <div className="border-base-300 grid grid-cols-[6rem_minmax(0,1fr)] gap-3 border-b py-2 last:border-b-0">
       <dt className="text-base-content/60 text-xs">{p.label}</dt>
-      <dd className="min-w-0 overflow-x-auto text-sm">{p.children}</dd>
+      <dd className="min-w-0 overflow-x-auto text-sm" tabIndex={0}>
+        {p.children}
+      </dd>
     </div>
   );
 }

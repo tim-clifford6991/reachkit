@@ -444,8 +444,15 @@ export function AiAnswersCard(p: {
         </p>
 
         {/* The matrix scrolls rather than shrinking its labels. The
-            customer's own row is labelled `n/m`; no sentence repeats it. */}
-        <div className="min-w-0 overflow-x-auto">
+            customer's own row is labelled `n/m`; no sentence repeats it.
+            It scrolls, so it is reachable from a keyboard (#947): a named
+            region and a tab stop, named by the card's own head. */}
+        <div
+          className="min-w-0 overflow-x-auto"
+          tabIndex={0}
+          role="region"
+          aria-label={copy("ai-answers.title")}
+        >
           <AnswerMatrix
             rows={matrixRows(section)}
             questions={section.rows.map((row) => String(row.question.n))}
