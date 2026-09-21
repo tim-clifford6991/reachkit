@@ -13,9 +13,17 @@
 // from the model — it holds its own hand-over state — so only the account
 // card takes a slice.
 import type React from "react";
+import type { Metadata } from "next";
+import { copy } from "@/lib/presentation/copy";
 import { readSettings } from "../provider";
 import { AccountPanel } from "../panels/AccountPanel";
 import { DangerZone } from "../panels/DangerZone";
+
+/** This tab's own `<title>` (#945, #925). Each sibling names itself
+ *  inside Settings — `account-title.test.ts` forbids two screens
+ *  announcing the same thing, so a shared title is not available and
+ *  would not serve a reader anyway. */
+export const metadata: Metadata = { title: copy("meta.app.settings.account.title") };
 
 export default async function SettingsAccountTab(): Promise<React.JSX.Element> {
   const settings = await readSettings();

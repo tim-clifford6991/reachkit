@@ -7,8 +7,16 @@
 // REQ-055). The two are not the same sentence and neither replaces the
 // other: the bar names the subject in two words, the card says what it does.
 import type React from "react";
+import type { Metadata } from "next";
+import { copy } from "@/lib/presentation/copy";
 import { readSettings } from "../provider";
 import { VoicePanel } from "../panels/VoicePanel";
+
+/** This tab's own `<title>` (#945, #925). Each sibling names itself
+ *  inside Settings — `account-title.test.ts` forbids two screens
+ *  announcing the same thing, so a shared title is not available and
+ *  would not serve a reader anyway. */
+export const metadata: Metadata = { title: copy("meta.app.settings.voice.title") };
 
 export default async function SettingsVoiceTab(): Promise<React.JSX.Element> {
   const settings = await readSettings();
