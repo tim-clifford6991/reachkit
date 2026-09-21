@@ -23,6 +23,16 @@ const { llmMock, readMeasuredTextMock, withCostContextMock, transitionMock } = v
   transitionMock: vi.fn(),
 }));
 vi.mock("@/lib/llm", () => ({ llm: llmMock }));
+
+// #927: `writePage` reads the confirmed business profile and the passages
+// the customer switched off. This suite is about the day's decision, not
+// about that read, so the seam answers "nothing confirmed" — the state a
+// site whose crawl has not run is in, and the one that keeps every
+// assertion below about what it was about before.
+vi.mock("@/lib/generate/voice/confirmed", () => ({
+  confirmedForWriting: async () => ({ profile: null, factsOff: [] }),
+  refusedPassages: async () => [],
+}));
 vi.mock("@/lib/measure/text", () => ({ readMeasuredText: readMeasuredTextMock }));
 vi.mock("@/lib/costs", () => ({ withCostContext: withCostContextMock }));
 vi.mock("@/lib/publish/machine", () => ({ transition: transitionMock }));

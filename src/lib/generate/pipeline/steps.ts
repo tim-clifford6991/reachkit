@@ -36,6 +36,7 @@ import type { Acceptance, Opportunity } from "@/lib/opportunities/types";
 import { REGISTER_FLOOR } from "../rules/figures";
 import { FRAME_INSTRUCTION, answersMarketQuestion } from "../rules/frame";
 import type { DraftPromptInputs } from "../voice/inputs";
+import type { PromptProfile } from "../voice/profile-block";
 import type { AnswerabilityOps } from "./answerability";
 import { PAGE_JOB, SECTION_TASK, type SectionRole } from "./skeletons";
 
@@ -95,9 +96,20 @@ const ANSWERABILITY_SCHEMA = z.strictObject({
 /**
  * Everything the brief step is handed, and nothing else (issue 475): the
  * cluster, the type, the target and the searches it absorbed, the customer's
- * own passages to choose among, their do-not-claim list, their voice, and the
- * acceptance test the page is written to pass. No business name, domain or
- * evidence blob reaches the brief.
+ * own passages to choose among, their do-not-claim list, their voice, the
+ * acceptance test the page is written to pass, and the confirmed business
+ * profile. No business name, domain or evidence blob reaches the brief.
+ *
+ * **The profile is here so the brief can choose**, in #927's words: "the brief task says to choose which products, audience and
+ * promises the page should speak to". A brief that knows what the business
+ * sells picks the points that matter to this reader of this business; a
+ * brief that does not writes the same page for every site in the market,
+ * which is the thing this issue exists to end.
+ *
+ * It still learns no business *name*: `PromptProfile` carries what the
+ * business does, sells, promises, serves and says — never who it is. The
+ * frame rule of #900 is unaffected, and the brief has no more ability to
+ * make the seller the subject than it had before.
  */
 export interface BriefProjection {
   cluster: string | null;
@@ -115,6 +127,9 @@ export interface BriefProjection {
    *  `null` where it is the customer's own. A fixed sentence either way — it
    *  names no business, so the brief still learns nothing of one. */
   frame: string | null;
+  /** The confirmed business profile, bounded, or `null` where nothing has
+   *  been read of the site (#927). */
+  profile: PromptProfile | null;
 }
 
 /** The acceptance test as one line the model can aim at. Model-facing only. */
@@ -148,6 +163,7 @@ export function briefProjection(a: {
   /** Whether the target is the market's question — decided by the caller,
    *  which holds the brand this projection deliberately does not. */
   marketQuestion: boolean;
+  profile: PromptProfile | null;
 }): BriefProjection {
   const o = a.opportunity;
   return {
@@ -161,6 +177,7 @@ export function briefProjection(a: {
     acceptance: acceptanceText(o.acceptance),
     pageJob: PAGE_JOB[o.type],
     frame: a.marketQuestion ? FRAME_INSTRUCTION : null,
+    profile: a.profile,
   };
 }
 
@@ -210,6 +227,11 @@ function promptFor(
       passage: inputs.grounded.passage,
     },
     links: inputs.links.map((link) => ({ url: link.url, page: link.label })),
+    // SPEC §7 (2026-09-20), #927: what the business does, sells, promises,
+    // serves and says — already bounded by `../voice/profile-block.ts`, and
+    // `null` on a site nothing has been read of, which is the prompt this
+    // product built before this issue.
+    profile: inputs.profile,
     ...extra,
   };
 }
@@ -233,6 +255,14 @@ const HOUSE_RULES = [
   "Use the outline's headings exactly; add no other heading written as a question.",
   `Write no number of ${REGISTER_FLOOR} or more that the facts or the target search do not contain, unless it is linked to its source.`,
   `Open the page with a paragraph of ${ANSWER_FIRST_BLOCK_CHARS.min} to ${ANSWER_FIRST_BLOCK_CHARS.max} characters that answers the target search.`,
+  // #927, and the fact rules it does not relax. The profile says what the
+  // business is; it holds no price, no figure, no person and no review, and
+  // a page that states one of those still needs a `facts` passage for it.
+  // The last clause restates for this input what #900 found: a profile is
+  // a reason a page is specific, never a reason it is an advertisement.
+  "Where `profile` is given, write about this business and not a generic one: use its own words from `profile.vocabulary`, and speak to the products, audience and promises the brief chose.",
+  "A promise from `profile.promises` may be repeated only in the customer's own wording as given; never sharpen it, never quantify it, and never present it as tested or guaranteed beyond those words.",
+  "`profile` is not a source of facts: state no price, quantity, date, person, review or figure that is not in `facts`, word for word and linked, however much `profile` suggests one.",
 ];
 
 async function step<T>(
@@ -256,7 +286,11 @@ export function brief(c: CostContext, projection: BriefProjection): Promise<Meas
         "`pageJob` states and obeying `frame` where one is given: the question a " +
         "reader arrives with, the angle that answers it, and the points the page must " +
         "cover. Choose the facts the page will state by their index in `facts`; you " +
-        "cannot write a fact of your own.",
+        "cannot write a fact of your own. Where `profile` is given, choose which of " +
+        "its products, audience and promises this page should speak to, and say so in " +
+        "the points — the page must be specific to this business and relevant to its " +
+        "readers, never generic. Answer the target search first: the profile tells you " +
+        "who is answering, never what the page is about.",
       ...projection,
     },
   });

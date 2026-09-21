@@ -41,6 +41,16 @@ const {
   transitionMock: vi.fn(),
 }));
 vi.mock("@/lib/llm", () => ({ llm: llmMock }));
+
+// #927: `writePage` reads the confirmed business profile and the passages
+// the customer switched off. This suite is about the day's decision, not
+// about that read, so the seam answers "nothing confirmed" — the state a
+// site whose crawl has not run is in, and the one that keeps every
+// assertion below about what it was about before.
+vi.mock("@/lib/generate/voice/confirmed", () => ({
+  confirmedForWriting: async () => ({ profile: null, factsOff: [] }),
+  refusedPassages: async () => [],
+}));
 vi.mock("@/lib/measure/text", () => ({ readMeasuredText: readMeasuredTextMock }));
 vi.mock("@/lib/opportunities", () => ({
   nextForDay: nextForDayMock,
@@ -166,7 +176,12 @@ describe("issue 697 — the draft keeps the description the hosted page's head r
     queueAttempt(CLEAN_MARKDOWN);
     const outcome = await generateDayPage({ siteId: SITE_ID, publishDate: "2026-09-07" });
     const row = outcome.ok ? store.rows.get(outcome.draftId) : undefined;
-    expect(row?.meta).toEqual({ description: "A description." });
+    // `toMatchObject`, not `toEqual`: since #927 the row also records what
+    // the page was written from — the passages the brief chose, and the
+    // profile items where the site has a profile. What this test is about is
+    // the description the hosted page's head reads, and that it is still
+    // there and still exact.
+    expect(row?.meta).toMatchObject({ description: "A description." });
   });
 });
 

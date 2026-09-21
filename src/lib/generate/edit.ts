@@ -32,7 +32,7 @@ import { withDraftCost } from "./cost";
 import { claimCheck, type ClaimVerdict } from "./claims/check";
 import { readRecordedFact } from "./fact";
 import { buildComparisonSet } from "./pipeline/comparison";
-import { readAllFacts } from "./pipeline/grounding";
+import { allowedFacts, readAllFacts } from "./pipeline/grounding";
 import { targetSearches } from "./pipeline/steps";
 import {
   readRecordedRules,
@@ -211,7 +211,14 @@ async function recheck(
     // Uncapped: this is a lookup of the passage the row already records, not
     // a set to choose from, and a recorded passage must be findable however
     // deep the brief's own list had it (issue 900).
-    const facts = await readAllFacts({ siteId: a.siteId, scanId: report.scanId });
+    // An edit may not re-ground on a passage the customer has since switched
+    // off (#927). Through `../voice/confirmed`, which is the one door the
+    // writer and the editor both open.
+    const { refusedPassages } = await import("./voice/confirmed");
+    const facts = allowedFacts(
+      await readAllFacts({ siteId: a.siteId, scanId: report.scanId }),
+      await refusedPassages({ siteId: a.siteId })
+    );
     const recordedFact = readRecordedFact(row.grounded_fact);
     const source =
       recordedFact === null ? undefined : facts.find((sourced) => sourced.fact.passage === recordedFact.passage);

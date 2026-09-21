@@ -173,6 +173,47 @@ export async function readFacts(a: FactRead): Promise<SourcedFact[]> {
   return (await readAllFacts(a)).slice(0, BRIEF_MAX_FACTS);
 }
 
+/**
+ * The same passages, minus the ones the customer switched off (#926, #927).
+ *
+ * **A pure filter, and the refusals are passed in.** A customer who switched
+ * a passage off on Settings › Your business has said ReachKit may not quote
+ * it, and a page that quoted it anyway would be the one thing that control
+ * is for. The list arrives from the caller rather than being read here, and
+ * the reason is worth stating because the first draft of this did read it:
+ * this module is reached by the writer, by an edit, by the opportunities
+ * store and by the Settings screen, and a read inside it puts a database
+ * behind every one of them — including a suite about passage *ordering* that
+ * has no business standing one up. It also read it twice on the draft path,
+ * since the caller already reads the same row for the profile.
+ *
+ * So the one read is the caller's — `../voice/confirmed.ts` returns the
+ * refusals beside the profile — and this stays the filter.
+ * `tests/build/grounding-callers.test.ts` is what holds every quoting path
+ * to it.
+ */
+export function allowedFacts(
+  all: readonly SourcedFact[],
+  factsOff: readonly string[]
+): SourcedFact[] {
+  if (factsOff.length === 0) return [...all];
+  const off = new Set(factsOff);
+  return all.filter((sourced) => !off.has(sourced.fact.passage));
+}
+
+/**
+ * Whether this site has any passage to write from at all, and the first of
+ * them.
+ *
+ * **It reads the base list, and that is deliberate** (#927): the question it
+ * answers is whether a site has *supply* — `../../opportunities/store.ts`
+ * asks it to decide whether an opportunity can be written at all — not which
+ * passage a page will quote. A site whose passages are all switched off has
+ * none it may quote, and the writer finds that out at the moment it matters,
+ * with §8's own "no fact" path. Reading the refusals here would put a
+ * database read behind every supply question for an answer the writer
+ * re-derives anyway.
+ */
 export async function readGroundingFact(a: FactRead): Promise<GroundingRead> {
   const [first] = await readFacts(a);
   return first === undefined ? { failed: "no_fact" } : first;

@@ -163,6 +163,8 @@ async function runPipeline(site = siteInputs()): Promise<GenerateOutcome> {
     voiceText: null,
     category: "project management software",
     links: [],
+    profile: null,
+    factsOff: [],
   });
 }
 
@@ -305,9 +307,17 @@ describe("§8's battery — the record the pipeline wrote is the record the draf
     // The empty list is the record: a battery ran, and nothing failed.
     expect(row.rule_failures).toEqual([]);
     // And no battery record was written into `meta` — the keys this screen
-    // used to read are not keys the pipeline has, under any spelling. The
-    // one key `meta` carries is the page's description (issue 697).
-    expect(Object.keys((row.meta ?? {}) as object)).toEqual(["description"]);
+    // used to read are not keys the pipeline has, under any spelling. What
+    // `meta` carries is the page's description (issue 697) and, since #927,
+    // what the page was written from: the passages the brief chose, and the
+    // profile items the prompt carried where the site has a profile. This
+    // site has none, so there is no `profileItems` key — a draft written for
+    // an unread site records only the facts.
+    expect(Object.keys((row.meta ?? {}) as object).sort()).toEqual(
+      ["description", "factsUsed"].sort()
+    );
+    // A rule record is still not one of them, under any spelling.
+    expect(Object.keys((row.meta ?? {}) as object)).not.toContain("rule_failures");
   });
 
   it("the badge states the check the pipeline ran, on the account's own read", async () => {

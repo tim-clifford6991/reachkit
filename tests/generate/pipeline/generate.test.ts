@@ -78,6 +78,8 @@ function run(over: Partial<Parameters<typeof generateDraft>[1]> = {}) {
     voiceText: null,
     category: "project management software",
     links: [],
+    profile: null,
+    factsOff: [],
     ...over,
   });
 }
@@ -205,6 +207,8 @@ describe("a step that did not run is not a rule that failed", () => {
       voiceText: null,
       category: "project management software",
       links: [],
+      profile: null,
+      factsOff: [],
     });
     expect(outcome).toMatchObject({ reason: "step_failed" });
     expect(llmMock).not.toHaveBeenCalled();
@@ -238,6 +242,38 @@ describe("grounding has no fallback", () => {
       { rule: "grounding" },
     ]);
     expect(llmMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("#927 — a passage the customer switched off never reaches the page", () => {
+  it("refusing the one passage this site has fails hard rule 1, before a cent is spent", async () => {
+    // The end-to-end half of #927's fact rule. `readMeasuredText` still
+    // answers with the page, so it is the refusal doing this and not an
+    // empty site — and it costs nothing, because the refusal is subtracted
+    // before the brief is asked anything.
+    //
+    // §8's fact is the customer's own live page or the draft does not ship.
+    // A customer who switched their only quotable sentence off has said
+    // ReachKit may not write from it, and no page is exactly the right
+    // answer to that.
+    llmMock.mockReset();
+    const outcome = await run({ factsOff: [GROUNDED.passage] });
+    expect(outcome).toMatchObject({ reason: "rules" });
+    expect(outcome.ok === false && outcome.reason === "rules" && outcome.failed).toEqual([
+      { rule: "grounding" },
+    ]);
+    expect(llmMock).not.toHaveBeenCalled();
+  });
+
+  it("a refusal of a passage this site does not have changes nothing", async () => {
+    // The other side of the same filter: it must not over-subtract. A
+    // passage the customer refused on a page the crawl has since
+    // re-measured differently is simply not in the list, and the page is
+    // written exactly as it is without the refusal.
+    primeSteps(CLEAN_MARKDOWN);
+    const outcome = await run({ factsOff: ["a sentence no page of theirs carries"] });
+    expect(outcome.ok).toBe(true);
+    expect(outcome.ok === true && outcome.grounded?.passage).toBe(GROUNDED.passage);
   });
 });
 

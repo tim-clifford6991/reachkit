@@ -50,9 +50,10 @@ import { generateStore, type DraftRow } from "../store";
 import { applyLinks } from "../links/apply";
 import type { LinkTarget } from "../links/select";
 import { buildPromptInputs } from "../voice/inputs";
+import { profileItemsUsed, type PromptProfile } from "../voice/profile-block";
 import { buildComparisonSet } from "./comparison";
 import { applyAnswerability } from "./answerability";
-import { readAllFacts } from "./grounding";
+import { allowedFacts, readAllFacts } from "./grounding";
 import { SKELETONS } from "./skeletons";
 import { answersMarketQuestion } from "../rules/frame";
 import {
@@ -114,6 +115,14 @@ export async function generateDraft(
     /** The customer's own pages the page links to — the inventory's and the
      *  cluster's, chosen by `../links/select.ts` (SPEC §7, 2026-09-12). */
     links: readonly LinkTarget[];
+    /** The confirmed business profile, bounded, or `null` where nothing has
+     *  been read of the site (#927). Passed rather than read here: the
+     *  caller already holds the market reading it is half made of, so
+     *  reading it again would be a second query for a fact in hand. */
+    profile: PromptProfile | null;
+    /** The passages the customer switched off (#926, #927), from the same
+     *  read as the profile. Subtracted from the grounding list below. */
+    factsOff: readonly string[];
     /** The scan whose measured pages ground the page. */
     scanId?: string;
     /** The row an earlier attempt wrote for this date, to rewrite rather
@@ -139,7 +148,14 @@ export async function generateDraft(
   // uncapped only so a passage an earlier attempt pinned can still be found;
   // `facts` is what the brief is handed.
   const searches = targetSearches(a.opportunity);
-  const all = await readAllFacts({ siteId: a.siteId, scanId: a.scanId, target: searches[0] });
+  // A passage the customer switched off on Settings › Your business is not
+  // one this page may quote (#927), so it is subtracted before anything
+  // chooses among them — before the cap too, or a refused passage would
+  // fill a slot and push an allowed one out of the brief's list.
+  const all = allowedFacts(
+    await readAllFacts({ siteId: a.siteId, scanId: a.scanId, target: searches[0] }),
+    a.factsOff
+  );
   const facts = all.slice(0, BRIEF_MAX_FACTS);
   if (facts.length === 0) return noFact(a.siteId);
 
@@ -157,6 +173,7 @@ export async function generateDraft(
       facts: facts.map((sourced) => sourced.fact.passage),
       doNotClaim: a.site.doNotClaim,
       voice: a.voiceText,
+      profile: a.profile,
       marketQuestion: answersMarketQuestion({
         opportunityType: a.opportunity.type,
         queries: searches,
@@ -187,6 +204,7 @@ export async function generateDraft(
     opportunity: a.opportunity,
     grounded: grounding.fact,
     links: a.links,
+    profile: a.profile,
   });
 
   // 4. The skeleton's outline, the draft, and the bounded answerability
@@ -233,7 +251,22 @@ export async function generateDraft(
     // The description the draft step already writes, kept where the hosted
     // template reads it (issue 697): without it every hosted page's head
     // has no meta description and §9's crawl flags ReachKit's own template.
-    meta: { description: body.description },
+    //
+    // **What this page was written from** (#927): the profile items the
+    // prompt carried and the passages the brief chose, so the review
+    // screen's *written from your business* card lists what was used rather
+    // than re-deriving it from a profile that may have changed since. Two
+    // flat lists of the customer's own strings — no figure, no id, and
+    // nothing a later read could contradict. `profileItems` is absent where
+    // the site has no profile, because there were none to carry;
+    // `factsUsed` is always written, because a page that quotes no fact of
+    // the customer's own does not ship (§8 hard rule 1), so there is always
+    // at least one.
+    meta: {
+      description: body.description,
+      ...(a.profile === null ? {} : { profileItems: profileItemsUsed(a.profile) }),
+      factsUsed: passages,
+    },
     // The one shape (`../fact.ts`), so what is written here and what the
     // draft view and the hosted page read cannot be spelled differently.
     grounded_fact: recordedFactValue(grounding.fact),
