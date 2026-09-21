@@ -34,6 +34,7 @@ import { applySetupChoice } from "@/lib/publish/setup/apply";
 import { hostFor } from "@/lib/publish/destinations/hosted/label";
 import type { SetupProgressState, SetupStepSave, SetupStore, SetupSubmission } from "../submit";
 import type { SetupStepId } from "../steps";
+import type { BusinessList } from "@/lib/site-profile/business/types";
 
 /** ADR-050's rule, as a port. The default is now the billing leaf's own
  *  `hasActiveAccess()` — the one export `CLAUDE.md` lets anything outside
@@ -168,6 +169,33 @@ async function writeVoice(a: { siteId: string; domain: string; voiceText: string
     }
   } catch {
     // See the note above: swallowed on purpose.
+  }
+}
+
+/**
+ * The four lists step two left, as decisions over the reading it drew
+ * (#970). `saveChosenLists` reads the profile, the market and the standing
+ * decisions and writes the row whole.
+ *
+ * **Never throws**, for the reason `writeVoice` above does not: a founder
+ * must not be held on a step by a substrate that blinked, and since #970
+ * the very same lists are editable in Settings › Your business, so a
+ * correction that did not store is one screen away rather than gone. The
+ * failure is logged as its own line, the shape `recordStage` logs its own
+ * failed write with, so a deployment losing these can be seen losing them.
+ */
+async function writeBusinessLists(a: {
+  siteId: string;
+  domain: string;
+  lists: Readonly<Partial<Record<BusinessList, readonly string[]>>>;
+}): Promise<void> {
+  try {
+    const { saveChosenLists } = await import("@/lib/site-profile/business/confirmed");
+    await saveChosenLists({ siteId: a.siteId, domain: a.domain, chosen: a.lists });
+  } catch (error) {
+    console.log(
+      JSON.stringify({ event: "setup_business_not_saved", siteId: a.siteId, detail: String(error) })
+    );
   }
 }
 
@@ -383,10 +411,12 @@ export function liveSetupStore(): SetupStore {
      * written in the same call as the answer, so a `/setup` reopened in a
      * new tab can never land on a step whose answer was not saved.
      *
-     * The business step writes only the resume point. What the founder took
-     * out of and added to the profile they were shown has no column yet —
-     * #926 owns that storage and the editor over it — so this arm stores no
-     * profile rather than inventing a place to put one.
+     * The business step writes the customer's decisions over the profile
+     * they were shown (#970), into the same `site_profile_edits` row
+     * Settings › Your business writes — so a correction made here is there,
+     * and one made there is here. It invents no storage of its own: this
+     * arm hands the lists to `saveChosenLists` and that module does the
+     * rest.
      */
     async saveStep(a: {
       siteId: string;
@@ -398,6 +428,9 @@ export function liveSetupStore(): SetupStore {
         await updateSite(a.siteId, { domain: a.save.domain, category: a.save.category });
       } else if (step === "rivals") {
         await updateSite(a.siteId, { competitors: [...a.save.competitors] });
+      } else if (step === "business") {
+        const site = await siteById(a.siteId);
+        await writeBusinessLists({ siteId: a.siteId, domain: site.domain, lists: a.save.lists });
       } else if (step === "voice") {
         const site = await siteById(a.siteId);
         await writeVoice({ siteId: a.siteId, domain: site.domain, voiceText: a.save.voiceText });

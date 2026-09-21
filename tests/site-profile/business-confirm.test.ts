@@ -18,6 +18,7 @@
 import { describe, expect, it } from "vitest";
 import {
   confirmedProfile,
+  editsForLists,
   profileIsEmpty,
   quotableFacts,
   seenNow,
@@ -262,5 +263,104 @@ describe("#926 — facts we can quote", () => {
 
   it("no measured page yielding a passage is an empty list, never a fabricated fact", () => {
     expect(quotableFacts({ facts: [], edits: NO_EDITS })).toEqual([]);
+  });
+});
+
+describe("#970 — setup's step two hands over whole lists, and they store as decisions", () => {
+  // Setup's step two lets a founder take items out and add their own, then
+  // hands back what each list ended up holding. Settings records one press
+  // at a time. Both end in the same row, which is the point of #970 — so
+  // what is asserted here is the round trip: the lists a founder leaves are
+  // the lists the other screen reads back.
+  const both = (stored: BusinessEdits, chosen: Record<string, readonly string[]>) =>
+    confirmedProfile({
+      profile: profile(),
+      market,
+      edits: editsForLists({ stored, profile: profile(), market, chosen }),
+    });
+
+  it("the lists a founder leaves are the lists the other screen reads back", () => {
+    const seen = both(NO_EDITS, {
+      products: ["Full service", "Wheel truing"],
+      claims: [],
+    });
+    expect(texts(seen.lists.products)).toEqual(["Full service", "Wheel truing"]);
+    expect(texts(seen.lists.claims)).toEqual([]);
+  });
+
+  it("what they took out is a removal, so Monday's pass cannot put it back", () => {
+    const stored = editsForLists({
+      stored: NO_EDITS,
+      profile: profile(),
+      market,
+      chosen: { products: ["Full service"] },
+    });
+    expect(stored.removed.products).toEqual(["Basic service"]);
+
+    // Monday: the crawl reads the same two products off the site again.
+    const monday = confirmedProfile({ profile: profile(), market, edits: stored });
+    expect(texts(monday.lists.products)).toEqual(["Full service"]);
+  });
+
+  it("what they typed is theirs, and is marked as theirs", () => {
+    const stored = editsForLists({
+      stored: NO_EDITS,
+      profile: profile(),
+      market,
+      chosen: { products: ["Basic service", "Full service", "Wheel truing"] },
+    });
+    expect(stored.added.products).toEqual(["Wheel truing"]);
+    const shown = confirmedProfile({ profile: profile(), market, edits: stored });
+    expect(shown.lists.products.at(-1)).toEqual({
+      text: "Wheel truing",
+      source: "yours",
+      isNew: false,
+    });
+  });
+
+  it("a list the step never showed is untouched, and so are the other decisions", () => {
+    const stored = editsForLists({
+      stored: edits({
+        job: "Fix bikes properly",
+        factsOff: ["We open at seven"],
+        removed: { audienceTerms: ["Commuters"] },
+        added: { claimsToAvoid: ["Cheapest in town"] },
+      }),
+      profile: profile(),
+      market,
+      chosen: { products: ["Full service"] },
+    });
+    expect(stored.job).toBe("Fix bikes properly");
+    expect(stored.factsOff).toEqual(["We open at seven"]);
+    expect(stored.removed.audienceTerms).toEqual(["Commuters"]);
+    expect(stored.added.claimsToAvoid).toEqual(["Cheapest in town"]);
+  });
+
+  it("a standing removal of something the site no longer says is kept", () => {
+    // They removed it last month; this month's crawl does not read it at
+    // all, so it is not on the screen to be handed back. It must still be
+    // removed, because next month's crawl may read it again.
+    const stored = editsForLists({
+      stored: edits({ removed: { products: ["Gone from the site"] } }),
+      profile: profile(),
+      market,
+      chosen: { products: ["Basic service", "Full service"] },
+    });
+    expect(stored.removed.products).toEqual(["Gone from the site"]);
+  });
+
+  it("an item they put back is no longer removed", () => {
+    const stored = editsForLists({
+      stored: edits({ removed: { products: ["Basic service"] } }),
+      profile: profile(),
+      market,
+      // The crawl still reads it, and this time they kept it.
+      chosen: { products: ["Basic service", "Full service"] },
+    });
+    expect(stored.removed.products).toEqual([]);
+    expect(texts(confirmedProfile({ profile: profile(), market, edits: stored }).lists.products)).toEqual([
+      "Basic service",
+      "Full service",
+    ]);
   });
 });

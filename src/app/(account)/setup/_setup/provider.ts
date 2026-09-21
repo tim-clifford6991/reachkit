@@ -31,7 +31,7 @@ import { liveSetupStore, savedSetupFor, siteAddressFor } from "./store";
 import type { PassProgress } from "./progress";
 import type { SetupStore } from "../submit";
 import { initialSetupState, type ReportFacts } from "@/lib/market/setup/state";
-import type { SiteProfile } from "@/lib/site-profile/types";
+import type { ConfirmedReadings } from "@/lib/site-profile/business/confirmed";
 import type { RivalGrid } from "./panel-rivals";
 import type { OnboardingStage } from "@/lib/scan/deep/progress";
 import { setupChannelName } from "@/lib/scan/deep/channel";
@@ -100,14 +100,21 @@ export const readSetupScreen = cache(async function readSetupScreen(): Promise<S
           });
         })();
 
+  // SPEC §5 and §7 (2026-09-20, #970): the three readings step two's lists
+  // are made of, through the one reader Settings › Your business goes
+  // through. What the scan read is keyed by the domain — the free scan that
+  // built it had no account behind it — and the customer's own decisions
+  // are keyed by the site, which is what keeps one account's corrections
+  // out of a stranger's report. Each part fails soft on its own.
+  const business = await readConfirmedBusiness(founder);
+
   return assembleSetup({
     measured,
     suggestedRivals,
     questions,
-    // SPEC.md §5 (2026-09-12): what the scan read of this site. Keyed by
-    // the domain, because the free scan that built it had no account
-    // behind it to key it by.
-    profile: founder.domain === "" ? null : await readProfileFor(founder.domain),
+    profile: business.profile,
+    market: business.market,
+    edits: business.edits,
     // §9's edge hostname is a deployment binding, never a string in a
     // card and never a fixture value in production.
     cnameTarget: env.HOSTED_EDGE_CNAME_TARGET,
@@ -163,23 +170,30 @@ async function rivalGridFor(domain: string): Promise<RivalGrid | null> {
 }
 
 /**
- * The stored site profile for one domain, or `null`.
+ * The confirmed business profile's three readings, for this founder (#970).
  *
  * **Imported at the call**, like every other read this file makes: the
- * store reaches `@/lib/db`, which parses every environment binding the
+ * reader reaches `@/lib/db`, which parses every environment binding the
  * moment it is evaluated, and merely rendering `/setup` must not need a
  * database to be reachable.
  *
- * A read that fails is `null` — the card simply does not render — never a
- * screen the founder cannot get past. The profile is a thing the product
- * read *about* them; nothing they must answer.
+ * A read that fails is `null` inside it — the step then shows what the
+ * other readings carry — never a screen the founder cannot get past. The
+ * profile is a thing the product read *about* them; nothing they must
+ * answer.
  */
-async function readProfileFor(domain: string): Promise<SiteProfile | null> {
+async function readConfirmedBusiness(founder: {
+  siteId: string;
+  domain: string;
+}): Promise<ConfirmedReadings> {
   try {
-    const { readSiteProfile } = await import("@/lib/site-profile");
-    return await readSiteProfile(domain);
+    const { readConfirmedBusiness: read } = await import(
+      "@/lib/site-profile/business/confirmed"
+    );
+    return await read(founder);
   } catch {
-    return null;
+    const { NO_EDITS } = await import("@/lib/site-profile/business/types");
+    return { profile: null, market: null, edits: NO_EDITS };
   }
 }
 

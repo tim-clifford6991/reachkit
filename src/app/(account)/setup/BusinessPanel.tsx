@@ -6,15 +6,15 @@
 // component and no stylesheet: a group is a `<section>` of daisyUI classes,
 // repeated four times over `BUSINESS_GROUPS`.
 //
-// The rules are `business.ts`'s — what a group holds, how long it may grow,
-// what removing and adding do. This file holds the text a founder is
+// The rules are `_setup/business.ts`'s — what a group holds, how long it may
+// grow, what removing and adding do. This file holds the text a founder is
 // part-way through typing and which group they are typing it into.
 //
-// **Nothing here is stored yet.** #926 owns the confirmed profile's storage
-// and its editor; until it lands the founder's removals and additions live
-// for the length of this setup, and the drafting prompt still reads the
-// profile as the scan wrote it. The controls work, which is what this step
-// is for: the owner sees the shape of it and corrects the wording.
+// **What it edits is stored** (#970). The groups are four of the six lists
+// `site_profile_edits` holds, the items come from the confirmed profile —
+// the scan's reading with the customer's own decisions over it — and
+// leaving the step records what they took out and what they added. The same
+// lists are in Settings › Your business, because they are the same lists.
 "use client";
 
 import type React from "react";
@@ -29,7 +29,7 @@ import {
   removed,
   type BusinessDraft,
   type BusinessGroupId,
-} from "./business";
+} from "./_setup/business";
 
 /** Each group's head, and the quiet note beside it. `products` is the one
  *  group whose note states its bound, because it is the one the founder is
@@ -41,7 +41,7 @@ const GROUP_COPY = {
     head: "setup.business.group.vocabulary",
     note: "setup.business.group.vocabulary.note",
   },
-  facts: { head: "setup.business.group.facts", note: "setup.business.group.facts.note" },
+  claimsToKeep: { head: "setup.business.group.facts", note: "setup.business.group.facts.note" },
 } as const satisfies Record<BusinessGroupId, { head: CopyKey; note: CopyKey }>;
 
 const ICON = { strokeWidth: 1.75, "aria-hidden": true } as const;

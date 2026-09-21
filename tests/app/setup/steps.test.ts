@@ -12,7 +12,16 @@ import {
   type SetupStore,
 } from "@/app/(account)/setup/submit";
 import type { SetupStepId } from "@/app/(account)/setup/steps";
-import { added, businessFrom, isFull, removed, BUSINESS_MAX } from "@/app/(account)/setup/business";
+import { confirmedProfile } from "@/lib/site-profile/business/confirm";
+import { NO_EDITS, type BusinessEdits } from "@/lib/site-profile/business/types";
+import {
+  added,
+  businessFrom,
+  isFull,
+  removed,
+  BUSINESS_GROUPS,
+  BUSINESS_MAX,
+} from "@/app/(account)/setup/_setup/business";
 import { assembleSetup } from "@/app/(account)/setup/_setup/facts";
 import { FIXTURE_SETUP_FACTS, FIXTURE_SITE_PROFILE } from "@/app/(account)/setup/_setup/fixture";
 
@@ -86,7 +95,7 @@ describe("a step saves as it is left, and says where to resume", () => {
     });
     for (const save of [
       { step: "site", domain: "example.com", category: "agency CRM" },
-      { step: "business" },
+      { step: "business", lists: {} },
       { step: "rivals", competitors: [] },
       { step: "voice", voiceText: "", timezone: null },
     ] satisfies SetupStepSave[]) {
@@ -180,7 +189,7 @@ describe("the deep pass starts when rivals are confirmed (SPEC §5, 2026-09-20)"
   it("no other step sends it — voice and publishing overlap a pass that is already running", async () => {
     for (const save of [
       { step: "site", domain: "example.com", category: "agency CRM" },
-      { step: "business" },
+      { step: "business", lists: {} },
       { step: "voice", voiceText: "", timezone: null },
     ] satisfies SetupStepSave[]) {
       const { store, recorder } = storeOf();
@@ -202,22 +211,43 @@ describe("the deep pass starts when rivals are confirmed (SPEC §5, 2026-09-20)"
   });
 });
 
-describe("step two's lists — what the founder takes out and adds (SPEC §5, 2026-09-20)", () => {
+describe("step two's lists — what the founder takes out and adds (SPEC §5, 2026-09-20, #970)", () => {
+  /** The step as a founder meets it: the confirmed profile, which is the
+   *  scan's reading with their own decisions over it. The same composition
+   *  `assembleSetup` makes, so what is asserted here is what is drawn. */
+  const confirmed = (edits: BusinessEdits = NO_EDITS) =>
+    confirmedProfile({ profile: FIXTURE_SITE_PROFILE, market: null, edits });
+
   it("opens on what the scan read of their own site, group by group", () => {
-    const draft = businessFrom(FIXTURE_SITE_PROFILE);
+    const draft = businessFrom(confirmed());
     expect(draft.products).toEqual(["project management", "agency time tracking"]);
     expect(draft.claims).toEqual(["used by 400 agencies", "set up in an afternoon"]);
     expect(draft.vocabulary).toEqual(["projects", "agencies", "time tracking"]);
-    expect(draft.facts).toEqual(["used by 400 agencies"]);
+    expect(draft.claimsToKeep).toEqual(["used by 400 agencies"]);
+  });
+
+  it("#970: a correction made in Settings is already on the step", () => {
+    // The same two decisions Settings' own controls record, read back
+    // through the same function: the step opens on the corrected profile,
+    // not on the crawl's reading of it.
+    const draft = businessFrom(
+      confirmed({
+        ...NO_EDITS,
+        removed: { products: ["project management"] },
+        added: { products: ["retainer billing"] },
+      })
+    );
+    expect(draft.products).toEqual(["agency time tracking", "retainer billing"]);
   });
 
   it("a site nobody read opens with four empty groups, not with none", () => {
     const draft = businessFrom(null);
-    expect(Object.values(draft).every((group) => group.length === 0)).toBe(true);
+    expect(Object.keys(draft)).toEqual([...BUSINESS_GROUPS]);
+    expect(BUSINESS_GROUPS.every((group) => draft[group].length === 0)).toBe(true);
   });
 
   it("an item taken out is gone, and one added lands at the end of its own group", () => {
-    const opened = businessFrom(FIXTURE_SITE_PROFILE);
+    const opened = businessFrom(confirmed());
     const fewer = removed(opened, "products", "project management");
     expect(fewer.products).toEqual(["agency time tracking"]);
     expect(fewer.claims).toEqual(opened.claims);
@@ -227,7 +257,7 @@ describe("step two's lists — what the founder takes out and adds (SPEC §5, 20
   });
 
   it("an empty entry, a duplicate and a full group each change nothing", () => {
-    const opened = businessFrom(FIXTURE_SITE_PROFILE);
+    const opened = businessFrom(confirmed());
     expect(added(opened, "products", "   ")).toBe(opened);
     expect(added(opened, "products", "project management")).toBe(opened);
 

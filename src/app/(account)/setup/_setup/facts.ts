@@ -15,6 +15,8 @@ import { FIRST_STEP, isSetupStep, type SetupStepId } from "../steps";
 import { setupCards, type SetupCards } from "@/lib/publish/setup/cards";
 import { BATTERY } from "@/lib/config/constants";
 import type { SiteProfile } from "@/lib/site-profile/types";
+import type { BusinessEdits, BusinessProfile } from "@/lib/site-profile/business/types";
+import { confirmedProfile, type MarketReading } from "@/lib/site-profile/business/confirm";
 import type { StoredQuestion } from "@/lib/scan/report";
 import type { DerivableMarket } from "@/lib/market/questions/rederive";
 import type { RivalGrid } from "./panel-rivals";
@@ -54,6 +56,14 @@ export interface SetupFacts {
    *  domain yet, and then the card does not render: a profile card with
    *  no profile in it would state a reading nobody made. */
   profile: SiteProfile | null;
+  /** SPEC §5 and §7 (2026-09-20, #970): the other two readings step two's
+   *  lists are made of — the market's four fields, and the customer's own
+   *  decisions over both. `null` and `NO_EDITS` are the ordinary states of
+   *  a founder whose market has not been measured and who has corrected
+   *  nothing; the step then shows what the crawl read, which is what it
+   *  showed before it had a store. */
+  market: MarketReading | null;
+  edits: BusinessEdits;
   /** SPEC §5 (2026-09-20, #922): what this founder has already answered and
    *  which step they left. `null` for a founder with nothing saved — the
    *  screen then opens on its first step with only what the scan read. */
@@ -93,6 +103,11 @@ export interface SetupScreenModel {
   /** The profile, carried through unchanged. Nothing is derived from it
    *  here: the chips' counts are `purposeCounts`'s, over the inventory. */
   profile: SiteProfile | null;
+  /** SPEC §5 and §7 (2026-09-20, #970): the same confirmed business profile
+   *  Settings › Your business draws — the crawl's reading and the market's,
+   *  with the customer's removals and additions applied. Step two's four
+   *  lists open on it, so a correction made in Settings is already here. */
+  business: BusinessProfile;
   /** REQ-026 c9: the limit is stated on screen, so the screen is given it
    *  rather than spelling the number itself. */
   competitorsMax: number;
@@ -128,6 +143,14 @@ export function assembleSetup(facts: SetupFacts): SetupScreenModel {
     cards: setupCards({ siteDomain: state.siteDomain, cnameTarget: facts.cnameTarget }),
     cnameTarget: facts.cnameTarget,
     profile: facts.profile,
+    // Pure, over the three readings the provider handed in: the same
+    // function Settings applies, so neither screen has a second answer to
+    // what this business sells.
+    business: confirmedProfile({
+      profile: facts.profile,
+      market: facts.market,
+      edits: facts.edits,
+    }),
     competitorsMax: BATTERY.COMPETITORS_MAX,
     questions: facts.questions,
     voiceText: facts.saved?.voiceText ?? facts.profile?.voice?.text ?? "",

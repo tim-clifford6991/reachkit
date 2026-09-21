@@ -29,7 +29,7 @@ import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { BusinessPanel } from "./BusinessPanel";
 import { RivalsPanel } from "./RivalsPanel";
 import { VoicePanel } from "./VoicePanel";
-import type { BusinessDraft } from "./business";
+import type { BusinessDraft } from "./_setup/business";
 import type { RivalGrid } from "./_setup/panel-rivals";
 import type { SetupStepId } from "./steps";
 

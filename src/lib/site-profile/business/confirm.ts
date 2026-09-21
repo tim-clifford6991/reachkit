@@ -233,6 +233,56 @@ export function quotableFacts(a: {
   return out;
 }
 
+/**
+ * A screen's final lists, as decisions over the derived reading (#970).
+ *
+ * Setup's step two shows four of the six lists and lets the founder take
+ * items out and add their own, then hands back what each list ended up
+ * holding. What is stored is never a list — it is the two decisions — so
+ * this turns one back into the other against the same derived reading the
+ * screen drew:
+ *
+ *   **removed** = what the site says and the founder's list no longer has,
+ *   plus every removal already standing that they did not put back. A
+ *   removal of something the crawl no longer reads is kept: the crawl may
+ *   read it again next Monday, and their decision has to outlive that.
+ *
+ *   **added** = what their list has and the site does not say.
+ *
+ * Only the lists in `chosen` are touched. A screen that edits four fields
+ * cannot clear the two it never showed, and `job`, `factsOff` and `seen`
+ * are carried through untouched — `seen` because it is a fact about a
+ * screen and is written beside this by the caller.
+ */
+export function editsForLists(a: {
+  stored: BusinessEdits;
+  profile: SiteProfile | null;
+  market: MarketReading | null;
+  chosen: Readonly<Partial<Record<BusinessList, readonly string[]>>>;
+}): BusinessEdits {
+  const removed: Partial<Record<BusinessList, readonly string[]>> = { ...a.stored.removed };
+  const added: Partial<Record<BusinessList, readonly string[]>> = { ...a.stored.added };
+
+  for (const list of BUSINESS_LISTS) {
+    const chosen = a.chosen[list];
+    if (chosen === undefined) continue;
+    const kept = new Set(clean([...chosen]).map((text) => text.toLocaleLowerCase()));
+    const derived = derivedList(list, a.profile, a.market);
+    const derivedKeys = new Set(derived.map((text) => text.toLocaleLowerCase()));
+
+    const standing = clean([...(a.stored.removed[list] ?? [])]);
+    const takenOut = derived.filter((text) => !kept.has(text.toLocaleLowerCase()));
+    removed[list] = unique([...standing, ...takenOut]).filter(
+      (text) => !kept.has(text.toLocaleLowerCase())
+    );
+    added[list] = unique(clean([...chosen])).filter(
+      (text) => !derivedKeys.has(text.toLocaleLowerCase())
+    );
+  }
+
+  return { ...a.stored, removed, added };
+}
+
 /** Every derived item of every list, as the `seen` record to store.
  *
  *  Written on every edit, which is what keeps rule 3 honest: the customer
