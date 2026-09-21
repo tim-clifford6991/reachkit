@@ -53,7 +53,10 @@ export default async function SearchTabPage(): Promise<React.JSX.Element> {
         </h1>
         <p className="max-w-prose text-sm text-base-content/70">{copy("overview.search.lead")}</p>
         {measured === null ? null : (
-          <p className="num text-xs text-base-content/60" data-testid="search-measured">
+          // A sentence with a date inside it, not a value: the UI face, the
+          // same way the shell states "re-measured 1 Oct 2026" beside the
+          // site (owner's review of this PR).
+          <p className="text-xs text-base-content/60" data-testid="search-measured">
             {measured}
           </p>
         )}

@@ -125,9 +125,14 @@ export function SearchTable(p: { model: SearchModel }): React.JSX.Element {
       column.accessor((row) => row.target.search, {
         id: "search",
         header: () => copy(COLUMN_COPY_KEY.search),
+        // **The UI face, not the mono one** (owner's review of this PR).
+        // docs/DESIGN.md reserves JetBrains Mono for numerals, domains and
+        // code; a search phrase is none of those, and the approved board
+        // draws it in Plus Jakarta Sans at semibold. The clamp and the
+        // title stay — the value is still whole in the document.
         cell: (ctx) => (
           <span
-            className="num block max-w-[14rem] truncate font-semibold"
+            className="block max-w-[14rem] truncate font-semibold"
             title={ctx.getValue()}
             data-testid="search-query"
           >
