@@ -26,7 +26,9 @@ const PANEL: Readonly<Record<AlertKind, { alert: string; cta: string; Icon: type
   // ground and an outline control — never the error tone, because an
   // address nobody has connected yet is work to do rather than a fault
   // (§2.5 keeps red for the customer's own problem shown to them).
-  connect_blog: { alert: "alert alert-info alert-soft", cta: "btn btn-outline btn-primary btn-sm", Icon: Globe },
+  // The base tone, not a warning: connecting the blog is a thing to do,
+  // not a fault. (§2.2 names four tones and no `info` one.)
+  connect_blog: { alert: "alert alert-soft", cta: "btn btn-outline btn-primary btn-sm", Icon: Globe },
   pending_veto: { alert: "alert alert-warning alert-soft", cta: "btn btn-outline btn-warning btn-sm", Icon: FileText },
   needs_you: { alert: "alert alert-soft", cta: "btn btn-outline btn-sm", Icon: Plug },
   // A technical issue the customer fixes (SPEC §9): error ground when

@@ -147,7 +147,7 @@ export function ConnectScreen(p: {
                 </div>
               </section>
 
-              <div role="note" className="alert alert-info alert-soft text-sm" data-testid="setup-connect-later">
+              <div role="note" className="alert alert-soft text-sm" data-testid="setup-connect-later">
                 {copy("setup.connect.skipping")}
               </div>
             </aside>
