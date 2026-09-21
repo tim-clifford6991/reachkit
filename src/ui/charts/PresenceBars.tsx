@@ -3,23 +3,33 @@
 //
 // Occupancy over the searches measured. Rivals first, the customer last;
 // the customer's bar is `--chart-you`, every rival's `--chart-rival`, each on
-// a `--sunk` track the length of `measured`, each direct-labelled with its
-// name and `n/m`. Rival props carry no tone, so a rival cannot be made an
-// alarm (§2.5).
+// a `--sunk` track the length of `measured`, each named with its own name and
+// `n/m`. Rival props carry no tone, so a rival cannot be made an alarm (§2.5).
 //
 // Zero is a measurement (§6.6): the customer's `0` is their whole track,
 // unfilled and ringed in `--bad`; a rival's zero is a stub. Neither row is
 // dropped.
+//
+// **Each label is a line of its own, above a full-width bar (#943).** Both
+// strings used to be custom `YAxis` ticks. `width="auto"` measures the nodes
+// carrying `recharts-cartesian-axis-tick-value` and a custom `tick` renders
+// no such node, so the axis took no width and the ticks were drawn outside
+// an `<svg>` that carries the UA's `overflow: hidden` — four rivals reading
+// `t`, `t`, `g`, `m`. docs/DESIGN.md's 2026-09-20 ruling says what to do
+// instead: "A bar gets its own full-width line under its label." So each row
+// is a line of HTML above its own one-bar chart, which also gives the label
+// that rule's clamp (one line, the whole value on `title`) and leaves the
+// ratio unclamped, because a value cut in half is a different value. No axis
+// is drawn at all, so no text is left inside the drawing to be cut by it —
+// and the labels being on screen is what the old `Tooltip` was for.
 import type React from "react";
-import { Bar, BarChart, Cell, Tooltip, XAxis, YAxis, type YAxisTickContentProps } from "recharts";
+import { Bar, BarChart, Cell, XAxis, YAxis } from "recharts";
 
 /** Theme paint and Recharts keys, named: values, never copy. */
 const PAINT = {
   you: "var(--chart-you)",
   rival: "var(--chart-rival)",
-  label: "var(--ink-2)",
   track: "var(--sunk)",
-  axis: "var(--line)",
   absentRing: "var(--bad)",
   none: "none",
 } as const;
@@ -28,10 +38,7 @@ const KEY = {
   number: "number",
   category: "category",
   name: "name",
-  ratio: "ratio",
   length: "length",
-  right: "right",
-  auto: "auto",
 } as const;
 
 /** One bar. No tone, and no member a severity could travel in. */
@@ -49,7 +56,9 @@ interface Row {
   ratio: string;
 }
 
-const ROW_HEIGHT = 28;
+/** The track's height, in CSS px — the board's own 10. The chart is exactly
+ *  this tall and carries no margin, so the bar *is* the track. */
+const BAR_HEIGHT = 10;
 
 export function PresenceBars(p: {
   /** Drawn last, at the foot of the chart, in the accent (§4.1). */
@@ -74,88 +83,58 @@ export function PresenceBars(p: {
       ratio: `${bar.value}/${p.measured}`,
     };
   });
-  const byName = new Map(rows.map((row) => [row.name, row]));
-  const tick =
-    (field: "name" | "ratio") =>
-    function Tick({ x, y, payload, textAnchor }: YAxisTickContentProps) {
-      const row = byName.get(String(payload.value));
-      return (
-        <text
-          x={x}
-          y={y}
-          dy={4}
-          textAnchor={textAnchor}
-          className="num"
-          fontSize={12}
-          fill={row?.kind === "you" ? PAINT.you : PAINT.label}
-        >
-          {row?.[field] ?? String(payload.value)}
-        </text>
-      );
-    };
+  const domain: [number, number] = [0, Math.max(p.measured, 1)];
 
   return (
-    <figure aria-label={p.label} className="m-0 w-full">
-      <BarChart
-        responsive
-        layout={KEY.vertical}
-        data={rows}
-        barSize={10}
-        margin={{ top: 4, right: 4, bottom: 4, left: 4 }}
-        style={{ width: "100%", height: rows.length * ROW_HEIGHT + 8 }}
-      >
-        <XAxis type={KEY.number} hide domain={[0, Math.max(p.measured, 1)]} />
-        <YAxis
-          yAxisId={KEY.name}
-          type={KEY.category}
-          dataKey={KEY.name}
-          width={KEY.auto}
-          interval={0}
-          tickLine={false}
-          axisLine={{ stroke: PAINT.axis }}
-          tick={tick(KEY.name)}
-        />
-        <YAxis
-          yAxisId={KEY.ratio}
-          orientation={KEY.right}
-          type={KEY.category}
-          dataKey={KEY.name}
-          width={KEY.auto}
-          interval={0}
-          tickLine={false}
-          axisLine={false}
-          tick={tick(KEY.ratio)}
-        />
-        <Tooltip
-          cursor={false}
-          isAnimationActive={false}
-          content={({ active, payload }) => {
-            const row = payload?.[0]?.payload as Row | undefined;
-            return active && row ? (
-              <p className="num rounded-field bg-base-content px-2 py-1 text-xs text-base-100">
-                {`${row.name} · ${row.ratio}`}
-              </p>
-            ) : null;
-          }}
-        />
-        <Bar
-          yAxisId={KEY.name}
-          dataKey={KEY.length}
-          minPointSize={2.5}
-          radius={2}
-          isAnimationActive={false}
-          background={{ fill: PAINT.track, radius: 2 }}
-        >
-          {rows.map((row) => (
-            <Cell
-              key={`${row.kind}-${row.name}`}
-              fill={row.ringed ? PAINT.track : row.kind === "you" ? PAINT.you : PAINT.rival}
-              stroke={row.ringed ? PAINT.absentRing : PAINT.none}
-              strokeWidth={row.ringed ? 1.5 : 0}
-            />
-          ))}
-        </Bar>
-      </BarChart>
+    /* `items-stretch` is not decoration: daisyUI styles a `card`'s `figure`
+       as its image area and centres what is inside it, so without this each
+       row shrinks to the width of its own label and the "full-width bar"
+       the 2026-09-20 ruling asks for is 216px of a 550px card. */
+    <figure
+      aria-label={p.label}
+      className="m-0 flex w-full min-w-0 flex-col items-stretch gap-3"
+    >
+      {rows.map((row) => (
+        <div key={`${row.kind}-${row.name}`} className="flex min-w-0 flex-col gap-1">
+          {/* The label's own line. The domain can grow, so it is clamped to
+              one with its whole value on `title`; the ratio is a value, so
+              it never clamps and the row gives it the width it asks for. */}
+          <div className="flex min-w-0 items-baseline gap-2">
+            <span
+              className="num min-w-0 flex-1 truncate text-sm"
+              style={row.kind === "you" ? { color: PAINT.you } : undefined}
+              title={row.name}
+            >
+              {row.name}
+            </span>
+            <span className="num text-sm whitespace-nowrap">{row.ratio}</span>
+          </div>
+          <BarChart
+            responsive
+            layout={KEY.vertical}
+            data={[row]}
+            barSize={BAR_HEIGHT}
+            margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
+            style={{ width: "100%", height: BAR_HEIGHT }}
+          >
+            <XAxis type={KEY.number} hide domain={domain} />
+            <YAxis type={KEY.category} dataKey={KEY.name} hide />
+            <Bar
+              dataKey={KEY.length}
+              minPointSize={2.5}
+              radius={2}
+              isAnimationActive={false}
+              background={{ fill: PAINT.track, radius: 2 }}
+            >
+              <Cell
+                fill={row.ringed ? PAINT.track : row.kind === "you" ? PAINT.you : PAINT.rival}
+                stroke={row.ringed ? PAINT.absentRing : PAINT.none}
+                strokeWidth={row.ringed ? 1.5 : 0}
+              />
+            </Bar>
+          </BarChart>
+        </div>
+      ))}
       <ul className="sr-only">
         {rows.map((row) => (
           <li key={`${row.kind}-${row.name}`}>{`${row.name} · ${row.ratio}`}</li>
