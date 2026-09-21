@@ -114,3 +114,26 @@ body {
 :root {
   --border-hair: 1px;
 }
+
+/* An inactive tab, readable (owner ruling 2026-09-22, #946).
+ *
+ * daisyUI draws a tab that is not the current one as `color-mix(in oklab,
+ * var(--color-base-content) 50%, transparent)` — half the base ink — and
+ * half an ink is under the contrast floor whatever that ink is: pure black
+ * at 50% over white measures 3.5:1. No token value reaches it, so the
+ * colour is stated here once, for every tab bar in the product rather than
+ * per screen: `--ink-2`, the muted token, which measures 5.5:1 on the worst
+ * ground a tab is drawn on. The current tab keeps its own full-strength
+ * ink, which is what tells the two apart.
+ *
+ * **Unlayered on purpose.** daisyUI's own rule is in the `components`
+ * layer, and an unlayered declaration wins over any layered one whatever
+ * its specificity — so this needs no `!important` and no arms race over
+ * selectors. It styles a daisyUI class, which this product otherwise does
+ * not do (`idiom.css` says why): the exception is the point — a component
+ * takes every value from the theme, and this is the one value daisyUI does
+ * not read a theme slot for.
+ */
+.tabs > .tab:not(.tab-active, [aria-selected="true"], [aria-current="page"], [aria-current="true"]) {
+  color: var(--ink-2);
+}

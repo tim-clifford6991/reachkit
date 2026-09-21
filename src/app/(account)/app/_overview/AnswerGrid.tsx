@@ -102,7 +102,7 @@ function Row(p: { question: AnswerQuestion; engines: AnswersModel["engines"] }):
         className="flex min-w-0 flex-col gap-0.5 pt-3 pb-1 pr-2 sm:py-2"
       >
         <span className="flex min-w-0 items-baseline gap-2">
-          <span className="num shrink-0 text-xs text-base-content/50">
+          <span className="num shrink-0 text-xs text-base-content/70">
             {formatCount(p.question.n)}
           </span>
           {/* The UI face, not the mono one: a question is a sentence, and
@@ -111,10 +111,10 @@ function Row(p: { question: AnswerQuestion; engines: AnswersModel["engines"] }):
               which is the box changing instead of the value. */}
           <span className="min-w-0 text-sm font-semibold">{wording.text}</span>
         </span>
-        <span className="min-w-0 text-xs text-base-content/50">{provenance.text}</span>
+        <span className="min-w-0 text-xs text-base-content/70">{provenance.text}</span>
         {page === null ? null : (
           <span className="flex min-w-0 flex-wrap items-baseline gap-x-1.5">
-            <span className="text-xs text-base-content/50">{copy("overview.answers.page")}</span>
+            <span className="text-xs text-base-content/70">{copy("overview.answers.page")}</span>
             <a
               href={page.url}
               className="link link-primary min-w-0 text-xs"
