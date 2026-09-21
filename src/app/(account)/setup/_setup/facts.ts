@@ -17,6 +17,8 @@ import { BATTERY } from "@/lib/config/constants";
 import type { SiteProfile } from "@/lib/site-profile/types";
 import type { StoredQuestion } from "@/lib/scan/report";
 import type { DerivableMarket } from "@/lib/market/questions/rederive";
+import type { RivalGrid } from "./panel-rivals";
+import type { OnboardingStage } from "@/lib/scan/deep/progress";
 
 /** SPEC §5: the twelve questions the scan phrased for the measured market,
  *  shown read-only, and the scan they belong to. */
@@ -56,6 +58,15 @@ export interface SetupFacts {
    *  which step they left. `null` for a founder with nothing saved — the
    *  screen then opens on its first step with only what the scan read. */
   saved: SavedAnswers | null;
+  /** SPEC §5 (2026-09-20, #923): the rivals step's own panel — the searches
+   *  the scan measured × the customer and each rival. `null` where nothing
+   *  has been measured for this address, and the panel then draws a shape
+   *  and says so rather than a grid of empty dots. */
+  rivalGrid: RivalGrid | null;
+  /** The pass's step as the server knows it, and the channel the browser
+   *  may watch for the next one (#923). */
+  passStage: OnboardingStage | null;
+  passChannel: string | null;
 }
 
 /** The shape `_setup/store.ts`'s `savedSetupFor` answers with, declared
@@ -92,6 +103,18 @@ export interface SetupScreenModel {
   /** SPEC §5 (2026-09-20): the step `/setup` opens on when the address
    *  carries no `?step=` of its own. */
   openAt: SetupStepId;
+  /** #923's rivals panel, carried through unchanged. Nothing is derived
+   *  from it here: `rivalGridOf` is its one derivation and it is pure. */
+  rivalGrid: RivalGrid | null;
+  /** The step the pass was on when the server rendered, or `null` where no
+   *  pass is running (#923). The status line opens on this and is only ever
+   *  *replaced* by something newer, so it never starts empty and never
+   *  shows a spinner in front of a fact the server already had. */
+  passStage: OnboardingStage | null;
+  /** The founder's own realtime channel name, composed on the server from
+   *  the session's site. `null` where there is no site row yet, and the
+   *  line then simply does not subscribe. */
+  passChannel: string | null;
 }
 
 export function assembleSetup(facts: SetupFacts): SetupScreenModel {
@@ -109,6 +132,9 @@ export function assembleSetup(facts: SetupFacts): SetupScreenModel {
     questions: facts.questions,
     voiceText: facts.saved?.voiceText ?? facts.profile?.voice?.text ?? "",
     openAt: openAtFor(facts.saved),
+    rivalGrid: facts.rivalGrid,
+    passStage: facts.passStage,
+    passChannel: facts.passChannel,
   };
 }
 

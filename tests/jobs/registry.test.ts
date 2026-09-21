@@ -93,9 +93,20 @@ describe("the registry is closed over those eight", () => {
 describe("the platform is named in exactly one file", () => {
   const PLATFORM = /inngest/i;
 
-  it("only src/jobs/client.ts names it under src/jobs/", () => {
+  // #923 adds the second, and the list is what keeps a third from landing
+  // unnoticed. `realtime.ts` is platform-shaped for the same reason
+  // `client.ts` is — it names the channel, the publish and the subscription
+  // token — so it belongs beside the client rather than under a screen.
+  //
+  // **It is a second file rather than more of the first**, and the reason
+  // is the bundle, not taste: `client.ts`'s own header records that it is
+  // reached from a rendered screen (the setup store imports `sendJobEvent`),
+  // and folding the realtime seam into it would pull `inngest/realtime` and
+  // its schema into every one of those bundles. Only the pass and the token
+  // route import this one.
+  it("only src/jobs/client.ts and src/jobs/realtime.ts name it under src/jobs/", () => {
     const naming = filesUnder("src/jobs").filter((f) => PLATFORM.test(readFileSync(path.join(ROOT, f), "utf8")));
-    expect(naming).toEqual(["src/jobs/client.ts"]);
+    expect(naming).toEqual(["src/jobs/client.ts", "src/jobs/realtime.ts"]);
   });
 
   // Issue #315 put `INNGEST_SIGNING_KEY` and `INNGEST_EVENT_KEY` into the

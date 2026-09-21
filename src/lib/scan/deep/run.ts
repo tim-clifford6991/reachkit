@@ -103,6 +103,19 @@ async function recordStage(
       JSON.stringify({ event: "setup_stage_not_recorded", siteId, stage, detail: String(error) })
     );
   }
+  // SPEC §5 (2026-09-20, #923): the setup screen is told, instead of asking
+  // every few seconds. **After the write and outside its `try`**, and both
+  // halves of that matter: the row is the record and the push is a courtesy
+  // on top of it, so a push is only ever made for a step that was actually
+  // recorded, and a push that fails can no more fail the pass than a
+  // recorded stage can be rolled back by one. `publishSetupStage` swallows
+  // its own failures; this is not awaited for a value because there is none.
+  // Imported at the call, the way `remeasure.ts` reaches its own job
+  // module: a static edge from the engine into `src/jobs/` would put the
+  // platform's realtime half into the static graph of everything that can
+  // reach this pass.
+  const { publishSetupStage } = await import("@/jobs/realtime");
+  await publishSetupStage(siteId, stage);
 }
 
 /** Runs one named piece of the pass durably, where the caller has a way

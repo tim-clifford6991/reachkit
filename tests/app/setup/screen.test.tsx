@@ -582,8 +582,13 @@ describe("step five — where the pages go live (REQ-028 c2, SPEC §7 #476)", ()
 });
 
 describe("the panel beside the question (SPEC §5, 2026-09-20)", () => {
-  it("four of the five steps show the customer's own blog address, and nothing pretends to be written yet", () => {
-    for (const step of SETUP_STEPS.filter((id) => id !== "business")) {
+  it("two of the five steps show the customer's own blog address, and nothing pretends to be written yet", () => {
+    // #923 gives the rivals step a grid of its own and the voice step a
+    // sample paragraph, so the blog mock-up is the site and publishing
+    // steps'. The business step's has always been the profile itself.
+    for (const step of SETUP_STEPS.filter(
+      (id) => id !== "business" && id !== "rivals" && id !== "voice",
+    )) {
       const panel = screenFor(step).querySelector('[data-testid="setup-panel"]');
       expect(panel?.getAttribute("data-step"), step).toBe(step);
       expect(
@@ -595,6 +600,43 @@ describe("the panel beside the question (SPEC §5, 2026-09-20)", () => {
         COPY["setup.panel.awaiting"],
       );
     }
+  });
+
+  it("the voice step's panel offers a sample and writes nothing until it is asked (#923)", () => {
+    // The first sample costs a model call, so a founder who walks past this
+    // step spends nothing: the panel shows what the sample will be and one
+    // control, and no paragraph until that control is pressed.
+    const panel = screenFor("voice").querySelector('[data-testid="setup-panel"]');
+    expect(panel?.querySelector('[data-testid="setup-panel-blog"]')).toBeNull();
+    expect(panel?.querySelector('[data-testid="setup-voice-before"]')?.textContent).toBe(
+      COPY["setup.panel.voice.before"],
+    );
+    expect(panel?.querySelector('[data-testid="setup-voice-sample"]')).toBeNull();
+    expect(panel?.querySelector('[data-testid="setup-voice-write"]')?.textContent).toBe(
+      COPY["setup.panel.voice.write"],
+    );
+  });
+
+  it("the rivals step's panel is the searches measured, against the customer and each rival (#923)", () => {
+    const panel = screenFor("rivals").querySelector('[data-testid="setup-panel"]');
+    expect(panel?.querySelector('[data-testid="setup-panel-blog"]')).toBeNull();
+    const grid = panel?.querySelector('[data-testid="setup-rivals-grid"]');
+    expect(grid).not.toBeNull();
+    // One row per site, the customer's first, and one cell per measured
+    // search on each.
+    const rows = [...(panel?.querySelectorAll('[data-testid="setup-rivals-row"]') ?? [])];
+    expect(rows).toHaveLength(4);
+    expect(rows[0]?.querySelector('[role="rowheader"]')?.textContent).toBe("example.com");
+    for (const row of rows) {
+      expect(row.querySelectorAll('[role="cell"]')).toHaveLength(5);
+    }
+    // Every dot says what it is: never colour alone (§2.4).
+    for (const cell of panel?.querySelectorAll('[role="cell"]') ?? []) {
+      expect(cell.getAttribute("aria-label")).toMatch(/first two pages/);
+    }
+    expect(panel?.querySelector('[data-testid="setup-rivals-line"]')?.textContent).toBe(
+      COPY["setup.panel.rivals.line"].replace("{n}", "2").replace("{m}", "5"),
+    );
   });
 
   it("the business step's panel is the profile itself, not a mockup", () => {

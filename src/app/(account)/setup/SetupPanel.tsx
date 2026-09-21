@@ -1,12 +1,17 @@
 // SPEC §5 (2026-09-20, #908) — "The right-hand side matches the step."
 //
-// What this issue draws beside four of the five steps is the customer's own
-// blog address in a daisyUI `mockup-browser` with `skeleton` placeholders:
-// their blog, before anything has been written into it. The live panels —
-// the rivals-by-search grid, the sample paragraph in their own voice — are
-// #923, and nothing here pretends to be one: the placeholders say, in a
-// line rather than a blank, that the first pages appear once they are
-// written.
+// Three of the five steps draw the customer's own blog in a daisyUI
+// `mockup-browser`: the address as it fills in, the business's own name and
+// the market the scan read where it read one, and `skeleton` where a fact
+// is not known yet. The rivals step draws the searches measured against the
+// customer and each rival (#923, `RivalsPanel`); the voice step draws one
+// sample paragraph in their own voice (#923, `VoicePanel`).
+//
+// **A panel never shows a placeholder for a fact we have not got.** Where a
+// name, a market or a grid is missing, the panel says so in a line — or
+// shows a shape that claims nothing — and never a guess. That is the
+// owner's bar for setup: a panel shows what is already known the moment it
+// is known, and nothing else.
 //
 // The business step is the exception, and it is this issue's: step two's
 // panel is the profile itself, every item removable, each group with its
@@ -22,7 +27,10 @@
 import type React from "react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { BusinessPanel } from "./BusinessPanel";
+import { RivalsPanel } from "./RivalsPanel";
+import { VoicePanel } from "./VoicePanel";
 import type { BusinessDraft } from "./business";
+import type { RivalGrid } from "./_setup/panel-rivals";
 import type { SetupStepId } from "./steps";
 
 /** One title per step, in the order the founder meets them. The business
@@ -45,6 +53,15 @@ export function SetupPanel(p: {
    *  address is given. Composed by the caller, which holds the label. */
   blogAddress: string | null;
   businessName: string | null;
+  /** The market the scan read, where it read one (#923). `null` is not a
+   *  market of "unknown": it is a fact the panel does not state. */
+  market: string | null;
+  /** #923's rivals grid, or `null` where nothing has been measured for this
+   *  address yet. */
+  rivalGrid: RivalGrid | null;
+  /** The pass's live status line, already composed by the caller — it holds
+   *  the subscription, which is a client concern and not a panel's. */
+  status?: React.ReactNode;
   draft: BusinessDraft;
   onDraft: (next: BusinessDraft) => void;
 }): React.JSX.Element {
@@ -58,19 +75,39 @@ export function SetupPanel(p: {
 
       {p.step === "business" ? (
         <BusinessPanel draft={p.draft} onDraft={p.onDraft} />
+      ) : p.step === "rivals" ? (
+        <RivalsPanel grid={p.rivalGrid} />
+      ) : p.step === "voice" ? (
+        <VoicePanel />
       ) : (
-        <BlogMockup address={p.blogAddress} />
+        <BlogMockup address={p.blogAddress} businessName={p.businessName} market={p.market} />
       )}
 
       <p className="text-sm text-base-content/70" data-testid="setup-panel-note">
         {copy("setup.panel.note")}
       </p>
+      {/* The pass's current step, where one is running. It is the last
+          thing in the panel because it is about the work, not about the
+          answer the founder is giving. */}
+      {p.status}
     </aside>
   );
 }
 
-/** The customer's blog as it stands: an address and nothing in it yet. */
-function BlogMockup(p: { address: string | null }): React.JSX.Element {
+/**
+ * The customer's blog as it stands.
+ *
+ * The address fills in as they give it and choose their label; the
+ * business's own name and the market the scan read stand where the first
+ * page's title and its lead will be. A fact the scan did not read is a
+ * `skeleton` — a shape that claims nothing — never a placeholder sentence
+ * standing in for it.
+ */
+function BlogMockup(p: {
+  address: string | null;
+  businessName: string | null;
+  market: string | null;
+}): React.JSX.Element {
   return (
     <div
       className="mockup-browser bg-base-100 border border-base-300"
@@ -92,7 +129,23 @@ function BlogMockup(p: { address: string | null }): React.JSX.Element {
         )}
       </div>
       <div className="grid min-w-0 grid-cols-1 gap-3 border-t border-base-300 p-4">
-        <div className="skeleton h-6 w-2/3" />
+        {p.businessName === null ? (
+          <div className="skeleton h-6 w-2/3" />
+        ) : (
+          <p
+            className="min-w-0 text-base font-bold wrap-anywhere"
+            data-testid="setup-panel-blog-name"
+          >
+            {p.businessName}
+          </p>
+        )}
+        {p.market === null ? (
+          <div className="skeleton h-4 w-1/2" />
+        ) : (
+          <p className="min-w-0 text-sm text-base-content/70" data-testid="setup-panel-blog-market">
+            {copy("setup.panel.blog.market", { market: p.market })}
+          </p>
+        )}
         {Array.from({ length: PLACEHOLDER_LINES }, (_, line) => (
           <div key={line} className="skeleton h-4 w-full" />
         ))}

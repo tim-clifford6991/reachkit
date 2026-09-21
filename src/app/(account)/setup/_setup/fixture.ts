@@ -27,6 +27,7 @@
 //
 // One exported constant each, not a generator: a fixture that varied per
 // call would make the layout conformance sweep non-deterministic.
+import type { RivalGrid } from "./panel-rivals";
 import type { SetupFacts } from "./facts";
 import { fromStored } from "@/lib/presentation/generated";
 import type { SiteProfile } from "@/lib/site-profile/types";
@@ -108,6 +109,43 @@ const FIXTURE_MARKET = Object.freeze({
   ]),
 });
 
+/** The grid the rivals step draws for the fixture account. The searches are
+ *  `FIXTURE_MARKET`'s own, so the panel and the market card cannot disagree
+ *  about what this business sells. */
+const FIXTURE_RIVAL_GRID: RivalGrid = Object.freeze({
+  searches: Object.freeze([
+    "agency project management software",
+    "client portal for agencies",
+    "agency resource planning",
+    "time tracking software",
+    "best time tracking app",
+  ]),
+  rows: Object.freeze([
+    Object.freeze({
+      domain: FIXTURE_DOMAIN,
+      you: true,
+      present: Object.freeze([true, false, true, false, false]),
+    }),
+    Object.freeze({
+      domain: "asana.com",
+      you: false,
+      present: Object.freeze([true, true, true, true, false]),
+    }),
+    Object.freeze({
+      domain: "monday.com",
+      you: false,
+      present: Object.freeze([true, true, false, true, true]),
+    }),
+    Object.freeze({
+      domain: "clickup.com",
+      you: false,
+      present: Object.freeze([false, true, true, false, true]),
+    }),
+  ]),
+  yours: 2,
+  of: 5,
+});
+
 /** A founder who bought from a report: the address was measured, so the
  *  market card is `inferred` and the address is shown to confirm or change
  *  (REQ-021 c6, REQ-026 c1). The scanless arms — an empty address field and
@@ -133,7 +171,20 @@ export const FIXTURE_SETUP_FACTS: SetupFacts = Object.freeze({
   cnameTarget: "content.dev.reachkit.app",
   // A founder who has left no step yet: the screen opens on its first.
   saved: null,
+  // #923's rivals panel: the searches this fixture's scan measured against
+  // the customer and the three rivals the report scored. Written out rather
+  // than derived, because a fixture a rule produced changes when the rule
+  // does and the point of this one is a screen that looks the same on every
+  // sweep. It is the dense frame on purpose — the customer holds two of the
+  // five, so the line under the grid has something to say and the empty
+  // dots are the pages the product is about to offer to write.
+  rivalGrid: FIXTURE_RIVAL_GRID,
+  // The fixture's pass is mid-flight on the row `FIXTURE_PASS` puts it on,
+  // so the panel's status line has something true to say at rest.
+  passStage: "scoring",
+  passChannel: "setup:site-fixture",
 });
+
 
 /** The instant this fixture's pass began. Fixed, so the durations it
  *  states are a picture of one pass rather than of the minute the suite
