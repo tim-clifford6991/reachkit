@@ -100,10 +100,9 @@ export function NeedsYouModule(p: {
     <section className="card card-border min-w-0 bg-base-100" data-testid="overview-needs-you">
       <div className="card-body gap-4 p-5" data-testid="overview-alerts">
         {/* The card head, at the sub-head step the approved board draws it
-            at. `!` because `src/ui/type.css`'s unlayered `h2` rule
-            out-ranks `@layer utilities` — see `WeekModule` for the whole
-            of it. */}
-        <h2 className="card-title text-base!">
+            at. Plain `text-base` since #941 put the heading scale in
+            `@layer base` — see `WeekModule` for the whole of it. */}
+        <h2 className="card-title text-base">
           <Bell aria-hidden size={20} strokeWidth={1.75} />
           {copy("overview.needs-you.title")}
         </h2>

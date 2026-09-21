@@ -326,7 +326,13 @@ describe("issue #258 — the h1 step below 640px is written narrow-first", () =>
   it("below it h1 takes --h2, above it --h1 — BUILD §2.3's own words, no new size", () => {
     // §2.3, as amended 2026-09-08: "Below 640 px the h1 takes the h2 size."
     // So the narrow rule reads the h2 token by name and mints nothing.
-    const narrow = /^h1 \{ font-size: var\(--h2\); \}$/m;
+    //
+    // Indented since #941 put the scale in `@layer base`, so that a Tailwind
+    // utility on a heading can out-rank it. The rule is what this asserts —
+    // which token it names — and the leading whitespace is how deep in the
+    // sheet it sits, so the anchor allows it rather than pinning a nesting
+    // depth nobody ruled.
+    const narrow = /^\s*h1 \{ font-size: var\(--h2\); \}$/m;
     expect(TYPE_SOURCE, "the default h1 rule must read --h2").toMatch(narrow);
     expect(
       TYPE_SOURCE.slice(TYPE_SOURCE.indexOf("@media (min-width: 640px)")),

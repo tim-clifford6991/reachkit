@@ -193,6 +193,47 @@ function parseCss(css: string): CSSRuleList {
   return rules;
 }
 
+/** Every rule in a sheet, with `@layer` blocks unwrapped — the rule itself,
+ *  not the layer it is stated in.
+ *
+ *  Issue #941 put the heading scale in `@layer base`, so that a Tailwind
+ *  utility on a heading can win; `parseCss` walks only the sheet's top level,
+ *  where those four rules no longer are. The layer is the *rank* of a rule
+ *  and this file's subject is the rule — which token it names — so the two
+ *  assertions below read through the wrapper. That a heading rule is layered
+ *  at all is `tests/ui/design/heading-layer.test.ts`'s subject, on the
+ *  compiled sheet where the ranking actually happens. */
+function flatRules(css: string): CSSRule[] {
+  const out: CSSRule[] = [];
+  const visit = (rules: CSSRuleList): void => {
+    for (const rule of Array.from(rules)) {
+      if (rule instanceof CSSLayerBlockRule) {
+        visit(rule.cssRules);
+        continue;
+      }
+      out.push(rule);
+    }
+  };
+  visit(parseCss(css));
+  return out;
+}
+
+/** The style rule for `selector` anywhere inside `rules`, through any number
+ *  of `@layer` wrappers — the h1 step sits in `@layer base` *inside* the one
+ *  `@media` block, because `tests/ui/layout-tokens.test.ts` holds this file
+ *  to one media prelude. */
+function styleRuleIn(rules: CSSRuleList, selector: string): CSSStyleRule | undefined {
+  for (const rule of Array.from(rules)) {
+    if (rule instanceof CSSLayerBlockRule) {
+      const found = styleRuleIn(rule.cssRules, selector);
+      if (found) return found;
+      continue;
+    }
+    if ((rule as CSSStyleRule).selectorText === selector) return rule as CSSStyleRule;
+  }
+  return undefined;
+}
+
 /** The bare `:root` block of `src/ui/theme.css`, where every approved token
  *  lives since issue #349. Read here rather than restated, so a drift fails
  *  in both this file and `tests/ui/design/token-set.test.ts`. */
@@ -348,7 +389,7 @@ describe("BP-018 error behaviour — `.num` is the sole enforcement point of the
 
 describe("BUILD §2.3 — the type scale, asserted against the clause", () => {
   it("headings: Jakarta weight in 700-800, letter-spacing -0.02em, text-wrap: balance", () => {
-    const rules = Array.from(parseCss(typeCssSource())) as CSSStyleRule[];
+    const rules = flatRules(typeCssSource()) as CSSStyleRule[];
     const heading = rules.find((r) => /(^|,\s*)h1(,|\s|$)/.test(r.selectorText ?? ""));
     expect(heading).toBeTruthy();
     const style = heading!.style;
@@ -383,7 +424,7 @@ describe("BUILD §2.3 — the type scale, asserted against the clause", () => {
     // pinned-value convention — and the *rendered* sizes, which is
     // the half preflight broke, are asserted by
     // `tests/ui/layout/heading-scale.test.ts` in a real browser.
-    const rules = Array.from(parseCss(typeCssSource())) as CSSStyleRule[];
+    const rules = flatRules(typeCssSource()) as CSSStyleRule[];
     const sizeOf = (selector: string): string => {
       const rule = rules.find((r) => r.selectorText === selector);
       expect(rule, `type.css declares no rule for ${selector}`).toBeTruthy();
@@ -399,15 +440,14 @@ describe("BUILD §2.3 — the type scale, asserted against the clause", () => {
     expect(sizeOf("h1")).toBe("var(--h2)");
     // `rules` is read as `CSSStyleRule[]` above, which every rule in this
     // file was until #258 added the one media block; widened here rather
-    // than re-parsing the source a second time.
+    // than re-parsing the source a second time. Since #941 the h1 step inside
+    // that block sits in `@layer base`, so `styleRuleIn` is what reaches it —
+    // `.t-hero` is its unlayered neighbour in the same query.
     const wide = (rules as readonly CSSRule[]).find(
-      (r): r is CSSMediaRule =>
-        r instanceof CSSMediaRule && r.conditionText.includes("640px")
+      (r): r is CSSMediaRule => r instanceof CSSMediaRule && r.conditionText.includes("640px")
     );
     expect(wide, "type.css declares no --breakpoint-sm media block").toBeTruthy();
-    const wideH1 = Array.from(wide!.cssRules).find(
-      (r): r is CSSStyleRule => (r as CSSStyleRule).selectorText === "h1"
-    );
+    const wideH1 = styleRuleIn(wide!.cssRules, "h1");
     expect(wideH1, "the --breakpoint-sm block declares no h1 rule").toBeTruthy();
     expect(wideH1!.style.getPropertyValue("font-size")).toBe("var(--h1)");
 

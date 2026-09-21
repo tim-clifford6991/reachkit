@@ -115,10 +115,10 @@ export function WaitingPageCard(p: { page: WaitingPage; timeZone: string }): Rea
               )}
             </div>
 
-            {/* No size utility: `type.css`'s unlayered `h2` rule is the
-                module-head step, which is what the approved board draws
-                this title at. A `text-xl` here would be a class that never
-                applied. */}
+            {/* No size utility: daisyUI's own `card-title` step is what a
+                card head is, and since #941 put the heading scale in
+                `@layer base` that is what this draws at — 18px, where the
+                unlayered `h2` rule used to force 25. */}
             <h2 className="card-title line-clamp-2 leading-tight">{page.title}</h2>
 
             {why === null ? null : (
