@@ -513,20 +513,36 @@ describe(`visual baselines — ${SHOTS.length} surface(s) × ${BANDS.length} ban
     expect(SHOTS.map((shot) => shot.name)).toEqual([...new Set(SHOTS.map((shot) => shot.name))]);
   });
 
-  it("the reserved account's four addresses are photographed signed in, not only signed out", () => {
+  it("the reserved account's addresses are photographed signed in, not only signed out", () => {
     // The finding itself, as an assertion: before #272 this set did not
     // exist and every `-app-*` picture was the sign-in prompt.
+    //
+    // 2026-09-21, #976: four became thirteen when the redesign (#908) gave
+    // the Overview's modules and each of Settings' seven tabs an address of
+    // its own. The row is a snapshot of what the enumerator returns, and it
+    // grows with the tree on purpose — a new screen joining the gallery is
+    // something somebody agreed to here.
     expect(RESERVED_ROUTES.map((route) => route.path).sort()).toEqual([
       "/app",
+      "/app/ai-answers",
       "/app/calendar",
       `/app/draft/${SEGMENT_FIXTURES["[draftId]"]}`,
+      "/app/rivals",
+      "/app/search",
       "/app/settings",
+      "/app/settings/account",
+      "/app/settings/billing",
+      "/app/settings/mail",
+      "/app/settings/market",
+      "/app/settings/publishing",
+      "/app/settings/voice",
     ]);
     expect(RESERVED_ROUTES.every((route) => route.cookie === getAccountCookie())).toBe(true);
   });
 
   it("both setup screens are photographed signed in, as the founder who is still in setup", () => {
-    expect(SETUP_ROUTES.map((route) => route.path).sort()).toEqual(["/setup"]);
+    // #970 split setup's second step onto its own address, so there are two.
+    expect(SETUP_ROUTES.map((route) => route.path).sort()).toEqual(["/setup", "/setup/zone"]);
     expect(SETUP_ROUTES.every((route) => route.cookie === getSetupAccountCookie())).toBe(true);
     // The four signed-in sets are four different accounts, which is the
     // only reason there are four: a picture signed in as an account that is
@@ -634,11 +650,22 @@ describe(`visual baselines — ${SHOTS.length} surface(s) × ${BANDS.length} ban
   });
 
   it("the live account's addresses are photographed as well as the fixture ones — all of them", () => {
+    // Thirteen since the redesign, for the reason the reserved row above
+    // states (#976).
     expect(LIVE_ROUTES.map((route) => route.path).sort()).toEqual([
       "/app",
+      "/app/ai-answers",
       "/app/calendar",
       `/app/draft/${LIVE_DRAFT_ID}`,
+      "/app/rivals",
+      "/app/search",
       "/app/settings",
+      "/app/settings/account",
+      "/app/settings/billing",
+      "/app/settings/mail",
+      "/app/settings/market",
+      "/app/settings/publishing",
+      "/app/settings/voice",
     ]);
     // There is no subtraction left to state (issue #305): the clock-driven
     // address is photographed through both doors, because the clock is the

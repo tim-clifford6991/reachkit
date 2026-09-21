@@ -16,6 +16,7 @@ import {
   FIXTURE_EDITED_DRAFT_ID,
 } from "@/app/(account)/app/draft/[draftId]/fixture";
 import { readDraft } from "@/app/(account)/app/draft/[draftId]/provider";
+import { COPY } from "@/lib/presentation/copy";
 import type { RecordedFact } from "@/lib/generate/fact";
 import { parseMarkdown } from "@/lib/publish/render/markdown";
 

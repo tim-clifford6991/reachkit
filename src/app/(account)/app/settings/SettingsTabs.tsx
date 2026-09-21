@@ -58,7 +58,24 @@ export function SettingsTabs(): React.JSX.Element {
   const here = useRef<HTMLAnchorElement | null>(null);
 
   useEffect(() => {
-    here.current?.scrollIntoView({ inline: "center", block: "nearest" });
+    const tab = here.current;
+    if (tab === null) return;
+    const bring = (): void =>
+      tab.scrollIntoView({ inline: "center", block: "nearest", behavior: "instant" });
+    bring();
+    // And again once the web font is in. The faces load with
+    // `display: swap` and no metric adjustment (`src/ui/fonts.ts`), so the
+    // row is measured in the fallback face first and in the real one a
+    // moment later — and seven words that fit a 390px screen in one do not
+    // fit it in the other. Whichever way that race falls, the row is
+    // scrollable by the time it is read and the current tab was brought
+    // into view before it was: on the first run in a real browser Voice
+    // stood 72px past the right edge at `scrollLeft: 0` (#976). The promise
+    // is already resolved when the font was cached, so this costs a
+    // microtask and no second scroll. (`in`, because a DOM with no font
+    // loading — jsdom's — has no `fonts` at all and this file is a client
+    // component any suite may render.)
+    if ("fonts" in document) void document.fonts.ready.then(bring);
   }, [current]);
 
   return (

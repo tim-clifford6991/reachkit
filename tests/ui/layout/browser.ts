@@ -356,6 +356,17 @@ function settleOnNavigation(page: Page): void {
   page.goto = async (url, gotoOptions) => {
     const response = await goto(url, gotoOptions);
     await page.waitForSelector(WAITING, { state: "detached", timeout: SETTLE_MS });
+    // And the faces, 2026-09-21 (#976). `src/ui/fonts.ts` loads every face
+    // with `display: swap` and `adjustFontFallback: false`, so until the
+    // web font is in, the page is laid out in a fallback with different
+    // metrics — a *different page* from the one the design was ruled on.
+    // Every box this suite measures is a box whose width the swap can
+    // still change, so a sweep that reads before it is a sweep racing the
+    // network for its own subject. The promise resolves as soon as no face
+    // is pending, which on a page carrying none is immediately.
+    await page.evaluate(async () => {
+      await document.fonts.ready;
+    });
     return response;
   };
 }
