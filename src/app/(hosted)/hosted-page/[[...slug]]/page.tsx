@@ -78,7 +78,7 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import type React from "react";
-import { BODY_CLASSES } from "@/app/(account)/app/draft/[draftId]/present";
+import { HOSTED_BODY_CLASSES } from "../body-classes";
 import { copy } from "@/lib/presentation/copy";
 import {
   markPassage,
@@ -316,7 +316,7 @@ export default async function HostedPageRoute({
   const grounded = page.grounded;
   const body = toHtml(
     grounded === null ? blocks : markPassage(blocks, grounded.passage).blocks,
-    BODY_CLASSES
+    HOSTED_BODY_CLASSES
   );
   const sourceLine = sourceLineFor(page);
 
@@ -378,7 +378,12 @@ export default async function HostedPageRoute({
               makes, so what the customer approved and what a visitor reads
               are marked alike; a passage that no longer occurs marks
               nothing rather than marking the nearest thing to it. */}
-          <div className="text-lg leading-relaxed" dangerouslySetInnerHTML={{ __html: body }} />
+          {/* SPEC §7 (2026-09-20, issue 929): `prose` — the article
+              typography `docs/DESIGN.md` admits for exactly this, in place
+              of the hand-kept class table this page used to carry.
+              `max-w-none` because the column's measure is the `Surface`'s
+              already, and a second one would narrow it again. */}
+          <div className="prose prose-lg max-w-none" dangerouslySetInnerHTML={{ __html: body }} />
           {sourceLine === null ? null : <p className={QUIET_LINE}>{sourceLine}</p>}
 
           <hr className="border-base-300 my-6" />

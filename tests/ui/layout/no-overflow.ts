@@ -34,7 +34,7 @@ import {
   TRUNCATION_ALLOWLIST,
   type Offender,
 } from "./checks";
-import { enumerateRoutes, type EnumeratedRoute } from "./routes";
+import { enumerateRoutes, PUBLISHED_HOST_FIXTURES, type EnumeratedRoute } from "./routes";
 
 /**
  * The three widths the 2026-09-20 ruling names, in CSS px.
@@ -540,22 +540,60 @@ export function knownDefectFor(route: string, offender: Offender): KnownDefect |
  *     that sent the reserved cookie everywhere therefore measured `/app`
  *     three times and the five-step setup screen never, which is the screen
  *     #908's design review found labels overflowing on.
- *   * **the `(hosted)` route is not here.** Issue #910's Build names
- *     `(public)` and `(account)`, and a customer's published page is served
- *     through a `content.` Host on a stranger's domain — a different door,
- *     a different fixture, and one the 1280 sweep already walks. Adding it
- *     is a row, not a rewrite; it is called out in this PR rather than
- *     smuggled in.
+ *   * **the `(hosted)` route is here, through the host that has published
+ *     something** (owner, PR #973). #950 left it out and said so — "adding
+ *     it is a row, not a rewrite" — and this is that row. The reason to add
+ *     it now is that SPEC §7's richer blocks (issue 929) put the product's
+ *     first **table** on a customer's page, a table scrolls sideways inside
+ *     its own box, and a box that scrolls has to be reachable from a
+ *     keyboard: axe's `scrollable-region-focusable`, the serious rule #962
+ *     fixed on every other scrolling pane. No swept route carried a table,
+ *     so CI could not have held it.
+ *
+ *     **The published arm, and that one only.** The route has two — the
+ *     bare enumeration's `content.example.com`, whose site has published
+ *     nothing and which therefore answers the 404, and
+ *     `PUBLISHED_HOST_FIXTURES`'s `content.publisher.test`, which renders
+ *     S19 itself: `seed.ts`'s `seedHostedPublisher()` customer, whose one
+ *     live publication is at this route's own `[[...slug]]` fixture and
+ *     whose body carries the table. This sweep is keyed by path — the
+ *     first test below requires every path in it to be unique, because a
+ *     path swept twice is a screen reported twice — so it takes one, and
+ *     the one with the table is the one this row exists for.
+ *
+ *     Swept with **both** arms once, on the way here, the 404 arm reported
+ *     `document-title` (axe, serious) at all three widths in both themes
+ *     and the published arm reported none. That difference is the whole
+ *     finding, and it is not a defect in what ReachKit publishes:
+ *     `generateMetadata` returns `title: page.title` for every page that
+ *     resolves — measured, and `tests/hosted/indexing/head.test.tsx`
+ *     already holds it — and returns `{}` for one that does not, which is
+ *     the request that falls through to `(hosted)/not-found.tsx`. That
+ *     file renders **no text at all, deliberately**: WO-028's ruling is
+ *     "never a ReachKit page … no copy from the product's own registry" on
+ *     a domain that is not ours, and a `<title>` is text in the document.
+ *     Whether that surface should carry one is the owner's to say and is
+ *     its own issue; it is not excused here with a `KNOWN_ON_MAIN` row,
+ *     because such a row must name an issue and there is none to name.
+ *
+ *     No cookie, and that is the surface's own promise: the hosted edge
+ *     answers a stranger on a stranger's domain with no session
+ *     (`(hosted)/hosted-page/[[...slug]]/page.tsx`).
  */
 export function noOverflowRoutes(
   appRoot: string,
   cookies: { reserved: string; setup: string },
 ): EnumeratedRoute[] {
+  const published = enumerateRoutes(appRoot, {
+    hostFixtures: PUBLISHED_HOST_FIXTURES,
+  }).filter((route) => route.host !== undefined);
+
   return enumerateRoutes(appRoot, { accountCookie: cookies.reserved })
     .filter((route) => route.host === undefined)
     .map((route) =>
       route.path === "/setup" || route.path.startsWith("/setup/")
         ? { ...route, cookie: cookies.setup }
         : route,
-    );
+    )
+    .concat(published);
 }

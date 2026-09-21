@@ -1,16 +1,12 @@
-// BUILD §9 · §4.6 — the one Markdown renderer, and the one place a
-// delivered page's body becomes HTML.
+// BUILD §9 · §4.6 · SPEC §7 (2026-09-20) — the one Markdown renderer, and
+// the one place a delivered page's body becomes HTML.
 //
 // **It lives here, under `src/lib/publish/`, because that is the only side
 // of the fence both readers can reach** (issue #158). A draft's body is
 // Markdown and every sink puts it in front of a reader as HTML: the draft
 // view's preview pane and copy-as-HTML control (§4.6), the hosted template
 // (§9's `content.{customer-domain}` edge), and the WordPress adapter, which
-// sends it as the post's `content`. This module used to sit inside the
-// draft screen's own folder, where the first two could import it and the
-// third could not — `src/lib/**` may never import `src/app/**` — and a
-// destination adapter reaching for a renderer it cannot import is how a
-// second renderer gets written. It parses once and serialises once, and
+// sends it as the post's `content`. It parses once and serialises once, and
 // every caller goes through `toHtml`.
 //
 // Two renderers would mean the HTML the customer copies, the HTML the
@@ -18,31 +14,103 @@
 // differ from one another — and the customer is the publisher of record for
 // whichever they use. That is the decision, recorded in the archived BP-044
 // decision 3 and ruled again by the owner on 2026-09-06 (`DECISIONS.md`,
-// #119): "Draft Markdown is a declared subset rendered by one in-repo
-// renderer … No Markdown dependency until fidelity demands one."
+// #119).
 //
-// No dependency: nothing in `package.json` renders Markdown, and adding one
-// is the owner's call (`CLAUDE.md`). The grammar below is the subset a
-// generated page uses — headings, paragraphs, lists, block quotes, fenced
-// code, thematic breaks, and inline emphasis, code and links. It is stated
-// as a closed list rather than implied: a construct not listed renders as
-// the literal text the customer typed, which is the safe direction. What it
-// deliberately does **not** do is pass raw HTML through. Every character of
-// text is escaped on the way out, so a body — generated or typed by the
-// customer — cannot introduce markup, and the string this module returns is
-// safe to set as HTML by construction rather than by a sanitiser someone
-// has to remember to call.
+// ## The parser is a standard one now (issue 929)
 //
-// **The escaping is the whole sanitisation rule, and it is total.** There
-// is no allowlist of tags to keep and no blocklist to strip, because no
-// markup from the input ever reaches the output as markup: `<script>` in a
-// body is five escaped characters and a word, exactly as a customer who
-// typed it would expect to see it. The elements this module can emit are
-// the closed set the serialiser names below and nothing else, and the only
-// attributes it writes are `href` (scheme-vetted) and `class` (the caller's
-// own table).
+// The same ruling ended "No Markdown dependency until fidelity demands
+// one", and SPEC §7 of 2026-09-20 is where fidelity demanded one: "the
+// published subset gains a table, a short-answer box and related guides …
+// one serialiser still serves screen, hosted page, WordPress and copy-out,
+// and every character of text is still escaped." A hand-written line
+// scanner can carry six block kinds; it cannot carry a GFM table without
+// becoming a second Markdown implementation with its own bugs.
+//
+// So the **parse** is `mdast-util-from-markdown` (micromark) with the two
+// extensions `docs/DESIGN.md` lists — GFM tables and directives — and the
+// **serialiser is ours, unchanged in kind**: a closed set of emitted
+// elements, every text node escaped, every `href` scheme-vetted, and no
+// raw HTML ever passed through.
+//
+// ## What did not change, and must not
+//
+// **The closed set is still the rule, and now it is the rule in both
+// directions.** A CommonMark parser produces nodes this product has no
+// element for — raw HTML, images (SPEC §7: "No images"), footnotes, and
+// whatever a future extension adds. Every one of them renders as **the
+// literal source text that produced it**, sliced from the input by the
+// node's own position, which is the same safe direction the hand-written
+// grammar took for a construct it did not know.
+//
+// That is what keeps a body inert (#888, #895): an `html` node's source
+// text *is* the markup, so `<script>alert(1)</script>` in a body is five
+// escaped characters and a word — exactly what a customer who typed it
+// would expect to see. There is no allowlist of tags to keep and no
+// blocklist to strip, because no markup from the input ever reaches the
+// output as markup. The elements this module can emit are the closed set
+// `toHtml` names below and nothing else.
+//
+// **The attributes are a closed set too, and every one of them is written
+// here.** There are five: `href`, whose value is scheme-vetted against
+// `MARKDOWN_LINK_SCHEMES` and is the only attribute value a body has any
+// say in at all; `class`, whose value is the caller's own table; and
+// `tabindex`, `role` and `aria-label` on the two boxes that scroll — a
+// table's and a fence's — whose values are **constants this module mints**
+// (`"0"`, `"group"`, and a sentence read from the registry).
+//
+// A body cannot forge them and cannot override them: it has no syntax that
+// reaches an attribute, a `<div role="region">` written into a body is an
+// `html` node and therefore escaped text, and the box is emitted by
+// `toHtml` from the block rather than from anything the input said. So the
+// closed-set rule holds in the presence of the three, which is why they
+// could be added at all (owner, PR #973).
+//
+// **Why that element carries them.** A table scrolls sideways inside its
+// own box — an author's table cannot be stacked into one column without
+// per-column labels, so the scroll is the right call — and a box that
+// scrolls must be reachable from a keyboard or its far columns are
+// unreachable without a mouse. That is axe's `scrollable-region-focusable`
+// (serious), the rule #962 fixed on every other scrolling pane in the
+// product; `tabindex="0"` makes the box focusable and the role with a name
+// is what a reader who lands on it is announced.
+//
+// **`group`, not `region`.** `region` is a landmark, and a landmark has to
+// be uniquely named on its page — two tables in one body, with the one
+// constant name this module can give them, is axe's `landmark-unique`
+// (moderate), measured. A distinct name per table could only come from the
+// body, which the closed set forbids. `group` is the role for a named
+// container that is not a landmark, so it repeats as often as an author
+// writes a table and is announced the same way each time.
+//
+// **A soft line ending is a space.** CommonMark keeps the newline inside
+// the text node; the hand-written parser joined wrapped lines with a space.
+// The space is kept, so the bytes already published for a body of
+// paragraphs are the bytes this module still produces for it.
+//
+// ## The two new containers, and who may mint them
+//
+// `:::answer` — the short-answer box — is admitted **from the body**: it
+// wraps the page's own opening answer, claims nothing a reader cannot
+// check, and emits no structured data (`FAQPage` is built from
+// `drafts.meta.faq` and never from the body — the archived BP-047
+// decision 2, unchanged).
+//
+// `:::guides` — related guides — is **not**. SPEC §7 (2026-09-20) has the
+// links come from what ReachKit already knows it published, "chosen in
+// code, never by the model", so `guidesBlock()` is the only way to make
+// one and a `:::guides` written into a body renders as its own literal
+// text like any other construct this module does not admit. Which pages
+// are chosen is the caller's, from the index issue 928 builds; what is
+// here is the block, the mint that vets every address, and the renderer.
+import { fromMarkdown } from "mdast-util-from-markdown";
+import { directive } from "micromark-extension-directive";
+import { directiveFromMarkdown } from "mdast-util-directive";
+import { gfmTable } from "micromark-extension-gfm-table";
+import { gfmTableFromMarkdown } from "mdast-util-gfm-table";
+import type { PhrasingContent, RootContent } from "mdast";
 
 import { MARKDOWN_LINK_SCHEMES } from "@/lib/config/constants";
+import { copy } from "@/lib/presentation/copy";
 
 export type Inline =
   | { kind: "text"; text: string }
@@ -54,13 +122,45 @@ export type Inline =
    *  the parser: a body cannot mint its own highlight. */
   | { kind: "mark"; children: readonly Inline[] };
 
+/** One cell of a table: its inline content. A table carries no block
+ *  content — a cell is a phrase, which is what a GFM table can express. */
+export type Cell = readonly Inline[];
+
+/** How a column is set, as the table's own delimiter row declared it.
+ *  `null` is "not declared", which is the default and is not `left`. */
+export type Align = "left" | "right" | "center" | null;
+
 export type Block =
   | { kind: "heading"; level: 1 | 2 | 3 | 4 | 5 | 6; children: readonly Inline[] }
   | { kind: "paragraph"; children: readonly Inline[] }
   | { kind: "quote"; children: readonly Inline[] }
   | { kind: "list"; ordered: boolean; items: ReadonlyArray<readonly Inline[]> }
   | { kind: "code"; text: string }
-  | { kind: "rule" };
+  | { kind: "rule" }
+  /** SPEC §7 (2026-09-20). A header row and a body, with each column's
+   *  declared alignment, and the name its scrolling box is announced by
+   *  (`label`, the registry's — see the header). */
+  | {
+      kind: "table";
+      label: string;
+      head: readonly Cell[];
+      rows: readonly (readonly Cell[])[];
+      align: readonly Align[];
+    }
+  /** SPEC §7 (2026-09-20) — the short-answer box. It holds ordinary blocks
+   *  and never another container: a box inside a box says nothing. */
+  | { kind: "answer"; label: string; children: readonly Block[] }
+  /** SPEC §7 (2026-09-20) — related guides. Minted by `guidesBlock` and
+   *  never by the parser. */
+  | { kind: "guides"; label: string; items: readonly GuideLink[] };
+
+/** One related guide: a page the site already has. Both members are
+ *  ReachKit's own — the address from what it published, the label from
+ *  that page's title — and neither is read out of the body. */
+export interface GuideLink {
+  href: string;
+  label: string;
+}
 
 // ── inline ──────────────────────────────────────────────────────────────
 
@@ -74,135 +174,194 @@ function isAddressable(href: string): boolean {
   return MARKDOWN_LINK_SCHEMES.some((scheme) => href.startsWith(scheme));
 }
 
-const INLINE_RE =
-  /(`[^`]+`)|(\[[^\]\n]*\]\([^)\s]+\))|(\*\*[^*]+\*\*)|(__[^_]+__)|(\*[^*\n]+\*)|(_[^_\n]+_)/;
+/** The source text a node was parsed from. The one place this module reads
+ *  the input again, and what makes "a construct it does not know renders
+ *  as its own text" true of every node micromark can produce rather than
+ *  only of the ones a hand-written scanner thought of. */
+function sourceOf(node: { position?: { start: { offset?: number }; end: { offset?: number } } }, src: string): string {
+  const from = node.position?.start.offset;
+  const to = node.position?.end.offset;
+  return from === undefined || to === undefined ? "" : src.slice(from, to);
+}
 
-export function parseInline(text: string): Inline[] {
+/** A soft line ending is a space — see the header. */
+function unwrap(text: string): string {
+  return text.replace(/\n/g, " ");
+}
+
+function inlinesOf(nodes: readonly PhrasingContent[], src: string): Inline[] {
   const out: Inline[] = [];
-  let rest = text;
-
-  while (rest.length > 0) {
-    const match = INLINE_RE.exec(rest);
-    if (!match || match.index === undefined) break;
-    if (match.index > 0) out.push({ kind: "text", text: rest.slice(0, match.index) });
-    const token = match[0];
-
-    if (token.startsWith("`")) {
-      out.push({ kind: "code", text: token.slice(1, -1) });
-    } else if (token.startsWith("[")) {
-      const close = token.indexOf("](");
-      const label = token.slice(1, close);
-      const href = token.slice(close + 2, -1);
-      if (isAddressable(href)) {
-        out.push({ kind: "link", href, children: parseInline(label) });
-      } else {
-        out.push({ kind: "text", text: label });
-      }
-    } else if (token.startsWith("**") || token.startsWith("__")) {
-      out.push({ kind: "strong", children: parseInline(token.slice(2, -2)) });
-    } else {
-      out.push({ kind: "em", children: parseInline(token.slice(1, -1)) });
+  for (const node of nodes) {
+    switch (node.type) {
+      case "text":
+        out.push({ kind: "text", text: unwrap(node.value) });
+        break;
+      case "inlineCode":
+        out.push({ kind: "code", text: node.value });
+        break;
+      case "strong":
+        out.push({ kind: "strong", children: inlinesOf(node.children, src) });
+        break;
+      case "emphasis":
+        out.push({ kind: "em", children: inlinesOf(node.children, src) });
+        break;
+      case "link":
+        // An address this product will not put on a customer's domain
+        // keeps its label and loses its link — the label's own emphasis
+        // survives, the address does not become clickable, and no `href`
+        // is emitted for it at all.
+        if (isAddressable(node.url)) {
+          out.push({ kind: "link", href: node.url, children: inlinesOf(node.children, src) });
+        } else {
+          out.push(...inlinesOf(node.children, src));
+        }
+        break;
+      case "break":
+        out.push({ kind: "text", text: " " });
+        break;
+      default:
+        out.push({ kind: "text", text: unwrap(sourceOf(node, src)) });
     }
-
-    rest = rest.slice(match.index + token.length);
   }
-
-  if (rest.length > 0) out.push({ kind: "text", text: rest });
   return out;
+}
+
+/** The inline grammar on its own, over a fragment. The same parse the
+ *  blocks are built from — it reads the fragment as one paragraph and
+ *  returns that paragraph's inlines — so there is no second grammar to
+ *  drift. A fragment that is not a paragraph at all (a list item, say)
+ *  yields its own text. */
+export function parseInline(text: string): Inline[] {
+  const root = parse(text);
+  const first = root.children[0];
+  if (first === undefined) return [];
+  if (first.type === "paragraph" && root.children.length === 1) {
+    return inlinesOf(first.children, text);
+  }
+  return [{ kind: "text", text: unwrap(text) }];
 }
 
 // ── blocks ──────────────────────────────────────────────────────────────
 
-const HEADING_RE = /^(#{1,6})\s+(.*)$/;
-const RULE_RE = /^(-{3,}|\*{3,}|_{3,})\s*$/;
-const UL_RE = /^[-*+]\s+(.*)$/;
-const OL_RE = /^\d+[.)]\s+(.*)$/;
-const QUOTE_RE = /^>\s?(.*)$/;
-const FENCE_RE = /^```/;
+/** SPEC §7's short-answer box, as a body writes it. */
+const SHORT_ANSWER = "answer";
 
-/** Markdown in, blocks out. Line-based and total: every line lands in
- *  exactly one block, and a line matching nothing is paragraph text. */
+function parse(md: string): ReturnType<typeof fromMarkdown> {
+  return fromMarkdown(md.replace(/\r\n?/g, "\n"), {
+    extensions: [gfmTable(), directive()],
+    mdastExtensions: [gfmTableFromMarkdown(), directiveFromMarkdown()],
+  });
+}
+
+/** A container's block children, as one run of inlines — what a block
+ *  quote and a list item hold in this model. Paragraphs join with a space,
+ *  exactly as wrapped lines do; anything that is not a paragraph yields
+ *  its own source text. */
+function flatten(nodes: readonly RootContent[], src: string): Inline[] {
+  const out: Inline[] = [];
+  for (const node of nodes) {
+    if (out.length > 0) out.push({ kind: "text", text: " " });
+    if (node.type === "paragraph") out.push(...inlinesOf(node.children, src));
+    else out.push({ kind: "text", text: unwrap(sourceOf(node, src)) });
+  }
+  return out;
+}
+
+/** A node this module has no element for, as the literal text it was
+ *  written as. The safe direction, and the whole of the raw-HTML rule. */
+function literal(node: RootContent, src: string): Block {
+  return { kind: "paragraph", children: [{ kind: "text", text: unwrap(sourceOf(node, src)) }] };
+}
+
+function blocksOf(nodes: readonly RootContent[], src: string, insideAnswer: boolean): Block[] {
+  const out: Block[] = [];
+  for (const node of nodes) {
+    switch (node.type) {
+      case "heading":
+        out.push({
+          kind: "heading",
+          level: node.depth as 1 | 2 | 3 | 4 | 5 | 6,
+          children: inlinesOf(node.children, src),
+        });
+        break;
+      case "paragraph":
+        out.push({ kind: "paragraph", children: inlinesOf(node.children, src) });
+        break;
+      case "blockquote":
+        out.push({ kind: "quote", children: flatten(node.children, src) });
+        break;
+      case "list":
+        out.push({
+          kind: "list",
+          ordered: node.ordered === true,
+          items: node.children.map((item) => flatten(item.children, src)),
+        });
+        break;
+      case "code":
+        out.push({ kind: "code", text: node.value });
+        break;
+      case "thematicBreak":
+        out.push({ kind: "rule" });
+        break;
+      case "table": {
+        const [head, ...rest] = node.children;
+        if (head === undefined) break;
+        out.push({
+          kind: "table",
+          label: copy("body.table.label"),
+          align: (node.align ?? []).map((a) => (a === undefined ? null : a)),
+          head: head.children.map((cell) => inlinesOf(cell.children, src)),
+          rows: rest.map((row) => row.children.map((cell) => inlinesOf(cell.children, src))),
+        });
+        break;
+      }
+      case "containerDirective":
+        // The short-answer box, and only at the top level: a box inside a
+        // box says nothing, so a nested one is its own text.
+        if (node.name === SHORT_ANSWER && !insideAnswer) {
+          out.push({
+            kind: "answer",
+            label: copy("body.answer.heading"),
+            children: blocksOf(node.children, src, true),
+          });
+          break;
+        }
+        out.push(literal(node, src));
+        break;
+      default:
+        out.push(literal(node, src));
+    }
+  }
+  return out;
+}
+
+/** Markdown in, blocks out. */
 export function parseMarkdown(md: string): Block[] {
-  const lines = md.replace(/\r\n?/g, "\n").split("\n");
-  const blocks: Block[] = [];
-  let paragraph: string[] = [];
+  const src = md.replace(/\r\n?/g, "\n");
+  return blocksOf(parse(src).children, src, false);
+}
 
-  function flushParagraph(): void {
-    if (paragraph.length === 0) return;
-    blocks.push({ kind: "paragraph", children: parseInline(paragraph.join(" ")) });
-    paragraph = [];
-  }
-
-  for (let i = 0; i < lines.length; i += 1) {
-    const line = lines[i] ?? "";
-
-    if (FENCE_RE.test(line)) {
-      flushParagraph();
-      const body: string[] = [];
-      i += 1;
-      while (i < lines.length && !FENCE_RE.test(lines[i] ?? "")) {
-        body.push(lines[i] ?? "");
-        i += 1;
-      }
-      blocks.push({ kind: "code", text: body.join("\n") });
-      continue;
-    }
-
-    if (line.trim() === "") {
-      flushParagraph();
-      continue;
-    }
-
-    if (RULE_RE.test(line)) {
-      flushParagraph();
-      blocks.push({ kind: "rule" });
-      continue;
-    }
-
-    const heading = HEADING_RE.exec(line);
-    if (heading) {
-      flushParagraph();
-      const level = (heading[1] ?? "#").length as 1 | 2 | 3 | 4 | 5 | 6;
-      blocks.push({ kind: "heading", level, children: parseInline(heading[2] ?? "") });
-      continue;
-    }
-
-    const quote = QUOTE_RE.exec(line);
-    if (quote) {
-      flushParagraph();
-      const parts = [quote[1] ?? ""];
-      while (i + 1 < lines.length) {
-        const next = QUOTE_RE.exec(lines[i + 1] ?? "");
-        if (!next) break;
-        parts.push(next[1] ?? "");
-        i += 1;
-      }
-      blocks.push({ kind: "quote", children: parseInline(parts.join(" ")) });
-      continue;
-    }
-
-    const bullet = UL_RE.exec(line);
-    const number = OL_RE.exec(line);
-    if (bullet || number) {
-      flushParagraph();
-      const ordered = bullet === null;
-      const items: Inline[][] = [parseInline((bullet ?? number)?.[1] ?? "")];
-      while (i + 1 < lines.length) {
-        const nextLine = lines[i + 1] ?? "";
-        const next = ordered ? OL_RE.exec(nextLine) : UL_RE.exec(nextLine);
-        if (!next) break;
-        items.push(parseInline(next[1] ?? ""));
-        i += 1;
-      }
-      blocks.push({ kind: "list", ordered, items });
-      continue;
-    }
-
-    paragraph.push(line);
-  }
-
-  flushParagraph();
-  return blocks;
+/**
+ * SPEC §7's related guides, built from what ReachKit already published.
+ *
+ * The **only** way a guides block is made: the parser will not produce one
+ * (see the header), so every link in it came from code. Each address is
+ * scheme-vetted here as a body's would be, and a guide whose address this
+ * product would not put on a customer's domain is dropped rather than
+ * rendered without its link — a related guide that does not go anywhere is
+ * not a related guide.
+ */
+export function guidesBlock(a: {
+  /** The customer, by name. These are **their** other guides on their own
+   *  domain, and the label says so. */
+  publisher: string;
+  items: readonly GuideLink[];
+}): Block {
+  return {
+    kind: "guides",
+    label: copy("body.guides.heading", { publisher: a.publisher }),
+    items: a.items.filter((item) => isAddressable(item.href)),
+  };
 }
 
 // ── the highlight ───────────────────────────────────────────────────────
@@ -237,6 +396,32 @@ function markInline(nodes: readonly Inline[], passage: string, done: { hit: bool
   return out;
 }
 
+/** One block, with the passage marked inside it if it is there and has not
+ *  been found yet. Split out so the short-answer box can carry the mark
+ *  too: a page grounded in its own opening answer is the ordinary case. */
+function markBlock(block: Block, passage: string, done: { hit: boolean }): Block {
+  switch (block.kind) {
+    // Nothing of ours to mark: a fence is verbatim, a rule has no text,
+    // and a guide's label is ReachKit's own rather than the page's prose.
+    case "code":
+    case "rule":
+    case "guides":
+      return block;
+    case "list":
+      return { ...block, items: block.items.map((item) => markInline(item, passage, done)) };
+    case "table":
+      return {
+        ...block,
+        head: block.head.map((cell) => markInline(cell, passage, done)),
+        rows: block.rows.map((row) => row.map((cell) => markInline(cell, passage, done))),
+      };
+    case "answer":
+      return { ...block, children: block.children.map((child) => markBlock(child, passage, done)) };
+    default:
+      return { ...block, children: markInline(block.children, passage, done) };
+  }
+}
+
 /**
  * REQ-045 criterion 2 — "the fact it is grounded in is marked within the
  * text". The passage is matched **verbatim**, at most once, inside one run
@@ -255,13 +440,7 @@ export function markPassage(
   const needle = passage.trim();
   if (needle === "") return { blocks: [...blocks], marked: false };
   const done = { hit: false };
-  const out = blocks.map((block): Block => {
-    if (block.kind === "code" || block.kind === "rule") return block;
-    if (block.kind === "list") {
-      return { ...block, items: block.items.map((item) => markInline(item, needle, done)) };
-    }
-    return { ...block, children: markInline(block.children, needle, done) };
-  });
+  const out = blocks.map((block) => markBlock(block, needle, done));
   return { blocks: out, marked: done.hit };
 }
 
@@ -291,19 +470,33 @@ export function escapeHtml(text: string): string {
  * hands over and the hosted template publishes. **Same function, same
  * parse, same element structure** — which is exactly the promise a second
  * renderer would break (the archived BP-044 decision 3).
+ *
+ * Five keys are not element names: `tableWrap`, `answer` and `guides` name
+ * the containers SPEC §7's new blocks are drawn in, and `answerLabel` and
+ * `guidesLabel` the eyebrow each carries. They are a `div` and a `p`
+ * whichever map is passed, so the structure is still the parse's.
  */
 export type HtmlClasses = Partial<
   Record<
     | "h1" | "h2" | "h3" | "h4" | "h5" | "h6"
     | "p" | "ul" | "ol" | "li" | "blockquote" | "pre" | "code" | "hr"
-    | "a" | "mark" | "strong" | "em",
+    | "a" | "mark" | "strong" | "em"
+    | "table" | "thead" | "tbody" | "tr" | "th" | "td"
+    | "tableWrap" | "answer" | "answerLabel" | "guides" | "guidesLabel",
     string
   >
 >;
 
-function open(tag: string, classes: HtmlClasses, extra = ""): string {
-  const cls = classes[tag as keyof HtmlClasses];
+/** An element, with the class its own key carries. `key` is the class
+ *  table's name for it, which is the tag for every element but the three
+ *  containers. */
+function openAs(tag: string, key: keyof HtmlClasses, classes: HtmlClasses, extra = ""): string {
+  const cls = classes[key];
   return `<${tag}${extra}${cls === undefined ? "" : ` class="${escapeHtml(cls)}"`}>`;
+}
+
+function open(tag: keyof HtmlClasses, classes: HtmlClasses, extra = ""): string {
+  return openAs(tag, tag, classes, extra);
 }
 
 function inlineHtml(nodes: readonly Inline[], classes: HtmlClasses): string {
@@ -327,22 +520,53 @@ function inlineHtml(nodes: readonly Inline[], classes: HtmlClasses): string {
     .join("");
 }
 
+/** One row of cells. A column's declared alignment travels as a class
+ *  rather than as an attribute — the only attributes this module writes are
+ *  `href` and `class` — and it shares the one `class` the caller's own
+ *  table may also have something to say in. */
+function cellsHtml(tag: "th" | "td", cells: readonly Cell[], align: readonly Align[], classes: HtmlClasses): string {
+  return cells
+    .map((cell, i) => {
+      const declared = align[i] ?? null;
+      const cls = classes[tag];
+      // One `class` attribute, whichever of the two has something to say.
+      const both = [cls, declared === null ? undefined : `text-${declared}`]
+        .filter((part): part is string => part !== undefined && part !== "")
+        .join(" ");
+      const attr = both === "" ? "" : ` class="${escapeHtml(both)}"`;
+      return `<${tag}${attr}>${inlineHtml(cell, classes)}</${tag}>`;
+    })
+    .join("");
+}
+
 /** Blocks in, HTML out. The one serialiser: the read view's body, the
- *  preview pane and the copy-as-HTML control all end here. */
+ *  preview pane, the hosted page, WordPress and the copy-as-HTML control
+ *  all end here.
+ *
+ *  The closed set of elements it can emit, and nothing else:
+ *  `h1`–`h6`, `p`, `blockquote`, `pre`, `code`, `hr`, `ul`, `ol`, `li`,
+ *  `table`, `thead`, `tbody`, `tr`, `th`, `td`, `div`, `a`, `strong`,
+ *  `em`, `mark`. Every one of them is written here; none comes from the
+ *  input. */
 export function toHtml(blocks: readonly Block[], classes: HtmlClasses = {}): string {
   return blocks
     .map((block) => {
       switch (block.kind) {
         case "heading": {
-          const tag = `h${block.level}`;
-          return `${open(tag, classes)}${inlineHtml(block.children, classes)}</${tag}>`;
+          const tag = `h${block.level}` as keyof HtmlClasses;
+          return `${open(tag, classes)}${inlineHtml(block.children, classes)}</h${block.level}>`;
         }
         case "paragraph":
           return `${open("p", classes)}${inlineHtml(block.children, classes)}</p>`;
         case "quote":
           return `${open("blockquote", classes)}${inlineHtml(block.children, classes)}</blockquote>`;
+        // A fence scrolls sideways too — a code line is verbatim and must
+        // not be re-wrapped — so its box is focusable for the same reason
+        // the table's is. It takes `tabindex` and no name: what a reader
+        // lands on is the code, which describes itself, where a table
+        // region without one is a box of unannounced columns.
         case "code":
-          return `${open("pre", classes)}${open("code", classes)}${escapeHtml(block.text)}</code></pre>`;
+          return `${openAs("pre", "pre", classes, ' tabindex="0"')}${open("code", classes)}${escapeHtml(block.text)}</code></pre>`;
         case "rule":
           return open("hr", classes);
         case "list": {
@@ -351,6 +575,49 @@ export function toHtml(blocks: readonly Block[], classes: HtmlClasses = {}): str
             .map((item) => `${open("li", classes)}${inlineHtml(item, classes)}</li>`)
             .join("");
           return `${open(tag, classes)}${items}</${tag}>`;
+        }
+        // SPEC §7 (2026-09-20): a table, in a box of its own so a phone
+        // scrolls the table rather than the page (`docs/DESIGN.md`'s
+        // no-overflow rule, and §2.2's "always inside an `overflow-x-auto`
+        // wrap"). The wrapper is what scrolls; the table keeps its shape.
+        case "table": {
+          const head = `${open("thead", classes)}${open("tr", classes)}${cellsHtml("th", block.head, block.align, classes)}</tr></thead>`;
+          const body = block.rows
+            .map((row) => `${open("tr", classes)}${cellsHtml("td", row, block.align, classes)}</tr>`)
+            .join("");
+          // The box is **reachable from a keyboard**, because it scrolls.
+          // See the header: three constant attributes, minted here.
+          const box = openAs(
+            "div",
+            "tableWrap",
+            classes,
+            ` tabindex="0" role="group" aria-label="${escapeHtml(block.label)}"`
+          );
+          return `${box}${open("table", classes)}${head}${open("tbody", classes)}${body}</tbody></table></div>`;
+        }
+        // The short-answer box. A container and nothing more: it makes no
+        // claim of its own and emits no structured data.
+        case "answer":
+          return (
+            `${openAs("div", "answer", classes)}` +
+            `${openAs("p", "answerLabel", classes)}${escapeHtml(block.label)}</p>` +
+            `${toHtml(block.children, classes)}</div>`
+          );
+        // Related guides. Every item is a link, because `guidesBlock` drops
+        // any whose address this product would not publish.
+        case "guides": {
+          if (block.items.length === 0) return "";
+          const items = block.items
+            .map(
+              (item) =>
+                `${open("li", classes)}${open("a", classes, ` href="${escapeHtml(item.href)}"`)}${escapeHtml(item.label)}</a></li>`
+            )
+            .join("");
+          return (
+            `${openAs("div", "guides", classes)}` +
+            `${openAs("p", "guidesLabel", classes)}${escapeHtml(block.label)}</p>` +
+            `${open("ul", classes)}${items}</ul></div>`
+          );
         }
       }
     })
@@ -375,9 +642,7 @@ export function renderMarkdownHtml(md: string): string {
  * size that is not its step. `heading-scale.test.ts` renders every route and
  * requires each `h1..h4` to compute its own step of the ladder, so the shift
  * is made on the level instead: a `##` arrives as an `<h3>` and earns the
- * 20px the set draws (issues #355, #493). The type ladder's element rules
- * (`src/ui/type.css`) give each level its step; a caller's class map adds
- * spacing and weight, never a size (issue 731).
+ * 20px the set draws (issues #355, #493).
  *
  * `h6` stays `h6`: the scale bottoms out and nothing below it exists.
  *
@@ -387,9 +652,10 @@ export function renderMarkdownHtml(md: string): string {
  * rather than by a heading of ours standing over them.
  */
 export function demoteHeadings(blocks: readonly Block[]): Block[] {
-  return blocks.map((block) =>
-    block.kind === "heading" && block.level < 6
+  return blocks.map((block) => {
+    if (block.kind === "answer") return { ...block, children: demoteHeadings(block.children) };
+    return block.kind === "heading" && block.level < 6
       ? { ...block, level: (block.level + 1) as 2 | 3 | 4 | 5 | 6 }
-      : block
-  );
+      : block;
+  });
 }

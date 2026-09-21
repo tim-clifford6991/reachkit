@@ -49,6 +49,20 @@ function textOf(block: Block): string {
       return "";
     case "list":
       return block.items.map(inlinesOf).join(" ");
+    // SPEC §7 (2026-09-20, issue 929) — the three blocks the richer
+    // subset added. Each is read the way a reader meets it:
+    case "table":
+      // Every cell, header first, in the order they are drawn.
+      return [block.head, ...block.rows].map((row) => row.map(inlinesOf).join(" ")).join(" ");
+    case "answer":
+      // The short-answer box is the page's own opening answer, so its text
+      // is the page's text.
+      return block.children.map(textOf).join(" ");
+    case "guides":
+      // **Nothing.** A guide's label is the *other* page's title, chosen by
+      // ReachKit from what it already published — never this page's prose,
+      // and so never this page's lead.
+      return "";
     default:
       return inlinesOf(block.children);
   }

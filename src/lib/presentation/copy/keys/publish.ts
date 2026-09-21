@@ -289,6 +289,33 @@ export const PUBLISH_COPY = Object.freeze({
   // site, newest first, with a search. Drafted under #759's ruling; the
   // owner corrects the wording. None names ReachKit — the index is served
   // on the customer's host exactly as a page is.
+  // SPEC §7 (2026-09-20, issue 929) — the two labels the richer published
+  // blocks carry. They are the **body's**, not the hosted chrome's: one
+  // serialiser draws them, so the review screen, the hosted page, the
+  // WordPress post and the copy-out all say the same two words in the same
+  // two places. Both are eyebrows over their block in the approved viewer
+  // (`R2-VW-C`) rather than headings, so neither joins the page's heading
+  // outline — a structural claim about the page is not theirs to make.
+  // Drafted under the 2026-09-16 ruling (#759); the owner corrects them.
+  "body.answer.heading": ["The short answer", { slots: {}, fixedBy: "issue 929" }],
+  // The name the table's own scrolling box carries (owner, PR #973). It is
+  // a **landmark label**, not a caption: a box that scrolls has to be
+  // reachable from a keyboard (axe `scrollable-region-focusable`, the rule
+  // #962 fixed on every other scrolling pane), and a focusable region needs
+  // a name to be announced by. The second clause is what a reader who
+  // lands on it needs to know, because the columns past the edge are the
+  // reason it is focusable at all.
+  "body.table.label": [
+    "Table — scroll sideways to see every column",
+    { slots: {}, fixedBy: "owner, PR 973" },
+  ],
+  // The publisher is the customer, by name: these are their other guides
+  // on their own domain, and the line says so rather than naming ReachKit.
+  "body.guides.heading": [
+    "More guides from {publisher}",
+    { slots: { publisher: "text" }, fixedBy: "issue 929" },
+  ],
+
   "hosted.index.heading": ["Articles", { slots: {}, fixedBy: "SPEC §7 (2026-09-16)" }],
   "hosted.index.searchLabel": ["Search articles", { slots: {}, fixedBy: "SPEC §7 (2026-09-16)" }],
   "hosted.index.searchSubmit": ["Search", { slots: {}, fixedBy: "SPEC §7 (2026-09-16)" }],

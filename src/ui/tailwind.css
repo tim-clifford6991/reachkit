@@ -21,6 +21,17 @@
 /* daisyUI's base reset, components and utilities, with none of its bundled
  * themes: `themes: false` emits no palette, so no second copy of any value
  * `theme.css` states. */
+/* SPEC §7 (2026-09-20, issue 929): the hosted page's article typography.
+ * `docs/DESIGN.md`'s library list admits it for exactly this — "the
+ * hand-kept article class tables (`prose` on hosted pages and the
+ * preview)" — and daisyUI 5 already bridges it to this theme
+ * (`daisyui/utilities/typography.css` maps every `--tw-prose-*` to a
+ * `--color-*` slot), so `prose` is the theme's colours and not a second
+ * palette. The bridge's `:root .prose` outranks the plugin's own `.prose`
+ * whichever order the two are emitted in, so this sits beside daisyUI
+ * rather than depending on being after it. */
+@plugin "@tailwindcss/typography";
+
 @plugin "daisyui" {
   themes: false;
 }

@@ -85,11 +85,33 @@ describe("the sanitisation rule is the escaping, and it is total", () => {
     }
   });
 
-  it("the only attributes it writes are href and class", () => {
+  it("the attributes it writes are a closed set of five, and only one takes a value from the body", () => {
+    // `href` and `class` were the whole set until issue 929's richer
+    // blocks (owner, PR #973). A table scrolls sideways inside its own box
+    // and a fence scrolls inside its own, and a box that scrolls has to be
+    // reachable from a keyboard — axe's `scrollable-region-focusable`, the
+    // serious rule #962 fixed on every other scrolling pane. So the
+    // serialiser writes `tabindex`, `role` and `aria-label` on those two
+    // boxes.
+    //
+    // The rule those three have to answer to is not "how many" but **where
+    // the value comes from**, and the row below is that: `href` is the one
+    // attribute a body has any say in, and its value is scheme-vetted. The
+    // other four are the caller's class table or constants the module
+    // mints. `tests/hosted/serving/inert.test.tsx` holds the same property
+    // from the other end — a body can neither forge nor override them.
+    const withTable = `${BODY}\n\n| Plan | Price |\n| --- | ---: |\n| Basic | $85 |`;
     const attributes = new Set(
-      [...renderMarkdownHtml(BODY).matchAll(/<[a-z][a-z0-9]*\s+([a-z-]+)=/g)].map((m) => m[1])
+      [...renderMarkdownHtml(withTable).matchAll(/<[a-z][a-z0-9]*\s+([a-z-]+)=/g)].map((m) => m[1])
     );
-    for (const attribute of attributes) expect(["href", "class"]).toContain(attribute);
+    for (const attribute of attributes) {
+      expect(["href", "class", "tabindex", "role", "aria-label"]).toContain(attribute);
+    }
+    // The three new ones are constants, so they are the same bytes every
+    // time and never carry a word the body chose.
+    const html = renderMarkdownHtml(withTable);
+    expect(html).toContain('<div tabindex="0" role="group" aria-label="');
+    expect(html).toContain('<pre tabindex="0">');
   });
 });
 
