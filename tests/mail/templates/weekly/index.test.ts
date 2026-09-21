@@ -137,15 +137,18 @@ describe("§12's four sections, in §12's order", () => {
     expect(line(4)).toMatchObject({ text: "mail.weekly.moved.up" });
     expect(line(-4)).toMatchObject({ text: "mail.weekly.moved.down" });
     expect(line(0)).toMatchObject({ text: "mail.weekly.moved.flat" });
-    // A week that measured no score claims no direction.
+    // A week that measured no score claims no direction — not even that it
+    // held. The mail then opens on its heading and its body line, and the
+    // whole-mail line says the week could not be measured.
+    const unmeasuredWeek = buildWeekly({
+      scoreDelta: unmeasured("not_attempted", AT),
+      aiAnswersDelta: unmeasured("not_attempted", AT),
+      pages: unmeasured("not_attempted", AT),
+      next: unmeasured("not_attempted", AT),
+    });
     expect(
-      buildWeekly({
-        scoreDelta: unmeasured("not_attempted", AT),
-        aiAnswersDelta: unmeasured("not_attempted", AT),
-        pages: unmeasured("not_attempted", AT),
-        next: unmeasured("not_attempted", AT),
-      }).blocks[2]
-    ).toMatchObject({ text: "mail.weekly.moved.flat" });
+      unmeasuredWeek.blocks.filter((block) => block.block === "paragraph").map((b) => b.text)
+    ).toEqual(["mail.weekly.body"]);
   });
 
   it("the mail's kind is registered, and it is one the customer may switch off", () => {

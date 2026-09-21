@@ -191,7 +191,10 @@ function renderHero(a: {
  */
 function renderStats(items: readonly { label: string; value: string; change: string | null }[]): string {
   const cell = (item: { label: string; value: string; change: string | null }): string =>
-    `<td width="50%" valign="top" style="width:50%;padding:0 0 12px 0">` +
+    // A gutter between the two cells, on the cell rather than as a gap: a
+    // long label in the left one would otherwise run straight into the
+    // right one's on a phone, which is what #933's 390 shot caught.
+    `<td width="50%" valign="top" style="width:50%;padding:0 12px 12px 0">` +
     `<div style="font-size:${token("--t-eyebrow")};text-transform:uppercase;letter-spacing:0.04em;color:${token("--ink-3")};padding-bottom:2px">${escapeHtml(item.label)}</div>` +
     `<div style="font-size:${token("--h3")};font-weight:700;color:${token("--ink")}">${mono(item.value)}` +
     (item.change === null

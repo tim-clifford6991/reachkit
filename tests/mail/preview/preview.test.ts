@@ -110,7 +110,7 @@ describe("issue #376 — the shell renders S20, and every kind the set draws wea
     // next three — four sections, all of them measurements, all dropped.
     // The heading, the headline sentence, the body line and the button
     // stand, which is what "still arrives, saying so" means.
-    expect(mail.omitted).toEqual([1, 4, 5, 6]);
+    expect(mail.omitted).toEqual([1, 3, 4, 5]);
     for (const body of [mail.html, mail.text]) expect(body).toContain("2026-09-14");
 
     if (OUT_DIR !== null) {

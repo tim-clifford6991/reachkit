@@ -153,8 +153,11 @@ export function buildWeekly(a: {
       // The headline sentence, chosen by what the week actually did. One
       // key per direction rather than one sentence with a slot: "the gap is
       // closing" is not a thing to say about a week that went the other
-      // way, and a mail must not claim a direction it did not measure.
-      { block: "paragraph", text: movementLine(a.scoreDelta) },
+      // way. A week that measured no movement says none of the three — the
+      // whole-mail line states that it could not be measured, and a
+      // sentence claiming the score held would be a measurement nobody
+      // took.
+      ...movementBlock(a.scoreDelta),
       { block: "paragraph", text: BODY },
       // The other three Overview numbers, with their change. Two to a row;
       // each is dropped on its own, and the group goes when none is left.
@@ -203,15 +206,19 @@ export function buildWeekly(a: {
  *
  * Three keys and no slot: a sentence that read "the gap is {direction}"
  * would be one sentence pretending to be three, and the owner's drafted
- * line ("The gap is closing…") is true of exactly one of the three. A week
- * whose score was not measured says the neutral one — it has moved nothing
- * it can speak about, and the mail's own body line then says why.
+ * line ("The gap is closing…") is true of exactly one of the three.
+ *
+ * **A week that measured nothing says none of them.** "Your score held
+ * where it was" is a measurement, and a week with no measurement behind it
+ * has not earned it; the whole-mail line says what happened instead. So
+ * this returns no block at all rather than the neutral sentence — the same
+ * rule every number in this mail is held to, applied to a sentence about a
+ * number.
  */
-function movementLine(scoreDelta: Measured<number>): CopyKey {
-  if (scoreDelta.kind === "unmeasured") return MOVED_FLAT;
-  if (scoreDelta.value > 0) return MOVED_UP;
-  if (scoreDelta.value < 0) return MOVED_DOWN;
-  return MOVED_FLAT;
+function movementBlock(scoreDelta: Measured<number>): readonly MailBlock[] {
+  if (scoreDelta.kind === "unmeasured") return [];
+  const text = scoreDelta.value > 0 ? MOVED_UP : scoreDelta.value < 0 ? MOVED_DOWN : MOVED_FLAT;
+  return [{ block: "paragraph", text }];
 }
 
 /** `mapMeasured` over a list, keeping the arm and the date: an unmeasured
