@@ -473,17 +473,6 @@ export const KNOWN_ON_MAIN: readonly KnownDefect[] = [
   { route: "/app/search", check: "axe-serious", match: "color-contrast", issue: 946 },
   { route: "/app/ai-answers", check: "axe-serious", match: "color-contrast", issue: 946 },
   { route: "/app/rivals", check: "axe-serious", match: "color-contrast", issue: 946 },
-  // #947 — the sideways-scrolling panes, with no way in from a keyboard.
-  // `/app` had one; #939's four-tab Overview replaced the pane it was in,
-  // this list's own last test said the row matched nothing, and the row went.
-  { route: "/", check: "axe-serious", match: "scrollable-region-focusable", issue: 947 },
-  { route: "/scan/example.com", check: "axe-serious", match: "scrollable-region-focusable", issue: 947 },
-  // `/app/search`'s table pane, at 390 and 768 — and this one is only ever
-  // *scrollable* where the text is wide enough to make it so, which is a
-  // question about font metrics and therefore about the machine. CI reports
-  // it and this box does not. The defect is the same either way: a pane that
-  // scrolls with no way into it from a keyboard. See `ENVIRONMENT_OF_RECORD`.
-  { route: "/app/search", check: "axe-serious", match: "scrollable-region-focusable", issue: 947 },
 ];
 
 /**

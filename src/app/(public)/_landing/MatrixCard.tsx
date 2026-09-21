@@ -106,8 +106,16 @@ export function MatrixCard(): React.JSX.Element {
           </span>
         </div>
         {/* A matrix wider than the card scrolls rather than shrinking its
-            labels: at 320 a rival's domain is wider than a quarter of it. */}
-        <div className="min-w-0 overflow-x-auto">
+            labels: at 320 a rival's domain is wider than a quarter of it.
+            A pane that scrolls is a pane a keyboard has to be able to reach
+            (#947), so it is a named region and a tab stop. The name is the
+            card's own head, not a second sentence. */}
+        <div
+          className="min-w-0 overflow-x-auto"
+          tabIndex={0}
+          role="region"
+          aria-label={copy("ai-answers.title")}
+        >
           <AnswerMatrix
             rows={rows}
             questions={answers.rows.map((row) => String(row.question.n))}
