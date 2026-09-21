@@ -37,6 +37,10 @@ const LIVE_SCHEMA_TESTS = [
   "tests/publish/attempt/schema.test.ts",
   "tests/publish/publishable/schema.test.ts",
   "tests/publish/setup/schema.test.ts",
+  // Issue #926: `site_profile_edits`, its four checks and the four RLS
+  // policies this migration adds — which `tests/db/rls.test.ts` does not
+  // apply, because it applies the baseline and the base policies only.
+  "tests/site-profile/business-edits-schema.test.ts",
 ];
 
 export default defineConfig({

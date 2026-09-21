@@ -31,6 +31,18 @@ export const NOTIFY_KIND_FIELD = "notify_kind";
 export const NOTIFY_ON_FIELD = "notify_on";
 export const CLAIM_FIELD = "do_not_claim";
 
+/** Issue #926's four, on the same footing and for the same reason this file
+ *  exists at all: a `"use server"` module may export **only async
+ *  functions**, so a field name written beside its Server Function fails
+ *  the build with "Only async functions are allowed to be exported in a
+ *  `use server` file" — and then with six more errors, because every form
+ *  that imported the name no longer finds it. `tsc` cannot see any of it;
+ *  `next build` is what does. */
+export const BUSINESS_LIST_FIELD = "business_list";
+export const BUSINESS_ITEM_FIELD = "business_item";
+export const BUSINESS_JOB_FIELD = "business_job";
+export const BUSINESS_FACT_FIELD = "business_fact";
+
 /** The value a boolean field carries. A checkbox's own `"on"` is not used:
  *  these controls send the state they are asking *for*, which is the
  *  opposite of the one they show, and a field that is simply absent when

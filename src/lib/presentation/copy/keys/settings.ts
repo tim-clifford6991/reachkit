@@ -89,6 +89,176 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.answer.saved-badge": ["Saved", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
 
   // ── Your market ────────────────────────────────────────────────────────
+  /* ── Your business (SPEC §7, 2026-09-20 · #926) ────────────────────────
+     "**What a page is written from.** The confirmed business profile — what
+     the business does, sells and promises, who it serves, its vocabulary —
+     joins the writer's inputs."
+
+     Every sentence below is **drafted** under the owner's 2026-09-16 ruling
+     (#759), and seven of them are the ones #926 itself proposes, taken
+     verbatim from its "Drafted sentences (owner may correct)" list. The
+     rest are the labels and the answers those seven need to stand up.
+
+     **Nothing here names a field the crawl does not store.** #926: show
+     only what is already measured. Each group's head is the label for one
+     stored field, and a field the site was not read for has no group on the
+     screen at all rather than an empty one — so there is no "not measured"
+     sentence per field, only the one for a profile nobody has read.
+
+     The eight page-purpose words are NOT here: `setup.ts` already carries
+     them (`setup.profile.purpose.*`) and so is the line above them
+     (`setup.profile.purposes`). A second spelling of a word the product
+     already says is a second place to change it. */
+  "settings.business.title": [
+    "What we know about {business}",
+    { slots: { business: "text" }, fixedBy: "SPEC §7 2026-09-20" },
+  ],
+  // The same head where the crawl read no site name. Its own key rather
+  // than a slot filled with a pronoun: "What we know about your business"
+  // is a sentence, and composing it from the one above would put the
+  // product's grammar in a component.
+  "settings.business.title.no-name": [
+    "What we know about your business",
+    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
+  ],
+  "settings.business.lead": [
+    "Learned from your site. Change anything — your next page is written from what’s here.",
+    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
+  ],
+  // The group heads. #926 proposes the first four; the last two name
+  // the two claim lists the voice summary already stores and that no screen
+  // has ever shown.
+  "settings.business.job": ["What you do", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
+  "settings.business.job.hint": ["one sentence", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
+  "settings.business.offering": ["Kind of business", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
+  "settings.business.products": ["What you sell", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
+  "settings.business.claims": ["What you promise", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
+  "settings.business.claims.hint": [
+    "we may repeat these",
+    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
+  ],
+  "settings.business.audienceTerms": ["Who you serve", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
+  "settings.business.vocabulary": ["Words you use", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
+  "settings.business.vocabulary.hint": [
+    "so pages sound like you",
+    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
+  ],
+  "settings.business.claimsToKeep": [
+    "Claims worth repeating",
+    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
+  ],
+  "settings.business.claimsToAvoid": [
+    "Claims we won’t make",
+    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
+  ],
+  "settings.business.tone": ["Tone", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
+  "settings.business.person": ["How you refer to yourself", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
+
+  // The controls. `remove` is an icon-only button's accessible name, which
+  // is why it names the item it removes.
+  "settings.business.add": ["Add", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
+  "settings.business.add.label": [
+    "Add to {group}",
+    { slots: { group: "text" }, fixedBy: "SPEC §7 2026-09-20" },
+  ],
+  "settings.business.remove": [
+    "Remove {item}",
+    { slots: { item: "text" }, fixedBy: "SPEC §7 2026-09-20" },
+  ],
+  "settings.business.reword": ["Reword", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
+  // The two marks on an item. "new" is what
+  // `@/lib/site-profile/business/confirm` sets on a derived item the
+  // customer has never been shown — the visible half of "the refresh may
+  // only add new findings as suggestions". "yours" is an item they typed,
+  // which no refresh will touch.
+  "settings.business.mark.new": ["new", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
+  "settings.business.mark.yours": ["yours", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
+  // The one sentence for a site nobody has read. Not per field: a profile
+  // with nothing in it has nothing to say field by field.
+  "settings.business.unread": [
+    "We haven’t read your site yet. The next read fills this in.",
+    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
+  ],
+
+  // Facts we can quote — #926's own head and its own second clause.
+  "settings.business.facts.title": [
+    "Facts we can quote",
+    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
+  ],
+  "settings.business.facts.lead": [
+    "Word for word, each linked to where we read it.",
+    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
+  ],
+  // How many of the site's pages carry the passage. Two keys, because the
+  // unit is a word with a plural and "1 pages" is not a sentence the
+  // product says.
+  "settings.business.facts.one-page": ["1 page", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
+  "settings.business.facts.pages": [
+    "{count} pages",
+    { slots: { count: "text" }, fixedBy: "SPEC §7 2026-09-20" },
+  ],
+  "settings.business.facts.switch-off": [
+    "Don’t quote this",
+    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
+  ],
+  "settings.business.facts.switch-on": [
+    "Quote this again",
+    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
+  ],
+  "settings.business.facts.off": ["Off", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
+  "settings.business.facts.none": [
+    "No page of your site has given us a fact to quote yet.",
+    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
+  ],
+
+  // What every page is written from — the five sources, and #926's closing
+  // sentence, which is the point of the card: it is a closed list.
+  "settings.business.written-from.title": [
+    "What every page is written from",
+    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
+  ],
+  "settings.business.written-from.closed": [
+    "Nothing else. We don’t use facts from anywhere but your site.",
+    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
+  ],
+  "settings.business.source.business": [
+    "Your business",
+    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
+  ],
+  "settings.business.source.voice": ["Your voice", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
+  "settings.business.source.search": [
+    "The search it’s going after",
+    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
+  ],
+  "settings.business.source.facts": [
+    "Facts read from your site",
+    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
+  ],
+  "settings.business.source.pages": [
+    "Your own pages",
+    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
+  ],
+  // The last read, and the way to ask for another. The action is
+  // `remeasureNowAction`'s — #837's bounded re-measure, reused rather than
+  // given a second bound — so its refusals speak `setup.remeasure.*`, which
+  // the registry already carries.
+  "settings.business.read-at": [
+    "Last read {on}",
+    { slots: { on: "date" }, fixedBy: "SPEC §7 2026-09-20" },
+  ],
+  "settings.business.read-never": [
+    "Not read yet",
+    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
+  ],
+  "settings.business.pages-read": [
+    "{count} pages read",
+    { slots: { count: "text" }, fixedBy: "SPEC §7 2026-09-20" },
+  ],
+  "settings.business.read-again": [
+    "Read my site again now",
+    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
+  ],
+
   // ── The tab bar (SPEC §4, 2026-09-20 · #925) ───────────────────────────
   // "Settings is tabs: Your business, Market and rivals, Publishing, Your
   // voice, Mail, Billing, Account."

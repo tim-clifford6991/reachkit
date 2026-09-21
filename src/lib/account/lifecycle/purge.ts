@@ -47,6 +47,16 @@ const PURGE_ORDER: readonly {
   // The danger-zone ticket and its record of the action that ended the
   // account.
   { table: "danger_tickets", column: "site_id", from: "siteIds" },
+  // The customer's corrections to what we read off their site (#926) —
+  // what they removed, added, reworded and switched off. It carries no
+  // cascade (ADR-051 point 7), so this row is what removes it, and it must
+  // stand before `sites` for the same reason every row here does.
+  //
+  // `site_profiles` itself is deliberately **not** here: it is keyed by
+  // domain, not by site, and is shared with every free scan of the same
+  // domain, so purging it would delete a reading that is nobody's account
+  // (its own migration says why it is keyed that way).
+  { table: "site_profile_edits", column: "site_id", from: "siteIds" },
   // The weekly verdict on each published page.
   { table: "page_verdicts", column: "publication_id", from: "publicationIds" },
   // The page records: what went live, where, and when it came down.
