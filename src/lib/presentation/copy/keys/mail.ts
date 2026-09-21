@@ -206,6 +206,43 @@ export const MAIL_COPY = Object.freeze({
   "mail.weekly.subject": ["Monday: what moved this week", { slots: {}, fixedBy: "§12" }],
   "mail.weekly.score": ["Discoverability Score", { slots: {}, fixedBy: "ruling 6a" }],
   "mail.weekly.aiAnswers": ["AI answers", { slots: {}, fixedBy: "§12 · S20 (11a)" }],
+
+  // ── SPEC §8 (2026-09-20, #933): the Monday mail as the approved board
+  // draws it — the four Overview numbers with their change, one headline
+  // sentence for the direction the week actually went, and the one item
+  // waiting on the customer.
+  //
+  // "The gap is closing…" is the owner's own drafted sentence and is used
+  // as it was written, for the one direction it is true of. The two beside
+  // it are drafted in the registry's voice under the 2026-09-16 ruling
+  // (#759), and #933's PR names them: a week that went the other way must
+  // not be told the gap is closing, and a week that did not move must not
+  // be told either thing.
+  "mail.weekly.moved.up": [
+    "The gap is closing. Every week so far has been up. Here’s what moved.",
+    { slots: {}, fixedBy: "SPEC §8 2026-09-20" },
+  ],
+  "mail.weekly.moved.flat": [
+    "Your score held where it was this week. Here’s everything that was measured.",
+    { slots: {}, fixedBy: "SPEC §8 2026-09-20" },
+  ],
+  "mail.weekly.moved.down": [
+    "Your score came down this week. Here’s what moved, and what is being written next.",
+    { slots: {}, fixedBy: "SPEC §8 2026-09-20" },
+  ],
+  // The two Overview numbers the mail did not already name. The words are
+  // the Overview's own: a second spelling of "searches you appear in"
+  // would be the second place the product speaks (ADR-001).
+  "mail.weekly.searches": ["Searches you appear in", { slots: {}, fixedBy: "SPEC §8 2026-09-20" }],
+  "mail.weekly.pagesLive": ["Pages live", { slots: {}, fixedBy: "SPEC §8 2026-09-20" }],
+  // The one item waiting on them, and the button that opens it. The line
+  // itself is the record's own — `mail.weekly.needsYou` states what kind of
+  // thing it is, with the page's address in its slot.
+  "mail.weekly.needsYou": [
+    "One page needs you: {page}.",
+    { slots: { page: "text" }, fixedBy: "SPEC §8 2026-09-20" },
+  ],
+  "mail.weekly.needsYou.action": ["Open the page", { slots: {}, fixedBy: "SPEC §8 2026-09-20" }],
   "mail.weekly.verdicts": ["pages judged", { slots: {}, fixedBy: "REQ-063 c4" }],
   "mail.weekly.verdicts.none": ["No pages published yet, so none to judge.", { slots: {}, fixedBy: "REQ-064 c3" }],
   "mail.weekly.next": ["next three", { slots: {}, fixedBy: "§12" }],
@@ -329,6 +366,37 @@ export const MAIL_COPY = Object.freeze({
   // with ADR-012's label stripped off.
   "mail.draftReady.why.search": ["Written for the search “{query}”.", { slots: { query: "text" }, fixedBy: "BUILD §12 · §7" }],
   "mail.draftReady.why.volume": ["asked", { slots: {}, fixedBy: "BUILD §12 · §7" }],
+
+  // ── SPEC §8 (2026-09-20, #933): the page-ready mail as the approved
+  // board draws it — the line above the title, the fact rows beside the
+  // number, the two buttons and the note under the second one.
+  //
+  // "Your page is ready to read" and the stop note are the owner's own
+  // drafted sentences, used as they were written. The four row labels and
+  // the three answered-by values are drafted in the registry's voice under
+  // the 2026-09-16 ruling (#759), and #933's PR names each one.
+  //
+  // The rows are labels, not sentences: a fact table's left column names
+  // the fact and its right column is the value, already written by the
+  // caller that read the stored evidence (`blocks/types.ts` says why the
+  // value is the one field that is not a key).
+  "mail.draftReady.ready": ["Your page is ready to read", { slots: {}, fixedBy: "SPEC §8 2026-09-20" }],
+  "mail.draftReady.readAction": ["Read the full page", { slots: {}, fixedBy: "SPEC §8 2026-09-20" }],
+  "mail.draftReady.stopNote": [
+    "Stop this page works from this mail without signing in, until the page goes live.",
+    { slots: {}, fixedBy: "SPEC §8 2026-09-20" },
+  ],
+  // The board already names two of the rows — `mail.draftReady.fact.search`
+  // ("search") and `.fact.answeredBy` ("answered today by"), with
+  // `.fact.you` for the value — and those are used as they stand. These two
+  // are the rows it adds, and the two other values that row can take.
+  //
+  // "Nobody" is a measured result and not an absence: every engine answered
+  // the search and named no one. A row nothing measured is not here at all.
+  "mail.draftReady.fact.chances": ["your chances", { slots: {}, fixedBy: "SPEC §8 2026-09-20" }],
+  "mail.draftReady.fact.writtenFrom": ["written from", { slots: {}, fixedBy: "SPEC §8 2026-09-20" }],
+  "mail.draftReady.fact.others": ["other sites", { slots: {}, fixedBy: "SPEC §8 2026-09-20" }],
+  "mail.draftReady.fact.nobody": ["nobody", { slots: {}, fixedBy: "SPEC §8 2026-09-20" }],
   // S20's subject, "Tomorrow 07:00: [page title 15]". Both halves are
   // data: the moment is the account's own publish time, written by
   // `writePublishesAt` — which is what renders as "Tomorrow 07:00" — and

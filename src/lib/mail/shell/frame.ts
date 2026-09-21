@@ -102,9 +102,21 @@ export function frameHtml(parts: FrameParts): string {
   return [
     `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head>`,
     `<body style="margin:0;padding:0;background:${token("--bg")}">`,
-    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${token("--bg")};padding:24px 12px">`,
-    `<tr><td align="center">`,
-    `<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px;max-width:100%">`,
+    // The padding is on the cell, not on the full-width table: a table at
+    // `width:100%` **plus** padding is wider than the window by that
+    // padding, and at the card's own 600px the body then scrolls sideways
+    // by 24 (#933's render proof caught it). `box-sizing` would fix it in a
+    // browser and is not to be relied on in an inbox; a padded cell is.
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${token("--bg")}">`,
+    `<tr><td align="center" style="padding:24px 12px">`,
+    // `width:100%` with a `max-width` of the card's own 600, rather than a
+    // fixed 600 that `max-width` is asked to pull back: a table's specified
+    // width acts as a minimum in the auto layout every inbox uses, so the
+    // fixed form does not shrink on a phone and the reader scrolls
+    // sideways (#933's render proof caught it at 390). The `width="600"`
+    // attribute stays for the clients that read attributes and not CSS;
+    // it is a hint, and the style above it is what the rest obey.
+    `<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px">`,
     `<tr><td style="background:${token("--surface")};border:1px solid ${token("--line")};border-radius:${token("--r-box")};padding:22px">`,
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">`,
     brandHeadHtml(parts.wordmark),

@@ -52,3 +52,32 @@ export function verdicts(
 ): MailBlock {
   return { block: "verdicts", label: LABEL_KEY, items, emptyLine: EMPTY_KEY };
 }
+
+/** #933's two new arms, over the same four fixture sentences. */
+export function hero(
+  value: Measured<number>,
+  opts?: { change?: Measured<number>; note?: CopyKey }
+): MailBlock {
+  return {
+    block: "hero",
+    label: LABEL_KEY,
+    value,
+    format: "integer",
+    ...(opts?.change === undefined ? {} : { change: opts.change }),
+    ...(opts?.note === undefined ? {} : { note: opts.note }),
+  };
+}
+
+export function stats(
+  items: readonly { value: Measured<number>; change?: Measured<number> }[]
+): MailBlock {
+  return {
+    block: "stats",
+    items: items.map((item) => ({
+      label: LABEL_KEY,
+      value: item.value,
+      format: "integer" as const,
+      ...(item.change === undefined ? {} : { change: item.change }),
+    })),
+  };
+}

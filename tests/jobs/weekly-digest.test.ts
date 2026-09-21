@@ -114,11 +114,19 @@ describe("the Monday digest goes out for a week that was measured", () => {
     expect(sent[0]!.kind).toBe("weekly");
     expect(sent[0]!.to).toBe("founder@example.com");
     expect(sent[0]!.subject).toBe("mail.weekly.subject");
+    // SPEC §8 (2026-09-20, #933): the score is the one number up top, the
+    // headline sentence says which way the week went, and the other three
+    // Overview numbers stand together. §12's four sections are still here,
+    // in §12's order, between the shell's head and its one button.
+    // This fixture is a site's **first** measured week: there is no week
+    // before it to compare against, so the score is stated and no direction
+    // is claimed — the headline sentence is composed only where a movement
+    // was measured, and the body line stands alone here.
     expect(sent[0]!.blocks.map((b) => b.block)).toEqual([
       "heading",
+      "hero",
       "paragraph",
-      "stat",
-      "stat",
+      "stats",
       "verdicts",
       "list",
       "action",
@@ -244,11 +252,24 @@ describe("no row, no telling — and an unmeasured week that has one says so", (
     expect(outcome).toEqual({ sent: true, id: "vendor-1" });
     expect(sent).toHaveLength(1);
     expect(sent[0]?.measurement).toEqual({ state: "none", nextDueOn });
-    // No figure is stated for a week nobody measured: the stats and lists
-    // all go in as unmeasured, so every one of them is omitted.
-    const sections = (sent[0]?.blocks ?? []).filter((b) => ["stat", "list", "verdicts"].includes(b.block));
+    // No figure is stated for a week nobody measured: the number up top,
+    // the three beside it, the verdicts and the next three all go in
+    // unmeasured, so every one of them is omitted — and #933's headline
+    // sentence is not composed at all, because "your score held" is a
+    // measurement this week does not have.
+    const sections = (sent[0]?.blocks ?? []).filter((b) =>
+      ["hero", "list", "verdicts"].includes(b.block)
+    );
     const arms = sections.map((b) => ((b as { value?: { kind: string } }).value ?? (b as { items?: { kind: string } }).items)?.kind);
-    expect(arms).toEqual(["unmeasured", "unmeasured", "unmeasured", "unmeasured"]);
+    expect(arms).toEqual(["unmeasured", "unmeasured", "unmeasured"]);
+    const stats = sent[0]?.blocks.find((b) => b.block === "stats") as unknown as {
+      items: readonly { value: { kind: string } }[];
+    };
+    expect(stats.items.every((item) => item.value.kind === "unmeasured")).toBe(true);
+    const paragraphs = (sent[0]?.blocks ?? []).filter((b) => b.block === "paragraph");
+    expect(paragraphs.map((b) => (b as unknown as { text: string }).text)).toEqual([
+      "mail.weekly.body",
+    ]);
     expect(theScan().digest_sent_at).not.toBeNull();
     expect(await sendWeeklyDigest({ siteId: "site-1", weekStart: WEEK, now: NOW })).toEqual({ sent: false, reason: "already-sent" });
   });

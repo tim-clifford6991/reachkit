@@ -28,7 +28,7 @@
 // not admit model text into a mail as ReachKit's own statement about the
 // reader's market (§8, ADR-012).
 import { env } from "@/lib/config/env";
-import type { Measured } from "@/lib/measure/measured";
+import { unmeasured, type Measured } from "@/lib/measure/measured";
 import type { WeekStanding } from "@/lib/opportunities";
 import { PAGE_VERDICTS } from "@/lib/presentation/bands";
 import type { CopyKey } from "@/lib/presentation/copy";
@@ -49,6 +49,12 @@ const REASON = "mail.reason.weekly" satisfies CopyKey;
 function overviewHref(): string {
   return new URL("/app", env.NEXT_PUBLIC_APP_URL).toString();
 }
+const MOVED_UP = "mail.weekly.moved.up" satisfies CopyKey;
+const MOVED_FLAT = "mail.weekly.moved.flat" satisfies CopyKey;
+const MOVED_DOWN = "mail.weekly.moved.down" satisfies CopyKey;
+const NEEDS_YOU_ACTION = "mail.weekly.needsYou.action" satisfies CopyKey;
+const SEARCHES = "mail.weekly.searches" satisfies CopyKey;
+const PAGES_LIVE = "mail.weekly.pagesLive" satisfies CopyKey;
 const SCORE = "mail.weekly.score" satisfies CopyKey;
 const AI_ANSWERS = "mail.weekly.aiAnswers" satisfies CopyKey;
 const VERDICTS = "mail.weekly.verdicts" satisfies CopyKey;
@@ -82,9 +88,31 @@ export interface WeeklyMail {
  * measured zero prints as `0`: no movement is a result, and REQ-064 c2 is
  * explicit that a measured zero is shown.
  */
+/** SPEC §8 (2026-09-20, #933): the one item that needs the customer this
+ *  week, as the caller read it — the written line's own key and the address
+ *  of the thing that needs them. Absent where nothing does, and then the
+ *  mail says nothing about it: a week with nothing outstanding states
+ *  nothing rather than "nothing needs you". */
+export interface WeeklyNeedsYou {
+  readonly line: CopyKey;
+  readonly vars?: CopyVars;
+  readonly href: string;
+}
+
 export function buildWeekly(a: {
   scoreDelta: Measured<number>;
   aiAnswersDelta: Measured<number>;
+  /** SPEC §8 (2026-09-20, #933): the four Overview numbers as the app
+   *  states them — the score up top with its change, and the three beside
+   *  it. Each is omitted on its own where the week did not measure it. */
+  score?: Measured<number>;
+  searches?: Measured<number>;
+  searchesDelta?: Measured<number>;
+  aiAnswers?: Measured<number>;
+  pagesLive?: Measured<number>;
+  pagesLiveDelta?: Measured<number>;
+  /** The one thing waiting on the customer, where there is one. */
+  needsYou?: WeeklyNeedsYou;
   /** The week's standings. `unmeasured` where the week produced none to
    *  read — which omits the section rather than stating an empty one; a
    *  measured empty list is "you have published nothing yet", which is a
@@ -101,6 +129,7 @@ export function buildWeekly(a: {
   issues?: Measured<readonly IssueChange[]>;
 }): WeeklyMail {
   const issues = a.issues === undefined ? [] : issueChangeRows(a.issues);
+  const unknownAt = unmeasured<number>("undeterminable", new Date(0));
   return {
     subject: SUBJECT,
     reason: REASON,
@@ -110,9 +139,36 @@ export function buildWeekly(a: {
       // measured is not here." — then the measured sections, which §12's
       // omission rule drops one at a time.
       { block: "heading", text: HEADING },
+      // SPEC §8 (2026-09-20, #933): the one number up top is the score,
+      // with the week's change beside it. A week that did not measure it
+      // takes the whole block with it — including the change, which is a
+      // movement of nothing without its number.
+      {
+        block: "hero",
+        label: SCORE,
+        value: a.score ?? unknownAt,
+        format: "integer",
+        change: a.scoreDelta,
+      },
+      // The headline sentence, chosen by what the week actually did. One
+      // key per direction rather than one sentence with a slot: "the gap is
+      // closing" is not a thing to say about a week that went the other
+      // way. A week that measured no movement says none of the three — the
+      // whole-mail line states that it could not be measured, and a
+      // sentence claiming the score held would be a measurement nobody
+      // took.
+      ...movementBlock(a.scoreDelta),
       { block: "paragraph", text: BODY },
-      { block: "stat", label: SCORE, value: a.scoreDelta, format: "delta" },
-      { block: "stat", label: AI_ANSWERS, value: a.aiAnswersDelta, format: "delta" },
+      // The other three Overview numbers, with their change. Two to a row;
+      // each is dropped on its own, and the group goes when none is left.
+      {
+        block: "stats",
+        items: [
+          { label: SEARCHES, value: a.searches ?? unknownAt, format: "integer", ...(a.searchesDelta === undefined ? {} : { change: a.searchesDelta }) },
+          { label: AI_ANSWERS, value: a.aiAnswers ?? unknownAt, format: "integer", change: a.aiAnswersDelta },
+          { label: PAGES_LIVE, value: a.pagesLive ?? unknownAt, format: "integer", ...(a.pagesLiveDelta === undefined ? {} : { change: a.pagesLiveDelta }) },
+        ],
+      },
       // What moved among the technical checks: last week's count, then this
       // week's figure. Nothing measured, or nothing moved: no block.
       ...(issues.length === 0 ? [] : [{ block: "facts", items: issues } as const]),
@@ -128,11 +184,41 @@ export function buildWeekly(a: {
         items: mapMeasuredRows(a.next, nextRows),
         emptyLine: NEXT_NONE,
       },
+      // #933's one needs-you item: the line, and the button that opens the
+      // thing itself. Both or neither — an item with nowhere to go is a
+      // sentence about a page the reader cannot reach.
+      ...(a.needsYou === undefined
+        ? []
+        : ([
+            { block: "notice", text: a.needsYou.line, ...(a.needsYou.vars === undefined ? {} : { vars: a.needsYou.vars }) },
+            { block: "action", label: NEEDS_YOU_ACTION, href: a.needsYou.href, variant: "secondary" },
+          ] as const)),
       // S20's one solid button. Absolute, because a mail client resolves
       // no relative path.
       { block: "action", label: ACTION, href: overviewHref() },
     ],
   };
+}
+
+/**
+ * SPEC §8 (2026-09-20, #933) — the headline sentence, from the week's own
+ * movement.
+ *
+ * Three keys and no slot: a sentence that read "the gap is {direction}"
+ * would be one sentence pretending to be three, and the owner's drafted
+ * line ("The gap is closing…") is true of exactly one of the three.
+ *
+ * **A week that measured nothing says none of them.** "Your score held
+ * where it was" is a measurement, and a week with no measurement behind it
+ * has not earned it; the whole-mail line says what happened instead. So
+ * this returns no block at all rather than the neutral sentence — the same
+ * rule every number in this mail is held to, applied to a sentence about a
+ * number.
+ */
+function movementBlock(scoreDelta: Measured<number>): readonly MailBlock[] {
+  if (scoreDelta.kind === "unmeasured") return [];
+  const text = scoreDelta.value > 0 ? MOVED_UP : scoreDelta.value < 0 ? MOVED_DOWN : MOVED_FLAT;
+  return [{ block: "paragraph", text }];
 }
 
 /** `mapMeasured` over a list, keeping the arm and the date: an unmeasured

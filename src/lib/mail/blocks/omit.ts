@@ -24,7 +24,12 @@ import type { MailBlock } from "./types";
 function isOmitted(block: MailBlock): boolean {
   switch (block.block) {
     case "stat":
+    case "hero":
       return block.value.kind === "unmeasured";
+    case "stats":
+      // #933: each number is omitted on its own, so the group is dropped
+      // only where every one of them was unmeasured — a group of nothing.
+      return block.items.every((item) => item.value.kind === "unmeasured");
     case "list":
     case "verdicts":
       return block.items.kind === "unmeasured";
@@ -47,6 +52,15 @@ export function omittedIndexes(blocks: readonly MailBlock[]): readonly number[] 
     if (isOmitted(block)) out.push(index);
   }
   return out;
+}
+
+/** The rows of a `stats` group that were measured, in the caller's order.
+ *  The one decision both renderers read, exactly as `omittedIndexes` is for
+ *  whole blocks. */
+export function keptStatRows(
+  block: Extract<MailBlock, { block: "stats" }>
+): readonly Extract<MailBlock, { block: "stats" }>["items"][number][] {
+  return block.items.filter((item) => item.value.kind !== "unmeasured");
 }
 
 /** True where a conditional block was measured and came out empty — the

@@ -15,7 +15,7 @@ import { copy } from "@/lib/presentation/copy";
 import { generatedLabel } from "@/lib/presentation/generated";
 import { token } from "../shell/tokens";
 import { formatStat } from "./format";
-import { omittedIndexes, isMeasuredEmpty } from "./omit";
+import { keptStatRows, omittedIndexes, isMeasuredEmpty } from "./omit";
 import type { MailBlock } from "./types";
 
 const ESCAPES: Readonly<Record<string, string>> = Object.freeze({
@@ -123,7 +123,7 @@ function renderFacts(rows: readonly { label: string; value: string }[]): string 
   );
 }
 
-function renderAction(labelText: string, href: string): string {
+function renderAction(labelText: string, href: string, variant: "primary" | "secondary"): string {
   const safe = safeHref(href);
   if (safe === null) {
     return row(`<p style="margin:0">${escapeHtml(labelText)}</p>`);
@@ -131,12 +131,87 @@ function renderAction(labelText: string, href: string): string {
   // A table-cell button: Outlook ignores padding and background on an
   // `<a>`, so the fill lives on the cell — as `bgcolor` too, for clients
   // that drop CSS backgrounds — and the link inside keeps its own padding
-  // for every client that honours it. One link, one solid fill.
+  // for every client that honours it.
+  //
+  // #933's second variant is the same button with the fill taken off and
+  // the line left on: a mail may offer two things to do — read the page,
+  // or stop it — and two solid fills would be two primaries. The outlined
+  // one carries `bgcolor` of the surface for the clients that need a
+  // background to draw a cell at all.
+  const outlined = variant === "secondary";
+  const fill = outlined ? token("--surface") : token("--accent");
+  const ink = outlined ? token("--ink") : token("--on-accent");
+  const border = outlined ? `border:1px solid ${token("--line")};` : "";
   return row(
     `<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>` +
-      `<td bgcolor="${token("--accent")}" style="border-radius:${token("--r-pill")};background:${token("--accent")}">` +
-      `<a href="${escapeHtml(safe)}" style="display:inline-block;padding:11px 18px;border-radius:${token("--r-pill")};background:${token("--accent")};color:${token("--on-accent")};text-decoration:none;font-family:${token("--font-ui-mail")};font-size:${token("--t-body")};font-weight:700">${escapeHtml(labelText)}</a>` +
+      `<td bgcolor="${fill}" style="border-radius:${token("--r-pill")};background:${fill};${border}">` +
+      `<a href="${escapeHtml(safe)}" style="display:inline-block;padding:11px 18px;border-radius:${token("--r-pill")};background:${fill};color:${ink};text-decoration:none;font-family:${token("--font-ui-mail")};font-size:${token("--t-body")};font-weight:700">${escapeHtml(labelText)}</a>` +
       `</td></tr></table>`
+  );
+}
+
+/**
+ * SPEC §8 (2026-09-20, #933) — the one number up top.
+ *
+ * The headline figure, its label above it and its change beside it. The
+ * change is a second cell on the same row rather than a line under the
+ * number: they are one reading, and an inbox that drops a float still lays
+ * out a table row.
+ */
+function renderHero(a: {
+  label: string;
+  value: string;
+  change: string | null;
+  note: string | null;
+}): string {
+  const change =
+    a.change === null
+      ? ""
+      : `<td align="right" valign="bottom" style="font-size:${token("--t-body")};font-weight:700;color:${token("--ink-2")}">${mono(a.change)}</td>`;
+  const noteLine =
+    a.note === null
+      ? ""
+      : `<div style="font-size:${token("--t-sm")};color:${token("--ink-3")};padding-top:4px">${escapeHtml(a.note)}</div>`;
+  return row(
+    `${label(a.label)}` +
+      `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>` +
+      `<td style="font-size:36px;line-height:1.1;font-weight:700;color:${token("--ink")}">${mono(a.value)}</td>` +
+      change +
+      `</tr></table>${noteLine}`
+  );
+}
+
+/**
+ * SPEC §8 (2026-09-20, #933) — the numbers beside it, two to a row.
+ *
+ * A table of pairs: an inbox lays out table cells and nothing else
+ * reliably, so the "grid" is rows of two `<td>`s and a row with one number
+ * left in it simply has one cell. Each number keeps its own label above it
+ * and its own change beside it.
+ */
+function renderStats(items: readonly { label: string; value: string; change: string | null }[]): string {
+  const cell = (item: { label: string; value: string; change: string | null }): string =>
+    // A gutter between the two cells, on the cell rather than as a gap: a
+    // long label in the left one would otherwise run straight into the
+    // right one's on a phone, which is what #933's 390 shot caught.
+    `<td width="50%" valign="top" style="width:50%;padding:0 12px 12px 0">` +
+    `<div style="font-size:${token("--t-eyebrow")};text-transform:uppercase;letter-spacing:0.04em;color:${token("--ink-3")};padding-bottom:2px">${escapeHtml(item.label)}</div>` +
+    `<div style="font-size:${token("--h3")};font-weight:700;color:${token("--ink")}">${mono(item.value)}` +
+    (item.change === null
+      ? ""
+      : `<span style="font-size:${token("--t-sm")};font-weight:700;color:${token("--ink-2")};padding-left:6px">${mono(item.change)}</span>`) +
+    `</div></td>`;
+
+  const rows: string[] = [];
+  for (let index = 0; index < items.length; index += 2) {
+    const left = items[index];
+    const right = items[index + 1];
+    rows.push(
+      `<tr>${left === undefined ? "" : cell(left)}${right === undefined ? `<td width="50%" style="width:50%"></td>` : cell(right)}</tr>`
+    );
+  }
+  return row(
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${rows.join("")}</table>`
   );
 }
 
@@ -183,6 +258,23 @@ export function factRowsOf(
   return block.items.map((item) => ({ label: copy(item.label), value: item.value }));
 }
 
+/** The rows of a kept `stats` group, rendered through `copy()` and
+ *  `formatStat`. Shared with the plain-text renderer, for the reason
+ *  `rowsOf` is: two bodies that built their own rows could state different
+ *  numbers. An unmeasured change is no change stated, never a zero. */
+export function statRowsOf(
+  block: Extract<MailBlock, { block: "stats" }>
+): readonly { label: string; value: string; change: string | null }[] {
+  return keptStatRows(block).map((item) => ({
+    label: copy(item.label),
+    value: formatStat(item.value, item.format),
+    change:
+      item.change === undefined || item.change.kind === "unmeasured"
+        ? null
+        : formatStat(item.change, "delta"),
+  }));
+}
+
 /** Renders the block list, minus the blocks `omit.ts` drops, as the rows
  *  of the frame's one table. Returns the same `omitted` indexes the text
  *  renderer returns — the one decision, read twice. */
@@ -226,8 +318,24 @@ export function renderBlocksHtml(blocks: readonly MailBlock[]): {
       case "facts":
         parts.push(renderFacts(factRowsOf(block)));
         break;
+      case "hero":
+        parts.push(
+          renderHero({
+            label: copy(block.label),
+            value: formatStat(block.value, block.format),
+            change:
+              block.change === undefined || block.change.kind === "unmeasured"
+                ? null
+                : formatStat(block.change, "delta"),
+            note: block.note === undefined ? null : copy(block.note),
+          })
+        );
+        break;
+      case "stats":
+        parts.push(renderStats(statRowsOf(block)));
+        break;
       case "action":
-        parts.push(renderAction(copy(block.label), block.href));
+        parts.push(renderAction(copy(block.label), block.href, block.variant ?? "primary"));
         break;
       case "notice":
         parts.push(renderNotice(copy(block.text, block.vars)));

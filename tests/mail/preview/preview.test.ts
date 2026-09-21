@@ -34,10 +34,28 @@ const OUT_DIR = process.env.MAIL_PREVIEW_OUT ?? null;
 
 const previewable = PREVIEW_KINDS.filter((kind) => !NOT_PREVIEWABLE.includes(kind));
 
-/** How many solid buttons each kind draws. Pinned per kind rather than
- *  asserted as "one": S20 draws a single action, and `first-page` draws
- *  none because the page itself is the mail. */
-const SOLID_BUTTONS: Readonly<Record<(typeof PREVIEW_KINDS)[number], number>> = {
+/** How many buttons each kind draws. Pinned per kind rather than asserted
+ *  as "one": S20 draws a single action, and `first-page` draws none because
+ *  the page itself is the mail.
+ *
+ *  #933 gives two kinds a second button, and the second is never a second
+ *  solid fill — the counts below are of buttons, and `SOLID_FILLS` is what
+ *  holds the rule that only one of them is the primary one. Page-ready
+ *  offers *Read the full page* and *Stop this page*; the Monday mail offers
+ *  the page that needs the customer beside *Open the overview*. */
+const BUTTONS: Readonly<Record<(typeof PREVIEW_KINDS)[number], number>> = {
+  "magic-link": 1,
+  report: 1,
+  "first-page": 0,
+  "draft-ready": 2,
+  published: 1,
+  weekly: 2,
+  nurture: 1,
+};
+
+/** Of those, how many carry the accent fill. One, wherever there is one:
+ *  two solid fills in one mail would be two primaries. */
+const SOLID_FILLS: Readonly<Record<(typeof PREVIEW_KINDS)[number], number>> = {
   "magic-link": 1,
   report: 1,
   "first-page": 0,
@@ -88,7 +106,11 @@ describe("issue #376 — the shell renders S20, and every kind the set draws wea
     const mail = await composeUnmeasuredWeek();
     expect(mail.subject).toBe(COPY["mail.weekly.subject"]);
     expect(mail.wholeMailLine).toBe("mail.week_unmeasured");
-    expect(mail.omitted).toEqual([2, 3, 4, 5]);
+    // #933: the number up top, the three beside it, the verdicts and the
+    // next three — four sections, all of them measurements, all dropped.
+    // The heading, the headline sentence, the body line and the button
+    // stand, which is what "still arrives, saying so" means.
+    expect(mail.omitted).toEqual([1, 3, 4, 5]);
     for (const body of [mail.html, mail.text]) expect(body).toContain("2026-09-14");
 
     if (OUT_DIR !== null) {
@@ -117,10 +139,12 @@ describe("issue #376 — the shell renders S20, and every kind the set draws wea
         expect(body).toContain("plain-text version attached");
       }
 
-      // The solid buttons this kind draws, counted against the pinned set.
-      expect(mail.html.split("display:inline-block;padding").length - 1).toBe(
-        SOLID_BUTTONS[kind]
-      );
+      // The buttons this kind draws, counted against the pinned set — and
+      // how many of them are the solid one.
+      expect(mail.html.split("display:inline-block;padding").length - 1).toBe(BUTTONS[kind]);
+      const { MAIL_TOKENS } = await import("@/lib/mail/shell/tokens");
+      const accent = `background:${MAIL_TOKENS["--accent"]};color:${MAIL_TOKENS["--on-accent"]}`;
+      expect(mail.html.split(accent).length - 1, "one solid fill per mail").toBe(SOLID_FILLS[kind]);
 
       if (OUT_DIR !== null) {
         mkdirSync(OUT_DIR, { recursive: true });

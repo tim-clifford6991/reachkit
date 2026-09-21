@@ -1,5 +1,18 @@
-// BUILD §12 — the `draft-ready` mail: "daily: title, why-data, *publishes
-// tomorrow 09:00 unless you say no*, one veto link".
+// BUILD §12 · SPEC §8 (2026-09-20, #933) — the `draft-ready` mail.
+//
+// #933 gives it the shape the app has: "title; goes-live line; a five-row
+// fact block (written for, searched, answered today by, your chances,
+// written from); the page's first lines; *Read the full page* and *Stop
+// this page*", with the one number up top.
+//
+// **The number up top is the searches a month, and it is not also a fact
+// row.** The board's five rows name "searched" among them; the same figure
+// stated twice in one short mail is the one thing the approved shell does
+// not do, so it is the headline figure and the block below carries the
+// other four. Noted in #933's PR.
+//
+// The three tellings, the veto link and the `GeneratedText` label below are
+// unchanged: this issue restyles the mail and moves none of its rules.
 //
 // One directory per mail kind, named for the kind (ADR-040), holding a
 // block list and nothing else: no shell, no send, no decision about
@@ -61,14 +74,22 @@
 import type { CopyKey } from "@/lib/presentation/copy";
 import type { Measured } from "@/lib/measure/measured";
 import type { Telling } from "@/lib/publish/publishable";
-import type { MailBlock } from "../../blocks/types";
+import type { FactRow, MailBlock } from "../../blocks/types";
 
 const SUBJECT = "mail.draftReady.subject" satisfies CopyKey;
 const HEADING = "mail.draftReady.heading" satisfies CopyKey;
+const READY = "mail.draftReady.ready" satisfies CopyKey;
 const REASON = "mail.reason.draftReady" satisfies CopyKey;
 const STOP_ACTION = "mail.draftReady.stopAction" satisfies CopyKey;
-const WHY_SEARCH = "mail.draftReady.why.search" satisfies CopyKey;
+const READ_ACTION = "mail.draftReady.readAction" satisfies CopyKey;
+const STOP_NOTE = "mail.draftReady.stopNote" satisfies CopyKey;
 const WHY_VOLUME = "mail.draftReady.why.volume" satisfies CopyKey;
+// The board's own four row labels. Two of them (`search`, `answeredBy`)
+// were already written for S20 and are used as they stand.
+const FACT_SEARCH = "mail.draftReady.fact.search" satisfies CopyKey;
+const FACT_ANSWERED = "mail.draftReady.fact.answeredBy" satisfies CopyKey;
+const FACT_CHANCES = "mail.draftReady.fact.chances" satisfies CopyKey;
+const FACT_WRITTEN_FROM = "mail.draftReady.fact.writtenFrom" satisfies CopyKey;
 
 /** The page as the customer meets it: its model-written title and the body
  *  that title belongs to. The two travel together because the label the
@@ -86,6 +107,13 @@ export interface DraftReadyPage {
 export interface DraftReadyWhy {
   readonly query: string;
   readonly volume: Measured<number>;
+  /** SPEC §8 (2026-09-20, #933) — the other three fact rows, each already
+   *  written by the caller that read the stored evidence. A row the
+   *  evidence does not carry is absent here and absent from the block: a
+   *  fact table states what was measured and nothing else. */
+  readonly answeredBy?: string;
+  readonly chances?: string;
+  readonly writtenFrom?: string;
 }
 
 export interface DraftReadyMail {
@@ -124,8 +152,16 @@ export function buildDraftReady(a: {
   /** §7's stored evidence. Absent for a `fix` page, which has none of this
    *  shape and cannot reach this mail anyway. */
   why?: DraftReadyWhy;
+  /** SPEC §8 (2026-09-20, #933): the page's own address in the app, so
+   *  *Read the full page* is a deep link and not a trip through the
+   *  dashboard. Absent leaves the button off — a button to nowhere is
+   *  worse than one fewer. */
+  readHref?: string;
 }): DraftReadyMail {
   const blocks: MailBlock[] = [];
+
+  // #933's opening line, above the title: what this mail is.
+  blocks.push({ block: "paragraph", text: READY });
 
   // S20's heading: the page's own title, which this kind — unlike
   // `published` — is handed.
@@ -133,16 +169,10 @@ export function buildDraftReady(a: {
     blocks.push({ block: "heading", text: HEADING, vars: { title: a.page.title } });
   }
 
-  // §12's "title" — first, because it is what the mail is about, and
-  // through the one carrier that keeps the `GeneratedText` label attached
-  // to it. `written: true`: this page is written, not proposed.
-  if (a.page !== undefined) {
-    blocks.push({
-      block: "pageBody",
-      pageTitle: a.page.title,
-      written: true,
-      markdown: a.page.markdown,
-    });
+  // #933's one number up top: how often the search this page was written
+  // for is asked. Unmeasured takes the whole block with it.
+  if (a.why !== undefined) {
+    blocks.push({ block: "hero", label: WHY_VOLUME, value: a.why.volume, format: "perMonth" });
   }
 
   // §12's "publishes tomorrow 09:00 unless you say no" — whichever of the
@@ -168,18 +198,52 @@ export function buildDraftReady(a: {
     });
   }
 
-  // §12's "why-data" — §7's own evidence, read from the row it was stored
-  // on. The volume is a `stat` and not a sentence with a number in it:
-  // every numeral in this product is written by one formatter, and an
-  // unmeasured one omits its row.
+  // #933's fact block — §7's own stored evidence, read from the row it was
+  // written on and never re-measured. Four rows, each present only where
+  // the evidence carries it; an empty block drops itself (`omit.ts`).
   if (a.why !== undefined) {
-    blocks.push({ block: "paragraph", text: WHY_SEARCH, vars: { query: a.why.query } });
-    blocks.push({ block: "stat", label: WHY_VOLUME, value: a.why.volume, format: "perMonth" });
+    const facts: FactRow[] = [{ label: FACT_SEARCH, value: a.why.query }];
+    if (a.why.answeredBy !== undefined) facts.push({ label: FACT_ANSWERED, value: a.why.answeredBy });
+    if (a.why.chances !== undefined) facts.push({ label: FACT_CHANCES, value: a.why.chances });
+    if (a.why.writtenFrom !== undefined) {
+      facts.push({ label: FACT_WRITTEN_FROM, value: a.why.writtenFrom });
+    }
+    blocks.push({ block: "facts", items: facts });
+  }
+
+  // §12's "title" — through the one carrier that keeps the `GeneratedText`
+  // label attached to it. `written: true`: this page is written, not
+  // proposed. Since #933 it is the page's **first lines** rather than the
+  // whole body: the mail is where a reader decides to open the page, and
+  // the page itself is one link away.
+  if (a.page !== undefined) {
+    blocks.push({
+      block: "pageBody",
+      pageTitle: a.page.title,
+      written: true,
+      markdown: a.page.markdown,
+    });
+  }
+
+  // #933's two buttons, in the order the board draws them: the one the
+  // reader most likely wants, then the one that stops the page.
+  if (a.readHref !== undefined) {
+    blocks.push({ block: "action", label: READ_ACTION, href: a.readHref, variant: "primary" });
   }
 
   // "one veto link" — one, on the one arm that has an interval to offer.
   if (a.telling.kind === "interval" && a.stopHref !== undefined) {
-    blocks.push({ block: "action", label: STOP_ACTION, href: a.stopHref });
+    blocks.push({
+      block: "action",
+      label: STOP_ACTION,
+      href: a.stopHref,
+      // Secondary: two solid fills would be two primaries, and stopping a
+      // page is the second thing a reader does with this mail.
+      variant: a.readHref === undefined ? "primary" : "secondary",
+    });
+    // #933's drafted line: the stop link needs no session until the page
+    // is live. Said beside the button that does it.
+    blocks.push({ block: "notice", text: STOP_NOTE });
   }
 
   // The subject names the moment and the page. Both are already here —

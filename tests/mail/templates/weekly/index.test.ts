@@ -15,7 +15,9 @@ import type { CopyKey } from "../../../../src/lib/presentation/copy";
 applyEnvFixture();
 
 const { buildWeekly } = await import("../../../../src/lib/mail/templates/weekly");
-const { omittedIndexes, isMeasuredEmpty } = await import("../../../../src/lib/mail/blocks/omit");
+const { keptStatRows, omittedIndexes, isMeasuredEmpty } = await import(
+  "../../../../src/lib/mail/blocks/omit"
+);
 const { MAIL_KINDS } = await import("../../../../src/lib/mail/kinds");
 const { OWNER_OWED } = await import("../../../../src/lib/presentation/copy/registry");
 const { COPY } = await import("../../../../src/lib/presentation/copy");
@@ -41,9 +43,26 @@ function full() {
   return buildWeekly({
     scoreDelta: measured(6, AT),
     aiAnswersDelta: measured(2, AT),
+    // SPEC §8 (2026-09-20, #933): the four Overview numbers themselves,
+    // beside the two deltas the week already carried.
+    score: measured(62, AT),
+    searches: measured(31, AT),
+    searchesDelta: measured(4, AT),
+    aiAnswers: measured(5, AT),
+    pagesLive: measured(9, AT),
     pages: measured([{ liveUrl: URL_A, standing: standing() }], AT),
     next: measured([{ targetQuery: "onboarding checklist" }], AT),
   });
+}
+
+/** The index of the first block of a kind. The mail's sections are named
+ *  rather than counted since #933 gave it two more of them: a suite that
+ *  counts positions fails on a section added beside the one it is about,
+ *  which says nothing about the rule it is testing. */
+function at(blocks: readonly MailBlock[], kind: MailBlock["block"]): number {
+  const index = blocks.findIndex((block) => block.block === kind);
+  if (index < 0) throw new Error(`no ${kind} block in this mail`);
+  return index;
 }
 
 
@@ -52,14 +71,14 @@ function full() {
  *  measured one, is a failure of the template rather than something to
  *  read past. */
 function verdictRows(blocks: readonly MailBlock[]): readonly VerdictRow[] {
-  const block = blocks[4];
+  const block = blocks[at(blocks, "verdicts")];
   if (block?.block !== "verdicts") throw new Error("block 2 is not the verdicts section");
   if (block.items.kind === "unmeasured") throw new Error("the verdicts section came back unmeasured");
   return block.items.value;
 }
 
 function nextRows(blocks: readonly MailBlock[]): readonly ListRow[] {
-  const block = blocks[5];
+  const block = blocks[at(blocks, "list")];
   if (block?.block !== "list") throw new Error("block 3 is not the next-three section");
   if (block.items.kind === "unmeasured") throw new Error("the next-three section came back unmeasured");
   return block.items.value;
@@ -71,21 +90,65 @@ describe("§12's four sections, in §12's order", () => {
     // first — "Only what was measured. A number that was not measured is
     // not here." — and one solid button closes it. §12's four sections
     // keep their order between them.
+    // #933 restyles it to the approved board: the score is the one number
+    // up top with its change, the headline sentence says which way the week
+    // went, and the other three numbers stand together. §12's four sections
+    // keep their order between the shell's own head and its one button.
     expect(full().blocks.map((block) => block.block)).toEqual([
       "heading",
+      "hero",
       "paragraph",
-      "stat",
-      "stat",
+      "paragraph",
+      "stats",
       "verdicts",
       "list",
       "action",
     ]);
   });
 
-  it("the two deltas carry the delta format — a delta, not a level", () => {
-    const [, , score, ai] = full().blocks;
-    expect(score).toMatchObject({ block: "stat", label: "mail.weekly.score", format: "delta" });
-    expect(ai).toMatchObject({ block: "stat", label: "mail.weekly.aiAnswers", format: "delta" });
+  it("the score leads with its change beside it, and the other three stand together", () => {
+    const blocks = full().blocks;
+    expect(blocks[at(blocks, "hero")]).toMatchObject({
+      block: "hero",
+      label: "mail.weekly.score",
+      format: "integer",
+      value: { kind: "measured", value: 62 },
+      change: { kind: "measured", value: 6 },
+    });
+    const stats = blocks[at(blocks, "stats")] as Extract<MailBlock, { block: "stats" }>;
+    expect(stats.items.map((item) => item.label)).toEqual([
+      "mail.weekly.searches",
+      "mail.weekly.aiAnswers",
+      "mail.weekly.pagesLive",
+    ]);
+    // Each is a level with its own change — never a delta standing alone.
+    expect(stats.items.every((item) => item.format === "integer")).toBe(true);
+    expect(stats.items[1]?.change).toMatchObject({ kind: "measured", value: 2 });
+  });
+
+  it("the headline sentence is chosen by the direction the week actually went", () => {
+    const line = (delta: number): unknown =>
+      buildWeekly({
+        scoreDelta: measured(delta, AT),
+        aiAnswersDelta: measured(0, AT),
+        pages: measured([], AT),
+        next: measured([], AT),
+      }).blocks[2];
+    expect(line(4)).toMatchObject({ text: "mail.weekly.moved.up" });
+    expect(line(-4)).toMatchObject({ text: "mail.weekly.moved.down" });
+    expect(line(0)).toMatchObject({ text: "mail.weekly.moved.flat" });
+    // A week that measured no score claims no direction — not even that it
+    // held. The mail then opens on its heading and its body line, and the
+    // whole-mail line says the week could not be measured.
+    const unmeasuredWeek = buildWeekly({
+      scoreDelta: unmeasured("not_attempted", AT),
+      aiAnswersDelta: unmeasured("not_attempted", AT),
+      pages: unmeasured("not_attempted", AT),
+      next: unmeasured("not_attempted", AT),
+    });
+    expect(
+      unmeasuredWeek.blocks.filter((block) => block.block === "paragraph").map((b) => b.text)
+    ).toEqual(["mail.weekly.body"]);
   });
 
   it("the mail's kind is registered, and it is one the customer may switch off", () => {
@@ -94,20 +157,50 @@ describe("§12's four sections, in §12's order", () => {
 });
 
 describe("REQ-064 c1/c2 — a missing number omits its section, a measured zero prints", () => {
-  it("an unmeasured delta omits its stat entirely, and takes nothing else with it", () => {
+  it("a number nothing measured omits its own row, and takes nothing else with it", () => {
     const mail = buildWeekly({
       scoreDelta: unmeasured("not_attempted", AT),
       aiAnswersDelta: measured(2, AT),
+      score: unmeasured("not_attempted", AT),
+      aiAnswers: measured(5, AT),
+      searches: unmeasured("not_attempted", AT),
+      pagesLive: measured(9, AT),
       pages: measured([{ liveUrl: URL_A, standing: standing() }], AT),
       next: measured([{ targetQuery: "q" }], AT),
     });
-    expect(omittedIndexes(mail.blocks)).toEqual([2]);
+    // The score was not measured, so the number up top goes — and only it.
+    expect(omittedIndexes(mail.blocks)).toEqual([at(mail.blocks, "hero")]);
+    // The group stays, with the row nothing measured left out of it.
+    const stats = mail.blocks[at(mail.blocks, "stats")] as Extract<MailBlock, { block: "stats" }>;
+    expect(keptStatRows(stats).map((item) => item.label)).toEqual([
+      "mail.weekly.aiAnswers",
+      "mail.weekly.pagesLive",
+    ]);
+  });
+
+  it("a week that measured none of the four drops the whole group", () => {
+    const gap = unmeasured<number>("not_attempted", AT);
+    const mail = buildWeekly({
+      scoreDelta: gap,
+      aiAnswersDelta: gap,
+      score: gap,
+      aiAnswers: gap,
+      searches: gap,
+      pagesLive: gap,
+      pages: measured([], AT),
+      next: measured([], AT),
+    });
+    expect(omittedIndexes(mail.blocks)).toContain(at(mail.blocks, "stats"));
   });
 
   it("a measured zero delta is kept — no movement is a result", () => {
     const mail = buildWeekly({
       scoreDelta: measuredZero(0, AT),
       aiAnswersDelta: measuredZero(0, AT),
+      score: measuredZero(0, AT),
+      aiAnswers: measuredZero(0, AT),
+      searches: measuredZero(0, AT),
+      pagesLive: measuredZero(0, AT),
       pages: measured([], AT),
       next: measured([], AT),
     });
@@ -121,7 +214,11 @@ describe("REQ-064 c1/c2 — a missing number omits its section, a measured zero 
       pages: unmeasured("not_attempted", AT),
       next: measured([], AT),
     });
-    expect(omittedIndexes(unmeasuredPages.blocks)).toEqual([4]);
+    expect(omittedIndexes(unmeasuredPages.blocks)).toEqual([
+      at(unmeasuredPages.blocks, "hero"),
+      at(unmeasuredPages.blocks, "stats"),
+      at(unmeasuredPages.blocks, "verdicts"),
+    ]);
 
     const noPages = buildWeekly({
       scoreDelta: measured(1, AT),
@@ -129,9 +226,13 @@ describe("REQ-064 c1/c2 — a missing number omits its section, a measured zero 
       pages: measured([], AT),
       next: measured([], AT),
     });
-    expect(omittedIndexes(noPages.blocks)).toEqual([]);
-    expect(isMeasuredEmpty(noPages.blocks[4] as MailBlock)).toBe(true);
-    expect(noPages.blocks[4]).toMatchObject({ emptyLine: "mail.weekly.verdicts.none" });
+    expect(omittedIndexes(noPages.blocks)).toEqual([
+      at(noPages.blocks, "hero"),
+      at(noPages.blocks, "stats"),
+    ]);
+    const verdicts = noPages.blocks[at(noPages.blocks, "verdicts")] as MailBlock;
+    expect(isMeasuredEmpty(verdicts)).toBe(true);
+    expect(verdicts).toMatchObject({ emptyLine: "mail.weekly.verdicts.none" });
   });
 });
 
@@ -283,7 +384,7 @@ describe("the next three, named by the search each targets", () => {
       next: measured([], AT),
     });
     expect(nextRows(mail.blocks)).toEqual([]);
-    expect(mail.blocks[5]).toMatchObject({ emptyLine: "mail.weekly.next.none" });
+    expect(mail.blocks[at(mail.blocks, "list")]).toMatchObject({ emptyLine: "mail.weekly.next.none" });
   });
 });
 
