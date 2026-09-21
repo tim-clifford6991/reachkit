@@ -44,23 +44,46 @@ import {
 } from "@/lib/site-profile/business/types";
 import {
   addBusinessItemAction,
-  BUSINESS_ITEM_FIELD,
-  BUSINESS_JOB_FIELD,
-  BUSINESS_LIST_FIELD,
   removeBusinessItemAction,
   rewordBusinessJobAction,
 } from "../business-actions";
+import {
+  BUSINESS_ITEM_FIELD,
+  BUSINESS_JOB_FIELD,
+  BUSINESS_LIST_FIELD,
+} from "../panel-state";
 import { SAVED_BADGE_CLASS, useSetting } from "./useSetting";
 
-/** Each group's head, and the quiet note beside it where #926 gives one.
- *  Keyed by the tuple, so a seventh field is a compile error here. */
-const GROUP_COPY: Readonly<Record<BusinessList, { head: CopyKey; note?: CopyKey }>> = {
-  products: { head: "settings.business.products" },
-  claims: { head: "settings.business.claims", note: "settings.business.claims.hint" },
-  audienceTerms: { head: "settings.business.audienceTerms" },
-  vocabulary: { head: "settings.business.vocabulary", note: "settings.business.vocabulary.hint" },
-  claimsToKeep: { head: "settings.business.claimsToKeep" },
-  claimsToAvoid: { head: "settings.business.claimsToAvoid" },
+/**
+ * Each group's head, the quiet note beside it where #926 gives one, and the
+ * shape its items are drawn in.
+ *
+ * **Chips for short items, rows for sentences** (owner, 2026-09-21). Every
+ * item was a full-width row with a divider, so eight vocabulary words took
+ * eight rows and this card ran to about 2,900px at 1280 — an overview that
+ * is outsized is not an overview. The approved board draws the short lists
+ * as chips that wrap, and five of the six lists hold short items: a
+ * product name, an audience, a word, a claim to keep or avoid.
+ *
+ * *What you promise* keeps its rows, and that is the whole of the
+ * distinction: those items are sentences ("Full price quoted before work
+ * starts"), and a sentence in a chip is a chip the width of the card.
+ *
+ * Keyed by the tuple, so a seventh field is a compile error here.
+ */
+const GROUP_COPY: Readonly<
+  Record<BusinessList, { head: CopyKey; note?: CopyKey; shape: "chips" | "rows" }>
+> = {
+  products: { head: "settings.business.products", shape: "chips" },
+  claims: { head: "settings.business.claims", note: "settings.business.claims.hint", shape: "rows" },
+  audienceTerms: { head: "settings.business.audienceTerms", shape: "chips" },
+  vocabulary: {
+    head: "settings.business.vocabulary",
+    note: "settings.business.vocabulary.hint",
+    shape: "chips",
+  },
+  claimsToKeep: { head: "settings.business.claimsToKeep", shape: "chips" },
+  claimsToAvoid: { head: "settings.business.claimsToAvoid", shape: "chips" },
 };
 
 /** One item, with its mark and its remove control.
@@ -68,39 +91,173 @@ const GROUP_COPY: Readonly<Record<BusinessList, { head: CopyKey; note?: CopyKey 
  *  The mark is the whole of #926's suggestion rule made visible: an item the
  *  last pass found that the customer has not seen says *new*, one they typed
  *  says *yours*, and one the site has always said needs no mark at all. */
+function RemoveButton(p: {
+  list: BusinessList;
+  item: BusinessItem;
+  writer: ReturnType<typeof useSetting>;
+  /** Inside a badge the control has to stay pressable without making the
+   *  badge tall; on a row it is the ordinary ghost square.
+   *
+   *  A boolean and not a `"chip" | "row"` prop: a string literal in a JSX
+   *  attribute is what `tests/presentation/copy/string-literal-sweep.test.ts`
+   *  sweeps for, and teaching its allow-list a new attribute name to carry a
+   *  shape token would be widening a copy rule for a layout convenience. */
+  chip?: boolean;
+}): React.JSX.Element {
+  return (
+    // **A flex box, never `display: contents`.** `contents` gives the form
+    // no box of its own, so its button's border box sits outside a parent
+    // that has none — which every containment check reads, rightly, as an
+    // element escaping its container: 150 offenders across six renders, all
+    // of them this one line. `flex` gives the form exactly the button's
+    // size and reports nothing.
+    <form
+      action={(form) => p.writer.press(removeBusinessItemAction, form)}
+      className="flex shrink-0 items-center"
+    >
+      <input type="hidden" name={BUSINESS_LIST_FIELD} value={p.list} />
+      <input type="hidden" name={BUSINESS_ITEM_FIELD} value={p.item.text} />
+      <button
+        type="submit"
+        // **24px inside a chip, and it is a floor rather than a look.**
+        // `docs/DESIGN.md`'s layout ruling asks for a target a finger can
+        // hit; `btn-xs` alone inside a `badge-lg` came out under that, so
+        // the size is stated here. The chip is `badge-lg` (32px) and this
+        // sits inside it, which is why it is 24 and not 44: the whole chip
+        // is the row's touch area, and this is the part of it that removes.
+        className={
+          p.chip === true
+            ? "btn btn-ghost btn-circle btn-xs size-6 min-h-6 shrink-0"
+            : "btn btn-ghost btn-xs btn-square shrink-0"
+        }
+        disabled={p.writer.busy}
+        aria-label={copy("settings.business.remove", { item: p.item.text })}
+      >
+        <X size={16} strokeWidth={1.75} aria-hidden />
+      </button>
+    </form>
+  );
+}
+
+/** The mark an item carries, or nothing.
+ *
+ *  #926's suggestion rule made visible: an item the last pass found that the
+ *  customer has not seen says *new*, one they typed says *yours*, and one
+ *  the site has always said needs no mark at all. Inside a chip it is a
+ *  small mark rather than a second badge — a badge inside a badge reads as
+ *  two things. */
+function Mark(p: { item: BusinessItem; chip?: boolean }): React.JSX.Element | null {
+  const key = p.item.isNew
+    ? ("settings.business.mark.new" as const)
+    : p.item.source === "yours"
+      ? ("settings.business.mark.yours" as const)
+      : null;
+  if (key === null) return null;
+  if (p.chip === true) {
+    return (
+      <span
+        className={`text-[10px] font-semibold uppercase ${
+          p.item.isNew ? "text-primary" : "text-base-content/50"
+        }`}
+      >
+        {copy(key)}
+      </span>
+    );
+  }
+  return (
+    <span
+      className={`badge badge-sm shrink-0 ${
+        p.item.isNew ? "badge-primary badge-soft" : "badge-ghost"
+      }`}
+    >
+      {copy(key)}
+    </span>
+  );
+}
+
+/** One short item, as a chip.
+ *
+ *  **A chip's text is never clamped and never overflows** (owner,
+ *  2026-09-21): `whitespace-normal` with `wrap-anywhere` lets a long item
+ *  fold *inside* its chip and the chip grow taller, rather than run past the
+ *  card or be cut to an ellipsis. `max-w-full` is what keeps the widest
+ *  possible chip inside the card at 390. daisyUI's `badge` is a fixed-height
+ *  inline-flex by default, so `h-auto` is what lets it become two lines. */
+function Chip(p: {
+  list: BusinessList;
+  item: BusinessItem;
+  writer: ReturnType<typeof useSetting>;
+}): React.JSX.Element {
+  return (
+    <span
+      className={`badge badge-lg h-auto max-w-full min-w-0 items-center gap-1.5 py-1 whitespace-normal wrap-anywhere ${
+        p.item.source === "yours" ? "badge-outline" : ""
+      }`}
+      data-testid="business-item"
+    >
+      <span className="min-w-0">{p.item.text}</span>
+      <Mark item={p.item} chip />
+      <RemoveButton list={p.list} item={p.item} writer={p.writer} chip />
+    </span>
+  );
+}
+
+/** One item that is a sentence, as a row. */
 function Item(p: {
   list: BusinessList;
   item: BusinessItem;
   writer: ReturnType<typeof useSetting>;
 }): React.JSX.Element {
   return (
-    <li className="list-row min-w-0 flex-wrap items-start gap-2">
+    <li className="list-row min-w-0 flex-wrap items-start gap-2" data-testid="business-item">
       <span className="min-w-0 grow wrap-anywhere">{p.item.text}</span>
-      {p.item.isNew ? (
-        <span className="badge badge-primary badge-soft badge-sm shrink-0">
-          {copy("settings.business.mark.new")}
-        </span>
-      ) : p.item.source === "yours" ? (
-        <span className="badge badge-ghost badge-sm shrink-0">
-          {copy("settings.business.mark.yours")}
-        </span>
-      ) : null}
-      <form
-        action={(form) => p.writer.press(removeBusinessItemAction, form)}
-        className="shrink-0"
-      >
-        <input type="hidden" name={BUSINESS_LIST_FIELD} value={p.list} />
-        <input type="hidden" name={BUSINESS_ITEM_FIELD} value={p.item.text} />
-        <button
-          type="submit"
-          className="btn btn-ghost btn-xs btn-square"
-          disabled={p.writer.busy}
-          aria-label={copy("settings.business.remove", { item: p.item.text })}
-        >
-          <X size={16} strokeWidth={1.75} aria-hidden />
-        </button>
-      </form>
+      <Mark item={p.item} />
+      <RemoveButton list={p.list} item={p.item} writer={p.writer} />
     </li>
+  );
+}
+
+/** The one Add control, drawn wherever its group's shape puts it. */
+function AddField(p: {
+  list: BusinessList;
+  head: string;
+  entry: string;
+  setEntry: (next: string) => void;
+  writer: ReturnType<typeof useSetting>;
+  className: string;
+}): React.JSX.Element {
+  return (
+    <form
+      action={(form) => {
+        p.writer.press(addBusinessItemAction, form);
+        p.setEntry("");
+      }}
+      className={p.className}
+      data-testid={`business-add-${p.list}`}
+    >
+      <input type="hidden" name={BUSINESS_LIST_FIELD} value={p.list} />
+      {/* Named by `aria-label` and not by a visually hidden `<label>`:
+          a `sr-only` box is one pixel square with a sentence in it, which
+          every containment and clipping check — rightly — reads as text
+          escaping its box. `setup/BusinessPanel.tsx` records the same
+          finding for the same control, and this screen's own 390 sweep
+          reported six of them before this line. */}
+      <input
+        name={BUSINESS_ITEM_FIELD}
+        className="input input-sm min-w-0 grow"
+        aria-label={copy("settings.business.add.label", { group: p.head })}
+        value={p.entry}
+        onChange={(e) => p.setEntry(e.target.value)}
+      />
+      <button
+        type="submit"
+        className="btn btn-outline btn-sm shrink-0"
+        disabled={p.writer.busy || p.entry.trim() === ""}
+      >
+        <Plus size={16} strokeWidth={1.75} aria-hidden />
+        {copy("settings.business.add")}
+      </button>
+    </form>
   );
 }
 
@@ -113,6 +270,7 @@ function Group(p: {
   const [entry, setEntry] = useState("");
   const head = copy(GROUP_COPY[p.list].head);
   const note = GROUP_COPY[p.list].note;
+  const shape = GROUP_COPY[p.list].shape;
 
   return (
     <section className="flex min-w-0 flex-col gap-2" data-testid={`business-group-${p.list}`}>
@@ -123,48 +281,53 @@ function Group(p: {
         )}
       </div>
 
-      <ul className="list bg-base-100 min-w-0 rounded-box">
-        {p.items.map((item) => (
-          <Item
-            key={`${item.source}:${item.text}`}
+      {/* **Chips wrap, and the Add field joins the end of them from `sm`
+          up.** One flex row holds the items and the field, so at 768 and
+          above a group with four short words is one line — which is what
+          makes this card an overview again. On a phone the field takes the
+          whole width on its own line (`w-full sm:w-auto`), where a
+          two-thirds-width input beside a chip would be neither. */}
+      {shape === "chips" ? (
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          {p.items.map((item) => (
+            <Chip
+              key={`${item.source}:${item.text}`}
+              list={p.list}
+              item={item}
+              writer={p.writer}
+            />
+          ))}
+          <AddField
             list={p.list}
-            item={item}
+            head={head}
+            entry={entry}
+            setEntry={setEntry}
             writer={p.writer}
+            className="flex w-full min-w-0 items-center gap-2 sm:w-auto"
           />
-        ))}
-      </ul>
-
-      <form
-        action={(form) => {
-          p.writer.press(addBusinessItemAction, form);
-          setEntry("");
-        }}
-        className="flex min-w-0 flex-wrap items-end gap-2"
-        data-testid={`business-add-${p.list}`}
-      >
-        <input type="hidden" name={BUSINESS_LIST_FIELD} value={p.list} />
-        {/* Named by `aria-label` and not by a visually hidden `<label>`:
-            a `sr-only` box is one pixel square with a sentence in it, which
-            every containment and clipping check — rightly — reads as text
-            escaping its box. `setup/BusinessPanel.tsx` records the same
-            finding for the same control, and this screen's own 390 sweep
-            reported six of them before this line. */}
-        <input
-          name={BUSINESS_ITEM_FIELD}
-          className="input input-sm min-w-0 grow"
-          aria-label={copy("settings.business.add.label", { group: head })}
-          value={entry}
-          onChange={(e) => setEntry(e.target.value)}
-        />
-        <button
-          type="submit"
-          className="btn btn-outline btn-sm"
-          disabled={p.writer.busy || entry.trim() === ""}
-        >
-          <Plus size={16} strokeWidth={1.75} aria-hidden />
-          {copy("settings.business.add")}
-        </button>
-      </form>
+        </div>
+      ) : (
+        <>
+          <ul className="list bg-base-100 min-w-0 rounded-box">
+            {p.items.map((item) => (
+              <Item
+                key={`${item.source}:${item.text}`}
+                list={p.list}
+                item={item}
+                writer={p.writer}
+              />
+            ))}
+          </ul>
+          <AddField
+            list={p.list}
+            head={head}
+            entry={entry}
+            setEntry={setEntry}
+            writer={p.writer}
+            className="flex min-w-0 flex-wrap items-end gap-2"
+          />
+        </>
+      )}
     </section>
   );
 }

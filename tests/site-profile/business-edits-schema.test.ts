@@ -248,15 +248,52 @@ describe("#926 — RLS: one account's corrections are its own", () => {
     ).toBe(false);
   });
 
-  it("another account cannot move an existing row onto its own site", () => {
-    // The `with check` half of the update policy. Without it an account
-    // could take the row over by rewriting its key.
+  it("another account's attempt to move the row does nothing — it cannot see it to move it", () => {
+    // **The policy is right and this test's first version was wrong.** An
+    // UPDATE by a non-owner is filtered by the policy's `using` clause
+    // before `with check` is ever consulted: the owner's row is not visible
+    // to them, so the statement matches **zero rows** and succeeds having
+    // changed nothing. It does not raise, and expecting it to was a
+    // misreading of how Postgres applies RLS to an UPDATE.
+    //
+    // So what is asserted is the thing that actually matters: nothing moved.
+    const before = psqlRows(
+      `select site_id from site_profile_edits where site_id = '${OWNED_SITE}';`
+    );
+    expect(before).toHaveLength(1);
+
     expect(
       asUserRaises(
         OTHER_ID,
         `update site_profile_edits set site_id = '${OTHER_SITE}' where site_id = '${OWNED_SITE}';`
+      ),
+      "the statement itself is not an error — it matches no row"
+    ).toBe(false);
+
+    // The row is still the owner's, and the other account still has none.
+    expect(
+      psqlRows(`select site_id from site_profile_edits where site_id = '${OWNED_SITE}';`)
+    ).toHaveLength(1);
+    expect(
+      psqlRows(`select site_id from site_profile_edits where site_id = '${OTHER_SITE}';`)
+    ).toHaveLength(0);
+  });
+
+  it("the owner cannot move their own row onto a site that is not theirs — the `with check` half", () => {
+    // This is the case `with check` exists for, and the one the test above
+    // cannot reach: the owner *can* see their row, so `using` passes and the
+    // new value is what must be judged. Moving it onto a stranger's site
+    // fails, and here the statement really does raise.
+    expect(
+      asUserRaises(
+        OWNER_ID,
+        `update site_profile_edits set site_id = '${OTHER_SITE}' where site_id = '${OWNED_SITE}';`
       )
     ).toBe(true);
+    // And it is still where it was.
+    expect(
+      psqlRows(`select site_id from site_profile_edits where site_id = '${OWNED_SITE}';`)
+    ).toHaveLength(1);
   });
 
   it("a tombstoned owner reads nothing — the same rule every other table follows", () => {

@@ -20,6 +20,13 @@
 // SPEC §4 (2026-09-20): "Every action answers." Each returns the same three
 // arms `SettingAnswer` already carries, so the panel says *saved* or *not
 // saved* in words rather than leaving the customer to compare lists.
+//
+// **This file exports async functions and nothing else**, which is not a
+// style but the rule: a `"use server"` module may export only those, and a
+// constant beside them fails `next build` with "Only async functions are
+// allowed to be exported in a `use server` file" — and then once per form
+// that imported it. The four wire names are in `./panel-state.ts` with the
+// rest of the screen's, which is the reason that file exists.
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -27,13 +34,13 @@ import { redirect } from "next/navigation";
 import { SIGNIN_PATH } from "@/lib/account/identity/addresses";
 import { BUSINESS_LISTS, type BusinessEdits, type BusinessList } from "@/lib/site-profile/business/types";
 import { SETTINGS_TAB_HREF } from "./tabs";
-import { type SettingAnswer } from "./panel-state";
-
-/** The native `name`s the forms carry. Internal (rule 1.1), not sentences. */
-export const BUSINESS_LIST_FIELD = "business_list";
-export const BUSINESS_ITEM_FIELD = "business_item";
-export const BUSINESS_JOB_FIELD = "business_job";
-export const BUSINESS_FACT_FIELD = "business_fact";
+import {
+  BUSINESS_FACT_FIELD,
+  BUSINESS_ITEM_FIELD,
+  BUSINESS_JOB_FIELD,
+  BUSINESS_LIST_FIELD,
+  type SettingAnswer,
+} from "./panel-state";
 
 const REFUSED: SettingAnswer = { answer: "refused" };
 

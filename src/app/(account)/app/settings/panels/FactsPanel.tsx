@@ -34,10 +34,12 @@ import { Quote } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import type { QuotableFact } from "@/lib/site-profile/business/types";
 import {
-  BUSINESS_FACT_FIELD,
   switchFactOffAction,
   switchFactOnAction,
 } from "../business-actions";
+import {
+  BUSINESS_FACT_FIELD,
+} from "../panel-state";
 import { SAVED_BADGE_CLASS, useSetting } from "./useSetting";
 
 /** How many of the site's pages carry this passage. Two keys, because the
