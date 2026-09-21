@@ -473,6 +473,24 @@ export const KNOWN_ON_MAIN: readonly KnownDefect[] = [
   { route: "/app/search", check: "axe-serious", match: "color-contrast", issue: 946 },
   { route: "/app/ai-answers", check: "axe-serious", match: "color-contrast", issue: 946 },
   { route: "/app/rivals", check: "axe-serious", match: "color-contrast", issue: 946 },
+  // Settings' six sibling tabs, landed 2026-09-21 by #925, in the same shell
+  // and with the same finding as the Settings screen they were cut out of —
+  // exactly as #939's three Overview tabs were. Nothing new is excused:
+  // `color-contrast` is #946, which already excuses `/app/settings` itself
+  // and every other signed-in address, and a tab of the same screen cannot
+  // be held to a bar the screen is not held to. When #946 lands, these six
+  // rows go with the ones above them.
+  //
+  // **There is no `document-title` row here** and no
+  // `scrollable-region-focusable` one: #957 gave every one of the six its
+  // own title and #962 made every scrolling pane reachable from a keyboard,
+  // so neither finding occurs on these addresses to be excused.
+  { route: "/app/settings/market", check: "axe-serious", match: "color-contrast", issue: 946 },
+  { route: "/app/settings/publishing", check: "axe-serious", match: "color-contrast", issue: 946 },
+  { route: "/app/settings/voice", check: "axe-serious", match: "color-contrast", issue: 946 },
+  { route: "/app/settings/mail", check: "axe-serious", match: "color-contrast", issue: 946 },
+  { route: "/app/settings/billing", check: "axe-serious", match: "color-contrast", issue: 946 },
+  { route: "/app/settings/account", check: "axe-serious", match: "color-contrast", issue: 946 },
 ];
 
 /**

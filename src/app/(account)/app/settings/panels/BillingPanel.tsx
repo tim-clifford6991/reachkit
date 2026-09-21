@@ -70,9 +70,18 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
     ? writtenLine("settings.billing.cancelling", { date: billing.accessUntil })
     : null;
 
-  // The three price keys, in the order every price surface speaks them,
-  // with the owner-owed ones dropped rather than rendered as a gap.
-  const price = PRICE_KEYS.map((key) => writtenLine(key)).filter((line) => line !== null);
+  // **One of the two lines beside the figure, not both** (owner,
+  // 2026-09-21, on #925). `PRICE_COPY_KEYS` is `price.amount`,
+  // `price.vat_included` and `price.interval`, and this card drew the last
+  // two together — "€49 VAT included per month, VAT included", because
+  // `price.interval` already says it. `price.interval` is the one drawn:
+  // it carries both facts a price needs beside the figure, the interval and
+  // the VAT, where `price.vat_included` alone would state the VAT and lose
+  // the interval. No key changed and no word was rewritten — the other
+  // surfaces that speak the offer are untouched, and `PRICE_KEYS` is still
+  // what this card reads the figure and the line from, so a price stated
+  // two ways is still impossible.
+  const interval = writtenLine("price.interval");
 
   // S18's "next invoice" row, and **neither half of it is a second copy of
   // anything** (#374): the day is `users.paid_through` — the access gate
@@ -125,7 +134,9 @@ export function BillingPanel(p: { billing: BillingSummary }): React.JSX.Element 
         <div className="flex min-w-0 flex-wrap items-baseline justify-between gap-2">
           <span className="flex min-w-0 flex-wrap items-baseline gap-2" data-testid="billing-price">
             <span className="num text-3xl font-semibold wrap-anywhere">{amount}</span>
-            <span className="num-phrase text-xs text-base-content/60 wrap-anywhere">{price.slice(1).join(" ")}</span>
+            {interval === null ? null : (
+              <span className="num-phrase text-xs text-base-content/60 wrap-anywhere">{interval}</span>
+            )}
           </span>
           {!billing.readable ? null : (
             <span
