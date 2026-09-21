@@ -59,14 +59,14 @@ export function AppDock(p: { waiting: number }): React.JSX.Element {
               {waiting > 0 ? (
                 // REQ-040 c2 in the dock: the number, never a `0`.
                 <span
-                  className="badge badge-xs badge-primary num absolute end-0 top-0"
+                  className="badge badge-xs badge-primary num absolute end-0 top-0 text-(length:--t-eyebrow)"
                   data-testid="shell-dock-count"
                 >
                   {waiting}
                 </span>
               ) : null}
             </span>
-            <span className="dock-label truncate">{copy(DESTINATION_COPY_KEY[destination])}</span>
+            <span className="dock-label truncate text-(length:--t-eyebrow)">{copy(DESTINATION_COPY_KEY[destination])}</span>
           </a>
         );
       })}

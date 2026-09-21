@@ -91,8 +91,15 @@ export default function PricingPage(props: {
               as a label, and reads as an instruction where an eyebrow says
               where you are. `chrome.nav.pricing` is the word the header
               and the footer already use for this page, so this is the
-              product's own name for it and not a second copy of anything. */}
-          <p className="text-base-content/60 text-xs font-semibold tracking-wide uppercase">{copy("chrome.nav.pricing")}</p>
+              product's own name for it and not a second copy of anything.
+
+              `.eyebrow`, not four utilities that approximate it: the rung is
+              ruled ("eyebrow 11 uppercase 700 .1em ink-3", `docs/DESIGN.md`)
+              and the spelling here was 12px at weight 600 on a tracking
+              nobody ruled — which is why `/pricing` was the one screen
+              `eyebrow-rung.test.ts` could not find an eyebrow on at all
+              (#976). */}
+          <p className="eyebrow">{copy("chrome.nav.pricing")}</p>
           <h1 className="text-3xl font-semibold">{copy("pricing.heading")}</h1>
           <p className="text-base-content/70">{copy("pricing.subline")}</p>
         </div>

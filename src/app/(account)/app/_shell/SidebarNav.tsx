@@ -123,7 +123,7 @@ export function SidebarNav(p: {
                       // axes and the badge's 16px band clears its ink
                       // entirely; inset by a step (the old `end-1 top-1`)
                       // it sat squarely over the glyph instead.
-                      ? "badge badge-xs badge-primary num absolute end-0 top-0"
+                      ? "badge badge-xs badge-primary num absolute end-0 top-0 text-(length:--t-eyebrow)"
                       : "badge badge-sm badge-primary num ms-auto"
                   }
                 />

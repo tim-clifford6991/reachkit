@@ -102,12 +102,27 @@ function urlFor(route: { path: string; host?: string }): string {
 }
 
 describe(`live-branch sweep — ${routes.length} route(s) × ${sweepWidths().length} width(s)`, () => {
-  it("the four §4.4–§4.7 addresses are what is swept, and they are enumerated not listed", () => {
+  // 2026-09-21, issue #976: this row is a snapshot of what the enumerator
+  // returns, and the redesign (#908) turned four addresses into thirteen —
+  // Settings became seven tabbed addresses and the Overview's modules each
+  // got one. The list grows with the tree, which is the point of it: the
+  // sweep reaching a new screen is something somebody decides, here, rather
+  // than something that happens.
+  it("every address of the account tree is what is swept, and they are enumerated not listed", () => {
     expect(routes.map((route) => route.path).sort()).toEqual([
       "/app",
+      "/app/ai-answers",
       "/app/calendar",
       `/app/draft/${LIVE_DRAFT_ID}`,
+      "/app/rivals",
+      "/app/search",
       "/app/settings",
+      "/app/settings/account",
+      "/app/settings/billing",
+      "/app/settings/mail",
+      "/app/settings/market",
+      "/app/settings/publishing",
+      "/app/settings/voice",
     ]);
   });
 

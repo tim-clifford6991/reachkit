@@ -116,6 +116,19 @@ export function checkContainment(opts: {
   function matchesAny(el: Element, selectors: readonly string[]): boolean {
     return selectors.some((sel) => el.matches(sel));
   }
+  /** Which edges it stands outside, and by how much — the sentence that
+   *  turns "li" into somewhere to look (#976). A bare tag name told the
+   *  reader nothing about which of four edges moved or what box it was
+   *  measured against, and the sweep that has to be diagnosed from a CI log
+   *  is the one that needs it most. */
+  function overhang(box: DOMRect, pbox: DOMRect, eps: number): string {
+    const edges: string[] = [];
+    if (box.left < pbox.left - eps) edges.push(`${Math.round(pbox.left - box.left)}px left`);
+    if (box.right > pbox.right + eps) edges.push(`${Math.round(box.right - pbox.right)}px right`);
+    if (box.top < pbox.top - eps) edges.push(`${Math.round(pbox.top - box.top)}px top`);
+    if (box.bottom > pbox.bottom + eps) edges.push(`${Math.round(box.bottom - pbox.bottom)}px bottom`);
+    return edges.join(", ");
+  }
 
   const offenders: Offender[] = [];
   const EPS = 0.5;
@@ -123,7 +136,6 @@ export function checkContainment(opts: {
   for (const el of all) {
     const parent = el.parentElement;
     if (!parent) continue;
-    if (matchesAny(parent, scrollContainerAllowlist)) continue;
     // ADR-093 decision 6 point 2 speaks of an element's *border box*. An
     // element that generates no box at all — `display: none`, which is
     // every `<script>`, `<head>` child and `[hidden]` placeholder the
@@ -154,7 +166,11 @@ export function checkContainment(opts: {
     const position = getComputedStyle(el).position;
     if (position === "fixed" || position === "absolute") {
       if (box.left < -EPS || box.right > window.innerWidth + EPS) {
-        offenders.push({ check: "containment", element: describe(el) });
+        const screen = new DOMRect(0, box.top, window.innerWidth, box.height);
+        offenders.push({
+          check: "containment",
+          element: `${describe(el)} — out of flow, ${overhang(box, screen, EPS)} of the screen`,
+        });
       }
       continue;
     }
@@ -168,14 +184,44 @@ export function checkContainment(opts: {
     // makes every route's sweep a race with hydration rather than a
     // measurement of the page.
     if (box.width === 0 && box.height === 0) continue;
-    const pbox = parent.getBoundingClientRect();
+    // 2026-09-21, issue #976: the same reasoning about the **parent**. An
+    // element with `display: contents` generates no box either — that is
+    // the whole of what the value means: the element is replaced by its
+    // children, which are laid out in *its* parent. `getBoundingClientRect()`
+    // on one is a 0×0 rect at the origin, so measuring a child against it
+    // reports every child of every such element, always, on a page where
+    // nothing is out of place. `TileRow`'s AI window and the scan report's
+    // answer table are both a CSS grid whose rows are `display: contents`
+    // (the accessible `role="row"` a grid needs without a box between the
+    // grid and its cells), and between them they accounted for 240 of this
+    // sweep's offenders on `main`, none of them real.
+    //
+    // So the box a child is held to is the nearest ancestor that generates
+    // one — which is also the box CSS laid it out in. A scroll container
+    // anywhere on that walk exempts it, for the reason the allow-list is
+    // written for: the box changed rather than the content being cut.
+    let holder: Element | null = parent;
+    let exempt = false;
+    while (holder !== null) {
+      if (matchesAny(holder, scrollContainerAllowlist)) {
+        exempt = true;
+        break;
+      }
+      if (holder.getClientRects().length > 0) break;
+      holder = holder.parentElement;
+    }
+    if (exempt || holder === null) continue;
+    const pbox = holder.getBoundingClientRect();
     if (
       box.left < pbox.left - EPS ||
       box.right > pbox.right + EPS ||
       box.top < pbox.top - EPS ||
       box.bottom > pbox.bottom + EPS
     ) {
-      offenders.push({ check: "containment", element: describe(el) });
+      offenders.push({
+        check: "containment",
+        element: `${describe(el)} — ${overhang(box, pbox, EPS)} of ${describe(holder)}`,
+      });
     }
   }
   return offenders;
