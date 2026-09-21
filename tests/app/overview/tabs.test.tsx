@@ -13,7 +13,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { copy } from "@/lib/presentation/copy";
 import OverviewPage from "@/app/(account)/app/(tabs)/page";
-import SearchTabPage from "@/app/(account)/app/(tabs)/search/page";
 import AiAnswersTabPage from "@/app/(account)/app/(tabs)/ai-answers/page";
 import RivalsTabPage from "@/app/(account)/app/(tabs)/rivals/page";
 import OverviewTabsLayout from "@/app/(account)/app/(tabs)/layout";
@@ -92,10 +91,11 @@ describe("SPEC §4 — every part of the Overview tab opens the tab behind it", 
   });
 });
 
-describe("the three tabs this issue only opens an address for say so", () => {
+describe("the tabs that have an address and not yet a screen say so", () => {
+  // Search is no longer among them: #916 built it, and its own suites
+  // (`search-*.test.ts`) decide what it states.
   it("each names itself and states one written line — no number, no dash", () => {
     for (const [page, tab, soon] of [
-      [SearchTabPage, "search", "overview.tab.search.soon"],
       [AiAnswersTabPage, "ai_answers", "overview.tab.ai-answers.soon"],
       [RivalsTabPage, "rivals", "overview.tab.rivals.soon"],
     ] as const) {

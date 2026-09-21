@@ -386,13 +386,10 @@ export const OVERVIEW_COPY = Object.freeze({
   "overview.tab.search": ["Search", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
   "overview.tab.rivals": ["Rivals", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
 
-  // The three tabs this issue only opens an address for (#916, #917, #918).
-  // Each says what will stand there and that it does not yet — never a blank
-  // screen and never a promise of a date nobody has set.
-  "overview.tab.search.soon": [
-    "Every search ReachKit is going after will be listed here, with what it is worth and where you stand. It isn’t built yet.",
-    { slots: {}, fixedBy: "issue 916" },
-  ],
+  // The tabs that have an address and not yet a screen (#917, #918). Each
+  // says what will stand there and that it does not yet — never a blank
+  // screen and never a promise of a date nobody has set. Search had one of
+  // these until #916 built the screen.
   "overview.tab.ai-answers.soon": [
     "The questions ReachKit asks the answer engines, and who they name, will be listed here. It isn’t built yet.",
     { slots: {}, fixedBy: "issue 918" },
@@ -486,4 +483,126 @@ export const OVERVIEW_COPY = Object.freeze({
   // ── This week: the word a day carries when nothing is scheduled on it.
   // The five stage words are the calendar's own (`calendar.stage.*`).
   "overview.week.day.no-page": ["No page", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+
+  // ── SPEC §4 (2026-09-20, #908), the Search tab (#916) — every search
+  // ReachKit is going after, and where the customer stands on it. Every
+  // sentence below is drafted under the 2026-09-16 ruling (#759) and named
+  // in the PR body for the owner to correct; the four status words and the
+  // ceiling line are the issue's own drafts, taken verbatim.
+  "overview.search.lead": [
+    "The searches we’re going after for you, and where you stand on each.",
+    { slots: {}, fixedBy: "SPEC §4 2026-09-20" },
+  ],
+  // The line under the tabs: which measurement this whole screen is read
+  // from. No vendor and no cost — the date the pass was taken, and nothing
+  // else.
+  "overview.search.measured": [
+    "Measured {on}.",
+    { slots: { on: "date" }, fixedBy: "SPEC §4 2026-09-20" },
+  ],
+
+  // The four tiles. Each carries a denominator or a goal, never a bare
+  // number (SPEC §4's data rule).
+  "overview.search.tile.going-after": [
+    "Searches we’re going after",
+    { slots: {}, fixedBy: "SPEC §4 2026-09-20" },
+  ],
+  "overview.search.tile.going-after.of": [
+    "of {of} kept ready",
+    { slots: { of: "text" }, fixedBy: "SPEC §6 supply depth" },
+  ],
+  "overview.search.tile.going-after.means": [
+    "ReachKit keeps a queue of searches ready so there is always a page to write tomorrow.",
+    { slots: {}, fixedBy: "SPEC §4 2026-09-20" },
+  ],
+  "overview.search.tile.first-two-pages": [
+    "On Google’s first two pages",
+    { slots: {}, fixedBy: "SPEC §4 2026-09-20" },
+  ],
+  "overview.search.tile.first-page": ["On the first page", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  "overview.search.tile.pages.of": [
+    "of {of} live pages",
+    { slots: { of: "text" }, fixedBy: "SPEC §4 2026-09-20" },
+  ],
+  "overview.search.tile.first-two-pages.means": [
+    "Top 20 is where a page starts to be found.",
+    { slots: {}, fixedBy: "SPEC §4 2026-09-20" },
+  ],
+  "overview.search.tile.first-page.means": [
+    "The first page is where nearly every click goes.",
+    { slots: {}, fixedBy: "SPEC §4 2026-09-20" },
+  ],
+  "overview.search.tile.appear-for.means": [
+    "Every search Google shows you for, at any position.",
+    { slots: {}, fixedBy: "SPEC §4 2026-09-20" },
+  ],
+
+  // The line over the table: what the mark on every difficulty bar stands
+  // at. The number is `difficultyCeiling(ownRanked)` — arithmetic over a
+  // stored count, never a new measurement — and the sentence says the one
+  // thing a founder needs from it: it moves when they do.
+  "overview.search.ceiling": [
+    "The mark on each difficulty bar is your limit — {ceiling} today. It rises as you rank for more.",
+    { slots: { ceiling: "text" }, fixedBy: "SPEC §4 2026-09-20" },
+  ],
+
+  // The six column heads.
+  "overview.search.column.search": ["Search", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  "overview.search.column.volume": ["A month", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  "overview.search.column.difficulty": ["Difficulty", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  "overview.search.column.you": ["You", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  "overview.search.column.rival": ["Best rival", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  "overview.search.column.status": ["Status", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+
+  // SPEC §4's four status words, and the chip that stands for all of them.
+  "overview.search.status.all": ["All", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  "overview.search.status.live": ["Page is live", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  "overview.search.status.your-review": ["Your review", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  "overview.search.status.up-next": ["Up next", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  "overview.search.status.too-big": ["Too big for now", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  // A filter chip's whole text. It is one string because daisyUI's `filter`
+  // draws a radio's own `aria-label`, so the word and its count reach the
+  // screen as one attribute rather than as two elements.
+  "overview.search.chip": [
+    "{status} {count}",
+    { slots: { status: "text", count: "text" }, fixedBy: "SPEC §4 2026-09-20" },
+  ],
+  "overview.search.filter.label": ["Show", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  "overview.search.table.label": [
+    "Every search ReachKit is going after",
+    { slots: {}, fixedBy: "SPEC §4 2026-09-20" },
+  ],
+
+  // A place on a search results page, and the week's move. The glyphs are
+  // `overview.delta.up` / `overview.delta.down`, already written.
+  "overview.search.position": ["#{position}", { slots: { position: "text" }, fixedBy: "SPEC §4 2026-09-20" }],
+  // A page with a verdict and nothing recorded to compare it with: its
+  // first week, which is a fact and not a change of zero.
+  "overview.search.you.first": ["new", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  // An Improve target: the page that answers this search is the customer's
+  // own, so no rival holds it.
+  "overview.search.rival.yours": ["Your own page", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  "overview.search.difficulty.label": [
+    "Difficulty {difficulty}, your limit is {ceiling}",
+    { slots: { difficulty: "text", ceiling: "text" }, fixedBy: "SPEC §4 2026-09-20" },
+  ],
+  "overview.search.difficulty.label.no-limit": [
+    "Difficulty {difficulty}",
+    { slots: { difficulty: "text" }, fixedBy: "SPEC §4 2026-09-20" },
+  ],
+
+  // The foot of the table: how much of it is on screen, in what order, and
+  // the one control that shows the rest.
+  "overview.search.showing": [
+    "{shown} of {total} · sorted by what’s closest to the first page",
+    { slots: { shown: "text", total: "text" }, fixedBy: "SPEC §4 2026-09-20" },
+  ],
+  "overview.search.show-all": ["Show all {total}", { slots: { total: "text" }, fixedBy: "SPEC §4 2026-09-20" }],
+  // Nothing on file at all — a site whose first pass has not finished, or
+  // one whose market was too small. It claims neither: it says what is
+  // true of the list, and the Overview's own supply statement says why.
+  "overview.search.empty": [
+    "No searches are on file yet. They arrive with the first pass over your market.",
+    { slots: {}, fixedBy: "SPEC §4 2026-09-20" },
+  ],
 }) satisfies CopyPartition;

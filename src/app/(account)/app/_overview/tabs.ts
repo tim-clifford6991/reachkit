@@ -34,11 +34,12 @@ export const TAB_COPY_KEY: Readonly<Record<OverviewTab, CopyKey>> = Object.freez
   rivals: "overview.tab.rivals",
 });
 
-/** The one line each tab this issue only opens an address for carries
- *  (#916, #917, #918). Overview has none: it is the screen itself. */
-export const TAB_SOON_KEY: Readonly<Record<Exclude<OverviewTab, "overview">, CopyKey>> =
+/** The one line a tab that has its address but not yet its screen carries.
+ *  Overview has none — it is the screen itself — and neither does Search
+ *  any longer: #916 built it, and the line that stood in its place went
+ *  with the placeholder. #918 and #917 are still owed theirs. */
+export const TAB_SOON_KEY: Readonly<Record<Exclude<OverviewTab, "overview" | "search">, CopyKey>> =
   Object.freeze({
-    search: "overview.tab.search.soon",
     ai_answers: "overview.tab.ai-answers.soon",
     rivals: "overview.tab.rivals.soon",
   });

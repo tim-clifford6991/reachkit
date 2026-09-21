@@ -1,12 +1,12 @@
 // SPEC §4 (2026-09-20, #908) — a tab that has its address before it has its
 // screen.
 //
-// The Search, AI answers and Rivals tabs are #916, #918 and #917. This issue
-// opens each one's address, so the bar above them is real from the day it
-// lands and every tile on the Overview has somewhere to go. What stands
-// there until those issues land is this: the tab's own name, one honest line
-// saying what will be here and that it is not built, and daisyUI `skeleton`
-// blocks where the content will be.
+// The AI answers and Rivals tabs are #918 and #917. #915 opened each one's
+// address, so the bar above them is real from the day it lands and every
+// tile on the Overview has somewhere to go. What stands there until those
+// issues land is this: the tab's own name, one honest line saying what will
+// be here and that it is not built, and daisyUI `skeleton` blocks where the
+// content will be. (Search had one of these until #916 built the screen.)
 //
 // **It claims nothing.** No number, no dash, no "loading": a skeleton over a
 // screen that is not built is a shape, and the line beside it says so in
@@ -22,7 +22,7 @@ import { TAB_COPY_KEY, TAB_SOON_KEY, type OverviewTab } from "./tabs";
 const ROWS = [0, 1, 2, 3] as const;
 
 export function TabPlaceholder(p: {
-  tab: Exclude<OverviewTab, "overview">;
+  tab: Exclude<OverviewTab, "overview" | "search">;
 }): React.JSX.Element {
   return (
     <section
