@@ -193,7 +193,10 @@ async function readConfirmedBusiness(founder: {
     return await read(founder);
   } catch {
     const { NO_EDITS } = await import("@/lib/site-profile/business/types");
-    return { profile: null, market: null, edits: NO_EDITS };
+    // `editsRead: false` — nothing was read at all (#927). This screen draws
+    // the crawl's reading either way; the flag exists for the writer, which
+    // must not write from an uncorrected profile.
+    return { profile: null, market: null, edits: NO_EDITS, editsRead: false };
   }
 }
 

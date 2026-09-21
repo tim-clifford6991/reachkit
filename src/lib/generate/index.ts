@@ -38,6 +38,7 @@ import { withDraftCost } from "./cost";
 import { recoveryOutcome } from "./claims/recovery";
 import { readRecordedRules } from "./record";
 import type { SiteRuleInputs } from "./rules/types";
+import { confirmedForWriting } from "./voice/confirmed";
 import { clusterLinkTargets, siteLinkTargets } from "./links/select";
 import { generateDraft, type GenerateOutcome } from "./pipeline";
 import { generatePageFix } from "./pipeline/page-fix";
@@ -297,6 +298,25 @@ async function writePage(a: PageInput & { attempts: number }): Promise<DayPageOu
   const category =
     report.market.kind === "unmeasured" ? "" : report.market.value.profile.category;
 
+  // SPEC §7 (2026-09-20), #927: the **confirmed** business profile joins the
+  // writer's inputs — what the business does, sells, promises, serves and
+  // says, with the customer's own corrections applied over the crawl
+  // (#926's overlay). The owner's bar for this issue: content must be
+  // business specific and always relevant to this user, never generic.
+  //
+  // **Through `readConfirmedBusiness` (#978), which is the read both screens
+  // use.** The writer does not get a path of its own: that is how a writer
+  // and a screen come to disagree about what a customer confirmed.
+  //
+  // **It must be the confirmed profile and never the derived row.** An item
+  // the customer removed has no path into a page precisely because
+  // `confirmedProfile` is the only thing that produces the shape the prompt
+  // accepts — the derived row does not fit through `promptProfile`'s door.
+  //
+  // Read once for the day, beside the links, so a regeneration writes from
+  // the same profile as the attempt it replaces.
+  const confirmed = await confirmedForWriting({ siteId: a.siteId, domain: site.domain });
+
   // SPEC §7 (2026-09-12): the site's own pages from the profile's
   // inventory, and the cluster's earlier live pages. Read once for the
   // day, so a regeneration links the same pages as the attempt it replaces.
@@ -328,6 +348,8 @@ async function writePage(a: PageInput & { attempts: number }): Promise<DayPageOu
         voiceText: site.voiceText,
         category,
         links,
+        profile: confirmed.profile,
+        factsOff: confirmed.factsOff,
         scanId: report.scanId,
         ...(draftId === undefined ? {} : { draftId }),
       });

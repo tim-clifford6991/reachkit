@@ -55,6 +55,12 @@ export async function readBusinessFacts(
       // The passages, in the order a brief meets them. No target search is
       // passed: this screen is about the business, not about one page, so
       // grounding's own page-by-page order is the right one.
+      // `readAllFacts` — the base read — and this is the one surface in the
+      // product that wants it. Every path that *writes* a page goes through
+      // `readAllowedFacts`, which subtracts the customer's refusals (#927);
+      // this screen is the one that *offers* the switch, so it has to see a
+      // refused passage in order to offer it back. `quotableFacts` is what
+      // marks which of them are off.
       const { readAllFacts } = await import("@/lib/generate/pipeline/grounding");
       const facts = await readAllFacts({ siteId: account.siteId });
       return facts.map((sourced) => ({

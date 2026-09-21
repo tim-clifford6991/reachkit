@@ -108,6 +108,15 @@ export const writeLeadPage: DraftWriter = async (a) => {
           facts: facts.map((f) => f.passage),
           doNotClaim: [],
           voice: null,
+          // **No confirmed profile, and that is not a gap** (#927). The
+          // confirmed profile is what a *customer* corrected on Settings ›
+          // Your business; a lead has no account, so there is nobody who
+          // could have confirmed anything, and writing from the crawl's
+          // uncorrected reading would put words in the mouth of someone who
+          // has never seen them. This page is written from the market
+          // reading and the lead's own passages, exactly as it was before
+          // this issue.
+          profile: null,
           // The lead's page answers the market's question the same way a
           // paid site's does, and the same frame binds it (issue 900).
           marketQuestion: answersMarketQuestion({
@@ -133,6 +142,9 @@ export const writeLeadPage: DraftWriter = async (a) => {
         domain: report.domain,
         category: profile.category,
         voiceText: null,
+        // As above: a lead has confirmed nothing, so there is nothing to
+        // carry (#927).
+        profile: null,
         opportunity,
         grounded,
         links: [],

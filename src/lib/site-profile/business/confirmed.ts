@@ -30,6 +30,18 @@ export interface ConfirmedReadings {
   readonly profile: SiteProfile | null;
   readonly market: MarketReading | null;
   readonly edits: BusinessEdits;
+  /**
+   * Whether the customer's decisions were actually read (#927).
+   *
+   * `edits` falls back to `NO_EDITS` when the read fails, which is right for
+   * a **screen**: it draws the crawl's reading and the customer corrects it
+   * again. It is not right for the **writer**, where "we could not read what
+   * they removed" and "they removed nothing" are the difference between a
+   * page that is generic and a page that names a service they deleted. So
+   * the two states are distinguishable, and
+   * `src/lib/generate/voice/confirmed.ts` is what acts on the difference.
+   */
+  readonly editsRead: boolean;
 }
 
 /** One read, or `null` where it could not be made. "Not read yet" and
@@ -154,7 +166,12 @@ export async function readConfirmedBusiness(a: {
   ]);
 
   const { NO_EDITS } = await import("./types");
-  return { profile, market: marketReadingOf(report), edits: edits ?? NO_EDITS };
+  return {
+    profile,
+    market: marketReadingOf(report),
+    edits: edits ?? NO_EDITS,
+    editsRead: edits !== null,
+  };
 }
 
 /**

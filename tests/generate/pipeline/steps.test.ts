@@ -38,6 +38,7 @@ const PROJECTION = briefProjection({
   doNotClaim: ["HIPAA compliant"],
   voice: "Plain and direct.",
   marketQuestion: true,
+  profile: null,
 });
 
 const INPUTS = buildPromptInputs({
@@ -48,6 +49,7 @@ const INPUTS = buildPromptInputs({
   opportunity: opportunity(),
   grounded: GROUNDED,
   links: [{ source: "site", purpose: "pricing", url: "https://example.com/pricing", label: "Pricing" }],
+  profile: null,
 });
 
 beforeEach(async () => {
@@ -95,7 +97,10 @@ describe("the prompt's whole knowledge of the customer is the closed struct", ()
       // `pageJob` and `frame` (issue 900) are fixed instruction text chosen
       // by the opportunity's type and by whether the target names the brand
       // — two known sentences, never a value of the customer's.
-      ["task", "cluster", "type", "target", "absorbedQueries", "facts", "doNotClaim", "voice", "acceptance", "pageJob", "frame"].sort()
+      // `profile` since #927: the brief chooses which products, audience and
+      // promises the page speaks to, which is what makes the page this
+      // business's rather than the market's.
+      ["task", "cluster", "type", "target", "absorbedQueries", "facts", "doNotClaim", "voice", "acceptance", "pageJob", "frame", "profile"].sort()
     );
     expect(input.voice).toBe("Plain and direct.");
     expect(input.facts).toEqual([GROUNDED.passage]);

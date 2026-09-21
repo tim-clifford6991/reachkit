@@ -246,6 +246,47 @@ export const PROFILE_LIST_BOUNDS = Object.freeze({
   brandTokens: Object.freeze({ min: 0, max: 6 } as const),
 } as const);
 
+/**
+ * How much of the **confirmed business profile** a generation prompt may
+ * carry (issue #927 · SPEC §7, 2026-09-20: "The confirmed business profile
+ * … joins the writer's inputs").
+ *
+ * **A bounded block, because a prompt's budget is the draft's cost.** The
+ * profile is the customer's own curated lists, and a customer may add to
+ * them: nothing else bounds what arrives, so the prompt does. `CAPS.DRAFT_C`
+ * is the ceiling this protects — a page written from an unbounded list is a
+ * page that spends the day's budget on vocabulary.
+ *
+ * **Four of the five item caps are numbers this product already pinned**,
+ * restated here rather than imported because their homes reach the language
+ * model (`src/lib/site-profile/summary.ts`'s `VOICE_LIST_MAX`) or are about
+ * what a model may *answer* with rather than what a prompt may *carry*:
+ *
+ *   · `products` 8 and `promises` 8 — `VOICE_LIST_MAX.products` / `.claims`;
+ *   · `audience` 4 — `PROFILE_LIST_BOUNDS.audienceTerms.max`, §6.7's own
+ *     "2–4 audience/use-case terms";
+ *   · `vocabulary` 12 — `PROFILE_LIST_BOUNDS.vocabulary.max`.
+ *
+ * `itemChars` and `jobChars` are this issue's own: an item is a product name
+ * or a promise, not a paragraph, and *what you do* is one sentence.
+ *
+ * `blockChars` is the ceiling over all of it together, applied last, so the
+ * worst case is one number rather than the product of six. Five lists at
+ * their caps with every item at its own cap would be about 2.6 kB; 1,200
+ * characters is what a real profile needs and is what the prompt is held to
+ * — the lists are trimmed in the order they are named, so what survives is
+ * what the page is most likely to need.
+ */
+export const PROFILE_PROMPT_CAPS = Object.freeze({
+  products: 8,
+  audience: 4,
+  promises: 8,
+  vocabulary: 12,
+  itemChars: 80,
+  jobChars: 200,
+  blockChars: 1200,
+} as const);
+
 /** The most of the customer's own page text one `profile` call may carry,
  *  in characters of the prompt it is serialised into — home first, the
  *  pricing page in what remains, cut at a word boundary
