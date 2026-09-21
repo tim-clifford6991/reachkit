@@ -35,6 +35,10 @@ const body = (file: string): string =>
     .replace(/^[ \t]*\/\/.*$/gm, "");
 
 const RENDERER = "_legal/LegalPage.tsx";
+/** The screen's other half since #936: the anchors the *On this page* list
+ *  links to are put on block by block there, which is the one place
+ *  `toHtml` is now called from. Both files are held to the rule below. */
+const SECTIONS = "_legal/sections.ts";
 
 /** The three routes, each with the document it reads. */
 const ROUTES = [
@@ -106,14 +110,23 @@ describe("S5 — the screen: eyebrow, title, updated line, one card", () => {
 
 describe("S5 — the Markdown body goes through the product's one renderer", () => {
   it("the screen spends the one renderer's parse and serialiser and defines no second renderer", () => {
-    const src = body(RENDERER);
-    expect(src).toContain("parseMarkdown");
-    expect(src).toContain("toHtml");
-    expect(src).toContain("@/lib/publish/render/markdown");
+    // Both halves of the screen, together. #936 moved the serialiser call
+    // into `sections.ts` so each section heading can carry the `id` the
+    // contents list links to; the rule is unchanged and is about the pair
+    // — the screen parses with the one renderer and serialises with the
+    // one renderer, and neither file grows a second one.
+    const screen = body(RENDERER);
+    const sections = body(SECTIONS);
+    const both = `${screen}\n${sections}`;
+    expect(both).toContain("parseMarkdown");
+    expect(both).toContain("toHtml");
+    expect(screen).toContain("@/lib/publish/render/markdown");
+    expect(sections).toContain("@/lib/publish/render/markdown");
     // No parsing of its own: the one renderer is the whole rule (DECISIONS
     // 2026-09-06, #119), and a screen that split a body on newlines would
-    // be the second one.
-    expect(src).not.toMatch(/\.split\(|\bmarked\b|remark|micromark/);
+    // be the second one. `sections.ts` may only *cut* the parsed blocks.
+    expect(screen).not.toMatch(/\.split\(|\bmarked\b|remark|micromark/);
+    expect(sections).not.toMatch(/\bmarked\b|remark|micromark/);
   });
 
   it("the body is rendered as Markdown, not printed as a string", () => {
