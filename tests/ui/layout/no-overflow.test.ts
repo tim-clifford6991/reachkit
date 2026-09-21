@@ -46,6 +46,7 @@ import {
   checkChartsResponsive,
   checkFixedBoxesFitViewport,
   EDGE_EPSILON_PX,
+  ENVIRONMENT_OF_RECORD,
   HYDRATION_MARKER,
   KNOWN_ON_MAIN,
   knownDefectFor,
@@ -238,12 +239,24 @@ describe(`no overflow, no clipping, axe clean — ${routes.length} route(s) × $
         ({ known }) =>
           `  ${known.route} — ${known.check} / ${known.match} (#${known.issue})`,
       );
-    expect(
-      orphaned,
+    const message =
       "These rows of KNOWN_ON_MAIN (tests/ui/layout/no-overflow.ts) matched nothing in this run.\n" +
-        "That is good news: the defect is fixed. Delete the row — and close the issue if it was\n" +
-        "the last row naming it.\n" +
-        orphaned.join("\n"),
-    ).toEqual([]);
+      "That is good news: the defect is fixed. Delete the row — and close the issue if it was\n" +
+      "the last row naming it.\n" +
+      orphaned.join("\n");
+    if (!ENVIRONMENT_OF_RECORD) {
+      // Not CI, so a row that matched nothing may only mean this machine
+      // draws text a pixel narrower — `ENVIRONMENT_OF_RECORD` says which
+      // rows that reaches and why. Reported, never asserted, and never
+      // silent (rule 5.5).
+      console.log(
+        orphaned.length === 0
+          ? "tests/ui/layout/no-overflow.test.ts: every KNOWN_ON_MAIN row was met on this machine."
+          : `tests/ui/layout/no-overflow.test.ts: not CI, so this is a report, not a verdict.\n${message}`,
+      );
+      expect(KNOWN_ON_MAIN.length).toBeGreaterThan(0);
+      return;
+    }
+    expect(orphaned, message).toEqual([]);
   });
 });
