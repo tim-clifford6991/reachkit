@@ -44,7 +44,12 @@ export function WaitingCard(p: {
         {review.title}
       </span>
       {review.goesLiveAt === null ? null : (
-        <span className="w-full text-xs opacity-80" data-testid="shell-waiting-when">
+        // #946 (and #986's standing rule): no text spends `opacity-` on a
+        // coloured or grey ground. This line takes the quiet *colour* the
+        // rest of the product's secondary text takes — a colour, resolved
+        // at paint, rather than an element opacity that thins the ground
+        // under it as well.
+        <span className="w-full text-xs text-base-content/70" data-testid="shell-waiting-when">
           {copy("shell.waiting.goes-live", {
             when: formatDateTime(review.goesLiveAt, p.timeZone),
           })}
