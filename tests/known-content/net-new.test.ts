@@ -52,8 +52,14 @@ function writeCandidate(over: Partial<Candidate> = {}): Candidate {
       family: "write",
       query: "how to price a retainer",
       volume: measured(140, AT),
-      trigger: { kind: "absent_from_answer", ref: "q1" },
-    } as Candidate["evidence"],
+      // The rival whose page the search found instead — copied at creation,
+      // as every figure on a row is.
+      rival: {
+        domain: "rival.example",
+        url: measured("https://rival.example/retainers", AT),
+        position: measured(3, AT),
+      },
+    },
     acceptance: { form: "top20", query: "how to price a retainer" },
     fitBand: "winnable",
     effort: 0.5,
