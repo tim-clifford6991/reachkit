@@ -361,6 +361,64 @@ export const CROSS_LINKS = Object.freeze({
   CLUSTER_PAGES_MAX: 5,
 } as const);
 
+/**
+ * SPEC §7 (2026-09-20, #928) — "Known content". The pins the net-new rule
+ * reads, and the one threshold that decides whether a topic is a repeat.
+ *
+ * `COVERED_MIN` — how alike a planned page's topic and a page the site
+ * already has must be before the planned page is a repeat of it. The
+ * measure is `known-content/similarity.ts`'s trigram-set Jaccard, the one
+ * `pg_trgm` defines, and **0.6 is where two populations separate.** Scored
+ * over realistic pairs (the table is
+ * `tests/known-content/similarity.test.ts`, which fails if the gap closes):
+ *
+ *   the same page reworded                                       0.92
+ *   the same topic in the customer's own words                   0.64
+ *   the same words in another order                              0.76
+ *   a singular against its plural                                0.84
+ *   ── 0.6 ──────────────────────────────────────────────────────────
+ *   a different topic sharing a phrase ("price a retainer"
+ *     against "price a project")                                 0.50
+ *   one word apart ("SEO for agencies" / "for accountants")      0.32
+ *   a different topic sharing words                              0.22
+ *
+ * Above the line every pair is the same page written twice; below it, the
+ * closest pair is two pages a reader would want both of. It is deliberately
+ * the *lower* edge of the true-repeat band rather than the midpoint: the
+ * cost of the two mistakes is not symmetric where the destination can
+ * publish an update — a wrong match becomes an update of a page the site
+ * already has, while a missed one becomes the second page on one topic,
+ * which is the thing this rule exists to prevent.
+ *
+ * `HEADINGS_COMPARED` bounds how many of a page's own headings are scored
+ * against a topic. A long page has dozens; the first few are what it is
+ * about, and the rest are its detail.
+ *
+ * `WORDPRESS_POSTS_MAX` bounds one connection's read. The REST list is
+ * paginated and this is how many posts are taken in all — enough for the
+ * blogs this product meets, and a bound rather than an open crawl of a site
+ * we do not own. `WORDPRESS_PER_PAGE` is one page of that read.
+ *
+ * `INVENTORY_MAX` is #928's own cap on the crawled main-site pages.
+ */
+export const KNOWN_CONTENT = Object.freeze({
+  COVERED_MIN: 0.6,
+  HEADINGS_COMPARED: 12,
+  WORDPRESS_POSTS_MAX: 300,
+  WORDPRESS_PER_PAGE: 100,
+  INVENTORY_MAX: 100,
+  /** How many rows the database's own narrowing hands back for one topic.
+   *  It is a shortlist, not a page of results: past the first handful the
+   *  rows share neither a word nor a spelling with the topic, and the
+   *  closest of them is what the caller wants. */
+  NEAR_ROWS: 25,
+  /** How many known pages a new page may link to. The same bound and the
+   *  same reason as `CROSS_LINKS.CLUSTER_PAGES_MAX`: a page links to what
+   *  helps the reader, and a list of every page the site has is an index,
+   *  not a link. */
+  LINKS_MAX: 5,
+} as const);
+
 /** SPEC §9's technical-issue checks over the crawled pages — the two numbers
  *  the owner ruled on 2026-09-14.
  *

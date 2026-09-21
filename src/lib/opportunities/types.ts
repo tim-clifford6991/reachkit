@@ -11,6 +11,7 @@
 // here and are not this module's: they are `BAND_LABELS.winnability` in
 // `src/lib/presentation/bands.ts` (ADR-001). This engine emits handles.
 import type { Measured } from "@/lib/measure/measured";
+import type { KnownSource } from "@/lib/known-content/types";
 import type { SiteCheck } from "@/lib/site-issues/types";
 
 /** §7's table, read down the `Type` column, plus SPEC §0's Earn family: a
@@ -98,7 +99,18 @@ export function assetKindOf(type: OpportunityType): AssetKind | null {
 export type Shortfall =
   | { kind: "position"; position: Measured<number> }
   | { kind: "thin"; words: Measured<number> }
-  | { kind: "stale"; lastSeenChanged: Measured<Date> };
+  | { kind: "stale"; lastSeenChanged: Measured<Date> }
+  /** SPEC §7 (2026-09-20, #928): the site already has a page on this topic,
+   *  and this row is the update of it rather than a second page about the
+   *  same thing. `similarity` is the number that matched them — the one
+   *  `known-content/similarity.ts` recorded, measured when the pass ran —
+   *  and `page` is the page it matched, so the row carries what it acted on
+   *  and the draft's checks can name it. */
+  | {
+      kind: "covered";
+      page: { url: string; title: string; source: KnownSource };
+      similarity: Measured<number>;
+    };
 
 /** §7's Fix trigger — "any access gate fails" — as the closed set of gates
  *  the measurement engine can actually report. A sixth barrier is a change
@@ -286,7 +298,15 @@ export type UnreadyReason =
    *  destination has no field for. Or an Improve row on a hosted destination
    *  whose page is not one of ReachKit's own live publications there
    *  (issue 781). */
-  | "destination_cannot_address";
+  | "destination_cannot_address"
+  /** SPEC §7 (2026-09-20, #928): the site already has a page on this topic
+   *  and the destination cannot publish an update of it — a hosted site
+   *  whose covering page is their own WordPress, or a page on a host this
+   *  product does not write to. The topic is skipped and the page that
+   *  covers it becomes a link target instead (`known-content/links.ts`).
+   *  Where the destination *can* publish to it the row is not this: it was
+   *  derived as the update itself. */
+  | "already_covered";
 
 export const UNREADY_REASONS: readonly UnreadyReason[] = Object.freeze([
   "not_assessed",
@@ -297,6 +317,7 @@ export const UNREADY_REASONS: readonly UnreadyReason[] = Object.freeze([
   "no_grounding_fact",
   "outsized",
   "destination_cannot_address",
+  "already_covered",
 ]);
 
 export interface Opportunity {

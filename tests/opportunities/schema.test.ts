@@ -36,6 +36,11 @@ const FIX_PAGE = "20260914130000_opportunities_fix_page.sql";
  *  testing a constraint the product no longer writes against — which is
  *  exactly what the gate caught for this one. */
 const OUTSIZED_REASON = "20260918120000_opportunities_outsized_reason.sql";
+/** #928: `already_covered` joins it in turn, for the same reason a check
+ *  constraint has no ALTER. Its own file, beside the known-content index's:
+ *  one topic per migration, and this suite applies the `opportunities` one
+ *  alone. */
+const ALREADY_COVERED = "20260921150100_opportunities_already_covered.sql";
 const BASELINE_MIGRATION = path.join(MIGRATIONS, "00000000000001_baseline.sql");
 
 /** One tuple-only row per line, `|`-separated columns — easy to split. */
@@ -69,6 +74,7 @@ beforeAll(() => {
   psql(["-v", "ON_ERROR_STOP=1", "-f", path.join(MIGRATIONS, READINESS)]);
   psql(["-v", "ON_ERROR_STOP=1", "-f", path.join(MIGRATIONS, FIX_PAGE)]);
   psql(["-v", "ON_ERROR_STOP=1", "-f", path.join(MIGRATIONS, OUTSIZED_REASON)]);
+  psql(["-v", "ON_ERROR_STOP=1", "-f", path.join(MIGRATIONS, ALREADY_COVERED)]);
   const [user] = psqlRows(
     `insert into users (email, plan_status) values ('opps@example.com', 'active') returning id;`
   );

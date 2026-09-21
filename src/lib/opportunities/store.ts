@@ -17,6 +17,7 @@
 // call below is site-scoped by an explicit `site_id` predicate — the
 // scoping the policy would have applied, applied here instead.
 import { dbAdmin } from "@/lib/db";
+import type { KnownPage } from "@/lib/known-content/types";
 import type { Profile } from "@/lib/market/questions/profile";
 import type { HostedOwnPages } from "@/lib/publish/destinations/hosted/own-page";
 import { readStoredReport, type StoredReport } from "@/lib/scan/report";
@@ -177,6 +178,20 @@ export interface OpportunityStore {
    *  a second time. `null` where the site has no readable report, which
    *  makes the ranking empty rather than guessed. */
   profileForSite(siteId: string): Promise<Profile | null>;
+  /** SPEC §7 (2026-09-20, #928): the pages this site already has that are
+   *  worth scoring against one planned topic — the database's own narrowing
+   *  (full text, then trigram) over `known_content`. Empty where the index
+   *  could not be read, which reads as "nothing is covered": an index that
+   *  did not answer must never refuse a topic. */
+  knownContentNear(a: { siteId: string; query: string }): Promise<readonly KnownPage[]>;
+  /** SPEC §7 (2026-09-20, #928): re-reads the three sources of known content
+   *  and writes what they say, before a pass derives. Never throws — a
+   *  source that could not be read leaves its own rows as they were. */
+  refreshKnownContent(a: {
+    siteId: string;
+    domain: string;
+    inventory: readonly InventoryRow[];
+  }): Promise<void>;
 }
 
 // ── Reviving a row ──────────────────────────────────────────────────────
@@ -523,6 +538,27 @@ export function supabaseOpportunityStore(): OpportunityStore {
         return await hostedOwnPagesOfSite(siteId);
       } catch {
         return { host: "", slugs: [] };
+      }
+    },
+
+    async knownContentNear(a) {
+      try {
+        const { knownContentNear } = await import("@/lib/known-content");
+        return await knownContentNear(a);
+      } catch {
+        // Nothing is covered, rather than everything refused: see the
+        // interface's own note.
+        return [];
+      }
+    },
+
+    async refreshKnownContent(a) {
+      try {
+        const { refreshKnownContentFor } = await import("@/lib/known-content");
+        await refreshKnownContentFor(a);
+      } catch {
+        // `refreshKnownContentFor` logs what it could not read; a pass does
+        // not fail because a customer's blog did not answer.
       }
     },
 

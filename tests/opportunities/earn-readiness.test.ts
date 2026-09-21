@@ -204,6 +204,9 @@ describe("SPEC §6 (owner, 2026-09-15): an Earn asset needs a grounding fact of 
       profile: PROFILE,
       ownRanks: () => false,
       canUpdate: () => true,
+      // #928: nothing this site already has covers these topics. The rule's
+      // own arms are `tests/known-content/`'s.
+      coveredBy: () => null,
     };
     const earn = (asset: EarnAsset) =>
       held({ id: asset, type: "listed_page", family: "earn", targetQuery: QUERY, evidence: { ...earnEvidence(QUERY), asset } as Evidence });

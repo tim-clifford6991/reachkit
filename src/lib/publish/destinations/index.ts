@@ -240,6 +240,15 @@ export async function connect(a: {
   if (checked.health !== "ok") {
     return { ok: false, reason: checked.reason ?? "credentials_invalid" };
   }
+  // SPEC §7 (2026-09-20, #928): "every post on a connected WordPress (read
+  // through the connection **when it is made** and every Monday)". This is
+  // the first half, and it is here rather than in the screen's action
+  // because this is the moment the connection exists — a credential that
+  // has just been checked, before the customer has done anything else. It
+  // reads the site's posts and writes them to the known-content index, so
+  // the first page planned after a connection already knows what their blog
+  // covers.
+  await indexKnownContent(a.siteId);
   return { ok: true, destinationId: created.id, health: "ok" };
 }
 
@@ -255,6 +264,19 @@ export async function connect(a: {
  * cycle would then start every page over as a first attempt against a
  * destination that already holds the posts.
  */
+/** The known-content refresh, as `connect` reaches it (#928). Never throws
+ *  and never delays an answer the customer is waiting on beyond its own
+ *  bounded read: a connection that worked is a connection that worked, and
+ *  an index that could not be built is rebuilt on Monday. */
+async function indexKnownContent(siteId: string): Promise<void> {
+  try {
+    const { refreshKnownContentFor } = await import("@/lib/known-content");
+    await refreshKnownContentFor({ siteId });
+  } catch {
+    // Monday's pass reads it again.
+  }
+}
+
 export async function disconnect(
   destinationId: string,
   by: Actor

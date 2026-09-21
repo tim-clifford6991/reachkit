@@ -40,6 +40,8 @@ import type { StoredReport } from "@/lib/scan/report";
 import type { InventoryRow } from "@/lib/site-profile/types";
 import type { DeriveInput } from "./derive";
 import { assessFixPages } from "./fix-page";
+import type { KnownMatch } from "@/lib/known-content/types";
+import { canUpdateFrom } from "./readiness";
 import { opportunityStore } from "./store";
 import { pursueDepth, type DepthStop } from "./supply/pursue";
 import { topUp } from "./supply/topup";
@@ -69,6 +71,7 @@ function inputFor(a: {
   report: StoredReport;
   hostedHost: string | null;
   inventory: readonly InventoryRow[];
+  known: DeriveInput["known"];
 }): DeriveInput {
   return {
     siteId: a.siteId,
@@ -78,6 +81,49 @@ function inputFor(a: {
     rankedCounts: rankedCountsOf(a.report),
     hostedHost: a.hostedHost,
     inventory: a.inventory,
+    ...(a.known === undefined ? {} : { known: a.known }),
+  };
+}
+
+/**
+ * The net-new gate this pass derives against (#928).
+ *
+ * Two answers, both read here rather than in `derive/`: which page the site
+ * already has on a candidate's topic — narrowed by the database, one topic
+ * at a time, and scored by `known-content/match.ts` — and whether this
+ * site's destination can publish an update of that page, which is the same
+ * predicate readiness applies (`canUpdateFrom`).
+ *
+ * `undefined` where the index could not be read at all. A pass that cannot
+ * ask plans exactly what it planned before #928: nothing is converted and
+ * nothing is refused, rather than every topic being called net new by a gate
+ * that was never asked — readiness asks again over the stored rows, so a
+ * repeat that slipped through here is still refused there.
+ */
+async function knownGateFor(a: {
+  siteId: string;
+  report: StoredReport;
+}): Promise<DeriveInput["known"]> {
+  const { alreadyCovered } = await import("@/lib/known-content/match");
+  const store = opportunityStore();
+  const canUpdate = canUpdateFrom(await store.hostedOwnPages(a.siteId));
+  // One narrowed read per topic, resolved before the derivation so the gate
+  // the candidates are mapped through is pure. The reads are the store's, so
+  // this asks the database once per search and not once per candidate.
+  const topics = new Map<string, KnownMatch | null>();
+  const queries =
+    a.report.questions.kind === "unmeasured"
+      ? []
+      : a.report.questions.value.map((question) => question.search.keyword);
+  for (const query of new Set(queries)) {
+    if (query.trim() === "") continue;
+    const near = await store.knownContentNear({ siteId: a.siteId, query });
+    topics.set(query.trim().toLowerCase(), alreadyCovered({ query }, near));
+  }
+  return {
+    covered: (candidate) => topics.get((candidate.targetQuery ?? "").trim().toLowerCase()) ?? null,
+    canUpdate,
+    at: a.report.verdict.measuredAt,
   };
 }
 
@@ -108,7 +154,18 @@ export async function deriveForPass(
     store.hostedHostFor(a.siteId),
     store.inventoryFor(a.report.domain),
   ]);
-  const input = inputFor({ siteId: a.siteId, report: a.report, hostedHost, inventory });
+
+  // SPEC §7 (2026-09-20, #928): "read through the connection when it is made
+  // and every Monday". This is the Monday half — and the deep pass's first
+  // build of the index, which is the reading its own derivation is measured
+  // against. It runs **before** the derivation and after the crawl has
+  // written this pass's inventory, so the index the net-new rule reads is
+  // this pass's reading of the site and not last week's. It never throws: a
+  // source that could not be read leaves its own rows as they were.
+  await store.refreshKnownContent({ siteId: a.siteId, domain: a.report.domain, inventory });
+
+  const known = await knownGateFor({ siteId: a.siteId, report: a.report });
+  const input = inputFor({ siteId: a.siteId, report: a.report, hostedHost, inventory, known });
 
   // SPEC §9 (#690): this pass's scan retires the fixes it shows cleared
   // before anything is derived, so a page fixed last week is not re-derived

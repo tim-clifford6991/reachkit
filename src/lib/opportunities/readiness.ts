@@ -42,6 +42,7 @@ import { demandBand } from "./winnability/band";
 import { difficultyCeiling } from "./winnability/bars";
 import { NO_EARN_GROUNDING, type EarnGrounding } from "./earn-grounding";
 import { suppressionOf, verdictReason, type Suppression } from "./suppression";
+import type { KnownMatch } from "@/lib/known-content/types";
 import type { Opportunity, UnreadyReason } from "./types";
 
 export interface ReadinessContext {
@@ -60,6 +61,13 @@ export interface ReadinessContext {
   /** Whether the site's destination can deliver an update of the page at
    *  this address (issue 781). */
   canUpdate: (url: string) => boolean;
+  /** SPEC §7 (2026-09-20, #928): the page this site already has on the
+   *  row's topic, where it has one. Resolved before the loop — the index is
+   *  narrowed by the database, one topic at a time — so this predicate stays
+   *  what every other member here is: a pure answer the decision reads.
+   *  A row whose topic is covered and which is **not** itself the update of
+   *  the covering page never fills a day. */
+  coveredBy: (o: Opportunity) => KnownMatch | null;
 }
 
 /** SPEC §6's commercial and transactional searches, in §6.7's classifier's
@@ -84,6 +92,13 @@ export function opportunityReady(o: Opportunity, ctx: ReadinessContext): Unready
   const verdict = verdictReason(o, ctx.suppression);
   if (verdict !== null) return verdict;
   if (o.family === "improve" && !ctx.canUpdate(o.targetRef)) return "destination_cannot_address";
+  // SPEC §7 (2026-09-20, #928). It speaks here — after the destination's own
+  // answer and before everything about the market — because it is a fact
+  // about this site's own pages rather than about the search: a topic the
+  // site already covers is not a day's work whatever its volume, its band or
+  // its grounding says. An Improve row is exempt by construction: it *is*
+  // the update of an existing page, and the page it covers is its own.
+  if (o.family !== "improve" && ctx.coveredBy(o) !== null) return "already_covered";
   if (!ctx.grounded) return "no_grounding_fact";
   if (o.evidence.family === "earn" && !ctx.earnGrounding[o.evidence.asset]) return "no_grounding_fact";
 
@@ -207,6 +222,34 @@ function ownRankedOf(report: StoredReport | null): number | null {
 }
 
 /**
+ * The page this site already has on each row's topic, by row id (#928).
+ *
+ * One narrowed read per row that could be covered — an Improve row is
+ * exempt, so none is made for it — and the scoring is
+ * `known-content/match.ts`'s. A read that fails answers "not covered" for
+ * that row — the store's own arm, which returns no rows rather than
+ * throwing: an index that could not be reached must not refuse a topic, for
+ * the same reason a WordPress that did not answer must not empty the index.
+ */
+async function coveredTopics(
+  siteId: string,
+  rows: readonly Opportunity[]
+): Promise<Map<string, KnownMatch>> {
+  const out = new Map<string, KnownMatch>();
+  const { alreadyCovered } = await import("@/lib/known-content/match");
+  const store = opportunityStore();
+  for (const row of rows) {
+    if (row.family === "improve" || row.family === "fix") continue;
+    const query = row.targetQuery ?? "";
+    if (query.trim() === "") continue;
+    const near = await store.knownContentNear({ siteId, query });
+    const match = alreadyCovered({ query, title: row.title }, near);
+    if (match !== null) out.set(row.id, match);
+  }
+  return out;
+}
+
+/**
  * Records readiness on every open Write, Improve and Earn row of one site.
  *
  * Reads, once each: the open rows, the site's `not_working` verdicts, its
@@ -234,6 +277,10 @@ export async function assessReadiness(
     : NO_EARN_GROUNDING;
   // Read only where there is an update to deliver.
   const ownPages = rows.some((row) => row.family === "improve") ? await store.hostedOwnPages(siteId) : null;
+  // SPEC §7 (2026-09-20, #928): one narrowed read per row whose topic could
+  // be covered, before the loop — so the predicate the decision reads is a
+  // resolved answer and `opportunityReady` stays pure and synchronous.
+  const covered = await coveredTopics(siteId, rows.map(readOpportunity));
   const ctx: ReadinessContext = {
     grounded,
     earnGrounding,
@@ -241,6 +288,7 @@ export async function assessReadiness(
     profile,
     ownRanks: ownRanksFrom(report),
     canUpdate: canUpdateFrom(ownPages),
+    coveredBy: (o) => covered.get(o.id) ?? null,
   };
 
   // Issue 884: the row's band is brought up to today's law before its
