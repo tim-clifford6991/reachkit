@@ -29,7 +29,7 @@ import { now as clock } from "@/lib/config/now";
 import { readStop } from "./stop";
 import { nextDueOn } from "@/lib/scan/weekly";
 import { measuredWeeksOf } from "./week-rows";
-import type { ShellFacts } from "./model";
+import type { ShellFacts, WaitingPage } from "./model";
 
 /** One site's account, as the shell needs it. Declared by the caller
  *  (`_session/account.ts`) and narrowed here to the members this file
@@ -79,16 +79,83 @@ interface DraftStateRow {
   scheduled_for: string | null;
 }
 
-/** How many pages are waiting on this customer right now. A true count,
- *  derived; never a sentence. */
-async function waitingCount(siteId: string): Promise<number> {
+/** The waiting rows, with the two facts the *Waiting for you* card states
+ *  beside the count: what the page is called and when it goes live if the
+ *  customer does nothing. `veto_deadline` is that moment where §9 set one;
+ *  `scheduled_for` is the day it otherwise carries. */
+interface WaitingDraftRow extends DraftStateRow {
+  title: string;
+  veto_deadline: string | null;
+}
+
+/** One hosted destination, as the *Visit your blog* shortcut needs it: the
+ *  host, whether the domain list has seen it go live, and whether the row
+ *  is still there at all. */
+interface BlogDestinationRow {
+  hostname: string | null;
+  hostname_state: string | null;
+  deleted_at: string | null;
+}
+
+/**
+ * How many pages are waiting on this customer right now, and which one the
+ * side panel sends them to. A true count, derived; never a sentence.
+ *
+ * **One read for both** (SPEC §4, 2026-09-20). The count beside Overview and
+ * the *Waiting for you* card are the same fact seen twice, so reading them
+ * apart would let the nav say one page waits while the card named another —
+ * or none. The card takes the soonest of them, by the time it goes live,
+ * because that is the one the customer has least time to act on.
+ */
+async function waiting(siteId: string): Promise<{ count: number; review: WaitingPage | null }> {
   const { data, error } = await client()
-    .from<DraftStateRow>("drafts")
-    .select("id, state, scheduled_for")
+    .from<WaitingDraftRow>("drafts")
+    .select("id, state, scheduled_for, title, veto_deadline")
     .eq("site_id", siteId)
     .in("state", WAITING_STATES);
-  if (error !== null || data === null) return 0;
-  return data.length;
+  if (error !== null || data === null) return { count: 0, review: null };
+
+  const pages = data.map(waitingPage);
+  // A page with no time yet sorts last: a time the customer can act before
+  // is more urgent than one nobody has set.
+  const soonest = [...pages].sort(
+    (a, b) => (a.goesLiveAt?.getTime() ?? Infinity) - (b.goesLiveAt?.getTime() ?? Infinity)
+  )[0];
+  return { count: data.length, review: soonest ?? null };
+}
+
+function waitingPage(row: WaitingDraftRow): WaitingPage {
+  const at = row.veto_deadline ?? row.scheduled_for;
+  const goesLiveAt = at === null ? null : new Date(at);
+  return {
+    draftId: row.id,
+    title: row.title,
+    goesLiveAt: goesLiveAt !== null && Number.isNaN(goesLiveAt.getTime()) ? null : goesLiveAt,
+  };
+}
+
+/**
+ * Where *Visit your blog* goes, or `null` — and `null` is why the shortcut
+ * is not drawn at all (SPEC §4, 2026-09-20: "a control that cannot act is
+ * not drawn").
+ *
+ * A host is an address only once the domain list has seen it go live: a
+ * `pending_dns` host answers nothing, and a link to it is a link to a
+ * browser error. A WordPress destination is somebody else's site whose
+ * address we do not keep here, so it is not one of ours to offer either.
+ */
+async function blogAddress(siteId: string): Promise<string | null> {
+  const { data, error } = await client()
+    .from<BlogDestinationRow>("destinations")
+    .select("hostname, hostname_state, deleted_at")
+    .eq("site_id", siteId)
+    .eq("kind", "hosted")
+    .limit(2);
+  if (error !== null || data === null) return null;
+  const row = data.find(
+    (d) => d.deleted_at === null && d.hostname !== null && d.hostname_state === "live"
+  );
+  return row === undefined || row.hostname === null ? null : `https://${row.hostname}`;
 }
 
 /**
@@ -144,7 +211,7 @@ async function plannedCount(siteId: string): Promise<number> {
 /**
  * Everything §4.4's frame states about one real account.
  *
- * Six reads, all of them projections, run together: nothing here depends on
+ * Seven reads, all of them projections, run together: nothing here depends on
  * anything else here, and a screen that waited on them in sequence would be
  * six round trips deep before it drew a sidebar.
  */
@@ -159,10 +226,11 @@ export async function readShellFacts(site: ShellSite): Promise<ShellFacts> {
   // depends on it (see `nextScheduled`), so it cannot be read beside it.
   const publishingOn = await isPublishingOn(site.siteId);
 
-  const [weeks, firstDueOn, waiting, next, planned, stopped] = await Promise.all([
+  const [weeks, firstDueOn, waits, blog, next, planned, stopped] = await Promise.all([
     measuredWeeksOf({ site, now }),
     nextDueOn({ siteId: site.siteId, now }),
-    waitingCount(site.siteId),
+    waiting(site.siteId),
+    blogAddress(site.siteId),
     nextScheduled(site.siteId, publishingOn),
     plannedCount(site.siteId),
     readStop(),
@@ -174,7 +242,9 @@ export async function readShellFacts(site: ShellSite): Promise<ShellFacts> {
     mode: site.mode,
     weeks,
     firstDueOn,
-    waiting,
+    waiting: waits.count,
+    review: waits.review,
+    blog,
     next,
     stopped,
     // The four causes, each read as its own fact. `resolveNoPublish` picks

@@ -43,7 +43,11 @@ import AppLayout from "@/app/(account)/app/layout";
 import { DomainBlock } from "@/app/(account)/app/_shell/DomainBlock";
 import { PublishingCard } from "@/app/(account)/app/_shell/PublishingCard";
 import { SidebarNav } from "@/app/(account)/app/_shell/SidebarNav";
-import { DESTINATIONS, DESTINATION_HREF } from "@/app/(account)/app/_shell/destinations";
+import { AppDock } from "@/app/(account)/app/_shell/AppDock";
+import { Shortcuts } from "@/app/(account)/app/_shell/Shortcuts";
+import { WaitingCard } from "@/app/(account)/app/_shell/WaitingCard";
+import { DESTINATIONS, DESTINATION_HREF, destinationOf } from "@/app/(account)/app/_shell/destinations";
+import { DRAWER_TOGGLE_ID, RAIL_SCRIPT, RAIL_STORAGE_KEY } from "@/app/(account)/app/_shell/drawer";
 import { formatDate, formatDateTime } from "@/app/(account)/app/_shell/format";
 import type { ShellModel } from "@/app/(account)/app/_shell/model";
 
@@ -66,6 +70,12 @@ const SCHEDULED: ShellModel = {
   timeZone: ZONE,
   weeks: { kind: "counted", weeks: 3, lastMeasuredOn: MONDAY(14) },
   waiting: 2,
+  review: {
+    draftId: "draft-1",
+    title: "How much does a bike service cost in 2026?",
+    goesLiveAt: new Date(Date.UTC(2026, 8, 16, 11, 0, 0)),
+  },
+  blog: "https://blog.example.com",
   publishing: { mode: "autopilot", next: new Date(Date.UTC(2026, 8, 16, 13, 0, 0)) },
   stopped: null,
 };
@@ -100,25 +110,46 @@ describe("REQ-040 c1 — exactly three destinations, from the one tuple", () => 
     ]);
   });
 
-  it("on the whole shell, no destination address appears that the tuple does not name", async () => {
+  it("on the whole shell, no /app address appears that the tuple does not name", async () => {
+    // SPEC §4 (2026-09-20) adds links that are not destinations — the page
+    // in review, the customer's own blog, a mailbox — so the closed set is
+    // stated over the app's own addresses, which is what "No other
+    // navigation" was ever about. `/app/draft/{id}` is the review screen,
+    // which is on no destination by design (`destinationOf`).
     const root = await renderLayout();
-    const hrefs = new Set([...root.querySelectorAll("a")].map((a) => a.getAttribute("href")));
-    expect(hrefs).toEqual(new Set(DESTINATIONS.map((d) => DESTINATION_HREF[d])));
+    const appHrefs = new Set(
+      [...root.querySelectorAll("a")]
+        .map((a) => a.getAttribute("href") ?? "")
+        .filter((href) => href.startsWith("/app"))
+        .filter((href) => !href.startsWith("/app/draft/"))
+    );
+    expect(appHrefs).toEqual(new Set(DESTINATIONS.map((d) => DESTINATION_HREF[d])));
+  });
+
+  it("the three are reachable twice and no more: the panel's menu and the phone's dock", async () => {
+    const root = await renderLayout();
+    for (const destination of DESTINATIONS) {
+      expect(
+        root.querySelectorAll(`[data-testid='shell-navlink-${destination}']`).length +
+          root.querySelectorAll(`[data-testid='shell-docklink-${destination}']`).length,
+        destination
+      ).toBe(3); // panel + rail + dock
+    }
   });
 });
 
 // ── criterion 2 ─────────────────────────────────────────────────────────
-describe("REQ-040 c2 — the Calendar destination's waiting count", () => {
-  it("shows the count when non-zero, on Calendar and on no other destination", () => {
+describe("REQ-040 c2 — the waiting count, now on Overview (SPEC §4, 2026-09-20)", () => {
+  it("shows the count when non-zero, on Overview and on no other destination", () => {
     const root = render(<SidebarNav waiting={7} />);
-    const counts = root.querySelectorAll("[data-testid='shell-calendar-count']");
+    const counts = root.querySelectorAll("[data-testid='shell-waiting-count']");
     expect(counts).toHaveLength(1);
     expect(counts[0]?.textContent).toBe("7");
-    expect(root.querySelector("[data-testid='shell-navlink-calendar']")?.textContent).toContain("7");
-    expect(root.querySelector("[data-testid='shell-navlink-overview']")?.textContent).not.toMatch(/\d/);
+    expect(root.querySelector("[data-testid='shell-navlink-overview']")?.textContent).toContain("7");
+    expect(root.querySelector("[data-testid='shell-navlink-calendar']")?.textContent).not.toMatch(/\d/);
   });
 
-  it("every destination carries its set §2.6 glyph before its word, hidden from the tree (issue #506)", () => {
+  it("every destination carries its glyph before its word, hidden from the tree (issue #506)", () => {
     const root = render(<SidebarNav waiting={7} />);
     for (const destination of DESTINATIONS) {
       const link = root.querySelector(`[data-testid='shell-navlink-${destination}']`);
@@ -131,13 +162,29 @@ describe("REQ-040 c2 — the Calendar destination's waiting count", () => {
 
   it("renders no count at all at zero — not a 0, not an empty element", () => {
     const root = render(<SidebarNav waiting={0} />);
-    expect(root.querySelectorAll("[data-testid='shell-calendar-count']")).toHaveLength(0);
+    expect(root.querySelectorAll("[data-testid='shell-waiting-count']")).toHaveLength(0);
     expect(root.textContent).not.toContain("0");
   });
 
   it("the count is a numeral, so it carries the mono class (§2.3)", () => {
     const root = render(<SidebarNav waiting={7} />);
-    expect(root.querySelector("[data-testid='shell-calendar-count']")?.className).toContain("num");
+    expect(root.querySelector("[data-testid='shell-waiting-count']")?.className).toContain("num");
+  });
+
+  it("the icon rail states the same count on the same destination, and none at zero", () => {
+    const rail = render(<SidebarNav waiting={7} rail />);
+    expect(rail.querySelector("[data-testid='shell-waiting-count']")?.textContent).toBe("7");
+    expect(
+      rail.querySelector("[data-testid='shell-navlink-overview']")?.getAttribute("aria-label")
+    ).toBe("shell.nav.overview");
+    expect(render(<SidebarNav waiting={0} rail />).querySelector("[data-testid='shell-waiting-count']")).toBeNull();
+  });
+
+  it("the dock states it too, so a phone is told what a desktop is told", () => {
+    const dock = render(<AppDock waiting={7} />);
+    expect(dock.querySelector("[data-testid='shell-dock-count']")?.textContent).toBe("7");
+    expect(dock.querySelector("[data-testid='shell-docklink-calendar']")?.textContent).not.toMatch(/\d/);
+    expect(render(<AppDock waiting={0} />).querySelector("[data-testid='shell-dock-count']")).toBeNull();
   });
 });
 
@@ -219,33 +266,22 @@ describe("REQ-040 c4 — with no publish scheduled, one line for the resolved re
 });
 
 // ── criterion 5 ─────────────────────────────────────────────────────────
-describe("REQ-040 c5 — a viewport too narrow for the sidebar keeps all three", () => {
-  // UI-SPEC §0 11 (2026-09-11): below 1024 the three Workspace items stay as
-  // one horizontal row — labels and counts kept, nothing hidden. The compact
-  // row is the sidebar's own nav rendered with `row`, so the two bands have
-  // one renderer and cannot offer different navigation.
-  const compactNav = (el: Element | null): Element | null =>
-    el?.querySelector("[data-testid='shell-compact-nav']") ?? null;
-
-  it("the compact row renders the same three destinations, labelled, in order", () => {
-    const row = render(<SidebarNav waiting={0} row />);
-    expect(row.querySelector("ul")?.className).toContain("menu-horizontal");
-    const links = [...row.querySelectorAll("a")];
+describe("REQ-040 c5 / SPEC §4 (2026-09-20) — a viewport too narrow keeps all three", () => {
+  // The compact header's horizontal nav row is gone: below `lg` the three
+  // items are a daisyUI `dock` at the foot of the viewport and the panel
+  // itself is a drawer. What has not changed is that all three survive, in
+  // order, labelled, with their count — which is what c5 is.
+  it("the dock renders the same three destinations, labelled, in order", () => {
+    const dock = render(<AppDock waiting={0} />);
+    const links = [...dock.querySelectorAll("a")];
     expect(links.map((a) => a.textContent)).toEqual([
       "shell.nav.overview",
-      "shell.nav.calendar",
+      "shell.nav.plan",
       "shell.nav.settings",
     ]);
     expect(links.map((a) => a.getAttribute("href"))).toEqual(
       DESTINATIONS.map((d) => DESTINATION_HREF[d])
     );
-  });
-
-  it("the compact row keeps Calendar's count — the tab bar it replaced dropped it", () => {
-    const row = render(<SidebarNav waiting={7} row />);
-    expect(row.querySelector("[data-testid='shell-calendar-count']")?.textContent).toBe("7");
-    const none = render(<SidebarNav waiting={0} row />);
-    expect(none.querySelector("[data-testid='shell-calendar-count']")).toBeNull();
   });
 
   // ── Issue #267 ────────────────────────────────────────────────────
@@ -257,11 +293,11 @@ describe("REQ-040 c5 — a viewport too narrow for the sidebar keeps all three",
   it("each of the three destinations marks itself current at its own address", () => {
     for (const [pathname, label] of [
       ["/app", "shell.nav.overview"],
-      ["/app/calendar", "shell.nav.calendar"],
+      ["/app/calendar", "shell.nav.plan"],
       ["/app/settings", "shell.nav.settings"],
     ] as const) {
       at.pathname = pathname;
-      const current = [...render(<SidebarNav waiting={0} row />).querySelectorAll("a")].filter(
+      const current = [...render(<AppDock waiting={0} />).querySelectorAll("a")].filter(
         (a) => a.getAttribute("aria-current") === "page"
       );
       expect(current.map((a) => a.textContent), pathname).toEqual([label]);
@@ -269,44 +305,129 @@ describe("REQ-040 c5 — a viewport too narrow for the sidebar keeps all three",
     at.pathname = "/app";
   });
 
+  it("Overview's own tabs mark Overview — not nothing (#915)", () => {
+    // SPEC §4 (2026-09-20): Overview has four tabs, each its own address.
+    // Matching `/app` exactly lit no menu item on three of the four.
+    for (const pathname of ["/app", "/app/search", "/app/ai-answers", "/app/rivals"] as const) {
+      expect(destinationOf(pathname), pathname).toBe("overview");
+    }
+    for (const pathname of ["/app/calendar", "/app/calendar/2026-09"] as const) {
+      expect(destinationOf(pathname), pathname).toBe("calendar");
+    }
+    for (const pathname of ["/app/settings", "/app/settings/mail"] as const) {
+      expect(destinationOf(pathname), pathname).toBe("settings");
+    }
+    // The draft view is reached from a card, not the menu, so it claims none.
+    for (const pathname of ["/app/draft", "/app/draft/d1"] as const) {
+      expect(destinationOf(pathname), pathname).toBeUndefined();
+    }
+    // And nothing outside `/app` is any of them.
+    for (const pathname of ["/", "/setup", "/applesauce"] as const) {
+      expect(destinationOf(pathname), pathname).toBeUndefined();
+    }
+  });
+
+  it("a tab of Overview's marks Overview in the dock too", () => {
+    at.pathname = "/app/rivals";
+    const current = [...render(<AppDock waiting={0} />).querySelectorAll("a")].filter(
+      (a) => a.getAttribute("aria-current") === "page"
+    );
+    expect(current.map((a) => a.textContent)).toEqual(["shell.nav.overview"]);
+    at.pathname = "/app";
+  });
+
   it("**a route on no destination marks none** — the draft view", () => {
     at.pathname = "/app/draft/draft-1";
-    const links = [...render(<SidebarNav waiting={0} row />).querySelectorAll("a")];
+    const links = [...render(<AppDock waiting={0} />).querySelectorAll("a")];
     expect(links).toHaveLength(3);
     expect(links.filter((a) => a.getAttribute("aria-current") === "page")).toEqual([]);
     at.pathname = "/app";
   });
 
-  it("the row and the column agree about what is current, at every address", () => {
+  it("the dock, the panel and the rail agree about what is current, at every address", () => {
     for (const pathname of ["/app", "/app/calendar", "/app/settings", "/app/draft/d1"] as const) {
       at.pathname = pathname;
-      const mark = (row: boolean): (string | null)[] =>
-        [...render(<SidebarNav waiting={0} row={row} />).querySelectorAll("a")]
+      const marks = (el: Element): (string | null)[] =>
+        [...el.querySelectorAll("a")]
           .filter((a) => a.getAttribute("aria-current") === "page")
-          .map((a) => a.textContent);
-      expect(mark(true), pathname).toEqual(mark(false));
+          .map((a) => a.getAttribute("data-testid"));
+      const panel = marks(render(<SidebarNav waiting={0} />));
+      const rail = marks(render(<SidebarNav waiting={0} rail />));
+      const dock = marks(render(<AppDock waiting={0} />)).map((id) =>
+        id === null ? null : id.replace("shell-docklink-", "shell-navlink-")
+      );
+      expect(rail, pathname).toEqual(panel);
+      expect(dock, pathname).toEqual(panel);
     }
     at.pathname = "/app";
   });
 
-  it("the domain block, the row and the publishing state collapse into the header, not away", async () => {
+  it("the phone's top bar carries the brand, the domain and the drawer's button", async () => {
     const root = await renderLayout();
     const top = root.querySelector("[data-testid='shell-top']");
     expect(top).not.toBeNull();
-    expect(compactNav(top)?.querySelectorAll("a")).toHaveLength(3);
-    expect(top?.querySelector("[data-testid='shell-tabbar']")).toBeNull();
-    expect(top?.querySelector("[role='tab']")).toBeNull();
-    expect(top?.querySelector("[data-testid='shell-domain']")).not.toBeNull();
-    expect(top?.querySelector("[data-testid='shell-publishing']")).not.toBeNull();
+    expect(top?.textContent).toContain("example.com");
+    expect(top?.querySelector("[data-testid='shell-menu-button']")?.getAttribute("for")).toBe(
+      DRAWER_TOGGLE_ID
+    );
+    expect(root.querySelector("[data-testid='shell-dock']")).not.toBeNull();
   });
 
-  it("the sidebar carries the same three parts at the wide breakpoint", async () => {
+  it("the side panel is rendered once — not once per breakpoint (issue #911)", async () => {
     const root = await renderLayout();
-    const sidebar = root.querySelector("[data-testid='shell-sidebar']");
-    expect(sidebar?.querySelector("[data-testid='shell-domain']")).not.toBeNull();
-    expect(sidebar?.querySelector("[data-testid='shell-sidebar-nav']")).not.toBeNull();
-    expect(compactNav(sidebar)).toBeNull();
-    expect(sidebar?.querySelector("[data-testid='shell-publishing']")).not.toBeNull();
+    expect(root.querySelectorAll("[data-testid='shell-sidebar']")).toHaveLength(1);
+    expect(root.querySelectorAll("[data-testid='shell-domain']")).toHaveLength(1);
+    expect(root.querySelectorAll("[data-testid='shell-publishing']")).toHaveLength(1);
+    expect(root.querySelectorAll("[data-testid='shell-onboarding']").length).toBeLessThanOrEqual(1);
+  });
+});
+
+// ── the collapsible panel ───────────────────────────────────────────────
+describe("SPEC §4 (2026-09-20) — one button collapses the panel, and the choice survives a reload", () => {
+  it("the panel and the rail are two arms of one drawer, driven by one checkbox", async () => {
+    const root = await renderLayout();
+    const toggle = root.querySelector(`#${DRAWER_TOGGLE_ID}`);
+    expect(toggle?.getAttribute("type")).toBe("checkbox");
+    expect(toggle?.className).toContain("drawer-toggle");
+    for (const id of ["shell-collapse", "shell-expand", "shell-menu-button"]) {
+      expect(root.querySelector(`[data-testid='${id}']`)?.getAttribute("for"), id).toBe(
+        DRAWER_TOGGLE_ID
+      );
+    }
+    expect(root.querySelector("[data-testid='shell-rail']")).not.toBeNull();
+  });
+
+  it("collapsing needs no script: the rail is chosen by daisyUI's own drawer variants", async () => {
+    const root = await renderLayout();
+    const panel = root.querySelector("[data-testid='shell-sidebar']");
+    expect(panel?.className).toContain("lg:is-drawer-open:w-18");
+    expect(root.querySelector("[data-testid='shell-rail']")?.className).toContain(
+      "lg:is-drawer-open:flex"
+    );
+  });
+
+  it("the two icon-only buttons carry a tooltip, and the checkbox carries the name", async () => {
+    const root = await renderLayout();
+    expect(root.querySelector("[data-testid='shell-collapse']")?.getAttribute("data-tip")).toBe(
+      "shell.panel.collapse"
+    );
+    expect(root.querySelector("[data-testid='shell-expand']")?.getAttribute("data-tip")).toBe(
+      "shell.panel.open"
+    );
+    expect(root.querySelector(`#${DRAWER_TOGGLE_ID}`)?.getAttribute("aria-label")).toBe(
+      "shell.panel.label"
+    );
+  });
+
+  it("what is remembered is remembered per browser, and only where the rail exists", () => {
+    // One checked box means "collapsed" at `lg` and "the drawer is open"
+    // below it, so a remembered choice restored on a phone would be a menu
+    // over every screen. The script guards the restore with the same media
+    // query the layout uses, and re-applies it when the band changes.
+    expect(RAIL_SCRIPT).toContain(RAIL_STORAGE_KEY);
+    expect(RAIL_SCRIPT).toContain("localStorage");
+    expect(RAIL_SCRIPT).toContain("matchMedia");
+    expect(RAIL_SCRIPT).toContain("m.matches&&read()");
   });
 });
 
@@ -377,7 +498,7 @@ describe("REQ-040 c7 — a never-measured domain states no number", () => {
     );
   });
 
-  it("the calendar count is the count, in week 0 as in any week (REQ-040 c2)", () => {
+  it("the waiting count is the count, in week 0 as in any week (REQ-040 c2)", () => {
     // **No week-0 branch in the nav, deliberately.** UI-SPEC S13 draws the
     // sidebar with no count beside Calendar, and #353's Done-when repeats
     // that — but the set's own S13 body draws the first page sitting in
@@ -386,16 +507,16 @@ describe("REQ-040 c7 — a never-measured domain states no number", () => {
     // A page in review is a page waiting, so a screen that showed it in one
     // card and denied it in the nav would state two different facts.
     //
-    // c2 is unambiguous and is the law: "the Calendar destination shows how
-    // many are waiting; when none are, it shows no count." So the count is
+    // c2 is unambiguous and is the law: "the destination shows how many are
+    // waiting; when none are, it shows no count." So the count is
     // suppressed at zero and nowhere else, and the set's S13 sidebar is a
     // drawing to reconcile — flagged to the owner rather than implemented
     // as a branch that hides a real number.
     expect(
-      render(<SidebarNav waiting={0} />).querySelectorAll("[data-testid='shell-calendar-count']")
+      render(<SidebarNav waiting={0} />).querySelectorAll("[data-testid='shell-waiting-count']")
     ).toHaveLength(0);
     expect(
-      render(<SidebarNav waiting={1} />).querySelector("[data-testid='shell-calendar-count']")
+      render(<SidebarNav waiting={1} />).querySelector("[data-testid='shell-waiting-count']")
         ?.textContent
     ).toBe("1");
   });
@@ -417,11 +538,58 @@ describe("the frame is the route's one screen root, and it invents no sentence",
     expect(root.querySelector("main")?.textContent).toBe("screen");
   });
 
+  it("the *Waiting for you* card names the page, links to its review and clamps the title", () => {
+    const card = render(<WaitingCard review={SCHEDULED.review} timeZone={ZONE} />);
+    expect(card.getAttribute("href")).toBe("/app/draft/draft-1");
+    expect(card.textContent).toContain("shell.waiting.head");
+    const title = card.querySelector("[data-testid='shell-waiting-title']");
+    expect(title?.textContent).toBe("How much does a bike service cost in 2026?");
+    expect(title?.className).toContain("line-clamp-2");
+    // The time is a value, and a value is never clamped.
+    const when = card.querySelector("[data-testid='shell-waiting-when']");
+    expect(when?.textContent).toBe("shell.waiting.goes-live");
+    expect(when?.className).not.toMatch(/line-clamp|truncate/);
+  });
+
+  it("with nothing waiting the card is not drawn at all", () => {
+    const container = document.createElement("div");
+    container.innerHTML = renderToStaticMarkup(<WaitingCard review={null} timeZone={ZONE} />);
+    expect(container.firstElementChild).toBeNull();
+  });
+
+  it("with no page waiting, no card is drawn beside a count of nothing", () => {
+    const nav = render(<SidebarNav waiting={0} />);
+    expect(nav.querySelector("[data-testid='shell-waiting-count']")).toBeNull();
+    const container = document.createElement("div");
+    container.innerHTML = renderToStaticMarkup(<WaitingCard review={null} timeZone={ZONE} />);
+    expect(container.querySelector("[data-testid='shell-waiting']")).toBeNull();
+  });
+
+  it("*Visit your blog* is drawn only where there is a blog; Help always is", () => {
+    const withBlog = render(<Shortcuts blog="https://blog.example.com" />);
+    const link = withBlog.querySelector("[data-testid='shell-blog-link']");
+    expect(link?.getAttribute("href")).toBe("https://blog.example.com");
+    expect(link?.getAttribute("target")).toBe("_blank");
+    expect(link?.getAttribute("rel")).toContain("noopener");
+    expect(withBlog.querySelector("[data-testid='shell-help-link']")).not.toBeNull();
+
+    const without = render(<Shortcuts blog={null} />);
+    expect(without.querySelector("[data-testid='shell-blog-link']")).toBeNull();
+    expect(without.querySelector("[data-testid='shell-help-link']")).not.toBeNull();
+  });
+
   it("reports which of the shell's keys the owner still owes (rule 5.5)", () => {
     const SHELL_KEYS: CopyKey[] = [
       "shell.nav.overview",
-      "shell.nav.calendar",
+      "shell.nav.plan",
       "shell.nav.settings",
+      "shell.panel.label",
+      "shell.panel.collapse",
+      "shell.panel.open",
+      "shell.waiting.head",
+      "shell.waiting.goes-live",
+      "shell.shortcut.blog",
+      "shell.shortcut.help",
       "shell.publishing.mode.autopilot",
       "shell.domain.measured-weeks",
       "shell.domain.not-measured",
@@ -446,7 +614,7 @@ describe("the frame is the route's one screen root, and it invents no sentence",
     // The three the nav is built from are never owed: a nav with no words is
     // not a nav (they are transcriptions of §4.4's own list, not new copy).
     expect(COPY["shell.nav.overview"]).toBe("Overview");
-    expect(COPY["shell.nav.calendar"]).toBe("Calendar");
+    expect(COPY["shell.nav.plan"]).toBe("Plan");
     expect(COPY["shell.nav.settings"]).toBe("Settings");
   });
 });

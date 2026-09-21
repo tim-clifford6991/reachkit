@@ -50,9 +50,10 @@ export function PublishingCard(p: { shell: ShellModel }): React.JSX.Element {
   return (
     <section className="card card-sm bg-base-200 min-w-0" data-testid="shell-publishing">
       <div className="card-body min-w-0 gap-1">
-        <h2 className="text-xs font-semibold uppercase tracking-wide opacity-70">
-          {copy("shell.publishing.mode.autopilot")}
-        </h2>
+        {/* `.eyebrow` rather than the utilities: `type.css` sizes `h2`
+            unlayered, so `text-xs` lost to the 25px module-head step and
+            this card's label drew as a heading. See `layout.tsx`. */}
+        <h2 className="eyebrow">{copy("shell.publishing.mode.autopilot")}</h2>
         {state === null ? null : (
           <p className="text-sm font-semibold" data-testid="shell-publishing-state">
             {state}

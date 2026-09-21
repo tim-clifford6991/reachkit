@@ -103,7 +103,7 @@ describe("calendar — the built screen keeps the three contracts the frame set"
   it("renders, and heads itself with §4.6's own line rather than the nav word", async () => {
     const html = await calendarMarkup();
     expect(html).toMatch(/<h1[^>]*>calendar\.head<\/h1>/);
-    expect(html).not.toMatch(/<h1[^>]*>shell\.nav\.calendar<\/h1>/);
+    expect(html).not.toMatch(/<h1[^>]*>shell\.nav\.plan<\/h1>/);
   });
 
   it("declares no Surface — the shell's layout owns this route's screen root", async () => {

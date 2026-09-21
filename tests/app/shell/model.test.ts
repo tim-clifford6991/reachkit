@@ -35,6 +35,8 @@ const BASE: ShellFacts = {
   ],
   firstDueOn: MONDAY(7),
   waiting: 0,
+  review: null,
+  blog: null,
   next: new Date(Date.UTC(2026, 8, 16, 13, 0, 0)),
   stopped: null,
   noPublishCauses: {

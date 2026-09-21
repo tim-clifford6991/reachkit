@@ -24,24 +24,59 @@ export const DESTINATION_HREF: Record<Destination, string> = {
 
 /** The registry key each destination's name is spoken from. No renderer
  *  writes a destination's word (BP-018 decision 2: "no component has a
- *  default string"). */
+ *  default string").
+ *
+ *  **SPEC §4 (2026-09-20, #908): the menu is Overview · Plan · Settings.**
+ *  *Plan* is the calendar's on-screen name and nothing more — the
+ *  destination keeps its member name and its address, so every caller of
+ *  `DESTINATION_HREF.calendar` outside this module is untouched, and the
+ *  one thing that moved is the word the customer reads. */
 export const DESTINATION_COPY_KEY: Record<Destination, CopyKey> = {
   overview: "shell.nav.overview",
-  calendar: "shell.nav.calendar",
+  calendar: "shell.nav.plan",
   settings: "shell.nav.settings",
 };
 
-/** Which destination an app pathname is on, or `undefined` for a path under
- *  `/app` that is none of the three — the draft view (§4.6), say. Overview
- *  is matched exactly, never by prefix, because its address `/app` is the
- *  prefix of both the others; a route under `/app` with no entry here is
- *  simply not current anywhere, which is WO-155 decision 3's safe failure
- *  ("a route added under `/app` with no entry is unreachable by
- *  navigation") rather than a highlight on the wrong destination. */
+/** Which destination carries the waiting count. SPEC §4 (2026-09-20) moves
+ *  it from Plan to Overview: Overview is where the page waiting for review
+ *  is acted on. Stated once, here, so the panel, the rail and the dock
+ *  cannot put it in three different places. */
+export const WAITING_ON: Destination = "overview";
+
+/** Addresses under `/app` that are on **no** destination: a screen the
+ *  menu does not lead to and does not claim. The draft view is the one —
+ *  it is reached from a card, a mail or the *Waiting for you* panel, and
+ *  marking a menu item current there would point at a screen the customer
+ *  is not on. Listed, because "not Overview" has to be a decision
+ *  somewhere and one prefix is a smaller thing to keep true than a rule
+ *  each new route has to remember. */
+export const OFF_MENU_PREFIXES: readonly string[] = ["/app/draft"];
+
+function under(pathname: string, prefix: string): boolean {
+  return pathname === prefix || pathname.startsWith(`${prefix}/`);
+}
+
+/**
+ * Which destination an app pathname is on, or `undefined`.
+ *
+ * **Overview is the whole of `/app` that nothing else claims** (SPEC §4,
+ * 2026-09-20, #908 / #915): its four tabs — Overview, Search, AI answers,
+ * Rivals — are four addresses, `/app`, `/app/search`, `/app/ai-answers`
+ * and `/app/rivals`, and all four are the Overview destination. Matching
+ * `/app` exactly left three of the four lighting no menu item at all.
+ *
+ * So the two specific destinations are matched first, by their own
+ * prefixes; `OFF_MENU_PREFIXES` then takes the routes that are on no
+ * destination by design; and what is left under `/app` is Overview. A tab
+ * added beside Search needs no entry here, which is the point — the old
+ * rule made a new sibling silently unreachable by navigation, and this one
+ * makes it Overview until somebody says otherwise.
+ */
 export function destinationOf(pathname: string): Destination | undefined {
-  return DESTINATIONS.find((d) => {
-    const href = DESTINATION_HREF[d];
-    if (href === DESTINATION_HREF.overview) return pathname === href;
-    return pathname === href || pathname.startsWith(`${href}/`);
-  });
+  for (const destination of DESTINATIONS) {
+    if (destination === "overview") continue;
+    if (under(pathname, DESTINATION_HREF[destination])) return destination;
+  }
+  if (OFF_MENU_PREFIXES.some((prefix) => under(pathname, prefix))) return undefined;
+  return under(pathname, DESTINATION_HREF.overview) ? "overview" : undefined;
 }
