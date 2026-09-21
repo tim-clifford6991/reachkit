@@ -41,7 +41,7 @@ import type React from "react";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Clock } from "lucide-react";
+import { CircleCheck, Clock } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import { previewVetoLink, redeemVetoLink, vetoLinkPath } from "@/lib/publish/publishable";
 import type { PreviewResult, RedeemResult, VetoPreview } from "@/lib/publish/publishable";
@@ -296,7 +296,16 @@ function Ask(p: { token: string; it: VetoPreview }): React.JSX.Element {
               {copy("publish.veto.ask.action")}
             </button>
           </form>
-          <p className="text-sm text-base-content/60">{copy("publish.veto.ask.do-nothing")}</p>
+          {/* The sentence, and the offer it used to end with as a control.
+              A reader who does not want to stop the page may well want to
+              read it — and "in the app" with nothing to press was the same
+              dead end the done arm had. */}
+          <p className="text-base-content/60 flex flex-wrap items-center gap-1 text-sm">
+            <span>{copy("publish.veto.ask.do-nothing")}</span>
+            <Link href={SIGN_IN_PATH} className="link link-primary font-semibold">
+              {copy("publish.veto.ask.signin")}
+            </Link>
+          </p>
         </div>
       </div>
     </main>
@@ -314,12 +323,35 @@ function Ask(p: { token: string; it: VetoPreview }): React.JSX.Element {
  * a spent token still says which page it was bound to; the refusals do not,
  * because `unknown` and `expired` name no draft.
  */
-function Told(p: { head: string; title: string | null; message: string }): React.JSX.Element {
+function Told(p: {
+  head: string;
+  title: string | null;
+  message: string;
+  /** The reader pressed the control and it worked — the one arm that wears
+   *  the alert. A refusal reaches this component with `confirmed` unset. */
+  confirmed?: boolean;
+}): React.JSX.Element {
   return (
     <main className={MAIN}>
       <div className="card border border-base-300 bg-base-100">
         <div className="card-body gap-4">
-          <p className={EYEBROW}>{p.head}</p>
+          {/* **The tinted block is the done arm's alone.** The board draws
+              the confirmation as an `alert-success`, and it earns the fill:
+              it answers something the reader has just done, and it is the
+              one arm here that is good news. The refusals wearing this same
+              shape keep the plain line — a link that was already used or
+              has expired is not a success, and this file's older rule
+              stands for them: warn is edge and ink, never a fill. */}
+          {p.confirmed ? (
+            <div role="status" className="alert alert-success" data-testid="veto-told">
+              <CircleCheck size={20} strokeWidth={1.75} aria-hidden />
+              <span>
+                <span className="font-semibold">{p.head}</span> {copy("publish.veto.done.line")}
+              </span>
+            </div>
+          ) : (
+            <p className={EYEBROW}>{p.head}</p>
+          )}
           {p.title === null ? null : <h1>{p.title}</h1>}
           <p className="text-sm text-base-content/70">{p.message}</p>
           {/* **It goes to `/signin`, not to the plan** (#937). This page
@@ -357,6 +389,7 @@ export default async function VetoPage(p: {
     return (
       <Surface arms={ARMS}>
         <Told
+          confirmed
           head={copy("publish.veto.done.head")}
           title={result.title}
           message={copy("publish.veto.stopped")}
