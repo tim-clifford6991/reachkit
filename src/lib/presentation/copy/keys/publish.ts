@@ -298,6 +298,17 @@ export const PUBLISH_COPY = Object.freeze({
   // outline — a structural claim about the page is not theirs to make.
   // Drafted under the 2026-09-16 ruling (#759); the owner corrects them.
   "body.answer.heading": ["The short answer", { slots: {}, fixedBy: "issue 929" }],
+  // The name the table's own scrolling box carries (owner, PR #973). It is
+  // a **landmark label**, not a caption: a box that scrolls has to be
+  // reachable from a keyboard (axe `scrollable-region-focusable`, the rule
+  // #962 fixed on every other scrolling pane), and a focusable region needs
+  // a name to be announced by. The second clause is what a reader who
+  // lands on it needs to know, because the columns past the edge are the
+  // reason it is focusable at all.
+  "body.table.label": [
+    "Table — scroll sideways to see every column",
+    { slots: {}, fixedBy: "owner, PR 973" },
+  ],
   // The publisher is the customer, by name: these are their other guides
   // on their own domain, and the line says so rather than naming ReachKit.
   "body.guides.heading": [

@@ -233,6 +233,21 @@ export const PUBLISHER_PAGE = Object.freeze({
     "",
     "Ask for the export. A tool that cannot hand back the checklists you wrote is a tool you " +
       "cannot leave, and the leaving is the part nobody budgets for.",
+    "",
+    // SPEC §7 (2026-09-20, issue 929) — a table, because until this body
+    // had one **no swept route carried a table at all**, and a table is
+    // the one block on a published page that scrolls sideways inside its
+    // own box. That box has to be reachable from a keyboard (axe's
+    // `scrollable-region-focusable`), and this is the page the sweep
+    // renders to hold it. Four columns and long cells, because a table
+    // that fits its column proves nothing about one that does not.
+    "## What each plan includes",
+    "",
+    "| Plan | Seats | What's included | Right for |",
+    "| --- | ---: | --- | --- |",
+    "| Starter | 10 | Checklists, one owner per step, email reminders | A first hire every month or two |",
+    "| Team | 50 | A starter, plus templates per role and a shared calendar | A team hiring in batches |",
+    "| Company | 250 | A team, plus reporting, SSO and an export that actually works | A company with a people team |",
   ].join("\n"),
   grounded: Object.freeze({
     passage:

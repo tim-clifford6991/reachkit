@@ -34,7 +34,7 @@ import {
   TRUNCATION_ALLOWLIST,
   type Offender,
 } from "./checks";
-import { enumerateRoutes, type EnumeratedRoute } from "./routes";
+import { enumerateRoutes, PUBLISHED_HOST_FIXTURES, type EnumeratedRoute } from "./routes";
 
 /**
  * The three widths the 2026-09-20 ruling names, in CSS px.
@@ -540,22 +540,40 @@ export function knownDefectFor(route: string, offender: Offender): KnownDefect |
  *     that sent the reserved cookie everywhere therefore measured `/app`
  *     three times and the five-step setup screen never, which is the screen
  *     #908's design review found labels overflowing on.
- *   * **the `(hosted)` route is not here.** Issue #910's Build names
- *     `(public)` and `(account)`, and a customer's published page is served
- *     through a `content.` Host on a stranger's domain — a different door,
- *     a different fixture, and one the 1280 sweep already walks. Adding it
- *     is a row, not a rewrite; it is called out in this PR rather than
- *     smuggled in.
+ *   * **the `(hosted)` route is here, through the host that has published
+ *     something** (owner, PR #973). #950 left it out and said so — "adding
+ *     it is a row, not a rewrite" — and this is that row. The reason to add
+ *     it now is that SPEC §7's richer blocks (issue 929) put the product's
+ *     first **table** on a customer's page, a table scrolls sideways inside
+ *     its own box, and a box that scrolls has to be reachable from a
+ *     keyboard: axe's `scrollable-region-focusable`, the serious rule #962
+ *     fixed on every other scrolling pane. No swept route carried a table,
+ *     so CI could not have held it.
+ *
+ *     `PUBLISHED_HOST_FIXTURES` is the arm that renders S19 itself —
+ *     `seed.ts`'s `seedHostedPublisher()` customer, whose one live
+ *     publication is at this route's own `[[...slug]]` fixture, and whose
+ *     body carries a table for exactly this reason. The bare enumeration's
+ *     own `content.example.com` arm is the 404, which this sweep keeps
+ *     too: both are real surfaces and the layout law is over both.
+ *
+ *     No cookie on either, and that is the surface's own promise: the
+ *     hosted edge answers a stranger on a stranger's domain with no
+ *     session (`(hosted)/hosted-page/[[...slug]]/page.tsx`).
  */
 export function noOverflowRoutes(
   appRoot: string,
   cookies: { reserved: string; setup: string },
 ): EnumeratedRoute[] {
+  const published = enumerateRoutes(appRoot, {
+    hostFixtures: PUBLISHED_HOST_FIXTURES,
+  }).filter((route) => route.host !== undefined);
+
   return enumerateRoutes(appRoot, { accountCookie: cookies.reserved })
-    .filter((route) => route.host === undefined)
     .map((route) =>
       route.path === "/setup" || route.path.startsWith("/setup/")
         ? { ...route, cookie: cookies.setup }
         : route,
-    );
+    )
+    .concat(published);
 }

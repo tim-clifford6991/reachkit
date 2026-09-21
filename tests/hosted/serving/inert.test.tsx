@@ -60,6 +60,7 @@ vi.mock("@/lib/publish/destinations/hosted", async () => {
 });
 
 const Page = (await import("@/app/(hosted)/hosted-page/[[...slug]]/page")).default;
+const { COPY } = await import("@/lib/presentation/copy");
 const { generateMetadata } = await import("@/app/(hosted)/hosted-page/[[...slug]]/page");
 
 /** One live page with a hostile body. Everything else about it is ordinary:
@@ -196,6 +197,51 @@ describe("a published page is inert: nothing in a body reaches the document as m
     // sideways on a phone.
     const table = doc.querySelector("table");
     expect(table?.parentElement?.className).toContain("overflow-x-auto");
+  });
+
+  it("a body can neither forge nor override the table box's three attributes (owner, PR #973)", async () => {
+    // The serialiser mints `tabindex="0"`, `role="group"` and an
+    // `aria-label` on one element — a table's scrolling box — so that box
+    // is reachable from a keyboard. They are the only attributes in this
+    // product whose values come from neither the body nor the caller's
+    // class map, so the question they raise is whether a body can reach
+    // them. It cannot, twice over: there is no Markdown syntax that
+    // reaches an attribute, and a `<div>` written into a body is an `html`
+    // node and therefore escaped text.
+    state.page = pageWith({
+      bodyMd: [
+        // A forgery attempt: the same markup, written into the body.
+        '<div tabindex="0" role="group" aria-label="Forged">',
+        '<table><tr><td onclick="alert(1)">x</td></tr></table>',
+        "</div>",
+        "",
+        // And a real table, whose box must carry exactly the three.
+        "| Plan | Price |",
+        "| --- | --- |",
+        '| Basic | <span role="group" aria-label="Forged">$85</span> |',
+      ].join("\n"),
+    });
+    const { doc } = await served();
+
+    expect(active(doc)).toEqual([]);
+    // Exactly one group on the page, and it is the one the serialiser made.
+    const groups = Array.from(doc.querySelectorAll('[role="group"]'));
+    expect(groups).toHaveLength(1);
+    const box = groups[0];
+    expect(box?.getAttribute("tabindex")).toBe("0");
+    expect(box?.getAttribute("aria-label")).toBe(COPY["body.table.label"]);
+    // It is the table's own box and nothing else.
+    expect(box?.firstElementChild?.tagName.toLowerCase()).toBe("table");
+    // The forged one is text on the page, attributes and all.
+    expect(doc.body.textContent).toContain('<div tabindex="0" role="group" aria-label="Forged">');
+    expect(doc.querySelector('[aria-label="Forged"]')).toBeNull();
+    // And nothing anywhere carries a `tabindex` but that box.
+    expect(Array.from(doc.querySelectorAll("[tabindex]")).length).toBeGreaterThanOrEqual(1);
+    for (const el of Array.from(doc.querySelectorAll('[tabindex]:not([role="group"])'))) {
+      // The other focusable box is a fence, which takes `tabindex` for the
+      // same reason and no name — the code describes itself.
+      expect(el.tagName.toLowerCase()).toBe("pre");
+    }
   });
 
   it("an `onerror` attribute is text, and lands on no element", async () => {

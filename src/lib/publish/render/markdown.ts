@@ -48,8 +48,39 @@
 // would expect to see. There is no allowlist of tags to keep and no
 // blocklist to strip, because no markup from the input ever reaches the
 // output as markup. The elements this module can emit are the closed set
-// `toHtml` names below and nothing else, and the only attributes it writes
-// are `href` (scheme-vetted) and `class` (the caller's own table).
+// `toHtml` names below and nothing else.
+//
+// **The attributes are a closed set too, and every one of them is written
+// here.** There are five: `href`, whose value is scheme-vetted against
+// `MARKDOWN_LINK_SCHEMES` and is the only attribute value a body has any
+// say in at all; `class`, whose value is the caller's own table; and
+// `tabindex`, `role` and `aria-label` on the two boxes that scroll — a
+// table's and a fence's — whose values are **constants this module mints**
+// (`"0"`, `"group"`, and a sentence read from the registry).
+//
+// A body cannot forge them and cannot override them: it has no syntax that
+// reaches an attribute, a `<div role="region">` written into a body is an
+// `html` node and therefore escaped text, and the box is emitted by
+// `toHtml` from the block rather than from anything the input said. So the
+// closed-set rule holds in the presence of the three, which is why they
+// could be added at all (owner, PR #973).
+//
+// **Why that element carries them.** A table scrolls sideways inside its
+// own box — an author's table cannot be stacked into one column without
+// per-column labels, so the scroll is the right call — and a box that
+// scrolls must be reachable from a keyboard or its far columns are
+// unreachable without a mouse. That is axe's `scrollable-region-focusable`
+// (serious), the rule #962 fixed on every other scrolling pane in the
+// product; `tabindex="0"` makes the box focusable and the role with a name
+// is what a reader who lands on it is announced.
+//
+// **`group`, not `region`.** `region` is a landmark, and a landmark has to
+// be uniquely named on its page — two tables in one body, with the one
+// constant name this module can give them, is axe's `landmark-unique`
+// (moderate), measured. A distinct name per table could only come from the
+// body, which the closed set forbids. `group` is the role for a named
+// container that is not a landmark, so it repeats as often as an author
+// writes a table and is announced the same way each time.
 //
 // **A soft line ending is a space.** CommonMark keeps the newline inside
 // the text node; the hand-written parser joined wrapped lines with a space.
@@ -107,8 +138,15 @@ export type Block =
   | { kind: "code"; text: string }
   | { kind: "rule" }
   /** SPEC §7 (2026-09-20). A header row and a body, with each column's
-   *  declared alignment. */
-  | { kind: "table"; head: readonly Cell[]; rows: readonly (readonly Cell[])[]; align: readonly Align[] }
+   *  declared alignment, and the name its scrolling box is announced by
+   *  (`label`, the registry's — see the header). */
+  | {
+      kind: "table";
+      label: string;
+      head: readonly Cell[];
+      rows: readonly (readonly Cell[])[];
+      align: readonly Align[];
+    }
   /** SPEC §7 (2026-09-20) — the short-answer box. It holds ordinary blocks
    *  and never another container: a box inside a box says nothing. */
   | { kind: "answer"; label: string; children: readonly Block[] }
@@ -270,6 +308,7 @@ function blocksOf(nodes: readonly RootContent[], src: string, insideAnswer: bool
         if (head === undefined) break;
         out.push({
           kind: "table",
+          label: copy("body.table.label"),
           align: (node.align ?? []).map((a) => (a === undefined ? null : a)),
           head: head.children.map((cell) => inlinesOf(cell.children, src)),
           rows: rest.map((row) => row.children.map((cell) => inlinesOf(cell.children, src))),
@@ -521,8 +560,13 @@ export function toHtml(blocks: readonly Block[], classes: HtmlClasses = {}): str
           return `${open("p", classes)}${inlineHtml(block.children, classes)}</p>`;
         case "quote":
           return `${open("blockquote", classes)}${inlineHtml(block.children, classes)}</blockquote>`;
+        // A fence scrolls sideways too — a code line is verbatim and must
+        // not be re-wrapped — so its box is focusable for the same reason
+        // the table's is. It takes `tabindex` and no name: what a reader
+        // lands on is the code, which describes itself, where a table
+        // region without one is a box of unannounced columns.
         case "code":
-          return `${open("pre", classes)}${open("code", classes)}${escapeHtml(block.text)}</code></pre>`;
+          return `${openAs("pre", "pre", classes, ' tabindex="0"')}${open("code", classes)}${escapeHtml(block.text)}</code></pre>`;
         case "rule":
           return open("hr", classes);
         case "list": {
@@ -541,7 +585,15 @@ export function toHtml(blocks: readonly Block[], classes: HtmlClasses = {}): str
           const body = block.rows
             .map((row) => `${open("tr", classes)}${cellsHtml("td", row, block.align, classes)}</tr>`)
             .join("");
-          return `${openAs("div", "tableWrap", classes)}${open("table", classes)}${head}${open("tbody", classes)}${body}</tbody></table></div>`;
+          // The box is **reachable from a keyboard**, because it scrolls.
+          // See the header: three constant attributes, minted here.
+          const box = openAs(
+            "div",
+            "tableWrap",
+            classes,
+            ` tabindex="0" role="group" aria-label="${escapeHtml(block.label)}"`
+          );
+          return `${box}${open("table", classes)}${head}${open("tbody", classes)}${body}</tbody></table></div>`;
         }
         // The short-answer box. A container and nothing more: it makes no
         // claim of its own and emits no structured data.

@@ -49,12 +49,15 @@ describe("the block grammar is closed, and every line lands in exactly one block
   it("a quote, a rule and a fenced block each render as themselves", () => {
     expect(toHtml(parseMarkdown("> said"))).toBe("<blockquote>said</blockquote>");
     expect(toHtml(parseMarkdown("---"))).toBe("<hr>");
-    expect(toHtml(parseMarkdown("```\nx = 1\n```"))).toBe("<pre><code>x = 1</code></pre>");
+    // The fence's box scrolls, so it is focusable (owner, PR #973).
+    expect(toHtml(parseMarkdown("```\nx = 1\n```"))).toBe(
+      '<pre tabindex="0"><code>x = 1</code></pre>'
+    );
   });
 
   it("a fenced block is verbatim: nothing inside it is parsed as Markdown", () => {
     expect(toHtml(parseMarkdown("```\n# not a heading\n- not a list\n```"))).toBe(
-      "<pre><code># not a heading\n- not a list</code></pre>"
+      '<pre tabindex="0"><code># not a heading\n- not a list</code></pre>'
     );
   });
 
@@ -190,7 +193,8 @@ describe("SPEC §7 (2026-09-20, issue 929) — the three blocks the published su
   it("a GFM table is a table: a head, a body, and each column set as its delimiter row declared", () => {
     const html = renderMarkdownHtml(TABLE);
     expect(html).toBe(
-      '<div><table><thead><tr><th>Plan</th><th class="text-right">Price</th></tr></thead>' +
+      `<div tabindex="0" role="group" aria-label="${COPY["body.table.label"]}">` +
+        '<table><thead><tr><th>Plan</th><th class="text-right">Price</th></tr></thead>' +
         '<tbody><tr><td>Basic</td><td class="text-right"><strong>$85</strong></td></tr>' +
         '<tr><td>Full</td><td class="text-right">$220</td></tr></tbody></table></div>'
     );
@@ -201,7 +205,11 @@ describe("SPEC §7 (2026-09-20, issue 929) — the three blocks the published su
     // rather than taking the page sideways with it. The wrapper is the one
     // scroll container `tests/ui/layout/checks.ts` allow-lists.
     const html = toHtml(parseMarkdown(TABLE), { tableWrap: "overflow-x-auto" });
-    expect(html.startsWith('<div class="overflow-x-auto"><table>')).toBe(true);
+    expect(
+      html.startsWith(
+        `<div tabindex="0" role="group" aria-label="${COPY["body.table.label"]}" class="overflow-x-auto"><table>`
+      )
+    ).toBe(true);
   });
 
   it("a cell holds inline content and every character of it is escaped", () => {
@@ -282,7 +290,7 @@ describe("issue 929 — the parser is standard, and the closed set is still the 
     expect(renderMarkdownHtml("- a\n- b")).toBe("<ul><li>a</li><li>b</li></ul>");
     expect(renderMarkdownHtml("1. a\n2. b")).toBe("<ol><li>a</li><li>b</li></ol>");
     expect(renderMarkdownHtml("---")).toBe("<hr>");
-    expect(renderMarkdownHtml("```\nx = 1\n```")).toBe("<pre><code>x = 1</code></pre>");
+    expect(renderMarkdownHtml("```\nx = 1\n```")).toBe('<pre tabindex="0"><code>x = 1</code></pre>');
   });
 });
 
