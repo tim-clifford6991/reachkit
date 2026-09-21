@@ -35,7 +35,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/layout-suite
-      - run: npm run test:layout:full
+      # TEMP(#976) — reverted before this PR merges. `workflow_dispatch` only
+      # exists on the default branch, and `ci.yml` has none yet, so this is
+      # the only way to run `main`'s two browser jobs against a branch.
+      - name: TEMP(#976) the default sweep, as ci.yml's layout job runs it
+        env:
+          RENDER_CAPTURE_DIR: ${{ runner.temp }}/captures
+        run: npm run test:layout
+      - name: TEMP(#976) the review gallery, as ci.yml's review job runs it
+        if: ${{ always() }}
+        run: npm run review:gallery
 
       - name: visual evidence (diff and actual PNGs) when a baseline moved
         if: ${{ always() }}

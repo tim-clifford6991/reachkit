@@ -8,6 +8,12 @@ on:
   pull_request:
   push:
     branches: [main]
+  # Issue #976: the two jobs below run only on `main`, so for days the only
+  # way to learn whether a fix worked was to merge it. A manual run on a
+  # branch is how that stops being true. It changes nothing about what
+  # blocks a merge — `docs/PROCESS.md`'s Gates table is still the answer to
+  # that — and adds the one thing a red `main` needs: somewhere to try.
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -79,8 +85,10 @@ jobs:
 
   layout:
     name: layout conformance (browser)
-    # Not a merge gate. Skip on PRs so daisyUI work is not delayed by PNG diffs.
-    if: github.event_name == 'push'
+    # Not a merge gate. Skip on PRs so daisyUI work is not delayed by PNG
+    # diffs — and run on a manual dispatch, so the branch that fixes this
+    # job can be shown to have fixed it before it is merged (#976).
+    if: github.event_name != 'pull_request'
     continue-on-error: true
     runs-on: ubuntu-latest
     # Renders come from here, not from the box (issue #404). The suite this
@@ -215,6 +223,7 @@ jobs:
     needs: layout
     if: >-
       (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'pull_request' &&
        contains(github.event.pull_request.labels.*.name, 'review-gallery'))
     services:
