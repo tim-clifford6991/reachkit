@@ -52,7 +52,6 @@ function overviewHref(): string {
 const MOVED_UP = "mail.weekly.moved.up" satisfies CopyKey;
 const MOVED_FLAT = "mail.weekly.moved.flat" satisfies CopyKey;
 const MOVED_DOWN = "mail.weekly.moved.down" satisfies CopyKey;
-const NEEDS_YOU = "mail.weekly.needsYou" satisfies CopyKey;
 const NEEDS_YOU_ACTION = "mail.weekly.needsYou.action" satisfies CopyKey;
 const SEARCHES = "mail.weekly.searches" satisfies CopyKey;
 const PAGES_LIVE = "mail.weekly.pagesLive" satisfies CopyKey;

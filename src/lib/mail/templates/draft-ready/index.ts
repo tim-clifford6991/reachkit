@@ -83,7 +83,6 @@ const REASON = "mail.reason.draftReady" satisfies CopyKey;
 const STOP_ACTION = "mail.draftReady.stopAction" satisfies CopyKey;
 const READ_ACTION = "mail.draftReady.readAction" satisfies CopyKey;
 const STOP_NOTE = "mail.draftReady.stopNote" satisfies CopyKey;
-const WHY_SEARCH = "mail.draftReady.why.search" satisfies CopyKey;
 const WHY_VOLUME = "mail.draftReady.why.volume" satisfies CopyKey;
 // The board's own four row labels. Two of them (`search`, `answeredBy`)
 // were already written for S20 and are used as they stand.
