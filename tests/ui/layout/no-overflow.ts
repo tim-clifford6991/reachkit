@@ -563,18 +563,22 @@ export function knownDefectFor(route: string, offender: Offender): KnownDefect |
  *
  *     Swept with **both** arms once, on the way here, the 404 arm reported
  *     `document-title` (axe, serious) at all three widths in both themes
- *     and the published arm reported none. That difference is the whole
- *     finding, and it is not a defect in what ReachKit publishes:
- *     `generateMetadata` returns `title: page.title` for every page that
- *     resolves — measured, and `tests/hosted/indexing/head.test.tsx`
- *     already holds it — and returns `{}` for one that does not, which is
- *     the request that falls through to `(hosted)/not-found.tsx`. That
- *     file renders **no text at all, deliberately**: WO-028's ruling is
- *     "never a ReachKit page … no copy from the product's own registry" on
- *     a domain that is not ours, and a `<title>` is text in the document.
- *     Whether that surface should carry one is the owner's to say and is
- *     its own issue; it is not excused here with a `KNOWN_ON_MAIN` row,
- *     because such a row must name an issue and there is none to name.
+ *     and the published arm reported none. That difference was never a
+ *     defect in what ReachKit publishes: `generateMetadata` returns
+ *     `title: page.title` for every page that resolves — measured, and
+ *     `tests/hosted/indexing/head.test.tsx` holds it — and returns `{}`
+ *     for one that does not, which is the request that falls through to
+ *     `(hosted)/not-found.tsx`. That file renders **no text at all,
+ *     deliberately**: WO-028's ruling is "never a ReachKit page … no copy
+ *     from the product's own registry" on a domain that is not ours.
+ *
+ *     **The owner ruled it on 2026-09-22 (#980), option A:** a response on
+ *     this surface with no title of its own is titled with the host the
+ *     request arrived on — `content.example.com`, the visitor's own
+ *     address, which is not copy, not a name of ours and not in any
+ *     language. One `generateMetadata` on `(hosted)/layout.tsx`, which a
+ *     published page's own title still overrides. The finding is gone, and
+ *     it was never excused with a `KNOWN_ON_MAIN` row.
  *
  *     No cookie, and that is the surface's own promise: the hosted edge
  *     answers a stranger on a stranger's domain with no session
