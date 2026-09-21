@@ -28,12 +28,18 @@
 // arrives as a card beneath what this file draws; none of them is stood in
 // for, because a placeholder for an unbought measurement is a claim.
 import type React from "react";
+import type { Metadata } from "next";
 import { copy } from "@/lib/presentation/copy";
 import { formatDate } from "../../_shell/format";
 import { readShell } from "../../_shell/provider";
 import { readAnswers } from "../../_overview/answers-provider";
 import { AnswerGrid } from "../../_overview/AnswerGrid";
 import { AnswerTiles } from "../../_overview/AnswerTiles";
+
+/** /app/ai-answers's own `<title>` (#945). Without it this screen announced
+ *  nothing at all — the `(account)` layout's fallback is the floor, not
+ *  the name of this screen. */
+export const metadata: Metadata = { title: copy("meta.app.ai-answers.title") };
 
 export default async function AiAnswersTabPage(): Promise<React.JSX.Element> {
   // The zone is the shell's one stored preference, read through the shell's

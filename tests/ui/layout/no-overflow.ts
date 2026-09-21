@@ -459,17 +459,6 @@ export interface KnownDefect {
 export const KNOWN_ON_MAIN: readonly KnownDefect[] = [
   // #944 — the day card's stage badge, past its cell at 768 and 1280.
   { route: "/app/calendar", check: "containment", match: "badge.badge-sm.badge-primary", issue: 944 },
-  // #945 — no <title> on any signed-in screen.
-  { route: "/app", check: "axe-serious", match: "document-title", issue: 945 },
-  { route: "/app/calendar", check: "axe-serious", match: "document-title", issue: 945 },
-  { route: "/app/draft/draft-2026-09-15", check: "axe-serious", match: "document-title", issue: 945 },
-  { route: "/app/settings", check: "axe-serious", match: "document-title", issue: 945 },
-  { route: "/setup", check: "axe-serious", match: "document-title", issue: 945 },
-  // The three Overview tabs #939 landed on 2026-09-21, in the same shell and
-  // with the same two findings as the Overview they sit beside.
-  { route: "/app/search", check: "axe-serious", match: "document-title", issue: 945 },
-  { route: "/app/ai-answers", check: "axe-serious", match: "document-title", issue: 945 },
-  { route: "/app/rivals", check: "axe-serious", match: "document-title", issue: 945 },
   // #946 — the theme's muted arms, under the contrast floor on ten screens.
   { route: "/", check: "axe-serious", match: "color-contrast", issue: 946 },
   { route: "/scan/example.com", check: "axe-serious", match: "color-contrast", issue: 946 },
