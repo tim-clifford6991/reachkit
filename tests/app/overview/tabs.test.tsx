@@ -11,9 +11,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { copy } from "@/lib/presentation/copy";
 import OverviewPage from "@/app/(account)/app/(tabs)/page";
-import RivalsTabPage from "@/app/(account)/app/(tabs)/rivals/page";
 import OverviewTabsLayout from "@/app/(account)/app/(tabs)/layout";
 import { OVERVIEW_TABS, TAB_HREF } from "@/app/(account)/app/_overview/tabs";
 import { resetAccount, signedInAs } from "../account-door";
@@ -90,16 +88,8 @@ describe("SPEC §4 — every part of the Overview tab opens the tab behind it", 
   });
 });
 
-describe("the tab that has an address and not yet a screen says so", () => {
-  // Search and AI answers are no longer among them: #916 and #918 built
-  // them, and their own suites (`search-*.test.ts`, `answers-*.test.ts`)
-  // decide what each states.
-  it("names itself and states one written line — no number, no dash", () => {
-    const html = renderToStaticMarkup(RivalsTabPage());
-    expect(html).toContain(copy("overview.tab.rivals.soon"));
-    expect(html).toContain("skeleton");
-    expect(html, "the tab renders a placeholder key instead of a sentence").not.toContain(
-      "TODO(copy)"
-    );
-  });
-});
+// There is no "a tab with an address and not yet a screen" describe here
+// any more: #916 built Search, #918 AI answers and #917 Rivals, and the
+// placeholder, its copy key and its type went with the last of them. The
+// bar's four links are asserted above, and what each tab states is its own
+// suite's (`search-*`, `answers-*`, `rivals-*`).

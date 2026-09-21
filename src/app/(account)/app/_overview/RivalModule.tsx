@@ -28,7 +28,11 @@ const SWAP_HREF: Record<Extract<SwapOffer, { offered: true }>["destination"], st
   "settings.competitors": DESTINATION_HREF.settings,
 };
 
-function Card(p: { children: React.ReactNode }): React.JSX.Element {
+/** The card. `lead` is the one line the Rivals tab states under the head
+ *  and the Overview tab does not — what the ratio is a ratio of, and where
+ *  level is. Optional and additive: the Overview passes none, and the tile
+ *  beside it there has no room for a sentence. */
+function Card(p: { children: React.ReactNode; lead?: string | null }): React.JSX.Element {
   return (
     <section className="card card-border min-w-0 bg-base-100" data-testid={TEST_ID}>
       <div className="card-body gap-4 p-5">
@@ -36,6 +40,11 @@ function Card(p: { children: React.ReactNode }): React.JSX.Element {
           <Users aria-hidden size={20} strokeWidth={1.75} />
           {copy(RIVAL_LABEL)}
         </h2>
+        {p.lead === undefined || p.lead === null ? null : (
+          <p className="max-w-prose text-sm text-base-content/70" data-testid="overview-rivals-lead">
+            {p.lead}
+          </p>
+        )}
         {p.children}
       </div>
     </section>
@@ -101,13 +110,20 @@ export function RivalModule(p: {
   rivals: RivalGapModule;
   timeZone: string;
   weekZero?: { firstDueOn: Date; startingOn: Date } | null;
+  /** SPEC §4 (2026-09-20), #917: the Rivals tab's own line under the head.
+   *  Already written by the caller — this module composes no sentence. */
+  lead?: string | null;
 }): React.JSX.Element {
   const weekZero = p.weekZero ?? null;
   if (weekZero !== null && !anySized(p.rivals)) {
     const line = writtenLine("overview.rivals.line.week-zero", {
       due: formatDate(weekZero.firstDueOn, p.timeZone),
     });
-    return <Card>{line === null ? null : <p className="text-sm text-base-content/70">{line}</p>}</Card>;
+    return (
+      <Card lead={p.lead}>
+        {line === null ? null : <p className="text-sm text-base-content/70">{line}</p>}
+      </Card>
+    );
   }
 
   const line = writtenLine(p.rivals.lineKey);
@@ -145,7 +161,7 @@ export function RivalModule(p: {
         ));
 
   return (
-    <Card>
+    <Card lead={p.lead}>
       {rows.length === 0 ? null : <ul className="flex min-w-0 flex-col gap-3">{rows}</ul>}
       {p.rivals.kind === "absolute" ? (
         <p className="flex flex-wrap items-baseline gap-2 text-sm" data-testid="overview-rivals-own">
