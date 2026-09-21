@@ -41,7 +41,14 @@ import { copy } from "@/lib/presentation/copy";
 import { cardLabel, horizonShortFor, kindWord, shortCauseFor } from "./card-lines";
 import { dayNumberOf, type DayNumber } from "./day-number";
 import { dayNumber } from "./dates";
-import { STAGE_FILTER_COPY_KEY, STAGE_TONE, TONE_DOT, TONE_INK, type StageFilter } from "./stages";
+import {
+  STAGE_FILTER_COPY_KEY,
+  STAGE_MARK_AT,
+  STAGE_TONE,
+  TONE_DOT,
+  TONE_INK,
+  type StageFilter,
+} from "./stages";
 import type { DayCell, PageOnDay } from "./month";
 
 /** The card's fixed height. One number, in one place, so no state of the
@@ -116,27 +123,40 @@ export function CardNumber(p: { value: DayNumber }): React.JSX.Element | null {
   );
 }
 
-/** Rule 3's foot: one stage word with its dot, and a mark for an update. */
-export function StageMark(p: { page: PageOnDay }): React.JSX.Element {
+/**
+ * Rule 3's foot: one stage word with its dot, and a mark for an update.
+ *
+ * **The word is never cut** (owner, PR #961). It takes its own width and
+ * does not clamp, so `scrollWidth` can never exceed `clientWidth` on it.
+ * When the row is tight it is the *mark* that goes — `STAGE_MARK_AT` says
+ * at what width each stage's word has room for one beside it, and the
+ * panel says "Update" in full whatever the card can fit.
+ */
+export function StageMark(p: {
+  page: PageOnDay;
+  /** Whether this row may drop the mark on a narrow card. True on the
+   *  month grid, where a card is one of seven equal columns; false in the
+   *  phone list, whose row is the width of the screen. */
+  narrowable?: boolean;
+}): React.JSX.Element {
   const tone = STAGE_TONE[p.page.stage];
+  const word = copy(STAGE_FILTER_COPY_KEY[p.page.stage]);
   return (
-    <span className="flex min-w-0 items-center gap-1.5" data-testid="card-stage">
+    <span className="flex min-w-0 items-center gap-1" data-testid="card-stage">
       <span className={`size-1.5 shrink-0 rounded-full ${TONE_DOT[tone]}`} aria-hidden />
       <span
-        className={`rk-cal-label min-w-0 truncate text-[11px] font-semibold ${TONE_INK[tone]}`}
-        // The narrowest column this card is ever drawn in is 88px, and a
-        // stage word beside an update mark can lose its last letters
-        // there. A declared truncation owes the whole string: the card's
-        // label reads it out in full, and this is where a pointer gets it.
-        title={copy(STAGE_FILTER_COPY_KEY[p.page.stage])}
+        className={`shrink-0 whitespace-nowrap text-[11px]/4 font-semibold ${TONE_INK[tone]}`}
+        data-testid="card-stage-word"
       >
-        {copy(STAGE_FILTER_COPY_KEY[p.page.stage])}
+        {word}
       </span>
       {p.page.update ? (
         <RefreshCw
           size={12}
           strokeWidth={1.75}
-          className="ml-auto shrink-0 opacity-60"
+          className={`ml-auto shrink-0 opacity-60 ${
+            p.narrowable === true ? `hidden ${STAGE_MARK_AT[p.page.stage]}` : ""
+          }`}
           aria-label={kindWord(true)}
           data-testid="card-update-mark"
         />
@@ -179,7 +199,11 @@ export function DayCard(p: {
     <button
       {...p.buttonProps}
       className={[
-        "rounded-box flex w-full min-w-0 flex-col gap-1 overflow-hidden border p-1 text-left transition-colors hover:border-primary",
+        // `@container/day`: the mark for an update is shown or dropped on
+        // **this card's** own width, not on the viewport's. The column a
+        // card sits in narrows with the side panel, the day panel and the
+        // window, and none of those is a media query.
+        "@container/day rounded-box flex w-full min-w-0 flex-col gap-1 overflow-hidden border p-1 text-left transition-colors hover:border-primary",
         CARD_HEIGHT,
         p.selected
           ? "border-primary bg-primary/5"
@@ -228,7 +252,7 @@ export function DayCard(p: {
       {/* Rules 3 and 4 — the foot: a stage word, or the date's two words. */}
       <span className="mt-auto min-w-0">
         {page !== null ? (
-          <StageMark page={page} />
+          <StageMark page={page} narrowable />
         ) : line === null ? null : (
           <span
             className="rk-cal-empty block min-w-0 truncate text-[11px] font-semibold opacity-70"

@@ -212,7 +212,14 @@ function Heading(p: { word: string; tone: Tone; date: string; onClose: () => voi
   return (
     <div className="flex min-w-0 items-center gap-2" data-testid="day-head">
       <span className={`size-2 shrink-0 rounded-full ${TONE_DOT[p.tone]}`} aria-hidden />
-      <span className={`min-w-0 truncate text-sm font-semibold ${TONE_INK[p.tone]}`}>{p.word}</span>
+      {/* A stage word is never truncated (owner, PR #961) — here as on the
+          card, so one stage is drawn one way. */}
+      <span
+        className={`shrink-0 whitespace-nowrap text-sm font-semibold ${TONE_INK[p.tone]}`}
+        data-testid="panel-stage-word"
+      >
+        {p.word}
+      </span>
       <span className="num rk-cal-label min-w-0 truncate text-xs opacity-70">{p.date}</span>
       <button
         type="button"
@@ -227,7 +234,14 @@ function Heading(p: { word: string; tone: Tone; date: string; onClose: () => voi
   );
 }
 
-function Panel(p: { heading: React.ReactNode; children: React.ReactNode }): React.JSX.Element {
+function Panel(p: {
+  heading: React.ReactNode;
+  /** Whether this day was opened by nobody — an absent `?day`. Such a
+   *  panel is open from `md` up and closed below it (`CalendarView`'s
+   *  header). One utility, on one DOM. */
+  hiddenOnPhone: boolean;
+  children: React.ReactNode;
+}): React.JSX.Element {
   return (
     <aside
       // One element and three layouts, never three copies of the panel:
@@ -250,8 +264,11 @@ function Panel(p: { heading: React.ReactNode; children: React.ReactNode }): Reac
       // the same answer a `textarea` and an `overflow-x-auto` table give,
       // and the proof measures that neither the fixture's longest day nor
       // the owner's stress case reaches it.
-      className="card card-border bg-base-100 fixed inset-x-2 bottom-[calc(80px+env(safe-area-inset-bottom,0px))] z-30 max-h-[calc(100dvh-104px)] min-w-0 overflow-y-auto shadow-2xl md:static md:z-auto md:max-h-none md:overflow-visible md:shadow-none"
+      className={`card card-border bg-base-100 fixed inset-x-2 bottom-[calc(80px+env(safe-area-inset-bottom,0px))] z-30 max-h-[calc(100dvh-104px)] min-w-0 overflow-y-auto shadow-2xl md:static md:z-auto md:max-h-none md:overflow-visible md:shadow-none ${
+        p.hiddenOnPhone ? "max-md:hidden" : ""
+      }`}
       data-testid="day-panel"
+      data-implicit={p.hiddenOnPhone ? "" : undefined}
     >
       <div className="card-body min-w-0 gap-3 p-4">
         {p.heading}
@@ -264,6 +281,11 @@ function Panel(p: { heading: React.ReactNode; children: React.ReactNode }): Reac
 export function DayPanelView(p: {
   cell: DayCell;
   timeZone: string;
+  /** SPEC §7 / REQ-043 c7 as the owner now reads it (PR #961): a day
+   *  nobody asked for is open from `md` up and closed below it, because
+   *  below `md` this panel is a sheet over the month. `false` for a day
+   *  the address names — an explicit `?day` is obeyed at every width. */
+  hiddenOnPhone?: boolean;
   /** What the site publishes to (issue 880) — which decides whether a page
    *  waiting on delivery is offered a reconnect or the neutral control. */
   destination?: DestinationStanding | null;
@@ -298,6 +320,7 @@ export function DayPanelView(p: {
     // No provenance line: a date holding no page carries no measurement.
     return (
       <Panel
+        hiddenOnPhone={p.hiddenOnPhone ?? false}
         heading={
           <Heading
             word={copy("calendar.empty.day-badge")}
@@ -329,6 +352,7 @@ export function DayPanelView(p: {
       timeZone={p.timeZone}
       destination={p.destination ?? null}
       stopped={p.stopped}
+      hiddenOnPhone={p.hiddenOnPhone ?? false}
       onClose={p.onClose}
     />
   );
@@ -360,6 +384,7 @@ function PageDayPanel(p: {
   timeZone: string;
   destination: DestinationStanding | null;
   stopped: WorkStop | null;
+  hiddenOnPhone: boolean;
   onClose: () => void;
 }): React.JSX.Element {
   const { cell, date, page, timeZone, stopped } = p;
@@ -416,6 +441,7 @@ function PageDayPanel(p: {
 
   return (
     <Panel
+      hiddenOnPhone={p.hiddenOnPhone}
       heading={
         <Heading
           word={copy(stage === null ? "calendar.empty.day-badge" : STAGE_FILTER_COPY_KEY[stage])}

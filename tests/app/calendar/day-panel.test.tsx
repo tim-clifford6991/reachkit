@@ -40,6 +40,53 @@ function panel(day: string): Element {
   );
 }
 
+describe("REQ-043 c7, read as 'from md up' — an absent ?day is open on a desktop and closed on a phone", () => {
+  // Owner, PR #961. "There is no month in which nothing is selected" is
+  // unchanged from `md` up, where the panel stands beside the month. Below
+  // it the panel is a sheet **over** the month, and the same default meant
+  // a customer who tapped Plan landed on a sheet covering their plan.
+  //
+  // One DOM: the difference is `max-md:hidden` on the implicitly-open
+  // panel, and which selection each shape of the month is handed.
+  it("a day nobody asked for is drawn, marked hidden below md, and marks nothing in the list", () => {
+    const root = render(withNuqs(<CalendarView model={MODEL} />));
+    const panel = root.querySelector('[data-testid="day-panel"]');
+    expect(panel).not.toBeNull();
+    expect(panel?.className).toContain("max-md:hidden");
+    expect(panel?.hasAttribute("data-implicit")).toBe(true);
+    // The grid is drawn from `md` up, where this day *is* open.
+    expect(
+      root.querySelector(`[data-testid="calendar-cell-${MODEL.today}"]`)?.getAttribute("aria-current")
+    ).toBe("date");
+    // The list is drawn below it, where it is not — today is still marked
+    // as today, and no row claims to be the open one.
+    expect(
+      root.querySelector(`[data-testid="calendar-day-${MODEL.today}"]`)?.hasAttribute("data-today")
+    ).toBe(true);
+    expect(
+      root.querySelectorAll('[data-testid^="calendar-day-"][aria-current="date"]')
+    ).toHaveLength(0);
+  });
+
+  it("a day the address names is open at every width, and the list marks it", () => {
+    const root = render(withNuqs(<CalendarView model={MODEL} />, { day: "2026-09-18" }));
+    const panel = root.querySelector('[data-testid="day-panel"]');
+    expect(panel?.className).not.toContain("max-md:hidden");
+    expect(panel?.hasAttribute("data-implicit")).toBe(false);
+    expect(
+      root.querySelector('[data-testid="calendar-day-2026-09-18"]')?.getAttribute("aria-current")
+    ).toBe("date");
+  });
+
+  it("?day=none is closed at every width — the founder's own act, and it sticks", () => {
+    const root = render(withNuqs(<CalendarView model={MODEL} />, { day: "none" }));
+    expect(root.querySelector('[data-testid="day-panel"]')).toBeNull();
+    expect(
+      root.querySelectorAll('[data-testid^="calendar-cell-"][aria-current="date"]')
+    ).toHaveLength(0);
+  });
+});
+
 describe("REQ-043 c7 — today is the selected day when the calendar opens", () => {
   it("the panel the view renders on open is today's, not the month's first date", () => {
     const root = render(withNuqs(<CalendarView model={MODEL} />));

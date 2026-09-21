@@ -162,8 +162,29 @@ describe("supplyLine — at most one statement of supply, and never a composed o
     }
     expect(supplyLine({ kind: "short", days: 3 }, zone)).toContain("3");
     expect(supplyLine({ kind: "arrival_shortfall", days: 12 }, zone)).toContain("12");
-    // An exhausted notice with no recorded date still speaks its line.
-    expect(supplyLine({ kind: "exhausted", days: 0, since: null }, zone)).not.toBeNull();
+  });
+
+  it("an exhausted notice with no recorded date speaks its own sentence, never a blank slot (owner, PR #961)", () => {
+    // `SupplyNotice`'s `since` is `Date | null` by declaration, so this is
+    // a state a real site reaches. It used to render the dated key with an
+    // empty `{since}`, which read "… in your market, since . Monday’s
+    // re-measure…" on every screen the fixture account draws.
+    const line = supplyLine({ kind: "exhausted", days: 0, since: null }, zone);
+    expect(line).toBe(COPY["calendar.supply.exhausted.undated"]);
+    expect(line).not.toBeNull();
+    expect(line).not.toBe(TODO_COPY_MARKER);
+    // The claim is the same claim; what is gone is the clause naming a date
+    // the product does not have.
+    expect(line).toContain("Nothing worth publishing is left in your market");
+    expect(line).not.toContain("since");
+    expect(line).not.toContain("{");
+    // And the dated arm still names its date.
+    const dated = supplyLine(
+      { kind: "exhausted", days: 0, since: new Date(Date.UTC(2026, 8, 1, 12, 0, 0)) },
+      zone
+    );
+    expect(dated).toContain("since");
+    expect(dated).not.toBe(line);
   });
 
   it("no notice is no line — a customer with supply reads nothing about it", () => {

@@ -336,6 +336,17 @@ export const CALENDAR_COPY = Object.freeze({
   // string. `days` counts days of pages, so it is a text slot carrying a
   // numeral, exactly as `overview.supply.*` declares it.
   "calendar.supply.exhausted": ["Nothing worth publishing is left in your market, since {since}. Monday’s re-measure looks for more.", { slots: { since: "date" }, fixedBy: "BUILD §4.6" }],
+  // The same claim where the moment it ran out cannot be read (owner, PR
+  // #961, 2026-09-21). `SupplyNotice`'s `since` is `Date | null` by
+  // declaration, so this is a state a real site reaches and not only the
+  // fixture's — and the sentence the screen used to render for it filled
+  // the slot with an empty string: "… in your market, since . Monday’s
+  // re-measure…". A variant without the clause, never a blank: a date the
+  // product does not have is a date it does not mention.
+  "calendar.supply.exhausted.undated": [
+    "Nothing worth publishing is left in your market. Monday’s re-measure looks for more.",
+    { slots: {}, fixedBy: "owner, PR 961" },
+  ],
   // issue 784: the same statement over a market that was never measured (issue 765)
   // — there was nothing to use up. Drafted under issue 759's ruling.
   "calendar.supply.unmeasured": ["We couldn’t find enough searches in your market to plan pages yet. Pick a broader category and we’ll measure your market again right away.", { slots: {}, fixedBy: "issue 784" }],

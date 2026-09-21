@@ -137,3 +137,44 @@ export const TONE_INK: Readonly<Record<Tone, string>> = Object.freeze({
   bad: "text-error",
   neutral: "text-base-content/70",
 });
+
+/**
+ * **The update mark yields before the stage word does** (owner, PR #961).
+ *
+ * A stage word is never truncated: "Yourre…" and "Sched…" are not words,
+ * and a card that cannot hold one is a card with something else on it that
+ * should go first. What goes first is the mark for an update — the day
+ * panel already says *Update* in full, so nothing is lost by a narrow card
+ * dropping the glyph.
+ *
+ * So the word takes its own width (`shrink-0`, no clamp) and the mark is
+ * shown only on a card wide enough to hold **that stage's** word beside it.
+ * One threshold for all five would be wrong in both directions: it would
+ * hide the mark on a `Live` card, which has 41px to spare at the narrowest
+ * width this grid is ever drawn at, and show it on a `Your review` card,
+ * which has none.
+ *
+ * Each number is the card's **content width** — what a container query
+ * resolves against — and is measured rather than guessed:
+ *
+ *     6px dot + 4px gap + the word + 8px gap + 12px mark + 4px to spare
+ *
+ * over the words as Plus Jakarta Sans 600 draws them at 11px (Live 22,
+ * Planned 44, Needs you 57, Scheduled 59, Your review 63).
+ *
+ * **A wrong number here is caught rather than trusted.** Both the word and
+ * the mark are `shrink-0`, so if a threshold is too low the *mark* is what
+ * runs past the row, and the no-overflow pass reports it as a containment
+ * offender — the word is never the thing that gives.
+ *
+ * Written as whole class names because Tailwind finds a utility by reading
+ * the source text for it: a class built from a variable is a class that is
+ * never emitted.
+ */
+export const STAGE_MARK_AT: Readonly<Record<Stage, string>> = Object.freeze({
+  live: "@min-[56px]/day:block",
+  planned: "@min-[80px]/day:block",
+  needs_you: "@min-[92px]/day:block",
+  scheduled: "@min-[96px]/day:block",
+  your_review: "@min-[100px]/day:block",
+});

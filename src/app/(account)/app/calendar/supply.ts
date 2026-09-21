@@ -11,10 +11,19 @@
 // nothing rather than as a placeholder (DECISIONS 2026-09-05, #93). The
 // three keys are the owner's and are empty today.
 //
-// A notice with no date renders the same key with an empty `since` slot
-// rather than a different sentence: ADR-061's exhausted arm is a proven
-// claim about supply whether or not the moment it ran out is knowable, and
-// splitting it in two would make the date look like part of the claim.
+// **A notice with no date gets its own sentence** (owner, PR #961,
+// 2026-09-21). This file used to fill the `{since}` slot with an empty
+// string on the reasoning that ADR-061's exhausted arm is a proven claim
+// whether or not the moment it ran out is knowable, and that splitting it
+// in two would make the date look like part of the claim. The claim was
+// right and the rendering was not: what a customer read was "… is left in
+// your market, since . Monday’s re-measure looks for more."
+//
+// `SupplyNotice`'s `since` is `Date | null` by declaration, so this is a
+// state a real site reaches. The two arms are two keys, both approved, and
+// the claim is word-for-word the same in each — only the clause that names
+// a date the product does not have is gone. A slot is never rendered
+// blank.
 import { writtenLine } from "../_shell/written";
 import { formatDate } from "../_shell/format";
 import type { SupplyNotice } from "@/lib/opportunities";
@@ -36,8 +45,9 @@ export function supplyLine(notice: CalendarSupplyNotice | null, timeZone: string
   if (notice.kind === "measuring") return writtenLine("calendar.supply.measuring");
   if (notice.kind === "outsized") return writtenLine("calendar.supply.outsized");
   if (notice.kind === "exhausted") {
+    if (notice.since === null) return writtenLine("calendar.supply.exhausted.undated");
     return writtenLine("calendar.supply.exhausted", {
-      since: notice.since === null ? "" : formatDate(notice.since, timeZone),
+      since: formatDate(notice.since, timeZone),
     });
   }
   if (notice.kind === "short") {

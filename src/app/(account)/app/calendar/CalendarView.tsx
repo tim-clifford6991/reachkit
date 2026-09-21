@@ -8,15 +8,29 @@
 // hand-rolled state, not an `<a href>`). So a day opened is linkable,
 // shareable and survives a reload:
 //
-//   ?day=2026-10-04  the open day. Client-only: the model for the whole
-//                    month is already here, so opening a day asks the
-//                    server for nothing.
-//   ?day=none        the panel, closed. A **stated** closed rather than an
-//                    absent parameter, because absent has to mean "open on
-//                    today" — REQ-043 c7's "there is no month in which
-//                    nothing is selected" is how this screen has always
-//                    opened, and §7's new promise is that the founder can
-//                    then close it and have that stick.
+//   ?day=2026-10-04  the open day, at every width. Client-only: the model
+//                    for the whole month is already here, so opening a day
+//                    asks the server for nothing.
+//   ?day=none        the panel, closed, at every width.
+//   (absent)         **open on today from `md` up, closed below it.**
+//
+// **REQ-043 c7 is now read as "from `md` up"** (owner, PR #961,
+// 2026-09-21). "There is no month in which nothing is selected" is how
+// this screen has always opened, and on a desktop it still does: the panel
+// stands beside the month and opening on today costs the founder nothing.
+// Below `md` the panel is a sheet over the month, so the same default
+// meant a customer who tapped Plan landed on a sheet covering their plan.
+// So an absent `?day` opens on today from `md` up and is closed below it;
+// today is still marked in the list, and a tap opens the sheet. An
+// **explicit** `?day` — a date or `none` — is obeyed at every width, so a
+// linked day is a linked day on a phone too.
+//
+// One DOM, and the difference is one utility: the implicitly-open panel
+// carries `max-md:hidden`. Each shape of the month is handed the selection
+// that is true at the widths it is visible at — the grid the full one
+// (`hidden md:block`, where implicit means open), the list the explicit one
+// only (`md:hidden`, where implicit means closed) — so neither ever marks a
+// day as open while the panel beside it is not.
 //
 // **Two shapes, one month.** From `md` the month is
 // `react-day-picker`'s grid of fixed-height cards (`MonthGrid`); below it
@@ -57,13 +71,18 @@ export function openOn(model: MonthModel): DayKey {
 
 export function CalendarView(p: { model: MonthModel }): React.JSX.Element {
   const [filter, setFilter] = useState<StageFilterId>("all");
-  const [day, setDay] = useQueryState("day", parseAsString.withDefault(openOn(p.model)));
+  // Nullable rather than defaulted, because **which day** and **who chose
+  // it** are two facts and the second decides the phone. `null` is an
+  // absent parameter; anything else is the founder's own.
+  const [day, setDay] = useQueryState("day", parseAsString);
 
-  const selected: DayKey | null = day === DAY_CLOSED ? null : day;
+  const implicit = day === null;
+  const selected: DayKey | null = day === DAY_CLOSED ? null : (day ?? openOn(p.model));
   const cell = selected === null ? undefined : cellFor(p.model, selected);
 
   /** Opening a day and closing the panel are the same write with two
-   *  values, so there is one place the address changes. */
+   *  values, so there is one place the address changes. Both write the
+   *  address, so both are explicit and are obeyed at every width. */
   function openDay(next: DayKey | null): void {
     void setDay(next ?? DAY_CLOSED);
   }
@@ -87,7 +106,9 @@ export function CalendarView(p: { model: MonthModel }): React.JSX.Element {
             <DayList
               model={p.model}
               filter={filter}
-              selected={selected}
+              // The list is drawn below `md`, where an implicitly open day
+              // is a closed panel — so it marks none.
+              selected={implicit ? null : selected}
               onSelect={(next) => openDay(next)}
             />
           </div>
@@ -99,6 +120,9 @@ export function CalendarView(p: { model: MonthModel }): React.JSX.Element {
             timeZone={p.model.timeZone}
             stopped={p.model.stopped}
             destination={p.model.destination}
+            // Nobody chose this day, so below `md` — where the panel is a
+            // sheet over the month — it is not open.
+            hiddenOnPhone={implicit}
             onClose={() => openDay(null)}
           />
         )}
