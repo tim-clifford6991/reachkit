@@ -145,13 +145,29 @@ describe("S5 — the body's headings take the ladder (issue #493)", () => {
 
   it("every heading the renderer emits is one level under the page's h1", () => {
     const html = legalBodyHtml(md);
-    expect(html).toMatch(/<h2 class="[^"]*">Heading one<\/h2>/);
-    expect(html).toMatch(/<h3 class="[^"]*">Heading two<\/h3>/);
-    expect(html).toMatch(/<h4 class="[^"]*">Heading three<\/h4>/);
+    // `[^>]*` and not `class="[^"]*"`: since #936 a section heading also
+    // carries the `id` the contents list links to, which sits before the
+    // class. The level is what this row is about, and the level is
+    // unchanged.
+    expect(html).toMatch(/<h2[^>]*>Heading one<\/h2>/);
+    expect(html).toMatch(/<h3[^>]*>Heading two<\/h3>/);
+    expect(html).toMatch(/<h4[^>]*>Heading three<\/h4>/);
     // Never a second h1, and no `##` left at the level it would have to be
     // restyled off.
     expect(html).not.toContain("<h1");
     expect(html.match(/<h2/g)).toHaveLength(1);
+    // Each heading still carries the renderer's own class map.
+    for (const level of [2, 3, 4]) expect(html).toMatch(new RegExp(`<h${level}[^>]*class="[^"]+"`));
+  });
+
+  it("only the section headings get an anchor, and it is their own words (#936)", () => {
+    const html = legalBodyHtml(md);
+    // The shallowest level is the section level — here `#`, which demotes
+    // to `<h2>`. A deeper heading is a subsection and is not in the list,
+    // so it takes no anchor.
+    expect(html).toMatch(/<h2 id="heading-one"/);
+    expect(html).not.toMatch(/<h3 id=/);
+    expect(html).not.toMatch(/<h4 id=/);
   });
 
   it("a body heading carries no size of its own — the type ladder's element step decides it", () => {

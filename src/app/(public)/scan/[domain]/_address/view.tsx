@@ -10,15 +10,17 @@
 // landing page's own five `landing.problem.*` lines rather than minting
 // five more: same union, same wording obligation, one home per claim.
 import type React from "react";
-import { CircleAlert } from "lucide-react";
+import Link from "next/link";
+import { Clock, RefreshCw } from "lucide-react";
 import { Surface } from "@/ui/layout";
 import { copy } from "@/lib/presentation/copy";
+import { QuietPage } from "@/app/_quiet/QuietCard";
 import LandingPage from "@/app/(public)/page";
 import { ReportView } from "./report-view";
 import { RemovedView } from "./removal";
 import { ScanProgress } from "./progress";
 import type { AddressState } from "./state";
-import { refusalLine } from "./refusal";
+import { refusalHeading, refusalLine } from "./refusal";
 import { Num } from "./measured";
 
 /** The card every short arm renders inside: the domain as a mono heading,
@@ -57,6 +59,11 @@ function Pane(p: { children: React.ReactNode }): React.JSX.Element {
     </Surface>
   );
 }
+
+/** The report a refused visitor is offered instead: the dev fixture's own
+ *  address, which is the one report that exists whatever the database
+ *  holds and the one the owner reviews. */
+const EXAMPLE_REPORT = "/scan/example.com";
 
 export function AddressView(p: {
   state: AddressState;
@@ -121,37 +128,70 @@ export function AddressView(p: {
         </Pane>
       );
 
-    // REQ-003 c12: the refusal in writing, and no scan starts. This arm
-    // offers no control at all.
+    // REQ-003 c12: the refusal in writing, and no scan starts.
+    //
+    // **It used to offer no control at all** — a bare alert, and a
+    // stranger's first meeting with the product ending with nothing to
+    // press. SPEC §1 (2026-09-20) settles it the other way: "the removed
+    // and refused arms offer a way back to the landing". So this is the
+    // quiet card, with the wait in the heading (it is the answer to the
+    // only question the reader has) and the approved refusal sentence
+    // beneath it, unchanged.
+    //
+    // Neither control starts a scan, which is what REQ-003 c12 forbids:
+    // one reads a report that already exists, the other goes back to the
+    // field. Both are links.
     case "refused":
       return (
-        <Pane>
-          <div role="alert" className="alert">
-            <CircleAlert size={20} strokeWidth={1.75} aria-hidden />
-            <span>{refusalLine(state.refusal)}</span>
-          </div>
-        </Pane>
+        <QuietPage
+          icon={Clock}
+          tone="warn"
+          testId="scan-refused"
+          eyebrow={<Num>{state.domain}</Num>}
+          heading={refusalHeading(state.refusal)}
+          lines={[refusalLine(state.refusal)]}
+          actions={
+            <>
+              <Link href={EXAMPLE_REPORT} className="btn btn-outline btn-sm">
+                {copy("control.example-report")}
+              </Link>
+              <Link href="/" className="btn btn-ghost btn-sm">
+                {copy("control.back-to-start")}
+              </Link>
+            </>
+          }
+        />
       );
 
     // REQ-001 c16: one line says what happened, one manual retry is
     // offered, and no scan starts by itself.
+    //
+    // **The retry now retries** (#936). It was a `<button type="button">`
+    // with no handler — drawn, focusable, and doing nothing, which is the
+    // defect SPEC §1's 2026-09-20 line names ("every control on them does
+    // something"). It is a form posting the domain to the scan API, which
+    // is the same door the landing field goes through and answers a form
+    // post with `303` to the address (`api/scan/route.ts`). So it works
+    // with no JavaScript at all, and nothing starts by itself: the scan
+    // begins when the visitor presses it and not before.
     case "cooldown":
       return (
-        <Pane>
-          {/* One line, one manual retry, and nothing that restarts by
-              itself (REQ-001 c16). The set draws it as the state card with
-              its line in the body rather than as a warn-toned alert: the
-              whole screen *is* the notice here, and a tinted box inside a
-              card of the same shape says it twice. */}
-          <StateCard domain={state.domain}>
-            <p>{copy("notice.measurement-failed")}</p>
-            <div className="card-actions">
-              <button type="button" className="btn btn-primary">
+        <QuietPage
+          icon={RefreshCw}
+          tone="warn"
+          testId="scan-cooldown"
+          eyebrow={<Num>{state.domain}</Num>}
+          heading={copy("quiet.cooldown.head")}
+          lines={[copy("notice.measurement-failed")]}
+          actions={
+            <form action="/api/scan" method="post">
+              <input type="hidden" name="value" value={state.domain} />
+              <button type="submit" className="btn btn-primary btn-sm" data-testid="scan-cooldown-retry">
                 {copy("control.retry")}
               </button>
-            </div>
-          </StateCard>
-        </Pane>
+            </form>
+          }
+        />
       );
 
     case "report":

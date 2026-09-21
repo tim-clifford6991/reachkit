@@ -34,7 +34,8 @@
 // down. The CSP nonce is read the way the root layout reads it (#331):
 // off the policy `src/middleware.ts` forwarded on this request.
 import type React from "react";
-import { PanelLeftClose, PanelLeftOpen, Send, TrendingUp } from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen, Send } from "lucide-react";
+import { Brand, BrandMark } from "@/app/_brand/Brand";
 import { Surface } from "@/ui/layout";
 import { copy } from "@/lib/presentation/copy";
 import { AppDock } from "./_shell/AppDock";
@@ -52,18 +53,6 @@ import { readShell } from "./_shell/provider";
 import { readOnboarding } from "./_shell/onboarding";
 import { MARKET_TOO_SMALL, readCategoryChoice } from "./_shell/remeasure";
 import { OnboardingStatus } from "./_shell/OnboardingStatus";
-
-/** The product's mark, as the public header draws it, linking home to /app. */
-function Brand(): React.JSX.Element {
-  return (
-    <a href="/app" className="flex min-w-0 items-center gap-2 text-lg font-extrabold tracking-tight" data-testid="shell-brand">
-      <span className="grid size-7 shrink-0 place-items-center rounded-field bg-primary text-primary-content" aria-hidden>
-        <TrendingUp size={16} strokeWidth={1.75} aria-hidden />
-      </span>
-      <span className="truncate">{copy("chrome.wordmark")}</span>
-    </a>
-  );
-}
 
 export default async function AppLayout({
   children,
@@ -138,7 +127,7 @@ export default async function AppLayout({
             {/* ── the full panel ─────────────────────────────────── */}
             <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-5 overflow-y-auto lg:is-drawer-open:hidden">
               <div className="flex min-w-0 items-center gap-2">
-                <Brand />
+                <Brand href="/app" testId="shell-brand" />
                 <label
                   htmlFor={DRAWER_TOGGLE_ID}
                   className="btn btn-ghost btn-square btn-sm tooltip tooltip-bottom ms-auto hidden shrink-0 lg:flex"
@@ -175,9 +164,7 @@ export default async function AppLayout({
               className="hidden flex-col items-center gap-2 lg:is-drawer-open:flex lg:is-drawer-open:h-full"
               data-testid="shell-rail"
             >
-              <span className="grid size-9 shrink-0 place-items-center rounded-field bg-primary text-primary-content" aria-hidden>
-                <TrendingUp size={18} strokeWidth={1.75} aria-hidden />
-              </span>
+              <BrandMark size="lg" />
               <label
                 htmlFor={DRAWER_TOGGLE_ID}
                 className="btn btn-ghost btn-square btn-sm tooltip tooltip-right shrink-0"

@@ -32,6 +32,7 @@
 // gate and renders neither, and `global-error` replaces the root layout
 // altogether.
 import type React from "react";
+import { Search, TriangleAlert, type LucideIcon } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { Surface } from "@/ui/layout";
 import type { Arm, Band } from "@/ui/layout";
@@ -60,17 +61,19 @@ interface FallbackProps {
  *  JetBrains Mono, and `.num` is the one class that binds the face — while
  *  the error page's eyebrow is words and stays in the UI family. */
 const HEAD: Readonly<
-  Record<FallbackKind, { eyebrow: CopyKey; heading: CopyKey; numeral: boolean }>
+  Record<FallbackKind, { eyebrow: CopyKey; heading: CopyKey; numeral: boolean; icon: LucideIcon }>
 > = Object.freeze({
   "not-found": {
     eyebrow: "chrome.notfound.eyebrow",
     heading: "chrome.notfound.heading",
     numeral: true,
+    icon: Search,
   },
   error: {
     eyebrow: "chrome.error.eyebrow",
     heading: "chrome.error.heading",
     numeral: false,
+    icon: TriangleAlert,
   },
 });
 
@@ -89,9 +92,20 @@ const EYEBROW = "text-xs font-semibold uppercase tracking-wide text-base-content
 
 function Fallback(p: FallbackProps & { kind: FallbackKind }): React.JSX.Element {
   const head = HEAD[p.kind];
+  const Glyph = head.icon;
   return (
     <Surface arms={ARMS}>
       <main className={MAIN} data-testid={p.testId}>
+        {/* The icon tile every quiet page carries (#936, the 2026-09-20
+            `R6-6` board). `plain` and never a tone: a mistyped address is
+            not an alarm, and the error page's own eyebrow already says
+            which of the two screens this is. */}
+        <span
+          className="bg-base-200 text-base-content/70 rounded-box grid size-10 shrink-0 place-items-center"
+          aria-hidden
+        >
+          <Glyph size={20} strokeWidth={1.75} aria-hidden />
+        </span>
         {/* The eyebrow sits directly on the heading; size and weight of the
             h1 are the element's own, from `src/ui/type.css`. */}
         <div className="flex flex-col items-center">

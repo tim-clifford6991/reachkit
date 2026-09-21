@@ -6,10 +6,11 @@
 "use client";
 
 import Link from "next/link";
-import { Lock, Mail, TrendingUp } from "lucide-react";
+import { Lock, Mail } from "lucide-react";
 import { use, useActionState, useState } from "react";
 import { Surface } from "@/ui/layout";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
+import { BrandMark } from "@/app/_brand/Brand";
 import { DEAD_LINK_MARKER, LINK_QUERY_KEY } from "@/lib/account/identity/addresses";
 import { sendLink } from "./actions";
 import { EMAIL_FIELD, SIGN_IN_INITIAL, type SignInState } from "./state";
@@ -106,9 +107,7 @@ export default function SignInPage(props: {
                   header stands above it: the screen's whole job is one
                   field, and a bar would put a control over it. */}
               <p className="flex items-center gap-2 text-lg font-extrabold tracking-tight" data-testid="signin-brand">
-                <span className="grid size-7 place-items-center rounded-field bg-primary text-primary-content" aria-hidden>
-                  <TrendingUp size={16} strokeWidth={1.75} aria-hidden />
-                </span>
+                <BrandMark />
                 <span>{copy("chrome.wordmark")}</span>
               </p>
 

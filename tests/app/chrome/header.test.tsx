@@ -11,6 +11,24 @@
 // solid button. On the landing the CTA is not a submit control: it focuses
 // the one field, which keeps REQ-001 c1 true.
 //
+// **2026-09-21, issue #936 — the bar gained Pricing and a phone menu.**
+// Two rows below asserted the shape that came before it and now assert the
+// shape that replaced it, rather than being deleted or loosened:
+//
+//   · `Pricing` is in the bar. #936's own Build line spells the header
+//     "brand · Pricing · Sign in · outline Scan my site", and the row that
+//     said a fourth link was not one of the header's things now says which
+//     four there are.
+//   · There is a `<button>` off the landing: the phone menu's trigger.
+//     What that row was protecting — that the **CTA** is an anchor and not
+//     a script-driven control — is asserted directly instead.
+//
+// The theme control (#681) is rendered twice, once per width arm, because
+// CSS cannot move one element between two containers. Only one is ever
+// displayed; the bar's is wrapped in `public-header-theme` and the menu's
+// is inside `public-header-menu`, so the rows below count per arm rather
+// than over the document.
+//
 // **The right slot is a closed union.** Three arms — the pair, the landing's
 // field CTA, and the report address's copy control beside the pair — chosen
 // by `headerActionFor`, which this file asserts per route (issue 714).
@@ -23,7 +41,12 @@ function markup(action: HeaderAction): string {
 }
 
 function withoutThemeToggle(html: string): string {
-  return html.replace(/<div[^>]*data-testid="theme-toggle"[\s\S]*?<\/ul><\/div>/, "");
+  return html.replace(/<div[^>]*data-testid="theme-toggle"[\s\S]*?<\/ul><\/div>/g, "");
+}
+
+/** The bar without the phone menu — what a reader sees from `sm`. */
+function withoutPhoneMenu(html: string): string {
+  return html.replace(/<div[^>]*data-testid="public-header-menu"[\s\S]*?<\/ul><\/div>/, "");
 }
 
 const LANDING: HeaderAction = { kind: "landing" };
@@ -62,9 +85,11 @@ describe("SPEC §1 — brand · Sign in · the header CTA, outline", () => {
     for (const html of [markup(LANDING), markup(ELSEWHERE)]) {
       expect(html).toContain('href="/signin"');
       expect(html).toContain("btn-ghost");
-      // Pricing is in the footer's Product column; the header is three
-      // things and a fourth link is not one of them.
-      expect(html).not.toContain('href="/pricing"');
+      // #936: the bar is brand · Pricing · Sign in · the CTA. Those four
+      // and no fifth — a link to anywhere else belongs in the footer.
+      expect(html).toContain('href="/pricing"');
+      const hrefs = new Set([...html.matchAll(/href="([^"]*)"/g)].map((m) => m[1]));
+      expect([...hrefs].sort()).toEqual(["/", "/pricing", "/signin"]);
     }
   });
 
@@ -78,18 +103,41 @@ describe("SPEC §1 — brand · Sign in · the header CTA, outline", () => {
 
   it("off the landing the CTA is a link to the field's own page", () => {
     const html = markup(ELSEWHERE);
-    expect(html).toContain('href="/"');
-    // No `<button>` in the CTA slot: a navigation with no client runtime,
-    // which is what an anchor is for. The theme control (#681) is the
-    // header's own and is lifted out first.
-    expect(withoutThemeToggle(html)).not.toContain("<button");
+    // The CTA itself is an anchor: a navigation with no client runtime,
+    // which is what an anchor is for. Asserted on the element rather than
+    // by counting `<button>`s over the document, because since #936 the
+    // document also holds the phone menu's trigger and the theme
+    // control's — neither of which is the CTA.
+    expect(html).toMatch(/<a[^>]*href="\/"[^>]*class="[^"]*btn-outline[^"]*"|<a[^>]*class="[^"]*btn-outline[^"]*"[^>]*href="\/"/);
+    expect(html).not.toMatch(/<button[^>]*class="[^"]*btn-outline/);
   });
 
-  it("#681 — every arm carries the Light / Dark / System control", () => {
+  it("the phone menu holds what the bar drops, and the bar keeps the brand and the CTA (#936)", () => {
+    const html = markup(ELSEWHERE);
+    // The bar at 390 is three things: brand, the outline CTA, the menu.
+    const bar = withoutPhoneMenu(html);
+    expect(bar).toContain('data-testid="public-brand"');
+    expect(bar).toMatch(/btn-outline/);
+    expect(html).toContain('data-testid="public-header-menu"');
+    // Nothing is dropped: every link in the bar is also in the menu, so a
+    // phone reader can reach all of them.
+    const menu = html.slice(html.indexOf('data-testid="public-header-menu"'));
+    for (const href of ["/pricing", "/signin"]) expect(menu).toContain(`href="${href}"`);
+  });
+
+  it("#681 — every arm carries the Light / Dark / System control, at both widths", () => {
     for (const action of [LANDING, ELSEWHERE, REPORT]) {
       expect(markup(action)).toContain('data-testid="theme-toggle"');
     }
-    expect(markup(ELSEWHERE).match(/data-theme-choice="(light|dark|system)"/g)).toHaveLength(3);
+    // Three choices in each width arm, and exactly two arms: the bar's,
+    // shown from `sm`, and the phone menu's. Counted per arm so that a
+    // third copy arriving somewhere would fail this rather than passing
+    // as "six".
+    const html = markup(ELSEWHERE);
+    const inBar = withoutPhoneMenu(html);
+    expect(inBar.match(/data-theme-choice="(light|dark|system)"/g)).toHaveLength(3);
+    expect(html.match(/data-theme-choice="(light|dark|system)"/g)).toHaveLength(6);
+    expect(html.match(/data-testid="theme-toggle"/g)).toHaveLength(2);
   });
 
   it("on the landing the CTA is a button that focuses the field, never a second submit (REQ-099 c3, REQ-001 c1)", () => {

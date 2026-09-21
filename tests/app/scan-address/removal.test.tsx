@@ -78,7 +78,12 @@ function code(text: string): string {
 
 /** Every interactive element REQ-001 c18 forbids on a removed address, as
  *  tag names and as the one attribute that makes a plain element one. */
-const INTERACTIVE_TAGS = ["button", "a", "form", "input", "select", "textarea", "label", "option"];
+/** Everything that could start a scan or re-open a removed report. `a` is
+ *  **not** here since #936: the arm now carries exactly one link, to the
+ *  landing, and the row below asserts what it is and where it goes. The
+ *  rest of REQ-001 c18 — "no re-scan or retry control is offered, and no
+ *  scan starts" — is what these tags are, and it is unchanged. */
+const INTERACTIVE_TAGS = ["button", "form", "input", "select", "textarea", "label", "option"];
 
 describe('REQ-002 c1 — "Given any report, when it renders, then it names in writing the address to which a request to remove the report about that domain is sent, readable by a visitor with no account, session, or payment."', () => {
   it("the line at the foot of a report names the address, resolved from `removal.address`", () => {
@@ -147,9 +152,12 @@ describe("one address, from one key", () => {
 });
 
 describe('REQ-002 c3 — "…in its place one written line says the report was removed at the domain owner\'s request and names the address criterion 1 names — until a request to that same address asks for that domain to be scannable again."', () => {
-  it("renders exactly one written line, naming the domain and the address", () => {
+  it("renders one written line under one heading, naming the domain and the address", () => {
     const html = renderToStaticMarkup(React.createElement(RemovedView, { domain: DOMAIN }));
-    expect(html.match(/<p>/g) ?? []).toHaveLength(1);
+    // One heading and one line since #936's quiet-page shape; the line is
+    // the approved sentence, unchanged, and it is still the only place the
+    // domain and the address are named.
+    expect(html.match(/<h1[\s>]/g) ?? []).toHaveLength(1);
     expect(html).toContain(DOMAIN);
     expect(html).toContain(COPY["removal.address"]);
   });
@@ -175,9 +183,17 @@ describe('REQ-002 c3 — "…in its place one written line says the report was r
     // this very sentence's "removed" and of `removal.address` itself. The
     // sweep reported that collision as report content leaking onto a removed
     // address, which it is not.
+    //
+    // Since #936 the screen is three registry strings and not one — the
+    // heading, the approved line, and the word on the one way out — so the
+    // equality names all three. It is still an equality, which is what
+    // makes it a claim about everything on the screen rather than about
+    // the things somebody thought to look for.
     const rendered = html.replace(/<[^>]*>/g, "").trim();
     expect(rendered).toBe(
-      copy("removal.line.removed", { domain: DOMAIN, address: COPY["removal.address"] })
+      copy("quiet.removed.head") +
+        copy("removal.line.removed", { domain: DOMAIN, address: COPY["removal.address"] }) +
+        copy("control.scan-another")
     );
   });
 
@@ -188,17 +204,26 @@ describe('REQ-002 c3 — "…in its place one written line says the report was r
   });
 });
 
-describe('REQ-001 c18 — "…no stored report is shown, no re-scan or retry control is offered, and no scan starts — criteria 12 to 17 offer no route back to a removed report."', () => {
+describe('REQ-001 c18 — "…no stored report is shown, no re-scan or retry control is offered, and no scan starts", and the one way out SPEC §1 (2026-09-20) adds', () => {
   const html = renderToStaticMarkup(React.createElement(RemovedView, { domain: DOMAIN }));
 
   it.each(INTERACTIVE_TAGS)("renders no <%s>", (tag) => {
     expect(html).not.toMatch(new RegExp(`<${tag}[\\s>]`, "i"));
   });
 
-  it("renders nothing clickable at all — no href, no onclick, no role=button", () => {
-    expect(html).not.toContain("href");
+  it("offers exactly one way out, and it is a link to the landing (#936)", () => {
+    // The rule that changed, and the whole of it. SPEC §1's line of
+    // 2026-09-20 — "the removed and refused arms offer a way back to the
+    // landing" — is the owner deciding against REQ-001 c18's "no route
+    // back", and #936 restates it. So this arm has one link; what it must
+    // not have is a second one, a route back to *this* report, or
+    // anything that could start a scan.
+    const hrefs = [...html.matchAll(/href="([^"]*)"/g)].map((m) => m[1]);
+    expect(hrefs).toEqual(["/"]);
     expect(html).not.toContain("onclick");
     expect(html).not.toContain('role="button"');
+    // Nothing points back at a report address, this domain's least of all.
+    expect(html).not.toContain("/scan/");
   });
 
   it("starts nothing — the module posts to no scan endpoint and imports no admission function", () => {

@@ -91,6 +91,9 @@ async function ownTitleOf(route: string): Promise<unknown> {
 const nonEmpty = (value: unknown): boolean =>
   typeof value === "string" && value.trim().length > 0;
 
+/** Long enough for a route module's own import graph on this box. */
+const IMPORT_MS = 60_000;
+
 /** The screens that owe a reader their own name: the eight #945 names, plus
  *  Settings' six sibling tabs (#925), which are six more addresses a person
  *  holding twenty tabs can be on.
@@ -147,17 +150,30 @@ describe("issue #945 — the group has a floor, so no signed-in screen is untitl
 
 describe("issue #945 — each named screen says which screen it is", () => {
   for (const [route, key] of Object.entries(NAMED)) {
-    it(`${route} carries its own non-empty title`, async () => {
-      const title = await ownTitleOf(route);
-      expect(nonEmpty(title), `${route} ships no title of its own`).toBe(true);
-      expect(title).toBe(copy(key as Parameters<typeof copy>[0]));
-    });
+    it(
+      `${route} carries its own non-empty title`,
+      async () => {
+        const title = await ownTitleOf(route);
+        expect(nonEmpty(title), `${route} ships no title of its own`).toBe(true);
+        expect(title).toBe(copy(key as Parameters<typeof copy>[0]));
+      },
+      // These import a real route module, and one of them pulls a whole
+      // library graph with it: `/app/calendar` reaches `react-day-picker`
+      // and `date-fns` through `MonthGrid` (#930), whose cold transform on
+      // a loaded build box runs past vitest's 5s default. The assertion is
+      // on an exported object and costs nothing; the wait is the import.
+      IMPORT_MS
+    );
   }
 
-  it("no two screens announce the same thing", async () => {
-    const titles = await Promise.all(Object.keys(NAMED).map(ownTitleOf));
-    expect(new Set(titles).size).toBe(titles.length);
-  });
+  it(
+    "no two screens announce the same thing",
+    async () => {
+      const titles = await Promise.all(Object.keys(NAMED).map(ownTitleOf));
+      expect(new Set(titles).size).toBe(titles.length);
+    },
+    IMPORT_MS
+  );
 
   it("every one of them is a sentence the registry owns, and none is the marker", () => {
     for (const key of Object.values(NAMED)) {

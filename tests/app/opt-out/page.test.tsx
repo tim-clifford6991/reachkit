@@ -29,6 +29,7 @@ import type React from "react";
 import { applyEnvFixture } from "../../mail/env-fixture";
 import { blankLead, memoryStore, newMemoryState, type MemoryState } from "../../mail/leads/memory-store";
 import { codeOf } from "../../mail/leads/source";
+import { CircleCheck, TriangleAlert } from "lucide-react";
 
 applyEnvFixture();
 
@@ -65,12 +66,23 @@ function classOf(node: Node): string {
   return String(node.props?.className ?? "");
 }
 
-/** The card's eyebrow: the uppercase line with the mail icon that opens it. */
+/** The screen's heading.
+ *
+ *  Since #936 this page draws the shared quiet-page shape
+ *  (`src/app/_quiet/QuietCard.tsx`) rather than its own card, so what this
+ *  file asserts is the *decisions this page makes* — which heading, which
+ *  line, which glyph, which tone, which one control — handed to that
+ *  component as props. The shape those props are drawn in is `QuietCard`'s
+ *  own to assert, and asserting it again here would be two files that have
+ *  to be edited together the next time the card moves. */
+function quietPage(tree: React.ReactNode): Node {
+  const found = nodes(tree).find((node) => (node.type as { name?: string })?.name === "QuietPage");
+  if (found === undefined) throw new Error("the opt-out page no longer renders a QuietPage");
+  return found;
+}
+
 function eyebrowOf(tree: React.ReactNode): unknown {
-  const head = nodes(tree).find((node) => node.type === "p" && classOf(node).includes("uppercase"));
-  const children = head?.props.children;
-  const list = Array.isArray(children) ? children : [children];
-  return list.find((child) => typeof child === "string");
+  return quietPage(tree).props.heading;
 }
 
 /** Every string-valued prop anywhere in the tree — the words the page puts
@@ -164,13 +176,24 @@ describe("three arms, three heads, no fourth rendering and no default arm", () =
 });
 
 describe("the set's card, and nothing else on the page", () => {
-  it("it is one daisyUI card with the mail icon in its head, and no tinted block", async () => {
-    const tree = await OptOutPage({ params: { token: "not-a-token" } });
-    expect(nodes(tree).filter((node) => /(^|\s)card(\s|$)/.test(classOf(node)))).toHaveLength(1);
-    const types = nodes(tree).map((node) => (node.type as { displayName?: string; name?: string })?.displayName ?? (node.type as { name?: string })?.name ?? node.type);
-    expect(types.some((t) => typeof t === "string" && /mail/i.test(t))).toBe(true);
+  it("it is the one quiet-page shape, with a glyph and a tone that say which arm it is", async () => {
+    // #936: one card for every screen a visitor did not mean to land on.
+    // What this page decides is the glyph and the tone — an applied
+    // opt-out is the thing working, a link that would not resolve is not.
+    const applied = await OptOutPage({ params: { token: optOutTokenFor("anna@example.com") } });
+    expect(quietPage(applied).props.tone).toBe("ok");
+    // By identity against lucide's own export, not by a name: an icon is a
+    // `forwardRef` object and carries no readable `name`.
+    expect(quietPage(applied).props.icon).toBe(CircleCheck);
+
+    const unresolved = await OptOutPage({ params: { token: "not-a-token" } });
+    expect(quietPage(unresolved).props.tone).toBe("warn");
+    expect(quietPage(unresolved).props.icon).toBe(TriangleAlert);
+    // The two arms do not share a glyph, which is what makes it a signal.
+    expect(quietPage(applied).props.icon).not.toBe(quietPage(unresolved).props.icon);
+
     // The line is the card's body, not an alert.
-    expect(nodes(tree).filter((node) => /\balert\b/.test(classOf(node)))).toEqual([]);
+    expect(nodes(unresolved).filter((node) => /\balert\b/.test(classOf(node)))).toEqual([]);
   });
 
   it("one control on every arm — the quiet way back — and no form, field or toggle", async () => {
@@ -182,7 +205,11 @@ describe("the set's card, and nothing else on the page", () => {
 
       expect(controls).toHaveLength(1);
       expect(controls[0]?.props.children).toBe(copy("chrome.back-to-reachkit"));
-      expect(classOf(controls[0] as Node)).toContain("btn-ghost");
+      // Outline since #936, not ghost: on a quiet page the one way out is
+      // the thing to press, and the board draws it as the card's own
+      // control rather than as a whisper under it. Still not solid — see
+      // the row below.
+      expect(classOf(controls[0] as Node)).toContain("btn-outline");
       expect(controls[0]?.props.href).toBe("/");
 
       const types = nodes(tree).map((node) => node.type);
@@ -204,7 +231,9 @@ describe("the set's card, and nothing else on the page", () => {
   it("it holds no string a person reads, and no wrapper component", () => {
     const code = codeOf("src/app/(public)/opt-out/[token]/page.tsx");
     expect(code).not.toMatch(/from "@\/ui\/(idiom|components)"/);
-    expect(code).toMatch(/from "@\/ui\/layout"/);
+    // The screen root is the shared quiet page's `Surface` since #936, so
+    // this file no longer declares band arms of its own.
+    expect(code).toMatch(/from "@\/app\/_quiet\/QuietCard"/);
     // Every sentence goes through `copy()`; nothing is written here.
     expect(code).not.toMatch(/label=\{"|label="/);
   });

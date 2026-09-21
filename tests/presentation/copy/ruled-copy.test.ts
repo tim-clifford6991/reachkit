@@ -249,7 +249,20 @@ describe('REQ-001 c16 — "… then one written line says what happened and a ma
       ].sort()
     );
     expect(controlKeys.sort()).toEqual(
-      ["control.correction-retry", "control.rescan-age", "control.rescan-incomplete", "control.retry", "control.retry-part"].sort()
+      [
+        "control.correction-retry",
+        "control.rescan-age",
+        "control.rescan-incomplete",
+        "control.retry",
+        "control.retry-part",
+        // #936's three ways off a quiet page. None of them re-measures
+        // anything — that is what the five above are for, and it is why
+        // this list is worth counting: a control key is a promise that
+        // something happens when it is pressed, and these three navigate.
+        "control.back-to-start",
+        "control.example-report",
+        "control.scan-another",
+      ].sort()
     );
   });
 });

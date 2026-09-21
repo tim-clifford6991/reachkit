@@ -81,7 +81,18 @@ describe("S8 — one shape, and every mount wears it", () => {
   it.each(NOT_FOUND_SCREENS)("$name shows the set's 404 eyebrow and heading", ({ markup }) => {
     expect(markup).toContain(`>${COPY["chrome.notfound.eyebrow"]}</p>`);
     expect(markup).toContain(`<h1>${COPY["chrome.notfound.heading"]}</h1>`);
-    expect(COPY["chrome.notfound.heading"]).toBe("There is no page at this address.");
+    // The sentence itself changed with #936 — S8's "There is no page at
+    // this address." was written for a screen that then offered a field
+    // and a specimen address, and the 2026-09-20 board says what happened
+    // instead. Pinned here so a silent edit to a customer-visible string
+    // fails a test rather than shipping.
+    expect(COPY["chrome.notfound.heading"]).toBe("We can’t find that page");
+  });
+
+  it.each(NOT_FOUND_SCREENS)("$name carries the quiet page's icon tile (#936)", ({ markup }) => {
+    // Every quiet page opens with one, and the 404 is one. `aria-hidden`:
+    // the heading under it already says what the screen is.
+    expect(markup).toMatch(/<span class="[^"]*size-10[^"]*"[^>]*aria-hidden="true"><svg/);
   });
 
   it.each(NOT_FOUND_SCREENS)("$name sets the 404 in the mono face", ({ markup }) => {
@@ -140,10 +151,17 @@ describe("S8 — the line each screen writes", () => {
   });
 });
 
-/** The header's Light / Dark / System control (#681), lifted out of a
- *  screen's markup: it is chrome, not the screen's one control. */
-function withoutThemeToggle(markup: string): string {
-  return markup.replace(/<div[^>]*data-testid="theme-toggle"[\s\S]*?<\/ul><\/div>/, "");
+/** The header's own controls, lifted out of a screen's markup: they are
+ *  chrome, not the screen's one control.
+ *
+ *  Two of them since #936 — the Light / Dark / System control (#681),
+ *  which the header renders once per width arm, and the phone menu's
+ *  trigger. Both are the frame's, on every public route; what S8's rule
+ *  below is about is the control the *screen* offers. */
+function withoutHeaderControls(markup: string): string {
+  return markup
+    .replace(/<div[^>]*data-testid="public-header-menu"[\s\S]*?<\/ul><\/div>/g, "")
+    .replace(/<div[^>]*data-testid="theme-toggle"[\s\S]*?<\/ul><\/div>/g, "");
 }
 
 describe("S8 — one control per screen, and it is the route group's own", () => {
@@ -161,7 +179,11 @@ describe("S8 — one control per screen, and it is the route group's own", () =>
     // named field — under S8's word.
     expect(occurrences(markup, 'action="/api/scan"')).toBe(1);
     expect(occurrences(markup, "<input")).toBe(1);
-    expect(occurrences(withoutThemeToggle(markup), "<button")).toBe(1);
+    // One control that is the screen's own; the frame's two are lifted out
+    // above. The scan field stays the 404's way onward rather than the
+    // board's two links — it is the strongest one available, and #936 asks
+    // for "at least one control", not for a weaker one.
+    expect(occurrences(withoutHeaderControls(markup), "<button")).toBe(1);
     expect(markup).toContain(COPY["chrome.notfound.cta"]);
     expect(markup).toContain(COPY["landing.field.placeholder"]);
   });

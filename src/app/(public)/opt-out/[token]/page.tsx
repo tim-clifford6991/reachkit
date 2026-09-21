@@ -39,13 +39,12 @@
 import type React from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Mail } from "lucide-react";
+import { CircleCheck, TriangleAlert } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import type { CopyKey } from "@/lib/presentation/copy";
 import { applyOptOutToken } from "@/lib/mail/leads";
-import { Surface } from "@/ui/layout";
 import { AddressLine } from "@/app/_fallback/AddressLine";
-import type { Arm, Band } from "@/ui/layout";
+import { QuietPage, type QuietTone } from "@/app/_quiet/QuietCard";
 import { PUBLIC_ROUTE_SEO } from "../../_seo/routes";
 import { staticMetadata } from "../../_seo/metadata";
 
@@ -53,14 +52,6 @@ import { staticMetadata } from "../../_seo/metadata";
  *  component directly with a resolved object, the same direct-call
  *  convention `tests/app/layout.test.ts` uses. */
 type TokenParams = { token: string };
-
-/** One column at every band: the page is one card, and there is nothing to
- *  put beside it. */
-const ARMS = {
-  compact: { kind: "columns", count: 1 },
-  medium: { kind: "columns", count: 1 },
-  wide: { kind: "columns", count: 1 },
-} as const satisfies Record<Band, Arm>;
 
 /** The set's own confirmation, with the address inside it. */
 const CONFIRMED: CopyKey = "optout.confirmed";
@@ -78,15 +69,27 @@ const HOME = "/";
 function arm(applied: Awaited<ReturnType<typeof applyOptOutToken>>): {
   head: CopyKey;
   line: React.ReactNode;
+  /** The quiet card's own two: an applied opt-out is the thing working,
+   *  and a link that would not resolve is not an alarm either (§2.5) —
+   *  so `ok` and `warn`, and never `bad`. */
+  tone: QuietTone;
+  icon: typeof CircleCheck;
 } {
   if ("email" in applied) {
     return {
       head: "optout.head",
       line: <AddressLine copyKey={CONFIRMED} address={applied.email} />,
+      tone: "ok",
+      icon: CircleCheck,
     };
   }
   const line: CopyKey = applied.error === "invalid" ? "optout.invalid" : "optout.unavailable";
-  return { head: "optout.head.unresolved", line: <p>{copy(line)}</p> };
+  return {
+    head: "optout.head.unresolved",
+    line: <p>{copy(line)}</p>,
+    tone: "warn",
+    icon: TriangleAlert,
+  };
 }
 
 /** Issue #326: `noindex`, from this route's row in `_seo/routes.ts`. The
@@ -102,26 +105,25 @@ export default async function OptOutPage(p: {
   params: TokenParams | Promise<TokenParams>;
 }): Promise<React.JSX.Element> {
   const { token } = await p.params;
-  const { head, line } = arm(await applyOptOutToken(token));
+  const { head, line, tone, icon } = arm(await applyOptOutToken(token));
 
+  // The quiet-page shape, shared with every other screen a visitor did not
+  // mean to land on (#936). This route already drew an icon, a head, a
+  // line and a way back — it was the model the others are now held to —
+  // so what changes here is that the drawing is one file rather than this
+  // file's own, and the glyph and the tone say which of the two arms it is.
   return (
-    <Surface arms={ARMS}>
-      <main className="mx-auto w-full max-w-lg px-4 py-12 sm:py-16">
-        <div className="card border border-base-300 bg-base-100" data-testid={TEST_ID}>
-          <div className="card-body gap-4">
-            <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-base-content/60">
-              <Mail size={16} strokeWidth={1.75} aria-hidden />
-              {copy(head)}
-            </p>
-            {line}
-            <div>
-              <Link href={HOME} className="btn btn-ghost">
-                {copy("chrome.back-to-reachkit")}
-              </Link>
-            </div>
-          </div>
-        </div>
-      </main>
-    </Surface>
+    <QuietPage
+      icon={icon}
+      tone={tone}
+      testId={TEST_ID}
+      heading={copy(head)}
+      lines={[line]}
+      actions={
+        <Link href={HOME} className="btn btn-outline btn-sm">
+          {copy("chrome.back-to-reachkit")}
+        </Link>
+      }
+    />
   );
 }

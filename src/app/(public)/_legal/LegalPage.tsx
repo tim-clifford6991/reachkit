@@ -49,6 +49,7 @@ import type React from "react";
 import { Surface } from "@/ui/layout";
 import { copy } from "@/lib/presentation/copy";
 import { demoteHeadings, parseMarkdown, toHtml, type HtmlClasses } from "@/lib/publish/render/markdown";
+import { legalBodyWithIds, legalHeadings, type LegalHeading } from "./sections";
 import type { LegalDocument } from "./documents";
 
 /** Heading margins and weight only: the size is the element's ladder step. */
@@ -75,12 +76,65 @@ export const LEGAL_BODY_CLASSES: HtmlClasses = Object.freeze({
 });
 
 /** A legal body, Markdown in, HTML out: the one renderer's parse and
- *  serialiser with the headings levelled under the page's own `<h1>`. */
+ *  serialiser with the headings levelled under the page's own `<h1>`, and
+ *  since #936 an `id` on each section heading for the contents list to
+ *  link to. Still one renderer and still one call site — the ids are put
+ *  on by `legalBodyWithIds`, which calls it block by block. */
 export function legalBodyHtml(md: string): string {
-  return toHtml(demoteHeadings(parseMarkdown(md)), LEGAL_BODY_CLASSES);
+  return legalBodyWithIds(demoteHeadings(parseMarkdown(md)), LEGAL_BODY_CLASSES);
+}
+
+/** The contents list, from the document's own headings (#936).
+ *
+ *  Two shapes and one list: a daisyUI `collapse` above the text below
+ *  `lg`, where a 220px column beside a 704px measure does not fit on a
+ *  phone, and a column beside it from `lg`. The `<nav>` and its links are
+ *  written once — the two shapes are which wrapper is displayed, never two
+ *  lists that could come to name different sections. */
+function OnThisPage(p: { headings: readonly LegalHeading[] }): React.JSX.Element | null {
+  const headings = p.headings;
+  // A body with no headings of its own gets no list and no room kept for
+  // one — an imprint that is four lines of address has no sections, and a
+  // contents list naming one would be the product inventing structure the
+  // owner's document does not have.
+  if (headings.length === 0) return null;
+
+  const list = (
+    <ul className="menu w-full p-0">
+      {headings.map((h) => (
+        <li key={h.id}>
+          <a href={`#${h.id}`}>{h.text}</a>
+        </li>
+      ))}
+    </ul>
+  );
+
+  return (
+    <>
+      <details className="collapse-arrow border-base-300 bg-base-100 collapse border lg:hidden" data-testid="legal-toc-phone">
+        <summary className="collapse-title text-sm font-semibold">{copy("chrome.on-this-page")}</summary>
+        <nav className="collapse-content" aria-label={copy("chrome.on-this-page")}>
+          {list}
+        </nav>
+      </details>
+      <nav
+        className="hidden w-56 shrink-0 lg:block"
+        aria-label={copy("chrome.on-this-page")}
+        data-testid="legal-toc"
+      >
+        <p className="text-base-content/60 px-4 pb-1 text-xs font-semibold tracking-wide uppercase">
+          {copy("chrome.on-this-page")}
+        </p>
+        {list}
+      </nav>
+    </>
+  );
 }
 
 export function LegalPage(p: { document: LegalDocument }): React.JSX.Element {
+  const body = copy(p.document.body);
+  const headings = legalHeadings(demoteHeadings(parseMarkdown(body)));
+
   return (
     <Surface
       arms={{
@@ -89,26 +143,33 @@ export function LegalPage(p: { document: LegalDocument }): React.JSX.Element {
         wide: { kind: "same-as-below" },
       }}
     >
-      <main className="mx-auto flex w-full min-w-0 max-w-3xl flex-col gap-3 px-4 py-12">
-        <span className="text-xs font-semibold uppercase tracking-wide text-base-content/60">
-          {copy("legal.eyebrow")}
-        </span>
-        <h1>{copy(p.document.title)}</h1>
-        {/* The whole line is a date with one word in front of it, so the
-            whole line is in the mono face. */}
-        <p className="font-mono text-xs text-base-content/60">
-          {copy("legal.updated", { date: copy(p.document.updated) })}
-        </p>
-        {/* One card, no head: the page's own h1 already names the document. */}
-        <div className="card mt-3 border border-base-300 bg-base-100">
-          <div className="card-body">
-            <div
-              className="min-w-0 leading-relaxed text-base-content/80"
-              data-testid="legal-document"
-              dangerouslySetInnerHTML={{ __html: legalBodyHtml(copy(p.document.body)) }}
-            />
+      {/* The board's two columns from `lg`, one below it — and the article
+          held to the **ruled reading measure** (`--w-read`, 704px) rather
+          than to `max-w-3xl`'s 768. The token is the one `surface.css`
+          already selects for a read arm; this is not a second measure. */}
+      <main className="mx-auto flex w-full min-w-0 max-w-5xl flex-col gap-4 px-4 py-12 lg:flex-row lg:items-start lg:gap-8">
+        <OnThisPage headings={headings} />
+        <article className="flex w-full min-w-0 max-w-(--w-read) flex-col gap-3">
+          <span className="text-base-content/60 text-xs font-semibold tracking-wide uppercase">
+            {copy("legal.eyebrow")}
+          </span>
+          <h1>{copy(p.document.title)}</h1>
+          {/* The whole line is a date with one word in front of it, so the
+              whole line is in the mono face. */}
+          <p className="text-base-content/60 font-mono text-xs">
+            {copy("legal.updated", { date: copy(p.document.updated) })}
+          </p>
+          {/* One card, no head: the page's own h1 already names the document. */}
+          <div className="card border-base-300 bg-base-100 mt-3 border">
+            <div className="card-body">
+              <div
+                className="text-base-content/80 min-w-0 leading-relaxed"
+                data-testid="legal-document"
+                dangerouslySetInnerHTML={{ __html: legalBodyHtml(body) }}
+              />
+            </div>
           </div>
-        </div>
+        </article>
       </main>
     </Surface>
   );

@@ -41,3 +41,22 @@ export function refusalLine(refusal: AddressRefusal): string {
   if (refusal.reason === "stopped") return copy(REFUSAL_KEY[refusal.reason]);
   return copy(REFUSAL_KEY[refusal.reason], { wait: formatWait(refusal.retryAfterSeconds) });
 }
+
+/**
+ * The refusal's heading on its own screen (#936).
+ *
+ * SPEC §1's quiet-page shape puts the answer to the reader's only
+ * question first — *when can I scan again?* — and the approved sentence
+ * beneath it says why. Composed here, beside the line, for the same
+ * reason the line is: the wait figure and the unit word around it are
+ * read once, so the heading and the sentence under it can never name two
+ * different times.
+ *
+ * ReachKit's own stop takes the heading that promises nothing, because
+ * nobody can say when free scanning starts again (ADR-011) — the same
+ * fact that leaves its sentence without a `{wait}` slot.
+ */
+export function refusalHeading(refusal: AddressRefusal): string {
+  if (refusal.reason === "stopped") return copy("quiet.refused.head.stopped");
+  return copy("quiet.refused.head.wait", { wait: formatWait(refusal.retryAfterSeconds) });
+}
