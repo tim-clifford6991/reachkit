@@ -60,6 +60,19 @@ describe("an id the store does not hold resolves to one written line", () => {
     const root = await render("draft-nobody-owns");
     expect(root.querySelector('[data-testid="draft-not-found"]')).not.toBeNull();
     expect(root.querySelector('[data-testid="draft-view"]')).toBeNull();
-    expect(root.textContent).toBe(COPY["draft.not-found"]);
+    // The line, and nothing of the draft: no body, no checks, no rail.
+    expect(root.textContent).toContain(COPY["draft.not-found"]);
+    expect(root.querySelector('[data-testid="draft-body"]')).toBeNull();
+    expect(root.querySelector('[data-testid="draft-decide"]')).toBeNull();
+  });
+
+  it("issue #913 — and a way back, because a screen with nothing on it is a dead end", async () => {
+    const root = await render("draft-nobody-owns");
+    const back = root.querySelector('[data-testid="draft-not-found-back"]');
+    // The same address and the same word the draft's own back link
+    // carries: this route has no navigation of its own, so without it a
+    // stale link left the customer with one sentence and nowhere to go.
+    expect(back?.getAttribute("href")).toBe("/app/calendar");
+    expect(back?.textContent).toContain(COPY["draft.back"]);
   });
 });

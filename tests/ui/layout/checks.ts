@@ -135,6 +135,29 @@ export function checkContainment(opts: {
     // nothing to measure — skipped, never reported.
     if (el.getClientRects().length === 0) continue;
     const box = el.getBoundingClientRect();
+    // 2026-09-20, issue #913: an **out-of-flow** element is not laid out
+    // inside its parent's padding box at all. CSS gives `position: fixed`
+    // the viewport as its containing block and `position: absolute` the
+    // nearest positioned ancestor, neither of which is reliably the DOM
+    // parent — so comparing such an element to its parent's rect answers a
+    // question CSS never asked. The case that surfaced it is the answer
+    // stack (`sonner`, SPEC §4/§7 of 2026-09-20): a fixed, zero-height
+    // `<ol>` inside a plain `<section>`, holding absolutely positioned
+    // toasts. Nothing there is clipped and nothing escapes the screen, and
+    // reported against its parent every route in the product would have
+    // shown two offenders.
+    //
+    // What the law still protects for these is the screen's own edge, so
+    // that is what they are held to: an out-of-flow box may sit anywhere
+    // down the page, and may not stick out to either side of the viewport.
+    // A toast wider than the phone it is drawn on is still an offender.
+    const position = getComputedStyle(el).position;
+    if (position === "fixed" || position === "absolute") {
+      if (box.left < -EPS || box.right > window.innerWidth + EPS) {
+        offenders.push({ check: "containment", element: describe(el) });
+      }
+      continue;
+    }
     // 2026-09-05, issue #13: the same reasoning one step further. An
     // element whose border box has zero area draws nothing and has no
     // extent to contain, so a rect sitting a few pixels past its parent's

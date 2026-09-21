@@ -81,8 +81,16 @@ export async function saveDoNotClaim(a: {
   entries: readonly string[];
   /** The scan every ledger row this sweep writes is keyed to
    *  (`fetches.scan_id` is `not null`). The caller supplies it because the
-   *  caller is the one that knows which scan grounds this site's pages. */
-  scanId: string;
+   *  caller is the one that knows which scan grounds this site's pages.
+   *
+   *  **`null` where the site has no current scan** (issue #913, the
+   *  settings card that writes this list). A site nothing has measured has
+   *  no page written from it, so there is nothing for the sweep to
+   *  re-check and no ledger row to key — the list is stored and the sweep
+   *  is not run. It is the same outcome a sweep that could not run
+   *  produces, and it is reported the same way (`swept: null`): the guard
+   *  holds whatever the sweep does or does not do. */
+  scanId: string | null;
 }): Promise<SaveClaimListResult> {
   const doNotClaim = normaliseClaimList(a.entries);
 
@@ -95,8 +103,13 @@ export async function saveDoNotClaim(a: {
     throw new Error(`saveDoNotClaim: could not save the list: ${error.message}`);
   }
 
+  // No scan to key the re-check's ledger rows to, and no page to re-check
+  // either. The list is saved; there is simply nothing to sweep.
+  if (a.scanId === null) return { doNotClaim, swept: null };
+
+  const scanId = a.scanId;
   try {
-    const swept = await withDraftCost({ scanId: a.scanId }, (cost) =>
+    const swept = await withDraftCost({ scanId }, (cost) =>
       sweepOutstandingRechecks(cost, a.siteId)
     );
     return { doNotClaim, swept };

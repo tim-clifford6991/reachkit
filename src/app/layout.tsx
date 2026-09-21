@@ -72,6 +72,7 @@ import "@/ui/layout/surface.css";
 import "@/ui/idiom/idiom.css";
 import { fontVariables } from "@/ui/fonts";
 import { THEME_SCRIPT } from "./_theme/theme";
+import { Answers } from "./_toast/Answers";
 
 /**
  * **Every ReachKit render is a request's own** (issue #331).
@@ -114,6 +115,13 @@ export default async function RootLayout({
       </head>
       <body>
         <NuqsAdapter>{children}</NuqsAdapter>
+        {/* SPEC §4/§7 (2026-09-20, #908): "every action answers", and the
+            stack the answers land in — mounted once, here, because this is
+            the one document every ReachKit-addressed surface renders
+            inside. `_toast/Answers.tsx` holds the mount and says why it
+            carries the one prop it does. Outside the adapter: it reads no
+            URL state and holds none. */}
+        <Answers />
       </body>
     </html>
   );

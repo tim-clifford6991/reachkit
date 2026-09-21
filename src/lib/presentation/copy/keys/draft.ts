@@ -65,6 +65,20 @@ export const DRAFT_COPY = Object.freeze({
   "draft.action.edit": ["Edit", { slots: {}, fixedBy: "BUILD §4.6" }],
   "draft.action.veto": ["Veto", { slots: {}, fixedBy: "BUILD §4.6" }],
 
+  // SPEC §7 (2026-09-20, #908, issue #913) — "every action answers". The
+  // two writes this screen offers say what became of the page. Drafts in
+  // the registry's voice under issue 759's ruling; the owner may correct
+  // them.
+  //
+  // Approve has two sentences and not one with an optional slot: a page
+  // whose publish moment is known is told the moment, and a page whose
+  // moment the screen does not hold is told the truth about that rather
+  // than a blank where a time should be.
+  "draft.answer.approve": ["Approved. It goes live at {at}.", { slots: { at: "date" }, fixedBy: "SPEC §7 2026-09-20" }],
+  "draft.answer.approve-next": ["Approved. It goes live at your next publishing time.", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
+  "draft.answer.veto": ["Stopped. This page won’t go live.", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
+  "draft.answer.refused": ["That didn’t go through. The page is as it was.", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
+
   // §9's copy-out, "always shown" — the card the approved S16 draws it on,
   // its two controls and the chip that says whose the words are. The two
   // control words were "Copy as Markdown" / "Copy as HTML" until ruling 11a:

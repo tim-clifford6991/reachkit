@@ -65,6 +65,29 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.save": ["Save", { slots: {}, fixedBy: "REQ-071 c1" }],
   "settings.cancel-edit": ["Cancel", { slots: {}, fixedBy: "REQ-071 c1" }],
 
+  // SPEC §4 (2026-09-20, #908, issue #913) — "every Settings change
+  // confirms or refuses in words on screen". One pair of sentences for
+  // every card, because what a saved setting has in common is the only
+  // thing the customer needs: it is stored, and when it starts to matter.
+  // Drafts in the registry's voice under issue 759's ruling; the owner may
+  // correct them.
+  //
+  // Two "saved" sentences and not one with a `{when}` slot, because the
+  // two answers are different facts rather than one fact with a variable
+  // in it: the veto window, the zone, the switch, the mail switches and
+  // the never-claim list all bite the moment they are written, and the
+  // publish time bites on the next page that goes out. A slot would make
+  // the screen compose the difference; two written lines let the owner
+  // word each of them.
+  "settings.answer.saved": ["Saved. It takes effect straight away.", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  "settings.answer.saved-next-page": ["Saved. Your next page goes live at the new time.", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  "settings.answer.refused": ["That didn’t save. Nothing changed.", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  // The canvas's own badge on a settings card (R4-11), shown where the
+  // last change on that card was stored. It is the quiet half of the same
+  // answer the toast speaks — a customer who looked away still sees that
+  // the card is saved.
+  "settings.answer.saved-badge": ["Saved", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+
   // ── Your market ────────────────────────────────────────────────────────
   "settings.market.title": ["Your site & market", { slots: {}, fixedBy: "BUILD §4.7" }],
   "settings.market.category": ["market category", { slots: {}, fixedBy: "REQ-070 c1" }],

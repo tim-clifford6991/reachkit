@@ -11,6 +11,11 @@
 // decides is the rank: Approve is the screen's one solid primary across the
 // column; Edit is ghost and Veto the warning outline, sharing the row under
 // it. A state that offers none of them draws no control block at all.
+//
+// The state it projects from is the screen's, not the stored view's (issue
+// #913): while a decision is in flight that is the state the decision asks
+// for, so the rail answers the press at once and rolls back with it if the
+// machine refuses.
 "use client";
 
 import type React from "react";
@@ -20,12 +25,22 @@ import { formatDateTime } from "../../_shell/format";
 import { writtenLine } from "../../_shell/written";
 import { draftActionsFor, type DraftCommand } from "./actions";
 import { CHECK_COPY_KEY, checkRows, type RailCheck } from "./checks";
+import type { State } from "../../calendar/stages";
 import type { ClaimState, DraftView } from "./model";
 
 const EYEBROW = "text-xs font-semibold uppercase tracking-wide opacity-70";
 
 export function DecidePanel(p: {
   view: DraftView;
+  /** The page's §9 state as the screen believes it — the stored one, or,
+   *  while a decision is in flight, the one that decision asks for (issue
+   *  #913). The controls are projected from it, so pressing Stop takes
+   *  both Stop and Approve off the rail at once rather than leaving a
+   *  second press that could only be refused. */
+  state: State;
+  /** Whether a decision this rail asked for is still in flight. Both
+   *  controls are inert while one is. */
+  deciding: boolean;
   /** Whether the recorded fact is still in the body as it now stands —
    *  the same value the highlight is drawn from, so the grounded row and
    *  the mark cannot disagree. */
@@ -40,7 +55,7 @@ export function DecidePanel(p: {
   onCommand: (command: DraftCommand) => void;
 }): React.JSX.Element {
   const { view } = p;
-  const actions = draftActionsFor(view.state);
+  const actions = draftActionsFor(p.state);
   const rows = checkRows({
     grounded: p.grounded,
     groundedUrl: view.grounded.url,
@@ -79,6 +94,7 @@ export function DecidePanel(p: {
                   type="button"
                   className="btn btn-sm btn-outline btn-warning"
                   data-testid={`draft-action-${action.key}`}
+                  disabled={p.deciding}
                   onClick={() => p.onCommand("veto")}
                 >
                   {copy(action.key)}
@@ -89,6 +105,7 @@ export function DecidePanel(p: {
                   type="button"
                   className="btn btn-sm btn-primary col-span-2"
                   data-testid={`draft-action-${action.key}`}
+                  disabled={p.deciding}
                   onClick={() => p.onCommand("approve")}
                 >
                   {copy(action.key)}

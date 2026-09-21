@@ -68,11 +68,15 @@ export function AccountPanel(p: { account: SettingsModel["account"] }): React.JS
           <span className="text-sm text-base-content/70">{copy("settings.account.name")}</span>
           <div className="flex min-w-0 flex-wrap items-center gap-2">
             {/* An account with no stated name shows an empty value, never an
-                invented one. */}
+                invented one.
+                **And no Edit beside it** (SPEC §4, 2026-09-20, #908, issue
+                #913: "a control that cannot act is not drawn"). There is no
+                writer of `users.name` anywhere in this product — the column
+                is read by the card and by the mail shell and written by
+                nothing — so the press was drawn with no handler behind it
+                and could never have stored a name. It returns with its
+                writer, on the same footing as the calendar's Move. */}
             <span className="min-w-0 wrap-anywhere">{p.account.name ?? ""}</span>
-            <button type="button" className="btn btn-outline btn-sm">
-              {copy("settings.edit")}
-            </button>
           </div>
         </div>
 

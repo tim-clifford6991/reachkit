@@ -137,7 +137,6 @@ export const CALENDAR_COPY = Object.freeze({
   // instead — and the WordPress sentence above is never shown to a hosted
   // site. Drafted under issue 759's ruling.
   "calendar.action.check-destination": ["Check where your pages publish", { slots: {}, fixedBy: "issue 880" }],
-  "calendar.action.move": ["Move", { slots: {}, fixedBy: "BUILD §4.6" }],
   "calendar.action.skip": ["Skip", { slots: {}, fixedBy: "BUILD §4.6" }],
   "calendar.action.veto": ["Veto", { slots: {}, fixedBy: "BUILD §4.6" }],
   // 2026-09-07, issue #143. The customer's own restart — §9 opens
@@ -154,6 +153,24 @@ export const CALENDAR_COPY = Object.freeze({
   // automatically — nothing is, which is the whole reason the control
   // exists.
   "calendar.action.regenerate": ["Write it again", { slots: {}, fixedBy: "BUILD §9 · REQ-043 c9" }],
+
+  // SPEC §7 (2026-09-20, #908, issue #913) — "every action answers". Each
+  // of the three writes the day panel offers says, in words, what became
+  // of the page; a write the machine refused says that nothing changed.
+  // The sentences are drafts in the registry's voice under issue 759's
+  // ruling, and the owner may correct them.
+  //
+  // They are stated as facts about the page and never as progress
+  // ("saving…"): the panel speaks only after the machine has answered, so
+  // there is no moment at which one of these is a guess.
+  "calendar.answer.veto": ["Stopped. This page won’t go live.", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
+  "calendar.answer.skip": ["Skipped. We won’t write this one.", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
+  "calendar.answer.regenerate": ["We’re writing it again — about two minutes.", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
+  // One refusal sentence for all three. What a refused write has in common
+  // is the only thing the customer needs: nothing moved. The machine's own
+  // word for why (`not_a_transition`, a guard name) is a developer's
+  // signal and is never shown.
+  "calendar.answer.refused": ["That didn’t go through. The page is as it was.", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
 
   // §4.6's "Why this page" block and its five rows.
   "calendar.why.title": ["Why this page", { slots: {}, fixedBy: "REQ-043 c8" }],

@@ -31,6 +31,12 @@ vi.mock("@/jobs/engine", () => ({ schedulePublish: (...a: unknown[]) => schedule
 vi.mock("@/app/(account)/app/_session/store", () => ({
   siteOwnsDraft: async () => true,
 }));
+
+// Issue #913: a write that landed revalidates the screens that draw the
+// page's state. `revalidatePath` needs Next's own request store, which no
+// unit test has; the assertions on which paths are asked for live in
+// `tests/app/calendar/ownership.test.ts`.
+vi.mock("next/cache", () => ({ revalidatePath: () => undefined }));
 import {
   draftActionsFor,
   isEditable,
@@ -39,10 +45,7 @@ import {
 import { STOP_COMMAND, actionsFor } from "@/app/(account)/app/calendar/actions";
 import { TRANSITIONS, isTransition } from "@/lib/publish/machine/table";
 import { STATES, type State } from "@/app/(account)/app/calendar/stages";
-import {
-  publishing,
-  PublishingRefusedError,
-} from "@/app/(account)/app/calendar/publishing";
+import { publishing } from "@/app/(account)/app/calendar/publishing";
 import { draftStore } from "@/app/(account)/app/draft/[draftId]/save";
 
 // BUILD §4.4–§4.6, issue #169 — the surfaces under test now resolve who is
@@ -215,7 +218,7 @@ describe("the draft view and the day panel read one table", () => {
   });
 });
 
-describe("neither seam claims a write succeeded", () => {
+describe("neither seam claims a write succeeded, and both of them answer", () => {
   beforeEach(() => {
     transition.mockReset();
   });
@@ -230,17 +233,14 @@ describe("neither seam claims a write succeeded", () => {
     expect(schedulePublish).toHaveBeenCalledWith({ draftId: "d1" });
   });
 
-  it("a refused approve rejects, naming the command and the machine's own word", async () => {
+  it("a refused approve comes back refused, carrying the machine's own word", async () => {
     transition.mockResolvedValue({
       ok: false,
       refused: "not_a_transition",
       state: "published",
     });
-    await expect(publishing.approve({ draftId: "d1" })).rejects.toBeInstanceOf(
-      PublishingRefusedError
-    );
-    await expect(publishing.approve({ draftId: "d1" })).rejects.toMatchObject({
-      command: "approve",
+    await expect(publishing.approve({ draftId: "d1" })).resolves.toEqual({
+      ok: false,
       refused: "not_a_transition",
     });
   });
@@ -254,7 +254,10 @@ describe("neither seam claims a write succeeded", () => {
     });
 
     transition.mockResolvedValue({ ok: false, refused: "guard", failedGuard: "customer_told", state: "in_review" });
-    await expect(publishing.veto({ draftId: "d1" })).rejects.toBeInstanceOf(PublishingRefusedError);
+    await expect(publishing.veto({ draftId: "d1" })).resolves.toEqual({
+      ok: false,
+      refused: "customer_told",
+    });
   });
 
   it("the save never rejects: the fixture account has no row to write, and is refused rather than told it saved", async () => {

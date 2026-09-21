@@ -22,6 +22,17 @@ vi.mock("@/app/(account)/app/_session/store", () => ({
   siteOwnsDraft: (...a: unknown[]) => siteOwnsDraft(...a),
 }));
 
+// Issue #913: a write that landed asks the two screens that project their
+// controls from the page's state to re-read. `revalidatePath` needs Next's
+// own request store, which a unit test does not have, so the paths are
+// collected here and asserted below.
+const revalidated: string[] = [];
+vi.mock("next/cache", () => ({
+  revalidatePath: (path: string) => {
+    revalidated.push(path);
+  },
+}));
+
 const { LIVE_ACCOUNT, resetAccount, signedInAs, signedOut } = await import("../account-door");
 const actions = await import("@/app/(account)/app/calendar/publishing-actions");
 
@@ -33,6 +44,7 @@ const COMMANDS = [
 
 beforeEach(() => {
   vi.clearAllMocks();
+  revalidated.length = 0;
   signedInAs(LIVE_ACCOUNT);
   siteOwnsDraft.mockResolvedValue(true);
   transition.mockResolvedValue({ ok: true });
@@ -108,6 +120,25 @@ describe("the machine's own refusals still travel unchanged", () => {
 
   it("an accepted move resolves as `null` — nothing to report", async () => {
     await expect(actions.skipDraft("draft-1")).resolves.toBeNull();
+  });
+});
+
+describe("issue #913 — a page that moved is re-read by both screens that draw its state", () => {
+  it("a write that landed revalidates the month and that page's own screen", async () => {
+    await actions.vetoDraft("draft-1");
+    expect(revalidated).toEqual(["/app/calendar", "/app/draft/draft-1"]);
+  });
+
+  it("a refused write revalidates nothing — nothing changed, so nothing is stale", async () => {
+    transition.mockResolvedValue({ ok: false, refused: "not_a_transition" });
+    await actions.skipDraft("draft-1");
+    expect(revalidated).toEqual([]);
+  });
+
+  it("a draft this account does not own revalidates nothing either", async () => {
+    siteOwnsDraft.mockResolvedValue(false);
+    await actions.skipDraft("someone-elses-draft");
+    expect(revalidated).toEqual([]);
   });
 });
 

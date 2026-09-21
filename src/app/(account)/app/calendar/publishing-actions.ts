@@ -39,21 +39,23 @@
 // free of the database.
 "use server";
 
+import { revalidatePath } from "next/cache";
 import type { Actor, State } from "@/lib/publish/types";
+import { DESTINATION_HREF } from "../_shell/destinations";
 import { requireAppAccount } from "../_session/account";
 
 /** The machine's refusal vocabulary, extended by exactly one word: a page
- *  this account does not own. It is a refusal like any other — `publishing.ts`
- *  turns it into `PublishingRefusedError` — and never a rendered sentence,
- *  because there is no registry key for a refused write and inventing one
- *  is what that module forbids. */
+ *  this account does not own. It is a refusal like any other — the seam
+ *  carries it on `PublishingOutcome` — and never a rendered sentence,
+ *  because there is no registry key for a machine's refusal vocabulary and
+ *  inventing one is what that module forbids. */
 const NOT_YOUR_PAGE = "not_your_page";
 
 /**
  * The one shape every §9 write here takes: ask the machine, and report what
- * it answered. A refusal is a value here and becomes a rejection at the
- * seam (`./publishing`), because the panel's contract is that a control
- * which changed nothing never resolves as though it had.
+ * it answered. A refusal is a value all the way out (issue #913): the seam
+ * hands it to the screen, and the screen states the written line that says
+ * nothing changed. A control that changed nothing never settles silently.
  */
 async function move(draftId: string, to: State): Promise<string | null> {
   // No session is §4.3's refusal, and `requireAppAccount` answers it by
@@ -75,6 +77,16 @@ async function move(draftId: string, to: State): Promise<string | null> {
       const { schedulePublish } = await import("@/jobs/engine");
       await schedulePublish({ draftId });
     }
+    // Issue #913: the screen that asked re-reads, so the optimistic badge
+    // it drew on the press is replaced by the page's real state rather
+    // than standing until the customer navigates. Both surfaces are
+    // revalidated because both project their controls from that one state
+    // — the day panel and the draft view must not disagree about a page
+    // the customer has just stopped. A refusal revalidates nothing:
+    // nothing was written, so there is nothing stale to re-read, and the
+    // optimistic value rolls back on its own when the transition ends.
+    revalidatePath(DESTINATION_HREF.calendar);
+    revalidatePath(`/app/draft/${draftId}`);
     return null;
   }
   return result.refused === "guard" ? (result.failedGuard ?? "guard") : result.refused;
