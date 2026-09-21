@@ -27,8 +27,11 @@ There is no factory and no artboard task. Do not read `docs/archive/`. The one c
 | `typecheck · lint · unit` | **Yes** |
 | `audit` (SPEC/code/tests still agree + runtime `npm audit`) | **Yes** |
 | `schema · RLS (live Postgres)` | **Yes** |
-| Layout screenshots | No. Owner looks at the live site. |
+| `no overflow · axe (390 / 768 / 1280, light and dark)` | Not yet. Runs on every pull request and reports; it blocks merge only once the owner rules (#910, asked 2026-09-21). |
+| Layout screenshots | No. Evidence on `main`; the owner looks at the live site. |
 | Production smoke (`scripts/smoke.sh`) | **Yes** for a production deploy, by hand |
+
+`no overflow · axe` renders every `(public)` and `(account)` screen in a real browser, hydrated, at the three widths the 2026-09-20 ruling names, in light and dark, and runs `@axe-core/playwright` on the same page. It fails on an element wider than its container, on text its card cuts off, on a chart that did not fit or did not draw, and on a serious or critical axe finding. It takes no screenshot and keeps no baseline — `docs/DESIGN.md` still forbids a pixel baseline as a merge gate. Whether it becomes the blocking layout gate in place of the layout screenshots is the owner's to say, and #910 asks; until then it runs on every pull request and reports, and the screenshots keep running on `main` as evidence.
 
 Tests prove customer-observable behaviour. Until a paying user, tests are at most one third of a product PR. A test that transcribes a markdown row is deleted.
 
