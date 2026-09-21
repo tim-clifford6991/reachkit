@@ -138,6 +138,11 @@ export function StageMark(p: {
    *  month grid, where a card is one of seven equal columns; false in the
    *  phone list, whose row is the width of the screen. */
   narrowable?: boolean;
+  /** Whether the mark for an update is drawn **here**. `false` in the
+   *  phone list, where it is drawn in the row's own right-hand column
+   *  beneath the number rather than wherever the stage word happens to end
+   *  (issue 965). */
+  mark?: boolean;
 }): React.JSX.Element {
   const tone = STAGE_TONE[p.page.stage];
   const word = copy(STAGE_FILTER_COPY_KEY[p.page.stage]);
@@ -150,7 +155,7 @@ export function StageMark(p: {
       >
         {word}
       </span>
-      {p.page.update ? (
+      {p.page.update && p.mark !== false ? (
         <RefreshCw
           size={12}
           strokeWidth={1.75}
@@ -162,6 +167,22 @@ export function StageMark(p: {
         />
       ) : null}
     </span>
+  );
+}
+
+/** The mark for an update, drawn outside the stage row. The phone list
+ *  puts it in the row's right-hand column, under the number (issue 965);
+ *  the card draws it inside `StageMark`, where there is no column to put
+ *  it in. One glyph and one label, spelled once. */
+export function UpdateMark(): React.JSX.Element {
+  return (
+    <RefreshCw
+      size={12}
+      strokeWidth={1.75}
+      className="shrink-0 opacity-60"
+      aria-label={kindWord(true)}
+      data-testid="card-update-mark"
+    />
   );
 }
 
