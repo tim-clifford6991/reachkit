@@ -26,6 +26,7 @@ import os from "node:os";
 import path from "node:path";
 import { chromium, type Page } from "playwright";
 import { startAuthStub, type AuthStub } from "./auth-stub";
+import { settleForMeasurement } from "./no-overflow";
 import { enumerateRoutes } from "./routes";
 import {
   applyMigrations,
@@ -356,6 +357,30 @@ function settleOnNavigation(page: Page): void {
   page.goto = async (url, gotoOptions) => {
     const response = await goto(url, gotoOptions);
     await page.waitForSelector(WAITING, { state: "detached", timeout: SETTLE_MS });
+    // And then everything else that has to have happened before a box on
+    // this page means anything — the client runtime, the webfont, the
+    // charts, one painted frame. `no-overflow.ts` worked that out on
+    // 2026-09-20 (#910) and only its own pass used it; every other suite in
+    // this project measured "whatever the document held when `load` fired",
+    // which is a different page.
+    //
+    // 2026-09-21, #976: that is not a nicety. `settings-tab-visible.test.ts`
+    // reads a row that a mount effect scrolls, and it read it before the
+    // effect ran — seven addresses in 2.8 seconds, on routes the rest of
+    // this suite spends thirty apiece on — so it reported the current tab
+    // 72px off the edge on a screen where it is centred. A suite that
+    // measures an unhydrated document reports the defects of a page nobody
+    // is served. It is the navigation that has to wait, so it waits here,
+    // once, for every file (`layout.test.ts`'s own header no longer has to
+    // say it is the un-hydrated pass).
+    //
+    // **Served pages only.** The canaries navigate to a `file://` fixture —
+    // a static document with no client runtime, no `next/font` face and no
+    // chart — where the hydration marker cannot ever appear, so waiting for
+    // it is thirty seconds spent on a page that was finished when `load`
+    // fired. They run under the default 5 s bound, which is the right bound
+    // for them and how this was caught.
+    if (/^https?:/.test(url)) await settleForMeasurement(page);
     return response;
   };
 }

@@ -32,7 +32,6 @@ const ENTRY = [
   /^src\/(instrumentation|middleware|proxy)\.ts$/,
   /\.test\.(ts|tsx)$/,
   /^tests\/setup\.ts$/,
-  /^tests\/ui\/layout\/__screenshots__\//,
   /^docs\/design\/canvas\//, // the canvas sources, re-seeded as a directory (DESIGN.md)
 ];
 

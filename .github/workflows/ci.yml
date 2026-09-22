@@ -1,13 +1,17 @@
-# Required on main: typecheck · lint · unit, audit, schema · RLS.
-# `no overflow · axe` runs on every pull request and reports; whether it joins
-# the three is the owner's ruling and #910 asks (docs/PROCESS.md, Gates).
-# Layout screenshots stay evidence; they do not block merge (docs/PROCESS.md).
+# Required on main: typecheck · lint · unit, audit, schema · RLS, and — since
+# the owner's ruling of 2026-09-21 closing #910 — no overflow · axe.
+# Every job here runs on every pull request. Nothing runs only on `main`:
+# a check whose findings arrive after the merge is a check nobody can act on,
+# which is how the two browser jobs this one absorbed came to be red for days
+# without anybody seeing it (#976). No pixel baseline blocks a merge, and none
+# is kept (docs/DESIGN.md, docs/PROCESS.md).
 name: CI
 
 on:
   pull_request:
   push:
     branches: [main]
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -31,26 +35,34 @@ jobs:
   no-overflow:
     name: no overflow · axe (390 / 768 / 1280, light and dark)
     runs-on: ubuntu-latest
-    # **It runs on pull requests** (issue #910; owner's ruling of 2026-09-20
-    # in `docs/DESIGN.md`, "Layout that cannot overflow"). That is the whole
-    # difference between this job and the one below, which has skipped every
-    # PR since it was written. Whether a red run here *blocks* the merge is
-    # the owner's to say and #910 asks; `docs/PROCESS.md`'s Gates table is
-    # where the answer goes, and until it does this reports.
+    # **The fourth merge gate** (owner's ruling of 2026-09-21, closing #910;
+    # `docs/PROCESS.md`'s Gates table is where it is written down), and the
+    # one browser job there is.
     #
-    # The `layout` job's `if:` is not about the database or the browser —
-    # both are here too, and it is the same composite action that sets them
-    # up. It is about what that job produces: committed PNG baselines and a
-    # side-by-side comment, which is a slow review artefact and a pixel diff
-    # that daisyUI work moves on purpose. `docs/DESIGN.md` forbids a pixel
-    # baseline as a merge gate, so that job stays evidence on `main`.
+    # Until 2026-09-21 two more ran, on `main` only: `layout conformance
+    # (browser)` and `review gallery`. They had been red since before the
+    # redesign and nobody could see it, because a job that runs only after a
+    # merge is a job whose findings arrive too late to act on and whose fix
+    # cannot be tried before it lands (#976). The owner's ruling was to fold
+    # what those two still said something true about into this job and
+    # retire the rest — so this job now runs the whole `layout` project and
+    # there is no second browser job:
     #
-    # This job photographs nothing. Every failure it can produce is a
+    #   folded in — the checks-1-to-5 route sweep, the eyebrow rung, the
+    #     heading scale, the live and week-0 accounts, Settings with a field
+    #     open, the current Settings tab being on screen, the security
+    #     headers, the theme slots and the values. Everything but the
+    #     web-vitals budget, for the reason the step below states.
+    #   retired — the committed PNG baselines and the review gallery, with
+    #     the `regen-baselines` workflow and the side-by-side comment that
+    #     served them. `docs/DESIGN.md` forbids a pixel baseline as a merge
+    #     gate, and the owner reviews the product on `dev.reachkit.app`.
+    #
+    # Nothing here photographs anything. Every failure it can produce is a
     # sentence naming an element on a named screen at a named width in a
-    # named theme, so there is nothing here for a PR to be delayed by except
-    # a defect.
+    # named theme, which is what makes it fit to block a merge.
     #
-    # **Where the data comes from.** The same place the sweep below gets it:
+    # **Where the data comes from.**
     # `scripts/db-substrate/` against this job's own `postgres:18` service,
     # with `tests/ui/layout/seed.ts` applying the migrations and seeding the
     # four accounts, and `tests/ui/layout/auth-stub.ts` answering `getUser()`
@@ -74,200 +86,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/layout-suite
-      - name: every (public) and (account) screen, hydrated, at three widths in two themes
-        run: npm run test:no-overflow
-
-  layout:
-    name: layout conformance (browser)
-    # Not a merge gate. Skip on PRs so daisyUI work is not delayed by PNG diffs.
-    if: github.event_name == 'push'
-    continue-on-error: true
-    runs-on: ubuntu-latest
-    # Renders come from here, not from the box (issue #404). The suite this
-    # job runs already photographs every screen at 1280; composing the
-    # approved screen beside that picture costs a step here and saves four
-    # implementers a `next build` each on four shared cores.
-    permissions:
-      contents: write
-      pull-requests: write
-    # The sweep renders the real `(account)` screens, which since #192 verify
-    # the session against the `users` row — so this job needs the same live
-    # database the `db` job runs against (#193). `scripts/db-substrate/` is
-    # that database; `tests/ui/layout/seed.ts` applies the migrations, seeds
-    # one account and mints its session through identity's own path.
-    services:
-      postgres:
-        image: postgres:18
-        env:
-          POSTGRES_USER: reachkit
-          POSTGRES_PASSWORD: reachkit
-          POSTGRES_DB: reachkit_scratch
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U reachkit -d reachkit_scratch"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 20
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/layout-suite
-      # One band × one theme per screen (issue #545); the full matrix runs
-      # nightly in `layout-full.yml` and on a `regen-baselines` label.
-      - name: the sweep, capturing every 1280-light screen as it goes
-        env:
-          RENDER_CAPTURE_DIR: ${{ runner.temp }}/captures
-        run: npm run test:layout
-
-      # A visual baseline that moved writes its diff and actual PNGs under the
-      # runner's tmp (visual.test.ts `evidenceDir`); keep them, so the master
-      # reviews what moved instead of a pixel count (2026-09-11, PR 499).
-      - name: visual evidence (diff and actual PNGs) when a baseline moved
-        if: ${{ always() }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: visual-evidence-${{ github.sha }}
-          path: /tmp/reachkit-visual-*/
-          if-no-files-found: ignore
-          retention-days: 7
-
-      # Everything below runs whether or not the suite passed. A baseline
-      # that went red is exactly the run whose renders the master wants.
-      - name: main's baselines, to see which screens this branch moved
-        if: ${{ always() && github.event_name == 'pull_request' }}
-        run: |
-          set -euo pipefail
-          git fetch --depth=1 origin main
-          mkdir -p "${{ runner.temp }}/main"
-          git archive FETCH_HEAD tests/ui/layout/__screenshots__ | tar -x -C "${{ runner.temp }}/main"
-          ls -1 "${{ runner.temp }}/main/tests/ui/layout/__screenshots__" | wc -l
-
-      - name: the approved screen beside this branch, per moved route
-        if: ${{ always() && github.event_name == 'pull_request' }}
-        env:
-          # A PR body may ask for a screen it did not move:
-          #   Renders: /app/settings, /pricing
-          PR_BODY: ${{ github.event.pull_request.body }}
-        run: |
-          set -euo pipefail
-          also="$(printf '%s' "$PR_BODY" | tr -d '\r' | sed -n 's/^ *Renders: *//p' | tr '\n' ',' || true)"
-          echo "Renders: line asks for: ${also:-(nothing)}"
-          node scripts/renders/side-by-side.mjs \
-            --captures "${{ runner.temp }}/captures" \
-            --baselines "${{ runner.temp }}/main/tests/ui/layout/__screenshots__" \
-            --out "${{ runner.temp }}/side-by-side" \
-            --also "$also"
-
-      - name: the captures and the side-by-sides, as one artifact
-        if: ${{ always() && github.event_name == 'pull_request' }}
-        id: renders
-        uses: actions/upload-artifact@v4
-        with:
-          name: renders-${{ github.run_id }}-${{ github.run_attempt }}
-          path: |
-            ${{ runner.temp }}/captures
-            ${{ runner.temp }}/side-by-side
-          if-no-files-found: warn
-          retention-days: 14
-
-      # A fork's token cannot push or comment, and there is nothing to be
-      # done about that here; the artifact above is still uploaded.
-      - name: one comment per run, with the side-by-sides in it
-        if: ${{ always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-        run: |
-          set -euo pipefail
-          if [ ! -f "${{ runner.temp }}/side-by-side/renders.json" ]; then
-            echo "the sweep left no renders — the layout job failed before Chromium opened"
-            exit 0
-          fi
-          raw="$(scripts/renders/publish.sh \
-            "${{ github.event.pull_request.number }}" \
-            "${{ github.run_id }}" \
-            "${{ runner.temp }}/side-by-side")"
-          node scripts/renders/comment.mjs \
-            --renders "${{ runner.temp }}/side-by-side/renders.json" \
-            --raw "$raw" \
-            --artifact "${{ steps.renders.outputs.artifact-url }}" \
-            --run "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
-            > "${{ runner.temp }}/comment.md"
-          gh pr comment "${{ github.event.pull_request.number }}" \
-            --body-file "${{ runner.temp }}/comment.md"
-
-  review:
-    name: review gallery
-    runs-on: ubuntu-latest
-    # After the layout job, and only where the picture is wanted (issue
-    # #383). The owner reviews progress on dev.reachkit.app, where every
-    # `(account)` route needs a session and a v3 database the staged
-    # deployment has neither of until cutover — so the browser run that
-    # already builds the app, seeds four accounts and signs in is the only
-    # place those screens can be photographed at all.
-    #
-    # On `main` after every merge, because that is what the owner reviews.
-    # On a pull request only when it carries the `review-gallery` label:
-    # this is a twenty-minute browser run and no PR should pay for it
-    # twice, but the PR that *changes* the gallery has no other way to
-    # exercise it (PROCESS's Test budget forbids the layout suite on the box).
-    # A label added after the last push takes effect on the next one.
-    needs: layout
-    if: >-
-      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
-      (github.event_name == 'pull_request' &&
-       contains(github.event.pull_request.labels.*.name, 'review-gallery'))
-    services:
-      postgres:
-        image: postgres:18
-        env:
-          POSTGRES_USER: reachkit
-          POSTGRES_PASSWORD: reachkit
-          POSTGRES_DB: reachkit_scratch
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U reachkit -d reachkit_scratch"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 20
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/layout-suite
-      # The one line, so CI and a person run the same thing: the mails S20
-      # draws, then every route in every state it can be reached in, both
-      # themes, full page at 1280, into `.review/<sha>/`.
-      - name: every screen S1-S20, in every state, into .review/
-        run: npm run review:gallery
-
-      - name: the gallery, as one artifact
-        id: gallery
-        uses: actions/upload-artifact@v4
-        with:
-          name: review-gallery-${{ github.sha }}
-          path: .review
-          # `.review` is dot-prefixed, and this action drops "files within
-          # folders beginning with `.`" unless asked otherwise — so the
-          # first run wrote 93 pictures and uploaded none of them. The
-          # directory holds PNGs and one index.html and nothing else; the
-          # issue names that path, so the flag moves rather than the path.
-          include-hidden-files: true
-          # A gallery that uploaded nothing reads exactly like one nobody
-          # opened. It is a failure and it says so.
-          if-no-files-found: error
-          retention-days: 14
-
-      - name: the run's summary links it
-        run: |
-          set -euo pipefail
-          {
-            echo "### Review gallery"
-            echo
-            echo "\`.review/${{ github.sha }}/index.html\` - every screen S1-S20, every state the"
-            echo "suite can reach, light and dark, the approved render beside the build."
-            echo
-            echo "[Download](${{ steps.gallery.outputs.artifact-url }}) - 14-day retention."
-          } >> "$GITHUB_STEP_SUMMARY"
+      # `test:layout` minus `vitals.test.ts`, and that subtraction is the
+      # one thing this job does not carry. The landing transfers 325.7 kB
+      # of script against #332's 200 kB budget *today*, on `main`, and has
+      # for as long as the job that measured it was red — so folding the
+      # budget in as it stands would block every merge over a defect no
+      # PR introduced. The weight is filed on its own (#988) and the
+      # nightly full matrix keeps reporting it; the line below goes back to
+      # `npm run test:layout` the day that closes.
+      - name: every screen, hydrated — no overflow, axe, the five checks
+        run: npm run test:layout:gate
 
   db:
     name: schema · RLS (live Postgres)

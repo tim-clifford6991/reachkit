@@ -27,15 +27,19 @@ There is no factory and no artboard task. Do not read `docs/archive/`. The one c
 | `typecheck · lint · unit` | **Yes** |
 | `audit` (SPEC/code/tests still agree + runtime `npm audit`) | **Yes** |
 | `schema · RLS (live Postgres)` | **Yes** |
-| `no overflow · axe (390 / 768 / 1280, light and dark)` | **Yes** (owner, 2026-09-21, #910). The fourth gate. |
-| Layout screenshots | No. Evidence on `main`; the owner looks at the live site. Folded into the pull-request sweep and retired once #976 lands (2026-09-21). |
+| `no overflow · axe (390 / 768 / 1280, light and dark)` | **Yes** — the fourth gate (owner, 2026-09-21, closing #910). |
+| Layout screenshots | Retired. There are none: no baseline, no gallery (owner, 2026-09-21, #976). The owner looks at the live site. |
 | Production smoke (`scripts/smoke.sh`) | **Yes** for a production deploy, by hand |
 
-`no overflow · axe` renders every `(public)` and `(account)` screen in a real browser, hydrated, at the three widths the 2026-09-20 ruling names, in light and dark, and runs `@axe-core/playwright` on the same page. It fails on an element wider than its container, on text its card cuts off, on a chart that did not fit or did not draw, and on a serious or critical axe finding. It takes no screenshot and keeps no baseline — `docs/DESIGN.md` still forbids a pixel baseline as a merge gate.
+`no overflow · axe` renders every `(public)` and `(account)` screen in a real browser, hydrated, at the three widths the 2026-09-20 ruling names, in light and dark, and runs `@axe-core/playwright` on the same page. It fails on an element wider than its container, on text its card cuts off, on a chart that did not fit or did not draw, and on a serious or critical axe finding. It takes no screenshot and keeps no baseline — `docs/DESIGN.md` forbids a pixel baseline as a merge gate.
 
 2026-09-21  **It is the fourth merge gate** (owner, #910). A pull request merges when it is green beside `typecheck · lint · unit`, `audit` and `schema · RLS`; the "runs and reports" arrangement of #950 is superseded. Its known-defect list excuses only a defect found on `main` under an issue number, never one a pull request introduces, and it is empty as of #946.
 
-2026-09-21  **The two main-only jobs fold into it** (owner). `layout conformance (browser)` and `review gallery` run on `main` as evidence until #976 lands, and are retired then: what they check at merge time is what the pull-request sweep already checks, at the same three widths and in both themes.
+2026-09-21  **The two main-only jobs folded into it** (owner). `layout conformance (browser)` and `review gallery` ran on `main` alone and had been red since before the redesign without anybody seeing it, because a job that runs after the merge reports too late to act on and cannot be tried on the branch that would fix it (#976). What they still said something true about is folded into this job; the rest is retired. Folded in are the five-check route sweep, the eyebrow rung, the heading scale, the live and week-0 accounts, Settings with a field open, the current Settings tab being on screen, the security headers, the theme slots and the values. Retired are the committed PNG baselines, the `regen-baselines` label and its workflow, the side-by-side render comment, and the review gallery. The one thing not folded in is the landing's script budget, which `main` breaches today and #988 carries.
+
+Since 2026-09-21 it is therefore the only browser job.
+
+The nightly `Layout (full matrix)` run walks the same suite at every width and band. It reports; it is not a gate.
 
 Tests prove customer-observable behaviour. Until a paying user, tests are at most one third of a product PR. A test that transcribes a markdown row is deleted.
 

@@ -53,10 +53,31 @@ export const MONO_FONT_FAMILY = "JetBrains Mono";
 // standing taller than its border box is the control working, not text
 // escaping. The row names the element rather than a class, so it holds for
 // any field that ever takes `Input`'s multi-line arm.
+// 2026-09-21, issue #976: `.sr-only` is the fourth row, and it is the
+// `.collapse` row's reasoning in its purest form. The utility IS a
+// one-pixel clipped box — `width: 1px; height: 1px; overflow: hidden;
+// clip: rect(0,0,0,0)` — whose entire purpose is to carry content that is
+// never painted. Each of the four sparklines holds its figures in an
+// `sr-only` list so the drawing has a table a screen reader can read
+// (`src/ui/charts/`), and every one of those rows stood outside its 1px
+// list: 154 offenders on `main`, on every screen carrying a chart, not one
+// of them anything a reader could see. A law about what fits on the screen
+// has nothing to say about a box that is not on the screen.
+// (`BusinessPanel` reached for `aria-label` over a visually hidden
+// `<label>` to get around this; that is still the better markup there, and
+// it is no longer forced.)
+//
+// A box that scrolls on the **vertical** axis is not a row here, and that
+// is deliberate: check 2 reads the holder's own computed `overflow-x` and
+// `overflow-y` and forgives only the edges that box can actually scroll to
+// (see below). Naming a class here instead would hand check 3 the same
+// exemption through `closest()`, where it is false — a panel that scrolls
+// up and down does not make a label it clips sideways reachable.
 export const SCROLL_CONTAINER_ALLOWLIST: readonly string[] = [
   ".overflow-x-auto",
   ".collapse",
   "textarea",
+  ".sr-only",
 ];
 // 2026-09-08, issue #354: the calendar cell's own two strings, and the
 // first rows this list has ever carried.
@@ -116,6 +137,24 @@ export function checkContainment(opts: {
   function matchesAny(el: Element, selectors: readonly string[]): boolean {
     return selectors.some((sel) => el.matches(sel));
   }
+  /** Which edges it stands outside, and by how much — the sentence that
+   *  turns "li" into somewhere to look (#976). A bare tag name told the
+   *  reader nothing about which of four edges moved or what box it was
+   *  measured against, and the sweep that has to be diagnosed from a CI log
+   *  is the one that needs it most. */
+  function overhang(
+    box: DOMRect,
+    pbox: DOMRect,
+    eps: number,
+    axes: { x: boolean; y: boolean } = { x: true, y: true }
+  ): string {
+    const edges: string[] = [];
+    if (axes.x && box.left < pbox.left - eps) edges.push(`${Math.round(pbox.left - box.left)}px left`);
+    if (axes.x && box.right > pbox.right + eps) edges.push(`${Math.round(box.right - pbox.right)}px right`);
+    if (axes.y && box.top < pbox.top - eps) edges.push(`${Math.round(pbox.top - box.top)}px top`);
+    if (axes.y && box.bottom > pbox.bottom + eps) edges.push(`${Math.round(box.bottom - pbox.bottom)}px bottom`);
+    return edges.join(", ");
+  }
 
   const offenders: Offender[] = [];
   const EPS = 0.5;
@@ -123,7 +162,6 @@ export function checkContainment(opts: {
   for (const el of all) {
     const parent = el.parentElement;
     if (!parent) continue;
-    if (matchesAny(parent, scrollContainerAllowlist)) continue;
     // ADR-093 decision 6 point 2 speaks of an element's *border box*. An
     // element that generates no box at all — `display: none`, which is
     // every `<script>`, `<head>` child and `[hidden]` placeholder the
@@ -154,7 +192,11 @@ export function checkContainment(opts: {
     const position = getComputedStyle(el).position;
     if (position === "fixed" || position === "absolute") {
       if (box.left < -EPS || box.right > window.innerWidth + EPS) {
-        offenders.push({ check: "containment", element: describe(el) });
+        const screen = new DOMRect(0, box.top, window.innerWidth, box.height);
+        offenders.push({
+          check: "containment",
+          element: `${describe(el)} — out of flow, ${overhang(box, screen, EPS)} of the screen`,
+        });
       }
       continue;
     }
@@ -168,14 +210,52 @@ export function checkContainment(opts: {
     // makes every route's sweep a race with hydration rather than a
     // measurement of the page.
     if (box.width === 0 && box.height === 0) continue;
-    const pbox = parent.getBoundingClientRect();
-    if (
-      box.left < pbox.left - EPS ||
-      box.right > pbox.right + EPS ||
-      box.top < pbox.top - EPS ||
-      box.bottom > pbox.bottom + EPS
-    ) {
-      offenders.push({ check: "containment", element: describe(el) });
+    // 2026-09-21, issue #976: the same reasoning about the **parent**. An
+    // element with `display: contents` generates no box either — that is
+    // the whole of what the value means: the element is replaced by its
+    // children, which are laid out in *its* parent. `getBoundingClientRect()`
+    // on one is a 0×0 rect at the origin, so measuring a child against it
+    // reports every child of every such element, always, on a page where
+    // nothing is out of place. `TileRow`'s AI window and the scan report's
+    // answer table are both a CSS grid whose rows are `display: contents`
+    // (the accessible `role="row"` a grid needs without a box between the
+    // grid and its cells), and between them they accounted for 240 of this
+    // sweep's offenders on `main`, none of them real.
+    //
+    // So the box a child is held to is the nearest ancestor that generates
+    // one — which is also the box CSS laid it out in. A scroll container
+    // anywhere on that walk exempts it, for the reason the allow-list is
+    // written for: the box changed rather than the content being cut.
+    let holder: Element | null = parent;
+    let exempt = false;
+    while (holder !== null) {
+      if (matchesAny(holder, scrollContainerAllowlist)) {
+        exempt = true;
+        break;
+      }
+      if (holder.getClientRects().length > 0) break;
+      holder = holder.parentElement;
+    }
+    if (exempt || holder === null) continue;
+    const pbox = holder.getBoundingClientRect();
+    // The holder's own axes, read rather than listed. ADR-093's law is
+    // "content fits its box **or the box changes**", and a box that scrolls
+    // on an axis is the box changing on that axis: the shell's side panel
+    // is a column with `overflow-y: auto` whose last block stands 257px
+    // below its foot on a 480px-tall sweep, and the panel scrolls to it.
+    // Only the edges it can reach are forgiven — a panel that scrolls up
+    // and down still may not let anything out of its sides (#976).
+    const holderStyle = getComputedStyle(holder);
+    const scrollsX = holderStyle.overflowX === "auto" || holderStyle.overflowX === "scroll";
+    const scrollsY = holderStyle.overflowY === "auto" || holderStyle.overflowY === "scroll";
+    const out =
+      (!scrollsX && (box.left < pbox.left - EPS || box.right > pbox.right + EPS)) ||
+      (!scrollsY && (box.top < pbox.top - EPS || box.bottom > pbox.bottom + EPS));
+    if (out) {
+      offenders.push({
+        check: "containment",
+        element: `${describe(el)} — ${overhang(box, pbox, EPS, { x: !scrollsX, y: !scrollsY })} of ${describe(holder)}`,
+      });
     }
   }
   return offenders;

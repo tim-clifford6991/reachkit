@@ -202,8 +202,8 @@ export const HOSTED_PAGE_FILE = "src/app/(hosted)/hosted-page/[[...slug]]/page.t
  * so the host resolves to a real site, the site has no page at this
  * address, and the route answers `(hosted)/not-found.tsx`. That is a real
  * surface of this product and the layout law applies to it exactly as to
- * any other, so it keeps its baselines and its side-by-side (against S8,
- * which is the screen it actually draws).
+ * any other, so it is swept like any other (against S8, which is the
+ * screen it actually draws).
  *
  * Note what this comment used to say — that the sweep ran "against a
  * fixture environment with no database behind it". It has had a seeded

@@ -203,7 +203,7 @@ export function AnswerGrid(p: { model: AnswersModel }): React.JSX.Element {
               <span
                 key={engine}
                 role="columnheader"
-                className="px-1 pb-1 text-center text-[0.625rem] leading-tight font-semibold tracking-wide uppercase text-base-content/60"
+                className="px-1 pb-1 text-center text-(length:--t-eyebrow) leading-tight font-semibold tracking-wide uppercase text-base-content/60"
               >
                 {copy(ENGINE_LABEL[engine])}
               </span>

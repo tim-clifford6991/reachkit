@@ -85,7 +85,7 @@ export function WeekModule(p: {
                 data-testid="overview-week-day"
                 title={name}
               >
-                <span className="block text-[0.625rem] font-semibold uppercase" aria-hidden>
+                <span className="block text-(length:--t-eyebrow) font-semibold uppercase" aria-hidden>
                   {formatWeekday(day.date)}
                 </span>
                 <span className="num block text-sm font-semibold" role="img" aria-label={name}>
@@ -103,8 +103,7 @@ export function WeekModule(p: {
                   // cell's own ink at full strength; thinning it put it
                   // under the contrast floor on the tinted cells (today's
                   // and the two ahead), which is the finding axe reported.
-                  className="hidden w-full text-[0.625rem] leading-tight wrap-anywhere sm:block"
-                  aria-hidden
+                  className="hidden w-full text-(length:--t-eyebrow) leading-tight wrap-anywhere sm:block"                  aria-hidden
                 >
                   {word}
                 </span>

@@ -6,16 +6,20 @@
 // those widths and fails on either; `@axe-core/playwright` runs in the same
 // pass."
 //
-// **What this is, next to the sweep that already exists.** `layout.test.ts`
-// walks the same route tree and runs the same first three checks — at one
-// width, in one theme, on whatever the document held when `load` fired. That
-// is a property sweep of the band ladder and it stays what it is. This file
-// is the customer's three screens in both themes with the page *hydrated*,
-// and it is the one that blocks merge. The difference is not pedantry: every
-// defect design review found on 2026-09-20 — step labels running out of
-// their column, charts cut off by their card — was invisible to the sweep
-// that was already green, because the labels only overflow at 390 and the
-// charts do not exist until React has measured their boxes.
+// **What this is, next to the sweep beside it.** `layout.test.ts` walks the
+// same route tree and runs checks 1-5 at one width in one theme; that is a
+// property sweep of the band ladder and it stays what it is. This file is
+// the customer's three screens in both themes, with axe on the same page.
+// The difference is not pedantry: every defect design review found on
+// 2026-09-20 — step labels running out of their column, charts cut off by
+// their card — was invisible to the sweep that was already green, because
+// the labels only overflow at 390 and the charts do not exist until React
+// has measured their boxes.
+//
+// Both of them block merge now (owner, 2026-09-21, closing #910 and #976),
+// and both measure a hydrated page: `settleForMeasurement` below was this
+// file's own and is `browser.ts`'s since #976, so every navigation in this
+// project waits for the client runtime, the webfont and the charts.
 //
 // **No screenshot, no baseline, no PNG.** `docs/DESIGN.md` forbids a pixel
 // baseline as a merge gate and this does not add one. Every failure here is
@@ -40,7 +44,6 @@ import {
   type Offender,
 } from "./checks";
 import { getAccountCookie, getBaseURL, getSetupAccountCookie, withPage } from "./browser";
-import { STILL } from "./gallery";
 import {
   axeOffenders,
   checkChartsResponsive,
@@ -49,6 +52,7 @@ import {
   ENVIRONMENT_OF_RECORD,
   HYDRATION_MARKER,
   KNOWN_ON_MAIN,
+  STILL,
   knownDefectFor,
   NO_OVERFLOW_CLAMPED_TEXT,
   NO_OVERFLOW_SCROLL_CONTAINERS,

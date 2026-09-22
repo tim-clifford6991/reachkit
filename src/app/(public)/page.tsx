@@ -45,7 +45,14 @@ function stepCount(count: string): string {
 /** Bound to a name: the copy sweep reads a bare JSX attribute string as voice. */
 const VIDEO_TEST_ID = "landing-video";
 
-const SECTION = "col-span-full border-t border-base-300 px-4 py-16";
+/** No inline padding of its own: `[data-surface]` already pads by the
+ *  band's step (`--s-4` at compact), and a second 16px inside it made the
+ *  landing's measure 256px at 320 where every other screen's is 288 — which
+ *  is what wrapped the headline to four lines against §4's own ruling of
+ *  three (#258, found in a browser by #976). Above roughly 1184px `INNER`'s
+ *  cap is narrower than the column either way, so this changes the wide
+ *  bands not at all. */
+const SECTION = "col-span-full border-t border-base-300 py-16";
 const INNER = "mx-auto w-full max-w-6xl";
 const PAIR = "grid grid-cols-1 items-center gap-10 lg:grid-cols-2 lg:gap-16";
 const LABEL = "flex items-baseline gap-2 text-xs font-semibold uppercase tracking-wide text-primary";
@@ -70,7 +77,8 @@ export default function LandingPage(props: {
     >
       <main className="col-span-full grid grid-cols-subgrid">
         {/* ══ HERO ══ */}
-        <section id={FIELD_SECTION_ID} className="col-span-full px-4 pt-12 pb-16 lg:pt-20">
+        {/* The surface's gutter is the only one — see `SECTION`. */}
+        <section id={FIELD_SECTION_ID} className="col-span-full pt-12 pb-16 lg:pt-20">
           <div className={`${INNER} ${PAIR}`}>
             <div className="flex min-w-0 flex-col items-center text-center lg:items-start lg:text-left">
               <h1 className="t-hero">{copy("landing.headline")}</h1>
