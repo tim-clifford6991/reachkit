@@ -216,6 +216,12 @@ export interface DraftView {
    *  than deducing a pass from the fact that the draft reached review
    *  (`checks.ts` states the argument). */
   recordedChecks: readonly RailCheck[];
+  /** SPEC §7 (2026-09-20, #928): what this page was held against — how many
+   *  pages the site already has, and the closest of them to this page's
+   *  topic. `null` for a site whose index holds nothing, and then the rail
+   *  states the gate alone: there is no page to name and no number worth
+   *  stating. */
+  knownCheck: KnownCheck | null;
   /** The last battery found a rule this text breaks, so it is held from
    *  publishing until a save passes (#789). */
   rulesFailed: boolean;
@@ -256,6 +262,15 @@ export interface Publisher {
   readonly addressRecorded: boolean;
 }
 
+/** SPEC §7 (2026-09-20, #928) — what the known-content check has to say
+ *  about this page: the size of the index it was held against, and the
+ *  closest page in it. `linked` is read off this page's own body, so the
+ *  sentence claiming the page links to it is checked rather than assumed. */
+export interface KnownCheck {
+  pages: number;
+  closest: { title: string; url: string | null; linked: boolean } | null;
+}
+
 /** Everything the draft view reads, before it is a model. One shape, so the
  *  fixture and a future query answer the same question. */
 export interface DraftFacts {
@@ -291,6 +306,12 @@ export interface DraftFacts {
   /** §8's battery, as generation recorded it. Empty is the honest answer
    *  for a draft it recorded nothing for. */
   recordedChecks: readonly RailCheck[];
+  /** SPEC §7 (2026-09-20, #928): what this page was held against — how many
+   *  pages the site already has, and the closest of them to this page's
+   *  topic. `null` for a site whose index holds nothing, and then the rail
+   *  states the gate alone: there is no page to name and no number worth
+   *  stating. */
+  knownCheck: KnownCheck | null;
   rulesFailed: boolean;
   /** The opportunity this draft was written from, as this screen states it
    *  (issue 867). `unknown` where the row could not be read. */
@@ -376,6 +397,7 @@ export function assembleDraft(facts: DraftFacts): DraftView {
     lastSavedAt: facts.lastSavedAt,
     record: facts.record,
     recordedChecks: facts.recordedChecks,
+    knownCheck: facts.knownCheck,
     rulesFailed: facts.rulesFailed,
     target: facts.target,
     timeZone: facts.timeZone,

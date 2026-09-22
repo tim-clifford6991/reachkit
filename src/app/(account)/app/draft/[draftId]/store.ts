@@ -59,7 +59,14 @@ import { RAIL_CHECKS, type RailCheck } from "./checks";
 import { askedAs, doneWhen } from "../../calendar/store";
 import type { Choice } from "@/lib/opportunities/derive/explain";
 import { pageTargetOf } from "../../_shell/page-target";
-import { NO_RULE_FACTS, type ClaimState, type DraftFacts, type DraftTarget, type RuleFacts } from "./model";
+import {
+  NO_RULE_FACTS,
+  type ClaimState,
+  type DraftFacts,
+  type DraftTarget,
+  type KnownCheck,
+  type RuleFacts,
+} from "./model";
 
 interface DraftRow {
   id: string;
@@ -228,6 +235,16 @@ async function readChoice(opportunityId: string): Promise<Choice | null> {
  * A read that throws is `unknown` too: this block explains a page, and a
  * page is still readable without it.
  */
+/** The search this page targets, or `""` for a row that targets none (a
+ *  Fix) or one that could not be read. #928's check is about a topic, and a
+ *  page with no topic is compared against nothing. */
+async function targetQueryOf(opportunityId: string | null): Promise<string> {
+  if (opportunityId === null) return "";
+  const choice = await readChoice(opportunityId);
+  if (choice === null || choice.evidence.family === "fix") return "";
+  return choice.evidence.query;
+}
+
 async function targetOf(opportunityId: string | null): Promise<DraftTarget> {
   if (opportunityId === null) return { kind: "unknown" };
   const choice = await readChoice(opportunityId);
@@ -286,6 +303,47 @@ async function ruleFactsOf(siteId: string, opportunityId: string | null): Promis
   } catch (error) {
     console.warn(JSON.stringify({ event: "draft_rule_facts_unread", detail: String(error) }));
     return NO_RULE_FACTS;
+  }
+}
+
+/**
+ * SPEC §7 (2026-09-20, #928) — what this page was held against.
+ *
+ * Two facts, both about the site's own pages: how many the index holds, and
+ * the closest of them to this page's topic. The closeness is
+ * `known-content`'s own measure over the database's own narrowing — the same
+ * two the derivation used — and `linked` is read off this page's body, so
+ * the sentence that says the page links to it is checked rather than
+ * claimed.
+ *
+ * `null` where the index holds nothing, or could not be read: the rail then
+ * states the near-duplicate gate alone rather than naming a page or a
+ * number it does not have.
+ */
+async function knownCheckFor(a: {
+  siteId: string;
+  query: string;
+  body: string;
+}): Promise<KnownCheck | null> {
+  try {
+    const { knownContentCount, knownContentNear, closestKnown } = await import("@/lib/known-content");
+    const pages = await knownContentCount(a.siteId);
+    if (pages === 0) return null;
+    const near = a.query.trim() === "" ? [] : await knownContentNear({ siteId: a.siteId, query: a.query });
+    const match = closestKnown({ query: a.query }, near);
+    return {
+      pages,
+      closest:
+        match === null
+          ? null
+          : {
+              title: match.page.title,
+              url: match.page.url,
+              linked: match.page.url !== null && a.body.includes(match.page.url),
+            },
+    };
+  } catch {
+    return null;
   }
 }
 
@@ -375,6 +433,13 @@ export async function readDraftRow(a: {
     // page record: asking first would answer about a page the caller may
     // not see.
     target: await targetOf(row.opportunity_id),
+    // #928, and after the same ownership proof: what the site already has,
+    // and the closest of it to this page.
+    knownCheck: await knownCheckFor({
+      siteId: a.site.siteId,
+      query: await targetQueryOf(row.opportunity_id),
+      body: bodyMd,
+    }),
     timeZone: a.site.timeZone,
     // Read after the row above proved this account owns the draft, like
     // the page record and the target.

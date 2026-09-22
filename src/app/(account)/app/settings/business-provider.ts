@@ -21,6 +21,17 @@ import { isReservedFixtureAccount, requireSetUpAccount } from "../_session/accou
 import { confirmedProfile, quotableFacts } from "@/lib/site-profile/business/confirm";
 import type { BusinessProfile, QuotableFact } from "@/lib/site-profile/business/types";
 
+/** SPEC §7 (2026-09-20, #928) — "Content we already know about": how many
+ *  pages this site has, per source. Three numbers and a total, because the
+ *  three answer different questions for a reader: what we wrote, what is on
+ *  their blog, and what the crawl read of their main site. */
+export interface KnownContentCounts {
+  readonly ours: number;
+  readonly wordpress: number;
+  readonly site: number;
+  readonly total: number;
+}
+
 export interface BusinessModel {
   /** What the site is called, where the crawl read a name. The heading
    *  names the business, and says so in general terms where it has none. */
@@ -31,6 +42,10 @@ export interface BusinessModel {
    *  line differs: a first read is "learned from your site", and after an
    *  edit the same card is partly theirs. */
   readonly edited: boolean;
+  /** #928's own card. Zeroes where the index has never been built — the
+   *  card then says the site has nothing known yet rather than stating
+   *  three zeroes as facts. */
+  readonly known: KnownContentCounts;
 }
 
 export const readBusiness = cache(async function readBusiness(): Promise<BusinessModel> {
@@ -50,11 +65,14 @@ export const readBusiness = cache(async function readBusiness(): Promise<Busines
       }),
       facts: quotableFacts({ facts: FIXTURE_QUOTABLE, edits: NO_EDITS }),
       edited: false,
+      // The reserved account's own index: four pages we wrote, six posts on
+      // its WordPress and the nine pages the crawl read.
+      known: { ours: 4, wordpress: 6, site: 9, total: 19 },
     };
   }
 
   const { readBusinessFacts } = await import("./business-store");
-  const facts = await readBusinessFacts(account);
+  const [facts, known] = await Promise.all([readBusinessFacts(account), knownCountsFor(account.siteId)]);
   return {
     siteName: facts.profile?.siteName ?? null,
     profile: confirmedProfile({
@@ -63,6 +81,26 @@ export const readBusiness = cache(async function readBusiness(): Promise<Busines
       edits: facts.edits,
     }),
     facts: quotableFacts({ facts: facts.quotable, edits: facts.edits }),
+    known,
     edited: facts.edited,
   };
 });
+
+/** The three counts, off the index. A read that fails is three zeroes — the
+ *  card then says nothing is known yet, which is what a customer whose index
+ *  could not be read is owed rather than an error where a number should be. */
+async function knownCountsFor(siteId: string): Promise<KnownContentCounts> {
+  const empty = { ours: 0, wordpress: 0, site: 0, total: 0 };
+  try {
+    const { knownContentFor } = await import("@/lib/known-content");
+    const pages = await knownContentFor(siteId);
+    const counts = {
+      ours: pages.filter((page) => page.source === "reachkit").length,
+      wordpress: pages.filter((page) => page.source === "wordpress").length,
+      site: pages.filter((page) => page.source === "site").length,
+    };
+    return { ...counts, total: pages.length };
+  } catch {
+    return empty;
+  }
+}

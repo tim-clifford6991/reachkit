@@ -756,4 +756,29 @@ export const SETTINGS_COPY = Object.freeze({
   // the customer is entitled to be told about in writing — and the sentence
   // telling them is the owner's, never a composed placeholder.
   "settings.action.not-yet": ["This isn’t available yet.", { slots: {}, fixedBy: "BUILD §4.7" }],
+
+  // ── SPEC §7 (2026-09-20, #928): "Content we already know about" (R4-11).
+  //
+  // The head and the note are the owner's own drafted sentences; the three
+  // source labels and the two count lines are drafted in the registry's
+  // voice under the 2026-09-16 ruling (#759), and the PR names each one.
+  "settings.known.head": [
+    "Content we already know about",
+    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
+  ],
+  "settings.known.note": [
+    "Checked before every page, so we link to what exists and never write it twice.",
+    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
+  ],
+  "settings.known.total": [
+    "{count} pages, from three places:",
+    { slots: { count: "text" }, fixedBy: "SPEC §7 2026-09-20" },
+  ],
+  "settings.known.none": [
+    "Nothing yet. We read your site on Monday, and your blog the moment you connect one.",
+    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
+  ],
+  "settings.known.ours": ["pages we wrote", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
+  "settings.known.wordpress": ["posts on your blog", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
+  "settings.known.site": ["pages on your site", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
 }) satisfies CopyPartition;

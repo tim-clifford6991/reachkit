@@ -29,14 +29,23 @@ function inputs(voiceText: string | null): DraftPromptInputs {
 }
 
 describe("DraftPromptInputs is closed", () => {
-  it("has exactly the eight members, and no ninth a derived artifact could arrive through", () => {
+  it("has exactly the nine members, and no tenth a derived artifact could arrive through", () => {
     // `profile` is the eighth since #927 (SPEC §7, 2026-09-20: the confirmed
     // profile "joins the writer's inputs … This supersedes the closed
     // seven-member prompt"). It is not a *learned* artifact and that is the
     // distinction hard rule 7 draws: it is what ReachKit read off the
     // customer's own site and they then corrected, item by item, on Settings
-    // › Your business. `summary`, `embedding` and `history` still have no
-    // field to arrive through.
+    // › Your business.
+    //
+    // `known` is the ninth, since #928 (SPEC §7, 2026-09-20: "Before a page
+    // is planned or written ReachKit knows every page it wrote for the site,
+    // every post on a connected WordPress … and the main site's crawled
+    // pages"). It is the same kind of member: titles and addresses of pages
+    // that exist, read off the site and off our own record — no body text,
+    // so there is nothing in it a page could paraphrase.
+    //
+    // `summary`, `embedding` and `history` still have no field to arrive
+    // through.
     expect(Object.keys(DRAFT_PROMPT_KEYS).sort()).toEqual(
       [
         "businessName",
@@ -46,6 +55,7 @@ describe("DraftPromptInputs is closed", () => {
         "links",
         "opportunity",
         "profile",
+        "known",
         "voiceText",
       ].sort()
     );

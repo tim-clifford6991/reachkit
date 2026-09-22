@@ -194,6 +194,9 @@ const CTX: ReadinessContext = {
   profile: PROFILE,
   ownRanks: () => false,
   canUpdate: () => true,
+  // #928: nothing this site already has covers these topics. The rule's
+  // own arms are `tests/known-content/`'s.
+  coveredBy: () => null,
 };
 
 describe("opportunityReady — the one predicate", () => {

@@ -32,6 +32,7 @@ import { rebandFor } from "../readiness";
 import { opportunityStore, readOpportunity } from "../store";
 import { persist } from "./persist";
 import { refineType } from "./typing";
+import { applyKnownContent, type KnownContentGate } from "./known";
 import { writeCandidates } from "./write";
 
 export interface DeriveInput {
@@ -62,6 +63,13 @@ export interface DeriveInput {
    *  matches to the market's questions beside the site's ranked urls (SPEC
    *  §7, 2026-09-16). Absent reads as none. */
   inventory?: readonly InventoryRow[];
+  /** SPEC §7 (2026-09-20, #928): the net-new rule's two answers — does the
+   *  site already have a page on this topic, and can its destination publish
+   *  an update of that page. Absent is a pass with no index to read, which
+   *  plans exactly what it planned before #928: nothing is converted and
+   *  nothing is refused, rather than every topic being called net new by a
+   *  gate that was never asked. */
+  known?: KnownContentGate;
 }
 
 export interface DeriveOutcome {
@@ -112,8 +120,15 @@ export async function deriveOpportunities(
     .reduce(addRejections, noRejections());
   const assessed = write.assessed + improve.assessed + earn.assessed + fix.assessed;
 
+  // SPEC §7 (2026-09-20, #928), and **before** the model is asked to label
+  // anything: a candidate that is a repeat of a page the site already has
+  // becomes an update of that page, so what the typing step labels is the
+  // row that will actually be written. One page per search is decided first
+  // — the rule is about what the day would publish, and only one candidate
+  // per search survives to be it.
+  const planned = onePerSearch([...improve.candidates, ...earn.candidates, ...write.candidates]);
   const derived: Candidate[] = [
-    ...onePerSearch([...improve.candidates, ...earn.candidates, ...write.candidates]),
+    ...(a.known === undefined ? planned : applyKnownContent(planned, a.known)),
     ...fix.candidates,
   ];
   const labelled: Candidate[] = [];

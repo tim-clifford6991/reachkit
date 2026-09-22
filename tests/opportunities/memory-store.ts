@@ -11,6 +11,7 @@
 // ('open','queued')`, and `status_changed_at` moving only when `status`
 // does.
 import "./env";
+import type { KnownPage } from "@/lib/known-content/types";
 import type {
   InsertOutcome,
   OpportunityInsert,
@@ -47,6 +48,15 @@ export interface MemoryState {
   earnGrounding: EarnGrounding;
   /** The pages the crawl read of the site's domain (#780). */
   inventory: InventoryRow[];
+  /** SPEC §7 (2026-09-20, #928): the pages this site already has — ours,
+   *  a connected WordPress's and the crawl's, as `known_content` holds them.
+   *  A suite that gives none is a site whose index is empty, which is the
+   *  state of every site before its first refresh: nothing is covered. */
+  knownContent: KnownPage[];
+  /** Every refresh the pass asked for, in order. The refresh itself is the
+   *  index's own suite's subject (`tests/known-content/`); what this records
+   *  is that the pass asks for one before it derives. */
+  knownRefreshes: { siteId: string; domain: string; pages: number }[];
 }
 
 export function newMemoryState(over: Partial<MemoryState> = {}): MemoryState {
@@ -64,6 +74,8 @@ export function newMemoryState(over: Partial<MemoryState> = {}): MemoryState {
     grounded: true,
     earnGrounding: { comparison_table: true, integration_page: true, original_data_page: true },
     inventory: [],
+    knownContent: [],
+    knownRefreshes: [],
     ...over,
   };
 }
@@ -266,6 +278,17 @@ export function memoryStore(state: MemoryState): OpportunityStore {
 
     async inventoryFor() {
       return state.inventory;
+    },
+
+    // #928. The narrowing is the database's in production; here the whole
+    // of this site's index is offered and the scoring — which is what the
+    // rule actually turns on — is the real one.
+    async knownContentNear({ query }) {
+      return query.trim() === "" ? [] : state.knownContent;
+    },
+
+    async refreshKnownContent({ siteId, domain, inventory }) {
+      state.knownRefreshes.push({ siteId, domain, pages: inventory.length });
     },
   };
 }

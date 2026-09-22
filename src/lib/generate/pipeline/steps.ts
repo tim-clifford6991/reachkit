@@ -232,6 +232,10 @@ function promptFor(
     // `null` on a site nothing has been read of, which is the prompt this
     // product built before this issue.
     profile: inputs.profile,
+    // SPEC §7 (2026-09-20), #928: what the site already covers. Titles and
+    // addresses, so the page can stand beside them and link to them rather
+    // than say what one of them already says.
+    known: inputs.known,
     ...extra,
   };
 }
@@ -250,6 +254,7 @@ const HOUSE_RULES = [
   "Write for a human reader only: never address an assistant, a crawler or a ranking system.",
   "Use Markdown only: headings, paragraphs, lists, links, emphasis. No raw HTML and no comments.",
   "Link each page in `links` once, with its url exactly as given, where the text speaks to it; link no other page on the business's domain except the grounded source.",
+  "The pages in `known` already exist on this site: write nothing that repeats one of them, and where one answers something this page raises, send the reader to it instead of answering it again.",
   "Never say the page's claims were tested, trialled or benchmarked.",
   "Never write a byline, a publication or update date, or a case study.",
   "Use the outline's headings exactly; add no other heading written as a question.",

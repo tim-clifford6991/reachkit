@@ -85,6 +85,7 @@ export function DecidePanel(p: {
     groundedUrl: view.grounded.url,
     claim: p.claim,
     recorded: p.recordedChecks,
+    known: view.knownCheck,
   });
 
   const doNothingLine =
@@ -254,7 +255,7 @@ export function DecidePanel(p: {
                 aria-hidden
               />
               <span className="min-w-0">
-                {copy(CHECK_COPY_KEY[row.rule], row.vars)}
+                {copy(row.key ?? CHECK_COPY_KEY[row.rule], row.vars)}
               </span>
             </li>
           ))}

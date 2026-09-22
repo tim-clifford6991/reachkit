@@ -162,6 +162,35 @@ export function searchPosts(cfg: WordPressConfig, marker: string): Promise<WordP
   return call(cfg, `/wp/v2/posts?${query.toString()}`);
 }
 
+/**
+ * One page of the site's posts, newest first (#928).
+ *
+ * The known-content index's read: **all** posts, not only ours, because
+ * what it answers is "does this site already cover this topic" and the
+ * customer's own posts are most of the answer. `status=any` for the same
+ * reason a draft of ours counts: a post waiting to go live is a topic the
+ * site is about to cover.
+ *
+ * `_fields` is the whole of what is read back — id, address, title, excerpt,
+ * content, date and status — and `content` is read for its headings alone;
+ * nothing stores a post's body (`known_content`'s own header says why).
+ */
+export function listPosts(
+  cfg: WordPressConfig,
+  a: { page: number; perPage: number }
+): Promise<WordPressAnswer> {
+  const query = new URLSearchParams({
+    status: "any",
+    context: "edit",
+    orderby: "date",
+    order: "desc",
+    page: String(a.page),
+    per_page: String(a.perPage),
+    _fields: "id,link,slug,title,excerpt,content,date_gmt,status",
+  });
+  return call(cfg, `/wp/v2/posts?${query.toString()}`);
+}
+
 /** One post by id, as its author sees it. */
 export function readPost(cfg: WordPressConfig, postId: string): Promise<WordPressAnswer> {
   return call(cfg, `/wp/v2/posts/${encodeURIComponent(postId)}?context=edit`);

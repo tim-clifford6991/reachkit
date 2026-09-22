@@ -18,6 +18,7 @@
 // customer's field; nothing here copies it onto a draft, caches it, or
 // carries an earlier version of it. See `voice/inputs.ts`.
 import { dbAdmin } from "@/lib/db";
+import type { KnownPage } from "@/lib/known-content/types";
 import { readStoredReport, type StoredReport } from "@/lib/scan/report";
 import { readStoredCheck } from "@/lib/publish/verify/stored";
 import { readSiteProfile } from "@/lib/site-profile/store";
@@ -130,6 +131,11 @@ export interface GenerateStore {
   /** The site profile's page inventory for the domain — every page the
    *  last crawl read, with its purpose. Empty where no pass has built one. */
   siteInventory(domain: string): Promise<readonly InventoryRow[]>;
+  /** SPEC §7 (2026-09-20, #928): every page this site already has — ours,
+   *  a connected WordPress's and the crawl's — for the links a new page may
+   *  carry. Empty where the index could not be read, which offers no link
+   *  rather than a guessed one. */
+  knownPages(siteId: string): Promise<readonly KnownPage[]>;
   /** This site's live pages written for opportunities in `clusterKey`:
    *  published, not unpublished, and not found gone by the day-after
    *  check (SPEC §7, 2026-09-12). */
@@ -379,6 +385,15 @@ export function supabaseGenerateStore(): GenerateStore {
       return (result.data ?? [])
         .filter((row) => lastMoveIsRestart(row.transitions))
         .map((row) => ({ draftId: row.id, siteId: row.site_id }));
+    },
+
+    async knownPages(siteId) {
+      try {
+        const { knownContentFor } = await import("@/lib/known-content");
+        return await knownContentFor(siteId);
+      } catch {
+        return [];
+      }
     },
 
     async clusterPages(siteId, clusterKey) {
