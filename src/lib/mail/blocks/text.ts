@@ -2,7 +2,7 @@
 //
 // The same `MailBlock[]`, rendered a second time, through the same
 // omission decision (`omit.ts`), the same numeral formatter
-// (`format.ts`) and the same row builder (`html.ts`'s `rowsOf`). A
+// (`format.ts`) and the same row builder (`rows.ts`'s `rowsOf`). A
 // template authors no text body and cannot omit one: `composeMail()`
 // calls both renderers on one list, so the plain-text alternative is a
 // property of the seam rather than of any template's diligence.
@@ -13,7 +13,7 @@
 import { copy } from "@/lib/presentation/copy";
 import { generatedLabel } from "@/lib/presentation/generated";
 import { formatStat } from "./format";
-import { factRowsOf, rowsOf, statRowsOf } from "./html";
+import { factRowsOf, rowsOf, statRowsOf } from "./rows";
 import { isMeasuredEmpty, omittedIndexes } from "./omit";
 import type { MailBlock } from "./types";
 

@@ -38,10 +38,12 @@ A dependency is admitted only where it deletes hand-written UI code. This is the
 | `mdast-util-from-markdown` with the GFM-table and directive extensions | The hand-written Markdown parser. The closed, escape-everything serialiser stays ours. |
 | `@tailwindcss/typography` | The hand-kept article class tables (`prose` on hosted pages and the preview). |
 | `sonner`, drawn with daisyUI `alert` classes | Silent actions: every action now answers. |
-| `react-email` on Resend | The custom mail block system (its own issue; may land last). |
+| `react-email` on Resend | The custom mail block system. Landed #934. |
 | `@axe-core/playwright` | Hand checks of accessibility, run with the no-overflow check below. |
 
 Already installed and to be used before anything new: daisyUI `drawer` with its `is-drawer-open` / `is-drawer-close` variants (the collapsible side panel, no script), `inngest/realtime` and `inngest/react` (the pass’s current step, in place of polling), React 19 `useActionState` / `useOptimistic`, Next `after()`, Postgres `pg_trgm` and full-text search (the known-content check).
+
+- 2026-09-22 (#934): `react-email` is installed, and it is the whole of it. Since v6 the components ship from the `react-email` package itself and every `@react-email/*` component package — `components`, `tailwind` and each single-element one — is deprecated on npm, so the row above names the only package there is to install. It is a runtime dependency, because the mail seam renders with it — through the package's own `render()`, never `react-dom/server`, which the App Router refuses to build when one of our files imports it; `email dev` (`npm run mail:preview`) is that same package's CLI. The three rules at the top of this file do not reach a mail: an inbox has no daisyUI, no Recharts and no lucide, and `src/lib/mail/shell/tokens.ts` is where the theme's values are carried in for one.
 
 Not admitted: a second component system (shadcn, Radix, Headless UI), a form, state or animation library, `react-markdown` for the preview (the preview is the publishing renderer), a second chart library, Storybook.
 

@@ -2,9 +2,25 @@
 //
 // Both renderers are called on the same `MailBlock[]`, so a template
 // cannot author a text body and cannot omit one, and the two bodies
-// cannot disagree about what was left out. Pure and synchronous: no I/O,
-// no clock, no interpolation engine, no model — with every language model
-// unavailable this function returns exactly the same two strings.
+// cannot disagree about what was left out. Pure: no I/O, no clock, no
+// interpolation engine, no model — with every language model unavailable
+// this function returns exactly the same two strings.
+//
+// **Asynchronous since #934, and only for the renderer.** React Email's
+// `render()` returns a promise, and it is the only way to render without
+// a project file importing `react-dom/server` — which the App Router
+// forbids outright (`shell/render.ts` states the rule and the build error
+// that enforces it). Nothing else about this function moved: no await
+// reaches a vendor, a database or a clock, and `composeMailParts()` below
+// — the blocks, the whole-mail line, the omission decision and the whole
+// plain-text twin — is still synchronous, because none of that ever
+// needed a renderer.
+//
+// Both bodies are still built from one `MailBlock[]` after #934's port to
+// React Email: the HTML half is `blocks/nodes.tsx` inside `shell/
+// document.tsx`, rendered once by `shell/render.ts`; the plain-text twin
+// is `blocks/text.ts` inside `shell/text-frame.ts`, unchanged — which is
+// what keeps the twin byte-for-byte what the owner signed off on.
 //
 // The whole-mail line is chosen here, after every block has rendered,
 // because it is a fact about the mail rather than about any block:
@@ -20,14 +36,16 @@
 // measurement exceptions never coexist with the nothing-to-report line.
 // `measurement` is required for `'weekly'` and rejected for every other
 // kind — a type error, not a runtime check.
+import { createElement, type ReactNode } from "react";
 import { copy, COPY, TODO_COPY_MARKER } from "@/lib/presentation/copy";
 import type { CopyKey } from "@/lib/presentation/copy";
-import { renderBlocksHtml } from "../blocks/html";
+import { blockNodes } from "../blocks/nodes";
 import { renderBlocksText } from "../blocks/text";
 import { isMeasuredEmpty, omittedIndexes } from "../blocks/omit";
 import { isConditional, type CopyVars, type MailBlock } from "../blocks/types";
 import type { MailKind } from "../kinds";
-import { frameHtml } from "./frame";
+import { MailDocument } from "./document";
+import { renderMailHtml } from "./render";
 import { frameText } from "./text-frame";
 
 /** What the week behind a `weekly` mail is known to be. Three states and
@@ -160,17 +178,31 @@ function firstActionIndex(blocks: readonly MailBlock[]): number {
   return index === -1 ? blocks.length : index;
 }
 
-/** The seam's one composer. Every mail the product sends is built here,
- *  wearing the one frame, carrying both bodies. */
-export function composeMail(m: ComposeInput): ComposedMail {
+/**
+ * The same mail, one step before its HTML half becomes a string.
+ *
+ * `composeMail()` below is this plus one `renderMailHtml()` call, and that
+ * is the whole difference. It is exported for the one reader that wants
+ * the document rather than the markup: `emails/`, the React Email preview
+ * server the owner opens (#934). A preview that re-rendered a mail its own
+ * way would be a preview of something the product does not send.
+ */
+export interface ComposedMailParts extends Omit<ComposedMail, "html"> {
+  /** The mail as React Email's own elements, ready to render. */
+  document: ReactNode;
+}
+
+/** The seam's one composer, up to the markup. Every mail the product sends
+ *  is built here, wearing the one frame, carrying both bodies. */
+export function composeMailParts(m: ComposeInput): ComposedMailParts {
   // The blocks are rendered in two runs, split at the first action: the
   // whole-mail line is a statement about the sections, so it stands after
   // them and before the one button rather than under it. Omission is
   // decided block by block (`omit.ts`), so the split changes no decision;
   // the tail's indexes are shifted back to the whole list's.
   const cut = firstActionIndex(m.blocks);
-  const head = { html: renderBlocksHtml(m.blocks.slice(0, cut)), text: renderBlocksText(m.blocks.slice(0, cut)) };
-  const tail = { html: renderBlocksHtml(m.blocks.slice(cut)), text: renderBlocksText(m.blocks.slice(cut)) };
+  const head = { html: blockNodes(m.blocks.slice(0, cut)), text: renderBlocksText(m.blocks.slice(0, cut)) };
+  const tail = { html: blockNodes(m.blocks.slice(cut)), text: renderBlocksText(m.blocks.slice(cut)) };
   const shift = (indexes: readonly number[]): readonly number[] => indexes.map((index) => index + cut);
   const htmlBody = { omitted: [...head.html.omitted, ...shift(tail.html.omitted)] };
   const textBody = { omitted: [...head.text.omitted, ...shift(tail.text.omitted)] };
@@ -211,9 +243,24 @@ export function composeMail(m: ComposeInput): ComposedMail {
 
   return {
     subject: copy(m.subject, m.subjectVars),
-    html: frameHtml({ ...footer, rows: head.html.html, actions: tail.html.html, wholeMailLine: line, optOut }),
+    document: createElement(MailDocument, {
+      ...footer,
+      rows: head.html.nodes,
+      actions: tail.html.nodes,
+      wholeMailLine: line,
+      optOut,
+    }),
     text: frameText({ ...footer, body: head.text.text, actions: tail.text.text, wholeMailLine: line, optOut }),
     omitted: htmlBody.omitted,
     wholeMailLine,
   };
+}
+
+/** The seam's one composer. Every mail the product sends is built here,
+ *  wearing the one frame, carrying both bodies — and, since #934, the HTML
+ *  half is React Email's own rendering of `document`. The `await` is that
+ *  renderer and nothing else: no I/O, no clock, no vendor. */
+export async function composeMail(m: ComposeInput): Promise<ComposedMail> {
+  const { document, ...rest } = composeMailParts(m);
+  return { ...rest, html: await renderMailHtml(document) };
 }

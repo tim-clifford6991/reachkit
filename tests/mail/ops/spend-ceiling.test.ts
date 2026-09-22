@@ -143,7 +143,7 @@ describe("the template — five occasions, one shape", () => {
     }
   });
 
-  it("every sentence is written, none is a `TODO(copy)` placeholder, and each occasion composes", () => {
+  it("every sentence is written, none is a `TODO(copy)` placeholder, and each occasion composes", async () => {
     for (const key of OPS_MAIL_KEYS) {
       expect(COPY[key], key).not.toBe("");
       expect(COPY[key], key).not.toBe(TODO_COPY_MARKER);
@@ -151,7 +151,7 @@ describe("the template — five occasions, one shape", () => {
     }
     for (const occasion of OCCASIONS) {
       const alert = buildSpendCeilingAlert({ occasion, spentCents: 4000, ceilingCents: 5000 });
-      const mail = composeMail({ kind: "ops", subject: alert.subject, blocks: alert.blocks });
+      const mail = await composeMail({ kind: "ops", subject: alert.subject, blocks: alert.blocks });
       expect(mail.subject, occasion).toBe(COPY["mail.ops.spend-ceiling.subject"]);
       for (const body of [mail.html, mail.text]) {
         expect(body, occasion).toContain(COPY[`mail.ops.spend-ceiling.${occasion}`]);

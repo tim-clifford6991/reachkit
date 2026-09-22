@@ -6,6 +6,10 @@
 // every value there is the one `src/ui/theme.css` and `src/ui/type.css`
 // declare, and no other file under `src/lib/mail/**` contains a colour or
 // a font stack at all.
+//
+// `.tsx` as well as `.ts` since #934: the frame and the blocks are React
+// Email components now, and a sweep that still walked only `.ts` would
+// have stopped reading the two files that draw every mail.
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -58,7 +62,7 @@ function mailSources(): string[] {
     for (const entry of readdirSync(dir)) {
       const full = path.join(dir, entry);
       if (statSync(full).isDirectory()) walk(full);
-      else if (full.endsWith(".ts")) out.push(full);
+      else if (full.endsWith(".ts") || full.endsWith(".tsx")) out.push(full);
     }
   };
   walk(MAIL_DIR);

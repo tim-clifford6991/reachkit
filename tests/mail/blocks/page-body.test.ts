@@ -32,17 +32,20 @@ describe("BUILD §12 — one door for model text", () => {
     expect(bad).toBeTruthy();
   });
 
-  it("renders the draft through generatedLabel(), or fails loudly until the owner writes the label", () => {
+  it("renders the draft through generatedLabel(), or fails loudly until the owner writes the label", async () => {
     if (LABEL_OWED) {
       expect(() => renderBlocksText([PAGE])).toThrow(/generated\.page\.written/);
-      expect(() => renderBlocksHtml([PAGE])).toThrow(/generated\.page\.written/);
+      // Rejects rather than throws since #934: the HTML half is React
+      // Email's renderer and so returns a promise. The same refusal, at
+      // the same block, for the same missing label.
+      await expect(renderBlocksHtml([PAGE])).rejects.toThrow(/generated\.page\.written/);
       return;
     }
     const label = generatedLabel({ pageTitle: "A page", written: true }).label;
     const { text } = renderBlocksText([PAGE]);
     expect(text).toContain(label);
     expect(text).toContain(MARKDOWN);
-    expect(renderBlocksHtml([PAGE]).html).toContain(label);
+    expect((await renderBlocksHtml([PAGE])).html).toContain(label);
   });
 
   it("a pageBody block is never omitted — it is not a measurement", () => {

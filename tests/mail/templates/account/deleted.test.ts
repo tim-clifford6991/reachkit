@@ -161,7 +161,7 @@ describe("REQ-093 — every sentence is a registry key, and all ten are the owne
     for (const key of DELETED_MAIL_KEYS) expect(Object.keys(COPY)).toContain(key);
   });
 
-  it("all ten are written (issue #458, the owner's 2026-09-10 approval), so the mail composes and speaks each one, slots filled", () => {
+  it("all ten are written (issue #458, the owner's 2026-09-10 approval), so the mail composes and speaks each one, slots filled", async () => {
     expect(DELETED_MAIL_KEYS).toHaveLength(10);
     for (const key of DELETED_MAIL_KEYS) {
       expect(COPY[key], key).not.toBe("");
@@ -189,7 +189,7 @@ describe("REQ-093 — every sentence is a registry key, and all ten are the owne
 
     const spoken = new Set<string>();
     for (const mail of [withPlace, withoutPlace]) {
-      const composed = composeMail({ kind: "account", subject: mail.subject, blocks: mail.blocks });
+      const composed = await composeMail({ kind: "account", subject: mail.subject, blocks: mail.blocks });
       expect(composed.subject).toBe(COPY["mail.account.deleted.subject"]);
       spoken.add(mail.subject);
       for (const block of mail.blocks) {
@@ -204,7 +204,7 @@ describe("REQ-093 — every sentence is a registry key, and all ten are the owne
     }
     expect([...spoken].sort()).toEqual([...DELETED_MAIL_KEYS].sort());
     // The place reached the rendered mail, not only the marker's absence.
-    const placed = composeMail({ kind: "account", subject: withPlace.subject, blocks: withPlace.blocks });
+    const placed = await composeMail({ kind: "account", subject: withPlace.subject, blocks: withPlace.blocks });
     expect(placed.text).toContain("https://theirs.example/tag/reachkit");
   });
 });

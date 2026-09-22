@@ -10,7 +10,7 @@ const EMPTY_LIST = f.list(measuredZero([] as const, f.AT));
 const EMPTY_VERDICTS = f.verdicts(measuredZero([] as const, f.AT));
 
 describe("BUILD §12 — measured-and-empty is not the same fact as unmeasured", () => {
-  it("a measured-empty list is kept and renders its written empty line", () => {
+  it("a measured-empty list is kept and renders its written empty line", async () => {
     expect(omittedIndexes([EMPTY_LIST])).toEqual([]);
     expect(isMeasuredEmpty(EMPTY_LIST)).toBe(true);
 
@@ -18,7 +18,7 @@ describe("BUILD §12 — measured-and-empty is not the same fact as unmeasured",
     expect(text).toContain(f.LABEL_TEXT);
     expect(text).toContain(f.EMPTY_TEXT);
 
-    const { html } = renderBlocksHtml([EMPTY_LIST]);
+    const { html } = await renderBlocksHtml([EMPTY_LIST]);
     expect(html).toContain(f.EMPTY_TEXT);
   });
 

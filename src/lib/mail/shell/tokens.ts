@@ -5,7 +5,7 @@
 // the way a screen does — it has to carry the resolved value inline. That
 // is the one thing this file does. It is the single place in
 // `src/lib/mail/**` where a colour or a font stack is written down;
-// `frame.ts`, `text-frame.ts` and `blocks/html.ts` name tokens and never
+// `document.tsx`, `text-frame.ts` and `blocks/nodes.tsx` name tokens and never
 // values, so no mail module can mint a colour.
 //
 // `tests/mail/shell/shell-tokens.test.ts` reads `src/ui/theme.css` and
@@ -17,7 +17,7 @@
 // Light values only. Inbox support for `prefers-color-scheme` is partial
 // and inconsistent, and BUILD §2.1's dark block is a screen rule; a mail
 // that half-switched would be worse than one that did not. Reversal cost
-// (rule 1.1): one `@media` block in `frame.ts` and a second table here.
+// (rule 1.1): one `@media` block in `document.tsx` and a second table here.
 
 /** The `:root` tokens of `src/ui/theme.css` this seam uses, and the two
  *  font stacks `.rk-fonts` binds in `src/ui/type.css`. A name absent from
@@ -39,7 +39,7 @@ export const MAIL_TOKENS = Object.freeze({
   "--r-pill": "999px",
   // Ruling 10a's ladder (UI-SPEC §1, issue #376). A mail spent these as
   // bare pixel counts until the approved set fixed the rungs; naming them
-  // here is what lets `frame.ts` and `blocks/html.ts` spend a size the way
+  // here is what lets `document.tsx` and `blocks/nodes.tsx` spend a size the way
   // they already spend a colour, and what makes a drifted rung fail below.
   "--h2": "25px",
   "--h3": "20px",

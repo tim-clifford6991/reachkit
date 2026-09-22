@@ -37,14 +37,14 @@ function composeSilentWeekly(measurement: MeasurementState) {
 
 /** The line is written (not owner-owed), and both bodies carry `rendered`
  *  — the sentence with its slots filled — and no unfilled `{slot}`. */
-function expectLine(
-  compose: () => { html: string; text: string },
+async function expectLine(
+  compose: () => Promise<{ html: string; text: string }>,
   key: CopyKey,
   rendered: string
-): void {
+): Promise<void> {
   expect(COPY[key], key).not.toBe("");
   expect(OWNER_OWED, key).not.toContain(key);
-  const mail = compose();
+  const mail = await compose();
   expect(mail.text).toContain(rendered);
   expect(mail.html).toContain(rendered);
   expect(mail.text).not.toMatch(/\{[A-Za-z]+\}/);
@@ -52,18 +52,18 @@ function expectLine(
 }
 
 describe("BUILD §12 — the whole-mail line is chosen once, after the blocks", () => {
-  it("a mail whose every conditional section was omitted or empty says there was nothing to report", () => {
+  it("a mail whose every conditional section was omitted or empty says there was nothing to report", async () => {
     expect(chooseWholeMailLine({ blocks: SILENT_BLOCKS })).toBe(NOTHING);
-    expectLine(
+    await expectLine(
       () => composeMail({ kind: "report", subject: f.HEADING_KEY, blocks: SILENT_BLOCKS }),
       NOTHING,
       COPY[NOTHING]
     );
   });
 
-  it("a mail with one measured section carries no whole-mail line", () => {
+  it("a mail with one measured section carries no whole-mail line", async () => {
     expect(chooseWholeMailLine({ blocks: SPEAKING_BLOCKS })).toBeNull();
-    const mail = composeMail({ kind: "report", subject: f.HEADING_KEY, blocks: SPEAKING_BLOCKS });
+    const mail = await composeMail({ kind: "report", subject: f.HEADING_KEY, blocks: SPEAKING_BLOCKS });
     expect(mail.wholeMailLine).toBeNull();
   });
 
@@ -72,31 +72,31 @@ describe("BUILD §12 — the whole-mail line is chosen once, after the blocks", 
     expect(chooseWholeMailLine({ blocks: [] })).toBeNull();
   });
 
-  it("an unmeasured week states so, with the next due date, and never the nothing-to-report line", () => {
+  it("an unmeasured week states so, with the next due date, and never the nothing-to-report line", async () => {
     const measurement = { state: "none", nextDueOn: new Date("2026-09-14T06:00:00.000Z") } as const;
     expect(chooseWholeMailLine({ blocks: SILENT_BLOCKS, measurement })).toBe(UNMEASURED_WEEK);
     // The due date reaches the slot as the mail's ISO calendar date.
-    expectLine(
+    await expectLine(
       composeSilentWeekly(measurement),
       UNMEASURED_WEEK,
       copy(UNMEASURED_WEEK, { nextDue: "2026-09-14" })
     );
-    const mail = composeSilentWeekly(measurement)();
+    const mail = await composeSilentWeekly(measurement)();
     expect(mail.text).toContain("2026-09-14");
     expect(mail.text).not.toContain(COPY[NOTHING]);
     expect(mail.html).not.toContain(COPY[NOTHING]);
   });
 
-  it("a partly measured week names its unmeasured sections, and never the nothing-to-report line", () => {
+  it("a partly measured week names its unmeasured sections, and never the nothing-to-report line", async () => {
     const measurement = { state: "partial", unmeasured: [f.LABEL_KEY] } as const;
     expect(chooseWholeMailLine({ blocks: SILENT_BLOCKS, measurement })).toBe(PARTIAL_WEEK);
     // The slot carries the unmeasured section's own name, as written.
-    expectLine(
+    await expectLine(
       composeSilentWeekly(measurement),
       PARTIAL_WEEK,
       copy(PARTIAL_WEEK, { sections: COPY[f.LABEL_KEY] })
     );
-    const mail = composeSilentWeekly(measurement)();
+    const mail = await composeSilentWeekly(measurement)();
     expect(mail.text).not.toContain(COPY[NOTHING]);
     expect(mail.html).not.toContain(COPY[NOTHING]);
 

@@ -389,7 +389,7 @@ describe("the next three, named by the search each targets", () => {
 });
 
 describe("no sentence is written here, and no model text reaches the mail", () => {
-  it("every string the template speaks is a registry key, every mail sentence is written, and so are the verdict words", () => {
+  it("every string the template speaks is a registry key, every mail sentence is written, and so are the verdict words", async () => {
     const mail = full();
     const keys: CopyKey[] = [
       mail.subject,
@@ -433,7 +433,7 @@ describe("no sentence is written here, and no model text reaches the mail", () =
       pages: measured([], AT),
       next: measured([{ targetQuery: "onboarding checklist" }], AT),
     });
-    const composed = composeMail({
+    const composed = await composeMail({
       kind: "weekly",
       subject: noPages.subject,
       blocks: noPages.blocks,
@@ -448,7 +448,7 @@ describe("no sentence is written here, and no model text reaches the mail", () =
 
     // …and a week with a judged page composes too, and says the verdict
     // word it was refused on while the word was owed.
-    const judged = composeMail({
+    const judged = await composeMail({
       kind: "weekly",
       subject: mail.subject,
       blocks: mail.blocks,
@@ -475,25 +475,27 @@ describe("#639 — the composed digest, as an inbox receives it", () => {
     expect(at.every((i) => i >= 0), `every part is present: ${at.join(",")}`).toBe(true);
     expect([...at].sort((x, y) => x - y)).toEqual(at);
   };
-  const compose = (mail: ReturnType<typeof full>, measurement: Parameters<typeof composeMail>[0]["measurement"]) =>
+  const compose = async (mail: ReturnType<typeof full>, measurement: Parameters<typeof composeMail>[0]["measurement"]) =>
     composeMail({ kind: "weekly", subject: mail.subject, blocks: mail.blocks, reason: mail.reason, measurement: measurement! });
   const action = COPY["mail.weekly.action"];
 
-  it("a partial week reads heading, line, sections, the missed-sections line, the one action, then the reason", () => {
-    const { html, text } = compose(full(), { state: "partial", unmeasured: ["mail.section.rivals"] });
+  it("a partial week reads heading, line, sections, the missed-sections line, the one action, then the reason", async () => {
+    const { html, text } = await compose(full(), { state: "partial", unmeasured: ["mail.section.rivals"] });
     const missed = COPY["mail.week_partly_measured"].split("{sections}")[0] ?? "";
-    for (const [body, actionMark] of [[html, `>${action}</a>`], [text, action]] as const) {
+    for (const [body, actionMark] of [[html, `>${action}</span>`], [text, action]] as const) {
       inOrder(body, [COPY["mail.weekly.heading"], COPY["mail.weekly.score"], COPY["mail.weekly.next"], missed, actionMark, COPY["mail.reason.weekly"]]);
     }
     expect([...html.matchAll(/<a href="/g)]).toHaveLength(1);
-    expect(html).toMatch(/<td bgcolor="#[0-9a-f]{6}"[^>]*><a href=/);
+    // #934: the fill is on React Email's `Button` itself, not on a cell
+    // wrapped around it. Still exactly one solid fill.
+    expect(html).toMatch(/data-rk-action="primary"[^>]*background:#[0-9a-f]{6};color:#[0-9a-f]{6}/);
     expect(html).not.toMatch(/\sclass="/);
   });
 
-  it("an unmeasured week states no section and no figure — only the line with the next due date, then the action", () => {
+  it("an unmeasured week states no section and no figure — only the line with the next due date, then the action", async () => {
     const gap = unmeasured<never>("undeterminable", AT);
     const mail = buildWeekly({ scoreDelta: gap, aiAnswersDelta: gap, pages: gap, next: gap });
-    const { html, text } = compose(mail, { state: "none", nextDueOn: new Date("2026-09-14T06:00:00Z") });
+    const { html, text } = await compose(mail, { state: "none", nextDueOn: new Date("2026-09-14T06:00:00Z") });
     for (const body of [html, text]) {
       inOrder(body, [COPY["mail.weekly.heading"], "2026-09-14", action, COPY["mail.reason.weekly"]]);
       for (const label of ["mail.weekly.score", "mail.weekly.aiAnswers", "mail.weekly.verdicts", "mail.weekly.next"] as const) {
