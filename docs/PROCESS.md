@@ -31,6 +31,8 @@ There is no factory and no artboard task. Do not read `docs/archive/`. The one c
 | Layout screenshots | Retired. There are none: no baseline, no gallery (owner, 2026-09-21, #976). The owner looks at the live site. |
 | Production smoke (`scripts/smoke.sh`) | **Yes** for a production deploy, by hand |
 
+2026-09-22  **CI runs on the box** (owner, #1013). Every job runs on `reachkit-box`, the self-hosted runner on the shared box, because the repository's GitHub-hosted minutes ran out. The checks, their names and what each runs are unchanged. It is one runner, so jobs queue one at a time; a job stuck in *queued* means the runner service is down, not that the check failed.
+
 `no overflow · axe` renders every `(public)` and `(account)` screen in a real browser, hydrated, at the three widths the 2026-09-20 ruling names, in light and dark, and runs `@axe-core/playwright` on the same page. It fails on an element wider than its container, on text its card cuts off, on a chart that did not fit or did not draw, and on a serious or critical axe finding. It takes no screenshot and keeps no baseline — `docs/DESIGN.md` forbids a pixel baseline as a merge gate.
 
 2026-09-21  **It is the fourth merge gate** (owner, #910). A pull request merges when it is green beside `typecheck · lint · unit`, `audit` and `schema · RLS`; the "runs and reports" arrangement of #950 is superseded. Its known-defect list excuses only a defect found on `main` under an issue number, never one a pull request introduces, and it is empty as of #946.

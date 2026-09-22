@@ -3,27 +3,36 @@
 # Two jobs need the live database `scripts/db-substrate/` describes: `db`
 # (the live-schema suites, #164) and `layout` (the browser sweep signs in
 # against it, #193). Before this action they carried the same psql install
-# and the same `up.sh` call in two places, and the `postgres:18` service
-# block in two more — three copies of one arrangement, which is how the two
-# come to disagree about what "the substrate" is.
+# and the same `up.sh` call in two places — two copies of one arrangement,
+# which is how the two come to disagree about what "the substrate" is.
 #
-# The `postgres:18` service itself stays in each job: a composite action
-# cannot declare `services:`, which is a job-level key. What it can own —
-# and does — is everything after the container is listening.
+# **Where it runs** (#1013). Every job runs on `reachkit-box`, the
+# self-hosted runner on the shared box, against the box's own PostgreSQL 18
+# on 127.0.0.1:5432 — there is no Docker there, so no service container.
+# The worktree agents use that same cluster, so this job takes a run of its
+# own (`up.sh --run`): its own database and its own PostgREST, proxy and
+# postgres-meta, never another run's. `../db-substrate-down` stops them and
+# drops the database, and every job that uses this action calls it with
+# `if: always()` — a composite action has no post step to do it here.
 name: Bring up the db substrate
 description: >-
-  Installs the psql client the suites spawn and starts PostgREST, the
-  /rest/v1 proxy and postgres-meta against the already-running
-  postgres:18 service. Appends the substrate's own SUPABASE_* bindings to
-  $GITHUB_ENV.
+  Makes sure the psql 18 client the suites spawn is present, then starts
+  this job's own database, PostgREST, the /rest/v1 proxy and postgres-meta
+  against the PostgreSQL 18 already listening on 127.0.0.1:5432. Appends the
+  substrate's own SUPABASE_* bindings to $GITHUB_ENV.
 
 runs:
   using: composite
   steps:
-    - name: psql 18 (the suites spawn it; the runner image ships an older client)
+    - name: psql 18 (the suites spawn it)
       shell: bash
       run: |
         set -euo pipefail
+        # The box has it; the install stays for a machine that does not.
+        if psql --version 2>/dev/null | grep -q ' 18\.'; then
+          psql --version
+          exit 0
+        fi
         key=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
         sudo install -d /usr/share/postgresql-common/pgdg
         sudo curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc -o "$key"
@@ -32,6 +41,18 @@ runs:
         sudo apt-get install -y -qq postgresql-client-18
         psql --version
 
-    - name: roles · auth shims · PostgREST · /rest/v1 proxy · postgres-meta
+    - name: this job's database · roles · auth shims · PostgREST · /rest/v1 proxy · postgres-meta
       shell: bash
-      run: scripts/db-substrate/up.sh
+      run: |
+        set -euo pipefail
+        # One id per job and attempt, already in the slug `up.sh` derives, so
+        # the teardown can name the database even if `up.sh` fails before it
+        # records anything. The state directory is the job's own: the box's
+        # `/tmp/reachkit-substrate` belongs to the worktree agents' user.
+        run_id="$(printf 'ci_%s_%s_%s' '${{ github.run_id }}' '${{ github.run_attempt }}' '${{ github.job }}' | tr -c 'a-zA-Z0-9' '_' | tr 'A-Z' 'a-z' | cut -c1-40)"
+        export REACHKIT_SUBSTRATE_STATE="${RUNNER_TEMP}/reachkit-substrate"
+        {
+          echo "REACHKIT_RUN_ID=${run_id}"
+          echo "REACHKIT_SUBSTRATE_STATE=${REACHKIT_SUBSTRATE_STATE}"
+        } >> "$GITHUB_ENV"
+        scripts/db-substrate/up.sh --run "$run_id" > /dev/null

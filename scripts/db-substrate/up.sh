@@ -2,8 +2,8 @@
 # scripts/db-substrate/up.sh
 #
 # Brings up everything the `db` vitest project talks to, against a
-# PostgreSQL 18 server that is already listening (a `postgres:18` service
-# container in CI; a native cluster on a machine without Docker):
+# PostgreSQL 18 server that is already listening (the shared box's native
+# cluster, for CI and the worktrees alike):
 #
 #   * the roles, `auth` schema and `auth.uid()`/`auth.role()` shims that
 #     live outside `supabase/migrations/` (`shim.sql`)
@@ -33,9 +33,9 @@
 # layout is the worktree — so each implementer gets one database and reuses
 # it, rather than accumulating one per invocation.
 #
-# **CI passes no `--run` and is unchanged**: one job, one runner, one
-# `postgres:18` service container, and the same ports and database name as
-# before.
+# **CI passes `--run` too** (#1013): its jobs run on the shared box, beside
+# the worktrees, so each job takes an id of its own
+# (`.github/actions/db-substrate`) and drops its database when it ends.
 #
 # Writes the generated keys to `$GITHUB_ENV` when running under Actions, and
 # prints every binding as an `export` line on **stdout** so a local caller
