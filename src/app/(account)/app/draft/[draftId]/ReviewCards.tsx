@@ -183,7 +183,12 @@ export function WrittenFromCard(p: {
                   // first shape). The sentence is still what the page stands
                   // on, so it is listed and said to be unsourced rather than
                   // dropped — which is what this card is for.
-                  <span className="list-col-wrap min-w-0 text-xs text-base-content/50 wrap-anywhere">
+                  //
+                  // `/70`, not `/50`: the owner's ruling of 2026-09-22
+                  // (#946) took every thinned arm off the floor, and half an
+                  // ink is under 4.5:1 whatever the ink is. This is the same
+                  // quiet colour the two lines above it take.
+                  <span className="list-col-wrap min-w-0 text-xs text-base-content/70 wrap-anywhere">
                     {copy("draft.written-from.source-unknown")}
                   </span>
                 ) : (
