@@ -5,14 +5,13 @@
 // app and found the card-head chips rendering as empty tinted squares, the
 // two pills missing, and asked whether the card radius had drifted to the
 // idiom's proposed 18px. These are the pins for what that settled.
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { TrendingUp } from "lucide-react";
 import { describe, expect, it } from "vitest";
-import { BrandMark, TREND_PATHS } from "@/app/(public)/_seo/og-card";
-import { token } from "@/lib/mail/shell/tokens";
+import { BrandMark } from "@/app/(public)/_seo/og-card";
+import { MARK_CHIP, MARK_DOME, MARK_RADIUS } from "@/lib/brand/mark";
 
 const SRC = path.resolve(import.meta.dirname, "../../../src");
 const read = (rel: string): string => readFileSync(path.join(SRC, rel), "utf8");
@@ -109,7 +108,7 @@ describe("S1 — the landing's chips carry the icons the approved set draws", ()
 
 describe("issue #486 — every chip the approved set draws carries its glyph", () => {
 
-  it("the brand mark is the trend glyph on an accent square, drawn in exactly one file (#936)", () => {
+  it("the brand mark is the Round 9 Fade chip, drawn in exactly one file (#936, #982)", () => {
     // **This row used to assert the markup in each of the four files that
     // drew it.** Four identical copies is what it was really recording,
     // and the mark is about to be replaced — the owner's logo round
@@ -117,9 +116,21 @@ describe("issue #486 — every chip the approved set draws carries its glyph", (
     // #936 moved it into one file and this asserts that instead. What it
     // is protecting is stronger than before: not "the four agree" but
     // "there is one, and there is nothing else to disagree with it".
+    // **The mark changed, and the rule did not.** #936 moved four copies
+    // of a lucide glyph on a `bg-primary` span into one file so the mark
+    // the owner was choosing could be swapped in one edit; #982 is that
+    // edit. What this row asserts is the same claim as before — there is
+    // one drawing — now against the drawing that replaced it. The chip is
+    // part of the `<svg>` rather than a span around it, so the span's
+    // classes are gone on purpose.
     const brand = read("app/_brand/Brand.tsx");
-    expect(brand).toMatch(/rounded-field bg-primary text-primary-content/);
-    expect(brand).toMatch(/<TrendingUp size=\{lg \? 18 : 16\} strokeWidth=\{1\.75\}/);
+    expect(brand).toMatch(/from "@\/lib\/brand\/mark"/);
+    expect(brand).not.toContain("rounded-field bg-primary text-primary-content");
+    expect(brand).not.toContain("lucide-react");
+    // The geometry itself is not restated here — it is `mark.ts`'s.
+    const mark = readFileSync(path.join(SRC, "lib/brand/mark.ts"), "utf8");
+    expect(mark).toContain("linearGradient");
+    expect(mark).toContain("MARK_DOME");
   });
 
   it("nothing else draws the mark — a second copy is a second mark (#936)", () => {
@@ -136,7 +147,16 @@ describe("issue #486 — every chip the approved set draws carries its glyph", (
       const source = read(file);
       expect(source, file).toMatch(/from "@\/app\/_brand\/Brand"/);
       expect(source, file).not.toContain("rounded-field bg-primary text-primary-content");
+      // Nor the drawing that replaced it (#982): the dome, the fade and
+      // the chip's violet are `lib/brand/mark.ts`'s alone.
+      expect(source, file).not.toContain("linearGradient");
+      expect(source, file).not.toContain("#5b4be0");
     }
+    // The two generated pictures read it too, rather than carrying a
+    // second mark as `og-card.tsx` did until #982.
+    const card = read("app/(public)/_seo/og-card.tsx");
+    expect(card).toMatch(/from "@\/lib\/brand\/mark"/);
+    expect(card).not.toContain("#5b4be0");
   });
 
   it("S2's Copy link pill carries copy (L577)", () => {
@@ -151,32 +171,47 @@ describe("issue #486 — every chip the approved set draws carries its glyph", (
 
 describe("issue #509 — the generated mark and the S12 figure, as the set draws them", () => {
 
-  it("the tab icon and the share cards draw BrandMark, and no pill is left in either", () => {
-    const icon = read("app/(public)/icon.tsx");
+  it("the share cards draw BrandMark, and the tab icon is the committed set (#982)", () => {
+    // The tab icon was `icon.tsx`, an `ImageResponse` drawn at request
+    // time. The owner's ruling asks for a real `.ico` and a real 180px
+    // PNG, which that cannot serve, so the icons are committed files made
+    // by `scripts/brand/render.mjs` from the one drawing — and
+    // `tests/app/seo/metadata.test.tsx` holds those bytes to it.
     const card = read("app/(public)/_seo/og-card.tsx");
-    expect(icon).toMatch(/<BrandMark size=\{size\.width\} \/>/);
     expect(card).toMatch(/<BrandMark size=\{\d+\} \/>/);
-    for (const [rel, source] of [["icon.tsx", icon], ["og-card.tsx", card]] as const) {
-      expect(source, rel).not.toContain('token("--r-pill")');
+    expect(card).not.toContain('token("--r-pill")');
+    for (const file of ["icon.svg", "icon.ico", "apple-icon.png"]) {
+      expect(existsSync(path.join(SRC, "app/(public)", file)), file).toBe(true);
+    }
+    // And the generators they replaced are gone, not left beside them.
+    for (const file of ["icon.tsx", "apple-icon.tsx"]) {
+      expect(existsSync(path.join(SRC, "app/(public)", file)), file).toBe(false);
     }
   });
 
-  it("BrandMark is the set's square: --r-field corners, --accent ground, --on-accent glyph", () => {
+  it("the generated mark is the Round 9 Fade chip, from the one drawing (#982)", () => {
+    // It was a lucide glyph on an `--accent` square with its own geometry
+    // written in `og-card.tsx`. The owner's 2026-09-21 ruling replaced the
+    // mark, and #982 made `lib/brand/mark.ts` the only place its shape and
+    // its violet are written — so this asserts the generated picture reads
+    // from there rather than re-stating any of it.
     const html = renderToStaticMarkup(createElement(BrandMark, { size: 32 }));
-    expect(html).toContain(`border-radius:${token("--r-field")}`);
-    expect(html).toContain(`background:${token("--accent")}`);
-    expect(html).toContain(`stroke="${token("--on-accent")}"`);
-    expect(html).toContain('stroke-width="2"');
+    expect(html).toContain(`rx="${MARK_RADIUS}"`);
+    expect(html).toContain(`fill="${MARK_CHIP}"`);
+    expect(html).toContain(`d="${MARK_DOME}"`);
+    // The fade is a real gradient, which is the standing rule's whole
+    // point: the small sizes are this drawing scaled, never redrawn.
+    expect(html).toContain("<linearGradient");
+    expect(html).toContain("stop-opacity");
   });
 
-  it("the glyph keeps the set's 15-in-26 proportion", () => {
-    const html = renderToStaticMarkup(createElement(BrandMark, { size: 52 }));
-    expect(html).toMatch(/<svg[^>]* width="30" height="30"/);
-  });
-
-  it("its strokes are lucide's TrendingUp, the glyph every screen's mark renders", () => {
-    const lucide = renderToStaticMarkup(createElement(TrendingUp));
-    const drawn = [...lucide.matchAll(/ d="([^"]+)"/g)].map((m) => m[1]);
-    expect(drawn).toEqual([...TREND_PATHS]);
+  it("the mark scales by its box, not by a second set of numbers", () => {
+    // One `viewBox`, whatever pixel size a canvas asks for — so 16 and 180
+    // are the same drawing and there is nothing to keep in step.
+    for (const size of [16, 32, 180]) {
+      const html = renderToStaticMarkup(createElement(BrandMark, { size }));
+      expect(html).toContain(`width="${size}" height="${size}"`);
+      expect(html).toContain('viewBox="0 0 64 64"');
+    }
   });
 });

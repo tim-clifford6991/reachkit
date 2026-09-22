@@ -12,6 +12,7 @@
 // this file contains no `copy()` call and authors no string.
 import { escapeHtml } from "../blocks/html";
 import { token } from "./tokens";
+import { brandMarkSvg, MARK_CHIP } from "@/lib/brand/mark";
 
 export interface FrameParts {
   /** The product's name, rendered from its copy key by `compose.ts`. */
@@ -74,17 +75,34 @@ function wholeMailLineHtml(line: string | null): string {
   return `<tr><td style="padding:0 0 16px 0;font-family:${token("--font-ui-mail")};font-size:15px;line-height:1.55;color:${token("--ink-2")}">${escapeHtml(line)}</td></tr>`;
 }
 
+/** The mark, at the size the mail head draws it. */
+const MAIL_MARK_PX = 14;
+
 /**
  * The card's own head: the brand mark and the wordmark, over a hairline.
  *
  * **Inside the card, not above it** — S20 draws it that way, and the owner's
- * render caught this sitting outside on the page ground (2026-09-09). The
- * mark is a filled square in the accent, drawn as a table cell rather than
- * an image: an inbox blocks remote images by default, and a brand that
- * depends on one is a brand most readers never see.
+ * render caught this sitting outside on the page ground (2026-09-09).
+ *
+ * **Inline SVG over a coloured cell, and never a remote image** (#982).
+ * The owner's list allows an inline SVG or a PNG at 2×; a PNG has to be
+ * fetched, and an inbox blocks remote images by default — a brand that
+ * depends on one is a brand most readers never see, which is why this was
+ * a bare accent square before the mark existed.
+ *
+ * So the mark is `src/lib/brand/mark.ts`'s own SVG, inlined, sitting on a
+ * cell whose background is the chip's violet at the chip's radius. A
+ * client that renders SVG shows the drawing; one that strips it is left
+ * with exactly the square this head showed before — the same colour, the
+ * same size, the same corner. The fallback is never worse than what
+ * shipped, and no request leaves the inbox either way.
  */
 function brandHeadHtml(wordmark: string): string {
-  const mark = `<td width="18" style="width:18px;padding:0 8px 0 0"><div style="width:14px;height:14px;border-radius:4px;background:${token("--accent")}"></div></td>`;
+  const mark =
+    `<td width="18" style="width:18px;padding:0 8px 0 0">` +
+    `<div style="width:${MAIL_MARK_PX}px;height:${MAIL_MARK_PX}px;border-radius:4px;background:${MARK_CHIP};overflow:hidden;line-height:0">` +
+    brandMarkSvg({ size: MAIL_MARK_PX }) +
+    `</div></td>`;
   return [
     `<tr><td style="padding:0 0 14px 0;border-bottom:1px solid ${token("--line")}">`,
     `<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>`,
