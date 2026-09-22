@@ -15,7 +15,8 @@
     "copy:owed": "node scripts/copy/owed.mjs",
     "orphans": "node scripts/orphans.mjs",
     "spike:llm-mentions": "node scripts/llm-mentions-pilot.mjs",
-    "smoke": "bash scripts/smoke.sh",
+    "mail:samples": "node scripts/mail-samples.mjs",
+  "smoke": "bash scripts/smoke.sh",
     "land": "bash scripts/land.sh",
     "typecheck": "tsc --noEmit",
     "db:types": "bash scripts/db-substrate/gen-types.sh > src/lib/db/types.generated.ts"
