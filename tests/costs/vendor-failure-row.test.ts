@@ -225,6 +225,10 @@ describe('BUILD §6.4, "no negative cache" — a ledgered vendor failure is neve
     const answer = { rows: [{ keyword: "crm", position: 3, volume: 100, url: "https://example.com/" }], total: 1 };
     db.rows.set("fetches", [{ payload: failure }, { payload: answer }]);
     const hit = await readCache({ source: RANKED, cacheKey: "k", policyVersion: 1, freshnessDays: 7 });
-    expect(hit).toEqual({ payload: answer });
+    // Issue 715: the hit is the payload and the moment the row it came
+    // from was bought — the date the free report's "reused from" mark is
+    // read off, which is a fact of the row and of nothing else.
+    expect(hit?.payload).toEqual(answer);
+    expect(hit?.storedAt).toBeInstanceOf(Date);
   });
 });

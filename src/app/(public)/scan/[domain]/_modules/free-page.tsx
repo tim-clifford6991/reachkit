@@ -23,7 +23,14 @@ import { FileText } from "lucide-react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { renderGenerated } from "@/lib/presentation/generated";
 import type { FreePageSection } from "@/lib/scan/report";
+import type { CanonicalDomain } from "@/lib/scan/domain";
+import type { RetryPart } from "@/lib/scan/retry";
 import { Num } from "../_address/measured";
+import { RetryPartControl } from "../_address/retry-part";
+
+/** This card's retry part, bound rather than inline — see
+ *  `ai-answers.tsx` for why the sweep requires it. */
+const FREE_PAGE_PART: RetryPart = "free_page";
 import { LeadCapture } from "./lead-capture";
 
 /** The Write types a report can offer, in the reader's words (issue 787). */
@@ -115,15 +122,20 @@ export function FreePageCard(p: { section: FreePageSection; scanId: string }): R
 
 /** REQ-004 c10/c11: a scan that found no opportunity says so in one
  *  written line rather than showing an empty card. */
-export function FreePageAbsent(p: { cutOff?: boolean } = {}): React.JSX.Element {
+export function FreePageAbsent(p: { cutOff?: boolean; domain?: CanonicalDomain } = {}): React.JSX.Element {
   return (
     <section className="card bg-base-100 border-base-300 border">
       <div className="card-body gap-3">
         <Head />
         <p className="grow-0 text-sm">{copy("free-page.absent")}</p>
         {/* Only a page the pass's ceiling cut off is offered again: a scan that
-            found nothing worth writing has nothing to retry (SPEC §2). */}
-        {p.cutOff === true ? (
+            found nothing worth writing has nothing to retry (SPEC §2). This
+            part buys nothing — the proposal is derived from measurements
+            already paid for — so it is offered whatever the 12¢ still holds
+            (issue 715). */}
+        {p.cutOff === true && p.domain !== undefined ? (
+          <RetryPartControl domain={p.domain} part={FREE_PAGE_PART} />
+        ) : p.cutOff === true ? (
           <div className="card-actions">
             <button type="button" className="btn btn-outline btn-primary btn-sm">
               {copy("control.retry-part")}

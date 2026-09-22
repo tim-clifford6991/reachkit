@@ -129,10 +129,17 @@ export interface CostContext {
      *  behaves exactly as before this argument existed. */
     settleCents?: (payload: P) => number;
     run: () => Promise<P>;
-  }): Promise<{ payload: P; fresh: boolean; costCents: number } | { skipped: "cap" }>;
+  }): Promise<
+    { payload: P; fresh: boolean; costCents: number; storedAt: Date | null } | { skipped: "cap" }
+  >;
   // The returned `costCents` is the settled figure where one was
   // supplied, the reservation otherwise — one number, and it is the one
   // the row carries.
+  //
+  // `storedAt` is the moment the served row was bought, and is non-`null`
+  // exactly when `fresh` is `false` (SPEC §2, issue 715): a caller that
+  // must tell a reader an answer was *reused*, and from when, has the one
+  // fact that says so here rather than guessing it from a clock.
 
   /** True once *any* ceiling over this call is reached — this pass's own
    *  cap, the product's daily one (issue #329), or this site's daily one
@@ -260,7 +267,9 @@ export async function withCostContext<T>(
       costCents: number;
       settleCents?: (payload: P) => number;
       run: () => Promise<P>;
-    }): Promise<{ payload: P; fresh: boolean; costCents: number } | { skipped: "cap" }> {
+    }): Promise<
+      { payload: P; fresh: boolean; costCents: number; storedAt: Date | null } | { skipped: "cap" }
+    > {
       // Cache-first: a hit is free and bypasses the cap entirely — it
       // never reaches the vendor, so there is nothing for the cap to
       // protect against.
@@ -271,7 +280,7 @@ export async function withCostContext<T>(
         freshnessDays: call.freshnessDays,
       });
       if (cached) {
-        return { payload: cached.payload as P, fresh: false, costCents: 0 };
+        return { payload: cached.payload as P, fresh: false, costCents: 0, storedAt: cached.storedAt };
       }
 
       // The product-wide ceiling first: it is the one that outranks this
@@ -372,7 +381,7 @@ export async function withCostContext<T>(
         day.add(settledCents);
         site?.add(settledCents);
 
-        return { payload, fresh: true, costCents: settledCents };
+        return { payload, fresh: true, costCents: settledCents, storedAt: null };
       } finally {
         inFlightReserved -= call.costCents;
       }

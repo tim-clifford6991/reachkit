@@ -77,6 +77,13 @@ export interface MarketAiAnswer {
 export interface MarketSerp extends MarketSerpOrganic {
   organic: readonly MarketOrganicRow[];
   aiOverview: MarketAiOverview;
+  /** When this answer was bought, where the pass holding it did not buy it
+   *  (SPEC §2, issue 715) — an ISO instant off the ledger row the cache
+   *  served. Absent is the ordinary case: this pass paid for it. The
+   *  AI-answers card reads it to say "reused from {date}" and nothing else
+   *  here branches on it; `SerpResult` satisfies this member structurally,
+   *  as it does every other one. */
+  reusedFrom?: string;
 }
 
 /** One of the searches the market set selected — the keyword the SERP was

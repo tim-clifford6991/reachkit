@@ -150,6 +150,7 @@ export function answersSectionOf(a: {
     rivals: a.rivals.map((rival) => ({ domain: rival.domain, cells: rivalCellsOf(cells, rival.domain) })),
     rows,
     coverage: a.card.coverage,
+    reusedFrom: a.card.reusedFrom,
   };
 }
 

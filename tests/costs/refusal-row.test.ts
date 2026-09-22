@@ -153,6 +153,10 @@ describe('BUILD §6.4, "no negative cache" — a ledgered refusal is never serve
     const document = { url: HOME, status: 200, html: "<h1>x</h1>", bytes: 10, readAt: READ_AT.toISOString() };
     db.rows.set("fetches", [{ payload: refusalOf(refused("timeout")) }, { payload: document }]);
     const hit = await readCache({ source: OWN_FETCH_SOURCE, cacheKey: HOME, policyVersion: 1, freshnessDays: 7 });
-    expect(hit).toEqual({ payload: document });
+    // Issue 715: the hit is the payload and the moment the row it came
+    // from was bought — the date the free report's "reused from" mark is
+    // read off, which is a fact of the row and of nothing else.
+    expect(hit?.payload).toEqual(document);
+    expect(hit?.storedAt).toBeInstanceOf(Date);
   });
 });

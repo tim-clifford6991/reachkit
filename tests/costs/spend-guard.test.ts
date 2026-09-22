@@ -92,6 +92,11 @@ function call(cost: import("../../src/lib/costs/index").CostContext, costCents: 
   });
 }
 
+/** Issue 715: the moment a cache hit's row was bought. Any instant will do
+ *  — what is asserted is that the seam hands it back rather than dropping
+ *  it, and that a call it actually made says `null` instead. */
+const CACHED_AT = new Date("2026-09-18T08:30:00.000Z");
+
 describe("a day that has reached its ceiling refuses new work, and holds the pass", () => {
   it("a paid pass with all of its own budget still spends nothing", async () => {
     ledgerHolds(CEILING);
@@ -126,12 +131,14 @@ describe("a day that has reached its ceiling refuses new work, and holds the pas
 
   it("a cache hit is still served: it reaches no vendor, so there is nothing for a ceiling to protect", async () => {
     ledgerHolds(CEILING);
-    readCacheMock.mockResolvedValue({ payload: { cached: true } });
+    // Issue 715: a hit carries the moment the row it served was bought, so
+    // a caller that must tell a reader an answer was reused has the date.
+    readCacheMock.mockResolvedValue({ payload: { cached: true }, storedAt: CACHED_AT });
     let result: unknown;
     await withCostContext({ ...CTX, cap: "DEEP" }, async (cost) => {
       result = await call(cost, 1, []);
     });
-    expect(result).toEqual({ payload: { cached: true }, fresh: false, costCents: 0 });
+    expect(result).toEqual({ payload: { cached: true }, fresh: false, costCents: 0, storedAt: CACHED_AT });
   });
 });
 
@@ -144,7 +151,7 @@ describe("a day with headroom spends normally, until this pass takes the last of
       result = await call(cost, 2, ran);
     });
     expect(ran).toEqual(["vendor"]);
-    expect(result).toEqual({ payload: {}, fresh: true, costCents: 2 });
+    expect(result).toEqual({ payload: {}, fresh: true, costCents: 2, storedAt: null });
     expect(updates).toEqual([{ table: "scans", values: { cost_cents: 2, status: "done" } }]);
   });
 
@@ -156,7 +163,7 @@ describe("a day with headroom spends normally, until this pass takes the last of
       outcomes.push(await call(cost, 2, ran));
       outcomes.push(await call(cost, 2, ran));
     });
-    expect(outcomes[0]).toEqual({ payload: {}, fresh: true, costCents: 2 });
+    expect(outcomes[0]).toEqual({ payload: {}, fresh: true, costCents: 2, storedAt: null });
     expect(outcomes[1]).toEqual({ skipped: "cap" });
     // Exactly one vendor call: money already spent is ledgered, and the
     // ceiling is never exceeded to finish outstanding work.

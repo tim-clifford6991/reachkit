@@ -212,13 +212,18 @@ describe("DECISIONS 2026-09-03 / ADR-094 — coverage is a state the caller deci
 });
 
 describe('REQ-006 c7 — the card reports what was measured and nothing more', () => {
-  it("card/no-advice-field — the card's keys are exactly the five the interface declares", () => {
+  it("card/no-advice-field — the card's keys are exactly the six the interface declares", () => {
     const built = card({ serps: [ok(["rival.com"])] });
+    // Six since issue 715: `reusedFrom` says *when* an answer this pass did
+    // not buy was bought. Still a measurement and still no advice — it is a
+    // date off the ledger row, with no field an instruction, a technique or
+    // a severity could be written into.
     expect(Object.keys(built).sort()).toEqual([
       "answeredSearches",
       "coverage",
       "customerCitations",
       "measuredSearches",
+      "reusedFrom",
       "rows",
     ]);
   });

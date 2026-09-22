@@ -128,6 +128,17 @@ export interface AiAnswersCard {
   rows: readonly AnswerRow[];
   /** Which AI answers this card could see. A state, never a sentence. */
   coverage: "async_included" | "cached_only";
+  /**
+   * The oldest answer on this card that the pass did not buy (SPEC §2,
+   * issue 715) — an ISO instant, read off the SERP the cache served, or
+   * `null` where every answer counted here was bought by this pass.
+   *
+   * The **oldest**, so the one date a card can show never claims an answer
+   * is fresher than it is: every reused answer on this card is that date or
+   * newer. A state again, never a sentence — the screen turns it into
+   * "reused from {date}".
+   */
+  reusedFrom: string | null;
 }
 
 /** An AI Overview's reference hosts, reduced to registrable domains: nulls
@@ -292,10 +303,32 @@ export function buildAiAnswersCard(a: {
     customerCitations: answered.filter((row) => row.cell.kind === "answered" && row.cell.namesCustomer).length,
     rows,
     coverage: a.coverage,
+    reusedFrom: oldestReuse(a.serps),
   };
 
   logCells(card);
   return card;
+}
+
+/**
+ * Issue 715: the oldest `reusedFrom` among the SERPs this card was counted
+ * over, or `null` where none of them carries one.
+ *
+ * Only a measured SERP can have been reused — an `unmeasured` cell is an
+ * answer nobody has, from any date — and a SERP this pass bought carries no
+ * stamp at all, which is why a card with one fresh answer and eleven reused
+ * ones still says when the reused ones are from. The comparison is on the
+ * ISO string, which sorts as the instant does.
+ */
+function oldestReuse(serps: readonly Measured<MarketSerp>[]): string | null {
+  let oldest: string | null = null;
+  for (const serp of serps) {
+    if (serp.kind === "unmeasured") continue;
+    const at = serp.value.reusedFrom;
+    if (at === undefined) continue;
+    if (oldest === null || at < oldest) oldest = at;
+  }
+  return oldest;
 }
 
 /** BP-025 `## NFR budget`: the per-cell outcome kind. Kinds only — no

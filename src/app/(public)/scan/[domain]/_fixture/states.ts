@@ -132,7 +132,7 @@ const FIXTURE_RECORD = {
   // constant in `tests/app/scan-address/report-view.test.tsx`, which runs
   // in node and may import it, so the two cannot drift (#352; the label
   // had been left at 3 through two migrations).
-  version: 11,
+  version: 12,
   scanId: "fixture-scan-1",
   domain: OWN_DOMAIN as CanonicalDomain,
   tier: "free",
@@ -247,6 +247,9 @@ export const FIXTURE_REPORT: StoredReport = {
     rivals: RIVALS.map((domain, offset) => ({ domain, cells: rivalCells(offset) })),
     rows: QUESTIONS.map((question, index) => ({ question, cell: cellFor(index), engines: enginesFor(index) })),
     coverage: "async_included",
+    // Issue 715: this pass bought its own answers, so it carries no reuse
+    // mark. `reused.example.com` below is the arm that does.
+    reusedFrom: null,
   },
   presence: {
     measuredSearches: 12,
@@ -409,6 +412,9 @@ export const FIXTURE_COLD_START_REPORT: StoredReport = {
       ] as readonly EngineCell[],
     })),
     coverage: "async_included",
+    // Issue 715: this pass bought its own answers, so it carries no reuse
+    // mark. `reused.example.com` below is the arm that does.
+    reusedFrom: null,
   },
   presence: {
     measuredSearches: 12,
@@ -424,6 +430,37 @@ export const FIXTURE_COLD_START_REPORT: StoredReport = {
   freePage: null,
 };
 
+/**
+ * Issue 715 — the two arms SPEC §2's measurement, reuse and retry rules
+ * are reviewed on.
+ *
+ * `reused.example.com` is a second scan of a domain inside §6.4's SERP
+ * window: the answers came back out of `fetches` and cost nothing, and the
+ * card says when they were bought. Nothing else about it differs from the
+ * complete report, which is the point — a reused answer is still a
+ * measurement.
+ *
+ * `cut-off.example.com` is the ceiling arm §2 describes: the pass stopped
+ * at one of its two ceilings, so the score is "—", the cards it never
+ * reached are absent, and each of those cards offers "Retry this part".
+ * The degraded arm above is *not* this: it ends `complete` with sections
+ * missing for their own reasons, and a card missing for its own reason is
+ * not a card a ceiling cut off.
+ */
+const FIXTURE_REUSED_REPORT: StoredReport = {
+  ...FIXTURE_REPORT,
+  aiAnswers:
+    FIXTURE_REPORT.aiAnswers === null
+      ? null
+      : { ...FIXTURE_REPORT.aiAnswers, reusedFrom: "2026-09-02T09:00:00.000Z" },
+};
+
+const FIXTURE_CUT_OFF_REPORT: StoredReport = {
+  ...FIXTURE_DEGRADED_REPORT,
+  complete: false,
+  stoppedReason: "time_ceiling",
+};
+
 /** The fixture domains, one per arm the report route can resolve to. Any
  *  other domain resolves to the complete report above, so the screen the
  *  owner reviews first is the one a stranger actually lands on. */
@@ -432,6 +469,20 @@ const FIXTURE_ARMS: Readonly<Record<string, (domain: CanonicalDomain) => Address
     "degraded.example.com": () => ({
       kind: "report",
       report: FIXTURE_DEGRADED_REPORT,
+      notice: { kind: "incomplete", unmeasured: ["foundations", "presence"] },
+      control: { kind: "rescan", because: "incomplete" },
+      correction: { offered: true, as: "first" },
+    }),
+    "reused.example.com": () => ({
+      kind: "report",
+      report: FIXTURE_REUSED_REPORT,
+      notice: null,
+      control: { kind: "none" },
+      correction: { offered: true, as: "first" },
+    }),
+    "cut-off.example.com": () => ({
+      kind: "report",
+      report: FIXTURE_CUT_OFF_REPORT,
       notice: { kind: "incomplete", unmeasured: ["foundations", "presence"] },
       control: { kind: "rescan", because: "incomplete" },
       correction: { offered: true, as: "first" },

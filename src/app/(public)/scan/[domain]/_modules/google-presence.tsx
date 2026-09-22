@@ -39,7 +39,14 @@ import { Search } from "lucide-react";
 import { PresenceBars } from "@/ui/charts";
 import { copy } from "@/lib/presentation/copy";
 import type { PresenceSection } from "@/lib/scan/report";
+import type { CanonicalDomain } from "@/lib/scan/domain";
+import type { RetryPart } from "@/lib/scan/retry";
 import { dash, Num } from "../_address/measured";
+import { RetryPartControl } from "../_address/retry-part";
+
+/** This card's retry part, bound rather than inline — see
+ *  `ai-answers.tsx` for why the sweep requires it. */
+const PRESENCE_PART: RetryPart = "presence";
 
 /** A column head, repeated beside its value in the stacked shape and hidden
  *  from `sm` where the real head row takes over (#956). It writes no
@@ -202,17 +209,24 @@ export function GooglePresenceCard(p: { section: PresenceSection }): React.JSX.E
 
 /** REQ-004 c10/c11: named as absent in one written line; the rest of the
  *  report stays usable. */
-export function GooglePresenceAbsent(p: { cutOff?: boolean } = {}): React.JSX.Element {
+export function GooglePresenceAbsent(p: { cutOff?: boolean; domain?: CanonicalDomain } = {}): React.JSX.Element {
   return (
     <section className="card bg-base-100 border-base-300 border">
       <div className="card-body gap-3">
         <Head right={<Num unmeasured>{dash()}</Num>} />
         <p className="grow-0 text-sm">{copy("presence.absent")}</p>
-        <div className="card-actions">
-          <button type="button" className="btn btn-outline btn-primary btn-sm">
-            {copy(p.cutOff === true ? "control.retry-part" : "control.rescan-incomplete")}
-          </button>
-        </div>
+        {/* Issue 715: the same control the AI-answers card draws, for the
+            same purchase — both cards are counted over the twelve question
+            SERPs, so the part either of them is missing is that stage's. */}
+        {p.cutOff === true && p.domain !== undefined ? (
+          <RetryPartControl domain={p.domain} part={PRESENCE_PART} />
+        ) : (
+          <div className="card-actions">
+            <button type="button" className="btn btn-outline btn-primary btn-sm">
+              {copy(p.cutOff === true ? "control.retry-part" : "control.rescan-incomplete")}
+            </button>
+          </div>
+        )}
       </div>
     </section>
   );

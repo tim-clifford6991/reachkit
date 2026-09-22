@@ -316,6 +316,13 @@ function failureRow(source: string, out: Failed): VendorFailure {
  *  call bought (a cache hit is never a failure; a cap-skip is not one). */
 export type OnVendorFailure = (failure: VendorFailure) => void;
 
+/** Where a call site hears that its answer was not bought at all — it came
+ *  back from `fetches`, and this is when the row that holds it was bought
+ *  (SPEC §2, issue 715). Told only on a hit, and never for a failure or a
+ *  cap-skip, neither of which the cache ever serves. A caller that says
+ *  "reused from {date}" to a reader reads the date here. */
+export type OnReusedAnswer = (storedAt: Date) => void;
+
 /** The seam mapping described in the header. `parse` turns one vendor
  *  `result` into the product rows (an empty array for the vendor's own
  *  zero-result) or `undefined` when the shape is not one it recognises.
@@ -332,6 +339,7 @@ export async function ledgered<T>(
     fetch: () => Promise<VendorOutcome>;
     parse: (result: unknown) => T[] | undefined;
     onFailure?: OnVendorFailure;
+    onReused?: OnReusedAnswer;
   }
 ): Promise<Measured<T[]>> {
   const at = new Date();
@@ -373,6 +381,11 @@ export async function ledgered<T>(
 
   const payload = result.payload;
   const failed = isVendorFailure(payload) ? payload : undefined;
+  // Issue 715: the answer came out of `fetches`, so this call site can tell
+  // its reader so. After the failure test below would be wrong — a cache
+  // hit is never a failure — and before the log would be too, since a
+  // skipped call has no payload to reuse.
+  if (!failed && result.storedAt !== null) call.onReused?.(result.storedAt);
   logVendorCall({
     source: call.source,
     outcome: failed ? "failed" : "ok",

@@ -63,7 +63,32 @@ import type {
   BatteryEngine,
   StoredQuestion,
 } from "@/lib/scan/report";
+import type { CanonicalDomain } from "@/lib/scan/domain";
+import type { RetryPart } from "@/lib/scan/retry";
 import { dash, Num, ratio } from "../_address/measured";
+import { RetryPartControl } from "../_address/retry-part";
+
+/** Which part this card's retry re-runs. A bound handle, not an inline
+ *  attribute: the string-literal sweep (REQ-093 c1) reads every JSX
+ *  attribute string, and a handle that looks like a sentence to a sweep is
+ *  a handle that will be flagged by it.*/
+const AI_ANSWERS_PART: RetryPart = "ai_answers";
+
+/** Issue 715: the reuse date in the report's one locale, the same
+ *  `en-US` / `{year, month: short, day}` shape `report-view.tsx` formats
+ *  the measurement date in. Written here rather than threaded down from
+ *  there because it is a *different* date — the report has one measurement
+ *  date and any number of reuse dates — and a second parameter on this card
+ *  called `on` beside `measuredOn` would be two dates a caller could swap.
+ *  A stored value that is not an instant renders as itself rather than as
+ *  `Invalid Date`: the member is the ledger's, and a screen does not get to
+ *  decide that a report is unreadable. */
+function formatReusedOn(iso: string): string {
+  const at = new Date(iso);
+  return Number.isNaN(at.getTime())
+    ? iso
+    : at.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+}
 
 /** How many of the twelve the list shows before "Show all 12"
  *  (`BUILD.md` §4.1: "First 4 shown"). A layout parameter of this one
@@ -434,6 +459,17 @@ export function AiAnswersCard(p: {
         {section.coverage === "cached_only" ? (
           <p className="grow-0 text-base-content/70 text-xs">{copy("ai-answers.coverage.cached-only")}</p>
         ) : null}
+        {/* Issue 715, owner 2026-09-22: answers a recent scan already had
+            are marked with the date they were bought — the chip above is
+            the date this report was *read*, which is not the same fact and
+            was the only date the card had. Read off the section, never
+            composed from a clock here; absent where this pass bought every
+            answer on the card. */}
+        {section.reusedFrom === null ? null : (
+          <p className="grow-0 text-base-content/70 text-xs" data-testid="ai-answers-reused-from">
+            <Num phrase>{copy("ai-answers.reused-from", { date: formatReusedOn(section.reusedFrom) })}</Num>
+          </p>
+        )}
         {/* The card leads with its answer, not with its metric. */}
         <p className="grow-0 text-sm font-semibold">
           {copy("ai-answers.denominator", {
@@ -500,19 +536,27 @@ export function AiAnswersCard(p: {
 /** REQ-004 c10/c11: a section that could not be produced is named as
  *  absent in one written line, and the rest of the report stays usable —
  *  never an empty card, never a spinner. */
-export function AiAnswersAbsent(p: { cutOff?: boolean } = {}): React.JSX.Element {
+export function AiAnswersAbsent(p: { cutOff?: boolean; domain?: CanonicalDomain } = {}): React.JSX.Element {
   return (
     <section className="card bg-base-100 border-base-300 border">
       <div className="card-body gap-3">
         <Head right={<Num unmeasured>{dash()}</Num>} />
         <p className="grow-0 text-sm">{copy("ai-answers.absent")}</p>
         {/* The part this card could not measure is offered again on the card:
-            "Retry this part" where the pass's ceiling cut it off (SPEC §2). */}
-        <div className="card-actions">
-          <button type="button" className="btn btn-outline btn-primary btn-sm">
-            {copy(p.cutOff === true ? "control.retry-part" : "control.rescan-incomplete")}
-          </button>
-        </div>
+            "Retry this part" where the pass's ceiling cut it off (SPEC §2),
+            and it re-runs that part inside the report's own 12¢ (issue 715).
+            The other arm — a card absent for its own reason, on a pass no
+            ceiling stopped — offers the report-level re-scan instead, and
+            wiring that one is #935's. */}
+        {p.cutOff === true && p.domain !== undefined ? (
+          <RetryPartControl domain={p.domain} part={AI_ANSWERS_PART} />
+        ) : (
+          <div className="card-actions">
+            <button type="button" className="btn btn-outline btn-primary btn-sm">
+              {copy(p.cutOff === true ? "control.retry-part" : "control.rescan-incomplete")}
+            </button>
+          </div>
+        )}
       </div>
     </section>
   );

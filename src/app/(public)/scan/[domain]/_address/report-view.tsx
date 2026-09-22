@@ -305,13 +305,17 @@ export function ReportView(p: {
           <p className="text-base-content/60 mt-2 font-mono text-xs">{copy("report.measurement")}</p>
         </div>
 
+        {/* Issue 715: an absent card carries the address its retry posts
+            to. The card decides nothing about the offer — the route asks
+            `retryOffer` again from the row's own facts — but a control with
+            no address to act on would be a control that does nothing. */}
         {report.aiAnswers === null ? (
-          <AiAnswersAbsent cutOff={cutOff} />
+          <AiAnswersAbsent cutOff={cutOff} domain={report.domain} />
         ) : (
           <AiAnswersCard section={report.aiAnswers} measuredOn={measuredOn} />
         )}
         {report.presence === null ? (
-          <GooglePresenceAbsent cutOff={cutOff} />
+          <GooglePresenceAbsent cutOff={cutOff} domain={report.domain} />
         ) : (
           <GooglePresenceCard section={report.presence} />
         )}
@@ -335,7 +339,7 @@ export function ReportView(p: {
             choice between them. */}
         <div className="col-span-full">
           {report.freePage === null ? (
-            <FreePageAbsent cutOff={cutOff} />
+            <FreePageAbsent cutOff={cutOff} domain={report.domain} />
           ) : (
             <FreePageCard section={report.freePage} scanId={report.scanId} />
           )}
