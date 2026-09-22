@@ -45,14 +45,7 @@
 "use client";
 
 import type React from "react";
-import {
-  useCallback,
-  useEffect,
-  useOptimistic,
-  useRef,
-  useState,
-  useTransition,
-} from "react";
+import { useCallback, useEffect, useMemo, useOptimistic, useRef, useState, useTransition } from "react";
 import { AUTOSAVE_DEBOUNCE_MS } from "@/lib/config/constants";
 import { copy } from "@/lib/presentation/copy";
 import { ArrowLeft, Copy } from "lucide-react";
@@ -76,7 +69,9 @@ import { CopyOut } from "./CopyOut";
 import { DecidePanel } from "./DecidePanel";
 import type { DraftCommand } from "./actions";
 import { draftStore, type SaveBody } from "./save";
-import { Editor, type EditorPane } from "./Editor";
+import { Editor, type EditorPane, type PreviewFrame } from "./Editor";
+import { liveBreaks, type MarkInputs } from "./marks";
+import { headingsOf } from "@/lib/generate/rules/text";
 import { PageRecordBlock } from "./PageRecordBlock";
 import { TargetBlock } from "./TargetBlock";
 import { factPresentIn } from "./grounded";
@@ -114,6 +109,12 @@ interface Checked {
 
 const EYEBROW = "text-xs font-semibold uppercase tracking-wide opacity-70";
 
+/** The two edited fields' ids. Constants rather than `useId`: there is one
+ *  editor on this screen, and a stable id is what a `htmlFor` needs to be
+ *  readable in a test and in a page source. */
+const TITLE_FIELD_ID = "draft-edit-title";
+const DESCRIPTION_FIELD_ID = "draft-edit-description";
+
 /** The two writes this screen can ask for. Both are §9 edges and both go
  *  to the state machine through the seam. */
 function ask(
@@ -134,6 +135,10 @@ export function DraftScreen(p: {
   const { view } = p;
   const [editing, setEditing] = useState(false);
   const [pane, setPane] = useState<EditorPane>("markdown");
+  /** SPEC §7's desktop/phone switch. The frame the preview is drawn in,
+   *  and nothing else: the page inside it is the same three calls either
+   *  way. */
+  const [frame, setFrame] = useState<PreviewFrame>("desktop");
   const read: DraftText = {
     title: view.title,
     bodyMd: view.bodyMd,
@@ -266,6 +271,77 @@ export function DraftScreen(p: {
     ) : null;
   // Rule 2: the highlight is a function of the buffer, never of a stored flag.
   const grounded = factPresentIn(bodyMd, view.grounded.passage);
+
+  /**
+   * What the editor's live rule pass reads (issue 932).
+   *
+   * The title travels with it because the frame rule reads a title, and the
+   * founder edits one here: a page renamed after its business is a break
+   * the moment it is typed, not the moment it is saved. The brief's two
+   * lists are the ones this screen already holds — the passages generation
+   * recorded and the headings of the page *as ReachKit wrote it*, which is
+   * the only reading under which "a heading the outline did not have" means
+   * anything.
+   */
+  const markInputs = useMemo<MarkInputs>(
+    () => ({
+      title: text.title,
+      // The domain's own tokens, never a measured brand: `marks.ts` says
+      // why this screen does not read a report to sharpen them.
+      businessName: null,
+      domain: view.domain,
+      doNotClaim: view.ruleFacts.doNotClaim,
+      rivals: view.ruleFacts.rivals,
+      opportunityType: view.ruleFacts.opportunityType,
+      brief: {
+        // The brief's passages, off the record #931 already reads for
+        // *Written from your business* — one `drafts.meta` key, read once.
+        facts: view.writtenFrom.facts.map((fact) => fact.passage),
+        headings: headingsOf(view.bodyMdGenerated),
+        queries: view.ruleFacts.queries,
+      },
+    }),
+    [text.title, view.domain, view.ruleFacts, view.writtenFrom, view.bodyMdGenerated]
+  );
+
+  /**
+   * What the rules say about the buffer **as it now stands** (issue 932).
+   *
+   * `marks.ts` runs thirteen of the sixteen in this process, so the answer
+   * is a render old rather than a save old. It is the editor's banner and
+   * nothing else: it does not decide whether the page publishes — the
+   * saved battery does that, and `rulesHeld` above is still the sentence
+   * that speaks for it. A live break says *this text* is held; a recorded
+   * one says *the saved text* is.
+   */
+  const breaks = useMemo(() => liveBreaks(bodyMd, markInputs), [bodyMd, markInputs]);
+
+  /**
+   * §7's banner, in the editor: one box, and it means *held*.
+   *
+   * **Either source holds the page.** A live break is one of the thirteen
+   * `marks.ts` can decide as the founder types; a recorded one is the save
+   * reporting a rule the editor cannot run (`grounding`, `near_duplicate`,
+   * `no_private_figure`). Both are the same fact about the same page, so
+   * they draw the same sentence under the same name — #789's
+   * `draft.edit.rules-held`, unchanged, because what it says is still
+   * exactly true.
+   *
+   * The green arm is only ever reached when **neither** has anything: a
+   * page with one break and twelve passes is held, and "all your rules
+   * hold" beside an underlined sentence would be the card contradicting
+   * itself.
+   */
+  const rulesLive =
+    breaks.length > 0 || (current && checked.rulesFailed) ? (
+      <p role="alert" className="alert alert-warning text-sm" data-testid="draft-rules-held">
+        {copy("draft.edit.rules-held")}
+      </p>
+    ) : (
+      <p className="alert alert-success text-sm" data-testid="draft-rules-ok">
+        {copy("draft.editor.rules-ok")}
+      </p>
+    );
   // Whether generation recorded a grounding at all: three facts, and the
   // section below is drawn only where at least one of them exists (#268).
   const hasGrounding =
@@ -405,6 +481,41 @@ export function DraftScreen(p: {
     if (!sameText(text, savedText)) save(text);
   };
 
+  /**
+   * SPEC §7's search result, as a reader meets one (issue 932).
+   *
+   * The address, the title and the description, in a result's own order,
+   * drawn off the **buffer** so it moves as the founder types — which is
+   * the only reading of "title and search-result description" that makes
+   * the pane worth having. It is a rendering of their text and never a
+   * verdict on it: no length score, no "too long", because nothing in §8
+   * bounds either field and a bar that said otherwise would be this screen
+   * inventing a rule.
+   *
+   * The address is the domain and stops there. A page in review has no
+   * path — the destination decides the slug at publication — and a guessed
+   * one under the word *address* would be the one invented fact on a pane
+   * whose job is to show what publishes.
+   */
+  const searchResult = (
+    <section className="card card-border bg-base-100 min-w-0" data-testid="draft-search-result">
+      <div className="card-body min-w-0 gap-1">
+        <h2 className={EYEBROW}>{copy("draft.editor.tab.search")}</h2>
+        {/* A domain is a value: mono, and never rewritten to fit — the box
+            scrolls instead (`src/ui/type.css`, ADR-093). */}
+        <span className="num min-w-0 max-w-full overflow-x-auto text-xs opacity-70" tabIndex={0}>
+          {view.domain}
+        </span>
+        <p className="text-primary min-w-0 text-lg wrap-anywhere" data-testid="draft-search-title">
+          {text.title}
+        </p>
+        <p className="min-w-0 text-sm opacity-70 wrap-anywhere" data-testid="draft-search-description">
+          {text.description}
+        </p>
+      </div>
+    </section>
+  );
+
   if (editing) {
     const stateBadge = refused ? (
       <span
@@ -469,12 +580,19 @@ export function DraftScreen(p: {
                 </span>
               )}
             </div>
-            {rulesHeld}
+            {rulesLive}
+            {/* **`label`, not `legend`** (issue 932). daisyUI's
+                `fieldset-legend` is a `<legend>`: it names the *group*, and
+                a `<legend>` is not the accessible name of the control under
+                it — axe reports both of these fields `label` (critical),
+                which is a merge gate. The class is daisyUI's own and stays;
+                the element it sits on is the one that can carry a name. */}
             <fieldset className="fieldset">
-              <legend className="fieldset-legend">
+              <label className="fieldset-legend" htmlFor={TITLE_FIELD_ID}>
                 {copy("draft.edit.title-label")}
-              </legend>
+              </label>
               <input
+                id={TITLE_FIELD_ID}
                 type="text"
                 className="input w-full"
                 value={text.title}
@@ -482,10 +600,21 @@ export function DraftScreen(p: {
                 onBlur={flush}
                 data-testid="draft-editor-title"
               />
-              <legend className="fieldset-legend">
+              <label className="fieldset-legend" htmlFor={DESCRIPTION_FIELD_ID}>
                 {copy("draft.edit.description-label")}
-              </legend>
+                {/* SPEC §7's "length count". A count and not a verdict:
+                    nothing in §8 bounds a meta description, so a bar that
+                    turned red at 160 would be this screen inventing a rule
+                    the battery does not run. It is a number, so it is set
+                    in the mono face and is never clamped. */}
+                <span className="num ms-auto text-xs opacity-70" data-testid="draft-description-count">
+                  {copy("draft.editor.description-count", {
+                    n: formatCount(text.description.length),
+                  })}
+                </span>
+              </label>
               <textarea
+                id={DESCRIPTION_FIELD_ID}
                 className="textarea h-20 w-full"
                 value={text.description}
                 onChange={(e) => edit({ description: e.target.value })}
@@ -501,6 +630,10 @@ export function DraftScreen(p: {
               markFact={grounded ? view.grounded.passage : null}
               pane={pane}
               onPane={setPane}
+              frame={frame}
+              onFrame={setFrame}
+              inputs={markInputs}
+              searchResult={searchResult}
             />
             <p className="text-sm opacity-70" data-testid="draft-edit-footnote">
               {copy("draft.edit.footnote")}

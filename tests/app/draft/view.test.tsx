@@ -16,6 +16,10 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { createRoot, type Root } from "react-dom/client";
 import { act } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+// CodeMirror's own way back from the DOM to the editor (issue 932): the
+// draft body is a CodeMirror 6 field now, so the buffer is read off the
+// editor rather than off an element's `value`.
+import { EditorView } from "@codemirror/view";
 
 const save = vi.fn();
 
@@ -25,6 +29,12 @@ vi.mock("@/app/(account)/app/draft/[draftId]/save", async (importOriginal) => {
 });
 
 import { AUTOSAVE_DEBOUNCE_MS, PREVIEW_DEBOUNCE_MS } from "@/lib/config/constants";
+
+/** `@uiw/react-codemirror`'s own `TYPING_TIMOUT` (`esm/useCodeMirror.js`):
+ *  how long a controlled `value` waits after a change before it overrides
+ *  the document. Not ours to pin in `constants.ts` — it is the library's
+ *  number, named here so the one test that has to wait it out says why. */
+const CODEMIRROR_TYPING_LATCH_MS = 200;
 import { copy } from "@/lib/presentation/copy";
 import { renderMarkdownHtml } from "@/lib/publish/render/markdown";
 import { DraftScreen } from "@/app/(account)/app/draft/[draftId]/DraftScreen";
@@ -46,6 +56,15 @@ function factsFor(id: string) {
 }
 
 const VIEW = assembleDraft(factsFor(FIXTURE_DRAFT_ID));
+/** The reserved account's first never-claim entry, read off the view rather
+ *  than typed here: the phrase the editor underlines has to be the phrase
+ *  the customer recorded, and a copy of it in this file would let the two
+ *  drift. */
+const DO_NOT_CLAIM_ENTRY = (() => {
+  const entry = VIEW.ruleFacts.doNotClaim[0];
+  if (entry === undefined) throw new Error("the fixture records no never-claim entry");
+  return entry;
+})();
 const EDITED_VIEW = assembleDraft(factsFor(FIXTURE_EDITED_DRAFT_ID));
 
 function markup(view = VIEW): Element {
@@ -524,6 +543,17 @@ describe("REQ-045 c5-c9 — the editor, its live preview, its autosave and its i
 
   afterEach(() => {
     act(() => root.unmount());
+    // **Drain `@uiw/react-codemirror`'s latch scheduler before the fake
+    // clock goes away.** The scheduler is a module-level singleton with one
+    // `setInterval`, and it only clears that interval when its last latch
+    // leaves the set — which happens on the tick *after* the latch is
+    // cancelled. Unmounting cancels the editor's latch but does not tick,
+    // so leaving here with the set non-empty strands an interval id from a
+    // clock that is about to be thrown away: the singleton then believes it
+    // is already running, every later test's `start()` is a no-op, and no
+    // latch in this file ever fires again. One tick is the whole fix, and
+    // it belongs here rather than in each test that types.
+    act(() => vi.advanceTimersByTime(2));
     container.remove();
     vi.useRealTimers();
   });
@@ -534,10 +564,25 @@ describe("REQ-045 c5-c9 — the editor, its live preview, its autosave and its i
     });
   }
 
-  function textarea(): HTMLTextAreaElement {
-    const el = container.querySelector('[data-testid="draft-editor-textarea"]');
-    if (!(el instanceof HTMLTextAreaElement)) throw new Error("no textarea in the view");
-    return el;
+  /**
+   * The editor's own `EditorView` (issue 932).
+   *
+   * The field is CodeMirror 6 now, not a `<textarea>`, so "what the buffer
+   * holds" and "the customer typed" are asked of the editor rather than of
+   * an element's `value`. `EditorView.findFromDOM` is CodeMirror's own
+   * public way back from the DOM to the view, so this reaches for no
+   * internal.
+   */
+  function editorView(): EditorView {
+    const el = container.querySelector(".cm-editor");
+    const found = el instanceof HTMLElement ? EditorView.findFromDOM(el) : null;
+    if (found === null) throw new Error("no editor in the view");
+    return found;
+  }
+
+  /** What the field holds, as the editor holds it. */
+  function bodyText(): string {
+    return editorView().state.doc.toString();
   }
 
   function click(testId: string): void {
@@ -547,15 +592,14 @@ describe("REQ-045 c5-c9 — the editor, its live preview, its autosave and its i
     act(() => el.click());
   }
 
+  /** Replace the whole document, the way a paste does. The change goes
+   *  through CodeMirror's own transaction, so the update listener
+   *  `@uiw/react-codemirror` installs fires and `onChange` runs — the same
+   *  path a keystroke takes. */
   function type(text: string): void {
-    const el = textarea();
     act(() => {
-      const setter = Object.getOwnPropertyDescriptor(
-        HTMLTextAreaElement.prototype,
-        "value"
-      )?.set;
-      setter?.call(el, text);
-      el.dispatchEvent(new Event("input", { bubbles: true }));
+      const view = editorView();
+      view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: text } });
     });
   }
 
@@ -574,7 +618,7 @@ describe("REQ-045 c5-c9 — the editor, its live preview, its autosave and its i
     mount();
     expect(container.querySelector('[data-testid="draft-editor"]')).toBeNull();
     click("draft-action-draft.action.edit");
-    expect(textarea().value).toBe(VIEW.bodyMd);
+    expect(bodyText()).toBe(VIEW.bodyMd);
   });
 
   it("typing updates the preview pane client-side, with no round trip", async () => {
@@ -583,10 +627,13 @@ describe("REQ-045 c5-c9 — the editor, its live preview, its autosave and its i
     type("# A new heading\n\nA new sentence.");
     await settle(PREVIEW_DEBOUNCE_MS);
     const preview = container.querySelector('[data-testid="draft-preview-body"]');
-    // `# A new heading` renders as an `<h2>`: the preview is the same
-    // renderer the read view uses, demotion included, which is what makes
-    // it a preview rather than a second opinion.
-    expect(preview?.querySelector("h2")?.textContent).toBe("A new heading");
+    // `# A new heading` renders as an `<h1>` (issue 932). The preview is
+    // the **hosted** render now — `parseMarkdown → markPassage → toHtml`
+    // with `HOSTED_BODY_CLASSES`, the same three calls
+    // `(hosted)/hosted-page` makes — so a body heading keeps the level it
+    // will publish at. The read arm still demotes, because there the body
+    // sits under the screen's own `<h1>`; here the pane *is* the page.
+    expect(preview?.querySelector("h1")?.textContent).toBe("A new heading");
     expect(preview?.textContent).toContain("A new sentence.");
     expect(save).not.toHaveBeenCalled();
   });
@@ -606,14 +653,33 @@ describe("REQ-045 c5-c9 — the editor, its live preview, its autosave and its i
     ]);
 
     click("draft-action-draft.action.edit");
-    // S17: back, the two panes' tabs, and the two controls that leave the
-    // editor. Nothing here saves — §4.6 says autosaved, and a save button
-    // beside an autosave is an invitation to believe the autosave is
-    // optional.
-    expect([...container.querySelectorAll("button")].map((b) => b.textContent ?? "")).toEqual([
+    // S17 and SPEC §7's editor: back, the three panes' tabs, the seven
+    // formatting controls, the desktop/phone switch, and the two controls
+    // that leave the editor. **Nothing here saves** — §4.6 says autosaved,
+    // and a save button beside an autosave is an invitation to believe the
+    // autosave is optional.
+    //
+    // Listed exactly rather than searched for a word: an exact list is what
+    // catches a control somebody adds, which is the only way this assertion
+    // earns its place. The formatting bar's buttons carry a glyph and no
+    // text, so their accessible name is what is read here (#962 — a glyph
+    // alone is not a label).
+    const named = (b: HTMLButtonElement): string =>
+      b.textContent !== "" ? b.textContent : (b.getAttribute("aria-label") ?? "");
+    expect([...container.querySelectorAll("button")].map(named)).toEqual([
       copy("draft.edit.back"),
       copy("draft.editor.tab.markdown"),
       copy("draft.editor.tab.preview"),
+      copy("draft.editor.tab.search"),
+      copy("draft.editor.format.heading"),
+      copy("draft.editor.format.bold"),
+      copy("draft.editor.format.italic"),
+      copy("draft.editor.format.link"),
+      copy("draft.editor.format.list"),
+      copy("draft.editor.format.quote"),
+      copy("draft.editor.format.table"),
+      copy("draft.editor.frame.desktop"),
+      copy("draft.editor.frame.phone"),
       copy("draft.edit.done"),
       copy("draft.edit.discard"),
     ]);
@@ -639,7 +705,9 @@ describe("REQ-045 c5-c9 — the editor, its live preview, its autosave and its i
     type("edited on the way out");
     // React maps `onBlur` onto the DOM's `focusout`, which is the event
     // that actually bubbles.
-    act(() => textarea().dispatchEvent(new FocusEvent("focusout", { bubbles: true })));
+    act(() =>
+      editorView().contentDOM.dispatchEvent(new FocusEvent("focusout", { bubbles: true }))
+    );
     expect(save).toHaveBeenCalledWith({ draftId: VIEW.draftId, title: VIEW.title, bodyMd: "edited on the way out", description: VIEW.description });
   });
 
@@ -664,7 +732,7 @@ describe("REQ-045 c5-c9 — the editor, its live preview, its autosave and its i
     type("the customer's own words");
     await settle(AUTOSAVE_DEBOUNCE_MS);
     expect(save).toHaveBeenCalledTimes(1);
-    expect(textarea().value).toBe("the customer's own words");
+    expect(bodyText()).toBe("the customer's own words");
     // S17 states it on the save line, in the sentence the set writes for a
     // refusal, and the badge beside the title turns.
     expect(container.querySelector('[data-testid="draft-save-line"]')?.textContent).toBe(
@@ -674,7 +742,7 @@ describe("REQ-045 c5-c9 — the editor, its live preview, its autosave and its i
     type("the customer's own words, more of them");
     await settle(AUTOSAVE_DEBOUNCE_MS);
     expect(save).toHaveBeenCalledTimes(2);
-    expect(textarea().value).toBe("the customer's own words, more of them");
+    expect(bodyText()).toBe("the customer's own words, more of them");
   });
 
   it("a save that lands clears the indicator, and the text that came back is the draft", async () => {
@@ -733,12 +801,19 @@ describe("REQ-045 c5-c9 — the editor, its live preview, its autosave and its i
     mount();
     click("draft-action-draft.action.edit");
     type("In our tests it held up.");
-    expect(container.querySelector('[data-testid="draft-rules-held"]')).toBeNull();
+    // **Before any save** (issue 932): the live pass runs thirteen of the
+    // sixteen rules in this process, so a text that opens with a
+    // twenty-four character sentence is already held — §8's
+    // `first_block_answers` wants 40 to 320. #789's own sentence says it,
+    // because what it says is still exactly true.
+    expect(container.querySelector('[data-testid="draft-rules-held"]')?.textContent).toBe(
+      copy("draft.edit.rules-held")
+    );
     await settle(AUTOSAVE_DEBOUNCE_MS);
     expect(container.querySelector('[data-testid="draft-rules-held"]')?.textContent).toBe(
       copy("draft.edit.rules-held")
     );
-    expect(textarea().value).toBe("In our tests it held up.");
+    expect(bodyText()).toBe("In our tests it held up.");
     // The badge states the check that ran on the saved text.
     expect(container.querySelector('[data-testid="draft-claim-passed"]')).not.toBeNull();
   });
@@ -773,13 +848,18 @@ describe("REQ-045 c5-c9 — the editor, its live preview, its autosave and its i
     );
   });
 
-  it("Discard changes returns the buffer to the text the store last confirmed", () => {
+  it("Discard changes returns the buffer to the text the store last confirmed", async () => {
     mount();
     click("draft-action-draft.action.edit");
     type("words the customer decided against");
-    expect(textarea().value).toBe("words the customer decided against");
+    expect(bodyText()).toBe("words the customer decided against");
     click("draft-edit-discard");
-    expect(textarea().value).toBe(VIEW.bodyMd);
+    // `@uiw/react-codemirror` holds a controlled `value` back for 200ms
+    // after a change so a re-render cannot fight a fast typist mid-word
+    // (`timeoutLatch.ts`), then applies it. Under fake timers that pause
+    // has to be advanced; in a browser the founder's click lands after it.
+    await settle(CODEMIRROR_TYPING_LATCH_MS * 2);
+    expect(bodyText()).toBe(VIEW.bodyMd);
     expect(container.querySelector('[data-testid="draft-claim-passed"]')).not.toBeNull();
   });
 
@@ -788,6 +868,8 @@ describe("REQ-045 c5-c9 — the editor, its live preview, its autosave and its i
     click("draft-action-draft.action.edit");
     type(`${VIEW.bodyMd}\n\nA sentence the customer added.`);
     await settle(PREVIEW_DEBOUNCE_MS);
+    // The preview marks it while nothing is holding the page: one `mark`
+    // slot, so the break takes it wherever there is one (issue 932, below).
     expect(
       container.querySelectorAll('[data-testid="draft-preview-body"] mark').length
     ).toBe(1);
@@ -803,6 +885,118 @@ describe("REQ-045 c5-c9 — the editor, its live preview, its autosave and its i
       container.querySelector('[data-testid="draft-grounded-fact"]')?.textContent
     ).toBe(VIEW.grounded.passage);
     expect(container.querySelectorAll('[data-testid="draft-body"] mark').length).toBe(0);
+  });
+
+  it("a break takes the preview's one mark, and the grounded fact keeps the read arm's", async () => {
+    // SPEC §7 (2026-09-20): "A sentence that breaks a hard rule or matches
+    // the never-claim list is marked where it stands as it is typed."
+    //
+    // `HtmlClasses` has one `mark` slot and the serialiser decides what
+    // publishes, so a second mark kind is not this issue's to add. While a
+    // page is held, the run the founder is here to find is the one holding
+    // it — so the break takes the slot in the preview, and REQ-045 c8's
+    // highlight keeps the read arm, which is where that criterion puts it.
+    mount();
+    click("draft-action-draft.action.edit");
+    // A body whose opening block is far too short for §8's answer-first
+    // rule, with the recorded fact still in it further down.
+    type(`Short.\n\n${VIEW.grounded.passage}`);
+    await settle(PREVIEW_DEBOUNCE_MS);
+    const marks = [
+      ...container.querySelectorAll('[data-testid="draft-preview-body"] mark'),
+    ];
+    expect(marks).toHaveLength(1);
+    expect(marks[0]?.textContent).toBe("Short.");
+    // The page says so in one sentence, and the founder's words are there.
+    expect(container.querySelector('[data-testid="draft-rules-held"]')).not.toBeNull();
+    // The read arm still marks the fact, unchanged.
+    click("draft-edit-done");
+    const read = [...container.querySelectorAll('[data-testid="draft-body"] mark')];
+    expect(read).toHaveLength(1);
+    expect(read[0]?.textContent).toBe(VIEW.grounded.passage);
+  });
+
+  it("SPEC §7 — three panes on a phone, and the two frames the live page is drawn in", () => {
+    // "On a phone: Text / Preview tabs" plus the search result, which §7
+    // names in the same sentence as the description. One DOM: the tab bar
+    // chooses which pane is visible, and from `lg` up it is not drawn at
+    // all — which is a class, not a second tree, so every pane is in the
+    // document at every width.
+    mount();
+    click("draft-action-draft.action.edit");
+    for (const pane of ["markdown", "preview", "search"] as const) {
+      expect(container.querySelector(`[data-testid="draft-editor-tab-${pane}"]`)).not.toBeNull();
+      expect(container.querySelector(`[data-testid="draft-editor-${pane}"]`)).not.toBeNull();
+    }
+    // The desktop/phone switch, and the frame it draws.
+    expect(container.querySelector('[data-testid="draft-preview-frame-desktop"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="draft-preview-frame-phone"]')).toBeNull();
+    click("draft-editor-frame-phone");
+    expect(container.querySelector('[data-testid="draft-preview-frame-phone"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="draft-preview-frame-desktop"]')).toBeNull();
+    // The page inside is the same page either way: one serialiser, one call.
+    expect(
+      container.querySelector('[data-testid="draft-preview-body"]')?.textContent
+    ).toContain("Most comparison pages rank tools by feature count.");
+  });
+
+  it("SPEC §7 — the search result moves with the buffer, and the description carries a count", () => {
+    mount();
+    click("draft-action-draft.action.edit");
+    expect(container.querySelector('[data-testid="draft-search-title"]')?.textContent).toBe(
+      VIEW.title
+    );
+    expect(container.querySelector('[data-testid="draft-description-count"]')?.textContent).toBe(
+      copy("draft.editor.description-count", { n: String(VIEW.description.length) })
+    );
+
+    const field = container.querySelector('[data-testid="draft-editor-description"]');
+    if (!(field instanceof HTMLTextAreaElement)) throw new Error("no description field");
+    act(() => {
+      setNativeValue(field, "Nine char");
+      field.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    // A count, and never a verdict: nothing in §8 bounds a description, so
+    // the number moves and nothing turns red.
+    expect(container.querySelector('[data-testid="draft-description-count"]')?.textContent).toBe(
+      copy("draft.editor.description-count", { n: "9" })
+    );
+    expect(
+      container.querySelector('[data-testid="draft-search-description"]')?.textContent
+    ).toBe("Nine char");
+  });
+
+  it("the done-when — a never-claim phrase holds the page as it is typed, and removing it releases it", async () => {
+    // SPEC §7's done-when, end to end on the screen: "Typing a never-claim
+    // phrase underlines it within a second and holds the page; removing it
+    // releases it." Within a second is the preview's own pause, 100ms.
+    mount();
+    click("draft-action-draft.action.edit");
+    // Nothing is broken to begin with, and the page says so.
+    await settle(PREVIEW_DEBOUNCE_MS);
+    expect(container.querySelector('[data-testid="draft-rules-ok"]')?.textContent).toBe(
+      copy("draft.editor.rules-ok")
+    );
+
+    type(`${VIEW.bodyMd}\n\nWe are ${DO_NOT_CLAIM_ENTRY} for a team of five.`);
+    await settle(PREVIEW_DEBOUNCE_MS);
+    expect(container.querySelector('[data-testid="draft-rules-ok"]')).toBeNull();
+    expect(container.querySelector('[data-testid="draft-rules-held"]')?.textContent).toBe(
+      copy("draft.edit.rules-held")
+    );
+    // Marked where it stands: the sentence carrying the phrase, and not the
+    // paragraph around it.
+    expect(
+      container.querySelector('[data-testid="draft-preview-body"] mark')?.textContent
+    ).toBe(`We are ${DO_NOT_CLAIM_ENTRY} for a team of five.`);
+    // **No save has run.** The underline is this process's answer, from the
+    // same comparison `claimCheck` makes before it spends anything.
+    expect(save).not.toHaveBeenCalled();
+
+    type(VIEW.bodyMd);
+    await settle(PREVIEW_DEBOUNCE_MS);
+    expect(container.querySelector('[data-testid="draft-rules-held"]')).toBeNull();
+    expect(container.querySelector('[data-testid="draft-rules-ok"]')).not.toBeNull();
   });
 
   it("S17 — the back link, the footnote and the two controls the set draws", () => {
@@ -860,7 +1054,7 @@ describe("REQ-045 c5-c9 — the editor, its live preview, its autosave and its i
     act(() => (tabs[1] as HTMLButtonElement).click());
     expect(save).not.toHaveBeenCalled();
     act(() => (tabs[0] as HTMLButtonElement).click());
-    expect(textarea().value).toBe("halfway through a sentence");
+    expect(bodyText()).toBe("halfway through a sentence");
     await settle(AUTOSAVE_DEBOUNCE_MS);
     expect(save).toHaveBeenCalledTimes(1);
   });

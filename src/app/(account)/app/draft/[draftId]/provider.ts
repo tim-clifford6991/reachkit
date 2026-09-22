@@ -46,7 +46,8 @@ export const readDraft = cache(async function readDraft(
       siteId: account.siteId,
       timeZone: account.timeZone,
       mode: account.mode,
-      // The customer's own domain, for the viewer's frame (#931).
+      // The customer's own domain: the viewer's frame (#931) and the
+      // editor's live rule pass (#932) both read it.
       domain: account.domain,
     },
   });

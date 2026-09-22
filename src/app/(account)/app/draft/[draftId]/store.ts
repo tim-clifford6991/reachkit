@@ -59,7 +59,7 @@ import { RAIL_CHECKS, type RailCheck } from "./checks";
 import { askedAs, doneWhen } from "../../calendar/store";
 import type { Choice } from "@/lib/opportunities/derive/explain";
 import { pageTargetOf } from "../../_shell/page-target";
-import type { ClaimState, DraftFacts, DraftTarget } from "./model";
+import { NO_RULE_FACTS, type ClaimState, type DraftFacts, type DraftTarget, type RuleFacts } from "./model";
 
 interface DraftRow {
   id: string;
@@ -244,6 +244,51 @@ async function targetOf(opportunityId: string | null): Promise<DraftTarget> {
   return target === null ? { kind: "fix" } : { kind: "target", target };
 }
 
+/**
+ * What the editor's live rule pass reads (issue 932): the customer's own
+ * never-claim list and rivals off the `sites` row, and the searches and
+ * type off the opportunity this page answers.
+ *
+ * **The brief's passages are not read here.** `writtenFrom.facts` above
+ * already carries them, off the same `drafts.meta` key, because #931's
+ * *Written from your business* card draws them — one record, read once.
+ *
+ * **Every failure is `NO_RULE_FACTS`, never a throw.** This screen's job is
+ * to show a page; a founder whose lists could not be read still gets the
+ * page, the editor and every rule that needs the text alone, and the save
+ * still runs the whole battery and still holds the page. A screen that
+ * 500'd because a `sites` select failed would be trading the whole of the
+ * feature for part of one.
+ */
+async function ruleFactsOf(siteId: string, opportunityId: string | null): Promise<RuleFacts> {
+  try {
+    // Lazily, like `readChoice` below it and for the same reason: a static
+    // import of the engine's store from here would pull it into every
+    // module that names this file's types.
+    const { generateStore } = await import("@/lib/generate/store");
+    const site = await generateStore().siteFacts(siteId);
+    if (site === null) return NO_RULE_FACTS;
+
+    if (opportunityId === null) {
+      return { doNotClaim: site.doNotClaim, rivals: site.rivals, queries: [], opportunityType: null };
+    }
+    const { opportunityById } = await import("@/lib/opportunities");
+    const { targetSearches } = await import("@/lib/generate/pipeline/steps");
+    const opportunity = await opportunityById(opportunityId);
+    return {
+      doNotClaim: site.doNotClaim,
+      rivals: site.rivals,
+      // The battery's own projection of "the searches this row targets",
+      // not a second reading of the same columns.
+      queries: opportunity === null ? [] : targetSearches(opportunity),
+      opportunityType: opportunity?.type ?? null,
+    };
+  } catch (error) {
+    console.warn(JSON.stringify({ event: "draft_rule_facts_unread", detail: String(error) }));
+    return NO_RULE_FACTS;
+  }
+}
+
 export interface DraftSite {
   siteId: string;
   timeZone: string;
@@ -331,6 +376,9 @@ export async function readDraftRow(a: {
     // not see.
     target: await targetOf(row.opportunity_id),
     timeZone: a.site.timeZone,
+    // Read after the row above proved this account owns the draft, like
+    // the page record and the target.
+    ruleFacts: await ruleFactsOf(a.site.siteId, row.opportunity_id),
   };
 }
 
