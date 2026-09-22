@@ -144,6 +144,35 @@ describe("REQ-003 c1 — the scanning arms show named stages, never a bare spinn
   });
 });
 
+describe("SPEC §2, 2026-09-20 — the report's sections are held in place, so there is no full-page wait", () => {
+  // "each report section appears in place as its stage finishes, a daisyUI
+  // `skeleton` holding its place until then. No full-page wait."
+  it.each([ARMS[2]!, ARMS[3]!])("%s draws the report's spine beside the stages", (_kind, state) => {
+    const html = render(state);
+    // The four sections that have both a title of their own and a stage
+    // that produces them, in the report's order.
+    for (const title of ["verdict.score.label", "ai-answers.title", "presence.title", "free-page.title"]) {
+      expect(html).toContain(title);
+    }
+    expect(html.split('data-testid="scan-section"').length - 1).toBe(4);
+  });
+
+  it("each place is a daisyUI skeleton, and none is marked measured before its stage says so", () => {
+    const html = render(ARMS[3]![1]);
+    expect(html).toContain('class="skeleton');
+    // Nothing has finished on a server render — no stream has been read —
+    // so no section claims to have been measured.
+    expect(html).not.toContain('data-done="true"');
+    expect(html.split('data-done="false"').length - 1).toBe(4);
+  });
+
+  it("the stages still stand beside them, and the waiting line with them", () => {
+    const html = render(ARMS[3]![1]);
+    expect(html).toContain("steps steps-vertical");
+    expect(html).toContain("scan.waiting.line");
+  });
+});
+
 describe("REQ-003 c12 / REQ-001 c16 — refused offers no control; cooldown offers exactly one", () => {
   it("refused writes the refusal and offers nothing to press", () => {
     const html = render(ARMS[4]![1]);

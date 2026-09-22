@@ -12,53 +12,21 @@
 import type React from "react";
 import Link from "next/link";
 import { Clock, RefreshCw } from "lucide-react";
-import { Surface } from "@/ui/layout";
 import { copy } from "@/lib/presentation/copy";
 import { QuietPage } from "@/app/_quiet/QuietCard";
 import LandingPage from "@/app/(public)/page";
 import { ReportView } from "./report-view";
 import { RemovedView } from "./removal";
-import { ScanProgress } from "./progress";
+import { ScanningView } from "./scanning";
 import type { AddressState } from "./state";
 import { refusalHeading, refusalLine } from "./refusal";
 import { Num } from "./measured";
 
-/** The card every short arm renders inside: the domain as a mono heading,
- *  then what happened to it. One card, one written line, at most one
- *  control — the same shape whichever arm it is. daisyUI `card` in the
- *  route (DESIGN rule 1). */
-function StateCard(p: {
-  domain: string;
-  children: React.ReactNode;
-}): React.JSX.Element {
-  return (
-    <section className="card bg-base-100 border-base-300 border">
-      <div className="card-body gap-4">
-        <h2 className="card-title min-w-0 overflow-x-auto">
-          <Num>{p.domain}</Num>
-        </h2>
-        {p.children}
-      </div>
-    </section>
-  );
-}
-
-/** Every short arm is one column at every band (ADR-093 decision 6). */
-function Pane(p: { children: React.ReactNode }): React.JSX.Element {
-  return (
-    <Surface
-      arms={{
-        compact: { kind: "columns", count: 1 },
-        medium: { kind: "same-as-below" },
-        wide: { kind: "same-as-below" },
-      }}
-    >
-      <main className="mx-auto flex w-full max-w-xl flex-col gap-4">
-        {p.children}
-      </main>
-    </Surface>
-  );
-}
+/* `StateCard` and `Pane` stood here for the two scanning arms and were
+   the last readers of either: #936 moved the short arms onto `QuietPage`
+   and #935 moved the scanning arms onto `ScanningView`, which draws the
+   report's own sections beside the stages and declares its own band arms.
+   Neither shape is wanted again — a new arm takes `QuietPage`. */
 
 /** The report a refused visitor is offered instead: the dev fixture's own
  *  address, which is the one report that exists whatever the database
@@ -106,27 +74,16 @@ export function AddressView(p: {
     // REQ-001 c9: a scan is already underway with no further action from
     // the visitor. The client posts /api/scan on first frame; nothing is
     // posted during server render.
+    //
+    // **The report's sections stand beside the stages from the first
+    // frame** (SPEC §2, 2026-09-20 — "no full-page wait"). Both arms are
+    // `ScanningView`, which declares its own band arms and is therefore
+    // rendered bare, for the same reason the `removed` and `malformed`
+    // arms are: two `Surface`s on one document is one too many.
     case "starting":
-      return (
-        <Pane>
-          <StateCard domain={state.domain}>
-            <ScanProgress domain={state.domain} />
-            <p className="text-base-content/60 text-sm">{copy("scan.waiting.line")}</p>
-          </StateCard>
-        </Pane>
-      );
+      return <ScanningView domain={state.domain} />;
     case "scanning":
-      return (
-        <Pane>
-          <StateCard domain={state.domain}>
-            <ScanProgress domain={state.domain} scanId={state.scanId} />
-            {/* REQ-003 c1's own frame, and the set's line: what the wait is
-                worth, and that the address survives it. No countdown — the
-                stages carry the only figures on this screen. */}
-            <p className="text-base-content/60 text-sm">{copy("scan.waiting.line")}</p>
-          </StateCard>
-        </Pane>
-      );
+      return <ScanningView domain={state.domain} scanId={state.scanId} />;
 
     // REQ-003 c12: the refusal in writing, and no scan starts.
     //

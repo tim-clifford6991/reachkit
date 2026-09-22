@@ -30,6 +30,7 @@ import { Surface } from "@/ui/layout";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import type { ScoreFactorName } from "@/lib/measure/score";
 import type { StoredReport } from "@/lib/scan/report";
+import type { CanonicalDomain } from "@/lib/scan/domain";
 import type { CorrectionOffer } from "@/lib/market/coherence/offer";
 import { AiAnswersAbsent, AiAnswersCard } from "../_modules/ai-answers";
 import {
@@ -47,6 +48,7 @@ import { RemovalAddressLine } from "./removal";
 import type { AddressControl, AddressNotice } from "./state";
 import { refusalLine } from "./refusal";
 import { VerdictStrip } from "./verdict";
+import { RescanControl } from "./rescan";
 import { startReportCheckout } from "./checkout";
 // #103: the category has one home — the market the profile inferred.
 // `categoryOf` is the one derivation of it, and the screen reads it here
@@ -94,6 +96,7 @@ function controlLabel(control: AddressControl & { kind: "rescan" }): string {
 /** REQ-001 c14: the notice carries the sentence and the one control that
  *  answers it together. `role="alert"` keeps it announced once. */
 function IncompleteNotice(p: {
+  domain: CanonicalDomain;
   unmeasured: readonly ScoreFactorName[];
   control: AddressControl & { kind: "rescan" };
 }): React.JSX.Element {
@@ -101,9 +104,15 @@ function IncompleteNotice(p: {
     <div role="alert" className="alert alert-warning flex flex-wrap">
       <CircleAlert size={20} strokeWidth={1.75} aria-hidden />
       <span className="min-w-0 flex-1">{incompleteLine(p.unmeasured)}</span>
-      <button type="button" className="btn btn-outline btn-sm">
-        {controlLabel(p.control)}
-      </button>
+      {/* **It measures** (#935). This was a `<button type="button">` with
+          no handler until SPEC §1's line of 2026-09-20 named it — the one
+          control that answers this notice, drawn and doing nothing. */}
+      <RescanControl
+        domain={p.domain}
+        label={controlLabel(p.control)}
+        incomplete={p.control.because === "incomplete"}
+        testId="report-rescan-notice"
+      />
     </div>
   );
 }
@@ -146,35 +155,59 @@ function NoticeLine(p: { notice: AddressNotice | null }): React.JSX.Element | nu
   );
 }
 
-/** A total switch: `none` has no label, every other arm has exactly one. */
-function controlLabelOf(control: AddressControl): string | null {
+/**
+ * Exactly one control, or none, and never a second alongside it — and
+ * since #935 the one that is drawn acts.
+ *
+ * A total switch, with two arms that draw nothing and say why:
+ *
+ * **`none`** is the arm `resolve.ts` chooses when there is nothing to
+ * offer, and has always drawn nothing.
+ *
+ * **`correction_retry`** draws nothing *here*, and this is the ruling's
+ * "act or are not drawn" taken at its word rather than a gap. That arm is
+ * reached only when `correctionRetryOffered` is true, which is
+ * `correction.retryOffered && offer.offered` — and an offer that stands is
+ * exactly the condition under which the verdict strip above is already
+ * rendering `CategoryCorrection`, a working control that submits the
+ * corrected market and follows the rerun. Drawing a second button beside
+ * it would be the one thing REQ-001 c16 forbids outright: two controls
+ * that start a measurement on one screen. The retry a reader needs is on
+ * the screen, in the place the correction was offered from.
+ *
+ * **`rescan` and `retry`** are the same act — measure this domain again —
+ * so both go through `RescanControl`, which posts to the same door the
+ * landing field uses. They differ in one word and in whether the start
+ * says it is answering an incomplete report.
+ */
+function ControlButton(p: { domain: CanonicalDomain; control: AddressControl }): React.JSX.Element | null {
+  const control = p.control;
   switch (control.kind) {
     case "none":
+    case "correction_retry":
       return null;
     case "rescan":
-      return controlLabel(control);
+      return (
+        <div>
+          <RescanControl
+            domain={p.domain}
+            label={controlLabel(control)}
+            incomplete={control.because === "incomplete"}
+            testId="report-rescan"
+          />
+        </div>
+      );
     case "retry":
-      return copy("control.retry");
-    case "correction_retry":
-      return copy("control.correction-retry");
+      return (
+        <div>
+          <RescanControl domain={p.domain} label={copy("control.retry")} incomplete={false} testId="report-retry" />
+        </div>
+      );
     default: {
       const exhaustive: never = control;
       return exhaustive;
     }
   }
-}
-
-/** Exactly one control, or none, and never a second alongside it. */
-function ControlButton(p: { control: AddressControl }): React.JSX.Element | null {
-  const label = controlLabelOf(p.control);
-  if (label === null) return null;
-  return (
-    <div>
-      <button type="button" className="btn btn-outline">
-        {label}
-      </button>
-    </div>
-  );
 }
 
 /** SPEC §2: a part is cut off when the pass stopped at one of its two
@@ -246,11 +279,11 @@ export function ReportView(p: {
           about it in one place. */}
         <div className="col-span-full flex flex-col gap-3">
           {notice !== null && notice.kind === "incomplete" && control.kind === "rescan" ? (
-            <IncompleteNotice unmeasured={notice.unmeasured} control={control} />
+            <IncompleteNotice domain={report.domain} unmeasured={notice.unmeasured} control={control} />
           ) : (
             <>
               <NoticeLine notice={notice} />
-              <ControlButton control={control} />
+              <ControlButton domain={report.domain} control={control} />
             </>
           )}
         </div>

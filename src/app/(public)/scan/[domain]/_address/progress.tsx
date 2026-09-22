@@ -64,12 +64,34 @@ function isStageEvent(value: unknown): value is StageEvent {
   return typeof value === "object" && value !== null;
 }
 
-export function ScanProgress(p: {
+/** What the stream has said so far: which stages finished, which one is
+ *  running, and how long each finished one took.
+ *
+ *  Lifted out of `ScanProgress` by #935 so the scanning screen can read
+ *  the same facts the steps list reads — SPEC §2 (2026-09-20) puts the
+ *  report's sections beside the stages, each held by a `skeleton` until
+ *  its own stage finishes, and a second subscription to the same stream
+ *  would be a second answer to "where is this scan". One stream, one
+ *  state, two readers. */
+export interface ScanStages {
+  readonly done: ReadonlySet<StageName>;
+  readonly active: StageName | undefined;
+  /** Whole seconds per finished stage, keyed by handle. */
+  readonly elapsed: Readonly<Record<string, number>>;
+}
+
+export function useScanStages(p: {
   domain: CanonicalDomain;
   /** Present when the address already knew which scan is running. Absent
-   *  on the `starting` arm, where this component claims one. */
+   *  on the `starting` arm, where this hook claims one. */
   scanId?: string;
-}): React.JSX.Element {
+  /** `false` where the caller already holds a reading from elsewhere.
+   *  A hook cannot be called conditionally, so the switch is here: nothing
+   *  is claimed and nothing is subscribed to, and the reading returned is
+   *  the empty one the caller will discard. */
+  enabled?: boolean;
+}): ScanStages {
+  const enabled = p.enabled !== false;
   const router = useRouter();
   const [scanId, setScanId] = useState<string | undefined>(p.scanId);
   const [done, setDone] = useState<ReadonlySet<StageName>>(new Set());
@@ -83,6 +105,7 @@ export function ScanProgress(p: {
   // one over. `location` is the canonical address and is ignored here —
   // this component is already rendering at it.
   useEffect(() => {
+    if (!enabled) return;
     if (scanId !== undefined) return;
     let cancelled = false;
     void (async () => {
@@ -104,9 +127,10 @@ export function ScanProgress(p: {
     return () => {
       cancelled = true;
     };
-  }, [p.domain, router, scanId]);
+  }, [enabled, p.domain, router, scanId]);
 
   useEffect(() => {
+    if (!enabled) return;
     if (scanId === undefined) return;
     const source = new EventSource(`/api/scan/${scanId}/progress`);
     source.onmessage = (message: MessageEvent<string>) => {
@@ -135,7 +159,28 @@ export function ScanProgress(p: {
     return () => {
       source.close();
     };
-  }, [router, scanId, startedAt]);
+  }, [enabled, router, scanId, startedAt]);
+
+  return { done, active, elapsed };
+}
+
+/** The named stages themselves: daisyUI `steps steps-vertical` in the
+ *  route (DESIGN rule 1), each finished one carrying the time it took.
+ *
+ *  Takes the reading rather than subscribing, where a caller already has
+ *  one — the scanning screen reads the stream once and hands the same
+ *  reading to this list and to the report's skeletons. Where no reading is
+ *  passed it subscribes itself, which is what `correction.tsx` and
+ *  `rescan.tsx` do: there the stages are the whole of what is shown. */
+export function ScanProgress(p: {
+  domain: CanonicalDomain;
+  scanId?: string;
+  stages?: ScanStages;
+}): React.JSX.Element {
+  // Hooks are unconditional: the hook runs either way, and its own
+  // subscription is skipped where a reading was passed in.
+  const own = useScanStages({ domain: p.domain, scanId: p.scanId, enabled: p.stages === undefined });
+  const { done, active, elapsed } = p.stages ?? own;
 
   return (
     <ul className="steps steps-vertical">

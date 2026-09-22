@@ -196,6 +196,47 @@ describe(
   }
 );
 
+describe("SPEC §1, 2026-09-20 — the report's re-measure control tells the route why it was pressed (#935)", () => {
+  // `scans.from_incomplete_rescan` has existed since #540's admission
+  // work and nothing was setting it: `resolve.ts` reads it back off the
+  // stored report to decide whether to offer *Measure what's missing*
+  // again, so until the control acted the flag had no writer and the
+  // button would have been offered on the report its own press produced.
+  it.each([
+    ["json", () => postJson({ value: "example.com", rescan: "incomplete" })],
+    ["form", () => postForm({ value: "example.com", rescan: "incomplete" })],
+  ] as const)("api/scan · %s · an incomplete rescan is claimed as one", async (_transport, build) => {
+    await POST(build());
+    expect(vi.mocked(claimFreeScanSlot)).toHaveBeenCalledWith({
+      domain: "example.com" as CanonicalDomain,
+      network: NETWORK,
+      fromIncompleteRescan: true,
+    });
+  });
+
+  it.each([
+    ["nothing", () => postJson("example.com")],
+    ["a reason it does not know", () => postJson({ value: "example.com", rescan: "because-i-said-so" })],
+    ["a reason of the wrong type", () => postJson({ value: "example.com", rescan: 7 })],
+  ] as const)("api/scan · a body that says %s is an ordinary start, never a 400", async (_what, build) => {
+    const res = await POST(build());
+    expect(res.status).toBe(200);
+    expect(vi.mocked(claimFreeScanSlot)).toHaveBeenCalledWith(
+      expect.objectContaining({ fromIncompleteRescan: false })
+    );
+  });
+
+  it("api/scan · the flag buys nothing: admission is asked the same question either way", async () => {
+    // It is a caller-supplied field on a public route, so what it can do
+    // matters. Admission reads the domain and the network and nothing
+    // else — the flag is recorded on the row the claim inserts and is
+    // never an argument to a limit.
+    await POST(postJson({ value: "example.com", rescan: "incomplete" }));
+    const [args] = vi.mocked(claimFreeScanSlot).mock.calls.at(-1)!;
+    expect(Object.keys(args).sort()).toEqual(["domain", "fromIncompleteRescan", "network"]);
+  });
+});
+
 // ── REQ-001 c10 ────────────────────────────────────────────────────────
 
 describe(

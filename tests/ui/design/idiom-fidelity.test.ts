@@ -62,7 +62,7 @@ describe("S1 — the landing's chips carry the icons the approved set draws", ()
   // something is a claim.
   const LANDING_FILES = [
     "app/(public)/page.tsx",
-    "app/(public)/_landing/HeroShot.tsx",
+    "app/(public)/_landing/WeekHero.tsx",
     "app/(public)/_landing/MatrixCard.tsx",
     "app/(public)/_landing/WeekCard.tsx",
     "app/(public)/_landing/ScanForm.tsx",
@@ -77,12 +77,29 @@ describe("S1 — the landing's chips carry the icons the approved set draws", ()
     return [...new Set(names)].sort();
   }
 
-  it("the set's seven glyphs, and no eighth", () => {
-    // S1 draws: the growth card's chip (trend), the matrix card's chip
-    // (bot), the This-week card's chip (cal) and its panel's (file), the
-    // video block's play control, and the three step cards' chips
-    // (search · users · cal, L549 — issue #486).
-    expect(iconsImported()).toEqual(["Bot", "Calendar", "FileText", "Play", "Search", "TrendingUp", "Users"]);
+  it("the landing's glyphs, and no further one", () => {
+    // S1 drew seven. The owner's ruling of 2026-09-21 (#935) replaced the
+    // hero, so the hero's glyph changed with it: `TrendingUp` went with
+    // `HeroShot`, and Round 11's card draws four of its own — the
+    // autopilot pill (zap), the AI answer's source (message), and the two
+    // halves of the work line (clock · send).
+    //
+    // **The rule is untouched and this row is retargeted, not loosened:**
+    // a screen may draw the glyphs its own approved drawing names and no
+    // others, because an icon that means something is a claim. The list is
+    // still exact and still a closed set.
+    expect(iconsImported()).toEqual([
+      "Bot",
+      "Calendar",
+      "Clock",
+      "FileText",
+      "MessageSquare",
+      "Play",
+      "Search",
+      "Send",
+      "Users",
+      "Zap",
+    ]);
   });
 
   it("the three step cards take search, users and cal, in that order (L549)", () => {
@@ -92,7 +109,8 @@ describe("S1 — the landing's chips carry the icons the approved set draws", ()
   });
 
   it("each card head takes its glyph, at lucide stroke 1.75", () => {
-    expect(read("app/(public)/_landing/HeroShot.tsx")).toMatch(/<TrendingUp size=\{16\} strokeWidth=\{1\.75\}/);
+    expect(read("app/(public)/_landing/WeekHero.tsx")).toMatch(/<Zap size=\{16\} strokeWidth=\{1\.75\}/);
+    expect(read("app/(public)/_landing/WeekHero.tsx")).toMatch(/<MessageSquare size=\{16\} strokeWidth=\{1\.75\}/);
     expect(read("app/(public)/_landing/MatrixCard.tsx")).toMatch(/<Bot size=\{16\} strokeWidth=\{1\.75\}/);
     expect(read("app/(public)/_landing/WeekCard.tsx")).toMatch(/<Calendar size=\{16\} strokeWidth=\{1\.75\}/);
     expect(read("app/(public)/_landing/WeekCard.tsx")).toMatch(/<FileText size=\{20\} strokeWidth=\{1\.75\}/);
