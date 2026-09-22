@@ -30,6 +30,26 @@
 // classes. That is the invariant that broke, stated without a second copy of
 // Tailwind's ladder anywhere in this repository.
 //
+// **The published page is not the app, and its headings are not on this
+// scale (issue 976, after #991).** The draft viewer shows the customer's
+// page exactly as readers receive it, inside the same `prose` frame the
+// hosted route serves — that is the screen's whole point (SPEC §7,
+// 2026-09-20). A heading in there is the customer's own markdown rendered
+// by the article typography, so holding it to `SCALE_PX` asserts that our
+// app's ladder governs someone else's page, which it does not and must
+// not. #991 made this visible: the seeded page's `<h2> "Start from the
+// limit you will hit first"` computes 30px — the `prose` step — and was
+// read here as an app heading that had lost its own.
+//
+// So every heading inside the page frame is out of scope, and the frame is
+// named by what makes it one: `.prose`, the article typography
+// `docs/DESIGN.md` admits for exactly this, plus `draft-body` for the
+// viewer's own container. Those are the only two places generated prose is
+// rendered, and nothing else in the product wears either. **Everything
+// outside the frame stays asserted**, including the hosted route's own
+// `<h1>`: that one is ours, it carries `text-4xl`, and it is measured
+// against its class probe like any other class-sized heading.
+//
 // Which arm a heading takes is measured, not read off its class list, because
 // a size-bearing class does not carry a size at every viewport: `.t-hero`
 // declares its 46px only above `--breakpoint-sm`, and below it the landing
@@ -164,7 +184,16 @@ function measureHeadings(): Measured[] {
     probe.remove();
     return px;
   };
-  return [...document.querySelectorAll("h1, h2, h3, h4")].map((el) => {
+  // The published page's own frame (see the header). `.prose` is written in
+  // exactly two places — the hosted route's body and the draft viewer's
+  // `draft-body` — and both hold the customer's page as readers receive it.
+  // `max-w-prose` is a width utility and a different class token, so it
+  // does not match here.
+  const PAGE_FRAME = '.prose, [data-testid="draft-body"]';
+  const outsideFrame = [...document.querySelectorAll("h1, h2, h3, h4")].filter(
+    (el) => el.closest(PAGE_FRAME) === null
+  );
+  return outsideFrame.map((el) => {
     const sizeBearing = [...el.classList].filter((name) => SIZE_BEARING.test(name));
     let probePx: number | null = null;
     let classSized = false;
