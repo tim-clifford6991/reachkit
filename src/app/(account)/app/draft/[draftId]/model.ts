@@ -21,6 +21,7 @@ import type { CopyKey } from "@/lib/presentation/copy";
 import type { RecordedFact } from "@/lib/generate/fact";
 import type { PageRecord } from "@/lib/publish/record";
 import type { PageTarget } from "../../_shell/page-target";
+import type { OpportunityType } from "@/lib/opportunities/types";
 import type { RailCheck } from "./checks";
 import type { PublishingMode } from "../../_shell/model";
 import type { State } from "../../calendar/stages";
@@ -125,6 +126,54 @@ export function writtenFromIsEmpty(w: WrittenFrom): boolean {
   return w.profileItems.length === 0 && w.facts.length === 0;
 }
 
+/**
+ * The site-scoped facts the editor's live rule pass reads (issue 932).
+ *
+ * SPEC §7 (2026-09-20): "A sentence that breaks a hard rule or matches the
+ * never-claim list is marked where it stands as it is typed." Marking it as
+ * it is typed means deciding it in the browser, and these four are
+ * everything the thirteen rules that *can* be decided there read —
+ * `marks.ts` names the three that cannot, and why.
+ *
+ * **Four small values, and no fifth.** Every one is the customer's own and
+ * every one is a row this screen can reach for the price of a `sites`
+ * select: their never-claim list, their rivals, the searches the row
+ * targets and its type. Nothing here is a report, a corpus or a register —
+ * a screen opened to read one page does not read the site's whole content
+ * to underline a sentence in it.
+ *
+ * **The brief's passages are not here**, and that is the merge with #931
+ * paying for itself: `WrittenFrom.facts` above already carries them, off
+ * the same `drafts.meta` key, because the viewer's *Written from your
+ * business* card draws them. One record, read twice.
+ */
+export interface RuleFacts {
+  /** Word for word as the customer recorded it — the entry a break names
+   *  back to them is read out of this list, never out of a model. */
+  readonly doNotClaim: readonly string[];
+  /** The rival domains and names recorded for the site. */
+  readonly rivals: readonly string[];
+  /** The target search and every search the row absorbed. */
+  readonly queries: readonly string[];
+  /** The opportunity's type, which decides whether the frame rule applies
+   *  at all. `null` where the row could not be read — and then that rule
+   *  decides nothing, exactly as it decides nothing in the battery. */
+  readonly opportunityType: OpportunityType | null;
+}
+
+/** What `RuleFacts` reads as where nothing could be read. Every list empty
+ *  and no type: the live pass then reports only the rules that need the
+ *  text alone, which is fewer than the save runs and never more. A live
+ *  pass that under-reports is a founder told about a break a moment later,
+ *  on the save; one that over-reported would be this screen accusing them
+ *  of a break the battery does not hold. */
+export const NO_RULE_FACTS: RuleFacts = Object.freeze({
+  doNotClaim: [],
+  rivals: [],
+  queries: [],
+  opportunityType: null,
+});
+
 export interface DraftView {
   draftId: string;
   title: string;
@@ -180,6 +229,12 @@ export interface DraftView {
   /** The customer's own frame: the name and the address the page publishes
    *  at, so the viewer can draw the page as a reader will meet it (#931). */
   publisher: Publisher;
+  /** What the editor's live rule pass reads (issue 932). */
+  ruleFacts: RuleFacts;
+  /** The customer's own domain. The live pass takes its brand tokens from
+   *  it — `marks.ts` says why it does not take the measured brand — and it
+   *  is the address the search-result pane shows. */
+  domain: string;
 }
 
 /** The customer's own page frame, as the viewer draws it.
@@ -241,6 +296,9 @@ export interface DraftFacts {
    *  (issue 867). `unknown` where the row could not be read. */
   target: DraftTarget;
   timeZone: string;
+  /** What the editor's live rule pass reads (issue 932). `NO_RULE_FACTS`
+   *  where nothing could be read. */
+  ruleFacts: RuleFacts;
 }
 
 /** The two keys criterion 4's outcome is spoken through. Named by the mode
@@ -323,6 +381,8 @@ export function assembleDraft(facts: DraftFacts): DraftView {
     timeZone: facts.timeZone,
     writtenFrom: facts.writtenFrom,
     publisher: publisherOf(facts),
+    ruleFacts: facts.ruleFacts,
+    domain: facts.domain,
   };
 }
 

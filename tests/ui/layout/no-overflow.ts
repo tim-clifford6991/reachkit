@@ -130,6 +130,20 @@ export const NO_OVERFLOW_SCROLL_CONTAINERS: readonly string[] = [
   ".drawer-side",
   ".sr-only",
   ".contents",
+  // 2026-09-22, issue 932: CodeMirror's scroll box, and the plainest row
+  // here after `textarea` — which it is the same object as. `checks.ts`'s
+  // own note on that row says it: "a multi-line field IS a scroll
+  // container — that is what the element is — and a customer typing a
+  // paragraph into a four-row box reaches every line of it by scrolling".
+  // The draft editor's field is CodeMirror 6 rather than a `<textarea>`
+  // since §7's editor (2026-09-20), so its content box standing taller
+  // than its border box is the control working, not text escaping.
+  //
+  // It is **not** a way around the rule. The row reaches one child level,
+  // as every row here does, so anything overflowing a box that is not this
+  // scroller is still reported; and the scroller is reachable from a
+  // keyboard, which is a separate rule axe holds it to on the same pass.
+  ".cm-scroller",
 ];
 
 /**

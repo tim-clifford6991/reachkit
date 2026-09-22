@@ -29,7 +29,7 @@ import type { PageRecord } from "@/lib/publish/record";
 // database at all (`provider.ts` says why).
 import { SEO_COPY } from "@/lib/publish/record/lines";
 import { FIXTURE_SHELL_FACTS } from "../../_shell/fixture";
-import type { DraftFacts, WrittenFrom } from "./model";
+import type { DraftFacts, RuleFacts, WrittenFrom } from "./model";
 
 // The zone and the publishing mode are the *site's*, not this screen's, so
 // they are read from the one fixture that already declares them rather
@@ -42,7 +42,8 @@ export const FIXTURE_MODE = FIXTURE_SHELL_FACTS.mode;
 /** The customer's own domain, which the viewer draws the page's frame and
  *  address from (#931). The shell's, for the same reason the zone is: a
  *  page frame that named a different site from the sidebar would be two
- *  accounts on one screen. */
+ *  accounts on one screen. The editor's live rule pass takes its brand
+ *  tokens from it too (issue 932). */
 export const FIXTURE_DOMAIN = FIXTURE_SHELL_FACTS.domain;
 /** The draft the calendar's day panel opens on today, and the id
  *  `tests/ui/layout/routes.ts` fills `[draftId]` with. */
@@ -98,6 +99,23 @@ export const FIXTURE_WRITTEN_FROM: WrittenFrom = Object.freeze({
   ]),
 });
 
+/**
+ * What the live rule pass reads on the fixture account (issue 932).
+ *
+ * The two never-claim entries are the ones the reserved account's Settings
+ * screen shows, so the phrase the owner types on `dev` to see the mark is
+ * a phrase they can read off their own list first. The searches and the
+ * type are this fixture's own target, unchanged — the same row the target
+ * block above states.
+ */
+const FIXTURE_RULE_FACTS: RuleFacts = Object.freeze({
+  doNotClaim: ["the best CRM on the market", "guaranteed results"],
+  rivals: ["hubspot.com", "pipedrive.com"],
+  queries: ["best crm for small teams", "crm for a five person team"],
+  opportunityType: "answer_page",
+});
+
+
 // **No `#` of its own** (issue #446). The pipeline returns a title and a
 // body as two fields (`DRAFT_SCHEMA`), the row stores them in two columns
 // (§10: `drafts.title`, `drafts.body_md`), and every surface that draws
@@ -137,7 +155,15 @@ const BODY = [
   "Pick the tier whose first ceiling is furthest from your next twelve months, not the one with " +
     "the longest feature list. The list is the same everywhere; the ceilings are not.",
   "",
-  "> A CRM you outgrow in a quarter costs more than the one you paid for.",
+  // **Short, and it has to be** (issue 932). §8's `no_unsourced_testimonial`
+  // stops a block quote of 25 characters or more that carries no address:
+  // the `>` is the quotation, so the rule reads it as a reported remark
+  // whether or not it names a speaker. This fixture claims the page passed
+  // the battery (`rulesFailed: false`, two recorded passes), and until the
+  // editor began running those rules live nothing said otherwise — so the
+  // quote carried a break the whole fixture denied. It is an aside now
+  // rather than a remark, which is what it always was.
+  "> Ceilings, not features.",
   "",
   "Set the fields you need on day one, export once to confirm you can, and revisit the choice " +
     "when the team doubles.",
@@ -262,6 +288,12 @@ const UNEDITED: DraftFacts = {
   },
   timeZone: FIXTURE_TIME_ZONE,
   writtenFrom: FIXTURE_WRITTEN_FROM,
+  // What the editor's live rule pass reads (issue 932). The never-claim
+  // list is the reserved account's own two entries, so the owner can walk
+  // the done-when on `dev` — type "the best CRM on the market" into the
+  // editor and the sentence is underlined where it stands, before any
+  // save.
+  ruleFacts: FIXTURE_RULE_FACTS,
   domain: FIXTURE_DOMAIN,
 };
 

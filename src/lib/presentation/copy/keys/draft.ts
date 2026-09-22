@@ -411,4 +411,153 @@ export const DRAFT_COPY = Object.freeze({
     "Discard changes",
     { slots: {}, fixedBy: "REQ-045 c5 · S17 (11a)" },
   ],
+
+  // ── the editor, SPEC §7's own (2026-09-20, #908; issue 932) ───────────
+  //
+  // "Text on the left, the live page on the right, a desktop/phone switch,
+  // a formatting bar, title and search-result description with a length
+  // count. A sentence that breaks a hard rule or matches the never-claim
+  // list is marked where it stands as it is typed."
+  //
+  // Three of the sentences below are the issue's own drafted wording and
+  // land byte for byte: `draft.editor.preview.lead`,
+  // `draft.editor.rules-ok` and `draft.editor.break.do-not-claim`.
+  // Everything else here is drafted by me under the 2026-09-16 ruling
+  // (#759) and named in the pull request for the owner to correct.
+
+  // The pane the live page stands in, and the two frames it is drawn in.
+  "draft.editor.preview.lead": [
+    "As your readers will see it · updates as you type",
+    { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
+  ],
+  "draft.editor.frame.desktop": [
+    "Desktop",
+    { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
+  ],
+  "draft.editor.frame.phone": [
+    "Phone",
+    { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
+  ],
+  /** The third pane on a phone: §7's "search-result description" as a
+   *  reader meets it in a result. */
+  "draft.editor.tab.search": [
+    "Search result",
+    { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
+  ],
+
+  // The formatting bar. Seven controls, seven words — each the name of the
+  // Markdown it writes, because a founder who can read the pane beside it
+  // can read these.
+  "draft.editor.format.title": [
+    "Formatting",
+    { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
+  ],
+  "draft.editor.format.heading": [
+    "Heading",
+    { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
+  ],
+  "draft.editor.format.bold": ["Bold", { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" }],
+  "draft.editor.format.italic": [
+    "Italic",
+    { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
+  ],
+  "draft.editor.format.link": ["Link", { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" }],
+  "draft.editor.format.list": ["List", { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" }],
+  "draft.editor.format.quote": [
+    "Quote",
+    { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
+  ],
+  "draft.editor.format.table": [
+    "Table",
+    { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
+  ],
+  /** The placeholder text each control writes when there is no selection to
+   *  wrap. A word, so the founder can see where the cursor landed. */
+  "draft.editor.format.placeholder.heading": [
+    "Heading",
+    { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
+  ],
+  "draft.editor.format.placeholder.text": [
+    "text",
+    { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
+  ],
+  "draft.editor.format.placeholder.label": [
+    "label",
+    { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
+  ],
+
+  // The length count beside the description. §7 asks for "a length count",
+  // and the count is a count: the viewer's own *In search results* card
+  // renders the text and passes no verdict on it (#931), and a bar that
+  // turned red at 160 would be this screen inventing a rule §8 does not
+  // run.
+  "draft.editor.description-count": [
+    "{n} characters",
+    { slots: { n: "text" }, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
+  ],
+
+  // What the rules say, live. The banner when nothing is broken is the
+  // issue's own sentence; `draft.edit.rules-held` (above, #789) is still
+  // the one that speaks for a *saved* break, and is unchanged.
+  "draft.editor.rules-ok": [
+    "All your rules hold. Every save is checked again.",
+    { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
+  ],
+
+  // One sentence per rule the editor can decide as the founder types — the
+  // thirteen `marks.ts` runs. Each says what the page may not do and what
+  // follows, in the second person, because the founder is the one who will
+  // change it. None of them names the model or the rule's handle.
+  "draft.editor.break.do-not-claim": [
+    "“{entry}” is on your never-claim list. Your change is saved, but the page is held from going live until this sentence changes.",
+    { slots: { entry: "text" }, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
+  ],
+  "draft.editor.break.rival-source": [
+    "This figure is about a rival and the sentence carries no link to where it came from. Give it a source or take the number out.",
+    { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
+  ],
+  "draft.editor.break.no-invented-people": [
+    "This quotes a named person. ReachKit never puts words in someone’s mouth, so the page is held until the name or the quotation goes.",
+    { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
+  ],
+  "draft.editor.break.no-unsourced-testimonial": [
+    "This reads as a customer testimonial with nothing to back it. The page is held until it is sourced or removed.",
+    { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
+  ],
+  "draft.editor.break.brand-gap": [
+    "The page opens by naming your business. A reader who searched for this came with a question — answer it first, then say who you are.",
+    { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
+  ],
+  "draft.editor.break.page-frame": [
+    "This page answers a question about your market, so it cannot be about your business. Name it once, as one option among the others — never in the title or a heading.",
+    { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
+  ],
+  "draft.editor.break.no-hidden-text": [
+    "Something here would reach a search engine but not a reader. Every word on the page has to be a word a visitor can read.",
+    { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
+  ],
+  "draft.editor.break.no-machine-address": [
+    "This looks like it is addressed to an AI assistant rather than to a reader. The page is held until it speaks to the person reading it.",
+    { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
+  ],
+  "draft.editor.break.no-invented-test": [
+    "This claims you tested or tried something. ReachKit cannot stand that up, so the page is held until the claim goes.",
+    { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
+  ],
+  "draft.editor.break.no-invented-provenance": [
+    "This gives the page an author, a date or a case study that nothing on your site records. The page is held until it goes.",
+    { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
+  ],
+  "draft.editor.break.no-new-question-heading": [
+    "This adds more question headings than the page was planned around. Fold the extra ones into the sections that are already here.",
+    { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
+  ],
+  "draft.editor.break.traceable-numerals": [
+    "Nothing read from your site carries this number, and the sentence links to nowhere a reader could check it. Source it or take it out.",
+    { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
+  ],
+  "draft.editor.break.first-block-answers": [
+    "The page has to open with a short, plain answer to the question it targets — a paragraph, not a heading, a list or a question.",
+    { slots: {}, fixedBy: "SPEC §7 (2026-09-20) · issue 932" },
+  ],
 }) satisfies CopyPartition;

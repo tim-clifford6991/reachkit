@@ -106,19 +106,59 @@ export interface TextBlock extends Sentence {
  *  the safe direction. */
 const SENTENCE_END_RE = /(?<=[.!?])\s+/;
 
-function blockFragments(markdown: string): Array<{ raw: string; quoted: boolean }> {
-  const out: Array<{ raw: string; quoted: boolean }> = [];
+/**
+ * One block of the draft as it stands **in the source**, with the offsets
+ * it occupies there.
+ *
+ * `from` and `to` index the Markdown the caller passed, so a caller that
+ * has to point at a block — the editor's lint marks (issue 932) — points
+ * at the same span the rules reasoned over rather than splitting the text
+ * again with rules of its own. That second splitter is the thing this
+ * member exists to prevent: two notions of where a block begins is how a
+ * mark comes to underline the sentence next to the offending one.
+ */
+export interface SourceBlock {
+  raw: string;
+  quoted: boolean;
+  /** The offset of `raw`'s first character in the Markdown it came from. */
+  from: number;
+  /** One past the offset of its last. */
+  to: number;
+}
+
+/**
+ * Every block of the draft, in document order, in the source's own
+ * coordinates.
+ *
+ * The scope of the block-scoped rules — `checkInventedPeople`,
+ * `checkUnsourcedTestimonial` and the two beside them all iterate what
+ * this returns, through `blocksOf`.
+ */
+export function sourceBlocksOf(markdown: string): SourceBlock[] {
+  const out: SourceBlock[] = [];
   let current: string[] = [];
   let currentQuoted = false;
+  /** Where the first line now in `current` begins, in `markdown`. */
+  let currentFrom = 0;
+  /** Where the line being read begins. `+ 1` for the `\n` split ate. */
+  let at = 0;
 
   const flush = (): void => {
-    const raw = current.join("\n").trim();
-    if (raw.length > 0) out.push({ raw, quoted: currentQuoted });
+    const joined = current.join("\n");
+    const raw = joined.trim();
+    if (raw.length > 0) {
+      // `trim()` moves both edges; the offsets follow it, so the span is
+      // the block's own characters and not the blank lines around them.
+      const lead = joined.length - joined.trimStart().length;
+      out.push({ raw, quoted: currentQuoted, from: currentFrom + lead, to: currentFrom + lead + raw.length });
+    }
     current = [];
     currentQuoted = false;
   };
 
   for (const line of markdown.split("\n")) {
+    const lineAt = at;
+    at += line.length + 1;
     const isBlank = line.trim().length === 0;
     const isQuote = /^[ \t]*>/.test(line);
     const isListItem = /^[ \t]*(?:[-*+]|\d+[.)])[ \t]+/.test(line);
@@ -132,6 +172,7 @@ function blockFragments(markdown: string): Array<{ raw: string; quoted: boolean 
     if ((isHeading || isListItem || isQuote !== currentQuoted) && current.length > 0) {
       flush();
     }
+    if (current.length === 0) currentFrom = lineAt;
     currentQuoted = isQuote;
     current.push(line);
     if (isHeading) flush();
@@ -142,7 +183,7 @@ function blockFragments(markdown: string): Array<{ raw: string; quoted: boolean 
 
 /** Every block of the draft, in document order. */
 export function blocksOf(markdown: string): TextBlock[] {
-  return blockFragments(markdown).map((fragment) => ({
+  return sourceBlocksOf(markdown).map((fragment) => ({
     text: renderOf(fragment.raw).replace(/\s+/g, " ").trim(),
     hasLink: hasLink(fragment.raw),
     quoted: fragment.quoted,
@@ -183,7 +224,7 @@ export function headingKey(heading: string): string {
  *  a block boundary. */
 export function sentencesOf(markdown: string): Sentence[] {
   const out: Sentence[] = [];
-  for (const fragment of blockFragments(markdown)) {
+  for (const fragment of sourceBlocksOf(markdown)) {
     // Split the Markdown itself, so each piece keeps the addresses that
     // stand inside it; then render each piece to the reader's words.
     for (const piece of fragment.raw.split(SENTENCE_END_RE)) {

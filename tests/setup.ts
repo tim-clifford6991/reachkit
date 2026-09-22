@@ -1,6 +1,6 @@
 // tests/setup.ts
 //
-// Global test setup, in two halves.
+// Global test setup, in three halves.
 //
 // **One:** fails the run if a test process would make a real network call,
 // so no test in this corpus can silently reach a vendor. A test that needs
@@ -22,6 +22,24 @@
 // declarations out of `fonts.ts` and holds them against the vendor
 // stylesheets, and `tests/ui/layout/vitals.test.ts` reads the emitted
 // preload links off the built app in a real browser.
+//
+// **Three (issue 932):** stands in for the two measurement APIs jsdom does
+// not implement on `Range`. CodeMirror 6 — the draft editor's field, on
+// `docs/DESIGN.md`'s allow-list — measures a line by taking a `Range` over
+// its text and asking for its rectangles, and jsdom's `Range` has neither
+// `getClientRects` nor `getBoundingClientRect`, so the measure phase throws
+// `textRange(...).getClientRects is not a function` from inside a
+// `requestAnimationFrame` callback where no test can catch it.
+//
+// Zero rectangles is the honest answer here rather than a convenient one:
+// jsdom has no layout, so every box in it *is* zero — `tests/ui/layout`'s
+// own header makes the same point about why the no-overflow checks cannot
+// run in this environment and need a real browser. What the stub buys is
+// that a component which measures can be mounted and its markup asserted;
+// what it is measured at stays the layout suite's business.
+//
+// Guarded on `Range` existing, because the `node` project has no DOM at all
+// until a file asks for one with `@vitest-environment jsdom`.
 import dns from "node:dns";
 import http from "node:http";
 import https from "node:https";
@@ -51,4 +69,17 @@ for (const [mod, name] of [
 ] as const) {
   mod.request = (() => refuse(`${name}.request()`)) as unknown as typeof mod.request;
   mod.get = (() => refuse(`${name}.get()`)) as unknown as typeof mod.get;
+}
+
+if (typeof Range !== "undefined") {
+  const zeroRect = (): DOMRect =>
+    ({
+      x: 0, y: 0, width: 0, height: 0, top: 0, right: 0, bottom: 0, left: 0,
+      toJSON: () => ({}),
+    }) as DOMRect;
+  Range.prototype.getClientRects ??= function getClientRects(): DOMRectList {
+    const list = [] as unknown as DOMRectList;
+    return list;
+  };
+  Range.prototype.getBoundingClientRect ??= zeroRect;
 }

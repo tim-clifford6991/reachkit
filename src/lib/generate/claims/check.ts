@@ -24,6 +24,10 @@ import { z } from "zod";
 import type { CostContext } from "@/lib/costs";
 import { llm } from "@/lib/llm";
 import { listHash, normaliseList } from "./hash";
+// The string half of this check, in its own leaf since issue 932, so the
+// draft editor can run the very same comparison in the browser without
+// pulling `@/lib/llm` in behind it. `./literal.ts` says why.
+import { literalClaimMatch } from "./literal";
 
 export type ClaimVerdict =
   | { state: "passed"; listHash: string; at: Date }
@@ -42,26 +46,6 @@ const CLAIM_CHECK_SCHEMA = z.strictObject({
   matchedIndex: z.number().int().nullable(),
 });
 
-/** The same normalisation the hash uses, applied to the draft's text, so
- *  the literal pass is case- and spacing-insensitive in exactly the way
- *  the list is. */
-function normaliseText(text: string): string {
-  return text.trim().replace(/\s+/g, " ").toLocaleLowerCase("en-US");
-}
-
-/** The literal half. Returns the customer's own entry — the one they
- *  recorded, in the case and spacing they recorded it in — never the
- *  normalised form the match was made on. */
-function literalMatch(text: string, list: readonly string[]): string | null {
-  const haystack = normaliseText(text);
-  for (const entry of list) {
-    const needle = normaliseText(entry);
-    if (needle.length === 0) continue;
-    if (haystack.includes(needle)) return entry;
-  }
-  return null;
-}
-
 export async function claimCheck(
   c: CostContext,
   a: { text: string; list: readonly string[] }
@@ -75,7 +59,7 @@ export async function claimCheck(
     return { state: "passed", listHash: hash, at };
   }
 
-  const literal = literalMatch(a.text, a.list);
+  const literal = literalClaimMatch(a.text, a.list);
   if (literal !== null) {
     return { state: "failed", listHash: hash, at, matchedEntry: literal };
   }
