@@ -174,7 +174,19 @@ describe('advisor `rls_enabled_no_policy` — the tables that are policy-less by
     // by any migration here, and `auth_links` was dropped by #468 when
     // identity moved onto Supabase Auth. `job_runs` (#799) is the job
     // heartbeat, written and read only by the job runner.
-    expect(policyLess).toEqual(["domain_blocks", "email_suppressions", "fetches", "job_runs"]);
+    // The two `llm_mention*` tables (#1004) are the Monday pass's LLM
+    // Mentions week: written by the pass and read server-side by the AI
+    // answers tab, exactly as that tab already reads the stored weekly
+    // reports. They carry no `anon`/`authenticated` **grant** either, so a
+    // session is refused at the grant, before RLS is consulted at all.
+    expect(policyLess).toEqual([
+      "domain_blocks",
+      "email_suppressions",
+      "fetches",
+      "job_runs",
+      "llm_mention_reads",
+      "llm_mentions",
+    ]);
   });
 
   it.each(policyLess)("%s carries a `comment on table` naming the rule", (table) => {

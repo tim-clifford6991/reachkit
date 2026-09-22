@@ -54,23 +54,35 @@ beforeAll(async () => {
   constants = await import("../../src/lib/config/constants.ts");
 });
 
-const SIX_EXPORTS = [
+/**
+ * The barrel's whole exported set.
+ *
+ * **Seven since 2026-09-22** (#1004). `llmMentions` is DataForSEO's LLM
+ * Mentions, which the owner approved that day after reading the #920 pilot
+ * — "buy DataForSEO LLM Mentions **weekly**, per site, as part of the
+ * Monday pass". The list is closed against endpoints the owner has *not*
+ * approved; widening it by exactly one named function, under a ruling, is
+ * what approving an endpoint looks like here, and the assertion below is
+ * still exact, so an eighth export still fails by construction.
+ */
+const APPROVED_EXPORTS = [
   "aiMode",
   "competitorsDomain",
   "keywordSuggestions",
+  "llmMentions",
   "llmScraper",
   "rankedKeywords",
   "serpOrganic",
 ] as const;
 
 describe('BP-008 error behaviour — "The never-list is enforced by absence" (WO-023 test-plan row 1)', () => {
-  it("the module's exported (runtime) function set is exactly the six named — nothing more, nothing fewer", () => {
+  it("the module's exported (runtime) function set is exactly the seven approved — nothing more, nothing fewer", () => {
     const keys = Object.keys(dataforseo).sort();
-    expect(keys).toEqual([...SIX_EXPORTS].sort());
+    expect(keys).toEqual([...APPROVED_EXPORTS].sort());
   });
 
   it("every export is a function", () => {
-    for (const name of SIX_EXPORTS) {
+    for (const name of APPROVED_EXPORTS) {
       expect(typeof dataforseo[name]).toBe("function");
     }
   });
@@ -137,6 +149,20 @@ describe('BP-008 decision 1 — "a generic dataforseo(endpoint, params) with a r
     void dataforseo.keywordSuggestions(null as never, { seed: "x", rows: 50, loadAsyncAiOverview: false });
     // @ts-expect-error — competitorsDomain admits no loadAsyncAiOverview.
     void dataforseo.competitorsDomain(null as never, { domain: "x", loadAsyncAiOverview: false });
+    // The seventh endpoint is held to every one of the same bars (#1004).
+    // @ts-expect-error — llmMentions admits no loadAsyncAiOverview.
+    void dataforseo.llmMentions(null as never, { domain: "x", mode: "live", scope: { site: "s" }, loadAsyncAiOverview: false });
+    // @ts-expect-error — llmMentions admits no `depth`.
+    void dataforseo.llmMentions(null as never, { domain: "x", mode: "live", scope: { site: "s" }, depth: 20 });
+    // @ts-expect-error — llmMentions admits no `operators`.
+    void dataforseo.llmMentions(null as never, { domain: "x", mode: "live", scope: { site: "s" }, operators: "site:" });
+    // @ts-expect-error — llmMentions admits no clickstream flag.
+    void dataforseo.llmMentions(null as never, { domain: "x", mode: "live", scope: { site: "s" }, clickstream: true });
+    // The standard queue has no `search_mentions` surface, so the mode
+    // admits only the one the vendor serves — a caller cannot ask for a
+    // surface that does not exist.
+    // @ts-expect-error — llmMentions admits no "std" mode.
+    void dataforseo.llmMentions(null as never, { domain: "x", mode: "std", scope: { site: "s" } });
   }
   void _noSignatureAdmitsForbiddenArguments;
 
@@ -171,6 +197,12 @@ describe('BP-008 decision 1 — "a generic dataforseo(endpoint, params) with a r
     void dataforseo.llmScraper(null as never, { query: "x" });
   }
   void _llmScraperRequiresMode;
+
+  function _llmMentionsRequiresMode(): void {
+    // @ts-expect-error — mode omitted.
+    void dataforseo.llmMentions(null as never, { domain: "x", scope: { site: "s" } });
+  }
+  void _llmMentionsRequiresMode;
 }
 
 describe('BP-008 public interface — "Every call is fixed to SERP_LOCATION … and depth 10" (WO-023 test-plan row 3)', () => {
@@ -192,6 +224,38 @@ describe('BP-008 public interface — "Every call is fixed to SERP_LOCATION … 
     expect(task.location_name).toBe(constants.SERP_LOCATION.location);
     expect(task.language_code).toBe(constants.SERP_LOCATION.language);
     expect(task.depth).toBe(10);
+  });
+
+  // #1004. LLM Mentions declares neither locale field, and DataForSEO
+  // answers a field an endpoint does not declare with `40501 Invalid
+  // Field` and no rows — the identical refusal the #920 pilot drew for a
+  // string `search_scope` (#1003), which cost that run its whole batch.
+  // So the one family that must carry neither is asserted to carry
+  // neither, and the caller still cannot set them: a task that arrived
+  // with both is stripped of both.
+  it("the LLM Mentions path carries no location_name and no language_code — the vendor rejects a field it does not declare", () => {
+    const req = transport.buildRequest({
+      path: "/v3/ai_optimization/llm_mentions/search_mentions/live",
+      mode: "live",
+      fields: { target: [{ domain: "example.com" }], limit: 100 },
+    });
+    const task = JSON.parse(req.body)[0];
+    expect(task).not.toHaveProperty("location_name");
+    expect(task).not.toHaveProperty("language_code");
+    expect(task).not.toHaveProperty("depth");
+    // And the fields the endpoint *does* declare travel untouched.
+    expect(task.limit).toBe(100);
+  });
+
+  it("a caller cannot put a locale back on that path either", () => {
+    const req = transport.buildRequest({
+      path: "/v3/ai_optimization/llm_mentions/search_mentions/live",
+      mode: "live",
+      fields: { location_name: "Nowhere", language_code: "zz" },
+    });
+    const task = JSON.parse(req.body)[0];
+    expect(task).not.toHaveProperty("location_name");
+    expect(task).not.toHaveProperty("language_code");
   });
 });
 
