@@ -31,10 +31,33 @@ import { writtenLine } from "../../_shell/written";
 import { DraftScreen } from "./DraftScreen";
 import { readDraft } from "./provider";
 
-/** /app/draft/{draftId}'s own `<title>` (#945). Without it this screen announced
- *  nothing at all — the `(account)` layout's fallback is the floor, not
- *  the name of this screen. */
-export const metadata: Metadata = { title: copy("meta.app.draft.title") };
+/**
+ * /app/draft/{draftId}'s own `<title>`.
+ *
+ * #945 gave this screen a name of its own; the owner's ruling of
+ * 2026-09-21 (#984) makes that name **the page's own title**, so a reader
+ * holding twenty tabs sees which page is waiting for them rather than which
+ * kind of screen they left open.
+ *
+ * **One resolution per request**, the pattern `(hosted)/hosted-page` uses:
+ * `readDraft` is `React.cache`d, so this and the render below read the same
+ * row once and cannot disagree about which page they are describing.
+ *
+ * The static key stays as the floor — a draft that has no title yet, a
+ * draft id that resolves to nothing, and a page this account does not own
+ * all read "Your page — ReachKit", which says what the screen is without
+ * saying whether an id exists.
+ */
+export async function generateMetadata(p: {
+  params: DraftParams | Promise<DraftParams>;
+}): Promise<Metadata> {
+  const { draftId } = await p.params;
+  const view = await readDraft(draftId);
+  const title = view === null ? "" : view.title.trim();
+  return {
+    title: title === "" ? copy("meta.app.draft.title") : copy("meta.app.draft.title.page", { title }),
+  };
+}
 
 interface DraftParams {
   draftId: string;

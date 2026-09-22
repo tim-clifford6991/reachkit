@@ -131,6 +131,15 @@ export const META_COPY = Object.freeze({
   "meta.app.rivals.title": ["Rivals — ReachKit", { slots: {}, fixedBy: "issue 945" }],
   "meta.app.plan.title": ["Plan — ReachKit", { slots: {}, fixedBy: "issue 945" }],
   "meta.app.draft.title": ["Your page — ReachKit", { slots: {}, fixedBy: "issue 945" }],
+  // Owner ruling 2026-09-21 (#984): the page editor's tab says which page.
+  // The title is the draft's own — model-written, and reaching a browser
+  // tab through a slot in a written sentence, never as a sentence of ours.
+  // The key above stays the floor: a draft with no title yet, and an id
+  // that resolves to nothing, read it.
+  "meta.app.draft.title.page": [
+    "{title} — ReachKit",
+    { slots: { title: "text" }, fixedBy: "owner 2026-09-21 · issue 984" },
+  ],
   "meta.app.settings.title": ["Settings — ReachKit", { slots: {}, fixedBy: "issue 945" }],
   "meta.app.setup.title": ["Setup — ReachKit", { slots: {}, fixedBy: "issue 945" }],
   // #924: the DNS step after setup is its own address, so it says which

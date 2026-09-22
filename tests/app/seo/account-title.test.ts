@@ -24,10 +24,20 @@
 // assertion is on an exported object or a pure function.
 import { readdirSync } from "node:fs";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { Metadata } from "next";
 import { copy } from "@/lib/presentation/copy";
 import "../../generate/env";
+
+// #984: the draft screen composes its title from the draft it is showing,
+// so reading its title means calling its `generateMetadata`. The read
+// behind it is this suite's one double — the id above resolves to nothing,
+// which is the arm that states the floor every row here asserts. No
+// session is touched and nothing renders, which is what keeps this file
+// what its header says it is.
+vi.mock("@/app/(account)/app/draft/[draftId]/provider", () => ({
+  readDraft: async () => null,
+}));
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
 const ACCOUNT_DIR = path.join(REPO_ROOT, "src/app/(account)");
@@ -86,11 +96,31 @@ const OWNER: Readonly<Record<string, string>> = {
 
 /** The title a route ships of its own, or `undefined` where it ships none
  *  and inherits the group's. */
+/**
+ * The title a route ships of its own, whether it states one value or
+ * composes it per request.
+ *
+ * A route whose title is **data** exports `generateMetadata` instead of
+ * `metadata` — `/app/draft/{draftId}` does since the owner's ruling of
+ * 2026-09-21 (#984), because a reader holding twenty tabs is owed the page
+ * that is waiting rather than the kind of screen it is. It is called here
+ * with an id that resolves to nothing, which is what this file is about:
+ * the **floor** each named screen ships, before any row makes it specific.
+ * Nothing renders, and no session is reached — the read behind it is
+ * doubled at its own seam below.
+ */
 async function ownTitleOf(route: string): Promise<unknown> {
   const spec = OWNER[route];
   if (spec === undefined) throw new Error(`no OWNER row for ${route}`);
-  const mod = (await import(spec)) as { metadata?: Metadata };
-  return mod.metadata?.title;
+  const mod = (await import(spec)) as {
+    metadata?: Metadata;
+    generateMetadata?: (p: { params: Promise<Record<string, string>> }) => Promise<Metadata>;
+  };
+  if (mod.metadata !== undefined) return mod.metadata.title;
+  const composed = await mod.generateMetadata?.({
+    params: Promise.resolve({ draftId: "no-such-draft" }),
+  });
+  return composed?.title;
 }
 
 const nonEmpty = (value: unknown): boolean =>
