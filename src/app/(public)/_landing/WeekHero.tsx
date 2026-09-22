@@ -149,7 +149,15 @@ export function WeekHero(): React.JSX.Element {
                 row has wrapped and there is nothing to its right to align to. */}
             <div className="stat w-auto p-0 text-left sm:text-right">
               <div className="stat-title">{copy("overview.tile.score.label")}</div>
-              <div className="stat-value text-4xl">
+              {/* **A flex row, so the denominator has a box that holds it.**
+                  `Num` is an inline-block in the mono face; inside a plain
+                  inline `<span>` in the UI face at the same size, the two
+                  faces' metrics differ and the mono child's border box ends
+                  1px below its parent's — which the containment check reads,
+                  correctly, as an element escaping its box. As flex items
+                  each has a block box of its own sized to its own content,
+                  and `items-baseline` keeps the two numerals on one line. */}
+              <div className="stat-value flex items-baseline gap-1 text-4xl">
                 <Num>{SPECIMEN_HERO.score}</Num>
                 <span className="text-base-content/60 text-base">
                   <Num>{outOf(SPECIMEN_HERO.max)}</Num>
