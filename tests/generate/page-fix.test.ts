@@ -33,6 +33,11 @@ const cost = fakeCost({
     payload: { url: PAGE, status: 200, html: HTML, bytes: HTML.length, readAt: "2026-09-14T08:00:00.000Z" },
     fresh: false,
     costCents: 0,
+    // Issue 715: `ledgered` returns `storedAt` non-`null` exactly when
+    // `fresh` is `false`. Nothing in this file reads it, but a double
+    // that answers a shape the real seam never answers is a trap for
+    // whoever does read it next — the cast below would hide it.
+    storedAt: new Date("2026-09-14T08:00:00.000Z"),
   })) as never,
 });
 

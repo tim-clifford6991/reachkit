@@ -281,7 +281,7 @@ describe(
           costCents: 1,
           run: async () => ({ result: "cached-payload" }),
         });
-        expect(seeded).toMatchObject({ fresh: true, costCents: 1 });
+        expect(seeded).toMatchObject({ fresh: true, costCents: 1, storedAt: null });
       });
 
       // A fresh scan whose reservation alone already exhausts CAPS.FREE_C
@@ -317,7 +317,21 @@ describe(
       });
 
       expect(capHitBeforeHit).toBe(true);
-      expect(hitResult).toEqual({ payload: { result: "cached-payload" }, fresh: false, costCents: 0 });
+      // Issue 715: a hit also carries `storedAt`, the moment the row it
+      // came from was bought — the fact the free report's "reused from"
+      // mark is read off, which `ledgered` documents as non-`null`
+      // exactly when `fresh` is `false`. The shape stays pinned
+      // exhaustively, because that exhaustiveness is what caught the
+      // member arriving; the value is a real `created_at` from Postgres,
+      // so it is asserted as the other live-database suites in this
+      // change assert it (`refusal-row`, `vendor-failure-row`) rather
+      // than against a clock this test does not own.
+      expect(hitResult).toEqual({
+        payload: { result: "cached-payload" },
+        fresh: false,
+        costCents: 0,
+        storedAt: expect.any(Date),
+      });
 
       // No row was ledgered for the hit — only the seed row and the
       // cap-exhausting row exist; the cap-exhausted scan carries exactly
@@ -433,7 +447,7 @@ describe(
           costCents: 1,
           run: async () => [], // the vendor's zero-result shape
         });
-        expect(first).toMatchObject({ fresh: true, costCents: 1 });
+        expect(first).toMatchObject({ fresh: true, costCents: 1, storedAt: null });
       });
 
       // Next scan, same key: the empty payload is never served as a hit —
@@ -447,7 +461,7 @@ describe(
           costCents: 1,
           run: async () => [], // still empty
         });
-        expect(second).toMatchObject({ fresh: true, costCents: 1 }); // bought again, not a hit
+        expect(second).toMatchObject({ fresh: true, costCents: 1, storedAt: null }); // bought again, not a hit
       });
 
       // A non-empty row lands later on the same key.
@@ -460,7 +474,7 @@ describe(
           costCents: 1,
           run: async () => [{ result: "real" }],
         });
-        expect(third).toMatchObject({ fresh: true, costCents: 1 });
+        expect(third).toMatchObject({ fresh: true, costCents: 1, storedAt: null });
       });
 
       // A fourth scan now gets served the non-empty row as a hit.
@@ -475,7 +489,14 @@ describe(
             throw new Error("run() must not be invoked on a cache hit");
           },
         });
-        expect(fourth).toEqual({ payload: [{ result: "real" }], fresh: false, costCents: 0 });
+        // Issue 715, as above: the served hit carries the moment its row
+        // was bought beside the payload it serves.
+        expect(fourth).toEqual({
+          payload: [{ result: "real" }],
+          fresh: false,
+          costCents: 0,
+          storedAt: expect.any(Date),
+        });
       });
 
       // Two ledgered rows exist for the two empty buys; the third
