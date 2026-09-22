@@ -9,8 +9,9 @@
 # regeneration against a different environment than the check is a
 # regeneration that fails the next run.
 #
-# The `postgres:18` service block stays in each job: a composite action
-# cannot declare `services:`, which is a job-level key.
+# It runs on `reachkit-box`, the self-hosted runner (#1013), which has
+# Playwright's system libraries installed and no sudo — so Chromium is
+# installed without `--with-deps`, into the runner user's own cache.
 name: Set up the layout suite
 description: >-
   Node, dependencies, Chromium, the db substrate and the fixture
@@ -27,7 +28,7 @@ runs:
     - shell: bash
       run: npm ci
     - shell: bash
-      run: npx playwright install --with-deps chromium
+      run: npx playwright install chromium
     - uses: ./.github/actions/db-substrate
     - name: environment (src/lib/config/env.ts parses at build; the Supabase bindings are the substrate's, the rest are fixtures no vendor is reached with)
       shell: bash

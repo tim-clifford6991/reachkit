@@ -1,0 +1,30 @@
+# .github/actions/db-substrate-down/action.yml — this job's substrate, gone
+#
+# The other half of `../db-substrate` (#1013). The runner is the shared box,
+# so a job that left its PostgREST, proxy and postgres-meta running, or its
+# `reachkit_scratch_ci_*` database behind, would leave them there for good.
+# Every job that brings the substrate up calls this with `if: always()`.
+name: Take down the db substrate
+description: >-
+  Stops the processes `../db-substrate` started for this job, drops its
+  database and removes its logs. Does nothing in a job that never got as far
+  as naming a run.
+
+runs:
+  using: composite
+  steps:
+    - name: stop this job's substrate and drop its database
+      shell: bash
+      run: |
+        set -euo pipefail
+        if [[ -z "${REACHKIT_RUN_ID:-}" ]]; then
+          echo "no substrate run in this job — nothing to take down"
+          exit 0
+        fi
+        scripts/db-substrate/down.sh --run "$REACHKIT_RUN_ID"
+        # Here rather than through `down.sh --drop`, which needs the state
+        # file a failed `up.sh` never wrote, and which swallows a failure.
+        PGPASSWORD=reachkit psql "postgresql://reachkit:reachkit@127.0.0.1:5432/postgres" \
+          -v ON_ERROR_STOP=1 -qc "drop database if exists \"reachkit_scratch_${REACHKIT_RUN_ID}\" with (force);"
+        rm -f "/tmp/postgrest-${REACHKIT_RUN_ID}.log" "/tmp/rest-v1-proxy-${REACHKIT_RUN_ID}.log" "/tmp/pg-meta-${REACHKIT_RUN_ID}.log"
+        echo "run ${REACHKIT_RUN_ID}: stopped, database dropped"

@@ -9,8 +9,7 @@
 // `/signin` and the sweep measured the sign-in prompt at five widths and
 // called it the screen (`tests/app/session/account.test.ts` recorded the
 // loss). The substrate #164 put in the repository is what closes it: the
-// same `postgres:18` service and `scripts/db-substrate/up.sh` the `db`
-// vitest project runs against.
+// same `scripts/db-substrate/up.sh` the `db` vitest project runs against.
 //
 // **The account is `RESERVED_ACCOUNT`, and that is the point.** It is the
 // same account the presentation sweeps sign in as (`tests/app/accounts.ts`),
@@ -40,8 +39,8 @@
 // than like contention. Locally, start the substrate with
 // `eval "$(scripts/db-substrate/up.sh --run)"` — it gives this worktree its
 // own database and its own ports, and the constants below read them out of
-// the environment. No lock is needed. CI passes no `--run` and needs none:
-// one job, one runner, one `postgres:18` service container.
+// the environment. No lock is needed. CI passes `--run` as well: its jobs
+// run on the same box, each with an id of its own (#1013).
 import { readdirSync } from "node:fs";
 import path from "node:path";
 import { LIVE_ACCOUNT, RESERVED_ACCOUNT, WEEK_ZERO_ACCOUNT } from "../../app/accounts";

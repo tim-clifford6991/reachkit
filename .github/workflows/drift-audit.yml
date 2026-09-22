@@ -9,9 +9,15 @@ on:
     - cron: "17 5 * * *"
   workflow_dispatch:
 
+# A superseded push stops holding the one runner (#1013).
+concurrency:
+  group: audit-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   audit:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, reachkit]
+    timeout-minutes: 10
     permissions:
       contents: read
     steps:

@@ -102,13 +102,15 @@ bindings and fall back to the shared substrate's values when there are
 none, so a run with no `--run` behaves exactly as it did before.
 
 Without `--run` it uses the shared `reachkit_scratch` on `:3001`/`:3002`/
-`:8090` (postgres-meta's admin app takes `:8091` with it). **That is what CI
-does** — one job, one runner, one database — and CI passes no flag.
+`:8090` (postgres-meta's admin app takes `:8091` with it). CI does not use
+it: its jobs run on the shared box beside the worktrees (#1013), so each
+passes `--run ci_<run>_<attempt>_<job>` and `.github/actions/db-substrate-down`
+stops the stack and drops the database when the job ends.
 
 ### What `up.sh` starts
 
-PostgreSQL must already be listening (CI supplies it as a `postgres:18`
-service container). PostgREST comes from Docker, pinned to
+PostgreSQL must already be listening (the shared box's native PostgreSQL 18
+on `127.0.0.1:5432`, which is also what CI uses). PostgREST comes from Docker, pinned to
 `postgrest/postgrest:v16.2`, **or** from a native binary where there is no
 Docker: `POSTGREST_BIN`, else one on `PATH`. The native path is what makes
 `--run` work on a machine with no Docker at all — without it, per-run

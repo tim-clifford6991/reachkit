@@ -5,6 +5,11 @@
 # which is how the two browser jobs this one absorbed came to be red for days
 # without anybody seeing it (#976). No pixel baseline blocks a merge, and none
 # is kept (docs/DESIGN.md, docs/PROCESS.md).
+#
+# Every job runs on `reachkit-box`, the self-hosted runner on the shared box
+# (owner, 2026-09-22, #1013): the same checks, no GitHub-hosted minutes. It
+# is one runner, so jobs queue behind each other, and each has a timeout so a
+# hung one cannot hold it.
 name: CI
 
 on:
@@ -20,7 +25,8 @@ concurrency:
 jobs:
   check:
     name: typecheck · lint · unit
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, reachkit]
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -34,7 +40,8 @@ jobs:
 
   no-overflow:
     name: no overflow · axe (390 / 768 / 1280, light and dark)
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, reachkit]
+    timeout-minutes: 45
     # **The fourth merge gate** (owner's ruling of 2026-09-21, closing #910;
     # `docs/PROCESS.md`'s Gates table is where it is written down), and the
     # one browser job there is.
@@ -63,26 +70,11 @@ jobs:
     # named theme, which is what makes it fit to block a merge.
     #
     # **Where the data comes from.**
-    # `scripts/db-substrate/` against this job's own `postgres:18` service,
-    # with `tests/ui/layout/seed.ts` applying the migrations and seeding the
-    # four accounts, and `tests/ui/layout/auth-stub.ts` answering `getUser()`
-    # — the substrate has no GoTrue. Nothing reaches a vendor and nothing
-    # reaches the shared box, which has no PostgREST and cannot run this
-    # pass at all.
-    services:
-      postgres:
-        image: postgres:18
-        env:
-          POSTGRES_USER: reachkit
-          POSTGRES_PASSWORD: reachkit
-          POSTGRES_DB: reachkit_scratch
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U reachkit -d reachkit_scratch"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 20
+    # `scripts/db-substrate/up.sh --run` against the box's own PostgreSQL 18,
+    # in a database of this job's own (#1013), with `tests/ui/layout/seed.ts`
+    # applying the migrations and seeding the four accounts, and
+    # `tests/ui/layout/auth-stub.ts` answering `getUser()` — the substrate
+    # has no GoTrue. Nothing reaches a vendor.
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/layout-suite
@@ -96,28 +88,17 @@ jobs:
       # `npm run test:layout` the day that closes.
       - name: every screen, hydrated — no overflow, axe, the five checks
         run: npm run test:layout:gate
+      - if: always()
+        uses: ./.github/actions/db-substrate-down
 
   db:
     name: schema · RLS (live Postgres)
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, reachkit]
+    timeout-minutes: 25
     # The `db` project asserts the schema against a live, migrated database.
     # `scripts/db-substrate/` is that database and the two services around it
     # — PostgREST and postgres-meta — so this job needs no Supabase CLI and no
-    # `supabase start`.
-    services:
-      postgres:
-        image: postgres:18
-        env:
-          POSTGRES_USER: reachkit
-          POSTGRES_PASSWORD: reachkit
-          POSTGRES_DB: reachkit_scratch
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U reachkit -d reachkit_scratch"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 20
+    # `supabase start`. The database is the box's own PostgreSQL 18 (#1013).
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -127,3 +108,5 @@ jobs:
       - run: npm ci
       - uses: ./.github/actions/db-substrate
       - run: npx vitest run --project db
+      - if: always()
+        uses: ./.github/actions/db-substrate-down
