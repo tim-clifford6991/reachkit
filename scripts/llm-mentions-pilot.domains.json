@@ -1,0 +1,31 @@
+{
+  "note": "Issue #920 — the twenty domains the LLM Mentions pilot asks about. The fixture's rivals are IANA reserved names (rival-one.example.net and friends) and cannot be queried, so the list is real domains chosen to span the range ReachKit sells into. There is no paying site to add yet; when there is, put it in the small-business tier and drop one of the listicle picks. The small-business domains are real US local-service sites taken from a public roundup of local-business websites, which is the closest public stand-in for a ReachKit customer.",
+  "tiers": {
+    "saas": "Well known, heavily written about. These should return rows; if they do not, the database is thinner than the sales page claims.",
+    "small-saas": "Real products with real users but a fraction of the press. The interesting middle.",
+    "small-business": "US local service businesses — what ReachKit actually sells to. This tier is the question.",
+    "non-us": "Outside the US. ChatGPT data is US/English only, so these measure what a non-US customer would see."
+  },
+  "domains": [
+    { "domain": "stripe.com", "tier": "saas", "what": "payments" },
+    { "domain": "notion.so", "tier": "saas", "what": "notes and docs" },
+    { "domain": "figma.com", "tier": "saas", "what": "design" },
+    { "domain": "mailchimp.com", "tier": "saas", "what": "email marketing" },
+    { "domain": "hubspot.com", "tier": "saas", "what": "CRM and marketing" },
+    { "domain": "cal.com", "tier": "saas", "what": "scheduling" },
+    { "domain": "plausible.io", "tier": "small-saas", "what": "web analytics" },
+    { "domain": "tally.so", "tier": "small-saas", "what": "forms" },
+    { "domain": "pressmodernmassage.com", "tier": "small-business", "what": "massage therapy, New York" },
+    { "domain": "dentalcareseattle.com", "tier": "small-business", "what": "dental practice, Seattle" },
+    { "domain": "bodyworksdw.com", "tier": "small-business", "what": "massage and wellness, New York" },
+    { "domain": "kingrestaurant.nyc", "tier": "small-business", "what": "restaurant, New York" },
+    { "domain": "cafecitosantafe.com", "tier": "small-business", "what": "cafe, Santa Fe" },
+    { "domain": "edwardsplumbingllc.com", "tier": "small-business", "what": "plumber" },
+    { "domain": "jimmyjoesplumbing.com", "tier": "small-business", "what": "plumber" },
+    { "domain": "wiggscpa.com", "tier": "small-business", "what": "accountant" },
+    { "domain": "sadiesfloral.com", "tier": "small-business", "what": "florist" },
+    { "domain": "harperconstruction.com", "tier": "small-business", "what": "construction" },
+    { "domain": "sourdoughsophia.co.uk", "tier": "non-us", "what": "bakery, United Kingdom" },
+    { "domain": "chiro.london", "tier": "non-us", "what": "chiropractor, London" }
+  ]
+}

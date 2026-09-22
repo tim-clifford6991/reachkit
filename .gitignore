@@ -17,3 +17,7 @@ next-env.d.ts
 # body, never a baseline: the baselines live in tests/ui/layout/__screenshots__
 # and CI is what regenerates them.
 zz-shots/
+
+# The LLM Mentions pilot's raw vendor responses (issue #920): bought evidence
+# for a spike report, re-readable without paying again, never a commit.
+.llm-mentions/
