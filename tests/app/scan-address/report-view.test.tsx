@@ -231,12 +231,6 @@ describe("REQ-001 c14/c16, REQ-003 c12 — at most one notice, ever", () => {
 });
 
 describe("REQ-001 c16 — exactly one measurement-starting control, or none", () => {
-  const controls: AddressControl[] = [
-    { kind: "rescan", because: "age" },
-    { kind: "rescan", because: "incomplete" },
-    { kind: "retry" },
-    { kind: "correction_retry" },
-  ];
   const CONTROL_KEYS = [
     "control.rescan-age",
     "control.rescan-incomplete",
@@ -244,7 +238,15 @@ describe("REQ-001 c16 — exactly one measurement-starting control, or none", ()
     "control.correction-retry",
   ];
 
-  it.each(controls.map((c) => [`${c.kind}${"because" in c ? `/${c.because}` : ""}`, c] as const))(
+  /** The three arms that draw a control here. `correction_retry` is the
+   *  fourth and draws none — see its own row below. */
+  const DRAWN: AddressControl[] = [
+    { kind: "rescan", because: "age" },
+    { kind: "rescan", because: "incomplete" },
+    { kind: "retry" },
+  ];
+
+  it.each(DRAWN.map((c) => [`${c.kind}${"because" in c ? `/${c.because}` : ""}`, c] as const))(
     "%s renders exactly one of the four control labels",
     (_name, control) => {
       const html = render(FIXTURE_REPORT, null, control);
@@ -252,6 +254,48 @@ describe("REQ-001 c16 — exactly one measurement-starting control, or none", ()
       expect(rendered).toHaveLength(1);
     }
   );
+
+  it.each(DRAWN.map((c) => [`${c.kind}${"because" in c ? `/${c.because}` : ""}`, c] as const))(
+    "%s is a control that acts: it posts the domain to the scan API (#935)",
+    (_name, control) => {
+      // SPEC §1, 2026-09-20: "the report's *Try again*, *Measure what's
+      // missing* and its one notice control act or are not drawn." Each of
+      // the three was a `<button type="button">` with no handler. The form
+      // is the whole control with no JavaScript, so the markup is what
+      // proves it acts.
+      const html = render(FIXTURE_REPORT, null, control);
+      expect(html).toContain('<form action="/api/scan" method="post">');
+      expect(html).toContain('name="value" value="example.com"');
+      expect(html).toContain('type="submit"');
+      // And no bare, handler-less button is left standing beside it.
+      expect(html).not.toContain('<button type="button" class="btn btn-outline">');
+    }
+  );
+
+  it("only the incomplete rescan tells the route why, so it is not offered on its own result", () => {
+    // `scans.from_incomplete_rescan` is read back off the stored report by
+    // `resolve.ts`, which is how "measure what's missing" is offered once
+    // and not for ever. Nothing was setting it until this control did.
+    const incomplete = render(FIXTURE_REPORT, null, { kind: "rescan", because: "incomplete" });
+    expect(incomplete).toContain('name="rescan" value="incomplete"');
+    for (const control of [{ kind: "rescan", because: "age" } as const, { kind: "retry" } as const]) {
+      expect(render(FIXTURE_REPORT, null, control)).not.toContain('name="rescan"');
+    }
+  });
+
+  it("correction_retry draws none here, because the working one is already on the screen", () => {
+    // That arm is reached only where the correction offer still stands,
+    // and an offer that stands is exactly when the verdict strip renders
+    // `CategoryCorrection` — a control that submits the corrected market
+    // and follows the rerun. A second button beside it would be the one
+    // thing this criterion forbids: two controls that start a measurement
+    // on one screen. So the ruling's "act or are not drawn" is taken at
+    // its word.
+    const html = render(FIXTURE_REPORT, null, { kind: "correction_retry" });
+    expect(CONTROL_KEYS.filter((key) => html.includes(key))).toEqual([]);
+    // The one that does act is there, and it is the correction's own.
+    expect(html).toContain("verdict.not-your-market");
+  });
 
   it("none renders no control label at all", () => {
     const html = render(FIXTURE_REPORT, null, { kind: "none" });

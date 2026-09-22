@@ -4,9 +4,15 @@
 // `landing.test.tsx` beside this file holds REQ-001's own criteria (one
 // field, one submit, no gate, the no-JavaScript path) and is unchanged by
 // the redraw except where ruling 2b widened what a button on this page may
-// be. This file holds what the approved set added: the hero component in
-// its browser frame, the video frame ruling 4c put back, the three
-// numbered sections with their live components, and the closing CTA.
+// be. This file holds what the approved set added: the hero, the video
+// frame ruling 4c put back, the three numbered sections with their live
+// components, and the closing CTA.
+//
+// **The hero block is Round 11's** (owner ruling 2026-09-21, #935): S1's
+// browser frame over three tiles was replaced, so this file's first block
+// was retargeted onto the card that replaced it rather than deleted — the
+// claim "the hero is the approved drawing and every figure in it is the
+// specimen's" is the same claim, about a different drawing.
 //
 // Same conventions as its neighbour: the "node" project, `react-dom/
 // server`'s `renderToStaticMarkup`, and `copy()` mocked to `(key) => key`
@@ -31,53 +37,92 @@ async function renderPage(): Promise<string> {
   return renderToStaticMarkup(React.createElement(LandingPage, { searchParams: {} }));
 }
 
-describe("S1 hero — the product component in a browser frame (REQ-099 c4, ruling 5c)", () => {
-  it("the frame renders, addressed to the app, over the specimen's own figures", async () => {
+/** The hero card alone. Bounded at both ends — the video block is the next
+ *  thing on the page — because "nothing in this card is a control" is only
+ *  a claim about this card, and the closing CTA below it is a button. */
+function heroCard(markup: string): string {
+  const from = markup.indexOf('data-testid="landing-hero-week"');
+  const to = markup.indexOf('data-testid="landing-video"');
+  expect(from).toBeGreaterThan(-1);
+  expect(to).toBeGreaterThan(from);
+  return markup.slice(from, to);
+}
+
+describe("Hero D — one week, one card (owner ruling 2026-09-21, #935)", () => {
+  // The ruling replaced S1's browser-frame hero with Round 11's
+  // `R11-H4-Week`. The rows below are that ruling's own list, in its own
+  // order; the approved headline and sub-line are asserted by
+  // `landing.test.tsx` and are untouched by it.
+
+  it("the card renders, and the rejected browser frame does not", async () => {
     const markup = await renderPage();
-    expect(markup).toContain('data-testid="landing-shot"');
-    expect(markup).toContain("landing.shot.address");
-    // The Overview's own headline and its badge — the words the product
-    // renders on the screen the frame is showing (REQ-099 c4).
-    expect(markup).toContain("overview.head.rising");
-    expect(markup).toContain("landing.shot.badge");
+    expect(markup).toContain('data-testid="landing-hero-week"');
+    expect(markup).not.toContain('data-testid="landing-shot"');
+    expect(markup).not.toContain("landing.shot.address");
   });
 
-  it("it is the registered GrowthLine over the specimen weeks, not a picture", async () => {
+  it("the autopilot pill and the Discoverability number are up top", async () => {
     const markup = await renderPage();
-    // The chart's own accessible name is the Overview's tile label, and
-    // it writes the specimen's weekly readings, which no image would carry.
-    expect(markup).toMatch(/<figure[^>]*aria-label="overview\.tile\.searches\.label"/);
+    const card = heroCard(markup);
+    // The pill carries the date it was switched on, through the key's slot.
+    expect(card).toMatch(/landing\.hero\.autopilot:[^"<]+/);
+    expect(card).toContain("overview.tile.score.label");
+    // 47 / 100, and what it rose by, every one of them `.num`.
+    for (const figure of ["47", "/100", "25"]) expect(card).toContain(figure);
+  });
+
+  it("the pill is a badge and not a toggle: nothing on this page is a dead control", async () => {
+    const markup = await renderPage();
+    const card = heroCard(markup);
+    expect(card).not.toContain("toggle");
+    expect(card).not.toContain("<button");
+    expect(card).not.toContain("<input");
+  });
+
+  it("Monday measures and Tuesday to Saturday each publish one page", async () => {
+    const markup = await renderPage();
+    const card = heroCard(markup);
+    // Six cells: Monday's two counts, then five page titles.
+    expect(card).toMatch(/landing\.hero\.week\.measured:400,12/);
+    for (const n of [1, 2, 3, 4, 5]) expect(card).toContain(`landing.hero.page.${n}`);
+    // Each published day says it is live, at the hour it went live.
+    expect(card.match(/calendar\.stage\.live/g)).toHaveLength(5);
+    expect(card.match(/07:00/g)).toHaveLength(5);
+  });
+
+  it("the line is the registered Recharts GrowthLine, climbing to the findable boundary", async () => {
+    const markup = await renderPage();
+    // Its accessible name is the score's own key, and it writes its
+    // readings out as a list — which no image would carry.
+    expect(markup).toMatch(/<figure[^>]*aria-label="overview\.tile\.score\.label"/);
     expect(markup).toMatch(/<ul class="sr-only"><li>/);
+    // First and last reading of the eleven: the last is the head's number.
+    expect(markup).toContain("<li>1 · 22</li>");
+    expect(markup).toContain("<li>11 · 47</li>");
   });
 
-  it("the three tiles are the set's three, each labelled by the Overview's own key", async () => {
+  it("the AI answer names the example business, and names its engine", async () => {
     const markup = await renderPage();
-    for (const key of [
-      "overview.tile.score.label",
-      "overview.tile.ai-answers.label",
-      "overview.tile.pages.label",
-    ]) {
-      expect(markup).toContain(key);
-    }
-    // 62 ▲ 8 · 2/12 · 17 — every one inside `.num`, and every one the
-    // specimen's, never the visitor's (ruling 5c).
-    for (const figure of ["62", "8", "2", "/12", "17"]) {
-      expect(markup).toContain(figure);
-    }
+    const card = heroCard(markup);
+    expect(card).toContain("ai-answers.engine.ai-overview");
+    // The sentence is one key, resolved with the business as its slot; the
+    // card then draws the business out of that one resolved string rather
+    // than writing the name a second time, which is why the emphasis
+    // splits the line instead of sitting beside it.
+    expect(card).toContain("landing.hero.ai.answer:");
+    expect(card).toMatch(/<strong class="[^"]*text-primary[^"]*">Harbour Bike Repair<\/strong>/);
   });
 
-  it("the three tiles are one daisyUI stats row inside a mockup-browser frame", async () => {
-    const markup = await renderPage();
-    const shot = markup.slice(markup.indexOf('data-testid="landing-shot"'));
-    expect(markup).toMatch(/class="mockup-browser [^"]*" data-testid="landing-shot"/);
-    expect(shot.match(/class="stats /g)).toHaveLength(1);
-    expect(shot.match(/class="stat min-w-0"/g)).toHaveLength(3);
+  it("the work line says what each side does", async () => {
+    const card = heroCard(await renderPage());
+    expect(card).toContain("landing.hero.work.you");
+    expect(card).toContain("landing.hero.work.reachkit");
   });
 
-  it("no source date and no example line ride with it (5c amends REQ-099 c8)", async () => {
-    const markup = await renderPage();
-    expect(markup).not.toContain("landing.hero.specimen.caption");
-    expect(markup).not.toContain("report.measured-at");
+  it("the card says in writing that the business is an example", async () => {
+    // The ruling put a named business on this page, so the line 5c removed
+    // from the old frame comes back in the form this card needs.
+    expect(await renderPage()).toContain("landing.hero.example");
   });
 
   it("the assurance line stands under the field", async () => {

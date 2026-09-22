@@ -52,9 +52,37 @@ function canonicalLocation(domain: string): string {
 }
 
 type ParsedBody =
-  | { transport: "json"; value: string }
-  | { transport: "form"; value: string }
+  | { transport: "json"; value: string; rescan: Rescan }
+  | { transport: "form"; value: string; rescan: Rescan }
   | { transport: "malformed" };
+
+/**
+ * Why this start was asked for, where the caller says (#935).
+ *
+ * `none` is every ordinary start — the landing field, the cooldown retry,
+ * a shared link — and is what a body that says nothing means.
+ *
+ * `incomplete` is the report screen's *Measure what's missing*. It is
+ * carried because `scans.from_incomplete_rescan` exists for exactly this
+ * and nothing was setting it: `resolve.ts` reads it back off the stored
+ * report to decide whether to offer that control again, so without it the
+ * button would be offered on the report its own press produced, for ever.
+ *
+ * **A visitor can set it, and that is bounded.** Admission does not read
+ * it, so it buys no allowance and skips no limit; all it does is stop the
+ * control being offered on the report this scan stores. The worst a
+ * caller can do with it is decline an offer meant for them.
+ */
+type Rescan = "none" | "incomplete";
+
+const RESCAN_FIELD = "rescan";
+const RESCAN_INCOMPLETE = "incomplete";
+
+/** Anything that is not the one handle above is `none`: a caller that
+ *  misspells its reason gets an ordinary start, never a 400. */
+function rescanOf(value: unknown): Rescan {
+  return value === RESCAN_INCOMPLETE ? RESCAN_INCOMPLETE : "none";
+}
 
 /** `## Steps` step 2: "Parse and validate the request body to `{ value:
  *  string }`; anything else is a 400 with no problem handle, since it is
@@ -77,7 +105,10 @@ async function readBody(request: Request): Promise<ParsedBody> {
         ? (parsed as { value: unknown }).value
         : undefined;
     if (typeof value !== "string") return { transport: "malformed" };
-    return { transport: "json", value };
+    const rescan = typeof parsed === "object" && parsed !== null && RESCAN_FIELD in parsed
+      ? (parsed as Record<string, unknown>)[RESCAN_FIELD]
+      : undefined;
+    return { transport: "json", value, rescan: rescanOf(rescan) };
   }
 
   if (contentType.includes("application/x-www-form-urlencoded") || contentType.includes("multipart/form-data")) {
@@ -89,7 +120,7 @@ async function readBody(request: Request): Promise<ParsedBody> {
     }
     const value = form.get("value");
     if (typeof value !== "string") return { transport: "malformed" };
-    return { transport: "form", value };
+    return { transport: "form", value, rescan: rescanOf(form.get(RESCAN_FIELD)) };
   }
 
   return { transport: "malformed" };
@@ -213,7 +244,7 @@ export async function POST(request: Request): Promise<Response> {
   const claim = await claimFreeScanSlot({
     domain: parsed.domain,
     network,
-    fromIncompleteRescan: false,
+    fromIncompleteRescan: body.rescan === RESCAN_INCOMPLETE,
   });
 
   // `## Steps` step 5: on a claim, respond with the new scan's id; on a

@@ -207,6 +207,16 @@ export const REPORT_COPY = Object.freeze({
     "Under a minute. This address is permanent — you can come back to it.",
     { slots: {}, fixedBy: "REQ-003 c1" },
   ],
+  /** The line above the stages when a re-measure was started *from* a
+   *  report that is already on screen (#935). It is not
+   *  `scan.waiting.line` — that one tells a first-time visitor the address
+   *  survives the wait, which this reader already knows — and it is not
+   *  `correction.running`, which names the market they gave. Drafted under
+   *  the owner's 2026-09-16 ruling (#759), in this registry's voice. */
+  "scan.rescanning.line": [
+    "Measuring again. This report updates when it finishes.",
+    { slots: {}, fixedBy: "issue 935 · drafted" },
+  ],
 
   // ── Module 2, left card — AI answers (REQ-006) ────────────────────────
   "ai-answers.title": ["AI answers", { slots: {}, fixedBy: "REQ-006 c1" }],
@@ -490,6 +500,69 @@ export const REPORT_COPY = Object.freeze({
    *  same sentence through `offer.cancel-line`, which is still empty and is
    *  #369's to fill — one key per screen, neither borrowed. */
   "landing.start.cancel": ["Cancel in one click.", { slots: {}, fixedBy: "approved set S1 · 11a" }],
+
+  /* ── The hero component: "one week, one card" (#935) ──────────────────
+     Owner ruling 2026-09-21: the landing hero is Round 11 `R11-H4-Week`.
+     The approved headline and sub-line above are unchanged; what the
+     ruling replaces is the picture beside them, and it is one card —
+     autopilot on, the Discoverability Score, the week that produced it,
+     the line it moved along, and the AI answer at the end of it.
+
+     **Every sentence here is example content, and it is drafted** under
+     the owner's 2026-09-16 ruling (#759): the ruling says the component's
+     own sentences "go in the registry as keys", and none of them was
+     written by the owner. Each is named in this PR's body for correction.
+
+     **Why the business is named.**
+     The ruling asks for "the AI answer that names the example business",
+     which needs a business with a name — the board writes one, and the
+     card's last line says in writing that it is an example and measures
+     no site. The figures live in `_landing/specimen.ts`, which is the
+     product's one home for a drawn number that measures nothing; the
+     `{you}` slot below is filled from there, never from a visitor's
+     input. */
+  /** The pill at the head of the card. One sentence and one slot rather
+   *  than a word plus a dangling fragment: "Autopilot on" and "· since 12
+   *  Aug" are one claim, and a reader of the second half alone learns
+   *  nothing. */
+  "landing.hero.autopilot": ["Autopilot on since {since}", { slots: { since: "date" }, fixedBy: "issue 935 · drafted" }],
+  /** Monday's cell: the one day of the six that measures rather than
+   *  publishes, which is why it is the only cell that carries no page. */
+  "landing.hero.week.measured": [
+    "Measured {searches} searches and {questions} AI questions",
+    { slots: { searches: "text", questions: "text" }, fixedBy: "issue 935 · drafted" },
+  ],
+  /** Tuesday to Saturday: five page titles, as this example business's
+   *  week would produce them. Titles and not sentences — they are what the
+   *  calendar shows, so they read as the product's own rows. */
+  "landing.hero.page.1": ["How much does a bike service cost in 2026?", { slots: {}, fixedBy: "issue 935 · drafted" }],
+  "landing.hero.page.2": ["Tubeless or inner tubes for city commuting?", { slots: {}, fixedBy: "issue 935 · drafted" }],
+  "landing.hero.page.3": ["How often should a commuter bike be serviced?", { slots: {}, fixedBy: "issue 935 · drafted" }],
+  "landing.hero.page.4": ["Bike fitting: what it fixes and what it costs", { slots: {}, fixedBy: "issue 935 · drafted" }],
+  "landing.hero.page.5": ["E-bike service: what is different", { slots: {}, fixedBy: "issue 935 · drafted" }],
+  /** Between the week and the line: what makes the two one argument. */
+  "landing.hero.week.line": [
+    "The same week, every week. The number moves because the pages do.",
+    { slots: {}, fixedBy: "issue 935 · drafted" },
+  ],
+  /** The AI answer the week earned. `{you}` is the example business's own
+   *  name, so the card can draw it as the reader's own and the sentence
+   *  still reads whole without the drawing. */
+  "landing.hero.ai.answer": [
+    "…near the harbor: {you} — a basic service is $85 — as well as Cyclefix and Spokeworks.",
+    { slots: { you: "text" }, fixedBy: "issue 935 · drafted" },
+  ],
+  /** The work line: the ruling's "how little the customer has to do",
+   *  said as two halves of one trade rather than a claim about effort. */
+  "landing.hero.work.you": ["You: five minutes, once", { slots: {}, fixedBy: "issue 935 · drafted" }],
+  "landing.hero.work.reachkit": [
+    "ReachKit: a page every day, measured every Monday",
+    { slots: {}, fixedBy: "issue 935 · drafted" },
+  ],
+  /** Under the card. `landing.hero.specimen.caption` above says the same
+   *  thing of a card that named `example.com` and no business; this card
+   *  names a business, so it says so of a business. */
+  "landing.hero.example": ["An example business. It measures no site.", { slots: {}, fixedBy: "issue 935 · drafted" }],
 
   /* ── The quiet pages (#936) ───────────────────────────────────────────
      A refusal, a scan that stopped, a removed report: the screens a

@@ -9,16 +9,22 @@
 // line whether or not the asset exists; the play disc is a `<span>`, so it
 // is not a control.
 //
+// **The hero is Round 11 `R11-H4-Week`** (owner ruling 2026-09-21, #935):
+// one card holding one week, beside the approved headline and the field.
+// The headline and sub-line are unchanged; what the ruling replaced is the
+// picture, and `WeekHero.tsx` states why.
+//
 // A Server Component. It reads no session and no cookie; the three
-// specimens (hero shot, AI-answers matrix, this-week card) are server reads
-// over the reserved fixture. `ScanForm` and `FieldCta` are the client leaves.
+// specimens (the hero's week, AI-answers matrix, this-week card) are server
+// reads over the reserved fixture. `ScanForm` and `FieldCta` are the client
+// leaves.
 import type React from "react";
 import type { Metadata } from "next";
 import { Calendar, Play, Search, Users } from "lucide-react";
 import { Surface } from "@/ui/layout";
 import { copy } from "@/lib/presentation/copy";
 import { ScanForm } from "./_landing/ScanForm";
-import { HeroShot } from "./_landing/HeroShot";
+import { WeekHero } from "./_landing/WeekHero";
 import { MatrixCard } from "./_landing/MatrixCard";
 import { WeekCard } from "./_landing/WeekCard";
 import { FieldCta, FIELD_SECTION_ID } from "./_landing/FieldCta";
@@ -80,7 +86,7 @@ export default function LandingPage(props: {
               </div>
               <p className="mt-3 font-mono text-xs text-base-content/60">{copy("landing.hero.assurance")}</p>
             </div>
-            <HeroShot />
+            <WeekHero />
           </div>
         </section>
 

@@ -14,11 +14,15 @@
 // The readings are also written as a visually hidden list, which is what a
 // screen reader and a server render both get.
 import type React from "react";
-import { Area, AreaChart, ReferenceDot, Tooltip, XAxis, YAxis } from "recharts";
+import { Area, AreaChart, ReferenceDot, ReferenceLine, Tooltip, XAxis, YAxis } from "recharts";
 
 /** Theme paint and Recharts keys, named: values, never copy. */
-const PAINT = { you: "var(--chart-you)", surface: "var(--surface)" } as const;
-const KEY = { name: "name", top: "top" } as const;
+const PAINT = { you: "var(--chart-you)", surface: "var(--surface)", goal: "var(--chart-goal)" } as const;
+const KEY = { name: "name", top: "top", target: "insideTopLeft" } as const;
+/** The target line's dash, bound to a name: the copy sweep reads a bare
+ *  JSX attribute string as product voice, and it is right to. A length in
+ *  SVG user units is paint, not a sentence. */
+const TARGET_DASH = "4 4";
 
 /** A week that was measured. */
 export interface GrowthMeasuredWeek {
@@ -38,6 +42,23 @@ export interface GrowthUnmeasuredWeek {
 }
 
 export type GrowthWeek = GrowthMeasuredWeek | GrowthUnmeasuredWeek;
+
+/**
+ * A line the series is climbing towards, drawn dashed in `--chart-goal`
+ * with its own direct label (DESIGN rule 2: direct labels, no legend).
+ *
+ * Optional, and the Overview passes none: a week series there is a count
+ * with no target, and a dashed line across it would claim a goal the
+ * product has not set. The landing's hero passes one, because the band
+ * boundary it draws *is* a real threshold (`SCORE_BAND_BOUNDS`).
+ *
+ * `label` is already a written string when it arrives — this module holds
+ * no copy key, only paint.
+ */
+export interface GrowthTarget {
+  readonly value: number;
+  readonly label: string;
+}
 
 interface Row {
   name: string;
@@ -66,6 +87,8 @@ function runsOf(weeks: readonly GrowthWeek[]): { runOf: number[]; sizes: number[
 export function GrowthLine(p: {
   weeks: readonly [GrowthWeek, ...GrowthWeek[]];
   label: string;
+  /** Drawn where present; nothing is drawn where it is absent. */
+  target?: GrowthTarget;
 }): React.JSX.Element {
   const { runOf, sizes } = runsOf(p.weeks);
   const rows: Row[] = p.weeks.map((week, i) => {
@@ -89,7 +112,10 @@ export function GrowthLine(p: {
         style={{ width: "100%", aspectRatio: 300 / 80 }}
       >
         <XAxis dataKey={KEY.name} hide />
-        <YAxis hide domain={[0, (max: number) => Math.max(max, 1)]} />
+        {/* The target is part of the frame, not an overlay: a reference
+            line above the domain's top would be clipped away, and a goal
+            the chart cannot draw is worse than no goal. */}
+        <YAxis hide domain={[0, (max: number) => Math.max(max, p.target?.value ?? 0, 1)]} />
         <Tooltip
           cursor={false}
           filterNull={false}
@@ -115,6 +141,17 @@ export function GrowthLine(p: {
             activeDot={false}
           />
         ))}
+        {p.target ? (
+          <ReferenceLine
+            y={p.target.value}
+            stroke={PAINT.goal}
+            strokeWidth={1.5}
+            strokeDasharray={TARGET_DASH}
+            // At the **left** end of the dashed line: the right end is
+            // where the series ends, and its own value label sits there.
+            label={{ value: p.target.label, position: KEY.target, fill: PAINT.goal, className: "num", fontSize: 11 }}
+          />
+        ) : null}
         {last ? (
           <ReferenceDot
             x={last.name}
