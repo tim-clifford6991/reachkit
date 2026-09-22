@@ -56,6 +56,13 @@
 // The archived plan is WO-263.
 import type { CopyKey } from "@/lib/presentation/copy";
 import { publishDb } from "../db";
+// Issue 896. The address a page answers at is composed in one place
+// (`destinations/hosted/store.ts`, issue 888's `hostedAddressNow`), and
+// this module is the read behind every surface that states one — so it
+// composes the address there rather than handing a column on. The leaf,
+// not the `destinations/` barrel: the barrel carries the adapters, and the
+// note above `SEO_COPY` says why this module does not pull them behind it.
+import { hostedAddressesNow } from "../destinations/hosted/store";
 import type { State, UnpublishOutcome, VerifyDisposition } from "../types";
 import { dispositionOf, DISPOSITION_COLUMNS, type DispositionRow } from "../verify/due";
 import { needsYouOf, type NeedsYouCause } from "./needs-you";
@@ -157,6 +164,12 @@ interface PublicationRow extends DispositionRow {
   mode: string;
   made_live_by_us: boolean;
   unpublish_outcome: string | null;
+  /** The two columns the address is re-composed from (issue 896). The
+   *  site, because a hosted page's host belongs to the site and not to the
+   *  publication; the destination, because only the one ReachKit serves
+   *  may be re-addressed at all. */
+  site_id: string;
+  destination: string | null;
   /** REQ-060 c4. `null` where no delivery recorded an answer; an empty
    *  array is an answer and is the case that carries the line. */
   seo_written: string[] | null;
@@ -180,6 +193,37 @@ const UNPUBLISH_OUTCOMES: readonly UnpublishOutcome[] = [
   "already_gone",
   "unreachable",
 ];
+
+/**
+ * The address this record states, composed for the host the page answers
+ * at **now** (SPEC §7, 2026-09-18; issue 896).
+ *
+ * A hosted page's host can move under it after publication — the owner's
+ * test destination moves on a deploy, a customer can repoint their record
+ * — and the edge serves every live page on whatever host resolves. So the
+ * day panel's "publicly readable at" names where the page is, not where it
+ * was put; offering the old address is offering a link that 404s.
+ *
+ * **A page that stands `unpublished` keeps its stored address.** It
+ * answers nowhere, and its record says `wasPublishedAt` — a statement
+ * about the past, whose address is the one the page was published at and
+ * not a host it never served on.
+ */
+async function liveUrlNow(a: {
+  state: State;
+  row:
+    | { site_id: string; destination: string | null; live_url: string | null; made_live_by_us: boolean }
+    | undefined;
+}): Promise<string | null> {
+  const row = a.row;
+  // Nothing ReachKit made live has an address to re-compose, and
+  // `addressOf` reads that same `null` as its never-made-live arm — so the
+  // arm that offers no address at all costs no read either.
+  if (row === undefined || row.live_url === null || !row.made_live_by_us) return null;
+  if (a.state === "unpublished") return row.live_url;
+  const addressNow = await hostedAddressesNow(row.site_id);
+  return addressNow({ destination: row.destination, liveUrl: row.live_url });
+}
 
 function addressOf(a: {
   state: State;
@@ -239,7 +283,7 @@ export async function pageRecordFor(
 
   const { data: publications, error: pubError } = await db
     .from<PublicationRow>("publications")
-    .select(`${DISPOSITION_COLUMNS}, mode, made_live_by_us, unpublish_outcome, seo_written`)
+    .select(`${DISPOSITION_COLUMNS}, site_id, destination, mode, made_live_by_us, unpublish_outcome, seo_written`)
     .eq("draft_id", draftId)
     .order("claimed_at", { ascending: false })
     .limit(1);
@@ -282,7 +326,7 @@ export async function pageRecordFor(
     address: addressOf({
       state,
       madeLiveByUs: publication?.made_live_by_us ?? false,
-      liveUrl: publication?.live_url ?? null,
+      liveUrl: await liveUrlNow({ state, row: publication }),
     }),
     // Non-null exactly when the page stands `unpublished`: the column
     // records what the last unpublish call *found*, and a page that is not
@@ -363,6 +407,10 @@ interface LivePublicationRow extends DispositionRow {
   draft_id: string;
   made_live_by_us: boolean;
   unpublish_outcome: string | null;
+  /** Issue 896, as on `PublicationRow`. The site is the caller's own
+   *  argument here and is read anyway, so the two reads compose the
+   *  address from the same two columns. */
+  destination: string | null;
 }
 
 const SCHEDULED_COLUMNS =
@@ -419,13 +467,18 @@ export async function scheduledPagesFor(a: {
 
   const live = await db
     .from<LivePublicationRow>("publications")
-    .select(`${DISPOSITION_COLUMNS}, draft_id, made_live_by_us, unpublish_outcome`)
+    .select(`${DISPOSITION_COLUMNS}, draft_id, destination, made_live_by_us, unpublish_outcome`)
     .in(
       "draft_id",
       rows.map((row) => row.id)
     );
   const byDraft = new Map<string, LivePublicationRow>();
   for (const row of live.data ?? []) byDraft.set(row.draft_id, row);
+
+  // Issue 896: the site's host, read **once** for the whole month rather
+  // than once per date, and applied to every hosted address below. A month
+  // of thirty live pages is one query, not thirty.
+  const addressNow = await hostedAddressesNow(a.siteId);
 
   const now = a.now ?? new Date();
   return rows.map((row): ScheduledPage => {
@@ -444,9 +497,14 @@ export async function scheduledPagesFor(a: {
       // Issue 880: why the page needs them, from its own record — never
       // from its stage, which says only that it does.
       needsYou: needsYouOf({ state, transitions: row.transitions }),
+      // Issue 896: the address the page answers at now. `View live page`
+      // on this grid, and the key the week's verdict is joined by
+      // (`calendar/store.ts`'s `readStandings`), are the same string —
+      // both sides of that join re-address, so a host that moved does not
+      // quietly empty the join instead of breaking the link.
       liveUrl:
-        state === "published" && publication?.made_live_by_us === true
-          ? (publication.live_url ?? null)
+        state === "published" && publication?.made_live_by_us === true && publication.live_url !== null
+          ? addressNow({ destination: publication.destination, liveUrl: publication.live_url })
           : null,
       // The same two derivations `pageRecordFor` makes, from the same
       // columns and the same functions — so a grid, a panel and a draft

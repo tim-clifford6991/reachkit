@@ -385,23 +385,35 @@ export function supabaseGenerateStore(): GenerateStore {
       const result = await untyped()
         .from<{
           live_url: string | null;
+          destination: string | null;
           published_at: string | null;
           verify: unknown;
           drafts: { title: string | null; opportunities: { cluster_key: string | null } | null } | null;
         }>("publications")
-        .select("live_url, published_at, verify, drafts(title, opportunities(cluster_key))")
+        .select("live_url, destination, published_at, verify, drafts(title, opportunities(cluster_key))")
         .eq("site_id", siteId)
         .not("published_at", "is", null)
         .not("live_url", "is", null)
         .is("unpublished_at", null);
       if (result.error) throw new Error(`generate/store: read from publications failed: ${result.error.message}`);
+      const rows = result.data ?? [];
+      if (rows.length === 0) return [];
+      // Issue 896: a cross-link names the address the page answers at
+      // **now**. A hosted page follows its site's host (SPEC §7,
+      // 2026-09-18), so a page written after a host move must link to the
+      // new address — writing the stored one would put a 404 inside a page
+      // this product publishes under the customer's own name. The host is
+      // read once for the site; a WordPress page keeps its own address.
+      // Lazily imported to leave this engine leaf's static graph alone.
+      const { hostedAddressesNow } = await import("@/lib/publish/destinations/hosted/store");
+      const addressNow = await hostedAddressesNow(siteId);
       const pages: ClusterPage[] = [];
-      for (const row of result.data ?? []) {
+      for (const row of rows) {
         if (row.live_url === null || row.published_at === null) continue;
         if (row.drafts?.opportunities?.cluster_key !== clusterKey) continue;
         if (readStoredCheck(row.verify)?.result.outcome === "page_not_found") continue;
         pages.push({
-          liveUrl: row.live_url,
+          liveUrl: addressNow({ destination: row.destination, liveUrl: row.live_url }),
           title: row.drafts.title ?? "",
           publishedAt: new Date(row.published_at),
         });

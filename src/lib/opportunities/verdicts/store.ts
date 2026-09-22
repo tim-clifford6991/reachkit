@@ -70,7 +70,13 @@ export interface PublishedPage {
    *  and there is no `kind === 'hosted'` test anywhere in this directory.
    *  It is also how a mail names the page: an address is measured fact,
    *  where a page's title is model-written text a mail may not speak in
-   *  ReachKit's own voice (§8, REQ-093). */
+   *  ReachKit's own voice (§8, REQ-093).
+   *
+   *  **It is the address the page answers at now, not the one it was
+   *  published at** (issue 896). A hosted page follows its site's host
+   *  (SPEC §7, 2026-09-18), and the Monday mail linking a host that moved
+   *  out from under a live page is a link that 404s. A WordPress page is
+   *  on a host this product does not own and keeps its stored address. */
   readonly liveUrl: string;
 }
 
@@ -238,6 +244,9 @@ const UNIQUE_VIOLATION = "23505";
 interface PublicationRow {
   id: string;
   live_url: string | null;
+  /** Issue 896: which destination delivered the page. Only the one
+   *  ReachKit serves may have its address re-composed. */
+  destination: string | null;
   published_at: string | null;
   unpublished_at: string | null;
   verify: unknown;
@@ -289,15 +298,25 @@ export function supabaseVerdictStore(): VerdictStore {
       const { data, error } = await untyped()
         .from<PublicationRow>("publications")
         .select(
-          "id, live_url, published_at, unpublished_at, verify, acceptance, " +
+          "id, live_url, destination, published_at, unpublished_at, verify, acceptance, " +
             "drafts(opportunities(acceptance, target_query)), sites(domain)"
         )
         .eq("site_id", siteId)
         .not("published_at", "is", null)
         .not("live_url", "is", null);
       if (error) throw new Error(`page_verdicts.publishedPages: ${error.message}`);
+      const rows = data ?? [];
+      if (rows.length === 0) return [];
+      // Issue 896: the site's current host, read once for the whole
+      // population and not read at all for a site with nothing published.
+      // Lazily imported so this leaf's static graph is unchanged — the job
+      // suites load this module and the composer lives under
+      // `src/lib/publish`. It reaches no network: it is one indexed read
+      // of `destinations`, which is what `no-look.test.ts` is about.
+      const { hostedAddressesNow } = await import("@/lib/publish/destinations/hosted/store");
+      const addressNow = await hostedAddressesNow(siteId);
       const pages: PublishedPage[] = [];
-      for (const row of data ?? []) {
+      for (const row of rows) {
         const acceptance = acceptanceOf(row);
         const domain = row.sites?.domain;
         // A page with no site has no domain to compare, and a page with no
@@ -311,7 +330,7 @@ export function supabaseVerdictStore(): VerdictStore {
           publishedAt: new Date(row.published_at),
           unpublishedAt: row.unpublished_at === null ? null : new Date(row.unpublished_at),
           domain,
-          liveUrl: row.live_url,
+          liveUrl: addressNow({ destination: row.destination, liveUrl: row.live_url }),
           verification: readVerification(row.verify),
         });
       }

@@ -292,10 +292,13 @@ export function offsetForMonth(a: { month: MonthKey; today: DayKey }): number {
  * week — REQ-063 c5 forbids the last of those in terms, and the card's own
  * `first-measure` arm is what a week with no measurement looks like.
  *
- * **Keyed by the live address**, which is `publications.live_url` on both
- * sides — the digest's and `scheduledPagesFor`'s — so the join is the
+ * **Keyed by the live address**, which both sides — the digest's and
+ * `scheduledPagesFor`'s — compose the same way, so the join is the
  * publication's own identity rather than a title or a search that two rows
- * could share.
+ * could share. Since issue 896 that address is the one the page answers at
+ * **now**, on both sides and for the same reason: a hosted page follows
+ * its site's host (SPEC §7, 2026-09-18), and a side that re-addressed
+ * alone would empty this join instead of mending it.
  *
  * A standing that is not an ordinary verdict contributes nothing: a page
  * `not_judgeable`, one this week did not reach, and a week that was never
