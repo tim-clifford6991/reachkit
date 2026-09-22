@@ -505,10 +505,45 @@ export async function hostedAddressNow(a: {
   siteId: string;
   liveUrl: string;
 }): Promise<string> {
-  const slug = slugOf(a.liveUrl);
-  if (slug === null) return a.liveUrl;
-  const host = await hostedHostOfSite(a.siteId);
-  return host === null ? a.liveUrl : liveUrlOnHost({ host, slug });
+  const addressNow = await hostedAddressesNow(a.siteId);
+  return addressNow({ destination: "hosted", liveUrl: a.liveUrl });
+}
+
+/**
+ * One publication's address now, given the destination it was delivered to
+ * and the address it was published at.
+ *
+ * Pure: the host it composes on was read once for the whole site. A
+ * destination that is not `hosted` hands its stored address straight back.
+ */
+export type AddressNow = (row: { destination: string | null; liveUrl: string }) => string;
+
+/**
+ * The re-addresser for one whole site (issue 896).
+ *
+ * `hostedAddressNow` answers for one publication and costs a read. The
+ * calendar draws a month of them, the Monday verdicts judge every page a
+ * site has live, and a generated page cross-links to several — so the host
+ * is read **once for the site** and then applied, and a screen showing
+ * thirty pages costs one query rather than thirty.
+ *
+ * **The `hosted` test is inside, not at each caller.** A WordPress page is
+ * on a host this product does not own: its stored address is the only one
+ * there is, and composing another would be a guess about somebody else's
+ * site (SPEC §7, 2026-09-18, issue 888). Keeping that distinction in the
+ * one composer is what stops the fourth reader from forgetting it.
+ *
+ * **It falls back to the stored address, never to a blank** — a host that
+ * cannot be read is a reason to use the last address we know, which is
+ * what the row holds.
+ */
+export async function hostedAddressesNow(siteId: string): Promise<AddressNow> {
+  const host = await hostedHostOfSite(siteId);
+  return (row) => {
+    if (row.destination !== "hosted" || host === null) return row.liveUrl;
+    const slug = slugOf(row.liveUrl);
+    return slug === null ? row.liveUrl : liveUrlOnHost({ host, slug });
+  };
 }
 
 /** The host a site's live hosted destination serves at, or `null`. Read

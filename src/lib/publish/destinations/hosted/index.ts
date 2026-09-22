@@ -42,6 +42,7 @@ export type { HostedOwnPages } from "./own-page";
 export type { LabelCheck, LabelRefusal } from "./label";
 export {
   hostedAddressNow,
+  hostedAddressesNow,
   hostedHostOfSite,
   hostedSiteForDomain,
   hostedOwnPagesOfSite,
@@ -54,6 +55,7 @@ export {
   wasEverLive,
 } from "./store";
 export type {
+  AddressNow,
   FaqEntry,
   HostedGrounding,
   HostedPage,

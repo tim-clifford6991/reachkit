@@ -232,6 +232,9 @@ interface MinimalClient {
  *  tab's two position tiles read: delivered, and not taken down. */
 interface LivePageRow {
   live_url: string | null;
+  /** Issue 896: only the destination ReachKit serves may have its address
+   *  re-composed for the host the site is on now. */
+  destination: string | null;
   unpublished_at: string | null;
   drafts: { title: string | null; opportunities: { target_query: string | null } | null } | null;
 }
@@ -244,12 +247,20 @@ async function readOwnPages(siteId: string): Promise<ReadonlyMap<string, AnswerP
   const client = dbAdmin() as unknown as MinimalClient;
   const { data, error } = await client
     .from<LivePageRow>("publications")
-    .select("live_url, unpublished_at, drafts(title, opportunities(target_query))")
+    .select("live_url, destination, unpublished_at, drafts(title, opportunities(target_query))")
     .eq("site_id", siteId)
     .not("published_at", "is", null);
   if (error !== null || data === null) throw new Error(`answers: live pages — ${error?.message ?? "no rows"}`);
 
   const pages = new Map<string, AnswerPage>();
+  if (data.length === 0) return pages;
+  // Issue 896: this row links to the customer's own page, so it names the
+  // address that page answers at **now**. A hosted page follows its site's
+  // host (SPEC §7, 2026-09-18) and the stored address is where it was put,
+  // which after a host move is a link that 404s. The host is read once for
+  // the site; a WordPress page keeps its own address.
+  const { hostedAddressesNow } = await import("@/lib/publish/destinations/hosted/store");
+  const addressNow = await hostedAddressesNow(siteId);
   for (const row of data) {
     if (row.unpublished_at !== null || row.live_url === null) continue;
     const draft = row.drafts;
@@ -257,7 +268,9 @@ async function readOwnPages(siteId: string): Promise<ReadonlyMap<string, AnswerP
     const title = draft?.title ?? null;
     if (search === null || title === null) continue;
     const key = normalise(search);
-    if (!pages.has(key)) pages.set(key, { title, url: row.live_url });
+    if (!pages.has(key)) {
+      pages.set(key, { title, url: addressNow({ destination: row.destination, liveUrl: row.live_url }) });
+    }
   }
   return pages;
 }
