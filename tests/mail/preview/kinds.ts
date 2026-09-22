@@ -1,28 +1,30 @@
-// The seven kinds UI-SPEC S20 draws, composed from fixtures (issue #376).
+// Every kind the product sends, composed from fixtures (issues #376, #339).
 // tests/mail/preview/kinds.ts
 //
-// One place that builds every kind the approved set draws, so a preview and
-// a test look at the same mails. All seven compose (issue #388):
-// `NOT_PREVIEWABLE` is empty, and the switch below is exhaustive over
-// `PREVIEW_KINDS`, so a kind cannot join the list without a fixture.
+// One place that builds them, so a preview and a test look at the same
+// mails. The seven UI-SPEC S20 draws come first and all seven compose
+// (issue #388): `NOT_PREVIEWABLE` is empty, and the switch below is
+// exhaustive over `PREVIEW_KINDS`, so a kind cannot join the list without a
+// fixture. SPEC §8's five retention mails and the four kinds the set does
+// not draw follow, at the foot of the file.
 //
-// **This is what `scripts/live/mail-preview.sh` calls.** That script is
-// issue #339's and `scripts/**` is owner-owned, so it is not added here;
-// what it needs is a renderer that takes no database, no vendor and no
-// clock, and this is it. The one line it wants is
-// `MAIL_PREVIEW_OUT=… npx vitest run --project node tests/mail/preview`.
+// **This is what `npm run mail:samples` renders through** (issue #339). That
+// script needs a renderer taking no database, no vendor and no clock, and
+// this is it: every fixture below is a literal and `composeMail` is pure.
 //
 // The fixtures are the set's own figures where the set states them — 62 ·
 // Hard to find, 0 of 9, 0 of 12 on the report, and the digest's ▲8, ▲1 and
 // its two judged pages — because a preview that showed different numbers
 // from the screen it is checked against would be checking nothing.
 import { measured } from "../../../src/lib/measure/measured";
+import type { MailKind } from "../../../src/lib/mail/kinds";
 import type { ComposedMail } from "../../../src/lib/mail/shell/compose";
 import type {
   DraftReadyPage,
   TellableTelling,
 } from "../../../src/lib/mail/templates/draft-ready";
 import type { WeeklyPage } from "../../../src/lib/mail/templates/weekly";
+import type { CopyKey } from "../../../src/lib/presentation/copy";
 import type { PublishedTelling } from "../../../src/lib/publish/verify/telling";
 
 const AT = new Date("2026-09-08T07:00:00.000Z");
@@ -328,3 +330,102 @@ export async function composeRetentionPreview(
  *  stays, pinned by `preview.test.ts`, so a kind that stopped composing
  *  would have to be written down here to be skipped. */
 export const NOT_PREVIEWABLE: readonly PreviewKind[] = [];
+
+// ---------------------------------------------------------------------------
+// Issue #339 — the four kinds outside the set's seven and the retention five.
+//
+// "Each kind seen in Gmail and Apple Mail" is a statement about the
+// register, not about the approved set: a kind the set does not draw still
+// leaves the product and still has to survive an inbox. These four are what
+// is left once `PREVIEW_KINDS` and `RETENTION_PREVIEW_KINDS` are taken out
+// of `MAIL_KINDS`, and `composeAnyKind` below is what holds the three lists
+// to covering it.
+// ---------------------------------------------------------------------------
+
+/** The kinds the approved set does not draw. Two sequence mails, the
+ *  account notice and the owner's own alert. */
+export const REMAINING_PREVIEW_KINDS = [
+  "first-page-unavailable",
+  "setup-reminder",
+  "account",
+  "ops",
+] as const;
+
+/** The cause the unavailable notice states, as the already-resolved key its
+ *  template takes. Named here rather than read from
+ *  `FIRST_PAGE_UNAVAILABLE_COPY`: that map lives in `leads/giveaway.ts`,
+ *  which imports the lead store and the send seam, and a renderer that
+ *  takes no database is the whole point of this module. */
+const PREVIEW_CAUSE = "mail.firstPageUnavailable.writing-refused" satisfies CopyKey;
+
+export async function composeRemainingPreview(
+  kind: (typeof REMAINING_PREVIEW_KINDS)[number]
+): Promise<ComposedMail> {
+  const { composeMail } = await import("../../../src/lib/mail/shell/compose");
+
+  switch (kind) {
+    case "first-page-unavailable": {
+      const { buildFirstPageUnavailable } = await import(
+        "../../../src/lib/mail/templates/first-page-unavailable"
+      );
+      const mail = buildFirstPageUnavailable({ email: "you@company.com", causeLine: PREVIEW_CAUSE });
+      return composeMail({
+        kind,
+        subject: mail.subject,
+        blocks: mail.blocks,
+        reason: mail.reason,
+        optOut: mail.optOut,
+      });
+    }
+    case "setup-reminder": {
+      const { buildSetupReminder } = await import("../../../src/lib/mail/templates/setup-reminder");
+      const mail = buildSetupReminder({ signInHref: `${APP}/signin?t=preview&next=/app/setup` });
+      return composeMail({ kind, subject: mail.subject, blocks: mail.blocks, reason: mail.reason });
+    }
+    case "account": {
+      // The 15-minute chase with a link — SPEC §8's Onboarding row is where
+      // this kind is sent on the paying path, and the arm that carries a
+      // link is the one a founder who has just paid receives. The kind's
+      // other arms (second purchase, address moved, hosting end, deleted
+      // account, a broken destination) wear this same shell.
+      const { buildChaseWithLink } = await import("../../../src/lib/mail/templates/account");
+      const mail = buildChaseWithLink({ href: `${APP}/signin?t=preview` });
+      return composeMail({ kind, subject: mail.subject, blocks: mail.blocks, reason: mail.reason });
+    }
+    case "ops": {
+      // §6.5's spend ceiling, which is the occasion the register row cites.
+      // The incident alert beside it (issue #330) draws the same three
+      // blocks, so one render answers for both.
+      const { buildSpendCeilingAlert } = await import("../../../src/lib/mail/templates/ops");
+      const mail = buildSpendCeilingAlert({ occasion: "reached", spentCents: 1240, ceilingCents: 1200 });
+      return composeMail({ kind, subject: mail.subject, blocks: mail.blocks });
+    }
+  }
+}
+
+/** Every kind the product sends: the seven the set draws, SPEC §8's five
+ *  retention mails, then the four above. `preview.test.ts` is what checks
+ *  this covers `MAIL_KINDS` exactly. */
+export const EVERY_MAIL_KIND = [
+  ...PREVIEW_KINDS,
+  ...RETENTION_PREVIEW_KINDS,
+  ...REMAINING_PREVIEW_KINDS,
+] as const;
+
+function isPreviewKind(kind: MailKind): kind is PreviewKind {
+  return (PREVIEW_KINDS as readonly string[]).includes(kind);
+}
+
+function isRetentionKind(kind: MailKind): kind is (typeof RETENTION_PREVIEW_KINDS)[number] {
+  return (RETENTION_PREVIEW_KINDS as readonly string[]).includes(kind);
+}
+
+/** One kind of the register, composed. The two guards narrow what is left
+ *  to `REMAINING_PREVIEW_KINDS`, so a row added to `MAIL_KINDS` with no
+ *  fixture is a type error on the last line rather than a missing file at
+ *  render time. */
+export async function composeAnyKind(kind: MailKind): Promise<ComposedMail> {
+  if (isPreviewKind(kind)) return composePreview(kind);
+  if (isRetentionKind(kind)) return composeRetentionPreview(kind);
+  return composeRemainingPreview(kind);
+}

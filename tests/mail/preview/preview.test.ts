@@ -9,8 +9,10 @@
 //
 //   MAIL_PREVIEW_OUT=/tmp/mails npx vitest run --project node tests/mail/preview
 //
-// That line is what `scripts/live/mail-preview.sh` (issue #339) needs to
-// wrap; `scripts/**` is owner-owned, so the script is not added here.
+// `npm run mail:samples` (`scripts/mail-samples.mjs`, issue #339) is what
+// wraps that line: it points `MAIL_PREVIEW_OUT` at `.review/339/mails` and
+// lists what landed, so the mails the owner opens in Gmail and in Apple
+// Mail are the mails these assertions ran against.
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -19,18 +21,44 @@ import { applyEnvFixture } from "../env-fixture";
 applyEnvFixture();
 
 const {
+  composeAnyKind,
   composePreview,
   composeRetentionPreview,
   composeUnmeasuredWeek,
+  EVERY_MAIL_KIND,
   NOT_PREVIEWABLE,
   PREVIEW_KINDS,
   RETENTION_PREVIEW_KINDS,
 } = await import("./kinds");
-const { COPY } = await import("../../../src/lib/presentation/copy");
+const { COPY, TODO_COPY_MARKER } = await import("../../../src/lib/presentation/copy");
+const { MAIL_KINDS } = await import("../../../src/lib/mail/kinds");
 
 /** Where a preview run writes its files, or `null` for an assertion-only
  *  run — which is what CI does. */
 const OUT_DIR = process.env.MAIL_PREVIEW_OUT ?? null;
+
+/** Writes one composed mail as the pair a reviewer opens: the HTML an inbox
+ *  draws, and the plain-text twin with its subject on the first line. Both
+ *  halves, because SPEC §8 says every mail travels as two bodies and a
+ *  render check that looked at one of them would be checking half a mail.
+ *  A run with no `MAIL_PREVIEW_OUT` writes nothing — which is what CI does.
+ *
+ *  **The top of the directory holds one file per kind and nothing else**
+ *  (issue #339). A second state of a kind already there goes in `variants/`:
+ *  what `scripts/mail-samples.mjs` mails to the owner is one mail per kind,
+ *  once, and a reader of that directory must not have to know which of two
+ *  files beside each other is the extra one. */
+function writeSample(
+  name: string,
+  mail: { subject: string; html: string; text: string },
+  where: "kind" | "variant" = "kind"
+): void {
+  if (OUT_DIR === null) return;
+  const dir = where === "kind" ? OUT_DIR : path.join(OUT_DIR, "variants");
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(path.join(dir, `${name}.html`), mail.html, "utf8");
+  writeFileSync(path.join(dir, `${name}.txt`), `${mail.subject}\n\n${mail.text}\n`, "utf8");
+}
 
 const previewable = PREVIEW_KINDS.filter((kind) => !NOT_PREVIEWABLE.includes(kind));
 
@@ -113,15 +141,7 @@ describe("issue #376 — the shell renders S20, and every kind the set draws wea
     expect(mail.omitted).toEqual([1, 3, 4, 5]);
     for (const body of [mail.html, mail.text]) expect(body).toContain("2026-09-14");
 
-    if (OUT_DIR !== null) {
-      mkdirSync(OUT_DIR, { recursive: true });
-      writeFileSync(path.join(OUT_DIR, "weekly-unmeasured.html"), mail.html, "utf8");
-      writeFileSync(
-        path.join(OUT_DIR, "weekly-unmeasured.txt"),
-        `${mail.subject}\n\n${mail.text}\n`,
-        "utf8"
-      );
-    }
+    writeSample("weekly-unmeasured", mail, "variant");
   });
 
   for (const kind of previewable) {
@@ -145,12 +165,6 @@ describe("issue #376 — the shell renders S20, and every kind the set draws wea
       const { MAIL_TOKENS } = await import("@/lib/mail/shell/tokens");
       const accent = `background:${MAIL_TOKENS["--accent"]};color:${MAIL_TOKENS["--on-accent"]}`;
       expect(mail.html.split(accent).length - 1, "one solid fill per mail").toBe(SOLID_FILLS[kind]);
-
-      if (OUT_DIR !== null) {
-        mkdirSync(OUT_DIR, { recursive: true });
-        writeFileSync(path.join(OUT_DIR, `${kind}.html`), mail.html, "utf8");
-        writeFileSync(path.join(OUT_DIR, `${kind}.txt`), `${mail.subject}\n\n${mail.text}\n`, "utf8");
-      }
     });
   }
 
@@ -162,12 +176,6 @@ describe("issue #376 — the shell renders S20, and every kind the set draws wea
       expect(mail.html.split("<h3").length - 1).toBe(1);
       expect(mail.html.indexOf("<h3")).toBeLessThan(mail.html.indexOf("<p style=\"margin:0\">"));
       expect(mail.html.split("display:inline-block;padding").length - 1).toBe(kind === "cancellation" ? 0 : 1);
-
-      if (OUT_DIR !== null) {
-        mkdirSync(OUT_DIR, { recursive: true });
-        writeFileSync(path.join(OUT_DIR, `${kind}.html`), mail.html, "utf8");
-        writeFileSync(path.join(OUT_DIR, `${kind}.txt`), `${mail.subject}\n\n${mail.text}\n`, "utf8");
-      }
     });
   }
 
@@ -194,4 +202,33 @@ describe("issue #376 — the shell renders S20, and every kind the set draws wea
     expect(mail.html).toContain("remove@reachkit.app");
     expect(COPY["mail.reason.report"]).toContain("{address}");
   });
+});
+
+describe("issue #339 — every kind in the register renders, so the owner sees each one in an inbox", () => {
+  it("the register's sixteen rows each have a fixture, and no fixture names a row that is gone", () => {
+    // Checked against the register rather than against itself: a kind added
+    // to `MAIL_KINDS` with nothing to render it fails here, naming itself.
+    expect([...EVERY_MAIL_KIND].sort()).toEqual(Object.keys(MAIL_KINDS).sort());
+    expect(EVERY_MAIL_KIND).toHaveLength(16);
+  });
+
+  for (const kind of EVERY_MAIL_KIND) {
+    it(`${kind}: composes into two bodies, with every sentence written`, async () => {
+      const mail = await composeAnyKind(kind);
+
+      expect(mail.subject.length, "a subject that composed to nothing").toBeGreaterThan(0);
+      expect(mail.html).toContain("<!doctype html>");
+      expect(mail.text.length).toBeGreaterThan(0);
+
+      // SPEC §8: "Unwritten keys send nothing." `sendEmail` refuses a mail
+      // carrying the marker anywhere, so a kind holding one is a kind that
+      // cannot reach an inbox at all — and this is the run that would be
+      // mailed to the owner.
+      for (const part of [mail.subject, mail.html, mail.text]) {
+        expect(part, `${kind} still carries an unwritten line`).not.toContain(TODO_COPY_MARKER);
+      }
+
+      writeSample(kind, mail);
+    });
+  }
 });
