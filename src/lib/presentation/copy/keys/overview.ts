@@ -709,6 +709,116 @@ export const OVERVIEW_COPY = Object.freeze({
     { slots: {}, fixedBy: "SPEC §6 2026-09-20" },
   ],
 
+  // ── 2026-09-22 (#1004): the two cards beneath the grid, from DataForSEO's
+  // LLM Mentions database (owner ruling of that date, after the #920 pilot).
+  //
+  // SPEC §4 and §6 of 2026-09-22. Every sentence below is **drafted** under
+  // the owner's 2026-09-16 ruling (#759) and the PR names each one so the
+  // owner can correct it. Two things neither card ever says, because §4's
+  // 2026-09-20 rule closes the tab on both: a rank position, and anything
+  // readable as sentiment.
+  //
+  // The engine names are the tab's own three keys, reused rather than
+  // spelled again; the window's length is a slot, read from the same pin
+  // the four-week rate above uses.
+
+  // *Also appearing for* — the questions the engines answered with this
+  // site that ReachKit does not already track.
+  "overview.mentions.also.title": [
+    "Also appearing for",
+    { slots: {}, fixedBy: "SPEC §6 2026-09-22" },
+  ],
+  "overview.mentions.also.lead": [
+    "Questions AI already answers with you, beyond the ones we track. You did not ask for these — the engines found you anyway.",
+    { slots: {}, fixedBy: "SPEC §6 2026-09-22" },
+  ],
+  "overview.mentions.also.label": [
+    "Questions AI answers with you, and where each was first seen",
+    { slots: {}, fixedBy: "SPEC §6 2026-09-22" },
+  ],
+  // The foot of the list, where the top-12 cut hid some. It states both
+  // numbers rather than implying twelve is all there was.
+  "overview.mentions.also.showing": [
+    "{shown} of {total} · the most asked first",
+    { slots: { shown: "text", total: "text" }, fixedBy: "SPEC §6 2026-09-22" },
+  ],
+  // One row's two readings. The demand figure is the vendor's; a question
+  // it could not size says so rather than showing a zero.
+  "overview.mentions.also.asked": [
+    "{count} a month",
+    { slots: { count: "text" }, fixedBy: "SPEC §6 2026-09-22" },
+  ],
+  "overview.mentions.also.unsized": [
+    "How often it is asked is not measured",
+    { slots: {}, fixedBy: "SPEC §6 2026-09-22" },
+  ],
+  "overview.mentions.also.first-seen": [
+    "First seen {on}",
+    { slots: { on: "text" }, fixedBy: "SPEC §6 2026-09-22" },
+  ],
+
+  // *Cited pages* — the site's own pages those answers quote.
+  "overview.mentions.cited.title": [
+    "Your pages AI quotes",
+    { slots: {}, fixedBy: "SPEC §6 2026-09-22" },
+  ],
+  "overview.mentions.cited.lead": [
+    "The pages on your own site that AI answers link to, and how many questions each one answers.",
+    { slots: {}, fixedBy: "SPEC §6 2026-09-22" },
+  ],
+  "overview.mentions.cited.label": [
+    "Your pages AI answers cite, and how many questions each",
+    { slots: {}, fixedBy: "SPEC §6 2026-09-22" },
+  ],
+  "overview.mentions.cited.questions": [
+    "{count} questions",
+    { slots: { count: "text" }, fixedBy: "SPEC §6 2026-09-22" },
+  ],
+  "overview.mentions.cited.one-question": [
+    "1 question",
+    { slots: {}, fixedBy: "SPEC §6 2026-09-22" },
+  ],
+  // Answers name the site but quote no page of theirs — a real state, and
+  // a different one from having no answers at all.
+  "overview.mentions.cited.none": [
+    "No answer quoted a page of yours yet. The pages we publish are written to be quotable.",
+    { slots: {}, fixedBy: "SPEC §6 2026-09-22" },
+  ],
+
+  // The window both cards read, said once under each.
+  "overview.mentions.window": [
+    "Over the last {weeks} weeks, not one week alone.",
+    { slots: { weeks: "text" }, fixedBy: "SPEC §6 2026-09-22" },
+  ],
+  // The engines that answered one question, listed after it.
+  "overview.mentions.engines": [
+    "Answered by {engines}",
+    { slots: { engines: "text" }, fixedBy: "SPEC §6 2026-09-22" },
+  ],
+
+  // The two states that are not rows. A measured zero is a measurement and
+  // says so; a window nobody could read says that instead, and never that
+  // the engines named nobody.
+  "overview.mentions.zero": [
+    "Over the last {weeks} weeks no AI answer named you outside the questions we track. That is measured, not missing.",
+    { slots: { weeks: "text" }, fixedBy: "SPEC §6 2026-09-22" },
+  ],
+  // A window can be one week — a site whose first Monday has just run. "Over
+  // the last 1 weeks" is the sentence a slot writes when nobody wrote the
+  // singular, and the proof at 390 is where it was read.
+  "overview.mentions.zero.one-week": [
+    "This week no AI answer named you outside the questions we track. That is measured, not missing.",
+    { slots: {}, fixedBy: "SPEC §6 2026-09-22" },
+  ],
+  "overview.mentions.unread": [
+    "We have not read this in the last {weeks} weeks. The next Monday pass buys it again.",
+    { slots: { weeks: "text" }, fixedBy: "SPEC §6 2026-09-22" },
+  ],
+  "overview.mentions.unread.one-week": [
+    "We have not read this this week. The next Monday pass buys it again.",
+    { slots: {}, fixedBy: "SPEC §6 2026-09-22" },
+  ],
+
   // ── 2026-09-20 (#908, #921): Overview › AI answers › AI engines on your blog.
   //
   // SPEC §6 of that date, measure (d): "On hosted blogs only: pages fetched
