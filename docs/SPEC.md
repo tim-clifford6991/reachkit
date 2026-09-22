@@ -36,6 +36,8 @@ Pinned numbers live in `src/lib/config/constants.ts`. Newest dated line in a sec
 - A 16:9 video block with a play control and one written line, whether or not the asset exists. Secondary CTAs scroll to the field.
 - 2026-09-14  The header CTA is outline on every public page; each screen’s own action is its only solid button (supersedes “one solid CTA” in the header and ruling 2b’s two solids on the landing).
 - 2026-09-20  Public pages speak the app’s language (owner, #908). The landing, the scan and the report use the same tiles, dot matrix, full-width bars and wording as the signed-in app. Every control on them does something: the report’s *Try again*, *Measure what’s missing* and its one notice control act or are not drawn; the removed and refused arms offer a way back to the landing. Approved landing sentences are unchanged.
+- 2026-09-21  The mark is Round 9 *Fade*, in the chip (owner, #982). One drawing at every size, the wordmark beside it in the product’s own face; no second lockup, no second colourway.
+- 2026-09-21  The landing hero is Round 11 *Hero D · one week, one card* (owner, #935). The three Round 7 heroes are superseded.
 
 **Done when** `Example.com`, `https://www.example.com/pricing` and `EXAMPLE.COM` hit the same report. `/pricing` states €49/month VAT included and has one checkout control. `/privacy`, `/terms` and `/imprint` are in the landing footer.
 
@@ -108,6 +110,7 @@ Pinned numbers live in `src/lib/config/constants.ts`. Newest dated line in a sec
 - 2026-09-20  Every action answers. Stop, Approve, Write it again, Skip and every Settings change confirm or refuse in words on screen; a control that cannot act is not drawn. *Move* is removed until it can move.
 - 2026-09-20  Side panel: menu, the site, a *Waiting for you* card for the page in review, shortcuts, autopilot state. One button collapses it to an icon rail; below the large breakpoint it is a drawer and the three menu items move to a bottom bar.
 - 2026-09-20  Settings is tabs: Your business, Market and rivals, Publishing, Your voice, Mail, Billing, Account. The danger zone lives in Account.
+- 2026-09-21  **Linked to and named are counted apart** (owner, #953, option A). The AI answers tab states the two as two numbers: the answers that *link* to the site, and the answers that *name* it without linking. The Overview tile, the free report and the Discoverability Score keep counting links alone, so no number anywhere moves. The grid’s fourth mark is *Names someone else*; neither tile carries a change arrow, because a week of answers is not a series.
 
 **Done when** Sign-in lands on `/app` with three nav items. No session on `/app` goes to `/signin`. A paid account before its first Monday shows no invented score or rivals.
 
@@ -143,6 +146,7 @@ Pinned numbers live in `src/lib/config/constants.ts`. Newest dated line in a sec
 - 2026-09-20  The deep pass starts when rivals are confirmed (drafted default; the owner may move it), so voice and publishing overlap the wait.
 - 2026-09-20  The DNS record is its own step after setup, with *Do this later*; it stays reachable from Overview’s needs-you and from Settings until the host is live. This supersedes 2026-09-16 (#757) that it be completed on the setup page. Pages are still written and wait in review while it is pending (2026-09-16).
 
+- 2026-09-21  **REQ-025 c1 is about ReachKit’s own work** (owner, #972). No setup string states how long the scan, the pass or the first page will take — a number this product invented would be a promise. A step the founder does themselves may state its own time: the DNS record’s “about 5 minutes” is theirs, not ours.
 **Done when** Finishing setup reaches `/app` at once; the first draft follows in the background, or the founder is told the market was too small. A sixth competitor is refused. CNAME for the chosen label is shown; destination reads waiting then live. Voice edit persists in settings. Wrong WordPress password shows destination health, no vendor text.
 
 ## §6 Weekly scan
@@ -232,6 +236,8 @@ Pinned numbers live in `src/lib/config/constants.ts`. Newest dated line in a sec
 - 2026-09-20  **Wording.** Screens and mail say *Stop this page*. “Veto” remains the internal word and the name of the mechanism in this file.
 - 2026-09-20  Hosted pages count answer-engine fetches and answer-engine referrals (§6 of this date) — server-side, no cookie, no visitor identity, no client script. Nothing else about a visit is kept.
 
+- 2026-09-21  **Plan opens on today from `md` up** (owner, #961). REQ-043 c7 is a rule about a screen with room for a panel beside the month: on a phone an address with no `?day` is closed, and a tap opens the day as a sheet. A phone that opened a sheet over the month on arrival would hide the thing the reader came to see.
+- 2026-09-21  **Settings › Your business marks what is new, in place** (owner, #969). A fact the weekly re-read newly finds appears in its own list marked *new* until the customer touches anything on the screen; there is no separate suggestions area to review. A curated list stays curated: the mark is how a new finding arrives, not a second place to find it.
 **Done when** The draft-ready mail link stops that page with no session. An untouched draft publishes at window end on their domain. No two assets share a date. An empty day states its cause and offers no publish.
 
 ## §8 Mail
@@ -271,6 +277,7 @@ Pinned numbers live in `src/lib/config/constants.ts`. Newest dated line in a sec
 
 - 2026-09-14  On the dashboard, “Needs you” holds only the issues the customer fixes (“Free fix · 10 min”), Critical first, after drafts waiting on them; ReachKit’s own rewrites are Fix work, not “Needs you”. Read from the newest stored report (Monday’s, or the deep pass before the first Monday).
 
+- 2026-09-21  **A hosted address with no published page carries the host name as its title** (owner, #980, option A). Nothing else: no ReachKit name, no sentence of ours, and no word in any language on a domain that is not ours. The address the visitor typed is the one string on that surface that is already theirs. A published page keeps its own title.
 **Done when** A `noindex` home, no sitemap and a blocked AI reader show as three named issues. A pasteable fix is on the free report. Fixing one drops it next Monday.
 
 ## §11 Not in the MVP
@@ -289,3 +296,6 @@ Perplexity; Search Console; locale derivation; CMS besides hosted + WordPress; m
 - 2026-09-18  Recovery (#887, #334 — owner-gated, not done). Verified 2026-09-18: the Supabase org is on the **Free** plan, which has no point-in-time recovery and no scheduled backups, and dev and production are that one project — so a dev experiment is a production write and there is nothing behind a mistake. The owner holds the account: the plan change, the PITR add-on, and the one restore drill are all theirs. docs/RUNBOOK.md §9 names the screens (the org is Vercel-Marketplace-managed, so the plan changes on Vercel), the retention to ask for (7 days, ~$100/mo on top of Pro and Small compute), what PITR does and does not cover, and the drill step by step: restore to a point five minutes ago into a scratch clone, confirm one named row is back, record the wall-clock time. Until that number is written down the product's recovery time is unknown. No guard exists today beyond care.
 - 2026-09-16  Copy: `TODO(copy)` is never a shipped state for a customer-visible string — the marker renders as itself, so an unwritten key is visible breakage. A missing sentence is drafted in the registry’s voice and shipped, every new or changed string is named in the PR body, and the owner corrects the wording (#759).
 - 2026-09-20  Redesign (#908), owed by the owner: confirm or correct the two drafted numbers in §6 (24 tracked questions, 8 weeks); decide on *also appearing for* once the pilot reports; correct the wording of the drafted sentences each child issue lists.
+- 2026-09-21  **Confirmed as written, with nothing to change** (owner): §12’s own figures — 24 tracked AI questions in all, a page’s question retired after 8 weeks without a mention, and the deep pass starting at the rivals step; the Terms sentence drafted under #949; the two Settings lines drafted under #942; and #916 option A, that a row the stored answer calls unready is left out of the Search table rather than drawn as a state.
+- 2026-09-21  **Contrast** (owner, #946): the muted and caption text tokens are darkened until every token this theme spends on text clears 4.5:1 in both themes, measured against the worst ground it is drawn on. Hue is unchanged, no layout moves, and the axe sweep’s known-defect list is empty.
+
