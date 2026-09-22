@@ -697,6 +697,55 @@ export const OVERVIEW_COPY = Object.freeze({
     "No AI answers have been measured yet. The first weekly pass puts all twelve questions to every engine.",
     { slots: {}, fixedBy: "SPEC §6 2026-09-20" },
   ],
+
+  // ── 2026-09-20 (#908, #921): Overview › AI answers › AI engines on your blog.
+  //
+  // SPEC §6 of that date, measure (d): "On hosted blogs only: pages fetched
+  // by an answer engine for a user's question, and visitors arriving from
+  // one, counted by day, page and engine, shown as ‘at least’. Training
+  // crawlers are not progress and are not shown." §7 of the same date adds
+  // the how: "server-side, no cookie, no visitor identity, no client
+  // script."
+  //
+  // Every sentence below is **drafted** under the owner's 2026-09-16 ruling
+  // (#759) and the PR names each one so the owner can correct it; the six
+  // the issue itself drafted are carried verbatim, with the window's number
+  // moved into a slot so the pin is what states it. "ChatGPT" is not
+  // re-spelled — it is the report screen's own key.
+  "overview.blog.title": ["AI engines on your blog", { slots: {}, fixedBy: "SPEC §6 2026-09-20" }],
+  "overview.blog.lead": [
+    "Counted by us, on the pages we host. Last {days} days.",
+    { slots: { days: "text" }, fixedBy: "SPEC §6 2026-09-20" },
+  ],
+  // The two figures §6(d) names. A fetch is an engine reading the page; a
+  // referral is a person arriving. They are never added together.
+  "overview.blog.fetches.label": [
+    "Pages fetched to answer someone’s question",
+    { slots: {}, fixedBy: "SPEC §6 2026-09-20" },
+  ],
+  "overview.blog.referrals.label": [
+    "Visitors who came from an AI answer",
+    { slots: {}, fixedBy: "SPEC §6 2026-09-20" },
+  ],
+  // §6(d)'s own word: the referral figure is a floor and is never stated
+  // as a count.
+  "overview.blog.at-least": ["at least {n}", { slots: { n: "text" }, fixedBy: "SPEC §6 2026-09-20" }],
+  "overview.blog.at-least.means": [
+    "“At least”, because many AI apps don’t say where a visitor came from.",
+    { slots: {}, fixedBy: "SPEC §6 2026-09-20" },
+  ],
+  // The engine breakdown under the fetch figure, and its accessible name.
+  "overview.blog.engines.label": [
+    "Which AI engine fetched your pages",
+    { slots: {}, fixedBy: "SPEC §6 2026-09-20" },
+  ],
+  // The four engine names the product does not already say. ChatGPT is
+  // `ai-answers.engine.chatgpt` — a second spelling of it would be the
+  // second place the product speaks (ADR-001).
+  "overview.blog.engine.perplexity": ["Perplexity", { slots: {}, fixedBy: "SPEC §6 2026-09-20" }],
+  "overview.blog.engine.claude": ["Claude", { slots: {}, fixedBy: "SPEC §6 2026-09-20" }],
+  "overview.blog.engine.gemini": ["Gemini", { slots: {}, fixedBy: "SPEC §6 2026-09-20" }],
+  "overview.blog.engine.copilot": ["Microsoft Copilot", { slots: {}, fixedBy: "SPEC §6 2026-09-20" }],
   // ── 2026-09-20 (#908, #917): Overview › Rivals.
   //
   // SPEC §4 of that date: "who is on the first page for the twelve

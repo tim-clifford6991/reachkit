@@ -26,7 +26,7 @@
 // pins-test change.
 //
 // The archived plan is WO-231.
-import { AI_READER_AGENTS } from "@/lib/config/constants";
+import { AI_ANSWER_FETCHERS, AI_READER_AGENTS } from "@/lib/config/constants";
 
 /**
  * The document we serve on the customer's own domain.
@@ -35,10 +35,25 @@ import { AI_READER_AGENTS } from "@/lib/config/constants";
  * `Allow` group per pinned AI reader — a named group's verdict outranks
  * the wildcard (RFC 9309 §2.2.1, the 2026-09-05 ruling on #72), so the six
  * are permitted explicitly rather than by omission.
+ *
+ * **And one group per user-triggered fetcher** (SPEC §6, 2026-09-20 measure
+ * (d); issue #921). `ChatGPT-User`, `Perplexity-User` and `Claude-User` are
+ * how an engine goes to a page *because a person asked it something* — the
+ * one arrival this product counts as progress. They are a separate pin from
+ * `AI_READER_AGENTS` (which answers "may an engine read this site" and
+ * whose membership REQ-059 c4 states verbatim) and the two lists are walked
+ * separately here for the same reason: permitting a fetcher by name is a
+ * different statement from permitting an indexer, and merging the lists
+ * would change a site-issue count.
+ *
+ * Both lists are read from the pins; no agent name is typed in this file.
  */
 export function customerRobotsDocument(sitemapUrl: string): string {
   const lines: string[] = ["User-agent: *", "Allow: /", ""];
   for (const agent of AI_READER_AGENTS) {
+    lines.push(`User-agent: ${agent}`, "Allow: /", "");
+  }
+  for (const agent of Object.keys(AI_ANSWER_FETCHERS)) {
     lines.push(`User-agent: ${agent}`, "Allow: /", "");
   }
   lines.push(`Sitemap: ${sitemapUrl}`, "");

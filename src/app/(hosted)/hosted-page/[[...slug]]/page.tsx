@@ -75,6 +75,7 @@
 // The archived plan is WO-230.
 import { cache } from "react";
 import { headers } from "next/headers";
+import { after } from "next/server";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import type React from "react";
@@ -96,10 +97,20 @@ import { Surface } from "@/ui/layout";
 import { resolveHost } from "../../resolve-host";
 import { HostedIndex, queryOf } from "./listing";
 import { hostOf, PAGE_LOCALE, QUIET_LINE, writeDate } from "./present";
+import { classifyBlogRead } from "@/lib/publish/reads/classify";
 
 /** Nothing on this surface is cached (WO-028's NFR): a publication row that
  *  changes is read again on the very next request, so a takedown never
- *  waits on a TTL and a 410 is never served from a stale cache. */
+ *  waits on a TTL and a 410 is never served from a stale cache.
+ *
+ *  **It is also what makes the engine counter count** (issue #921). `after()`
+ *  runs once per *render*, not once per request: on a cached or
+ *  revalidated page the callback fires when the page is produced and never
+ *  again, so every engine fetch and every AI-referred visit after that
+ *  would go unrecorded. The issue asks this be confirmed rather than
+ *  assumed, and the confirmation is this declaration plus the test that
+ *  holds it in place — a future caching change to this route has to face
+ *  the counter first. */
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
@@ -281,6 +292,60 @@ function sourceLineFor(page: HostedPage): string | null {
   });
 }
 
+/** One value from a query string that may repeat. A repeated `utm_source`
+ *  is a malformed link, not two claims; the first is read and the rest are
+ *  ignored. */
+function firstOf(value: string | string[] | undefined): string | null {
+  if (Array.isArray(value)) return value[0] ?? null;
+  return value ?? null;
+}
+
+/**
+ * SPEC §6 (2026-09-20, #908) measure (d) · SPEC §7 of the same date, issue
+ * #921 — count this read of this page, after the response has gone.
+ *
+ * **The three strings are read here, in the render, and never inside
+ * `after()`.** A Server Component may not call `headers()` from an `after`
+ * callback (Next 16's own rule for the API: request data is read during the
+ * component's lifecycle and passed in), and — more to the point — they are
+ * not what is passed in. `classifyBlogRead` reduces them to one
+ * `{ engine, kind }` or to nothing before the callback is even scheduled,
+ * so the agent string, the referrer and the query never reach the store and
+ * cannot be written by accident. §7: "no cookie, no visitor identity …
+ * nothing else about a visit is kept."
+ *
+ * **Ordinary traffic schedules nothing.** A request that is neither an AI
+ * engine nor an AI referral classifies as `null` and this function returns
+ * before `after()` is called at all — no module is resolved, no connection
+ * is opened, nothing is queued behind the response.
+ *
+ * **The store is imported at the call.** A page nobody counted never
+ * resolves `@/lib/db`.
+ */
+async function countBlogRead(
+  page: HostedPage,
+  query: Record<string, string | string[] | undefined> | undefined
+): Promise<void> {
+  const head = await headers();
+  const read = classifyBlogRead({
+    userAgent: head.get("user-agent"),
+    referer: head.get("referer"),
+    utmSource: firstOf(query?.["utm_source"]),
+  });
+  if (read === null) return;
+
+  after(async () => {
+    const { recordBlogRead } = await import("@/lib/publish/reads/store");
+    const { now } = await import("@/lib/config/now");
+    await recordBlogRead({
+      siteId: page.siteId,
+      publicationId: page.publicationId,
+      at: now(),
+      read,
+    });
+  });
+}
+
 export default async function HostedPageRoute({
   params,
   searchParams,
@@ -305,6 +370,10 @@ export default async function HostedPageRoute({
   if (resolved === null) notFound();
 
   const { page, canonical } = resolved;
+  // Counted before anything is rendered and written after everything is
+  // sent: the classification needs this request's own headers, and the
+  // write must not stand between the reader and the page.
+  await countBlogRead(page, await searchParams);
   const article = articleSchema(page, canonical);
   const faq = faqSchema(page, canonical);
   // The one Markdown renderer (`markdown.ts`), which escapes every text

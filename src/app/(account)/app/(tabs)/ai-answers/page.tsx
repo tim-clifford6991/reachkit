@@ -22,19 +22,26 @@
 // and no `Suspense` boundary — unlike the Search tab next door, which
 // holds its chosen chip in the URL.
 //
+// **The hosted-blog counts are the card at the bottom** (#921, §6 measure
+// (d)). They are the one reading on this screen that is not bought from a
+// vendor — they are ReachKit's own server counting what it served — and
+// they are drawn only for a site whose pages we host and who has published
+// one, because a card of zeroes would be a claim about engines rather than
+// a fact about the record.
+//
 // **What is not here, and where it goes**: *Also appearing for* and the
-// cited-pages tile wait on the LLM-Mentions pilot (#920), the hosted-blog
-// engine counts are #921, and a thirteenth tracked question is #919. Each
-// arrives as a card beneath what this file draws; none of them is stood in
-// for, because a placeholder for an unbought measurement is a claim.
+// cited-pages tile wait on the LLM-Mentions pilot (#920). It is not stood
+// in for, because a placeholder for an unbought measurement is a claim.
 import type React from "react";
 import type { Metadata } from "next";
 import { copy } from "@/lib/presentation/copy";
 import { formatDate } from "../../_shell/format";
 import { readShell } from "../../_shell/provider";
 import { readAnswers } from "../../_overview/answers-provider";
+import { readBlogReads } from "../../_overview/blog-reads-provider";
 import { AnswerGrid } from "../../_overview/AnswerGrid";
 import { AnswerTiles } from "../../_overview/AnswerTiles";
+import { BlogReads } from "../../_overview/BlogReads";
 
 /** /app/ai-answers's own `<title>` (#945). Without it this screen announced
  *  nothing at all — the `(account)` layout's fallback is the floor, not
@@ -46,7 +53,11 @@ export default async function AiAnswersTabPage(): Promise<React.JSX.Element> {
   // own request-cached provider rather than restated here: two readers of a
   // customer's time zone is how two parts of one screen come to state two
   // different days.
-  const [shell, model] = await Promise.all([readShell(), readAnswers()]);
+  const [shell, model, blogReads] = await Promise.all([
+    readShell(),
+    readAnswers(),
+    readBlogReads(),
+  ]);
   // A sentence with a date inside it, not a value — the same line, from the
   // same key, the Search tab states over its own table. One sentence, one
   // place to change it.
@@ -71,6 +82,7 @@ export default async function AiAnswersTabPage(): Promise<React.JSX.Element> {
 
       <AnswerTiles model={model} />
       <AnswerGrid model={model} />
+      <BlogReads model={blogReads} />
     </div>
   );
 }
