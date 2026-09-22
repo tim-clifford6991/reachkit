@@ -99,9 +99,28 @@ function AiAnswer(): React.JSX.Element {
  *  the week's two counts and the card's accent ground; the five that
  *  publish each carry one page title and the hour it went live.
  *
- *  The title is the one thing here that can grow, so it is clamped to two
- *  lines (DESIGN, 2026-09-20). The weekday and the hour are values in the
- *  mono face; neither is ever clamped. */
+ *  **The title wraps and the cell grows with it** (#935, owner
+ *  2026-09-22). It was `line-clamp-2`, which DESIGN's own line permits for
+ *  "a label that can grow" — but a clamp is a box that clips, and check 3
+ *  reports a clipped element unless a declared scroll container is above it
+ *  or its class is on `TRUNCATION_ALLOWLIST`. `layout.test.ts` passes the
+ *  strict list (`.rk-cal-label`, `.rk-cal-empty`), so the longest page
+ *  title cut off at two lines and the folded gate went red on `/` at 390
+ *  and 1280 in both themes.
+ *
+ *  **`title=` does not answer it**, and that was measured rather than
+ *  assumed: `checks.ts` reads the computed box and the class list and no
+ *  attribute at all, so the same span with the whole value on `title`
+ *  reports the identical offender. The remedy left is the one that makes
+ *  the check's premise false — nothing is cut off, so there is nothing to
+ *  find. The cell has no fixed height and the strip is a CSS grid, so a
+ *  three-line title grows its row; `mt-auto` keeps every badge on the
+ *  bottom edge whatever the titles above them do.
+ *
+ *  No `title` attribute either: with the whole value on screen it would be
+ *  a tooltip repeating what is already there, and a second announcement of
+ *  it for a screen reader. The weekday and the hour are values in the mono
+ *  face; neither is ever clamped. */
 function DayCell(p: { weekday: string; title: string | null }): React.JSX.Element {
   return (
     <li
@@ -119,7 +138,7 @@ function DayCell(p: { weekday: string; title: string | null }): React.JSX.Elemen
         </span>
       ) : (
         <>
-          <span className="line-clamp-2 min-w-0 text-xs font-semibold leading-tight">{p.title}</span>
+          <span className="min-w-0 text-xs font-semibold leading-tight">{p.title}</span>
           <span className="badge badge-success badge-sm mt-auto gap-1">
             {copy("calendar.stage.live")}
             <Num>{SPECIMEN_HERO.liveAt}</Num>
