@@ -61,6 +61,12 @@
 -- `00000000000001_baseline.sql` for `sites` and `scans`, and on nothing
 -- else.
 --
+-- The version is `…130000` and not `…120000` because #921's
+-- `20260922120000_publications_reads.sql` landed on `main` first and the
+-- Supabase CLI treats two migrations sharing a version as an error. The
+-- content is unchanged by the rename; only the order it applies in is, and
+-- it applies after that one either way.
+--
 -- Not applied by the PR that adds it; applied after merge through the
 -- Supabase connector (docs/PROCESS.md step 4).
 

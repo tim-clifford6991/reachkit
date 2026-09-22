@@ -20,7 +20,7 @@ const MIGRATIONS = path.resolve(import.meta.dirname, "../../supabase/migrations"
 const APPLIED = [
   "00000000000001_baseline.sql",
   "00000000000002_rls.sql",
-  "20260922120000_sites_mentions_llm.sql",
+  "20260922130000_sites_mentions_llm.sql",
 ];
 
 function raises(sql: string): boolean {
