@@ -26,7 +26,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { TIMING } from "@/lib/config/constants";
 import type { PassProgress } from "@/app/(account)/setup/_setup/progress";
-import { rowOf, type DrawnRow } from "@/app/(account)/setup/_setup/stages";
+import { PassSteps, stepsFor } from "./PassSteps";
 import type { OnboardingStage } from "@/lib/scan/deep/progress";
 
 const PROGRESS_PATH = "/api/setup/progress";
@@ -34,7 +34,6 @@ const PROGRESS_PATH = "/api/setup/progress";
 export function OnboardingPanel(p: {
   heading: string;
   stage: OnboardingStage;
-  labels: Readonly<Record<DrawnRow, string>>;
 }): React.JSX.Element {
   const router = useRouter();
   const [stage, setStage] = useState<OnboardingStage>(p.stage);
@@ -61,20 +60,20 @@ export function OnboardingPanel(p: {
     };
   }, [router]);
 
-  const row = rowOf(stage);
-
   return (
     <div
       role="status"
-      className="alert items-start text-sm"
+      className="alert flex-col items-start text-sm"
       data-testid="shell-onboarding"
       data-stage={stage}
     >
-      <span className="loading loading-spinner loading-sm" aria-hidden />
-      <div className="flex min-w-0 flex-col gap-1">
-        <span className="font-semibold">{p.heading}</span>
-        {row === null ? null : <span data-testid="shell-onboarding-stage">{p.labels[row]}</span>}
-      </div>
+      <span className="font-semibold">{p.heading}</span>
+      {/* **The five steps, not a spinner** (issue 912). SPEC §4's line for
+          `/app` rules a spinner out, and this pass has named steps — so it
+          says which are done, which is running and which are still to come.
+          `PassSteps` is the same component Overview's first-day hero draws,
+          so the panel and the screen beside it cannot name two steps. */}
+      <PassSteps steps={stepsFor(stage)} />
     </div>
   );
 }

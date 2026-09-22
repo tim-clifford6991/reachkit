@@ -22,6 +22,7 @@
 "use client";
 
 import type React from "react";
+import { Suspense, use } from "react";
 import { usePathname } from "next/navigation";
 import { Calendar, Settings, TrendingUp, type LucideIcon } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
@@ -61,19 +62,29 @@ export const DESTINATION_ICON: Record<Destination, LucideIcon> = {
  */
 const HERE = "bg-primary/10 text-primary font-semibold";
 
-/** The waiting count, or nothing at all. REQ-040 c2's rule lives here once
- *  so the panel and the rail cannot disagree about zero. */
-function WaitingBadge(p: { waiting: number; className: string }): React.JSX.Element | null {
-  if (p.waiting <= 0) return null;
+/** The count, once it is known.
+ *
+ *  **`use()` rather than a prop, since issue 912.** The three menu items
+ *  are the shell and have no read behind them: they are in the first
+ *  server response, and only this badge waits. Reading the promise here
+ *  suspends this element alone at the boundary below it — one nav, one
+ *  DOM, and the number lands on the item that is already on screen.
+ *
+ *  A `0` and a count nobody could read both draw nothing, which is REQ-040
+ *  c2's rule either way: no `0`, no empty badge. */
+function WaitingBadge(p: { waiting: Promise<number>; className: string }): React.JSX.Element | null {
+  const waiting = use(p.waiting);
+  if (waiting <= 0) return null;
   return (
     <span className={p.className} data-testid="shell-waiting-count">
-      {p.waiting}
+      {waiting}
     </span>
   );
 }
 
 export function SidebarNav(p: {
-  waiting: number;
+  /** The count, as a promise: the nav does not wait for it (issue 912). */
+  waiting: Promise<number>;
   /** The collapsed icon rail's arm: the same three links, icon only. */
   rail?: boolean;
 }): React.JSX.Element {
@@ -91,7 +102,7 @@ export function SidebarNav(p: {
           const Icon = DESTINATION_ICON[destination];
           const here = destination === current;
           const word = copy(DESTINATION_COPY_KEY[destination]);
-          const waiting = destination === WAITING_ON ? p.waiting : 0;
+          const carries = destination === WAITING_ON;
           return (
             <li key={destination}>
               <a
@@ -114,19 +125,27 @@ export function SidebarNav(p: {
                     link's name; in the rail the `aria-label` is. */}
                 <Icon size={rail ? 22 : 20} strokeWidth={1.75} aria-hidden />
                 {rail ? null : <span className="truncate">{word}</span>}
-                <WaitingBadge
-                  waiting={waiting}
-                  className={
-                    rail
-                      // Flush in the box's top-right corner. The glyph is
-                      // 22px centred in 48, so it starts 13px in on both
-                      // axes and the badge's 16px band clears its ink
-                      // entirely; inset by a step (the old `end-1 top-1`)
-                      // it sat squarely over the glyph instead.
-                      ? "badge badge-xs badge-primary num absolute end-0 top-0 text-(length:--t-eyebrow)"
-                      : "badge badge-sm badge-primary num ms-auto"
-                  }
-                />
+                {!carries ? null : (
+                  // No fallback: a badge that is not there yet is a badge
+                  // that may never be there — a count of none draws nothing
+                  // either way, so an empty box would be a promise the
+                  // product often cannot keep.
+                  <Suspense fallback={null}>
+                    <WaitingBadge
+                      waiting={p.waiting}
+                      className={
+                        rail
+                          // Flush in the box's top-right corner. The glyph
+                          // is 22px centred in 48, so it starts 13px in on
+                          // both axes and the badge's 16px band clears its
+                          // ink entirely; inset by a step (the old `end-1
+                          // top-1`) it sat squarely over the glyph instead.
+                          ? "badge badge-xs badge-primary num absolute end-0 top-0 text-(length:--t-eyebrow)"
+                          : "badge badge-sm badge-primary num ms-auto"
+                      }
+                    />
+                  </Suspense>
+                )}
               </a>
             </li>
           );

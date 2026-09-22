@@ -191,9 +191,23 @@ export const LAWS_COPY = Object.freeze({
    *  first draft run in the background, the founder already in the app.
    *  Drafted in the registry's voice; the owner may correct it. */
   "shell.onboarding.first-page": [
-    "Your first page is being written. This screen updates itself when it’s ready — you can leave it open or come back later.",
-    { slots: {}, fixedBy: "issue 782" },
+    // **Shortened by issue 912**, to the sentence that issue drafts. The
+    // half that went — "This screen updates itself when it's ready — you
+    // can leave it open or come back later" — is now said better and in
+    // more detail by the card it heads: the five named steps say how far
+    // along the pass is, and `overview.first-day.mail` says what happens
+    // when it ends. One heading, then the answer, rather than a heading
+    // that answers.
+    "Your first page is being written.",
+    { slots: {}, fixedBy: "issue 782 · issue 912" },
   ],
+  /** SPEC §4 (2026-09-20), issue 912 — the first day after setup, and the
+   *  three states a named pass step can be in. Drafted under the owner's
+   *  2026-09-16 ruling (#759); the first three are issue 912's own proposed
+   *  wording, taken byte for byte. */
+  "shell.pass-step.done": ["done", { slots: {}, fixedBy: "SPEC §4 2026-09-20 · issue 912" }],
+  "shell.pass-step.now": ["now", { slots: {}, fixedBy: "SPEC §4 2026-09-20 · issue 912" }],
+  "shell.pass-step.next": ["next", { slots: {}, fixedBy: "SPEC §4 2026-09-20 · issue 912" }],
   // Both approved as written by the screen set (ruling 11a): S12's domain
   // block reads "Week 6 · re-measured Mon 1 Sep" and S13's — the week the
   // first Monday has not come — reads "not measured yet · first due Mon 8

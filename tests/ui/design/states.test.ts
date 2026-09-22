@@ -73,8 +73,14 @@ describe("SPEC §4 (2026-09-20) — the compact band keeps all three, as a dock"
   // no tab bar comes back.
   it("the compact band gets the dock, and the panel opens from the top bar", () => {
     const layout = read("src/app/(account)/app/layout.tsx");
-    expect(layout).toContain("<AppDock waiting={shell.waiting} />");
-    expect(layout).toContain("<TopBar shell={shell} />");
+    // The dock and the top bar are both still the shell's, and both still
+    // drawn once. Since issue 912 the count reaches the dock as a promise
+    // — the three links must be in the first server response and only the
+    // badge waits — and the top bar is a slot behind its own boundary.
+    // What this row is about is unchanged: the compact band gets a dock, a
+    // top bar opens the panel, and no tab bar comes back.
+    expect(layout).toContain("<AppDock waiting={waiting} />");
+    expect(layout).toContain("<TopBarSlot shell={shell} />");
     expect(layout).not.toMatch(/TabBar/);
     expect(read("src/app/(account)/app/_shell/AppDock.tsx")).toContain("dock");
   });

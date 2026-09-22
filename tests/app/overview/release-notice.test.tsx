@@ -16,7 +16,7 @@ import { applyEnvFixture } from "../../mail/env-fixture";
 applyEnvFixture();
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { renderToStaticMarkup } from "react-dom/server";
+import { settledMarkup } from "../shell/settled";
 import { fakeDb } from "../../publish/harness";
 import { LIVE_ACCOUNT } from "../accounts";
 import { measured, measuredZero } from "@/lib/measure/measured";
@@ -100,7 +100,7 @@ function storeWith(a: {
 
 async function screen(): Promise<Element> {
   const container = document.createElement("div");
-  container.innerHTML = renderToStaticMarkup(await AppLayout({ children: await OverviewPage() }));
+  container.innerHTML = await settledMarkup(await AppLayout({ children: await OverviewPage() }));
   return container;
 }
 

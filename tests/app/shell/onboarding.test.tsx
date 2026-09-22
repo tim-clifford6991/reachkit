@@ -22,6 +22,7 @@ applyEnvFixture();
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import React, { act } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { settledMarkup } from "./settled";
 import { createRoot } from "react-dom/client";
 import { fakeDb } from "../../publish/harness";
 import { LIVE_ACCOUNT } from "../accounts";
@@ -86,7 +87,7 @@ const SITE = LIVE_ACCOUNT.siteId;
 
 async function app(): Promise<Element> {
   const container = document.createElement("div");
-  container.innerHTML = renderToStaticMarkup(await AppLayout({ children: null }));
+  container.innerHTML = await settledMarkup(await AppLayout({ children: null }));
   return container;
 }
 
@@ -134,8 +135,13 @@ describe("issue #782 — the founder waits in the app, not on a waiting screen",
     // not once per breakpoint. The second copy is what forced the old
     // `offsetParent` guard on its polling.
     expect(panels).toHaveLength(1);
-    expect(panels[0]?.querySelector(".loading")).not.toBeNull();
-    expect(panels[0]?.textContent).toContain(COPY["setup.waiting.stage.measuring-your-market"]);
+    // **No spinner** (issue 912). SPEC §4's line for `/app` rules one out,
+    // and this pass has named steps — so the panel says which are done,
+    // which is running and which are still to come.
+    expect(panels[0]?.querySelector(".loading")).toBeNull();
+    expect(panels[0]?.querySelector("[data-state='current']")?.textContent).toContain(
+      COPY["setup.waiting.stage.measuring-your-market"]
+    );
     expect(panels[0]?.textContent).toContain(COPY["setup.waiting.head"]);
 
     const html = renderToStaticMarkup(<FirstPageNotice state={await readOnboarding()} />);
@@ -231,19 +237,17 @@ describe("OnboardingPanel — polls the progress read and refreshes the app when
       return { ok: true, json: async () => answers.shift() };
     });
 
-    const labels = {
-      measuring_your_market: "row-1",
-      sizing_your_rivals: "row-2",
-      finding_pages: "row-3",
-      writing_your_first_page: "row-4",
-      checking_it: "row-5",
-    };
     const container = document.createElement("div");
     document.body.appendChild(container);
     await act(async () => {
-      createRoot(container).render(<OnboardingPanel heading="head" stage="reading_your_site" labels={labels} />);
+      createRoot(container).render(<OnboardingPanel heading="head" stage="reading_your_site" />);
     });
-    expect(container.textContent).toContain("row-1");
+    // The rows carry their own words now (issue 912's `PassSteps`), and
+    // the running one is marked rather than being the only one drawn — so
+    // the assertion is *which* row is current, not which row exists.
+    const current = (): string | null =>
+      container.querySelector("[data-state='current']")?.getAttribute("data-testid") ?? null;
+    expect(current()).toBe("pass-step-measuring_your_market");
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(30_000);
@@ -251,7 +255,7 @@ describe("OnboardingPanel — polls the progress read and refreshes the app when
     expect(asked).toEqual(["/api/setup/progress"]);
     // `asking_the_twelve` is row three (issue 903): the twelve are bought to
     // find the pages worth writing, and they size no rival.
-    expect(container.textContent).toContain("row-3");
+    expect(current()).toBe("pass-step-finding_pages");
     expect(nav.refresh).not.toHaveBeenCalled();
 
     await act(async () => {
@@ -292,7 +296,12 @@ describe("issue 903 — the step the panel names is the step the pass wrote", ()
       db.rows("sites")[0]!.setup_stage = stage;
       const panel = (await app()).querySelector('[data-testid="shell-onboarding"]');
       expect(panel?.getAttribute("data-stage"), stage).toBe(stage);
-      expect(panel?.querySelector('[data-testid="shell-onboarding-stage"]')?.textContent, stage).toBe(COPY[key]);
+      // The panel draws all five rows now and marks the running one
+      // (issue 912's `PassSteps`), rather than drawing that one alone —
+      // so the assertion is that the row the pass is on is the row marked
+      // `current`, and that it says the word the set gives it.
+      const current = panel?.querySelector("[data-state='current']");
+      expect(current?.textContent, stage).toContain(COPY[key]);
     }
   });
 

@@ -30,44 +30,75 @@
 // `[data-surface]` per document. A page under `/app` declares no `Surface`
 // of its own.
 //
-// The shell is read once, here (`readShell`, request-cached), and passed
-// down. The CSP nonce is read the way the root layout reads it (#331):
-// off the policy `src/middleware.ts` forwarded on this request.
+// **2026-09-20 (#908, issue 912): the frame paints before any of it is
+// read.** SPEC §4 — "No loading screens in the app: a route paints its
+// shell and daisyUI `skeleton` placeholders at once and fills in."
+//
+// This layout awaits the session gate and the request's nonce, and nothing
+// else. Every part with a query behind it is a child of its own
+// `<Suspense>` boundary (`_shell/slots.tsx`), so the drawer, the brand, the
+// three menu items and the content well are in the **first server
+// response** and each part lands as it resolves. The shell is still read
+// once — `readShell` is `React.cache`d, so the slots share one query.
+//
+// The CSP nonce is read the way the root layout reads it (#331): off the
+// policy `src/middleware.ts` forwarded on this request.
 import type React from "react";
+import { Suspense } from "react";
 import { PanelLeftClose, PanelLeftOpen, Send } from "lucide-react";
 import { Brand, BrandMark } from "@/app/_brand/Brand";
 import { Surface } from "@/ui/layout";
 import { copy } from "@/lib/presentation/copy";
 import { AppDock } from "./_shell/AppDock";
-import { DomainBlock } from "./_shell/DomainBlock";
-import { PublishingCard } from "./_shell/PublishingCard";
-import { Shortcuts } from "./_shell/Shortcuts";
 import { SidebarNav } from "./_shell/SidebarNav";
-import { StoppedNotice } from "./_shell/StoppedNotice";
-import { TopBar } from "./_shell/TopBar";
-import { WaitingCard } from "./_shell/WaitingCard";
 import { ThemeToggle } from "@/app/_theme/ThemeToggle";
 import { DRAWER_TOGGLE_ID, RAIL_SCRIPT } from "./_shell/drawer";
 import { cspNonce } from "./_shell/nonce";
-import { readShell } from "./_shell/provider";
-import { readOnboarding } from "./_shell/onboarding";
-import { MARKET_TOO_SMALL, readCategoryChoice } from "./_shell/remeasure";
-import { OnboardingStatus } from "./_shell/OnboardingStatus";
+import { requireSetUpAccount } from "./_session/account";
+import {
+  DomainSlot,
+  OnboardingSlot,
+  PublishingSlot,
+  ShortcutsSlot,
+  StoppedNoticeSlot,
+  TopBarSlot,
+  WaitingCardSlot,
+  readingShell,
+  waitingCount,
+} from "./_shell/slots";
+import {
+  DomainSkeleton,
+  PanelCardSkeleton,
+  TopBarSkeleton,
+} from "./_shell/skeletons";
 
 export default async function AppLayout({
   children,
 }: {
   children: React.ReactNode;
 }): Promise<React.JSX.Element> {
-  const [shell, onboarding, nonce] = await Promise.all([
-    readShell(),
-    readOnboarding(),
-    cspNonce(),
-  ]);
-  // Issue 837: a market too small is offered broader categories beside its
-  // notice, and any one of them measures again now.
-  const choice =
-    onboarding.kind === "notice" && onboarding.key === MARKET_TOO_SMALL ? await readCategoryChoice() : null;
+  // **The only two reads this layout waits for** (issue 912).
+  //
+  // `requireSetUpAccount` is the gate: one signed cookie and one `sites`
+  // row, and it decides whether a stranger should be looking at this frame
+  // at all. Suspending it would stream a signed-in shell and redirect
+  // afterwards — the right answer arriving after the wrong picture.
+  // `cspNonce` is a header on this request, not a query.
+  //
+  // Everything else the shell draws is a `_shell/slots.tsx` child behind a
+  // boundary of its own, so the frame below is in the first server
+  // response and each part lands as it resolves. That is the gap the old
+  // `app/loading.tsx` documented and could not close: a `loading.js` never
+  // covers its own layout's reads.
+  const [, nonce] = await Promise.all([requireSetUpAccount(), cspNonce()]);
+  // **The one shell read, started here and never awaited here.** Every slot
+  // below takes this same promise, so the six of them are one query as a
+  // fact rather than as a hope about `React.cache`'s scope.
+  const shell = readingShell();
+  // The count the menu badges carry. The three menu items have no read
+  // behind them and must be on screen at once; `SidebarNav` and `AppDock`
+  // read this with `use()` inside a boundary around the badge alone.
+  const waiting = waitingCount(shell);
 
   return (
     <Surface
@@ -94,13 +125,19 @@ export default async function AppLayout({
         <script nonce={nonce} dangerouslySetInnerHTML={{ __html: RAIL_SCRIPT }} />
 
         <div className="drawer-content flex min-w-0 flex-col gap-4 pb-20 lg:pb-0">
-          <TopBar shell={shell} />
+          <Suspense fallback={<TopBarSkeleton />}>
+            <TopBarSlot shell={shell} />
+          </Suspense>
           <main className="flex min-w-0 flex-1 flex-col gap-4">
-            {/* REQ-092 c3: stated once, on the screen the customer lands on. */}
-            <StoppedNotice stopped={shell.stopped} timeZone={shell.timeZone} />
+            {/* REQ-092 c3: stated once, on the screen the customer lands on.
+                No fallback: a stop is the exception, so a box held for one
+                would be an empty alert on every screen that has none. */}
+            <Suspense fallback={null}>
+              <StoppedNoticeSlot shell={shell} />
+            </Suspense>
             {children}
           </main>
-          <AppDock waiting={shell.waiting} />
+          <AppDock waiting={waiting} />
         </div>
 
         {/*
@@ -137,7 +174,9 @@ export default async function AppLayout({
                   <PanelLeftClose size={20} strokeWidth={1.75} aria-hidden />
                 </label>
               </div>
-              <DomainBlock shell={shell} />
+              <Suspense fallback={<DomainSkeleton />}>
+                <DomainSlot shell={shell} />
+              </Suspense>
               <div className="flex min-w-0 flex-col gap-1">
                 {/* `.eyebrow`, not `text-xs`: the rung is ruled
                     (`docs/DESIGN.md`: "eyebrow 11 uppercase 700 .1em") and
@@ -146,15 +185,23 @@ export default async function AppLayout({
                     `type.css` out-ranked `text-xs`; that is fixed at the
                     cause now (#941) and the class is still the right one. */}
                 <h2 className="eyebrow px-0">{copy("shell.workspace")}</h2>
-                <SidebarNav waiting={shell.waiting} />
+                <SidebarNav waiting={waiting} />
               </div>
-              <WaitingCard review={shell.review} timeZone={shell.timeZone} />
+              <Suspense fallback={<PanelCardSkeleton testId="shell-waiting-skeleton" className="h-20 w-full" />}>
+                <WaitingCardSlot shell={shell} />
+              </Suspense>
               {/* Issue #782: the deep pass and the first draft run in the
                   background; the panel says which step until they end. */}
-              <OnboardingStatus key={onboarding.kind} state={onboarding} choice={choice} />
+              <Suspense fallback={<PanelCardSkeleton testId="shell-onboarding-skeleton" className="h-12 w-full" />}>
+                <OnboardingSlot />
+              </Suspense>
               <div className="mt-auto flex min-w-0 flex-col gap-3">
-                <Shortcuts blog={shell.blog} />
-                <PublishingCard shell={shell} />
+                <Suspense fallback={<PanelCardSkeleton testId="shell-shortcuts-skeleton" className="h-8 w-full" />}>
+                  <ShortcutsSlot shell={shell} />
+                </Suspense>
+                <Suspense fallback={<PanelCardSkeleton testId="shell-publishing-skeleton" className="h-24 w-full" />}>
+                  <PublishingSlot shell={shell} />
+                </Suspense>
                 <ThemeToggle up />
               </div>
             </div>
@@ -173,7 +220,7 @@ export default async function AppLayout({
               >
                 <PanelLeftOpen size={20} strokeWidth={1.75} aria-hidden />
               </label>
-              <SidebarNav waiting={shell.waiting} rail />
+              <SidebarNav waiting={waiting} rail />
               <div className="mt-auto flex flex-col items-center gap-2">
                 <ThemeToggle up />
                 <span

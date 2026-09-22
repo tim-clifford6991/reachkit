@@ -41,6 +41,7 @@ import { NeedsYouModule } from "../_overview/NeedsYouModule";
 import { ScoreHead } from "../_overview/ScoreHead";
 import { WaitingPageCard } from "../_overview/WaitingPageCard";
 import { WeekModule } from "../_overview/WeekModule";
+import { WeekWaiting } from "../_overview/WeekWaiting";
 
 /** /app's own `<title>` (#945). Without it this screen announced
  *  nothing at all — the `(account)` layout's fallback is the floor, not
@@ -109,7 +110,18 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
           hold a stage word, and an even split leaves them narrow enough to
           break one. Needs-you is a short list beside it. */}
       <div className="grid min-w-0 items-start gap-6 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-        <WeekModule week={overview.week} timeZone={shell.timeZone} supply={overview.supply} />
+        {/* **Skeletons for the week while the pass runs** (SPEC §4,
+            2026-09-20; issue 912). Before the pass ends there is no week to
+            state: the days are not planned and the numbers are not measured,
+            so the box holds its place and says what it is waiting on rather
+            than drawing seven empty cells as though they were an answer.
+            It fills in when the pass ends — `readOnboarding` reads `none`
+            and this arm goes. */}
+        {onboarding.kind === "running" ? (
+          <WeekWaiting />
+        ) : (
+          <WeekModule week={overview.week} timeZone={shell.timeZone} supply={overview.supply} />
+        )}
         <NeedsYouModule alerts={overview.alerts} overflow={overview.overflow} issuesOverflow={overview.issuesOverflow} />
       </div>
     </div>

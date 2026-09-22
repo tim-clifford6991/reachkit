@@ -59,7 +59,7 @@ import PublicError from "../../../src/app/(public)/error";
 import AccountNotFound from "../../../src/app/(account)/not-found";
 import AccountError from "../../../src/app/(account)/error";
 import ReportLoading from "../../../src/app/(public)/scan/[domain]/loading";
-import AppLoading from "../../../src/app/(account)/app/loading";
+import OverviewLoading from "../../../src/app/(account)/app/(tabs)/loading";
 
 export interface UnenumeratedSurface {
   /** What its baselines are named after. Never a route slug: five of these
@@ -160,9 +160,15 @@ export function unenumeratedSurfaces(): readonly UnenumeratedSurface[] {
       stand: { selector: SCREEN_ROOT, markup: renderToStaticMarkup(ReportLoading()) },
     },
     {
+      // **Overview's own waiting state** (issue 912). The single
+      // `app/loading.tsx` is gone: SPEC §4 (2026-09-20) asks for one per
+      // route, each a `skeleton` layout of that screen's own cards, so
+      // "the app, waiting" is no longer one picture. This stands for the
+      // screen a customer lands on; the other six are the same shapes in
+      // the same boxes and add no surface a sweep would learn from.
       name: "waiting-app",
       route: { path: "/app", cookie: getAccountCookie() },
-      stand: { selector: OVERVIEW_ROOT, markup: renderToStaticMarkup(AppLoading()) },
+      stand: { selector: OVERVIEW_ROOT, markup: renderToStaticMarkup(OverviewLoading()) },
     },
   ];
 }

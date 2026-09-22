@@ -879,4 +879,33 @@ export const OVERVIEW_COPY = Object.freeze({
     "Connect it",
     { slots: {}, fixedBy: "SPEC §5 2026-09-20" },
   ],
+
+  // SPEC §4 (2026-09-20, #908), issue 912 — the first day after setup.
+  //
+  // "Overview shows the pass's named steps (done / now / next) in the hero
+  // and skeletons for the week; it fills in when the pass ends."
+  //
+  // All three are **issue 912's own drafted wording, byte for byte**. The
+  // owner may correct them; they are named in the pull request.
+  //
+  // The fourth sentence that issue drafts — "First measured Monday
+  // {date}." — is deliberately **not** here: the rule it states ("a number
+  // not yet measured is an em-dash with the date it will be") is already
+  // shipped and already approved, as `overview.tile.score.first-due`
+  // ("first measurement due {due}", S13 · REQ-040 c7). Adding a second
+  // sentence for one fact would be two wordings of it on one screen, and
+  // replacing an owner-approved string with a drafted one is not this
+  // issue's to do.
+  "overview.first-day.choosing": [
+    "We’re choosing a first page you can win.",
+    { slots: {}, fixedBy: "SPEC §4 2026-09-20 · issue 912" },
+  ],
+  "overview.first-day.mail": [
+    "We’ll mail you when it’s ready to read. Nothing goes live until you’ve had 24 hours with it.",
+    { slots: {}, fixedBy: "SPEC §4 2026-09-20 · issue 912" },
+  ],
+  "overview.first-day.week": [
+    "Your week is planned as soon as the measurement finishes.",
+    { slots: {}, fixedBy: "SPEC §4 2026-09-20 · issue 912" },
+  ],
 }) satisfies CopyPartition;

@@ -1,27 +1,40 @@
-// UI-SPEC §4 rule 3 — the waiting state, two mounts of one written line.
+// tests/app/fallback/loading.test.tsx — what a route draws while it waits.
 //
-// "Every empty, degraded or waiting state is one written line; never a
-// spinner, never a blank card." Issue #327 asks for a `loading.tsx`
-// wherever a route awaits a database read, and this is what one draws.
+// **The rule split in two on 2026-09-20, and this file is where that shows.**
 //
-// Rendered rather than walked, for `screens.test.tsx`'s reason beside it:
-// the shape hands its one sentence over from the registry, and a walker
-// over the returned element would see `<WaitingScreen>` and never a word.
-// `renderToStaticMarkup` is the same renderer the copy sweeps use and it
-// runs in the `node` project with no DOM.
+// UI-SPEC §4 rule 3 used to hold everywhere: "Every empty, degraded or
+// waiting state is one written line; never a spinner, never a blank card."
+// SPEC §4 of 2026-09-20 (#908) supersedes it *for `/app` routes only* — "No
+// loading screens in the app: a route paints its shell and daisyUI
+// `skeleton` placeholders at once and fills in … This supersedes 'every
+// waiting state is one written line' for `/app` routes."
 //
-// What is asserted is the rule and the two structural facts that follow
-// from where each file mounts: one sentence and nothing else on the screen;
-// **no bar**, which is the part of the issue's own Done-when the registry
-// refuses (see `src/app/_fallback/Waiting.tsx`'s header); a `Surface` root
-// on the report's arm, which owns its screen root, and none under `/app`,
-// where the shell's layout owns it (issue #83).
+// So there are two rules now and each is asserted where it applies:
+//
+//   the public report   one written line, no skeleton, no spinner, no bar.
+//                       Untouched by issue 912, which says so in as many
+//                       words: "the public report's loading state is
+//                       untouched (it has its own issue)".
+//   every `/app` route  that screen's own cards as `skeleton` boxes, no
+//                       sentence at all, and no spinner either — the one
+//                       thing both rules still agree on.
+//
+// The single `(account)/app/loading.tsx` is gone. It was one line for three
+// addresses; there are seven files now, one per route, and the block below
+// enumerates every one of them so an eighth route added without a waiting
+// state of its own is a failure here rather than a blank screen on a phone.
 import { describe, expect, it } from "vitest";
 import type React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { AWAITING_COPY, COPY } from "../../../src/lib/presentation/copy";
 import ReportLoading from "../../../src/app/(public)/scan/[domain]/loading";
-import AppLoading from "../../../src/app/(account)/app/loading";
+import OverviewLoading from "../../../src/app/(account)/app/(tabs)/loading";
+import SearchLoading from "../../../src/app/(account)/app/(tabs)/search/loading";
+import RivalsLoading from "../../../src/app/(account)/app/(tabs)/rivals/loading";
+import AiAnswersLoading from "../../../src/app/(account)/app/(tabs)/ai-answers/loading";
+import CalendarLoading from "../../../src/app/(account)/app/calendar/loading";
+import DraftLoading from "../../../src/app/(account)/app/draft/[draftId]/loading";
+import SettingsLoading from "../../../src/app/(account)/app/settings/loading";
 
 function html(screen: () => React.JSX.Element): string {
   return renderToStaticMarkup(screen());
@@ -32,80 +45,86 @@ function occurrences(haystack: string, needle: string): number {
 }
 
 const REPORT = html(ReportLoading);
-const APP = html(AppLoading);
 
-const EVERY_SCREEN = [
-  { name: "(public)/scan/[domain]/loading.tsx", markup: REPORT },
-  { name: "(account)/app/loading.tsx", markup: APP },
+/** Every `/app` waiting state, by the file it lives in. */
+const APP_SCREENS = [
+  { name: "(tabs)/loading.tsx", markup: html(OverviewLoading) },
+  { name: "(tabs)/search/loading.tsx", markup: html(SearchLoading) },
+  { name: "(tabs)/rivals/loading.tsx", markup: html(RivalsLoading) },
+  { name: "(tabs)/ai-answers/loading.tsx", markup: html(AiAnswersLoading) },
+  { name: "calendar/loading.tsx", markup: html(CalendarLoading) },
+  { name: "draft/[draftId]/loading.tsx", markup: html(DraftLoading) },
+  { name: "settings/loading.tsx", markup: html(SettingsLoading) },
 ];
 
-describe("set §4 rule 3 — a waiting state is one written line", () => {
-  it.each(EVERY_SCREEN)("$name draws exactly one sentence", ({ markup }) => {
-    expect(occurrences(markup, "<p")).toBe(1);
-    expect(occurrences(markup, `>${COPY["chrome.loading.line"]}</p>`)).toBe(1);
+describe("the public report — one written line (UI-SPEC §4 rule 3, unchanged)", () => {
+  it("draws exactly one sentence, and it is the owner's approved line", () => {
+    expect(occurrences(REPORT, "<p")).toBe(1);
+    expect(COPY["chrome.loading.line"]).toBe("Loading…");
+    expect(AWAITING_COPY).not.toContain("chrome.loading.line");
+    expect(occurrences(REPORT, `>${COPY["chrome.loading.line"]}</p>`)).toBe(1);
   });
 
-  it.each(EVERY_SCREEN)("$name draws no bar and no spinner", ({ markup }) => {
-    // The Done-when asks for the registered `Progress` and the registry
-    // refuses it here: `value` and `max` are both required, and a route
-    // that has not answered has no measured value to put in one. REQ-003 c1
-    // — "never an unlabelled spinner and never an indeterminate bar alone"
-    // — and §4.1's "no spinner" are the same answer from the other
-    // direction. `verdict.tsx` sets the precedent: its unmeasured driver
-    // renders no bar rather than an empty one.
-    expect(markup).not.toContain("<progress");
-    expect(markup).not.toContain("progress");
+  it("draws no bar, no spinner and no skeleton", () => {
+    // REQ-003 c1 — "never an unlabelled spinner and never an indeterminate
+    // bar alone" — and §4.1's "no spinner". A route that has not answered
+    // has no measured value to put in a bar, so it draws none.
+    expect(REPORT).not.toContain("<progress");
+    expect(REPORT).not.toContain("progress");
+    expect(REPORT).not.toContain("spinner");
+    expect(REPORT).not.toContain("skeleton");
+  });
+
+  it("is its own Surface root, and renders its own <main>", () => {
+    // The seven arms of `/scan/{domain}` each declare one, so the fallback
+    // standing in for them must too.
+    expect(occurrences(REPORT, "data-surface")).toBe(1);
+    expect(REPORT).toContain("<main");
+  });
+});
+
+describe("every /app route — skeletons of its own cards (SPEC §4, 2026-09-20)", () => {
+  it.each(APP_SCREENS)("$name holds its screen's boxes, not a sentence", ({ markup }) => {
+    // The rule that replaced the written line. A `skeleton` box is the
+    // shape of the thing that is coming; a sentence here would be words the
+    // customer reads and then watches disappear.
+    expect(occurrences(markup, "skeleton")).toBeGreaterThan(0);
+    expect(markup).not.toContain(COPY["chrome.loading.line"]);
+  });
+
+  it.each(APP_SCREENS)("$name draws no spinner and no bar", ({ markup }) => {
+    // The half of the old rule that did not change, and the reason it did
+    // not: a spinner says a screen is busy, which the customer can see, and
+    // says nothing about what is coming.
     expect(markup).not.toContain("spinner");
-    expect(markup).not.toContain("skeleton");
+    expect(markup).not.toContain("<progress");
   });
 
-  it.each(EVERY_SCREEN)("$name carries the hook the layout sweep waits on", ({ markup }) => {
+  it.each(APP_SCREENS)("$name carries the hook the layout sweep waits on", ({ markup }) => {
     // `browser.ts` waits for `[data-waiting]` to leave the document after
     // every navigation, because a screen that is still waiting is not a
-    // screen to measure — the failure that found it was `/app/settings` on
-    // the live account, read while the content well still held this line.
-    // One attribute for both mounts, so a third `loading.tsx` is covered by
-    // writing none of it.
+    // screen to measure. One attribute for every mount, so an eighth route
+    // is covered by writing none of it.
     expect(markup).toContain("data-waiting");
   });
 
-  it.each(EVERY_SCREEN)("$name announces itself as a wait", ({ markup }) => {
-    // A line that replaces a screen without a reload is one a screen reader
-    // is otherwise never told about. Neither attribute is a sentence.
-    expect(markup).toContain('role="status"');
+  it.each(APP_SCREENS)("$name announces the wait once, not once per box", ({ markup }) => {
+    // A screen reader is owed "this is loading", not eleven blank regions:
+    // the boxes are `aria-hidden` and the regions around them carry the
+    // status. One region per card is the shape; what is ruled out is a
+    // status on every box.
+    expect(occurrences(markup, 'role="status"')).toBeGreaterThan(0);
+    expect(occurrences(markup, 'role="status"')).toBeLessThanOrEqual(
+      occurrences(markup, "data-waiting")
+    );
     expect(markup).toContain('aria-busy="true"');
+    expect(occurrences(markup, "aria-hidden")).toBeGreaterThan(0);
   });
 
-  it("both mounts spend the one key, and it is the owner's approved line (2026-09-10, #459)", () => {
-    // One sentence, one home. The 404's line is split public/app because
-    // the two say different things; a waiting line does not.
-    expect(COPY["chrome.loading.line"]).toBe("Loading…");
-    expect(AWAITING_COPY).not.toContain("chrome.loading.line");
-    expect(occurrences(REPORT, COPY["chrome.loading.line"])).toBe(1);
-    expect(occurrences(APP, COPY["chrome.loading.line"])).toBe(1);
-  });
-
-  it("the report's arm is its own Surface root; the app's is not", () => {
-    // ADR-093 decision 6: exactly one `[data-surface]` per document. The
-    // seven arms of `/scan/{domain}` each declare their own, so the
-    // fallback that stands in for them must too — and under `/app` the
-    // shell's layout owns the route's screen root, so a second one here
-    // would be a second `[data-surface]` on that document.
-    expect(occurrences(REPORT, "data-surface")).toBe(1);
-    expect(occurrences(APP, "data-surface")).toBe(0);
-  });
-
-  it("the app's fallback nests no second <main> inside the shell's", () => {
-    // `(account)/app/layout.tsx` renders `<main class="rk-main">` and this
-    // file draws inside it; `<main>` does not nest.
-    expect(APP).not.toContain("<main");
-    expect(REPORT).toContain("<main");
-  });
-
-  it("both announce themselves as a busy status, not a blank screen", () => {
-    for (const { markup } of EVERY_SCREEN) {
-      expect(occurrences(markup, 'role="status"')).toBe(1);
-      expect(markup).toContain('aria-busy="true"');
-    }
+  it.each(APP_SCREENS)("$name declares no Surface and nests no second <main>", ({ markup }) => {
+    // ADR-093 decision 6: exactly one `[data-surface]` per document, and
+    // under `/app` the shell's layout owns it. `<main>` does not nest.
+    expect(occurrences(markup, "data-surface")).toBe(0);
+    expect(markup).not.toContain("<main");
   });
 });
