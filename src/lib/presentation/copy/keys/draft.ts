@@ -69,7 +69,10 @@ export const DRAFT_COPY = Object.freeze({
   // route are all still `veto`; only what the customer reads changed.
   // In full here: this control stands on the page it acts on, and the
   // canvas reserves the short *Stop it* for the day panel's secondary row.
-  "draft.action.veto": ["Stop this page", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
+  "draft.action.veto": [
+    "Stop this page",
+    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
+  ],
 
   // SPEC §7 (2026-09-20, #908, issue #913) — "every action answers". The
   // two writes this screen offers say what became of the page. Drafts in
@@ -80,22 +83,135 @@ export const DRAFT_COPY = Object.freeze({
   // whose publish moment is known is told the moment, and a page whose
   // moment the screen does not hold is told the truth about that rather
   // than a blank where a time should be.
-  "draft.answer.approve": ["Approved. It goes live at {at}.", { slots: { at: "date" }, fixedBy: "SPEC §7 2026-09-20" }],
-  "draft.answer.approve-next": ["Approved. It goes live at your next publishing time.", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
-  "draft.answer.veto": ["Stopped. This page won’t go live.", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
-  "draft.answer.refused": ["That didn’t go through. The page is as it was.", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
+  "draft.answer.approve": [
+    "Approved. It goes live at {at}.",
+    { slots: { at: "date" }, fixedBy: "SPEC §7 2026-09-20" },
+  ],
+  "draft.answer.approve-next": [
+    "Approved. It goes live at your next publishing time.",
+    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
+  ],
+  "draft.answer.veto": [
+    "Stopped. This page won’t go live.",
+    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
+  ],
+  "draft.answer.refused": [
+    "That didn’t go through. The page is as it was.",
+    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
+  ],
 
   // §9's copy-out, "always shown" — the card the approved S16 draws it on,
   // its two controls and the chip that says whose the words are. The two
   // control words were "Copy as Markdown" / "Copy as HTML" until ruling 11a:
   // the set writes them as the formats they produce, and the card head above
   // them already says what the two buttons do.
-  "draft.copy.title": ["Copy it out", { slots: {}, fixedBy: "BUILD §9 · S16 (11a)" }],
+  /* ── The page as it publishes (SPEC §7, 2026-09-20 · #931) ─────────────
+     "The review screen shows the whole page exactly as readers and search
+     engines receive it, in the customer's own page frame, with beside it:
+     why this page; how it appears in search results; *written from your
+     business* … what gets published … the checks."
+
+     Every sentence below is **drafted** under the owner's 2026-09-16 ruling
+     (#759), and four of them are #931's own proposed words taken verbatim.
+     The rest are the row labels those four need to stand up.
+
+     The frame itself needs **no key of its own**: it draws the page's own
+     title, the customer's own name and their own address, and the one line
+     of ours that used to sit inside it (the hosted byline) is not drawn at
+     all — `PublishedPageView` says why a review screen holds no publication
+     date to print. */
+  "draft.published-view.lead": [
+    "This is the whole page, exactly as your readers and search engines receive it.",
+    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
+  ],
+  "draft.search-result.title": [
+    "In search results",
+    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
+  ],
+  "draft.written-from.title": [
+    "Written from your business",
+    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
+  ],
+  "draft.written-from.lead": [
+    "Everything this page says about you, and where we read it.",
+    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
+  ],
+  // What the profile items are, as against the quoted passages above them.
+  // They carry no address because their source is the customer: they
+  // confirmed every one on Settings › Your business.
+  "draft.written-from.profile": [
+    "From your business profile",
+    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
+  ],
+  // A page written before the source was recorded beside the passage
+  // (#927's first shape). The sentence is still what the page stands on, so
+  // it is listed and said to be unsourced rather than dropped.
+  "draft.written-from.source-unknown": [
+    "Read from your site; the page wasn’t recorded",
+    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
+  ],
+  "draft.publishes.title": [
+    "What gets published",
+    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
+  ],
+  "draft.publishes.address": [
+    "Address",
+    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
+  ],
+  "draft.publishes.title-row": [
+    "Title",
+    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
+  ],
+  // A page in review has no address yet: the destination decides the path
+  // when it publishes, and a host printed under *Address* would read as a
+  // page that publishes at the site's root.
+  "draft.publishes.address.pending": [
+    "on {domain}, at a path set when it publishes",
+    { slots: { domain: "text" }, fixedBy: "SPEC §7 2026-09-20" },
+  ],
+  "draft.publishes.description": [
+    "Description",
+    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
+  ],
+  "draft.publishes.schema": [
+    "Told to search engines",
+    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
+  ],
+  // Nothing declares an FAQ block where the body asks no question, so the
+  // row names the one thing that is declared rather than "plus 0".
+  "draft.publishes.schema.article": [
+    "an article",
+    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
+  ],
+  "draft.publishes.schema.value": [
+    "an article, plus {n} questions and answers",
+    { slots: { n: "text" }, fixedBy: "SPEC §7 2026-09-20" },
+  ],
+  "draft.publishes.links": [
+    "Links",
+    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
+  ],
+  "draft.publishes.length": [
+    "Length",
+    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
+  ],
+  "draft.publishes.length.value": [
+    "{n} characters",
+    { slots: { n: "text" }, fixedBy: "SPEC §7 2026-09-20" },
+  ],
+
+  "draft.copy.title": [
+    "Copy it out",
+    { slots: {}, fixedBy: "BUILD §9 · S16 (11a)" },
+  ],
   "draft.copy.note": [
     "yours, for any destination",
     { slots: {}, fixedBy: "REQ-045 c12 · S16 (11a)" },
   ],
-  "draft.copy.markdown": ["Markdown", { slots: {}, fixedBy: "BUILD §9 · S16 (11a)" }],
+  "draft.copy.markdown": [
+    "Markdown",
+    { slots: {}, fixedBy: "BUILD §9 · S16 (11a)" },
+  ],
   "draft.copy.html": ["HTML", { slots: {}, fixedBy: "BUILD §9 · S16 (11a)" }],
 
   // §4.6's info box, and its two arms.
@@ -103,26 +219,47 @@ export const DRAFT_COPY = Object.freeze({
     "What happens if you do nothing",
     { slots: {}, fixedBy: "BUILD §4.6" },
   ],
-  "draft.do-nothing.autopilot": ["It publishes at {at} unless you stop it.", { slots: { at: "date" }, fixedBy: "SPEC §7 2026-09-20" }],
-  "draft.do-nothing.copilot": ["Nothing publishes on its own.", { slots: {}, fixedBy: "REQ-045 c4" }],
+  "draft.do-nothing.autopilot": [
+    "It publishes at {at} unless you stop it.",
+    { slots: { at: "date" }, fixedBy: "SPEC §7 2026-09-20" },
+  ],
+  "draft.do-nothing.copilot": [
+    "Nothing publishes on its own.",
+    { slots: {}, fixedBy: "REQ-045 c4" },
+  ],
 
   // §4.6's two editor panes.
-  "draft.editor.tab.markdown": ["Markdown", { slots: {}, fixedBy: "BUILD §4.6" }],
+  "draft.editor.tab.markdown": [
+    "Markdown",
+    { slots: {}, fixedBy: "BUILD §4.6" },
+  ],
   "draft.editor.tab.preview": ["Preview", { slots: {}, fixedBy: "BUILD §4.6" }],
 
   // The four claim-check outcomes REQ-045 c3 requires to be stated in every
   // case, including the empty list. Each is a badge's word.
-  "draft.claim.passed": ["claim-checked", { slots: {}, fixedBy: "REQ-045 c3 · S16 (11a)" }],
-  "draft.claim.failed": ["claim check failed", { slots: {}, fixedBy: "REQ-045 c11" }],
+  "draft.claim.passed": [
+    "claim-checked",
+    { slots: {}, fixedBy: "REQ-045 c3 · S16 (11a)" },
+  ],
+  "draft.claim.failed": [
+    "claim check failed",
+    { slots: {}, fixedBy: "REQ-045 c11" },
+  ],
   "draft.claim.outstanding": [
     "claim check running",
     { slots: {}, fixedBy: "REQ-045 c9 · S17 (11a)" },
   ],
-  "draft.claim.nothing-to-check": ["no never-claim list", { slots: {}, fixedBy: "REQ-045 c3" }],
+  "draft.claim.nothing-to-check": [
+    "no never-claim list",
+    { slots: {}, fixedBy: "REQ-045 c3" },
+  ],
   // c11's own sentence. The entry itself renders beside it as a value, so
   // the customer is told which entry held the draft whether or not this
   // sentence has been written.
-  "draft.claim.matched": ["This draft matches “{entry}” on your never-claim list, so it’s held until the text changes.", { slots: { entry: "text" }, fixedBy: "REQ-045 c11" }],
+  "draft.claim.matched": [
+    "This draft matches “{entry}” on your never-claim list, so it’s held until the text changes.",
+    { slots: { entry: "text" }, fixedBy: "REQ-045 c11" },
+  ],
 
   // §4.6's grounded-fact block, its heading and — where the customer has
   // edited — the note that keeps the generated-content label from claiming
@@ -131,7 +268,10 @@ export const DRAFT_COPY = Object.freeze({
   // told what it is for. The block's own two sentences; its rows carry the
   // day panel's labels, so the two screens word one fact once. Drafted under
   // issue 759's ruling; the owner corrects the wording.
-  "draft.target.title": ["What this page is for", { slots: {}, fixedBy: "issue 867" }],
+  "draft.target.title": [
+    "What this page is for",
+    { slots: {}, fixedBy: "issue 867" },
+  ],
   // A Fix page has no market target: no search, no volume, no band. Its own
   // arm, rather than a block of blanks.
   "draft.target.fix": [
@@ -145,17 +285,29 @@ export const DRAFT_COPY = Object.freeze({
     { slots: {}, fixedBy: "issue 867" },
   ],
 
-  "draft.grounded.title": ["Grounded fact", { slots: {}, fixedBy: "REQ-045 c2" }],
-  "draft.authorship.edited": ["edited by you since {at}", { slots: { at: "date" }, fixedBy: "REQ-045 c1" }],
+  "draft.grounded.title": [
+    "Grounded fact",
+    { slots: {}, fixedBy: "REQ-045 c2" },
+  ],
+  "draft.authorship.edited": [
+    "edited by you since {at}",
+    { slots: { at: "date" }, fixedBy: "REQ-045 c1" },
+  ],
 
   // The back link §4.6 asks for, the unsaved indicator c7 asks for, and the
   // one written line an unknown draft id resolves to.
-  "draft.back": ["← Back to the plan", { slots: {}, fixedBy: "SPEC §7 2026-09-20" }],
+  "draft.back": [
+    "← Back to the plan",
+    { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
+  ],
   "draft.unsaved": [
     "could not save — your text is kept here; nothing unsaved publishes",
     { slots: {}, fixedBy: "REQ-045 c7 · S17 (11a)" },
   ],
-  "draft.not-found": ["There is no draft at this address.", { slots: {}, fixedBy: "REQ-045 c1" }],
+  "draft.not-found": [
+    "There is no draft at this address.",
+    { slots: {}, fixedBy: "REQ-045 c1" },
+  ],
 
   // S16's provenance line, under the title: when the page was written and
   // roughly how long it is. Two arms, because the first fact can be absent
@@ -167,12 +319,18 @@ export const DRAFT_COPY = Object.freeze({
     "draft written {at} · ~{words} words",
     { slots: { at: "date", words: "text" }, fixedBy: "S16 (11a)" },
   ],
-  "draft.words": ["~{words} words", { slots: { words: "text" }, fixedBy: "S16 (11a)" }],
+  "draft.words": [
+    "~{words} words",
+    { slots: { words: "text" }, fixedBy: "S16 (11a)" },
+  ],
 
   // S16's right-hand rail: the two labels above its two blocks. The
   // controls under "Decide" are `draft.action.*` above; the rows under
   // "Checks" are the four below.
-  "draft.decide.title": ["Decide", { slots: {}, fixedBy: "REQ-045 c4 · S16 (11a)" }],
+  "draft.decide.title": [
+    "Decide",
+    { slots: {}, fixedBy: "REQ-045 c4 · S16 (11a)" },
+  ],
   "draft.checks.title": ["Checks", { slots: {}, fixedBy: "S16 (11a)" }],
 
   // The four §8 hard rules S16 names, each as the sentence the set writes
@@ -181,7 +339,10 @@ export const DRAFT_COPY = Object.freeze({
   // stands for a check that did not run.
   "draft.checks.grounded": [
     "grounded — {facts} fact, {sources} source",
-    { slots: { facts: "text", sources: "text" }, fixedBy: "REQ-045 c2 · S16 (11a)" },
+    {
+      slots: { facts: "text", sources: "text" },
+      fixedBy: "REQ-045 c2 · S16 (11a)",
+    },
   ],
   "draft.checks.do-not-claim": [
     "no claim from your do-not-claim list",
@@ -212,7 +373,10 @@ export const DRAFT_COPY = Object.freeze({
     "unsaved",
     { slots: {}, fixedBy: "REQ-045 c7 · S17 (11a)" },
   ],
-  "draft.edit.saving": ["saving…", { slots: {}, fixedBy: "REQ-045 c6 · S17 (11a)" }],
+  "draft.edit.saving": [
+    "saving…",
+    { slots: {}, fixedBy: "REQ-045 c6 · S17 (11a)" },
+  ],
   "draft.edit.saved": [
     "saved {at}",
     { slots: { at: "date" }, fixedBy: "REQ-045 c6 · S17 (11a)" },
@@ -227,7 +391,10 @@ export const DRAFT_COPY = Object.freeze({
   // #789: the founder edits the title and the meta description beside the
   // body, and is told when a saved edit breaks a page rule. Drafted (#759);
   // the owner corrects the wording.
-  "draft.edit.title-label": ["Title", { slots: {}, fixedBy: "SPEC §7 · issue 789" }],
+  "draft.edit.title-label": [
+    "Title",
+    { slots: {}, fixedBy: "SPEC §7 · issue 789" },
+  ],
   "draft.edit.description-label": [
     "Meta description",
     { slots: {}, fixedBy: "SPEC §7 · issue 789" },
@@ -236,7 +403,10 @@ export const DRAFT_COPY = Object.freeze({
     "Your edit breaks one of the page rules, so this page won’t publish until the text passes them. Your words are saved.",
     { slots: {}, fixedBy: "SPEC §7 · issue 789" },
   ],
-  "draft.edit.done": ["Done editing", { slots: {}, fixedBy: "REQ-045 c5 · S17 (11a)" }],
+  "draft.edit.done": [
+    "Done editing",
+    { slots: {}, fixedBy: "REQ-045 c5 · S17 (11a)" },
+  ],
   "draft.edit.discard": [
     "Discard changes",
     { slots: {}, fixedBy: "REQ-045 c5 · S17 (11a)" },

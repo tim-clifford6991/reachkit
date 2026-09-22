@@ -262,10 +262,22 @@ export async function generateDraft(
     // `factsUsed` is always written, because a page that quotes no fact of
     // the customer's own does not ship (§8 hard rule 1), so there is always
     // at least one.
+    //
+    // **Each fact carries the page it was read from** (#931). #927 wrote
+    // the passages alone, and #931's done-when is "every sentence about the
+    // business on the page appears in the *Written from* card **with its
+    // source**" — which a passage without its address cannot answer. The
+    // url is the same `fact.url` the grounded record already keeps, so
+    // nothing new is derived: it is written down beside the passage it
+    // belongs to instead of being matched back to it later against a
+    // measurement that may have moved.
     meta: {
       description: body.description,
       ...(a.profile === null ? {} : { profileItems: profileItemsUsed(a.profile) }),
-      factsUsed: passages,
+      factsUsed: selected.map((sourced) => ({
+        passage: sourced.fact.passage,
+        url: sourced.fact.url,
+      })),
     },
     // The one shape (`../fact.ts`), so what is written here and what the
     // draft view and the hosted page read cannot be spelled differently.

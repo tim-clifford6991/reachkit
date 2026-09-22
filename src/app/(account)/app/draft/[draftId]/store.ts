@@ -118,6 +118,43 @@ function stringAt(meta: Record<string, unknown> | null, key: string): string | n
   return typeof value === "string" && value.trim() !== "" ? value : null;
 }
 
+/** A list of the customer's own strings off `meta`, or empty. Read
+ *  defensively for the reason every `meta` read here is: the column is JSON
+ *  and a row written by an older pipeline carries no such key (#927, #931). */
+function textsAt(meta: Record<string, unknown> | null, key: string): readonly string[] {
+  const value = meta?.[key];
+  if (!Array.isArray(value)) return [];
+  return value.filter((entry): entry is string => typeof entry === "string" && entry.trim() !== "");
+}
+
+/** The facts a page was written from, each with the page it was read from
+ *  (#931's done-when).
+ *
+ *  **Two shapes are read, and only one is written.** #927 wrote plain
+ *  passages and #931 writes `{ passage, url }`; a draft generated between
+ *  the two carries the older shape, and its facts are still the facts this
+ *  page was written from. So a bare string is read as a passage whose source
+ *  is unknown, and the card says so rather than dropping the sentence — a
+ *  fact with no address is exactly what the card exists to surface. */
+function factsUsedAt(
+  meta: Record<string, unknown> | null
+): readonly { passage: string; url: string | null }[] {
+  const value = meta?.factsUsed;
+  if (!Array.isArray(value)) return [];
+  const out: { passage: string; url: string | null }[] = [];
+  for (const entry of value) {
+    if (typeof entry === "string" && entry.trim() !== "") {
+      out.push({ passage: entry, url: null });
+      continue;
+    }
+    if (entry === null || typeof entry !== "object") continue;
+    const row = entry as { passage?: unknown; url?: unknown };
+    if (typeof row.passage !== "string" || row.passage.trim() === "") continue;
+    out.push({ passage: row.passage, url: typeof row.url === "string" ? row.url : null });
+  }
+  return out;
+}
+
 /**
  * The claim check's last verdict, as §8 recorded it in `drafts.claim_check`
  * — the column the pipeline writes at generation and the re-check sweep
@@ -211,6 +248,10 @@ export interface DraftSite {
   siteId: string;
   timeZone: string;
   mode: PublishingMode;
+  /** The customer's own domain, so the viewer can draw the page in their own
+   *  frame (#931). Passed rather than read: the session already resolved it
+   *  and a second read could answer with a domain the session does not have. */
+  domain: string;
 }
 
 /**
@@ -252,6 +293,15 @@ export async function readDraftRow(a: {
     writtenAt: new Date(row.created_at),
     bodyMd,
     bodyMdGenerated: generated,
+    // What the page was written from (#927, #931), as generation recorded
+    // it. Empty for a draft written before it was recorded — the card is
+    // then absent rather than empty, which is the honest answer for a page
+    // nobody wrote a record for.
+    writtenFrom: {
+      profileItems: textsAt(row.meta, "profileItems"),
+      facts: factsUsedAt(row.meta),
+    },
+    domain: a.site.domain,
     state: row.state as State,
     firstEditedAt: firstEdited === null ? null : new Date(firstEdited),
     // §8's recorded fact, from its own column and through the one reader

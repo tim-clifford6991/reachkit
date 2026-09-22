@@ -59,8 +59,13 @@ interface Candidate {
   readonly selector: string;
   readonly value: string;
   readonly important: boolean;
-  /** The narrowest `min-width` this rule sits under, or 0. */
+  /** The widest lower bound this rule sits under, or 0. */
   readonly minWidth: number;
+  /** The narrowest **exclusive** upper bound this rule sits under, or
+   *  `Infinity`. A `max-*:` utility (2026-09-21, #931: the draft's Decide
+   *  bar writes `max-md:text-xs`) compiles to `@media (width < 48rem)`, and
+   *  a rule that only applies below a width is not a candidate above it. */
+  readonly maxWidth: number;
 }
 
 /* ── the real compiled stylesheet ─────────────────────────────────────── */
@@ -70,14 +75,19 @@ interface Candidate {
  *  what the cascade is. */
 function importedSheets(): string[] {
   const layout = readFileSync(path.join(ROOT, "src/app/layout.tsx"), "utf8");
-  return [...layout.matchAll(/^import "@\/(ui\/[^"]+\.css)";$/gm)].map((m) => `src/${m[1]}`);
+  return [...layout.matchAll(/^import "@\/(ui\/[^"]+\.css)";$/gm)].map(
+    (m) => `src/${m[1]}`,
+  );
 }
 
 async function compile(): Promise<string> {
   const parts: string[] = [];
   for (const rel of importedSheets()) {
     const from = path.join(ROOT, rel);
-    const result = await postcss([tailwind()]).process(readFileSync(from, "utf8"), { from });
+    const result = await postcss([tailwind()]).process(
+      readFileSync(from, "utf8"),
+      { from },
+    );
     parts.push(result.css);
   }
   return parts.join("\n");
@@ -90,7 +100,7 @@ async function compile(): Promise<string> {
 const COMPOUND = /^(h[1-6])?((?:\.[A-Za-z0-9_\\/!:-]+)*)$/;
 
 function parseCompound(
-  selector: string
+  selector: string,
 ): { element: string | null; classes: string[] } | undefined {
   const m = COMPOUND.exec(selector.trim());
   if (!m) return undefined;
@@ -111,7 +121,7 @@ function parseCompound(
 function candidates(
   css: string,
   element: string,
-  elementClasses: readonly string[]
+  elementClasses: readonly string[],
 ): { matched: Candidate[]; undecidable: string[] } {
   const root = postcss.parse(css);
   const matched: Candidate[] = [];
@@ -150,28 +160,53 @@ function candidates(
       cursor = parent;
     }
     if (names.length === 0) return [];
-    return [...names.map((name) => layerOrder.get(name) ?? 0), Number.MAX_SAFE_INTEGER];
+    return [
+      ...names.map((name) => layerOrder.get(name) ?? 0),
+      Number.MAX_SAFE_INTEGER,
+    ];
   };
 
-  const minWidthOf = (node: Rule): number => {
-    let width = 0;
+  /** The width band a rule applies in, read off every `@media` above it.
+   *
+   *  Both ends, and both spellings of each: `type.css` writes its own step
+   *  as `(min-width: 640px)` and Tailwind 4 writes a `max-md:` utility as
+   *  `(width < 48rem)`. The bands *intersect* as they nest, which is what
+   *  `Math.max` / `Math.min` are doing. */
+  const bandOf = (node: Rule): { min: number; max: number } => {
+    let min = 0;
+    let max = Number.POSITIVE_INFINITY;
+    const px = (value: string, unit: string): number =>
+      unit === "rem" ? Number(value) * ROOT_FONT_PX : Number(value);
     let cursor: Rule | AtRule | undefined = node;
     while (cursor?.parent) {
       const parent = cursor.parent as AtRule;
       if (parent.type === "atrule" && parent.name === "media") {
-        const m = /min-width:\s*(\d+)px/.exec(parent.params);
-        if (m) width = Math.max(width, Number(m[1]));
+        const params = parent.params;
+        const lower =
+          /min-width:\s*([\d.]+)(px|rem)/.exec(params) ??
+          /width\s*>=\s*([\d.]+)(px|rem)/.exec(params);
+        if (lower) min = Math.max(min, px(lower[1]!, lower[2]!));
+        // `max-width: N` includes N; `width < N` does not. One pixel of
+        // difference, and it is the difference between a rule applying at
+        // the breakpoint and not, so it is not rounded away.
+        const upperInclusive = /max-width:\s*([\d.]+)(px|rem)/.exec(params);
+        if (upperInclusive) {
+          max = Math.min(max, px(upperInclusive[1]!, upperInclusive[2]!) + 1);
+        }
+        const upperExclusive = /width\s*<\s*([\d.]+)(px|rem)/.exec(params);
+        if (upperExclusive)
+          max = Math.min(max, px(upperExclusive[1]!, upperExclusive[2]!));
       }
       cursor = parent as AtRule;
     }
-    return width;
+    return { min, max };
   };
 
   let order = 0;
   root.walkRules((rule) => {
     order += 1;
     const sizes = rule.nodes?.filter(
-      (node) => node.type === "decl" && node.prop === "font-size"
+      (node) => node.type === "decl" && node.prop === "font-size",
     );
     if (!sizes || sizes.length === 0) return;
     // A rule in a media query this file cannot read is not a candidate it
@@ -182,9 +217,16 @@ function candidates(
       if (
         parent.type === "atrule" &&
         parent.name !== "layer" &&
-        !(parent.name === "media" && /^\(min-width:\s*\d+px\)$/.test(parent.params.trim()))
+        !(
+          parent.name === "media" &&
+          /^\((?:min-width:\s*[\d.]+(?:px|rem)|max-width:\s*[\d.]+(?:px|rem)|width\s*(?:>=|<)\s*[\d.]+(?:px|rem))\)$/.test(
+            parent.params.trim(),
+          )
+        )
       ) {
-        undecidable.push(`@${parent.name} ${parent.params} { ${rule.selector} }`);
+        undecidable.push(
+          `@${parent.name} ${parent.params} { ${rule.selector} }`,
+        );
         return;
       }
       cursor = parent as AtRule;
@@ -195,13 +237,16 @@ function candidates(
       if (!compound) {
         // Only report what could plausibly be about our element: a selector
         // for some other element or a descendant of something is not a gap.
-        if (new RegExp(`(^|[\\s,>+~])${element}([.:\\[\\s,]|$)`).test(selector)) {
+        if (
+          new RegExp(`(^|[\\s,>+~])${element}([.:\\[\\s,]|$)`).test(selector)
+        ) {
           undecidable.push(selector);
         }
         continue;
       }
       if (compound.element !== null && compound.element !== element) continue;
-      if (!compound.classes.every((name) => elementClasses.includes(name))) continue;
+      if (!compound.classes.every((name) => elementClasses.includes(name)))
+        continue;
       const decl = sizes[sizes.length - 1]!;
       if (decl.type !== "decl") continue;
       matched.push({
@@ -211,7 +256,8 @@ function candidates(
         selector,
         value: decl.value,
         important: decl.important === true,
-        minWidth: minWidthOf(rule),
+        minWidth: bandOf(rule).min,
+        maxWidth: bandOf(rule).max,
       });
     }
   });
@@ -233,9 +279,12 @@ function compareRank(a: readonly number[], b: readonly number[]): number {
 }
 
 /** The declaration that wins for `font-size`, at a stated viewport. */
-function winner(all: readonly Candidate[], viewport: number): Candidate | undefined {
+function winner(
+  all: readonly Candidate[],
+  viewport: number,
+): Candidate | undefined {
   return all
-    .filter((c) => c.minWidth <= viewport)
+    .filter((c) => c.minWidth <= viewport && viewport < c.maxWidth)
     .sort(
       (a, b) =>
         Number(a.important) - Number(b.important) ||
@@ -243,7 +292,7 @@ function winner(all: readonly Candidate[], viewport: number): Candidate | undefi
         a.specificity[0] - b.specificity[0] ||
         a.specificity[1] - b.specificity[1] ||
         a.specificity[2] - b.specificity[2] ||
-        a.order - b.order
+        a.order - b.order,
     )
     .at(-1);
 }
@@ -257,7 +306,8 @@ function resolvePx(value: string, css: string): number {
   const root = postcss.parse(css);
   const seen = new Map<string, string>();
   root.walkDecls((decl) => {
-    if (decl.prop.startsWith("--") && !seen.has(decl.prop)) seen.set(decl.prop, decl.value.trim());
+    if (decl.prop.startsWith("--") && !seen.has(decl.prop))
+      seen.set(decl.prop, decl.value.trim());
   });
   let current = value.trim();
   for (let depth = 0; depth < 4; depth += 1) {
@@ -278,19 +328,27 @@ beforeAll(async () => {
 }, 120_000);
 
 describe("a heading sized with a utility computes the utility's size (#941)", () => {
-  it("<h2 class=\"text-xs\"> resolves to the text-xs rung, not the h2 step", () => {
+  it('<h2 class="text-xs"> resolves to the text-xs rung, not the h2 step', () => {
     const { matched } = candidates(css, "h2", ["text-xs"]);
     // Rule 5.5: the sweep found the rules it was meant to rank.
-    expect(matched.length, "no font-size rule in the sheet matched an h2 at all").toBeGreaterThan(1);
+    expect(
+      matched.length,
+      "no font-size rule in the sheet matched an h2 at all",
+    ).toBeGreaterThan(1);
 
     for (const viewport of [NARROW_PX, WIDE_PX]) {
       const won = winner(matched, viewport);
-      expect(won, `nothing won font-size for h2.text-xs at ${viewport}px`).toBeDefined();
+      expect(
+        won,
+        `nothing won font-size for h2.text-xs at ${viewport}px`,
+      ).toBeDefined();
       expect(
         won!.selector,
-        `at ${viewport}px the winner is \`${won!.selector}\` — the utility must win, not an element rule`
+        `at ${viewport}px the winner is \`${won!.selector}\` — the utility must win, not an element rule`,
       ).toBe(".text-xs");
-      expect(resolvePx(won!.value, css), `h2.text-xs at ${viewport}px`).toBe(12);
+      expect(resolvePx(won!.value, css), `h2.text-xs at ${viewport}px`).toBe(
+        12,
+      );
     }
   });
 
@@ -298,24 +356,32 @@ describe("a heading sized with a utility computes the utility's size (#941)", ()
     // The other half: `base` is a default, not a deletion. The scale is
     // still what speaks when no class does.
     const h2 = candidates(css, "h2", []);
-    expect(resolvePx(winner(h2.matched, WIDE_PX)!.value, css), "bare h2").toBe(25);
+    expect(resolvePx(winner(h2.matched, WIDE_PX)!.value, css), "bare h2").toBe(
+      25,
+    );
 
     const h1 = candidates(css, "h1", []);
-    expect(resolvePx(winner(h1.matched, NARROW_PX)!.value, css), `bare h1 at ${NARROW_PX}px`).toBe(
-      25
-    );
-    expect(resolvePx(winner(h1.matched, WIDE_PX)!.value, css), `bare h1 at ${WIDE_PX}px`).toBe(31);
+    expect(
+      resolvePx(winner(h1.matched, NARROW_PX)!.value, css),
+      `bare h1 at ${NARROW_PX}px`,
+    ).toBe(25);
+    expect(
+      resolvePx(winner(h1.matched, WIDE_PX)!.value, css),
+      `bare h1 at ${WIDE_PX}px`,
+    ).toBe(31);
   });
 
   it("the heading scale is in a layer at all — nothing unlayered sizes a heading", () => {
     // The cause, stated directly. An unlayered element rule is what beat
     // every utility, so its absence is the invariant worth naming: a later
-        // edit that drops the `@layer base` wrapper fails here first, with the
+    // edit that drops the `@layer base` wrapper fails here first, with the
     // selector that did it in the message.
-    const unlayered = candidates(css, "h2", []).matched.filter((c) => c.rank.length === 0);
+    const unlayered = candidates(css, "h2", []).matched.filter(
+      (c) => c.rank.length === 0,
+    );
     expect(
       unlayered.map((c) => c.selector),
-      "an unlayered rule sizes a heading again — it will out-rank every Tailwind utility"
+      "an unlayered rule sizes a heading again — it will out-rank every Tailwind utility",
     ).toEqual([]);
   });
 
@@ -326,7 +392,7 @@ describe("a heading sized with a utility computes the utility's size (#941)", ()
     ];
     expect(
       [...new Set(all)],
-      "the compiled sheet grew a font-size rule about a heading that this file cannot rank — extend the matcher or the assertions above are narrower than they read"
+      "the compiled sheet grew a font-size rule about a heading that this file cannot rank — extend the matcher or the assertions above are narrower than they read",
     ).toEqual([]);
   });
 });

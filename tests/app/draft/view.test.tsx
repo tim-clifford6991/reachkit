@@ -34,6 +34,7 @@ import {
   FIXTURE_DRAFTS,
   FIXTURE_DRAFT_ID,
   FIXTURE_EDITED_DRAFT_ID,
+  FIXTURE_PUBLISHED_DRAFT_ID,
 } from "@/app/(account)/app/draft/[draftId]/fixture";
 
 const LABEL = "the label renderGenerated returned";
@@ -94,20 +95,21 @@ describe("REQ-045 c1 — every word that would publish is rendered, with nothing
 
   it("the body's own structure survives: its headings, list and quote are elements, not flattened text", () => {
     const body = markup().querySelector('[data-testid="draft-body"]');
-    // One level down, since #355: the page's title is the screen's `<h1>`
-    // and a body's heading is a heading *within* the page, so the source's
-    // three `##` are `<h3>` here. Nothing is flattened and nothing is lost
-    // — `present.ts` says why the shift is on the level rather than on the
-    // size.
+    // **No shift any more, and that is #931's whole point.** #355 demoted
+    // the body's headings a level because the title was the *screen's*
+    // `<h1>` and a body heading sat under it in the screen's outline. The
+    // title is now the *page's* `<h1>`, inside the page frame, so the
+    // source's three `##` are the `<h2>` the hosted page serves, sitting
+    // under that `<h1>`: the outline inside the frame is the published
+    // page's own outline and no longer a shifted copy of it.
     //
-    // **No `<h1>` and no `<h2>`, and both for the same reason** (issue
-    // #446): the body carries no `#` of its own, because the title is a
-    // column beside it and the screen already draws it above. The `#`
-    // → `h2` rung is exercised where a customer can actually type one —
-    // the editor's preview, below.
+    // **No `<h1>` in the body** (issue #446), because the body carries no
+    // `#` of its own: the title is a column beside it and the frame draws
+    // it above. The `#` → `h2` rung is exercised where a customer can
+    // actually type one — the editor's preview, below.
     expect(body?.querySelectorAll("h1").length).toBe(0);
-    expect(body?.querySelectorAll("h2").length).toBe(0);
-    expect(body?.querySelectorAll("h3").length).toBe(3);
+    expect(body?.querySelectorAll("h2").length).toBe(3);
+    expect(body?.querySelectorAll("h3").length).toBe(0);
     // **One list, three items** (issue #446). Three `li` was also what the
     // hard-wrapped fixture rendered — as three lists of one, each followed
     // by the stray half-sentence its continuation line became. The `ul`
@@ -117,14 +119,15 @@ describe("REQ-045 c1 — every word that would publish is rendered, with nothing
     expect(body?.querySelectorAll("blockquote").length).toBe(1);
   });
 
-  it("and the copy-out is not demoted — those are the bytes that publish", () => {
-    // The screen's own shift is the screen's. `renderMarkdownHtml` takes
-    // the body with no map and no shift, so the body's `##` is an `<h2>` in
-    // the bytes a customer copies out while the same heading is an `<h3>`
-    // on the screen above them: on the destination no heading of ours
-    // stands over the page.
+  it("the copy-out and the viewer agree, level for level — those are the bytes that publish", () => {
+    // They used to disagree on purpose: the copy-out was the publishing
+    // bytes and the screen shifted a level for its own outline. #931 ends
+    // the difference — the frame shows the published levels — and this row
+    // is kept, retargeted, because it is the one that would catch either
+    // surface drifting from the other again.
     expect(renderMarkdownHtml(VIEW.bodyMd)).toContain("<h2>");
-    expect(markup().querySelector('[data-testid="draft-body"] h2')).toBeNull();
+    expect(markup().querySelector('[data-testid="draft-body"] h2')).not.toBeNull();
+    expect(markup().querySelector('[data-testid="draft-body"] h3')).toBeNull();
   });
 
   it("the generated-content label renders beside the body, and is the one the server resolved", () => {
@@ -349,10 +352,26 @@ describe("S16 — the card the approved set draws", () => {
     expect(written).toContain("words");
   });
 
-  it("the source line sits inside the document, under the paragraph that carries the mark", () => {
+  it("the source line sits inside the page's own article, where the hosted page serves it", () => {
+    // #355 placed it under the paragraph carrying the mark, on a screen
+    // with no page frame. The frame (#931) is the reader's article, and the
+    // hosted route puts its source line at the foot of that article — so
+    // the reviewer reads the citation a visitor reads, in the place a
+    // visitor reads it. It is still *inside the document*, which is the
+    // half of #355 that was about not floating it off to the screen's foot.
     const root = markup();
-    const body = root.querySelector('[data-testid="draft-body"]');
-    expect(body?.querySelector('[data-testid="draft-grounded"]')).not.toBeNull();
+    const article = root.querySelector('[data-testid="published-view-article"]');
+    expect(article?.querySelector('[data-testid="draft-grounded"]')).not.toBeNull();
+    // After the body, not before it.
+    const body = article?.querySelector('[data-testid="draft-body"]');
+    const line = article?.querySelector('[data-testid="draft-grounded"]');
+    expect(
+      body !== undefined &&
+        body !== null &&
+        line !== undefined &&
+        line !== null &&
+        body.compareDocumentPosition(line) === Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBe(true);
     expect(textOf(root, "draft-grounded-url")).toBe(VIEW.grounded.url);
     // And the dropped-fact block is not drawn beside it: the fact is in the
     // body, marked.
@@ -364,6 +383,82 @@ describe("S16 — the card the approved set draws", () => {
     const card = root.querySelector('[data-testid="draft-copy-card"]');
     expect(card?.textContent).toContain(copy("draft.copy.title"));
     expect(card?.textContent).toContain(copy("draft.copy.note"));
+  });
+});
+
+describe("the Decide bar — one DOM, pinned only below `md`", () => {
+  // The owner's review of #931: on a phone the rail was the last thing under
+  // a ~5,300px page, so a reviewer could not act without scrolling past all
+  // of it. The controls are now fixed to the foot of the viewport below
+  // `md`. **The geometry is proved in a real browser** — Approve's box inside
+  // the viewport at the top of the page and at its foot, the bar above the
+  // shell's dock, the last card clear of it — and the numbers are in the PR
+  // body, because jsdom computes no layout (`checks.ts`'s own header says
+  // why). What is proved *here* is the thing a browser cannot tell us: that
+  // there is only one of everything.
+
+  it("there is one set of controls, not a phone copy beside a desktop one", () => {
+    const root = markup();
+    const controls = root.querySelectorAll('[data-testid^="draft-action-"]');
+    // The in-review fixture offers all three (§9's table, through
+    // `draftActionsFor`), and each appears exactly once.
+    expect(controls.length).toBe(3);
+    for (const key of ["draft.action.approve", "draft.action.edit", "draft.action.veto"]) {
+      expect(
+        root.querySelectorAll(`[data-testid="draft-action-${key}"]`).length,
+        `${key} must exist exactly once in the document`
+      ).toBe(1);
+    }
+    // And one do-nothing line, in the same place as the controls: the
+    // sentence takes the row above them through `order`, not by being
+    // written a second time.
+    expect(root.querySelectorAll('[data-testid="draft-do-nothing"]').length).toBe(1);
+    const bar = root.querySelector('[data-testid="draft-decide-bar"]');
+    expect(bar).not.toBeNull();
+    expect(bar?.querySelector('[data-testid="draft-actions"]')).not.toBeNull();
+    expect(bar?.querySelector('[data-testid="draft-do-nothing"]')).not.toBeNull();
+  });
+
+  it("the checks are not in the bar: they stay below the page", () => {
+    // The owner's words. A four-row list pinned over the page would cover
+    // the page it is about, and a reviewer reads the checks once, before
+    // deciding.
+    const root = markup();
+    const bar = root.querySelector('[data-testid="draft-decide-bar"]');
+    expect(bar?.querySelector('[data-testid="draft-checks"]')).toBeNull();
+    expect(
+      root.querySelector('[data-testid="draft-decide"] [data-testid="draft-checks"]')
+    ).not.toBeNull();
+  });
+
+  it("nothing is pinned from `md` up, and the page reserves room where something is", () => {
+    // The two halves of "below md" as the markup states them: every pinning
+    // class is prefixed, so from `md` up the rail is exactly the card it was
+    // — and the page's own bottom padding is prefixed the same way, so it
+    // exists only where the bar does.
+    const root = markup();
+    const bar = root.querySelector('[data-testid="draft-decide-bar"]');
+    const barClasses = (bar?.getAttribute("class") ?? "").split(/\s+/);
+    expect(barClasses).toContain("max-md:fixed");
+    expect(barClasses, "an unprefixed `fixed` would pin the rail at every width").not.toContain(
+      "fixed"
+    );
+    const view = root.querySelector('[data-testid="draft-view"]');
+    expect((view?.getAttribute("class") ?? "").split(/\s+/)).toContain("max-md:pb-20");
+  });
+});
+
+describe("a published page on an autopilot site renders at all", () => {
+  // The screen used to throw for this view, in `DecidePanel`, before it
+  // drew a single element: an autopilot page with no veto window left named
+  // a copy key whose sentence takes a `{at}` slot. Rendering is the
+  // assertion — `markup` throws if it does not.
+  const PUBLISHED = assembleDraft(factsFor(FIXTURE_PUBLISHED_DRAFT_ID));
+
+  it("draws the page, and no `what happens if you do nothing` box, because nothing does", () => {
+    const root = markup(PUBLISHED);
+    expect(root.querySelector('[data-testid="draft-body"]')).not.toBeNull();
+    expect(root.querySelector('[data-testid="draft-do-nothing"]')).toBeNull();
   });
 });
 

@@ -86,7 +86,7 @@ import { readDraftRow } from "@/app/(account)/app/draft/[draftId]/store";
 import { assembleDraft } from "@/app/(account)/app/draft/[draftId]/model";
 import { DraftScreen } from "@/app/(account)/app/draft/[draftId]/DraftScreen";
 
-const SITE = { siteId: SITE_ID, timeZone: "America/New_York", mode: "autopilot" as const };
+const SITE = { siteId: SITE_ID, timeZone: "America/New_York", mode: "autopilot" as const, domain: "example.com" };
 
 /** The customer's own live page, as the measurement read it. The grounding
  *  read picks its one long sentence — deterministically, in code — and that

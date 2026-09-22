@@ -29,7 +29,7 @@ import type { PageRecord } from "@/lib/publish/record";
 // database at all (`provider.ts` says why).
 import { SEO_COPY } from "@/lib/publish/record/lines";
 import { FIXTURE_SHELL_FACTS } from "../../_shell/fixture";
-import type { DraftFacts } from "./model";
+import type { DraftFacts, WrittenFrom } from "./model";
 
 // The zone and the publishing mode are the *site's*, not this screen's, so
 // they are read from the one fixture that already declares them rather
@@ -39,6 +39,11 @@ import type { DraftFacts } from "./model";
 // same page.
 export const FIXTURE_TIME_ZONE = FIXTURE_SHELL_FACTS.timeZone;
 export const FIXTURE_MODE = FIXTURE_SHELL_FACTS.mode;
+/** The customer's own domain, which the viewer draws the page's frame and
+ *  address from (#931). The shell's, for the same reason the zone is: a
+ *  page frame that named a different site from the sidebar would be two
+ *  accounts on one screen. */
+export const FIXTURE_DOMAIN = FIXTURE_SHELL_FACTS.domain;
 /** The draft the calendar's day panel opens on today, and the id
  *  `tests/ui/layout/routes.ts` fills `[draftId]` with. */
 export const FIXTURE_DRAFT_ID = "draft-2026-09-15";
@@ -60,6 +65,38 @@ export const FIXTURE_PUBLISHED_DRAFT_ID = "draft-2026-09-14";
  *  someone else's page. */
 const GROUNDED_FACT =
   "HubSpot's free tier caps custom properties at ten per object, which a five-person sales team reaches inside a quarter.";
+
+/** What this page was written from, as generation recorded it in
+ *  `drafts.meta` (#927 for the profile items, #931 for the sources).
+ *
+ *  The first passage is `GROUNDED_FACT` **word for word**: §8 grounds the
+ *  page in it, the body carries it, and the *Written from* card names the
+ *  page it was read off. A second spelling of it here would make the card
+ *  cite a sentence the body does not contain, which is the one thing the
+ *  card exists to rule out.
+ *
+ *  The last entry carries no address, because a draft written before #931
+ *  recorded one is a real state and the card has a line for it. */
+export const FIXTURE_WRITTEN_FROM: WrittenFrom = Object.freeze({
+  profileItems: Object.freeze([
+    "Sets up and moves CRMs for sales teams of two to ten",
+    "Fixed-price migrations, quoted before any work starts",
+    "Serves small B2B teams in the UK and Ireland",
+    "Every migration leaves you a full export in an open format",
+  ]),
+  facts: Object.freeze([
+    { passage: GROUNDED_FACT, url: "https://www.hubspot.com/pricing/crm" },
+    {
+      passage:
+        "Per-seat pricing applies from the second paid seat, billed annually in advance.",
+      url: "https://www.pipedrive.com/en/pricing",
+    },
+    {
+      passage: "Exports are available in CSV from the account settings at any time.",
+      url: null,
+    },
+  ]),
+});
 
 // **No `#` of its own** (issue #446). The pipeline returns a title and a
 // body as two fields (`DRAFT_SCHEMA`), the row stores them in two columns
@@ -224,6 +261,8 @@ const UNEDITED: DraftFacts = {
     },
   },
   timeZone: FIXTURE_TIME_ZONE,
+  writtenFrom: FIXTURE_WRITTEN_FROM,
+  domain: FIXTURE_DOMAIN,
 };
 
 const EDITED: DraftFacts = {

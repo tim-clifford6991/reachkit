@@ -52,15 +52,16 @@ import { writtenLine } from "../../_shell/written";
  * `bad`: §2.5 keeps red for the customer's problem being shown to them, and
  * a page ReachKit could not confirm is not yet one.
  */
-const VERIFICATION_TONE: Readonly<Record<VerificationKind, Tone>> = Object.freeze({
-  found: "ok",
-  page_not_found: "warn",
-  could_not_confirm: "neutral",
-  not_yet: "neutral",
-  due: "neutral",
-  never_taken_down_first: "neutral",
-  never_no_live_address: "neutral",
-});
+const VERIFICATION_TONE: Readonly<Record<VerificationKind, Tone>> =
+  Object.freeze({
+    found: "ok",
+    page_not_found: "warn",
+    could_not_confirm: "neutral",
+    not_yet: "neutral",
+    due: "neutral",
+    never_taken_down_first: "neutral",
+    never_no_live_address: "neutral",
+  });
 
 /** A label and its value. **The row is drawn whether or not the label's
  *  sentence has been written**: the label is the decoration and the value is
@@ -92,18 +93,36 @@ export function PageRecordBlock(p: {
   const title = writtenLine("record.title");
 
   return (
-    <section className="card card-border bg-base-100 min-w-0" data-testid="draft-record">
+    <section
+      className="card card-border bg-base-100 min-w-0"
+      data-testid="draft-record"
+    >
       <div className="card-body min-w-0 gap-3">
         {title === null ? null : (
-          <h2 className="text-xs font-semibold uppercase tracking-wide opacity-70">{title}</h2>
+          <h2 className="text-xs font-semibold uppercase tracking-wide opacity-70">
+            {title}
+          </h2>
         )}
         <Row label={writtenLine("record.label.address")}>
           {record.address.offered ? (
             <>
               <span>{writtenLine(record.address.label)}</span>
-              <a className="link num min-w-0 truncate" href={record.address.url}>
-                {record.address.url}
-              </a>
+              {/* **The box scrolls; the address is not clipped** (#931's
+                  shot harness found this on the delivered fixture at 390).
+                  `.truncate` is allow-listed for clamped *prose*, and this
+                  is a value: `checks.ts` reads the mono face off the
+                  computed style and fails a cut-off address whatever box it
+                  sits in — "a domain or a query cut in half is a different
+                  value" — and a reviewer needs the whole live address to
+                  check the page is where we say it is. `src/ui/type.css`
+                  names the remedy: the *box* changes (`overflow-x-auto`),
+                  never the value. No `tabIndex` on the wrap, because what
+                  is inside it is a link and already takes focus. */}
+              <span className="min-w-0 max-w-full overflow-x-auto">
+                <a className="link num" href={record.address.url}>
+                  {record.address.url}
+                </a>
+              </span>
             </>
           ) : (
             <span>{writtenLine(record.address.copy)}</span>
@@ -112,7 +131,9 @@ export function PageRecordBlock(p: {
 
         {record.unpublishOutcome === null ? null : (
           <Row label={writtenLine("record.label.taken-down")}>
-            <span className={`badge h-auto whitespace-normal py-1 text-left ${TONE_BADGE.neutral}`}>
+            <span
+              className={`badge h-auto whitespace-normal py-1 text-left ${TONE_BADGE.neutral}`}
+            >
               {writtenLine(unpublishedLine(record.unpublishOutcome))}
             </span>
           </Row>

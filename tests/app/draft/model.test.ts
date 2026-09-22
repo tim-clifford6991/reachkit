@@ -184,6 +184,26 @@ describe("REQ-045 c4 — what happens if you do nothing", () => {
     });
   });
 
+  it("autopilot with no window left says nothing, rather than a promise with no time in it", () => {
+    // Found by #931's shot harness, and a crash rather than a cosmetic
+    // gap: `store.ts` reads a veto deadline only while a page is
+    // `in_review`, so every published page on an autopilot site arrives
+    // with `autoApprovesAt: null` — and the autopilot sentence is "It
+    // publishes at {at} unless you stop it." Naming the key with no `at`
+    // to fill made `copy()` throw and took the whole review screen with
+    // it. There is no sentence to draw, so there is no key.
+    expect(doNothingOf({ ...facts(), mode: "autopilot", autoApprovesAt: null })).toEqual({
+      key: null,
+      publishesAt: null,
+    });
+    // Copilot is unchanged: its sentence takes no slot and is true whether
+    // or not anything is scheduled.
+    expect(doNothingOf({ ...facts(), mode: "copilot", autoApprovesAt: null })).toEqual({
+      key: DO_NOTHING_COPY_KEY.copilot,
+      publishesAt: null,
+    });
+  });
+
   it("the two keys are distinct — one mode can never be spoken as the other", () => {
     expect(DO_NOTHING_COPY_KEY.autopilot).not.toBe(DO_NOTHING_COPY_KEY.copilot);
   });

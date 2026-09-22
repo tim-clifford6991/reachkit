@@ -42,7 +42,13 @@ export const readDraft = cache(async function readDraft(
   const { readDraftRow } = await import("./store");
   const facts = await readDraftRow({
     draftId,
-    site: { siteId: account.siteId, timeZone: account.timeZone, mode: account.mode },
+    site: {
+      siteId: account.siteId,
+      timeZone: account.timeZone,
+      mode: account.mode,
+      // The customer's own domain, for the viewer's frame (#931).
+      domain: account.domain,
+    },
   });
   if (facts === null) return null;
 

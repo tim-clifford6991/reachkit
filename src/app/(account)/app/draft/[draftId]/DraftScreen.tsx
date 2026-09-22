@@ -15,8 +15,8 @@
 // Five rules this component keeps, each of them a criterion rather than a
 // preference:
 //
-//  1. **The body is never truncated** (c1). `RenderedBody` places the whole
-//     of it; there is no budget, no "show more", no clamped height.
+//  1. **The body is never truncated** (c1). `PublishedPageView` places the
+//     whole of it; there is no budget, no "show more", no clamped height.
 //  2. **The grounding follows the text** (c8). `present` is recomputed
 //     against the buffer on every render, so the highlight survives an edit
 //     that spared the fact and is gone the moment the fact is not there.
@@ -45,14 +45,31 @@
 "use client";
 
 import type React from "react";
-import { useCallback, useEffect, useOptimistic, useRef, useState, useTransition } from "react";
+import {
+  useCallback,
+  useEffect,
+  useOptimistic,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import { AUTOSAVE_DEBOUNCE_MS } from "@/lib/config/constants";
 import { copy } from "@/lib/presentation/copy";
 import { ArrowLeft, Copy } from "lucide-react";
-import { formatCount, formatDate, formatDateTime, formatTime } from "../../_shell/format";
+import {
+  formatCount,
+  formatDate,
+  formatDateTime,
+  formatTime,
+} from "../../_shell/format";
 import { writtenLine } from "../../_shell/written";
 import { COMMAND_TARGET, publishing } from "../../calendar/publishing";
-import { STAGE_FILTER_COPY_KEY, STAGE_OF, STAGE_TONE, TONE_BADGE } from "../../calendar/stages";
+import {
+  STAGE_FILTER_COPY_KEY,
+  STAGE_OF,
+  STAGE_TONE,
+  TONE_BADGE,
+} from "../../calendar/stages";
 import { say } from "../../../../_toast/say";
 import { CLAIM_COPY_KEY, CLAIM_TONE, claimAfterSave } from "./claim";
 import { CopyOut } from "./CopyOut";
@@ -63,7 +80,13 @@ import { Editor, type EditorPane } from "./Editor";
 import { PageRecordBlock } from "./PageRecordBlock";
 import { TargetBlock } from "./TargetBlock";
 import { factPresentIn } from "./grounded";
-import { RenderedBody } from "./RenderedBody";
+import { PublishedPageView } from "./PublishedPageView";
+import {
+  SearchResultCard,
+  WhatPublishesCard,
+  WrittenFromCard,
+} from "./ReviewCards";
+import { publishedCounts } from "./publishes";
 import { useDebounced } from "./useDebounced";
 import { wordCount, type ClaimState, type DraftView } from "./model";
 import type { RailCheck } from "./checks";
@@ -74,7 +97,11 @@ import type { RailCheck } from "./checks";
 type DraftText = Omit<SaveBody, "draftId">;
 
 function sameText(a: DraftText, b: DraftText): boolean {
-  return a.title === b.title && a.bodyMd === b.bodyMd && a.description === b.description;
+  return (
+    a.title === b.title &&
+    a.bodyMd === b.bodyMd &&
+    a.description === b.description
+  );
 }
 
 /** What the last check found, and the text it found it on. */
@@ -89,8 +116,13 @@ const EYEBROW = "text-xs font-semibold uppercase tracking-wide opacity-70";
 
 /** The two writes this screen can ask for. Both are §9 edges and both go
  *  to the state machine through the seam. */
-function ask(command: DraftCommand, draftId: string): ReturnType<typeof publishing.approve> {
-  return command === "approve" ? publishing.approve({ draftId }) : publishing.veto({ draftId });
+function ask(
+  command: DraftCommand,
+  draftId: string,
+): ReturnType<typeof publishing.approve> {
+  return command === "approve"
+    ? publishing.approve({ draftId })
+    : publishing.veto({ draftId });
 }
 
 export function DraftScreen(p: {
@@ -102,7 +134,11 @@ export function DraftScreen(p: {
   const { view } = p;
   const [editing, setEditing] = useState(false);
   const [pane, setPane] = useState<EditorPane>("markdown");
-  const read: DraftText = { title: view.title, bodyMd: view.bodyMd, description: view.description };
+  const read: DraftText = {
+    title: view.title,
+    bodyMd: view.bodyMd,
+    description: view.description,
+  };
   const [text, setText] = useState<DraftText>(read);
   const { bodyMd } = text;
   /** The text the store last confirmed. It starts as what was read, and
@@ -151,7 +187,10 @@ export function DraftScreen(p: {
     startDeciding(async () => {
       expect(COMMAND_TARGET[command]);
       const outcome = await ask(command, view.draftId);
-      say(outcome.ok ? decisionLine(command) : copy("draft.answer.refused"), outcome.ok ? "ok" : "bad");
+      say(
+        outcome.ok ? decisionLine(command) : copy("draft.answer.refused"),
+        outcome.ok ? "ok" : "bad",
+      );
     });
   }
 
@@ -183,7 +222,7 @@ export function DraftScreen(p: {
           setRefused(true);
         });
     },
-    [view.draftId]
+    [view.draftId],
   );
 
   // c6, the pause: one save per settled buffer, never one per keystroke.
@@ -217,7 +256,11 @@ export function DraftScreen(p: {
   /** #789: the saved text breaks a page rule and is held until a save passes. */
   const rulesHeld =
     current && checked.rulesFailed ? (
-      <p role="alert" className="alert alert-warning text-sm" data-testid="draft-rules-held">
+      <p
+        role="alert"
+        className="alert alert-warning text-sm"
+        data-testid="draft-rules-held"
+      >
         {copy("draft.edit.rules-held")}
       </p>
     ) : null;
@@ -226,7 +269,9 @@ export function DraftScreen(p: {
   // Whether generation recorded a grounding at all: three facts, and the
   // section below is drawn only where at least one of them exists (#268).
   const hasGrounding =
-    view.grounded.passage !== "" || view.grounded.url !== "" || view.grounded.readAt !== null;
+    view.grounded.passage !== "" ||
+    view.grounded.url !== "" ||
+    view.grounded.readAt !== null;
 
   const editedNote = view.authorship.edited
     ? writtenLine("draft.authorship.edited", {
@@ -234,7 +279,9 @@ export function DraftScreen(p: {
       })
     : null;
   const matchedLine =
-    claim.state === "failed" ? writtenLine("draft.claim.matched", { entry: claim.matchedEntry }) : null;
+    claim.state === "failed"
+      ? writtenLine("draft.claim.matched", { entry: claim.matchedEntry })
+      : null;
 
   /** The stage, spoken through the calendar's own projection so the two
    *  surfaces cannot call one state by two names. `null` for a state that
@@ -258,7 +305,10 @@ export function DraftScreen(p: {
 
   const stageBadge =
     stage === null ? null : (
-      <span className={`badge ${TONE_BADGE[STAGE_TONE[stage]]}`} data-testid={`draft-stage-${stage}`}>
+      <span
+        className={`badge ${TONE_BADGE[STAGE_TONE[stage]]}`}
+        data-testid={`draft-stage-${stage}`}
+      >
         {copy(STAGE_FILTER_COPY_KEY[stage])}
       </span>
     );
@@ -266,14 +316,28 @@ export function DraftScreen(p: {
   /** Criterion 2's source line: the address the fact was read from and the
    *  date it was read. Both are values, so they render in mono and need no
    *  sentence to be readable — and **no part of it is drawn without its
-   *  fact** (issue #268). */
+   *  fact** (issue #268).
+   *
+   *  The address sits in a **declared scroll box** rather than under
+   *  `truncate`: the line is inside the page frame now (#931), and a value
+   *  cut in half is a different value (`src/ui/type.css`, ADR-093 — the box
+   *  changes, never the value). */
   const sourceLine =
     view.grounded.url === "" && view.grounded.readAt === null ? null : (
-      <p className="my-2 flex flex-wrap gap-2 text-xs opacity-70" data-testid="draft-grounded">
+      <p
+        className="my-2 flex flex-wrap gap-2 text-xs opacity-70"
+        data-testid="draft-grounded"
+      >
         {view.grounded.url === "" ? null : (
-          <a href={view.grounded.url} className="link num min-w-0 truncate" data-testid="draft-grounded-url">
-            {view.grounded.url}
-          </a>
+          <span className="min-w-0 max-w-full overflow-x-auto">
+            <a
+              href={view.grounded.url}
+              className="link num"
+              data-testid="draft-grounded-url"
+            >
+              {view.grounded.url}
+            </a>
+          </span>
         )}
         {view.grounded.readAt === null ? null : (
           <span className="num" data-testid="draft-grounded-read-at">
@@ -283,12 +347,28 @@ export function DraftScreen(p: {
       </p>
     );
 
+  /**
+   * The page as it publishes (#931).
+   *
+   * **The same HTML the hosted route serves**, in the customer's own frame —
+   * `PublishedPageView` says how, and why there is no second renderer. It
+   * replaces the dense in-card rendering this arm used to draw: a reviewer
+   * approving a page is owed the page, not a transcription of it.
+   *
+   * `RenderedBody` is still the editor's: its preview sits inside a card
+   * among other cards, where a `prose` measure would fight the card.
+   */
   const body = (
-    <RenderedBody
+    <PublishedPageView
+      title={view.title}
       bodyMd={bodyMd}
-      markFact={grounded ? view.grounded.passage : null}
-      source={sourceLine ?? undefined}
-      data-testid="draft-body"
+      grounded={view.grounded}
+      publisher={view.publisher}
+      // Criterion 2's line, inside the article where the hosted route puts
+      // it. What is *ours* — the generated-content label — stays in the card
+      // head above the frame, because nothing of ours belongs on a page
+      // about to stand on their domain.
+      source={sourceLine}
     />
   );
 
@@ -297,7 +377,10 @@ export function DraftScreen(p: {
    *  removed is never invisible (c8). */
   const droppedGrounding =
     hasGrounding && !grounded ? (
-      <section className="flex flex-col gap-1" data-testid="draft-grounded-dropped">
+      <section
+        className="flex flex-col gap-1"
+        data-testid="draft-grounded-dropped"
+      >
         <h2 className={EYEBROW}>{copy("draft.grounded.title")}</h2>
         <p className="min-w-0 break-words" data-testid="draft-grounded-fact">
           {view.grounded.passage}
@@ -324,7 +407,10 @@ export function DraftScreen(p: {
 
   if (editing) {
     const stateBadge = refused ? (
-      <span className="badge badge-error" data-testid="draft-edit-state-unsaved">
+      <span
+        className="badge badge-error"
+        data-testid="draft-edit-state-unsaved"
+      >
         {copy("draft.edit.state.unsaved")}
       </span>
     ) : unsaved ? (
@@ -341,36 +427,53 @@ export function DraftScreen(p: {
         ? copy("draft.edit.saving")
         : savedAt === null
           ? null
-          : copy("draft.edit.saved", { at: formatTime(savedAt, view.timeZone) });
+          : copy("draft.edit.saved", {
+              at: formatTime(savedAt, view.timeZone),
+            });
 
     return (
       <div className="flex min-w-0 flex-col gap-4" data-testid="draft-view">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <nav data-testid="draft-edit-back">
-            <button type="button" className="btn btn-sm btn-ghost" onClick={() => setEditing(false)}>
+            <button
+              type="button"
+              className="btn btn-sm btn-ghost"
+              onClick={() => setEditing(false)}
+            >
               <ArrowLeft size={16} strokeWidth={1.75} aria-hidden />
               {copy("draft.edit.back")}
             </button>
           </nav>
-          <span className="flex flex-wrap items-center gap-2" data-testid="draft-claim">
+          <span
+            className="flex flex-wrap items-center gap-2"
+            data-testid="draft-claim"
+          >
             {stageBadge}
             {stateBadge}
           </span>
         </div>
 
-        <section className="card card-border bg-base-100 min-w-0" data-testid="draft-edit-card">
+        <section
+          className="card card-border bg-base-100 min-w-0"
+          data-testid="draft-edit-card"
+        >
           <div className="card-body min-w-0 gap-3">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <h1 className="card-title break-words text-2xl">{text.title}</h1>
               {saveLine === null ? null : (
-                <span className="text-xs opacity-70" data-testid="draft-save-line">
+                <span
+                  className="text-xs opacity-70"
+                  data-testid="draft-save-line"
+                >
                   {saveLine}
                 </span>
               )}
             </div>
             {rulesHeld}
             <fieldset className="fieldset">
-              <legend className="fieldset-legend">{copy("draft.edit.title-label")}</legend>
+              <legend className="fieldset-legend">
+                {copy("draft.edit.title-label")}
+              </legend>
               <input
                 type="text"
                 className="input w-full"
@@ -379,7 +482,9 @@ export function DraftScreen(p: {
                 onBlur={flush}
                 data-testid="draft-editor-title"
               />
-              <legend className="fieldset-legend">{copy("draft.edit.description-label")}</legend>
+              <legend className="fieldset-legend">
+                {copy("draft.edit.description-label")}
+              </legend>
               <textarea
                 className="textarea h-20 w-full"
                 value={text.description}
@@ -437,7 +542,16 @@ export function DraftScreen(p: {
         });
 
   return (
-    <div className="flex min-w-0 flex-col gap-4" data-testid="draft-view">
+    // **Room under the page for the Decide bar** (owner's review of #931).
+    // Below `md` the three controls are fixed above the shell's dock
+    // (`DecidePanel` says why there), so the last card would sit under them
+    // without this. The shell already reserves the dock's own 4rem below
+    // `lg` (`app/layout.tsx`: `pb-20`); this is the bar's height on top of
+    // it, measured in Chromium at 390 rather than guessed — see the PR body.
+    <div
+      className="flex min-w-0 flex-col gap-4 max-md:pb-20"
+      data-testid="draft-view"
+    >
       <nav data-testid="draft-back">
         <a href="/app/calendar" className="btn btn-sm btn-ghost">
           <ArrowLeft size={16} strokeWidth={1.75} aria-hidden />
@@ -447,33 +561,51 @@ export function DraftScreen(p: {
 
       <div className="grid min-w-0 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_18rem]">
         <div className="flex min-w-0 flex-col gap-4">
-          <article className="card card-border bg-base-100 min-w-0" data-testid="draft-card">
+          <article
+            className="card card-border bg-base-100 min-w-0"
+            data-testid="draft-card"
+          >
             <div className="card-body min-w-0 gap-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="flex min-w-0 flex-wrap items-center gap-2" data-testid="draft-claim">
+                <span
+                  className="flex min-w-0 flex-wrap items-center gap-2"
+                  data-testid="draft-claim"
+                >
                   {stageBadge}
                   {claimBadge}
                   {claim.state === "failed" ? (
                     // c11: the customer is told which entry held the draft.
                     // The entry is their own recorded text and renders as a
                     // value, whether or not the sentence beside it is written.
-                    <span className="num text-sm" data-testid="draft-claim-entry">
+                    <span
+                      className="num text-sm"
+                      data-testid="draft-claim-entry"
+                    >
                       {claim.matchedEntry}
                     </span>
                   ) : null}
-                  {matchedLine === null ? null : <span className="text-sm">{matchedLine}</span>}
+                  {matchedLine === null ? null : (
+                    <span className="text-sm">{matchedLine}</span>
+                  )}
                 </span>
                 {/* REQ-093 c2's label, bound to the text it speaks for. */}
-                <span className="badge badge-outline" data-testid="draft-generated-label">
+                <span
+                  className="badge badge-outline"
+                  data-testid="draft-generated-label"
+                >
                   {p.generatedLabel}
                 </span>
               </div>
-              <div className="flex min-w-0 flex-col gap-1">
-                <h1 className="card-title break-words text-2xl">{text.title}</h1>
-                <p className="text-xs opacity-70" data-testid="draft-written">
-                  {written}
-                </p>
-              </div>
+              {/* **The title is drawn once, and it is drawn in the frame**
+                  (#931). It used to head this card as well, which put the
+                  same sentence twice on the screen an inch apart — and the
+                  one inside the frame is the one that publishes, at the
+                  weight and in the place a reader meets it. What stays here
+                  is the chrome: when the page was written, and how long it
+                  is. */}
+              <p className="text-xs opacity-70" data-testid="draft-written">
+                {written}
+              </p>
               <div className="divider my-0" />
               {rulesHeld}
               {body}
@@ -481,7 +613,10 @@ export function DraftScreen(p: {
               {/* Where the customer has edited, the note that keeps the
                   generated-content label from speaking for their words. */}
               {editedNote === null ? null : (
-                <p className="text-xs opacity-70" data-testid="draft-edited-note">
+                <p
+                  className="text-xs opacity-70"
+                  data-testid="draft-edited-note"
+                >
                   {editedNote}
                 </p>
               )}
@@ -500,6 +635,23 @@ export function DraftScreen(p: {
               and where the AI engines stood. */}
           <TargetBlock target={view.target} />
 
+          {/* SPEC §7's three cards that nothing drew (#931): what a searcher
+              sees, what the page stands on and where each sentence was read,
+              and what actually leaves the building. *Why this page* is
+              `TargetBlock` above; the checks are `DecidePanel`'s. */}
+          <SearchResultCard
+            title={view.title}
+            description={view.description}
+            publisher={view.publisher}
+          />
+          <WrittenFromCard writtenFrom={view.writtenFrom} />
+          <WhatPublishesCard
+            publisher={view.publisher}
+            title={view.title}
+            description={view.description}
+            counts={publishedCounts(bodyMd)}
+          />
+
           {/* What became of this page (issue #217) — absent rather than empty
               for a draft whose record could not be read. */}
           {view.record === null ? null : (
@@ -508,7 +660,10 @@ export function DraftScreen(p: {
 
           {/* Copy-out is always shown — for a draft and a published page alike
               (c12). */}
-          <section className="card card-border bg-base-100 min-w-0" data-testid="draft-copy-card">
+          <section
+            className="card card-border bg-base-100 min-w-0"
+            data-testid="draft-copy-card"
+          >
             <div className="card-body min-w-0 gap-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h2 className={`flex items-center gap-2 ${EYEBROW}`}>

@@ -40,7 +40,8 @@ export type ClaimState =
  *  customer's own words as text ReachKit generated. Two states, page-level
  *  — never a per-span diff, which mislabels on rewording (the archived
  *  BP-044 decision 1 states the argument in full). */
-export type Authorship = { edited: false } | { edited: true; firstEditedAt: Date };
+export type Authorship =
+  { edited: false } | { edited: true; firstEditedAt: Date };
 
 /** Criteria 2 and 8. The recorded passage, the address it was read from,
  *  the date it was read, and whether that verbatim passage still occurs in
@@ -71,7 +72,12 @@ const NO_GROUNDING: Grounded = Object.freeze({
  *  window expires; copilot publishes nothing without an explicit approve,
  *  so it has no time to state. */
 export interface DoNothing {
-  key: CopyKey;
+  /** The sentence to draw, or `null` where there is nothing to say: an
+   *  autopilot page with no veto window left (a published or vetoed one)
+   *  has no time at which doing nothing publishes it, and its key's
+   *  sentence is "It publishes at {at} unless you stop it." — a promise
+   *  with no `at` to make it with. */
+  key: CopyKey | null;
   publishesAt: Date | null;
 }
 
@@ -87,6 +93,37 @@ export type DraftTarget =
   | { kind: "target"; target: PageTarget }
   | { kind: "fix" }
   | { kind: "unknown" };
+
+/**
+ * What the page was written from, as generation recorded it (#927, #931).
+ *
+ * SPEC §7 (2026-09-20): the review screen shows "*written from your
+ * business* — each fact, quote and promise used and where it was read".
+ *
+ * **Read off the record, never re-derived.** The profile a page was written
+ * from may have changed since — the customer may have removed an item the
+ * day after the page was written — and the card's job is to say what *this
+ * page* stands on. So both lists come from `drafts.meta`, which the writer
+ * filled at generation, and this screen interprets nothing.
+ */
+export interface WrittenFrom {
+  /** The profile items the prompt carried: what the business does, sells,
+   *  promises, serves and says. Empty where the site had no profile. */
+  readonly profileItems: readonly string[];
+  /** The passages the brief chose, each with the page it was read from.
+   *  `url` is `null` on a draft written before #931 recorded it. */
+  readonly facts: readonly {
+    readonly passage: string;
+    readonly url: string | null;
+  }[];
+}
+
+/** Whether there is anything to show. A page whose record carries neither
+ *  list draws no card, rather than an empty one — a draft written before
+ *  the record existed is not a page written from nothing. */
+export function writtenFromIsEmpty(w: WrittenFrom): boolean {
+  return w.profileItems.length === 0 && w.facts.length === 0;
+}
 
 export interface DraftView {
   draftId: string;
@@ -138,6 +175,30 @@ export interface DraftView {
   target: DraftTarget;
   /** The site-local zone every date this view states is expressed in. */
   timeZone: string;
+  /** What this page was written from (#931). */
+  writtenFrom: WrittenFrom;
+  /** The customer's own frame: the name and the address the page publishes
+   *  at, so the viewer can draw the page as a reader will meet it (#931). */
+  publisher: Publisher;
+}
+
+/** The customer's own page frame, as the viewer draws it.
+ *
+ *  Their name and their address and nothing of ReachKit's: SPEC §7 asks for
+ *  the page "in the customer's own page frame", and a mark of ours on it
+ *  would be the one thing the frame exists to show is absent. */
+export interface Publisher {
+  /** What the frame calls them. The domain today — see `publisherOf` for
+   *  why, and for what would change it. */
+  readonly name: string;
+  /** The address this page is or will be readable at. */
+  readonly url: string;
+  /** Whether that address is the **recorded** one a delivery made live, or
+   *  the site's own origin standing in for an address nothing has decided
+   *  yet. A row that stated a path for a page in review would be inventing
+   *  the destination's slug, so *What gets published* says which it is
+   *  instead of printing a host as though it were the page's address. */
+  readonly addressRecorded: boolean;
 }
 
 /** Everything the draft view reads, before it is a model. One shape, so the
@@ -154,6 +215,10 @@ export interface DraftFacts {
   /** Set on the first save that changed the text; `null` on a draft the
    *  customer has not edited. */
   firstEditedAt: Date | null;
+  /** What the page was written from, as generation recorded it (#931). */
+  writtenFrom: WrittenFrom;
+  /** The customer's own domain (#931). */
+  domain: string;
   /** The passage and its source, as recorded at generation — `null` where
    *  generation recorded no grounding. `present` is **not** a recorded
    *  value: it is recomputed in `assembleDraft` against `bodyMd`, so a body
@@ -180,19 +245,32 @@ export interface DraftFacts {
 
 /** The two keys criterion 4's outcome is spoken through. Named by the mode
  *  §9 names, never by a renderer. */
-export const DO_NOTHING_COPY_KEY: Readonly<Record<PublishingMode, CopyKey>> = Object.freeze({
-  autopilot: "draft.do-nothing.autopilot",
-  copilot: "draft.do-nothing.copilot",
-});
+export const DO_NOTHING_COPY_KEY: Readonly<Record<PublishingMode, CopyKey>> =
+  Object.freeze({
+    autopilot: "draft.do-nothing.autopilot",
+    copilot: "draft.do-nothing.copilot",
+  });
 
 /** Criterion 4. Copilot states no time because it has none: "explicit
  *  approve only" (§9) means nothing happens if the customer does nothing,
  *  and inventing a time for that arm would be a promise the product does
  *  not keep. */
 export function doNothingOf(facts: DraftFacts): DoNothing {
+  // **Autopilot with no window left says nothing at all.** `store.ts` reads
+  // `autoApprovesAt` as non-null only while a page is `in_review`, so every
+  // published, vetoed or stopped page on an autopilot site arrives here with
+  // none — and the autopilot sentence takes a `{at}` slot. Naming the key
+  // anyway made `copy()` throw the moment a customer on autopilot opened a
+  // page that had already gone out: `copy(): "draft.do-nothing.autopilot"
+  // requires slot "at"`, and the whole screen 500'd. The rule this follows
+  // is the draft view's own, stated in `PageRecord`: no row without a fact.
+  const publishesAt = facts.mode === "autopilot" ? facts.autoApprovesAt : null;
   return {
-    key: DO_NOTHING_COPY_KEY[facts.mode],
-    publishesAt: facts.mode === "autopilot" ? facts.autoApprovesAt : null,
+    key:
+      facts.mode === "autopilot" && publishesAt === null
+        ? null
+        : DO_NOTHING_COPY_KEY[facts.mode],
+    publishesAt,
   };
 }
 
@@ -243,5 +321,37 @@ export function assembleDraft(facts: DraftFacts): DraftView {
     rulesFailed: facts.rulesFailed,
     target: facts.target,
     timeZone: facts.timeZone,
+    writtenFrom: facts.writtenFrom,
+    publisher: publisherOf(facts),
+  };
+}
+
+/**
+ * The customer's own frame (#931).
+ *
+ * **The address a reader would meet.** Where the page is live, or has been,
+ * `record.address` holds the address ReachKit actually made it readable at
+ * and that is the one to draw. Where it is not, the page has no address yet
+ * — so the frame shows the site's own origin, which is where it will be.
+ * Never a composed slug: a guessed path in a browser bar would be a
+ * statement about an address nothing has recorded.
+ *
+ * **The name is the domain**, and that is a decision worth stating. What the
+ * hosted page shows is the *publication's* publisher name, and a draft has
+ * no publication; the crawl's `site_profiles.siteName` would be a second
+ * database read on a screen the customer opens to read one page. A domain is
+ * what a reader sees in a browser bar in any case, so the frame is honest
+ * with the fact in hand rather than accurate at the price of a query. The
+ * issue that gives this screen a profile read can put the name in.
+ */
+function publisherOf(facts: DraftFacts): Publisher {
+  const recorded = facts.record?.address;
+  return {
+    name: facts.domain,
+    url:
+      recorded !== undefined && recorded.offered
+        ? recorded.url
+        : `https://${facts.domain}`,
+    addressRecorded: recorded !== undefined && recorded.offered,
   };
 }
