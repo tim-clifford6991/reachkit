@@ -41,6 +41,10 @@ const LIVE_SCHEMA_TESTS = [
   // policies this migration adds — which `tests/db/rls.test.ts` does not
   // apply, because it applies the baseline and the base policies only.
   "tests/site-profile/business-edits-schema.test.ts",
+  // Issue #921: `publication_reads` — its two closed sets, the
+  // insert-or-increment that is also the retention sweep, and the one
+  // select-own policy this migration adds.
+  "tests/publish/reads/schema.test.ts",
 ];
 
 export default defineConfig({

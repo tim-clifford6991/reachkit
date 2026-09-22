@@ -767,6 +767,91 @@ export const AI_READER_AGENTS = Object.freeze([              // ADR-022, ADR-090
   "Claude-SearchBot", "PerplexityBot", "Google-Extended",
 ] as const);
 
+/** SPEC §6 (2026-09-20, #908) measure (d) and §7 of the same date, issue
+ *  #921 — the three closed lists behind "pages fetched by an answer engine
+ *  for a user's question, and visitors arriving from one, counted by day,
+ *  page and engine".
+ *
+ *  **Beside `AI_READER_AGENTS`, never inside it.** That list's membership
+ *  is stated verbatim by REQ-059 criterion 4 and is read by the
+ *  blocked-readers count, the paste block and the robots policy; adding a
+ *  name to it would change a score and a site-issue count. These are a
+ *  different question — not "may an engine read this site" but "did one
+ *  read this page, and why" — so they are their own pins and the one
+ *  overlap (the three search indexers) is spelled here again rather than
+ *  sliced out of a list that means something else.
+ *
+ *  **Three kinds, and only two of them are progress.** A *user fetcher* is
+ *  an engine going to the page because a person asked it something; a
+ *  *search indexer* is an engine building the index it answers from. §6(d)
+ *  is explicit that "training crawlers are not progress and are not shown",
+ *  so `AI_TRAINING_CRAWLERS` exists to be *excluded* by name rather than by
+ *  omission — a token that matches it is never counted, whatever else the
+ *  agent string also says.
+ *
+ *  Each token maps to the engine a customer knows it by; the engine names
+ *  are internal handles (constitution rule 1.1), and every word drawn on
+ *  the card is a registry key. */
+export const AI_BLOG_ENGINES = Object.freeze([               // SPEC §6 2026-09-20 (d) · issue 921
+  "chatgpt", "perplexity", "claude", "gemini", "copilot",
+] as const);
+
+/** The user-triggered fetchers: an engine fetching the page because a
+ *  person asked it a question. Named by SPEC §6's own issue #921. */
+export const AI_ANSWER_FETCHERS = Object.freeze({            // issue 921
+  "ChatGPT-User": "chatgpt",
+  "Perplexity-User": "perplexity",
+  "Claude-User": "claude",
+} as const);
+
+/** The search indexers: an engine building the index its answers are drawn
+ *  from. All three are also in `AI_READER_AGENTS`, which asks a different
+ *  question of them. */
+export const AI_SEARCH_INDEXERS = Object.freeze({            // issue 921
+  "OAI-SearchBot": "chatgpt",
+  "PerplexityBot": "perplexity",
+  "Claude-SearchBot": "claude",
+} as const);
+
+/** Excluded by name, never by omission: a hit whose agent carries one of
+ *  these is not counted at all. §6(d): "training crawlers are not progress
+ *  and are not shown." */
+export const AI_TRAINING_CRAWLERS = Object.freeze([          // issue 921
+  "GPTBot", "ClaudeBot",
+] as const);
+
+/** Where a visitor came from, when the referrer or `utm_source` says an AI
+ *  app. Hosts are matched as the host itself or a subdomain of it, so
+ *  `www.perplexity.ai` is Perplexity and `perplexity.ai.example.com` is
+ *  not. This is the "at least" half of the card: most AI apps send no
+ *  referrer at all, and the sentence beside the figure says so. */
+export const AI_REFERRER_HOSTS = Object.freeze({             // issue 921
+  "chatgpt.com": "chatgpt",
+  "perplexity.ai": "perplexity",
+  "gemini.google.com": "gemini",
+  "copilot.microsoft.com": "copilot",
+  "claude.ai": "claude",
+} as const);
+
+/** The same five, as the `utm_source` values an AI app appends when it
+ *  sends no referrer. Lower-cased at the comparison, never here. */
+export const AI_REFERRER_SOURCES = Object.freeze({           // issue 921
+  chatgpt: "chatgpt",
+  perplexity: "perplexity",
+  gemini: "gemini",
+  copilot: "copilot",
+  claude: "claude",
+} as const);
+
+/** The card's own window (drafted, issue #921: "Last 7 days") and how long
+ *  a day's counts are kept. Four weeks is the rolling window every other
+ *  AI-answer measure on this screen is read over (`ANSWER_RATE_WEEKS`), so
+ *  the roll-up outlives the card's week by enough to answer a month and no
+ *  longer. Retention is enforced by the writer, in the same statement that
+ *  counts a hit — see `record_publication_read`. */
+export const BLOG_READS_WINDOW_D = 7 as const;               // issue 921
+export const BLOG_READS_RETENTION_W = 4 as const;            // issue 921
+
 // The free path's own bounds
 export const FREE_RESCAN_WINDOW_D = 7 as const;              // BP-023 · BUILD §6.4
 export const FAILURE_COOLDOWN_H = 24 as const;               // BP-023 · BUILD §6.4

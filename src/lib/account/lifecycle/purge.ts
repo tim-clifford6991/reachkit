@@ -59,6 +59,11 @@ const PURGE_ORDER: readonly {
   { table: "site_profile_edits", column: "site_id", from: "siteIds" },
   // The weekly verdict on each published page.
   { table: "page_verdicts", column: "publication_id", from: "publicationIds" },
+  // How often an answer engine read each hosted page, and how many visitors
+  // an AI answer sent (#921). Counts, never a reader — but they are this
+  // customer's counts about this customer's pages, and the retention the
+  // writer enforces is a ceiling on age, not a replacement for a purge.
+  { table: "publication_reads", column: "publication_id", from: "publicationIds" },
   // The page records: what went live, where, and when it came down.
   { table: "publications", column: "site_id", from: "siteIds" },
   // The pages themselves — body and `grounded_fact` alike. REQ-050 c1 keeps

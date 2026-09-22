@@ -44,7 +44,9 @@ vi.mock("@/lib/account/billing", () => ({
   hostedServingState: async (siteId: string) => serving.get(siteId) ?? { serve: true },
 }));
 
-const { AI_READER_AGENTS, PREVIEW_HOST_SUFFIX } = await import("@/lib/config/constants");
+const { AI_ANSWER_FETCHERS, AI_READER_AGENTS, PREVIEW_HOST_SUFFIX } = await import(
+  "@/lib/config/constants"
+);
 const { customerRobotsDocument, previewRobotsDocument } = await import("@/app/(hosted)/policies");
 const { GET } = await import("@/app/(hosted)/robots.txt/route");
 
@@ -98,6 +100,43 @@ describe("REQ-059 c4 — it permits by name the six pinned AI readers", () => {
       expect(code, agent).not.toContain(agent);
     }
     expect(AI_READER_AGENTS).toHaveLength(6);
+  });
+});
+
+describe("SPEC §6 (2026-09-20) measure (d), #921 — it permits the three user-triggered fetchers too", () => {
+  // An engine that fetches a page *because a person asked it something* is
+  // the one arrival this product counts as progress; a policy that did not
+  // name it would leave that arrival to the wildcard's mercy.
+  it("every member of AI_ANSWER_FETCHERS appears with Allow", () => {
+    const document = customerRobotsDocument("https://content.example.com/sitemap.xml");
+    for (const agent of Object.keys(AI_ANSWER_FETCHERS)) {
+      expect(document, agent).toContain(`User-agent: ${agent}\nAllow: /`);
+    }
+  });
+
+  it("they are the pin's, not literals in the policy file", () => {
+    const source = readFileSync(path.join(REPO_ROOT, "src/app/(hosted)/policies.ts"), "utf8");
+    const code = source.slice(source.indexOf("export function customerRobotsDocument"));
+    for (const agent of Object.keys(AI_ANSWER_FETCHERS)) {
+      expect(code, agent).not.toContain(agent);
+    }
+  });
+
+  it("the customer's own domain is where they are named, never ours", async () => {
+    const body = await (await get("reachkit.example")).text();
+    for (const agent of Object.keys(AI_ANSWER_FETCHERS)) expect(body, agent).not.toContain(agent);
+  });
+
+  it("the two lists stay two — a fetcher is not an AI_READER_AGENTS member", () => {
+    for (const agent of Object.keys(AI_ANSWER_FETCHERS)) {
+      expect(AI_READER_AGENTS as readonly string[], agent).not.toContain(agent);
+    }
+  });
+
+  it("it still carries no Disallow", () => {
+    expect(customerRobotsDocument("https://content.example.com/sitemap.xml")).not.toContain(
+      "Disallow"
+    );
   });
 });
 
