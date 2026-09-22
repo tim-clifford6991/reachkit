@@ -29,9 +29,16 @@
 // one, because a card of zeroes would be a claim about engines rather than
 // a fact about the record.
 //
-// **What is not here, and where it goes**: *Also appearing for* and the
-// cited-pages tile wait on the LLM-Mentions pilot (#920). It is not stood
-// in for, because a placeholder for an unbought measurement is a claim.
+// **The two mentions cards land between the grid and those counts** (#1004,
+// owner ruling 2026-09-22 after the #920 pilot): *Also appearing for* and
+// *Your pages AI quotes*, drawn from the LLM Mentions rows the Monday pass
+// stores. They are a second read (`readMentions`) rather than members of
+// the answers model, because they are a different measurement bought from a
+// different endpoint over the same four-week window — and a site whose pass
+// has never bought them draws **no card at all** rather than an empty one,
+// which is why `MentionCards` may render nothing.
+//
+// Everything on the redesign board for this screen is now on it.
 import type React from "react";
 import type { Metadata } from "next";
 import { copy } from "@/lib/presentation/copy";
@@ -42,6 +49,8 @@ import { readBlogReads } from "../../_overview/blog-reads-provider";
 import { AnswerGrid } from "../../_overview/AnswerGrid";
 import { AnswerTiles } from "../../_overview/AnswerTiles";
 import { BlogReads } from "../../_overview/BlogReads";
+import { readMentions } from "../../_overview/mentions-provider";
+import { MentionCards } from "../../_overview/MentionCards";
 
 /** /app/ai-answers's own `<title>` (#945). Without it this screen announced
  *  nothing at all — the `(account)` layout's fallback is the floor, not
@@ -53,10 +62,14 @@ export default async function AiAnswersTabPage(): Promise<React.JSX.Element> {
   // own request-cached provider rather than restated here: two readers of a
   // customer's time zone is how two parts of one screen come to state two
   // different days.
-  const [shell, model, blogReads] = await Promise.all([
+  // `readMentions` reads `readAnswers` for the tracked set, and both are
+  // `cache`d — so this is three reads for the request, not four, and the
+  // questions the cards exclude are exactly the questions the grid draws.
+  const [shell, model, blogReads, mentions] = await Promise.all([
     readShell(),
     readAnswers(),
     readBlogReads(),
+    readMentions(),
   ]);
   // A sentence with a date inside it, not a value — the same line, from the
   // same key, the Search tab states over its own table. One sentence, one
@@ -82,6 +95,7 @@ export default async function AiAnswersTabPage(): Promise<React.JSX.Element> {
 
       <AnswerTiles model={model} />
       <AnswerGrid model={model} />
+      <MentionCards model={mentions} timeZone={shell.timeZone} />
       <BlogReads model={blogReads} />
     </div>
   );
