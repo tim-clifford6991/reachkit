@@ -14,30 +14,26 @@
 // the only text input and the only submit control in the document, and the
 // sections the page adds around it are prose, links and one component — no
 // second field, no selector, no toggle.
+//
+// **Its sentences arrive written** (#988). The keys moved to
+// `./scan-form-words.ts`, which only Server Components import: a `copy()`
+// call here put the whole merged copy registry — 39 kB — into every visitor's
+// first download. Nothing about the field, the five refusal lines or either
+// submission path changed with them.
 "use client";
 
 import { use, useId, useState, type FormEvent } from "react";
-import { copy } from "@/lib/presentation/copy";
+import type { ScanFormWords } from "./scan-form-words";
 import type { DomainProblem } from "@/lib/scan/domain";
 import type { StartScanResponse } from "@/app/api/scan/route";
 
 type LandingSearchParams = { problem?: string; value?: string };
 
-// The five `DomainProblem` handles (`src/lib/scan/domain.ts`, WO-051) and
-// the one landing-copy key each names, per this WO's `rests-on` row: "one
-// written line per DomainProblem." No sixth or fourth value exists; a
-// value outside this list is treated as no problem at all (Step 4/5: only
-// a value this page recognises re-renders the line).
-const PROBLEM_COPY_KEY = {
-  empty: "landing.problem.empty",
-  not_a_hostname: "landing.problem.not-a-hostname",
-  ip_literal: "landing.problem.ip-literal",
-  no_public_suffix: "landing.problem.no-public-suffix",
-  too_long: "landing.problem.too-long",
-} as const satisfies Record<DomainProblem, string>;
-
-function isDomainProblem(value: string | undefined): value is DomainProblem {
-  return value !== undefined && Object.prototype.hasOwnProperty.call(PROBLEM_COPY_KEY, value);
+function isDomainProblem(
+  value: string | undefined,
+  problem: ScanFormWords["problem"]
+): value is DomainProblem {
+  return value !== undefined && Object.prototype.hasOwnProperty.call(problem, value);
 }
 
 function isPromise<T>(value: Promise<T> | T | undefined): value is Promise<T> {
@@ -63,16 +59,15 @@ function useLandingSearchParams(
 
 export function ScanForm(props: {
   searchParams?: Promise<LandingSearchParams> | LandingSearchParams;
-  /** The submit control's label, where the screen is not the landing.
-   *  Optional and defaulted to REQ-001 c1's own, so `/`'s call site is
-   *  unchanged: S8 draws the same field and the same action under a
-   *  different word ("Scan it"), and a second copy of this form would be a
-   *  second place the no-JavaScript path, the five refusal lines and the
-   *  one named field live. */
-  submitLabel?: string;
+  /** Every sentence the form says, resolved by the Server Component that
+   *  renders it — `scanFormWords()` in `./scan-form-words.ts`, which also
+   *  carries the one word a caller may replace (S8's "Scan it"). */
+  words: ScanFormWords;
 }): React.JSX.Element {
   const initial = useLandingSearchParams(props.searchParams);
-  const initialProblem = isDomainProblem(initial.problem) ? initial.problem : undefined;
+  const initialProblem = isDomainProblem(initial.problem, props.words.problem)
+    ? initial.problem
+    : undefined;
 
   const [value, setValue] = useState(initial.value ?? "");
   const [problem, setProblem] = useState<DomainProblem | undefined>(initialProblem);
@@ -111,8 +106,8 @@ export function ScanForm(props: {
         <input
           type="text"
           name="value"
-          aria-label={copy("landing.field.label")}
-          placeholder={copy("landing.field.placeholder")}
+          aria-label={props.words.fieldLabel}
+          placeholder={props.words.placeholder}
           className={problem ? "input input-error w-auto min-w-0 flex-1" : "input w-auto min-w-0 flex-1"}
           value={value}
           onChange={(e) => setValue(e.target.value)}
@@ -121,12 +116,12 @@ export function ScanForm(props: {
         />
         {/* The screen's one submit control and its one solid button. */}
         <button type="submit" className="btn btn-primary" disabled={submitting} aria-busy={submitting || undefined}>
-          {props.submitLabel ?? copy("landing.submit.label")}
+          {props.words.submit}
         </button>
       </div>
       {problem ? (
         <p id={problemId} className="text-sm text-error">
-          {copy(PROBLEM_COPY_KEY[problem])}
+          {props.words.problem[problem]}
         </p>
       ) : null}
     </form>

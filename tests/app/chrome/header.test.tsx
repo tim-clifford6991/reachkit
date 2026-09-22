@@ -32,12 +32,45 @@
 // **The right slot is a closed union.** Three arms — the pair, the landing's
 // field CTA, and the report address's copy control beside the pair — chosen
 // by `headerActionFor`, which this file asserts per route (issue 714).
+//
+// **2026-09-22, issue #988 — the bar reads the address rather than being
+// handed an arm.** `(public)/layout.tsx` used to be a Client Component for
+// one `usePathname()` call and passed the result down, which made the whole
+// public chrome — and `copy()`'s merged registry with it — part of every
+// public route's client bundle. The bar is a Server Component now and the
+// two parts that follow the address are client leaves that read the path
+// themselves (`_chrome/HeaderArm.tsx`). So these rows render the header *at
+// a path* instead of *with an action*: the same three arms, named by the
+// address that chooses them, which is what issue 714 is about anyway.
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
-import { Header, headerActionFor, type HeaderAction } from "@/app/(public)/_chrome/Header";
+import { describe, expect, it, vi } from "vitest";
+import { Header } from "@/app/(public)/_chrome/Header";
+import { headerActionFor, type HeaderAction } from "@/app/(public)/_chrome/action";
 
-function markup(action: HeaderAction): string {
-  return renderToStaticMarkup(<Header action={action} />);
+/** The address the header believes it is at. `usePathname()` is the one
+ *  thing a bar rendered outside a router cannot have, and it is exactly
+ *  what these rows vary. */
+let pathname = "/";
+vi.mock("next/navigation", () => ({ usePathname: () => pathname }));
+
+/** The origin a deployment binds. `_chrome/canonical.ts` reads
+ *  `NEXT_PUBLIC_APP_URL` once at module load — Next inlines it at build —
+ *  and a vitest run binds nothing, so without this the report would take
+ *  the plain arm ("no origin bound is no address to copy") and the row
+ *  about its copy control would assert nothing at all. */
+vi.mock("@/app/(public)/_chrome/canonical", () => {
+  // Inside the factory, because `vi.mock` is hoisted above every top-level
+  // binding in this file.
+  const origin = "https://reachkit.app";
+  return {
+    PUBLIC_ORIGIN: origin,
+    canonicalUrl: (path: string) => new URL(path, origin).toString(),
+  };
+});
+
+function markup(path: string): string {
+  pathname = path;
+  return renderToStaticMarkup(<Header />);
 }
 
 function withoutThemeToggle(html: string): string {
@@ -49,25 +82,29 @@ function withoutPhoneMenu(html: string): string {
   return html.replace(/<div[^>]*data-testid="public-header-menu"[\s\S]*?<\/ul><\/div>/, "");
 }
 
-const LANDING: HeaderAction = { kind: "landing" };
-const ELSEWHERE: HeaderAction = { kind: "cta" };
-const REPORT: HeaderAction = {
-  kind: "copy-link",
-  canonicalUrl: "https://reachkit.app/scan/example.com",
-};
+/** The three arms, as the addresses that choose them. */
+const LANDING = "/";
+const ELSEWHERE = "/pricing";
+const REPORT = "/scan/example.com";
+
+const LANDING_ACTION: HeaderAction = { kind: "landing" };
+const ELSEWHERE_ACTION: HeaderAction = { kind: "cta" };
 
 describe("SPEC §1, owner 2026-09-15 (issue 714) — the same bar on the report, token pages and sign-in", () => {
   it("the veto, opt-out and sign-in routes take the plain pair; the landing takes its field CTA", () => {
     for (const path of ["/veto/a-token", "/opt-out/a-token", "/signin", "/pricing"]) {
-      expect(headerActionFor(path)).toEqual(ELSEWHERE);
+      expect(headerActionFor(path)).toEqual(ELSEWHERE_ACTION);
     }
-    expect(headerActionFor("/")).toEqual(LANDING);
+    expect(headerActionFor("/")).toEqual(LANDING_ACTION);
     expect(["copy-link", "cta"]).toContain(headerActionFor("/scan/example.com").kind);
   });
 
   it("the report keeps its copy control beside Sign in and the one outline CTA", () => {
     const html = withoutThemeToggle(markup(REPORT));
     expect(html).toContain('href="/signin"');
+    // The copy control itself, by the glyph only it draws — the bar's arm
+    // and the phone menu's, which is why there are two.
+    expect(html.match(/lucide-copy\b/g)).toHaveLength(2);
     expect(html).toContain('<button');
     const primaries = [...html.matchAll(/class="([^"]*\bbtn-primary\b[^"]*)"/g)].map((m) => m[1] ?? "");
     expect(primaries).toHaveLength(1);

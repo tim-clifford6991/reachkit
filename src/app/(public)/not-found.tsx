@@ -20,6 +20,7 @@ import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { AddressLine } from "@/app/_fallback/AddressLine";
 import { NotFoundScreen } from "@/app/_fallback/Fallback";
 import { ScanForm } from "./_landing/ScanForm";
+import { scanFormWords } from "./_landing/scan-form-words";
 
 /** S8's own line, and the shape of a report address it names. */
 const LINE: CopyKey = "chrome.notfound.line";
@@ -44,7 +45,7 @@ export default function PublicNotFound(): React.JSX.Element {
           <AddressLine copyKey={LINE} address={copy(ADDRESS)} />
         </>
       }
-      action={<ScanForm submitLabel={copy("chrome.notfound.cta")} />}
+      action={<ScanForm words={scanFormWords(copy("chrome.notfound.cta"))} />}
       testId={TEST_ID}
     />
   );

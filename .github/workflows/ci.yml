@@ -65,6 +65,14 @@ jobs:
     #     served them. `docs/DESIGN.md` forbids a pixel baseline as a merge
     #     gate, and the owner reviews the product on `dev.reachkit.app`.
     #
+    # **And since #988 it carries the landing's script budget too.** That
+    # was the one subtraction left — `test:layout:gate` was `test:layout`
+    # minus `vitals.test.ts`, because `main` breached the budget by 130 kB
+    # and folding it in would have blocked every merge over a defect no PR
+    # introduced. `/` is inside the budget now, so the subtraction is gone
+    # and so is the script that expressed it: this job runs the whole
+    # `layout` project, which is what #988's third `Done when` asks for.
+    #
     # Nothing here photographs anything. Every failure it can produce is a
     # sentence naming an element on a named screen at a named width in a
     # named theme, which is what makes it fit to block a merge.
@@ -78,16 +86,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/layout-suite
-      # `test:layout` minus `vitals.test.ts`, and that subtraction is the
-      # one thing this job does not carry. The landing transfers 325.7 kB
-      # of script against #332's 200 kB budget *today*, on `main`, and has
-      # for as long as the job that measured it was red — so folding the
-      # budget in as it stands would block every merge over a defect no
-      # PR introduced. The weight is filed on its own (#988) and the
-      # nightly full matrix keeps reporting it; the line below goes back to
-      # `npm run test:layout` the day that closes.
+      # The whole `layout` project, the landing's script budget included
+      # (#988).
       - name: every screen, hydrated — no overflow, axe, the five checks
-        run: npm run test:layout:gate
+        run: npm run test:layout
       - if: always()
         uses: ./.github/actions/db-substrate-down
 

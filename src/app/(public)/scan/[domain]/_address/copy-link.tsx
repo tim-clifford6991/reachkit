@@ -16,13 +16,18 @@
 //
 // daisyUI `btn btn-ghost btn-sm` in the route (DESIGN rule 1); lucide's
 // copy glyph at 16px, stroke 1.75.
+//
+// **Its one sentence is handed in, like its one address** (#988). A
+// `copy()` call in a Client Component puts the whole merged registry in the
+// bundle; the caller is a Server Component and resolves
+// `copy("copy-link.label")` there. The key is named once, at that call
+// site, exactly as the address is composed once at its own.
 "use client";
 
 import type React from "react";
 import { Copy } from "lucide-react";
-import { copy } from "@/lib/presentation/copy";
 
-export function CopyLink(p: { canonicalUrl: string }): React.JSX.Element {
+export function CopyLink(p: { canonicalUrl: string; label: string }): React.JSX.Element {
   return (
     <button
       type="button"
@@ -32,7 +37,7 @@ export function CopyLink(p: { canonicalUrl: string }): React.JSX.Element {
       }}
     >
       <Copy size={16} strokeWidth={1.75} aria-hidden />
-      {copy("copy-link.label")}
+      {p.label}
     </button>
   );
 }

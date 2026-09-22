@@ -50,6 +50,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { copy } from "@/lib/presentation/copy";
+import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { GATE_PATH_HEADER, setupRedirectFor } from "./setup/gate";
 import { readSetupGateState } from "./setup/gate-state";
 import { BrowserZone } from "./_zone/BrowserZone";
@@ -81,10 +82,18 @@ export default async function AccountLayout({
 
   // REQ-073 c1's first sign-in write has its caller here, on every account
   // screen: the zone is the browser's to report, and only script can.
+  //
+  // **`NuqsAdapter` is mounted here and not on the document** (#988). Every
+  // `useQueryState` in this product is under this group — the calendar's
+  // month and day, the Rivals and Search tables' filters, setup's step —
+  // and none is outside it. On the root layout the adapter shipped to every
+  // public route as well, which is 17.8 kB of script a stranger reading the
+  // landing page downloaded for URL state that page does not have. It still
+  // wraps every screen that reads one, which is what the adapter is for.
   return (
-    <>
+    <NuqsAdapter>
       <BrowserZone />
       {children}
-    </>
+    </NuqsAdapter>
   );
 }

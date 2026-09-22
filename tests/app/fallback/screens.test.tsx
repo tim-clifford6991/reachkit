@@ -31,10 +31,21 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { AWAITING_COPY, COPY, copy } from "../../../src/lib/presentation/copy";
 import { codeOf } from "../../mail/leads/source";
 import PublicNotFound from "../../../src/app/(public)/not-found";
-import PublicError from "../../../src/app/(public)/error";
+// The `(public)` error *screen*, not its boundary: since #988 `error.tsx`
+// is a `lazy()` boundary and nothing else, so that the landing page does
+// not download an error screen it is not showing. What S8 describes — the
+// line, the field, the one control — is this module, and it is what these
+// rows render.
+import PublicError from "../../../src/app/(public)/_fallback/PublicErrorBody";
 import AccountNotFound from "../../../src/app/(account)/not-found";
 import AccountError from "../../../src/app/(account)/error";
-import GlobalError from "../../../src/app/global-error";
+// The root error *screen*, not the document it is mounted in: since #988
+// `global-error.tsx` carries the `<html>` and `<body>` it is required to
+// carry and lazily imports this, so that every route in the product does
+// not download an error screen for a root layout that did not fail. What
+// S8 describes is this module; the document is asserted from the source of
+// the other, below.
+import GlobalError from "../../../src/app/_fallback/GlobalErrorBody";
 import RootNotFound from "../../../src/app/not-found";
 
 function html(screen: () => React.JSX.Element): string {
@@ -307,9 +318,11 @@ describe("S8 — what each file is, on disk", () => {
     for (const file of [
       "src/app/(public)/not-found.tsx",
       "src/app/(public)/error.tsx",
+      "src/app/(public)/_fallback/PublicErrorBody.tsx",
       "src/app/(account)/not-found.tsx",
       "src/app/(account)/error.tsx",
       "src/app/global-error.tsx",
+      "src/app/_fallback/GlobalErrorBody.tsx",
       "src/app/not-found.tsx",
       "src/app/_fallback/Fallback.tsx",
       "src/app/_fallback/AddressLine.tsx",

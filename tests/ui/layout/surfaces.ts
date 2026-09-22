@@ -55,7 +55,9 @@ import { SEGMENT_FIXTURES, type EnumeratedRoute } from "./routes";
 // written the same way. A route group's parentheses and a dynamic segment's
 // brackets are ordinary path characters, but they are ordinary path
 // characters that only one spelling in this repository has ever been run.
-import PublicError from "../../../src/app/(public)/error";
+// The screen, not the boundary: `(public)/error.tsx` is a `lazy()` wrapper
+// since #988 and renders nothing synchronously.
+import PublicError from "../../../src/app/(public)/_fallback/PublicErrorBody";
 import AccountNotFound from "../../../src/app/(account)/not-found";
 import AccountError from "../../../src/app/(account)/error";
 import ReportLoading from "../../../src/app/(public)/scan/[domain]/loading";

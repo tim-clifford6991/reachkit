@@ -65,6 +65,16 @@ const FORM_PATH = path.resolve(
   "../../../src/app/(public)/_landing/ScanForm.tsx"
 );
 const FORM_SOURCE = readFileSync(FORM_PATH, "utf8");
+// 2026-09-22, issue #988: the field's eight sentences moved again, out of
+// the Client Component and into a module only Server Components import, so
+// that reading the landing page no longer downloads the whole copy
+// registry. The keys did not change and neither did the rule they are held
+// to — this is where they now live, and it is read alongside the other two.
+const WORDS_PATH = path.resolve(
+  import.meta.dirname,
+  "../../../src/app/(public)/_landing/scan-form-words.ts"
+);
+const WORDS_SOURCE = readFileSync(WORDS_PATH, "utf8");
 
 const NETWORK = "network-key-fixture" as NetworkKey;
 
@@ -198,7 +208,7 @@ describe(
       // Component could set one itself.
       // Both files: the promise is the *page's*, and half of it now lives
       // in the form.
-      for (const source of [PAGE_SOURCE, FORM_SOURCE]) {
+      for (const source of [PAGE_SOURCE, FORM_SOURCE, WORDS_SOURCE]) {
         expect(source).not.toMatch(/from\s+["'][^"']*\b(session|auth|account)\b[^"']*["']/i);
         expect(source).not.toMatch(/document\.cookie/);
       }
@@ -371,19 +381,20 @@ describe('REQ-093 c1 (BP-022: "This node contains no string literal a person rea
 
     // Every visible string resolves through copy(): the three non-problem
     // keys are called directly by name; the five DomainProblem lines are
-    // called through `PROBLEM_COPY_KEY[problem]` — a lookup, not a
-    // literal — so each of those five is checked as a value in that map
-    // instead, and the lookup call site is checked once.
-    // The headline is the page's; the field's two are the form's since
-    // #266 split them. Both files are read, so the property is the same one
-    // and neither half can quietly start writing a sentence.
-    const BOTH = `${PAGE_SOURCE}\n${FORM_SOURCE}`;
+    // called through `PROBLEM_COPY_KEY` — a lookup, not a literal — so each
+    // of those five is checked as a value in that map instead, and the
+    // lookup call site is checked once.
+    // The headline is the page's; the field's are `scan-form-words.ts`'s
+    // since #988 moved them off the client leaf. All three files are read,
+    // so the property is the same one and no part can quietly start
+    // writing a sentence.
+    const ALL = `${PAGE_SOURCE}\n${FORM_SOURCE}\n${WORDS_SOURCE}`;
     for (const key of ["landing.headline", "landing.field.label", "landing.submit.label"]) {
-      expect(BOTH, `copy() never reaches "${key}"`).toMatch(
+      expect(ALL, `copy() never reaches "${key}"`).toMatch(
         new RegExp(`copy\\(["']${key.replace(/[.-]/g, "\\$&")}["']`)
       );
     }
-    expect(FORM_SOURCE).toMatch(/copy\(PROBLEM_COPY_KEY\[problem\]\)/);
+    expect(WORDS_SOURCE).toMatch(/copy\(key\)/);
     for (const key of [
       "landing.problem.empty",
       "landing.problem.not-a-hostname",
@@ -391,8 +402,13 @@ describe('REQ-093 c1 (BP-022: "This node contains no string literal a person rea
       "landing.problem.no-public-suffix",
       "landing.problem.too-long",
     ]) {
-      expect(FORM_SOURCE, `"${key}" is not a value in PROBLEM_COPY_KEY`).toContain(`"${key}"`);
+      expect(WORDS_SOURCE, `"${key}" is not a value in PROBLEM_COPY_KEY`).toContain(`"${key}"`);
     }
+    // And the client leaf itself now names no key at all — the whole point
+    // of the move (#988), and the thing that would silently come back.
+    expect(FORM_SOURCE, "ScanForm reads the copy registry again").not.toMatch(
+      /from\s+["']@\/lib\/presentation\/copy["']/
+    );
   });
 });
 

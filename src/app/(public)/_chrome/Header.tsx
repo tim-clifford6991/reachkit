@@ -25,58 +25,38 @@
 // The brand itself is `src/app/_brand/Brand.tsx` — one drawing shared with
 // the app shell, so the mark the owner is still choosing (the canvas's logo
 // round) is one edit away wherever it appears.
+//
+// **A Server Component since #988, and it takes no path.** It used to be a
+// Client Component by inheritance — `(public)/layout.tsx` read
+// `usePathname()` to hand it an arm, which made this file, `Footer.tsx`,
+// `Brand.tsx` and everything they import client modules, and dragged
+// `copy()`'s whole merged registry into every public route's first
+// download. Two arms of this bar genuinely do follow the address, and only
+// those two are Client Components now (`./HeaderArm.tsx`); the rule they
+// apply is `./action.ts`, which holds no copy key so that importing it
+// costs a client nothing. Every `copy()` call below runs on the server, and
+// each leaf is handed its sentence already written.
 import type React from "react";
 import { Menu } from "lucide-react";
 import Link from "next/link";
 import { copy } from "@/lib/presentation/copy";
 import { Brand } from "@/app/_brand/Brand";
-import { CopyLink } from "../scan/[domain]/_address/copy-link";
-import { FieldCta } from "../_landing/FieldCta";
 import { ThemeToggle } from "@/app/_theme/ThemeToggle";
-import { canonicalUrl } from "./canonical";
-
-/** What the bar's right slot holds beside Sign in. A closed union, so a
- *  fourth kind of chrome cannot arrive without a rendering. */
-export type HeaderAction =
-  /** The header CTA as a link to the landing. */
-  | { kind: "cta" }
-  /** The CTA focusing the landing's own field. */
-  | { kind: "landing" }
-  /** The report address: its Copy link, then the CTA as a link. */
-  | { kind: "copy-link"; canonicalUrl: string };
-
-const REPORT_PREFIX = "/scan/";
-
-/** The bar's arm for a public path. Pure, so the one per-route rule is
- *  asserted where it is written. No origin bound at build time is no
- *  address to copy: the report then takes the plain arm. */
-export function headerActionFor(pathname: string): HeaderAction {
-  if (pathname === "/") return { kind: "landing" };
-  if (pathname.startsWith(REPORT_PREFIX)) {
-    const url = canonicalUrl(pathname);
-    return url === null ? { kind: "cta" } : { kind: "copy-link", canonicalUrl: url };
-  }
-  return { kind: "cta" };
-}
+import { themeNames } from "@/app/_theme/names";
+import { HeaderCopyLink, HeaderCta } from "./HeaderArm";
 
 /** The two links that stand in the bar from `sm` and sit in the menu below
  *  it. One list, rendered twice at different widths — never two lists, or
  *  the bar and the menu come to offer different places to go. */
+/** Which of the copy control's two homes a render is drawing — a slot
+ *  name, never a sentence. Bound to a name because the copy sweep reads a
+ *  bare JSX attribute string as product voice, and it is right to. */
+const PLACE = { bar: "bar", menu: "menu" } as const;
+
 const LINKS: readonly { href: string; key: "chrome.nav.pricing" | "chrome.nav.signin" }[] = [
   { href: "/pricing", key: "chrome.nav.pricing" },
   { href: "/signin", key: "chrome.nav.signin" },
 ];
-
-/** The CTA, in whichever of its two forms this route takes. */
-function Cta(p: { action: HeaderAction }): React.JSX.Element {
-  return p.action.kind === "landing" ? (
-    <FieldCta label={copy("chrome.cta.scan")} />
-  ) : (
-    <Link href="/" className="btn btn-outline btn-primary btn-sm sm:btn-md">
-      {copy("chrome.cta.scan")}
-    </Link>
-  );
-}
 
 /**
  * The phone menu: everything the bar cannot hold at 390.
@@ -87,18 +67,14 @@ function Cta(p: { action: HeaderAction }): React.JSX.Element {
  * dropdown opens on `:focus-within`, so focus moving into the nested
  * control keeps this one open, and both close when focus leaves.
  */
-function PhoneMenu(p: { action: HeaderAction }): React.JSX.Element {
+function PhoneMenu(): React.JSX.Element {
   return (
     <div className="dropdown dropdown-end sm:hidden" data-testid="public-header-menu">
       <button type="button" tabIndex={0} className="btn btn-ghost btn-square btn-sm" aria-label={copy("chrome.nav.menu")}>
         <Menu size={20} strokeWidth={1.75} aria-hidden />
       </button>
       <ul tabIndex={-1} className="dropdown-content menu rounded-box bg-base-100 z-20 w-52 p-2 shadow-sm">
-        {p.action.kind === "copy-link" ? (
-          <li>
-            <CopyLink canonicalUrl={p.action.canonicalUrl} />
-          </li>
-        ) : null}
+        <HeaderCopyLink place={PLACE.menu} label={copy("copy-link.label")} />
         {LINKS.map((link) => (
           <li key={link.href}>
             <Link href={link.href}>{copy(link.key)}</Link>
@@ -113,14 +89,14 @@ function PhoneMenu(p: { action: HeaderAction }): React.JSX.Element {
               (`hidden` is `display: none`).
               `labelled`: in here the glyph alone is a mystery under two
               worded links, so it shows its own name (owner, 2026-09-21). */}
-          <ThemeToggle labelled />
+          <ThemeToggle names={themeNames()} labelled />
         </li>
       </ul>
     </div>
   );
 }
 
-export function Header(p: { action: HeaderAction }): React.JSX.Element {
+export function Header(): React.JSX.Element {
   return (
     <header className="border-base-300 bg-base-100 sticky top-0 z-10 border-b" data-testid="public-header">
       {/* No `flex-wrap`: a bar that wraps is a bar that grew instead of one
@@ -132,21 +108,17 @@ export function Header(p: { action: HeaderAction }): React.JSX.Element {
         <div className="flex flex-none items-center gap-2">
           {/* From `sm`: every link in the bar, the report's copy control
               beside them, and the theme toggle on its own. */}
-          {p.action.kind === "copy-link" ? (
-            <span className="hidden sm:inline-flex">
-              <CopyLink canonicalUrl={p.action.canonicalUrl} />
-            </span>
-          ) : null}
+          <HeaderCopyLink place={PLACE.bar} label={copy("copy-link.label")} />
           {LINKS.map((link) => (
             <Link key={link.href} href={link.href} className="btn btn-ghost hidden sm:inline-flex">
               {copy(link.key)}
             </Link>
           ))}
           <span className="hidden sm:inline-flex" data-testid="public-header-theme">
-            <ThemeToggle />
+            <ThemeToggle names={themeNames()} />
           </span>
-          <Cta action={p.action} />
-          <PhoneMenu action={p.action} />
+          <HeaderCta label={copy("chrome.cta.scan")} />
+          <PhoneMenu />
         </div>
       </nav>
     </header>

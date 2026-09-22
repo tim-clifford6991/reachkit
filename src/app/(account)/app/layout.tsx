@@ -52,6 +52,7 @@ import { copy } from "@/lib/presentation/copy";
 import { AppDock } from "./_shell/AppDock";
 import { SidebarNav } from "./_shell/SidebarNav";
 import { ThemeToggle } from "@/app/_theme/ThemeToggle";
+import { themeNames } from "@/app/_theme/names";
 import { DRAWER_FOCUS_RING, DRAWER_TOGGLE_ID, RAIL_SCRIPT } from "./_shell/drawer";
 import { cspNonce } from "./_shell/nonce";
 import { requireSetUpAccount } from "./_session/account";
@@ -208,7 +209,7 @@ export default async function AppLayout({
                 <Suspense fallback={<PanelCardSkeleton testId="shell-publishing-skeleton" className="h-24 w-full" />}>
                   <PublishingSlot shell={shell} />
                 </Suspense>
-                <ThemeToggle up />
+                <ThemeToggle names={themeNames()} up />
               </div>
             </div>
 
@@ -228,7 +229,7 @@ export default async function AppLayout({
               </label>
               <SidebarNav waiting={waiting} rail />
               <div className="mt-auto flex flex-col items-center gap-2">
-                <ThemeToggle up />
+                <ThemeToggle names={themeNames()} up />
                 <span
                   className="text-success tooltip tooltip-right grid size-10 shrink-0 place-items-center"
                   data-tip={copy("shell.publishing.mode.autopilot")}

@@ -37,6 +37,15 @@ async function renderPage(): Promise<string> {
   return renderToStaticMarkup(React.createElement(LandingPage, { searchParams: {} }));
 }
 
+const HERO_SOURCE = readFileSync(
+  path.resolve(import.meta.dirname, "../../../src/app/(public)/_landing/WeekHero.tsx"),
+  "utf8"
+);
+const LINE_SOURCE = readFileSync(
+  path.resolve(import.meta.dirname, "../../../src/app/(public)/_landing/HeroLine.tsx"),
+  "utf8"
+);
+
 /** The hero card alone. Bounded at both ends — the video block is the next
  *  thing on the page — because "nothing in this card is a control" is only
  *  a claim about this card, and the closing CTA below it is a button. */
@@ -91,14 +100,26 @@ describe("Hero D — one week, one card (owner ruling 2026-09-21, #935)", () => 
   });
 
   it("the line is the registered Recharts GrowthLine, climbing to the findable boundary", async () => {
-    const markup = await renderPage();
-    // Its accessible name is the score's own key, and it writes its
-    // readings out as a list — which no image would carry.
-    expect(markup).toMatch(/<figure[^>]*aria-label="overview\.tile\.score\.label"/);
-    expect(markup).toMatch(/<ul class="sr-only"><li>/);
-    // First and last reading of the eleven: the last is the head's number.
-    expect(markup).toContain("<li>1 · 22</li>");
-    expect(markup).toContain("<li>11 · 47</li>");
+    const card = heroCard(await renderPage());
+    // **Since #988 the server render holds the line's box open instead of
+    // drawing it.** Recharts is 119 865 B and the landing has a 200 kB
+    // budget whose floor is already 131 kB, so the chart's code is fetched
+    // when the line is about to be read — `HeroLine.tsx` states the
+    // arithmetic. What stands in the card until then is one daisyUI
+    // skeleton of the chart's own aspect, so the card is the same height
+    // throughout; and it is still never an image.
+    expect(card).toMatch(/<span class="[^"]*\bskeleton\b[^"]*"/);
+    expect(card).not.toContain("<img");
+    // What goes into that box is unchanged: the Overview's own Recharts
+    // line, the hero's eleven weeks, the band boundary as its target. That
+    // it *draws* — the accessible name, the readings list no image would
+    // carry — is proved in a browser by
+    // `tests/ui/layout/landing-chart.test.ts`, which is the only place it
+    // can be proved now.
+    expect(HERO_SOURCE).toMatch(/<HeroLine\s+weeks=\{SPECIMEN_HERO_WEEKS\}/);
+    expect(HERO_SOURCE).toContain("SCORE_BAND_BOUNDS.findable");
+    expect(LINE_SOURCE).toContain('import("@/ui/charts/GrowthLine")');
+    expect(LINE_SOURCE).toMatch(/<GrowthLine\s/);
   });
 
   it("the AI answer names the example business, and names its engine", async () => {

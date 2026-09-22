@@ -2,12 +2,18 @@
 // the one module the public header and the /app shell both import. A daisyUI
 // `dropdown` with a `menu`, lucide glyphs at 1.75. Never on hosted pages:
 // those are the customer's domain, not ReachKit chrome.
+//
+// **Its four sentences arrive written** (#988). This is a Client Component,
+// and a `copy()` call in one puts the whole merged registry in the bundle —
+// 39 kB a stranger downloads before reading the landing page. `./names.ts`
+// holds the keys and resolves them on the server; this file holds the
+// glyphs and the state, and no copy key at all.
 "use client";
 
 import type React from "react";
 import { useSyncExternalStore } from "react";
 import { Monitor, Moon, Sun, type LucideIcon } from "lucide-react";
-import { copy, type CopyKey } from "@/lib/presentation/copy";
+import type { ThemeNames } from "./names";
 import {
   applyThemeChoice,
   readThemeChoice,
@@ -16,16 +22,15 @@ import {
   type ThemeChoice,
 } from "./theme";
 
-const CHOICE: Record<ThemeChoice, { icon: LucideIcon; label: CopyKey }> = {
-  light: { icon: Sun, label: "chrome.theme.light" },
-  dark: { icon: Moon, label: "chrome.theme.dark" },
-  system: { icon: Monitor, label: "chrome.theme.system" },
-};
+const ICON: Record<ThemeChoice, LucideIcon> = { light: Sun, dark: Moon, system: Monitor };
 
 const TEST_ID = "theme-toggle";
 const SERVER_CHOICE: ThemeChoice = "system";
 
 export function ThemeToggle(p: {
+  /** What the control and its three choices are called, resolved by the
+   *  Server Component that renders it — `themeNames()` in `./names.ts`. */
+  names: ThemeNames;
   /** The menu opens above the control — the foot of the sidebar — rather
    *  than under it. */
   up?: boolean;
@@ -53,7 +58,7 @@ export function ThemeToggle(p: {
     if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
   }
 
-  const Current = CHOICE[choice].icon;
+  const Current = ICON[choice];
   const labelled = p.labelled === true;
 
   return (
@@ -62,14 +67,14 @@ export function ThemeToggle(p: {
         tabIndex={0}
         role="button"
         className={labelled ? "btn btn-ghost btn-sm w-full justify-start gap-2" : "btn btn-ghost btn-square btn-sm"}
-        aria-label={labelled ? undefined : copy("chrome.theme.label")}
+        aria-label={labelled ? undefined : p.names.control}
       >
         <Current aria-hidden size={20} strokeWidth={1.75} />
-        {labelled ? <span>{copy("chrome.theme.label")}</span> : null}
+        {labelled ? <span>{p.names.control}</span> : null}
       </div>
       <ul tabIndex={-1} className="dropdown-content menu z-20 w-40 rounded-box bg-base-100 p-2 shadow-sm">
         {THEME_CHOICES.map((option) => {
-          const Icon = CHOICE[option].icon;
+          const Icon = ICON[option];
           return (
             <li key={option}>
               <button
@@ -80,7 +85,7 @@ export function ThemeToggle(p: {
                 onClick={() => choose(option)}
               >
                 <Icon aria-hidden size={16} strokeWidth={1.75} />
-                {copy(CHOICE[option].label)}
+                {p.names[option]}
               </button>
             </li>
           );
