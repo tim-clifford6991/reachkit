@@ -55,11 +55,18 @@ function Card(p: { children: React.ReactNode; lead?: string | null }): React.JSX
  *  line with REQ-096 c6's one control (issue 858) — never rows of "your
  *  rivals", and never leading the card. Where no tracked rival is within
  *  reach, the card says so first. */
-function Leaders(p: { leaders: MarketLeaders; reachable: number }): React.JSX.Element | null {
+function Leaders(p: {
+  leaders: MarketLeaders;
+  reachable: number;
+  /** Which of the two sentences this surface says (#983). The Overview's
+   *  own is the default, so a caller that does not care reads exactly what
+   *  it read before. */
+  lineKey?: CopyKey;
+}): React.JSX.Element | null {
   const { domains, swap } = p.leaders;
   if (domains.length === 0 || !swap.offered) return null;
   const none = p.reachable === 0 ? writtenLine("overview.rivals.none-reachable") : null;
-  const line = writtenLine("overview.rivals.leaders", { rivals: domains.join(", ") });
+  const line = writtenLine(p.lineKey ?? "overview.rivals.leaders", { rivals: domains.join(", ") });
   const control = writtenLine("overview.rivals.leaders.swap");
   if (line === null || control === null) return null;
   return (
@@ -118,6 +125,11 @@ export function RivalModule(p: {
   /** SPEC §4 (2026-09-20), #917: the Rivals tab's own line under the head.
    *  Already written by the caller — this module composes no sentence. */
   lead?: string | null;
+  /** Which market-leaders sentence this surface says (owner ruling
+   *  2026-09-21, #983). A key and not a written line, because the sentence
+   *  takes a slot this module fills with the leaders it was handed — the
+   *  caller chooses the words, the module states the names. */
+  leadersKey?: CopyKey;
 }): React.JSX.Element {
   const weekZero = p.weekZero ?? null;
   if (weekZero !== null && !anySized(p.rivals)) {
@@ -181,7 +193,11 @@ export function RivalModule(p: {
           {windowLine}
         </p>
       )}
-      <Leaders leaders={p.rivals.leaders} reachable={p.rivals.rivals.length} />
+      <Leaders
+        leaders={p.rivals.leaders}
+        reachable={p.rivals.rivals.length}
+        {...(p.leadersKey === undefined ? {} : { lineKey: p.leadersKey })}
+      />
     </Card>
   );
 }

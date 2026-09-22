@@ -349,6 +349,25 @@ describe("how far ahead each rival is", () => {
     expect(markup).not.toContain("overview.rivals.none-reachable");
   });
 
+  it("#983 — the Rivals tab says where the leaders are left out; the Overview keeps its own line", () => {
+    // Owner ruling 2026-09-21. The two sentences differ in one clause, and
+    // the surface chooses which by handing the module a key: on the tab the
+    // cards above name every leader, so "they aren't shown as your rivals"
+    // read as a contradiction of what was on screen.
+    const model = assembleOverview(facts());
+    const overview = html(<RivalModule rivals={model.rivals} timeZone={ZONE} />);
+    expect(overview).toContain("overview.rivals.leaders(bigcompetitor.com)");
+    expect(overview).not.toContain("overview.rivals.leaders.tab");
+
+    const tab = html(
+      <RivalModule rivals={model.rivals} timeZone={ZONE} leadersKey="overview.rivals.leaders.tab" />
+    );
+    expect(tab).toContain("overview.rivals.leaders.tab(bigcompetitor.com)");
+    // The names it states are the same names, from the same module.
+    expect(tab).toContain("bigcompetitor.com");
+    expect(tab).toContain("overview.rivals.leaders.swap");
+  });
+
   it("the control is a link to the competitors card, and there is exactly one", () => {
     const model = assembleOverview(facts());
     const markup = html(<RivalModule rivals={model.rivals} timeZone={ZONE} />);

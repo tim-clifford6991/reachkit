@@ -32,7 +32,7 @@
 import type React from "react";
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { copy } from "@/lib/presentation/copy";
+import { copy, type CopyKey } from "@/lib/presentation/copy";
 import { formatDate } from "../../_shell/format";
 import { readShell } from "../../_shell/provider";
 import { ENGINE_LABEL } from "../../_shell/page-target-words";
@@ -49,6 +49,16 @@ import { TAB_HREF } from "../../_overview/tabs";
  *  nothing at all — the `(account)` layout's fallback is the floor, not
  *  the name of this screen. */
 export const metadata: Metadata = { title: copy("meta.app.rivals.title") };
+
+/** Owner ruling 2026-09-21 (#983): on this tab the market leaders are named
+ *  by the two cards above this one, so the line says where they are left
+ *  out — the gap card — rather than that they are not shown at all. The
+ *  Overview keeps its own sentence, where the card *is* the gap card.
+ *
+ *  A named constant and not an attribute literal: a copy key written into
+ *  JSX is what REQ-093 c1's sweep refuses, and rightly — it reads as a
+ *  sentence on the surface. */
+const LEADERS_KEY = "overview.rivals.leaders.tab" satisfies CopyKey;
 
 export default async function RivalsTabPage(): Promise<React.JSX.Element> {
   // The zone is the shell's one stored preference, read through the shell's
@@ -108,6 +118,7 @@ export default async function RivalsTabPage(): Promise<React.JSX.Element> {
         timeZone={shell.timeZone}
         weekZero={overview.weekZero}
         lead={copy("overview.rivals.gap.lead")}
+        leadersKey={LEADERS_KEY}
       />
 
       <Suspense fallback={<div className="skeleton h-96 min-w-0" />}>

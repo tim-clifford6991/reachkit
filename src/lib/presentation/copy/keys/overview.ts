@@ -251,6 +251,22 @@ export const OVERVIEW_COPY = Object.freeze({
     "Market leaders in your searches: {rivals}. They are far larger than you for now, so they aren’t shown as your rivals.",
     { slots: { rivals: "text" }, fixedBy: "issue 858" },
   ],
+  // The same sentence for the Rivals tab, where the line sits under bars
+  // that **do** show the leaders (owner ruling, 2026-09-21, #983). On the
+  // Overview the card is the gap card and nothing else, so "they aren't
+  // shown as your rivals" is true there; on the tab the first-page and
+  // answer-engine cards above it name every one of them, and the same
+  // sentence read as a contradiction of what the reader could see.
+  //
+  // Two keys and not one sentence with a slot: what differs is the clause
+  // that says *where* they are left out, and a slot that carried a clause
+  // would be a sentence assembled at the call site. The owner's draft, used
+  // as written, with the existing key's slot name — the two take the same
+  // vars, which is what lets the one module fill either.
+  "overview.rivals.leaders.tab": [
+    "Market leaders in your searches: {rivals}. They are far larger than you for now, so the gap card leaves them out.",
+    { slots: { rivals: "text" }, fixedBy: "owner 2026-09-21 · issue 983" },
+  ],
   "overview.rivals.none-reachable": [
     "None of the rivals you track is within reach yet. Add a site closer to your size to see the gap move.",
     { slots: {}, fixedBy: "issue 858" },
