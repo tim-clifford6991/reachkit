@@ -409,6 +409,37 @@ export const BATTERY = Object.freeze({
   QUESTIONS: 12, TARGET_SERPS_MAX: 13, MEASURED_PAGES_MAX: 25, COMPETITORS_MAX: 5,
 } as const);
 
+/**
+ * SPEC §6 (2026-09-20, #908) — how many AI questions this product tracks
+ * for one site, in all. Both numbers were drafted there and **confirmed as
+ * written** by the owner on 2026-09-21 (§12, #985), so they are transcribed
+ * here and not chosen (rule 1.2).
+ *
+ * "Each published page's own question may join the tracked set: **at most
+ * 24 tracked questions in all** (the twelve plus twelve), the twelve page
+ * questions being those whose pages rank nearest the first page, and a
+ * page's question leaves the set after **8 weeks** without a mention. The
+ * set never grows past the cap, so its cost is flat."
+ *
+ * The cap is the point of the feature and not a tuning knob. A published
+ * page's own question joins the twelve so that tracking grows with what
+ * ReachKit writes — but a site with thirty live pages must cost no more
+ * each Monday than a site with two. Twenty-four is the ceiling on the
+ * *set*, so the page half is whatever is left of it once the market's
+ * questions are counted, and the weekly spend is flat whatever the
+ * customer publishes.
+ *
+ * The retirement is the other half of the same promise. A page question
+ * asked for eight weekly passes with the site named in none of them has
+ * told us what it is going to tell us, and its slot goes to the next page.
+ * A pass that did not ask it is not one of the eight: a week nobody
+ * measured is not a week the answer was no.
+ *
+ * `src/lib/market/questions/tracked.ts` is the one reader of both.
+ */
+export const TRACKED_QUESTIONS_MAX = 24 as const;             // SPEC §6 2026-09-20
+export const PAGE_QUESTION_RETIRE_WEEKS = 8 as const;         // SPEC §6 2026-09-20
+
 export const SERP_LOCATION = Object.freeze({
   location: "United States", language: "en",
 } as const);

@@ -38,6 +38,7 @@ import type { AI_READER_AGENTS } from "@/lib/config/constants";
 import { REPORT_VERSION } from "./report";
 import type {
   AiAnswersSection,
+  PageQuestionsSection,
   FreePageSection,
   PresenceSection,
   StoppedReason,
@@ -66,6 +67,11 @@ export interface ReportSections {
   verdict: Verdict;
   blockedAgents: readonly (typeof AI_READER_AGENTS)[number][];
   aiAnswers: AiAnswersSection | null;
+  /** SPEC §6's page questions (#919), or `null` on a pass that asked none.
+   *  Required like every other member here: a pass that asked none says so
+   *  with `null`, and a missing key would read the same way while meaning
+   *  "nobody handed this section over". */
+  pageQuestions: PageQuestionsSection | null;
   presence: PresenceSection | null;
   supply: SupplySection;
   freePage: FreePageSection | null;
@@ -102,6 +108,7 @@ export function assembleReport(s: ReportSections): StoredReport {
     verdict: s.verdict,
     blockedAgents: s.blockedAgents,
     aiAnswers: s.aiAnswers,
+    pageQuestions: s.pageQuestions,
     presence: s.presence,
     supply: s.supply,
     freePage: s.freePage,

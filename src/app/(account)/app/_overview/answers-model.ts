@@ -21,7 +21,7 @@
 // unmeasured cell leaves the denominator and is never a miss (§6.2's rule,
 // applied to a window instead of to one week); the full grid is stated
 // beside the rate as the shape of the window, not as its divisor.
-import { ANSWER_RATE_WEEKS, BATTERY } from "@/lib/config/constants";
+import { ANSWER_RATE_WEEKS, BATTERY, TRACKED_QUESTIONS_MAX } from "@/lib/config/constants";
 import { measured, measuredZero, unmeasured, type Measured } from "@/lib/measure/measured";
 import type { GeneratedText } from "@/lib/presentation/generated";
 import type { AnswerEngine } from "@/lib/opportunities/types";
@@ -144,10 +144,20 @@ export interface AnswerWeek {
 export interface AnswersModel {
   rate: AnswerRate;
   week: AnswerWeek;
-  /** The latest measured pass's questions, in the pass's own order. Empty
+  /** The latest measured pass's **twelve**, in the pass's own order. Empty
    *  where no pass has stored an AI-answers section yet, and the screen
    *  then says so in words rather than drawing an empty grid. */
   questions: readonly AnswerQuestion[];
+  /** SPEC §6 (2026-09-20, #919) — the published pages' own questions from
+   *  that same pass, beside the twelve and never mixed into them. The grid
+   *  draws both; the rate and this week's n of 12 count the twelve, which
+   *  is what they counted before a page had a question and what they still
+   *  mean. Empty on a pass that asked none. */
+  pageQuestions: readonly AnswerQuestion[];
+  /** What the latest pass tracked in all, and the cap it obeyed — the
+   *  screen's "{n} of {max} at most". */
+  tracked: number;
+  cap: number;
   engines: readonly AnswerEngine[];
   /** The date the latest pass measured, for the line that says when.
    *  `null` where no pass has. */
@@ -158,6 +168,11 @@ export interface AnswersModel {
 export interface AnswerWeekFacts {
   weekStart: Date;
   questions: readonly AnswerQuestion[];
+  /** The page questions that pass asked (#919). Optional: a pass that
+   *  asked none, and every pass measured before they existed, has none —
+   *  which is not the same as a pass that asked some and was named in
+   *  none, and the absent member says the first. */
+  pageQuestions?: readonly AnswerQuestion[];
 }
 
 /** Everything the AI answers tab reads, before it is a model. */
@@ -215,10 +230,21 @@ export function assembleAnswers(facts: AnswersFacts, at: Date): AnswersModel {
     engine: COUNTED_FROM,
   };
 
+  // **The two rates above counted the twelve, and they still do** (#919).
+  // A page question is a tracked question and is drawn as one; it is not
+  // added to the four-week rate or to this week's n of 12, because both are
+  // published figures a customer has been watching, and a figure that moves
+  // because ReachKit published a page has stopped being a measurement of
+  // the market. The cap line below says how many questions are tracked in
+  // all, which is the fact §6 asks this screen to state.
+  const pageQuestions = latest?.pageQuestions ?? [];
   return {
     rate,
     week,
     questions: thisWeek,
+    pageQuestions,
+    tracked: thisWeek.length + pageQuestions.length,
+    cap: TRACKED_QUESTIONS_MAX,
     engines: ANSWER_ENGINES,
     measuredAt: facts.measuredAt,
   };

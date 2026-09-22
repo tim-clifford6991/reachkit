@@ -32,6 +32,8 @@ const REPORT_KEYS = [
   "verdict",
   "blockedAgents",
   "aiAnswers",
+  // SPEC §6's page questions, beside the twelve (#919).
+  "pageQuestions",
   "presence",
   "supply",
   "freePage",
@@ -74,6 +76,7 @@ describe("a section is never omitted", () => {
     // screen renders as a named absent section with one written line —
     // never an empty card.
     expect(report.aiAnswers).toBeNull();
+    expect(report.pageQuestions).toBeNull();
     expect(report.presence).toBeNull();
     expect(report.freePage).toBeNull();
     expect(report.supply.missingPages).toEqual({ kind: "unmeasured", reason: "not_attempted", at: AT });

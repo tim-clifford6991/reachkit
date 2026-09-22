@@ -132,7 +132,7 @@ const FIXTURE_RECORD = {
   // constant in `tests/app/scan-address/report-view.test.tsx`, which runs
   // in node and may import it, so the two cannot drift (#352; the label
   // had been left at 3 through two migrations).
-  version: 10,
+  version: 11,
   scanId: "fixture-scan-1",
   domain: OWN_DOMAIN as CanonicalDomain,
   tier: "free",
@@ -235,6 +235,9 @@ export const FIXTURE_REPORT: StoredReport = {
     blockedReaders: measured(4, MEASURED_AT),
   },
   blockedAgents: AI_READER_AGENTS.slice(0, 4),
+  // The free path asks no page question (#919): a site with no published
+  // page has none to ask, and `TIER_PARAMETERS.free.pageQuestions` is false.
+  pageQuestions: null,
   aiAnswers: {
     measuredSearches: 12,
     answeredSearches: 9,

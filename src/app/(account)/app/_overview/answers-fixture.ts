@@ -110,8 +110,61 @@ function questionsFor(marks: readonly (readonly AnswerMark[])[]): readonly Answe
   }));
 }
 
+/**
+ * SPEC §6 (2026-09-20, #919) — three published pages whose own question
+ * joined the tracked set, numbered on from the twelve.
+ *
+ * On the latest pass alone, which is the shape a real account has the week
+ * after its first pages went live: the three older weeks tracked the twelve
+ * and the grid draws whichever pass it is given. Three rather than twelve,
+ * so the fixture shows the count *under* the cap — "15 of 24 at most" says
+ * the set has room, which is the harder line to get right and the one a
+ * reader has to be able to read.
+ */
+const PAGE_SPECS: readonly (readonly [Spec, readonly AnswerMark[]])[] = [
+  [
+    [
+      "Which CRM keeps its contact history when a deal is closed?",
+      "crm that keeps contact history",
+      PAGE("The CRMs that keep contact history after a deal closes", "crm-contact-history"),
+    ],
+    [L, O, N],
+  ],
+  [
+    [
+      "How long does it take to set up a CRM for a team of five?",
+      "crm setup time small team",
+      PAGE("How long setting up a CRM really takes", "crm-setup-time"),
+    ],
+    [O, O, O],
+  ],
+  [
+    [
+      "Can two people share one CRM licence?",
+      "share a crm licence",
+      PAGE("Sharing a CRM licence: what the terms actually allow", "share-crm-licence"),
+    ],
+    [N, U, O],
+  ],
+];
+
+const PAGE_QUESTIONS: readonly AnswerQuestion[] = Object.freeze(
+  PAGE_SPECS.map(([[wording, search, page], marks], i) => ({
+    n: SPECS.length + i + 1,
+    wording: fromStored("questions.wording", wording),
+    search,
+    marks,
+    page,
+  }))
+);
+
 const PASSES: readonly AnswerWeekFacts[] = Object.freeze(
-  WEEKS.map((marks, i) => ({ weekStart: monday(WEEKS.length - 1 - i), questions: questionsFor(marks) }))
+  WEEKS.map((marks, i) => ({
+    weekStart: monday(WEEKS.length - 1 - i),
+    questions: questionsFor(marks),
+    // The page questions belong to the pass that asked them — the latest.
+    ...(i === WEEKS.length - 1 ? { pageQuestions: PAGE_QUESTIONS } : {}),
+  }))
 );
 
 export const FIXTURE_ANSWERS_FACTS: AnswersFacts = Object.freeze({

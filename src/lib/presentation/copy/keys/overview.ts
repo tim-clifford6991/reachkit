@@ -668,6 +668,17 @@ export const OVERVIEW_COPY = Object.freeze({
     "Each question, and what each AI engine said",
     { slots: {}, fixedBy: "SPEC §6 2026-09-20" },
   ],
+  // ── 2026-09-20 (#908, #919): the cap, stated on the grid it bounds.
+  //
+  // SPEC §6 of that date: "at most 24 tracked questions in all (the twelve
+  // plus twelve) … the set never grows past the cap, so its cost is flat",
+  // confirmed as written by the owner on 2026-09-21 (§12, #985). The board
+  // (R4-06) states it as "21 of 24 at most". **Drafted** under the owner's
+  // 2026-09-16 ruling (#759); the PR names it so the owner can correct it.
+  "overview.answers.grid.tracked": [
+    "{tracked} of {max} at most — your market’s twelve, and one question for each page we publish. A page’s question leaves after {weeks} weeks with no mention, so the set never grows past {max}.",
+    { slots: { tracked: "text", max: "text", weeks: "text" }, fixedBy: "SPEC §6 2026-09-20" },
+  ],
   "overview.answers.legend.label": ["What each mark means", { slots: {}, fixedBy: "SPEC §6 2026-09-20" }],
 
   // The five marks. *Linked* is a cited domain that is the site's own;

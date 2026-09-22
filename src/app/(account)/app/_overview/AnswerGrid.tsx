@@ -31,17 +31,25 @@
 // readable. Nothing is clamped either — a question wraps and its row grows,
 // which is the box changing rather than the value.
 //
-// **Three things on the approved board are deliberately not here**: *Also
-// appearing for* and the cited-pages tile (#920, after the pilot), the
-// hosted-blog engine counts (#921), and any tracked question beyond the
-// twelve (#919). Each is a card of its own beneath this one when its issue
-// lands; none of them changes this grid, which is why none of them stands
-// here as a placeholder.
+// **The published pages' own questions are rows of this grid** (SPEC §6
+// 2026-09-20, #919), beneath the twelve and in the same shape: they are
+// tracked questions, asked of the same three engines in the same pass, and
+// a second grid for them would be the same picture twice. What keeps them
+// apart is arithmetic and not a component — the four-week rate and this
+// week's n of 12 count the twelve alone (`answers-model.ts`), and the line
+// under the title states how many questions are tracked in all against the
+// cap they obey.
+//
+// **Two things on the approved board are deliberately not here**: *Also
+// appearing for* and the cited-pages tile (#920, after the pilot), and the
+// hosted-blog engine counts (#921). Each is a card of its own beneath this
+// one when its issue lands; neither stands here as a placeholder.
 import type React from "react";
 import { copy } from "@/lib/presentation/copy";
 import { renderQuestion } from "@/lib/presentation/generated";
 import { ENGINE_LABEL } from "../_shell/page-target-words";
 import { formatCount } from "./present";
+import { PAGE_QUESTION_RETIRE_WEEKS } from "@/lib/config/constants";
 import { ANSWER_MARKS, type AnswerMark, type AnswerQuestion, type AnswersModel } from "./answers-model";
 import { MARK_COPY_KEY, MARK_ICON, MARK_TONE } from "./answers-words";
 
@@ -172,6 +180,13 @@ export function AnswerGrid(p: { model: AnswersModel }): React.JSX.Element {
         <p className="max-w-prose text-sm text-base-content/70">
           {copy("overview.answers.grid.lead", { of: formatCount(p.model.questions.length) })}
         </p>
+        <p className="max-w-prose text-xs text-base-content/70" data-testid="answers-tracked">
+          {copy("overview.answers.grid.tracked", {
+            tracked: formatCount(p.model.tracked),
+            max: formatCount(p.model.cap),
+            weeks: formatCount(PAGE_QUESTION_RETIRE_WEEKS),
+          })}
+        </p>
         <Legend />
 
         <div
@@ -194,7 +209,7 @@ export function AnswerGrid(p: { model: AnswersModel }): React.JSX.Element {
               </span>
             ))}
           </div>
-          {p.model.questions.map((question) => (
+          {[...p.model.questions, ...p.model.pageQuestions].map((question) => (
             <Row key={question.n} question={question} engines={p.model.engines} />
           ))}
         </div>
