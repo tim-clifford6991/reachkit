@@ -15,6 +15,7 @@
 // row.
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { settledMarkup } from "../../app/shell/settled";
 import type { EnumeratedRoute } from "./routes";
 
 /** What the screen is being rendered for. */
@@ -190,7 +191,14 @@ export async function renderRoute(
     ? ((await (Page as unknown as (p: never) => Promise<React.ReactNode>)(props)) as React.ReactNode)
     : React.createElement(Page, props);
   const tree = row.shell ? await wrap(element) : element;
-  const html = renderToStaticMarkup(tree as React.ReactElement);
+  // **Settled, not synchronous** (issue 912). The `/app` shell returns its
+  // frame before its reads answer, so `renderToStaticMarkup` would sweep
+  // the skeletons and report that no screen carries the stopped banner,
+  // the domain or the publishing card. Every sweep in this directory is
+  // about what a screen *says*, which is the stream read to the end.
+  const html = row.shell
+    ? await settledMarkup(tree)
+    : renderToStaticMarkup(tree as React.ReactElement);
   const doc = parse(html);
   return { route, html, doc, text: doc.body.textContent ?? "", insideShell: row.shell };
 }

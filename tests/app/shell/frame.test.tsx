@@ -20,7 +20,8 @@
 // owner-owed branch behave exactly as it does in production, so a line the
 // owner has not written renders as nothing here too.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { renderToStaticMarkup } from "react-dom/server";
+import { renderToReadableStream, renderToStaticMarkup } from "react-dom/server";
+import { settledMarkup } from "./settled";
 import React from "react";
 
 vi.mock("@/lib/presentation/copy", async (importOriginal) => {
@@ -80,6 +81,11 @@ const SCHEDULED: ShellModel = {
   stopped: null,
 };
 
+/** A count of none, as the promise the menu now takes. Every structural
+ *  render below uses it: at zero the badge draws nothing whether the
+ *  promise has settled or not, so these assertions are about the links. */
+const NONE = Promise.resolve(0);
+
 function render(el: React.ReactElement): Element {
   const container = document.createElement("div");
   container.innerHTML = renderToStaticMarkup(el);
@@ -88,9 +94,43 @@ function render(el: React.ReactElement): Element {
   return root;
 }
 
+/**
+ * The same render, streamed to the end (issue 912).
+ *
+ * The menu's waiting badge reads a **promise** now — the three links are in
+ * the first response and only the number waits — so a synchronous
+ * `renderToStaticMarkup` sees the boundary's fallback and stops. This reads
+ * the stream to completion, which is the markup a browser ends up with:
+ * React emits the resolved boundary later in the same response and the
+ * badge is in the document either way.
+ */
+async function renderStreamed(el: React.ReactElement): Promise<Element> {
+  const stream = await renderToReadableStream(el);
+  await stream.allReady;
+  const html = await new Response(stream).text();
+  const container = document.createElement("div");
+  container.innerHTML = html;
+  const root = container.firstElementChild;
+  if (!root) throw new Error("rendered no root element");
+  return root;
+}
+
+/** The shell, settled. Its parts are behind `<Suspense>` boundaries since
+ *  issue 912, so a synchronous render sees their skeletons; every
+ *  assertion below is about what the shell *contains*, which is the
+ *  stream read to the end. */
 async function renderLayout(): Promise<Element> {
   const tree = await AppLayout({ children: React.createElement("p", null, "screen") });
-  return render(tree);
+  const container = document.createElement("div");
+  container.innerHTML = await settledMarkup(tree);
+  // **The container, not its first child.** A streamed response puts a
+  // boundary that resolved after the first flush in a `<div hidden>`
+  // *beside* the shell rather than inside it — the browser moves it into
+  // place with the script React emits beside it, and jsdom runs no script.
+  // Searching the container finds the shell's parts wherever in the
+  // response they arrived, which is the document a customer ends up with.
+  if (container.firstElementChild === null) throw new Error("rendered no root element");
+  return container;
 }
 
 // ── criterion 1 ─────────────────────────────────────────────────────────
@@ -100,7 +140,7 @@ describe("REQ-040 c1 — exactly three destinations, from the one tuple", () => 
   });
 
   it("the sidebar renders exactly three destinations and no fourth", () => {
-    const root = render(<SidebarNav waiting={0} />);
+    const root = render(<SidebarNav waiting={NONE} />);
     const links = root.querySelectorAll("a");
     expect(links).toHaveLength(3);
     expect([...links].map((a) => a.getAttribute("href"))).toEqual([
@@ -140,8 +180,8 @@ describe("REQ-040 c1 — exactly three destinations, from the one tuple", () => 
 
 // ── criterion 2 ─────────────────────────────────────────────────────────
 describe("REQ-040 c2 — the waiting count, now on Overview (SPEC §4, 2026-09-20)", () => {
-  it("shows the count when non-zero, on Overview and on no other destination", () => {
-    const root = render(<SidebarNav waiting={7} />);
+  it("shows the count when non-zero, on Overview and on no other destination", async () => {
+    const root = await renderStreamed(<SidebarNav waiting={Promise.resolve(7)} />);
     const counts = root.querySelectorAll("[data-testid='shell-waiting-count']");
     expect(counts).toHaveLength(1);
     expect(counts[0]?.textContent).toBe("7");
@@ -149,8 +189,8 @@ describe("REQ-040 c2 — the waiting count, now on Overview (SPEC §4, 2026-09-2
     expect(root.querySelector("[data-testid='shell-navlink-calendar']")?.textContent).not.toMatch(/\d/);
   });
 
-  it("every destination carries its glyph before its word, hidden from the tree (issue #506)", () => {
-    const root = render(<SidebarNav waiting={7} />);
+  it("every destination carries its glyph before its word, hidden from the tree (issue #506)", async () => {
+    const root = await renderStreamed(<SidebarNav waiting={Promise.resolve(7)} />);
     for (const destination of DESTINATIONS) {
       const link = root.querySelector(`[data-testid='shell-navlink-${destination}']`);
       const svgs = link?.querySelectorAll("svg") ?? [];
@@ -160,31 +200,39 @@ describe("REQ-040 c2 — the waiting count, now on Overview (SPEC §4, 2026-09-2
     }
   });
 
-  it("renders no count at all at zero — not a 0, not an empty element", () => {
-    const root = render(<SidebarNav waiting={0} />);
+  it("renders no count at all at zero — not a 0, not an empty element", async () => {
+    const root = await renderStreamed(<SidebarNav waiting={Promise.resolve(0)} />);
     expect(root.querySelectorAll("[data-testid='shell-waiting-count']")).toHaveLength(0);
     expect(root.textContent).not.toContain("0");
   });
 
-  it("the count is a numeral, so it carries the mono class (§2.3)", () => {
-    const root = render(<SidebarNav waiting={7} />);
+  it("the count is a numeral, so it carries the mono class (§2.3)", async () => {
+    const root = await renderStreamed(<SidebarNav waiting={Promise.resolve(7)} />);
     expect(root.querySelector("[data-testid='shell-waiting-count']")?.className).toContain("num");
   });
 
-  it("the icon rail states the same count on the same destination, and none at zero", () => {
-    const rail = render(<SidebarNav waiting={7} rail />);
+  it("the icon rail states the same count on the same destination, and none at zero", async () => {
+    const rail = await renderStreamed(<SidebarNav waiting={Promise.resolve(7)} rail />);
     expect(rail.querySelector("[data-testid='shell-waiting-count']")?.textContent).toBe("7");
     expect(
       rail.querySelector("[data-testid='shell-navlink-overview']")?.getAttribute("aria-label")
     ).toBe("shell.nav.overview");
-    expect(render(<SidebarNav waiting={0} rail />).querySelector("[data-testid='shell-waiting-count']")).toBeNull();
+    expect(
+      (await renderStreamed(<SidebarNav waiting={Promise.resolve(0)} rail />)).querySelector(
+        "[data-testid='shell-waiting-count']"
+      )
+    ).toBeNull();
   });
 
-  it("the dock states it too, so a phone is told what a desktop is told", () => {
-    const dock = render(<AppDock waiting={7} />);
+  it("the dock states it too, so a phone is told what a desktop is told", async () => {
+    const dock = await renderStreamed(<AppDock waiting={Promise.resolve(7)} />);
     expect(dock.querySelector("[data-testid='shell-dock-count']")?.textContent).toBe("7");
     expect(dock.querySelector("[data-testid='shell-docklink-calendar']")?.textContent).not.toMatch(/\d/);
-    expect(render(<AppDock waiting={0} />).querySelector("[data-testid='shell-dock-count']")).toBeNull();
+    expect(
+      (await renderStreamed(<AppDock waiting={Promise.resolve(0)} />)).querySelector(
+        "[data-testid='shell-dock-count']"
+      )
+    ).toBeNull();
   });
 });
 
@@ -272,7 +320,7 @@ describe("REQ-040 c5 / SPEC §4 (2026-09-20) — a viewport too narrow keeps all
   // itself is a drawer. What has not changed is that all three survive, in
   // order, labelled, with their count — which is what c5 is.
   it("the dock renders the same three destinations, labelled, in order", () => {
-    const dock = render(<AppDock waiting={0} />);
+    const dock = render(<AppDock waiting={NONE} />);
     const links = [...dock.querySelectorAll("a")];
     expect(links.map((a) => a.textContent)).toEqual([
       "shell.nav.overview",
@@ -297,7 +345,7 @@ describe("REQ-040 c5 / SPEC §4 (2026-09-20) — a viewport too narrow keeps all
       ["/app/settings", "shell.nav.settings"],
     ] as const) {
       at.pathname = pathname;
-      const current = [...render(<AppDock waiting={0} />).querySelectorAll("a")].filter(
+      const current = [...render(<AppDock waiting={NONE} />).querySelectorAll("a")].filter(
         (a) => a.getAttribute("aria-current") === "page"
       );
       expect(current.map((a) => a.textContent), pathname).toEqual([label]);
@@ -329,7 +377,7 @@ describe("REQ-040 c5 / SPEC §4 (2026-09-20) — a viewport too narrow keeps all
 
   it("a tab of Overview's marks Overview in the dock too", () => {
     at.pathname = "/app/rivals";
-    const current = [...render(<AppDock waiting={0} />).querySelectorAll("a")].filter(
+    const current = [...render(<AppDock waiting={NONE} />).querySelectorAll("a")].filter(
       (a) => a.getAttribute("aria-current") === "page"
     );
     expect(current.map((a) => a.textContent)).toEqual(["shell.nav.overview"]);
@@ -338,7 +386,7 @@ describe("REQ-040 c5 / SPEC §4 (2026-09-20) — a viewport too narrow keeps all
 
   it("**a route on no destination marks none** — the draft view", () => {
     at.pathname = "/app/draft/draft-1";
-    const links = [...render(<AppDock waiting={0} />).querySelectorAll("a")];
+    const links = [...render(<AppDock waiting={NONE} />).querySelectorAll("a")];
     expect(links).toHaveLength(3);
     expect(links.filter((a) => a.getAttribute("aria-current") === "page")).toEqual([]);
     at.pathname = "/app";
@@ -351,9 +399,9 @@ describe("REQ-040 c5 / SPEC §4 (2026-09-20) — a viewport too narrow keeps all
         [...el.querySelectorAll("a")]
           .filter((a) => a.getAttribute("aria-current") === "page")
           .map((a) => a.getAttribute("data-testid"));
-      const panel = marks(render(<SidebarNav waiting={0} />));
-      const rail = marks(render(<SidebarNav waiting={0} rail />));
-      const dock = marks(render(<AppDock waiting={0} />)).map((id) =>
+      const panel = marks(render(<SidebarNav waiting={NONE} />));
+      const rail = marks(render(<SidebarNav waiting={NONE} rail />));
+      const dock = marks(render(<AppDock waiting={NONE} />)).map((id) =>
         id === null ? null : id.replace("shell-docklink-", "shell-navlink-")
       );
       expect(rail, pathname).toEqual(panel);
@@ -498,7 +546,7 @@ describe("REQ-040 c7 — a never-measured domain states no number", () => {
     );
   });
 
-  it("the waiting count is the count, in week 0 as in any week (REQ-040 c2)", () => {
+  it("the waiting count is the count, in week 0 as in any week (REQ-040 c2)", async () => {
     // **No week-0 branch in the nav, deliberately.** UI-SPEC S13 draws the
     // sidebar with no count beside Calendar, and #353's Done-when repeats
     // that — but the set's own S13 body draws the first page sitting in
@@ -513,11 +561,14 @@ describe("REQ-040 c7 — a never-measured domain states no number", () => {
     // drawing to reconcile — flagged to the owner rather than implemented
     // as a branch that hides a real number.
     expect(
-      render(<SidebarNav waiting={0} />).querySelectorAll("[data-testid='shell-waiting-count']")
+      (await renderStreamed(<SidebarNav waiting={NONE} />)).querySelectorAll(
+        "[data-testid='shell-waiting-count']"
+      )
     ).toHaveLength(0);
     expect(
-      render(<SidebarNav waiting={1} />).querySelector("[data-testid='shell-waiting-count']")
-        ?.textContent
+      (await renderStreamed(<SidebarNav waiting={Promise.resolve(1)} />)).querySelector(
+        "[data-testid='shell-waiting-count']"
+      )?.textContent
     ).toBe("1");
   });
 });
@@ -526,11 +577,16 @@ describe("REQ-040 c7 — a never-measured domain states no number", () => {
 describe("the frame is the route's one screen root, and it invents no sentence", () => {
   it("renders exactly one [data-surface] root, declaring an arm per band", async () => {
     const root = await renderLayout();
-    expect(root.getAttribute("data-surface")).toBe("");
-    expect(root.querySelectorAll("[data-surface]")).toHaveLength(0);
-    expect(root.getAttribute("data-arm-compact")).toBe("columns:1");
-    expect(root.getAttribute("data-arm-medium")).toBe("columns:2");
-    expect(root.getAttribute("data-arm-wide")).toBe("same-as-below");
+    // `renderLayout` answers the container the response was written into
+    // (issue 912), so the screen root is the one element inside it carrying
+    // the attribute — and **exactly one**, which is the rule.
+    const surfaces = root.querySelectorAll("[data-surface]");
+    expect(surfaces).toHaveLength(1);
+    const surface = surfaces[0];
+    expect(surface?.getAttribute("data-surface")).toBe("");
+    expect(surface?.getAttribute("data-arm-compact")).toBe("columns:1");
+    expect(surface?.getAttribute("data-arm-medium")).toBe("columns:2");
+    expect(surface?.getAttribute("data-arm-wide")).toBe("same-as-below");
   });
 
   it("wraps the screen it was given", async () => {
@@ -558,7 +614,7 @@ describe("the frame is the route's one screen root, and it invents no sentence",
   });
 
   it("with no page waiting, no card is drawn beside a count of nothing", () => {
-    const nav = render(<SidebarNav waiting={0} />);
+    const nav = render(<SidebarNav waiting={NONE} />);
     expect(nav.querySelector("[data-testid='shell-waiting-count']")).toBeNull();
     const container = document.createElement("div");
     container.innerHTML = renderToStaticMarkup(<WaitingCard review={null} timeZone={ZONE} />);

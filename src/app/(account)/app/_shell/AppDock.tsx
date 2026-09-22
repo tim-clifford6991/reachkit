@@ -15,6 +15,7 @@
 "use client";
 
 import type React from "react";
+import { Suspense, use } from "react";
 import { usePathname } from "next/navigation";
 import { copy } from "@/lib/presentation/copy";
 import {
@@ -26,7 +27,27 @@ import {
 } from "./destinations";
 import { DESTINATION_ICON } from "./SidebarNav";
 
-export function AppDock(p: { waiting: number }): React.JSX.Element {
+/** The count, once it is known — the dock's own copy of the panel's rule
+ *  (issue 912). The three links are the phone's menu and have no read
+ *  behind them; only this badge waits. */
+function DockCount(p: { waiting: Promise<number> }): React.JSX.Element | null {
+  const waiting = use(p.waiting);
+  if (waiting <= 0) return null;
+  return (
+    // REQ-040 c2 in the dock: the number, never a `0`.
+    <span
+      className="badge badge-xs badge-primary num absolute end-0 top-0 text-(length:--t-eyebrow)"
+      data-testid="shell-dock-count"
+    >
+      {waiting}
+    </span>
+  );
+}
+
+export function AppDock(p: {
+  /** The count, as a promise: the dock does not wait for it (issue 912). */
+  waiting: Promise<number>;
+}): React.JSX.Element {
   const current = destinationOf(usePathname());
 
   return (
@@ -38,7 +59,7 @@ export function AppDock(p: { waiting: number }): React.JSX.Element {
       {DESTINATIONS.map((destination) => {
         const Icon = DESTINATION_ICON[destination];
         const here = destination === current;
-        const waiting = destination === WAITING_ON ? p.waiting : 0;
+        const carries = destination === WAITING_ON;
         return (
           <a
             key={destination}
@@ -56,15 +77,11 @@ export function AppDock(p: { waiting: number }): React.JSX.Element {
                 a dock item is a third of the bar, with room to spare. */}
             <span className="relative flex h-5 w-16 items-center justify-center">
               <Icon size={20} strokeWidth={1.75} aria-hidden />
-              {waiting > 0 ? (
-                // REQ-040 c2 in the dock: the number, never a `0`.
-                <span
-                  className="badge badge-xs badge-primary num absolute end-0 top-0 text-(length:--t-eyebrow)"
-                  data-testid="shell-dock-count"
-                >
-                  {waiting}
-                </span>
-              ) : null}
+              {!carries ? null : (
+                <Suspense fallback={null}>
+                  <DockCount waiting={p.waiting} />
+                </Suspense>
+              )}
             </span>
             <span className="dock-label truncate text-(length:--t-eyebrow)">{copy(DESTINATION_COPY_KEY[destination])}</span>
           </a>

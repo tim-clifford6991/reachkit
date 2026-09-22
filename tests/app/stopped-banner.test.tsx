@@ -20,7 +20,7 @@ import { applyEnvFixture } from "../mail/env-fixture";
 applyEnvFixture();
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { renderToStaticMarkup } from "react-dom/server";
+import { settledMarkup } from "./shell/settled";
 import { fakeDb } from "../publish/harness";
 import { LIVE_ACCOUNT } from "./accounts";
 import { measuredZero } from "@/lib/measure/measured";
@@ -109,12 +109,12 @@ function render(html: string): Element {
 }
 
 async function overview(): Promise<Element> {
-  return render(renderToStaticMarkup(await AppLayout({ children: await OverviewPage() })));
+  return render(await settledMarkup(await AppLayout({ children: await OverviewPage() })));
 }
 
 async function calendar(): Promise<Element> {
   const page = await CalendarPage({ searchParams: Promise.resolve({ month: MONTH }) });
-  return render(renderToStaticMarkup(await AppLayout({ children: page })));
+  return render(await settledMarkup(await AppLayout({ children: page })));
 }
 
 const text = (tree: Element, id: string) => tree.querySelector(`[data-testid="${id}"]`)?.textContent ?? null;
