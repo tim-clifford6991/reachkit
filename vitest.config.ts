@@ -45,6 +45,10 @@ const LIVE_SCHEMA_TESTS = [
   // insert-or-increment that is also the retention sweep, and the one
   // select-own policy this migration adds.
   "tests/publish/reads/schema.test.ts",
+  // Issue #1004: `llm_mention_reads` and `llm_mentions` — one read per site
+  // per Monday, the four statuses, the foreign key that makes a mention
+  // without its week unrepresentable, and RLS on with no policy on either.
+  "tests/mentions/schema.test.ts",
 ];
 
 export default defineConfig({

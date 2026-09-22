@@ -21,9 +21,13 @@
 // the one vendor family that has a `depth` parameter — organic SERPs
 // (`/v3/serp/google/organic/`); Labs, AI Mode and the LLM scraper have no
 // such field and the vendor rejects unknown fields (`40501 Invalid Field`),
-// so on those paths the key is stripped and left unset. Either way no
-// caller can set it — the never-list's "SERP depth > 10" stays enforced by
-// absence (BUILD §6.4).
+// so on those paths the key is stripped and left unset. The same is true
+// of the two locale pins on one family: LLM Mentions declares neither, and
+// its dataset is US/English by construction, so `NO_LOCALE_PATH_PREFIX`
+// below leaves them unset there (SPEC §6, 2026-09-22, #1004). Either way no
+// caller can set any of the three — the never-list's "SERP depth > 10"
+// stays enforced by absence (BUILD §6.4), and a caller-supplied locale is
+// still deleted before anything is pinned.
 //
 // **Two request shapes, both built here.** Live endpoints are one `POST`.
 // The standard queue (`mode: "std"`, BUILD §6.4 "everything scheduled =
@@ -37,6 +41,27 @@ const DATAFORSEO_BASE_URL = "https://api.dataforseo.com";
 /** The one vendor path family whose tasks take `depth` (see header). */
 const DEPTH_PATH_PREFIX = "/v3/serp/google/organic/";
 const SERP_DEPTH = 10;
+
+/** LLM Mentions (SPEC §6, 2026-09-22, #1004) — the one path family whose
+ *  tasks take **no locale fields at all**, and the reason the two pins
+ *  below are set per family rather than unconditionally.
+ *
+ *  `search_mentions` declares neither `location_name` nor `language_code`,
+ *  and the vendor rejects a field an endpoint does not declare with
+ *  `40501 Invalid Field` at $0.00 — the same refusal the pilot's own
+ *  `search_scope` mistake drew (#1003). The database is US/English by
+ *  construction, so there is no locale to select and nothing is lost by
+ *  omitting them; the pilot's successful run of 2026-09-22 sent neither.
+ *
+ *  This is the `depth` rule again, one family further: a pin is set where
+ *  the vendor has a field for it, and stripped everywhere else, and a
+ *  caller can still set none of them. */
+const NO_LOCALE_PATH_PREFIX = "/v3/ai_optimization/llm_mentions";
+
+/** The LLM Mentions family, for the endpoint module that builds its paths
+ *  (`mentions.ts`) — one spelling, so the prefix that is exempted and the
+ *  path that is exempted cannot drift apart. */
+export const LLM_MENTIONS_PATH_PREFIX = NO_LOCALE_PATH_PREFIX;
 
 /** BP-008 decision 2's pattern, applied here at the transport level too:
  *  every request this module builds states which vendor API surface it
@@ -91,8 +116,10 @@ function authorizationHeader(): string {
 export function buildRequest(spec: DataForSeoRequestSpec): DataForSeoRequest {
   const task: Record<string, unknown> = { ...(spec.fields ?? {}) };
   for (const key of RESERVED_TASK_KEYS) delete task[key];
-  task.location_name = SERP_LOCATION.location;
-  task.language_code = SERP_LOCATION.language;
+  if (!spec.path.startsWith(NO_LOCALE_PATH_PREFIX)) {
+    task.location_name = SERP_LOCATION.location;
+    task.language_code = SERP_LOCATION.language;
+  }
   if (spec.path.startsWith(DEPTH_PATH_PREFIX)) task.depth = SERP_DEPTH;
 
   return {

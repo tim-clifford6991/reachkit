@@ -144,3 +144,65 @@ export type CacheScope = { readonly site: string } | { readonly domain: string }
 export function scopeKey(scope: CacheScope): string {
   return "site" in scope ? `site:${scope.site}` : `domain:${scope.domain}`;
 }
+
+// ── LLM Mentions — SPEC §6 (2026-09-22, #1004) ───────────────────────────
+
+/**
+ * One row of DataForSEO's LLM Mentions database: a buyer's question an
+ * answer engine answered, in an answer that cited this site.
+ *
+ * Product fields, as everywhere else in this file — `platform`/`model_name`
+ * become one `engine`/`model` pair, `first_response_at`/`last_response_at`
+ * become the two dates the card reads, and the vendor's nesting does not
+ * travel.
+ *
+ * **What is deliberately absent.** The answer's own prose, any rank
+ * position and anything that could be read as sentiment. SPEC §4
+ * (2026-09-20) closes the AI answers tab on the first two — "'AI rank
+ * position' and sentiment are never shown" — and #1004 repeats it; a field
+ * that does not exist is the only way a later surface cannot render one.
+ * The engines' prose is generated text with no labelled home (`CLAUDE.md`),
+ * exactly as `AiAnswer` already records.
+ *
+ * `citedUrls` is **the site's own pages only**. The call is made with
+ * `search_scope: ["sources"]` against this one domain, so every row cites
+ * it somewhere; the other domains an answer cites are a different site's
+ * business and no card on this tab shows them.
+ */
+export interface MentionRow {
+  /** The buyer's question, as the engine was asked it. */
+  question: string;
+  /** The engine that answered — the vendor's `platform`. `null` where it
+   *  named none, which is a row we still know the question of. */
+  engine: string | null;
+  /** The model behind it, where the vendor named one. */
+  model: string | null;
+  /** The site's own pages this answer cites, de-duplicated in vendor
+   *  order. Empty where the match could not be attributed to a URL. */
+  citedUrls: readonly string[];
+  /** How often this question is asked of an answer engine, the vendor's
+   *  own figure. `null` where it gave none — never 0, which is a reading. */
+  aiSearchVolume: number | null;
+  /** The same question's monthly searches on Google, where the vendor
+   *  carries it. */
+  monthlySearches: number | null;
+  /** `first_response_at` / `last_response_at` as ISO instants — when this
+   *  question was first and last seen answered this way. `null` where the
+   *  vendor gave none. */
+  firstSeenAt: string | null;
+  lastSeenAt: string | null;
+}
+
+/**
+ * One `search_mentions` answer: the rows bought, and the vendor's own count
+ * of every mention it holds for this domain.
+ *
+ * `total` is the breadth the 100-row cap does not buy — the pilot's reason
+ * for capping rather than paging ("`total_count` reports the true breadth
+ * for free: we pay for a sample, not a census"). `null` where the vendor
+ * reported none, never 0 and never the row count under another name.
+ */
+export interface MentionsResult {
+  readonly rows: readonly MentionRow[];
+  readonly total: number | null;
+}

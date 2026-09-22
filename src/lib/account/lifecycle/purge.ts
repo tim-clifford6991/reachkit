@@ -57,6 +57,13 @@ const PURGE_ORDER: readonly {
   // domain, so purging it would delete a reading that is nobody's account
   // (its own migration says why it is keyed that way).
   { table: "site_profile_edits", column: "site_id", from: "siteIds" },
+  // The answer engines' own record of this site (#1004): the mentions
+  // first, then the weeks that hold them — `llm_mentions` references
+  // `(site_id, week_start)` on `llm_mention_reads`, and neither foreign key
+  // carries a cascade (ADR-051 point 7), so both are deleted here and in
+  // this order or neither can be.
+  { table: "llm_mentions", column: "site_id", from: "siteIds" },
+  { table: "llm_mention_reads", column: "site_id", from: "siteIds" },
   // The weekly verdict on each published page.
   { table: "page_verdicts", column: "publication_id", from: "publicationIds" },
   // How often an answer engine read each hosted page, and how many visitors
