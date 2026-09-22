@@ -156,8 +156,11 @@ export function ConnectScreen(p: {
       </Surface>
 
       {/* The action bar, outside the `Surface` so it runs edge to edge on a
-          phone — the frame #938 gives every setup screen. */}
-      <div className="sticky bottom-0 border-t border-base-300 bg-base-100">
+          phone — the frame #938 gives every setup screen. A `<footer>` for
+          the reason `SetupForm.tsx` gives at the same row (#328): outside
+          `<main>` by design, and so content in no landmark until it says
+          which one it is. */}
+      <footer className="sticky bottom-0 border-t border-base-300 bg-base-100">
         <div className="mx-auto flex min-w-0 max-w-5xl flex-wrap items-center justify-between gap-3 p-4">
           <a className="btn btn-ghost" href={APP_PATH} data-testid="setup-connect-later-action">
             {copy("setup.connect.later")}
@@ -167,7 +170,7 @@ export function ConnectScreen(p: {
             <ArrowRight {...ICON} size={16} />
           </a>
         </div>
-      </div>
+      </footer>
     </div>
   );
 }

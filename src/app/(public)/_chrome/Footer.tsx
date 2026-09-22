@@ -4,6 +4,14 @@
 // SPEC §1: brand, rights, removal address, Product, Legal. The legal column
 // reaches the three static routes, and the removal address is named so a
 // person who never opened an email can still find the way out.
+// **The column titles are not headings** (#328). They were level-six
+// headings, which land two or three levels under whatever `<h1>` the page
+// above carries — `heading-order`, on all eight public routes — and they
+// were never headings to begin with: each `<nav>` already carries the same
+// sentence as its `aria-label`, so each was a second, lower-ranked copy of
+// a name the landmark already had. A `<div>` keeps daisyUI's
+// `footer-title` and every pixel it draws, and takes the duplicate out of
+// the document outline.
 import type React from "react";
 import Link from "next/link";
 import { copy } from "@/lib/presentation/copy";
@@ -28,7 +36,7 @@ export function Footer(): React.JSX.Element {
         </aside>
 
         <nav aria-label={copy("chrome.footer.product")}>
-          <h6 className="footer-title">{copy("chrome.footer.product")}</h6>
+          <div className="footer-title">{copy("chrome.footer.product")}</div>
           {/* The board's Product column opens with the free scan itself
               (#936) — the one thing on this site a stranger came for, and
               the only column entry that was missing. Its word is the
@@ -45,7 +53,7 @@ export function Footer(): React.JSX.Element {
         </nav>
 
         <nav aria-label={copy("chrome.footer.legal")}>
-          <h6 className="footer-title">{copy("chrome.footer.legal")}</h6>
+          <div className="footer-title">{copy("chrome.footer.legal")}</div>
           {LEGAL.map((link) => (
             <Link key={link.href} href={link.href} className="link link-hover">
               {copy(link.key)}

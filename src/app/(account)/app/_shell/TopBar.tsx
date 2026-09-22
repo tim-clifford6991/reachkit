@@ -13,7 +13,7 @@ import type React from "react";
 import { PanelLeftOpen } from "lucide-react";
 import { Brand } from "@/app/_brand/Brand";
 import { copy } from "@/lib/presentation/copy";
-import { DRAWER_TOGGLE_ID } from "./drawer";
+import { DRAWER_FOCUS_RING, DRAWER_TOGGLE_ID } from "./drawer";
 import type { ShellModel } from "./model";
 
 export function TopBar(p: { shell: ShellModel }): React.JSX.Element {
@@ -30,7 +30,7 @@ export function TopBar(p: { shell: ShellModel }): React.JSX.Element {
       </span>
       <label
         htmlFor={DRAWER_TOGGLE_ID}
-        className="btn btn-ghost btn-square btn-sm drawer-button tooltip tooltip-left shrink-0"
+        className={`btn btn-ghost btn-square btn-sm drawer-button tooltip tooltip-left shrink-0 ${DRAWER_FOCUS_RING}`}
         data-tip={copy("shell.panel.open")}
         data-testid="shell-menu-button"
       >

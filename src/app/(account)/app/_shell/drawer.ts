@@ -28,6 +28,44 @@
  *  buttons — and a typo in any of them is a control that does nothing. */
 export const DRAWER_TOGGLE_ID = "app-drawer";
 
+/**
+ * The focus ring the toggle cannot draw on itself (#328).
+ *
+ * `.drawer-toggle` is `position: fixed; width: 0; height: 0; opacity: 0` —
+ * daisyUI hides it because the `<label>` buttons are what a reader sees.
+ * But it is the **only** thing here a keyboard can operate: Space on it is
+ * what collapses and expands the panel, and it is the first stop in the
+ * tab ring on every `/app` screen. An element with no box and no opacity
+ * paints no focus ring, so a keyboard reader was moved to a control they
+ * could not see — WCAG 2.1 **2.4.7 Focus Visible, Level AA**, and the one
+ * failure the accessibility pass found (#328).
+ *
+ * It cannot draw the ring itself: an `outline` inherits the `opacity: 0`
+ * that hides it, and the element cannot be moved out from under
+ * `.drawer-toggle` because daisyUI's own `:checked ~ .drawer-side` is a
+ * **sibling** selector — the checkbox has to stay exactly where it is for
+ * the panel to open with JavaScript switched off, which is the whole point
+ * of the mechanism (see the header above).
+ *
+ * So the ring is drawn where the reader is already looking: on whichever
+ * `<label>` is on screen. `.drawer-toggle:focus-visible ~ * &` reaches
+ * every following sibling's descendants, which is both `.drawer-content`
+ * (the top bar's Open) and `.drawer-side` (the panel's Collapse and the
+ * rail's Expand) — the same 2px primary outline at the same 2px offset
+ * every other control in the product paints, because that is what
+ * `:focus-visible` already gives them.
+ *
+ * No script, no stylesheet, no ARIA: the toggle keeps its own name and
+ * stays the one control, and what changes is only that pressing Tab now
+ * shows you where you are.
+ */
+export const DRAWER_FOCUS_RING = [
+  "[.drawer-toggle:focus-visible~*_&]:outline-solid",
+  "[.drawer-toggle:focus-visible~*_&]:outline-2",
+  "[.drawer-toggle:focus-visible~*_&]:outline-offset-2",
+  "[.drawer-toggle:focus-visible~*_&]:outline-primary",
+].join(" ");
+
 /** Where this browser keeps the choice. No account field: it is a choice
  *  about this screen, like the theme. */
 export const RAIL_STORAGE_KEY = "reachkit-rail";

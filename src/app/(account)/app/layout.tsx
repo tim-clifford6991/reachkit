@@ -52,7 +52,7 @@ import { copy } from "@/lib/presentation/copy";
 import { AppDock } from "./_shell/AppDock";
 import { SidebarNav } from "./_shell/SidebarNav";
 import { ThemeToggle } from "@/app/_theme/ThemeToggle";
-import { DRAWER_TOGGLE_ID, RAIL_SCRIPT } from "./_shell/drawer";
+import { DRAWER_FOCUS_RING, DRAWER_TOGGLE_ID, RAIL_SCRIPT } from "./_shell/drawer";
 import { cspNonce } from "./_shell/nonce";
 import { requireSetUpAccount } from "./_session/account";
 import {
@@ -159,6 +159,12 @@ export default async function AppLayout({
           <label htmlFor={DRAWER_TOGGLE_ID} className="drawer-overlay" aria-hidden="true" />
           <aside
             className="border-base-300 bg-base-100 flex h-full w-60 max-w-[85vw] flex-col border-e p-4 lg:h-[calc(100dvh-3rem)] lg:is-drawer-open:w-18 lg:is-drawer-open:items-center lg:is-drawer-open:p-2 xl:h-[calc(100dvh-4rem)]"
+            // Named for the same reason the draft screen's panel is (#328):
+            // a screen can carry a second `<aside>`, and two unnamed
+            // complementary landmarks are indistinguishable. It is the
+            // toggle's own name, so the control and the region it opens are
+            // called the same thing.
+            aria-label={copy("shell.panel.label")}
             data-testid="shell-sidebar"
           >
             {/* ── the full panel ─────────────────────────────────── */}
@@ -167,7 +173,7 @@ export default async function AppLayout({
                 <Brand href="/app" testId="shell-brand" />
                 <label
                   htmlFor={DRAWER_TOGGLE_ID}
-                  className="btn btn-ghost btn-square btn-sm tooltip tooltip-bottom ms-auto hidden shrink-0 lg:flex"
+                  className={`btn btn-ghost btn-square btn-sm tooltip tooltip-bottom ms-auto hidden shrink-0 lg:flex ${DRAWER_FOCUS_RING}`}
                   data-tip={copy("shell.panel.collapse")}
                   data-testid="shell-collapse"
                 >
@@ -214,7 +220,7 @@ export default async function AppLayout({
               <BrandMark size="lg" />
               <label
                 htmlFor={DRAWER_TOGGLE_ID}
-                className="btn btn-ghost btn-square btn-sm tooltip tooltip-right shrink-0"
+                className={`btn btn-ghost btn-square btn-sm tooltip tooltip-right shrink-0 ${DRAWER_FOCUS_RING}`}
                 data-tip={copy("shell.panel.open")}
                 data-testid="shell-expand"
               >
