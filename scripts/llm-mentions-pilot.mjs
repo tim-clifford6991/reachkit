@@ -212,7 +212,7 @@ async function main() {
     }
     const { json, cost, error } = await search(
       auth,
-      [{ domain: entry.domain, search_filter: "include", search_scope: "sources", include_subdomains: true }],
+      [{ domain: entry.domain, search_filter: "include", search_scope: ["sources"], include_subdomains: true }],
       `pilot-920-${entry.domain}`
     );
     writeFileSync(path.join(OUT_DIR, `${entry.domain}.json`), JSON.stringify(json, null, 2));
@@ -239,7 +239,7 @@ async function main() {
     const ten = domains.slice(0, 10).map((d) => ({
       domain: d.domain,
       search_filter: "include",
-      search_scope: "sources",
+      search_scope: ["sources"],
       include_subdomains: true,
     }));
     const { json, cost, error } = await search(auth, ten, "pilot-920-billing-probe");
