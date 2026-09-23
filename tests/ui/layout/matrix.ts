@@ -3,12 +3,21 @@
 // The default is one band × one theme per screen: 1280 light, which is the
 // band and theme the approved set is drawn at. `RK_LAYOUT_FULL=1` restores
 // the full matrix — the six widths, the three bands and both themes — and
-// is what `npm run test:layout:full` and the nightly run set. The
-// 2026-09-11 test-budget ruling (`docs/PROCESS.md`, Test budget) is the
-// reason: the full matrix re-checks one decision six times per screen on
-// every PR, and that time buys less than the production smoke check it was
-// crowding out. The sweep this widens is a merge gate now (2026-09-21,
-// #976), which is one more reason the default stays one band.
+// is what `npm run test:layout:full` sets. The 2026-09-11 test-budget
+// ruling (`docs/PROCESS.md`, Test budget) is the reason: the full matrix
+// re-checks one decision six times per screen on every PR, and that time
+// buys less than the production smoke check it was crowding out. The sweep
+// this widens is a merge gate now (2026-09-21, #976), which is one more
+// reason the default stays one band.
+//
+// **Nothing runs it on a schedule** (2026-09-23, #1029). The nightly
+// `Layout (full matrix)` job that used to is retired: it had been red for
+// a week and nobody read it, and 84 of the 91 cases it last failed were
+// this file's own suites measured against `checks.ts`'s pre-ruling
+// allow-lists, which the gate excuses by name at the width it runs them
+// at. The five that were real are #1040 and #1041. So the widths below
+// 1280 are walked by hand now, on the box, and the answer is read the same
+// day — `docs/PROCESS.md`, Gates.
 import { BAND_MIN } from "@/ui/layout/bands";
 import { widths } from "./widths";
 
