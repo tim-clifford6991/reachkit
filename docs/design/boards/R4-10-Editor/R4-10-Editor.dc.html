@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Editor</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:"Plus Jakarta Sans",system-ui,sans-serif;color:#191925;font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+a{color:#4a3bd0;text-decoration:none}a:hover{color:#3a2db0}
+h1,h2,h3,h4,p,ul,ol,dl,dd{margin:0;padding:0}
+h1,h2,h3,h4{letter-spacing:-0.02em;font-weight:700;line-height:1.2;text-wrap:balance}
+h1{font-size:31px}h2{font-size:25px}h3{font-size:20px}h4{font-size:16px}
+p{text-wrap:pretty}
+.num{font-family:"JetBrains Mono",ui-monospace,monospace;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.eyebrow{font-size:11px;text-transform:uppercase;font-weight:700;letter-spacing:.1em;color:#6b6a80}
+.muted{color:#5e5e73}.sm{font-size:13px}.xs{font-size:12px}.b{font-weight:600}
+.row{display:flex;align-items:center}.col{display:flex;flex-direction:column}.grow{flex-grow:1;min-width:0}.wrap{flex-wrap:wrap}
+.g4{gap:4px}.g6{gap:6px}.g8{gap:8px}.g12{gap:12px}.g16{gap:16px}.g20{gap:20px}.g24{gap:24px}.g32{gap:32px}
+.card{background:#fff;border:1px solid #eaeaf1;border-radius:14px;box-shadow:0 1px 3px rgb(24 24 48/.045);box-sizing:border-box}
+.p16{padding:16px}.p20{padding:20px}.p24{padding:24px}
+.sunk{background:#efeff4;border-radius:14px;box-sizing:border-box}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:9px;border:1px solid transparent;font:600 14px "Plus Jakarta Sans",system-ui,sans-serif;cursor:pointer;background:#efeff4;color:#191925;box-sizing:border-box;white-space:nowrap}
+a.btn,a.btn:hover{color:#191925}
+.btn-primary,a.btn-primary,a.btn-primary:hover{background:#5b4be0;color:#fff}
+.btn-outline,a.btn-outline{background:#fff;border-color:#d3d2e0}
+.btn-ghost,a.btn-ghost{background:transparent;color:#5e5e73}
+.btn-warn{background:#fff;border-color:#e2b98a;color:#8a5218}
+.btn-error{background:#fff;border-color:#eab3a7;color:#9c3320}
+.btn-active{background:#fff;border-color:#d3d2e0;box-shadow:0 1px 2px rgb(24 24 48/.08)}
+.btn-sm{height:36px;padding:0 12px;font-size:13px}
+.btn-block{width:100%}
+.join{display:inline-flex;background:#efeff4;border-radius:11px;padding:3px;gap:2px}
+.badge{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:600;background:#efeff4;color:#4d4c61;white-space:nowrap;box-sizing:border-box}
+.badge-ok{background:#e7f6f0;color:#14664e}.badge-warn{background:#fff3e6;color:#8a5218}.badge-bad{background:#fdece8;color:#9c3320}
+.badge-accent{background:#eeecfd;color:#4336b8}.badge-outline{background:#fff;border:1px solid #d3d2e0}
+.alert{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:14px;background:#efeff4;font-size:14px;box-sizing:border-box}
+.alert-warn{background:#fff3e6;color:#5c370f}.alert-ok{background:#e7f6f0;color:#0f4a39}.alert-accent{background:#eeecfd;color:#2f2691}
+.input,.textarea{border:1px solid #d3d2e0;border-radius:9px;padding:0 14px;font:500 15px "Plus Jakarta Sans",system-ui,sans-serif;background:#fff;color:#191925;box-sizing:border-box;width:100%}
+.input{height:44px}.textarea{padding:12px 14px;line-height:1.55;resize:none}
+label{font-size:13px;font-weight:600}
+.toggle{width:44px;height:26px;border-radius:999px;border:none;background:#c9c8d8;position:relative;cursor:pointer;flex-shrink:0;padding:0}
+.toggle::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left .18s}
+.toggle.on{background:#5b4be0}.toggle.on::after{left:21px}
+.menu-item{display:flex;align-items:center;gap:10px;height:44px;padding:0 12px;border-radius:9px;font-weight:600;font-size:14px;color:#5e5e73}
+a.menu-item,a.menu-item:hover{color:#5e5e73}
+a.menu-item.active,a.menu-item.active:hover{background:#eeecfd;color:#4336b8}
+.tab{display:inline-flex;align-items:center;height:44px;padding:0 4px;font-weight:600;font-size:14px;color:#5e5e73;border-bottom:2px solid transparent;margin-bottom:-1px}
+a.tab,a.tab:hover{color:#5e5e73}
+.tab.active,a.tab.active{color:#191925;border-color:#5b4be0}
+.divider{height:1px;background:#eaeaf1;flex-shrink:0}
+.skeleton{background:linear-gradient(90deg,#ececf2 25%,#f5f5f9 37%,#ececf2 63%);background-size:400% 100%;animation:sk 1.6s ease infinite;border-radius:8px}
+@keyframes sk{0%{background-position:100% 50%}100%{background-position:0 50%}}
+.dots::after{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:#5b4be0;animation:pulse 1.2s ease-in-out infinite}
+.pulse{width:8px;height:8px;border-radius:50%;background:#5b4be0;animation:pulse 1.2s ease-in-out infinite;flex-shrink:0}
+@keyframes pulse{0%,100%{opacity:.25}50%{opacity:1}}
+mark{background:#fff3c4;color:inherit;padding:1px 2px;border-radius:3px}
+.article h1{font-size:30px;line-height:1.15}.article h2{font-size:19px;margin-top:6px}.article p{font-size:15.5px;line-height:1.65;color:#2a2a38}
+dt{font-size:12px;color:#5e5e73;font-weight:600}dd{font-size:14px;font-weight:500}
+
+.rich{color:#23232f}
+.rich h1{font-size:38px;line-height:1.12;letter-spacing:-0.03em;font-weight:800}
+.rich h2{font-size:24px;line-height:1.25;margin-top:18px}
+.rich h3{font-size:18px;line-height:1.35}
+.rich p,.rich li{font-size:17px;line-height:1.7}
+.rich ul,.rich ol{padding-left:24px;display:flex;flex-direction:column;gap:12px}
+.rich li::marker{color:#5e5e73;font-weight:600}
+.rich a,.rich a:hover{color:#191925;text-decoration:underline;text-underline-offset:3px;text-decoration-color:#9695a8}
+.rich blockquote{margin:6px 0;padding:2px 0 2px 24px;border-left:3px solid #191925;display:flex;flex-direction:column;gap:10px}
+.rich blockquote p{font-size:22px;line-height:1.45;font-weight:500;letter-spacing:-0.015em;color:#191925}
+.rich blockquote footer{font-size:14px;color:#5e5e73}
+.rich .src{font-size:13px;color:#5e5e73}
+.rich table{width:100%;border-collapse:collapse;font-size:15.5px}
+.rich th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#5e5e73;padding:10px 12px;border-bottom:2px solid #191925}
+.rich td{padding:14px 12px;border-bottom:1px solid #eaeaf1;vertical-align:top;line-height:1.5}
+.tag{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:6px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;background:#eeecfd;color:#4336b8}
+.kbd{display:inline-flex;align-items:center;justify-content:center;min-width:36px;height:36px;border-radius:8px;border:none;background:transparent;color:#4d4c61;cursor:pointer;font:700 14px "Plus Jakarta Sans",sans-serif}
+.kbd:hover{background:#efeff4}
+
+.clamp2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.clamp1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.cell{display:flex;flex-direction:column;gap:5px;text-align:left;font-family:inherit;color:inherit;cursor:pointer;padding:7px;height:104px;border-radius:10px;box-sizing:border-box;border:1px solid #eaeaf1;background:#fff;overflow:hidden;min-width:0}
+.cell .t{font-size:11.5px;line-height:1.3;font-weight:600}
+.cell .m{margin-top:auto;display:flex;align-items:center;gap:4px;font-size:10.5px;font-weight:600;color:#5e5e73;white-space:nowrap;overflow:hidden}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+</style>
+</helmet>
+<div style="width: 1280px; height: 880px; box-sizing: border-box; overflow: hidden; background: #f6f6f9; ">
+<div class="col" style="height: 100%;"><header class="row g16" style="height: 68px; padding: 0 24px; background: #fff; border-bottom: 1px solid #eaeaf1; flex-shrink: 0;"><a class="btn btn-sm btn-ghost" href="R4-08-Plan.dc.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><path d="M19 12H5"></path><path d="m12 19-7-7 7-7"></path></svg>Plan</a><span class="badge badge-warn">Your review</span><span class="sm muted">Goes live Sun 20 Sep at 07:00 unless you stop it</span><div class="join" role="group" aria-label="Mode" style="margin-left: auto;"><a class="btn btn-sm btn-ghost" href="R4-09-Page.dc.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg>Read</a><a class="btn btn-sm btn-active" href="R4-10-Editor.dc.html" aria-current="page"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>Edit</a></div><span class="sm muted">saved 14:02</span><button class="btn btn-warn">Stop this page</button><button class="btn btn-primary"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><polyline points="20 6 9 17 4 12"></polyline></svg>Approve now</button></header><div class="row grow" style="align-items: stretch; min-height: 0;"><section class="col g16" style="width: 500px; flex-shrink: 0; padding: 24px; box-sizing: border-box; border-right: 1px solid #eaeaf1; background: #fff;"><div class="col g6"><label for="s7-title">Title</label><input id="s7-title" class="input" value="How much does a bike service cost in 2026?"></div><div class="col g6"><div class="row"><label for="s7-desc" class="grow">Description in search results</label><span class="num xs muted">121 / 160</span></div><textarea id="s7-desc" class="textarea" rows="3" style="font-size: 14px;">What a basic, standard and full service cost this year, what each one includes, and how to tell which one your bike needs.</textarea></div><div class="col grow" style="min-height: 0;"><label for="s7-body" style="padding-bottom: 6px;">The page</label><div class="row" role="toolbar" aria-label="Formatting" style="gap: 2px; padding: 4px; border: 1px solid #d3d2e0; border-bottom: none; border-radius: 9px 9px 0 0; background: #fafafc;"><button class="kbd" aria-label="Heading">H2</button><button class="kbd" aria-label="Subheading">H3</button><span style="width: 1px; height: 20px; background: #e0dfeb; margin: 0 4px;"></span><button class="kbd" aria-label="Bold">B</button><button class="kbd" aria-label="Italic"><span style="font-style: italic; font-family: Georgia, serif;">I</span></button><button class="kbd" aria-label="Link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></button><span style="width: 1px; height: 20px; background: #e0dfeb; margin: 0 4px;"></span><button class="kbd" aria-label="Bullet list"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><line x1="8" x2="21" y1="6" y2="6"></line><line x1="8" x2="21" y1="12" y2="12"></line><line x1="8" x2="21" y1="18" y2="18"></line><line x1="3" x2="3.01" y1="6" y2="6"></line><line x1="3" x2="3.01" y1="12" y2="12"></line><line x1="3" x2="3.01" y1="18" y2="18"></line></svg></button><button class="kbd" aria-label="Quote">“”</button></div><textarea id="s7-body" class="textarea num" style="font-size: 12.5px; font-weight: 500; white-space: pre-wrap; flex-grow: 1; border-radius: 0 0 9px 9px;">A bike service costs between $60 and $280 in 2026, and the price follows how much of the bike is taken apart. A basic tune-up runs $60 to $100, a standard service $100 to $160, and a full overhaul $180 to $280 before parts. At Harbour Bike Repair a basic service is $85 and takes about two hours.
+
+## What each level of service includes
+
+Shops use different names, but almost every price list comes down to the same three levels.
+
+- **Basic service, $60 to $100.** A safety check, brake and gear adjustment, a chain clean and lube, and tires pumped to pressure.
+- **Standard service, $100 to $160.** Everything in a basic, plus wheels trued and cables replaced where they’re worn.
+
+## What changes the price
+
+&gt; “We quote the full price before we pick up a tool.”
+&gt; Harbour Bike Repair, from [How we work](https://harbourbikes.example/about)</textarea></div><div class="alert alert-ok" style="padding: 10px 12px; font-size: 13px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg><span>All your rules hold. Break one — say, “cheapest in town” — and the sentence is marked here as you type, and the page is held until it changes.</span></div></section><section class="col g12 grow" style="padding: 20px 24px; align-items: center; min-width: 0; min-height: 0;"><div class="row g12" style="align-self: stretch;"><span class="eyebrow grow">As your readers will see it · updates as you type</span><div class="join" role="group" aria-label="Preview size"><button class="{{ deskClass }}" onClick="{{ desk }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><rect width="20" height="14" x="2" y="3" rx="2"></rect><line x1="8" x2="16" y1="21" y2="21"></line><line x1="12" x2="12" y1="17" y2="21"></line></svg>Desktop</button><button class="{{ phoneClass }}" onClick="{{ phone }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"></rect><path d="M12 18h.01"></path></svg>Phone</button></div></div><div class="card col" style="width: {{ pw }}; max-width: 100%; height: 690px; overflow: hidden; transition: width .18s;"><div class="row g8" style="height: 40px; padding: 0 16px; border-bottom: 1px solid #eaeaf1; background: #fafafc; border-radius: 14px 14px 0 0; flex-shrink: 0;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: #5e5e73; flex-shrink: 0;"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path><path d="M2 12h20"></path></svg><span class="num xs" style="color: #4d4c61;">guides.harbourbikes.example/bike-service-cost</span></div><div class="row g8" style="height: 56px; padding: 0 32px; border-bottom: 1px solid #eaeaf1; flex-shrink: 0;"><span style="width: 10px; height: 10px; border-radius: 50%; background: #191925;"></span><span class="b">Harbour Bike Repair</span><span class="sm muted" style="margin-left: auto;">Guides</span><span class="sm muted">harbourbikes.example</span></div><div style="padding: {{ pp }}; overflow: hidden;"><article class="rich col" style="gap: 18px;"><span class="eyebrow">Bike repair · Guides</span><h1>How much does a bike service cost in 2026?</h1><p style="font-size: 19px; line-height: 1.55; color: #4d4c61;">What a basic, standard and full service cost this year, what each one includes, and how to tell which one your bike needs.</p><span class="src">Published September 20, 2026 by Harbour Bike Repair · 4 minute read</span><div class="divider"></div><div class="col g8" style="background: #f6f6f9; border-radius: 12px; padding: 20px 24px;"><span class="eyebrow">The short answer</span><p style="font-size: 18px; line-height: 1.6; font-weight: 500;">A basic bike service costs $60 to $100, a standard service $100 to $160, and a full overhaul $180 to $280 before parts.</p></div><p>A bike service costs between $60 and $280 in 2026, and the price follows how much of the bike is taken apart. A basic tune-up runs $60 to $100, a standard service $100 to $160, and a full overhaul $180 to $280 before parts. <mark>At Harbour Bike Repair a basic service is $85 and takes about two hours.</mark></p><span class="src">Read from <a href="#src">harbourbikes.example/pricing</a> on 12 Sep</span><h2>What each level of service includes</h2><p>Shops use different names, but almost every price list comes down to the same three levels.</p><table><thead><tr><th>Service</th><th>Typical price</th><th>What’s done</th><th>Right for</th></tr></thead><tbody><tr><td><strong>Basic</strong></td><td class="num">$60–$100</td><td>Safety check, brakes and gears adjusted, chain cleaned and lubed</td><td>A bike that rides fine, six months on</td></tr><tr><td><strong>Standard</strong></td><td class="num">$100–$160</td><td>A basic, plus wheels trued, worn cables replaced, bearings adjusted</td><td>A bike ridden most weeks</td></tr><tr><td><strong>Full</strong></td><td class="num">$180–$280</td><td>Stripped to the frame, drivetrain degreased, bearings regreased, brakes bled</td><td>After a winter, or bought second-hand</td></tr></tbody></table><h2>What changes the price</h2><p><strong>The type of bike.</strong> E-bikes, and bikes with hydraulic disc brakes or internal cable routing, take longer to work on. Expect the labor on those to sit at the top of each range.</p><p><strong>Parts.</strong> A service price covers labor. Chains, brake pads, cables and tires are extra, and a good shop tells you what they’ll cost before fitting any of them.</p><blockquote><p>“We quote the full price before we pick up a tool. If we find something else once the bike is on the stand, we call you first.”</p><footer>Harbour Bike Repair, from <a href="#about">How we work</a></footer></blockquote><p><strong>How long it has been.</strong> A bike that’s serviced every year is quick to work on. One that has sat in a garage for three usually needs seized parts freed before the real work starts, and that time is billed.</p><h2>How to tell which service you need</h2><ol><li>Squeeze both brakes and push the bike forward. If a lever touches the handlebar or the bike still rolls, book at least a standard service.</li><li>Shift through every gear while pedaling. Hesitation, or skipping when you push hard, usually means a stretched chain or cable.</li><li>Lift each wheel and spin it. A wobble means the wheel needs truing. A grinding sound means bearings, and that’s a full service.</li><li>Think back. If you can’t remember the last service, start with a standard and let the mechanic tell you what they find.</li></ol><p>For the schedule in detail, see our guide to <a href="#often">how often you should service a bike</a>.</p><h2>Is a service worth the money?</h2><p>A chain costs about $30 to replace. Left too long, a worn chain wears down the cassette and chainrings with it, and replacing all three costs $150 or more. A yearly service catches the $30 problem before it becomes the $150 one.</p><h2>Bike servicing at Harbour Bike Repair</h2><ul><li>A basic service is $85, a standard service $140 and a full service $220. <a href="#pricing">See the full price list</a>.</li><li>Most services are finished the same day when the bike is dropped off by 10am. <a href="#book">Check this week’s openings</a>.</li><li>Every service includes a written quote for parts before any are fitted. <a href="#about">How we work</a>.</li></ul><p><a href="#book" style="font-weight: 700;">Book a service online</a> and we’ll tell you which level your bike needs before we start.</p><h2>Common questions</h2><div class="col g6"><h3>How long does a bike service take?</h3><p>A basic service takes about two hours. A full service takes one to two days, because parts are soaked and bearings are repacked.</p></div><div class="col g6"><h3>Do I need to book ahead?</h3><p>In spring, yes. From March to June most shops are booked a week out. The rest of the year, a day or two is usually enough.</p></div><div class="col g6"><h3>How often should I service my bike?</h3><p>Once a year for most riders. Every six months if you ride to work daily or through the winter.</p></div><div class="col g12" style="margin-top: 12px;"><span class="eyebrow">More guides from Harbour Bike Repair</span><div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px;"><a href="#g1" style="border: 1px solid #eaeaf1; border-radius: 12px; padding: 16px; text-decoration: none; font-size: 16px; font-weight: 600; line-height: 1.35;">How often should you service a bike?</a><a href="#g2" style="border: 1px solid #eaeaf1; border-radius: 12px; padding: 16px; text-decoration: none; font-size: 16px; font-weight: 600; line-height: 1.35;">What does a puncture repair cost?</a></div></div><div class="divider" style="margin-top: 12px;"></div><div class="col g6"><span class="eyebrow">Sources</span><span class="src">1. Harbour Bike Repair price list — <a href="#s1">harbourbikes.example/pricing</a>, read September 12, 2026</span><span class="src">2. How we work — <a href="#s2">harbourbikes.example/about</a>, read September 12, 2026</span><span class="src">3. Booking and turnaround — <a href="#s3">harbourbikes.example/book</a>, read September 12, 2026</span></div></article></div></div></section></div></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":880}}'>
+class Component extends DCLogic {
+renderVals() {
+var self = this;
+var phone = !!(this.state && this.state.phone);
+return { pw: phone ? '390px' : '100%', pp: phone ? '28px 22px' : '40px 64px',
+deskClass: phone ? 'btn btn-sm btn-ghost' : 'btn btn-sm btn-active', phoneClass: phone ? 'btn btn-sm btn-active' : 'btn btn-sm btn-ghost',
+desk: function () { self.setState({ phone: false }); }, phone: function () { self.setState({ phone: true }); } };
+}
+}
+</script>
+</body>
+</html>

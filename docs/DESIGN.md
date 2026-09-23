@@ -12,50 +12,50 @@ The owner reviews UI by clicking `dev.reachkit.app`. There is no pixel baseline 
 
 ## Each screen and its decided board (owner, 2026-09-23, #1026)
 
-A screen is built to the board named on its row and to nothing else. The boards are the owner’s files, `<board>.dc.html` beside its `.jpg`, under `/root/ops/reachkit/design/<round>/`. A board says what the screen holds, in what order, with what wording — never its pixels and never its markup; the three rules above still say how it looks, and the canvas line above still governs how a board is read. **A change of board is an owner decision: it needs a new dated line in `docs/SPEC.md` and a new board, not an edit here.**
+A screen is built to the board named on its row and to nothing else. Each board is two files in this repository — `docs/design/boards/<board-id>/<board-id>.dc.html`, the source, and its `.jpg` render — linked from the row. A board says what the screen holds, in what order, with what wording — never its pixels and never its markup; the three rules above still say how it looks, and the canvas line above still governs how a board is read. **A change of board is an owner decision: it needs a new dated line in `docs/SPEC.md` and a new board, not an edit here.**
 
 The addresses are this repository’s, which is not always what the ledger calls a screen: *Plan* is served at `/app/calendar` (the screen is called Plan, the ruling of 2026-09-20 on #914), *the page* at `/app/draft/{draftId}`, and the editor is an arm of that same address rather than one of its own.
 
 | Screen | Route | Board | Ruled |
 |---|---|---|---|
-| Landing — the hero | `/` | `R11-H4-Week` | 2026-09-21 hero (#935); the sections below it follow `R6-1-Landing` |
-| Landing — the sections | `/` | `R6-1-Landing` | 2026-09-20 (#936, #935); its own hero is superseded by `R11-H4-Week` |
-| Pricing | `/pricing` | `R6-2-Pricing` | 2026-09-20 (#937) |
-| Free scan in progress | `/scan/{domain}` | `R5-W2-Scanning` | 2026-09-20 (#908, SPEC §2) |
-| Free scan report | `/scan/{domain}` | `R5-W3-Report` | 2026-09-20 (#935); report facts 2026-09-22 (#715) |
-| Quiet pages | `/opt-out/{token}`, the not-found and refused arms | `R6-6-Quiet` | 2026-09-20 (#936) |
-| Legal pages | `/privacy`, `/terms`, `/imprint` | `R6-7-Legal` | 2026-09-20 (#936); the bodies are owner-owed (#335) |
-| Phone: landing | `/` at 390 | `R6-8-Phone-landing` | 2026-09-20 (#936, #910) |
-| Phone: report | `/scan/{domain}` at 390 | `R6-9-Phone-report` | 2026-09-20 (#910) |
-| Sign in | `/signin` | `R7-S1-Signin` | 2026-09-20 (#937); built by #1025 |
-| Sign in: link sent | `/signin` | `R7-S2-Sent` | 2026-09-20 (#937); built by #1025 |
-| Sign in: old link | `/signin` | `R7-S3-Old-link` | 2026-09-20 (#937); built by #1025 |
-| Stop this page | `/veto/{token}` | `R7-S4-Stop` | 2026-09-20 (#937); wording 2026-09-20 (#914) |
-| Stop this page: stopped | `/veto/{token}` | `R7-S5-Stopped` | 2026-09-20 (#937); built by #1025 |
-| Setup, five steps | `/setup` | `R4-01-Onboarding` | 2026-09-20 (SPEC §5) |
-| Connect your blog | `/setup/connect` | `R4-02-Connect` | 2026-09-20, reversing #757; eyebrow 2026-09-21 (#972) |
-| Overview, first day | `/app` | `R4-03-FirstDay` | 2026-09-20 no loading screens (SPEC §4) |
-| Overview | `/app` | `R4-04-Overview` | 2026-09-20 (SPEC §4) |
-| Overview › Search | `/app/search` | `R4-05-Search` | 2026-09-20 (SPEC §4) |
-| Overview › AI answers | `/app/ai-answers` | `R4-06-AI-answers` | 2026-09-20 measures; names-you 2026-09-21 (#953); weekly LLM Mentions 2026-09-22 |
-| Overview › Rivals | `/app/rivals` | `R4-07-Rivals` | 2026-09-20 (SPEC §4); leaders line 2026-09-21 (#983) |
-| Plan | `/app/calendar` | `R4-08-Plan` | 2026-09-20 (SPEC §7); opens on today 2026-09-21 (#961) |
-| Day-card states | the day cards on `/app/calendar` | `R3-DayCards` | 2026-09-20, Round 3 |
-| The page as it publishes | `/app/draft/{draftId}` | `R4-09-Page` | 2026-09-20 (SPEC §7) |
-| The editor | the editing arm of `/app/draft/{draftId}` | `R4-10-Editor` | 2026-09-20 (SPEC §7); tab title 2026-09-21 (#984) |
-| Settings › Your business | `/app/settings` | `R4-11-Business` | 2026-09-20; “new” marks 2026-09-21 (#969) |
-| Settings, the other six tabs | `/app/settings/{market,publishing,voice,mail,billing,account}` | `R2-S8-Settings` | 2026-09-20 (SPEC §4) |
-| Phone: setup | `/setup` at 390 | `R5-P1-Onboarding` | 2026-09-20 |
-| Phone: overview | `/app` at 390 | `R5-P2-Overview` | 2026-09-20 |
-| Phone: plan | `/app/calendar` at 390 | `R5-P3-Plan` | 2026-09-20; sheet closed at rest 2026-09-21 (#961) |
-| Phone: the page | `/app/draft/{draftId}` at 390 | `R5-P4-Page` | 2026-09-20 |
-| Phone: editor | the editing arm at 390 | `R5-P5-Editor` | 2026-09-20 |
-| Mail: your page is ready | Resend | `R5-M1-Ready` | 2026-09-20 |
-| Mail: what moved this week | Resend | `R5-M2-Weekly` | 2026-09-20 |
-| Dark: overview | `/app`, dark | `R5-D1-Overview` | 2026-09-20 dark pass; contrast 2026-09-21 (#946) |
-| Dark: plan | `/app/calendar`, dark | `R5-D2-Plan` | 2026-09-20 |
-| Dark: search | `/app/search`, dark | `R5-D3-Search` | 2026-09-20 |
-| The mark | everywhere the brand is drawn (`src/app/_brand/Brand.tsx`) | `R9-L1-Chip` | 2026-09-21 (#982) |
+| Landing — the hero | `/` | [`R11-H4-Week`](design/boards/R11-H4-Week/R11-H4-Week.dc.html) · [render](design/boards/R11-H4-Week/R11-H4-Week.jpg) | 2026-09-21 hero (#935); the sections below it follow `R6-1-Landing` |
+| Landing — the sections | `/` | [`R6-1-Landing`](design/boards/R6-1-Landing/R6-1-Landing.dc.html) · [render](design/boards/R6-1-Landing/R6-1-Landing.jpg) | 2026-09-20 (#936, #935); its own hero is superseded by `R11-H4-Week` |
+| Pricing | `/pricing` | [`R6-2-Pricing`](design/boards/R6-2-Pricing/R6-2-Pricing.dc.html) · [render](design/boards/R6-2-Pricing/R6-2-Pricing.jpg) | 2026-09-20 (#937) |
+| Free scan in progress | `/scan/{domain}` | [`R5-W2-Scanning`](design/boards/R5-W2-Scanning/R5-W2-Scanning.dc.html) · [render](design/boards/R5-W2-Scanning/R5-W2-Scanning.jpg) | 2026-09-20 (#908, SPEC §2) |
+| Free scan report | `/scan/{domain}` | [`R5-W3-Report`](design/boards/R5-W3-Report/R5-W3-Report.dc.html) · [render](design/boards/R5-W3-Report/R5-W3-Report.jpg) | 2026-09-20 (#935); report facts 2026-09-22 (#715) |
+| Quiet pages | `/opt-out/{token}`, the not-found and refused arms | [`R6-6-Quiet`](design/boards/R6-6-Quiet/R6-6-Quiet.dc.html) · [render](design/boards/R6-6-Quiet/R6-6-Quiet.jpg) | 2026-09-20 (#936) |
+| Legal pages | `/privacy`, `/terms`, `/imprint` | [`R6-7-Legal`](design/boards/R6-7-Legal/R6-7-Legal.dc.html) · [render](design/boards/R6-7-Legal/R6-7-Legal.jpg) | 2026-09-20 (#936); the bodies are owner-owed (#335) |
+| Phone: landing | `/` at 390 | [`R6-8-Phone-landing`](design/boards/R6-8-Phone-landing/R6-8-Phone-landing.dc.html) · [render](design/boards/R6-8-Phone-landing/R6-8-Phone-landing.jpg) | 2026-09-20 (#936, #910) |
+| Phone: report | `/scan/{domain}` at 390 | [`R6-9-Phone-report`](design/boards/R6-9-Phone-report/R6-9-Phone-report.dc.html) · [render](design/boards/R6-9-Phone-report/R6-9-Phone-report.jpg) | 2026-09-20 (#910) |
+| Sign in | `/signin` | [`R7-S1-Signin`](design/boards/R7-S1-Signin/R7-S1-Signin.dc.html) · [render](design/boards/R7-S1-Signin/R7-S1-Signin.jpg) | 2026-09-20 (#937); built by #1025 |
+| Sign in: link sent | `/signin` | [`R7-S2-Sent`](design/boards/R7-S2-Sent/R7-S2-Sent.dc.html) · [render](design/boards/R7-S2-Sent/R7-S2-Sent.jpg) | 2026-09-20 (#937); built by #1025 |
+| Sign in: old link | `/signin` | [`R7-S3-Old-link`](design/boards/R7-S3-Old-link/R7-S3-Old-link.dc.html) · [render](design/boards/R7-S3-Old-link/R7-S3-Old-link.jpg) | 2026-09-20 (#937); built by #1025 |
+| Stop this page | `/veto/{token}` | [`R7-S4-Stop`](design/boards/R7-S4-Stop/R7-S4-Stop.dc.html) · [render](design/boards/R7-S4-Stop/R7-S4-Stop.jpg) | 2026-09-20 (#937); wording 2026-09-20 (#914) |
+| Stop this page: stopped | `/veto/{token}` | [`R7-S5-Stopped`](design/boards/R7-S5-Stopped/R7-S5-Stopped.dc.html) · [render](design/boards/R7-S5-Stopped/R7-S5-Stopped.jpg) | 2026-09-20 (#937); built by #1025 |
+| Setup, five steps | `/setup` | [`R4-01-Onboarding`](design/boards/R4-01-Onboarding/R4-01-Onboarding.dc.html) · [render](design/boards/R4-01-Onboarding/R4-01-Onboarding.jpg) | 2026-09-20 (SPEC §5) |
+| Connect your blog | `/setup/connect` | [`R4-02-Connect`](design/boards/R4-02-Connect/R4-02-Connect.dc.html) · [render](design/boards/R4-02-Connect/R4-02-Connect.jpg) | 2026-09-20, reversing #757; eyebrow 2026-09-21 (#972) |
+| Overview, first day | `/app` | [`R4-03-FirstDay`](design/boards/R4-03-FirstDay/R4-03-FirstDay.dc.html) · [render](design/boards/R4-03-FirstDay/R4-03-FirstDay.jpg) | 2026-09-20 no loading screens (SPEC §4) |
+| Overview | `/app` | [`R4-04-Overview`](design/boards/R4-04-Overview/R4-04-Overview.dc.html) · [render](design/boards/R4-04-Overview/R4-04-Overview.jpg) | 2026-09-20 (SPEC §4) |
+| Overview › Search | `/app/search` | [`R4-05-Search`](design/boards/R4-05-Search/R4-05-Search.dc.html) · [render](design/boards/R4-05-Search/R4-05-Search.jpg) | 2026-09-20 (SPEC §4) |
+| Overview › AI answers | `/app/ai-answers` | [`R4-06-AI-answers`](design/boards/R4-06-AI-answers/R4-06-AI-answers.dc.html) · [render](design/boards/R4-06-AI-answers/R4-06-AI-answers.jpg) | 2026-09-20 measures; names-you 2026-09-21 (#953); weekly LLM Mentions 2026-09-22 |
+| Overview › Rivals | `/app/rivals` | [`R4-07-Rivals`](design/boards/R4-07-Rivals/R4-07-Rivals.dc.html) · [render](design/boards/R4-07-Rivals/R4-07-Rivals.jpg) | 2026-09-20 (SPEC §4); leaders line 2026-09-21 (#983) |
+| Plan | `/app/calendar` | [`R4-08-Plan`](design/boards/R4-08-Plan/R4-08-Plan.dc.html) · [render](design/boards/R4-08-Plan/R4-08-Plan.jpg) | 2026-09-20 (SPEC §7); opens on today 2026-09-21 (#961) |
+| Day-card states | the day cards on `/app/calendar` | [`R3-DayCards`](design/boards/R3-DayCards/R3-DayCards.dc.html) · [render](design/boards/R3-DayCards/R3-DayCards.jpg) | 2026-09-20, Round 3 |
+| The page as it publishes | `/app/draft/{draftId}` | [`R4-09-Page`](design/boards/R4-09-Page/R4-09-Page.dc.html) · [render](design/boards/R4-09-Page/R4-09-Page.jpg) | 2026-09-20 (SPEC §7) |
+| The editor | the editing arm of `/app/draft/{draftId}` | [`R4-10-Editor`](design/boards/R4-10-Editor/R4-10-Editor.dc.html) · [render](design/boards/R4-10-Editor/R4-10-Editor.jpg) | 2026-09-20 (SPEC §7); tab title 2026-09-21 (#984) |
+| Settings › Your business | `/app/settings` | [`R4-11-Business`](design/boards/R4-11-Business/R4-11-Business.dc.html) · [render](design/boards/R4-11-Business/R4-11-Business.jpg) | 2026-09-20; “new” marks 2026-09-21 (#969) |
+| Settings, the other six tabs | `/app/settings/{market,publishing,voice,mail,billing,account}` | [`R2-S8-Settings`](design/boards/R2-S8-Settings/R2-S8-Settings.dc.html) · [render](design/boards/R2-S8-Settings/R2-S8-Settings.jpg) | 2026-09-20 (SPEC §4) |
+| Phone: setup | `/setup` at 390 | [`R5-P1-Onboarding`](design/boards/R5-P1-Onboarding/R5-P1-Onboarding.dc.html) · [render](design/boards/R5-P1-Onboarding/R5-P1-Onboarding.jpg) | 2026-09-20 |
+| Phone: overview | `/app` at 390 | [`R5-P2-Overview`](design/boards/R5-P2-Overview/R5-P2-Overview.dc.html) · [render](design/boards/R5-P2-Overview/R5-P2-Overview.jpg) | 2026-09-20 |
+| Phone: plan | `/app/calendar` at 390 | [`R5-P3-Plan`](design/boards/R5-P3-Plan/R5-P3-Plan.dc.html) · [render](design/boards/R5-P3-Plan/R5-P3-Plan.jpg) | 2026-09-20; sheet closed at rest 2026-09-21 (#961) |
+| Phone: the page | `/app/draft/{draftId}` at 390 | [`R5-P4-Page`](design/boards/R5-P4-Page/R5-P4-Page.dc.html) · [render](design/boards/R5-P4-Page/R5-P4-Page.jpg) | 2026-09-20 |
+| Phone: editor | the editing arm at 390 | [`R5-P5-Editor`](design/boards/R5-P5-Editor/R5-P5-Editor.dc.html) · [render](design/boards/R5-P5-Editor/R5-P5-Editor.jpg) | 2026-09-20 |
+| Mail: your page is ready | Resend | [`R5-M1-Ready`](design/boards/R5-M1-Ready/R5-M1-Ready.dc.html) · [render](design/boards/R5-M1-Ready/R5-M1-Ready.jpg) | 2026-09-20 |
+| Mail: what moved this week | Resend | [`R5-M2-Weekly`](design/boards/R5-M2-Weekly/R5-M2-Weekly.dc.html) · [render](design/boards/R5-M2-Weekly/R5-M2-Weekly.jpg) | 2026-09-20 |
+| Dark: overview | `/app`, dark | [`R5-D1-Overview`](design/boards/R5-D1-Overview/R5-D1-Overview.dc.html) · [render](design/boards/R5-D1-Overview/R5-D1-Overview.jpg) | 2026-09-20 dark pass; contrast 2026-09-21 (#946) |
+| Dark: plan | `/app/calendar`, dark | [`R5-D2-Plan`](design/boards/R5-D2-Plan/R5-D2-Plan.dc.html) · [render](design/boards/R5-D2-Plan/R5-D2-Plan.jpg) | 2026-09-20 |
+| Dark: search | `/app/search`, dark | [`R5-D3-Search`](design/boards/R5-D3-Search/R5-D3-Search.dc.html) · [render](design/boards/R5-D3-Search/R5-D3-Search.jpg) | 2026-09-20 |
+| The mark | everywhere the brand is drawn (`src/app/_brand/Brand.tsx`) | [`R9-L1-Chip`](design/boards/R9-L1-Chip/R9-L1-Chip.dc.html) · [render](design/boards/R9-L1-Chip/R9-L1-Chip.jpg) | 2026-09-21 (#982) |
 
 ## Do not
 

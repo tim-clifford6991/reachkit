@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Connect your blog</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:"Plus Jakarta Sans",system-ui,sans-serif;color:#191925;font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+a{color:#4a3bd0;text-decoration:none}a:hover{color:#3a2db0}
+h1,h2,h3,h4,p,ul,ol,dl,dd{margin:0;padding:0}
+h1,h2,h3,h4{letter-spacing:-0.02em;font-weight:700;line-height:1.2;text-wrap:balance}
+h1{font-size:31px}h2{font-size:25px}h3{font-size:20px}h4{font-size:16px}
+p{text-wrap:pretty}
+.num{font-family:"JetBrains Mono",ui-monospace,monospace;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.eyebrow{font-size:11px;text-transform:uppercase;font-weight:700;letter-spacing:.1em;color:#6b6a80}
+.muted{color:#5e5e73}.sm{font-size:13px}.xs{font-size:12px}.b{font-weight:600}
+.row{display:flex;align-items:center}.col{display:flex;flex-direction:column}.grow{flex-grow:1;min-width:0}.wrap{flex-wrap:wrap}
+.g4{gap:4px}.g6{gap:6px}.g8{gap:8px}.g12{gap:12px}.g16{gap:16px}.g20{gap:20px}.g24{gap:24px}.g32{gap:32px}
+.card{background:#fff;border:1px solid #eaeaf1;border-radius:14px;box-shadow:0 1px 3px rgb(24 24 48/.045);box-sizing:border-box}
+.p16{padding:16px}.p20{padding:20px}.p24{padding:24px}
+.sunk{background:#efeff4;border-radius:14px;box-sizing:border-box}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:9px;border:1px solid transparent;font:600 14px "Plus Jakarta Sans",system-ui,sans-serif;cursor:pointer;background:#efeff4;color:#191925;box-sizing:border-box;white-space:nowrap}
+a.btn,a.btn:hover{color:#191925}
+.btn-primary,a.btn-primary,a.btn-primary:hover{background:#5b4be0;color:#fff}
+.btn-outline,a.btn-outline{background:#fff;border-color:#d3d2e0}
+.btn-ghost,a.btn-ghost{background:transparent;color:#5e5e73}
+.btn-warn{background:#fff;border-color:#e2b98a;color:#8a5218}
+.btn-error{background:#fff;border-color:#eab3a7;color:#9c3320}
+.btn-active{background:#fff;border-color:#d3d2e0;box-shadow:0 1px 2px rgb(24 24 48/.08)}
+.btn-sm{height:36px;padding:0 12px;font-size:13px}
+.btn-block{width:100%}
+.join{display:inline-flex;background:#efeff4;border-radius:11px;padding:3px;gap:2px}
+.badge{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:600;background:#efeff4;color:#4d4c61;white-space:nowrap;box-sizing:border-box}
+.badge-ok{background:#e7f6f0;color:#14664e}.badge-warn{background:#fff3e6;color:#8a5218}.badge-bad{background:#fdece8;color:#9c3320}
+.badge-accent{background:#eeecfd;color:#4336b8}.badge-outline{background:#fff;border:1px solid #d3d2e0}
+.alert{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:14px;background:#efeff4;font-size:14px;box-sizing:border-box}
+.alert-warn{background:#fff3e6;color:#5c370f}.alert-ok{background:#e7f6f0;color:#0f4a39}.alert-accent{background:#eeecfd;color:#2f2691}
+.input,.textarea{border:1px solid #d3d2e0;border-radius:9px;padding:0 14px;font:500 15px "Plus Jakarta Sans",system-ui,sans-serif;background:#fff;color:#191925;box-sizing:border-box;width:100%}
+.input{height:44px}.textarea{padding:12px 14px;line-height:1.55;resize:none}
+label{font-size:13px;font-weight:600}
+.toggle{width:44px;height:26px;border-radius:999px;border:none;background:#c9c8d8;position:relative;cursor:pointer;flex-shrink:0;padding:0}
+.toggle::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left .18s}
+.toggle.on{background:#5b4be0}.toggle.on::after{left:21px}
+.menu-item{display:flex;align-items:center;gap:10px;height:44px;padding:0 12px;border-radius:9px;font-weight:600;font-size:14px;color:#5e5e73}
+a.menu-item,a.menu-item:hover{color:#5e5e73}
+a.menu-item.active,a.menu-item.active:hover{background:#eeecfd;color:#4336b8}
+.tab{display:inline-flex;align-items:center;height:44px;padding:0 4px;font-weight:600;font-size:14px;color:#5e5e73;border-bottom:2px solid transparent;margin-bottom:-1px}
+a.tab,a.tab:hover{color:#5e5e73}
+.tab.active,a.tab.active{color:#191925;border-color:#5b4be0}
+.divider{height:1px;background:#eaeaf1;flex-shrink:0}
+.skeleton{background:linear-gradient(90deg,#ececf2 25%,#f5f5f9 37%,#ececf2 63%);background-size:400% 100%;animation:sk 1.6s ease infinite;border-radius:8px}
+@keyframes sk{0%{background-position:100% 50%}100%{background-position:0 50%}}
+.dots::after{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:#5b4be0;animation:pulse 1.2s ease-in-out infinite}
+.pulse{width:8px;height:8px;border-radius:50%;background:#5b4be0;animation:pulse 1.2s ease-in-out infinite;flex-shrink:0}
+@keyframes pulse{0%,100%{opacity:.25}50%{opacity:1}}
+mark{background:#fff3c4;color:inherit;padding:1px 2px;border-radius:3px}
+.article h1{font-size:30px;line-height:1.15}.article h2{font-size:19px;margin-top:6px}.article p{font-size:15.5px;line-height:1.65;color:#2a2a38}
+dt{font-size:12px;color:#5e5e73;font-weight:600}dd{font-size:14px;font-weight:500}
+
+.rich{color:#23232f}
+.rich h1{font-size:38px;line-height:1.12;letter-spacing:-0.03em;font-weight:800}
+.rich h2{font-size:24px;line-height:1.25;margin-top:18px}
+.rich h3{font-size:18px;line-height:1.35}
+.rich p,.rich li{font-size:17px;line-height:1.7}
+.rich ul,.rich ol{padding-left:24px;display:flex;flex-direction:column;gap:12px}
+.rich li::marker{color:#5e5e73;font-weight:600}
+.rich a,.rich a:hover{color:#191925;text-decoration:underline;text-underline-offset:3px;text-decoration-color:#9695a8}
+.rich blockquote{margin:6px 0;padding:2px 0 2px 24px;border-left:3px solid #191925;display:flex;flex-direction:column;gap:10px}
+.rich blockquote p{font-size:22px;line-height:1.45;font-weight:500;letter-spacing:-0.015em;color:#191925}
+.rich blockquote footer{font-size:14px;color:#5e5e73}
+.rich .src{font-size:13px;color:#5e5e73}
+.rich table{width:100%;border-collapse:collapse;font-size:15.5px}
+.rich th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#5e5e73;padding:10px 12px;border-bottom:2px solid #191925}
+.rich td{padding:14px 12px;border-bottom:1px solid #eaeaf1;vertical-align:top;line-height:1.5}
+.tag{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:6px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;background:#eeecfd;color:#4336b8}
+.kbd{display:inline-flex;align-items:center;justify-content:center;min-width:36px;height:36px;border-radius:8px;border:none;background:transparent;color:#4d4c61;cursor:pointer;font:700 14px "Plus Jakarta Sans",sans-serif}
+.kbd:hover{background:#efeff4}
+
+.clamp2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.clamp1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.cell{display:flex;flex-direction:column;gap:5px;text-align:left;font-family:inherit;color:inherit;cursor:pointer;padding:7px;height:104px;border-radius:10px;box-sizing:border-box;border:1px solid #eaeaf1;background:#fff;overflow:hidden;min-width:0}
+.cell .t{font-size:11.5px;line-height:1.3;font-weight:600}
+.cell .m{margin-top:auto;display:flex;align-items:center;gap:4px;font-size:10.5px;font-weight:600;color:#5e5e73;white-space:nowrap;overflow:hidden}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+</style>
+</helmet>
+<div style="width: 1280px; height: 880px; box-sizing: border-box; overflow: hidden; background: #f6f6f9; ">
+<div class="row" style="height: 100%; align-items: stretch;"><section class="col g24" style="width: 560px; flex-shrink: 0; padding: 40px 48px; box-sizing: border-box; background: #fff; border-right: 1px solid #eaeaf1;"><div class="row g8"><span class="row" style="width: 28px; height: 28px; border-radius: 8px; background: #5b4be0; color: #fff; justify-content: center;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline><polyline points="16 7 22 7 22 13"></polyline></svg></span><span style="font-weight: 800; font-size: 16px; letter-spacing: -0.02em;">ReachKit</span></div><ol aria-label="Setup steps" style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); list-style: none;"><li class="col g6" style="position: relative; align-items: center;"><span class="row num xs" style="position: relative; width: 28px; height: 28px; border-radius: 50%; justify-content: center; background: #5b4be0; color: #fff;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><polyline points="20 6 9 17 4 12"></polyline></svg></span><span class="xs" style="font-weight: 500; color: #191925;">Site</span></li><li class="col g6" style="position: relative; align-items: center;"><span aria-hidden="true" style="position: absolute; top: 13px; right: 50%; width: 100%; height: 2px; background: #5b4be0;"></span><span class="row num xs" style="position: relative; width: 28px; height: 28px; border-radius: 50%; justify-content: center; background: #5b4be0; color: #fff;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><polyline points="20 6 9 17 4 12"></polyline></svg></span><span class="xs" style="font-weight: 500; color: #191925;">Business</span></li><li class="col g6" style="position: relative; align-items: center;"><span aria-hidden="true" style="position: absolute; top: 13px; right: 50%; width: 100%; height: 2px; background: #5b4be0;"></span><span class="row num xs" style="position: relative; width: 28px; height: 28px; border-radius: 50%; justify-content: center; background: #5b4be0; color: #fff;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><polyline points="20 6 9 17 4 12"></polyline></svg></span><span class="xs" style="font-weight: 500; color: #191925;">Rivals</span></li><li class="col g6" style="position: relative; align-items: center;"><span aria-hidden="true" style="position: absolute; top: 13px; right: 50%; width: 100%; height: 2px; background: #5b4be0;"></span><span class="row num xs" style="position: relative; width: 28px; height: 28px; border-radius: 50%; justify-content: center; background: #5b4be0; color: #fff;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><polyline points="20 6 9 17 4 12"></polyline></svg></span><span class="xs" style="font-weight: 500; color: #191925;">Voice</span></li><li class="col g6" style="position: relative; align-items: center;"><span aria-hidden="true" style="position: absolute; top: 13px; right: 50%; width: 100%; height: 2px; background: #5b4be0;"></span><span class="row num xs" style="position: relative; width: 28px; height: 28px; border-radius: 50%; justify-content: center; background: #5b4be0; color: #fff;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><polyline points="20 6 9 17 4 12"></polyline></svg></span><span class="xs" style="font-weight: 500; color: #191925;">Publishing</span></li></ol><div class="col g8"><span class="eyebrow">One last thing · about 5 minutes</span><h1 style="font-size: 28px;">Connect your blog’s address</h1><p class="muted">One DNS record points <span class="num sm" style="color: #191925;">guides.harbourbikes.example</span> at your blog. Your domain is with <span class="b" style="color: #191925;">Cloudflare</span>, so these are Cloudflare’s own steps. Your first page is being written while you do this.</p></div><ol class="col g12" style="list-style: none;"><li class="row g12" style="align-items: flex-start;"><span class="badge num" style="flex-shrink: 0;">1</span><span class="sm">Open <a class="b" href="#cf">your Cloudflare DNS page</a> and choose harbourbikes.example.</span></li><li class="row g12" style="align-items: flex-start;"><span class="badge num" style="flex-shrink: 0;">2</span><span class="sm">Press Add record and enter the three values below.</span></li><li class="row g12" style="align-items: flex-start;"><span class="badge num" style="flex-shrink: 0;">3</span><span class="sm">Set Proxy status to DNS only — the grey cloud. With the orange cloud on, your blog can’t be reached.</span></li><li class="row g12" style="align-items: flex-start;"><span class="badge num" style="flex-shrink: 0;">4</span><span class="sm">Save, then check the connection here.</span></li></ol><div class="sunk" style="padding: 4px 16px;"><table style="width: 100%; border-collapse: collapse;"><tbody><tr><td class="xs muted b" style="padding: 10px 0; width: 80px;">Type</td><td class="num sm" style="padding: 10px 0;">CNAME</td><td style="text-align: right;"><button class="btn btn-sm btn-ghost" aria-label="Copy Type"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg>Copy</button></td></tr><tr><td class="xs muted b" style="padding: 10px 0; width: 80px;">Name</td><td class="num sm" style="padding: 10px 0;">guides</td><td style="text-align: right;"><button class="btn btn-sm btn-ghost" aria-label="Copy Name"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg>Copy</button></td></tr><tr><td class="xs muted b" style="padding: 10px 0; width: 80px;">Target</td><td class="num sm" style="padding: 10px 0;">cname.reachkit.app</td><td style="text-align: right;"><button class="btn btn-sm btn-ghost" aria-label="Copy Target"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg>Copy</button></td></tr></tbody></table></div><div class="row g8" style="margin-top: auto;"><a class="btn btn-ghost" href="R4-03-FirstDay.dc.html">Do this later</a><a class="btn btn-primary" href="R4-03-FirstDay.dc.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path><path d="M8 16H3v5"></path></svg>Check the connection</a></div></section><section class="col g24 grow" style="padding: 40px 48px; min-width: 0; justify-content: center;"><div class="card col g20 p24"><span class="eyebrow">What happens as you do this</span><ol class="col g20" style="list-style: none;"><li class="row g16" style="align-items: flex-start;"><span class="row" style="width: 32px; height: 32px; border-radius: 50%; justify-content: center; flex-shrink: 0; background: #e7f6f0; color: #14664e;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><polyline points="20 6 9 17 4 12"></polyline></svg></span><div class="col"><span class="b" style="font-size: 14.5px;">You chose guides.harbourbikes.example</span><span class="sm muted">Reserved for you. Nobody else can take it.</span></div></li><li class="row g16" style="align-items: flex-start;"><span class="row" style="width: 32px; height: 32px; border-radius: 50%; justify-content: center; flex-shrink: 0; background: #eeecfd; color: #4336b8;"><span class="pulse"></span></span><div class="col"><span class="b" style="font-size: 14.5px;">Waiting for the record</span><span class="sm muted">We check on our own every hour, and whenever you press Check the connection.</span></div></li><li class="row g16" style="align-items: flex-start;"><span class="row" style="width: 32px; height: 32px; border-radius: 50%; justify-content: center; flex-shrink: 0; background: #efeff4; color: #5e5e73;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><circle cx="12" cy="12" r="10"></circle></svg></span><div class="col"><span class="b" style="font-size: 14.5px;">Your blog goes live</span><span class="sm muted">Usually within minutes of saving the record. We’ll mail you when it does.</span></div></li></ol></div><div class="alert alert-accent"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg><span>Skipping is fine. Pages are still written and wait for you to read them — they just can’t go live until this record exists. You’ll find it again under Overview and in Settings.</span></div></section></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":880}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
