@@ -155,6 +155,16 @@ export const LAWS_COPY = Object.freeze({
   "shell.panel.label": ["Side panel", { slots: {}, fixedBy: "issue 911" }],
   "shell.panel.collapse": ["Collapse the side panel", { slots: {}, fixedBy: "issue 911" }],
   "shell.panel.open": ["Open the side panel", { slots: {}, fixedBy: "issue 911" }],
+  /** The name of the frame every `/app` screen is drawn inside — the top
+   *  bar, the content well and the side panel together — so the one control
+   *  that opens and collapses that panel stands inside a landmark that says
+   *  what it belongs to rather than in no region at all (axe's `region`, on
+   *  all thirteen `/app` screens; owner ruling 2026-09-23, #328).
+   *
+   *  A reader moving by landmarks hears it once, on arrival, and it is the
+   *  word the panel's own heading already uses for the same thing.
+   *  Drafted in the registry's voice (#328); the owner may correct. */
+  "shell.frame.label": ["Workspace", { slots: {}, fixedBy: "issue 328" }],
   /** SPEC §4 (2026-09-20) — the *Waiting for you* card: the page in review,
    *  its title, and when it publishes if the customer does nothing. The
    *  time is the shell's own formatted date-time in the customer's zone

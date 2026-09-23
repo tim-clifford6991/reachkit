@@ -170,9 +170,13 @@ function toldLine(tree: React.ReactNode): string {
  *  alert the 2026-09-20 board draws there instead (#937). One helper,
  *  because what it is asking is "what does this card say first". */
 function eyebrowOf(tree: React.ReactNode): string | undefined {
+  // The element is `p` or `h1` depending on whether a draft title follows
+  // it (#328) — what this helper is asking is "what does this card say
+  // first", which is the line, not its tag.
   const head =
-    nodes(tree).find((node) => node.type === "p" && classOf(node).includes("uppercase")) ??
-    nodes(tree).find((node) => node.type === "span" && classOf(node).includes("font-semibold"));
+    nodes(tree).find(
+      (node) => (node.type === "p" || node.type === "h1") && classOf(node).includes("uppercase")
+    ) ?? nodes(tree).find((node) => node.type === "span" && classOf(node).includes("font-semibold"));
   if (head === undefined) return undefined;
   const children = head.props.children;
   const list = Array.isArray(children) ? children : [children];
@@ -381,10 +385,21 @@ describe("the done arm, and the refusals that wear its shape", () => {
     expect(tinted(await ask())).toEqual([]);
   });
 
-  it("a refusal names no draft: `unknown` and `expired` draw no title", async () => {
+  it("a refusal names no draft — and its own head is the screen's one h1 (#328)", async () => {
     for (const reason of ["expired", "not_in_review", "unknown"] as const) {
       previewAnswer = async () => ({ ok: false, reason });
-      expect(nodes(await ask()).filter((node) => node.type === "h1")).toHaveLength(0);
+      const headings = nodes(await ask()).filter((node) => node.type === "h1");
+      // **No draft title**, which is what this row has always been about: a
+      // bare `<h1>` here would be the page claiming a name it does not
+      // have. A title `<h1>` carries no class; the head carries `EYEBROW`.
+      expect(headings.filter((node) => classOf(node) === "")).toHaveLength(0);
+      // **But the screen still names itself** (owner ruling 2026-09-23,
+      // #328). With no draft title, the eyebrow is the only line naming
+      // this screen, so it is the `<h1>` — a reader moving by headings had
+      // nothing to land on before, and `page-has-heading-one` reported the
+      // route. The class is unchanged, so nothing on screen moved.
+      expect(headings).toHaveLength(1);
+      expect(classOf(headings[0] as Node)).toContain("uppercase");
     }
   });
 

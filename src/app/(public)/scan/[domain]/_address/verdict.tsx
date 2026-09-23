@@ -106,9 +106,14 @@ export function VerdictStrip(p: {
       <div className="card-body gap-4">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex min-w-0 flex-col gap-1">
-            <h2 className="card-title min-w-0 overflow-x-auto">
+            {/* The domain is what this report is *about*, so it is the
+                page's `<h1>` (owner ruling 2026-09-23, #328). It was an
+                `<h2>`, which left `/scan/{domain}` with no level-one
+                heading at all. `card-title` carries the size and weight,
+                so nothing on screen changes. */}
+            <h1 className="card-title min-w-0 overflow-x-auto">
               <Num>{verdict.domain}</Num>
-            </h2>
+            </h1>
             <div className="text-base-content/60 flex flex-wrap items-center gap-2 text-xs">
               <Num phrase>
                 {p.category === null
