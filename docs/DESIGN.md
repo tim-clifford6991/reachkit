@@ -33,11 +33,12 @@ The addresses are this repository’s, which is not always what the ledger calls
 | Stop this page | `/veto/{token}` | [`R7-S4-Stop`](design/boards/R7-S4-Stop/R7-S4-Stop.dc.html) · [render](design/boards/R7-S4-Stop/R7-S4-Stop.jpg) | 2026-09-20 (#937); wording 2026-09-20 (#914) |
 | Stop this page: stopped | `/veto/{token}` | [`R7-S5-Stopped`](design/boards/R7-S5-Stopped/R7-S5-Stopped.dc.html) · [render](design/boards/R7-S5-Stopped/R7-S5-Stopped.jpg) | 2026-09-20 (#937); built by #1025 |
 | Setup, five steps | `/setup` | [`R4-01-Onboarding`](design/boards/R4-01-Onboarding/R4-01-Onboarding.dc.html) · [render](design/boards/R4-01-Onboarding/R4-01-Onboarding.jpg) | 2026-09-20 (SPEC §5) |
+| Setup, step two: your business | `/setup`, step 2 | [`R3-ON-Business`](design/boards/R3-ON-Business/R3-ON-Business.dc.html) · [render](design/boards/R3-ON-Business/R3-ON-Business.jpg) | 2026-09-20, Round 3 |
 | Connect your blog | `/setup/connect` | [`R4-02-Connect`](design/boards/R4-02-Connect/R4-02-Connect.dc.html) · [render](design/boards/R4-02-Connect/R4-02-Connect.jpg) | 2026-09-20, reversing #757; eyebrow 2026-09-21 (#972) |
 | Overview, first day | `/app` | [`R4-03-FirstDay`](design/boards/R4-03-FirstDay/R4-03-FirstDay.dc.html) · [render](design/boards/R4-03-FirstDay/R4-03-FirstDay.jpg) | 2026-09-20 no loading screens (SPEC §4) |
 | Overview | `/app` | [`R4-04-Overview`](design/boards/R4-04-Overview/R4-04-Overview.dc.html) · [render](design/boards/R4-04-Overview/R4-04-Overview.jpg) | 2026-09-20 (SPEC §4) |
 | Overview › Search | `/app/search` | [`R4-05-Search`](design/boards/R4-05-Search/R4-05-Search.dc.html) · [render](design/boards/R4-05-Search/R4-05-Search.jpg) | 2026-09-20 (SPEC §4) |
-| Overview › AI answers | `/app/ai-answers` | [`R4-06-AI-answers`](design/boards/R4-06-AI-answers/R4-06-AI-answers.dc.html) · [render](design/boards/R4-06-AI-answers/R4-06-AI-answers.jpg) | 2026-09-20 measures; names-you 2026-09-21 (#953); weekly LLM Mentions 2026-09-22 |
+| Overview › AI answers | `/app/ai-answers` | [`R4-06-AI-answers`](design/boards/R4-06-AI-answers/R4-06-AI-answers.dc.html) · [render](design/boards/R4-06-AI-answers/R4-06-AI-answers.jpg) † | 2026-09-20 measures; names-you 2026-09-21 (#953); weekly LLM Mentions 2026-09-22 |
 | Overview › Rivals | `/app/rivals` | [`R4-07-Rivals`](design/boards/R4-07-Rivals/R4-07-Rivals.dc.html) · [render](design/boards/R4-07-Rivals/R4-07-Rivals.jpg) | 2026-09-20 (SPEC §4); leaders line 2026-09-21 (#983) |
 | Plan | `/app/calendar` | [`R4-08-Plan`](design/boards/R4-08-Plan/R4-08-Plan.dc.html) · [render](design/boards/R4-08-Plan/R4-08-Plan.jpg) | 2026-09-20 (SPEC §7); opens on today 2026-09-21 (#961) |
 | Day-card states | the day cards on `/app/calendar` | [`R3-DayCards`](design/boards/R3-DayCards/R3-DayCards.dc.html) · [render](design/boards/R3-DayCards/R3-DayCards.jpg) | 2026-09-20, Round 3 |
@@ -56,6 +57,8 @@ The addresses are this repository’s, which is not always what the ledger calls
 | Dark: plan | `/app/calendar`, dark | [`R5-D2-Plan`](design/boards/R5-D2-Plan/R5-D2-Plan.dc.html) · [render](design/boards/R5-D2-Plan/R5-D2-Plan.jpg) | 2026-09-20 |
 | Dark: search | `/app/search`, dark | [`R5-D3-Search`](design/boards/R5-D3-Search/R5-D3-Search.dc.html) · [render](design/boards/R5-D3-Search/R5-D3-Search.jpg) | 2026-09-20 |
 | The mark | everywhere the brand is drawn (`src/app/_brand/Brand.tsx`) | [`R9-L1-Chip`](design/boards/R9-L1-Chip/R9-L1-Chip.dc.html) · [render](design/boards/R9-L1-Chip/R9-L1-Chip.jpg) | 2026-09-21 (#982) |
+† **Where a board predates a later dated line in `docs/SPEC.md`, the dated line wins and the board is kept as history** — it is not redrawn, and it is not evidence against the screen. `R4-06-AI-answers` is the one row that carries this today: the two cards ruled on 2026-09-22 (#1004) sit *beneath* the grid, and the fourth mark reads *links / names*, the ruling of 2026-09-21 on #953, not the board's *Names a rival*.
+
 
 ## Do not
 
