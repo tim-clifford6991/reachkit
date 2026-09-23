@@ -1,6 +1,6 @@
 # reachkit
 
-Read `README.md` (nine features, what delivered means), then only the `docs/SPEC.md` section you are changing. UI: `docs/DESIGN.md` — three rules (daisyUI, Recharts, lucide), one library allow-list, and the 2026-09-20 redesign canvas as the structural reference (#908). Flow: `docs/PROCESS.md`. The owner tests live on `dev.reachkit.app`.
+Read `README.md` (nine features, what delivered means), then only the `docs/SPEC.md` section you are changing. Launch status is only `docs/GO-LIVE.md`. UI: `docs/DESIGN.md` — three rules (daisyUI, Recharts, lucide), one library allow-list, and the 2026-09-20 redesign canvas as the structural reference (#908). Flow, gates, worktrees and the queue: `docs/PROCESS.md`. Operating the box: `docs/RUNBOOK.md`. The owner tests live on `dev.reachkit.app`.
 
 Ship the paying path. Prefer a library over new code. Do not open `docs/archive/`.
 
@@ -12,9 +12,10 @@ Ship the paying path. Prefer a library over new code. Do not open `docs/archive/
 - Never write a test that transcribes a document.
 - Never guess an owner decision — `blocked-on-owner` and ask; record the answer as a dated SPEC line.
 - Never edit `docs/archive/`.
-- Never reintroduce Master, Worker, dispatcher, lander, `rk-*` agents, mandatory worktrees, or extra merge gates.
+- Never reintroduce Master, Worker, dispatcher, lander, or an extra merge gate. One issue uses one worktree, removed when its pull request merges (`docs/PROCESS.md`).
+- Never copy a rule into a memory file or into `/root/ops` that these pages do not already state.
 
-Work in `/root/projects/reachkitv3` on a branch from `origin/main`. Merge when `typecheck · lint · unit`, `audit`, and `schema · RLS` are green.
+One issue, one worktree branched from `origin/main`, then stop. Merge when the four gates in `docs/PROCESS.md` are green: `typecheck · lint · unit`, `audit`, `schema · RLS`, and `no overflow · axe`.
 
 <!-- BEGIN:nextjs-agent-rules -->
 
