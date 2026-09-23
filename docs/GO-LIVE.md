@@ -156,8 +156,8 @@ moves — but it also purges the customer's data, which a refund does not ask fo
 | **DMARC** | A `_dmarc.reachkit.app` TXT record exists. Start at `v=DMARC1; p=none; rua=mailto:<an address the owner reads>` for the first week — a policy that reports before it quarantines — and move to `p=quarantine` once the reports are clean. Gmail's and Yahoo's sender rules ask every sender for SPF *or* DKIM with a valid forward-confirmed reverse DNS, and ask a bulk sender (5,000 a day to Gmail) for both, for DMARC with alignment, and for one-click unsubscribe. ReachKit is nowhere near bulk volume, so what is at stake here is the spam folder rather than a refusal — which is exactly what §2.3 measures. | `dig TXT _dmarc.reachkit.app` |
 | **`MAIL_FROM` is a mailbox somebody reads** | `hello@reachkit.app` must receive mail, not only send it. `optout.invalid` tells a reader "Reply to any ReachKit email with \"stop\" and we'll stop by hand" — a sentence that is false if nobody reads the mailbox. | Send it a mail and read it |
 
-Issue #325 (closed) got the domain to sending. What is **not** established is DMARC and the
-return-path alignment behind it, and that is what §2.3's inbox test measures the effect of.
+Issue #325 (closed) got the domain to sending. DMARC and the return-path alignment are established
+as of the dated line below. What §2.3 measured, the day before that line, was rendering.
 
 2026-09-23  **DMARC published, report-only** (owner ruling, #1043). Cloudflare now holds the TXT record
 `_dmarc.reachkit.app` = `v=DMARC1; p=none; rua=mailto:hello@reachkit.app; fo=1`. Before this the name
@@ -166,9 +166,8 @@ authoritative server, from `1.1.1.1` and from `8.8.8.8`. One mail was sent throu
 `hello@reachkit.app`. Cloudflare Email Routing (MX `route{1,2,3}.mx.cloudflare.net`) forwarded it to
 the owner's inbox, where it arrived in the Inbox and not in spam. Gmail recorded DKIM pass for
 `d=reachkit.app` (selector `resend`), SPF pass for `send.reachkit.app` and `dmarc=pass (p=NONE)` for
-`header.from=reachkit.app`, which means the return path aligns. **Next:** read the first week's
-aggregate reports at `hello@` and move to `p=quarantine` if every source aligns. That is a separate
-issue.
+`header.from=reachkit.app`, which means the return path aligns. **Next:** read the first week's aggregate reports at `hello@` and move to `p=quarantine` if every
+source aligns. That is #1048. It is `later`, not on the Launch milestone: `p=none` already passes.
 
 ### 2.2 One-click unsubscribe, and the suppression list
 
@@ -187,30 +186,39 @@ Nothing above merges the two mechanisms, and nothing may: an address-wide unsubs
 
 ### 2.3 The inbox test
 
-**[owner]** — this is **issue #339**, and it is not restated here. What it needs from this page:
-§2.1 done first (a mail sent before DMARC aligns tests the wrong thing), and every kind checked in
-both a real Gmail and a real Apple Mail account for rendering, for the spam folder, **and now for
-the client's own Unsubscribe control appearing on the six kinds that carry one and not on the
-sign-in link.**
+**Done for rendering, 2026-09-22 (#339, closed).** The owner confirmed that all sixteen kinds, sent
+once to the owner's inbox, render in Gmail and Apple Mail. Two limits of that run stay true:
+
+- The send bypassed `sendEmail`, so those messages did not carry `List-Unsubscribe`. The headers
+  themselves are on `main` since #889 (§2.2). A later send through `sendEmail` is what shows the
+  client's own Unsubscribe control. That is not a second open issue until a send is made.
+- The imprint placeholder was in every footer. That is #335, not a mail issue.
+
+The render check ran the day before DMARC was published. DMARC is the dated line in §2.1. Moving
+`p=none` to `p=quarantine` is #1048, and it is not on the launch queue.
 
 ---
 
 ## 3. The rest of the gate
 
-Everything else that must be true before a stranger pays, with where it stands today.
+Everything else that must be true before a stranger pays. **This table is the only launch status.**
+`README.md` points here and does not keep its own. Rewritten 2026-09-23, after #885, #887, #888,
+#889, #339, #542, #1019 and #1043 had closed and the table still described them as in flight.
 
 | # | Must be true | State | Whose |
 |---|---|---|---|
-| 1 | **Stripe is live** | §1. Not done. | **[owner]** + fixed boot refusal (#889) |
-| 2 | **Mail reaches a real inbox** | §2. Domain sends; DMARC and the inbox test not established (#339). | **[owner]** |
-| 3 | **The legal pages carry real bodies** | `/privacy` and `/terms` have full written bodies; all three still carry `[[imprint: owner fills legal entity, address, VAT id]]`, and `/imprint` is little more than that placeholder. An EU seller taking a €49 subscription needs the entity, the address and the VAT id on the page. **Issue #335.** | **[owner]** |
-| 4 | **There is a way back from data loss** | The project is on the Supabase Free plan: **no PITR and no scheduled backups**. The only backup is one the owner takes by hand, and no restore drill has been recorded. The largest operational exposure in the product. **Issues #334** (PITR + one recorded drill) **and #887** (the recovery runbook, in flight). The procedure itself is `docs/RUNBOOK.md` §9. | **[owner]** |
-| 5 | **The publish chain has been proven** | Nothing has ever been published to a real destination. **Issue #888**, in flight. A customer who pays and never sees a page on their own domain has not been delivered anything. | **[code]** |
-| 6 | **One site cannot spend the whole product's day** | The product-wide daily ceiling exists (`DAILY_PRODUCT_C`, measured over `fetches.cost_cents`) and the per-pass caps exist. What does not exist is a **per-site** bound: one site, or one script, can consume the whole day. **Issue #885**, in flight. Live payment makes this real money against a real card. | **[code]** |
-| 7 | **A paying customer can get in** | The magic-link walk has been done on dev, never on production. **Issue #542.** It depends on §2.1 — a sign-in link is a mail. | **[owner]** |
-| 8 | **No `TODO(copy)` renders on the paying path** | **[protected].** No registry entry holds the marker today, `sendEmail` refuses to send any mail containing it, and the `audit` gate blocks a PR that reintroduces one. | — |
+| 1 | **Stripe is live** | Not done. Production is still test mode (§1). The boot refusal for a crossed price is on `main` (#889, closed). The switch itself is **#1042**, `blocked-on-owner`. | **[owner]** |
+| 2 | **Mail reaches a real inbox** | Rendering is done (#339, closed 2026-09-22, §2.3). DMARC is published, report-only (#1043, closed 2026-09-23, §2.1). Tightening to `p=quarantine` is #1048 and is not on the launch queue. | **[protected]**, except #1048 |
+| 3 | **The legal pages carry real bodies** | `/privacy` and `/terms` have full written bodies. All three still carry `[[imprint: owner fills legal entity, address, VAT id]]`, and `/imprint` is little more than that placeholder. The same placeholder was in the footer of the mail the owner read on 2026-09-22. **#335**, `blocked-on-owner`. | **[owner]** |
+| 4 | **There is a way back from data loss** | The recovery runbook is written and roll-forward-only is the ruling (#887, closed). The project is still on the Supabase Free plan: **no PITR and no recorded restore drill**. **#334**, on the Launch milestone, not `later`. The procedure is `docs/RUNBOOK.md` §9. | **[owner]** |
+| 5 | **A hosted page is reachable on the internet** | The publish chain was proved with doubles: in review, live, taken down, a hostname that changes, a body that cannot carry markup (#888, closed). That proof published nothing. Production has no `VERCEL_API_TOKEN`, so no hosted host is attached. `content.reachkit.app` answers `DEPLOYMENT_NOT_FOUND`. **#1045.** | **[owner]** token, then the product's own Check |
+| 6 | **One site cannot spend the whole product's day** | **[protected].** The per-site cap and the free-scan bounds are on `main` (#885, closed). The numbers are drafted defaults the owner may correct; that correction is not an open defect. | — |
+| 7 | **A paying customer can get in** | A magic link was walked on `dev.reachkit.app` on 2026-09-22: it arrived, signed in, and a second use was refused (#542, closed). Dev and production share one Supabase project and one sending domain. The production host has not been walked; that is part of **#1044**. The mail's "15 minutes" sentence was wrong and is fixed on `main` (#1019, #1014, both closed by #1022). | **[owner]** for the production host |
+| 8 | **No `TODO(copy)` renders on the paying path** | **[protected].** No registry value is the marker (`TODO_COPY_MARKER` remains the string the audit refuses). `sendEmail` refuses a mail that contains it. | — |
 
-Rows 5 and 6 are other agents' issues and are referenced, not duplicated.
+The open Launch issues are the rows still marked not done: #1045, #1042, #335, #334, #1044, and #1025
+while the Round 7 sign-in split is still the screen the walk waits on. Anything labeled `later` or
+`parked` waits behind them (`docs/PROCESS.md`).
 
 ---
 
