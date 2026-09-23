@@ -225,6 +225,8 @@ describe("POST /api/setup — the five step saves (SPEC §5, 2026-09-20)", () =>
     for (const body of [
       { step: "site", domain: "example.com", category: "agency CRM" },
       { step: "business", lists: { products: ["Full service"] } },
+      // #1038: *What you do* travels beside the lists.
+      { step: "business", lists: { audienceTerms: ["Commuters"] }, job: "We fix bikes." },
       // #970: a step left with nothing shown touches no list, and is not a
       // founder's mistake — it saves like any other.
       { step: "business" },
@@ -261,6 +263,7 @@ describe("POST /api/setup — the five step saves (SPEC §5, 2026-09-20)", () =>
       // #970: a list whose entries are not strings is malformed.
       { step: "business", lists: { products: [1, 2] } },
       { step: "business", lists: ["products"] },
+      { step: "business", lists: {}, job: 7 },
       { step: "voice" },
       // Publishing has no save of its own: leaving it forward is the finish.
       { step: "publishing", destination: { kind: "hosted", label: "content" } },

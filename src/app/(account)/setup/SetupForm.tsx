@@ -53,7 +53,7 @@ import {
 } from "@/lib/market/setup/state";
 import { preselected, type DestinationKind } from "@/lib/publish/setup/cards";
 import type { PagePurpose } from "@/lib/site-profile/types";
-import { businessFrom, type BusinessDraft } from "./_setup/business";
+import { businessFrom, jobFrom, type BusinessDraft } from "./_setup/business";
 import { MarketCard } from "./MarketCard";
 import { PublishingCard } from "./PublishingCard";
 import { RivalsCard } from "./RivalsCard";
@@ -170,6 +170,7 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
   );
   const [state, setState] = useState<SetupState>(p.model.state);
   const [business, setBusiness] = useState<BusinessDraft>(() => businessFrom(p.model.business));
+  const [job, setJob] = useState(() => jobFrom(p.model.business));
   // SPEC.md §5 (2026-09-12): the voice as the founder will leave it — what
   // the scan read, or what they already saved over it.
   const [voiceDraft, setVoiceDraft] = useState(p.model.voiceText);
@@ -250,11 +251,11 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
         return { step, domain: state.siteDomain, category: settledCategory(state) };
       }
       case "business":
-        // #970: the four lists as the founder left them. What is *stored*
+        // #970: the lists as the founder left them, and #1038 *What you do*. What is *stored*
         // is what they took out and what they added, which the server works
         // out against the same reading this screen was drawn from — the
         // browser never names a decision it did not make.
-        return { step, lists: business };
+        return { step, lists: business, job };
       case "rivals":
         return { step, competitors: state.rivals.map((rival) => rival.domain) };
       case "voice":
@@ -496,6 +497,8 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
               businessName={p.model.profile?.siteName ?? null}
               draft={business}
               onDraft={setBusiness}
+              job={job}
+              onJob={setJob}
             />
           </div>
 

@@ -18,6 +18,7 @@
 import { describe, expect, it } from "vitest";
 import {
   confirmedProfile,
+  editsForJob,
   editsForLists,
   profileIsEmpty,
   quotableFacts,
@@ -362,5 +363,39 @@ describe("#970 — setup's step two hands over whole lists, and they store as de
       "Basic service",
       "Full service",
     ]);
+  });
+});
+
+describe("#1038 — setup's step two hands over *What you do*, and it stores as the founder's wording", () => {
+  const shown = (chosen: string, stored: BusinessEdits = NO_EDITS) =>
+    confirmedProfile({
+      profile: profile(),
+      market,
+      edits: editsForJob({ stored, market, chosen }),
+    }).job;
+
+  it("their own sentence is theirs, and is what Settings shows", () => {
+    expect(shown("Repairs and services bicycles for daily riders")).toEqual({
+      text: "Repairs and services bicycles for daily riders",
+      source: "yours",
+    });
+  });
+
+  it("a sentence left as the site's own, or emptied, stores no wording of theirs", () => {
+    expect(editsForJob({ stored: NO_EDITS, market, chosen: " Service bikes " }).job).toBeNull();
+    expect(shown("Service bikes")).toEqual({ text: "Service bikes", source: "site" });
+    // Emptied on the step is the same as Settings' empty Reword: the reading
+    // speaks again, rather than a blank sentence being stored.
+    expect(shown("   ", edits({ job: "Fix bikes properly" }))).toEqual({
+      text: "Service bikes",
+      source: "site",
+    });
+  });
+
+  it("their earlier wording, left as it was, stays theirs; the other decisions are untouched", () => {
+    const stored = edits({ job: "Fix bikes properly", factsOff: ["We open at seven"] });
+    const next = editsForJob({ stored, market, chosen: "Fix bikes properly" });
+    expect(next.job).toBe("Fix bikes properly");
+    expect(next.factsOff).toEqual(["We open at seven"]);
   });
 });

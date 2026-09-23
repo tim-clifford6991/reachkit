@@ -173,8 +173,8 @@ async function writeVoice(a: { siteId: string; domain: string; voiceText: string
 }
 
 /**
- * The four lists step two left, as decisions over the reading it drew
- * (#970). `saveChosenLists` reads the profile, the market and the standing
+ * The lists step two left, and its *What you do* (#1038), as decisions
+ * over the reading it drew (#970). `saveChosenLists` reads the profile, the market and the standing
  * decisions and writes the row whole.
  *
  * **Never throws**, for the reason `writeVoice` above does not: a founder
@@ -188,10 +188,16 @@ async function writeBusinessLists(a: {
   siteId: string;
   domain: string;
   lists: Readonly<Partial<Record<BusinessList, readonly string[]>>>;
+  job: string | undefined;
 }): Promise<void> {
   try {
     const { saveChosenLists } = await import("@/lib/site-profile/business/confirmed");
-    await saveChosenLists({ siteId: a.siteId, domain: a.domain, chosen: a.lists });
+    await saveChosenLists({
+      siteId: a.siteId,
+      domain: a.domain,
+      chosen: a.lists,
+      ...(a.job === undefined ? {} : { job: a.job }),
+    });
   } catch (error) {
     console.log(
       JSON.stringify({ event: "setup_business_not_saved", siteId: a.siteId, detail: String(error) })
@@ -430,7 +436,12 @@ export function liveSetupStore(): SetupStore {
         await updateSite(a.siteId, { competitors: [...a.save.competitors] });
       } else if (step === "business") {
         const site = await siteById(a.siteId);
-        await writeBusinessLists({ siteId: a.siteId, domain: site.domain, lists: a.save.lists });
+        await writeBusinessLists({
+          siteId: a.siteId,
+          domain: site.domain,
+          lists: a.save.lists,
+          job: a.save.job,
+        });
       } else if (step === "voice") {
         const site = await siteById(a.siteId);
         await writeVoice({ siteId: a.siteId, domain: site.domain, voiceText: a.save.voiceText });

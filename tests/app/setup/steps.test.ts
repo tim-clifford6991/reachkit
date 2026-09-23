@@ -17,6 +17,7 @@ import { NO_EDITS, type BusinessEdits } from "@/lib/site-profile/business/types"
 import {
   added,
   businessFrom,
+  jobFrom,
   isFull,
   removed,
   BUSINESS_GROUPS,
@@ -226,6 +227,27 @@ describe("step two's lists — what the founder takes out and adds (SPEC §5, 20
     expect(draft.claimsToKeep).toEqual(["used by 400 agencies"]);
   });
 
+  it("#1038: who they serve and what they do open on the market's reading of them", () => {
+    const withMarket = confirmedProfile({
+      profile: FIXTURE_SITE_PROFILE,
+      market: { job: "manage client projects", offeringType: "", audienceTerms: ["agencies"], vocabulary: [] },
+      edits: NO_EDITS,
+    });
+    expect(businessFrom(withMarket).audienceTerms).toEqual(["agencies"]);
+    expect(jobFrom(withMarket)).toBe("manage client projects");
+    // Reworded in Settings, the step opens on their wording, not the reading.
+    expect(
+      jobFrom(
+        confirmedProfile({
+          profile: FIXTURE_SITE_PROFILE,
+          market: null,
+          edits: { ...NO_EDITS, job: "We run agencies' projects" },
+        })
+      )
+    ).toBe("We run agencies' projects");
+    expect(jobFrom(null)).toBe("");
+  });
+
   it("#970: a correction made in Settings is already on the step", () => {
     // The same two decisions Settings' own controls record, read back
     // through the same function: the step opens on the corrected profile,
@@ -240,7 +262,7 @@ describe("step two's lists — what the founder takes out and adds (SPEC §5, 20
     expect(draft.products).toEqual(["agency time tracking", "retainer billing"]);
   });
 
-  it("a site nobody read opens with four empty groups, not with none", () => {
+  it("a site nobody read opens with empty groups, not with none", () => {
     const draft = businessFrom(null);
     expect(Object.keys(draft)).toEqual([...BUSINESS_GROUPS]);
     expect(BUSINESS_GROUPS.every((group) => draft[group].length === 0)).toBe(true);

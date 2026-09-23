@@ -283,6 +283,25 @@ export function editsForLists(a: {
   return { ...a.stored, removed, added };
 }
 
+/**
+ * Records *What you do* as setup's step two left it (#1038).
+ *
+ * The field opens on the confirmed sentence, so a founder who leaves it as
+ * they found it has decided nothing: a sentence that is the market
+ * reading's own, or an emptied field, stores no wording of theirs and lets
+ * the next reading speak — Settings' *Reword* treats an empty answer the
+ * same way. Anything else is their wording, and outlives every refresh.
+ */
+export function editsForJob(a: {
+  stored: BusinessEdits;
+  market: MarketReading | null;
+  chosen: string;
+}): BusinessEdits {
+  const chosen = stated(a.chosen);
+  const job = chosen === null || chosen === stated(a.market?.job) ? null : chosen;
+  return { ...a.stored, job };
+}
+
 /** Every derived item of every list, as the `seen` record to store.
  *
  *  Written on every edit, which is what keeps rule 3 honest: the customer

@@ -4,17 +4,19 @@
 // daisyUI classes in the route (`docs/DESIGN.md` rule 1): `card`, `list`,
 // `list-row`, `input`, `btn`, `alert`; lucide glyphs at 1.75. No wrapper
 // component and no stylesheet: a group is a `<section>` of daisyUI classes,
-// repeated four times over `BUSINESS_GROUPS`.
+// repeated over `BUSINESS_GROUPS`, under one more for *What you do* — a
+// single sentence, so a text field rather than a list (#1038).
 //
 // The rules are `_setup/business.ts`'s — what a group holds, how long it may
 // grow, what removing and adding do. This file holds the text a founder is
 // part-way through typing and which group they are typing it into.
 //
-// **What it edits is stored** (#970). The groups are four of the six lists
+// **What it edits is stored** (#970). The groups are five of the six lists
 // `site_profile_edits` holds, the items come from the confirmed profile —
 // the scan's reading with the customer's own decisions over it — and
-// leaving the step records what they took out and what they added. The same
-// lists are in Settings › Your business, because they are the same lists.
+// leaving the step records what they took out and what they added, and
+// their wording of what the business does. The same lists and the same
+// sentence are in Settings › Your business, because they are the same.
 "use client";
 
 import type React from "react";
@@ -36,6 +38,10 @@ import {
  *  most likely to keep adding to. */
 const GROUP_COPY = {
   products: { head: "setup.business.group.products", note: "setup.business.group.products.note" },
+  audienceTerms: {
+    head: "setup.business.group.audienceTerms",
+    note: "setup.business.group.audienceTerms.note",
+  },
   claims: { head: "setup.business.group.claims", note: "setup.business.group.claims.note" },
   vocabulary: {
     head: "setup.business.group.vocabulary",
@@ -50,13 +56,42 @@ const QUIET = "text-sm text-base-content/70";
 export function BusinessPanel(p: {
   draft: BusinessDraft;
   onDraft: (next: BusinessDraft) => void;
+  job: string;
+  onJob: (next: string) => void;
 }): React.JSX.Element {
   return (
     <div className="grid min-w-0 grid-cols-1 gap-4" data-testid="setup-business">
+      <Job job={p.job} onJob={p.onJob} />
       {BUSINESS_GROUPS.map((group) => (
         <Group key={group} group={group} draft={p.draft} onDraft={p.onDraft} />
       ))}
     </div>
+  );
+}
+
+/** *What you do* — one sentence, opened on the confirmed one and the
+ *  founder's to reword in place. Enter must not move them to the next step. */
+function Job(p: { job: string; onJob: (next: string) => void }): React.JSX.Element {
+  const head = copy("setup.business.group.job");
+  return (
+    <section className="card bg-base-100 card-border" data-testid="setup-business-job">
+      <div className="card-body gap-3 p-4">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+          <h3 className="min-w-0 font-medium">{head}</h3>
+          <p className={`min-w-0 ${QUIET}`}>{copy("setup.business.group.job.note")}</p>
+        </div>
+        <input
+          type="text"
+          className="input min-w-0 w-full"
+          aria-label={head}
+          value={p.job}
+          onChange={(event) => p.onJob(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") event.preventDefault();
+          }}
+        />
+      </div>
+    </section>
   );
 }
 

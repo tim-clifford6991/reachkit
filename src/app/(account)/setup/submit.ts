@@ -104,11 +104,16 @@ export type SetupResult = { ok: true; siteId: string } | { ok: false; refused: S
  */
 export type SetupStepSave =
   | { step: "site"; domain: string; category: string }
-  // #970: the four lists as the founder left them, keyed by the stored
-  // field's own name. What is *stored* is what they took out and what they
-  // added, worked out against the same reading the screen drew — so a list
-  // named here is one this step showed, and a list absent is untouched.
-  | { step: "business"; lists: Readonly<Partial<Record<BusinessList, readonly string[]>>> }
+  // #970: the lists as the founder left them, keyed by the stored field's
+  // own name. What is *stored* is what they took out and what they added,
+  // worked out against the same reading the screen drew — so a list named
+  // here is one this step showed, and a list absent is untouched. `job` is
+  // *What you do* as they left it (#1038); absent, their wording stands.
+  | {
+      step: "business";
+      lists: Readonly<Partial<Record<BusinessList, readonly string[]>>>;
+      job?: string;
+    }
   | { step: "rivals"; competitors: readonly string[] }
   | { step: "voice"; voiceText: string; timezone: string | null };
 

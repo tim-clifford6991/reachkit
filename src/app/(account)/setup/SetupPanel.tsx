@@ -64,6 +64,8 @@ export function SetupPanel(p: {
   status?: React.ReactNode;
   draft: BusinessDraft;
   onDraft: (next: BusinessDraft) => void;
+  job: string;
+  onJob: (next: string) => void;
 }): React.JSX.Element {
   return (
     <aside className="grid min-w-0 grid-cols-1 content-start gap-3" data-testid="setup-panel" data-step={p.step}>
@@ -74,7 +76,7 @@ export function SetupPanel(p: {
       </h2>
 
       {p.step === "business" ? (
-        <BusinessPanel draft={p.draft} onDraft={p.onDraft} />
+        <BusinessPanel draft={p.draft} onDraft={p.onDraft} job={p.job} onJob={p.onJob} />
       ) : p.step === "rivals" ? (
         <RivalsPanel grid={p.rivalGrid} />
       ) : p.step === "voice" ? (
