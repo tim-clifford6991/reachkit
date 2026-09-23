@@ -24,7 +24,7 @@
 // assertion is on an exported object or a pure function.
 import { readdirSync } from "node:fs";
 import path from "node:path";
-import { describe, expect, it, vi } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 import type { Metadata } from "next";
 import { copy } from "@/lib/presentation/copy";
 import "../../generate/env";
@@ -172,14 +172,21 @@ describe("the walk covers the group, and nothing else", () => {
 });
 
 describe("issue #945 — the group has a floor, so no signed-in screen is untitled", () => {
-  it("the (account) layout declares a non-empty fallback title", async () => {
-    const mod = (await import("@/app/(account)/layout")) as { metadata?: Metadata };
-    expect(nonEmpty(mod.metadata?.title)).toBe(true);
+  // Issue 1032: the layout is a route module like the eight below and its
+  // cold import is the same kind of wait — pinned to the runner's two
+  // throttled cores it alone ran the first test past vitest's 5 s default
+  // (measured 5.0 s). Imported once, under the budget the route rows use.
+  let layout: { metadata?: Metadata };
+  beforeAll(async () => {
+    layout = (await import("@/app/(account)/layout")) as { metadata?: Metadata };
+  }, IMPORT_MS);
+
+  it("the (account) layout declares a non-empty fallback title", () => {
+    expect(nonEmpty(layout.metadata?.title)).toBe(true);
   });
 
-  it("the fallback is the wordmark's own key, not a second spelling of it", async () => {
-    const mod = (await import("@/app/(account)/layout")) as { metadata?: Metadata };
-    expect(mod.metadata?.title).toBe(copy("chrome.wordmark"));
+  it("the fallback is the wordmark's own key, not a second spelling of it", () => {
+    expect(layout.metadata?.title).toBe(copy("chrome.wordmark"));
   });
 });
 

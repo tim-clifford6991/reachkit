@@ -6,7 +6,7 @@
 // row is written, and a job gone quiet reaches the mail vendor's transport
 // through the real incident seam. The doubles are the `job_runs` store
 // (in memory), the engine's two due-work reads and the vendor transport.
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { stubEnv } from "./env-fixture";
 import type { HeartbeatStore, JobRunRow } from "@/jobs/heartbeat";
 
@@ -66,6 +66,27 @@ async function load() {
   return { heartbeat, registry, runJob, publishRetry };
 }
 
+/** Issue 1032: every test re-imports the job registry after
+ *  `resetModules`, on purpose — `heartbeatInstalled()` is module state. The
+ *  first of those imports is also the graph's cold transform, which pinned to
+ *  the runner's two throttled cores took past vitest's 5 s default on its
+ *  own (measured 5.0 s; every later `load()` is 0.3–0.9 s). So the transform
+ *  is paid once here, under a budget of its own, and each test still gets a
+ *  fresh evaluation of the modules it asserts on. */
+const WARM_MS = 60_000;
+
+function unload(): void {
+  vi.doUnmock("inngest/next");
+  vi.doUnmock("@/jobs/engine");
+  vi.unstubAllEnvs();
+  vi.resetModules();
+}
+
+beforeAll(async () => {
+  await load();
+  unload();
+}, WARM_MS);
+
 beforeEach(() => {
   requests = [];
   vi.spyOn(console, "log").mockImplementation(() => {});
@@ -74,10 +95,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks();
-  vi.doUnmock("inngest/next");
-  vi.doUnmock("@/jobs/engine");
-  vi.unstubAllEnvs();
-  vi.resetModules();
+  unload();
 });
 
 const NOON = new Date("2026-09-16T12:00:00.000Z");
