@@ -227,6 +227,50 @@ export const REPORT_COPY = Object.freeze({
     "These AI answers were reused from an earlier scan.",
     { slots: {}, fixedBy: "SPEC §2 · issue 715" },
   ],
+  /* Issue 715, owner ruling 2026-09-22 — the mark on answers a recent scan
+     had already paid for. A second scan of the same address inside §6.4's
+     SERP window is answered out of `fetches`: it spends nothing, which is
+     the point of the window, and until now the card put today's date on
+     those answers and said nothing about where they came from.
+
+     The date is the ledger row's own (`AiAnswersSection.reusedFrom`),
+     never a guess and never the report's measurement date — the report was
+     read today, the answers were not. Where answers on one card came from
+     more than one day it is the oldest of them, so the mark never claims
+     an answer is fresher than it is.
+
+     Drafted in this registry's voice under the 2026-09-16 ruling (#759);
+     the owner corrects the wording. */
+  "ai-answers.reused-from": ["Reused from {date}", { slots: { date: "text" }, fixedBy: "SPEC §2 · issue 715" }],
+  /* Issue 715, owner ruling 2026-09-22 — what "Retry this part" says while
+     it runs, and the three ways it can be turned down. Handles come off
+     `RetryRefusal` (`src/lib/scan/retry.ts`) and become sentences here,
+     never in the component.
+
+     None of them borrows the correction's lines: a correction is a market
+     the reader gave us and spends one of two attempts, and a retry is one
+     part of a measurement we did not finish and spends only money the
+     report's own 12¢ still holds. Saying so in the same words would tell a
+     reader they had used something they had not.
+
+     Drafted in this registry's voice under the 2026-09-16 ruling (#759);
+     the owner corrects the wording. */
+  "retry-part.running": [
+    "Measuring this part again. This report updates when it finishes.",
+    { slots: {}, fixedBy: "SPEC §2 · issue 715" },
+  ],
+  "retry-part.refused.no-budget": [
+    "This scan has used what it can spend, so this part can't be measured again here. Measure the whole site again instead.",
+    { slots: {}, fixedBy: "SPEC §2 · issue 715" },
+  ],
+  "retry-part.refused.already-measured": [
+    "This part has already been measured. Reload the report to see it.",
+    { slots: {}, fixedBy: "SPEC §2 · issue 715" },
+  ],
+  "retry-part.refused.unavailable": [
+    "This part couldn’t be measured again just now, and nothing was spent. Try again in a few minutes.",
+    { slots: {}, fixedBy: "SPEC §2 · issue 715" },
+  ],
   "ai-answers.denominator": ["AI answers appear on {answered} of your {measured} biggest searches", { slots: { answered: "text", measured: "text" }, fixedBy: "REQ-006 c1" }],
   "ai-answers.customer-citations": ["You’re named in {cited} of the {answered} AI answers that appeared.", { slots: { cited: "text", answered: "text" }, fixedBy: "REQ-006 c1" }],
   "ai-answers.legend": ["Filled: named in that answer · Empty: not named · Muted: no AI answer appeared", { slots: {}, fixedBy: "REQ-006 c1" }],

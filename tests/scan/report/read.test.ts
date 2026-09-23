@@ -459,6 +459,24 @@ describe("a report written at version 10 is lifted, not refused", () => {
     }
   });
 
+  it("a version-11 blob's card gains the reuse member, claiming nothing (issue 715)", () => {
+    const current = asStoredJson() as Record<string, unknown>;
+    const card = { ...(current.aiAnswers as Record<string, unknown>) };
+    delete card.reusedFrom;
+    const report = readStoredReport({ ...current, version: 11, aiAnswers: card });
+    expect(report.version).toBe(REPORT_VERSION);
+    // `null`, not a date and not "these were fresh": a version-11 pass did
+    // not record it, and nothing may be invented about what it read.
+    expect(report.aiAnswers?.reusedFrom).toBeNull();
+  });
+
+  it("a version-11 blob with no card at all keeps none — no section is invented to carry the member", () => {
+    const current = asStoredJson() as Record<string, unknown>;
+    const report = readStoredReport({ ...current, version: 11, aiAnswers: null });
+    expect(report.version).toBe(REPORT_VERSION);
+    expect(report.aiAnswers).toBeNull();
+  });
+
   it("the chain steps one version at a time — a version-8 blob lands with every member since", () => {
     // Each upgrade lifts a blob exactly one version, so the chain applies
     // all of them. An upgrade that jumped to whatever this build writes

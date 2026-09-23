@@ -30,7 +30,7 @@ export function fakeCost(over: { capHit?: () => boolean } = {}): FakeCost {
       sources.push(call.source);
       const payload = await call.run();
       const costCents = call.settleCents ? call.settleCents(payload) : call.costCents;
-      return { payload, fresh: true, costCents };
+      return { payload, fresh: true, costCents, storedAt: null };
     },
     capHit: over.capHit ?? (() => false),
     spentCents: () => 0,

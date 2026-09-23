@@ -109,6 +109,7 @@ import { advanceCorrectionState, readCorrectionFacts, registerCorrectionRunner }
 import { parseDomain, type CanonicalDomain } from "./domain";
 import { marketTooSmall, stoppedOnCeiling } from "./market-floor";
 import { pageQuestionCandidates, pageQuestionMisses } from "./page-questions";
+import { RETRY_STAGE, readSpentCents, registerRetryRunner, type RetryPart } from "./retry";
 import {
   readCurrentReport,
   readScanReport,
@@ -397,6 +398,61 @@ interface Sections {
   sealed: boolean;
 }
 
+/** A stage that did not run at all, as `StageOutcome` says it: nothing was
+ *  spent and nothing was cut off. A retry skips two stages this way (issue
+ *  715), and a skipped stage still reports its exit — the screen's stage
+ *  list reads straight through, because the pass really did get past it. */
+const SKIPPED_STAGE: StageOutcome<void> = Object.freeze({ spent: false, value: undefined });
+
+/**
+ * Issue 715 — the market a retry starts from, read back off the report it
+ * is retrying a part of instead of bought again.
+ *
+ * Four members, and every one of them comes out of the stored blob:
+ * `MarketSet` carries both the profile and the suggestion rows it was built
+ * from (ADR-095), and each of the twelve `Question`s carries the
+ * `SelectedSearch` it was phrased from (#103). So nothing is invented and
+ * nothing is derived a second way — the retry asks the same twelve
+ * questions, in the same words, about the same market, which is what makes
+ * it a retry of a part rather than a second measurement.
+ *
+ * A report whose market or questions are `unmeasured` resumes as
+ * `unmeasured`: the pass then has no question to ask and composes the same
+ * marketless report it is retrying, which is the truth about it. Nothing
+ * here can make a report better than the one it read.
+ */
+function resumeMarket(sections: Sections, report: StoredReport): void {
+  const market = report.market;
+  sections.profile =
+    market.kind === "unmeasured"
+      ? unmeasured(market.reason, market.at)
+      : { kind: market.kind, value: market.value.profile, at: market.at };
+  sections.marketRows =
+    market.kind === "unmeasured"
+      ? unmeasured(market.reason, market.at)
+      : { kind: market.kind, value: market.value.suggestions, at: market.at };
+  sections.questions = report.questions;
+  sections.selected =
+    report.questions.kind === "unmeasured" ? [] : report.questions.value.map((question) => question.search);
+}
+
+/**
+ * Issue 715 — the question SERPs a retry that is not retrying them starts
+ * from, so the two cards counted over them are rebuilt from the answers the
+ * report already showed.
+ *
+ * The battery beside them is `noBattery` per question, which is exactly
+ * what a free pass stores: §6.2's two engines are on §6.4's never-pull list
+ * for this path, so every free report's rows already carry them as
+ * `not_attempted`. A retry is a free-path control — it is drawn on the free
+ * report and nowhere else — so this loses no measurement anybody made.
+ */
+function resumeSerps(sections: Sections, report: StoredReport): void {
+  const at = report.verdict.measuredAt;
+  for (const serp of report.serps) sections.serps.push(serp);
+  for (let i = 0; i < report.serps.length; i += 1) sections.battery.push(noBattery(at));
+}
+
 /** Everything outstanding, before any stage has run. `not_attempted` is
  *  the honest arm for work a ceiling may yet stop: it says we did not get
  *  to it, which no 0 and no empty list can say. */
@@ -654,6 +710,14 @@ export interface RunScanArgs {
   /** A market correction re-measures inside the scan it corrects: same
    *  spend ceiling, no second allowance consumed. */
   correctionOf?: string;
+  /** SPEC §2's "Retry this part" (issue 715): the report this pass
+   *  re-measures one part of, and which part. Like a correction it spends
+   *  no second allowance and opens no second ceiling — the retried row's
+   *  `cost_cents` becomes this pass's `priorCents`, so the 12¢ free cap
+   *  covers the original pass and every retry of it together. Unlike a
+   *  correction it changes no question: the market is read back off the
+   *  stored report (`resumeMarket`) rather than measured again. */
+  retryOf?: { scanId: string; part: RetryPart };
   /** The category the founder confirmed — `sites.category` on a paid pass,
    *  the corrected one on the free report's correction. Where present it is
    *  the market's seed ahead of the inferred category (SPEC §0: the category
@@ -714,7 +778,7 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
   let priorCents = 0;
   // A correction never went through admission, so there is no claimed row
   // to adopt: its row is claimed by the correction seam below (#786).
-  if (parameters.adoptsClaim && a.correctionOf === undefined) {
+  if (parameters.adoptsClaim && a.correctionOf === undefined && a.retryOf === undefined) {
     const claimed = await adoptClaimedRow({
       domain,
       tier: a.tier,
@@ -748,7 +812,7 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
   captureInBackground("scan_started", { subject: domain, tier: a.tier });
 
   // 2. §6.4's seven-day window — the free path's, per `servesStoredReport`.
-  if (a.correctionOf === undefined && parameters.servesStoredReport) {
+  if (a.correctionOf === undefined && a.retryOf === undefined && parameters.servesStoredReport) {
     const stored = await readCurrentReport(domain);
     if (stored !== null && stored.complete && wholeDaysBetween(stored.verdict.measuredAt, startedAt) < FREE_RESCAN_WINDOW_D) {
       if (parameters.adoptsClaim) await closeWithoutSpending(scanId);
@@ -767,6 +831,27 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
   //    machine is fed the value the offer was decided against.
   const correctionBefore =
     a.correctionOf === undefined ? null : ((await readCorrectionFacts(domain))?.correctionState ?? null);
+
+  // 3b. The report a retry starts from (issue 715). Read here, once, and
+  //     handed to the stages, so the market is not bought again and every
+  //     section this pass does not re-measure is carried forward rather
+  //     than lost — a retry of one part may never leave the report with
+  //     less on it than it had. A retried row whose report cannot be read
+  //     is a retry with nothing to start from, and the pass says so rather
+  //     than measuring the domain from scratch on somebody else's money.
+  let retried: StoredReport | null = null;
+  if (a.retryOf !== undefined) {
+    // The retried row's spend is this pass's `priorCents`, which is what
+    // "inside the same budget" is: one 12¢ purse across the original pass
+    // and every retry of it, counted by the one cap every paid call reads.
+    priorCents = await readSpentCents(a.retryOf.scanId);
+    retried = await readScanReport(a.retryOf.scanId);
+    if (retried === null) {
+      logPass({ scanId, tier: a.tier, stoppedReason: "failed", status: "failed", because: "retry_report_unreadable" });
+      return { scanId, status: "failed" };
+    }
+  }
+  const retry = retried === null || a.retryOf === undefined ? undefined : { report: retried, part: a.retryOf.part };
 
   // 4. The pass. `sections` lives out here so a ceiling that discards the
   //    body's return value still gives back everything measured before it,
@@ -798,6 +883,7 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
           ...(a.siteId === undefined ? {} : { siteId: a.siteId }),
           ...(a.onStage === undefined ? {} : { onStage: a.onStage }),
           ...(a.category === undefined ? {} : { category: a.category }),
+          ...(retry === undefined ? {} : { retry }),
         });
       } finally {
         spend.cents = cost.spentCents();
@@ -823,6 +909,7 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
     sections,
     startedAt,
     correctionState,
+    ...(retry === undefined ? {} : { carried: retry.report }),
   });
 
   // **The ending is published after the row is stored, never before**
@@ -840,6 +927,10 @@ export async function runScan(a: RunScanArgs): Promise<{ scanId: string; status:
       report: composed.report,
       ...(a.siteId === undefined ? {} : { siteId: a.siteId }),
       ...(a.correctionOf === undefined ? {} : { supersedesScanId: a.correctionOf }),
+      // A retry supersedes the report it retried a part of, exactly as a
+      // correction supersedes the one it corrected: one current report per
+      // domain, and the one before it kept at its own scan id (issue 715).
+      ...(a.retryOf === undefined ? {} : { supersedesScanId: a.retryOf.scanId }),
       drivers: composed.drivers,
       degraded: spend.degraded || composed.sectionMissing,
       costCents: spend.cents,
@@ -962,6 +1053,11 @@ interface StageArgs {
   onStage?: (stage: StageName) => void | Promise<void>;
   /** `RunScanArgs.category`, carried to the market stage. */
   category?: string;
+  /** SPEC §2's "Retry this part" (issue 715): the report this pass is
+   *  re-measuring one part of, and which part. Its presence is what makes
+   *  `reading_your_market` a read of the stored report rather than a
+   *  purchase — see `retry.ts` for why that stage and no other. */
+  retry?: { report: StoredReport; part: RetryPart };
 }
 
 /**
@@ -987,7 +1083,7 @@ interface StageArgs {
  * buying. The pass's own ceilings are unchanged and still end it.
  */
 async function runStages(a: StageArgs): Promise<void> {
-  const { scanId, bounds, cost, domain, sections } = a;
+  const { scanId, bounds, cost, domain, sections, retry } = a;
 
   /** Entry, recorded on the scan's own log and reported to the optional
    *  durable hook, in that order and never one without the other. */
@@ -1105,15 +1201,28 @@ async function runStages(a: StageArgs): Promise<void> {
 
   if (bounds.stopNow() !== null) return;
   await enter("reading_your_market");
-  // The market spends from the purse it shares with the twelve, and the
-  // twelve get what it left (issue 835): an extra seed is only ever bought
-  // with the SERPs of questions the pass does not have.
+  // **A retry reads the market it already has** (SPEC §2, issue 715). The
+  // stage is entered and exited so the screen's stage list still reads
+  // straight through, and it buys nothing: `resumeMarket` puts the stored
+  // report's profile, suggestions, twelve searches and wording back into
+  // `sections`, which is the one part of a free pass the ledger cannot
+  // return for free (`llm()` caches at `freshnessDays: 0`). Re-deriving it
+  // would cost the two nano calls again and could come back with different
+  // questions — a different report at the same address, not a retried part.
   const marketFromCents = cost.spentCents();
-  const market = await inBudget(
-    "reading_your_market",
-    (b, abandoned) => readMarket({ ...a, bounds: b }, abandoned),
-    MARKET_PURSE_CENTS
-  );
+  let market: StageOutcome<void> = SKIPPED_STAGE;
+  if (retry === undefined) {
+    // The market spends from the purse it shares with the twelve, and the
+    // twelve get what it left (issue 835): an extra seed is only ever
+    // bought with the SERPs of questions the pass does not have.
+    market = await inBudget(
+      "reading_your_market",
+      (b, abandoned) => readMarket({ ...a, bounds: b }, abandoned),
+      MARKET_PURSE_CENTS
+    );
+  } else {
+    resumeMarket(sections, retry.report);
+  }
   const twelveCents = twelveCentsAfter(cost.spentCents() - marketFromCents);
   // An abandoned pass reports no exit either: a stage the ceilings cut off
   // emits no `done: true` (`stages.ts`), and the ending is already out.
@@ -1133,22 +1242,36 @@ async function runStages(a: StageArgs): Promise<void> {
 
   if (bounds.stopNow() !== null) return;
   await enter("asking_the_twelve");
-  const twelve = await inBudget(
-    "asking_the_twelve",
-    async (b, abandoned) => {
-      await askTheTwelve({ ...a, bounds: b }, abandoned);
-      // **After the twelve, in their stage, and that is what "degrade page
-      // questions first" means** (#919). The page questions run inside this
-      // same budget row — the same clock, the same `WEEKLY` cap and the
-      // same `stopNow()` between every call — and they ask *second*. So a
-      // pass that is running out of either time or money spends what is
-      // left on the market's twelve and stops before the pages, every time,
-      // with no second rule deciding it. A ceiling met here leaves the
-      // pages unasked, which their section says by being `null` or short.
-      await askThePageQuestions({ ...a, bounds: b }, abandoned);
-    },
-    twelveCents
-  );
+  // **A retry of a part this stage does not produce does not ask again**
+  // (issue 715). The stored SERPs go back into `sections` instead, so the
+  // two cards counted over them are rebuilt from the same answers the
+  // report already showed — never re-derived from an empty battery, which
+  // would replace a measured card with an unmeasured one for the sake of a
+  // part that is neither. Where the part *is* this stage's, it runs: the
+  // questions already bought come back from `fetches` free of charge and
+  // only the ones the ceiling cut off are paid for.
+  let twelve: StageOutcome<void> = SKIPPED_STAGE;
+  if (retry !== undefined && RETRY_STAGE[retry.part] !== "asking_the_twelve") {
+    resumeSerps(sections, retry.report);
+  } else {
+    twelve = await inBudget(
+      "asking_the_twelve",
+      async (b, abandoned) => {
+        await askTheTwelve({ ...a, bounds: b }, abandoned);
+        // **After the twelve, in their stage, and that is what "degrade
+        // page questions first" means** (#919). The page questions run
+        // inside this same budget row — the same clock, the same `WEEKLY`
+        // cap and the same `stopNow()` between every call — and they ask
+        // *second*. So a pass that is running out of either time or money
+        // spends what is left on the market's twelve and stops before the
+        // pages, every time, with no second rule deciding it. A ceiling met
+        // here leaves the pages unasked, which their section says by being
+        // `null` or short.
+        await askThePageQuestions({ ...a, bounds: b }, abandoned);
+      },
+      twelveCents
+    );
+  }
   if (bounds.abandoned()) return;
   if (!twelve.spent) await exitStage(scanId, "asking_the_twelve");
 
@@ -2208,6 +2331,19 @@ function composeReport(a: {
   sections: Sections;
   startedAt: Date;
   correctionState: CorrectionState;
+  /**
+   * Issue 715 — the report a retry started from.
+   *
+   * A retry re-measures one part and carries the rest, so a section this
+   * pass did not produce falls back to the one the earlier report already
+   * had rather than to `null`. The order is always "what this pass
+   * measured, else what the report already held": a retry can only ever
+   * add to a report, never take a card off it.
+   *
+   * Absent on every ordinary pass, where a section nothing produced is
+   * genuinely absent and `null` is the truth about it.
+   */
+  carried?: StoredReport;
 }): {
   report: StoredReport;
   drivers: Drivers;
@@ -2221,6 +2357,11 @@ function composeReport(a: {
 } {
   const s = a.sections;
   const m = s.measurement;
+  // Issue 715: what a retry carries forward, read once. `undefined` and
+  // `null` are one thing here — "there is nothing carried" — so the three
+  // fallbacks below read a single value rather than an optional chain each.
+  const carried = a.carried ?? null;
+  const carriedSiteIssues = carried === null ? null : carried.siteIssues;
 
   // One date: the home document's own read, or — where the pass never got
   // that far — the moment it started. Every `Measured` under the verdict
@@ -2287,12 +2428,12 @@ function composeReport(a: {
     fromIncompleteRescan: a.fromIncompleteRescan,
     verdict,
     blockedAgents: blockedAgentsOf(robots),
-    aiAnswers: s.aiAnswers,
-    pageQuestions: s.pageQuestions,
+    aiAnswers: s.aiAnswers ?? carried?.aiAnswers ?? null,
+    pageQuestions: s.pageQuestions ?? carried?.pageQuestions ?? null,
     // A pass that never bought a SERP has no card to show, and an empty
     // one would read as "we looked and nobody is there". `null` is the
     // screen's own named-absent arm.
-    presence: s.presence,
+    presence: s.presence ?? carried?.presence ?? null,
     supply: UNMEASURED_SUPPLY(measuredAt),
     freePage: null,
     market,
@@ -2305,7 +2446,14 @@ function composeReport(a: {
     sources: s.sources,
     onPage,
     robots,
-    siteIssues: checkSite({ crawl: s.siteCrawl, robots, blockedAgents: blockedAgentsOf(robots) }),
+    // Issue 715: a retry whose crawl did not run again keeps the checks
+    // the report already carried. `checkSite` over a `null` crawl reports
+    // every check as "could not run", which on a retry would be a report
+    // losing nine measurements to gain one.
+    siteIssues:
+      s.siteCrawl === null && carriedSiteIssues !== null
+        ? carriedSiteIssues
+        : checkSite({ crawl: s.siteCrawl, robots, blockedAgents: blockedAgentsOf(robots) }),
     coherence: s.coherence,
     correctionState: a.correctionState,
     // Issue 866: the category the pass was handed, so REQ-071's comparison
@@ -2315,7 +2463,10 @@ function composeReport(a: {
   });
   // SPEC §2 (issue 787): the one first-page proposal is the best right-sized
   // Write target this pass measured — derived, never padded.
-  const report: StoredReport = { ...assembled, freePage: freePageOf(assembled) };
+  const report: StoredReport = {
+    ...assembled,
+    freePage: freePageOf(assembled) ?? carried?.freePage ?? null,
+  };
 
   // #770: a market read and found too small buys no SERP, so AI presence
   // has nothing to be read from. That is the market's answer and not a
@@ -2339,9 +2490,12 @@ function composeReport(a: {
   // ceiling or a cap (`spend.degraded`, `stoppedReason`).
   const noQuestionMeasured = s.serps.length > 0 && s.serps.every((serp) => serp.kind === "unmeasured");
 
+  // Read off the composed report and not off `sections` (issue 715): a
+  // retry that carried a card forward has that card, so the pass is not
+  // missing it. Everything else here is `sections`' as before.
   const sectionMissing =
-    s.aiAnswers === null ||
-    s.presence === null ||
+    report.aiAnswers === null ||
+    report.presence === null ||
     missingFactors.length > 0 ||
     market.kind === "unmeasured" ||
     s.questions.kind === "unmeasured" ||
@@ -2398,6 +2552,33 @@ function logPass(fields: {
 // The free tier adopts an admission claim, and a correction has none — it
 // spends no second allowance — so without this claim the pass found no row
 // and ended `no_claimed_slot` before it measured anything.
+// ── The retry seam (SPEC §2, issue 715) ─────────────────────────────────
+//
+// The same arrangement as the correction seam below, and for the same two
+// reasons: the route's "scanning unavailable" must mean no pipeline is
+// reachable, and the row has to exist before the seam answers so the report
+// can open the stream on it.
+//
+// A retry claims a row of its own and spends no second allowance: the cap
+// it runs under counts the retried row's spend as `priorCents`, so the
+// original pass and every retry of it share one 12¢ purse.
+registerRetryRunner(async (a) => {
+  const parsed = parseDomain(a.domain);
+  if (!parsed.ok) throw new Error(`retry: ${parsed.problem}`);
+  const scanId = crypto.randomUUID();
+  const { claimed } = await claimPassRow({ scanId, domain: parsed.domain, tier: a.tier });
+  if (!claimed) throw new Error(`retry: the scan row ${scanId} already exists`);
+  return {
+    scanId,
+    finished: runScan({
+      scanId,
+      domain: parsed.domain,
+      tier: a.tier,
+      retryOf: { scanId: a.retryOf, part: a.part },
+    }),
+  };
+});
+
 registerCorrectionRunner(async (a) => {
   const parsed = parseDomain(a.domain);
   if (!parsed.ok) throw new Error(`correction: ${parsed.problem}`);

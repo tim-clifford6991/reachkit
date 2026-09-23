@@ -120,7 +120,15 @@ export function proofLedger(runCapCents: number, alreadySpentCents = 0): ProofLe
         costCents: number;
         settleCents?: (payload: P) => number;
         run: () => Promise<P>;
-      }): Promise<{ payload: P; fresh: boolean; costCents: number } | { skipped: "cap" }> {
+      }): Promise<
+        // `storedAt` is the moment a served row was bought, and the product's
+        // context returns it non-`null` exactly where `fresh` is `false`
+        // (`src/lib/costs/index.ts`, issue #715). Nothing is cached here — a
+        // run that served an earlier run's answer would not be a live run —
+        // so every answer this harness returns is fresh and its `storedAt` is
+        // `null`, which is the same statement the shape makes in the product.
+        { payload: P; fresh: boolean; costCents: number; storedAt: Date | null } | { skipped: "cap" }
+      > {
         // The run's own ceiling first, the way the product's day outranks a
         // pass's cap: a draft with headroom of its own still stops when the
         // run has none.
@@ -163,7 +171,7 @@ export function proofLedger(runCapCents: number, alreadySpentCents = 0): ProofLe
             durationMs: Date.now() - startedMs,
           });
 
-          return { payload, fresh: true, costCents: settled };
+          return { payload, fresh: true, costCents: settled, storedAt: null };
         } finally {
           inFlightReserved -= call.costCents;
         }

@@ -57,20 +57,28 @@ export function isEmptyPayload(payload: unknown): boolean {
  *  every row in the window is the zero-result shape). Never writes to
  *  `fetches`; a hit costs nothing to ledger (BP-007 `## Public
  *  interface`: "Cache-first, ledger-always ... `fresh` false means the
- *  payload came from cache and cost nothing"). */
+ *  payload came from cache and cost nothing").
+ *
+ *  **A hit carries the moment it was bought** (SPEC §2, issue 715). The
+ *  free report has to be able to say "reused from {date}" about an answer
+ *  a recent scan already paid for, and that date is a fact of this row and
+ *  of nothing else: the screen may not guess it from the report's own
+ *  measurement date, which is the date of the *reading*, not of the
+ *  answer. `storedAt` is the served row's `created_at` — always present on
+ *  a hit, because the read already orders on that column. */
 export async function readCache(params: {
   source: string;
   cacheKey: string;
   policyVersion: number;
   freshnessDays: number;
-}): Promise<{ payload: unknown } | null> {
+}): Promise<{ payload: unknown; storedAt: Date } | null> {
   const cutoff = new Date(
     Date.now() - params.freshnessDays * 24 * 60 * 60 * 1000
   ).toISOString();
 
   const { data, error } = await untypedFetches(dbAdmin())
-    .from<Pick<FetchesRow, "payload">>("fetches")
-    .select("payload")
+    .from<Pick<FetchesRow, "payload" | "created_at">>("fetches")
+    .select("payload, created_at")
     .eq("source", params.source)
     .eq("cache_key", params.cacheKey)
     .eq("policy_version", params.policyVersion)
@@ -83,7 +91,14 @@ export async function readCache(params: {
   }
 
   for (const row of data ?? []) {
-    if (!isEmptyPayload(row.payload)) return { payload: row.payload };
+    if (isEmptyPayload(row.payload)) continue;
+    // A row whose `created_at` this client could not read is still a hit —
+    // the payload is what the caller asked for. The date falls back to the
+    // window's own cutoff, which is the oldest moment a row in this window
+    // can have been stored: never newer than the truth, so a mark drawn
+    // from it understates the answer's age rather than overstating it.
+    const storedAt = new Date(row.created_at ?? cutoff);
+    return { payload: row.payload, storedAt: Number.isNaN(storedAt.getTime()) ? new Date(cutoff) : storedAt };
   }
   return null;
 }

@@ -144,13 +144,44 @@ export function fakeCostContext(cap: CapName = "DEEP"): FakeContext {
       const proposed = unbilled ? 0 : call.settleCents ? call.settleCents(payload) : call.costCents;
       const costCents = proposed > call.costCents ? call.costCents : proposed;
       ledgered.push(costCents);
-      return { payload, fresh: true, costCents };
+      return { payload, fresh: true, costCents, storedAt: null };
     },
     capHit: () => false,
     spentCents: () => 0,
     degraded: () => false,
   };
   return { ctx, calls, ledgered };
+}
+
+/** A context that answers every call out of the cache (issue 715): `run()`
+ *  is never reached, nothing is ledgered, and the answer carries the moment
+ *  the served row was bought — exactly `withCostContext`'s own hit path.
+ *  `payload` is what the call site would have parsed, supplied per source so
+ *  one double can stand in for any endpoint. */
+export function cachedCostContext(
+  payload: (source: string) => unknown,
+  storedAt: Date,
+  cap: CapName = "DEEP"
+): FakeContext {
+  const calls: RecordedCall[] = [];
+  const ctx: CostContext = {
+    cap,
+    async recordFetch<P>(call: {
+      source: string;
+      cacheKey: string;
+      freshnessDays: number;
+      costCents: number;
+      settleCents?: (payload: P) => number;
+      run: () => Promise<P>;
+    }) {
+      calls.push(call as unknown as RecordedCall);
+      return { payload: payload(call.source) as P, fresh: false, costCents: 0, storedAt };
+    },
+    capHit: () => false,
+    spentCents: () => 0,
+    degraded: () => false,
+  };
+  return { ctx, calls, ledgered: [] };
 }
 
 /** A context whose cap is already spent: `recordFetch` never calls `run()`

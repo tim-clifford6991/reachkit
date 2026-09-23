@@ -87,6 +87,18 @@ export interface SerpAiOverview {
 export interface SerpResult {
   organic: readonly SerpOrganicRow[];
   aiOverview: SerpAiOverview;
+  /**
+   * When this answer was bought, where it was not bought by the pass that
+   * is holding it (SPEC §2, issue 715) — an ISO instant, the `fetches` row
+   * the cache served it from.
+   *
+   * Absent is the ordinary case and means "this pass paid for it": a
+   * freshly bought SERP has nothing to say about an earlier one. It is on
+   * the *result* rather than beside it because the result is what the
+   * stored report carries, and a report that cannot say where its answers
+   * came from cannot be asked again afterwards.
+   */
+  reusedFrom?: string;
 }
 
 /** `aiMode` and `llmScraper` — one AI engine's synthesized answer, if it

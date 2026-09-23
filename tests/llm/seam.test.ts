@@ -160,7 +160,7 @@ function fakeCostContext(): { ctx: CostContext; calls: RecordedCall[] } {
       calls.push(call as unknown as RecordedCall);
       const payload = await call.run();
       const costCents = call.settleCents ? call.settleCents(payload) : call.costCents;
-      return { payload, fresh: true, costCents };
+      return { payload, fresh: true, costCents, storedAt: null };
     },
     capHit: () => false,
     spentCents: () => 0,

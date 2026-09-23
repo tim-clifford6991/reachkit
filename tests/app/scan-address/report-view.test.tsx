@@ -548,6 +548,36 @@ describe("issue 715 — SPEC §2: what was measured, what was reused, what the c
     expect(count(html, ">control.retry-part<")).toBe(2);
     expect(render({ ...FIXTURE_DEGRADED_REPORT, stoppedReason: "failed" })).not.toContain("control.retry-part");
   });
+
+  // Owner ruling 2026-09-22, box 2: the mark carries the date the answers
+  // were bought, read off the section. The chip beside it is the date the
+  // *report* was read, which is a different fact and was the only one the
+  // card had.
+  it("marks reused answers with their own date, and only where the section carries one", () => {
+    expect(render(FIXTURE_REPORT)).not.toContain("ai-answers.reused-from");
+    const reused = render({
+      ...FIXTURE_REPORT,
+      aiAnswers: { ...FIXTURE_REPORT.aiAnswers!, reusedFrom: "2026-09-02T09:00:00.000Z" },
+    });
+    // The date in the report's one locale, not the ISO instant the blob
+    // stores — and the key's slot, so the sentence stays the registry's.
+    expect(reused).toContain("ai-answers.reused-from(Sep 2, 2026)");
+    expect(reused).not.toContain("2026-09-02T09:00:00.000Z");
+  });
+
+  // Owner ruling 2026-09-22, box 3: the control acts. SPEC §1's
+  // 2026-09-20 line — a control on this screen "does something or is not
+  // drawn" — so each retry button carries the address its post goes to.
+  it("each 'Retry this part' is a live control on its own card, named by its part", () => {
+    const html = render(cutOff);
+    expect(html).toContain('data-testid="retry-presence"');
+    expect(html).toContain('data-testid="retry-free_page"');
+    // The card that *was* measured draws no control at all — there is
+    // nothing on it to retry.
+    expect(html).not.toContain('data-testid="retry-ai_answers"');
+    const lost = render({ ...cutOff, aiAnswers: null });
+    expect(lost).toContain('data-testid="retry-ai_answers"');
+  });
 });
 
 describe("issue #785 — the report's offer begins checkout, and states a refusal on itself", () => {

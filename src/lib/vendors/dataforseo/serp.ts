@@ -140,6 +140,9 @@ export async function serpOrganic(
 ): Promise<Measured<SerpResult>> {
   const base = basePriceCents(a.mode);
   const flagged = a.loadAsyncAiOverview;
+  /** Issue 715: set only where the seam served this answer out of
+   *  `fetches`, and then to the moment that row was bought. */
+  let reusedFrom: Date | null = null;
   const rows = await ledgered<SerpResult>(c, {
     source: "serp/google/organic",
     cacheKey: `${a.query}|${SERP_LOCATION.location}|${SERP_LOCATION.language}|aio:${flagged ? "async" : "cached"}|${scopeKey(a.scope)}`,
@@ -162,6 +165,16 @@ export async function serpOrganic(
       ),
     parse: parseSerp,
     ...(a.onFailure ? { onFailure: a.onFailure } : {}),
+    onReused: (storedAt) => {
+      reusedFrom = storedAt;
+    },
   });
-  return mapMeasured(rows, (r) => r[0] ?? EMPTY_SERP);
+  return mapMeasured(rows, (r) => {
+    const serp = r[0] ?? EMPTY_SERP;
+    // The stamp rides on the result the report stores, so a screen reading
+    // a report months later still knows which of its answers were reused
+    // and from when. Never written where the pass bought the answer.
+    const at: Date | null = reusedFrom;
+    return at === null ? serp : { ...serp, reusedFrom: at.toISOString() };
+  });
 }

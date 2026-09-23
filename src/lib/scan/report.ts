@@ -182,7 +182,7 @@ export type StoppedReason = "complete" | "time_ceiling" | "spend_ceiling" | "sit
  *  it does not know throws rather than returning a partially-populated
  *  value: `null` would be indistinguishable from "no report" at every call
  *  site. */
-export const REPORT_VERSION = 11;
+export const REPORT_VERSION = 12;
 
 /** One cell of the AI-answers matrix — one question, one measured SERP.
  *  BP-025 `## Public interface` (issue #26's `matrix.ts` owns it). An
@@ -274,6 +274,29 @@ export interface AiAnswersSection {
    *  (`cached_only`), "and its disclosure says so" (DECISIONS
    *  2026-09-03). A state, never a sentence: the words are the registry's. */
   coverage: "async_included" | "cached_only";
+  /**
+   * **When the answers on this card were bought, where this pass did not
+   * buy them** (SPEC §2, issue 715) — an ISO instant, or `null` where every
+   * answer counted here was this pass's own purchase.
+   *
+   * A domain scanned again inside §6.4's SERP window is answered out of
+   * `fetches` and spends nothing, which is the whole point of the window —
+   * and until this member existed the report showed those answers with
+   * today's date on the card's source chip and said nothing at all about
+   * where they came from. This is that fact, carried from the ledger row
+   * the cache served (`readCache`'s `storedAt`), through the SERP
+   * (`MarketSerp.reusedFrom`) and the card (`AiAnswersCard.reusedFrom`),
+   * to the one line the screen draws from it.
+   *
+   * It is the **oldest** such date on the card, so the one line a card can
+   * show never claims an answer is fresher than it is. `null` on every
+   * report written before version 12, which claims nothing.
+   *
+   * It is not `coverage` and does not replace it: `coverage` says which
+   * answers a card could see at all, this says when the ones it saw were
+   * read.
+   */
+  reusedFrom: string | null;
 }
 
 /**
@@ -527,7 +550,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 /** The version this build's own migration knows how to lift, and the only
  *  one: a report written before issue #128 bought the paid battery. */
-const MIGRATABLE_VERSIONS: readonly number[] = [3, 4, 5, 6, 7, 8, 9, 10];
+const MIGRATABLE_VERSIONS: readonly number[] = [3, 4, 5, 6, 7, 8, 9, 10, 11];
 
 /** The two battery columns of a report written before anything bought
  *  them. `not_attempted` and not `no_answer`: nobody asked these engines,
@@ -725,6 +748,31 @@ function upgradeFromVersion10(blob: Record<string, unknown>): Record<string, unk
   return { ...blob, version: 11, pageQuestions: null };
 }
 
+/**
+ * Version 11 → 12 (issue 715): the AI-answers card says when a reused
+ * answer was bought.
+ *
+ * A version-11 pass did not record it — the cache seam threw the ledger
+ * row's date away on the way through — so `reusedFrom` arrives `null` on
+ * every report written before this version. `null` is the arm that claims
+ * nothing: not "these answers were fresh", which no version-11 report is
+ * evidence of, but "this report does not say". The screen draws no mark
+ * from it, which is exactly how those reports read before this member
+ * existed.
+ *
+ * A report with no `aiAnswers` section at all keeps `null` there: there is
+ * no card to carry the member, and inventing a section to hold it would
+ * turn a pass that measured nothing into one that measured an empty card.
+ */
+function upgradeFromVersion11(blob: Record<string, unknown>): Record<string, unknown> {
+  const section = blob.aiAnswers;
+  return {
+    ...blob,
+    version: 12,
+    aiAnswers: isRecord(section) ? { ...section, reusedFrom: null } : section,
+  };
+}
+
 /** Every upgrade this build can apply, oldest first, each lifting a blob
  *  one version. Chained rather than switched on, so a version-3 report is
  *  lifted twice and lands readable — a build that only knew `n → latest`
@@ -738,6 +786,7 @@ const UPGRADES: readonly ((blob: Record<string, unknown>) => Record<string, unkn
   upgradeFromVersion8,
   upgradeFromVersion9,
   upgradeFromVersion10,
+  upgradeFromVersion11,
 ];
 
 /** The version guard, and the one upgrade beside it. Throws — loudly — on
