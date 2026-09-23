@@ -399,6 +399,27 @@ describe("step two — what we learned about your business (SPEC §5, 2026-09-20
     }
   });
 
+  it("#1038: the groups are the board's six, in its order, and *What you do* is one sentence to reword", () => {
+    const panel = screenFor("business").querySelector('[data-testid="setup-business"]');
+    const heads = [...(panel?.querySelectorAll("section h3") ?? [])].map((h) => h.textContent);
+    expect(heads).toEqual([
+      COPY["setup.business.group.job"],
+      COPY["setup.business.group.products"],
+      COPY["setup.business.group.audienceTerms"],
+      COPY["setup.business.group.claims"],
+      COPY["setup.business.group.vocabulary"],
+      COPY["setup.business.group.facts"],
+    ]);
+    const job = panel?.querySelector<HTMLInputElement>('[data-testid="setup-business-job"] input');
+    expect(job?.value).toBe(model().business.job?.text);
+    expect(job?.getAttribute("aria-label")).toBe(COPY["setup.business.group.job"]);
+    expect(model().business.lists.audienceTerms.length).toBeGreaterThan(0);
+    const serve = panel?.querySelector('[data-testid="setup-business-audienceTerms-items"]');
+    expect([...(serve?.querySelectorAll("li span") ?? [])].map((s) => s.textContent)).toEqual([
+      ...(model().business.lists.audienceTerms.map((item) => item.text)),
+    ]);
+  });
+
   it("every group carries its own Add, and a group nothing was read for still does", () => {
     const panel = screenFor("business").querySelector('[data-testid="setup-business"]');
     for (const group of BUSINESS_GROUPS) {

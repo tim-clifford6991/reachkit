@@ -236,7 +236,7 @@ export function quotableFacts(a: {
 /**
  * A screen's final lists, as decisions over the derived reading (#970).
  *
- * Setup's step two shows four of the six lists and lets the founder take
+ * Setup's step two shows five of the six lists and lets the founder take
  * items out and add their own, then hands back what each list ended up
  * holding. What is stored is never a list — it is the two decisions — so
  * this turns one back into the other against the same derived reading the
@@ -281,6 +281,25 @@ export function editsForLists(a: {
   }
 
   return { ...a.stored, removed, added };
+}
+
+/**
+ * Records *What you do* as setup's step two left it (#1038).
+ *
+ * The field opens on the confirmed sentence, so a founder who leaves it as
+ * they found it has decided nothing: a sentence that is the market
+ * reading's own, or an emptied field, stores no wording of theirs and lets
+ * the next reading speak — Settings' *Reword* treats an empty answer the
+ * same way. Anything else is their wording, and outlives every refresh.
+ */
+export function editsForJob(a: {
+  stored: BusinessEdits;
+  market: MarketReading | null;
+  chosen: string;
+}): BusinessEdits {
+  const chosen = stated(a.chosen);
+  const job = chosen === null || chosen === stated(a.market?.job) ? null : chosen;
+  return { ...a.stored, job };
 }
 
 /** Every derived item of every list, as the `seen` record to store.

@@ -520,11 +520,9 @@ export const SETUP_COPY = Object.freeze({
   // page each was read from. Every item can be removed and the founder can
   // add their own."
   //
-  // The groups below are the ones the stored site profile actually carries
-  // (`src/lib/site-profile/types.ts`). What the site *does* and who it
-  // *serves*, and the page a quoted fact was read from, have no member on
-  // that shape yet; they arrive with #926, which owns this profile's
-  // storage and its editor.
+  // The groups below are the confirmed business profile's
+  // (`src/lib/site-profile/business/types.ts`), in the board's order:
+  // what you do, sell, serve, promise, the words you use, the facts.
 
   /** The owner's own sentence (issue #922), under the pages-read chips. */
   "setup.business.assurance": [
@@ -532,7 +530,12 @@ export const SETUP_COPY = Object.freeze({
     { slots: {}, fixedBy: "issue 922" },
   ],
   "setup.business.pages-read": ["Pages we read", { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" }],
+  "setup.business.group.job": ["What you do", { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" }],
   "setup.business.group.products": ["What you sell", { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" }],
+  "setup.business.group.audienceTerms": [
+    "Who you serve",
+    { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" },
+  ],
   "setup.business.group.claims": ["What you promise", { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" }],
   "setup.business.group.vocabulary": ["Words you use", { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" }],
   "setup.business.group.facts": ["Facts we can quote", { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" }],
@@ -540,6 +543,14 @@ export const SETUP_COPY = Object.freeze({
    *  bound, from `VOICE_LIST_MAX`. */
   "setup.business.group.products.note": [
     "up to {max}",
+    { slots: { max: "text" }, fixedBy: "SPEC §5 (2026-09-20, issue 908)" },
+  ],
+  "setup.business.group.job.note": [
+    "one sentence",
+    { slots: {}, fixedBy: "SPEC §5 (2026-09-20, issue 908)" },
+  ],
+  "setup.business.group.audienceTerms.note": [
+    "2 to {max}",
     { slots: { max: "text" }, fixedBy: "SPEC §5 (2026-09-20, issue 908)" },
   ],
   "setup.business.group.claims.note": [

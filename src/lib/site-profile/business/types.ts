@@ -33,7 +33,7 @@ import type { PagePurpose } from "../types";
  *  `site_profiles.products` and `.claims`; `vocabulary`, `claimsToKeep` and
  *  `claimsToAvoid` are that row's `voice.*`; `audienceTerms` is the market
  *  reading's. Since #970 it is also setup's step two's vocabulary: that
- *  screen shows four of these six lists, by these names, and writes to this
+ *  screen shows five of these six lists (#1038), by these names, and writes to this
  *  same table — so a correction made while setting up is in Settings, and
  *  one made in Settings is on the step.
  *

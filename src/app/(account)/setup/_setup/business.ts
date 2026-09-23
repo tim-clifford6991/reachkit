@@ -13,22 +13,26 @@
 // correction made here is in Settings › Your business, and one made there
 // is here.
 //
-// What is left is the step's own: which four of the six lists it shows, how
-// long each may grow, and what taking one out and adding one do to what is
+// What is left is the step's own: which five of the six lists it shows, and
+// the one sentence of what the business does above them (#1038); how long
+// each list may grow; and what taking one out and adding one do to what is
 // on screen. Pure, and no sentence: a group's head, its note and its Add
 // label are copy keys, read where the panel draws them.
 import type { BusinessList, BusinessProfile } from "@/lib/site-profile/business/types";
 
 /**
- * The four lists step two shows, in the order the founder reads them.
+ * The lists step two shows, in the order the founder reads them — the
+ * board's (`R3-ON-Business`): what you sell, who you serve, what you
+ * promise, the words you use, the facts we can quote. *What you do* comes
+ * first and is not a list; it is `job`, below.
  *
- * Four of the six, and the two left out are deliberate: `audienceTerms` is
- * the market reading's and is not a thing the founder was shown on this
- * step, and `claimsToAvoid` is a list they build later, out of what they
- * veto. A list absent here is untouched by this step — never cleared.
+ * Five of the six. `claimsToAvoid` is left out on purpose: it is a list the
+ * founder builds later, out of what they veto, and the voice step asks for
+ * it. A list absent here is untouched by this step — never cleared.
  */
 export const BUSINESS_GROUPS = [
   "products",
+  "audienceTerms",
   "claims",
   "vocabulary",
   "claimsToKeep",
@@ -44,8 +48,9 @@ export type BusinessDraft = Readonly<Record<BusinessGroupId, readonly string[]>>
 /**
  * How long each list may grow.
  *
- * These mirror `VOICE_LIST_MAX` in `src/lib/site-profile/summary.ts`, which
- * bounds what the model may answer with for the same fields. They are
+ * These mirror `VOICE_LIST_MAX` in `src/lib/site-profile/summary.ts`, and
+ * `audienceTerms` the market profile's own bound, which bound what the
+ * model may answer with for the same fields. They are
  * restated rather than imported because that module reaches `@/lib/llm`,
  * and nothing a browser downloads may.
  *
@@ -56,6 +61,9 @@ export type BusinessDraft = Readonly<Record<BusinessGroupId, readonly string[]>>
  */
 export const BUSINESS_MAX: Readonly<Record<BusinessGroupId, number>> = Object.freeze({
   products: 8,
+  // The market reading asks for two to four (`PROFILE_LIST_BOUNDS`), and
+  // the board prints the same rule beside the head.
+  audienceTerms: 4,
   claims: 8,
   vocabulary: 8,
   claimsToKeep: 6,
@@ -67,7 +75,7 @@ export const BUSINESS_MAX: Readonly<Record<BusinessGroupId, number>> = Object.fr
  * Their own additions and removals are already in it (`confirmedProfile`
  * applied them), which is what makes a correction made in Settings visible
  * here. A site nobody has read yet — the free scan reads no profile — opens
- * with four empty groups rather than no groups: there is still something
+ * with five empty groups rather than no groups: there is still something
  * for them to add.
  */
 export function businessFrom(profile: BusinessProfile | null): BusinessDraft {
@@ -105,4 +113,12 @@ export function added(draft: BusinessDraft, group: BusinessGroupId, item: string
 
 export function isFull(draft: BusinessDraft, group: BusinessGroupId): boolean {
   return draft[group].length >= BUSINESS_MAX[group];
+}
+
+/** *What you do* as the field opens: the founder's own wording where they
+ *  have reworded it, else the market reading's sentence, else empty — a
+ *  market not yet measured has nothing to offer, and the founder may write
+ *  the sentence themselves. */
+export function jobFrom(profile: BusinessProfile | null): string {
+  return profile?.job?.text ?? "";
 }

@@ -72,7 +72,12 @@ function parseStepSave(body: unknown): SetupStepSave | null | undefined {
       // seventh list, and a body carrying one is not worth a 400 — but a
       // value that is not a list of strings is malformed.
       const lists = parseBusinessLists(b.lists);
-      return lists === undefined ? undefined : { step, lists };
+      if (lists === undefined) return undefined;
+      // #1038: *What you do*, one sentence. Absent is the older body, which
+      // leaves the stored wording as it is; anything but a string is malformed.
+      if (b.job === undefined) return { step, lists };
+      if (typeof b.job !== "string") return undefined;
+      return { step, lists, job: b.job };
     }
     case "rivals":
       if (!Array.isArray(b.competitors) || b.competitors.some((c) => typeof c !== "string")) {

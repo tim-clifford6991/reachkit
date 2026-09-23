@@ -185,25 +185,32 @@ export async function readConfirmedBusiness(a: {
  * (`editsForLists`), and every list this screen does not edit is carried
  * through untouched.
  *
- * Only the lists named are touched. A screen that shows four of the six
- * fields cannot silently clear the other two.
+ * Only the lists named are touched. A screen that shows five of the six
+ * fields cannot silently clear the sixth. `job` is the same: absent, the
+ * stored wording stands; present, it is *What you do* as the screen left
+ * it (`editsForJob`).
  */
 export async function saveChosenLists(a: {
   siteId: string;
   domain: string;
   chosen: Readonly<Partial<Record<BusinessList, readonly string[]>>>;
+  job?: string;
 }): Promise<void> {
   const readings = await readConfirmedBusiness({ siteId: a.siteId, domain: a.domain });
-  const { editsForLists, seenNow } = await import("./confirm");
+  const { editsForJob, editsForLists, seenNow } = await import("./confirm");
   const { writeBusinessEdits } = await import("./edits");
+  const lists = editsForLists({
+    stored: readings.edits,
+    profile: readings.profile,
+    market: readings.market,
+    chosen: a.chosen,
+  });
   await writeBusinessEdits({
     siteId: a.siteId,
-    edits: editsForLists({
-      stored: readings.edits,
-      profile: readings.profile,
-      market: readings.market,
-      chosen: a.chosen,
-    }),
+    edits:
+      a.job === undefined
+        ? lists
+        : editsForJob({ stored: lists, market: readings.market, chosen: a.job }),
     seen: seenNow({ profile: readings.profile, market: readings.market }),
   });
 }

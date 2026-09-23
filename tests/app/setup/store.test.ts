@@ -445,6 +445,23 @@ describe("the business step writes the same corrections Settings writes (SPEC §
     expect(db.tables.sites?.find((row) => row.id === SITE)?.setup_step).toBe("rivals");
   });
 
+  it("#1038: *What you do* as the founder left it reaches the overlay beside the lists", async () => {
+    db = fakeDb({ sites: [site({ domain: "acme.example" })], destinations: [] });
+
+    await liveSetupStore().saveStep({
+      siteId: SITE,
+      save: { step: "business", lists: LISTS, job: "We run agencies' projects" },
+      resumeAt: "rivals",
+    });
+
+    expect(chosen.mock.calls.at(-1)![0]).toEqual({
+      siteId: SITE,
+      domain: "acme.example",
+      chosen: LISTS,
+      job: "We run agencies' projects",
+    });
+  });
+
   it("an overlay that refuses does not hold the founder on the step", async () => {
     chosen.mockRejectedValue(new Error("edits table unreachable"));
 
