@@ -100,6 +100,13 @@ export function DecidePanel(p: {
   return (
     <aside
       className="card card-border bg-base-100 min-w-0 xl:sticky xl:top-4"
+      // Named, because the shell puts a second `<aside>` on this screen —
+      // the side panel — and two complementary landmarks with no names are
+      // two landmarks a reader cannot tell apart (`landmark-unique`, #328).
+      // The name is the block's own heading, which is hidden below `md`;
+      // hence `aria-label` rather than `aria-labelledby`, and the
+      // registry's sentence rather than a second spelling of it.
+      aria-label={copy("draft.decide.title")}
       data-testid="draft-decide"
     >
       <div className="card-body min-w-0 gap-3 p-4">

@@ -48,7 +48,7 @@ import { AppDock } from "@/app/(account)/app/_shell/AppDock";
 import { Shortcuts } from "@/app/(account)/app/_shell/Shortcuts";
 import { WaitingCard } from "@/app/(account)/app/_shell/WaitingCard";
 import { DESTINATIONS, DESTINATION_HREF, destinationOf } from "@/app/(account)/app/_shell/destinations";
-import { DRAWER_TOGGLE_ID, RAIL_SCRIPT, RAIL_STORAGE_KEY } from "@/app/(account)/app/_shell/drawer";
+import { DRAWER_FOCUS_RING, DRAWER_TOGGLE_ID, RAIL_SCRIPT, RAIL_STORAGE_KEY } from "@/app/(account)/app/_shell/drawer";
 import { formatDate, formatDateTime } from "@/app/(account)/app/_shell/format";
 import type { ShellModel } from "@/app/(account)/app/_shell/model";
 
@@ -465,6 +465,26 @@ describe("SPEC §4 (2026-09-20) — one button collapses the panel, and the choi
     expect(root.querySelector(`#${DRAWER_TOGGLE_ID}`)?.getAttribute("aria-label")).toBe(
       "shell.panel.label"
     );
+  });
+
+  it("a keyboard can see where it is: the toggle it cannot draw a ring on lights the button on screen", async () => {
+    // #328. The checkbox above is the only thing here a keyboard can
+    // operate — Space on it collapses and expands the panel — and daisyUI
+    // draws it at `width: 0; height: 0; opacity: 0`, so it can paint no
+    // focus ring of its own. At `lg` the top bar is hidden and daisyUI's
+    // own `~ .drawer-content label.drawer-button` rule therefore matches
+    // nothing on screen: a reader tabbing into `/app` was moved to a
+    // control that showed nothing, which is WCAG 2.1 2.4.7, Level AA.
+    //
+    // What a customer observes is that every button the toggle drives
+    // lights up when the toggle has focus. That is what is asserted, on
+    // all three, rather than the selector that achieves it.
+    const root = await renderLayout();
+    for (const id of ["shell-collapse", "shell-expand", "shell-menu-button"]) {
+      expect(root.querySelector(`[data-testid='${id}']`)?.className, id).toContain(
+        DRAWER_FOCUS_RING
+      );
+    }
   });
 
   it("what is remembered is remembered per browser, and only where the rail exists", () => {

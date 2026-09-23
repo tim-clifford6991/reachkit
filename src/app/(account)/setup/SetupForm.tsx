@@ -519,7 +519,13 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
           exactly under the question they belong to, and the inner box is
           the ruled measure — all without this row sitting inside the
           `Surface`, which would inset its background with it. */}
-      <div className="sticky bottom-0 border-t border-base-300 bg-base-100 px-8 lg:px-10 xl:px-12">
+      {/* A `<footer>`, not a `<div>` (#328): this row stands outside the
+          `Surface`'s `<main>` — deliberately, for the background above —
+          so as a `<div>` it was screen content belonging to no landmark at
+          all (`region`, on all five steps). It is the screen's footer in
+          every sense: the step's two controls and the standing line under
+          them. The element changes; nothing it draws does. */}
+      <footer className="sticky bottom-0 border-t border-base-300 bg-base-100 px-8 lg:px-10 xl:px-12">
         <div className="mx-auto grid w-full max-w-(--w-wide) gap-3 py-3">
           <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
             <button
@@ -548,7 +554,7 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
             {copy("setup.footer.line")}
           </p>
         </div>
-      </div>
+      </footer>
     </div>
   );
 }
