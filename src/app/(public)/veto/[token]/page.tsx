@@ -459,7 +459,14 @@ function Told(p: {
         {copy("publish.veto.calendar")}
       </Link>
     </>,
-    p.page === null ? null : pagePanel({ heading: null, caption: null, ...p.page })
+    p.page === null
+      ? null
+      : pagePanel({
+          // Not the ask arm's "goes live on …": this page no longer does.
+          heading: p.confirmed ? copy("publish.veto.panel.heading.stopped") : null,
+          caption: null,
+          ...p.page,
+        })
   );
 }
 

@@ -360,13 +360,12 @@ describe("the done arm, and the refusals that wear its shape", () => {
     // title, its site and its opening, on the accent half.
     previewAnswer = async () => spent("How teams pick an onboarding tool");
     const tree = await ask({ done: "1" });
-    // It is not going live any more, so the half does not say it is — and
-    // with no heading over it the title is the half's `<h2>`, so no level
-    // is skipped under the screen's `<h1>` (#328).
-    expect(headingsOf(tree, "h2")).toEqual(["How teams pick an onboarding tool"]);
-    expect(headingsOf(tree, "h3")).toEqual([]);
+    expect(headingsOf(tree, "h3")).toEqual(["How teams pick an onboarding tool"]);
     expect(text(tree)).toContain("example.com");
     expect(text(tree)).toContain(LIVE_PREVIEW.excerpt);
+    // It is not going live any more, so the half does not say it is: its
+    // heading says what is true instead.
+    expect(headingsOf(tree, "h2")).toEqual([COPY["publish.veto.panel.heading.stopped"]]);
   });
 
   it("warn is never a fill: a refusal is a line, and only the confirmed stop is tinted", async () => {
