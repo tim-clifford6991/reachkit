@@ -24,6 +24,7 @@ import { Calendar, Play, Search, Users } from "lucide-react";
 import { Surface } from "@/ui/layout";
 import { copy } from "@/lib/presentation/copy";
 import { ScanForm } from "./_landing/ScanForm";
+import { scanFormWords } from "./_landing/scan-form-words";
 import { WeekHero } from "./_landing/WeekHero";
 import { MatrixCard } from "./_landing/MatrixCard";
 import { WeekCard } from "./_landing/WeekCard";
@@ -90,7 +91,7 @@ export default function LandingPage(props: {
               <h1 className="t-hero">{copy("landing.headline")}</h1>
               <p className="mt-4 max-w-xl text-lg text-base-content/70">{copy("landing.subline")}</p>
               <div className="mt-8 w-full max-w-xl">
-                <ScanForm searchParams={props.searchParams} />
+                <ScanForm searchParams={props.searchParams} words={scanFormWords()} />
               </div>
               <p className="mt-3 font-mono text-xs text-base-content/60">{copy("landing.hero.assurance")}</p>
             </div>

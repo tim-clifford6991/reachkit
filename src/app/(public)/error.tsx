@@ -12,31 +12,29 @@
 // requirement rather than this screen's: nothing here is interactive except
 // the field, which is a client leaf in its own right.
 //
-// **It takes no props, and adds no control.** Next hands an error boundary
-// the thrown `error` and a `retry`; neither is drawn. The message is not
-// ours to print — Next redacts a Server Component's message in production
-// on purpose — and a "try again" control is one S8 does not draw and no
-// approved string names. What the screen offers instead is the way forward
-// it can keep: the scan field, which is what a public visitor came for.
+// **This file is the boundary and nothing else** (#988). Next loads a
+// route's error boundary with the page it guards, so what this module
+// imports, every visitor downloads — and the screen it draws imports the
+// `ErrorScreen` frame, the scan field and `copy()`'s whole merged registry.
+// That is 39 kB of the 130 kB the landing page was over its script budget
+// by, carried for a screen almost nobody is shown. The screen itself is
+// `_fallback/PublicErrorBody.tsx`, one dynamic import away: its chunk is
+// fetched when a page beneath this boundary has actually thrown.
+//
+// `fallback={null}` and not a waiting state: the import is one same-origin
+// chunk, there is no box to hold open beneath the header, and a skeleton of
+// an error screen would be a second thing to read on the way to the first.
 "use client";
 
 import type React from "react";
-import { copy, type CopyKey } from "@/lib/presentation/copy";
-import { ErrorScreen } from "@/app/_fallback/Fallback";
-import { ScanForm } from "./_landing/ScanForm";
+import { lazy, Suspense } from "react";
 
-/** Owner-owed (12a): S8 draws no line for the error page, so this renders
- *  the `TODO(copy)` marker until the owner writes it. */
-const LINE: CopyKey = "chrome.error.line";
-
-const TEST_ID = "public-error";
+const PublicErrorBody = lazy(() => import("./_fallback/PublicErrorBody"));
 
 export default function PublicError(): React.JSX.Element {
   return (
-    <ErrorScreen
-      line={<p>{copy(LINE)}</p>}
-      action={<ScanForm submitLabel={copy("chrome.notfound.cta")} />}
-      testId={TEST_ID}
-    />
+    <Suspense fallback={null}>
+      <PublicErrorBody />
+    </Suspense>
   );
 }

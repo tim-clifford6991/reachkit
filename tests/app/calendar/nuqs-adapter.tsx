@@ -3,8 +3,9 @@
 //
 // The Plan screen holds the open day in the address (`nuqs`), and `nuqs`
 // refuses to run without an adapter — in the product that is `NuqsAdapter`
-// in the root layout (`src/app/layout.tsx`), and a suite that renders a
-// route on its own has no layout around it. `NuqsTestingAdapter` is the
+// in the `(account)` layout (`src/app/(account)/layout.tsx`, moved there off
+// the document by #988), and a suite that renders a route on its own has no
+// layout around it. `NuqsTestingAdapter` is the
 // library's own stand-in for exactly that: it reads a fixed query string
 // and records writes instead of touching a router.
 //

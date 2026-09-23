@@ -23,7 +23,9 @@
 // (DESIGN rules 1 and 2, and the ruling's own words): `card`, `badge`,
 // `stat`, `alert`, `divider`; the week is CSS grid, which rule 2 names
 // ("grids that are not series … week strip"); the line is the Overview's
-// own `GrowthLine`, with the band boundary as its target.
+// own `GrowthLine`, with the band boundary as its target — reached through
+// `./HeroLine`, which holds the chart's box open and fetches its code when
+// the line is about to be read (#988). The drawing is the same one.
 //
 // **Nothing here is a control.** The board draws the autopilot state as a
 // toggle knob; a daisyUI `toggle` on this page would be a control that
@@ -37,7 +39,7 @@
 // business is an example and measures no site.
 import type React from "react";
 import { Clock, MessageSquare, Send, Zap } from "lucide-react";
-import { GrowthLine } from "@/ui/charts";
+import { HeroLine } from "./HeroLine";
 import { copy } from "@/lib/presentation/copy";
 import { SCORE_BAND_BOUNDS } from "@/lib/config/constants";
 import { Num } from "../scan/[domain]/_address/measured";
@@ -213,7 +215,7 @@ export function WeekHero(): React.JSX.Element {
               word, so the dashed line names a real place on the scale and
               not a promise. */}
           <p className="text-base-content/70 text-sm">{copy("landing.hero.week.line")}</p>
-          <GrowthLine
+          <HeroLine
             weeks={SPECIMEN_HERO_WEEKS}
             label={copy("overview.tile.score.label")}
             target={{

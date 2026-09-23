@@ -21,17 +21,29 @@
 // issue 714: no exceptions). What changes between routes is what the CTA
 // does — on `/` it brings the hero's own field into view, elsewhere it links
 // to the landing — and the report address adds its copy control beside the
-// pair. `headerActionFor` is that one rule; this layout hands it the path.
+// pair. `_chrome/action.ts`'s `headerActionFor` is that one rule.
 //
 // **`(account)` and `(hosted)` get none of this.** §4.4's sidebar is the
 // app shell's own chrome, and a hosted page is the customer's site, not
 // ours — putting our header on it would be the product speaking on someone
 // else's domain.
-"use client";
-
+//
+// **A Server Component, and #988 is why.** It used to be `"use client"` for
+// one call to `usePathname()`, and that one call decided the client graph of
+// every public route: a client layout makes `Header`, `Footer` and `Brand`
+// client components, which drags their `copy()` import — and with it all
+// sixteen copy partitions — into the bundle a stranger downloads before
+// reading the landing page. That was 39 kB of the 130 kB the landing was
+// over its script budget by.
+//
+// The path is still read with `usePathname()`, because it has to be: a
+// `<Link>` from `/` to `/pricing` re-renders the page under this layout and
+// not the layout itself, so an arm decided here, once per request, would
+// keep offering the landing's field on a screen that has no field. What
+// changed is *who* reads it — `_chrome/HeaderArm.tsx`, two client leaves
+// that hold no copy key, below a server-rendered bar.
 import type React from "react";
-import { usePathname } from "next/navigation";
-import { Header, headerActionFor } from "./_chrome/Header";
+import { Header } from "./_chrome/Header";
 import { Footer } from "./_chrome/Footer";
 
 export default function PublicLayout({
@@ -39,13 +51,12 @@ export default function PublicLayout({
 }: {
   children: React.ReactNode;
 }): React.JSX.Element {
-  const pathname = usePathname();
   return (
     // A column at least the viewport tall, so the footer sits at the bottom
     // of a short page. `data-public-shell` is the hook `surface.css` reads
     // to let a declared screen (sign-in) fill what the chrome leaves.
     <div data-public-shell className="flex min-h-svh flex-col">
-      <Header action={headerActionFor(pathname)} />
+      <Header />
       {children}
       <Footer />
     </div>

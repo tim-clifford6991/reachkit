@@ -10,7 +10,6 @@
     "lint": "eslint .",
     "test": "vitest run --project node --project ui --project db",
     "test:layout": "vitest run --project layout",
-    "test:layout:gate": "vitest run --project layout --exclude tests/ui/layout/vitals.test.ts",
     "test:layout:full": "RK_LAYOUT_FULL=1 vitest run --project layout",
     "copy:owed": "node scripts/copy/owed.mjs",
     "orphans": "node scripts/orphans.mjs",

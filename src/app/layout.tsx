@@ -62,7 +62,6 @@
 // which is every route.
 import type React from "react";
 import { headers } from "next/headers";
-import { NuqsAdapter } from "nuqs/adapters/next/app";
 
 import "@/ui/theme.css";
 import "@/ui/tailwind.css";
@@ -114,7 +113,13 @@ export default async function RootLayout({
         <script nonce={nonce} dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
       <body>
-        <NuqsAdapter>{children}</NuqsAdapter>
+        {/* No `NuqsAdapter` here (#988). Only `(account)` routes hold URL
+            state — the month, the day, the tab, the filters, the setup
+            step — and only they call `useQueryState`, so the adapter is
+            mounted in `(account)/layout.tsx`. Mounted on the document it
+            cost every public route 17.8 kB of script for state that route
+            has none of, which is one of the landing's own budget rows. */}
+        {children}
         {/* SPEC §4/§7 (2026-09-20, #908): "every action answers", and the
             stack the answers land in — mounted once, here, because this is
             the one document every ReachKit-addressed surface renders

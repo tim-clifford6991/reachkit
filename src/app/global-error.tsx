@@ -15,21 +15,23 @@
 // three blocks of `src/ui/theme.css` and every numeral is JetBrains Mono.
 // The six imports below are `src/app/layout.tsx`'s own, in its order and
 // for its reasons; `shell.css` is not among them, because no shell is drawn
-// here.
+// here. They are stylesheets, so they cost a visitor no script at all.
 //
-// **The way out is the product's front door.** Every other mount offers a
-// control that belongs to where the reader was — the scan field on a public
-// address, the Overview inside the app — and this one cannot: it renders
-// outside both groups, with no chrome, and it is reached when the root
-// layout itself could not be rendered, so it must assume nothing about what
-// still works. `chrome.back-to-reachkit` is a plain link to `/`.
+// **The document is all this file holds** (#988). An error boundary is a
+// Client Component (Next's requirement), and this one sits above both route
+// groups, so Next loads it with every route in the product — which through
+// `copy()` shipped the whole merged copy registry, 39 kB, to every visitor
+// of every screen, for a screen that draws only when the root layout has
+// failed. What it draws is `_fallback/GlobalErrorBody.tsx`, one dynamic
+// import away.
 //
-// An error boundary is a Client Component (Next's requirement), and
-// `metadata` is not supported in one — the document's title is React's own
-// `<title>`, which the same note in `error.md` recommends.
+// `fallback={null}`: there is nothing above this to hold a box open, the
+// import is one same-origin chunk, and a skeleton of an error screen would
+// be a second thing to read on the way to the first.
 "use client";
 
 import type React from "react";
+import { lazy, Suspense } from "react";
 
 import "@/ui/theme.css";
 import "@/ui/tailwind.css";
@@ -38,36 +40,16 @@ import "@/ui/layout/layout.css";
 import "@/ui/layout/surface.css";
 import "@/ui/idiom/idiom.css";
 import { fontVariables } from "@/ui/fonts";
-import { copy, type CopyKey } from "@/lib/presentation/copy";
-import { ErrorScreen } from "@/app/_fallback/Fallback";
 
-/** Owner-owed (12a): S8 draws no line for the error page. */
-const LINE: CopyKey = "chrome.error.line";
-
-/** The document's own title, which is the page's own heading — the same
- *  sentence, so the same key. */
-const TITLE: CopyKey = "chrome.error.heading";
-
-const HOME = "/";
-
-const TEST_ID = "global-error";
+const GlobalErrorBody = lazy(() => import("@/app/_fallback/GlobalErrorBody"));
 
 export default function GlobalError(): React.JSX.Element {
   return (
     <html lang="en" className={fontVariables}>
       <body>
-        <title>{copy(TITLE)}</title>
-        <ErrorScreen
-          line={<p>{copy(LINE)}</p>}
-          action={
-            // A plain anchor: this renders when the root layout failed, so
-            // it assumes no router. Quiet — the screen asks nothing of them.
-            <a href={HOME} className="btn btn-ghost">
-              {copy("chrome.back-to-reachkit")}
-            </a>
-          }
-          testId={TEST_ID}
-        />
+        <Suspense fallback={null}>
+          <GlobalErrorBody />
+        </Suspense>
       </body>
     </html>
   );

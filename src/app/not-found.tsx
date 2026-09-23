@@ -26,10 +26,11 @@
 //
 // **The header's slot is ruling 3a's pair.** An address that matches no
 // route is not the landing, not a report and not a token page, so it takes
-// the default arm `(public)/layout.tsx` gives every other route: quiet
-// *Sign in*, one solid CTA. It is a value written here, never a pathname
-// read — for the same reason that layout passes one rather than letting
-// the header look.
+// the default arm every other route takes: quiet *Sign in*, one solid CTA.
+// Since #988 the bar reads the address itself rather than being handed an
+// arm, and `headerActionFor` gives exactly that default for every address
+// this screen can be reached at — `/` and `/scan/{domain}` both match a
+// route, so neither of the other two arms is reachable from here.
 //
 // **An unmatched address under `/app` is served this screen too**, in the
 // public chrome, because Next reaches this file rather than
@@ -41,11 +42,8 @@
 // A Server Component: it reads no session, no cookie and no store.
 import type React from "react";
 import PublicNotFound from "@/app/(public)/not-found";
-import { Header, type HeaderAction } from "@/app/(public)/_chrome/Header";
+import { Header } from "@/app/(public)/_chrome/Header";
 import { Footer } from "@/app/(public)/_chrome/Footer";
-
-/** Ruling 3a's pair, the arm every public route but four carries. */
-const ACTION: HeaderAction = { kind: "cta" };
 
 /** A test hook, never a sentence — bound to a name for the same reason
  *  every other test id in `src/app/**` is (ADR-010 point 1). */
@@ -54,7 +52,7 @@ const TEST_ID = "root-not-found";
 export default function RootNotFound(): React.JSX.Element {
   return (
     <div data-public-shell className="flex min-h-svh flex-col" data-testid={TEST_ID}>
-      <Header action={ACTION} />
+      <Header />
       <PublicNotFound />
       <Footer />
     </div>
