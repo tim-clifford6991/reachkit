@@ -186,7 +186,7 @@ export function PublishingPanel(p: { settings: SettingsModel }): React.JSX.Eleme
               <button
                 type="button"
                 className="btn btn-outline btn-sm join-item"
-                aria-label={copy("settings.publishing.veto.less")}
+                aria-label={copy("settings.publishing.veto.less.label")}
                 disabled={writer.busy || days <= VETO.minDays}
                 data-testid="veto-less"
                 onClick={() => step(days - 1)}
@@ -199,7 +199,7 @@ export function PublishingPanel(p: { settings: SettingsModel }): React.JSX.Eleme
               <button
                 type="button"
                 className="btn btn-outline btn-sm join-item"
-                aria-label={copy("settings.publishing.veto.more")}
+                aria-label={copy("settings.publishing.veto.more.label")}
                 disabled={writer.busy || days >= VETO.maxDays}
                 data-testid="veto-more"
                 onClick={() => step(days + 1)}

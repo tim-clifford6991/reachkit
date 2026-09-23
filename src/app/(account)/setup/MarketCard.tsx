@@ -294,7 +294,15 @@ function QuestionList(p: { items: SetupQuestions["items"] }): React.JSX.Element 
             provenance: question.search,
           });
           return (
-            <li key={question.n} className="flex gap-3">
+            // `min-w-0`: this row is a **grid item** of the `<ol>` above, and
+            // a grid item's `min-width` is `auto`, so it refuses to shrink
+            // below its content however hard the column squeezes. At 320px
+            // that pushed the row ten pixels past the screen — and the
+            // document does not scroll sideways, so those ten pixels were
+            // cut off rather than reachable (WCAG 1.4.10 Reflow, #328). The
+            // band the gate sweeps starts at 390, which is why nothing saw
+            // it.
+            <li key={question.n} className="flex min-w-0 gap-3">
               <span className="num text-sm text-base-content/60">{question.n}</span>
               <span className="flex min-w-0 flex-col">
                 <span className="text-sm">{wording.text}</span>

@@ -152,7 +152,12 @@ export function CompetitorsPanel(p: {
               </label>
               {refusalLine === null ? null : <p className="text-xs text-error wrap-anywhere">{refusalLine}</p>}
               <div className="flex min-w-0 flex-wrap items-center gap-2">
-                <button type="submit" className="btn btn-outline btn-sm">
+                {/* Named, for the reason #328 gives on the business panel. */}
+                <button
+                  type="submit"
+                  className="btn btn-outline btn-sm"
+                  aria-label={copy("settings.competitors.add-label")}
+                >
                   {copy("settings.competitors.add")}
                 </button>
               </div>

@@ -68,7 +68,13 @@ function ReadersView(p: { page: WaitingPage }): React.JSX.Element {
       aria-label={copy("overview.waiting.preview.label")}
       data-testid="overview-waiting-preview"
     >
-      <div className="mockup-browser min-w-0 border border-base-300 bg-base-200">
+      {/* `w-full`: the frame is sized by its container, not by what is
+          inside it. `min-w-0` lets it shrink but nothing made it stop
+          growing, so with text at 200% it stood 517px wide in a 329px
+          column and hung over both edges of the card (WCAG 1.4.4 Resize
+          text, #328). At the default step it already measured exactly its
+          container, so nothing anyone sees today moves. */}
+      <div className="mockup-browser w-full min-w-0 border border-base-300 bg-base-200">
         <div className="mockup-browser-toolbar">
           {p.page.readerHost === null ? null : (
             <span className="num flex min-w-0 items-center gap-2 truncate text-xs">
