@@ -15,7 +15,7 @@ import { applyEnvFixture } from "../../mail/env-fixture";
 
 applyEnvFixture();
 
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { settledMarkup } from "../shell/settled";
 import { fakeDb } from "../../publish/harness";
 import { LIVE_ACCOUNT } from "../accounts";
@@ -106,7 +106,8 @@ async function screen(): Promise<Element> {
 
 const text = (tree: Element, id: string) => tree.querySelector(`[data-testid="${id}"]`)?.textContent ?? null;
 
-beforeEach(() => {
+/** One live account, signed in, on a site that finished setup. */
+function arrange(): void {
   db.reset();
   db.seed("sites", [
     {
@@ -125,12 +126,35 @@ beforeEach(() => {
   db.seed("drafts", []);
   shell.weekZero = true;
   signedInAs(LIVE_ACCOUNT);
-});
+}
 
-afterEach(() => {
+function tidy(): void {
   resetAccount();
   setOpportunityStore(null);
-});
+}
+
+/** Issue 1032: the settled Overview reaches a dozen leaves the shell and the
+ *  page import lazily (`_shell/*`, `_overview/*` stores and providers), so
+ *  the first render in this file was also their cold transform — pinned to
+ *  the runner's two throttled cores that took the first test past vitest's
+ *  5 s default on its own (measured 5.1 s; the same render warm is ~0.4 s).
+ *  One render here, on the arrangement every test uses, pays it once under
+ *  a budget of its own. Nothing it leaves behind survives: `arrange()` and
+ *  `tidy()` run around every test. */
+const WARM_MS = 60_000;
+
+beforeAll(async () => {
+  arrange();
+  current.report = reportWith(0);
+  setOpportunityStore(storeWith({ unused: 0, questions: 0, everHeld: false }));
+  await screen();
+  tidy();
+  current.report = null;
+}, WARM_MS);
+
+beforeEach(arrange);
+
+afterEach(tidy);
 
 describe("#784 — a market too small is told, and a never-measured zero is not 'no pages left'", () => {
   it("week zero, market too small: the panel states the reason once, and Overview's supply line says never measured", async () => {

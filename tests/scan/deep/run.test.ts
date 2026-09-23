@@ -4,7 +4,7 @@
 // parameter — plus the two things onboarding needs: the founder's named
 // stage written where the waiting screen can read it, and the release
 // latch written whatever the pass ended as.
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { applyEnvFixture } from "../../mail/env-fixture";
@@ -67,7 +67,8 @@ const RUN_CODE = readFileSync(
   .replace(/\/\*[\s\S]*?\*\//g, "")
   .replace(/\/\/.*$/gm, "");
 
-beforeEach(() => {
+/** One site that finished setup and has not been released. */
+function arrange(): void {
   pipeline.mockReset();
   db = fakeDb({
     sites: [
@@ -81,7 +82,29 @@ beforeEach(() => {
       },
     ],
   });
-});
+}
+
+/** Issue 1032: a pass's first run reaches the modules its steps import
+ *  lazily or through the engine seams (`deriveForPass`'s graph, the site
+ *  profile's voice adoption), and the first test to run one paid their cold
+ *  transform — pinned to the runner's two throttled cores, 2.3–3.3 s of a
+ *  5 s default, idle in the worker while the transform ran. No timer is
+ *  involved: every timer scheduled during that call was trapped and none
+ *  reached 20 ms, and the same call warm takes 3 ms. So one pass is run here,
+ *  on the arrangement every test uses, under a budget of its own; the
+ *  doubles it touched are cleared before any test reads them. */
+const WARM_MS = 60_000;
+
+beforeAll(async () => {
+  arrange();
+  pipeline.mockResolvedValue({ scanId: "scan-1", status: "done" });
+  await runDeepPass({ siteId: SITE, domain: "example.com" });
+  pipeline.mockReset();
+  claimed.mockClear();
+  afterStore.mockClear();
+}, WARM_MS);
+
+beforeEach(arrange);
 
 describe("the pass's measurements become supply (issue #126), as a step after the pass's (issue 798)", () => {
   it("derives §7's depth from the stored report, on the pass's own money, in a step of its own", async () => {
