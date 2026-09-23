@@ -159,6 +159,17 @@ moves — but it also purges the customer's data, which a refund does not ask fo
 Issue #325 (closed) got the domain to sending. What is **not** established is DMARC and the
 return-path alignment behind it, and that is what §2.3's inbox test measures the effect of.
 
+2026-09-23  **DMARC published, report-only** (owner ruling, #1043). Cloudflare now holds the TXT record
+`_dmarc.reachkit.app` = `v=DMARC1; p=none; rua=mailto:hello@reachkit.app; fo=1`. Before this the name
+fell through to the wildcard CNAME. `dig TXT _dmarc.reachkit.app` returns that string from the
+authoritative server, from `1.1.1.1` and from `8.8.8.8`. One mail was sent through Resend from and to
+`hello@reachkit.app`. Cloudflare Email Routing (MX `route{1,2,3}.mx.cloudflare.net`) forwarded it to
+the owner's inbox, where it arrived in the Inbox and not in spam. Gmail recorded DKIM pass for
+`d=reachkit.app` (selector `resend`), SPF pass for `send.reachkit.app` and `dmarc=pass (p=NONE)` for
+`header.from=reachkit.app`, which means the return path aligns. **Next:** read the first week's
+aggregate reports at `hello@` and move to `p=quarantine` if every source aligns. That is a separate
+issue.
+
 ### 2.2 One-click unsubscribe, and the suppression list
 
 **Established from the code, and one half was missing.**
