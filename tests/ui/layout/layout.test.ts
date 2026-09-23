@@ -62,16 +62,28 @@ console.log(
       : ""),
 );
 
-/** The two tests below walk **every** route in one `it`, and `withPage`
- *  launches its own Chromium per call (see `browser.ts`'s header for why it
- *  cannot share one). That is roughly half a second of browser startup per
- *  route, so the wall clock here grows with the route tree and crossed
- *  Vitest's 5 s per-test default the week `src/app` reached seven routes
- *  (issue #19 — `/pricing` and `/signin` were the sixth and seventh). The
- *  bound is on browser startup, not on the assertion, and it is per-`it` so
- *  the width sweep above keeps the default and a real layout defect still
- *  fails fast. Same shape, same reason, as `tests/egress/policy.test.ts`'s
- *  `ESLINT_BOOT_MS`. */
+/** `withPage` launches its own Chromium per call (see `browser.ts`'s header
+ *  for why it cannot share one), so a case pays for a browser start, a
+ *  navigation and a hydrated settle before it asserts anything — which
+ *  crossed Vitest's 5 s per-test default the week `src/app` reached seven
+ *  routes (issue #19 — `/pricing` and `/signin` were the sixth and
+ *  seventh). The bound is on that startup and not on the assertion, so a
+ *  real layout defect still fails on the check rather than on the clock.
+ *  Same shape, same reason, as `tests/egress/policy.test.ts`'s
+ *  `ESLINT_BOOT_MS`.
+ *
+ *  **Every `it` below carries it, and every `it` below is one route — or one
+ *  surface — at one width (issue #1018).** Two of them used to walk the
+ *  whole tree inside a single `it` under this one-route bound, a third
+ *  walked every unenumerated surface the same way, and the width sweep's
+ *  own cases carried no bound at all and ran under Vitest's 5 s default —
+ *  a default that was never written for a Chromium launch, a `next start`
+ *  navigation and a hydrated settle. Both shapes time out under a build
+ *  sharing the box, with no assertion in the failure and nothing naming the
+ *  screen that was slow: on 2026-09-23 four width cases went at ~5.0 s and the two
+ *  tree-wide ones at 60,002 ms, in a run where every assertion that reached
+ *  a page passed. `heading-scale.test.ts` had the same defect under #1018
+ *  and is written this way for the same reason. */
 const PER_ROUTE_BROWSER_MS = 60_000;
 
 /** `routes.ts` owns how a route becomes a URL and a header set — one home
@@ -146,14 +158,17 @@ describe(`layout sweep — ${routes.length} route(s) × ${widths().length} width
           headersFor(route),
         );
         expect(offenders).toEqual([]);
-      });
+      }, PER_ROUTE_BROWSER_MS);
     }
   }
 
-  it(
-    "every route's document has exactly one [data-surface] root",
-    async () => {
-      for (const route of routes) {
+  // One case per route (#1018). The zero-route tree is stated by the count
+  // assertion above, which is where "nothing to check today" belongs now
+  // that a route is a case rather than a turn of a loop.
+  for (const route of routes) {
+    it(
+      `${route.path} renders exactly one [data-surface] root`,
+      async () => {
         const count = await withPage(
           BAND_MIN.compact,
           async (page) => {
@@ -168,27 +183,25 @@ describe(`layout sweep — ${routes.length} route(s) × ${widths().length} width
           count,
           `${route.path} must render exactly one [data-surface] root`,
         ).toBe(1);
-      }
-      if (routes.length === 0) {
-        // Nothing to check today — stated, not silent (rule 5.5).
-        expect(routes).toEqual([]);
-      }
-    },
-    PER_ROUTE_BROWSER_MS,
-  );
+      },
+      PER_ROUTE_BROWSER_MS,
+    );
+  }
 
-  it(
-    "every route's :root declares the ladder's floor and the two measures the law reads",
-    async () => {
-      // Issue #349: the two `--breakpoint-*` tokens this used to read are
-      // not in the approved set and never were read by anything — a media
-      // query cannot resolve a `var()`, so they were four declarations with
-      // no consumer. The band boundaries are pinned in
-      // `tests/ui/layout-tokens.test.ts` against the literals every
-      // stylesheet writes; what a *route* has to carry is the floor check 4
-      // reads, and it is now `--t-eyebrow`, the approved set's name for the
-      // same 11px rung.
-      for (const route of routes) {
+  // Issue #349: the two `--breakpoint-*` tokens this used to read are
+  // not in the approved set and never were read by anything — a media
+  // query cannot resolve a `var()`, so they were four declarations with
+  // no consumer. The band boundaries are pinned in
+  // `tests/ui/layout-tokens.test.ts` against the literals every
+  // stylesheet writes; what a *route* has to carry is the floor check 4
+  // reads, and it is now `--t-eyebrow`, the approved set's name for the
+  // same 11px rung.
+  //
+  // One case per route (#1018), like every other case in this file.
+  for (const route of routes) {
+    it(
+      `${route.path}: :root declares the ladder's floor and the two measures the law reads`,
+      async () => {
         const tokens = await withPage(
           BAND_MIN.compact,
           async (page) => {
@@ -211,13 +224,10 @@ describe(`layout sweep — ${routes.length} route(s) × ${widths().length} width
         expect(parseFloat(tokens.floor)).toBe(11);
         expect(parseFloat(tokens.read)).toBe(704);
         expect(parseFloat(tokens.wide)).toBe(BAND_MIN.wide - 2 * 32);
-      }
-      if (routes.length === 0) {
-        expect(routes).toEqual([]);
-      }
-    },
-    PER_ROUTE_BROWSER_MS,
-  );
+      },
+      PER_ROUTE_BROWSER_MS,
+    );
+  }
 });
 
 /**
@@ -267,20 +277,22 @@ describe(`layout sweep — ${surfaces.length} unenumerated surface(s) × ${width
           headersFor(surface.route),
         );
         expect(offenders).toEqual([]);
-      });
+      }, PER_ROUTE_BROWSER_MS);
     }
   }
 
-  it(
-    "every unenumerated surface leaves the document exactly one [data-surface] root",
-    async () => {
-      // The root 404 renders its own; three replace a screen root with a
-      // screen root; the app's waiting line replaces the Overview's content
-      // well and leaves the shell's root where it was. Either way the
-      // document has one, which is the invariant the route sweep asserts
-      // above and the one standing a surface on a page is most able to
-      // break.
-      for (const surface of surfaces) {
+  // The root 404 renders its own; three replace a screen root with a screen
+  // root; the app's waiting line replaces the Overview's content well and
+  // leaves the shell's root where it was. Either way the document has one,
+  // which is the invariant the route sweep asserts above and the one
+  // standing a surface on a page is most able to break.
+  //
+  // One case per surface (#1018): a surface costs a Chromium launch and a
+  // stand exactly as a route costs a launch and a navigation.
+  for (const surface of surfaces) {
+    it(
+      `${surface.name} leaves the document exactly one [data-surface] root`,
+      async () => {
         const count = await withPage(
           BAND_MIN.compact,
           async (page) => {
@@ -296,8 +308,8 @@ describe(`layout sweep — ${surfaces.length} unenumerated surface(s) × ${width
           count,
           `${surface.name} must leave exactly one [data-surface] root`,
         ).toBe(1);
-      }
-    },
-    PER_ROUTE_BROWSER_MS,
-  );
+      },
+      PER_ROUTE_BROWSER_MS,
+    );
+  }
 });
