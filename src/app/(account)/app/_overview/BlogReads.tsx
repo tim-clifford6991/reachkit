@@ -130,8 +130,16 @@ export function BlogReads(p: { model: BlogReadsModel }): React.JSX.Element | nul
             testId="blog-reads-referrals"
             figure={
               referrals.isDash ? null : (
+                // `num-phrase`: this is the one figure on the screen that is
+                // **a line of language rather than a value** — "at least 13",
+                // not "13" — and `.num` alone is `white-space: nowrap`, so it
+                // could never fold. At 200% text it ran 77px past the card
+                // that holds it (WCAG 1.4.4 Resize text, #328). `type.css`
+                // says the opt-in is the caller's judgement about what the
+                // text is, and this text is a phrase; it still folds only at
+                // its space, never inside the number.
                 <span
-                  className="num text-3xl leading-none font-bold"
+                  className="num num-phrase text-3xl leading-none font-bold"
                   data-testid="blog-reads-referrals-value"
                 >
                   {copy("overview.blog.at-least", { n: referrals.text })}

@@ -249,9 +249,15 @@ function AddField(p: {
         value={p.entry}
         onChange={(e) => p.setEntry(e.target.value)}
       />
+      {/* Named for the ear as well as the eye (WCAG 2.4.6, #328): on
+          screen the word sits beside the field it belongs to, but in a
+          screen reader's list of controls this was one of six buttons all
+          called "Add". The sentence is the field's own — no new string,
+          and the shape the Remove controls here have carried since #488. */}
       <button
         type="submit"
         className="btn btn-outline btn-sm shrink-0"
+        aria-label={copy("settings.business.add.label", { group: p.head })}
         disabled={p.writer.busy || p.entry.trim() === ""}
       >
         <Plus size={16} strokeWidth={1.75} aria-hidden />

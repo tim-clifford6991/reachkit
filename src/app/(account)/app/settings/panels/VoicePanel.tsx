@@ -140,7 +140,15 @@ export function VoicePanel(p: { settings: SettingsModel }): React.JSX.Element {
                 data-testid="add-claim"
               />
             </label>
-            <button type="submit" className="btn btn-outline btn-sm" disabled={writer.busy}>
+            {/* Named, for the reason #328 gives on the business panel: the
+                field's own sentence, so the control is not just "Add" in a
+                list of controls. */}
+            <button
+              type="submit"
+              className="btn btn-outline btn-sm"
+              aria-label={copy("settings.voice.add-claim")}
+              disabled={writer.busy}
+            >
               {copy("settings.voice.add")}
             </button>
           </form>

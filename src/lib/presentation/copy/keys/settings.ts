@@ -431,6 +431,22 @@ export const SETTINGS_COPY = Object.freeze({
   "settings.publishing.veto.days": ["{days} days", { slots: { days: "text" }, fixedBy: "BUILD §4.7" }],
   "settings.publishing.veto.less": ["−", { slots: {}, fixedBy: 'BUILD §4.7 ("stepper")' }],
   "settings.publishing.veto.more": ["+", { slots: {}, fixedBy: 'BUILD §4.7 ("stepper")' }],
+  /** What the two stepper buttons are *called*, as against what they draw.
+   *  The glyph is right on screen — a stepper is a minus and a plus — and
+   *  wrong in an ear: `aria-label` carried the glyph too, so a screen
+   *  reader said "minus, button", which names no purpose (WCAG 2.4.6
+   *  Headings and Labels; #328). These are the same control said in words,
+   *  in the setting's own wording — `settings.publishing.veto` is "time to
+   *  stop a page". Drafted in the registry's voice (#328); the owner may
+   *  correct. */
+  "settings.publishing.veto.less.label": [
+    "Less time to stop a page",
+    { slots: {}, fixedBy: "issue 328" },
+  ],
+  "settings.publishing.veto.more.label": [
+    "More time to stop a page",
+    { slots: {}, fixedBy: "issue 328" },
+  ],
   "settings.publishing.publish-time": ["publish time", { slots: {}, fixedBy: "BUILD §4.7" }],
   "settings.publishing.time-zone": ["time zone", { slots: {}, fixedBy: "REQ-070 c1" }],
   "settings.publishing.enabled": ["Publishing", { slots: {}, fixedBy: "REQ-070 c1" }],
