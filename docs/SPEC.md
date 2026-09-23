@@ -36,8 +36,10 @@ Pinned numbers live in `src/lib/config/constants.ts`. Newest dated line in a sec
 - A 16:9 video block with a play control and one written line, whether or not the asset exists. Secondary CTAs scroll to the field.
 - 2026-09-14  The header CTA is outline on every public page; each screen’s own action is its only solid button (supersedes “one solid CTA” in the header and ruling 2b’s two solids on the landing).
 - 2026-09-20  Public pages speak the app’s language (owner, #908). The landing, the scan and the report use the same tiles, dot matrix, full-width bars and wording as the signed-in app. Every control on them does something: the report’s *Try again*, *Measure what’s missing* and its one notice control act or are not drawn; the removed and refused arms offer a way back to the landing. Approved landing sentences are unchanged.
+- 2026-09-20  Sign-in — with its link-sent and old-link arms — and stop-this-page with its stopped arm are full-width splits: the interaction on the left, the accent panel filling the right half of the screen from header to footer. Boards `R7-S1`…`R7-S5` supersede `R6-3`/`R6-4`/`R6-5`. The ruling was never written here, so #986 shipped the Round 6 cards against it and #1025 builds the splits. Owner on #937 (2026-09-20).
 - 2026-09-21  The mark is Round 9 *Fade*, in the chip (owner, #982). One drawing at every size, the wordmark beside it in the product’s own face; no second lockup, no second colourway.
 - 2026-09-21  The landing hero is Round 11 *Hero D · one week, one card* (owner, #935). The three Round 7 heroes are superseded.
+- 2026-09-22  The landing’s *See it work* frame stays, empty, until the owner supplies the demo video: it is not removed, and it is not filled with a placeholder image. The 16:9 block, its play control and its one written line are drawn whether or not the asset exists. Owner on #734 (2026-09-22).
 
 **Done when** `Example.com`, `https://www.example.com/pricing` and `EXAMPLE.COM` hit the same report. `/pricing` states €49/month VAT included and has one checkout control. `/privacy`, `/terms` and `/imprint` are in the landing footer.
 

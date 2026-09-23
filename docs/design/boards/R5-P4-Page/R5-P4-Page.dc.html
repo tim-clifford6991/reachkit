@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Phone: the page</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:"Plus Jakarta Sans",system-ui,sans-serif;color:#191925;font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+a{color:#4a3bd0;text-decoration:none}a:hover{color:#3a2db0}
+h1,h2,h3,h4,p,ul,ol,dl,dd{margin:0;padding:0}
+h1,h2,h3,h4{letter-spacing:-0.02em;font-weight:700;line-height:1.2;text-wrap:balance}
+h1{font-size:31px}h2{font-size:25px}h3{font-size:20px}h4{font-size:16px}
+p{text-wrap:pretty}
+.num{font-family:"JetBrains Mono",ui-monospace,monospace;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.eyebrow{font-size:11px;text-transform:uppercase;font-weight:700;letter-spacing:.1em;color:#6b6a80}
+.muted{color:#5e5e73}.sm{font-size:13px}.xs{font-size:12px}.b{font-weight:600}
+.row{display:flex;align-items:center}.col{display:flex;flex-direction:column}.grow{flex-grow:1;min-width:0}.wrap{flex-wrap:wrap}
+.g4{gap:4px}.g6{gap:6px}.g8{gap:8px}.g12{gap:12px}.g16{gap:16px}.g20{gap:20px}.g24{gap:24px}.g32{gap:32px}
+.card{background:#fff;border:1px solid #eaeaf1;border-radius:14px;box-shadow:0 1px 3px rgb(24 24 48/.045);box-sizing:border-box}
+.p16{padding:16px}.p20{padding:20px}.p24{padding:24px}
+.sunk{background:#efeff4;border-radius:14px;box-sizing:border-box}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:9px;border:1px solid transparent;font:600 14px "Plus Jakarta Sans",system-ui,sans-serif;cursor:pointer;background:#efeff4;color:#191925;box-sizing:border-box;white-space:nowrap}
+a.btn,a.btn:hover{color:#191925}
+.btn-primary,a.btn-primary,a.btn-primary:hover{background:#5b4be0;color:#fff}
+.btn-outline,a.btn-outline{background:#fff;border-color:#d3d2e0}
+.btn-ghost,a.btn-ghost{background:transparent;color:#5e5e73}
+.btn-warn{background:#fff;border-color:#e2b98a;color:#8a5218}
+.btn-error{background:#fff;border-color:#eab3a7;color:#9c3320}
+.btn-active{background:#fff;border-color:#d3d2e0;box-shadow:0 1px 2px rgb(24 24 48/.08)}
+.btn-sm{height:36px;padding:0 12px;font-size:13px}
+.btn-block{width:100%}
+.join{display:inline-flex;background:#efeff4;border-radius:11px;padding:3px;gap:2px}
+.badge{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:600;background:#efeff4;color:#4d4c61;white-space:nowrap;box-sizing:border-box}
+.badge-ok{background:#e7f6f0;color:#14664e}.badge-warn{background:#fff3e6;color:#8a5218}.badge-bad{background:#fdece8;color:#9c3320}
+.badge-accent{background:#eeecfd;color:#4336b8}.badge-outline{background:#fff;border:1px solid #d3d2e0}
+.alert{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:14px;background:#efeff4;font-size:14px;box-sizing:border-box}
+.alert-warn{background:#fff3e6;color:#5c370f}.alert-ok{background:#e7f6f0;color:#0f4a39}.alert-accent{background:#eeecfd;color:#2f2691}
+.input,.textarea{border:1px solid #d3d2e0;border-radius:9px;padding:0 14px;font:500 15px "Plus Jakarta Sans",system-ui,sans-serif;background:#fff;color:#191925;box-sizing:border-box;width:100%}
+.input{height:44px}.textarea{padding:12px 14px;line-height:1.55;resize:none}
+label{font-size:13px;font-weight:600}
+.toggle{width:44px;height:26px;border-radius:999px;border:none;background:#c9c8d8;position:relative;cursor:pointer;flex-shrink:0;padding:0}
+.toggle::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left .18s}
+.toggle.on{background:#5b4be0}.toggle.on::after{left:21px}
+.menu-item{display:flex;align-items:center;gap:10px;height:44px;padding:0 12px;border-radius:9px;font-weight:600;font-size:14px;color:#5e5e73}
+a.menu-item,a.menu-item:hover{color:#5e5e73}
+a.menu-item.active,a.menu-item.active:hover{background:#eeecfd;color:#4336b8}
+.tab{display:inline-flex;align-items:center;height:44px;padding:0 4px;font-weight:600;font-size:14px;color:#5e5e73;border-bottom:2px solid transparent;margin-bottom:-1px}
+a.tab,a.tab:hover{color:#5e5e73}
+.tab.active,a.tab.active{color:#191925;border-color:#5b4be0}
+.divider{height:1px;background:#eaeaf1;flex-shrink:0}
+.skeleton{background:linear-gradient(90deg,#ececf2 25%,#f5f5f9 37%,#ececf2 63%);background-size:400% 100%;animation:sk 1.6s ease infinite;border-radius:8px}
+@keyframes sk{0%{background-position:100% 50%}100%{background-position:0 50%}}
+.dots::after{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:#5b4be0;animation:pulse 1.2s ease-in-out infinite}
+.pulse{width:8px;height:8px;border-radius:50%;background:#5b4be0;animation:pulse 1.2s ease-in-out infinite;flex-shrink:0}
+@keyframes pulse{0%,100%{opacity:.25}50%{opacity:1}}
+mark{background:#fff3c4;color:inherit;padding:1px 2px;border-radius:3px}
+.article h1{font-size:30px;line-height:1.15}.article h2{font-size:19px;margin-top:6px}.article p{font-size:15.5px;line-height:1.65;color:#2a2a38}
+dt{font-size:12px;color:#5e5e73;font-weight:600}dd{font-size:14px;font-weight:500}
+
+.rich{color:#23232f}
+.rich h1{font-size:38px;line-height:1.12;letter-spacing:-0.03em;font-weight:800}
+.rich h2{font-size:24px;line-height:1.25;margin-top:18px}
+.rich h3{font-size:18px;line-height:1.35}
+.rich p,.rich li{font-size:17px;line-height:1.7}
+.rich ul,.rich ol{padding-left:24px;display:flex;flex-direction:column;gap:12px}
+.rich li::marker{color:#5e5e73;font-weight:600}
+.rich a,.rich a:hover{color:#191925;text-decoration:underline;text-underline-offset:3px;text-decoration-color:#9695a8}
+.rich blockquote{margin:6px 0;padding:2px 0 2px 24px;border-left:3px solid #191925;display:flex;flex-direction:column;gap:10px}
+.rich blockquote p{font-size:22px;line-height:1.45;font-weight:500;letter-spacing:-0.015em;color:#191925}
+.rich blockquote footer{font-size:14px;color:#5e5e73}
+.rich .src{font-size:13px;color:#5e5e73}
+.rich table{width:100%;border-collapse:collapse;font-size:15.5px}
+.rich th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#5e5e73;padding:10px 12px;border-bottom:2px solid #191925}
+.rich td{padding:14px 12px;border-bottom:1px solid #eaeaf1;vertical-align:top;line-height:1.5}
+.tag{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:6px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;background:#eeecfd;color:#4336b8}
+.kbd{display:inline-flex;align-items:center;justify-content:center;min-width:36px;height:36px;border-radius:8px;border:none;background:transparent;color:#4d4c61;cursor:pointer;font:700 14px "Plus Jakarta Sans",sans-serif}
+.kbd:hover{background:#efeff4}
+
+.clamp2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.clamp1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.cell{display:flex;flex-direction:column;gap:5px;text-align:left;font-family:inherit;color:inherit;cursor:pointer;padding:7px;height:104px;border-radius:10px;box-sizing:border-box;border:1px solid #eaeaf1;background:#fff;overflow:hidden;min-width:0}
+.cell .t{font-size:11.5px;line-height:1.3;font-weight:600}
+.cell .m{margin-top:auto;display:flex;align-items:center;gap:4px;font-size:10.5px;font-weight:600;color:#5e5e73;white-space:nowrap;overflow:hidden}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+</style>
+</helmet>
+<div style="width: 390px; height: 1640px; box-sizing: border-box; overflow: hidden; background: #f6f6f9; ">
+<div class="col" style="height: 100%;"><header class="row g8" style="height: 56px; padding: 0 8px; background: #fff; border-bottom: 1px solid #eaeaf1; flex-shrink: 0;"><a class="btn btn-ghost" href="#plan" aria-label="Back to the plan" style="width: 44px; padding: 0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><path d="M19 12H5"></path><path d="m12 19-7-7 7-7"></path></svg></a><span class="col grow"><span class="badge badge-warn" style="align-self: flex-start;">Your review</span></span><button class="btn btn-sm btn-outline"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>Why this page</button><a class="btn btn-ghost" href="#edit" aria-label="Edit" style="width: 44px; padding: 0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg></a></header><div class="col g16 grow" style="padding: 0; min-height: 0;"><div class="rich" style="background: #fff; padding: 24px 20px;"><article class="rich col" style="gap: 18px;"><span class="eyebrow">Bike repair · Guides</span><h1>How much does a bike service cost in 2026?</h1><p style="font-size: 19px; line-height: 1.55; color: #4d4c61;">What a basic, standard and full service cost this year, what each one includes, and how to tell which one your bike needs.</p><span class="src">Published September 20, 2026 by Harbour Bike Repair · 4 minute read</span><div class="divider"></div><div class="col g8" style="background: #f6f6f9; border-radius: 12px; padding: 20px 24px;"><span class="eyebrow">The short answer</span><p style="font-size: 18px; line-height: 1.6; font-weight: 500;">A basic bike service costs $60 to $100, a standard service $100 to $160, and a full overhaul $180 to $280 before parts.</p></div><p>A bike service costs between $60 and $280 in 2026, and the price follows how much of the bike is taken apart. A basic tune-up runs $60 to $100, a standard service $100 to $160, and a full overhaul $180 to $280 before parts. <mark>At Harbour Bike Repair a basic service is $85 and takes about two hours.</mark></p><span class="src">Read from <a href="#src">harbourbikes.example/pricing</a> on 12 Sep</span><h2>What each level of service includes</h2><p>Shops use different names, but almost every price list comes down to the same three levels.</p><div style="overflow: hidden; border: 1px solid #eaeaf1; border-radius: 10px;"><table style="font-size: 13px;"><thead><tr><th>Service</th><th>Typical price</th><th>What’s done</th></tr></thead><tbody><tr><td><strong>Basic</strong></td><td class="num">$60–$100</td><td>Safety check, brakes and gears adjusted, chain cleaned and lubed</td></tr><tr><td><strong>Standard</strong></td><td class="num">$100–$160</td><td>A basic, plus wheels trued, worn cables replaced, bearings adjusted</td></tr><tr><td><strong>Full</strong></td><td class="num">$180–$280</td><td>Stripped to the frame, drivetrain degreased, bearings regreased, brakes bled</td></tr></tbody></table></div></article></div></div><div class="col g8" style="padding: 12px 16px; background: #fff; border-top: 1px solid #eaeaf1; flex-shrink: 0;"><span class="xs muted" style="text-align: center;">Goes live Sun 20 Sep at 07:00 unless you stop it</span><div class="row g8"><button class="btn btn-warn grow">Stop this page</button><button class="btn btn-primary grow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><polyline points="20 6 9 17 4 12"></polyline></svg>Approve now</button></div></div></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1640}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
