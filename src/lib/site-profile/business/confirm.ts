@@ -236,7 +236,7 @@ export function quotableFacts(a: {
 /**
  * A screen's final lists, as decisions over the derived reading (#970).
  *
- * Setup's step two shows four of the six lists and lets the founder take
+ * Setup's step two shows five of the six lists and lets the founder take
  * items out and add their own, then hands back what each list ended up
  * holding. What is stored is never a list — it is the two decisions — so
  * this turns one back into the other against the same derived reading the
