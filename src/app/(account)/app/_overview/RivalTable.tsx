@@ -63,11 +63,16 @@ const column = createColumnHelper<RivalSearchRow>();
 
 /** Who wins the search, and where they stand on it where the pass bought a
  *  top ten. The domain is set in the mono face — docs/DESIGN.md reserves it
- *  for numerals, domains and code, and this is a domain. */
+ *  for numerals, domains and code, and this is a domain.
+ *
+ *  A domain is never broken mid-word (`type.css`, `.num`), so on the phone
+ *  shape the cell has the row's whole width (`RIVAL_CELL_CLASS`) and the
+ *  place folds under the domain rather than pushing it out of the cell
+ *  (#1040). From `sm` the pair stays on one line, as before. */
 function WinnerCell(p: { row: RivalSearchRow }): React.JSX.Element {
   const place = renderValue(p.row.position, RIVAL_COLUMN_COPY_KEY.winner);
   return (
-    <span className="flex items-baseline gap-2 whitespace-nowrap">
+    <span className="flex items-baseline gap-x-2 whitespace-nowrap max-sm:flex-wrap">
       <span className="num text-sm">{p.row.rival}</span>
       {place.isDash ? null : (
         <span className="num text-xs text-base-content/60">
