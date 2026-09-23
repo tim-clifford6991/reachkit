@@ -29,6 +29,7 @@ There is no factory and no artboard task. Do not read `docs/archive/`. The one c
 | `schema · RLS (live Postgres)` | **Yes** |
 | `no overflow · axe (390 / 768 / 1280, light and dark)` | **Yes** — the fourth gate (owner, 2026-09-21, closing #910). |
 | Layout screenshots | Retired. There are none: no baseline, no gallery (owner, 2026-09-21, #976). The owner looks at the live site. |
+| Nightly full matrix | Retired (2026-09-23, #1029). The widths and bands the gate does not walk are walked by hand now — see below. |
 | Production smoke (`scripts/smoke.sh`) | **Yes** for a production deploy, by hand |
 
 2026-09-22  **CI runs on the box** (owner, #1013). Every job runs on `reachkit-box`, the self-hosted runner on the shared box, because the repository's GitHub-hosted minutes ran out. The checks, their names and what each runs are unchanged. It is one runner, so jobs queue one at a time; a job stuck in *queued* means the runner service is down, not that the check failed.
@@ -41,7 +42,11 @@ There is no factory and no artboard task. Do not read `docs/archive/`. The one c
 
 Since 2026-09-21 it is therefore the only browser job.
 
-The nightly `Layout (full matrix)` run walks the same suite at every width and band. It reports; it is not a gate.
+2026-09-23  **The nightly full matrix is retired** (#1029). `Layout (full matrix)` (`.github/workflows/layout-full.yml`) walked the same suite at all six widths, three bands and both themes every night. Every run it completed from 2026-09-16 on concluded *failure*, and the 2026-09-22 run never started at all — that was the night the GitHub-hosted minutes ran out, which is what #1013 moved CI to the box over. It is gone, for the reason #976 gave for the two jobs before it: a job that runs after the merge reports too late to act on, cannot be tried on the branch that would fix it, and so is not read.
+
+Its last run (2026-09-23) failed 91 cases. **84** were the gate's own screens measured against `checks.ts`'s pre-ruling allow-lists rather than the gate's: the off-canvas drawer panel, 240px left of `.drawer-side` at every width below `lg`, which the gate excuses by name; and text the 2026-09-20 ruling clamps on purpose (`.truncate`, `.line-clamp-*`), which the gate allows and `TRUNCATION_ALLOWLIST` does not. Neither shows at 1280, which is the width the gate runs those same suites at on every pull request, so the gate already asserts every one of the 84. **Five** were real defects at widths the gate cannot reach, and are filed: #1040 (the account tree overflows its cards at 320px, four of the five) and #1041 (the report's rival table still scrolls at 1024px). The remaining **two** were the landing's script budget, which #988 fixed and folded into the gate the same week.
+
+The full matrix itself stays a tool, not a job: `npm run test:layout:full` sets `RK_LAYOUT_FULL=1` and walks the six widths, three bands and both themes. Run it on the box, against `scripts/db-substrate/up.sh --run`, when a question about a width the gate does not reach needs an answer — and read the answer the same day.
 
 Tests prove customer-observable behaviour. Until a paying user, tests are at most one third of a product PR. A test that transcribes a markdown row is deleted.
 
