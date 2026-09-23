@@ -252,14 +252,24 @@ function Ask(p: { token: string; it: VetoPreview }): React.JSX.Element {
       ? copy("publish.veto.ask.action")
       : copy("publish.veto.ask.head", { when: writeMoment(p.it.publishes) });
 
+  // **Whichever line names this screen is its `<h1>`** (owner ruling
+  // 2026-09-23, #328). Where the token resolves to a draft, the draft's
+  // title is what the screen is about and the eyebrow is its kicker; where
+  // it does not, the eyebrow *is* the only thing naming the screen, and a
+  // page with no `<h1>` gives a reader moving by headings nothing to land
+  // on. So the element follows the content and the classes do not move:
+  // `EYEBROW` carries every size, weight and colour either way, so nothing
+  // on screen changes.
+  const Head = p.it.title === null ? "h1" : "p";
+
   return (
     <main className={MAIN}>
       <div className="card border border-base-300 bg-base-100">
         <div className="card-body gap-4">
-          <p className={EYEBROW}>
+          <Head className={EYEBROW}>
             <Clock size={16} strokeWidth={1.75} aria-hidden />
             {head}
-          </p>
+          </Head>
           {p.it.title === null ? null : <h1>{p.it.title}</h1>}
           <dl className="flex flex-col gap-2">
             {p.it.query === null ? null : (
@@ -331,6 +341,12 @@ function Told(p: {
    *  the alert. A refusal reaches this component with `confirmed` unset. */
   confirmed?: boolean;
 }): React.JSX.Element {
+  // The same rule as `Ask` above (#328): the line that names the screen is
+  // its `<h1>`. The refusals — an unknown or expired token — name no draft,
+  // so their eyebrow is the only name this screen has; the done arm has the
+  // draft's title under it and keeps the eyebrow a paragraph. `EYEBROW`
+  // carries the appearance either way.
+  const Head = p.title === null ? "h1" : "p";
   return (
     <main className={MAIN}>
       <div className="card border border-base-300 bg-base-100">
@@ -350,7 +366,7 @@ function Told(p: {
               </span>
             </div>
           ) : (
-            <p className={EYEBROW}>{p.head}</p>
+            <Head className={EYEBROW}>{p.head}</Head>
           )}
           {p.title === null ? null : <h1>{p.title}</h1>}
           <p className="text-sm text-base-content/70">{p.message}</p>

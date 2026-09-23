@@ -109,7 +109,17 @@ export default async function AppLayout({
         wide: { kind: "same-as-below" },
       }}
     >
-      <div className="drawer lg:drawer-open">
+      {/* **A named landmark, so the toggle below stands inside one**
+          (owner ruling 2026-09-23, #328). `.drawer-toggle` has to be a
+          *sibling* of `.drawer-side` — daisyUI's own
+          `.drawer-toggle:checked ~ .drawer-side` is what opens the panel
+          with JavaScript switched off — so it cannot be wrapped, and it was
+          therefore the one piece of every `/app` screen that belonged to no
+          region at all (axe's `region`, thirteen screens). Naming this
+          element, which already holds the whole frame, puts it inside one
+          without moving it a line. The role is explicit because a `<div>`
+          has none; the name is the registry's. */}
+      <div role="region" aria-label={copy("shell.frame.label")} className="drawer lg:drawer-open">
         {/*
           The one control. It is the focusable, announceable thing behind
           every `<label>` in this shell, which is why it carries the panel's

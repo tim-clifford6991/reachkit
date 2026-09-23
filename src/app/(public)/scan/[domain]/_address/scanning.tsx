@@ -110,9 +110,14 @@ export function ScanningView(p: {
       <main className="col-span-full grid grid-cols-subgrid items-start gap-4">
         <section className="card bg-base-100 border-base-300 border">
           <div className="card-body gap-4">
-            <h2 className="card-title min-w-0 overflow-x-auto">
+            {/* The domain is what this report is *about*, so it is the
+                page's `<h1>` (owner ruling 2026-09-23, #328). It was an
+                `<h2>`, which left `/scan/{domain}` with no level-one
+                heading at all. `card-title` carries the size and weight,
+                so nothing on screen changes. */}
+            <h1 className="card-title min-w-0 overflow-x-auto">
               <Num>{p.domain}</Num>
-            </h2>
+            </h1>
             {/* The stages read the stream this screen already subscribed
                 to, rather than opening a second one. */}
             <ScanProgress domain={p.domain} scanId={p.scanId} stages={stages} />

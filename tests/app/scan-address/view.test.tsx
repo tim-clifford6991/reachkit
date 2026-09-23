@@ -93,6 +93,16 @@ describe("REQ-001 c5 — every arm answers; never a blank page, a 404 or an erro
     expect(render(state).split("data-surface").length - 1).toBe(1);
   });
 
+  it.each(ARMS)("%s names itself with exactly one h1 (#328)", (_kind, state) => {
+    // Owner ruling 2026-09-23 (#328): "the existing title becomes the real
+    // `<h1>`". `/scan/{domain}` had none — the domain the report is *about*
+    // was an `<h2 class="card-title">`, so a reader moving by headings had
+    // nothing to land on and `page-has-heading-one` reported the route.
+    // The class carries the size, so nothing on screen moved.
+    const html = render(state);
+    expect(html.match(/<h1[\s>]/g) ?? [], `${_kind} renders no level-one heading`).toHaveLength(1);
+  });
+
   it("the switch covers every arm the union declares — no row is missing here", () => {
     const declared = readFileSync(
       new URL("../../../src/app/(public)/scan/[domain]/_address/state.ts", import.meta.url),

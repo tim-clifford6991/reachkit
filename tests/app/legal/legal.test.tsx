@@ -132,12 +132,17 @@ describe("S5 — the Markdown body goes through the product's one renderer", () 
   it("the body is rendered as Markdown, not printed as a string", () => {
     // The owner's notice (approved 2026-09-10, #459) opens with a `##`
     // heading: a body that went through the renderer carries a heading for
-    // it (an h3, one level under the page's h1 — #493) and no hash marks; a
-    // body that was printed carries the hash marks.
+    // it and no hash marks; a body that was printed carries the hash marks.
+    //
+    // **It is an `<h2>` since the owner's 2026-09-23 ruling on #328.** This
+    // body's shallowest heading is its `##`, so it is the one that sits
+    // directly under the page's `<h1>` — and it used to arrive as an `<h3>`,
+    // skipping `h2` on a page whose only other heading is that `<h1>`.
     const html = renderToStaticMarkup(<PrivacyPage />);
     expect(copy("legal.privacy.body")).toMatch(/^## Who we are\n/);
     expect(html).toContain(legalBodyHtml(copy("legal.privacy.body")));
-    expect(html).toMatch(/<h3[^>]*>Who we are<\/h3>/);
+    expect(html).toMatch(/<h2[^>]*>Who we are<\/h2>/);
+    expect(html).not.toMatch(/<h3[^>]*>Who we are<\/h3>/);
     expect(html).not.toContain("## Who we are");
   });
 
@@ -145,7 +150,13 @@ describe("S5 — the Markdown body goes through the product's one renderer", () 
     const html = renderToStaticMarkup(<PrivacyPage />);
     const card = html.slice(html.indexOf('class="card '));
     expect(html.match(/<h1/g)).toHaveLength(1);
-    expect(card).not.toMatch(/card-title|<h1|<h2/);
+    // No head **of the card's own**, and never a second `<h1>`. `<h2>` is
+    // not in this list any more (#328, 2026-09-23): the body's own section
+    // headings are `<h2>` now, which is the point of that ruling — they are
+    // the level under the page's title. What this row is about is that the
+    // card does not *add* a head above them.
+    expect(card).not.toMatch(/card-title|<h1/);
+    expect(card).not.toMatch(/<h2[^>]*class="[^"]*card-title/);
   });
 });
 
@@ -181,6 +192,21 @@ describe("S5 — the body's headings take the ladder (issue #493)", () => {
     expect(html).toMatch(/<h2 id="heading-one"/);
     expect(html).not.toMatch(/<h3 id=/);
     expect(html).not.toMatch(/<h4 id=/);
+  });
+
+  it("a body that opens at `##` starts at h2 too — no level is skipped under the page's h1", () => {
+    // Owner ruling 2026-09-23 (#328). The shift is computed from the body,
+    // not assumed: whatever depth the shallowest heading was written at, it
+    // becomes the `<h2>` under the page's `<h1>`, and the rest keep their
+    // distance from it. This is the shape every legal body the owner has
+    // written actually has — the fixture above opens at `#` and is the
+    // other one.
+    const html = legalBodyHtml("## Section\n\nText.\n\n### Under it\n\nText.");
+    expect(html).toMatch(/<h2[^>]*>Section<\/h2>/);
+    expect(html).toMatch(/<h3[^>]*>Under it<\/h3>/);
+    expect(html).not.toContain("<h1");
+    // And the anchor the contents list links to is still on the section.
+    expect(html).toMatch(/<h2 id="section"/);
   });
 
   it("a body heading carries no size of its own — the type ladder's element step decides it", () => {

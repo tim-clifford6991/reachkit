@@ -23,15 +23,22 @@
 // headings and a list — with no second renderer, no dependency and no edit
 // to this file.
 //
-// **The body's headings are levelled** (issue #493). The page prints its
-// own title as the `<h1>`, so a `##` in the body is a heading *within* the
-// document, and the approved set draws it one rung under the title
-// (`.doc h2` at `--h3`). Restyling an `<h2>` to 20px is what broke the
-// heading-scale sweep once the owner's bodies arrived with headings in
-// them: every `h2` in the product computes 25px or it is not the ladder.
-// So the level is shifted instead — `demoteHeadings`, the draft screen's
-// rule, now the renderer's — and each level keeps the size the type ladder
-// gives its element. A `##` renders as an `<h3>`.
+// **The body's headings are levelled** (issue #493; owner ruling
+// 2026-09-23, #328). The page prints its own title as the `<h1>`, so a
+// heading in the body is a heading *within* the document and has to sit
+// under it. Restyling an `<h2>` to 20px is what broke the heading-scale
+// sweep once the owner's bodies arrived with headings in them: every `h2`
+// in the product computes 25px or it is not the ladder. So the level is
+// shifted instead, and each level keeps the size the ladder gives its
+// element.
+//
+// The shift is `headingsUnderTitle`, not `demoteHeadings`: a fixed `+1`
+// levelled a `#`-rooted body correctly and left the owner's own bodies —
+// which open at `##` — arriving as `<h3>` directly under the `<h1>`, with
+// `h2` skipped. `heading-order` reported exactly that on `/privacy` and
+// `/terms` (#328). The shallowest heading in a body now becomes the
+// `<h2>`, whatever depth it was written at, and the rest keep their
+// distance from it.
 //
 // **The body's typography is Tailwind classes on the renderer's own class
 // map** (issue 731), the way the draft screen's `DRAFT_BODY_CLASSES` is:
@@ -48,7 +55,7 @@
 import type React from "react";
 import { Surface } from "@/ui/layout";
 import { copy } from "@/lib/presentation/copy";
-import { demoteHeadings, parseMarkdown, type HtmlClasses } from "@/lib/publish/render/markdown";
+import { headingsUnderTitle, parseMarkdown, type HtmlClasses } from "@/lib/publish/render/markdown";
 import { legalBodyWithIds, legalHeadings, type LegalHeading } from "./sections";
 import type { LegalDocument } from "./documents";
 
@@ -81,7 +88,7 @@ export const LEGAL_BODY_CLASSES: HtmlClasses = Object.freeze({
  *  link to. Still one renderer and still one call site — the ids are put
  *  on by `legalBodyWithIds`, which calls it block by block. */
 export function legalBodyHtml(md: string): string {
-  return legalBodyWithIds(demoteHeadings(parseMarkdown(md)), LEGAL_BODY_CLASSES);
+  return legalBodyWithIds(headingsUnderTitle(parseMarkdown(md)), LEGAL_BODY_CLASSES);
 }
 
 /** The contents list, from the document's own headings (#936).
@@ -133,7 +140,7 @@ function OnThisPage(p: { headings: readonly LegalHeading[] }): React.JSX.Element
 
 export function LegalPage(p: { document: LegalDocument }): React.JSX.Element {
   const body = copy(p.document.body);
-  const headings = legalHeadings(demoteHeadings(parseMarkdown(body)));
+  const headings = legalHeadings(headingsUnderTitle(parseMarkdown(body)));
 
   return (
     <Surface

@@ -651,6 +651,67 @@ export function renderMarkdownHtml(md: string): string {
  * that publish, and on a destination the title is supplied beside them
  * rather than by a heading of ours standing over them.
  */
+/**
+ * Every heading in a body, levelled so the **shallowest sits at `<h2>`** —
+ * one under the `<h1>` the screen prints above it, with nothing skipped.
+ *
+ * **Why this is not `demoteHeadings` above** (owner ruling 2026-09-23,
+ * #328). That one shifts by a fixed `+1`, which is right only for a body
+ * whose own top level is `#`. The owner's legal bodies open at `##`, so
+ * they arrived as `<h3>` **directly under the page's `<h1>`** — `h2`
+ * skipped, which is what `heading-order` reported on `/privacy` and
+ * `/terms`. Shifting by a fixed amount cannot fix that without breaking
+ * the other case: `+0` would make a `#`-rooted body a second `<h1>`.
+ *
+ * So the shift is computed from the body rather than assumed: the
+ * shallowest heading becomes `<h2>` and every deeper one keeps its
+ * distance from it. A body that opens at `#` is levelled exactly as
+ * `demoteHeadings` levelled it, which is why #493's own fixture is
+ * unchanged; a body that opens at `##` or `###` now starts at `<h2>` too.
+ *
+ * **What moves on screen.** A section head in the owner's legal bodies was
+ * an `<h3>` (`--h3`, 20px) and is an `<h2>` (`--h2`, 25px). That is the
+ * ladder's own step for the element: `src/ui/type.css` gives every `h2`
+ * `--h2`, and the level moves rather than the size, so no heading is
+ * restyled to reach a step that is not its own. `heading-scale.test.ts`
+ * still reads each level computing that step. The words are untouched.
+ *
+ * `demoteHeadings` stays exactly as it is: the draft screen renders a
+ * customer's article, whose headings the writer controls, and no body it
+ * draws reported a skipped level.
+ */
+export function headingsUnderTitle(blocks: readonly Block[]): Block[] {
+  const shallowest = shallowestHeading(blocks);
+  if (shallowest === null) return [...blocks];
+  return shiftHeadings(blocks, 2 - shallowest);
+}
+
+/** The smallest `level` any heading in the tree carries, `answer` blocks
+ *  included, or `null` where the body has no heading at all. */
+function shallowestHeading(blocks: readonly Block[]): number | null {
+  let found: number | null = null;
+  for (const block of blocks) {
+    const level =
+      block.kind === "heading"
+        ? block.level
+        : block.kind === "answer"
+          ? shallowestHeading(block.children)
+          : null;
+    if (level !== null && (found === null || level < found)) found = level;
+  }
+  return found;
+}
+
+/** Every heading `by` levels along, clamped to the six that exist. */
+function shiftHeadings(blocks: readonly Block[], by: number): Block[] {
+  return blocks.map((block) => {
+    if (block.kind === "answer") return { ...block, children: shiftHeadings(block.children, by) };
+    if (block.kind !== "heading") return block;
+    const level = Math.min(6, Math.max(1, block.level + by)) as 1 | 2 | 3 | 4 | 5 | 6;
+    return { ...block, level };
+  });
+}
+
 export function demoteHeadings(blocks: readonly Block[]): Block[] {
   return blocks.map((block) => {
     if (block.kind === "answer") return { ...block, children: demoteHeadings(block.children) };
