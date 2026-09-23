@@ -284,6 +284,12 @@ function cellClass(cell: MatrixCell, you: boolean): string {
  * question number under every column. Server-rendered markup — the
  * surrounding card scrolls it rather than shrinking a domain (§2.3 never
  * shortens a value).
+ *
+ * `w-fit`, not `w-max` (#1041): at max-content every dot column took its
+ * full 1.25rem, so the grid was ~490px in the 430px half-width card at
+ * 1024 and the card scrolled with a domain clipped mid-value. Fit-content
+ * lets the dot columns give way down to their 0.75rem floor first — the
+ * names and counts never shrink — and scrolls only below that, at 320.
  */
 export function AnswerMatrix(p: {
   rows: readonly MatrixRow[];
@@ -292,7 +298,7 @@ export function AnswerMatrix(p: {
 }): React.JSX.Element {
   const columns = { gridTemplateColumns: `auto repeat(${Math.max(p.questions.length, 1)}, minmax(0.75rem, 1.25rem)) auto` };
   return (
-    <div role="table" aria-label={p.label} data-testid={MATRIX_TEST_ID} className="grid w-max items-center gap-x-1 gap-y-1.5" style={columns}>
+    <div role="table" aria-label={p.label} data-testid={MATRIX_TEST_ID} className="grid w-fit items-center gap-x-1 gap-y-1.5" style={columns}>
       {p.rows.map((row) => (
         <div role="row" key={row.name} className="contents">
           <span role="rowheader" className={`num pr-2 text-right text-xs whitespace-nowrap ${row.you ? "text-(--chart-you)" : "text-base-content/70"}`}>
