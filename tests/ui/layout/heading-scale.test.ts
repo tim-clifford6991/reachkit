@@ -110,7 +110,23 @@ const BODY_PX = 15;
 
 /** Browser startup dominates: one Chromium per route, as `browser.ts`'s
  *  header explains it must be. Same bound, same reason, as
- *  `layout.test.ts`'s `PER_ROUTE_BROWSER_MS`. */
+ *  `layout.test.ts`'s `PER_ROUTE_BROWSER_MS`.
+ *
+ *  **It bounds one route at one band, and every `it` below is one of those
+ *  (issue #1018).** The two sweeps used to walk the whole tree inside a
+ *  single `it` — twenty-six routes at the compact band, and fifty-two
+ *  route-and-band pairs above the boundary — while carrying this one-route
+ *  bound, so a budget written for one Chromium launch was being asked to
+ *  cover all of them. It held on a quiet box and ran out twice on
+ *  2026-09-22 under a build sharing the machine, both times as a 60,012 ms
+ *  timeout with no assertion in it and as the only red of 246. The cases
+ *  are enumerated now, one `it` per route and band the way `layout.test.ts`
+ *  enumerates its own, so each carries the bound it was written for and a
+ *  screen that is genuinely slow is named by the test that timed out
+ *  instead of hiding in a sweep. Not a multiplier: a number chosen by hand
+ *  against today's route count has to be re-chosen every time the tree
+ *  grows, which is the thing this file's enumerator exists to make
+ *  unnecessary. Nothing about what is asserted changed. */
 const PER_ROUTE_BROWSER_MS = 60_000;
 
 /** `routes.ts` owns how a route becomes a URL and a header set. This file
@@ -212,29 +228,51 @@ function measureHeadings(): Measured[] {
   });
 }
 
+/** The two bands above `--breakpoint-sm`, where the h1 draws its full step.
+ *  Both are swept, because a `max-width` written by mistake would pass at
+ *  one of them. */
+const WIDE_BANDS: readonly number[] = [BAND_MIN.medium, BAND_MIN.wide];
+
+/** One route, one band, one Chromium: what every case below does before it
+ *  asserts anything. */
+async function headingsOn(route: EnumeratedRoute, width: number): Promise<Measured[]> {
+  return withPage(
+    width,
+    async (page) => {
+      await page.goto(urlFor(route));
+      return page.evaluate(measureHeadings);
+    },
+    headersFor(route)
+  );
+}
+
+/** What the cases below measured, totalled over the tree.
+ *
+ *  Rule 5.5's arms are claims about the sweep as a whole — that *some*
+ *  heading fell through to the scale, that *some* heading carried a
+ *  size-bearing class, that an h1 was measured at all — and none of them can
+ *  be asserted inside a case that measures one screen, because a route with
+ *  no classed heading is not an offender. So each case adds what it saw
+ *  here and the case declared after the last of them states the totals.
+ *  Vitest runs a file's `it`s in declaration order, one at a time — nothing
+ *  in this project is `.concurrent` — so the totals are complete when that
+ *  one runs. */
+const compactSweep = { seen: new Set<string>(), defaulted: 0, classed: 0 };
+const wideSweep = { seenH1: false, heroSeenAt: [] as number[] };
+
 describe(`the heading scale survives preflight — ${routes.length} route(s)`, () => {
   it("states the route count it swept, explicitly, even at zero (rule 5.5)", () => {
     expect(routes.length).toBeGreaterThanOrEqual(0);
   });
 
-  it(
-    "a heading with no size-bearing class is larger than the body and computes its own step; one that carries a class computes what the class says",
-    async () => {
-      const seen = new Set<string>();
-      let defaulted = 0;
-      let classed = 0;
-      for (const route of routes) {
-        const headings = await withPage(
-          BAND_MIN.compact,
-          async (page) => {
-            await page.goto(urlFor(route));
-            return page.evaluate(measureHeadings);
-          },
-          headersFor(route)
-        );
+  for (const route of routes) {
+    it(
+      `${route.path} @ ${BAND_MIN.compact}px: a heading with no size-bearing class is larger than the body and computes its own step; one that carries a class computes what the class says`,
+      async () => {
+        const headings = await headingsOn(route, BAND_MIN.compact);
 
         for (const heading of headings) {
-          seen.add(heading.tag);
+          compactSweep.seen.add(heading.tag);
           const where = `${route.path}: <${heading.tag}> "${heading.text}" @ ${BAND_MIN.compact}px`;
 
           if (heading.classSized) {
@@ -242,7 +280,7 @@ describe(`the heading scale survives preflight — ${routes.length} route(s)`, (
             // classes compute on a plain element in the same box — so an
             // element rule that out-ranks them again fails here, with the
             // two numbers in the message.
-            classed += 1;
+            compactSweep.classed += 1;
             expect(
               heading.px,
               `${where} carries ${heading.sizeBearing.join(" ")} and must compute what it says, not the element's step`
@@ -250,7 +288,7 @@ describe(`the heading scale survives preflight — ${routes.length} route(s)`, (
             continue;
           }
 
-          defaulted += 1;
+          compactSweep.defaulted += 1;
           // The #110 half, unchanged: with nothing else speaking, the scale
           // speaks. A heading at body size is what preflight leaves behind.
           expect(heading.px, `${where} must be larger than the ${BODY_PX}px body`).toBeGreaterThan(
@@ -262,45 +300,37 @@ describe(`the heading scale survives preflight — ${routes.length} route(s)`, (
             NARROW_PX[heading.tag]
           );
         }
-      }
+      },
+      PER_ROUTE_BROWSER_MS
+    );
+  }
 
-      // Rule 5.5: an assertion that ran over no heading at all is a pass
-      // that means nothing, so what it covered is reported rather than
-      // left to be read off a silent green. Both arms are counted, because
-      // a sweep that found only one of them proved only half of this.
-      console.log(
-        `tests/ui/layout/heading-scale.test.ts: measured ${[...seen].sort().join(", ") || "no"} heading(s) across ${routes.length} route(s) — ${defaulted} on the scale, ${classed} on their own class`
-      );
-      expect(seen.has("h1"), "no route rendered an h1 — the sweep proved nothing").toBe(true);
-      expect(defaulted, "no heading anywhere fell through to the scale").toBeGreaterThan(0);
-      expect(classed, "no heading anywhere carried a size-bearing class — #941 is unguarded").toBeGreaterThan(0);
-    },
-    PER_ROUTE_BROWSER_MS
-  );
+  it(`both arms of the scale were measured at ${BAND_MIN.compact}px (rule 5.5)`, () => {
+    // Rule 5.5: an assertion that ran over no heading at all is a pass that
+    // means nothing, so what the cases above covered is reported rather
+    // than left to be read off a silent green. Both arms are counted,
+    // because a sweep that found only one of them proved only half of this.
+    console.log(
+      `tests/ui/layout/heading-scale.test.ts: measured ${[...compactSweep.seen].sort().join(", ") || "no"} heading(s) across ${routes.length} route(s) — ${compactSweep.defaulted} on the scale, ${compactSweep.classed} on their own class`
+    );
+    expect(compactSweep.seen.has("h1"), "no route rendered an h1 — the sweep proved nothing").toBe(true);
+    expect(compactSweep.defaulted, "no heading anywhere fell through to the scale").toBeGreaterThan(0);
+    expect(compactSweep.classed, "no heading anywhere carried a size-bearing class — #941 is unguarded").toBeGreaterThan(0);
+  });
 
-  it(
-    `at and above --breakpoint-sm every h1 is the full ${SCALE_PX.h1}px step, and S1's hero is ${LANDING_HERO_PX}px`,
-    async () => {
-      // The other half of the ruling: the step is a narrow-viewport rule,
-      // not a shrink. Measured at both bands above the boundary, because a
-      // `max-width` written by mistake would pass at one of them.
-      //
-      // The landing's h1 is the one exception, and it is asserted rather
-      // than skipped (#534): at each band it must compute the set's 46, so
-      // a hero that fell back to 31 fails here as surely as any other h1
-      // that left 31.
-      let seenH1 = false;
-      const heroSeenAt: number[] = [];
-      for (const width of [BAND_MIN.medium, BAND_MIN.wide]) {
-        for (const route of routes) {
-          const headings = await withPage(
-            width,
-            async (page) => {
-              await page.goto(urlFor(route));
-              return page.evaluate(measureHeadings);
-            },
-            headersFor(route)
-          );
+  // The other half of the ruling: the step is a narrow-viewport rule, not a
+  // shrink. Measured at both bands above the boundary, because a
+  // `max-width` written by mistake would pass at one of them.
+  //
+  // The landing's h1 is the one exception, and it is asserted rather than
+  // skipped (#534): at each band it must compute the set's 46, so a hero
+  // that fell back to 31 fails here as surely as any other h1 that left 31.
+  for (const width of WIDE_BANDS) {
+    for (const route of routes) {
+      it(
+        `${route.path} @ ${width}px: every h1 is the full ${SCALE_PX.h1}px step, and S1's hero is ${LANDING_HERO_PX}px`,
+        async () => {
+          const headings = await headingsOn(route, width);
           for (const heading of headings) {
             const where = `${route.path}: <${heading.tag}> "${heading.text}" @ ${width}px`;
             const hero = heading.tag === "h1" && isLanding(route);
@@ -319,7 +349,7 @@ describe(`the heading scale survives preflight — ${routes.length} route(s)`, (
               expect(heading.px, `${where}: the hero class must be what sizes it`).toBe(
                 heading.probePx
               );
-              heroSeenAt.push(width);
+              wideSweep.heroSeenAt.push(width);
             } else if (heading.classSized) {
               expect(
                 heading.px,
@@ -330,18 +360,21 @@ describe(`the heading scale survives preflight — ${routes.length} route(s)`, (
                 SCALE_PX[heading.tag]
               );
             }
-            if (heading.tag === "h1") seenH1 = true;
+            if (heading.tag === "h1") wideSweep.seenH1 = true;
           }
-        }
-      }
-      expect(seenH1, "no route rendered an h1 above the boundary").toBe(true);
-      expect(heroSeenAt, "the landing's hero h1 was not measured at both bands").toEqual([
-        BAND_MIN.medium,
-        BAND_MIN.wide,
-      ]);
-    },
-    PER_ROUTE_BROWSER_MS
-  );
+        },
+        PER_ROUTE_BROWSER_MS
+      );
+    }
+  }
+
+  it("an h1 was measured above the boundary, and S1's hero at both bands (rule 5.5)", () => {
+    expect(wideSweep.seenH1, "no route rendered an h1 above the boundary").toBe(true);
+    expect(wideSweep.heroSeenAt, "the landing's hero h1 was not measured at both bands").toEqual([
+      BAND_MIN.medium,
+      BAND_MIN.wide,
+    ]);
+  });
 
   it(
     `the landing headline fits ${LANDING_MAX_LINES} lines at ${BAND_MIN.compact}px`,
