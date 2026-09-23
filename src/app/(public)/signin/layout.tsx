@@ -8,10 +8,9 @@
 // screen in two around a wrapper that exists to hold a string.
 //
 // **It renders `{children}` and adds nothing.** The group layout above it
-// already decides that this one route carries no header (S9 is drawn as two
-// full-height panels meeting the viewport's edges, with the brand inside
-// the left one); a second element here would be a third band on the one
-// screen that must not have one.
+// draws the public header and footer, and the screen between them is the
+// Round 7 full-width split (#1025); a second element here would be a third
+// band on a screen drawn as two.
 //
 // **`noindex`, from the table** (`_seo/routes.ts`): a sign-in form has
 // nothing to rank and is the one public screen whose job is to hand out a

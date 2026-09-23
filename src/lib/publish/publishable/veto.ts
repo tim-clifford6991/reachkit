@@ -288,19 +288,25 @@ export interface VetoPreview {
 /**
  * What a preview answers.
  *
- * **The `used` arm carries the page's title, and nothing else does.** The
- * set's done arm draws the h1 under `Stopped` — the reader has just stopped
- * a page and the card says which one — and a stopped page is exactly a
- * token that now reads as spent. It is no new disclosure: the title reached
- * this reader in the `draft-ready` mail, and was on the ask arm one click
- * ago, and only the holder of 32 CSPRNG bytes can ask this question at all
- * (`whyUnusable` argues the same point for `used` itself). The other three
- * refusals carry nothing: `unknown` and `expired` name no draft, which is
- * the promise this module opens with.
+ * **The `used` arm carries the page's title, site and opening, and nothing
+ * else does.** The done arm (Round 7 `R7-S5`, #1025) shows the page the
+ * reader has just stopped, and a stopped page is exactly a token that now
+ * reads as spent. It is no new disclosure: all three reached this reader in
+ * the `draft-ready` mail or on the ask arm one click ago, and only the
+ * holder of 32 CSPRNG bytes can ask this question at all (`whyUnusable`
+ * argues the same point for `used` itself). The other three refusals carry
+ * nothing: `unknown` and `expired` name no draft, which is the promise this
+ * module opens with.
  */
 export type PreviewResult =
   | { ok: true; preview: VetoPreview }
-  | { ok: false; reason: "used"; title: string | null }
+  | {
+      ok: false;
+      reason: "used";
+      title: string | null;
+      domain: string | null;
+      excerpt: string | null;
+    }
   | { ok: false; reason: Exclude<VetoRefusal, "used"> };
 
 interface PreviewRow {
@@ -331,7 +337,15 @@ export async function previewVetoLink(
 
   const row = data?.[0];
   if (row === undefined) return { ok: false, reason: "unknown" };
-  if (row.veto_token_used_at !== null) return { ok: false, reason: "used", title: titleOf(row) };
+  if (row.veto_token_used_at !== null) {
+    return {
+      ok: false,
+      reason: "used",
+      title: titleOf(row),
+      domain: row.sites?.domain ?? null,
+      excerpt: excerptOf(row.body_md),
+    };
+  }
   if (
     row.veto_token_expires_at !== null &&
     new Date(row.veto_token_expires_at).getTime() <= at.getTime()

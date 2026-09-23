@@ -135,6 +135,13 @@ export const SIGNIN_COPY = Object.freeze({
     "An example on {domain}. It measures no site.",
     { slots: { domain: "text" }, fixedBy: "issue 937" },
   ],
+  /** Beside the specimen tile's dot grid (#1025): what the sixteen dots
+   *  are, and which one is the reader's. Drafted on the Round 7 board
+   *  `R7-S1`; transcribed from it, for the owner to confirm. */
+  "signin.panel.answers": [
+    "Who AI answers name for your buyers’ questions. The violet dot is you.",
+    { slots: {}, fixedBy: "issue 1025" },
+  ],
   /** Under the sent alert (#937): what the link is good for, before a
    *  reader goes looking in a spam folder. Drafted (#759). */
   "signin.sent.terms": [

@@ -132,12 +132,15 @@ async function redeem(token: string): Promise<RedeemResult> {
 type TokenParams = { token: string };
 type Query = { done?: string };
 
-/** One column at every band: the page is one card, headless — it starts at
- *  its own eyebrow, and the brand is in the bar. */
+/** The surface declares its own edges: the page is the Round 7 full-width
+ *  split (`R7-S4`/`S5`, #1025) — the interaction on the left, the page it
+ *  concerns on an accent half filling the right, between the public header
+ *  and footer. `surface.css` gives a declared surface no gutter and no
+ *  measure, and grows it to meet the footer. */
 const ARMS = {
-  compact: { kind: "columns", count: 1 },
-  medium: { kind: "columns", count: 1 },
-  wide: { kind: "columns", count: 1 },
+  compact: { kind: "declared", note: "full-width split: the interaction, then the page it concerns; two halves from 1024" },
+  medium: { kind: "same-as-below" },
+  wide: { kind: "same-as-below" },
 } as const satisfies Record<Band, Arm>;
 
 /** The marker the stop action redirects with. Not a claim on its own: the
@@ -145,10 +148,22 @@ const ARMS = {
  *  hand-typed `?done=1` on a live link shows the ask arm and stops nothing. */
 const DONE = "done";
 
-/** One card at the form measure, and its eyebrow and row-label voice. */
-const MAIN = "mx-auto w-full max-w-lg px-4 py-12 sm:py-16";
-const EYEBROW = "flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-base-content/60";
-const ROW_LABEL = "text-xs font-semibold uppercase tracking-wide text-base-content/60";
+/** The split, named once — the same two halves `/signin` draws. With no
+ *  page to show (a refusal names none) the left half is the whole width. */
+const SPLIT = "grid grid-cols-1 lg:grid-cols-2";
+const SINGLE = "grid grid-cols-1";
+const HALF = "flex items-center justify-center px-4 py-12 sm:px-8 lg:px-18 lg:py-16";
+/** The accent half: a tint carrying the screen's own ink, never opacity on
+ *  a saturated ground (the #937 contrast note on `/signin`). */
+const PANEL = `${HALF} bg-primary/10`;
+/** The interaction half: the white of the board, not the page ground. */
+const FORM_HALF = `${HALF} bg-base-100`;
+const COLUMN = "flex w-full max-w-100 flex-col gap-5";
+const PANEL_COLUMN = "flex w-full max-w-lg flex-col gap-5";
+const EYEBROW = "flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-base-content/70";
+const ROW_LABEL = "text-xs font-semibold uppercase tracking-wide text-base-content/70";
+/** The stopped arm's mark: a success-tinted square, as `R7-S5` draws it. */
+const CHIP_OK = "grid size-12 flex-none place-items-center rounded-box bg-success/10 text-success";
 
 /**
  * The line for a link that cannot be spent. Total over `VetoRefusal` — a
@@ -212,6 +227,13 @@ function writeMoment(publishes: { at: Date; timeZone: string }): string {
   return `${part("weekday")} ${part("day")} ${part("month")} ${part("hour")}:${part("minute")}`;
 }
 
+/** The weekday the page publishes, written whole (`Sunday`) in the zone the
+ *  customer publishes in — the accent half's heading reads it, and it is the
+ *  same instant and zone as `writeMoment`, so the two cannot disagree. */
+function writeWeekday(publishes: { at: Date; timeZone: string }): string {
+  return new Intl.DateTimeFormat(PAGE_LOCALE, { timeZone: publishes.timeZone, weekday: "long" }).format(publishes.at);
+}
+
 /**
  * The set's search row: `[search] · 2,400/mo`.
  *
@@ -230,13 +252,79 @@ function writeSearch(query: string, volume: number | null): string {
   return `${query} · ${new Intl.NumberFormat(PAGE_LOCALE).format(volume)}/mo`;
 }
 
-/** The ask arm: what the set draws, in its own order. */
 /** Where a reader who has stopped a page is sent to reach their plan.
  *  Written here rather than imported: the sign-in screen's own copy of it
  *  lives in a Client Component, and a server page reaching into one for a
  *  string would pull the client module into this route's graph. */
 const SIGN_IN_PATH = "/signin";
 
+/**
+ * The split: the interaction on the left, and — where there is a page to
+ * show — that page on the accent half. A helper returning markup rather than
+ * a component, so the two arms stay the only components this file draws.
+ */
+function split(left: React.ReactNode, panel: React.ReactNode | null): React.JSX.Element {
+  return (
+    <div className={panel === null ? SINGLE : SPLIT}>
+      <main className={FORM_HALF}>
+        <div className={COLUMN}>{left}</div>
+      </main>
+      {panel}
+    </div>
+  );
+}
+
+/**
+ * The accent half (`R7-S4`/`S5`): the page itself, in a daisyUI
+ * `mockup-browser` — its site in the bar, its title and its opening under
+ * it. Every value is the preview's own, from the draft the token is bound
+ * to; nothing is drawn where the draft carries nothing, and a draft that
+ * carries none of the three gets no half at all.
+ *
+ * The opening is plain text from the preview — quoted, never rendered: this
+ * page is served with no session, and a preview is not the place to draw a
+ * heading or a link the body happened to carry.
+ */
+function pagePanel(p: {
+  heading: string | null;
+  domain: string | null;
+  title: string | null;
+  excerpt: string | null;
+  caption: string | null;
+}): React.JSX.Element | null {
+  if (p.domain === null && p.title === null && p.excerpt === null) return null;
+  // The title sits one level under whatever heads this half, so no level
+  // is skipped (#328): under the panel's own `<h2>` it is an `<h3>`; with
+  // no panel heading it is the `<h2>` under the screen's `<h1>`.
+  const Title = p.heading === null ? "h2" : "h3";
+  return (
+    <aside className={PANEL} data-testid="veto-panel">
+      <div className={PANEL_COLUMN}>
+        {p.heading === null ? null : <h2 className="text-primary">{p.heading}</h2>}
+        <div className="mockup-browser border-base-300 bg-base-100 border">
+          <div className="mockup-browser-toolbar">
+            {/* The address is clamped by the box that holds it, in the UI
+                face: a site name can be any length. */}
+            <div className="input w-full min-w-0">
+              <span className="truncate">{p.domain ?? ""}</span>
+            </div>
+          </div>
+          <div className="border-base-300 flex flex-col gap-3 border-t px-6 py-6">
+            {p.title === null ? null : <Title>{p.title}</Title>}
+            {p.excerpt === null ? null : (
+              <p className="text-sm" data-testid="veto-excerpt">
+                {p.excerpt}
+              </p>
+            )}
+          </div>
+        </div>
+        {p.caption === null ? null : <p className="text-primary text-sm">{p.caption}</p>}
+      </div>
+    </aside>
+  );
+}
+
+/** The ask arm: what the set draws, in its own order. */
 function Ask(p: { token: string; it: VetoPreview }): React.JSX.Element {
   async function stop(): Promise<void> {
     "use server";
@@ -262,130 +350,116 @@ function Ask(p: { token: string; it: VetoPreview }): React.JSX.Element {
   // on screen changes.
   const Head = p.it.title === null ? "h1" : "p";
 
-  return (
-    <main className={MAIN}>
-      <div className="card border border-base-300 bg-base-100">
-        <div className="card-body gap-4">
-          <Head className={EYEBROW}>
-            <Clock size={16} strokeWidth={1.75} aria-hidden />
-            {head}
-          </Head>
-          {p.it.title === null ? null : <h1>{p.it.title}</h1>}
-          <dl className="flex flex-col gap-2">
-            {p.it.query === null ? null : (
-              <div className="flex justify-between gap-3">
-                <dt className={ROW_LABEL}>{copy("publish.veto.ask.row.search")}</dt>
-                <dd className="font-mono text-sm">{writeSearch(p.it.query, p.it.volume)}</dd>
-              </div>
-            )}
-            {p.it.domain === null ? null : (
-              <div className="flex justify-between gap-3">
-                <dt className={ROW_LABEL}>{copy("publish.veto.ask.row.site")}</dt>
-                <dd className="font-mono text-sm">{p.it.domain}</dd>
-              </div>
-            )}
-          </dl>
-          {/* **The page's first lines, in its own words** (#937, the
-              2026-09-20 board). A reader deciding whether to stop a page
-              should be able to see what it says; the two rows above tell
-              them what it is *for*, which is not the same question. Plain
-              text from the preview — quoted, never rendered: this card is
-              served with no session, and a blockquote is not the place to
-              draw a heading or a link the body happened to carry. */}
-          {p.it.excerpt === null ? null : (
-            <blockquote
-              className="border-base-300 text-base-content/70 border-s-2 ps-4 text-sm"
-              data-testid="veto-excerpt"
-            >
-              {p.it.excerpt}
-            </blockquote>
+  return split(
+    <>
+      <Head className={EYEBROW}>
+        <Clock size={16} strokeWidth={1.75} aria-hidden />
+        {head}
+      </Head>
+      {p.it.title === null ? null : <h1>{p.it.title}</h1>}
+      {p.it.query === null && p.it.domain === null ? null : (
+        <dl className="rounded-box bg-base-200 flex flex-col gap-2 px-4 py-3">
+          {p.it.query === null ? null : (
+            <div className="flex justify-between gap-3">
+              <dt className={ROW_LABEL}>{copy("publish.veto.ask.row.search")}</dt>
+              <dd className="font-mono text-sm">{writeSearch(p.it.query, p.it.volume)}</dd>
+            </div>
           )}
-          <form action={stop}>
-            {/* The screen's one solid button. */}
-            <button type="submit" className="btn btn-primary btn-block">
-              {copy("publish.veto.ask.action")}
-            </button>
-          </form>
-          {/* The sentence, and the offer it used to end with as a control.
-              A reader who does not want to stop the page may well want to
-              read it — and "in the app" with nothing to press was the same
-              dead end the done arm had. */}
-          <p className="text-base-content/60 flex flex-wrap items-center gap-1 text-sm">
-            <span>{copy("publish.veto.ask.do-nothing")}</span>
-            <Link href={SIGN_IN_PATH} className="link link-primary font-semibold">
-              {copy("publish.veto.ask.signin")}
-            </Link>
-          </p>
-        </div>
-      </div>
-    </main>
+          {p.it.domain === null ? null : (
+            <div className="flex justify-between gap-3">
+              <dt className={ROW_LABEL}>{copy("publish.veto.ask.row.site")}</dt>
+              <dd className="font-mono text-sm">{p.it.domain}</dd>
+            </div>
+          )}
+        </dl>
+      )}
+      <form action={stop}>
+        {/* The screen's one solid button. */}
+        <button type="submit" className="btn btn-primary btn-block">
+          {copy("publish.veto.ask.action")}
+        </button>
+      </form>
+      {/* The sentence, and the offer it used to end with as a control. A
+          reader who does not want to stop the page may well want to read
+          it — and "in the app" with nothing to press was a dead end. */}
+      <p className="text-base-content/70 flex flex-wrap items-center gap-1 text-sm">
+        <span>{copy("publish.veto.ask.do-nothing")}</span>
+        <Link href={SIGN_IN_PATH} className="link link-primary font-semibold">
+          {copy("publish.veto.ask.signin")}
+        </Link>
+      </p>
+    </>,
+    pagePanel({
+      heading:
+        p.it.publishes === null ? null : copy("publish.veto.panel.heading", { day: writeWeekday(p.it.publishes) }),
+      domain: p.it.domain,
+      title: p.it.title,
+      excerpt: p.it.excerpt,
+      caption:
+        p.it.query === null || p.it.volume === null
+          ? null
+          : copy("publish.veto.panel.caption", {
+              query: p.it.query,
+              volume: new Intl.NumberFormat(PAGE_LOCALE).format(p.it.volume),
+            }),
+    })
   );
 }
 
 /**
  * The done arm, and the refusals that wear its shape.
  *
- * **A line, not a tinted block.** `Stopped` over the page's own title over
- * one small sentence over the quiet control, with no fill behind it: a
- * filled alert would put warn on a ground, and `--warn` is edge and ink.
+ * **The done arm is `R7-S5`**: a success mark, `Stopped` as the heading,
+ * the line saying the page won't go live, what happens instead, and the
+ * quiet control — beside the page that was stopped. It earns the success
+ * tint: it answers something the reader has just done.
  *
- * **The title is drawn where there is one.** The done arm has it, because
- * a spent token still says which page it was bound to; the refusals do not,
- * because `unknown` and `expired` name no draft.
+ * **A refusal is a line, not a tinted block**: a link that was already used
+ * or has expired is not a success, and warn is edge and ink, never a fill.
+ * `unknown` and `expired` name no draft, so they draw no page beside them.
  */
 function Told(p: {
   head: string;
-  title: string | null;
   message: string;
-  /** The reader pressed the control and it worked — the one arm that wears
-   *  the alert. A refusal reaches this component with `confirmed` unset. */
+  /** The page the token was bound to — only a spent token has one. */
+  page: { title: string | null; domain: string | null; excerpt: string | null } | null;
+  /** The reader pressed the control and it worked. A refusal reaches this
+   *  component with `confirmed` unset. */
   confirmed?: boolean;
 }): React.JSX.Element {
-  // The same rule as `Ask` above (#328): the line that names the screen is
-  // its `<h1>`. The refusals — an unknown or expired token — name no draft,
-  // so their eyebrow is the only name this screen has; the done arm has the
-  // draft's title under it and keeps the eyebrow a paragraph. `EYEBROW`
-  // carries the appearance either way.
-  const Head = p.title === null ? "h1" : "p";
-  return (
-    <main className={MAIN}>
-      <div className="card border border-base-300 bg-base-100">
-        <div className="card-body gap-4">
-          {/* **The tinted block is the done arm's alone.** The board draws
-              the confirmation as an `alert-success`, and it earns the fill:
-              it answers something the reader has just done, and it is the
-              one arm here that is good news. The refusals wearing this same
-              shape keep the plain line — a link that was already used or
-              has expired is not a success, and this file's older rule
-              stands for them: warn is edge and ink, never a fill. */}
-          {p.confirmed ? (
-            <div role="status" className="alert alert-success" data-testid="veto-told">
-              <CircleCheck size={20} strokeWidth={1.75} aria-hidden />
-              <span>
-                <span className="font-semibold">{p.head}</span> {copy("publish.veto.done.line")}
-              </span>
-            </div>
-          ) : (
-            <Head className={EYEBROW}>{p.head}</Head>
-          )}
-          {p.title === null ? null : <h1>{p.title}</h1>}
-          <p className="text-sm text-base-content/70">{p.message}</p>
-          {/* **It goes to `/signin`, not to the plan** (#937). This page
-              takes no session by construction — the token *is* the
-              authority, and REQ-057's link is opened from a mail on
-              whatever device the reader has to hand. A link straight to
-              `/app/calendar` therefore sent a signed-out reader into a
-              gated address, which bounces them to a sign-in wall with no
-              word about why. The control says what it will do instead,
-              which is #937's Done-when. */}
-          <div>
-            <Link href={SIGN_IN_PATH} className="btn btn-outline">
-              {copy("publish.veto.calendar")}
-            </Link>
+  return split(
+    <>
+      {p.confirmed ? (
+        <>
+          <span className={CHIP_OK} data-tone="ok" data-testid="veto-told">
+            <CircleCheck size={20} strokeWidth={1.75} aria-hidden />
+          </span>
+          <div role="status" className="flex flex-col gap-2">
+            <h1>{p.head}</h1>
+            <p className="text-base-content/70">{copy("publish.veto.done.line")}</p>
           </div>
-        </div>
-      </div>
-    </main>
+        </>
+      ) : (
+        // The same rule as `Ask` above (#328): the line that names the
+        // screen is its `<h1>`. The split puts the draft's title in the
+        // accent half, never in this column, so on the arms that are not
+        // the confirmation this eyebrow is the only name the screen has.
+        // `EYEBROW` carries the appearance either way.
+        <h1 className={EYEBROW}>{p.head}</h1>
+      )}
+      <p className="text-base-content/70 text-sm" data-testid="veto-message">
+        {p.message}
+      </p>
+      {/* **It goes to `/signin`, not to the plan** (#937). This page takes
+          no session by construction — the token *is* the authority — so a
+          link straight into the app bounced a signed-out reader to a
+          sign-in wall with no word about why. The control says what it
+          will do instead. */}
+      <Link href={SIGN_IN_PATH} className="btn btn-outline btn-block">
+        {copy("publish.veto.calendar")}
+      </Link>
+    </>,
+    p.page === null ? null : pagePanel({ heading: null, caption: null, ...p.page })
   );
 }
 
@@ -407,7 +481,7 @@ export default async function VetoPage(p: {
         <Told
           confirmed
           head={copy("publish.veto.done.head")}
-          title={result.title}
+          page={{ title: result.title, domain: result.domain, excerpt: result.excerpt }}
           message={copy("publish.veto.stopped")}
         />
       </Surface>
@@ -417,11 +491,7 @@ export default async function VetoPage(p: {
   if (!result.ok) {
     return (
       <Surface arms={ARMS}>
-        <Told
-          head={copy("publish.veto.done.head")}
-          title={null}
-          message={refusalLine(result.reason)}
-        />
+        <Told head={copy("publish.veto.done.head")} page={null} message={refusalLine(result.reason)} />
       </Surface>
     );
   }
