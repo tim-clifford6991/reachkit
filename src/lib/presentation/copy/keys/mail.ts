@@ -152,9 +152,14 @@ export const MAIL_COPY = Object.freeze({
 
   // The sign-in link a completed payment sends (§13, REQ-024 c1).
   "mail.magicLink.subject": ["Your sign-in link", { slots: {}, fixedBy: "REQ-024 c1 · S20 (11a)" }],
+  // Issue 1019: S20 drew "expires in 15 minutes", which was never the
+  // product — SPEC §3 (issue 718) rules a link lasts 24 h, and Supabase's
+  // OTP expiry is set to it. Drafted to state the real lifetime; the owner
+  // may reword it. `tests/account/identity/otp-expiry.test.ts` pins it to
+  // `SIGNIN_LINK_TTL_H`.
   "mail.magicLink.body": [
-    "One click signs you in on this device. The link works once and expires in 15 minutes.",
-    { slots: {}, fixedBy: "REQ-024 c1 · S20 (11a)" },
+    "One click signs you in on this device. The link works once and expires in 24 hours.",
+    { slots: {}, fixedBy: "REQ-024 c1 · S20 (11a) · issue 1019" },
   ],
   "mail.magicLink.action": ["Sign in", { slots: {}, fixedBy: "REQ-024 c1 · S20 (11a)" }],
 
