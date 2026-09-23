@@ -466,31 +466,41 @@ runtime log for what did not (`event: "spend_alert_failed"`, and the per-kind `*
 ### Verifying the sign-in link end to end
 
 The only door into the paid product, walked in order. Every observation below is one the browser or
-`curl` shows; nothing here changes a setting.
+`curl` shows; nothing here changes a setting. Last walked on dev on 2026-09-22 (#542), which this
+sequence is written from. On dev use `https://dev.reachkit.app`; on production, `https://reachkit.app`.
 
-1. **An account must exist for the address.** A link is only ever sent to an address the `users`
-   table already holds (`src/lib/account/provisioning/magic-link.ts`), and the account is created by
-   the payment webhook, never by a form (`docs/SPEC.md` §3). So either complete one checkout at
-   `/pricing` with an `OWNER_EMAILS` address (#319), or confirm the row first: Supabase → Table
-   editor → `users`, one row whose `email` is that address, with an `auth.users` row of the same
-   `id`. An address with no row is answered at step 2 by *There's no ReachKit account for that
-   address* — which is that check, done from the outside.
-2. **Ask for the link.** Open `https://reachkit.app/signin`, type the address, press **Send my
-   link**. Expect *Check your inbox* and *Your sign-in link is on its way. It works once…*.
-3. **The mail.** Subject **Your sign-in link**, from `MAIL_FROM`, one action reading **Sign in**.
-   Resend's dashboard shows what left; a mail that did not compose or send is in the runtime log as
-   `mail_not_composable` or `sign_in_link_not_issued` (§6 above).
-4. **Follow it.** The link is `https://reachkit.app/auth/confirm?token_hash=…&type=magiclink` — this
-   product's own host, never Supabase's `action_link`. Expect `307` to `/setup` on a first sign-in
-   and to `/app` afterwards, carrying an `sb-…-auth-token` cookie on that same redirect.
-5. **Use it twice.** Re-open the same confirm URL: `307` to `/signin?link=dead`, and the screen says
-   *This link no longer works*. An expired link, a link superseded by a newer one and a token this
-   product never issued all answer identically — that sameness is the point.
-6. **The gate.** Signed out, `https://reachkit.app/app` answers `307` to `/signin`; with the session
-   from step 4 it serves.
+1. **An account must exist for the address — and the screen will not tell you whether it does.** A
+   link is only ever sent to an address the `users` table already holds
+   (`src/lib/account/provisioning/magic-link.ts`), and the account is created by the payment
+   webhook, never by a form (`docs/SPEC.md` §3). So either complete one checkout at `/pricing` with
+   an `OWNER_EMAILS` address (#319), or confirm the row first: Supabase → Table editor → `users`,
+   one row whose `email` is that address, with an `auth.users` row of the same `id`. Since #718 the
+   sign-in screen answers every address with the same line, so it is not a way to check this.
+2. **Ask for the link.** Open `/signin` on the host under test, type the address into the one field
+   and press **Send my sign-in link**. Expect the screen to turn to **Check your inbox** — *If that
+   address has an account, a sign-in link is on its way.*, the address echoed under it (*sent to …*),
+   and *It works for 24 hours, and a newer link replaces an older one.* The same screen appears
+   whether or not the address has an account.
+3. **The mail.** Subject **Your sign-in link**, from `MAIL_FROM` (`hello@reachkit.app`), within a
+   second or two; the line *One click signs you in on this device. The link works once and expires
+   in 24 hours.*; one **Sign in** action. Resend's dashboard shows what left; a mail that did not
+   compose or send is in the runtime log as `mail_not_composable` or `sign_in_link_not_issued`
+   (§6 above).
+4. **Follow it.** The action is `…/auth/confirm?token_hash=…&type=magiclink` **on the host you
+   started from** — this product's own, never Supabase's `action_link`. Expect `307` to `/app`
+   (to `/setup` on a first-ever sign-in), one `sb-…-auth-token` cookie set on that same redirect,
+   and `/app` rendering the dashboard with *Overview · Plan · Settings*.
+5. **Use it twice.** Re-open the same confirm URL: `307` to `/signin?link=dead`, no cookie, and the
+   screen **This link no longer works** with the request form on it (**Send a new link**). A spent
+   link, a link superseded by a newer one, a token this product never issued and a confirm URL with
+   no query all answer identically — that sameness is the point.
+6. **The gate.** In a private window, `/app` answers `307` to `/signin` — a redirect, never an error;
+   with the session from step 4 it serves.
 
 A link lasts 24 h (`SIGNIN_LINK_TTL_H`), but it is Supabase's own OTP expiry that spends it, so the
-two must agree. The Auth dashboard settings this walk depends on — Site URL, `/auth/confirm` on the
+two must agree. So must what the customer is told: the mail's line and the answered screen's line
+both state the lifetime, and `tests/account/identity/otp-expiry.test.ts` holds the setting and both
+sentences to that one number (#1019). The Auth dashboard settings this walk depends on — Site URL, `/auth/confirm` on the
 redirect allow-list, Email OTP expiry 86400 s — are the owner's, listed in §11 under 2026-09-10.
 
 ---

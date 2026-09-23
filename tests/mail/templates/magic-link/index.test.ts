@@ -66,8 +66,10 @@ describe("the sentences are the approved set's, word for word", () => {
     // own words, so a reword fails here.
     expect(COPY["mail.magicLink.subject"]).toBe("Your sign-in link");
     expect(COPY["mail.magicLink.heading"]).toBe("Sign in to ReachKit");
+    // Issue 1019: the lifetime clause corrected from S20's "15 minutes" to
+    // the 24 h SPEC §3 rules and Supabase enforces.
     expect(COPY["mail.magicLink.body"]).toBe(
-      "One click signs you in on this device. The link works once and expires in 15 minutes."
+      "One click signs you in on this device. The link works once and expires in 24 hours."
     );
     expect(COPY["mail.magicLink.action"]).toBe("Sign in");
   });
