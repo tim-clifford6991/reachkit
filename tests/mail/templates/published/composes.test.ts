@@ -75,13 +75,16 @@ const STAMP = formatCheckedAt(CHECKED_AT, ZONE);
 describe("issue #457 — the found arm composes once its paragraph is written", () => {
   const mail = () => buildPublished({ telling: FOUND, timeZone: ZONE });
 
-  it("renders both bodies instead of throwing on a slot the label cannot supply", () => {
+  it("renders both bodies instead of throwing on a slot the label cannot supply", async () => {
     const blocks = mail().blocks;
     expect(() => renderBlocksText(blocks)).not.toThrow();
-    expect(() => renderBlocksHtml(blocks)).not.toThrow();
-    expect(() =>
+    // The two HTML-side calls resolve rather than return since #934 —
+    // React Email's renderer is asynchronous. Still the same claim: this
+    // arm composes, where it used to throw on an unsupplied slot.
+    await expect(renderBlocksHtml(blocks)).resolves.toBeDefined();
+    await expect(
       composeMail({ kind: "published", subject: mail().subject, blocks, reason: mail().reason })
-    ).not.toThrow();
+    ).resolves.toBeDefined();
   });
 
   it("the paragraph carries the date, and leaves no marker behind", () => {

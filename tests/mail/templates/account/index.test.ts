@@ -118,7 +118,7 @@ describe("the register row, and the sentences it speaks", () => {
     for (const key of ACCOUNT_MAIL_KEYS) expect(Object.keys(COPY)).toContain(key);
   });
 
-  it("all eight are written (issue #458, the owner's 2026-09-10 approval), so every account mail composes and speaks them", () => {
+  it("all eight are written (issue #458, the owner's 2026-09-10 approval), so every account mail composes and speaks them", async () => {
     expect(ACCOUNT_MAIL_KEYS).toHaveLength(8);
     for (const key of ACCOUNT_MAIL_KEYS) {
       expect(COPY[key], key).not.toBe("");
@@ -132,7 +132,7 @@ describe("the register row, and the sentences it speaks", () => {
       buildSecondPurchase(),
       buildAddressMoved(),
     ]) {
-      const composed = composeMail({ kind: "account", subject: mail.subject, blocks: mail.blocks });
+      const composed = await composeMail({ kind: "account", subject: mail.subject, blocks: mail.blocks });
       expect(composed.subject, mail.subject).toBe(COPY[mail.subject]);
       spoken.add(mail.subject);
       for (const block of mail.blocks) {

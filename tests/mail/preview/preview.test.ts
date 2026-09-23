@@ -15,7 +15,7 @@
 // Mail are the mails these assertions ran against.
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { applyEnvFixture } from "../env-fixture";
 
 applyEnvFixture();
@@ -93,6 +93,27 @@ const SOLID_FILLS: Readonly<Record<(typeof PREVIEW_KINDS)[number], number>> = {
   nurture: 1,
 };
 
+/**
+ * The mail seam's module graph, paid for once.
+ *
+ * Every fixture reaches its template through `await import`, so whichever
+ * test composes first pays for all sixteen of them, for React Email and
+ * for `react-dom/server` — a cold cost, not a per-mail one. Left in the
+ * first test it can outrun vitest's 5 s per-test budget on a loaded box,
+ * and since #1013 CI runs on that box. It is paid here instead, so every
+ * test below composes warm.
+ *
+ * The explicit budget is the point of the hook, not a hedge: this is an
+ * import of sixteen template modules and two libraries, and on two
+ * throttled cores it has been measured past the 10 s a hook gets by
+ * default — which skips the whole file rather than failing one test.
+ * Nothing about a mail's own behaviour is given more time; every test
+ * below keeps vitest's ordinary 5 s.
+ */
+beforeAll(async () => {
+  await composeAnyKind("magic-link");
+}, 60_000);
+
 describe("issue #376 — the shell renders S20, and every kind the set draws wears it", () => {
   it("the set draws seven kinds, and all seven compose", async () => {
     // Rule 5.5: the counts are stated. Seven kinds, none skipped — the four
@@ -160,8 +181,11 @@ describe("issue #376 — the shell renders S20, and every kind the set draws wea
       }
 
       // The buttons this kind draws, counted against the pinned set — and
-      // how many of them are the solid one.
-      expect(mail.html.split("display:inline-block;padding").length - 1).toBe(BUTTONS[kind]);
+      // how many of them are the solid one. Counted by the marker React
+      // Email's `Button` carries since #934, rather than by a style
+      // fragment: the library owns the button's markup now, and a count
+      // that read its padding would be a count of the library's internals.
+      expect(mail.html.split("data-rk-action=").length - 1).toBe(BUTTONS[kind]);
       const { MAIL_TOKENS } = await import("@/lib/mail/shell/tokens");
       const accent = `background:${MAIL_TOKENS["--accent"]};color:${MAIL_TOKENS["--on-accent"]}`;
       expect(mail.html.split(accent).length - 1, "one solid fill per mail").toBe(SOLID_FILLS[kind]);
@@ -174,10 +198,24 @@ describe("issue #376 — the shell renders S20, and every kind the set draws wea
       // Every line is still owner-owed, so the heading is found by its tag:
       // one, and before the first paragraph.
       expect(mail.html.split("<h3").length - 1).toBe(1);
-      expect(mail.html.indexOf("<h3")).toBeLessThan(mail.html.indexOf("<p style=\"margin:0\">"));
-      expect(mail.html.split("display:inline-block;padding").length - 1).toBe(kind === "cancellation" ? 0 : 1);
+      expect(mail.html.indexOf("<h3")).toBeLessThan(mail.html.indexOf('data-rk-block="paragraph"'));
+      expect(mail.html.split("data-rk-action=").length - 1).toBe(kind === "cancellation" ? 0 : 1);
     });
   }
+
+  it("Outlook's own conditional comments survive the render, and React's stream markers do not", async () => {
+    // `shell/render.ts` removes React's `<!--$-->` / `<!--html-->` stream
+    // markers — a mail is never hydrated and the approved render carried
+    // none. The `<!--[if mso]>` blocks React Email's `Button` writes are
+    // comments too, and they are what make a button draw in Word's
+    // renderer, so this is the assertion that the removal stayed narrow.
+    const mail = await composePreview("report");
+    expect(mail.html).toContain("<!--[if mso]>");
+    expect(mail.html).toContain("<![endif]-->");
+    expect(mail.html).not.toContain("<!--$-->");
+    expect(mail.html).not.toContain("<!--/$-->");
+    expect(mail.html).not.toContain("<!--body-->");
+  });
 
   it("the fact rows are mono, and they are a dl", async () => {
     // S20's "mono fact rows": the value takes the mono face, and the rows

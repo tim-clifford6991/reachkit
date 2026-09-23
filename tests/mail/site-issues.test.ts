@@ -51,19 +51,19 @@ const THIS_MONDAY = section([
   { check: "slow_pages", ran: false, because: "no_timed_reads" },
 ]);
 
-function reportMail(issues: SiteIssuesSection | null) {
+async function reportMail(issues: SiteIssuesSection | null) {
   const mail = buildReport({
     facts: { domain: "a.com", score: "62", band: "Hard to find", aiAnswers: "0 of 9", googleSearch: "0 of 12", limiting: null },
     href: "https://x/scan/a.com",
     removalAddress: "r@x",
     issues,
   });
-  return composeMail({ kind: "report", subject: mail.subject, subjectVars: mail.subjectVars, blocks: mail.blocks, reason: mail.reason, reasonVars: mail.reasonVars });
+  return await composeMail({ kind: "report", subject: mail.subject, subjectVars: mail.subjectVars, blocks: mail.blocks, reason: mail.reason, reasonVars: mail.reasonVars });
 }
 
 describe("the report mail carries the counts the report counted", () => {
-  it("one row per fault, titled as its card, in both bodies", () => {
-    const composed = reportMail(THIS_MONDAY);
+  it("one row per fault, titled as its card, in both bodies", async () => {
+    const composed = await reportMail(THIS_MONDAY);
     for (const body of [composed.html, composed.text]) {
       expect(body).toContain(`3/40 · ${COPY["severity.mid"]}`);
       expect(body).toContain(`12/40 · ${COPY["severity.high"]}`);
@@ -108,7 +108,7 @@ describe("the weekly digest carries what changed since last Monday", () => {
     next: measured([], AT),
   };
 
-  it("a fixed issue and a new one, each against last week's count", () => {
+  it("a fixed issue and a new one, each against last week's count", async () => {
     const changes = issueChanges(THIS_MONDAY, LAST_MONDAY, AT);
     expect(changes.kind === "measured" && changes.value.map((c) => [c.check, c.from, c.to])).toEqual([
       ["broken_links", 2, 0],
@@ -116,7 +116,7 @@ describe("the weekly digest carries what changed since last Monday", () => {
     ]);
 
     const mail = buildWeekly({ ...base, issues: changes });
-    const composed = composeMail({ kind: "weekly", subject: mail.subject, blocks: mail.blocks, reason: mail.reason, measurement: { state: "complete" } });
+    const composed = await composeMail({ kind: "weekly", subject: mail.subject, blocks: mail.blocks, reason: mail.reason, measurement: { state: "complete" } });
     for (const body of [composed.html, composed.text]) {
       expect(body).toContain(`2 → 0/118 · ${COPY["severity.low"]}`);
       expect(body).toContain(`0 → 12/40 · ${COPY["severity.high"]}`);

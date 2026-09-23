@@ -18,16 +18,16 @@ const ALL_ARMS = [
 ];
 
 describe("BUILD §12 — the two bodies carry the same blocks", () => {
-  it("both bodies are non-empty and agree on what was omitted", () => {
-    const html = renderBlocksHtml(ALL_ARMS);
+  it("both bodies are non-empty and agree on what was omitted", async () => {
+    const html = await renderBlocksHtml(ALL_ARMS);
     const text = renderBlocksText(ALL_ARMS);
     expect(html.html.length).toBeGreaterThan(0);
     expect(text.text.length).toBeGreaterThan(0);
     expect(text.omitted).toEqual(html.omitted);
   });
 
-  it("every sentence in the html body is in the text body, and the other way round", () => {
-    const html = renderBlocksHtml(ALL_ARMS).html;
+  it("every sentence in the html body is in the text body, and the other way round", async () => {
+    const html = (await renderBlocksHtml(ALL_ARMS)).html;
     const text = renderBlocksText(ALL_ARMS).text;
     for (const sentence of [f.HEADING_TEXT, f.LABEL_TEXT, f.NOTE_TEXT, f.ACTION_TEXT]) {
       expect(html).toContain(sentence);

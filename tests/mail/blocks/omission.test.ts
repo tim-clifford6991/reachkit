@@ -19,9 +19,9 @@ describe("BUILD §12 — an unmeasured section is left out entirely", () => {
     expect(omittedIndexes(BLOCKS)).toEqual([1, 2, 3]);
   });
 
-  it("emits no zero, dash or placeholder in either body where a section was dropped", () => {
+  it("emits no zero, dash or placeholder in either body where a section was dropped", async () => {
     const { text } = renderBlocksText(BLOCKS);
-    const { html } = renderBlocksHtml(BLOCKS);
+    const { html } = await renderBlocksHtml(BLOCKS);
 
     // The dropped blocks' own sentences are absent from both bodies.
     expect(text).not.toContain(f.LABEL_TEXT);

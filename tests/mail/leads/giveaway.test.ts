@@ -166,7 +166,7 @@ describe('REQ-010 c7 — "the founder is told the page is not coming and why, in
     ]);
   });
 
-  it("all four cause lines are the owner's written sentences (issue #458), and each mail composes with its own", () => {
+  it("all four cause lines are the owner's written sentences (issue #458), and each mail composes with its own", async () => {
     // Owner-owed until issue #458 filled them on the owner's 2026-09-10
     // approval, when the real seam refused this mail as `not-composable`.
     // Each cause's mail is composed here and must carry its own line — and
@@ -178,7 +178,7 @@ describe('REQ-010 c7 — "the founder is told the page is not coming and why, in
       expect(OWNER_OWED).not.toContain(key);
 
       const mail = buildFirstPageUnavailable({ email: "anna@example.com", causeLine: key });
-      const composed = composeMail({
+      const composed = await composeMail({
         kind: "first-page-unavailable",
         subject: mail.subject,
         blocks: mail.blocks,

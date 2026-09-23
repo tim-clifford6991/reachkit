@@ -64,7 +64,7 @@ describe("issue #376 — S20's footer, in both bodies", () => {
     expect([...NO_REASON_YET].sort()).toEqual(registered.filter((k) => !drawn.includes(k)).sort());
   });
 
-  it("the reason, the stop link and the imprint band render, in that order, in both bodies", () => {
+  it("the reason, the stop link and the imprint band render, in that order, in both bodies", async () => {
     // The stop control's own label (`mail.optout.label`) was owner-owed
     // until issue #458 filled it on the owner's 2026-09-10 approval, so the
     // link now renders — between the reason and the band, where `frame.ts`
@@ -74,7 +74,7 @@ describe("issue #376 — S20's footer, in both bodies", () => {
     expect(OWNER_OWED).not.toContain("mail.optout.label");
 
     const href = "https://reachkit.example/opt-out/token";
-    const mail = composeMail({
+    const mail = await composeMail({
       kind: "report",
       ...BASE,
       reason: "mail.reason.report",
@@ -100,15 +100,15 @@ describe("issue #376 — S20's footer, in both bodies", () => {
     expect(text.indexOf("plain-text version attached")).toBeGreaterThan(textLink);
   });
 
-  it("a mail with no reason still composes, and its footer is the band alone", () => {
+  it("a mail with no reason still composes, and its footer is the band alone", async () => {
     // The arm the three kinds above take. It must not throw, and it must
     // not render an empty line where a sentence would go.
-    const mail = composeMail({ kind: "account", ...BASE });
+    const mail = await composeMail({ kind: "account", ...BASE });
     expect(mail.html).toContain("plain-text version attached");
     expect(mail.html).not.toContain("<p style=\"margin:0\"></p>");
   });
 
-  it("the imprint, once written, sits between the wordmark and the plain-text note", () => {
+  it("the imprint, once written, sits between the wordmark and the plain-text note", async () => {
     // The set brackets the imprint, so it was owner-owed and empty, and the
     // band read wordmark · plain-text note. Issue #458 filled it on the
     // owner's 2026-09-10 approval, so the band now carries all three parts,
@@ -116,7 +116,7 @@ describe("issue #376 — S20's footer, in both bodies", () => {
     const imprint = COPY["mail.shell.imprint"];
     expect(imprint).not.toBe("");
     expect(OWNER_OWED).not.toContain("mail.shell.imprint");
-    const mail = composeMail({ kind: "report", ...BASE, reason: "mail.reason.report", reasonVars: { address: "x@y.z" } });
+    const mail = await composeMail({ kind: "report", ...BASE, reason: "mail.reason.report", reasonVars: { address: "x@y.z" } });
     const band = [COPY["mail.shell.wordmark"], imprint, COPY["mail.shell.plaintext_note"]].join(" · ");
     expect(mail.html).toContain(band);
     expect(mail.text).toContain(band);

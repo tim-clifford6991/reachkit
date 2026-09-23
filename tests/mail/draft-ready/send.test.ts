@@ -434,7 +434,7 @@ describe("issue #183 — the mail names the page, and says why §7 chose it", ()
     // So the mail that was sent composes, and speaks the search sentence
     // with §7's stored query in its slot.
     const m = sent[0]!;
-    const composed = composeMail({
+    const composed = await composeMail({
       kind: "draft-ready",
       subject: m.subject as CopyKey,
       subjectVars: m.subjectVars,

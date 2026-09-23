@@ -139,9 +139,9 @@ async function consultOneStore(m: SendInput): Promise<Stopped | "send"> {
 export async function sendEmail(m: SendInput): Promise<SendResult> {
   const recipientEarly = recipientDigest(m.to);
 
-  let composed: ReturnType<typeof composeMail>;
+  let composed: Awaited<ReturnType<typeof composeMail>>;
   try {
-    composed = compose(m);
+    composed = await compose(m);
     // SPEC §8: "Unwritten keys send nothing." An owner-owed key already
     // throws in `copy()`; a key still holding the `TODO(copy)` marker renders
     // as itself, which a screen may show but a mail — sent once, never
@@ -208,7 +208,12 @@ export async function sendEmail(m: SendInput): Promise<SendResult> {
 
 /** The compose call, split out only so `sendEmail` reads as one path.
  *  `measurement` is required for `'weekly'` and rejected for every other
- *  kind, which is why the two arms are written out rather than spread. */
+ *  kind, which is why the two arms are written out rather than spread.
+ *
+ *  Asynchronous since #934, and only because React Email's renderer is
+ *  (`shell/render.ts`). Nothing here reaches a vendor — that is the next
+ *  step, and it is the one `sendEmail` guards behind the TODO(copy)
+ *  check. */
 function compose(m: SendInput): ReturnType<typeof composeMail> {
   return m.kind === "weekly"
     ? composeMail({

@@ -29,6 +29,8 @@
     "tests/**/*.ts",
     "tests/**/*.tsx",
     "scripts/**/*.ts",
+    "emails/**/*.ts",
+    "emails/**/*.tsx",
     "next.config.ts",
     "vitest.config.ts",
     "eslint.config.mjs",

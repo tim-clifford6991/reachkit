@@ -79,7 +79,7 @@ describe("the sentences are the approved set's, word for word", () => {
     // `not-composable`. A paying customer's way back in now composes.
     const { composeMail } = await import("../../../../src/lib/mail/shell/compose");
     const mail = build();
-    const composed = composeMail({
+    const composed = await composeMail({
       kind: "magic-link",
       subject: mail.subject,
       blocks: mail.blocks,
@@ -92,9 +92,16 @@ describe("the sentences are the approved set's, word for word", () => {
 
 const { composeMail } = await import("../../../../src/lib/mail/shell/compose");
 
-describe("#637 — the composed mail, as an inbox receives it", () => {
+// Composed once, at module scope, because `composeMail()` returns a promise
+// since #934 and a `describe` callback cannot await one. This file already
+// reaches its own seam through top-level `await import`.
+const composedOnce = await (async () => {
   const mail = build();
-  const { html, text } = composeMail({ kind: "magic-link", subject: mail.subject, blocks: mail.blocks, reason: mail.reason });
+  return composeMail({ kind: "magic-link", subject: mail.subject, blocks: mail.blocks, reason: mail.reason });
+})();
+
+describe("#637 — the composed mail, as an inbox receives it", () => {
+  const { html, text } = composedOnce;
   const inOrder = (body: string, parts: readonly string[]): void => {
     const at = parts.map((part) => body.indexOf(part));
     expect(at.every((i) => i >= 0), `every part is present: ${at.join(",")}`).toBe(true);
@@ -103,13 +110,17 @@ describe("#637 — the composed mail, as an inbox receives it", () => {
   const [heading, body, reason] = [COPY["mail.magicLink.heading"], COPY["mail.magicLink.body"], COPY["mail.reason.magicLink"]];
 
   it("both bodies read heading, line, action, fact row, then the reason footer", () => {
-    inOrder(html, [heading, body, `>${COPY["mail.magicLink.action"]}</a>`, ADDRESS, reason]);
+    inOrder(html, [heading, body, `>${COPY["mail.magicLink.action"]}</span>`, ADDRESS, reason]);
     inOrder(text, [heading, body, HREF, ADDRESS, reason]);
   });
 
-  it("one solid action — a single link on a filled table cell — and no stop control", () => {
+  it("one solid action — a single filled link — and no stop control", () => {
     expect([...html.matchAll(/<a href="([^"]*)"/g)].map((m) => m[1])).toEqual([HREF]);
-    expect(html).toMatch(/<td bgcolor="#[0-9a-f]{6}"[^>]*><a href=/);
+    // #934: React Email's `Button` puts the fill on the link and the
+    // Outlook padding on an `mso` conditional inside it, where this seam
+    // used to wrap the link in a `bgcolor` cell of its own. One solid
+    // fill either way, which is what S20 asks of a mail.
+    expect(html).toMatch(/data-rk-action="primary"[^>]*background:#[0-9a-f]{6};color:#[0-9a-f]{6}/);
     expect(html).not.toMatch(/\sclass="/);
     for (const b of [html, text]) {
       expect(b).not.toContain(COPY["mail.optout.label"]);

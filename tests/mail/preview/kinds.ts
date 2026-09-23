@@ -17,8 +17,9 @@
 // its two judged pages — because a preview that showed different numbers
 // from the screen it is checked against would be checking nothing.
 import { measured } from "../../../src/lib/measure/measured";
+import type { ReactNode } from "react";
 import type { MailKind } from "../../../src/lib/mail/kinds";
-import type { ComposedMail } from "../../../src/lib/mail/shell/compose";
+import type { ComposedMail, ComposeInput } from "../../../src/lib/mail/shell/compose";
 import type {
   DraftReadyPage,
   TellableTelling,
@@ -29,6 +30,26 @@ import type { PublishedTelling } from "../../../src/lib/publish/verify/telling";
 
 const AT = new Date("2026-09-08T07:00:00.000Z");
 const APP = "https://reachkit.example";
+
+/** A composed fixture, plus the React Email document it was rendered from
+ *  (#934). The document is what `emails/` hands the preview server, so the
+ *  mail the owner opens in a browser is the mail these assertions ran
+ *  against — the same argument `scripts/mail-samples.mjs` makes for the
+ *  files it writes. */
+export type PreviewMail = ComposedMail & { document: ReactNode };
+
+/** `composeMail()` with the document kept. Returned as a function so every
+ *  fixture below reads exactly as it did before: one `composeMail({...})`
+ *  call per kind, and no second place a preview could be composed
+ *  differently from a send. */
+async function composer(): Promise<(input: ComposeInput) => Promise<PreviewMail>> {
+  const { composeMailParts } = await import("../../../src/lib/mail/shell/compose");
+  const { renderMailHtml } = await import("../../../src/lib/mail/shell/render");
+  return async (input) => {
+    const parts = composeMailParts(input);
+    return { ...parts, html: await renderMailHtml(parts.document) };
+  };
+}
 
 /** The autopilot arm of the draft-ready telling: a page with a window in
  *  which to stop it, which is the arm S20 draws. */
@@ -140,8 +161,8 @@ export type PreviewKind = (typeof PREVIEW_KINDS)[number];
 
 /** Composes one kind. Async because every template module is imported
  *  through the env fixture, as the rest of `tests/mail` does. */
-export async function composePreview(kind: PreviewKind): Promise<ComposedMail> {
-  const { composeMail } = await import("../../../src/lib/mail/shell/compose");
+export async function composePreview(kind: PreviewKind): Promise<PreviewMail> {
+  const composeMail = await composer();
 
   switch (kind) {
     case "magic-link": {
@@ -267,8 +288,8 @@ export async function composePreview(kind: PreviewKind): Promise<ComposedMail> {
  *  `weekly` card the set draws. Every section drops out and the whole-mail
  *  line says when the next measurement is due (§8's "a mail that still
  *  arrives when there was nothing to report"). */
-export async function composeUnmeasuredWeek(): Promise<ComposedMail> {
-  const { composeMail } = await import("../../../src/lib/mail/shell/compose");
+export async function composeUnmeasuredWeek(): Promise<PreviewMail> {
+  const composeMail = await composer();
   const { buildWeekly } = await import("../../../src/lib/mail/templates/weekly");
   const { unmeasured } = await import("../../../src/lib/measure/measured");
   const mail = buildWeekly({
@@ -299,8 +320,8 @@ export const RETENTION_PREVIEW_KINDS = [
 
 export async function composeRetentionPreview(
   kind: (typeof RETENTION_PREVIEW_KINDS)[number]
-): Promise<ComposedMail> {
-  const { composeMail } = await import("../../../src/lib/mail/shell/compose");
+): Promise<PreviewMail> {
+  const composeMail = await composer();
   const email = "you@company.com";
   const mail = await (async () => {
     switch (kind) {
@@ -360,8 +381,8 @@ const PREVIEW_CAUSE = "mail.firstPageUnavailable.writing-refused" satisfies Copy
 
 export async function composeRemainingPreview(
   kind: (typeof REMAINING_PREVIEW_KINDS)[number]
-): Promise<ComposedMail> {
-  const { composeMail } = await import("../../../src/lib/mail/shell/compose");
+): Promise<PreviewMail> {
+  const composeMail = await composer();
 
   switch (kind) {
     case "first-page-unavailable": {
@@ -424,7 +445,7 @@ function isRetentionKind(kind: MailKind): kind is (typeof RETENTION_PREVIEW_KIND
  *  to `REMAINING_PREVIEW_KINDS`, so a row added to `MAIL_KINDS` with no
  *  fixture is a type error on the last line rather than a missing file at
  *  render time. */
-export async function composeAnyKind(kind: MailKind): Promise<ComposedMail> {
+export async function composeAnyKind(kind: MailKind): Promise<PreviewMail> {
   if (isPreviewKind(kind)) return composePreview(kind);
   if (isRetentionKind(kind)) return composeRetentionPreview(kind);
   return composeRemainingPreview(kind);

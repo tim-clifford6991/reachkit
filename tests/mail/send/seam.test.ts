@@ -61,7 +61,7 @@ describe("BUILD §12 — one send, one request", () => {
     const blocks = [f.HEADING, f.stat(f.num(3))];
     await sendEmail({ kind: "report", to: "reader@example.com", subject: f.HEADING_KEY, blocks });
 
-    const composed = composeMail({ kind: "report", subject: f.HEADING_KEY, blocks });
+    const composed = await composeMail({ kind: "report", subject: f.HEADING_KEY, blocks });
     expect(requests[0]?.html).toBe(composed.html);
     expect(requests[0]?.text).toBe(composed.text);
     expect(requests[0]?.subject).toBe(composed.subject);

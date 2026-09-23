@@ -24,9 +24,9 @@ describe("BUILD §12 — one omission decision, two bodies", () => {
     expect(text).toContain(f.LABEL_TEXT); // the kept list's own label
   });
 
-  it("both renderers return the identical omitted list, for every shape", () => {
+  it("both renderers return the identical omitted list, for every shape", async () => {
     for (const blocks of [MIXED, [], [f.HEADING], [f.stat(f.missing<number>())]]) {
-      expect(renderBlocksText(blocks).omitted).toEqual(renderBlocksHtml(blocks).omitted);
+      expect(renderBlocksText(blocks).omitted).toEqual((await renderBlocksHtml(blocks)).omitted);
     }
   });
 });
