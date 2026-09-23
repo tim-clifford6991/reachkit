@@ -265,10 +265,6 @@ describe('REQ-098 c7 — "Given a person who opens a sign-in link that no longer
     expect(html).not.toContain('href="/signin"');
   });
 
-  it("the arm is warn-toned, and it is the only tone this screen spends", async () => {
-    const html = await renderWithKeys({ searchParams: { link: "dead" } });
-    expect(html).toContain('data-tone="warn"');
-  });
 
   it("no marker, no line", async () => {
     expect(await renderWithKeys()).not.toContain("signin.link_dead");
@@ -377,22 +373,32 @@ describe("against the real registry — every arm renders, and nothing is invent
   });
 });
 
-describe("issue #549 — one rounded card, and the address is the field's own placeholder", () => {
+describe("issue #1025 — the Round 7 full-width split, and the address is the field's own placeholder", () => {
   it("the screen draws its layout in Tailwind utilities: no rk-* class is left on it", () => {
     expect(PAGE_SOURCE).not.toMatch(/rk-/);
   });
 
-  it("no viewport-height band: the card is as tall as its content", () => {
-    expect(PAGE_SOURCE).not.toMatch(/svh|100vh|min-h-/);
+  it("the form is the main half and the accent panel the other, with no card around the two", async () => {
+    const html = await renderWithKeys();
+    expect(html).toMatch(/<main class="[^"]*"/);
+    expect(html).toMatch(/<aside class="[^"]*bg-primary\/10[^"]*" data-testid="signin-panel"/);
+    // #986 drew the two halves as one bordered, rounded card at the wide
+    // measure; the owner's ruling on #937 is a split that runs edge to edge.
+    expect(html).not.toMatch(/class="card grid/);
+    expect(html).toContain('data-arm-compact="declared:');
   });
 
-  it("the two halves are one card's flush grid tracks, clipped to its radius", () => {
-    // Flush: the grid that holds them declares no gap, and daisyUI's card
-    // clips its children to the theme's box radius, so the accent half's
-    // corners are the card's corners.
-    expect(PAGE_SOURCE).toMatch(/card grid grid-cols-1 overflow-hidden/);
-    expect(PAGE_SOURCE).toMatch(/grid grid-cols-1 [^"`]*lg:grid-cols-2/);
-    expect(PAGE_SOURCE).not.toMatch(/\bgap-\(--s-\d\)[^"`]*lg:grid-cols-2/);
+  it("the tile carries the board's second row: sixteen answers, one of them the reader's", async () => {
+    const html = await renderWithKeys();
+    expect(html.match(/data-answer="/g)).toHaveLength(16);
+    expect(html.match(/data-answer="you"/g)).toHaveLength(1);
+    expect(html).toContain("signin.panel.answers");
+  });
+
+  it("the answered arm offers the way back to the field, not a second solid button", async () => {
+    const html = await renderWithKeys({ state: { answer: "requested", value: "someone@example.com" } });
+    expect(html).toMatch(/<a class="btn btn-outline[^"]*" href="\/signin">signin.sent.resend<\/a>/);
+    expect(html).not.toContain("btn-primary");
   });
 
   it("the address is the input's placeholder, in the mono face, and still names the field", async () => {

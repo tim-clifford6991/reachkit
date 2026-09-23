@@ -67,6 +67,16 @@ export const SPECIMEN_SIGNIN = Object.freeze({
   score: 47,
   /** The score is out of one hundred. */
   max: 100,
+  /** The tile's second row (#1025, Round 7 `R7-S1`): four questions by
+   *  four answers, read row by row — who each AI answer names. `you` is
+   *  the example site, `named` is a rival the answer names, `unnamed` is
+   *  an answer that names nobody here. The board's own sixteen cells. */
+  answers: Object.freeze([
+    "unnamed", "named", "named", "unnamed",
+    "unnamed", "named", "named", "named",
+    "you", "named", "unnamed", "unnamed",
+    "unnamed", "named", "unnamed", "named",
+  ] as const),
 });
 
 /** The seven days of the specimen week.

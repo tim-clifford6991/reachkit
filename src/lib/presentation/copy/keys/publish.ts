@@ -250,6 +250,28 @@ export const PUBLISH_COPY = Object.freeze({
    *  make the bold a matter of where a full stop happens to fall.
    *  Drafted (#759). */
   "publish.veto.done.line": ["This page won’t go live.", { slots: {}, fixedBy: "issue 937" }],
+  /** The accent half's heading over the page it shows (#1025, Round 7
+   *  `R7-S4`). `{day}` is the weekday it publishes, in the site's zone —
+   *  the same moment the head on the left writes. Transcribed from the
+   *  board, for the owner to confirm. */
+  "publish.veto.panel.heading": [
+    "This is the page that goes live on {day}.",
+    { slots: { day: "text" }, fixedBy: "issue 1025" },
+  ],
+  /** The same heading on the stopped arm (#1025, `R7-S5`). The board
+   *  repeats the ask arm's "goes live on …", which is false once the page
+   *  is stopped; this says what is true instead. Drafted (#759). */
+  "publish.veto.panel.heading.stopped": [
+    "This is the page you stopped.",
+    { slots: {}, fixedBy: "issue 1025" },
+  ],
+  /** Under the page the accent half shows (#1025, `R7-S4`): what it was
+   *  written for, and how often that is searched. Transcribed from the
+   *  board, for the owner to confirm. */
+  "publish.veto.panel.caption": [
+    "Written for “{query}” — {volume} searches a month.",
+    { slots: { query: "text", volume: "text" }, fixedBy: "issue 1025" },
+  ],
   "publish.veto.alreadyUsed": ["This link was already used. The page is stopped.", { slots: {}, fixedBy: "REQ-057 c1" }],
   "publish.veto.expired": ["The moment to stop this page has passed.", { slots: {}, fixedBy: "REQ-057 c1" }],
   "publish.veto.unknown": ["This isn’t a link ReachKit can act on.", { slots: {}, fixedBy: "REQ-057 c1" }],

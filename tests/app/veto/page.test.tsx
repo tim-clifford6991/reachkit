@@ -49,6 +49,11 @@ const LIVE_PREVIEW: VetoPreview = {
 
 const LIVE: PreviewResult = { ok: true, preview: LIVE_PREVIEW };
 
+/** A spent token: the page it was bound to, as the preview reads it back. */
+function spent(title: string | null): PreviewResult {
+  return { ok: false, reason: "used", title, domain: "example.com", excerpt: LIVE_PREVIEW.excerpt };
+}
+
 let previewAnswer: (token: string) => Promise<PreviewResult> = async () => LIVE;
 let redeemAnswer: (token: string) => Promise<RedeemResult> = async () => ({
   ok: true,
@@ -156,31 +161,31 @@ function classOf(node: Node): string {
   return String(node.props.className ?? "");
 }
 
-/**
- * The one written line the `Told` arm draws: a plain paragraph, not a
- * tinted block.
- */
+/** The one written line the `Told` arm draws under its head. */
 function toldLine(tree: React.ReactNode): string {
-  const paragraph = nodes(tree).find((node) => node.type === "p" && classOf(node).includes("text-base-content/70"));
+  const paragraph = nodes(tree).find((node) => node.props?.["data-testid"] === "veto-message");
   return String(paragraph?.props.children ?? "");
 }
 
-/** The card's lead: the uppercase line that opens it, or — on the arm the
- *  reader reaches by pressing the control — the first words of the success
- *  alert the 2026-09-20 board draws there instead (#937). One helper,
- *  because what it is asking is "what does this card say first". */
+/** The left half's lead: the uppercase line that opens it. */
 function eyebrowOf(tree: React.ReactNode): string | undefined {
   // The element is `p` or `h1` depending on whether a draft title follows
   // it (#328) — what this helper is asking is "what does this card say
   // first", which is the line, not its tag.
-  const head =
-    nodes(tree).find(
-      (node) => (node.type === "p" || node.type === "h1") && classOf(node).includes("uppercase")
-    ) ?? nodes(tree).find((node) => node.type === "span" && classOf(node).includes("font-semibold"));
+  const head = nodes(tree).find(
+    (node) => (node.type === "p" || node.type === "h1") && classOf(node).includes("uppercase")
+  );
   if (head === undefined) return undefined;
   const children = head.props.children;
   const list = Array.isArray(children) ? children : [children];
   return list.find((child): child is string => typeof child === "string");
+}
+
+/** The heading an element of this type carries, as text. */
+function headingsOf(tree: React.ReactNode, type: "h1" | "h2" | "h3"): string[] {
+  return nodes(tree)
+    .filter((node) => node.type === type)
+    .map((node) => String(node.props.children));
 }
 
 /** Every `<button>` the page draws. */
@@ -328,9 +333,10 @@ describe("the ask arm — what the set draws, in its own order", () => {
 
 describe("the done arm, and the refusals that wear its shape", () => {
   it("coming back from the control, on a token that now reads as spent, says it stopped", async () => {
-    previewAnswer = async () => ({ ok: false, reason: "used", title: "How teams pick an onboarding tool" });
+    previewAnswer = async () => spent("How teams pick an onboarding tool");
     const tree = await ask({ done: "1" });
-    expect(eyebrowOf(tree)).toBe(COPY["publish.veto.done.head"]);
+    expect(headingsOf(tree, "h1")).toEqual([COPY["publish.veto.done.head"]]);
+    expect(text(tree)).toContain(COPY["publish.veto.done.line"]);
     expect(toldLine(tree)).toBe(COPY["publish.veto.stopped"]);
     const links = linksOf(tree);
     expect(links).toHaveLength(1);
@@ -349,35 +355,34 @@ describe("the done arm, and the refusals that wear its shape", () => {
     expect(buttonsOf(tree)).toHaveLength(0);
   });
 
-  it("the done arm draws the page's own title under the eyebrow, as the set does", async () => {
-    // S6's done arm is `Stopped` · the h1 · the line · the quiet control. A
-    // reader who has just stopped a page is told which page it was.
-    previewAnswer = async () => ({ ok: false, reason: "used", title: "How teams pick an onboarding tool" });
-    const headings = nodes(await ask({ done: "1" })).filter((node) => node.type === "h1");
-    expect(headings).toHaveLength(1);
-    expect(headings[0]?.props.children).toBe("How teams pick an onboarding tool");
+  it("the done arm shows the page that was stopped beside it (R7-S5)", async () => {
+    // A reader who has just stopped a page is shown which page it was: its
+    // title, its site and its opening, on the accent half.
+    previewAnswer = async () => spent("How teams pick an onboarding tool");
+    const tree = await ask({ done: "1" });
+    expect(headingsOf(tree, "h3")).toEqual(["How teams pick an onboarding tool"]);
+    expect(text(tree)).toContain("example.com");
+    expect(text(tree)).toContain(LIVE_PREVIEW.excerpt);
+    // It is not going live any more, so the half does not say it is: its
+    // heading says what is true instead.
+    expect(headingsOf(tree, "h2")).toEqual([COPY["publish.veto.panel.heading.stopped"]]);
   });
 
-  it("warn is never a fill: a refusal is a line, and only the confirmed stop is tinted (#937)", async () => {
-    // The rule this row has always kept is about **warn**: `--warn` is
-    // edge and ink, so a link that was already used or has expired states
-    // it in a line and never in a tinted block.
-    //
-    // The 2026-09-20 board adds the other half. The arm a reader reaches
-    // by *pressing the control* is the one piece of good news on this
-    // screen, and it earns the `alert-success` the board draws — which is
-    // not warn on a ground, and is not a refusal.
-    const tinted = (tree: React.ReactNode): Node[] => nodes(tree).filter((node) => /\balert\b/.test(classOf(node)));
+  it("warn is never a fill: a refusal is a line, and only the confirmed stop is tinted", async () => {
+    // `--warn` is edge and ink, so a link that was already used or has
+    // expired states it in a line and never in a tinted block. The arm a
+    // reader reaches by *pressing the control* is the one piece of good
+    // news here, and it earns the success mark `R7-S5` draws.
+    const tinted = (tree: React.ReactNode): Node[] =>
+      nodes(tree).filter((node) => /\balert\b|bg-(success|warning|error)\//.test(classOf(node)));
 
-    // Pressed, and it worked: the board's success alert, and only it.
-    previewAnswer = async () => ({ ok: false, reason: "used", title: null });
+    previewAnswer = async () => spent(null);
     const confirmed = tinted(await ask({ done: "1" }));
     expect(confirmed).toHaveLength(1);
-    expect(classOf(confirmed[0] as Node)).toContain("alert-success");
-    expect(classOf(confirmed[0] as Node)).not.toMatch(/alert-warning|alert-error/);
+    expect(classOf(confirmed[0] as Node)).toContain("bg-success/10");
 
     // A spent link reached cold is not something the reader just did.
-    previewAnswer = async () => ({ ok: false, reason: "used", title: null });
+    previewAnswer = async () => spent(null);
     expect(tinted(await ask())).toEqual([]);
     previewAnswer = async () => ({ ok: false, reason: "unknown" });
     expect(tinted(await ask())).toEqual([]);
@@ -388,7 +393,8 @@ describe("the done arm, and the refusals that wear its shape", () => {
   it("a refusal names no draft — and its own head is the screen's one h1 (#328)", async () => {
     for (const reason of ["expired", "not_in_review", "unknown"] as const) {
       previewAnswer = async () => ({ ok: false, reason });
-      const headings = nodes(await ask()).filter((node) => node.type === "h1");
+      const tree = await ask();
+      const headings = nodes(tree).filter((node) => node.type === "h1");
       // **No draft title**, which is what this row has always been about: a
       // bare `<h1>` here would be the page claiming a name it does not
       // have. A title `<h1>` carries no class; the head carries `EYEBROW`.
@@ -400,6 +406,7 @@ describe("the done arm, and the refusals that wear its shape", () => {
       // route. The class is unchanged, so nothing on screen moved.
       expect(headings).toHaveLength(1);
       expect(classOf(headings[0] as Node)).toContain("uppercase");
+      expect(nodes(tree).filter((node) => node.type === "aside")).toHaveLength(0);
     }
   });
 
@@ -412,7 +419,7 @@ describe("the done arm, and the refusals that wear its shape", () => {
   });
 
   it("a spent link reached cold says it was already used, not that it stopped", async () => {
-    previewAnswer = async () => ({ ok: false, reason: "used", title: "How teams pick an onboarding tool" });
+    previewAnswer = async () => spent("How teams pick an onboarding tool");
     expect(toldLine(await ask())).toBe(COPY["publish.veto.alreadyUsed"]);
   });
 
@@ -435,7 +442,7 @@ describe("the done arm, and the refusals that wear its shape", () => {
   });
 
   it("every refusal renders a line — the three keys are the marker, never empty", async () => {
-    previewAnswer = async () => ({ ok: false, reason: "used", title: null });
+    previewAnswer = async () => spent(null);
     expect(toldLine(await ask()).length).toBeGreaterThan(0);
     for (const reason of ["expired", "not_in_review", "unknown"] as const) {
       previewAnswer = async () => ({ ok: false, reason });
@@ -473,15 +480,50 @@ describe("the done arm, and the refusals that wear its shape", () => {
   });
 });
 
-describe("the card starts at its own head, and the brand is in the bar", () => {
-  // The brand is drawn once, in the public bar the group layout puts around
-  // this page; a card titled *ReachKit* under it would say it twice.
-  it("both arms open one daisyUI card on its eyebrow", async () => {
-    previewAnswer = async () => LIVE;
-    expect(nodes(await ask()).filter((node) => /(^|\s)card(\s|$)/.test(classOf(node)))).toHaveLength(1);
+describe("the Round 7 split (R7-S4/S5, #1025): the interaction left, the page right, the brand in the bar", () => {
+  it("both arms are one main beside one accent half, and neither is a card", async () => {
+    for (const [answer, query] of [
+      [LIVE, {}],
+      [spent("How teams pick an onboarding tool"), { done: "1" }],
+    ] as const) {
+      previewAnswer = async () => answer;
+      const tree = await ask(query);
+      expect(nodes(tree).filter((node) => node.type === "main")).toHaveLength(1);
+      const asides = nodes(tree).filter((node) => node.type === "aside");
+      expect(asides).toHaveLength(1);
+      expect(classOf(asides[0] as Node)).toContain("bg-primary/10");
+      expect(nodes(tree).filter((node) => /(^|\s)card(\s|$)/.test(classOf(node)))).toHaveLength(0);
+    }
+  });
 
-    previewAnswer = async () => ({ ok: false, reason: "used", title: "How teams pick an onboarding tool" });
-    expect(nodes(await ask({ done: "1" })).filter((node) => /(^|\s)card(\s|$)/.test(classOf(node)))).toHaveLength(1);
+  it("the ask arm's half is the page that goes live: the day, the page, and what it was written for", async () => {
+    const tree = await ask();
+    // 05:00 UTC is 07:00 in Berlin on Tuesday 15 September.
+    expect(headingsOf(tree, "h2")).toEqual([
+      COPY["publish.veto.panel.heading"].replace("{day}", "Tuesday"),
+    ]);
+    expect(headingsOf(tree, "h3")).toEqual([LIVE_PREVIEW.title]);
+    expect(text(tree)).toContain(LIVE_PREVIEW.excerpt);
+    expect(text(tree)).toContain(
+      COPY["publish.veto.panel.caption"].replace("{query}", "best onboarding tools").replace("{volume}", "2,400")
+    );
+  });
+
+  it("a half with no moment or no measured volume says neither, rather than guessing", async () => {
+    previewAnswer = async () => ({ ok: true, preview: { ...LIVE_PREVIEW, publishes: null, volume: null } });
+    const tree = await ask();
+    // No day to name, so no heading over the half: the page's title steps
+    // up to be its `<h2>` rather than leave a level skipped (#328).
+    expect(headingsOf(tree, "h2")).toEqual([LIVE_PREVIEW.title]);
+    expect(text(tree)).not.toContain("searches a month");
+  });
+
+  it("a draft with nothing to show draws no half", async () => {
+    previewAnswer = async () => ({
+      ok: true,
+      preview: { ...LIVE_PREVIEW, title: null, domain: null, excerpt: null },
+    });
+    expect(nodes(await ask()).filter((node) => node.type === "aside")).toHaveLength(0);
   });
 
   it("the page spends no wordmark key at all", () => {

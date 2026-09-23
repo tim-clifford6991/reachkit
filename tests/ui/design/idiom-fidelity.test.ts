@@ -160,7 +160,6 @@ describe("issue #486 — every chip the approved set draws carries its glyph", (
       "app/(public)/_chrome/Footer.tsx",
       "app/(account)/app/layout.tsx",
       "app/(account)/app/_shell/TopBar.tsx",
-      "app/(public)/signin/page.tsx",
     ]) {
       const source = read(file);
       expect(source, file).toMatch(/from "@\/app\/_brand\/Brand"/);
@@ -170,6 +169,10 @@ describe("issue #486 — every chip the approved set draws carries its glyph", (
       expect(source, file).not.toContain("linearGradient");
       expect(source, file).not.toContain("#5b4be0");
     }
+    // The sign-in screen stopped drawing the brand itself with #1025: it
+    // stands under the public header like every other public screen, and
+    // a second brand inside its form half would say the name twice.
+    expect(read("app/(public)/signin/page.tsx")).not.toContain("linearGradient");
     // The two generated pictures read it too, rather than carrying a
     // second mark as `og-card.tsx` did until #982.
     const card = read("app/(public)/_seo/og-card.tsx");
