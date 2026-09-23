@@ -11,6 +11,7 @@
 //   npm run proof:live-drafts -- --run           # spends, cap 135c
 //   npm run proof:live-drafts -- --run --max-spend 60
 //   npm run proof:live-drafts -- --run --env-file ../reachkitv3/.env.local
+//   npm run proof:live-drafts -- --run --regenerate 2   # the second attempt
 //
 // `--max-spend` is in the ledger's own cent, the unit `CAPS` and the price
 // book are written in. The default, 135, is the owner's €1.35: the model is
@@ -54,6 +55,9 @@ const options = {
   run: argv.includes("--run"),
   runCapCents: Number(flag("--max-spend", "135")) || 135,
   outDir: path.resolve(ROOT, flag("--out", ".review/321")),
+  // The pipeline's own automatic regeneration, spent on one earlier draft
+  // (owner ruling 2026-09-23): the draft number of a run already in --out.
+  regenerate: argv.includes("--regenerate") ? Number(flag("--regenerate", "")) || null : null,
 };
 const envFile = path.resolve(ROOT, flag("--env-file", ".env.local"));
 

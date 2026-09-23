@@ -23,7 +23,7 @@
 // A draft that fails a rule is the answer to #321, not a prompt to be
 // tuned. This file reports what the battery decided and changes nothing to
 // make it decide otherwise.
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { CAPS, INFERENCE_MAX_OUTPUT_TOKENS, INFERENCE_PRICE_BOOK } from "@/lib/config/constants";
 import { generateDraft, type GenerateOutcome } from "@/lib/generate/pipeline";
@@ -56,6 +56,9 @@ export interface Options {
   runCapCents: number;
   /** Where the drafts and the rule results are written. */
   outDir: string;
+  /** Spend the pipeline's own automatic regeneration on this draft of the
+   *  run already in `outDir`, instead of writing three new drafts. */
+  regenerate: number | null;
 }
 
 /** The five `llm()` call sites one draft uses, in the order the pipeline
@@ -157,10 +160,11 @@ async function writeOne(
   ledger: ProofLedger,
   store: ReturnType<typeof memoryStore>,
   target: Target,
-  index: number
+  index: number,
+  retry: { draftId: string; priorCents: number } | null = null
 ): Promise<DraftRecord> {
   const before = ledger.rows.length;
-  const cost = ledger.contextFor(index);
+  const cost = ledger.contextFor(index, retry?.priorCents ?? 0);
   const outcome = await generateDraft(cost, {
     siteId: SITE_ID,
     opportunity: opportunityFor(target),
@@ -173,6 +177,9 @@ async function writeOne(
     profile: PROFILE,
     factsOff: [],
     scanId: SCAN_ID,
+    // The rewrite of the date's one row (#788), exactly as the day-page
+    // caller's attempt loop hands it on the second attempt.
+    ...(retry === null ? {} : { draftId: retry.draftId }),
   });
 
   const draftId = outcome.ok ? outcome.draftId : outcome.draftId;
@@ -323,6 +330,13 @@ function describe(record: DraftRecord): string {
 
 export async function main(opts: Options): Promise<number> {
   plan(opts);
+  if (opts.regenerate !== null) {
+    if (!opts.run) {
+      console.log(`Dry run — draft ${opts.regenerate} would be regenerated from ${opts.outDir}. Pass --run to spend.`);
+      return 0;
+    }
+    return regenerate(opts, opts.regenerate);
+  }
   if (!opts.run) {
     console.log("Dry run — no model was called and nothing was spent. Pass --run to spend.");
     return 0;
@@ -366,5 +380,105 @@ export async function main(opts: Options): Promise<number> {
 
   console.log(`\n${summary}\n`);
   console.log(`Drafts and rule results are in ${opts.outDir} (gitignored).`);
+  return 0;
+}
+
+/** The first run's records, as `main` wrote them. */
+function readRun(outDir: string): { spentCents: number; records: DraftRecord[] } {
+  const summary = JSON.parse(readFileSync(path.join(outDir, "summary.json"), "utf8")) as {
+    spentCents: number;
+    records: DraftRecord[];
+  };
+  return summary;
+}
+
+/**
+ * The pipeline's own automatic regeneration, spent on one draft of an
+ * earlier run (owner ruling 2026-09-23).
+ *
+ * What the day-page caller does on a rule stop, and nothing else: the same
+ * opportunity, links and profile are handed to `generateDraft` again with
+ * the date's row, so the row is rewritten in place (#788), stands on the
+ * passage it already records, and is held to what is left of its one
+ * `CAPS.DRAFT_C`. The store is rebuilt from the first run's records — the
+ * stopped row with its one counted attempt, and the other drafts as the
+ * queued pages the near-duplicate gate compares it against.
+ */
+async function regenerate(opts: Options, index: number): Promise<number> {
+  const first = readRun(opts.outDir);
+  const stopped = first.records.find((record) => record.index === index);
+  if (stopped === undefined || stopped.bodyMarkdown === null || stopped.grounded === null) {
+    throw new Error(`draft ${index} of ${opts.outDir} wrote no row to regenerate`);
+  }
+  if (stopped.outcome.kind !== "rules" || stopped.outcome.recovery !== "regenerate_once") {
+    throw new Error(`draft ${index} is not a rule stop the pipeline would regenerate (${JSON.stringify(stopped.outcome)})`);
+  }
+
+  const store = memoryStore();
+  for (const record of first.records) {
+    if (record.bodyMarkdown === null || record.grounded === null) continue;
+    const id = `draft-${record.index}`;
+    store.rows.set(id, {
+      id,
+      site_id: SITE_ID,
+      opportunity_id: record.target.id,
+      state: "generating",
+      title: record.title,
+      body_md: record.bodyMarkdown,
+      meta: { description: record.description, factsUsed: record.factsUsed },
+      grounded_fact: record.grounded,
+      attribution: null,
+      hard_rule_attempts: record.outcome.kind === "rules" ? record.outcome.attempt : 0,
+      rule_failures: record.rules.filter((rule) => rule.verdict === "failed").map(({ rule, detail }) => ({ rule, ...(detail === undefined ? {} : { detail }) })),
+      claim_check: null,
+      cost_cents: record.costCents,
+      scheduled_for: record.target.scheduledFor,
+      veto_deadline: null,
+      created_at: new Date().toISOString(),
+    });
+  }
+
+  const ledger = proofLedger(opts.runCapCents, first.spentCents);
+  if (ledger.headroomCents() < CAPS.DRAFT_C - stopped.costCents) {
+    console.log(`Refusing: ${cents(ledger.headroomCents())} left under the run cap.`);
+    return 1;
+  }
+  setGenerateStore(store);
+  let record: DraftRecord;
+  try {
+    console.log(`\n${index}. ${stopped.target.search} — regenerating draft-${index} (attempt 2)...`);
+    record = await writeOne(ledger, store, stopped.target, index, {
+      draftId: `draft-${index}`,
+      priorCents: stopped.costCents,
+    });
+  } finally {
+    setGenerateStore(null);
+  }
+
+  const attemptCents = record.calls.reduce((sum, call) => sum + call.costCents, 0);
+  const base = path.join(opts.outDir, `draft-${index}-attempt-2`);
+  writeFileSync(`${base}.md`, draftMarkdown(record));
+  writeFileSync(`${base}.json`, `${JSON.stringify({ ...record, attemptCents }, null, 2)}\n`);
+
+  const lines = [
+    `Draft ${index}, attempt 2 — the pipeline's own regeneration of \`draft-${index}\` (same row, same grounded passage, same opportunity).`,
+    "",
+    `- title: ${record.title ?? "(no page written)"}`,
+    `- outcome: ${describe(record)}`,
+    `- this attempt: ${cents(attemptCents)} over ${record.calls.length} calls; the draft's two attempts together: ${cents(record.costCents)} of \`CAPS.DRAFT_C\` ${cents(CAPS.DRAFT_C)}`,
+    `- run total under the ruling: ${cents(ledger.spentCents())} of ${cents(opts.runCapCents)}`,
+    "",
+    "| rule | attempt 1 | attempt 2 |",
+    "|---|---|---|",
+    ...HARD_RULES.map((rule) => {
+      const verdict = (r: DraftRecord) => {
+        const found = r.rules.find((entry) => entry.rule === rule);
+        return found === undefined ? "not run" : found.verdict === "passed" ? "pass" : "**FAIL**";
+      };
+      return `| \`${rule}\` | ${verdict(stopped)} | ${verdict(record)} |`;
+    }),
+  ];
+  writeFileSync(`${base}.summary.md`, `${lines.join("\n")}\n`);
+  console.log(`\n${lines.join("\n")}\n`);
   return 0;
 }

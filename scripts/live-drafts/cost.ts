@@ -85,17 +85,24 @@ export interface ProofLedger {
   /** One draft's context. `cap` is `"DRAFT"` because that is the ceiling it
    *  runs under, and the one call site that reads `cap` reads it to refuse a
    *  free-path call. */
-  contextFor(draft: number): CostContext;
+  contextFor(draft: number, priorCents?: number): CostContext;
 }
 
-export function proofLedger(runCapCents: number): ProofLedger {
+/** `alreadySpentCents` is what earlier runs under the same ruling already
+ *  settled — a regeneration run counts the first run's spend against the
+ *  owner's ceiling rather than opening a fresh one. */
+export function proofLedger(runCapCents: number, alreadySpentCents = 0): ProofLedger {
   const rows: LedgerRow[] = [];
   const refusals: RefusalRow[] = [];
-  let settledCents = 0;
+  let settledCents = alreadySpentCents;
 
-  function contextFor(draft: number): CostContext {
+  /** `priorCents` is what earlier attempts at this same draft spent. The
+   *  product runs the automatic regeneration inside the draft's one cost
+   *  context (`withDraftCost` wraps the attempt loop), so the second attempt
+   *  is held to what is left of `CAPS.DRAFT_C`, not to a fresh 45¢. */
+  function contextFor(draft: number, priorCents = 0): CostContext {
     const capValue = CAPS.DRAFT_C;
-    let ledgeredCents = 0;
+    let ledgeredCents = priorCents;
     let inFlightReserved = 0;
     let degraded = false;
 
