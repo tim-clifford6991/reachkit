@@ -21,6 +21,7 @@
 // not a wrapper around either, and it takes no variant, tone or size prop.
 // A mark that can be drawn four ways is four marks.
 import type React from "react";
+import { useId } from "react";
 import { copy } from "@/lib/presentation/copy";
 import {
   MARK_BOX,
@@ -74,7 +75,16 @@ export function Brand(p: { href: string; testId?: string }): React.JSX.Element {
  */
 export function BrandMark(p: { size?: "md" | "lg"; id?: string } = {}): React.JSX.Element {
   const lg = p.size === "lg";
-  const id = p.id ?? MARK_FADE_ID;
+  // **Each instance mints its own id (#1060).** The app shell draws the
+  // mark three times — the top bar's (hidden at `lg`), the sidebar's and
+  // the rail's — and `url(#…)` resolves to the first definition in the
+  // document. When that first one sits in a `display:none` subtree,
+  // Chromium paints no gradient and no clip for the others: the chip drew
+  // as a plain violet square. `useId` is available to Server Components,
+  // so this stays one. Its punctuation is stripped so the id is safe in
+  // `url(#…)` whatever React's format.
+  const minted = useId().replace(/[^A-Za-z0-9_-]/g, "");
+  const id = p.id ?? `${MARK_FADE_ID}-${minted}`;
   // **The chip is the drawing, not a box around it.** It used to be a
   // `bg-primary` span with a lucide glyph inside — two elements, and a
   // ground that repainted with the theme. The mark is one `<svg>` now: the
