@@ -70,6 +70,7 @@ import "@/ui/layout/layout.css";
 import "@/ui/layout/surface.css";
 import "@/ui/idiom/idiom.css";
 import { fontVariables } from "@/ui/fonts";
+import { COUNT_UP_SCRIPT } from "@/ui/count-up";
 import { THEME_SCRIPT } from "./_theme/theme";
 import { BANNER_SCRIPT } from "./(public)/_chrome/banner";
 import { Answers } from "./_toast/Answers";
@@ -107,12 +108,13 @@ export default async function RootLayout({
   const nonce = /'nonce-([A-Za-z0-9+/_-]+={0,2})'/.exec(policy)?.[1];
 
   // `suppressHydrationWarning`: the script sets `data-theme` (and, once the
-  // public banner is dismissed, `data-banner`, #1066) on `<html>` before
-  // React hydrates, which is the point, not a mismatch.
+  // public banner is dismissed, `data-banner`, #1066, and where the reader
+  // allows motion, `data-countup`, #1079) on `<html>` before React hydrates,
+  // which is the point, not a mismatch.
   return (
     <html lang="en" className={fontVariables} suppressHydrationWarning>
       <head>
-        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: THEME_SCRIPT + BANNER_SCRIPT }} />
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: THEME_SCRIPT + BANNER_SCRIPT + COUNT_UP_SCRIPT }} />
       </head>
       <body>
         {/* No `NuqsAdapter` here (#988). Only `(account)` routes hold URL
