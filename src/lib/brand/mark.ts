@@ -86,12 +86,11 @@ export const MARK_FADE = Object.freeze({
 /**
  * The gradient's `id`.
  *
- * **One id, shared by every instance, on purpose.** A document often draws
- * the mark twice (the public header and the footer; the app's sidebar and
- * its rail), and `url(#…)` resolves to the first matching definition —
- * which is the same definition, because every instance of this drawing is
- * byte-identical. Giving each instance a minted id would need a hook, and
- * a hook would make the product's logo a Client Component.
+ * The default for a standalone document (`brandMarkSvg`). The React
+ * `BrandMark` does not share it across instances: a document that draws
+ * the mark twice resolves `url(#…)` to the first definition, and when that
+ * one is inside a `display:none` subtree Chromium paints nothing for the
+ * rest (#1060). Each rendered instance appends its own `useId()`.
  *
  * It is a prop on the component all the same, so a caller that needs a
  * distinct one — a standalone document, an embedded sprite — can say so.
