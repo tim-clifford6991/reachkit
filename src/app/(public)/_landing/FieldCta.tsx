@@ -1,10 +1,12 @@
 "use client";
 // A secondary call to action on the landing: it brings the hero's field into
 // view with the cursor in it (SPEC §1, "Secondary CTAs scroll to the field").
-// A `type="button"`, never a second submit, and outline — the hero's Scan is
-// the screen's one solid button (SPEC §1, 2026-09-14).
+// A `type="button"`, never a second submit. It is the closing band's own
+// action and that band's one solid button — the one-solid rule is per
+// section (`docs/DESIGN.md`, the calm layer, 2026-09-24).
 
 import type React from "react";
+import { ArrowRight } from "lucide-react";
 
 /** The hero section's own id — the anchor every CTA on the landing names. */
 export const FIELD_SECTION_ID = "landing-field";
@@ -25,12 +27,9 @@ export function focusField(): void {
 
 export function FieldCta(p: { label: string }): React.JSX.Element {
   return (
-    <button
-      type="button"
-      className="btn btn-outline btn-primary"
-      onClick={focusField}
-    >
+    <button type="button" className="btn btn-primary" onClick={focusField}>
       {p.label}
+      <ArrowRight size={16} strokeWidth={1.75} aria-hidden />
     </button>
   );
 }

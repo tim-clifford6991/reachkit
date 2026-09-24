@@ -24,7 +24,7 @@
 // visible inside it is one the product itself renders on that screen").
 // What is here is figures, dates and a week's shape.
 /** One day of the specimen week: its date, its state, and the state's
- *  written word — the cell's accessible name (`WeekCard.tsx`). */
+ *  written word — the cell's accessible name (`Features.tsx`). */
 export interface WeekDay {
   readonly date: string;
   readonly state: "done" | "today" | "to-come" | "nothing-measured";
@@ -210,3 +210,28 @@ export function specimenHeroWeek(): SixDays {
     });
   return pages.map((page, index) => ({ weekday: weekday(index), page })) as unknown as SixDays;
 }
+
+/* ── The landing's 2026-09-24 order (#1067) ──────────────────────────────
+   The *Inside ReachKit* preview and the four *Why you should care* cards
+   draw the same example business, so their values live beside the hero's.
+   Domains end in `.example`, the reserved name, so no stranger's site is
+   ever drawn. */
+
+/** The example business's own site, and the page path its drafts land on. */
+export const SPECIMEN_HERO_DOMAIN = "harbourbikes.example";
+export const SPECIMEN_HERO_BLOG = "harbourbikes.example/blog";
+
+/** *AI answers*: the search asked, and the sites the answer cites. */
+export const SPECIMEN_HERO_SEARCH = "how much is a bike service near me";
+export const SPECIMEN_HERO_CITED = ["harbourbikes.example", "cyclefix.example"] as const;
+
+/** *Your page*: how long until the waiting page goes live. */
+export const SPECIMEN_HERO_DUE = "6h 12m";
+
+/** The four feature cards' drawings. */
+export const SPECIMEN_FEATURES = Object.freeze({
+  /** Of the market's twelve questions, how many name the business, and the goal. */
+  answers: { named: 2, total: 12, goal: 6 },
+  /** Searches out of twelve that the top rival, and the business, rank for. */
+  google: { rival: 10, you: 1, total: 12 },
+});

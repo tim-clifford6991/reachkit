@@ -1,67 +1,62 @@
 // BUILD §3 — the landing page (SPEC §1).
 //
 // One field, no account: the hero's `ScanForm` is exactly one text input and
-// one submit control, and its Scan is the screen's one solid button. Every
-// further call to action (`FieldCta`, outline) brings that field into view
-// with the cursor in it — never a second submit and never a second field.
+// one submit control. Every further call to action (`FieldCta`) brings that
+// field into view with the cursor in it — never a second submit and never a
+// second field.
 //
-// The video block renders a 16:9 frame with a play control and one written
-// line whether or not the asset exists; the play disc is a `<span>`, so it
-// is not a control.
+// **The order is the owner's of 2026-09-24** (SPEC §1, #1059; boards
+// `R12-1-Landing`, `R12-8-Phone-landing` and the dark one, `R12-10`), below the
+// chrome the group layout draws:
+//   1. the hero — title, subtitle, the one field — beside the *Inside
+//      ReachKit* preview at the same height (`InsideReachKit.tsx`);
+//   2. the logo strip, which #1069 adds here once it ships — nothing
+//      stands in for it until then;
+//   3. *See it work*, the 2026-09-22 frame (#734), its title in the window
+//      bar, placed so its middle sits near the fold of a 1920×1080 screen;
+//   4. *Why you should care* — four features (`Features.tsx`);
+//   5. *What to do next* — three connected steps with their times;
+//   6. the closing band, whose one button returns to the field.
 //
-// **The hero is Round 11 `R11-H4-Week`** (owner ruling 2026-09-21, #935):
-// one card holding one week, beside the approved headline and the field.
-// The headline and sub-line are unchanged; what the ruling replaced is the
-// picture, and `WeekHero.tsx` states why.
+// One solid button per section (DESIGN, the calm layer, #1063): the hero's
+// Scan and the closing band's button. The video's play disc is a `<span>`,
+// so it is not a control.
 //
-// A Server Component. It reads no session and no cookie; the three
-// specimens (the hero's week, AI-answers matrix, this-week card) are server
-// reads over the reserved fixture. `ScanForm` and `FieldCta` are the client
-// leaves.
+// A Server Component. It reads no session and no cookie. `ScanForm`,
+// `InsideTabs` and `FieldCta` are the client leaves.
 import type React from "react";
 import type { Metadata } from "next";
-import { Calendar, Play, Search, Users } from "lucide-react";
+import { Play } from "lucide-react";
 import { Surface } from "@/ui/layout";
 import { copy } from "@/lib/presentation/copy";
 import { ScanForm } from "./_landing/ScanForm";
 import { scanFormWords } from "./_landing/scan-form-words";
-import { WeekHero } from "./_landing/WeekHero";
-import { MatrixCard } from "./_landing/MatrixCard";
-import { WeekCard } from "./_landing/WeekCard";
+import { InsideReachKit } from "./_landing/InsideReachKit";
+import { Features } from "./_landing/Features";
 import { FieldCta, FIELD_SECTION_ID, HOW_SECTION_ID, WHY_SECTION_ID } from "./_landing/FieldCta";
 import { PUBLIC_ROUTE_SEO } from "./_seo/routes";
 import { staticMetadata } from "./_seo/metadata";
 
 type LandingSearchParams = { problem?: string; value?: string };
 
-/** The three section numbers — a data identity, not a sentence. */
-const SECTION_NUMBER = ["01", "02", "03"] as const;
+/** The two section numbers — a data identity, not a sentence. */
+const SECTION_NUMBER = ["01", "02"] as const;
 
-/** The three step cards of section 03. */
+/** The three steps of *What to do next*. */
 const STEPS = [
-  { n: "1", title: "landing.step.1.title", body: "landing.step.1.body", Icon: Search, count: "01" },
-  { n: "2", title: "landing.step.2.title", body: "landing.step.2.body", Icon: Users, count: "02" },
-  { n: "3", title: "landing.step.3.title", body: "landing.step.3.body", Icon: Calendar, count: "03" },
+  { n: "1", title: "landing.step.1.title", body: "landing.step.1.body", tag: "landing.step.1.tag" },
+  { n: "2", title: "landing.step.2.title", body: "landing.step.2.body", tag: "landing.step.2.tag" },
+  { n: "3", title: "landing.step.3.title", body: "landing.step.3.body", tag: "landing.step.3.tag" },
 ] as const;
-
-const STEP_TOTAL = "03";
-function stepCount(count: string): string {
-  return `${count}/${STEP_TOTAL}`;
-}
 
 /** Bound to a name: the copy sweep reads a bare JSX attribute string as voice. */
 const VIDEO_TEST_ID = "landing-video";
 
 /** No inline padding of its own: `[data-surface]` already pads by the
- *  band's step (`--s-4` at compact), and a second 16px inside it made the
- *  landing's measure 256px at 320 where every other screen's is 288 — which
- *  is what wrapped the headline to four lines against §4's own ruling of
- *  three (#258, found in a browser by #976). Above roughly 1184px `INNER`'s
- *  cap is narrower than the column either way, so this changes the wide
- *  bands not at all. */
-const SECTION = "col-span-full border-t border-base-300 py-16";
+ *  band's step, and a second one inside it narrows the landing's measure
+ *  under every other screen's (#258, #976). */
+const SECTION = "col-span-full border-t border-base-300 py-16 lg:py-24";
 const INNER = "mx-auto w-full max-w-6xl";
-const PAIR = "grid grid-cols-1 items-center gap-10 lg:grid-cols-2 lg:gap-16";
 const LABEL = "flex items-baseline gap-2 text-xs font-semibold uppercase tracking-wide text-primary";
 /** Heading size and weight come from `type.css`'s element rules. */
 const HEADING = "mt-2 mb-3";
@@ -83,116 +78,123 @@ export default function LandingPage(props: {
       }}
     >
       <main className="col-span-full grid grid-cols-subgrid">
-        {/* ══ HERO ══ */}
-        {/* The surface's gutter is the only one — see `SECTION`. */}
-        <section id={FIELD_SECTION_ID} className="col-span-full scroll-mt-20 pt-12 pb-16 lg:pt-20">
-          <div className={`${INNER} ${PAIR}`}>
-            <div className="flex min-w-0 flex-col items-center text-center lg:items-start lg:text-left">
+        {/* ══ HERO ══ Two columns at the same height (SPEC §1, 2026-09-24):
+            the grid stretches both, and the preview fills its column. */}
+        <section id={FIELD_SECTION_ID} className="col-span-full scroll-mt-20 pt-12 pb-10 lg:pt-16 lg:pb-8">
+          <div className={`${INNER} grid grid-cols-1 items-stretch gap-10 lg:grid-cols-2 lg:gap-12`}>
+            <div className="flex min-w-0 flex-col items-center justify-center text-center lg:items-start lg:text-left">
               <h1 className="t-hero">{copy("landing.headline")}</h1>
               <p className="mt-4 max-w-xl text-lg text-base-content/70">{copy("landing.subline")}</p>
               <div className="mt-8 w-full max-w-xl">
                 <ScanForm searchParams={props.searchParams} words={scanFormWords()} />
               </div>
-              <p className="mt-3 font-mono text-xs text-base-content/60">{copy("landing.hero.assurance")}</p>
+              <p className="mt-3 font-mono text-xs text-base-content/70">{copy("landing.hero.assurance")}</p>
             </div>
-            <WeekHero />
+            <InsideReachKit />
           </div>
         </section>
 
-        {/* ══ THE DEMO VIDEO ══ */}
-        <section className={`${SECTION} bg-base-100`}>
+        {/* ══ SEE IT WORK ══ The 2026-09-22 frame, empty until the owner
+            supplies the video (#734). Its title sits in the window bar so
+            the frame starts higher and its middle lands near the fold. */}
+        <section className="col-span-full pt-4 pb-16 lg:pt-8">
           <div className={INNER}>
-            <div className="flex flex-col items-center gap-2 text-center">
-              <p className="text-xs font-semibold uppercase tracking-wide text-base-content/60">
-                {copy("landing.video.eyebrow")}
-              </p>
-              <h2>{copy("landing.video.heading")}</h2>
-            </div>
             <div
               data-testid={VIDEO_TEST_ID}
-              className="relative mx-auto mt-6 grid aspect-video w-full max-w-3xl place-items-center overflow-hidden rounded-box border border-base-300 bg-base-200"
+              className="card card-border bg-base-100 mx-auto w-full max-w-3xl overflow-hidden"
             >
-              <span className="grid size-16 place-items-center rounded-full bg-primary text-primary-content" aria-hidden>
-                <Play size={24} strokeWidth={1.75} />
-              </span>
-              <span className="absolute bottom-4 px-4 text-center font-mono text-xs text-base-content/60">
-                {copy("landing.video.line")}
-              </span>
+              <div className="border-base-300 flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1 border-b px-4 py-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-base-content/70">
+                  {copy("landing.video.eyebrow")}
+                </p>
+                <h2 className="text-sm">{copy("landing.video.heading")}</h2>
+              </div>
+              <div className="relative grid aspect-video w-full place-items-center bg-base-200">
+                <span className="grid size-16 place-items-center rounded-full bg-primary text-primary-content" aria-hidden>
+                  <Play size={24} strokeWidth={1.75} />
+                </span>
+                <span className="absolute bottom-4 px-4 text-center font-mono text-xs text-base-content/70">
+                  {copy("landing.video.line")}
+                </span>
+              </div>
             </div>
             <p className="mt-3 text-center text-sm text-base-content/70">{copy("landing.video.caption")}</p>
           </div>
         </section>
 
-        {/* ══ 01 · WHY SHOULD THEY CARE ══ */}
-        <section id={WHY_SECTION_ID} className={`${SECTION} scroll-mt-16`}>
-          <div className={`${INNER} ${PAIR}`}>
-            <div className="min-w-0 max-w-2xl text-center lg:text-left">
-              <p className={`${LABEL} justify-center lg:justify-start`}>
-                <span className="font-mono">{SECTION_NUMBER[0]}</span>
-                <span>{copy("landing.why.eyebrow")}</span>
-              </p>
-              <h2 className={HEADING}>{copy("landing.why.heading")}</h2>
-              <p className={BODY}>{copy("landing.why.body")}</p>
+        {/* ══ 01 · WHY YOU SHOULD CARE ══ */}
+        <section id={WHY_SECTION_ID} className={`${SECTION} scroll-mt-16 bg-base-100`}>
+          <div className={INNER}>
+            <div className="grid grid-cols-1 items-end gap-4 lg:grid-cols-2 lg:gap-12">
+              <div className="min-w-0">
+                <p className={LABEL}>
+                  <span className="font-mono">{SECTION_NUMBER[0]}</span>
+                  <span>{copy("landing.why.eyebrow")}</span>
+                </p>
+                <h2 className={HEADING}>{copy("landing.why.heading")}</h2>
+              </div>
+              <p className={`${BODY} min-w-0`}>{copy("landing.why.body")}</p>
             </div>
-            <MatrixCard />
-          </div>
-        </section>
-
-        {/* ══ 02 · WHAT IT DOES FOR THEM ══ */}
-        <section className={`${SECTION} bg-base-100`}>
-          <div className={`${INNER} ${PAIR}`}>
-            <div className="min-w-0 max-w-2xl">
-              <p className={LABEL}>
-                <span className="font-mono">{SECTION_NUMBER[1]}</span>
-                <span>{copy("landing.does.eyebrow")}</span>
-              </p>
-              <h2 className={HEADING}>{copy("landing.does.heading")}</h2>
-              <p className={BODY}>{copy("landing.does.body")}</p>
-            </div>
-            <div className="min-w-0 lg:order-first">
-              <WeekCard />
+            <div className="mt-10">
+              <Features />
             </div>
           </div>
         </section>
 
-        {/* ══ 03 · WHAT THEY DO TO START TODAY ══ */}
+        {/* ══ 02 · WHAT TO DO NEXT ══ Three steps, connected: daisyUI's
+            `timeline`, down the page on a phone and across it at `lg`. */}
         <section id={HOW_SECTION_ID} className={`${SECTION} scroll-mt-16`}>
           <div className={INNER}>
-            <div className="mx-auto max-w-2xl text-center">
-              <p className={`${LABEL} justify-center`}>
-                <span className="font-mono">{SECTION_NUMBER[2]}</span>
+            <div className="mx-auto max-w-2xl text-left lg:text-center">
+              <p className={`${LABEL} lg:justify-center`}>
+                <span className="font-mono">{SECTION_NUMBER[1]}</span>
                 <span>{copy("landing.start.eyebrow")}</span>
               </p>
               <h2 className={HEADING}>{copy("landing.start.heading")}</h2>
               <p className={BODY}>{copy("landing.start.body")}</p>
             </div>
 
-            <div className="mt-10 grid grid-cols-1 gap-4 lg:grid-cols-3 lg:items-start">
-              {STEPS.map((step) => (
-                <div key={step.n} className="card border border-base-300 bg-base-100">
-                  <div className="card-body">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-base-content/60">
-                        <step.Icon size={16} strokeWidth={1.75} aria-hidden />
-                        {copy("landing.step.eyebrow", { n: step.n })}
-                      </span>
-                      <span className="font-mono text-sm font-bold text-primary">{stepCount(step.count)}</span>
-                    </div>
-                    <h3 className="card-title">{copy(step.title)}</h3>
-                    <p className="text-sm text-base-content/70">{copy(step.body)}</p>
+            <ol className="timeline timeline-vertical timeline-compact lg:timeline-horizontal mt-10">
+              {STEPS.map((step, index) => (
+                <li key={step.n} className="lg:min-w-0 lg:flex-1">
+                  {index === 0 ? null : <hr className="bg-primary" />}
+                  <div className="timeline-middle">
+                    <span className="bg-primary text-primary-content grid size-7 place-items-center rounded-full text-sm font-semibold">
+                      {step.n}
+                    </span>
                   </div>
-                </div>
+                  <div className="timeline-end mb-6 min-w-0 lg:mt-4 lg:mb-0 lg:self-stretch lg:justify-self-stretch lg:px-2">
+                    <div className="card card-border bg-base-100 h-full min-w-0">
+                      <div className="card-body gap-2">
+                        <span className="badge badge-soft badge-primary badge-sm font-mono">{copy(step.tag)}</span>
+                        <h3 className="card-title">{copy(step.title)}</h3>
+                        <p className="text-sm text-base-content/70">{copy(step.body)}</p>
+                      </div>
+                    </div>
+                  </div>
+                  {index === STEPS.length - 1 ? null : <hr className="bg-primary" />}
+                </li>
               ))}
-            </div>
+            </ol>
           </div>
         </section>
 
-        {/* ══ THE CLOSING CALL ══ The hero's own action, stated again: it
-            brings the field into view, so it adds no second submit. */}
+        {/* ══ THE CLOSING BAND ══ The hero's own action, stated again: its
+            button brings the field into view, so it adds no second submit. */}
         <section className={`${SECTION} bg-base-100`}>
-          <div className="flex flex-col items-center gap-2 text-center">
-            <FieldCta label={copy("landing.start.cta")} />
-            <p className="text-sm text-base-content/70">{copy("landing.start.cancel")}</p>
+          <div className={INNER}>
+            <div className="card card-border bg-primary/5">
+              <div className="card-body grid grid-cols-1 items-center gap-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:gap-12 lg:p-12">
+                <div className="min-w-0">
+                  <h2 className="mb-3">{copy("landing.close.heading")}</h2>
+                  <p className={BODY}>{copy("landing.close.body")}</p>
+                </div>
+                <div className="flex flex-col items-stretch gap-2 text-center lg:items-center">
+                  <FieldCta label={copy("landing.start.cta")} />
+                  <p className="font-mono text-xs text-base-content/70">{copy("landing.close.assurance")}</p>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
       </main>
