@@ -234,7 +234,7 @@ export default function SignInPage(props: {
             <div className={TILE}>
               <p className="eyebrow">{copy("signin.panel.score-label")}</p>
               <div className="flex flex-wrap items-baseline gap-2 font-mono">
-                <span className="text-5xl leading-none font-bold">{SPECIMEN_SCORE}</span>
+                <span className="figure text-5xl">{SPECIMEN_SCORE}</span>
                 <span className={QUIET}>{`/ ${SPECIMEN_MAX}`}</span>
                 <span className="badge badge-success ms-auto self-center">{copy("signin.panel.delta")}</span>
               </div>

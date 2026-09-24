@@ -134,11 +134,13 @@ function unquoted(value: string): string {
   return value.replace(/["']/g, "");
 }
 
-/** The four `@fontsource` stylesheets whose faces `fonts.ts` re-declares:
+/** The six `@fontsource` stylesheets whose faces `fonts.ts` re-declares:
  *  one per weight of each family. They are what "the same faces as before"
  *  means, so they are read rather than restated. */
 const VENDOR_STYLESHEETS = [
   "@fontsource/plus-jakarta-sans/400.css",
+  "@fontsource/plus-jakarta-sans/500.css",
+  "@fontsource/plus-jakarta-sans/600.css",
   "@fontsource/plus-jakarta-sans/700.css",
   "@fontsource/plus-jakarta-sans/800.css",
   "@fontsource/jetbrains-mono/400.css",
@@ -337,7 +339,8 @@ describe("BUILD §1 / BP-018 NFR — self-hosted, no third-party font request", 
 
   it("preloads the latin faces the product renders above the fold, and nothing else", () => {
     // A preload is a promise the byte is needed now. Jakarta 400 is the
-    // body and 700 is `type.css`'s one heading weight; JetBrains Mono 400
+    // body, 600 every label, button and big figure (#1062), and 700 is
+    // `type.css`'s one heading weight; JetBrains Mono 400
     // is every numeral; Jakarta 800 is the public header's wordmark and the
     // landing's headline (`idiom.css`), and a face discovered after first
     // paint swaps in and moves the page (issue #494, CLS 0.21 at 320 px).
@@ -350,6 +353,7 @@ describe("BUILD §1 / BP-018 NFR — self-hosted, no third-party font request", 
     expect(preloaded).toEqual([
       "jetbrains-mono-latin-400-normal.woff2",
       "plus-jakarta-sans-latin-400-normal.woff2",
+      "plus-jakarta-sans-latin-600-normal.woff2",
       "plus-jakarta-sans-latin-700-normal.woff2",
       "plus-jakarta-sans-latin-800-normal.woff2",
     ]);
@@ -363,18 +367,24 @@ describe("BUILD §1 / BP-018 NFR — self-hosted, no third-party font request", 
 });
 
 describe("BP-018 error behaviour — `.num` is the sole enforcement point of the numeral rule", () => {
-  it("the only rule that sets font-variant-numeric also sets font-family: var(--font-mono)", () => {
+  it("tabular figures come from two rules only: `.num` in the mono face, and `.figure` in the UI face at 600", () => {
+    // The calm layer (docs/DESIGN.md 2026-09-24, #1062) moves big figures —
+    // scores and stat numbers — to Plus Jakarta Sans 600, still tabular.
     const rules = parseCss(typeCssSource());
-    const withVariant: { selector: string; style: CSSStyleDeclaration }[] = [];
+    const withVariant = new Map<string, CSSStyleDeclaration>();
     for (const rule of Array.from(rules) as CSSStyleRule[]) {
       if (rule.style?.getPropertyValue("font-variant-numeric")) {
-        withVariant.push({ selector: rule.selectorText, style: rule.style });
+        withVariant.set(rule.selectorText, rule.style);
       }
     }
-    expect(withVariant).toHaveLength(1);
-    expect(withVariant[0]!.selector).toBe(".num");
-    expect(withVariant[0]!.style.getPropertyValue("font-variant-numeric")).toBe("tabular-nums");
-    expect(withVariant[0]!.style.getPropertyValue("font-family")).toBe("var(--font-mono)");
+    expect([...withVariant.keys()].sort()).toEqual([".figure", ".num"]);
+    const num = withVariant.get(".num")!;
+    expect(num.getPropertyValue("font-variant-numeric")).toBe("tabular-nums");
+    expect(num.getPropertyValue("font-family")).toBe("var(--font-mono)");
+    const figure = withVariant.get(".figure")!;
+    expect(figure.getPropertyValue("font-variant-numeric")).toBe("tabular-nums");
+    expect(figure.getPropertyValue("font-family")).toBe("var(--font-ui)");
+    expect(figure.getPropertyValue("font-weight")).toBe("600");
   });
 
   it("no other rule references var(--font-mono) — a component cannot half-apply the mono family", () => {

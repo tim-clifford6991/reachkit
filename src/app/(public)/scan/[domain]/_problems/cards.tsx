@@ -90,8 +90,8 @@ function ProblemCardView(p: { card: ProblemCard }): React.JSX.Element {
           <SeverityBadge severity={card.severity} />
           <span className="badge badge-primary badge-outline">{copy(card.doer)}</span>
         </div>
-        <div className="text-4xl font-semibold">
-          <MeasuredNum value={card.count} what={copy(card.title)} />
+        <div className="text-4xl">
+          <MeasuredNum value={card.count} what={copy(card.title)} figure />
         </div>
         <FixBody card={card} />
       </div>
@@ -139,8 +139,8 @@ function CheckCardView(p: { card: CheckCard }): React.JSX.Element {
           <span className="badge badge-primary badge-outline">{copy(card.doer)}</span>
         </div>
         {measured === null ? null : (
-          <div className="text-4xl font-semibold">
-            <MeasuredNum value={measured.count} what={title} />
+          <div className="text-4xl">
+            <MeasuredNum value={measured.count} what={title} figure />
           </div>
         )}
         {why === undefined ? null : <p className="text-sm">{why}</p>}

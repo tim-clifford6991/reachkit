@@ -102,7 +102,7 @@ export function RivalSparkline(p: RivalSparklineProps): React.JSX.Element {
         >
           {p.name}
         </span>
-        <span className="num shrink-0 text-2xl font-bold">{p.value}</span>
+        <span className="figure shrink-0 text-2xl">{p.value}</span>
       </div>
       <figure aria-label={p.label} className="m-0 w-full min-w-0">
         <LineChart

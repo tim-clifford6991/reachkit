@@ -93,7 +93,7 @@ function Tile(p: {
           {label}
         </span>
         <div className="flex min-w-0 flex-wrap items-baseline gap-2">
-          <span className="num text-3xl leading-none font-bold" data-testid={`${p.testId}-value`}>
+          <span className="figure text-3xl leading-none" data-testid={`${p.testId}-value`}>
             {value.text}
           </span>
           {against === null ? null : (

@@ -25,7 +25,7 @@ export function ContentPanel(p: { settings: SettingsModel }): React.JSX.Element 
 
         <div className="flex min-w-0 flex-wrap items-baseline justify-between gap-2">
           <span className="text-sm text-base-content/70">{copy("settings.content.pages")}</span>
-          <span className="num min-w-0 text-3xl font-semibold wrap-anywhere" data-testid="content-pages">
+          <span className="figure min-w-0 text-3xl wrap-anywhere" data-testid="content-pages">
             {p.settings.content.pages}
           </span>
         </div>

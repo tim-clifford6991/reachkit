@@ -190,7 +190,7 @@ describe("the four tiles", () => {
       const tile = container.querySelector(`[data-testid="${id}"]`);
       expect(tile, id).not.toBeNull();
       // The figure, then what it is read against: two values, never one.
-      expect(tile?.querySelectorAll("span.num").length, id).toBeGreaterThanOrEqual(2);
+      expect(tile?.querySelectorAll("span.figure, span.num").length, id).toBeGreaterThanOrEqual(2);
     }
     expect(container.innerHTML).not.toContain("TODO(copy)");
   });

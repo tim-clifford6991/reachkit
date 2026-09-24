@@ -74,8 +74,16 @@
     font-family: var(--font-ui);
     font-weight: 700;
     letter-spacing: -0.02em;
+    word-spacing: 0.04em;
     text-wrap: balance;
   }
+
+  /* The tracking ladder (the calm layer, `docs/DESIGN.md` 2026-09-24,
+   * #1062): tracking tightens as size grows — −0.015em at the small end,
+   * −0.02em at 20–25px (`h2`, `h3` and the narrow `h1`, the rule above),
+   * −0.03em from 31px (the wide `h1`, in the media block below, and
+   * `.t-hero`). `h4` is the 16px sub-head, the small end, and takes its
+   * −0.015em on its own size line below. */
 
   /* `h1` is the one step that is narrower on a narrow viewport.
    * `design/tokens.md` §4, "A third absolute, from the owner's 2026-09-02
@@ -105,7 +113,7 @@
   h1 { font-size: var(--h2); }
   h2 { font-size: var(--h2); }
   h3 { font-size: var(--h3); }
-  h4 { font-size: var(--h4); }
+  h4 { font-size: var(--h4); letter-spacing: -0.015em; }
 
   /* The scale names four heading roles and the product uses four: no `h5` or
    * `h6` appears anywhere under `src/app/**`. Rather than mint a fifth and a
@@ -153,6 +161,8 @@
 @media (min-width: 640px) {
   @layer base {
     h1 { font-size: var(--h1); }
+    /* The ladder's top rung at the wide step: 31px tracks −0.03em. */
+    h1 { letter-spacing: -0.03em; }
   }
 
   .t-hero { font-size: var(--t-hero); }
@@ -242,9 +252,11 @@ pre .num {
 /* BP-018 error behaviour: "Every numeral, date, URL, search query and
  * code-like string renders in JetBrains Mono with tabular-nums; a numeral
  * in the UI font is a defect." `.num` is the *only* rule in this file that
- * sets `font-variant-numeric` or references `var(--font-mono)` — the one
- * mechanism the numeral rule is enforced through, so a component cannot
- * half-apply it. */
+ * references `var(--font-mono)` — the one mechanism the numeral rule is
+ * enforced through, so a component cannot half-apply it. The one other rule
+ * that sets `font-variant-numeric` is `.figure` below, the calm layer's
+ * big figure (#1062), which is the ruled exception to the face and not to
+ * the tabular figures. */
 .num {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
@@ -305,6 +317,28 @@ pre .num {
    * box is made a scroll container. If a line genuinely wants to wrap, it
    * is prose and does not belong in `.num`: that is a call about what the
    * text *is*, which is the call this class exists to make. */
+  white-space: nowrap;
+}
+
+/* A **big figure** — a score, a stat, a price, a count set large — in the
+ * UI face at 600 with tabular figures (the calm layer, `docs/DESIGN.md`
+ * 2026-09-24, #1062, which amends "JetBrains Mono for numerals" for these
+ * alone). At display size the mono face read as a terminal readout; the
+ * figure is the card's answer and speaks in the product's voice. Domains,
+ * dates, searches, code and every small value stay `.num`.
+ *
+ * The rest is `.num`'s, for `.num`'s reasons: tabular figures so a
+ * changing score does not jitter, `line-height: normal` so the glyph box
+ * and the line box are one box at a display size (#13), and a figure is
+ * one value that never wraps or breaks (#256, #297). Unlayered like
+ * `.num`, so it wins over daisyUI's `stat-value` weight. */
+.figure {
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: normal;
+  overflow-wrap: normal;
+  word-break: normal;
   white-space: nowrap;
 }
 
