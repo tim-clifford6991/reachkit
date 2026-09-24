@@ -187,6 +187,8 @@ describe("when the page goes live is the draft's stored veto_deadline", () => {
     const card = section(await page(), "overview-waiting");
     // 12:30 UTC, in the site's own zone — not 08:00 plus a default day.
     expect(card).toContain("12:30");
+    // #1070: and counts down to it.
+    expect(card).toMatch(/Goes live in <time[^>]*>\d+h \d{2}m \d{2}s<\/time> unless you stop it\./u);
     expect(card).not.toContain("TODO(copy)");
   });
 

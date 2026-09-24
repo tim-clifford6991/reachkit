@@ -13,9 +13,10 @@
 // page in review is an outline control beside it, not a second call to act.
 //
 // A panel whose title, line or control is unwritten does not render. An
-// empty list is a success state, not a blank.
+// empty list is a success state, not a blank — and a quiet one (SPEC §4
+// 2026-09-24, #1070): a tick and one line, never a green alert.
 import type React from "react";
-import { Bell, FileText, Globe, Plug, Wrench } from "lucide-react";
+import { Bell, Check, FileText, Globe, Plug, Wrench } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import { writtenLine } from "../_shell/written";
 import { formatCount } from "./present";
@@ -125,8 +126,11 @@ export function NeedsYouModule(p: {
           </div>
         )}
         {emptyLine === null ? null : (
-          <div role="alert" className="alert alert-success alert-soft">
-            <span>{emptyLine}</span>
+          <div className="flex min-w-0 flex-col items-center gap-3 py-4 text-center" data-testid="overview-alerts-empty">
+            <span className="grid size-10 place-items-center rounded-full bg-success/10 text-success">
+              <Check size={20} strokeWidth={2} aria-hidden />
+            </span>
+            <p className="font-semibold">{emptyLine}</p>
           </div>
         )}
         {overflowLine === null ? null : (

@@ -7,6 +7,11 @@
 // daisyUI's own rule, which is why the shell's content column reserves room
 // for it below `lg` rather than this component trying to push anything.
 //
+// **It floats** (the calm layer, SPEC §4 2026-09-24, #1070, board R12-7):
+// 12px off the viewport's sides and foot, rounded, on a frosted ground. The
+// ground stays near-opaque so the words keep their contrast over whatever
+// scrolls beneath it.
+//
 // It disappears at `lg`, where the side panel is always on screen and a
 // second copy of the same three links would be a second navigation.
 //
@@ -52,7 +57,7 @@ export function AppDock(p: {
 
   return (
     <nav
-      className="dock dock-sm border-base-300 lg:hidden"
+      className="dock dock-sm inset-x-3 bottom-3 w-auto rounded-box border border-base-300 bg-base-100/90 shadow-sm backdrop-blur-md lg:hidden"
       aria-label={copy("shell.workspace")}
       data-testid="shell-dock"
     >

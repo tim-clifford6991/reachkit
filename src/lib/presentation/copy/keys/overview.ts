@@ -285,6 +285,12 @@ export const OVERVIEW_COPY = Object.freeze({
   // SPEC §4 (2026-09-20, #914): *Plan* is the calendar's on-screen name;
   // the key still says where the link goes.
   "overview.week.calendar-link": ["Open the plan →", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  // SPEC §4 2026-09-24 (#1070): the one broader category the week's
+  // notice offers, measured again on the press. Drafted.
+  "overview.week.broader.try": [
+    "Try “{category}”",
+    { slots: { category: "text" }, fixedBy: "SPEC §4 2026-09-24" },
+  ],
   "overview.week.day.done": ["done", { slots: {}, fixedBy: "REQ-041 c6" }],
   "overview.week.day.today": ["today", { slots: {}, fixedBy: "REQ-041 c6" }],
   "overview.week.day.to-come": ["next", { slots: {}, fixedBy: "REQ-041 c6" }],
@@ -427,6 +433,19 @@ export const OVERVIEW_COPY = Object.freeze({
   // A page in review with no window running: nothing publishes it on a
   // clock, so the line states no time.
   "overview.waiting.waits": ["It waits for you before it publishes.", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
+  // SPEC §4 2026-09-24 (#1070): the card counts down to that same time.
+  // `{left}` is the time left, `6h 12m 09s`, a value the card ticks; the
+  // absolute time stays on the line's own `<time>`. Drafted; the owner
+  // corrects the wording.
+  "overview.waiting.goes-live-in": [
+    "Goes live in {left} unless you stop it.",
+    { slots: { left: "text" }, fixedBy: "SPEC §4 2026-09-24" },
+  ],
+  // The line under the head while a page waits with a time (R12-4).
+  "overview.head.waiting.sub": [
+    "Read it before {at}, or let it go live on its own.",
+    { slots: { at: "date" }, fixedBy: "SPEC §4 2026-09-24" },
+  ],
   "overview.waiting.why.label": ["Why this page:", { slots: {}, fixedBy: "SPEC §4 2026-09-20" }],
   // The four arms of the reason, one per shape of evidence the opportunity
   // carries. Never composed at a call site: the screen picks the arm and the

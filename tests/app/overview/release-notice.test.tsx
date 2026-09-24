@@ -186,10 +186,12 @@ describe("#784 — a market too small is told, and a never-measured zero is not 
     const tree = await screen();
 
     expect(text(tree, "shell-onboarding-notice")).toBeNull();
-    expect(text(tree, "overview-release-notice")).toBe(COPY["setup.release.market-too-small"]);
+    // #1070: told once, inside *This week*, beside one broader category to
+    // try — not a notice and a card above the headline as well.
+    expect(text(tree, "overview-release-notice")).toBeNull();
     expect(text(tree, "overview-supply")).toBe(COPY["overview.supply.unmeasured"]);
     // Issue 837: Overview offers the choice itself once the panel does not.
-    expect(tree.querySelector('[data-testid="overview-market-choice"] [data-testid="category-choice"]')).not.toBeNull();
+    expect(tree.querySelector('[data-testid="overview-week"] [data-testid="category-choice"]')).not.toBeNull();
   });
 
   it("a market that had pages and used them up still reads exhausted, with no notice", async () => {
