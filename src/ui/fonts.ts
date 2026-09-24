@@ -106,7 +106,7 @@ import localFont from "next/font/local";
  *  the three that preload. 600 joined on 2026-09-24 (#1062): `font-semibold`
  *  is every button, tab and card label and every big figure, and before it
  *  loaded each one fell through to 700. Discovered late, it would swap in
- *  under a laid-out button and move it, which is #494's lesson below. */
+ *  under a laid-out button and move it, as the 800 note below records. */
 export const jakartaLatin = localFont({
   src: [
     {
