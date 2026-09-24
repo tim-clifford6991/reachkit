@@ -85,6 +85,10 @@ export type SafeFetchOpts = {
    *  own wider than one fetch: the site-profile crawl aborts every read
    *  still in flight when its budget is spent (issue 610). */
   signal?: AbortSignal;
+  /** Hands back the undecoded body as `raw` as well as `html`. Only an
+   *  image read asks (the free scan's logo, #1069); every document reader
+   *  leaves it off, so a crawl does not hold each page twice. */
+  keepRaw?: boolean;
 };
 
 // ── The robots port (BP-006 `readRobots`) ───────────────────────────────
@@ -469,6 +473,7 @@ export async function safeFetch(url: string, opts?: SafeFetchOpts): Promise<Fetc
       url: hopUrlString,
       html,
       bytes: result.body.length,
+      ...(opts?.keepRaw === true ? { raw: result.body } : {}),
       readAt,
       headers,
     };

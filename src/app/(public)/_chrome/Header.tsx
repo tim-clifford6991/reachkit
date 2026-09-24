@@ -10,8 +10,8 @@
 //     landing's field. Its dismissal is remembered before paint
 //     (`./banner.ts`).
 //   · **The header** — sticky, a 78% surface ground under a 12px blur. The
-//     mark and *Why it matters · How to start · Pricing* on the left (*Free
-//     scans* joins them with the gallery, #1069); on the right the two-state
+//     mark and *Why it matters · How to start · Free scans · Pricing* on the
+//     left (the gallery joined them with #1069); on the right the two-state
 //     theme switch, *Sign in* as a ghost, and *Start free* solid with an
 //     arrow. The `/app` shell keeps its three-way dropdown.
 //   · **Below `lg`** the links move into a daisyUI `drawer` from the right;
@@ -52,6 +52,7 @@ const PLACE = { bar: "bar", menu: "menu" } as const;
 const LINKS: readonly { href: string; key: CopyKey }[] = [
   { href: `/#${WHY_SECTION_ID}`, key: "chrome.nav.why" },
   { href: `/#${HOW_SECTION_ID}`, key: "chrome.nav.how" },
+  { href: "/scans", key: "chrome.nav.scans" },
   { href: "/pricing", key: "chrome.nav.pricing" },
 ];
 

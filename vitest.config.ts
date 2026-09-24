@@ -49,6 +49,9 @@ const LIVE_SCHEMA_TESTS = [
   // per Monday, the four statuses, the foreign key that makes a mention
   // without its week unrepresentable, and RLS on with no policy on either.
   "tests/mentions/schema.test.ts",
+  // Issue #1069: `free_scan_listing` — what the gallery and the landing's
+  // strip may show (never a removed or refused site) — and the logo checks.
+  "tests/scan/gallery/listing.test.ts",
 ];
 
 export default defineConfig({

@@ -18,7 +18,11 @@
 // repeated header arrives comma-joined exactly as Node joins it.
 export type FetchOutcome =
   | { ok: true; status: number; url: string; html: string; bytes: number; readAt: Date;
-      headers: Readonly<Record<string, string>> }
+      headers: Readonly<Record<string, string>>;
+      /** The body as received, before the UTF-8 decode `html` is. Present
+       *  only when the caller asked for it (`keepRaw`, the free scan's logo
+       *  read, #1069). */
+      raw?: Buffer }
   | { ok: false; reason: 'dns' | 'refused' | 'timeout' | 'too_large' | 'blocked_by_policy'
               | 'robots_disallowed' | 'status'; status?: number; url: string; readAt: Date }
 

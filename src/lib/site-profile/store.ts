@@ -22,6 +22,7 @@
 // prompt, and the promise stays checkable by reading that type.
 import { dbAdmin } from "@/lib/db";
 import type { InventoryRow, SiteProfile, VoiceSummary } from "./types";
+import { LOGO_TYPES, type LogoType, type SiteLogo } from "./logo";
 
 /** The generated `Database` type carries neither `site_profiles` nor
  *  `sites.voice_edited_at` — the same narrow cast
@@ -208,4 +209,38 @@ export async function saveVoiceText(a: { siteId: string; text: string }): Promis
     .update({ voice_text: a.text, voice_edited_at: new Date().toISOString() })
     .eq("id", a.siteId);
   if (error) throw new Error(`site profile: could not save the voice for ${a.siteId}: ${error.message}`);
+}
+
+/**
+ * The logo a pass read (#1069), written beside the profile it belongs to.
+ * Only a pass that found one writes: a read that timed out says nothing
+ * about the site, and must not take away the mark an earlier pass kept.
+ * The row exists — `writeSiteProfile` has just upserted it.
+ */
+export async function writeSiteLogo(domain: string, logo: SiteLogo): Promise<void> {
+  const { error } = await untyped()
+    .from<ProfileRow>("site_profiles")
+    .update({
+      // PostgREST takes a `bytea` as Postgres's own hex spelling.
+      logo_image: `\\x${logo.bytes.toString("hex")}`,
+      logo_type: logo.type,
+      logo_source: logo.source,
+    })
+    .eq("domain", domain);
+  if (error) throw new Error(`site profile: could not write the logo of ${domain}: ${error.message}`);
+}
+
+/** The stored logo of one domain, or `null` where no pass kept one. */
+export async function readSiteLogo(domain: string): Promise<{ bytes: Buffer; type: LogoType } | null> {
+  const { data, error } = await untyped()
+    .from<{ logo_image: string | null; logo_type: string | null }>("site_profiles")
+    .select("logo_image, logo_type")
+    .eq("domain", domain)
+    .limit(1);
+  if (error) throw new Error(`site profile: could not read the logo of ${domain}: ${error.message}`);
+  const row = data?.[0];
+  if (row?.logo_image == null || row.logo_type == null) return null;
+  const type = LOGO_TYPES.find((t) => t === row.logo_type);
+  if (type === undefined || !row.logo_image.startsWith("\\x")) return null;
+  return { bytes: Buffer.from(row.logo_image.slice(2), "hex"), type };
 }

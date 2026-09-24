@@ -137,6 +137,9 @@ describe(
         // pressed Unsubscribe control with a sign-in redirect.
         "/api/opt-out/:token": "/api/opt-out/abc123",
         "/pricing": "/pricing",
+        // Issue #1069 — the free-scans gallery and its logos.
+        "/scans": "/scans",
+        "/scans/logo/:domain": "/scans/logo/example.com",
         "/signin": "/signin",
         // Issue #468 (was `/signin/:token`, #35) — the route that redeems a
         // sign-in link through Supabase's `verifyOtp`. It has to be
