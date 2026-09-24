@@ -297,7 +297,7 @@ export const DRAFT_COPY = Object.freeze({
   // The back link §4.6 asks for, the unsaved indicator c7 asks for, and the
   // one written line an unknown draft id resolves to.
   "draft.back": [
-    "← Back to the plan",
+    "Back to the plan",
     { slots: {}, fixedBy: "SPEC §7 2026-09-20" },
   ],
   "draft.unsaved": [
