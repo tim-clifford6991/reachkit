@@ -42,6 +42,7 @@ import { Clock, MessageSquare, Send, Zap } from "lucide-react";
 import { HeroLine } from "./HeroLine";
 import { copy } from "@/lib/presentation/copy";
 import { SCORE_BAND_BOUNDS } from "@/lib/config/constants";
+import { FLOAT } from "@/ui/lift";
 import { Num } from "../scan/[domain]/_address/measured";
 import {
   SPECIMEN_HERO,
@@ -155,7 +156,7 @@ export function WeekHero(): React.JSX.Element {
   const week = specimenHeroWeek();
   return (
     <div className="min-w-0">
-      <div className="card border-base-300 bg-base-100 min-w-0 border shadow-lg" data-testid={HERO_TEST_ID}>
+      <div className={`card bg-base-100 min-w-0 ${FLOAT}`} data-testid={HERO_TEST_ID}>
         <div className="card-body gap-4">
           {/* ── The pill and the number ── */}
           <div className="flex flex-wrap items-start justify-between gap-3">

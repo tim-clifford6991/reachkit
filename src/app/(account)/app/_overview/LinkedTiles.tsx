@@ -26,6 +26,7 @@
 import type React from "react";
 import { ChevronRight } from "lucide-react";
 import { TrendSparkline } from "@/ui/charts";
+import { ARROW_NUDGE, CARD_LIFT } from "@/ui/lift";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import type { Measured } from "@/lib/measure/measured";
 import { BADGE } from "./badges";
@@ -77,7 +78,7 @@ function Tile(p: {
   return (
     <a
       href={TAB_HREF[p.tab]}
-      className="card card-border min-w-0 bg-base-100 transition-colors hover:border-primary"
+      className={`card card-border min-w-0 bg-base-100 hover:border-primary ${CARD_LIFT}`}
       data-testid={p.testId}
     >
       <div className="card-body gap-3 p-5">
@@ -90,7 +91,7 @@ function Tile(p: {
           </span>
           <span className="flex shrink-0 items-center gap-1 text-xs font-semibold text-primary">
             {copy(TAB_COPY_KEY[p.tab])}
-            <ChevronRight size={16} strokeWidth={1.75} aria-hidden />
+            <ChevronRight size={16} strokeWidth={1.75} aria-hidden className={ARROW_NUDGE} />
           </span>
         </div>
 
