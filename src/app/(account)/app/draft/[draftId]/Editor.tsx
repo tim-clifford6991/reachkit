@@ -127,7 +127,10 @@ const EDITOR_THEME = EditorView.theme({
     // rest of what the field looks like — and because a `height="24rem"`
     // attribute is a string literal in JSX, which the copy sweep reads as
     // a sentence the screen might be speaking.
-    height: "24rem",
+    // The field fills the box it stands in, and that box is the same
+    // height as the preview's frame beside it (#1095) — one height set in
+    // one place, on the grid in `Editor` below.
+    height: "100%",
   },
   ".cm-content": { fontFamily: "inherit", padding: "0.75rem" },
   ".cm-gutters": {
@@ -136,6 +139,43 @@ const EDITOR_THEME = EditorView.theme({
     border: "none",
   },
   "&.cm-focused": { outline: "2px solid var(--color-primary)" },
+  // The lint marks (#1095): `@codemirror/lint`'s base theme draws them in
+  // its own orange, a yellow triangle and a grey tooltip — a second palette.
+  // Each is restated here from the theme's warn family, so a break reads in
+  // the same colour as the mark the preview puts on it.
+  ".cm-lintRange-warning": {
+    backgroundImage: "none",
+    textDecorationLine: "underline",
+    textDecorationStyle: "wavy",
+    textDecorationColor: "var(--color-warning)",
+    textUnderlineOffset: "3px",
+  },
+  ".cm-lintRange-active": { backgroundColor: "var(--warn-bg)" },
+  ".cm-lintPoint-warning:after": { borderBottomColor: "var(--color-warning)" },
+  ".cm-lint-marker-warning": {
+    content: "normal",
+    width: "0.5rem",
+    height: "0.5rem",
+    margin: "0.25rem",
+    borderRadius: "9999px",
+    backgroundColor: "var(--color-warning)",
+  },
+  ".cm-tooltip": {
+    backgroundColor: "var(--color-base-100)",
+    color: "var(--color-base-content)",
+    border: "1px solid var(--color-base-300)",
+    borderRadius: "var(--radius-field)",
+  },
+  ".cm-diagnostic-warning": { borderLeft: "3px solid var(--color-warning)" },
+  ".cm-panels": {
+    backgroundColor: "var(--color-base-200)",
+    color: "var(--color-base-content)",
+  },
+  ".cm-panel.cm-panel-lint ul [aria-selected]": { backgroundColor: "var(--color-base-300)" },
+  ".cm-panel.cm-panel-lint ul:focus [aria-selected]": {
+    backgroundColor: "var(--color-primary)",
+    color: "var(--color-primary-content)",
+  },
   ".cm-cursor, .cm-dropCursor": { borderLeftColor: "var(--color-base-content)" },
   "&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection": {
     backgroundColor: "var(--color-primary)",
@@ -157,7 +197,9 @@ const REACHABLE_SCROLLER = ViewPlugin.define((view) => {
   return {};
 });
 
-const EYEBROW = "text-xs font-semibold uppercase tracking-wide opacity-70";
+/** A pane's name, in the one key/value label style the page arm sets
+ *  (#1072): sentence case, small, the quiet ink. */
+const PANE_LABEL_CLASS = "text-sm text-base-content/70";
 
 /** One formatting control: the word it is called, its glyph, and what it
  *  writes around the selection. `around` is the pair; `line` is written at
@@ -348,8 +390,18 @@ export function Editor(p: {
     </div>
   );
 
+  /**
+   * A pane's classes (#1095). Below `lg` the tab bar shows one pane, a
+   * column. From `lg` up the two panes stand side by side and each spans the
+   * grid's two rows as a subgrid — its head in the first, its box in the
+   * second — so the formatting bar and the frame switch share one row, and
+   * the field and the frame start on one line and are one height.
+   */
+  const paneClass = (pane: EditorPane): string =>
+    `min-w-0 flex-col gap-2 ${p.pane === pane ? "flex" : "hidden"} lg:row-span-2 lg:grid lg:grid-rows-subgrid`;
+
   return (
-    <div className="flex min-w-0 flex-col gap-3" data-testid="draft-editor">
+    <div className="flex min-w-0 flex-col gap-4" data-testid="draft-editor">
       <div role="tablist" className="tabs tabs-border lg:hidden" data-testid="draft-editor-tabs">
         {EDITOR_PANES.map((pane) => (
           <button
@@ -366,35 +418,34 @@ export function Editor(p: {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
-        <div
-          className={`min-w-0 ${p.pane === "markdown" ? "block" : "hidden lg:block"}`}
-          data-testid="draft-editor-markdown"
-        >
-          <p className={`mb-2 hidden lg:block ${EYEBROW}`}>{copy("draft.editor.tab.markdown")}</p>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className={paneClass("markdown")} data-testid="draft-editor-markdown">
+          <div className="flex min-w-0 flex-col justify-end gap-2">
+            <p className={`hidden lg:block ${PANE_LABEL_CLASS}`}>{copy("draft.editor.tab.markdown")}</p>
 
-          {/* The formatting bar. daisyUI `join` of ghost buttons, each with
-              its own word as its accessible name — a glyph alone is not a
-              label (#962), and `tooltip` gives the same word to a mouse. */}
-          <div
-            className="join join-horizontal mb-2 flex flex-wrap"
-            role="toolbar"
-            aria-label={copy("draft.editor.format.title")}
-            data-testid="draft-editor-format"
-          >
-            {FORMATS.map(({ key, label, Icon, placeholder }) => (
-              <button
-                key={key}
-                type="button"
-                className="btn btn-sm btn-ghost join-item"
-                aria-label={copy(label)}
-                title={copy(label)}
-                data-testid={`draft-editor-format-${key}`}
-                onClick={() => format(viewRef.current, key, copy(placeholder))}
-              >
-                <Icon size={16} strokeWidth={1.75} aria-hidden />
-              </button>
-            ))}
+            {/* The formatting bar. daisyUI `join` of ghost buttons, each with
+                its own word as its accessible name — a glyph alone is not a
+                label (#962), and `tooltip` gives the same word to a mouse. */}
+            <div
+              className="join join-horizontal flex flex-wrap"
+              role="toolbar"
+              aria-label={copy("draft.editor.format.title")}
+              data-testid="draft-editor-format"
+            >
+              {FORMATS.map(({ key, label, Icon, placeholder }) => (
+                <button
+                  key={key}
+                  type="button"
+                  className="btn btn-sm btn-ghost join-item"
+                  aria-label={copy(label)}
+                  title={copy(label)}
+                  data-testid={`draft-editor-format-${key}`}
+                  onClick={() => format(viewRef.current, key, copy(placeholder))}
+                >
+                  <Icon size={16} strokeWidth={1.75} aria-hidden />
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* `border-base-300` and the theme's own faces: CodeMirror draws
@@ -402,7 +453,7 @@ export function Editor(p: {
               other fields do. `.num` is the mono face — Markdown is
               code-like, which is what §2.3 gives that face for. */}
           <div
-            className="border-base-300 rounded-box num overflow-hidden border text-sm"
+            className="border-base-300 rounded-box num h-96 overflow-hidden border text-sm"
             data-testid="draft-editor-field"
           >
             <CodeMirror
@@ -427,52 +478,56 @@ export function Editor(p: {
               onCreateEditor={(view) => {
                 viewRef.current = view;
               }}
+              className="h-full"
               data-testid="draft-editor-textarea"
             />
           </div>
         </div>
 
-        <div
-          className={`min-w-0 ${p.pane === "preview" ? "block" : "hidden lg:block"}`}
-          data-testid="draft-editor-preview"
-        >
-          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-            <p className={`hidden lg:block ${EYEBROW}`}>{copy("draft.editor.tab.preview")}</p>
-            {/* §7's desktop/phone switch. daisyUI `join` of two small
-                buttons, the one in force marked by the primary tint rather
-                than by a `neutral` slot this theme does not define. */}
-            <div
-              className="join join-horizontal"
-              role="group"
-              aria-label={copy("draft.editor.tab.preview")}
-              data-testid="draft-editor-frames"
-            >
-              {PREVIEW_FRAMES.map((frame) => (
-                <button
-                  key={frame}
-                  type="button"
-                  className={`btn btn-xs join-item ${p.frame === frame ? "bg-primary/10 text-primary" : "btn-ghost"}`}
-                  aria-pressed={p.frame === frame}
-                  onClick={() => p.onFrame(frame)}
-                  data-testid={`draft-editor-frame-${frame}`}
-                >
-                  {copy(FRAME_LABEL[frame])}
-                </button>
-              ))}
+        <div className={paneClass("preview")} data-testid="draft-editor-preview">
+          <div className="flex min-w-0 flex-col justify-end gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className={`hidden lg:block ${PANE_LABEL_CLASS}`}>{copy("draft.editor.tab.preview")}</p>
+              {/* §7's desktop/phone switch. daisyUI `join` of two small
+                  buttons, the one in force marked by the primary tint rather
+                  than by a `neutral` slot this theme does not define. */}
+              <div
+                className="join join-horizontal"
+                role="group"
+                aria-label={copy("draft.editor.tab.preview")}
+                data-testid="draft-editor-frames"
+              >
+                {PREVIEW_FRAMES.map((frame) => (
+                  <button
+                    key={frame}
+                    type="button"
+                    className={`btn btn-xs join-item ${p.frame === frame ? "bg-primary/10 text-primary" : "btn-ghost"}`}
+                    aria-pressed={p.frame === frame}
+                    onClick={() => p.onFrame(frame)}
+                    data-testid={`draft-editor-frame-${frame}`}
+                  >
+                    {copy(FRAME_LABEL[frame])}
+                  </button>
+                ))}
+              </div>
             </div>
+
+            <p className="text-xs text-base-content/70" data-testid="draft-preview-lead">
+              {copy("draft.editor.preview.lead")}
+            </p>
           </div>
 
-          <p className="mb-2 text-xs text-base-content/70" data-testid="draft-preview-lead">
-            {copy("draft.editor.preview.lead")}
-          </p>
-
           {p.frame === "desktop" ? (
+            // The field's height, and a page taller than it scrolls inside —
+            // `tabIndex` for the same reason as the phone's display below.
             <div
-              className="mockup-browser border-base-300 bg-base-200 min-w-0 border"
+              className="mockup-browser border-base-300 bg-base-200 flex h-96 min-w-0 flex-col border"
               data-testid="draft-preview-frame-desktop"
             >
               <div className="mockup-browser-toolbar min-w-0" />
-              <div className="bg-base-100 min-w-0 px-4 py-6">{page}</div>
+              <div className="bg-base-100 min-h-0 min-w-0 flex-1 overflow-y-auto px-4 py-6" tabIndex={0}>
+                {page}
+              </div>
             </div>
           ) : (
             // `mockup-phone` is a fixed-width frame by construction, so it

@@ -28,6 +28,10 @@ vi.mock("@/app/(account)/app/draft/[draftId]/save", async (importOriginal) => {
   return { ...actual, draftStore: { save: (...args: unknown[]) => save(...args) } };
 });
 
+/** The product's one toast (#1095: *Done editing* answers through it). */
+const say = vi.fn();
+vi.mock("@/app/_toast/say", () => ({ say: (...args: unknown[]) => say(...args) }));
+
 import { AUTOSAVE_DEBOUNCE_MS, PREVIEW_DEBOUNCE_MS } from "@/lib/config/constants";
 
 /** `@uiw/react-codemirror`'s own `TYPING_TIMOUT` (`esm/useCodeMirror.js`):
@@ -765,6 +769,35 @@ describe("REQ-045 c5-c9 — the editor, its live preview, its autosave and its i
     );
     click("draft-edit-done");
     expect(container.querySelector('[data-testid="draft-unsaved"]')).toBeNull();
+  });
+
+  it("#1095 — Done editing answers: the save that lands says when, and a refused one says so", async () => {
+    save.mockResolvedValue({
+      ok: true,
+      savedAt: new Date(0),
+      claim: { state: "outstanding" },
+      recordedChecks: [],
+      rulesFailed: false,
+    });
+    say.mockClear();
+    mount();
+    click("draft-action-draft.action.edit");
+    type("saved text");
+    // Pressed before the pause: the save still on its way answers for it.
+    click("draft-edit-done");
+    expect(say).not.toHaveBeenCalled();
+    await settle(AUTOSAVE_DEBOUNCE_MS);
+    expect(say).toHaveBeenCalledTimes(1);
+    expect(say.mock.calls[0]?.[1]).toBe("ok");
+    expect(String(say.mock.calls[0]?.[0])).toMatch(/^saved /);
+
+    save.mockResolvedValue({ ok: false });
+    say.mockClear();
+    click("draft-action-draft.action.edit");
+    type("text the store refuses");
+    await settle(AUTOSAVE_DEBOUNCE_MS);
+    click("draft-edit-done");
+    expect(say).toHaveBeenCalledWith(copy("draft.unsaved"), "bad");
   });
 
   it("#789 — the title and the meta description are edited and saved with the body", async () => {
