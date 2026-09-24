@@ -208,7 +208,7 @@ export function DayCard(p: {
     return (
       <button
         {...p.buttonProps}
-        className={`rounded-box w-full border border-base-200 bg-base-200/40 ${CARD_HEIGHT}`}
+        className={`rounded-box w-full ${CARD_HEIGHT}`}
         aria-hidden="true"
         tabIndex={-1}
         aria-label={undefined}
@@ -225,20 +225,21 @@ export function DayCard(p: {
         // **this card's** own width, not on the viewport's. The column a
         // card sits in narrows with the side panel, the day panel and the
         // window, and none of those is a media query.
-        "@container/day rounded-box flex w-full min-w-0 flex-col gap-1 overflow-hidden border p-1 text-left transition-colors hover:border-primary",
+        "@container/day rounded-box flex w-full min-w-0 flex-col gap-1 overflow-hidden p-1 text-left transition-[background-color,box-shadow] duration-150",
         CARD_HEIGHT,
-        p.selected
-          ? "border-primary bg-primary/5"
+        // The calm layer (issue 1071, board R12-5-Plan): a day with a page
+        // is a white card on the card's own ring edge; an empty day is a
+        // flat grey cell with no border; today is tinted.
+        cell.today
+          ? "bg-primary/10"
           : cell.page === null
-            ? "border-base-200 bg-base-100"
-            : "border-base-300 bg-base-100",
-        // Today, marked on the card and **not on the date**. A filled chip
-        // around the numeral costs 8px of a column that is 88px at its
-        // narrowest, and the date and the day's one number together already
-        // spend 74 of the 78 that leaves — so the mark that costs nothing
-        // is the one this card can afford. `ring-inset` is why it costs
-        // nothing: the ring is drawn inside the border box (UI-SPEC §0 10).
-        cell.today ? "ring-2 ring-inset ring-primary" : "",
+            ? "bg-base-200"
+            : "bg-base-100 shadow-(--shadow-card)",
+        // The open day is a 2px accent ring. `ring-inset` draws it inside
+        // the border box, so it costs a column that is 88px at its
+        // narrowest nothing (UI-SPEC §0 10); hover draws a hairline ring on
+        // every other day.
+        p.selected ? "ring-2 ring-inset ring-primary" : "hover:ring-1 hover:ring-inset hover:ring-base-content/20",
       ].join(" ")}
       data-testid={`calendar-cell-${cell.day}`}
       data-today={cell.today ? "" : undefined}
@@ -275,7 +276,13 @@ export function DayCard(p: {
       <span className="mt-auto min-w-0">
         {page !== null ? (
           <StageMark page={page} narrowable />
-        ) : line === null ? null : (
+        ) : line === null ? (
+          cell.today ? (
+            <span className="block text-[11px] font-semibold text-primary" data-testid="cell-today">
+              {copy("calendar.month.today")}
+            </span>
+          ) : null
+        ) : (
           <span
             className="rk-cal-empty block min-w-0 truncate text-[11px] font-semibold opacity-70"
             data-testid={isCause ? "cell-empty-line" : "calendar-horizon-marker"}

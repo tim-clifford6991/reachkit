@@ -352,6 +352,13 @@ export const CALENDAR_COPY = Object.freeze({
   "calendar.supply.unmeasured": ["We couldn’t find enough searches in your market to plan pages yet. Pick a broader category and we’ll measure your market again right away.", { slots: {}, fixedBy: "issue 784" }],
   // issue 855: the same zero while the market is still being measured — a pass
   // stopped on a ceiling, measured again. Drafted under issue 759's ruling.
+  // Issue 1071 (board R12-5-Plan): the unmeasured notice carries its two
+  // actions inline — the first broader category, and the founder's own
+  // words. Drafted under issue 759's ruling; the owner corrects the wording.
+  "calendar.supply.try": ["Try “{category}”", { slots: { category: "text" }, fixedBy: "issue 1071" }],
+  "calendar.supply.describe": ["Describe it yourself", { slots: {}, fixedBy: "issue 1071" }],
+  // Issue 1071: the header's way back to the month and day it is now.
+  "calendar.month.today": ["Today", { slots: {}, fixedBy: "issue 1071" }],
   "calendar.supply.measuring": ["Your market is still being measured, so no pages are planned yet. ReachKit measures it again automatically.", { slots: {}, fixedBy: "issue 855" }],
   // Issue 881 (owner's dogfood, 2026-09-18): the site holds targets and
   // every one of them is outsized for it — the day is empty for a reason

@@ -42,7 +42,8 @@ import { addMonths, monthNameOnly, monthShortLabel } from "./dates";
 import { parseMonth, readMonth, readSupplyNotice } from "./provider";
 import { supplyLine } from "./supply";
 import { readOnboarding } from "../_shell/onboarding";
-import { FirstPageNotice, MarketChoice } from "../_shell/OnboardingStatus";
+import { FirstPageNotice } from "../_shell/OnboardingStatus";
+import { SupplyNotice } from "./SupplyNotice";
 import { readCategoryChoice } from "../_shell/remeasure";
 
 /** /app/calendar's own `<title>` (#945). Without it this screen announced
@@ -89,7 +90,9 @@ export default async function CalendarPage({
           <h1 className="text-2xl font-semibold">{copy("shell.nav.plan")}</h1>
           {head === null ? null : <p className="min-w-0 wrap-anywhere">{head}</p>}
         </div>
-        <nav className="join" data-testid="month-switcher">
+        {/* One grouped control (issue 1071, board R12-5-Plan): the month
+            between its two neighbours, and *Today* after a hairline. */}
+        <nav className="join rounded-field bg-base-100 shadow-(--shadow-card)" data-testid="month-switcher">
           <a
             href={`/app/calendar?month=${previous}`}
             className="btn btn-sm btn-ghost join-item"
@@ -113,23 +116,39 @@ export default async function CalendarPage({
           >
             <ChevronRight size={20} strokeWidth={1.75} aria-hidden />
           </a>
+          <a
+            href="/app/calendar"
+            className="btn btn-sm btn-ghost join-item border-s border-s-base-300"
+            data-testid="month-today"
+          >
+            {copy("calendar.month.today")}
+          </a>
         </nav>
       </div>
 
       <FirstPageNotice state={onboarding} />
       {/* §7's one statement of supply, at the calendar's top and nowhere
-          else: no cell and no day panel repeats it (issue 857). */}
+          else: no cell and no day panel repeats it (issue 857). A market
+          never measured carries its two ways to measure again inline
+          (issue 1071), in place of the broader-categories card. */}
       {supplyStatement === null ? null : (
-        <div role="status" className="alert alert-soft text-sm" data-testid="calendar-supply-statement">
-          {supplyStatement}
-        </div>
-      )}
-      {choice === null ? null : (
-        <section className="card card-border min-w-0 bg-base-100" data-testid="calendar-market-choice">
-          <div className="card-body">
-            <MarketChoice choice={choice} />
-          </div>
-        </section>
+        <SupplyNotice
+          line={supplyStatement}
+          choice={
+            choice === null
+              ? null
+              : {
+                  suggestion: choice.suggestions[0] ?? null,
+                  tryLabel:
+                    choice.suggestions[0] === undefined
+                      ? null
+                      : copy("calendar.supply.try", { category: choice.suggestions[0] }),
+                  describe: copy("calendar.supply.describe"),
+                  own: copy("setup.remeasure.own"),
+                  submit: copy("setup.remeasure.submit"),
+                }
+          }
+        />
       )}
       <Suspense fallback={<div className="skeleton h-96 w-full" />}>
         <CalendarView model={model} />

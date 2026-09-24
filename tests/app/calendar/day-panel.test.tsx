@@ -460,18 +460,15 @@ describe("a cell with a page whose stage has no action", () => {
 });
 
 describe("the panel's arms", () => {
-  it("the head is the stage's dot and word at the near edge, the mono date beside them, and the close control at the far one", () => {
-    // Issue 944, fixed here: the stage was a daisyUI `badge`, which carries
-    // its own padding and does not shrink below its text. It is a dot and
-    // a word now — on the card and in the panel, so one stage is drawn one
-    // way (`stages.ts`).
+  it("the head is the mono date, the stage as a soft badge, and the close control (issue 1071)", () => {
+    // The badge is the panel's alone: a day card keeps its dot and word,
+    // because a badge does not shrink inside a seven-column cell (#944).
     const head = panel("2026-09-15").querySelector('[data-testid="day-head"]');
     const children = [...(head?.children ?? [])];
-    expect(children[0]?.className).toContain("rounded-full");
+    expect(children[0]?.className).toContain("num");
     expect(children[1]?.textContent).toBe("calendar.stage.your-review");
-    expect(children[2]?.className).toContain("num");
-    expect(children[3]?.getAttribute("data-testid")).toBe("day-panel-close");
-    expect(head?.querySelector(".badge")).toBeNull();
+    expect(children[1]?.className).toContain("badge-warning");
+    expect(children[2]?.getAttribute("data-testid")).toBe("day-panel-close");
   });
 
   it("review offers a solid way in across the column, with a warning-outline Veto under it", () => {
