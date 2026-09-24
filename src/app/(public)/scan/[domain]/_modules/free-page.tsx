@@ -137,7 +137,7 @@ export function FreePageAbsent(p: { cutOff?: boolean; domain?: CanonicalDomain }
           <RetryPartControl domain={p.domain} part={FREE_PAGE_PART} />
         ) : p.cutOff === true ? (
           <div className="card-actions">
-            <button type="button" className="btn btn-outline btn-primary btn-sm">
+            <button type="button" className="btn btn-soft btn-primary btn-sm">
               {copy("control.retry-part")}
             </button>
           </div>

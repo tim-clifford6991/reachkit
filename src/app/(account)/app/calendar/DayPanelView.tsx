@@ -181,7 +181,7 @@ function DayActions(p: {
             <a
               key={action.key}
               href={action.href}
-              className={`btn btn-sm col-span-2 ${leavesTheProduct ? "btn-outline" : "btn-primary"}`}
+              className={`btn btn-sm col-span-2 ${leavesTheProduct ? "btn-soft btn-primary" : "btn-primary"}`}
               data-testid={`day-action-${action.key}`}
             >
               {copy(action.key)}
@@ -193,7 +193,7 @@ function DayActions(p: {
           <button
             key={action.key}
             type="button"
-            className={`btn btn-sm ${stop ? "btn-outline btn-warning" : "btn-ghost"}`}
+            className={`btn btn-sm ${stop ? "btn-ghost btn-warning" : "btn-ghost"}`}
             data-testid={`day-action-${action.key}`}
             disabled={p.busy}
             onClick={() => p.onCommand(action.command, action.draftId)}

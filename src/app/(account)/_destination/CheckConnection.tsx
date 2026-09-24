@@ -161,7 +161,7 @@ export function CheckConnection(p: {
     <div className="flex min-w-0 flex-col gap-2" data-testid="check-connection">
       <button
         type="button"
-        className={`btn btn-outline btn-sm self-start${waiting ? " btn-disabled" : ""}`}
+        className={`btn btn-soft btn-primary btn-sm self-start${waiting ? " btn-disabled" : ""}`}
         disabled={running || waiting}
         onClick={() => {
           void press();

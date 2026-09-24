@@ -29,7 +29,7 @@ export function CopyOut(p: { bodyMd: string }): React.JSX.Element {
     <div className="flex flex-wrap gap-2" data-testid="draft-copy-out">
       <button
         type="button"
-        className="btn btn-sm btn-outline"
+        className="btn btn-sm btn-soft btn-primary"
         data-testid="draft-copy-markdown"
         onClick={() => writeClipboard(p.bodyMd)}
       >
@@ -37,7 +37,7 @@ export function CopyOut(p: { bodyMd: string }): React.JSX.Element {
       </button>
       <button
         type="button"
-        className="btn btn-sm btn-outline"
+        className="btn btn-sm btn-soft btn-primary"
         data-testid="draft-copy-html"
         onClick={() => writeClipboard(renderMarkdownHtml(p.bodyMd))}
       >

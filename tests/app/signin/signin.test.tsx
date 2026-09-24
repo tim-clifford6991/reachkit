@@ -397,8 +397,8 @@ describe("issue #1025 — the Round 7 full-width split, and the address is the f
 
   it("the answered arm offers the way back to the field, not a second solid button", async () => {
     const html = await renderWithKeys({ state: { answer: "requested", value: "someone@example.com" } });
-    expect(html).toMatch(/<a class="btn btn-outline[^"]*" href="\/signin">signin.sent.resend<\/a>/);
-    expect(html).not.toContain("btn-primary");
+    expect(html).toMatch(/<a class="btn btn-soft[^"]*" href="\/signin">signin.sent.resend<\/a>/);
+    expect(html).not.toMatch(/class="btn btn-primary/);
   });
 
   it("the address is the input's placeholder, in the mono face, and still names the field", async () => {

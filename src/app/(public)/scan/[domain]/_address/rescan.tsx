@@ -36,8 +36,8 @@
 // have landed on: the refusal arrives as the notice the report screen
 // already renders, written, in its own words.
 //
-// daisyUI in the route (DESIGN rule 1): `btn btn-outline`. The screen's one
-// solid button is the offer's Start, so this one is outline.
+// daisyUI in the route (DESIGN rule 1): `btn btn-soft btn-primary`. The screen's
+// one solid button is the offer's Start, so this one is soft (#1063).
 "use client";
 
 import { useState, type FormEvent } from "react";
@@ -126,7 +126,7 @@ export function RescanControl(p: {
     <form action="/api/scan" method="post" onSubmit={onSubmit}>
       <input type="hidden" name="value" value={p.domain} />
       {p.incomplete ? <input type="hidden" name={RESCAN_FIELD} value={RESCAN_INCOMPLETE} /> : null}
-      <button type="submit" className="btn btn-outline btn-sm" disabled={step.kind === "sending"} data-testid={p.testId}>
+      <button type="submit" className="btn btn-soft btn-primary btn-sm" disabled={step.kind === "sending"} data-testid={p.testId}>
         {p.label}
       </button>
     </form>

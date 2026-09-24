@@ -120,7 +120,7 @@ export default async function OptOutPage(p: {
       heading={copy(head)}
       lines={[line]}
       actions={
-        <Link href={HOME} className="btn btn-outline btn-sm">
+        <Link href={HOME} className="btn btn-soft btn-sm">
           {copy("chrome.back-to-reachkit")}
         </Link>
       }

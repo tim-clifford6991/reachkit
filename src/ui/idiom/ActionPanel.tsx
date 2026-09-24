@@ -40,10 +40,10 @@ export type ActionPanelTone = "accent" | "warn";
 export type ActionPanelRank = "primary" | "secondary";
 
 /** The classes the ranked pill carries, as a `<button>` or as an `<a>`:
- *  daisyUI's own `btn`, the outline rank's edge in the accent. */
+ *  daisyUI's own `btn`, the secondary rank a soft tint of the accent. */
 const CTA_CLASS: Readonly<Record<ActionPanelRank, string>> = Object.freeze({
   primary: "btn btn-sm btn-primary rounded-(--r-pill)",
-  secondary: "btn btn-sm btn-outline [--btn-color:var(--accent)] rounded-(--r-pill)",
+  secondary: "btn btn-sm btn-soft btn-primary rounded-(--r-pill)",
 });
 
 type ActionPanelBase = {

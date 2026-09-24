@@ -77,7 +77,7 @@ describe("/setup", () => {
     for (const id of ["setup-competitors", "setup-publishing", "setup-voice"]) {
       expect(tree.querySelector(`[data-testid="${id}"]`), id).toBeNull();
     }
-    expect(tree.querySelectorAll(".btn-primary")).toHaveLength(1);
+    expect(tree.querySelectorAll(".btn-primary:not(.btn-soft, .btn-outline, .btn-ghost)")).toHaveLength(1);
   });
 
   it("an address naming a step opens on that step", async () => {

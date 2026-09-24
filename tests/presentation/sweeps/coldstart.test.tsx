@@ -430,10 +430,10 @@ describe("the sweep states its own coverage (rule 5.5)", () => {
 // The scope is `src/app/(account)/**`, by group and not by name, so a
 // screen added there later is in scope the day its `page.tsx` lands.
 
-/** The one class `Btn` gives the solid accent rank. The quiet arms are
- *  daisyUI's own `btn-outline` and `btn-ghost`, and the inverted arm sets
- *  `--btn-color` — none of them a second solid fill. */
-const SOLID_PRIMARY = ".btn-primary";
+/** The accent rank. An accent-tinted `btn-soft btn-primary` or a ghost
+ *  (#1063) is not a second solid fill; the landing's outlined field CTA
+ *  still counts, as ruling 2b below reads it. */
+const SOLID_PRIMARY = ".btn-primary:not(.btn-soft, .btn-ghost)";
 
 /** The screens that draw more than one today, each with the reason and the
  *  issue that settles it. Fail-closed: the test below also asserts every
@@ -458,18 +458,18 @@ const MORE_THAN_ONE_PRIMARY: Readonly<Record<string, string>> = Object.freeze({}
  *  entry that stops drawing two fails below as a stale exemption rather
  *  than sitting here.
  *
- *  **Both entries are rulings, not debts.** #290/#291 had settled each
+ *  **The entry is a ruling, not a debt.** #290/#291 had settled each
  *  screen down to one — the report's Start solid with the giveaway outline,
  *  the landing's hero control alone — and ruling 2b of 2026-09-08 reverses
  *  both: "two solid primaries per screen are allowed **where the artifact
  *  draws them** (landing: header CTA + hero CTA; report: Email me +
- *  Start)". Each screen's ceiling is held by its own test —
+ *  Start)". The report's entry left with #1063: Email me is the
+ *  giveaway's soft accent, so the report draws one solid, Start. Each
+ *  screen's ceiling is held by its own test —
  *  `tests/app/scan-address/report-view.test.tsx` for the report,
  *  `tests/app/chrome/header.test.tsx` and `landing-s1.test.tsx` for the
  *  landing. */
 const MORE_THAN_ONE_PRIMARY_PUBLIC: Readonly<Record<string, string>> = Object.freeze({
-  "/scan/[domain]":
-    "ruling 2b (2026-09-08): the giveaway's Email me and the pricing card's Start are both solid, as the approved set draws them; supersedes #291.",
   "/":
     "ruling 2b (2026-09-08), S1. The landing's solids are one action " +
     "stated three times: the header's CTA, the hero's own submit, and the " +
@@ -508,8 +508,8 @@ describe("§9.1 idiom — one solid primary per screen, across src/app/(account)
     expect(actions?.querySelectorAll(SOLID_PRIMARY)).toHaveLength(1);
     // The other two are the idiom's quiet ranks, and the veto carries the
     // one tone a rank may take.
-    expect(actions?.querySelectorAll(".btn-outline.btn-warning")).toHaveLength(1);
-    expect(actions?.querySelectorAll(".btn-ghost")).toHaveLength(1);
+    expect(actions?.querySelectorAll(".btn-ghost.btn-warning")).toHaveLength(1);
+    expect(actions?.querySelectorAll(".btn-ghost:not(.btn-warning)")).toHaveLength(1);
   });
 
   // The same rule over `src/app/(public)/**` (issue #290), as ruling 2b of

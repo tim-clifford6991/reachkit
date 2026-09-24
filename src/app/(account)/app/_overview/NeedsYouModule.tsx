@@ -28,13 +28,13 @@ const PANEL: Readonly<Record<AlertKind, { alert: string; cta: string; Icon: type
   // (§2.5 keeps red for the customer's own problem shown to them).
   // The base tone, not a warning: connecting the blog is a thing to do,
   // not a fault. (§2.2 names four tones and no `info` one.)
-  connect_blog: { alert: "alert alert-soft", cta: "btn btn-outline btn-primary btn-sm", Icon: Globe },
-  pending_veto: { alert: "alert alert-warning alert-soft", cta: "btn btn-outline btn-warning btn-sm", Icon: FileText },
-  needs_you: { alert: "alert alert-soft", cta: "btn btn-outline btn-sm", Icon: Plug },
+  connect_blog: { alert: "alert alert-soft", cta: "btn btn-soft btn-primary btn-sm", Icon: Globe },
+  pending_veto: { alert: "alert alert-warning alert-soft", cta: "btn btn-soft btn-warning btn-sm", Icon: FileText },
+  needs_you: { alert: "alert alert-soft", cta: "btn btn-soft btn-primary btn-sm", Icon: Plug },
   // A technical issue the customer fixes (SPEC §9): error ground when
   // Critical, warning when Worth fixing, and the outline control to the
   // report's fix lines. Its count over its set is the stored one.
-  site_issue: { alert: "alert alert-warning alert-soft", cta: "btn btn-outline btn-sm", Icon: Wrench },
+  site_issue: { alert: "alert alert-warning alert-soft", cta: "btn btn-soft btn-primary btn-sm", Icon: Wrench },
 };
 
 const CRITICAL_ALERT = "alert alert-error alert-soft";

@@ -133,7 +133,7 @@ describe("SPEC §5 (2026-09-20) — five saved steps, one question each", () => 
 
   it("§9.1 — every step draws exactly one solid primary, and it is the step's own control", () => {
     for (const step of SETUP_STEPS) {
-      const solids = [...screenFor(step).querySelectorAll(".btn-primary")];
+      const solids = [...screenFor(step).querySelectorAll(".btn-primary:not(.btn-soft, .btn-outline, .btn-ghost)")];
       expect(solids, step).toHaveLength(1);
       expect(solids[0]?.getAttribute("data-testid"), step).toBe("setup-onwards");
     }
@@ -243,13 +243,13 @@ describe("step one — your site and your market (REQ-021 c6/c7, REQ-026 c1/c3)"
     expect(tree.querySelector('[data-testid="setup-site-and-market"]')).not.toBeNull();
   });
 
-  it("each Change is an outlined button, not bare text (#521)", () => {
+  it("each Change is a soft button, not bare text (#521)", () => {
     const changes = [
       ...screenFor("site").querySelectorAll('[data-testid="setup-site-and-market"] button'),
     ];
     expect(changes).toHaveLength(2);
     for (const change of changes) {
-      expect(change.classList.contains("btn-outline"), change.outerHTML).toBe(true);
+      expect(change.classList.contains("btn-soft"), change.outerHTML).toBe(true);
     }
   });
 

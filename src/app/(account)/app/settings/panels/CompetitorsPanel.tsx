@@ -155,7 +155,7 @@ export function CompetitorsPanel(p: {
                 {/* Named, for the reason #328 gives on the business panel. */}
                 <button
                   type="submit"
-                  className="btn btn-outline btn-sm"
+                  className="btn btn-soft btn-primary btn-sm"
                   aria-label={copy("settings.competitors.add-label")}
                 >
                   {copy("settings.competitors.add")}

@@ -11,7 +11,7 @@ export function CopyLines(p: { lines: readonly string[] }): React.JSX.Element {
   return (
     <button
       type="button"
-      className="btn btn-outline btn-sm"
+      className="btn btn-soft btn-primary btn-sm"
       onClick={() => {
         void globalThis.navigator?.clipboard?.writeText(p.lines.join("\n")).catch(() => undefined);
       }}

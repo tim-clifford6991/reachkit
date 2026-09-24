@@ -109,7 +109,7 @@ export function AddressView(p: {
           lines={[refusalLine(state.refusal)]}
           actions={
             <>
-              <Link href={EXAMPLE_REPORT} className="btn btn-outline btn-sm">
+              <Link href={EXAMPLE_REPORT} className="btn btn-soft btn-primary btn-sm">
                 {copy("control.example-report")}
               </Link>
               <Link href="/" className="btn btn-ghost btn-sm">

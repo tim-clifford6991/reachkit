@@ -90,7 +90,7 @@ export function DangerZone(): React.JSX.Element {
               <span data-testid={`action-${row.action}`}>
                 <button
                   type="button"
-                  className="btn btn-outline btn-error btn-sm"
+                  className="btn btn-ghost btn-error btn-sm"
                   onClick={() => setOpened(row.action)}
                 >
                   {copy(row.label)}
@@ -146,7 +146,7 @@ function DangerStep(p: {
           <span>
             <button
               type="button"
-              className="btn btn-outline btn-sm"
+              className="btn btn-soft btn-primary btn-sm"
               onClick={() => {
                 p.action.run(p.row.action);
                 void handoverState(p.row.action).then(setHandover);

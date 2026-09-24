@@ -19,7 +19,7 @@
 // stylesheet added.
 //
 // The chosen chip says so twice: `aria-pressed` for a screen reader, the
-// primary fill for an eye.
+// solid ink pill for an eye, the rest ghost pills (#1063).
 "use client";
 
 import type React from "react";
@@ -44,7 +44,7 @@ export function StageFilter(p: {
           <button
             key={filter}
             type="button"
-            className={`btn btn-sm ${pressed ? "btn-primary" : "btn-outline"}`}
+            className={`btn btn-sm rounded-full ${pressed ? "border-base-content bg-base-content text-base-100" : "btn-ghost"}`}
             data-testid={`stage-filter-${filter}`}
             aria-pressed={pressed}
             onClick={() => p.onSelect(filter)}

@@ -65,7 +65,7 @@ export function LeadCapture(p: { scanId: string }): React.JSX.Element {
             placeholder={copy("free-page.email.placeholder")}
           />
         </label>
-        <button type="submit" className="btn btn-outline btn-primary" disabled={step.kind === "sending"}>
+        <button type="submit" className="btn btn-soft btn-primary" disabled={step.kind === "sending"}>
           {copy("free-page.submit")}
         </button>
       </div>

@@ -92,7 +92,7 @@ export function RemovedView(p: { domain: CanonicalDomain }): React.JSX.Element {
       heading={copy("quiet.removed.head")}
       lines={[copy("removal.line.removed", { domain: p.domain, address: removalAddress() })]}
       actions={
-        <Link href="/" className="btn btn-outline btn-sm" data-testid="report-removed-scan-another">
+        <Link href="/" className="btn btn-soft btn-primary btn-sm" data-testid="report-removed-scan-another">
           {copy("control.scan-another")}
         </Link>
       }
