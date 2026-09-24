@@ -23,8 +23,8 @@
 // Each tile lifts and nudges its arrow (`CARD_LIFT`, #1064), its trend draws
 // once and its figure counts up (`CountUp`); the tab's name stays in the
 // link for a screen reader and the arrow says it to the eye. On a phone the
-// first two tiles share a row and the rival's lead spans it, with no trend
-// — the phone board's three.
+// first two tiles share a row and the rival's lead spans the next — the
+// phone board's three; each keeps its trend.
 //
 // **It cannot overflow.** Two columns below `lg` and three above it; every
 // tile is `min-w-0`, its name wraps inside its own column and its figure is
@@ -117,14 +117,13 @@ function Tile(p: {
           </>
         )}
 
-        {/* No trend on a phone (R12-7): half a row is a number's width. */}
-        <div className="hidden min-w-0 sm:[&:not(:empty)]:block">
-          <TrendSparkline
-            points={p.trend}
-            label={copy("overview.trend.label", { name: p.label, weeks: formatCount(p.trend.length) })}
-            of={p.tab === "rivals" ? "rival" : "you"}
-          />
-        </div>
+        {/* Drawn at every width: a Recharts series hidden on a phone is a
+            chart the layout gate reads as never drawn (#1070). */}
+        <TrendSparkline
+          points={p.trend}
+          label={copy("overview.trend.label", { name: p.label, weeks: formatCount(p.trend.length) })}
+          of={p.tab === "rivals" ? "rival" : "you"}
+        />
       </div>
     </a>
   );

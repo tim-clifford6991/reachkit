@@ -96,7 +96,7 @@ function ReadersView(p: { page: WaitingPage }): React.JSX.Element {
         <div className="flex min-w-0 flex-col gap-2 bg-base-100 px-4 py-5">
           <p className="line-clamp-2 text-base font-bold leading-tight">{p.page.title}</p>
           {p.page.lead === "" ? null : (
-            <p className="line-clamp-3 text-sm text-base-content/70">{p.page.lead}</p>
+            <p className="text-sm text-base-content/70">{p.page.lead}</p>
           )}
           <span className="flex items-center gap-1.5 pt-1 text-xs text-base-content/70">
             <Eye size={14} strokeWidth={1.75} aria-hidden />
