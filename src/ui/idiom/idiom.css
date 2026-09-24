@@ -347,7 +347,9 @@
 }
 
 /* Reduced motion (§2.4, L63): universal, `!important`, animation as well as
- * transition. `--motion-fast` inherits it without a further rule (§0 13). */
+ * transition. Every timing in `tailwind.css`'s motion layer (#1065) is
+ * turned off by it without a further rule; the view-transition pseudo
+ * elements, which `*` does not reach, have their own rule there. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

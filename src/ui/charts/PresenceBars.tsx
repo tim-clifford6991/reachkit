@@ -24,6 +24,7 @@
 // and the labels being on screen is what the old `Tooltip` was for.
 import type React from "react";
 import { Bar, BarChart, Cell, XAxis, YAxis } from "recharts";
+import { SERIES_DRAW } from "@/ui/motion";
 
 /** Theme paint and Recharts keys, named: values, never copy. */
 const PAINT = {
@@ -123,7 +124,7 @@ export function PresenceBars(p: {
               dataKey={KEY.length}
               minPointSize={2.5}
               radius={2}
-              isAnimationActive={false}
+              {...SERIES_DRAW}
               background={{ fill: PAINT.track, radius: 2 }}
             >
               <Cell

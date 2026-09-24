@@ -45,6 +45,7 @@
 import type React from "react";
 import { Header } from "./_chrome/Header";
 import { Footer } from "./_chrome/Footer";
+import { ENTER_PUBLIC } from "@/ui/motion";
 
 export default function PublicLayout({
   children,
@@ -55,7 +56,7 @@ export default function PublicLayout({
     // A column at least the viewport tall, so the footer sits at the bottom
     // of a short page. `data-public-shell` is the hook `surface.css` reads
     // to let a declared screen (sign-in) fill what the chrome leaves.
-    <div data-public-shell className="flex min-h-svh flex-col">
+    <div data-public-shell className={`flex min-h-svh flex-col ${ENTER_PUBLIC}`}>
       <Header />
       {children}
       <Footer />

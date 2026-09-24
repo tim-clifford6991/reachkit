@@ -34,6 +34,7 @@
 // closes up around it rather than holding a gap open.
 import type React from "react";
 import { Line, LineChart, ReferenceDot, YAxis } from "recharts";
+import { SERIES_DRAW } from "@/ui/motion";
 import { SERIES_COLOR, type SeriesKind } from "./series";
 
 const PAINT = { surface: "var(--surface)" } as const;
@@ -81,7 +82,7 @@ export function TrendSparkline(p: {
         <Line
           dataKey={KEY.value}
           connectNulls
-          isAnimationActive={false}
+          {...SERIES_DRAW}
           stroke={stroke}
           strokeWidth={2}
           dot={false}

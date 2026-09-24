@@ -190,18 +190,6 @@
   --w-day-panel: 290px;
 }
 
-/* UI-SPEC §0 13 (owner, 2026-09-11) — the one motion token, in all three
- * blocks, exactly as the source file declares it in its own third addition. */
-:root {
-  --motion-fast: .18s;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --motion-fast: .18s;
-  }
-}
-
-:root[data-theme="dark"] {
-  --motion-fast: .18s;
-}
+/* UI-SPEC §0 13's one motion token (`--motion-fast`, .18s, 2026-09-11) is
+ * gone: the calm layer's one easing and seven timings supersede it
+ * (owner, 2026-09-24, #1065) and live in `tailwind.css`'s `@theme`. */
