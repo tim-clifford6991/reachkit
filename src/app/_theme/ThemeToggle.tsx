@@ -1,5 +1,6 @@
 // docs/DESIGN.md (2026-09-14) — the Light / Dark / System control (#681),
-// the one module the public header and the /app shell both import. A daisyUI
+// in the /app shell. The public header has the two-state `ThemeSwitch`
+// since 2026-09-24 (#1066). A daisyUI
 // `dropdown` with a `menu`, lucide glyphs at 1.75. Never on hosted pages:
 // those are the customer's domain, not ReachKit chrome.
 //
@@ -34,18 +35,6 @@ export function ThemeToggle(p: {
   /** The menu opens above the control — the foot of the sidebar — rather
    *  than under it. */
   up?: boolean;
-  /** Show the control's own name beside the glyph, rather than only as its
-   *  accessible name (#936, owner 2026-09-21).
-   *
-   *  In a bar the glyph is enough — it sits among other icon-square
-   *  controls and its current state *is* the icon. Inside the public
-   *  header's phone menu it does not: it is a bare monitor glyph under two
-   *  worded links, and nobody can tell what it is. The word is
-   *  `chrome.theme.label`'s, the same string the control already carries
-   *  as its accessible name, so nothing new is said — and when it is
-   *  shown, it *is* the accessible name and the `aria-label` comes off,
-   *  because a control named twice is announced twice. */
-  labelled?: boolean;
 }): React.JSX.Element {
   // The server cannot know the stored choice, so it renders `system` and
   // the client reads the real one on hydration. The page's ground is
@@ -59,18 +48,16 @@ export function ThemeToggle(p: {
   }
 
   const Current = ICON[choice];
-  const labelled = p.labelled === true;
 
   return (
     <div className={`dropdown dropdown-end ${p.up === true ? "dropdown-top" : ""}`} data-testid={TEST_ID}>
       <div
         tabIndex={0}
         role="button"
-        className={labelled ? "btn btn-ghost btn-sm w-full justify-start gap-2" : "btn btn-ghost btn-square btn-sm"}
-        aria-label={labelled ? undefined : p.names.control}
+        className="btn btn-ghost btn-square btn-sm"
+        aria-label={p.names.control}
       >
         <Current aria-hidden size={20} strokeWidth={1.75} />
-        {labelled ? <span>{p.names.control}</span> : null}
       </div>
       <ul tabIndex={-1} className="dropdown-content menu z-20 w-40 rounded-box bg-base-100 p-2 shadow-sm">
         {THEME_CHOICES.map((option) => {

@@ -166,17 +166,13 @@ describe("S8 — the line each screen writes", () => {
   });
 });
 
-/** The header's own controls, lifted out of a screen's markup: they are
- *  chrome, not the screen's one control.
- *
- *  Two of them since #936 — the Light / Dark / System control (#681),
- *  which the header renders once per width arm, and the phone menu's
- *  trigger. Both are the frame's, on every public route; what S8's rule
- *  below is about is the control the *screen* offers. */
+/** The chrome's own controls, lifted out of a screen's markup: they are
+ *  the frame's, on every public route, not the screen's one control. Since
+ *  #1066 that is the banner's dismiss button and the header's theme switch
+ *  (in the bar and in the drawer), so the banner and the header are lifted
+ *  out whole. */
 function withoutHeaderControls(markup: string): string {
-  return markup
-    .replace(/<div[^>]*data-testid="public-header-menu"[\s\S]*?<\/ul><\/div>/g, "")
-    .replace(/<div[^>]*data-testid="theme-toggle"[\s\S]*?<\/ul><\/div>/g, "");
+  return markup.replace(/<div role="region"[^>]*data-testid="public-banner"[\s\S]*?<\/header>/g, "");
 }
 
 describe("S8 — one control per screen, and it is the route group's own", () => {
@@ -193,7 +189,8 @@ describe("S8 — one control per screen, and it is the route group's own", () =>
     // The field is the landing's own form — the same POST, the same one
     // named field — under S8's word.
     expect(occurrences(markup, 'action="/api/scan"')).toBe(1);
-    expect(occurrences(markup, "<input")).toBe(1);
+    // The drawer's toggle is the header's, lifted out with it (#1066).
+    expect(occurrences(withoutHeaderControls(markup), "<input")).toBe(1);
     // One control that is the screen's own; the frame's two are lifted out
     // above. The scan field stays the 404's way onward rather than the
     // board's two links — it is the strongest one available, and #936 asks
