@@ -136,7 +136,11 @@ export default async function AppLayout({
         />
         <script nonce={nonce} dangerouslySetInnerHTML={{ __html: RAIL_SCRIPT }} />
 
-        <div className="drawer-content flex min-w-0 flex-col gap-4 pb-20 lg:pb-0">
+        {/* `lg:ps-10`: the calm layer's 40px gutter beside the sidebar
+            (docs/DESIGN.md, 2026-09-24, #1070) — the content no longer
+            starts flush against the panel's edge. `pb-24` keeps the last
+            card clear of the floating dock below `lg`. */}
+        <div className="drawer-content flex min-w-0 flex-col gap-4 pb-24 lg:ps-10 lg:pb-0">
           <Suspense fallback={<TopBarSkeleton />}>
             <TopBarSlot shell={shell} />
           </Suspense>

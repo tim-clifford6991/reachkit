@@ -548,7 +548,9 @@ describe("needs you (S12)", () => {
     const empty = assembleOverview(facts({ waiting: [] }));
     const emptyMarkup = html(<NeedsYouModule alerts={empty.alerts} />);
     expect(emptyMarkup).toContain("overview.alerts.empty");
-    expect(count(emptyMarkup, 'role="alert"')).toBe(1);
+    // #1070: a tick and one line, never a green alert.
+    expect(count(emptyMarkup, 'role="alert"')).toBe(0);
+    expect(count(emptyMarkup, 'data-testid="overview-alerts-empty"')).toBe(1);
     expect(count(emptyMarkup, 'data-testid="overview-alert"')).toBe(0);
   });
 });

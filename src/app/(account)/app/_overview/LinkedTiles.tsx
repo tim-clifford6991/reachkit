@@ -19,7 +19,14 @@
 // **Every number goes through `renderValue`**, so a reading nobody took is
 // the dash and its own written line and never a zero.
 //
-// **It cannot overflow.** One column below `lg` and three above it; every
+// **The calm layer (SPEC §4 2026-09-24, #1070, boards R12-4 · R12-7).**
+// Each tile lifts and nudges its arrow (`CARD_LIFT`, #1064), its trend draws
+// once and its figure counts up (`CountUp`); the tab's name stays in the
+// link for a screen reader and the arrow says it to the eye. On a phone the
+// first two tiles share a row and the rival's lead spans it, with no trend
+// — the phone board's three.
+//
+// **It cannot overflow.** Two columns below `lg` and three above it; every
 // tile is `min-w-0`, its name wraps inside its own column and its figure is
 // never clamped — the box changes instead (docs/DESIGN.md's no-overflow
 // rule).
@@ -30,6 +37,7 @@ import { ARROW_NUDGE, CARD_LIFT } from "@/ui/lift";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import type { Measured } from "@/lib/measure/measured";
 import { BADGE } from "./badges";
+import { CountUp } from "./CountUp";
 import { GOALS } from "./goals";
 import { carriedBy, formatCount, renderValue } from "./present";
 import type { AiPresenceWindow, Module, OverviewModel } from "./model";
@@ -44,7 +52,7 @@ const RIVALS_LABEL = "overview.tile.rivals.label" satisfies CopyKey;
  *  window's denominator, the previous reading. Values, never a sentence. */
 function Against(p: { children: React.ReactNode }): React.JSX.Element {
   return (
-    <span className="num flex flex-wrap items-baseline gap-1 text-sm text-base-content/60">
+    <span className="num flex flex-wrap items-baseline gap-1 text-sm text-base-content/70">
       {p.children}
     </span>
   );
@@ -74,23 +82,24 @@ function Tile(p: {
   change?: React.ReactNode;
   line: string | null;
   trend: readonly (number | null)[];
+  className?: string;
 }): React.JSX.Element {
   return (
     <a
       href={TAB_HREF[p.tab]}
-      className={`card card-border min-w-0 bg-base-100 hover:border-primary ${CARD_LIFT}`}
+      className={`card card-border min-w-0 bg-base-100 hover:border-primary ${CARD_LIFT} ${p.className ?? ""}`}
       data-testid={p.testId}
     >
-      <div className="card-body gap-3 p-5">
+      <div className="card-body gap-3 p-4 sm:p-5">
         <div className="flex min-w-0 items-center gap-2">
           {/* The tile's name is the product's own, not the customer's, so
               it wraps rather than being clamped: three fixed phrases, and a
               name cut in half is a name nobody can read. */}
-          <span className="min-w-0 flex-1 text-xs font-semibold uppercase tracking-wide text-base-content/60">
+          <span className="min-w-0 flex-1 text-xs font-semibold uppercase tracking-wide text-base-content/70">
             {p.label}
           </span>
-          <span className="flex shrink-0 items-center gap-1 text-xs font-semibold text-primary">
-            {copy(TAB_COPY_KEY[p.tab])}
+          <span className="flex shrink-0 items-center text-base-content/70">
+            <span className="sr-only">{copy(TAB_COPY_KEY[p.tab])}</span>
             <ChevronRight size={16} strokeWidth={1.75} aria-hidden className={ARROW_NUDGE} />
           </span>
         </div>
@@ -100,19 +109,22 @@ function Tile(p: {
         ) : (
           <>
             <div className="flex min-w-0 flex-wrap items-baseline gap-2">
-              <span className="figure text-3xl leading-none">{p.figure}</span>
+              <CountUp text={p.figure} className="figure text-4xl leading-none" />
               {p.against}
               {p.change}
             </div>
-            {p.line === null ? null : <p className="text-xs text-base-content/60">{p.line}</p>}
+            {p.line === null ? null : <p className="text-xs text-base-content/70">{p.line}</p>}
           </>
         )}
 
-        <TrendSparkline
-          points={p.trend}
-          label={copy("overview.trend.label", { name: p.label, weeks: formatCount(p.trend.length) })}
-          of={p.tab === "rivals" ? "rival" : "you"}
-        />
+        {/* No trend on a phone (R12-7): half a row is a number's width. */}
+        <div className="hidden min-w-0 sm:[&:not(:empty)]:block">
+          <TrendSparkline
+            points={p.trend}
+            label={copy("overview.trend.label", { name: p.label, weeks: formatCount(p.trend.length) })}
+            of={p.tab === "rivals" ? "rival" : "you"}
+          />
+        </div>
       </div>
     </a>
   );
@@ -130,7 +142,7 @@ export function LinkedTiles(p: {
   engineLine: string | null;
 }): React.JSX.Element {
   return (
-    <div className="grid min-w-0 gap-3 lg:grid-cols-3" data-testid="overview-tiles">
+    <div className="grid min-w-0 grid-cols-2 gap-3 lg:grid-cols-3" data-testid="overview-tiles">
       <SearchesTile searches={p.searches} pagesPublished={p.pagesPublished} trend={p.searchTrend} />
       <QuestionsTile aiAnswers={p.aiAnswers} engineLine={p.engineLine} />
       <RivalsTile rivals={p.rivals} />
@@ -229,6 +241,7 @@ function RivalsTile(p: { rivals: RivalGapModule }): React.JSX.Element {
         label={label}
         tab="rivals"
         testId="overview-tile-rivals"
+        className="col-span-2 lg:col-span-1"
         figure={null}
         line={noRivalLine(p.rivals)}
         trend={[]}
@@ -249,6 +262,7 @@ function RivalsTile(p: { rivals: RivalGapModule }): React.JSX.Element {
         label={label}
         tab="rivals"
         testId="overview-tile-rivals"
+        className="col-span-2 lg:col-span-1"
         figure={count.isDash ? null : count.text}
         against={
           own.isDash ? null : (
@@ -273,6 +287,7 @@ function RivalsTile(p: { rivals: RivalGapModule }): React.JSX.Element {
       label={label}
       tab="rivals"
       testId="overview-tile-rivals"
+      className="col-span-2 lg:col-span-1"
       figure={ratio === null || ratio.isDash ? null : copy("overview.rivals.ratio", { ratio: ratio.text })}
       against={was === null ? null : <Against>{was}</Against>}
       line={whose}

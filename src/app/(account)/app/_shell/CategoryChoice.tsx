@@ -64,3 +64,31 @@ export function CategoryChoice(p: {
     </div>
   );
 }
+
+/** SPEC §4 2026-09-24 (#1070): the Overview week's one suggestion — the
+ *  first broader category, as one soft button that measures again on the
+ *  press. The same action as the full choice above, so a refusal reads the
+ *  same; the label arrives written. */
+export function BroaderTry(p: { suggestion: string; label: string }): React.JSX.Element {
+  const [state, formAction, pending] = useActionState(remeasureAction, REMEASURE_INITIAL);
+
+  return (
+    <form action={formAction} className="flex min-w-0 shrink-0 flex-col gap-1" data-testid="category-choice">
+      <button
+        type="submit"
+        name={REMEASURE_CATEGORY_FIELD}
+        value={p.suggestion}
+        className="btn btn-soft btn-primary btn-sm h-auto min-h-8 max-w-full wrap-anywhere"
+        disabled={pending}
+        data-testid="category-suggestion"
+      >
+        {p.label}
+      </button>
+      {state.answer === "refused" ? (
+        <p role="alert" className="text-xs text-error wrap-anywhere" data-testid="category-choice-refused">
+          {state.line}
+        </p>
+      ) : null}
+    </form>
+  );
+}

@@ -19,6 +19,14 @@
 // performs no measurement, no vendor call and no model call — a property
 // `tests/app/overview/page.test.tsx` asserts rather than assumes.
 //
+// **The calm layer (SPEC §4 2026-09-24, #1070, boards R12-4 · R12-7).**
+// Same content, same order. The head stands beside a compact score card —
+// from `md` up in one row, vertically centred; on a phone the score card
+// follows the page waiting for review, which is the phone board's order and
+// is done with `order`, not a second render. The *broader categories*
+// choice is a one-line notice inside *This week* rather than a card above
+// the headline, and the week and *Needs you* stretch to one height.
+//
 // **It declares no `Surface`:** the shell's layout owns this route's screen
 // root (see `../layout.tsx`), and a second one would be a second
 // `[data-surface]` in the document.
@@ -31,14 +39,15 @@ import type { Metadata } from "next";
 import { readShell } from "../_shell/provider";
 import { readOverview } from "../_overview/provider";
 import { overviewNotice, readOnboarding, readReleaseNotice } from "../_shell/onboarding";
-import { FirstPageNotice, MarketChoice, ReleaseNoticeLine } from "../_shell/OnboardingStatus";
+import { FirstPageNotice, ReleaseNoticeLine } from "../_shell/OnboardingStatus";
 import { MARKET_TOO_SMALL, readCategoryChoice } from "../_shell/remeasure";
 import { ENGINE_LABEL } from "../_shell/page-target-words";
+import { formatDate, formatDateTime, formatTime } from "../_shell/format";
 import { writtenLine } from "../_shell/written";
 import { copy } from "@/lib/presentation/copy";
 import { LinkedTiles } from "../_overview/LinkedTiles";
 import { NeedsYouModule } from "../_overview/NeedsYouModule";
-import { ScoreHead } from "../_overview/ScoreHead";
+import { ScoreCard, ScoreHead } from "../_overview/ScoreHead";
 import { WaitingPageCard } from "../_overview/WaitingPageCard";
 import { WeekModule } from "../_overview/WeekModule";
 import { WeekWaiting } from "../_overview/WeekWaiting";
@@ -74,28 +83,34 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
     engine: copy(ENGINE_LABEL[overview.aiAnswers.engines.countedFrom]),
   });
 
+  // #1070: the market-too-small notice moves into *This week* beside its
+  // one suggestion, so it is not said a second time above the headline.
+  const broader =
+    choice === null ? null : { choice, notice: notice === MARKET_TOO_SMALL ? copy(MARKET_TOO_SMALL) : null };
+  const topNotice = broader !== null && notice === MARKET_TOO_SMALL ? null : notice;
+
   return (
     <div className="flex min-w-0 flex-col gap-6" data-testid="overview">
       <FirstPageNotice state={onboarding} />
-      <ReleaseNoticeLine noticeKey={notice} />
-      {choice === null ? null : (
-        <section className="card card-border min-w-0 bg-base-100" data-testid="overview-market-choice">
-          <div className="card-body">
-            <MarketChoice choice={choice} />
-          </div>
-        </section>
-      )}
+      <ReleaseNoticeLine noticeKey={topNotice} />
 
-      <ScoreHead
-        head={overview.head}
-        score={overview.score}
-        today={overview.today}
-        timeZone={shell.timeZone}
-      />
-
-      {overview.waitingPage === null ? null : (
-        <WaitingPageCard page={overview.waitingPage} timeZone={shell.timeZone} />
-      )}
+      <div className="grid min-w-0 gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,18rem)] md:items-center">
+        <ScoreHead
+          head={overview.head}
+          today={overview.today}
+          timeZone={shell.timeZone}
+          sub={headSub(overview.head.key, overview.waitingPage?.goesLiveAt ?? null, overview.today, shell.timeZone)}
+        />
+        <ScoreCard score={overview.score} className="max-md:order-2" />
+        {overview.waitingPage === null ? null : (
+          <WaitingPageCard
+            page={overview.waitingPage}
+            timeZone={shell.timeZone}
+            now={overview.today}
+            className="max-md:order-1 md:col-span-2"
+          />
+        )}
+      </div>
 
       <LinkedTiles
         searches={overview.searches}
@@ -109,7 +124,7 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
       {/* The week takes the wider of the two columns: seven day cells each
           hold a stage word, and an even split leaves them narrow enough to
           break one. Needs-you is a short list beside it. */}
-      <div className="grid min-w-0 items-start gap-6 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+      <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         {/* **Skeletons for the week while the pass runs** (SPEC §4,
             2026-09-20; issue 912). Before the pass ends there is no week to
             state: the days are not planned and the numbers are not measured,
@@ -120,10 +135,20 @@ export default async function OverviewPage(): Promise<React.JSX.Element> {
         {onboarding.kind === "running" ? (
           <WeekWaiting />
         ) : (
-          <WeekModule week={overview.week} timeZone={shell.timeZone} supply={overview.supply} />
+          <WeekModule week={overview.week} timeZone={shell.timeZone} supply={overview.supply} broader={broader} />
         )}
         <NeedsYouModule alerts={overview.alerts} overflow={overview.overflow} issuesOverflow={overview.issuesOverflow} />
       </div>
     </div>
   );
+}
+
+/** The line under the head while a page waits on a clock (R12-4): the time
+ *  alone when it is today, the date and time when it is not. */
+function headSub(key: string, at: Date | null, today: Date, timeZone: string): string | null {
+  if (key !== "overview.head.waiting" || at === null) return null;
+  const sameDay = formatDate(at, timeZone) === formatDate(today, timeZone);
+  return writtenLine("overview.head.waiting.sub", {
+    at: sameDay ? formatTime(at, timeZone) : formatDateTime(at, timeZone),
+  });
 }
