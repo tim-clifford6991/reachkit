@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>2b · Free scans gallery</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f6f6f9;color:#101019;font-family:"Plus Jakarta Sans",ui-sans-serif,system-ui,sans-serif;font-size:15px;line-height:1.55;word-spacing:.06em;-webkit-font-smoothing:antialiased;font-feature-settings:"tnum" 1}
+*{box-sizing:border-box}
+h1,h2,h3,h4,p{margin:0}
+h1,h2,h3,h4{text-wrap:balance;word-spacing:.04em}
+a{color:#5b4be0;text-decoration:none}a:hover{color:#4a3bc9}
+.mono{font-family:"JetBrains Mono",ui-monospace,monospace;word-spacing:0;font-feature-settings:normal}
+.num{font-variant-numeric:tabular-nums;font-weight:600;letter-spacing:-.02em}
+.eyebrow{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:#676774;word-spacing:0}
+.muted{color:#5e5e73}
+.card{background:#fff;border-radius:14px;box-shadow:0 0 0 1px rgb(24 24 48/.06),0 1px 2px rgb(24 24 48/.04);transition:box-shadow .2s cubic-bezier(.2,.7,.2,1),transform .2s cubic-bezier(.2,.7,.2,1)}
+.lift{cursor:pointer}
+.lift:hover{transform:translateY(-2px);box-shadow:0 0 0 1px rgb(24 24 48/.08),0 8px 20px -6px rgb(24 24 48/.12)}
+.lift:hover .nudge{transform:translateX(3px)}
+.nudge{display:inline-block;transition:transform .2s cubic-bezier(.2,.7,.2,1)}
+.float{box-shadow:0 0 0 1px rgb(24 24 48/.06),0 24px 48px -16px rgb(40 30 120/.18),0 4px 12px -4px rgb(24 24 48/.06)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 16px;border-radius:9px;border:0;font:600 14px/1 "Plus Jakarta Sans",sans-serif;word-spacing:.04em;cursor:pointer;white-space:nowrap;transition:background-color .15s ease-out,box-shadow .15s ease-out,color .15s ease-out,transform .12s ease-out;text-decoration:none}
+.btn:active{transform:scale(.98)}
+.btn:focus-visible,.field:focus-within,.chip:focus-visible,.tab:focus-visible{outline:none;box-shadow:0 0 0 3px rgb(91 75 224/.22)}
+.btn-sm{height:32px;padding:0 12px;font-size:13px;border-radius:8px}
+.btn-lg{height:48px;padding:0 22px;font-size:15px}
+.btn-primary{background:#5b4be0;color:#fff;box-shadow:inset 0 1px 0 rgb(255 255 255/.16),0 1px 2px rgb(40 30 140/.3),0 0 0 1px #5243d6}
+.btn-primary:hover{background:#4f40d4;color:#fff}
+.btn-soft{background:#eeecfd;color:#4a3bc9}
+.btn-soft:hover{background:#e3e0fb;color:#3f31b8}
+.btn-quiet{background:#fff;color:#101019;box-shadow:0 0 0 1px #e2e2ea}
+.btn-quiet:hover{box-shadow:0 0 0 1px #cfcfdb;background:#fbfbfd;color:#101019}
+.btn-ghost{background:transparent;color:#5e5e73}
+.btn-ghost:hover{background:#efeff4;color:#101019}
+.btn-warn{background:transparent;color:#945c22}
+.btn-warn:hover{background:#fff3e6;color:#7d4c19}
+.badge{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:600;word-spacing:0;white-space:nowrap}
+.b-ok{background:#e7f6f0;color:#1b765b}.b-warn{background:#fff3e6;color:#945c22}.b-bad{background:#fdece8;color:#b84029}.b-acc{background:#eeecfd;color:#4a3bc9}.b-mute{background:#efeff4;color:#5e5e73}
+.chip{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:999px;border:0;background:transparent;color:#5e5e73;font:600 13px/1 "Plus Jakarta Sans",sans-serif;cursor:pointer;transition:background-color .15s ease-out,color .15s ease-out}
+.chip:hover{background:#efeff4;color:#101019}
+.chip.on{background:#101019;color:#fff}
+.chip .n{font-family:"JetBrains Mono",monospace;font-size:11px;opacity:.7}
+.field{display:flex;align-items:center;gap:8px;background:#fff;border-radius:11px;box-shadow:0 0 0 1px #e2e2ea;transition:box-shadow .15s ease-out}
+.field:hover{box-shadow:0 0 0 1px #cfcfdb}
+.field input{flex:1;min-width:0;border:0;outline:0;background:transparent;font:400 15px "Plus Jakarta Sans",sans-serif;color:#101019;height:44px;padding:0 14px}
+.field input::placeholder{color:#8a8a9c}
+.tab{position:relative;height:44px;display:inline-flex;align-items:center;padding:0 2px;background:none;border:0;font:500 14px "Plus Jakarta Sans",sans-serif;color:#5e5e73;cursor:pointer;transition:color .15s ease-out}
+.tab:hover{color:#101019}
+.tab::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;border-radius:2px;background:#101019;transform:scaleX(0);transition:transform .25s cubic-bezier(.2,.7,.2,1)}
+.tab.on{color:#101019;font-weight:600}
+.tab.on::after{transform:scaleX(1)}
+.nav{display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;border-radius:9px;color:#5e5e73;font-weight:500;font-size:14px;transition:background-color .15s ease-out,color .15s ease-out}
+.nav:hover{background:#efeff4;color:#101019}
+.nav.on{background:#eeecfd;color:#4a3bc9;font-weight:600}
+.rule{height:1px;background:#eaeaf1;border:0}
+.dot{width:8px;height:8px;border-radius:99px;display:inline-block;flex-shrink:0}
+.live{position:relative}
+.live::after{content:"";position:absolute;inset:0;border-radius:99px;background:inherit;animation:pulse 2.4s ease-out infinite}
+@keyframes pulse{0%{transform:scale(1);opacity:.55}70%{transform:scale(2.6);opacity:0}100%{opacity:0}}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes draw{to{stroke-dashoffset:0}}
+@keyframes grow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes growy{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@keyframes pop{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:scale(1)}}
+@keyframes shimmer{from{background-position:200% 0}to{background-position:-200% 0}}
+.rise{animation:rise .6s cubic-bezier(.2,.7,.2,1) both}
+.fade{animation:fade .8s ease-out both}
+.d1{animation-delay:.06s}.d2{animation-delay:.12s}.d3{animation-delay:.18s}.d4{animation-delay:.24s}.d5{animation-delay:.30s}.d6{animation-delay:.36s}.d7{animation-delay:.42s}.d8{animation-delay:.48s}.d9{animation-delay:.54s}.d10{animation-delay:.6s}
+.draw{stroke-dasharray:1200;stroke-dashoffset:1200;animation:draw 1.6s .35s cubic-bezier(.3,.6,.2,1) forwards}
+.bar{transform-origin:left center;animation:grow .9s cubic-bezier(.2,.7,.2,1) both}
+.cell{animation:pop .35s cubic-bezier(.2,.9,.3,1.3) both}
+.skel{background:linear-gradient(90deg,#efeff4 25%,#f7f7fa 50%,#efeff4 75%);background-size:200% 100%;animation:shimmer 1.6s linear infinite;border-radius:6px}
+details summary{list-style:none;cursor:pointer}
+details summary::-webkit-details-marker{display:none}
+details .chev{transition:transform .25s cubic-bezier(.2,.7,.2,1)}
+details[open] .chev{transform:rotate(180deg)}
+details[open] .ans{animation:rise .35s cubic-bezier(.2,.7,.2,1) both}
+.cal{transition:background-color .15s ease-out,box-shadow .15s ease-out}
+.cal:hover{box-shadow:0 0 0 1px #cfcfdb}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}.draw{stroke-dashoffset:0}}
+@keyframes draw-ring{to{stroke-dashoffset:171.9}}
+@media (prefers-reduced-motion:reduce){.ring{stroke-dashoffset:171.9!important}.bar,.cell,.rise,.fade{opacity:1!important;transform:none!important}}
+.hide{display:none!important}
+.cal.sel{box-shadow:0 0 0 2px #5b4be0!important}
+@keyframes spin{to{transform:rotate(360deg)}}.spin{animation:spin 1s linear infinite;transform-origin:center}
+@keyframes marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.marquee{display:flex;gap:12px;width:max-content;animation:marquee 70s linear infinite}
+.marquee-wrap:hover .marquee{animation-play-state:paused}
+.marquee-wrap{-webkit-mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)}
+.seg{display:inline-flex;padding:3px;border-radius:9px;background:#efeff4;gap:2px}
+.seg button{all:unset;cursor:pointer;width:28px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:#676774;transition:background-color .15s ease-out,color .15s ease-out,box-shadow .15s ease-out}
+.seg button:hover{color:#101019}
+.seg button.on{background:#fff;color:#101019;box-shadow:0 1px 2px rgb(24 24 48/.12)}
+.ptab{all:unset;cursor:pointer;position:relative;display:flex;align-items:center;gap:6px;height:34px;padding:0 12px;border-radius:8px;font-size:13px;font-weight:500;color:#5e5e73;transition:background-color .15s ease-out,color .15s ease-out}
+.ptab:hover{color:#101019;background:#f3f3f7}
+.ptab.on{background:#fff;color:#101019;font-weight:600;box-shadow:0 0 0 1px #eaeaf1,0 1px 2px rgb(24 24 48/.06)}
+.ptab .prog{position:absolute;left:10px;right:10px;bottom:3px;height:2px;border-radius:2px;background:#5b4be0;transform-origin:left;transform:scaleX(0)}
+.ptab.on .prog{animation:grow 5s linear both}
+.panel{animation:rise .45s cubic-bezier(.2,.7,.2,1) both}
+.btn-ink{background:#101019;color:#fff;box-shadow:inset 0 1px 0 rgb(255 255 255/.12)}
+.btn-ink:hover{background:#26263a;color:#fff}
+.logo-item{filter:grayscale(1);opacity:.62;transition:filter .25s ease-out,opacity .25s ease-out,background-color .2s ease-out}
+.logo-item:hover{filter:none;opacity:1;background:#fff;color:#101019}
+.gcard .gview{color:#8a8a9c!important;transition:color .15s ease-out}
+.gcard:hover .gview{color:#4a3bc9!important}
+.sel-quiet{appearance:none;height:40px;padding:0 36px 0 14px;border-radius:10px;border:0;background:#fff;box-shadow:0 0 0 1px #e2e2ea;font:500 14px "Plus Jakarta Sans",sans-serif;color:#101019;cursor:pointer}
+.dk .card{background:#161a21;box-shadow:0 0 0 1px #242a34,0 1px 2px rgb(0 0 0/.4)}
+.dk .float{box-shadow:0 0 0 1px #242a34,0 24px 48px -16px rgb(0 0 0/.6)}
+.dk .muted{color:#8e99aa}.dk .eyebrow{color:#7e879a}
+.dk .btn-primary{background:#9bb4ff;color:#0e1116;box-shadow:inset 0 1px 0 rgb(255 255 255/.25),0 0 0 1px #9bb4ff}
+.dk .btn-primary:hover{background:#b3c6ff;color:#0e1116}
+.dk .btn-ghost{color:#8e99aa}.dk .btn-ghost:hover{background:#1c212a;color:#dde3eb}
+.dk .field{background:#11151b;box-shadow:0 0 0 1px #2a303b}.dk .field input{color:#dde3eb}.dk .field input::placeholder{color:#6f788a}
+.dk .seg{background:#1c212a}.dk .seg button{color:#7e879a}.dk .seg button.on{background:#2a303b;color:#dde3eb;box-shadow:none}
+.dk .ptab{color:#8e99aa}.dk .ptab:hover{background:#1c212a;color:#dde3eb}.dk .ptab.on{background:#1c212a;color:#dde3eb;box-shadow:0 0 0 1px #2a303b}.dk .ptab .prog{background:#9bb4ff}
+.dk .logo-item{filter:grayscale(1) brightness(0) invert(1);opacity:.6;color:#dde3eb}.dk .logo-item:hover{filter:none;opacity:1;background:#161a21;color:#dde3eb}
+.dk a{color:#9bb4ff}
+.dk .b-ok{background:rgb(123 216 176/.12);color:#7bd8b0}.dk .b-warn{background:rgb(230 180 90/.12);color:#e6b45a}.dk .b-acc{background:rgb(155 180 255/.12);color:#9bb4ff}.dk .b-mute{background:#1c212a;color:#8e99aa}
+
+</style>
+</helmet>
+<div style="width: 1280px; height: 1760px; background: #f6f6f9; overflow: hidden; display: flex; flex-direction: column">
+<div class="{{bannerCls}}" role="region" aria-label="Announcement" style="height: 40px; display: flex; align-items: center; justify-content: center; gap: 12px; padding: 0 64px; background: #5b4be0; box-shadow: inset 0 -1px 0 rgb(0 0 0 / 0.12); color: #fff; font-size: 13px; font-weight: 500; position: relative">
+<span class="badge" style="height: 20px; font-size: 11px; background: #fff; color: #4a3bc9">Free</span>
+<span>Every scan comes with your first page, proposed and free — see it at the end of your report.</span>
+<a href="#scan" style="color: #fff; font-weight: 700; display: flex; align-items: center; gap: 4px; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: rgb(255 255 255 / 0.5)">Scan my site <span class="nudge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span></a>
+<button onClick="{{closeBanner}}" aria-label="Dismiss" style="all: unset; cursor: pointer; position: absolute; right: 20px; width: 28px; height: 28px; border-radius: 7px; display: flex; align-items: center; justify-content: center; color: #ddd8fa"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+</div>
+<header style="position: sticky; top: 0; z-index: 5; height: 64px; display: flex; align-items: center; gap: 4px; padding: 0 64px; background: rgb(255 255 255 / 0.8); backdrop-filter: saturate(1.4) blur(12px); box-shadow: 0 1px 0 #eaeaf1">
+<a href="../R12-1-Landing/R12-1-Landing.dc.html" style="display: flex; align-items: center; gap: 10px; color: #101019; font-weight: 800; font-size: 18px; letter-spacing: -0.02em; margin-right: 28px"><svg width="28" height="28" viewBox="0 0 64 64" aria-hidden="true" style="flex-shrink: 0"><defs><linearGradient id="rkfade4" x1="0.15" y1="1" x2="0.95" y2="0.1"><stop offset="0.35" stop-color="#ffffff"></stop><stop offset="1" stop-color="#ffffff" stop-opacity="0.12"></stop></linearGradient><clipPath id="rkfade4c"><rect width="64" height="64" rx="15"></rect></clipPath></defs><g clip-path="url(#rkfade4c)"><rect width="64" height="64" fill="#5b4be0"></rect><path d="M8 50 A24 24 0 0 1 56 50 Z" fill="url(#rkfade4)"></path></g></svg><span>ReachKit</span></a>
+<nav aria-label="Main" style="display: flex; gap: 2px; margin-right: auto">
+<a class="btn btn-ghost btn-sm" href="../R12-1-Landing/R12-1-Landing.dc.html#why">Why it matters</a>
+<a class="btn btn-ghost btn-sm" href="../R12-1-Landing/R12-1-Landing.dc.html#start">How to start</a>
+<a class="btn btn-ghost btn-sm" href="../R12-3-Gallery/R12-3-Gallery.dc.html" style="color: #101019; background: #efeff4">Free scans</a>
+<a class="btn btn-ghost btn-sm" href="#pricing">Pricing</a>
+</nav>
+<div class="seg" role="group" aria-label="Theme" style="margin-right: 12px">
+<button class="{{theme.light}}" onClick="{{setLight}}" aria-label="Light"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg></button>
+<button class="{{theme.dark}}" onClick="{{setDark}}" aria-label="Dark"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"></path></svg></button>
+</div>
+<a class="btn btn-ghost btn-sm" href="#signin">Sign in</a>
+<a class="btn btn-primary btn-sm" href="#scan" style="padding: 0 16px">Start free <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a>
+</header>
+<section style="padding: 56px 64px 28px; display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 48px; align-items: end">
+<div class="rise" style="display: flex; flex-direction: column; gap: 12px">
+<span class="eyebrow" style="display: flex; align-items: center; gap: 8px"><span class="dot live" style="background: #1b765b; width: 6px; height: 6px"></span>Free scans · live</span>
+<h1 style="font-size: 44px; line-height: 1.08; font-weight: 700; letter-spacing: -0.035em">Every free scan, in the open.</h1>
+<p class="muted" style="font-size: 17px; line-height: 1.6; max-width: 620px">Each report is a permanent public link. See how any business here shows up in AI answers and Google search — and where its rivals are found instead.</p>
+</div>
+<div class="card rise d1" style="padding: 18px 20px; display: flex; flex-direction: column; gap: 10px">
+<span style="font-size: 14px; font-weight: 600">Your site next?</span>
+<div class="field" style="padding: 3px 3px 3px 0"><span style="padding-left: 12px; color: #8a8a9c"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg></span><input aria-label="Your website" placeholder="yourdomain.com" style="height: 38px; font-size: 14px; padding-left: 2px"><button class="btn btn-primary btn-sm" type="button">Scan my site</button></div>
+<span class="mono" style="font-size: 11px; color: #676774">free · no account · permanent link</span>
+</div>
+</section>
+
+<div style="position: sticky; top: 64px; z-index: 4; padding: 12px 64px; background: rgb(246 246 249 / 0.86); backdrop-filter: blur(12px); box-shadow: 0 1px 0 #eaeaf1; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; gap: 12px; align-items: center">
+<div class="field" style="flex: 1; max-width: 460px"><span style="padding-left: 14px; color: #8a8a9c"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span><input aria-label="Search free scans" placeholder="Search by company or domain" onChange="{{onSearch}}" style="padding-left: 6px"></div>
+<span style="font-size: 13px; color: #5e5e73">Showing <span class="mono" style="color: #101019">{{shown}}</span> of <span class="mono">16</span> reports</span>
+<label style="margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 13px; color: #5e5e73">Sort<span style="position: relative; display: flex"><select class="sel-quiet" aria-label="Sort"><option>Newest first</option><option>Highest score</option><option>Lowest score</option><option>A–Z</option></select><span style="position: absolute; right: 12px; top: 12px; pointer-events: none; color: #676774; display: flex"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><path d="m6 9 6 6 6-6"/></svg></span></span></label>
+</div>
+<div role="group" aria-label="Filter by category" style="display: flex; gap: 4px; flex-wrap: wrap">
+<button class="chip {{f.all}}" onClick="{{pick.all}}">All <span class="n">16</span></button>
+<button class="chip {{f.software}}" onClick="{{pick.software}}">Software <span class="n">4</span></button>
+<button class="chip {{f.local}}" onClick="{{pick.local}}">Local services <span class="n">3</span></button>
+<button class="chip {{f.health}}" onClick="{{pick.health}}">Health <span class="n">3</span></button>
+<button class="chip {{f.professional}}" onClick="{{pick.professional}}">Professional <span class="n">3</span></button>
+<button class="chip {{f.retail}}" onClick="{{pick.retail}}">Retail <span class="n">2</span></button>
+<button class="chip {{f.education}}" onClick="{{pick.education}}">Education <span class="n">1</span></button>
+</div>
+</div>
+
+<main style="padding: 24px 64px 64px; display: flex; flex-direction: column; gap: 24px">
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px">
+<a class="card lift gcard {{vis.harbour}}" href="../R12-2-Report/R12-2-Report.dc.html" style="display: flex; flex-direction: column; color: #101019; overflow: hidden">
+<div style="position: relative; height: 112px; display: flex; align-items: center; justify-content: center; gap: 10px; background: #fbfbfd; box-shadow: inset 0 -1px 0 #f0f0f5"><svg width="34" height="34" viewBox="0 0 32 32" aria-hidden="true" style="flex-shrink: 0"><circle cx="16" cy="16" r="13" fill="none" stroke="#0f766e" stroke-width="3"/><circle cx="16" cy="16" r="4" fill="#0f766e"/></svg><span style="font-size: 17px; white-space: nowrap; font-family: 'Plus Jakarta Sans'; font-weight: 700; letter-spacing: -0.02em">Harbour Bike Repair</span></div>
+<div style="padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px"><span class="mono" style="font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">harbourbikes.example</span><span class="num" style="font-size: 15px; color: #945c22">47</span></div>
+<div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #5e5e73"><span>Local services</span><span>·</span><span class="mono">Sep 23</span><span class="badge b-warn" style="margin-left: auto; height: 20px; font-size: 11px">Hard to find</span></div>
+<span class="gview" style="font-size: 13px; font-weight: 600; color: #4a3bc9; display: flex; align-items: center; gap: 4px">View report <span class="nudge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span></span>
+</div>
+</a>
+<a class="card lift gcard {{vis.northloop}}" href="../R12-2-Report/R12-2-Report.dc.html" style="display: flex; flex-direction: column; color: #101019; overflow: hidden">
+<div style="position: relative; height: 112px; display: flex; align-items: center; justify-content: center; gap: 10px; background: #fbfbfd; box-shadow: inset 0 -1px 0 #f0f0f5"><svg width="34" height="34" viewBox="0 0 32 32" aria-hidden="true" style="flex-shrink: 0"><rect x="3" y="3" width="26" height="26" rx="8" fill="#0ea5e9"/><path d="M11 22V10l10 12V10" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg><span style="font-size: 17px; white-space: nowrap; font-family: 'Plus Jakarta Sans'; font-weight: 700; letter-spacing: -0.02em">Northloop Dental</span></div>
+<div style="padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px"><span class="mono" style="font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">northloop-dental.example</span><span class="num" style="font-size: 15px; color: #1b765b">58</span></div>
+<div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #5e5e73"><span>Health</span><span>·</span><span class="mono">Sep 23</span><span class="badge b-ok" style="margin-left: auto; height: 20px; font-size: 11px">Findable</span></div>
+<span class="gview" style="font-size: 13px; font-weight: 600; color: #4a3bc9; display: flex; align-items: center; gap: 4px">View report <span class="nudge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span></span>
+</div>
+</a>
+<a class="card lift gcard {{vis.tally}}" href="../R12-2-Report/R12-2-Report.dc.html" style="display: flex; flex-direction: column; color: #101019; overflow: hidden">
+<div style="position: relative; height: 112px; display: flex; align-items: center; justify-content: center; gap: 10px; background: #fbfbfd; box-shadow: inset 0 -1px 0 #f0f0f5"><svg width="34" height="34" viewBox="0 0 32 32" aria-hidden="true" style="flex-shrink: 0"><rect x="4" y="18" width="6" height="10" rx="2" fill="#2563eb"/><rect x="13" y="11" width="6" height="17" rx="2" fill="#2563eb"/><rect x="22" y="4" width="6" height="24" rx="2" fill="#93c5fd"/></svg><span style="font-size: 17px; white-space: nowrap; font-family: 'Plus Jakarta Sans'; font-weight: 800; letter-spacing: -0.035em">Tally</span></div>
+<div style="padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px"><span class="mono" style="font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">tallyhq.example</span><span class="num" style="font-size: 15px; color: #1b765b">71</span></div>
+<div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #5e5e73"><span>Software</span><span>·</span><span class="mono">Sep 23</span><span class="badge b-ok" style="margin-left: auto; height: 20px; font-size: 11px">Findable</span></div>
+<span class="gview" style="font-size: 13px; font-weight: 600; color: #4a3bc9; display: flex; align-items: center; gap: 4px">View report <span class="nudge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span></span>
+</div>
+</a>
+<a class="card lift gcard {{vis.cedar}}" href="../R12-2-Report/R12-2-Report.dc.html" style="display: flex; flex-direction: column; color: #101019; overflow: hidden">
+<div style="position: relative; height: 112px; display: flex; align-items: center; justify-content: center; gap: 10px; background: #fbfbfd; box-shadow: inset 0 -1px 0 #f0f0f5"><svg width="34" height="34" viewBox="0 0 32 32" aria-hidden="true" style="flex-shrink: 0"><path d="M16 3C9 10 7 17 16 29C25 17 23 10 16 3Z" fill="#16a34a"/><path d="M16 9V26" stroke="#fff" stroke-width="2"/></svg><span style="font-size: 17px; white-space: nowrap; font-family: Georgia, 'Times New Roman', serif; font-weight: 700; letter-spacing: -0.01em">Cedar Yoga</span></div>
+<div style="padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px"><span class="mono" style="font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">cedar-yoga.example</span><span class="num" style="font-size: 15px; color: #945c22">39</span></div>
+<div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #5e5e73"><span>Health</span><span>·</span><span class="mono">Sep 22</span><span class="badge b-warn" style="margin-left: auto; height: 20px; font-size: 11px">Hard to find</span></div>
+<span class="gview" style="font-size: 13px; font-weight: 600; color: #4a3bc9; display: flex; align-items: center; gap: 4px">View report <span class="nudge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span></span>
+</div>
+</a>
+<a class="card lift gcard {{vis.brightpath}}" href="../R12-2-Report/R12-2-Report.dc.html" style="display: flex; flex-direction: column; color: #101019; overflow: hidden">
+<div style="position: relative; height: 112px; display: flex; align-items: center; justify-content: center; gap: 10px; background: #fbfbfd; box-shadow: inset 0 -1px 0 #f0f0f5"><svg width="34" height="34" viewBox="0 0 32 32" aria-hidden="true" style="flex-shrink: 0"><path d="M4 24A12 12 0 0 1 28 24Z" fill="#f59e0b"/><rect x="2" y="25" width="28" height="3" rx="1.5" fill="#b45309"/></svg><span style="font-size: 17px; white-space: nowrap; font-family: 'Plus Jakarta Sans'; font-weight: 700; letter-spacing: -0.02em">Brightpath Tutors</span></div>
+<div style="padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px"><span class="mono" style="font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">brightpath-tutors.example</span><span class="num" style="font-size: 15px; color: #1b765b">52</span></div>
+<div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #5e5e73"><span>Education</span><span>·</span><span class="mono">Sep 22</span><span class="badge b-ok" style="margin-left: auto; height: 20px; font-size: 11px">Findable</span></div>
+<span class="gview" style="font-size: 13px; font-weight: 600; color: #4a3bc9; display: flex; align-items: center; gap: 4px">View report <span class="nudge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span></span>
+</div>
+</a>
+<a class="card lift gcard {{vis.kilnworks}}" href="../R12-2-Report/R12-2-Report.dc.html" style="display: flex; flex-direction: column; color: #101019; overflow: hidden">
+<div style="position: relative; height: 112px; display: flex; align-items: center; justify-content: center; gap: 10px; background: #fbfbfd; box-shadow: inset 0 -1px 0 #f0f0f5"><svg width="34" height="34" viewBox="0 0 32 32" aria-hidden="true" style="flex-shrink: 0"><path d="M6 29V14A10 10 0 0 1 26 14V29Z" fill="#c2410c"/><path d="M12 29V18A4 4 0 0 1 20 18V29Z" fill="#fed7aa"/></svg><span style="font-size: 17px; white-space: nowrap; font-family: 'JetBrains Mono'; font-weight: 600; letter-spacing: -0.03em; word-spacing: 0">Kilnworks</span></div>
+<div style="padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px"><span class="mono" style="font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">kilnworks.example</span><span class="num" style="font-size: 15px; color: #945c22">44</span></div>
+<div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #5e5e73"><span>Retail</span><span>·</span><span class="mono">Sep 22</span><span class="badge b-warn" style="margin-left: auto; height: 20px; font-size: 11px">Hard to find</span></div>
+<span class="gview" style="font-size: 13px; font-weight: 600; color: #4a3bc9; display: flex; align-items: center; gap: 4px">View report <span class="nudge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span></span>
+</div>
+</a>
+<a class="card lift gcard {{vis.ledgerleaf}}" href="../R12-2-Report/R12-2-Report.dc.html" style="display: flex; flex-direction: column; color: #101019; overflow: hidden">
+<div style="position: relative; height: 112px; display: flex; align-items: center; justify-content: center; gap: 10px; background: #fbfbfd; box-shadow: inset 0 -1px 0 #f0f0f5"><svg width="34" height="34" viewBox="0 0 32 32" aria-hidden="true" style="flex-shrink: 0"><path d="M5 27C5 12 14 5 27 5C27 18 20 27 5 27Z" fill="#15803d"/><path d="M5 27L18 14" stroke="#bbf7d0" stroke-width="2.5" stroke-linecap="round"/></svg><span style="font-size: 17px; white-space: nowrap; font-family: 'Plus Jakarta Sans'; font-weight: 800; letter-spacing: -0.035em">LedgerLeaf</span></div>
+<div style="padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px"><span class="mono" style="font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">ledgerleaf.example</span><span class="num" style="font-size: 15px; color: #1b765b">66</span></div>
+<div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #5e5e73"><span>Professional</span><span>·</span><span class="mono">Sep 21</span><span class="badge b-ok" style="margin-left: auto; height: 20px; font-size: 11px">Findable</span></div>
+<span class="gview" style="font-size: 13px; font-weight: 600; color: #4a3bc9; display: flex; align-items: center; gap: 4px">View report <span class="nudge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span></span>
+</div>
+</a>
+<a class="card lift gcard {{vis.urbanpaws}}" href="../R12-2-Report/R12-2-Report.dc.html" style="display: flex; flex-direction: column; color: #101019; overflow: hidden">
+<div style="position: relative; height: 112px; display: flex; align-items: center; justify-content: center; gap: 10px; background: #fbfbfd; box-shadow: inset 0 -1px 0 #f0f0f5"><svg width="34" height="34" viewBox="0 0 32 32" aria-hidden="true" style="flex-shrink: 0"><ellipse cx="16" cy="21" rx="7" ry="6" fill="#db2777"/><circle cx="7" cy="12" r="3" fill="#db2777"/><circle cx="13" cy="7" r="3" fill="#db2777"/><circle cx="19" cy="7" r="3" fill="#db2777"/><circle cx="25" cy="12" r="3" fill="#db2777"/></svg><span style="font-size: 17px; white-space: nowrap; font-family: 'Plus Jakarta Sans'; font-weight: 700; letter-spacing: -0.02em">Urban Paws</span></div>
+<div style="padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px"><span class="mono" style="font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">urbanpaws.example</span><span class="num" style="font-size: 15px; color: #945c22">35</span></div>
+<div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #5e5e73"><span>Local services</span><span>·</span><span class="mono">Sep 21</span><span class="badge b-warn" style="margin-left: auto; height: 20px; font-size: 11px">Hard to find</span></div>
+<span class="gview" style="font-size: 13px; font-weight: 600; color: #4a3bc9; display: flex; align-items: center; gap: 4px">View report <span class="nudge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span></span>
+</div>
+</a>
+<a class="card lift gcard {{vis.fernhill}}" href="../R12-2-Report/R12-2-Report.dc.html" style="display: flex; flex-direction: column; color: #101019; overflow: hidden">
+<div style="position: relative; height: 112px; display: flex; align-items: center; justify-content: center; gap: 10px; background: #fbfbfd; box-shadow: inset 0 -1px 0 #f0f0f5"><svg width="34" height="34" viewBox="0 0 32 32" aria-hidden="true" style="flex-shrink: 0"><rect x="3" y="3" width="26" height="26" rx="4" fill="#1e293b"/><path d="M12 24V9h9M12 16h7" fill="none" stroke="#e2e8f0" stroke-width="2.5" stroke-linecap="square"/></svg><span style="font-size: 17px; white-space: nowrap; font-family: Georgia, 'Times New Roman', serif; font-weight: 700; letter-spacing: -0.01em">Fernhill Legal</span></div>
+<div style="padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px"><span class="mono" style="font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">fernhill-legal.example</span><span class="num" style="font-size: 15px; color: #1b765b">61</span></div>
+<div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #5e5e73"><span>Professional</span><span>·</span><span class="mono">Sep 20</span><span class="badge b-ok" style="margin-left: auto; height: 20px; font-size: 11px">Findable</span></div>
+<span class="gview" style="font-size: 13px; font-weight: 600; color: #4a3bc9; display: flex; align-items: center; gap: 4px">View report <span class="nudge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span></span>
+</div>
+</a>
+<a class="card lift gcard {{vis.stackpilot}}" href="../R12-2-Report/R12-2-Report.dc.html" style="display: flex; flex-direction: column; color: #101019; overflow: hidden">
+<div style="position: relative; height: 112px; display: flex; align-items: center; justify-content: center; gap: 10px; background: #fbfbfd; box-shadow: inset 0 -1px 0 #f0f0f5"><svg width="34" height="34" viewBox="0 0 32 32" aria-hidden="true" style="flex-shrink: 0"><path d="M16 3L28 9L16 15L4 9Z" fill="#7c3aed"/><path d="M4 16L16 22L28 16" fill="none" stroke="#a78bfa" stroke-width="2.5" stroke-linejoin="round"/><path d="M4 22L16 28L28 22" fill="none" stroke="#c4b5fd" stroke-width="2.5" stroke-linejoin="round"/></svg><span style="font-size: 17px; white-space: nowrap; font-family: 'Plus Jakarta Sans'; font-weight: 800; letter-spacing: -0.035em">StackPilot</span></div>
+<div style="padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px"><span class="mono" style="font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">stackpilot.example</span><span class="num" style="font-size: 15px; color: #1b765b">74</span></div>
+<div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #5e5e73"><span>Software</span><span>·</span><span class="mono">Sep 20</span><span class="badge b-ok" style="margin-left: auto; height: 20px; font-size: 11px">Findable</span></div>
+<span class="gview" style="font-size: 13px; font-weight: 600; color: #4a3bc9; display: flex; align-items: center; gap: 4px">View report <span class="nudge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span></span>
+</div>
+</a>
+<a class="card lift gcard {{vis.mosswell}}" href="../R12-2-Report/R12-2-Report.dc.html" style="display: flex; flex-direction: column; color: #101019; overflow: hidden">
+<div style="position: relative; height: 112px; display: flex; align-items: center; justify-content: center; gap: 10px; background: #fbfbfd; box-shadow: inset 0 -1px 0 #f0f0f5"><svg width="34" height="34" viewBox="0 0 32 32" aria-hidden="true" style="flex-shrink: 0"><path d="M6 11H23V19A8 8 0 0 1 15 27H14A8 8 0 0 1 6 19Z" fill="#78350f"/><path d="M23 13H26A3 3 0 0 1 26 19H23" fill="none" stroke="#78350f" stroke-width="2.5"/><path d="M11 3C10 5 13 6 12 8M16 3C15 5 18 6 17 8" stroke="#a16207" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg><span style="font-size: 17px; white-space: nowrap; font-family: Georgia, 'Times New Roman', serif; font-weight: 700; letter-spacing: -0.01em">Mosswell Coffee</span></div>
+<div style="padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px"><span class="mono" style="font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">mosswell.example</span><span class="num" style="font-size: 15px; color: #1b765b">55</span></div>
+<div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #5e5e73"><span>Retail</span><span>·</span><span class="mono">Sep 19</span><span class="badge b-ok" style="margin-left: auto; height: 20px; font-size: 11px">Findable</span></div>
+<span class="gview" style="font-size: 13px; font-weight: 600; color: #4a3bc9; display: flex; align-items: center; gap: 4px">View report <span class="nudge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span></span>
+</div>
+</a>
+<a class="card lift gcard {{vis.quillmark}}" href="../R12-2-Report/R12-2-Report.dc.html" style="display: flex; flex-direction: column; color: #101019; overflow: hidden">
+<div style="position: relative; height: 112px; display: flex; align-items: center; justify-content: center; gap: 10px; background: #fbfbfd; box-shadow: inset 0 -1px 0 #f0f0f5"><svg width="34" height="34" viewBox="0 0 32 32" aria-hidden="true" style="flex-shrink: 0"><path d="M27 4C16 6 9 14 6 28C11 20 17 17 23 16C21 14 21 12 27 4Z" fill="#e11d48"/></svg><span style="font-size: 17px; white-space: nowrap; font-family: 'JetBrains Mono'; font-weight: 600; letter-spacing: -0.03em; word-spacing: 0">Quillmark</span></div>
+<div style="padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px"><span class="mono" style="font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">quillmark.example</span><span class="num" style="font-size: 15px; color: #1b765b">63</span></div>
+<div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #5e5e73"><span>Software</span><span>·</span><span class="mono">Sep 19</span><span class="badge b-ok" style="margin-left: auto; height: 20px; font-size: 11px">Findable</span></div>
+<span class="gview" style="font-size: 13px; font-weight: 600; color: #4a3bc9; display: flex; align-items: center; gap: 4px">View report <span class="nudge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span></span>
+</div>
+</a>
+<a class="card lift gcard {{vis.pinecrest}}" href="../R12-2-Report/R12-2-Report.dc.html" style="display: flex; flex-direction: column; color: #101019; overflow: hidden">
+<div style="position: relative; height: 112px; display: flex; align-items: center; justify-content: center; gap: 10px; background: #fbfbfd; box-shadow: inset 0 -1px 0 #f0f0f5"><svg width="34" height="34" viewBox="0 0 32 32" aria-hidden="true" style="flex-shrink: 0"><path d="M16 3L25 16H20L27 26H5L12 16H7Z" fill="#166534"/><rect x="14.5" y="26" width="3" height="4" fill="#166534"/></svg><span style="font-size: 17px; white-space: nowrap; font-family: 'Plus Jakarta Sans'; font-weight: 700; letter-spacing: -0.02em">Pinecrest Physio</span></div>
+<div style="padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px"><span class="mono" style="font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">pinecrest-physio.example</span><span class="num" style="font-size: 15px; color: #945c22">49</span></div>
+<div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #5e5e73"><span>Health</span><span>·</span><span class="mono">Sep 18</span><span class="badge b-warn" style="margin-left: auto; height: 20px; font-size: 11px">Hard to find</span></div>
+<span class="gview" style="font-size: 13px; font-weight: 600; color: #4a3bc9; display: flex; align-items: center; gap: 4px">View report <span class="nudge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span></span>
+</div>
+</a>
+<a class="card lift gcard {{vis.oakline}}" href="../R12-2-Report/R12-2-Report.dc.html" style="display: flex; flex-direction: column; color: #101019; overflow: hidden">
+<div style="position: relative; height: 112px; display: flex; align-items: center; justify-content: center; gap: 10px; background: #fbfbfd; box-shadow: inset 0 -1px 0 #f0f0f5"><svg width="34" height="34" viewBox="0 0 32 32" aria-hidden="true" style="flex-shrink: 0"><path d="M3 17L16 6L29 17" fill="none" stroke="#b91c1c" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 24L16 17L24 24" fill="none" stroke="#f87171" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg><span style="font-size: 17px; white-space: nowrap; font-family: 'Plus Jakarta Sans'; font-weight: 800; letter-spacing: -0.035em">Oakline Roofing</span></div>
+<div style="padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px"><span class="mono" style="font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">oakline-roofing.example</span><span class="num" style="font-size: 15px; color: #945c22">41</span></div>
+<div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #5e5e73"><span>Local services</span><span>·</span><span class="mono">Sep 18</span><span class="badge b-warn" style="margin-left: auto; height: 20px; font-size: 11px">Hard to find</span></div>
+<span class="gview" style="font-size: 13px; font-weight: 600; color: #4a3bc9; display: flex; align-items: center; gap: 4px">View report <span class="nudge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span></span>
+</div>
+</a>
+<a class="card lift gcard {{vis.juniper}}" href="../R12-2-Report/R12-2-Report.dc.html" style="display: flex; flex-direction: column; color: #101019; overflow: hidden">
+<div style="position: relative; height: 112px; display: flex; align-items: center; justify-content: center; gap: 10px; background: #fbfbfd; box-shadow: inset 0 -1px 0 #f0f0f5"><span style="width: 34px; height: 34px; border-radius: 8px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: #efeff4; color: #5e5e73; font-weight: 700; font-size: 14px">J</span><span style="font-size: 17px; white-space: nowrap; font-family: 'Plus Jakarta Sans'; font-weight: 700; letter-spacing: -0.02em">Juniper HR</span><span style="position: absolute; top: 10px; right: 10px; font-size: 10px; color: #676774; background: #fff; padding: 2px 6px; border-radius: 6px; box-shadow: 0 0 0 1px #eaeaf1">no logo found</span></div>
+<div style="padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px"><span class="mono" style="font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">juniperhr.example</span><span class="num" style="font-size: 15px; color: #1b765b">68</span></div>
+<div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #5e5e73"><span>Software</span><span>·</span><span class="mono">Sep 17</span><span class="badge b-ok" style="margin-left: auto; height: 20px; font-size: 11px">Findable</span></div>
+<span class="gview" style="font-size: 13px; font-weight: 600; color: #4a3bc9; display: flex; align-items: center; gap: 4px">View report <span class="nudge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span></span>
+</div>
+</a>
+<a class="card lift gcard {{vis.saltwater}}" href="../R12-2-Report/R12-2-Report.dc.html" style="display: flex; flex-direction: column; color: #101019; overflow: hidden">
+<div style="position: relative; height: 112px; display: flex; align-items: center; justify-content: center; gap: 10px; background: #fbfbfd; box-shadow: inset 0 -1px 0 #f0f0f5"><svg width="34" height="34" viewBox="0 0 32 32" aria-hidden="true" style="flex-shrink: 0"><path d="M3 13C7 9 11 9 16 13S25 17 29 13" fill="none" stroke="#0369a1" stroke-width="3" stroke-linecap="round"/><path d="M3 21C7 17 11 17 16 21S25 25 29 21" fill="none" stroke="#38bdf8" stroke-width="3" stroke-linecap="round"/></svg><span style="font-size: 17px; white-space: nowrap; font-family: Georgia, 'Times New Roman', serif; font-weight: 700; letter-spacing: -0.01em">Saltwater Studio</span></div>
+<div style="padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px"><span class="mono" style="font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">saltwater.example</span><span class="num" style="font-size: 15px; color: #1b765b">57</span></div>
+<div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #5e5e73"><span>Professional</span><span>·</span><span class="mono">Sep 17</span><span class="badge b-ok" style="margin-left: auto; height: 20px; font-size: 11px">Findable</span></div>
+<span class="gview" style="font-size: 13px; font-weight: 600; color: #4a3bc9; display: flex; align-items: center; gap: 4px">View report <span class="nudge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span></span>
+</div>
+</a>
+</div>
+<div class="{{emptyCls}}" style="padding: 48px; border-radius: 14px; background: #fff; box-shadow: 0 0 0 1px #eaeaf1; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center">
+<span style="width: 44px; height: 44px; border-radius: 99px; background: #efeff4; color: #5e5e73; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span>
+<span style="font-size: 16px; font-weight: 600">No free scan matches that yet.</span>
+<span class="muted" style="font-size: 14px">Scan it now — it takes under a minute, and it will be listed here.</span>
+<button class="btn btn-soft btn-sm" type="button">Scan this site</button>
+</div>
+<div style="display: flex; flex-direction: column; align-items: center; gap: 10px">
+<button class="btn btn-quiet" type="button">Show more reports</button>
+<span style="font-size: 12px; color: #676774">Own a site listed here and want its report taken down? Write to remove@reachkit.app.</span>
+</div>
+</main>
+<footer style="margin-top: auto; padding: 48px 64px; background: #fff; box-shadow: 0 -1px 0 #eaeaf1; display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr); gap: 32px">
+<div style="display: flex; flex-direction: column; gap: 10px"><span style="display: flex; align-items: center; gap: 10px; font-weight: 800; letter-spacing: -0.02em"><svg width="24" height="24" viewBox="0 0 64 64" aria-hidden="true" style="flex-shrink: 0"><defs><linearGradient id="rkfade5" x1="0.15" y1="1" x2="0.95" y2="0.1"><stop offset="0.35" stop-color="#ffffff"></stop><stop offset="1" stop-color="#ffffff" stop-opacity="0.12"></stop></linearGradient><clipPath id="rkfade5c"><rect width="64" height="64" rx="15"></rect></clipPath></defs><g clip-path="url(#rkfade5c)"><rect width="64" height="64" fill="#5b4be0"></rect><path d="M8 50 A24 24 0 0 1 56 50 Z" fill="url(#rkfade5)"></path></g></svg>ReachKit</span><span style="font-size: 13px; color: #676774">© 2026 ReachKit. All rights reserved.</span><span style="font-size: 13px; color: #676774; max-width: 340px">Own this site and want its report taken down? Write to remove@reachkit.app.</span></div>
+<div style="display: flex; flex-direction: column; gap: 8px; font-size: 14px"><span class="eyebrow">Product</span><a href="#scan" style="color: #5e5e73">Free scan</a><a href="#pricing" style="color: #5e5e73">Pricing</a><a href="#signin" style="color: #5e5e73">Sign in</a></div>
+<div style="display: flex; flex-direction: column; gap: 8px; font-size: 14px"><span class="eyebrow">Legal</span><a href="#privacy" style="color: #5e5e73">Privacy</a><a href="#terms" style="color: #5e5e73">Terms</a><a href="#imprint" style="color: #5e5e73">Imprint</a></div>
+</footer>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1760}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { q: "", cat: "all" };
+    this.companies = [{"id": "harbour", "name": "Harbour Bike Repair", "domain": "harbourbikes.example", "cat": "Local services", "score": 47}, {"id": "northloop", "name": "Northloop Dental", "domain": "northloop-dental.example", "cat": "Health", "score": 58}, {"id": "tally", "name": "Tally", "domain": "tallyhq.example", "cat": "Software", "score": 71}, {"id": "cedar", "name": "Cedar Yoga", "domain": "cedar-yoga.example", "cat": "Health", "score": 39}, {"id": "brightpath", "name": "Brightpath Tutors", "domain": "brightpath-tutors.example", "cat": "Education", "score": 52}, {"id": "kilnworks", "name": "Kilnworks", "domain": "kilnworks.example", "cat": "Retail", "score": 44}, {"id": "ledgerleaf", "name": "LedgerLeaf", "domain": "ledgerleaf.example", "cat": "Professional", "score": 66}, {"id": "urbanpaws", "name": "Urban Paws", "domain": "urbanpaws.example", "cat": "Local services", "score": 35}, {"id": "fernhill", "name": "Fernhill Legal", "domain": "fernhill-legal.example", "cat": "Professional", "score": 61}, {"id": "stackpilot", "name": "StackPilot", "domain": "stackpilot.example", "cat": "Software", "score": 74}, {"id": "mosswell", "name": "Mosswell Coffee", "domain": "mosswell.example", "cat": "Retail", "score": 55}, {"id": "quillmark", "name": "Quillmark", "domain": "quillmark.example", "cat": "Software", "score": 63}, {"id": "pinecrest", "name": "Pinecrest Physio", "domain": "pinecrest-physio.example", "cat": "Health", "score": 49}, {"id": "oakline", "name": "Oakline Roofing", "domain": "oakline-roofing.example", "cat": "Local services", "score": 41}, {"id": "juniper", "name": "Juniper HR", "domain": "juniperhr.example", "cat": "Software", "score": 68}, {"id": "saltwater", "name": "Saltwater Studio", "domain": "saltwater.example", "cat": "Professional", "score": 57}];
+    this.catKey = { "Software": "software", "Local services": "local", "Health": "health", "Professional": "professional", "Retail": "retail", "Education": "education" };
+  }
+  renderVals() {
+    const q = this.state.q.trim().toLowerCase(), cat = this.state.cat;
+    const vis = {};
+    let shown = 0;
+    for (const c of this.companies) {
+      const ok = (cat === "all" || this.catKey[c.cat] === cat) && (!q || c.name.toLowerCase().includes(q) || c.domain.includes(q));
+      vis[c.id] = ok ? "" : "hide";
+      if (ok) shown++;
+    }
+    vis.cta = cat === "all" && !q ? "" : "hide";
+    const f = {}, pick = {};
+    for (const k of ["all", "software", "local", "health", "professional", "retail", "education"]) {
+      f[k] = cat === k ? "on" : "";
+      pick[k] = () => this.setState({ cat: k });
+    }
+    return {
+      vis, f, pick, shown,
+      emptyCls: shown === 0 ? "rise" : "hide",
+      onSearch: (e) => this.setState({ q: e.target.value || "" }),
+      bannerCls: "", closeBanner: () => {},
+      theme: { light: "on", dark: "" }, setLight: () => {}, setDark: () => {},
+    };
+  }
+}
+</script>
+</body>
+</html>

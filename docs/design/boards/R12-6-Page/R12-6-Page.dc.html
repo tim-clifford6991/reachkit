@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>5 · The page, waiting for review</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f6f6f9;color:#101019;font-family:"Plus Jakarta Sans",ui-sans-serif,system-ui,sans-serif;font-size:15px;line-height:1.55;word-spacing:.06em;-webkit-font-smoothing:antialiased;font-feature-settings:"tnum" 1}
+*{box-sizing:border-box}
+h1,h2,h3,h4,p{margin:0}
+h1,h2,h3,h4{text-wrap:balance;word-spacing:.04em}
+a{color:#5b4be0;text-decoration:none}a:hover{color:#4a3bc9}
+.mono{font-family:"JetBrains Mono",ui-monospace,monospace;word-spacing:0;font-feature-settings:normal}
+.num{font-variant-numeric:tabular-nums;font-weight:600;letter-spacing:-.02em}
+.eyebrow{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:#676774;word-spacing:0}
+.muted{color:#5e5e73}
+.card{background:#fff;border-radius:14px;box-shadow:0 0 0 1px rgb(24 24 48/.06),0 1px 2px rgb(24 24 48/.04);transition:box-shadow .2s cubic-bezier(.2,.7,.2,1),transform .2s cubic-bezier(.2,.7,.2,1)}
+.lift{cursor:pointer}
+.lift:hover{transform:translateY(-2px);box-shadow:0 0 0 1px rgb(24 24 48/.08),0 8px 20px -6px rgb(24 24 48/.12)}
+.lift:hover .nudge{transform:translateX(3px)}
+.nudge{display:inline-block;transition:transform .2s cubic-bezier(.2,.7,.2,1)}
+.float{box-shadow:0 0 0 1px rgb(24 24 48/.06),0 24px 48px -16px rgb(40 30 120/.18),0 4px 12px -4px rgb(24 24 48/.06)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 16px;border-radius:9px;border:0;font:600 14px/1 "Plus Jakarta Sans",sans-serif;word-spacing:.04em;cursor:pointer;white-space:nowrap;transition:background-color .15s ease-out,box-shadow .15s ease-out,color .15s ease-out,transform .12s ease-out;text-decoration:none}
+.btn:active{transform:scale(.98)}
+.btn:focus-visible,.field:focus-within,.chip:focus-visible,.tab:focus-visible{outline:none;box-shadow:0 0 0 3px rgb(91 75 224/.22)}
+.btn-sm{height:32px;padding:0 12px;font-size:13px;border-radius:8px}
+.btn-lg{height:48px;padding:0 22px;font-size:15px}
+.btn-primary{background:#5b4be0;color:#fff;box-shadow:inset 0 1px 0 rgb(255 255 255/.16),0 1px 2px rgb(40 30 140/.3),0 0 0 1px #5243d6}
+.btn-primary:hover{background:#4f40d4;color:#fff}
+.btn-soft{background:#eeecfd;color:#4a3bc9}
+.btn-soft:hover{background:#e3e0fb;color:#3f31b8}
+.btn-quiet{background:#fff;color:#101019;box-shadow:0 0 0 1px #e2e2ea}
+.btn-quiet:hover{box-shadow:0 0 0 1px #cfcfdb;background:#fbfbfd;color:#101019}
+.btn-ghost{background:transparent;color:#5e5e73}
+.btn-ghost:hover{background:#efeff4;color:#101019}
+.btn-warn{background:transparent;color:#945c22}
+.btn-warn:hover{background:#fff3e6;color:#7d4c19}
+.badge{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:600;word-spacing:0;white-space:nowrap}
+.b-ok{background:#e7f6f0;color:#1b765b}.b-warn{background:#fff3e6;color:#945c22}.b-bad{background:#fdece8;color:#b84029}.b-acc{background:#eeecfd;color:#4a3bc9}.b-mute{background:#efeff4;color:#5e5e73}
+.chip{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:999px;border:0;background:transparent;color:#5e5e73;font:600 13px/1 "Plus Jakarta Sans",sans-serif;cursor:pointer;transition:background-color .15s ease-out,color .15s ease-out}
+.chip:hover{background:#efeff4;color:#101019}
+.chip.on{background:#101019;color:#fff}
+.chip .n{font-family:"JetBrains Mono",monospace;font-size:11px;opacity:.7}
+.field{display:flex;align-items:center;gap:8px;background:#fff;border-radius:11px;box-shadow:0 0 0 1px #e2e2ea;transition:box-shadow .15s ease-out}
+.field:hover{box-shadow:0 0 0 1px #cfcfdb}
+.field input{flex:1;min-width:0;border:0;outline:0;background:transparent;font:400 15px "Plus Jakarta Sans",sans-serif;color:#101019;height:44px;padding:0 14px}
+.field input::placeholder{color:#8a8a9c}
+.tab{position:relative;height:44px;display:inline-flex;align-items:center;padding:0 2px;background:none;border:0;font:500 14px "Plus Jakarta Sans",sans-serif;color:#5e5e73;cursor:pointer;transition:color .15s ease-out}
+.tab:hover{color:#101019}
+.tab::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;border-radius:2px;background:#101019;transform:scaleX(0);transition:transform .25s cubic-bezier(.2,.7,.2,1)}
+.tab.on{color:#101019;font-weight:600}
+.tab.on::after{transform:scaleX(1)}
+.nav{display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;border-radius:9px;color:#5e5e73;font-weight:500;font-size:14px;transition:background-color .15s ease-out,color .15s ease-out}
+.nav:hover{background:#efeff4;color:#101019}
+.nav.on{background:#eeecfd;color:#4a3bc9;font-weight:600}
+.rule{height:1px;background:#eaeaf1;border:0}
+.dot{width:8px;height:8px;border-radius:99px;display:inline-block;flex-shrink:0}
+.live{position:relative}
+.live::after{content:"";position:absolute;inset:0;border-radius:99px;background:inherit;animation:pulse 2.4s ease-out infinite}
+@keyframes pulse{0%{transform:scale(1);opacity:.55}70%{transform:scale(2.6);opacity:0}100%{opacity:0}}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes draw{to{stroke-dashoffset:0}}
+@keyframes grow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes growy{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@keyframes pop{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:scale(1)}}
+@keyframes shimmer{from{background-position:200% 0}to{background-position:-200% 0}}
+.rise{animation:rise .6s cubic-bezier(.2,.7,.2,1) both}
+.fade{animation:fade .8s ease-out both}
+.d1{animation-delay:.06s}.d2{animation-delay:.12s}.d3{animation-delay:.18s}.d4{animation-delay:.24s}.d5{animation-delay:.30s}.d6{animation-delay:.36s}.d7{animation-delay:.42s}.d8{animation-delay:.48s}.d9{animation-delay:.54s}.d10{animation-delay:.6s}
+.draw{stroke-dasharray:1200;stroke-dashoffset:1200;animation:draw 1.6s .35s cubic-bezier(.3,.6,.2,1) forwards}
+.bar{transform-origin:left center;animation:grow .9s cubic-bezier(.2,.7,.2,1) both}
+.cell{animation:pop .35s cubic-bezier(.2,.9,.3,1.3) both}
+.skel{background:linear-gradient(90deg,#efeff4 25%,#f7f7fa 50%,#efeff4 75%);background-size:200% 100%;animation:shimmer 1.6s linear infinite;border-radius:6px}
+details summary{list-style:none;cursor:pointer}
+details summary::-webkit-details-marker{display:none}
+details .chev{transition:transform .25s cubic-bezier(.2,.7,.2,1)}
+details[open] .chev{transform:rotate(180deg)}
+details[open] .ans{animation:rise .35s cubic-bezier(.2,.7,.2,1) both}
+.cal{transition:background-color .15s ease-out,box-shadow .15s ease-out}
+.cal:hover{box-shadow:0 0 0 1px #cfcfdb}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}.draw{stroke-dashoffset:0}}
+@keyframes draw-ring{to{stroke-dashoffset:171.9}}
+@media (prefers-reduced-motion:reduce){.ring{stroke-dashoffset:171.9!important}.bar,.cell,.rise,.fade{opacity:1!important;transform:none!important}}
+.hide{display:none!important}
+.cal.sel{box-shadow:0 0 0 2px #5b4be0!important}
+@keyframes spin{to{transform:rotate(360deg)}}.spin{animation:spin 1s linear infinite;transform-origin:center}
+@keyframes marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.marquee{display:flex;gap:12px;width:max-content;animation:marquee 70s linear infinite}
+.marquee-wrap:hover .marquee{animation-play-state:paused}
+.marquee-wrap{-webkit-mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)}
+.seg{display:inline-flex;padding:3px;border-radius:9px;background:#efeff4;gap:2px}
+.seg button{all:unset;cursor:pointer;width:28px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:#676774;transition:background-color .15s ease-out,color .15s ease-out,box-shadow .15s ease-out}
+.seg button:hover{color:#101019}
+.seg button.on{background:#fff;color:#101019;box-shadow:0 1px 2px rgb(24 24 48/.12)}
+.ptab{all:unset;cursor:pointer;position:relative;display:flex;align-items:center;gap:6px;height:34px;padding:0 12px;border-radius:8px;font-size:13px;font-weight:500;color:#5e5e73;transition:background-color .15s ease-out,color .15s ease-out}
+.ptab:hover{color:#101019;background:#f3f3f7}
+.ptab.on{background:#fff;color:#101019;font-weight:600;box-shadow:0 0 0 1px #eaeaf1,0 1px 2px rgb(24 24 48/.06)}
+.ptab .prog{position:absolute;left:10px;right:10px;bottom:3px;height:2px;border-radius:2px;background:#5b4be0;transform-origin:left;transform:scaleX(0)}
+.ptab.on .prog{animation:grow 5s linear both}
+.panel{animation:rise .45s cubic-bezier(.2,.7,.2,1) both}
+.btn-ink{background:#101019;color:#fff;box-shadow:inset 0 1px 0 rgb(255 255 255/.12)}
+.btn-ink:hover{background:#26263a;color:#fff}
+.logo-item{filter:grayscale(1);opacity:.62;transition:filter .25s ease-out,opacity .25s ease-out,background-color .2s ease-out}
+.logo-item:hover{filter:none;opacity:1;background:#fff;color:#101019}
+.gcard .gview{color:#8a8a9c!important;transition:color .15s ease-out}
+.gcard:hover .gview{color:#4a3bc9!important}
+.sel-quiet{appearance:none;height:40px;padding:0 36px 0 14px;border-radius:10px;border:0;background:#fff;box-shadow:0 0 0 1px #e2e2ea;font:500 14px "Plus Jakarta Sans",sans-serif;color:#101019;cursor:pointer}
+.dk .card{background:#161a21;box-shadow:0 0 0 1px #242a34,0 1px 2px rgb(0 0 0/.4)}
+.dk .float{box-shadow:0 0 0 1px #242a34,0 24px 48px -16px rgb(0 0 0/.6)}
+.dk .muted{color:#8e99aa}.dk .eyebrow{color:#7e879a}
+.dk .btn-primary{background:#9bb4ff;color:#0e1116;box-shadow:inset 0 1px 0 rgb(255 255 255/.25),0 0 0 1px #9bb4ff}
+.dk .btn-primary:hover{background:#b3c6ff;color:#0e1116}
+.dk .btn-ghost{color:#8e99aa}.dk .btn-ghost:hover{background:#1c212a;color:#dde3eb}
+.dk .field{background:#11151b;box-shadow:0 0 0 1px #2a303b}.dk .field input{color:#dde3eb}.dk .field input::placeholder{color:#6f788a}
+.dk .seg{background:#1c212a}.dk .seg button{color:#7e879a}.dk .seg button.on{background:#2a303b;color:#dde3eb;box-shadow:none}
+.dk .ptab{color:#8e99aa}.dk .ptab:hover{background:#1c212a;color:#dde3eb}.dk .ptab.on{background:#1c212a;color:#dde3eb;box-shadow:0 0 0 1px #2a303b}.dk .ptab .prog{background:#9bb4ff}
+.dk .logo-item{filter:grayscale(1) brightness(0) invert(1);opacity:.6;color:#dde3eb}.dk .logo-item:hover{filter:none;opacity:1;background:#161a21;color:#dde3eb}
+.dk a{color:#9bb4ff}
+.dk .b-ok{background:rgb(123 216 176/.12);color:#7bd8b0}.dk .b-warn{background:rgb(230 180 90/.12);color:#e6b45a}.dk .b-acc{background:rgb(155 180 255/.12);color:#9bb4ff}.dk .b-mute{background:#1c212a;color:#8e99aa}
+
+</style>
+</helmet>
+<div style="width: 1280px; height: 961px; background: #f6f6f9; overflow: hidden; display: flex">
+<aside aria-label="Workspace" style="width: 248px; flex-shrink: 0; align-self: stretch; background: #fff; box-shadow: 1px 0 0 #eaeaf1; padding: 20px 16px; display: flex; flex-direction: column; gap: 22px">
+<div style="display: flex; align-items: center; gap: 10px; padding: 0 6px">
+<a href="../R12-4-Overview/R12-4-Overview.dc.html" style="display: flex; align-items: center; gap: 10px; color: #101019; font-weight: 800; font-size: 17px; letter-spacing: -0.02em; margin-right: auto"><svg width="28" height="28" viewBox="0 0 64 64" aria-hidden="true" style="flex-shrink: 0"><defs><linearGradient id="rkfade8" x1="0.15" y1="1" x2="0.95" y2="0.1"><stop offset="0.35" stop-color="#ffffff"></stop><stop offset="1" stop-color="#ffffff" stop-opacity="0.12"></stop></linearGradient><clipPath id="rkfade8c"><rect width="64" height="64" rx="15"></rect></clipPath></defs><g clip-path="url(#rkfade8c)"><rect width="64" height="64" fill="#5b4be0"></rect><path d="M8 50 A24 24 0 0 1 56 50 Z" fill="url(#rkfade8)"></path></g></svg>ReachKit</a>
+<button class="btn btn-ghost btn-sm" aria-label="Collapse the panel" style="width: 32px; padding: 0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/><path d="m16 15-3-3 3-3"/></svg></button>
+</div>
+<div style="display: flex; flex-direction: column; gap: 2px; padding: 12px; border-radius: 10px; background: #f6f6f9">
+<span style="display: flex; align-items: center; gap: 8px"><span class="dot live" style="background: #1b765b; width: 7px; height: 7px"></span><span class="mono" style="font-size: 14px; font-weight: 600">acme.test</span></span>
+<span style="font-size: 12px; color: #676774; padding-left: 15px">Week 1 · re-measured <span class="mono">Sep 6</span></span>
+</div>
+<nav style="display: flex; flex-direction: column; gap: 2px">
+<span class="eyebrow" style="padding: 0 10px 6px">Workspace</span>
+<a class="nav" href="../R12-4-Overview/R12-4-Overview.dc.html"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg><span style="flex: 1">Overview</span><span class="badge b-acc" style="height: 20px; padding: 0 7px; font-size: 11px">1</span></a>
+<a class="nav on" href="../R12-5-Plan/R12-5-Plan.dc.html"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg><span style="flex: 1">Plan</span></a>
+<a class="nav" href="#settings"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg><span style="flex: 1">Settings</span></a>
+</nav>
+<a class="card lift" href="../R12-6-Page/R12-6-Page.dc.html" style="padding: 14px; display: flex; flex-direction: column; gap: 6px; background: #fffaf3; box-shadow: 0 0 0 1px #fbe1c6; color: #101019">
+<span class="eyebrow" style="color: #945c22; display: flex; align-items: center; gap: 6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> Waiting for you</span>
+<span style="font-size: 14px; font-weight: 600; line-height: 1.35">How teams pick an onboarding tool</span>
+<span style="font-size: 12px; color: #5e5e73">Goes live <span class="mono">Sep 8, 8:00 PM</span></span>
+</a>
+<div style="margin-top: auto; display: flex; flex-direction: column; gap: 10px">
+<div class="rule"></div>
+<div style="display: flex; align-items: center; gap: 10px; padding: 0 6px">
+<span style="width: 28px; height: 28px; border-radius: 99px; background: #eeecfd; color: #4a3bc9; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center">A</span>
+<div style="display: flex; flex-direction: column; min-width: 0; flex: 1"><span style="font-size: 13px; font-weight: 600">Acme</span><span style="font-size: 11px; color: #676774">Publishing to your blog</span></div>
+<button class="btn btn-ghost btn-sm" aria-label="Theme" style="width: 32px; padding: 0"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg></button>
+</div>
+</div>
+</aside>
+
+<main style="flex: 1; min-width: 0; padding: 20px 40px 48px; display: flex; flex-direction: column; gap: 16px">
+<a href="../R12-5-Plan/R12-5-Plan.dc.html" class="btn btn-ghost btn-sm" style="align-self: flex-start; margin-left: -12px"><span class="nudge" style="display: flex"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg></span>Back to the plan</a>
+
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 24px; align-items: start">
+<div style="display: flex; flex-direction: column; gap: 16px; min-width: 0">
+<div class="rise" style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap"><span class="badge b-warn"><span class="dot live" style="background: #945c22; width: 6px; height: 6px"></span>Your review</span><span class="badge b-mute"><svg class="spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.2-8.56"></path></svg>Checking claims</span><span style="margin-left: auto; font-size: 12px; color: #676774">Written <span class="mono">Sep 8, 4:05 AM</span> · <span class="mono">1,240</span> words · generated by ReachKit, labelled</span></div>
+<h1 style="font-size: 28px; line-height: 1.2; font-weight: 700; letter-spacing: -0.025em">How teams pick an onboarding tool</h1>
+</div>
+
+<section class="card rise d1" style="overflow: hidden">
+<div style="height: 40px; display: flex; align-items: center; gap: 8px; padding: 0 14px; background: #f6f6f9; box-shadow: inset 0 -1px 0 #eaeaf1"><span class="dot" style="background: #d9d9e3"></span><span class="dot" style="background: #d9d9e3"></span><span class="dot" style="background: #d9d9e3"></span><span class="field" style="margin-left: 12px; flex: 1; height: 26px; border-radius: 7px; padding: 0 10px; font-size: 12px; color: #5e5e73"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><span class="mono">acme.test/blog/how-teams-pick-an-onboarding-tool</span></span></div>
+<article style="padding: 36px 56px 40px; display: flex; flex-direction: column; gap: 14px; max-width: 760px">
+<span style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg> acme.test</span>
+<h2 style="font-size: 34px; line-height: 1.15; font-weight: 800; letter-spacing: -0.03em">How teams pick an onboarding tool</h2>
+<p style="font-size: 13px; color: #676774">Guide · 6 min read · Acme</p>
+<div class="rule"></div>
+<p style="font-size: 17px; line-height: 1.7; color: #2b2b3a">[The page's first paragraph, as written — the preview uses the publishing renderer, so this is exactly what readers and search engines receive.]</p>
+<h3 style="font-size: 20px; font-weight: 700; letter-spacing: -0.02em; margin-top: 6px">[First section heading]</h3>
+<p style="font-size: 17px; line-height: 1.7; color: #2b2b3a">[Section body …]</p>
+</article>
+</section>
+
+<section class="card rise d2" style="padding: 22px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px">
+<div style="display: flex; flex-direction: column; gap: 12px">
+<span class="eyebrow" style="display: flex; gap: 8px; align-items: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg> What this page is for</span>
+<dl style="margin: 0; display: grid; grid-template-columns: 110px minmax(0, 1fr); row-gap: 10px; font-size: 14px">
+<dt style="color: #676774">Going after</dt><dd style="margin: 0" class="mono">onboarding tools</dd>
+<dt style="color: #676774">Each month</dt><dd style="margin: 0"><span class="mono">1,900</span> searches</dd>
+<dt style="color: #676774">Winnability</dt><dd style="margin: 0"><span class="badge b-ok">Winnable</span></dd>
+<dt style="color: #676774">Done when</dt><dd style="margin: 0">you rank in the top 20 for “onboarding tools”</dd>
+</dl>
+</div>
+<div style="display: flex; flex-direction: column; gap: 12px">
+<span class="eyebrow" style="display: flex; gap: 8px; align-items: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg> In search results</span>
+<div style="padding: 16px; border-radius: 10px; background: #f6f6f9; display: flex; flex-direction: column; gap: 4px">
+<span style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #3d3d4f"><svg width="16" height="16" viewBox="0 0 64 64" aria-hidden="true" style="flex-shrink: 0"><defs><linearGradient id="rkfade9" x1="0.15" y1="1" x2="0.95" y2="0.1"><stop offset="0.35" stop-color="#ffffff"></stop><stop offset="1" stop-color="#ffffff" stop-opacity="0.12"></stop></linearGradient><clipPath id="rkfade9c"><rect width="64" height="64" rx="15"></rect></clipPath></defs><g clip-path="url(#rkfade9c)"><rect width="64" height="64" fill="#5b4be0"></rect><path d="M8 50 A24 24 0 0 1 56 50 Z" fill="url(#rkfade9)"></path></g></svg><span class="mono">acme.test › blog</span></span>
+<span style="font-size: 18px; color: #3b30b5; font-weight: 500">How teams pick an onboarding tool</span>
+<span style="font-size: 13px; color: #5e5e73; line-height: 1.5">[The meta description, as search engines will show it — clamped to two lines.]</span>
+</div>
+</div>
+</section>
+</div>
+
+<aside class="card rise d2" aria-label="Decide" style="padding: 20px; display: flex; flex-direction: column; gap: 14px; position: sticky; top: 20px">
+<span class="eyebrow">Decide</span>
+<div style="display: flex; flex-direction: column; gap: 4px; padding: 14px; border-radius: 10px; background: #fffaf3; box-shadow: inset 0 0 0 1px #fbe1c6">
+<span style="font-size: 12px; color: #945c22; font-weight: 600">Goes live in</span>
+<span class="mono num" style="font-size: 24px; color: #101019">{{countdown}}</span>
+<span style="font-size: 12px; color: #5e5e73">Tue, Sep 8, 8:00 PM EDT</span>
+</div>
+<button class="btn btn-primary" type="button" style="width: 100%"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><path d="M20 6 9 17l-5-5"/></svg> Approve</button>
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px"><button class="btn btn-quiet btn-sm" type="button"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/></svg> Edit</button><button class="btn btn-warn btn-sm" type="button" style="box-shadow: 0 0 0 1px #fbe1c6"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><circle cx="12" cy="12" r="10"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg> Stop</button></div>
+<div class="rule"></div>
+<span class="eyebrow">Checks</span>
+<ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; font-size: 13px">
+<li class="rise d3" style="display: flex; gap: 10px; align-items: center"><span style="width: 20px; height: 20px; border-radius: 99px; background: #e7f6f0; color: #1b765b; display: flex; align-items: center; justify-content: center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><path d="M20 6 9 17l-5-5"/></svg></span>Written in your voice</li>
+<li class="rise d4" style="display: flex; gap: 10px; align-items: center"><span style="width: 20px; height: 20px; border-radius: 99px; background: #e7f6f0; color: #1b765b; display: flex; align-items: center; justify-content: center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><path d="M20 6 9 17l-5-5"/></svg></span>Not a page you already have</li>
+<li class="rise d5" style="display: flex; gap: 10px; align-items: center"><span style="width: 20px; height: 20px; border-radius: 99px; background: #e7f6f0; color: #1b765b; display: flex; align-items: center; justify-content: center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><path d="M20 6 9 17l-5-5"/></svg></span>Labelled as written by ReachKit</li>
+<li class="rise d6" style="display: flex; gap: 10px; align-items: center; color: #5e5e73"><span style="width: 20px; height: 20px; border-radius: 99px; background: #efeff4; color: #5e5e73; display: flex; align-items: center; justify-content: center"><svg class="spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.2-8.56"></path></svg></span>Every claim traced to your site…</li>
+</ul>
+<div class="rule"></div>
+<span style="font-size: 12px; color: #5e5e73; display: flex; gap: 8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg><span>Do nothing and it goes live on schedule. Stop it and it never publishes.</span></span>
+<div style="display: flex; gap: 6px"><button class="btn btn-ghost btn-sm" type="button"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg> Markdown</button><button class="btn btn-ghost btn-sm" type="button"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg> HTML</button></div>
+</aside>
+</div>
+</main>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":961}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { secs: 6 * 3600 + 12 * 60 + 9 };
+  }
+  componentDidMount() {
+    this.tick = setInterval(() => this.setState({ secs: Math.max(0, this.state.secs - 1) }), 1000);
+  }
+  componentWillUnmount() { clearInterval(this.tick); }
+  renderVals() {
+    const s = this.state.secs, pad = (n) => String(n).padStart(2, "0");
+    return { countdown: Math.floor(s / 3600) + "h " + pad(Math.floor((s % 3600) / 60)) + "m " + pad(s % 60) + "s" };
+  }
+}
+</script>
+</body>
+</html>
