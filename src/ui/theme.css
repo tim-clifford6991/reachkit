@@ -68,7 +68,12 @@
   --r-box: 14px;
   --r-field: 9px;
   --r-pill: 999px;
-  --shadow-card: 0 1px 3px rgb(24 24 48/.045);
+  /* Edges and lift (owner, 2026-09-24, #1064): a card is a 1px ring plus
+   * a 1px shadow, so its edge holds on the ground; `--shadow-float` is the
+   * deep one, spent on the landing's product preview and the report's price
+   * card and nowhere else. */
+  --shadow-card: 0 0 0 1px rgb(24 24 48/.06), 0 1px 2px rgb(24 24 48/.04);
+  --shadow-float: 0 0 0 1px rgb(24 24 48/.06), 0 24px 48px -16px rgb(40 30 120/.18), 0 4px 12px -4px rgb(24 24 48/.06);
 
   /* The spacing ladder — 4px base, seven steps, nothing between them */
   --s-1: 4px;
@@ -134,7 +139,8 @@
     --chart-rival: #8b93a4;
     --chart-goal: #e6b45a;
 
-    --shadow-card: 0 1px 3px rgb(0 0 0/.45);
+    --shadow-card: 0 0 0 1px #242a34, 0 1px 2px rgb(0 0 0/.4);
+    --shadow-float: 0 0 0 1px #242a34, 0 24px 48px -16px rgb(0 0 0/.6);
   }
 }
 
@@ -167,7 +173,8 @@
   --chart-rival: #8b93a4;
   --chart-goal: #e6b45a;
 
-  --shadow-card: 0 1px 3px rgb(0 0 0/.45);
+  --shadow-card: 0 0 0 1px #242a34, 0 1px 2px rgb(0 0 0/.4);
+  --shadow-float: 0 0 0 1px #242a34, 0 24px 48px -16px rgb(0 0 0/.6);
 }
 
 /* Ruling 10a (owner, 2026-09-08 · UI-SPEC.md §1) — the six the artifact

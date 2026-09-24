@@ -36,6 +36,7 @@ import type React from "react";
 import { Check } from "lucide-react";
 import { VETO } from "@/lib/config/constants";
 import { copy } from "@/lib/presentation/copy";
+import { FLOAT } from "@/ui/lift";
 import { Num } from "../_address/measured";
 
 /** Which of the two approved wordings of the same four terms this card
@@ -86,7 +87,7 @@ export function PricingCard(
 
   return (
     // Headless: the card opens on the price, which is its answer.
-    <section className="card bg-base-100 border-base-300 border">
+    <section className={`card bg-base-100 ${FLOAT}`}>
       <div className="card-body gap-4">
         {/* REQ-022 c1: "€49 per month and says that VAT is included". */}
         <div className="flex flex-wrap items-baseline justify-center gap-2 text-center">

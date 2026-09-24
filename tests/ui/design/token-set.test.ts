@@ -32,8 +32,10 @@ describe("theme.css is the only token file", () => {
     }
   });
 
-  it("the set is 54 light tokens, and the dark blocks agree", () => {
-    expect(declared.light.size).toBe(54);
+  it("the set is 55 light tokens, and the dark blocks agree", () => {
+    // 55 since #1064: `--shadow-float`, the deep shadow the calm layer
+    // (DESIGN.md, 2026-09-24) spends in two places.
+    expect(declared.light.size).toBe(55);
     expect([...declared["dark-media"]].sort()).toEqual([...declared["dark-toggle"]].sort());
   });
 
