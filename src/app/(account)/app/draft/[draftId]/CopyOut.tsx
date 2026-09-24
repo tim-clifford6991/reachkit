@@ -15,6 +15,7 @@
 "use client";
 
 import type React from "react";
+import { Copy } from "lucide-react";
 import { copy } from "@/lib/presentation/copy";
 import { renderMarkdownHtml } from "@/lib/publish/render/markdown";
 
@@ -26,21 +27,30 @@ function writeClipboard(text: string): void {
 
 export function CopyOut(p: { bodyMd: string }): React.JSX.Element {
   return (
-    <div className="flex flex-wrap gap-2" data-testid="draft-copy-out">
+    // Two ghosts at the foot of the Decide panel (board `R12-6-Page`): the
+    // group carries the name its old card heading used to.
+    <div
+      className="flex flex-wrap gap-1"
+      role="group"
+      aria-label={copy("draft.copy.title")}
+      data-testid="draft-copy-out"
+    >
       <button
         type="button"
-        className="btn btn-sm btn-soft btn-primary"
+        className="btn btn-sm btn-ghost"
         data-testid="draft-copy-markdown"
         onClick={() => writeClipboard(p.bodyMd)}
       >
+        <Copy size={14} strokeWidth={1.75} aria-hidden />
         {copy("draft.copy.markdown")}
       </button>
       <button
         type="button"
-        className="btn btn-sm btn-soft btn-primary"
+        className="btn btn-sm btn-ghost"
         data-testid="draft-copy-html"
         onClick={() => writeClipboard(renderMarkdownHtml(p.bodyMd))}
       >
+        <Copy size={14} strokeWidth={1.75} aria-hidden />
         {copy("draft.copy.html")}
       </button>
     </div>

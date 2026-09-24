@@ -48,7 +48,7 @@ import type React from "react";
 import { useCallback, useEffect, useMemo, useOptimistic, useRef, useState, useTransition } from "react";
 import { AUTOSAVE_DEBOUNCE_MS } from "@/lib/config/constants";
 import { copy } from "@/lib/presentation/copy";
-import { ArrowLeft, Copy } from "lucide-react";
+import { ArrowLeft, LoaderCircle } from "lucide-react";
 import {
   formatCount,
   formatDate,
@@ -59,13 +59,13 @@ import { writtenLine } from "../../_shell/written";
 import { COMMAND_TARGET, publishing } from "../../calendar/publishing";
 import {
   STAGE_FILTER_COPY_KEY,
+  STAGE_BEACON,
   STAGE_OF,
   STAGE_TONE,
   TONE_BADGE,
 } from "../../calendar/stages";
 import { say } from "../../../../_toast/say";
 import { CLAIM_COPY_KEY, CLAIM_TONE, claimAfterSave } from "./claim";
-import { CopyOut } from "./CopyOut";
 import { DecidePanel } from "./DecidePanel";
 import type { DraftCommand } from "./actions";
 import { draftStore, type SaveBody } from "./save";
@@ -76,11 +76,7 @@ import { PageRecordBlock } from "./PageRecordBlock";
 import { TargetBlock } from "./TargetBlock";
 import { factPresentIn } from "./grounded";
 import { PublishedPageView } from "./PublishedPageView";
-import {
-  SearchResultCard,
-  WhatPublishesCard,
-  WrittenFromCard,
-} from "./ReviewCards";
+import { WhatPublishesCard, WrittenFromCard } from "./ReviewCards";
 import { publishedCounts } from "./publishes";
 import { useDebounced } from "./useDebounced";
 import { wordCount, type ClaimState, type DraftView } from "./model";
@@ -107,7 +103,10 @@ interface Checked {
   rulesFailed: boolean;
 }
 
-const EYEBROW = "text-xs font-semibold uppercase tracking-wide opacity-70";
+const EYEBROW = "eyebrow";
+
+/** Between the meta line's two halves: the written line and the label. */
+const META_SEPARATOR = " · ";
 
 /** The two edited fields' ids. Constants rather than `useId`: there is one
  *  editor on this screen, and a stable id is what a `htmlFor` needs to be
@@ -372,19 +371,30 @@ export function DraftScreen(p: {
    *  and are not written yet. */
   const claimBadge = (
     <span
-      className={`badge ${TONE_BADGE[CLAIM_TONE[claim.state]]}`}
+      className={`badge badge-soft ${TONE_BADGE[CLAIM_TONE[claim.state]]}`}
       data-testid={`draft-claim-${claim.state}`}
     >
+      {/* *Checking claims* carries the loader glyph (board `R12-6-Page`),
+          held still: the calm layer's one loop is the review dot. */}
+      {claim.state === "outstanding" ? (
+        <LoaderCircle size={12} strokeWidth={2.5} aria-hidden />
+      ) : null}
       {copy(CLAIM_COPY_KEY[claim.state])}
     </span>
   );
 
+  /** The stage badge, with the stage's dot — which pulses on *Your review*
+   *  and *Live*, the calm layer's one loop (`STAGE_BEACON`). */
   const stageBadge =
     stage === null ? null : (
       <span
-        className={`badge ${TONE_BADGE[STAGE_TONE[stage]]}`}
+        className={`badge badge-soft ${TONE_BADGE[STAGE_TONE[stage]]}`}
         data-testid={`draft-stage-${stage}`}
       >
+        <span
+          className={`size-1.5 shrink-0 rounded-full bg-current ${STAGE_BEACON[stage]}`}
+          aria-hidden
+        />
         {copy(STAGE_FILTER_COPY_KEY[stage])}
       </span>
     );
@@ -686,97 +696,81 @@ export function DraftScreen(p: {
       data-testid="draft-view"
     >
       <nav data-testid="draft-back">
-        <a href="/app/calendar" className="btn btn-sm btn-ghost">
+        <a href="/app/calendar" className="btn btn-sm btn-ghost -ms-3">
           <ArrowLeft size={16} strokeWidth={1.75} aria-hidden />
           {copy("draft.back")}
         </a>
       </nav>
 
-      <div className="grid min-w-0 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_18rem]">
+      {/* Board `R12-6-Page` (SPEC §7, 2026-09-24, #1072): the page and the
+          cards under it on the left, the sticky Decide panel on the right
+          from `xl`; one column, the panel under the page, below it. */}
+      <div className="grid min-w-0 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_19rem]">
         <div className="flex min-w-0 flex-col gap-4">
-          <article
-            className="card card-border bg-base-100 min-w-0"
-            data-testid="draft-card"
-          >
-            <div className="card-body min-w-0 gap-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <span
-                  className="flex min-w-0 flex-wrap items-center gap-2"
-                  data-testid="draft-claim"
-                >
-                  {stageBadge}
-                  {claimBadge}
-                  {claim.state === "failed" ? (
-                    // c11: the customer is told which entry held the draft.
-                    // The entry is their own recorded text and renders as a
-                    // value, whether or not the sentence beside it is written.
-                    <span
-                      className="num text-sm"
-                      data-testid="draft-claim-entry"
-                    >
-                      {claim.matchedEntry}
-                    </span>
-                  ) : null}
-                  {matchedLine === null ? null : (
-                    <span className="text-sm">{matchedLine}</span>
-                  )}
-                </span>
-                {/* REQ-093 c2's label, bound to the text it speaks for. */}
-                <span
-                  className="badge badge-outline"
-                  data-testid="draft-generated-label"
-                >
-                  {p.generatedLabel}
-                </span>
-              </div>
-              {/* **The title is drawn once, and it is drawn in the frame**
-                  (#931). It used to head this card as well, which put the
-                  same sentence twice on the screen an inch apart — and the
-                  one inside the frame is the one that publishes, at the
-                  weight and in the place a reader meets it. What stays here
-                  is the chrome: when the page was written, and how long it
-                  is. */}
-              <p className="text-xs opacity-70" data-testid="draft-written">
-                {written}
+          {/* The header: the status badges and one meta line, then the
+              title. The title is drawn twice on purpose — here as the
+              screen's heading, and in the frame as the page publishes it. */}
+          <header className="flex min-w-0 flex-col gap-2" data-testid="draft-head">
+            <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
+              <span
+                className="flex min-w-0 flex-wrap items-center gap-2"
+                data-testid="draft-claim"
+              >
+                {stageBadge}
+                {claimBadge}
+                {claim.state === "failed" ? (
+                  // c11: the customer is told which entry held the draft.
+                  // The entry is their own recorded text and renders as a
+                  // value, whether or not the sentence beside it is written.
+                  <span className="num text-sm" data-testid="draft-claim-entry">
+                    {claim.matchedEntry}
+                  </span>
+                ) : null}
+              </span>
+              {/* One meta line: when it was written, how long it is, and
+                  REQ-093 c2's label, bound to the text it speaks for. */}
+              <p className="min-w-0 text-xs text-base-content/70 sm:ms-auto">
+                <span data-testid="draft-written">{written}</span>
+                <span aria-hidden>{META_SEPARATOR}</span>
+                <span data-testid="draft-generated-label">{p.generatedLabel}</span>
               </p>
-              <div className="divider my-0" />
-              {rulesHeld}
-              {body}
-              {droppedGrounding}
-              {/* Where the customer has edited, the note that keeps the
-                  generated-content label from speaking for their words. */}
-              {editedNote === null ? null : (
-                <p
-                  className="text-xs opacity-70"
-                  data-testid="draft-edited-note"
-                >
-                  {editedNote}
-                </p>
-              )}
-              {/* c7: the change is unsaved and the customer is told so, in
-                  the view, while their words stay in the buffer. */}
-              {unsaved ? (
-                <p className="text-xs opacity-70" data-testid="draft-unsaved">
-                  {copy("draft.unsaved")}
-                </p>
-              ) : null}
             </div>
-          </article>
+            {matchedLine === null ? null : <p className="text-sm">{matchedLine}</p>}
+            <h1 className="min-w-0 wrap-anywhere" data-testid="draft-title">
+              {view.title}
+            </h1>
+          </header>
 
-          {/* What this page is optimising for (issue 867) — the search, its
-              demand and difficulty against this site's own ceiling, the band
-              and where the AI engines stood. */}
-          <TargetBlock target={view.target} />
+          {rulesHeld}
+          {body}
+          {droppedGrounding}
+          {/* Where the customer has edited, the note that keeps the
+              generated-content label from speaking for their words. */}
+          {editedNote === null ? null : (
+            <p className="text-xs text-base-content/70" data-testid="draft-edited-note">
+              {editedNote}
+            </p>
+          )}
+          {/* c7: the change is unsaved and the customer is told so, in the
+              view, while their words stay in the buffer. */}
+          {unsaved ? (
+            <p className="text-xs text-base-content/70" data-testid="draft-unsaved">
+              {copy("draft.unsaved")}
+            </p>
+          ) : null}
 
-          {/* SPEC §7's three cards that nothing drew (#931): what a searcher
-              sees, what the page stands on and where each sentence was read,
-              and what actually leaves the building. *Why this page* is
-              `TargetBlock` above; the checks are `DecidePanel`'s. */}
-          <SearchResultCard
+          {/* What this page is for (issue 867) and how it reads in search
+              results, sharing one card (board `R12-6-Page`). */}
+          <TargetBlock
+            target={view.target}
             title={view.title}
             description={view.description}
             publisher={view.publisher}
           />
+
+          {/* SPEC §7's other two cards (#931): what the page stands on and
+              where each sentence was read, and what actually leaves the
+              building. The checks are `DecidePanel`'s. */}
           <WrittenFromCard writtenFrom={view.writtenFrom} />
           <WhatPublishesCard
             publisher={view.publisher}
@@ -790,26 +784,6 @@ export function DraftScreen(p: {
           {view.record === null ? null : (
             <PageRecordBlock record={view.record} timeZone={view.timeZone} />
           )}
-
-          {/* Copy-out is always shown — for a draft and a published page alike
-              (c12). */}
-          <section
-            className="card card-border bg-base-100 min-w-0"
-            data-testid="draft-copy-card"
-          >
-            <div className="card-body min-w-0 gap-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <h2 className={`flex items-center gap-2 ${EYEBROW}`}>
-                  <Copy size={20} strokeWidth={1.75} aria-hidden />
-                  {copy("draft.copy.title")}
-                </h2>
-                <span className="badge badge-ghost h-auto whitespace-normal py-1 text-left">
-                  {copy("draft.copy.note")}
-                </span>
-              </div>
-              <CopyOut bodyMd={bodyMd} />
-            </div>
-          </section>
         </div>
 
         <DecidePanel
@@ -819,6 +793,7 @@ export function DraftScreen(p: {
           grounded={grounded}
           claim={claim}
           recordedChecks={recordedChecks}
+          bodyMd={bodyMd}
           onEdit={() => setEditing(true)}
           onCommand={decide}
         />

@@ -200,13 +200,11 @@ export const DRAFT_COPY = Object.freeze({
     { slots: { n: "text" }, fixedBy: "SPEC §7 2026-09-20" },
   ],
 
+  // The two copy-out buttons' group name: they sit at the foot of the
+  // Decide panel without a heading of their own (board R12-6-Page).
   "draft.copy.title": [
     "Copy it out",
     { slots: {}, fixedBy: "BUILD §9 · S16 (11a)" },
-  ],
-  "draft.copy.note": [
-    "yours, for any destination",
-    { slots: {}, fixedBy: "REQ-045 c12 · S16 (11a)" },
   ],
   "draft.copy.markdown": [
     "Markdown",
@@ -214,10 +212,12 @@ export const DRAFT_COPY = Object.freeze({
   ],
   "draft.copy.html": ["HTML", { slots: {}, fixedBy: "BUILD §9 · S16 (11a)" }],
 
-  // §4.6's info box, and its two arms.
-  "draft.do-nothing.title": [
-    "What happens if you do nothing",
-    { slots: {}, fixedBy: "BUILD §4.6" },
+  // §4.6's info box, and its arms. The panel states the schedule sentence
+  // beside the countdown, which carries the time; the phone bar has one
+  // line, so it states the autopilot sentence with the time in it.
+  "draft.do-nothing.schedule": [
+    "Do nothing and it goes live on schedule. Stop it and it never publishes.",
+    { slots: {}, fixedBy: "SPEC §7 2026-09-24" },
   ],
   "draft.do-nothing.autopilot": [
     "It publishes at {at} unless you stop it.",
@@ -238,19 +238,19 @@ export const DRAFT_COPY = Object.freeze({
   // The four claim-check outcomes REQ-045 c3 requires to be stated in every
   // case, including the empty list. Each is a badge's word.
   "draft.claim.passed": [
-    "claim-checked",
+    "Claim-checked",
     { slots: {}, fixedBy: "REQ-045 c3 · S16 (11a)" },
   ],
   "draft.claim.failed": [
-    "claim check failed",
+    "Claim check failed",
     { slots: {}, fixedBy: "REQ-045 c11" },
   ],
   "draft.claim.outstanding": [
-    "claim check running",
+    "Checking claims",
     { slots: {}, fixedBy: "REQ-045 c9 · S17 (11a)" },
   ],
   "draft.claim.nothing-to-check": [
-    "no never-claim list",
+    "No never-claim list",
     { slots: {}, fixedBy: "REQ-045 c3" },
   ],
   // c11's own sentence. The entry itself renders beside it as a value, so
@@ -316,7 +316,7 @@ export const DRAFT_COPY = Object.freeze({
   // The tilde is the set's own: a word count is a count of words, not of
   // what a destination will render.
   "draft.written": [
-    "draft written {at} · ~{words} words",
+    "Written {at} · ~{words} words",
     { slots: { at: "date", words: "text" }, fixedBy: "S16 (11a)" },
   ],
   "draft.words": [
@@ -332,6 +332,27 @@ export const DRAFT_COPY = Object.freeze({
     { slots: {}, fixedBy: "REQ-045 c4 · S16 (11a)" },
   ],
   "draft.checks.title": ["Checks", { slots: {}, fixedBy: "S16 (11a)" }],
+
+  // SPEC §7 (2026-09-24, board R12-6-Page): the panel's live countdown to
+  // the moment an autopilot page publishes, and the absolute time under it.
+  // Three arms: more than a day away, less than a day, and the instant
+  // passed while the screen was open (the job runs on its own clock).
+  "draft.decide.goes-live-in": [
+    "Goes live in",
+    { slots: {}, fixedBy: "SPEC §7 2026-09-24" },
+  ],
+  "draft.decide.countdown.days": [
+    "{d}d {h}h {m}m",
+    { slots: { d: "text", h: "text", m: "text" }, fixedBy: "SPEC §7 2026-09-24" },
+  ],
+  "draft.decide.countdown": [
+    "{h}h {m}m {s}s",
+    { slots: { h: "text", m: "text", s: "text" }, fixedBy: "SPEC §7 2026-09-24" },
+  ],
+  "draft.decide.countdown.due": [
+    "Any moment now",
+    { slots: {}, fixedBy: "SPEC §7 2026-09-24" },
+  ],
 
   // The four §8 hard rules S16 names, each as the sentence the set writes
   // for a rule that passed. A rule whose outcome this product has not
