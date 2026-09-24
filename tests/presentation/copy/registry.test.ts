@@ -327,8 +327,9 @@ describe("the thirteen keys the owner ruled 2026-09-04 (WO-041 `## Log`, this da
     // owner's approved screen set draws it under the Start control on both
     // surfaces that carry the offer, unbracketed, which ruling 11a of
     // 2026-09-08 makes approved copy as written (issue #352). Not a
-    // sentence supplied on the owner's behalf: their own.
-    expect(COPY["offer.cancel_self_service"]).toBe("Cancel in one click.");
+    // sentence supplied on the owner's behalf: their own. Board `R12-2`
+    // (2026-09-24, #1068) adds who cancels.
+    expect(COPY["offer.cancel_self_service"]).toBe("Cancel in one click, yourself.");
     expect(AWAITING_COPY).not.toContain("offer.cancel_self_service");
     expect(OWNER_OWED).not.toContain("offer.cancel_self_service");
   });

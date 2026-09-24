@@ -5,7 +5,7 @@
 // factor holding it down; and the three driver mini-bars `n/10`, which live
 // here and on no other card (SPEC §2).
 //
-// daisyUI in the route (DESIGN rule 1): `card`, `stat`, `badge`,
+// daisyUI in the route (DESIGN rule 1): `card`, `radial-progress`, `badge`,
 // `progress`, `btn`. The value is spoken in tenths and the bar is drawn from
 // the same tenths, so the drawing and the figure beside it cannot disagree.
 //
@@ -71,21 +71,58 @@ function ratioOfTen(tenths: number): string {
   return `${tenths}/${TENTHS}`;
 }
 
-/** One driver mini-bar: the bar, then its name and its value in tenths. The
- *  name is the bar's accessible name as well. */
-function DriverBar(p: { factor: ScoreFactorName; value: Measured<number> }): React.JSX.Element {
+/** One driver mini-bar: its name and its value in tenths above a
+ *  full-width bar (`docs/DESIGN.md`: "a bar gets its own full-width line
+ *  under its label"). The name is the bar's accessible name as well. The
+ *  factor holding the score down draws in `error`, beside its name and value
+ *  and never instead of them. */
+function DriverBar(p: { factor: ScoreFactorName; value: Measured<number>; limiting: boolean }): React.JSX.Element {
   const name = copy(FACTOR_NAMES[p.factor]);
   const tenths = p.value.kind === "unmeasured" ? null : Math.round(p.value.value / TENTHS);
   return (
-    <div className="flex min-w-0 flex-col gap-1">
-      {tenths === null ? (
-        <div className="bg-base-200 h-2 rounded-full" aria-hidden />
-      ) : (
-        <progress className="progress progress-primary" value={tenths} max={TENTHS} aria-label={name} />
-      )}
-      <p className="text-base-content/60 text-xs">
-        {name} <Num unmeasured={tenths === null}>{tenths === null ? dash() : ratioOfTen(tenths)}</Num>
+    <div className="flex min-w-0 flex-col gap-2">
+      <p className="flex items-baseline justify-between gap-2 text-sm">
+        <span className="font-semibold">{name}</span>
+        <span className={p.limiting ? "text-error font-semibold" : "text-base-content/70"}>
+          <Num unmeasured={tenths === null}>{tenths === null ? dash() : ratioOfTen(tenths)}</Num>
+        </span>
       </p>
+      {tenths === null ? (
+        <div className="bg-base-200 h-1.5 rounded-full" aria-hidden />
+      ) : (
+        <progress
+          className={`progress h-1.5 ${p.limiting ? "progress-error" : "progress-primary"}`}
+          value={tenths}
+          max={TENTHS}
+          aria-label={name}
+        />
+      )}
+    </div>
+  );
+}
+
+/** The score in a ring that fills once (the calm layer, #1068): daisyUI's
+ *  `radial-progress`, its track an inset ring in `base-200`, and the fill
+ *  drawn from nothing in 1.4s by `animate-ring` — under reduced motion the
+ *  full ring is drawn and nothing moves. The number inside is the one
+ *  `<Num figure>`; the ring is its drawing, so it is hidden from a reader
+ *  that already has the figure and "of 100". */
+function ScoreRing(p: { score: number }): React.JSX.Element {
+  return (
+    <div className="relative grid size-40 place-items-center">
+      <div
+        aria-hidden
+        className="radial-progress text-primary motion-safe:animate-ring absolute inset-0 shadow-[inset_0_0_0_12px_var(--color-base-200)] [--size:10rem] [--thickness:12px]"
+        style={{ "--value": p.score } as React.CSSProperties}
+      />
+      <div className="relative flex flex-col items-center">
+        <span className="text-5xl leading-none">
+          <Num figure>{p.score}</Num>
+        </span>
+        <span className="text-base-content/70 text-xs">
+          <Num>{copy("verdict.score.of")}</Num>
+        </span>
+      </div>
     </div>
   );
 }
@@ -100,58 +137,62 @@ export function VerdictStrip(p: {
 }): React.JSX.Element {
   const { verdict } = p;
   const scoreAndBand = verdict.scoreAndBand;
+  const limiting = verdict.limiting.kind === "factor" ? verdict.limiting.factor : null;
 
   return (
-    <section className="card bg-base-100 border-base-300 border">
-      <div className="card-body gap-4">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="flex min-w-0 flex-col gap-1">
+    <section className="card bg-base-100 shadow-(--shadow-card)">
+      {/* Board `R12-2-Report`: what the report says on the left, the score
+          on the right; at compact the score comes first. */}
+      <div className="card-body grid gap-8 p-6 md:grid-cols-[minmax(0,1fr)_auto] md:items-center md:p-8">
+        <div className="flex min-w-0 flex-col gap-4 max-md:order-2">
+          <div className="flex min-w-0 flex-col gap-1.5">
+            <p className="eyebrow">{copy("report.eyebrow")}</p>
             {/* The domain is what this report is *about*, so it is the
-                page's `<h1>` (owner ruling 2026-09-23, #328). It was an
-                `<h2>`, which left `/scan/{domain}` with no level-one
-                heading at all. `card-title` carries the size and weight,
-                so nothing on screen changes. */}
-            <h1 className="card-title min-w-0 overflow-x-auto">
+                page's `<h1>` (owner ruling 2026-09-23, #328). */}
+            <h1 className="min-w-0 overflow-x-auto text-3xl font-semibold">
               <Num>{verdict.domain}</Num>
             </h1>
-            <div className="text-base-content/60 flex flex-wrap items-center gap-2 text-xs">
+            <div className="text-base-content/70 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
               <Num phrase>
                 {p.category === null
                   ? copy("report.measured-at.no-category", { date: p.measuredOn })
                   : copy("report.measured-at", { date: p.measuredOn, category: p.category })}
               </Num>
+              {/* SPEC §2 (#715): what was measured, in one line that is
+                  always shown — beside the date it was measured on. */}
+              <span>{copy("report.measurement")}</span>
               {/* The category correction: an inline field that re-measures
                   on the market given, and follows the rerun here (#786). */}
               <CategoryCorrection domain={verdict.domain} offer={p.correction} />
             </div>
           </div>
 
-          <div className="stat w-auto p-0 text-right">
-            <div className="stat-title">{copy("verdict.score.label")}</div>
-            <div className="stat-value text-5xl">
-              <Num unmeasured={scoreAndBand.kind === "unmeasured"} figure>
-                {scoreAndBand.kind === "unmeasured" ? dash() : scoreAndBand.value.score}
-              </Num>
-            </div>
-            {scoreAndBand.kind === "unmeasured" ? null : (
-              <div className="stat-desc">
-                <span className={`badge ${BADGE_TONE[BAND_TONE[scoreAndBand.value.band]]}`}>
-                  {copy(SCORE_BANDS[scoreAndBand.value.band])}
-                </span>
-              </div>
-            )}
+          {limiting === null ? null : <p className="max-w-2xl text-lg">{copy(LIMITING_LINES[limiting])}</p>}
+          <MissingFactors verdict={verdict} />
+
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+            {FACTOR_ORDER.map((factor) => (
+              <DriverBar key={factor} factor={factor} value={verdict.factors[factor]} limiting={factor === limiting} />
+            ))}
           </div>
         </div>
 
-        {verdict.limiting.kind === "factor" ? (
-          <p className="grow-0">{copy(LIMITING_LINES[verdict.limiting.factor])}</p>
-        ) : null}
-        <MissingFactors verdict={verdict} />
-
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          {FACTOR_ORDER.map((factor) => (
-            <DriverBar key={factor} factor={factor} value={verdict.factors[factor]} />
-          ))}
+        <div className="flex flex-col items-center gap-2.5 max-md:order-1">
+          {scoreAndBand.kind === "unmeasured" ? (
+            <span className="text-5xl leading-none">
+              <Num unmeasured figure>
+                {dash()}
+              </Num>
+            </span>
+          ) : (
+            <>
+              <ScoreRing score={scoreAndBand.value.score} />
+              <span className={`badge ${BADGE_TONE[BAND_TONE[scoreAndBand.value.band]]}`}>
+                {copy(SCORE_BANDS[scoreAndBand.value.band])}
+              </span>
+            </>
+          )}
+          <p className="text-base-content/70 text-xs">{copy("verdict.score.label")}</p>
         </div>
       </div>
     </section>

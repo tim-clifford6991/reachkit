@@ -160,6 +160,7 @@ body {
  *   tab underline, chevron          250ms — below
  *   screen enter                    600ms — `animate-rise`, 60ms apart
  *   chart draw                      1.4s  — `SERIES_DRAW` in `src/ui/motion.ts`
+ *   the report's score ring         1.4s  — `animate-ring`, the same draw
  *   *Live* / *Your review* dot      2.4s  — `animate-beacon`, the only loop
  *
  * Under `prefers-reduced-motion: reduce` nothing moves: `idiom.css` turns
@@ -176,11 +177,21 @@ body {
    * so a card's hover lift is not overridden by a finished entrance. */
   --animate-rise: rise 600ms var(--ease-calm) backwards;
   --animate-beacon: beacon 2.4s var(--ease-calm) infinite;
+  /* daisyUI's `radial-progress` fills from `--radialprogress`, which it
+   * registers as a `<percentage>`, so the fill can be drawn from nothing.
+   * `backwards`, like `rise`: once drawn it lets go. */
+  --animate-ring: ring 1.4s var(--ease-calm) backwards;
 
   @keyframes rise {
     from {
       opacity: 0;
       translate: 0 8px;
+    }
+  }
+
+  @keyframes ring {
+    from {
+      --radialprogress: 0%;
     }
   }
 

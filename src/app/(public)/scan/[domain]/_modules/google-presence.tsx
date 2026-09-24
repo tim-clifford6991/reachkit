@@ -56,13 +56,16 @@ function Label(p: { children: React.ReactNode }): React.JSX.Element {
   return <span className="text-base-content/60 text-xs sm:hidden">{p.children}</span>;
 }
 
-function Head(p: { right: React.ReactNode }): React.JSX.Element {
+function Head(p: { right: React.ReactNode; heading?: boolean }): React.JSX.Element {
+  // The card's name is an eyebrow (#1068); on the measured card the heading
+  // is the finding under it, and on the absent card the name is the heading.
+  const Tag = p.heading === true ? "h2" : "p";
   return (
     <div className="flex flex-wrap items-center justify-between gap-2">
-      <h2 className="card-title text-base-content/70 text-xs tracking-wide uppercase">
-        <Search size={16} strokeWidth={1.75} aria-hidden />
+      <Tag className="eyebrow flex items-center gap-2">
+        <Search size={14} strokeWidth={1.75} aria-hidden />
         {copy("presence.title")}
-      </h2>
+      </Tag>
       {p.right}
     </div>
   );
@@ -72,11 +75,11 @@ export function GooglePresenceCard(p: { section: PresenceSection }): React.JSX.E
   const { section } = p;
 
   return (
-    <section className="card bg-base-100 border-base-300 border">
-      <div className="card-body gap-3">
+    <section className="card bg-base-100 shadow-(--shadow-card) min-w-0">
+      <div className="card-body gap-4">
         <Head
           right={
-            <span className="badge badge-ghost h-auto py-1 text-xs whitespace-normal">
+            <span className="badge badge-soft h-auto py-1 text-xs whitespace-normal">
               {copy("presence.source")}
             </span>
           }
@@ -94,6 +97,21 @@ export function GooglePresenceCard(p: { section: PresenceSection }): React.JSX.E
             that never scrolls is still a box the layout law has to excuse
             and a tab stop #947 would have to name. `min-w-0` is the half
             that was doing the work, and it stays. */}
+        {/* The card's finding, as its heading (#1068): the most any rival
+            holds beside the customer's own count — or, with no rival to
+            hold anything, the customer's count alone. */}
+        <h2 className="text-lg font-semibold">
+          {section.rivals.length === 0 || section.framing === "suppressed_no_rivals"
+            ? copy("presence.occupancy", {
+                you: String(section.you.top10Count),
+                measured: String(section.measuredSearches),
+              })
+            : copy("presence.finding", {
+                rival: String(Math.max(...section.rivals.map((rival) => rival.top10Count))),
+                measured: String(section.measuredSearches),
+                you: String(section.you.top10Count),
+              })}
+        </h2>
         {section.framing === "suppressed_no_rivals" ? (
           <p className="grow-0 text-sm">{copy("presence.no-rivals")}</p>
         ) : (
@@ -111,7 +129,7 @@ export function GooglePresenceCard(p: { section: PresenceSection }): React.JSX.E
         )}
         <div className="divider my-0" />
 
-        <p className="text-base-content/60 grow-0 text-xs font-semibold tracking-wide uppercase">
+        <p className="eyebrow grow-0">
           {copy("presence.absent-from.title")}
         </p>
         {/* **One table, two shapes (#956).** From `sm` it is the three-column
@@ -211,9 +229,9 @@ export function GooglePresenceCard(p: { section: PresenceSection }): React.JSX.E
  *  report stays usable. */
 export function GooglePresenceAbsent(p: { cutOff?: boolean; domain?: CanonicalDomain } = {}): React.JSX.Element {
   return (
-    <section className="card bg-base-100 border-base-300 border">
-      <div className="card-body gap-3">
-        <Head right={<Num unmeasured>{dash()}</Num>} />
+    <section className="card bg-base-100 shadow-(--shadow-card) min-w-0">
+      <div className="card-body gap-4">
+        <Head heading right={<Num unmeasured>{dash()}</Num>} />
         <p className="grow-0 text-sm">{copy("presence.absent")}</p>
         {/* Issue 715: the same control the AI-answers card draws, for the
             same purchase — both cards are counted over the twelve question

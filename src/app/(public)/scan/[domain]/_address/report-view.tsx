@@ -42,7 +42,7 @@ import { PricingCard } from "../_modules/pricing";
 import { CheckCards, ProblemCards } from "../_problems/cards";
 import { checkCardsOf, readingsOf } from "../_problems/checks";
 import { MethodSections } from "../_problems/method";
-import { cardsOf, PROBLEM_ORDER } from "../_problems/model";
+import { cardsOf, PROBLEM_ORDER, type ProblemCard, type ProblemName } from "../_problems/model";
 import { unblockLines } from "../_problems/unblock";
 import { RemovalAddressLine } from "./removal";
 import type { AddressControl, AddressNotice } from "./state";
@@ -210,6 +210,12 @@ function ControlButton(p: { domain: CanonicalDomain; control: AddressControl }):
   }
 }
 
+/** The lines a problem's fix carries — the paste arm's, and no other. */
+function pasteLinesOf(cards: readonly ProblemCard[], problem: ProblemName): readonly string[] | undefined {
+  const fix = cards.find((card) => card.problem === problem)?.fix;
+  return fix?.kind === "paste" ? fix.lines : undefined;
+}
+
 /** SPEC §2: a part is cut off when the pass stopped at one of its two
  *  ceilings — not when it finished, failed, or could not read the site. */
 function cutByCeiling(report: StoredReport): boolean {
@@ -263,17 +269,13 @@ export function ReportView(p: {
           here — an element with no box has no border box for conformance
           check 2 to contain its children in, so every row reported as
           escaping. */}
-      {/* `items-start` (issue #244).
-        *
-        * The two-up cards are subgrid items in the same row, so without it
-        * each grows to the taller of the pair — and daisyUI's own
-        * `.card-body p { flex-grow: 1 }` then hands that slack to the
-        * card's paragraphs. On the presence card at 1280 that put one line
-        * of text in a 399px band and its legend in another 393px one, with
-        * the bars stranded in between. A shorter card keeps its own
-        * height; `Card` itself stops the distribution for the cases a
-        * layout does stretch one. */}
-      <main className="col-span-full grid grid-cols-subgrid items-start">
+      {/* The rows stretch (#1068, the calm layer's "cards in a row stretch
+          to one height"): the AI-answers and Google-search cards stand at
+          one height. It was `items-start` (#244), because daisyUI's
+          `.card-body p { flex-grow: 1 }` handed a shorter card's slack to
+          its paragraphs; every paragraph directly in those two card bodies
+          is `grow-0`, so the slack now sits under the card's last line. */}
+      <main className="col-span-full grid grid-cols-subgrid gap-y-5">
         {/* REQ-001 c14: the notice and the one control that answers it sit
           together, so a visitor reads what happened and what they can do
           about it in one place. */}
@@ -295,14 +297,14 @@ export function ReportView(p: {
             control is on the screen that owns the address — and it is on it
             once. */}
         <div className="col-span-full">
+          {/* SPEC §2's measurement line is in the card, beside the date
+              (#1068). */}
           <VerdictStrip
             verdict={report.verdict}
             category={categoryOf(report.market)}
             measuredOn={measuredOn}
             correction={correction}
           />
-          {/* SPEC §2: what was measured, in one line that is always shown. */}
-          <p className="text-base-content/60 mt-2 font-mono text-xs">{copy("report.measurement")}</p>
         </div>
 
         {/* Issue 715: an absent card carries the address its retry posts
@@ -320,16 +322,23 @@ export function ReportView(p: {
           <GooglePresenceCard section={report.presence} />
         )}
 
-        <div className="col-span-full">
-          <ProblemCards cards={cards} />
-        </div>
-        <div className="col-span-full">
-          {/* SPEC §9's other eight checks, as the scan stored them (#570). A
-              check that could not run is absent with its why-line. */}
+        {/* What holds you back (#1068): the three that cost most as cards,
+            then SPEC §9's eight checks as one list (#570) — a check that
+            could not run has a grey dot and its why-line — then the method,
+            where each card's link lands. */}
+        <section className="col-span-full mt-5 flex flex-col gap-3">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+            <h2 className="text-2xl font-bold">{copy("problem.section.title")}</h2>
+            <p className="text-base-content/70 text-sm">{copy("problem.section.sub")}</p>
+          </div>
+          <ProblemCards cards={cards} firstPage={report.freePage !== null} />
           <CheckCards cards={checkCardsOf(readingsOf(report.siteIssues, report.verdict.measuredAt))} />
-        </div>
+        </section>
         <div className="col-span-full">
-          <MethodSections for={PROBLEM_ORDER} />
+          <MethodSections
+            for={PROBLEM_ORDER}
+            lines={{ blocked_readers: pasteLinesOf(cards, "blocked_readers") }}
+          />
         </div>
 
         {/* Modules 5 and 6 are full-width rows, not two cards side by
@@ -344,16 +353,19 @@ export function ReportView(p: {
             <FreePageCard section={report.freePage} scanId={report.scanId} />
           )}
         </div>
-        <div className="col-span-full mx-auto w-full max-w-xl">
+        <div id="start" className="col-span-full mt-3 scroll-mt-20">
           {/* Issue #785: Start buys from this report — its scan is the
-              checkout's origin, so the site is provisioned on this domain. */}
+              checkout's origin, so the site is provisioned on this domain.
+              #1068: the report's price close spans the screen, its heading
+              and terms beside the price. */}
           <PricingCard
             startAction={startReportCheckout.bind(null, report.domain, report.scanId)}
             refused={p.checkoutRefused === true}
+            close
           />
         </div>
 
-        <div className="text-base-content/60 col-span-full text-sm">
+        <div className="text-base-content/70 col-span-full text-center text-xs">
           <RemovalAddressLine />
         </div>
       </main>

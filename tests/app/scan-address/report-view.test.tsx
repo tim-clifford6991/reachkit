@@ -345,13 +345,14 @@ describe("BUILD §4.1 — the six modules, in order", () => {
 });
 
 // DESIGN rule 1: one solid primary button per screen. On the report it is
-// the offer's Start — the paying path; the free page's control is outline.
+// the offer's Start — the paying path; the free page's control is soft (2026-09-24).
 describe("DESIGN rule 1 — the report has one solid primary, and it is Start", () => {
   const html = render(FIXTURE_REPORT);
 
-  /** The opening tag of the `<button>` whose label is `key`. */
+  /** The opening tag of the `<button>` whose label is `key` (an icon may
+   *  sit either side of it). */
   function buttonTag(key: string): string {
-    const match = new RegExp(`<button([^>]*)>${key}</button>`).exec(html);
+    const match = new RegExp(`<button([^>]*)>(?:(?!</?button)[^])*?${key}`).exec(html);
     expect(match, `no <button> labelled ${key} in the rendered report`).not.toBeNull();
     return match?.[1] ?? "";
   }
@@ -544,7 +545,7 @@ describe("issue 715 — SPEC §2: what was measured, what was reused, what the c
 
   it("a ceiling-cut report keeps its measured card and offers 'Retry this part' only on the parts it lost", () => {
     const html = render(cutOff);
-    expect(html).toContain("ai-answers.denominator");
+    expect(html).toContain("ai-answers.finding");
     expect(count(html, ">control.retry-part<")).toBe(2);
     expect(render({ ...FIXTURE_DEGRADED_REPORT, stoppedReason: "failed" })).not.toContain("control.retry-part");
   });
@@ -583,7 +584,7 @@ describe("issue 715 — SPEC §2: what was measured, what was reused, what the c
 describe("issue #785 — the report's offer begins checkout, and states a refusal on itself", () => {
   it("Start is a submit inside a form, not an inert button", () => {
     const html = render(FIXTURE_REPORT);
-    expect(html).toMatch(/<form[^>]*>\s*<button type="submit" class="btn btn-primary btn-block">offer\.start\.priced<\/button>/);
+    expect(html).toMatch(/<form[^>]*>\s*<button type="submit" class="btn btn-primary btn-lg btn-block">offer\.start\.priced<svg/);
   });
 
   it("a refused checkout renders the offer's written line, and only then", () => {

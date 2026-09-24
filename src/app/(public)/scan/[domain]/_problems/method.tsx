@@ -9,8 +9,13 @@
 //
 // The union is the same three `ProblemName`s the cards render, so a method
 // section cannot go missing for a problem that has a card.
+//
+// Each card's *show me* link lands in its section's content (#1068), which
+// opens the collapse around it; the robots lines a founder pastes live
+// here, under the method that says where to paste them.
 import type React from "react";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
+import { METHOD_ANCHOR, PasteBlock } from "./cards";
 import { PROBLEM_ORDER, type ProblemName } from "./model";
 
 const METHOD_COPY: Readonly<Record<ProblemName, { title: CopyKey; body: CopyKey }>> = Object.freeze({
@@ -21,20 +26,24 @@ const METHOD_COPY: Readonly<Record<ProblemName, { title: CopyKey; body: CopyKey 
 
 export function MethodSections(p: {
   for: readonly [ProblemName, ProblemName, ProblemName];
+  /** The lines the blocked-readers card's fix carries, where it has any. */
+  lines?: Partial<Readonly<Record<ProblemName, readonly string[]>>>;
 }): React.JSX.Element {
   return (
-    <div className="flex flex-col gap-2">
-      <p className="text-base-content/60 text-xs font-semibold tracking-wide uppercase">
-        {copy("method.title")}
-      </p>
-      {p.for.map((problem) => (
-        <details key={problem} className="collapse collapse-arrow bg-base-100 border-base-300 border">
-          <summary className="collapse-title font-medium">{copy(METHOD_COPY[problem].title)}</summary>
-          <div className="collapse-content text-sm">
-            <p>{copy(METHOD_COPY[problem].body)}</p>
-          </div>
-        </details>
-      ))}
+    <div id="method" className="flex scroll-mt-20 flex-col gap-2">
+      <p className="eyebrow">{copy("method.title")}</p>
+      {p.for.map((problem) => {
+        const lines = p.lines?.[problem];
+        return (
+          <details key={problem} className="collapse collapse-arrow bg-base-100 shadow-(--shadow-card)">
+            <summary className="collapse-title font-medium">{copy(METHOD_COPY[problem].title)}</summary>
+            <div id={METHOD_ANCHOR[problem]} className="collapse-content flex scroll-mt-20 flex-col gap-3 text-sm">
+              <p>{copy(METHOD_COPY[problem].body)}</p>
+              {lines === undefined || lines.length === 0 ? null : <PasteBlock lines={lines} />}
+            </div>
+          </details>
+        );
+      })}
     </div>
   );
 }

@@ -11,8 +11,8 @@
 // the card cannot show the title and drop the "proposed" label
 // (REQ-093 c2).
 //
-// **The control is outline, not solid** (DESIGN rule 1: one solid primary
-// button per screen). The report's solid primary is the pricing card's
+// **The control is soft, not solid** (DESIGN rule 1, one loud button per
+// section, 2026-09-24). The report's solid primary is the pricing card's
 // Start — the paying path. The field beside it asks for an address and
 // nothing else (REQ-010 c1): no account, no password, no payment.
 //
@@ -43,11 +43,11 @@ const FORMAT_LINE: Readonly<Record<string, CopyKey>> = Object.freeze({
 
 function Head(p: { right?: React.ReactNode }): React.JSX.Element {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2">
-      <h2 className="card-title text-base-content/70 text-xs tracking-wide uppercase">
-        <FileText size={16} strokeWidth={1.75} aria-hidden />
+    <div className="flex flex-wrap items-center gap-2">
+      <p className="eyebrow flex items-center gap-2">
+        <FileText size={14} strokeWidth={1.75} aria-hidden />
         {copy("free-page.title")}
-      </h2>
+      </p>
       {p.right ?? null}
     </div>
   );
@@ -85,36 +85,46 @@ export function FreePageCard(p: { section: FreePageSection; scanId: string }): R
   });
 
   return (
-    <section className="card bg-base-100 border-primary border">
-      <div className="card-body gap-3">
-        <Head right={<span className="badge badge-primary">{copy("free-page.badge")}</span>} />
-        <p className="text-base-content/60 grow-0 text-xs">{title.label}</p>
-        <h3 className="text-lg font-semibold">{title.text}</h3>
-        <dl className="flex flex-col">
-          <Row label={copy("free-page.row.target")}>
-            <Num>
-              {copy("free-page.target.value", {
-                keyword: section.target.keyword,
-                volume: String(section.target.volume),
-              })}
-            </Num>
-          </Row>
-          <Row label={copy("free-page.row.beats")}>
-            {section.beats === null ? (
-              <span>{copy("place.report.first-page.rival")}</span>
-            ) : (
-              <Num>{section.beats}</Num>
-            )}
-          </Row>
-          <Row label={copy("free-page.row.format")}>
-            {FORMAT_LINE[section.format] === undefined ? null : <span>{copy(FORMAT_LINE[section.format]!)}</span>}
-          </Row>
-        </dl>
+    // Board `R12-2-Report` (#1068): the proposal on the left, the one field
+    // and its control on the right; stacked at compact. `first-page` is
+    // where the missing-pages card's link lands.
+    <section
+      id="first-page"
+      className="card bg-base-100 ring-primary/30 scroll-mt-20 shadow-(--shadow-card) ring-1"
+    >
+      <div className="card-body grid gap-8 p-6 md:p-7 lg:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="flex min-w-0 flex-col gap-3">
+          <Head right={<span className="badge badge-soft badge-primary badge-sm">{copy("free-page.badge")}</span>} />
+          <h2 className="text-2xl font-bold">{title.text}</h2>
+          <dl className="flex flex-col">
+            <Row label={copy("free-page.row.target")}>
+              <Num>
+                {copy("free-page.target.value", {
+                  keyword: section.target.keyword,
+                  volume: String(section.target.volume),
+                })}
+              </Num>
+            </Row>
+            <Row label={copy("free-page.row.beats")}>
+              {section.beats === null ? (
+                <span>{copy("place.report.first-page.rival")}</span>
+              ) : (
+                <Num>{section.beats}</Num>
+              )}
+            </Row>
+            <Row label={copy("free-page.row.format")}>
+              {FORMAT_LINE[section.format] === undefined ? null : <span>{copy(FORMAT_LINE[section.format]!)}</span>}
+            </Row>
+          </dl>
+          <p className="text-base-content/70 flex grow-0 flex-wrap gap-x-1 text-xs">
+            <span>{title.label}</span>
+            <Num phrase>{copy("free-page.of", { total: String(section.totalPages) })}</Num>
+          </p>
+        </div>
         {/* REQ-010 c1's one control, and the one field it needs (issue 787). */}
-        <LeadCapture scanId={p.scanId} />
-        <p className="text-base-content/60 grow-0 text-xs">
-          <Num phrase>{copy("free-page.of", { total: String(section.totalPages) })}</Num>
-        </p>
+        <div className="flex min-w-0 flex-col justify-center">
+          <LeadCapture scanId={p.scanId} />
+        </div>
       </div>
     </section>
   );
@@ -124,7 +134,7 @@ export function FreePageCard(p: { section: FreePageSection; scanId: string }): R
  *  written line rather than showing an empty card. */
 export function FreePageAbsent(p: { cutOff?: boolean; domain?: CanonicalDomain } = {}): React.JSX.Element {
   return (
-    <section className="card bg-base-100 border-base-300 border">
+    <section id="first-page" className="card bg-base-100 scroll-mt-20 shadow-(--shadow-card)">
       <div className="card-body gap-3">
         <Head />
         <p className="grow-0 text-sm">{copy("free-page.absent")}</p>

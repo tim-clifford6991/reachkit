@@ -16,7 +16,7 @@
 // the report's scan (issue #785), on `/pricing` it is scanless.
 //
 // **It is the report's one solid primary** (DESIGN rule 1). Start keeps
-// the fill because it is the paying path; the free-page control is outline.
+// the fill because it is the paying path; the free-page control is soft.
 //
 // daisyUI in the route: `card`, `alert`, `btn`; lucide for the ticks.
 //
@@ -33,7 +33,7 @@
 // identical either way; only where Start goes differs — the report screen
 // passes its own report-origin action (issue #785).
 import type React from "react";
-import { Check } from "lucide-react";
+import { ArrowRight, Check, ShieldCheck } from "lucide-react";
 import { VETO } from "@/lib/config/constants";
 import { copy } from "@/lib/presentation/copy";
 import { FLOAT } from "@/ui/lift";
@@ -72,55 +72,89 @@ const TERM_LINES: Readonly<Record<OfferTerms, () => readonly string[]>> = {
   ],
 };
 
+/** The price, the terms where this shape puts them under it, the refusal
+ *  line where there is one, Start, and the cancel line under it. */
+function PriceBox(p: { start: React.ReactNode; refused?: boolean; terms?: React.ReactNode }): React.JSX.Element {
+  return (
+    <div className="flex flex-col gap-4">
+      {/* REQ-022 c1: "€49 per month and says that VAT is included". */}
+      <div className="flex flex-wrap items-baseline justify-center gap-2 text-center">
+        <span className="text-5xl leading-none">
+          <Num figure>{copy("price.amount")}</Num>
+        </span>
+        <span className="text-base-content/70 text-sm">{copy("price.interval")}</span>
+      </div>
+      {p.terms ?? null}
+      {/* Issue #624: the vendor refused to open checkout. One written line
+          on the offer itself, above the control that will try again. */}
+      {p.refused ? (
+        <div role="alert" className="alert alert-error">
+          <span>{copy("offer.checkout.refused")}</span>
+        </div>
+      ) : null}
+      {p.start}
+      <p className="text-base-content/70 flex grow-0 items-center justify-center gap-1.5 text-xs">
+        <ShieldCheck size={14} strokeWidth={1.75} aria-hidden />
+        {copy("offer.cancel_self_service")}
+      </p>
+    </div>
+  );
+}
+
+function Terms(p: { specs: readonly string[] }): React.JSX.Element {
+  return (
+    <ul className="flex list-none flex-col gap-3 p-0 text-left">
+      {p.specs.map((line) => (
+        <li key={line} className="flex items-start gap-2.5">
+          <Check size={16} strokeWidth={1.75} className="text-success mt-1 shrink-0" aria-hidden />
+          <span>{line}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export function PricingCard(
-  p: { startAction?: () => Promise<void>; terms?: OfferTerms; refused?: boolean } = {}
+  p: {
+    startAction?: () => Promise<void>;
+    terms?: OfferTerms;
+    refused?: boolean;
+    /** The report's price close (#1068, board `R12-2-Report`): a heading and
+     *  the terms on the left, the price and Start in a panel on the right.
+     *  The same component and the same facts; only the shape is wider. */
+    close?: boolean;
+  } = {}
 ): React.JSX.Element {
   const specs = TERM_LINES[p.terms ?? "report"]();
   const start = (
-    <button
-      type={p.startAction ? "submit" : "button"}
-      className="btn btn-primary btn-block"
-    >
+    <button type={p.startAction ? "submit" : "button"} className="btn btn-primary btn-lg btn-block">
       {copy("offer.start.priced")}
+      <ArrowRight size={18} strokeWidth={1.75} aria-hidden />
     </button>
   );
+  const control = p.startAction ? <form action={p.startAction}>{start}</form> : start;
+
+  if (p.close === true) {
+    return (
+      <section className={`card bg-base-100 ${FLOAT}`}>
+        <div className="card-body gap-8 p-6 md:p-10 lg:flex-row lg:items-center lg:gap-12">
+          <div className="flex min-w-0 flex-1 flex-col gap-4">
+            <h2 className="text-3xl font-bold">{copy("offer.close.heading")}</h2>
+            <Terms specs={specs} />
+          </div>
+          <div className="bg-primary/5 rounded-box ring-primary/15 shrink-0 p-6 ring-1 lg:w-96">
+            <PriceBox start={control} refused={p.refused} />
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     // Headless: the card opens on the price, which is its answer.
     <section className={`card bg-base-100 ${FLOAT}`}>
-      <div className="card-body gap-4">
-        {/* REQ-022 c1: "€49 per month and says that VAT is included". */}
-        <div className="flex flex-wrap items-baseline justify-center gap-2 text-center">
-          <div className="text-5xl">
-            <Num figure>{copy("price.amount")}</Num>
-          </div>
-          <span className="text-base-content/60 text-sm font-semibold">{copy("price.interval")}</span>
-        </div>
-
-        <ul className="flex list-none flex-col p-0 text-left">
-          {specs.map((line) => (
-            <li
-              key={line}
-              className="border-base-300 flex items-center gap-3 border-t py-2 text-sm first:border-t-0"
-            >
-              <Check size={16} strokeWidth={1.75} className="text-success shrink-0" aria-hidden />
-              <span>{line}</span>
-            </li>
-          ))}
-        </ul>
-
-        {/* Issue #624: the vendor refused to open checkout. One written line
-            on the offer itself, above the control that will try again. */}
-        {p.refused ? (
-          <div role="alert" className="alert alert-error">
-            <span>{copy("offer.checkout.refused")}</span>
-          </div>
-        ) : null}
-
-        {p.startAction ? <form action={p.startAction}>{start}</form> : start}
-        <p className="text-base-content/60 grow-0 text-center text-xs">
-          {copy("offer.cancel_self_service")}
-        </p>
+      <div className="card-body">
+        <PriceBox start={control} refused={p.refused} terms={<Terms specs={specs} />} />
       </div>
     </section>
   );

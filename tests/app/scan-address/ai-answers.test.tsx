@@ -218,11 +218,11 @@ describe("what the columns deliberately do not move", () => {
   const html = render(withBattery(() => ANSWERED_NAMING, () => ANSWERED_NAMING));
 
   it("leaves the counts as Google's AI answers alone", () => {
-    // The denominator line is the card's own sentence; the customer's
+    // The finding is the card's own sentence (#1068); the customer's
     // citation count is the matrix row beside their name, `0/9`, which is
     // where REQ-008 c3's sibling rule puts it on this card too — once.
     expect(html).toContain(
-      `ai-answers.denominator(${FREE_SECTION.answeredSearches}|${FREE_SECTION.measuredSearches})`
+      `ai-answers.finding.none(${FREE_SECTION.answeredSearches}|${FREE_SECTION.measuredSearches})`
     );
     expect(chart(html)).toContain(
       `${FREE_SECTION.customerCitations}/${FREE_SECTION.answeredSearches}`
