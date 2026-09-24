@@ -413,8 +413,16 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
               sized `minmax(auto, …)`, so one wide child's min-content would push
               the whole row past the screen. `minmax(0, 1fr)` is what makes the
               column the screen's and the content's problem to fit. */}
+          {/* The calm layer (#1059, #1091): the two columns stretch to one
+              height, so the panel stands as tall as the step beside it; and
+              the step change rises in — the column is keyed on the step, so
+              each step mounts fresh (as its own card always did) and takes
+              `animate-rise` once. Reduced motion draws it in place. */}
           <div className="grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-2">
-            <div className="grid min-w-0 grid-cols-1 content-start gap-4">
+            <div
+              key={step}
+              className="grid min-w-0 grid-cols-1 content-start gap-4 motion-safe:animate-rise"
+            >
               <div className="grid gap-2">
                 <h1 className="text-xl font-semibold wrap-anywhere">{copy(STEP_QUESTION[step])}</h1>
                 <p className={QUIET} data-testid="setup-step-line">
@@ -432,7 +440,7 @@ export function SetupForm(p: { model: SetupScreenModel }): React.JSX.Element {
               ) : null}
 
               {step === "business" ? (
-                <div className="grid gap-3" data-testid="setup-pages-read">
+                <div className="grid gap-4" data-testid="setup-pages-read">
                   <p className={QUIET}>{copy("setup.business.pages-read")}</p>
                   <div className="flex flex-wrap items-center gap-2">
                     {/* #970: the confirmed profile's own counts — the same

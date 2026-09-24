@@ -51,6 +51,9 @@ const TEST_ID = "setup-competitors";
 const ICON = { strokeWidth: 1.75 } as const;
 // A chosen suggestion is a solid ink pill, the rest soft (#1063).
 const INK_PILL = "border-base-content bg-base-content text-base-100";
+/** A quiet empty (the calm layer, #1059): a flat grey cell and one line —
+ *  never a white card or a coloured alert for a thing that is not there. */
+const EMPTY = "rounded-box bg-base-200 px-3 py-2 text-sm text-base-content/70";
 
 export function RivalsCard(p: {
   rivals: RivalSet;
@@ -141,7 +144,7 @@ export function RivalsCard(p: {
         </div>
 
         {status === null ? null : (
-          <p className="text-sm text-base-content/70" data-testid={status.testId}>
+          <p className={EMPTY} data-testid={status.testId}>
             {copy(status.key)}
           </p>
         )}

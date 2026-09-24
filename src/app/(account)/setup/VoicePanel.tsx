@@ -24,7 +24,8 @@
 "use client";
 
 import type React from "react";
-import { useState } from "react";
+import { startTransition, useState } from "react";
+import { SKELETON_EXIT, ViewTransition } from "@/ui/motion";
 import { copy, type CopyKey } from "@/lib/presentation/copy";
 import type {
   VoiceSampleRefusal,
@@ -45,6 +46,10 @@ const REFUSAL_COPY = {
  *  yet. A count, not a sentence. */
 const PLACEHOLDER_LINES = 3;
 
+/** A quiet empty (the calm layer, #1059): a flat grey cell and one line —
+ *  never a white card or a coloured alert for a thing that is not there. */
+const EMPTY = "rounded-box bg-base-200 px-3 py-2 text-sm text-base-content/70";
+
 export function VoicePanel(): React.JSX.Element {
   const [sample, setSample] = useState<VoiceSampleAnswer | null>(null);
   const [refusal, setRefusal] = useState<VoiceSampleRefusal | null>(null);
@@ -57,18 +62,22 @@ export function VoicePanel(): React.JSX.Element {
     try {
       const res = await fetch("/api/setup/voice-sample", { method: "POST" });
       const answer = (await res.json()) as VoiceSampleResponse;
-      if (answer.written) {
-        setSample(answer.sample);
-        setRemaining(answer.sample.remaining);
-      } else {
-        setRefusal(answer.reason);
-        setRemaining(answer.remaining);
-      }
+      // One transition for the answer and the skeleton leaving, so the
+      // skeleton cross-fades to the paragraph (#1065's reveal, #1091).
+      startTransition(() => {
+        if (answer.written) {
+          setSample(answer.sample);
+          setRemaining(answer.sample.remaining);
+        } else {
+          setRefusal(answer.reason);
+          setRemaining(answer.remaining);
+        }
+        setWriting(false);
+      });
     } catch {
       // A request that never arrived is the same state to a reader as a
       // model that did not answer: one written line, and the control again.
       setRefusal("unavailable");
-    } finally {
       setWriting(false);
     }
   }
@@ -78,13 +87,15 @@ export function VoicePanel(): React.JSX.Element {
   return (
     <div className="grid min-w-0 gap-3" data-testid="setup-voice-panel">
       {writing ? (
-        <div className="grid min-w-0 gap-2" aria-hidden data-testid="setup-voice-writing">
-          {Array.from({ length: PLACEHOLDER_LINES }, (_, line) => (
-            <div key={line} className="skeleton h-4 w-full min-w-0" />
-          ))}
-        </div>
+        <ViewTransition {...SKELETON_EXIT}>
+          <div className="grid min-w-0 gap-2" aria-hidden data-testid="setup-voice-writing">
+            {Array.from({ length: PLACEHOLDER_LINES }, (_, line) => (
+              <div key={line} className="skeleton h-4 w-full min-w-0" />
+            ))}
+          </div>
+        </ViewTransition>
       ) : sample === null ? (
-        <p className="text-sm text-base-content/70" data-testid="setup-voice-before">
+        <p className={EMPTY} data-testid="setup-voice-before">
           {copy("setup.panel.voice.before")}
         </p>
       ) : (

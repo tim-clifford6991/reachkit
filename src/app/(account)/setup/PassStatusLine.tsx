@@ -88,7 +88,10 @@ export function PassStatusLine(p: {
       // line a screen reader never hears change.
       aria-live="polite"
     >
-      <span className="loading loading-dots loading-xs shrink-0" aria-hidden />
+      {/* A still dot, not a loading loop: the calm layer spends its one loop
+          on *Live* and *Your review* (#1059), and the words already say the
+          pass is under way. */}
+      <span className="status status-primary shrink-0" aria-hidden />
       {copy(ROW_COPY_KEY[row])}
     </p>
   );
