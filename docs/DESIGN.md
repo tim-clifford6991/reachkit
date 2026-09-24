@@ -18,11 +18,11 @@ The addresses are this repository’s, which is not always what the ledger calls
 
 | Screen | Route | Board | Ruled |
 |---|---|---|---|
-| Landing | `/` | [`R12-1-Landing`](design/boards/R12-1-Landing/R12-1-Landing.dc.html) · [render](design/boards/R12-1-Landing/R12-1-Landing.jpg) | 2026-09-24 (#1059): banner, header, hero with *Inside ReachKit*, logo strip (#1058), video on the fold, why, next, closing band; supersedes `R11-H4-Week` and `R6-1-Landing` |
+| Landing | `/` | [`R12-1-Landing`](design/boards/R12-1-Landing/R12-1-Landing.dc.html) · [render](design/boards/R12-1-Landing/R12-1-Landing.jpg) | 2026-09-24 (#1059): banner, header, hero with *Inside ReachKit*, logo strip (ships, #1058), video on the fold, why, next, closing band; supersedes `R11-H4-Week` and `R6-1-Landing` |
 | Pricing | `/pricing` | [`R6-2-Pricing`](design/boards/R6-2-Pricing/R6-2-Pricing.dc.html) · [render](design/boards/R6-2-Pricing/R6-2-Pricing.jpg) | 2026-09-20 (#937) |
 | Free scan in progress | `/scan/{domain}` | [`R5-W2-Scanning`](design/boards/R5-W2-Scanning/R5-W2-Scanning.dc.html) · [render](design/boards/R5-W2-Scanning/R5-W2-Scanning.jpg) | 2026-09-20 (#908, SPEC §2) |
 | Free scan report | `/scan/{domain}` | [`R12-2-Report`](design/boards/R12-2-Report/R12-2-Report.dc.html) · [render](design/boards/R12-2-Report/R12-2-Report.jpg) | 2026-09-24 (#1059), supersedes `R5-W3-Report`; report facts 2026-09-22 (#715) |
-| Free scans gallery | `/scans` | [`R12-3-Gallery`](design/boards/R12-3-Gallery/R12-3-Gallery.dc.html) · [render](design/boards/R12-3-Gallery/R12-3-Gallery.jpg) | 2026-09-24 (#1059); who is listed is #1058 — nothing is built before that ruling |
+| Free scans gallery | `/scans` | [`R12-3-Gallery`](design/boards/R12-3-Gallery/R12-3-Gallery.dc.html) · [render](design/boards/R12-3-Gallery/R12-3-Gallery.jpg) | 2026-09-24 (#1059); listed unless removed, page indexed, reports `noindex` (#1058) |
 | Phone: free scans gallery | `/scans` at 390 | [`R12-9-Phone-gallery`](design/boards/R12-9-Phone-gallery/R12-9-Phone-gallery.dc.html) · [render](design/boards/R12-9-Phone-gallery/R12-9-Phone-gallery.jpg) | 2026-09-24 (#1059); #1058 as above |
 | Quiet pages | `/opt-out/{token}`, the not-found and refused arms | [`R6-6-Quiet`](design/boards/R6-6-Quiet/R6-6-Quiet.dc.html) · [render](design/boards/R6-6-Quiet/R6-6-Quiet.jpg) | 2026-09-20 (#936) |
 | Legal pages | `/privacy`, `/terms`, `/imprint` | [`R6-7-Legal`](design/boards/R6-7-Legal/R6-7-Legal.dc.html) · [render](design/boards/R6-7-Legal/R6-7-Legal.jpg) | 2026-09-20 (#936); the bodies are owner-owed (#335) |
