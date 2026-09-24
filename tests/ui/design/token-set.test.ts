@@ -26,16 +26,19 @@ function cssFiles(dir: string = SRC, out: string[] = []): string[] {
 describe("theme.css is the only token file", () => {
   const declared = tokenSet(THEME_CSS);
 
-  it("the two struck tokens are gone", () => {
-    for (const struck of ["--r-card", "--ring-accent"]) {
+  it("the struck tokens are gone", () => {
+    // `--motion-fast` since 2026-09-24 (#1065): the calm layer's easing and
+    // timings are Tailwind theme values in `tailwind.css`.
+    for (const struck of ["--r-card", "--ring-accent", "--motion-fast"]) {
       expect(declared.light.has(struck), `${struck} still in theme.css`).toBe(false);
     }
   });
 
-  it("the set is 55 light tokens, and the dark blocks agree", () => {
-    // 55 since #1064: `--shadow-float`, the deep shadow the calm layer
-    // (DESIGN.md, 2026-09-24) spends in two places.
-    expect(declared.light.size).toBe(55);
+  it("the set is 54 light tokens, and the dark blocks agree", () => {
+    // 55 since #1064 added `--shadow-float`, the deep shadow the calm layer
+    // (DESIGN.md, 2026-09-24) spends in two places; 54 since #1065 retired
+    // `--motion-fast`.
+    expect(declared.light.size).toBe(54);
     expect([...declared["dark-media"]].sort()).toEqual([...declared["dark-toggle"]].sort());
   });
 

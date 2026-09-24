@@ -15,6 +15,7 @@
 // screen reader and a server render both get.
 import type React from "react";
 import { Area, AreaChart, ReferenceDot, ReferenceLine, Tooltip, XAxis, YAxis } from "recharts";
+import { SERIES_DRAW } from "@/ui/motion";
 
 /** Theme paint and Recharts keys, named: values, never copy. */
 const PAINT = { you: "var(--chart-you)", surface: "var(--surface)", goal: "var(--chart-goal)" } as const;
@@ -132,7 +133,7 @@ export function GrowthLine(p: {
             key={`run${run}`}
             dataKey={`run${run}`}
             connectNulls
-            isAnimationActive={false}
+            {...SERIES_DRAW}
             stroke={PAINT.you}
             strokeWidth={2.25}
             fill={PAINT.you}

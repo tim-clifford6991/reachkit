@@ -37,6 +37,9 @@ const PER_ROUTE_BROWSER_MS = 60_000;
 /** Long enough for one same-origin chunk over loopback, short enough that a
  *  chart that never mounts fails rather than hangs. */
 const CHART_MS = 20_000;
+/** Longer than `SERIES_DRAW`'s 1.4s, so a draw that ran would be caught
+ *  mid-way at the first read and finished at the second. */
+const DRAW_MS = 1_600;
 
 describe("#988 — the hero's Recharts line draws when the reader reaches it", () => {
   it(
@@ -81,6 +84,16 @@ describe("#988 — the hero's Recharts line draws when the reader reaches it", (
           const readings = await page.locator(`${HERO} figure ul.sr-only > li`).allInnerTexts();
           expect(readings.length, "the line drew no readings list").toBeGreaterThan(1);
           expect(readings.at(-1)).toContain("47");
+
+          // Reduced motion draws the final state (#1065). `withPage` opens
+          // every page as a reader who asked for no motion; the series then
+          // must not reveal itself over the 1.4s draw a moving reader gets —
+          // what is on screen the moment it mounts is what is there after.
+          const area = page.locator(`${HERO} .recharts-area`).first();
+          const atMount = await area.innerHTML();
+          expect(atMount, "the line drew no curve").toContain("recharts-area-curve");
+          await page.waitForTimeout(DRAW_MS);
+          expect(await area.innerHTML(), "the line was still drawing under reduced motion").toBe(atMount);
         },
         headersFor(route)
       );

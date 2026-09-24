@@ -35,6 +35,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { SERIES_DRAW } from "@/ui/motion";
 
 /** Theme paint and Recharts keys, named: values, never copy. */
 const PAINT = {
@@ -146,7 +147,7 @@ export function RivalSparkline(p: RivalSparklineProps): React.JSX.Element {
           )}
           <Line
             dataKey={KEY.value}
-            isAnimationActive={false}
+            {...SERIES_DRAW}
             stroke={PAINT.rival}
             strokeWidth={2}
             dot={false}

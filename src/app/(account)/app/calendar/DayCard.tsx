@@ -42,6 +42,7 @@ import { cardLabel, horizonShortFor, kindWord, shortCauseFor } from "./card-line
 import { dayNumberOf, type DayNumber } from "./day-number";
 import { dayNumber } from "./dates";
 import {
+  STAGE_BEACON,
   STAGE_FILTER_COPY_KEY,
   STAGE_MARK_AT,
   STAGE_TONE,
@@ -148,7 +149,7 @@ export function StageMark(p: {
   const word = copy(STAGE_FILTER_COPY_KEY[p.page.stage]);
   return (
     <span className="flex min-w-0 items-center gap-1" data-testid="card-stage">
-      <span className={`size-1.5 shrink-0 rounded-full ${TONE_DOT[tone]}`} aria-hidden />
+      <span className={`size-1.5 shrink-0 rounded-full ${TONE_DOT[tone]} ${STAGE_BEACON[p.page.stage]}`} aria-hidden />
       <span
         className={`shrink-0 whitespace-nowrap text-[11px]/4 font-semibold ${TONE_INK[tone]}`}
         data-testid="card-stage-word"

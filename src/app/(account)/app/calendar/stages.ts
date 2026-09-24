@@ -130,6 +130,26 @@ export const TONE_DOT: Readonly<Record<Tone, string>> = Object.freeze({
   neutral: "bg-base-content/40",
 });
 
+/**
+ * The one loop in the product (`docs/DESIGN.md`, *The calm layer*,
+ * "Motion", #1065): a soft 2.4s pulse on the *Live* and *Your review* dots —
+ * the two stages where something is happening on the customer's domain or
+ * waiting on them. A ring of the dot's own colour widens and fades behind
+ * it; the dot itself does not move. It runs only under `motion-safe`, and
+ * the ring rests at `opacity-0`, so under reduced motion the dot is drawn
+ * still. Whole class names, for the reason `STAGE_MARK_AT` gives.
+ */
+const BEACON =
+  "relative after:absolute after:inset-0 after:rounded-full after:bg-inherit after:opacity-0 motion-safe:after:animate-beacon";
+
+export const STAGE_BEACON: Readonly<Record<Stage, string>> = Object.freeze({
+  live: BEACON,
+  your_review: BEACON,
+  scheduled: "",
+  planned: "",
+  needs_you: "",
+});
+
 export const TONE_INK: Readonly<Record<Tone, string>> = Object.freeze({
   accent: "text-primary",
   ok: "text-success",

@@ -49,7 +49,7 @@ import { EMPTY_ACCOUNT_COPY_KEY, HELD_BY_SETTING_COPY_KEY, isLawCause, isSupplyC
 import { kindWord } from "./card-lines";
 import { nextPublishStatement, stoppedWorkStatement, type WorkStop } from "@/lib/presentation/stopped";
 import { fullDate } from "./dates";
-import { STAGE_FILTER_COPY_KEY, STAGE_OF, STAGE_TONE, TONE_DOT, TONE_INK } from "./stages";
+import { STAGE_BEACON, STAGE_FILTER_COPY_KEY, STAGE_OF, STAGE_TONE, TONE_DOT, TONE_INK } from "./stages";
 import { COMMAND_TARGET, publishing } from "./publishing";
 import { say } from "../../../_toast/say";
 import { TargetRows } from "./TargetRows";
@@ -208,10 +208,10 @@ function DayActions(p: {
 
 /** The head: the stage as the card states it — a dot and a word, never a
  *  `badge` that cannot shrink (#944) — the date, and the close control. */
-function Heading(p: { word: string; tone: Tone; date: string; onClose: () => void }): React.JSX.Element {
+function Heading(p: { word: string; tone: Tone; beacon?: string; date: string; onClose: () => void }): React.JSX.Element {
   return (
     <div className="flex min-w-0 items-center gap-2" data-testid="day-head">
-      <span className={`size-2 shrink-0 rounded-full ${TONE_DOT[p.tone]}`} aria-hidden />
+      <span className={`size-2 shrink-0 rounded-full ${TONE_DOT[p.tone]} ${p.beacon ?? ""}`} aria-hidden />
       {/* A stage word is never truncated (owner, PR #961) — here as on the
           card, so one stage is drawn one way. */}
       <span
@@ -446,6 +446,7 @@ function PageDayPanel(p: {
         <Heading
           word={copy(stage === null ? "calendar.empty.day-badge" : STAGE_FILTER_COPY_KEY[stage])}
           tone={stage === null ? "neutral" : STAGE_TONE[stage]}
+          beacon={stage === null ? undefined : STAGE_BEACON[stage]}
           date={date}
           onClose={p.onClose}
         />

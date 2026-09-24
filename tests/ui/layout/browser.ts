@@ -422,6 +422,10 @@ export async function withPage<T>(
     const context = await browser.newContext({
       viewport: { width, height: VIEWPORT_HEIGHT_PX },
       extraHTTPHeaders: options.extraHTTPHeaders,
+      // Every page this suite opens renders as a reader who asked for no
+      // motion (#1065): nothing rises, pulses or draws over time, so a box
+      // is measured where it rests, and a chart is its final series.
+      reducedMotion: "reduce",
     });
     try {
       const page = await context.newPage();

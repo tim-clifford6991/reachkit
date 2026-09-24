@@ -48,6 +48,7 @@ import { Suspense } from "react";
 import { PanelLeftClose, PanelLeftOpen, Send } from "lucide-react";
 import { Brand, BrandMark } from "@/app/_brand/Brand";
 import { Surface } from "@/ui/layout";
+import { ENTER_APP } from "@/ui/motion";
 import { copy } from "@/lib/presentation/copy";
 import { AppDock } from "./_shell/AppDock";
 import { SidebarNav } from "./_shell/SidebarNav";
@@ -139,7 +140,7 @@ export default async function AppLayout({
           <Suspense fallback={<TopBarSkeleton />}>
             <TopBarSlot shell={shell} />
           </Suspense>
-          <main className="flex min-w-0 flex-1 flex-col gap-4">
+          <main className={`flex min-w-0 flex-1 flex-col gap-4 ${ENTER_APP}`}>
             {/* REQ-092 c3: stated once, on the screen the customer lands on.
                 No fallback: a stop is the exception, so a box held for one
                 would be an empty alert on every screen that has none. */}

@@ -15,6 +15,7 @@ import { RivalSparkline } from "@/ui/charts/RivalSparkline";
 const BOX = { width: 320, height: 100 };
 const realRect = HTMLElement.prototype.getBoundingClientRect;
 const realObserver = globalThis.ResizeObserver;
+const realMatchMedia = window.matchMedia;
 const mounted: { root: Root; host: HTMLElement }[] = [];
 
 beforeAll(() => {
@@ -26,6 +27,20 @@ beforeAll(() => {
   };
   HTMLElement.prototype.getBoundingClientRect = () =>
     ({ ...BOX, top: 0, left: 0, right: BOX.width, bottom: BOX.height, x: 0, y: 0, toJSON: () => ({}) }) as DOMRect;
+  // A reader who asked for no motion (#1065). Every series draws over 1.4s
+  // for everybody else; for this reader it is its final state at once, which
+  // is the state every assertion below reads. jsdom has no `matchMedia`, and
+  // Recharts takes a missing one as "motion is fine".
+  window.matchMedia = ((query: string) => ({
+    matches: query === "(prefers-reduced-motion: reduce)",
+    media: query,
+    onchange: null,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    addListener: () => {},
+    removeListener: () => {},
+    dispatchEvent: () => false,
+  })) as typeof window.matchMedia;
 });
 
 afterEach(() => {
@@ -38,6 +53,7 @@ afterEach(() => {
 afterAll(() => {
   HTMLElement.prototype.getBoundingClientRect = realRect;
   globalThis.ResizeObserver = realObserver;
+  window.matchMedia = realMatchMedia;
 });
 
 async function draw(el: React.JSX.Element): Promise<HTMLElement> {

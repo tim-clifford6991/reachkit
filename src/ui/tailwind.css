@@ -137,3 +137,112 @@ body {
 .tabs > .tab:not(.tab-active, [aria-selected="true"], [aria-current="page"], [aria-current="true"]) {
   color: var(--ink-2);
 }
+
+/* ── The motion layer (owner, 2026-09-24, #1059 · #1065) ──
+ *
+ * `docs/DESIGN.md`, *The calm layer*, "Motion": one easing,
+ * `cubic-bezier(.2,.7,.2,1)`, and seven timings. What a screen spends is a
+ * Tailwind utility (`motion-safe:animate-rise`, `transition-colors`,
+ * `duration-200`); these are the values those utilities read. `static`
+ * because the easing is also read by the plain rules below, which Tailwind
+ * does not see.
+ *
+ *   hover colour, border, tab ink   150ms — the default every `transition-*` takes
+ *   press                           120ms — `.btn` below
+ *   lift, arrow nudge               200ms — `duration-200` at the card (#1064)
+ *   tab underline, chevron          250ms — below
+ *   screen enter                    600ms — `animate-rise`, 60ms apart
+ *   chart draw                      1.4s  — `SERIES_DRAW` in `src/ui/motion.ts`
+ *   *Live* / *Your review* dot      2.4s  — `animate-beacon`, the only loop
+ *
+ * Under `prefers-reduced-motion: reduce` nothing moves: `idiom.css` turns
+ * every animation and transition off, `animate-rise` holds nothing back once
+ * it is off (its `from` is the only frame it states), the beacon's ring
+ * rests invisible, and the view-transition rule at the end zeroes what `*`
+ * does not reach. */
+@theme static {
+  --ease-calm: cubic-bezier(.2, .7, .2, 1);
+  --default-transition-duration: 150ms;
+  --default-transition-timing-function: var(--ease-calm);
+
+  /* `backwards`, never `both`: once it has run it lets go of `translate`,
+   * so a card's hover lift is not overridden by a finished entrance. */
+  --animate-rise: rise 600ms var(--ease-calm) backwards;
+  --animate-beacon: beacon 2.4s var(--ease-calm) infinite;
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      translate: 0 8px;
+    }
+  }
+
+  @keyframes beacon {
+    0% {
+      scale: 1;
+      opacity: 0.55;
+    }
+    70%,
+    100% {
+      scale: 2.6;
+      opacity: 0;
+    }
+  }
+}
+
+/* The timings daisyUI has no slot for. Unlayered, like the tab rule above,
+ * so they win over daisyUI's components without `!important`; each states
+ * a duration and the easing, never a colour or a size.
+ *
+ * `.btn`: colour in 150ms and press in 120ms. daisyUI transitions
+ * `transform` but not `scale`, which is the property `active:scale-[.98]`
+ * sets, so both are named. */
+.btn {
+  transition-property: color, background-color, border-color, box-shadow, transform, scale;
+  transition-duration: 150ms, 150ms, 150ms, 150ms, 120ms, 120ms;
+  transition-timing-function: var(--ease-calm);
+}
+
+/* The tab underline draws out from its centre, and the chevron turns, in
+ * 250ms. An inactive tab's underline is transparent, so collapsing it to
+ * nothing changes no pixel until the tab becomes the current one. */
+.tabs-border > .tab::before {
+  scale: 0 1;
+  transition:
+    background-color 150ms var(--ease-calm),
+    scale 250ms var(--ease-calm);
+}
+.tabs-border > .tab:is(.tab-active, [aria-selected="true"], [aria-current="page"], [aria-current="true"])::before {
+  scale: 1;
+}
+.collapse-arrow > .collapse-title::after {
+  transition-duration: 250ms;
+  transition-timing-function: var(--ease-calm);
+}
+
+/* Suspense reveals (`<ViewTransition>` in `src/ui/motion.ts`): a skeleton
+ * leaves in 150ms and the page crossfades to what replaced it on the one
+ * easing. The overlay never swallows a click (the Next guide's own rule). */
+::view-transition {
+  pointer-events: none;
+}
+::view-transition-group(root) {
+  animation-duration: 250ms;
+  animation-timing-function: var(--ease-calm);
+}
+::view-transition-old(.settle) {
+  animation: 150ms var(--ease-calm) both settle;
+}
+@keyframes settle {
+  to {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+  }
+}

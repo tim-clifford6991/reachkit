@@ -11,7 +11,6 @@ import path from "node:path";
 import postcss, { type AtRule, type Declaration } from "postcss";
 import { describe, expect, it } from "vitest";
 import { widths } from "../layout/widths";
-import { THEME_CSS, tokenSet } from "./tokens-doc";
 
 const REPO = path.resolve(import.meta.dirname, "../../..");
 const SRC = path.join(REPO, "src");
@@ -86,43 +85,33 @@ describe("SPEC §4 (2026-09-20) — the compact band keeps all three, as a dock"
   });
 });
 
-describe("§0 13 — one motion token", () => {
-  it("--motion-fast is .18s in all three blocks of theme.css", () => {
-    const set = tokenSet(THEME_CSS);
-    for (const block of ["light", "dark-media", "dark-toggle"] as const) {
-      expect(set[block].get("--motion-fast"), block).toBe(".18s");
-    }
-  });
+describe("the calm layer — one easing, seven timings (owner, 2026-09-24, #1065)", () => {
+  // Supersedes §0 13 (2026-09-11), whose one token was `--motion-fast: .18s`
+  // on five properties. `docs/DESIGN.md`, *The calm layer*, "Motion": press
+  // 120ms · hover colour 150ms · lift 200ms · tab underline and chevron
+  // 250ms · screen enter 600ms · chart draw 1.4s · the pulse 2.4s, all on
+  // `cubic-bezier(.2,.7,.2,1)`. 0s is the reduced-motion rule's own value.
+  const TIMINGS = new Set(["120ms", "150ms", "200ms", "250ms", "600ms", "1.4s", "2.4s", "0s"]);
+  const MOVES = /^(transition|animation)(-duration|-timing-function)?$|^--animate-|^--default-transition-/;
+  // Any easing written out rather than read from the one token.
+  const OTHER_EASING = /cubic-bezier\(|\b(ease|ease-in|ease-out|ease-in-out|linear)\b|steps\(/;
 
-  it("nothing else in src declares a transition duration, and only the ruled properties move", () => {
-    const ALLOWED = new Set(["color", "background-color", "border-color", "box-shadow", "transform"]);
+  it("every duration src's CSS states is one of the seven, and every easing is the one", () => {
     const offenders: string[] = [];
     for (const file of walk(SRC, (f) => f.endsWith(".css"))) {
       const rel = path.relative(REPO, file);
       postcss.parse(readFileSync(file, "utf8")).walkDecls((d: Declaration) => {
-        const prop = d.prop;
+        if (d.prop === "--ease-calm") {
+          if (d.value.replace(/\s+/g, "") !== "cubic-bezier(.2,.7,.2,1)") offenders.push(`${rel}: ${d.prop}: ${d.value}`);
+          return;
+        }
+        if (!MOVES.test(d.prop)) return;
         const value = d.value.trim();
-        if (/^animation(-duration)?$/.test(prop) && value !== "none") {
-          offenders.push(`${rel}: ${prop}: ${value}`);
-        }
-        if (!/^transition(-duration|-property)?$/.test(prop)) return;
         if (value === "none" || value.startsWith("none ")) return;
-        if (prop === "transition-duration") {
-          if (value !== "var(--motion-fast)") offenders.push(`${rel}: ${prop}: ${value}`);
-          return;
+        for (const time of value.match(/(?<![\w-])\d*\.?\d+m?s\b/g) ?? []) {
+          if (!TIMINGS.has(time)) offenders.push(`${rel}: ${d.prop}: ${time}`);
         }
-        if (prop === "transition-property") {
-          for (const p of value.split(",").map((v) => v.trim())) {
-            if (!ALLOWED.has(p)) offenders.push(`${rel}: ${prop}: ${p}`);
-          }
-          return;
-        }
-        for (const layer of value.split(",").map((v) => v.trim())) {
-          const [p, duration, ...rest] = layer.split(/\s+/);
-          if (!ALLOWED.has(p ?? "") || duration !== "var(--motion-fast)" || rest.length > 0) {
-            offenders.push(`${rel}: ${prop}: ${layer}`);
-          }
-        }
+        if (OTHER_EASING.test(value.replaceAll("var(--ease-calm)", ""))) offenders.push(`${rel}: ${d.prop}: ${value}`);
       });
     }
     // Inline styles and style strings in TS/TSX are the other place a

@@ -23,6 +23,7 @@
 // worth — which is the screen's own layout and is exactly what a route
 // file is for. Nothing here wraps `skeleton` itself.
 import type React from "react";
+import { SKELETON_EXIT, ViewTransition } from "@/ui/motion";
 
 /** One box. Spelled here so the class name is written once per shape
  *  rather than once per box, and so `height` is the only thing a caller
@@ -46,16 +47,20 @@ export function Waiting(p: {
   className?: string;
   testId: string;
 }): React.JSX.Element {
+  // The Suspense reveal (#1065): when the boundary resolves, this leaves
+  // and the page crossfades to what arrived.
   return (
-    <div
-      className={p.className ?? "flex min-w-0 flex-col gap-4"}
-      role="status"
-      aria-busy="true"
-      data-waiting=""
-      data-testid={p.testId}
-    >
-      {p.children}
-    </div>
+    <ViewTransition {...SKELETON_EXIT}>
+      <div
+        className={p.className ?? "flex min-w-0 flex-col gap-4"}
+        role="status"
+        aria-busy="true"
+        data-waiting=""
+        data-testid={p.testId}
+      >
+        {p.children}
+      </div>
+    </ViewTransition>
   );
 }
 
