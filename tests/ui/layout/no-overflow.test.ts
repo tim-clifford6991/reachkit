@@ -248,17 +248,23 @@ describe(`no overflow, no clipping, axe clean — ${routes.length} route(s) × $
       "That is good news: the defect is fixed. Delete the row — and close the issue if it was\n" +
       "the last row naming it.\n" +
       orphaned.join("\n");
+    // An empty list is stated, on either arm, rather than passing silently
+    // (rule 5.5): nothing is excused, and that is worth a line in the log.
+    if (KNOWN_ON_MAIN.length === 0) {
+      console.log("tests/ui/layout/no-overflow.test.ts: KNOWN_ON_MAIN is empty — this run excused nothing.");
+    }
     if (!ENVIRONMENT_OF_RECORD) {
       // Not CI, so a row that matched nothing may only mean this machine
       // draws text a pixel narrower — `ENVIRONMENT_OF_RECORD` says which
       // rows that reaches and why. Reported, never asserted, and never
       // silent (rule 5.5).
-      console.log(
-        orphaned.length === 0
-          ? "tests/ui/layout/no-overflow.test.ts: every KNOWN_ON_MAIN row was met on this machine."
-          : `tests/ui/layout/no-overflow.test.ts: not CI, so this is a report, not a verdict.\n${message}`,
-      );
-      expect(KNOWN_ON_MAIN.length).toBeGreaterThan(0);
+      if (KNOWN_ON_MAIN.length > 0) {
+        console.log(
+          orphaned.length === 0
+            ? "tests/ui/layout/no-overflow.test.ts: every KNOWN_ON_MAIN row was met on this machine."
+            : `tests/ui/layout/no-overflow.test.ts: not CI, so this is a report, not a verdict.\n${message}`,
+        );
+      }
       return;
     }
     expect(orphaned, message).toEqual([]);
