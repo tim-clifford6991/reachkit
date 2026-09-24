@@ -47,6 +47,23 @@ export const CHROME_COPY = Object.freeze({
   "chrome.theme.light": ["Light", { slots: {}, fixedBy: "issue 681" }],
   "chrome.theme.dark": ["Dark", { slots: {}, fixedBy: "issue 681" }],
   "chrome.theme.system": ["System", { slots: {}, fixedBy: "issue 681" }],
+  /** SPEC §1 2026-09-24 (#1066): the nav's two landing anchors, and the
+   *  header's solid CTA. Words from boards `R12-1-Landing` / `R12-8`.
+   *  *Free scans* joins them with the gallery (#1069). */
+  "chrome.nav.why": ["Why it matters", { slots: {}, fixedBy: "issue 1066" }],
+  "chrome.nav.how": ["How to start", { slots: {}, fixedBy: "issue 1066" }],
+  "chrome.cta.start": ["Start free", { slots: {}, fixedBy: "issue 1066" }],
+  /** The dismissible banner above every public header (#1066). The one
+   *  line the owner edits is `chrome.banner`; the tag, the region's name
+   *  and the close button's name are the board's words. Its link is the
+   *  hero's own `landing.submit.label`. */
+  "chrome.banner": [
+    "Every scan comes with your first page, proposed and free — see it at the end of your report.",
+    { slots: {}, fixedBy: "issue 1066" },
+  ],
+  "chrome.banner.tag": ["Free", { slots: {}, fixedBy: "issue 1066" }],
+  "chrome.banner.label": ["Announcement", { slots: {}, fixedBy: "issue 1066" }],
+  "chrome.banner.dismiss": ["Dismiss", { slots: {}, fixedBy: "issue 1066" }],
 
   /* ── The footer ──────────────────────────────────────────────────── */
   "chrome.footer.product": ["Product", { slots: {}, fixedBy: "the approved screen set · 3a" }],

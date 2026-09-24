@@ -1,4 +1,9 @@
-// BUILD §3 — the public header's three parts.
+// BUILD §3 — the public chrome: the banner and the header.
+//
+// 2026-09-24, #1066: the rows below assert the calm-layer chrome (SPEC §1,
+// boards R12-1 / R12-8 / R12-10) — the banner, the nav's links, the two-state
+// theme switch, and *Start free* solid. The history that follows describes
+// the shapes those rows replaced.
 // tests/app/chrome/header.test.tsx
 //
 // The header is applied by `(public)/layout.tsx`, and the cold-start and
@@ -46,6 +51,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { Header } from "@/app/(public)/_chrome/Header";
 import { headerActionFor, type HeaderAction } from "@/app/(public)/_chrome/action";
+import { COPY } from "@/lib/presentation/copy";
 
 /** The address the header believes it is at. `usePathname()` is the one
  *  thing a bar rendered outside a router cannot have, and it is exactly
@@ -73,13 +79,16 @@ function markup(path: string): string {
   return renderToStaticMarkup(<Header />);
 }
 
-function withoutThemeToggle(html: string): string {
-  return html.replace(/<div[^>]*data-testid="theme-toggle"[\s\S]*?<\/ul><\/div>/g, "");
+/** The bar without the drawer — what a reader sees from `lg`. */
+function withoutDrawer(html: string): string {
+  const start = html.indexOf('<div class="drawer ');
+  const end = html.indexOf("</nav>", start);
+  return html.slice(0, start) + html.slice(end);
 }
 
-/** The bar without the phone menu — what a reader sees from `sm`. */
-function withoutPhoneMenu(html: string): string {
-  return html.replace(/<div[^>]*data-testid="public-header-menu"[\s\S]*?<\/ul><\/div>/, "");
+/** The drawer alone. */
+function drawer(html: string): string {
+  return html.slice(html.indexOf('data-testid="public-header-menu"'));
 }
 
 /** The three arms, as the addresses that choose them. */
@@ -90,8 +99,12 @@ const REPORT = "/scan/example.com";
 const LANDING_ACTION: HeaderAction = { kind: "landing" };
 const ELSEWHERE_ACTION: HeaderAction = { kind: "cta" };
 
-describe("SPEC §1, owner 2026-09-15 (issue 714) — the same bar on the report, token pages and sign-in", () => {
-  it("the veto, opt-out and sign-in routes take the plain pair; the landing takes its field CTA", () => {
+function primaries(html: string): string[] {
+  return [...html.matchAll(/class="([^"]*\bbtn-primary\b[^"]*)"/g)].map((m) => m[1] ?? "").filter((c) => !c.includes("btn-soft"));
+}
+
+describe("SPEC §1, owner 2026-09-15 (issue 714) — the same chrome on the report, token pages and sign-in", () => {
+  it("the veto, opt-out and sign-in routes take the plain arm; the landing takes its field CTA", () => {
     for (const path of ["/veto/a-token", "/opt-out/a-token", "/signin", "/pricing"]) {
       expect(headerActionFor(path)).toEqual(ELSEWHERE_ACTION);
     }
@@ -99,87 +112,66 @@ describe("SPEC §1, owner 2026-09-15 (issue 714) — the same bar on the report,
     expect(["copy-link", "cta"]).toContain(headerActionFor("/scan/example.com").kind);
   });
 
-  it("the report keeps its copy control beside Sign in and the one outline CTA", () => {
-    const html = withoutThemeToggle(markup(REPORT));
-    expect(html).toContain('href="/signin"');
-    // The copy control itself, by the glyph only it draws — the bar's arm
-    // and the phone menu's, which is why there are two.
+  it("the report keeps its copy control, in the bar and in the drawer, and the URL stays out of the markup", () => {
+    const html = markup(REPORT);
     expect(html.match(/lucide-copy\b/g)).toHaveLength(2);
-    expect(html).toContain('<button');
-    const primaries = [...html.matchAll(/class="([^"]*\bbtn-primary\b[^"]*)"/g)].map((m) => m[1] ?? "");
-    expect(primaries).toHaveLength(1);
-    expect(primaries[0]).toContain("btn-outline");
-    // The URL reaches the clipboard through a handler, never the markup.
     expect(html).not.toContain("https://reachkit.app");
   });
 });
 
-describe("SPEC §1 — brand · Sign in · the header CTA, outline", () => {
-  it("both arms carry the wordmark and the quiet Sign in, and nothing else links out", () => {
-    // The hrefs, not the keys: this renders against the real registry, so
-    // an owed sentence resolves to its `TODO(copy)` marker and a key name
-    // never reaches the markup. What is stable is the destination.
-    for (const html of [markup(LANDING), markup(ELSEWHERE)]) {
-      expect(html).toContain('href="/signin"');
-      expect(html).toContain("btn-ghost");
-      // #936: the bar is brand · Pricing · Sign in · the CTA. Those four
-      // and no fifth — a link to anywhere else belongs in the footer.
-      expect(html).toContain('href="/pricing"');
-      const hrefs = new Set([...html.matchAll(/href="([^"]*)"/g)].map((m) => m[1]));
-      expect([...hrefs].sort()).toEqual(["/", "/pricing", "/signin"]);
+describe("SPEC §1, 2026-09-24 (#1066) — the banner and the nav", () => {
+  it("the banner sits above the header, with its one line, its tag, a way to the field and a dismiss button", () => {
+    const html = markup(ELSEWHERE);
+    expect(html.indexOf('data-testid="public-banner"')).toBeLessThan(html.indexOf('data-testid="public-header"'));
+    const banner = html.slice(html.indexOf('data-testid="public-banner"'), html.indexOf('data-testid="public-header"'));
+    expect(banner).toContain(COPY["chrome.banner"]);
+    expect(banner).toContain(COPY["chrome.banner.tag"]);
+    expect(banner).toContain('href="/#landing-field"');
+    expect(banner).toContain(`aria-label="${COPY["chrome.banner.dismiss"]}"`);
+  });
+
+  it("the nav is Why it matters · How to start · Pricing, then Sign in and Start free — no Free scans yet (#1069)", () => {
+    const bar = withoutDrawer(markup(ELSEWHERE));
+    const words = [COPY["chrome.nav.why"], COPY["chrome.nav.how"], COPY["chrome.nav.pricing"], COPY["chrome.nav.signin"], COPY["chrome.cta.start"]];
+    const at = words.map((w) => bar.indexOf(w));
+    expect(at.every((i) => i > 0)).toBe(true);
+    expect([...at].sort((x, y) => x - y)).toEqual(at);
+    expect(bar).not.toContain('href="/scans"');
+  });
+
+  it("Start free is the header's one solid primary, on every arm; Sign in is a ghost", () => {
+    for (const path of [LANDING, ELSEWHERE, REPORT]) {
+      const html = markup(path);
+      const solid = primaries(html);
+      expect(solid).toHaveLength(1);
+      expect(solid[0]).not.toContain("btn-outline");
+      expect(html).toContain('<a class="btn btn-ghost btn-sm hidden sm:inline-flex" href="/signin">');
     }
   });
 
-  it("every arm carries one CTA, outline, so the header adds no solid button to any screen (2026-09-14)", () => {
-    for (const html of [markup(LANDING), markup(ELSEWHERE)]) {
-      const primaries = [...html.matchAll(/class="([^"]*\bbtn-primary\b[^"]*)"/g)].map((m) => m[1] ?? "");
-      expect(primaries).toHaveLength(1);
-      expect(primaries[0]).toContain("btn-outline");
-    }
+  it("on the landing Start free is a button that focuses the field, never a second submit; elsewhere it links to the field", () => {
+    const landing = markup(LANDING);
+    expect(landing).toMatch(/<button type="button" class="btn btn-primary btn-sm">/);
+    expect(landing).not.toContain('type="submit"');
+    expect(markup(ELSEWHERE)).toContain('<a class="btn btn-primary btn-sm" href="/#landing-field">');
   });
 
-  it("off the landing the CTA is a link to the field's own page", () => {
+  it("the theme control is two states, light and dark, in the bar and in the drawer", () => {
     const html = markup(ELSEWHERE);
-    // The CTA itself is an anchor: a navigation with no client runtime,
-    // which is what an anchor is for. Asserted on the element rather than
-    // by counting `<button>`s over the document, because since #936 the
-    // document also holds the phone menu's trigger and the theme
-    // control's — neither of which is the CTA.
-    expect(html).toMatch(/<a[^>]*href="\/"[^>]*class="[^"]*btn-outline[^"]*"|<a[^>]*class="[^"]*btn-outline[^"]*"[^>]*href="\/"/);
-    expect(html).not.toMatch(/<button[^>]*class="[^"]*btn-outline/);
+    expect(html.match(/data-testid="theme-switch"/g)).toHaveLength(2);
+    expect(withoutDrawer(html).match(/data-theme-choice="(light|dark|system)"/g)).toEqual([
+      'data-theme-choice="light"',
+      'data-theme-choice="dark"',
+    ]);
+    expect(html).not.toContain('data-testid="theme-toggle"');
   });
 
-  it("the phone menu holds what the bar drops, and the bar keeps the brand and the CTA (#936)", () => {
+  it("the drawer holds every link, the switch and Sign in, and Start free stays in the bar", () => {
     const html = markup(ELSEWHERE);
-    // The bar at 390 is three things: brand, the outline CTA, the menu.
-    const bar = withoutPhoneMenu(html);
-    expect(bar).toContain('data-testid="public-brand"');
-    expect(bar).toMatch(/btn-outline/);
-    expect(html).toContain('data-testid="public-header-menu"');
-    // Nothing is dropped: every link in the bar is also in the menu, so a
-    // phone reader can reach all of them.
-    const menu = html.slice(html.indexOf('data-testid="public-header-menu"'));
-    for (const href of ["/pricing", "/signin"]) expect(menu).toContain(`href="${href}"`);
-  });
-
-  it("#681 — every arm carries the Light / Dark / System control, at both widths", () => {
-    for (const action of [LANDING, ELSEWHERE, REPORT]) {
-      expect(markup(action)).toContain('data-testid="theme-toggle"');
-    }
-    // Three choices in each width arm, and exactly two arms: the bar's,
-    // shown from `sm`, and the phone menu's. Counted per arm so that a
-    // third copy arriving somewhere would fail this rather than passing
-    // as "six".
-    const html = markup(ELSEWHERE);
-    const inBar = withoutPhoneMenu(html);
-    expect(inBar.match(/data-theme-choice="(light|dark|system)"/g)).toHaveLength(3);
-    expect(html.match(/data-theme-choice="(light|dark|system)"/g)).toHaveLength(6);
-    expect(html.match(/data-testid="theme-toggle"/g)).toHaveLength(2);
-  });
-
-  it("on the landing the CTA is a button that focuses the field, never a second submit (REQ-099 c3, REQ-001 c1)", () => {
-    const html = markup(LANDING);
-    expect(html).toContain('type="button"');
-    expect(html).not.toContain('type="submit"');
+    const menu = drawer(html);
+    for (const href of ["/#why", "/#how", "/pricing", "/signin"]) expect(menu).toContain(`href="${href}"`);
+    expect(menu).toContain('data-testid="theme-switch"');
+    expect(menu).not.toContain(COPY["chrome.cta.start"]);
+    expect(withoutDrawer(html)).toContain(COPY["chrome.cta.start"]);
   });
 });

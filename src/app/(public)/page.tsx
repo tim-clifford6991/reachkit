@@ -28,7 +28,7 @@ import { scanFormWords } from "./_landing/scan-form-words";
 import { WeekHero } from "./_landing/WeekHero";
 import { MatrixCard } from "./_landing/MatrixCard";
 import { WeekCard } from "./_landing/WeekCard";
-import { FieldCta, FIELD_SECTION_ID } from "./_landing/FieldCta";
+import { FieldCta, FIELD_SECTION_ID, HOW_SECTION_ID, WHY_SECTION_ID } from "./_landing/FieldCta";
 import { PUBLIC_ROUTE_SEO } from "./_seo/routes";
 import { staticMetadata } from "./_seo/metadata";
 
@@ -85,7 +85,7 @@ export default function LandingPage(props: {
       <main className="col-span-full grid grid-cols-subgrid">
         {/* ══ HERO ══ */}
         {/* The surface's gutter is the only one — see `SECTION`. */}
-        <section id={FIELD_SECTION_ID} className="col-span-full pt-12 pb-16 lg:pt-20">
+        <section id={FIELD_SECTION_ID} className="col-span-full scroll-mt-20 pt-12 pb-16 lg:pt-20">
           <div className={`${INNER} ${PAIR}`}>
             <div className="flex min-w-0 flex-col items-center text-center lg:items-start lg:text-left">
               <h1 className="t-hero">{copy("landing.headline")}</h1>
@@ -124,7 +124,7 @@ export default function LandingPage(props: {
         </section>
 
         {/* ══ 01 · WHY SHOULD THEY CARE ══ */}
-        <section className={SECTION}>
+        <section id={WHY_SECTION_ID} className={`${SECTION} scroll-mt-16`}>
           <div className={`${INNER} ${PAIR}`}>
             <div className="min-w-0 max-w-2xl text-center lg:text-left">
               <p className={`${LABEL} justify-center lg:justify-start`}>
@@ -156,7 +156,7 @@ export default function LandingPage(props: {
         </section>
 
         {/* ══ 03 · WHAT THEY DO TO START TODAY ══ */}
-        <section className={SECTION}>
+        <section id={HOW_SECTION_ID} className={`${SECTION} scroll-mt-16`}>
           <div className={INNER}>
             <div className="mx-auto max-w-2xl text-center">
               <p className={`${LABEL} justify-center`}>
