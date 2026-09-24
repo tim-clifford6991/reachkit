@@ -93,9 +93,13 @@ function Countdown(p: { at: Date; timeZone: string }): React.JSX.Element {
           holds still as the seconds turn. Not a live region — a screen
           reader announcing every second would be the page talking over
           itself; the absolute time under it is the fact to read. */}
-      <span className="num text-2xl" data-testid="draft-countdown-left">
-        {now === null ? null : countdownText(p.at, now)}
-      </span>
+      {/* Drawn only once there is a clock: an empty figure on the server
+          would be a blank where a value sits (REQ-091 c2). */}
+      {now === null ? null : (
+        <span className="num text-2xl" data-testid="draft-countdown-left">
+          {countdownText(p.at, now)}
+        </span>
+      )}
       <span className="text-xs text-base-content/70" data-testid="draft-do-nothing-at">
         {formatDateTime(p.at, p.timeZone)}
       </span>

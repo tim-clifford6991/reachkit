@@ -506,10 +506,10 @@ describe("§9.1 idiom — one solid primary per screen, across src/app/(account)
     const draft = cold.find((r) => r.route.url.startsWith("/app/draft"));
     const actions = draft?.doc.querySelector('[data-testid="draft-actions"]');
     expect(actions?.querySelectorAll(SOLID_PRIMARY)).toHaveLength(1);
-    // The other two are the idiom's quiet ranks, and the veto carries the
-    // one tone a rank may take.
+    // The other two are the calm layer's quiet ranks (#1063, board
+    // R12-6-Page): Edit soft, and Stop a ghost carrying the warning tone.
     expect(actions?.querySelectorAll(".btn-ghost.btn-warning")).toHaveLength(1);
-    expect(actions?.querySelectorAll(".btn-ghost:not(.btn-warning)")).toHaveLength(1);
+    expect(actions?.querySelectorAll(".btn-soft:not(.btn-warning)")).toHaveLength(1);
   });
 
   // The same rule over `src/app/(public)/**` (issue #290), as ruling 2b of
